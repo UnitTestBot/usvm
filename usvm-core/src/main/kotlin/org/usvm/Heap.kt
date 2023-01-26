@@ -3,7 +3,6 @@ package org.usvm
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentMapOf
 import org.ksmt.solver.KModel
-import java.lang.IllegalArgumentException
 
 interface UReadOnlyHeap<in Ref, Value, SizeT, Field, ArrayType> {
     fun readField(ref: Ref, field: Field, sort: USort): Value
@@ -11,13 +10,13 @@ interface UReadOnlyHeap<in Ref, Value, SizeT, Field, ArrayType> {
     fun readArrayLength(ref: Ref, arrayType: ArrayType): SizeT
 }
 
-typealias UReadOnlySymbolicHeap<Field, ArrayType> = UReadOnlyHeap<UHeapRef, UExpr, USizeExpr, Field, ArrayType>
+typealias UReadOnlySymbolicHeap<Field, ArrayType> = UReadOnlyHeap<UHeapRef, UExpr<USort>, USizeExpr, Field, ArrayType>
 
 class UEmptyHeap<Field, ArrayType>(private val ctx: UContext): UReadOnlySymbolicHeap<Field, ArrayType> {
-    override fun readField(ref: UHeapRef, field: Field, sort: USort): UExpr =
+    override fun readField(ref: UHeapRef, field: Field, sort: USort): UExpr<USort> =
         ctx.mkDefault(sort)
 
-    override fun readArrayIndex(ref: UHeapRef, index: USizeExpr, arrayType: ArrayType, elementSort: USort): UExpr =
+    override fun readArrayIndex(ref: UHeapRef, index: USizeExpr, arrayType: ArrayType, elementSort: USort): UExpr<USort> =
         ctx.mkDefault(elementSort)
 
     override fun readArrayLength(ref: UHeapRef, arrayType: ArrayType) =
@@ -37,7 +36,7 @@ interface UHeap<Ref, Value, SizeT, Field, ArrayType>: UReadOnlyHeap<Ref, Value, 
     fun decode(model: KModel): UReadOnlyHeap<Ref, Value, SizeT, Field, ArrayType>
 }
 
-typealias USymbolicHeap<Field, ArrayType> = UHeap<UHeapRef, UExpr, USizeExpr, Field, ArrayType>
+typealias USymbolicHeap<Field, ArrayType> = UHeap<UHeapRef, UExpr<USort>, USizeExpr, Field, ArrayType>
 
 /**
  * Current heap address holder. Calling @freshAddress advances counter globally.
@@ -53,7 +52,7 @@ class UAddressCounter {
 data class URegionHeap<Field, ArrayType>(
     private val ctx: UContext,
     private var lastAddress: UAddressCounter = UAddressCounter(),
-    var allocatedFields: PersistentMap<Pair<UHeapAddress, Field>, UExpr> = persistentMapOf(),
+    var allocatedFields: PersistentMap<Pair<UHeapAddress, Field>, UExpr<USort>> = persistentMapOf(),
     var inputFields: PersistentMap<Field, UVectorMemoryRegion> = persistentMapOf(),
     var allocatedArrays: PersistentMap<UHeapAddress, UVectorMemoryRegion> = persistentMapOf(),
     var inputArrays: PersistentMap<ArrayType, UArrayMemoryRegion> = persistentMapOf(),
@@ -62,7 +61,7 @@ data class URegionHeap<Field, ArrayType>(
 )
     : USymbolicHeap<Field, ArrayType>
 {
-    override fun readField(ref: UHeapRef, field: Field, sort: USort): UExpr =
+    override fun readField(ref: UHeapRef, field: Field, sort: USort): UExpr<USort> =
         when(ref) {
             is UConcreteHeapRef ->
                 allocatedFields[Pair(ref.address, field)] ?: sort.defaultValue()
@@ -72,7 +71,7 @@ data class URegionHeap<Field, ArrayType>(
             }
         }
 
-    override fun readArrayIndex(ref: UHeapRef, index: USizeExpr, arrayType: ArrayType, elementSort: USort): UExpr =
+    override fun readArrayIndex(ref: UHeapRef, index: USizeExpr, arrayType: ArrayType, elementSort: USort): UExpr<USort> =
         when(ref) {
             is UConcreteHeapRef -> {
                 val region = allocatedArrays[ref.address] ?: emptyRegion(elementSort)
@@ -89,13 +88,12 @@ data class URegionHeap<Field, ArrayType>(
             is UConcreteHeapRef -> allocatedLengths[ref.address] ?: ctx.zeroSize
             else -> {
                 val region = inputLengths[arrayType] ?: emptyRegion(ctx.sizeSort)
-                region.read(UHeapAddressKey(ref)) { UArrayLength(ctx, it, ref, arrayType) as USizeExpr } // TODO: allocate all expr via UContext
-                // TODO: fix UArrayLength <: USizeExpr (remove unchecked cast)
+                region.read(UHeapAddressKey(ref)) { UArrayLength(ctx, it, ref, arrayType) } // TODO: allocate all expr via UContext
             }
         }
 
     // TODO: Either prohibit merging concrete and symbolic heap addresses, or fork state by ite-refs here
-    override fun writeField(ref: UHeapRef, field: Field, sort: USort, value: UExpr) =
+    override fun writeField(ref: UHeapRef, field: Field, sort: USort, value: UExpr<USort>) =
         when(ref) {
             is UConcreteHeapRef -> {
                 allocatedFields = allocatedFields.put(Pair(ref.address, field), value)
@@ -107,7 +105,7 @@ data class URegionHeap<Field, ArrayType>(
             }
         }
 
-    override fun writeArrayIndex(ref: UHeapRef, index: USizeExpr, type: ArrayType, elementSort: USort, value: UExpr) =
+    override fun writeArrayIndex(ref: UHeapRef, index: USizeExpr, type: ArrayType, elementSort: USort, value: UExpr<USort>) =
         when(ref) {
             is UConcreteHeapRef -> {
                 val oldRegion = allocatedArrays[ref.address] ?: emptyRegion(elementSort)
@@ -121,7 +119,7 @@ data class URegionHeap<Field, ArrayType>(
             }
         }
 
-    override fun memset(ref: UHeapRef, type: ArrayType, sort: USort, contents: Iterable<UExpr>) {
+    override fun memset(ref: UHeapRef, type: ArrayType, sort: USort, contents: Iterable<UExpr<USort>>) {
         TODO("Not yet implemented")
     }
 

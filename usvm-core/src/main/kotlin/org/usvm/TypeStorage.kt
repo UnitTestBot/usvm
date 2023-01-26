@@ -78,8 +78,7 @@ class UTypeStorage<Type>(
             else -> {
                 val constraints = supertypes.getOrDefault(ref, persistentSetOf())
                 // TODO: check if we have simple contradiction here and return false if we do
-                return UIsExpr(ctx, ref, type) as UBoolExpr // TODO1: create expressions via UContext
-                                                            // TODO2: remove as after KExpr becomes covariant by KSort
+                return UIsExpr(ctx, ref, type) // TODO: create expressions via UContext
 
             }
         }

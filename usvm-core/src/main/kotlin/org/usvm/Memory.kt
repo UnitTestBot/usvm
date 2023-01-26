@@ -44,7 +44,7 @@ interface UMemory<LValue, RValue, SizeT, HeapRef, Type> {
      */
     fun length(ref: HeapRef, arrayType: Type): SizeT
 
-    fun compose(expr: UExpr): UExpr
+    fun <Sort: USort> compose(expr: UExpr<Sort>): UExpr<Sort>
 
     /**
      * Creates new instance of program memory.
@@ -54,7 +54,7 @@ interface UMemory<LValue, RValue, SizeT, HeapRef, Type> {
     fun clone(): UMemory<LValue, RValue, SizeT, HeapRef, Type>
 }
 
-typealias USymbolicMemory<Type> = UMemory<ULValueExpr, UExpr, USizeExpr, UHeapRef, Type>
+typealias USymbolicMemory<Type> = UMemory<ULValue, UExpr<USort>, USizeExpr, UHeapRef, Type>
 
 open class UMemoryBase<Field, Type, Method>(
     protected val ctx: UContext,
@@ -68,20 +68,20 @@ open class UMemoryBase<Field, Type, Method>(
     : USymbolicMemory<Type>
 {
     @Suppress("UNCHECKED_CAST")
-    override fun read(lvalue: ULValueExpr): UExpr =
+    override fun read(lvalue: ULValue): UExpr<USort> =
         when(lvalue) {
-            is URegisterRef -> stack.readRegister(lvalue.idx, lvalue.cellSort)
-            is UFieldRef<*> -> heap.readField(lvalue.ref, lvalue.field as Field, lvalue.cellSort)
-            is UArrayIndexRef<*> -> heap.readArrayIndex(lvalue.ref, lvalue.index, lvalue.arrayType as Type, lvalue.cellSort)
+            is URegisterRef -> stack.readRegister(lvalue.idx, lvalue.sort)
+            is UFieldRef<*> -> heap.readField(lvalue.ref, lvalue.field as Field, lvalue.sort)
+            is UArrayIndexRef<*> -> heap.readArrayIndex(lvalue.ref, lvalue.index, lvalue.arrayType as Type, lvalue.sort)
             else -> throw IllegalArgumentException("Unexpected lvalue $lvalue")
         }
 
     @Suppress("UNCHECKED_CAST")
-    override fun write(lvalue: ULValueExpr, rvalue: UExpr) {
+    override fun write(lvalue: ULValue, rvalue: UExpr<USort>) {
         when(lvalue) {
             is URegisterRef -> stack.writeRegister(lvalue.idx, rvalue)
-            is UFieldRef<*> -> heap.writeField(lvalue.ref, lvalue.field as Field, lvalue.cellSort, rvalue)
-            is UArrayIndexRef<*> -> heap.writeArrayIndex(lvalue.ref, lvalue.index, lvalue.arrayType as Type, lvalue.cellSort, rvalue)
+            is UFieldRef<*> -> heap.writeField(lvalue.ref, lvalue.field as Field, lvalue.sort, rvalue)
+            is UArrayIndexRef<*> -> heap.writeArrayIndex(lvalue.ref, lvalue.index, lvalue.arrayType as Type, lvalue.sort, rvalue)
             else -> throw IllegalArgumentException("Unexpected lvalue $lvalue")
         }
     }
@@ -98,7 +98,7 @@ open class UMemoryBase<Field, Type, Method>(
         return UConcreteHeapRef(address, ctx) // TODO: allocate all expr via UContext
     }
 
-    override fun memset(ref: UHeapRef, arrayType: Type, elementSort: USort, contents: Iterable<UExpr>) =
+    override fun memset(ref: UHeapRef, arrayType: Type, elementSort: USort, contents: Iterable<UExpr<USort>>) =
         heap.memset(ref, arrayType, elementSort, contents)
 
     override fun memcpy(
@@ -113,7 +113,7 @@ open class UMemoryBase<Field, Type, Method>(
 
     override fun length(ref: UHeapRef, arrayType: Type): USizeExpr = heap.readArrayLength(ref, arrayType)
 
-    override fun compose(expr: UExpr): UExpr {
+    override fun <Sort: USort> compose(expr: UExpr<Sort>): UExpr<Sort> {
         val composer = UComposer(ctx, stack, heap, types, mocker)
         return composer.compose(expr)
     }

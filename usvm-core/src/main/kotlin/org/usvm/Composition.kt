@@ -9,5 +9,7 @@ open class UComposer<Field, Type>(
     )
 // TODO: Inherit UExprVisitor, call evaluator for every USymbol, for all other just use KSMT substitution
 {
-    open fun compose(expr: UExpr): UExpr = TODO()
+    open fun <Sort: USort> compose(expr: UExpr<Sort>): UExpr<Sort> =
+        TODO()
+
 }

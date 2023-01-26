@@ -13,12 +13,12 @@ typealias UBoolSort = KBoolSort
 typealias UBv32Sort = KBv32Sort
 typealias USizeSort = KBv32Sort
 
-typealias UExpr = KExpr<USort>
-typealias UBoolExpr = KExpr<UBoolSort>
-typealias USizeExpr = KExpr<USizeSort>
+typealias UExpr<Sort> = KExpr<Sort>
+typealias UBoolExpr = UExpr<UBoolSort>
+typealias USizeExpr = UExpr<USizeSort>
 typealias UTrue = KTrue
 typealias UFalse = KFalse
-typealias UIteExpr = KIteExpr<UBoolSort>
+typealias UIteExpr<Sort> = KIteExpr<Sort>
 typealias UNotExpr = KNotExpr
 
 //endregion
@@ -28,22 +28,28 @@ typealias UNotExpr = KNotExpr
 typealias UHeapAddress = Int
 const val nullAddress = 0
 
-typealias UHeapRef = UExpr // TODO: KExpr<UAddressSort>
+typealias UHeapRef = UExpr<UAddressSort> // TODO: KExpr<UAddressSort>
+
+interface USortVisitor<T>: KSortVisitor<T> {
+    fun visit(sort: UAddressSort): T
+}
 
 class UAddressSort(ctx: UContext) : USort(ctx) {
-    override fun <T> accept(visitor: KSortVisitor<T>): T {
-        TODO("Not yet implemented")
-    }
+    override fun <T> accept(visitor: KSortVisitor<T>): T =
+        when(visitor) {
+            is USortVisitor<T> -> visitor.visit(this)
+            else -> error("Can't visit UAddressSort by ${visitor.javaClass}")
+        }
 
     override fun print(builder: StringBuilder) {
-        TODO("Not yet implemented")
+        builder.append("Address")
     }
 }
 
 class UConcreteHeapRef(val address: UHeapAddress, ctx: UContext) : UHeapRef(ctx) {
     override val sort: UAddressSort = ctx.addressSort
 
-    override fun accept(transformer: KTransformerBase): KExpr<USort> {
+    override fun accept(transformer: KTransformerBase): KExpr<UAddressSort> {
         TODO("Not yet implemented")
     }
 
@@ -54,35 +60,30 @@ class UConcreteHeapRef(val address: UHeapAddress, ctx: UContext) : UHeapRef(ctx)
     val isNull = (address == nullAddress)
 }
 
-open class ULValueExpr(ctx: UContext, val cellSort: USort) : KExpr<UAddressSort>(ctx) {
-    override val sort: UAddressSort = ctx.addressSort
+//endregion
 
-    override fun accept(transformer: KTransformerBase): KExpr<UAddressSort> {
-        TODO("Not yet implemented")
-    }
+//region LValues
 
-    override fun print(printer: ExpressionPrinter) {
-        TODO("Not yet implemented")
-    }
+open class ULValue(val sort: USort) {
 }
 
-class URegisterRef(ctx: UContext, sort: USort, val idx: Int): ULValueExpr(ctx, sort) {
+class URegisterRef(sort: USort, val idx: Int): ULValue(sort) {
 }
 
-class UFieldRef<Field>(ctx: UContext, fieldSort: USort, val ref: UHeapRef, val field: Field): ULValueExpr(ctx, fieldSort) {
+class UFieldRef<Field>(fieldSort: USort, val ref: UHeapRef, val field: Field): ULValue(fieldSort) {
 }
 
-class UArrayIndexRef<ArrayType>(ctx: UContext, cellSort: USort, val ref: UHeapRef, val index: USizeExpr, val arrayType: ArrayType): ULValueExpr(ctx, cellSort) {
+class UArrayIndexRef<ArrayType>(cellSort: USort, val ref: UHeapRef, val index: USizeExpr, val arrayType: ArrayType): ULValue(cellSort) {
 }
 
 //endregion
 
 //region Read Expressions
 
-abstract class USymbol(ctx: UContext) : UExpr(ctx) {
+abstract class USymbol<Sort: USort>(ctx: UContext) : UExpr<Sort>(ctx) {
 }
 
-class URegisterReading(ctx: UContext, idx: Int, override val sort: USort): USymbol(ctx) {
+class URegisterReading(ctx: UContext, idx: Int, override val sort: USort): USymbol<USort>(ctx) {
     override fun accept(transformer: KTransformerBase): KExpr<USort> {
         TODO("Not yet implemented")
     }
@@ -92,15 +93,15 @@ class URegisterReading(ctx: UContext, idx: Int, override val sort: USort): USymb
     }
 }
 
-open class UHeapReading<Key: UMemoryKey<Reg>, Reg: Region<Reg>, Value>(
+open class UHeapReading<Key: UMemoryKey<Reg>, Reg: Region<Reg>, Sort: USort>(
     ctx: UContext,
-    val region: UMemoryRegion<Key, Reg, Value>)
-    : USymbol(ctx)
+    val region: UMemoryRegion<Key, Reg, Sort>)
+    : USymbol<Sort>(ctx)
 {
-    override val sort: USort
+    override val sort: Sort
         get() = region.sort
 
-    override fun accept(transformer: KTransformerBase): KExpr<USort> {
+    override fun accept(transformer: KTransformerBase): KExpr<Sort> {
         TODO("Not yet implemented")
     }
 
@@ -110,20 +111,20 @@ open class UHeapReading<Key: UMemoryKey<Reg>, Reg: Region<Reg>, Value>(
 }
 
 class UFieldReading<Field>(ctx: UContext, region: UVectorMemoryRegion, val address: UHeapRef, val field: Field):
-    UHeapReading<UHeapAddressKey, UHeapAddressRegion, UExpr>(ctx, region)
+    UHeapReading<UHeapAddressKey, UHeapAddressRegion, USort>(ctx, region)
 {
     override fun toString(): String = "$address.${field}"
 }
 
 class UArrayIndexReading<ArrayType>(ctx: UContext, region: UArrayMemoryRegion, val address: UHeapRef,
                                     val index: USizeExpr, val arrayType: ArrayType):
-    UHeapReading<UArrayIndexKey, UArrayIndexRegion, UExpr>(ctx, region)
+    UHeapReading<UArrayIndexKey, UArrayIndexRegion, USort>(ctx, region)
 {
     override fun toString(): String = "$address[$index]"
 }
 
 class UArrayLength<ArrayType>(ctx: UContext, region: UArrayLengthMemoryRegion, val address: UHeapRef, val arrayType: ArrayType):
-    UHeapReading<UHeapAddressKey, UHeapAddressRegion, USizeExpr>(ctx, region)
+    UHeapReading<UHeapAddressKey, UHeapAddressRegion, USizeSort>(ctx, region)
 {
     override fun toString(): String = "length($address)"
 }
@@ -132,7 +133,7 @@ class UArrayLength<ArrayType>(ctx: UContext, region: UArrayLengthMemoryRegion, v
 
 //region Mocked Expressions
 
-abstract class UMockSymbol(ctx: UContext, override val sort: USort): USymbol(ctx) {
+abstract class UMockSymbol(ctx: UContext, override val sort: USort): USymbol<USort>(ctx) {
 }
 
 // TODO: make indices compositional!
@@ -150,10 +151,10 @@ class UIndexedMethodReturnValue<Method>(ctx: UContext, val method: Method, val c
 
 //region Subtyping Expressions
 
-class UIsExpr<Type>(ctx: UContext, val ref: UHeapRef, val type: Type): USymbol(ctx) {
+class UIsExpr<Type>(ctx: UContext, val ref: UHeapRef, val type: Type): USymbol<UBoolSort>(ctx) {
     override val sort = ctx.boolSort
 
-    override fun accept(transformer: KTransformerBase): KExpr<USort> {
+    override fun accept(transformer: KTransformerBase): KExpr<UBoolSort> {
         TODO("Not yet implemented")
     }
 

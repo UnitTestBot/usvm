@@ -1,7 +1,7 @@
 package org.usvm
 
 interface UModel {
-    fun eval(expr: UExpr): UExpr
+    fun <Sort: USort> eval(expr: UExpr<Sort>): UExpr<Sort>
 }
 
 // TODO: Eval visitor
@@ -15,7 +15,7 @@ open class UModelBase<Field, Type>(
 )
     : UModel
 {
-    override fun eval(expr: UExpr): UExpr {
+    override fun <Sort: USort> eval(expr: UExpr<Sort>): UExpr<Sort> {
         val composer = UComposer(ctx, stack, heap, types, mocks)
         return composer.compose(expr)
     }

@@ -3,6 +3,7 @@ package org.usvm
 import org.ksmt.KAst
 import org.ksmt.KContext
 import org.ksmt.solver.model.DefaultValueSampler.Companion.sampleValue
+import org.ksmt.utils.asExpr
 
 open class UContext: KContext() {
     // TODO: Caches
@@ -15,9 +16,9 @@ open class UContext: KContext() {
 
     val nullRef = UConcreteHeapRef(nullAddress, this)
 
-    fun mkDefault(sort: USort): UExpr =
+    fun <Sort: USort> mkDefault(sort: Sort): UExpr<Sort> =
         when(sort) {
-            is UAddressSort -> nullRef
+            is UAddressSort -> nullRef.asExpr(sort)
             else -> sort.sampleValue()
         }
 

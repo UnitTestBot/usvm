@@ -11,7 +11,7 @@ interface UMemoryKey<Reg: Region<Reg>> {
      * Transforms this key by replacing all occurring UExpr.
      * Used for weakest preconditions calculation.
      */
-    fun map(mapper: (UExpr) -> UExpr)
+    fun <Sort: USort> map(mapper: (UExpr<Sort>) -> UExpr<Sort>)
 }
 
 typealias UHeapAddressRegion = TrivialRegion
@@ -21,7 +21,7 @@ class UHeapAddressKey(val address: UHeapRef): UMemoryKey<UHeapAddressRegion> {
         // TODO: Return (-inf, 0) for symbolic input addresses
         get() = TODO("Not yet implemented")
 
-    override fun map(mapper: (UExpr) -> UExpr) {
+    override fun <Sort: USort> map(mapper: (UExpr<Sort>) -> UExpr<Sort>) {
         TODO("Not yet implemented")
     }
 }
@@ -32,7 +32,7 @@ class UArrayIndexKey(val heapAddress: UHeapRef, val index: USizeExpr): UMemoryKe
         // TODO: Return Z for symbolic indices
         get() = TODO("Not yet implemented")
 
-    override fun map(mapper: (UExpr) -> UExpr) {
+    override fun <Sort: USort> map(mapper: (UExpr<Sort>) -> UExpr<Sort>) {
         TODO("Not yet implemented")
     }
 }
@@ -48,13 +48,13 @@ class UUpdateTreeNode<out Key, out Value>(val key: Key, val value: Value) {
     override fun hashCode(): Int = key?.hashCode() ?: 0
 }
 
-data class UMemoryRegion<Key: UMemoryKey<Reg>, Reg: Region<Reg>, Value>(
-    val sort: USort,
-    val updates: RegionTree<UUpdateTreeNode<Key, Value>, Reg>,
-    val defaultValue: Value? // If defaultValue = null then this region is filled with symbolics
+data class UMemoryRegion<Key: UMemoryKey<Reg>, Reg: Region<Reg>, Sort: USort>(
+    val sort: Sort,
+    val updates: RegionTree<UUpdateTreeNode<Key, UExpr<Sort>>, Reg>,
+    val defaultValue: UExpr<Sort>? // If defaultValue = null then this region is filled with symbolics
 )
 {
-    fun read(key: Key, instantiate: (UMemoryRegion<Key, Reg, Value>) -> Value): Value {
+    fun read(key: Key, instantiate: (UMemoryRegion<Key, Reg, Sort>) -> UExpr<Sort>): UExpr<Sort> {
         val reg = key.region
         val tree = updates.localize(reg)
         if (tree.isEmpty && defaultValue !== null) {
@@ -70,7 +70,7 @@ data class UMemoryRegion<Key: UMemoryKey<Reg>, Reg: Region<Reg>, Value>(
         }
     }
 
-    fun write(key: Key, value: Value): UMemoryRegion<Key, Reg, Value> {
+    fun write(key: Key, value: UExpr<Sort>): UMemoryRegion<Key, Reg, Sort> {
         // TODO: assert written value is a subtype of region type
         val newUpdates = updates.write(key.region, UUpdateTreeNode(key, value))
         return UMemoryRegion(sort, newUpdates, defaultValue)
@@ -78,12 +78,12 @@ data class UMemoryRegion<Key: UMemoryKey<Reg>, Reg: Region<Reg>, Value>(
 
 }
 
-fun <Key: UMemoryKey<Reg>, Reg: Region<Reg>, Value> emptyRegion(sort: USort) =
-    UMemoryRegion<Key, Reg, Value>(sort, emptyRegionTree(), null)
+fun <Key: UMemoryKey<Reg>, Reg: Region<Reg>, Sort: USort> emptyRegion(sort: Sort) =
+    UMemoryRegion<Key, Reg, Sort>(sort, emptyRegionTree(), null)
 
 
-typealias UVectorMemoryRegion = UMemoryRegion<UHeapAddressKey, UHeapAddressRegion, UExpr>
-typealias UArrayMemoryRegion = UMemoryRegion<UArrayIndexKey, UArrayIndexRegion, UExpr>
-typealias UArrayLengthMemoryRegion = UMemoryRegion<UHeapAddressKey, UHeapAddressRegion, USizeExpr>
+typealias UVectorMemoryRegion = UMemoryRegion<UHeapAddressKey, UHeapAddressRegion, USort>
+typealias UArrayMemoryRegion = UMemoryRegion<UArrayIndexKey, UArrayIndexRegion, USort>
+typealias UArrayLengthMemoryRegion = UMemoryRegion<UHeapAddressKey, UHeapAddressRegion, USizeSort>
 
 //endregion
