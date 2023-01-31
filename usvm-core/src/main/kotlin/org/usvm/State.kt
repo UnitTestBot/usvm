@@ -10,6 +10,7 @@ class UState<Type, Field, Method, Statement>(
     var models: List<UModel>
 ) {}
 
+@Suppress("UNUSED_PARAMETER")
 fun <Type, Field, Method, Statement> fork(state: UState<Type, Field, Method, Statement>, condition: UBoolExpr)
     : Pair<UState<Type, Field, Method, Statement>?, UState<Type, Field, Method, Statement>?>
 {

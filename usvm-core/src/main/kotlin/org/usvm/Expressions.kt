@@ -83,6 +83,7 @@ class UArrayIndexRef<ArrayType>(cellSort: USort, val ref: UHeapRef, val index: U
 abstract class USymbol<Sort: USort>(ctx: UContext) : UExpr<Sort>(ctx) {
 }
 
+@Suppress("UNUSED_PARAMETER")
 class URegisterReading(ctx: UContext, idx: Int, override val sort: USort): USymbol<USort>(ctx) {
     override fun accept(transformer: KTransformerBase): KExpr<USort> {
         TODO("Not yet implemented")

@@ -11,7 +11,7 @@ class UStackFrame(registers: Array<UExpr<USort>?>) {
         this(Array(registersCount) {null})
 
     var registers: Array<UExpr<USort>?> = registers
-        protected set;
+        protected set
 
     fun realloc(registersCount: Int) {
         registers = Array(registersCount) { if (it < registers.size) registers[it] else null }
@@ -51,6 +51,7 @@ class UStack(private val ctx: UContext,
         return UStack(ctx, newStack)
     }
 
+    @Suppress("UNUSED_PARAMETER")
     fun decode(model: KModel): UStackModel = TODO()
 
     override fun eval(registerIndex: Int, sort: USort): UExpr<USort> = readRegister(registerIndex, sort)

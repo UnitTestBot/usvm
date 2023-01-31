@@ -76,6 +76,7 @@ class UTypeStorage<Type>(
                 return if (typeSystem.isSupertype(type, concreteType)) ctx.trueExpr else ctx.falseExpr
             }
             else -> {
+                @Suppress("UNUSED_VARIABLE")
                 val constraints = supertypes.getOrDefault(ref, persistentSetOf())
                 // TODO: check if we have simple contradiction here and return false if we do
                 return UIsExpr(ctx, ref, type) // TODO: create expressions via UContext

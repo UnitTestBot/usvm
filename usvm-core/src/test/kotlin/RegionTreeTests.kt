@@ -28,7 +28,6 @@ internal class RegionsTest {
         assertEquals(RegionComparisonResult.INTERSECTS, two.compare(no01))
         assertEquals(RegionComparisonResult.INTERSECTS, no0.compare(no2))
         assertEquals(RegionComparisonResult.INCLUDES, zero.compare(zero))
-
     }
 
 

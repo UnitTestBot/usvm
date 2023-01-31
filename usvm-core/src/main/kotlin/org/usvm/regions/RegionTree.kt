@@ -21,8 +21,8 @@ class RegionTree<Key, Reg>(val entries: PersistentMap<Reg, Pair<Key, RegionTree<
     private fun splitRecursively(region : Reg, filter: (Key) -> Boolean):  Pair<RegionTree<Key, Reg>, RegionTree<Key, Reg>>
     {
         if (isEmpty)
-            return Pair(this, this);
-        val entry = entries.get(region);
+            return Pair(this, this)
+        val entry = entries.get(region)
         if (entry === null) {
             // No such region. Dot it slow way: iterate all entries, group them into:
             // (1) included by [region], (2) disjoint with [region], (3) partially intersected with [region].
