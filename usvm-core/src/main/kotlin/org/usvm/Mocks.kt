@@ -15,7 +15,7 @@ class UIndexedMockModel(val map: Map<UMockSymbol, UExpr<USort>>): UMockEvaluator
 }
 
 interface UMocker<Method>: UMockEvaluator {
-    fun call(method: Method, args: Iterable<UExpr<USort>>, sort: USort): Pair<UMockSymbol, UMocker<Method>>
+    fun call(method: Method, args: Sequence<UExpr<USort>>, sort: USort): Pair<UMockSymbol, UMocker<Method>>
     fun decode(model: KModel): UMockEvaluator
 }
 
@@ -25,7 +25,7 @@ class UIndexedMocker<Method>(
 )
     : UMocker<Method>
 {
-    override fun call(method: Method, args: Iterable<UExpr<USort>>, sort: USort): Pair<UMockSymbol, UMocker<Method>> {
+    override fun call(method: Method, args: Sequence<UExpr<USort>>, sort: USort): Pair<UMockSymbol, UMocker<Method>> {
         val currentClauses = clauses.getOrDefault(method, persistentListOf())
         val index = currentClauses.count()
         val const = UIndexedMethodReturnValue(ctx, method, index, sort) // TODO: create expressions via ctx

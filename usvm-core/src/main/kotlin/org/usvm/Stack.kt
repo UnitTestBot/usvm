@@ -25,7 +25,7 @@ class UStackFrame(registers: Array<UExpr<USort>?>) {
 
 class UStack(private val ctx: UContext,
              private val stack: java.util.Stack<UStackFrame> = java.util.Stack<UStackFrame>())
-    : Iterable<UStackFrame>, UStackEvaluator
+    : Sequence<UStackFrame>, UStackEvaluator
 {
     override fun iterator() = stack.iterator()
 
@@ -64,7 +64,7 @@ class UStackModel(private val registers: Array<UExpr<USort>?>): UStackEvaluator 
 data class UCallStackFrame<Method, Statement>(val method: Method, val returnSite: Statement?)
 
 class UCallStack<Method, Statement>(private val stack: java.util.Stack<UCallStackFrame<Method, Statement>>)
-    : Iterable<UCallStackFrame<Method, Statement>>
+    : Sequence<UCallStackFrame<Method, Statement>>
 {
     override fun iterator() = stack.iterator()
 

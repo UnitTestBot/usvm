@@ -1,10 +1,10 @@
-package org.usvm.tests
+package org.usvm.test
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import org.usvm.regions.RegionComparisonResult
-import org.usvm.regions.SetRegion
-import org.usvm.regions.emptyRegionTree
+import org.usvm.util.RegionComparisonResult
+import org.usvm.util.SetRegion
+import org.usvm.util.emptyRegionTree
 
 internal class RegionsTest {
     @Test

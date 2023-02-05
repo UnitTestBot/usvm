@@ -1,4 +1,4 @@
-package org.usvm.regions
+package org.usvm.util
 
 import java.lang.UnsupportedOperationException
 
@@ -25,6 +25,37 @@ class TrivialRegion: Region<TrivialRegion> {
  * Region of intervals. Example: [0;2) U (3;4] U [6;10).
  */
 class Intervals<Point: Comparable<Point>> : Region<Intervals<Point>> {
+    private enum class EndpointSort {
+        // Warning: do not re-order these values
+        OPEN_RIGHT, CLOSED_LEFT, CLOSED_RIGHT, OPEN_LEFT
+    }
+
+    private data class Endpoint<Elem: Comparable<Elem>>(val elem: Elem, val sort: EndpointSort): Comparable<Endpoint<Elem>> {
+        override fun compareTo(other: Endpoint<Elem>): Int {
+            val elemComparison = this.compareTo(other)
+            if (elemComparison == 0)
+                return this.sort.compareTo(other.sort)
+            return elemComparison
+        }
+
+        fun flip(): Endpoint<Elem> {
+            val flippedSort =
+                when(sort) {
+                    EndpointSort.CLOSED_LEFT -> EndpointSort.OPEN_RIGHT
+                    EndpointSort.CLOSED_RIGHT -> EndpointSort.OPEN_LEFT
+                    EndpointSort.OPEN_LEFT -> EndpointSort.CLOSED_RIGHT
+                    EndpointSort.OPEN_RIGHT -> EndpointSort.CLOSED_LEFT
+                }
+            return Endpoint(elem, flippedSort)
+        }
+
+        val isLeft =
+            when(sort) {
+                EndpointSort.OPEN_LEFT, EndpointSort.CLOSED_LEFT -> true
+                else -> false
+            }
+    }
+
     override val isEmpty: Boolean =
         TODO("Not yet implemented")
 
@@ -75,6 +106,7 @@ data class SetRegion<Point>(private val points: Set<Point>, private val thrown: 
         fun <Point> empty() = SetRegion<Point>(emptySet(), false)
         fun <Point> singleton(x: Point) = SetRegion(setOf(x), false)
         fun <Point> ofSet(vararg x: Point) = SetRegion(setOf(*x), false)
+        fun <Point> ofSequence(seq: Sequence<Point>) = SetRegion(seq.toSet(), false)
         fun <Point> universe() = SetRegion<Point>(emptySet(), true)
     }
 

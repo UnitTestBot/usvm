@@ -3,7 +3,7 @@ package org.usvm
 import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.persistentSetOf
 
-interface UPathCondition: Iterable<UBoolExpr> {
+interface UPathCondition: Sequence<UBoolExpr> {
     val isFalse: Boolean
     fun add(constraint: UBoolExpr): UPathCondition
 }

@@ -3,6 +3,8 @@ plugins {
 }
 
 dependencies {
+    api(project(":usvm-util"))
+
     implementation("com.github.UnitTestBot.ksmt:ksmt-core:${Versions.ksmt}")
     implementation("com.github.UnitTestBot.ksmt:ksmt-z3:${Versions.ksmt}")
 

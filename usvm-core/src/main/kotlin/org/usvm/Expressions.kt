@@ -4,12 +4,12 @@ import org.ksmt.expr.*
 import org.ksmt.expr.printer.ExpressionPrinter
 import org.ksmt.expr.transformer.KTransformerBase
 import org.ksmt.sort.*
-import org.usvm.regions.Region
 
 //region KSMT aliases
 
 typealias USort = KSort
 typealias UBoolSort = KBoolSort
+typealias UBvSort = KBvSort
 typealias UBv32Sort = KBv32Sort
 typealias USizeSort = KBv32Sort
 
@@ -20,11 +20,16 @@ typealias UTrue = KTrue
 typealias UFalse = KFalse
 typealias UIteExpr<Sort> = KIteExpr<Sort>
 typealias UNotExpr = KNotExpr
+typealias UConcreteInt = KIntNumExpr
+typealias UConcreteInt32 = KBitVec32Value
+typealias UConcreteInt64 = KBitVec64Value
+typealias UConcreteSize = KBitVec32Value
 
 //endregion
 
 //region Object References
 
+typealias UIndexType = Int
 typealias UHeapAddress = Int
 const val nullAddress = 0
 
@@ -94,13 +99,9 @@ class URegisterReading(ctx: UContext, idx: Int, override val sort: USort): USymb
     }
 }
 
-open class UHeapReading<Key: UMemoryKey<Reg>, Reg: Region<Reg>, Sort: USort>(
-    ctx: UContext,
-    val region: UMemoryRegion<Key, Reg, Sort>)
-    : USymbol<Sort>(ctx)
+open class UHeapReading<Key, Sort: USort>(ctx: UContext, val region: UMemoryRegion<Key, Sort>): USymbol<Sort>(ctx)
 {
-    override val sort: Sort
-        get() = region.sort
+    override val sort: Sort = region.sort
 
     override fun accept(transformer: KTransformerBase): KExpr<Sort> {
         TODO("Not yet implemented")
@@ -111,21 +112,29 @@ open class UHeapReading<Key: UMemoryKey<Reg>, Reg: Region<Reg>, Sort: USort>(
     }
 }
 
-class UFieldReading<Field>(ctx: UContext, region: UVectorMemoryRegion, val address: UHeapRef, val field: Field):
-    UHeapReading<UHeapAddressKey, UHeapAddressRegion, USort>(ctx, region)
+class UFieldReading<Field>(ctx: UContext, region: UVectorMemoryRegion<USort>, val address: UHeapRef, val field: Field)
+    : UHeapReading<UHeapRef, USort>(ctx, region)
 {
     override fun toString(): String = "$address.${field}"
 }
 
-class UArrayIndexReading<ArrayType>(ctx: UContext, region: UArrayMemoryRegion, val address: UHeapRef,
-                                    val index: USizeExpr, val arrayType: ArrayType):
-    UHeapReading<UArrayIndexKey, UArrayIndexRegion, USort>(ctx, region)
+class UAllocatedArrayReading<ArrayType>(ctx: UContext, region: UAllocatedArrayMemoryRegion<USort>, val address: UHeapAddress,
+                                        val index: USizeExpr, val arrayType: ArrayType)
+    : UHeapReading<USizeExpr, USort>(ctx, region)
+{
+    override fun toString(): String = "$0xaddress[$index]"
+}
+
+class UInputArrayReading<ArrayType>(ctx: UContext, region: UInputArrayMemoryRegion<USort>, val address: UHeapRef,
+                                    val index: USizeExpr, val arrayType: ArrayType)
+    : UHeapReading<USymbolicArrayIndex, USort>(ctx, region)
 {
     override fun toString(): String = "$address[$index]"
 }
 
-class UArrayLength<ArrayType>(ctx: UContext, region: UArrayLengthMemoryRegion, val address: UHeapRef, val arrayType: ArrayType):
-    UHeapReading<UHeapAddressKey, UHeapAddressRegion, USizeSort>(ctx, region)
+class UArrayLength<ArrayType>(ctx: UContext, region: UArrayLengthMemoryRegion,
+                              val address: UHeapRef, val arrayType: ArrayType)
+    : UHeapReading<UHeapRef, USizeSort>(ctx, region)
 {
     override fun toString(): String = "length($address)"
 }
@@ -138,7 +147,9 @@ abstract class UMockSymbol(ctx: UContext, override val sort: USort): USymbol<USo
 }
 
 // TODO: make indices compositional!
-class UIndexedMethodReturnValue<Method>(ctx: UContext, val method: Method, val callIndex: Int, override val sort: USort): UMockSymbol(ctx, sort) {
+class UIndexedMethodReturnValue<Method>(ctx: UContext, val method: Method, val callIndex: Int, override val sort: USort)
+    : UMockSymbol(ctx, sort)
+{
     override fun accept(transformer: KTransformerBase): KExpr<USort> {
         TODO("Not yet implemented")
     }

@@ -30,7 +30,7 @@ interface UMemory<LValue, RValue, SizeT, HeapRef, Type> {
      * @param contents Sequence of elements to be written.
      *                 First element will be written to index 0, second -- to index 1, etc.
      */
-    fun memset(ref: HeapRef, arrayType: Type, elementSort: USort, contents: Iterable<RValue>)
+    fun memset(ref: HeapRef, arrayType: Type, elementSort: USort, contents: Sequence<RValue>)
 
     /**
      * Copies range of elements [[fromSrc]:[fromSrc] + [length] - 1] from an array with address [src]
@@ -98,17 +98,11 @@ open class UMemoryBase<Field, Type, Method>(
         return UConcreteHeapRef(address, ctx) // TODO: allocate all expr via UContext
     }
 
-    override fun memset(ref: UHeapRef, arrayType: Type, elementSort: USort, contents: Iterable<UExpr<USort>>) =
+    override fun memset(ref: UHeapRef, arrayType: Type, elementSort: USort, contents: Sequence<UExpr<USort>>) =
         heap.memset(ref, arrayType, elementSort, contents)
 
-    override fun memcpy(
-        src: UHeapRef,
-        dst: UHeapRef,
-        arrayType: Type,
-        fromSrc: USizeExpr,
-        fromDst: USizeExpr,
-        length: USizeExpr
-    ) =
+    override fun memcpy(src: UHeapRef, dst: UHeapRef, arrayType: Type,
+                        fromSrc: USizeExpr, fromDst: USizeExpr, length: USizeExpr) =
         heap.memcpy(src, dst, arrayType, fromSrc, fromDst, length)
 
     override fun length(ref: UHeapRef, arrayType: Type): USizeExpr = heap.readArrayLength(ref, arrayType)

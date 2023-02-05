@@ -1,4 +1,4 @@
-package org.usvm.regions
+package org.usvm.util
 
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentHashMapOf
