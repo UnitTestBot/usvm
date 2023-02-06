@@ -99,8 +99,7 @@ class URegisterReading(ctx: UContext, idx: Int, override val sort: USort): USymb
     }
 }
 
-open class UHeapReading<Key, Sort: USort>(ctx: UContext, val region: UMemoryRegion<Key, Sort>): USymbol<Sort>(ctx)
-{
+open class UHeapReading<Key, Sort: USort>(ctx: UContext, val region: UMemoryRegion<Key, Sort>): USymbol<Sort>(ctx) {
     override val sort: Sort = region.sort
 
     override fun accept(transformer: KTransformerBase): KExpr<Sort> {

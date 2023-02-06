@@ -113,5 +113,5 @@ open class UMemoryBase<Field, Type, Method>(
     }
 
     override fun clone(): USymbolicMemory<Type> =
-        UMemoryBase(ctx, typeSystem, stack.clone(), heap, types, mocker)
+        UMemoryBase(ctx, typeSystem, stack.clone(), heap.clone(), types, mocker)
 }

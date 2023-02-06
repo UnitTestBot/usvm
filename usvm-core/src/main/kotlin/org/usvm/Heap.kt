@@ -34,12 +34,14 @@ interface UHeap<Ref, Value, SizeT, Field, ArrayType>: UReadOnlyHeap<Ref, Value, 
     fun allocateArray(count: SizeT): UHeapAddress
 
     fun decode(model: KModel): UReadOnlyHeap<Ref, Value, SizeT, Field, ArrayType>
+
+    fun clone(): UHeap<Ref, Value, SizeT, Field, ArrayType>
 }
 
 typealias USymbolicHeap<Field, ArrayType> = UHeap<UHeapRef, UExpr<USort>, USizeExpr, Field, ArrayType>
 
 /**
- * Current heap address holder. Calling @freshAddress advances counter globally.
+ * Current heap address holder. Calling [freshAddress] advances counter globally.
  * That is, allocation of an object in one state advances counter in all states.
  * This would help to avoid overlapping addresses in merged states.
  * Copying is prohibited.
@@ -52,12 +54,12 @@ class UAddressCounter {
 data class URegionHeap<Field, ArrayType>(
     private val ctx: UContext,
     private var lastAddress: UAddressCounter = UAddressCounter(),
-    var allocatedFields: PersistentMap<Pair<UHeapAddress, Field>, UExpr<USort>> = persistentMapOf(),
-    var inputFields: PersistentMap<Field, UVectorMemoryRegion<USort>> = persistentMapOf(),
-    var allocatedArrays: PersistentMap<UHeapAddress, UAllocatedArrayMemoryRegion<USort>> = persistentMapOf(),
-    var inputArrays: PersistentMap<ArrayType, UInputArrayMemoryRegion<USort>> = persistentMapOf(),
-    var allocatedLengths: PersistentMap<UHeapAddress, USizeExpr> = persistentMapOf(),
-    var inputLengths: PersistentMap<ArrayType, UArrayLengthMemoryRegion> = persistentMapOf()
+    private var allocatedFields: PersistentMap<Pair<UHeapAddress, Field>, UExpr<USort>> = persistentMapOf(),
+    private var inputFields: PersistentMap<Field, UVectorMemoryRegion<USort>> = persistentMapOf(),
+    private var allocatedArrays: PersistentMap<UHeapAddress, UAllocatedArrayMemoryRegion<USort>> = persistentMapOf(),
+    private var inputArrays: PersistentMap<ArrayType, UInputArrayMemoryRegion<USort>> = persistentMapOf(),
+    private var allocatedLengths: PersistentMap<UHeapAddress, USizeExpr> = persistentMapOf(),
+    private var inputLengths: PersistentMap<ArrayType, UArrayLengthMemoryRegion> = persistentMapOf()
 )
     : USymbolicHeap<Field, ArrayType>
 {
@@ -66,11 +68,11 @@ data class URegionHeap<Field, ArrayType>(
             { key, region -> UFieldReading(ctx, region, key, field) }  // TODO: allocate all expr via UContext
 
     private fun allocatedArrayRegion(arrayType: ArrayType, address: UHeapAddress, elementSort: USort) =
-        allocatedArrays[address] ?: emptyArrayRegion(elementSort)
+        allocatedArrays[address] ?: emptyAllocatedArrayRegion(elementSort)
             { index, region -> UAllocatedArrayReading(ctx, region, address, index, arrayType) }  // TODO: allocate all expr via UContext
 
     private fun inputArrayRegion(arrayType: ArrayType, elementSort: USort) =
-        inputArrays[arrayType] ?: emptyArrayCollectionRegion(elementSort)
+        inputArrays[arrayType] ?: emptyInputArrayRegion(elementSort)
             { pair, region -> UInputArrayReading(ctx, region, pair.first, pair.second, arrayType) } // TODO: allocate all expr via UContext
 
     private fun arrayLengthRegion(arrayType: ArrayType) =
@@ -128,7 +130,7 @@ data class URegionHeap<Field, ArrayType>(
 
     override fun memcpy(src: UHeapRef, dst: UHeapRef, type: ArrayType,
                         fromSrc: USizeExpr, fromDst: USizeExpr, length: USizeExpr) {
-        TODO("Discuss copying and implement ranged memory keys")
+        TODO()
     }
 
     override fun allocate() = lastAddress.freshAddress()
@@ -142,4 +144,10 @@ data class URegionHeap<Field, ArrayType>(
     override fun decode(model: KModel): UReadOnlySymbolicHeap<Field, ArrayType> {
         TODO("Not yet implemented")
     }
+
+    override fun clone(): UHeap<UHeapRef, UExpr<USort>, USizeExpr, Field, ArrayType> =
+        URegionHeap(ctx, lastAddress,
+                    allocatedFields, inputFields,
+                    allocatedArrays, inputArrays,
+                    allocatedLengths, inputLengths)
 }
