@@ -28,7 +28,7 @@ class UIndexedMocker<Method>(
     override fun call(method: Method, args: Sequence<UExpr<USort>>, sort: USort): Pair<UMockSymbol, UMocker<Method>> {
         val currentClauses = clauses.getOrDefault(method, persistentListOf())
         val index = currentClauses.count()
-        val const = UIndexedMethodReturnValue(ctx, method, index, sort) // TODO: create expressions via ctx
+        val const = ctx.mkIndexedMethodReturnValue(method, index, sort)
         val updatedClauses = clauses.put(method, currentClauses.add(const))
         return Pair(const, UIndexedMocker(ctx, updatedClauses))
     }

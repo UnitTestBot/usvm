@@ -12,18 +12,22 @@ interface UReadOnlyHeap<in Ref, Value, SizeT, Field, ArrayType> {
 
 typealias UReadOnlySymbolicHeap<Field, ArrayType> = UReadOnlyHeap<UHeapRef, UExpr<USort>, USizeExpr, Field, ArrayType>
 
-class UEmptyHeap<Field, ArrayType>(private val ctx: UContext): UReadOnlySymbolicHeap<Field, ArrayType> {
+class UEmptyHeap<Field, ArrayType>(private val ctx: UContext) : UReadOnlySymbolicHeap<Field, ArrayType> {
     override fun readField(ref: UHeapRef, field: Field, sort: USort): UExpr<USort> =
         ctx.mkDefault(sort)
 
-    override fun readArrayIndex(ref: UHeapRef, index: USizeExpr, arrayType: ArrayType, elementSort: USort): UExpr<USort> =
-        ctx.mkDefault(elementSort)
+    override fun readArrayIndex(
+        ref: UHeapRef,
+        index: USizeExpr,
+        arrayType: ArrayType,
+        elementSort: USort
+    ): UExpr<USort> = ctx.mkDefault(elementSort)
 
     override fun readArrayLength(ref: UHeapRef, arrayType: ArrayType) =
         ctx.zeroSize
 }
 
-interface UHeap<Ref, Value, SizeT, Field, ArrayType>: UReadOnlyHeap<Ref, Value, SizeT, Field, ArrayType> {
+interface UHeap<Ref, Value, SizeT, Field, ArrayType> : UReadOnlyHeap<Ref, Value, SizeT, Field, ArrayType> {
     fun writeField(ref: Ref, field: Field, sort: USort, value: Value)
     fun writeArrayIndex(ref: Ref, index: SizeT, type: ArrayType, elementSort: USort, value: Value)
 
@@ -60,46 +64,48 @@ data class URegionHeap<Field, ArrayType>(
     private var inputArrays: PersistentMap<ArrayType, UInputArrayMemoryRegion<USort>> = persistentMapOf(),
     private var allocatedLengths: PersistentMap<UHeapAddress, USizeExpr> = persistentMapOf(),
     private var inputLengths: PersistentMap<ArrayType, UArrayLengthMemoryRegion> = persistentMapOf()
-)
-    : USymbolicHeap<Field, ArrayType>
-{
+) : USymbolicHeap<Field, ArrayType> {
     private fun fieldsRegion(field: Field, sort: USort) =
         inputFields[field] ?: emptyFlatRegion(sort, null)
-            { key, region -> UFieldReading(ctx, region, key, field) }  // TODO: allocate all expr via UContext
+        { key, region -> ctx.mkFieldReading(region, key, field) }
 
     private fun allocatedArrayRegion(arrayType: ArrayType, address: UHeapAddress, elementSort: USort) =
         allocatedArrays[address] ?: emptyAllocatedArrayRegion(elementSort)
-            { index, region -> UAllocatedArrayReading(ctx, region, address, index, arrayType) }  // TODO: allocate all expr via UContext
+        { index, region -> ctx.mkAllocatedArrayReading(region, address, index, arrayType, elementSort) }
 
     private fun inputArrayRegion(arrayType: ArrayType, elementSort: USort) =
         inputArrays[arrayType] ?: emptyInputArrayRegion(elementSort)
-            { pair, region -> UInputArrayReading(ctx, region, pair.first, pair.second, arrayType) } // TODO: allocate all expr via UContext
+        { pair, region -> ctx.mkInputArrayReading(region, pair.first, pair.second, arrayType, elementSort) }
 
     private fun arrayLengthRegion(arrayType: ArrayType) =
         inputLengths[arrayType] ?: emptyArrayLengthRegion(ctx)
-            { ref, region -> UArrayLength(ctx, region, ref, arrayType) } // TODO: allocate all expr via UContext
+        { ref, region -> ctx.mkArrayLength(region, ref, arrayType) }
 
     override fun readField(ref: UHeapRef, field: Field, sort: USort): UExpr<USort> =
-        when(ref) {
+        when (ref) {
             is UConcreteHeapRef -> allocatedFields[Pair(ref.address, field)] ?: sort.defaultValue()
             else -> fieldsRegion(field, sort).read(ref)
         }
 
-    override fun readArrayIndex(ref: UHeapRef, index: USizeExpr, arrayType: ArrayType, elementSort: USort): UExpr<USort> =
-        when(ref) {
-            is UConcreteHeapRef -> allocatedArrayRegion(arrayType, ref.address, elementSort).read(index)
-            else -> inputArrayRegion(arrayType, elementSort).read(Pair(ref, index))
-        }
+    override fun readArrayIndex(
+        ref: UHeapRef,
+        index: USizeExpr,
+        arrayType: ArrayType,
+        elementSort: USort
+    ): UExpr<USort> = when (ref) {
+        is UConcreteHeapRef -> allocatedArrayRegion(arrayType, ref.address, elementSort).read(index)
+        else -> inputArrayRegion(arrayType, elementSort).read(Pair(ref, index))
+    }
 
     override fun readArrayLength(ref: UHeapRef, arrayType: ArrayType): USizeExpr =
-        when(ref) {
+        when (ref) {
             is UConcreteHeapRef -> allocatedLengths[ref.address] ?: ctx.zeroSize
             else -> arrayLengthRegion(arrayType).read(ref)
         }
 
     // TODO: Either prohibit merging concrete and symbolic heap addresses, or fork state by ite-refs here
     override fun writeField(ref: UHeapRef, field: Field, sort: USort, value: UExpr<USort>) =
-        when(ref) {
+        when (ref) {
             is UConcreteHeapRef -> {
                 allocatedFields = allocatedFields.put(Pair(ref.address, field), value)
             }
@@ -110,13 +116,19 @@ data class URegionHeap<Field, ArrayType>(
             }
         }
 
-    override fun writeArrayIndex(ref: UHeapRef, index: USizeExpr, type: ArrayType, elementSort: USort, value: UExpr<USort>) =
-        when(ref) {
+    override fun writeArrayIndex(
+        ref: UHeapRef,
+        index: USizeExpr,
+        type: ArrayType,
+        elementSort: USort,
+        value: UExpr<USort>
+    ) = when (ref) {
             is UConcreteHeapRef -> {
                 val oldRegion = allocatedArrayRegion(type, ref.address, elementSort)
                 val newRegion = oldRegion.write(index, value)
                 allocatedArrays = allocatedArrays.put(ref.address, newRegion)
             }
+
             else -> {
                 val region = inputArrayRegion(type, elementSort)
                 val newRegion = region.write(Pair(ref, index), value)
@@ -128,8 +140,14 @@ data class URegionHeap<Field, ArrayType>(
         TODO("Not yet implemented")
     }
 
-    override fun memcpy(src: UHeapRef, dst: UHeapRef, type: ArrayType,
-                        fromSrc: USizeExpr, fromDst: USizeExpr, length: USizeExpr) {
+    override fun memcpy(
+        src: UHeapRef,
+        dst: UHeapRef,
+        type: ArrayType,
+        fromSrc: USizeExpr,
+        fromDst: USizeExpr,
+        length: USizeExpr
+    ) {
         TODO()
     }
 
@@ -146,8 +164,10 @@ data class URegionHeap<Field, ArrayType>(
     }
 
     override fun clone(): UHeap<UHeapRef, UExpr<USort>, USizeExpr, Field, ArrayType> =
-        URegionHeap(ctx, lastAddress,
-                    allocatedFields, inputFields,
-                    allocatedArrays, inputArrays,
-                    allocatedLengths, inputLengths)
+        URegionHeap(
+            ctx, lastAddress,
+            allocatedFields, inputFields,
+            allocatedArrays, inputArrays,
+            allocatedLengths, inputLengths
+        )
 }

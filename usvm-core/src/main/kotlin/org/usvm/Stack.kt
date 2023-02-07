@@ -1,5 +1,6 @@
 package org.usvm
 
+import org.ksmt.expr.KExpr
 import org.ksmt.solver.KModel
 
 interface UStackEvaluator {
@@ -35,8 +36,8 @@ class UStack(private val ctx: UContext,
 
     fun peek() = stack.peek()
 
-    fun readRegister(index: Int, sort: USort) =
-        peek()[index] ?: URegisterReading(ctx, index, sort)
+    fun readRegister(index: Int, sort: USort): KExpr<USort> =
+        peek()[index] ?: ctx.mkRegisterReading(index, sort)
 
     fun writeRegister(index: Int, value: UExpr<USort>) {
         peek()[index] = value

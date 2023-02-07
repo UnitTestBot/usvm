@@ -79,7 +79,7 @@ class UTypeStorage<Type>(
                 @Suppress("UNUSED_VARIABLE")
                 val constraints = supertypes.getOrDefault(ref, persistentSetOf())
                 // TODO: check if we have simple contradiction here and return false if we do
-                return UIsExpr(ctx, ref, type) // TODO: create expressions via UContext
+                return ctx.mkIsExpr(ref, type)
             }
         }
     }
