@@ -13,7 +13,7 @@ import java.util.LinkedList
  */
 interface UUpdateNode<Key, ValueSort : USort> {
     /**
-     * @returns True if the address [key] got overwritten by this memory write operation.
+     * @returns True if the address [key] got overwritten by this write operation in *any* possible concrete state.
      */
     fun includesConcretely(key: Key): Boolean
 
@@ -117,14 +117,11 @@ data class UMemoryRegion<Key, Sort : USort>(
     }
 
     fun read(key: Key): UExpr<Sort> {
+        if (sort == sort.uctx.addressSort)
+            // Here we split concrete heap addresses from symbolic ones to optimize further memory operations.
+            return splittingRead(key) { it is UConcreteHeapRef }
         val updates = updates.read(key)
         return read(key, updates)
-    }
-
-    fun write(key: Key, value: UExpr<Sort>): UMemoryRegion<Key, Sort> {
-        assert(value.sort == sort)
-        val newUpdates = updates.write(key, value)
-        return UMemoryRegion(sort, newUpdates, defaultValue, instantiator)
     }
 
     /**
@@ -132,26 +129,31 @@ data class UMemoryRegion<Key, Sort : USort>(
      * For example, imagine we read for example key z from array A with two updates: v written into x and w into y.
      * Usual [read] produces the expression
      *      A{x <- v}{y <- w}[z]
-     * If v satisfies [predicate] and w does not, then [splittedRead] instead produces the expression
+     * If v satisfies [predicate] and w does not, then [splittingRead] instead produces the expression
      *      ite(y <> z /\ x = z, v, A{y <- w}[z]).
      * These two expressions are semantically equivalent, but the second one 'splits' v out of the rest
      * memory updates.
-     * If updates do not contain values satisfying [predicate], then returns [fallback].
      */
-    fun splittedRead(key: Key, predicate: (UExpr<Sort>) -> Boolean, fallback: UExpr<Sort>): UExpr<Sort>
+    private fun splittingRead(key: Key, predicate: (UExpr<Sort>) -> Boolean): UExpr<Sort>
     {
-        val ctx = fallback.ctx
+        val ctx = sort.ctx
         val guardBuilder = GuardBuilder(ctx.trueExpr, ctx.trueExpr)
         val matchingWrites = LinkedList<Pair<UBoolExpr, UExpr<Sort>>>()
-        val splittedUpdates = split(key, predicate, matchingWrites, guardBuilder).updates
+        val splittingUpdates = split(key, predicate, matchingWrites, guardBuilder).updates
         if (matchingWrites.isEmpty())
-            return fallback
-        val reading = read(key, splittedUpdates)
+            return instantiator(key, this)
+        val reading = read(key, splittingUpdates)
         var iteAcc = reading
         for (write in matchingWrites) {
             iteAcc = ctx.mkIte(write.first, write.second, iteAcc)
         }
         return iteAcc
+    }
+
+    fun write(key: Key, value: UExpr<Sort>): UMemoryRegion<Key, Sort> {
+        assert(value.sort == sort)
+        val newUpdates = updates.write(key, value)
+        return UMemoryRegion(sort, newUpdates, defaultValue, instantiator)
     }
 
     internal fun split(key: Key, predicate: (UExpr<Sort>) -> Boolean,
@@ -162,10 +164,10 @@ data class UMemoryRegion<Key, Sort : USort>(
         //       non-null reference as default value, or implement splitting by default value.
         assert(defaultValue === null || !predicate(defaultValue))
         val count = matchingWrites.size
-        val splittedUpdates = updates.read(key).split(key, predicate, matchingWrites, guardBuilder)
+        val splittingUpdates = updates.read(key).split(key, predicate, matchingWrites, guardBuilder)
         if (matchingWrites.size == count)
             return this
-        return UMemoryRegion(sort, splittedUpdates, defaultValue, instantiator)
+        return UMemoryRegion(sort, splittingUpdates, defaultValue, instantiator)
     }
 
     /**
@@ -184,14 +186,14 @@ class GuardBuilder(var matchingUpdatesGuard: UBoolExpr, var nonMatchingUpdatesGu
 //region Flat memory updates
 
 /**
- * Represents a single write of  [value] into a memory address [key]
+ * Represents a single write of [value] into a memory address [key]
  */
 class UPinpointUpdateNode<Key, ValueSort : USort>(
     private val key: Key, private val value: UExpr<ValueSort>,
     private val keyEqualityComparer: (Key, Key) -> UBoolExpr,
     override val guard: UBoolExpr = value.ctx.trueExpr
 ) : UUpdateNode<Key, ValueSort> {
-    override fun includesConcretely(key: Key) = this.key == key
+    override fun includesConcretely(key: Key) = this.key == key && guard == guard.ctx.trueExpr
 
     override fun includesSymbolically(key: Key): UBoolExpr =
         guard.ctx.mkAnd(keyEqualityComparer(this.key, key), guard) // TODO: use simplifying and!
@@ -240,7 +242,7 @@ class URangedUpdateNode<Key, ValueSort : USort>(
     override val guard: UBoolExpr = region.sort.ctx.trueExpr
 ) : UUpdateNode<Key, ValueSort> {
     override fun includesConcretely(key: Key): Boolean =
-        concreteComparer(fromKey, key) && concreteComparer(key, toKey)
+        concreteComparer(fromKey, key) && concreteComparer(key, toKey) && guard == guard.ctx.trueExpr
 
     override fun includesSymbolically(key: Key): UBoolExpr {
         val leftIsLefter = symbolicComparer(fromKey, key)
@@ -337,13 +339,13 @@ data class UFlatUpdates<Key, Sort : USort>(
     override fun split(key: Key, predicate: (UExpr<Sort>) -> Boolean,
                        matchingWrites: LinkedList<Pair<UBoolExpr, UExpr<Sort>>>,
                        guardBuilder: GuardBuilder): UMemoryUpdates<Key, Sort> {
-        val splittedNode = node.split(key, predicate, matchingWrites, guardBuilder)
-        val splittedNext = next?.split(key, predicate, matchingWrites, guardBuilder)
-        if (splittedNode === null)
-            return splittedNext ?: UEmptyUpdates(symbolicEq, concreteCmp, symbolicCmp)
-        if (splittedNext === next)
+        val splittingNode = node.split(key, predicate, matchingWrites, guardBuilder)
+        val splittingNext = next?.split(key, predicate, matchingWrites, guardBuilder)
+        if (splittingNode === null)
+            return splittingNext ?: UEmptyUpdates(symbolicEq, concreteCmp, symbolicCmp)
+        if (splittingNext === next)
             return this
-        return UFlatUpdates(splittedNode, splittedNext, symbolicEq, concreteCmp, symbolicCmp)
+        return UFlatUpdates(splittingNode, splittingNext, symbolicEq, concreteCmp, symbolicCmp)
     }
 
     override fun iterator(): Iterator<UUpdateNode<Key, Sort>> = UFlatUpdatesIterator(this)
