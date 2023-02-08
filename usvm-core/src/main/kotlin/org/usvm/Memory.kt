@@ -1,6 +1,7 @@
 package org.usvm
 
 import java.lang.IllegalArgumentException
+import org.ksmt.utils.cast
 
 interface UMemory<LValue, RValue, SizeT, HeapRef, Type> {
     /**
@@ -71,8 +72,8 @@ open class UMemoryBase<Field, Type, Method>(
     override fun read(lvalue: ULValue): UExpr<USort> =
         when(lvalue) {
             is URegisterRef -> stack.readRegister(lvalue.idx, lvalue.sort)
-            is UFieldRef<*> -> heap.readField(lvalue.ref, lvalue.field as Field, lvalue.sort)
-            is UArrayIndexRef<*> -> heap.readArrayIndex(lvalue.ref, lvalue.index, lvalue.arrayType as Type, lvalue.sort)
+            is UFieldRef<*> -> heap.readField(lvalue.ref, lvalue.field as Field, lvalue.sort).cast()
+            is UArrayIndexRef<*> -> heap.readArrayIndex(lvalue.ref, lvalue.index, lvalue.arrayType as Type, lvalue.sort).cast()
             else -> throw IllegalArgumentException("Unexpected lvalue $lvalue")
         }
 

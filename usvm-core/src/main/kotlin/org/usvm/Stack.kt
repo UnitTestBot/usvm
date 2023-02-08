@@ -2,9 +2,10 @@ package org.usvm
 
 import org.ksmt.expr.KExpr
 import org.ksmt.solver.KModel
+import org.ksmt.utils.cast
 
 interface UStackEvaluator {
-    fun eval(registerIndex: Int, sort: USort): UExpr<USort>
+    fun <Sort : USort> eval(registerIndex: Int, sort: Sort): UExpr<Sort>
 }
 
 class UStackFrame(registers: Array<UExpr<USort>?>) {
@@ -55,11 +56,17 @@ class UStack(private val ctx: UContext,
     @Suppress("UNUSED_PARAMETER")
     fun decode(model: KModel): UStackModel = TODO()
 
-    override fun eval(registerIndex: Int, sort: USort): UExpr<USort> = readRegister(registerIndex, sort)
+    override fun <Sort : USort> eval(
+        registerIndex: Int,
+        sort: Sort
+    ): UExpr<Sort> = readRegister(registerIndex, sort).cast()
 }
 
 class UStackModel(private val registers: Array<UExpr<USort>?>): UStackEvaluator {
-    override fun eval(registerIndex: Int, sort: USort): UExpr<USort> = registers[registerIndex]!!
+    override fun <Sort : USort> eval(
+        registerIndex: Int,
+        sort: Sort
+    ): UExpr<Sort> = registers[registerIndex]!!.cast()
 }
 
 data class UCallStackFrame<Method, Statement>(val method: Method, val returnSite: Statement?)
