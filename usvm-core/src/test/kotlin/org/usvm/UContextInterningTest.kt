@@ -1,28 +1,10 @@
-package org.usvm.tests
+package org.usvm
 
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.ksmt.utils.cast
-import org.usvm.UAllocatedArrayMemoryRegion
-import org.usvm.UAllocatedArrayReading
-import org.usvm.UArrayLength
-import org.usvm.UArrayLengthMemoryRegion
-import org.usvm.UBoolSort
-import org.usvm.UBv32Sort
-import org.usvm.UConcreteHeapRef
-import org.usvm.UContext
-import org.usvm.UExpr
-import org.usvm.UFieldReading
-import org.usvm.UIndexedMethodReturnValue
-import org.usvm.UInputArrayMemoryRegion
-import org.usvm.UInputArrayReading
-import org.usvm.UIsExpr
-import org.usvm.URegisterReading
-import org.usvm.USizeExpr
-import org.usvm.USort
-import org.usvm.UVectorMemoryRegion
 
 class UContextInterningTest {
     private lateinit var context: UContext

@@ -58,7 +58,8 @@ class UConcreteHeapRef internal constructor(ctx: UContext, val address: UHeapAdd
     override val sort: UAddressSort = ctx.addressSort
 
     override fun accept(transformer: KTransformerBase): KExpr<UAddressSort> {
-        TODO("Not yet implemented")
+        require(transformer is UExprTransformer<*, *>)
+        return transformer.transform(this)
     }
 
     override fun print(printer: ExpressionPrinter) {
@@ -99,13 +100,14 @@ abstract class USymbol<Sort : USort>(ctx: UContext) : UExpr<Sort>(ctx) {
 }
 
 @Suppress("UNUSED_PARAMETER")
-class URegisterReading internal constructor(
+class URegisterReading<Sort : USort> internal constructor(
     ctx: UContext,
     val idx: Int,
-    override val sort: USort
-) : USymbol<USort>(ctx) {
-    override fun accept(transformer: KTransformerBase): KExpr<USort> {
-        TODO("Not yet implemented")
+    override val sort: Sort
+) : USymbol<Sort>(ctx) {
+    override fun accept(transformer: KTransformerBase): KExpr<Sort> {
+        require(transformer is UExprTransformer<*, *>)
+        return transformer.transform(this)
     }
 
     override fun print(printer: ExpressionPrinter) {
@@ -123,21 +125,24 @@ abstract class UHeapReading<Key, Sort : USort>(
 ) : USymbol<Sort>(ctx) {
     override val sort: Sort = region.sort
 
-    override fun accept(transformer: KTransformerBase): KExpr<Sort> {
-        TODO("Not yet implemented")
-    }
-
     override fun print(printer: ExpressionPrinter) {
         TODO("Not yet implemented")
     }
 }
 
-class UFieldReading<Field> internal constructor(
+class UFieldReading<Field, Sort : USort> internal constructor(
     ctx: UContext,
-    region: UVectorMemoryRegion<USort>,
+    region: UVectorMemoryRegion<Sort>,
     val address: UHeapRef,
     val field: Field
-) : UHeapReading<UHeapRef, USort>(ctx, region) {
+) : UHeapReading<UHeapRef, Sort>(ctx, region) {
+    @Suppress("UNCHECKED_CAST")
+    override fun accept(transformer: KTransformerBase): KExpr<Sort> {
+        require(transformer is UExprTransformer<*, *>)
+        // An unchecked cast here it to be able to choose the right overload from UExprTransformer
+        return (transformer as UExprTransformer<Field, *>).transform(this)
+    }
+
     override fun toString(): String = "$address.${field}"
 
     override fun internEquals(other: Any): Boolean = structurallyEqual(other, { region }, { address }, { field })
@@ -145,14 +150,21 @@ class UFieldReading<Field> internal constructor(
     override fun internHashCode(): Int = hash(region, address, field)
 }
 
-class UAllocatedArrayReading<ArrayType> internal constructor(
+class UAllocatedArrayReading<ArrayType, Sort : USort> internal constructor(
     ctx: UContext,
-    region: UAllocatedArrayMemoryRegion<USort>,
+    region: UAllocatedArrayMemoryRegion<Sort>,
     val address: UHeapAddress,
     val index: USizeExpr,
     val arrayType: ArrayType,
-    val elementSort: USort
-) : UHeapReading<USizeExpr, USort>(ctx, region) {
+    val elementSort: Sort
+) : UHeapReading<USizeExpr, Sort>(ctx, region) {
+    @Suppress("UNCHECKED_CAST")
+    override fun accept(transformer: KTransformerBase): KExpr<Sort> {
+        require(transformer is UExprTransformer<*, *>)
+        // An unchecked cast here it to be able to choose the right overload from UExprTransformer
+        return (transformer as UExprTransformer<*, ArrayType>).transform(this)
+    }
+
     override fun internEquals(other: Any): Boolean =
         structurallyEqual(
             other,
@@ -167,15 +179,22 @@ class UAllocatedArrayReading<ArrayType> internal constructor(
     override fun toString(): String = "$0xaddress[$index]"
 }
 
-class UInputArrayReading<ArrayType> internal constructor(
+class UInputArrayReading<ArrayType, Sort : USort> internal constructor(
     ctx: UContext,
-    region: UInputArrayMemoryRegion<USort>,
+    region: UInputArrayMemoryRegion<Sort>,
     val address: UHeapRef,
     val index: USizeExpr,
     val arrayType: ArrayType,
-    val elementSort: USort
-) : UHeapReading<USymbolicArrayIndex, USort>(ctx, region) {
+    val elementSort: Sort
+) : UHeapReading<USymbolicArrayIndex, Sort>(ctx, region) {
     override fun toString(): String = "$address[$index]"
+
+    @Suppress("UNCHECKED_CAST")
+    override fun accept(transformer: KTransformerBase): KExpr<Sort> {
+        require(transformer is UExprTransformer<*, *>)
+        // An unchecked cast here it to be able to choose the right overload from UExprTransformer
+        return (transformer as UExprTransformer<*, ArrayType>).transform(this)
+    }
 
     override fun internEquals(other: Any): Boolean =
         structurallyEqual(
@@ -196,6 +215,13 @@ class UArrayLength<ArrayType> internal constructor(
     val address: UHeapRef,
     val arrayType: ArrayType
 ) : UHeapReading<UHeapRef, USizeSort>(ctx, region) {
+    @Suppress("UNCHECKED_CAST")
+    override fun accept(transformer: KTransformerBase): USizeExpr {
+        require(transformer is UExprTransformer<*, *>)
+        // An unchecked cast here it to be able to choose the right overload from UExprTransformer
+        return (transformer as UExprTransformer<*, ArrayType>).transform(this)
+    }
+
     override fun toString(): String = "length($address)"
 
     override fun internEquals(other: Any): Boolean = structurallyEqual(other, { region }, { address }, { arrayType })
@@ -207,18 +233,19 @@ class UArrayLength<ArrayType> internal constructor(
 
 //region Mocked Expressions
 
-abstract class UMockSymbol(ctx: UContext, override val sort: USort) : USymbol<USort>(ctx) {
+abstract class UMockSymbol<Sort : USort>(ctx: UContext, override val sort: Sort) : USymbol<Sort>(ctx) {
 }
 
 // TODO: make indices compositional!
-class UIndexedMethodReturnValue<Method> internal constructor(
+class UIndexedMethodReturnValue<Method, Sort : USort> internal constructor(
     ctx: UContext,
     val method: Method,
     val callIndex: Int,
-    override val sort: USort
-) : UMockSymbol(ctx, sort) {
-    override fun accept(transformer: KTransformerBase): KExpr<USort> {
-        TODO("Not yet implemented")
+    override val sort: Sort
+) : UMockSymbol<Sort>(ctx, sort) {
+    override fun accept(transformer: KTransformerBase): KExpr<Sort> {
+        require(transformer is UExprTransformer<*, *>)
+        return transformer.transform(this)
     }
 
     override fun print(printer: ExpressionPrinter) {
@@ -241,9 +268,13 @@ class UIsExpr<Type> internal constructor(
 ) : USymbol<UBoolSort>(ctx) {
     override val sort = ctx.boolSort
 
-    override fun accept(transformer: KTransformerBase): KExpr<UBoolSort> {
-        TODO("Not yet implemented")
+    @Suppress("UNCHECKED_CAST")
+    override fun accept(transformer: KTransformerBase): UBoolExpr {
+        require(transformer is UExprTransformer<*, *>)
+        // An unchecked cast here it to be able to choose the right overload from UExprTransformer
+        return (transformer as UExprTransformer<*, Type>).transform(this)
     }
+
 
     override fun print(printer: ExpressionPrinter) {
         TODO("Not yet implemented")
@@ -253,5 +284,4 @@ class UIsExpr<Type> internal constructor(
 
     override fun internHashCode(): Int = hash(ref, type)
 }
-
 //endregion

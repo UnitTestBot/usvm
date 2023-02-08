@@ -5,27 +5,35 @@ import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
 import org.ksmt.solver.KModel
+import org.ksmt.utils.cast
 
 interface UMockEvaluator {
-    fun eval(symbol: UMockSymbol): UExpr<USort>
+    fun <Sort : USort> eval(symbol: UMockSymbol<Sort>): UExpr<Sort>
 }
 
-class UIndexedMockModel(val map: Map<UMockSymbol, UExpr<USort>>): UMockEvaluator {
-    override fun eval(symbol: UMockSymbol): UExpr<USort> = map.getValue(symbol)
+class UIndexedMockModel(val map: Map<UMockSymbol<out USort>, UExpr<out USort>>) : UMockEvaluator {
+    override fun <Sort : USort> eval(symbol: UMockSymbol<Sort>): UExpr<Sort> = map.getValue(symbol).cast()
 }
 
-interface UMocker<Method>: UMockEvaluator {
-    fun call(method: Method, args: Sequence<UExpr<USort>>, sort: USort): Pair<UMockSymbol, UMocker<Method>>
+interface UMocker<Method> : UMockEvaluator {
+    fun <Sort : USort> call(
+        method: Method,
+        args: Sequence<UExpr<out USort>>,
+        sort: Sort
+    ): Pair<UMockSymbol<Sort>, UMocker<Method>>
+
     fun decode(model: KModel): UMockEvaluator
 }
 
 class UIndexedMocker<Method>(
     private val ctx: UContext,
-    private val clauses: PersistentMap<Method, PersistentList<UMockSymbol>> = persistentMapOf()
-)
-    : UMocker<Method>
-{
-    override fun call(method: Method, args: Sequence<UExpr<USort>>, sort: USort): Pair<UMockSymbol, UMocker<Method>> {
+    private val clauses: PersistentMap<Method, PersistentList<UMockSymbol<out USort>>> = persistentMapOf()
+) : UMocker<Method> {
+    override fun <Sort : USort> call(
+        method: Method,
+        args: Sequence<UExpr<out USort>>,
+        sort: Sort
+    ): Pair<UMockSymbol<Sort>, UMocker<Method>> {
         val currentClauses = clauses.getOrDefault(method, persistentListOf())
         val index = currentClauses.count()
         val const = ctx.mkIndexedMethodReturnValue(method, index, sort)
@@ -37,5 +45,5 @@ class UIndexedMocker<Method>(
         TODO("Not yet implemented")
     }
 
-    override fun eval(symbol: UMockSymbol): UExpr<USort> = symbol
+    override fun <Sort : USort> eval(symbol: UMockSymbol<Sort>): UExpr<Sort> = symbol
 }
