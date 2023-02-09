@@ -5,7 +5,7 @@ import org.ksmt.utils.cast
 @Suppress("MemberVisibilityCanBePrivate")
 open class UComposer<Field, Type>(
     ctx: UContext,
-    internal val stackEvaluator: UStackEvaluator,
+    internal val stackEvaluator: URegistersStackEvaluator,
     internal val heapEvaluator: UReadOnlySymbolicHeap<Field, Type>,
     internal val typeEvaluator: UTypeEvaluator<Type>,
     internal val mockEvaluator: UMockEvaluator

@@ -15,7 +15,7 @@ import org.ksmt.expr.transformer.KTransformerBase
 import org.ksmt.sort.KBv32Sort
 
 internal class CompositionTest<Type, Field> {
-    private lateinit var stackEvaluator: UStackEvaluator
+    private lateinit var stackEvaluator: URegistersStackEvaluator
     private lateinit var heapEvaluator: UReadOnlySymbolicHeap<Field, Type>
     private lateinit var typeEvaluator: UTypeEvaluator<Type>
     private lateinit var mockEvaluator: UMockEvaluator
