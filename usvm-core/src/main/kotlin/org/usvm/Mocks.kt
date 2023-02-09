@@ -1,18 +1,18 @@
 package org.usvm
 
+import org.ksmt.solver.KModel
+import org.ksmt.utils.asExpr
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
-import org.ksmt.solver.KModel
-import org.ksmt.utils.cast
 
 interface UMockEvaluator {
     fun <Sort : USort> eval(symbol: UMockSymbol<Sort>): UExpr<Sort>
 }
 
 class UIndexedMockModel(val map: Map<UMockSymbol<out USort>, UExpr<out USort>>) : UMockEvaluator {
-    override fun <Sort : USort> eval(symbol: UMockSymbol<Sort>): UExpr<Sort> = map.getValue(symbol).cast()
+    override fun <Sort : USort> eval(symbol: UMockSymbol<Sort>): UExpr<Sort> = map.getValue(symbol).asExpr(symbol.sort)
 }
 
 interface UMocker<Method> : UMockEvaluator {
