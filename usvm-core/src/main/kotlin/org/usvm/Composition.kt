@@ -1,6 +1,6 @@
 package org.usvm
 
-import org.ksmt.utils.cast
+import org.ksmt.utils.asExpr
 
 @Suppress("MemberVisibilityCanBePrivate")
 open class UComposer<Field, Type>(
@@ -51,7 +51,7 @@ open class UComposer<Field, Type>(
             composedIndex,
             arrayType,
             elementSort
-        ).cast()
+        ).asExpr(expr.sort)
     }
 
     override fun <Sort : USort> transform(
@@ -61,13 +61,13 @@ open class UComposer<Field, Type>(
         // TODO compose the region
         val heapRef = uctx.mkConcreteHeapRef(address)
 
-        heapEvaluator.readArrayIndex(heapRef, composedIndex, arrayType, elementSort).cast()
+        heapEvaluator.readArrayIndex(heapRef, composedIndex, arrayType, elementSort).asExpr(expr.sort)
     }
 
     override fun <Sort : USort> transform(expr: UFieldReading<Field, Sort>): UExpr<Sort> = with(expr) {
         val composedAddress = compose(address)
         // TODO compose the region
-        heapEvaluator.readField(composedAddress, field, sort).cast()
+        heapEvaluator.readField(composedAddress, field, sort).asExpr(expr.sort)
     }
 
     override fun transform(expr: UConcreteHeapRef): UExpr<UAddressSort> = expr

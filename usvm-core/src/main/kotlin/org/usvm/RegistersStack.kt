@@ -3,7 +3,6 @@ package org.usvm
 import org.ksmt.expr.KExpr
 import org.ksmt.solver.KModel
 import org.ksmt.utils.asExpr
-import org.ksmt.utils.cast
 import java.util.Stack
 
 interface URegistersStackEvaluator {

@@ -1,11 +1,10 @@
 package org.usvm
 
-import kotlinx.collections.immutable.PersistentMap
-import kotlinx.collections.immutable.persistentMapOf
 import org.ksmt.expr.KExpr
 import org.ksmt.solver.KModel
 import org.ksmt.utils.asExpr
-import org.ksmt.utils.cast
+import kotlinx.collections.immutable.PersistentMap
+import kotlinx.collections.immutable.persistentMapOf
 
 interface UReadOnlyHeap<in Ref, Value, SizeT, Field, ArrayType> {
     fun <Sort : USort> readField(ref: Ref, field: Field, sort: Sort): Value
@@ -106,7 +105,7 @@ data class URegionHeap<Field, ArrayType>(
 
     override fun <Sort : USort> readField(ref: UHeapRef, field: Field, sort: Sort): UExpr<Sort> =
         when (ref) {
-            is UConcreteHeapRef -> allocatedFields[Pair(ref.address, field)]?.cast() ?: sort.defaultValue()
+            is UConcreteHeapRef -> allocatedFields[Pair(ref.address, field)]?.asExpr(sort) ?: sort.defaultValue()
             else -> fieldsRegion(field, sort).read(ref)
         }
 
