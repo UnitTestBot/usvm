@@ -1,7 +1,6 @@
 package org.usvm
 
-import java.lang.IllegalArgumentException
-import org.ksmt.utils.cast
+import org.ksmt.utils.asExpr
 
 interface UMemory<LValue, RValue, SizeT, HeapRef, Type> {
     /**
@@ -55,12 +54,12 @@ interface UMemory<LValue, RValue, SizeT, HeapRef, Type> {
     fun clone(): UMemory<LValue, RValue, SizeT, HeapRef, Type>
 }
 
-typealias USymbolicMemory<Type> = UMemory<ULValue, UExpr<USort>, USizeExpr, UHeapRef, Type>
+typealias USymbolicMemory<Type> = UMemory<ULValue, UExpr<out USort>, USizeExpr, UHeapRef, Type>
 
 open class UMemoryBase<Field, Type, Method>(
     protected val ctx: UContext,
     protected val typeSystem: UTypeSystem<Type>,
-    protected var stack: UStack = UStack(ctx),
+    protected var stack: URegistersStack = URegistersStack(ctx),
     protected var heap: USymbolicHeap<Field, Type> = URegionHeap(ctx),
     protected var types: UTypeStorage<Type> = UTypeStorage(ctx, typeSystem),
     protected var mocker: UMocker<Method> = UIndexedMocker(ctx)
@@ -69,16 +68,16 @@ open class UMemoryBase<Field, Type, Method>(
     : USymbolicMemory<Type>
 {
     @Suppress("UNCHECKED_CAST")
-    override fun read(lvalue: ULValue): UExpr<USort> =
+    override fun read(lvalue: ULValue): UExpr<out USort> =
         when(lvalue) {
             is URegisterRef -> stack.readRegister(lvalue.idx, lvalue.sort)
-            is UFieldRef<*> -> heap.readField(lvalue.ref, lvalue.field as Field, lvalue.sort).cast()
-            is UArrayIndexRef<*> -> heap.readArrayIndex(lvalue.ref, lvalue.index, lvalue.arrayType as Type, lvalue.sort).cast()
+            is UFieldRef<*> -> heap.readField(lvalue.ref, lvalue.field as Field, lvalue.sort).asExpr(lvalue.sort)
+            is UArrayIndexRef<*> -> heap.readArrayIndex(lvalue.ref, lvalue.index, lvalue.arrayType as Type, lvalue.sort).asExpr(lvalue.sort)
             else -> throw IllegalArgumentException("Unexpected lvalue $lvalue")
         }
 
     @Suppress("UNCHECKED_CAST")
-    override fun write(lvalue: ULValue, rvalue: UExpr<USort>) {
+    override fun write(lvalue: ULValue, rvalue: UExpr<out USort>) {
         when(lvalue) {
             is URegisterRef -> stack.writeRegister(lvalue.idx, rvalue)
             is UFieldRef<*> -> heap.writeField(lvalue.ref, lvalue.field as Field, lvalue.sort, rvalue)
@@ -99,7 +98,7 @@ open class UMemoryBase<Field, Type, Method>(
         return ctx.mkConcreteHeapRef(address)
     }
 
-    override fun memset(ref: UHeapRef, arrayType: Type, elementSort: USort, contents: Sequence<UExpr<USort>>) =
+    override fun memset(ref: UHeapRef, arrayType: Type, elementSort: USort, contents: Sequence<UExpr<out USort>>) =
         heap.memset(ref, arrayType, elementSort, contents)
 
     override fun memcpy(src: UHeapRef, dst: UHeapRef, arrayType: Type,
@@ -113,6 +112,6 @@ open class UMemoryBase<Field, Type, Method>(
         return composer.compose(expr)
     }
 
-    override fun clone(): USymbolicMemory<Type> =
+    override fun clone(): UMemoryBase<Field, Type, Method> =
         UMemoryBase(ctx, typeSystem, stack.clone(), heap.clone(), types, mocker)
 }
