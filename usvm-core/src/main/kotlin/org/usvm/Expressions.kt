@@ -32,7 +32,7 @@ typealias UConcreteSize = KBitVec32Value
 //region Object References
 
 typealias UIndexType = Int
-typealias UHeapAddress = Int
+typealias UConcreteHeapAddress = Int
 
 const val nullAddress = 0
 
@@ -54,7 +54,7 @@ class UAddressSort internal constructor(ctx: UContext) : USort(ctx) {
     }
 }
 
-class UConcreteHeapRef internal constructor(ctx: UContext, val address: UHeapAddress) : UHeapRef(ctx) {
+class UConcreteHeapRef internal constructor(ctx: UContext, val address: UConcreteHeapAddress) : UHeapRef(ctx) {
     override val sort: UAddressSort = ctx.addressSort
 
     override fun accept(transformer: KTransformerBase): KExpr<UAddressSort> {
@@ -153,7 +153,7 @@ class UFieldReading<Field, Sort : USort> internal constructor(
 class UAllocatedArrayReading<ArrayType, Sort : USort> internal constructor(
     ctx: UContext,
     region: UAllocatedArrayMemoryRegion<Sort>,
-    val address: UHeapAddress,
+    val address: UConcreteHeapAddress,
     val index: USizeExpr,
     val arrayType: ArrayType,
     val elementSort: Sort

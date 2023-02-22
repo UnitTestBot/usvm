@@ -18,12 +18,12 @@ interface UTypeEvaluator<Type> {
 class UTypeModel<Type>(
     private val ctx: UContext,
     private val typeSystem: UTypeSystem<Type>,
-    private val map: Map<UHeapAddress, Type>
+    private val map: Map<UConcreteHeapAddress, Type>
 )
     : UTypeEvaluator<Type>
 {
 
-    fun typeOf(address: UHeapAddress): Type = map.getValue(address)
+    fun typeOf(address: UConcreteHeapAddress): Type = map.getValue(address)
 
     override fun evalIs(ref: UHeapRef, type: Type): UBoolExpr =
         when (ref) {
@@ -40,7 +40,7 @@ class UTypeStorage<Type>(
     private val ctx: UContext,
     val typeSystem: UTypeSystem<Type>,
     val isContraditing: Boolean = false,
-    val concreteTypes: PersistentMap<UHeapAddress, Type> = persistentMapOf(),
+    val concreteTypes: PersistentMap<UConcreteHeapAddress, Type> = persistentMapOf(),
     val supertypes: PersistentMap<UHeapRef, PersistentSet<Type>> = persistentMapOf()
 )
     : UTypeEvaluator<Type>
@@ -49,7 +49,7 @@ class UTypeStorage<Type>(
     fun contradiction() =
        UTypeStorage(ctx, typeSystem, true, concreteTypes, supertypes)
 
-    fun allocate(ref: UHeapAddress, type: Type): UTypeStorage<Type> =
+    fun allocate(ref: UConcreteHeapAddress, type: Type): UTypeStorage<Type> =
         UTypeStorage(ctx, typeSystem, isContraditing, concreteTypes.put(ref, type), supertypes)
 
     fun cast(ref: UHeapRef, type: Type): UTypeStorage<Type> {

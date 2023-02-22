@@ -2,8 +2,6 @@ package org.usvm
 
 import org.ksmt.KAst
 import org.ksmt.KContext
-import org.ksmt.cache.AstInterner
-import org.ksmt.cache.KInternedObject
 import org.ksmt.solver.model.DefaultValueSampler.Companion.sampleValue
 import org.ksmt.utils.asExpr
 import org.ksmt.utils.cast
@@ -11,17 +9,18 @@ import org.ksmt.utils.cast
 @Suppress("LeakingThis")
 open class UContext(
     private val operationMode: OperationMode = OperationMode.CONCURRENT, // TODO replace it when we have KSMT 0.3.3 version
-    private val astManagementMode: AstManagementMode = AstManagementMode.GC // TODO replace it when we have KSMT 0.3.3 version
-) : KContext(operationMode, astManagementMode) {
-    val addressSort: UAddressSort = UAddressSort(this)
-    val sizeSort: USizeSort = mkBv32Sort()
+    private val astManagementMode: AstManagementMode = AstManagementMode.GC, // TODO replace it when we have KSMT 0.3.3 version
+    private val simplificationMode: SimplificationMode = SimplificationMode.SIMPLIFY
+) : KContext(operationMode, astManagementMode, simplificationMode) {
 
+    val addressSort: UAddressSort = UAddressSort(this)
+    val sizeSort: USizeSort = bv32Sort
     val zeroSize: USizeExpr = sizeSort.sampleValue()
 
     val nullRef = UConcreteHeapRef(this, nullAddress)
 
     private val uConcreteHeapRefCache = mkAstInterner<UConcreteHeapRef>()
-    fun mkConcreteHeapRef(address: UHeapAddress): UConcreteHeapRef =
+    fun mkConcreteHeapRef(address: UConcreteHeapAddress): UConcreteHeapRef =
         uConcreteHeapRefCache.createIfContextActive {
             UConcreteHeapRef(this, address)
         }
@@ -44,7 +43,7 @@ open class UContext(
 
     fun <ArrayType, Sort : USort> mkAllocatedArrayReading(
         region: UAllocatedArrayMemoryRegion<Sort>,
-        address: UHeapAddress,
+        address: UConcreteHeapAddress,
         index: USizeExpr,
         arrayType: ArrayType,
         elementSort: Sort
@@ -96,32 +95,6 @@ open class UContext(
             is UAddressSort -> nullRef.asExpr(sort)
             else -> sort.sampleValue()
         }
-
-    // TODO: delegate it to KSMT
-    fun mkNotSimplified(expr: UBoolExpr) =
-        when (expr) {
-            is UNotExpr -> expr.arg
-            else -> expr.ctx.mkNot(expr)
-        }
-
-    // TODO remove it when we have KSMT 0.3.3 version
-    private inline fun <T> ensureContextActive(block: () -> T): T {
-        check(isActive) { "Context is not active" }
-        return block()
-    }
-
-    // TODO remove it when we have KSMT 0.3.3 version
-    private inline fun <T> AstInterner<T>.createIfContextActive(
-        builder: () -> T
-    ): T where T : KAst, T : KInternedObject = ensureContextActive {
-        intern(builder())
-    }
-
-    // TODO remove it when we have KSMT 0.3.3 version
-    private fun <T> mkAstInterner(): AstInterner<T> where T : KAst, T : KInternedObject =
-        org.ksmt.cache.mkAstInterner(operationMode, astManagementMode)
-
-
 }
 
 fun <Sort : USort> Sort.defaultValue() =

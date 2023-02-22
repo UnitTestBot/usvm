@@ -36,8 +36,8 @@ interface UHeap<Ref, Value, SizeT, Field, ArrayType> : UReadOnlyHeap<Ref, Value,
     fun <Sort : USort> memset(ref: Ref, type: ArrayType, sort: Sort, contents: Sequence<Value>)
     fun memcpy(src: Ref, dst: Ref, type: ArrayType, fromSrc: SizeT, fromDst: SizeT, length: SizeT)
 
-    fun allocate(): UHeapAddress
-    fun allocateArray(count: SizeT): UHeapAddress
+    fun allocate(): UConcreteHeapAddress
+    fun allocateArray(count: SizeT): UConcreteHeapAddress
 
     fun decode(model: KModel): UReadOnlyHeap<Ref, Value, SizeT, Field, ArrayType>
 
@@ -54,17 +54,17 @@ typealias USymbolicHeap<Field, ArrayType> = UHeap<UHeapRef, UExpr<out USort>, US
  */
 class UAddressCounter {
     private var lastAddress = nullAddress
-    fun freshAddress(): UHeapAddress = lastAddress++
+    fun freshAddress(): UConcreteHeapAddress = lastAddress++
 }
 
 data class URegionHeap<Field, ArrayType>(
     private val ctx: UContext,
     private var lastAddress: UAddressCounter = UAddressCounter(),
-    private var allocatedFields: PersistentMap<Pair<UHeapAddress, Field>, UExpr<out USort>> = persistentMapOf(),
+    private var allocatedFields: PersistentMap<Pair<UConcreteHeapAddress, Field>, UExpr<out USort>> = persistentMapOf(),
     private var inputFields: PersistentMap<Field, UVectorMemoryRegion<out USort>> = persistentMapOf(),
-    private var allocatedArrays: PersistentMap<UHeapAddress, UAllocatedArrayMemoryRegion<out USort>> = persistentMapOf(),
+    private var allocatedArrays: PersistentMap<UConcreteHeapAddress, UAllocatedArrayMemoryRegion<out USort>> = persistentMapOf(),
     private var inputArrays: PersistentMap<ArrayType, UInputArrayMemoryRegion<out USort>> = persistentMapOf(),
-    private var allocatedLengths: PersistentMap<UHeapAddress, USizeExpr> = persistentMapOf(),
+    private var allocatedLengths: PersistentMap<UConcreteHeapAddress, USizeExpr> = persistentMapOf(),
     private var inputLengths: PersistentMap<ArrayType, UArrayLengthMemoryRegion> = persistentMapOf()
 ) : USymbolicHeap<Field, ArrayType> {
     private fun <Sort : USort> fieldsRegion(
@@ -78,7 +78,7 @@ data class URegionHeap<Field, ArrayType>(
 
     private fun <Sort : USort> allocatedArrayRegion(
         arrayType: ArrayType,
-        address: UHeapAddress,
+        address: UConcreteHeapAddress,
         elementSort: Sort
     ): UMemoryRegion<KExpr<USizeSort>, Sort> =
         allocatedArrays[address]?.allocatedArrayRegionUncheckedCast()
@@ -189,7 +189,7 @@ data class URegionHeap<Field, ArrayType>(
 
     override fun allocate() = lastAddress.freshAddress()
 
-    override fun allocateArray(count: USizeExpr): UHeapAddress {
+    override fun allocateArray(count: USizeExpr): UConcreteHeapAddress {
         val address = lastAddress.freshAddress()
         allocatedLengths = allocatedLengths.put(address, count)
         return address

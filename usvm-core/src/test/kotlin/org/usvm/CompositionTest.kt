@@ -8,11 +8,12 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.ksmt.cache.hash
 import org.ksmt.cache.structurallyEqual
-import org.ksmt.expr.KBvNotExpr
+import org.ksmt.expr.KBitVec32Value
 import org.ksmt.expr.KExpr
 import org.ksmt.expr.printer.ExpressionPrinter
 import org.ksmt.expr.transformer.KTransformerBase
 import org.ksmt.sort.KBv32Sort
+import kotlin.test.assertEquals
 
 internal class CompositionTest<Type, Field> {
     private lateinit var stackEvaluator: URegistersStackEvaluator
@@ -104,17 +105,16 @@ internal class CompositionTest<Type, Field> {
         val bv32Sort = mkBv32Sort()
         val idx = 5
         val readingValue = mkRegisterReading(idx, bv32Sort) as KExpr<KBv32Sort>
-        val expression = mkBvNotExpr(readingValue)
+        val expression = mkBvNegationExpr(readingValue)
         val bvValue = 32.toBv()
 
         every { stackEvaluator.eval(idx, bv32Sort) } returns bvValue
 
         val composedExpression = composer.compose(expression) as UExpr<*>
 
-        val composedExpressionEquality = composedExpression === mkBvNotExpr(bvValue)
-        val internalValueEquality = (composedExpression as KBvNotExpr<KBv32Sort>).value === bvValue
+        val simplifiedValue = (composedExpression as KBitVec32Value).intValue
 
-        assert(composedExpressionEquality && internalValueEquality)
+        assertEquals(-32, simplifiedValue)
     }
 
 
