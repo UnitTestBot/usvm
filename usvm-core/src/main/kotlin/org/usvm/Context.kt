@@ -13,9 +13,9 @@ open class UContext(
     private val simplificationMode: SimplificationMode = SimplificationMode.SIMPLIFY
 ) : KContext(operationMode, astManagementMode, simplificationMode) {
 
-    val addressSort: UAddressSort = UAddressSort(this)
+    val addressSort: UAddressSort = mkUninterpretedSort("Address")
     val sizeSort: USizeSort = bv32Sort
-    val zeroSize: USizeExpr = sizeSort.sampleValue()
+    val zeroSize: USizeExpr = sizeSort.defaultValue()
 
     val nullRef = UConcreteHeapRef(this, nullAddress)
 
@@ -92,7 +92,7 @@ open class UContext(
 
     fun <Sort : USort> mkDefault(sort: Sort): UExpr<Sort> =
         when (sort) {
-            is UAddressSort -> nullRef.asExpr(sort)
+            addressSort -> nullRef.asExpr(sort)
             else -> sort.sampleValue()
         }
 }

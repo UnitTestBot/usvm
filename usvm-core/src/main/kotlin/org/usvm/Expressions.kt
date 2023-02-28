@@ -27,6 +27,8 @@ typealias UConcreteInt32 = KBitVec32Value
 typealias UConcreteInt64 = KBitVec64Value
 typealias UConcreteSize = KBitVec32Value
 
+typealias UAddressSort = KUninterpretedSort
+
 //endregion
 
 //region Object References
@@ -37,22 +39,6 @@ typealias UConcreteHeapAddress = Int
 const val nullAddress = 0
 
 typealias UHeapRef = UExpr<UAddressSort> // TODO: KExpr<UAddressSort>
-
-interface USortVisitor<T> : KSortVisitor<T> {
-    fun visit(sort: UAddressSort): T
-}
-
-class UAddressSort internal constructor(ctx: UContext) : USort(ctx) {
-    override fun <T> accept(visitor: KSortVisitor<T>): T =
-        when (visitor) {
-            is USortVisitor<T> -> visitor.visit(this)
-            else -> error("Can't visit UAddressSort by ${visitor.javaClass}")
-        }
-
-    override fun print(builder: StringBuilder) {
-        builder.append("Address")
-    }
-}
 
 class UConcreteHeapRef internal constructor(ctx: UContext, val address: UConcreteHeapAddress) : UHeapRef(ctx) {
     override val sort: UAddressSort = ctx.addressSort
