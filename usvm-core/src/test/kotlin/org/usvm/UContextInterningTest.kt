@@ -56,8 +56,8 @@ class UContextInterningTest {
     @Test
     fun testFieldReadingInterning() = with(context) {
         // TODO replace after making `out` type in MemoryRegion
-        val fstRegion: UVectorMemoryRegion<USort> = mockk<UVectorMemoryRegion<UBv32Sort>>().cast()
-        val sndRegion: UVectorMemoryRegion<USort> = mockk<UVectorMemoryRegion<UBoolSort>>().cast()
+        val fstRegion: UInputFieldMemoryRegion<USort> = mockk<UInputFieldMemoryRegion<UBv32Sort>>().cast()
+        val sndRegion: UInputFieldMemoryRegion<USort> = mockk<UInputFieldMemoryRegion<UBoolSort>>().cast()
 
         every { fstRegion.sort } returns bv32Sort
         every { sndRegion.sort } returns boolSort

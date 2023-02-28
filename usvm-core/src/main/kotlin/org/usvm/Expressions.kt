@@ -132,7 +132,7 @@ abstract class UHeapReading<Key, Sort : USort>(
 
 class UFieldReading<Field, Sort : USort> internal constructor(
     ctx: UContext,
-    region: UVectorMemoryRegion<Sort>,
+    region: UInputFieldMemoryRegion<Sort>,
     val address: UHeapRef,
     val field: Field
 ) : UHeapReading<UHeapRef, Sort>(ctx, region) {

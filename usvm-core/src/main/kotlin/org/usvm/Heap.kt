@@ -61,7 +61,7 @@ data class URegionHeap<Field, ArrayType>(
     private val ctx: UContext,
     private var lastAddress: UAddressCounter = UAddressCounter(),
     private var allocatedFields: PersistentMap<Pair<UConcreteHeapAddress, Field>, UExpr<out USort>> = persistentMapOf(),
-    private var inputFields: PersistentMap<Field, UVectorMemoryRegion<out USort>> = persistentMapOf(),
+    private var inputFields: PersistentMap<Field, UInputFieldMemoryRegion<out USort>> = persistentMapOf(),
     private var allocatedArrays: PersistentMap<UConcreteHeapAddress, UAllocatedArrayMemoryRegion<out USort>> = persistentMapOf(),
     private var inputArrays: PersistentMap<ArrayType, UInputArrayMemoryRegion<out USort>> = persistentMapOf(),
     private var allocatedLengths: PersistentMap<UConcreteHeapAddress, USizeExpr> = persistentMapOf(),
@@ -209,8 +209,8 @@ data class URegionHeap<Field, ArrayType>(
 }
 
 @Suppress("UNCHECKED_CAST")
-fun <Sort : USort> UVectorMemoryRegion<*>?.vectorRegionUncheckedCast(): UVectorMemoryRegion<Sort>? =
-    this as? UVectorMemoryRegion<Sort>
+fun <Sort : USort> UInputFieldMemoryRegion<*>?.vectorRegionUncheckedCast(): UInputFieldMemoryRegion<Sort>? =
+    this as? UInputFieldMemoryRegion<Sort>
 
 @Suppress("UNCHECKED_CAST")
 fun <Sort : USort> UAllocatedArrayMemoryRegion<*>?.allocatedArrayRegionUncheckedCast(): UAllocatedArrayMemoryRegion<Sort>? =

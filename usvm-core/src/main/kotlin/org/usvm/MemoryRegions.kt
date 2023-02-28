@@ -647,7 +647,7 @@ fun refIndexRangeRegion(
     idx2: USymbolicArrayIndex
 ): UArrayIndexRegion = indexRangeRegion(idx1.second, idx2.second)
 
-typealias UVectorMemoryRegion<Sort> = UMemoryRegion<UHeapRef, Sort>
+typealias UInputFieldMemoryRegion<Sort> = UMemoryRegion<UHeapRef, Sort>
 typealias UAllocatedArrayMemoryRegion<Sort> = UMemoryRegion<USizeExpr, Sort>
 typealias UInputArrayMemoryRegion<Sort> = UMemoryRegion<USymbolicArrayIndex, Sort>
 typealias UArrayLengthMemoryRegion = UMemoryRegion<UHeapRef, USizeSort>

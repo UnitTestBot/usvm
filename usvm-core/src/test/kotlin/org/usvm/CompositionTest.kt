@@ -284,7 +284,7 @@ internal class CompositionTest<Type, Field> {
     @Suppress("UNCHECKED_CAST")
     @Test
     fun testUFieldReading() = with(ctx) {
-        val region = mockk<UVectorMemoryRegion<*>>()
+        val region = mockk<UInputFieldMemoryRegion<*>>()
         val address = mockk<UHeapRef>()
 
         val fieldAddress = mkConcreteHeapRef(address = 12)

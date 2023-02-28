@@ -32,7 +32,7 @@ open class UContext(
     private val inputFieldReadingCache = mkAstInterner<UFieldReading<Any, out USort>>()
 
     fun <Field, Sort : USort> mkFieldReading(
-        region: UVectorMemoryRegion<Sort>,
+        region: UInputFieldMemoryRegion<Sort>,
         address: UHeapRef,
         field: Field
     ): UFieldReading<Field, Sort> = inputFieldReadingCache.createIfContextActive {
