@@ -29,48 +29,41 @@ open class UContext(
     fun <Sort : USort> mkRegisterReading(idx: Int, sort: Sort): URegisterReading<Sort> =
         registerReadingCache.createIfContextActive { URegisterReading(this, idx, sort) }.cast()
 
-    private val inputFieldReadingCache = mkAstInterner<UFieldReading<Any, out USort>>()
+    private val inputFieldReadingCache = mkAstInterner<UFieldReading<*, out USort>>()
 
     fun <Field, Sort : USort> mkFieldReading(
-        region: UInputFieldMemoryRegion<Sort>,
+        region: UInputFieldMemoryRegion<Field, Sort>,
         address: UHeapRef,
-        field: Field
     ): UFieldReading<Field, Sort> = inputFieldReadingCache.createIfContextActive {
-        UFieldReading(this, region, address, field.cast())
+        UFieldReading(this, region, address)
     }.cast()
 
-    private val allocatedArrayReadingCache = mkAstInterner<UAllocatedArrayReading<Any, out USort>>()
+    private val allocatedArrayReadingCache = mkAstInterner<UAllocatedArrayReading<*, out USort>>()
 
     fun <ArrayType, Sort : USort> mkAllocatedArrayReading(
-        region: UAllocatedArrayMemoryRegion<Sort>,
-        address: UConcreteHeapAddress,
+        region: UAllocatedArrayMemoryRegion<ArrayType, Sort>,
         index: USizeExpr,
-        arrayType: ArrayType,
-        elementSort: Sort
     ): UAllocatedArrayReading<ArrayType, Sort> = allocatedArrayReadingCache.createIfContextActive {
-        UAllocatedArrayReading(this, region, address, index, arrayType.cast(), elementSort)
+        UAllocatedArrayReading(this, region, index)
     }.cast()
 
-    private val inputArrayReadingCache = mkAstInterner<UInputArrayReading<Any, out USort>>()
+    private val inputArrayReadingCache = mkAstInterner<UInputArrayReading<*, out USort>>()
 
     fun <ArrayType, Sort : USort> mkInputArrayReading(
-        region: UInputArrayMemoryRegion<Sort>,
+        region: UInputArrayMemoryRegion<ArrayType, Sort>,
         address: UHeapRef,
         index: USizeExpr,
-        arrayType: ArrayType,
-        elementSort: Sort
     ): UInputArrayReading<ArrayType, Sort> = inputArrayReadingCache.createIfContextActive {
-        UInputArrayReading(this, region, address, index, arrayType.cast(), elementSort)
+        UInputArrayReading(this, region, address, index)
     }.cast()
 
-    private val arrayLengthCache = mkAstInterner<UArrayLength<Any>>()
+    private val arrayLengthCache = mkAstInterner<UArrayLength<*>>()
 
     fun <ArrayType> mkArrayLength(
-        region: UArrayLengthMemoryRegion,
+        region: UArrayLengthMemoryRegion<ArrayType>,
         address: UHeapRef,
-        arrayType: ArrayType
     ): UArrayLength<ArrayType> = arrayLengthCache.createIfContextActive {
-        UArrayLength(this, region, address, arrayType.cast())
+        UArrayLength(this, region, address)
     }.cast()
 
     private val indexedMethodReturnValueCache = mkAstInterner<UIndexedMethodReturnValue<Any, out USort>>()

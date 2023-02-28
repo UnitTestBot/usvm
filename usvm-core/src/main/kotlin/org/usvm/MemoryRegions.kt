@@ -84,23 +84,24 @@ interface UMemoryUpdates<Key, Sort : USort> : Sequence<UUpdateNode<Key, Sort>> {
     /**
      * @return Updates expressing copying the slice of [fromRegion] (see UMemoryRegion.copy)
      */
-    fun copy(
-        fromRegion: UMemoryRegion<Key, Sort>,
+    fun <RegionId> copy(
+        fromRegion: UMemoryRegion<RegionId, Key, Sort>,
         fromKey: Key, toKey: Key,
         keyConverter: (Key) -> Key
     ): UMemoryUpdates<Key, Sort>
 }
 
-typealias UInstantiator<Key, Sort> = (key: Key, UMemoryRegion<Key, Sort>) -> USymbol<Sort>
+typealias UInstantiator<RegionId, Key, Sort> = (key: Key, UMemoryRegion<RegionId, Key, Sort>) -> USymbol<Sort>
 
 /**
  * A uniform unbounded slice of memory. Indexed by [Key], stores symbolic values.
  */
-data class UMemoryRegion<Key, Sort : USort>(
+data class UMemoryRegion<RegionId, Key, Sort : USort>(
+    val regionId: RegionId,
     val sort: Sort,
     private val updates: UMemoryUpdates<Key, Sort>,
     private val defaultValue: UExpr<Sort>?, // If defaultValue = null then this region is filled with symbolics
-    private val instantiator: UInstantiator<Key, Sort>
+    private val instantiator: UInstantiator<RegionId, Key, Sort>
 ) {
     private fun read(key: Key, updates: UMemoryUpdates<Key, Sort>): UExpr<Sort> {
         val iterator = updates.iterator()
@@ -122,7 +123,7 @@ data class UMemoryRegion<Key, Sort : USort>(
         val localizedRegion = if (updates === this.updates) {
             this
         } else {
-            UMemoryRegion(sort, updates, defaultValue, instantiator)
+            UMemoryRegion(regionId, sort, updates, defaultValue, instantiator)
         }
 
         return instantiator(key, localizedRegion)
@@ -168,18 +169,18 @@ data class UMemoryRegion<Key, Sort : USort>(
         return iteAcc
     }
 
-    fun write(key: Key, value: UExpr<Sort>): UMemoryRegion<Key, Sort> {
+    fun write(key: Key, value: UExpr<Sort>): UMemoryRegion<RegionId, Key, Sort> {
         assert(value.sort == sort)
 
         val newUpdates = updates.write(key, value)
-        return UMemoryRegion(sort, newUpdates, defaultValue, instantiator)
+        return UMemoryRegion(regionId, sort, newUpdates, defaultValue, instantiator)
     }
 
     internal fun split(
         key: Key, predicate: (UExpr<Sort>) -> Boolean,
         matchingWrites: LinkedList<Pair<UBoolExpr, UExpr<Sort>>>,
         guardBuilder: GuardBuilder
-    ): UMemoryRegion<Key, Sort> {
+    ): UMemoryRegion<RegionId, Key, Sort> {
         // TODO: either check in UMemoryRegion constructor that we do not construct memory region with
         //       non-null reference as default value, or implement splitting by default value.
         assert(defaultValue == null || !predicate(defaultValue))
@@ -188,7 +189,7 @@ data class UMemoryRegion<Key, Sort : USort>(
         val splittingUpdates = updates.read(key).split(key, predicate, matchingWrites, guardBuilder)
         val sizeRemainedUnchanged = matchingWrites.size == count
 
-        return if (sizeRemainedUnchanged) this else UMemoryRegion(sort, splittingUpdates, defaultValue, instantiator)
+        return if (sizeRemainedUnchanged) this else UMemoryRegion(regionId, sort, splittingUpdates, defaultValue, instantiator)
     }
 
     /**
@@ -196,13 +197,13 @@ data class UMemoryRegion<Key, Sort : USort>(
      * with values from memory region [fromRegion] read from range
      * of addresses [[keyConverter] ([fromKey]) : [keyConverter] ([toKey])]
      */
-    fun copy(
-        fromRegion: UMemoryRegion<Key, Sort>,
+    fun <OtherRegionId> copy(
+        fromRegion: UMemoryRegion<OtherRegionId, Key, Sort>,
         fromKey: Key, toKey: Key,
         keyConverter: (Key) -> Key
-    ): UMemoryRegion<Key, Sort> {
+    ): UMemoryRegion<RegionId, Key, Sort> {
         val updatesCopy = updates.copy(fromRegion, fromKey, toKey, keyConverter)
-        return UMemoryRegion(sort, updatesCopy, defaultValue, instantiator)
+        return UMemoryRegion(regionId, sort, updatesCopy, defaultValue, instantiator)
     }
 }
 
@@ -275,7 +276,7 @@ class UPinpointUpdateNode<Key, ValueSort : USort>(
 class URangedUpdateNode<Key, ValueSort : USort>(
     val fromKey: Key,
     val toKey: Key,
-    private val region: UMemoryRegion<Key, ValueSort>,
+    private val region: UMemoryRegion<*, Key, ValueSort>,
     private val concreteComparer: (Key, Key) -> Boolean,
     private val symbolicComparer: (Key, Key) -> UBoolExpr,
     private val keyConverter: (Key) -> Key,
@@ -346,14 +347,18 @@ class UEmptyUpdates<Key, Sort : USort>(
             symbolicCmp
         )
 
-    override fun copy(fromRegion: UMemoryRegion<Key, Sort>, fromKey: Key, toKey: Key, keyConverter: (Key) -> Key) =
-        UFlatUpdates(
-            URangedUpdateNode(fromKey, toKey, fromRegion, concreteCmp, symbolicCmp, keyConverter),
-            next = null,
-            symbolicEq,
-            concreteCmp,
-            symbolicCmp
-        )
+    override fun <RegionId> copy(
+        fromRegion: UMemoryRegion<RegionId, Key, Sort>,
+        fromKey: Key,
+        toKey: Key,
+        keyConverter: (Key) -> Key,
+    ) = UFlatUpdates(
+        URangedUpdateNode(fromKey, toKey, fromRegion, concreteCmp, symbolicCmp, keyConverter),
+        next = null,
+        symbolicEq,
+        concreteCmp,
+        symbolicCmp
+    )
 
     override fun split(
         key: Key,
@@ -397,14 +402,18 @@ data class UFlatUpdates<Key, Sort : USort>(
             symbolicCmp
         )
 
-    override fun copy(fromRegion: UMemoryRegion<Key, Sort>, fromKey: Key, toKey: Key, keyConverter: (Key) -> Key) =
-        UFlatUpdates(
-            URangedUpdateNode(fromKey, toKey, fromRegion, concreteCmp, symbolicCmp, keyConverter),
-            next = this,
-            symbolicEq,
-            concreteCmp,
-            symbolicCmp
-        )
+    override fun <RegionId> copy(
+        fromRegion: UMemoryRegion<RegionId, Key, Sort>,
+        fromKey: Key,
+        toKey: Key,
+        keyConverter: (Key) -> Key,
+    ) = UFlatUpdates(
+        URangedUpdateNode(fromKey, toKey, fromRegion, concreteCmp, symbolicCmp, keyConverter),
+        next = this,
+        symbolicEq,
+        concreteCmp,
+        symbolicCmp
+    )
 
     override fun split(
         key: Key, predicate: (UExpr<Sort>) -> Boolean,
@@ -493,8 +502,8 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
         return UTreeUpdates(newUpdates, keyToRegion, keyRangeToRegion, symbolicEq, concreteCmp, symbolicCmp)
     }
 
-    override fun copy(
-        fromRegion: UMemoryRegion<Key, Sort>,
+    override fun <RegionId> copy(
+        fromRegion: UMemoryRegion<RegionId, Key, Sort>,
         fromKey: Key,
         toKey: Key,
         keyConverter: (Key) -> Key
@@ -647,48 +656,61 @@ fun refIndexRangeRegion(
     idx2: USymbolicArrayIndex
 ): UArrayIndexRegion = indexRangeRegion(idx1.second, idx2.second)
 
-typealias UInputFieldMemoryRegion<Sort> = UMemoryRegion<UHeapRef, Sort>
-typealias UAllocatedArrayMemoryRegion<Sort> = UMemoryRegion<USizeExpr, Sort>
-typealias UInputArrayMemoryRegion<Sort> = UMemoryRegion<USymbolicArrayIndex, Sort>
-typealias UArrayLengthMemoryRegion = UMemoryRegion<UHeapRef, USizeSort>
+typealias UInputFieldMemoryRegion<Field, Sort> = UMemoryRegion<Field, UHeapRef, Sort>
+typealias UAllocatedArrayMemoryRegion<ArrayType, Sort> = UMemoryRegion<UAllocatedArrayRegionId<ArrayType>, USizeExpr, Sort>
+typealias UInputArrayMemoryRegion<ArrayType, Sort> = UMemoryRegion<ArrayType, USymbolicArrayIndex, Sort>
+typealias UArrayLengthMemoryRegion<ArrayType> = UMemoryRegion<ArrayType, UHeapRef, USizeSort>
 
-fun <Sort : USort> emptyFlatRegion(
+fun <Field, Sort : USort> emptyInputFieldRegion(
+    field: Field,
     sort: Sort,
     defaultValue: UExpr<Sort>?,
-    instantiator: UInstantiator<UHeapRef, Sort>
-) = UMemoryRegion(
+    instantiator: UInstantiator<Field, UHeapRef, Sort>
+): UInputFieldMemoryRegion<Field, Sort> = UMemoryRegion(
+    field,
     sort,
     UEmptyUpdates(::heapRefEq, ::heapRefCmpConcrete, ::heapRefCmpSymbolic),
     defaultValue,
     instantiator
 )
 
-fun <Sort : USort> emptyAllocatedArrayRegion(
+fun <ArrayType, Sort : USort> emptyAllocatedArrayRegion(
+    arrayType: ArrayType,
+    address: UConcreteHeapAddress,
     sort: Sort,
-    instantiator: UInstantiator<USizeExpr, Sort>
-): UAllocatedArrayMemoryRegion<Sort> {
+    instantiator: UInstantiator<UAllocatedArrayRegionId<ArrayType>, USizeExpr, Sort>
+): UAllocatedArrayMemoryRegion<ArrayType, Sort> {
     val updates = UTreeUpdates<USizeExpr, UArrayIndexRegion, Sort>(
         updates = emptyRegionTree(),
         ::indexRegion, ::indexRangeRegion, ::indexEq, ::indexLeConcrete, ::indexLeSymbolic
     )
-    return UMemoryRegion(sort, updates, sort.uctx.mkDefault(sort), instantiator)
+    val regionId = UAllocatedArrayRegionId(arrayType, address)
+    return UMemoryRegion(regionId, sort, updates, sort.defaultValue(), instantiator)
 }
 
-fun <Sort : USort> emptyInputArrayRegion(
+fun <ArrayType, Sort : USort> emptyInputArrayRegion(
+    arrayType: ArrayType,
     sort: Sort,
-    instantiator: UInstantiator<USymbolicArrayIndex, Sort>
-): UInputArrayMemoryRegion<Sort> {
+    instantiator: UInstantiator<ArrayType, USymbolicArrayIndex, Sort>
+): UInputArrayMemoryRegion<ArrayType, Sort> {
     val updates = UTreeUpdates<USymbolicArrayIndex, UArrayIndexRegion, Sort>(
         updates = emptyRegionTree(),
         ::refIndexRegion, ::refIndexRangeRegion, ::refIndexEq, ::refIndexCmpConcrete, ::refIndexCmpSymbolic
     )
-    return UMemoryRegion(sort, updates, null, instantiator)
+    return UMemoryRegion(arrayType, sort, updates, defaultValue = null, instantiator)
 }
 
-fun emptyArrayLengthRegion(ctx: UContext, instantiator: UInstantiator<UHeapRef, USizeSort>): UArrayLengthMemoryRegion =
+fun <ArrayType> emptyArrayLengthRegion(
+    arrayType: ArrayType,
+    ctx: UContext,
+    instantiator: UInstantiator<ArrayType, UHeapRef, USizeSort>,
+): UArrayLengthMemoryRegion<ArrayType> =
     UMemoryRegion(
-        ctx.sizeSort, UEmptyUpdates(::heapRefEq, ::heapRefCmpConcrete, ::heapRefCmpSymbolic),
-        defaultValue = null, instantiator
+        arrayType,
+        ctx.sizeSort,
+        UEmptyUpdates(::heapRefEq, ::heapRefCmpConcrete, ::heapRefCmpSymbolic),
+        defaultValue = null,
+        instantiator
     )
 
 //endregion

@@ -1,6 +1,5 @@
 package org.usvm
 
-import org.ksmt.expr.KExpr
 import org.ksmt.solver.KModel
 import org.ksmt.utils.asExpr
 import kotlinx.collections.immutable.PersistentMap
@@ -61,46 +60,46 @@ data class URegionHeap<Field, ArrayType>(
     private val ctx: UContext,
     private var lastAddress: UAddressCounter = UAddressCounter(),
     private var allocatedFields: PersistentMap<Pair<UConcreteHeapAddress, Field>, UExpr<out USort>> = persistentMapOf(),
-    private var inputFields: PersistentMap<Field, UInputFieldMemoryRegion<out USort>> = persistentMapOf(),
-    private var allocatedArrays: PersistentMap<UConcreteHeapAddress, UAllocatedArrayMemoryRegion<out USort>> = persistentMapOf(),
-    private var inputArrays: PersistentMap<ArrayType, UInputArrayMemoryRegion<out USort>> = persistentMapOf(),
+    private var inputFields: PersistentMap<Field, UInputFieldMemoryRegion<Field, out USort>> = persistentMapOf(),
+    private var allocatedArrays: PersistentMap<UConcreteHeapAddress, UAllocatedArrayMemoryRegion<ArrayType, out USort>> = persistentMapOf(),
+    private var inputArrays: PersistentMap<ArrayType, UInputArrayMemoryRegion<ArrayType, out USort>> = persistentMapOf(),
     private var allocatedLengths: PersistentMap<UConcreteHeapAddress, USizeExpr> = persistentMapOf(),
-    private var inputLengths: PersistentMap<ArrayType, UArrayLengthMemoryRegion> = persistentMapOf()
+    private var inputLengths: PersistentMap<ArrayType, UArrayLengthMemoryRegion<ArrayType>> = persistentMapOf()
 ) : USymbolicHeap<Field, ArrayType> {
     private fun <Sort : USort> fieldsRegion(
         field: Field,
         sort: Sort
-    ): UMemoryRegion<KExpr<UAddressSort>, Sort> =
-        inputFields[field].vectorRegionUncheckedCast()
-            ?: emptyFlatRegion(sort, defaultValue = null) { key, region ->
-                ctx.mkFieldReading(region, key, field)
+    ): UInputFieldMemoryRegion<Field, Sort> =
+        inputFields[field].inputFieldsRegionUncheckedCast()
+            ?: emptyInputFieldRegion(field, sort, defaultValue = null) { key, region ->
+                ctx.mkFieldReading(region, key)
             }
 
     private fun <Sort : USort> allocatedArrayRegion(
         arrayType: ArrayType,
         address: UConcreteHeapAddress,
         elementSort: Sort
-    ): UMemoryRegion<KExpr<USizeSort>, Sort> =
-        allocatedArrays[address]?.allocatedArrayRegionUncheckedCast()
-            ?: emptyAllocatedArrayRegion(elementSort) { index, region ->
-                ctx.mkAllocatedArrayReading(region, address, index, arrayType, elementSort)
+    ): UAllocatedArrayMemoryRegion<ArrayType, Sort> =
+        allocatedArrays[address].allocatedArrayRegionUncheckedCast()
+            ?: emptyAllocatedArrayRegion(arrayType, address, elementSort) { index, region ->
+                ctx.mkAllocatedArrayReading(region, index)
             }
 
     private fun <Sort : USort> inputArrayRegion(
         arrayType: ArrayType,
         elementSort: Sort
-    ): UMemoryRegion<Pair<KExpr<UAddressSort>, KExpr<USizeSort>>, Sort> =
-        inputArrays[arrayType]?.inputArrayRegionUncheckedCast()
-            ?: emptyInputArrayRegion(elementSort) { pair, region ->
-                ctx.mkInputArrayReading(region, pair.first, pair.second, arrayType, elementSort)
+    ): UInputArrayMemoryRegion<ArrayType, Sort> =
+        inputArrays[arrayType].inputArrayRegionUncheckedCast()
+            ?: emptyInputArrayRegion(arrayType, elementSort) { pair, region ->
+                ctx.mkInputArrayReading(region, pair.first, pair.second)
             }
 
     private fun arrayLengthRegion(
         arrayType: ArrayType
-    ): UMemoryRegion<KExpr<UAddressSort>, USizeSort> =
+    ): UArrayLengthMemoryRegion<ArrayType> =
         inputLengths[arrayType]
-            ?: emptyArrayLengthRegion(ctx) { ref, region ->
-                ctx.mkArrayLength(region, ref, arrayType)
+            ?: emptyArrayLengthRegion(arrayType, ctx) { ref, region ->
+                ctx.mkArrayLength(region, ref)
             }
 
     override fun <Sort : USort> readField(ref: UHeapRef, field: Field, sort: Sort): UExpr<Sort> =
@@ -209,13 +208,13 @@ data class URegionHeap<Field, ArrayType>(
 }
 
 @Suppress("UNCHECKED_CAST")
-fun <Sort : USort> UInputFieldMemoryRegion<*>?.vectorRegionUncheckedCast(): UInputFieldMemoryRegion<Sort>? =
-    this as? UInputFieldMemoryRegion<Sort>
+fun <Field, Sort : USort> UInputFieldMemoryRegion<Field, *>?.inputFieldsRegionUncheckedCast(): UInputFieldMemoryRegion<Field, Sort>? =
+    this as? UInputFieldMemoryRegion<Field, Sort>
 
 @Suppress("UNCHECKED_CAST")
-fun <Sort : USort> UAllocatedArrayMemoryRegion<*>?.allocatedArrayRegionUncheckedCast(): UAllocatedArrayMemoryRegion<Sort>? =
-    this as? UAllocatedArrayMemoryRegion<Sort>
+fun <ArrayType, Sort : USort> UAllocatedArrayMemoryRegion<ArrayType, *>?.allocatedArrayRegionUncheckedCast(): UAllocatedArrayMemoryRegion<ArrayType, Sort>? =
+    this as? UAllocatedArrayMemoryRegion<ArrayType, Sort>
 
 @Suppress("UNCHECKED_CAST")
-fun <Sort : USort> UInputArrayMemoryRegion<*>?.inputArrayRegionUncheckedCast(): UInputArrayMemoryRegion<Sort>? =
-    this as? UInputArrayMemoryRegion<Sort>
+fun <ArrayType, Sort : USort> UInputArrayMemoryRegion<ArrayType, *>?.inputArrayRegionUncheckedCast(): UInputArrayMemoryRegion<ArrayType, Sort>? =
+    this as? UInputArrayMemoryRegion<ArrayType, Sort>

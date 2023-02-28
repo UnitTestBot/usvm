@@ -105,9 +105,9 @@ class URegisterReading<Sort : USort> internal constructor(
     override fun internHashCode(): Int = hash(idx, sort)
 }
 
-abstract class UHeapReading<Key, Sort : USort>(
+abstract class UHeapReading<Region, Key, Sort : USort>(
     ctx: UContext,
-    val region: UMemoryRegion<Key, Sort>
+    val region: UMemoryRegion<Region, Key, Sort>
 ) : USymbol<Sort>(ctx) {
     override val sort: Sort = region.sort
 
@@ -118,10 +118,9 @@ abstract class UHeapReading<Key, Sort : USort>(
 
 class UFieldReading<Field, Sort : USort> internal constructor(
     ctx: UContext,
-    region: UInputFieldMemoryRegion<Sort>,
+    region: UInputFieldMemoryRegion<Field, Sort>,
     val address: UHeapRef,
-    val field: Field
-) : UHeapReading<UHeapRef, Sort>(ctx, region) {
+) : UHeapReading<Field, UHeapRef, Sort>(ctx, region) {
     @Suppress("UNCHECKED_CAST")
     override fun accept(transformer: KTransformerBase): KExpr<Sort> {
         require(transformer is UExprTransformer<*, *>)
@@ -129,21 +128,23 @@ class UFieldReading<Field, Sort : USort> internal constructor(
         return (transformer as UExprTransformer<Field, *>).transform(this)
     }
 
-    override fun toString(): String = "$address.${field}"
+    override fun toString(): String = "$address.${region.regionId}"
 
-    override fun internEquals(other: Any): Boolean = structurallyEqual(other, { region }, { address }, { field })
+    override fun internEquals(other: Any): Boolean = structurallyEqual(other, { region }, { address })
 
-    override fun internHashCode(): Int = hash(region, address, field)
+    override fun internHashCode(): Int = hash(region, address)
 }
+
+data class UAllocatedArrayRegionId<ArrayType>(
+    val arrayType: ArrayType,
+    val address: UConcreteHeapAddress,
+)
 
 class UAllocatedArrayReading<ArrayType, Sort : USort> internal constructor(
     ctx: UContext,
-    region: UAllocatedArrayMemoryRegion<Sort>,
-    val address: UConcreteHeapAddress,
+    region: UAllocatedArrayMemoryRegion<ArrayType, Sort>,
     val index: USizeExpr,
-    val arrayType: ArrayType,
-    val elementSort: Sort
-) : UHeapReading<USizeExpr, Sort>(ctx, region) {
+) : UHeapReading<UAllocatedArrayRegionId<ArrayType>, USizeExpr, Sort>(ctx, region) {
     @Suppress("UNCHECKED_CAST")
     override fun accept(transformer: KTransformerBase): KExpr<Sort> {
         require(transformer is UExprTransformer<*, *>)
@@ -155,24 +156,20 @@ class UAllocatedArrayReading<ArrayType, Sort : USort> internal constructor(
         structurallyEqual(
             other,
             { region },
-            { address },
             { index },
-            { arrayType }
         )
 
-    override fun internHashCode(): Int = hash(region, address, index, arrayType)
+    override fun internHashCode(): Int = hash(region, index)
 
-    override fun toString(): String = "$0xaddress[$index]"
+    override fun toString(): String = "0x${region.regionId.address}[$index]"
 }
 
 class UInputArrayReading<ArrayType, Sort : USort> internal constructor(
     ctx: UContext,
-    region: UInputArrayMemoryRegion<Sort>,
+    region: UInputArrayMemoryRegion<ArrayType, Sort>,
     val address: UHeapRef,
-    val index: USizeExpr,
-    val arrayType: ArrayType,
-    val elementSort: Sort
-) : UHeapReading<USymbolicArrayIndex, Sort>(ctx, region) {
+    val index: USizeExpr
+) : UHeapReading<ArrayType, USymbolicArrayIndex, Sort>(ctx, region) {
     override fun toString(): String = "$address[$index]"
 
     @Suppress("UNCHECKED_CAST")
@@ -188,19 +185,16 @@ class UInputArrayReading<ArrayType, Sort : USort> internal constructor(
             { region },
             { address },
             { index },
-            { arrayType },
-            { elementSort }
         )
 
-    override fun internHashCode(): Int = hash(region, address, index, arrayType, elementSort)
+    override fun internHashCode(): Int = hash(region, address, index)
 }
 
 class UArrayLength<ArrayType> internal constructor(
     ctx: UContext,
-    region: UArrayLengthMemoryRegion,
+    region: UArrayLengthMemoryRegion<ArrayType>,
     val address: UHeapRef,
-    val arrayType: ArrayType
-) : UHeapReading<UHeapRef, USizeSort>(ctx, region) {
+) : UHeapReading<ArrayType, UHeapRef, USizeSort>(ctx, region) {
     @Suppress("UNCHECKED_CAST")
     override fun accept(transformer: KTransformerBase): USizeExpr {
         require(transformer is UExprTransformer<*, *>)
@@ -210,9 +204,9 @@ class UArrayLength<ArrayType> internal constructor(
 
     override fun toString(): String = "length($address)"
 
-    override fun internEquals(other: Any): Boolean = structurallyEqual(other, { region }, { address }, { arrayType })
+    override fun internEquals(other: Any): Boolean = structurallyEqual(other, { region }, { address })
 
-    override fun internHashCode(): Int = hash(region, address, arrayType)
+    override fun internHashCode(): Int = hash(region, address)
 }
 
 //endregion

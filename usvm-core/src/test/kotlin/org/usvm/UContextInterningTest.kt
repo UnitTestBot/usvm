@@ -6,6 +6,9 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.ksmt.utils.cast
 
+private typealias Field = java.lang.reflect.Field
+private typealias ArrayType = kotlin.reflect.KClass<*>
+
 class UContextInterningTest {
     private lateinit var context: UContext
 
@@ -56,8 +59,8 @@ class UContextInterningTest {
     @Test
     fun testFieldReadingInterning() = with(context) {
         // TODO replace after making `out` type in MemoryRegion
-        val fstRegion: UInputFieldMemoryRegion<USort> = mockk<UInputFieldMemoryRegion<UBv32Sort>>().cast()
-        val sndRegion: UInputFieldMemoryRegion<USort> = mockk<UInputFieldMemoryRegion<UBoolSort>>().cast()
+        val fstRegion: UInputFieldMemoryRegion<Field, USort> = mockk<UInputFieldMemoryRegion<Field, UBv32Sort>>().cast()
+        val sndRegion: UInputFieldMemoryRegion<Field, USort> = mockk<UInputFieldMemoryRegion<Field, UBoolSort>>().cast()
 
         every { fstRegion.sort } returns bv32Sort
         every { sndRegion.sort } returns boolSort
@@ -65,21 +68,14 @@ class UContextInterningTest {
         val fstAddress = mkConcreteHeapRef(address = 1)
         val sndAddress = mkConcreteHeapRef(address = 2)
 
-        val fstField = mockk<java.lang.reflect.Field>() // TODO replace with JaCoDB
-        val sndField = mockk<java.lang.reflect.Field>()
+        val equal = List(10) { mkFieldReading(fstRegion, fstAddress) }
 
-        val equal = List(10) { mkFieldReading(fstRegion, fstAddress, fstField) }
-
-        val createdWithoutContext = UFieldReading(this, fstRegion, fstAddress, fstField)
+        val createdWithoutContext = UFieldReading(this, fstRegion, fstAddress)
         val distinct = listOf(
-            mkFieldReading(fstRegion, fstAddress, fstField),
-            mkFieldReading(fstRegion, fstAddress, sndField),
-            mkFieldReading(fstRegion, sndAddress, fstField),
-            mkFieldReading(fstRegion, sndAddress, sndField),
-            mkFieldReading(sndRegion, fstAddress, fstField),
-            mkFieldReading(sndRegion, fstAddress, sndField),
-            mkFieldReading(sndRegion, sndAddress, fstField),
-            mkFieldReading(sndRegion, sndAddress, sndField),
+            mkFieldReading(fstRegion, fstAddress),
+            mkFieldReading(fstRegion, sndAddress),
+            mkFieldReading(sndRegion, fstAddress),
+            mkFieldReading(sndRegion, sndAddress),
             createdWithoutContext
         )
 
@@ -89,37 +85,26 @@ class UContextInterningTest {
     @Test
     fun testAllocatedArrayReadingInterning() = with(context) {
         // TODO replace after making `out` type in regions
-        val fstRegion: UAllocatedArrayMemoryRegion<USort> = mockk<UAllocatedArrayMemoryRegion<UBv32Sort>>().cast()
-        val sndRegion: UAllocatedArrayMemoryRegion<USort> = mockk<UAllocatedArrayMemoryRegion<UBoolSort>>().cast()
+        val fstRegion: UAllocatedArrayMemoryRegion<ArrayType, USort> = mockk<UAllocatedArrayMemoryRegion<ArrayType, UBv32Sort>>().cast()
+        val sndRegion: UAllocatedArrayMemoryRegion<ArrayType, USort> = mockk<UAllocatedArrayMemoryRegion<ArrayType, UBoolSort>>().cast()
 
         every { fstRegion.sort } returns bv32Sort
         every { sndRegion.sort } returns boolSort
 
-        val fstAddress = 1
-        val sndAddress = 2
-
         val fstIndex = mockk<USizeExpr>()
         val sndIndex = mockk<USizeExpr>()
 
-        val fstArrayType = mockk<java.lang.reflect.Field>() // TODO replace with JaCoDB
-        val sndArrayType = mockk<java.lang.reflect.Field>()
-
-        val fstElementSort = bv32Sort
-        val sndElementSort = boolSort
-
         val equal = List(10) {
-            mkAllocatedArrayReading(fstRegion, fstAddress, fstIndex, fstArrayType, fstElementSort)
+            mkAllocatedArrayReading(fstRegion, fstIndex)
         }
 
         val createdWithoutContext =
-            UAllocatedArrayReading(this, fstRegion, fstAddress, fstIndex, fstArrayType, fstElementSort)
+            UAllocatedArrayReading(this, fstRegion, fstIndex)
         val distinct = listOf(
-            mkAllocatedArrayReading(fstRegion, fstAddress, fstIndex, fstArrayType, fstElementSort),
-            mkAllocatedArrayReading(sndRegion, fstAddress, fstIndex, fstArrayType, sndElementSort),
-            mkAllocatedArrayReading(fstRegion, sndAddress, fstIndex, fstArrayType, fstElementSort),
-            mkAllocatedArrayReading(fstRegion, fstAddress, sndIndex, fstArrayType, fstElementSort),
-            mkAllocatedArrayReading(fstRegion, fstAddress, fstIndex, sndArrayType, fstElementSort),
-            mkAllocatedArrayReading(sndRegion, sndAddress, sndIndex, sndArrayType, sndElementSort),
+            mkAllocatedArrayReading(fstRegion, fstIndex),
+            mkAllocatedArrayReading(fstRegion, sndIndex),
+            mkAllocatedArrayReading(sndRegion, fstIndex),
+            mkAllocatedArrayReading(sndRegion, sndIndex),
             createdWithoutContext
         )
 
@@ -129,8 +114,8 @@ class UContextInterningTest {
     @Test
     fun testInputArrayReadingInterning() = with(context) {
         // TODO replace after making `out` type in regions
-        val fstRegion: UInputArrayMemoryRegion<USort> = mockk<UInputArrayMemoryRegion<UBv32Sort>>().cast()
-        val sndRegion: UInputArrayMemoryRegion<USort> = mockk<UInputArrayMemoryRegion<UBoolSort>>().cast()
+        val fstRegion: UInputArrayMemoryRegion<ArrayType, USort> = mockk<UInputArrayMemoryRegion<ArrayType, UBv32Sort>>().cast()
+        val sndRegion: UInputArrayMemoryRegion<ArrayType, USort> = mockk<UInputArrayMemoryRegion<ArrayType, UBoolSort>>().cast()
 
         every { fstRegion.sort } returns bv32Sort
         every { sndRegion.sort } returns boolSort
@@ -141,25 +126,18 @@ class UContextInterningTest {
         val fstIndex = mockk<USizeExpr>()
         val sndIndex = mockk<USizeExpr>()
 
-        val fstArrayType = mockk<java.lang.reflect.Field>() // TODO replace with JaCoDB
-        val sndArrayType = mockk<java.lang.reflect.Field>()
-
-        val fstElementSort = bv32Sort
-        val sndElementSort = boolSort
-
         val equal = List(10) {
-            mkInputArrayReading(fstRegion, fstAddress, fstIndex, fstArrayType, fstElementSort)
+            mkInputArrayReading(fstRegion, fstAddress, fstIndex)
         }
 
         val createdWithoutContext =
-            UInputArrayReading(this, fstRegion, fstAddress, fstIndex, fstArrayType, fstElementSort)
+            UInputArrayReading(this, fstRegion, fstAddress, fstIndex)
         val distinct = listOf(
-            mkInputArrayReading(fstRegion, fstAddress, fstIndex, fstArrayType, fstElementSort),
-            mkInputArrayReading(sndRegion, fstAddress, fstIndex, fstArrayType, sndElementSort),
-            mkInputArrayReading(fstRegion, sndAddress, fstIndex, fstArrayType, fstElementSort),
-            mkInputArrayReading(fstRegion, fstAddress, sndIndex, fstArrayType, fstElementSort),
-            mkInputArrayReading(fstRegion, fstAddress, fstIndex, sndArrayType, fstElementSort),
-            mkInputArrayReading(sndRegion, sndAddress, sndIndex, sndArrayType, sndElementSort),
+            mkInputArrayReading(fstRegion, fstAddress, fstIndex),
+            mkInputArrayReading(fstRegion, fstAddress, sndIndex),
+            mkInputArrayReading(fstRegion, sndAddress, fstIndex),
+            mkInputArrayReading(sndRegion, fstAddress, fstIndex),
+            mkInputArrayReading(sndRegion, sndAddress, sndIndex),
             createdWithoutContext
         )
 
@@ -169,8 +147,8 @@ class UContextInterningTest {
 
     @Test
     fun testArrayLengthInterning() = with(context) {
-        val fstRegion = mockk<UArrayLengthMemoryRegion>()
-        val sndRegion = mockk<UArrayLengthMemoryRegion>()
+        val fstRegion = mockk<UArrayLengthMemoryRegion<ArrayType>>()
+        val sndRegion = mockk<UArrayLengthMemoryRegion<ArrayType>>()
 
         every { fstRegion.sort } returns sizeSort
         every { sndRegion.sort } returns sizeSort
@@ -178,17 +156,13 @@ class UContextInterningTest {
         val fstAddress = mkConcreteHeapRef(address = 1)
         val sndAddress = mkConcreteHeapRef(address = 2)
 
-        val fstArrayType = mockk<java.lang.reflect.Field>() // TODO replace with JaCoDB
-        val sndArrayType = mockk<java.lang.reflect.Field>()
+        val equal = List(10) { mkArrayLength(fstRegion, fstAddress) }
 
-        val equal = List(10) { mkArrayLength(fstRegion, fstAddress, fstArrayType) }
-
-        val createdWithoutContext = UArrayLength(this, fstRegion, fstAddress, fstArrayType)
+        val createdWithoutContext = UArrayLength(this, fstRegion, fstAddress)
         val distinct = listOf(
-            mkArrayLength(fstRegion, fstAddress, fstArrayType),
-            mkArrayLength(fstRegion, sndAddress, fstArrayType),
-            mkArrayLength(fstRegion, fstAddress, sndArrayType),
-            mkArrayLength(sndRegion, sndAddress, sndArrayType),
+            mkArrayLength(fstRegion, fstAddress),
+            mkArrayLength(fstRegion, sndAddress),
+            mkArrayLength(sndRegion, sndAddress),
             createdWithoutContext
         )
 
