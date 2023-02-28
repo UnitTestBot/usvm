@@ -50,8 +50,8 @@ open class UComposer<Field, Type>(
             composedAddress,
             composedIndex,
             region.regionId.arrayType,
-            region.sort
-        ).asExpr(region.sort)
+            sort
+        ).asExpr(sort)
     }
 
     override fun <Sort : USort> transform(
@@ -61,13 +61,13 @@ open class UComposer<Field, Type>(
         // TODO compose the region
         val heapRef = uctx.mkConcreteHeapRef(region.regionId.address)
 
-        heapEvaluator.readArrayIndex(heapRef, composedIndex, region.regionId.arrayType, region.sort).asExpr(region.sort)
+        heapEvaluator.readArrayIndex(heapRef, composedIndex, region.regionId.arrayType, sort).asExpr(sort)
     }
 
     override fun <Sort : USort> transform(expr: UFieldReading<Field, Sort>): UExpr<Sort> = with(expr) {
         val composedAddress = compose(address)
         // TODO compose the region
-        heapEvaluator.readField(composedAddress, region.regionId.field, sort).asExpr(expr.sort)
+        heapEvaluator.readField(composedAddress, region.regionId.field, sort).asExpr(sort)
     }
 
     override fun transform(expr: UConcreteHeapRef): UExpr<UAddressSort> = expr

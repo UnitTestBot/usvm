@@ -105,11 +105,11 @@ class URegisterReading<Sort : USort> internal constructor(
     override fun internHashCode(): Int = hash(idx, sort)
 }
 
-abstract class UHeapReading<Region, Key, Sort : USort>(
+abstract class UHeapReading<RegionId, Key, Sort : USort>(
     ctx: UContext,
-    val region: UMemoryRegion<Region, Key, Sort>
+    val region: UMemoryRegion<RegionId, Key, Sort>
 ) : USymbol<Sort>(ctx) {
-    override val sort: Sort = region.sort
+    override val sort: Sort get() = region.sort
 
     override fun print(printer: ExpressionPrinter) {
         TODO("Not yet implemented")
