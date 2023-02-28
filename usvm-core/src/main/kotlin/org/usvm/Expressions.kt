@@ -120,7 +120,7 @@ class UFieldReading<Field, Sort : USort> internal constructor(
     ctx: UContext,
     region: UInputFieldMemoryRegion<Field, Sort>,
     val address: UHeapRef,
-) : UHeapReading<Field, UHeapRef, Sort>(ctx, region) {
+) : UHeapReading<UInputFieldRegionId<Field>, UHeapRef, Sort>(ctx, region) {
     @Suppress("UNCHECKED_CAST")
     override fun accept(transformer: KTransformerBase): KExpr<Sort> {
         require(transformer is UExprTransformer<*, *>)
@@ -128,7 +128,7 @@ class UFieldReading<Field, Sort : USort> internal constructor(
         return (transformer as UExprTransformer<Field, *>).transform(this)
     }
 
-    override fun toString(): String = "$address.${region.regionId}"
+    override fun toString(): String = "$address.${region.regionId.field}"
 
     override fun internEquals(other: Any): Boolean = structurallyEqual(other, { region }, { address })
 
@@ -139,7 +139,7 @@ class UAllocatedArrayReading<ArrayType, Sort : USort> internal constructor(
     ctx: UContext,
     region: UAllocatedArrayMemoryRegion<ArrayType, Sort>,
     val index: USizeExpr,
-) : UHeapReading<UAllocatedArrayRegionId<ArrayType>, USizeExpr, Sort>(ctx, region) {
+) : UHeapReading<UAllocatedArrayId<ArrayType>, USizeExpr, Sort>(ctx, region) {
     @Suppress("UNCHECKED_CAST")
     override fun accept(transformer: KTransformerBase): KExpr<Sort> {
         require(transformer is UExprTransformer<*, *>)
@@ -164,7 +164,7 @@ class UInputArrayReading<ArrayType, Sort : USort> internal constructor(
     region: UInputArrayMemoryRegion<ArrayType, Sort>,
     val address: UHeapRef,
     val index: USizeExpr
-) : UHeapReading<ArrayType, USymbolicArrayIndex, Sort>(ctx, region) {
+) : UHeapReading<UInputArrayId<ArrayType>, USymbolicArrayIndex, Sort>(ctx, region) {
     override fun toString(): String = "$address[$index]"
 
     @Suppress("UNCHECKED_CAST")
@@ -187,9 +187,9 @@ class UInputArrayReading<ArrayType, Sort : USort> internal constructor(
 
 class UArrayLength<ArrayType> internal constructor(
     ctx: UContext,
-    region: UArrayLengthMemoryRegion<ArrayType>,
+    region: UInputArrayLengthMemoryRegion<ArrayType>,
     val address: UHeapRef,
-) : UHeapReading<ArrayType, UHeapRef, USizeSort>(ctx, region) {
+) : UHeapReading<UInputArrayLengthId<ArrayType>, UHeapRef, USizeSort>(ctx, region) {
     @Suppress("UNCHECKED_CAST")
     override fun accept(transformer: KTransformerBase): USizeExpr {
         require(transformer is UExprTransformer<*, *>)

@@ -64,14 +64,14 @@ data class URegionHeap<Field, ArrayType>(
     private var allocatedArrays: PersistentMap<UConcreteHeapAddress, UAllocatedArrayMemoryRegion<ArrayType, out USort>> = persistentMapOf(),
     private var inputArrays: PersistentMap<ArrayType, UInputArrayMemoryRegion<ArrayType, out USort>> = persistentMapOf(),
     private var allocatedLengths: PersistentMap<UConcreteHeapAddress, USizeExpr> = persistentMapOf(),
-    private var inputLengths: PersistentMap<ArrayType, UArrayLengthMemoryRegion<ArrayType>> = persistentMapOf()
+    private var inputLengths: PersistentMap<ArrayType, UInputArrayLengthMemoryRegion<ArrayType>> = persistentMapOf()
 ) : USymbolicHeap<Field, ArrayType> {
     private fun <Sort : USort> fieldsRegion(
         field: Field,
         sort: Sort
     ): UInputFieldMemoryRegion<Field, Sort> =
         inputFields[field].inputFieldsRegionUncheckedCast()
-            ?: emptyInputFieldRegion(field, sort, defaultValue = null) { key, region ->
+            ?: emptyInputFieldRegion(field, sort) { key, region ->
                 ctx.mkFieldReading(region, key)
             }
 
@@ -94,9 +94,9 @@ data class URegionHeap<Field, ArrayType>(
                 ctx.mkInputArrayReading(region, pair.first, pair.second)
             }
 
-    private fun arrayLengthRegion(
+    private fun inputArrayLengthRegion(
         arrayType: ArrayType
-    ): UArrayLengthMemoryRegion<ArrayType> =
+    ): UInputArrayLengthMemoryRegion<ArrayType> =
         inputLengths[arrayType]
             ?: emptyArrayLengthRegion(arrayType, ctx) { ref, region ->
                 ctx.mkArrayLength(region, ref)
@@ -122,7 +122,7 @@ data class URegionHeap<Field, ArrayType>(
     override fun readArrayLength(ref: UHeapRef, arrayType: ArrayType): USizeExpr =
         when (ref) {
             is UConcreteHeapRef -> allocatedLengths[ref.address] ?: ctx.zeroSize
-            else -> arrayLengthRegion(arrayType).read(ref)
+            else -> inputArrayLengthRegion(arrayType).read(ref)
         }
 
     // TODO: Either prohibit merging concrete and symbolic heap addresses, or fork state by ite-refs here

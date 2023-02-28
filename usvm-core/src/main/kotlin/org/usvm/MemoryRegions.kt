@@ -659,26 +659,53 @@ fun refIndexRangeRegion(
     idx2: USymbolicArrayIndex
 ): UArrayIndexRegion = indexRangeRegion(idx1.second, idx2.second)
 
-data class UAllocatedArrayRegionId<ArrayType>(
-    val arrayType: ArrayType,
-    val address: UConcreteHeapAddress,
+data class UInputFieldRegionId<Field> internal constructor(
+    val field: Field
 )
 
-typealias UInputFieldMemoryRegion<Field, Sort> = UMemoryRegion<Field, UHeapRef, Sort>
-typealias UAllocatedArrayMemoryRegion<ArrayType, Sort> = UMemoryRegion<UAllocatedArrayRegionId<ArrayType>, USizeExpr, Sort>
-typealias UInputArrayMemoryRegion<ArrayType, Sort> = UMemoryRegion<ArrayType, USymbolicArrayIndex, Sort>
-typealias UArrayLengthMemoryRegion<ArrayType> = UMemoryRegion<ArrayType, UHeapRef, USizeSort>
+data class UAllocatedArrayId<ArrayType> internal constructor(
+    val arrayType: ArrayType,
+    val address: UConcreteHeapAddress,
+) {
+    // we don't include arrayType into hashcode and equals, because [address] already defines unambiguously
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as UAllocatedArrayId<*>
+
+        if (address != other.address) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return address
+    }
+}
+
+data class UInputArrayId<ArrayType> internal constructor(
+    val arrayType: ArrayType
+)
+
+data class UInputArrayLengthId<ArrayType> internal constructor(
+    val arrayType: ArrayType
+)
+
+typealias UInputFieldMemoryRegion<Field, Sort> = UMemoryRegion<UInputFieldRegionId<Field>, UHeapRef, Sort>
+typealias UAllocatedArrayMemoryRegion<ArrayType, Sort> = UMemoryRegion<UAllocatedArrayId<ArrayType>, USizeExpr, Sort>
+typealias UInputArrayMemoryRegion<ArrayType, Sort> = UMemoryRegion<UInputArrayId<ArrayType>, USymbolicArrayIndex, Sort>
+typealias UInputArrayLengthMemoryRegion<ArrayType> = UMemoryRegion<UInputArrayLengthId<ArrayType>, UHeapRef, USizeSort>
 
 fun <Field, Sort : USort> emptyInputFieldRegion(
     field: Field,
     sort: Sort,
-    defaultValue: UExpr<Sort>?,
-    instantiator: UInstantiator<Field, UHeapRef, Sort>
+    instantiator: UInstantiator<UInputFieldRegionId<Field>, UHeapRef, Sort>
 ): UInputFieldMemoryRegion<Field, Sort> = UMemoryRegion(
-    field,
+    UInputFieldRegionId(field),
     sort,
     UEmptyUpdates(::heapRefEq, ::heapRefCmpConcrete, ::heapRefCmpSymbolic),
-    defaultValue,
+    defaultValue = null,
     instantiator
 )
 
@@ -686,35 +713,35 @@ fun <ArrayType, Sort : USort> emptyAllocatedArrayRegion(
     arrayType: ArrayType,
     address: UConcreteHeapAddress,
     sort: Sort,
-    instantiator: UInstantiator<UAllocatedArrayRegionId<ArrayType>, USizeExpr, Sort>
+    instantiator: UInstantiator<UAllocatedArrayId<ArrayType>, USizeExpr, Sort>
 ): UAllocatedArrayMemoryRegion<ArrayType, Sort> {
     val updates = UTreeUpdates<USizeExpr, UArrayIndexRegion, Sort>(
         updates = emptyRegionTree(),
         ::indexRegion, ::indexRangeRegion, ::indexEq, ::indexLeConcrete, ::indexLeSymbolic
     )
-    val regionId = UAllocatedArrayRegionId(arrayType, address)
+    val regionId = UAllocatedArrayId(arrayType, address)
     return UMemoryRegion(regionId, sort, updates, sort.defaultValue(), instantiator)
 }
 
 fun <ArrayType, Sort : USort> emptyInputArrayRegion(
     arrayType: ArrayType,
     sort: Sort,
-    instantiator: UInstantiator<ArrayType, USymbolicArrayIndex, Sort>
+    instantiator: UInstantiator<UInputArrayId<ArrayType>, USymbolicArrayIndex, Sort>
 ): UInputArrayMemoryRegion<ArrayType, Sort> {
     val updates = UTreeUpdates<USymbolicArrayIndex, UArrayIndexRegion, Sort>(
         updates = emptyRegionTree(),
         ::refIndexRegion, ::refIndexRangeRegion, ::refIndexEq, ::refIndexCmpConcrete, ::refIndexCmpSymbolic
     )
-    return UMemoryRegion(arrayType, sort, updates, defaultValue = null, instantiator)
+    return UMemoryRegion(UInputArrayId(arrayType), sort, updates, defaultValue = null, instantiator)
 }
 
 fun <ArrayType> emptyArrayLengthRegion(
     arrayType: ArrayType,
     ctx: UContext,
-    instantiator: UInstantiator<ArrayType, UHeapRef, USizeSort>,
-): UArrayLengthMemoryRegion<ArrayType> =
+    instantiator: UInstantiator<UInputArrayLengthId<ArrayType>, UHeapRef, USizeSort>,
+): UInputArrayLengthMemoryRegion<ArrayType> =
     UMemoryRegion(
-        arrayType,
+        UInputArrayLengthId(arrayType),
         ctx.sizeSort,
         UEmptyUpdates(::heapRefEq, ::heapRefCmpConcrete, ::heapRefCmpSymbolic),
         defaultValue = null,

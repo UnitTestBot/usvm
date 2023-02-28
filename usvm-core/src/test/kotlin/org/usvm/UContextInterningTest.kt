@@ -147,8 +147,8 @@ class UContextInterningTest {
 
     @Test
     fun testArrayLengthInterning() = with(context) {
-        val fstRegion = mockk<UArrayLengthMemoryRegion<ArrayType>>()
-        val sndRegion = mockk<UArrayLengthMemoryRegion<ArrayType>>()
+        val fstRegion = mockk<UInputArrayLengthMemoryRegion<ArrayType>>()
+        val sndRegion = mockk<UInputArrayLengthMemoryRegion<ArrayType>>()
 
         every { fstRegion.sort } returns sizeSort
         every { sndRegion.sort } returns sizeSort

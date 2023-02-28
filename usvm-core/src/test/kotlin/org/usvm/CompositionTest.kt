@@ -183,7 +183,7 @@ internal class CompositionTest<Type, Field> {
 
     @Test
     fun testUArrayLength() = with(ctx) {
-        val region = mockk<UArrayLengthMemoryRegion<KClass<*>>>()
+        val region = mockk<UInputArrayLengthMemoryRegion<KClass<*>>>()
         val address = mockk<UHeapRef>()
 
         every { region.sort } returns bv32Sort
@@ -211,7 +211,7 @@ internal class CompositionTest<Type, Field> {
         }
 
         every { address.accept(any()) } returns addressFromMemory
-        every { heapEvaluator.readArrayLength(addressFromMemory, arrayLength.region.regionId) } returns arrayBvLength
+        every { heapEvaluator.readArrayLength(addressFromMemory, arrayLength.region.regionId.arrayType) } returns arrayBvLength
 
         val composedExpression = composer.compose(arrayLength)
 
@@ -226,7 +226,7 @@ internal class CompositionTest<Type, Field> {
         val arrayType: KClass<*> = Array::class // TODO replace with jacoDB type
 
         every { region.sort } returns bv32Sort
-        every { region.regionId } returns arrayType
+        every { region.regionId } returns UInputArrayId(arrayType)
 
         val address = mockk<UHeapRef>()
         val index = mockk<USizeExpr>()
@@ -260,7 +260,7 @@ internal class CompositionTest<Type, Field> {
         val address = 1
 
         every { region.sort } returns bv32Sort
-        every { region.regionId } returns UAllocatedArrayRegionId(arrayType, address)
+        every { region.regionId } returns UAllocatedArrayId(arrayType, address)
 
         val index = mockk<USizeExpr>()
 
@@ -294,7 +294,7 @@ internal class CompositionTest<Type, Field> {
         val field = mockk<java.lang.reflect.Field>() // TODO replace with jacoDB field
 
         every { region.sort } returns bv32Sort
-        every { region.regionId } returns field
+        every { region.regionId } returns UInputFieldRegionId(field)
         every { address.accept(any()) } returns fieldAddress
 
         val expression = mkFieldReading(region, address)

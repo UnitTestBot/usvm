@@ -60,7 +60,7 @@ open class UContext(
     private val arrayLengthCache = mkAstInterner<UArrayLength<*>>()
 
     fun <ArrayType> mkArrayLength(
-        region: UArrayLengthMemoryRegion<ArrayType>,
+        region: UInputArrayLengthMemoryRegion<ArrayType>,
         address: UHeapRef,
     ): UArrayLength<ArrayType> = arrayLengthCache.createIfContextActive {
         UArrayLength(this, region, address)
