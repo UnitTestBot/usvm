@@ -95,6 +95,9 @@ typealias UInstantiator<RegionId, Key, Sort> = (key: Key, UMemoryRegion<RegionId
 
 /**
  * A uniform unbounded slice of memory. Indexed by [Key], stores symbolic values.
+ *
+ * @property regionId describes the source of the region. Memory regions with the same [regionId] represent the same
+ * memory area, but in different states.
  */
 data class UMemoryRegion<RegionId, Key, Sort : USort>(
     val regionId: RegionId,
