@@ -8,11 +8,12 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.ksmt.cache.hash
 import org.ksmt.cache.structurallyEqual
-import org.ksmt.expr.KBvNotExpr
+import org.ksmt.expr.KBitVec32Value
 import org.ksmt.expr.KExpr
 import org.ksmt.expr.printer.ExpressionPrinter
 import org.ksmt.expr.transformer.KTransformerBase
 import org.ksmt.sort.KBv32Sort
+import kotlin.test.assertEquals
 
 internal class CompositionTest<Type, Field> {
     private lateinit var stackEvaluator: URegistersStackEvaluator
@@ -104,17 +105,16 @@ internal class CompositionTest<Type, Field> {
         val bv32Sort = mkBv32Sort()
         val idx = 5
         val readingValue = mkRegisterReading(idx, bv32Sort) as KExpr<KBv32Sort>
-        val expression = mkBvNotExpr(readingValue)
+        val expression = mkBvNegationExpr(readingValue)
         val bvValue = 32.toBv()
 
         every { stackEvaluator.eval(idx, bv32Sort) } returns bvValue
 
         val composedExpression = composer.compose(expression) as UExpr<*>
 
-        val composedExpressionEquality = composedExpression === mkBvNotExpr(bvValue)
-        val internalValueEquality = (composedExpression as KBvNotExpr<KBv32Sort>).value === bvValue
+        val simplifiedValue = (composedExpression as KBitVec32Value).intValue
 
-        assert(composedExpressionEquality && internalValueEquality)
+        assertEquals(-32, simplifiedValue)
     }
 
 
@@ -183,13 +183,12 @@ internal class CompositionTest<Type, Field> {
 
     @Test
     fun testUArrayLength() = with(ctx) {
-        val region = mockk<UArrayLengthMemoryRegion>()
+        val region = mockk<UInputArrayLengthMemoryRegion<KClass<*>>>()
         val address = mockk<UHeapRef>()
 
         every { region.sort } returns bv32Sort
 
-        val arrayType: KClass<Array<*>> = Array::class
-        val arrayLength = ctx.mkArrayLength(region, address, arrayType) // TODO replace with jacoDB type
+        val arrayLength = ctx.mkArrayLength(region, address)
         val arrayBvLength = 32.toBv()
 
         val typeEvaluator = mockk<UTypeEvaluator<KClass<*>>>() // TODO replace with jacoDB type
@@ -212,7 +211,7 @@ internal class CompositionTest<Type, Field> {
         }
 
         every { address.accept(any()) } returns addressFromMemory
-        every { heapEvaluator.readArrayLength(addressFromMemory, arrayLength.arrayType) } returns arrayBvLength
+        every { heapEvaluator.readArrayLength(addressFromMemory, arrayLength.region.regionId.arrayType) } returns arrayBvLength
 
         val composedExpression = composer.compose(arrayLength)
 
@@ -222,16 +221,18 @@ internal class CompositionTest<Type, Field> {
     @Suppress("UNCHECKED_CAST")
     @Test
     fun testUInputArrayIndexReading() = with(ctx) {
-        val region = mockk<UInputArrayMemoryRegion<UBv32Sort>>()
+        val region = mockk<UInputArrayMemoryRegion<KClass<*>, UBv32Sort>>()
+
+        val arrayType: KClass<*> = Array::class // TODO replace with jacoDB type
 
         every { region.sort } returns bv32Sort
+        every { region.regionId } returns UInputArrayId(arrayType)
 
         val address = mockk<UHeapRef>()
         val index = mockk<USizeExpr>()
-        val arrayType: KClass<Array<*>> = Array::class
 
         val arrayIndexReading =
-            mkInputArrayReading(region, address, index, arrayType, bv32Sort) // TODO replace with jacoDB type
+            mkInputArrayReading(region, address, index)
 
         val arrayAddress = mkConcreteHeapRef(address = 12)
         val arrayIndex = mkBv(10)
@@ -253,15 +254,17 @@ internal class CompositionTest<Type, Field> {
 
     @Test
     fun testUAllocatedArrayIndexReading() = with(ctx) {
-        val region = mockk<UAllocatedArrayMemoryRegion<UBv32Sort>>()
+        val region = mockk<UAllocatedArrayMemoryRegion<KClass<*>, UBv32Sort>>()
+
+        val arrayType: KClass<*> = Array::class
+        val address = 1
 
         every { region.sort } returns bv32Sort
+        every { region.regionId } returns UAllocatedArrayId(arrayType, address)
 
-        val address = 1
         val index = mockk<USizeExpr>()
-        val arrayType: KClass<Array<*>> = Array::class
 
-        val arrayIndexReading = mkAllocatedArrayReading(region, address, index, arrayType, bv32Sort)
+        val arrayIndexReading = mkAllocatedArrayReading(region, index)
 
         val composedIndex = 5.toBv()
 
@@ -284,19 +287,20 @@ internal class CompositionTest<Type, Field> {
     @Suppress("UNCHECKED_CAST")
     @Test
     fun testUFieldReading() = with(ctx) {
-        val region = mockk<UVectorMemoryRegion<*>>()
+        val region = mockk<UInputFieldMemoryRegion<java.lang.reflect.Field, *>>()
         val address = mockk<UHeapRef>()
 
         val fieldAddress = mkConcreteHeapRef(address = 12)
+        val field = mockk<java.lang.reflect.Field>() // TODO replace with jacoDB field
 
         every { region.sort } returns bv32Sort
+        every { region.regionId } returns UInputFieldRegionId(field)
         every { address.accept(any()) } returns fieldAddress
 
-        val field = java.lang.reflect.Field::class // TODO replace with jacoco field
-        val expression = mkFieldReading(region, address, field)
+        val expression = mkFieldReading(region, address)
 
         val answer = 42.toBv()
-        val heapEvaluator = mockk<UReadOnlySymbolicHeap<KClass<*>, Type>>() // TODO replace with jacoDB type
+        val heapEvaluator = mockk<UReadOnlySymbolicHeap<java.lang.reflect.Field, Type>>() // TODO replace with jacoDB type
         val composer =
             UComposer(ctx, stackEvaluator, heapEvaluator, typeEvaluator, mockEvaluator) // TODO replace with jacoDB type
 

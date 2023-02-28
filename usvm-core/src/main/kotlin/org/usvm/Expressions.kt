@@ -27,34 +27,20 @@ typealias UConcreteInt32 = KBitVec32Value
 typealias UConcreteInt64 = KBitVec64Value
 typealias UConcreteSize = KBitVec32Value
 
+typealias UAddressSort = KUninterpretedSort
+
 //endregion
 
 //region Object References
 
 typealias UIndexType = Int
-typealias UHeapAddress = Int
+typealias UConcreteHeapAddress = Int
 
 const val nullAddress = 0
 
 typealias UHeapRef = UExpr<UAddressSort> // TODO: KExpr<UAddressSort>
 
-interface USortVisitor<T> : KSortVisitor<T> {
-    fun visit(sort: UAddressSort): T
-}
-
-class UAddressSort internal constructor(ctx: UContext) : USort(ctx) {
-    override fun <T> accept(visitor: KSortVisitor<T>): T =
-        when (visitor) {
-            is USortVisitor<T> -> visitor.visit(this)
-            else -> error("Can't visit UAddressSort by ${visitor.javaClass}")
-        }
-
-    override fun print(builder: StringBuilder) {
-        builder.append("Address")
-    }
-}
-
-class UConcreteHeapRef internal constructor(ctx: UContext, val address: UHeapAddress) : UHeapRef(ctx) {
+class UConcreteHeapRef internal constructor(ctx: UContext, val address: UConcreteHeapAddress) : UHeapRef(ctx) {
     override val sort: UAddressSort = ctx.addressSort
 
     override fun accept(transformer: KTransformerBase): KExpr<UAddressSort> {
@@ -119,11 +105,11 @@ class URegisterReading<Sort : USort> internal constructor(
     override fun internHashCode(): Int = hash(idx, sort)
 }
 
-abstract class UHeapReading<Key, Sort : USort>(
+abstract class UHeapReading<RegionId, Key, Sort : USort>(
     ctx: UContext,
-    val region: UMemoryRegion<Key, Sort>
+    val region: UMemoryRegion<RegionId, Key, Sort>
 ) : USymbol<Sort>(ctx) {
-    override val sort: Sort = region.sort
+    override val sort: Sort get() = region.sort
 
     override fun print(printer: ExpressionPrinter) {
         TODO("Not yet implemented")
@@ -132,10 +118,9 @@ abstract class UHeapReading<Key, Sort : USort>(
 
 class UFieldReading<Field, Sort : USort> internal constructor(
     ctx: UContext,
-    region: UVectorMemoryRegion<Sort>,
+    region: UInputFieldMemoryRegion<Field, Sort>,
     val address: UHeapRef,
-    val field: Field
-) : UHeapReading<UHeapRef, Sort>(ctx, region) {
+) : UHeapReading<UInputFieldRegionId<Field>, UHeapRef, Sort>(ctx, region) {
     @Suppress("UNCHECKED_CAST")
     override fun accept(transformer: KTransformerBase): KExpr<Sort> {
         require(transformer is UExprTransformer<*, *>)
@@ -143,21 +128,18 @@ class UFieldReading<Field, Sort : USort> internal constructor(
         return (transformer as UExprTransformer<Field, *>).transform(this)
     }
 
-    override fun toString(): String = "$address.${field}"
+    override fun toString(): String = "$address.${region.regionId.field}"
 
-    override fun internEquals(other: Any): Boolean = structurallyEqual(other, { region }, { address }, { field })
+    override fun internEquals(other: Any): Boolean = structurallyEqual(other, { region }, { address })
 
-    override fun internHashCode(): Int = hash(region, address, field)
+    override fun internHashCode(): Int = hash(region, address)
 }
 
 class UAllocatedArrayReading<ArrayType, Sort : USort> internal constructor(
     ctx: UContext,
-    region: UAllocatedArrayMemoryRegion<Sort>,
-    val address: UHeapAddress,
+    region: UAllocatedArrayMemoryRegion<ArrayType, Sort>,
     val index: USizeExpr,
-    val arrayType: ArrayType,
-    val elementSort: Sort
-) : UHeapReading<USizeExpr, Sort>(ctx, region) {
+) : UHeapReading<UAllocatedArrayId<ArrayType>, USizeExpr, Sort>(ctx, region) {
     @Suppress("UNCHECKED_CAST")
     override fun accept(transformer: KTransformerBase): KExpr<Sort> {
         require(transformer is UExprTransformer<*, *>)
@@ -169,24 +151,20 @@ class UAllocatedArrayReading<ArrayType, Sort : USort> internal constructor(
         structurallyEqual(
             other,
             { region },
-            { address },
             { index },
-            { arrayType }
         )
 
-    override fun internHashCode(): Int = hash(region, address, index, arrayType)
+    override fun internHashCode(): Int = hash(region, index)
 
-    override fun toString(): String = "$0xaddress[$index]"
+    override fun toString(): String = "0x${region.regionId.address}[$index]"
 }
 
 class UInputArrayReading<ArrayType, Sort : USort> internal constructor(
     ctx: UContext,
-    region: UInputArrayMemoryRegion<Sort>,
+    region: UInputArrayMemoryRegion<ArrayType, Sort>,
     val address: UHeapRef,
-    val index: USizeExpr,
-    val arrayType: ArrayType,
-    val elementSort: Sort
-) : UHeapReading<USymbolicArrayIndex, Sort>(ctx, region) {
+    val index: USizeExpr
+) : UHeapReading<UInputArrayId<ArrayType>, USymbolicArrayIndex, Sort>(ctx, region) {
     override fun toString(): String = "$address[$index]"
 
     @Suppress("UNCHECKED_CAST")
@@ -202,19 +180,16 @@ class UInputArrayReading<ArrayType, Sort : USort> internal constructor(
             { region },
             { address },
             { index },
-            { arrayType },
-            { elementSort }
         )
 
-    override fun internHashCode(): Int = hash(region, address, index, arrayType, elementSort)
+    override fun internHashCode(): Int = hash(region, address, index)
 }
 
 class UArrayLength<ArrayType> internal constructor(
     ctx: UContext,
-    region: UArrayLengthMemoryRegion,
+    region: UInputArrayLengthMemoryRegion<ArrayType>,
     val address: UHeapRef,
-    val arrayType: ArrayType
-) : UHeapReading<UHeapRef, USizeSort>(ctx, region) {
+) : UHeapReading<UInputArrayLengthId<ArrayType>, UHeapRef, USizeSort>(ctx, region) {
     @Suppress("UNCHECKED_CAST")
     override fun accept(transformer: KTransformerBase): USizeExpr {
         require(transformer is UExprTransformer<*, *>)
@@ -224,9 +199,9 @@ class UArrayLength<ArrayType> internal constructor(
 
     override fun toString(): String = "length($address)"
 
-    override fun internEquals(other: Any): Boolean = structurallyEqual(other, { region }, { address }, { arrayType })
+    override fun internEquals(other: Any): Boolean = structurallyEqual(other, { region }, { address })
 
-    override fun internHashCode(): Int = hash(region, address, arrayType)
+    override fun internHashCode(): Int = hash(region, address)
 }
 
 //endregion

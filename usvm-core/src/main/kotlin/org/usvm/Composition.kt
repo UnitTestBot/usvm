@@ -19,7 +19,7 @@ open class UComposer<Field, Type>(
         expr: URegisterReading<Sort>
     ): UExpr<Sort> = with(expr) { stackEvaluator.eval(idx, sort) }
 
-    override fun <Sort : USort> transform(expr: UHeapReading<*, *>): UExpr<Sort> =
+    override fun <Sort : USort> transform(expr: UHeapReading<*, *, *>): UExpr<Sort> =
         error("You must override `transform` function in org.usvm.UComposer for ${expr::class}")
 
     override fun <Sort : USort> transform(expr: UMockSymbol<Sort>): UExpr<Sort> =
@@ -36,7 +36,7 @@ open class UComposer<Field, Type>(
 
     override fun transform(expr: UArrayLength<Type>): USizeExpr = with(expr) {
         val composedAddress = compose(address)
-        heapEvaluator.readArrayLength(composedAddress, arrayType)
+        heapEvaluator.readArrayLength(composedAddress, region.regionId.arrayType)
     }
 
     override fun <Sort : USort> transform(
@@ -49,9 +49,9 @@ open class UComposer<Field, Type>(
         heapEvaluator.readArrayIndex(
             composedAddress,
             composedIndex,
-            arrayType,
-            elementSort
-        ).asExpr(expr.sort)
+            region.regionId.arrayType,
+            sort
+        ).asExpr(sort)
     }
 
     override fun <Sort : USort> transform(
@@ -59,15 +59,15 @@ open class UComposer<Field, Type>(
     ): UExpr<Sort> = with(expr) {
         val composedIndex = compose(index)
         // TODO compose the region
-        val heapRef = uctx.mkConcreteHeapRef(address)
+        val heapRef = uctx.mkConcreteHeapRef(region.regionId.address)
 
-        heapEvaluator.readArrayIndex(heapRef, composedIndex, arrayType, elementSort).asExpr(expr.sort)
+        heapEvaluator.readArrayIndex(heapRef, composedIndex, region.regionId.arrayType, sort).asExpr(sort)
     }
 
     override fun <Sort : USort> transform(expr: UFieldReading<Field, Sort>): UExpr<Sort> = with(expr) {
         val composedAddress = compose(address)
         // TODO compose the region
-        heapEvaluator.readField(composedAddress, field, sort).asExpr(expr.sort)
+        heapEvaluator.readField(composedAddress, region.regionId.field, sort).asExpr(sort)
     }
 
     override fun transform(expr: UConcreteHeapRef): UExpr<UAddressSort> = expr
