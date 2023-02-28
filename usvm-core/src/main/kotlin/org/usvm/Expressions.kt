@@ -135,11 +135,6 @@ class UFieldReading<Field, Sort : USort> internal constructor(
     override fun internHashCode(): Int = hash(region, address)
 }
 
-data class UAllocatedArrayRegionId<ArrayType>(
-    val arrayType: ArrayType,
-    val address: UConcreteHeapAddress,
-)
-
 class UAllocatedArrayReading<ArrayType, Sort : USort> internal constructor(
     ctx: UContext,
     region: UAllocatedArrayMemoryRegion<ArrayType, Sort>,

@@ -656,6 +656,11 @@ fun refIndexRangeRegion(
     idx2: USymbolicArrayIndex
 ): UArrayIndexRegion = indexRangeRegion(idx1.second, idx2.second)
 
+data class UAllocatedArrayRegionId<ArrayType>(
+    val arrayType: ArrayType,
+    val address: UConcreteHeapAddress,
+)
+
 typealias UInputFieldMemoryRegion<Field, Sort> = UMemoryRegion<Field, UHeapRef, Sort>
 typealias UAllocatedArrayMemoryRegion<ArrayType, Sort> = UMemoryRegion<UAllocatedArrayRegionId<ArrayType>, USizeExpr, Sort>
 typealias UInputArrayMemoryRegion<ArrayType, Sort> = UMemoryRegion<ArrayType, USymbolicArrayIndex, Sort>
