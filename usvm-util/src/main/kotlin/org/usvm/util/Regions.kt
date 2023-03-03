@@ -1,7 +1,5 @@
 package org.usvm.util
 
-import java.lang.UnsupportedOperationException
-
 enum class RegionComparisonResult  {
     INCLUDES, INTERSECTS, DISJOINT
 }
@@ -110,7 +108,8 @@ data class SetRegion<Point>(private val points: Set<Point>, private val thrown: 
         fun <Point> universe() = SetRegion<Point>(emptySet(), true)
     }
 
-    override val isEmpty: Boolean = points.isEmpty()
+    override val isEmpty: Boolean = points.isEmpty() && !thrown
+
     override fun compare(other: SetRegion<Point>): RegionComparisonResult =
         when {
             !this.thrown && !other.thrown -> setsComparisonToResult(compareSets(this.points, other.points))
@@ -123,6 +122,7 @@ data class SetRegion<Point>(private val points: Set<Point>, private val thrown: 
                 else RegionComparisonResult.INTERSECTS
             else -> throw Exception("Unreachable")
         }
+
     override fun subtract(other: SetRegion<Point>): SetRegion<Point> =
         when {
             !this.thrown && !other.thrown -> SetRegion(this.points.minus(other.points), false)

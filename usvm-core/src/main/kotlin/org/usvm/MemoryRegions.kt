@@ -1,97 +1,16 @@
 package org.usvm
 
-import org.usvm.util.Region
-import org.usvm.util.RegionTree
 import org.usvm.util.SetRegion
 import org.usvm.util.emptyRegionTree
-import java.util.LinkedList
-import java.util.NoSuchElementException
+import java.util.*
 
 //region Memory region
 
-/**
- * Represents the result of memory write operation.
- */
-interface UUpdateNode<Key, ValueSort : USort> {
-    /**
-     * @returns True if the address [key] got overwritten by this write operation in *any* possible concrete state.
-     */
-    fun includesConcretely(key: Key): Boolean
-
-    /**
-     * @return Symbolic condition expressing that the address [key] got overwritten by this memory write operation.
-     * If [includesConcretely] returns true, then this method is obligated to return [UTrue].
-     * Returned condition must imply [guard].
-     */
-    fun includesSymbolically(key: Key): UBoolExpr
-
-    /**
-     * @see [UMemoryRegion.split]
-     */
-    fun split(
-        key: Key,
-        predicate: (UExpr<ValueSort>) -> Boolean,
-        matchingWrites: LinkedList<Pair<UBoolExpr, UExpr<ValueSort>>>,
-        guardBuilder: GuardBuilder
-    ): UUpdateNode<Key, ValueSort>?
-
-    /**
-     * @return Value which has been written into the address [key] during this memory write operation.
-     */
-    fun value(key: Key): UExpr<ValueSort>
-
-    /**
-     * Guard is a symbolic condition for this update. That is, this update is done only in states satisfying this guard.
-     */
-    val guard: UBoolExpr
-
-    /**
-     * Returns node with updated [guard] condition.
-     */
-    fun guardWith(guard: UBoolExpr): UUpdateNode<Key, ValueSort>
-}
 
 /**
- * Represents a sequence of memory writes.
+ * A typealias for a lambda that takes a key, a region and returns a reading from the region by the key.
  */
-interface UMemoryUpdates<Key, Sort : USort> : Sequence<UUpdateNode<Key, Sort>> {
-    /**
-     * @return Relevant updates for a given key
-     */
-    fun read(key: Key): UMemoryUpdates<Key, Sort>
-
-    /**
-     * @return Memory region which obtained from this one by overwriting the address [key] with value [value].
-     */
-    fun write(key: Key, value: UExpr<Sort>): UMemoryUpdates<Key, Sort>
-
-    /**
-     * @return Memory region which obtained from this one by overwriting the address [key] with value [value]
-     * guarded with condition [guard].
-     */
-    fun guardedWrite(key: Key, value: UExpr<Sort>, guard: UBoolExpr): UMemoryUpdates<Key, Sort>
-
-    /**
-     * @see [UMemoryRegion.split]
-     */
-    fun split(
-        key: Key,
-        predicate: (UExpr<Sort>) -> Boolean,
-        matchingWrites: LinkedList<Pair<UBoolExpr, UExpr<Sort>>>,
-        guardBuilder: GuardBuilder
-    ): UMemoryUpdates<Key, Sort>
-
-    /**
-     * @return Updates expressing copying the slice of [fromRegion] (see UMemoryRegion.copy)
-     */
-    fun <RegionId> copy(
-        fromRegion: UMemoryRegion<RegionId, Key, Sort>,
-        fromKey: Key, toKey: Key,
-        keyConverter: (Key) -> Key
-    ): UMemoryUpdates<Key, Sort>
-}
-
-typealias UInstantiator<RegionId, Key, Sort> = (key: Key, UMemoryRegion<RegionId, Key, Sort>) -> USymbol<Sort>
+typealias UInstantiator<RegionId, Key, Sort> = (key: Key, UMemoryRegion<RegionId, Key, Sort>) -> UExpr<Sort>
 
 /**
  * A uniform unbounded slice of memory. Indexed by [Key], stores symbolic values.
@@ -99,7 +18,7 @@ typealias UInstantiator<RegionId, Key, Sort> = (key: Key, UMemoryRegion<RegionId
  * @property regionId describes the source of the region. Memory regions with the same [regionId] represent the same
  * memory area, but in different states.
  */
-data class UMemoryRegion<RegionId, Key, Sort : USort>(
+data class UMemoryRegion<RegionId : URegionId, Key, Sort : USort>(
     val regionId: RegionId,
     val sort: Sort,
     private val updates: UMemoryUpdates<Key, Sort>,
@@ -107,19 +26,17 @@ data class UMemoryRegion<RegionId, Key, Sort : USort>(
     private val instantiator: UInstantiator<RegionId, Key, Sort>
 ) {
     private fun read(key: Key, updates: UMemoryUpdates<Key, Sort>): UExpr<Sort> {
-        val iterator = updates.iterator()
+        val lastUpdatedElement = updates.lastUpdatedElementOrNull()
 
-        val hasUpdates = iterator.hasNext()
-        if (!hasUpdates && defaultValue != null) {
+        if (lastUpdatedElement == null && defaultValue != null) {
             // Reading from untouched array filled with defaultValue
             return defaultValue
         }
 
-        if (hasUpdates) {
-            val entry = iterator.next()
-            if (entry.includesConcretely(key)) {
+        if (lastUpdatedElement != null) {
+            if (lastUpdatedElement.includesConcretely(key)) {
                 // The last write has overwritten the key
-                return entry.value(key)
+                return lastUpdatedElement.value(key)
             }
         }
 
@@ -192,7 +109,40 @@ data class UMemoryRegion<RegionId, Key, Sort : USort>(
         val splittingUpdates = updates.read(key).split(key, predicate, matchingWrites, guardBuilder)
         val sizeRemainedUnchanged = matchingWrites.size == count
 
-        return if (sizeRemainedUnchanged) this else UMemoryRegion(regionId, sort, splittingUpdates, defaultValue, instantiator)
+        if (sizeRemainedUnchanged) {
+            return this
+        }
+
+        return UMemoryRegion(regionId, sort, splittingUpdates, defaultValue, instantiator)
+    }
+
+    /**
+     * Maps the region using [keyMapper] and [composer].
+     * It is used in [UComposer] for composition operation.
+     *
+     * [instantiatorConstructor] is a function that should be called after
+     * we mapped [updates] using [UMemoryUpdates.map] function, because
+     * it uses these mapped updates to instantiate values in a new, mapped region.
+     *
+     * Note: after this operation a region returned as a result might be in `broken` state:
+     * it might have both symbolic and concrete values as keys in it.
+     */
+    fun <Field, Type> map(
+        keyMapper: (Key) -> Key,
+        composer: UComposer<Field, Type>,
+        instantiatorConstructor: (UMemoryUpdates<Key, Sort>) -> UInstantiator<RegionId, Key, Sort> = { instantiator }
+    ): UMemoryRegion<RegionId, Key, Sort> {
+        // Map the updates and the default value
+        val mappedUpdates = updates.map(keyMapper, composer)
+        val mappedDefaultValue = defaultValue?.let { composer.compose(it) }
+
+        // If there is no changes after their composition, return unchecked region
+        if (mappedUpdates === updates && mappedDefaultValue === defaultValue) {
+            return this
+        }
+
+        // Otherwise, construct a new region with mapped values and a new instantiator.
+        return UMemoryRegion(regionId, sort, mappedUpdates, mappedDefaultValue, instantiatorConstructor(mappedUpdates))
     }
 
     /**
@@ -200,7 +150,7 @@ data class UMemoryRegion<RegionId, Key, Sort : USort>(
      * with values from memory region [fromRegion] read from range
      * of addresses [[keyConverter] ([fromKey]) : [keyConverter] ([toKey])]
      */
-    fun <OtherRegionId> copy(
+    fun <OtherRegionId : URegionId> copy(
         fromRegion: UMemoryRegion<OtherRegionId, Key, Sort>,
         fromKey: Key, toKey: Key,
         keyConverter: (Key) -> Key
@@ -211,388 +161,6 @@ data class UMemoryRegion<RegionId, Key, Sort : USort>(
 }
 
 class GuardBuilder(var matchingUpdatesGuard: UBoolExpr, var nonMatchingUpdatesGuard: UBoolExpr)
-
-//endregion
-
-//region Flat memory updates
-
-/**
- * Represents a single write of [value] into a memory address [key]
- */
-class UPinpointUpdateNode<Key, ValueSort : USort>(
-    val key: Key,
-    private val value: UExpr<ValueSort>,
-    private val keyEqualityComparer: (Key, Key) -> UBoolExpr,
-    override val guard: UBoolExpr = value.ctx.trueExpr
-) : UUpdateNode<Key, ValueSort> {
-    override fun includesConcretely(key: Key) = this.key == key && guard == guard.ctx.trueExpr
-
-    override fun includesSymbolically(key: Key): UBoolExpr =
-        guard.ctx.mkAnd(keyEqualityComparer(this.key, key), guard) // TODO: use simplifying and!
-
-    override fun value(key: Key): UExpr<ValueSort> = this.value
-
-    override fun split(
-        key: Key,
-        predicate: (UExpr<ValueSort>) -> Boolean,
-        matchingWrites: LinkedList<Pair<UBoolExpr, UExpr<ValueSort>>>,
-        guardBuilder: GuardBuilder
-    ): UUpdateNode<Key, ValueSort>? {
-        val keyEq = keyEqualityComparer(key, this.key)
-        val ctx = value.ctx
-        val keyDiseq = ctx.mkNot(keyEq)
-
-        if (predicate(value)) {
-            val guard = ctx.mkAnd(guardBuilder.nonMatchingUpdatesGuard, keyEq)
-            matchingWrites.add(Pair(guard, value))
-            guardBuilder.matchingUpdatesGuard = ctx.mkAnd(guardBuilder.matchingUpdatesGuard, keyDiseq)
-            return null
-        }
-
-        val hadNonMatchingUpdates = guardBuilder.nonMatchingUpdatesGuard != ctx.trueExpr
-        guardBuilder.nonMatchingUpdatesGuard = ctx.mkAnd(guardBuilder.nonMatchingUpdatesGuard, ctx.mkNot(keyEq))
-
-        return if (hadNonMatchingUpdates) this.guardWith(guardBuilder.matchingUpdatesGuard) else this
-    }
-
-    override fun guardWith(guard: UBoolExpr): UUpdateNode<Key, ValueSort> =
-        if (guard == guard.ctx.trueExpr) {
-            this
-        } else {
-            val guardExpr = guard.ctx.mkAnd(this.guard, guard)
-            UPinpointUpdateNode(key, value, keyEqualityComparer, guardExpr)
-        }
-
-    override fun equals(other: Any?): Boolean =
-        other is UPinpointUpdateNode<*, *> && this.key == other.key  // Ignores value
-
-    override fun hashCode(): Int = key.hashCode()  // Ignores value
-
-    override fun toString(): String = "{$key <- $value}"
-}
-
-/**
- * Represents a synchronous overwriting the range of addresses [[fromKey] : [toKey]]
- * with values from memory region [region] read from range
- * of addresses [[keyConverter] ([fromKey]) : [keyConverter] ([toKey])]
- */
-class URangedUpdateNode<Key, ValueSort : USort>(
-    val fromKey: Key,
-    val toKey: Key,
-    private val region: UMemoryRegion<*, Key, ValueSort>,
-    private val concreteComparer: (Key, Key) -> Boolean,
-    private val symbolicComparer: (Key, Key) -> UBoolExpr,
-    private val keyConverter: (Key) -> Key,
-    override val guard: UBoolExpr = region.sort.ctx.trueExpr
-) : UUpdateNode<Key, ValueSort> {
-    override fun includesConcretely(key: Key): Boolean =
-        concreteComparer(fromKey, key) && concreteComparer(key, toKey) && guard == guard.ctx.trueExpr
-
-    override fun includesSymbolically(key: Key): UBoolExpr {
-        val leftIsLefter = symbolicComparer(fromKey, key)
-        val rightIsRighter = symbolicComparer(key, toKey)
-        val ctx = leftIsLefter.ctx
-
-        return ctx.mkAnd(leftIsLefter, rightIsRighter, guard) // TODO: use simplifying and!
-    }
-
-    override fun value(key: Key): UExpr<ValueSort> = region.read(keyConverter(key))
-
-    override fun guardWith(guard: UBoolExpr): UUpdateNode<Key, ValueSort> =
-        if (guard == guard.ctx.trueExpr) {
-            this
-        } else {
-            val guardExpr = guard.ctx.mkAnd(this.guard, guard)
-            URangedUpdateNode(fromKey, toKey, region, concreteComparer, symbolicComparer, keyConverter, guardExpr)
-        }
-
-    override fun equals(other: Any?): Boolean =
-        other is URangedUpdateNode<*, *> && this.fromKey == other.fromKey && this.toKey == other.toKey  // Ignores update
-
-    override fun hashCode(): Int = 31 * fromKey.hashCode() + toKey.hashCode()  // Ignores update
-
-    override fun split(
-        key: Key, predicate: (UExpr<ValueSort>) -> Boolean,
-        matchingWrites: LinkedList<Pair<UBoolExpr, UExpr<ValueSort>>>,
-        guardBuilder: GuardBuilder
-    ): UUpdateNode<Key, ValueSort> {
-        val splittedRegion = region.split(key, predicate, matchingWrites, guardBuilder)
-        if (splittedRegion === region) {
-            return this
-        }
-
-        return URangedUpdateNode(fromKey, toKey, splittedRegion, concreteComparer, symbolicComparer, keyConverter)
-    }
-}
-
-class UEmptyUpdates<Key, Sort : USort>(
-    private val symbolicEq: (Key, Key) -> UBoolExpr,
-    private val concreteCmp: (Key, Key) -> Boolean,
-    private val symbolicCmp: (Key, Key) -> UBoolExpr
-) : UMemoryUpdates<Key, Sort> {
-    override fun read(key: Key): UMemoryUpdates<Key, Sort> = this
-
-    override fun write(key: Key, value: UExpr<Sort>): UMemoryUpdates<Key, Sort> =
-        UFlatUpdates(
-            UPinpointUpdateNode(key, value, symbolicEq),
-            next = null,
-            symbolicEq,
-            concreteCmp,
-            symbolicCmp
-        )
-
-    override fun guardedWrite(key: Key, value: UExpr<Sort>, guard: UBoolExpr): UMemoryUpdates<Key, Sort> =
-        UFlatUpdates(
-            UPinpointUpdateNode(key, value, symbolicEq, guard),
-            next = null,
-            symbolicEq,
-            concreteCmp,
-            symbolicCmp
-        )
-
-    override fun <RegionId> copy(
-        fromRegion: UMemoryRegion<RegionId, Key, Sort>,
-        fromKey: Key,
-        toKey: Key,
-        keyConverter: (Key) -> Key,
-    ) = UFlatUpdates(
-        URangedUpdateNode(fromKey, toKey, fromRegion, concreteCmp, symbolicCmp, keyConverter),
-        next = null,
-        symbolicEq,
-        concreteCmp,
-        symbolicCmp
-    )
-
-    override fun split(
-        key: Key,
-        predicate: (UExpr<Sort>) -> Boolean,
-        matchingWrites: LinkedList<Pair<UBoolExpr, UExpr<Sort>>>,
-        guardBuilder: GuardBuilder
-    ) = this
-
-    override fun iterator(): Iterator<UUpdateNode<Key, Sort>> = EmptyIterator()
-
-    private class EmptyIterator<Key, Sort : USort> : Iterator<UUpdateNode<Key, Sort>> {
-        override fun hasNext(): Boolean = false
-        override fun next(): UUpdateNode<Key, Sort> = error("Advancing empty iterator")
-    }
-}
-
-data class UFlatUpdates<Key, Sort : USort>(
-    val node: UUpdateNode<Key, Sort>,
-    val next: UMemoryUpdates<Key, Sort>?,
-    private val symbolicEq: (Key, Key) -> UBoolExpr,
-    private val concreteCmp: (Key, Key) -> Boolean,
-    private val symbolicCmp: (Key, Key) -> UBoolExpr
-) : UMemoryUpdates<Key, Sort> {
-    override fun read(key: Key): UMemoryUpdates<Key, Sort> = this
-
-    override fun write(key: Key, value: UExpr<Sort>): UMemoryUpdates<Key, Sort> =
-        UFlatUpdates(
-            UPinpointUpdateNode(key, value, symbolicEq),
-            next = this,
-            symbolicEq,
-            concreteCmp,
-            symbolicCmp
-        )
-
-    override fun guardedWrite(key: Key, value: UExpr<Sort>, guard: UBoolExpr): UMemoryUpdates<Key, Sort> =
-        UFlatUpdates(
-            UPinpointUpdateNode(key, value, symbolicEq, guard),
-            next = this,
-            symbolicEq,
-            concreteCmp,
-            symbolicCmp
-        )
-
-    override fun <RegionId> copy(
-        fromRegion: UMemoryRegion<RegionId, Key, Sort>,
-        fromKey: Key,
-        toKey: Key,
-        keyConverter: (Key) -> Key,
-    ) = UFlatUpdates(
-        URangedUpdateNode(fromKey, toKey, fromRegion, concreteCmp, symbolicCmp, keyConverter),
-        next = this,
-        symbolicEq,
-        concreteCmp,
-        symbolicCmp
-    )
-
-    override fun split(
-        key: Key, predicate: (UExpr<Sort>) -> Boolean,
-        matchingWrites: LinkedList<Pair<UBoolExpr, UExpr<Sort>>>,
-        guardBuilder: GuardBuilder
-    ): UMemoryUpdates<Key, Sort> {
-        val splittingNode = node.split(key, predicate, matchingWrites, guardBuilder)
-        val splittingNext = next?.split(key, predicate, matchingWrites, guardBuilder)
-
-        if (splittingNode == null) {
-            return splittingNext ?: UEmptyUpdates(symbolicEq, concreteCmp, symbolicCmp)
-        }
-
-        if (splittingNext === next) {
-            return this
-        }
-
-        return UFlatUpdates(splittingNode, splittingNext, symbolicEq, concreteCmp, symbolicCmp)
-    }
-
-    /**
-     * Returns updates in the FIFO order: the iterator emits updates from the oldest updates to the most recent one.
-     * It means that the `initialNode` from the [UFlatUpdatesIterator] will be returned as the last element.
-     */
-    override fun iterator(): Iterator<UUpdateNode<Key, Sort>> = UFlatUpdatesIterator(initialNode = this)
-
-    private class UFlatUpdatesIterator<Key, Sort : USort>(
-        initialNode: UFlatUpdates<Key, Sort>,
-    ) : Iterator<UUpdateNode<Key, Sort>> {
-        private val iterator: Iterator<UUpdateNode<Key, Sort>>
-
-        init {
-            val elements = mutableListOf<UUpdateNode<Key, Sort>>()
-            var current: UFlatUpdates<Key, Sort>? = initialNode
-
-            // Traverse over linked list of updates nodes and extract them into an array list
-            while (current != null) {
-                elements += current.node
-                // We can safely apply `as?` since we are interested only in non-empty updates
-                // and there are no `treeUpdates` as a `next` element of the `UFlatUpdates`
-                current = current.next as? UFlatUpdates<Key, Sort>
-            }
-
-            iterator = elements.asReversed().iterator()
-        }
-
-        override fun hasNext(): Boolean = iterator.hasNext()
-
-        override fun next(): UUpdateNode<Key, Sort> = iterator.next()
-    }
-}
-
-//endregion
-
-//region Tree memory updates
-
-data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
-    private val updates: RegionTree<UUpdateNode<Key, Sort>, Reg>,
-    private val keyToRegion: (Key) -> Reg,
-    private val keyRangeToRegion: (Key, Key) -> Reg,
-    private val symbolicEq: (Key, Key) -> UBoolExpr,
-    private val concreteCmp: (Key, Key) -> Boolean,
-    private val symbolicCmp: (Key, Key) -> UBoolExpr
-) : UMemoryUpdates<Key, Sort> {
-    override fun read(key: Key): UTreeUpdates<Key, Reg, Sort> {
-        val reg = keyToRegion(key)
-        val updates = updates.localize(reg)
-        if (updates === this.updates) {
-            return this
-        }
-
-        return UTreeUpdates(updates, keyToRegion, keyRangeToRegion, symbolicEq, concreteCmp, symbolicCmp)
-    }
-
-    override fun write(key: Key, value: UExpr<Sort>): UTreeUpdates<Key, Reg, Sort> {
-        val update = UPinpointUpdateNode(key, value, symbolicEq)
-        val newUpdates = updates.write(keyToRegion(key), update, keyFilter = { it == key })
-
-        return UTreeUpdates(newUpdates, keyToRegion, keyRangeToRegion, symbolicEq, concreteCmp, symbolicCmp)
-    }
-
-    override fun guardedWrite(key: Key, value: UExpr<Sort>, guard: UBoolExpr): UTreeUpdates<Key, Reg, Sort> {
-        val update = UPinpointUpdateNode(key, value, symbolicEq, guard)
-        val newUpdates = updates.write(keyToRegion(key), update, keyFilter = { it == key })
-
-        return UTreeUpdates(newUpdates, keyToRegion, keyRangeToRegion, symbolicEq, concreteCmp, symbolicCmp)
-    }
-
-    override fun <RegionId> copy(
-        fromRegion: UMemoryRegion<RegionId, Key, Sort>,
-        fromKey: Key,
-        toKey: Key,
-        keyConverter: (Key) -> Key
-    ): UTreeUpdates<Key, Reg, Sort> {
-        val region = keyRangeToRegion(fromKey, toKey)
-        val update = URangedUpdateNode(fromKey, toKey, fromRegion, concreteCmp, symbolicCmp, keyConverter)
-        val newUpdates = updates.write(region, update, keyFilter = { it == update })
-
-        return UTreeUpdates(newUpdates, keyToRegion, keyRangeToRegion, symbolicEq, concreteCmp, symbolicCmp)
-    }
-
-    override fun split(
-        key: Key,
-        predicate: (UExpr<Sort>) -> Boolean,
-        matchingWrites: LinkedList<Pair<UBoolExpr, UExpr<Sort>>>,
-        guardBuilder: GuardBuilder
-    ): UMemoryUpdates<Key, Sort> {
-        TODO("Not yet implemented")
-    }
-
-    /**
-     * Returns updates in the FIFO order: the iterator emits updates from the oldest updates to the most recent one.
-     * Note that if some key in the tree is presented in more than one node, it will be returned exactly ones.
-     */
-    override fun iterator(): Iterator<UUpdateNode<Key, Sort>> = TreeIterator(updates.iterator())
-
-    override fun toString(): String {
-        return "$updates"
-    }
-
-    private inner class TreeIterator(
-        private val treeUpdatesIterator: Iterator<Pair<UUpdateNode<Key, Sort>, Reg>>
-    ) : Iterator<UUpdateNode<Key, Sort>> {
-        // A set of values we already emitted by this iterator.
-        // Note that it contains ONLY elements that have duplicates by key in the RegionTree.
-        private val emittedUpdates = hashSetOf<UUpdateNode<Key, Sort>>()
-
-        // We can return just `hasNext` value without checking for duplicates since
-        // the last node contains a unique key (because non-unique keys might occur only
-        // as a result of splitting because of some other write operation).
-        override fun hasNext(): Boolean = treeUpdatesIterator.hasNext()
-
-        override fun next(): UUpdateNode<Key, Sort> {
-            while (treeUpdatesIterator.hasNext()) {
-                val (update, region) = treeUpdatesIterator.next()
-
-                // To check, whether we have a duplicate for a particular key,
-                // we have to check if an initial region (by USVM estimation) is equal
-                // to the one stored in the current node.
-                val initialRegion = when (update) {
-                    is UPinpointUpdateNode<Key, Sort> -> keyToRegion(update.key)
-                    is URangedUpdateNode<Key, Sort> -> keyRangeToRegion(update.fromKey, update.toKey)
-                    else -> error("An unsupported type of UpdateNode is provided: ${update::class}")
-                }
-                val wasCloned = initialRegion != region
-
-                // If a region from the current node is equal to the initial region,
-                // it means that there were no write operation that caused nodes split,
-                // and the node doesn't have `duplicates` in the tree.
-                if (!wasCloned) {
-                    return update
-                }
-
-                // If there are duplicates, we have to emit exactly one of them -- the first we encountered.
-                // Otherwise, we might have a problem. For example, we write by key `j` that belongs to {1, 2} region.
-                // Then we wrote 1 with region {1} and 2 with region {2}. We have the following tree:
-                // ({1} -> (1, {1} -> j), {2} -> (2, {2} -> j)). Without any additional actions, its iterator
-                // will emit the following values: (j, 1, j, 2). We don't want to deal with their region
-                // during encoding, so, we want to go through this sequence and apply updates, but we cannot do it.
-                // We write by key `j`, then by `1`, then again by `j`, which overwrites a more recent update
-                // in the region {1} and causes the following memory: [j, 2] instead of [1, 2].
-                if (update in emittedUpdates) {
-                    continue
-                }
-
-                emittedUpdates += update
-
-                return update
-            }
-
-            throw NoSuchElementException()
-        }
-    }
-
-
-}
 
 //endregion
 
@@ -659,14 +227,26 @@ fun refIndexRangeRegion(
     idx2: USymbolicArrayIndex
 ): UArrayIndexRegion = indexRangeRegion(idx1.second, idx2.second)
 
+/**
+ * An interface that represents any possible type of regions that can be used in the memory.
+ */
+sealed interface URegionId
+
+/**
+ * A region id for a region storing the specific [field].
+ */
 data class UInputFieldRegionId<Field> internal constructor(
     val field: Field
-)
+) : URegionId
 
+/**
+ * A region id for a region storing arrays allocated during execution.
+ * Each identifier contains information about its [arrayType] and [address].
+ */
 data class UAllocatedArrayId<ArrayType> internal constructor(
     val arrayType: ArrayType,
     val address: UConcreteHeapAddress,
-) {
+) : URegionId {
     // we don't include arrayType into hashcode and equals, because [address] already defines unambiguously
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -684,18 +264,38 @@ data class UAllocatedArrayId<ArrayType> internal constructor(
     }
 }
 
+/**
+ * A region id for a region storing arrays retrieved as a symbolic value, contains only its [arrayType].
+ */
 data class UInputArrayId<ArrayType> internal constructor(
-    val arrayType: ArrayType
-)
+    val arrayType: ArrayType,
+) : URegionId
 
+/**
+ * A region id for a region storing array lengths for arrays of a specific [arrayType].
+ */
 data class UInputArrayLengthId<ArrayType> internal constructor(
     val arrayType: ArrayType
-)
+) : URegionId
 
 typealias UInputFieldMemoryRegion<Field, Sort> = UMemoryRegion<UInputFieldRegionId<Field>, UHeapRef, Sort>
 typealias UAllocatedArrayMemoryRegion<ArrayType, Sort> = UMemoryRegion<UAllocatedArrayId<ArrayType>, USizeExpr, Sort>
 typealias UInputArrayMemoryRegion<ArrayType, Sort> = UMemoryRegion<UInputArrayId<ArrayType>, USymbolicArrayIndex, Sort>
 typealias UInputArrayLengthMemoryRegion<ArrayType> = UMemoryRegion<UInputArrayLengthId<ArrayType>, UHeapRef, USizeSort>
+
+val <Field, Sort : USort> UInputFieldMemoryRegion<Field, Sort>.field
+    get() = regionId.field
+
+val <ArrayType, Sort : USort> UAllocatedArrayMemoryRegion<ArrayType, Sort>.allocatedArrayType
+    get() = regionId.arrayType
+val <ArrayType, Sort : USort> UAllocatedArrayMemoryRegion<ArrayType, Sort>.allocatedAddress
+    get() = regionId.address
+
+val <ArrayType, Sort : USort> UInputArrayMemoryRegion<ArrayType, Sort>.inputArrayType
+    get() = regionId.arrayType
+
+val <ArrayType> UInputArrayLengthMemoryRegion<ArrayType>.inputLengthArrayType
+    get() = regionId.arrayType
 
 fun <Field, Sort : USort> emptyInputFieldRegion(
     field: Field,

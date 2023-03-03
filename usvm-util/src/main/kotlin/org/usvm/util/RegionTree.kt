@@ -3,7 +3,6 @@ package org.usvm.util
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.toPersistentMap
-import java.util.NoSuchElementException
 
 /**
  * Region tree is a data structure storing collection of keys by abstract regions.
@@ -59,7 +58,7 @@ class RegionTree<Key, Reg>(
         // it is required for correct order of keys returned by `iterator.next()` method
         // We have to support the following order: assume that we had entries [e0, e1, e2, e3, e4]
         // and a write operation into a region R that is a subregion of `e1` and `e3`, and covers e2 completely.
-        // The correct order of the result is:\
+        // The correct order of the result is:
         // included = [R ∩ e1, e2, R ∩ e3], disjoint = [e0, e1\R, e3\R, e4]
         // That allows us to move recently updates region to the right side of the `entries` map and
         // leave the oldest ones in the left part of it.
@@ -123,8 +122,6 @@ class RegionTree<Key, Reg>(
 
         return RegionTree(disjointEntries)
     }
-
-    // TODO: add collection operations, like map, fold, filter, flatten, etc...
 
     private fun checkInvariantRecursively(parentRegion: Reg?): Boolean {
         // Invariant (2): all child regions are included into parent region

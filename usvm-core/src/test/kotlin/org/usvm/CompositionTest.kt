@@ -2,7 +2,6 @@ package org.usvm
 
 import io.mockk.every
 import io.mockk.mockk
-import kotlin.reflect.KClass
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -13,7 +12,9 @@ import org.ksmt.expr.KExpr
 import org.ksmt.expr.printer.ExpressionPrinter
 import org.ksmt.expr.transformer.KTransformerBase
 import org.ksmt.sort.KBv32Sort
+import kotlin.reflect.KClass
 import kotlin.test.assertEquals
+import kotlin.test.assertSame
 
 internal class CompositionTest<Type, Field> {
     private lateinit var stackEvaluator: URegistersStackEvaluator
@@ -183,128 +184,220 @@ internal class CompositionTest<Type, Field> {
 
     @Test
     fun testUArrayLength() = with(ctx) {
-        val region = mockk<UInputArrayLengthMemoryRegion<KClass<*>>>()
-        val address = mockk<UHeapRef>()
+        val arrayType: KClass<Array<*>> = Array::class
+        val firstAddress = 1
+        val secondAddress = 2
 
-        every { region.sort } returns bv32Sort
+        val fstAddress = mockk<UHeapRef>()
+        val sndAddress = mockk<UHeapRef>()
 
-        val arrayLength = ctx.mkArrayLength(region, address)
-        val arrayBvLength = 32.toBv()
+        val fstResultValue = 1.toBv()
+        val sndResultValue = 2.toBv()
 
-        val typeEvaluator = mockk<UTypeEvaluator<KClass<*>>>() // TODO replace with jacoDB type
-        val heapEvaluator = mockk<UReadOnlySymbolicHeap<Field, KClass<*>>>() // TODO replace with jacoDB type
-        val composer =
-            UComposer(ctx, stackEvaluator, heapEvaluator, typeEvaluator, mockEvaluator) // TODO replace with jacoDB type
+        val updates = UEmptyUpdates<UHeapRef, USizeSort>(
+            symbolicEq = { k1, k2 -> k1 eq k2 },
+            concreteCmp = { _, _ -> throw UnsupportedOperationException() },
+            symbolicCmp = { _, _ -> throw UnsupportedOperationException() }
+        ).write(fstAddress, fstResultValue)
+            .write(sndAddress, sndResultValue)
 
-        val addressFromMemory = object : UHeapRef(ctx) {
-            override val sort: UAddressSort = addressSort
+        val regionId = UInputArrayLengthId(arrayType)
+        val regionArray = UInputArrayLengthMemoryRegion(
+            regionId,
+            bv32Sort,
+            updates,
+            defaultValue = sizeSort.defaultValue(),
+            instantiator = { key, region -> mkInputArrayLength(region, key) }
+        )
 
-            override fun accept(transformer: KTransformerBase): KExpr<UAddressSort> = this
+        val fstConcreteAddress = mkConcreteHeapRef(firstAddress)
+        val sndConcreteAddress = mkConcreteHeapRef(secondAddress)
 
-            override fun internEquals(other: Any): Boolean = structurallyEqual(other) { sort }
+        val firstReading = mkInputArrayLength(regionArray, fstConcreteAddress)
+        val secondReading = mkInputArrayLength(regionArray, sndConcreteAddress)
 
-            override fun internHashCode(): Int = hash(sort)
+        val fstValueFromHeap = 42.toBv()
+        val sndValueFromHeap = 43.toBv()
 
-            override fun print(printer: ExpressionPrinter) {
-                printer.append("Test arrayLength object")
-            }
-        }
+        val heapToComposeWith = URegionHeap<Field, KClass<Array<*>>>(ctx)
 
-        every { address.accept(any()) } returns addressFromMemory
-        every { heapEvaluator.readArrayLength(addressFromMemory, arrayLength.region.regionId.arrayType) } returns arrayBvLength
+        heapToComposeWith.writeArrayLength(fstConcreteAddress, fstValueFromHeap, arrayType)
+        heapToComposeWith.writeArrayLength(sndConcreteAddress, sndValueFromHeap, arrayType)
 
-        val composedExpression = composer.compose(arrayLength)
+        val typeEvaluator = mockk<UTypeEvaluator<KClass<Array<*>>>>()
+        val composer = UComposer(ctx, stackEvaluator, heapToComposeWith, typeEvaluator, mockEvaluator)
 
-        assert(composedExpression === arrayBvLength)
+        every { fstAddress.accept(composer) } returns fstConcreteAddress
+        every { sndAddress.accept(composer) } returns sndConcreteAddress
+
+        val fstComposedValue = composer.compose(firstReading)
+        val sndComposedValue = composer.compose(secondReading)
+
+        assertSame(fstResultValue, fstComposedValue)
+        assertSame(sndResultValue, sndComposedValue)
     }
 
-    @Suppress("UNCHECKED_CAST")
     @Test
     fun testUInputArrayIndexReading() = with(ctx) {
-        val region = mockk<UInputArrayMemoryRegion<KClass<*>, UBv32Sort>>()
+        val fstAddress = mockk<UHeapRef>()
+        val sndAddress = mockk<UHeapRef>()
+        val fstIndex = mockk<USizeExpr>()
+        val sndIndex = mockk<USizeExpr>()
 
-        val arrayType: KClass<*> = Array::class // TODO replace with jacoDB type
+        val keyEqualityComparer = { k1: USymbolicArrayIndex, k2: USymbolicArrayIndex ->
+            mkAnd(k1.first eq k2.first, k1.second eq k2.second)
+        }
 
-        every { region.sort } returns bv32Sort
-        every { region.regionId } returns UInputArrayId(arrayType)
+        val initialNode = UPinpointUpdateNode(
+            fstAddress to fstIndex,
+            42.toBv(),
+            keyEqualityComparer
+        )
 
-        val address = mockk<UHeapRef>()
-        val index = mockk<USizeExpr>()
+        val updates: UMemoryUpdates<USymbolicArrayIndex, UBv32Sort> = UFlatUpdates(
+            initialNode,
+            next = null,
+            symbolicCmp = { _, _ -> shouldNotBeCalled() },
+            concreteCmp = { k1, k2 -> k1 == k2 },
+            symbolicEq = { k1, k2 -> keyEqualityComparer(k1, k2) }
+        ).write(sndAddress to sndIndex, 43.toBv())
 
-        val arrayIndexReading =
-            mkInputArrayReading(region, address, index)
+        val arrayType: KClass<Array<*>> = Array::class
 
-        val arrayAddress = mkConcreteHeapRef(address = 12)
-        val arrayIndex = mkBv(10)
-        val answer = 42.toBv()
+        val region = UInputArrayMemoryRegion(
+            UInputArrayId(arrayType),
+            mkBv32Sort(),
+            updates,
+            defaultValue = null,
+            instantiator = { key, memoryRegion -> mkInputArrayReading(memoryRegion, key.first, key.second) }
+        )
+
+        // TODO replace with jacoDB type
+        val fstArrayIndexReading = mkInputArrayReading(region, fstAddress, fstIndex)
+        // TODO replace with jacoDB type
+        val sndArrayIndexReading = mkInputArrayReading(region, sndAddress, sndIndex)
+
+        val answer = 43.toBv()
 
         val typeEvaluator = mockk<UTypeEvaluator<KClass<*>>>() // TODO replace with jacoDB type
-        val heapEvaluator = mockk<UReadOnlySymbolicHeap<Field, KClass<*>>>() // TODO replace with jacoDB type
-        val composer =
-            UComposer(ctx, stackEvaluator, heapEvaluator, typeEvaluator, mockEvaluator) // TODO replace with jacoDB type
+        val heapEvaluator = URegionHeap<Field, KClass<*>>(ctx) // TODO replace with jacoDB type
 
-        every { address.accept(any()) } returns arrayAddress
-        every { index.accept(any()) } returns arrayIndex
-        every { heapEvaluator.readArrayIndex(arrayAddress, arrayIndex, arrayType, bv32Sort) } returns answer
+        val composer = UComposer(
+            ctx, stackEvaluator, heapEvaluator, typeEvaluator, mockEvaluator
+        ) // TODO replace with jacoDB type
 
-        val composedExpression = composer.compose(arrayIndexReading)
+        every { fstAddress.accept(composer) } returns sndAddress
+        every { fstIndex.accept(composer) } returns sndIndex
+        every { sndAddress.accept(composer) } returns sndAddress
+        every { sndIndex.accept(composer) } returns sndIndex
 
-        assert(composedExpression === answer)
+        val fstComposedExpression = composer.compose(fstArrayIndexReading)
+        val sndComposedExpression = composer.compose(sndArrayIndexReading)
+
+        assert(fstComposedExpression === answer)
+        assert(sndComposedExpression === answer)
     }
 
     @Test
     fun testUAllocatedArrayIndexReading() = with(ctx) {
-        val region = mockk<UAllocatedArrayMemoryRegion<KClass<*>, UBv32Sort>>()
-
-        val arrayType: KClass<*> = Array::class
+        val arrayType: KClass<Array<*>> = Array::class
         val address = 1
 
-        every { region.sort } returns bv32Sort
-        every { region.regionId } returns UAllocatedArrayId(arrayType, address)
+        val fstIndex = mockk<USizeExpr>()
+        val sndIndex = mockk<USizeExpr>()
 
-        val index = mockk<USizeExpr>()
+        val fstSymbolicIndex = mockk<USizeExpr>()
+        val sndSymbolicIndex = mockk<USizeExpr>()
 
-        val arrayIndexReading = mkAllocatedArrayReading(region, index)
+        val updates = UEmptyUpdates<USizeExpr, UBv32Sort>(
+            symbolicEq = { k1, k2 -> k1 eq k2 },
+            concreteCmp = { _, _ -> throw UnsupportedOperationException() },
+            symbolicCmp = { _, _ -> throw UnsupportedOperationException() }
+        ).write(fstIndex, 1.toBv())
+            .write(sndIndex, 2.toBv())
 
-        val composedIndex = 5.toBv()
+        val regionId = UAllocatedArrayId(arrayType, address)
+        val regionArray = UAllocatedArrayMemoryRegion(
+            regionId,
+            bv32Sort,
+            updates,
+            defaultValue = 0.toBv(),
+            instantiator = { key, region -> mkAllocatedArrayReading(region, key) }
+        )
 
-        val typeEvaluator = mockk<UTypeEvaluator<KClass<*>>>() // TODO replace with jacoDB type
-        val heapEvaluator = mockk<UReadOnlySymbolicHeap<Field, KClass<*>>>() // TODO replace with jacoDB type
-        val composer =
-            UComposer(ctx, stackEvaluator, heapEvaluator, typeEvaluator, mockEvaluator) // TODO replace with jacoDB type
+        val firstReading = mkAllocatedArrayReading(regionArray, fstSymbolicIndex)
+        val secondReading = mkAllocatedArrayReading(regionArray, sndSymbolicIndex)
 
-        val answer = 42.toBv()
-        val heapRef = mkConcreteHeapRef(address)
+        val fstAddressForCompose = mkConcreteHeapRef(address)
+        val sndAddressForCompose = mkConcreteHeapRef(address)
 
-        every { index.accept(composer) } returns composedIndex
-        every { heapEvaluator.readArrayIndex(heapRef, composedIndex, arrayType, bv32Sort) } returns answer
+        val concreteIndex = sizeSort.defaultValue()
+        val fstValue = 42.toBv()
+        val sndValue = 43.toBv()
 
-        val composedExpression = composer.compose(arrayIndexReading)
+        val heapToComposeWith = URegionHeap<Field, KClass<Array<*>>>(ctx)
 
-        assert(composedExpression === answer)
+        heapToComposeWith.writeArrayIndex(fstAddressForCompose, concreteIndex, arrayType, regionArray.sort, fstValue)
+        heapToComposeWith.writeArrayIndex(sndAddressForCompose, concreteIndex, arrayType, regionArray.sort, sndValue)
+
+        val typeEvaluator = mockk<UTypeEvaluator<KClass<Array<*>>>>()
+        val composer = UComposer(ctx, stackEvaluator, heapToComposeWith, typeEvaluator, mockEvaluator)
+
+        every { fstSymbolicIndex.accept(composer) } returns concreteIndex
+        every { sndSymbolicIndex.accept(composer) } returns concreteIndex
+        every { fstIndex.accept(composer) } returns concreteIndex
+        every { sndIndex.accept(composer) } returns concreteIndex
+
+        val fstComposedValue = composer.compose(firstReading)
+        val sndComposedValue = composer.compose(secondReading)
+
+        assertSame(2.toBv(), fstComposedValue)
+        assertSame(fstComposedValue, sndComposedValue)
     }
 
-    @Suppress("UNCHECKED_CAST")
     @Test
     fun testUFieldReading() = with(ctx) {
-        val region = mockk<UInputFieldMemoryRegion<java.lang.reflect.Field, *>>()
-        val address = mockk<UHeapRef>()
+        val aAddress = mockk<UHeapRef>()
+        val bAddress = mockk<UHeapRef>()
 
-        val fieldAddress = mkConcreteHeapRef(address = 12)
+        val updates = UEmptyUpdates<UHeapRef, UBv32Sort>(
+            symbolicEq = { k1, k2 -> k1 eq k2 },
+            concreteCmp = { _, _ -> throw UnsupportedOperationException() },
+            symbolicCmp = { _, _ -> throw UnsupportedOperationException() }
+        )
         val field = mockk<java.lang.reflect.Field>() // TODO replace with jacoDB field
 
-        every { region.sort } returns bv32Sort
-        every { region.regionId } returns UInputFieldRegionId(field)
-        every { address.accept(any()) } returns fieldAddress
+        // An empty region with one write in it
+        val region = UInputFieldMemoryRegion(
+            UInputFieldRegionId(field),
+            bv32Sort,
+            updates,
+            defaultValue = null,
+            instantiator = { key, region -> mkInputFieldReading(region, key) }
+        ).write(aAddress, 43.toBv())
 
-        val expression = mkFieldReading(region, address)
+        every { aAddress.accept(any()) } returns aAddress
+        every { bAddress.accept(any()) } returns aAddress
 
-        val answer = 42.toBv()
-        val heapEvaluator = mockk<UReadOnlySymbolicHeap<java.lang.reflect.Field, Type>>() // TODO replace with jacoDB type
-        val composer =
-            UComposer(ctx, stackEvaluator, heapEvaluator, typeEvaluator, mockEvaluator) // TODO replace with jacoDB type
+        val expression = mkInputFieldReading(region, bAddress)
 
-        every { heapEvaluator.readField(fieldAddress, field, bv32Sort) } returns answer
+        /* Compose:
+        fun foo(a: A, b: A) {
+            b = a
+            a.f = 42
+            -------------------
+            a.f = 43
+            read b.f
+         */
+
+        val answer = 43.toBv()
+        // TODO replace with jacoDB type
+
+        val heapEvaluator = URegionHeap<java.lang.reflect.Field, Type>(ctx)
+        heapEvaluator.writeField(aAddress, field, bv32Sort, 42.toBv())
+
+        // TODO replace with jacoDB type
+        val composer = UComposer(ctx, stackEvaluator, heapEvaluator, typeEvaluator, mockEvaluator)
 
         val composedExpression = composer.compose(expression)
 

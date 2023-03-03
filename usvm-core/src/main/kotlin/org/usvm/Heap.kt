@@ -1,14 +1,19 @@
 package org.usvm
 
-import org.ksmt.solver.KModel
-import org.ksmt.utils.asExpr
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentMapOf
+import org.ksmt.solver.KModel
+import org.ksmt.utils.asExpr
 
-interface UReadOnlyHeap<in Ref, Value, SizeT, Field, ArrayType> {
+interface UReadOnlyHeap<Ref, Value, SizeT, Field, ArrayType> {
     fun <Sort : USort> readField(ref: Ref, field: Field, sort: Sort): Value
     fun <Sort : USort> readArrayIndex(ref: Ref, index: SizeT, arrayType: ArrayType, elementSort: Sort): Value
     fun readArrayLength(ref: Ref, arrayType: ArrayType): SizeT
+
+    /**
+     * Returns a copy of the current map to be able to modify it without changing the original one.
+     */
+    fun toMutableHeap(): UHeap<Ref, Value, SizeT, Field, ArrayType>
 }
 
 typealias UReadOnlySymbolicHeap<Field, ArrayType> = UReadOnlyHeap<UHeapRef, UExpr<out USort>, USizeExpr, Field, ArrayType>
@@ -26,14 +31,27 @@ class UEmptyHeap<Field, ArrayType>(private val ctx: UContext) : UReadOnlySymboli
 
     override fun readArrayLength(ref: UHeapRef, arrayType: ArrayType) =
         ctx.zeroSize
+
+    override fun toMutableHeap(): UHeap<UHeapRef, UExpr<out USort>, USizeExpr, Field, ArrayType> = URegionHeap(ctx)
 }
 
 interface UHeap<Ref, Value, SizeT, Field, ArrayType> : UReadOnlyHeap<Ref, Value, SizeT, Field, ArrayType> {
     fun <Sort : USort> writeField(ref: Ref, field: Field, sort: Sort, value: Value)
     fun <Sort : USort> writeArrayIndex(ref: Ref, index: SizeT, type: ArrayType, elementSort: Sort, value: Value)
 
+    // TODO how to make it internal? Abstract class? Internal interface?
+    //      perhaps, the best idea is to leave it as it and add documentation about it?
+    fun writeArrayLength(ref: Ref, size: SizeT, arrayType: ArrayType)
+
     fun <Sort : USort> memset(ref: Ref, type: ArrayType, sort: Sort, contents: Sequence<Value>)
     fun memcpy(src: Ref, dst: Ref, type: ArrayType, fromSrc: SizeT, fromDst: SizeT, length: SizeT)
+
+    // TODO can it contain a memory region? Can we have a heap without regions?
+    fun <RegionId : URegionId, Key, Sort : USort> memcpy(
+        fromKey: Key,
+        toKey: Key,
+        fromRegion: UMemoryRegion<RegionId, Key, Sort>
+    )
 
     fun allocate(): UConcreteHeapAddress
     fun allocateArray(count: SizeT): UConcreteHeapAddress
@@ -72,7 +90,7 @@ data class URegionHeap<Field, ArrayType>(
     ): UInputFieldMemoryRegion<Field, Sort> =
         inputFields[field].inputFieldsRegionUncheckedCast()
             ?: emptyInputFieldRegion(field, sort) { key, region ->
-                ctx.mkFieldReading(region, key)
+                ctx.mkInputFieldReading(region, key)
             }
 
     private fun <Sort : USort> allocatedArrayRegion(
@@ -99,7 +117,7 @@ data class URegionHeap<Field, ArrayType>(
     ): UInputArrayLengthMemoryRegion<ArrayType> =
         inputLengths[arrayType]
             ?: emptyArrayLengthRegion(arrayType, ctx) { ref, region ->
-                ctx.mkArrayLength(region, ref)
+                ctx.mkInputArrayLength(region, ref)
             }
 
     override fun <Sort : USort> readField(ref: UHeapRef, field: Field, sort: Sort): UExpr<Sort> =
@@ -166,6 +184,17 @@ data class URegionHeap<Field, ArrayType>(
         }
     }
 
+    override fun writeArrayLength(ref: UHeapRef, size: USizeExpr, arrayType: ArrayType) {
+        when (ref) {
+            is UConcreteHeapRef -> allocatedLengths = allocatedLengths.put(ref.address, size)
+            else -> {
+                val region = inputArrayLengthRegion(arrayType)
+                val newRegion = region.write(ref, size)
+                inputLengths = inputLengths.put(arrayType, newRegion)
+            }
+        }
+    }
+
     override fun <Sort : USort> memset(
         ref: UHeapRef,
         type: ArrayType,
@@ -182,6 +211,14 @@ data class URegionHeap<Field, ArrayType>(
         fromSrc: USizeExpr,
         fromDst: USizeExpr,
         length: USizeExpr
+    ) {
+        TODO()
+    }
+
+    override fun <RegionId : URegionId, Key, Sort : USort> memcpy(
+        fromKey: Key,
+        toKey: Key,
+        fromRegion: UMemoryRegion<RegionId, Key, Sort>
     ) {
         TODO()
     }
@@ -205,6 +242,8 @@ data class URegionHeap<Field, ArrayType>(
             allocatedArrays, inputArrays,
             allocatedLengths, inputLengths
         )
+
+    override fun toMutableHeap() = clone()
 }
 
 @Suppress("UNCHECKED_CAST")
