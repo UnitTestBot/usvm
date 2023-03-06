@@ -89,9 +89,9 @@ open class UComposer<Field, Type>(
         val heapRef = uctx.mkConcreteHeapRef(region.allocatedAddress)
 
         val allocatedArrayInstantiatorConstructor = { mappedUpdates: UMemoryUpdates<USizeExpr, Sort> ->
-            { key: USizeExpr, _: UAllocatedArrayMemoryRegion<Type, Sort> ->
-                val arrayType = region.allocatedArrayType
-                val elementSort = region.sort
+            { key: USizeExpr, memoryRegion: UAllocatedArrayMemoryRegion<Type, Sort> ->
+                val arrayType = memoryRegion.allocatedArrayType
+                val elementSort = memoryRegion.sort
 
                 heapEvaluator.applyUpdatesAndReadValue(
                     mappedUpdates,
@@ -156,8 +156,8 @@ open class UComposer<Field, Type>(
 
                 heapEvaluator.applyUpdatesAndReadValue(
                     mappedUpdates,
-                    { mutableMap, pinpointUpdate ->
-                        mutableMap.writeArrayLength(
+                    { mutableHeap, pinpointUpdate ->
+                        mutableHeap.writeArrayLength(
                             pinpointUpdate.key,
                             pinpointUpdate.value,
                             arrayType

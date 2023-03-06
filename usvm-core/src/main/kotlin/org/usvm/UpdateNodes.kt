@@ -160,7 +160,7 @@ class URangedUpdateNode<Key, ValueSort : USort>(
         val mappedFromKey = keyMapper(fromKey)
         val mappedToKey = keyMapper(toKey)
         val mappedRegion = region.map(keyMapper, composer)
-        // TODO: keyMapper should be composable object. If it is lambda (like now), we can't recalculate lower bounds
+        // TODO: keyConverter should be composable object. If it is lambda (like now), we can't recalculate lower bounds
         //       in lambda closure
         // TODO when you fix it, do not forget to change  org.usvm.MapCompositionTest.testRangeUpdateNodeWithoutCompositionEffect
         //      org.usvm.MapCompositionTest.testRangeUpdateNodeMapOperation
