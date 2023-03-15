@@ -1,5 +1,6 @@
 package org.usvm
 
+import org.ksmt.utils.asExpr
 import org.usvm.util.SetRegion
 import org.usvm.util.emptyRegionTree
 import java.util.*
@@ -18,7 +19,7 @@ typealias UInstantiator<RegionId, Key, Sort> = (key: Key, UMemoryRegion<RegionId
  * @property regionId describes the source of the region. Memory regions with the same [regionId] represent the same
  * memory area, but in different states.
  */
-data class UMemoryRegion<RegionId : URegionId, Key, Sort : USort>(
+data class UMemoryRegion<RegionId : URegionId<Key>, Key, Sort : USort>(
     val regionId: RegionId,
     val sort: Sort,
     private val updates: UMemoryUpdates<Key, Sort>,
@@ -89,10 +90,10 @@ data class UMemoryRegion<RegionId : URegionId, Key, Sort : USort>(
         return iteAcc
     }
 
-    fun write(key: Key, value: UExpr<Sort>): UMemoryRegion<RegionId, Key, Sort> {
+    fun write(key: Key, value: UExpr<Sort>, guard: UBoolExpr): UMemoryRegion<RegionId, Key, Sort> {
         assert(value.sort == sort)
 
-        val newUpdates = updates.write(key, value)
+        val newUpdates = updates.write(key, value, guard)
         return UMemoryRegion(regionId, sort, newUpdates, defaultValue, instantiator)
     }
 
@@ -117,23 +118,18 @@ data class UMemoryRegion<RegionId : URegionId, Key, Sort : USort>(
     }
 
     /**
-     * Maps the region using [keyMapper] and [composer].
+     * Maps the region using [composer].
      * It is used in [UComposer] for composition operation.
-     *
-     * [instantiatorConstructor] is a function that should be called after
-     * we mapped [updates] using [UMemoryUpdates.map] function, because
-     * it uses these mapped updates to instantiate values in a new, mapped region.
      *
      * Note: after this operation a region returned as a result might be in `broken` state:
      * it might have both symbolic and concrete values as keys in it.
      */
     fun <Field, Type> map(
-        keyMapper: (Key) -> Key,
         composer: UComposer<Field, Type>,
-        instantiatorConstructor: (UMemoryUpdates<Key, Sort>) -> UInstantiator<RegionId, Key, Sort> = { instantiator }
+        instantiator: UInstantiator<RegionId, Key, Sort> = this.instantiator
     ): UMemoryRegion<RegionId, Key, Sort> {
         // Map the updates and the default value
-        val mappedUpdates = updates.map(keyMapper, composer)
+        val mappedUpdates = updates.map(regionId.keyMapper(composer), composer)
         val mappedDefaultValue = defaultValue?.let { composer.compose(it) }
 
         // If there is no changes after their composition, return unchecked region
@@ -142,20 +138,46 @@ data class UMemoryRegion<RegionId : URegionId, Key, Sort : USort>(
         }
 
         // Otherwise, construct a new region with mapped values and a new instantiator.
-        return UMemoryRegion(regionId, sort, mappedUpdates, mappedDefaultValue, instantiatorConstructor(mappedUpdates))
+        return UMemoryRegion(regionId, sort, mappedUpdates, mappedDefaultValue, instantiator)
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    fun <Field, Type> applyTo(heap: USymbolicHeap<Field, Type>) {
+        // Apply each update on the copy
+        updates.forEach {
+            when (it) {
+                is UPinpointUpdateNode<Key, Sort> -> regionId.write(it.key, sort, heap, it.value, it.guard)
+                is URangedUpdateNode<*, *, *, Key, Sort> -> {
+                    it.region.applyTo(heap)
+                    val srcFrom = it.keyConverter.srcSymbolicArrayIndex
+                    val dstFrom = it.keyConverter.dstFromSymbolicArrayIndex
+                    val dstTo = it.keyConverter.dstToIndex
+                    heap.memcpy(
+                        srcFrom.first,
+                        dstFrom.first,
+                        it.region.regionId.arrayType as Type,
+                        sort,
+                        srcFrom.second,
+                        dstFrom.second,
+                        dstTo,
+                        it.guard)
+                }
+            }
+        }
     }
 
     /**
      * @return Memory region which obtained from this one by overwriting the range of addresses [[fromKey] : [toKey]]
      * with values from memory region [fromRegion] read from range
-     * of addresses [[keyConverter] ([fromKey]) : [keyConverter] ([toKey])]
+     * of addresses [[keyConverter].convert([fromKey]) : [keyConverter].convert([toKey])]
      */
-    fun <OtherRegionId : URegionId> copy(
-        fromRegion: UMemoryRegion<OtherRegionId, Key, Sort>,
+    fun <ArrayType, OtherRegionId: UArrayId<ArrayType, SrcKey>, SrcKey> memcpy(
+        fromRegion: UMemoryRegion<OtherRegionId, SrcKey, Sort>,
         fromKey: Key, toKey: Key,
-        keyConverter: (Key) -> Key
+        keyConverter: UMemoryKeyConverter<SrcKey, Key>,
+        guard: UBoolExpr
     ): UMemoryRegion<RegionId, Key, Sort> {
-        val updatesCopy = updates.copy(fromRegion, fromKey, toKey, keyConverter)
+        val updatesCopy = updates.copy(fromRegion, fromKey, toKey, keyConverter, guard)
         return UMemoryRegion(regionId, sort, updatesCopy, defaultValue, instantiator)
     }
 }
@@ -230,23 +252,90 @@ fun refIndexRangeRegion(
 /**
  * An interface that represents any possible type of regions that can be used in the memory.
  */
-sealed interface URegionId
+sealed interface URegionId<Key> {
+    fun <Field, ArrayType, Sort: USort> read(key: Key, sort: Sort, heap: UReadOnlySymbolicHeap<Field, ArrayType>): UExpr<Sort>
+    fun <Field, ArrayType, Sort: USort> write(key: Key, sort: Sort, heap: USymbolicHeap<Field, ArrayType>, value: UExpr<Sort>, guard: UBoolExpr)
+    fun <Field, ArrayType, SrcKey, Sort: USort> copy(from: Key, to: Key, sort: Sort, heap: USymbolicHeap<Field, ArrayType>, converter: UMemoryKeyConverter<Key, SrcKey>, guard: UBoolExpr)
+    fun <Field, ArrayType> keyMapper(composer: UComposer<Field, ArrayType>): (Key) -> Key
+}
 
 /**
  * A region id for a region storing the specific [field].
  */
 data class UInputFieldRegionId<Field> internal constructor(
     val field: Field
-) : URegionId
+) : URegionId<UHeapRef> {
+    @Suppress("UNCHECKED_CAST")
+    override fun <Field, ArrayType, Sort: USort> read(
+        key: UHeapRef,
+        sort: Sort,
+        heap: UReadOnlySymbolicHeap<Field, ArrayType>
+    ) = heap.readField(key, field as Field, sort).asExpr(sort)
+
+    @Suppress("UNCHECKED_CAST")
+    override fun <Field, ArrayType, Sort: USort> write(
+        key: UHeapRef,
+        sort: Sort,
+        heap: USymbolicHeap<Field, ArrayType>,
+        value: UExpr<Sort>,
+        guard: UBoolExpr
+    ) = heap.writeField(key, field as Field, sort, value, guard)
+
+    override fun <Field, ArrayType, SrcKey, Sort: USort> copy(
+        from: UHeapRef,
+        to: UHeapRef,
+        sort: Sort,
+        heap: USymbolicHeap<Field, ArrayType>,
+        converter: UMemoryKeyConverter<UHeapRef, SrcKey>,
+        guard: UBoolExpr
+    ) = error("Fields region copying should never happen")
+
+    override fun <Field, ArrayType> keyMapper(composer: UComposer<Field, ArrayType>): (UHeapRef) -> UHeapRef =
+        {composer.compose(it)}
+}
+
+sealed interface UArrayId<ArrayType, Key>: URegionId<Key> {
+    val arrayType: ArrayType
+}
 
 /**
  * A region id for a region storing arrays allocated during execution.
  * Each identifier contains information about its [arrayType] and [address].
  */
 data class UAllocatedArrayId<ArrayType> internal constructor(
-    val arrayType: ArrayType,
+    override val arrayType: ArrayType,
     val address: UConcreteHeapAddress,
-) : URegionId {
+) : UArrayId<ArrayType, USizeExpr> {
+    @Suppress("UNCHECKED_CAST")
+    override fun <Field, ArrayType, Sort: USort> read(
+        key: USizeExpr,
+        sort: Sort,
+        heap: UReadOnlySymbolicHeap<Field, ArrayType>
+    ) = heap.readArrayIndex(UConcreteHeapRef(key.uctx, address), key, arrayType as ArrayType, sort).asExpr(sort)
+
+    @Suppress("UNCHECKED_CAST")
+    override fun <Field, ArrayType, Sort: USort> write(
+        key: USizeExpr,
+        sort: Sort,
+        heap: USymbolicHeap<Field, ArrayType>,
+        value: UExpr<Sort>,
+        guard: UBoolExpr
+    ) = heap.writeArrayIndex(UConcreteHeapRef(key.uctx, address), key, arrayType as ArrayType, sort, value, guard)
+
+    override fun <Field, ArrayType, SrcKey, Sort: USort> copy(
+        from: USizeExpr,
+        to: USizeExpr,
+        sort: Sort,
+        heap: USymbolicHeap<Field, ArrayType>,
+        converter: UMemoryKeyConverter<USizeExpr, SrcKey>,
+        guard: UBoolExpr
+    ) {
+        TODO("Not yet implemented")
+    }
+
+    override fun <Field, ArrayType> keyMapper(composer: UComposer<Field, ArrayType>): (USizeExpr) -> USizeExpr =
+        {composer.compose(it)}
+
     // we don't include arrayType into hashcode and equals, because [address] already defines unambiguously
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -268,15 +357,83 @@ data class UAllocatedArrayId<ArrayType> internal constructor(
  * A region id for a region storing arrays retrieved as a symbolic value, contains only its [arrayType].
  */
 data class UInputArrayId<ArrayType> internal constructor(
-    val arrayType: ArrayType,
-) : URegionId
+    override val arrayType: ArrayType
+) : UArrayId<ArrayType, USymbolicArrayIndex> {
+    @Suppress("UNCHECKED_CAST")
+    override fun <Field, ArrayType, Sort: USort> read(
+        key: USymbolicArrayIndex,
+        sort: Sort,
+        heap: UReadOnlySymbolicHeap<Field, ArrayType>
+    ) = heap.readArrayIndex(key.first, key.second, arrayType as ArrayType, sort).asExpr(sort)
+
+    @Suppress("UNCHECKED_CAST")
+    override fun <Field, ArrayType, Sort: USort> write(
+        key: USymbolicArrayIndex,
+        sort: Sort,
+        heap: USymbolicHeap<Field, ArrayType>,
+        value: UExpr<Sort>,
+        guard: UBoolExpr
+    ) = heap.writeArrayIndex(key.first, key.second, arrayType as ArrayType, sort, value, guard)
+
+    override fun <Field, ArrayType, SrcKey, Sort: USort> copy(
+        from: USymbolicArrayIndex,
+        to: USymbolicArrayIndex,
+        sort: Sort,
+        heap: USymbolicHeap<Field, ArrayType>,
+        converter: UMemoryKeyConverter<USymbolicArrayIndex, SrcKey>,
+        guard: UBoolExpr
+    ) {
+        TODO("Not yet implemented")
+    }
+
+    override fun <Field, ArrayType> keyMapper(composer: UComposer<Field, ArrayType>): (USymbolicArrayIndex) -> USymbolicArrayIndex =
+        {
+            val ref = composer.compose(it.first)
+            val idx = composer.compose(it.second)
+            if (ref === it.first && idx === it.second)
+                it
+            else
+                ref to idx
+        }
+}
 
 /**
  * A region id for a region storing array lengths for arrays of a specific [arrayType].
  */
 data class UInputArrayLengthId<ArrayType> internal constructor(
     val arrayType: ArrayType
-) : URegionId
+) : URegionId<UHeapRef> {
+    @Suppress("UNCHECKED_CAST")
+    override fun <Field, ArrayType, Sort: USort> read(
+        key: UHeapRef,
+        sort: Sort,
+        heap: UReadOnlySymbolicHeap<Field, ArrayType>
+    ) = heap.readArrayLength(key, arrayType as ArrayType).asExpr(sort)
+
+    @Suppress("UNCHECKED_CAST")
+    override fun <Field, ArrayType, Sort: USort> write(
+        key: UHeapRef,
+        sort: Sort,
+        heap: USymbolicHeap<Field, ArrayType>,
+        value: UExpr<Sort>,
+        guard: UBoolExpr
+    ) {
+        assert(guard === key.ctx.trueExpr)
+        return heap.writeArrayLength(key, value.asExpr(key.uctx.sizeSort), arrayType as ArrayType)
+    }
+
+    override fun <Field, ArrayType, SrcKey, Sort: USort> copy(
+        from: UHeapRef,
+        to: UHeapRef,
+        sort: Sort,
+        heap: USymbolicHeap<Field, ArrayType>,
+        converter: UMemoryKeyConverter<UHeapRef, SrcKey>,
+        guard: UBoolExpr
+    ) = error("Lengths region copying should never happen")
+
+    override fun <Field, ArrayType> keyMapper(composer: UComposer<Field, ArrayType>): (UHeapRef) -> UHeapRef =
+        {composer.compose(it)}
+}
 
 typealias UInputFieldMemoryRegion<Field, Sort> = UMemoryRegion<UInputFieldRegionId<Field>, UHeapRef, Sort>
 typealias UAllocatedArrayMemoryRegion<ArrayType, Sort> = UMemoryRegion<UAllocatedArrayId<ArrayType>, USizeExpr, Sort>
@@ -319,7 +476,7 @@ fun <ArrayType, Sort : USort> emptyAllocatedArrayRegion(
         updates = emptyRegionTree(),
         ::indexRegion, ::indexRangeRegion, ::indexEq, ::indexLeConcrete, ::indexLeSymbolic
     )
-    val regionId = UAllocatedArrayId(arrayType, address)
+    val regionId = UAllocatedArrayId<ArrayType>(arrayType, address)
     return UMemoryRegion(regionId, sort, updates, sort.defaultValue(), instantiator)
 }
 

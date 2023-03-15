@@ -15,15 +15,10 @@ interface UMemoryUpdates<Key, Sort : USort> : Sequence<UUpdateNode<Key, Sort>> {
     fun read(key: Key): UMemoryUpdates<Key, Sort>
 
     /**
-     * @return Memory region which obtained from this one by overwriting the address [key] with value [value].
-     */
-    fun write(key: Key, value: UExpr<Sort>): UMemoryUpdates<Key, Sort>
-
-    /**
      * @return Memory region which obtained from this one by overwriting the address [key] with value [value]
      * guarded with condition [guard].
      */
-    fun guardedWrite(key: Key, value: UExpr<Sort>, guard: UBoolExpr): UMemoryUpdates<Key, Sort>
+    fun write(key: Key, value: UExpr<Sort>, guard: UBoolExpr): UMemoryUpdates<Key, Sort>
 
     /**
      * @see [UMemoryRegion.split]
@@ -44,10 +39,12 @@ interface UMemoryUpdates<Key, Sort : USort> : Sequence<UUpdateNode<Key, Sort>> {
     /**
      * @return Updates expressing copying the slice of [fromRegion] (see UMemoryRegion.copy)
      */
-    fun <RegionId : URegionId> copy(
-        fromRegion: UMemoryRegion<RegionId, Key, Sort>,
-        fromKey: Key, toKey: Key,
-        keyConverter: (Key) -> Key
+    fun <ArrayType, RegionId : UArrayId<ArrayType, SrcKey>, SrcKey> copy(
+        fromRegion: UMemoryRegion<RegionId, SrcKey, Sort>,
+        fromKey: Key,
+        toKey: Key,
+        keyConverter: UMemoryKeyConverter<SrcKey, Key>,
+        guard: UBoolExpr
     ): UMemoryUpdates<Key, Sort>
 
     /**
@@ -74,16 +71,7 @@ class UEmptyUpdates<Key, Sort : USort>(
 ) : UMemoryUpdates<Key, Sort> {
     override fun read(key: Key): UEmptyUpdates<Key, Sort> = this
 
-    override fun write(key: Key, value: UExpr<Sort>): UFlatUpdates<Key, Sort> =
-        UFlatUpdates(
-            UPinpointUpdateNode(key, value, symbolicEq),
-            next = null,
-            symbolicEq,
-            concreteCmp,
-            symbolicCmp
-        )
-
-    override fun guardedWrite(key: Key, value: UExpr<Sort>, guard: UBoolExpr): UFlatUpdates<Key, Sort> =
+    override fun write(key: Key, value: UExpr<Sort>, guard: UBoolExpr): UFlatUpdates<Key, Sort> =
         UFlatUpdates(
             UPinpointUpdateNode(key, value, symbolicEq, guard),
             next = null,
@@ -92,13 +80,14 @@ class UEmptyUpdates<Key, Sort : USort>(
             symbolicCmp
         )
 
-    override fun <RegionId : URegionId> copy(
-        fromRegion: UMemoryRegion<RegionId, Key, Sort>,
+    override fun <ArrayType, RegionId : UArrayId<ArrayType, SrcKey>, SrcKey> copy(
+        fromRegion: UMemoryRegion<RegionId, SrcKey, Sort>,
         fromKey: Key,
         toKey: Key,
-        keyConverter: (Key) -> Key,
+        keyConverter: UMemoryKeyConverter<SrcKey, Key>,
+        guard: UBoolExpr
     ): UFlatUpdates<Key, Sort> = UFlatUpdates(
-        URangedUpdateNode(fromKey, toKey, fromRegion, concreteCmp, symbolicCmp, keyConverter),
+        URangedUpdateNode(fromKey, toKey, fromRegion, concreteCmp, symbolicCmp, keyConverter, guard),
         next = null,
         symbolicEq,
         concreteCmp,
@@ -138,16 +127,7 @@ data class UFlatUpdates<Key, Sort : USort>(
 ) : UMemoryUpdates<Key, Sort> {
     override fun read(key: Key): UMemoryUpdates<Key, Sort> = this
 
-    override fun write(key: Key, value: UExpr<Sort>): UFlatUpdates<Key, Sort> =
-        UFlatUpdates(
-            UPinpointUpdateNode(key, value, symbolicEq),
-            next = this,
-            symbolicEq,
-            concreteCmp,
-            symbolicCmp
-        )
-
-    override fun guardedWrite(key: Key, value: UExpr<Sort>, guard: UBoolExpr): UFlatUpdates<Key, Sort> =
+    override fun write(key: Key, value: UExpr<Sort>, guard: UBoolExpr): UFlatUpdates<Key, Sort> =
         UFlatUpdates(
             UPinpointUpdateNode(key, value, symbolicEq, guard),
             next = this,
@@ -156,13 +136,14 @@ data class UFlatUpdates<Key, Sort : USort>(
             symbolicCmp
         )
 
-    override fun <RegionId : URegionId> copy(
-        fromRegion: UMemoryRegion<RegionId, Key, Sort>,
+    override fun <ArrayType, RegionId : UArrayId<ArrayType, SrcKey>, SrcKey> copy(
+        fromRegion: UMemoryRegion<RegionId, SrcKey, Sort>,
         fromKey: Key,
         toKey: Key,
-        keyConverter: (Key) -> Key,
-    ): UFlatUpdates<Key, Sort> = UFlatUpdates(
-        URangedUpdateNode(fromKey, toKey, fromRegion, concreteCmp, symbolicCmp, keyConverter),
+        keyConverter: UMemoryKeyConverter<SrcKey, Key>,
+        guard: UBoolExpr
+    ): UMemoryUpdates<Key, Sort> = UFlatUpdates(
+        URangedUpdateNode(fromKey, toKey, fromRegion, concreteCmp, symbolicCmp, keyConverter, guard),
         next = this,
         symbolicEq,
         concreteCmp,
@@ -263,8 +244,8 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
         return UTreeUpdates(updates, keyToRegion, keyRangeToRegion, symbolicEq, concreteCmp, symbolicCmp)
     }
 
-    override fun write(key: Key, value: UExpr<Sort>): UTreeUpdates<Key, Reg, Sort> {
-        val update = UPinpointUpdateNode(key, value, symbolicEq)
+    override fun write(key: Key, value: UExpr<Sort>, guard: UBoolExpr): UTreeUpdates<Key, Reg, Sort> {
+        val update = UPinpointUpdateNode(key, value, symbolicEq, guard)
         val region = keyToRegion(key)
 
         val newUpdates = updates.write(region, update, keyFilter = { it == update })
@@ -272,21 +253,15 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
         return UTreeUpdates(newUpdates, keyToRegion, keyRangeToRegion, symbolicEq, concreteCmp, symbolicCmp)
     }
 
-    override fun guardedWrite(key: Key, value: UExpr<Sort>, guard: UBoolExpr): UTreeUpdates<Key, Reg, Sort> {
-        val update = UPinpointUpdateNode(key, value, symbolicEq, guard)
-        val newUpdates = updates.write(keyToRegion(key), update, keyFilter = { it == update })
-
-        return UTreeUpdates(newUpdates, keyToRegion, keyRangeToRegion, symbolicEq, concreteCmp, symbolicCmp)
-    }
-
-    override fun <RegionId : URegionId> copy(
-        fromRegion: UMemoryRegion<RegionId, Key, Sort>,
+    override fun <ArrayType, RegionId : UArrayId<ArrayType, SrcKey>, SrcKey> copy(
+        fromRegion: UMemoryRegion<RegionId, SrcKey, Sort>,
         fromKey: Key,
         toKey: Key,
-        keyConverter: (Key) -> Key
-    ): UTreeUpdates<Key, Reg, Sort> {
+        keyConverter: UMemoryKeyConverter<SrcKey, Key>,
+        guard: UBoolExpr
+    ): UMemoryUpdates<Key, Sort> {
         val region = keyRangeToRegion(fromKey, toKey)
-        val update = URangedUpdateNode(fromKey, toKey, fromRegion, concreteCmp, symbolicCmp, keyConverter)
+        val update = URangedUpdateNode(fromKey, toKey, fromRegion, concreteCmp, symbolicCmp, keyConverter, guard)
         val newUpdates = updates.write(region, update, keyFilter = { it == update })
 
         return UTreeUpdates(newUpdates, keyToRegion, keyRangeToRegion, symbolicEq, concreteCmp, symbolicCmp)
@@ -331,8 +306,8 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
                     oldRegion.intersect(currentRegion)
                 }
 
-                is URangedUpdateNode -> {
-                    mappedUpdateNode as URangedUpdateNode
+                is URangedUpdateNode<*, *, *, Key, Sort> -> {
+                    mappedUpdateNode as URangedUpdateNode<*, *, *, Key, Sort>
                     val currentRegion = keyRangeToRegion(mappedUpdateNode.fromKey, mappedUpdateNode.toKey)
                     oldRegion.intersect(currentRegion)
                 }
@@ -383,7 +358,7 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
                 // to the one stored in the current node.
                 val initialRegion = when (update) {
                     is UPinpointUpdateNode<Key, Sort> -> keyToRegion(update.key)
-                    is URangedUpdateNode<Key, Sort> -> keyRangeToRegion(update.fromKey, update.toKey)
+                    is URangedUpdateNode<*, *, *, Key, Sort> -> keyRangeToRegion(update.fromKey, update.toKey)
                 }
                 val wasCloned = initialRegion != region
 

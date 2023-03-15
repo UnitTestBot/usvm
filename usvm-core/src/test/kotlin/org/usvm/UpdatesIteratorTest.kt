@@ -24,10 +24,10 @@ class UpdatesIteratorTest {
                 { k1, k2 -> mkEq(k1.toBv(), k2.toBv()) },
                 { k1, k2 -> k1 == k2 },
                 { _, _ -> throw UnsupportedOperationException() }
-            ).write(10, 10.toBv())
-                .write(1, 1.toBv())
-                .write(2, 2.toBv())
-                .write(3, 3.toBv())
+            ).write(10, 10.toBv(), mkTrue())
+                .write(1, 1.toBv(), mkTrue())
+                .write(2, 2.toBv(), mkTrue())
+                .write(3, 3.toBv(), mkTrue())
 
             val iterator = treeUpdates.iterator()
             checkResult(iterator)
@@ -48,9 +48,9 @@ class UpdatesIteratorTest {
             { _, _ -> throw NotImplementedError() },
             { _, _ -> throw NotImplementedError() },
             { _, _ -> throw NotImplementedError() }
-        ).write(key = 1, value = 1.toBv())
-            .write(key = 2, value = 2.toBv())
-            .write(key = 3, value = 3.toBv())
+        ).write(key = 1, value = 1.toBv(), mkTrue())
+            .write(key = 2, value = 2.toBv(), mkTrue())
+            .write(key = 3, value = 3.toBv(), mkTrue())
 
         val iterator = flatUpdates.iterator()
         checkResult(iterator)

@@ -37,7 +37,7 @@ interface UMemory<LValue, RValue, SizeT, HeapRef, Type> {
      * to range of elements [[fromDst]:[fromDst] + [length] - 1] of array with address [dst].
      * Both arrays must have type [arrayType].
      */
-    fun memcpy(src: HeapRef, dst: HeapRef, arrayType: Type, fromSrc: SizeT, fromDst: SizeT, length: SizeT)
+    fun memcpy(src: HeapRef, dst: HeapRef, arrayType: Type, sort: USort, fromSrc: SizeT, fromDst: SizeT, length: SizeT)
 
     /**
      * Returns length of an array
@@ -80,8 +80,8 @@ open class UMemoryBase<Field, Type, Method>(
     override fun write(lvalue: ULValue, rvalue: UExpr<out USort>) {
         when(lvalue) {
             is URegisterRef -> stack.writeRegister(lvalue.idx, rvalue)
-            is UFieldRef<*> -> heap.writeField(lvalue.ref, lvalue.field as Field, lvalue.sort, rvalue)
-            is UArrayIndexRef<*> -> heap.writeArrayIndex(lvalue.ref, lvalue.index, lvalue.arrayType as Type, lvalue.sort, rvalue)
+            is UFieldRef<*> -> heap.writeField(lvalue.ref, lvalue.field as Field, lvalue.sort, rvalue, rvalue.ctx.trueExpr)
+            is UArrayIndexRef<*> -> heap.writeArrayIndex(lvalue.ref, lvalue.index, lvalue.arrayType as Type, lvalue.sort, rvalue, rvalue.ctx.trueExpr)
             else -> throw IllegalArgumentException("Unexpected lvalue $lvalue")
         }
     }
@@ -101,9 +101,12 @@ open class UMemoryBase<Field, Type, Method>(
     override fun memset(ref: UHeapRef, arrayType: Type, elementSort: USort, contents: Sequence<UExpr<out USort>>) =
         heap.memset(ref, arrayType, elementSort, contents)
 
-    override fun memcpy(src: UHeapRef, dst: UHeapRef, arrayType: Type,
-                        fromSrc: USizeExpr, fromDst: USizeExpr, length: USizeExpr) =
-        heap.memcpy(src, dst, arrayType, fromSrc, fromDst, length)
+    override fun memcpy(src: UHeapRef, dst: UHeapRef, arrayType: Type, sort: USort,
+                        fromSrc: USizeExpr, fromDst: USizeExpr, length: USizeExpr) = with(src.ctx) {
+        val toDst = ctx.mkBvAddExpr(fromDst, length)
+        heap.memcpy(src, dst, arrayType, sort, fromSrc, fromDst, toDst, trueExpr)
+    }
+
 
     override fun length(ref: UHeapRef, arrayType: Type): USizeExpr = heap.readArrayLength(ref, arrayType)
 

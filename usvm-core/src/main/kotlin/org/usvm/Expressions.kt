@@ -85,7 +85,6 @@ class UArrayIndexRef<ArrayType>(
 abstract class USymbol<Sort : USort>(ctx: UContext) : UExpr<Sort>(ctx) {
 }
 
-@Suppress("UNUSED_PARAMETER")
 class URegisterReading<Sort : USort> internal constructor(
     ctx: UContext,
     val idx: Int,
@@ -105,7 +104,7 @@ class URegisterReading<Sort : USort> internal constructor(
     override fun internHashCode(): Int = hash(idx, sort)
 }
 
-abstract class UHeapReading<RegionId : URegionId, Key, Sort : USort>(
+abstract class UHeapReading<RegionId : URegionId<Key>, Key, Sort : USort>(
     ctx: UContext,
     val region: UMemoryRegion<RegionId, Key, Sort>
 ) : USymbol<Sort>(ctx) {

@@ -32,11 +32,11 @@ class MemoryRegionTests {
                 symbolicEq = { _, _ -> shouldNotBeCalled() },
                 concreteCmp = { _, _ -> shouldNotBeCalled() },
                 symbolicCmp = { _, _ -> shouldNotBeCalled() }
-            ).write(address, 1.toBv())
-                .write(address, 2.toBv())
-                .write(address, 3.toBv())
-                .guardedWrite(address, 4.toBv(), mkTrue())
-                .guardedWrite(address, 5.toBv(), mkTrue())
+            ).write(address, 1.toBv(), mkTrue())
+                .write(address, 2.toBv(), mkTrue())
+                .write(address, 3.toBv(), mkTrue())
+                .write(address, 4.toBv(), mkTrue())
+                .write(address, 5.toBv(), mkTrue())
 
             assertNotNull(treeUpdates.singleOrNull())
         }

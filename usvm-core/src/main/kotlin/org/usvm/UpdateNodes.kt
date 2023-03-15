@@ -18,7 +18,6 @@ sealed interface UUpdateNode<Key, ValueSort : USort> {
     /**
      * @return Symbolic condition expressing that the address [key] got overwritten by this memory write operation.
      * If [includesConcretely] returns true, then this method is obligated to return [UTrue].
-     * Returned condition must imply [guard].
      */
     fun includesSymbolically(key: Key): UBoolExpr
 
@@ -42,16 +41,6 @@ sealed interface UUpdateNode<Key, ValueSort : USort> {
      * It is used in [UComposer] for composition.
      */
     fun <Field, Type> map(keyMapper: (Key) -> Key, composer: UComposer<Field, Type>): UUpdateNode<Key, ValueSort>
-
-    /**
-     * Guard is a symbolic condition for this update. That is, this update is done only in states satisfying this guard.
-     */
-    val guard: UBoolExpr
-
-    /**
-     * Returns node with updated [guard] condition.
-     */
-    fun guardWith(guard: UBoolExpr): UUpdateNode<Key, ValueSort>
 }
 
 /**
@@ -61,7 +50,7 @@ class UPinpointUpdateNode<Key, ValueSort : USort>(
     val key: Key,
     internal val value: UExpr<ValueSort>,
     private val keyEqualityComparer: (Key, Key) -> UBoolExpr,
-    override val guard: UBoolExpr = value.ctx.trueExpr
+    val guard: UBoolExpr = value.ctx.trueExpr
 ) : UUpdateNode<Key, ValueSort> {
     override fun includesConcretely(key: Key) = this.key == key && guard == guard.ctx.trueExpr
 
@@ -87,10 +76,10 @@ class UPinpointUpdateNode<Key, ValueSort : USort>(
             return null
         }
 
-        val hadNonMatchingUpdates = guardBuilder.nonMatchingUpdatesGuard != ctx.trueExpr
         guardBuilder.nonMatchingUpdatesGuard = ctx.mkAnd(guardBuilder.nonMatchingUpdatesGuard, ctx.mkNot(keyEq))
 
-        return if (hadNonMatchingUpdates) this.guardWith(guardBuilder.matchingUpdatesGuard) else this
+        // TODO: @sergeypospelov: fix this split
+        return this
     }
 
     override fun <Field, Type> map(
@@ -110,14 +99,6 @@ class UPinpointUpdateNode<Key, ValueSort : USort>(
         return UPinpointUpdateNode(mappedKey, mappedValue, keyEqualityComparer, mappedGuard)
     }
 
-    override fun guardWith(guard: UBoolExpr): UUpdateNode<Key, ValueSort> =
-        if (guard == guard.ctx.trueExpr) {
-            this
-        } else {
-            val guardExpr = guard.ctx.mkAnd(this.guard, guard)
-            UPinpointUpdateNode(key, value, keyEqualityComparer, guardExpr)
-        }
-
     override fun equals(other: Any?): Boolean =
         other is UPinpointUpdateNode<*, *> && this.key == other.key  // Ignores value
 
@@ -127,51 +108,93 @@ class UPinpointUpdateNode<Key, ValueSort : USort>(
 }
 
 /**
+ * Composable converter of memory region keys. Helps to transparently copy content of various regions
+ * each into other without eager address convertion.
+ * For instance, when we copy array slice [i : i + len] to destination memory slice [j : j + len],
+ * we emulate it by memorizing the source memory updates as-is, but read the destination memory by
+ * 'redirecting' the index k to k + j - i of the source memory.
+ * This conversion is done by [convert].
+ * Do not be confused: it converts [DstKey] to [SrcKey] (not vice-versa), as we use it when we
+ * read from destination buffer index to source memory.
+ */
+sealed class UMemoryKeyConverter<SrcKey, DstKey>(
+    val srcSymbolicArrayIndex: USymbolicArrayIndex,
+    val dstFromSymbolicArrayIndex: USymbolicArrayIndex,
+    val dstToIndex: USizeExpr
+)
+{
+    /**
+     * Converts source memory key into destination memory key
+     */
+    abstract fun convert(key: DstKey): SrcKey
+
+    protected fun convertIndex(idx: USizeExpr): USizeExpr = with(srcSymbolicArrayIndex.first.ctx) {
+        return mkBvSubExpr(mkBvAddExpr(idx, dstFromSymbolicArrayIndex.second), srcSymbolicArrayIndex.second)
+    }
+
+    abstract fun clone(
+        srcSymbolicArrayIndex: USymbolicArrayIndex,
+        dstFromSymbolicArrayIndex: USymbolicArrayIndex,
+        dstToIndex: USizeExpr): UMemoryKeyConverter<SrcKey, DstKey>
+    fun <Field, Type> map(composer: UComposer<Field, Type>): UMemoryKeyConverter<SrcKey, DstKey> {
+        val newSrcHeapAddr = composer.compose(srcSymbolicArrayIndex.first)
+        val newSrcArrayIndex = composer.compose(srcSymbolicArrayIndex.second)
+        val newDstHeapAddress = composer.compose(dstFromSymbolicArrayIndex.first)
+        val newDstFromIndex = composer.compose(dstFromSymbolicArrayIndex.second)
+        val newDstToIndex = composer.compose(dstToIndex)
+        if (newSrcHeapAddr === srcSymbolicArrayIndex.first &&
+            newSrcArrayIndex === srcSymbolicArrayIndex.second &&
+            newDstHeapAddress === dstFromSymbolicArrayIndex.first &&
+            newDstFromIndex === dstFromSymbolicArrayIndex.second &&
+            newDstToIndex === dstToIndex) return this
+        return clone(newSrcHeapAddr to newSrcArrayIndex,
+                     newDstHeapAddress to newDstFromIndex,
+                     newDstToIndex)
+    }
+}
+
+/**
  * Represents a synchronous overwriting the range of addresses [[fromKey] : [toKey]]
  * with values from memory region [region] read from range
- * of addresses [[keyConverter] ([fromKey]) : [keyConverter] ([toKey])]
+ * of addresses [[keyConverter].convert([fromKey]) : [keyConverter].convert([toKey])]
  */
-class URangedUpdateNode<Key, ValueSort : USort>(
-    val fromKey: Key,
-    val toKey: Key,
-    val region: UMemoryRegion<*, Key, ValueSort>,
-    private val concreteComparer: (Key, Key) -> Boolean,
-    private val symbolicComparer: (Key, Key) -> UBoolExpr,
-    private val keyConverter: (Key) -> Key,
-    override val guard: UBoolExpr = region.sort.ctx.trueExpr
-) : UUpdateNode<Key, ValueSort> {
-    override fun includesConcretely(key: Key): Boolean =
-        concreteComparer(fromKey, key) && concreteComparer(key, toKey) && guard == guard.ctx.trueExpr
+class URangedUpdateNode<RegionId: UArrayId<ArrayType, SrcKey>, ArrayType, SrcKey, DstKey, ValueSort : USort>(
+    val fromKey: DstKey,
+    val toKey: DstKey,
+    val region: UMemoryRegion<RegionId, SrcKey, ValueSort>,
+    private val concreteComparer: (DstKey, DstKey) -> Boolean,
+    private val symbolicComparer: (DstKey, DstKey) -> UBoolExpr,
+    val keyConverter: UMemoryKeyConverter<SrcKey, DstKey>,
+    val guard: UBoolExpr
+) : UUpdateNode<DstKey, ValueSort> {
+    override fun includesConcretely(key: DstKey): Boolean =
+        concreteComparer(fromKey, key) && concreteComparer(key, toKey) && guard === guard.ctx.trueExpr
 
-    override fun includesSymbolically(key: Key): UBoolExpr {
+    override fun includesSymbolically(key: DstKey): UBoolExpr {
         val leftIsLefter = symbolicComparer(fromKey, key)
         val rightIsRighter = symbolicComparer(key, toKey)
         val ctx = leftIsLefter.ctx
 
-        return ctx.mkAnd(leftIsLefter, rightIsRighter, guard) // TODO: use simplifying and!
+        return ctx.mkAnd(leftIsLefter, rightIsRighter, guard)
     }
 
-    override fun value(key: Key): UExpr<ValueSort> = region.read(keyConverter(key))
+    override fun value(key: DstKey): UExpr<ValueSort> = region.read(keyConverter.convert(key))
 
     override fun <Field, Type> map(
-        keyMapper: (Key) -> Key,
+        keyMapper: (DstKey) -> DstKey,
         composer: UComposer<Field, Type>
-    ): URangedUpdateNode<Key, ValueSort> {
+    ): URangedUpdateNode<RegionId, ArrayType, SrcKey, DstKey, ValueSort> {
         val mappedFromKey = keyMapper(fromKey)
         val mappedToKey = keyMapper(toKey)
-        val mappedRegion = region.map(keyMapper, composer)
-        // TODO: keyConverter should be composable object. If it is lambda (like now), we can't recalculate lower bounds
-        //       in lambda closure
-        // TODO when you fix it, do not forget to change  org.usvm.MapCompositionTest.testRangeUpdateNodeWithoutCompositionEffect
-        //      org.usvm.MapCompositionTest.testRangeUpdateNodeMapOperation
-        // val mappedKeyConverter = keyConverter.map
+        val mappedRegion = region.map(composer)
+        val mappedKeyConverter = keyConverter.map(composer)
         val mappedGuard = composer.compose(guard)
 
         // If nothing changed, return this
         if (mappedFromKey === fromKey
             && mappedToKey === toKey
             && mappedRegion === region
-            /* && mappedKeyConverter === keyConverter */
+            && mappedKeyConverter === keyConverter
             && mappedGuard === guard
         ) {
             return this
@@ -184,35 +207,101 @@ class URangedUpdateNode<Key, ValueSort : USort>(
             mappedRegion,
             concreteComparer,
             symbolicComparer,
-            /*mapped*/keyConverter,
+            mappedKeyConverter,
             mappedGuard
         )
     }
 
-    override fun guardWith(guard: UBoolExpr): UUpdateNode<Key, ValueSort> =
-        if (guard == guard.ctx.trueExpr) {
-            this
-        } else {
-            val guardExpr = guard.ctx.mkAnd(this.guard, guard)
-            URangedUpdateNode(fromKey, toKey, region, concreteComparer, symbolicComparer, keyConverter, guardExpr)
-        }
-
     override fun equals(other: Any?): Boolean =
-        other is URangedUpdateNode<*, *> && this.fromKey == other.fromKey && this.toKey == other.toKey  // Ignores update
+        other is URangedUpdateNode<*, *, *, *, *> && this.fromKey == other.fromKey && this.toKey == other.toKey  // Ignores update
 
     override fun hashCode(): Int = 31 * fromKey.hashCode() + toKey.hashCode()  // Ignores update
 
     override fun split(
-        key: Key, predicate: (UExpr<ValueSort>) -> Boolean,
+        key: DstKey, predicate: (UExpr<ValueSort>) -> Boolean,
         matchingWrites: LinkedList<Pair<UBoolExpr, UExpr<ValueSort>>>,
         guardBuilder: GuardBuilder
-    ): UUpdateNode<Key, ValueSort> {
-        val splittedRegion = region.split(key, predicate, matchingWrites, guardBuilder)
+    ): UUpdateNode<DstKey, ValueSort> {
+        val splittedRegion = region.split(keyConverter.convert(key), predicate, matchingWrites, guardBuilder)
         if (splittedRegion === region) {
             return this
         }
 
-        return URangedUpdateNode(fromKey, toKey, splittedRegion, concreteComparer, symbolicComparer, keyConverter)
+        return URangedUpdateNode(fromKey, toKey, splittedRegion, concreteComparer, symbolicComparer, keyConverter, guard)
     }
 }
 
+/**
+ * Used when copying data from allocated array to another allocated array.
+ */
+class UAllocatedToAllocatedKeyConverter(
+    srcSymbolicArrayIndex: USymbolicArrayIndex,
+    dstFromSymbolicArrayIndex: USymbolicArrayIndex,
+    dstToIndex: USizeExpr
+): UMemoryKeyConverter<USizeExpr, USizeExpr>(srcSymbolicArrayIndex, dstFromSymbolicArrayIndex, dstToIndex)
+{
+    override fun convert(key: USizeExpr): USizeExpr =
+        convertIndex(key)
+
+    override fun clone(
+        srcSymbolicArrayIndex: USymbolicArrayIndex,
+        dstFromSymbolicArrayIndex: USymbolicArrayIndex,
+        dstToIndex: USizeExpr
+    ) = UAllocatedToAllocatedKeyConverter(srcSymbolicArrayIndex, dstFromSymbolicArrayIndex, dstToIndex)
+}
+
+/**
+ * Used when copying data from allocated array to input one.
+ */
+class UAllocatedToInputKeyConverter(
+    srcSymbolicArrayIndex: USymbolicArrayIndex,
+    dstFromSymbolicArrayIndex: USymbolicArrayIndex,
+    dstToIndex: USizeExpr
+): UMemoryKeyConverter<USizeExpr, USymbolicArrayIndex>(srcSymbolicArrayIndex, dstFromSymbolicArrayIndex, dstToIndex)
+{
+    override fun convert(key: USymbolicArrayIndex): USizeExpr = convertIndex(key.second)
+
+    override fun clone(
+        srcSymbolicArrayIndex: USymbolicArrayIndex,
+        dstFromSymbolicArrayIndex: USymbolicArrayIndex,
+        dstToIndex: USizeExpr
+    ) = UAllocatedToInputKeyConverter(srcSymbolicArrayIndex, dstFromSymbolicArrayIndex, dstToIndex)
+}
+
+/**
+ * Used when copying data from allocated input to allocated one.
+ */
+class UInputToAllocatedKeyConverter(
+    srcSymbolicArrayIndex: USymbolicArrayIndex,
+    dstFromSymbolicArrayIndex: USymbolicArrayIndex,
+    dstToIndex: USizeExpr
+): UMemoryKeyConverter<USymbolicArrayIndex, USizeExpr>(srcSymbolicArrayIndex, dstFromSymbolicArrayIndex, dstToIndex)
+{
+    override fun convert(key: USizeExpr): USymbolicArrayIndex =
+        srcSymbolicArrayIndex.first to convertIndex(key)
+
+    override fun clone(
+        srcSymbolicArrayIndex: USymbolicArrayIndex,
+        dstFromSymbolicArrayIndex: USymbolicArrayIndex,
+        dstToIndex: USizeExpr
+    ) = UInputToAllocatedKeyConverter(srcSymbolicArrayIndex, dstFromSymbolicArrayIndex, dstToIndex)
+}
+
+/**
+ * Used when copying data from input array to another input array.
+ */
+class UInputToInputKeyConverter(
+    srcSymbolicArrayIndex: USymbolicArrayIndex,
+    dstFromSymbolicArrayIndex: USymbolicArrayIndex,
+    dstToIndex: USizeExpr
+): UMemoryKeyConverter<USymbolicArrayIndex, USymbolicArrayIndex>(srcSymbolicArrayIndex, dstFromSymbolicArrayIndex, dstToIndex)
+{
+    override fun convert(key: USymbolicArrayIndex): USymbolicArrayIndex =
+        srcSymbolicArrayIndex.first to convertIndex(key.second)
+
+    override fun clone(
+        srcSymbolicArrayIndex: USymbolicArrayIndex,
+        dstFromSymbolicArrayIndex: USymbolicArrayIndex,
+        dstToIndex: USizeExpr
+    ) = UInputToInputKeyConverter(srcSymbolicArrayIndex, dstFromSymbolicArrayIndex, dstToIndex)
+}

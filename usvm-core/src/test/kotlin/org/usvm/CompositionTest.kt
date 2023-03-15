@@ -100,7 +100,6 @@ internal class CompositionTest<Type, Field> {
         assert(composedExpression === bvValue)
     }
 
-    @Suppress("UNCHECKED_CAST")
     @Test
     fun testReplacementOnSecondLevelOfExpression() = with(ctx) {
         val bv32Sort = mkBv32Sort()
@@ -119,7 +118,6 @@ internal class CompositionTest<Type, Field> {
     }
 
 
-    @Suppress("UNCHECKED_CAST")
     @Test
     fun testReplacementInTwoExpressions() = with(ctx) {
         val bv32Sort = mkBv32Sort()
@@ -198,8 +196,8 @@ internal class CompositionTest<Type, Field> {
             symbolicEq = { k1, k2 -> k1 eq k2 },
             concreteCmp = { _, _ -> throw UnsupportedOperationException() },
             symbolicCmp = { _, _ -> throw UnsupportedOperationException() }
-        ).write(fstAddress, fstResultValue)
-            .write(sndAddress, sndResultValue)
+        ).write(fstAddress, fstResultValue, trueExpr)
+            .write(sndAddress, sndResultValue, trueExpr)
 
         val regionId = UInputArrayLengthId(arrayType)
         val regionArray = UInputArrayLengthMemoryRegion(
@@ -260,7 +258,7 @@ internal class CompositionTest<Type, Field> {
             symbolicCmp = { _, _ -> shouldNotBeCalled() },
             concreteCmp = { k1, k2 -> k1 == k2 },
             symbolicEq = { k1, k2 -> keyEqualityComparer(k1, k2) }
-        ).write(sndAddress to sndIndex, 43.toBv())
+        ).write(sndAddress to sndIndex, 43.toBv(), trueExpr)
 
         val arrayType: KClass<Array<*>> = Array::class
 
@@ -313,8 +311,8 @@ internal class CompositionTest<Type, Field> {
             symbolicEq = { k1, k2 -> k1 eq k2 },
             concreteCmp = { _, _ -> throw UnsupportedOperationException() },
             symbolicCmp = { _, _ -> throw UnsupportedOperationException() }
-        ).write(fstIndex, 1.toBv())
-            .write(sndIndex, 2.toBv())
+        ).write(fstIndex, 1.toBv(), trueExpr)
+            .write(sndIndex, 2.toBv(), trueExpr)
 
         val regionId = UAllocatedArrayId(arrayType, address)
         val regionArray = UAllocatedArrayMemoryRegion(
@@ -337,8 +335,8 @@ internal class CompositionTest<Type, Field> {
 
         val heapToComposeWith = URegionHeap<Field, KClass<Array<*>>>(ctx)
 
-        heapToComposeWith.writeArrayIndex(fstAddressForCompose, concreteIndex, arrayType, regionArray.sort, fstValue)
-        heapToComposeWith.writeArrayIndex(sndAddressForCompose, concreteIndex, arrayType, regionArray.sort, sndValue)
+        heapToComposeWith.writeArrayIndex(fstAddressForCompose, concreteIndex, arrayType, regionArray.sort, fstValue, trueExpr)
+        heapToComposeWith.writeArrayIndex(sndAddressForCompose, concreteIndex, arrayType, regionArray.sort, sndValue, trueExpr)
 
         val typeEvaluator = mockk<UTypeEvaluator<KClass<Array<*>>>>()
         val composer = UComposer(ctx, stackEvaluator, heapToComposeWith, typeEvaluator, mockEvaluator)
@@ -374,7 +372,7 @@ internal class CompositionTest<Type, Field> {
             updates,
             defaultValue = null,
             instantiator = { key, region -> mkInputFieldReading(region, key) }
-        ).write(aAddress, 43.toBv())
+        ).write(aAddress, 43.toBv(), trueExpr)
 
         every { aAddress.accept(any()) } returns aAddress
         every { bAddress.accept(any()) } returns aAddress
@@ -394,7 +392,7 @@ internal class CompositionTest<Type, Field> {
         // TODO replace with jacoDB type
 
         val heapEvaluator = URegionHeap<java.lang.reflect.Field, Type>(ctx)
-        heapEvaluator.writeField(aAddress, field, bv32Sort, 42.toBv())
+        heapEvaluator.writeField(aAddress, field, bv32Sort, 42.toBv(), trueExpr)
 
         // TODO replace with jacoDB type
         val composer = UComposer(ctx, stackEvaluator, heapEvaluator, typeEvaluator, mockEvaluator)
