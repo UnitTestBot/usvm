@@ -32,7 +32,7 @@ open class UComposer<Field, Type>(
         typeEvaluator.evalIs(composedAddress, type)
     }
 
-    fun <RegionId: URegionId<Key>, Key, Sort : USort> transformHR(
+    fun <RegionId : URegionId<Key>, Key, Sort : USort> transformHeapReading(
         expr: UHeapReading<RegionId, Key, Sort>,
         key: Key
     ): UExpr<Sort> = with(expr) {
@@ -49,16 +49,16 @@ open class UComposer<Field, Type>(
     }
 
     override fun transform(expr: UArrayLength<Type>): USizeExpr =
-        transformHR(expr, expr.address)
+        transformHeapReading(expr, expr.address)
 
     override fun <Sort : USort> transform(expr: UInputArrayReading<Type, Sort>): UExpr<Sort> =
-        transformHR(expr, expr.address to expr.index)
+        transformHeapReading(expr, expr.address to expr.index)
 
     override fun <Sort : USort> transform(expr: UAllocatedArrayReading<Type, Sort>): UExpr<Sort> =
-        transformHR(expr, expr.index)
+        transformHeapReading(expr, expr.index)
 
     override fun transform(expr: UConcreteHeapRef): UExpr<UAddressSort> = expr
 
     override fun <Sort : USort> transform(expr: UFieldReading<Field, Sort>): UExpr<Sort> =
-        transformHR(expr, expr.address)
+        transformHeapReading(expr, expr.address)
 }

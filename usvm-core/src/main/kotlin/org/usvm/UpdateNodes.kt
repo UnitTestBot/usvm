@@ -40,7 +40,7 @@ sealed interface UUpdateNode<Key, ValueSort : USort> {
      * Returns a mapped update node using [keyMapper] and [composer].
      * It is used in [UComposer] for composition.
      */
-    fun <Field, Type> map(keyMapper: (Key) -> Key, composer: UComposer<Field, Type>): UUpdateNode<Key, ValueSort>
+    fun <Field, Type> map(keyMapper: KeyMapper<Key>, composer: UComposer<Field, Type>): UUpdateNode<Key, ValueSort>
 }
 
 /**
@@ -83,7 +83,7 @@ class UPinpointUpdateNode<Key, ValueSort : USort>(
     }
 
     override fun <Field, Type> map(
-        keyMapper: (Key) -> Key,
+        keyMapper: KeyMapper<Key>,
         composer: UComposer<Field, Type>
     ): UPinpointUpdateNode<Key, ValueSort> {
         val mappedKey = keyMapper(key)
@@ -109,7 +109,7 @@ class UPinpointUpdateNode<Key, ValueSort : USort>(
 
 /**
  * Composable converter of memory region keys. Helps to transparently copy content of various regions
- * each into other without eager address convertion.
+ * each into other without eager address conversion.
  * For instance, when we copy array slice [i : i + len] to destination memory slice [j : j + len],
  * we emulate it by memorizing the source memory updates as-is, but read the destination memory by
  * 'redirecting' the index k to k + j - i of the source memory.
@@ -121,8 +121,7 @@ sealed class UMemoryKeyConverter<SrcKey, DstKey>(
     val srcSymbolicArrayIndex: USymbolicArrayIndex,
     val dstFromSymbolicArrayIndex: USymbolicArrayIndex,
     val dstToIndex: USizeExpr
-)
-{
+) {
     /**
      * Converts source memory key into destination memory key
      */
@@ -135,21 +134,33 @@ sealed class UMemoryKeyConverter<SrcKey, DstKey>(
     abstract fun clone(
         srcSymbolicArrayIndex: USymbolicArrayIndex,
         dstFromSymbolicArrayIndex: USymbolicArrayIndex,
-        dstToIndex: USizeExpr): UMemoryKeyConverter<SrcKey, DstKey>
+        dstToIndex: USizeExpr
+    ): UMemoryKeyConverter<SrcKey, DstKey>
+
     fun <Field, Type> map(composer: UComposer<Field, Type>): UMemoryKeyConverter<SrcKey, DstKey> {
-        val newSrcHeapAddr = composer.compose(srcSymbolicArrayIndex.first)
-        val newSrcArrayIndex = composer.compose(srcSymbolicArrayIndex.second)
-        val newDstHeapAddress = composer.compose(dstFromSymbolicArrayIndex.first)
-        val newDstFromIndex = composer.compose(dstFromSymbolicArrayIndex.second)
+        val (srcRef, srcIdx) = srcSymbolicArrayIndex
+        val (dstRef, dstIdx) = dstFromSymbolicArrayIndex
+
+        val newSrcHeapAddr = composer.compose(srcRef)
+        val newSrcArrayIndex = composer.compose(srcIdx)
+        val newDstHeapAddress = composer.compose(dstRef)
+        val newDstFromIndex = composer.compose(dstIdx)
         val newDstToIndex = composer.compose(dstToIndex)
-        if (newSrcHeapAddr === srcSymbolicArrayIndex.first &&
-            newSrcArrayIndex === srcSymbolicArrayIndex.second &&
-            newDstHeapAddress === dstFromSymbolicArrayIndex.first &&
-            newDstFromIndex === dstFromSymbolicArrayIndex.second &&
-            newDstToIndex === dstToIndex) return this
-        return clone(newSrcHeapAddr to newSrcArrayIndex,
-                     newDstHeapAddress to newDstFromIndex,
-                     newDstToIndex)
+
+        if (newSrcHeapAddr === srcRef &&
+            newSrcArrayIndex === srcIdx &&
+            newDstHeapAddress === dstRef &&
+            newDstFromIndex === dstIdx &&
+            newDstToIndex === dstToIndex
+        ) {
+            return this
+        }
+
+        return clone(
+            srcSymbolicArrayIndex = newSrcHeapAddr to newSrcArrayIndex,
+            dstFromSymbolicArrayIndex = newDstHeapAddress to newDstFromIndex,
+            dstToIndex = newDstToIndex
+        )
     }
 }
 
@@ -158,7 +169,7 @@ sealed class UMemoryKeyConverter<SrcKey, DstKey>(
  * with values from memory region [region] read from range
  * of addresses [[keyConverter].convert([fromKey]) : [keyConverter].convert([toKey])]
  */
-class URangedUpdateNode<RegionId: UArrayId<ArrayType, SrcKey>, ArrayType, SrcKey, DstKey, ValueSort : USort>(
+class URangedUpdateNode<RegionId : UArrayId<ArrayType, SrcKey>, ArrayType, SrcKey, DstKey, ValueSort : USort>(
     val fromKey: DstKey,
     val toKey: DstKey,
     val region: UMemoryRegion<RegionId, SrcKey, ValueSort>,
@@ -168,7 +179,7 @@ class URangedUpdateNode<RegionId: UArrayId<ArrayType, SrcKey>, ArrayType, SrcKey
     val guard: UBoolExpr
 ) : UUpdateNode<DstKey, ValueSort> {
     override fun includesConcretely(key: DstKey): Boolean =
-        concreteComparer(fromKey, key) && concreteComparer(key, toKey) && guard === guard.ctx.trueExpr
+        concreteComparer(fromKey, key) && concreteComparer(key, toKey) && guard.isTrue
 
     override fun includesSymbolically(key: DstKey): UBoolExpr {
         val leftIsLefter = symbolicComparer(fromKey, key)
@@ -222,12 +233,20 @@ class URangedUpdateNode<RegionId: UArrayId<ArrayType, SrcKey>, ArrayType, SrcKey
         matchingWrites: LinkedList<Pair<UBoolExpr, UExpr<ValueSort>>>,
         guardBuilder: GuardBuilder
     ): UUpdateNode<DstKey, ValueSort> {
-        val splittedRegion = region.split(keyConverter.convert(key), predicate, matchingWrites, guardBuilder)
-        if (splittedRegion === region) {
+        val splitRegion = region.split(keyConverter.convert(key), predicate, matchingWrites, guardBuilder)
+        if (splitRegion === region) {
             return this
         }
 
-        return URangedUpdateNode(fromKey, toKey, splittedRegion, concreteComparer, symbolicComparer, keyConverter, guard)
+        return URangedUpdateNode(
+            fromKey,
+            toKey,
+            splitRegion,
+            concreteComparer,
+            symbolicComparer,
+            keyConverter,
+            guard
+        )
     }
 }
 
@@ -238,10 +257,8 @@ class UAllocatedToAllocatedKeyConverter(
     srcSymbolicArrayIndex: USymbolicArrayIndex,
     dstFromSymbolicArrayIndex: USymbolicArrayIndex,
     dstToIndex: USizeExpr
-): UMemoryKeyConverter<USizeExpr, USizeExpr>(srcSymbolicArrayIndex, dstFromSymbolicArrayIndex, dstToIndex)
-{
-    override fun convert(key: USizeExpr): USizeExpr =
-        convertIndex(key)
+) : UMemoryKeyConverter<USizeExpr, USizeExpr>(srcSymbolicArrayIndex, dstFromSymbolicArrayIndex, dstToIndex) {
+    override fun convert(key: USizeExpr): USizeExpr = convertIndex(key)
 
     override fun clone(
         srcSymbolicArrayIndex: USymbolicArrayIndex,
@@ -257,8 +274,7 @@ class UAllocatedToInputKeyConverter(
     srcSymbolicArrayIndex: USymbolicArrayIndex,
     dstFromSymbolicArrayIndex: USymbolicArrayIndex,
     dstToIndex: USizeExpr
-): UMemoryKeyConverter<USizeExpr, USymbolicArrayIndex>(srcSymbolicArrayIndex, dstFromSymbolicArrayIndex, dstToIndex)
-{
+) : UMemoryKeyConverter<USizeExpr, USymbolicArrayIndex>(srcSymbolicArrayIndex, dstFromSymbolicArrayIndex, dstToIndex) {
     override fun convert(key: USymbolicArrayIndex): USizeExpr = convertIndex(key.second)
 
     override fun clone(
@@ -275,10 +291,8 @@ class UInputToAllocatedKeyConverter(
     srcSymbolicArrayIndex: USymbolicArrayIndex,
     dstFromSymbolicArrayIndex: USymbolicArrayIndex,
     dstToIndex: USizeExpr
-): UMemoryKeyConverter<USymbolicArrayIndex, USizeExpr>(srcSymbolicArrayIndex, dstFromSymbolicArrayIndex, dstToIndex)
-{
-    override fun convert(key: USizeExpr): USymbolicArrayIndex =
-        srcSymbolicArrayIndex.first to convertIndex(key)
+) : UMemoryKeyConverter<USymbolicArrayIndex, USizeExpr>(srcSymbolicArrayIndex, dstFromSymbolicArrayIndex, dstToIndex) {
+    override fun convert(key: USizeExpr): USymbolicArrayIndex = srcSymbolicArrayIndex.first to convertIndex(key)
 
     override fun clone(
         srcSymbolicArrayIndex: USymbolicArrayIndex,
@@ -294,8 +308,11 @@ class UInputToInputKeyConverter(
     srcSymbolicArrayIndex: USymbolicArrayIndex,
     dstFromSymbolicArrayIndex: USymbolicArrayIndex,
     dstToIndex: USizeExpr
-): UMemoryKeyConverter<USymbolicArrayIndex, USymbolicArrayIndex>(srcSymbolicArrayIndex, dstFromSymbolicArrayIndex, dstToIndex)
-{
+) : UMemoryKeyConverter<USymbolicArrayIndex, USymbolicArrayIndex>(
+    srcSymbolicArrayIndex,
+    dstFromSymbolicArrayIndex,
+    dstToIndex
+) {
     override fun convert(key: USymbolicArrayIndex): USymbolicArrayIndex =
         srcSymbolicArrayIndex.first to convertIndex(key.second)
 

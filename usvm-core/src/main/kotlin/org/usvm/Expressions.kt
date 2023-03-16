@@ -259,3 +259,10 @@ class UIsExpr<Type> internal constructor(
     override fun internHashCode(): Int = hash(ref, type)
 }
 //endregion
+
+//region Utils
+
+val UBoolExpr.isFalse get() = this === ctx.falseExpr
+val UBoolExpr.isTrue get() = !isFalse
+
+//endregion

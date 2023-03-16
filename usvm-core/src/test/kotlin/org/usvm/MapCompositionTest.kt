@@ -43,7 +43,7 @@ class MapCompositionTest<Field, Type> {
             symbolicEq = { _, _ -> error("Should not be called") },
             concreteCmp = { _, _ -> error("Should not be called") },
             symbolicCmp = { _, _ -> error("Should not be called") }
-        ).write(symbolicAddr, value, trueExpr)
+        ).write(symbolicAddr, value, guard = trueExpr)
 
         val composer = mockk<UComposer<Field, Type>>()
 
@@ -84,7 +84,7 @@ class MapCompositionTest<Field, Type> {
                 symbolicEq = { _, _ -> shouldNotBeCalled() },
                 concreteCmp = { _, _ -> shouldNotBeCalled() },
                 symbolicCmp = { _, _ -> shouldNotBeCalled() }
-            ).write(symbolicAddr, value, trueExpr)
+            ).write(symbolicAddr, value, guard = trueExpr)
 
             val composer = mockk<UComposer<Field, Type>>()
 
@@ -102,7 +102,7 @@ class MapCompositionTest<Field, Type> {
             // Therefore, such writings cause updates splitting. Otherwise, it contains only one update.
             val updatedByTheSameRegion = composedUpdates
                 .copy(keyToRegion = { SetRegion.singleton(thirdConcreteAddr) })
-                .write(thirdConcreteAddr, 42.toBv(), trueExpr)
+                .write(thirdConcreteAddr, 42.toBv(), guard = trueExpr)
 
             assertNotNull(updatedByTheSameRegion.singleOrNull())
         }
@@ -161,7 +161,11 @@ class MapCompositionTest<Field, Type> {
             region = region,
             concreteComparer = { _, _ -> shouldNotBeCalled() },
             symbolicComparer = { _, _ -> shouldNotBeCalled() },
-            keyConverter = UAllocatedToAllocatedKeyConverter(addr to fromKey, addr to fromKey, toKey),
+            keyConverter = UAllocatedToAllocatedKeyConverter(
+                srcSymbolicArrayIndex = addr to fromKey,
+                dstFromSymbolicArrayIndex = addr to fromKey,
+                dstToIndex = toKey
+            ),
             guard
         )
 
@@ -190,7 +194,11 @@ class MapCompositionTest<Field, Type> {
             region = region,
             concreteComparer = { _, _ -> shouldNotBeCalled() },
             symbolicComparer = { _, _ -> shouldNotBeCalled() },
-            keyConverter = UAllocatedToAllocatedKeyConverter(addr to fromKey, addr to fromKey, toKey),
+            keyConverter = UAllocatedToAllocatedKeyConverter(
+                srcSymbolicArrayIndex = addr to fromKey,
+                dstFromSymbolicArrayIndex = addr to fromKey,
+                dstToIndex = toKey
+            ),
             guard
         )
 
@@ -238,8 +246,8 @@ class MapCompositionTest<Field, Type> {
             { _, _ -> shouldNotBeCalled() },
             { _, _ -> shouldNotBeCalled() },
             { _, _ -> shouldNotBeCalled() }
-        ).write(fstKey, fstValue, trueExpr)
-            .write(sndKey, sndValue, trueExpr)
+        ).write(fstKey, fstValue, guard = trueExpr)
+            .write(sndKey, sndValue, guard = trueExpr)
 
         every { composer.compose(fstKey) } returns fstKey
         every { composer.compose(sndKey) } returns sndKey
@@ -263,8 +271,8 @@ class MapCompositionTest<Field, Type> {
             { _, _ -> shouldNotBeCalled() },
             { _, _ -> shouldNotBeCalled() },
             { _, _ -> shouldNotBeCalled() }
-        ).write(fstKey, fstValue, trueExpr)
-            .write(sndKey, sndValue, trueExpr)
+        ).write(fstKey, fstValue, guard = trueExpr)
+            .write(sndKey, sndValue, guard = trueExpr)
 
         val composedFstKey = addressSort.mkConst("composedFstKey")
         val composedSndKey = addressSort.mkConst("composedSndKey")
@@ -306,8 +314,8 @@ class MapCompositionTest<Field, Type> {
             { _, _ -> shouldNotBeCalled() },
             { _, _ -> shouldNotBeCalled() },
             { _, _ -> shouldNotBeCalled() }
-        ).write(fstKey, fstValue, trueExpr)
-            .write(sndKey, sndValue, trueExpr)
+        ).write(fstKey, fstValue, guard = trueExpr)
+            .write(sndKey, sndValue, guard = trueExpr)
 
         every { composer.compose(fstKey) } returns fstKey
         every { composer.compose(sndKey) } returns sndKey
@@ -334,8 +342,8 @@ class MapCompositionTest<Field, Type> {
             { _, _ -> shouldNotBeCalled() },
             { _, _ -> shouldNotBeCalled() },
             { _, _ -> shouldNotBeCalled() }
-        ).write(fstKey, fstValue, trueExpr)
-            .write(sndKey, sndValue, trueExpr)
+        ).write(fstKey, fstValue, guard = trueExpr)
+            .write(sndKey, sndValue, guard = trueExpr)
 
         val composedFstKey = addressSort.mkConst("composedFstKey")
         val composedSndKey = addressSort.mkConst("composedSndKey")

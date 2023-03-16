@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.usvm.util.SetRegion
 import org.usvm.util.emptyRegionTree
-import java.lang.UnsupportedOperationException
 import kotlin.test.assertTrue
 
 class UpdatesIteratorTest {
@@ -24,10 +23,10 @@ class UpdatesIteratorTest {
                 { k1, k2 -> mkEq(k1.toBv(), k2.toBv()) },
                 { k1, k2 -> k1 == k2 },
                 { _, _ -> throw UnsupportedOperationException() }
-            ).write(10, 10.toBv(), mkTrue())
-                .write(1, 1.toBv(), mkTrue())
-                .write(2, 2.toBv(), mkTrue())
-                .write(3, 3.toBv(), mkTrue())
+            ).write(10, 10.toBv(), guard = mkTrue())
+                .write(1, 1.toBv(), guard = mkTrue())
+                .write(2, 2.toBv(), guard = mkTrue())
+                .write(3, 3.toBv(), guard = mkTrue())
 
             val iterator = treeUpdates.iterator()
             checkResult(iterator)
@@ -48,9 +47,9 @@ class UpdatesIteratorTest {
             { _, _ -> throw NotImplementedError() },
             { _, _ -> throw NotImplementedError() },
             { _, _ -> throw NotImplementedError() }
-        ).write(key = 1, value = 1.toBv(), mkTrue())
-            .write(key = 2, value = 2.toBv(), mkTrue())
-            .write(key = 3, value = 3.toBv(), mkTrue())
+        ).write(key = 1, value = 1.toBv(), guard = mkTrue())
+            .write(key = 2, value = 2.toBv(), guard = mkTrue())
+            .write(key = 3, value = 3.toBv(), guard = mkTrue())
 
         val iterator = flatUpdates.iterator()
         checkResult(iterator)
@@ -83,5 +82,4 @@ class UpdatesIteratorTest {
             assertTrue { key == expectedKeyWithValue.first && value == expectedKeyWithValue.second }
         }
     }
-
 }

@@ -149,18 +149,13 @@ data class UMemoryRegion<RegionId : URegionId<Key>, Key, Sort : USort>(
                 is UPinpointUpdateNode<Key, Sort> -> regionId.write(it.key, sort, heap, it.value, it.guard)
                 is URangedUpdateNode<*, *, *, Key, Sort> -> {
                     it.region.applyTo(heap)
-                    val srcFrom = it.keyConverter.srcSymbolicArrayIndex
-                    val dstFrom = it.keyConverter.dstFromSymbolicArrayIndex
+
+                    val (srcFromRef, srcFromIdx) = it.keyConverter.srcSymbolicArrayIndex
+                    val (dstFromRef, dstFromIdx) = it.keyConverter.dstFromSymbolicArrayIndex
                     val dstTo = it.keyConverter.dstToIndex
-                    heap.memcpy(
-                        srcFrom.first,
-                        dstFrom.first,
-                        it.region.regionId.arrayType as Type,
-                        sort,
-                        srcFrom.second,
-                        dstFrom.second,
-                        dstTo,
-                        it.guard)
+                    val arrayType = it.region.regionId.arrayType as Type
+
+                    heap.memcpy(srcFromRef, dstFromRef, arrayType, sort, srcFromIdx, dstFromIdx, dstTo, it.guard)
                 }
             }
         }
@@ -171,7 +166,7 @@ data class UMemoryRegion<RegionId : URegionId<Key>, Key, Sort : USort>(
      * with values from memory region [fromRegion] read from range
      * of addresses [[keyConverter].convert([fromKey]) : [keyConverter].convert([toKey])]
      */
-    fun <ArrayType, OtherRegionId: UArrayId<ArrayType, SrcKey>, SrcKey> memcpy(
+    fun <ArrayType, OtherRegionId : UArrayId<ArrayType, SrcKey>, SrcKey> memcpy(
         fromRegion: UMemoryRegion<OtherRegionId, SrcKey, Sort>,
         fromKey: Key, toKey: Key,
         keyConverter: UMemoryKeyConverter<SrcKey, Key>,
@@ -252,11 +247,31 @@ fun refIndexRangeRegion(
 /**
  * An interface that represents any possible type of regions that can be used in the memory.
  */
-sealed interface URegionId<Key> {
-    fun <Field, ArrayType, Sort: USort> read(key: Key, sort: Sort, heap: UReadOnlySymbolicHeap<Field, ArrayType>): UExpr<Sort>
-    fun <Field, ArrayType, Sort: USort> write(key: Key, sort: Sort, heap: USymbolicHeap<Field, ArrayType>, value: UExpr<Sort>, guard: UBoolExpr)
-    fun <Field, ArrayType, SrcKey, Sort: USort> copy(from: Key, to: Key, sort: Sort, heap: USymbolicHeap<Field, ArrayType>, converter: UMemoryKeyConverter<Key, SrcKey>, guard: UBoolExpr)
-    fun <Field, ArrayType> keyMapper(composer: UComposer<Field, ArrayType>): (Key) -> Key
+interface URegionId<Key> {
+    fun <Field, ArrayType, Sort : USort> read(
+        key: Key,
+        sort: Sort,
+        heap: UReadOnlySymbolicHeap<Field, ArrayType>
+    ): UExpr<Sort>
+
+    fun <Field, ArrayType, Sort : USort> write(
+        key: Key,
+        sort: Sort,
+        heap: USymbolicHeap<Field, ArrayType>,
+        value: UExpr<Sort>,
+        guard: UBoolExpr
+    )
+
+    fun <Field, ArrayType, SrcKey, Sort : USort> copy(
+        from: Key,
+        to: Key,
+        sort: Sort,
+        heap: USymbolicHeap<Field, ArrayType>,
+        converter: UMemoryKeyConverter<Key, SrcKey>,
+        guard: UBoolExpr
+    )
+
+    fun <Field, ArrayType> keyMapper(composer: UComposer<Field, ArrayType>): KeyMapper<Key>
 }
 
 /**
@@ -266,14 +281,14 @@ data class UInputFieldRegionId<Field> internal constructor(
     val field: Field
 ) : URegionId<UHeapRef> {
     @Suppress("UNCHECKED_CAST")
-    override fun <Field, ArrayType, Sort: USort> read(
+    override fun <Field, ArrayType, Sort : USort> read(
         key: UHeapRef,
         sort: Sort,
         heap: UReadOnlySymbolicHeap<Field, ArrayType>
     ) = heap.readField(key, field as Field, sort).asExpr(sort)
 
     @Suppress("UNCHECKED_CAST")
-    override fun <Field, ArrayType, Sort: USort> write(
+    override fun <Field, ArrayType, Sort : USort> write(
         key: UHeapRef,
         sort: Sort,
         heap: USymbolicHeap<Field, ArrayType>,
@@ -281,7 +296,7 @@ data class UInputFieldRegionId<Field> internal constructor(
         guard: UBoolExpr
     ) = heap.writeField(key, field as Field, sort, value, guard)
 
-    override fun <Field, ArrayType, SrcKey, Sort: USort> copy(
+    override fun <Field, ArrayType, SrcKey, Sort : USort> copy(
         from: UHeapRef,
         to: UHeapRef,
         sort: Sort,
@@ -290,11 +305,12 @@ data class UInputFieldRegionId<Field> internal constructor(
         guard: UBoolExpr
     ) = error("Fields region copying should never happen")
 
-    override fun <Field, ArrayType> keyMapper(composer: UComposer<Field, ArrayType>): (UHeapRef) -> UHeapRef =
-        {composer.compose(it)}
+    override fun <Field, ArrayType> keyMapper(
+        composer: UComposer<Field, ArrayType>
+    ): KeyMapper<UHeapRef> = { composer.compose(it) }
 }
 
-sealed interface UArrayId<ArrayType, Key>: URegionId<Key> {
+interface UArrayId<ArrayType, Key> : URegionId<Key> {
     val arrayType: ArrayType
 }
 
@@ -307,22 +323,28 @@ data class UAllocatedArrayId<ArrayType> internal constructor(
     val address: UConcreteHeapAddress,
 ) : UArrayId<ArrayType, USizeExpr> {
     @Suppress("UNCHECKED_CAST")
-    override fun <Field, ArrayType, Sort: USort> read(
+    override fun <Field, ArrayType, Sort : USort> read(
         key: USizeExpr,
         sort: Sort,
         heap: UReadOnlySymbolicHeap<Field, ArrayType>
-    ) = heap.readArrayIndex(UConcreteHeapRef(key.uctx, address), key, arrayType as ArrayType, sort).asExpr(sort)
+    ): UExpr<Sort> {
+        val ref = key.uctx.mkConcreteHeapRef(address)
+        return heap.readArrayIndex(ref, key, arrayType as ArrayType, sort).asExpr(sort)
+    }
 
     @Suppress("UNCHECKED_CAST")
-    override fun <Field, ArrayType, Sort: USort> write(
+    override fun <Field, ArrayType, Sort : USort> write(
         key: USizeExpr,
         sort: Sort,
         heap: USymbolicHeap<Field, ArrayType>,
         value: UExpr<Sort>,
         guard: UBoolExpr
-    ) = heap.writeArrayIndex(UConcreteHeapRef(key.uctx, address), key, arrayType as ArrayType, sort, value, guard)
+    ) {
+        val ref = key.uctx.mkConcreteHeapRef(address)
+        heap.writeArrayIndex(ref, key, arrayType as ArrayType, sort, value, guard)
+    }
 
-    override fun <Field, ArrayType, SrcKey, Sort: USort> copy(
+    override fun <Field, ArrayType, SrcKey, Sort : USort> copy(
         from: USizeExpr,
         to: USizeExpr,
         sort: Sort,
@@ -333,8 +355,9 @@ data class UAllocatedArrayId<ArrayType> internal constructor(
         TODO("Not yet implemented")
     }
 
-    override fun <Field, ArrayType> keyMapper(composer: UComposer<Field, ArrayType>): (USizeExpr) -> USizeExpr =
-        {composer.compose(it)}
+    override fun <Field, ArrayType> keyMapper(
+        composer: UComposer<Field, ArrayType>
+    ): KeyMapper<USizeExpr> = { composer.compose(it) }
 
     // we don't include arrayType into hashcode and equals, because [address] already defines unambiguously
     override fun equals(other: Any?): Boolean {
@@ -360,14 +383,14 @@ data class UInputArrayId<ArrayType> internal constructor(
     override val arrayType: ArrayType
 ) : UArrayId<ArrayType, USymbolicArrayIndex> {
     @Suppress("UNCHECKED_CAST")
-    override fun <Field, ArrayType, Sort: USort> read(
+    override fun <Field, ArrayType, Sort : USort> read(
         key: USymbolicArrayIndex,
         sort: Sort,
         heap: UReadOnlySymbolicHeap<Field, ArrayType>
-    ) = heap.readArrayIndex(key.first, key.second, arrayType as ArrayType, sort).asExpr(sort)
+    ): UExpr<Sort> = heap.readArrayIndex(key.first, key.second, arrayType as ArrayType, sort).asExpr(sort)
 
     @Suppress("UNCHECKED_CAST")
-    override fun <Field, ArrayType, Sort: USort> write(
+    override fun <Field, ArrayType, Sort : USort> write(
         key: USymbolicArrayIndex,
         sort: Sort,
         heap: USymbolicHeap<Field, ArrayType>,
@@ -375,7 +398,7 @@ data class UInputArrayId<ArrayType> internal constructor(
         guard: UBoolExpr
     ) = heap.writeArrayIndex(key.first, key.second, arrayType as ArrayType, sort, value, guard)
 
-    override fun <Field, ArrayType, SrcKey, Sort: USort> copy(
+    override fun <Field, ArrayType, SrcKey, Sort : USort> copy(
         from: USymbolicArrayIndex,
         to: USymbolicArrayIndex,
         sort: Sort,
@@ -386,15 +409,13 @@ data class UInputArrayId<ArrayType> internal constructor(
         TODO("Not yet implemented")
     }
 
-    override fun <Field, ArrayType> keyMapper(composer: UComposer<Field, ArrayType>): (USymbolicArrayIndex) -> USymbolicArrayIndex =
-        {
-            val ref = composer.compose(it.first)
-            val idx = composer.compose(it.second)
-            if (ref === it.first && idx === it.second)
-                it
-            else
-                ref to idx
-        }
+    override fun <Field, ArrayType> keyMapper(
+        composer: UComposer<Field, ArrayType>
+    ): KeyMapper<USymbolicArrayIndex> = {
+        val ref = composer.compose(it.first)
+        val idx = composer.compose(it.second)
+        if (ref === it.first && idx === it.second) it else ref to idx
+    }
 }
 
 /**
@@ -404,25 +425,25 @@ data class UInputArrayLengthId<ArrayType> internal constructor(
     val arrayType: ArrayType
 ) : URegionId<UHeapRef> {
     @Suppress("UNCHECKED_CAST")
-    override fun <Field, ArrayType, Sort: USort> read(
+    override fun <Field, ArrayType, Sort : USort> read(
         key: UHeapRef,
         sort: Sort,
         heap: UReadOnlySymbolicHeap<Field, ArrayType>
-    ) = heap.readArrayLength(key, arrayType as ArrayType).asExpr(sort)
+    ): UExpr<Sort> = heap.readArrayLength(key, arrayType as ArrayType).asExpr(sort)
 
     @Suppress("UNCHECKED_CAST")
-    override fun <Field, ArrayType, Sort: USort> write(
+    override fun <Field, ArrayType, Sort : USort> write(
         key: UHeapRef,
         sort: Sort,
         heap: USymbolicHeap<Field, ArrayType>,
         value: UExpr<Sort>,
         guard: UBoolExpr
     ) {
-        assert(guard === key.ctx.trueExpr)
-        return heap.writeArrayLength(key, value.asExpr(key.uctx.sizeSort), arrayType as ArrayType)
+        assert(guard.isTrue)
+        heap.writeArrayLength(key, value.asExpr(key.uctx.sizeSort), arrayType as ArrayType)
     }
 
-    override fun <Field, ArrayType, SrcKey, Sort: USort> copy(
+    override fun <Field, ArrayType, SrcKey, Sort : USort> copy(
         from: UHeapRef,
         to: UHeapRef,
         sort: Sort,
@@ -431,14 +452,17 @@ data class UInputArrayLengthId<ArrayType> internal constructor(
         guard: UBoolExpr
     ) = error("Lengths region copying should never happen")
 
-    override fun <Field, ArrayType> keyMapper(composer: UComposer<Field, ArrayType>): (UHeapRef) -> UHeapRef =
-        {composer.compose(it)}
+    override fun <Field, ArrayType> keyMapper(
+        composer: UComposer<Field, ArrayType>
+    ): KeyMapper<UHeapRef> = { composer.compose(it) }
 }
 
 typealias UInputFieldMemoryRegion<Field, Sort> = UMemoryRegion<UInputFieldRegionId<Field>, UHeapRef, Sort>
 typealias UAllocatedArrayMemoryRegion<ArrayType, Sort> = UMemoryRegion<UAllocatedArrayId<ArrayType>, USizeExpr, Sort>
 typealias UInputArrayMemoryRegion<ArrayType, Sort> = UMemoryRegion<UInputArrayId<ArrayType>, USymbolicArrayIndex, Sort>
 typealias UInputArrayLengthMemoryRegion<ArrayType> = UMemoryRegion<UInputArrayLengthId<ArrayType>, UHeapRef, USizeSort>
+
+typealias KeyMapper<Key> = (Key) -> Key
 
 val <Field, Sort : USort> UInputFieldMemoryRegion<Field, Sort>.field
     get() = regionId.field
@@ -476,7 +500,7 @@ fun <ArrayType, Sort : USort> emptyAllocatedArrayRegion(
         updates = emptyRegionTree(),
         ::indexRegion, ::indexRangeRegion, ::indexEq, ::indexLeConcrete, ::indexLeSymbolic
     )
-    val regionId = UAllocatedArrayId<ArrayType>(arrayType, address)
+    val regionId = UAllocatedArrayId(arrayType, address)
     return UMemoryRegion(regionId, sort, updates, sort.defaultValue(), instantiator)
 }
 

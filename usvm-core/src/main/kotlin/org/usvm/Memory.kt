@@ -37,18 +37,19 @@ interface UMemory<LValue, RValue, SizeT, HeapRef, Type> {
      * to range of elements [[fromDst]:[fromDst] + [length] - 1] of array with address [dst].
      * Both arrays must have type [arrayType].
      */
-    fun memcpy(src: HeapRef, dst: HeapRef, arrayType: Type, sort: USort, fromSrc: SizeT, fromDst: SizeT, length: SizeT)
+    fun memcpy(src: HeapRef, dst: HeapRef, arrayType: Type, elementSort: USort, fromSrc: SizeT, fromDst: SizeT, length: SizeT)
 
     /**
      * Returns length of an array
      */
     fun length(ref: HeapRef, arrayType: Type): SizeT
 
-    fun <Sort: USort> compose(expr: UExpr<Sort>): UExpr<Sort>
+    fun <Sort : USort> compose(expr: UExpr<Sort>): UExpr<Sort>
 
     /**
      * Creates new instance of program memory.
-     * @warning: symbolic engine may use this operation potentially large amount of times.
+     *
+     * **Warning**: symbolic engine may use this operation potentially large number of times.
      * Implementation must use persistent data structures to speed it up.
      */
     fun clone(): UMemory<LValue, RValue, SizeT, HeapRef, Type>
@@ -56,6 +57,7 @@ interface UMemory<LValue, RValue, SizeT, HeapRef, Type> {
 
 typealias USymbolicMemory<Type> = UMemory<ULValue, UExpr<out USort>, USizeExpr, UHeapRef, Type>
 
+@Suppress("MemberVisibilityCanBePrivate")
 open class UMemoryBase<Field, Type, Method>(
     protected val ctx: UContext,
     protected val typeSystem: UTypeSystem<Type>,
@@ -64,25 +66,27 @@ open class UMemoryBase<Field, Type, Method>(
     protected var types: UTypeStorage<Type> = UTypeStorage(ctx, typeSystem),
     protected var mocker: UMocker<Method> = UIndexedMocker(ctx)
     // TODO: we can eliminate mocker by moving compose to UState?
-)
-    : USymbolicMemory<Type>
-{
+) : USymbolicMemory<Type> {
     @Suppress("UNCHECKED_CAST")
-    override fun read(lvalue: ULValue): UExpr<out USort> =
-        when(lvalue) {
-            is URegisterRef -> stack.readRegister(lvalue.idx, lvalue.sort)
-            is UFieldRef<*> -> heap.readField(lvalue.ref, lvalue.field as Field, lvalue.sort).asExpr(lvalue.sort)
-            is UArrayIndexRef<*> -> heap.readArrayIndex(lvalue.ref, lvalue.index, lvalue.arrayType as Type, lvalue.sort).asExpr(lvalue.sort)
-            else -> throw IllegalArgumentException("Unexpected lvalue $lvalue")
+    override fun read(lvalue: ULValue): UExpr<out USort> = with(lvalue) {
+        when (this) {
+            is URegisterRef -> stack.readRegister(idx, sort)
+            is UFieldRef<*> -> heap.readField(ref, field as Field, sort).asExpr(sort)
+            is UArrayIndexRef<*> -> heap.readArrayIndex(ref, index, arrayType as Type, sort).asExpr(sort)
+
+            else -> throw IllegalArgumentException("Unexpected lvalue $this")
         }
+    }
 
     @Suppress("UNCHECKED_CAST")
-    override fun write(lvalue: ULValue, rvalue: UExpr<out USort>) {
-        when(lvalue) {
-            is URegisterRef -> stack.writeRegister(lvalue.idx, rvalue)
-            is UFieldRef<*> -> heap.writeField(lvalue.ref, lvalue.field as Field, lvalue.sort, rvalue, rvalue.ctx.trueExpr)
-            is UArrayIndexRef<*> -> heap.writeArrayIndex(lvalue.ref, lvalue.index, lvalue.arrayType as Type, lvalue.sort, rvalue, rvalue.ctx.trueExpr)
-            else -> throw IllegalArgumentException("Unexpected lvalue $lvalue")
+    override fun write(lvalue: ULValue, rvalue: UExpr<out USort>) = with(lvalue) {
+        when (this) {
+            is URegisterRef -> stack.writeRegister(idx, rvalue)
+            is UFieldRef<*> -> heap.writeField(ref, field as Field, sort, rvalue, guard = ctx.trueExpr)
+            is UArrayIndexRef<*> -> {
+                heap.writeArrayIndex(ref, index, arrayType as Type, sort, rvalue, guard = ctx.trueExpr)
+            }
+            else -> throw IllegalArgumentException("Unexpected lvalue $this")
         }
     }
 
@@ -101,16 +105,17 @@ open class UMemoryBase<Field, Type, Method>(
     override fun memset(ref: UHeapRef, arrayType: Type, elementSort: USort, contents: Sequence<UExpr<out USort>>) =
         heap.memset(ref, arrayType, elementSort, contents)
 
-    override fun memcpy(src: UHeapRef, dst: UHeapRef, arrayType: Type, sort: USort,
-                        fromSrc: USizeExpr, fromDst: USizeExpr, length: USizeExpr) = with(src.ctx) {
-        val toDst = ctx.mkBvAddExpr(fromDst, length)
-        heap.memcpy(src, dst, arrayType, sort, fromSrc, fromDst, toDst, trueExpr)
+    override fun memcpy(
+        src: UHeapRef, dst: UHeapRef, arrayType: Type, elementSort: USort,
+        fromSrc: USizeExpr, fromDst: USizeExpr, length: USizeExpr
+    ) = with(src.ctx) {
+        val toDst = mkBvAddExpr(fromDst, length)
+        heap.memcpy(src, dst, arrayType, elementSort, fromSrc, fromDst, toDst, guard = trueExpr)
     }
-
 
     override fun length(ref: UHeapRef, arrayType: Type): USizeExpr = heap.readArrayLength(ref, arrayType)
 
-    override fun <Sort: USort> compose(expr: UExpr<Sort>): UExpr<Sort> {
+    override fun <Sort : USort> compose(expr: UExpr<Sort>): UExpr<Sort> {
         val composer = UComposer(ctx, stack, heap, types, mocker)
         return composer.compose(expr)
     }

@@ -37,20 +37,28 @@ class UEmptyHeap<Field, ArrayType>(private val ctx: UContext) : UReadOnlySymboli
 
 interface UHeap<Ref, Value, SizeT, Field, ArrayType, Guard> : UReadOnlyHeap<Ref, Value, SizeT, Field, ArrayType, Guard> {
     fun <Sort : USort> writeField(ref: Ref, field: Field, sort: Sort, value: Value, guard: Guard)
-    fun <Sort : USort> writeArrayIndex(ref: Ref, index: SizeT, type: ArrayType, elementSort: Sort, value: Value, guard: Guard)
+    fun <Sort : USort> writeArrayIndex(
+        ref: Ref,
+        index: SizeT,
+        type: ArrayType,
+        elementSort: Sort,
+        value: Value,
+        guard: Guard
+    )
 
     fun writeArrayLength(ref: Ref, size: SizeT, arrayType: ArrayType)
 
     fun <Sort : USort> memset(ref: Ref, type: ArrayType, sort: Sort, contents: Sequence<Value>)
-    fun <Sort: USort> memcpy(
+    fun <Sort : USort> memcpy(
         srcRef: Ref,
         dstRef: Ref,
         type: ArrayType,
-        sort: Sort,
+        elementSort: Sort,
         fromSrcIdx: SizeT,
         fromDstIdx: SizeT,
         toDstIdx: SizeT,
-        guard: Guard)
+        guard: Guard
+    )
 
     fun allocate(): UConcreteHeapAddress
     fun allocateArray(count: SizeT): UConcreteHeapAddress
@@ -143,20 +151,28 @@ data class URegionHeap<Field, ArrayType>(
         }
 
     // TODO: Either prohibit merging concrete and symbolic heap addresses, or fork state by ite-refs here
-    override fun <Sort : USort> writeField(ref: UHeapRef, field: Field, sort: Sort, value: UExpr<out USort>, guard: UBoolExpr) {
-        if (guard === ctx.falseExpr)
-            return
+    override fun <Sort : USort> writeField(
+        ref: UHeapRef,
+        field: Field,
+        sort: Sort,
+        value: UExpr<out USort>,
+        guard: UBoolExpr
+    ) {
+        // A write operation that never succeeds
+        if (guard.isFalse) return
 
         val valueToWrite = value.asExpr(sort)
 
         when (ref) {
             is UConcreteHeapRef -> {
-                if (guard === guard.ctx.trueExpr) {
-                    allocatedFields = allocatedFields.put(Pair(ref.address, field), valueToWrite)
+                val key = ref.address to field
+                val allocatedFieldValue = if (guard.isTrue) {
+                    valueToWrite
                 } else {
-                    val iteValue = ctx.mkIte(guard, valueToWrite, readField(ref, field, sort))
-                    allocatedFields = allocatedFields.put(ref.address to field, iteValue)
+                    ctx.mkIte(guard, valueToWrite, readField(ref, field, sort))
                 }
+
+                allocatedFields = allocatedFields.put(key, allocatedFieldValue)
             }
 
             else -> {
@@ -175,8 +191,8 @@ data class URegionHeap<Field, ArrayType>(
         value: UExpr<out USort>,
         guard: UBoolExpr
     ) {
-        if (guard === ctx.falseExpr)
-            return
+        // A write operation that never succeeds
+        if (guard.isFalse) return
 
         val valueToWrite = value.asExpr(elementSort)
 
@@ -189,7 +205,7 @@ data class URegionHeap<Field, ArrayType>(
 
             else -> {
                 val region = inputArrayRegion(type, elementSort)
-                val newRegion = region.write(Pair(ref, index), valueToWrite, guard)
+                val newRegion = region.write(ref to index, valueToWrite, guard)
                 inputArrays = inputArrays.put(type, newRegion)
             }
         }
@@ -215,34 +231,37 @@ data class URegionHeap<Field, ArrayType>(
         TODO("Not yet implemented")
     }
 
-    override fun <Sort: USort> memcpy(
+    override fun <Sort : USort> memcpy(
         srcRef: UHeapRef,
         dstRef: UHeapRef,
         type: ArrayType,
-        sort: Sort,
+        elementSort: Sort,
         fromSrcIdx: USizeExpr,
         fromDstIdx: USizeExpr,
         toDstIdx: USizeExpr,
         guard: UBoolExpr
     ) {
-        if (guard === guard.ctx.falseExpr)
-            return
+        // A copy operation that never succeeds
+        if (guard.isFalse) return
 
         val src = srcRef to fromSrcIdx
         val dst = dstRef to fromDstIdx
-        when(srcRef) {
+
+        when (srcRef) {
             is UConcreteHeapRef -> {
-                val srcRegion = allocatedArrayRegion(type, srcRef.address, sort)
+                val srcRegion = allocatedArrayRegion(type, srcRef.address, elementSort)
+
                 when (dstRef) {
                     is UConcreteHeapRef -> {
-                        val dstRegion = allocatedArrayRegion(type, dstRef.address, sort)
+                        val dstRegion = allocatedArrayRegion(type, dstRef.address, elementSort)
                         val keyConverter = UAllocatedToAllocatedKeyConverter(src, dst, toDstIdx)
                         val newDstRegion = dstRegion.memcpy(srcRegion, fromDstIdx, toDstIdx, keyConverter, guard)
                         allocatedArrays = allocatedArrays.put(dstRef.address, newDstRegion)
                     }
+
                     is UIteExpr -> TODO()
                     else -> {
-                        val dstRegion = inputArrayRegion(type, sort)
+                        val dstRegion = inputArrayRegion(type, elementSort)
                         val keyConverter = UAllocatedToInputKeyConverter(src, dst, toDstIdx)
                         val newDstRegion = dstRegion.memcpy(srcRegion, dst, dstRef to toDstIdx, keyConverter, guard)
                         inputArrays = inputArrays.put(type, newDstRegion)
@@ -253,17 +272,19 @@ data class URegionHeap<Field, ArrayType>(
             is UIteExpr -> TODO()
 
             else -> {
-                val srcRegion = inputArrayRegion(type, sort)
+                val srcRegion = inputArrayRegion(type, elementSort)
+
                 when (dstRef) {
                     is UConcreteHeapRef -> {
-                        val dstRegion = allocatedArrayRegion(type, dstRef.address, sort)
+                        val dstRegion = allocatedArrayRegion(type, dstRef.address, elementSort)
                         val keyConverter = UInputToAllocatedKeyConverter(src, dst, toDstIdx)
                         val newDstRegion = dstRegion.memcpy(srcRegion, fromDstIdx, toDstIdx, keyConverter, guard)
                         allocatedArrays = allocatedArrays.put(dstRef.address, newDstRegion)
                     }
+
                     is UIteExpr -> TODO()
                     else -> {
-                        val dstRegion = inputArrayRegion(type, sort)
+                        val dstRegion = inputArrayRegion(type, elementSort)
                         val keyConverter = UInputToInputKeyConverter(src, dst, toDstIdx)
                         val newDstRegion = dstRegion.memcpy(srcRegion, dst, dstRef to toDstIdx, keyConverter, guard)
                         inputArrays = inputArrays.put(type, newDstRegion)

@@ -34,7 +34,7 @@ interface UMemoryUpdates<Key, Sort : USort> : Sequence<UUpdateNode<Key, Sort>> {
      * Returns a mapped [UMemoryRegion] using [keyMapper] and [composer].
      * It is used in [UComposer] during memory composition.
      */
-    fun <Field, Type> map(keyMapper: (Key) -> Key, composer: UComposer<Field, Type>): UMemoryUpdates<Key, Sort>
+    fun <Field, Type> map(keyMapper: KeyMapper<Key>, composer: UComposer<Field, Type>): UMemoryUpdates<Key, Sort>
 
     /**
      * @return Updates expressing copying the slice of [fromRegion] (see UMemoryRegion.copy)
@@ -102,7 +102,7 @@ class UEmptyUpdates<Key, Sort : USort>(
     ): UEmptyUpdates<Key, Sort> = this
 
     override fun <Field, Type> map(
-        keyMapper: (Key) -> Key,
+        keyMapper: KeyMapper<Key>,
         composer: UComposer<Field, Type>
     ): UEmptyUpdates<Key, Sort> = this
 
@@ -170,7 +170,7 @@ data class UFlatUpdates<Key, Sort : USort>(
     }
 
     override fun <Field, Type> map(
-        keyMapper: (Key) -> Key,
+        keyMapper: KeyMapper<Key>,
         composer: UComposer<Field, Type>
     ): UFlatUpdates<Key, Sort> {
         // Map the current node and the next values recursively
@@ -277,7 +277,7 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
     }
 
     override fun <Field, Type> map(
-        keyMapper: (Key) -> Key,
+        keyMapper: KeyMapper<Key>,
         composer: UComposer<Field, Type>
     ): UTreeUpdates<Key, Reg, Sort> {
         var mappedNodeFound = false
