@@ -100,9 +100,9 @@ class UPinpointUpdateNode<Key, ValueSort : USort>(
     }
 
     override fun equals(other: Any?): Boolean =
-        other is UPinpointUpdateNode<*, *> && this.key == other.key  // Ignores value
+        other is UPinpointUpdateNode<*, *> && this.key == other.key  && this.guard == other.guard
 
-    override fun hashCode(): Int = key.hashCode()  // Ignores value
+    override fun hashCode(): Int = key.hashCode() * 31 + guard.hashCode() // Ignores value
 
     override fun toString(): String = "{$key <- $value}"
 }
@@ -223,10 +223,15 @@ class URangedUpdateNode<RegionId : UArrayId<ArrayType, SrcKey>, ArrayType, SrcKe
         )
     }
 
+    // Ignores update
     override fun equals(other: Any?): Boolean =
-        other is URangedUpdateNode<*, *, *, *, *> && this.fromKey == other.fromKey && this.toKey == other.toKey  // Ignores update
+        other is URangedUpdateNode<*, *, *, *, *> &&
+                this.fromKey == other.fromKey &&
+                this.toKey == other.toKey &&
+                this.guard == other.guard
 
-    override fun hashCode(): Int = 31 * fromKey.hashCode() + toKey.hashCode()  // Ignores update
+    // Ignores update
+    override fun hashCode(): Int = (17 * fromKey.hashCode() + toKey.hashCode()) * 31 + guard.hashCode()
 
     override fun split(
         key: DstKey, predicate: (UExpr<ValueSort>) -> Boolean,

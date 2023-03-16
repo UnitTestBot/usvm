@@ -39,7 +39,7 @@ interface UMemoryUpdates<Key, Sort : USort> : Sequence<UUpdateNode<Key, Sort>> {
     /**
      * @return Updates expressing copying the slice of [fromRegion] (see UMemoryRegion.copy)
      */
-    fun <ArrayType, RegionId : UArrayId<ArrayType, SrcKey>, SrcKey> copy(
+    fun <ArrayType, RegionId : UArrayId<ArrayType, SrcKey>, SrcKey> copyRange(
         fromRegion: UMemoryRegion<RegionId, SrcKey, Sort>,
         fromKey: Key,
         toKey: Key,
@@ -80,7 +80,7 @@ class UEmptyUpdates<Key, Sort : USort>(
             symbolicCmp
         )
 
-    override fun <ArrayType, RegionId : UArrayId<ArrayType, SrcKey>, SrcKey> copy(
+    override fun <ArrayType, RegionId : UArrayId<ArrayType, SrcKey>, SrcKey> copyRange(
         fromRegion: UMemoryRegion<RegionId, SrcKey, Sort>,
         fromKey: Key,
         toKey: Key,
@@ -136,7 +136,7 @@ data class UFlatUpdates<Key, Sort : USort>(
             symbolicCmp
         )
 
-    override fun <ArrayType, RegionId : UArrayId<ArrayType, SrcKey>, SrcKey> copy(
+    override fun <ArrayType, RegionId : UArrayId<ArrayType, SrcKey>, SrcKey> copyRange(
         fromRegion: UMemoryRegion<RegionId, SrcKey, Sort>,
         fromKey: Key,
         toKey: Key,
@@ -253,7 +253,7 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
         return UTreeUpdates(newUpdates, keyToRegion, keyRangeToRegion, symbolicEq, concreteCmp, symbolicCmp)
     }
 
-    override fun <ArrayType, RegionId : UArrayId<ArrayType, SrcKey>, SrcKey> copy(
+    override fun <ArrayType, RegionId : UArrayId<ArrayType, SrcKey>, SrcKey> copyRange(
         fromRegion: UMemoryRegion<RegionId, SrcKey, Sort>,
         fromKey: Key,
         toKey: Key,
