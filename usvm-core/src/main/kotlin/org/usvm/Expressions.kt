@@ -49,7 +49,7 @@ class UConcreteHeapRef internal constructor(ctx: UContext, val address: UConcret
     }
 
     override fun print(printer: ExpressionPrinter) {
-        TODO("Not yet implemented")
+        printer.append("(concreteAddr $address)")
     }
 
     val isNull = (address == nullAddress)
@@ -85,7 +85,6 @@ class UArrayIndexRef<ArrayType>(
 abstract class USymbol<Sort : USort>(ctx: UContext) : UExpr<Sort>(ctx) {
 }
 
-@Suppress("UNUSED_PARAMETER")
 class URegisterReading<Sort : USort> internal constructor(
     ctx: UContext,
     val idx: Int,
@@ -105,7 +104,7 @@ class URegisterReading<Sort : USort> internal constructor(
     override fun internHashCode(): Int = hash(idx, sort)
 }
 
-abstract class UHeapReading<RegionId, Key, Sort : USort>(
+abstract class UHeapReading<RegionId : URegionId<Key>, Key, Sort : USort>(
     ctx: UContext,
     val region: UMemoryRegion<RegionId, Key, Sort>
 ) : USymbol<Sort>(ctx) {
@@ -128,7 +127,7 @@ class UFieldReading<Field, Sort : USort> internal constructor(
         return (transformer as UExprTransformer<Field, *>).transform(this)
     }
 
-    override fun toString(): String = "$address.${region.regionId.field}"
+    override fun toString(): String = "$address.${region.field}"
 
     override fun internEquals(other: Any): Boolean = structurallyEqual(other, { region }, { address })
 
@@ -156,7 +155,7 @@ class UAllocatedArrayReading<ArrayType, Sort : USort> internal constructor(
 
     override fun internHashCode(): Int = hash(region, index)
 
-    override fun toString(): String = "0x${region.regionId.address}[$index]"
+    override fun toString(): String = "0x${region.allocatedAddress}[$index]"
 }
 
 class UInputArrayReading<ArrayType, Sort : USort> internal constructor(
@@ -259,4 +258,11 @@ class UIsExpr<Type> internal constructor(
 
     override fun internHashCode(): Int = hash(ref, type)
 }
+//endregion
+
+//region Utils
+
+val UBoolExpr.isFalse get() = this === ctx.falseExpr
+val UBoolExpr.isTrue get() = !isFalse
+
 //endregion
