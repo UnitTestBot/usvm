@@ -82,7 +82,7 @@ class UPinpointUpdateNode<Key, ValueSort : USort>(
     // in fact, we can check less strict formulae: precondition _implies_ guard, but this is too complex to compute.
 
     override fun includesSymbolically(key: Key): UBoolExpr =
-        guard.ctx.mkAnd(keyEqualityComparer(this.key, key), guard) // TODO: use simplifying and!
+        guard.ctx.mkAnd(keyEqualityComparer(this.key, key), guard)
 
     override fun isIncludedByUpdateConcretely(update: UUpdateNode<Key, ValueSort>): Boolean =
         update.includesConcretely(key, guard)
