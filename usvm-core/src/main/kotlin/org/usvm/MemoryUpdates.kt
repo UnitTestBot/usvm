@@ -10,24 +10,32 @@ import java.util.*
  */
 interface UMemoryUpdates<Key, Sort : USort> : Sequence<UUpdateNode<Key, Sort>> {
     /**
-     * @return Relevant updates for a given key
+     * @return Relevant updates for a given key.
      */
     fun read(key: Key): UMemoryUpdates<Key, Sort>
 
     /**
-     * @return Memory region which obtained from this one by overwriting the address [key] with value [value]
+     * @return Memory region which gets from this one by overwriting the address [key] with value [value]
      * guarded with condition [guard].
      */
-    fun write(key: Key, value: UExpr<Sort>, guard: UBoolExpr): UMemoryUpdates<Key, Sort>
+    fun write(key: Key, value: UExpr<Sort>, guard: UBoolExpr = value.ctx.trueExpr): UMemoryUpdates<Key, Sort>
 
     /**
-     * @see [UMemoryRegion.split]
+     * Splits this [UMemoryUpdates] on two parts:
+     * * Values of [UUpdateNode]s satisfying [predicate] are added to the [matchingWrites].
+     * * [UUpdateNode]s unsatisfying [predicate] remain in the result updates.
+     *
+     * The [guardBuilder] is used to build guards for values added to [matchingWrites]. In the end, the [guardBuilder]
+     * is updated and contains a predicate indicating that the [key] can't be included in any of visited [UUpdateNode]s.
+     *
+     * @return new [UMemoryUpdates] without writes satisfying [predicate].
+     * @see [UUpdateNode.split]
      */
     fun split(
         key: Key,
         predicate: (UExpr<Sort>) -> Boolean,
-        matchingWrites: LinkedList<Pair<UBoolExpr, UExpr<Sort>>>,
-        guardBuilder: GuardBuilder
+        matchingWrites: MutableList<GuardedExpr<UExpr<Sort>>>,
+        guardBuilder: GuardBuilder,
     ): UMemoryUpdates<Key, Sort>
 
     /**
@@ -37,14 +45,17 @@ interface UMemoryUpdates<Key, Sort : USort> : Sequence<UUpdateNode<Key, Sort>> {
     fun <Field, Type> map(keyMapper: KeyMapper<Key>, composer: UComposer<Field, Type>): UMemoryUpdates<Key, Sort>
 
     /**
-     * @return Updates expressing copying the slice of [fromRegion] (see UMemoryRegion.copy)
+     * @return Updates which express copying the slice of [fromRegion]  guarded with
+     * condition [guard].
+     *
+     * @see UMemoryRegion.copyRange
      */
     fun <ArrayType, RegionId : UArrayId<ArrayType, SrcKey>, SrcKey> copyRange(
         fromRegion: UMemoryRegion<RegionId, SrcKey, Sort>,
         fromKey: Key,
         toKey: Key,
         keyConverter: UMemoryKeyConverter<SrcKey, Key>,
-        guard: UBoolExpr
+        guard: UBoolExpr,
     ): UMemoryUpdates<Key, Sort>
 
     /**
@@ -67,7 +78,7 @@ interface UMemoryUpdates<Key, Sort : USort> : Sequence<UUpdateNode<Key, Sort>> {
 class UEmptyUpdates<Key, Sort : USort>(
     private val symbolicEq: (Key, Key) -> UBoolExpr,
     private val concreteCmp: (Key, Key) -> Boolean,
-    private val symbolicCmp: (Key, Key) -> UBoolExpr
+    private val symbolicCmp: (Key, Key) -> UBoolExpr,
 ) : UMemoryUpdates<Key, Sort> {
     override fun read(key: Key): UEmptyUpdates<Key, Sort> = this
 
@@ -85,7 +96,7 @@ class UEmptyUpdates<Key, Sort : USort>(
         fromKey: Key,
         toKey: Key,
         keyConverter: UMemoryKeyConverter<SrcKey, Key>,
-        guard: UBoolExpr
+        guard: UBoolExpr,
     ): UFlatUpdates<Key, Sort> = UFlatUpdates(
         URangedUpdateNode(fromKey, toKey, fromRegion, concreteCmp, symbolicCmp, keyConverter, guard),
         next = null,
@@ -97,13 +108,13 @@ class UEmptyUpdates<Key, Sort : USort>(
     override fun split(
         key: Key,
         predicate: (UExpr<Sort>) -> Boolean,
-        matchingWrites: LinkedList<Pair<UBoolExpr, UExpr<Sort>>>,
-        guardBuilder: GuardBuilder
-    ): UEmptyUpdates<Key, Sort> = this
+        matchingWrites: MutableList<GuardedExpr<UExpr<Sort>>>,
+        guardBuilder: GuardBuilder,
+    ) = this
 
     override fun <Field, Type> map(
         keyMapper: KeyMapper<Key>,
-        composer: UComposer<Field, Type>
+        composer: UComposer<Field, Type>,
     ): UEmptyUpdates<Key, Sort> = this
 
     override fun iterator(): Iterator<UUpdateNode<Key, Sort>> = EmptyIterator()
@@ -123,7 +134,7 @@ data class UFlatUpdates<Key, Sort : USort>(
     val next: UMemoryUpdates<Key, Sort>?,
     private val symbolicEq: (Key, Key) -> UBoolExpr,
     private val concreteCmp: (Key, Key) -> Boolean,
-    private val symbolicCmp: (Key, Key) -> UBoolExpr
+    private val symbolicCmp: (Key, Key) -> UBoolExpr,
 ) : UMemoryUpdates<Key, Sort> {
     override fun read(key: Key): UMemoryUpdates<Key, Sort> = this
 
@@ -141,7 +152,7 @@ data class UFlatUpdates<Key, Sort : USort>(
         fromKey: Key,
         toKey: Key,
         keyConverter: UMemoryKeyConverter<SrcKey, Key>,
-        guard: UBoolExpr
+        guard: UBoolExpr,
     ): UMemoryUpdates<Key, Sort> = UFlatUpdates(
         URangedUpdateNode(fromKey, toKey, fromRegion, concreteCmp, symbolicCmp, keyConverter, guard),
         next = this,
@@ -151,27 +162,28 @@ data class UFlatUpdates<Key, Sort : USort>(
     )
 
     override fun split(
-        key: Key, predicate: (UExpr<Sort>) -> Boolean,
-        matchingWrites: LinkedList<Pair<UBoolExpr, UExpr<Sort>>>,
-        guardBuilder: GuardBuilder
+        key: Key,
+        predicate: (UExpr<Sort>) -> Boolean,
+        matchingWrites: MutableList<GuardedExpr<UExpr<Sort>>>,
+        guardBuilder: GuardBuilder,
     ): UMemoryUpdates<Key, Sort> {
-        val splittingNode = node.split(key, predicate, matchingWrites, guardBuilder)
-        val splittingNext = next?.split(key, predicate, matchingWrites, guardBuilder)
+        val splitNode = node.split(key, predicate, matchingWrites, guardBuilder)
+        val splitNext = next?.split(key, predicate, matchingWrites, guardBuilder)
 
-        if (splittingNode == null) {
-            return splittingNext ?: UEmptyUpdates(symbolicEq, concreteCmp, symbolicCmp)
+        if (splitNode == null) {
+            return splitNext ?: UEmptyUpdates(symbolicEq, concreteCmp, symbolicCmp)
         }
 
-        if (splittingNext === next) {
+        if (splitNext === next) {
             return this
         }
 
-        return UFlatUpdates(splittingNode, splittingNext, symbolicEq, concreteCmp, symbolicCmp)
+        return UFlatUpdates(splitNode, splitNext, symbolicEq, concreteCmp, symbolicCmp)
     }
 
     override fun <Field, Type> map(
         keyMapper: KeyMapper<Key>,
-        composer: UComposer<Field, Type>
+        composer: UComposer<Field, Type>,
     ): UFlatUpdates<Key, Sort> {
         // Map the current node and the next values recursively
         val mappedNode = node.map(keyMapper, composer)
@@ -232,7 +244,7 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
     private val keyRangeToRegion: (Key, Key) -> Reg,
     private val symbolicEq: (Key, Key) -> UBoolExpr,
     private val concreteCmp: (Key, Key) -> Boolean,
-    private val symbolicCmp: (Key, Key) -> UBoolExpr
+    private val symbolicCmp: (Key, Key) -> UBoolExpr,
 ) : UMemoryUpdates<Key, Sort> {
     override fun read(key: Key): UTreeUpdates<Key, Reg, Sort> {
         val reg = keyToRegion(key)
@@ -241,16 +253,15 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
             return this
         }
 
-        return UTreeUpdates(updates, keyToRegion, keyRangeToRegion, symbolicEq, concreteCmp, symbolicCmp)
+        return this.copy(updates = updates)
     }
 
     override fun write(key: Key, value: UExpr<Sort>, guard: UBoolExpr): UTreeUpdates<Key, Reg, Sort> {
         val update = UPinpointUpdateNode(key, value, symbolicEq, guard)
-        val region = keyToRegion(key)
+        val newUpdates =
+            updates.write(keyToRegion(key), update, keyFilter = { it.isIncludedByUpdateConcretely(update) })
 
-        val newUpdates = updates.write(region, update, keyFilter = { it == update })
-
-        return UTreeUpdates(newUpdates, keyToRegion, keyRangeToRegion, symbolicEq, concreteCmp, symbolicCmp)
+        return this.copy(updates = newUpdates)
     }
 
     override fun <ArrayType, RegionId : UArrayId<ArrayType, SrcKey>, SrcKey> copyRange(
@@ -258,27 +269,81 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
         fromKey: Key,
         toKey: Key,
         keyConverter: UMemoryKeyConverter<SrcKey, Key>,
-        guard: UBoolExpr
+        guard: UBoolExpr,
     ): UMemoryUpdates<Key, Sort> {
         val region = keyRangeToRegion(fromKey, toKey)
         val update = URangedUpdateNode(fromKey, toKey, fromRegion, concreteCmp, symbolicCmp, keyConverter, guard)
-        val newUpdates = updates.write(region, update, keyFilter = { it == update })
+        val newUpdates = updates.write(region, update, keyFilter = { it.isIncludedByUpdateConcretely(update) })
 
-        return UTreeUpdates(newUpdates, keyToRegion, keyRangeToRegion, symbolicEq, concreteCmp, symbolicCmp)
+        return this.copy(updates = newUpdates)
     }
 
     override fun split(
         key: Key,
         predicate: (UExpr<Sort>) -> Boolean,
-        matchingWrites: LinkedList<Pair<UBoolExpr, UExpr<Sort>>>,
-        guardBuilder: GuardBuilder
+        matchingWrites: MutableList<GuardedExpr<UExpr<Sort>>>,
+        guardBuilder: GuardBuilder,
     ): UMemoryUpdates<Key, Sort> {
-        TODO("Not yet implemented")
+        // the suffix of the [updates], starting from the earliest update satisfying `predicate(update.value(key))`
+        val updatesSuffix = mutableListOf<UUpdateNode<Key, Sort>?>()
+
+        // reconstructed region tree, including all updates unsatisfying `predicate(update.value(key))` in the same order
+        var splitUpdates = emptyRegionTree<UUpdateNode<Key, Sort>, Reg>()
+
+        // add an update to result tree
+        fun applyUpdate(update: UUpdateNode<Key, Sort>) {
+            val region = when (update) {
+                is UPinpointUpdateNode<Key, Sort> -> keyToRegion(update.key)
+                is URangedUpdateNode<*, *, *, Key, Sort> -> keyRangeToRegion(update.fromKey, update.toKey)
+            }
+            splitUpdates = splitUpdates.write(region, update, keyFilter = { it.isIncludedByUpdateConcretely(update) })
+        }
+
+        // traverse all updates one by one from the oldest one
+        for (update in this) {
+            val satisfies = predicate(update.value(key))
+
+            if (updatesSuffix.isNotEmpty()) {
+                updatesSuffix += update
+            } else if (satisfies) {
+                // we found the first matched update, so we have to apply already visited updates
+                // definitely unsatisfying `predicate(update.value(key))`
+                for (prevUpdate in this) {
+                    if (prevUpdate === update) {
+                        break
+                    }
+                    applyUpdate(update)
+                }
+                updatesSuffix += update
+            }
+        }
+
+        // no matching updates were found
+        if (updatesSuffix.isEmpty()) {
+            return this
+        }
+
+        // here we collect matchingWrites and update guardBuilder in the correct order (from the newest to the oldest)
+        for (idx in updatesSuffix.indices.reversed()) {
+            val update = requireNotNull(updatesSuffix[idx])
+            updatesSuffix[idx] = update.split(key, predicate, matchingWrites, guardBuilder)
+        }
+
+        // here we apply the remaining updates
+        for (update in updatesSuffix) {
+            if (update != null) {
+                applyUpdate(update)
+            }
+        }
+
+
+        return this.copy(updates = splitUpdates)
     }
+
 
     override fun <Field, Type> map(
         keyMapper: KeyMapper<Key>,
-        composer: UComposer<Field, Type>
+        composer: UComposer<Field, Type>,
     ): UTreeUpdates<Key, Reg, Sort> {
         var mappedNodeFound = false
 
@@ -338,7 +403,7 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
     }
 
     private inner class TreeIterator(
-        private val treeUpdatesIterator: Iterator<Pair<UUpdateNode<Key, Sort>, Reg>>
+        private val treeUpdatesIterator: Iterator<Pair<UUpdateNode<Key, Sort>, Reg>>,
     ) : Iterator<UUpdateNode<Key, Sort>> {
         // A set of values we already emitted by this iterator.
         // Note that it contains ONLY elements that have duplicates by key in the RegionTree.

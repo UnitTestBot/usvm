@@ -10,7 +10,7 @@ interface URegionId<Key> {
     fun <Field, ArrayType, Sort : USort> read(
         key: Key,
         sort: Sort,
-        heap: UReadOnlySymbolicHeap<Field, ArrayType>
+        heap: UReadOnlySymbolicHeap<Field, ArrayType>,
     ): UExpr<Sort>
 
     fun <Field, ArrayType, Sort : USort> write(
@@ -18,7 +18,7 @@ interface URegionId<Key> {
         sort: Sort,
         heap: USymbolicHeap<Field, ArrayType>,
         value: UExpr<Sort>,
-        guard: UBoolExpr
+        guard: UBoolExpr,
     )
 
     fun <Field, ArrayType> keyMapper(composer: UComposer<Field, ArrayType>): KeyMapper<Key>
@@ -28,13 +28,13 @@ interface URegionId<Key> {
  * A region id for a region storing the specific [field].
  */
 data class UInputFieldRegionId<Field> internal constructor(
-    val field: Field
+    val field: Field,
 ) : URegionId<UHeapRef> {
     @Suppress("UNCHECKED_CAST")
     override fun <Field, ArrayType, Sort : USort> read(
         key: UHeapRef,
         sort: Sort,
-        heap: UReadOnlySymbolicHeap<Field, ArrayType>
+        heap: UReadOnlySymbolicHeap<Field, ArrayType>,
     ) = heap.readField(key, field as Field, sort).asExpr(sort)
 
     @Suppress("UNCHECKED_CAST")
@@ -43,12 +43,16 @@ data class UInputFieldRegionId<Field> internal constructor(
         sort: Sort,
         heap: USymbolicHeap<Field, ArrayType>,
         value: UExpr<Sort>,
-        guard: UBoolExpr
+        guard: UBoolExpr,
     ) = heap.writeField(key, field as Field, sort, value, guard)
 
     override fun <Field, ArrayType> keyMapper(
-        composer: UComposer<Field, ArrayType>
+        composer: UComposer<Field, ArrayType>,
     ): KeyMapper<UHeapRef> = { composer.compose(it) }
+
+    override fun toString(): String {
+        return "inputField($field)"
+    }
 }
 
 interface UArrayId<ArrayType, Key> : URegionId<Key> {
@@ -67,7 +71,7 @@ data class UAllocatedArrayId<ArrayType> internal constructor(
     override fun <Field, ArrayType, Sort : USort> read(
         key: USizeExpr,
         sort: Sort,
-        heap: UReadOnlySymbolicHeap<Field, ArrayType>
+        heap: UReadOnlySymbolicHeap<Field, ArrayType>,
     ): UExpr<Sort> {
         val ref = key.uctx.mkConcreteHeapRef(address)
         return heap.readArrayIndex(ref, key, arrayType as ArrayType, sort).asExpr(sort)
@@ -79,14 +83,14 @@ data class UAllocatedArrayId<ArrayType> internal constructor(
         sort: Sort,
         heap: USymbolicHeap<Field, ArrayType>,
         value: UExpr<Sort>,
-        guard: UBoolExpr
+        guard: UBoolExpr,
     ) {
         val ref = key.uctx.mkConcreteHeapRef(address)
         heap.writeArrayIndex(ref, key, arrayType as ArrayType, sort, value, guard)
     }
 
     override fun <Field, ArrayType> keyMapper(
-        composer: UComposer<Field, ArrayType>
+        composer: UComposer<Field, ArrayType>,
     ): KeyMapper<USizeExpr> = { composer.compose(it) }
 
     // we don't include arrayType into hashcode and equals, because [address] already defines unambiguously
@@ -104,19 +108,23 @@ data class UAllocatedArrayId<ArrayType> internal constructor(
     override fun hashCode(): Int {
         return address
     }
+
+    override fun toString(): String {
+        return "allocatedArray($address)"
+    }
 }
 
 /**
  * A region id for a region storing arrays retrieved as a symbolic value, contains only its [arrayType].
  */
 data class UInputArrayId<ArrayType> internal constructor(
-    override val arrayType: ArrayType
+    override val arrayType: ArrayType,
 ) : UArrayId<ArrayType, USymbolicArrayIndex> {
     @Suppress("UNCHECKED_CAST")
     override fun <Field, ArrayType, Sort : USort> read(
         key: USymbolicArrayIndex,
         sort: Sort,
-        heap: UReadOnlySymbolicHeap<Field, ArrayType>
+        heap: UReadOnlySymbolicHeap<Field, ArrayType>,
     ): UExpr<Sort> = heap.readArrayIndex(key.first, key.second, arrayType as ArrayType, sort).asExpr(sort)
 
     @Suppress("UNCHECKED_CAST")
@@ -125,15 +133,19 @@ data class UInputArrayId<ArrayType> internal constructor(
         sort: Sort,
         heap: USymbolicHeap<Field, ArrayType>,
         value: UExpr<Sort>,
-        guard: UBoolExpr
+        guard: UBoolExpr,
     ) = heap.writeArrayIndex(key.first, key.second, arrayType as ArrayType, sort, value, guard)
 
     override fun <Field, ArrayType> keyMapper(
-        composer: UComposer<Field, ArrayType>
+        composer: UComposer<Field, ArrayType>,
     ): KeyMapper<USymbolicArrayIndex> = {
         val ref = composer.compose(it.first)
         val idx = composer.compose(it.second)
         if (ref === it.first && idx === it.second) it else ref to idx
+    }
+
+    override fun toString(): String {
+        return "inputArray($arrayType)"
     }
 }
 
@@ -141,13 +153,13 @@ data class UInputArrayId<ArrayType> internal constructor(
  * A region id for a region storing array lengths for arrays of a specific [arrayType].
  */
 data class UInputArrayLengthId<ArrayType> internal constructor(
-    val arrayType: ArrayType
+    val arrayType: ArrayType,
 ) : URegionId<UHeapRef> {
     @Suppress("UNCHECKED_CAST")
     override fun <Field, ArrayType, Sort : USort> read(
         key: UHeapRef,
         sort: Sort,
-        heap: UReadOnlySymbolicHeap<Field, ArrayType>
+        heap: UReadOnlySymbolicHeap<Field, ArrayType>,
     ): UExpr<Sort> = heap.readArrayLength(key, arrayType as ArrayType).asExpr(sort)
 
     @Suppress("UNCHECKED_CAST")
@@ -156,13 +168,17 @@ data class UInputArrayLengthId<ArrayType> internal constructor(
         sort: Sort,
         heap: USymbolicHeap<Field, ArrayType>,
         value: UExpr<Sort>,
-        guard: UBoolExpr
+        guard: UBoolExpr,
     ) {
         assert(guard.isTrue)
         heap.writeArrayLength(key, value.asExpr(key.uctx.sizeSort), arrayType as ArrayType)
     }
 
     override fun <Field, ArrayType> keyMapper(
-        composer: UComposer<Field, ArrayType>
+        composer: UComposer<Field, ArrayType>,
     ): KeyMapper<UHeapRef> = { composer.compose(it) }
+
+    override fun toString(): String {
+        return "length($arrayType)"
+    }
 }

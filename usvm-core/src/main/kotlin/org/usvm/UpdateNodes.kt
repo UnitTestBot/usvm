@@ -11,30 +11,55 @@ import java.util.*
  */
 sealed interface UUpdateNode<Key, ValueSort : USort> {
     /**
-     * @returns True if the address [key] got overwritten by this write operation in *any* possible concrete state.
+     * @return will the [key] get overwritten by this write operation in *any* possible concrete state,
+     * assuming [precondition] holds, or not.
      */
-    fun includesConcretely(key: Key): Boolean
+    fun includesConcretely(key: Key, precondition: UBoolExpr): Boolean // TODO: any ideas on how to get rid of [precondition]?
+
+    /**
+     * @return will this write get overwritten by [update] operation in *any* possible concrete state or not.
+     */
+    fun isIncludedByUpdateConcretely(update: UUpdateNode<Key, ValueSort>): Boolean
 
     /**
      * @return Symbolic condition expressing that the address [key] got overwritten by this memory write operation.
      * If [includesConcretely] returns true, then this method is obligated to return [UTrue].
+     * Returned condition must imply [guard].
      */
     fun includesSymbolically(key: Key): UBoolExpr
 
     /**
-     * @see [UMemoryRegion.split]
+     * Checks if the value in this [UUpdateNode] indexed by the [key] satisfies the [predicate]. If it does,
+     * returns a new [UUpdateNode] without such writes or `null` if this [UUpdateNode] eliminates completely.
+     *
+     * In addition, if the value of this [UUpdateNode] satisfies the [predicate], it is added to the [matchingWrites]
+     * with appropriate guard taken from the [guardBuilder]. In the end, the [guardBuilder] contains the condition that
+     * [key] excluded from this [UUpdateNode].
+     *
+     * @return a new [UUpdateNode] without values satisfying [predicate] or `null` if this [UUpdateNode] eliminates
+     * completely.
      */
     fun split(
         key: Key,
         predicate: (UExpr<ValueSort>) -> Boolean,
-        matchingWrites: LinkedList<Pair<UBoolExpr, UExpr<ValueSort>>>,
-        guardBuilder: GuardBuilder
+        matchingWrites: MutableList<GuardedExpr<UExpr<ValueSort>>>,
+        guardBuilder: GuardBuilder,
     ): UUpdateNode<Key, ValueSort>?
 
     /**
      * @return Value which has been written into the address [key] during this memory write operation.
      */
     fun value(key: Key): UExpr<ValueSort>
+
+    /**
+     * Guard is a symbolic condition for this update. That is, this update is done only in states satisfying this guard.
+     */
+    val guard: UBoolExpr
+
+    /**
+     * Returns node with updated [guard] condition.
+     */
+    fun guardWith(guard: UBoolExpr): UUpdateNode<Key, ValueSort>
 
     /**
      * Returns a mapped update node using [keyMapper] and [composer].
@@ -50,36 +75,49 @@ class UPinpointUpdateNode<Key, ValueSort : USort>(
     val key: Key,
     internal val value: UExpr<ValueSort>,
     private val keyEqualityComparer: (Key, Key) -> UBoolExpr,
-    val guard: UBoolExpr = value.ctx.trueExpr
+    override val guard: UBoolExpr,
 ) : UUpdateNode<Key, ValueSort> {
-    override fun includesConcretely(key: Key) = this.key == key && guard == guard.ctx.trueExpr
+    override fun includesConcretely(key: Key, precondition: UBoolExpr) =
+        this.key == key && (guard == guard.ctx.trueExpr || guard == precondition) // TODO: some optimizations here?
+    // in fact, we can check less strict formulae: precondition _implies_ guard, but this is too complex to compute.
 
     override fun includesSymbolically(key: Key): UBoolExpr =
         guard.ctx.mkAnd(keyEqualityComparer(this.key, key), guard) // TODO: use simplifying and!
 
+    override fun isIncludedByUpdateConcretely(update: UUpdateNode<Key, ValueSort>): Boolean =
+        update.includesConcretely(key, guard)
     override fun value(key: Key): UExpr<ValueSort> = this.value
 
     override fun split(
         key: Key,
         predicate: (UExpr<ValueSort>) -> Boolean,
-        matchingWrites: LinkedList<Pair<UBoolExpr, UExpr<ValueSort>>>,
-        guardBuilder: GuardBuilder
+        matchingWrites: MutableList<GuardedExpr<UExpr<ValueSort>>>,
+        guardBuilder: GuardBuilder,
     ): UUpdateNode<Key, ValueSort>? {
-        val keyEq = keyEqualityComparer(key, this.key)
         val ctx = value.ctx
-        val keyDiseq = ctx.mkNot(keyEq)
+        val nodeIncludesKey = includesSymbolically(key) // includes guard
+        val nodeExcludesKey = ctx.mkNot(nodeIncludesKey)
+        val guard = guardBuilder.guarded(nodeIncludesKey)
 
-        if (predicate(value)) {
-            val guard = ctx.mkAnd(guardBuilder.nonMatchingUpdatesGuard, keyEq)
-            matchingWrites.add(Pair(guard, value))
-            guardBuilder.matchingUpdatesGuard = ctx.mkAnd(guardBuilder.matchingUpdatesGuard, keyDiseq)
-            return null
+        val res = if (predicate(value)) {
+            matchingWrites += value with guard
+            null
+        } else {
+            this
         }
 
-        guardBuilder.nonMatchingUpdatesGuard = ctx.mkAnd(guardBuilder.nonMatchingUpdatesGuard, ctx.mkNot(keyEq))
+        guardBuilder += nodeExcludesKey
 
-        // TODO: @sergeypospelov: fix this split
-        return this
+        return res
+    }
+
+    override fun guardWith(guard: UBoolExpr): UUpdateNode<Key, ValueSort> {
+        val newGuard = guard.ctx.mkAndNoFlat(this.guard, guard)
+        return if (newGuard == this.guard) {
+            this
+        } else {
+            UPinpointUpdateNode(key, value, keyEqualityComparer, newGuard)
+        }
     }
 
     override fun <Field, Type> map(
@@ -104,7 +142,7 @@ class UPinpointUpdateNode<Key, ValueSort : USort>(
 
     override fun hashCode(): Int = key.hashCode() * 31 + guard.hashCode() // Ignores value
 
-    override fun toString(): String = "{$key <- $value}"
+    override fun toString(): String = "{$key <- $value | $guard}"
 }
 
 /**
@@ -176,10 +214,12 @@ class URangedUpdateNode<RegionId : UArrayId<ArrayType, SrcKey>, ArrayType, SrcKe
     private val concreteComparer: (DstKey, DstKey) -> Boolean,
     private val symbolicComparer: (DstKey, DstKey) -> UBoolExpr,
     val keyConverter: UMemoryKeyConverter<SrcKey, DstKey>,
-    val guard: UBoolExpr
+    override val guard: UBoolExpr
 ) : UUpdateNode<DstKey, ValueSort> {
-    override fun includesConcretely(key: DstKey): Boolean =
-        concreteComparer(fromKey, key) && concreteComparer(key, toKey) && guard.isTrue
+    override fun includesConcretely(key: DstKey, precondition: UBoolExpr): Boolean =
+        concreteComparer(fromKey, key) && concreteComparer(key, toKey) &&
+            (guard == guard.ctx.trueExpr || precondition == guard) // TODO: some optimizations here?
+    // in fact, we can check less strict formulae: precondition _implies_ guard, but this is too complex to compute.
 
     override fun includesSymbolically(key: DstKey): UBoolExpr {
         val leftIsLefter = symbolicComparer(fromKey, key)
@@ -187,6 +227,19 @@ class URangedUpdateNode<RegionId : UArrayId<ArrayType, SrcKey>, ArrayType, SrcKe
         val ctx = leftIsLefter.ctx
 
         return ctx.mkAnd(leftIsLefter, rightIsRighter, guard)
+    }
+
+    override fun isIncludedByUpdateConcretely(update: UUpdateNode<DstKey, ValueSort>): Boolean =
+        update.includesConcretely(fromKey, guard) && update.includesConcretely(toKey, guard)
+
+
+    override fun guardWith(guard: UBoolExpr): UUpdateNode<DstKey, ValueSort> {
+        val newGuard = guard.ctx.mkAndNoFlat(this.guard, guard)
+        return if (newGuard == this.guard) {
+            this
+        } else {
+            URangedUpdateNode(fromKey, toKey, region, concreteComparer, symbolicComparer, keyConverter, newGuard)
+        }
     }
 
     override fun value(key: DstKey): UExpr<ValueSort> = region.read(keyConverter.convert(key))
@@ -223,6 +276,31 @@ class URangedUpdateNode<RegionId : UArrayId<ArrayType, SrcKey>, ArrayType, SrcKe
         )
     }
 
+    override fun split(
+        key: DstKey,
+        predicate: (UExpr<ValueSort>) -> Boolean,
+        matchingWrites: MutableList<GuardedExpr<UExpr<ValueSort>>>,
+        guardBuilder: GuardBuilder,
+    ): UUpdateNode<DstKey, ValueSort> {
+        val ctx = guardBuilder.nonMatchingUpdatesGuard.ctx
+        val nodeIncludesKey = includesSymbolically(key) // contains guard
+        val nodeExcludesKey = ctx.mkNot(nodeIncludesKey)
+        val nextGuard = guardBuilder.guarded(nodeIncludesKey)
+        val nextGuardBuilder = GuardBuilder(nextGuard)
+
+        val splitRegion = region.split(keyConverter.convert(key), predicate, matchingWrites, nextGuardBuilder)
+
+        val resultUpdateNode = if (splitRegion === region) {
+            this
+        } else {
+            URangedUpdateNode(fromKey, toKey, splitRegion, concreteComparer, symbolicComparer, keyConverter, guard)
+        }
+
+        guardBuilder += nodeExcludesKey
+
+        return resultUpdateNode
+    }
+
     // Ignores update
     override fun equals(other: Any?): Boolean =
         other is URangedUpdateNode<*, *, *, *, *> &&
@@ -233,25 +311,8 @@ class URangedUpdateNode<RegionId : UArrayId<ArrayType, SrcKey>, ArrayType, SrcKe
     // Ignores update
     override fun hashCode(): Int = (17 * fromKey.hashCode() + toKey.hashCode()) * 31 + guard.hashCode()
 
-    override fun split(
-        key: DstKey, predicate: (UExpr<ValueSort>) -> Boolean,
-        matchingWrites: LinkedList<Pair<UBoolExpr, UExpr<ValueSort>>>,
-        guardBuilder: GuardBuilder
-    ): UUpdateNode<DstKey, ValueSort> {
-        val splitRegion = region.split(keyConverter.convert(key), predicate, matchingWrites, guardBuilder)
-        if (splitRegion === region) {
-            return this
-        }
-
-        return URangedUpdateNode(
-            fromKey,
-            toKey,
-            splitRegion,
-            concreteComparer,
-            symbolicComparer,
-            keyConverter,
-            guard
-        )
+    override fun toString(): String {
+        return "{[$fromKey..$toKey] <- $region[keyConv($fromKey)..keyConv($toKey)] | $guard}"
     }
 }
 

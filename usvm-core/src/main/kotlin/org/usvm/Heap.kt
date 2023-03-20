@@ -2,7 +2,6 @@ package org.usvm
 
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentMapOf
-import org.ksmt.solver.KModel
 import org.ksmt.utils.asExpr
 
 interface UReadOnlyHeap<Ref, Value, SizeT, Field, ArrayType, Guard> {
@@ -26,7 +25,7 @@ class UEmptyHeap<Field, ArrayType>(private val ctx: UContext) : UReadOnlySymboli
         ref: UHeapRef,
         index: USizeExpr,
         arrayType: ArrayType,
-        elementSort: Sort
+        elementSort: Sort,
     ): UExpr<Sort> = ctx.mkDefault(elementSort)
 
     override fun readArrayLength(ref: UHeapRef, arrayType: ArrayType) =
@@ -63,8 +62,6 @@ interface UHeap<Ref, Value, SizeT, Field, ArrayType, Guard> : UReadOnlyHeap<Ref,
     fun allocate(): UConcreteHeapAddress
     fun allocateArray(count: SizeT): UConcreteHeapAddress
 
-    fun decode(model: KModel): UReadOnlyHeap<Ref, Value, SizeT, Field, ArrayType, Guard>
-
     fun clone(): UHeap<Ref, Value, SizeT, Field, ArrayType, Guard>
 }
 
@@ -77,7 +74,7 @@ typealias USymbolicHeap<Field, ArrayType> = UHeap<UHeapRef, UExpr<out USort>, US
  * Copying is prohibited.
  */
 class UAddressCounter {
-    private var lastAddress = nullAddress
+    private var lastAddress = 0
     fun freshAddress(): UConcreteHeapAddress = lastAddress++
 }
 
@@ -85,16 +82,16 @@ data class URegionHeap<Field, ArrayType>(
     private val ctx: UContext,
     private var lastAddress: UAddressCounter = UAddressCounter(),
     private var allocatedFields: PersistentMap<Pair<UConcreteHeapAddress, Field>, UExpr<out USort>> = persistentMapOf(),
-    private var inputFields: PersistentMap<Field, UInputFieldMemoryRegion<Field, out USort>> = persistentMapOf(),
-    private var allocatedArrays: PersistentMap<UConcreteHeapAddress, UAllocatedArrayMemoryRegion<ArrayType, out USort>> = persistentMapOf(),
-    private var inputArrays: PersistentMap<ArrayType, UInputArrayMemoryRegion<ArrayType, out USort>> = persistentMapOf(),
+    private var inputFields: PersistentMap<Field, UInputFieldRegion<Field, out USort>> = persistentMapOf(),
+    private var allocatedArrays: PersistentMap<UConcreteHeapAddress, UAllocatedArrayRegion<ArrayType, out USort>> = persistentMapOf(),
+    private var inputArrays: PersistentMap<ArrayType, UInputArrayRegion<ArrayType, out USort>> = persistentMapOf(),
     private var allocatedLengths: PersistentMap<UConcreteHeapAddress, USizeExpr> = persistentMapOf(),
-    private var inputLengths: PersistentMap<ArrayType, UInputArrayLengthMemoryRegion<ArrayType>> = persistentMapOf()
+    private var inputLengths: PersistentMap<ArrayType, UInputArrayLengthRegion<ArrayType>> = persistentMapOf()
 ) : USymbolicHeap<Field, ArrayType> {
-    private fun <Sort : USort> fieldsRegion(
+    private fun <Sort : USort> inputFieldRegion(
         field: Field,
         sort: Sort
-    ): UInputFieldMemoryRegion<Field, Sort> =
+    ): UInputFieldRegion<Field, Sort> =
         inputFields[field].inputFieldsRegionUncheckedCast()
             ?: emptyInputFieldRegion(field, sort) { key, region ->
                 ctx.mkInputFieldReading(region, key)
@@ -104,7 +101,7 @@ data class URegionHeap<Field, ArrayType>(
         arrayType: ArrayType,
         address: UConcreteHeapAddress,
         elementSort: Sort
-    ): UAllocatedArrayMemoryRegion<ArrayType, Sort> =
+    ): UAllocatedArrayRegion<ArrayType, Sort> =
         allocatedArrays[address].allocatedArrayRegionUncheckedCast()
             ?: emptyAllocatedArrayRegion(arrayType, address, elementSort) { index, region ->
                 ctx.mkAllocatedArrayReading(region, index)
@@ -113,7 +110,7 @@ data class URegionHeap<Field, ArrayType>(
     private fun <Sort : USort> inputArrayRegion(
         arrayType: ArrayType,
         elementSort: Sort
-    ): UInputArrayMemoryRegion<ArrayType, Sort> =
+    ): UInputArrayRegion<ArrayType, Sort> =
         inputArrays[arrayType].inputArrayRegionUncheckedCast()
             ?: emptyInputArrayRegion(arrayType, elementSort) { pair, region ->
                 ctx.mkInputArrayReading(region, pair.first, pair.second)
@@ -121,17 +118,17 @@ data class URegionHeap<Field, ArrayType>(
 
     private fun inputArrayLengthRegion(
         arrayType: ArrayType
-    ): UInputArrayLengthMemoryRegion<ArrayType> =
+    ): UInputArrayLengthRegion<ArrayType> =
         inputLengths[arrayType]
             ?: emptyArrayLengthRegion(arrayType, ctx) { ref, region ->
-                ctx.mkInputArrayLength(region, ref)
+                ctx.mkInputArrayLengthReading(region, ref)
             }
 
     override fun <Sort : USort> readField(ref: UHeapRef, field: Field, sort: Sort): UExpr<Sort> =
-        when (ref) {
-            is UConcreteHeapRef -> allocatedFields[Pair(ref.address, field)]?.asExpr(sort) ?: sort.defaultValue()
-            else -> fieldsRegion(field, sort).read(ref)
-        }
+        ref.mapHeapRef(
+            { concreteRef -> allocatedFields[Pair(concreteRef.address, field)]?.asExpr(sort) ?: sort.defaultValue() },
+            { symbolicRef -> inputFieldRegion(field, sort).read(symbolicRef) }
+        )
 
     override fun <Sort : USort> readArrayIndex(
         ref: UHeapRef,
@@ -139,18 +136,17 @@ data class URegionHeap<Field, ArrayType>(
         arrayType: ArrayType,
         elementSort: Sort
     ): UExpr<Sort> =
-        when (ref) {
-            is UConcreteHeapRef -> allocatedArrayRegion(arrayType, ref.address, elementSort).read(index)
-            else -> inputArrayRegion(arrayType, elementSort).read(Pair(ref, index))
-        }
+        ref.mapHeapRef(
+            { concreteRef -> allocatedArrayRegion(arrayType, concreteRef.address, elementSort).read(index) },
+            { symbolicRef -> inputArrayRegion(arrayType, elementSort).read(Pair(symbolicRef, index)) }
+        )
 
     override fun readArrayLength(ref: UHeapRef, arrayType: ArrayType): USizeExpr =
-        when (ref) {
-            is UConcreteHeapRef -> allocatedLengths[ref.address] ?: ctx.zeroSize
-            else -> inputArrayLengthRegion(arrayType).read(ref)
-        }
+        ref.mapHeapRef(
+            { concreteRef -> allocatedLengths[concreteRef.address] ?: ctx.zeroSize },
+            { symbolicRef -> inputArrayLengthRegion(arrayType).read(symbolicRef) }
+        )
 
-    // TODO: Either prohibit merging concrete and symbolic heap addresses, or fork state by ite-refs here
     override fun <Sort : USort> writeField(
         ref: UHeapRef,
         field: Field,
@@ -158,29 +154,25 @@ data class URegionHeap<Field, ArrayType>(
         value: UExpr<out USort>,
         guard: UBoolExpr
     ) {
-        // A write operation that never succeeds
-        if (guard.isFalse) return
-
         val valueToWrite = value.asExpr(sort)
 
-        when (ref) {
-            is UConcreteHeapRef -> {
-                val key = ref.address to field
-                val allocatedFieldValue = if (guard.isTrue) {
-                    valueToWrite
-                } else {
-                    ctx.mkIte(guard, valueToWrite, readField(ref, field, sort))
-                }
+        doWithHeapRef(
+            ref,
+            guard,
+            { (concreteRef, innerGuard) ->
+                val key = Pair(concreteRef.address, field)
 
-                allocatedFields = allocatedFields.put(key, allocatedFieldValue)
-            }
-
-            else -> {
-                val oldRegion = fieldsRegion(field, sort)
-                val newRegion = oldRegion.write(ref, valueToWrite, guard)
+                val oldValue = allocatedFields.getOrDefault(key, sort.defaultValue()).asExpr(sort)
+                val newValue = ctx.mkIte(innerGuard, valueToWrite, oldValue)
+                allocatedFields = allocatedFields.put(key, newValue)
+            },
+            { (symbolicRef, innerGuard) ->
+                val oldRegion = inputFieldRegion(field, sort)
+                val newRegion = oldRegion.write(symbolicRef, valueToWrite, innerGuard)
                 inputFields = inputFields.put(field, newRegion)
+
             }
-        }
+        )
     }
 
     override fun <Sort : USort> writeArrayIndex(
@@ -191,35 +183,39 @@ data class URegionHeap<Field, ArrayType>(
         value: UExpr<out USort>,
         guard: UBoolExpr
     ) {
-        // A write operation that never succeeds
-        if (guard.isFalse) return
-
         val valueToWrite = value.asExpr(elementSort)
 
-        when (ref) {
-            is UConcreteHeapRef -> {
-                val oldRegion = allocatedArrayRegion(type, ref.address, elementSort)
-                val newRegion = oldRegion.write(index, valueToWrite, guard)
-                allocatedArrays = allocatedArrays.put(ref.address, newRegion)
-            }
-
-            else -> {
+        doWithHeapRef(
+            ref,
+            guard,
+            { (concreteRef, accGuard) ->
+                val oldRegion = allocatedArrayRegion(type, concreteRef.address, elementSort)
+                val newRegion = oldRegion.write(index, valueToWrite, accGuard)
+                allocatedArrays = allocatedArrays.put(concreteRef.address, newRegion)
+            },
+            { (symbolicRef, accGuard) ->
                 val region = inputArrayRegion(type, elementSort)
-                val newRegion = region.write(ref to index, valueToWrite, guard)
+                val newRegion = region.write(Pair(symbolicRef, index), valueToWrite, accGuard)
                 inputArrays = inputArrays.put(type, newRegion)
             }
-        }
+        )
     }
 
     override fun writeArrayLength(ref: UHeapRef, size: USizeExpr, arrayType: ArrayType) {
-        when (ref) {
-            is UConcreteHeapRef -> allocatedLengths = allocatedLengths.put(ref.address, size)
-            else -> {
+        doWithHeapRef(
+            ref,
+            ctx.trueExpr,
+            { (concreteRef, guard) ->
+                val oldSize = allocatedLengths.getOrDefault(concreteRef.address, ctx.zeroSize)
+                val newSize = ctx.mkIte(guard, size, oldSize)
+                allocatedLengths = allocatedLengths.put(concreteRef.address, newSize)
+            },
+            { (symbolicRef, guard) ->
                 val region = inputArrayLengthRegion(arrayType)
-                val newRegion = region.write(ref, size, ctx.trueExpr)
+                val newRegion = region.write(symbolicRef, size, guard)
                 inputLengths = inputLengths.put(arrayType, newRegion)
             }
-        }
+        )
     }
 
     override fun <Sort : USort> memset(
@@ -241,57 +237,60 @@ data class URegionHeap<Field, ArrayType>(
         toDstIdx: USizeExpr,
         guard: UBoolExpr
     ) {
-        // A copy operation that never succeeds
-        if (guard.isFalse) return
-
-        val src = srcRef to fromSrcIdx
-        val dst = dstRef to fromDstIdx
-
-        when (srcRef) {
-            is UConcreteHeapRef -> {
+        doWithHeapRef(
+            srcRef,
+            guard,
+            blockOnConcrete = { (srcRef, guard) ->
                 val srcRegion = allocatedArrayRegion(type, srcRef.address, elementSort)
+                val src = srcRef to fromSrcIdx
 
-                when (dstRef) {
-                    is UConcreteHeapRef -> {
+                doWithHeapRef(
+                    dstRef,
+                    guard,
+                    blockOnConcrete = { (dstRef, deepGuard) ->
+                        val dst = dstRef to fromDstIdx
+
                         val dstRegion = allocatedArrayRegion(type, dstRef.address, elementSort)
                         val keyConverter = UAllocatedToAllocatedKeyConverter(src, dst, toDstIdx)
-                        val newDstRegion = dstRegion.memcpy(srcRegion, fromDstIdx, toDstIdx, keyConverter, guard)
+                        val newDstRegion = dstRegion.copyRange(srcRegion, fromDstIdx, toDstIdx, keyConverter, deepGuard)
                         allocatedArrays = allocatedArrays.put(dstRef.address, newDstRegion)
-                    }
+                    },
+                    blockOnSymbolic = { (dstRef, deepGuard) ->
+                        val dst = dstRef to fromDstIdx
 
-                    is UIteExpr -> TODO()
-                    else -> {
                         val dstRegion = inputArrayRegion(type, elementSort)
                         val keyConverter = UAllocatedToInputKeyConverter(src, dst, toDstIdx)
-                        val newDstRegion = dstRegion.memcpy(srcRegion, dst, dstRef to toDstIdx, keyConverter, guard)
+                        val newDstRegion = dstRegion.copyRange(srcRegion, src, dst, keyConverter, deepGuard)
                         inputArrays = inputArrays.put(type, newDstRegion)
-                    }
-                }
-            }
-
-            is UIteExpr -> TODO()
-
-            else -> {
+                    },
+                )
+            },
+            blockOnSymbolic = { (srcRef, guard) ->
                 val srcRegion = inputArrayRegion(type, elementSort)
+                val src = srcRef to fromSrcIdx
 
-                when (dstRef) {
-                    is UConcreteHeapRef -> {
+                doWithHeapRef(
+                    dstRef,
+                    guard,
+                    blockOnConcrete = { (dstRef, deepGuard) ->
+                        val dst = dstRef to fromDstIdx
+
                         val dstRegion = allocatedArrayRegion(type, dstRef.address, elementSort)
                         val keyConverter = UInputToAllocatedKeyConverter(src, dst, toDstIdx)
-                        val newDstRegion = dstRegion.memcpy(srcRegion, fromDstIdx, toDstIdx, keyConverter, guard)
+                        val newDstRegion = dstRegion.copyRange(srcRegion, fromDstIdx, toDstIdx, keyConverter, deepGuard)
                         allocatedArrays = allocatedArrays.put(dstRef.address, newDstRegion)
-                    }
+                    },
+                    blockOnSymbolic = { (dstRef, deepGuard) ->
+                        val dst = dstRef to fromDstIdx
 
-                    is UIteExpr -> TODO()
-                    else -> {
                         val dstRegion = inputArrayRegion(type, elementSort)
                         val keyConverter = UInputToInputKeyConverter(src, dst, toDstIdx)
-                        val newDstRegion = dstRegion.memcpy(srcRegion, dst, dstRef to toDstIdx, keyConverter, guard)
+                        val newDstRegion = dstRegion.copyRange(srcRegion, dst, dstRef to toDstIdx, keyConverter, deepGuard)
                         inputArrays = inputArrays.put(type, newDstRegion)
-                    }
-                }
-            }
-        }
+                    },
+                )
+            },
+        )
     }
 
     override fun allocate() = lastAddress.freshAddress()
@@ -300,10 +299,6 @@ data class URegionHeap<Field, ArrayType>(
         val address = lastAddress.freshAddress()
         allocatedLengths = allocatedLengths.put(address, count)
         return address
-    }
-
-    override fun decode(model: KModel): UReadOnlySymbolicHeap<Field, ArrayType> {
-        TODO("Not yet implemented")
     }
 
     override fun clone(): UHeap<UHeapRef, UExpr<out USort>, USizeExpr, Field, ArrayType, UBoolExpr> =
@@ -318,13 +313,13 @@ data class URegionHeap<Field, ArrayType>(
 }
 
 @Suppress("UNCHECKED_CAST")
-fun <Field, Sort : USort> UInputFieldMemoryRegion<Field, *>?.inputFieldsRegionUncheckedCast(): UInputFieldMemoryRegion<Field, Sort>? =
-    this as? UInputFieldMemoryRegion<Field, Sort>
+fun <Field, Sort : USort> UInputFieldRegion<Field, *>?.inputFieldsRegionUncheckedCast(): UInputFieldRegion<Field, Sort>? =
+    this as? UInputFieldRegion<Field, Sort>
 
 @Suppress("UNCHECKED_CAST")
-fun <ArrayType, Sort : USort> UAllocatedArrayMemoryRegion<ArrayType, *>?.allocatedArrayRegionUncheckedCast(): UAllocatedArrayMemoryRegion<ArrayType, Sort>? =
-    this as? UAllocatedArrayMemoryRegion<ArrayType, Sort>
+fun <ArrayType, Sort : USort> UAllocatedArrayRegion<ArrayType, *>?.allocatedArrayRegionUncheckedCast(): UAllocatedArrayRegion<ArrayType, Sort>? =
+    this as? UAllocatedArrayRegion<ArrayType, Sort>
 
 @Suppress("UNCHECKED_CAST")
-fun <ArrayType, Sort : USort> UInputArrayMemoryRegion<ArrayType, *>?.inputArrayRegionUncheckedCast(): UInputArrayMemoryRegion<ArrayType, Sort>? =
-    this as? UInputArrayMemoryRegion<ArrayType, Sort>
+fun <ArrayType, Sort : USort> UInputArrayRegion<ArrayType, *>?.inputArrayRegionUncheckedCast(): UInputArrayRegion<ArrayType, Sort>? =
+    this as? UInputArrayRegion<ArrayType, Sort>

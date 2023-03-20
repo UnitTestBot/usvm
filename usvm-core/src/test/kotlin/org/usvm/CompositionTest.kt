@@ -200,19 +200,19 @@ internal class CompositionTest<Type, Field> {
             .write(sndAddress, sndResultValue, guard = trueExpr)
 
         val regionId = UInputArrayLengthId(arrayType)
-        val regionArray = UInputArrayLengthMemoryRegion(
+        val regionArray = UInputArrayLengthRegion(
             regionId,
             bv32Sort,
             updates,
             defaultValue = sizeSort.defaultValue(),
-            instantiator = { key, region -> mkInputArrayLength(region, key) }
+            instantiator = { key, region -> mkInputArrayLengthReading(region, key) }
         )
 
         val fstConcreteAddress = mkConcreteHeapRef(firstAddress)
         val sndConcreteAddress = mkConcreteHeapRef(secondAddress)
 
-        val firstReading = mkInputArrayLength(regionArray, fstConcreteAddress)
-        val secondReading = mkInputArrayLength(regionArray, sndConcreteAddress)
+        val firstReading = mkInputArrayLengthReading(regionArray, fstConcreteAddress)
+        val secondReading = mkInputArrayLengthReading(regionArray, sndConcreteAddress)
 
         val fstValueFromHeap = 42.toBv()
         val sndValueFromHeap = 43.toBv()
@@ -249,7 +249,8 @@ internal class CompositionTest<Type, Field> {
         val initialNode = UPinpointUpdateNode(
             fstAddress to fstIndex,
             42.toBv(),
-            keyEqualityComparer
+            keyEqualityComparer,
+            trueExpr,
         )
 
         val updates: UMemoryUpdates<USymbolicArrayIndex, UBv32Sort> = UFlatUpdates(
@@ -262,7 +263,7 @@ internal class CompositionTest<Type, Field> {
 
         val arrayType: KClass<Array<*>> = Array::class
 
-        val region = UInputArrayMemoryRegion(
+        val region = UInputArrayRegion(
             UInputArrayId(arrayType),
             mkBv32Sort(),
             updates,
@@ -315,7 +316,7 @@ internal class CompositionTest<Type, Field> {
             .write(sndIndex, 2.toBv(), guard = trueExpr)
 
         val regionId = UAllocatedArrayId(arrayType, address)
-        val regionArray = UAllocatedArrayMemoryRegion(
+        val regionArray = UAllocatedArrayRegion(
             regionId,
             bv32Sort,
             updates,
@@ -359,8 +360,8 @@ internal class CompositionTest<Type, Field> {
 
     @Test
     fun testUFieldReading() = with(ctx) {
-        val aAddress = mockk<UHeapRef>()
-        val bAddress = mockk<UHeapRef>()
+        val aAddress = mockk<USymbolicHeapRef>()
+        val bAddress = mockk<USymbolicHeapRef>()
 
         val updates = UEmptyUpdates<UHeapRef, UBv32Sort>(
             symbolicEq = { k1, k2 -> k1 eq k2 },
@@ -370,7 +371,7 @@ internal class CompositionTest<Type, Field> {
         val field = mockk<java.lang.reflect.Field>() // TODO replace with jacoDB field
 
         // An empty region with one write in it
-        val region = UInputFieldMemoryRegion(
+        val region = UInputFieldRegion(
             UInputFieldRegionId(field),
             bv32Sort,
             updates,
