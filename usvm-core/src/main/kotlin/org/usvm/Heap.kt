@@ -1,17 +1,22 @@
 package org.usvm
 
-import org.ksmt.solver.KModel
-import org.ksmt.utils.asExpr
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentMapOf
+import org.ksmt.solver.KModel
+import org.ksmt.utils.asExpr
 
-interface UReadOnlyHeap<in Ref, Value, SizeT, Field, ArrayType> {
+interface UReadOnlyHeap<Ref, Value, SizeT, Field, ArrayType, Guard> {
     fun <Sort : USort> readField(ref: Ref, field: Field, sort: Sort): Value
     fun <Sort : USort> readArrayIndex(ref: Ref, index: SizeT, arrayType: ArrayType, elementSort: Sort): Value
     fun readArrayLength(ref: Ref, arrayType: ArrayType): SizeT
+
+    /**
+     * Returns a copy of the current map to be able to modify it without changing the original one.
+     */
+    fun toMutableHeap(): UHeap<Ref, Value, SizeT, Field, ArrayType, Guard>
 }
 
-typealias UReadOnlySymbolicHeap<Field, ArrayType> = UReadOnlyHeap<UHeapRef, UExpr<out USort>, USizeExpr, Field, ArrayType>
+typealias UReadOnlySymbolicHeap<Field, ArrayType> = UReadOnlyHeap<UHeapRef, UExpr<out USort>, USizeExpr, Field, ArrayType, UBoolExpr>
 
 class UEmptyHeap<Field, ArrayType>(private val ctx: UContext) : UReadOnlySymbolicHeap<Field, ArrayType> {
     override fun <Sort : USort> readField(ref: UHeapRef, field: Field, sort: Sort): UExpr<Sort> =
@@ -26,24 +31,44 @@ class UEmptyHeap<Field, ArrayType>(private val ctx: UContext) : UReadOnlySymboli
 
     override fun readArrayLength(ref: UHeapRef, arrayType: ArrayType) =
         ctx.zeroSize
+
+    override fun toMutableHeap(): UHeap<UHeapRef, UExpr<out USort>, USizeExpr, Field, ArrayType, UBoolExpr> = URegionHeap(ctx)
 }
 
-interface UHeap<Ref, Value, SizeT, Field, ArrayType> : UReadOnlyHeap<Ref, Value, SizeT, Field, ArrayType> {
-    fun <Sort : USort> writeField(ref: Ref, field: Field, sort: Sort, value: Value)
-    fun <Sort : USort> writeArrayIndex(ref: Ref, index: SizeT, type: ArrayType, elementSort: Sort, value: Value)
+interface UHeap<Ref, Value, SizeT, Field, ArrayType, Guard> : UReadOnlyHeap<Ref, Value, SizeT, Field, ArrayType, Guard> {
+    fun <Sort : USort> writeField(ref: Ref, field: Field, sort: Sort, value: Value, guard: Guard)
+    fun <Sort : USort> writeArrayIndex(
+        ref: Ref,
+        index: SizeT,
+        type: ArrayType,
+        elementSort: Sort,
+        value: Value,
+        guard: Guard
+    )
+
+    fun writeArrayLength(ref: Ref, size: SizeT, arrayType: ArrayType)
 
     fun <Sort : USort> memset(ref: Ref, type: ArrayType, sort: Sort, contents: Sequence<Value>)
-    fun memcpy(src: Ref, dst: Ref, type: ArrayType, fromSrc: SizeT, fromDst: SizeT, length: SizeT)
+    fun <Sort : USort> memcpy(
+        srcRef: Ref,
+        dstRef: Ref,
+        type: ArrayType,
+        elementSort: Sort,
+        fromSrcIdx: SizeT,
+        fromDstIdx: SizeT,
+        toDstIdx: SizeT,
+        guard: Guard
+    )
 
     fun allocate(): UConcreteHeapAddress
     fun allocateArray(count: SizeT): UConcreteHeapAddress
 
-    fun decode(model: KModel): UReadOnlyHeap<Ref, Value, SizeT, Field, ArrayType>
+    fun decode(model: KModel): UReadOnlyHeap<Ref, Value, SizeT, Field, ArrayType, Guard>
 
-    fun clone(): UHeap<Ref, Value, SizeT, Field, ArrayType>
+    fun clone(): UHeap<Ref, Value, SizeT, Field, ArrayType, Guard>
 }
 
-typealias USymbolicHeap<Field, ArrayType> = UHeap<UHeapRef, UExpr<out USort>, USizeExpr, Field, ArrayType>
+typealias USymbolicHeap<Field, ArrayType> = UHeap<UHeapRef, UExpr<out USort>, USizeExpr, Field, ArrayType, UBoolExpr>
 
 /**
  * Current heap address holder. Calling [freshAddress] advances counter globally.
@@ -72,7 +97,7 @@ data class URegionHeap<Field, ArrayType>(
     ): UInputFieldMemoryRegion<Field, Sort> =
         inputFields[field].inputFieldsRegionUncheckedCast()
             ?: emptyInputFieldRegion(field, sort) { key, region ->
-                ctx.mkFieldReading(region, key)
+                ctx.mkInputFieldReading(region, key)
             }
 
     private fun <Sort : USort> allocatedArrayRegion(
@@ -99,7 +124,7 @@ data class URegionHeap<Field, ArrayType>(
     ): UInputArrayLengthMemoryRegion<ArrayType> =
         inputLengths[arrayType]
             ?: emptyArrayLengthRegion(arrayType, ctx) { ref, region ->
-                ctx.mkArrayLength(region, ref)
+                ctx.mkInputArrayLength(region, ref)
             }
 
     override fun <Sort : USort> readField(ref: UHeapRef, field: Field, sort: Sort): UExpr<Sort> =
@@ -126,17 +151,33 @@ data class URegionHeap<Field, ArrayType>(
         }
 
     // TODO: Either prohibit merging concrete and symbolic heap addresses, or fork state by ite-refs here
-    override fun <Sort : USort> writeField(ref: UHeapRef, field: Field, sort: Sort, value: UExpr<out USort>) {
+    override fun <Sort : USort> writeField(
+        ref: UHeapRef,
+        field: Field,
+        sort: Sort,
+        value: UExpr<out USort>,
+        guard: UBoolExpr
+    ) {
+        // A write operation that never succeeds
+        if (guard.isFalse) return
+
         val valueToWrite = value.asExpr(sort)
 
         when (ref) {
             is UConcreteHeapRef -> {
-                allocatedFields = allocatedFields.put(Pair(ref.address, field), valueToWrite)
+                val key = ref.address to field
+                val allocatedFieldValue = if (guard.isTrue) {
+                    valueToWrite
+                } else {
+                    ctx.mkIte(guard, valueToWrite, readField(ref, field, sort))
+                }
+
+                allocatedFields = allocatedFields.put(key, allocatedFieldValue)
             }
 
             else -> {
                 val oldRegion = fieldsRegion(field, sort)
-                val newRegion = oldRegion.write(ref, valueToWrite)
+                val newRegion = oldRegion.write(ref, valueToWrite, guard)
                 inputFields = inputFields.put(field, newRegion)
             }
         }
@@ -147,21 +188,36 @@ data class URegionHeap<Field, ArrayType>(
         index: USizeExpr,
         type: ArrayType,
         elementSort: Sort,
-        value: UExpr<out USort>
+        value: UExpr<out USort>,
+        guard: UBoolExpr
     ) {
+        // A write operation that never succeeds
+        if (guard.isFalse) return
+
         val valueToWrite = value.asExpr(elementSort)
 
         when (ref) {
             is UConcreteHeapRef -> {
                 val oldRegion = allocatedArrayRegion(type, ref.address, elementSort)
-                val newRegion = oldRegion.write(index, valueToWrite)
+                val newRegion = oldRegion.write(index, valueToWrite, guard)
                 allocatedArrays = allocatedArrays.put(ref.address, newRegion)
             }
 
             else -> {
                 val region = inputArrayRegion(type, elementSort)
-                val newRegion = region.write(Pair(ref, index), valueToWrite)
+                val newRegion = region.write(ref to index, valueToWrite, guard)
                 inputArrays = inputArrays.put(type, newRegion)
+            }
+        }
+    }
+
+    override fun writeArrayLength(ref: UHeapRef, size: USizeExpr, arrayType: ArrayType) {
+        when (ref) {
+            is UConcreteHeapRef -> allocatedLengths = allocatedLengths.put(ref.address, size)
+            else -> {
+                val region = inputArrayLengthRegion(arrayType)
+                val newRegion = region.write(ref, size, ctx.trueExpr)
+                inputLengths = inputLengths.put(arrayType, newRegion)
             }
         }
     }
@@ -175,15 +231,67 @@ data class URegionHeap<Field, ArrayType>(
         TODO("Not yet implemented")
     }
 
-    override fun memcpy(
-        src: UHeapRef,
-        dst: UHeapRef,
+    override fun <Sort : USort> memcpy(
+        srcRef: UHeapRef,
+        dstRef: UHeapRef,
         type: ArrayType,
-        fromSrc: USizeExpr,
-        fromDst: USizeExpr,
-        length: USizeExpr
+        elementSort: Sort,
+        fromSrcIdx: USizeExpr,
+        fromDstIdx: USizeExpr,
+        toDstIdx: USizeExpr,
+        guard: UBoolExpr
     ) {
-        TODO()
+        // A copy operation that never succeeds
+        if (guard.isFalse) return
+
+        val src = srcRef to fromSrcIdx
+        val dst = dstRef to fromDstIdx
+
+        when (srcRef) {
+            is UConcreteHeapRef -> {
+                val srcRegion = allocatedArrayRegion(type, srcRef.address, elementSort)
+
+                when (dstRef) {
+                    is UConcreteHeapRef -> {
+                        val dstRegion = allocatedArrayRegion(type, dstRef.address, elementSort)
+                        val keyConverter = UAllocatedToAllocatedKeyConverter(src, dst, toDstIdx)
+                        val newDstRegion = dstRegion.memcpy(srcRegion, fromDstIdx, toDstIdx, keyConverter, guard)
+                        allocatedArrays = allocatedArrays.put(dstRef.address, newDstRegion)
+                    }
+
+                    is UIteExpr -> TODO()
+                    else -> {
+                        val dstRegion = inputArrayRegion(type, elementSort)
+                        val keyConverter = UAllocatedToInputKeyConverter(src, dst, toDstIdx)
+                        val newDstRegion = dstRegion.memcpy(srcRegion, dst, dstRef to toDstIdx, keyConverter, guard)
+                        inputArrays = inputArrays.put(type, newDstRegion)
+                    }
+                }
+            }
+
+            is UIteExpr -> TODO()
+
+            else -> {
+                val srcRegion = inputArrayRegion(type, elementSort)
+
+                when (dstRef) {
+                    is UConcreteHeapRef -> {
+                        val dstRegion = allocatedArrayRegion(type, dstRef.address, elementSort)
+                        val keyConverter = UInputToAllocatedKeyConverter(src, dst, toDstIdx)
+                        val newDstRegion = dstRegion.memcpy(srcRegion, fromDstIdx, toDstIdx, keyConverter, guard)
+                        allocatedArrays = allocatedArrays.put(dstRef.address, newDstRegion)
+                    }
+
+                    is UIteExpr -> TODO()
+                    else -> {
+                        val dstRegion = inputArrayRegion(type, elementSort)
+                        val keyConverter = UInputToInputKeyConverter(src, dst, toDstIdx)
+                        val newDstRegion = dstRegion.memcpy(srcRegion, dst, dstRef to toDstIdx, keyConverter, guard)
+                        inputArrays = inputArrays.put(type, newDstRegion)
+                    }
+                }
+            }
+        }
     }
 
     override fun allocate() = lastAddress.freshAddress()
@@ -198,13 +306,15 @@ data class URegionHeap<Field, ArrayType>(
         TODO("Not yet implemented")
     }
 
-    override fun clone(): UHeap<UHeapRef, UExpr<out USort>, USizeExpr, Field, ArrayType> =
+    override fun clone(): UHeap<UHeapRef, UExpr<out USort>, USizeExpr, Field, ArrayType, UBoolExpr> =
         URegionHeap(
             ctx, lastAddress,
             allocatedFields, inputFields,
             allocatedArrays, inputArrays,
             allocatedLengths, inputLengths
         )
+
+    override fun toMutableHeap() = clone()
 }
 
 @Suppress("UNCHECKED_CAST")

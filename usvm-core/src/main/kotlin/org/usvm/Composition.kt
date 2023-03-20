@@ -1,7 +1,5 @@
 package org.usvm
 
-import org.ksmt.utils.asExpr
-
 @Suppress("MemberVisibilityCanBePrivate")
 open class UComposer<Field, Type>(
     ctx: UContext,
@@ -34,41 +32,33 @@ open class UComposer<Field, Type>(
         typeEvaluator.evalIs(composedAddress, type)
     }
 
-    override fun transform(expr: UArrayLength<Type>): USizeExpr = with(expr) {
-        val composedAddress = compose(address)
-        heapEvaluator.readArrayLength(composedAddress, region.regionId.arrayType)
-    }
-
-    override fun <Sort : USort> transform(
-        expr: UInputArrayReading<Type, Sort>
+    fun <RegionId : URegionId<Key>, Key, Sort : USort> transformHeapReading(
+        expr: UHeapReading<RegionId, Key, Sort>,
+        key: Key
     ): UExpr<Sort> = with(expr) {
-        val composedAddress = compose(address)
-        val composedIndex = compose(index)
-        // TODO compose the region
+        val instantiator = { key: Key, memoryRegion: UMemoryRegion<RegionId, Key, Sort> ->
+            // Create a copy of this heap to avoid its modification
+            val heapToApplyUpdates = heapEvaluator.toMutableHeap()
+            memoryRegion.applyTo(heapToApplyUpdates)
+            region.regionId.read(key, sort, heapToApplyUpdates)
+        }
 
-        heapEvaluator.readArrayIndex(
-            composedAddress,
-            composedIndex,
-            region.regionId.arrayType,
-            sort
-        ).asExpr(sort)
+        val mappedRegion = region.map(this@UComposer, instantiator)
+        val mappedKey = region.regionId.keyMapper(this@UComposer)(key)
+        mappedRegion.read(mappedKey)
     }
 
-    override fun <Sort : USort> transform(
-        expr: UAllocatedArrayReading<Type, Sort>
-    ): UExpr<Sort> = with(expr) {
-        val composedIndex = compose(index)
-        // TODO compose the region
-        val heapRef = uctx.mkConcreteHeapRef(region.regionId.address)
+    override fun transform(expr: UArrayLength<Type>): USizeExpr =
+        transformHeapReading(expr, expr.address)
 
-        heapEvaluator.readArrayIndex(heapRef, composedIndex, region.regionId.arrayType, sort).asExpr(sort)
-    }
+    override fun <Sort : USort> transform(expr: UInputArrayReading<Type, Sort>): UExpr<Sort> =
+        transformHeapReading(expr, expr.address to expr.index)
 
-    override fun <Sort : USort> transform(expr: UFieldReading<Field, Sort>): UExpr<Sort> = with(expr) {
-        val composedAddress = compose(address)
-        // TODO compose the region
-        heapEvaluator.readField(composedAddress, region.regionId.field, sort).asExpr(sort)
-    }
+    override fun <Sort : USort> transform(expr: UAllocatedArrayReading<Type, Sort>): UExpr<Sort> =
+        transformHeapReading(expr, expr.index)
 
     override fun transform(expr: UConcreteHeapRef): UExpr<UAddressSort> = expr
+
+    override fun <Sort : USort> transform(expr: UFieldReading<Field, Sort>): UExpr<Sort> =
+        transformHeapReading(expr, expr.address)
 }

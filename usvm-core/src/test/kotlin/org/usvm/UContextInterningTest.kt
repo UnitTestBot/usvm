@@ -4,7 +4,6 @@ import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.ksmt.utils.cast
 
 private typealias Field = java.lang.reflect.Field
 private typealias ArrayType = kotlin.reflect.KClass<*>
@@ -58,9 +57,8 @@ class UContextInterningTest {
 
     @Test
     fun testFieldReadingInterning() = with(context) {
-        // TODO replace after making `out` type in MemoryRegion
-        val fstRegion: UInputFieldMemoryRegion<Field, USort> = mockk<UInputFieldMemoryRegion<Field, UBv32Sort>>().cast()
-        val sndRegion: UInputFieldMemoryRegion<Field, USort> = mockk<UInputFieldMemoryRegion<Field, UBoolSort>>().cast()
+        val fstRegion = mockk<UInputFieldMemoryRegion<Field, UBv32Sort>>()
+        val sndRegion = mockk<UInputFieldMemoryRegion<Field, UBoolSort>>()
 
         every { fstRegion.sort } returns bv32Sort
         every { sndRegion.sort } returns boolSort
@@ -68,14 +66,14 @@ class UContextInterningTest {
         val fstAddress = mkConcreteHeapRef(address = 1)
         val sndAddress = mkConcreteHeapRef(address = 2)
 
-        val equal = List(10) { mkFieldReading(fstRegion, fstAddress) }
+        val equal = List(10) { mkInputFieldReading(fstRegion, fstAddress) }
 
         val createdWithoutContext = UFieldReading(this, fstRegion, fstAddress)
         val distinct = listOf(
-            mkFieldReading(fstRegion, fstAddress),
-            mkFieldReading(fstRegion, sndAddress),
-            mkFieldReading(sndRegion, fstAddress),
-            mkFieldReading(sndRegion, sndAddress),
+            mkInputFieldReading(fstRegion, fstAddress),
+            mkInputFieldReading(fstRegion, sndAddress),
+            mkInputFieldReading(sndRegion, fstAddress),
+            mkInputFieldReading(sndRegion, sndAddress),
             createdWithoutContext
         )
 
@@ -84,9 +82,8 @@ class UContextInterningTest {
 
     @Test
     fun testAllocatedArrayReadingInterning() = with(context) {
-        // TODO replace after making `out` type in regions
-        val fstRegion: UAllocatedArrayMemoryRegion<ArrayType, USort> = mockk<UAllocatedArrayMemoryRegion<ArrayType, UBv32Sort>>().cast()
-        val sndRegion: UAllocatedArrayMemoryRegion<ArrayType, USort> = mockk<UAllocatedArrayMemoryRegion<ArrayType, UBoolSort>>().cast()
+        val fstRegion = mockk<UAllocatedArrayMemoryRegion<ArrayType, UBv32Sort>>()
+        val sndRegion = mockk<UAllocatedArrayMemoryRegion<ArrayType, UBoolSort>>()
 
         every { fstRegion.sort } returns bv32Sort
         every { sndRegion.sort } returns boolSort
@@ -94,12 +91,10 @@ class UContextInterningTest {
         val fstIndex = mockk<USizeExpr>()
         val sndIndex = mockk<USizeExpr>()
 
-        val equal = List(10) {
-            mkAllocatedArrayReading(fstRegion, fstIndex)
-        }
+        val equal = List(10) { mkAllocatedArrayReading(fstRegion, fstIndex) }
 
-        val createdWithoutContext =
-            UAllocatedArrayReading(this, fstRegion, fstIndex)
+        val createdWithoutContext = UAllocatedArrayReading(this, fstRegion, fstIndex)
+
         val distinct = listOf(
             mkAllocatedArrayReading(fstRegion, fstIndex),
             mkAllocatedArrayReading(fstRegion, sndIndex),
@@ -113,9 +108,8 @@ class UContextInterningTest {
 
     @Test
     fun testInputArrayReadingInterning() = with(context) {
-        // TODO replace after making `out` type in regions
-        val fstRegion: UInputArrayMemoryRegion<ArrayType, USort> = mockk<UInputArrayMemoryRegion<ArrayType, UBv32Sort>>().cast()
-        val sndRegion: UInputArrayMemoryRegion<ArrayType, USort> = mockk<UInputArrayMemoryRegion<ArrayType, UBoolSort>>().cast()
+        val fstRegion = mockk<UInputArrayMemoryRegion<ArrayType, UBv32Sort>>()
+        val sndRegion = mockk<UInputArrayMemoryRegion<ArrayType, UBoolSort>>()
 
         every { fstRegion.sort } returns bv32Sort
         every { sndRegion.sort } returns boolSort
@@ -126,12 +120,10 @@ class UContextInterningTest {
         val fstIndex = mockk<USizeExpr>()
         val sndIndex = mockk<USizeExpr>()
 
-        val equal = List(10) {
-            mkInputArrayReading(fstRegion, fstAddress, fstIndex)
-        }
+        val equal = List(10) { mkInputArrayReading(fstRegion, fstAddress, fstIndex) }
 
-        val createdWithoutContext =
-            UInputArrayReading(this, fstRegion, fstAddress, fstIndex)
+        val createdWithoutContext = UInputArrayReading(this, fstRegion, fstAddress, fstIndex)
+
         val distinct = listOf(
             mkInputArrayReading(fstRegion, fstAddress, fstIndex),
             mkInputArrayReading(fstRegion, fstAddress, sndIndex),
@@ -156,13 +148,14 @@ class UContextInterningTest {
         val fstAddress = mkConcreteHeapRef(address = 1)
         val sndAddress = mkConcreteHeapRef(address = 2)
 
-        val equal = List(10) { mkArrayLength(fstRegion, fstAddress) }
+        val equal = List(10) { mkInputArrayLength(fstRegion, fstAddress) }
 
         val createdWithoutContext = UArrayLength(this, fstRegion, fstAddress)
+
         val distinct = listOf(
-            mkArrayLength(fstRegion, fstAddress),
-            mkArrayLength(fstRegion, sndAddress),
-            mkArrayLength(sndRegion, sndAddress),
+            mkInputArrayLength(fstRegion, fstAddress),
+            mkInputArrayLength(fstRegion, sndAddress),
+            mkInputArrayLength(sndRegion, sndAddress),
             createdWithoutContext
         )
 
@@ -183,6 +176,7 @@ class UContextInterningTest {
         val equal = List(10) { mkIndexedMethodReturnValue(fstMethod, fstCallIndex, fstSort) }
 
         val createdWithoutContext = UIndexedMethodReturnValue(this, fstMethod, fstCallIndex, fstSort)
+
         val distinct = listOf(
             mkIndexedMethodReturnValue(fstMethod, fstCallIndex, fstSort),
             mkIndexedMethodReturnValue(fstMethod, sndCallIndex, fstSort),
@@ -205,6 +199,7 @@ class UContextInterningTest {
         val equal = List(10) { mkIsExpr(fstRef, fstSort) }
 
         val createdWithoutContext = UIsExpr(this, fstRef, fstSort)
+
         val distinct = listOf(
             mkIsExpr(fstRef, fstSort),
             mkIsExpr(fstRef, sndSort),

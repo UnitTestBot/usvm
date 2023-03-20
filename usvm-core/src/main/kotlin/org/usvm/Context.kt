@@ -8,9 +8,9 @@ import org.ksmt.utils.cast
 
 @Suppress("LeakingThis")
 open class UContext(
-    private val operationMode: OperationMode = OperationMode.CONCURRENT, // TODO replace it when we have KSMT 0.3.3 version
-    private val astManagementMode: AstManagementMode = AstManagementMode.GC, // TODO replace it when we have KSMT 0.3.3 version
-    private val simplificationMode: SimplificationMode = SimplificationMode.SIMPLIFY
+    operationMode: OperationMode = OperationMode.CONCURRENT,
+    astManagementMode: AstManagementMode = AstManagementMode.GC,
+    simplificationMode: SimplificationMode = SimplificationMode.SIMPLIFY
 ) : KContext(operationMode, astManagementMode, simplificationMode) {
 
     val addressSort: UAddressSort = mkUninterpretedSort("Address")
@@ -31,7 +31,7 @@ open class UContext(
 
     private val inputFieldReadingCache = mkAstInterner<UFieldReading<*, out USort>>()
 
-    fun <Field, Sort : USort> mkFieldReading(
+    fun <Field, Sort : USort> mkInputFieldReading(
         region: UInputFieldMemoryRegion<Field, Sort>,
         address: UHeapRef,
     ): UFieldReading<Field, Sort> = inputFieldReadingCache.createIfContextActive {
@@ -57,12 +57,12 @@ open class UContext(
         UInputArrayReading(this, region, address, index)
     }.cast()
 
-    private val arrayLengthCache = mkAstInterner<UArrayLength<*>>()
+    private val inputArrayLengthCache = mkAstInterner<UArrayLength<*>>()
 
-    fun <ArrayType> mkArrayLength(
+    fun <ArrayType> mkInputArrayLength(
         region: UInputArrayLengthMemoryRegion<ArrayType>,
         address: UHeapRef,
-    ): UArrayLength<ArrayType> = arrayLengthCache.createIfContextActive {
+    ): UArrayLength<ArrayType> = inputArrayLengthCache.createIfContextActive {
         UArrayLength(this, region, address)
     }.cast()
 
