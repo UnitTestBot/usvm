@@ -3,10 +3,46 @@ package org.usvm.test
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.usvm.util.RegionComparisonResult
+import org.usvm.util.Intervals
 import org.usvm.util.SetRegion
+import org.usvm.util.ProductRegion
 import org.usvm.util.emptyRegionTree
 
 internal class RegionsTest {
+    @Test
+    fun intervalRegionTest() {
+        val zero = Intervals.singleton(0)
+        val two = Intervals.singleton(2)
+        val three = Intervals.singleton(3)
+        val ten = Intervals.singleton(10)
+        val seg0_10 = Intervals.closed(0, 10)                               // [0..10]
+        val seg0_10_open = seg0_10.subtract(zero).subtract(ten)             // (0..10)
+        val seg2_3 = Intervals.closed(2, 3)                                 // [2..3]
+        val result1 = seg0_10_open.subtract(seg2_3)                         // (0..2) U (3..10)
+        val seg0_2 = Intervals.closed(0, 2).subtract(zero).subtract(two)    // (0..2)
+        val seg3_10 = Intervals.closed(3, 10).subtract(three).subtract(ten) // (3..10)
+        val result2 = seg3_10.union(seg0_2)
+
+        assertEquals(result1, result2)
+        assertEquals(RegionComparisonResult.INCLUDES, result1.compare(result2))
+        assertEquals(result1, result1.intersect(result2))
+
+        val seg2_15 = Intervals.closed(2, 15)
+        assertEquals(RegionComparisonResult.INTERSECTS, result1.compare(seg2_15))
+        assertEquals(seg3_10, result1.intersect(seg2_15))
+        assertEquals(RegionComparisonResult.DISJOINT, result1.compare(two))
+        assertEquals(RegionComparisonResult.DISJOINT, result1.compare(two.union(zero)))
+        assertEquals(RegionComparisonResult.INCLUDES, seg0_10.compare(result1))
+        assertEquals(RegionComparisonResult.INCLUDES, result1.compare(result1))
+
+        val seg2_4 = Intervals.closed(2, 4)
+        val seg3_5 = Intervals.closed(3, 5)
+        assertEquals(RegionComparisonResult.INTERSECTS, seg3_5.compare(seg0_10.subtract(seg2_4)))
+
+        val seg10_11 = Intervals.closed(10, 11).subtract(ten)
+        assertEquals("(0..10) U (10..11]", seg0_10_open.union(seg10_11).toString())
+    }
+
     @Test
     fun setRegionTest() {
         val zero = SetRegion.singleton(0)                       // {0}
@@ -30,6 +66,22 @@ internal class RegionsTest {
         assertEquals(RegionComparisonResult.INCLUDES, zero.compare(zero))
     }
 
+    @Test
+    fun productRegionTest() {
+        val r1 = SetRegion.ofSet(1, 2, 3)
+        val r2 = SetRegion.ofSet(2, 3, 4)
+        val r3 = SetRegion.singleton(1)
+        val p1 = ProductRegion(r1, r1)
+        val p2 = ProductRegion(r2, r2)
+        val diff1 = p1.subtract(p2)
+        assert(diff1.products.size == 2)
+        val p3 = ProductRegion(r3, r1)
+        val p4 = ProductRegion(r1, r3)
+        val diff2 = diff1.subtract(p3)
+        assert(diff2.products.size == 1)
+        val diff3 = diff2.subtract(p4)
+        assert(diff3.isEmpty)
+    }
 
     @Test
     fun regionTreeTest() {
