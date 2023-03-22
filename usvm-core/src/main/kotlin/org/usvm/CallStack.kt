@@ -1,6 +1,6 @@
 package org.usvm
 
-import java.util.Stack
+import java.util.*
 
 data class UCallStackFrame<Method, Statement>(val method: Method, val returnSite: Statement?)
 
@@ -16,6 +16,9 @@ class UCallStack<Method, Statement> private constructor(private val stack: Stack
     override fun iterator() = stack.iterator()
 
     fun pop(): Statement? = stack.pop().returnSite
+
+    fun lastMethod(): Method = stack.lastElement().method
+
     fun push(method: Method, returnSite: Statement) {
         stack.push(UCallStackFrame(method, returnSite))
     }
