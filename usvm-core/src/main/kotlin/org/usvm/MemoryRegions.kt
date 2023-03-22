@@ -38,7 +38,7 @@ data class UMemoryRegion<RegionId : URegionId<Key>, Key, Sort : USort>(
         }
 
         if (lastUpdatedElement != null) {
-            if (lastUpdatedElement.includesConcretely(key, sort.ctx.trueExpr)) {
+            if (lastUpdatedElement.includesConcretely(key, precondition = sort.ctx.trueExpr)) {
                 // The last write has overwritten the key
                 return lastUpdatedElement.value(key)
             }
@@ -97,16 +97,14 @@ data class UMemoryRegion<RegionId : URegionId<Key>, Key, Sort : USort>(
         val newUpdates = if (sort == sort.uctx.addressSort) {
             // we must split symbolic and concrete heap refs here,
             // because later in [splittingRead] we check value is UConcreteHeapRef
-            val (concreteHeapRefs, symbolicHeapRefs) = splitUHeapRef(value.asExpr(sort.uctx.addressSort), guard)
+            var newUpdates = updates
 
-            // TODO: we can collapse these writes with mkIte
-            var newUpdates = symbolicHeapRefs.fold(updates) { prevUpdates, (symbolicRef, valueGuard) ->
-                prevUpdates.write(key, symbolicRef.asExpr(sort), valueGuard)
-            }
-
-            newUpdates = concreteHeapRefs.fold(newUpdates) { prevUpdates, (concreteRef, valueGuard) ->
-                prevUpdates.write(key, concreteRef.asExpr(sort), valueGuard)
-            }
+            withHeapRef(
+                value.asExpr(sort.uctx.addressSort),
+                initialGuard = guard,
+                blockOnConcrete = { (ref, guard) -> newUpdates = newUpdates.write(key, ref.asExpr(sort), guard) },
+                blockOnSymbolic = { (ref, guard) -> newUpdates = newUpdates.write(key, ref.asExpr(sort), guard) }
+            )
 
             newUpdates
         } else {
@@ -230,6 +228,10 @@ class GuardBuilder(nonMatchingUpdates: UBoolExpr) {
         nonMatchingUpdatesGuard = guarded(guard)
     }
 
+    /**
+     * @return [expr] guarded by this guard builder. Implementation uses [UContext.mkAndNoFlat], because we accumulate
+     * [nonMatchingUpdatesGuard] and otherwise it would take quadratic time.
+     */
     fun guarded(expr: UBoolExpr): UBoolExpr = expr.ctx.mkAndNoFlat(nonMatchingUpdatesGuard, expr)
 }
 

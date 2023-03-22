@@ -14,7 +14,7 @@ sealed interface UUpdateNode<Key, ValueSort : USort> {
      * @return will the [key] get overwritten by this write operation in *any* possible concrete state,
      * assuming [precondition] holds, or not.
      */
-    fun includesConcretely(key: Key, precondition: UBoolExpr): Boolean // TODO: any ideas on how to get rid of [precondition]?
+    fun includesConcretely(key: Key, precondition: UBoolExpr): Boolean
 
     /**
      * @return will this write get overwritten by [update] operation in *any* possible concrete state or not.
@@ -57,11 +57,6 @@ sealed interface UUpdateNode<Key, ValueSort : USort> {
     val guard: UBoolExpr
 
     /**
-     * Returns node with updated [guard] condition.
-     */
-    fun guardWith(guard: UBoolExpr): UUpdateNode<Key, ValueSort>
-
-    /**
      * Returns a mapped update node using [keyMapper] and [composer].
      * It is used in [UComposer] for composition.
      */
@@ -78,14 +73,15 @@ class UPinpointUpdateNode<Key, ValueSort : USort>(
     override val guard: UBoolExpr,
 ) : UUpdateNode<Key, ValueSort> {
     override fun includesConcretely(key: Key, precondition: UBoolExpr) =
-        this.key == key && (guard == guard.ctx.trueExpr || guard == precondition) // TODO: some optimizations here?
-    // in fact, we can check less strict formulae: precondition _implies_ guard, but this is too complex to compute.
+        this.key == key && (guard == guard.ctx.trueExpr || guard == precondition)
+    // in fact, we can check less strict formulae: `precondition -> guard`, but it is too complex to compute.
 
     override fun includesSymbolically(key: Key): UBoolExpr =
         guard.ctx.mkAnd(keyEqualityComparer(this.key, key), guard)
 
     override fun isIncludedByUpdateConcretely(update: UUpdateNode<Key, ValueSort>): Boolean =
         update.includesConcretely(key, guard)
+
     override fun value(key: Key): UExpr<ValueSort> = this.value
 
     override fun split(
@@ -109,15 +105,6 @@ class UPinpointUpdateNode<Key, ValueSort : USort>(
         guardBuilder += nodeExcludesKey
 
         return res
-    }
-
-    override fun guardWith(guard: UBoolExpr): UUpdateNode<Key, ValueSort> {
-        val newGuard = guard.ctx.mkAndNoFlat(this.guard, guard)
-        return if (newGuard == this.guard) {
-            this
-        } else {
-            UPinpointUpdateNode(key, value, keyEqualityComparer, newGuard)
-        }
     }
 
     override fun <Field, Type> map(
@@ -232,16 +219,6 @@ class URangedUpdateNode<RegionId : UArrayId<ArrayType, SrcKey>, ArrayType, SrcKe
     override fun isIncludedByUpdateConcretely(update: UUpdateNode<DstKey, ValueSort>): Boolean =
         update.includesConcretely(fromKey, guard) && update.includesConcretely(toKey, guard)
 
-
-    override fun guardWith(guard: UBoolExpr): UUpdateNode<DstKey, ValueSort> {
-        val newGuard = guard.ctx.mkAndNoFlat(this.guard, guard)
-        return if (newGuard == this.guard) {
-            this
-        } else {
-            URangedUpdateNode(fromKey, toKey, region, concreteComparer, symbolicComparer, keyConverter, newGuard)
-        }
-    }
-
     override fun value(key: DstKey): UExpr<ValueSort> = region.read(keyConverter.convert(key))
 
     override fun <Field, Type> map(
@@ -288,6 +265,30 @@ class URangedUpdateNode<RegionId : UArrayId<ArrayType, SrcKey>, ArrayType, SrcKe
         val nextGuard = guardBuilder.guarded(nodeIncludesKey)
         val nextGuardBuilder = GuardBuilder(nextGuard)
 
+        /**
+         * Here's the explanation of the [split] function. Consider these memory regions and memory updates:
+         *
+         * ```
+         *                  [this]   [UPinpointUpdateNode]
+         *                     |            |
+         *                     |            |
+         *                    \/           \/
+         * reg0:           { 1..5 } -> { k1, 0x1 } -> mkArrayConst(nullRef)
+         *                     |
+         *                     | copy from [this.region]{ 1..5 }
+         *                     | [this.keyConverter] = id
+         *                     |
+         * [this.region]: { k2, 0x3 } -> mkArrayConst(nullRef)
+         * ```
+         *
+         * The [nextGuardBuilder] must imply that the [key] lies in { 1..5 } and it's satisfied by [nodeIncludesKey].
+         * The result [matchingWrites] will contain { 0x3 } with the guard [key] == k2 && k in { 1..5 }.
+         * Also, the result [matchingWrites] must contain { 0x1 }, but this must be guarded: [key] !in { 1..5 } which
+         * is implied from [nodeExcludesKey].
+         *
+         * Due to the [GuardBuilder] mutability, we have to create a new guard to pass into the [region.split] function,
+         * it's a [nextGuardBuilder].
+         */
         val splitRegion = region.split(keyConverter.convert(key), predicate, matchingWrites, nextGuardBuilder)
 
         val resultUpdateNode = if (splitRegion === region) {

@@ -97,7 +97,7 @@ class HeapRefEqTest {
 
         val expr = mkHeapRefEq(mkIte(cond1, ref1, ref2), ref3)
 
-        assertSame((!cond1 and (ref2 eq ref3)) or (cond1 and (ref1 eq ref3)), expr)
+        assertSame(mkIte(cond1, ref1, ref2) eq ref3, expr)
     }
 
 
@@ -135,9 +135,9 @@ class HeapRefEqTest {
         val refsEq = mkHeapRefEq(ite1, ite2)
 
         val concreteRef1EqConcreteRef2 = mkAnd(!cond1, !cond2, !cond3, cond4)
-        val symbolicRef2EqSymbolicRef3 = mkAnd(!cond1, cond2, cond3, symbolicRef2 eq symbolicRef3)
-        val symbolicRef1EqSymbolicRef3 = mkAnd(cond1, cond3, symbolicRef1 eq symbolicRef3)
-        val expected = concreteRef1EqConcreteRef2 or symbolicRef2EqSymbolicRef3 or symbolicRef1EqSymbolicRef3
+        val symbolicRefEqGuard = mkAnd(cond1 or cond2, cond3)
+        val symbolicIteEq = mkIte(cond1, symbolicRef1, symbolicRef2) eq symbolicRef3
+        val expected = concreteRef1EqConcreteRef2 or (symbolicRefEqGuard and symbolicIteEq)
         assertSame(expected, refsEq)
     }
 }

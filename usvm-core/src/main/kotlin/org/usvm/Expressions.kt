@@ -29,18 +29,27 @@ typealias UConcreteSize = KBitVec32Value
 
 typealias UAddressSort = KUninterpretedSort
 
+typealias UIndexType = Int
+
 //endregion
 
 abstract class USymbol<Sort : USort>(ctx: UContext) : UExpr<Sort>(ctx)
 
 //region Object References
 
-typealias UIndexType = Int
-typealias UConcreteHeapAddress = Int
-
-typealias USymbolicHeapRef = USymbol<UAddressSort>
-
+/**
+ * An expr is of a [UHeapRef] type iff it's a [UConcreteHeapRef], [USymbolicHeapRef] or [UIteExpr] with [UAddressSort].
+ * [UIteExpr]s have [UConcreteHeapRef]s and [USymbolicHeapRef]s as leafs.
+ */
 typealias UHeapRef = UExpr<UAddressSort>
+
+/**
+ * We maintain the invariant that any symbolic address **cannot** be equal to any UConcreteHeapAddress. Moreover,
+ * symbolic addresses may only come from the specific [USymbol] of [UAddressSort] as [USymbol]s defines unknown
+ * **symbolic** expressions.
+ */
+typealias USymbolicHeapRef = USymbol<UAddressSort>
+typealias UConcreteHeapAddress = Int
 
 class UConcreteHeapRef internal constructor(ctx: UContext, val address: UConcreteHeapAddress) : UHeapRef(ctx) {
     override val sort: UAddressSort = ctx.addressSort

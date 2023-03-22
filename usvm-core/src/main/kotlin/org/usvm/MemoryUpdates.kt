@@ -3,7 +3,6 @@ package org.usvm
 import org.usvm.util.Region
 import org.usvm.util.RegionTree
 import org.usvm.util.emptyRegionTree
-import java.util.*
 
 /**
  * Represents a sequence of memory writes.
@@ -15,13 +14,13 @@ interface UMemoryUpdates<Key, Sort : USort> : Sequence<UUpdateNode<Key, Sort>> {
     fun read(key: Key): UMemoryUpdates<Key, Sort>
 
     /**
-     * @return Memory region which gets from this one by overwriting the address [key] with value [value]
+     * @return Memory region which is obtained from this one by overwriting the address [key] with value [value]
      * guarded with condition [guard].
      */
     fun write(key: Key, value: UExpr<Sort>, guard: UBoolExpr = value.ctx.trueExpr): UMemoryUpdates<Key, Sort>
 
     /**
-     * Splits this [UMemoryUpdates] on two parts:
+     * Splits this [UMemoryUpdates] into two parts:
      * * Values of [UUpdateNode]s satisfying [predicate] are added to the [matchingWrites].
      * * [UUpdateNode]s unsatisfying [predicate] remain in the result updates.
      *
@@ -258,8 +257,11 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
 
     override fun write(key: Key, value: UExpr<Sort>, guard: UBoolExpr): UTreeUpdates<Key, Reg, Sort> {
         val update = UPinpointUpdateNode(key, value, symbolicEq, guard)
-        val newUpdates =
-            updates.write(keyToRegion(key), update, keyFilter = { it.isIncludedByUpdateConcretely(update) })
+        val newUpdates = updates.write(
+            keyToRegion(key),
+            update,
+            keyFilter = { it.isIncludedByUpdateConcretely(update) }
+        )
 
         return this.copy(updates = newUpdates)
     }
@@ -273,7 +275,11 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
     ): UMemoryUpdates<Key, Sort> {
         val region = keyRangeToRegion(fromKey, toKey)
         val update = URangedUpdateNode(fromKey, toKey, fromRegion, concreteCmp, symbolicCmp, keyConverter, guard)
-        val newUpdates = updates.write(region, update, keyFilter = { it.isIncludedByUpdateConcretely(update) })
+        val newUpdates = updates.write(
+            region,
+            update,
+            keyFilter = { it.isIncludedByUpdateConcretely(update) }
+        )
 
         return this.copy(updates = newUpdates)
     }

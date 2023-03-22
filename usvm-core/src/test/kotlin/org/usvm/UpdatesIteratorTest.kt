@@ -39,7 +39,7 @@ class UpdatesIteratorTest {
             key = 10,
             value = 10.toBv(),
             keyEqualityComparer = { k1, k2 -> mkEq(k1.toBv(), k2.toBv()) },
-            trueExpr
+            guard = trueExpr
         )
 
         val flatUpdates = UFlatUpdates(

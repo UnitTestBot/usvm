@@ -7,6 +7,7 @@ import org.ksmt.expr.rewrite.simplify.KExprSimplifier
 import org.ksmt.utils.getValue
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.test.assertSame
 
 class HeapRefSplittingTest {
@@ -110,11 +111,12 @@ class HeapRefSplittingTest {
 
         val res1 = heap.readArrayIndex(ref, idx1, arrayDescr.first, arrayDescr.second)
 
-        val (concreteRefs, symbolicRefs) = splitUHeapRef(res1)
+        val (concreteRefs, symbolicRef) = splitUHeapRef(res1)
+        assertNotNull(symbolicRef)
 
         assertEquals(3, concreteRefs.size)
-        assertEquals(1, symbolicRefs.size)
-        assertSame(nullRef, symbolicRefs.single().expr)
+        assertIs<USymbolicHeapRef>(symbolicRef.expr)
+        assertSame(nullRef, symbolicRef.expr)
     }
 
     @Test
@@ -140,11 +142,11 @@ class HeapRefSplittingTest {
         val (concreteRefs, _) = splitUHeapRef(res1)
 
         assertEquals(2, concreteRefs.size)
-        assertSame(cond1 and cond2, concreteRefs[1].guard)
-        assertSame(val1, concreteRefs[1].expr)
-        // we need expr simplifier here, because mkAndNoFlatten produces too complicated expression
-        assertSame(!(cond1 and cond2) and cond1 and !cond2, KExprSimplifier(this).apply(concreteRefs[0].guard))
         assertSame(val2, concreteRefs[0].expr)
+        assertSame(cond1 and !cond2, concreteRefs[0].guard)
+        // we need expr simplifier here, because mkAndNoFlatten produces too complicated expression
+        assertSame(val1, concreteRefs[1].expr)
+        assertSame(!(cond1 and !cond2) and cond1 and cond2, KExprSimplifier(this).apply(concreteRefs[1].guard))
     }
 
     @Test
