@@ -7,6 +7,11 @@ data class GuardedExpr<out T>(
 
 infix fun <T> T.with(guard: UBoolExpr) = GuardedExpr(this, guard)
 
+/**
+ * @param concreteHeapRefs a list of split concrete heap refs with their guards.
+ * @param symbolicHeapRef an ite made of all [USymbolicHeapRef]s with its guard, the single [USymbolicHeapRef] if it's
+ * the single [USymbolicHeapRef] in the base expression or `null` if there are no [USymbolicHeapRef]s at all.
+ */
 internal data class SplitHeapRefs(
     val concreteHeapRefs: List<GuardedExpr<UConcreteHeapRef>>,
     val symbolicHeapRef: GuardedExpr<UHeapRef>?,
