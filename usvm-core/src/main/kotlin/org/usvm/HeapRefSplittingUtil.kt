@@ -129,7 +129,7 @@ internal inline fun <Sort : USort> UHeapRef.map(
 
 /**
  * Filters [ref] non-recursively with [predicate] and returns the result. A guard in the argument of the
- * [predicate] ensures that any path from the root to the filtered leaf is illegal.
+ * [predicate] consists of a predicate from the root to the passed leaf.
  *
  * @return A guarded expression with the guard indicating that any leaf on which [predicate] returns `false`
  * is inaccessible.
