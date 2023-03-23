@@ -122,7 +122,7 @@ data class URegionHeap<Field, ArrayType>(
         arrayType: ArrayType,
     ): UInputArrayLengthRegion<ArrayType> =
         inputLengths[arrayType]
-            ?: emptyArrayLengthRegion(arrayType, ctx) { ref, region ->
+            ?: emptyArrayLengthRegion(arrayType, ctx.sizeSort) { ref, region ->
                 ctx.mkInputArrayLengthReading(region, ref)
             }
 

@@ -32,7 +32,7 @@ open class UComposer<Field, Type>(
         typeEvaluator.evalIs(composedAddress, type)
     }
 
-    fun <RegionId : URegionId<Key>, Key, Sort : USort> transformHeapReading(
+    fun <RegionId : URegionId<Key, Sort>, Key, Sort : USort> transformHeapReading(
         expr: UHeapReading<RegionId, Key, Sort>,
         key: Key
     ): UExpr<Sort> = with(expr) {
@@ -40,7 +40,7 @@ open class UComposer<Field, Type>(
             // Create a copy of this heap to avoid its modification
             val heapToApplyUpdates = heapEvaluator.toMutableHeap()
             memoryRegion.applyTo(heapToApplyUpdates)
-            region.regionId.read(key, sort, heapToApplyUpdates)
+            region.regionId.read(heapToApplyUpdates, key)
         }
 
         val mappedRegion = region.map(this@UComposer, instantiator)

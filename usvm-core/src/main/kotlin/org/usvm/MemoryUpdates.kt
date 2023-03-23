@@ -49,7 +49,7 @@ interface UMemoryUpdates<Key, Sort : USort> : Sequence<UUpdateNode<Key, Sort>> {
      *
      * @see UMemoryRegion.copyRange
      */
-    fun <ArrayType, RegionId : UArrayId<ArrayType, SrcKey>, SrcKey> copyRange(
+    fun <ArrayType, RegionId : UArrayId<ArrayType, SrcKey, Sort>, SrcKey> copyRange(
         fromRegion: UMemoryRegion<RegionId, SrcKey, Sort>,
         fromKey: Key,
         toKey: Key,
@@ -90,7 +90,7 @@ class UEmptyUpdates<Key, Sort : USort>(
             symbolicCmp
         )
 
-    override fun <ArrayType, RegionId : UArrayId<ArrayType, SrcKey>, SrcKey> copyRange(
+    override fun <ArrayType, RegionId : UArrayId<ArrayType, SrcKey, Sort>, SrcKey> copyRange(
         fromRegion: UMemoryRegion<RegionId, SrcKey, Sort>,
         fromKey: Key,
         toKey: Key,
@@ -146,7 +146,7 @@ data class UFlatUpdates<Key, Sort : USort>(
             symbolicCmp
         )
 
-    override fun <ArrayType, RegionId : UArrayId<ArrayType, SrcKey>, SrcKey> copyRange(
+    override fun <ArrayType, RegionId : UArrayId<ArrayType, SrcKey, Sort>, SrcKey> copyRange(
         fromRegion: UMemoryRegion<RegionId, SrcKey, Sort>,
         fromKey: Key,
         toKey: Key,
@@ -238,7 +238,7 @@ data class UFlatUpdates<Key, Sort : USort>(
 //region Tree memory updates
 
 data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
-    private val updates: RegionTree<UUpdateNode<Key, Sort>, Reg>,
+    internal val updates: RegionTree<UUpdateNode<Key, Sort>, Reg>,
     private val keyToRegion: (Key) -> Reg,
     private val keyRangeToRegion: (Key, Key) -> Reg,
     private val symbolicEq: (Key, Key) -> UBoolExpr,
@@ -266,7 +266,7 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
         return this.copy(updates = newUpdates)
     }
 
-    override fun <ArrayType, RegionId : UArrayId<ArrayType, SrcKey>, SrcKey> copyRange(
+    override fun <ArrayType, RegionId : UArrayId<ArrayType, SrcKey, Sort>, SrcKey> copyRange(
         fromRegion: UMemoryRegion<RegionId, SrcKey, Sort>,
         fromKey: Key,
         toKey: Key,
@@ -424,14 +424,7 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
             while (treeUpdatesIterator.hasNext()) {
                 val (update, region) = treeUpdatesIterator.next()
 
-                // To check, whether we have a duplicate for a particular key,
-                // we have to check if an initial region (by USVM estimation) is equal
-                // to the one stored in the current node.
-                val initialRegion = when (update) {
-                    is UPinpointUpdateNode<Key, Sort> -> keyToRegion(update.key)
-                    is URangedUpdateNode<*, *, *, Key, Sort> -> keyRangeToRegion(update.fromKey, update.toKey)
-                }
-                val wasCloned = initialRegion != region
+                val wasCloned = checkWasCloned(update, region)
 
                 // If a region from the current node is equal to the initial region,
                 // it means that there were no write operation that caused nodes split,
@@ -459,6 +452,17 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
 
             throw NoSuchElementException()
         }
+    }
+    internal fun checkWasCloned(update: UUpdateNode<Key, Sort>, region: Region<*>): Boolean {
+        // To check, whether we have a duplicate for a particular key,
+        // we have to check if an initial region (by USVM estimation) is equal
+        // to the one stored in the current node.
+        val initialRegion = when (update) {
+            is UPinpointUpdateNode<Key, Sort> -> keyToRegion(update.key)
+            is URangedUpdateNode<*, *, *, Key, Sort> -> keyRangeToRegion(update.fromKey, update.toKey)
+        }
+        val wasCloned = initialRegion != region
+        return wasCloned
     }
 
     override fun lastUpdatedElementOrNull(): UUpdateNode<Key, Sort>? =

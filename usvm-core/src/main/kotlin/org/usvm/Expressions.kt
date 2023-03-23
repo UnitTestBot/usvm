@@ -127,7 +127,7 @@ class URegisterReading<Sort : USort> internal constructor(
     }
 }
 
-abstract class UHeapReading<RegionId : URegionId<Key>, Key, Sort : USort>(
+abstract class UHeapReading<RegionId : URegionId<Key, Sort>, Key, Sort : USort>(
     ctx: UContext,
     val region: UMemoryRegion<RegionId, Key, Sort>
 ) : USymbol<Sort>(ctx) {
@@ -138,7 +138,7 @@ class UInputFieldReading<Field, Sort : USort> internal constructor(
     ctx: UContext,
     region: UInputFieldRegion<Field, Sort>,
     val address: UHeapRef,
-) : UHeapReading<UInputFieldRegionId<Field>, UHeapRef, Sort>(ctx, region) {
+) : UHeapReading<UInputFieldRegionId<Field, Sort>, UHeapRef, Sort>(ctx, region) {
     @Suppress("UNCHECKED_CAST")
     override fun accept(transformer: KTransformerBase): KExpr<Sort> {
         require(transformer is UExprTransformer<*, *>)
@@ -162,7 +162,7 @@ class UAllocatedArrayReading<ArrayType, Sort : USort> internal constructor(
     ctx: UContext,
     region: UAllocatedArrayRegion<ArrayType, Sort>,
     val index: USizeExpr,
-) : UHeapReading<UAllocatedArrayId<ArrayType>, USizeExpr, Sort>(ctx, region) {
+) : UHeapReading<UAllocatedArrayId<ArrayType, Sort>, USizeExpr, Sort>(ctx, region) {
     @Suppress("UNCHECKED_CAST")
     override fun accept(transformer: KTransformerBase): KExpr<Sort> {
         require(transformer is UExprTransformer<*, *>)
@@ -192,7 +192,7 @@ class UInputArrayReading<ArrayType, Sort : USort> internal constructor(
     region: UInputArrayRegion<ArrayType, Sort>,
     val address: UHeapRef,
     val index: USizeExpr
-) : UHeapReading<UInputArrayId<ArrayType>, USymbolicArrayIndex, Sort>(ctx, region) {
+) : UHeapReading<UInputArrayId<ArrayType, Sort>, USymbolicArrayIndex, Sort>(ctx, region) {
     @Suppress("UNCHECKED_CAST")
     override fun accept(transformer: KTransformerBase): KExpr<Sort> {
         require(transformer is UExprTransformer<*, *>)

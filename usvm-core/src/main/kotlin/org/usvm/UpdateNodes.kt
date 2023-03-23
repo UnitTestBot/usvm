@@ -153,7 +153,7 @@ sealed class UMemoryKeyConverter<SrcKey, DstKey>(
     abstract fun convert(key: DstKey): SrcKey
 
     protected fun convertIndex(idx: USizeExpr): USizeExpr = with(srcSymbolicArrayIndex.first.ctx) {
-        return mkBvSubExpr(mkBvAddExpr(idx, dstFromSymbolicArrayIndex.second), srcSymbolicArrayIndex.second)
+        mkBvSubExpr(mkBvAddExpr(idx, dstFromSymbolicArrayIndex.second), srcSymbolicArrayIndex.second)
     }
 
     abstract fun clone(
@@ -194,7 +194,7 @@ sealed class UMemoryKeyConverter<SrcKey, DstKey>(
  * with values from memory region [region] read from range
  * of addresses [[keyConverter].convert([fromKey]) : [keyConverter].convert([toKey])]
  */
-class URangedUpdateNode<RegionId : UArrayId<ArrayType, SrcKey>, ArrayType, SrcKey, DstKey, ValueSort : USort>(
+class URangedUpdateNode<RegionId : UArrayId<ArrayType, SrcKey, ValueSort>, ArrayType, SrcKey, DstKey, ValueSort : USort>(
     val fromKey: DstKey,
     val toKey: DstKey,
     val region: UMemoryRegion<RegionId, SrcKey, ValueSort>,
@@ -352,7 +352,7 @@ class UAllocatedToInputKeyConverter(
 }
 
 /**
- * Used when copying data from allocated input to allocated one.
+ * Used when copying data from input array to allocated one.
  */
 class UInputToAllocatedKeyConverter(
     srcSymbolicArrayIndex: USymbolicArrayIndex,

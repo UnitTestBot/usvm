@@ -199,12 +199,10 @@ internal class CompositionTest<Type, Field> {
         ).write(fstAddress, fstResultValue, guard = trueExpr)
             .write(sndAddress, sndResultValue, guard = trueExpr)
 
-        val regionId = UInputArrayLengthId(arrayType)
+        val regionId = UInputArrayLengthId(arrayType, bv32Sort)
         val regionArray = UInputArrayLengthRegion(
             regionId,
-            bv32Sort,
             updates,
-            defaultValue = sizeSort.defaultValue(),
             instantiator = { key, region -> mkInputArrayLengthReading(region, key) }
         )
 
@@ -264,10 +262,8 @@ internal class CompositionTest<Type, Field> {
         val arrayType: KClass<Array<*>> = Array::class
 
         val region = UInputArrayRegion(
-            UInputArrayId(arrayType),
-            mkBv32Sort(),
+            UInputArrayId(arrayType, bv32Sort),
             updates,
-            defaultValue = null,
             instantiator = { key, memoryRegion -> mkInputArrayReading(memoryRegion, key.first, key.second) }
         )
 
@@ -372,12 +368,10 @@ internal class CompositionTest<Type, Field> {
         ).write(fstIndex, 1.toBv(), guard = trueExpr)
             .write(sndIndex, 2.toBv(), guard = trueExpr)
 
-        val regionId = UAllocatedArrayId(arrayType, address)
+        val regionId = UAllocatedArrayId(arrayType, address, bv32Sort)
         val regionArray = UAllocatedArrayRegion(
             regionId,
-            bv32Sort,
             updates,
-            defaultValue = 0.toBv(),
             instantiator = { key, region -> mkAllocatedArrayReading(region, key) }
         )
 
@@ -429,10 +423,8 @@ internal class CompositionTest<Type, Field> {
 
         // An empty region with one write in it
         val region = UInputFieldRegion(
-            UInputFieldRegionId(field),
-            bv32Sort,
+            UInputFieldRegionId(field, bv32Sort),
             updates,
-            defaultValue = null,
             instantiator = { key, region -> mkInputFieldReading(region, key) }
         ).write(aAddress, 43.toBv(), guard = trueExpr)
 

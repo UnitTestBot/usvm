@@ -152,7 +152,7 @@ class MapCompositionTest<Field, Type> {
         val addr = addressSort.mkConst("addr")
         val fromKey = sizeSort.mkConst("fromKey") as UExpr<USizeSort>
         val toKey = sizeSort.mkConst("toKey") as UExpr<USizeSort>
-        val region = mockk<UMemoryRegion<UAllocatedArrayId<Int>, UExpr<USizeSort>, UBv32Sort>>()
+        val region = mockk<UMemoryRegion<UAllocatedArrayId<Int, UBv32Sort>, UExpr<USizeSort>, UBv32Sort>>()
         val guard = boolSort.mkConst("guard")
 
         val updateNode = URangedUpdateNode(
@@ -185,7 +185,7 @@ class MapCompositionTest<Field, Type> {
         val addr = mkConcreteHeapRef(0)
         val fromKey = sizeSort.mkConst("fromKey")
         val toKey = sizeSort.mkConst("toKey")
-        val region = mockk<UMemoryRegion<UAllocatedArrayId<Int>, USizeExpr, UBv32Sort>>()
+        val region = mockk<UMemoryRegion<UAllocatedArrayId<Int, UBv32Sort>, USizeExpr, UBv32Sort>>()
         val guard = boolSort.mkConst("guard")
 
         val updateNode = URangedUpdateNode(
@@ -204,7 +204,7 @@ class MapCompositionTest<Field, Type> {
 
         val composedFromKey = sizeSort.mkConst("composedFromKey")
         val composedToKey = sizeSort.mkConst("composedToKey")
-        val composedRegion = mockk<UMemoryRegion<UAllocatedArrayId<Int>, UExpr<USizeSort>, UBv32Sort>>()
+        val composedRegion = mockk<UMemoryRegion<UAllocatedArrayId<Int, UBv32Sort>, UExpr<USizeSort>, UBv32Sort>>()
         val composedGuard = mkTrue()
 
         every { composer.compose(addr) } returns addr
