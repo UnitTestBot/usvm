@@ -71,6 +71,7 @@ open class UContext(
                     conjuncts += conjunct
                 }
 
+                // it's safe to use mkOr here
                 mkOr(conjuncts)
             }
         }

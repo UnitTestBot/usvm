@@ -144,7 +144,7 @@ data class URegionHeap<Field, ArrayType>(
     ): UExpr<Sort> =
         ref.map(
             { concreteRef -> allocatedArrayRegion(arrayType, concreteRef.address, elementSort).read(index) },
-            { symbolicRef -> inputArrayRegion(arrayType, elementSort).read(Pair(symbolicRef, index)) }
+            { symbolicRef -> inputArrayRegion(arrayType, elementSort).read(symbolicRef to index) }
         )
 
     override fun readArrayLength(ref: UHeapRef, arrayType: ArrayType): USizeExpr =
@@ -201,7 +201,7 @@ data class URegionHeap<Field, ArrayType>(
             },
             { (symbolicRef, innerGuard) ->
                 val region = inputArrayRegion(type, elementSort)
-                val newRegion = region.write(Pair(symbolicRef, index), valueToWrite, innerGuard)
+                val newRegion = region.write(symbolicRef to index, valueToWrite, innerGuard)
                 inputArrays = inputArrays.put(type, newRegion)
             }
         )
@@ -210,7 +210,7 @@ data class URegionHeap<Field, ArrayType>(
     override fun writeArrayLength(ref: UHeapRef, size: USizeExpr, arrayType: ArrayType) {
         withHeapRef(
             ref,
-            ctx.trueExpr,
+            initialGuard = ctx.trueExpr,
             { (concreteRef, guard) ->
                 val oldSize = readArrayLength(ref, arrayType)
                 val newSize = ctx.mkIte(guard, size, oldSize)

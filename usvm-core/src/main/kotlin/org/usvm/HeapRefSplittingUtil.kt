@@ -7,6 +7,8 @@ data class GuardedExpr<out T>(
 
 infix fun <T> T.with(guard: UBoolExpr) = GuardedExpr(this, guard)
 
+infix fun <T> GuardedExpr<T>.withAlso(guard: UBoolExpr) = GuardedExpr(expr, guard.ctx.mkAnd(this.guard, guard))
+
 /**
  * @param concreteHeapRefs a list of split concrete heap refs with their guards.
  * @param symbolicHeapRef an ite made of all [USymbolicHeapRef]s with its guard, the single [USymbolicHeapRef] if it's
@@ -74,6 +76,10 @@ internal inline fun withHeapRef(
     }
 }
 
+private const val LEFT_CHILD = 0
+private const val RIGHT_CHILD = 1
+private const val DONE = 2
+
 
 /**
  * Reassembles [this] non-recursively with applying [concreteMapper] on [UConcreteHeapRef] and
@@ -94,7 +100,7 @@ internal inline fun <Sort : USort> UHeapRef.map(
         val nodeToChild = mutableListOf<Pair<UHeapRef, Int>>()
         val completelyMapped = mutableListOf<UExpr<Sort>>()
 
-        nodeToChild.add(this to 0)
+        nodeToChild.add(this to LEFT_CHILD)
 
         while (nodeToChild.isNotEmpty()) {
             val (ref, state) = nodeToChild.removeLast()
@@ -103,15 +109,17 @@ internal inline fun <Sort : USort> UHeapRef.map(
                 is USymbolicHeapRef -> completelyMapped += symbolicMapper(ref)
                 is UIteExpr<UAddressSort> -> {
                     when (state) {
-                        0 -> {
-                            nodeToChild += ref to 1
-                            nodeToChild += ref.trueBranch to 0
+                        LEFT_CHILD -> {
+                            nodeToChild += ref to RIGHT_CHILD
+                            nodeToChild += ref.trueBranch to LEFT_CHILD
                         }
-                        1 -> {
-                            nodeToChild += ref to 2
-                            nodeToChild += ref.falseBranch to 0
+                        RIGHT_CHILD -> {
+                            nodeToChild += ref to DONE
+                            nodeToChild += ref.falseBranch to LEFT_CHILD
                         }
-                        2 -> {
+                        DONE -> {
+                            // we firstly process the left child of [cur], so it will be under the top of the stack
+                            // the top of the stack will be the right child
                             val rhs = completelyMapped.removeLast()
                             val lhs = completelyMapped.removeLast()
                             completelyMapped += ctx.mkIte(ref.condition, lhs, rhs)
@@ -131,8 +139,10 @@ internal inline fun <Sort : USort> UHeapRef.map(
  * Filters [ref] non-recursively with [predicate] and returns the result. A guard in the argument of the
  * [predicate] consists of a predicate from the root to the passed leaf.
  *
+ * It's guaranteed that [predicate] will be called exactly once on each leaf.
+ *
  * @return A guarded expression with the guard indicating that any leaf on which [predicate] returns `false`
- * is inaccessible.
+ * is inaccessible. `Null` is returned when all leafs match [predicate].
  */
 internal inline fun filter(
     ref: UHeapRef,
@@ -146,12 +156,12 @@ internal inline fun filter(
         is UIteExpr<UAddressSort> -> {
             /**
              * This code simulates DFS on a binary tree without an explicit recursion. Pair.second represents the first
-             * unprocessed child of the pair.first (`0` means the left child, `1` means the right child).
+             * unprocessed child of the pair.first, or all childs processed if pair.second equals [DONE].
              */
             val nodeToChild = mutableListOf<Pair<GuardedExpr<UHeapRef>, Int>>()
             val completelyMapped = mutableListOf<GuardedExpr<UHeapRef>?>()
 
-            nodeToChild.add((ref with initialGuard) to 0)
+            nodeToChild.add((ref with initialGuard) to LEFT_CHILD)
 
             while (nodeToChild.isNotEmpty()) {
                 val (guarded, state) = nodeToChild.removeLast()
@@ -159,22 +169,41 @@ internal inline fun filter(
                 when (cur) {
                     is USymbolicHeapRef,
                     is UConcreteHeapRef,
-                    -> completelyMapped += (cur with initialGuard).takeIf { predicate(cur with guardFromTop) }
+                    -> completelyMapped += (cur with trueExpr).takeIf { predicate(cur with guardFromTop) }
                     is UIteExpr<UAddressSort> -> when (state) {
-                        0 -> {
-                            nodeToChild += guarded to 1
-                            nodeToChild += (cur.trueBranch with mkAndNoFlat(guardFromTop, cur.condition)) to 0
+                        LEFT_CHILD -> {
+                            nodeToChild += guarded to RIGHT_CHILD
+                            val leftGuard = mkAndNoFlat(guardFromTop, cur.condition)
+                            nodeToChild += (cur.trueBranch with leftGuard) to LEFT_CHILD
                         }
-                        1 -> {
-                            nodeToChild += guarded to 2
-                            nodeToChild += (cur.falseBranch with mkAndNoFlat(guardFromTop, !cur.condition)) to 0
+                        RIGHT_CHILD -> {
+                            nodeToChild += guarded to DONE
+                            val guardRhs = mkAndNoFlat(guardFromTop, !cur.condition)
+                            nodeToChild += (cur.falseBranch with guardRhs) to LEFT_CHILD
                         }
-                        2 -> {
+                        DONE -> {
+                            // we firstly process the left child of [cur], so it will be under the top of the stack
+                            // the top of the stack will be the right child
                             val rhs = completelyMapped.removeLast()
                             val lhs = completelyMapped.removeLast()
                             val next = when {
                                 lhs != null && rhs != null -> {
-                                    val guard = (!cur.condition or lhs.guard) and (cur.condition or rhs.guard)
+                                    val leftPart = mkOrNoFlat(!cur.condition, lhs.guard)
+
+                                    val rightPart = mkOrNoFlat(cur.condition, rhs.guard)
+
+                                    /**
+                                     *```
+                                     *           cur.condition | guard = ( cur.condition -> lhs.guard) &&
+                                                   /        \            (!cur.condition -> rhs.guard)
+                                     *            /          \
+                                     *           /            \
+                                     *          /              \
+                                     *         /                \
+                                     * lhs.expr | lhs.guard   rhs.expr | rhs.guard
+                                     *```
+                                     */
+                                    val guard = mkAndNoFlat(leftPart, rightPart)
                                     mkIte(cur.condition, lhs.expr, rhs.expr) with guard
                                 }
                                 lhs != null -> {
@@ -194,7 +223,7 @@ internal inline fun filter(
 
             }
 
-            completelyMapped.single()
+            completelyMapped.single()?.withAlso(initialGuard)
         }
 
         else -> error("Unexpected ref: $ref")
