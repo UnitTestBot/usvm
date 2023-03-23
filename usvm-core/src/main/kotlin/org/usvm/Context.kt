@@ -17,7 +17,68 @@ open class UContext(
     val sizeSort: USizeSort = bv32Sort
     val zeroSize: USizeExpr = sizeSort.defaultValue()
 
-    val nullRef = UConcreteHeapRef(this, nullAddress)
+    val nullRef: USymbolicHeapRef = UNullRef(this)
+
+    fun mkNullRef(): USymbolicHeapRef {
+        return nullRef
+    }
+
+    /**
+     * Disassembles [lhs] and [rhs], simplifies concrete refs, if it has any, and rewrites it in a DNF, except that the
+     * last clause contains a guard and an ite for symbolic addresses. The guard ensures that all concrete refs are
+     * bubbled up.
+     *
+     * For example,
+     *
+     * ```
+     * ite1 =
+     * (ite cond1 %0 (ite cond2 %1 0x0))
+     *
+     * ite2 =
+     * (ite cond3 %2 (ite cond4 0x0 0x1))
+     *
+     * mkHeapRefEq(ite1, ite2) =
+     * ((!cond1 && !cond2 && !cond3 && cond4) || ((cond1 || cond2) && cond3 && ite(cond1, %0, %1) == %2))
+     * ```
+     *
+     * @return the new equal rewritten expression without [UConcreteHeapRef]s
+     */
+    fun mkHeapRefEq(lhs: UHeapRef, rhs: UHeapRef): UBoolExpr =
+        when {
+            // fast checks
+            lhs is USymbolicHeapRef && rhs is USymbolicHeapRef -> super.mkEq(lhs, rhs)
+            lhs is UConcreteHeapRef && rhs is UConcreteHeapRef -> mkBool(lhs == rhs)
+            // unfolding
+            else -> {
+                val (concreteRefsLhs, symbolicRefLhs) = splitUHeapRef(lhs)
+                val (concreteRefsRhs, symbolicRefRhs) = splitUHeapRef(rhs)
+
+                val concreteRefLhsToGuard = concreteRefsLhs.associate { it.expr.address to it.guard }
+
+                val conjuncts = mutableListOf<UBoolExpr>(falseExpr)
+
+                concreteRefsRhs.forEach { (concreteRefRhs, guardRhs) ->
+                    val guardLhs = concreteRefLhsToGuard.getOrDefault(concreteRefRhs.address, falseExpr)
+                    // mkAnd instead of mkAndNoFlat here is OK
+                    val conjunct = mkAnd(guardLhs, guardRhs)
+                    conjuncts += conjunct
+                }
+
+                if (symbolicRefLhs != null && symbolicRefRhs != null) {
+                    val refsEq = symbolicRefLhs.expr eq symbolicRefRhs.expr
+                    // mkAnd instead of mkAndNoFlat here is OK
+                    val conjunct = mkAnd(symbolicRefLhs.guard, symbolicRefRhs.guard, refsEq)
+                    conjuncts += conjunct
+                }
+
+                // it's safe to use mkOr here
+                mkOr(conjuncts)
+            }
+        }
+
+    @Suppress("UNUSED_PARAMETER")
+    @Deprecated("Use mkHeapRefEq instead.", ReplaceWith("this.mkHeapRefEq(lhs, rhs)"), level = DeprecationLevel.ERROR)
+    fun mkEq(lhs: UHeapRef, rhs: UHeapRef): Nothing = error("Use mkHeapRefEq instead.")
 
     private val uConcreteHeapRefCache = mkAstInterner<UConcreteHeapRef>()
     fun mkConcreteHeapRef(address: UConcreteHeapAddress): UConcreteHeapRef =
@@ -29,19 +90,19 @@ open class UContext(
     fun <Sort : USort> mkRegisterReading(idx: Int, sort: Sort): URegisterReading<Sort> =
         registerReadingCache.createIfContextActive { URegisterReading(this, idx, sort) }.cast()
 
-    private val inputFieldReadingCache = mkAstInterner<UFieldReading<*, out USort>>()
+    private val inputFieldReadingCache = mkAstInterner<UInputFieldReading<*, out USort>>()
 
     fun <Field, Sort : USort> mkInputFieldReading(
-        region: UInputFieldMemoryRegion<Field, Sort>,
+        region: UInputFieldRegion<Field, Sort>,
         address: UHeapRef,
-    ): UFieldReading<Field, Sort> = inputFieldReadingCache.createIfContextActive {
-        UFieldReading(this, region, address)
+    ): UInputFieldReading<Field, Sort> = inputFieldReadingCache.createIfContextActive {
+        UInputFieldReading(this, region, address)
     }.cast()
 
     private val allocatedArrayReadingCache = mkAstInterner<UAllocatedArrayReading<*, out USort>>()
 
     fun <ArrayType, Sort : USort> mkAllocatedArrayReading(
-        region: UAllocatedArrayMemoryRegion<ArrayType, Sort>,
+        region: UAllocatedArrayRegion<ArrayType, Sort>,
         index: USizeExpr,
     ): UAllocatedArrayReading<ArrayType, Sort> = allocatedArrayReadingCache.createIfContextActive {
         UAllocatedArrayReading(this, region, index)
@@ -50,20 +111,20 @@ open class UContext(
     private val inputArrayReadingCache = mkAstInterner<UInputArrayReading<*, out USort>>()
 
     fun <ArrayType, Sort : USort> mkInputArrayReading(
-        region: UInputArrayMemoryRegion<ArrayType, Sort>,
+        region: UInputArrayRegion<ArrayType, Sort>,
         address: UHeapRef,
         index: USizeExpr,
     ): UInputArrayReading<ArrayType, Sort> = inputArrayReadingCache.createIfContextActive {
         UInputArrayReading(this, region, address, index)
     }.cast()
 
-    private val inputArrayLengthCache = mkAstInterner<UArrayLength<*>>()
+    private val inputArrayLengthReadingCache = mkAstInterner<UInputArrayLengthReading<*>>()
 
-    fun <ArrayType> mkInputArrayLength(
-        region: UInputArrayLengthMemoryRegion<ArrayType>,
+    fun <ArrayType> mkInputArrayLengthReading(
+        region: UInputArrayLengthRegion<ArrayType>,
         address: UHeapRef,
-    ): UArrayLength<ArrayType> = inputArrayLengthCache.createIfContextActive {
-        UArrayLength(this, region, address)
+    ): UInputArrayLengthReading<ArrayType> = inputArrayLengthReadingCache.createIfContextActive {
+        UInputArrayLengthReading(this, region, address)
     }.cast()
 
     private val indexedMethodReturnValueCache = mkAstInterner<UIndexedMethodReturnValue<Any, out USort>>()

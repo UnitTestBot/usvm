@@ -29,16 +29,27 @@ typealias UConcreteSize = KBitVec32Value
 
 typealias UAddressSort = KUninterpretedSort
 
+typealias UIndexType = Int
+
 //endregion
+
+abstract class USymbol<Sort : USort>(ctx: UContext) : UExpr<Sort>(ctx)
 
 //region Object References
 
-typealias UIndexType = Int
+/**
+ * An expr is of a [UHeapRef] type iff it's a [UConcreteHeapRef], [USymbolicHeapRef] or [UIteExpr] with [UAddressSort].
+ * [UIteExpr]s have [UConcreteHeapRef]s and [USymbolicHeapRef]s as leafs.
+ */
+typealias UHeapRef = UExpr<UAddressSort>
+
+/**
+ * We maintain the invariant that any symbolic address **cannot** be equal to any UConcreteHeapAddress. Moreover,
+ * symbolic addresses may only come from the specific [USymbol] of [UAddressSort] as [USymbol]s defines unknown
+ * **symbolic** expressions.
+ */
+typealias USymbolicHeapRef = USymbol<UAddressSort>
 typealias UConcreteHeapAddress = Int
-
-const val nullAddress = 0
-
-typealias UHeapRef = UExpr<UAddressSort> // TODO: KExpr<UAddressSort>
 
 class UConcreteHeapRef internal constructor(ctx: UContext, val address: UConcreteHeapAddress) : UHeapRef(ctx) {
     override val sort: UAddressSort = ctx.addressSort
@@ -49,41 +60,53 @@ class UConcreteHeapRef internal constructor(ctx: UContext, val address: UConcret
     }
 
     override fun print(printer: ExpressionPrinter) {
-        printer.append("(concreteAddr $address)")
+        printer.append("0x$address")
     }
-
-    val isNull = (address == nullAddress)
 
     override fun internEquals(other: Any): Boolean = structurallyEqual(other) { address }
 
     override fun internHashCode(): Int = hash(address)
 }
 
+class UNullRef internal constructor(
+    ctx: UContext,
+) : USymbolicHeapRef(ctx) {
+    override val sort: UAddressSort
+        get() = uctx.addressSort
+
+    override fun accept(transformer: KTransformerBase): KExpr<UAddressSort> {
+        require(transformer is UExprTransformer<*, *>)
+        return transformer.transform(this)
+    }
+
+    override fun internEquals(other: Any): Boolean = structurallyEqual(other)
+
+    override fun internHashCode(): Int = hash()
+
+    override fun print(printer: ExpressionPrinter) {
+        printer.append("null")
+    }
+}
+
 //endregion
 
 //region LValues
-open class ULValue(val sort: USort) {
-}
+open class ULValue(val sort: USort)
 
-class URegisterRef(sort: USort, val idx: Int) : ULValue(sort) {
-}
+class URegisterRef(sort: USort, val idx: Int) : ULValue(sort)
 
-class UFieldRef<Field>(fieldSort: USort, val ref: UHeapRef, val field: Field) : ULValue(fieldSort) {
-}
+class UFieldRef<Field>(fieldSort: USort, val ref: UHeapRef, val field: Field) : ULValue(fieldSort)
 
 class UArrayIndexRef<ArrayType>(
     cellSort: USort,
     val ref: UHeapRef,
     val index: USizeExpr,
     val arrayType: ArrayType
-) : ULValue(cellSort) {}
+) : ULValue(cellSort)
 
 //endregion
 
 //region Read Expressions
-
-abstract class USymbol<Sort : USort>(ctx: UContext) : UExpr<Sort>(ctx) {
-}
 
 class URegisterReading<Sort : USort> internal constructor(
     ctx: UContext,
@@ -95,13 +118,13 @@ class URegisterReading<Sort : USort> internal constructor(
         return transformer.transform(this)
     }
 
-    override fun print(printer: ExpressionPrinter) {
-        TODO("Not yet implemented")
-    }
-
     override fun internEquals(other: Any): Boolean = structurallyEqual(other, { idx }, { sort })
 
     override fun internHashCode(): Int = hash(idx, sort)
+
+    override fun print(printer: ExpressionPrinter) {
+        printer.append("%$idx")
+    }
 }
 
 abstract class UHeapReading<RegionId : URegionId<Key>, Key, Sort : USort>(
@@ -109,15 +132,11 @@ abstract class UHeapReading<RegionId : URegionId<Key>, Key, Sort : USort>(
     val region: UMemoryRegion<RegionId, Key, Sort>
 ) : USymbol<Sort>(ctx) {
     override val sort: Sort get() = region.sort
-
-    override fun print(printer: ExpressionPrinter) {
-        TODO("Not yet implemented")
-    }
 }
 
-class UFieldReading<Field, Sort : USort> internal constructor(
+class UInputFieldReading<Field, Sort : USort> internal constructor(
     ctx: UContext,
-    region: UInputFieldMemoryRegion<Field, Sort>,
+    region: UInputFieldRegion<Field, Sort>,
     val address: UHeapRef,
 ) : UHeapReading<UInputFieldRegionId<Field>, UHeapRef, Sort>(ctx, region) {
     @Suppress("UNCHECKED_CAST")
@@ -127,16 +146,21 @@ class UFieldReading<Field, Sort : USort> internal constructor(
         return (transformer as UExprTransformer<Field, *>).transform(this)
     }
 
-    override fun toString(): String = "$address.${region.field}"
-
     override fun internEquals(other: Any): Boolean = structurallyEqual(other, { region }, { address })
 
     override fun internHashCode(): Int = hash(region, address)
+
+    override fun print(printer: ExpressionPrinter) {
+        printer.append(region.toString())
+        printer.append("[")
+        printer.append(address)
+        printer.append("]")
+    }
 }
 
 class UAllocatedArrayReading<ArrayType, Sort : USort> internal constructor(
     ctx: UContext,
-    region: UAllocatedArrayMemoryRegion<ArrayType, Sort>,
+    region: UAllocatedArrayRegion<ArrayType, Sort>,
     val index: USizeExpr,
 ) : UHeapReading<UAllocatedArrayId<ArrayType>, USizeExpr, Sort>(ctx, region) {
     @Suppress("UNCHECKED_CAST")
@@ -155,17 +179,20 @@ class UAllocatedArrayReading<ArrayType, Sort : USort> internal constructor(
 
     override fun internHashCode(): Int = hash(region, index)
 
-    override fun toString(): String = "0x${region.allocatedAddress}[$index]"
+    override fun print(printer: ExpressionPrinter) {
+        printer.append(region.toString())
+        printer.append("[")
+        printer.append(index)
+        printer.append("]")
+    }
 }
 
 class UInputArrayReading<ArrayType, Sort : USort> internal constructor(
     ctx: UContext,
-    region: UInputArrayMemoryRegion<ArrayType, Sort>,
+    region: UInputArrayRegion<ArrayType, Sort>,
     val address: UHeapRef,
     val index: USizeExpr
 ) : UHeapReading<UInputArrayId<ArrayType>, USymbolicArrayIndex, Sort>(ctx, region) {
-    override fun toString(): String = "$address[$index]"
-
     @Suppress("UNCHECKED_CAST")
     override fun accept(transformer: KTransformerBase): KExpr<Sort> {
         require(transformer is UExprTransformer<*, *>)
@@ -182,11 +209,20 @@ class UInputArrayReading<ArrayType, Sort : USort> internal constructor(
         )
 
     override fun internHashCode(): Int = hash(region, address, index)
+
+    override fun print(printer: ExpressionPrinter) {
+        printer.append(region.toString())
+        printer.append("[")
+        printer.append(address)
+        printer.append(", ")
+        printer.append(index)
+        printer.append("]")
+    }
 }
 
-class UArrayLength<ArrayType> internal constructor(
+class UInputArrayLengthReading<ArrayType> internal constructor(
     ctx: UContext,
-    region: UInputArrayLengthMemoryRegion<ArrayType>,
+    region: UInputArrayLengthRegion<ArrayType>,
     val address: UHeapRef,
 ) : UHeapReading<UInputArrayLengthId<ArrayType>, UHeapRef, USizeSort>(ctx, region) {
     @Suppress("UNCHECKED_CAST")
@@ -196,11 +232,16 @@ class UArrayLength<ArrayType> internal constructor(
         return (transformer as UExprTransformer<*, ArrayType>).transform(this)
     }
 
-    override fun toString(): String = "length($address)"
-
     override fun internEquals(other: Any): Boolean = structurallyEqual(other, { region }, { address })
 
     override fun internHashCode(): Int = hash(region, address)
+
+    override fun print(printer: ExpressionPrinter) {
+        printer.append(region.toString())
+        printer.append("[")
+        printer.append(address)
+        printer.append("]")
+    }
 }
 
 //endregion
