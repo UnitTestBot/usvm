@@ -48,7 +48,7 @@ open class UComposer<Field, Type>(
         mappedRegion.read(mappedKey)
     }
 
-    override fun transform(expr: UArrayLength<Type>): USizeExpr =
+    override fun transform(expr: UInputArrayLengthReading<Type>): USizeExpr =
         transformHeapReading(expr, expr.address)
 
     override fun <Sort : USort> transform(expr: UInputArrayReading<Type, Sort>): UExpr<Sort> =
@@ -57,8 +57,10 @@ open class UComposer<Field, Type>(
     override fun <Sort : USort> transform(expr: UAllocatedArrayReading<Type, Sort>): UExpr<Sort> =
         transformHeapReading(expr, expr.index)
 
+    override fun <Sort : USort> transform(expr: UInputFieldReading<Field, Sort>): UExpr<Sort> =
+        transformHeapReading(expr, expr.address)
+
     override fun transform(expr: UConcreteHeapRef): UExpr<UAddressSort> = expr
 
-    override fun <Sort : USort> transform(expr: UFieldReading<Field, Sort>): UExpr<Sort> =
-        transformHeapReading(expr, expr.address)
+    override fun transform(expr: UNullRef): UNullRef = expr
 }
