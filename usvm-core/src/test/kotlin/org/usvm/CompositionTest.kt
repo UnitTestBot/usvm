@@ -298,6 +298,63 @@ internal class CompositionTest<Type, Field> {
     }
 
     @Test
+    fun testComposeSeveralTimes() = with(ctx) {
+        val fstAddress = mockk<USymbolicHeapRef>()
+        val fstIndex = mockk<USizeExpr>()
+
+        val sndAddress = mockk<USymbolicHeapRef>()
+        val sndIndex = mockk<USizeExpr>()
+
+        val arrayType: KClass<Array<*>> = Array::class
+        // Create an empty region
+        val region = emptyInputArrayRegion(arrayType, mkBv32Sort()) { key, memoryRegion ->
+            mkInputArrayReading(memoryRegion, key.first, key.second)
+        }
+
+        // TODO replace with jacoDB type
+        // create a reading from the region
+        val fstArrayIndexReading = mkInputArrayReading(region, fstAddress, fstIndex)
+
+        val typeEvaluator = mockk<UTypeEvaluator<KClass<*>>>() // TODO replace with jacoDB type
+        val sndHeapEvaluator = URegionHeap<Field, KClass<*>>(ctx) // TODO replace with jacoDB type
+        // create a heap with a record: (sndAddress, sndIndex) = 2
+        sndHeapEvaluator.writeArrayIndex(sndAddress, sndIndex, arrayType, mkBv32Sort(), 2.toBv(), mkTrue())
+
+        val sndComposer = UComposer(
+            ctx, stackEvaluator, sndHeapEvaluator, typeEvaluator, mockEvaluator
+        ) // TODO replace with jacoDB type
+
+        val fstEvaluator = URegionHeap<Field, KClass<*>>(ctx) // TODO replace with jacoDB type
+        // create a heap with a record: (fstAddress, fstIndex) = 1
+        fstEvaluator.writeArrayIndex(fstAddress, fstIndex, arrayType, mkBv32Sort(), 1.toBv(), mkTrue())
+
+        val fstComposer = UComposer(
+            ctx, stackEvaluator, fstEvaluator, typeEvaluator, mockEvaluator
+        ) // TODO replace with jacoDB type
+
+        // Both heaps leave everything untouched
+        every { sndAddress.accept(sndComposer) } returns sndAddress
+        every { sndAddress.accept(fstComposer) } returns sndAddress
+        every { fstAddress.accept(sndComposer) } returns fstAddress
+        every { fstAddress.accept(fstComposer) } returns fstAddress
+
+        every { fstIndex.accept(fstComposer) } returns fstIndex
+        every { fstIndex.accept(sndComposer) } returns fstIndex
+        every { sndIndex.accept(fstComposer) } returns sndIndex
+        every { sndIndex.accept(sndComposer) } returns sndIndex
+
+        val sndComposedExpr = sndComposer.compose(fstArrayIndexReading)
+        val fstComposedExpr = fstComposer.compose(sndComposedExpr)
+
+        val expectedRegion = region
+            .write(USymbolicArrayIndex(fstAddress, fstIndex), 1.toBv(), guard = mkTrue())
+            .write(USymbolicArrayIndex(sndAddress, sndIndex), 2.toBv(), guard = mkTrue())
+
+        require(fstComposedExpr is UInputArrayReading<*, *>)
+        assert(fstComposedExpr.region.updates.toList() == expectedRegion.updates.toList())
+    }
+
+    @Test
     fun testUAllocatedArrayIndexReading() = with(ctx) {
         val arrayType: KClass<Array<*>> = Array::class
         val address = 1
