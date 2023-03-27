@@ -163,12 +163,13 @@ data class UMemoryRegion<RegionId : URegionId<Key>, Key, Sort : USort>(
         val mappedUpdates = updates.map(regionId.keyMapper(composer), composer)
         val mappedDefaultValue = defaultValue?.let { composer.compose(it) }
 
-        // If there is no changes after their composition, return unchecked region
-        if (mappedUpdates === updates && mappedDefaultValue === defaultValue) {
+        // Note that we cannot use optimization with unchanged mappedUpdates and mappedDefaultValues here
+        // since in a new region we might have an updated instantiator.
+        // Therefore, we have to check their reference equality as well.
+        if (mappedUpdates === updates && mappedDefaultValue === defaultValue && instantiator === this.instantiator) {
             return this
         }
 
-        // Otherwise, construct a new region with mapped values and a new instantiator.
         return UMemoryRegion(regionId, sort, mappedUpdates, mappedDefaultValue, instantiator)
     }
 
