@@ -162,7 +162,7 @@ internal interface UUpdatesTranslator<Key, Sort : USort, Result> {
 }
 
 internal class UFlatUpdatesTranslator<Key, Sort : USort, Result>(
-    private val regionTranslator: UUpdateTranslator<Key, Sort, Result>,
+    private val updateTranslator: UUpdateTranslator<Key, Sort, Result>,
 ) : UUpdatesTranslator<Key, Sort, Result> {
     private val cache: IdentityHashMap<UMemoryUpdates<Key, Sort>, Result> = IdentityHashMap()
 
@@ -171,21 +171,21 @@ internal class UFlatUpdatesTranslator<Key, Sort : USort, Result>(
     ): Result =
         when (updates) {
             is UFlatUpdates<Key, Sort> -> translateFlatUpdate(updates)
-            is UEmptyUpdates<Key, Sort> -> regionTranslator.initialValue()
+            is UEmptyUpdates<Key, Sort> -> updateTranslator.initialValue()
             else -> error("This updates translator works only with UFlatUpdates or UEmptyUpdates")
         }
 
     private fun translateFlatUpdate(updates: UFlatUpdates<Key, Sort>): Result {
         val result = cache.getOrPut(updates) {
-            val accumulated = updates.next?.let(::translateUpdates) ?: regionTranslator.initialValue()
-            regionTranslator.applyUpdate(accumulated, updates.node)
+            val accumulated = updates.next?.let(::translateUpdates) ?: updateTranslator.initialValue()
+            updateTranslator.applyUpdate(accumulated, updates.node)
         }
         return result
     }
 }
 
 internal class UTreeUpdatesTranslator<Key, Sort : USort, Result>(
-    private val regionTranslator: UUpdateTranslator<Key, Sort, Result>,
+    private val updateTranslator: UUpdateTranslator<Key, Sort, Result>,
 ) : UUpdatesTranslator<Key, Sort, Result> {
     private val cache: IdentityHashMap<RegionTree<UUpdateNode<Key, Sort>, *>, Result> = IdentityHashMap()
 
@@ -211,11 +211,11 @@ internal class UTreeUpdatesTranslator<Key, Sort : USort, Result>(
 
             val entryIterator = updates.entries.iterator()
             if (!entryIterator.hasNext()) {
-                return regionTranslator.initialValue()
+                return updateTranslator.initialValue()
             }
             val (update, nextUpdates) = entryIterator.next().value
             result = leftMostTranslate(nextUpdates)
-            result = regionTranslator.applyUpdate(result, update)
+            result = updateTranslator.applyUpdate(result, update)
             return notLeftMostTranslate(result, entryIterator)
         }
 
@@ -240,10 +240,10 @@ internal class UTreeUpdatesTranslator<Key, Sort : USort, Result>(
                     return accumulated
                 }
                 emittedUpdates += update
-                regionTranslator.applyUpdate(accumulated, update)
+                updateTranslator.applyUpdate(accumulated, update)
             }
 
-            return regionTranslator.applyUpdate(accumulated, update)
+            return updateTranslator.applyUpdate(accumulated, update)
         }
     }
 }

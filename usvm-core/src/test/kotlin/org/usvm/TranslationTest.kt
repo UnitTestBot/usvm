@@ -4,6 +4,7 @@ import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.ksmt.solver.model.DefaultValueSampler.Companion.sampleValue
 import org.ksmt.utils.mkConst
 import kotlin.test.assertSame
 
@@ -50,7 +51,7 @@ class TranslationTest {
         val expr = heap.readArrayIndex(ref, idx, valueArrayDescr, bv32Sort)
         val translated = translator.translate(expr)
 
-        assertSame(bv32Sort.defaultValue(), translated)
+        assertSame(bv32Sort.sampleValue(), translated)
     }
 
     @Test
@@ -75,7 +76,7 @@ class TranslationTest {
         val translatedIdx2 = translator.translate(idx2)
         val translatedReadIdx = translator.translate(readIdx)
 
-        val expected = mkArrayConst(mkArraySort(sizeSort, bv32Sort), bv32Sort.defaultValue())
+        val expected = mkArrayConst(mkArraySort(sizeSort, bv32Sort), bv32Sort.sampleValue())
             .store(translatedIdx1, val1)
             .store(translatedIdx2, val2)
             .select(translatedReadIdx)
@@ -149,7 +150,7 @@ class TranslationTest {
         val innerReading =
             translator.translateRegionReading(region, keyConverter.convert(translator.translate(idx)))
         val guard = translator.translate((mkBvSignedLessOrEqualExpr(mkBv(0), idx)) and mkBvSignedLessOrEqualExpr(idx, mkBv(5)))
-        val expected = mkIte(guard, innerReading, bv32Sort.defaultValue())
+        val expected = mkIte(guard, innerReading, bv32Sort.sampleValue())
 
         val translated = translator.translate(reading)
 

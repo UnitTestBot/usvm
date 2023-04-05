@@ -11,6 +11,7 @@ import org.ksmt.expr.KBitVec32Value
 import org.ksmt.expr.KExpr
 import org.ksmt.expr.printer.ExpressionPrinter
 import org.ksmt.expr.transformer.KTransformerBase
+import org.ksmt.solver.model.DefaultValueSampler.Companion.sampleValue
 import org.ksmt.sort.KBv32Sort
 import kotlin.reflect.KClass
 import kotlin.test.assertEquals
@@ -381,7 +382,7 @@ internal class CompositionTest<Type, Field> {
         val fstAddressForCompose = mkConcreteHeapRef(address)
         val sndAddressForCompose = mkConcreteHeapRef(address)
 
-        val concreteIndex = sizeSort.defaultValue()
+        val concreteIndex = sizeSort.sampleValue()
         val fstValue = 42.toBv()
         val sndValue = 43.toBv()
 

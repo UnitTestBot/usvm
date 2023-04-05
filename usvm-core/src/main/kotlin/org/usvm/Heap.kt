@@ -1,8 +1,12 @@
 package org.usvm
 
+import org.ksmt.solver.KModel
+import org.ksmt.solver.model.DefaultValueSampler.Companion.sampleValue
 import org.ksmt.utils.asExpr
+import org.ksmt.utils.cast
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentMapOf
+import kotlinx.collections.immutable.toPersistentMap
 
 interface UReadOnlyHeap<Ref, Value, SizeT, Field, ArrayType, Guard> {
     fun <Sort : USort> readField(ref: Ref, field: Field, sort: Sort): Value
@@ -19,14 +23,14 @@ typealias UReadOnlySymbolicHeap<Field, ArrayType> = UReadOnlyHeap<UHeapRef, UExp
 
 class UEmptyHeap<Field, ArrayType>(private val ctx: UContext) : UReadOnlySymbolicHeap<Field, ArrayType> {
     override fun <Sort : USort> readField(ref: UHeapRef, field: Field, sort: Sort): UExpr<Sort> =
-        ctx.mkDefault(sort)
+        sort.sampleValue()
 
     override fun <Sort : USort> readArrayIndex(
         ref: UHeapRef,
         index: USizeExpr,
         arrayType: ArrayType,
         elementSort: Sort,
-    ): UExpr<Sort> = ctx.mkDefault(elementSort)
+    ): UExpr<Sort> = elementSort.sampleValue()
 
     override fun readArrayLength(ref: UHeapRef, arrayType: ArrayType) =
         ctx.zeroSize
@@ -84,7 +88,7 @@ data class URegionHeap<Field, ArrayType>(
     private val ctx: UContext,
     private var lastAddress: UAddressCounter = UAddressCounter(),
     private var allocatedFields: PersistentMap<Pair<UConcreteHeapAddress, Field>, UExpr<out USort>> = persistentMapOf(),
-    private var inputFields: PersistentMap<Field, UInputFieldRegion<Field, out USort>> = persistentMapOf(),
+    private var inputFields: PersistentMap<Field, UInputFieldRegion<Field, *>> = persistentMapOf(),
     private var allocatedArrays: PersistentMap<UConcreteHeapAddress, UAllocatedArrayRegion<ArrayType, out USort>> = persistentMapOf(),
     private var inputArrays: PersistentMap<ArrayType, UInputArrayRegion<ArrayType, out USort>> = persistentMapOf(),
     private var allocatedLengths: PersistentMap<UConcreteHeapAddress, USizeExpr> = persistentMapOf(),
@@ -130,7 +134,7 @@ data class URegionHeap<Field, ArrayType>(
         ref.map(
             { concreteRef ->
                 allocatedFields
-                    .getOrDefault(concreteRef.address to field, sort.defaultValue())
+                    .getOrDefault(concreteRef.address to field, sort.sampleValue())
                     .asExpr(sort)
             },
             { symbolicRef -> inputFieldRegion(field, sort).read(symbolicRef) }
@@ -200,8 +204,8 @@ data class URegionHeap<Field, ArrayType>(
                 allocatedArrays = allocatedArrays.put(concreteRef.address, newRegion)
             },
             { (symbolicRef, innerGuard) ->
-                val region = inputArrayRegion(type, elementSort)
-                val newRegion = region.write(symbolicRef to index, valueToWrite, innerGuard)
+                val oldRegion = inputArrayRegion(type, elementSort)
+                val newRegion = oldRegion.write(symbolicRef to index, valueToWrite, innerGuard)
                 inputArrays = inputArrays.put(type, newRegion)
             }
         )
@@ -308,7 +312,7 @@ data class URegionHeap<Field, ArrayType>(
         return address
     }
 
-    override fun clone(): UHeap<UHeapRef, UExpr<out USort>, USizeExpr, Field, ArrayType, UBoolExpr> =
+    override fun clone(): URegionHeap<Field, ArrayType> =
         URegionHeap(
             ctx, lastAddress,
             allocatedFields, inputFields,

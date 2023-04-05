@@ -2,8 +2,9 @@ package org.usvm
 
 import org.ksmt.KAst
 import org.ksmt.KContext
+import org.ksmt.expr.KExpr
 import org.ksmt.solver.model.DefaultValueSampler.Companion.sampleValue
-import org.ksmt.utils.asExpr
+import org.ksmt.sort.KUninterpretedSort
 import org.ksmt.utils.cast
 
 @Suppress("LeakingThis")
@@ -15,7 +16,7 @@ open class UContext(
 
     val addressSort: UAddressSort = mkUninterpretedSort("Address")
     val sizeSort: USizeSort = bv32Sort
-    val zeroSize: USizeExpr = sizeSort.defaultValue()
+    val zeroSize: USizeExpr = sizeSort.sampleValue()
 
     val nullRef: USymbolicHeapRef = UNullRef(this)
 
@@ -144,18 +145,14 @@ open class UContext(
         UIsExpr(this, ref, type.cast())
     }.cast()
 
-    fun <Sort : USort> mkDefault(sort: Sort): UExpr<Sort> =
-        when (sort) {
-            addressSort -> nullRef.asExpr(sort)
-            else -> sort.sampleValue()
+    override fun uninterpretedSortDefaultValue(sort: KUninterpretedSort): KExpr<KUninterpretedSort> =
+        if (sort == addressSort) {
+            nullRef
+        } else {
+            super.uninterpretedSortDefaultValue(sort)
         }
-}
 
-fun <Sort : USort> Sort.defaultValue() =
-    when (ctx) {
-        is UContext -> (ctx as UContext).mkDefault(this)
-        else -> sampleValue()
-    }
+}
 
 val KAst.uctx
     get() = ctx as UContext

@@ -1,5 +1,6 @@
 package org.usvm
 
+import org.ksmt.solver.model.DefaultValueSampler.Companion.sampleValue
 import org.ksmt.utils.asExpr
 
 
@@ -75,7 +76,7 @@ data class UAllocatedArrayId<ArrayType, Sort : USort> internal constructor(
     val address: UConcreteHeapAddress,
     override val sort: Sort,
 ) : UArrayId<ArrayType, USizeExpr, Sort> {
-    override val defaultValue get() = sort.defaultValue()
+    override val defaultValue get() = sort.sampleValue()
 
     @Suppress("UNCHECKED_CAST")
     override fun <Field, ArrayType> read(
