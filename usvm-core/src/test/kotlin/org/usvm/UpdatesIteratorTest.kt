@@ -1,5 +1,6 @@
 package org.usvm
 
+import com.microsoft.z3.IntSort
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.usvm.util.SetRegion
@@ -35,20 +36,12 @@ class UpdatesIteratorTest {
 
     @Test
     fun testFlatUpdatesIterator() = with(UContext()) {
-        val firstUpdateNode = UPinpointUpdateNode(
-            key = 10,
-            value = 10.toBv(),
-            keyEqualityComparer = { k1, k2 -> mkEq(k1.toBv(), k2.toBv()) },
-            guard = trueExpr
-        )
-
-        val flatUpdates = UFlatUpdates(
-            node = firstUpdateNode,
-            next = null,
+        val flatUpdates = UFlatUpdates<Int, UBv32Sort>(
             { _, _ -> throw NotImplementedError() },
             { _, _ -> throw NotImplementedError() },
             { _, _ -> throw NotImplementedError() }
-        ).write(key = 1, value = 1.toBv(), guard = mkTrue())
+        ).write(key = 10, value = 10.toBv(), guard = mkTrue())
+            .write(key = 1, value = 1.toBv(), guard = mkTrue())
             .write(key = 2, value = 2.toBv(), guard = mkTrue())
             .write(key = 3, value = 3.toBv(), guard = mkTrue())
 

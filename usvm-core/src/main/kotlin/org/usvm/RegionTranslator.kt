@@ -31,10 +31,7 @@ internal interface UUpdateTranslator<Key, Sort : USort, Result> {
 
     fun initialValue(): Result
 
-    fun applyUpdate(
-        previous: Result,
-        update: UUpdateNode<Key, Sort>,
-    ): Result
+    fun applyUpdate(previous: Result, update: UUpdateNode<Key, Sort>): Result
 }
 
 internal class U1DArrayUpdateTranslator<RegionId : URegionId<UExpr<KeySort>, Sort>, KeySort : USort, Sort : USort>(
@@ -143,7 +140,8 @@ internal class U2DArrayUpdateTranslator<RegionId : URegionId<Pair<KExpr<Key1Sort
                         val key2 = mkFreshConst("k2", previous.sort.domain1)
 
                         val region = update.region
-                        val convertedKey = region.regionId.keyMapper(translator)(update.keyConverter.convert(key1 to key2))
+                        val convertedKey =
+                            region.regionId.keyMapper(translator)(update.keyConverter.convert(key1 to key2))
                         val isInside = update.includesSymbolically(key1 to key2).translated // already includes guard
                         val result = translator.translateRegionReading(region, convertedKey)
                         val ite = mkIte(isInside, result, previous.select(key1, key2))
@@ -170,15 +168,15 @@ internal class UFlatUpdatesTranslator<Key, Sort : USort, Result>(
         updates: UMemoryUpdates<Key, Sort>,
     ): Result =
         when (updates) {
-            is UFlatUpdates<Key, Sort> -> translateFlatUpdate(updates)
-            is UEmptyUpdates<Key, Sort> -> updateTranslator.initialValue()
-            else -> error("This updates translator works only with UFlatUpdates or UEmptyUpdates")
+            is UFlatUpdates<Key, Sort> -> translateFlatUpdates(updates)
+            else -> error("This updates translator works only with UFlatUpdates")
         }
 
-    private fun translateFlatUpdate(updates: UFlatUpdates<Key, Sort>): Result {
+    private fun translateFlatUpdates(updates: UFlatUpdates<Key, Sort>): Result {
         val result = cache.getOrPut(updates) {
-            val accumulated = updates.next?.let(::translateUpdates) ?: updateTranslator.initialValue()
-            updateTranslator.applyUpdate(accumulated, updates.node)
+            val node = updates.node ?: return@getOrPut updateTranslator.initialValue()
+            val accumulated = translateUpdates(node.next)
+            updateTranslator.applyUpdate(accumulated, node.update)
         }
         return result
     }
@@ -189,7 +187,7 @@ internal class UTreeUpdatesTranslator<Key, Sort : USort, Result>(
 ) : UUpdatesTranslator<Key, Sort, Result> {
     private val cache: IdentityHashMap<RegionTree<UUpdateNode<Key, Sort>, *>, Result> = IdentityHashMap()
 
-    override fun translateUpdates(updates: UMemoryUpdates<Key, Sort>, ): Result {
+    override fun translateUpdates(updates: UMemoryUpdates<Key, Sort>): Result {
         require(updates is UTreeUpdates<Key, *, Sort>) { "This updates translator works only with UTreeUpdates" }
 
         return cache.getOrPut(updates.updates) {

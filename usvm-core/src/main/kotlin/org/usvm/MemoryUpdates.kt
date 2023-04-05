@@ -74,73 +74,28 @@ interface UMemoryUpdates<Key, Sort : USort> : Sequence<UUpdateNode<Key, Sort>> {
 
 //region Flat memory updates
 
-class UEmptyUpdates<Key, Sort : USort>(
+class UFlatUpdates<Key, Sort : USort> private constructor(
+    internal val node: FlatNode<Key, Sort>?,
     private val symbolicEq: (Key, Key) -> UBoolExpr,
     private val concreteCmp: (Key, Key) -> Boolean,
     private val symbolicCmp: (Key, Key) -> UBoolExpr,
 ) : UMemoryUpdates<Key, Sort> {
-    override fun read(key: Key): UEmptyUpdates<Key, Sort> = this
+    constructor(
+        symbolicEq: (Key, Key) -> UBoolExpr,
+        concreteCmp: (Key, Key) -> Boolean,
+        symbolicCmp: (Key, Key) -> UBoolExpr,
+    ) : this(null, symbolicEq, concreteCmp, symbolicCmp)
 
-    override fun write(key: Key, value: UExpr<Sort>, guard: UBoolExpr): UFlatUpdates<Key, Sort> =
-        UFlatUpdates(
-            UPinpointUpdateNode(key, value, symbolicEq, guard),
-            next = null,
-            symbolicEq,
-            concreteCmp,
-            symbolicCmp
-        )
-
-    override fun <ArrayType, RegionId : UArrayId<ArrayType, SrcKey, Sort>, SrcKey> copyRange(
-        fromRegion: UMemoryRegion<RegionId, SrcKey, Sort>,
-        fromKey: Key,
-        toKey: Key,
-        keyConverter: UMemoryKeyConverter<SrcKey, Key>,
-        guard: UBoolExpr,
-    ): UFlatUpdates<Key, Sort> = UFlatUpdates(
-        URangedUpdateNode(fromKey, toKey, fromRegion, concreteCmp, symbolicCmp, keyConverter, guard),
-        next = null,
-        symbolicEq,
-        concreteCmp,
-        symbolicCmp
+    internal data class FlatNode<Key, Sort : USort>(
+        val update: UUpdateNode<Key, Sort>,
+        val next: UFlatUpdates<Key, Sort>,
     )
 
-    override fun split(
-        key: Key,
-        predicate: (UExpr<Sort>) -> Boolean,
-        matchingWrites: MutableList<GuardedExpr<UExpr<Sort>>>,
-        guardBuilder: GuardBuilder,
-    ) = this
-
-    override fun <Field, Type> map(
-        keyMapper: KeyMapper<Key>,
-        composer: UComposer<Field, Type>,
-    ): UEmptyUpdates<Key, Sort> = this
-
-    override fun iterator(): Iterator<UUpdateNode<Key, Sort>> = EmptyIterator()
-
-    private class EmptyIterator<Key, Sort : USort> : Iterator<UUpdateNode<Key, Sort>> {
-        override fun hasNext(): Boolean = false
-        override fun next(): UUpdateNode<Key, Sort> = error("Advancing empty iterator")
-    }
-
-    override fun lastUpdatedElementOrNull(): UUpdateNode<Key, Sort>? = null
-
-    override fun isEmpty(): Boolean = true
-}
-
-data class UFlatUpdates<Key, Sort : USort>(
-    val node: UUpdateNode<Key, Sort>,
-    val next: UMemoryUpdates<Key, Sort>?,
-    private val symbolicEq: (Key, Key) -> UBoolExpr,
-    private val concreteCmp: (Key, Key) -> Boolean,
-    private val symbolicCmp: (Key, Key) -> UBoolExpr,
-) : UMemoryUpdates<Key, Sort> {
     override fun read(key: Key): UMemoryUpdates<Key, Sort> = this
 
     override fun write(key: Key, value: UExpr<Sort>, guard: UBoolExpr): UFlatUpdates<Key, Sort> =
         UFlatUpdates(
-            UPinpointUpdateNode(key, value, symbolicEq, guard),
-            next = this,
+            FlatNode(UPinpointUpdateNode(key, value, symbolicEq, guard), this),
             symbolicEq,
             concreteCmp,
             symbolicCmp
@@ -153,8 +108,7 @@ data class UFlatUpdates<Key, Sort : USort>(
         keyConverter: UMemoryKeyConverter<SrcKey, Key>,
         guard: UBoolExpr,
     ): UMemoryUpdates<Key, Sort> = UFlatUpdates(
-        URangedUpdateNode(fromKey, toKey, fromRegion, concreteCmp, symbolicCmp, keyConverter, guard),
-        next = this,
+        FlatNode(URangedUpdateNode(fromKey, toKey, fromRegion, concreteCmp, symbolicCmp, keyConverter, guard), this),
         symbolicEq,
         concreteCmp,
         symbolicCmp
@@ -165,36 +119,38 @@ data class UFlatUpdates<Key, Sort : USort>(
         predicate: (UExpr<Sort>) -> Boolean,
         matchingWrites: MutableList<GuardedExpr<UExpr<Sort>>>,
         guardBuilder: GuardBuilder,
-    ): UMemoryUpdates<Key, Sort> {
-        val splitNode = node.split(key, predicate, matchingWrites, guardBuilder)
-        val splitNext = next?.split(key, predicate, matchingWrites, guardBuilder)
+    ): UFlatUpdates<Key, Sort> {
+        node ?: return this
+        val splitNode = node.update.split(key, predicate, matchingWrites, guardBuilder)
+        val splitNext = node.next.split(key, predicate, matchingWrites, guardBuilder)
 
         if (splitNode == null) {
-            return splitNext ?: UEmptyUpdates(symbolicEq, concreteCmp, symbolicCmp)
+            return splitNext
         }
 
-        if (splitNext === next) {
+        if (splitNext === node.next && splitNode === node.update) {
             return this
         }
 
-        return UFlatUpdates(splitNode, splitNext, symbolicEq, concreteCmp, symbolicCmp)
+        return UFlatUpdates(FlatNode(splitNode, splitNext), symbolicEq, concreteCmp, symbolicCmp)
     }
 
     override fun <Field, Type> map(
         keyMapper: KeyMapper<Key>,
         composer: UComposer<Field, Type>,
     ): UFlatUpdates<Key, Sort> {
+        node ?: return this
         // Map the current node and the next values recursively
-        val mappedNode = node.map(keyMapper, composer)
-        val mappedNext = next?.map(keyMapper, composer)
+        val mappedNode = node.update.map(keyMapper, composer)
+        val mappedNext = node.next.map(keyMapper, composer)
 
         // If nothing changed, return this updates
-        if (mappedNode === node && mappedNext === next) {
+        if (mappedNode === node.update && mappedNext === node.next) {
             return this
         }
 
         // Otherwise, construct a new one using the mapped values
-        return UFlatUpdates(mappedNode, mappedNext, symbolicEq, concreteCmp, symbolicCmp)
+        return UFlatUpdates(FlatNode(mappedNode, mappedNext), symbolicEq, concreteCmp, symbolicCmp)
     }
 
     /**
@@ -210,14 +166,13 @@ data class UFlatUpdates<Key, Sort : USort>(
 
         init {
             val elements = mutableListOf<UUpdateNode<Key, Sort>>()
-            var current: UFlatUpdates<Key, Sort>? = initialNode
+            var current: UFlatUpdates<Key, Sort> = initialNode
 
             // Traverse over linked list of updates nodes and extract them into an array list
-            while (current != null) {
-                elements += current.node
-                // We can safely apply `as?` since we are interested only in non-empty updates
-                // and there are no `treeUpdates` as a `next` element of the `UFlatUpdates`
-                current = current.next as? UFlatUpdates<Key, Sort>
+            while (true) {
+                val node = current.node ?: break
+                elements += node.update
+                current = node.next
             }
 
             iterator = elements.asReversed().iterator()
@@ -228,9 +183,9 @@ data class UFlatUpdates<Key, Sort : USort>(
         override fun next(): UUpdateNode<Key, Sort> = iterator.next()
     }
 
-    override fun lastUpdatedElementOrNull(): UUpdateNode<Key, Sort> = node
+    override fun lastUpdatedElementOrNull(): UUpdateNode<Key, Sort>? = node?.update
 
-    override fun isEmpty(): Boolean = false
+    override fun isEmpty(): Boolean = node == null
 }
 
 //endregion
@@ -453,6 +408,7 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
             throw NoSuchElementException()
         }
     }
+
     internal fun checkWasCloned(update: UUpdateNode<Key, Sort>, region: Region<*>): Boolean {
         // To check, whether we have a duplicate for a particular key,
         // we have to check if an initial region (by USVM estimation) is equal

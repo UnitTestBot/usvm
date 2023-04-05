@@ -224,7 +224,7 @@ class MapCompositionTest<Field, Type> {
 
     @Test
     fun testEmptyUpdatesMapOperation() {
-        val emptyUpdates = UEmptyUpdates<UExpr<UAddressSort>, UBv32Sort>(
+        val emptyUpdates = UFlatUpdates<UExpr<UAddressSort>, UBv32Sort>(
             { _, _ -> shouldNotBeCalled() },
             { _, _ -> shouldNotBeCalled() },
             { _, _ -> shouldNotBeCalled() }
@@ -242,7 +242,7 @@ class MapCompositionTest<Field, Type> {
         val sndKey = addressSort.mkConst("sndKey")
         val sndValue = bv32Sort.mkConst("sndValue")
 
-        val flatUpdates = UEmptyUpdates<UExpr<UAddressSort>, UBv32Sort>(
+        val flatUpdates = UFlatUpdates<UExpr<UAddressSort>, UBv32Sort>(
             { _, _ -> shouldNotBeCalled() },
             { _, _ -> shouldNotBeCalled() },
             { _, _ -> shouldNotBeCalled() }
@@ -267,7 +267,7 @@ class MapCompositionTest<Field, Type> {
         val sndKey = addressSort.mkConst("sndKey")
         val sndValue = bv32Sort.mkConst("sndValue")
 
-        val flatUpdates = UEmptyUpdates<UExpr<UAddressSort>, UBv32Sort>(
+        val flatUpdates = UFlatUpdates<UExpr<UAddressSort>, UBv32Sort>(
             { _, _ -> shouldNotBeCalled() },
             { _, _ -> shouldNotBeCalled() },
             { _, _ -> shouldNotBeCalled() }
@@ -289,15 +289,15 @@ class MapCompositionTest<Field, Type> {
 
         assertNotSame(illegal = flatUpdates, actual = mappedUpdates)
 
-        val node = mappedUpdates.node as UPinpointUpdateNode<*, *>
-        val next = mappedUpdates.next as UFlatUpdates<*, *>
-        val nextNode = next.node as UPinpointUpdateNode<*, *>
+        val node = mappedUpdates.node?.update as UPinpointUpdateNode<*, *>
+        val next = mappedUpdates.node.next as UFlatUpdates<*, *>
+        val nextNode = next.node?.update as UPinpointUpdateNode<*, *>
 
         assertSame(expected = composedSndKey, actual = node.key)
         assertSame(expected = composedSndValue, actual = node.value)
         assertSame(expected = composedFstKey, actual = nextNode.key)
         assertSame(expected = composedFstValue, actual = nextNode.value)
-        assertNull(next.next)
+        assertNull(next.node.next.node)
     }
 
     @Test

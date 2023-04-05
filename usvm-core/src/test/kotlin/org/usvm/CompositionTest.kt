@@ -193,7 +193,7 @@ internal class CompositionTest<Type, Field> {
         val fstResultValue = 1.toBv()
         val sndResultValue = 2.toBv()
 
-        val updates = UEmptyUpdates<UHeapRef, USizeSort>(
+        val updates = UFlatUpdates<UHeapRef, USizeSort>(
             symbolicEq = { k1, k2 -> k1 eq k2 },
             concreteCmp = { _, _ -> throw UnsupportedOperationException() },
             symbolicCmp = { _, _ -> throw UnsupportedOperationException() }
@@ -245,20 +245,12 @@ internal class CompositionTest<Type, Field> {
             mkAnd(k1.first eq k2.first, k1.second eq k2.second)
         }
 
-        val initialNode = UPinpointUpdateNode(
-            fstAddress to fstIndex,
-            42.toBv(),
-            keyEqualityComparer,
-            trueExpr,
-        )
-
-        val updates: UMemoryUpdates<USymbolicArrayIndex, UBv32Sort> = UFlatUpdates(
-            initialNode,
-            next = null,
+        val updates = UFlatUpdates<USymbolicArrayIndex, UBv32Sort>(
             symbolicCmp = { _, _ -> shouldNotBeCalled() },
             concreteCmp = { k1, k2 -> k1 == k2 },
             symbolicEq = { k1, k2 -> keyEqualityComparer(k1, k2) }
-        ).write(sndAddress to sndIndex, 43.toBv(), guard = trueExpr)
+        ).write(fstAddress to fstIndex, 42.toBv(), guard = trueExpr)
+            .write(sndAddress to sndIndex, 43.toBv(), guard = trueExpr)
 
         val arrayType: KClass<Array<*>> = Array::class
 
@@ -362,7 +354,7 @@ internal class CompositionTest<Type, Field> {
         val fstSymbolicIndex = mockk<USizeExpr>()
         val sndSymbolicIndex = mockk<USizeExpr>()
 
-        val updates = UEmptyUpdates<USizeExpr, UBv32Sort>(
+        val updates = UFlatUpdates<USizeExpr, UBv32Sort>(
             symbolicEq = { k1, k2 -> k1 eq k2 },
             concreteCmp = { _, _ -> throw UnsupportedOperationException() },
             symbolicCmp = { _, _ -> throw UnsupportedOperationException() }
@@ -415,7 +407,7 @@ internal class CompositionTest<Type, Field> {
         val aAddress = mockk<USymbolicHeapRef>()
         val bAddress = mockk<USymbolicHeapRef>()
 
-        val updates = UEmptyUpdates<UHeapRef, UBv32Sort>(
+        val updates = UFlatUpdates<UHeapRef, UBv32Sort>(
             symbolicEq = { k1, k2 -> k1 eq k2 },
             concreteCmp = { _, _ -> throw UnsupportedOperationException() },
             symbolicCmp = { _, _ -> throw UnsupportedOperationException() }

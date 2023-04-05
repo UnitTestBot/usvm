@@ -330,7 +330,7 @@ fun <Field, Sort : USort> emptyInputFieldRegion(
     instantiator: UInstantiator<UInputFieldRegionId<Field, Sort>, UHeapRef, Sort>,
 ): UInputFieldRegion<Field, Sort> = UMemoryRegion(
     UInputFieldRegionId(field, sort),
-    UEmptyUpdates(::heapRefEq, ::heapRefCmpConcrete, ::heapRefCmpSymbolic),
+    UFlatUpdates(::heapRefEq, ::heapRefCmpConcrete, ::heapRefCmpSymbolic),
     instantiator
 )
 
@@ -367,7 +367,7 @@ fun <ArrayType> emptyArrayLengthRegion(
 ): UInputArrayLengthRegion<ArrayType> =
     UMemoryRegion(
         UInputArrayLengthId(arrayType, sizeSort),
-        UEmptyUpdates(::heapRefEq, ::heapRefCmpConcrete, ::heapRefCmpSymbolic),
+        UFlatUpdates(::heapRefEq, ::heapRefCmpConcrete, ::heapRefCmpSymbolic),
         instantiator
     )
 
