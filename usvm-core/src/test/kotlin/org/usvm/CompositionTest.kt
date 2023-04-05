@@ -11,6 +11,7 @@ import org.ksmt.expr.KBitVec32Value
 import org.ksmt.expr.KExpr
 import org.ksmt.expr.printer.ExpressionPrinter
 import org.ksmt.expr.transformer.KTransformerBase
+import org.ksmt.solver.model.DefaultValueSampler.Companion.sampleValue
 import org.ksmt.sort.KBv32Sort
 import org.ksmt.utils.sampleValue
 import org.usvm.UAddressCounter.Companion.NULL_ADDRESS

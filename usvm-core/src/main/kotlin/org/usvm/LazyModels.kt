@@ -16,13 +16,14 @@ private fun <K, T : USort> Map<K, UExpr<out USort>>.evalAndReplace(
     key: K,
     model: KModel,
     addressesMapping: AddressesMapping,
+    concreteNullRef: UConcreteHeapRef,
     sort: T
 ): UExpr<T> {
     val value = get(key)
     return if (value != null) {
         model.eval(value, isComplete = true).mapAddress(addressesMapping).asExpr(sort)
     } else {
-        sort.sampleValue().mapAddress(addressesMapping)
+        sort.sampleValue().makeNullRefConcrete(concreteNullRef)
     }
 }
 
@@ -35,12 +36,13 @@ private fun <K, T : USort> Map<K, UExpr<out USort>>.evalAndReplace(
 class ULazyRegistersStackModel(
     private val model: KModel,
     private val addressesMapping: AddressesMapping,
+    private val concreteNullRef: UConcreteHeapRef,
     private val registerIdxToTranslated: Map<Int, UExpr<out USort>>
 ) : URegistersStackEvaluator {
     override fun <Sort : USort> eval(
         registerIndex: Int,
         sort: Sort,
-    ): UExpr<Sort> = registerIdxToTranslated.evalAndReplace(key = registerIndex, model, addressesMapping, sort)
+    ): UExpr<Sort> = registerIdxToTranslated.evalAndReplace(key = registerIndex, model, addressesMapping, concreteNullRef, sort)
 }
 
 /**
@@ -52,6 +54,7 @@ class ULazyRegistersStackModel(
 class ULazyIndexedMockModel<Method>(
     private val model: KModel,
     private val addressesMapping: AddressesMapping,
+    private val concreteNullRef: UConcreteHeapRef,
     private val indexedMethodReturnValueToTranslated: Map<Pair<*, Int>, UExpr<*>>,
 ) : UMockEvaluator {
 
@@ -63,7 +66,7 @@ class ULazyIndexedMockModel<Method>(
         @Suppress("UNCHECKED_CAST")
         val key = symbol.method as Method to symbol.callIndex
 
-        return indexedMethodReturnValueToTranslated.evalAndReplace(key = key, model, addressesMapping, sort)
+        return indexedMethodReturnValueToTranslated.evalAndReplace(key = key, model, addressesMapping, concreteNullRef, sort)
     }
 }
 

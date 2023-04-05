@@ -108,6 +108,7 @@ open class ULazyModelDecoder<Field, Type, Method>(
         ULazyRegistersStackModel(
             model,
             addressesMapping,
+            addressesMapping.getValue(translatedNullRef),
             registerIdxToTranslated
         )
 
@@ -131,6 +132,7 @@ open class ULazyModelDecoder<Field, Type, Method>(
         ULazyIndexedMockModel(
             model,
             addressesMapping,
+            addressesMapping.getValue(translatedNullRef),
             indexedMethodReturnValueToTranslated
         )
 }
