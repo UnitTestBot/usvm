@@ -60,11 +60,11 @@ typealias USymbolicMemory<Type> = UMemory<ULValue, UExpr<out USort>, USizeExpr, 
 @Suppress("MemberVisibilityCanBePrivate")
 open class UMemoryBase<Field, Type, Method>(
     protected val ctx: UContext,
-    protected val typeSystem: UTypeSystem<Type>,
-    protected var stack: URegistersStack = URegistersStack(ctx),
-    protected var heap: USymbolicHeap<Field, Type> = URegionHeap(ctx),
-    protected var types: UTypeStorage<Type> = UTypeStorage(ctx, typeSystem),
-    protected var mocker: UMocker<Method> = UIndexedMocker(ctx)
+    val typeSystem: UTypeSystem<Type>,
+    val stack: URegistersStack = URegistersStack(ctx),
+    val heap: USymbolicHeap<Field, Type> = URegionHeap(ctx),
+    val types: UTypeStorage<Type> = UTypeStorage(ctx, typeSystem),
+    val mocker: UMocker<Method> = UIndexedMocker(ctx)
     // TODO: we can eliminate mocker by moving compose to UState?
 ) : USymbolicMemory<Type> {
     @Suppress("UNCHECKED_CAST")

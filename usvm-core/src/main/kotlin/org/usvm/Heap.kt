@@ -1,12 +1,9 @@
 package org.usvm
 
-import org.ksmt.solver.KModel
-import org.ksmt.solver.model.DefaultValueSampler.Companion.sampleValue
-import org.ksmt.utils.asExpr
-import org.ksmt.utils.cast
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentMapOf
-import kotlinx.collections.immutable.toPersistentMap
+import org.ksmt.solver.model.DefaultValueSampler.Companion.sampleValue
+import org.ksmt.utils.asExpr
 
 interface UReadOnlyHeap<Ref, Value, SizeT, Field, ArrayType, Guard> {
     fun <Sort : USort> readField(ref: Ref, field: Field, sort: Sort): Value
@@ -80,8 +77,14 @@ typealias USymbolicHeap<Field, ArrayType> = UHeap<UHeapRef, UExpr<out USort>, US
  * Copying is prohibited.
  */
 class UAddressCounter {
-    private var lastAddress = 0
+    private var lastAddress = INITIAL_CONCRETE_ADDRESS
     fun freshAddress(): UConcreteHeapAddress = lastAddress++
+
+    companion object {
+        const val NULL_ADDRESS = 0
+        const val INITIAL_INPUT_ADDRESS = NULL_ADDRESS - 1
+        const val INITIAL_CONCRETE_ADDRESS = NULL_ADDRESS + 1
+    }
 }
 
 data class URegionHeap<Field, ArrayType>(

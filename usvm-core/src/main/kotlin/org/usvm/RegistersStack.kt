@@ -62,10 +62,3 @@ class URegistersStack(
         sort: Sort,
     ): UExpr<Sort> = readRegister(registerIndex, sort).asExpr(sort)
 }
-
-class URegistersStackModel(private val registers: Array<UExpr<USort>?>) : URegistersStackEvaluator {
-    override fun <Sort : USort> eval(
-        registerIndex: Int,
-        sort: Sort,
-    ): UExpr<Sort> = registers[registerIndex]!!.asExpr(sort)
-}
