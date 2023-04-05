@@ -5,12 +5,6 @@ import org.ksmt.utils.mkConst
 open class UExprTranslator<Field, Type> internal constructor(
     ctx: UContext,
 ) : UExprTransformer<Field, Type>(ctx) {
-    private val observers = mutableListOf<UTranslationObserver>()
-
-    internal fun attachObserver(observer: UTranslationObserver) {
-        observers += observer
-    }
-
     open fun <Sort : USort> translate(expr: UExpr<Sort>): UExpr<Sort> = apply(expr)
 
     // TODO: why do we have this function in UExprTransformer?
@@ -20,7 +14,6 @@ open class UExprTranslator<Field, Type> internal constructor(
 
     override fun <Sort : USort> transform(expr: URegisterReading<Sort>): UExpr<Sort> {
         val registerConst = expr.sort.mkConst("r${expr.idx}")
-        observers.forEach { it.newRegisterReadingTranslated(expr.idx, registerConst) }
         return registerConst
     }
 
@@ -34,7 +27,6 @@ open class UExprTranslator<Field, Type> internal constructor(
 
     override fun <Method, Sort : USort> transform(expr: UIndexedMethodReturnValue<Method, Sort>): UExpr<Sort> {
         val const = expr.sort.mkConst("m${expr.method}_${expr.callIndex}")
-        observers.forEach { it.newIndexedMethodReturnValueTranslated(expr.method, expr.callIndex, const) }
         return const
     }
 
@@ -71,7 +63,6 @@ open class UExprTranslator<Field, Type> internal constructor(
     private val regionToTranslator = mutableMapOf<URegionId<*, *>, URegionTranslator<*, *, *, *>>()
         .withDefault { regionId ->
             val regionTranslator = regionId.translator(this)
-            observers.forEach { it.newRegionTranslator(regionId, regionTranslator) }
             regionTranslator
         }
 
@@ -83,6 +74,19 @@ open class UExprTranslator<Field, Type> internal constructor(
         val translator =
             regionToTranslator.getValue(region.regionId) as URegionTranslator<URegionId<Key, Sort>, Key, Sort, *>
         return translator.translateReading(region, key)
+    }
+}
+
+open class URecordingExprTranslator<Field, Type> internal constructor(
+    ctx: UContext,
+) : UExprTranslator<Field, Type>(ctx) {
+
+    protected val registerIdxToTranslated: MutableMap<Int, UExpr<*>> = mutableMapOf()
+
+    override fun <Sort : USort> transform(expr: URegisterReading<Sort>): UExpr<Sort> {
+        val translated = super.transform(expr)
+        registerIdxToTranslated[expr.idx] = translated
+        return translated
     }
 }
 
@@ -118,18 +122,3 @@ internal val <Key, Sort : USort> URegionId<Key, Sort>.translator: RegionTranslat
         } as URegionTranslator<URegionId<Key, Sort>, Key, Sort, *>
     }
 
-// TODO: looks odd, because we duplicate StackEvaluator::eval, MockEvaluator::eval with slightly changed signature...
-internal interface UTranslationObserver {
-    fun newRegionTranslator(
-        regionId: URegionId<*, *>,
-        translator: URegionTranslator<*, *, *, *>,
-    )
-
-    fun <Sort : USort> newRegisterReadingTranslated(idx: Int, translated: UExpr<Sort>)
-
-    fun <Method, Sort : USort> newIndexedMethodReturnValueTranslated(
-        method: Method,
-        callIndex: Int,
-        translated: UExpr<Sort>,
-    )
-}
