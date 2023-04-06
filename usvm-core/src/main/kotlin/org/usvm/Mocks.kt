@@ -12,6 +12,10 @@ interface UMockEvaluator {
     fun <Sort : USort> eval(symbol: UMockSymbol<Sort>): UExpr<Sort>
 }
 
+/**
+ * A model for an indexed mocker that stores mapping
+ * from mock symbols and invocation indices to expressions.
+ */
 class UIndexedMockModel<Method>(
     private val values: Map<Pair<*, Int>, UExpr<*>>,
 ) : UMockEvaluator {

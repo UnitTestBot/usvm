@@ -3,7 +3,6 @@ package org.usvm
 import org.ksmt.expr.KArray2Store
 import org.ksmt.expr.KArrayConst
 import org.ksmt.expr.KArrayStore
-import org.ksmt.expr.KExpr
 import org.ksmt.solver.KModel
 import org.ksmt.solver.model.DefaultValueSampler.Companion.sampleValue
 import org.ksmt.sort.KArray2Sort
@@ -15,13 +14,13 @@ import org.usvm.util.RegionTree
 import java.util.IdentityHashMap
 
 /**
- * [URegionTranslator] defines a template method that translates a region reading to a specific [KExpr] with a sort [Sort].
+ * [URegionTranslator] defines a template method that translates a region reading to a specific [UExpr] with a sort [Sort].
  */
 class URegionTranslator<in RegionId : URegionId<Key, Sort>, Key, Sort : USort, Result>(
     private val updateTranslator: UUpdateTranslator<Key, Sort, Result>,
     private val updatesTranslator: UUpdatesTranslator<Key, Sort, Result>,
-): UUpdateTranslator<Key, Sort, Result> by updateTranslator {
-    fun translateReading(region: UMemoryRegion<RegionId, Key, Sort>, key: Key): KExpr<Sort> {
+) : UUpdateTranslator<Key, Sort, Result> by updateTranslator {
+    fun translateReading(region: UMemoryRegion<RegionId, Key, Sort>, key: Key): UExpr<Sort> {
         val translated = translate(region)
         return updateTranslator.select(translated, key)
     }
@@ -38,9 +37,16 @@ interface URegionEvaluator<Key, Sort : USort> {
 }
 
 interface UUpdateTranslator<Key, Sort : USort, Result> {
-    fun select(result: Result, key: Key): KExpr<Sort>
+    fun select(result: Result, key: Key): UExpr<Sort>
 
-    // TODO add a comment about connection between evaluators and translators
+    /**
+     * Returns an evaluator for the current translator.
+     * Note that it is a translator-specific evaluator that
+     * knows how to decode values from the [model].
+     *
+     * [mapping] contains information about matching expressions of the
+     * address sort and their concrete (evaluated) representations.
+     */
     fun getEvaluator(model: KModel, mapping: Map<UHeapRef, UConcreteHeapRef>): URegionEvaluator<Key, Sort>
 
     fun initialValue(): Result
@@ -52,16 +58,16 @@ internal class U1DArrayUpdateTranslator<RegionId : URegionId<UExpr<KeySort>, Sor
     private val translator: UExprTranslator<*, *>,
     private val keySort: KeySort,
     private val regionId: RegionId,
-) : UUpdateTranslator<KExpr<KeySort>, Sort, KExpr<KArraySort<KeySort, Sort>>> {
-    override fun select(result: KExpr<KArraySort<KeySort, Sort>>, key: KExpr<KeySort>): KExpr<Sort> =
+) : UUpdateTranslator<UExpr<KeySort>, Sort, UExpr<KArraySort<KeySort, Sort>>> {
+    override fun select(result: UExpr<KArraySort<KeySort, Sort>>, key: UExpr<KeySort>): UExpr<Sort> =
         result.ctx.mkArraySelect(result, key)
 
     override fun getEvaluator(
         model: KModel,
         mapping: Map<UHeapRef, UConcreteHeapRef>,
-    ): URegionEvaluator<KExpr<KeySort>, Sort> = U1DArrayEvaluator(translator = this, model, mapping)
+    ): URegionEvaluator<UExpr<KeySort>, Sort> = U1DArrayEvaluator(translator = this, model, mapping)
 
-    override fun initialValue(): KExpr<KArraySort<KeySort, Sort>> {
+    override fun initialValue(): UExpr<KArraySort<KeySort, Sort>> {
         val ctx = regionId.sort.uctx
         val arraySort = ctx.mkArraySort(keySort, regionId.sort)
         val defaultValue = regionId.defaultValue
@@ -74,9 +80,9 @@ internal class U1DArrayUpdateTranslator<RegionId : URegionId<UExpr<KeySort>, Sor
     }
 
     override fun applyUpdate(
-        previous: KExpr<KArraySort<KeySort, Sort>>,
-        update: UUpdateNode<KExpr<KeySort>, Sort>,
-    ): KExpr<KArraySort<KeySort, Sort>> = with(previous.uctx) {
+        previous: UExpr<KArraySort<KeySort, Sort>>,
+        update: UUpdateNode<UExpr<KeySort>, Sort>,
+    ): UExpr<KArraySort<KeySort, Sort>> = with(previous.uctx) {
         when (update) {
             is UPinpointUpdateNode -> {
                 val key = update.key.translated
@@ -107,19 +113,32 @@ internal class U1DArrayUpdateTranslator<RegionId : URegionId<UExpr<KeySort>, Sor
         }
     }
 
-    private val <ExprSort : USort> KExpr<ExprSort>.translated get() = translator.translate(this)
+    private val <ExprSort : USort> UExpr<ExprSort>.translated get() = translator.translate(this)
 
+    /**
+     * A specific evaluator for one-dimensional regions generalized by a single expression of a [KeySort].
+     */
     class U1DArrayEvaluator<RegionId : URegionId<UExpr<KeySort>, Sort>, KeySort : USort, Sort : USort> private constructor() :
-        URegionEvaluator<KExpr<KeySort>, Sort> {
+        URegionEvaluator<UExpr<KeySort>, Sort> {
 
         private lateinit var values: MutableMap<UExpr<KeySort>, UExpr<Sort>>
         private lateinit var constValue: UExpr<Sort>
 
+        /**
+         * A constructor that is used in regular cases for a region
+         * that has a corresponding translator. It collects information
+         * required for the region decoding using data about translated expressions,
+         * resolved values from the [model] and the [mapping] from address expressions
+         * to their concrete representation.
+         */
         constructor(
             translator: U1DArrayUpdateTranslator<RegionId, KeySort, Sort>,
             model: KModel,
             mapping: Map<UHeapRef, UConcreteHeapRef>,
         ) : this() {
+            // Since the model contains only information about values we got from the outside,
+            // we can translate and ask only about an initial value for the region.
+            // All other values should be resolved earlier without asking the model.
             val initialValue = translator.initialValue()
             val evaluatedArray = model.eval(initialValue, isComplete = true)
 
@@ -127,6 +146,7 @@ internal class U1DArrayUpdateTranslator<RegionId : URegionId<UExpr<KeySort>, Sor
 
             val stores = mutableMapOf<UExpr<KeySort>, UExpr<Sort>>()
 
+            // Parse stores into the region, then collect a const value for the evaluated region.
             while (valueCopy !is KArrayConst<*, *>) {
                 require(valueCopy is KArrayStore<KeySort, Sort>)
 
@@ -143,45 +163,54 @@ internal class U1DArrayUpdateTranslator<RegionId : URegionId<UExpr<KeySort>, Sor
             values = stores
         }
 
+        /**
+         * A constructor that is used in cases when we try to evaluate
+         * an expression from a region that was never translated.
+         */
         constructor(
             regionId: RegionId,
             mapping: Map<UHeapRef, UConcreteHeapRef>,
         ) : this() {
-            val unmappedConstValue = regionId.defaultValue ?: regionId.sort.sampleValue()
+            // If some region has a default value, it means that the region is an allocated one.
+            // All such regions must be processed earlier, and we won't have them here.
+            require(regionId.defaultValue == null)
+
+            // So, for these region we should take sample values for theis sorts.
+            val unmappedConstValue = regionId.sort.sampleValue()
 
             values = mutableMapOf()
-            // TODO add comment about why we don't need to evaluate this address
+            // Because of this, we can get rid of evaluation and return a possibly mapped interpreted value.
             constValue = unmappedConstValue.mapAddress(mapping)
         }
 
-        override fun select(key: KExpr<KeySort>): UExpr<Sort> = values.getOrDefault(key, constValue)
+        override fun select(key: UExpr<KeySort>): UExpr<Sort> = values.getOrDefault(key, constValue)
 
-        override fun write(key: KExpr<KeySort>, expr: UExpr<Sort>) {
+        override fun write(key: UExpr<KeySort>, expr: UExpr<Sort>) {
             values[key] = expr
         }
     }
 }
 
-internal class U2DArrayUpdateTranslator<RegionId : URegionId<Pair<KExpr<Key1Sort>, KExpr<Key2Sort>>, Sort>, Key1Sort : USort, Key2Sort : USort, Sort : USort>(
+internal class U2DArrayUpdateTranslator<RegionId : URegionId<Pair<UExpr<Key1Sort>, UExpr<Key2Sort>>, Sort>, Key1Sort : USort, Key2Sort : USort, Sort : USort>(
     private val translator: UExprTranslator<*, *>,
     private val key1Sort: Key1Sort,
     private val key2Sort: Key2Sort,
     private val regionId: RegionId,
-) : UUpdateTranslator<Pair<KExpr<Key1Sort>, KExpr<Key2Sort>>, Sort, KExpr<KArray2Sort<Key1Sort, Key2Sort, Sort>>> {
+) : UUpdateTranslator<Pair<UExpr<Key1Sort>, UExpr<Key2Sort>>, Sort, UExpr<KArray2Sort<Key1Sort, Key2Sort, Sort>>> {
     override fun select(
-        result: KExpr<KArray2Sort<Key1Sort, Key2Sort, Sort>>,
-        key: Pair<KExpr<Key1Sort>, KExpr<Key2Sort>>,
-    ): KExpr<Sort> =
+        result: UExpr<KArray2Sort<Key1Sort, Key2Sort, Sort>>,
+        key: Pair<UExpr<Key1Sort>, UExpr<Key2Sort>>,
+    ): UExpr<Sort> =
         result.ctx.mkArraySelect(result, key.first.translated, key.second.translated)
 
     override fun getEvaluator(
         model: KModel,
         mapping: Map<UHeapRef, UConcreteHeapRef>,
-    ): URegionEvaluator<Pair<KExpr<Key1Sort>, KExpr<Key2Sort>>, Sort> {
+    ): URegionEvaluator<Pair<UExpr<Key1Sort>, UExpr<Key2Sort>>, Sort> {
         return U2DArrayEvaluator(translator = this, model, mapping)
     }
 
-    override fun initialValue(): KExpr<KArray2Sort<Key1Sort, Key2Sort, Sort>> {
+    override fun initialValue(): UExpr<KArray2Sort<Key1Sort, Key2Sort, Sort>> {
         val ctx = regionId.sort.uctx
         val arraySort = ctx.mkArraySort(key1Sort, key2Sort, regionId.sort)
 
@@ -196,9 +225,9 @@ internal class U2DArrayUpdateTranslator<RegionId : URegionId<Pair<KExpr<Key1Sort
     }
 
     override fun applyUpdate(
-        previous: KExpr<KArray2Sort<Key1Sort, Key2Sort, Sort>>,
-        update: UUpdateNode<Pair<KExpr<Key1Sort>, KExpr<Key2Sort>>, Sort>,
-    ): KExpr<KArray2Sort<Key1Sort, Key2Sort, Sort>> = with(previous.uctx) {
+        previous: UExpr<KArray2Sort<Key1Sort, Key2Sort, Sort>>,
+        update: UUpdateNode<Pair<UExpr<Key1Sort>, UExpr<Key2Sort>>, Sort>,
+    ): UExpr<KArray2Sort<Key1Sort, Key2Sort, Sort>> = with(previous.uctx) {
         when (update) {
             is UPinpointUpdateNode -> {
                 val key1 = update.key.first.translated
@@ -232,16 +261,27 @@ internal class U2DArrayUpdateTranslator<RegionId : URegionId<Pair<KExpr<Key1Sort
 
     private val <ExprSort : USort> UExpr<ExprSort>.translated get() = translator.translate(this)
 
-    class U2DArrayEvaluator<RegionId : URegionId<Pair<KExpr<Key1Sort>, KExpr<Key2Sort>>, Sort>, Key1Sort : USort, Key2Sort : USort, Sort : USort> private constructor(
-    ) : URegionEvaluator<Pair<KExpr<Key1Sort>, KExpr<Key2Sort>>, Sort> {
+    /**
+     * A specific evaluator for two-dimensional regions generalized be a pair
+     * of two expressions with [Key1Sort] and [Key2Sort] sorts.
+     */
+    class U2DArrayEvaluator<RegionId : URegionId<Pair<UExpr<Key1Sort>, UExpr<Key2Sort>>, Sort>, Key1Sort : USort, Key2Sort : USort, Sort : USort> private constructor(
+    ) : URegionEvaluator<Pair<UExpr<Key1Sort>, UExpr<Key2Sort>>, Sort> {
         private lateinit var values: MutableMap<Pair<UExpr<Key1Sort>, UExpr<Key2Sort>>, UExpr<Sort>>
         private lateinit var constValue: UExpr<Sort>
 
+        /**
+         * A constructor that is used in regular cases for a region
+         * that has a corresponding translator. It collects information
+         * required for the region decoding using data about translated expressions,
+         * resolved values from the [model] and the [mapping] from address expressions
+         * to their concrete representation.
+         */
         constructor(
             translator: U2DArrayUpdateTranslator<RegionId, Key1Sort, Key2Sort, Sort>,
             model: KModel,
-            mapping: Map<UHeapRef, UConcreteHeapRef>
-        ): this() {
+            mapping: Map<UHeapRef, UConcreteHeapRef>,
+        ) : this() {
             val initialValue = translator.initialValue()
             val evaluatedArray = model.eval(initialValue, isComplete = true)
 
@@ -268,21 +308,31 @@ internal class U2DArrayUpdateTranslator<RegionId : URegionId<Pair<KExpr<Key1Sort
             values = stores
         }
 
+        /**
+         * A constructor that is used in cases when we try to evaluate
+         * an expression from a region that was never translated.
+         */
         constructor(
             regionId: RegionId,
-            mapping: Map<UHeapRef, UConcreteHeapRef>
-        ): this() {
-            val unmappedConstValue = regionId.defaultValue ?: regionId.sort.sampleValue()
+            mapping: Map<UHeapRef, UConcreteHeapRef>,
+        ) : this() {
+            // If some region has a default value, it means that the region is an allocated one.
+            // All such regions must be processed earlier, and we won't have them here.
+            require(regionId.defaultValue == null)
+
+            // So, for these region we should take sample values for theis sorts.
+            val unmappedConstValue = regionId.sort.sampleValue()
 
             values = mutableMapOf()
+            // Because of this, we can get rid of evaluation and return a possibly mapped interpreted value.
             constValue = unmappedConstValue.mapAddress(mapping)
         }
 
-        override fun select(key: Pair<KExpr<Key1Sort>, KExpr<Key2Sort>>): UExpr<Sort> {
+        override fun select(key: Pair<UExpr<Key1Sort>, UExpr<Key2Sort>>): UExpr<Sort> {
             return values.getOrDefault(key, constValue)
         }
 
-        override fun write(key: Pair<KExpr<Key1Sort>, KExpr<Key2Sort>>, expr: UExpr<Sort>) {
+        override fun write(key: Pair<UExpr<Key1Sort>, UExpr<Key2Sort>>, expr: UExpr<Sort>) {
             values[key] = expr
         }
     }

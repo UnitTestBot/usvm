@@ -81,6 +81,10 @@ class UAddressCounter {
     fun freshAddress(): UConcreteHeapAddress = lastAddress++
 
     companion object {
+        // We split all addresses into three parts:
+        //     * input values: [Int.MIN_VALUE..0),
+        //     * null value: [0]
+        //     * allocated values: (0..Int.MAX_VALUE]
         const val NULL_ADDRESS = 0
         const val INITIAL_INPUT_ADDRESS = NULL_ADDRESS - 1
         const val INITIAL_CONCRETE_ADDRESS = NULL_ADDRESS + 1
