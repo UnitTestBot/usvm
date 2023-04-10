@@ -28,7 +28,9 @@ data class UMemoryRegion<out RegionId : URegionId<Key, Sort>, Key, Sort : USort>
     val updates: UMemoryUpdates<Key, Sort>,
     private val instantiator: UInstantiator<RegionId, Key, Sort>,
 ) {
+    // to save memory usage
     val sort: Sort get() = regionId.sort
+    // if we replace it with get(), we have to check it every time in read function
     val defaultValue = regionId.defaultValue
 
     private fun read(key: Key, updates: UMemoryUpdates<Key, Sort>): UExpr<Sort> {

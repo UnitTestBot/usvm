@@ -5,38 +5,23 @@ import org.ksmt.sort.KArraySort
 import org.ksmt.sort.KArraySortBase
 import org.ksmt.utils.mkConst
 
-interface URegionTranslatorProvider : URegionIdVisitor<URegionTranslator<*, *, *, *>> {
-    fun <Key, Sort : USort> provide(
-        regionId: URegionId<Key, Sort>,
-    ): URegionTranslator<URegionId<Key, Sort>, Key, Sort, *> {
-        @Suppress("UNCHECKED_CAST")
-        return apply(regionId) as URegionTranslator<URegionId<Key, Sort>, Key, Sort, *>
-    }
-}
-
-typealias URegionIdInitialValueProvider = URegionIdVisitor<out UExpr<*>>
-
 open class UExprTranslator<Field, Type> constructor(
     override val ctx: UContext,
 ) : UExprTransformer<Field, Type>(ctx), URegionTranslatorProvider {
 
     open fun <Sort : USort> translate(expr: UExpr<Sort>): UExpr<Sort> = apply(expr)
 
-    // TODO: why do we have this function in UExprTransformer?
-    override fun <Sort : USort> transform(expr: USymbol<Sort>): UExpr<Sort> {
-        error("You must override `transform` function in org.usvm.UExprTranslator for ${expr::class}")
-    }
+    override fun <Sort : USort> transform(expr: USymbol<Sort>): UExpr<Sort> =
+        error("You must override `transform` function in UExprTranslator for ${expr::class}")
 
     override fun <Sort : USort> transform(expr: URegisterReading<Sort>): UExpr<Sort> {
         val registerConst = expr.sort.mkConst("r${expr.idx}")
         return registerConst
     }
 
-    // TODO: why do we have this function in UExprTransformer?
     override fun <Sort : USort> transform(expr: UHeapReading<*, *, *>): UExpr<Sort> =
         error("You must override `transform` function in UExprTranslator for ${expr::class}")
 
-    // TODO: why do we have this function in UExprTransformer?
     override fun <Sort : USort> transform(expr: UMockSymbol<Sort>): UExpr<Sort> =
         error("You must override `transform` function in UExprTranslator for ${expr::class}")
 
@@ -50,13 +35,11 @@ open class UExprTranslator<Field, Type> constructor(
         return const
     }
 
-    override fun transform(expr: UConcreteHeapRef): UExpr<UAddressSort> {
+    override fun transform(expr: UConcreteHeapRef): UExpr<UAddressSort> =
         error("Unexpected UConcreteHeapRef $expr in UExprTranslator, that has to be impossible by construction!")
-    }
 
-    override fun transform(expr: UIsExpr<Type>): UBoolExpr {
+    override fun transform(expr: UIsExpr<Type>): UBoolExpr =
         error("Unexpected UIsExpr $expr in UExprTranslator, that has to be impossible by construction!")
-    }
 
     override fun transform(expr: UInputArrayLengthReading<Type>): USizeExpr =
         transformExprAfterTransformed(expr, expr.address) { address ->
@@ -82,9 +65,11 @@ open class UExprTranslator<Field, Type> constructor(
         region: UMemoryRegion<URegionId<Key, Sort>, Key, Sort>,
         key: Key,
     ): UExpr<Sort> {
-        val translator = provide(region.regionId)
-        return translator.translateReading(region, key)
+        val regionTranslator = provide(region.regionId)
+        return regionTranslator.translateReading(region, key)
     }
+
+    // these functions implements URegionTranslatorProvider
 
     override fun <Field, Sort : USort> visit(
         regionId: UInputFieldId<Field, Sort>,
@@ -125,13 +110,24 @@ open class UExprTranslator<Field, Type> constructor(
     val regionIdInitialValueProvider = URegionIdInitialValueProviderBase(onDefaultValuePresent = { translate(it) })
 }
 
+interface URegionTranslatorProvider : URegionIdVisitor<URegionTranslator<*, *, *, *>> {
+    fun <Key, Sort : USort> provide(
+        regionId: URegionId<Key, Sort>,
+    ): URegionTranslator<URegionId<Key, Sort>, Key, Sort, *> {
+        @Suppress("UNCHECKED_CAST")
+        return apply(regionId) as URegionTranslator<URegionId<Key, Sort>, Key, Sort, *>
+    }
+}
+
+typealias URegionIdInitialValueProvider = URegionIdVisitor<out UExpr<*>>
+
 class URegionIdInitialValueProviderBase(
     val onDefaultValuePresent: (UExpr<*>) -> UExpr<*>,
 ) : URegionIdVisitor<UExpr<out KArraySortBase<*>>> {
     override fun <Field, Sort : USort> visit(regionId: UInputFieldId<Field, Sort>): UExpr<KArraySort<UAddressSort, Sort>> {
         require(regionId.defaultValue == null)
         return with(regionId.sort.uctx) {
-            mkArraySort(addressSort, regionId.sort).mkConst(regionId.toString())
+            mkArraySort(addressSort, regionId.sort).mkConst(regionId.toString()) // TODO: replace toString
         }
     }
 
@@ -150,14 +146,14 @@ class URegionIdInitialValueProviderBase(
     override fun <ArrayType, Sort : USort> visit(regionId: UInputArrayId<ArrayType, Sort>): UExpr<KArray2Sort<UAddressSort, USizeSort, Sort>> {
         require(regionId.defaultValue == null)
         return with(regionId.sort.uctx) {
-            mkArraySort(addressSort, sizeSort, regionId.sort).mkConst(regionId.toString())
+            mkArraySort(addressSort, sizeSort, regionId.sort).mkConst(regionId.toString()) // TODO: replace toString
         }
     }
 
     override fun <ArrayType> visit(regionId: UInputArrayLengthId<ArrayType>): UExpr<KArraySort<UAddressSort, USizeSort>> {
         require(regionId.defaultValue == null)
         return with(regionId.sort.uctx) {
-            mkArraySort(addressSort, sizeSort).mkConst(regionId.toString())
+            mkArraySort(addressSort, sizeSort).mkConst(regionId.toString()) // TODO: replace toString
         }
     }
 }

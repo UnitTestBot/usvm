@@ -8,7 +8,6 @@ import org.ksmt.solver.KModel
 import org.ksmt.sort.KArray2Sort
 import org.ksmt.sort.KArraySort
 import org.ksmt.utils.cast
-import org.usvm.UModelDecoderBase.Companion.mapAddress
 
 interface URegionEvaluator<Key, Sort : USort> {
     fun select(key: Key): UExpr<Sort>
@@ -163,7 +162,7 @@ interface URegionEvaluatorProvider {
     ): URegionEvaluator<Key, Sort>
 }
 
-open class URegionEvaluatorProviderFromKModel(
+open class URegionEvaluatorFromKModelProvider(
     private val model: KModel,
     private val mapping: Map<KExpr<UAddressSort>, UConcreteHeapRef>,
     private val regionIdInitialValueProvider: URegionIdInitialValueProvider,

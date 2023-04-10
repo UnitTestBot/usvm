@@ -99,7 +99,7 @@ data class URegionHeap<Field, ArrayType>(
     private val ctx: UContext,
     private var lastAddress: UAddressCounter = UAddressCounter(),
     private var allocatedFields: PersistentMap<Pair<UConcreteHeapAddress, Field>, UExpr<out USort>> = persistentMapOf(),
-    private var inputFields: PersistentMap<Field, UInputFieldRegion<Field, *>> = persistentMapOf(),
+    private var inputFields: PersistentMap<Field, UInputFieldRegion<Field, out USort>> = persistentMapOf(),
     private var allocatedArrays: PersistentMap<UConcreteHeapAddress, UAllocatedArrayRegion<ArrayType, out USort>> = persistentMapOf(),
     private var inputArrays: PersistentMap<ArrayType, UInputArrayRegion<ArrayType, out USort>> = persistentMapOf(),
     private var allocatedLengths: PersistentMap<UConcreteHeapAddress, USizeExpr> = persistentMapOf(),

@@ -75,7 +75,7 @@ interface UMemoryUpdates<Key, Sort : USort> : Sequence<UUpdateNode<Key, Sort>> {
 //region Flat memory updates
 
 class UFlatUpdates<Key, Sort : USort> private constructor(
-    internal val node: FlatNode<Key, Sort>?,
+    internal val node: UFlatUpdatesNode<Key, Sort>?,
     private val symbolicEq: (Key, Key) -> UBoolExpr,
     private val concreteCmp: (Key, Key) -> Boolean,
     private val symbolicCmp: (Key, Key) -> UBoolExpr,
@@ -84,9 +84,9 @@ class UFlatUpdates<Key, Sort : USort> private constructor(
         symbolicEq: (Key, Key) -> UBoolExpr,
         concreteCmp: (Key, Key) -> Boolean,
         symbolicCmp: (Key, Key) -> UBoolExpr,
-    ) : this(null, symbolicEq, concreteCmp, symbolicCmp)
+    ) : this(node = null, symbolicEq, concreteCmp, symbolicCmp)
 
-    internal data class FlatNode<Key, Sort : USort>(
+    internal data class UFlatUpdatesNode<Key, Sort : USort>(
         val update: UUpdateNode<Key, Sort>,
         val next: UFlatUpdates<Key, Sort>,
     )
@@ -95,7 +95,7 @@ class UFlatUpdates<Key, Sort : USort> private constructor(
 
     override fun write(key: Key, value: UExpr<Sort>, guard: UBoolExpr): UFlatUpdates<Key, Sort> =
         UFlatUpdates(
-            FlatNode(UPinpointUpdateNode(key, value, symbolicEq, guard), this),
+            UFlatUpdatesNode(UPinpointUpdateNode(key, value, symbolicEq, guard), this),
             symbolicEq,
             concreteCmp,
             symbolicCmp
@@ -108,7 +108,10 @@ class UFlatUpdates<Key, Sort : USort> private constructor(
         keyConverter: UMemoryKeyConverter<SrcKey, Key>,
         guard: UBoolExpr,
     ): UMemoryUpdates<Key, Sort> = UFlatUpdates(
-        FlatNode(URangedUpdateNode(fromKey, toKey, fromRegion, concreteCmp, symbolicCmp, keyConverter, guard), this),
+        UFlatUpdatesNode(
+            URangedUpdateNode(fromKey, toKey, fromRegion, concreteCmp, symbolicCmp, keyConverter, guard),
+            this
+        ),
         symbolicEq,
         concreteCmp,
         symbolicCmp
@@ -132,7 +135,7 @@ class UFlatUpdates<Key, Sort : USort> private constructor(
             return this
         }
 
-        return UFlatUpdates(FlatNode(splitNode, splitNext), symbolicEq, concreteCmp, symbolicCmp)
+        return UFlatUpdates(UFlatUpdatesNode(splitNode, splitNext), symbolicEq, concreteCmp, symbolicCmp)
     }
 
     override fun <Field, Type> map(
@@ -150,7 +153,7 @@ class UFlatUpdates<Key, Sort : USort> private constructor(
         }
 
         // Otherwise, construct a new one using the mapped values
-        return UFlatUpdates(FlatNode(mappedNode, mappedNext), symbolicEq, concreteCmp, symbolicCmp)
+        return UFlatUpdates(UFlatUpdatesNode(mappedNode, mappedNext), symbolicEq, concreteCmp, symbolicCmp)
     }
 
     /**

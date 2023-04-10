@@ -4,7 +4,10 @@ import org.ksmt.KAst
 import org.ksmt.KContext
 import org.ksmt.expr.KExpr
 import org.ksmt.solver.model.DefaultValueSampler.Companion.sampleValue
+import org.ksmt.sort.KBoolSort
+import org.ksmt.sort.KSort
 import org.ksmt.sort.KUninterpretedSort
+import org.ksmt.utils.asExpr
 import org.ksmt.utils.cast
 
 @Suppress("LeakingThis")
@@ -44,6 +47,13 @@ open class UContext(
      *
      * @return the new equal rewritten expression without [UConcreteHeapRef]s
      */
+    override fun <T : KSort> mkEq(lhs: KExpr<T>, rhs: KExpr<T>, order: Boolean): KExpr<KBoolSort> =
+        if (lhs.sort == addressSort) {
+            mkHeapRefEq(lhs.asExpr(addressSort), rhs.asExpr(addressSort))
+        } else {
+            super.mkEq(lhs, rhs, order)
+        }
+
     fun mkHeapRefEq(lhs: UHeapRef, rhs: UHeapRef): UBoolExpr =
         when {
             // fast checks
@@ -76,10 +86,6 @@ open class UContext(
                 mkOr(conjuncts)
             }
         }
-
-    @Suppress("UNUSED_PARAMETER")
-    @Deprecated("Use mkHeapRefEq instead.", ReplaceWith("this.mkHeapRefEq(lhs, rhs)"), level = DeprecationLevel.ERROR)
-    fun mkEq(lhs: UHeapRef, rhs: UHeapRef): Nothing = error("Use mkHeapRefEq instead.")
 
     private val uConcreteHeapRefCache = mkAstInterner<UConcreteHeapRef>()
     fun mkConcreteHeapRef(address: UConcreteHeapAddress): UConcreteHeapRef =

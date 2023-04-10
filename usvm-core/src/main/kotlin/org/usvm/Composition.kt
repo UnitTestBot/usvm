@@ -1,5 +1,11 @@
 package org.usvm
 
+import org.ksmt.expr.KEqExpr
+import org.ksmt.expr.KExpr
+import org.ksmt.sort.KBoolSort
+import org.ksmt.sort.KSort
+import org.ksmt.utils.asExpr
+
 @Suppress("MemberVisibilityCanBePrivate")
 open class UComposer<Field, Type>(
     ctx: UContext,

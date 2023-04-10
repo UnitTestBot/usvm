@@ -2,7 +2,6 @@ package org.usvm
 
 import org.ksmt.solver.model.DefaultValueSampler.Companion.sampleValue
 import org.ksmt.utils.cast
-import org.usvm.UModelDecoderBase.Companion.mapAddress
 
 private class UCachingExprTranslator<Field, Type>(
     ctx: UContext,
@@ -22,9 +21,9 @@ private class UCachingExprTranslator<Field, Type>(
             super.transform(expr)
         }.cast()
 
-    val nullRef = super.translate(ctx.nullRef)
+    val translatedNullRef = super.translate(ctx.nullRef)
 
-    override fun transform(expr: UNullRef): UExpr<UAddressSort> = nullRef
+    override fun transform(expr: UNullRef): UExpr<UAddressSort> = translatedNullRef
 
     val regionIdToTranslator =
         mutableMapOf<URegionId<*, *>, URegionTranslator<URegionId<*, *>, *, *, *>>()
@@ -35,10 +34,10 @@ private class UCachingExprTranslator<Field, Type>(
         }.cast()
 }
 
-private class UCachingRegionEvaluatorProvider(
+private class URegionEvaluatorForHeapModelProvider(
     val mapping: AddressesMapping,
     translatedRegionIds: Set<URegionId<*, *>>,
-    regionEvaluatorProvider: URegionEvaluatorProviderFromKModel,
+    regionEvaluatorProvider: URegionEvaluatorFromKModelProvider,
 ) : URegionEvaluatorProvider, URegionIdVisitor<URegionEvaluator<*, *>> {
 
     private val evaluatorsForTranslatedRegions: MutableMap<URegionId<*, *>, URegionEvaluator<*, *>>
@@ -50,7 +49,7 @@ private class UCachingRegionEvaluatorProvider(
     }
 
     override fun <Key, Sort : USort> provide(regionId: URegionId<Key, Sort>): URegionEvaluator<Key, Sort> =
-        evaluatorsForTranslatedRegions.getOrPut(regionId) {
+        evaluatorsForTranslatedRegions.getOrElse(regionId) {
             apply(regionId)
         }.cast()
 
@@ -94,11 +93,11 @@ fun <Field, Type, Method> buildDefaultTranslatorAndDecoder(
     val decoder = UModelDecoderBase<Field, Type, Method>(
         translator.registerIdxToTranslated,
         translator.indexedMethodReturnValueToTranslated,
-        translator.nullRef
+        translator.translatedNullRef
     ) { model, mapping ->
         val regionEvaluatorProviderFromKModel =
-            URegionEvaluatorProviderFromKModel(model, mapping, translator.regionIdInitialValueProvider)
-        UCachingRegionEvaluatorProvider(
+            URegionEvaluatorFromKModelProvider(model, mapping, translator.regionIdInitialValueProvider)
+        URegionEvaluatorForHeapModelProvider(
             mapping,
             translator.regionIdToTranslator.keys,
             regionEvaluatorProviderFromKModel

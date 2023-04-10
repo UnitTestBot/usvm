@@ -7,7 +7,6 @@ import org.usvm.UExprTranslator
 import org.usvm.UMemoryBase
 import org.usvm.UModelBase
 import org.usvm.UModelDecoder
-import org.usvm.UModelDecoderBase
 import org.usvm.UPathCondition
 
 sealed interface USolverResult<T>

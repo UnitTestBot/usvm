@@ -4,7 +4,6 @@ import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
-import org.ksmt.solver.KModel
 import org.ksmt.solver.model.DefaultValueSampler.Companion.sampleValue
 import org.ksmt.utils.asExpr
 

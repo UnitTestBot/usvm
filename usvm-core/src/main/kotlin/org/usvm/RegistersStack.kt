@@ -54,9 +54,6 @@ class URegistersStack(
         return URegistersStack(ctx, newStack)
     }
 
-    @Suppress("UNUSED_PARAMETER")
-    fun decode(model: KModel): URegistersStackModel = TODO()
-
     override fun <Sort : USort> eval(
         registerIndex: Int,
         sort: Sort,

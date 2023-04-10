@@ -18,8 +18,6 @@ class URegionTranslator<in RegionId : URegionId<Key, Sort>, Key, Sort : USort, R
         return updateTranslator.select(translated, key)
     }
 
-    fun initialValue(): Result = updateTranslator.initialValue()
-
     private val cache = IdentityHashMap<UMemoryRegion<RegionId, Key, Sort>, Result>()
 
     private fun translate(region: UMemoryRegion<RegionId, Key, Sort>): Result =

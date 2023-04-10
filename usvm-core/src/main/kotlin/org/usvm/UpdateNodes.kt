@@ -313,7 +313,8 @@ class URangedUpdateNode<RegionId : UArrayId<ArrayType, SrcKey, ValueSort>, Array
     override fun hashCode(): Int = (17 * fromKey.hashCode() + toKey.hashCode()) * 31 + guard.hashCode()
 
     override fun toString(): String {
-        return "{[$fromKey..$toKey] <- $region[keyConv($fromKey)..keyConv($toKey)]" + ("}".takeIf { guard.isTrue  } ?: " | $guard}")
+        return "{[$fromKey..$toKey] <- $region[keyConv($fromKey)..keyConv($toKey)]" +
+            ("}".takeIf { guard.isTrue } ?: " | $guard}")
     }
 }
 

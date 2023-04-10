@@ -21,10 +21,10 @@ typealias AddressesMapping = Map<UExpr<UAddressSort>, UConcreteHeapRef>
 open class UModelDecoderBase<Field, Type, Method>(
     protected val registerIdxToTranslated: Map<Int, UExpr<out USort>>,
     protected val indexedMethodReturnValueToTranslated: Map<Pair<*, Int>, UExpr<*>>,
-    protected val nullRef: UExpr<UAddressSort>,
+    protected val translatedNullRef: UExpr<UAddressSort>,
     protected val regionEvaluatorProviderBuilder: (KModel, AddressesMapping) -> URegionEvaluatorProvider,
 ) : UModelDecoder<Type, UMemoryBase<Field, Type, Method>, UModelBase<Field, Type>> {
-    private val ctx: UContext = nullRef.uctx
+    private val ctx: UContext = translatedNullRef.uctx
 
     /**
      * Build a mapping from instances of an uninterpreted [UAddressSort]
@@ -33,7 +33,7 @@ open class UModelDecoderBase<Field, Type, Method>(
      */
     private fun buildMapping(model: KModel): AddressesMapping {
         // Null is a special value that we want to translate in any case.
-        val interpretedNullRef = model.eval(nullRef, isComplete = true)
+        val interpretedNullRef = model.eval(translatedNullRef, isComplete = true)
 
         val universe = model.uninterpretedSortUniverse(ctx.addressSort) ?: return emptyMap()
         // All the numbers are enumerated from the INITIAL_INPUT_ADDRESS to the Int.MIN_VALUE
@@ -53,18 +53,6 @@ open class UModelDecoderBase<Field, Type, Method>(
         return result
     }
 
-    /**
-     * Constructs a [UHeapModel] for a heap by provided [model] and [addressesMapping].
-     */
-    @Suppress("UNCHECKED_CAST", "SafeCastWithReturn")
-    private fun decodeHeap(
-        model: KModel,
-        addressesMapping: AddressesMapping,
-    ): UHeapModel<Field, Type> {
-        val regionEvaluator = regionEvaluatorProviderBuilder(model, addressesMapping)
-        return UHeapModel(ctx, addressesMapping.getValue(ctx.nullRef), regionEvaluator, persistentMapOf(), persistentMapOf(), persistentMapOf())
-    }
-
     override fun decode(
         memory: UMemoryBase<Field, Type, Method>,
         model: KModel,
@@ -79,17 +67,35 @@ open class UModelDecoderBase<Field, Type, Method>(
         return UModelBase(ctx, stack, heap, types, mocks)
     }
 
-    private fun decodeStack(model: KModel, mapping: Map<UExpr<UAddressSort>, UConcreteHeapRef>): URegistersStackModel {
-        val registers = registerIdxToTranslated.replaceUninterpretedConsts(model, mapping)
+    private fun decodeStack(model: KModel, addressesMapping: AddressesMapping): URegistersStackModel {
+        val registers = registerIdxToTranslated.replaceUninterpretedConsts(model, addressesMapping)
 
         return URegistersStackModel(registers)
     }
 
+    /**
+     * Constructs a [UHeapModel] for a heap by provided [model] and [addressesMapping].
+     */
+    @Suppress("UNCHECKED_CAST", "SafeCastWithReturn")
+    private fun decodeHeap(
+        model: KModel,
+        addressesMapping: AddressesMapping,
+    ): UHeapModel<Field, Type> {
+        val regionEvaluator = regionEvaluatorProviderBuilder(model, addressesMapping)
+        return UHeapModel(
+            addressesMapping.getValue(translatedNullRef),
+            regionEvaluator,
+            persistentMapOf(),
+            persistentMapOf(),
+            persistentMapOf()
+        )
+    }
+
     private fun decodeMocker(
         model: KModel,
-        mapping: Map<UExpr<UAddressSort>, UConcreteHeapRef>,
+        addressesMapping: AddressesMapping,
     ): UIndexedMockModel<Method> {
-        val values = indexedMethodReturnValueToTranslated.replaceUninterpretedConsts(model, mapping)
+        val values = indexedMethodReturnValueToTranslated.replaceUninterpretedConsts(model, addressesMapping)
 
         return UIndexedMockModel(values)
     }
@@ -113,20 +119,6 @@ open class UModelDecoderBase<Field, Type, Method>(
         return values
     }
 
-    companion object {
-        /**
-         * If [this] value is an instance of address expression, returns
-         * an expression with a corresponding concrete address, otherwise
-         * returns [this] unchanched.
-         */
-        fun <S : USort> UExpr<S>.mapAddress(
-            mapping: Map<UExpr<UAddressSort>, UConcreteHeapRef>,
-        ): UExpr<S> = if (sort == uctx.addressSort) {
-            mapping.getValue(asExpr(uctx.addressSort)).asExpr(sort)
-        } else {
-            this
-        }
-    }
 }
 
 class URegistersStackModel(private val registers: Map<Int, UExpr<out USort>>) : URegistersStackEvaluator {
@@ -137,7 +129,6 @@ class URegistersStackModel(private val registers: Map<Int, UExpr<out USort>>) : 
 }
 
 class UHeapModel<Field, ArrayType>(
-    private val ctx: UContext,
     private val nullRef: UExpr<UAddressSort>,
     private val regionEvaluatorProvider: URegionEvaluatorProvider,
     private var resolvedInputFields: PersistentMap<Field, URegionEvaluator<UHeapRef, out USort>>,
@@ -152,7 +143,7 @@ class UHeapModel<Field, ArrayType>(
 
         @Suppress("UNCHECKED_CAST")
         val regionEvaluator = resolvedInputFields.getOrElse(field) {
-            val regionId = UInputFieldId(field, ctx.sizeSort)
+            val regionId = UInputFieldId(field, sort)
             val evaluator = regionEvaluatorProvider.provide(regionId)
             resolvedInputFields = resolvedInputFields.put(field, evaluator)
             evaluator
@@ -192,7 +183,7 @@ class UHeapModel<Field, ArrayType>(
         require(ref is UConcreteHeapRef && ref.address <= INITIAL_INPUT_ADDRESS)
 
         val regionEvaluator = resolvedInputLengths.getOrElse(arrayType) {
-            val regionId = UInputArrayLengthId(arrayType, ctx.sizeSort)
+            val regionId = UInputArrayLengthId(arrayType, ref.uctx.sizeSort)
             val evaluator = regionEvaluatorProvider.provide(regionId)
             resolvedInputLengths = resolvedInputLengths.put(arrayType, evaluator)
             evaluator
@@ -273,7 +264,7 @@ class UHeapModel<Field, ArrayType>(
         require(ref is UConcreteHeapRef && ref.address <= INITIAL_INPUT_ADDRESS)
 
         val reginEvaluator = resolvedInputLengths.getOrElse(arrayType) {
-            val regionId = UInputArrayLengthId(arrayType, ctx.sizeSort)
+            val regionId = UInputArrayLengthId(arrayType, ref.uctx.sizeSort)
             val evaluator = regionEvaluatorProvider.provide(regionId)
             resolvedInputLengths = resolvedInputLengths.put(arrayType, evaluator)
             evaluator
@@ -291,18 +282,14 @@ class UHeapModel<Field, ArrayType>(
         fromDstIdx: USizeExpr,
         toDstIdx: USizeExpr,
         guard: UBoolExpr,
-    ) {
-        TODO("Not yet implemented")
-    }
+    ): Unit = error("Illegal operation for a model")
 
     override fun <Sort : USort> memset(
         ref: UHeapRef,
         type: ArrayType,
         sort: Sort,
         contents: Sequence<UExpr<out USort>>,
-    ) {
-        TODO("Not yet implemented")
-    }
+    ): Unit = error("Illegal operation for a model")
 
     override fun allocate() = error("Illegal operation for a model")
 
@@ -310,11 +297,10 @@ class UHeapModel<Field, ArrayType>(
 
     override fun clone(): UHeap<UHeapRef, UExpr<out USort>, USizeExpr, Field, ArrayType, UBoolExpr> =
         UHeapModel(
-            ctx,
             nullRef,
             regionEvaluatorProvider,
             resolvedInputFields.mapValues { evaluator -> evaluator.clone() },
-             resolvedInputArrays.mapValues { evaluator -> evaluator.clone() },
+            resolvedInputArrays.mapValues { evaluator -> evaluator.clone() },
             resolvedInputLengths.mapValues { evaluator -> evaluator.clone() },
         )
 
@@ -325,3 +311,16 @@ class UHeapModel<Field, ArrayType>(
 
 inline private fun <K, V> PersistentMap<K, V>.mapValues(crossinline mapper: (V) -> V): PersistentMap<K, V> =
     mutate { old -> old.replaceAll { _, value -> mapper(value) } }
+
+/**
+ * If [this] value is an instance of address expression, returns
+ * an expression with a corresponding concrete address, otherwise
+ * returns [this] unchanched.
+ */
+fun <S : USort> UExpr<S>.mapAddress(
+    addressesMapping: AddressesMapping,
+): UExpr<S> = if (sort == uctx.addressSort) {
+    addressesMapping.getValue(asExpr(uctx.addressSort)).asExpr(sort)
+} else {
+    this
+}

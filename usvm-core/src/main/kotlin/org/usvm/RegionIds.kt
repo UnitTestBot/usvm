@@ -1,6 +1,5 @@
 package org.usvm
 
-import org.ksmt.solver.model.DefaultValueSampler.Companion.sampleValue
 import org.ksmt.utils.asExpr
 
 /**
@@ -121,8 +120,13 @@ data class UAllocatedArrayId<ArrayType, Sort : USort> internal constructor(
         transformer: UExprTransformer<Field, ArrayType>,
     ): KeyMapper<USizeExpr> = { transformer.apply(it) }
 
-    override fun <Field, CArrayType> map(composer: UComposer<Field, CArrayType>): UAllocatedArrayId<ArrayType, Sort> =
-        copy(defaultValue = composer.compose(defaultValue))
+    override fun <Field, CArrayType> map(composer: UComposer<Field, CArrayType>): UAllocatedArrayId<ArrayType, Sort> {
+        val composedDefaultValue = composer.compose(defaultValue)
+        if (composedDefaultValue === defaultValue) {
+            return this
+        }
+        return copy(defaultValue = composedDefaultValue)
+    }
 
     // we don't include arrayType into hashcode and equals, because [address] already defines unambiguously
     override fun equals(other: Any?): Boolean {
