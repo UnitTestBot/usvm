@@ -5,7 +5,9 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.RepeatedTest
 import org.junit.jupiter.api.Test
+import org.ksmt.solver.KSolverStatus
 import org.ksmt.solver.model.DefaultValueSampler.Companion.sampleValue
+import org.ksmt.solver.z3.KZ3Solver
 import org.ksmt.utils.mkConst
 import kotlin.test.assertSame
 
@@ -118,8 +120,7 @@ class TranslationTest {
         assertSame(expected, translated)
     }
 
-//    @Test
-    @RepeatedTest(30)
+    @RepeatedTest(10)
     fun testTranslateArrayCopy() = with(ctx) {
         var region = emptyInputArrayRegion(valueArrayDescr, bv32Sort) { (ref, idx), reg ->
             mkInputArrayReading(reg, ref, idx)
@@ -156,6 +157,11 @@ class TranslationTest {
 
         val translated = translator.translate(reading)
 
-        assertSame(expected, translated)
+        // due to KSMT is non-deterministic with reorderings, we have to check it with solver
+        val solver = KZ3Solver(ctx)
+        solver.assert(expected neq translated)
+        val status = solver.check()
+
+        assertSame(KSolverStatus.UNSAT, status)
     }
 }

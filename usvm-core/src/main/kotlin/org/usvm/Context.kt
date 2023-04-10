@@ -76,7 +76,7 @@ open class UContext(
                 }
 
                 if (symbolicRefLhs != null && symbolicRefRhs != null) {
-                    val refsEq = symbolicRefLhs.expr eq symbolicRefRhs.expr
+                    val refsEq = super.mkEq(symbolicRefLhs.expr, symbolicRefRhs.expr, order = true)
                     // mkAnd instead of mkAndNoFlat here is OK
                     val conjunct = mkAnd(symbolicRefLhs.guard, symbolicRefRhs.guard, refsEq)
                     conjuncts += conjunct
