@@ -14,6 +14,8 @@ interface UReadOnlyHeap<Ref, Value, SizeT, Field, ArrayType, Guard> {
      * Returns a copy of the current map to be able to modify it without changing the original one.
      */
     fun toMutableHeap(): UHeap<Ref, Value, SizeT, Field, ArrayType, Guard>
+
+    fun nullRef(): Ref
 }
 
 typealias UReadOnlySymbolicHeap<Field, ArrayType> = UReadOnlyHeap<UHeapRef, UExpr<out USort>, USizeExpr, Field, ArrayType, UBoolExpr>
@@ -34,6 +36,8 @@ class UEmptyHeap<Field, ArrayType>(private val ctx: UContext) : UReadOnlySymboli
 
     override fun toMutableHeap(): UHeap<UHeapRef, UExpr<out USort>, USizeExpr, Field, ArrayType, UBoolExpr> =
         URegionHeap(ctx)
+
+    override fun nullRef(): UHeapRef = ctx.nullRef
 }
 
 interface UHeap<Ref, Value, SizeT, Field, ArrayType, Guard> :
@@ -326,6 +330,8 @@ data class URegionHeap<Field, ArrayType>(
             allocatedArrays, inputArrays,
             allocatedLengths, inputLengths
         )
+
+    override fun nullRef(): UHeapRef = ctx.nullRef
 
     override fun toMutableHeap() = clone()
 }

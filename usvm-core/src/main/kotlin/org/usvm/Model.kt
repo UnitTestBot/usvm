@@ -1,5 +1,7 @@
 package org.usvm
 
+import org.ksmt.expr.rewrite.KExprSubstitutor
+
 interface UModel {
     fun <Sort: USort> eval(expr: UExpr<Sort>): UExpr<Sort>
 }
@@ -12,11 +14,9 @@ open class UModelBase<Field, Type>(
     val heap: UReadOnlySymbolicHeap<Field, Type>,
     val types: UTypeModel<Type>,
     val mocks: UMockEvaluator
-)
-    : UModel
-{
-    override fun <Sort: USort> eval(expr: UExpr<Sort>): UExpr<Sort> {
-        val composer = UComposer(ctx, stack, heap, types, mocks)
-        return composer.compose(expr)
-    }
+) : UModel {
+    private val composer = UComposer(ctx, stack, heap, types, mocks)
+
+    override fun <Sort: USort> eval(expr: UExpr<Sort>): UExpr<Sort> =
+        composer.compose(expr)
 }

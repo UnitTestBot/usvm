@@ -47,7 +47,7 @@ open class UContext(
     fun mkHeapRefEq(lhs: UHeapRef, rhs: UHeapRef): UBoolExpr =
         when {
             // fast checks
-            lhs is USymbolicHeapRef && rhs is USymbolicHeapRef -> super.mkEq(lhs, rhs)
+            lhs is USymbolicHeapRef && rhs is USymbolicHeapRef -> super.mkEq(lhs, rhs, order = true)
             lhs is UConcreteHeapRef && rhs is UConcreteHeapRef -> mkBool(lhs == rhs)
             // unfolding
             else -> {

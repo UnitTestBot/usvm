@@ -138,7 +138,7 @@ class UInputFieldReading<Field, Sort : USort> internal constructor(
     ctx: UContext,
     region: UInputFieldRegion<Field, Sort>,
     val address: UHeapRef,
-) : UHeapReading<UInputFieldRegionId<Field, Sort>, UHeapRef, Sort>(ctx, region) {
+) : UHeapReading<UInputFieldId<Field, Sort>, UHeapRef, Sort>(ctx, region) {
     @Suppress("UNCHECKED_CAST")
     override fun accept(transformer: KTransformerBase): KExpr<Sort> {
         require(transformer is UExprTransformer<*, *>)

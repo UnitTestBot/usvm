@@ -361,7 +361,7 @@ internal class CompositionTest<Type, Field> {
         ).write(fstIndex, 1.toBv(), guard = trueExpr)
             .write(sndIndex, 2.toBv(), guard = trueExpr)
 
-        val regionId = UAllocatedArrayId(arrayType, address, bv32Sort)
+        val regionId = UAllocatedArrayId(arrayType, address, bv32Sort, bv32Sort.sampleValue())
         val regionArray = UAllocatedArrayRegion(
             regionId,
             updates,
@@ -416,7 +416,7 @@ internal class CompositionTest<Type, Field> {
 
         // An empty region with one write in it
         val region = UInputFieldRegion(
-            UInputFieldRegionId(field, bv32Sort),
+            UInputFieldId(field, bv32Sort),
             updates,
             instantiator = { key, region -> mkInputFieldReading(region, key) }
         ).write(aAddress, 43.toBv(), guard = trueExpr)

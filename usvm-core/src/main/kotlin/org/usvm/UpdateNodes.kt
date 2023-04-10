@@ -129,7 +129,7 @@ class UPinpointUpdateNode<Key, ValueSort : USort>(
 
     override fun hashCode(): Int = key.hashCode() * 31 + guard.hashCode() // Ignores value
 
-    override fun toString(): String = "{$key <- $value | $guard}"
+    override fun toString(): String = "{$key <- $value}".takeIf { guard.isTrue } ?: "{$key <- $value | $guard}"
 }
 
 /**
@@ -313,7 +313,7 @@ class URangedUpdateNode<RegionId : UArrayId<ArrayType, SrcKey, ValueSort>, Array
     override fun hashCode(): Int = (17 * fromKey.hashCode() + toKey.hashCode()) * 31 + guard.hashCode()
 
     override fun toString(): String {
-        return "{[$fromKey..$toKey] <- $region[keyConv($fromKey)..keyConv($toKey)] | $guard}"
+        return "{[$fromKey..$toKey] <- $region[keyConv($fromKey)..keyConv($toKey)]" + ("}".takeIf { guard.isTrue  } ?: " | $guard}")
     }
 }
 

@@ -173,12 +173,12 @@ internal inline fun filter(
                     is UIteExpr<UAddressSort> -> when (state) {
                         LEFT_CHILD -> {
                             nodeToChild += guarded to RIGHT_CHILD
-                            val leftGuard = mkAndNoFlat(guardFromTop, cur.condition)
+                            val leftGuard = mkAnd(guardFromTop, cur.condition, flat = false)
                             nodeToChild += (cur.trueBranch with leftGuard) to LEFT_CHILD
                         }
                         RIGHT_CHILD -> {
                             nodeToChild += guarded to DONE
-                            val guardRhs = mkAndNoFlat(guardFromTop, !cur.condition)
+                            val guardRhs = mkAnd(guardFromTop, !cur.condition, flat = false)
                             nodeToChild += (cur.falseBranch with guardRhs) to LEFT_CHILD
                         }
                         DONE -> {
@@ -188,9 +188,9 @@ internal inline fun filter(
                             val lhs = completelyMapped.removeLast()
                             val next = when {
                                 lhs != null && rhs != null -> {
-                                    val leftPart = mkOrNoFlat(!cur.condition, lhs.guard)
+                                    val leftPart = mkOr(!cur.condition, lhs.guard, flat = false)
 
-                                    val rightPart = mkOrNoFlat(cur.condition, rhs.guard)
+                                    val rightPart = mkOr(cur.condition, rhs.guard, flat = false)
 
                                     /**
                                      *```
@@ -203,15 +203,15 @@ internal inline fun filter(
                                      * lhs.expr | lhs.guard   rhs.expr | rhs.guard
                                      *```
                                      */
-                                    val guard = mkAndNoFlat(leftPart, rightPart)
+                                    val guard = mkAnd(leftPart, rightPart, flat = false)
                                     mkIte(cur.condition, lhs.expr, rhs.expr) with guard
                                 }
                                 lhs != null -> {
-                                    val guard = mkAndNoFlat(listOf(cur.condition, lhs.guard))
+                                    val guard = mkAnd(cur.condition, lhs.guard, flat = false)
                                     lhs.expr with guard
                                 }
                                 rhs != null -> {
-                                    val guard = mkAndNoFlat(listOf(!cur.condition, rhs.guard))
+                                    val guard = mkAnd(!cur.condition, rhs.guard, flat = false)
                                     rhs.expr with guard
                                 }
                                 else -> null

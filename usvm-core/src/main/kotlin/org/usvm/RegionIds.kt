@@ -3,7 +3,6 @@ package org.usvm
 import org.ksmt.solver.model.DefaultValueSampler.Companion.sampleValue
 import org.ksmt.utils.asExpr
 
-
 /**
  * An interface that represents any possible type of regions that can be used in the memory.
  */
@@ -26,16 +25,33 @@ interface URegionId<Key, Sort : USort> {
     fun <Field, ArrayType> keyMapper(transformer: UExprTransformer<Field, ArrayType>): KeyMapper<Key>
 
     fun <Field, ArrayType> map(composer: UComposer<Field, ArrayType>): URegionId<Key, Sort>
+
+    fun <R> accept(visitor: URegionIdVisitor<R>): R
+}
+
+interface URegionIdVisitor<R> {
+    fun <Key, Sort : USort> apply(regionId: URegionId<Key, Sort>): R = regionId.accept(this)
+
+    fun <Key, Sort : USort> visit(regionId: URegionId<Key, Sort>): Any? =
+        error("You must provide visit implementation for ${regionId::class} in ${this::class}")
+
+    fun <Field, Sort : USort> visit(regionId: UInputFieldId<Field, Sort>): R
+
+    fun <ArrayType, Sort : USort> visit(regionId: UAllocatedArrayId<ArrayType, Sort>): R
+
+    fun <ArrayType, Sort : USort> visit(regionId: UInputArrayId<ArrayType, Sort>): R
+
+    fun <ArrayType> visit(regionId: UInputArrayLengthId<ArrayType>): R
 }
 
 /**
  * A region id for a region storing the specific [field].
  */
-data class UInputFieldRegionId<Field, Sort : USort> internal constructor(
+data class UInputFieldId<Field, Sort : USort> internal constructor(
     val field: Field,
     override val sort: Sort,
 ) : URegionId<UHeapRef, Sort> {
-    override val defaultValue get() = null
+    override val defaultValue: UExpr<Sort>? get() = null
 
     @Suppress("UNCHECKED_CAST")
     override fun <Field, ArrayType> read(
@@ -55,8 +71,11 @@ data class UInputFieldRegionId<Field, Sort : USort> internal constructor(
         transformer: UExprTransformer<Field, ArrayType>,
     ): KeyMapper<UHeapRef> = { transformer.apply(it) }
 
-    override fun <CField, ArrayType> map(composer: UComposer<CField, ArrayType>): UInputFieldRegionId<Field, Sort> =
+    override fun <CField, ArrayType> map(composer: UComposer<CField, ArrayType>): UInputFieldId<Field, Sort> =
         this
+
+    override fun <R> accept(visitor: URegionIdVisitor<R>): R =
+        visitor.visit(this)
 
     override fun toString(): String {
         return "inputField($field)"
@@ -75,8 +94,8 @@ data class UAllocatedArrayId<ArrayType, Sort : USort> internal constructor(
     override val arrayType: ArrayType,
     val address: UConcreteHeapAddress,
     override val sort: Sort,
+    override val defaultValue: UExpr<Sort>,
 ) : UArrayId<ArrayType, USizeExpr, Sort> {
-    override val defaultValue get() = sort.sampleValue()
 
     @Suppress("UNCHECKED_CAST")
     override fun <Field, ArrayType> read(
@@ -103,7 +122,7 @@ data class UAllocatedArrayId<ArrayType, Sort : USort> internal constructor(
     ): KeyMapper<USizeExpr> = { transformer.apply(it) }
 
     override fun <Field, CArrayType> map(composer: UComposer<Field, CArrayType>): UAllocatedArrayId<ArrayType, Sort> =
-        this
+        copy(defaultValue = composer.compose(defaultValue))
 
     // we don't include arrayType into hashcode and equals, because [address] already defines unambiguously
     override fun equals(other: Any?): Boolean {
@@ -116,6 +135,9 @@ data class UAllocatedArrayId<ArrayType, Sort : USort> internal constructor(
 
         return true
     }
+
+    override fun <R> accept(visitor: URegionIdVisitor<R>): R =
+        visitor.visit(this)
 
     override fun hashCode(): Int {
         return address
@@ -133,7 +155,7 @@ data class UInputArrayId<ArrayType, Sort : USort> internal constructor(
     override val arrayType: ArrayType,
     override val sort: Sort,
 ) : UArrayId<ArrayType, USymbolicArrayIndex, Sort> {
-    override val defaultValue get() = null
+    override val defaultValue: UExpr<Sort>? get() = null
 
     @Suppress("UNCHECKED_CAST")
     override fun <Field, ArrayType> read(
@@ -157,6 +179,9 @@ data class UInputArrayId<ArrayType, Sort : USort> internal constructor(
         if (ref === it.first && idx === it.second) it else ref to idx
     }
 
+    override fun <R> accept(visitor: URegionIdVisitor<R>): R =
+        visitor.visit(this)
+
     override fun <Field, CArrayType> map(composer: UComposer<Field, CArrayType>): UInputArrayId<ArrayType, Sort> =
         this
 
@@ -172,7 +197,7 @@ data class UInputArrayLengthId<ArrayType> internal constructor(
     val arrayType: ArrayType,
     override val sort: USizeSort,
 ) : URegionId<UHeapRef, USizeSort> {
-    override val defaultValue get() = null
+    override val defaultValue: UExpr<USizeSort>? get() = null
 
     @Suppress("UNCHECKED_CAST")
     override fun <Field, ArrayType> read(
@@ -197,6 +222,9 @@ data class UInputArrayLengthId<ArrayType> internal constructor(
 
     override fun <Field, CArrayType> map(composer: UComposer<Field, CArrayType>): UInputArrayLengthId<ArrayType> =
         this
+
+    override fun <R> accept(visitor: URegionIdVisitor<R>): R =
+        visitor.visit(this)
 
     override fun toString(): String {
         return "length($arrayType)"

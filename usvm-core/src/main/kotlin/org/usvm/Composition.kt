@@ -36,15 +36,22 @@ open class UComposer<Field, Type>(
         expr: UHeapReading<RegionId, Key, Sort>,
         key: Key
     ): UExpr<Sort> = with(expr) {
-        val instantiator = { key: Key, memoryRegion: UMemoryRegion<RegionId, Key, Sort> ->
-            // Create a copy of this heap to avoid its modification
-            val heapToApplyUpdates = heapEvaluator.toMutableHeap()
-            memoryRegion.applyTo(heapToApplyUpdates)
-            region.regionId.read(heapToApplyUpdates, key)
+        // if region.defaultValue != null, we don't need to apply updates to the heapEvaluator. expr.region
+        // already contains ALL region writes, and underlying value (defaultValue) is defined, so we have all the
+        // required information, and it cannot be refined.
+        // Otherwise, the underlying value may be reified accordingly to the heapEvaluator
+        val mappedRegion = if (region.defaultValue == null) {
+            val instantiator = { key: Key, memoryRegion: UMemoryRegion<RegionId, Key, Sort> ->
+                // Create a copy of this heap to avoid its modification
+                val heapToApplyUpdates = heapEvaluator.toMutableHeap()
+                memoryRegion.applyTo(heapToApplyUpdates)
+                region.regionId.read(heapToApplyUpdates, key)
+            }
+            region.map(this@UComposer, instantiator)
+        } else {
+            region.map(this@UComposer)
         }
-
-        val mappedRegion = region.map(this@UComposer, instantiator)
-        val mappedKey = region.regionId.keyMapper(this@UComposer)(key)
+        val mappedKey = mappedRegion.regionId.keyMapper(this@UComposer)(key)
         mappedRegion.read(mappedKey)
     }
 
@@ -62,5 +69,5 @@ open class UComposer<Field, Type>(
 
     override fun transform(expr: UConcreteHeapRef): UExpr<UAddressSort> = expr
 
-    override fun transform(expr: UNullRef): UNullRef = expr
+    override fun transform(expr: UNullRef): UExpr<UAddressSort> = heapEvaluator.nullRef()
 }

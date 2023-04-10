@@ -37,8 +37,6 @@ interface UMocker<Method> : UMockEvaluator {
         args: Sequence<UExpr<out USort>>,
         sort: Sort
     ): Pair<UMockSymbol<Sort>, UMocker<Method>>
-
-    fun decode(model: KModel): UMockEvaluator
 }
 
 class UIndexedMocker<Method>(
@@ -55,10 +53,6 @@ class UIndexedMocker<Method>(
         val const = ctx.mkIndexedMethodReturnValue(method, index, sort)
         val updatedClauses = clauses.put(method, currentClauses.add(const))
         return Pair(const, UIndexedMocker(ctx, updatedClauses))
-    }
-
-    override fun decode(model: KModel): UMockEvaluator {
-        TODO("Not yet implemented")
     }
 
     override fun <Sort : USort> eval(symbol: UMockSymbol<Sort>): UExpr<Sort> = symbol

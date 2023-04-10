@@ -3,6 +3,7 @@ package org.usvm
 import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Disabled
+import org.junit.jupiter.api.RepeatedTest
 import org.junit.jupiter.api.Test
 import org.ksmt.solver.model.DefaultValueSampler.Companion.sampleValue
 import org.ksmt.utils.mkConst
@@ -17,7 +18,6 @@ class TranslationTest {
     private lateinit var addressFieldDescr: Pair<Field, UAddressSort>
     private lateinit var valueArrayDescr: ArrayType
     private lateinit var addressArrayDescr: ArrayType
-
 
     @BeforeEach
     fun initializeContext() {
@@ -118,7 +118,8 @@ class TranslationTest {
         assertSame(expected, translated)
     }
 
-    @Test
+//    @Test
+    @RepeatedTest(30)
     fun testTranslateArrayCopy() = with(ctx) {
         var region = emptyInputArrayRegion(valueArrayDescr, bv32Sort) { (ref, idx), reg ->
             mkInputArrayReading(reg, ref, idx)
@@ -147,8 +148,9 @@ class TranslationTest {
         val reading = concreteRegion.read(idx)
 
 
+        val key = region.regionId.keyMapper(translator)(keyConverter.convert(translator.translate(idx)))
         val innerReading =
-            translator.translateRegionReading(region, keyConverter.convert(translator.translate(idx)))
+            translator.translateRegionReading(region, key)
         val guard = translator.translate((mkBvSignedLessOrEqualExpr(mkBv(0), idx)) and mkBvSignedLessOrEqualExpr(idx, mkBv(5)))
         val expected = mkIte(guard, innerReading, bv32Sort.sampleValue())
 

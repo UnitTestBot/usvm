@@ -1,5 +1,6 @@
 package org.usvm
 
+import org.ksmt.solver.model.DefaultValueSampler.Companion.sampleValue
 import org.ksmt.utils.asExpr
 import org.usvm.util.SetRegion
 import org.usvm.util.emptyRegionTree
@@ -28,7 +29,7 @@ data class UMemoryRegion<out RegionId : URegionId<Key, Sort>, Key, Sort : USort>
     private val instantiator: UInstantiator<RegionId, Key, Sort>,
 ) {
     val sort: Sort get() = regionId.sort
-    private val defaultValue = regionId.defaultValue
+    val defaultValue = regionId.defaultValue
 
     private fun read(key: Key, updates: UMemoryUpdates<Key, Sort>): UExpr<Sort> {
         val lastUpdatedElement = updates.lastUpdatedElementOrNull()
@@ -236,7 +237,7 @@ class GuardBuilder(nonMatchingUpdates: UBoolExpr) {
      * @return [expr] guarded by this guard builder. Implementation uses [UContext.mkAndNoFlat], because we accumulate
      * [nonMatchingUpdatesGuard] and otherwise it would take quadratic time.
      */
-    fun guarded(expr: UBoolExpr): UBoolExpr = expr.ctx.mkAndNoFlat(nonMatchingUpdatesGuard, expr)
+    fun guarded(expr: UBoolExpr): UBoolExpr = expr.ctx.mkAnd(nonMatchingUpdatesGuard, expr, flat = false)
 }
 
 //endregion
@@ -303,7 +304,7 @@ fun refIndexRangeRegion(
     idx2: USymbolicArrayIndex,
 ): UArrayIndexRegion = indexRangeRegion(idx1.second, idx2.second)
 
-typealias UInputFieldRegion<Field, Sort> = UMemoryRegion<UInputFieldRegionId<Field, Sort>, UHeapRef, Sort>
+typealias UInputFieldRegion<Field, Sort> = UMemoryRegion<UInputFieldId<Field, Sort>, UHeapRef, Sort>
 typealias UAllocatedArrayRegion<ArrayType, Sort> = UMemoryRegion<UAllocatedArrayId<ArrayType, Sort>, USizeExpr, Sort>
 typealias UInputArrayRegion<ArrayType, Sort> = UMemoryRegion<UInputArrayId<ArrayType, Sort>, USymbolicArrayIndex, Sort>
 typealias UInputArrayLengthRegion<ArrayType> = UMemoryRegion<UInputArrayLengthId<ArrayType>, UHeapRef, USizeSort>
@@ -327,9 +328,9 @@ val <ArrayType> UInputArrayLengthRegion<ArrayType>.inputLengthArrayType
 fun <Field, Sort : USort> emptyInputFieldRegion(
     field: Field,
     sort: Sort,
-    instantiator: UInstantiator<UInputFieldRegionId<Field, Sort>, UHeapRef, Sort>,
+    instantiator: UInstantiator<UInputFieldId<Field, Sort>, UHeapRef, Sort>,
 ): UInputFieldRegion<Field, Sort> = UMemoryRegion(
-    UInputFieldRegionId(field, sort),
+    UInputFieldId(field, sort),
     UFlatUpdates(::heapRefEq, ::heapRefCmpConcrete, ::heapRefCmpSymbolic),
     instantiator
 )
@@ -344,7 +345,7 @@ fun <ArrayType, Sort : USort> emptyAllocatedArrayRegion(
         updates = emptyRegionTree(),
         ::indexRegion, ::indexRangeRegion, ::indexEq, ::indexLeConcrete, ::indexLeSymbolic
     )
-    val regionId = UAllocatedArrayId(arrayType, address, sort)
+    val regionId = UAllocatedArrayId(arrayType, address, sort, sort.sampleValue())
     return UMemoryRegion(regionId, updates, instantiator)
 }
 
