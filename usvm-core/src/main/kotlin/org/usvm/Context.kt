@@ -22,7 +22,7 @@ open class UContext(
     val sizeSort: USizeSort = bv32Sort
     val zeroSize: USizeExpr = sizeSort.sampleValue()
 
-    val nullRef: USymbolicHeapRef = UNullRef(this)
+    val nullRef: UNullRef = UNullRef(this)
 
     fun mkNullRef(): USymbolicHeapRef {
         return nullRef

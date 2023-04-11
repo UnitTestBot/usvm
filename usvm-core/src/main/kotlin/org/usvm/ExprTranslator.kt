@@ -127,9 +127,7 @@ open class UCachingExprTranslator<Field, Type>(
             super.transform(expr)
         }.cast()
 
-    val translatedNullRef = super.translate(ctx.nullRef)
-
-    override fun transform(expr: UNullRef): UExpr<UAddressSort> = translatedNullRef
+    val translatedNullRef = super.transform(ctx.nullRef)
 
     val regionIdToTranslator =
         mutableMapOf<URegionId<*, *>, URegionTranslator<URegionId<*, *>, *, *, *>>()

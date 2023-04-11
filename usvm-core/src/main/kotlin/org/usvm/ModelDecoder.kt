@@ -59,7 +59,7 @@ open class UModelDecoderBase<Field, Type, Method>(
 
         val result = mutableMapOf<KExpr<KUninterpretedSort>, UConcreteHeapRef>()
         // Except the null value, it has the NULL_ADDRESS
-        result[ctx.nullRef] = ctx.mkConcreteHeapRef(NULL_ADDRESS)
+        result[interpretedNullRef] = ctx.mkConcreteHeapRef(NULL_ADDRESS)
 
         for (interpretedAddress in universe) {
             if (universe == interpretedNullRef) {
