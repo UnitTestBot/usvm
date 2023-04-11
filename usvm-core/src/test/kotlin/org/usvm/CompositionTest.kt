@@ -478,19 +478,13 @@ internal class CompositionTest {
 
     @Test
     fun testComposingAllocatedArray() = with(ctx) {
-        val heapModel =
-            UHeapModel<Field, Type>(
-                mkConcreteHeapRef(NULL_ADDRESS),
-                mockk(),
-                persistentMapOf(),
-                persistentMapOf(),
-                persistentMapOf()
-            )
+        val heapEvaluator: UReadOnlySymbolicHeap<Field, Type> = mockk()
 
+        every { heapEvaluator.nullRef() } returns ctx.mkConcreteHeapRef(NULL_ADDRESS)
 
         val stackModel = URegistersStackModel(mapOf(0 to ctx.mkBv(0), 1 to ctx.mkBv(0), 2 to ctx.mkBv(2)))
 
-        val model = UModelBase(this, stackModel, heapModel, mockk(), mockk())
+        val composer = UComposer(this, stackModel, heapEvaluator, mockk(), mockk())
 
 
         val region = emptyAllocatedArrayRegion<Type, UBv32Sort>(mockk(), 1, bv32Sort)
@@ -500,32 +494,26 @@ internal class CompositionTest {
             .write(mkRegisterReading(2, sizeSort), 3.toBv(), trueExpr)
         val reading = region.read(mkRegisterReading(0, sizeSort))
 
-        val expr = model.eval(reading)
+        val expr = composer.compose(reading)
         assertSame(mkBv(2), expr)
     }
 
     @Test
     fun testNullRefRegionDefaultValue() = with(ctx) {
-        val concreteNull = mkConcreteHeapRef(NULL_ADDRESS)
+        val concreteNull = ctx.mkConcreteHeapRef(NULL_ADDRESS)
 
-        val heapModel =
-            UHeapModel<Field, Type>(
-                concreteNull,
-                mockk(),
-                persistentMapOf(),
-                persistentMapOf(),
-                persistentMapOf()
-            )
+        val heapEvaluator: UReadOnlySymbolicHeap<Field, Type> = mockk()
+
+        every { heapEvaluator.nullRef() } returns concreteNull
 
         val stackModel = URegistersStackModel(mapOf(0 to mkBv(0), 1 to mkBv(0), 2 to mkBv(2)))
 
-        val model = UModelBase(this, stackModel, heapModel, mockk(), mockk())
-
+        val composer = UComposer(this, stackModel, heapEvaluator, mockk(), mockk())
 
         val region = emptyAllocatedArrayRegion<Type, UAddressSort>(mockk(), 1, addressSort)
         val reading = region.read(mkRegisterReading(0, sizeSort))
 
-        val expr = model.eval(reading)
+        val expr = composer.compose(reading)
         assertSame(concreteNull, expr)
     }
 }

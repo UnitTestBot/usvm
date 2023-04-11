@@ -139,7 +139,7 @@ internal inline fun <Sort : USort> UHeapRef.map(
  * Filters [ref] non-recursively with [predicate] and returns the result. A guard in the argument of the
  * [predicate] consists of a predicate from the root to the passed leaf.
  *
- * It's guaranteed that [predicate] will be called exactly once on each leaf.
+ * Guarantees that [predicate] will be called exactly once on each leaf.
  *
  * @return A guarded expression with the guard indicating that any leaf on which [predicate] returns `false`
  * is inaccessible. `Null` is returned when all leafs match [predicate].

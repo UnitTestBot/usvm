@@ -3,7 +3,6 @@ package org.usvm
 import org.usvm.util.Region
 import org.usvm.util.RegionTree
 import org.usvm.util.emptyRegionTree
-import java.util.IdentityHashMap
 
 /**
  * Represents a sequence of memory writes.
@@ -473,12 +472,12 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
     ) {
         fun fold(): Result =
             cache.getOrPut(updates) {
-                leftMostTranslate(updates)
+                leftMostFold(updates)
             }
 
         private val emittedUpdates = hashSetOf<UUpdateNode<Key, Sort>>()
 
-        private fun leftMostTranslate(updates: RegionTree<UUpdateNode<Key, Sort>, *>): Result {
+        private fun leftMostFold(updates: RegionTree<UUpdateNode<Key, Sort>, *>): Result {
             var result = cache[updates]
 
             if (result != null) {
@@ -490,12 +489,12 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
                 return visitor.visitInitialValue()
             }
             val (update, nextUpdates) = entryIterator.next().value
-            result = leftMostTranslate(nextUpdates)
+            result = leftMostFold(nextUpdates)
             result = visitor.visitUpdate(result, update)
-            return notLeftMostTranslate(result, entryIterator)
+            return notLeftMostFold(result, entryIterator)
         }
 
-        private fun notLeftMostTranslate(
+        private fun notLeftMostFold(
             accumulator: Result,
             iterator: Iterator<Map.Entry<Region<*>, Pair<UUpdateNode<Key, Sort>, RegionTree<UUpdateNode<Key, Sort>, *>>>>,
         ): Result {
@@ -503,7 +502,7 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
             while (iterator.hasNext()) {
                 val (reg, entry) = iterator.next()
                 val (update, tree) = entry
-                accumulated = notLeftMostTranslate(accumulated, tree.entries.iterator())
+                accumulated = notLeftMostFold(accumulated, tree.entries.iterator())
 
                 accumulated = addIfNeeded(accumulated, update, reg)
             }
