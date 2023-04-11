@@ -9,6 +9,10 @@ import java.util.*
 //region Memory region
 
 
+interface UInstantiatorFactory {
+    fun <RegionId : URegionId<Key, Sort>, Key, Sort : USort> build(): UInstantiator<RegionId, Key, Sort>
+}
+
 /**
  * A typealias for a lambda that takes a key, a region and returns a reading from the region by the key.
  */
@@ -160,18 +164,26 @@ data class UMemoryRegion<out RegionId : URegionId<Key, Sort>, Key, Sort : USort>
      * Note: after this operation a region returned as a result might be in `broken` state:
      * it might have both symbolic and concrete values as keys in it.
      */
+    @Suppress("UNCHECKED_CAST")
     fun <Field, Type> map(
         composer: UComposer<Field, Type>,
-        instantiator: UInstantiator<RegionId, Key, Sort> = this.instantiator,
+        instantiatorFactory: UInstantiatorFactory,
     ): UMemoryRegion<RegionId, Key, Sort> {
         // Map the updates and the regionId
         @Suppress("UNCHECKED_CAST")
         val mappedRegionId = regionId.map(composer) as RegionId
-        val mappedUpdates = updates.map(regionId.keyMapper(composer), composer)
+        val mappedUpdates = updates.map(regionId.keyMapper(composer), composer, instantiatorFactory)
 
         // Note that we cannot use optimization with unchanged mappedUpdates and mappedDefaultValues here
         // since in a new region we might have an updated instantiator.
         // Therefore, we have to check their reference equality as well.
+
+        val instantiator = if (defaultValue != null) {
+            this.instantiator
+        } else {
+            instantiatorFactory.build()
+        }
+
         if (mappedUpdates === updates && mappedRegionId === regionId && instantiator === this.instantiator) {
             return this
         }

@@ -41,7 +41,7 @@ interface UMemoryUpdates<Key, Sort : USort> : Sequence<UUpdateNode<Key, Sort>> {
      * Returns a mapped [UMemoryRegion] using [keyMapper] and [composer].
      * It is used in [UComposer] during memory composition.
      */
-    fun <Field, Type> map(keyMapper: KeyMapper<Key>, composer: UComposer<Field, Type>): UMemoryUpdates<Key, Sort>
+    fun <Field, Type> map(keyMapper: KeyMapper<Key>, composer: UComposer<Field, Type>, instantiator: UInstantiatorFactory): UMemoryUpdates<Key, Sort>
 
     /**
      * @return Updates which express copying the slice of [fromRegion]  guarded with
@@ -155,11 +155,12 @@ class UFlatUpdates<Key, Sort : USort> private constructor(
     override fun <Field, Type> map(
         keyMapper: KeyMapper<Key>,
         composer: UComposer<Field, Type>,
+        instantiator: UInstantiatorFactory
     ): UFlatUpdates<Key, Sort> {
         node ?: return this
         // Map the current node and the next values recursively
-        val mappedNode = node.update.map(keyMapper, composer)
-        val mappedNext = node.next.map(keyMapper, composer)
+        val mappedNode = node.update.map(keyMapper, composer, instantiator)
+        val mappedNext = node.next.map(keyMapper, composer, instantiator)
 
         // If nothing changed, return this updates
         if (mappedNode === node.update && mappedNext === node.next) {
@@ -340,6 +341,7 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
     override fun <Field, Type> map(
         keyMapper: KeyMapper<Key>,
         composer: UComposer<Field, Type>,
+        instantiator: UInstantiatorFactory
     ): UTreeUpdates<Key, Reg, Sort> {
         var mappedNodeFound = false
 
@@ -348,7 +350,7 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
         val mappedUpdates = updates.fold(initialEmptyTree) { mappedUpdatesTree, updateNodeWithRegion ->
             val (updateNode, oldRegion) = updateNodeWithRegion
             // Map current node
-            val mappedUpdateNode = updateNode.map(keyMapper, composer)
+            val mappedUpdateNode = updateNode.map(keyMapper, composer, instantiator)
 
             // Save information about whether something changed in the current node or not
             if (mappedUpdateNode !== updateNode) {

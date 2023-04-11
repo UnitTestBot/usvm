@@ -17,7 +17,6 @@ import org.usvm.UAddressCounter.Companion.NULL_ADDRESS
 import kotlin.reflect.KClass
 import kotlin.test.assertEquals
 import kotlin.test.assertSame
-import kotlinx.collections.immutable.persistentMapOf
 
 internal class CompositionTest {
     private lateinit var stackEvaluator: URegistersStackEvaluator
@@ -477,7 +476,7 @@ internal class CompositionTest {
     }
 
     @Test
-    fun testComposingAllocatedArray() = with(ctx) {
+    fun testComposeAllocatedArray() = with(ctx) {
         val heapEvaluator: UReadOnlySymbolicHeap<Field, Type> = mockk()
 
         every { heapEvaluator.nullRef() } returns ctx.mkConcreteHeapRef(NULL_ADDRESS)
@@ -496,6 +495,36 @@ internal class CompositionTest {
 
         val expr = composer.compose(reading)
         assertSame(mkBv(2), expr)
+    }
+
+    @Test
+    fun testComposeRangedUpdate() = with(ctx) {
+        val heapEvaluator: USymbolicHeap<Field, Type> = mockk()
+        every { heapEvaluator.nullRef() } returns ctx.mkConcreteHeapRef(NULL_ADDRESS)
+        val composedSymbolicHeapRef = ctx.mkConcreteHeapRef(-1)
+        val stackModel = URegistersStackModel(mapOf(0 to composedSymbolicHeapRef, 1 to ctx.mkBv(0)))
+        val composer = UComposer(this, stackModel, heapEvaluator, mockk(), mockk())
+
+        val symbolicRef = mkRegisterReading(0, addressSort)
+
+        val arrayType = mockk<Type>()
+        val fromRegion = emptyInputArrayRegion(arrayType, bv32Sort)
+
+        val concreteRef = mkConcreteHeapRef(0)
+
+        val keyConverter = UInputToAllocatedKeyConverter(symbolicRef to mkBv(0), concreteRef to mkBv(0), mkBv(5))
+        val concreteRegion = emptyAllocatedArrayRegion(arrayType, concreteRef.address, bv32Sort)
+            .copyRange(fromRegion, mkBv(0), mkBv(5), keyConverter, trueExpr)
+
+        val idx = mkRegisterReading(1, sizeSort)
+
+        val reading = concreteRegion.read(idx)
+
+        every { heapEvaluator.toMutableHeap() } returns heapEvaluator
+        every { heapEvaluator.readArrayIndex(composedSymbolicHeapRef, ctx.mkBv(0), arrayType, bv32Sort) } returns mkBv(1)
+
+        val expr = composer.compose(reading)
+        assertSame(mkBv(1), expr)
     }
 
     @Test
