@@ -17,8 +17,9 @@ import org.usvm.UAddressCounter.Companion.NULL_ADDRESS
 import kotlin.reflect.KClass
 import kotlin.test.assertEquals
 import kotlin.test.assertSame
+import kotlinx.collections.immutable.persistentMapOf
 
-internal class CompositionTest<Type, Field> {
+internal class CompositionTest {
     private lateinit var stackEvaluator: URegistersStackEvaluator
     private lateinit var heapEvaluator: UReadOnlySymbolicHeap<Field, Type>
     private lateinit var typeEvaluator: UTypeEvaluator<Type>
@@ -475,4 +476,56 @@ internal class CompositionTest<Type, Field> {
         assertSame(trueExpr, expr)
     }
 
+    @Test
+    fun testComposingAllocatedArray() = with(ctx) {
+        val heapModel =
+            UHeapModel<Field, Type>(
+                mkConcreteHeapRef(NULL_ADDRESS),
+                mockk(),
+                persistentMapOf(),
+                persistentMapOf(),
+                persistentMapOf()
+            )
+
+
+        val stackModel = URegistersStackModel(mapOf(0 to ctx.mkBv(0), 1 to ctx.mkBv(0), 2 to ctx.mkBv(2)))
+
+        val model = UModelBase(this, stackModel, heapModel, mockk(), mockk())
+
+
+        val region = emptyAllocatedArrayRegion<Type, UBv32Sort>(mockk(), 1, bv32Sort)
+            .write(0.toBv(), 0.toBv(), trueExpr)
+            .write(1.toBv(), 1.toBv(), trueExpr)
+            .write(mkRegisterReading(1, sizeSort), 2.toBv(), trueExpr)
+            .write(mkRegisterReading(2, sizeSort), 3.toBv(), trueExpr)
+        val reading = region.read(mkRegisterReading(0, sizeSort))
+
+        val expr = model.eval(reading)
+        assertSame(mkBv(2), expr)
+    }
+
+    @Test
+    fun testNullRefRegionDefaultValue() = with(ctx) {
+        val concreteNull = mkConcreteHeapRef(NULL_ADDRESS)
+
+        val heapModel =
+            UHeapModel<Field, Type>(
+                concreteNull,
+                mockk(),
+                persistentMapOf(),
+                persistentMapOf(),
+                persistentMapOf()
+            )
+
+        val stackModel = URegistersStackModel(mapOf(0 to mkBv(0), 1 to mkBv(0), 2 to mkBv(2)))
+
+        val model = UModelBase(this, stackModel, heapModel, mockk(), mockk())
+
+
+        val region = emptyAllocatedArrayRegion<Type, UAddressSort>(mockk(), 1, addressSort)
+        val reading = region.read(mkRegisterReading(0, sizeSort))
+
+        val expr = model.eval(reading)
+        assertSame(concreteNull, expr)
+    }
 }
