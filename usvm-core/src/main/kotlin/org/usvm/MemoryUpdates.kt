@@ -3,6 +3,7 @@ package org.usvm
 import org.usvm.util.Region
 import org.usvm.util.RegionTree
 import org.usvm.util.emptyRegionTree
+import java.util.IdentityHashMap
 
 /**
  * Represents a sequence of memory writes.
@@ -69,6 +70,20 @@ interface UMemoryUpdates<Key, Sort : USort> : Sequence<UUpdateNode<Key, Sort>> {
      * Returns true if there were any updates and false otherwise.
      */
     fun isEmpty(): Boolean
+
+    /**
+     * Accepts the [visitor]. Calls `visitInitialValue` firstly, then calls `visitUpdateNode` in the chronological order
+     * (from the oldest to the newest) with accumulated [Result].
+     *
+     * Uses [lookupCache] to shortcut the traversal. The actual key is determined by the
+     * [UMemoryUpdates] implementation. It's caller's responsibility to maintain the lifetime of the [lookupCache].
+     *
+     * @return the final result.
+     */
+    fun <Result> accept(
+        visitor: UMemoryUpdatesVisitor<Key, Sort, Result>,
+        lookupCache: MutableMap<Any?, Result>,
+    ): Result
 }
 
 
@@ -189,6 +204,24 @@ class UFlatUpdates<Key, Sort : USort> private constructor(
     override fun lastUpdatedElementOrNull(): UUpdateNode<Key, Sort>? = node?.update
 
     override fun isEmpty(): Boolean = node == null
+    override fun <Result> accept(
+        visitor: UMemoryUpdatesVisitor<Key, Sort, Result>,
+        lookupCache: MutableMap<Any?, Result>,
+    ): Result =
+        UFlatMemoryUpdatesFolder(visitor, lookupCache).fold()
+
+    private inner class UFlatMemoryUpdatesFolder<Result>(
+        private val visitor: UMemoryUpdatesVisitor<Key, Sort, Result>,
+        private val cache: MutableMap<Any?, Result>,
+    ) {
+        fun fold() = foldFlatUpdates(this@UFlatUpdates)
+        private fun foldFlatUpdates(updates: UFlatUpdates<Key, Sort>): Result =
+            cache.getOrPut(updates) {
+                val node = updates.node ?: return@getOrPut visitor.visitInitialValue()
+                val accumulated = foldFlatUpdates(node.next)
+                visitor.visitUpdate(accumulated, node.update)
+            }
+    }
 }
 
 //endregion
@@ -196,7 +229,7 @@ class UFlatUpdates<Key, Sort : USort> private constructor(
 //region Tree memory updates
 
 data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
-    internal val updates: RegionTree<UUpdateNode<Key, Sort>, Reg>,
+    private val updates: RegionTree<UUpdateNode<Key, Sort>, Reg>,
     private val keyToRegion: (Key) -> Reg,
     private val keyRangeToRegion: (Key, Key) -> Reg,
     private val symbolicEq: (Key, Key) -> UBoolExpr,
@@ -428,6 +461,67 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
         updates.entries.entries.lastOrNull()?.value?.first
 
     override fun isEmpty(): Boolean = updates.entries.isEmpty()
+    override fun <Result> accept(
+        visitor: UMemoryUpdatesVisitor<Key, Sort, Result>,
+        lookupCache: MutableMap<Any?, Result>,
+    ): Result =
+        UTreeMemoryUpdatesFolder(visitor, lookupCache).fold()
+
+    private inner class UTreeMemoryUpdatesFolder<Result>(
+        private val visitor: UMemoryUpdatesVisitor<Key, Sort, Result>,
+        private val cache: MutableMap<Any?, Result>,
+    ) {
+        fun fold(): Result =
+            cache.getOrPut(updates) {
+                leftMostTranslate(updates)
+            }
+
+        private val emittedUpdates = hashSetOf<UUpdateNode<Key, Sort>>()
+
+        private fun leftMostTranslate(updates: RegionTree<UUpdateNode<Key, Sort>, *>): Result {
+            var result = cache[updates]
+
+            if (result != null) {
+                return result
+            }
+
+            val entryIterator = updates.entries.iterator()
+            if (!entryIterator.hasNext()) {
+                return visitor.visitInitialValue()
+            }
+            val (update, nextUpdates) = entryIterator.next().value
+            result = leftMostTranslate(nextUpdates)
+            result = visitor.visitUpdate(result, update)
+            return notLeftMostTranslate(result, entryIterator)
+        }
+
+        private fun notLeftMostTranslate(
+            accumulator: Result,
+            iterator: Iterator<Map.Entry<Region<*>, Pair<UUpdateNode<Key, Sort>, RegionTree<UUpdateNode<Key, Sort>, *>>>>,
+        ): Result {
+            var accumulated = accumulator
+            while (iterator.hasNext()) {
+                val (reg, entry) = iterator.next()
+                val (update, tree) = entry
+                accumulated = notLeftMostTranslate(accumulated, tree.entries.iterator())
+
+                accumulated = addIfNeeded(accumulated, update, reg)
+            }
+            return accumulated
+        }
+
+        private fun addIfNeeded(accumulated: Result, update: UUpdateNode<Key, Sort>, region: Region<*>): Result {
+            if (checkWasCloned(update, region)) {
+                if (update in emittedUpdates) {
+                    return accumulated
+                }
+                emittedUpdates += update
+                visitor.visitUpdate(accumulated, update)
+            }
+
+            return visitor.visitUpdate(accumulated, update)
+        }
+    }
 }
 
 //endregion

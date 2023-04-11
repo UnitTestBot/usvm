@@ -77,36 +77,32 @@ open class UExprTranslator<Field, Type> constructor(
         regionId: UInputFieldId<Field, Sort>,
     ): URegionTranslator<UInputFieldId<Field, Sort>, UHeapRef, Sort, *> {
         val initialValue = regionIdInitialValueProvider.visit(regionId)
-        val updateTranslator = U1DArrayUpdateTranslator(this, initialValue)
-        val updatesTranslator = UFlatUpdatesTranslator(updateTranslator)
-        return URegionTranslator(updateTranslator, updatesTranslator)
+        val updateTranslator = U1DArrayUpdateTranslate(this, initialValue)
+        return URegionTranslator(updateTranslator)
     }
 
     override fun <ArrayType, Sort : USort> visit(
         regionId: UAllocatedArrayId<ArrayType, Sort>,
     ): URegionTranslator<UAllocatedArrayId<ArrayType, Sort>, USizeExpr, Sort, *> {
         val initialValue = regionIdInitialValueProvider.visit(regionId)
-        val updateTranslator = U1DArrayUpdateTranslator(this, initialValue)
-        val updatesTranslator = UTreeUpdatesTranslator(updateTranslator)
-        return URegionTranslator(updateTranslator, updatesTranslator)
+        val updateTranslator = U1DArrayUpdateTranslate(this, initialValue)
+        return URegionTranslator(updateTranslator)
     }
 
     override fun <ArrayType, Sort : USort> visit(
         regionId: UInputArrayId<ArrayType, Sort>,
     ): URegionTranslator<UInputArrayId<ArrayType, Sort>, USymbolicArrayIndex, Sort, *> {
         val initialValue = regionIdInitialValueProvider.visit(regionId)
-        val updateTranslator = U2DArrayUpdateTranslator(this, initialValue)
-        val updatesTranslator = UTreeUpdatesTranslator(updateTranslator)
-        return URegionTranslator(updateTranslator, updatesTranslator)
+        val updateTranslator = U2DArrayUpdateVisitor(this, initialValue)
+        return URegionTranslator(updateTranslator)
     }
 
     override fun <ArrayType> visit(
         regionId: UInputArrayLengthId<ArrayType>,
     ): URegionTranslator<UInputArrayLengthId<ArrayType>, UHeapRef, USizeSort, *> {
         val initialValue = regionIdInitialValueProvider.visit(regionId)
-        val updateTranslator = U1DArrayUpdateTranslator(this, initialValue)
-        val updatesTranslator = UFlatUpdatesTranslator(updateTranslator)
-        return URegionTranslator(updateTranslator, updatesTranslator)
+        val updateTranslator = U1DArrayUpdateTranslate(this, initialValue)
+        return URegionTranslator(updateTranslator)
     }
 
     val regionIdInitialValueProvider = URegionIdInitialValueProviderBase(onDefaultValuePresent = { translate(it) })
