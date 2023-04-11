@@ -1,13 +1,7 @@
-package org.usvm.concrete.interpreter
+package org.usvm
 
 import org.ksmt.solver.KSolver
 import org.ksmt.solver.KSolverStatus
-import org.usvm.UContext
-import org.usvm.UExprTranslator
-import org.usvm.UMemoryBase
-import org.usvm.UModelBase
-import org.usvm.UModelDecoder
-import org.usvm.UPathCondition
 
 sealed interface USolverResult<T>
 

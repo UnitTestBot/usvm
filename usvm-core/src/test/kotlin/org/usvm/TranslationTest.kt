@@ -13,13 +13,13 @@ import kotlin.test.assertSame
 
 class TranslationTest {
     private lateinit var ctx: UContext
-    private lateinit var heap: URegionHeap<Field, ArrayType>
-    private lateinit var translator: UExprTranslator<Field, ArrayType>
+    private lateinit var heap: URegionHeap<Field, Type>
+    private lateinit var translator: UExprTranslator<Field, Type>
 
     private lateinit var valueFieldDescr: Pair<Field, UBv32Sort>
     private lateinit var addressFieldDescr: Pair<Field, UAddressSort>
-    private lateinit var valueArrayDescr: ArrayType
-    private lateinit var addressArrayDescr: ArrayType
+    private lateinit var valueArrayDescr: Type
+    private lateinit var addressArrayDescr: Type
 
     @BeforeEach
     fun initializeContext() {
@@ -87,11 +87,7 @@ class TranslationTest {
     }
 
     @Test
-    fun testTranslate2dArray() = with(ctx) {
-        var region = emptyInputArrayRegion(valueArrayDescr, bv32Sort) { (ref, idx), reg ->
-            mkInputArrayReading(reg, ref, idx)
-        }
-
+    fun testTranslate2DArray() = with(ctx) {
         val ref1 = mkRegisterReading(0, addressSort)
         val idx1 = mkRegisterReading(1, sizeSort)
         val val1 = mkBv(1)
@@ -101,8 +97,9 @@ class TranslationTest {
         val val2 = mkBv(2)
 
 
-        region = region.write(ref1 to idx1, val1, trueExpr)
-        region = region.write(ref2 to idx2, val2, trueExpr)
+        val region = emptyInputArrayRegion(valueArrayDescr, bv32Sort)
+            .write(ref1 to idx1, val1, trueExpr)
+            .write(ref2 to idx2, val2, trueExpr)
 
         val ref3 = mkRegisterReading(4, addressSort)
         val idx3 = mkRegisterReading(5, sizeSort)
@@ -122,9 +119,7 @@ class TranslationTest {
 
     @RepeatedTest(10)
     fun testTranslateArrayCopy() = with(ctx) {
-        var region = emptyInputArrayRegion(valueArrayDescr, bv32Sort) { (ref, idx), reg ->
-            mkInputArrayReading(reg, ref, idx)
-        }
+        var region = emptyInputArrayRegion(valueArrayDescr, bv32Sort)
 
         val ref1 = mkRegisterReading(0, addressSort)
         val idx1 = mkRegisterReading(1, sizeSort)
@@ -139,9 +134,8 @@ class TranslationTest {
 
         val concreteRef = mkConcreteHeapRef(heap.allocate())
 
-        var concreteRegion = emptyAllocatedArrayRegion(valueArrayDescr, concreteRef.address, bv32Sort) { idx, reg ->
-            mkAllocatedArrayReading(reg, idx)
-        }
+        var concreteRegion = emptyAllocatedArrayRegion(valueArrayDescr, concreteRef.address, bv32Sort)
+
         val keyConverter = UInputToAllocatedKeyConverter(ref1 to mkBv(0), concreteRef to mkBv(0), mkBv(5))
         concreteRegion = concreteRegion.copyRange(region, mkBv(0), mkBv(5), keyConverter, trueExpr)
 
@@ -152,13 +146,14 @@ class TranslationTest {
         val key = region.regionId.keyMapper(translator)(keyConverter.convert(translator.translate(idx)))
         val innerReading =
             translator.translateRegionReading(region, key)
-        val guard = translator.translate((mkBvSignedLessOrEqualExpr(mkBv(0), idx)) and mkBvSignedLessOrEqualExpr(idx, mkBv(5)))
+        val guard =
+            translator.translate((mkBvSignedLessOrEqualExpr(mkBv(0), idx)) and mkBvSignedLessOrEqualExpr(idx, mkBv(5)))
         val expected = mkIte(guard, innerReading, bv32Sort.sampleValue())
 
         val translated = translator.translate(reading)
 
-        // due to KSMT is non-deterministic with reorderings, we have to check it with solver
-        val solver = KZ3Solver(ctx)
+        // due to KSMT non-deterministic with reorderings, we have to check it with solver
+        val solver = KZ3Solver(this)
         solver.assert(expected neq translated)
         val status = solver.check()
 

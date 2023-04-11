@@ -12,11 +12,11 @@ import kotlin.test.assertSame
 
 class HeapRefSplittingTest {
     private lateinit var ctx: UContext
-    private lateinit var heap: URegionHeap<Field, ArrayType>
+    private lateinit var heap: URegionHeap<Field, Type>
 
     private lateinit var valueFieldDescr: Pair<Field, UBv32Sort>
     private lateinit var addressFieldDescr: Pair<Field, UAddressSort>
-    private lateinit var arrayDescr: Pair<ArrayType, UAddressSort>
+    private lateinit var arrayDescr: Pair<Type, UAddressSort>
 
     @BeforeEach
     fun initializeContext() {
@@ -24,7 +24,7 @@ class HeapRefSplittingTest {
         heap = URegionHeap(ctx)
         valueFieldDescr = mockk<Field>() to ctx.bv32Sort
         addressFieldDescr = mockk<Field>() to ctx.addressSort
-        arrayDescr = mockk<ArrayType>() to ctx.addressSort
+        arrayDescr = mockk<Type>() to ctx.addressSort
     }
 
     @Test

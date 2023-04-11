@@ -30,6 +30,7 @@ data class UMemoryRegion<out RegionId : URegionId<Key, Sort>, Key, Sort : USort>
 ) {
     // to save memory usage
     val sort: Sort get() = regionId.sort
+
     // if we replace it with get(), we have to check it every time in read function
     val defaultValue = regionId.defaultValue
 
@@ -330,48 +331,47 @@ val <ArrayType> UInputArrayLengthRegion<ArrayType>.inputLengthArrayType
 fun <Field, Sort : USort> emptyInputFieldRegion(
     field: Field,
     sort: Sort,
-    instantiator: UInstantiator<UInputFieldId<Field, Sort>, UHeapRef, Sort>,
-): UInputFieldRegion<Field, Sort> = UMemoryRegion(
-    UInputFieldId(field, sort),
-    UFlatUpdates(::heapRefEq, ::heapRefCmpConcrete, ::heapRefCmpSymbolic),
-    instantiator
-)
+): UInputFieldRegion<Field, Sort> =
+    UMemoryRegion(
+        UInputFieldId(field, sort),
+        UFlatUpdates(::heapRefEq, ::heapRefCmpConcrete, ::heapRefCmpSymbolic)
+    ) { key, region -> sort.uctx.mkInputFieldReading(region, key) }
 
 fun <ArrayType, Sort : USort> emptyAllocatedArrayRegion(
     arrayType: ArrayType,
     address: UConcreteHeapAddress,
     sort: Sort,
-    instantiator: UInstantiator<UAllocatedArrayId<ArrayType, Sort>, USizeExpr, Sort>,
 ): UAllocatedArrayRegion<ArrayType, Sort> {
     val updates = UTreeUpdates<USizeExpr, UArrayIndexRegion, Sort>(
         updates = emptyRegionTree(),
         ::indexRegion, ::indexRangeRegion, ::indexEq, ::indexLeConcrete, ::indexLeSymbolic
     )
     val regionId = UAllocatedArrayId(arrayType, address, sort, sort.sampleValue())
-    return UMemoryRegion(regionId, updates, instantiator)
+    return UMemoryRegion(regionId, updates) { key, region ->
+        sort.uctx.mkAllocatedArrayReading(region, key)
+    }
 }
 
 fun <ArrayType, Sort : USort> emptyInputArrayRegion(
     arrayType: ArrayType,
     sort: Sort,
-    instantiator: UInstantiator<UInputArrayId<ArrayType, Sort>, USymbolicArrayIndex, Sort>,
 ): UInputArrayRegion<ArrayType, Sort> {
     val updates = UTreeUpdates<USymbolicArrayIndex, UArrayIndexRegion, Sort>(
         updates = emptyRegionTree(),
         ::refIndexRegion, ::refIndexRangeRegion, ::refIndexEq, ::refIndexCmpConcrete, ::refIndexCmpSymbolic
     )
-    return UMemoryRegion(UInputArrayId(arrayType, sort), updates, instantiator)
+    return UMemoryRegion(UInputArrayId(arrayType, sort), updates) { pair, region ->
+        sort.uctx.mkInputArrayReading(region, pair.first, pair.second)
+    }
 }
 
 fun <ArrayType> emptyArrayLengthRegion(
     arrayType: ArrayType,
     sizeSort: USizeSort,
-    instantiator: UInstantiator<UInputArrayLengthId<ArrayType>, UHeapRef, USizeSort>,
 ): UInputArrayLengthRegion<ArrayType> =
     UMemoryRegion(
         UInputArrayLengthId(arrayType, sizeSort),
         UFlatUpdates(::heapRefEq, ::heapRefCmpConcrete, ::heapRefCmpSymbolic),
-        instantiator
-    )
+    ) { ref, region -> sizeSort.uctx.mkInputArrayLengthReading(region, ref) }
 
 //endregion

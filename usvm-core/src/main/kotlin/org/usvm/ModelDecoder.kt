@@ -129,7 +129,7 @@ class URegistersStackModel(private val registers: Map<Int, UExpr<out USort>>) : 
 }
 
 class UHeapModel<Field, ArrayType>(
-    private val nullRef: UExpr<UAddressSort>,
+    private val nullRef: UConcreteHeapRef,
     private val regionEvaluatorProvider: URegionEvaluatorProvider,
     private var resolvedInputFields: PersistentMap<Field, URegionEvaluator<UHeapRef, out USort>>,
     private var resolvedInputArrays: PersistentMap<ArrayType, URegionEvaluator<Pair<UHeapRef, USizeExpr>, out USort>>,
@@ -295,7 +295,7 @@ class UHeapModel<Field, ArrayType>(
 
     override fun allocateArray(count: USizeExpr): UConcreteHeapAddress = error("Illegal operation for a model")
 
-    override fun clone(): UHeap<UHeapRef, UExpr<out USort>, USizeExpr, Field, ArrayType, UBoolExpr> =
+    override fun clone(): UHeapModel<Field, ArrayType> =
         UHeapModel(
             nullRef,
             regionEvaluatorProvider,
@@ -304,9 +304,9 @@ class UHeapModel<Field, ArrayType>(
             resolvedInputLengths.mapValues { evaluator -> evaluator.clone() },
         )
 
-    override fun nullRef(): UHeapRef = nullRef
+    override fun nullRef(): UConcreteHeapRef = nullRef
 
-    override fun toMutableHeap() = clone()
+    override fun toMutableHeap(): UHeapModel<Field, ArrayType> = clone()
 }
 
 inline private fun <K, V> PersistentMap<K, V>.mapValues(crossinline mapper: (V) -> V): PersistentMap<K, V> =

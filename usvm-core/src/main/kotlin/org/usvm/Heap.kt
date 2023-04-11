@@ -110,9 +110,7 @@ data class URegionHeap<Field, ArrayType>(
         sort: Sort,
     ): UInputFieldRegion<Field, Sort> =
         inputFields[field].inputFieldsRegionUncheckedCast()
-            ?: emptyInputFieldRegion(field, sort) { key, region ->
-                ctx.mkInputFieldReading(region, key)
-            }
+            ?: emptyInputFieldRegion(field, sort)
 
     private fun <Sort : USort> allocatedArrayRegion(
         arrayType: ArrayType,
@@ -120,26 +118,20 @@ data class URegionHeap<Field, ArrayType>(
         elementSort: Sort,
     ): UAllocatedArrayRegion<ArrayType, Sort> =
         allocatedArrays[address].allocatedArrayRegionUncheckedCast()
-            ?: emptyAllocatedArrayRegion(arrayType, address, elementSort) { index, region ->
-                ctx.mkAllocatedArrayReading(region, index)
-            }
+            ?: emptyAllocatedArrayRegion(arrayType, address, elementSort)
 
     private fun <Sort : USort> inputArrayRegion(
         arrayType: ArrayType,
         elementSort: Sort,
     ): UInputArrayRegion<ArrayType, Sort> =
         inputArrays[arrayType].inputArrayRegionUncheckedCast()
-            ?: emptyInputArrayRegion(arrayType, elementSort) { pair, region ->
-                ctx.mkInputArrayReading(region, pair.first, pair.second)
-            }
+            ?: emptyInputArrayRegion(arrayType, elementSort)
 
     private fun inputArrayLengthRegion(
         arrayType: ArrayType,
     ): UInputArrayLengthRegion<ArrayType> =
         inputLengths[arrayType]
-            ?: emptyArrayLengthRegion(arrayType, ctx.sizeSort) { ref, region ->
-                ctx.mkInputArrayLengthReading(region, ref)
-            }
+            ?: emptyArrayLengthRegion(arrayType, ctx.sizeSort)
 
     override fun <Sort : USort> readField(ref: UHeapRef, field: Field, sort: Sort): UExpr<Sort> =
         ref.map(

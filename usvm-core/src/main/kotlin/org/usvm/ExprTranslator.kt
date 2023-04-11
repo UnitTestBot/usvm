@@ -15,6 +15,7 @@ open class UExprTranslator<Field, Type> constructor(
         error("You must override `transform` function in UExprTranslator for ${expr::class}")
 
     override fun <Sort : USort> transform(expr: URegisterReading<Sort>): UExpr<Sort> {
+        // TODO: we must ensure all ids are different
         val registerConst = expr.sort.mkConst("r${expr.idx}")
         return registerConst
     }
@@ -26,6 +27,7 @@ open class UExprTranslator<Field, Type> constructor(
         error("You must override `transform` function in UExprTranslator for ${expr::class}")
 
     override fun <Method, Sort : USort> transform(expr: UIndexedMethodReturnValue<Method, Sort>): UExpr<Sort> {
+        // TODO: we must ensure all ids are different
         val const = expr.sort.mkConst("m${expr.method}_${expr.callIndex}")
         return const
     }

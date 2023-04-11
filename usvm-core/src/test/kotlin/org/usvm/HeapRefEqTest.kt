@@ -7,7 +7,7 @@ import kotlin.test.assertSame
 
 class HeapRefEqTest {
     private lateinit var ctx: UContext
-    private lateinit var heap: URegionHeap<Field, ArrayType>
+    private lateinit var heap: URegionHeap<Field, Type>
 
     @BeforeEach
     fun initializeContext() {

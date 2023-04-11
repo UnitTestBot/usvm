@@ -13,6 +13,7 @@ import org.ksmt.expr.printer.ExpressionPrinter
 import org.ksmt.expr.transformer.KTransformerBase
 import org.ksmt.solver.model.DefaultValueSampler.Companion.sampleValue
 import org.ksmt.sort.KBv32Sort
+import org.usvm.UAddressCounter.Companion.NULL_ADDRESS
 import kotlin.reflect.KClass
 import kotlin.test.assertEquals
 import kotlin.test.assertSame
@@ -296,9 +297,7 @@ internal class CompositionTest<Type, Field> {
 
         val arrayType: KClass<Array<*>> = Array::class
         // Create an empty region
-        val region = emptyInputArrayRegion(arrayType, mkBv32Sort()) { key, memoryRegion ->
-            mkInputArrayReading(memoryRegion, key.first, key.second)
-        }
+        val region = emptyInputArrayRegion(arrayType, mkBv32Sort())
 
         // TODO replace with jacoDB type
         // create a reading from the region
@@ -448,4 +447,32 @@ internal class CompositionTest<Type, Field> {
 
         assert(composedExpression === answer)
     }
+
+    @Test
+    fun testHeapRefEq() = with(ctx) {
+        val stackModel = URegistersStackModel(mapOf(0 to mkConcreteHeapRef(-1), 1 to mkConcreteHeapRef(-2)))
+
+        val composer = UComposer<Field, Type>(this, stackModel, mockk(), mockk(), mockk())
+
+        val heapRefEvalEq = mkHeapRefEq(mkRegisterReading(0, addressSort), mkRegisterReading(1, addressSort))
+
+        val expr = composer.compose(heapRefEvalEq)
+        assertSame(falseExpr, expr)
+    }
+
+    @Test
+    fun testHeapRefNullAddress() = with(ctx) {
+        val stackModel = URegistersStackModel(mapOf(0 to mkConcreteHeapRef(0)))
+
+        val heapEvaluator: UReadOnlySymbolicHeap<Field, Type> = mockk()
+        every { heapEvaluator.nullRef() } returns mkConcreteHeapRef(NULL_ADDRESS)
+
+        val composer = UComposer(this, stackModel, heapEvaluator, mockk(), mockk())
+
+        val heapRefEvalEq = mkHeapRefEq(mkRegisterReading(0, addressSort), nullRef)
+
+        val expr = composer.compose(heapRefEvalEq)
+        assertSame(trueExpr, expr)
+    }
+
 }
