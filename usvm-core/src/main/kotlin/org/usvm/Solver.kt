@@ -18,10 +18,10 @@ abstract class USolver<Memory, PathCondition, Model> {
 }
 
 open class USolverBase<Field, Type, Method>(
-    val ctx: UContext,
-    val solver: KSolver<*>,
-    val translator: UExprTranslator<Field, Type>,
-    val evaluator: UModelDecoder<Type, UMemoryBase<Field, Type, Method>, UModelBase<Field, Type>>,
+    protected val ctx: UContext,
+    protected val solver: KSolver<*>,
+    protected val translator: UExprTranslator<Field, Type>,
+    protected val decoder: UModelDecoder<Type, UMemoryBase<Field, Type, Method>, UModelBase<Field, Type>>,
 ) : USolver<UMemoryBase<Field, Type, Method>, UPathCondition, UModelBase<Field, Type>>() {
 
     override fun check(memory: UMemoryBase<Field, Type, Method>, pc: UPathCondition): USolverResult<UModelBase<Field, Type>> {
@@ -48,7 +48,7 @@ open class USolverBase<Field, Type, Method>(
         val model = solver.model().detach()
         solver.pop()
 
-        val uModel = evaluator.decode(memory, model)
+        val uModel = decoder.decode(memory, model)
         return USolverSat(uModel)
     }
 }

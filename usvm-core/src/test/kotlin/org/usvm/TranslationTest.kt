@@ -5,9 +5,9 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.RepeatedTest
 import org.junit.jupiter.api.Test
 import org.ksmt.solver.KSolverStatus
-import org.ksmt.solver.model.DefaultValueSampler.Companion.sampleValue
 import org.ksmt.solver.z3.KZ3Solver
 import org.ksmt.utils.mkConst
+import org.usvm.UContext.Companion.sampleValue
 import kotlin.test.assertSame
 
 class TranslationTest {

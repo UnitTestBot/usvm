@@ -4,7 +4,7 @@ import org.ksmt.KAst
 import org.ksmt.KContext
 import org.ksmt.expr.KConst
 import org.ksmt.expr.KExpr
-import org.ksmt.solver.model.DefaultValueSampler.Companion.sampleValue
+import org.ksmt.solver.model.DefaultValueSampler
 import org.ksmt.sort.KBoolSort
 import org.ksmt.sort.KSort
 import org.ksmt.sort.KUninterpretedSort
@@ -152,13 +152,22 @@ open class UContext(
         UIsExpr(this, ref, type.cast())
     }.cast()
 
-    override fun uninterpretedSortDefaultValue(sort: KUninterpretedSort): KExpr<KUninterpretedSort> =
-        if (sort == addressSort) {
-            nullRef
-        } else {
-            super.uninterpretedSortDefaultValue(sort)
+    // TODO: this is a workaround until KSMT uninterpreted sort values is merged
+    class UDefaultValueSampler<Sort : USort>(ctx: UContext, sort: Sort) : DefaultValueSampler<Sort>(ctx, sort) {
+        override fun visit(sort: KUninterpretedSort): KExpr<Sort> {
+            val uctx = ctx as UContext
+            return if (sort == uctx.addressSort) {
+                uctx.nullRef.asExpr(this.sort)
+            } else {
+                super.visit(sort)
+            }
         }
+    }
 
+    companion object {
+        fun <T : KSort> T.sampleValue(): KExpr<T> =
+            accept(UDefaultValueSampler(uctx, this))
+    }
 }
 
 val KAst.uctx

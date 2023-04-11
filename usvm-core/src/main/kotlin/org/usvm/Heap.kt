@@ -2,8 +2,8 @@ package org.usvm
 
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentMapOf
-import org.ksmt.solver.model.DefaultValueSampler.Companion.sampleValue
 import org.ksmt.utils.asExpr
+import org.usvm.UContext.Companion.sampleValue
 
 interface UReadOnlyHeap<Ref, Value, SizeT, Field, ArrayType, Guard> {
     fun <Sort : USort> readField(ref: Ref, field: Field, sort: Sort): Value

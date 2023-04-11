@@ -1,7 +1,7 @@
 package org.usvm
 
-import org.ksmt.solver.model.DefaultValueSampler.Companion.sampleValue
 import org.ksmt.utils.asExpr
+import org.usvm.UContext.Companion.sampleValue
 import org.usvm.util.SetRegion
 import org.usvm.util.emptyRegionTree
 import java.util.*

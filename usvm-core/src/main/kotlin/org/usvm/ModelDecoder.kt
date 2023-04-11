@@ -3,12 +3,12 @@ package org.usvm
 import org.ksmt.expr.KExpr
 import org.ksmt.expr.KInterpretedValue
 import org.ksmt.solver.KModel
-import org.ksmt.solver.model.DefaultValueSampler.Companion.sampleValue
 import org.ksmt.sort.KUninterpretedSort
 import org.ksmt.utils.asExpr
 import org.ksmt.utils.cast
 import org.usvm.UAddressCounter.Companion.INITIAL_INPUT_ADDRESS
 import org.usvm.UAddressCounter.Companion.NULL_ADDRESS
+import org.usvm.UContext.Companion.sampleValue
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.mutate
 import kotlinx.collections.immutable.persistentMapOf
@@ -53,16 +53,17 @@ open class UModelDecoderBase<Field, Type, Method>(
         // Null is a special value that we want to translate in any case.
         val interpretedNullRef = model.eval(translatedNullRef, isComplete = true)
 
-        val universe = model.uninterpretedSortUniverse(ctx.addressSort) ?: return emptyMap()
-        // All the numbers are enumerated from the INITIAL_INPUT_ADDRESS to the Int.MIN_VALUE
-        var counter = INITIAL_INPUT_ADDRESS
-
         val result = mutableMapOf<KExpr<KUninterpretedSort>, UConcreteHeapRef>()
         // Except the null value, it has the NULL_ADDRESS
         result[interpretedNullRef] = ctx.mkConcreteHeapRef(NULL_ADDRESS)
+        result[translatedNullRef] = ctx.mkConcreteHeapRef(NULL_ADDRESS)
+
+        val universe = model.uninterpretedSortUniverse(ctx.addressSort) ?: return result
+        // All the numbers are enumerated from the INITIAL_INPUT_ADDRESS to the Int.MIN_VALUE
+        var counter = INITIAL_INPUT_ADDRESS
 
         for (interpretedAddress in universe) {
-            if (universe == interpretedNullRef) {
+            if (interpretedAddress == interpretedNullRef) {
                 continue
             }
             result[interpretedAddress] = ctx.mkConcreteHeapRef(counter--)
