@@ -1,19 +1,36 @@
 package org.usvm
 
-import kotlinx.collections.immutable.PersistentMap
-import kotlinx.collections.immutable.persistentMapOf
 import org.ksmt.expr.KExpr
 import org.ksmt.expr.KInterpretedValue
 import org.ksmt.solver.KModel
 import org.ksmt.solver.model.DefaultValueSampler.Companion.sampleValue
 import org.ksmt.sort.KUninterpretedSort
 import org.ksmt.utils.asExpr
+import org.ksmt.utils.cast
 import org.usvm.UAddressCounter.Companion.INITIAL_INPUT_ADDRESS
 import org.usvm.UAddressCounter.Companion.NULL_ADDRESS
+import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.mutate
+import kotlinx.collections.immutable.persistentMapOf
 
 interface UModelDecoder<Type, Memory, Model> {
     fun decode(memory: Memory, model: KModel): Model
+}
+
+fun <Field, Type, Method> buildDefaultTranslatorAndDecoder(
+    ctx: UContext,
+): Pair<UExprTranslator<Field, Type>, UModelDecoderBase<Field, Type, Method>> {
+    val translator = UCachingExprTranslator<Field, Type>(ctx)
+
+    val decoder = UModelDecoderBase<Field, Type, Method>(
+        translator.registerIdxToTranslated,
+        translator.indexedMethodReturnValueToTranslated,
+        translator.translatedNullRef,
+        translator.regionIdToTranslator.keys,
+        translator.regionIdInitialValueProvider,
+    )
+
+    return translator to decoder
 }
 
 typealias AddressesMapping = Map<UExpr<UAddressSort>, UConcreteHeapRef>
@@ -22,7 +39,8 @@ open class UModelDecoderBase<Field, Type, Method>(
     protected val registerIdxToTranslated: Map<Int, UExpr<out USort>>,
     protected val indexedMethodReturnValueToTranslated: Map<Pair<*, Int>, UExpr<*>>,
     protected val translatedNullRef: UExpr<UAddressSort>,
-    protected val regionEvaluatorProviderBuilder: (KModel, AddressesMapping) -> URegionEvaluatorProvider,
+    protected val translatedRegionIds: Set<URegionId<*, *>>,
+    protected val regionIdInitialValueProvider: URegionIdInitialValueFactory,
 ) : UModelDecoder<Type, UMemoryBase<Field, Type, Method>, UModelBase<Field, Type>> {
     private val ctx: UContext = translatedNullRef.uctx
 
@@ -81,10 +99,16 @@ open class UModelDecoderBase<Field, Type, Method>(
         model: KModel,
         addressesMapping: AddressesMapping,
     ): UHeapModel<Field, Type> {
-        val regionEvaluator = regionEvaluatorProviderBuilder(model, addressesMapping)
+        val regionEvaluatorProvider = URegionEvaluatorForHeapModelFactory(
+            model,
+            addressesMapping,
+            translatedRegionIds,
+            regionIdInitialValueProvider,
+        )
+
         return UHeapModel(
             addressesMapping.getValue(translatedNullRef),
-            regionEvaluator,
+            regionEvaluatorProvider,
             persistentMapOf(),
             persistentMapOf(),
             persistentMapOf()
@@ -130,7 +154,7 @@ class URegistersStackModel(private val registers: Map<Int, UExpr<out USort>>) : 
 
 class UHeapModel<Field, ArrayType>(
     private val nullRef: UConcreteHeapRef,
-    private val regionEvaluatorProvider: URegionEvaluatorProvider,
+    private val regionEvaluatorProvider: URegionEvaluatorFactory,
     private var resolvedInputFields: PersistentMap<Field, URegionEvaluator<UHeapRef, out USort>>,
     private var resolvedInputArrays: PersistentMap<ArrayType, URegionEvaluator<Pair<UHeapRef, USizeExpr>, out USort>>,
     private var resolvedInputLengths: PersistentMap<ArrayType, URegionEvaluator<UHeapRef, USizeSort>>,
@@ -323,4 +347,59 @@ fun <S : USort> UExpr<S>.mapAddress(
     addressesMapping.getValue(asExpr(uctx.addressSort)).asExpr(sort)
 } else {
     this
+}
+
+private class URegionEvaluatorForHeapModelFactory(
+    model: KModel,
+    val addressesMapping: AddressesMapping,
+    translatedRegionIds: Set<URegionId<*, *>>,
+    regionIdInitialValueFactory: URegionIdInitialValueFactory,
+) : URegionEvaluatorFactory, URegionIdVisitor<URegionEvaluator<*, *>> {
+
+    private val evaluatorsForTranslatedRegions: MutableMap<URegionId<*, *>, URegionEvaluator<*, *>>
+
+    init {
+        val regionEvaluatorProvider =
+            URegionEvaluatorFromKModelFactory(model, addressesMapping, regionIdInitialValueFactory)
+
+        evaluatorsForTranslatedRegions = translatedRegionIds.associateWithTo(mutableMapOf()) { regionId ->
+            regionEvaluatorProvider.apply(regionId)
+        }
+    }
+
+    override fun <Key, Sort : USort> provide(regionId: URegionId<Key, Sort>): URegionEvaluator<Key, Sort> =
+        evaluatorsForTranslatedRegions.getOrElse(regionId) {
+            apply(regionId)
+        }.cast()
+
+    override fun <Field, Sort : USort> visit(regionId: UInputFieldId<Field, Sort>): U1DArrayEvaluator<UAddressSort, Sort> {
+        // If some region has a default value, it means that the region is an allocated one.
+        // All such regions must be processed earlier, and we won't have them here.
+        require(regionId.defaultValue == null)
+        // So, for these region we should take sample values for theis sorts.
+        val mappedConstValue = regionId.sort.sampleValue().mapAddress(addressesMapping)
+        return U1DArrayEvaluator(mappedConstValue)
+    }
+
+    override fun <ArrayType, Sort : USort> visit(regionId: UAllocatedArrayId<ArrayType, Sort>): URegionEvaluator<*, *> {
+        error("Allocated arrays should be evaluated implicitly")
+    }
+
+    override fun <ArrayType, Sort : USort> visit(regionId: UInputArrayId<ArrayType, Sort>): U2DArrayEvaluator<UAddressSort, USizeSort, Sort> {
+        // If some region has a default value, it means that the region is an allocated one.
+        // All such regions must be processed earlier, and we won't have them here.
+        require(regionId.defaultValue == null)
+        // So, for these region we should take sample values for theis sorts.
+        val mappedConstValue = regionId.sort.sampleValue().mapAddress(addressesMapping)
+        return U2DArrayEvaluator(mappedConstValue)
+    }
+
+    override fun <ArrayType> visit(regionId: UInputArrayLengthId<ArrayType>): U1DArrayEvaluator<UAddressSort, USizeSort> {
+        // If some region has a default value, it means that the region is an allocated one.
+        // All such regions must be processed earlier, and we won't have them here.
+        require(regionId.defaultValue == null)
+        // So, for these region we should take sample values for theis sorts.
+        val mappedConstValue = regionId.sort.sampleValue().mapAddress(addressesMapping)
+        return U1DArrayEvaluator(mappedConstValue)
+    }
 }

@@ -3,11 +3,12 @@ package org.usvm
 import org.ksmt.sort.KArray2Sort
 import org.ksmt.sort.KArraySort
 import org.ksmt.sort.KArraySortBase
+import org.ksmt.utils.cast
 import org.ksmt.utils.mkConst
 
 open class UExprTranslator<Field, Type> constructor(
     override val ctx: UContext,
-) : UExprTransformer<Field, Type>(ctx), URegionTranslatorProvider {
+) : UExprTransformer<Field, Type>(ctx), URegionIdTranslatorFactory {
 
     open fun <Sort : USort> translate(expr: UExpr<Sort>): UExpr<Sort> = apply(expr)
 
@@ -67,11 +68,11 @@ open class UExprTranslator<Field, Type> constructor(
         region: UMemoryRegion<URegionId<Key, Sort>, Key, Sort>,
         key: Key,
     ): UExpr<Sort> {
-        val regionTranslator = provide(region.regionId)
+        val regionTranslator = buildTranslator(region.regionId)
         return regionTranslator.translateReading(region, key)
     }
 
-    // these functions implements URegionTranslatorProvider
+    // these functions implement URegionIdTranslatorFactory
 
     override fun <Field, Sort : USort> visit(
         regionId: UInputFieldId<Field, Sort>,
@@ -108,8 +109,41 @@ open class UExprTranslator<Field, Type> constructor(
     val regionIdInitialValueProvider = URegionIdInitialValueProviderBase(onDefaultValuePresent = { translate(it) })
 }
 
-interface URegionTranslatorProvider : URegionIdVisitor<URegionTranslator<*, *, *, *>> {
-    fun <Key, Sort : USort> provide(
+open class UCachingExprTranslator<Field, Type>(
+    ctx: UContext,
+) : UExprTranslator<Field, Type>(ctx) {
+
+    val registerIdxToTranslated = mutableMapOf<Int, UExpr<*>>()
+
+    override fun <Sort : USort> transform(expr: URegisterReading<Sort>): UExpr<Sort> =
+        registerIdxToTranslated.getOrPut(expr.idx) {
+            super.transform(expr)
+        }.cast()
+
+    val indexedMethodReturnValueToTranslated = mutableMapOf<Pair<*, Int>, UExpr<*>>()
+
+    override fun <Method, Sort : USort> transform(expr: UIndexedMethodReturnValue<Method, Sort>): UExpr<Sort> =
+        indexedMethodReturnValueToTranslated.getOrPut(expr.method to expr.callIndex) {
+            super.transform(expr)
+        }.cast()
+
+    val translatedNullRef = super.translate(ctx.nullRef)
+
+    override fun transform(expr: UNullRef): UExpr<UAddressSort> = translatedNullRef
+
+    val regionIdToTranslator =
+        mutableMapOf<URegionId<*, *>, URegionTranslator<URegionId<*, *>, *, *, *>>()
+
+    override fun <Key, Sort : USort> buildTranslator(
+        regionId: URegionId<Key, Sort>,
+    ): URegionTranslator<URegionId<Key, Sort>, Key, Sort, *> =
+        regionIdToTranslator.getOrPut(regionId) {
+            super.buildTranslator(regionId).cast()
+        }.cast()
+}
+
+interface URegionIdTranslatorFactory : URegionIdVisitor<URegionTranslator<*, *, *, *>> {
+    fun <Key, Sort : USort> buildTranslator(
         regionId: URegionId<Key, Sort>,
     ): URegionTranslator<URegionId<Key, Sort>, Key, Sort, *> {
         @Suppress("UNCHECKED_CAST")
@@ -117,7 +151,7 @@ interface URegionTranslatorProvider : URegionIdVisitor<URegionTranslator<*, *, *
     }
 }
 
-typealias URegionIdInitialValueProvider = URegionIdVisitor<out UExpr<*>>
+typealias URegionIdInitialValueFactory = URegionIdVisitor<out UExpr<*>>
 
 class URegionIdInitialValueProviderBase(
     val onDefaultValuePresent: (UExpr<*>) -> UExpr<*>,

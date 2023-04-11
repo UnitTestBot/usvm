@@ -9,14 +9,18 @@ import java.util.*
 //region Memory region
 
 
-interface UInstantiatorFactory {
-    fun <RegionId : URegionId<Key, Sort>, Key, Sort : USort> build(): UInstantiator<RegionId, Key, Sort>
-}
-
 /**
  * A typealias for a lambda that takes a key, a region and returns a reading from the region by the key.
  */
 typealias UInstantiator<RegionId, Key, Sort> = (key: Key, UMemoryRegion<RegionId, Key, Sort>) -> UExpr<Sort>
+
+/**
+ * Used in [UComposer] for composing [UMemoryRegion]s onto heap.
+ */
+interface UInstantiatorFactory {
+    fun <RegionId : URegionId<Key, Sort>, Key, Sort : USort> build(): UInstantiator<RegionId, Key, Sort>
+}
+
 
 /**
  * A uniform unbounded slice of memory. Indexed by [Key], stores symbolic values.
@@ -174,16 +178,19 @@ data class UMemoryRegion<out RegionId : URegionId<Key, Sort>, Key, Sort : USort>
         val mappedRegionId = regionId.map(composer) as RegionId
         val mappedUpdates = updates.map(regionId.keyMapper(composer), composer, instantiatorFactory)
 
-        // Note that we cannot use optimization with unchanged mappedUpdates and mappedDefaultValues here
-        // since in a new region we might have an updated instantiator.
-        // Therefore, we have to check their reference equality as well.
-
+        // if region.defaultValue != null, we don't need to apply updates to the heapEvaluator.
+        // expr.region already contains ALL region writes, and underlying value (defaultValue) is defined, so we have
+        // all the required information, and it cannot be refined.
+        // Otherwise, the underlying value may be reified accordingly to the heapEvaluator
         val instantiator = if (defaultValue != null) {
             this.instantiator
         } else {
             instantiatorFactory.build()
         }
 
+        // Note that we cannot use optimization with unchanged mappedUpdates and mappedDefaultValues here
+        // since in a new region we might have an updated instantiator.
+        // Therefore, we have to check their reference equality as well.
         if (mappedUpdates === updates && mappedRegionId === regionId && instantiator === this.instantiator) {
             return this
         }

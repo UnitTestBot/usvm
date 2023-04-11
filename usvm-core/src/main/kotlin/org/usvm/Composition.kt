@@ -36,11 +36,6 @@ open class UComposer<Field, Type>(
         expr: UHeapReading<RegionId, Key, Sort>,
         key: Key,
     ): UExpr<Sort> = with(expr) {
-        // if region.defaultValue != null, we don't need to apply updates to the heapEvaluator. expr.region
-        // already contains ALL region writes, and underlying value (defaultValue) is defined, so we have all the
-        // required information, and it cannot be refined.
-        // Otherwise, the underlying value may be reified accordingly to the heapEvaluator
-
         val instantiatorFactory = object : UInstantiatorFactory {
             override fun <RegionId : URegionId<Key, Sort>, Key, Sort : USort> build(): UInstantiator<RegionId, Key, Sort> =
                 { key, memoryRegion ->

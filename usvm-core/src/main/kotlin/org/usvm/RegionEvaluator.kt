@@ -156,17 +156,17 @@ class U2DArrayEvaluator<Key1Sort : USort, Key2Sort : USort, Sort : USort> privat
     }
 }
 
-interface URegionEvaluatorProvider {
+interface URegionEvaluatorFactory {
     fun <Key, Sort : USort> provide(
         regionId: URegionId<Key, Sort>,
     ): URegionEvaluator<Key, Sort>
 }
 
-open class URegionEvaluatorFromKModelProvider(
+open class URegionEvaluatorFromKModelFactory(
     private val model: KModel,
     private val mapping: Map<KExpr<UAddressSort>, UConcreteHeapRef>,
-    private val regionIdInitialValueProvider: URegionIdInitialValueProvider,
-) : URegionEvaluatorProvider, URegionIdVisitor<URegionEvaluator<*, *>> {
+    private val regionIdInitialValueProvider: URegionIdInitialValueFactory,
+) : URegionEvaluatorFactory, URegionIdVisitor<URegionEvaluator<*, *>> {
 
     /**
      * Returns an evaluator for [regionId].
