@@ -255,7 +255,7 @@ class UHeapModel<Field, ArrayType>(
         value: UExpr<out USort>,
         guard: UBoolExpr,
     ) {
-        // Since all values in the model are interpreted, we can check the exact guard8 value.
+        // Since all values in the model are interpreted, we can check the exact guard value.
         when {
             guard.isFalse -> return
             else -> require(guard.isTrue)
