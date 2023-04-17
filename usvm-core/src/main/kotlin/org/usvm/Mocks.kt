@@ -4,30 +4,9 @@ import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
-import org.ksmt.utils.asExpr
-import org.usvm.UContext.Companion.sampleValue
 
 interface UMockEvaluator {
     fun <Sort : USort> eval(symbol: UMockSymbol<Sort>): UExpr<Sort>
-}
-
-/**
- * A model for an indexed mocker that stores mapping
- * from mock symbols and invocation indices to expressions.
- */
-class UIndexedMockModel<Method>(
-    private val values: Map<Pair<*, Int>, UExpr<*>>,
-) : UMockEvaluator {
-
-    override fun <Sort : USort> eval(symbol: UMockSymbol<Sort>): UExpr<Sort> {
-        require(symbol is UIndexedMethodReturnValue<*, Sort>)
-
-        val sort = symbol.sort
-        @Suppress("UNCHECKED_CAST")
-        val key = symbol.method as Method to symbol.callIndex
-
-        return values.getOrDefault(key, sort.sampleValue()).asExpr(sort)
-    }
 }
 
 interface UMocker<Method> : UMockEvaluator {

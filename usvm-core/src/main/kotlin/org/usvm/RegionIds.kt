@@ -5,9 +5,10 @@ import org.ksmt.utils.asExpr
 /**
  * An interface that represents any possible type of regions that can be used in the memory.
  */
-interface URegionId<Key, Sort : USort> {
+interface URegionId<Key, Sort : USort, out RegionId : URegionId<Key, Sort, RegionId>> {
     val sort: Sort
     val defaultValue: UExpr<Sort>?
+    fun instantiate(region: USymbolicMemoryRegion<@UnsafeVariance RegionId, Key, Sort>, key: Key): UExpr<Sort>
 
     fun <Field, ArrayType> read(
         heap: UReadOnlySymbolicHeap<Field, ArrayType>,
@@ -23,15 +24,16 @@ interface URegionId<Key, Sort : USort> {
 
     fun <Field, ArrayType> keyMapper(transformer: UExprTransformer<Field, ArrayType>): KeyMapper<Key>
 
-    fun <Field, ArrayType> map(composer: UComposer<Field, ArrayType>): URegionId<Key, Sort>
+    fun <Field, ArrayType> map(composer: UComposer<Field, ArrayType>): RegionId
 
     fun <R> accept(visitor: URegionIdVisitor<R>): R
 }
 
 interface URegionIdVisitor<R> {
-    fun <Key, Sort : USort> apply(regionId: URegionId<Key, Sort>): R = regionId.accept(this)
+    fun <Key, Sort : USort, RegionId : URegionId<Key, Sort, RegionId>> apply(regionId: URegionId<Key, Sort, RegionId>): R =
+        regionId.accept(this)
 
-    fun <Key, Sort : USort> visit(regionId: URegionId<Key, Sort>): Any? =
+    fun <Key, Sort : USort, RegionId : URegionId<Key, Sort, RegionId>> visit(regionId: URegionId<Key, Sort, RegionId>): Any? =
         error("You must provide visit implementation for ${regionId::class} in ${this::class}")
 
     fun <Field, Sort : USort> visit(regionId: UInputFieldId<Field, Sort>): R
@@ -49,8 +51,18 @@ interface URegionIdVisitor<R> {
 data class UInputFieldId<Field, Sort : USort> internal constructor(
     val field: Field,
     override val sort: Sort,
-) : URegionId<UHeapRef, Sort> {
+    val contextHeap: USymbolicHeap<Field, *>?,
+) : URegionId<UHeapRef, Sort, UInputFieldId<Field, Sort>> {
     override val defaultValue: UExpr<Sort>? get() = null
+    override fun instantiate(
+        region: USymbolicMemoryRegion<UInputFieldId<Field, Sort>, UHeapRef, Sort>,
+        key: UHeapRef
+    ): UExpr<Sort> = if (contextHeap == null) {
+        sort.uctx.mkInputFieldReading(region.copy(regionId = UInputFieldId(field, sort, null)), key)
+    } else {
+        region.applyTo(contextHeap)
+        read(contextHeap, key)
+    }
 
     @Suppress("UNCHECKED_CAST")
     override fun <Field, ArrayType> read(
@@ -70,8 +82,11 @@ data class UInputFieldId<Field, Sort : USort> internal constructor(
         transformer: UExprTransformer<Field, ArrayType>,
     ): KeyMapper<UHeapRef> = { transformer.apply(it) }
 
-    override fun <CField, ArrayType> map(composer: UComposer<CField, ArrayType>): UInputFieldId<Field, Sort> =
-        this
+    override fun <CField, ArrayType> map(composer: UComposer<CField, ArrayType>): UInputFieldId<Field, Sort> {
+        check(contextHeap == null) { "ContextHeap is not null in composition!" }
+        @Suppress("UNCHECKED_CAST")
+        return copy(contextHeap = composer.heapEvaluator.toMutableHeap() as USymbolicHeap<Field, *>)
+    }
 
     override fun <R> accept(visitor: URegionIdVisitor<R>): R =
         visitor.visit(this)
@@ -81,7 +96,8 @@ data class UInputFieldId<Field, Sort : USort> internal constructor(
     }
 }
 
-interface UArrayId<ArrayType, Key, Sort : USort> : URegionId<Key, Sort> {
+interface UArrayId<ArrayType, Key, Sort : USort, out RegionId : UArrayId<ArrayType, Key, Sort, RegionId>> :
+    URegionId<Key, Sort, RegionId> {
     val arrayType: ArrayType
 }
 
@@ -94,7 +110,17 @@ data class UAllocatedArrayId<ArrayType, Sort : USort> internal constructor(
     val address: UConcreteHeapAddress,
     override val sort: Sort,
     override val defaultValue: UExpr<Sort>,
-) : UArrayId<ArrayType, USizeExpr, Sort> {
+    val contextHeap: USymbolicHeap<*, ArrayType>?,
+) : UArrayId<ArrayType, USizeExpr, Sort, UAllocatedArrayId<ArrayType, Sort>> {
+    override fun instantiate(
+        region: USymbolicMemoryRegion<UAllocatedArrayId<ArrayType, Sort>, USizeExpr, Sort>,
+        key: USizeExpr
+    ): UExpr<Sort> = if (contextHeap == null) {
+        sort.uctx.mkAllocatedArrayReading(region, key)
+    } else {
+        region.applyTo(contextHeap)
+        read(contextHeap, key)
+    }
 
     @Suppress("UNCHECKED_CAST")
     override fun <Field, ArrayType> read(
@@ -116,16 +142,20 @@ data class UAllocatedArrayId<ArrayType, Sort : USort> internal constructor(
         heap.writeArrayIndex(ref, key, arrayType as ArrayType, sort, value, guard)
     }
 
+
     override fun <Field, ArrayType> keyMapper(
         transformer: UExprTransformer<Field, ArrayType>,
     ): KeyMapper<USizeExpr> = { transformer.apply(it) }
 
+
     override fun <Field, CArrayType> map(composer: UComposer<Field, CArrayType>): UAllocatedArrayId<ArrayType, Sort> {
         val composedDefaultValue = composer.compose(defaultValue)
-        if (composedDefaultValue === defaultValue) {
-            return this
-        }
-        return copy(defaultValue = composedDefaultValue)
+        check(contextHeap == null) { "ContextHeap is not null in composition!" }
+        @Suppress("UNCHECKED_CAST")
+        return copy(
+            contextHeap = composer.heapEvaluator.toMutableHeap() as USymbolicHeap<*, ArrayType>,
+            defaultValue = composedDefaultValue
+        )
     }
 
     // we don't include arrayType into hashcode and equals, because [address] already defines unambiguously
@@ -158,8 +188,18 @@ data class UAllocatedArrayId<ArrayType, Sort : USort> internal constructor(
 data class UInputArrayId<ArrayType, Sort : USort> internal constructor(
     override val arrayType: ArrayType,
     override val sort: Sort,
-) : UArrayId<ArrayType, USymbolicArrayIndex, Sort> {
+    val contextHeap: USymbolicHeap<*, ArrayType>?,
+) : UArrayId<ArrayType, USymbolicArrayIndex, Sort, UInputArrayId<ArrayType, Sort>> {
     override val defaultValue: UExpr<Sort>? get() = null
+    override fun instantiate(
+        region: USymbolicMemoryRegion<UInputArrayId<ArrayType, Sort>, USymbolicArrayIndex, Sort>,
+        key: USymbolicArrayIndex
+    ): UExpr<Sort> = if (contextHeap == null) {
+        sort.uctx.mkInputArrayReading(region, key.first, key.second)
+    } else {
+        region.applyTo(contextHeap)
+        read(contextHeap, key)
+    }
 
     @Suppress("UNCHECKED_CAST")
     override fun <Field, ArrayType> read(
@@ -186,9 +226,11 @@ data class UInputArrayId<ArrayType, Sort : USort> internal constructor(
     override fun <R> accept(visitor: URegionIdVisitor<R>): R =
         visitor.visit(this)
 
-    override fun <Field, CArrayType> map(composer: UComposer<Field, CArrayType>): UInputArrayId<ArrayType, Sort> =
-        this
-
+    override fun <Field, CArrayType> map(composer: UComposer<Field, CArrayType>): UInputArrayId<ArrayType, Sort> {
+        check(contextHeap == null) { "ContextHeap is not null in composition!" }
+        @Suppress("UNCHECKED_CAST")
+        return copy(contextHeap = composer.heapEvaluator.toMutableHeap() as USymbolicHeap<*, ArrayType>)
+    }
     override fun toString(): String {
         return "inputArray($arrayType)"
     }
@@ -200,8 +242,18 @@ data class UInputArrayId<ArrayType, Sort : USort> internal constructor(
 data class UInputArrayLengthId<ArrayType> internal constructor(
     val arrayType: ArrayType,
     override val sort: USizeSort,
-) : URegionId<UHeapRef, USizeSort> {
+    val contextHeap: USymbolicHeap<*, ArrayType>?,
+) : URegionId<UHeapRef, USizeSort, UInputArrayLengthId<ArrayType>> {
     override val defaultValue: UExpr<USizeSort>? get() = null
+    override fun instantiate(
+        region: USymbolicMemoryRegion<UInputArrayLengthId<ArrayType>, UHeapRef, USizeSort>,
+        key: UHeapRef
+    ): UExpr<USizeSort> = if (contextHeap == null) {
+        sort.uctx.mkInputArrayLengthReading(region, key)
+    } else {
+        region.applyTo(contextHeap)
+        read(contextHeap, key)
+    }
 
     @Suppress("UNCHECKED_CAST")
     override fun <Field, ArrayType> read(
@@ -224,9 +276,11 @@ data class UInputArrayLengthId<ArrayType> internal constructor(
         transformer: UExprTransformer<Field, ArrayType>,
     ): KeyMapper<UHeapRef> = { transformer.apply(it) }
 
-    override fun <Field, CArrayType> map(composer: UComposer<Field, CArrayType>): UInputArrayLengthId<ArrayType> =
-        this
-
+    override fun <Field, CArrayType> map(composer: UComposer<Field, CArrayType>): UInputArrayLengthId<ArrayType> {
+        check(contextHeap == null) { "ContextHeap is not null in composition!" }
+        @Suppress("UNCHECKED_CAST")
+        return copy(contextHeap = composer.heapEvaluator.toMutableHeap() as USymbolicHeap<*, ArrayType>)
+    }
     override fun <R> accept(visitor: URegionIdVisitor<R>): R =
         visitor.visit(this)
 

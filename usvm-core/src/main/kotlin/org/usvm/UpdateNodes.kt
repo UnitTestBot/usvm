@@ -62,8 +62,7 @@ sealed interface UUpdateNode<Key, Sort : USort> {
      */
     fun <Field, Type> map(
         keyMapper: KeyMapper<Key>,
-        composer: UComposer<Field, Type>,
-        instantiatorFactory: UInstantiatorFactory
+        composer: UComposer<Field, Type>
     ): UUpdateNode<Key, Sort>
 }
 
@@ -113,8 +112,7 @@ class UPinpointUpdateNode<Key, Sort : USort>(
 
     override fun <Field, Type> map(
         keyMapper: KeyMapper<Key>,
-        composer: UComposer<Field, Type>,
-        instantiatorFactory: UInstantiatorFactory
+        composer: UComposer<Field, Type>
     ): UPinpointUpdateNode<Key, Sort> {
         val mappedKey = keyMapper(key)
         val mappedValue = composer.compose(value)
@@ -199,10 +197,10 @@ sealed class UMemoryKeyConverter<SrcKey, DstKey>(
  * with values from memory region [region] read from range
  * of addresses [[keyConverter].convert([fromKey]) : [keyConverter].convert([toKey])]
  */
-class URangedUpdateNode<RegionId : UArrayId<ArrayType, SrcKey, Sort>, ArrayType, SrcKey, DstKey, Sort : USort>(
+class URangedUpdateNode<RegionId : UArrayId<*, SrcKey, Sort, RegionId>, SrcKey, DstKey, Sort : USort>(
     val fromKey: DstKey,
     val toKey: DstKey,
-    val region: UMemoryRegion<RegionId, SrcKey, Sort>,
+    val region: USymbolicMemoryRegion<RegionId, SrcKey, Sort>,
     private val concreteComparer: (DstKey, DstKey) -> Boolean,
     private val symbolicComparer: (DstKey, DstKey) -> UBoolExpr,
     val keyConverter: UMemoryKeyConverter<SrcKey, DstKey>,
@@ -226,15 +224,13 @@ class URangedUpdateNode<RegionId : UArrayId<ArrayType, SrcKey, Sort>, ArrayType,
 
     override fun value(key: DstKey): UExpr<Sort> = region.read(keyConverter.convert(key))
 
-    @Suppress("UNCHECKED_CAST")
     override fun <Field, Type> map(
         keyMapper: KeyMapper<DstKey>,
-        composer: UComposer<Field, Type>,
-        instantiatorFactory: UInstantiatorFactory
-    ): URangedUpdateNode<RegionId, ArrayType, SrcKey, DstKey, Sort> {
+        composer: UComposer<Field, Type>
+    ): URangedUpdateNode<RegionId, SrcKey, DstKey, Sort> {
         val mappedFromKey = keyMapper(fromKey)
         val mappedToKey = keyMapper(toKey)
-        val mappedRegion = region.map(composer, instantiatorFactory)
+        val mappedRegion = region.map(composer)
         val mappedKeyConverter = keyConverter.map(composer)
         val mappedGuard = composer.compose(guard)
 
@@ -311,7 +307,7 @@ class URangedUpdateNode<RegionId : UArrayId<ArrayType, SrcKey, Sort>, ArrayType,
 
     // Ignores update
     override fun equals(other: Any?): Boolean =
-        other is URangedUpdateNode<*, *, *, *, *> &&
+        other is URangedUpdateNode<*, *, *, *> &&
                 this.fromKey == other.fromKey &&
                 this.toKey == other.toKey &&
                 this.guard == other.guard
@@ -380,11 +376,11 @@ class UInputToAllocatedKeyConverter(
  * Used when copying data from input array to another input array.
  */
 class UInputToInputKeyConverter(
-    srcSymbolicArrayIndex: USymbolicArrayIndex,
+    srcFromSymbolicArrayIndex: USymbolicArrayIndex,
     dstFromSymbolicArrayIndex: USymbolicArrayIndex,
     dstToIndex: USizeExpr
 ) : UMemoryKeyConverter<USymbolicArrayIndex, USymbolicArrayIndex>(
-    srcSymbolicArrayIndex,
+    srcFromSymbolicArrayIndex,
     dstFromSymbolicArrayIndex,
     dstToIndex
 ) {

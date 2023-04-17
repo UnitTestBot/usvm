@@ -3,11 +3,11 @@ package org.usvm
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentMapOf
 import org.ksmt.utils.asExpr
-import org.usvm.UContext.Companion.sampleValue
+import org.ksmt.utils.sampleValue
 
 interface UReadOnlyHeap<Ref, Value, SizeT, Field, ArrayType, Guard> {
     fun <Sort : USort> readField(ref: Ref, field: Field, sort: Sort): Value
-    fun <Sort : USort> readArrayIndex(ref: Ref, index: SizeT, arrayType: ArrayType, elementSort: Sort): Value
+    fun <Sort : USort> readArrayIndex(ref: Ref, index: SizeT, arrayType: ArrayType, sort: Sort): Value
     fun readArrayLength(ref: Ref, arrayType: ArrayType): SizeT
 
     /**
@@ -20,25 +20,25 @@ interface UReadOnlyHeap<Ref, Value, SizeT, Field, ArrayType, Guard> {
 
 typealias UReadOnlySymbolicHeap<Field, ArrayType> = UReadOnlyHeap<UHeapRef, UExpr<out USort>, USizeExpr, Field, ArrayType, UBoolExpr>
 
-class UEmptyHeap<Field, ArrayType>(private val ctx: UContext) : UReadOnlySymbolicHeap<Field, ArrayType> {
-    override fun <Sort : USort> readField(ref: UHeapRef, field: Field, sort: Sort): UExpr<Sort> =
-        sort.sampleValue()
-
-    override fun <Sort : USort> readArrayIndex(
-        ref: UHeapRef,
-        index: USizeExpr,
-        arrayType: ArrayType,
-        elementSort: Sort,
-    ): UExpr<Sort> = elementSort.sampleValue()
-
-    override fun readArrayLength(ref: UHeapRef, arrayType: ArrayType) =
-        ctx.zeroSize
-
-    override fun toMutableHeap(): UHeap<UHeapRef, UExpr<out USort>, USizeExpr, Field, ArrayType, UBoolExpr> =
-        URegionHeap(ctx)
-
-    override fun nullRef(): UHeapRef = ctx.nullRef
-}
+//class UEmptyHeap<Field, ArrayType>(private val ctx: UContext) : UReadOnlySymbolicHeap<Field, ArrayType> {
+//    override fun <Sort : USort> readField(ref: UHeapRef, field: Field, sort: Sort): UExpr<Sort> =
+//        sort.sampleValue()
+//
+//    override fun <Sort : USort> readArrayIndex(
+//        ref: UHeapRef,
+//        index: USizeExpr,
+//        arrayType: ArrayType,
+//        elementSort: Sort,
+//    ): UExpr<Sort> = elementSort.sampleValue()
+//
+//    override fun readArrayLength(ref: UHeapRef, arrayType: ArrayType) =
+//        ctx.zeroSize
+//
+//    override fun toMutableHeap(): UHeap<UHeapRef, UExpr<out USort>, USizeExpr, Field, ArrayType, UBoolExpr> =
+//        URegionHeap(ctx)
+//
+//    override fun nullRef(): UHeapRef = ctx.nullRef
+//}
 
 interface UHeap<Ref, Value, SizeT, Field, ArrayType, Guard> :
     UReadOnlyHeap<Ref, Value, SizeT, Field, ArrayType, Guard> {
@@ -47,7 +47,7 @@ interface UHeap<Ref, Value, SizeT, Field, ArrayType, Guard> :
         ref: Ref,
         index: SizeT,
         type: ArrayType,
-        elementSort: Sort,
+        sort: Sort,
         value: Value,
         guard: Guard,
     )
@@ -133,6 +133,23 @@ data class URegionHeap<Field, ArrayType>(
         inputLengths[arrayType]
             ?: emptyArrayLengthRegion(arrayType, ctx.sizeSort)
 
+    @Suppress("UNCHECKED_CAST", "UNUSED")
+    fun <RegionId : URegionId<Key, Sort, RegionId>, Key, Sort : USort> getRegion(region: RegionId): USymbolicMemoryRegion<RegionId, Key, Sort> =
+        // TODO with visitor?
+        when (region) {
+            is UInputFieldId<*, *> -> inputFieldRegion(region.field as Field, region.sort)
+            is UAllocatedArrayId<*, *> -> allocatedArrayRegion(
+                region.arrayType as ArrayType,
+                region.address,
+                region.sort
+            )
+
+            is UInputArrayLengthId<*> -> inputArrayLengthRegion(region.arrayType as ArrayType)
+            is UInputArrayId<*, *> -> inputArrayRegion(region.arrayType as ArrayType, region.sort)
+            else -> TODO("Implement symbolic collections")
+        } as USymbolicMemoryRegion<RegionId, Key, Sort>
+
+
     override fun <Sort : USort> readField(ref: UHeapRef, field: Field, sort: Sort): UExpr<Sort> =
         ref.map(
             { concreteRef ->
@@ -147,11 +164,11 @@ data class URegionHeap<Field, ArrayType>(
         ref: UHeapRef,
         index: USizeExpr,
         arrayType: ArrayType,
-        elementSort: Sort,
+        sort: Sort,
     ): UExpr<Sort> =
         ref.map(
-            { concreteRef -> allocatedArrayRegion(arrayType, concreteRef.address, elementSort).read(index) },
-            { symbolicRef -> inputArrayRegion(arrayType, elementSort).read(symbolicRef to index) }
+            { concreteRef -> allocatedArrayRegion(arrayType, concreteRef.address, sort).read(index) },
+            { symbolicRef -> inputArrayRegion(arrayType, sort).read(symbolicRef to index) }
         )
 
     override fun readArrayLength(ref: UHeapRef, arrayType: ArrayType): USizeExpr =
@@ -192,22 +209,22 @@ data class URegionHeap<Field, ArrayType>(
         ref: UHeapRef,
         index: USizeExpr,
         type: ArrayType,
-        elementSort: Sort,
+        sort: Sort,
         value: UExpr<out USort>,
         guard: UBoolExpr,
     ) {
-        val valueToWrite = value.asExpr(elementSort)
+        val valueToWrite = value.asExpr(sort)
 
         withHeapRef(
             ref,
             guard,
             { (concreteRef, innerGuard) ->
-                val oldRegion = allocatedArrayRegion(type, concreteRef.address, elementSort)
+                val oldRegion = allocatedArrayRegion(type, concreteRef.address, sort)
                 val newRegion = oldRegion.write(index, valueToWrite, innerGuard)
                 allocatedArrays = allocatedArrays.put(concreteRef.address, newRegion)
             },
             { (symbolicRef, innerGuard) ->
-                val oldRegion = inputArrayRegion(type, elementSort)
+                val oldRegion = inputArrayRegion(type, sort)
                 val newRegion = oldRegion.write(symbolicRef to index, valueToWrite, innerGuard)
                 inputArrays = inputArrays.put(type, newRegion)
             }

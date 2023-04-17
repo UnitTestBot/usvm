@@ -55,7 +55,7 @@ class MapCompositionTest<Field, Type> {
         every { composer.compose(value) } returns 1.toBv()
         every { composer.compose(mkTrue()) } returns mkTrue()
 
-        val composedUpdates = updatesToCompose.map(keyMapper = { composer.compose(it) }, composer, mockk())
+        val composedUpdates = updatesToCompose.map(keyMapper = { composer.compose(it) }, composer)
 
         assert(composedUpdates.isEmpty())
     }
@@ -97,7 +97,7 @@ class MapCompositionTest<Field, Type> {
             every { composer.compose(mkTrue()) } returns mkTrue()
 
             // ComposedUpdates contains only one update in a region {3}
-            val composedUpdates = updatesToCompose.map(keyMapper = { composer.compose(it) }, composer, mockk())
+            val composedUpdates = updatesToCompose.map(keyMapper = { composer.compose(it) }, composer)
 
             assertFalse(composedUpdates.isEmpty())
 
@@ -124,7 +124,7 @@ class MapCompositionTest<Field, Type> {
         every { composer.compose(value) } returns value
         every { composer.compose(guard) } returns guard
 
-        val mappedNode = updateNode.map({ k -> composer.compose(k) }, composer, mockk())
+        val mappedNode = updateNode.map({ k -> composer.compose(k) }, composer)
 
         assertSame(expected = updateNode, actual = mappedNode)
     }
@@ -143,7 +143,7 @@ class MapCompositionTest<Field, Type> {
         every { composer.compose(value) } returns 1.toBv()
         every { composer.compose(guard) } returns mkTrue()
 
-        val mappedNode = updateNode.map({ k -> composer.compose(k) }, composer, mockk())
+        val mappedNode = updateNode.map({ k -> composer.compose(k) }, composer)
 
         assertNotSame(illegal = updateNode, actual = mappedNode)
         assertSame(expected = composedKey, actual = mappedNode.key)
@@ -156,7 +156,7 @@ class MapCompositionTest<Field, Type> {
         val addr = addressSort.mkConst("addr")
         val fromKey = sizeSort.mkConst("fromKey") as UExpr<USizeSort>
         val toKey = sizeSort.mkConst("toKey") as UExpr<USizeSort>
-        val region = mockk<UMemoryRegion<UAllocatedArrayId<Int, UBv32Sort>, UExpr<USizeSort>, UBv32Sort>>()
+        val region = mockk<USymbolicMemoryRegion<UAllocatedArrayId<Int, UBv32Sort>, UExpr<USizeSort>, UBv32Sort>>()
         val guard = boolSort.mkConst("guard")
 
         val updateNode = URangedUpdateNode(
@@ -176,10 +176,10 @@ class MapCompositionTest<Field, Type> {
         every { composer.compose(addr) } returns addr
         every { composer.compose(fromKey) } returns fromKey
         every { composer.compose(toKey) } returns toKey
-        every { region.map(composer, any()) } returns region
+        every { region.map(composer) } returns region
         every { composer.compose(guard) } returns guard
 
-        val mappedUpdateNode = updateNode.map({ k -> composer.compose((k)) }, composer, mockk())
+        val mappedUpdateNode = updateNode.map({ k -> composer.compose((k)) }, composer)
 
         assertSame(expected = updateNode, actual = mappedUpdateNode)
     }
@@ -189,7 +189,7 @@ class MapCompositionTest<Field, Type> {
         val addr = mkConcreteHeapRef(0)
         val fromKey = sizeSort.mkConst("fromKey")
         val toKey = sizeSort.mkConst("toKey")
-        val region = mockk<UMemoryRegion<UAllocatedArrayId<Int, UBv32Sort>, USizeExpr, UBv32Sort>>()
+        val region = mockk<USymbolicMemoryRegion<UAllocatedArrayId<Int, UBv32Sort>, USizeExpr, UBv32Sort>>()
         val guard = boolSort.mkConst("guard")
 
         val updateNode = URangedUpdateNode(
@@ -208,16 +208,16 @@ class MapCompositionTest<Field, Type> {
 
         val composedFromKey = sizeSort.mkConst("composedFromKey")
         val composedToKey = sizeSort.mkConst("composedToKey")
-        val composedRegion = mockk<UMemoryRegion<UAllocatedArrayId<Int, UBv32Sort>, UExpr<USizeSort>, UBv32Sort>>()
+        val composedRegion = mockk<USymbolicMemoryRegion<UAllocatedArrayId<Int, UBv32Sort>, UExpr<USizeSort>, UBv32Sort>>()
         val composedGuard = mkTrue()
 
         every { composer.compose(addr) } returns addr
         every { composer.compose(fromKey) } returns composedFromKey
         every { composer.compose(toKey) } returns composedToKey
-        every { region.map(composer, any()) } returns composedRegion
+        every { region.map(composer) } returns composedRegion
         every { composer.compose(guard) } returns composedGuard
 
-        val mappedUpdateNode = updateNode.map({ k -> composer.compose((k)) }, composer, mockk())
+        val mappedUpdateNode = updateNode.map({ k -> composer.compose((k)) }, composer)
 
         assertNotSame(illegal = updateNode, actual = mappedUpdateNode)
         assertSame(expected = composedFromKey, actual = mappedUpdateNode.fromKey)
@@ -234,7 +234,7 @@ class MapCompositionTest<Field, Type> {
             { _, _ -> shouldNotBeCalled() }
         )
 
-        val mappedUpdates = emptyUpdates.map({ k -> composer.compose(k) }, composer, mockk())
+        val mappedUpdates = emptyUpdates.map({ k -> composer.compose(k) }, composer)
 
         assertSame(expected = emptyUpdates, actual = mappedUpdates)
     }
@@ -259,7 +259,7 @@ class MapCompositionTest<Field, Type> {
         every { composer.compose(sndValue) } returns sndValue
         every { composer.compose(mkTrue()) } returns mkTrue()
 
-        val mappedUpdates = flatUpdates.map({ k -> composer.compose(k) }, composer, mockk())
+        val mappedUpdates = flatUpdates.map({ k -> composer.compose(k) }, composer)
 
         assertSame(expected = flatUpdates, actual = mappedUpdates)
     }
@@ -289,7 +289,7 @@ class MapCompositionTest<Field, Type> {
         every { composer.compose(sndValue) } returns composedSndValue
         every { composer.compose(mkTrue()) } returns mkTrue()
 
-        val mappedUpdates = flatUpdates.map({ k -> composer.compose(k) }, composer, mockk())
+        val mappedUpdates = flatUpdates.map({ k -> composer.compose(k) }, composer)
 
         assertNotSame(illegal = flatUpdates, actual = mappedUpdates)
 
@@ -327,7 +327,7 @@ class MapCompositionTest<Field, Type> {
         every { composer.compose(sndValue) } returns sndValue
         every { composer.compose(mkTrue()) } returns mkTrue()
 
-        val mappedUpdates = treeUpdates.map({ k -> composer.compose(k) }, composer, mockk())
+        val mappedUpdates = treeUpdates.map({ k -> composer.compose(k) }, composer)
 
         assertSame(expected = treeUpdates, actual = mappedUpdates)
     }
@@ -360,7 +360,7 @@ class MapCompositionTest<Field, Type> {
         every { composer.compose(sndValue) } returns composedSndValue
         every { composer.compose(mkTrue()) } returns mkTrue()
 
-        val mappedUpdates = treeUpdates.map({ k -> composer.compose(k) }, composer, mockk())
+        val mappedUpdates = treeUpdates.map({ k -> composer.compose(k) }, composer)
 
         assertNotSame(illegal = treeUpdates, actual = mappedUpdates)
 

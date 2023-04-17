@@ -127,9 +127,9 @@ class URegisterReading<Sort : USort> internal constructor(
     }
 }
 
-abstract class UHeapReading<RegionId : URegionId<Key, Sort>, Key, Sort : USort>(
+abstract class UHeapReading<RegionId : URegionId<Key, Sort, RegionId>, Key, Sort : USort>(
     ctx: UContext,
-    val region: UMemoryRegion<RegionId, Key, Sort>
+    val region: USymbolicMemoryRegion<RegionId, Key, Sort>
 ) : USymbol<Sort>(ctx) {
     override val sort: Sort get() = region.sort
 }

@@ -65,7 +65,7 @@ open class UExprTranslator<Field, Type> constructor(
         }
 
     open fun <Key, Sort : USort> translateRegionReading(
-        region: UMemoryRegion<URegionId<Key, Sort>, Key, Sort>,
+        region: USymbolicMemoryRegion<URegionId<Key, Sort, *>, Key, Sort>,
         key: Key,
     ): UExpr<Sort> {
         val regionTranslator = buildTranslator(region.regionId)
@@ -130,11 +130,11 @@ open class UCachingExprTranslator<Field, Type>(
     val translatedNullRef = super.transform(ctx.nullRef)
 
     val regionIdToTranslator =
-        mutableMapOf<URegionId<*, *>, URegionTranslator<URegionId<*, *>, *, *, *>>()
+        mutableMapOf<URegionId<*, *, *>, URegionTranslator<URegionId<*, *, *>, *, *, *>>()
 
     override fun <Key, Sort : USort> buildTranslator(
-        regionId: URegionId<Key, Sort>,
-    ): URegionTranslator<URegionId<Key, Sort>, Key, Sort, *> =
+        regionId: URegionId<Key, Sort, *>,
+    ): URegionTranslator<URegionId<Key, Sort, *>, Key, Sort, *> =
         regionIdToTranslator.getOrPut(regionId) {
             super.buildTranslator(regionId).cast()
         }.cast()
@@ -142,10 +142,10 @@ open class UCachingExprTranslator<Field, Type>(
 
 interface URegionIdTranslatorFactory : URegionIdVisitor<URegionTranslator<*, *, *, *>> {
     fun <Key, Sort : USort> buildTranslator(
-        regionId: URegionId<Key, Sort>,
-    ): URegionTranslator<URegionId<Key, Sort>, Key, Sort, *> {
+        regionId: URegionId<Key, Sort, *>,
+    ): URegionTranslator<URegionId<Key, Sort, *>, Key, Sort, *> {
         @Suppress("UNCHECKED_CAST")
-        return apply(regionId) as URegionTranslator<URegionId<Key, Sort>, Key, Sort, *>
+        return apply(regionId) as URegionTranslator<URegionId<Key, Sort, *>, Key, Sort, *>
     }
 }
 

@@ -2,22 +2,23 @@ package org.usvm
 
 import org.ksmt.sort.KArray2Sort
 import org.ksmt.sort.KArraySort
+import org.ksmt.utils.cast
 import java.util.IdentityHashMap
 
 /**
  * [URegionTranslator] defines a template method that translates a region reading to a specific [UExpr] with a sort [Sort].
  */
-class URegionTranslator<in RegionId : URegionId<Key, Sort>, Key, Sort : USort, Result>(
+class URegionTranslator<RegionId : URegionId<Key, Sort, RegionId>, Key, Sort : USort, Result>(
     private val updateTranslator: UMemoryUpdatesVisitor<Key, Sort, Result>,
 ) {
-    fun translateReading(region: UMemoryRegion<RegionId, Key, Sort>, key: Key): UExpr<Sort> {
+    fun translateReading(region: USymbolicMemoryRegion<RegionId, Key, Sort>, key: Key): UExpr<Sort> {
         val translated = translate(region)
         return updateTranslator.visitSelect(translated, key)
     }
 
     private val visitorCache = IdentityHashMap<Any?, Result>()
 
-    private fun translate(region: UMemoryRegion<RegionId, Key, Sort>): Result =
+    private fun translate(region: USymbolicMemoryRegion<RegionId, Key, Sort>): Result =
         region.updates.accept(updateTranslator, visitorCache)
 }
 
@@ -52,16 +53,18 @@ internal class U1DArrayUpdateTranslate<KeySort : USort, Sort : USort>(
                 // previous.store(update.key, mkIte(update.guard, update.value, previous.select(update.key)))
             }
 
-            is URangedUpdateNode<*, *, *, *, *> -> {
+            is URangedUpdateNode<*, *, *, *> -> {
                 when (update.guard) {
                     falseExpr -> previous
                     else -> {
                         @Suppress("UNCHECKED_CAST")
-                        (update as URangedUpdateNode<UArrayId<*, Any?, Sort>, *, Any?, UExpr<KeySort>, Sort>)
+                        (update as URangedUpdateNode<UArrayId<*, Any?, Sort, *>, Any?, UExpr<KeySort>, Sort>)
                         val key = mkFreshConst("k", previous.sort.domain)
 
                         val from = update.region
-                        val convertedKey = from.regionId.keyMapper(exprTranslator)(update.keyConverter.convert(key))
+
+                        val keyMapper = from.regionId.keyMapper(exprTranslator)
+                        val convertedKey = keyMapper(update.keyConverter.convert(key))
                         val isInside = update.includesSymbolically(key).translated // already includes guard
                         val result = exprTranslator.translateRegionReading(from, convertedKey)
                         val ite = mkIte(isInside, result, previous.select(key))
@@ -107,18 +110,18 @@ internal class U2DArrayUpdateVisitor<
                 mkIte(guard, previous.store(key1, key2, value), previous)
             }
 
-            is URangedUpdateNode<*, *, *, *, *> -> {
+            is URangedUpdateNode<*, *, *, *> -> {
                 when (update.guard) {
                     falseExpr -> previous
                     else -> {
                         @Suppress("UNCHECKED_CAST")
-                        (update as URangedUpdateNode<UArrayId<*, Any?, Sort>, *, Any?, Pair<UExpr<Key1Sort>, UExpr<Key2Sort>>, Sort>)
+                        (update as URangedUpdateNode<UArrayId<*, Any?, Sort, *>, Any?, Pair<UExpr<Key1Sort>, UExpr<Key2Sort>>, Sort>)
                         val key1 = mkFreshConst("k1", previous.sort.domain0)
                         val key2 = mkFreshConst("k2", previous.sort.domain1)
 
                         val region = update.region
-                        val convertedKey =
-                            region.regionId.keyMapper(exprTranslator)(update.keyConverter.convert(key1 to key2))
+                        val keyMapper = region.regionId.keyMapper(exprTranslator)
+                        val convertedKey = keyMapper(update.keyConverter.convert(key1 to key2))
                         val isInside = update.includesSymbolically(key1 to key2).translated // already includes guard
                         val result = exprTranslator.translateRegionReading(region, convertedKey)
                         val ite = mkIte(isInside, result, previous.select(key1, key2))

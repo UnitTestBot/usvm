@@ -4,12 +4,14 @@ import org.ksmt.KAst
 import org.ksmt.KContext
 import org.ksmt.expr.KConst
 import org.ksmt.expr.KExpr
-import org.ksmt.solver.model.DefaultValueSampler
 import org.ksmt.sort.KBoolSort
 import org.ksmt.sort.KSort
+import org.ksmt.sort.KSortVisitor
 import org.ksmt.sort.KUninterpretedSort
+import org.ksmt.utils.DefaultValueSampler
 import org.ksmt.utils.asExpr
 import org.ksmt.utils.cast
+import org.ksmt.utils.sampleValue
 
 @Suppress("LeakingThis")
 open class UContext(
@@ -152,21 +154,17 @@ open class UContext(
         UIsExpr(this, ref, type.cast())
     }.cast()
 
-    // TODO: this is a workaround until KSMT uninterpreted sort values is merged
-    class UDefaultValueSampler<Sort : USort>(ctx: UContext, sort: Sort) : DefaultValueSampler<Sort>(ctx, sort) {
-        override fun visit(sort: KUninterpretedSort): KExpr<Sort> {
-            val uctx = ctx as UContext
-            return if (sort == uctx.addressSort) {
-                uctx.nullRef.asExpr(this.sort)
+    class UDefaultValueSampler(val uctx: UContext) : DefaultValueSampler(uctx) {
+        override fun visit(sort: KUninterpretedSort): KExpr<*> =
+            if (sort == uctx.addressSort) {
+                uctx.nullRef
             } else {
                 super.visit(sort)
             }
-        }
     }
 
-    companion object {
-        fun <T : KSort> T.sampleValue(): KExpr<T> =
-            accept(UDefaultValueSampler(uctx, this))
+    override fun mkDefaultValueSampler(): KSortVisitor<KExpr<*>> {
+        return UDefaultValueSampler(this)
     }
 }
 

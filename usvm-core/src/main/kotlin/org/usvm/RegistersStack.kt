@@ -1,7 +1,6 @@
 package org.usvm
 
 import org.ksmt.expr.KExpr
-import org.ksmt.solver.KModel
 import org.ksmt.utils.asExpr
 import java.util.Stack
 

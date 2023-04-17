@@ -32,22 +32,11 @@ open class UComposer<Field, Type>(
         typeEvaluator.evalIs(composedAddress, type)
     }
 
-    fun <RegionId : URegionId<Key, Sort>, Key, Sort : USort> transformHeapReading(
+    fun <RegionId : URegionId<Key, Sort, RegionId>, Key, Sort : USort> transformHeapReading(
         expr: UHeapReading<RegionId, Key, Sort>,
         key: Key,
     ): UExpr<Sort> = with(expr) {
-        val instantiatorFactory = object : UInstantiatorFactory {
-            override fun <RegionId : URegionId<Key, Sort>, Key, Sort : USort> build(): UInstantiator<RegionId, Key, Sort> =
-                { key, memoryRegion ->
-                    // Create a copy of this heap to avoid its modification
-                    val heapToApplyUpdates = heapEvaluator.toMutableHeap()
-                    memoryRegion.applyTo(heapToApplyUpdates)
-                    memoryRegion.regionId.read(heapToApplyUpdates, key)
-                }
-        }
-
-        @Suppress("UNCHECKED_CAST")
-        val mappedRegion = region.map(this@UComposer, instantiatorFactory)
+        val mappedRegion = region.map(this@UComposer)
         val mappedKey = mappedRegion.regionId.keyMapper(this@UComposer)(key)
         mappedRegion.read(mappedKey)
     }

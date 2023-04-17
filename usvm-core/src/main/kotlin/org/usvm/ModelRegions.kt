@@ -1,5 +1,8 @@
 package org.usvm
 
+import kotlinx.collections.immutable.PersistentMap
+import kotlinx.collections.immutable.persistentMapOf
+import kotlinx.collections.immutable.toPersistentMap
 import org.ksmt.expr.KArray2Store
 import org.ksmt.expr.KArrayConst
 import org.ksmt.expr.KArrayStore
@@ -7,21 +10,15 @@ import org.ksmt.expr.KExpr
 import org.ksmt.solver.KModel
 import org.ksmt.sort.KArray2Sort
 import org.ksmt.sort.KArraySort
-import org.ksmt.utils.cast
 
-interface URegionEvaluator<Key, Sort : USort> {
-    fun select(key: Key): UExpr<Sort>
-    fun write(key: Key, expr: UExpr<Sort>)
-    fun clone(): URegionEvaluator<Key, Sort>
-}
 
 /**
  * A specific evaluator for one-dimensional regions generalized by a single expression of a [KeySort].
  */
-class U1DArrayEvaluator<KeySort : USort, Sort : USort> private constructor(
-    private val values: MutableMap<UExpr<KeySort>, UExpr<Sort>>,
+class UMemory1DArray<KeySort : USort, Sort : USort> private constructor(
+    private val values: PersistentMap<UExpr<KeySort>, UExpr<Sort>>,
     private val constValue: UExpr<Sort>,
-) : URegionEvaluator<KExpr<KeySort>, Sort> {
+) : UMemoryRegion<KExpr<KeySort>, Sort> {
 
     /**
      * A constructor that is used in cases when we try to evaluate
@@ -29,19 +26,23 @@ class U1DArrayEvaluator<KeySort : USort, Sort : USort> private constructor(
      */
     constructor(
         mappedConstValue: UExpr<Sort>,
-    ) : this(mutableMapOf(), mappedConstValue)
+    ) : this(persistentMapOf(), mappedConstValue)
 
-    override fun select(key: KExpr<KeySort>): UExpr<Sort> = values.getOrDefault(key, constValue)
+    override fun read(key: KExpr<KeySort>): UExpr<Sort> = values.getOrDefault(key, constValue)
 
-    override fun write(key: KExpr<KeySort>, expr: UExpr<Sort>) {
-        values[key] = expr
+    override fun write(
+        key: KExpr<KeySort>,
+        value: UExpr<Sort>,
+        guard: UBoolExpr
+    ): UMemoryRegion<KExpr<KeySort>, Sort> {
+        when {
+            guard.isFalse -> return this
+            else -> require(guard.isTrue)
+        }
+        val newMap = values.put(key, value)
+        return UMemory1DArray(newMap, constValue)
     }
 
-    override fun clone(): U1DArrayEvaluator<KeySort, Sort> =
-        U1DArrayEvaluator(
-            values.toMutableMap(),
-            constValue
-        )
 
     companion object {
         /**
@@ -55,7 +56,7 @@ class U1DArrayEvaluator<KeySort : USort, Sort : USort> private constructor(
             initialValue: KExpr<KArraySort<KeySort, Sort>>,
             model: KModel,
             mapping: Map<UHeapRef, UConcreteHeapRef>,
-        ): U1DArrayEvaluator<KeySort, Sort> {
+        ): UMemory1DArray<KeySort, Sort> {
             // Since the model contains only information about values we got from the outside,
             // we can translate and ask only about an initial value for the region.
             // All other values should be resolved earlier without asking the model.
@@ -80,7 +81,7 @@ class U1DArrayEvaluator<KeySort : USort, Sort : USort> private constructor(
 
             val constValue = valueCopy.value.mapAddress(mapping)
             val values = stores
-            return U1DArrayEvaluator(values, constValue)
+            return UMemory1DArray(values.toPersistentMap(), constValue)
         }
     }
 }
@@ -89,31 +90,34 @@ class U1DArrayEvaluator<KeySort : USort, Sort : USort> private constructor(
  * A specific evaluator for two-dimensional regions generalized be a pair
  * of two expressions with [Key1Sort] and [Key2Sort] sorts.
  */
-class U2DArrayEvaluator<Key1Sort : USort, Key2Sort : USort, Sort : USort> private constructor(
-    val values: MutableMap<Pair<UExpr<Key1Sort>, UExpr<Key2Sort>>, UExpr<Sort>>,
+class UMemory2DArray<Key1Sort : USort, Key2Sort : USort, Sort : USort> private constructor(
+    val values: PersistentMap<Pair<UExpr<Key1Sort>, UExpr<Key2Sort>>, UExpr<Sort>>,
     val constValue: UExpr<Sort>,
-) : URegionEvaluator<Pair<KExpr<Key1Sort>, KExpr<Key2Sort>>, Sort> {
+) : UMemoryRegion<Pair<KExpr<Key1Sort>, KExpr<Key2Sort>>, Sort> {
     /**
      * A constructor that is used in cases when we try to evaluate
      * an expression from a region that was never translated.
      */
     constructor(
         mappedConstValue: UExpr<Sort>,
-    ) : this(mutableMapOf(), mappedConstValue)
+    ) : this(persistentMapOf(), mappedConstValue)
 
-    override fun select(key: Pair<KExpr<Key1Sort>, KExpr<Key2Sort>>): UExpr<Sort> {
+    override fun read(key: Pair<KExpr<Key1Sort>, KExpr<Key2Sort>>): UExpr<Sort> {
         return values.getOrDefault(key, constValue)
     }
 
-    override fun write(key: Pair<KExpr<Key1Sort>, KExpr<Key2Sort>>, expr: UExpr<Sort>) {
-        values[key] = expr
+    override fun write(
+        key: Pair<KExpr<Key1Sort>, KExpr<Key2Sort>>,
+        value: UExpr<Sort>,
+        guard: UBoolExpr
+    ): UMemoryRegion<Pair<KExpr<Key1Sort>, KExpr<Key2Sort>>, Sort> {
+        when {
+            guard.isFalse -> return this
+            else -> require(guard.isTrue)
+        }
+        val newMap = values.put(key, value)
+        return UMemory2DArray(newMap, constValue)
     }
-
-    override fun clone(): U2DArrayEvaluator<Key1Sort, Key2Sort, Sort> =
-        U2DArrayEvaluator(
-            values.toMutableMap(),
-            constValue
-        )
 
     companion object {
         /**
@@ -127,7 +131,7 @@ class U2DArrayEvaluator<Key1Sort : USort, Key2Sort : USort, Sort : USort> privat
             initialValue: KExpr<KArray2Sort<Key1Sort, Key2Sort, Sort>>,
             model: KModel,
             mapping: Map<UHeapRef, UConcreteHeapRef>,
-        ): U2DArrayEvaluator<Key1Sort, Key2Sort, Sort> {
+        ): UMemory2DArray<Key1Sort, Key2Sort, Sort> {
             val evaluatedArray = model.eval(initialValue, isComplete = true)
 
             var valueCopy = evaluatedArray
@@ -151,45 +155,7 @@ class U2DArrayEvaluator<Key1Sort : USort, Key2Sort : USort, Sort : USort> privat
 
             val constValue = valueCopy.value.mapAddress(mapping)
             val values = stores
-            return U2DArrayEvaluator(values, constValue)
+            return UMemory2DArray(values.toPersistentMap(), constValue)
         }
     }
-}
-
-interface URegionEvaluatorFactory {
-    fun <Key, Sort : USort> provide(
-        regionId: URegionId<Key, Sort>,
-    ): URegionEvaluator<Key, Sort>
-}
-
-open class URegionEvaluatorFromKModelFactory(
-    private val model: KModel,
-    private val mapping: Map<KExpr<UAddressSort>, UConcreteHeapRef>,
-    private val regionIdInitialValueProvider: URegionIdInitialValueFactory,
-) : URegionEvaluatorFactory, URegionIdVisitor<URegionEvaluator<*, *>> {
-
-    /**
-     * Returns an evaluator for [regionId].
-     * Note that it is a translator-specific evaluator that
-     * knows how to decode values from the [model].
-     *
-     * [mapping] contains information about matching expressions of the
-     * address sort and their concrete (evaluated) representations.
-     */
-    @Suppress("UNCHECKED_CAST")
-    override fun <Key, Sort : USort> provide(
-        regionId: URegionId<Key, Sort>,
-    ): URegionEvaluator<Key, Sort> = apply(regionId) as URegionEvaluator<Key, Sort>
-
-    override fun <Field, Sort : USort> visit(regionId: UInputFieldId<Field, Sort>): URegionEvaluator<UHeapRef, Sort> =
-        U1DArrayEvaluator(regionIdInitialValueProvider.apply(regionId).cast(), model, mapping)
-
-    override fun <ArrayType, Sort : USort> visit(regionId: UAllocatedArrayId<ArrayType, Sort>): URegionEvaluator<USizeExpr, Sort> =
-        U1DArrayEvaluator(regionIdInitialValueProvider.apply(regionId).cast(), model, mapping)
-
-    override fun <ArrayType, Sort : USort> visit(regionId: UInputArrayId<ArrayType, Sort>): URegionEvaluator<USymbolicArrayIndex, Sort> =
-        U2DArrayEvaluator(regionIdInitialValueProvider.apply(regionId).cast(), model, mapping)
-
-    override fun <ArrayType> visit(regionId: UInputArrayLengthId<ArrayType>): URegionEvaluator<UHeapRef, USizeSort> =
-        U1DArrayEvaluator(regionIdInitialValueProvider.apply(regionId).cast(), model, mapping)
 }

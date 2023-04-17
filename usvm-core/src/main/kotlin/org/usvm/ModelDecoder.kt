@@ -8,10 +8,9 @@ import org.ksmt.utils.asExpr
 import org.ksmt.utils.cast
 import org.usvm.UAddressCounter.Companion.INITIAL_INPUT_ADDRESS
 import org.usvm.UAddressCounter.Companion.NULL_ADDRESS
-import org.usvm.UContext.Companion.sampleValue
 import kotlinx.collections.immutable.PersistentMap
-import kotlinx.collections.immutable.mutate
-import kotlinx.collections.immutable.persistentMapOf
+import kotlinx.collections.immutable.toPersistentMap
+import org.ksmt.utils.sampleValue
 
 interface UModelDecoder<Type, Memory, Model> {
     fun decode(memory: Memory, model: KModel): Model
@@ -39,7 +38,7 @@ open class UModelDecoderBase<Field, Type, Method>(
     protected val registerIdxToTranslated: Map<Int, UExpr<out USort>>,
     protected val indexedMethodReturnValueToTranslated: Map<Pair<*, Int>, UExpr<*>>,
     protected val translatedNullRef: UExpr<UAddressSort>,
-    protected val translatedRegionIds: Set<URegionId<*, *>>,
+    protected val translatedRegionIds: Set<URegionId<*, *, *>>,
     protected val regionIdInitialValueProvider: URegionIdInitialValueFactory,
 ) : UModelDecoder<Type, UMemoryBase<Field, Type, Method>, UModelBase<Field, Type>> {
     private val ctx: UContext = translatedNullRef.uctx
@@ -89,30 +88,58 @@ open class UModelDecoderBase<Field, Type, Method>(
     private fun decodeStack(model: KModel, addressesMapping: AddressesMapping): URegistersStackModel {
         val registers = registerIdxToTranslated.replaceUninterpretedConsts(model, addressesMapping)
 
-        return URegistersStackModel(registers)
+        return URegistersStackModel(addressesMapping.getValue(translatedNullRef), registers)
     }
 
     /**
      * Constructs a [UHeapModel] for a heap by provided [model] and [addressesMapping].
      */
-    @Suppress("UNCHECKED_CAST", "SafeCastWithReturn")
+    @Suppress("UNCHECKED_CAST")
     private fun decodeHeap(
         model: KModel,
         addressesMapping: AddressesMapping,
     ): UHeapModel<Field, Type> {
-        val regionEvaluatorProvider = URegionEvaluatorForHeapModelFactory(
-            model,
-            addressesMapping,
-            translatedRegionIds,
-            regionIdInitialValueProvider,
-        )
+
+        val resolvedInputFields = mutableMapOf<Field, UMemoryRegion<UHeapRef, *>>()
+        val resolvedInputArrays = mutableMapOf<Type, UMemoryRegion<USymbolicArrayIndex, *>>()
+        val resolvedInputArrayLengths = mutableMapOf<Type, UMemoryRegion<UHeapRef, USizeSort>>()
+
+        translatedRegionIds.forEach {
+            when (it) {
+                is UInputFieldId<*, *> -> {
+                    val resolved = UMemory1DArray<UAddressSort, USort>(
+                        regionIdInitialValueProvider.visit(it).cast(),
+                        model,
+                        addressesMapping
+                    )
+                    resolvedInputFields[it.field as Field] = resolved
+                }
+
+                is UInputArrayId<*, *> -> {
+                    val resolved = UMemory2DArray<UAddressSort, USizeSort, USort>(
+                        regionIdInitialValueProvider.visit(it).cast(),
+                        model,
+                        addressesMapping
+                    )
+                    resolvedInputArrays[it.arrayType as Type] = resolved
+                }
+
+                is UInputArrayLengthId<*> -> {
+                    val resolved = UMemory1DArray<UAddressSort, USizeSort>(
+                        regionIdInitialValueProvider.visit(it).cast(),
+                        model,
+                        addressesMapping
+                    )
+                    resolvedInputArrayLengths[it.arrayType as Type] = resolved
+                }
+            }
+        }
 
         return UHeapModel(
             addressesMapping.getValue(translatedNullRef),
-            regionEvaluatorProvider,
-            persistentMapOf(),
-            persistentMapOf(),
-            persistentMapOf()
+            resolvedInputFields.toPersistentMap(),
+            resolvedInputArrays.toPersistentMap(),
+            resolvedInputArrayLengths.toPersistentMap()
         )
     }
 
@@ -122,7 +149,7 @@ open class UModelDecoderBase<Field, Type, Method>(
     ): UIndexedMockModel<Method> {
         val values = indexedMethodReturnValueToTranslated.replaceUninterpretedConsts(model, addressesMapping)
 
-        return UIndexedMockModel(values)
+        return UIndexedMockModel(addressesMapping.getValue(translatedNullRef), values)
     }
 
     /**
@@ -146,42 +173,77 @@ open class UModelDecoderBase<Field, Type, Method>(
 
 }
 
-class URegistersStackModel(private val registers: Map<Int, UExpr<out USort>>) : URegistersStackEvaluator {
+class URegistersStackModel(
+    private val nullRef: UConcreteHeapRef,
+    private val registers: Map<Int, UExpr<out USort>>
+) : URegistersStackEvaluator {
     override fun <Sort : USort> eval(
         registerIndex: Int,
         sort: Sort,
-    ): UExpr<Sort> = registers.getOrDefault(registerIndex, sort.sampleValue()).asExpr(sort)
+    ): UExpr<Sort> = registers.getOrDefault(registerIndex, sort.sampleValue().nullAddress(nullRef)).asExpr(sort)
+}
+
+/**
+ * A model for an indexed mocker that stores mapping
+ * from mock symbols and invocation indices to expressions.
+ */
+class UIndexedMockModel<Method>(
+    private val nullRef: UConcreteHeapRef,
+    private val values: Map<Pair<*, Int>, UExpr<*>>,
+) : UMockEvaluator {
+
+    override fun <Sort : USort> eval(symbol: UMockSymbol<Sort>): UExpr<Sort> {
+        require(symbol is UIndexedMethodReturnValue<*, Sort>)
+
+        val sort = symbol.sort
+        @Suppress("UNCHECKED_CAST")
+        val key = symbol.method as Method to symbol.callIndex
+
+        return values.getOrDefault(key, sort.sampleValue().nullAddress(nullRef)).asExpr(sort)
+    }
 }
 
 class UHeapModel<Field, ArrayType>(
     private val nullRef: UConcreteHeapRef,
-    private val regionEvaluatorProvider: URegionEvaluatorFactory,
-    private var resolvedInputFields: PersistentMap<Field, URegionEvaluator<UHeapRef, out USort>>,
-    private var resolvedInputArrays: PersistentMap<ArrayType, URegionEvaluator<Pair<UHeapRef, USizeExpr>, out USort>>,
-    private var resolvedInputLengths: PersistentMap<ArrayType, URegionEvaluator<UHeapRef, USizeSort>>,
+    private var resolvedInputFields: PersistentMap<Field, UMemoryRegion<UHeapRef, out USort>>,
+    private var resolvedInputArrays: PersistentMap<ArrayType, UMemoryRegion<USymbolicArrayIndex, out USort>>,
+    private var resolvedInputLengths: PersistentMap<ArrayType, UMemoryRegion<UHeapRef, USizeSort>>,
 ) : USymbolicHeap<Field, ArrayType> {
+
+    @Suppress("UNCHECKED_CAST")
+    private fun <Sort : USort> inputFieldRegion(field: Field, sort: Sort): UMemoryRegion<UHeapRef, Sort> =
+        resolvedInputFields.getOrElse(field) {
+            UMemory1DArray(sort.sampleValue().nullAddress(nullRef))
+        } as UMemoryRegion<UHeapRef, Sort>
+
+    @Suppress("UNCHECKED_CAST")
+    private fun <Sort : USort> inputArrayRegion(arrayType: ArrayType, sort: Sort): UMemoryRegion<USymbolicArrayIndex, Sort> =
+        resolvedInputArrays.getOrElse(arrayType) {
+            UMemory2DArray(sort.sampleValue().nullAddress(nullRef))
+        } as UMemoryRegion<USymbolicArrayIndex, Sort>
+
+    private fun inputLengthRegion(arrayType: ArrayType, sort: USizeSort): UMemoryRegion<UHeapRef, USizeSort> =
+        resolvedInputLengths.getOrElse(arrayType) {
+            UMemory1DArray(sort.sampleValue())
+        }
+
+
     override fun <Sort : USort> readField(ref: UHeapRef, field: Field, sort: Sort): UExpr<Sort> {
         // All the expressions in the model are interpreted, therefore, they must
         // have concrete addresses. Moreover, the model known only about input values
         // which have addresses less or equal than INITIAL_INPUT_ADDRESS
         require(ref is UConcreteHeapRef && ref.address <= INITIAL_INPUT_ADDRESS)
 
-        @Suppress("UNCHECKED_CAST")
-        val regionEvaluator = resolvedInputFields.getOrElse(field) {
-            val regionId = UInputFieldId(field, sort)
-            val evaluator = regionEvaluatorProvider.provide(regionId)
-            resolvedInputFields = resolvedInputFields.put(field, evaluator)
-            evaluator
-        } as URegionEvaluator<UHeapRef, Sort>
+        val region = inputFieldRegion(field, sort)
 
-        return regionEvaluator.select(ref).asExpr(sort)
+        return region.read(ref)
     }
 
     override fun <Sort : USort> readArrayIndex(
         ref: UHeapRef,
         index: USizeExpr,
         arrayType: ArrayType,
-        elementSort: Sort,
+        sort: Sort,
     ): UExpr<Sort> {
         // All the expressions in the model are interpreted, therefore, they must
         // have concrete addresses. Moreover, the model known only about input values
@@ -190,15 +252,9 @@ class UHeapModel<Field, ArrayType>(
 
         val key = ref to index
 
-        @Suppress("UNCHECKED_CAST")
-        val regionEvaluator = resolvedInputArrays.getOrElse(arrayType) {
-            val regionId = UInputArrayId(arrayType, elementSort)
-            val evaluator = regionEvaluatorProvider.provide(regionId)
-            resolvedInputArrays = resolvedInputArrays.put(arrayType, evaluator)
-            evaluator
-        } as URegionEvaluator<Pair<UHeapRef, USizeExpr>, Sort>
+        val region = inputArrayRegion(arrayType, sort)
 
-        return regionEvaluator.select(key).asExpr(elementSort)
+        return region.read(key)
     }
 
     override fun readArrayLength(ref: UHeapRef, arrayType: ArrayType): USizeExpr {
@@ -207,14 +263,9 @@ class UHeapModel<Field, ArrayType>(
         // which have addresses less or equal than INITIAL_INPUT_ADDRESS
         require(ref is UConcreteHeapRef && ref.address <= INITIAL_INPUT_ADDRESS)
 
-        val regionEvaluator = resolvedInputLengths.getOrElse(arrayType) {
-            val regionId = UInputArrayLengthId(arrayType, ref.uctx.sizeSort)
-            val evaluator = regionEvaluatorProvider.provide(regionId)
-            resolvedInputLengths = resolvedInputLengths.put(arrayType, evaluator)
-            evaluator
-        }
+        val region = inputLengthRegion(arrayType, ref.uctx.sizeSort)
 
-        return regionEvaluator.select(ref)
+        return region.read(ref)
     }
 
     override fun <Sort : USort> writeField(
@@ -237,22 +288,16 @@ class UHeapModel<Field, ArrayType>(
         // which have addresses less or equal than INITIAL_INPUT_ADDRESS
         require(ref is UConcreteHeapRef && ref.address <= INITIAL_INPUT_ADDRESS)
 
-        @Suppress("UNCHECKED_CAST")
-        val regionEvaluator = resolvedInputFields.getOrElse(field) {
-            val regionId = UInputFieldId(field, sort)
-            val evaluator = regionEvaluatorProvider.provide(regionId)
-            resolvedInputFields = resolvedInputFields.put(field, evaluator)
-            evaluator
-        } as URegionEvaluator<UHeapRef, Sort>
+        val region = inputFieldRegion(field, sort).write(ref, valueToWrite, guard)
+        resolvedInputFields = resolvedInputFields.put(field, region)
 
-        regionEvaluator.write(ref, valueToWrite)
     }
 
     override fun <Sort : USort> writeArrayIndex(
         ref: UHeapRef,
         index: USizeExpr,
         type: ArrayType,
-        elementSort: Sort,
+        sort: Sort,
         value: UExpr<out USort>,
         guard: UBoolExpr,
     ) {
@@ -268,17 +313,10 @@ class UHeapModel<Field, ArrayType>(
         require(index is KInterpretedValue<USizeSort>)
         require(ref is UConcreteHeapRef && ref.address <= INITIAL_INPUT_ADDRESS)
 
-        val valueToWrite = value.asExpr(elementSort)
+        val valueToWrite = value.asExpr(sort)
 
-        @Suppress("UNCHECKED_CAST")
-        val regionEvaluator = resolvedInputArrays.getOrElse(type) {
-            val regionId = UInputArrayId(type, elementSort)
-            val evaluator = regionEvaluatorProvider.provide(regionId)
-            resolvedInputArrays = resolvedInputArrays.put(type, evaluator)
-            evaluator
-        } as URegionEvaluator<Pair<UHeapRef, USizeExpr>, Sort>
-
-        regionEvaluator.write(ref to index, valueToWrite)
+        val region = inputArrayRegion(type, sort).write(ref to index, valueToWrite, guard)
+        resolvedInputArrays = resolvedInputArrays.put(type, region)
     }
 
     override fun writeArrayLength(ref: UHeapRef, size: USizeExpr, arrayType: ArrayType) {
@@ -288,14 +326,8 @@ class UHeapModel<Field, ArrayType>(
         require(size is KInterpretedValue<USizeSort>)
         require(ref is UConcreteHeapRef && ref.address <= INITIAL_INPUT_ADDRESS)
 
-        val reginEvaluator = resolvedInputLengths.getOrElse(arrayType) {
-            val regionId = UInputArrayLengthId(arrayType, ref.uctx.sizeSort)
-            val evaluator = regionEvaluatorProvider.provide(regionId)
-            resolvedInputLengths = resolvedInputLengths.put(arrayType, evaluator)
-            evaluator
-        }
-
-        reginEvaluator.write(ref, size)
+        val region = inputLengthRegion(arrayType, size.sort).write(ref, size, size.sort.uctx.trueExpr)
+        resolvedInputLengths = resolvedInputLengths.put(arrayType, region)
     }
 
     override fun <Sort : USort> memcpy(
@@ -323,10 +355,9 @@ class UHeapModel<Field, ArrayType>(
     override fun clone(): UHeapModel<Field, ArrayType> =
         UHeapModel(
             nullRef,
-            regionEvaluatorProvider,
-            resolvedInputFields.mapValues { evaluator -> evaluator.clone() },
-            resolvedInputArrays.mapValues { evaluator -> evaluator.clone() },
-            resolvedInputLengths.mapValues { evaluator -> evaluator.clone() },
+            resolvedInputFields,
+            resolvedInputArrays,
+            resolvedInputLengths,
         )
 
     override fun nullRef(): UConcreteHeapRef = nullRef
@@ -334,8 +365,12 @@ class UHeapModel<Field, ArrayType>(
     override fun toMutableHeap(): UHeapModel<Field, ArrayType> = clone()
 }
 
-inline private fun <K, V> PersistentMap<K, V>.mapValues(crossinline mapper: (V) -> V): PersistentMap<K, V> =
-    mutate { old -> old.replaceAll { _, value -> mapper(value) } }
+fun <T : USort> UExpr<T>.nullAddress(nullRef: UConcreteHeapRef): UExpr<T> =
+    if (this == uctx.nullRef) {
+        nullRef.asExpr(sort)
+    } else {
+        this
+    }
 
 /**
  * If [this] value is an instance of address expression, returns
@@ -348,59 +383,4 @@ fun <S : USort> UExpr<S>.mapAddress(
     addressesMapping.getValue(asExpr(uctx.addressSort)).asExpr(sort)
 } else {
     this
-}
-
-private class URegionEvaluatorForHeapModelFactory(
-    model: KModel,
-    val addressesMapping: AddressesMapping,
-    translatedRegionIds: Set<URegionId<*, *>>,
-    regionIdInitialValueFactory: URegionIdInitialValueFactory,
-) : URegionEvaluatorFactory, URegionIdVisitor<URegionEvaluator<*, *>> {
-
-    private val evaluatorsForTranslatedRegions: MutableMap<URegionId<*, *>, URegionEvaluator<*, *>>
-
-    init {
-        val regionEvaluatorProvider =
-            URegionEvaluatorFromKModelFactory(model, addressesMapping, regionIdInitialValueFactory)
-
-        evaluatorsForTranslatedRegions = translatedRegionIds.associateWithTo(mutableMapOf()) { regionId ->
-            regionEvaluatorProvider.apply(regionId)
-        }
-    }
-
-    override fun <Key, Sort : USort> provide(regionId: URegionId<Key, Sort>): URegionEvaluator<Key, Sort> =
-        evaluatorsForTranslatedRegions.getOrElse(regionId) {
-            apply(regionId)
-        }.cast()
-
-    override fun <Field, Sort : USort> visit(regionId: UInputFieldId<Field, Sort>): U1DArrayEvaluator<UAddressSort, Sort> {
-        // If some region has a default value, it means that the region is an allocated one.
-        // All such regions must be processed earlier, and we won't have them here.
-        require(regionId.defaultValue == null)
-        // So, for these region we should take sample values for theis sorts.
-        val mappedConstValue = regionId.sort.sampleValue().mapAddress(addressesMapping)
-        return U1DArrayEvaluator(mappedConstValue)
-    }
-
-    override fun <ArrayType, Sort : USort> visit(regionId: UAllocatedArrayId<ArrayType, Sort>): URegionEvaluator<*, *> {
-        error("Allocated arrays should be evaluated implicitly")
-    }
-
-    override fun <ArrayType, Sort : USort> visit(regionId: UInputArrayId<ArrayType, Sort>): U2DArrayEvaluator<UAddressSort, USizeSort, Sort> {
-        // If some region has a default value, it means that the region is an allocated one.
-        // All such regions must be processed earlier, and we won't have them here.
-        require(regionId.defaultValue == null)
-        // So, for these region we should take sample values for theis sorts.
-        val mappedConstValue = regionId.sort.sampleValue().mapAddress(addressesMapping)
-        return U2DArrayEvaluator(mappedConstValue)
-    }
-
-    override fun <ArrayType> visit(regionId: UInputArrayLengthId<ArrayType>): U1DArrayEvaluator<UAddressSort, USizeSort> {
-        // If some region has a default value, it means that the region is an allocated one.
-        // All such regions must be processed earlier, and we won't have them here.
-        require(regionId.defaultValue == null)
-        // So, for these region we should take sample values for theis sorts.
-        val mappedConstValue = regionId.sort.sampleValue().mapAddress(addressesMapping)
-        return U1DArrayEvaluator(mappedConstValue)
-    }
 }

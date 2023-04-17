@@ -18,7 +18,7 @@ abstract class UExprTransformer<Field, Type>(ctx: UContext): KNonRecursiveTransf
 
     abstract fun transform(expr: UIsExpr<Type>): UBoolExpr
 
-    abstract fun transform(expr: UNullRef): UExpr<UAddressSort>
-
     abstract fun transform(expr: UConcreteHeapRef): UExpr<UAddressSort>
+
+    abstract fun transform(expr: UNullRef): UExpr<UAddressSort>
 }

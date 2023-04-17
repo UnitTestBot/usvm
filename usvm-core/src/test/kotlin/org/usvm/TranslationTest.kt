@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test
 import org.ksmt.solver.KSolverStatus
 import org.ksmt.solver.z3.KZ3Solver
 import org.ksmt.utils.mkConst
-import org.usvm.UContext.Companion.sampleValue
+import org.ksmt.utils.sampleValue
 import kotlin.test.assertSame
 
 class TranslationTest {
