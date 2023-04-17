@@ -105,7 +105,11 @@ class UFlatUpdates<Key, Sort : USort> private constructor(
         val next: UFlatUpdates<Key, Sort>,
     )
 
-    override fun read(key: Key): UMemoryUpdates<Key, Sort> = this
+    override fun read(key: Key): UFlatUpdates<Key, Sort> =
+        when {
+            node != null && node.update.includesSymbolically(key).isFalse -> node.next.read(key)
+            else -> this
+        }
 
     override fun write(key: Key, value: UExpr<Sort>, guard: UBoolExpr): UFlatUpdates<Key, Sort> =
         UFlatUpdates(

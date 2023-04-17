@@ -99,7 +99,6 @@ open class UModelDecoderBase<Field, Type, Method>(
         model: KModel,
         addressesMapping: AddressesMapping,
     ): UHeapModel<Field, Type> {
-
         val resolvedInputFields = mutableMapOf<Field, UMemoryRegion<UHeapRef, *>>()
         val resolvedInputArrays = mutableMapOf<Type, UMemoryRegion<USymbolicArrayIndex, *>>()
         val resolvedInputArrayLengths = mutableMapOf<Type, UMemoryRegion<UHeapRef, USizeSort>>()
@@ -137,9 +136,9 @@ open class UModelDecoderBase<Field, Type, Method>(
 
         return UHeapModel(
             addressesMapping.getValue(translatedNullRef),
-            resolvedInputFields.toPersistentMap(),
-            resolvedInputArrays.toPersistentMap(),
-            resolvedInputArrayLengths.toPersistentMap()
+            resolvedInputFields,
+            resolvedInputArrays,
+            resolvedInputArrayLengths
         )
     }
 
@@ -196,6 +195,7 @@ class UIndexedMockModel<Method>(
         require(symbol is UIndexedMethodReturnValue<*, Sort>)
 
         val sort = symbol.sort
+
         @Suppress("UNCHECKED_CAST")
         val key = symbol.method as Method to symbol.callIndex
 
@@ -205,9 +205,9 @@ class UIndexedMockModel<Method>(
 
 class UHeapModel<Field, ArrayType>(
     private val nullRef: UConcreteHeapRef,
-    private var resolvedInputFields: PersistentMap<Field, UMemoryRegion<UHeapRef, out USort>>,
-    private var resolvedInputArrays: PersistentMap<ArrayType, UMemoryRegion<USymbolicArrayIndex, out USort>>,
-    private var resolvedInputLengths: PersistentMap<ArrayType, UMemoryRegion<UHeapRef, USizeSort>>,
+    private val resolvedInputFields: Map<Field, UMemoryRegion<UHeapRef, out USort>>,
+    private val resolvedInputArrays: Map<ArrayType, UMemoryRegion<USymbolicArrayIndex, out USort>>,
+    private val resolvedInputLengths: Map<ArrayType, UMemoryRegion<UHeapRef, USizeSort>>,
 ) : USymbolicHeap<Field, ArrayType> {
 
     @Suppress("UNCHECKED_CAST")
@@ -217,7 +217,10 @@ class UHeapModel<Field, ArrayType>(
         } as UMemoryRegion<UHeapRef, Sort>
 
     @Suppress("UNCHECKED_CAST")
-    private fun <Sort : USort> inputArrayRegion(arrayType: ArrayType, sort: Sort): UMemoryRegion<USymbolicArrayIndex, Sort> =
+    private fun <Sort : USort> inputArrayRegion(
+        arrayType: ArrayType,
+        sort: Sort
+    ): UMemoryRegion<USymbolicArrayIndex, Sort> =
         resolvedInputArrays.getOrElse(arrayType) {
             UMemory2DArray(sort.sampleValue().nullAddress(nullRef))
         } as UMemoryRegion<USymbolicArrayIndex, Sort>
@@ -274,24 +277,7 @@ class UHeapModel<Field, ArrayType>(
         sort: Sort,
         value: UExpr<out USort>,
         guard: UBoolExpr,
-    ) {
-        // Since all values in the model are interpreted, we can check the exact guard value.
-        when {
-            guard.isFalse -> return
-            else -> require(guard.isTrue)
-        }
-
-        val valueToWrite = value.asExpr(sort)
-
-        // All the expressions in the model are interpreted, therefore, they must
-        // have concrete addresses. Moreover, the model known only about input values
-        // which have addresses less or equal than INITIAL_INPUT_ADDRESS
-        require(ref is UConcreteHeapRef && ref.address <= INITIAL_INPUT_ADDRESS)
-
-        val region = inputFieldRegion(field, sort).write(ref, valueToWrite, guard)
-        resolvedInputFields = resolvedInputFields.put(field, region)
-
-    }
+    ) = error("Illegal operation for a model")
 
     override fun <Sort : USort> writeArrayIndex(
         ref: UHeapRef,
@@ -300,35 +286,10 @@ class UHeapModel<Field, ArrayType>(
         sort: Sort,
         value: UExpr<out USort>,
         guard: UBoolExpr,
-    ) {
-        // Since all values in the model are interpreted, we can check the exact guard value.
-        when {
-            guard.isFalse -> return
-            else -> require(guard.isTrue)
-        }
+    ) = error("Illegal operation for a model")
 
-        // All the expressions in the model are interpreted, therefore, they must
-        // have concrete addresses. Moreover, the model known only about input values
-        // which have addresses less or equal than INITIAL_INPUT_ADDRESS
-        require(index is KInterpretedValue<USizeSort>)
-        require(ref is UConcreteHeapRef && ref.address <= INITIAL_INPUT_ADDRESS)
-
-        val valueToWrite = value.asExpr(sort)
-
-        val region = inputArrayRegion(type, sort).write(ref to index, valueToWrite, guard)
-        resolvedInputArrays = resolvedInputArrays.put(type, region)
-    }
-
-    override fun writeArrayLength(ref: UHeapRef, size: USizeExpr, arrayType: ArrayType) {
-        // All the expressions in the model are interpreted, therefore, they must
-        // have concrete addresses. Moreover, the model known only about input values
-        // which have addresses less or equal than INITIAL_INPUT_ADDRESS
-        require(size is KInterpretedValue<USizeSort>)
-        require(ref is UConcreteHeapRef && ref.address <= INITIAL_INPUT_ADDRESS)
-
-        val region = inputLengthRegion(arrayType, size.sort).write(ref, size, size.sort.uctx.trueExpr)
-        resolvedInputLengths = resolvedInputLengths.put(arrayType, region)
-    }
+    override fun writeArrayLength(ref: UHeapRef, size: USizeExpr, arrayType: ArrayType) =
+        error("Illegal operation for a model")
 
     override fun <Sort : USort> memcpy(
         srcRef: UHeapRef,
@@ -352,17 +313,9 @@ class UHeapModel<Field, ArrayType>(
 
     override fun allocateArray(count: USizeExpr): UConcreteHeapAddress = error("Illegal operation for a model")
 
-    override fun clone(): UHeapModel<Field, ArrayType> =
-        UHeapModel(
-            nullRef,
-            resolvedInputFields,
-            resolvedInputArrays,
-            resolvedInputLengths,
-        )
-
     override fun nullRef(): UConcreteHeapRef = nullRef
 
-    override fun toMutableHeap(): UHeapModel<Field, ArrayType> = clone()
+    override fun toMutableHeap(): UHeapModel<Field, ArrayType> = this
 }
 
 fun <T : USort> UExpr<T>.nullAddress(nullRef: UConcreteHeapRef): UExpr<T> =

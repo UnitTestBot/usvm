@@ -106,7 +106,7 @@ open class UExprTranslator<Field, Type> constructor(
         return URegionTranslator(updateTranslator)
     }
 
-    val regionIdInitialValueProvider = URegionIdInitialValueProviderBase(onDefaultValuePresent = { translate(it) })
+    val regionIdInitialValueProvider = URegionIdInitialValueProvider(onDefaultValuePresent = { translate(it) })
 }
 
 open class UCachingExprTranslator<Field, Type>(
@@ -145,13 +145,13 @@ interface URegionIdTranslatorFactory : URegionIdVisitor<URegionTranslator<*, *, 
         regionId: URegionId<Key, Sort, *>,
     ): URegionTranslator<URegionId<Key, Sort, *>, Key, Sort, *> {
         @Suppress("UNCHECKED_CAST")
-        return apply(regionId) as URegionTranslator<URegionId<Key, Sort, *>, Key, Sort, *>
+        return regionId.accept(this) as URegionTranslator<URegionId<Key, Sort, *>, Key, Sort, *>
     }
 }
 
 typealias URegionIdInitialValueFactory = URegionIdVisitor<out UExpr<*>>
 
-class URegionIdInitialValueProviderBase(
+open class URegionIdInitialValueProvider(
     val onDefaultValuePresent: (UExpr<*>) -> UExpr<*>,
 ) : URegionIdVisitor<UExpr<out KArraySortBase<*>>> {
     override fun <Field, Sort : USort> visit(regionId: UInputFieldId<Field, Sort>): UExpr<KArraySort<UAddressSort, Sort>> {

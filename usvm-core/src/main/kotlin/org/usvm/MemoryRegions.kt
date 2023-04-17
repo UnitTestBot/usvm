@@ -146,11 +146,9 @@ data class USymbolicMemoryRegion<out RegionId : URegionId<Key, Sort, RegionId>, 
         //       non-null reference as default value, or implement splitting by default value.
         assert(defaultValue == null || !predicate(defaultValue))
 
-        val count = matchingWrites.size
         val splitUpdates = updates.read(key).split(key, predicate, matchingWrites, guardBuilder)
-        val sizeRemainedUnchanged = matchingWrites.size == count
 
-        return if (sizeRemainedUnchanged) {
+        return if (splitUpdates === updates) {
             this
         } else {
             this.copy(updates = splitUpdates)
@@ -364,7 +362,7 @@ fun <ArrayType, Sort : USort> emptyInputArrayRegion(
     return USymbolicMemoryRegion(UInputArrayId(arrayType, sort, contextHeap = null), updates)
 }
 
-fun <ArrayType> emptyArrayLengthRegion(
+fun <ArrayType> emptyInputArrayLengthRegion(
     arrayType: ArrayType,
     sizeSort: USizeSort,
 ): UInputArrayLengthRegion<ArrayType> =

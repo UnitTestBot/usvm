@@ -22,4 +22,5 @@ class ModelDecodingTest {
         val status = solver.check(UMemoryBase(this, mockk()), UPathConstraintsSet(persistentSetOf(trueExpr)))
         assertIs<USolverSat<UModelBase<*, *>>>(status)
     }
+
 }

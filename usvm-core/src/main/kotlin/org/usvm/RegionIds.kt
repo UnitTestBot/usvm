@@ -30,9 +30,6 @@ interface URegionId<Key, Sort : USort, out RegionId : URegionId<Key, Sort, Regio
 }
 
 interface URegionIdVisitor<R> {
-    fun <Key, Sort : USort, RegionId : URegionId<Key, Sort, RegionId>> apply(regionId: URegionId<Key, Sort, RegionId>): R =
-        regionId.accept(this)
-
     fun <Key, Sort : USort, RegionId : URegionId<Key, Sort, RegionId>> visit(regionId: URegionId<Key, Sort, RegionId>): Any? =
         error("You must provide visit implementation for ${regionId::class} in ${this::class}")
 
@@ -83,7 +80,7 @@ data class UInputFieldId<Field, Sort : USort> internal constructor(
     ): KeyMapper<UHeapRef> = { transformer.apply(it) }
 
     override fun <CField, ArrayType> map(composer: UComposer<CField, ArrayType>): UInputFieldId<Field, Sort> {
-        check(contextHeap == null) { "ContextHeap is not null in composition!" }
+        check(contextHeap == null) { "contextHeap is not null in composition" }
         @Suppress("UNCHECKED_CAST")
         return copy(contextHeap = composer.heapEvaluator.toMutableHeap() as USymbolicHeap<Field, *>)
     }
@@ -150,7 +147,7 @@ data class UAllocatedArrayId<ArrayType, Sort : USort> internal constructor(
 
     override fun <Field, CArrayType> map(composer: UComposer<Field, CArrayType>): UAllocatedArrayId<ArrayType, Sort> {
         val composedDefaultValue = composer.compose(defaultValue)
-        check(contextHeap == null) { "ContextHeap is not null in composition!" }
+        check(contextHeap == null) { "contextHeap is not null in composition" }
         @Suppress("UNCHECKED_CAST")
         return copy(
             contextHeap = composer.heapEvaluator.toMutableHeap() as USymbolicHeap<*, ArrayType>,
@@ -227,7 +224,7 @@ data class UInputArrayId<ArrayType, Sort : USort> internal constructor(
         visitor.visit(this)
 
     override fun <Field, CArrayType> map(composer: UComposer<Field, CArrayType>): UInputArrayId<ArrayType, Sort> {
-        check(contextHeap == null) { "ContextHeap is not null in composition!" }
+        check(contextHeap == null) { "contextHeap is not null in composition" }
         @Suppress("UNCHECKED_CAST")
         return copy(contextHeap = composer.heapEvaluator.toMutableHeap() as USymbolicHeap<*, ArrayType>)
     }
@@ -277,7 +274,7 @@ data class UInputArrayLengthId<ArrayType> internal constructor(
     ): KeyMapper<UHeapRef> = { transformer.apply(it) }
 
     override fun <Field, CArrayType> map(composer: UComposer<Field, CArrayType>): UInputArrayLengthId<ArrayType> {
-        check(contextHeap == null) { "ContextHeap is not null in composition!" }
+        check(contextHeap == null) { "contextHeap is not null in composition" }
         @Suppress("UNCHECKED_CAST")
         return copy(contextHeap = composer.heapEvaluator.toMutableHeap() as USymbolicHeap<*, ArrayType>)
     }

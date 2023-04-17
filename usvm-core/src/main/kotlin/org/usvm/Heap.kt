@@ -20,26 +20,6 @@ interface UReadOnlyHeap<Ref, Value, SizeT, Field, ArrayType, Guard> {
 
 typealias UReadOnlySymbolicHeap<Field, ArrayType> = UReadOnlyHeap<UHeapRef, UExpr<out USort>, USizeExpr, Field, ArrayType, UBoolExpr>
 
-//class UEmptyHeap<Field, ArrayType>(private val ctx: UContext) : UReadOnlySymbolicHeap<Field, ArrayType> {
-//    override fun <Sort : USort> readField(ref: UHeapRef, field: Field, sort: Sort): UExpr<Sort> =
-//        sort.sampleValue()
-//
-//    override fun <Sort : USort> readArrayIndex(
-//        ref: UHeapRef,
-//        index: USizeExpr,
-//        arrayType: ArrayType,
-//        elementSort: Sort,
-//    ): UExpr<Sort> = elementSort.sampleValue()
-//
-//    override fun readArrayLength(ref: UHeapRef, arrayType: ArrayType) =
-//        ctx.zeroSize
-//
-//    override fun toMutableHeap(): UHeap<UHeapRef, UExpr<out USort>, USizeExpr, Field, ArrayType, UBoolExpr> =
-//        URegionHeap(ctx)
-//
-//    override fun nullRef(): UHeapRef = ctx.nullRef
-//}
-
 interface UHeap<Ref, Value, SizeT, Field, ArrayType, Guard> :
     UReadOnlyHeap<Ref, Value, SizeT, Field, ArrayType, Guard> {
     fun <Sort : USort> writeField(ref: Ref, field: Field, sort: Sort, value: Value, guard: Guard)
@@ -68,8 +48,6 @@ interface UHeap<Ref, Value, SizeT, Field, ArrayType, Guard> :
 
     fun allocate(): UConcreteHeapAddress
     fun allocateArray(count: SizeT): UConcreteHeapAddress
-
-    fun clone(): UHeap<Ref, Value, SizeT, Field, ArrayType, Guard>
 }
 
 typealias USymbolicHeap<Field, ArrayType> = UHeap<UHeapRef, UExpr<out USort>, USizeExpr, Field, ArrayType, UBoolExpr>
@@ -131,7 +109,7 @@ data class URegionHeap<Field, ArrayType>(
         arrayType: ArrayType,
     ): UInputArrayLengthRegion<ArrayType> =
         inputLengths[arrayType]
-            ?: emptyArrayLengthRegion(arrayType, ctx.sizeSort)
+            ?: emptyInputArrayLengthRegion(arrayType, ctx.sizeSort)
 
     @Suppress("UNCHECKED_CAST", "UNUSED")
     fun <RegionId : URegionId<Key, Sort, RegionId>, Key, Sort : USort> getRegion(region: RegionId): USymbolicMemoryRegion<RegionId, Key, Sort> =
@@ -332,17 +310,14 @@ data class URegionHeap<Field, ArrayType>(
         return address
     }
 
-    override fun clone(): URegionHeap<Field, ArrayType> =
-        URegionHeap(
-            ctx, lastAddress,
-            allocatedFields, inputFields,
-            allocatedArrays, inputArrays,
-            allocatedLengths, inputLengths
-        )
-
     override fun nullRef(): UHeapRef = ctx.nullRef
 
-    override fun toMutableHeap() = clone()
+    override fun toMutableHeap() = URegionHeap(
+        ctx, lastAddress,
+        allocatedFields, inputFields,
+        allocatedArrays, inputArrays,
+        allocatedLengths, inputLengths
+    )
 }
 
 @Suppress("UNCHECKED_CAST")

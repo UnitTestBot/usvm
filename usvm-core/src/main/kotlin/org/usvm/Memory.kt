@@ -121,5 +121,5 @@ open class UMemoryBase<Field, Type, Method>(
     }
 
     override fun clone(): UMemoryBase<Field, Type, Method> =
-        UMemoryBase(ctx, typeSystem, stack.clone(), heap.clone(), types, mocker)
+        UMemoryBase(ctx, typeSystem, stack.clone(), heap.toMutableHeap(), types, mocker)
 }

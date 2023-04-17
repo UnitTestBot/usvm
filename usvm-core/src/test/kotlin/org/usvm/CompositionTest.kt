@@ -2,7 +2,6 @@ package org.usvm
 
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.collections.immutable.persistentMapOf
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -480,77 +479,17 @@ internal class CompositionTest {
     }
 
     @Test
-    fun testComposeAllocatedArray() = with(ctx) {
-        val heapEvaluator = UHeapModel<Field, Type>(
-            concreteNull,
-            persistentMapOf(),
-            persistentMapOf(),
-            persistentMapOf(),
-        )
-
-        val stackModel = URegistersStackModel(concreteNull, mapOf(0 to ctx.mkBv(0), 1 to ctx.mkBv(0), 2 to ctx.mkBv(2)))
-
-        val composer = UComposer(this, stackModel, heapEvaluator, mockk(), mockk())
-
-
-        val region = emptyAllocatedArrayRegion<Type, UBv32Sort>(mockk(), 1, bv32Sort)
-            .write(0.toBv(), 0.toBv(), trueExpr)
-            .write(1.toBv(), 1.toBv(), trueExpr)
-            .write(mkRegisterReading(1, sizeSort), 2.toBv(), trueExpr)
-            .write(mkRegisterReading(2, sizeSort), 3.toBv(), trueExpr)
-        val reading = region.read(mkRegisterReading(0, sizeSort))
-
-        val expr = composer.compose(reading)
-        assertSame(mkBv(2), expr)
-    }
-
-    @Test
-    fun testComposeRangedUpdate() = with(ctx) {
-        val arrayType = mockk<Type>()
-        val heapEvaluator = UHeapModel<Field, Type>(
-            concreteNull,
-            persistentMapOf(),
-            persistentMapOf(),
-            persistentMapOf(),
-        )
-
-        val composedSymbolicHeapRef = ctx.mkConcreteHeapRef(-1)
-        heapEvaluator.writeArrayIndex(composedSymbolicHeapRef, mkBv(0), arrayType, bv32Sort, mkBv(1), trueExpr)
-
-        val stackModel =
-            URegistersStackModel(concreteNull, mapOf(0 to composedSymbolicHeapRef, 1 to ctx.mkBv(0)))
-        val composer = UComposer(this, stackModel, heapEvaluator, mockk(), mockk())
-
-        val symbolicRef = mkRegisterReading(0, addressSort)
-
-        val fromRegion = emptyInputArrayRegion(arrayType, bv32Sort)
-
-        val concreteRef = mkConcreteHeapRef(1)
-
-        val keyConverter = UInputToAllocatedKeyConverter(symbolicRef to mkBv(0), concreteRef to mkBv(0), mkBv(5))
-        val concreteRegion = emptyAllocatedArrayRegion(arrayType, concreteRef.address, bv32Sort)
-            .copyRange(fromRegion, mkBv(0), mkBv(5), keyConverter, trueExpr)
-
-        val idx = mkRegisterReading(1, sizeSort)
-
-        val reading = concreteRegion.read(idx)
-
-        val expr = composer.compose(reading)
-        assertSame(mkBv(1), expr)
-    }
-
-    @Test
     fun testComposeComplexRangedUpdate() = with(ctx) {
         val arrayType = mockk<Type>()
 
-        val heapEvaluator = URegionHeap<Field, Type>(ctx)
+        val regionHeap = URegionHeap<Field, Type>(ctx)
 
         val symbolicRef0 = mkRegisterReading(0, addressSort)
         val symbolicRef1 = mkRegisterReading(1, addressSort)
         val symbolicRef2 = mkRegisterReading(2, addressSort)
         val composedSymbolicHeapRef = ctx.mkConcreteHeapRef(1)
 
-        heapEvaluator.writeArrayIndex(composedSymbolicHeapRef, mkBv(3), arrayType, bv32Sort, mkBv(1337), trueExpr)
+        regionHeap.writeArrayIndex(composedSymbolicHeapRef, mkBv(3), arrayType, bv32Sort, mkBv(1337), trueExpr)
 
         val stackModel = URegistersStackModel(
             concreteNull, mapOf(
@@ -560,7 +499,7 @@ internal class CompositionTest {
                 3 to ctx.mkRegisterReading(3, bv32Sort),
             )
         )
-        val composer = UComposer(this, stackModel, heapEvaluator, mockk(), mockk())
+        val composer = UComposer(this, stackModel, regionHeap, mockk(), mockk())
 
         val fromRegion0 = emptyInputArrayRegion(arrayType, bv32Sort)
             .write(symbolicRef0 to mkBv(0), mkBv(42), trueExpr)

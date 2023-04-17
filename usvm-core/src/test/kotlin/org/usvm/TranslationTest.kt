@@ -193,7 +193,7 @@ class TranslationTest {
         val ref2 = mkRegisterReading(2, addressSort)
         val ref3 = mkRegisterReading(3, addressSort)
 
-        val region = emptyArrayLengthRegion(mockk<Field>(), bv32Sort)
+        val region = emptyInputArrayLengthRegion(mockk<Field>(), bv32Sort)
             .write(ref1, mkBv(1), trueExpr)
             .write(ref2, mkBv(2), trueExpr)
             .write(ref3, mkBv(3), trueExpr)

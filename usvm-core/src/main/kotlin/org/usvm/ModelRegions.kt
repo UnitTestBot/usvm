@@ -15,7 +15,7 @@ import org.ksmt.sort.KArraySort
 /**
  * A specific evaluator for one-dimensional regions generalized by a single expression of a [KeySort].
  */
-class UMemory1DArray<KeySort : USort, Sort : USort> private constructor(
+class UMemory1DArray<KeySort : USort, Sort : USort>(
     private val values: PersistentMap<UExpr<KeySort>, UExpr<Sort>>,
     private val constValue: UExpr<Sort>,
 ) : UMemoryRegion<KExpr<KeySort>, Sort> {
@@ -90,7 +90,7 @@ class UMemory1DArray<KeySort : USort, Sort : USort> private constructor(
  * A specific evaluator for two-dimensional regions generalized be a pair
  * of two expressions with [Key1Sort] and [Key2Sort] sorts.
  */
-class UMemory2DArray<Key1Sort : USort, Key2Sort : USort, Sort : USort> private constructor(
+class UMemory2DArray<Key1Sort : USort, Key2Sort : USort, Sort : USort>(
     val values: PersistentMap<Pair<UExpr<Key1Sort>, UExpr<Key2Sort>>, UExpr<Sort>>,
     val constValue: UExpr<Sort>,
 ) : UMemoryRegion<Pair<KExpr<Key1Sort>, KExpr<Key2Sort>>, Sort> {
