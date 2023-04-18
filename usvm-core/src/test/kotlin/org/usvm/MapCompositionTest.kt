@@ -377,7 +377,3 @@ class MapCompositionTest<Field, Type> {
         assertSame(expected = composedSndValue, actual = sndElement.value)
     }
 }
-
-fun <T> shouldNotBeCalled(): T {
-    error("Should not be called")
-}

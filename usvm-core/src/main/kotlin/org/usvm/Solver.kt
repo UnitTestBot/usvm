@@ -21,7 +21,7 @@ open class USolverBase<Field, Type, Method>(
     protected val ctx: UContext,
     protected val solver: KSolver<*>,
     protected val translator: UExprTranslator<Field, Type>,
-    protected val decoder: UModelDecoder<Type, UMemoryBase<Field, Type, Method>, UModelBase<Field, Type>>,
+    protected val decoder: UModelDecoder<UMemoryBase<Field, Type, Method>, UModelBase<Field, Type>>,
 ) : USolver<UMemoryBase<Field, Type, Method>, UPathCondition, UModelBase<Field, Type>>() {
 
     override fun check(memory: UMemoryBase<Field, Type, Method>, pc: UPathCondition): USolverResult<UModelBase<Field, Type>> {
