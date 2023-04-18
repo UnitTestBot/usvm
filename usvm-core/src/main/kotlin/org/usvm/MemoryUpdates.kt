@@ -219,11 +219,11 @@ class UFlatUpdates<Key, Sort : USort> private constructor(
     override fun lastUpdatedElementOrNull(): UUpdateNode<Key, Sort>? = node?.update
 
     override fun isEmpty(): Boolean = node == null
+
     override fun <Result> accept(
         visitor: UMemoryUpdatesVisitor<Key, Sort, Result>,
         lookupCache: MutableMap<Any?, Result>,
-    ): Result =
-        UFlatMemoryUpdatesFolder(visitor, lookupCache).fold()
+    ): Result = UFlatMemoryUpdatesFolder(visitor, lookupCache).fold()
 
     private inner class UFlatMemoryUpdatesFolder<Result>(
         private val visitor: UMemoryUpdatesVisitor<Key, Sort, Result>,

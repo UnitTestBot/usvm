@@ -1,18 +1,19 @@
 package org.usvm
 
+import org.ksmt.expr.KExpr
 import org.ksmt.sort.KArray2Sort
 import org.ksmt.sort.KArraySort
 import org.ksmt.utils.cast
 import java.util.IdentityHashMap
 
 /**
- * [URegionTranslator] defines a template method that translates a region reading to a specific [UExpr] with a sort
+ * [URegionTranslator] defines a template method that translates a region reading to a specific [KExpr] with a sort
  * [Sort].
  */
 class URegionTranslator<RegionId : URegionId<Key, Sort, RegionId>, Key, Sort : USort, Result>(
     private val updateTranslator: UMemoryUpdatesVisitor<Key, Sort, Result>,
 ) {
-    fun translateReading(region: USymbolicMemoryRegion<RegionId, Key, Sort>, key: Key): UExpr<Sort> {
+    fun translateReading(region: USymbolicMemoryRegion<RegionId, Key, Sort>, key: Key): KExpr<Sort> {
         val translated = translate(region)
         return updateTranslator.visitSelect(translated, key)
     }
@@ -31,17 +32,21 @@ class URegionTranslator<RegionId : URegionId<Key, Sort, RegionId>, Key, Sort : U
  */
 internal class U1DArrayUpdateTranslate<KeySort : USort, Sort : USort>(
     private val exprTranslator: UExprTranslator<*, *>,
-    private val initialValue: UExpr<KArraySort<KeySort, Sort>>,
-) : UMemoryUpdatesVisitor<UExpr<KeySort>, Sort, UExpr<KArraySort<KeySort, Sort>>> {
-    override fun visitSelect(result: UExpr<KArraySort<KeySort, Sort>>, key: UExpr<KeySort>): UExpr<Sort> =
+    private val initialValue: KExpr<KArraySort<KeySort, Sort>>,
+) : UMemoryUpdatesVisitor<UExpr<KeySort>, Sort, KExpr<KArraySort<KeySort, Sort>>> {
+
+    /**
+     * [key] is already translated, so we don't have to call it explicitly.
+     */
+    override fun visitSelect(result: KExpr<KArraySort<KeySort, Sort>>, key: KExpr<KeySort>): KExpr<Sort> =
         result.ctx.mkArraySelect(result, key)
 
-    override fun visitInitialValue(): UExpr<KArraySort<KeySort, Sort>> = initialValue
+    override fun visitInitialValue(): KExpr<KArraySort<KeySort, Sort>> = initialValue
 
     override fun visitUpdate(
-        previous: UExpr<KArraySort<KeySort, Sort>>,
+        previous: KExpr<KArraySort<KeySort, Sort>>,
         update: UUpdateNode<UExpr<KeySort>, Sort>,
-    ): UExpr<KArraySort<KeySort, Sort>> = with(previous.uctx) {
+    ): KExpr<KArraySort<KeySort, Sort>> = with(previous.uctx) {
         when (update) {
             is UPinpointUpdateNode -> {
                 val key = update.key.translated
@@ -89,23 +94,24 @@ internal class U2DArrayUpdateVisitor<
     Sort : USort,
     >(
     private val exprTranslator: UExprTranslator<*, *>,
-    private val initialValue: UExpr<KArray2Sort<Key1Sort, Key2Sort, Sort>>,
-) : UMemoryUpdatesVisitor<Pair<UExpr<Key1Sort>, UExpr<Key2Sort>>, Sort, UExpr<KArray2Sort<Key1Sort, Key2Sort, Sort>>> {
+    private val initialValue: KExpr<KArray2Sort<Key1Sort, Key2Sort, Sort>>,
+) : UMemoryUpdatesVisitor<Pair<UExpr<Key1Sort>, UExpr<Key2Sort>>, Sort, KExpr<KArray2Sort<Key1Sort, Key2Sort, Sort>>> {
+
     /**
      * [key] is already translated, so we don't have to call it explicitly.
      */
     override fun visitSelect(
-        result: UExpr<KArray2Sort<Key1Sort, Key2Sort, Sort>>,
-        key: Pair<UExpr<Key1Sort>, UExpr<Key2Sort>>,
-    ): UExpr<Sort> =
+        result: KExpr<KArray2Sort<Key1Sort, Key2Sort, Sort>>,
+        key: Pair<KExpr<Key1Sort>, KExpr<Key2Sort>>,
+    ): KExpr<Sort> =
         result.ctx.mkArraySelect(result, key.first, key.second)
 
-    override fun visitInitialValue(): UExpr<KArray2Sort<Key1Sort, Key2Sort, Sort>> = initialValue
+    override fun visitInitialValue(): KExpr<KArray2Sort<Key1Sort, Key2Sort, Sort>> = initialValue
 
     override fun visitUpdate(
-        previous: UExpr<KArray2Sort<Key1Sort, Key2Sort, Sort>>,
+        previous: KExpr<KArray2Sort<Key1Sort, Key2Sort, Sort>>,
         update: UUpdateNode<Pair<UExpr<Key1Sort>, UExpr<Key2Sort>>, Sort>,
-    ): UExpr<KArray2Sort<Key1Sort, Key2Sort, Sort>> = with(previous.uctx) {
+    ): KExpr<KArray2Sort<Key1Sort, Key2Sort, Sort>> = with(previous.uctx) {
         when (update) {
             is UPinpointUpdateNode -> {
                 val key1 = update.key.first.translated

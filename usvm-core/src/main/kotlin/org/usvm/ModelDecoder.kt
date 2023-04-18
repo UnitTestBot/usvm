@@ -221,7 +221,7 @@ class UIndexedMockModel<Method>(
 }
 
 /**
- * An immutable heap model. Declared as mutable heap, for using in regions composition in [UComposer]. Any call to
+ * An immutable heap model. Declared as mutable heap for using in regions composition in [UComposer]. Any call to
  * modifying operation throws an exception.
  *
  * Any [UHeapReading] possibly writing to this heap in its [URegionId.instantiate] call actually has empty updates,
