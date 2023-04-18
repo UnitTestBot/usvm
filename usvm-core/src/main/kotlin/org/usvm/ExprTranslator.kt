@@ -6,9 +6,9 @@ import org.ksmt.sort.KArraySortBase
 import org.ksmt.utils.cast
 import org.ksmt.utils.mkConst
 
-open class UExprTranslator<Field, Type> constructor(
+open class UExprTranslator<Field, Type>(
     override val ctx: UContext,
-) : UExprTransformer<Field, Type>(ctx), URegionIdTranslatorFactory {
+) : UExprTransformer<Field, Type>(ctx), URegionIdVisitor<URegionTranslator<*, *, *, *>> {
 
     open fun <Sort : USort> translate(expr: UExpr<Sort>): UExpr<Sort> = apply(expr)
 
@@ -106,7 +106,14 @@ open class UExprTranslator<Field, Type> constructor(
         return URegionTranslator(updateTranslator)
     }
 
-    val regionIdInitialValueProvider = URegionIdInitialValueProvider(onDefaultValuePresent = { translate(it) })
+    open fun <Key, Sort : USort> buildTranslator(
+        regionId: URegionId<Key, Sort, *>,
+    ): URegionTranslator<URegionId<Key, Sort, *>, Key, Sort, *> {
+        @Suppress("UNCHECKED_CAST")
+        return regionId.accept(this) as URegionTranslator<URegionId<Key, Sort, *>, Key, Sort, *>
+    }
+
+    val regionIdInitialValueProvider = URegionIdInitialValueFactoryBase(onDefaultValuePresent = { translate(it) })
 }
 
 open class UCachingExprTranslator<Field, Type>(
@@ -140,20 +147,11 @@ open class UCachingExprTranslator<Field, Type>(
         }.cast()
 }
 
-interface URegionIdTranslatorFactory : URegionIdVisitor<URegionTranslator<*, *, *, *>> {
-    fun <Key, Sort : USort> buildTranslator(
-        regionId: URegionId<Key, Sort, *>,
-    ): URegionTranslator<URegionId<Key, Sort, *>, Key, Sort, *> {
-        @Suppress("UNCHECKED_CAST")
-        return regionId.accept(this) as URegionTranslator<URegionId<Key, Sort, *>, Key, Sort, *>
-    }
-}
+typealias URegionIdInitialValueFactory = URegionIdVisitor<UExpr<out KArraySortBase<*>>>
 
-typealias URegionIdInitialValueFactory = URegionIdVisitor<out UExpr<*>>
-
-open class URegionIdInitialValueProvider(
+open class URegionIdInitialValueFactoryBase(
     val onDefaultValuePresent: (UExpr<*>) -> UExpr<*>,
-) : URegionIdVisitor<UExpr<out KArraySortBase<*>>> {
+) : URegionIdInitialValueFactory {
     override fun <Field, Sort : USort> visit(regionId: UInputFieldId<Field, Sort>): UExpr<KArraySort<UAddressSort, Sort>> {
         require(regionId.defaultValue == null)
         return with(regionId.sort.uctx) {

@@ -75,7 +75,7 @@ interface UMemoryUpdates<Key, Sort : USort> : Sequence<UUpdateNode<Key, Sort>> {
      * (from the oldest to the newest) with accumulated [Result].
      *
      * Uses [lookupCache] to shortcut the traversal. The actual key is determined by the
-     * [UMemoryUpdates] implementation. It's caller's responsibility to maintain the lifetime of the [lookupCache].
+     * [UMemoryUpdates] implementation. A caller is responsible to maintain the lifetime of the [lookupCache].
      *
      * @return the final result.
      */
@@ -84,6 +84,18 @@ interface UMemoryUpdates<Key, Sort : USort> : Sequence<UUpdateNode<Key, Sort>> {
         lookupCache: MutableMap<Any?, Result>,
     ): Result
 }
+
+/**
+ * A generic memory updates visitor. Doesn't think about a cache.
+ */
+interface UMemoryUpdatesVisitor<Key, Sort : USort, Result> {
+    fun visitSelect(result: Result, key: Key): UExpr<Sort>
+
+    fun visitInitialValue(): Result
+
+    fun visitUpdate(previous: Result, update: UUpdateNode<Key, Sort>): Result
+}
+
 
 
 //region Flat memory updates

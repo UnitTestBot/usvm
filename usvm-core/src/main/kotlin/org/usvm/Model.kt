@@ -8,10 +8,10 @@ interface UModel {
 
 open class UModelBase<Field, Type>(
     ctx: UContext,
-    stack: URegistersStackModel,
-    heap: UReadOnlySymbolicHeap<Field, Type>,
-    types: UTypeModel<Type>,
-    mocks: UMockEvaluator
+    val stack: URegistersStackModel,
+    val heap: UReadOnlySymbolicHeap<Field, Type>,
+    val types: UTypeModel<Type>,
+    val mocks: UMockEvaluator
 ) : UModel {
     private val composer = UComposer(ctx, stack, heap, types, mocks)
 

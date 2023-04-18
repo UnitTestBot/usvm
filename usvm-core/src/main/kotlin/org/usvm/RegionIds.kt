@@ -3,17 +3,17 @@ package org.usvm
 import org.ksmt.utils.asExpr
 
 /**
- * An interface that represents any possible type of regions that can be used in the memory.
+ * Represents any possible type of regions that can be used in the memory.
  */
 interface URegionId<Key, Sort : USort, out RegionId : URegionId<Key, Sort, RegionId>> {
     val sort: Sort
-    val defaultValue: UExpr<Sort>?
-    fun instantiate(region: USymbolicMemoryRegion<@UnsafeVariance RegionId, Key, Sort>, key: Key): UExpr<Sort>
 
-    fun <Field, ArrayType> read(
-        heap: UReadOnlySymbolicHeap<Field, ArrayType>,
-        key: Key,
-    ): UExpr<Sort>
+    val defaultValue: UExpr<Sort>?
+
+    /**
+     * Performs a reading from a [region] by a [key]. Inheritors uses context heap in memory regions composition.
+     */
+    fun instantiate(region: USymbolicMemoryRegion<@UnsafeVariance RegionId, Key, Sort>, key: Key): UExpr<Sort>
 
     fun <Field, ArrayType> write(
         heap: USymbolicHeap<Field, ArrayType>,
@@ -50,22 +50,18 @@ data class UInputFieldId<Field, Sort : USort> internal constructor(
     override val sort: Sort,
     val contextHeap: USymbolicHeap<Field, *>?,
 ) : URegionId<UHeapRef, Sort, UInputFieldId<Field, Sort>> {
+
     override val defaultValue: UExpr<Sort>? get() = null
+
     override fun instantiate(
         region: USymbolicMemoryRegion<UInputFieldId<Field, Sort>, UHeapRef, Sort>,
         key: UHeapRef
     ): UExpr<Sort> = if (contextHeap == null) {
-        sort.uctx.mkInputFieldReading(region.copy(regionId = UInputFieldId(field, sort, null)), key)
+        sort.uctx.mkInputFieldReading(region, key)
     } else {
         region.applyTo(contextHeap)
-        read(contextHeap, key)
+        contextHeap.readField(key, field, sort).asExpr(sort)
     }
-
-    @Suppress("UNCHECKED_CAST")
-    override fun <Field, ArrayType> read(
-        heap: UReadOnlySymbolicHeap<Field, ArrayType>,
-        key: UHeapRef,
-    ) = heap.readField(key, field as Field, sort).asExpr(sort)
 
     @Suppress("UNCHECKED_CAST")
     override fun <Field, ArrayType> write(
@@ -104,11 +100,12 @@ interface UArrayId<ArrayType, Key, Sort : USort, out RegionId : UArrayId<ArrayTy
  */
 data class UAllocatedArrayId<ArrayType, Sort : USort> internal constructor(
     override val arrayType: ArrayType,
-    val address: UConcreteHeapAddress,
     override val sort: Sort,
     override val defaultValue: UExpr<Sort>,
+    val address: UConcreteHeapAddress,
     val contextHeap: USymbolicHeap<*, ArrayType>?,
 ) : UArrayId<ArrayType, USizeExpr, Sort, UAllocatedArrayId<ArrayType, Sort>> {
+
     override fun instantiate(
         region: USymbolicMemoryRegion<UAllocatedArrayId<ArrayType, Sort>, USizeExpr, Sort>,
         key: USizeExpr
@@ -116,16 +113,8 @@ data class UAllocatedArrayId<ArrayType, Sort : USort> internal constructor(
         sort.uctx.mkAllocatedArrayReading(region, key)
     } else {
         region.applyTo(contextHeap)
-        read(contextHeap, key)
-    }
-
-    @Suppress("UNCHECKED_CAST")
-    override fun <Field, ArrayType> read(
-        heap: UReadOnlySymbolicHeap<Field, ArrayType>,
-        key: USizeExpr,
-    ): UExpr<Sort> {
         val ref = key.uctx.mkConcreteHeapRef(address)
-        return heap.readArrayIndex(ref, key, arrayType as ArrayType, sort).asExpr(sort)
+        contextHeap.readArrayIndex(ref, key, arrayType, sort).asExpr(sort)
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -195,14 +184,8 @@ data class UInputArrayId<ArrayType, Sort : USort> internal constructor(
         sort.uctx.mkInputArrayReading(region, key.first, key.second)
     } else {
         region.applyTo(contextHeap)
-        read(contextHeap, key)
+        contextHeap.readArrayIndex(key.first, key.second, arrayType, sort).asExpr(sort)
     }
-
-    @Suppress("UNCHECKED_CAST")
-    override fun <Field, ArrayType> read(
-        heap: UReadOnlySymbolicHeap<Field, ArrayType>,
-        key: USymbolicArrayIndex,
-    ): UExpr<Sort> = heap.readArrayIndex(key.first, key.second, arrayType as ArrayType, sort).asExpr(sort)
 
     @Suppress("UNCHECKED_CAST")
     override fun <Field, ArrayType> write(
@@ -249,14 +232,8 @@ data class UInputArrayLengthId<ArrayType> internal constructor(
         sort.uctx.mkInputArrayLengthReading(region, key)
     } else {
         region.applyTo(contextHeap)
-        read(contextHeap, key)
+        contextHeap.readArrayLength(key, arrayType)
     }
-
-    @Suppress("UNCHECKED_CAST")
-    override fun <Field, ArrayType> read(
-        heap: UReadOnlySymbolicHeap<Field, ArrayType>,
-        key: UHeapRef,
-    ): UExpr<USizeSort> = heap.readArrayLength(key, arrayType as ArrayType).asExpr(sort)
 
     @Suppress("UNCHECKED_CAST")
     override fun <Field, ArrayType> write(

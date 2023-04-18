@@ -7,11 +7,6 @@ import org.usvm.util.emptyRegionTree
 
 //region Memory region
 
-/**
- * A typealias for a lambda that takes a key, a region and returns a reading from the region by the key.
- */
-typealias UInstantiator<RegionId, Key, Sort> = (key: Key, USymbolicMemoryRegion<RegionId, Key, Sort>) -> UExpr<Sort>
-
 
 interface UMemoryRegion<Key, Sort : USort> {
     fun read(key: Key): UExpr<Sort>
@@ -169,9 +164,6 @@ data class USymbolicMemoryRegion<out RegionId : URegionId<Key, Sort, RegionId>, 
         val mappedRegionId = regionId.map(composer)
         val mappedUpdates = updates.map(regionId.keyMapper(composer), composer)
 
-        // Note that we cannot use optimization with unchanged mappedUpdates and mappedDefaultValues here
-        // since in a new region we might have an updated instantiator.
-        // Therefore, we have to check their reference equality as well.
         if (mappedUpdates === updates && mappedRegionId === regionId) {
             return this
         }
@@ -347,7 +339,7 @@ fun <ArrayType, Sort : USort> emptyAllocatedArrayRegion(
         updates = emptyRegionTree(),
         ::indexRegion, ::indexRangeRegion, ::indexEq, ::indexLeConcrete, ::indexLeSymbolic
     )
-    val regionId = UAllocatedArrayId(arrayType, address, sort, sort.sampleValue(), contextHeap = null)
+    val regionId = UAllocatedArrayId(arrayType, sort, sort.sampleValue(), address, contextHeap = null)
     return USymbolicMemoryRegion(regionId, updates)
 }
 

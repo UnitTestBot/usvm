@@ -3,17 +3,15 @@ package org.usvm
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.toPersistentMap
-import org.ksmt.expr.KArray2Store
-import org.ksmt.expr.KArrayConst
-import org.ksmt.expr.KArrayStore
-import org.ksmt.expr.KExpr
+import org.ksmt.expr.*
 import org.ksmt.solver.KModel
 import org.ksmt.sort.KArray2Sort
 import org.ksmt.sort.KArraySort
+import org.ksmt.utils.sampleValue
 
 
 /**
- * A specific evaluator for one-dimensional regions generalized by a single expression of a [KeySort].
+ * A specific [UMemoryRegion] for one-dimensional regions generalized by a single expression of a [KeySort].
  */
 class UMemory1DArray<KeySort : USort, Sort : USort>(
     private val values: PersistentMap<UExpr<KeySort>, UExpr<Sort>>,
@@ -53,7 +51,7 @@ class UMemory1DArray<KeySort : USort, Sort : USort>(
          * to their concrete representation.
          */
         operator fun <KeySort : USort, Sort : USort> invoke(
-            initialValue: KExpr<KArraySort<KeySort, Sort>>,
+            initialValue: KConst<KArraySort<KeySort, Sort>>,
             model: KModel,
             mapping: Map<UHeapRef, UConcreteHeapRef>,
         ): UMemory1DArray<KeySort, Sort> {
@@ -87,7 +85,7 @@ class UMemory1DArray<KeySort : USort, Sort : USort>(
 }
 
 /**
- * A specific evaluator for two-dimensional regions generalized be a pair
+ * A specific [UMemoryRegion] for two-dimensional regions generalized by a pair
  * of two expressions with [Key1Sort] and [Key2Sort] sorts.
  */
 class UMemory2DArray<Key1Sort : USort, Key2Sort : USort, Sort : USort>(

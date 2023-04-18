@@ -21,7 +21,10 @@ internal data class SplitHeapRefs(
 
 /**
  * Traverses the [ref] non-recursively and collects [UConcreteHeapRef]s and [USymbolicHeapRef] as well as
- * guards for them. The result [SplitHeapRefs.symbolicHeapRef] will be `null` if there are no [USymbolicHeapRef]s as
+ * guards for them. If the object is not a [UConcreteHeapRef] nor a [USymbolicHeapRef], e.g. KConst<UAddressSort>,
+ * treats such an object as a [USymbolicHeapRef].
+ *
+ * The result [SplitHeapRefs.symbolicHeapRef] will be `null` if there are no [USymbolicHeapRef]s as
  * leafs in the [ref] ite. Otherwise, it will contain an ite with the guard protecting from bubbled up concrete refs.
  *
  * @param initialGuard an initial value for the accumulated guard.

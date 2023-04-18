@@ -114,4 +114,33 @@ class ModelDecodingTest {
         val status = solver.check(memory, UPathConstraintsSet(pc))
         assertIs<USolverUnsat<UModelBase<Field, Type>>>(status)
     }
+
+    @Test
+    fun testSimpleSeveralWritingsToArray() = with(ctx) {
+        val array = mockk<Type>()
+
+        val concreteRef = heap.allocate()
+        val symbolicRef0 = stack.readRegister(0, addressSort)
+        val symbolicRef1 = stack.readRegister(1, addressSort)
+        val symbolicRef2 = stack.readRegister(2, addressSort)
+
+        val concreteIdx = mkBv(3)
+        val idx = stack.readRegister(3, bv32Sort)
+
+        heap.writeArrayIndex(concreteRef, concreteIdx, array, addressSort, symbolicRef1, trueExpr)
+        val readedRef = heap.readArrayIndex(concreteRef, idx, array, addressSort)
+
+        val readedRef1 = heap.readArrayIndex(symbolicRef2, idx, array, addressSort)
+
+        heap.writeArrayIndex(readedRef, idx, array, addressSort, symbolicRef0, trueExpr)
+
+        val readedRef2 = heap.readArrayIndex(symbolicRef2, idx, array, addressSort)
+
+        val pc = (symbolicRef2 neq nullRef) and (readedRef1 neq readedRef2)
+
+        val status = solver.check(memory, UPathConstraintsSet(pc))
+        val model = assertIs<USolverSat<UModelBase<Field, Type>>>(status).model
+
+        assertSame(model.eval(symbolicRef1), model.eval(symbolicRef2))
+    }
 }

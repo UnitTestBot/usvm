@@ -6,7 +6,8 @@ import org.ksmt.utils.cast
 import java.util.IdentityHashMap
 
 /**
- * [URegionTranslator] defines a template method that translates a region reading to a specific [UExpr] with a sort [Sort].
+ * [URegionTranslator] defines a template method that translates a region reading to a specific [UExpr] with a sort
+ * [Sort].
  */
 class URegionTranslator<RegionId : URegionId<Key, Sort, RegionId>, Key, Sort : USort, Result>(
     private val updateTranslator: UMemoryUpdatesVisitor<Key, Sort, Result>,
@@ -22,14 +23,12 @@ class URegionTranslator<RegionId : URegionId<Key, Sort, RegionId>, Key, Sort : U
         region.updates.accept(updateTranslator, visitorCache)
 }
 
-interface UMemoryUpdatesVisitor<Key, Sort : USort, Result> {
-    fun visitSelect(result: Result, key: Key): UExpr<Sort>
-
-    fun visitInitialValue(): Result
-
-    fun visitUpdate(previous: Result, update: UUpdateNode<Key, Sort>): Result
-}
-
+/**
+ * A region translator for 1-dimensional symbolic regions.
+ *
+ * @param exprTranslator defines how to perform translation on inner values.
+ * @param initialValue defines an initial value for a translated array.
+ */
 internal class U1DArrayUpdateTranslate<KeySort : USort, Sort : USort>(
     private val exprTranslator: UExprTranslator<*, *>,
     private val initialValue: UExpr<KArraySort<KeySort, Sort>>,
@@ -78,6 +77,12 @@ internal class U1DArrayUpdateTranslate<KeySort : USort, Sort : USort>(
     private val <ExprSort : USort> UExpr<ExprSort>.translated get() = exprTranslator.translate(this)
 }
 
+/**
+ * A region translator for 2-dimensional symbolic regions.
+ *
+ * @param exprTranslator defines how to perform translation on inner values.
+ * @param initialValue defines an initial value for a translated array.
+ */
 internal class U2DArrayUpdateVisitor<
     Key1Sort : USort,
     Key2Sort : USort,

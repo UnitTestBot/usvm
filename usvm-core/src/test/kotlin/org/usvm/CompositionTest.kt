@@ -362,7 +362,7 @@ internal class CompositionTest {
         ).write(fstIndex, 1.toBv(), guard = trueExpr)
             .write(sndIndex, 2.toBv(), guard = trueExpr)
 
-        val regionId = UAllocatedArrayId(arrayType, address, bv32Sort, bv32Sort.sampleValue(), contextHeap = null)
+        val regionId = UAllocatedArrayId(arrayType, bv32Sort, bv32Sort.sampleValue(), address, contextHeap = null)
         val regionArray = UAllocatedArrayRegion(
             regionId,
             updates,
