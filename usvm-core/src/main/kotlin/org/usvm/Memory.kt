@@ -91,15 +91,15 @@ open class UMemoryBase<Field, Type, Method>(
     }
 
     override fun alloc(type: Type): UHeapRef {
-        val address = heap.allocate()
-        types.allocate(address, type)
-        return ctx.mkConcreteHeapRef(address)
+        val concreteHeapRef = heap.allocate()
+        types.allocate(concreteHeapRef.address, type)
+        return concreteHeapRef
     }
 
     override fun malloc(arrayType: Type, count: USizeExpr): UHeapRef {
-        val address = heap.allocateArray(count)
-        types.allocate(address, arrayType)
-        return ctx.mkConcreteHeapRef(address)
+        val concreteHeapRef = heap.allocateArray(count)
+        types.allocate(concreteHeapRef.address, arrayType)
+        return concreteHeapRef
     }
 
     override fun memset(ref: UHeapRef, arrayType: Type, elementSort: USort, contents: Sequence<UExpr<out USort>>) =

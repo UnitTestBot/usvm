@@ -264,7 +264,7 @@ class UIndexedMethodReturnValue<Method, Sort : USort> internal constructor(
     }
 
     override fun print(printer: ExpressionPrinter) {
-        TODO("Not yet implemented")
+        printer.append("$method:#$callIndex")
     }
 
     override fun internEquals(other: Any): Boolean = structurallyEqual(other, { method }, { callIndex }, { sort })

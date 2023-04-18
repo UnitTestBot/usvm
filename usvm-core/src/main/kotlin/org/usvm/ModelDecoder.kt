@@ -300,18 +300,18 @@ class UHeapModel<Field, ArrayType>(
         fromDstIdx: USizeExpr,
         toDstIdx: USizeExpr,
         guard: UBoolExpr,
-    ): Unit = error("Illegal operation for a model")
+    ) = error("Illegal operation for a model")
 
     override fun <Sort : USort> memset(
         ref: UHeapRef,
         type: ArrayType,
         sort: Sort,
         contents: Sequence<UExpr<out USort>>,
-    ): Unit = error("Illegal operation for a model")
+    ) = error("Illegal operation for a model")
 
     override fun allocate() = error("Illegal operation for a model")
 
-    override fun allocateArray(count: USizeExpr): UConcreteHeapAddress = error("Illegal operation for a model")
+    override fun allocateArray(count: USizeExpr) = error("Illegal operation for a model")
 
     override fun nullRef(): UConcreteHeapRef = nullRef
 

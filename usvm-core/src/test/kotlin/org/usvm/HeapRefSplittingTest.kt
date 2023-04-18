@@ -29,8 +29,8 @@ class HeapRefSplittingTest {
 
     @Test
     fun testConcreteWriting() = with(ctx) {
-        val ref1 = mkConcreteHeapRef(heap.allocate())
-        val ref2 = mkConcreteHeapRef(heap.allocate())
+        val ref1 = heap.allocate()
+        val ref2 = heap.allocate()
 
         val value1 = mkBv(0)
         val value2 = mkBv(1)
@@ -47,7 +47,7 @@ class HeapRefSplittingTest {
 
     @Test
     fun testIteWriting() = with(ctx) {
-        val ref1 = mkConcreteHeapRef(heap.allocate())
+        val ref1 = heap.allocate()
         val ref2 = mkRegisterReading(0, addressSort)
 
         val cond by boolSort
@@ -69,9 +69,9 @@ class HeapRefSplittingTest {
 
     @Test
     fun testInterleavedWritingToArray(): Unit = with(ctx) {
-        val arrayRef = mkConcreteHeapRef(heap.allocate())
+        val arrayRef = heap.allocate()
 
-        val ref1 = mkConcreteHeapRef(heap.allocate())
+        val ref1 = heap.allocate()
         val ref2 = mkRegisterReading(0, addressSort)
 
         val idx1 by sizeSort
@@ -95,15 +95,15 @@ class HeapRefSplittingTest {
 
     @Test
     fun testSeveralWritingsToArray() = with(ctx) {
-        val ref = mkConcreteHeapRef(heap.allocate())
+        val ref = heap.allocate()
 
         val idx1 = mkRegisterReading(0, sizeSort)
         val idx2 = mkRegisterReading(1, sizeSort)
         val idx3 = mkRegisterReading(2, sizeSort)
 
-        val val1 = mkConcreteHeapRef(heap.allocate())
-        val val2 = mkConcreteHeapRef(heap.allocate())
-        val val3 = mkConcreteHeapRef(heap.allocate())
+        val val1 = heap.allocate()
+        val val2 = heap.allocate()
+        val val3 = heap.allocate()
 
         heap.writeArrayIndex(ref, idx1, arrayDescr.first, arrayDescr.second, val1, trueExpr)
         heap.writeArrayIndex(ref, idx2, arrayDescr.first, arrayDescr.second, val2, trueExpr)
@@ -121,16 +121,16 @@ class HeapRefSplittingTest {
 
     @Test
     fun testWritingIteToArrayByIteIndex() = with(ctx) {
-        val ref1 = mkConcreteHeapRef(heap.allocate())
-        val ref2 = mkConcreteHeapRef(heap.allocate())
+        val ref1 = heap.allocate()
+        val ref2 = heap.allocate()
         val cond1 by boolSort
         val ref = mkIte(cond1, ref1, ref2)
 
         val idx = mkRegisterReading(0, sizeSort)
 
 
-        val val1 = mkConcreteHeapRef(heap.allocate())
-        val val2 = mkConcreteHeapRef(heap.allocate())
+        val val1 = heap.allocate()
+        val val2 = heap.allocate()
         val cond2 by boolSort
         val value = mkIte(cond2, val1, val2)
 
@@ -155,9 +155,9 @@ class HeapRefSplittingTest {
         val ref2 = mkRegisterReading(1, addressSort)
         val ref3 = mkRegisterReading(2, addressSort)
 
-        val val1 = mkConcreteHeapRef(heap.allocate())
+        val val1 = heap.allocate()
         val val2 = mkRegisterReading(3, addressSort)
-        val val3 = mkConcreteHeapRef(heap.allocate())
+        val val3 = heap.allocate()
 
         heap.writeField(ref1, addressFieldDescr.first, addressFieldDescr.second, val1, trueExpr)
         heap.writeField(ref2, addressFieldDescr.first, addressFieldDescr.second, val2, trueExpr)
@@ -175,7 +175,7 @@ class HeapRefSplittingTest {
 
     @Test
     fun testInterleavedWritingToArrayButNoMatchedUpdates() = with(ctx) {
-        val arrayRef = mkConcreteHeapRef(heap.allocate())
+        val arrayRef = heap.allocate()
 
         val ref1 = mkRegisterReading(0, addressSort)
         val ref2 = mkRegisterReading(1, addressSort)
@@ -198,7 +198,7 @@ class HeapRefSplittingTest {
         val res2 = heap.readField(ref2, valueFieldDescr.first, valueFieldDescr.second)
         assertIs<UInputFieldReading<Field, UBv32Sort>>(res2)
 
-        assertSame(res1.region, res2.region)
+        assertEquals(res1.region, res2.region)
     }
 
     @Test
@@ -221,7 +221,7 @@ class HeapRefSplittingTest {
         val res2 = heap.readField(ref2, addressFieldDescr.first, addressFieldDescr.second)
         assertIs<UInputFieldReading<Field, UBv32Sort>>(res2)
 
-        assertSame(res1.region, res2.region)
+        assertEquals(res1.region, res2.region)
 
         val res3 = heap.readField(ref3, addressFieldDescr.first, addressFieldDescr.second)
         assertSame(val3, res3)
@@ -230,7 +230,7 @@ class HeapRefSplittingTest {
     @Test
     fun testInterleavedValueWriting() = with(ctx) {
         val ref1 = mkRegisterReading(0, addressSort)
-        val ref2 = mkConcreteHeapRef(heap.allocate())
+        val ref2 = heap.allocate()
 
         val cond by boolSort
 

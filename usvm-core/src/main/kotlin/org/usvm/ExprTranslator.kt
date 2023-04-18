@@ -34,7 +34,7 @@ open class UExprTranslator<Field, Type> constructor(
     }
 
     override fun transform(expr: UNullRef): UExpr<UAddressSort> {
-        val const = expr.sort.mkConst("null")
+        val const = ctx.mkUninterpretedSortValue(ctx.addressSort, 0)
         return const
     }
 

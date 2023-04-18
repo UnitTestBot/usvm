@@ -31,7 +31,7 @@ open class USolverBase<Field, Type, Method>(
         solver.push()
 
         for (constraint in pc) {
-            val translated = translator.apply(constraint)
+            val translated = translator.translate(constraint)
             solver.assert(translated)
         }
 

@@ -4,6 +4,7 @@ import org.ksmt.KAst
 import org.ksmt.KContext
 import org.ksmt.expr.KConst
 import org.ksmt.expr.KExpr
+import org.ksmt.expr.KUninterpretedSortValue
 import org.ksmt.sort.KBoolSort
 import org.ksmt.sort.KSort
 import org.ksmt.sort.KSortVisitor
@@ -51,7 +52,7 @@ open class UContext(
      * @return the new equal rewritten expression without [UConcreteHeapRef]s
      */
     override fun <T : KSort> mkEq(lhs: KExpr<T>, rhs: KExpr<T>, order: Boolean): KExpr<KBoolSort> =
-        if (lhs.sort == addressSort && lhs !is KConst<*> && rhs !is KConst<*>) {
+        if (lhs.sort == addressSort) {
             mkHeapRefEq(lhs.asExpr(addressSort), rhs.asExpr(addressSort))
         } else {
             super.mkEq(lhs, rhs, order)

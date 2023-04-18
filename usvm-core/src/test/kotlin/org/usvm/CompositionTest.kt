@@ -246,7 +246,7 @@ internal class CompositionTest {
         val sndIndex = mockk<USizeExpr>()
 
         val keyEqualityComparer = { k1: USymbolicArrayIndex, k2: USymbolicArrayIndex ->
-            mkAnd(k1.first eq k2.first, k1.second eq k2.second)
+            mkAnd((k1.first == k2.first).expr, (k1.second == k2.second).expr)
         }
 
         val updates = UFlatUpdates<USymbolicArrayIndex, UBv32Sort>(
@@ -408,7 +408,7 @@ internal class CompositionTest {
         val bAddress = mockk<USymbolicHeapRef>()
 
         val updates = UFlatUpdates<UHeapRef, UBv32Sort>(
-            symbolicEq = { k1, k2 -> k1 eq k2 },
+            symbolicEq = { k1, k2 -> (k1 == k2).expr },
             concreteCmp = { _, _ -> throw UnsupportedOperationException() },
             symbolicCmp = { _, _ -> throw UnsupportedOperationException() }
         )

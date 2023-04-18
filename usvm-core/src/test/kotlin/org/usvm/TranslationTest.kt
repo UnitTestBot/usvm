@@ -34,7 +34,7 @@ class TranslationTest {
 
     @Test
     fun testTranslateConstAddressSort() = with(ctx) {
-        val ref = mkConcreteHeapRef(heap.allocate())
+        val ref = heap.allocate()
         val idx = mkRegisterReading(0, sizeSort)
 
         val expr = heap.readArrayIndex(ref, idx, addressArrayDescr, addressSort)
@@ -45,7 +45,7 @@ class TranslationTest {
 
     @Test
     fun testTranslateConstValueSort() = with(ctx) {
-        val ref = mkConcreteHeapRef(heap.allocate())
+        val ref = heap.allocate()
         val idx = mkRegisterReading(0, sizeSort)
 
         val expr = heap.readArrayIndex(ref, idx, valueArrayDescr, bv32Sort)
@@ -56,7 +56,7 @@ class TranslationTest {
 
     @Test
     fun testTranslateWritingsToAllocatedArray() = with(ctx) {
-        val ref = mkConcreteHeapRef(heap.allocate())
+        val ref = heap.allocate()
         val idx1 = mkRegisterReading(0, sizeSort)
         val idx2 = mkRegisterReading(1, sizeSort)
 
@@ -130,7 +130,7 @@ class TranslationTest {
             .write(ref1 to idx1, val1, trueExpr)
             .write(ref2 to idx2, val2, trueExpr)
 
-        val concreteRef = mkConcreteHeapRef(heap.allocate())
+        val concreteRef = heap.allocate()
 
 
         val keyConverter = UInputToAllocatedKeyConverter(ref1 to mkBv(0), concreteRef to mkBv(0), mkBv(5))

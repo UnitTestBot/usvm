@@ -46,8 +46,8 @@ interface UHeap<Ref, Value, SizeT, Field, ArrayType, Guard> :
         guard: Guard,
     )
 
-    fun allocate(): UConcreteHeapAddress
-    fun allocateArray(count: SizeT): UConcreteHeapAddress
+    fun allocate(): UConcreteHeapRef
+    fun allocateArray(count: SizeT): UConcreteHeapRef
 }
 
 typealias USymbolicHeap<Field, ArrayType> = UHeap<UHeapRef, UExpr<out USort>, USizeExpr, Field, ArrayType, UBoolExpr>
@@ -302,12 +302,12 @@ data class URegionHeap<Field, ArrayType>(
         )
     }
 
-    override fun allocate() = lastAddress.freshAddress()
+    override fun allocate() = ctx.mkConcreteHeapRef(lastAddress.freshAddress())
 
-    override fun allocateArray(count: USizeExpr): UConcreteHeapAddress {
+    override fun allocateArray(count: USizeExpr): UConcreteHeapRef {
         val address = lastAddress.freshAddress()
         allocatedLengths = allocatedLengths.put(address, count)
-        return address
+        return ctx.mkConcreteHeapRef(address)
     }
 
     override fun nullRef(): UHeapRef = ctx.nullRef

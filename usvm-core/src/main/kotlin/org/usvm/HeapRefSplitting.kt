@@ -30,12 +30,12 @@ internal fun splitUHeapRef(ref: UHeapRef, initialGuard: UBoolExpr = ref.ctx.true
     val concreteHeapRefs = mutableListOf<GuardedExpr<UConcreteHeapRef>>()
 
     val symbolicHeapRef = filter(ref, initialGuard) { guarded ->
-        if (guarded.expr is USymbolicHeapRef) {
-            true
-        } else {
+        if (guarded.expr is UConcreteHeapRef) {
             @Suppress("UNCHECKED_CAST")
             concreteHeapRefs += (guarded as GuardedExpr<UConcreteHeapRef>)
             false
+        } else {
+            true
         }
     }
 
@@ -150,9 +150,6 @@ internal inline fun filter(
     crossinline predicate: (GuardedExpr<UHeapRef>) -> Boolean,
 ): GuardedExpr<UHeapRef>? = with(ref.ctx) {
     when (ref) {
-        is USymbolicHeapRef,
-        is UConcreteHeapRef,
-        -> (ref with initialGuard).takeIf(predicate)
         is UIteExpr<UAddressSort> -> {
             /**
              * This code simulates DFS on a binary tree without an explicit recursion. Pair.second represents the first
@@ -225,7 +222,6 @@ internal inline fun filter(
 
             completelyMapped.single()?.withAlso(initialGuard)
         }
-
-        else -> error("Unexpected ref: $ref")
+        else -> (ref with initialGuard).takeIf(predicate)
     }
 }
