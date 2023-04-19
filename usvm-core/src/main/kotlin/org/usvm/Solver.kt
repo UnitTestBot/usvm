@@ -46,9 +46,9 @@ open class USolverBase<Field, Type, Method>(
             }
         }
         val model = solver.model().detach()
+        val uModel = decoder.decode(memory, model)
         solver.pop()
 
-        val uModel = decoder.decode(memory, model)
         return USolverSat(uModel)
     }
 }

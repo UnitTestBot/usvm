@@ -1,16 +1,14 @@
 package org.usvm
 
 import org.ksmt.expr.KExpr
-import org.ksmt.sort.KArray2Sort
-import org.ksmt.sort.KArraySort
-import org.ksmt.sort.KArraySortBase
 import org.ksmt.sort.KBoolSort
 import org.ksmt.utils.cast
 import org.ksmt.utils.mkConst
 
 /**
  * Translates custom [UExpr] to a [KExpr]. Region readings are translated via [URegionTranslator]s.
- * Base version cache everything, but doesn't track translated expressions.
+ * Base version cache everything, but doesn't track translated expressions like register readings, mock symbols, etc.
+ * Tracking done in the [UCachingExprTranslator].
  *
  * To show semantics of the translator, we use [KExpr] as return values, though [UExpr] is a typealias for it.
  */
@@ -24,8 +22,7 @@ open class UExprTranslator<Field, Type>(
         error("You must override `transform` function in UExprTranslator for ${expr::class}")
 
     override fun <Sort : USort> transform(expr: URegisterReading<Sort>): KExpr<Sort> {
-        // TODO: we must ensure all ids are different
-        val registerConst = expr.sort.mkConst("r${expr.idx}")
+        val registerConst = expr.sort.mkConst("r${expr.idx}_${expr.sort}")
         return registerConst
     }
 
@@ -36,13 +33,12 @@ open class UExprTranslator<Field, Type>(
         error("You must override `transform` function in UExprTranslator for ${expr::class}")
 
     override fun <Method, Sort : USort> transform(expr: UIndexedMethodReturnValue<Method, Sort>): KExpr<Sort> {
-        // TODO: we must ensure all ids are different
-        val const = expr.sort.mkConst("m${expr.method}_${expr.callIndex}")
+        val const = expr.sort.mkConst("m${expr.method}_${expr.callIndex}_${expr.sort}")
         return const
     }
 
     override fun transform(expr: UNullRef): KExpr<UAddressSort> {
-        val const = ctx.mkUninterpretedSortValue(ctx.addressSort, 0)
+        val const = ctx.mkUninterpretedSortValue(ctx.addressSort, valueIdx = 0)
         return const
     }
 
@@ -80,12 +76,23 @@ open class UExprTranslator<Field, Type>(
         return regionTranslator.translateReading(region, key)
     }
 
-    // these functions implement URegionIdTranslatorFactory
+    private val regionIdToInitialValue_ = mutableMapOf<URegionId<*, *, *>, KExpr<*>>()
+    val regionIdToInitialValue: Map<URegionId<*, *, *>, KExpr<*>> get() = regionIdToInitialValue_
+
+    private inline fun <reified V : KExpr<*>> getOrPutInitialValue(
+        regionId: URegionId<*, *, *>,
+        defaultValue: () -> V
+    ): V = regionIdToInitialValue_.getOrPut(regionId, defaultValue) as V
 
     override fun <Field, Sort : USort> visit(
         regionId: UInputFieldId<Field, Sort>,
     ): URegionTranslator<UInputFieldId<Field, Sort>, UHeapRef, Sort, *> {
-        val initialValue = regionIdInitialValueProvider.visit(regionId)
+        require(regionId.defaultValue == null)
+        val initialValue = getOrPutInitialValue(regionId) {
+            with(regionId.sort.uctx) {
+                mkArraySort(addressSort, regionId.sort).mkConst(regionId.toString()) // TODO: replace toString
+            }
+        }
         val updateTranslator = U1DArrayUpdateTranslate(this, initialValue)
         return URegionTranslator(updateTranslator)
     }
@@ -93,7 +100,14 @@ open class UExprTranslator<Field, Type>(
     override fun <ArrayType, Sort : USort> visit(
         regionId: UAllocatedArrayId<ArrayType, Sort>,
     ): URegionTranslator<UAllocatedArrayId<ArrayType, Sort>, USizeExpr, Sort, *> {
-        val initialValue = regionIdInitialValueProvider.visit(regionId)
+        requireNotNull(regionId.defaultValue)
+        val initialValue = getOrPutInitialValue(regionId) {
+            with(regionId.sort.uctx) {
+                val sort = mkArraySort(sizeSort, regionId.sort)
+                val translatedDefaultValue = translate(regionId.defaultValue)
+                mkArrayConst(sort, translatedDefaultValue)
+            }
+        }
         val updateTranslator = U1DArrayUpdateTranslate(this, initialValue)
         return URegionTranslator(updateTranslator)
     }
@@ -101,7 +115,12 @@ open class UExprTranslator<Field, Type>(
     override fun <ArrayType, Sort : USort> visit(
         regionId: UInputArrayId<ArrayType, Sort>,
     ): URegionTranslator<UInputArrayId<ArrayType, Sort>, USymbolicArrayIndex, Sort, *> {
-        val initialValue = regionIdInitialValueProvider.visit(regionId)
+        require(regionId.defaultValue == null)
+        val initialValue = getOrPutInitialValue(regionId) {
+            with(regionId.sort.uctx) {
+                mkArraySort(addressSort, sizeSort, regionId.sort).mkConst(regionId.toString()) // TODO: replace toString
+            }
+        }
         val updateTranslator = U2DArrayUpdateVisitor(this, initialValue)
         return URegionTranslator(updateTranslator)
     }
@@ -109,7 +128,12 @@ open class UExprTranslator<Field, Type>(
     override fun <ArrayType> visit(
         regionId: UInputArrayLengthId<ArrayType>,
     ): URegionTranslator<UInputArrayLengthId<ArrayType>, UHeapRef, USizeSort, *> {
-        val initialValue = regionIdInitialValueProvider.visit(regionId)
+        require(regionId.defaultValue == null)
+        val initialValue = getOrPutInitialValue(regionId) {
+            with(regionId.sort.uctx) {
+                mkArraySort(addressSort, sizeSort).mkConst(regionId.toString()) // TODO: replace toString
+            }
+        }
         val updateTranslator = U1DArrayUpdateTranslate(this, initialValue)
         return URegionTranslator(updateTranslator)
     }
@@ -120,12 +144,10 @@ open class UExprTranslator<Field, Type>(
         @Suppress("UNCHECKED_CAST")
         return regionId.accept(this) as URegionTranslator<URegionId<Key, Sort, *>, Key, Sort, *>
     }
-
-    val regionIdInitialValueProvider = URegionIdInitialValueFactoryBase(onDefaultValuePresent = { translate(it) })
 }
 
 /**
- * Tracks translated symbols. This information used in [UModelDecoderBase].
+ * Tracks translated symbols. This information used in [ULazyModelDecoder].
  */
 open class UCachingExprTranslator<Field, Type>(
     ctx: UContext,
@@ -156,46 +178,4 @@ open class UCachingExprTranslator<Field, Type>(
         regionIdToTranslator.getOrPut(regionId) {
             super.buildTranslator(regionId).cast()
         }.cast()
-}
-
-typealias URegionIdInitialValueFactory = URegionIdVisitor<UExpr<out KArraySortBase<*>>>
-
-/**
- * @param onDefaultValuePresent translates default values.
- */
-open class URegionIdInitialValueFactoryBase(
-    val onDefaultValuePresent: (UExpr<*>) -> KExpr<*>,
-) : URegionIdInitialValueFactory {
-    override fun <Field, Sort : USort> visit(regionId: UInputFieldId<Field, Sort>): KExpr<KArraySort<UAddressSort, Sort>> {
-        require(regionId.defaultValue == null)
-        return with(regionId.sort.uctx) {
-            mkArraySort(addressSort, regionId.sort).mkConst(regionId.toString()) // TODO: replace toString
-        }
-    }
-
-    override fun <ArrayType, Sort : USort> visit(regionId: UAllocatedArrayId<ArrayType, Sort>): KExpr<KArraySort<USizeSort, Sort>> {
-        @Suppress("SENSELESS_COMPARISON")
-        require(regionId.defaultValue != null)
-        return with(regionId.sort.uctx) {
-            val sort = mkArraySort(sizeSort, regionId.sort)
-
-            @Suppress("UNCHECKED_CAST")
-            val value = onDefaultValuePresent(regionId.defaultValue) as UExpr<Sort>
-            mkArrayConst(sort, value)
-        }
-    }
-
-    override fun <ArrayType, Sort : USort> visit(regionId: UInputArrayId<ArrayType, Sort>): KExpr<KArray2Sort<UAddressSort, USizeSort, Sort>> {
-        require(regionId.defaultValue == null)
-        return with(regionId.sort.uctx) {
-            mkArraySort(addressSort, sizeSort, regionId.sort).mkConst(regionId.toString()) // TODO: replace toString
-        }
-    }
-
-    override fun <ArrayType> visit(regionId: UInputArrayLengthId<ArrayType>): KExpr<KArraySort<UAddressSort, USizeSort>> {
-        require(regionId.defaultValue == null)
-        return with(regionId.sort.uctx) {
-            mkArraySort(addressSort, sizeSort).mkConst(regionId.toString()) // TODO: replace toString
-        }
-    }
 }

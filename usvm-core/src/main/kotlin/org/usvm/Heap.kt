@@ -111,23 +111,6 @@ data class URegionHeap<Field, ArrayType>(
         inputLengths[arrayType]
             ?: emptyInputArrayLengthRegion(arrayType, ctx.sizeSort)
 
-    @Suppress("UNCHECKED_CAST", "UNUSED")
-    fun <RegionId : URegionId<Key, Sort, RegionId>, Key, Sort : USort> getRegion(region: RegionId): USymbolicMemoryRegion<RegionId, Key, Sort> =
-        // TODO with visitor?
-        when (region) {
-            is UInputFieldId<*, *> -> inputFieldRegion(region.field as Field, region.sort)
-            is UAllocatedArrayId<*, *> -> allocatedArrayRegion(
-                region.arrayType as ArrayType,
-                region.address,
-                region.sort
-            )
-
-            is UInputArrayLengthId<*> -> inputArrayLengthRegion(region.arrayType as ArrayType)
-            is UInputArrayId<*, *> -> inputArrayRegion(region.arrayType as ArrayType, region.sort)
-            else -> TODO("Implement symbolic collections")
-        } as USymbolicMemoryRegion<RegionId, Key, Sort>
-
-
     override fun <Sort : USort> readField(ref: UHeapRef, field: Field, sort: Sort): UExpr<Sort> =
         ref.map(
             { concreteRef ->

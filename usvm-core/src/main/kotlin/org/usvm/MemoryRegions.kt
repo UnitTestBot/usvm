@@ -30,7 +30,7 @@ data class USymbolicMemoryRegion<out RegionId : URegionId<Key, Sort, RegionId>, 
     // to save memory usage
     val sort: Sort get() = regionId.sort
 
-    // if we replace it with get(), we have to check it every time in read function
+    // If we replace it with get(), we have to check for nullability in read function.
     val defaultValue = regionId.defaultValue
 
     private fun read(key: Key, updates: UMemoryUpdates<Key, Sort>): UExpr<Sort> {
@@ -127,8 +127,8 @@ data class USymbolicMemoryRegion<out RegionId : URegionId<Key, Sort, RegionId>, 
      * The [guardBuilder] is used to build guards for values added to [matchingWrites]. In the end, the [guardBuilder]
      * is updated and contains predicate indicating that the [key] can't be included in any of visited [UUpdateNode]s.
      *
-     * @return new [USymbolicMemoryRegion] without writes satisfying [predicate] or this [USymbolicMemoryRegion] if no matching writes
-     * were found.
+     * @return new [USymbolicMemoryRegion] without writes satisfying [predicate] or this [USymbolicMemoryRegion] if no
+     * matching writes were found.
      * @see [UMemoryUpdates.split], [splittingRead]
      */
     internal fun split(
@@ -168,7 +168,6 @@ data class USymbolicMemoryRegion<out RegionId : URegionId<Key, Sort, RegionId>, 
             return this
         }
 
-        // Otherwise, construct a new region with mapped values and a new instantiator.
         return USymbolicMemoryRegion(mappedRegionId, mappedUpdates)
     }
 

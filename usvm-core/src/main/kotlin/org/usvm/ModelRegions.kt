@@ -7,13 +7,12 @@ import org.ksmt.expr.*
 import org.ksmt.solver.KModel
 import org.ksmt.sort.KArray2Sort
 import org.ksmt.sort.KArraySort
-import org.ksmt.utils.sampleValue
 
 
 /**
  * A specific [UMemoryRegion] for one-dimensional regions generalized by a single expression of a [KeySort].
  */
-class UMemory1DArray<KeySort : USort, Sort : USort>(
+class UMemory1DArray<KeySort : USort, Sort : USort> internal constructor(
     private val values: PersistentMap<UExpr<KeySort>, UExpr<Sort>>,
     private val constValue: UExpr<Sort>,
 ) : UMemoryRegion<KExpr<KeySort>, Sort> {
@@ -78,8 +77,7 @@ class UMemory1DArray<KeySort : USort, Sort : USort>(
             valueCopy as KArrayConst<KArraySort<KeySort, Sort>, Sort>
 
             val constValue = valueCopy.value.mapAddress(mapping)
-            val values = stores
-            return UMemory1DArray(values.toPersistentMap(), constValue)
+            return UMemory1DArray(stores.toPersistentMap(), constValue)
         }
     }
 }
@@ -88,7 +86,7 @@ class UMemory1DArray<KeySort : USort, Sort : USort>(
  * A specific [UMemoryRegion] for two-dimensional regions generalized by a pair
  * of two expressions with [Key1Sort] and [Key2Sort] sorts.
  */
-class UMemory2DArray<Key1Sort : USort, Key2Sort : USort, Sort : USort>(
+class UMemory2DArray<Key1Sort : USort, Key2Sort : USort, Sort : USort> internal constructor(
     val values: PersistentMap<Pair<UExpr<Key1Sort>, UExpr<Key2Sort>>, UExpr<Sort>>,
     val constValue: UExpr<Sort>,
 ) : UMemoryRegion<Pair<KExpr<Key1Sort>, KExpr<Key2Sort>>, Sort> {
@@ -152,8 +150,7 @@ class UMemory2DArray<Key1Sort : USort, Key2Sort : USort, Sort : USort>(
             valueCopy as KArrayConst<KArray2Sort<Key1Sort, Key2Sort, Sort>, Sort>
 
             val constValue = valueCopy.value.mapAddress(mapping)
-            val values = stores
-            return UMemory2DArray(values.toPersistentMap(), constValue)
+            return UMemory2DArray(stores.toPersistentMap(), constValue)
         }
     }
 }

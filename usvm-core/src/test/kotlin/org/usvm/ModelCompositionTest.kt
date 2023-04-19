@@ -18,14 +18,14 @@ class ModelCompositionTest {
 
     @Test
     fun testComposeAllocatedArray() = with(ctx) {
-        val heapEvaluator = UHeapModel<Field, Type>(
+        val heapEvaluator = UHeapEagerModel<Field, Type>(
             concreteNull,
             mapOf(),
             mapOf(),
             mapOf(),
         )
 
-        val stackModel = URegistersStackModel(concreteNull, mapOf(0 to ctx.mkBv(0), 1 to ctx.mkBv(0), 2 to ctx.mkBv(2)))
+        val stackModel = URegistersStackEagerModel(concreteNull, mapOf(0 to ctx.mkBv(0), 1 to ctx.mkBv(0), 2 to ctx.mkBv(2)))
 
         val composer = UComposer(this, stackModel, heapEvaluator, mockk(), mockk())
 
@@ -45,7 +45,7 @@ class ModelCompositionTest {
         val arrayType = mockk<Type>()
         val composedSymbolicHeapRef = ctx.mkConcreteHeapRef(-1)
         val inputArray = UMemory2DArray(persistentMapOf((composedSymbolicHeapRef to mkBv(0)) to mkBv(1)), mkBv(0))
-        val heapEvaluator = UHeapModel<Field, Type>(
+        val heapEvaluator = UHeapEagerModel<Field, Type>(
             concreteNull,
             mapOf(),
             mapOf(arrayType to inputArray),
@@ -53,7 +53,7 @@ class ModelCompositionTest {
         )
 
         val stackModel =
-            URegistersStackModel(concreteNull, mapOf(0 to composedSymbolicHeapRef, 1 to mkBv(0)))
+            URegistersStackEagerModel(concreteNull, mapOf(0 to composedSymbolicHeapRef, 1 to mkBv(0)))
         val composer = UComposer(this, stackModel, heapEvaluator, mockk(), mockk())
 
         val symbolicRef = mkRegisterReading(0, addressSort)
@@ -88,14 +88,14 @@ class ModelCompositionTest {
 
         val arrayType = mockk<Type>()
         val inputLength = UMemory1DArray(persistentMapOf(composedRef0 to mkBv(42)), mkBv(0))
-        val heapEvaluator = UHeapModel<Field, Type>(
+        val heapEvaluator = UHeapEagerModel<Field, Type>(
             concreteNull,
             mapOf(),
             mapOf(),
             mapOf(arrayType to inputLength),
         )
 
-        val stackModel = URegistersStackModel(
+        val stackModel = URegistersStackEagerModel(
             concreteNull,
             mapOf(
                 0 to composedRef0,
@@ -131,14 +131,14 @@ class ModelCompositionTest {
 
         val field = mockk<Field>()
         val inputField = UMemory1DArray(persistentMapOf(composedRef0 to composedRef0), concreteNull)
-        val heapEvaluator = UHeapModel<Field, Type>(
+        val heapEvaluator = UHeapEagerModel<Field, Type>(
             concreteNull,
             mapOf(field to inputField),
             mapOf(),
             mapOf(),
         )
 
-        val stackModel = URegistersStackModel(
+        val stackModel = URegistersStackEagerModel(
             concreteNull,
             mapOf(
                 0 to composedRef0,

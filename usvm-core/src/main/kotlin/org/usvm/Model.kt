@@ -14,7 +14,7 @@ interface UModel {
  */
 open class UModelBase<Field, Type>(
     ctx: UContext,
-    val stack: URegistersStackModel,
+    val stack: ULazyRegistersStackModel,
     val heap: UReadOnlySymbolicHeap<Field, Type>,
     val types: UTypeModel<Type>,
     val mocks: UMockEvaluator

@@ -71,7 +71,8 @@ interface UMemoryUpdates<Key, Sort : USort> : Sequence<UUpdateNode<Key, Sort>> {
     fun isEmpty(): Boolean
 
     /**
-     * Accepts the [visitor]. Calls `visitInitialValue` firstly, then calls `visitUpdateNode` in the chronological order
+     * Accepts the [visitor]. Implementations should call [UMemoryUpdatesVisitor.visitInitialValue] firstly, then call
+     * [UMemoryUpdatesVisitor.visitUpdateNode] in the chronological order
      * (from the oldest to the newest) with accumulated [Result].
      *
      * Uses [lookupCache] to shortcut the traversal. The actual key is determined by the
@@ -479,8 +480,7 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
     override fun <Result> accept(
         visitor: UMemoryUpdatesVisitor<Key, Sort, Result>,
         lookupCache: MutableMap<Any?, Result>,
-    ): Result =
-        UTreeMemoryUpdatesFolder(visitor, lookupCache).fold()
+    ): Result = UTreeMemoryUpdatesFolder(visitor, lookupCache).fold()
 
     private inner class UTreeMemoryUpdatesFolder<Result>(
         private val visitor: UMemoryUpdatesVisitor<Key, Sort, Result>,
@@ -493,6 +493,20 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
 
         private val emittedUpdates = hashSetOf<UUpdateNode<Key, Sort>>()
 
+        /**
+         * [leftMostFold] visits only nodes marked by a star `*`.
+         * Nodes marked by an at `@` visited in [notLeftMostFold].
+         *
+         * ```
+         *       * @
+         *      /   \
+         *     /     \
+         *    * @ @   @@
+         *   /  |  \
+         *  /   @@  @@
+         * *
+         *```
+         */
         private fun leftMostFold(updates: RegionTree<UUpdateNode<Key, Sort>, *>): Result {
             var result = cache[updates]
 

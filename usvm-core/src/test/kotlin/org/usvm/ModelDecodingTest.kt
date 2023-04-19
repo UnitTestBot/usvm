@@ -19,7 +19,7 @@ class ModelDecodingTest {
     @BeforeEach
     fun initializeContext() {
         ctx = UContext()
-        val (translator, decoder) = buildDefaultTranslatorAndDecoder<Field, Type, Method>(ctx)
+        val (translator, decoder) = buildTranslatorAndLazyDecoder<Field, Type, Method>(ctx)
         solver = USolverBase(ctx, KZ3Solver(ctx), translator, decoder)
 
         stack = URegistersStack(ctx)

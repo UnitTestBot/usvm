@@ -452,7 +452,7 @@ internal class CompositionTest {
     fun testHeapRefEq() = with(ctx) {
         val concreteNull = ctx.mkConcreteHeapRef(NULL_ADDRESS)
         val stackModel =
-            URegistersStackModel(concreteNull, mapOf(0 to mkConcreteHeapRef(-1), 1 to mkConcreteHeapRef(-2)))
+            URegistersStackEagerModel(concreteNull, mapOf(0 to mkConcreteHeapRef(-1), 1 to mkConcreteHeapRef(-2)))
 
         val composer = UComposer<Field, Type>(this, stackModel, mockk(), mockk(), mockk())
 
@@ -465,7 +465,7 @@ internal class CompositionTest {
     @Test
     fun testHeapRefNullAddress() = with(ctx) {
         val concreteNull = ctx.mkConcreteHeapRef(NULL_ADDRESS)
-        val stackModel = URegistersStackModel(concreteNull, mapOf(0 to mkConcreteHeapRef(0)))
+        val stackModel = URegistersStackEagerModel(concreteNull, mapOf(0 to mkConcreteHeapRef(0)))
 
         val heapEvaluator: UReadOnlySymbolicHeap<Field, Type> = mockk()
         every { heapEvaluator.nullRef() } returns mkConcreteHeapRef(NULL_ADDRESS)
@@ -491,7 +491,7 @@ internal class CompositionTest {
 
         regionHeap.writeArrayIndex(composedSymbolicHeapRef, mkBv(3), arrayType, bv32Sort, mkBv(1337), trueExpr)
 
-        val stackModel = URegistersStackModel(
+        val stackModel = URegistersStackEagerModel(
             concreteNull, mapOf(
                 0 to composedSymbolicHeapRef,
                 1 to composedSymbolicHeapRef,
@@ -544,7 +544,7 @@ internal class CompositionTest {
 
         every { heapEvaluator.nullRef() } returns concreteNull
 
-        val stackModel = URegistersStackModel(concreteNull, mapOf(0 to mkBv(0), 1 to mkBv(0), 2 to mkBv(2)))
+        val stackModel = URegistersStackEagerModel(concreteNull, mapOf(0 to mkBv(0), 1 to mkBv(0), 2 to mkBv(2)))
 
         val composer = UComposer(this, stackModel, heapEvaluator, mockk(), mockk())
 
