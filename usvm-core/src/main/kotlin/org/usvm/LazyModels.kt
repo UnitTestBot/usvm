@@ -70,15 +70,16 @@ class ULazyIndexedMockModel<Method>(
 /**
  *
  * A lazy immutable heap model. Firstly, searches for decoded [UMemoryRegion], decodes it from [model] if not found,
- * then evaluates a value from it.
+ * secondly, evaluates a value from it.
  *
  * Declared as mutable heap for using in regions composition in [UComposer]. Any call to
  * modifying operation throws an exception.
  *
  * Any [UHeapReading] possibly writing to this heap in its [URegionId.instantiate] call actually has empty updates,
- * because localization took place, so this heap won't be mutated.
+ * because localization happened, so this heap won't be mutated.
  *
- * @param regionIdToInitialValue [URegionId] to initial values cache. Need to perform decoding from [model].
+ * @param regionIdToInitialValue mapping from [URegionId] to initial values. We decode memory regions
+ * using this cache.
  * @param model has to be detached.
  */
 class ULazyHeapModel<Field, ArrayType>(
@@ -86,10 +87,10 @@ class ULazyHeapModel<Field, ArrayType>(
     private val nullRef: UConcreteHeapRef,
     private val addressesMapping: AddressesMapping,
     private val regionIdToInitialValue: Map<URegionId<*, *, *>, KExpr<*>>,
-    private val resolvedInputFields: MutableMap<Field, UMemoryRegion<UHeapRef, out USort>>,
-    private val resolvedInputArrays: MutableMap<ArrayType, UMemoryRegion<USymbolicArrayIndex, out USort>>,
-    private val resolvedInputLengths: MutableMap<ArrayType, UMemoryRegion<UHeapRef, USizeSort>>,
 ) : USymbolicHeap<Field, ArrayType> {
+    private val resolvedInputFields = mutableMapOf<Field, UMemoryRegion<UHeapRef, out USort>>()
+    private val resolvedInputArrays = mutableMapOf<ArrayType, UMemoryRegion<USymbolicArrayIndex, out USort>>()
+    private val resolvedInputLengths = mutableMapOf<ArrayType, UMemoryRegion<UHeapRef, USizeSort>>()
     override fun <Sort : USort> readField(ref: UHeapRef, field: Field, sort: Sort): UExpr<Sort> {
         // All the expressions in the model are interpreted, therefore, they must
         // have concrete addresses. Moreover, the model knows only about input values
@@ -214,3 +215,16 @@ fun <T : USort> UExpr<T>.makeNullRefConcrete(conreteNullRef: UConcreteHeapRef): 
     } else {
         this
     }
+
+/**
+ * If [this] value is an instance of address expression, returns
+ * an expression with a corresponding concrete address, otherwise
+ * returns [this] unchanched.
+ */
+fun <S : USort> UExpr<S>.mapAddress(
+    addressesMapping: AddressesMapping,
+): UExpr<S> = if (sort == uctx.addressSort) {
+    addressesMapping.getValue(asExpr(uctx.addressSort)).asExpr(sort)
+} else {
+    this
+}

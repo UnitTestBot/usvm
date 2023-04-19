@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.ksmt.solver.z3.KZ3Solver
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 
 class ModelDecodingTest {
@@ -142,5 +143,30 @@ class ModelDecodingTest {
         val model = assertIs<USolverSat<UModelBase<Field, Type>>>(status).model
 
         assertSame(model.eval(symbolicRef1), model.eval(symbolicRef2))
+    }
+
+    @Test
+    fun testLoopedWritingsToArray() = with(ctx) {
+        val array = mockk<Type>()
+
+        val symbolicRef0 = stack.readRegister(0, addressSort)
+        val symbolicRef1 = stack.readRegister(1, addressSort)
+        val symbolicRef2 = stack.readRegister(2, addressSort)
+
+        val concreteIdx = mkBv(3)
+
+        heap.writeArrayIndex(symbolicRef0, concreteIdx, array, addressSort, symbolicRef1, trueExpr)
+        heap.writeArrayIndex(symbolicRef1, concreteIdx, array, addressSort, symbolicRef2, trueExpr)
+        heap.writeArrayIndex(symbolicRef2, concreteIdx, array, addressSort, symbolicRef0, trueExpr)
+
+        val readedRef = heap.readArrayIndex(symbolicRef0, concreteIdx, array, addressSort)
+        val pc = (symbolicRef0 neq nullRef) and (symbolicRef1  neq nullRef) and (symbolicRef2 neq nullRef) and
+                (readedRef neq symbolicRef1) and (symbolicRef0 eq symbolicRef1)
+
+        val status = solver.check(memory, UPathConstraintsSet(pc))
+        val model = assertIs<USolverSat<UModelBase<Field, Type>>>(status).model
+
+        assertSame(falseExpr, model.eval(symbolicRef2 eq symbolicRef0))
+        assertSame(model.eval(readedRef), model.eval(symbolicRef2))
     }
 }

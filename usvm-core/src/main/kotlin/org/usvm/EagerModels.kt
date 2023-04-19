@@ -3,6 +3,10 @@ package org.usvm
 import org.ksmt.utils.asExpr
 import org.ksmt.utils.sampleValue
 
+/**
+ * An eager model for registers that stores mapping
+ * from mock symbols to evaluated expressions.
+ */
 class URegistersStackEagerModel(
     private val nullRef: UConcreteHeapRef,
     private val registers: Map<Int, UExpr<out USort>>
@@ -14,7 +18,7 @@ class URegistersStackEagerModel(
 }
 
 /**
- * A model for an indexed mocker that stores mapping
+ * An eager model for an indexed mocker that stores mapping
  * from mock symbols and invocation indices to expressions.
  */
 class UIndexedMockEagerModel<Method>(
@@ -35,11 +39,13 @@ class UIndexedMockEagerModel<Method>(
 }
 
 /**
- * An immutable heap model. Declared as mutable heap for using in regions composition in [UComposer]. Any call to
+ * An eager immutable heap model.
+ *
+ * Declared as mutable heap for using in regions composition in [UComposer]. Any call to
  * modifying operation throws an exception.
  *
  * Any [UHeapReading] possibly writing to this heap in its [URegionId.instantiate] call actually has empty updates,
- * because localization took place, so this heap won't be mutated.
+ * because localization happened, so this heap won't be mutated.
  */
 class UHeapEagerModel<Field, ArrayType>(
     private val nullRef: UConcreteHeapRef,

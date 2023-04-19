@@ -3,7 +3,6 @@ package org.usvm
 import org.ksmt.expr.KExpr
 import org.ksmt.solver.KModel
 import org.ksmt.sort.KUninterpretedSort
-import org.ksmt.utils.asExpr
 import org.usvm.UAddressCounter.Companion.INITIAL_INPUT_ADDRESS
 import org.usvm.UAddressCounter.Companion.NULL_ADDRESS
 
@@ -37,7 +36,7 @@ typealias AddressesMapping = Map<UExpr<UAddressSort>, UConcreteHeapRef>
 
 
 /**
- * Base decoder suitable for decoding [KModel] to [UModelBase]. It can't be reused between different root methods,
+ * A lazy decoder suitable for decoding [KModel] to [UModelBase]. It can't be reused between different root methods,
  * because of a matched translator caches.
  *
  * Passed parameters updates on the fly in a matched translator, so they are mutable in fact.
@@ -86,6 +85,11 @@ open class ULazyModelDecoder<Field, Type, Method>(
         return result
     }
 
+    /**
+     * Decodes a [model] from a [memory] to a [UModelBase].
+     *
+     * @param model should be detached.
+     */
     override fun decode(
         memory: UMemoryBase<Field, Type, Method>,
         model: KModel,
@@ -118,9 +122,6 @@ open class ULazyModelDecoder<Field, Type, Method>(
         addressesMapping.getValue(translatedNullRef),
         addressesMapping,
         regionIdToInitialValue,
-        mutableMapOf(),
-        mutableMapOf(),
-        mutableMapOf()
     )
 
     private fun decodeMocker(
@@ -132,17 +133,4 @@ open class ULazyModelDecoder<Field, Type, Method>(
             addressesMapping,
             indexedMethodReturnValueToTranslated
         )
-}
-
-/**
- * If [this] value is an instance of address expression, returns
- * an expression with a corresponding concrete address, otherwise
- * returns [this] unchanched.
- */
-fun <S : USort> UExpr<S>.mapAddress(
-    addressesMapping: AddressesMapping,
-): UExpr<S> = if (sort == uctx.addressSort) {
-    addressesMapping.getValue(asExpr(uctx.addressSort)).asExpr(sort)
-} else {
-    this
 }
