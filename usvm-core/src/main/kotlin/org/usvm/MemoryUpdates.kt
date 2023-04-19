@@ -38,7 +38,7 @@ interface UMemoryUpdates<Key, Sort : USort> : Sequence<UUpdateNode<Key, Sort>> {
     ): UMemoryUpdates<Key, Sort>
 
     /**
-     * Returns a mapped [UMemoryRegion] using [keyMapper] and [composer].
+     * Returns a mapped [USymbolicMemoryRegion] using [keyMapper] and [composer].
      * It is used in [UComposer] during memory composition.
      */
     fun <Field, Type> map(keyMapper: KeyMapper<Key>, composer: UComposer<Field, Type>): UMemoryUpdates<Key, Sort>
@@ -47,10 +47,10 @@ interface UMemoryUpdates<Key, Sort : USort> : Sequence<UUpdateNode<Key, Sort>> {
      * @return Updates which express copying the slice of [fromRegion]  guarded with
      * condition [guard].
      *
-     * @see UMemoryRegion.copyRange
+     * @see USymbolicMemoryRegion.copyRange
      */
-    fun <ArrayType, RegionId : UArrayId<ArrayType, SrcKey>, SrcKey> copyRange(
-        fromRegion: UMemoryRegion<RegionId, SrcKey, Sort>,
+    fun <RegionId : UArrayId<*, SrcKey, Sort, RegionId>, SrcKey> copyRange(
+        fromRegion: USymbolicMemoryRegion<RegionId, SrcKey, Sort>,
         fromKey: Key,
         toKey: Key,
         keyConverter: UMemoryKeyConverter<SrcKey, Key>,
@@ -69,92 +69,80 @@ interface UMemoryUpdates<Key, Sort : USort> : Sequence<UUpdateNode<Key, Sort>> {
      * Returns true if there were any updates and false otherwise.
      */
     fun isEmpty(): Boolean
+
+    /**
+     * Accepts the [visitor]. Implementations should call [UMemoryUpdatesVisitor.visitInitialValue] firstly, then call
+     * [UMemoryUpdatesVisitor.visitUpdateNode] in the chronological order
+     * (from the oldest to the newest) with accumulated [Result].
+     *
+     * Uses [lookupCache] to shortcut the traversal. The actual key is determined by the
+     * [UMemoryUpdates] implementation. A caller is responsible to maintain the lifetime of the [lookupCache].
+     *
+     * @return the final result.
+     */
+    fun <Result> accept(
+        visitor: UMemoryUpdatesVisitor<Key, Sort, Result>,
+        lookupCache: MutableMap<Any?, Result>,
+    ): Result
 }
+
+/**
+ * A generic memory updates visitor. Doesn't think about a cache.
+ */
+interface UMemoryUpdatesVisitor<Key, Sort : USort, Result> {
+    fun visitSelect(result: Result, key: Key): UExpr<Sort>
+
+    fun visitInitialValue(): Result
+
+    fun visitUpdate(previous: Result, update: UUpdateNode<Key, Sort>): Result
+}
+
 
 
 //region Flat memory updates
 
-class UEmptyUpdates<Key, Sort : USort>(
+class UFlatUpdates<Key, Sort : USort> private constructor(
+    internal val node: UFlatUpdatesNode<Key, Sort>?,
     private val symbolicEq: (Key, Key) -> UBoolExpr,
     private val concreteCmp: (Key, Key) -> Boolean,
     private val symbolicCmp: (Key, Key) -> UBoolExpr,
 ) : UMemoryUpdates<Key, Sort> {
-    override fun read(key: Key): UEmptyUpdates<Key, Sort> = this
+    constructor(
+        symbolicEq: (Key, Key) -> UBoolExpr,
+        concreteCmp: (Key, Key) -> Boolean,
+        symbolicCmp: (Key, Key) -> UBoolExpr,
+    ) : this(node = null, symbolicEq, concreteCmp, symbolicCmp)
 
-    override fun write(key: Key, value: UExpr<Sort>, guard: UBoolExpr): UFlatUpdates<Key, Sort> =
-        UFlatUpdates(
-            UPinpointUpdateNode(key, value, symbolicEq, guard),
-            next = null,
-            symbolicEq,
-            concreteCmp,
-            symbolicCmp
-        )
-
-    override fun <ArrayType, RegionId : UArrayId<ArrayType, SrcKey>, SrcKey> copyRange(
-        fromRegion: UMemoryRegion<RegionId, SrcKey, Sort>,
-        fromKey: Key,
-        toKey: Key,
-        keyConverter: UMemoryKeyConverter<SrcKey, Key>,
-        guard: UBoolExpr,
-    ): UFlatUpdates<Key, Sort> = UFlatUpdates(
-        URangedUpdateNode(fromKey, toKey, fromRegion, concreteCmp, symbolicCmp, keyConverter, guard),
-        next = null,
-        symbolicEq,
-        concreteCmp,
-        symbolicCmp
+    internal data class UFlatUpdatesNode<Key, Sort : USort>(
+        val update: UUpdateNode<Key, Sort>,
+        val next: UFlatUpdates<Key, Sort>,
     )
 
-    override fun split(
-        key: Key,
-        predicate: (UExpr<Sort>) -> Boolean,
-        matchingWrites: MutableList<GuardedExpr<UExpr<Sort>>>,
-        guardBuilder: GuardBuilder,
-    ) = this
-
-    override fun <Field, Type> map(
-        keyMapper: KeyMapper<Key>,
-        composer: UComposer<Field, Type>,
-    ): UEmptyUpdates<Key, Sort> = this
-
-    override fun iterator(): Iterator<UUpdateNode<Key, Sort>> = EmptyIterator()
-
-    private class EmptyIterator<Key, Sort : USort> : Iterator<UUpdateNode<Key, Sort>> {
-        override fun hasNext(): Boolean = false
-        override fun next(): UUpdateNode<Key, Sort> = error("Advancing empty iterator")
-    }
-
-    override fun lastUpdatedElementOrNull(): UUpdateNode<Key, Sort>? = null
-
-    override fun isEmpty(): Boolean = true
-}
-
-data class UFlatUpdates<Key, Sort : USort>(
-    val node: UUpdateNode<Key, Sort>,
-    val next: UMemoryUpdates<Key, Sort>?,
-    private val symbolicEq: (Key, Key) -> UBoolExpr,
-    private val concreteCmp: (Key, Key) -> Boolean,
-    private val symbolicCmp: (Key, Key) -> UBoolExpr,
-) : UMemoryUpdates<Key, Sort> {
-    override fun read(key: Key): UMemoryUpdates<Key, Sort> = this
+    override fun read(key: Key): UFlatUpdates<Key, Sort> =
+        when {
+            node != null && node.update.includesSymbolically(key).isFalse -> node.next.read(key)
+            else -> this
+        }
 
     override fun write(key: Key, value: UExpr<Sort>, guard: UBoolExpr): UFlatUpdates<Key, Sort> =
         UFlatUpdates(
-            UPinpointUpdateNode(key, value, symbolicEq, guard),
-            next = this,
+            UFlatUpdatesNode(UPinpointUpdateNode(key, value, symbolicEq, guard), this),
             symbolicEq,
             concreteCmp,
             symbolicCmp
         )
 
-    override fun <ArrayType, RegionId : UArrayId<ArrayType, SrcKey>, SrcKey> copyRange(
-        fromRegion: UMemoryRegion<RegionId, SrcKey, Sort>,
+    override fun <RegionId : UArrayId<*, SrcKey, Sort, RegionId>, SrcKey> copyRange(
+        fromRegion: USymbolicMemoryRegion<RegionId, SrcKey, Sort>,
         fromKey: Key,
         toKey: Key,
         keyConverter: UMemoryKeyConverter<SrcKey, Key>,
         guard: UBoolExpr,
     ): UMemoryUpdates<Key, Sort> = UFlatUpdates(
-        URangedUpdateNode(fromKey, toKey, fromRegion, concreteCmp, symbolicCmp, keyConverter, guard),
-        next = this,
+        UFlatUpdatesNode(
+            URangedUpdateNode(fromKey, toKey, fromRegion, concreteCmp, symbolicCmp, keyConverter, guard),
+            this
+        ),
         symbolicEq,
         concreteCmp,
         symbolicCmp
@@ -165,36 +153,38 @@ data class UFlatUpdates<Key, Sort : USort>(
         predicate: (UExpr<Sort>) -> Boolean,
         matchingWrites: MutableList<GuardedExpr<UExpr<Sort>>>,
         guardBuilder: GuardBuilder,
-    ): UMemoryUpdates<Key, Sort> {
-        val splitNode = node.split(key, predicate, matchingWrites, guardBuilder)
-        val splitNext = next?.split(key, predicate, matchingWrites, guardBuilder)
+    ): UFlatUpdates<Key, Sort> {
+        node ?: return this
+        val splitNode = node.update.split(key, predicate, matchingWrites, guardBuilder)
+        val splitNext = node.next.split(key, predicate, matchingWrites, guardBuilder)
 
         if (splitNode == null) {
-            return splitNext ?: UEmptyUpdates(symbolicEq, concreteCmp, symbolicCmp)
+            return splitNext
         }
 
-        if (splitNext === next) {
+        if (splitNext === node.next && splitNode === node.update) {
             return this
         }
 
-        return UFlatUpdates(splitNode, splitNext, symbolicEq, concreteCmp, symbolicCmp)
+        return UFlatUpdates(UFlatUpdatesNode(splitNode, splitNext), symbolicEq, concreteCmp, symbolicCmp)
     }
 
     override fun <Field, Type> map(
         keyMapper: KeyMapper<Key>,
-        composer: UComposer<Field, Type>,
+        composer: UComposer<Field, Type>
     ): UFlatUpdates<Key, Sort> {
+        node ?: return this
         // Map the current node and the next values recursively
-        val mappedNode = node.map(keyMapper, composer)
-        val mappedNext = next?.map(keyMapper, composer)
+        val mappedNode = node.update.map(keyMapper, composer)
+        val mappedNext = node.next.map(keyMapper, composer)
 
         // If nothing changed, return this updates
-        if (mappedNode === node && mappedNext === next) {
+        if (mappedNode === node.update && mappedNext === node.next) {
             return this
         }
 
         // Otherwise, construct a new one using the mapped values
-        return UFlatUpdates(mappedNode, mappedNext, symbolicEq, concreteCmp, symbolicCmp)
+        return UFlatUpdates(UFlatUpdatesNode(mappedNode, mappedNext), symbolicEq, concreteCmp, symbolicCmp)
     }
 
     /**
@@ -210,14 +200,13 @@ data class UFlatUpdates<Key, Sort : USort>(
 
         init {
             val elements = mutableListOf<UUpdateNode<Key, Sort>>()
-            var current: UFlatUpdates<Key, Sort>? = initialNode
+            var current: UFlatUpdates<Key, Sort> = initialNode
 
             // Traverse over linked list of updates nodes and extract them into an array list
-            while (current != null) {
-                elements += current.node
-                // We can safely apply `as?` since we are interested only in non-empty updates
-                // and there are no `treeUpdates` as a `next` element of the `UFlatUpdates`
-                current = current.next as? UFlatUpdates<Key, Sort>
+            while (true) {
+                val node = current.node ?: break
+                elements += node.update
+                current = node.next
             }
 
             iterator = elements.asReversed().iterator()
@@ -228,9 +217,27 @@ data class UFlatUpdates<Key, Sort : USort>(
         override fun next(): UUpdateNode<Key, Sort> = iterator.next()
     }
 
-    override fun lastUpdatedElementOrNull(): UUpdateNode<Key, Sort> = node
+    override fun lastUpdatedElementOrNull(): UUpdateNode<Key, Sort>? = node?.update
 
-    override fun isEmpty(): Boolean = false
+    override fun isEmpty(): Boolean = node == null
+
+    override fun <Result> accept(
+        visitor: UMemoryUpdatesVisitor<Key, Sort, Result>,
+        lookupCache: MutableMap<Any?, Result>,
+    ): Result = UFlatMemoryUpdatesFolder(visitor, lookupCache).fold()
+
+    private inner class UFlatMemoryUpdatesFolder<Result>(
+        private val visitor: UMemoryUpdatesVisitor<Key, Sort, Result>,
+        private val cache: MutableMap<Any?, Result>,
+    ) {
+        fun fold() = foldFlatUpdates(this@UFlatUpdates)
+        private fun foldFlatUpdates(updates: UFlatUpdates<Key, Sort>): Result =
+            cache.getOrPut(updates) {
+                val node = updates.node ?: return@getOrPut visitor.visitInitialValue()
+                val accumulated = foldFlatUpdates(node.next)
+                visitor.visitUpdate(accumulated, node.update)
+            }
+    }
 }
 
 //endregion
@@ -266,13 +273,13 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
         return this.copy(updates = newUpdates)
     }
 
-    override fun <ArrayType, RegionId : UArrayId<ArrayType, SrcKey>, SrcKey> copyRange(
-        fromRegion: UMemoryRegion<RegionId, SrcKey, Sort>,
+    override fun <RegionId : UArrayId<*, SrcKey, Sort, RegionId>, SrcKey> copyRange(
+        fromRegion: USymbolicMemoryRegion<RegionId, SrcKey, Sort>,
         fromKey: Key,
         toKey: Key,
         keyConverter: UMemoryKeyConverter<SrcKey, Key>,
-        guard: UBoolExpr,
-    ): UMemoryUpdates<Key, Sort> {
+        guard: UBoolExpr
+    ): UTreeUpdates<Key, Reg, Sort> {
         val region = keyRangeToRegion(fromKey, toKey)
         val update = URangedUpdateNode(fromKey, toKey, fromRegion, concreteCmp, symbolicCmp, keyConverter, guard)
         val newUpdates = updates.write(
@@ -289,7 +296,7 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
         predicate: (UExpr<Sort>) -> Boolean,
         matchingWrites: MutableList<GuardedExpr<UExpr<Sort>>>,
         guardBuilder: GuardBuilder,
-    ): UMemoryUpdates<Key, Sort> {
+    ): UTreeUpdates<Key, Reg, Sort> {
         // the suffix of the [updates], starting from the earliest update satisfying `predicate(update.value(key))`
         val updatesSuffix = mutableListOf<UUpdateNode<Key, Sort>?>()
 
@@ -300,7 +307,7 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
         fun applyUpdate(update: UUpdateNode<Key, Sort>) {
             val region = when (update) {
                 is UPinpointUpdateNode<Key, Sort> -> keyToRegion(update.key)
-                is URangedUpdateNode<*, *, *, Key, Sort> -> keyRangeToRegion(update.fromKey, update.toKey)
+                is URangedUpdateNode<*, *, Key, Sort> -> keyRangeToRegion(update.fromKey, update.toKey)
             }
             splitUpdates = splitUpdates.write(region, update, keyFilter = { it.isIncludedByUpdateConcretely(update) })
         }
@@ -377,8 +384,8 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
                     oldRegion.intersect(currentRegion)
                 }
 
-                is URangedUpdateNode<*, *, *, Key, Sort> -> {
-                    mappedUpdateNode as URangedUpdateNode<*, *, *, Key, Sort>
+                is URangedUpdateNode<*, *, Key, Sort> -> {
+                    mappedUpdateNode as URangedUpdateNode<*, *, Key, Sort>
                     val currentRegion = keyRangeToRegion(mappedUpdateNode.fromKey, mappedUpdateNode.toKey)
                     oldRegion.intersect(currentRegion)
                 }
@@ -424,14 +431,7 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
             while (treeUpdatesIterator.hasNext()) {
                 val (update, region) = treeUpdatesIterator.next()
 
-                // To check, whether we have a duplicate for a particular key,
-                // we have to check if an initial region (by USVM estimation) is equal
-                // to the one stored in the current node.
-                val initialRegion = when (update) {
-                    is UPinpointUpdateNode<Key, Sort> -> keyToRegion(update.key)
-                    is URangedUpdateNode<*, *, *, Key, Sort> -> keyRangeToRegion(update.fromKey, update.toKey)
-                }
-                val wasCloned = initialRegion != region
+                val wasCloned = checkWasCloned(update, region)
 
                 // If a region from the current node is equal to the initial region,
                 // it means that there were no write operation that caused nodes split,
@@ -461,10 +461,96 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
         }
     }
 
+    internal fun checkWasCloned(update: UUpdateNode<Key, Sort>, region: Region<*>): Boolean {
+        // To check, whether we have a duplicate for a particular key,
+        // we have to check if an initial region (by USVM estimation) is equal
+        // to the one stored in the current node.
+        val initialRegion = when (update) {
+            is UPinpointUpdateNode<Key, Sort> -> keyToRegion(update.key)
+            is URangedUpdateNode<*, *, Key, Sort> -> keyRangeToRegion(update.fromKey, update.toKey)
+        }
+        val wasCloned = initialRegion != region
+        return wasCloned
+    }
+
     override fun lastUpdatedElementOrNull(): UUpdateNode<Key, Sort>? =
         updates.entries.entries.lastOrNull()?.value?.first
 
     override fun isEmpty(): Boolean = updates.entries.isEmpty()
+    override fun <Result> accept(
+        visitor: UMemoryUpdatesVisitor<Key, Sort, Result>,
+        lookupCache: MutableMap<Any?, Result>,
+    ): Result = UTreeMemoryUpdatesFolder(visitor, lookupCache).fold()
+
+    private inner class UTreeMemoryUpdatesFolder<Result>(
+        private val visitor: UMemoryUpdatesVisitor<Key, Sort, Result>,
+        private val cache: MutableMap<Any?, Result>,
+    ) {
+        fun fold(): Result =
+            cache.getOrPut(updates) {
+                leftMostFold(updates)
+            }
+
+        private val emittedUpdates = hashSetOf<UUpdateNode<Key, Sort>>()
+
+        /**
+         * [leftMostFold] visits only nodes marked by a star `*`.
+         * Nodes marked by an at `@` visited in [notLeftMostFold].
+         *
+         * ```
+         *       * @
+         *      /   \
+         *     /     \
+         *    * @ @   @@
+         *   /  |  \
+         *  /   @@  @@
+         * *
+         *```
+         */
+        private fun leftMostFold(updates: RegionTree<UUpdateNode<Key, Sort>, *>): Result {
+            var result = cache[updates]
+
+            if (result != null) {
+                return result
+            }
+
+            val entryIterator = updates.entries.iterator()
+            if (!entryIterator.hasNext()) {
+                return visitor.visitInitialValue()
+            }
+            val (update, nextUpdates) = entryIterator.next().value
+            result = leftMostFold(nextUpdates)
+            result = visitor.visitUpdate(result, update)
+            return notLeftMostFold(result, entryIterator)
+        }
+
+        private fun notLeftMostFold(
+            accumulator: Result,
+            iterator: Iterator<Map.Entry<Region<*>, Pair<UUpdateNode<Key, Sort>, RegionTree<UUpdateNode<Key, Sort>, *>>>>,
+        ): Result {
+            var accumulated = accumulator
+            while (iterator.hasNext()) {
+                val (reg, entry) = iterator.next()
+                val (update, tree) = entry
+                accumulated = notLeftMostFold(accumulated, tree.entries.iterator())
+
+                accumulated = addIfNeeded(accumulated, update, reg)
+            }
+            return accumulated
+        }
+
+        private fun addIfNeeded(accumulated: Result, update: UUpdateNode<Key, Sort>, region: Region<*>): Result {
+            if (checkWasCloned(update, region)) {
+                if (update in emittedUpdates) {
+                    return accumulated
+                }
+                emittedUpdates += update
+                visitor.visitUpdate(accumulated, update)
+            }
+
+            return visitor.visitUpdate(accumulated, update)
+        }
+    }
 }
 
 //endregion

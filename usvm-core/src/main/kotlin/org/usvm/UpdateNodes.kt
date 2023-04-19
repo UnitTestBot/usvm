@@ -9,7 +9,7 @@ import java.util.*
  * changes in processing of such nodes inside a core since we expect to have only two implementations:
  * [UPinpointUpdateNode] and [URangedUpdateNode].
  */
-sealed interface UUpdateNode<Key, ValueSort : USort> {
+sealed interface UUpdateNode<Key, Sort : USort> {
     /**
      * @return will the [key] get overwritten by this write operation in *any* possible concrete state,
      * assuming [precondition] holds, or not.
@@ -19,7 +19,7 @@ sealed interface UUpdateNode<Key, ValueSort : USort> {
     /**
      * @return will this write get overwritten by [update] operation in *any* possible concrete state or not.
      */
-    fun isIncludedByUpdateConcretely(update: UUpdateNode<Key, ValueSort>): Boolean
+    fun isIncludedByUpdateConcretely(update: UUpdateNode<Key, Sort>): Boolean
 
     /**
      * @return Symbolic condition expressing that the address [key] got overwritten by this memory write operation.
@@ -41,15 +41,15 @@ sealed interface UUpdateNode<Key, ValueSort : USort> {
      */
     fun split(
         key: Key,
-        predicate: (UExpr<ValueSort>) -> Boolean,
-        matchingWrites: MutableList<GuardedExpr<UExpr<ValueSort>>>,
+        predicate: (UExpr<Sort>) -> Boolean,
+        matchingWrites: MutableList<GuardedExpr<UExpr<Sort>>>,
         guardBuilder: GuardBuilder,
-    ): UUpdateNode<Key, ValueSort>?
+    ): UUpdateNode<Key, Sort>?
 
     /**
      * @return Value which has been written into the address [key] during this memory write operation.
      */
-    fun value(key: Key): UExpr<ValueSort>
+    fun value(key: Key): UExpr<Sort>
 
     /**
      * Guard is a symbolic condition for this update. That is, this update is done only in states satisfying this guard.
@@ -60,18 +60,21 @@ sealed interface UUpdateNode<Key, ValueSort : USort> {
      * Returns a mapped update node using [keyMapper] and [composer].
      * It is used in [UComposer] for composition.
      */
-    fun <Field, Type> map(keyMapper: KeyMapper<Key>, composer: UComposer<Field, Type>): UUpdateNode<Key, ValueSort>
+    fun <Field, Type> map(
+        keyMapper: KeyMapper<Key>,
+        composer: UComposer<Field, Type>
+    ): UUpdateNode<Key, Sort>
 }
 
 /**
  * Represents a single write of [value] into a memory address [key]
  */
-class UPinpointUpdateNode<Key, ValueSort : USort>(
+class UPinpointUpdateNode<Key, Sort : USort>(
     val key: Key,
-    internal val value: UExpr<ValueSort>,
+    internal val value: UExpr<Sort>,
     private val keyEqualityComparer: (Key, Key) -> UBoolExpr,
     override val guard: UBoolExpr,
-) : UUpdateNode<Key, ValueSort> {
+) : UUpdateNode<Key, Sort> {
     override fun includesConcretely(key: Key, precondition: UBoolExpr) =
         this.key == key && (guard == guard.ctx.trueExpr || guard == precondition)
     // in fact, we can check less strict formulae: `precondition -> guard`, but it is too complex to compute.
@@ -79,17 +82,17 @@ class UPinpointUpdateNode<Key, ValueSort : USort>(
     override fun includesSymbolically(key: Key): UBoolExpr =
         guard.ctx.mkAnd(keyEqualityComparer(this.key, key), guard)
 
-    override fun isIncludedByUpdateConcretely(update: UUpdateNode<Key, ValueSort>): Boolean =
+    override fun isIncludedByUpdateConcretely(update: UUpdateNode<Key, Sort>): Boolean =
         update.includesConcretely(key, guard)
 
-    override fun value(key: Key): UExpr<ValueSort> = this.value
+    override fun value(key: Key): UExpr<Sort> = this.value
 
     override fun split(
         key: Key,
-        predicate: (UExpr<ValueSort>) -> Boolean,
-        matchingWrites: MutableList<GuardedExpr<UExpr<ValueSort>>>,
+        predicate: (UExpr<Sort>) -> Boolean,
+        matchingWrites: MutableList<GuardedExpr<UExpr<Sort>>>,
         guardBuilder: GuardBuilder,
-    ): UUpdateNode<Key, ValueSort>? {
+    ): UUpdateNode<Key, Sort>? {
         val ctx = value.ctx
         val nodeIncludesKey = includesSymbolically(key) // includes guard
         val nodeExcludesKey = ctx.mkNot(nodeIncludesKey)
@@ -110,7 +113,7 @@ class UPinpointUpdateNode<Key, ValueSort : USort>(
     override fun <Field, Type> map(
         keyMapper: KeyMapper<Key>,
         composer: UComposer<Field, Type>
-    ): UPinpointUpdateNode<Key, ValueSort> {
+    ): UPinpointUpdateNode<Key, Sort> {
         val mappedKey = keyMapper(key)
         val mappedValue = composer.compose(value)
         val mappedGuard = composer.compose(guard)
@@ -129,7 +132,7 @@ class UPinpointUpdateNode<Key, ValueSort : USort>(
 
     override fun hashCode(): Int = key.hashCode() * 31 + guard.hashCode() // Ignores value
 
-    override fun toString(): String = "{$key <- $value | $guard}"
+    override fun toString(): String = "{$key <- $value}".takeIf { guard.isTrue } ?: "{$key <- $value | $guard}"
 }
 
 /**
@@ -153,7 +156,7 @@ sealed class UMemoryKeyConverter<SrcKey, DstKey>(
     abstract fun convert(key: DstKey): SrcKey
 
     protected fun convertIndex(idx: USizeExpr): USizeExpr = with(srcSymbolicArrayIndex.first.ctx) {
-        return mkBvSubExpr(mkBvAddExpr(idx, dstFromSymbolicArrayIndex.second), srcSymbolicArrayIndex.second)
+        mkBvSubExpr(mkBvAddExpr(idx, dstFromSymbolicArrayIndex.second), srcSymbolicArrayIndex.second)
     }
 
     abstract fun clone(
@@ -194,15 +197,15 @@ sealed class UMemoryKeyConverter<SrcKey, DstKey>(
  * with values from memory region [region] read from range
  * of addresses [[keyConverter].convert([fromKey]) : [keyConverter].convert([toKey])]
  */
-class URangedUpdateNode<RegionId : UArrayId<ArrayType, SrcKey>, ArrayType, SrcKey, DstKey, ValueSort : USort>(
+class URangedUpdateNode<RegionId : UArrayId<*, SrcKey, Sort, RegionId>, SrcKey, DstKey, Sort : USort>(
     val fromKey: DstKey,
     val toKey: DstKey,
-    val region: UMemoryRegion<RegionId, SrcKey, ValueSort>,
+    val region: USymbolicMemoryRegion<RegionId, SrcKey, Sort>,
     private val concreteComparer: (DstKey, DstKey) -> Boolean,
     private val symbolicComparer: (DstKey, DstKey) -> UBoolExpr,
     val keyConverter: UMemoryKeyConverter<SrcKey, DstKey>,
     override val guard: UBoolExpr
-) : UUpdateNode<DstKey, ValueSort> {
+) : UUpdateNode<DstKey, Sort> {
     override fun includesConcretely(key: DstKey, precondition: UBoolExpr): Boolean =
         concreteComparer(fromKey, key) && concreteComparer(key, toKey) &&
             (guard == guard.ctx.trueExpr || precondition == guard) // TODO: some optimizations here?
@@ -216,15 +219,15 @@ class URangedUpdateNode<RegionId : UArrayId<ArrayType, SrcKey>, ArrayType, SrcKe
         return ctx.mkAnd(leftIsLefter, rightIsRighter, guard)
     }
 
-    override fun isIncludedByUpdateConcretely(update: UUpdateNode<DstKey, ValueSort>): Boolean =
+    override fun isIncludedByUpdateConcretely(update: UUpdateNode<DstKey, Sort>): Boolean =
         update.includesConcretely(fromKey, guard) && update.includesConcretely(toKey, guard)
 
-    override fun value(key: DstKey): UExpr<ValueSort> = region.read(keyConverter.convert(key))
+    override fun value(key: DstKey): UExpr<Sort> = region.read(keyConverter.convert(key))
 
     override fun <Field, Type> map(
-        keyMapper: (DstKey) -> DstKey,
+        keyMapper: KeyMapper<DstKey>,
         composer: UComposer<Field, Type>
-    ): URangedUpdateNode<RegionId, ArrayType, SrcKey, DstKey, ValueSort> {
+    ): URangedUpdateNode<RegionId, SrcKey, DstKey, Sort> {
         val mappedFromKey = keyMapper(fromKey)
         val mappedToKey = keyMapper(toKey)
         val mappedRegion = region.map(composer)
@@ -255,10 +258,10 @@ class URangedUpdateNode<RegionId : UArrayId<ArrayType, SrcKey>, ArrayType, SrcKe
 
     override fun split(
         key: DstKey,
-        predicate: (UExpr<ValueSort>) -> Boolean,
-        matchingWrites: MutableList<GuardedExpr<UExpr<ValueSort>>>,
+        predicate: (UExpr<Sort>) -> Boolean,
+        matchingWrites: MutableList<GuardedExpr<UExpr<Sort>>>,
         guardBuilder: GuardBuilder,
-    ): UUpdateNode<DstKey, ValueSort> {
+    ): UUpdateNode<DstKey, Sort> {
         val ctx = guardBuilder.nonMatchingUpdatesGuard.ctx
         val nodeIncludesKey = includesSymbolically(key) // contains guard
         val nodeExcludesKey = ctx.mkNot(nodeIncludesKey)
@@ -304,7 +307,7 @@ class URangedUpdateNode<RegionId : UArrayId<ArrayType, SrcKey>, ArrayType, SrcKe
 
     // Ignores update
     override fun equals(other: Any?): Boolean =
-        other is URangedUpdateNode<*, *, *, *, *> &&
+        other is URangedUpdateNode<*, *, *, *> &&
                 this.fromKey == other.fromKey &&
                 this.toKey == other.toKey &&
                 this.guard == other.guard
@@ -313,7 +316,8 @@ class URangedUpdateNode<RegionId : UArrayId<ArrayType, SrcKey>, ArrayType, SrcKe
     override fun hashCode(): Int = (17 * fromKey.hashCode() + toKey.hashCode()) * 31 + guard.hashCode()
 
     override fun toString(): String {
-        return "{[$fromKey..$toKey] <- $region[keyConv($fromKey)..keyConv($toKey)] | $guard}"
+        return "{[$fromKey..$toKey] <- $region[keyConv($fromKey)..keyConv($toKey)]" +
+            ("}".takeIf { guard.isTrue } ?: " | $guard}")
     }
 }
 
@@ -352,7 +356,7 @@ class UAllocatedToInputKeyConverter(
 }
 
 /**
- * Used when copying data from allocated input to allocated one.
+ * Used when copying data from input array to allocated one.
  */
 class UInputToAllocatedKeyConverter(
     srcSymbolicArrayIndex: USymbolicArrayIndex,
@@ -372,11 +376,11 @@ class UInputToAllocatedKeyConverter(
  * Used when copying data from input array to another input array.
  */
 class UInputToInputKeyConverter(
-    srcSymbolicArrayIndex: USymbolicArrayIndex,
+    srcFromSymbolicArrayIndex: USymbolicArrayIndex,
     dstFromSymbolicArrayIndex: USymbolicArrayIndex,
     dstToIndex: USizeExpr
 ) : UMemoryKeyConverter<USymbolicArrayIndex, USymbolicArrayIndex>(
-    srcSymbolicArrayIndex,
+    srcFromSymbolicArrayIndex,
     dstFromSymbolicArrayIndex,
     dstToIndex
 ) {

@@ -1,7 +1,5 @@
 package org.usvm
 
-import org.ksmt.solver.KModel
-import org.ksmt.utils.asExpr
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentListOf
@@ -11,18 +9,12 @@ interface UMockEvaluator {
     fun <Sort : USort> eval(symbol: UMockSymbol<Sort>): UExpr<Sort>
 }
 
-class UIndexedMockModel(val map: Map<UMockSymbol<out USort>, UExpr<out USort>>) : UMockEvaluator {
-    override fun <Sort : USort> eval(symbol: UMockSymbol<Sort>): UExpr<Sort> = map.getValue(symbol).asExpr(symbol.sort)
-}
-
 interface UMocker<Method> : UMockEvaluator {
     fun <Sort : USort> call(
         method: Method,
         args: Sequence<UExpr<out USort>>,
         sort: Sort
     ): Pair<UMockSymbol<Sort>, UMocker<Method>>
-
-    fun decode(model: KModel): UMockEvaluator
 }
 
 class UIndexedMocker<Method>(
@@ -39,10 +31,6 @@ class UIndexedMocker<Method>(
         val const = ctx.mkIndexedMethodReturnValue(method, index, sort)
         val updatedClauses = clauses.put(method, currentClauses.add(const))
         return Pair(const, UIndexedMocker(ctx, updatedClauses))
-    }
-
-    override fun decode(model: KModel): UMockEvaluator {
-        TODO("Not yet implemented")
     }
 
     override fun <Sort : USort> eval(symbol: UMockSymbol<Sort>): UExpr<Sort> = symbol

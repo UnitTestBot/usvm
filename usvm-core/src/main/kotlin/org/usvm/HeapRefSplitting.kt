@@ -21,7 +21,10 @@ internal data class SplitHeapRefs(
 
 /**
  * Traverses the [ref] non-recursively and collects [UConcreteHeapRef]s and [USymbolicHeapRef] as well as
- * guards for them. The result [SplitHeapRefs.symbolicHeapRef] will be `null` if there are no [USymbolicHeapRef]s as
+ * guards for them. If the object is not a [UConcreteHeapRef] nor a [USymbolicHeapRef], e.g. KConst<UAddressSort>,
+ * treats such an object as a [USymbolicHeapRef].
+ *
+ * The result [SplitHeapRefs.symbolicHeapRef] will be `null` if there are no [USymbolicHeapRef]s as
  * leafs in the [ref] ite. Otherwise, it will contain an ite with the guard protecting from bubbled up concrete refs.
  *
  * @param initialGuard an initial value for the accumulated guard.
@@ -30,12 +33,12 @@ internal fun splitUHeapRef(ref: UHeapRef, initialGuard: UBoolExpr = ref.ctx.true
     val concreteHeapRefs = mutableListOf<GuardedExpr<UConcreteHeapRef>>()
 
     val symbolicHeapRef = filter(ref, initialGuard) { guarded ->
-        if (guarded.expr is USymbolicHeapRef) {
-            true
-        } else {
+        if (guarded.expr is UConcreteHeapRef) {
             @Suppress("UNCHECKED_CAST")
             concreteHeapRefs += (guarded as GuardedExpr<UConcreteHeapRef>)
             false
+        } else {
+            true
         }
     }
 
@@ -139,7 +142,7 @@ internal inline fun <Sort : USort> UHeapRef.map(
  * Filters [ref] non-recursively with [predicate] and returns the result. A guard in the argument of the
  * [predicate] consists of a predicate from the root to the passed leaf.
  *
- * It's guaranteed that [predicate] will be called exactly once on each leaf.
+ * Guarantees that [predicate] will be called exactly once on each leaf.
  *
  * @return A guarded expression with the guard indicating that any leaf on which [predicate] returns `false`
  * is inaccessible. `Null` is returned when all leafs match [predicate].
@@ -150,9 +153,6 @@ internal inline fun filter(
     crossinline predicate: (GuardedExpr<UHeapRef>) -> Boolean,
 ): GuardedExpr<UHeapRef>? = with(ref.ctx) {
     when (ref) {
-        is USymbolicHeapRef,
-        is UConcreteHeapRef,
-        -> (ref with initialGuard).takeIf(predicate)
         is UIteExpr<UAddressSort> -> {
             /**
              * This code simulates DFS on a binary tree without an explicit recursion. Pair.second represents the first
@@ -173,12 +173,12 @@ internal inline fun filter(
                     is UIteExpr<UAddressSort> -> when (state) {
                         LEFT_CHILD -> {
                             nodeToChild += guarded to RIGHT_CHILD
-                            val leftGuard = mkAndNoFlat(guardFromTop, cur.condition)
+                            val leftGuard = mkAnd(guardFromTop, cur.condition, flat = false)
                             nodeToChild += (cur.trueBranch with leftGuard) to LEFT_CHILD
                         }
                         RIGHT_CHILD -> {
                             nodeToChild += guarded to DONE
-                            val guardRhs = mkAndNoFlat(guardFromTop, !cur.condition)
+                            val guardRhs = mkAnd(guardFromTop, !cur.condition, flat = false)
                             nodeToChild += (cur.falseBranch with guardRhs) to LEFT_CHILD
                         }
                         DONE -> {
@@ -188,9 +188,9 @@ internal inline fun filter(
                             val lhs = completelyMapped.removeLast()
                             val next = when {
                                 lhs != null && rhs != null -> {
-                                    val leftPart = mkOrNoFlat(!cur.condition, lhs.guard)
+                                    val leftPart = mkOr(!cur.condition, lhs.guard, flat = false)
 
-                                    val rightPart = mkOrNoFlat(cur.condition, rhs.guard)
+                                    val rightPart = mkOr(cur.condition, rhs.guard, flat = false)
 
                                     /**
                                      *```
@@ -203,15 +203,15 @@ internal inline fun filter(
                                      * lhs.expr | lhs.guard   rhs.expr | rhs.guard
                                      *```
                                      */
-                                    val guard = mkAndNoFlat(leftPart, rightPart)
+                                    val guard = mkAnd(leftPart, rightPart, flat = false)
                                     mkIte(cur.condition, lhs.expr, rhs.expr) with guard
                                 }
                                 lhs != null -> {
-                                    val guard = mkAndNoFlat(listOf(cur.condition, lhs.guard))
+                                    val guard = mkAnd(cur.condition, lhs.guard, flat = false)
                                     lhs.expr with guard
                                 }
                                 rhs != null -> {
-                                    val guard = mkAndNoFlat(listOf(!cur.condition, rhs.guard))
+                                    val guard = mkAnd(!cur.condition, rhs.guard, flat = false)
                                     rhs.expr with guard
                                 }
                                 else -> null
@@ -225,7 +225,6 @@ internal inline fun filter(
 
             completelyMapped.single()?.withAlso(initialGuard)
         }
-
-        else -> error("Unexpected ref: $ref")
+        else -> (ref with initialGuard).takeIf(predicate)
     }
 }
