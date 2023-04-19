@@ -6,17 +6,21 @@ interface UModel {
 
 // TODO: Eval visitor
 
+/**
+ * Consists of decoded components and allows to evaluate any expression. Evaluation is done via generic composition.
+ * Evaluated expressions are cached within [UModelBase] instance.
+ * If a symbol from an expression not found inside the model, components return the default value
+ * of the correct sort.
+ */
 open class UModelBase<Field, Type>(
-    private val ctx: UContext,
-    val stack: URegistersStackModel,
+    ctx: UContext,
+    val stack: ULazyRegistersStackModel,
     val heap: UReadOnlySymbolicHeap<Field, Type>,
     val types: UTypeModel<Type>,
     val mocks: UMockEvaluator
-)
-    : UModel
-{
-    override fun <Sort: USort> eval(expr: UExpr<Sort>): UExpr<Sort> {
-        val composer = UComposer(ctx, stack, heap, types, mocks)
-        return composer.compose(expr)
-    }
+) : UModel {
+    private val composer = UComposer(ctx, stack, heap, types, mocks)
+
+    override fun <Sort: USort> eval(expr: UExpr<Sort>): UExpr<Sort> =
+        composer.compose(expr)
 }

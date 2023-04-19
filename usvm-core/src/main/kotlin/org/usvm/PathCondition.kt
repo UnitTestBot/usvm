@@ -3,28 +3,30 @@ package org.usvm
 import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.persistentSetOf
 
-interface UPathCondition: Sequence<UBoolExpr> {
+interface UPathCondition : Collection<UBoolExpr> {
     val isFalse: Boolean
-    fun add(constraint: UBoolExpr): UPathCondition
+    operator fun plus(constraint: UBoolExpr): UPathCondition
 }
 
-class UPathConstraintsSet(private val ctx: UContext,
-                          private val constraints: PersistentSet<UBoolExpr> = persistentSetOf()
-)
-    : UPathCondition
-{
-    fun contradiction() =
-        UPathConstraintsSet(ctx, persistentSetOf(ctx.mkFalse()))
+class UPathConstraintsSet(
+    private val constraints: PersistentSet<UBoolExpr> = persistentSetOf(),
+) : Collection<UBoolExpr> by constraints, UPathCondition {
+    constructor(constraint: UBoolExpr) : this(persistentSetOf(constraint))
 
     override val isFalse: Boolean
         get() = constraints.size == 1 && constraints.first() is UFalse
 
-    override fun add(constraint: UBoolExpr): UPathCondition {
-        val notConstraint = constraint.ctx.mkNot(constraint)
-        if (constraints.contains(notConstraint))
-            return contradiction()
-        return UPathConstraintsSet(ctx, constraints.add(constraint))
+    override operator fun plus(constraint: UBoolExpr): UPathCondition {
+        val ctx = constraint.uctx
+        val notConstraint = ctx.mkNot(constraint)
+        if (constraints.contains(notConstraint)) {
+            return contradiction(ctx)
+        }
+        return UPathConstraintsSet(constraints.add(constraint))
     }
 
-    override fun iterator(): Iterator<UBoolExpr> = constraints.iterator()
+    companion object {
+        fun contradiction(ctx: UContext) =
+            UPathConstraintsSet(persistentSetOf(ctx.mkFalse()))
+    }
 }

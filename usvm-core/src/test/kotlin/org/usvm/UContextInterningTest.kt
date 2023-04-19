@@ -79,8 +79,8 @@ class UContextInterningTest {
 
     @Test
     fun testAllocatedArrayReadingInterning() = with(context) {
-        val fstRegion = mockk<UAllocatedArrayRegion<ArrayType, UBv32Sort>>()
-        val sndRegion = mockk<UAllocatedArrayRegion<ArrayType, UBoolSort>>()
+        val fstRegion = mockk<UAllocatedArrayRegion<Type, UBv32Sort>>()
+        val sndRegion = mockk<UAllocatedArrayRegion<Type, UBoolSort>>()
 
         every { fstRegion.sort } returns bv32Sort
         every { sndRegion.sort } returns boolSort
@@ -105,8 +105,8 @@ class UContextInterningTest {
 
     @Test
     fun testInputArrayReadingInterning() = with(context) {
-        val fstRegion = mockk<UInputArrayRegion<ArrayType, UBv32Sort>>()
-        val sndRegion = mockk<UInputArrayRegion<ArrayType, UBoolSort>>()
+        val fstRegion = mockk<UInputArrayRegion<Type, UBv32Sort>>()
+        val sndRegion = mockk<UInputArrayRegion<Type, UBoolSort>>()
 
         every { fstRegion.sort } returns bv32Sort
         every { sndRegion.sort } returns boolSort
@@ -136,8 +136,8 @@ class UContextInterningTest {
 
     @Test
     fun testArrayLengthInterning() = with(context) {
-        val fstRegion = mockk<UInputArrayLengthRegion<ArrayType>>()
-        val sndRegion = mockk<UInputArrayLengthRegion<ArrayType>>()
+        val fstRegion = mockk<UInputArrayLengthRegion<Type>>()
+        val sndRegion = mockk<UInputArrayLengthRegion<Type>>()
 
         every { fstRegion.sort } returns sizeSort
         every { sndRegion.sort } returns sizeSort

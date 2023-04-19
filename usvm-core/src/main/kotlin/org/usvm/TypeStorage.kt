@@ -4,7 +4,6 @@ import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.persistentSetOf
-import java.lang.IllegalArgumentException
 
 interface UTypeSystem<Type> {
     // Returns true if t <: u
@@ -18,12 +17,10 @@ interface UTypeEvaluator<Type> {
 class UTypeModel<Type>(
     private val ctx: UContext,
     private val typeSystem: UTypeSystem<Type>,
-    private val map: Map<UConcreteHeapAddress, Type>
-)
-    : UTypeEvaluator<Type>
-{
+    private val typeByAddr: Map<UConcreteHeapAddress, Type>,
+) : UTypeEvaluator<Type> {
 
-    fun typeOf(address: UConcreteHeapAddress): Type = map.getValue(address)
+    fun typeOf(address: UConcreteHeapAddress): Type = typeByAddr.getValue(address)
 
     override fun evalIs(ref: UHeapRef, type: Type): UBoolExpr =
         when (ref) {
@@ -41,19 +38,17 @@ class UTypeStorage<Type>(
     val typeSystem: UTypeSystem<Type>,
     val isContraditing: Boolean = false,
     val concreteTypes: PersistentMap<UConcreteHeapAddress, Type> = persistentMapOf(),
-    val supertypes: PersistentMap<UHeapRef, PersistentSet<Type>> = persistentMapOf()
-)
-    : UTypeEvaluator<Type>
-{
+    val supertypes: PersistentMap<UHeapRef, PersistentSet<Type>> = persistentMapOf(),
+) : UTypeEvaluator<Type> {
 
     fun contradiction() =
-       UTypeStorage(ctx, typeSystem, true, concreteTypes, supertypes)
+        UTypeStorage(ctx, typeSystem, true, concreteTypes, supertypes)
 
     fun allocate(ref: UConcreteHeapAddress, type: Type): UTypeStorage<Type> =
         UTypeStorage(ctx, typeSystem, isContraditing, concreteTypes.put(ref, type), supertypes)
 
     fun cast(ref: UHeapRef, type: Type): UTypeStorage<Type> {
-        when(ref) {
+        when (ref) {
             is UConcreteHeapRef -> {
                 val concreteType = concreteTypes.getValue(ref.address)
                 if (!typeSystem.isSupertype(type, concreteType))
@@ -61,20 +56,28 @@ class UTypeStorage<Type>(
                 else
                     return this
             }
+
             else -> {
                 val constraints = supertypes.getOrDefault(ref, persistentSetOf())
                 // TODO: check if we have simple contradiction here
-                return UTypeStorage(ctx, typeSystem, isContraditing, concreteTypes, supertypes.put(ref, constraints.add(type)))
+                return UTypeStorage(
+                    ctx,
+                    typeSystem,
+                    isContraditing,
+                    concreteTypes,
+                    supertypes.put(ref, constraints.add(type))
+                )
             }
         }
     }
 
     override fun evalIs(ref: UHeapRef, type: Type): UBoolExpr {
-        when(ref) {
+        when (ref) {
             is UConcreteHeapRef -> {
                 val concreteType = concreteTypes.getValue(ref.address)
                 return if (typeSystem.isSupertype(type, concreteType)) ctx.trueExpr else ctx.falseExpr
             }
+
             else -> {
                 @Suppress("UNUSED_VARIABLE")
                 val constraints = supertypes.getOrDefault(ref, persistentSetOf())

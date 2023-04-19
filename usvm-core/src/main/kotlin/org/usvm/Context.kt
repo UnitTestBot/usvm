@@ -2,9 +2,17 @@ package org.usvm
 
 import org.ksmt.KAst
 import org.ksmt.KContext
-import org.ksmt.solver.model.DefaultValueSampler.Companion.sampleValue
+import org.ksmt.expr.KConst
+import org.ksmt.expr.KExpr
+import org.ksmt.expr.KUninterpretedSortValue
+import org.ksmt.sort.KBoolSort
+import org.ksmt.sort.KSort
+import org.ksmt.sort.KSortVisitor
+import org.ksmt.sort.KUninterpretedSort
+import org.ksmt.utils.DefaultValueSampler
 import org.ksmt.utils.asExpr
 import org.ksmt.utils.cast
+import org.ksmt.utils.sampleValue
 
 @Suppress("LeakingThis")
 open class UContext(
@@ -15,9 +23,9 @@ open class UContext(
 
     val addressSort: UAddressSort = mkUninterpretedSort("Address")
     val sizeSort: USizeSort = bv32Sort
-    val zeroSize: USizeExpr = sizeSort.defaultValue()
+    val zeroSize: USizeExpr = sizeSort.sampleValue()
 
-    val nullRef: USymbolicHeapRef = UNullRef(this)
+    val nullRef: UNullRef = UNullRef(this)
 
     fun mkNullRef(): USymbolicHeapRef {
         return nullRef
@@ -43,10 +51,17 @@ open class UContext(
      *
      * @return the new equal rewritten expression without [UConcreteHeapRef]s
      */
+    override fun <T : KSort> mkEq(lhs: KExpr<T>, rhs: KExpr<T>, order: Boolean): KExpr<KBoolSort> =
+        if (lhs.sort == addressSort) {
+            mkHeapRefEq(lhs.asExpr(addressSort), rhs.asExpr(addressSort))
+        } else {
+            super.mkEq(lhs, rhs, order)
+        }
+
     fun mkHeapRefEq(lhs: UHeapRef, rhs: UHeapRef): UBoolExpr =
         when {
             // fast checks
-            lhs is USymbolicHeapRef && rhs is USymbolicHeapRef -> super.mkEq(lhs, rhs)
+            lhs is USymbolicHeapRef && rhs is USymbolicHeapRef -> super.mkEq(lhs, rhs, order = true)
             lhs is UConcreteHeapRef && rhs is UConcreteHeapRef -> mkBool(lhs == rhs)
             // unfolding
             else -> {
@@ -65,7 +80,7 @@ open class UContext(
                 }
 
                 if (symbolicRefLhs != null && symbolicRefRhs != null) {
-                    val refsEq = symbolicRefLhs.expr eq symbolicRefRhs.expr
+                    val refsEq = super.mkEq(symbolicRefLhs.expr, symbolicRefRhs.expr, order = true)
                     // mkAnd instead of mkAndNoFlat here is OK
                     val conjunct = mkAnd(symbolicRefLhs.guard, symbolicRefRhs.guard, refsEq)
                     conjuncts += conjunct
@@ -75,10 +90,6 @@ open class UContext(
                 mkOr(conjuncts)
             }
         }
-
-    @Suppress("UNUSED_PARAMETER")
-    @Deprecated("Use mkHeapRefEq instead.", ReplaceWith("this.mkHeapRefEq(lhs, rhs)"), level = DeprecationLevel.ERROR)
-    fun mkEq(lhs: UHeapRef, rhs: UHeapRef): Nothing = error("Use mkHeapRefEq instead.")
 
     private val uConcreteHeapRefCache = mkAstInterner<UConcreteHeapRef>()
     fun mkConcreteHeapRef(address: UConcreteHeapAddress): UConcreteHeapRef =
@@ -144,18 +155,19 @@ open class UContext(
         UIsExpr(this, ref, type.cast())
     }.cast()
 
-    fun <Sort : USort> mkDefault(sort: Sort): UExpr<Sort> =
-        when (sort) {
-            addressSort -> nullRef.asExpr(sort)
-            else -> sort.sampleValue()
-        }
-}
-
-fun <Sort : USort> Sort.defaultValue() =
-    when (ctx) {
-        is UContext -> (ctx as UContext).mkDefault(this)
-        else -> sampleValue()
+    class UDefaultValueSampler(val uctx: UContext) : DefaultValueSampler(uctx) {
+        override fun visit(sort: KUninterpretedSort): KExpr<*> =
+            if (sort == uctx.addressSort) {
+                uctx.nullRef
+            } else {
+                super.visit(sort)
+            }
     }
+
+    override fun mkDefaultValueSampler(): KSortVisitor<KExpr<*>> {
+        return UDefaultValueSampler(this)
+    }
+}
 
 val KAst.uctx
     get() = ctx as UContext

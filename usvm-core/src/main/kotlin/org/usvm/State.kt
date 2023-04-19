@@ -5,7 +5,7 @@ class UState<Type, Field, Method, Statement>(
     ctx: UContext,
     typeSystem: UTypeSystem<Type>,
     var callStack: UCallStack<Method, Statement>,
-    var pathCondition: UPathCondition = UPathConstraintsSet(ctx),
+    var pathCondition: UPathCondition = UPathConstraintsSet(),
     var memory: USymbolicMemory<Type> = UMemoryBase<Field, Type, Method>(ctx, typeSystem),
     var models: List<UModel>
 ) {}

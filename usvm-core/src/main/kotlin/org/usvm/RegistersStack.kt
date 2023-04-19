@@ -1,7 +1,6 @@
 package org.usvm
 
 import org.ksmt.expr.KExpr
-import org.ksmt.solver.KModel
 import org.ksmt.utils.asExpr
 import java.util.Stack
 
@@ -54,18 +53,8 @@ class URegistersStack(
         return URegistersStack(ctx, newStack)
     }
 
-    @Suppress("UNUSED_PARAMETER")
-    fun decode(model: KModel): URegistersStackModel = TODO()
-
     override fun <Sort : USort> eval(
         registerIndex: Int,
         sort: Sort,
     ): UExpr<Sort> = readRegister(registerIndex, sort).asExpr(sort)
-}
-
-class URegistersStackModel(private val registers: Array<UExpr<USort>?>) : URegistersStackEvaluator {
-    override fun <Sort : USort> eval(
-        registerIndex: Int,
-        sort: Sort,
-    ): UExpr<Sort> = registers[registerIndex]!!.asExpr(sort)
 }
