@@ -27,7 +27,7 @@ class ExecutionState(
     pathCondition: UPathCondition = UPathConstraintsSet(),
     memory: UMemoryBase<Field<*>, SampleType, Method<*>> = UMemoryBase(ctx, typeSystem),
     models: List<UModel> = listOf(),
-    var path: PersistentList<Stmt> = persistentListOf(),
+    path: PersistentList<Stmt> = persistentListOf(),
     var returnRegister: UExpr<out USort>? = null,
     var exceptionRegister: ProgramException? = null,
 ) : UState<SampleType, Field<*>, Method<*>, Stmt>(
@@ -36,10 +36,10 @@ class ExecutionState(
     callStack,
     pathCondition,
     memory,
-    models
+    models, path
 ) {
-    override fun clone(): ExecutionState {
-        return ExecutionState(
+    override fun clone() =
+        ExecutionState(
             ctx,
             typeSystem,
             callStack.clone(),
@@ -50,7 +50,6 @@ class ExecutionState(
             returnRegister,
             exceptionRegister
         )
-    }
 }
 
 val ExecutionState.topStmt get() = path.last()

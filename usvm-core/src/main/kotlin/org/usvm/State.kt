@@ -1,5 +1,7 @@
 package org.usvm
 
+import kotlinx.collections.immutable.PersistentList
+
 abstract class UState<Type, Field, Method, Statement>(
     // TODO: add interpreter-specific information
     val ctx: UContext,
@@ -7,7 +9,8 @@ abstract class UState<Type, Field, Method, Statement>(
     val callStack: UCallStack<Method, Statement>,
     var pathCondition: UPathCondition,
     val memory: UMemoryBase<Field, Type, Method>,
-    var models: List<UModel>
+    var models: List<UModel>,
+    var path: PersistentList<Statement>,
 ) {
     abstract fun clone(): UState<Type, Field, Method, Statement>
 }
