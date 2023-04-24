@@ -24,7 +24,7 @@ class ForkResult<T>(
     operator fun component2(): T? = negativeState
 }
 
-private fun <T : UState<Type, Field, Method, Statement>, Type, Field, Method, Statement> checkState(
+private fun <T : UState<Type, Field, Method, Statement>, Type, Field, Method, Statement> cloneStateWithModelOrNull(
     state: T,
     model: UModel?,
 ): UState<Type, Field, Method, Statement>? = model?.let { state.clone().apply { models = listOf(model) } }
@@ -59,14 +59,14 @@ fun <T : UState<Type, Field, Method, Statement>, Type, Field, Method, Statement>
 
         trueModels.isNotEmpty() -> { // falseModels is empty, so models == trueModels
             val negativeModel = findModel(memory, negPathCondition)
-            val negState = checkState(this, negativeModel)
+            val negState = cloneStateWithModelOrNull(this, negativeModel)
 
             this to negState
         }
 
         falseModels.isNotEmpty() -> { // trueModels is empty, so models == falseModels
             val positiveModel = findModel(memory, posPathCondition)
-            val posState = checkState(this, positiveModel)
+            val posState = cloneStateWithModelOrNull(this, positiveModel)
 
             posState to this
         }
