@@ -63,9 +63,9 @@ open class ULazyModelDecoder<Field, Type, Method>(
      * equivalence classes of addresses and work with their number in the future.
      */
     private fun buildMapping(model: KModel): AddressesMapping {
-        // Translate null has to be equal to evaluated null, because it is of KUninterpretedSort and translatedNullRef
+        // Translated null has to be equal to evaluated null, because it is of KUninterpretedSort and translatedNullRef
         // defined as mkUninterpretedSortValue(addressSort, 0).
-        assert(translatedNullRef === model.eval(translatedNullRef, isComplete = true))
+        check(translatedNullRef === model.eval(translatedNullRef, isComplete = true))
 
         val result = mutableMapOf<KExpr<KUninterpretedSort>, UConcreteHeapRef>()
         // Except the null value, it has the NULL_ADDRESS

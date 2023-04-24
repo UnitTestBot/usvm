@@ -6,13 +6,16 @@ import org.usvm.UContext
 import org.usvm.UModelBase
 import org.usvm.UPathConstraintsSet
 import org.usvm.USolverBase
-import org.usvm.USolverSat
+import org.usvm.USatResult
 import org.usvm.buildTranslatorAndLazyDecoder
 import org.usvm.language.Field
 import org.usvm.language.Method
 import org.usvm.language.Program
 import org.usvm.language.SampleType
 
+/**
+ * Entry point for a sample language analyzer.
+ */
 class Runner(
     val program: Program,
     val maxStates: Int = 40,
@@ -62,7 +65,9 @@ class Runner(
     private fun getInitialState(solver: USolverBase<Field<*>, SampleType, Method<*>>, method: Method<*>): ExecutionState =
         ExecutionState(ctx, typeSystem).apply {
             addEntryMethodCall(applicationGraph, method)
-            val model = (solver.check(memory, UPathConstraintsSet(ctx.trueExpr)) as USolverSat<UModelBase<Field<*>, SampleType>>).model
+            val solverResult = solver.check(memory, UPathConstraintsSet(ctx.trueExpr))
+            val satResult = solverResult as USatResult<UModelBase<Field<*>, SampleType>>
+            val model = satResult.model
             models = persistentListOf(model)
         }
 }

@@ -1,6 +1,7 @@
 package org.usvm
 
 import kotlinx.collections.immutable.PersistentList
+import org.ksmt.expr.KInterpretedValue
 
 abstract class UState<Type, Field, Method, Statement>(
     // TODO: add interpreter-specific information
@@ -15,19 +16,31 @@ abstract class UState<Type, Field, Method, Statement>(
     abstract fun clone(): UState<Type, Field, Method, Statement>
 }
 
+class ForkResult<T>(
+    val positiveState: T?,
+    val negativeState: T?,
+) {
+    operator fun component1(): T? = positiveState
+    operator fun component2(): T? = negativeState
+}
+
+private fun <T : UState<Type, Field, Method, Statement>, Type, Field, Method, Statement> checkState(
+    state: T,
+    model: UModel?,
+): UState<Type, Field, Method, Statement>? = model?.let { state.clone().apply { models = listOf(model) } }
+
 fun <T : UState<Type, Field, Method, Statement>, Type, Field, Method, Statement> T.fork(
-    constraint: UBoolExpr,
-    checker: (UMemoryBase<Field, Type, Method>, UPathCondition) -> UModel?,
-): Pair<T?, T?> {
+    condition: UBoolExpr,
+    findModel: (UMemoryBase<Field, Type, Method>, UPathCondition) -> UModel?,
+): ForkResult<T> {
     val (trueModels, falseModels) = models.partition { model ->
-        val holdsInModel = model.eval(constraint)
-        val holds = holdsInModel.isTrue
-        check(holds || holdsInModel.isFalse) { "Expected true or false, but got $holds" }
-        holds
+        val holdsInModel = model.eval(condition)
+        check(holdsInModel is KInterpretedValue<UBoolSort>) { "Expected true or false, but got $holdsInModel" }
+        holdsInModel.isTrue
     }
 
-    val posPathCondition = pathCondition + constraint
-    val negPathCondition = pathCondition + ctx.mkNot(constraint)
+    val posPathCondition = pathCondition + condition
+    val negPathCondition = pathCondition + ctx.mkNot(condition)
 
     val (posState, negState) = when {
         posPathCondition == pathCondition -> this to null
@@ -45,27 +58,17 @@ fun <T : UState<Type, Field, Method, Statement>, Type, Field, Method, Statement>
         }
 
         trueModels.isNotEmpty() -> { // falseModels is empty, so models == trueModels
-            val negativeModel = checker(memory, negPathCondition)
-            val negState = if (negativeModel != null) {
-                clone().apply { models = listOf(negativeModel) }
-            } else {
-                null
-            }
+            val negativeModel = findModel(memory, negPathCondition)
+            val negState = checkState(this, negativeModel)
 
-            val posState = this
-            posState to negState
+            this to negState
         }
 
         falseModels.isNotEmpty() -> { // trueModels is empty, so models == falseModels
-            val positiveModel = checker(memory, posPathCondition)
-            val posState = if (positiveModel != null) {
-                clone().apply { models = listOf(positiveModel) }
-            } else {
-                null
-            }
+            val positiveModel = findModel(memory, posPathCondition)
+            val posState = checkState(this, positiveModel)
 
-            val negState = this
-            posState to negState
+            posState to this
         }
 
         else -> error("[trueModels] and [falseModels] are both empty, that has to be impossible by construction!")
@@ -79,6 +82,6 @@ fun <T : UState<Type, Field, Method, Statement>, Type, Field, Method, Statement>
     }
 
     @Suppress("UNCHECKED_CAST")
-    return posState as T? to negState as T?
+    return ForkResult(posState as T?, negState as T?)
 
 }

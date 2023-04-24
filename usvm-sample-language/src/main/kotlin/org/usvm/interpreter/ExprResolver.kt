@@ -59,9 +59,15 @@ import org.usvm.language.UnaryMinus
 import org.usvm.language.Register
 import org.usvm.language.RegisterLValue
 
+/**
+ * Resolves [Expr]s to [UExpr]s, forks in the [scope] respecting unsats. Checks for exceptions.
+ *
+ * @param hardMaxArrayLength denotes the maximum acceptable array length. All states with any length greater than
+ * [hardMaxArrayLength] will be rejected.
+ */
 class ExprResolver(
     private val scope: StepScope,
-    private val maxArrayLength: Int = 1_500
+    private val hardMaxArrayLength: Int = 1_500,
 ) {
     fun resolveExpr(expr: Expr<SampleType>): UExpr<out USort>? =
         @Suppress("UNCHECKED_CAST")
@@ -131,7 +137,7 @@ class ExprResolver(
                 val ref = resolveArray(expr.array) ?: return null
                 checkNullPointer(ref) ?: return null
                 val length = scope.calcOnState { memory.length(ref, expr.array.type) } ?: return null
-                checkArrayMaxLength(length) ?: return null
+                checkHardMaxArrayLength(length) ?: return null
                 scope.assert(mkBvSignedLessOrEqualExpr(mkBv(0), length)) ?: return null
                 length
             }
@@ -261,6 +267,13 @@ class ExprResolver(
         }
     }
 
+    fun resolveLValue(value: LValue): ULValue? =
+        when (value) {
+            is ArrayIdxSetLValue -> resolveArraySelectRef(value.array, value.index)
+            is FieldSetLValue -> resolveFieldSelectRef(value.instance, value.field)
+            is RegisterLValue -> resolveRegisterRef(value.value)
+        }
+
     private fun resolveRegister(register: Register<SampleType>): UExpr<out USort>? {
         val registerRef = resolveRegisterRef(register)
         return scope.calcOnState { memory.read(registerRef) }
@@ -277,13 +290,6 @@ class ExprResolver(
         return scope.calcOnState { memory.read(fieldRef) }
     }
 
-    fun resolveLValue(value: LValue): ULValue? =
-        when (value) {
-            is ArrayIdxSetLValue -> resolveArraySelectRef(value.array, value.index)
-            is FieldSetLValue -> resolveFieldSelectRef(value.instance, value.field)
-            is RegisterLValue -> resolveRegisterRef(value.value)
-        }
-
     private fun resolveArraySelectRef(array: ArrayExpr<*>, index: IntExpr): ULValue? {
         val arrayRef = resolveArray(array) ?: return null
         checkNullPointer(arrayRef) ?: return null
@@ -291,19 +297,13 @@ class ExprResolver(
         val idx = resolveInt(index) ?: return null
         val length = scope.calcOnState { memory.length(arrayRef, array.type) } ?: return null
 
-        checkArrayMaxLength(length) ?: return null
+        checkHardMaxArrayLength(length) ?: return null
 
         checkArrayIndex(idx, length) ?: return null
 
         val cellSort = scope.uctx.typeToSort(array.type.elementType)
 
         return UArrayIndexRef(cellSort, arrayRef, idx, array.type)
-    }
-
-    private fun checkArrayMaxLength(length: USizeExpr): Unit? {
-        val lengthLeThanMaxLength = scope.uctx.mkBvSignedLessExpr(length, scope.uctx.mkBv(maxArrayLength))
-        scope.assert(lengthLeThanMaxLength) ?: return null
-        return Unit
     }
 
     private fun resolveFieldSelectRef(instance: StructExpr, field: Field<*>): ULValue? {
@@ -324,27 +324,28 @@ class ExprResolver(
     private fun checkArrayIndex(idx: USizeExpr, length: USizeExpr) = with(scope.uctx) {
         val inside = (mkBvSignedLessOrEqualExpr(mkBv(0), idx)) and (mkBvSignedLessExpr(idx, length))
 
-        scope.fork(inside,
+        scope.fork(
+            inside,
             blockOnFalseState = {
                 exceptionRegister = IndexOutOfBounds(
-                    topStmt,
-                    (models.first().eval(length) as KBitVec32Value).intValue, // TODO: refactor
-                    (models.first().eval(idx) as KBitVec32Value).intValue, // TODO: refactor
+                    lastStmt,
+                    (models.first().eval(length) as KBitVec32Value).intValue,
+                    (models.first().eval(idx) as KBitVec32Value).intValue,
                 )
             }
         )
     }
 
     private fun checkArrayLength(length: KExpr<UBv32Sort>, actualLength: Int) = with(scope.uctx) {
-        checkArrayMaxLength(length) ?: return null
+        checkHardMaxArrayLength(length) ?: return null
 
         val actualLengthLeThanLength = mkBvSignedLessOrEqualExpr(mkBv(actualLength), length)
 
         scope.fork(actualLengthLeThanLength,
             blockOnFalseState = {
                 exceptionRegister = NegativeArraySize(
-                    topStmt,
-                    (models.first().eval(length) as KBitVec32Value).intValue, // TODO: refactor
+                    lastStmt,
+                    (models.first().eval(length) as KBitVec32Value).intValue,
                     actualLength
                 )
             }
@@ -356,7 +357,7 @@ class ExprResolver(
         val neqZero = mkEq(rhs, mkBv(0)).not()
         scope.fork(neqZero,
             blockOnFalseState = {
-                exceptionRegister = DivisionByZero(topStmt)
+                exceptionRegister = DivisionByZero(lastStmt)
             }
         )
     }
@@ -366,8 +367,14 @@ class ExprResolver(
         scope.fork(
             neqNull,
             blockOnFalseState = {
-                exceptionRegister = NullPointerDereference(topStmt)
+                exceptionRegister = NullPointerDereference(lastStmt)
             }
         )
+    }
+
+    private fun checkHardMaxArrayLength(length: USizeExpr): Unit? = with(scope.uctx) {
+        val lengthLeThanMaxLength = mkBvSignedLessOrEqualExpr(length, mkBv(hardMaxArrayLength))
+        scope.assert(lengthLeThanMaxLength) ?: return null
+        return Unit
     }
 }

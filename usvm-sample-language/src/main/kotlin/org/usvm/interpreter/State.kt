@@ -52,7 +52,7 @@ class ExecutionState(
         )
 }
 
-val ExecutionState.topStmt get() = path.last()
+val ExecutionState.lastStmt get() = path.last()
 fun ExecutionState.addNewStmt(stmt: Stmt) {
     path = path.add(stmt)
 }

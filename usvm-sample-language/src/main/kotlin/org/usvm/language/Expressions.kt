@@ -14,9 +14,7 @@ class Register<out T : SampleType>(
     override val type: T
 ) : Expr<T> {
 
-    override fun toString(): String {
-        return "%$idx"
-    }
+    override fun toString() = "%$idx"
 }
 
 // int expressions
@@ -28,62 +26,48 @@ sealed class BaseIntExpr : IntExpr {
 class IntConst(
     val const: Int,
 ) : BaseIntExpr() {
-    override fun toString(): String {
-        return "$const"
-    }
+    override fun toString() = "$const"
 }
 
 class IntPlus(
     val left: IntExpr,
     val right: IntExpr,
 ) : BaseIntExpr() {
-    override fun toString(): String {
-        return "($left + $right)"
-    }
+    override fun toString() = "($left + $right)"
 }
 
 class IntMinus(
     val left: IntExpr,
     val right: IntExpr,
 ) : BaseIntExpr() {
-    override fun toString(): String {
-        return "($left - $right)"
-    }
+    override fun toString() = "($left - $right)"
 }
 
 class UnaryMinus(
     val value: IntExpr,
 ) : BaseIntExpr() {
-    override fun toString(): String {
-        return "(-$value)"
-    }
+    override fun toString() = "(-$value)"
 }
 
 class IntTimes(
     val left: IntExpr,
     val right: IntExpr,
 ) : BaseIntExpr() {
-    override fun toString(): String {
-        return "($left * $right)"
-    }
+    override fun toString() = "($left * $right)"
 }
 
 class IntDiv(
     val left: IntExpr,
     val right: IntExpr,
 ) : BaseIntExpr() {
-    override fun toString(): String {
-        return "($left // $right)"
-    }
+    override fun toString() = "($left // $right)"
 }
 
 class IntRem(
     val left: IntExpr,
     val right: IntExpr,
 ) : BaseIntExpr() {
-    override fun toString(): String {
-        return "($left % $right)"
-    }
+    override fun toString() = "($left % $right)"
 }
 
 
@@ -96,107 +80,83 @@ sealed class BaseBooleanExpr : BooleanExpr {
 class BooleanConst(
     val const: Boolean,
 ) : BaseBooleanExpr() {
-    override fun toString(): String {
-        return "$const"
-    }
+    override fun toString() = "$const"
 }
 
 class And(
     val left: BooleanExpr,
     val right: BooleanExpr,
 ) : BaseBooleanExpr() {
-    override fun toString(): String {
-        return "($left and $right)"
-    }
+    override fun toString() = "($left and $right)"
 }
 
 class Or(
     val left: BooleanExpr,
     val right: BooleanExpr,
 ) : BaseBooleanExpr() {
-    override fun toString(): String {
-        return "($left or $right)"
-    }
+    override fun toString() = "($left or $right)"
 }
 
 class Not(
     val value: BooleanExpr,
 ) : BaseBooleanExpr() {
-    override fun toString(): String {
-        return "!$value"
-    }
+    override fun toString() = "!$value"
 }
 
 class Gt(
     val left: IntExpr,
     val right: IntExpr,
 ) : BaseBooleanExpr() {
-    override fun toString(): String {
-        return "($left > $right)"
-    }
+    override fun toString() = "($left > $right)"
 }
 
 class Ge(
     val left: IntExpr,
     val right: IntExpr,
 ) : BaseBooleanExpr() {
-    override fun toString(): String {
-        return "($left >= $right)"
-    }
+    override fun toString() = "($left >= $right)"
 }
 
 class Lt(
     val left: IntExpr,
     val right: IntExpr,
 ) : BaseBooleanExpr() {
-    override fun toString(): String {
-        return "($left < $right)"
-    }
+    override fun toString() = "($left < $right)"
 }
 
 class Le(
     val left: IntExpr,
     val right: IntExpr,
 ) : BaseBooleanExpr() {
-    override fun toString(): String {
-        return "($left <= $right)"
-    }
+    override fun toString() = "($left <= $right)"
 }
 
 class IntEq(
     val left: IntExpr,
     val right: IntExpr,
 ) : BaseBooleanExpr() {
-    override fun toString(): String {
-        return "($left == $right)"
-    }
+    override fun toString() = "($left == $right)"
 }
 
 class BooleanEq(
     val left: BooleanExpr,
     val right: BooleanExpr,
 ) : BaseBooleanExpr() {
-    override fun toString(): String {
-        return "($left == $right)"
-    }
+    override fun toString() = "($left == $right)"
 }
 
 class StructEq(
     val left: StructExpr,
     val right: StructExpr,
 ) : BaseBooleanExpr() {
-    override fun toString(): String {
-        return "($left === $right)"
-    }
+    override fun toString() = "($left === $right)"
 }
 
 class ArrayEq<T : SampleType>(
     val left: ArrayExpr<T>,
     val right: ArrayExpr<T>,
 ) : BaseBooleanExpr() {
-    override fun toString(): String {
-        return "($left === $right)"
-    }
+    override fun toString() = "($left === $right)"
 }
 
 
@@ -219,9 +179,7 @@ class StructCreation(
 class StructIsNull(
     val struct: StructExpr,
 ) : BaseBooleanExpr() {
-    override fun toString(): String {
-        return "($struct == null)"
-    }
+    override fun toString() = "($struct == null)"
 }
 
 class FieldSelect<T : SampleType>(
@@ -229,9 +187,7 @@ class FieldSelect<T : SampleType>(
     val field: Field<T>,
 ) : Expr<T> {
     override val type: T get() = this.field.type
-    override fun toString(): String {
-        return "($instance).${field.name}"
-    }
+    override fun toString() = "($instance).${field.name}"
 }
 
 
@@ -246,17 +202,13 @@ class ArrayCreation<T : SampleType>(
     val size: IntExpr,
     val values: List<Expr<T>>,
 ) : BaseArrayExpr<T>(elementType) {
-    override fun toString(): String {
-        return "[$size]${type.elementType}{${values.joinToString()}}"
-    }
+    override fun toString() = "[$size]${type.elementType}{${values.joinToString()}}"
 }
 
 class ArraySize(
     val array: ArrayExpr<*>,
 ) : BaseIntExpr() {
-    override fun toString(): String {
-        return "length($array)"
-    }
+    override fun toString() = "length($array)"
 }
 
 class ArraySelect<T : SampleType>(
@@ -265,7 +217,5 @@ class ArraySelect<T : SampleType>(
 ) : Expr<T> {
     override val type: T get() = array.type.elementType
 
-    override fun toString(): String {
-        return "$array[$index]"
-    }
+    override fun toString() = "$array[$index]"
 }

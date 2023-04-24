@@ -98,8 +98,9 @@ data class URegionHeap<Field, ArrayType>(
     ): UAllocatedArrayRegion<ArrayType, Sort> =
         allocatedArrays[address]
             ?.allocatedArrayRegionUncheckedCast()
-            ?: emptyAllocatedArrayRegion(arrayType, address, elementSort)
-                .also { allocatedArrays = allocatedArrays.put(address, it) } // to increase cache usage
+            ?: emptyAllocatedArrayRegion(arrayType, address, elementSort).also { region ->
+                allocatedArrays = allocatedArrays.put(address, region)
+            } // to increase cache usage
 
     private fun <Sort : USort> inputArrayRegion(
         arrayType: ArrayType,
@@ -107,15 +108,17 @@ data class URegionHeap<Field, ArrayType>(
     ): UInputArrayRegion<ArrayType, Sort> =
         inputArrays[arrayType]
             ?.inputArrayRegionUncheckedCast()
-            ?: emptyInputArrayRegion(arrayType, elementSort)
-                .also { inputArrays = inputArrays.put(arrayType, it) } // to increase cache usage
+            ?: emptyInputArrayRegion(arrayType, elementSort).also { region ->
+                inputArrays = inputArrays.put(arrayType, region)
+            } // to increase cache usage
 
     private fun inputArrayLengthRegion(
         arrayType: ArrayType,
     ): UInputArrayLengthRegion<ArrayType> =
         inputLengths[arrayType]
-            ?: emptyInputArrayLengthRegion(arrayType, ctx.sizeSort)
-                .also { inputLengths = inputLengths.put(arrayType, it) } // to increase cache usage
+            ?: emptyInputArrayLengthRegion(arrayType, ctx.sizeSort).also { region ->
+                inputLengths = inputLengths.put(arrayType, region)
+            } // to increase cache usage
 
     override fun <Sort : USort> readField(ref: UHeapRef, field: Field, sort: Sort): UExpr<Sort> =
         ref.map(

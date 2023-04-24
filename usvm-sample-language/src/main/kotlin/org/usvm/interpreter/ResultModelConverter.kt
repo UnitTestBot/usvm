@@ -25,7 +25,6 @@ import org.usvm.language.SampleType
 import org.usvm.language.StructCreation
 import org.usvm.language.StructExpr
 import org.usvm.language.StructType
-import kotlin.math.min
 
 class ResultModelConverter(
     private val ctx: UContext,
@@ -35,14 +34,14 @@ class ResultModelConverter(
         val exceptionRegister = state.exceptionRegister
 
         @Suppress("UNCHECKED_CAST")
-        val model = state.models.single() as UModelBase<Field<*>, SampleType>
+        val model = state.models.first() as UModelBase<Field<*>, SampleType>
 
         val inputScope = InputScope(ctx, model)
 
         val inputValues = method.argumentsTypes.mapIndexed { idx, type ->
             val sort = ctx.typeToSort(type)
             val uExpr = model.stack.eval(idx, sort)
-            inputScope.resolveExpr(uExpr, type)
+            inputScope.convertExpr(uExpr, type)
         }
         val inputModel = InputModel(inputValues)
 
@@ -50,7 +49,7 @@ class ResultModelConverter(
             UnsuccessfulExecutionResult(inputModel, exceptionRegister)
         } else {
             val returnUExpr = state.returnRegister
-            val returnExpr = returnUExpr?.let { inputScope.resolveExpr(it, method.returnType!!) }
+            val returnExpr = returnUExpr?.let { inputScope.convertExpr(it, method.returnType!!) }
             val outputModel = OutputModel(returnExpr)
 
             SuccessfulExecutionResult(inputModel, outputModel)
@@ -61,21 +60,21 @@ class ResultModelConverter(
         private val ctx: UContext,
         private val model: UModelBase<Field<*>, SampleType>,
     ) {
-        fun resolveExpr(expr: UExpr<out USort>, type: SampleType): Expr<SampleType> =
+        fun convertExpr(expr: UExpr<out USort>, type: SampleType): Expr<SampleType> =
             when (type) {
-                BooleanType -> resolveBoolExpr(expr.asExpr(ctx.boolSort))
+                BooleanType -> convertBoolExpr(expr.asExpr(ctx.boolSort))
                 IntType -> resolveIntExpr(expr.asExpr(ctx.bv32Sort))
-                is ArrayType<*> -> resolveArrayExpr(expr.asExpr(ctx.addressSort), type)
-                is StructType -> resolveStructExpr(expr.asExpr(ctx.addressSort), type)
+                is ArrayType<*> -> convertArrayExpr(expr.asExpr(ctx.addressSort), type)
+                is StructType -> convertStructExpr(expr.asExpr(ctx.addressSort), type)
             }
 
-        fun resolveBoolExpr(expr: UExpr<UBoolSort>) =
+        fun convertBoolExpr(expr: UExpr<UBoolSort>) =
             BooleanConst(with(ctx) { model.eval(expr).asExpr(boolSort).isTrue })
 
         fun resolveIntExpr(expr: UExpr<UBv32Sort>) =
             IntConst(with(ctx) { (model.eval(expr).asExpr(bv32Sort) as KBitVec32Value).intValue })
 
-        fun resolveStructExpr(
+        fun convertStructExpr(
             ref: UExpr<UAddressSort>,
             type: StructType,
         ): StructExpr {
@@ -85,23 +84,23 @@ class ResultModelConverter(
             val fieldValues = type.struct.fields.associateWith { field ->
                 val sort = ctx.typeToSort(field.type)
                 val fieldUExpr = model.heap.readField(ref, field, sort)
-                resolveExpr(fieldUExpr, field.type)
+                convertExpr(fieldUExpr, field.type)
             }
             return StructCreation(type.struct, fieldValues.toList())
         }
 
-        fun resolveArrayExpr(
+        fun convertArrayExpr(
             ref: UExpr<UAddressSort>,
             type: ArrayType<*>,
         ): ArrayCreation<*> {
-            if (ref == ctx.mkConcreteHeapRef(0)) {
+            if (ref == ctx.mkConcreteHeapRef(NULL_ADDRESS)) {
                 return ArrayCreation(StructType(Null), IntConst(0), emptyList())
             }
             val lengthUExpr = model.heap.readArrayLength(ref, type)
-            val length = (resolveExpr(lengthUExpr, IntType) as IntConst).const
+            val length = (convertExpr(lengthUExpr, IntType) as IntConst).const
             val resolved = (0 until length).map { idx ->
                 val indexUExpr = model.heap.readArrayIndex(ref, ctx.mkBv(idx), type, ctx.typeToSort(type.elementType))
-                resolveExpr(indexUExpr, type.elementType)
+                convertExpr(indexUExpr, type.elementType)
             }
             return ArrayCreation(type.elementType, IntConst(length), resolved)
         }
