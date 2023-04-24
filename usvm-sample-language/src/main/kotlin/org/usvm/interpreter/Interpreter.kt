@@ -1,7 +1,22 @@
 package org.usvm.interpreter
 
-import org.usvm.*
-import org.usvm.language.*
+import org.usvm.UContext
+import org.usvm.UMemoryBase
+import org.usvm.UModel
+import org.usvm.UModelBase
+import org.usvm.UPathCondition
+import org.usvm.USolverBase
+import org.usvm.USolverSat
+import org.usvm.language.Call
+import org.usvm.language.Field
+import org.usvm.language.Goto
+import org.usvm.language.If
+import org.usvm.language.Method
+import org.usvm.language.Return
+import org.usvm.language.SampleType
+import org.usvm.language.SetLabel
+import org.usvm.language.SetValue
+import org.usvm.language.Stmt
 
 class SampleInterpreter(
     private val ctx: UContext,
