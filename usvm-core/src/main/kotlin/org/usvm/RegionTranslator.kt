@@ -3,7 +3,6 @@ package org.usvm
 import org.ksmt.expr.KExpr
 import org.ksmt.sort.KArray2Sort
 import org.ksmt.sort.KArraySort
-import org.ksmt.utils.cast
 import java.util.IdentityHashMap
 
 /**
@@ -53,8 +52,11 @@ internal class U1DArrayUpdateTranslate<KeySort : USort, Sort : USort>(
                 val value = update.value.translated
                 val guard = update.guard.translated
                 mkIte(guard, previous.store(key, value), previous)
-                // or
-                // previous.store(update.key, mkIte(update.guard, update.value, previous.select(update.key)))
+//                 or
+//                val keyDecl = mkFreshConst("k", previous.sort.domain)
+//                mkArrayLambda(keyDecl.decl, mkIte(keyDecl eq key and guard, value, previous.select(keyDecl)))
+//                 or
+//                previous.store(key, mkIte(guard, value, previous.select(key)))
             }
 
             is URangedUpdateNode<*, *, *, *> -> {

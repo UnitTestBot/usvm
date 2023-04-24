@@ -26,7 +26,7 @@ class HeapRefEqTest {
     @Test
     fun testSymbolicWithNullRefHeapRefEqFalse() = with(ctx) {
         val ref1 = mkRegisterReading(0, addressSort)
-        val ref2 = mkNullRef()
+        val ref2 = nullRef
         val expr = mkHeapRefEq(ref1, ref2)
         assertSame(ref1 eq ref2, expr)
     }
@@ -66,7 +66,7 @@ class HeapRefEqTest {
     @Test
     fun testInterleavedWithNullHeapRefEq() = with(ctx) {
         val ref1 = heap.allocate()
-        val ref2 = mkNullRef()
+        val ref2 = nullRef
         val expr = mkHeapRefEq(ref1, ref2)
         assertSame(falseExpr, expr)
     }

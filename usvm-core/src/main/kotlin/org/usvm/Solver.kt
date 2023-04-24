@@ -5,13 +5,13 @@ import org.ksmt.solver.KSolverStatus
 
 sealed interface USolverResult<T>
 
-open class USolverSat<Model>(
+open class USatResult<Model>(
     val model: Model
 ) : USolverResult<Model>
 
-open class USolverUnsat<Model> : USolverResult<Model>
+open class UUnsatResult<Model> : USolverResult<Model>
 
-open class USolverUnknown<Model> : USolverResult<Model>
+open class UUnknownResult<Model> : USolverResult<Model>
 
 abstract class USolver<Memory, PathCondition, Model> {
     abstract fun check(memory: Memory, pc: PathCondition): USolverResult<Model>
@@ -26,7 +26,7 @@ open class USolverBase<Field, Type, Method>(
 
     override fun check(memory: UMemoryBase<Field, Type, Method>, pc: UPathCondition): USolverResult<UModelBase<Field, Type>> {
         if (pc.isFalse) {
-            return USolverUnsat()
+            return UUnsatResult()
         }
         solver.push()
 
@@ -40,15 +40,15 @@ open class USolverBase<Field, Type, Method>(
             solver.pop()
 
             return if (status == KSolverStatus.UNSAT) {
-                USolverUnsat()
+                UUnsatResult()
             } else {
-                USolverUnknown()
+                UUnknownResult()
             }
         }
-        val model = solver.model().detach()
-        val uModel = decoder.decode(memory, model)
+        val kModel = solver.model().detach()
+        val uModel = decoder.decode(memory, kModel)
         solver.pop()
 
-        return USolverSat(uModel)
+        return USatResult(uModel)
     }
 }

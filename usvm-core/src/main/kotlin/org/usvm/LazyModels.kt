@@ -18,12 +18,8 @@ private fun <K, T : USort> Map<K, UExpr<out USort>>.evalAndReplace(
     addressesMapping: AddressesMapping,
     sort: T
 ): UExpr<T> {
-    val value = get(key)
-    return if (value != null) {
-        model.eval(value, isComplete = true).mapAddress(addressesMapping).asExpr(sort)
-    } else {
-        sort.sampleValue().mapAddress(addressesMapping)
-    }
+    val value = get(key)?.asExpr(sort) ?: sort.sampleValue()
+    return model.eval(value, isComplete = true).mapAddress(addressesMapping)
 }
 
 /**
@@ -108,7 +104,7 @@ class ULazyHeapModel<Field, ArrayType>(
                 region.read(ref)
             }
 
-            else -> sort.sampleValue().makeNullRefConcrete(nullRef)
+            else -> sort.sampleValue().mapAddress(addressesMapping)
         }
     }
 
@@ -136,7 +132,7 @@ class ULazyHeapModel<Field, ArrayType>(
                 region.read(key)
             }
 
-            else -> sort.sampleValue().makeNullRefConcrete(nullRef)
+            else -> sort.sampleValue().mapAddress(addressesMapping)
         }
     }
 
@@ -208,13 +204,6 @@ class ULazyHeapModel<Field, ArrayType>(
 
     override fun toMutableHeap(): ULazyHeapModel<Field, ArrayType> = this
 }
-
-fun <T : USort> UExpr<T>.makeNullRefConcrete(conreteNullRef: UConcreteHeapRef): UExpr<T> =
-    if (this == uctx.nullRef) {
-        conreteNullRef.asExpr(sort)
-    } else {
-        this
-    }
 
 /**
  * If [this] value is an instance of address expression, returns

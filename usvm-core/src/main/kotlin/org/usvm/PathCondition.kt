@@ -16,14 +16,16 @@ class UPathConstraintsSet(
     override val isFalse: Boolean
         get() = constraints.size == 1 && constraints.first() is UFalse
 
-    override operator fun plus(constraint: UBoolExpr): UPathCondition {
-        val ctx = constraint.uctx
-        val notConstraint = ctx.mkNot(constraint)
-        if (constraints.contains(notConstraint)) {
-            return contradiction(ctx)
+    override operator fun plus(constraint: UBoolExpr): UPathCondition =
+        with(constraint.uctx) {
+            when {
+                constraint == falseExpr || constraint.not() in constraints -> contradiction(this)
+
+                constraint == trueExpr || constraint in constraints -> this@UPathConstraintsSet
+
+                else -> UPathConstraintsSet(constraints.add(constraint))
+            }
         }
-        return UPathConstraintsSet(constraints.add(constraint))
-    }
 
     companion object {
         fun contradiction(ctx: UContext) =

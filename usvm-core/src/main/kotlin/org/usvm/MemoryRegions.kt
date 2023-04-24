@@ -1,7 +1,6 @@
 package org.usvm
 
 import org.ksmt.utils.asExpr
-import org.ksmt.utils.sampleValue
 import org.usvm.util.SetRegion
 import org.usvm.util.emptyRegionTree
 
@@ -338,7 +337,8 @@ fun <ArrayType, Sort : USort> emptyAllocatedArrayRegion(
         updates = emptyRegionTree(),
         ::indexRegion, ::indexRangeRegion, ::indexEq, ::indexLeConcrete, ::indexLeSymbolic
     )
-    val regionId = UAllocatedArrayId(arrayType, sort, sort.sampleValue(), address, contextHeap = null)
+    // sampleUValue here is important
+    val regionId = UAllocatedArrayId(arrayType, sort, sort.sampleUValue(), address, contextHeap = null)
     return USymbolicMemoryRegion(regionId, updates)
 }
 
