@@ -17,7 +17,7 @@ interface UModelDecoder<Memory, Model> {
 fun <Field, Type, Method> buildTranslatorAndLazyDecoder(
     ctx: UContext,
 ): Pair<UExprTranslator<Field, Type>, ULazyModelDecoder<Field, Type, Method>> {
-    val translator = UCachingExprTranslator<Field, Type>(ctx)
+    val translator = UTrackingExprTranslator<Field, Type>(ctx)
 
     val decoder = with(translator) {
         ULazyModelDecoder<Field, Type, Method>(
@@ -51,7 +51,7 @@ typealias AddressesMapping = Map<UExpr<UAddressSort>, UConcreteHeapRef>
 open class ULazyModelDecoder<Field, Type, Method>(
     protected val registerIdxToTranslated: Map<Int, UExpr<out USort>>,
     protected val indexedMethodReturnValueToTranslated: Map<Pair<*, Int>, UExpr<*>>,
-    protected val translatedNullRef: UExpr<UAddressSort>,
+    protected val translatedNullRef: UHeapRef,
     protected val translatedRegionIds: Set<URegionId<*, *, *>>,
     protected val regionIdToInitialValue: Map<URegionId<*, *, *>, KExpr<*>>,
 ) : UModelDecoder<UMemoryBase<Field, Type, Method>, UModelBase<Field, Type>> {
@@ -63,12 +63,12 @@ open class ULazyModelDecoder<Field, Type, Method>(
      * equivalence classes of addresses and work with their number in the future.
      */
     private fun buildMapping(model: KModel): AddressesMapping {
-        // Null is a special value that we want to translate in any case.
-        val interpretedNullRef = model.eval(translatedNullRef, isComplete = true)
+        // Translated null has to be equal to evaluated null, because it is of KUninterpretedSort and translatedNullRef
+        // defined as mkUninterpretedSortValue(addressSort, 0).
+        check(translatedNullRef === model.eval(translatedNullRef, isComplete = true))
 
         val result = mutableMapOf<KExpr<KUninterpretedSort>, UConcreteHeapRef>()
         // Except the null value, it has the NULL_ADDRESS
-        result[interpretedNullRef] = ctx.mkConcreteHeapRef(NULL_ADDRESS)
         result[translatedNullRef] = ctx.mkConcreteHeapRef(NULL_ADDRESS)
 
         val universe = model.uninterpretedSortUniverse(ctx.addressSort) ?: return result
@@ -76,7 +76,7 @@ open class ULazyModelDecoder<Field, Type, Method>(
         var counter = INITIAL_INPUT_ADDRESS
 
         for (interpretedAddress in universe) {
-            if (interpretedAddress == interpretedNullRef) {
+            if (interpretedAddress == translatedNullRef) {
                 continue
             }
             result[interpretedAddress] = ctx.mkConcreteHeapRef(counter--)

@@ -5,7 +5,6 @@ import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.ksmt.solver.z3.KZ3Solver
-import kotlin.test.assertFalse
 import kotlin.test.assertIs
 
 class ModelDecodingTest {
@@ -34,7 +33,7 @@ class ModelDecodingTest {
     @Test
     fun testSmoke(): Unit = with(ctx) {
         val status = solver.check(memory, UPathConstraintsSet(trueExpr))
-        assertIs<USolverSat<UModelBase<*, *>>>(status)
+        assertIs<USatResult<UModelBase<*, *>>>(status)
     }
 
     @Test
@@ -51,7 +50,7 @@ class ModelDecodingTest {
         val pc = heap.readField(symbolicRef1, field, bv32Sort) eq mkBv(42)
 
         val status = solver.check(memory, UPathConstraintsSet(pc))
-        val model = assertIs<USolverSat<UModelBase<Field, Type>>>(status).model
+        val model = assertIs<USatResult<UModelBase<Field, Type>>>(status).model
 
         val expr = heap.readField(symbolicRef1, field, bv32Sort)
 
@@ -73,7 +72,7 @@ class ModelDecodingTest {
                 (heap.readField(symbolicRef0, field, addressSort) eq symbolicRef1)
 
         val status = solver.check(memory, UPathConstraintsSet(pc))
-        val model = assertIs<USolverSat<UModelBase<Field, Type>>>(status).model
+        val model = assertIs<USatResult<UModelBase<Field, Type>>>(status).model
 
         val expr = heap.readField(symbolicRef1, field, addressSort)
 
@@ -93,7 +92,7 @@ class ModelDecodingTest {
         val pc = (ref1 neq ref2) and (mockedValue neq nullRef) and (ref1 neq nullRef)
 
         val status = solver.check(memory, UPathConstraintsSet(pc))
-        val model = assertIs<USolverSat<UModelBase<Field, Type>>>(status).model
+        val model = assertIs<USatResult<UModelBase<Field, Type>>>(status).model
 
         val mockedValueEqualsRef1 = mockedValue eq ref1
 
@@ -113,7 +112,7 @@ class ModelDecodingTest {
         val pc = (ref1 neq ref2) and (mockedValue neq nullRef) and (ref1 neq nullRef)
 
         val status = solver.check(memory, UPathConstraintsSet(pc))
-        assertIs<USolverUnsat<UModelBase<Field, Type>>>(status)
+        assertIs<UUnsatResult<UModelBase<Field, Type>>>(status)
     }
 
     @Test
@@ -140,13 +139,13 @@ class ModelDecodingTest {
         val pc = (symbolicRef2 neq nullRef) and (readedRef1 neq readedRef2)
 
         val status = solver.check(memory, UPathConstraintsSet(pc))
-        val model = assertIs<USolverSat<UModelBase<Field, Type>>>(status).model
+        val model = assertIs<USatResult<UModelBase<Field, Type>>>(status).model
 
         assertSame(model.eval(symbolicRef1), model.eval(symbolicRef2))
     }
 
     @Test
-    fun testLoopedWritingsToArray() = with(ctx) {
+    fun testLoopWritingsToArray() = with(ctx) {
         val array = mockk<Type>()
 
         val symbolicRef0 = stack.readRegister(0, addressSort)
@@ -164,7 +163,7 @@ class ModelDecodingTest {
                 (readedRef neq symbolicRef1) and (symbolicRef0 eq symbolicRef1)
 
         val status = solver.check(memory, UPathConstraintsSet(pc))
-        val model = assertIs<USolverSat<UModelBase<Field, Type>>>(status).model
+        val model = assertIs<USatResult<UModelBase<Field, Type>>>(status).model
 
         assertSame(falseExpr, model.eval(symbolicRef2 eq symbolicRef0))
         assertSame(model.eval(readedRef), model.eval(symbolicRef2))
