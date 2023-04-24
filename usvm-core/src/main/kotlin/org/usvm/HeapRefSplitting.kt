@@ -167,9 +167,6 @@ internal inline fun filter(
                 val (guarded, state) = nodeToChild.removeLast()
                 val (cur, guardFromTop) = guarded
                 when (cur) {
-                    is USymbolicHeapRef,
-                    is UConcreteHeapRef,
-                    -> completelyMapped += (cur with trueExpr).takeIf { predicate(cur with guardFromTop) }
                     is UIteExpr<UAddressSort> -> when (state) {
                         LEFT_CHILD -> {
                             nodeToChild += guarded to RIGHT_CHILD
@@ -219,6 +216,8 @@ internal inline fun filter(
                             completelyMapped += next
                         }
                     }
+                    // USymbolicHeapRef, UConcreteHeapRef, KConst<UAddressSort>
+                    else -> completelyMapped += (cur with trueExpr).takeIf { predicate(cur with guardFromTop) }
                 }
 
             }

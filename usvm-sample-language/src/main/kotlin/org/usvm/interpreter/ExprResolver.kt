@@ -1,4 +1,4 @@
-package org.usvm.concrete.interpreter
+package org.usvm.interpreter
 
 import org.ksmt.expr.KBitVec32Value
 import org.ksmt.expr.KExpr
@@ -13,7 +13,6 @@ import org.usvm.ULValue
 import org.usvm.URegisterRef
 import org.usvm.USizeExpr
 import org.usvm.USort
-import org.usvm.concrete.state.topStmt
 import org.usvm.language.And
 import org.usvm.language.ArrayCreation
 import org.usvm.language.ArrayEq
@@ -61,7 +60,8 @@ import org.usvm.language.Register
 import org.usvm.language.RegisterLValue
 
 class ExprResolver(
-    val scope: StepScope,
+    private val scope: StepScope,
+    private val maxArrayLength: Int = 1_500
 ) {
     fun resolveExpr(expr: Expr<SampleType>): UExpr<out USort>? =
         @Suppress("UNCHECKED_CAST")
@@ -87,6 +87,7 @@ class ExprResolver(
 
                 ref
             }
+
             is ArraySelect -> resolveArraySelect(expr)?.asExpr(addressSort)
             is FieldSelect -> resolveFieldSelect(expr)?.asExpr(addressSort)
             is Register -> resolveRegister(expr)?.asExpr(addressSort)
@@ -100,9 +101,7 @@ class ExprResolver(
                 val size = resolveInt(expr.size) ?: return null
                 checkArrayLength(size, expr.values.size) ?: return null
 
-                val ref = scope.calcOnState {
-                    memory.malloc(expr.type, size)
-                } ?: return null
+                val ref = scope.calcOnState { memory.malloc(expr.type, size) } ?: return null
 
                 val cellSort = typeToSort(expr.type.elementType)
 
@@ -118,6 +117,7 @@ class ExprResolver(
 
                 ref
             }
+
             is ArraySelect -> resolveArraySelect(expr)?.asExpr(addressSort)
             is FieldSelect -> resolveFieldSelect(expr)?.asExpr(addressSort)
             is Register -> resolveRegister(expr)?.asExpr(addressSort)
@@ -130,8 +130,12 @@ class ExprResolver(
             is ArraySize -> {
                 val ref = resolveArray(expr.array) ?: return null
                 checkNullPointer(ref) ?: return null
-                scope.calcOnState { memory.length(ref, expr.type) }
+                val length = scope.calcOnState { memory.length(ref, expr.array.type) } ?: return null
+                checkArrayMaxLength(length) ?: return null
+                scope.assert(mkBvSignedLessOrEqualExpr(mkBv(0), length)) ?: return null
+                length
             }
+
             is IntConst -> mkBv(expr.const)
             is IntDiv -> {
                 val lhs = resolveInt(expr.left) ?: return null
@@ -139,31 +143,37 @@ class ExprResolver(
                 checkDivisionByZero(rhs)
                 mkBvSignedDivExpr(lhs, rhs)
             }
+
             is IntMinus -> {
                 val lhs = resolveInt(expr.left) ?: return null
                 val rhs = resolveInt(expr.right) ?: return null
                 mkBvSubExpr(lhs, rhs)
             }
+
             is IntPlus -> {
                 val lhs = resolveInt(expr.left) ?: return null
                 val rhs = resolveInt(expr.right) ?: return null
                 mkBvAddExpr(lhs, rhs)
             }
+
             is IntRem -> {
                 val lhs = resolveInt(expr.left) ?: return null
                 val rhs = resolveInt(expr.right) ?: return null
                 checkDivisionByZero(rhs)
                 mkBvSignedRemExpr(lhs, rhs)
             }
+
             is IntTimes -> {
                 val lhs = resolveInt(expr.left) ?: return null
                 val rhs = resolveInt(expr.right) ?: return null
                 mkBvMulExpr(lhs, rhs)
             }
+
             is UnaryMinus -> {
                 val operand = resolveInt(expr.value) ?: return null
                 mkBvNegationExpr(operand)
             }
+
             is ArraySelect -> resolveArraySelect(expr)?.asExpr(bv32Sort)
             is FieldSelect -> resolveFieldSelect(expr)?.asExpr(bv32Sort)
             is Register -> resolveRegister(expr)?.asExpr(bv32Sort)
@@ -178,60 +188,72 @@ class ExprResolver(
                 val rhs = resolveBoolean(expr.right) ?: return null
                 lhs and rhs
             }
+
             is ArrayEq<*> -> {
                 val lhs = resolveArray(expr.left) ?: return null
                 val rhs = resolveArray(expr.right) ?: return null
                 lhs eq rhs
             }
+
             is BooleanEq -> {
                 val lhs = resolveBoolean(expr.left) ?: return null
                 val rhs = resolveBoolean(expr.right) ?: return null
                 lhs eq rhs
             }
+
             is BooleanConst -> expr.const.expr
             is Ge -> {
                 val lhs = resolveInt(expr.left) ?: return null
                 val rhs = resolveInt(expr.right) ?: return null
                 mkBvSignedGreaterOrEqualExpr(lhs, rhs)
             }
+
             is Gt -> {
                 val lhs = resolveInt(expr.left) ?: return null
                 val rhs = resolveInt(expr.right) ?: return null
                 mkBvSignedGreaterExpr(lhs, rhs)
             }
+
             is IntEq -> {
                 val lhs = resolveInt(expr.left) ?: return null
                 val rhs = resolveInt(expr.right) ?: return null
                 lhs eq rhs
             }
+
             is Le -> {
                 val lhs = resolveInt(expr.left) ?: return null
                 val rhs = resolveInt(expr.right) ?: return null
                 mkBvSignedLessOrEqualExpr(lhs, rhs)
             }
+
             is Lt -> {
                 val lhs = resolveInt(expr.left) ?: return null
                 val rhs = resolveInt(expr.right) ?: return null
                 mkBvSignedLessExpr(lhs, rhs)
             }
+
             is Not -> {
                 val operand = resolveBoolean(expr.value) ?: return null
                 operand.not()
             }
+
             is Or -> {
                 val lhs = resolveBoolean(expr.left) ?: return null
                 val rhs = resolveBoolean(expr.right) ?: return null
                 lhs or rhs
             }
+
             is StructEq -> {
                 val lhs = resolveStruct(expr.left) ?: return null
                 val rhs = resolveStruct(expr.right) ?: return null
                 lhs eq rhs
             }
+
             is StructIsNull -> {
                 val operand = resolveStruct(expr.struct) ?: return null
                 operand eq nullRef
             }
+
             is ArraySelect -> resolveArraySelect(expr)?.asExpr(boolSort)
             is FieldSelect -> resolveFieldSelect(expr)?.asExpr(boolSort)
             is Register -> resolveRegister(expr)?.asExpr(boolSort)
@@ -268,11 +290,20 @@ class ExprResolver(
 
         val idx = resolveInt(index) ?: return null
         val length = scope.calcOnState { memory.length(arrayRef, array.type) } ?: return null
+
+        checkArrayMaxLength(length) ?: return null
+
         checkArrayIndex(idx, length) ?: return null
 
         val cellSort = scope.uctx.typeToSort(array.type.elementType)
 
         return UArrayIndexRef(cellSort, arrayRef, idx, array.type)
+    }
+
+    private fun checkArrayMaxLength(length: USizeExpr): Unit? {
+        val lengthLeThanMaxLength = scope.uctx.mkBvSignedLessExpr(length, scope.uctx.mkBv(maxArrayLength))
+        scope.assert(lengthLeThanMaxLength) ?: return null
+        return Unit
     }
 
     private fun resolveFieldSelectRef(instance: StructExpr, field: Field<*>): ULValue? {
@@ -305,9 +336,11 @@ class ExprResolver(
     }
 
     private fun checkArrayLength(length: KExpr<UBv32Sort>, actualLength: Int) = with(scope.uctx) {
-        val sizeLeThanActualSize = mkBvSignedLessOrEqualExpr(mkBv(actualLength), length)
+        checkArrayMaxLength(length) ?: return null
 
-        scope.fork(sizeLeThanActualSize,
+        val actualLengthLeThanLength = mkBvSignedLessOrEqualExpr(mkBv(actualLength), length)
+
+        scope.fork(actualLengthLeThanLength,
             blockOnFalseState = {
                 exceptionRegister = NegativeArraySize(
                     topStmt,

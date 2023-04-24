@@ -1,20 +1,18 @@
-package org.usvm.concrete
+package org.usvm.interpreter
 
-import org.ksmt.solver.z3.KZ3Solver
-import org.usvm.concrete.interpreter.SampleInterpreter
-import org.usvm.concrete.state.ExecutionState
-import org.usvm.concrete.state.addEntryMethodCall
 import org.usvm.language.Field
 import org.usvm.language.Method
 import org.usvm.language.Program
 import org.usvm.language.SampleType
 import kotlinx.collections.immutable.persistentListOf
-import kotlinx.collections.immutable.persistentSetOf
+import org.ksmt.solver.bitwuzla.KBitwuzlaSolver
+import org.ksmt.solver.yices.KYicesSolver
+import org.ksmt.solver.z3.KZ3Solver
 import org.usvm.*
 
 class Runner(
     val program: Program,
-    val maxStates: Int = 10,
+    val maxStates: Int = 40,
 ) {
     private val applicationGraph = DefaultSampleApplicationGraph(program)
     private val ctx = UContext()
@@ -22,7 +20,7 @@ class Runner(
 
     fun run(method: Method<*>): List<ProgramExecutionResult> {
         val (translator, decoder) = buildTranslatorAndLazyDecoder<Field<*>, SampleType, Method<*>>(ctx)
-        val solver = USolverBase(ctx, KZ3Solver(ctx), translator, decoder)
+        val solver = USolverBase(ctx, KYicesSolver(ctx), translator, decoder)
 
         val resultModelConverter = ResultModelConverter(ctx, method)
         val initialState = getInitialState(solver, method)
@@ -43,7 +41,7 @@ class Runner(
                 it.callStack.isEmpty() || it.exceptionRegister != null
             }
 
-            if (state in newFinalStates) {
+            if (state !in nextStates) {
                 queue.removeFirst()
             }
 

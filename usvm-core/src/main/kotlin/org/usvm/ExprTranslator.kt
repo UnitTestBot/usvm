@@ -8,7 +8,7 @@ import org.ksmt.utils.mkConst
 /**
  * Translates custom [UExpr] to a [KExpr]. Region readings are translated via [URegionTranslator]s.
  * Base version cache everything, but doesn't track translated expressions like register readings, mock symbols, etc.
- * Tracking done in the [UCachingExprTranslator].
+ * Tracking done in the [UTrackingExprTranslator].
  *
  * To show semantics of the translator, we use [KExpr] as return values, though [UExpr] is a typealias for it.
  */
@@ -149,7 +149,7 @@ open class UExprTranslator<Field, Type>(
 /**
  * Tracks translated symbols. This information used in [ULazyModelDecoder].
  */
-open class UCachingExprTranslator<Field, Type>(
+open class UTrackingExprTranslator<Field, Type>(
     ctx: UContext,
 ) : UExprTranslator<Field, Type>(ctx) {
 
@@ -167,7 +167,7 @@ open class UCachingExprTranslator<Field, Type>(
             super.transform(expr)
         }.cast()
 
-    val translatedNullRef = super.transform(ctx.nullRef)
+    val translatedNullRef: UHeapRef = super.apply(ctx.nullRef)
 
     val regionIdToTranslator =
         mutableMapOf<URegionId<*, *, *>, URegionTranslator<URegionId<*, *, *>, *, *, *>>()

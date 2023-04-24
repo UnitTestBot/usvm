@@ -1,11 +1,6 @@
-package org.usvm.concrete.interpreter
+package org.usvm.interpreter
 
 import org.usvm.*
-import org.usvm.concrete.SampleApplicationGraph
-import org.usvm.concrete.state.ExecutionState
-import org.usvm.concrete.state.addNewMethodCall
-import org.usvm.concrete.state.addNewStmt
-import org.usvm.concrete.state.popMethodCall
 import org.usvm.language.*
 
 class SampleInterpreter(
@@ -14,10 +9,7 @@ class SampleInterpreter(
     private val solver: USolverBase<Field<*>, SampleType, Method<*>>,
 ) {
     private val checker: (UMemoryBase<Field<*>, SampleType, Method<*>>, UPathCondition) -> UModel? = { memory, pc ->
-        val solverResult = solver.check(
-            memory,
-            pc
-        )
+        val solverResult = solver.check(memory, pc)
         (solverResult as? USolverSat<UModelBase<Field<*>, SampleType>>)?.model
     }
 

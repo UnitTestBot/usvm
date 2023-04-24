@@ -5,7 +5,6 @@ import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.ksmt.solver.z3.KZ3Solver
-import kotlin.test.assertFalse
 import kotlin.test.assertIs
 
 class ModelDecodingTest {
@@ -146,7 +145,7 @@ class ModelDecodingTest {
     }
 
     @Test
-    fun testLoopedWritingsToArray() = with(ctx) {
+    fun testLoopWritingsToArray() = with(ctx) {
         val array = mockk<Type>()
 
         val symbolicRef0 = stack.readRegister(0, addressSort)

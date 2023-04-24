@@ -1,4 +1,4 @@
-package org.usvm.language.dsl
+package org.usvm.language.builders
 
 import org.usvm.language.Expr
 import org.usvm.language.SampleType
@@ -11,7 +11,6 @@ inline fun <reified R : SampleType?> method(
 ) = PropertyDelegateProvider { programDecl: ProgramDecl, property: KProperty<*> ->
     programDecl.getOrPut(property.name) {
         val decl = ProgramDecl.MethodDecl(property.name, emptyList(), returnType, init)
-        programDecl.addDecl(decl)
         decl
     }
 }

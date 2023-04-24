@@ -11,9 +11,7 @@ import org.ksmt.expr.KBitVec32Value
 import org.ksmt.expr.KExpr
 import org.ksmt.expr.printer.ExpressionPrinter
 import org.ksmt.expr.transformer.KTransformerBase
-import org.ksmt.solver.model.DefaultValueSampler.Companion.sampleValue
 import org.ksmt.sort.KBv32Sort
-import org.ksmt.utils.sampleValue
 import org.usvm.UAddressCounter.Companion.NULL_ADDRESS
 import kotlin.reflect.KClass
 import kotlin.test.assertEquals
@@ -363,7 +361,7 @@ internal class CompositionTest {
         ).write(fstIndex, 1.toBv(), guard = trueExpr)
             .write(sndIndex, 2.toBv(), guard = trueExpr)
 
-        val regionId = UAllocatedArrayId(arrayType, bv32Sort, bv32Sort.sampleValue(), address, contextHeap = null)
+        val regionId = UAllocatedArrayId(arrayType, bv32Sort, mkBv(0), address, contextHeap = null)
         val regionArray = UAllocatedArrayRegion(
             regionId,
             updates,
@@ -375,7 +373,7 @@ internal class CompositionTest {
         val fstAddressForCompose = mkConcreteHeapRef(address)
         val sndAddressForCompose = mkConcreteHeapRef(address)
 
-        val concreteIndex = sizeSort.sampleValue()
+        val concreteIndex = mkBv(0)
         val fstValue = 42.toBv()
         val sndValue = 43.toBv()
 
@@ -465,11 +463,10 @@ internal class CompositionTest {
 
     @Test
     fun testHeapRefNullAddress() = with(ctx) {
-        val concreteNull = ctx.mkConcreteHeapRef(NULL_ADDRESS)
         val stackModel = URegistersStackEagerModel(concreteNull, mapOf(0 to mkConcreteHeapRef(0)))
 
         val heapEvaluator: UReadOnlySymbolicHeap<Field, Type> = mockk()
-        every { heapEvaluator.nullRef() } returns mkConcreteHeapRef(NULL_ADDRESS)
+        every { heapEvaluator.nullRef() } returns concreteNull
 
         val composer = UComposer(this, stackModel, heapEvaluator, mockk(), mockk())
 

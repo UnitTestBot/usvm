@@ -1,4 +1,4 @@
-package org.usvm.concrete
+package org.usvm.interpreter
 
 import org.usvm.language.Expr
 import org.usvm.language.ProgramException
@@ -37,7 +37,7 @@ class SuccessfulExecutionResult(
     override fun toString(): String {
         return buildString {
             appendLine("================================================================")
-            appendLine("Execution")
+            appendLine("Successful Execution")
             appendLine("----------------------------------------------------------------")
             appendLine(inputModel.toString().prependIndent("\t"))
             appendLine("----------------------------------------------------------------")
@@ -48,12 +48,15 @@ class SuccessfulExecutionResult(
 }
 
 class UnsuccessfulExecutionResult(
+    val inputModel: InputModel,
     val exception: ProgramException
 ) : ProgramExecutionResult {
     override fun toString(): String {
         return buildString {
             appendLine("================================================================")
             appendLine("Unsuccessful Execution")
+            appendLine("----------------------------------------------------------------")
+            appendLine(inputModel.toString().prependIndent("\t"))
             appendLine("----------------------------------------------------------------")
             appendLine(exception.toString().prependIndent("\t"))
             appendLine("================================================================")

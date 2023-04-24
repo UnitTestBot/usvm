@@ -1,4 +1,4 @@
-package org.usvm.concrete
+package org.usvm.interpreter
 
 import org.ksmt.expr.KBitVec32Value
 import org.ksmt.utils.asExpr
@@ -8,11 +8,8 @@ import org.usvm.UBoolSort
 import org.usvm.UBv32Sort
 import org.usvm.UContext
 import org.usvm.UExpr
-import org.usvm.UMemoryBase
 import org.usvm.UModelBase
 import org.usvm.USort
-import org.usvm.concrete.interpreter.typeToSort
-import org.usvm.concrete.state.ExecutionState
 import org.usvm.isTrue
 import org.usvm.language.ArrayCreation
 import org.usvm.language.ArrayType
@@ -28,6 +25,7 @@ import org.usvm.language.SampleType
 import org.usvm.language.StructCreation
 import org.usvm.language.StructExpr
 import org.usvm.language.StructType
+import kotlin.math.min
 
 class ResultModelConverter(
     private val ctx: UContext,
@@ -35,9 +33,6 @@ class ResultModelConverter(
 ) {
     fun convert(state: ExecutionState): ProgramExecutionResult {
         val exceptionRegister = state.exceptionRegister
-        if (exceptionRegister != null) {
-            return UnsuccessfulExecutionResult(exceptionRegister)
-        }
 
         @Suppress("UNCHECKED_CAST")
         val model = state.models.single() as UModelBase<Field<*>, SampleType>
@@ -51,12 +46,15 @@ class ResultModelConverter(
         }
         val inputModel = InputModel(inputValues)
 
+        return if (exceptionRegister != null) {
+            UnsuccessfulExecutionResult(inputModel, exceptionRegister)
+        } else {
+            val returnUExpr = state.returnRegister
+            val returnExpr = returnUExpr?.let { inputScope.resolveExpr(it, method.returnType!!) }
+            val outputModel = OutputModel(returnExpr)
 
-        val returnUExpr = state.returnRegister
-        val returnExpr = returnUExpr?.let { inputScope.resolveExpr(it, method.returnType!!) }
-        val outputModel = OutputModel(returnExpr)
-
-        return SuccessfulExecutionResult(inputModel, outputModel)
+            SuccessfulExecutionResult(inputModel, outputModel)
+        }
     }
 
     private class InputScope(

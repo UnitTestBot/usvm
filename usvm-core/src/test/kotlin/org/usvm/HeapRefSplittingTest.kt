@@ -115,7 +115,6 @@ class HeapRefSplittingTest {
         assertNotNull(symbolicRef)
 
         assertEquals(3, concreteRefs.size)
-        assertIs<USymbolicHeapRef>(symbolicRef.expr)
         assertSame(nullRef, symbolicRef.expr)
     }
 

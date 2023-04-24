@@ -1,4 +1,4 @@
-package org.usvm.concrete.state
+package org.usvm.interpreter
 
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
@@ -12,7 +12,6 @@ import org.usvm.UPathConstraintsSet
 import org.usvm.USort
 import org.usvm.UState
 import org.usvm.UTypeSystem
-import org.usvm.concrete.SampleApplicationGraph
 import org.usvm.language.Field
 import org.usvm.language.Method
 import org.usvm.language.ProgramException
@@ -27,7 +26,7 @@ class ExecutionState(
     callStack: UCallStack<Method<*>, Stmt> = UCallStack(),
     pathCondition: UPathCondition = UPathConstraintsSet(),
     memory: UMemoryBase<Field<*>, SampleType, Method<*>> = UMemoryBase(ctx, typeSystem),
-    models: PersistentList<UModel> = persistentListOf(),
+    models: List<UModel> = listOf(),
     var path: PersistentList<Stmt> = persistentListOf(),
     var returnRegister: UExpr<out USort>? = null,
     var exceptionRegister: ProgramException? = null,

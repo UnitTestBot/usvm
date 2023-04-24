@@ -1,4 +1,4 @@
-package org.usvm.concrete
+package org.usvm.interpreter
 
 import org.usvm.ApplicationGraph
 import org.usvm.language.Call

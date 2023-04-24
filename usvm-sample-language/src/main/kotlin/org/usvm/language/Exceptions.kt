@@ -7,9 +7,7 @@ sealed interface ProgramException {
 class DivisionByZero(
     override val stmt: Stmt
 ) : ProgramException {
-    override fun toString(): String {
-        return "DivisionByZero(stmt=$stmt)"
-    }
+    override fun toString(): String = "DivisionByZero(stmt=$stmt)"
 }
 
 class IndexOutOfBounds(
@@ -17,9 +15,7 @@ class IndexOutOfBounds(
     val size: Int,
     val idx: Int,
 ) : ProgramException {
-    override fun toString(): String {
-        return "IndexOutOfBounds(stmt=$stmt, size=$size, idx=$idx)"
-    }
+    override fun toString(): String = "IndexOutOfBounds(stmt=$stmt, size=$size, idx=$idx)"
 }
 
 class NegativeArraySize(
@@ -27,9 +23,7 @@ class NegativeArraySize(
     val size: Int,
     val actualSize: Int,
 ) : ProgramException {
-    override fun toString(): String {
-        return "NegativeArraySize(stmt=$stmt, size=$size, actualSize=$actualSize)"
-    }
+    override fun toString(): String = "NegativeArraySize(stmt=$stmt, size=$size, actualSize=$actualSize)"
 }
 
 class UnsuccessfulCast(
@@ -37,15 +31,12 @@ class UnsuccessfulCast(
     val expectedType: SampleType,
     val actualType: SampleType,
 ) : ProgramException {
-    override fun toString(): String {
-        return "UnsuccessfulCast(stmt=$stmt, expectedType=$expectedType, actualType=$actualType)"
-    }
+    override fun toString(): String =
+        "UnsuccessfulCast(stmt=$stmt, expectedType=$expectedType, actualType=$actualType)"
 }
 
 class NullPointerDereference(
     override val stmt: Stmt,
 ) : ProgramException {
-    override fun toString(): String {
-        return "NullPointerDereference(stmt=$stmt)"
-    }
+    override fun toString(): String = "NullPointerDereference(stmt=$stmt)"
 }

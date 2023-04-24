@@ -3,7 +3,6 @@ package org.usvm
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentMapOf
 import org.ksmt.utils.asExpr
-import org.ksmt.utils.sampleValue
 
 interface UReadOnlyHeap<Ref, Value, SizeT, Field, ArrayType, Guard> {
     fun <Sort : USort> readField(ref: Ref, field: Field, sort: Sort): Value
@@ -87,35 +86,42 @@ data class URegionHeap<Field, ArrayType>(
         field: Field,
         sort: Sort,
     ): UInputFieldRegion<Field, Sort> =
-        inputFields[field].inputFieldsRegionUncheckedCast()
+        inputFields[field]
+            ?.inputFieldsRegionUncheckedCast()
             ?: emptyInputFieldRegion(field, sort)
+                .also { inputFields = inputFields.put(field, it) } // to increase cache usage
 
     private fun <Sort : USort> allocatedArrayRegion(
         arrayType: ArrayType,
         address: UConcreteHeapAddress,
         elementSort: Sort,
     ): UAllocatedArrayRegion<ArrayType, Sort> =
-        allocatedArrays[address].allocatedArrayRegionUncheckedCast()
+        allocatedArrays[address]
+            ?.allocatedArrayRegionUncheckedCast()
             ?: emptyAllocatedArrayRegion(arrayType, address, elementSort)
+                .also { allocatedArrays = allocatedArrays.put(address, it) } // to increase cache usage
 
     private fun <Sort : USort> inputArrayRegion(
         arrayType: ArrayType,
         elementSort: Sort,
     ): UInputArrayRegion<ArrayType, Sort> =
-        inputArrays[arrayType].inputArrayRegionUncheckedCast()
+        inputArrays[arrayType]
+            ?.inputArrayRegionUncheckedCast()
             ?: emptyInputArrayRegion(arrayType, elementSort)
+                .also { inputArrays = inputArrays.put(arrayType, it) } // to increase cache usage
 
     private fun inputArrayLengthRegion(
         arrayType: ArrayType,
     ): UInputArrayLengthRegion<ArrayType> =
         inputLengths[arrayType]
             ?: emptyInputArrayLengthRegion(arrayType, ctx.sizeSort)
+                .also { inputLengths = inputLengths.put(arrayType, it) } // to increase cache usage
 
     override fun <Sort : USort> readField(ref: UHeapRef, field: Field, sort: Sort): UExpr<Sort> =
         ref.map(
             { concreteRef ->
                 allocatedFields
-                    .getOrDefault(concreteRef.address to field, sort.sampleValue())
+                    .getOrDefault(concreteRef.address to field, sort.sampleUValue()) // sampleUValue is important
                     .asExpr(sort)
             },
             { symbolicRef -> inputFieldRegion(field, sort).read(symbolicRef) }
@@ -134,7 +140,7 @@ data class URegionHeap<Field, ArrayType>(
 
     override fun readArrayLength(ref: UHeapRef, arrayType: ArrayType): USizeExpr =
         ref.map(
-            { concreteRef -> allocatedLengths.getOrDefault(concreteRef.address, ctx.zeroSize) },
+            { concreteRef -> allocatedLengths.getOrDefault(concreteRef.address, ctx.sizeSort.sampleUValue()) },
             { symbolicRef -> inputArrayLengthRegion(arrayType).read(symbolicRef) }
         )
 
@@ -304,13 +310,13 @@ data class URegionHeap<Field, ArrayType>(
 }
 
 @Suppress("UNCHECKED_CAST")
-fun <Field, Sort : USort> UInputFieldRegion<Field, *>?.inputFieldsRegionUncheckedCast(): UInputFieldRegion<Field, Sort>? =
-    this as? UInputFieldRegion<Field, Sort>
+fun <Field, Sort : USort> UInputFieldRegion<Field, *>.inputFieldsRegionUncheckedCast(): UInputFieldRegion<Field, Sort> =
+    this as UInputFieldRegion<Field, Sort>
 
 @Suppress("UNCHECKED_CAST")
-fun <ArrayType, Sort : USort> UAllocatedArrayRegion<ArrayType, *>?.allocatedArrayRegionUncheckedCast(): UAllocatedArrayRegion<ArrayType, Sort>? =
-    this as? UAllocatedArrayRegion<ArrayType, Sort>
+fun <ArrayType, Sort : USort> UAllocatedArrayRegion<ArrayType, *>.allocatedArrayRegionUncheckedCast(): UAllocatedArrayRegion<ArrayType, Sort> =
+    this as UAllocatedArrayRegion<ArrayType, Sort>
 
 @Suppress("UNCHECKED_CAST")
-fun <ArrayType, Sort : USort> UInputArrayRegion<ArrayType, *>?.inputArrayRegionUncheckedCast(): UInputArrayRegion<ArrayType, Sort>? =
-    this as? UInputArrayRegion<ArrayType, Sort>
+fun <ArrayType, Sort : USort> UInputArrayRegion<ArrayType, *>.inputArrayRegionUncheckedCast(): UInputArrayRegion<ArrayType, Sort> =
+    this as UInputArrayRegion<ArrayType, Sort>

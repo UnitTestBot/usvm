@@ -7,7 +7,6 @@ import org.junit.jupiter.api.Test
 import org.ksmt.solver.KSolverStatus
 import org.ksmt.solver.z3.KZ3Solver
 import org.ksmt.utils.mkConst
-import org.ksmt.utils.sampleValue
 import kotlin.test.assertSame
 
 class TranslationTest {
@@ -51,7 +50,7 @@ class TranslationTest {
         val expr = heap.readArrayIndex(ref, idx, valueArrayDescr, bv32Sort)
         val translated = translator.translate(expr)
 
-        assertSame(bv32Sort.sampleValue(), translated)
+        assertSame(mkBv(0), translated)
     }
 
     @Test
@@ -76,7 +75,7 @@ class TranslationTest {
         val translatedIdx2 = translator.translate(idx2)
         val translatedReadIdx = translator.translate(readIdx)
 
-        val expected = mkArrayConst(mkArraySort(sizeSort, bv32Sort), bv32Sort.sampleValue())
+        val expected = mkArrayConst(mkArraySort(sizeSort, bv32Sort), mkBv(0))
             .store(translatedIdx1, val1)
             .store(translatedIdx2, val2)
             .select(translatedReadIdx)
@@ -146,7 +145,7 @@ class TranslationTest {
             translator.translateRegionReading(region, key)
         val guard =
             translator.translate((mkBvSignedLessOrEqualExpr(mkBv(0), idx)) and mkBvSignedLessOrEqualExpr(idx, mkBv(5)))
-        val expected = mkIte(guard, innerReading, bv32Sort.sampleValue())
+        val expected = mkIte(guard, innerReading, mkBv(0))
 
         val translated = translator.translate(reading)
 

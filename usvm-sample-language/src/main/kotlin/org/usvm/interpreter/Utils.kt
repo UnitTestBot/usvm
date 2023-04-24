@@ -1,4 +1,4 @@
-package org.usvm.concrete.interpreter
+package org.usvm.interpreter
 
 import org.usvm.UContext
 import org.usvm.language.ArrayType

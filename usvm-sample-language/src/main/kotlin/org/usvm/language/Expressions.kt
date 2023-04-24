@@ -230,7 +230,7 @@ class FieldSelect<T : SampleType>(
 ) : Expr<T> {
     override val type: T get() = this.field.type
     override fun toString(): String {
-        return "($instance).$field"
+        return "($instance).${field.name}"
     }
 }
 

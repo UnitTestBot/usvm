@@ -2,17 +2,15 @@ package org.usvm
 
 import org.ksmt.KAst
 import org.ksmt.KContext
-import org.ksmt.expr.KConst
 import org.ksmt.expr.KExpr
-import org.ksmt.expr.KUninterpretedSortValue
 import org.ksmt.sort.KBoolSort
+import org.ksmt.sort.KBvSort
 import org.ksmt.sort.KSort
 import org.ksmt.sort.KSortVisitor
 import org.ksmt.sort.KUninterpretedSort
 import org.ksmt.utils.DefaultValueSampler
 import org.ksmt.utils.asExpr
 import org.ksmt.utils.cast
-import org.ksmt.utils.sampleValue
 
 @Suppress("LeakingThis")
 open class UContext(
@@ -23,7 +21,6 @@ open class UContext(
 
     val addressSort: UAddressSort = mkUninterpretedSort("Address")
     val sizeSort: USizeSort = bv32Sort
-    val zeroSize: USizeExpr = sizeSort.sampleValue()
 
     val nullRef: UNullRef = UNullRef(this)
 
@@ -155,7 +152,17 @@ open class UContext(
         UIsExpr(this, ref, type.cast())
     }.cast()
 
-    class UDefaultValueSampler(val uctx: UContext) : DefaultValueSampler(uctx) {
+    override fun boolSortDefaultValue(): KExpr<KBoolSort> = falseExpr
+
+    override fun <S : KBvSort> bvSortDefaultValue(sort: S): KExpr<S> = mkBv(0, sort)
+
+    fun mkUValueSampler(): KSortVisitor<KExpr<*>> {
+        return UValueSampler(this)
+    }
+
+    val uValueSampler: KSortVisitor<KExpr<*>> by lazy { mkUValueSampler() }
+
+    class UValueSampler(val uctx: UContext) : DefaultValueSampler(uctx) {
         override fun visit(sort: KUninterpretedSort): KExpr<*> =
             if (sort == uctx.addressSort) {
                 uctx.nullRef
@@ -163,11 +170,11 @@ open class UContext(
                 super.visit(sort)
             }
     }
-
-    override fun mkDefaultValueSampler(): KSortVisitor<KExpr<*>> {
-        return UDefaultValueSampler(this)
-    }
 }
+
+
+fun <T : KSort> T.sampleUValue(): KExpr<T> =
+    accept(uctx.uValueSampler).asExpr(this)
 
 val KAst.uctx
     get() = ctx as UContext

@@ -14,7 +14,9 @@ class URegistersStackEagerModel(
     override fun <Sort : USort> eval(
         registerIndex: Int,
         sort: Sort,
-    ): UExpr<Sort> = registers.getOrDefault(registerIndex, sort.sampleValue().nullAddress(nullRef)).asExpr(sort)
+    ): UExpr<Sort> = registers
+        .getOrElse(registerIndex) { sort.sampleValue().nullAddress(nullRef) } // sampleValue here is important
+        .asExpr(sort)
 }
 
 /**
@@ -34,6 +36,7 @@ class UIndexedMockEagerModel<Method>(
         @Suppress("UNCHECKED_CAST")
         val key = symbol.method as Method to symbol.callIndex
 
+        // sampleValue here is important
         return values.getOrDefault(key, sort.sampleValue().nullAddress(nullRef)).asExpr(sort)
     }
 }
@@ -61,6 +64,7 @@ class UHeapEagerModel<Field, ArrayType>(
 
         @Suppress("UNCHECKED_CAST")
         val region = resolvedInputFields.getOrElse(field) {
+            // sampleValue here is important
             UMemory1DArray(sort.sampleValue().nullAddress(nullRef))
         } as UMemoryRegion<UHeapRef, Sort>
 
@@ -82,6 +86,7 @@ class UHeapEagerModel<Field, ArrayType>(
 
         @Suppress("UNCHECKED_CAST")
         val region = resolvedInputArrays.getOrElse(arrayType) {
+            // sampleValue here is important
             UMemory2DArray(sort.sampleValue().nullAddress(nullRef))
         } as UMemoryRegion<USymbolicArrayIndex, Sort>
 
@@ -95,6 +100,7 @@ class UHeapEagerModel<Field, ArrayType>(
         require(ref is UConcreteHeapRef && ref.address <= UAddressCounter.INITIAL_INPUT_ADDRESS)
 
         val region = resolvedInputLengths.getOrElse<ArrayType, UMemoryRegion<UHeapRef, USizeSort>>(arrayType) {
+            // sampleValue here is important
             UMemory1DArray(ref.uctx.sizeSort.sampleValue())
         }
 

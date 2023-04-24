@@ -1,11 +1,10 @@
-package org.usvm.concrete.interpreter
+package org.usvm.interpreter
 
 import org.usvm.UBoolExpr
 import org.usvm.UContext
 import org.usvm.UMemoryBase
 import org.usvm.UModel
 import org.usvm.UPathCondition
-import org.usvm.concrete.state.ExecutionState
 import org.usvm.fork
 import org.usvm.language.Field
 import org.usvm.language.Method
@@ -52,6 +51,20 @@ class StepScope(
         }
 
         // conversion of ExecutionState? to Unit?
+        return posState?.let { }
+    }
+
+    fun assert(
+        constraint: UBoolExpr,
+        block: ExecutionState.() -> Unit = {},
+    ): Unit? {
+        val state = curState ?: return null
+
+        val (posState, _) = state.fork(constraint, checker)
+
+        posState?.block()
+        curState = posState
+
         return posState?.let { }
     }
 }

@@ -1,4 +1,4 @@
-package org.usvm.language.dsl
+package org.usvm.language.builders
 
 import org.usvm.language.ArrayExpr
 import org.usvm.language.ArrayIdxSetLValue
@@ -71,11 +71,6 @@ class MethodScope<R : SampleType?>(
         addSetLabel(loopFinish)
     }
 
-    data class Invocation<out R : SampleType?>(
-        val method: Method<R>,
-        val args: List<Expr<SampleType>>,
-    )
-
     operator fun Method<SampleType?>.invoke(vararg args: Expr<SampleType>) {
         addStmt(Call(null, this, args.toList()))
     }
@@ -87,18 +82,8 @@ class MethodScope<R : SampleType?>(
         return variable
     }
 
-    fun <T : SampleType> Invocation<T>.expr(): Expr<T> {
-        val variable = Register(nextRegister(isArgument = false), this.method.returnType)
-        addStmt(Call(RegisterLValue(variable), method, args))
-        return variable
-    }
-
     fun <T> ret(expr: Expr<T>) where T : R & Any {
         addStmt(Return(expr))
-    }
-
-    fun ret() {
-        addStmt(Return(null))
     }
 
     // region Stmt

@@ -1,4 +1,4 @@
-package org.usvm.language.dsl
+package org.usvm.language.builders
 
 import org.usvm.language.And
 import org.usvm.language.ArrayCreation
@@ -23,22 +23,28 @@ import org.usvm.language.IntMinus
 import org.usvm.language.IntPlus
 import org.usvm.language.IntRem
 import org.usvm.language.IntTimes
-import org.usvm.language.SampleType
 import org.usvm.language.Le
 import org.usvm.language.Lt
 import org.usvm.language.Not
 import org.usvm.language.Or
-import org.usvm.language.Struct
+import org.usvm.language.SampleType
 import org.usvm.language.StructCreation
 import org.usvm.language.StructEq
 import org.usvm.language.StructExpr
 import org.usvm.language.StructIsNull
+import org.usvm.language.StructType
 import org.usvm.language.UnaryMinus
 
 val Int.expr get() = IntConst(this)
 val Boolean.expr get() = BooleanConst(this)
-inline operator fun <reified T : SampleType> ArrayType<T>.invoke(vararg values: Expr<T>, size: IntExpr = IntConst(values.size)) =
-    ArrayCreation(elementType, size, values.toList())
+operator fun <T : SampleType> ArrayType<T>.invoke(
+    vararg values: Expr<T>,
+    size: IntExpr = IntConst(values.size)
+) = ArrayCreation(elementType, size, values.toList())
+
+operator fun StructType.invoke(vararg initValues: Pair<Field<SampleType>, Expr<SampleType>>): StructExpr =
+    StructCreation(struct, initValues.toList())
+
 
 operator fun IntExpr.unaryMinus() = UnaryMinus(this)
 operator fun IntExpr.plus(other: IntExpr) = IntPlus(this, other)
