@@ -83,7 +83,7 @@ class UHeapEagerModel<Field, ArrayType>(
         val region = resolvedInputFields.getOrElse(field) {
             // sampleValue here is important
             UMemory1DArray(sort.sampleValue().nullAddress(nullRef))
-        } as UMemoryRegion<UHeapRef, Sort>
+        } as UReadOnlyMemoryRegion<UHeapRef, Sort>
 
         return region.read(ref)
     }
@@ -105,7 +105,7 @@ class UHeapEagerModel<Field, ArrayType>(
         val region = resolvedInputArrays.getOrElse(arrayType) {
             // sampleValue here is important
             UMemory2DArray(sort.sampleValue().nullAddress(nullRef))
-        } as UMemoryRegion<USymbolicArrayIndex, Sort>
+        } as UReadOnlyMemoryRegion<USymbolicArrayIndex, Sort>
 
         return region.read(key)
     }
