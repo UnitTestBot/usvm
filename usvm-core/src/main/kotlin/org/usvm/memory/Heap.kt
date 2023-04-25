@@ -1,8 +1,17 @@
-package org.usvm
+package org.usvm.memory
 
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentMapOf
 import org.ksmt.utils.asExpr
+import org.usvm.UBoolExpr
+import org.usvm.UConcreteHeapAddress
+import org.usvm.UConcreteHeapRef
+import org.usvm.UContext
+import org.usvm.UExpr
+import org.usvm.UHeapRef
+import org.usvm.USizeExpr
+import org.usvm.USort
+import org.usvm.sampleUValue
 
 interface UReadOnlyHeap<Ref, Value, SizeT, Field, ArrayType, Guard> {
     fun <Sort : USort> readField(ref: Ref, field: Field, sort: Sort): Value

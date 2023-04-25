@@ -1,7 +1,10 @@
-package org.usvm
+package org.usvm.memory
 
 import org.ksmt.expr.KExpr
 import org.ksmt.utils.asExpr
+import org.usvm.UContext
+import org.usvm.UExpr
+import org.usvm.USort
 import java.util.Stack
 
 interface URegistersStackEvaluator {

@@ -1,14 +1,31 @@
-package org.usvm
+package org.usvm.memory
 
 import org.ksmt.utils.asExpr
+import org.usvm.UBoolExpr
+import org.usvm.UComposer
+import org.usvm.UConcreteHeapAddress
+import org.usvm.UConcreteHeapRef
+import org.usvm.UConcreteSize
+import org.usvm.UExpr
+import org.usvm.UHeapRef
+import org.usvm.UIndexType
+import org.usvm.USizeExpr
+import org.usvm.USizeSort
+import org.usvm.USort
+import org.usvm.sampleUValue
+import org.usvm.uctx
 import org.usvm.util.SetRegion
 import org.usvm.util.emptyRegionTree
 
 //region Memory region
 
 
-interface UMemoryRegion<Key, Sort : USort> {
+interface UReadOnlyMemoryRegion<Key, Sort : USort> {
     fun read(key: Key): UExpr<Sort>
+}
+
+
+interface UMemoryRegion<Key, Sort : USort> : UReadOnlyMemoryRegion<Key, Sort> {
     fun write(key: Key, value: UExpr<Sort>, guard: UBoolExpr): UMemoryRegion<Key, Sort>
 }
 

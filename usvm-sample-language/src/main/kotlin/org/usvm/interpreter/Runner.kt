@@ -3,11 +3,11 @@ package org.usvm.interpreter
 import kotlinx.collections.immutable.persistentListOf
 import org.ksmt.solver.yices.KYicesSolver
 import org.usvm.UContext
-import org.usvm.UModelBase
+import org.usvm.model.UModelBase
 import org.usvm.UPathConstraintsSet
-import org.usvm.USolverBase
-import org.usvm.USatResult
-import org.usvm.buildTranslatorAndLazyDecoder
+import org.usvm.solver.USolverBase
+import org.usvm.solver.USatResult
+import org.usvm.model.buildTranslatorAndLazyDecoder
 import org.usvm.language.Field
 import org.usvm.language.Method
 import org.usvm.language.Program

@@ -1,7 +1,24 @@
-package org.usvm
+package org.usvm.model
 
 import org.ksmt.utils.asExpr
 import org.ksmt.utils.sampleValue
+import org.usvm.UBoolExpr
+import org.usvm.UConcreteHeapRef
+import org.usvm.UExpr
+import org.usvm.UHeapRef
+import org.usvm.UIndexedMethodReturnValue
+import org.usvm.UMockEvaluator
+import org.usvm.UMockSymbol
+import org.usvm.USizeExpr
+import org.usvm.USizeSort
+import org.usvm.USort
+import org.usvm.memory.UAddressCounter
+import org.usvm.memory.UMemoryRegion
+import org.usvm.memory.UReadOnlyMemoryRegion
+import org.usvm.memory.URegistersStackEvaluator
+import org.usvm.memory.USymbolicArrayIndex
+import org.usvm.memory.USymbolicHeap
+import org.usvm.uctx
 
 /**
  * An eager model for registers that stores mapping
@@ -52,9 +69,9 @@ class UIndexedMockEagerModel<Method>(
  */
 class UHeapEagerModel<Field, ArrayType>(
     private val nullRef: UConcreteHeapRef,
-    private val resolvedInputFields: Map<Field, UMemoryRegion<UHeapRef, out USort>>,
-    private val resolvedInputArrays: Map<ArrayType, UMemoryRegion<USymbolicArrayIndex, out USort>>,
-    private val resolvedInputLengths: Map<ArrayType, UMemoryRegion<UHeapRef, USizeSort>>,
+    private val resolvedInputFields: Map<Field, UReadOnlyMemoryRegion<UHeapRef, out USort>>,
+    private val resolvedInputArrays: Map<ArrayType, UReadOnlyMemoryRegion<USymbolicArrayIndex, out USort>>,
+    private val resolvedInputLengths: Map<ArrayType, UReadOnlyMemoryRegion<UHeapRef, USizeSort>>,
 ) : USymbolicHeap<Field, ArrayType> {
     override fun <Sort : USort> readField(ref: UHeapRef, field: Field, sort: Sort): UExpr<Sort> {
         // All the expressions in the model are interpreted, therefore, they must
@@ -66,7 +83,7 @@ class UHeapEagerModel<Field, ArrayType>(
         val region = resolvedInputFields.getOrElse(field) {
             // sampleValue here is important
             UMemory1DArray(sort.sampleValue().nullAddress(nullRef))
-        } as UMemoryRegion<UHeapRef, Sort>
+        } as UReadOnlyMemoryRegion<UHeapRef, Sort>
 
         return region.read(ref)
     }
@@ -88,7 +105,7 @@ class UHeapEagerModel<Field, ArrayType>(
         val region = resolvedInputArrays.getOrElse(arrayType) {
             // sampleValue here is important
             UMemory2DArray(sort.sampleValue().nullAddress(nullRef))
-        } as UMemoryRegion<USymbolicArrayIndex, Sort>
+        } as UReadOnlyMemoryRegion<USymbolicArrayIndex, Sort>
 
         return region.read(key)
     }
@@ -99,7 +116,7 @@ class UHeapEagerModel<Field, ArrayType>(
         // which have addresses less or equal than INITIAL_INPUT_ADDRESS
         require(ref is UConcreteHeapRef && ref.address <= UAddressCounter.INITIAL_INPUT_ADDRESS)
 
-        val region = resolvedInputLengths.getOrElse<ArrayType, UMemoryRegion<UHeapRef, USizeSort>>(arrayType) {
+        val region = resolvedInputLengths.getOrElse<ArrayType, UReadOnlyMemoryRegion<UHeapRef, USizeSort>>(arrayType) {
             // sampleValue here is important
             UMemory1DArray(ref.uctx.sizeSort.sampleValue())
         }

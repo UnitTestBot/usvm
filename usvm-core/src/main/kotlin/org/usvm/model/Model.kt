@@ -1,4 +1,12 @@
-package org.usvm
+package org.usvm.model
+
+import org.usvm.UComposer
+import org.usvm.UContext
+import org.usvm.UExpr
+import org.usvm.UMockEvaluator
+import org.usvm.USort
+import org.usvm.UTypeModel
+import org.usvm.memory.UReadOnlySymbolicHeap
 
 interface UModel {
     fun <Sort: USort> eval(expr: UExpr<Sort>): UExpr<Sort>

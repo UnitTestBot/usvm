@@ -2,6 +2,8 @@ package org.usvm
 
 import kotlinx.collections.immutable.PersistentList
 import org.ksmt.expr.KInterpretedValue
+import org.usvm.memory.UMemoryBase
+import org.usvm.model.UModel
 
 abstract class UState<Type, Field, Method, Statement>(
     // TODO: add interpreter-specific information
