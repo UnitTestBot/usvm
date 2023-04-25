@@ -1,5 +1,10 @@
-package org.usvm
+package org.usvm.memory
 
+import org.usvm.UBoolExpr
+import org.usvm.UComposer
+import org.usvm.UExpr
+import org.usvm.USort
+import org.usvm.isFalse
 import org.usvm.util.Region
 import org.usvm.util.RegionTree
 import org.usvm.util.emptyRegionTree

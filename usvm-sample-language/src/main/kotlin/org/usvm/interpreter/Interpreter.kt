@@ -1,12 +1,12 @@
 package org.usvm.interpreter
 
 import org.usvm.UContext
-import org.usvm.UMemoryBase
-import org.usvm.UModel
-import org.usvm.UModelBase
+import org.usvm.memory.UMemoryBase
+import org.usvm.model.UModel
+import org.usvm.model.UModelBase
 import org.usvm.UPathCondition
-import org.usvm.USolverBase
-import org.usvm.USatResult
+import org.usvm.solver.USolverBase
+import org.usvm.solver.USatResult
 import org.usvm.language.Call
 import org.usvm.language.Field
 import org.usvm.language.Goto

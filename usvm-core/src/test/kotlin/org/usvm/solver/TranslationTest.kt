@@ -1,4 +1,4 @@
-package org.usvm
+package org.usvm.solver
 
 import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
@@ -7,6 +7,18 @@ import org.junit.jupiter.api.Test
 import org.ksmt.solver.KSolverStatus
 import org.ksmt.solver.z3.KZ3Solver
 import org.ksmt.utils.mkConst
+import org.usvm.Field
+import org.usvm.Type
+import org.usvm.UAddressSort
+import org.usvm.UBv32Sort
+import org.usvm.UContext
+import org.usvm.memory.UInputToAllocatedKeyConverter
+import org.usvm.memory.UInputToInputKeyConverter
+import org.usvm.memory.URegionHeap
+import org.usvm.memory.emptyAllocatedArrayRegion
+import org.usvm.memory.emptyInputArrayLengthRegion
+import org.usvm.memory.emptyInputArrayRegion
+import org.usvm.memory.emptyInputFieldRegion
 import kotlin.test.assertSame
 
 class TranslationTest {

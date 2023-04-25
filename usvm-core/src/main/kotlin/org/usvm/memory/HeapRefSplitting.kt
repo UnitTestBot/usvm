@@ -1,4 +1,14 @@
-package org.usvm
+package org.usvm.memory
+
+import org.usvm.UAddressSort
+import org.usvm.UBoolExpr
+import org.usvm.UConcreteHeapRef
+import org.usvm.UExpr
+import org.usvm.UHeapRef
+import org.usvm.UIteExpr
+import org.usvm.USort
+import org.usvm.USymbolicHeapRef
+import org.usvm.isFalse
 
 data class GuardedExpr<out T>(
     val expr: T,

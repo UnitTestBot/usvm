@@ -1,10 +1,22 @@
-package org.usvm
+package org.usvm.model
 
 import org.ksmt.expr.KExpr
 import org.ksmt.solver.KModel
 import org.ksmt.sort.KUninterpretedSort
-import org.usvm.UAddressCounter.Companion.INITIAL_INPUT_ADDRESS
-import org.usvm.UAddressCounter.Companion.NULL_ADDRESS
+import org.usvm.UAddressSort
+import org.usvm.UConcreteHeapRef
+import org.usvm.UContext
+import org.usvm.UExpr
+import org.usvm.solver.UExprTranslator
+import org.usvm.UHeapRef
+import org.usvm.USort
+import org.usvm.solver.UTrackingExprTranslator
+import org.usvm.UTypeModel
+import org.usvm.memory.UAddressCounter.Companion.INITIAL_INPUT_ADDRESS
+import org.usvm.memory.UAddressCounter.Companion.NULL_ADDRESS
+import org.usvm.memory.UMemoryBase
+import org.usvm.memory.URegionId
+import org.usvm.uctx
 
 interface UModelDecoder<Memory, Model> {
     fun decode(memory: Memory, model: KModel): Model

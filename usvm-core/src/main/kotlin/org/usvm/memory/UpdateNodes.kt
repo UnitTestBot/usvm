@@ -1,5 +1,11 @@
-package org.usvm
+package org.usvm.memory
 
+import org.usvm.UBoolExpr
+import org.usvm.UComposer
+import org.usvm.UExpr
+import org.usvm.USizeExpr
+import org.usvm.USort
+import org.usvm.isTrue
 import java.util.*
 
 /**

@@ -1,10 +1,22 @@
-package org.usvm
+package org.usvm.model
 
 import io.mockk.mockk
 import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.ksmt.solver.z3.KZ3Solver
+import org.usvm.Field
+import org.usvm.Method
+import org.usvm.Type
+import org.usvm.UContext
+import org.usvm.UIndexedMocker
+import org.usvm.UPathConstraintsSet
+import org.usvm.memory.UMemoryBase
+import org.usvm.memory.URegionHeap
+import org.usvm.memory.URegistersStack
+import org.usvm.solver.USatResult
+import org.usvm.solver.USolverBase
+import org.usvm.solver.UUnsatResult
 import kotlin.test.assertIs
 
 class ModelDecodingTest {

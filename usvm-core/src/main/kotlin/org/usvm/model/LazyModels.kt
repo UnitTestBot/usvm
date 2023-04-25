@@ -1,10 +1,32 @@
-package org.usvm
+package org.usvm.model
 
 import org.ksmt.expr.KExpr
 import org.ksmt.solver.KModel
 import org.ksmt.utils.asExpr
 import org.ksmt.utils.cast
 import org.ksmt.utils.sampleValue
+import org.usvm.UAddressSort
+import org.usvm.UBoolExpr
+import org.usvm.UConcreteHeapRef
+import org.usvm.UExpr
+import org.usvm.UHeapRef
+import org.usvm.UIndexedMethodReturnValue
+import org.usvm.UMockEvaluator
+import org.usvm.UMockSymbol
+import org.usvm.USizeExpr
+import org.usvm.USizeSort
+import org.usvm.USort
+import org.usvm.memory.UAddressCounter
+import org.usvm.memory.UInputArrayId
+import org.usvm.memory.UInputArrayLengthId
+import org.usvm.memory.UInputFieldId
+import org.usvm.memory.UMemoryRegion
+import org.usvm.memory.UReadOnlyMemoryRegion
+import org.usvm.memory.URegionId
+import org.usvm.memory.URegistersStackEvaluator
+import org.usvm.memory.USymbolicArrayIndex
+import org.usvm.memory.USymbolicHeap
+import org.usvm.uctx
 
 
 /**
@@ -84,9 +106,9 @@ class ULazyHeapModel<Field, ArrayType>(
     private val addressesMapping: AddressesMapping,
     private val regionIdToInitialValue: Map<URegionId<*, *, *>, KExpr<*>>,
 ) : USymbolicHeap<Field, ArrayType> {
-    private val resolvedInputFields = mutableMapOf<Field, UMemoryRegion<UHeapRef, out USort>>()
-    private val resolvedInputArrays = mutableMapOf<ArrayType, UMemoryRegion<USymbolicArrayIndex, out USort>>()
-    private val resolvedInputLengths = mutableMapOf<ArrayType, UMemoryRegion<UHeapRef, USizeSort>>()
+    private val resolvedInputFields = mutableMapOf<Field, UReadOnlyMemoryRegion<UHeapRef, out USort>>()
+    private val resolvedInputArrays = mutableMapOf<ArrayType, UReadOnlyMemoryRegion<USymbolicArrayIndex, out USort>>()
+    private val resolvedInputLengths = mutableMapOf<ArrayType, UReadOnlyMemoryRegion<UHeapRef, USizeSort>>()
     override fun <Sort : USort> readField(ref: UHeapRef, field: Field, sort: Sort): UExpr<Sort> {
         // All the expressions in the model are interpreted, therefore, they must
         // have concrete addresses. Moreover, the model knows only about input values

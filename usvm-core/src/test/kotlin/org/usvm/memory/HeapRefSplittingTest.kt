@@ -1,10 +1,17 @@
-package org.usvm
+package org.usvm.memory
 
 import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.ksmt.expr.rewrite.simplify.KExprSimplifier
 import org.ksmt.utils.getValue
+import org.usvm.Field
+import org.usvm.Type
+import org.usvm.UAddressSort
+import org.usvm.UBv32Sort
+import org.usvm.UContext
+import org.usvm.UInputFieldReading
+import org.usvm.UIteExpr
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull

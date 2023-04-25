@@ -1,5 +1,7 @@
 package org.usvm
 
+import org.usvm.memory.URegionHeap
+
 interface UMerger<Entity> {
     /**
      * @returns Merged entity or null if [left] and [right] are non-mergeable

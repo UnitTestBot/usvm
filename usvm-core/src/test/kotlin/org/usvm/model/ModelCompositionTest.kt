@@ -1,9 +1,21 @@
-package org.usvm
+package org.usvm.model
 
 import io.mockk.mockk
 import kotlinx.collections.immutable.persistentMapOf
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.usvm.Field
+import org.usvm.Type
+import org.usvm.UBv32Sort
+import org.usvm.UComposer
+import org.usvm.UConcreteHeapRef
+import org.usvm.UContext
+import org.usvm.memory.UAddressCounter
+import org.usvm.memory.UInputToAllocatedKeyConverter
+import org.usvm.memory.emptyAllocatedArrayRegion
+import org.usvm.memory.emptyInputArrayLengthRegion
+import org.usvm.memory.emptyInputArrayRegion
+import org.usvm.memory.emptyInputFieldRegion
 import kotlin.test.assertSame
 
 class ModelCompositionTest {

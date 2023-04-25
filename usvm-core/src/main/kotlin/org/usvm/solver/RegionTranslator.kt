@@ -1,8 +1,18 @@
-package org.usvm
+package org.usvm.solver
 
 import org.ksmt.expr.KExpr
 import org.ksmt.sort.KArray2Sort
 import org.ksmt.sort.KArraySort
+import org.usvm.UExpr
+import org.usvm.USort
+import org.usvm.memory.UArrayId
+import org.usvm.memory.UMemoryUpdatesVisitor
+import org.usvm.memory.UPinpointUpdateNode
+import org.usvm.memory.URangedUpdateNode
+import org.usvm.memory.URegionId
+import org.usvm.memory.USymbolicMemoryRegion
+import org.usvm.memory.UUpdateNode
+import org.usvm.uctx
 import java.util.IdentityHashMap
 
 /**

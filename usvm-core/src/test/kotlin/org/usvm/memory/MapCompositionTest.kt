@@ -1,4 +1,4 @@
-package org.usvm
+package org.usvm.memory
 
 import io.mockk.every
 import io.mockk.mockk
@@ -6,6 +6,16 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.ksmt.expr.KExpr
 import org.ksmt.utils.mkConst
+import org.usvm.UAddressSort
+import org.usvm.UBv32Sort
+import org.usvm.UComposer
+import org.usvm.UConcreteHeapRef
+import org.usvm.UContext
+import org.usvm.UExpr
+import org.usvm.UHeapRef
+import org.usvm.USizeExpr
+import org.usvm.USizeSort
+import org.usvm.shouldNotBeCalled
 import org.usvm.util.SetRegion
 import org.usvm.util.emptyRegionTree
 import kotlin.test.assertFalse

@@ -5,8 +5,8 @@ import kotlinx.collections.immutable.persistentListOf
 import org.usvm.UCallStack
 import org.usvm.UContext
 import org.usvm.UExpr
-import org.usvm.UMemoryBase
-import org.usvm.UModel
+import org.usvm.memory.UMemoryBase
+import org.usvm.model.UModel
 import org.usvm.UPathCondition
 import org.usvm.UPathConstraintsSet
 import org.usvm.USort

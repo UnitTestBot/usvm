@@ -2,13 +2,13 @@ package org.usvm.interpreter
 
 import org.ksmt.expr.KBitVec32Value
 import org.ksmt.utils.asExpr
-import org.usvm.UAddressCounter.Companion.NULL_ADDRESS
+import org.usvm.memory.UAddressCounter.Companion.NULL_ADDRESS
 import org.usvm.UAddressSort
 import org.usvm.UBoolSort
 import org.usvm.UBv32Sort
 import org.usvm.UContext
 import org.usvm.UExpr
-import org.usvm.UModelBase
+import org.usvm.model.UModelBase
 import org.usvm.USort
 import org.usvm.isTrue
 import org.usvm.language.ArrayCreation

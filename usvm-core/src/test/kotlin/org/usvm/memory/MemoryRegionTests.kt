@@ -1,8 +1,12 @@
-package org.usvm
+package org.usvm.memory
 
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.ksmt.utils.mkConst
+import org.usvm.UBv32Sort
+import org.usvm.UContext
+import org.usvm.UHeapRef
+import org.usvm.shouldNotBeCalled
 import org.usvm.util.SetRegion
 import org.usvm.util.emptyRegionTree
 import kotlin.test.assertNotNull

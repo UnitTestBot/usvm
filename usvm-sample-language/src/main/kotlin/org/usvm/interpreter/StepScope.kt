@@ -2,8 +2,8 @@ package org.usvm.interpreter
 
 import org.usvm.UBoolExpr
 import org.usvm.UContext
-import org.usvm.UMemoryBase
-import org.usvm.UModel
+import org.usvm.memory.UMemoryBase
+import org.usvm.model.UModel
 import org.usvm.UPathCondition
 import org.usvm.fork
 import org.usvm.language.Field
