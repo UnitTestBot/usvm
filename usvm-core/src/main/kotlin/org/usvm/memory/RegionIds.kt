@@ -1,6 +1,17 @@
-package org.usvm
+package org.usvm.memory
 
 import org.ksmt.utils.asExpr
+import org.usvm.UBoolExpr
+import org.usvm.UComposer
+import org.usvm.UConcreteHeapAddress
+import org.usvm.UExpr
+import org.usvm.UExprTransformer
+import org.usvm.UHeapRef
+import org.usvm.USizeExpr
+import org.usvm.USizeSort
+import org.usvm.USort
+import org.usvm.isTrue
+import org.usvm.uctx
 
 /**
  * Represents any possible type of regions that can be used in the memory.

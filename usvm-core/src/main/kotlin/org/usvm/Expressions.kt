@@ -6,6 +6,17 @@ import org.ksmt.expr.*
 import org.ksmt.expr.printer.ExpressionPrinter
 import org.ksmt.expr.transformer.KTransformerBase
 import org.ksmt.sort.*
+import org.usvm.memory.UAllocatedArrayId
+import org.usvm.memory.UAllocatedArrayRegion
+import org.usvm.memory.UInputArrayId
+import org.usvm.memory.UInputArrayLengthId
+import org.usvm.memory.UInputArrayLengthRegion
+import org.usvm.memory.UInputArrayRegion
+import org.usvm.memory.UInputFieldId
+import org.usvm.memory.UInputFieldRegion
+import org.usvm.memory.URegionId
+import org.usvm.memory.USymbolicArrayIndex
+import org.usvm.memory.USymbolicMemoryRegion
 
 //region KSMT aliases
 

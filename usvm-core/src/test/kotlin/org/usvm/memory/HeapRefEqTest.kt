@@ -1,8 +1,11 @@
-package org.usvm
+package org.usvm.memory
 
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.ksmt.utils.getValue
+import org.usvm.Field
+import org.usvm.Type
+import org.usvm.UContext
 import kotlin.test.assertSame
 
 class HeapRefEqTest {

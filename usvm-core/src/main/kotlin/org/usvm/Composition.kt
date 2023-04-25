@@ -1,5 +1,9 @@
 package org.usvm
 
+import org.usvm.memory.UReadOnlySymbolicHeap
+import org.usvm.memory.URegionId
+import org.usvm.memory.URegistersStackEvaluator
+
 @Suppress("MemberVisibilityCanBePrivate")
 open class UComposer<Field, Type>(
     ctx: UContext,

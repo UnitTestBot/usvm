@@ -11,6 +11,11 @@ import org.ksmt.sort.KUninterpretedSort
 import org.ksmt.utils.DefaultValueSampler
 import org.ksmt.utils.asExpr
 import org.ksmt.utils.cast
+import org.usvm.memory.UAllocatedArrayRegion
+import org.usvm.memory.UInputArrayLengthRegion
+import org.usvm.memory.UInputArrayRegion
+import org.usvm.memory.UInputFieldRegion
+import org.usvm.memory.splitUHeapRef
 
 @Suppress("LeakingThis")
 open class UContext(

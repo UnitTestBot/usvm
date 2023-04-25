@@ -1,12 +1,25 @@
-package org.usvm
+package org.usvm.model
 
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.toPersistentMap
-import org.ksmt.expr.*
+import org.ksmt.expr.KArray2Store
+import org.ksmt.expr.KArrayConst
+import org.ksmt.expr.KArrayStore
+import org.ksmt.expr.KConst
+import org.ksmt.expr.KExpr
 import org.ksmt.solver.KModel
 import org.ksmt.sort.KArray2Sort
 import org.ksmt.sort.KArraySort
+import org.usvm.UBoolExpr
+import org.usvm.UConcreteHeapRef
+import org.usvm.UExpr
+import org.usvm.UHeapRef
+import org.usvm.USort
+import org.usvm.isFalse
+import org.usvm.isTrue
+import org.usvm.memory.UMemoryRegion
+import org.usvm.memory.UReadOnlyMemoryRegion
 
 
 /**
@@ -15,7 +28,7 @@ import org.ksmt.sort.KArraySort
 class UMemory1DArray<KeySort : USort, Sort : USort> internal constructor(
     private val values: PersistentMap<UExpr<KeySort>, UExpr<Sort>>,
     private val constValue: UExpr<Sort>,
-) : UMemoryRegion<KExpr<KeySort>, Sort> {
+) : UReadOnlyMemoryRegion<KExpr<KeySort>, Sort> {
 
     /**
      * A constructor that is used in cases when we try to evaluate
@@ -26,20 +39,6 @@ class UMemory1DArray<KeySort : USort, Sort : USort> internal constructor(
     ) : this(persistentMapOf(), mappedConstValue)
 
     override fun read(key: KExpr<KeySort>): UExpr<Sort> = values.getOrDefault(key, constValue)
-
-    override fun write(
-        key: KExpr<KeySort>,
-        value: UExpr<Sort>,
-        guard: UBoolExpr
-    ): UMemoryRegion<KExpr<KeySort>, Sort> {
-        when {
-            guard.isFalse -> return this
-            else -> require(guard.isTrue)
-        }
-        val newMap = values.put(key, value)
-        return UMemory1DArray(newMap, constValue)
-    }
-
 
     companion object {
         /**
@@ -89,7 +88,7 @@ class UMemory1DArray<KeySort : USort, Sort : USort> internal constructor(
 class UMemory2DArray<Key1Sort : USort, Key2Sort : USort, Sort : USort> internal constructor(
     val values: PersistentMap<Pair<UExpr<Key1Sort>, UExpr<Key2Sort>>, UExpr<Sort>>,
     val constValue: UExpr<Sort>,
-) : UMemoryRegion<Pair<KExpr<Key1Sort>, KExpr<Key2Sort>>, Sort> {
+) : UReadOnlyMemoryRegion<Pair<KExpr<Key1Sort>, KExpr<Key2Sort>>, Sort> {
     /**
      * A constructor that is used in cases when we try to evaluate
      * an expression from a region that was never translated.
@@ -100,19 +99,6 @@ class UMemory2DArray<Key1Sort : USort, Key2Sort : USort, Sort : USort> internal 
 
     override fun read(key: Pair<KExpr<Key1Sort>, KExpr<Key2Sort>>): UExpr<Sort> {
         return values.getOrDefault(key, constValue)
-    }
-
-    override fun write(
-        key: Pair<KExpr<Key1Sort>, KExpr<Key2Sort>>,
-        value: UExpr<Sort>,
-        guard: UBoolExpr
-    ): UMemoryRegion<Pair<KExpr<Key1Sort>, KExpr<Key2Sort>>, Sort> {
-        when {
-            guard.isFalse -> return this
-            else -> require(guard.isTrue)
-        }
-        val newMap = values.put(key, value)
-        return UMemory2DArray(newMap, constValue)
     }
 
     companion object {

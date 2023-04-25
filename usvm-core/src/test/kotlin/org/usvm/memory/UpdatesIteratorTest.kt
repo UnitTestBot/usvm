@@ -1,7 +1,10 @@
-package org.usvm
+package org.usvm.memory
 
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.usvm.UBv32Sort
+import org.usvm.UContext
+import org.usvm.USort
 import org.usvm.util.SetRegion
 import org.usvm.util.emptyRegionTree
 import kotlin.test.assertTrue

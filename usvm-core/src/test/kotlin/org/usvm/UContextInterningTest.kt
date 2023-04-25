@@ -4,6 +4,10 @@ import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.usvm.memory.UAllocatedArrayRegion
+import org.usvm.memory.UInputArrayLengthRegion
+import org.usvm.memory.UInputArrayRegion
+import org.usvm.memory.UInputFieldRegion
 
 class UContextInterningTest {
     private lateinit var context: UContext

@@ -1,6 +1,20 @@
-package org.usvm
+package org.usvm.memory
 
 import org.ksmt.utils.asExpr
+import org.usvm.UArrayIndexRef
+import org.usvm.UComposer
+import org.usvm.UContext
+import org.usvm.UExpr
+import org.usvm.UFieldRef
+import org.usvm.UHeapRef
+import org.usvm.UIndexedMocker
+import org.usvm.ULValue
+import org.usvm.UMocker
+import org.usvm.URegisterRef
+import org.usvm.USizeExpr
+import org.usvm.USort
+import org.usvm.UTypeStorage
+import org.usvm.UTypeSystem
 
 interface UMemory<LValue, RValue, SizeT, HeapRef, Type> {
     /**

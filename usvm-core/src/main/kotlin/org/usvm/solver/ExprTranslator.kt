@@ -1,9 +1,38 @@
-package org.usvm
+package org.usvm.solver
 
 import org.ksmt.expr.KExpr
 import org.ksmt.sort.KBoolSort
 import org.ksmt.utils.cast
 import org.ksmt.utils.mkConst
+import org.usvm.UAddressSort
+import org.usvm.UAllocatedArrayReading
+import org.usvm.UConcreteHeapRef
+import org.usvm.UContext
+import org.usvm.UExpr
+import org.usvm.UExprTransformer
+import org.usvm.UHeapReading
+import org.usvm.UHeapRef
+import org.usvm.UIndexedMethodReturnValue
+import org.usvm.UInputArrayLengthReading
+import org.usvm.UInputArrayReading
+import org.usvm.UInputFieldReading
+import org.usvm.UIsExpr
+import org.usvm.UMockSymbol
+import org.usvm.UNullRef
+import org.usvm.URegisterReading
+import org.usvm.USizeExpr
+import org.usvm.USizeSort
+import org.usvm.USort
+import org.usvm.USymbol
+import org.usvm.memory.UAllocatedArrayId
+import org.usvm.memory.UInputArrayId
+import org.usvm.memory.UInputArrayLengthId
+import org.usvm.memory.UInputFieldId
+import org.usvm.memory.URegionId
+import org.usvm.memory.URegionIdVisitor
+import org.usvm.memory.USymbolicArrayIndex
+import org.usvm.memory.USymbolicMemoryRegion
+import org.usvm.uctx
 
 /**
  * Translates custom [UExpr] to a [KExpr]. Region readings are translated via [URegionTranslator]s.
