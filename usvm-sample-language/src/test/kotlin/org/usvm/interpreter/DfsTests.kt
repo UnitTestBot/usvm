@@ -10,16 +10,16 @@ import kotlin.test.assertTrue
 
 class DfsTests {
     val programDecl = DfsProgram
-    val runner = Runner(programDecl.program, 13)
+    val analyzer = SampleAnalyzer(programDecl.program, 13)
 
     @Test
     fun testDfs() {
-        runner.run(programDecl.dfs)
+        analyzer.analyze(programDecl.dfs)
     }
 
     @Test
     fun testSumLoopGraph() {
-        val results = runner.run(programDecl.calcSumLoop)
+        val results = analyzer.analyze(programDecl.calcSumLoop)
         println(results.joinToString("\n"))
         assertTrue {
             results.any { result ->

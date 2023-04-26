@@ -4,16 +4,15 @@ import org.junit.jupiter.api.Test
 import org.usvm.language.BooleanConst
 import org.usvm.language.IntConst
 import org.usvm.programs.StructProgram
-import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class StructTests {
     val programDecl = StructProgram
-    val runner = Runner(programDecl.program)
+    val analyzer = SampleAnalyzer(programDecl.program)
 
     @Test
     fun testCheckRefEquality() {
-        val results = runner.run(programDecl.checkRefEquality)
+        val results = analyzer.analyze(programDecl.checkRefEquality)
         assertTrue {
             results.any { it is SuccessfulExecutionResult && (it.outputModel.returnExpr as BooleanConst).const }
         }
@@ -25,7 +24,7 @@ class StructTests {
 
     @Test
     fun testCheckImplicitRefEquality() {
-        val results = runner.run(programDecl.checkImplicitRefEquality)
+        val results = analyzer.analyze(programDecl.checkImplicitRefEquality)
         assertTrue {
             results.any { it is SuccessfulExecutionResult && (it.outputModel.returnExpr as IntConst).const == 0 }
         }

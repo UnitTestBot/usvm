@@ -8,11 +8,11 @@ import kotlin.test.assertTrue
 
 class LoopTests {
     val programDecl = LoopProgram
-    val runner = Runner(programDecl.program, 40)
+    val analyzer = SampleAnalyzer(programDecl.program, 40)
 
     @Test
     fun runLoopLowIdx() {
-        val results = runner.run(programDecl.loopLowIdx)
+        val results = analyzer.analyze(programDecl.loopLowIdx)
 
         assertTrue {
             results.any { it is SuccessfulExecutionResult && (it.outputModel.returnExpr as IntConst).const == 0 }
@@ -25,7 +25,7 @@ class LoopTests {
 
     @Test
     fun runLoopHighIdx() {
-        val results = runner.run(programDecl.loopHighIdx)
+        val results = analyzer.analyze(programDecl.loopHighIdx)
 
         assertTrue {
             results.any { it is SuccessfulExecutionResult && (it.outputModel.returnExpr as IntConst).const == 0 }

@@ -1,13 +1,11 @@
-package org.usvm.interpreter
+package org.usvm
 
-import org.usvm.UBoolExpr
-import org.usvm.UContext
-import org.usvm.fork
+import org.usvm.model.UModel
 
 /**
  * An auxiliary class, which carefully maintains forks and asserts via [fork] and [assert].
  * It should be created on every step in interepreter.
- * You can think about an instance of [StepScope] as a monad State.
+ * You can think about an instance of [StepScope] as a monad `ExceptT null (State [T])`.
  *
  * An underlying state is `null`, iff one of the `condition`s passed to the [fork] was unsatisfiable.
  *
@@ -16,26 +14,26 @@ import org.usvm.fork
  *
  * @param initialState an initial state.
  */
-class StepScope(
+class StepScope<
+    T : UState<*, *, *, *>>(
     val uctx: UContext,
-    initialState: ExecutionState,
+    initialState: T,
 ) {
-    private val accumulatedStates = mutableListOf<ExecutionState>()
-    private var curState: ExecutionState? = initialState
+    private val forkedStates = mutableListOf<T>()
+    private var curState: T? = initialState
+    private var alive: Boolean = true
 
     /**
-     * @return all states satisfying appropriate `!condition` collected in forks.
+     * @return forked states and the status of initial state.
      */
-    fun forkedStates(): List<ExecutionState> = accumulatedStates
-
-    fun allStates() = forkedStates() + listOfNotNull(curState)
+    fun forkingResult() = StepResult(forkedStates, alive)
 
     /**
      * Executes [block] on a state.
      *
      * @return `null` if the underlying state is `null`.
      */
-    fun doWithState(block: ExecutionState.() -> Unit): Unit? {
+    fun doWithState(block: T.() -> Unit): Unit? {
         val state = curState ?: return null
         state.block()
         return Unit
@@ -46,7 +44,7 @@ class StepScope(
      *
      * @return `null` if the underlying state is `null`, otherwise returns result of calling [block].
      */
-    fun <T> calcOnState(block: ExecutionState.() -> T): T? {
+    fun <R> calcOnState(block: T.() -> R): R? {
         val state = curState ?: return null
         return state.block()
     }
@@ -61,8 +59,8 @@ class StepScope(
      */
     fun fork(
         condition: UBoolExpr,
-        blockOnTrueState: ExecutionState.() -> Unit = {},
-        blockOnFalseState: ExecutionState.() -> Unit = {},
+        blockOnTrueState: T.() -> Unit = {},
+        blockOnFalseState: T.() -> Unit = {},
     ): Unit? {
         val state = curState ?: return null
 
@@ -73,7 +71,9 @@ class StepScope(
 
         if (negState != null) {
             negState.blockOnFalseState()
-            accumulatedStates += negState
+            if (negState !== state) {
+                forkedStates += negState
+            }
         }
 
         // conversion of ExecutionState? to Unit?
@@ -82,7 +82,7 @@ class StepScope(
 
     fun assert(
         constraint: UBoolExpr,
-        block: ExecutionState.() -> Unit = {},
+        block: T.() -> Unit = {},
     ): Unit? {
         val state = curState ?: return null
 
@@ -91,6 +91,22 @@ class StepScope(
         posState?.block()
         curState = posState
 
+        if (posState == null) {
+            alive = false
+        }
+
         return posState?.let { }
     }
+}
+
+/**
+ * @param forkedStates states satisfying negative branches of conditions.
+ * @param initialStateAlive indicates whether initial state is still alive or not.
+ */
+class StepResult<T>(
+    val forkedStates: List<T>,
+    val initialStateAlive: Boolean,
+) {
+    operator fun component1() = forkedStates
+    operator fun component2() = initialStateAlive
 }
