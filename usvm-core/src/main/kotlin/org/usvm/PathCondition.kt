@@ -14,7 +14,7 @@ class UPathConstraintsSet(
     constructor(constraint: UBoolExpr) : this(persistentSetOf(constraint))
 
     override val isFalse: Boolean
-        get() = constraints.size == 1 && constraints.first() is UFalse
+        get() = constraints.singleOrNull() is UFalse
 
     override operator fun plus(constraint: UBoolExpr): UPathCondition =
         with(constraint.uctx) {
@@ -28,7 +28,6 @@ class UPathConstraintsSet(
         }
 
     companion object {
-        fun contradiction(ctx: UContext) =
-            UPathConstraintsSet(persistentSetOf(ctx.mkFalse()))
+        fun contradiction(ctx: UContext) = UPathConstraintsSet(ctx.falseExpr)
     }
 }

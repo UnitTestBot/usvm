@@ -29,6 +29,9 @@ open class UModelBase<Field, Type>(
 ) : UModel {
     private val composer = UComposer(ctx, stack, heap, types, mocks)
 
+    /**
+     * Note that it is mandatory to pass only UExpr (??? requirements are different in fact)
+     */
     override fun <Sort: USort> eval(expr: UExpr<Sort>): UExpr<Sort> =
         composer.compose(expr)
 }

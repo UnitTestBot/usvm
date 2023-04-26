@@ -11,7 +11,7 @@ import org.usvm.model.UModelDecoder
 sealed interface USolverResult<T>
 
 open class USatResult<Model>(
-    val model: Model
+    val model: Model,
 ) : USolverResult<Model>
 
 open class UUnsatResult<Model> : USolverResult<Model>
@@ -19,7 +19,8 @@ open class UUnsatResult<Model> : USolverResult<Model>
 open class UUnknownResult<Model> : USolverResult<Model>
 
 abstract class USolver<Memory, PathCondition, Model> {
-    abstract fun check(memory: Memory, pc: PathCondition): USolverResult<Model>
+    // TODO is it a good idea to lift up information about soft constraints into this interface?
+    abstract fun check(memory: Memory, pc: PathCondition, useSoftConstraints: Boolean): USolverResult<Model>
 }
 
 open class USolverBase<Field, Type, Method>(
@@ -27,12 +28,23 @@ open class USolverBase<Field, Type, Method>(
     protected val solver: KSolver<*>,
     protected val translator: UExprTranslator<Field, Type>,
     protected val decoder: UModelDecoder<UMemoryBase<Field, Type, Method>, UModelBase<Field, Type>>,
+    protected val softConstraintsProvider: USoftConstraintsProvider<Field, Type>,
 ) : USolver<UMemoryBase<Field, Type, Method>, UPathCondition, UModelBase<Field, Type>>() {
 
-    override fun check(memory: UMemoryBase<Field, Type, Method>, pc: UPathCondition): USolverResult<UModelBase<Field, Type>> {
+    internal fun checkWithSoftConstraints(
+        memory: UMemoryBase<Field, Type, Method>,
+        pc: UPathCondition,
+    ) = check(memory, pc, useSoftConstraints = true)
+
+    override fun check(
+        memory: UMemoryBase<Field, Type, Method>,
+        pc: UPathCondition,
+        useSoftConstraints: Boolean,
+    ): USolverResult<UModelBase<Field, Type>> {
         if (pc.isFalse) {
             return UUnsatResult()
         }
+
         solver.push()
 
         for (constraint in pc) {
@@ -40,7 +52,30 @@ open class USolverBase<Field, Type, Method>(
             solver.assert(translated)
         }
 
-        val status = solver.check()
+        var status: KSolverStatus
+
+        if (useSoftConstraints) {
+            // TODO fold with contradiction search?
+            //      additional caches?
+            val softConstraints = pc.map {
+                val softConstraint = softConstraintsProvider.provide(it)
+                translator.translate(softConstraint)
+            }
+
+            status = solver.checkWithAssumptions(softConstraints)
+
+            while (status == KSolverStatus.UNSAT) {
+                val unsatCore = solver.unsatCore()
+
+                if (unsatCore.isEmpty()) break
+
+                val newSoftConstraints = softConstraints.filterNot { it in unsatCore }
+                status = solver.checkWithAssumptions(newSoftConstraints)
+            }
+        } else {
+            status = solver.check()
+        }
+
         if (status != KSolverStatus.SAT) {
             solver.pop()
 
@@ -50,8 +85,10 @@ open class USolverBase<Field, Type, Method>(
                 UUnknownResult()
             }
         }
+
         val kModel = solver.model().detach()
         val uModel = decoder.decode(memory, kModel)
+
         solver.pop()
 
         return USatResult(uModel)
