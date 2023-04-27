@@ -2,11 +2,18 @@ package org.usvm
 
 
 /**
- * An abstract symbolic machine.
+ * An abstract symbolic analyzer.
  */
-abstract class UMachine<State : UState<*, *, *, *>, Target> {
+abstract class UAnalyzer<State : UState<*, *, *, *>, Target> {
     /**
-     * The main entry point. Template method for running the machine on a specified [target].
+     * The main entry point. Template method for running the analyzer on a specified [target].
+     *
+     * @param target a generic target to run on.
+     * @param onState called on every forked state. Can be used for collecting results.
+     * @param continueAnalyzing filtering function for forked states. If it returns `false`, state
+     * isn't added to path selector.
+     * @param shouldStop asked on every step, before peeking a next state from path selector. Returning `true` aborts
+     * analysis.
      */
     fun run(
         target: Target,

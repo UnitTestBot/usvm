@@ -2,8 +2,8 @@ package org.usvm.interpreter
 
 import kotlinx.collections.immutable.persistentListOf
 import org.ksmt.solver.yices.KYicesSolver
+import org.usvm.UAnalyzer
 import org.usvm.UContext
-import org.usvm.UMachine
 import org.usvm.UPathConstraintsSet
 import org.usvm.UPathSelector
 import org.usvm.language.Field
@@ -22,7 +22,7 @@ import org.usvm.solver.USolverBase
 class SampleAnalyzer(
     program: Program,
     val maxStates: Int = 40,
-) : UMachine<ExecutionState, Method<*>>() {
+) : UAnalyzer<ExecutionState, Method<*>>() {
     private val applicationGraph = DefaultSampleApplicationGraph(program)
     private val ctx = UContext()
     private val typeSystem = SampleTypeSystem()

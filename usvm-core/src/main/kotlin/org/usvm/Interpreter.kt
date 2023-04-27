@@ -3,7 +3,7 @@ package org.usvm
 import org.usvm.model.UModel
 
 /**
- * An abstract [UInterpreter] used in a symbolic machine.
+ * An abstract [UInterpreter] used in a symbolic analyzer.
  */
 abstract class UInterpreter<State : UState<*, *, *, *>>(
     open val ctx: UContext,
