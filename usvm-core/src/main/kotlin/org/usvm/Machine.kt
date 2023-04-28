@@ -33,12 +33,14 @@ abstract class UAnalyzer<State : UState<*, *, *, *>, Target> {
                 onState(state)
             }
 
+            var originalState: State? = state
             if (!stateAlive || !continueAnalyzing(state)) {
-                pathSelector.terminate()
+                pathSelector.terminate(state)
+                originalState = null
             }
 
-            val nextStates = forkedStates.asSequence().filter(continueAnalyzing)
-            pathSelector.add(nextStates)
+            val nextStates = forkedStates.filter(continueAnalyzing)
+            pathSelector.add(originalState, nextStates)
         }
     }
 

@@ -24,6 +24,13 @@ abstract class UState<Type, Field, Method, Statement>(
      * If [newConstraints] is null, clones [pathConstraints]. Otherwise, uses [newConstraints] in cloned state.
      */
     abstract fun clone(newConstraints: UPathConstraints<Type>? = null): UState<Type, Field, Method, Statement>
+
+    val lastEnteredMethod: Method
+        get() = callStack.lastMethod()
+
+    // TODO or last? Do we add a current stmt into the path immediately?
+    val currentStatement: Statement?
+        get() = path.lastOrNull()
 }
 
 class ForkResult<T>(

@@ -67,7 +67,7 @@ class SampleAnalyzer(
     override fun getPathSelector(target: Method<*>): UPathSelector<ExecutionState> {
         val ps = DfsPathSelector<ExecutionState>()
         val initialState = getInitialState(solver, target)
-        ps.add(sequenceOf(initialState))
+        ps.add(initialState, producedStates = emptyList())
         return ps
     }
 
