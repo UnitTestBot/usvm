@@ -57,7 +57,7 @@ open class USolverBase<Field, Type, Method>(
         if (useSoftConstraints) {
             // TODO fold with contradiction search?
             //      additional caches?
-            val softConstraints = pc.map {
+            var softConstraints = pc.map {
                 val softConstraint = softConstraintsProvider.provide(it)
                 translator.translate(softConstraint)
             }
@@ -69,8 +69,8 @@ open class USolverBase<Field, Type, Method>(
 
                 if (unsatCore.isEmpty()) break
 
-                val newSoftConstraints = softConstraints.filterNot { it in unsatCore }
-                status = solver.checkWithAssumptions(newSoftConstraints)
+                softConstraints = softConstraints.filterNot { it in unsatCore }
+                status = solver.checkWithAssumptions(softConstraints)
             }
         } else {
             status = solver.check()

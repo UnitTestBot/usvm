@@ -43,7 +43,7 @@ import org.usvm.USymbol
 import org.usvm.uctx
 
 class USoftConstraintsProvider<Field, Type>(ctx: UContext) : UExprTransformer<Field, Type>(ctx) {
-    private val caches: MutableMap<UExpr<*>, UBoolExpr> = hashMapOf()
+    private val caches: MutableMap<UExpr<*>, UBoolExpr> = hashMapOf<UExpr<*>, UBoolExpr>().withDefault { ctx.trueExpr }
     private val sortPreferredValues = SortPreferredValues()
 
     fun provide(initialExpr: UExpr<*>): UBoolExpr {
@@ -82,61 +82,89 @@ class USoftConstraintsProvider<Field, Type>(ctx: UContext) : UExprTransformer<Fi
     override fun <T : KBvSort> transform(expr: KBvSignedLessOrEqualExpr<T>): KExpr<KBoolSort> = with(expr.ctx) {
         transformExprAfterTransformed(expr, expr.arg0, expr.arg1) { lhs, rhs ->
             val selfConstraint = mkEq(lhs, rhs)
-            val result =
-                mkAnd(selfConstraint, mkAnd(caches.getValue(lhs), caches.getValue(rhs), flat = false), flat = false)
+            val result = mkAnd(
+                selfConstraint,
+                mkAnd(caches.getValue(lhs), caches.getValue(rhs), flat = false),
+                flat = false
+            )
             caches[expr] = result
+
             return result
         }
     }
 
-    override fun <Sort : USort> transform(expr: USymbol<Sort>): UExpr<Sort> {
-        TODO()
+    private fun <Sort : USort> transformAppIfPossible(expr: UExpr<Sort>): UExpr<Sort> =
+        if (expr is KApp<Sort, *>) transformApp(expr) else transformExpr(expr)
+
+    override fun <Sort : USort> transform(expr: USymbol<Sort>): UExpr<Sort> = transformAppIfPossible(expr)
+
+    override fun <Sort : USort> transform(expr: URegisterReading<Sort>): UExpr<Sort> = transformExpr(expr)
+
+    override fun <Sort : USort> transform(expr: UHeapReading<*, *, *>): UExpr<Sort> =
+        transformAppIfPossible(expr).cast()
+
+    override fun <Sort : USort> transform(expr: UMockSymbol<Sort>): UExpr<Sort> = transformAppIfPossible(expr)
+
+    override fun <Method, Sort : USort> transform(
+        expr: UIndexedMethodReturnValue<Method, Sort>,
+    ): UExpr<Sort> = transformAppIfPossible(expr)
+
+    override fun transform(expr: UConcreteHeapRef): UExpr<UAddressSort> = error("TODO")
+
+    override fun transform(expr: UNullRef): UExpr<UAddressSort> = expr
+
+    override fun transform(expr: UIsExpr<Type>): UBoolExpr = error("TODO")
+
+    override fun transform(
+        expr: UInputArrayLengthReading<Type>,
+    ): USizeExpr = transformExprAfterTransformed(expr, expr.address) {
+        computeSideEffect(expr) {
+            with(expr.ctx) {
+                val nestedConstraint = caches.getValue(expr.address)
+                // TODO replace with const
+                caches[expr] = mkAnd(mkBvSignedLessOrEqualExpr(expr, 10.toBv()), nestedConstraint, flat = false)
+            }
+        }
     }
 
-    override fun <Sort : USort> transform(expr: URegisterReading<Sort>): UExpr<Sort> = with(expr.ctx) {
-        caches[expr] = expr.sort.accept(sortPreferredValues)(expr)
-        expr
+    override fun <Sort : USort> transform(
+        expr: UInputArrayReading<Type, Sort>,
+    ): UExpr<Sort> = transformExprAfterTransformed(expr, expr.index, expr.address) { _, _ ->
+        computeSideEffect(expr) {
+            with(expr.ctx) {
+                val indexConstraint = caches.getValue(expr.index)
+                val addressConstraint = caches.getValue(expr.address)
+                val nestedConstraint = mkAnd(indexConstraint, addressConstraint, flat = false)
+                val selfConstraint = expr.sort.accept(sortPreferredValues)(expr)
+
+                caches[expr] = mkAnd(nestedConstraint, selfConstraint, flat = false)
+            }
+        }
     }
 
-    override fun <Sort : USort> transform(expr: UHeapReading<*, *, *>): UExpr<Sort> {
-        TODO("Not yet implemented")
-    }
+    override fun <Sort : USort> transform(expr: UAllocatedArrayReading<Type, Sort>): UExpr<Sort> =
+        transformExprAfterTransformed(expr, expr.index) { _ ->
+            computeSideEffect(expr) {
+                with(expr.ctx) {
+                    val indexConstraint = caches.getValue(expr.index)
+                    val selfConstraint = expr.sort.accept(sortPreferredValues)(expr)
 
-    override fun <Sort : USort> transform(expr: UMockSymbol<Sort>): UExpr<Sort> {
-        TODO("Not yet implemented")
-    }
+                    caches[expr] = mkAnd(indexConstraint, selfConstraint, flat = false)
+                }
+            }
+        }
 
-    override fun <Method, Sort : USort> transform(expr: UIndexedMethodReturnValue<Method, Sort>): UExpr<Sort> {
-        TODO("Not yet implemented")
-    }
+    override fun <Sort : USort> transform(expr: UInputFieldReading<Field, Sort>): UExpr<Sort> =
+        transformExprAfterTransformed(expr, expr.address) { _ ->
+            computeSideEffect(expr) {
+                with(expr.ctx) {
+                    val addressConstraint = caches.getValue(expr.address)
+                    val selfConstraint = expr.sort.accept(sortPreferredValues)(expr)
 
-    override fun transform(expr: UConcreteHeapRef): UExpr<UAddressSort> {
-        TODO("Not yet implemented")
-    }
-
-    override fun transform(expr: UNullRef): UExpr<UAddressSort> {
-        TODO("Not yet implemented")
-    }
-
-    override fun transform(expr: UIsExpr<Type>): UBoolExpr {
-        TODO("Not yet implemented")
-    }
-
-    override fun transform(expr: UInputArrayLengthReading<Type>): USizeExpr {
-        TODO("Not yet implemented")
-    }
-
-    override fun <Sort : USort> transform(expr: UInputArrayReading<Type, Sort>): UExpr<Sort> {
-        TODO("Not yet implemented")
-    }
-
-    override fun <Sort : USort> transform(expr: UAllocatedArrayReading<Type, Sort>): UExpr<Sort> {
-        TODO("Not yet implemented")
-    }
-
-    override fun <Sort : USort> transform(expr: UInputFieldReading<Field, Sort>): UExpr<Sort> {
-        TODO("Not yet implemented")
-    }
+                    caches[expr] = mkAnd(addressConstraint, selfConstraint, flat = false)
+                }
+            }
+        }
 
 
     // region KExpressions
@@ -147,7 +175,7 @@ class USoftConstraintsProvider<Field, Type>(ctx: UContext) : UExprTransformer<Fi
 
 // TODO choose between KSort and USort
 private class SortPreferredValues : KSortVisitor<(KExpr<*>) -> KExpr<KBoolSort>> {
-    val caches: MutableMap<USort, (KExpr<*>) -> KExpr<KBoolSort>> = mutableMapOf()
+    private val caches: MutableMap<USort, (KExpr<*>) -> KExpr<KBoolSort>> = mutableMapOf()
 
     override fun <S : KBvSort> visit(sort: S): (KExpr<*>) -> KExpr<KBoolSort> = caches.getOrPut(sort) {
         with(sort.ctx) {
@@ -215,12 +243,10 @@ private class SortPreferredValues : KSortVisitor<(KExpr<*>) -> KExpr<KBoolSort>>
     override fun visit(sort: KUninterpretedSort): (KExpr<*>) -> KExpr<KBoolSort> =
         caches.getOrPut(sort) {
             with(sort.uctx) {
-                when {
-                    sort === addressSort -> { expr ->
-                        mkHeapRefEq(nullRef, expr.cast())
-                    }
-
-                    else -> { _ -> trueExpr } // TODO ?????
+                if (sort === addressSort) {
+                    { expr -> mkHeapRefEq(nullRef, expr.cast()) }
+                } else {
+                    { _ -> trueExpr } // TODO ?????
                 }
             }
         }

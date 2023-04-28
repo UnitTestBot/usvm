@@ -7,11 +7,13 @@ import kotlinx.collections.immutable.persistentSetOf
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.ksmt.expr.KBitVec32Value
 import org.ksmt.solver.z3.KZ3Solver
 import org.usvm.UContext
 import org.usvm.UPathConstraintsSet
 import org.usvm.UTypeSystem
 import org.usvm.memory.UMemoryBase
+import org.usvm.memory.emptyInputArrayLengthRegion
 import org.usvm.model.ULazyModelDecoder
 import org.usvm.model.buildTranslatorAndLazyDecoder
 import kotlin.test.assertSame
@@ -106,5 +108,46 @@ class SoftConstraintsTest<Field, Type, Method> {
 
         assertSame(fstEvaluated, sndEvaluated)
         assertSame(fstEvaluated, thirdEvaluated)
+    }
+
+    @Test
+    fun softConflictingWithPathConstraints() = with(ctx) {
+        val arrayType = IntArray::class
+        val inputRef = mkRegisterReading(0, addressSort)
+        val secondInputRef = mkRegisterReading(1, addressSort)
+        val region = emptyInputArrayLengthRegion(arrayType, sizeSort)
+            .write(inputRef, mkRegisterReading(3, sizeSort), guard = trueExpr)
+
+        val size = 25
+
+        val reading = region.read(secondInputRef)
+
+        val pc = UPathConstraintsSet(
+            reading eq size.toBv(),
+            inputRef eq secondInputRef,
+            (inputRef eq nullRef).not()
+        )
+        val result = (solver.checkWithSoftConstraints(memory, pc)) as USatResult
+
+        val model = result.model
+        val value = model.eval(mkInputArrayLengthReading(region, inputRef))
+
+        assertSame(size.toBv(), value)
+    }
+
+    @Test
+    fun testUnsatCore() = with(ctx) {
+        val arrayType = IntArray::class
+        val inputRef = mkRegisterReading(0, addressSort)
+        val region = emptyInputArrayLengthRegion(arrayType, sizeSort)
+            .write(inputRef, mkRegisterReading(3, sizeSort), guard = trueExpr)
+
+        val pc = UPathConstraintsSet((inputRef eq nullRef).not())
+        val result = (solver.checkWithSoftConstraints(memory, pc)) as USatResult
+
+        val model = result.model
+        val value = model.eval(mkInputArrayLengthReading(region, inputRef))
+
+        assert((value as KBitVec32Value).intValue < 10)
     }
 }

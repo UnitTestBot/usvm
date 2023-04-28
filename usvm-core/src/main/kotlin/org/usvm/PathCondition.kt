@@ -2,6 +2,7 @@ package org.usvm
 
 import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.persistentSetOf
+import kotlinx.collections.immutable.toPersistentSet
 
 interface UPathCondition : Collection<UBoolExpr> {
     val isFalse: Boolean
@@ -12,6 +13,10 @@ class UPathConstraintsSet(
     private val constraints: PersistentSet<UBoolExpr> = persistentSetOf(),
 ) : Collection<UBoolExpr> by constraints, UPathCondition {
     constructor(constraint: UBoolExpr) : this(persistentSetOf(constraint))
+
+    constructor(vararg constraints: UBoolExpr) : this(persistentSetOf(*constraints))
+
+    constructor(constraints: Collection<UBoolExpr>) : this(constraints.toPersistentSet())
 
     override val isFalse: Boolean
         get() = constraints.singleOrNull() is UFalse
