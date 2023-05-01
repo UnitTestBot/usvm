@@ -11,18 +11,17 @@ import org.usvm.memory.UMemoryBase
 import org.usvm.model.UModelBase
 import org.usvm.model.UModelDecoder
 
-sealed interface USolverResult<T>
+sealed interface USolverResult<out T>
 
-open class USatResult<Model>(
-    val model: Model,
+open class USatResult<out Model>(
+    val model: Model
 ) : USolverResult<Model>
 
 open class UUnsatResult<Model> : USolverResult<Model>
 
 open class UUnknownResult<Model> : USolverResult<Model>
 
-abstract class USolver<Memory, PathCondition, Model> {
-    // TODO make global option for that?
+abstract class USolver<in PathCondition, out Model> {
     abstract fun check(pc: PathCondition, useSoftConstraints: Boolean): USolverResult<Model>
 }
 

@@ -1,6 +1,7 @@
 package org.usvm
 
 import org.usvm.model.UModel
+import org.usvm.solver.USolver
 
 /**
  * An auxiliary class, which carefully maintains forks and asserts via [fork] and [assert].
@@ -14,8 +15,7 @@ import org.usvm.model.UModel
  *
  * @param initialState an initial state.
  */
-class StepScope<
-    T : UState<*, *, *, *>>(
+class StepScope<T : UState<*, *, *, *>>(
     val uctx: UContext,
     initialState: T,
 ) {
