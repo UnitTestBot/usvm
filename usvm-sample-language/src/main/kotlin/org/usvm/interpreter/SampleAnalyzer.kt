@@ -1,7 +1,7 @@
 package org.usvm.interpreter
 
 import kotlinx.collections.immutable.persistentListOf
-import org.ksmt.solver.yices.KYicesSolver
+import io.ksmt.solver.yices.KYicesSolver
 import org.usvm.UAnalyzer
 import org.usvm.UContext
 import org.usvm.UPathConstraintsSet

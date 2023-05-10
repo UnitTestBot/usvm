@@ -4,9 +4,6 @@ import io.ksmt.expr.KBitVec32Value
 import io.ksmt.expr.KExpr
 import io.ksmt.utils.asExpr
 import org.usvm.StepScope
-import org.ksmt.expr.KBitVec32Value
-import org.ksmt.expr.KExpr
-import org.ksmt.utils.asExpr
 import org.usvm.UArrayIndexRef
 import org.usvm.UBoolExpr
 import org.usvm.UBv32Sort
