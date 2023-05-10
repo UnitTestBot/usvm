@@ -3,13 +3,13 @@ package org.usvm.solver
 import org.ksmt.expr.KApp
 import org.ksmt.expr.KBvSignedLessOrEqualExpr
 import org.ksmt.expr.KExpr
+import org.ksmt.expr.KFpRoundingMode
 import org.ksmt.sort.KArray2Sort
 import org.ksmt.sort.KArray3Sort
 import org.ksmt.sort.KArrayNSort
 import org.ksmt.sort.KArraySort
 import org.ksmt.sort.KBoolSort
 import org.ksmt.sort.KBv1Sort
-import org.ksmt.sort.KBv8Sort
 import org.ksmt.sort.KBvSort
 import org.ksmt.sort.KFp32Sort
 import org.ksmt.sort.KFp64Sort
@@ -119,8 +119,8 @@ class USoftConstraintsProvider<Field, Type>(ctx: UContext) : UExprTransformer<Fi
         computeSideEffect(expr) {
             with(expr.ctx) {
                 val nestedConstraint = caches.getValue(expr.address)
-                // TODO replace with const
-                caches[expr] = mkAnd(mkBvSignedLessOrEqualExpr(expr, 10.toBv()), nestedConstraint, flat = false)
+                val arraySize = mkBvSignedLessOrEqualExpr(expr, PREFERRED_ARRAY_SIZE.toBv())
+                caches[expr] = mkAnd(arraySize, nestedConstraint, flat = false)
             }
         }
     }
@@ -169,6 +169,10 @@ class USoftConstraintsProvider<Field, Type>(ctx: UContext) : UExprTransformer<Fi
 
 
     // endregion
+
+    companion object {
+        const val PREFERRED_ARRAY_SIZE = 10
+    }
 }
 
 // TODO choose between KSort and USort
@@ -179,12 +183,11 @@ private class SortPreferredValues : KSortVisitor<(KExpr<*>) -> KExpr<KBoolSort>>
         with(sort.ctx) {
             when (sort) {
                 is KBv1Sort -> { expr -> 1.toBv(sort) eq expr.cast() }
-                is KBv8Sort -> { expr -> createBvBounds(lowerBound = -32, upperBound = 32, expr) }
                 else -> { expr ->
                     if (sort.sizeBits < 16u) {
-                        createBvBounds(lowerBound = -8, upperBound = 8, expr)
+                        createBvBounds(lowerBound = SMALL_INT_MIN_VALUE, upperBound = SMALL_INT_MAX_VALUE, expr)
                     } else {
-                        createBvBounds(lowerBound = -256, upperBound = 256, expr)
+                        createBvBounds(lowerBound = INT_MIN_VALUE, upperBound = INT_MAX_VALUE, expr)
                     }
                 }
             }
@@ -197,22 +200,25 @@ private class SortPreferredValues : KSortVisitor<(KExpr<*>) -> KExpr<KBoolSort>>
         expr: UExpr<*>,
     ): UBoolExpr = with(expr.ctx) {
         mkAnd(
-            mkBvSignedLessExpr(lowerBound.toBv(expr.sort.cast()), expr.cast()),
-            mkBvSignedGreaterExpr(upperBound.toBv(expr.sort.cast()), expr.cast())
+            mkBvSignedLessOrEqualExpr(lowerBound.toBv(expr.sort.cast()), expr.cast()),
+            mkBvSignedGreaterOrEqualExpr(upperBound.toBv(expr.sort.cast()), expr.cast())
         )
     }
 
     override fun <S : KFpSort> visit(sort: S): (KExpr<*>) -> KExpr<KBoolSort> = caches.getOrPut(sort) {
-        with(sort.ctx) {
-            when (sort) {
-                is KFp32Sort -> { expr -> createFpBounds(expr) }
-                is KFp64Sort -> { expr -> createFpBounds(expr) }
-                else -> { expr -> createFpBounds(expr) }
-            }
+        when (sort) {
+            is KFp32Sort -> { expr -> createFpBounds(expr) }
+            is KFp64Sort -> { expr -> createFpBounds(expr) }
+            else -> { expr -> createFpBounds(expr) }
         }
     }
 
-    private fun createFpBounds(expr: UExpr<*>): UBoolExpr = expr.ctx.trueExpr // TODO
+    private fun createFpBounds(expr: UExpr<*>): UBoolExpr = with(expr.uctx) {
+        mkAnd(
+            mkFpLessOrEqualExpr(FP_MIN_VALUE.toFp(expr.sort.cast()), expr.cast()),
+            mkFpGreaterOrEqualExpr(FP_MAX_VALUE.toFp(expr.sort.cast()), expr.cast())
+        )
+    }
 
     override fun <D0 : KSort, D1 : KSort, R : KSort> visit(
         sort: KArray2Sort<D0, D1, R>,
@@ -232,11 +238,39 @@ private class SortPreferredValues : KSortVisitor<(KExpr<*>) -> KExpr<KBoolSort>>
 
     override fun visit(sort: KBoolSort): (KExpr<*>) -> KExpr<KBoolSort> = { sort.ctx.trueExpr } // TODO ???
 
-    override fun visit(sort: KFpRoundingModeSort): (KExpr<*>) -> KExpr<KBoolSort> = { sort.ctx.trueExpr }
+    override fun visit(sort: KFpRoundingModeSort): (KExpr<*>) -> KExpr<KBoolSort> =
+        caches.getOrPut(sort) {
+            with(sort.uctx) {
+                // TODO double check it
+                { expr -> mkFpRoundingModeExpr(KFpRoundingMode.RoundNearestTiesToEven) eq expr.cast() }
+            }
+        }
 
-    override fun visit(sort: KIntSort): (KExpr<*>) -> KExpr<KBoolSort> = { sort.ctx.trueExpr } // TODO replace
+    override fun visit(sort: KIntSort): (KExpr<*>) -> KExpr<KBoolSort> =
+        caches.getOrPut(sort) {
+            with(sort.uctx) {
+                { expr ->
+                    mkAnd(
+                        mkArithLe(INT_MIN_VALUE.expr, expr.cast()),
+                        mkArithGe(INT_MAX_VALUE.expr, expr.cast())
+                    )
+                }
+            }
+        }
 
-    override fun visit(sort: KRealSort): (KExpr<*>) -> KExpr<KBoolSort> = { sort.ctx.trueExpr } // TODO replace
+    override fun visit(sort: KRealSort): (KExpr<*>) -> KExpr<KBoolSort> =
+        caches.getOrPut(sort) {
+            with(sort.uctx) {
+                { expr ->
+                    mkAnd(
+                        mkAnd(
+                            mkArithLe(mkRealNum(INT_MIN_VALUE), expr.cast()),
+                            mkArithGe(mkRealNum(INT_MAX_VALUE), expr.cast())
+                        )
+                    )
+                }
+            }
+        }
 
     override fun visit(sort: KUninterpretedSort): (KExpr<*>) -> KExpr<KBoolSort> =
         caches.getOrPut(sort) {
@@ -248,4 +282,15 @@ private class SortPreferredValues : KSortVisitor<(KExpr<*>) -> KExpr<KBoolSort>>
                 }
             }
         }
+
+    companion object {
+        const val SMALL_INT_MIN_VALUE = -8
+        const val SMALL_INT_MAX_VALUE = 8
+
+        const val INT_MIN_VALUE = -256
+        const val INT_MAX_VALUE = 256
+
+        const val FP_MIN_VALUE = -256.0f
+        const val FP_MAX_VALUE = 256.0f
+    }
 }
