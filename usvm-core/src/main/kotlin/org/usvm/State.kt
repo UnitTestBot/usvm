@@ -1,7 +1,7 @@
 package org.usvm
 
 import kotlinx.collections.immutable.PersistentList
-import org.ksmt.expr.KInterpretedValue
+import io.ksmt.expr.KInterpretedValue
 import org.usvm.memory.UMemoryBase
 import org.usvm.model.UModel
 

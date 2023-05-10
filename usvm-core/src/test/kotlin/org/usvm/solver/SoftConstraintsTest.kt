@@ -7,8 +7,8 @@ import kotlinx.collections.immutable.persistentSetOf
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import org.ksmt.expr.KBitVec32Value
-import org.ksmt.solver.z3.KZ3Solver
+import io.ksmt.expr.KBitVec32Value
+import io.ksmt.solver.z3.KZ3Solver
 import org.usvm.UContext
 import org.usvm.UPathConstraintsSet
 import org.usvm.UTypeSystem

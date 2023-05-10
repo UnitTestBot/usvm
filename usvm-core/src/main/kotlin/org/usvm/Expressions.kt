@@ -1,11 +1,11 @@
 package org.usvm
 
-import org.ksmt.cache.hash
-import org.ksmt.cache.structurallyEqual
-import org.ksmt.expr.*
-import org.ksmt.expr.printer.ExpressionPrinter
-import org.ksmt.expr.transformer.KTransformerBase
-import org.ksmt.sort.*
+import io.ksmt.cache.hash
+import io.ksmt.cache.structurallyEqual
+import io.ksmt.expr.*
+import io.ksmt.expr.printer.ExpressionPrinter
+import io.ksmt.expr.transformer.KTransformerBase
+import io.ksmt.sort.*
 import org.usvm.memory.UAllocatedArrayId
 import org.usvm.memory.UAllocatedArrayRegion
 import org.usvm.memory.UInputArrayId

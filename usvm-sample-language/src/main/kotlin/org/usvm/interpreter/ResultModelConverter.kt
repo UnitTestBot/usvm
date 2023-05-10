@@ -1,7 +1,7 @@
 package org.usvm.interpreter
 
-import org.ksmt.expr.KBitVec32Value
-import org.ksmt.utils.asExpr
+import io.ksmt.expr.KBitVec32Value
+import io.ksmt.utils.asExpr
 import org.usvm.memory.UAddressCounter.Companion.NULL_ADDRESS
 import org.usvm.UAddressSort
 import org.usvm.UBoolSort

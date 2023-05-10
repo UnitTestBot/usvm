@@ -1,7 +1,7 @@
 package org.usvm.model
 
-import org.ksmt.utils.asExpr
-import org.ksmt.utils.sampleValue
+import io.ksmt.utils.asExpr
+import io.ksmt.utils.sampleValue
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
