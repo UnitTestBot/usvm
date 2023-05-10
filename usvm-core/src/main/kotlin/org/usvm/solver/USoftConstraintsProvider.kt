@@ -67,29 +67,27 @@ class USoftConstraintsProvider<Field, Type>(ctx: UContext) : UExprTransformer<Fi
     }
 
     override fun <T : KSort, A : KSort> transformApp(expr: KApp<T, A>): KExpr<T> =
-        transformExprAfterTransformed(expr, expr.args) { args ->
-            computeSideEffect(expr) {
-                val collected = args.fold(expr.ctx.trueExpr as UBoolExpr) { acc, value ->
-                    expr.ctx.mkAnd(acc, caches.getValue(value), flat = false)
-                }
-                val selfConstraint = expr.sort.accept(sortPreferredValues)(expr)
-                caches[expr] = expr.ctx.mkAnd(selfConstraint, collected, flat = false)
+        computeSideEffect(expr) {
+            val collected = expr.args.fold(expr.ctx.trueExpr as UBoolExpr) { acc, value ->
+                expr.ctx.mkAnd(acc, caches.getValue(value), flat = false)
             }
+            val selfConstraint = expr.sort.accept(sortPreferredValues)(expr)
+            caches[expr] = expr.ctx.mkAnd(selfConstraint, collected, flat = false)
         }
 
     // endregion
 
     override fun <T : KBvSort> transform(expr: KBvSignedLessOrEqualExpr<T>): KExpr<KBoolSort> = with(expr.ctx) {
         transformExprAfterTransformed(expr, expr.arg0, expr.arg1) { lhs, rhs ->
-            val selfConstraint = mkEq(lhs, rhs)
-            val result = mkAnd(
-                selfConstraint,
-                mkAnd(caches.getValue(lhs), caches.getValue(rhs), flat = false),
-                flat = false
-            )
-            caches[expr] = result
-
-            return result
+            computeSideEffect(expr) {
+                val selfConstraint = mkEq(lhs, rhs)
+                val result = mkAnd(
+                    selfConstraint,
+                    mkAnd(caches.getValue(lhs), caches.getValue(rhs), flat = false),
+                    flat = false
+                )
+                caches[expr] = result
+            }
         }
     }
 

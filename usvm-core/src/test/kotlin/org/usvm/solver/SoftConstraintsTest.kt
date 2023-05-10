@@ -82,7 +82,7 @@ class SoftConstraintsTest<Field, Type, Method> {
 
         val pc = UPathConstraintsSet(persistentSetOf(fstTranslated, sndTranslated, thirdTranslated))
 
-        val solver =  USolverBase(ctx, KZ3Solver(ctx), translator, decoder, softConstraintsProvider)
+        val solver = USolverBase(ctx, KZ3Solver(ctx), translator, decoder, softConstraintsProvider)
 
         val result = solver.checkWithSoftConstraints(memory, pc) as USatResult
         val model = result.model
@@ -149,5 +149,18 @@ class SoftConstraintsTest<Field, Type, Method> {
         val value = model.eval(mkInputArrayLengthReading(region, inputRef))
 
         assert((value as KBitVec32Value).intValue < 10)
+    }
+
+    @Test
+    fun testSimpleComparisonExpression(): Unit = with(ctx) {
+        val inputRef = mkRegisterReading(0, bv32Sort)
+        val bvValue = 0.toBv()
+        val expression = mkBvSignedLessOrEqualExpr(bvValue, inputRef).not()
+
+        val pc = UPathConstraintsSet(expression)
+        val result = (solver.checkWithSoftConstraints(memory, pc)) as USatResult
+
+        val model = result.model
+        model.eval(expression)
     }
 }
