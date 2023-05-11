@@ -67,12 +67,15 @@ class USoftConstraintsProvider<Field, Type>(ctx: UContext) : UExprTransformer<Fi
     }
 
     override fun <T : KSort, A : KSort> transformApp(expr: KApp<T, A>): KExpr<T> =
-        computeSideEffect(expr) {
-            val collected = expr.args.fold(expr.ctx.trueExpr as UBoolExpr) { acc, value ->
-                expr.ctx.mkAnd(acc, caches.getValue(value), flat = false)
+        transformExprAfterTransformed(expr, expr.args) { args ->
+            computeSideEffect(expr) {
+                val collected = args.fold(expr.ctx.trueExpr as UBoolExpr) { acc, value ->
+                    // TODO why is it important to have a tree here?
+                    expr.ctx.mkAnd(acc, caches.getValue(value), flat = false)
+                }
+                val selfConstraint = expr.sort.accept(sortPreferredValues)(expr)
+                caches[expr] = expr.ctx.mkAnd(selfConstraint, collected, flat = false)
             }
-            val selfConstraint = expr.sort.accept(sortPreferredValues)(expr)
-            caches[expr] = expr.ctx.mkAnd(selfConstraint, collected, flat = false)
         }
 
     // endregion
