@@ -56,8 +56,9 @@ open class USolverBase<Field, Type, Method>(
 
         if (useSoftConstraints) {
             var softConstraints = pc.flatMap {
-                val softConstraints = softConstraintsProvider.provide(it)
-                softConstraints.map { sc -> translator.translate(sc) }
+                softConstraintsProvider
+                    .provide(it)
+                    .map { sc -> translator.translate(sc) }
             }
 
             status = solver.checkWithAssumptions(softConstraints)

@@ -20,10 +20,11 @@ import io.ksmt.sort.KRealSort
 import io.ksmt.sort.KSort
 import io.ksmt.sort.KSortVisitor
 import io.ksmt.sort.KUninterpretedSort
-import io.ksmt.utils.cast
+import io.ksmt.utils.asExpr
 import org.usvm.UAddressSort
 import org.usvm.UAllocatedArrayReading
 import org.usvm.UBoolExpr
+import org.usvm.UBvSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UExpr
@@ -45,10 +46,10 @@ import org.usvm.uctx
 class USoftConstraintsProvider<Field, Type>(ctx: UContext) : UExprTransformer<Field, Type>(ctx) {
     // We have a list here since sometimes we want to add several soft constraints
     // to make it possible to drop only a part of them, not the whole soft constraint
-    private val caches = hashMapOf<UExpr<*>, List<UBoolExpr>>().withDefault { listOf(ctx.trueExpr) }
+    private val caches = hashMapOf<UExpr<*>, Set<UBoolExpr>>().withDefault { emptySet() }
     private val sortPreferredValuesProvider = SortPreferredValuesProvider()
 
-    fun provide(initialExpr: UExpr<*>): List<UBoolExpr> {
+    fun provide(initialExpr: UExpr<*>): Set<UBoolExpr> {
         apply(initialExpr)
         return caches.getValue(initialExpr)
     }
@@ -56,13 +57,13 @@ class USoftConstraintsProvider<Field, Type>(ctx: UContext) : UExprTransformer<Fi
     // region The most common methods
 
     override fun <T : KSort> transformExpr(expr: KExpr<T>): KExpr<T> = computeSideEffect(expr) {
-        caches[expr] = listOf(expr.sort.accept(sortPreferredValuesProvider)(expr))
+        caches[expr] = setOf(expr.sort.accept(sortPreferredValuesProvider)(expr))
     }
 
     override fun <T : KSort, A : KSort> transformApp(expr: KApp<T, A>): KExpr<T> =
         transformExprAfterTransformed(expr, expr.args) { args ->
             computeSideEffect(expr) {
-                val nestedConstraints = args.flatMapTo(mutableListOf()) { caches.getValue(it) }
+                val nestedConstraints = args.flatMapTo(mutableSetOf()) { caches.getValue(it) }
                 val selfConstraint = expr.sort.accept(sortPreferredValuesProvider)(expr)
 
                 caches[expr] = nestedConstraints + selfConstraint
@@ -119,7 +120,7 @@ class USoftConstraintsProvider<Field, Type>(ctx: UContext) : UExprTransformer<Fi
         expr: UInputArrayReading<Type, Sort>,
     ): UExpr<Sort> = transformExprAfterTransformed(expr, expr.index, expr.address) { _, _ ->
         computeSideEffect(expr) {
-            val constraints = mutableListOf<UBoolExpr>()
+            val constraints = mutableSetOf<UBoolExpr>()
 
             constraints += caches.getValue(expr.index)
             constraints += caches.getValue(expr.address)
@@ -153,7 +154,7 @@ class USoftConstraintsProvider<Field, Type>(ctx: UContext) : UExprTransformer<Fi
         transformExprAfterTransformed(expr, expr.arg0, expr.arg1) { lhs, rhs ->
             computeSideEffect(expr) {
                 val selfConstraint = mkEq(lhs, rhs)
-                caches[expr] = mutableListOf(selfConstraint) + caches.getValue(lhs) + caches.getValue(rhs)
+                caches[expr] = mutableSetOf(selfConstraint) + caches.getValue(lhs) + caches.getValue(rhs)
             }
         }
     }
@@ -179,7 +180,7 @@ private class SortPreferredValuesProvider : KSortVisitor<(KExpr<*>) -> KExpr<KBo
     override fun <S : KBvSort> visit(sort: S): (KExpr<*>) -> KExpr<KBoolSort> = caches.getOrPut(sort) {
         with(sort.ctx) {
             when (sort) {
-                is KBv1Sort -> { expr -> 1.toBv(sort) eq expr.cast() }
+                is KBv1Sort -> { expr -> 1.toBv(sort) eq expr.asExpr(sort) }
                 else -> {
                     val (minValue, maxValue) = if (sort.sizeBits < 16u) {
                         SMALL_INT_MIN_VALUE to SMALL_INT_MAX_VALUE
@@ -198,9 +199,10 @@ private class SortPreferredValuesProvider : KSortVisitor<(KExpr<*>) -> KExpr<KBo
         upperBound: Int,
         expr: UExpr<*>,
     ): UBoolExpr = with(expr.ctx) {
+        val sort = expr.sort as UBvSort
         mkAnd(
-            mkBvSignedLessOrEqualExpr(lowerBound.toBv(expr.sort.cast()), expr.cast()),
-            mkBvSignedGreaterOrEqualExpr(upperBound.toBv(expr.sort.cast()), expr.cast())
+            mkBvSignedLessOrEqualExpr(lowerBound.toBv(sort), expr.asExpr(sort)),
+            mkBvSignedGreaterOrEqualExpr(upperBound.toBv(sort), expr.asExpr(sort))
         )
     }
 
@@ -214,9 +216,10 @@ private class SortPreferredValuesProvider : KSortVisitor<(KExpr<*>) -> KExpr<KBo
 
     // TODO find a better way to limit fp values
     private fun createFpBounds(expr: UExpr<*>): UBoolExpr = with(expr.uctx) {
+        val sort = expr.sort as KFpSort
         mkAnd(
-            mkFpLessOrEqualExpr(FP_MIN_VALUE.toFp(expr.sort.cast()), expr.cast()),
-            mkFpGreaterOrEqualExpr(FP_MAX_VALUE.toFp(expr.sort.cast()), expr.cast())
+            mkFpLessOrEqualExpr(FP_MIN_VALUE.toFp(sort), expr.asExpr(sort)),
+            mkFpGreaterOrEqualExpr(FP_MAX_VALUE.toFp(sort), expr.asExpr(sort))
         )
     }
 
@@ -236,13 +239,13 @@ private class SortPreferredValuesProvider : KSortVisitor<(KExpr<*>) -> KExpr<KBo
         sort: KArraySort<D, R>,
     ): (KExpr<*>) -> KExpr<KBoolSort> = sort.range.accept(this)
 
-    override fun visit(sort: KBoolSort): (KExpr<*>) -> KExpr<KBoolSort> = { sort.ctx.trueExpr }
+    override fun visit(sort: KBoolSort): (KExpr<*>) -> KExpr<KBoolSort> = { it.asExpr(sort) }
 
     override fun visit(sort: KFpRoundingModeSort): (KExpr<*>) -> KExpr<KBoolSort> =
         caches.getOrPut(sort) {
             with(sort.uctx) {
                 // TODO double check it
-                { expr -> mkFpRoundingModeExpr(KFpRoundingMode.RoundNearestTiesToEven) eq expr.cast() }
+                { expr -> mkFpRoundingModeExpr(KFpRoundingMode.RoundNearestTiesToEven) eq expr.asExpr(sort) }
             }
         }
 
@@ -251,8 +254,8 @@ private class SortPreferredValuesProvider : KSortVisitor<(KExpr<*>) -> KExpr<KBo
             with(sort.uctx) {
                 { expr ->
                     mkAnd(
-                        mkArithLe(INT_MIN_VALUE.expr, expr.cast()),
-                        mkArithGe(INT_MAX_VALUE.expr, expr.cast())
+                        mkArithLe(INT_MIN_VALUE.expr, expr.asExpr(sort)),
+                        mkArithGe(INT_MAX_VALUE.expr, expr.asExpr(sort))
                     )
                 }
             }
@@ -265,8 +268,8 @@ private class SortPreferredValuesProvider : KSortVisitor<(KExpr<*>) -> KExpr<KBo
                 { expr ->
                     mkAnd(
                         mkAnd(
-                            mkArithLe(mkRealNum(INT_MIN_VALUE), expr.cast()),
-                            mkArithGe(mkRealNum(INT_MAX_VALUE), expr.cast())
+                            mkArithLe(mkRealNum(INT_MIN_VALUE), expr.asExpr(sort)),
+                            mkArithGe(mkRealNum(INT_MAX_VALUE), expr.asExpr(sort))
                         )
                     )
                 }
@@ -277,7 +280,7 @@ private class SortPreferredValuesProvider : KSortVisitor<(KExpr<*>) -> KExpr<KBo
         caches.getOrPut(sort) {
             with(sort.uctx) {
                 if (sort === addressSort) {
-                    { expr -> mkHeapRefEq(nullRef, expr.cast()) }
+                    { expr -> mkHeapRefEq(nullRef, expr.asExpr(sort)) }
                 } else {
                     { _ -> trueExpr }
                 }
