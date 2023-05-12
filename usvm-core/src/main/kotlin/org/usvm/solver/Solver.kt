@@ -55,11 +55,9 @@ open class USolverBase<Field, Type, Method>(
         var status: KSolverStatus
 
         if (useSoftConstraints) {
-            // TODO fold with contradiction search?
-            //      additional caches?
-            var softConstraints = pc.map {
-                val softConstraint = softConstraintsProvider.provide(it)
-                translator.translate(softConstraint)
+            var softConstraints = pc.flatMap {
+                val softConstraints = softConstraintsProvider.provide(it)
+                softConstraints.map { sc -> translator.translate(sc) }
             }
 
             status = solver.checkWithAssumptions(softConstraints)
