@@ -5,8 +5,6 @@ import kotlinx.collections.immutable.persistentListOf
 import org.usvm.UCallStack
 import org.usvm.UContext
 import org.usvm.UExpr
-import org.usvm.memory.UMemoryBase
-import org.usvm.model.UModel
 import org.usvm.UPathCondition
 import org.usvm.UPathConstraintsSet
 import org.usvm.USort
@@ -19,6 +17,8 @@ import org.usvm.language.SampleType
 import org.usvm.language.Stmt
 import org.usvm.language.arity
 import org.usvm.language.registersCount
+import org.usvm.memory.UMemoryBase
+import org.usvm.model.UModel
 
 class ExecutionState(
     ctx: UContext,

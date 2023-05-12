@@ -3,8 +3,8 @@ package org.usvm.memory
 import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.ksmt.expr.rewrite.simplify.KExprSimplifier
-import org.ksmt.utils.getValue
+import io.ksmt.expr.rewrite.simplify.KExprSimplifier
+import io.ksmt.utils.getValue
 import org.usvm.Field
 import org.usvm.Type
 import org.usvm.UAddressSort

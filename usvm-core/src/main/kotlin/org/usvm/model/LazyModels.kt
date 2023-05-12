@@ -1,10 +1,10 @@
 package org.usvm.model
 
-import org.ksmt.expr.KExpr
-import org.ksmt.solver.KModel
-import org.ksmt.utils.asExpr
-import org.ksmt.utils.cast
-import org.ksmt.utils.sampleValue
+import io.ksmt.expr.KExpr
+import io.ksmt.solver.KModel
+import io.ksmt.utils.asExpr
+import io.ksmt.utils.cast
+import io.ksmt.utils.sampleValue
 import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef

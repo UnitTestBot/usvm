@@ -4,8 +4,8 @@ import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.ksmt.expr.KExpr
-import org.ksmt.utils.mkConst
+import io.ksmt.expr.KExpr
+import io.ksmt.utils.mkConst
 import org.usvm.UAddressSort
 import org.usvm.UBv32Sort
 import org.usvm.UComposer

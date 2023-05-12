@@ -2,7 +2,7 @@ package org.usvm.memory
 
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.ksmt.utils.mkConst
+import io.ksmt.utils.mkConst
 import org.usvm.UBv32Sort
 import org.usvm.UContext
 import org.usvm.UHeapRef
