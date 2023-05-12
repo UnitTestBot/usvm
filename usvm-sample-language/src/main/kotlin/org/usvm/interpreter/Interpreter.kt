@@ -1,12 +1,7 @@
 package org.usvm.interpreter
 
 import org.usvm.UContext
-import org.usvm.memory.UMemoryBase
-import org.usvm.model.UModel
-import org.usvm.model.UModelBase
 import org.usvm.UPathCondition
-import org.usvm.solver.USolverBase
-import org.usvm.solver.USatResult
 import org.usvm.language.Call
 import org.usvm.language.Field
 import org.usvm.language.Goto
@@ -17,6 +12,11 @@ import org.usvm.language.SampleType
 import org.usvm.language.SetLabel
 import org.usvm.language.SetValue
 import org.usvm.language.Stmt
+import org.usvm.memory.UMemoryBase
+import org.usvm.model.UModel
+import org.usvm.model.UModelBase
+import org.usvm.solver.USatResult
+import org.usvm.solver.USolverBase
 
 /**
  * Symbolic interpreter for a sample language.
@@ -27,7 +27,7 @@ class SampleInterpreter(
     private val solver: USolverBase<Field<*>, SampleType, Method<*>>,
 ) {
     private val findModel: (UMemoryBase<Field<*>, SampleType, Method<*>>, UPathCondition) -> UModel? = { memory, pc ->
-        val solverResult = solver.check(memory, pc)
+        val solverResult = solver.check(memory, pc, useSoftConstraints = true)
         (solverResult as? USatResult<UModelBase<Field<*>, SampleType>>)?.model
     }
 

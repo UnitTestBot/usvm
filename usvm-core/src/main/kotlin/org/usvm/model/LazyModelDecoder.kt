@@ -1,8 +1,8 @@
 package org.usvm.model
 
-import org.ksmt.expr.KExpr
-import org.ksmt.solver.KModel
-import org.ksmt.sort.KUninterpretedSort
+import io.ksmt.expr.KExpr
+import io.ksmt.solver.KModel
+import io.ksmt.sort.KUninterpretedSort
 import org.usvm.UAddressSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext

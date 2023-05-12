@@ -1,6 +1,6 @@
 package org.usvm.memory
 
-import org.ksmt.utils.asExpr
+import io.ksmt.utils.asExpr
 import org.usvm.UBoolExpr
 import org.usvm.UComposer
 import org.usvm.UConcreteHeapAddress

@@ -1,8 +1,8 @@
 package org.usvm.solver
 
-import org.ksmt.expr.KExpr
-import org.ksmt.sort.KArray2Sort
-import org.ksmt.sort.KArraySort
+import io.ksmt.expr.KExpr
+import io.ksmt.sort.KArray2Sort
+import io.ksmt.sort.KArraySort
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.memory.UArrayId

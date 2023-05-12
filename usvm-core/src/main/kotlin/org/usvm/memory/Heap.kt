@@ -1,8 +1,8 @@
 package org.usvm.memory
 
+import io.ksmt.utils.asExpr
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentMapOf
-import org.ksmt.utils.asExpr
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapAddress
 import org.usvm.UConcreteHeapRef

@@ -1,6 +1,6 @@
 package org.usvm
 
-import org.ksmt.expr.transformer.KNonRecursiveTransformer
+import io.ksmt.expr.transformer.KNonRecursiveTransformer
 
 abstract class UExprTransformer<Field, Type>(ctx: UContext): KNonRecursiveTransformer(ctx) {
     abstract fun <Sort : USort> transform(expr: USymbol<Sort>): UExpr<Sort>

@@ -4,9 +4,9 @@ import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.RepeatedTest
 import org.junit.jupiter.api.Test
-import org.ksmt.solver.KSolverStatus
-import org.ksmt.solver.z3.KZ3Solver
-import org.ksmt.utils.mkConst
+import io.ksmt.solver.KSolverStatus
+import io.ksmt.solver.z3.KZ3Solver
+import io.ksmt.utils.mkConst
 import org.usvm.Field
 import org.usvm.Type
 import org.usvm.UAddressSort

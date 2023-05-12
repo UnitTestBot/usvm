@@ -1,9 +1,9 @@
 package org.usvm.solver
 
-import org.ksmt.expr.KExpr
-import org.ksmt.sort.KBoolSort
-import org.ksmt.utils.cast
-import org.ksmt.utils.mkConst
+import io.ksmt.expr.KExpr
+import io.ksmt.sort.KBoolSort
+import io.ksmt.utils.cast
+import io.ksmt.utils.mkConst
 import org.usvm.UAddressSort
 import org.usvm.UAllocatedArrayReading
 import org.usvm.UConcreteHeapRef

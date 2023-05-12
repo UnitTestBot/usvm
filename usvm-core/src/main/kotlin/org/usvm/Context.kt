@@ -1,16 +1,16 @@
 package org.usvm
 
-import org.ksmt.KAst
-import org.ksmt.KContext
-import org.ksmt.expr.KExpr
-import org.ksmt.sort.KBoolSort
-import org.ksmt.sort.KBvSort
-import org.ksmt.sort.KSort
-import org.ksmt.sort.KSortVisitor
-import org.ksmt.sort.KUninterpretedSort
-import org.ksmt.utils.DefaultValueSampler
-import org.ksmt.utils.asExpr
-import org.ksmt.utils.cast
+import io.ksmt.KAst
+import io.ksmt.KContext
+import io.ksmt.expr.KExpr
+import io.ksmt.sort.KBoolSort
+import io.ksmt.sort.KBvSort
+import io.ksmt.sort.KSort
+import io.ksmt.sort.KSortVisitor
+import io.ksmt.sort.KUninterpretedSort
+import io.ksmt.utils.DefaultValueSampler
+import io.ksmt.utils.asExpr
+import io.ksmt.utils.cast
 import org.usvm.memory.UAllocatedArrayRegion
 import org.usvm.memory.UInputArrayLengthRegion
 import org.usvm.memory.UInputArrayRegion
