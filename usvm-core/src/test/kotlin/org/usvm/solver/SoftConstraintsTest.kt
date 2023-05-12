@@ -1,5 +1,7 @@
 package org.usvm.solver
 
+import io.ksmt.expr.KBitVec32Value
+import io.ksmt.solver.z3.KZ3Solver
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -7,8 +9,6 @@ import kotlinx.collections.immutable.persistentSetOf
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import io.ksmt.expr.KBitVec32Value
-import io.ksmt.solver.z3.KZ3Solver
 import org.usvm.UContext
 import org.usvm.UPathConstraintsSet
 import org.usvm.UTypeSystem
@@ -49,8 +49,7 @@ class SoftConstraintsTest<Field, Type, Method> {
         val sndRegister = mkRegisterReading(idx = 1, bv32Sort)
         val expr = mkBvSignedLessOrEqualExpr(fstRegister, sndRegister)
 
-        val translated = translator.translate(expr)
-        val pc = UPathConstraintsSet(translated)
+        val pc = UPathConstraintsSet(expr)
 
         val result = solver.checkWithSoftConstraints(memory, pc) as USatResult
         val model = result.model
@@ -76,11 +75,7 @@ class SoftConstraintsTest<Field, Type, Method> {
 
         every { softConstraintsProvider.provide(any()) } answers { callOriginal() }
 
-        val fstTranslated = translator.translate(fstExpr)
-        val sndTranslated = translator.translate(sndExpr)
-        val thirdTranslated = translator.translate(sameAsFirstExpr)
-
-        val pc = UPathConstraintsSet(persistentSetOf(fstTranslated, sndTranslated, thirdTranslated))
+        val pc = UPathConstraintsSet(persistentSetOf(fstExpr, sndExpr, sameAsFirstExpr))
 
         val solver = USolverBase(ctx, KZ3Solver(ctx), translator, decoder, softConstraintsProvider)
 

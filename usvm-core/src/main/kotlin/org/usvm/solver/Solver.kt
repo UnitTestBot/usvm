@@ -19,7 +19,7 @@ open class UUnsatResult<Model> : USolverResult<Model>
 open class UUnknownResult<Model> : USolverResult<Model>
 
 abstract class USolver<Memory, PathCondition, Model> {
-    // TODO is it a good idea to lift up information about soft constraints into this interface?
+    // TODO make global option for that?
     abstract fun check(memory: Memory, pc: PathCondition, useSoftConstraints: Boolean): USolverResult<Model>
 }
 

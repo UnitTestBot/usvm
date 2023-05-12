@@ -30,7 +30,10 @@ open class UModelBase<Field, Type>(
     private val composer = UComposer(ctx, stack, heap, types, mocks)
 
     /**
-     * Note that it is mandatory to pass only UExpr (??? requirements are different in fact)
+     * The evaluator supports only expressions with symbols inheriting [org.usvm.USymbol].
+     *
+     * For instance, raw [io.ksmt.expr.KConst] cannot occur in the [expr], only as a result of
+     * a reading of some sort, a mock symbol, etc.
      */
     override fun <Sort: USort> eval(expr: UExpr<Sort>): UExpr<Sort> =
         composer.compose(expr)
