@@ -5,11 +5,11 @@ import kotlinx.collections.immutable.persistentListOf
 import org.usvm.UCallStack
 import org.usvm.UContext
 import org.usvm.UExpr
-import org.usvm.UPathCondition
-import org.usvm.UPathConstraintsSet
+import org.usvm.memory.UMemoryBase
+import org.usvm.model.UModel
+import org.usvm.constraints.UPathConstraints
 import org.usvm.USort
 import org.usvm.UState
-import org.usvm.UTypeSystem
 import org.usvm.language.Field
 import org.usvm.language.Method
 import org.usvm.language.ProgramException
@@ -17,39 +17,36 @@ import org.usvm.language.SampleType
 import org.usvm.language.Stmt
 import org.usvm.language.arity
 import org.usvm.language.registersCount
-import org.usvm.memory.UMemoryBase
-import org.usvm.model.UModel
 
 class ExecutionState(
     ctx: UContext,
-    typeSystem: UTypeSystem<SampleType>,
     callStack: UCallStack<Method<*>, Stmt> = UCallStack(),
-    pathCondition: UPathCondition = UPathConstraintsSet(),
-    memory: UMemoryBase<Field<*>, SampleType, Method<*>> = UMemoryBase(ctx, typeSystem),
+    pathConstraints: UPathConstraints<SampleType> = UPathConstraints(ctx),
+    memory: UMemoryBase<Field<*>, SampleType, Method<*>> = UMemoryBase(ctx, pathConstraints.typeConstraints),
     models: List<UModel> = listOf(),
     path: PersistentList<Stmt> = persistentListOf(),
     var returnRegister: UExpr<out USort>? = null,
     var exceptionRegister: ProgramException? = null,
 ) : UState<SampleType, Field<*>, Method<*>, Stmt>(
     ctx,
-    typeSystem,
     callStack,
-    pathCondition,
+    pathConstraints,
     memory,
     models, path
 ) {
-    override fun clone() =
-        ExecutionState(
+    override fun clone(newConstraints: UPathConstraints<SampleType>?): ExecutionState {
+        val clonedConstraints = newConstraints ?: pathConstraints.clone()
+        return ExecutionState(
             ctx,
-            typeSystem,
             callStack.clone(),
-            pathCondition,
-            memory.clone(),
+            clonedConstraints,
+            memory.clone(clonedConstraints.typeConstraints),
             models,
             path,
             returnRegister,
             exceptionRegister
         )
+    }
 }
 
 val ExecutionState.lastStmt get() = path.last()

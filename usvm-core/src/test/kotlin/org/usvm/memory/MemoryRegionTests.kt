@@ -1,9 +1,12 @@
 package org.usvm.memory
 
+import io.mockk.every
+import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import io.ksmt.utils.mkConst
 import org.usvm.UBv32Sort
+import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.UHeapRef
 import org.usvm.shouldNotBeCalled
@@ -16,7 +19,9 @@ class MemoryRegionTests {
 
     @BeforeEach
     fun initializeContext() {
-        ctx = UContext()
+        val components: UComponents<*, *, *> = mockk()
+        every { components.mkTypeSystem(any()) } returns mockk()
+        ctx = UContext(components)
     }
 
     @Test

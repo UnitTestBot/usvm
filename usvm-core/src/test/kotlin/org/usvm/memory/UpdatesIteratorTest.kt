@@ -1,8 +1,12 @@
 package org.usvm.memory
 
+import io.mockk.every
+import io.mockk.mockk
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.usvm.UBv32Sort
+import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.USort
 import org.usvm.util.SetRegion
@@ -10,9 +14,17 @@ import org.usvm.util.emptyRegionTree
 import kotlin.test.assertTrue
 
 class UpdatesIteratorTest {
+    private lateinit var ctx: UContext
+    @BeforeEach
+    fun initializeContext() {
+        val components: UComponents<*, *, *> = mockk()
+        every { components.mkTypeSystem(any()) } returns mockk()
+        ctx = UContext(components)
+    }
+
     @Test
     fun testTreeRegionUpdates() {
-        with(UContext()) {
+        with(ctx) {
             val treeUpdates = UTreeUpdates<Int, SetRegion<Int>, UBv32Sort>(
                 emptyRegionTree(),
                 { key ->
@@ -37,7 +49,7 @@ class UpdatesIteratorTest {
     }
 
     @Test
-    fun testFlatUpdatesIterator() = with(UContext()) {
+    fun testFlatUpdatesIterator() = with(ctx) {
         val flatUpdates = UFlatUpdates<Int, UBv32Sort>(
             { _, _ -> throw NotImplementedError() },
             { _, _ -> throw NotImplementedError() },

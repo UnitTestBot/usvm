@@ -14,7 +14,9 @@ class UContextInterningTest {
 
     @BeforeEach
     fun initializeContext() {
-        context = UContext()
+        val components: UComponents<*, *, *> = mockk()
+        every { components.mkTypeSystem(any()) } returns mockk()
+        context = UContext(components)
     }
 
     @Test

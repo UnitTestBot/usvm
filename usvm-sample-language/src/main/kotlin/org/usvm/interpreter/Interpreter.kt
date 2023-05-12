@@ -1,22 +1,13 @@
 package org.usvm.interpreter
 
 import org.usvm.UContext
-import org.usvm.UPathCondition
 import org.usvm.language.Call
-import org.usvm.language.Field
 import org.usvm.language.Goto
 import org.usvm.language.If
-import org.usvm.language.Method
 import org.usvm.language.Return
-import org.usvm.language.SampleType
 import org.usvm.language.SetLabel
 import org.usvm.language.SetValue
 import org.usvm.language.Stmt
-import org.usvm.memory.UMemoryBase
-import org.usvm.model.UModel
-import org.usvm.model.UModelBase
-import org.usvm.solver.USatResult
-import org.usvm.solver.USolverBase
 
 /**
  * Symbolic interpreter for a sample language.
@@ -24,12 +15,7 @@ import org.usvm.solver.USolverBase
 class SampleInterpreter(
     private val ctx: UContext,
     private val applicationGraph: SampleApplicationGraph,
-    private val solver: USolverBase<Field<*>, SampleType, Method<*>>,
 ) {
-    private val findModel: (UMemoryBase<Field<*>, SampleType, Method<*>>, UPathCondition) -> UModel? = { memory, pc ->
-        val solverResult = solver.check(memory, pc, useSoftConstraints = true)
-        (solverResult as? USatResult<UModelBase<Field<*>, SampleType>>)?.model
-    }
 
     /**
      * Interpreters a single step inside a symbolic [state].
@@ -38,7 +24,7 @@ class SampleInterpreter(
      */
     fun step(state: ExecutionState): Collection<ExecutionState> {
         val stmt = state.lastStmt
-        val scope = StepScope(ctx, state, findModel)
+        val scope = StepScope(ctx, state)
         step(scope, stmt)
         val newStates = scope.allStates()
         return newStates

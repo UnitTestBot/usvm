@@ -31,7 +31,10 @@ typealias UBoolExpr = UExpr<UBoolSort>
 typealias USizeExpr = UExpr<USizeSort>
 typealias UTrue = KTrue
 typealias UFalse = KFalse
+typealias UAndExpr = KAndExpr
+typealias UOrExpr = KOrExpr
 typealias UIteExpr<Sort> = KIteExpr<Sort>
+typealias UEqExpr<Sort> = KEqExpr<Sort>
 typealias UNotExpr = KNotExpr
 typealias UConcreteInt = KIntNumExpr
 typealias UConcreteInt32 = KBitVec32Value
@@ -150,6 +153,10 @@ class UInputFieldReading<Field, Sort : USort> internal constructor(
     region: UInputFieldRegion<Field, Sort>,
     val address: UHeapRef,
 ) : UHeapReading<UInputFieldId<Field, Sort>, UHeapRef, Sort>(ctx, region) {
+    init {
+        require(address !is UNullRef)
+    }
+
     @Suppress("UNCHECKED_CAST")
     override fun accept(transformer: KTransformerBase): KExpr<Sort> {
         require(transformer is UExprTransformer<*, *>)
@@ -204,6 +211,10 @@ class UInputArrayReading<ArrayType, Sort : USort> internal constructor(
     val address: UHeapRef,
     val index: USizeExpr
 ) : UHeapReading<UInputArrayId<ArrayType, Sort>, USymbolicArrayIndex, Sort>(ctx, region) {
+    init {
+        require(address !is UNullRef)
+    }
+
     @Suppress("UNCHECKED_CAST")
     override fun accept(transformer: KTransformerBase): KExpr<Sort> {
         require(transformer is UExprTransformer<*, *>)
@@ -236,6 +247,10 @@ class UInputArrayLengthReading<ArrayType> internal constructor(
     region: UInputArrayLengthRegion<ArrayType>,
     val address: UHeapRef,
 ) : UHeapReading<UInputArrayLengthId<ArrayType>, UHeapRef, USizeSort>(ctx, region) {
+    init {
+        require(address !is UNullRef)
+    }
+
     @Suppress("UNCHECKED_CAST")
     override fun accept(transformer: KTransformerBase): USizeExpr {
         require(transformer is UExprTransformer<*, *>)

@@ -2,13 +2,7 @@ package org.usvm.interpreter
 
 import org.usvm.UBoolExpr
 import org.usvm.UContext
-import org.usvm.memory.UMemoryBase
-import org.usvm.model.UModel
-import org.usvm.UPathCondition
 import org.usvm.fork
-import org.usvm.language.Field
-import org.usvm.language.Method
-import org.usvm.language.SampleType
 
 /**
  * An auxiliary class, which carefully maintains forks and asserts via [fork] and [assert].
@@ -21,12 +15,10 @@ import org.usvm.language.SampleType
  * the current state is `null`.
  *
  * @param initialState an initial state.
- * @param findModel a function to find [UModel] by path constraints.
  */
 class StepScope(
     val uctx: UContext,
     initialState: ExecutionState,
-    private val findModel: (UMemoryBase<Field<*>, SampleType, Method<*>>, UPathCondition) -> UModel?,
 ) {
     private val accumulatedStates = mutableListOf<ExecutionState>()
     private var curState: ExecutionState? = initialState
@@ -74,7 +66,7 @@ class StepScope(
     ): Unit? {
         val state = curState ?: return null
 
-        val (posState, negState) = state.fork(condition, findModel)
+        val (posState, negState) = state.fork(condition)
 
         posState?.blockOnTrueState()
         curState = posState
@@ -94,7 +86,7 @@ class StepScope(
     ): Unit? {
         val state = curState ?: return null
 
-        val (posState, _) = state.fork(constraint, findModel)
+        val (posState, _) = state.fork(constraint)
 
         posState?.block()
         curState = posState

@@ -16,13 +16,25 @@ import org.usvm.memory.UInputArrayLengthRegion
 import org.usvm.memory.UInputArrayRegion
 import org.usvm.memory.UInputFieldRegion
 import org.usvm.memory.splitUHeapRef
+import org.usvm.solver.USolverBase
 
 @Suppress("LeakingThis")
 open class UContext(
+    components: UComponents<*, *, *>,
     operationMode: OperationMode = OperationMode.CONCURRENT,
     astManagementMode: AstManagementMode = AstManagementMode.GC,
     simplificationMode: SimplificationMode = SimplificationMode.SIMPLIFY
 ) : KContext(operationMode, astManagementMode, simplificationMode) {
+
+    private val solver by lazy {components.mkSolver(this)}
+    private val typeSystem = components.mkTypeSystem(this)
+    @Suppress("UNCHECKED_CAST")
+    fun <Field, Type, Method> solver(): USolverBase<Field, Type, Method> =
+        this.solver as USolverBase<Field, Type, Method>
+
+    @Suppress("UNCHECKED_CAST")
+    fun <Type> typeSystem(): UTypeSystem<Type> =
+        this.typeSystem as UTypeSystem<Type>
 
     val addressSort: UAddressSort = mkUninterpretedSort("Address")
     val sizeSort: USizeSort = bv32Sort

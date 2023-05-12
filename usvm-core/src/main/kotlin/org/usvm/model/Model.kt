@@ -5,7 +5,7 @@ import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UMockEvaluator
 import org.usvm.USort
-import org.usvm.UTypeModel
+import org.usvm.constraints.UTypeModel
 import org.usvm.memory.UReadOnlySymbolicHeap
 
 interface UModel {
