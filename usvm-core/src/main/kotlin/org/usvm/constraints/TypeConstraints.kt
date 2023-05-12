@@ -1,7 +1,6 @@
 package org.usvm.constraints
 
 import org.usvm.*
-import java.lang.IllegalArgumentException
 
 interface UTypeEvaluator<Type> {
     fun evalIs(ref: UHeapRef, type: Type): UBoolExpr
@@ -10,8 +9,7 @@ interface UTypeEvaluator<Type> {
 class UTypeModel<Type>(
     private val typeSystem: UTypeSystem<Type>,
     private val typeByAddr: Map<UConcreteHeapAddress, Type>,
-) : UTypeEvaluator<Type>
-{
+) : UTypeEvaluator<Type> {
     fun typeOf(address: UConcreteHeapAddress): Type = typeByAddr.getValue(address)
 
     override fun evalIs(ref: UHeapRef, type: Type): UBoolExpr =
@@ -43,8 +41,7 @@ class UTypeConstraints<Type>(
     private val equalityConstraints: UEqualityConstraints,
     private val concreteTypes: MutableMap<UConcreteHeapAddress, Type> = mutableMapOf(),
     private val symbolicTypes: MutableMap<UHeapRef, UTypeRegion<Type>> = mutableMapOf(),
-) : UTypeEvaluator<Type>
-{
+) : UTypeEvaluator<Type> {
     init {
         equalityConstraints.subscribe(::unionConstraints)
     }
@@ -68,20 +65,23 @@ class UTypeConstraints<Type>(
 
     private operator fun get(symbolicRef: UHeapRef) =
         symbolicTypes[equalityConstraints.equalReferences.find(symbolicRef)] ?: UTypeRegion(typeSystem)
+
     private operator fun set(symbolicRef: UHeapRef, value: UTypeRegion<Type>) {
         symbolicTypes[equalityConstraints.equalReferences.find(symbolicRef)] = value
     }
 
     /**
-     * Constraints type of [ref] to be a subtype of [type]. If it is impossible within current type and equality constraints,
+     * Constraints type of [ref] to be a subtype of [type].
+     * If it is impossible within current type and equality constraints,
      * then type constraints become contradicting (@see [isContradiction]).
      */
     fun cast(ref: UHeapRef, type: Type) {
         when (ref) {
             is UConcreteHeapRef -> {
                 val concreteType = concreteTypes.getValue(ref.address)
-                if (!typeSystem.isSupertype(type, concreteType))
+                if (!typeSystem.isSupertype(type, concreteType)) {
                     contradiction()
+                }
             }
 
             else -> {
@@ -91,10 +91,10 @@ class UTypeConstraints<Type>(
                     contradiction()
                 } else {
                     // Inferring new symbolic disequalities here
-                    for (entry in symbolicTypes.entries) {
+                    for ((key, value) in symbolicTypes.entries) {
                         // TODO: cache intersections?
-                        if (entry.key != ref && entry.value.intersect(newConstraints).isEmpty) {
-                            equalityConstraints.addReferenceDisequality(ref, entry.key)
+                        if (key != ref && value.intersect(newConstraints).isEmpty) {
+                            equalityConstraints.addReferenceDisequality(ref, key)
                         }
                     }
                     this[ref] = newConstraints
@@ -116,8 +116,11 @@ class UTypeConstraints<Type>(
 
             else -> {
                 val constraints = this[ref]
-                if (constraints.addSupertype(type).isContraditing)
+
+                if (constraints.addSupertype(type).isContraditing) {
                     return ref.ctx.falseExpr
+                }
+
                 return ref.uctx.mkIsExpr(ref, type)
             }
         }

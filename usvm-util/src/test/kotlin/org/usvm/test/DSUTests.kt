@@ -1,10 +1,10 @@
 package org.usvm.test
 
-import org.junit.jupiter.api.Test
-import org.usvm.util.DisjointSets
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import org.junit.jupiter.api.Test
+import org.usvm.util.DisjointSets
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -12,7 +12,7 @@ class DSUTests {
     @Test
     fun testDSU() {
         val subscriber1: (String, String) -> Unit = mockk()
-        every {subscriber1(any(), any())} returns Unit
+        every { subscriber1(any(), any()) } returns Unit
         val dsu1 = DisjointSets<String>()
         dsu1.subscribe(subscriber1)
         dsu1.union("a", "aa")
@@ -26,7 +26,7 @@ class DSUTests {
         assertTrue { dsu1.connected("aa", "aaaa") }
 
         val subscriber2: (String, String) -> Unit = mockk()
-        every {subscriber2(any(), any())} returns Unit
+        every { subscriber2(any(), any()) } returns Unit
         val dsu2 = dsu1.clone()
         dsu2.subscribe(subscriber2)
 
@@ -34,7 +34,7 @@ class DSUTests {
         dsu2.union("b", "bbb")
         assertFalse { dsu2.connected("a", "b") }
 
-        verify(exactly = 4) {subscriber1(any(), any())}
-        verify(exactly = 1) {subscriber2(any(), any())}
+        verify(exactly = 4) { subscriber1(any(), any()) }
+        verify(exactly = 1) { subscriber2(any(), any()) }
     }
 }

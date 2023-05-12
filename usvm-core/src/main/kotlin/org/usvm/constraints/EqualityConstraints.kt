@@ -56,12 +56,15 @@ class UEqualityConstraints(
      * Adds an assertion that [ref1] is always equal to [ref2].
      */
     fun addReferenceEquality(ref1: UHeapRef, ref2: UHeapRef) {
-        if (isContradiction)
+        if (isContradiction) {
             return
+        }
+
         if (areDistinct(ref1, ref2)) {
             contradiction()
             return
         }
+
         equalReferences.union(ref1, ref2)
     }
 
@@ -80,11 +83,14 @@ class UEqualityConstraints(
             distinctReferences.remove(from)
             distinctReferences.add(to)
         }
+
         val fromDiseqs = referenceDisequalities[from]
+
         if (fromDiseqs != null && fromDiseqs.contains(to)) {
             contradiction()
             return
         }
+
         if (fromDiseqs != null) {
             referenceDisequalities.remove(from)
             fromDiseqs.forEach {
@@ -98,14 +104,18 @@ class UEqualityConstraints(
      * Adds an assertion that [ref1] is never equal to [ref2].
      */
     fun addReferenceDisequality(ref1: UHeapRef, ref2: UHeapRef) {
-        if (isContradiction)
+        if (isContradiction) {
             return
+        }
+
         val repr1 = equalReferences.find(ref1)
         val repr2 = equalReferences.find(ref2)
+
         if (repr1 == repr2) {
             contradiction()
             return
         }
+
         if (distinctReferences.isEmpty()) {
             require(referenceDisequalities.isEmpty())
             // Init clique with {repr1, repr2}
@@ -116,19 +126,27 @@ class UEqualityConstraints(
 
         val ref1InClique = distinctReferences.contains(repr1)
         val ref2InClique = distinctReferences.contains(repr2)
-        if (ref1InClique && ref2InClique)
+
+        if (ref1InClique && ref2InClique) {
             return
-        if (containsReferenceDisequality(repr1, repr2))
+        }
+
+        if (containsReferenceDisequality(repr1, repr2)) {
             return
+        }
+
         if (ref1InClique || ref2InClique) {
             val refInClique = if (ref1InClique) repr1 else repr2
             val refNotInClique = if (ref1InClique) repr2 else repr1
+
             if (distinctReferences.all { it == refInClique || containsReferenceDisequality(refNotInClique, it) }) {
                 // Ref is not in clique and disjoint from all refs in clique. Thus, we can join it to clique...
                 referenceDisequalities[refNotInClique]?.removeAll(distinctReferences)
+
                 for (ref in distinctReferences) {
                     referenceDisequalities[ref]?.remove(refNotInClique)
                 }
+
                 distinctReferences.add(refNotInClique)
                 return
             }
@@ -158,10 +176,13 @@ class UEqualityConstraints(
             result.contradictionDetected = true
             return result
         }
+
         val newEqualReferences = equalReferences.clone()
         val newDistinctReferences = distinctReferences.toMutableSet()
         val newReferenceDisequalities = mutableMapOf<UHeapRef, MutableSet<UHeapRef>>()
-        referenceDisequalities.mapValuesTo(newReferenceDisequalities) {it.value.toMutableSet()}
+
+        referenceDisequalities.mapValuesTo(newReferenceDisequalities) { it.value.toMutableSet() }
+
         return UEqualityConstraints(newEqualReferences, newDistinctReferences, newReferenceDisequalities)
     }
 }

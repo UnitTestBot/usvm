@@ -1,6 +1,15 @@
 package org.usvm.constraints
 
-import org.usvm.*
+import org.usvm.UAndExpr
+import org.usvm.UBoolExpr
+import org.usvm.UContext
+import org.usvm.UEqExpr
+import org.usvm.UFalse
+import org.usvm.UHeapRef
+import org.usvm.UIsExpr
+import org.usvm.UNotExpr
+import org.usvm.UOrExpr
+import org.usvm.uctx
 
 /**
  * Mutable representation of path constraints.
@@ -20,13 +29,12 @@ open class UPathConstraints<Type> private constructor(
      */
     val typeConstraints: UTypeConstraints<Type> = UTypeConstraints(ctx.typeSystem(), equalityConstraints)
 ) {
-    constructor(ctx: UContext): this(ctx, mutableSetOf())
+    constructor(ctx: UContext) : this(ctx, mutableSetOf())
 
     open val isFalse: Boolean
-        get() =
-            equalityConstraints.isContradiction ||
-            typeConstraints.isContradiction ||
-            logicalConstraints.singleOrNull() is UFalse
+        get() = equalityConstraints.isContradiction ||
+                typeConstraints.isContradiction ||
+                logicalConstraints.singleOrNull() is UFalse
 
     @Suppress("UNCHECKED_CAST")
     open operator fun plusAssign(constraint: UBoolExpr): Unit =
@@ -50,12 +58,15 @@ open class UPathConstraints<Type> private constructor(
                     when {
                         notConstraint is UEqExpr<*> && notConstraint.lhs.sort == addressSort -> {
                             require(notConstraint.rhs.sort == addressSort)
-                            equalityConstraints.addReferenceDisequality(notConstraint.lhs as UHeapRef, notConstraint.rhs as UHeapRef)
+                            equalityConstraints.addReferenceDisequality(
+                                notConstraint.lhs as UHeapRef,
+                                notConstraint.rhs as UHeapRef
+                            )
                         }
 
                         logicalConstraints.contains(notConstraint) -> contradiction(ctx)
 
-                        notConstraint is UOrExpr -> notConstraint.args.forEach {plusAssign(ctx.mkNot(it))}
+                        notConstraint is UOrExpr -> notConstraint.args.forEach { plusAssign(ctx.mkNot(it)) }
 
                         else -> logicalConstraints.add(constraint)
                     }

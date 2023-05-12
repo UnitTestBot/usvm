@@ -1,7 +1,7 @@
 package org.usvm
 
-import kotlinx.collections.immutable.PersistentList
 import io.ksmt.expr.KInterpretedValue
+import kotlinx.collections.immutable.PersistentList
 import org.usvm.constraints.UPathConstraints
 import org.usvm.memory.UMemoryBase
 import org.usvm.model.UModel
@@ -38,12 +38,14 @@ private fun <T : UState<Type, Field, Method, Statement>, Type, Field, Method, St
 ): UState<Type, Field, Method, Statement>? {
     val pathConstraints = state.pathConstraints.clone()
     pathConstraints += conditionToCheck
+
     if (pathConstraints.isFalse) {
         return null
     }
 
     val solver = state.ctx.solver<Field, Type, Method>()
     val satResult = solver.check(pathConstraints, useSoftConstraints = true)
+
     return when (satResult) {
         is USatResult<UModelBase<Field, Type>> -> {
             if (forkToSatisfied) {
@@ -109,13 +111,16 @@ fun <T : UState<Type, Field, Method, Statement>, Type, Field, Method, Statement>
             posState to negState
         }
 
-        trueModels.isNotEmpty() -> this to forkIfSat(this, condition, ctx.mkNot(condition), false)
+        trueModels.isNotEmpty() -> this to forkIfSat(this, condition, ctx.mkNot(condition), forkToSatisfied = false)
 
         falseModels.isNotEmpty() -> {
-            val forkedState = forkIfSat(this, ctx.mkNot(condition), condition, true)
-            if (forkedState != null)
+            val forkedState = forkIfSat(this, ctx.mkNot(condition), condition, forkToSatisfied = true)
+
+            if (forkedState != null) {
                 this to forkedState
-            else null to this
+            } else {
+                null to this
+            }
         }
 
         else -> error("[trueModels] and [falseModels] are both empty, that has to be impossible by construction!")
@@ -123,5 +128,4 @@ fun <T : UState<Type, Field, Method, Statement>, Type, Field, Method, Statement>
 
     @Suppress("UNCHECKED_CAST")
     return ForkResult(posState, negState as T?)
-
 }

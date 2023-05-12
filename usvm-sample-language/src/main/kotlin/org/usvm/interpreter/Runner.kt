@@ -5,28 +5,28 @@ import kotlinx.collections.immutable.persistentListOf
 import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.UTypeSystem
-import org.usvm.model.UModelBase
 import org.usvm.constraints.UPathConstraints
-import org.usvm.solver.USolverBase
-import org.usvm.solver.USoftConstraintsProvider
-import org.usvm.solver.USatResult
-import org.usvm.model.buildTranslatorAndLazyDecoder
 import org.usvm.language.Field
 import org.usvm.language.Method
 import org.usvm.language.Program
 import org.usvm.language.SampleType
+import org.usvm.model.UModelBase
+import org.usvm.model.buildTranslatorAndLazyDecoder
+import org.usvm.solver.USatResult
+import org.usvm.solver.USoftConstraintsProvider
+import org.usvm.solver.USolverBase
 
 class SampleLanguageComponents(
     private val typeSystem: SampleTypeSystem
-): UComponents<Field<*>, SampleType, Method<*>> {
+) : UComponents<Field<*>, SampleType, Method<*>> {
     override fun mkSolver(ctx: UContext): USolverBase<Field<*>, SampleType, Method<*>> {
         val (translator, decoder) = buildTranslatorAndLazyDecoder<Field<*>, SampleType, Method<*>>(ctx)
         val softConstraintsProvider = USoftConstraintsProvider<Field<*>, SampleType>(ctx)
+
         return USolverBase(ctx, KYicesSolver(ctx), translator, decoder, softConstraintsProvider)
     }
 
-    override fun mkTypeSystem(ctx: UContext): UTypeSystem<SampleType> =
-        typeSystem
+    override fun mkTypeSystem(ctx: UContext): UTypeSystem<SampleType> = typeSystem
 }
 
 /**
@@ -77,12 +77,15 @@ class Runner(
         return finalStates.map { resultModelConverter.convert(it) }
     }
 
-    private fun getInitialState(ctx: UContext, solver: USolverBase<Field<*>, SampleType, Method<*>>, method: Method<*>): ExecutionState =
-        ExecutionState(ctx).apply {
-            addEntryMethodCall(applicationGraph, method)
-            val solverResult = solver.check(UPathConstraints(ctx), useSoftConstraints = true)
-            val satResult = solverResult as USatResult<UModelBase<Field<*>, SampleType>>
-            val model = satResult.model
-            models = persistentListOf(model)
-        }
+    private fun getInitialState(
+        ctx: UContext,
+        solver: USolverBase<Field<*>, SampleType, Method<*>>,
+        method: Method<*>
+    ): ExecutionState = ExecutionState(ctx).apply {
+        addEntryMethodCall(applicationGraph, method)
+        val solverResult = solver.check(UPathConstraints(ctx), useSoftConstraints = true)
+        val satResult = solverResult as USatResult<UModelBase<Field<*>, SampleType>>
+        val model = satResult.model
+        models = persistentListOf(model)
+    }
 }

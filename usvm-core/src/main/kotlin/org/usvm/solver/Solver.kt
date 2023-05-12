@@ -43,6 +43,7 @@ open class USolverBase<Field, Type, Method>(
 
     protected fun translateEqualityConstraints(constraints: UEqualityConstraints) {
         var index = 1
+
         for (ref in constraints.distinctReferences) {
             val refIndex = if (ref == ctx.nullRef) 0 else index++
             val translatedRef = translator.translate(ref)
@@ -50,16 +51,16 @@ open class USolverBase<Field, Type, Method>(
             smtSolver.assert(ctx.mkEq(translatedRef, preInterpretedValue))
         }
 
-        for (equality in constraints.equalReferences) {
-            val translatedLeft = translator.translate(equality.key)
-            val translatedRight = translator.translate(equality.value)
+        for ((key, value) in constraints.equalReferences) {
+            val translatedLeft = translator.translate(key)
+            val translatedRight = translator.translate(value)
             smtSolver.assert(ctx.mkEq(translatedLeft, translatedRight))
         }
 
         val processedConstraints = mutableSetOf<Pair<UHeapRef, UHeapRef>>()
-        for (mapEntry in constraints.referenceDisequalities.entries) {
-            val ref1 = mapEntry.key
-            for (ref2 in mapEntry.value) {
+
+        for ((ref1, disequalRefs) in constraints.referenceDisequalities.entries) {
+            for (ref2 in disequalRefs) {
                 if (!processedConstraints.contains(ref2 to ref1)) {
                     processedConstraints.add(ref1 to ref2)
                     val translatedRef1 = translator.translate(ref1)
@@ -123,6 +124,7 @@ open class USolverBase<Field, Type, Method>(
                 UUnknownResult()
             }
         }
+
         val kModel = smtSolver.model().detach()
         val uModel = decoder.decode(kModel)
 
