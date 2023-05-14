@@ -65,6 +65,9 @@ typealias UHeapRef = UExpr<UAddressSort>
 typealias USymbolicHeapRef = USymbol<UAddressSort>
 typealias UConcreteHeapAddress = Int
 
+fun isSymbolicHeapRef(expr: UExpr<*>) =
+    expr.sort == expr.uctx.addressSort && expr !is UConcreteHeapRef
+
 class UConcreteHeapRef internal constructor(ctx: UContext, val address: UConcreteHeapAddress) : UHeapRef(ctx) {
     override val sort: UAddressSort = ctx.addressSort
 

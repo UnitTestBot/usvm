@@ -32,14 +32,14 @@ open class UTypeRegion<Type>(
     val notSupertypes: PersistentSet<Type> = persistentSetOf(),
     val subtypes: PersistentSet<Type> = persistentSetOf(),
     val notSubtypes: PersistentSet<Type> = persistentSetOf(),
-    val isContraditing: Boolean = false,
+    val isContradicting: Boolean = false,
 ) : Region<UTypeRegion<Type>> {
 
     /**
      * Returns region that represents empty set of types. Called when type
      * constraints contradict, for example if X <: Y and X </: Y.
      */
-    protected fun contradiction() = UTypeRegion(typeSystem, isContraditing = true)
+    protected fun contradiction() = UTypeRegion(typeSystem, isContradicting = true) // TODO: generate unsat core for DPLL(T)
     // TODO: generate unsat core for DPLL(T)
 
     /**
@@ -54,7 +54,7 @@ open class UTypeRegion<Type>(
      *  - t is final && t </: X && X <: t
      */
     open fun addSupertype(supertype: Type): UTypeRegion<Type> {
-        if (isContraditing || supertypes.any { typeSystem.isSupertype(supertype, it) }) {
+        if (isContradicting || supertypes.any { typeSystem.isSupertype(supertype, it) }) {
             return this
         }
 
@@ -100,7 +100,7 @@ open class UTypeRegion<Type>(
      *  X <: u && u <: t && X </: t, i.e. if [supertypes] contains subtype of [notSupertype]
      */
     protected open fun excludeSupertype(notSupertype: Type): UTypeRegion<Type> {
-        if (isContraditing || notSupertypes.any { typeSystem.isSupertype(it, notSupertype) }) {
+        if (isContradicting || notSupertypes.any { typeSystem.isSupertype(it, notSupertype) }) {
             return this
         }
 
@@ -124,7 +124,7 @@ open class UTypeRegion<Type>(
      *  - t <: X && X <: u && t </: u
      */
     protected open fun addSubtype(subtype: Type): UTypeRegion<Type> {
-        if (isContraditing || subtypes.any { typeSystem.isSupertype(it, subtype) }) {
+        if (isContradicting || subtypes.any { typeSystem.isSupertype(it, subtype) }) {
             return this
         }
 
@@ -136,7 +136,7 @@ open class UTypeRegion<Type>(
             return contradiction()
         }
 
-        val newSubtypes = subtypes.removeAll { typeSystem.isSupertype(subtype, it) }.add(subtype)
+        val newSubtypes = subtypes.removeAll { typeSystem.isSupertype(it, subtype) }.add(subtype)
 
         return UTypeRegion(typeSystem, subtypes = newSubtypes)
     }
@@ -149,7 +149,7 @@ open class UTypeRegion<Type>(
      *  - t is final && t </: X && X <: t
      */
     protected open fun excludeSubtype(notSubtype: Type): UTypeRegion<Type> {
-        if (isContraditing || notSubtypes.any { typeSystem.isSupertype(notSubtype, it) }) {
+        if (isContradicting || notSubtypes.any { typeSystem.isSupertype(notSubtype, it) }) {
             return this
         }
 
@@ -166,13 +166,13 @@ open class UTypeRegion<Type>(
         return UTypeRegion(typeSystem, notSubtypes = newNotSubtypes)
     }
 
-    override val isEmpty: Boolean = isContraditing
+    override val isEmpty: Boolean = isContradicting
 
     override fun intersect(other: UTypeRegion<Type>): UTypeRegion<Type> {
         // TODO: optimize things up by not re-allocating type regions after each operation
-        val result1 = other.subtypes.fold(this) { acc, t -> acc.addSubtype(t) }
+        val result1 = other.supertypes.fold(this) { acc, t -> acc.addSupertype(t) }
         val result2 = other.notSupertypes.fold(result1) { acc, t -> acc.excludeSupertype(t) }
-        val result3 = other.supertypes.fold(result2) { acc, t -> acc.addSupertype(t) }
+        val result3 = other.subtypes.fold(result2) { acc, t -> acc.addSubtype(t) }
         return other.notSubtypes.fold(result3) { acc, t -> acc.excludeSubtype(t) }
     }
 

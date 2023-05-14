@@ -10,6 +10,7 @@ import org.usvm.UIsExpr
 import org.usvm.UNotExpr
 import org.usvm.UOrExpr
 import org.usvm.uctx
+import org.usvm.isSymbolicHeapRef
 
 /**
  * Mutable representation of path constraints.
@@ -17,7 +18,7 @@ import org.usvm.uctx
 open class UPathConstraints<Type> private constructor(
     val ctx: UContext,
     /**
-     * Constraints solved by SMT solver
+     * Constraints solved by SMT solver.
      */
     val logicalConstraints: MutableSet<UBoolExpr> = mutableSetOf(),
     /**
@@ -44,8 +45,7 @@ open class UPathConstraints<Type> private constructor(
 
                 constraint == trueExpr || constraint in logicalConstraints -> {}
 
-                constraint is UEqExpr<*> && constraint.lhs.sort == addressSort -> {
-                    require(constraint.rhs.sort == addressSort)
+                constraint is UEqExpr<*> && isSymbolicHeapRef(constraint.lhs) && isSymbolicHeapRef(constraint.rhs) -> {
                     equalityConstraints.addReferenceEquality(constraint.lhs as UHeapRef, constraint.rhs as UHeapRef)
                 }
 
@@ -56,7 +56,7 @@ open class UPathConstraints<Type> private constructor(
                 constraint is UNotExpr -> {
                     val notConstraint = constraint.arg
                     when {
-                        notConstraint is UEqExpr<*> && notConstraint.lhs.sort == addressSort -> {
+                        notConstraint is UEqExpr<*> && isSymbolicHeapRef(notConstraint.lhs) && isSymbolicHeapRef(notConstraint.rhs) -> {
                             require(notConstraint.rhs.sort == addressSort)
                             equalityConstraints.addReferenceDisequality(
                                 notConstraint.lhs as UHeapRef,

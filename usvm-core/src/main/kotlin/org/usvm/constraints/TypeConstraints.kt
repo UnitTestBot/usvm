@@ -28,7 +28,7 @@ class UTypeModel<Type>(
  * 1. x <: T, i.e. object referenced in x inherits T (supertype constraints for x)
  * 2. T <: x, i.e. object referenced in x inherited by T (subtype constraints for x)
  * 3. x </: T, i.e. object referenced in x does not inherit T (notSupertype constraints for x)
- * 4. T </: x, i.e. object referenced in x is not inherited by T (subtype constraints for x)
+ * 4. T </: x, i.e. object referenced in x is not inherited by T (notSubtype constraints for x)
  *
  * Adding subtype constraint for x is done via [cast] method.
  * TODO: The API for rest type constraints will be added later.
@@ -43,7 +43,7 @@ class UTypeConstraints<Type>(
     private val symbolicTypes: MutableMap<UHeapRef, UTypeRegion<Type>> = mutableMapOf(),
 ) : UTypeEvaluator<Type> {
     init {
-        equalityConstraints.subscribe(::unionConstraints)
+        equalityConstraints.subscribe(::intersectConstraints)
     }
 
     /**
@@ -57,7 +57,7 @@ class UTypeConstraints<Type>(
     }
 
     /**
-     *
+     * Binds concrete heap address [ref] to its [type].
      */
     fun allocate(ref: UConcreteHeapAddress, type: Type) {
         concreteTypes[ref] = type
@@ -87,7 +87,7 @@ class UTypeConstraints<Type>(
             else -> {
                 val constraints = this[ref]
                 val newConstraints = constraints.addSupertype(type)
-                if (newConstraints.isContraditing) {
+                if (newConstraints.isContradicting) {
                     contradiction()
                 } else {
                     // Inferring new symbolic disequalities here
@@ -103,7 +103,7 @@ class UTypeConstraints<Type>(
         }
     }
 
-    private fun unionConstraints(ref1: UHeapRef, ref2: UHeapRef) {
+    private fun intersectConstraints(ref1: UHeapRef, ref2: UHeapRef) {
         this[ref1] = this[ref1].intersect(this[ref2])
     }
 
@@ -117,7 +117,7 @@ class UTypeConstraints<Type>(
             else -> {
                 val constraints = this[ref]
 
-                if (constraints.addSupertype(type).isContraditing) {
+                if (constraints.addSupertype(type).isContradicting) {
                     return ref.ctx.falseExpr
                 }
 

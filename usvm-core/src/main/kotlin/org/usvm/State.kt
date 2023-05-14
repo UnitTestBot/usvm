@@ -19,6 +19,10 @@ abstract class UState<Type, Field, Method, Statement>(
     var models: List<UModel>,
     var path: PersistentList<Statement>,
 ) {
+    /**
+     * Creates new state structurally identical to this.
+     * If [newConstraints] is null, clones [pathConstraints]. Otherwise, uses [newConstraints] in cloned state.
+     */
     abstract fun clone(newConstraints: UPathConstraints<Type>? = null): UState<Type, Field, Method, Statement>
 }
 
@@ -30,6 +34,17 @@ class ForkResult<T>(
     operator fun component2(): T? = negativeState
 }
 
+/**
+ * Checks if [conditionToCheck] is satisfiable within path constraints of [state].
+ * If it does, clones [state] and returns it with enriched constraints:
+ * - if [forkToSatisfied], then adds constraint [satisfiedCondition];
+ * - if ![forkToSatisfied], then adds constraint [conditionToCheck].
+ * Otherwise, returns null.
+ * If [conditionToCheck] is not unsatisfiable (i.e., solver returns sat or unknown),
+ * mutates [state] by adding new path constraint c:
+ * - if [forkToSatisfied], then c = [conditionToCheck]
+ * - if ![forkToSatisfied], then c = [satisfiedCondition]
+ */
 private fun <T : UState<Type, Field, Method, Statement>, Type, Field, Method, Statement> forkIfSat(
     state: T,
     satisfiedCondition: UBoolExpr,

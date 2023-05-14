@@ -82,7 +82,7 @@ class DisjointSets<T> private constructor(
             callback
         } else {
             val oldCallback = unionCallback!!
-            { x, y -> oldCallback.invoke(x, y); callback(x, y) }
+            { x, y -> oldCallback(x, y); callback(x, y) }
         }
     }
 

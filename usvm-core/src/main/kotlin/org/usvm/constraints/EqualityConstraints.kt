@@ -22,19 +22,18 @@ class UEqualityConstraints(
         equalReferences.subscribe(::rename)
     }
 
-    private var contradictionDetected = false
-    val isContradiction
-        get() = contradictionDetected
+    var isContradiction = false
+        private set
 
     private fun contradiction() {
-        contradictionDetected = true
+        isContradiction = true
         equalReferences.clear()
         distinctReferences.clear()
         referenceDisequalities.clear()
     }
 
     private fun containsReferenceDisequality(ref1: UHeapRef, ref2: UHeapRef) =
-        referenceDisequalities.get(ref1)?.contains(ref2) ?: false
+        referenceDisequalities[ref1]?.contains(ref2) ?: false
 
     /**
      * Returns if [ref1] is identical to [ref2] in *all* models.
@@ -48,8 +47,8 @@ class UEqualityConstraints(
     fun areDistinct(ref1: UHeapRef, ref2: UHeapRef): Boolean {
         val repr1 = equalReferences.find(ref1)
         val repr2 = equalReferences.find(ref2)
-        return (distinctReferences.contains(repr1) && distinctReferences.contains(repr2)) ||
-                containsReferenceDisequality(repr1, repr2)
+        val distinctByClique = distinctReferences.contains(repr1) && distinctReferences.contains(repr2)
+        return distinctByClique || containsReferenceDisequality(repr1, repr2)
     }
 
     /**
@@ -159,8 +158,8 @@ class UEqualityConstraints(
     /**
      * Starts listening for the equivalence classes merging events.
      * When two equivalence classes with representatives x and y get merged into one with representative x,
-     * [equalityCallback(x, y)] is called.
-     * @warning Note that the order of arguments matters: the first argument is a representative of the new equivalence class.
+     * [equalityCallback] (x, y) is called.
+     * Note that the order of arguments matters: the first argument is a representative of the new equivalence class.
      */
     fun subscribe(equalityCallback: (UHeapRef, UHeapRef) -> Unit) {
         equalReferences.subscribe(equalityCallback)
@@ -168,12 +167,12 @@ class UEqualityConstraints(
 
     /**
      * Creates a mutable copy of this structure.
-     * @warning Note that current subscribers get unsubscribed!
+     * Note that current subscribers get unsubscribed!
      */
     fun clone(): UEqualityConstraints {
-        if (contradictionDetected) {
+        if (isContradiction) {
             val result = UEqualityConstraints(DisjointSets(), mutableSetOf(), mutableMapOf())
-            result.contradictionDetected = true
+            result.isContradiction = true
             return result
         }
 
