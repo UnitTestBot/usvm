@@ -20,7 +20,6 @@ class DfsTests {
     @Test
     fun testSumLoopGraph() {
         val results = analyzer.analyze(programDecl.calcSumLoop)
-        println(results.joinToString("\n"))
         assertTrue {
             results.any { result ->
                 if (result !is SuccessfulExecutionResult) {

@@ -1,7 +1,7 @@
 package org.usvm.interpreter
 
-import kotlinx.collections.immutable.persistentListOf
 import io.ksmt.solver.yices.KYicesSolver
+import kotlinx.collections.immutable.persistentListOf
 import org.usvm.UAnalyzer
 import org.usvm.UContext
 import org.usvm.UPathConstraintsSet
@@ -14,6 +14,7 @@ import org.usvm.model.UModelBase
 import org.usvm.model.buildTranslatorAndLazyDecoder
 import org.usvm.ps.DfsPathSelector
 import org.usvm.solver.USatResult
+import org.usvm.solver.USoftConstraintsProvider
 import org.usvm.solver.USolverBase
 
 /**
@@ -32,7 +33,8 @@ class SampleAnalyzer(
             ctx,
             typeSystem
         )
-        USolverBase(ctx, KYicesSolver(ctx), translator, decoder)
+        val softConstraintsProvider = USoftConstraintsProvider<Field<*>, SampleType>(ctx)
+        USolverBase(ctx, KYicesSolver(ctx), translator, decoder, softConstraintsProvider)
     }
 
     private val interpreter = SampleInterpreter(ctx, applicationGraph, solver)
@@ -56,7 +58,7 @@ class SampleAnalyzer(
     private fun getInitialState(solver: USolverBase<Field<*>, SampleType>, method: Method<*>): ExecutionState =
         ExecutionState(ctx, typeSystem).apply {
             addEntryMethodCall(applicationGraph, method)
-            val solverResult = solver.check(UPathConstraintsSet(ctx.trueExpr))
+            val solverResult = solver.check(UPathConstraintsSet(ctx.trueExpr), useSoftConstraints = true)
             val satResult = solverResult as USatResult<UModelBase<Field<*>, SampleType>>
             val model = satResult.model
             models = persistentListOf(model)
