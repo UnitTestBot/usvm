@@ -5,7 +5,7 @@ import org.usvm.solver.USolver
 
 /**
  * An auxiliary class, which carefully maintains forks and asserts via [fork] and [assert].
- * It should be created on every step in interepreter.
+ * It should be created on every step in an interpreter.
  * You can think about an instance of [StepScope] as a monad `ExceptT null (State [T])`.
  *
  * An underlying state is `null`, iff one of the `condition`s passed to the [fork] was unsatisfiable.

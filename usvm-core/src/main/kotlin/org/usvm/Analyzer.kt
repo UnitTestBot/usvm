@@ -12,7 +12,7 @@ abstract class UAnalyzer<State : UState<*, *, *, *>, Target> {
      * @param onState called on every forked state. Can be used for collecting results.
      * @param continueAnalyzing filtering function for forked states. If it returns `false`, state
      * isn't added to path selector.
-     * @param shouldStop asked on every step, before peeking a next state from path selector. Returning `true` aborts
+     * @param shouldStop checked on every step, before peeking a next state from path selector. Returning `true` aborts
      * analysis.
      */
     fun run(
