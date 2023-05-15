@@ -56,6 +56,11 @@ interface UHeap<Ref, Value, SizeT, Field, ArrayType, Guard> :
 
     fun allocate(): UConcreteHeapRef
     fun allocateArray(count: SizeT): UConcreteHeapRef
+    fun <Sort : USort> allocateArrayInitialized(
+        type: ArrayType,
+        sort: Sort,
+        contents: Sequence<Value>
+    ): UConcreteHeapRef
 }
 
 typealias USymbolicHeap<Field, ArrayType> = UHeap<UHeapRef, UExpr<out USort>, USizeExpr, Field, ArrayType, UBoolExpr>
@@ -233,7 +238,18 @@ data class URegionHeap<Field, ArrayType>(
         sort: Sort,
         contents: Sequence<UExpr<out USort>>,
     ) {
-        TODO("Not yet implemented")
+        val tmpArrayRef = allocateArrayInitialized(type, sort, contents)
+        val contentLength = allocatedLengths.getValue(tmpArrayRef.address)
+        memcpy(
+            srcRef = tmpArrayRef,
+            dstRef = ref,
+            type = type,
+            elementSort = sort,
+            fromSrcIdx = ctx.mkSizeExpr(0),
+            fromDstIdx = ctx.mkSizeExpr(0),
+            toDstIdx = contentLength,
+            guard = ctx.trueExpr
+        )
     }
 
     override fun <Sort : USort> memcpy(
@@ -310,6 +326,37 @@ data class URegionHeap<Field, ArrayType>(
         allocatedLengths = allocatedLengths.put(address, count)
         return ctx.mkConcreteHeapRef(address)
     }
+
+    override fun <Sort : USort> allocateArrayInitialized(
+        type: ArrayType,
+        sort: Sort,
+        contents: Sequence<UExpr<out USort>>
+    ): UConcreteHeapRef {
+        val arrayValues = contents.mapTo(mutableListOf()) { it.asExpr(sort) }
+        val arrayLength = ctx.mkSizeExpr(arrayValues.size)
+
+        val address = allocateArray(arrayLength)
+
+        val initializedArrayRegion = allocateInitializedArrayRegion(type, sort, address.address, arrayValues)
+        allocatedArrays = allocatedArrays.put(address.address, initializedArrayRegion)
+
+        return address
+    }
+
+    private fun <Sort : USort> allocateInitializedArrayRegion(
+        type: ArrayType,
+        sort: Sort,
+        address: UConcreteHeapAddress,
+        values: List<UExpr<Sort>>
+    ): UAllocatedArrayRegion<ArrayType, Sort> = initializedAllocatedArrayRegion(
+        arrayType = type,
+        address = address,
+        sort = sort,
+        content = values.mapIndexed { idx, value ->
+            ctx.mkSizeExpr(idx) to value
+        }.toMap(),
+        guard = ctx.trueExpr
+    )
 
     override fun nullRef(): UHeapRef = ctx.nullRef
 

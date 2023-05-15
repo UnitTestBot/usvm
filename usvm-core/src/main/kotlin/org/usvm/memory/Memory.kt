@@ -39,6 +39,14 @@ interface UMemory<LValue, RValue, SizeT, HeapRef, Type> {
     fun malloc(arrayType: Type, count: SizeT): HeapRef
 
     /**
+     * Allocates array in heap.
+     * @param contents Sequence of initial array value.
+     *                 First element will be written to index 0, second -- to index 1, etc.
+     * @return Concrete heap address of an allocated array.
+     */
+    fun malloc(arrayType: Type, elementSort: USort, contents: Sequence<RValue>): HeapRef
+
+    /**
      * Optimized writing of many concretely-indexed entries at a time.
      * @param contents Sequence of elements to be written.
      *                 First element will be written to index 0, second -- to index 1, etc.
@@ -102,6 +110,12 @@ open class UMemoryBase<Field, Type, Method>(
 
     override fun malloc(arrayType: Type, count: USizeExpr): UHeapRef {
         val concreteHeapRef = heap.allocateArray(count)
+        types.allocate(concreteHeapRef.address, arrayType)
+        return concreteHeapRef
+    }
+
+    override fun malloc(arrayType: Type, elementSort: USort, contents: Sequence<UExpr<out USort>>): UHeapRef {
+        val concreteHeapRef = heap.allocateArrayInitialized(arrayType, elementSort, contents)
         types.allocate(concreteHeapRef.address, arrayType)
         return concreteHeapRef
     }
