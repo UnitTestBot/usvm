@@ -34,7 +34,7 @@ open class USolverBase<Field, Type, Method>(
     protected val softConstraintsProvider: USoftConstraintsProvider<Field, Type>,
 ) : USolver<UMemoryBase<Field, Type, Method>, UPathConstraints<Type>, UModelBase<Field, Type>>() {
 
-    protected fun translateSmtConstraints(constraints: Iterable<UBoolExpr>) {
+    protected fun translateLogicalConstraints(constraints: Iterable<UBoolExpr>) {
         for (constraint in constraints) {
             val translated = translator.translate(constraint)
             smtSolver.assert(translated)
@@ -44,8 +44,9 @@ open class USolverBase<Field, Type, Method>(
     protected fun translateEqualityConstraints(constraints: UEqualityConstraints) {
         var index = 1
 
+        val nullRepr = constraints.equalReferences.find(ctx.nullRef)
         for (ref in constraints.distinctReferences) {
-            val refIndex = if (ref == ctx.nullRef) 0 else index++
+            val refIndex = if (ref == nullRepr) 0 else index++
             val translatedRef = translator.translate(ref)
             val preInterpretedValue = ctx.mkUninterpretedSortValue(ctx.addressSort, refIndex)
             smtSolver.assert(ctx.mkEq(translatedRef, preInterpretedValue))
@@ -73,7 +74,7 @@ open class USolverBase<Field, Type, Method>(
 
     protected fun translateToSmt(pc: UPathConstraints<Type>) {
         translateEqualityConstraints(pc.equalityConstraints)
-        translateSmtConstraints(pc.logicalConstraints)
+        translateLogicalConstraints(pc.logicalConstraints)
     }
 
     internal fun checkWithSoftConstraints(

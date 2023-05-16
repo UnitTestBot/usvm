@@ -1,5 +1,7 @@
 package org.usvm.constraints
 
+import kotlinx.collections.immutable.PersistentSet
+import kotlinx.collections.immutable.persistentSetOf
 import org.usvm.UAndExpr
 import org.usvm.UBoolExpr
 import org.usvm.UContext
@@ -17,10 +19,7 @@ import org.usvm.isSymbolicHeapRef
  */
 open class UPathConstraints<Type> private constructor(
     val ctx: UContext,
-    /**
-     * Constraints solved by SMT solver.
-     */
-    val logicalConstraints: MutableSet<UBoolExpr> = mutableSetOf(),
+    logicalConstraints: PersistentSet<UBoolExpr> = persistentSetOf(),
     /**
      * Specially represented equalities and disequalities between objects, used in various part of constraints management.
      */
@@ -30,7 +29,13 @@ open class UPathConstraints<Type> private constructor(
      */
     val typeConstraints: UTypeConstraints<Type> = UTypeConstraints(ctx.typeSystem(), equalityConstraints)
 ) {
-    constructor(ctx: UContext) : this(ctx, mutableSetOf())
+    /**
+     * Constraints solved by SMT solver.
+     */
+    var logicalConstraints: PersistentSet<UBoolExpr> = logicalConstraints
+        private set
+
+    constructor(ctx: UContext) : this(ctx, persistentSetOf())
 
     open val isFalse: Boolean
         get() = equalityConstraints.isContradiction ||
@@ -64,29 +69,27 @@ open class UPathConstraints<Type> private constructor(
                             )
                         }
 
-                        logicalConstraints.contains(notConstraint) -> contradiction(ctx)
+                        notConstraint in logicalConstraints -> contradiction(ctx)
 
                         notConstraint is UOrExpr -> notConstraint.args.forEach { plusAssign(ctx.mkNot(it)) }
 
-                        else -> logicalConstraints.add(constraint)
+                        else -> logicalConstraints = logicalConstraints.add(constraint)
                     }
                 }
 
                 logicalConstraints.contains(constraint.not()) -> contradiction(ctx)
 
-                else -> logicalConstraints.add(constraint)
+                else -> logicalConstraints = logicalConstraints.add(constraint)
             }
         }
 
     open fun clone(): UPathConstraints<Type> {
-        val clonedLogicalConstraints = logicalConstraints.toMutableSet()
         val clonedEqualityConstraints = equalityConstraints.clone()
         val clonedTypeConstraints = typeConstraints.clone(clonedEqualityConstraints)
-        return UPathConstraints(ctx, clonedLogicalConstraints, clonedEqualityConstraints, clonedTypeConstraints)
+        return UPathConstraints(ctx, logicalConstraints, clonedEqualityConstraints, clonedTypeConstraints)
     }
 
     protected fun contradiction(ctx: UContext) {
-        logicalConstraints.clear()
-        logicalConstraints.add(ctx.falseExpr)
+        logicalConstraints = persistentSetOf(ctx.falseExpr)
     }
 }

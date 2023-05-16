@@ -8,7 +8,7 @@ import org.usvm.util.DisjointSets
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-class DSUTests {
+class DisjointSetsTests {
     @Test
     fun testDSU() {
         val subscriber1: (String, String) -> Unit = mockk()

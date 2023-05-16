@@ -19,21 +19,10 @@ class DisjointSets<T> private constructor(
      * Might change the internal representation in order to optimise things up.
      */
     fun find(x: T): T {
-        var p = x
-        var q = parent[x]
-
-        while (q != null) {
-            val r = parent[q]
-
-            if (r != null) {
-                parent[p] = r
-            }
-
-            p = q
-            q = r
-        }
-
-        return p
+        val p = parent[x] ?: return x
+        val root = find(p)
+        parent[x] = root
+        return root
     }
 
     /**
@@ -78,12 +67,7 @@ class DisjointSets<T> private constructor(
      * have been merged into one set with representative x (i.e., the order of arguments matters!)
      */
     fun subscribe(callback: (T, T) -> Unit) {
-        unionCallback = if (unionCallback == null) {
-            callback
-        } else {
-            val oldCallback = unionCallback!!
-            { x, y -> oldCallback(x, y); callback(x, y) }
-        }
+        unionCallback = unionCallback?.let { { x, y -> it(x, y); callback(x, y) } } ?: callback
     }
 
     /**

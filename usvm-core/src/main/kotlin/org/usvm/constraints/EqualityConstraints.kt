@@ -13,11 +13,17 @@ import org.usvm.util.DisjointSets
  * @note Important invariant: [distinctReferences] and [referenceDisequalities] include *only*
  * representatives of reference equivalence classes, i.e. only references x such that [equalReferences].find(x) == x.
  */
-class UEqualityConstraints(
-    val equalReferences: DisjointSets<UHeapRef> = DisjointSets(),
-    val distinctReferences: MutableSet<UHeapRef> = mutableSetOf(),
-    val referenceDisequalities: MutableMap<UHeapRef, MutableSet<UHeapRef>> = mutableMapOf(),
+class UEqualityConstraints private constructor(
+    val equalReferences: DisjointSets<UHeapRef>,
+    private val mutableDistinctReferences: MutableSet<UHeapRef>,
+    private val mutableReferenceDisequalities: MutableMap<UHeapRef, MutableSet<UHeapRef>>,
 ) {
+    constructor(): this(DisjointSets(), mutableSetOf(), mutableMapOf())
+
+    val distinctReferences: Set<UHeapRef> = mutableDistinctReferences
+
+    val referenceDisequalities: Map<UHeapRef, Set<UHeapRef>> = mutableReferenceDisequalities
+
     init {
         equalReferences.subscribe(::rename)
     }
@@ -28,8 +34,8 @@ class UEqualityConstraints(
     private fun contradiction() {
         isContradiction = true
         equalReferences.clear()
-        distinctReferences.clear()
-        referenceDisequalities.clear()
+        mutableDistinctReferences.clear()
+        mutableReferenceDisequalities.clear()
     }
 
     private fun containsReferenceDisequality(ref1: UHeapRef, ref2: UHeapRef) =
@@ -47,6 +53,8 @@ class UEqualityConstraints(
     fun areDistinct(ref1: UHeapRef, ref2: UHeapRef): Boolean {
         val repr1 = equalReferences.find(ref1)
         val repr2 = equalReferences.find(ref2)
+        if (repr1 == repr2)
+            return false
         val distinctByClique = distinctReferences.contains(repr1) && distinctReferences.contains(repr2)
         return distinctByClique || containsReferenceDisequality(repr1, repr2)
     }
@@ -79,23 +87,21 @@ class UEqualityConstraints(
                 contradiction()
                 return
             }
-            distinctReferences.remove(from)
-            distinctReferences.add(to)
+            mutableDistinctReferences.remove(from)
+            mutableDistinctReferences.add(to)
         }
 
-        val fromDiseqs = referenceDisequalities[from]
+        val fromDiseqs = referenceDisequalities[from] ?: return
 
-        if (fromDiseqs != null && fromDiseqs.contains(to)) {
+        if (fromDiseqs.contains(to)) {
             contradiction()
             return
         }
 
-        if (fromDiseqs != null) {
-            referenceDisequalities.remove(from)
-            fromDiseqs.forEach {
-                referenceDisequalities[it]?.remove(from)
-                addReferenceDisequality(to, it)
-            }
+        mutableReferenceDisequalities.remove(from)
+        fromDiseqs.forEach {
+            mutableReferenceDisequalities[it]?.remove(from)
+            addReferenceDisequality(to, it)
         }
     }
 
@@ -118,8 +124,8 @@ class UEqualityConstraints(
         if (distinctReferences.isEmpty()) {
             require(referenceDisequalities.isEmpty())
             // Init clique with {repr1, repr2}
-            distinctReferences.add(repr1)
-            distinctReferences.add(repr2)
+            mutableDistinctReferences.add(repr1)
+            mutableDistinctReferences.add(repr2)
             return
         }
 
@@ -140,19 +146,19 @@ class UEqualityConstraints(
 
             if (distinctReferences.all { it == refInClique || containsReferenceDisequality(refNotInClique, it) }) {
                 // Ref is not in clique and disjoint from all refs in clique. Thus, we can join it to clique...
-                referenceDisequalities[refNotInClique]?.removeAll(distinctReferences)
+                mutableReferenceDisequalities[refNotInClique]?.removeAll(distinctReferences)
 
                 for (ref in distinctReferences) {
-                    referenceDisequalities[ref]?.remove(refNotInClique)
+                    mutableReferenceDisequalities[ref]?.remove(refNotInClique)
                 }
 
-                distinctReferences.add(refNotInClique)
+                mutableDistinctReferences.add(refNotInClique)
                 return
             }
         }
 
-        (referenceDisequalities.getOrPut(repr1) { mutableSetOf() }).add(repr2)
-        (referenceDisequalities.getOrPut(repr2) { mutableSetOf() }).add(repr1)
+        (mutableReferenceDisequalities.getOrPut(repr1) { mutableSetOf() }).add(repr2)
+        (mutableReferenceDisequalities.getOrPut(repr2) { mutableSetOf() }).add(repr1)
     }
 
     /**

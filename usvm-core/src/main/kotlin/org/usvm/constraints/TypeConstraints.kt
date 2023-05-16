@@ -1,6 +1,11 @@
 package org.usvm.constraints
 
-import org.usvm.*
+import org.usvm.UBoolExpr
+import org.usvm.UConcreteHeapAddress
+import org.usvm.UConcreteHeapRef
+import org.usvm.UHeapRef
+import org.usvm.UTypeSystem
+import org.usvm.uctx
 
 interface UTypeEvaluator<Type> {
     fun evalIs(ref: UHeapRef, type: Type): UBoolExpr
