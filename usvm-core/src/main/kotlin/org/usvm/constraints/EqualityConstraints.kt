@@ -53,8 +53,10 @@ class UEqualityConstraints private constructor(
     fun areDistinct(ref1: UHeapRef, ref2: UHeapRef): Boolean {
         val repr1 = equalReferences.find(ref1)
         val repr2 = equalReferences.find(ref2)
-        if (repr1 == repr2)
+        if (repr1 == repr2) {
             return false
+        }
+
         val distinctByClique = distinctReferences.contains(repr1) && distinctReferences.contains(repr2)
         return distinctByClique || containsReferenceDisequality(repr1, repr2)
     }

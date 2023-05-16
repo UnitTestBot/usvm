@@ -22,7 +22,7 @@ open class UTypeRegion<Type>(
      * Returns region that represents empty set of types. Called when type
      * constraints contradict, for example if X <: Y and X </: Y.
      */
-    protected fun contradiction() = UTypeRegion(typeSystem, isContradicting = true) // TODO: generate unsat core for DPLL(T)
+    protected fun contradiction() = UTypeRegion(typeSystem, isContradicting = true)
     // TODO: generate unsat core for DPLL(T)
 
     /**
@@ -160,7 +160,7 @@ open class UTypeRegion<Type>(
     }
 
     override fun subtract(other: UTypeRegion<Type>): UTypeRegion<Type> {
-        if (!other.notSupertypes.isEmpty() || other.notSubtypes.isEmpty() || other.supertypes.size + other.subtypes.size != 1) {
+        if (other.notSupertypes.isNotEmpty() || other.notSubtypes.isEmpty() || other.supertypes.size + other.subtypes.size != 1) {
             TODO("For now, we are able to subtract only positive singleton type constraints")
         }
 
