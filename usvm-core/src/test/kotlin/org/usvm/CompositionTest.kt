@@ -1,10 +1,5 @@
 package org.usvm
 
-import io.mockk.every
-import io.mockk.mockk
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import io.ksmt.cache.hash
 import io.ksmt.cache.structurallyEqual
 import io.ksmt.expr.KBitVec32Value
@@ -12,6 +7,11 @@ import io.ksmt.expr.KExpr
 import io.ksmt.expr.printer.ExpressionPrinter
 import io.ksmt.expr.transformer.KTransformerBase
 import io.ksmt.sort.KBv32Sort
+import io.mockk.every
+import io.mockk.mockk
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.usvm.constraints.UTypeEvaluator
 import org.usvm.memory.UAddressCounter.Companion.NULL_ADDRESS
 import org.usvm.memory.UAllocatedArrayId
@@ -85,7 +85,7 @@ internal class CompositionTest {
 
         val resultValue = composer.compose(newExpr)
 
-        assert(resultValue === newExpr)
+        assertSame(resultValue, newExpr)
     }
 
     @Test
@@ -127,7 +127,7 @@ internal class CompositionTest {
 
         val composedExpression = composer.compose(expression) as UExpr<*>
 
-        assert(composedExpression === bvValue)
+        assertSame(composedExpression, bvValue)
     }
 
     @Test
@@ -171,7 +171,7 @@ internal class CompositionTest {
 
         val composedExpression = composer.compose(expression) as UExpr<*>
 
-        assert(composedExpression === expectedExpression)
+        assertSame(composedExpression, expectedExpression)
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -185,7 +185,7 @@ internal class CompositionTest {
 
         val composedExpression = composer.compose(expression) as UExpr<*>
 
-        assert(composedExpression === bvValue)
+        assertSame(composedExpression, bvValue)
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -207,7 +207,7 @@ internal class CompositionTest {
 
         val composedExpression = composer.compose(isExpression)
 
-        assert(composedExpression === mkTrue())
+        assertSame(composedExpression, mkTrue())
     }
 
     @Test
@@ -309,8 +309,8 @@ internal class CompositionTest {
         val fstComposedExpression = composer.compose(fstArrayIndexReading)
         val sndComposedExpression = composer.compose(sndArrayIndexReading)
 
-        assert(fstComposedExpression === answer)
-        assert(sndComposedExpression === answer)
+        assertSame(fstComposedExpression, answer)
+        assertSame(sndComposedExpression, answer)
     }
 
     @Test
@@ -469,7 +469,7 @@ internal class CompositionTest {
 
         val composedExpression = composer.compose(expression)
 
-        assert(composedExpression === answer)
+        assertSame(composedExpression, answer)
     }
 
     @Test

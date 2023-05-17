@@ -1,12 +1,13 @@
 package org.usvm.test
 
-import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import org.usvm.util.RegionComparisonResult
 import org.usvm.util.Intervals
-import org.usvm.util.SetRegion
 import org.usvm.util.ProductRegion
+import org.usvm.util.RegionComparisonResult
+import org.usvm.util.SetRegion
 import org.usvm.util.emptyRegionTree
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 internal class RegionsTest {
     @Test
@@ -74,13 +75,13 @@ internal class RegionsTest {
         val p1 = ProductRegion(r1, r1)
         val p2 = ProductRegion(r2, r2)
         val diff1 = p1.subtract(p2)
-        assert(diff1.products.size == 2)
+       assertTrue(diff1.products.size == 2)
         val p3 = ProductRegion(r3, r1)
         val p4 = ProductRegion(r1, r3)
         val diff2 = diff1.subtract(p3)
-        assert(diff2.products.size == 1)
+       assertTrue(diff2.products.size == 1)
         val diff3 = diff2.subtract(p4)
-        assert(diff3.isEmpty)
+       assertTrue(diff3.isEmpty)
     }
 
     @Test

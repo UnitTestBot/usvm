@@ -94,14 +94,14 @@ private fun <T : UState<Type, Field, Method, Statement>, Type, Field, Method, St
 
 /**
  * Implements symbolic branching.
- * Checks if [condition] and ![condition] are satisfiable within [this] state.
- * If both are satisfiable, copies [this] state and extends path constraints.
- * If only one is satisfiable, returns only [this] state (possibly with [condition] added to path constraints).
+ * Checks if [condition] and ![condition] are satisfiable within [state].
+ * If both are satisfiable, copies [state] and extends path constraints.
+ * If only one is satisfiable, returns only [state] (possibly with [condition] added to path constraints).
  *
  * Important contracts:
  * 1. in return value, at least one of [ForkResult.positiveState] and [ForkResult.negativeState] is not null;
  * 2. makes not more than one query to USolver;
- * 3. if both [condition] and ![condition] are satisfiable, then [ForkResult.positiveState] === [this].
+ * 3. if both [condition] and ![condition] are satisfiable, then [ForkResult.positiveState] === [state].
  */
 fun <T : UState<Type, Field, Method, Statement>, Type, Field, Method, Statement> fork(
     state: T,
