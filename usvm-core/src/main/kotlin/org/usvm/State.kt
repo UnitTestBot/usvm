@@ -49,7 +49,7 @@ private fun <T : UState<Type, Field, Method, Statement>, Type, Field, Method, St
     state: T,
     satisfiedCondition: UBoolExpr,
     conditionToCheck: UBoolExpr,
-    forkToSatisfied: Boolean
+    forkToSatisfied: Boolean,
 ): UState<Type, Field, Method, Statement>? {
     val pathConstraints = state.pathConstraints.clone()
     pathConstraints += conditionToCheck
@@ -103,8 +103,11 @@ private fun <T : UState<Type, Field, Method, Statement>, Type, Field, Method, St
  * 2. makes not more than one query to USolver;
  * 3. if both [condition] and ![condition] are satisfiable, then [ForkResult.positiveState] === [this].
  */
-fun <T : UState<Type, Field, Method, Statement>, Type, Field, Method, Statement> T.fork(condition: UBoolExpr): ForkResult<T> {
-    val (trueModels, falseModels) = models.partition { model ->
+fun <T : UState<Type, Field, Method, Statement>, Type, Field, Method, Statement> fork(
+    state: T,
+    condition: UBoolExpr,
+): ForkResult<T> {
+    val (trueModels, falseModels) = state.models.partition { model ->
         val holdsInModel = model.eval(condition)
         check(holdsInModel is KInterpretedValue<UBoolSort>) {
             "Evaluation in model: expected true or false, but got $holdsInModel"
@@ -112,29 +115,35 @@ fun <T : UState<Type, Field, Method, Statement>, Type, Field, Method, Statement>
         holdsInModel.isTrue
     }
 
+    val notCondition = state.ctx.mkNot(condition)
     val (posState, negState) = when {
 
         trueModels.isNotEmpty() && falseModels.isNotEmpty() -> {
-            val posState = this
-            val negState = clone()
+            val posState = state
+            val negState = state.clone()
 
             posState.models = trueModels
             negState.models = falseModels
             posState.pathConstraints += condition
-            negState.pathConstraints += ctx.mkNot(condition)
+            negState.pathConstraints += notCondition
 
             posState to negState
         }
 
-        trueModels.isNotEmpty() -> this to forkIfSat(this, condition, ctx.mkNot(condition), forkToSatisfied = false)
+        trueModels.isNotEmpty() -> state to forkIfSat(
+            state,
+            condition,
+            notCondition,
+            forkToSatisfied = false
+        )
 
         falseModels.isNotEmpty() -> {
-            val forkedState = forkIfSat(this, ctx.mkNot(condition), condition, forkToSatisfied = true)
+            val forkedState = forkIfSat(state, notCondition, condition, forkToSatisfied = true)
 
             if (forkedState != null) {
-                this to forkedState
+                state to forkedState
             } else {
-                null to this
+                null to state
             }
         }
 

@@ -66,7 +66,7 @@ class StepScope(
     ): Unit? {
         val state = curState ?: return null
 
-        val (posState, negState) = state.fork(condition)
+        val (posState, negState) = fork(state, condition)
 
         posState?.blockOnTrueState()
         curState = posState
@@ -86,7 +86,7 @@ class StepScope(
     ): Unit? {
         val state = curState ?: return null
 
-        val (posState, _) = state.fork(constraint)
+        val (posState, _) = fork(state, constraint)
 
         posState?.block()
         curState = posState
