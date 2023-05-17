@@ -1,10 +1,12 @@
 package org.usvm.memory
 
+import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
 import org.usvm.Field
 import org.usvm.Type
 import org.usvm.UAddressSort
+import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.sampleUValue
 import kotlin.test.Test
@@ -19,7 +21,9 @@ class HeapMemsetTest {
 
     @BeforeEach
     fun initializeContext() {
-        ctx = UContext()
+        val components: UComponents<*, *, *> = mockk()
+        every { components.mkTypeSystem(any()) } returns mockk()
+        ctx = UContext(components)
         heap = URegionHeap(ctx)
         arrayType = mockk<Type>()
         arrayValueSort = ctx.addressSort
