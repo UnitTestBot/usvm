@@ -50,6 +50,7 @@ interface UMemory<LValue, RValue, SizeT, HeapRef, Type> {
      * Optimized writing of many concretely-indexed entries at a time.
      * @param contents Sequence of elements to be written.
      *                 First element will be written to index 0, second -- to index 1, etc.
+     * Updates the length of the array to the length of [contents].
      */
     fun memset(ref: HeapRef, arrayType: Type, elementSort: USort, contents: Sequence<RValue>)
 

@@ -250,6 +250,7 @@ data class URegionHeap<Field, ArrayType>(
             toDstIdx = contentLength,
             guard = ctx.trueExpr
         )
+        writeArrayLength(ref, contentLength, type)
     }
 
     override fun <Sort : USort> memcpy(
