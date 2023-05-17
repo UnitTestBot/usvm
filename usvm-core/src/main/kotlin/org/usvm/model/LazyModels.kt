@@ -222,6 +222,12 @@ class ULazyHeapModel<Field, ArrayType>(
 
     override fun allocateArray(count: USizeExpr) = error("Illegal operation for a model")
 
+    override fun <Sort : USort> allocateArrayInitialized(
+        type: ArrayType,
+        sort: Sort,
+        contents: Sequence<UExpr<out USort>>
+    ) = error("Illegal operation for a model")
+
     override fun nullRef(): UConcreteHeapRef = nullRef
 
     override fun toMutableHeap(): ULazyHeapModel<Field, ArrayType> = this

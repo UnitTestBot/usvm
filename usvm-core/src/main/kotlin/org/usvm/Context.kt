@@ -40,6 +40,8 @@ open class UContext(
     val addressSort: UAddressSort = mkUninterpretedSort("Address")
     val sizeSort: USizeSort = bv32Sort
 
+    fun mkSizeExpr(size: Int): USizeExpr = mkBv(size)
+
     val nullRef: UNullRef = UNullRef(this)
 
     fun mkNullRef(): USymbolicHeapRef {
