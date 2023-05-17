@@ -11,7 +11,7 @@ import org.usvm.solver.UExprTranslator
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.solver.UTrackingExprTranslator
-import org.usvm.UTypeModel
+import org.usvm.constraints.UTypeModel
 import org.usvm.memory.UAddressCounter.Companion.INITIAL_INPUT_ADDRESS
 import org.usvm.memory.UAddressCounter.Companion.NULL_ADDRESS
 import org.usvm.memory.UMemoryBase
@@ -19,7 +19,7 @@ import org.usvm.memory.URegionId
 import org.usvm.uctx
 
 interface UModelDecoder<Memory, Model> {
-    fun decode(memory: Memory, model: KModel): Model
+    fun decode(model: KModel): Model
 }
 
 /**
@@ -98,19 +98,18 @@ open class ULazyModelDecoder<Field, Type, Method>(
     }
 
     /**
-     * Decodes a [model] from a [memory] to a [UModelBase].
+     * Decodes a [model] into a [UModelBase].
      *
      * @param model should be detached.
      */
     override fun decode(
-        memory: UMemoryBase<Field, Type, Method>,
         model: KModel,
     ): UModelBase<Field, Type> {
         val addressesMapping = buildMapping(model)
 
         val stack = decodeStack(model, addressesMapping)
         val heap = decodeHeap(model, addressesMapping)
-        val types = UTypeModel(ctx, memory.typeSystem, typeByAddr = emptyMap())
+        val types = UTypeModel<Type>(ctx.typeSystem(), typeByAddr = emptyMap())
         val mocks = decodeMocker(model, addressesMapping)
 
         return UModelBase(ctx, stack, heap, types, mocks)

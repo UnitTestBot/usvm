@@ -2,8 +2,11 @@ package org.usvm.solver
 
 import io.ksmt.solver.KSolver
 import io.ksmt.solver.KSolverStatus
+import org.usvm.UBoolExpr
 import org.usvm.UContext
-import org.usvm.UPathCondition
+import org.usvm.UHeapRef
+import org.usvm.constraints.UEqualityConstraints
+import org.usvm.constraints.UPathConstraints
 import org.usvm.memory.UMemoryBase
 import org.usvm.model.UModelBase
 import org.usvm.model.UModelDecoder
@@ -20,63 +23,101 @@ open class UUnknownResult<Model> : USolverResult<Model>
 
 abstract class USolver<Memory, PathCondition, Model> {
     // TODO make global option for that?
-    abstract fun check(memory: Memory, pc: PathCondition, useSoftConstraints: Boolean): USolverResult<Model>
+    abstract fun check(pc: PathCondition, useSoftConstraints: Boolean): USolverResult<Model>
 }
 
 open class USolverBase<Field, Type, Method>(
     protected val ctx: UContext,
-    protected val solver: KSolver<*>,
+    protected val smtSolver: KSolver<*>,
     protected val translator: UExprTranslator<Field, Type>,
     protected val decoder: UModelDecoder<UMemoryBase<Field, Type, Method>, UModelBase<Field, Type>>,
     protected val softConstraintsProvider: USoftConstraintsProvider<Field, Type>,
-) : USolver<UMemoryBase<Field, Type, Method>, UPathCondition, UModelBase<Field, Type>>() {
+) : USolver<UMemoryBase<Field, Type, Method>, UPathConstraints<Type>, UModelBase<Field, Type>>() {
+
+    protected fun translateLogicalConstraints(constraints: Iterable<UBoolExpr>) {
+        for (constraint in constraints) {
+            val translated = translator.translate(constraint)
+            smtSolver.assert(translated)
+        }
+    }
+
+    protected fun translateEqualityConstraints(constraints: UEqualityConstraints) {
+        var index = 1
+
+        val nullRepr = constraints.equalReferences.find(ctx.nullRef)
+        for (ref in constraints.distinctReferences) {
+            val refIndex = if (ref == nullRepr) 0 else index++
+            val translatedRef = translator.translate(ref)
+            val preInterpretedValue = ctx.mkUninterpretedSortValue(ctx.addressSort, refIndex)
+            smtSolver.assert(ctx.mkEq(translatedRef, preInterpretedValue))
+        }
+
+        for ((key, value) in constraints.equalReferences) {
+            val translatedLeft = translator.translate(key)
+            val translatedRight = translator.translate(value)
+            smtSolver.assert(ctx.mkEq(translatedLeft, translatedRight))
+        }
+
+        val processedConstraints = mutableSetOf<Pair<UHeapRef, UHeapRef>>()
+
+        for ((ref1, disequalRefs) in constraints.referenceDisequalities.entries) {
+            for (ref2 in disequalRefs) {
+                if (!processedConstraints.contains(ref2 to ref1)) {
+                    processedConstraints.add(ref1 to ref2)
+                    val translatedRef1 = translator.translate(ref1)
+                    val translatedRef2 = translator.translate(ref2)
+                    smtSolver.assert(ctx.mkNot(ctx.mkEq(translatedRef1, translatedRef2)))
+                }
+            }
+        }
+    }
+
+    protected fun translateToSmt(pc: UPathConstraints<Type>) {
+        translateEqualityConstraints(pc.equalityConstraints)
+        translateLogicalConstraints(pc.logicalConstraints)
+    }
 
     internal fun checkWithSoftConstraints(
-        memory: UMemoryBase<Field, Type, Method>,
-        pc: UPathCondition,
-    ) = check(memory, pc, useSoftConstraints = true)
+        pc: UPathConstraints<Type>,
+    ) = check(pc, useSoftConstraints = true)
 
     override fun check(
-        memory: UMemoryBase<Field, Type, Method>,
-        pc: UPathCondition,
+        pc: UPathConstraints<Type>,
         useSoftConstraints: Boolean,
     ): USolverResult<UModelBase<Field, Type>> {
         if (pc.isFalse) {
             return UUnsatResult()
         }
 
-        solver.push()
+        smtSolver.push()
 
-        for (constraint in pc) {
-            val translated = translator.translate(constraint)
-            solver.assert(translated)
-        }
+        translateToSmt(pc)
 
         var status: KSolverStatus
 
         if (useSoftConstraints) {
-            var softConstraints = pc.flatMap {
+            var softConstraints = pc.logicalConstraints.flatMap {
                 softConstraintsProvider
                     .provide(it)
                     .map { sc -> translator.translate(sc) }
             }
 
-            status = solver.checkWithAssumptions(softConstraints)
+            status = smtSolver.checkWithAssumptions(softConstraints)
 
             while (status == KSolverStatus.UNSAT) {
-                val unsatCore = solver.unsatCore()
+                val unsatCore = smtSolver.unsatCore()
 
                 if (unsatCore.isEmpty()) break
 
                 softConstraints = softConstraints.filterNot { it in unsatCore }
-                status = solver.checkWithAssumptions(softConstraints)
+                status = smtSolver.checkWithAssumptions(softConstraints)
             }
         } else {
-            status = solver.check()
+            status = smtSolver.check()
         }
 
         if (status != KSolverStatus.SAT) {
-            solver.pop()
+            smtSolver.pop()
 
             return if (status == KSolverStatus.UNSAT) {
                 UUnsatResult()
@@ -85,10 +126,10 @@ open class USolverBase<Field, Type, Method>(
             }
         }
 
-        val kModel = solver.model().detach()
-        val uModel = decoder.decode(memory, kModel)
+        val kModel = smtSolver.model().detach()
+        val uModel = decoder.decode(kModel)
 
-        solver.pop()
+        smtSolver.pop()
 
         return USatResult(uModel)
     }

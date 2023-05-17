@@ -1,22 +1,28 @@
 package org.usvm.memory
 
+import io.ksmt.utils.mkConst
+import io.mockk.every
+import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import io.ksmt.utils.mkConst
 import org.usvm.UBv32Sort
+import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.UHeapRef
 import org.usvm.shouldNotBeCalled
 import org.usvm.util.SetRegion
 import org.usvm.util.emptyRegionTree
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 class MemoryRegionTests {
     private lateinit var ctx: UContext
 
     @BeforeEach
     fun initializeContext() {
-        ctx = UContext()
+        val components: UComponents<*, *, *> = mockk()
+        every { components.mkTypeSystem(any()) } returns mockk()
+        ctx = UContext(components)
     }
 
     @Test
@@ -65,13 +71,13 @@ class MemoryRegionTests {
             ).write(address, 1.toBv(), guard)
                 .write(address, 2.toBv(), anotherGuard)
 
-            assert(treeUpdates.toList().size == 2)
+           assertTrue(treeUpdates.toList().size == 2)
 
             val anotherTreeUpdates = treeUpdates
                 .write(address, 3.toBv(), anotherGuard)
                 .write(address, 4.toBv(), guard)
 
-            assert(anotherTreeUpdates.toList().size == 2)
+           assertTrue(anotherTreeUpdates.toList().size == 2)
         }
     }
 
