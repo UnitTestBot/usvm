@@ -1,15 +1,11 @@
 package org.usvm.model
 
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.collections.immutable.persistentMapOf
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.usvm.Field
-import org.usvm.Type
-import org.usvm.UBv32Sort
-import org.usvm.UComposer
-import org.usvm.UConcreteHeapRef
-import org.usvm.UContext
+import org.usvm.*
 import org.usvm.memory.UAddressCounter
 import org.usvm.memory.UInputToAllocatedKeyConverter
 import org.usvm.memory.emptyAllocatedArrayRegion
@@ -24,7 +20,9 @@ class ModelCompositionTest {
 
     @BeforeEach
     fun initializeContext() {
-        ctx = UContext()
+        val components: UComponents<*, *, *> = mockk()
+        every { components.mkTypeSystem(any()) } returns mockk()
+        ctx = UContext(components)
         concreteNull = ctx.mkConcreteHeapRef(UAddressCounter.NULL_ADDRESS)
     }
 

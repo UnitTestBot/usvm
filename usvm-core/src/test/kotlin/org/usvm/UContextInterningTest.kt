@@ -8,13 +8,16 @@ import org.usvm.memory.UAllocatedArrayRegion
 import org.usvm.memory.UInputArrayLengthRegion
 import org.usvm.memory.UInputArrayRegion
 import org.usvm.memory.UInputFieldRegion
+import kotlin.test.assertTrue
 
 class UContextInterningTest {
     private lateinit var context: UContext
 
     @BeforeEach
     fun initializeContext() {
-        context = UContext()
+        val components: UComponents<*, *, *> = mockk()
+        every { components.mkTypeSystem(any()) } returns mockk()
+        context = UContext(components)
     }
 
     @Test
@@ -31,7 +34,7 @@ class UContextInterningTest {
             createdWithoutContext
         )
 
-        assert(compare(equal, distinct))
+        assertTrue(compare(equal, distinct))
     }
 
     @Test
@@ -53,7 +56,7 @@ class UContextInterningTest {
             createdWithoutContest
         )
 
-        assert(compare(equal, distinct))
+        assertTrue(compare(equal, distinct))
     }
 
     @Test
@@ -78,7 +81,7 @@ class UContextInterningTest {
             createdWithoutContext
         )
 
-        assert(compare(equal, distinct))
+        assertTrue(compare(equal, distinct))
     }
 
     @Test
@@ -104,7 +107,7 @@ class UContextInterningTest {
             createdWithoutContext
         )
 
-        assert(compare(equal, distinct))
+        assertTrue(compare(equal, distinct))
     }
 
     @Test
@@ -134,7 +137,7 @@ class UContextInterningTest {
             createdWithoutContext
         )
 
-        assert(compare(equal, distinct))
+        assertTrue(compare(equal, distinct))
     }
 
 
@@ -160,7 +163,7 @@ class UContextInterningTest {
             createdWithoutContext
         )
 
-        assert(compare(equal, distinct))
+        assertTrue(compare(equal, distinct))
     }
 
     @Test
@@ -186,7 +189,7 @@ class UContextInterningTest {
             createdWithoutContext
         )
 
-        assert(compare(equal, distinct))
+        assertTrue(compare(equal, distinct))
     }
 
     @Test
@@ -208,7 +211,7 @@ class UContextInterningTest {
             createdWithoutContext
         )
 
-        assert(compare(equal, distinct))
+        assertTrue(compare(equal, distinct))
     }
 
     private fun compare(

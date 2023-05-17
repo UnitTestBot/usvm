@@ -1,5 +1,6 @@
 package org.usvm.model
 
+import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.BeforeEach
@@ -8,10 +9,10 @@ import io.ksmt.solver.z3.KZ3Solver
 import org.usvm.Field
 import org.usvm.Method
 import org.usvm.Type
+import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.UIndexedMocker
-import org.usvm.UPathConstraintsSet
-import org.usvm.memory.UMemoryBase
+import org.usvm.constraints.UPathConstraints
 import org.usvm.memory.URegionHeap
 import org.usvm.memory.URegistersStack
 import org.usvm.solver.USatResult
@@ -24,14 +25,17 @@ class ModelDecodingTest {
     private lateinit var ctx: UContext
     private lateinit var solver: USolverBase<Field, Type, Method>
 
-    private lateinit var memory: UMemoryBase<Field, Type, Method>
+    private lateinit var pc: UPathConstraints<Type>
     private lateinit var stack: URegistersStack
     private lateinit var heap: URegionHeap<Field, Type>
     private lateinit var mocker: UIndexedMocker<Method>
 
     @BeforeEach
     fun initializeContext() {
-        ctx = UContext()
+        val components: UComponents<*, *, *> = mockk()
+        every { components.mkTypeSystem(any()) } returns mockk()
+
+        ctx = UContext(components)
         val softConstraintProvider = USoftConstraintsProvider<Field, Type>(ctx)
         val (translator, decoder) = buildTranslatorAndLazyDecoder<Field, Type, Method>(ctx)
         solver = USolverBase(ctx, KZ3Solver(ctx), translator, decoder, softConstraintProvider)
@@ -41,12 +45,12 @@ class ModelDecodingTest {
         heap = URegionHeap(ctx)
         mocker = UIndexedMocker(ctx)
 
-        memory = UMemoryBase(ctx, mockk(), stack, heap, mockk(), mocker)
+        pc = UPathConstraints(ctx)
     }
 
     @Test
     fun testSmoke(): Unit = with(ctx) {
-        val status = solver.checkWithSoftConstraints(memory, UPathConstraintsSet(trueExpr))
+        val status = solver.checkWithSoftConstraints(pc)
         assertIs<USatResult<UModelBase<*, *>>>(status)
     }
 
@@ -61,13 +65,11 @@ class ModelDecodingTest {
         heap.writeField(concreteRef, field, bv32Sort, mkBv(1), trueExpr)
         heap.writeField(symbolicRef0, field, bv32Sort, mkBv(2), trueExpr)
 
-        val pc = listOf(
-            heap.readField(symbolicRef1, field, bv32Sort) eq mkBv(42),
-            mkHeapRefEq(symbolicRef1, nullRef).not(),
-            mkHeapRefEq(symbolicRef0, nullRef).not()
-        )
+        pc += heap.readField(symbolicRef1, field, bv32Sort) eq mkBv(42)
+        pc += mkHeapRefEq(symbolicRef1, nullRef).not()
+        pc += mkHeapRefEq(symbolicRef0, nullRef).not()
 
-        val status = solver.checkWithSoftConstraints(memory, UPathConstraintsSet(pc))
+        val status = solver.checkWithSoftConstraints(pc)
         val model = assertIs<USatResult<UModelBase<Field, Type>>>(status).model
         val expr = heap.readField(symbolicRef1, field, bv32Sort)
 
@@ -85,10 +87,11 @@ class ModelDecodingTest {
         heap.writeField(concreteRef, field, addressSort, symbolicRef1, trueExpr)
         heap.writeField(symbolicRef0, field, addressSort, symbolicRef0, trueExpr)
 
-        val pc = (symbolicRef1 neq nullRef) and (symbolicRef0 neq nullRef) and
-                (heap.readField(symbolicRef0, field, addressSort) eq symbolicRef1)
+        pc += symbolicRef1 neq nullRef
+        pc += symbolicRef0 neq nullRef
+        pc += heap.readField(symbolicRef0, field, addressSort) eq symbolicRef1
 
-        val status = solver.checkWithSoftConstraints(memory, UPathConstraintsSet(pc))
+        val status = solver.checkWithSoftConstraints(pc)
         val model = assertIs<USatResult<UModelBase<Field, Type>>>(status).model
 
         val expr = heap.readField(symbolicRef1, field, addressSort)
@@ -106,9 +109,11 @@ class ModelDecodingTest {
         heap.writeField(ref1, field, addressSort, heap.allocate(), trueExpr)
         val ref2 = heap.readField(mockedValue, field, addressSort)
 
-        val pc = (ref1 neq ref2) and (mockedValue neq nullRef) and (ref1 neq nullRef)
+        pc += ref1 neq ref2
+        pc += mockedValue neq nullRef
+        pc += ref1 neq nullRef
 
-        val status = solver.checkWithSoftConstraints(memory, UPathConstraintsSet(pc))
+        val status = solver.checkWithSoftConstraints(pc)
         val model = assertIs<USatResult<UModelBase<Field, Type>>>(status).model
 
         val mockedValueEqualsRef1 = mockedValue eq ref1
@@ -126,9 +131,11 @@ class ModelDecodingTest {
         heap.writeField(ref1, field, addressSort, ref1, trueExpr)
         val ref2 = heap.readField(mockedValue, field, addressSort)
 
-        val pc = (ref1 neq ref2) and (mockedValue neq nullRef) and (ref1 neq nullRef)
+        pc += ref1 neq ref2
+        pc += mockedValue neq nullRef
+        pc += ref1 neq nullRef
 
-        val status = solver.checkWithSoftConstraints(memory, UPathConstraintsSet(pc))
+        val status = solver.checkWithSoftConstraints(pc)
         assertIs<UUnsatResult<UModelBase<Field, Type>>>(status)
     }
 
@@ -153,9 +160,9 @@ class ModelDecodingTest {
 
         val readedRef2 = heap.readArrayIndex(symbolicRef2, idx, array, addressSort)
 
-        val pc = (symbolicRef2 neq nullRef) and (readedRef1 neq readedRef2)
+        pc += (symbolicRef2 neq nullRef) and (readedRef1 neq readedRef2)
 
-        val status = solver.checkWithSoftConstraints(memory, UPathConstraintsSet(pc))
+        val status = solver.checkWithSoftConstraints(pc)
         val model = assertIs<USatResult<UModelBase<Field, Type>>>(status).model
 
         assertSame(model.eval(symbolicRef1), model.eval(symbolicRef2))
@@ -176,10 +183,13 @@ class ModelDecodingTest {
         heap.writeArrayIndex(symbolicRef2, concreteIdx, array, addressSort, symbolicRef0, trueExpr)
 
         val readedRef = heap.readArrayIndex(symbolicRef0, concreteIdx, array, addressSort)
-        val pc = (symbolicRef0 neq nullRef) and (symbolicRef1 neq nullRef) and (symbolicRef2 neq nullRef) and
-                (readedRef neq symbolicRef1) and (symbolicRef0 eq symbolicRef1)
+        pc += symbolicRef0 neq nullRef
+        pc += symbolicRef1 neq nullRef
+        pc += symbolicRef2 neq nullRef
+        pc += readedRef neq symbolicRef1
+        pc += symbolicRef0 eq symbolicRef1
 
-        val status = solver.checkWithSoftConstraints(memory, UPathConstraintsSet(pc))
+        val status = solver.checkWithSoftConstraints(pc)
         val model = assertIs<USatResult<UModelBase<Field, Type>>>(status).model
 
         assertSame(falseExpr, model.eval(symbolicRef2 eq symbolicRef0))

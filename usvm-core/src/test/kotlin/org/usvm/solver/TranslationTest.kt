@@ -1,5 +1,6 @@
 package org.usvm.solver
 
+import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.RepeatedTest
@@ -11,6 +12,7 @@ import org.usvm.Field
 import org.usvm.Type
 import org.usvm.UAddressSort
 import org.usvm.UBv32Sort
+import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.memory.UInputToAllocatedKeyConverter
 import org.usvm.memory.UInputToInputKeyConverter
@@ -33,7 +35,10 @@ class TranslationTest {
 
     @BeforeEach
     fun initializeContext() {
-        ctx = UContext()
+        val components: UComponents<*, *, *> = mockk()
+        every { components.mkTypeSystem(any()) } returns mockk()
+
+        ctx = UContext(components)
         heap = URegionHeap(ctx)
         translator = UExprTranslator(ctx)
 

@@ -1,5 +1,6 @@
 package org.usvm
 
+import org.usvm.constraints.UTypeEvaluator
 import org.usvm.memory.UReadOnlySymbolicHeap
 import org.usvm.memory.URegionId
 import org.usvm.memory.URegistersStackEvaluator

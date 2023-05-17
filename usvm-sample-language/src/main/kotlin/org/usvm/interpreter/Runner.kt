@@ -2,8 +2,10 @@ package org.usvm.interpreter
 
 import io.ksmt.solver.yices.KYicesSolver
 import kotlinx.collections.immutable.persistentListOf
+import org.usvm.UComponents
 import org.usvm.UContext
-import org.usvm.UPathConstraintsSet
+import org.usvm.UTypeSystem
+import org.usvm.constraints.UPathConstraints
 import org.usvm.language.Field
 import org.usvm.language.Method
 import org.usvm.language.Program
@@ -14,6 +16,19 @@ import org.usvm.solver.USatResult
 import org.usvm.solver.USoftConstraintsProvider
 import org.usvm.solver.USolverBase
 
+class SampleLanguageComponents(
+    private val typeSystem: SampleTypeSystem
+) : UComponents<Field<*>, SampleType, Method<*>> {
+    override fun mkSolver(ctx: UContext): USolverBase<Field<*>, SampleType, Method<*>> {
+        val (translator, decoder) = buildTranslatorAndLazyDecoder<Field<*>, SampleType, Method<*>>(ctx)
+        val softConstraintsProvider = USoftConstraintsProvider<Field<*>, SampleType>(ctx)
+
+        return USolverBase(ctx, KYicesSolver(ctx), translator, decoder, softConstraintsProvider)
+    }
+
+    override fun mkTypeSystem(ctx: UContext): UTypeSystem<SampleType> = typeSystem
+}
+
 /**
  * Entry point for a sample language analyzer.
  */
@@ -22,19 +37,16 @@ class Runner(
     val maxStates: Int = 40,
 ) {
     private val applicationGraph = DefaultSampleApplicationGraph(program)
-    private val ctx = UContext()
     private val typeSystem = SampleTypeSystem()
 
     fun run(method: Method<*>): List<ProgramExecutionResult> {
-        val (translator, decoder) = buildTranslatorAndLazyDecoder<Field<*>, SampleType, Method<*>>(ctx)
-        val softConstraintsProvider = USoftConstraintsProvider<Field<*>, SampleType>(ctx)
-
-        val solver = USolverBase(ctx, KYicesSolver(ctx), translator, decoder, softConstraintsProvider)
+        val components = SampleLanguageComponents(typeSystem)
+        val ctx = UContext(components)
 
         val resultModelConverter = ResultModelConverter(ctx, method)
-        val initialState = getInitialState(solver, method)
+        val initialState = getInitialState(ctx, ctx.solver(), method)
 
-        val interpreter = SampleInterpreter(ctx, applicationGraph, solver)
+        val interpreter = SampleInterpreter(ctx, applicationGraph)
 
         val queue = ArrayDeque<ExecutionState>()
         queue.add(initialState)
@@ -65,12 +77,15 @@ class Runner(
         return finalStates.map { resultModelConverter.convert(it) }
     }
 
-    private fun getInitialState(solver: USolverBase<Field<*>, SampleType, Method<*>>, method: Method<*>): ExecutionState =
-        ExecutionState(ctx, typeSystem).apply {
-            addEntryMethodCall(applicationGraph, method)
-            val solverResult = solver.check(memory, UPathConstraintsSet(ctx.trueExpr), useSoftConstraints = true)
-            val satResult = solverResult as USatResult<UModelBase<Field<*>, SampleType>>
-            val model = satResult.model
-            models = persistentListOf(model)
-        }
+    private fun getInitialState(
+        ctx: UContext,
+        solver: USolverBase<Field<*>, SampleType, Method<*>>,
+        method: Method<*>
+    ): ExecutionState = ExecutionState(ctx).apply {
+        addEntryMethodCall(applicationGraph, method)
+        val solverResult = solver.check(UPathConstraints(ctx), useSoftConstraints = true)
+        val satResult = solverResult as USatResult<UModelBase<Field<*>, SampleType>>
+        val model = satResult.model
+        models = persistentListOf(model)
+    }
 }

@@ -8,6 +8,7 @@ import io.ksmt.expr.KExpr
 import io.ksmt.utils.mkConst
 import org.usvm.UAddressSort
 import org.usvm.UBv32Sort
+import org.usvm.UComponents
 import org.usvm.UComposer
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
@@ -30,7 +31,9 @@ class MapCompositionTest<Field, Type> {
 
     @BeforeEach
     fun initializeContext() {
-        ctx = UContext()
+        val components: UComponents<*, *, *> = mockk()
+        every { components.mkTypeSystem(any()) } returns mockk()
+        ctx = UContext(components)
         composer = mockk()
     }
 

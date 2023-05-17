@@ -5,42 +5,40 @@ import io.ksmt.solver.z3.KZ3Solver
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
-import kotlinx.collections.immutable.persistentSetOf
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.usvm.UComponents
 import org.usvm.UContext
-import org.usvm.UPathConstraintsSet
 import org.usvm.UTypeSystem
-import org.usvm.memory.UMemoryBase
+import org.usvm.constraints.UPathConstraints
 import org.usvm.memory.emptyInputArrayLengthRegion
 import org.usvm.model.ULazyModelDecoder
 import org.usvm.model.buildTranslatorAndLazyDecoder
 import kotlin.test.assertSame
 
-class SoftConstraintsTest<Field, Type, Method> {
+open class SoftConstraintsTest<Field, Type, Method> {
     private lateinit var ctx: UContext
     private lateinit var softConstraintsProvider: USoftConstraintsProvider<Field, Type>
     private lateinit var typeSystem: UTypeSystem<Type>
-    private lateinit var memory: UMemoryBase<Field, Type, Method>
     private lateinit var translator: UExprTranslator<Field, Type>
     private lateinit var decoder: ULazyModelDecoder<Field, Type, Method>
     private lateinit var solver: USolverBase<Field, Type, Method>
 
     @BeforeEach
     fun initialize() {
-        ctx = UContext()
-        softConstraintsProvider = USoftConstraintsProvider(ctx)
         typeSystem = mockk<UTypeSystem<Type>>(relaxed = true)
-        memory = mockk<UMemoryBase<Field, Type, Method>>()
+        val components: UComponents<*, *, *> = mockk()
+        every { components.mkTypeSystem(any()) } returns typeSystem
+
+        ctx = UContext(components)
+        softConstraintsProvider = USoftConstraintsProvider(ctx)
 
         val translatorWithDecoder = buildTranslatorAndLazyDecoder<Field, Type, Method>(ctx)
 
         translator = translatorWithDecoder.first
         decoder = translatorWithDecoder.second
         solver = USolverBase(ctx, KZ3Solver(ctx), translator, decoder, softConstraintsProvider)
-
-        every { memory.typeSystem } returns typeSystem
     }
 
     @Test
@@ -49,9 +47,10 @@ class SoftConstraintsTest<Field, Type, Method> {
         val sndRegister = mkRegisterReading(idx = 1, bv32Sort)
         val expr = mkBvSignedLessOrEqualExpr(fstRegister, sndRegister)
 
-        val pc = UPathConstraintsSet(expr)
+        val pc = UPathConstraints<Type>(ctx)
+        pc += expr
 
-        val result = solver.checkWithSoftConstraints(memory, pc) as USatResult
+        val result = solver.checkWithSoftConstraints(pc) as USatResult
         val model = result.model
 
         val fstRegisterValue = model.eval(fstRegister)
@@ -75,11 +74,14 @@ class SoftConstraintsTest<Field, Type, Method> {
 
         every { softConstraintsProvider.provide(any()) } answers { callOriginal() }
 
-        val pc = UPathConstraintsSet(persistentSetOf(fstExpr, sndExpr, sameAsFirstExpr))
+        val pc = UPathConstraints<Type>(ctx)
+        pc += fstExpr
+        pc += sndExpr
+        pc += sameAsFirstExpr
 
         val solver = USolverBase(ctx, KZ3Solver(ctx), translator, decoder, softConstraintsProvider)
 
-        val result = solver.checkWithSoftConstraints(memory, pc) as USatResult
+        val result = solver.checkWithSoftConstraints(pc) as USatResult
         val model = result.model
 
         verify(exactly = 1) {
@@ -117,12 +119,12 @@ class SoftConstraintsTest<Field, Type, Method> {
 
         val reading = region.read(secondInputRef)
 
-        val pc = UPathConstraintsSet(
-            reading eq size.toBv(),
-            inputRef eq secondInputRef,
-            (inputRef eq nullRef).not()
-        )
-        val result = (solver.checkWithSoftConstraints(memory, pc)) as USatResult
+        val pc = UPathConstraints<Type>(ctx)
+        pc += reading eq size.toBv()
+        pc += inputRef eq secondInputRef
+        pc += (inputRef eq nullRef).not()
+
+        val result = (solver.checkWithSoftConstraints(pc)) as USatResult
 
         val model = result.model
         val value = model.eval(mkInputArrayLengthReading(region, inputRef))
@@ -137,8 +139,9 @@ class SoftConstraintsTest<Field, Type, Method> {
         val region = emptyInputArrayLengthRegion(arrayType, sizeSort)
             .write(inputRef, mkRegisterReading(3, sizeSort), guard = trueExpr)
 
-        val pc = UPathConstraintsSet((inputRef eq nullRef).not())
-        val result = (solver.checkWithSoftConstraints(memory, pc)) as USatResult
+        val pc = UPathConstraints<Type>(ctx)
+        pc += (inputRef eq nullRef).not()
+        val result = (solver.checkWithSoftConstraints(pc)) as USatResult
 
         val model = result.model
         val value = model.eval(mkInputArrayLengthReading(region, inputRef))
@@ -152,8 +155,9 @@ class SoftConstraintsTest<Field, Type, Method> {
         val bvValue = 0.toBv()
         val expression = mkBvSignedLessOrEqualExpr(bvValue, inputRef).not()
 
-        val pc = UPathConstraintsSet(expression)
-        val result = (solver.checkWithSoftConstraints(memory, pc)) as USatResult
+        val pc = UPathConstraints<Type>(ctx)
+        pc += expression
+        val result = (solver.checkWithSoftConstraints(pc)) as USatResult
 
         val model = result.model
         model.eval(expression)

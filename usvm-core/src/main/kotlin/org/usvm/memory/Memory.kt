@@ -13,8 +13,7 @@ import org.usvm.UMocker
 import org.usvm.URegisterRef
 import org.usvm.USizeExpr
 import org.usvm.USort
-import org.usvm.UTypeStorage
-import org.usvm.UTypeSystem
+import org.usvm.constraints.UTypeConstraints
 
 interface UMemory<LValue, RValue, SizeT, HeapRef, Type> {
     /**
@@ -59,14 +58,6 @@ interface UMemory<LValue, RValue, SizeT, HeapRef, Type> {
     fun length(ref: HeapRef, arrayType: Type): SizeT
 
     fun <Sort : USort> compose(expr: UExpr<Sort>): UExpr<Sort>
-
-    /**
-     * Creates new instance of program memory.
-     *
-     * **Warning**: symbolic engine may use this operation potentially large number of times.
-     * Implementation must use persistent data structures to speed it up.
-     */
-    fun clone(): UMemory<LValue, RValue, SizeT, HeapRef, Type>
 }
 
 typealias USymbolicMemory<Type> = UMemory<ULValue, UExpr<out USort>, USizeExpr, UHeapRef, Type>
@@ -74,10 +65,9 @@ typealias USymbolicMemory<Type> = UMemory<ULValue, UExpr<out USort>, USizeExpr, 
 @Suppress("MemberVisibilityCanBePrivate")
 open class UMemoryBase<Field, Type, Method>(
     protected val ctx: UContext,
-    val typeSystem: UTypeSystem<Type>,
+    val types: UTypeConstraints<Type>,
     val stack: URegistersStack = URegistersStack(ctx),
     val heap: USymbolicHeap<Field, Type> = URegionHeap(ctx),
-    val types: UTypeStorage<Type> = UTypeStorage(ctx, typeSystem),
     val mocker: UMocker<Method> = UIndexedMocker(ctx)
     // TODO: we can eliminate mocker by moving compose to UState?
 ) : USymbolicMemory<Type> {
@@ -134,6 +124,6 @@ open class UMemoryBase<Field, Type, Method>(
         return composer.compose(expr)
     }
 
-    override fun clone(): UMemoryBase<Field, Type, Method> =
-        UMemoryBase(ctx, typeSystem, stack.clone(), heap.toMutableHeap(), types, mocker)
+    fun clone(typeConstraints: UTypeConstraints<Type>): UMemoryBase<Field, Type, Method> =
+        UMemoryBase(ctx, typeConstraints, stack.clone(), heap.toMutableHeap(), mocker)
 }

@@ -1,5 +1,6 @@
 package org.usvm.memory
 
+import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -9,6 +10,7 @@ import org.usvm.Field
 import org.usvm.Type
 import org.usvm.UAddressSort
 import org.usvm.UBv32Sort
+import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.UInputFieldReading
 import org.usvm.UIteExpr
@@ -27,7 +29,9 @@ class HeapRefSplittingTest {
 
     @BeforeEach
     fun initializeContext() {
-        ctx = UContext()
+        val components: UComponents<*, *, *> = mockk()
+        every { components.mkTypeSystem(any()) } returns mockk()
+        ctx = UContext(components)
         heap = URegionHeap(ctx)
         valueFieldDescr = mockk<Field>() to ctx.bv32Sort
         addressFieldDescr = mockk<Field>() to ctx.addressSort
