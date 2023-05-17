@@ -25,22 +25,21 @@ abstract class UAnalyzer<State : UState<*, *, *, *>, Target> {
         val pathSelector = getPathSelector(target)
 
         while (!pathSelector.isEmpty() && !shouldStop()) {
-            val state = pathSelector.peek()
-            val (forkedStates, stateAlive) = interpreter.step(state)
+            pathSelector.peekAndUpdate { state ->
+                val (forkedStates, stateAlive) = interpreter.step(state)
 
-            forkedStates.forEach(onState)
-            if (stateAlive) {
-                onState(state)
+                forkedStates.forEach(onState)
+                if (stateAlive) {
+                    onState(state)
+                }
+
+                if (!stateAlive || !continueAnalyzing(state)) {
+                    pathSelector.terminate()
+                }
+
+                val nextStates = forkedStates.asSequence().filter(continueAnalyzing)
+                pathSelector.add(nextStates)
             }
-
-            var originalState: State? = state
-            if (!stateAlive || !continueAnalyzing(state)) {
-                pathSelector.terminate(state)
-                originalState = null
-            }
-
-            val nextStates = forkedStates.filter(continueAnalyzing)
-            pathSelector.add(originalState, nextStates)
         }
     }
 
