@@ -1,6 +1,7 @@
 package org.usvm.memory
 
 import io.ksmt.utils.asExpr
+import kotlinx.collections.immutable.toPersistentMap
 import org.usvm.UBoolExpr
 import org.usvm.UComposer
 import org.usvm.UConcreteHeapAddress
@@ -14,6 +15,7 @@ import org.usvm.USizeSort
 import org.usvm.USort
 import org.usvm.sampleUValue
 import org.usvm.uctx
+import org.usvm.util.RegionTree
 import org.usvm.util.SetRegion
 import org.usvm.util.emptyRegionTree
 
@@ -354,6 +356,38 @@ fun <ArrayType, Sort : USort> emptyAllocatedArrayRegion(
         updates = emptyRegionTree(),
         ::indexRegion, ::indexRangeRegion, ::indexEq, ::indexLeConcrete, ::indexLeSymbolic
     )
+    return createAllocatedArrayRegion(arrayType, sort, address, updates)
+}
+
+fun <ArrayType, Sort : USort> initializedAllocatedArrayRegion(
+    arrayType: ArrayType,
+    address: UConcreteHeapAddress,
+    sort: Sort,
+    content: Map<USizeExpr, UExpr<Sort>>,
+    guard: UBoolExpr
+): UAllocatedArrayRegion<ArrayType, Sort> {
+    val emptyRegionTree = emptyRegionTree<UUpdateNode<USizeExpr, Sort>, UArrayIndexRegion>()
+
+    val entries = content.entries.associate { (key, value) ->
+        val region = indexRegion(key)
+        val update = UPinpointUpdateNode(key, value, ::indexEq, guard)
+        region to (update to emptyRegionTree)
+    }
+
+    val updates = UTreeUpdates<USizeExpr, UArrayIndexRegion, Sort>(
+        updates = RegionTree(entries.toPersistentMap()),
+        ::indexRegion, ::indexRangeRegion, ::indexEq, ::indexLeConcrete, ::indexLeSymbolic
+    )
+
+    return createAllocatedArrayRegion(arrayType, sort, address, updates)
+}
+
+private fun <ArrayType, Sort : USort> createAllocatedArrayRegion(
+    arrayType: ArrayType,
+    sort: Sort,
+    address: UConcreteHeapAddress,
+    updates: UTreeUpdates<USizeExpr, UArrayIndexRegion, Sort>
+): USymbolicMemoryRegion<UAllocatedArrayId<ArrayType, Sort>, USizeExpr, Sort> {
     // sampleUValue here is important
     val regionId = UAllocatedArrayId(arrayType, sort, sort.sampleUValue(), address, contextHeap = null)
     return USymbolicMemoryRegion(regionId, updates)
