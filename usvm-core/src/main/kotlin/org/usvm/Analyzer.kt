@@ -10,8 +10,8 @@ abstract class UAnalyzer<State : UState<*, *, *, *>, Target> {
      *
      * @param target a generic target to run on.
      * @param onState called on every forked state. Can be used for collecting results.
-     * @param continueAnalyzing filtering function for forked states. If it returns `false`, state
-     * isn't added to path selector.
+     * @param continueAnalyzing filtering function for states. If it returns `false`, a state
+     * won't be analyzed further. It is called on an original state and forked states as well.
      * @param shouldStop checked on every step, before peeking a next state from path selector. Returning `true` aborts
      * analysis.
      */
