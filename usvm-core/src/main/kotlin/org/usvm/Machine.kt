@@ -47,7 +47,7 @@ abstract class UMachine<State : UState<*, *, *, *>, Target> {
         if (stateAlive) {
             update(state)
         } else {
-            terminate(state)
+            remove(state)
         }
         add(forkedStates)
     }

@@ -12,7 +12,7 @@ class DfsPathSelector<State> : UPathSelector<State> {
         // nothing to do
     }
 
-    override fun terminate(state: State) {
+    override fun remove(state: State) {
         when (state) {
             stack.last() -> stack.removeLast() // fast remove from the tail
             stack.first() -> stack.removeFirst() // fast remove from the head
@@ -20,7 +20,7 @@ class DfsPathSelector<State> : UPathSelector<State> {
         }
     }
 
-    override fun add(producedStates: Sequence<State>) {
-        stack.addAll(producedStates)
+    override fun add(states: Sequence<State>) {
+        stack.addAll(states)
     }
 }
