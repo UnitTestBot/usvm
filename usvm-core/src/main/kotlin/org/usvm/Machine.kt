@@ -2,7 +2,9 @@ package org.usvm
 
 
 /**
- * An abstract symbolic analyzer.
+ * An abstract symbolic machine.
+ *
+ * @see [run]
  */
 abstract class UMachine<State : UState<*, *, *, *>, Target> {
     /**
@@ -12,8 +14,8 @@ abstract class UMachine<State : UState<*, *, *, *>, Target> {
      * @param onState called on every forked state. Can be used for collecting results.
      * @param continueAnalyzing filtering function for states. If it returns `false`, a state
      * won't be analyzed further. It is called on an original state and every forked state as well.
-     * @param shouldStop called on every step, before peeking a next state from path selector. Returning `true` aborts
-     * analysis.
+     * @param shouldStop is called on every step, before peeking a next state from path selector.
+     * Returning `true` aborts analysis.
      */
     fun run(
         target: Target,
@@ -41,7 +43,10 @@ abstract class UMachine<State : UState<*, *, *, *>, Target> {
         }
     }
 
-    private fun UPathSelector<State>.peekAndUpdate(step: (State) -> StepResult<State>) {
+    /**
+     * An auxiliary function for working with path selector.
+     */
+    private inline fun UPathSelector<State>.peekAndUpdate(step: (State) -> StepResult<State>) {
         val state = peek()
         val (forkedStates, stateAlive) = step(state)
         if (stateAlive) {
@@ -52,7 +57,13 @@ abstract class UMachine<State : UState<*, *, *, *>, Target> {
         add(forkedStates)
     }
 
+    /**
+     * @return a configured interpreter suitable for a [target].
+     */
     protected abstract fun getInterpreter(target: Target): UInterpreter<State>
 
+    /**
+     * @return a configured path selector with initial states obtained from a [target].
+     */
     protected abstract fun getPathSelector(target: Target): UPathSelector<State>
 }
