@@ -5,11 +5,9 @@ import kotlinx.collections.immutable.persistentListOf
 import org.usvm.UCallStack
 import org.usvm.UContext
 import org.usvm.UExpr
-import org.usvm.memory.UMemoryBase
-import org.usvm.model.UModel
-import org.usvm.constraints.UPathConstraints
 import org.usvm.USort
 import org.usvm.UState
+import org.usvm.constraints.UPathConstraints
 import org.usvm.language.Field
 import org.usvm.language.Method
 import org.usvm.language.ProgramException
@@ -17,8 +15,10 @@ import org.usvm.language.SampleType
 import org.usvm.language.Stmt
 import org.usvm.language.arity
 import org.usvm.language.registersCount
+import org.usvm.memory.UMemoryBase
+import org.usvm.model.UModel
 
-class ExecutionState(
+class SampleState(
     ctx: UContext,
     callStack: UCallStack<Method<*>, Stmt> = UCallStack(),
     pathConstraints: UPathConstraints<SampleType> = UPathConstraints(ctx),
@@ -34,9 +34,9 @@ class ExecutionState(
     memory,
     models, path
 ) {
-    override fun clone(newConstraints: UPathConstraints<SampleType>?): ExecutionState {
+    override fun clone(newConstraints: UPathConstraints<SampleType>?): SampleState {
         val clonedConstraints = newConstraints ?: pathConstraints.clone()
-        return ExecutionState(
+        return SampleState(
             ctx,
             callStack.clone(),
             clonedConstraints,
@@ -49,12 +49,12 @@ class ExecutionState(
     }
 }
 
-val ExecutionState.lastStmt get() = path.last()
-fun ExecutionState.addNewStmt(stmt: Stmt) {
+val SampleState.lastStmt get() = path.last()
+fun SampleState.addNewStmt(stmt: Stmt) {
     path = path.add(stmt)
 }
 
-fun ExecutionState.popMethodCall(valueToReturn: UExpr<out USort>?) {
+fun SampleState.popMethodCall(valueToReturn: UExpr<out USort>?) {
     val returnSite = callStack.pop()
     if (callStack.isNotEmpty()) { // TODO: looks like hack
         memory.stack.pop()
@@ -67,11 +67,11 @@ fun ExecutionState.popMethodCall(valueToReturn: UExpr<out USort>?) {
     }
 }
 
-fun ExecutionState.addEntryMethodCall(applicationGraph: SampleApplicationGraph, method: Method<*>) {
+fun SampleState.addEntryMethodCall(applicationGraph: SampleApplicationGraph, method: Method<*>) {
     addNewMethodCall(applicationGraph, method, List(method.arity) { null })
 }
 
-fun ExecutionState.addNewMethodCall(
+fun SampleState.addNewMethodCall(
     applicationGraph: SampleApplicationGraph,
     method: Method<*>,
     arguments: List<UExpr<out USort>?>,

@@ -11,9 +11,9 @@ import org.usvm.memory.UMemoryBase
 import org.usvm.model.UModelBase
 import org.usvm.model.UModelDecoder
 
-sealed interface USolverResult<T>
+sealed interface USolverResult<out T>
 
-open class USatResult<Model>(
+open class USatResult<out Model>(
     val model: Model,
 ) : USolverResult<Model>
 
@@ -21,8 +21,7 @@ open class UUnsatResult<Model> : USolverResult<Model>
 
 open class UUnknownResult<Model> : USolverResult<Model>
 
-abstract class USolver<Memory, PathCondition, Model> {
-    // TODO make global option for that?
+abstract class USolver<in PathCondition, out Model> {
     abstract fun check(pc: PathCondition, useSoftConstraints: Boolean): USolverResult<Model>
 }
 
@@ -32,7 +31,7 @@ open class USolverBase<Field, Type, Method>(
     protected val translator: UExprTranslator<Field, Type>,
     protected val decoder: UModelDecoder<UMemoryBase<Field, Type, Method>, UModelBase<Field, Type>>,
     protected val softConstraintsProvider: USoftConstraintsProvider<Field, Type>,
-) : USolver<UMemoryBase<Field, Type, Method>, UPathConstraints<Type>, UModelBase<Field, Type>>() {
+) : USolver<UPathConstraints<Type>, UModelBase<Field, Type>>() {
 
     protected fun translateLogicalConstraints(constraints: Iterable<UBoolExpr>) {
         for (constraint in constraints) {
@@ -133,4 +132,7 @@ open class USolverBase<Field, Type, Method>(
 
         return USatResult(uModel)
     }
+
+    fun emptyModel(): UModelBase<Field, Type> =
+        (checkWithSoftConstraints(UPathConstraints(ctx)) as USatResult<UModelBase<Field, Type>>).model
 }

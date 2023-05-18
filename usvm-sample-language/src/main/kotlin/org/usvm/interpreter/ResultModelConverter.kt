@@ -2,13 +2,11 @@ package org.usvm.interpreter
 
 import io.ksmt.expr.KBitVec32Value
 import io.ksmt.utils.asExpr
-import org.usvm.memory.UAddressCounter.Companion.NULL_ADDRESS
 import org.usvm.UAddressSort
 import org.usvm.UBoolSort
 import org.usvm.UBv32Sort
 import org.usvm.UContext
 import org.usvm.UExpr
-import org.usvm.model.UModelBase
 import org.usvm.USort
 import org.usvm.isTrue
 import org.usvm.language.ArrayCreation
@@ -25,12 +23,13 @@ import org.usvm.language.SampleType
 import org.usvm.language.StructCreation
 import org.usvm.language.StructExpr
 import org.usvm.language.StructType
+import org.usvm.memory.UAddressCounter.Companion.NULL_ADDRESS
+import org.usvm.model.UModelBase
 
 class ResultModelConverter(
     private val ctx: UContext,
-    private val method: Method<*>,
 ) {
-    fun convert(state: ExecutionState): ProgramExecutionResult {
+    fun convert(state: SampleState, method: Method<*>): ProgramExecutionResult {
         val exceptionRegister = state.exceptionRegister
 
         @Suppress("UNCHECKED_CAST")
