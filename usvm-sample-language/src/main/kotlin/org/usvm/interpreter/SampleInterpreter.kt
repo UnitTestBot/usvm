@@ -1,13 +1,18 @@
 package org.usvm.interpreter
 
+import org.usvm.StepResult
+import org.usvm.StepScope
 import org.usvm.UContext
+import org.usvm.UInterpreter
 import org.usvm.language.Call
 import org.usvm.language.Goto
 import org.usvm.language.If
 import org.usvm.language.Return
+import org.usvm.language.SampleType
 import org.usvm.language.SetLabel
 import org.usvm.language.SetValue
-import org.usvm.language.Stmt
+
+typealias SampleStepScope = StepScope<SampleState, SampleType>
 
 /**
  * Symbolic interpreter for a sample language.
@@ -15,23 +20,16 @@ import org.usvm.language.Stmt
 class SampleInterpreter(
     private val ctx: UContext,
     private val applicationGraph: SampleApplicationGraph,
-) {
+) : UInterpreter<SampleState>() {
 
     /**
      * Interpreters a single step inside a symbolic [state].
      *
      * @return next states.
      */
-    fun step(state: ExecutionState): Collection<ExecutionState> {
-        val stmt = state.lastStmt
+    override fun step(state: SampleState): StepResult<SampleState> {
         val scope = StepScope(ctx, state)
-        step(scope, stmt)
-        val newStates = scope.allStates()
-        return newStates
-    }
-
-    private fun step(scope: StepScope, stmt: Stmt) {
-        when (stmt) {
+        when (val stmt = state.lastStmt) {
             is Call -> visitCall(scope, stmt)
             is Goto -> visitGoto(scope, stmt)
             is If -> visitIf(scope, stmt)
@@ -39,9 +37,10 @@ class SampleInterpreter(
             is SetLabel -> visitSetLabel(scope, stmt)
             is SetValue -> visitSetValue(scope, stmt)
         }
+        return scope.stepResult()
     }
 
-    private fun visitCall(scope: StepScope, stmt: Call) {
+    private fun visitCall(scope: SampleStepScope, stmt: Call) {
         val exprResolver = ExprResolver(scope)
 
         val retRegister = scope.calcOnState {
@@ -69,12 +68,12 @@ class SampleInterpreter(
         }
     }
 
-    private fun visitGoto(scope: StepScope, stmt: Goto) {
+    private fun visitGoto(scope: SampleStepScope, stmt: Goto) {
         val nextStmt = applicationGraph.successors(stmt).single()
         scope.doWithState { addNewStmt(nextStmt) }
     }
 
-    private fun visitIf(scope: StepScope, stmt: If) {
+    private fun visitIf(scope: SampleStepScope, stmt: If) {
         val exprResolver = ExprResolver(scope)
 
         val boolExpr = exprResolver.resolveBoolean(stmt.condition) ?: return
@@ -88,7 +87,7 @@ class SampleInterpreter(
         )
     }
 
-    private fun visitReturn(scope: StepScope, stmt: Return) {
+    private fun visitReturn(scope: SampleStepScope, stmt: Return) {
         val exprResolver = ExprResolver(scope)
 
         val valueToReturn = stmt.valueToReturn?.let { exprResolver.resolveExpr(it) }
@@ -98,12 +97,12 @@ class SampleInterpreter(
         }
     }
 
-    private fun visitSetLabel(scope: StepScope, stmt: SetLabel) {
+    private fun visitSetLabel(scope: SampleStepScope, stmt: SetLabel) {
         val nextStmt = applicationGraph.successors(stmt).single()
         scope.doWithState { addNewStmt(nextStmt) }
     }
 
-    private fun visitSetValue(scope: StepScope, stmt: SetValue) {
+    private fun visitSetValue(scope: SampleStepScope, stmt: SetValue) {
         val exprResolver = ExprResolver(scope)
         val lvalue = exprResolver.resolveLValue(stmt.lvalue) ?: return
         val expr = exprResolver.resolveExpr(stmt.expr) ?: return

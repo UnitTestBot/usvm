@@ -5,7 +5,6 @@ import kotlinx.collections.immutable.PersistentList
 import org.usvm.constraints.UPathConstraints
 import org.usvm.memory.UMemoryBase
 import org.usvm.model.UModel
-import org.usvm.model.UModelBase
 import org.usvm.solver.USatResult
 import org.usvm.solver.UUnknownResult
 import org.usvm.solver.UUnsatResult
@@ -24,6 +23,13 @@ abstract class UState<Type, Field, Method, Statement>(
      * If [newConstraints] is null, clones [pathConstraints]. Otherwise, uses [newConstraints] in cloned state.
      */
     abstract fun clone(newConstraints: UPathConstraints<Type>? = null): UState<Type, Field, Method, Statement>
+
+    val lastEnteredMethod: Method
+        get() = callStack.lastMethod()
+
+    // TODO or last? Do we add a current stmt into the path immediately?
+    val currentStatement: Statement?
+        get() = path.lastOrNull()
 }
 
 class ForkResult<T>(
@@ -45,12 +51,12 @@ class ForkResult<T>(
  * - if [forkToSatisfied], then c = [conditionToCheck]
  * - if ![forkToSatisfied], then c = [satisfiedCondition]
  */
-private fun <T : UState<Type, Field, Method, Statement>, Type, Field, Method, Statement> forkIfSat(
+private fun <T : UState<Type, *, *, *>, Type> forkIfSat(
     state: T,
     satisfiedCondition: UBoolExpr,
     conditionToCheck: UBoolExpr,
     forkToSatisfied: Boolean,
-): UState<Type, Field, Method, Statement>? {
+): T? {
     val pathConstraints = state.pathConstraints.clone()
     pathConstraints += conditionToCheck
 
@@ -58,29 +64,31 @@ private fun <T : UState<Type, Field, Method, Statement>, Type, Field, Method, St
         return null
     }
 
-    val solver = state.ctx.solver<Field, Type, Method>()
+    val solver = state.ctx.solver<Any?, Type, Any?>()
     val satResult = solver.check(pathConstraints, useSoftConstraints = true)
 
     return when (satResult) {
-        is USatResult<UModelBase<Field, Type>> -> {
+        is USatResult -> {
             if (forkToSatisfied) {
-                val forkedState = state.clone()
+                @Suppress("UNCHECKED_CAST")
+                val forkedState = state.clone() as T
                 // TODO: implement path condition setter (don't forget to reset UMemoryBase:types!)
                 state.pathConstraints += conditionToCheck
                 state.models = listOf(satResult.model)
                 forkedState.pathConstraints += satisfiedCondition
                 forkedState
             } else {
-                val forkedState = state.clone(pathConstraints)
+                @Suppress("UNCHECKED_CAST")
+                val forkedState = state.clone(pathConstraints) as T
                 state.pathConstraints += satisfiedCondition
                 forkedState.models = listOf(satResult.model)
                 forkedState
             }
         }
 
-        is UUnsatResult<UModelBase<Field, Type>> -> null
+        is UUnsatResult -> null
 
-        is UUnknownResult<UModelBase<Field, Type>> -> {
+        is UUnknownResult -> {
             if (forkToSatisfied) {
                 state.pathConstraints += conditionToCheck
             } else {
@@ -103,7 +111,7 @@ private fun <T : UState<Type, Field, Method, Statement>, Type, Field, Method, St
  * 2. makes not more than one query to USolver;
  * 3. if both [condition] and ![condition] are satisfiable, then [ForkResult.positiveState] === [state].
  */
-fun <T : UState<Type, Field, Method, Statement>, Type, Field, Method, Statement> fork(
+fun <T : UState<Type, *, *, *>, Type> fork(
     state: T,
     condition: UBoolExpr,
 ): ForkResult<T> {

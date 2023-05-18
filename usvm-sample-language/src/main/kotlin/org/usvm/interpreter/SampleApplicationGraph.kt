@@ -11,11 +11,9 @@ import org.usvm.language.SetLabel
 import org.usvm.language.SetValue
 import org.usvm.language.Stmt
 
-typealias SampleApplicationGraph = ApplicationGraph<Method<*>, Stmt>
-
-class DefaultSampleApplicationGraph(
+class SampleApplicationGraph(
     program: Program,
-) : SampleApplicationGraph {
+) : ApplicationGraph<Method<*>, Stmt> {
     private val stmtToMethod = program.methods
         .flatMap { method -> method.body?.stmts?.map { it to method }.orEmpty() }
         .toMap()

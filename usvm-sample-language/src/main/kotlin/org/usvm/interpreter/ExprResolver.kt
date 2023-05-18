@@ -49,6 +49,8 @@ import org.usvm.language.NegativeArraySize
 import org.usvm.language.Not
 import org.usvm.language.NullPointerDereference
 import org.usvm.language.Or
+import org.usvm.language.Register
+import org.usvm.language.RegisterLValue
 import org.usvm.language.SampleType
 import org.usvm.language.StructCreation
 import org.usvm.language.StructEq
@@ -56,8 +58,6 @@ import org.usvm.language.StructExpr
 import org.usvm.language.StructIsNull
 import org.usvm.language.StructType
 import org.usvm.language.UnaryMinus
-import org.usvm.language.Register
-import org.usvm.language.RegisterLValue
 
 /**
  * Resolves [Expr]s to [UExpr]s, forks in the [scope] respecting unsats. Checks for exceptions.
@@ -66,7 +66,7 @@ import org.usvm.language.RegisterLValue
  * [hardMaxArrayLength] will be rejected.
  */
 class ExprResolver(
-    private val scope: StepScope,
+    private val scope: SampleStepScope,
     private val hardMaxArrayLength: Int = 1_500,
 ) {
     fun resolveExpr(expr: Expr<SampleType>): UExpr<out USort>? =
