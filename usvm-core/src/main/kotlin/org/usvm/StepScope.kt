@@ -1,8 +1,5 @@
 package org.usvm
 
-import org.usvm.model.UModel
-import org.usvm.solver.USolver
-
 /**
  * An auxiliary class, which carefully maintains forks and asserts via [fork] and [assert].
  * It should be created on every step in an interpreter.
@@ -13,20 +10,20 @@ import org.usvm.solver.USolver
  * To execute some function on a state, you should use [doWithState] or [calcOnState]. `null` is returned, when
  * the current state is `null`.
  *
- * @param initialState an initial state.
+ * @param originalState an initial state.
  */
-class StepScope<T : UState<*, *, *, *>>(
+class StepScope<T : UState<Type, *, *, *>, Type>(
     val uctx: UContext,
-    initialState: T,
+    originalState: T,
 ) {
     private val forkedStates = mutableListOf<T>()
-    private var curState: T? = initialState
+    private var curState: T? = originalState
     private var alive: Boolean = true
 
     /**
      * @return forked states and the status of initial state.
      */
-    fun forkingResult() = StepResult(forkedStates, alive)
+    fun stepResult() = StepResult(forkedStates.asSequence(), alive)
 
     /**
      * Executes [block] on a state.
@@ -100,13 +97,13 @@ class StepScope<T : UState<*, *, *, *>>(
 }
 
 /**
- * @param forkedStates states satisfying negative branches of conditions.
- * @param initialStateAlive indicates whether initial state is still alive or not.
+ * @param forkedStates new states forked from the original state.
+ * @param originalStateAlive indicates whether the original state is still alive or not.
  */
 class StepResult<T>(
-    val forkedStates: List<T>,
-    val initialStateAlive: Boolean,
+    val forkedStates: Sequence<T>,
+    val originalStateAlive: Boolean,
 ) {
     operator fun component1() = forkedStates
-    operator fun component2() = initialStateAlive
+    operator fun component2() = originalStateAlive
 }

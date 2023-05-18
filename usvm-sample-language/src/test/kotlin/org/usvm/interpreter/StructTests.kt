@@ -8,11 +8,11 @@ import kotlin.test.assertTrue
 
 class StructTests {
     val programDecl = StructProgram
-    val analyzer = SampleAnalyzer(programDecl.program)
+    val machine = SampleMachine(programDecl.program)
 
     @Test
     fun testCheckRefEquality() {
-        val results = analyzer.analyze(programDecl.checkRefEquality)
+        val results = machine.analyze(programDecl.checkRefEquality)
         assertTrue {
             results.any { it is SuccessfulExecutionResult && (it.outputModel.returnExpr as BooleanConst).const }
         }
@@ -24,7 +24,7 @@ class StructTests {
 
     @Test
     fun testCheckImplicitRefEquality() {
-        val results = analyzer.analyze(programDecl.checkImplicitRefEquality)
+        val results = machine.analyze(programDecl.checkImplicitRefEquality)
         assertTrue {
             results.any { it is SuccessfulExecutionResult && (it.outputModel.returnExpr as IntConst).const == 0 }
         }

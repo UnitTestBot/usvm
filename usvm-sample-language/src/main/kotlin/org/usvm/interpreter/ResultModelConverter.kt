@@ -29,7 +29,7 @@ import org.usvm.model.UModelBase
 class ResultModelConverter(
     private val ctx: UContext,
 ) {
-    fun convert(state: ExecutionState, method: Method<*>): ProgramExecutionResult {
+    fun convert(state: SampleState, method: Method<*>): ProgramExecutionResult {
         val exceptionRegister = state.exceptionRegister
 
         @Suppress("UNCHECKED_CAST")

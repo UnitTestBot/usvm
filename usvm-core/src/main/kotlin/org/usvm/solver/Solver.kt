@@ -31,7 +31,7 @@ open class USolverBase<Field, Type, Method>(
     protected val translator: UExprTranslator<Field, Type>,
     protected val decoder: UModelDecoder<UMemoryBase<Field, Type, Method>, UModelBase<Field, Type>>,
     protected val softConstraintsProvider: USoftConstraintsProvider<Field, Type>,
-) : USolver<UMemoryBase<Field, Type, Method>, UPathConstraints<Type>, UModelBase<Field, Type>>() {
+) : USolver<UPathConstraints<Type>, UModelBase<Field, Type>>() {
 
     protected fun translateLogicalConstraints(constraints: Iterable<UBoolExpr>) {
         for (constraint in constraints) {

@@ -9,11 +9,11 @@ import kotlin.test.assertTrue
 
 class MathTests {
     val programDecl = MathProgram
-    val analyzer = SampleAnalyzer(programDecl.program)
+    val machine = SampleMachine(programDecl.program)
 
     @Test
     fun testAbs() {
-        val results = analyzer.analyze(programDecl.abs)
+        val results = machine.analyze(programDecl.abs)
         assertTrue {
             results.any { it is SuccessfulExecutionResult && (it.inputModel.argumentExprs[0] as IntConst).const < 0 }
         }
@@ -24,7 +24,7 @@ class MathTests {
 
     @Test
     fun testDivByZero() {
-        val results = analyzer.analyze(programDecl.division)
+        val results = machine.analyze(programDecl.division)
         assertTrue {
             results.any { it is SuccessfulExecutionResult && (it.inputModel.argumentExprs[1] as IntConst).const != 0 }
         }
@@ -39,7 +39,7 @@ class MathTests {
 
     @Test
     fun testAbsOverflow() {
-        val results = analyzer.analyze(programDecl.absOverflow)
+        val results = machine.analyze(programDecl.absOverflow)
         assertTrue {
             results.any {
                 it is SuccessfulExecutionResult &&

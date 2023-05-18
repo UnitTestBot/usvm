@@ -3,7 +3,6 @@ package org.usvm.interpreter
 import io.ksmt.expr.KBitVec32Value
 import io.ksmt.expr.KExpr
 import io.ksmt.utils.asExpr
-import org.usvm.StepScope
 import org.usvm.UArrayIndexRef
 import org.usvm.UBoolExpr
 import org.usvm.UBv32Sort
@@ -67,7 +66,7 @@ import org.usvm.language.UnaryMinus
  * [hardMaxArrayLength] will be rejected.
  */
 class ExprResolver(
-    private val scope: StepScope<ExecutionState>,
+    private val scope: SampleStepScope,
     private val hardMaxArrayLength: Int = 1_500,
 ) {
     fun resolveExpr(expr: Expr<SampleType>): UExpr<out USort>? =

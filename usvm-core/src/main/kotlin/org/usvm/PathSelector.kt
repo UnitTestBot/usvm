@@ -1,11 +1,13 @@
 package org.usvm
 
-interface UPathSelector<State> : AutoCloseable {
+interface UPathSelector<State> {
     fun isEmpty(): Boolean
 
-    fun peekAndUpdate(step: (State) -> StepResult<State>)
+    fun peek(): State
+
+    fun terminate(state: State)
 
     fun add(producedStates: Sequence<State>)
 
-    fun queue(): List<State>
+    fun update(state: State)
 }

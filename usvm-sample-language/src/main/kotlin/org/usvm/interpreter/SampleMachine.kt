@@ -2,10 +2,12 @@ package org.usvm.interpreter
 
 import io.ksmt.solver.yices.KYicesSolver
 import kotlinx.collections.immutable.persistentListOf
-import org.usvm.UAnalyzer
+import org.usvm.UComponents
 import org.usvm.UContext
-import org.usvm.UPathConstraintsSet
+import org.usvm.UMachine
 import org.usvm.UPathSelector
+import org.usvm.UTypeSystem
+import org.usvm.constraints.UPathConstraints
 import org.usvm.language.Field
 import org.usvm.language.Method
 import org.usvm.language.Program
@@ -17,31 +19,37 @@ import org.usvm.solver.USatResult
 import org.usvm.solver.USoftConstraintsProvider
 import org.usvm.solver.USolverBase
 
+class SampleLanguageComponents(
+    private val typeSystem: SampleTypeSystem
+) : UComponents<Field<*>, SampleType, Method<*>> {
+    override fun mkSolver(ctx: UContext): USolverBase<Field<*>, SampleType, Method<*>> {
+        val (translator, decoder) = buildTranslatorAndLazyDecoder<Field<*>, SampleType, Method<*>>(ctx)
+        val softConstraintsProvider = USoftConstraintsProvider<Field<*>, SampleType>(ctx)
+
+        return USolverBase(ctx, KYicesSolver(ctx), translator, decoder, softConstraintsProvider)
+    }
+
+    override fun mkTypeSystem(ctx: UContext): UTypeSystem<SampleType> = typeSystem
+}
+
 /**
  * Entry point for a sample language analyzer.
  */
-class SampleAnalyzer(
+class SampleMachine(
     program: Program,
     val maxStates: Int = 40,
-) : UAnalyzer<ExecutionState, Method<*>>() {
-    private val applicationGraph = DefaultSampleApplicationGraph(program)
-    private val ctx = UContext()
+) : UMachine<SampleState, Method<*>>() {
+    private val applicationGraph = SampleApplicationGraph(program)
     private val typeSystem = SampleTypeSystem()
+    private val components = SampleLanguageComponents(typeSystem)
+    private val ctx = UContext(components)
+    private val solver = ctx.solver<Field<*>, SampleType, Method<*>>()
 
-    private val solver = run {
-        val (translator, decoder) = buildTranslatorAndLazyDecoder<Field<*>, SampleType, Method<*>>(
-            ctx,
-            typeSystem
-        )
-        val softConstraintsProvider = USoftConstraintsProvider<Field<*>, SampleType>(ctx)
-        USolverBase(ctx, KYicesSolver(ctx), translator, decoder, softConstraintsProvider)
-    }
-
-    private val interpreter = SampleInterpreter(ctx, applicationGraph, solver)
+    private val interpreter = SampleInterpreter(ctx, applicationGraph)
     private val resultModelConverter = ResultModelConverter(ctx)
 
     fun analyze(method: Method<*>): Collection<ProgramExecutionResult> {
-        val collectedStates = mutableListOf<ExecutionState>()
+        val collectedStates = mutableListOf<SampleState>()
         run(
             method,
             onState = { state ->
@@ -55,10 +63,10 @@ class SampleAnalyzer(
         return collectedStates.map { resultModelConverter.convert(it, method) }
     }
 
-    private fun getInitialState(solver: USolverBase<Field<*>, SampleType>, method: Method<*>): ExecutionState =
-        ExecutionState(ctx, typeSystem).apply {
+    private fun getInitialState(method: Method<*>): SampleState =
+        SampleState(ctx).apply {
             addEntryMethodCall(applicationGraph, method)
-            val solverResult = solver.check(UPathConstraintsSet(ctx.trueExpr), useSoftConstraints = true)
+            val solverResult = solver.check(UPathConstraints(ctx), useSoftConstraints = true)
             val satResult = solverResult as USatResult<UModelBase<Field<*>, SampleType>>
             val model = satResult.model
             models = persistentListOf(model)
@@ -66,14 +74,14 @@ class SampleAnalyzer(
 
     override fun getInterpreter(target: Method<*>) = interpreter
 
-    override fun getPathSelector(target: Method<*>): UPathSelector<ExecutionState> {
-        val ps = DfsPathSelector<ExecutionState>()
-        val initialState = getInitialState(solver, target)
-        ps.add(initialState, producedStates = emptyList())
+    override fun getPathSelector(target: Method<*>): UPathSelector<SampleState> {
+        val ps = DfsPathSelector<SampleState>()
+        val initialState = getInitialState(target)
+        ps.add(sequenceOf(initialState))
         return ps
     }
 
-    private fun isInterestingState(state: ExecutionState): Boolean {
+    private fun isInterestingState(state: SampleState): Boolean {
         return state.callStack.isNotEmpty() && state.exceptionRegister == null
     }
 }
