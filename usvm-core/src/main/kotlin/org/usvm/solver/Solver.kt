@@ -14,7 +14,7 @@ import org.usvm.model.UModelDecoder
 sealed interface USolverResult<out T>
 
 open class USatResult<out Model>(
-    val model: Model
+    val model: Model,
 ) : USolverResult<Model>
 
 open class UUnsatResult<Model> : USolverResult<Model>
@@ -132,4 +132,7 @@ open class USolverBase<Field, Type, Method>(
 
         return USatResult(uModel)
     }
+
+    fun emptyModel(): UModelBase<Field, Type> =
+        (checkWithSoftConstraints(UPathConstraints(ctx)) as USatResult<UModelBase<Field, Type>>).model
 }

@@ -7,15 +7,12 @@ import org.usvm.UContext
 import org.usvm.UMachine
 import org.usvm.UPathSelector
 import org.usvm.UTypeSystem
-import org.usvm.constraints.UPathConstraints
 import org.usvm.language.Field
 import org.usvm.language.Method
 import org.usvm.language.Program
 import org.usvm.language.SampleType
-import org.usvm.model.UModelBase
 import org.usvm.model.buildTranslatorAndLazyDecoder
 import org.usvm.ps.DfsPathSelector
-import org.usvm.solver.USatResult
 import org.usvm.solver.USoftConstraintsProvider
 import org.usvm.solver.USolverBase
 
@@ -66,9 +63,7 @@ class SampleMachine(
     private fun getInitialState(method: Method<*>): SampleState =
         SampleState(ctx).apply {
             addEntryMethodCall(applicationGraph, method)
-            val solverResult = solver.check(UPathConstraints(ctx), useSoftConstraints = true)
-            val satResult = solverResult as USatResult<UModelBase<Field<*>, SampleType>>
-            val model = satResult.model
+            val model = solver.emptyModel()
             models = persistentListOf(model)
         }
 
