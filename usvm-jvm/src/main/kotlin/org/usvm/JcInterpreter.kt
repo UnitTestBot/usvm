@@ -1,5 +1,6 @@
 package org.usvm
 
+import io.ksmt.utils.asExpr
 import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcType
 import org.jacodb.api.cfg.JcAssignInst
@@ -10,8 +11,10 @@ import org.jacodb.api.cfg.JcIfInst
 import org.jacodb.api.cfg.JcReturnInst
 import org.jacodb.api.cfg.JcSwitchInst
 import org.jacodb.api.cfg.JcThrowInst
-import org.usvm.interpreter.StepResult
-import org.usvm.interpreter.StepScope
+import org.usvm.state.JcState
+import org.usvm.state.lastStmt
+import org.usvm.state.newStmt
+import org.usvm.state.returnValue
 
 typealias JcStepScope = StepScope<JcState, JcType>
 
@@ -19,6 +22,7 @@ typealias JcStepScope = StepScope<JcState, JcType>
 class JcInterpreter(
     private val cp: JcClasspath,
     private val ctx: UContext,
+    private val applicationGraph: JcApplicationGraph,
 ) : UInterpreter<JcState>() {
     override fun step(state: JcState): StepResult<JcState> {
         val stmt = state.lastStmt
@@ -38,19 +42,48 @@ class JcInterpreter(
 
     private fun visitAssignInst(scope: JcStepScope, stmt: JcAssignInst) {
         val exprResolver = JcExprResolver(cp, scope)
-        val lValue = exprResolver.resolveLValue(stmt.lhv) ?: return
+        val lvalue = exprResolver.resolveLValue(stmt.lhv) ?: return
+        val expr = exprResolver.resolveExpr(stmt.rhv) ?: return
+
+        val nextStmt = applicationGraph.successors(stmt).single()
+        scope.doWithState {
+            memory.write(lvalue, expr)
+            newStmt(nextStmt)
+        }
     }
 
     private fun visitIfStmt(scope: JcStepScope, stmt: JcIfInst) {
-        TODO("Not yet implemented")
+        val exprResolver = JcExprResolver(cp, scope)
+
+        val boolExpr = with(ctx) {
+            exprResolver
+                .resolveExpr(stmt.condition)
+                ?.asExpr(bv32Sort)
+                ?.let { mkEq(it, mkBv(0)) } ?: return
+        }
+
+        val (posStmt, negStmt) = applicationGraph.successors(stmt).run { take(2).toList() }
+
+        scope.fork(
+            boolExpr,
+            blockOnTrueState = { newStmt(posStmt) },
+            blockOnFalseState = { newStmt(negStmt) }
+        )
     }
 
     private fun visitReturnStmt(scope: JcStepScope, stmt: JcReturnInst) {
-        TODO("Not yet implemented")
+        val exprResolver = JcExprResolver(cp, scope)
+
+        val valueToReturn = stmt.returnValue?.let { exprResolver.resolveExpr(it) }
+
+        scope.doWithState {
+            returnValue(valueToReturn)
+        }
     }
 
     private fun visitGotoStmt(scope: JcStepScope, stmt: JcGotoInst) {
-        TODO("Not yet implemented")
+        val nextStmt = applicationGraph.successors(stmt).single()
+        scope.doWithState { newStmt(nextStmt) }
     }
 
     private fun visitCatchStmt(scope: JcStepScope, stmt: JcCatchInst) {

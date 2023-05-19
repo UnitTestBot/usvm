@@ -63,14 +63,14 @@ class SampleInterpreter(
                 }
 
                 val nextStmt = applicationGraph.successors(stmt).single()
-                scope.doWithState { addNewStmt(nextStmt) }
+                scope.doWithState { newStmt(nextStmt) }
             }
         }
     }
 
     private fun visitGoto(scope: SampleStepScope, stmt: Goto) {
         val nextStmt = applicationGraph.successors(stmt).single()
-        scope.doWithState { addNewStmt(nextStmt) }
+        scope.doWithState { newStmt(nextStmt) }
     }
 
     private fun visitIf(scope: SampleStepScope, stmt: If) {
@@ -82,8 +82,8 @@ class SampleInterpreter(
 
         scope.fork(
             boolExpr,
-            blockOnTrueState = { addNewStmt(posStmt) },
-            blockOnFalseState = { addNewStmt(negStmt) }
+            blockOnTrueState = { newStmt(posStmt) },
+            blockOnFalseState = { newStmt(negStmt) }
         )
     }
 
@@ -99,7 +99,7 @@ class SampleInterpreter(
 
     private fun visitSetLabel(scope: SampleStepScope, stmt: SetLabel) {
         val nextStmt = applicationGraph.successors(stmt).single()
-        scope.doWithState { addNewStmt(nextStmt) }
+        scope.doWithState { newStmt(nextStmt) }
     }
 
     private fun visitSetValue(scope: SampleStepScope, stmt: SetValue) {
@@ -110,7 +110,7 @@ class SampleInterpreter(
         val nextStmt = applicationGraph.successors(stmt).single()
         scope.doWithState {
             memory.write(lvalue, expr)
-            addNewStmt(nextStmt)
+            newStmt(nextStmt)
         }
     }
 }

@@ -1,11 +1,17 @@
 package org.usvm
 
+import org.jacodb.analysis.impl.JcApplicationGraphImpl
+import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcMethod
 import org.jacodb.api.cfg.JcInst
+import org.jacodb.impl.features.HierarchyExtensionImpl
+import org.jacodb.impl.features.SyncUsagesExtension
 
 class JcApplicationGraph(
-    val jcApplicationGraph: org.jacodb.api.analysis.ApplicationGraph<JcMethod, JcInst>
+    cp: JcClasspath,
 ) : ApplicationGraph<JcMethod, JcInst> {
+    private val jcApplicationGraph = JcApplicationGraphImpl(cp, SyncUsagesExtension(HierarchyExtensionImpl(cp), cp))
+
     override fun predecessors(node: JcInst): Sequence<JcInst> =
         jcApplicationGraph.predecessors(node)
 
