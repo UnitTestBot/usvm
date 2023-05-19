@@ -28,7 +28,7 @@ class URegistersStackEagerModel(
     private val nullRef: UConcreteHeapRef,
     private val registers: Map<Int, UExpr<out USort>>
 ) : URegistersStackEvaluator {
-    override fun <Sort : USort> eval(
+    override fun <Sort : USort> readRegister(
         registerIndex: Int,
         sort: Sort,
     ): UExpr<Sort> = registers

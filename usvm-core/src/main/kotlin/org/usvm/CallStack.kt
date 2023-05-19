@@ -1,11 +1,13 @@
 package org.usvm
 
-data class UCallStackFrame<Method, Statement>(val method: Method, val returnSite: Statement?)
+data class UCallStackFrame<Method, Statement>(
+    val method: Method,
+    val returnSite: Statement?,
+)
 
 class UCallStack<Method, Statement> private constructor(
     private val stack: ArrayDeque<UCallStackFrame<Method, Statement>>,
-) :
-    Collection<UCallStackFrame<Method, Statement>> by stack {
+) : Collection<UCallStackFrame<Method, Statement>> by stack {
     constructor() : this(ArrayDeque())
     constructor(method: Method) : this(
         ArrayDeque<UCallStackFrame<Method, Statement>>().apply {

@@ -55,7 +55,7 @@ class ULazyRegistersStackModel(
     private val addressesMapping: AddressesMapping,
     private val registerIdxToTranslated: Map<Int, UExpr<out USort>>
 ) : URegistersStackEvaluator {
-    override fun <Sort : USort> eval(
+    override fun <Sort : USort> readRegister(
         registerIndex: Int,
         sort: Sort,
     ): UExpr<Sort> = registerIdxToTranslated.evalAndReplace(key = registerIndex, model, addressesMapping, sort)

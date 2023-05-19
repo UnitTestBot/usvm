@@ -20,7 +20,7 @@ class DfsPathSelector<State> : UPathSelector<State> {
         }
     }
 
-    override fun add(states: Sequence<State>) {
+    override fun add(states: Collection<State>) {
         stack.addAll(states)
     }
 }

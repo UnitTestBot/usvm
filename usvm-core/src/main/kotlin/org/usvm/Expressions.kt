@@ -25,6 +25,7 @@ typealias UBoolSort = KBoolSort
 typealias UBvSort = KBvSort
 typealias UBv32Sort = KBv32Sort
 typealias USizeSort = KBv32Sort
+typealias UFpSort = KFpSort
 
 typealias UExpr<Sort> = KExpr<Sort>
 typealias UBoolExpr = UExpr<UBoolSort>
@@ -110,16 +111,21 @@ class UNullRef internal constructor(
 //region LValues
 open class ULValue(val sort: USort)
 
-class URegisterRef(sort: USort, val idx: Int) : ULValue(sort)
+class URegisterValue(sort: USort, val idx: Int) : ULValue(sort)
 
-class UFieldRef<Field>(fieldSort: USort, val ref: UHeapRef, val field: Field) : ULValue(fieldSort)
+class UFieldValue<Field>(fieldSort: USort, val ref: UHeapRef, val field: Field) : ULValue(fieldSort)
 
-class UArrayIndexRef<ArrayType>(
+class UArrayIndexValue<ArrayType>(
     cellSort: USort,
     val ref: UHeapRef,
     val index: USizeExpr,
-    val arrayType: ArrayType
+    val arrayType: ArrayType,
 ) : ULValue(cellSort)
+
+class UArrayLengthValue<ArrayType>(
+    val ref: UHeapRef,
+    val arrayType: ArrayType,
+) : ULValue(ref.uctx.sizeSort)
 
 //endregion
 
@@ -128,7 +134,7 @@ class UArrayIndexRef<ArrayType>(
 class URegisterReading<Sort : USort> internal constructor(
     ctx: UContext,
     val idx: Int,
-    override val sort: Sort
+    override val sort: Sort,
 ) : USymbol<Sort>(ctx) {
     override fun accept(transformer: KTransformerBase): KExpr<Sort> {
         require(transformer is UExprTransformer<*, *>)
@@ -146,7 +152,7 @@ class URegisterReading<Sort : USort> internal constructor(
 
 abstract class UHeapReading<RegionId : URegionId<Key, Sort, RegionId>, Key, Sort : USort>(
     ctx: UContext,
-    val region: USymbolicMemoryRegion<RegionId, Key, Sort>
+    val region: USymbolicMemoryRegion<RegionId, Key, Sort>,
 ) : USymbol<Sort>(ctx) {
     override val sort: Sort get() = region.sort
 }
@@ -212,7 +218,7 @@ class UInputArrayReading<ArrayType, Sort : USort> internal constructor(
     ctx: UContext,
     region: UInputArrayRegion<ArrayType, Sort>,
     val address: UHeapRef,
-    val index: USizeExpr
+    val index: USizeExpr,
 ) : UHeapReading<UInputArrayId<ArrayType, Sort>, USymbolicArrayIndex, Sort>(ctx, region) {
     init {
         require(address !is UNullRef)
@@ -285,7 +291,7 @@ class UIndexedMethodReturnValue<Method, Sort : USort> internal constructor(
     ctx: UContext,
     val method: Method,
     val callIndex: Int,
-    override val sort: Sort
+    override val sort: Sort,
 ) : UMockSymbol<Sort>(ctx, sort) {
     override fun accept(transformer: KTransformerBase): KExpr<Sort> {
         require(transformer is UExprTransformer<*, *>)
@@ -308,7 +314,7 @@ class UIndexedMethodReturnValue<Method, Sort : USort> internal constructor(
 class UIsExpr<Type> internal constructor(
     ctx: UContext,
     val ref: UHeapRef,
-    val type: Type
+    val type: Type,
 ) : USymbol<UBoolSort>(ctx) {
     override val sort = ctx.boolSort
 
@@ -332,7 +338,7 @@ class UIsExpr<Type> internal constructor(
 
 //region Utils
 
-val UBoolExpr.isFalse get() = this === ctx.falseExpr
-val UBoolExpr.isTrue get() = !isFalse
+val UBoolExpr.isFalse get() = this == ctx.falseExpr
+val UBoolExpr.isTrue get() = this == ctx.trueExpr
 
 //endregion

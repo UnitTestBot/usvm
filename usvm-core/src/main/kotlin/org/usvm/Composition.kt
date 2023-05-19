@@ -20,7 +20,7 @@ open class UComposer<Field, Type>(
 
     override fun <Sort : USort> transform(
         expr: URegisterReading<Sort>,
-    ): UExpr<Sort> = with(expr) { stackEvaluator.eval(idx, sort) }
+    ): UExpr<Sort> = with(expr) { stackEvaluator.readRegister(idx, sort) }
 
     override fun <Sort : USort> transform(expr: UHeapReading<*, *, *>): UExpr<Sort> =
         error("You must override `transform` function in org.usvm.UComposer for ${expr::class}")

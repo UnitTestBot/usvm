@@ -13,17 +13,19 @@ import org.usvm.language.Method
 import org.usvm.language.ProgramException
 import org.usvm.language.SampleType
 import org.usvm.language.Stmt
-import org.usvm.language.arity
+import org.usvm.language.argumentCount
+import org.usvm.language.localsCount
 import org.usvm.language.registersCount
 import org.usvm.memory.UMemoryBase
 import org.usvm.model.UModel
+import org.usvm.model.UModelBase
 
 class SampleState(
     ctx: UContext,
     callStack: UCallStack<Method<*>, Stmt> = UCallStack(),
     pathConstraints: UPathConstraints<SampleType> = UPathConstraints(ctx),
     memory: UMemoryBase<Field<*>, SampleType, Method<*>> = UMemoryBase(ctx, pathConstraints.typeConstraints),
-    models: List<UModel> = listOf(),
+    models: List<UModelBase<Field<*>, SampleType>> = listOf(),
     path: PersistentList<Stmt> = persistentListOf(),
     var returnRegister: UExpr<out USort>? = null,
     var exceptionRegister: ProgramException? = null,
@@ -32,7 +34,8 @@ class SampleState(
     callStack,
     pathConstraints,
     memory,
-    models, path
+    models,
+    path
 ) {
     override fun clone(newConstraints: UPathConstraints<SampleType>?): SampleState {
         val clonedConstraints = newConstraints ?: pathConstraints.clone()
@@ -50,37 +53,41 @@ class SampleState(
 }
 
 val SampleState.lastStmt get() = path.last()
-fun SampleState.addNewStmt(stmt: Stmt) {
+fun SampleState.newStmt(stmt: Stmt) {
     path = path.add(stmt)
 }
 
 fun SampleState.popMethodCall(valueToReturn: UExpr<out USort>?) {
     val returnSite = callStack.pop()
-    if (callStack.isNotEmpty()) { // TODO: looks like hack
+    if (callStack.isNotEmpty()) {
         memory.stack.pop()
     }
 
     returnRegister = valueToReturn
 
     if (returnSite != null) {
-        addNewStmt(returnSite)
+        newStmt(returnSite)
     }
 }
 
-fun SampleState.addEntryMethodCall(applicationGraph: SampleApplicationGraph, method: Method<*>) {
-    addNewMethodCall(applicationGraph, method, List(method.arity) { null })
+fun SampleState.addEntryMethodCall(
+    applicationGraph: SampleApplicationGraph,
+    method: Method<*>,
+) {
+    val entryPoint = applicationGraph.entryPoint(method).single()
+    callStack.push(method, returnSite = null)
+    memory.stack.push(method.argumentCount, method.localsCount)
+    newStmt(entryPoint)
 }
 
 fun SampleState.addNewMethodCall(
     applicationGraph: SampleApplicationGraph,
     method: Method<*>,
-    arguments: List<UExpr<out USort>?>,
+    arguments: List<UExpr<out USort>>,
 ) {
-    // TODO: verify inputRegisters size and values
-    val entryPoint = applicationGraph.entryPoint(method).single() // TODO: handle native calls
-    val returnSite = path.lastOrNull() // TODO: verify is not null
-    val registers = arguments + List(method.registersCount - method.arity) { null }
+    val entryPoint = applicationGraph.entryPoint(method).single()
+    val returnSite = lastStmt
     callStack.push(method, returnSite)
-    memory.stack.push(registers.toTypedArray())
-    addNewStmt(entryPoint)
+    memory.stack.push(arguments.toTypedArray(), method.localsCount)
+    newStmt(entryPoint)
 }
