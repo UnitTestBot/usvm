@@ -25,6 +25,7 @@ typealias UBoolSort = KBoolSort
 typealias UBvSort = KBvSort
 typealias UBv32Sort = KBv32Sort
 typealias USizeSort = KBv32Sort
+typealias UFpSort = KFpSort
 
 typealias UExpr<Sort> = KExpr<Sort>
 typealias UBoolExpr = UExpr<UBoolSort>

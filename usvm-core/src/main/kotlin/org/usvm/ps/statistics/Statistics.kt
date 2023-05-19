@@ -2,6 +2,7 @@ package org.usvm.ps.statistics
 
 import org.usvm.ApplicationGraph
 import org.usvm.UState
+import org.usvm.lastStmtOrNull
 import java.util.concurrent.ConcurrentHashMap
 
 abstract class Statistics<Method, Statement>(
@@ -30,7 +31,7 @@ abstract class Statistics<Method, Statement>(
         markMethodAsVisited(lastMethod)
         onMethodVisit(lastMethod)
 
-        val lastStatement = state.currentStatement ?: return
+        val lastStatement = state.lastStmtOrNull ?: return
 
         markStatementAsVisited(lastStatement)
         onStatementVisit(lastStatement)

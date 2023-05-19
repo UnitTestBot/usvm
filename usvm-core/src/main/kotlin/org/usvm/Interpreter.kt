@@ -1,5 +1,7 @@
 package org.usvm
 
+import org.usvm.interpreter.StepResult
+
 /**
  * An abstract [UInterpreter] used in a symbolic machine.
  */

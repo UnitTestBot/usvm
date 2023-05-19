@@ -8,14 +8,16 @@ import org.usvm.language.Field
 import org.usvm.language.Method
 import org.usvm.language.Program
 import org.usvm.language.SampleType
+import org.usvm.language.argumentsCount
+import org.usvm.language.localsCount
 import org.usvm.ps.DfsPathSelector
 
 /**
- * Entry point for a sample language analyzer.
+ * The sample language machine.
  */
 class SampleMachine(
     program: Program,
-    val maxStates: Int = 40,
+    private val maxStates: Int = 40,
 ) : UMachine<SampleState, Method<*>>() {
     private val applicationGraph = SampleApplicationGraph(program)
     private val typeSystem = SampleTypeSystem()
@@ -23,7 +25,12 @@ class SampleMachine(
     private val ctx = UContext(components)
     private val solver = ctx.solver<Field<*>, SampleType, Method<*>>()
 
-    private val interpreter = SampleInterpreter(ctx, applicationGraph)
+    private val stateAccessor = SampleStateOperations.create(
+        applicationGraph,
+        methodToArgumentsCount = { it.argumentsCount },
+        methodToLocalsCount = { it.localsCount }
+    )
+    private val interpreter = with(stateAccessor) { SampleInterpreter(ctx) }
     private val resultModelConverter = ResultModelConverter(ctx)
 
     fun analyze(method: Method<*>): Collection<ProgramExecutionResult> {
@@ -41,13 +48,6 @@ class SampleMachine(
         return collectedStates.map { resultModelConverter.convert(it, method) }
     }
 
-    private fun getInitialState(method: Method<*>): SampleState =
-        SampleState(ctx).apply {
-            addEntryMethodCall(applicationGraph, method)
-            val model = solver.emptyModel()
-            models = persistentListOf(model)
-        }
-
     override fun getInterpreter(target: Method<*>) = interpreter
 
     override fun getPathSelector(target: Method<*>): UPathSelector<SampleState> {
@@ -56,6 +56,13 @@ class SampleMachine(
         ps.add(sequenceOf(initialState))
         return ps
     }
+
+    private fun getInitialState(method: Method<*>): SampleState =
+        SampleState.create(ctx).apply {
+            with(stateAccessor) { callInitialMethod(method) }
+            val model = solver.emptyModel()
+            models = persistentListOf(model)
+        }
 
     private fun isInterestingState(state: SampleState): Boolean {
         return state.callStack.isNotEmpty() && state.exceptionRegister == null

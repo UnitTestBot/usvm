@@ -58,6 +58,7 @@ import org.usvm.language.StructExpr
 import org.usvm.language.StructIsNull
 import org.usvm.language.StructType
 import org.usvm.language.UnaryMinus
+import org.usvm.lastStmt
 
 /**
  * Resolves [Expr]s to [UExpr]s, forks in the [scope] respecting unsats. Checks for exceptions.
@@ -65,6 +66,7 @@ import org.usvm.language.UnaryMinus
  * @param hardMaxArrayLength denotes the maximum acceptable array length. All states with any length greater than
  * [hardMaxArrayLength] will be rejected.
  */
+context(SampleStateOperations)
 class ExprResolver(
     private val scope: SampleStepScope,
     private val hardMaxArrayLength: Int = 1_500,
@@ -327,11 +329,12 @@ class ExprResolver(
         scope.fork(
             inside,
             blockOnFalseState = {
-                exceptionRegister = IndexOutOfBounds(
+                val exception = IndexOutOfBounds(
                     lastStmt,
                     (models.first().eval(length) as KBitVec32Value).intValue,
                     (models.first().eval(idx) as KBitVec32Value).intValue,
                 )
+                throwException(exception)
             }
         )
     }
@@ -343,11 +346,12 @@ class ExprResolver(
 
         scope.fork(actualLengthLeThanLength,
             blockOnFalseState = {
-                exceptionRegister = NegativeArraySize(
+                val exception = NegativeArraySize(
                     lastStmt,
                     (models.first().eval(length) as KBitVec32Value).intValue,
                     actualLength
                 )
+                throwException(exception)
             }
         )
     }
@@ -357,7 +361,7 @@ class ExprResolver(
         val neqZero = mkEq(rhs, mkBv(0)).not()
         scope.fork(neqZero,
             blockOnFalseState = {
-                exceptionRegister = DivisionByZero(lastStmt)
+                throwException(DivisionByZero(lastStmt))
             }
         )
     }
@@ -367,7 +371,7 @@ class ExprResolver(
         scope.fork(
             neqNull,
             blockOnFalseState = {
-                exceptionRegister = NullPointerDereference(lastStmt)
+                throwException(NullPointerDereference(lastStmt))
             }
         )
     }

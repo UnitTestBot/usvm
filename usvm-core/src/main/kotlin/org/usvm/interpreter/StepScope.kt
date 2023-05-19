@@ -1,4 +1,9 @@
-package org.usvm
+package org.usvm.interpreter
+
+import org.usvm.UBoolExpr
+import org.usvm.UContext
+import org.usvm.UState
+import org.usvm.fork
 
 /**
  * An auxiliary class, which carefully maintains forks and asserts via [fork] and [assert].
@@ -10,7 +15,7 @@ package org.usvm
  * To execute some function on a state, you should use [doWithState] or [calcOnState]. `null` is returned, when
  * the current state is `null`.
  *
- * @param originalState an initial state.
+ * @param originalState an original state.
  */
 class StepScope<T : UState<Type, *, *, *>, Type>(
     val uctx: UContext,
@@ -21,7 +26,7 @@ class StepScope<T : UState<Type, *, *, *>, Type>(
     private var alive: Boolean = true
 
     /**
-     * @return forked states and the status of initial state.
+     * @return forked states and the status of the original state.
      */
     fun stepResult() = StepResult(forkedStates.asSequence(), alive)
 
@@ -94,16 +99,4 @@ class StepScope<T : UState<Type, *, *, *>, Type>(
 
         return posState?.let { }
     }
-}
-
-/**
- * @param forkedStates new states forked from the original state.
- * @param originalStateAlive indicates whether the original state is still alive or not.
- */
-class StepResult<T>(
-    val forkedStates: Sequence<T>,
-    val originalStateAlive: Boolean,
-) {
-    operator fun component1() = forkedStates
-    operator fun component2() = originalStateAlive
 }
