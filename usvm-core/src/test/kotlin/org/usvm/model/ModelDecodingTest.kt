@@ -40,7 +40,7 @@ class ModelDecodingTest {
         val (translator, decoder) = buildTranslatorAndLazyDecoder<Field, Type, Method>(ctx)
         solver = USolverBase(ctx, KZ3Solver(ctx), translator, decoder, softConstraintProvider)
 
-        stack = URegistersStack(ctx)
+        stack = URegistersStack()
         stack.push(10)
         heap = URegionHeap(ctx)
         mocker = UIndexedMocker(ctx)

@@ -1,6 +1,6 @@
 package org.usvm.interpreter
 
-import org.usvm.UTypeSystem
+import org.usvm.types.UTypeSystem
 import org.usvm.language.SampleType
 
 class SampleTypeSystem : UTypeSystem<SampleType> {
