@@ -5,6 +5,9 @@ include("usvm-jvm")
 include("usvm-util")
 include("usvm-jvm-instrumentation")
 include("usvm-sample-language")
+include("usvm-python")
+include("usvm-python:cpythonadapter")
+findProject(":usvm-python:cpythonadapter")?.name = "cpythonadapter"
 
 pluginManagement {
     resolutionStrategy {
