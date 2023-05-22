@@ -1,5 +1,7 @@
 package org.usvm
 
+import org.usvm.ps.stopstregies.StoppingStrategy
+
 
 /**
  * An abstract symbolic machine.
@@ -14,19 +16,19 @@ abstract class UMachine<State : UState<*, *, *, *>, Target> : AutoCloseable {
      * @param onState called on every forked state. Can be used for collecting results.
      * @param continueAnalyzing filtering function for states. If it returns `false`, a state
      * won't be analyzed further. It is called on an original state and every forked state as well.
-     * @param shouldStop is called on every step, before peeking a next state from path selector.
+     * @param stoppingStrategy is called on every step, before peeking a next state from path selector.
      * Returning `true` aborts analysis.
      */
     fun run(
         target: Target,
         onState: (State) -> Unit,
         continueAnalyzing: (State) -> Boolean,
-        shouldStop: () -> Boolean = { false },
+        stoppingStrategy: StoppingStrategy = StoppingStrategy { false },
     ) {
         val interpreter = getInterpreter(target)
         val pathSelector = getPathSelector(target)
 
-        while (!pathSelector.isEmpty() && !shouldStop()) {
+        while (!pathSelector.isEmpty() && !stoppingStrategy.shouldStop()) {
             pathSelector.peekAndUpdate { state ->
                 val (forkedStates, stateAlive) = interpreter.step(state)
 
@@ -54,7 +56,7 @@ abstract class UMachine<State : UState<*, *, *, *>, Target> : AutoCloseable {
         } else {
             remove(state)
         }
-        add(forkedStates)
+        add(forkedStates.toList())
     }
 
     /**

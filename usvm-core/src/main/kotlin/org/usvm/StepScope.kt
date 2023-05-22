@@ -12,8 +12,7 @@ package org.usvm
  *
  * @param originalState an initial state.
  */
-class StepScope<T : UState<Type, *, *, *>, Type>(
-    val uctx: UContext,
+class StepScope<T : UState<Type, Field, *, *>, Type, Field>(
     originalState: T,
 ) {
     private val forkedStates = mutableListOf<T>()

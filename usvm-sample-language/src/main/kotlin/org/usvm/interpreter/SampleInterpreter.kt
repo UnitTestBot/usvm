@@ -5,6 +5,7 @@ import org.usvm.StepScope
 import org.usvm.UContext
 import org.usvm.UInterpreter
 import org.usvm.language.Call
+import org.usvm.language.Field
 import org.usvm.language.Goto
 import org.usvm.language.If
 import org.usvm.language.Return
@@ -12,7 +13,7 @@ import org.usvm.language.SampleType
 import org.usvm.language.SetLabel
 import org.usvm.language.SetValue
 
-typealias SampleStepScope = StepScope<SampleState, SampleType>
+typealias SampleStepScope = StepScope<SampleState, SampleType, Field<*>>
 
 /**
  * Symbolic interpreter for a sample language.
@@ -28,7 +29,7 @@ class SampleInterpreter(
      * @return next states.
      */
     override fun step(state: SampleState): StepResult<SampleState> {
-        val scope = StepScope(ctx, state)
+        val scope = StepScope(state)
         when (val stmt = state.lastStmt) {
             is Call -> visitCall(scope, stmt)
             is Goto -> visitGoto(scope, stmt)
@@ -41,7 +42,7 @@ class SampleInterpreter(
     }
 
     private fun visitCall(scope: SampleStepScope, stmt: Call) {
-        val exprResolver = ExprResolver(scope)
+        val exprResolver = SampleExprResolver(ctx, scope)
 
         val retRegister = scope.calcOnState {
             val retRegister = returnRegister
@@ -74,7 +75,7 @@ class SampleInterpreter(
     }
 
     private fun visitIf(scope: SampleStepScope, stmt: If) {
-        val exprResolver = ExprResolver(scope)
+        val exprResolver = SampleExprResolver(ctx, scope)
 
         val boolExpr = exprResolver.resolveBoolean(stmt.condition) ?: return
 
@@ -88,7 +89,7 @@ class SampleInterpreter(
     }
 
     private fun visitReturn(scope: SampleStepScope, stmt: Return) {
-        val exprResolver = ExprResolver(scope)
+        val exprResolver = SampleExprResolver(ctx, scope)
 
         val valueToReturn = stmt.valueToReturn?.let { exprResolver.resolveExpr(it) }
 
@@ -103,7 +104,7 @@ class SampleInterpreter(
     }
 
     private fun visitSetValue(scope: SampleStepScope, stmt: SetValue) {
-        val exprResolver = ExprResolver(scope)
+        val exprResolver = SampleExprResolver(ctx, scope)
         val lvalue = exprResolver.resolveLValue(stmt.lvalue) ?: return
         val expr = exprResolver.resolveExpr(stmt.expr) ?: return
 

@@ -18,13 +18,14 @@ import org.usvm.language.localsCount
 import org.usvm.language.registersCount
 import org.usvm.memory.UMemoryBase
 import org.usvm.model.UModel
+import org.usvm.model.UModelBase
 
 class SampleState(
     ctx: UContext,
     callStack: UCallStack<Method<*>, Stmt> = UCallStack(),
     pathConstraints: UPathConstraints<SampleType> = UPathConstraints(ctx),
     memory: UMemoryBase<Field<*>, SampleType, Method<*>> = UMemoryBase(ctx, pathConstraints.typeConstraints),
-    models: List<UModel> = listOf(),
+    models: List<UModelBase<Field<*>, SampleType>> = listOf(),
     path: PersistentList<Stmt> = persistentListOf(),
     var returnRegister: UExpr<out USort>? = null,
     var exceptionRegister: ProgramException? = null,
@@ -33,7 +34,8 @@ class SampleState(
     callStack,
     pathConstraints,
     memory,
-    models, path
+    models,
+    path
 ) {
     override fun clone(newConstraints: UPathConstraints<SampleType>?): SampleState {
         val clonedConstraints = newConstraints ?: pathConstraints.clone()
@@ -57,7 +59,9 @@ fun SampleState.newStmt(stmt: Stmt) {
 
 fun SampleState.popMethodCall(valueToReturn: UExpr<out USort>?) {
     val returnSite = callStack.pop()
-    memory.stack.pop()
+    if (callStack.isNotEmpty()) {
+        memory.stack.pop()
+    }
 
     returnRegister = valueToReturn
 
@@ -68,7 +72,7 @@ fun SampleState.popMethodCall(valueToReturn: UExpr<out USort>?) {
 
 fun SampleState.addEntryMethodCall(
     applicationGraph: SampleApplicationGraph,
-    method: Method<*>
+    method: Method<*>,
 ) {
     val entryPoint = applicationGraph.entryPoint(method).single()
     callStack.push(method, returnSite = null)

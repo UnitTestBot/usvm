@@ -1,4 +1,4 @@
-package org.usvm
+package org.usvm.util
 
 import org.jacodb.api.JcClassOrInterface
 import org.jacodb.api.cfg.locals

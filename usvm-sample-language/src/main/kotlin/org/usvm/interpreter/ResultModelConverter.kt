@@ -39,7 +39,7 @@ class ResultModelConverter(
 
         val inputValues = method.argumentsTypes.mapIndexed { idx, type ->
             val sort = ctx.typeToSort(type)
-            val uExpr = model.stack.eval(idx, sort)
+            val uExpr = model.stack.readRegister(idx, sort)
             inputScope.convertExpr(uExpr, type)
         }
         val inputModel = InputModel(inputValues)

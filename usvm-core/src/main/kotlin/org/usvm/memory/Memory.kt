@@ -15,12 +15,21 @@ import org.usvm.USizeExpr
 import org.usvm.USort
 import org.usvm.constraints.UTypeConstraints
 
-interface UMemory<LValue, RValue, SizeT, HeapRef, Type> {
+interface UReadOnlyMemory<LValue, RValue, SizeT, HeapRef, Type> {
     /**
      * Reads value referenced by [lvalue]. Might lazily initialize symbolic values.
      */
     fun read(lvalue: LValue): RValue
 
+    /**
+     * Returns length of an array
+     */
+    fun length(ref: HeapRef, arrayType: Type): SizeT
+
+    fun <Sort : USort> compose(expr: UExpr<Sort>): UExpr<Sort>
+}
+
+interface UMemory<LValue, RValue, SizeT, HeapRef, Type> : UReadOnlyMemory<LValue, RValue, SizeT, HeapRef, Type> {
     /**
      * Writes [rvalue] into memory cell referenced by [lvalue].
      */
@@ -60,15 +69,9 @@ interface UMemory<LValue, RValue, SizeT, HeapRef, Type> {
      * Both arrays must have type [arrayType].
      */
     fun memcpy(src: HeapRef, dst: HeapRef, arrayType: Type, elementSort: USort, fromSrc: SizeT, fromDst: SizeT, length: SizeT)
-
-    /**
-     * Returns length of an array
-     */
-    fun length(ref: HeapRef, arrayType: Type): SizeT
-
-    fun <Sort : USort> compose(expr: UExpr<Sort>): UExpr<Sort>
 }
 
+typealias UReadOnlySymbolicMemory<Type> = UReadOnlyMemory<ULValue, UExpr<out USort>, USizeExpr, UHeapRef, Type>
 typealias USymbolicMemory<Type> = UMemory<ULValue, UExpr<out USort>, USizeExpr, UHeapRef, Type>
 
 @Suppress("MemberVisibilityCanBePrivate")

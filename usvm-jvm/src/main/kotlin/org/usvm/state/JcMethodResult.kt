@@ -7,7 +7,7 @@ sealed class JcMethodResult {
     object NoCall : JcMethodResult()
 
     class Success(
-        val value: UExpr<out USort>?
+        val value: UExpr<out USort>
     ) : JcMethodResult()
 
     class Exception(

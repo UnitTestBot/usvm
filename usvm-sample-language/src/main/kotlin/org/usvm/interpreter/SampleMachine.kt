@@ -9,6 +9,7 @@ import org.usvm.language.Method
 import org.usvm.language.Program
 import org.usvm.language.SampleType
 import org.usvm.ps.DfsPathSelector
+import org.usvm.ps.stopstregies.CollectedStatesLimitStrategy
 
 /**
  * Entry point for a sample language analyzer.
@@ -28,17 +29,28 @@ class SampleMachine(
 
     fun analyze(method: Method<*>): Collection<ProgramExecutionResult> {
         val collectedStates = mutableListOf<SampleState>()
+        val stoppingStrategy = CollectedStatesLimitStrategy(maxStates)
         run(
             method,
             onState = { state ->
                 if (!isInterestingState(state)) {
                     collectedStates += state
+                    stoppingStrategy.incrementStatesCount()
                 }
             },
             continueAnalyzing = ::isInterestingState,
-            shouldStop = { collectedStates.size >= maxStates }
+            stoppingStrategy = stoppingStrategy
         )
         return collectedStates.map { resultModelConverter.convert(it, method) }
+    }
+
+    override fun getInterpreter(target: Method<*>) = interpreter
+
+    override fun getPathSelector(target: Method<*>): UPathSelector<SampleState> {
+        val ps = DfsPathSelector<SampleState>()
+        val initialState = getInitialState(target)
+        ps.add(listOf(initialState))
+        return ps
     }
 
     private fun getInitialState(method: Method<*>): SampleState =
@@ -47,15 +59,6 @@ class SampleMachine(
             val model = solver.emptyModel()
             models = persistentListOf(model)
         }
-
-    override fun getInterpreter(target: Method<*>) = interpreter
-
-    override fun getPathSelector(target: Method<*>): UPathSelector<SampleState> {
-        val ps = DfsPathSelector<SampleState>()
-        val initialState = getInitialState(target)
-        ps.add(sequenceOf(initialState))
-        return ps
-    }
 
     private fun isInterestingState(state: SampleState): Boolean {
         return state.callStack.isNotEmpty() && state.exceptionRegister == null

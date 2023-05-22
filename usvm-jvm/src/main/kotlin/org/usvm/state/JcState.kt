@@ -5,9 +5,12 @@ import kotlinx.collections.immutable.persistentListOf
 import org.jacodb.api.JcField
 import org.jacodb.api.JcMethod
 import org.jacodb.api.JcType
+import org.jacodb.api.JcTypedField
+import org.jacodb.api.JcTypedMethod
 import org.jacodb.api.cfg.JcInst
 import org.jacodb.api.ext.cfg.locals
 import org.usvm.JcApplicationGraph
+import org.usvm.JcContext
 import org.usvm.UCallStack
 import org.usvm.UContext
 import org.usvm.UExpr
@@ -15,17 +18,17 @@ import org.usvm.USort
 import org.usvm.UState
 import org.usvm.constraints.UPathConstraints
 import org.usvm.memory.UMemoryBase
-import org.usvm.model.UModel
+import org.usvm.model.UModelBase
 
 class JcState(
-    ctx: UContext,
-    callStack: UCallStack<JcMethod, JcInst> = UCallStack(),
+    override val ctx: JcContext,
+    callStack: UCallStack<JcTypedMethod, JcInst> = UCallStack(),
     pathConstraints: UPathConstraints<JcType> = UPathConstraints(ctx),
-    memory: UMemoryBase<JcField, JcType, JcMethod> = UMemoryBase(ctx, pathConstraints.typeConstraints),
-    models: List<UModel> = listOf(),
+    memory: UMemoryBase<JcTypedField, JcType, JcTypedMethod> = UMemoryBase(ctx, pathConstraints.typeConstraints),
+    models: List<UModelBase<JcTypedField, JcType>> = listOf(),
     path: PersistentList<JcInst> = persistentListOf(),
     var methodResult: JcMethodResult = JcMethodResult.NoCall,
-) : UState<JcType, JcField, JcMethod, JcInst>(
+) : UState<JcType, JcTypedField, JcTypedMethod, JcInst>(
     ctx,
     callStack,
     pathConstraints,
@@ -52,9 +55,11 @@ fun JcState.newStmt(stmt: JcInst) {
     path = path.add(stmt)
 }
 
-fun JcState.returnValue(valueToReturn: UExpr<out USort>?) {
+fun JcState.returnValue(valueToReturn: UExpr<out USort>) {
     val returnSite = callStack.pop()
-    memory.stack.pop()
+    if (callStack.isNotEmpty()) {
+        memory.stack.pop()
+    }
 
     methodResult = JcMethodResult.Success(valueToReturn)
 
@@ -75,27 +80,29 @@ fun JcState.throwException(exception: Exception) {
 }
 
 
-
 fun JcState.addEntryMethodCall(
     applicationGraph: JcApplicationGraph,
-    method: JcMethod
+    method: JcTypedMethod,
 ) {
-    val entryPoint = applicationGraph.entryPoint(method).single()
+    val entryPoint = applicationGraph.entryPoint(method.method).single()
     callStack.push(method, returnSite = null)
-    memory.stack.push(method.parameters.size, method.localsCount)
+    memory.stack.push(method.parametersWithThisCount, method.localsCount)
     newStmt(entryPoint)
 }
 
 fun JcState.addNewMethodCall(
     applicationGraph: JcApplicationGraph,
-    method: JcMethod,
+    method: JcTypedMethod,
     arguments: List<UExpr<out USort>>,
 ) {
-    val entryPoint = applicationGraph.entryPoint(method).single()
+    val entryPoint = applicationGraph.entryPoint(method.method).single()
     val returnSite = lastStmt
     callStack.push(method, returnSite)
     memory.stack.push(arguments.toTypedArray(), method.localsCount)
     newStmt(entryPoint)
 }
 
-inline val JcMethod.localsCount get() = instList.locals.size - parameters.size
+
+inline val JcTypedMethod.parametersWithThisCount get() = method.parameters.size + if (method.isStatic) 0 else 1
+
+inline val JcTypedMethod.localsCount get() = method.instList.locals.size - parameters.size

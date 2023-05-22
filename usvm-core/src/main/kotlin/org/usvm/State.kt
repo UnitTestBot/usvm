@@ -4,19 +4,19 @@ import io.ksmt.expr.KInterpretedValue
 import kotlinx.collections.immutable.PersistentList
 import org.usvm.constraints.UPathConstraints
 import org.usvm.memory.UMemoryBase
-import org.usvm.model.UModel
+import org.usvm.model.UModelBase
 import org.usvm.solver.USatResult
 import org.usvm.solver.UUnknownResult
 import org.usvm.solver.UUnsatResult
 
 abstract class UState<Type, Field, Method, Statement>(
     // TODO: add interpreter-specific information
-    val ctx: UContext,
-    val callStack: UCallStack<Method, Statement>,
-    val pathConstraints: UPathConstraints<Type>,
-    val memory: UMemoryBase<Field, Type, Method>,
-    var models: List<UModel>,
-    var path: PersistentList<Statement>,
+    open val ctx: UContext,
+    open val callStack: UCallStack<Method, Statement>,
+    open val pathConstraints: UPathConstraints<Type>,
+    open val memory: UMemoryBase<Field, Type, Method>,
+    open var models: List<UModelBase<Field, Type>>,
+    open var path: PersistentList<Statement>,
 ) {
     /**
      * Creates new state structurally identical to this.
@@ -51,7 +51,7 @@ class ForkResult<T>(
  * - if [forkToSatisfied], then c = [conditionToCheck]
  * - if ![forkToSatisfied], then c = [satisfiedCondition]
  */
-private fun <T : UState<Type, *, *, *>, Type> forkIfSat(
+private fun <T : UState<Type, Field, *, *>, Type, Field> forkIfSat(
     state: T,
     satisfiedCondition: UBoolExpr,
     conditionToCheck: UBoolExpr,
@@ -64,7 +64,7 @@ private fun <T : UState<Type, *, *, *>, Type> forkIfSat(
         return null
     }
 
-    val solver = state.ctx.solver<Any?, Type, Any?>()
+    val solver = state.ctx.solver<Field, Type, Any?>()
     val satResult = solver.check(pathConstraints, useSoftConstraints = true)
 
     return when (satResult) {
@@ -111,7 +111,7 @@ private fun <T : UState<Type, *, *, *>, Type> forkIfSat(
  * 2. makes not more than one query to USolver;
  * 3. if both [condition] and ![condition] are satisfiable, then [ForkResult.positiveState] === [state].
  */
-fun <T : UState<Type, *, *, *>, Type> fork(
+fun <T : UState<Type, Field, *, *>, Type, Field> fork(
     state: T,
     condition: UBoolExpr,
 ): ForkResult<T> {

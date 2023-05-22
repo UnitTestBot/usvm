@@ -7,7 +7,7 @@ import org.usvm.UExpr
 import org.usvm.USort
 
 interface URegistersStackEvaluator {
-    fun <Sort : USort> eval(registerIndex: Int, sort: Sort): UExpr<Sort>
+    fun <Sort : USort> readRegister(registerIndex: Int, sort: Sort): UExpr<Sort>
 }
 
 class URegistersStackFrame(
@@ -37,8 +37,8 @@ class URegistersStack(
     fun push(arguments: Array<UExpr<out USort>>, localsCount: Int) =
         stack.add(URegistersStackFrame(arguments, localsCount))
 
-    fun <Sort : USort> readRegister(index: Int, sort: Sort): KExpr<Sort> =
-        stack.last()[index]?.asExpr(sort) ?: ctx.mkRegisterReading(index, sort)
+    override fun <Sort : USort> readRegister(registerIndex: Int, sort: Sort): KExpr<Sort> =
+        stack.last()[registerIndex]?.asExpr(sort) ?: ctx.mkRegisterReading(registerIndex, sort)
 
     fun writeRegister(index: Int, value: UExpr<out USort>) {
         stack.last()[index] = value
@@ -50,9 +50,4 @@ class URegistersStack(
         val newStack = ArrayDeque(stack.map { it.clone() })
         return URegistersStack(ctx, newStack)
     }
-
-    override fun <Sort : USort> eval(
-        registerIndex: Int,
-        sort: Sort,
-    ): UExpr<Sort> = readRegister(registerIndex, sort).asExpr(sort)
 }

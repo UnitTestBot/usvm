@@ -1,13 +1,15 @@
-package org.usvm.ps.statistics
+package org.usvm.ps.stopstregies
 
 import org.usvm.ApplicationGraph
+import org.usvm.ps.statistics.Statistics
 
 class StepsCountingStoppingStrategy<Method, Statement>(
     graph: ApplicationGraph<Method, Statement>,
-) : Statistics<Method, Statement>(graph) {
+    val stepsLimit: Int = STEPS_LIMIT
+) : Statistics<Method, Statement>(graph), StoppingStrategy {
     private var stepsCounterSinceLastTerminatedState: Int = 0
 
-    fun shouldDrop(): Boolean = stepsCounterSinceLastTerminatedState >= STEPS_LIMIT
+    override fun shouldStop(): Boolean = stepsCounterSinceLastTerminatedState >= stepsLimit
 
     override fun onMethodVisit(method: Method) {
         // Do nothing
@@ -26,6 +28,6 @@ class StepsCountingStoppingStrategy<Method, Statement>(
     }
 
     companion object {
-        const val STEPS_LIMIT = 3500
+        const val STEPS_LIMIT = 1_000
     }
 }
