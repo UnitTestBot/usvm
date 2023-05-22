@@ -55,4 +55,8 @@ public class Math {
     int complex(int x, float y, short z) {
         return (int)(-x * y + (~z ^ x));
     }
+
+    int bitwiseShift(short x, byte y) {
+        return x << y;
+    }
 }

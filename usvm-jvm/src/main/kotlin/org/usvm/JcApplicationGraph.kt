@@ -1,6 +1,6 @@
 package org.usvm
 
-import org.jacodb.analysis.impl.JcApplicationGraphImpl
+import org.jacodb.analysis.graph.JcApplicationGraphImpl
 import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcMethod
 import org.jacodb.api.cfg.JcInst

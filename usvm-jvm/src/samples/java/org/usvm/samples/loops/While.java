@@ -1,6 +1,6 @@
 package org.usvm.samples.loops;
 
-public class WhileLoops {
+public class While {
     int singleLoop(int n) {
         int i = 0;
         while (i < n) {

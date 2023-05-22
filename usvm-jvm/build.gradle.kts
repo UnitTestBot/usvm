@@ -3,7 +3,8 @@ plugins {
 }
 
 repositories {
-    mavenLocal()
+    // jacodb
+    maven("https://s01.oss.sonatype.org/content/repositories/snapshots")
 }
 
 dependencies {
@@ -13,6 +14,9 @@ dependencies {
     implementation("org.jacodb:jacodb-analysis:${Versions.jcdb}")
 
     implementation("io.ksmt:ksmt-yices:${Versions.ksmt}")
+    implementation("io.ksmt:ksmt-cvc5:${Versions.ksmt}")
+
+    testImplementation("io.mockk:mockk:${Versions.mockk}")
 }
 
 sourceSets {

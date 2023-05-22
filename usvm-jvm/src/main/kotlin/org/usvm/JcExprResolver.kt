@@ -3,7 +3,6 @@ package org.usvm
 import io.ksmt.expr.KBitVec32Value
 import io.ksmt.expr.KExpr
 import io.ksmt.utils.asExpr
-import org.jacodb.api.JcMethod
 import org.jacodb.api.JcRefType
 import org.jacodb.api.JcTypedField
 import org.jacodb.api.JcTypedMethod
@@ -69,6 +68,8 @@ import org.jacodb.api.ext.ifArrayGetElementType
 import org.jacodb.api.ext.int
 import org.jacodb.api.ext.long
 import org.jacodb.api.ext.short
+import org.usvm.operator.JcBinOperator
+import org.usvm.operator.JcUnaryOperator
 import org.usvm.state.lastStmt
 import org.usvm.state.throwException
 
@@ -91,7 +92,7 @@ class JcExprResolver(
             else -> error("Unexpected value: $value")
         }
 
-    override fun visitExternalJcExpr(value: JcExpr): UExpr<out USort> = with(ctx) {
+    override fun visitExternalJcExpr(expr: JcExpr): UExpr<out USort> = with(ctx) {
         TODO("Not yet implemented")
     }
 
@@ -135,7 +136,7 @@ class JcExprResolver(
     }
 
     override fun visitJcChar(value: JcChar): UExpr<out USort> = with(ctx) {
-        TODO("Not yet implemented")
+        mkBv(value.value.code, bv32Sort)
     }
 
     override fun visitJcClassConstant(value: JcClassConstant): UExpr<out USort> = with(ctx) {
@@ -243,7 +244,7 @@ class JcExprResolver(
     override fun visitJcOrExpr(expr: JcOrExpr): UExpr<out USort>? =
         resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinOperator.Or(lhs, rhs) }
 
-    override fun visitJcPhiExpr(value: JcPhiExpr): UExpr<out USort> = with(ctx) {
+    override fun visitJcPhiExpr(expr: JcPhiExpr): UExpr<out USort> = with(ctx) {
         TODO("Not yet implemented")
     }
 
