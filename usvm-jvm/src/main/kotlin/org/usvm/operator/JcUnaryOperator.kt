@@ -18,14 +18,30 @@ sealed class JcUnaryOperator(
         onFp = UContext::mkFpNegationExpr,
     )
 
-    object CastToInt32 : JcUnaryOperator(
-        onBv = { operand -> mkBvSignExtensionExpr(INT32_SIZE - operand.sort.sizeBits.toInt(), operand) },
-        onFp = { operand -> mkFpToBvExpr(fpRoundingModeSortDefaultValue(), operand, INT32_SIZE, isSigned = true) }
+    object CastToBoolean : JcUnaryOperator(
+        onBv = { operand -> operand.mkNarrow(1, signed = true).mkNarrow(Int.SIZE_BITS, signed = true) }
     )
 
-    object CastToInt64 : JcUnaryOperator(
-        onBv = { operand -> mkBvSignExtensionExpr(INT64_SIZE - operand.sort.sizeBits.toInt(), operand) },
-        onFp = { operand -> mkFpToBvExpr(fpRoundingModeSortDefaultValue(), operand, INT32_SIZE, isSigned = true) }
+    object CastToByte : JcUnaryOperator(
+        onBv = { operand -> operand.mkNarrow(Byte.SIZE_BITS, signed = true).mkNarrow(Int.SIZE_BITS, signed = true) }
+    )
+
+    object CastToChar : JcUnaryOperator(
+        onBv = { operand -> operand.mkNarrow(Char.SIZE_BITS, signed = true).mkNarrow(Int.SIZE_BITS, signed = false) }
+    )
+
+    object CastToShort : JcUnaryOperator(
+        onBv = { operand -> operand.mkNarrow(Short.SIZE_BITS, signed = true).mkNarrow(Int.SIZE_BITS, signed = true) }
+    )
+
+    object CastToInt : JcUnaryOperator(
+        onBv = { operand -> operand.mkNarrow(Int.SIZE_BITS, signed = true) },
+        onFp = { operand -> mkFpToBvExpr(fpRoundingModeSortDefaultValue(), operand, Int.SIZE_BITS, isSigned = true) }
+    )
+
+    object CastToLong : JcUnaryOperator(
+        onBv = { operand -> operand.mkNarrow(Long.SIZE_BITS, signed = true) },
+        onFp = { operand -> operand.castToBv(Long.SIZE_BITS) }
     )
 
     object CastToFloat : JcUnaryOperator(
@@ -56,8 +72,29 @@ sealed class JcUnaryOperator(
     companion object {
         private val shouldNotBeCalled: UContext.(UExpr<out USort>) -> KExpr<out USort> =
             { _ -> error("Should not be called") }
-        private const val INT32_SIZE = Int.SIZE_BITS
-        private const val INT64_SIZE = Long.SIZE_BITS
+
+        private fun UExpr<UBvSort>.mkNarrow(sizeBits: Int, signed: Boolean): UExpr<UBvSort> {
+            val diff = sizeBits - sort.sizeBits.toInt()
+            val res = if (diff > 0) {
+                if (!signed) {
+                    ctx.mkBvZeroExtensionExpr(diff, this)
+                } else {
+                    ctx.mkBvSignExtensionExpr(diff, this)
+                }
+            } else {
+                ctx.mkBvExtractExpr(sizeBits - 1, 0, this)
+            }
+            return res
+        }
+
+        private fun UExpr<UFpSort>.castToBv(sizeBits: Int): UExpr<UBvSort> =
+            with(ctx) {
+                mkIte(
+                    mkFpIsNaNExpr(this@castToBv),
+                    mkBv(0, sizeBits.toUInt()),
+                    mkFpToBvExpr(fpRoundingModeSortDefaultValue(), this@castToBv, sizeBits, isSigned = true)
+                ) // TODO: more branches here covering infinity and [MIN_VALUE, MAX_VALUE]
+            }
     }
 }
 

@@ -1,9 +1,5 @@
 package org.usvm.operators
 
-import io.ksmt.expr.KBitVec32Value
-import io.ksmt.expr.KBitVec64Value
-import io.ksmt.expr.KFp32Value
-import io.ksmt.expr.KFp64Value
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
@@ -13,13 +9,11 @@ import org.junit.jupiter.api.TestFactory
 import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.UExpr
-import org.usvm.UFalse
 import org.usvm.USort
-import org.usvm.UTrue
 import org.usvm.operator.JcBinOperator
 import kotlin.test.assertEquals
 
-class JcBinaryOperatorTests {
+class JcBinaryOperatorTest {
     lateinit var ctx: UContext
 
     @BeforeEach
@@ -82,8 +76,8 @@ class JcBinaryOperatorTests {
             operatorText = "==",
             onInts = Int::equals,
             onLongs = Long::equals,
-            onFloats = { a, b -> a == b }, // nan special case
-            onDoubles = { a, b -> a == b }, // nan special case
+            onFloats = { lhs, rhs -> lhs == rhs }, // nan special case
+            onDoubles = { lhs, rhs -> lhs == rhs }, // nan special case
         )
 
     @TestFactory
@@ -91,10 +85,10 @@ class JcBinaryOperatorTests {
         testBoolOperatorOnAll(
             operator = JcBinOperator.Neq,
             operatorText = "==",
-            onInts = { a, b -> a != b },
-            onLongs = { a, b -> a != b },
-            onFloats = { a, b -> a != b },
-            onDoubles = { a, b -> a != b },
+            onInts = { lhs, rhs -> lhs != rhs },
+            onLongs = { lhs, rhs -> lhs != rhs },
+            onFloats = { lhs, rhs -> lhs != rhs },
+            onDoubles = { lhs, rhs -> lhs != rhs },
         )
 
     @TestFactory
@@ -102,10 +96,10 @@ class JcBinaryOperatorTests {
         testBoolOperatorOnAll(
             operator = JcBinOperator.Lt,
             operatorText = "<",
-            onInts = { a, b -> a < b },
-            onLongs = { a, b -> a < b },
-            onFloats = { a, b -> a < b },
-            onDoubles = { a, b -> a < b },
+            onInts = { lhs, rhs -> lhs < rhs },
+            onLongs = { lhs, rhs -> lhs < rhs },
+            onFloats = { lhs, rhs -> lhs < rhs },
+            onDoubles = { lhs, rhs -> lhs < rhs },
         )
 
     @TestFactory
@@ -113,10 +107,10 @@ class JcBinaryOperatorTests {
         testBoolOperatorOnAll(
             operator = JcBinOperator.Le,
             operatorText = "<=",
-            onInts = { a, b -> a <= b },
-            onLongs = { a, b -> a <= b },
-            onFloats = { a, b -> a <= b },
-            onDoubles = { a, b -> a <= b },
+            onInts = { lhs, rhs -> lhs <= rhs },
+            onLongs = { lhs, rhs -> lhs <= rhs },
+            onFloats = { lhs, rhs -> lhs <= rhs },
+            onDoubles = { lhs, rhs -> lhs <= rhs },
         )
 
     @TestFactory
@@ -124,10 +118,10 @@ class JcBinaryOperatorTests {
         testBoolOperatorOnAll(
             operator = JcBinOperator.Gt,
             operatorText = ">",
-            onInts = { a, b -> a > b },
-            onLongs = { a, b -> a > b },
-            onFloats = { a, b -> a > b },
-            onDoubles = { a, b -> a > b },
+            onInts = { lhs, rhs -> lhs > rhs },
+            onLongs = { lhs, rhs -> lhs > rhs },
+            onFloats = { lhs, rhs -> lhs > rhs },
+            onDoubles = { lhs, rhs -> lhs > rhs },
         )
 
     @TestFactory
@@ -135,10 +129,10 @@ class JcBinaryOperatorTests {
         testBoolOperatorOnAll(
             operator = JcBinOperator.Ge,
             operatorText = ">=",
-            onInts = { a, b -> a >= b },
-            onLongs = { a, b -> a >= b },
-            onFloats = { a, b -> a >= b },
-            onDoubles = { a, b -> a >= b },
+            onInts = { lhs, rhs -> lhs >= rhs },
+            onLongs = { lhs, rhs -> lhs >= rhs },
+            onFloats = { lhs, rhs -> lhs >= rhs },
+            onDoubles = { lhs, rhs -> lhs >= rhs },
         )
 
     @TestFactory
@@ -147,9 +141,8 @@ class JcBinaryOperatorTests {
             testOperatorOnIntegers(
                 operator = JcBinOperator.And,
                 operatorText = "&",
-                onInts = { a, b -> a and b },
-                ::extractInt,
-                intData
+                onInts = { lhs, rhs -> lhs and rhs },
+                ::extractInt
             )
         )
 
@@ -159,9 +152,8 @@ class JcBinaryOperatorTests {
             testOperatorOnIntegers(
                 operator = JcBinOperator.Or,
                 operatorText = "|",
-                onInts = { a, b -> a or b },
-                ::extractInt,
-                intData
+                onInts = { lhs, rhs -> lhs or rhs },
+                ::extractInt
             )
         )
 
@@ -171,9 +163,8 @@ class JcBinaryOperatorTests {
             testOperatorOnIntegers(
                 operator = JcBinOperator.Xor,
                 operatorText = "^",
-                onInts = { a, b -> a xor b },
-                ::extractInt,
-                intData
+                onInts = { lhs, rhs -> lhs xor rhs },
+                ::extractInt
             )
         )
 
@@ -196,7 +187,6 @@ class JcBinaryOperatorTests {
                 operatorText = "cmp",
                 onLongs = Long::compareTo,
                 ::extractLong,
-                longData
             )
         )
 
@@ -206,9 +196,8 @@ class JcBinaryOperatorTests {
             testOperatorOnFloats(
                 operator = JcBinOperator.Cmpl,
                 operatorText = "cmpl",
-                onFloats = { a, b -> if (a.isNaN() || b.isNaN()) -1 else a.compareTo(b) },
+                onFloats = { lhs, rhs -> if (lhs.isNaN() || rhs.isNaN()) -1 else lhs.compareTo(rhs) },
                 ::extractInt,
-                floatData,
             )
         )
 
@@ -218,9 +207,8 @@ class JcBinaryOperatorTests {
             testOperatorOnFloats(
                 operator = JcBinOperator.Cmpg,
                 operatorText = "cmpg",
-                onFloats = { a, b -> if (a.isNaN() || b.isNaN()) 1 else a.compareTo(b) },
+                onFloats = { lhs, rhs -> if (lhs.isNaN() || rhs.isNaN()) 1 else lhs.compareTo(rhs) },
                 ::extractInt,
-                floatData,
             )
         )
 
@@ -237,29 +225,25 @@ class JcBinaryOperatorTests {
             operator,
             operatorText,
             onInts,
-            ::extractInt,
-            intData
+            ::extractInt
         ),
         testOperatorOnLongs(
             operator,
             operatorText,
             onLongs,
             ::extractLong,
-            longData
         ),
         testOperatorOnFloats(
             operator,
             operatorText,
             onFloats,
             ::extractFloat,
-            floatData
         ),
         testOperatorOnDoubles(
             operator,
             operatorText,
             onDoubles,
             ::extractDouble,
-            doubleData
         )
     )
 
@@ -275,29 +259,25 @@ class JcBinaryOperatorTests {
             operator,
             operatorText,
             onInts,
-            ::extractBool,
-            intData
+            ::extractBool
         ),
         testOperatorOnLongs(
             operator,
             operatorText,
             onLongs,
             ::extractBool,
-            longData
         ),
         testOperatorOnFloats(
             operator,
             operatorText,
             onFloats,
             ::extractBool,
-            floatData
         ),
         testOperatorOnDoubles(
             operator,
             operatorText,
             onDoubles,
             ::extractBool,
-            doubleData
         )
     )
 
@@ -306,24 +286,23 @@ class JcBinaryOperatorTests {
         operatorText: String,
         onInts: (Int, Int) -> T,
         extractFromUExpr: (UExpr<out USort>) -> T?,
-        data: List<Int>,
     ) = DynamicTest.dynamicTest("Int $operatorText Int") {
-        data.flatMap { a ->
-            data.map { b ->
+        intData.flatMap { lhs ->
+            intData.map { rhs ->
 
-                val exprA = ctx.mkBv(a)
-                val exprB = ctx.mkBv(b)
-                val result = operator(exprA, exprB)
+                val exprLhs = ctx.mkBv(lhs)
+                val exprRhs = ctx.mkBv(rhs)
+                val result = operator(exprLhs, exprRhs)
 
                 val expected = try {
-                    onInts(a, b)
+                    onInts(lhs, rhs)
                 } catch (_: ArithmeticException) {
                     null
                 }
 
                 val actual = extractFromUExpr(result)
 
-                assertEquals(expected, actual, "$a $operatorText $b failed")
+                assertEquals(expected, actual, "$lhs $operatorText $rhs failed")
             }
         }
     }
@@ -333,24 +312,23 @@ class JcBinaryOperatorTests {
         operatorText: String,
         onLongs: (Long, Long) -> T,
         extractFromUExpr: (UExpr<out USort>) -> T?,
-        data: List<Long>,
     ) = DynamicTest.dynamicTest("Long $operatorText Long") {
-        data.flatMap { a ->
-            data.map { b ->
+        longData.flatMap { lhs ->
+            longData.map { rhs ->
                 {
-                    val exprA = ctx.mkBv(a)
-                    val exprB = ctx.mkBv(b)
-                    val result = operator(exprA, exprB)
+                    val exprLhs = ctx.mkBv(lhs)
+                    val exprRhs = ctx.mkBv(rhs)
+                    val result = operator(exprLhs, exprRhs)
 
                     val expected = try {
-                        onLongs(a, b)
+                        onLongs(lhs, rhs)
                     } catch (_: ArithmeticException) {
                         null
                     }
 
                     val actual = extractFromUExpr(result)
 
-                    assertEquals(expected, actual, "$a $operatorText $b failed")
+                    assertEquals(expected, actual, "$lhs $operatorText $rhs failed")
                 }
             }
         }
@@ -361,22 +339,21 @@ class JcBinaryOperatorTests {
         operatorText: String,
         onFloats: (Float, Float) -> T,
         extractFromUExpr: (UExpr<out USort>) -> T?,
-        data: List<Float>,
     ) = DynamicTest.dynamicTest("Float $operatorText Float") {
-        data.flatMap { a ->
-            data.map { b ->
-                val exprA = ctx.mkFp32(a)
-                val exprB = ctx.mkFp32(b)
-                val result = operator(exprA, exprB)
+        floatData.flatMap { lhs ->
+            floatData.map { rhs ->
+                val exprLhs = ctx.mkFp32(lhs)
+                val exprRhs = ctx.mkFp32(rhs)
+                val result = operator(exprLhs, exprRhs)
 
                 val expected = try {
-                    onFloats(a, b)
+                    onFloats(lhs, rhs)
                 } catch (_: ArithmeticException) {
                     null
                 }
                 val actual = extractFromUExpr(result)
 
-                assertEquals(expected, actual, "$a $operatorText $b failed")
+                assertEquals(expected, actual, "$lhs $operatorText $rhs failed")
             }
         }
     }
@@ -386,111 +363,22 @@ class JcBinaryOperatorTests {
         operatorText: String,
         onDoubles: (Double, Double) -> T,
         extractFromUExpr: (UExpr<out USort>) -> T?,
-        data: List<Double>,
     ) = DynamicTest.dynamicTest("Double $operatorText Double") {
-        data.flatMap { a ->
-            data.map { b ->
-                val exprA = ctx.mkFp64(a)
-                val exprB = ctx.mkFp64(b)
-                val result = operator(exprA, exprB)
+        doubleData.flatMap { lhs ->
+            doubleData.map { rhs ->
+                val exprLhs = ctx.mkFp64(lhs)
+                val exprRhs = ctx.mkFp64(rhs)
+                val result = operator(exprLhs, exprRhs)
 
                 val expected = try {
-                    onDoubles(a, b)
+                    onDoubles(lhs, rhs)
                 } catch (_: ArithmeticException) {
                     null
                 }
                 val actual = extractFromUExpr(result)
 
-                assertEquals(expected, actual, "$a $operatorText $b failed")
+                assertEquals(expected, actual, "$lhs $operatorText $rhs failed")
             }
         }
-    }
-
-
-    companion object {
-
-        private fun extractBool(expr: UExpr<out USort>): Boolean? = when (expr) {
-            is UTrue -> true
-            is UFalse -> false
-            else -> null
-        }
-
-        private fun extractInt(expr: UExpr<out USort>): Int? = (expr as? KBitVec32Value)?.intValue
-
-        private fun extractLong(expr: UExpr<out USort>): Long? = (expr as? KBitVec64Value)?.longValue
-
-        private fun extractFloat(expr: UExpr<out USort>): Float? = (expr as? KFp32Value)?.value
-
-        private fun extractDouble(expr: UExpr<out USort>): Double? = (expr as? KFp64Value)?.value
-
-
-        private val intData = listOf(
-            0,
-            1,
-            -1,
-            2,
-            -2,
-            100_500,
-            -100_500,
-            1337,
-            -1337,
-            1_000_000_000,
-            -1_000_000_000,
-            Int.MIN_VALUE,
-            Int.MAX_VALUE,
-        )
-        private val longData = listOf(
-            0L,
-            1L,
-            -1L,
-            2L,
-            -2L,
-            100_500L,
-            -100_500L,
-            1337L,
-            -1337L,
-            1e18.toLong(),
-            (-1e18).toLong(),
-            Long.MIN_VALUE,
-            Long.MAX_VALUE,
-        )
-        private val floatData = listOf(
-            0f,
-            1f,
-            -1f,
-            2f,
-            -2f,
-            100_500f,
-            -100_500f,
-            1337f,
-            -1337f,
-            1_000_000_000f,
-            -1_000_000_000f,
-            1e18.toFloat(),
-            (-1e18).toFloat(),
-            Float.MIN_VALUE,
-            Float.MAX_VALUE,
-            Float.NaN,
-            Float.NEGATIVE_INFINITY,
-            Float.POSITIVE_INFINITY,
-        )
-        private val doubleData = listOf(
-            0.0,
-            1.0,
-            -1.0,
-            2.0,
-            -2.0,
-            100_500.0,
-            -100_500.0,
-            1337.0,
-            -1337.0,
-            1_000_000_000.0,
-            -1_000_000_000.0,
-            Double.MIN_VALUE,
-            Double.MAX_VALUE,
-            Double.NaN,
-            Double.NEGATIVE_INFINITY,
-            Double.POSITIVE_INFINITY,
-        )
     }
 }

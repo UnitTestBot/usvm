@@ -14,6 +14,7 @@ import kotlin.reflect.KFunction1
 import kotlin.reflect.KFunction2
 import kotlin.reflect.KFunction3
 import kotlin.reflect.KFunction4
+import kotlin.test.assertTrue
 
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -32,6 +33,7 @@ abstract class TestRunner {
 
     inline fun <reified T, reified R> run(method: KFunction1<T, R>, vararg matchers: (T, R) -> Boolean) {
         internalCheck(T::class, method) {
+            assertTrue(it.tests.isNotEmpty())
             for (matcher in matchers) {
                 it.tests.any { test ->
                     val instance = (test.before.thisInstance as? T) ?: return@any false
@@ -47,6 +49,7 @@ abstract class TestRunner {
         vararg matchers: (T, A0, R) -> Boolean,
     ) {
         internalCheck(T::class, method) {
+            assertTrue(it.tests.isNotEmpty())
             for (matcher in matchers) {
                 it.tests.any { test ->
                     val instance = (test.before.thisInstance as? T) ?: return@any false
@@ -63,6 +66,7 @@ abstract class TestRunner {
         vararg matchers: (T, A0, A1, R) -> Boolean,
     ) {
         internalCheck(T::class, method) {
+            assertTrue(it.tests.isNotEmpty())
             for (matcher in matchers) {
                 it.tests.any { test ->
                     val instance = (test.before.thisInstance as? T) ?: return@any false
@@ -80,6 +84,7 @@ abstract class TestRunner {
         vararg matchers: (T, A0, A1, A2, R) -> Boolean,
     ) {
         internalCheck(T::class, method) {
+            assertTrue(it.tests.isNotEmpty())
             for (matcher in matchers) {
                 it.tests.any { test ->
                     val instance = (test.before.thisInstance as? T) ?: return@any false

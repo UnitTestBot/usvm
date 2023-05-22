@@ -120,16 +120,17 @@ class JcExprResolver(
         mkBv(value.value, bv32Sort)
     }
 
-    override fun visitJcCastExpr(expr: JcCastExpr): UExpr<out USort> = with(ctx) {
+    override fun visitJcCastExpr(expr: JcCastExpr): UExpr<out USort>? = with(ctx) {
+        val operand = resolveExpr(expr.operand) ?: return null
         when (expr.type) {
-            cp.boolean -> TODO()
-            cp.short -> TODO()
-            cp.int -> TODO()
-            cp.long -> TODO()
-            cp.float -> TODO()
-            cp.double -> TODO()
-            cp.byte -> TODO()
-            cp.char -> TODO()
+            cp.boolean -> JcUnaryOperator.CastToBoolean(operand)
+            cp.short -> JcUnaryOperator.CastToShort(operand)
+            cp.int -> JcUnaryOperator.CastToInt(operand)
+            cp.long -> JcUnaryOperator.CastToLong(operand)
+            cp.float -> JcUnaryOperator.CastToFloat(operand)
+            cp.double -> JcUnaryOperator.CastToDouble(operand)
+            cp.byte -> JcUnaryOperator.CastToByte(operand)
+            cp.char -> JcUnaryOperator.CastToChar(operand)
             is JcRefType -> TODO()
             else -> error("unexpected cast expression: $expr")
         }
@@ -143,16 +144,22 @@ class JcExprResolver(
         TODO("Not yet implemented")
     }
 
-    override fun visitJcCmpExpr(expr: JcCmpExpr): UExpr<out USort> = with(ctx) {
-        TODO("Not yet implemented")
+    override fun visitJcCmpExpr(expr: JcCmpExpr): UExpr<out USort>? = with(ctx) {
+        val lhs = resolveExpr(expr.lhv) ?: return null
+        val rhs = resolveExpr(expr.rhv) ?: return null
+        JcBinOperator.Cmp(lhs, rhs)
     }
 
-    override fun visitJcCmpgExpr(expr: JcCmpgExpr): UExpr<out USort> = with(ctx) {
-        TODO("Not yet implemented")
+    override fun visitJcCmpgExpr(expr: JcCmpgExpr): UExpr<out USort>? = with(ctx) {
+        val lhs = resolveExpr(expr.lhv) ?: return null
+        val rhs = resolveExpr(expr.rhv) ?: return null
+        JcBinOperator.Cmpg(lhs, rhs)
     }
 
-    override fun visitJcCmplExpr(expr: JcCmplExpr): UExpr<out USort> = with(ctx) {
-        TODO("Not yet implemented")
+    override fun visitJcCmplExpr(expr: JcCmplExpr): UExpr<out USort>? = with(ctx) {
+        val lhs = resolveExpr(expr.lhv) ?: return null
+        val rhs = resolveExpr(expr.rhv) ?: return null
+        JcBinOperator.Cmpl(lhs, rhs)
     }
 
     override fun visitJcDivExpr(expr: JcDivExpr): UExpr<out USort>? =
