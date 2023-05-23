@@ -21,7 +21,7 @@ data class JcCoverage(
 data class JcTest(
     val before: JcParametersState,
     val after: JcParametersState,
-    val result: Any?,
+    val result: Result<Any?>,
     val coverage: JcCoverage,
 )
 

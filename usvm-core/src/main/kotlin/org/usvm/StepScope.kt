@@ -17,7 +17,8 @@ class StepScope<T : UState<Type, Field, *, *>, Type, Field>(
 ) {
     private val forkedStates = mutableListOf<T>()
     private var curState: T? = originalState
-    private var alive: Boolean = true
+    var alive: Boolean = true
+        private set
 
     /**
      * @return forked states and the status of initial state.

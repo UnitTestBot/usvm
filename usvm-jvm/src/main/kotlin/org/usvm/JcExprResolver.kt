@@ -1,7 +1,6 @@
 package org.usvm
 
 import io.ksmt.expr.KBitVec32Value
-import io.ksmt.expr.KExpr
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
 import org.jacodb.api.JcRefType
@@ -308,15 +307,21 @@ class JcExprResolver(
         }
 
     private fun resolveInvoke(method: JcTypedMethod, resolveArguments: () -> List<UExpr<out USort>>?): UExpr<out USort>? {
-        return when (val result = scope.calcOnState { methodResult }) {
-            is JcMethodResult.Success -> result.value
+        return when (val result = scope.calcOnState { methodResult } ?: return null) {
+            is JcMethodResult.Success -> {
+                scope.doWithState { methodResult = JcMethodResult.NoCall }
+                result.value
+            }
+
             is JcMethodResult.NoCall -> {
                 val arguments = resolveArguments() ?: return null
                 scope.doWithState { addNewMethodCall(applicationGraph, method, arguments) }
                 null
             }
 
-            else -> null
+            is JcMethodResult.Exception -> {
+                null
+            }
         }
     }
 

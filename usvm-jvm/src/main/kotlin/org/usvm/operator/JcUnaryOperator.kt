@@ -1,6 +1,10 @@
 package org.usvm.operator
 
 import io.ksmt.expr.KExpr
+import io.ksmt.expr.KFpRoundingMode
+import io.ksmt.sort.KBvSort
+import io.ksmt.utils.BvUtils.bvMaxValueSigned
+import io.ksmt.utils.BvUtils.bvMinValueSigned
 import io.ksmt.utils.cast
 import org.usvm.UBvSort
 import org.usvm.UContext
@@ -36,7 +40,7 @@ sealed class JcUnaryOperator(
 
     object CastToInt : JcUnaryOperator(
         onBv = { operand -> operand.mkNarrow(Int.SIZE_BITS, signed = true) },
-        onFp = { operand -> mkFpToBvExpr(fpRoundingModeSortDefaultValue(), operand, Int.SIZE_BITS, isSigned = true) }
+        onFp = { operand -> operand.castToBv(Int.SIZE_BITS) }
     )
 
     object CastToLong : JcUnaryOperator(
@@ -54,20 +58,12 @@ sealed class JcUnaryOperator(
         onFp = { operand -> mkFpToFpExpr(fp64Sort, fpRoundingModeSortDefaultValue(), operand) }
     )
 
-    open operator fun invoke(operand: UExpr<out USort>): UExpr<out USort> {
-        val sort = operand.sort
-        return when {
-            sort is UBvSort -> {
-                operand.uctx.onBv(operand.cast())
-            }
-
-            sort is UFpSort -> {
-                operand.uctx.onFp(operand.cast())
-            }
-
+    open operator fun invoke(operand: UExpr<out USort>): UExpr<out USort> =
+        when (operand.sort) {
+            is UBvSort -> operand.uctx.onBv(operand.cast())
+            is UFpSort -> operand.uctx.onFp(operand.cast())
             else -> error("Expressions mismatch: $operand")
         }
-    }
 
     companion object {
         private val shouldNotBeCalled: UContext.(UExpr<out USort>) -> KExpr<out USort> =
@@ -87,13 +83,35 @@ sealed class JcUnaryOperator(
             return res
         }
 
+
+        /**
+         * TODO: Add reference here
+         */
         private fun UExpr<UFpSort>.castToBv(sizeBits: Int): UExpr<UBvSort> =
             with(ctx) {
+                val bvMaxValue: KExpr<KBvSort> = bvMaxValueSigned(sizeBits.toUInt()).cast()
+                val bvMinValue: KExpr<KBvSort> = bvMinValueSigned(sizeBits.toUInt()).cast()
+                val fpBvMaxValue = mkBvToFpExpr(sort, fpRoundingModeSortDefaultValue(), bvMaxValue, signed = true)
+                val fpBvMinValue = mkBvToFpExpr(sort, fpRoundingModeSortDefaultValue(), bvMinValue, signed = true)
+
                 mkIte(
                     mkFpIsNaNExpr(this@castToBv),
                     mkBv(0, sizeBits.toUInt()),
-                    mkFpToBvExpr(fpRoundingModeSortDefaultValue(), this@castToBv, sizeBits, isSigned = true)
-                ) // TODO: more branches here covering infinity and [MIN_VALUE, MAX_VALUE]
+                    mkIte(
+                        mkFpLessExpr(fpBvMaxValue, this@castToBv),
+                        bvMaxValue,
+                        mkIte(
+                            mkFpLessExpr(this@castToBv, fpBvMinValue),
+                            bvMinValue,
+                            mkFpToBvExpr(
+                                mkFpRoundingModeExpr(KFpRoundingMode.RoundTowardZero),
+                                this@castToBv,
+                                sizeBits,
+                                isSigned = true
+                            )
+                        )
+                    )
+                )
             }
     }
 }

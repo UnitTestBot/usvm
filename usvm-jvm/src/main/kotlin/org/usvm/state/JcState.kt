@@ -2,8 +2,6 @@ package org.usvm.state
 
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
-import org.jacodb.api.JcField
-import org.jacodb.api.JcMethod
 import org.jacodb.api.JcType
 import org.jacodb.api.JcTypedField
 import org.jacodb.api.JcTypedMethod
@@ -12,7 +10,6 @@ import org.jacodb.api.ext.cfg.locals
 import org.usvm.JcApplicationGraph
 import org.usvm.JcContext
 import org.usvm.UCallStack
-import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.UState
@@ -70,7 +67,9 @@ fun JcState.returnValue(valueToReturn: UExpr<out USort>) {
 
 fun JcState.throwException(exception: Exception) {
     val returnSite = callStack.pop()
-    memory.stack.pop()
+    if (callStack.isNotEmpty()) {
+        memory.stack.pop()
+    }
 
     methodResult = JcMethodResult.Exception(exception)
 
@@ -95,6 +94,12 @@ fun JcState.addNewMethodCall(
     method: JcTypedMethod,
     arguments: List<UExpr<out USort>>,
 ) {
+    if (method.enclosingType.jcClass.name == "java.lang.Throwable") { // TODO: skipping construction of throwables
+        val nextStmt = applicationGraph.successors(lastStmt).single()
+        newStmt(nextStmt)
+        return
+    }
+
     val entryPoint = applicationGraph.entryPoint(method.method).single()
     val returnSite = lastStmt
     callStack.push(method, returnSite)

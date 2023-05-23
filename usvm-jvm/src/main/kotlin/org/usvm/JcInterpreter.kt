@@ -11,6 +11,7 @@ import org.jacodb.api.cfg.JcCallInst
 import org.jacodb.api.cfg.JcCatchInst
 import org.jacodb.api.cfg.JcGotoInst
 import org.jacodb.api.cfg.JcIfInst
+import org.jacodb.api.cfg.JcInst
 import org.jacodb.api.cfg.JcLocal
 import org.jacodb.api.cfg.JcLocalVar
 import org.jacodb.api.cfg.JcReturnInst
@@ -19,9 +20,12 @@ import org.jacodb.api.cfg.JcThis
 import org.jacodb.api.cfg.JcThrowInst
 import org.usvm.state.JcMethodResult
 import org.usvm.state.JcState
+import org.usvm.state.WrappedException
+import org.usvm.state.addEntryMethodCall
 import org.usvm.state.lastStmt
 import org.usvm.state.newStmt
 import org.usvm.state.returnValue
+import org.usvm.state.throwException
 
 typealias JcStepScope = StepScope<JcState, JcType, JcTypedField>
 
@@ -31,23 +35,42 @@ class JcInterpreter(
     private val applicationGraph: JcApplicationGraph,
 ) : UInterpreter<JcState>() {
 
-    private val localVarToIdx = mutableMapOf<JcMethod, MutableMap<String, Int>>() // (method, localName) -> idx
-    private fun getLocalToIdxMapper(method: JcTypedMethod, local: JcLocal) =
-        when (local) {
-            is JcLocalVar -> localVarToIdx
-                .getOrPut(method.method) { mutableMapOf() }
-                .run {
-                    getOrPut(local.name) { method.parameters.size + size + if (method.isStatic) 0 else 1 }
-                }
+    fun getInitialState(method: JcTypedMethod): JcState {
+        val solver = ctx.solver<JcTypedField, JcType, JcTypedMethod>()
+        val model = solver.emptyModel()
 
-            is JcThis -> 0
-            is JcArgument -> local.index + if (method.isStatic) 0 else 1
-            else -> error("Unexpected local: $local")
+        val state = JcState(
+            ctx,
+            models = listOf(model)
+        )
+        state.addEntryMethodCall(applicationGraph, method)
+
+        if (!method.isStatic) {
+            with(ctx) {
+                val thisLValue = URegisterRef(addressSort, 0)
+
+                val ref = checkNotNull(state.memory.read(thisLValue)).asExpr(addressSort)
+
+                val scope = StepScope(state)
+                scope.assert(mkEq(ref, nullRef).not())
+                check(scope.alive)
+            }
         }
+
+        return state
+    }
+
+
+    private val localVarToIdx = mutableMapOf<JcMethod, MutableMap<String, Int>>() // (method, localName) -> idx
 
     override fun step(state: JcState): StepResult<JcState> {
         val stmt = state.lastStmt
         val scope = StepScope(state)
+        val result = state.methodResult
+        if (result is JcMethodResult.Exception) {
+            handleException(scope, result.exception, stmt)
+            return scope.stepResult()
+        }
         when (stmt) {
             is JcAssignInst -> visitAssignInst(scope, stmt)
             is JcIfInst -> visitIfStmt(scope, stmt)
@@ -62,8 +85,17 @@ class JcInterpreter(
         return scope.stepResult()
     }
 
+    private fun handleException(
+        scope: StepScope<JcState, JcType, JcTypedField>,
+        exception: Exception,
+        lastStmt: JcInst,
+    ) {
+        applicationGraph.successors(lastStmt) // TODO: check catchers for lastStmt
+        scope.calcOnState { throwException(exception) }
+    }
+
     private fun visitAssignInst(scope: JcStepScope, stmt: JcAssignInst) {
-        val exprResolver = JcExprResolver(ctx, scope, applicationGraph, ::getLocalToIdxMapper)
+        val exprResolver = JcExprResolver(ctx, scope, applicationGraph, ::mapLocalToIdxMapper)
         val lvalue = exprResolver.resolveLValue(stmt.lhv) ?: return
         val expr = exprResolver.resolveExpr(stmt.rhv) ?: return
 
@@ -75,7 +107,7 @@ class JcInterpreter(
     }
 
     private fun visitIfStmt(scope: JcStepScope, stmt: JcIfInst) {
-        val exprResolver = JcExprResolver(ctx, scope, applicationGraph, ::getLocalToIdxMapper)
+        val exprResolver = JcExprResolver(ctx, scope, applicationGraph, ::mapLocalToIdxMapper)
 
         val boolExpr = with(ctx) {
             exprResolver
@@ -94,7 +126,7 @@ class JcInterpreter(
     }
 
     private fun visitReturnStmt(scope: JcStepScope, stmt: JcReturnInst) {
-        val exprResolver = JcExprResolver(ctx, scope, applicationGraph, ::getLocalToIdxMapper)
+        val exprResolver = JcExprResolver(ctx, scope, applicationGraph, ::mapLocalToIdxMapper)
 
         val valueToReturn = stmt.returnValue?.let { exprResolver.resolveExpr(it) ?: return } ?: ctx.mkVoidValue()
 
@@ -117,11 +149,13 @@ class JcInterpreter(
     }
 
     private fun visitThrowStmt(scope: JcStepScope, stmt: JcThrowInst) {
-        TODO("Not yet implemented")
+        scope.calcOnState {
+            throwException(WrappedException(stmt.throwable.type.typeName))
+        }
     }
 
     private fun visitCallStmt(scope: JcStepScope, stmt: JcCallInst) {
-        val exprResolver = JcExprResolver(ctx, scope, applicationGraph, ::getLocalToIdxMapper)
+        val exprResolver = JcExprResolver(ctx, scope, applicationGraph, ::mapLocalToIdxMapper)
 
         val result = requireNotNull(scope.calcOnState { methodResult })
 
@@ -143,4 +177,17 @@ class JcInterpreter(
             }
         }
     }
+
+    private fun mapLocalToIdxMapper(method: JcTypedMethod, local: JcLocal) =
+        when (local) {
+            is JcLocalVar -> localVarToIdx
+                .getOrPut(method.method) { mutableMapOf() }
+                .run {
+                    getOrPut(local.name) { method.parameters.size + size + if (method.isStatic) 0 else 1 }
+                }
+
+            is JcThis -> 0
+            is JcArgument -> local.index + if (method.isStatic) 0 else 1
+            else -> error("Unexpected local: $local")
+        }
 }

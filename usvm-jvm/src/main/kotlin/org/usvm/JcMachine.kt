@@ -1,16 +1,12 @@
 package org.usvm
 
-import kotlinx.collections.immutable.persistentListOf
 import org.jacodb.api.JcClasspath
-import org.jacodb.api.JcType
-import org.jacodb.api.JcTypedField
 import org.jacodb.api.JcTypedMethod
 import org.usvm.ps.BfsPathSelector
 import org.usvm.ps.DfsPathSelector
 import org.usvm.ps.combinators.InterleavedSelector
 import org.usvm.state.JcMethodResult
 import org.usvm.state.JcState
-import org.usvm.state.addEntryMethodCall
 
 class JcMachine(
     cp: JcClasspath,
@@ -21,7 +17,6 @@ class JcMachine(
     private val typeSystem = JcTypeSystem(cp)
     private val components = JcComponents(typeSystem)
     private val ctx = JcContext(cp, components)
-    private val solver = ctx.solver<JcTypedField, JcType, JcTypedMethod>()
 
     private val interpreter = JcInterpreter(ctx, applicationGraph)
 
@@ -52,11 +47,7 @@ class JcMachine(
     }
 
     private fun getInitialState(method: JcTypedMethod): JcState =
-        JcState(ctx).apply {
-            addEntryMethodCall(applicationGraph, method)
-            val model = solver.emptyModel()
-            models = persistentListOf(model)
-        }
+        interpreter.getInitialState(method)
 
     private fun isInterestingState(state: JcState): Boolean {
         return state.callStack.isNotEmpty() && state.methodResult !is JcMethodResult.Exception

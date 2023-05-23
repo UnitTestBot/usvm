@@ -16,7 +16,7 @@ abstract class UMachine<State : UState<*, *, *, *>, Target> : AutoCloseable {
      * @param onState called on every forked state. Can be used for collecting results.
      * @param continueAnalyzing filtering function for states. If it returns `false`, a state
      * won't be analyzed further. It is called on an original state and every forked state as well.
-     * @param stoppingStrategy is called on every step, before peeking a next state from path selector.
+     * @param stoppingStrategy is called on every step, before peeking a next state from the path selector.
      * Returning `true` aborts analysis.
      */
     fun run(

@@ -35,7 +35,6 @@ import org.usvm.memory.UAddressCounter
 import org.usvm.memory.UReadOnlySymbolicMemory
 import org.usvm.state.JcMethodResult
 import org.usvm.state.JcState
-import sun.misc.Unsafe
 
 class JcTestResolver {
     fun resolve(method: JcTypedMethod, state: JcState): JcTest {
@@ -51,8 +50,8 @@ class JcTestResolver {
 
         val result = when (val res = state.methodResult) {
             is JcMethodResult.NoCall -> error("no result found")
-            is JcMethodResult.Success -> with(finalMemory) { resolveExpr(res.value, method.returnType) }
-            is JcMethodResult.Exception -> res.exception
+            is JcMethodResult.Success -> with(finalMemory) { Result.success(resolveExpr(res.value, method.returnType)) }
+            is JcMethodResult.Exception -> Result.failure(res.exception)
         }
         val coverage = resolveCoverage(method, state)
 
@@ -132,12 +131,12 @@ class JcTestResolver {
             }
         }
 
-        private fun resolveUncachedReference(idx: UConcreteHeapAddress, type: JcRefType, heapRef: UHeapRef): Any? {
+        private fun resolveUncachedReference(idx: UConcreteHeapAddress, type: JcRefType, heapRef: UHeapRef): Any {
             val jClass = resolveType(idx, type)
-            val instance = Unsafe.getUnsafe().allocateInstance(jClass)
+            val instance = Reflection.allocateInstance(jClass)
             resolvedCache[idx] = instance
 
-            val fields = type.jcClass.toType().declaredFields // TODO: skips inherited fields
+            val fields = type.jcClass.toType().declaredFields // TODO: now it skips inherited fields
             for (field in fields) {
                 val ref = UFieldRef(ctx.typeToSort(field.fieldType), heapRef, field)
                 val fieldValue = resolveLValue(ref, field.fieldType)
