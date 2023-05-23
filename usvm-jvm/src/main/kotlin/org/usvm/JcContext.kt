@@ -15,7 +15,7 @@ import org.jacodb.api.ext.short
 
 class JcContext(
     val cp: JcClasspath,
-    val components: JcComponents,
+    components: JcComponents,
 ) : UContext(components) {
 
     val voidValue by lazy { mkConcreteHeapRef(0) }

@@ -17,6 +17,7 @@ import org.jacodb.api.cfg.JcReturnInst
 import org.jacodb.api.cfg.JcSwitchInst
 import org.jacodb.api.cfg.JcThis
 import org.jacodb.api.cfg.JcThrowInst
+import org.usvm.state.JcMethodResult
 import org.usvm.state.JcState
 import org.usvm.state.lastStmt
 import org.usvm.state.newStmt
@@ -62,7 +63,7 @@ class JcInterpreter(
     }
 
     private fun visitAssignInst(scope: JcStepScope, stmt: JcAssignInst) {
-        val exprResolver = JcExprResolver(ctx, scope, ::getLocalToIdxMapper)
+        val exprResolver = JcExprResolver(ctx, scope, applicationGraph, ::getLocalToIdxMapper)
         val lvalue = exprResolver.resolveLValue(stmt.lhv) ?: return
         val expr = exprResolver.resolveExpr(stmt.rhv) ?: return
 
@@ -74,7 +75,7 @@ class JcInterpreter(
     }
 
     private fun visitIfStmt(scope: JcStepScope, stmt: JcIfInst) {
-        val exprResolver = JcExprResolver(ctx, scope, ::getLocalToIdxMapper)
+        val exprResolver = JcExprResolver(ctx, scope, applicationGraph, ::getLocalToIdxMapper)
 
         val boolExpr = with(ctx) {
             exprResolver
@@ -93,7 +94,7 @@ class JcInterpreter(
     }
 
     private fun visitReturnStmt(scope: JcStepScope, stmt: JcReturnInst) {
-        val exprResolver = JcExprResolver(ctx, scope, ::getLocalToIdxMapper)
+        val exprResolver = JcExprResolver(ctx, scope, applicationGraph, ::getLocalToIdxMapper)
 
         val valueToReturn = stmt.returnValue?.let { exprResolver.resolveExpr(it) ?: return } ?: ctx.mkVoidValue()
 
@@ -120,6 +121,26 @@ class JcInterpreter(
     }
 
     private fun visitCallStmt(scope: JcStepScope, stmt: JcCallInst) {
-        TODO("Not yet implemented")
+        val exprResolver = JcExprResolver(ctx, scope, applicationGraph, ::getLocalToIdxMapper)
+
+        val result = requireNotNull(scope.calcOnState { methodResult })
+
+        when (result) {
+            JcMethodResult.NoCall -> {
+                exprResolver.resolveExpr(stmt.callExpr)
+            }
+
+            is JcMethodResult.Success -> {
+                val nextStmt = applicationGraph.successors(stmt).single()
+                scope.doWithState {
+                    methodResult = JcMethodResult.NoCall
+                    newStmt(nextStmt)
+                } ?: return
+            }
+
+            is JcMethodResult.Exception -> {
+
+            }
+        }
     }
 }

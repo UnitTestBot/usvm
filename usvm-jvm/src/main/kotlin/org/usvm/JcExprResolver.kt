@@ -3,6 +3,7 @@ package org.usvm
 import io.ksmt.expr.KBitVec32Value
 import io.ksmt.expr.KExpr
 import io.ksmt.utils.asExpr
+import io.ksmt.utils.cast
 import org.jacodb.api.JcRefType
 import org.jacodb.api.JcTypedField
 import org.jacodb.api.JcTypedMethod
@@ -70,12 +71,15 @@ import org.jacodb.api.ext.long
 import org.jacodb.api.ext.short
 import org.usvm.operator.JcBinOperator
 import org.usvm.operator.JcUnaryOperator
+import org.usvm.state.JcMethodResult
+import org.usvm.state.addNewMethodCall
 import org.usvm.state.lastStmt
 import org.usvm.state.throwException
 
 class JcExprResolver(
     private val ctx: JcContext,
     private val scope: JcStepScope,
+    private val applicationGraph: JcApplicationGraph,
     private val localToIdx: (JcTypedMethod, JcLocal) -> Int,
     private val hardMaxArrayLength: Int = 1_500,
 ) : JcExprVisitor<UExpr<out USort>?> {
@@ -96,29 +100,133 @@ class JcExprResolver(
         TODO("Not yet implemented")
     }
 
+    //binary operators
+
     override fun visitJcAddExpr(expr: JcAddExpr): UExpr<out USort>? =
         resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinOperator.Add(lhs, rhs) }
+
+    override fun visitJcSubExpr(expr: JcSubExpr): UExpr<out USort>? =
+        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinOperator.Sub(lhs, rhs) }
+
+    override fun visitJcMulExpr(expr: JcMulExpr): UExpr<out USort>? =
+        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinOperator.Mul(lhs, rhs) }
+
+    override fun visitJcDivExpr(expr: JcDivExpr): UExpr<out USort>? =
+        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs ->
+            checkDivisionByZero(rhs) ?: return null
+            JcBinOperator.Div(lhs, rhs)
+        }
+
+    override fun visitJcRemExpr(expr: JcRemExpr): UExpr<out USort>? =
+        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs ->
+            checkDivisionByZero(rhs) ?: return null
+            JcBinOperator.Rem(lhs, rhs)
+        }
+
+    override fun visitJcShlExpr(expr: JcShlExpr): UExpr<out USort> = with(ctx) {
+        TODO("Not yet implemented")
+    }
+
+    override fun visitJcShrExpr(expr: JcShrExpr): UExpr<out USort> = with(ctx) {
+        TODO("Not yet implemented")
+    }
+
+    override fun visitJcUshrExpr(expr: JcUshrExpr): UExpr<out USort> = with(ctx) {
+        TODO("Not yet implemented")
+    }
+
+    override fun visitJcOrExpr(expr: JcOrExpr): UExpr<out USort>? =
+        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinOperator.Or(lhs, rhs) }
 
     override fun visitJcAndExpr(expr: JcAndExpr): UExpr<out USort>? =
         resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinOperator.And(lhs, rhs) }
 
-    override fun visitJcArgument(value: JcArgument): UExpr<out USort>? = with(ctx) {
-        val ref = resolveArgument(value)
-        scope.calcOnState { memory.read(ref) }
-    }
+    override fun visitJcXorExpr(expr: JcXorExpr): UExpr<out USort>? =
+        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinOperator.Xor(lhs, rhs) }
 
-    override fun visitJcArrayAccess(value: JcArrayAccess): UExpr<out USort>? = with(ctx) {
-        val ref = resolveArrayAccess(value.array, value.index) ?: return null
-        scope.calcOnState { memory.read(ref) }
-    }
+    override fun visitJcEqExpr(expr: JcEqExpr): UExpr<out USort>? =
+        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinOperator.Eq(lhs, rhs) }
+
+    override fun visitJcNeqExpr(expr: JcNeqExpr): UExpr<out USort>? =
+        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinOperator.Neq(lhs, rhs) }
+
+    override fun visitJcGeExpr(expr: JcGeExpr): UExpr<out USort>? =
+        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinOperator.Ge(lhs, rhs) }
+
+    override fun visitJcGtExpr(expr: JcGtExpr): UExpr<out USort>? =
+        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinOperator.Gt(lhs, rhs) }
+
+    override fun visitJcLeExpr(expr: JcLeExpr): UExpr<out USort>? =
+        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinOperator.Le(lhs, rhs) }
+
+    override fun visitJcLtExpr(expr: JcLtExpr): UExpr<out USort>? =
+        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinOperator.Lt(lhs, rhs) }
+
+    override fun visitJcCmpExpr(expr: JcCmpExpr): UExpr<out USort>? =
+        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinOperator.Cmp(lhs, rhs) }
+
+    override fun visitJcCmpgExpr(expr: JcCmpgExpr): UExpr<out USort>? =
+        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinOperator.Cmpg(lhs, rhs) }
+
+    override fun visitJcCmplExpr(expr: JcCmplExpr): UExpr<out USort>? =
+        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinOperator.Cmpl(lhs, rhs) }
+
+    override fun visitJcNegExpr(expr: JcNegExpr): UExpr<out USort>? =
+        resolveAfterResolved(expr.operand) { operand -> JcUnaryOperator.Neg(operand) }
+
+    //endregion
+
+    //region constants
 
     override fun visitJcBool(value: JcBool): UExpr<out USort> = with(ctx) {
         mkBv(value.value, bv32Sort)
     }
 
+    override fun visitJcChar(value: JcChar): UExpr<out USort> = with(ctx) {
+        mkBv(value.value.code, bv32Sort)
+    }
+
     override fun visitJcByte(value: JcByte): UExpr<out USort> = with(ctx) {
         mkBv(value.value, bv32Sort)
     }
+
+    override fun visitJcShort(value: JcShort): UExpr<out USort> = with(ctx) {
+        mkBv(value.value, bv32Sort)
+    }
+
+    override fun visitJcInt(value: JcInt): UExpr<out USort> = with(ctx) {
+        mkBv(value.value, bv32Sort)
+    }
+
+    override fun visitJcLong(value: JcLong): UExpr<out USort> = with(ctx) {
+        mkBv(value.value)
+    }
+
+    override fun visitJcFloat(value: JcFloat): UExpr<out USort> = with(ctx) {
+        mkFp32(value.value)
+    }
+
+    override fun visitJcDouble(value: JcDouble): UExpr<out USort> = with(ctx) {
+        mkFp64(value.value)
+    }
+
+    override fun visitJcNullConstant(value: JcNullConstant): UExpr<out USort> = with(ctx) {
+        nullRef
+    }
+
+    override fun visitJcStringConstant(value: JcStringConstant): UExpr<out USort> = with(ctx) {
+        TODO("Not yet implemented")
+    }
+
+    override fun visitJcMethodConstant(value: JcMethodConstant): UExpr<out USort> = with(ctx) {
+        TODO("Not yet implemented")
+    }
+
+    override fun visitJcClassConstant(value: JcClassConstant): UExpr<out USort> = with(ctx) {
+        TODO("Not yet implemented")
+    }
+
+    //endregion
 
     override fun visitJcCastExpr(expr: JcCastExpr): UExpr<out USort>? = with(ctx) {
         val operand = resolveExpr(expr.operand) ?: return null
@@ -136,178 +244,117 @@ class JcExprResolver(
         }
     }
 
-    override fun visitJcChar(value: JcChar): UExpr<out USort> = with(ctx) {
-        mkBv(value.value.code, bv32Sort)
-    }
-
-    override fun visitJcClassConstant(value: JcClassConstant): UExpr<out USort> = with(ctx) {
+    override fun visitJcInstanceOfExpr(expr: JcInstanceOfExpr): UExpr<out USort> = with(ctx) {
         TODO("Not yet implemented")
     }
 
-    override fun visitJcCmpExpr(expr: JcCmpExpr): UExpr<out USort>? = with(ctx) {
-        val lhs = resolveExpr(expr.lhv) ?: return null
-        val rhs = resolveExpr(expr.rhv) ?: return null
-        JcBinOperator.Cmp(lhs, rhs)
+    override fun visitJcLengthExpr(expr: JcLengthExpr): UExpr<out USort>? = with(ctx) {
+        val ref = (resolveExpr(expr.array) ?: return null).asExpr(addressSort)
+        checkNullPointer(ref) ?: return null
+        val length = scope.calcOnState { memory.length(ref, expr.array.type) } ?: return null
+        checkHardMaxArrayLength(length) ?: return null
+        scope.assert(mkBvSignedLessOrEqualExpr(mkBv(0), length)) ?: return null
+        length
     }
 
-    override fun visitJcCmpgExpr(expr: JcCmpgExpr): UExpr<out USort>? = with(ctx) {
-        val lhs = resolveExpr(expr.lhv) ?: return null
-        val rhs = resolveExpr(expr.rhv) ?: return null
-        JcBinOperator.Cmpg(lhs, rhs)
+    override fun visitJcNewArrayExpr(expr: JcNewArrayExpr): UExpr<out USort>? = with(ctx) {
+        val size = (resolveExpr(expr.dimensions[0]) ?: return null).asExpr(sizeSort)
+        // TODO: other dimensions
+        checkNewArrayLength(size) ?: return null
+        val ref = scope.calcOnState { memory.malloc(expr.type, size) } ?: return null
+        ref
     }
 
-    override fun visitJcCmplExpr(expr: JcCmplExpr): UExpr<out USort>? = with(ctx) {
-        val lhs = resolveExpr(expr.lhv) ?: return null
-        val rhs = resolveExpr(expr.rhv) ?: return null
-        JcBinOperator.Cmpl(lhs, rhs)
+    override fun visitJcNewExpr(expr: JcNewExpr): UExpr<out USort>? =
+        scope.calcOnState { memory.alloc(expr.type) }
+
+    override fun visitJcPhiExpr(expr: JcPhiExpr): UExpr<out USort> = with(ctx) {
+        TODO("Not yet implemented")
     }
 
-    override fun visitJcDivExpr(expr: JcDivExpr): UExpr<out USort>? =
-        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinOperator.Div(lhs, rhs) }
+    //region invokes
 
-    override fun visitJcDouble(value: JcDouble): UExpr<out USort> = with(ctx) {
-        mkFp64(value.value)
-    }
+    override fun visitJcSpecialCallExpr(expr: JcSpecialCallExpr): UExpr<out USort>? =
+        resolveInvoke(expr.method) {
+            val instance = (resolveExpr(expr.instance) ?: return@resolveInvoke null).asExpr(ctx.addressSort)
+            checkNullPointer(instance) ?: return@resolveInvoke null
+            val arguments = mutableListOf<UExpr<out USort>>(instance)
+            expr.args.mapTo(arguments) { resolveExpr(it) ?: return@resolveInvoke null }
+            arguments
+        }
+
+    override fun visitJcVirtualCallExpr(expr: JcVirtualCallExpr): UExpr<out USort>? =
+        resolveInvoke(expr.method) {
+            // TODO resolve actual method for interface invokes
+            val instance = (resolveExpr(expr.instance) ?: return@resolveInvoke null).asExpr(ctx.addressSort)
+            checkNullPointer(instance) ?: return@resolveInvoke null
+            val arguments = mutableListOf<UExpr<out USort>>(instance)
+            expr.args.mapTo(arguments) { resolveExpr(it) ?: return@resolveInvoke null }
+            arguments
+        }
+
+    override fun visitJcStaticCallExpr(expr: JcStaticCallExpr): UExpr<out USort>? =
+        resolveInvoke(expr.method) {
+            expr.args.map { resolveExpr(it) ?: return@resolveInvoke null }
+        }
 
     override fun visitJcDynamicCallExpr(expr: JcDynamicCallExpr): UExpr<out USort> = with(ctx) {
         TODO("Not yet implemented")
     }
 
-    override fun visitJcEqExpr(expr: JcEqExpr): UExpr<out USort>? =
-        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinOperator.Eq(lhs, rhs) }
+    override fun visitJcLambdaExpr(expr: JcLambdaExpr): UExpr<out USort>? =
+        resolveInvoke(expr.method) {
+            expr.args.map { resolveExpr(it) ?: return@resolveInvoke null }
+        }
 
-    override fun visitJcFieldRef(value: JcFieldRef): UExpr<out USort>? = with(ctx) {
-        val ref = resolveFieldRef(value.instance, value.field) ?: return null
-        scope.calcOnState { memory.read(ref) }
+    private fun resolveInvoke(method: JcTypedMethod, resolveArguments: () -> List<UExpr<out USort>>?): UExpr<out USort>? {
+        return when (val result = scope.calcOnState { methodResult }) {
+            is JcMethodResult.Success -> result.value
+            is JcMethodResult.NoCall -> {
+                val arguments = resolveArguments() ?: return null
+                scope.doWithState { addNewMethodCall(applicationGraph, method, arguments) }
+                null
+            }
+
+            else -> null
+        }
     }
 
-    override fun visitJcFloat(value: JcFloat): UExpr<out USort> = with(ctx) {
-        mkFp32(value.value)
-    }
+    //endregion
 
-    override fun visitJcGeExpr(expr: JcGeExpr): UExpr<out USort>? =
-        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinOperator.Ge(lhs, rhs) }
-
-    override fun visitJcGtExpr(expr: JcGtExpr): UExpr<out USort>? =
-        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinOperator.Gt(lhs, rhs) }
-
-
-    override fun visitJcInstanceOfExpr(expr: JcInstanceOfExpr): UExpr<out USort> = with(ctx) {
-        TODO("Not yet implemented")
-    }
-
-    override fun visitJcInt(value: JcInt): UExpr<out USort> = with(ctx) {
-        mkBv(value.value)
-    }
-
-    override fun visitJcLambdaExpr(expr: JcLambdaExpr): UExpr<out USort> = with(ctx) {
-        TODO("Not yet implemented")
-    }
-
-    override fun visitJcLeExpr(expr: JcLeExpr): UExpr<out USort>? =
-        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinOperator.Le(lhs, rhs) }
-
-    override fun visitJcLengthExpr(expr: JcLengthExpr): UExpr<out USort> = with(ctx) {
-        TODO("Not yet implemented")
-    }
+    //region jc locals
 
     override fun visitJcLocalVar(value: JcLocalVar): UExpr<out USort>? = with(ctx) {
         val ref = resolveLocalVar(value)
         scope.calcOnState { memory.read(ref) }
     }
 
-    override fun visitJcLong(value: JcLong): UExpr<out USort> = with(ctx) {
-        mkBv(value.value)
-    }
-
-    override fun visitJcLtExpr(expr: JcLtExpr): UExpr<out USort>? =
-        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinOperator.Lt(lhs, rhs) }
-
-    override fun visitJcMethodConstant(value: JcMethodConstant): UExpr<out USort> = with(ctx) {
-        TODO("Not yet implemented")
-    }
-
-    override fun visitJcMulExpr(expr: JcMulExpr): UExpr<out USort>? =
-        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinOperator.Mul(lhs, rhs) }
-
-    override fun visitJcNegExpr(expr: JcNegExpr): UExpr<out USort>? =
-        resolveAfterResolved(expr.operand) { operand -> JcUnaryOperator.Neg(operand) }
-
-    override fun visitJcNeqExpr(expr: JcNeqExpr): UExpr<out USort>? =
-        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinOperator.Neq(lhs, rhs) }
-
-    override fun visitJcNewArrayExpr(expr: JcNewArrayExpr): UExpr<out USort> = with(ctx) {
-        TODO("Not yet implemented")
-    }
-
-    override fun visitJcNewExpr(expr: JcNewExpr): UExpr<out USort> = with(ctx) {
-        TODO("Not yet implemented")
-    }
-
-    override fun visitJcNullConstant(value: JcNullConstant): UExpr<out USort> = with(ctx) {
-        TODO("Not yet implemented")
-    }
-
-    override fun visitJcOrExpr(expr: JcOrExpr): UExpr<out USort>? =
-        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinOperator.Or(lhs, rhs) }
-
-    override fun visitJcPhiExpr(expr: JcPhiExpr): UExpr<out USort> = with(ctx) {
-        TODO("Not yet implemented")
-    }
-
-    override fun visitJcRemExpr(expr: JcRemExpr): UExpr<out USort>? =
-        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinOperator.Rem(lhs, rhs) }
-
-    override fun visitJcShlExpr(expr: JcShlExpr): UExpr<out USort> = with(ctx) {
-        TODO("Not yet implemented")
-    }
-
-    override fun visitJcShort(value: JcShort): UExpr<out USort> = with(ctx) {
-        mkBv(value.value, bv32Sort)
-    }
-
-    override fun visitJcShrExpr(expr: JcShrExpr): UExpr<out USort> = with(ctx) {
-        TODO("Not yet implemented")
-    }
-
-    override fun visitJcSpecialCallExpr(expr: JcSpecialCallExpr): UExpr<out USort> = with(ctx) {
-        TODO("Not yet implemented")
-    }
-
-    override fun visitJcStaticCallExpr(expr: JcStaticCallExpr): UExpr<out USort> = with(ctx) {
-        TODO("Not yet implemented")
-    }
-
-    override fun visitJcStringConstant(value: JcStringConstant): UExpr<out USort> = with(ctx) {
-        TODO("Not yet implemented")
-    }
-
-    override fun visitJcSubExpr(expr: JcSubExpr): UExpr<out USort>? =
-        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinOperator.Sub(lhs, rhs) }
-
     override fun visitJcThis(value: JcThis): UExpr<out USort>? = with(ctx) {
         val ref = resolveThis(value)
         scope.calcOnState { memory.read(ref) }
     }
 
-    override fun visitJcUshrExpr(expr: JcUshrExpr): UExpr<out USort> = with(ctx) {
-        TODO("Not yet implemented")
+    override fun visitJcArgument(value: JcArgument): UExpr<out USort>? = with(ctx) {
+        val ref = resolveArgument(value)
+        scope.calcOnState { memory.read(ref) }
     }
 
-    override fun visitJcVirtualCallExpr(expr: JcVirtualCallExpr): UExpr<out USort> = with(ctx) {
-        TODO("Not yet implemented")
+    //endregion
+
+    //region jc complex values
+
+    override fun visitJcFieldRef(value: JcFieldRef): UExpr<out USort>? = with(ctx) {
+        val ref = resolveFieldRef(value.instance, value.field) ?: return null
+        scope.calcOnState { memory.read(ref) }
     }
 
-    override fun visitJcXorExpr(expr: JcXorExpr): UExpr<out USort>? =
-        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinOperator.Xor(lhs, rhs) }
 
-    private fun resolveAfterResolved(
-        dependency0: JcExpr,
-        block: (UExpr<out USort>) -> UExpr<out USort>?,
-    ): UExpr<out USort>? {
-        val result0 = resolveExpr(dependency0) ?: return null
-        return block(result0)
+    override fun visitJcArrayAccess(value: JcArrayAccess): UExpr<out USort>? = with(ctx) {
+        val ref = resolveArrayAccess(value.array, value.index) ?: return null
+        scope.calcOnState { memory.read(ref) }
     }
+
+    //endregion
 
     private fun resolveArrayAccess(array: JcValue, index: JcValue): ULValue? = with(ctx) {
         val arrayRef = resolveExpr(array)?.asExpr(addressSort) ?: return null
@@ -359,7 +406,6 @@ class JcExprResolver(
         return URegisterRef(sort, localIdx)
     }
 
-
     private fun checkArrayIndex(idx: USizeExpr, length: USizeExpr) = with(ctx) {
         val inside = (mkBvSignedLessOrEqualExpr(mkBv(0), idx)) and (mkBvSignedLessExpr(idx, length))
 
@@ -372,12 +418,12 @@ class JcExprResolver(
         )
     }
 
-    private fun checkArrayLength(length: KExpr<UBv32Sort>, actualLength: Int) = with(ctx) {
+    private fun checkNewArrayLength(length: UExpr<USizeSort>) = with(ctx) {
         checkHardMaxArrayLength(length) ?: return null
 
-        val actualLengthLeThanLength = mkBvSignedLessOrEqualExpr(mkBv(actualLength), length)
+        val lengthIsNonNegative = mkBvSignedLessOrEqualExpr(mkBv(0), length)
 
-        scope.fork(actualLengthLeThanLength,
+        scope.fork(lengthIsNonNegative,
             blockOnFalseState = {
                 val exception = NegativeArraySizeException()
                 throwException(exception)
@@ -386,8 +432,12 @@ class JcExprResolver(
     }
 
 
-    private fun checkDivisionByZero(rhs: UExpr<UBv32Sort>) = with(ctx) {
-        val neqZero = mkEq(rhs, mkBv(0)).not()
+    private fun checkDivisionByZero(rhs: UExpr<out USort>) = with(ctx) {
+        val sort = rhs.sort
+        if (sort !is UBvSort) {
+            return Unit
+        }
+        val neqZero = mkEq(rhs.cast(), mkBv(0, sort)).not()
         scope.fork(neqZero,
             blockOnFalseState = {
                 val ln = lastStmt.lineNumber
@@ -413,6 +463,14 @@ class JcExprResolver(
         val lengthLeThanMaxLength = mkBvSignedLessOrEqualExpr(length, mkBv(hardMaxArrayLength))
         scope.assert(lengthLeThanMaxLength) ?: return null
         return Unit
+    }
+
+    private fun resolveAfterResolved(
+        dependency0: JcExpr,
+        block: (UExpr<out USort>) -> UExpr<out USort>?,
+    ): UExpr<out USort>? {
+        val result0 = resolveExpr(dependency0) ?: return null
+        return block(result0)
     }
 
     private inline fun resolveAfterResolved(
