@@ -2,6 +2,7 @@ package org.usvm.model
 
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.sampleValue
+import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
@@ -18,6 +19,7 @@ import org.usvm.memory.URegistersStackEvaluator
 import org.usvm.memory.USymbolicArrayIndex
 import org.usvm.memory.USymbolicHeap
 import org.usvm.memory.USymbolicMapDescriptor
+import org.usvm.memory.USymbolicMapKey
 import org.usvm.uctx
 import org.usvm.util.Region
 
@@ -59,6 +61,9 @@ class UIndexedMockEagerModel<Method>(
     }
 }
 
+typealias UReadOnlySymbolicMapAnyRegion = UReadOnlyMemoryRegion<USymbolicMapKey<*>, out USort>
+typealias UReadOnlySymbolicMapLengthRegion = UReadOnlyMemoryRegion<UHeapRef, USizeSort>
+
 /**
  * An eager immutable heap model.
  *
@@ -73,6 +78,8 @@ class UHeapEagerModel<Field, ArrayType>(
     private val resolvedInputFields: Map<Field, UReadOnlyMemoryRegion<UHeapRef, out USort>>,
     private val resolvedInputArrays: Map<ArrayType, UReadOnlyMemoryRegion<USymbolicArrayIndex, out USort>>,
     private val resolvedInputLengths: Map<ArrayType, UReadOnlyMemoryRegion<UHeapRef, USizeSort>>,
+    private val resolvedInputSymbolicMaps: Map<USymbolicMapDescriptor<*, *, *>, UReadOnlySymbolicMapAnyRegion>,
+    private val resolvedInputSymbolicMapsLengths: Map<USymbolicMapDescriptor<*, *, *>, UReadOnlySymbolicMapLengthRegion>
 ) : USymbolicHeap<Field, ArrayType> {
     override fun <Sort : USort> readField(ref: UHeapRef, field: Field, sort: Sort): UExpr<Sort> {
         // All the expressions in the model are interpreted, therefore, they must
@@ -130,11 +137,36 @@ class UHeapEagerModel<Field, ArrayType>(
         ref: UHeapRef,
         key: UExpr<KeySort>
     ): UExpr<out USort> {
-        TODO("Eager model: read symbolic map")
+        // All the expressions in the model are interpreted, therefore, they must
+        // have concrete addresses. Moreover, the model knows only about input values
+        // which have addresses less or equal than INITIAL_INPUT_ADDRESS
+        require(ref is UConcreteHeapRef && ref.address <= UAddressCounter.INITIAL_INPUT_ADDRESS)
+
+        val mapKey = ref to key
+
+        val region = resolvedInputSymbolicMaps.getOrElse<_, UReadOnlySymbolicMapAnyRegion>(descriptor) {
+            // sampleValue here is important
+            val defaultValue = descriptor.valueSort.sampleValue().nullAddress(nullRef)
+
+            @Suppress("UNCHECKED_CAST")
+            UMemory2DArray<UAddressSort, KeySort, Sort>(defaultValue) as UReadOnlySymbolicMapAnyRegion
+        }
+
+        return region.read(mapKey)
     }
 
     override fun readSymbolicMapLength(descriptor: USymbolicMapDescriptor<*, *, *>, ref: UHeapRef): USizeExpr {
-        TODO("Eager model: read symbolic map length")
+        // All the expressions in the model are interpreted, therefore, they must
+        // have concrete addresses. Moreover, the model knows only about input values
+        // which have addresses less or equal than INITIAL_INPUT_ADDRESS
+        require(ref is UConcreteHeapRef && ref.address <= UAddressCounter.INITIAL_INPUT_ADDRESS)
+
+        val region = resolvedInputSymbolicMapsLengths.getOrElse<_, UReadOnlySymbolicMapLengthRegion>(descriptor) {
+            // sampleValue here is important
+            UMemory1DArray(ref.uctx.sizeSort.sampleValue())
+        }
+
+        return region.read(ref)
     }
 
     override fun <Sort : USort> writeField(
