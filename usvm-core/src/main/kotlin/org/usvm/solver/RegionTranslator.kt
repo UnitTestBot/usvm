@@ -74,7 +74,7 @@ internal class U1DArrayUpdateTranslate<KeySort : USort, Sort : USort>(
                     falseExpr -> previous
                     else -> {
                         @Suppress("UNCHECKED_CAST")
-                        (update as URangedUpdateNode<UArrayId<*, Any?, Sort, *>, Any?, UExpr<KeySort>, Sort>)
+                        (update as URangedUpdateNode<UArrayId<Any?, Sort, *>, Any?, UExpr<KeySort>, Sort>)
                         val key = mkFreshConst("k", previous.sort.domain)
 
                         val from = update.region
@@ -138,7 +138,7 @@ internal class U2DArrayUpdateVisitor<
                     falseExpr -> previous
                     else -> {
                         @Suppress("UNCHECKED_CAST")
-                        (update as URangedUpdateNode<UArrayId<*, Any?, Sort, *>, Any?, Pair<UExpr<Key1Sort>, UExpr<Key2Sort>>, Sort>)
+                        (update as URangedUpdateNode<UArrayId<Any?, Sort, *>, Any?, Pair<UExpr<Key1Sort>, UExpr<Key2Sort>>, Sort>)
                         val key1 = mkFreshConst("k1", previous.sort.domain0)
                         val key2 = mkFreshConst("k2", previous.sort.domain1)
 

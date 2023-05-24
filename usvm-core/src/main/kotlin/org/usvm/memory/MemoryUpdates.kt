@@ -54,7 +54,7 @@ interface UMemoryUpdates<Key, Sort : USort> : Sequence<UUpdateNode<Key, Sort>> {
      *
      * @see USymbolicMemoryRegion.copyRange
      */
-    fun <RegionId : UArrayId<*, SrcKey, Sort, RegionId>, SrcKey> copyRange(
+    fun <RegionId : UArrayId<SrcKey, Sort, RegionId>, SrcKey> copyRange(
         fromRegion: USymbolicMemoryRegion<RegionId, SrcKey, Sort>,
         fromKey: Key,
         toKey: Key,
@@ -137,7 +137,7 @@ class UFlatUpdates<Key, Sort : USort> private constructor(
             symbolicCmp
         )
 
-    override fun <RegionId : UArrayId<*, SrcKey, Sort, RegionId>, SrcKey> copyRange(
+    override fun <RegionId : UArrayId<SrcKey, Sort, RegionId>, SrcKey> copyRange(
         fromRegion: USymbolicMemoryRegion<RegionId, SrcKey, Sort>,
         fromKey: Key,
         toKey: Key,
@@ -278,7 +278,7 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
         return this.copy(updates = newUpdates)
     }
 
-    override fun <RegionId : UArrayId<*, SrcKey, Sort, RegionId>, SrcKey> copyRange(
+    override fun <RegionId : UArrayId<SrcKey, Sort, RegionId>, SrcKey> copyRange(
         fromRegion: USymbolicMemoryRegion<RegionId, SrcKey, Sort>,
         fromKey: Key,
         toKey: Key,

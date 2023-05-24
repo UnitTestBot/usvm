@@ -12,6 +12,7 @@ import org.usvm.USizeSort
 import org.usvm.USort
 import org.usvm.isTrue
 import org.usvm.uctx
+import org.usvm.util.Region
 
 /**
  * Represents any possible type of regions that can be used in the memory.
@@ -51,6 +52,12 @@ interface URegionIdVisitor<R> {
     fun <ArrayType, Sort : USort> visit(regionId: UInputArrayId<ArrayType, Sort>): R
 
     fun <ArrayType> visit(regionId: UInputArrayLengthId<ArrayType>): R
+
+    fun <KeySort : USort, Reg: Region<Reg>, Sort : USort> visit(regionId: UAllocatedSymbolicMapId<KeySort, Reg, Sort>): R
+
+    fun <KeySort : USort, Reg: Region<Reg>, Sort : USort> visit(regionId: UInputSymbolicMapId<KeySort, Reg, Sort>): R
+
+    fun visit(regionId: UInputSymbolicMapLengthId): R
 }
 
 /**
@@ -100,9 +107,17 @@ data class UInputFieldId<Field, Sort : USort> internal constructor(
     }
 }
 
-interface UArrayId<ArrayType, Key, Sort : USort, out RegionId : UArrayId<ArrayType, Key, Sort, RegionId>> :
-    URegionId<Key, Sort, RegionId> {
+sealed interface UArrayId<Key, Sort : USort, out RegionId : UArrayId<Key, Sort, RegionId>> :
+    URegionId<Key, Sort, RegionId>
+
+interface UTypedArrayId<ArrayType, Key, Sort : USort, out RegionId : UTypedArrayId<ArrayType, Key, Sort, RegionId>> :
+    UArrayId<Key, Sort, RegionId> {
     val arrayType: ArrayType
+}
+
+interface USymbolicMapId<Key, KeySort : USort, Reg : Region<Reg>, Sort : USort, out RegionId : USymbolicMapId<Key, KeySort, Reg, Sort, RegionId>> :
+    UArrayId<Key, Sort, RegionId> {
+    val descriptor: USymbolicMapDescriptor<KeySort, Sort, Reg>
 }
 
 /**
@@ -115,7 +130,7 @@ data class UAllocatedArrayId<ArrayType, Sort : USort> internal constructor(
     override val defaultValue: UExpr<Sort>,
     val address: UConcreteHeapAddress,
     val contextHeap: USymbolicHeap<*, ArrayType>?,
-) : UArrayId<ArrayType, USizeExpr, Sort, UAllocatedArrayId<ArrayType, Sort>> {
+) : UTypedArrayId<ArrayType, USizeExpr, Sort, UAllocatedArrayId<ArrayType, Sort>> {
 
     override fun instantiate(
         region: USymbolicMemoryRegion<UAllocatedArrayId<ArrayType, Sort>, USizeExpr, Sort>,
@@ -186,7 +201,7 @@ data class UInputArrayId<ArrayType, Sort : USort> internal constructor(
     override val arrayType: ArrayType,
     override val sort: Sort,
     val contextHeap: USymbolicHeap<*, ArrayType>?,
-) : UArrayId<ArrayType, USymbolicArrayIndex, Sort, UInputArrayId<ArrayType, Sort>> {
+) : UTypedArrayId<ArrayType, USymbolicArrayIndex, Sort, UInputArrayId<ArrayType, Sort>> {
     override val defaultValue: UExpr<Sort>? get() = null
     override fun instantiate(
         region: USymbolicMemoryRegion<UInputArrayId<ArrayType, Sort>, USymbolicArrayIndex, Sort>,
@@ -271,5 +286,167 @@ data class UInputArrayLengthId<ArrayType> internal constructor(
 
     override fun toString(): String {
         return "length($arrayType)"
+    }
+}
+
+data class UAllocatedSymbolicMapId<KeySort : USort, Reg : Region<Reg>, Sort : USort> internal constructor(
+    override val descriptor: USymbolicMapDescriptor<KeySort, Sort, Reg>,
+    override val defaultValue: UExpr<Sort>,
+    val address: UConcreteHeapAddress,
+    val contextHeap: USymbolicHeap<*, *>?,
+) : USymbolicMapId<UExpr<KeySort>, KeySort, Reg, Sort, UAllocatedSymbolicMapId<KeySort, Reg, Sort>> {
+    override val sort: Sort get() = descriptor.valueSort
+
+    override fun instantiate(
+        region: USymbolicMemoryRegion<UAllocatedSymbolicMapId<KeySort, Reg, Sort>, UExpr<KeySort>, Sort>,
+        key: UExpr<KeySort>
+    ): UExpr<Sort> = if (contextHeap == null) {
+        sort.uctx.mkAllocatedSymbolicMapReading(region, key)
+    } else {
+        region.applyTo(contextHeap)
+        val ref = key.uctx.mkConcreteHeapRef(address)
+        contextHeap.readSymbolicMap(descriptor, ref, key).asExpr(sort)
+    }
+
+    override fun <Field, ArrayType> write(
+        heap: USymbolicHeap<Field, ArrayType>,
+        key: UExpr<KeySort>,
+        value: UExpr<Sort>,
+        guard: UBoolExpr
+    ) {
+        val ref = key.uctx.mkConcreteHeapRef(address)
+        heap.writeSymbolicMap(descriptor, ref, key, value, guard)
+    }
+
+    override fun <Field, ArrayType> keyMapper(
+        transformer: UExprTransformer<Field, ArrayType>,
+    ): KeyMapper<UExpr<KeySort>> = { transformer.apply(it) }
+
+
+    override fun <Field, CArrayType> map(
+        composer: UComposer<Field, CArrayType>
+    ): UAllocatedSymbolicMapId<KeySort, Reg, Sort> {
+        val composedDefaultValue = composer.compose(defaultValue)
+        check(contextHeap == null) { "contextHeap is not null in composition" }
+        return copy(
+            contextHeap = composer.heapEvaluator.toMutableHeap(),
+            defaultValue = composedDefaultValue
+        )
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as UAllocatedSymbolicMapId<*, *, *>
+
+        if (address != other.address) return false
+
+        return true
+    }
+
+    override fun <R> accept(visitor: URegionIdVisitor<R>): R =
+        visitor.visit(this)
+
+    override fun hashCode(): Int {
+        return address
+    }
+
+    override fun toString(): String {
+        return "allocatedMap($address)"
+    }
+}
+
+data class UInputSymbolicMapId<KeySort : USort, Reg : Region<Reg>, Sort : USort> internal constructor(
+    override val descriptor: USymbolicMapDescriptor<KeySort, Sort, Reg>,
+    val contextHeap: USymbolicHeap<*, *>?,
+) : USymbolicMapId<USymbolicMapKey<KeySort>, KeySort, Reg, Sort, UInputSymbolicMapId<KeySort, Reg, Sort>> {
+    override val sort: Sort get() = descriptor.valueSort
+    override val defaultValue: UExpr<Sort>? get() = null
+
+    override fun instantiate(
+        region: USymbolicMemoryRegion<UInputSymbolicMapId<KeySort, Reg, Sort>, USymbolicMapKey<KeySort>, Sort>,
+        key: USymbolicMapKey<KeySort>
+    ): UExpr<Sort> = if (contextHeap == null) {
+        sort.uctx.mkInputSymbolicMapReading(region, key.first, key.second)
+    } else {
+        region.applyTo(contextHeap)
+        contextHeap.readSymbolicMap(descriptor, key.first, key.second).asExpr(sort)
+    }
+
+    override fun <Field, ArrayType> write(
+        heap: USymbolicHeap<Field, ArrayType>,
+        key: USymbolicMapKey<KeySort>,
+        value: UExpr<Sort>,
+        guard: UBoolExpr
+    ) {
+        heap.writeSymbolicMap(descriptor, key.first, key.second, value, guard)
+    }
+
+    override fun <Field, ArrayType> keyMapper(
+        transformer: UExprTransformer<Field, ArrayType>,
+    ): KeyMapper<USymbolicMapKey<KeySort>> = {
+        val ref = transformer.apply(it.first)
+        val idx = transformer.apply(it.second)
+        if (ref === it.first && idx === it.second) it else ref to idx
+    }
+
+    override fun <R> accept(visitor: URegionIdVisitor<R>): R =
+        visitor.visit(this)
+
+
+    override fun <Field, CArrayType> map(
+        composer: UComposer<Field, CArrayType>
+    ): UInputSymbolicMapId<KeySort, Reg, Sort> {
+        check(contextHeap == null) { "contextHeap is not null in composition" }
+        return copy(contextHeap = composer.heapEvaluator.toMutableHeap() as USymbolicHeap<*, *>)
+    }
+
+    override fun toString(): String {
+        return "inputMap($descriptor)"
+    }
+}
+
+data class UInputSymbolicMapLengthId internal constructor(
+    val descriptor: USymbolicMapDescriptor<*, *, *>,
+    override val sort: USizeSort,
+    val contextHeap: USymbolicHeap<*, *>?,
+) : URegionId<UHeapRef, USizeSort, UInputSymbolicMapLengthId> {
+    override val defaultValue: UExpr<USizeSort>? get() = null
+
+    override fun instantiate(
+        region: USymbolicMemoryRegion<UInputSymbolicMapLengthId, UHeapRef, USizeSort>,
+        key: UHeapRef
+    ): UExpr<USizeSort> = if (contextHeap == null) {
+        sort.uctx.mkInputSymbolicMapLengthReading(region, key)
+    } else {
+        region.applyTo(contextHeap)
+        contextHeap.readSymbolicMapLength(descriptor, key)
+    }
+
+    override fun <Field, ArrayType> write(
+        heap: USymbolicHeap<Field, ArrayType>,
+        key: UHeapRef,
+        value: UExpr<USizeSort>,
+        guard: UBoolExpr,
+    ) {
+        assert(guard.isTrue)
+        heap.writeSymbolicMapLength(descriptor, key, value)
+    }
+
+    override fun <Field, ArrayType> keyMapper(
+        transformer: UExprTransformer<Field, ArrayType>,
+    ): KeyMapper<UHeapRef> = { transformer.apply(it) }
+
+    override fun <Field, CArrayType> map(composer: UComposer<Field, CArrayType>): UInputSymbolicMapLengthId {
+        check(contextHeap == null) { "contextHeap is not null in composition" }
+        return copy(contextHeap = composer.heapEvaluator.toMutableHeap())
+    }
+
+    override fun <R> accept(visitor: URegionIdVisitor<R>): R =
+        visitor.visit(this)
+
+    override fun toString(): String {
+        return "length($descriptor)"
     }
 }

@@ -203,7 +203,7 @@ sealed class UMemoryKeyConverter<SrcKey, DstKey>(
  * with values from memory region [region] read from range
  * of addresses [[keyConverter].convert([fromKey]) : [keyConverter].convert([toKey])]
  */
-class URangedUpdateNode<RegionId : UArrayId<*, SrcKey, Sort, RegionId>, SrcKey, DstKey, Sort : USort>(
+class URangedUpdateNode<RegionId : UArrayId<SrcKey, Sort, RegionId>, SrcKey, DstKey, Sort : USort>(
     val fromKey: DstKey,
     val toKey: DstKey,
     val region: USymbolicMemoryRegion<RegionId, SrcKey, Sort>,

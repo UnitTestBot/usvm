@@ -5,6 +5,7 @@ import io.ksmt.solver.KModel
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
 import io.ksmt.utils.sampleValue
+import io.ksmt.utils.uncheckedCast
 import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
@@ -20,13 +21,18 @@ import org.usvm.memory.UAddressCounter
 import org.usvm.memory.UInputArrayId
 import org.usvm.memory.UInputArrayLengthId
 import org.usvm.memory.UInputFieldId
+import org.usvm.memory.UInputSymbolicMapId
+import org.usvm.memory.UInputSymbolicMapLengthId
 import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.memory.URegionId
 import org.usvm.memory.URegistersStackEvaluator
 import org.usvm.memory.USymbolicArrayIndex
 import org.usvm.memory.USymbolicHeap
+import org.usvm.memory.USymbolicMapDescriptor
+import org.usvm.memory.USymbolicMapKey
 import org.usvm.uctx
+import org.usvm.util.Region
 
 
 /**
@@ -109,6 +115,11 @@ class ULazyHeapModel<Field, ArrayType>(
     private val resolvedInputFields = mutableMapOf<Field, UReadOnlyMemoryRegion<UHeapRef, out USort>>()
     private val resolvedInputArrays = mutableMapOf<ArrayType, UReadOnlyMemoryRegion<USymbolicArrayIndex, out USort>>()
     private val resolvedInputLengths = mutableMapOf<ArrayType, UReadOnlyMemoryRegion<UHeapRef, USizeSort>>()
+    private val resolvedInputSymbolicMaps =
+        mutableMapOf<USymbolicMapDescriptor<*, *, *>, UReadOnlyMemoryRegion<USymbolicMapKey<*>, out USort>>()
+    private val resolvedInputSymbolicMapsLengths =
+        mutableMapOf<USymbolicMapDescriptor<*, *, *>, UReadOnlyMemoryRegion<UHeapRef, USizeSort>>()
+
     override fun <Sort : USort> readField(ref: UHeapRef, field: Field, sort: Sort): UExpr<Sort> {
         // All the expressions in the model are interpreted, therefore, they must
         // have concrete addresses. Moreover, the model knows only about input values
@@ -180,6 +191,55 @@ class ULazyHeapModel<Field, ArrayType>(
         }
     }
 
+    override fun <KeySort : USort, Reg : Region<Reg>, Sort : USort> readSymbolicMap(
+        descriptor: USymbolicMapDescriptor<KeySort, Sort, Reg>,
+        ref: UHeapRef,
+        key: UExpr<KeySort>
+    ): UExpr<out USort> {
+        // All the expressions in the model are interpreted, therefore, they must
+        // have concrete addresses. Moreover, the model knows only about input values
+        // which have addresses less or equal than INITIAL_INPUT_ADDRESS
+        require(ref is UConcreteHeapRef && ref.address <= UAddressCounter.INITIAL_INPUT_ADDRESS)
+
+        val symbolicMapKey = ref to key
+
+        val resolvedRegion = resolvedInputSymbolicMaps[descriptor]
+        val initialValue = regionIdToInitialValue[UInputSymbolicMapId(descriptor, null)]
+
+        return when {
+            resolvedRegion != null -> resolvedRegion.read(symbolicMapKey).asExpr(descriptor.valueSort)
+            initialValue != null -> {
+                val region = UMemory2DArray<UAddressSort, KeySort, Sort>(initialValue.cast(), model, addressesMapping)
+                resolvedInputSymbolicMaps[descriptor] = region.uncheckedCast()
+                region.read(symbolicMapKey)
+            }
+
+            else -> descriptor.valueSort.sampleValue().mapAddress(addressesMapping)
+        }
+    }
+
+    override fun readSymbolicMapLength(descriptor: USymbolicMapDescriptor<*, *, *>, ref: UHeapRef): USizeExpr {
+        // All the expressions in the model are interpreted, therefore, they must
+        // have concrete addresses. Moreover, the model knows only about input values
+        // which have addresses less or equal than INITIAL_INPUT_ADDRESS
+        require(ref is UConcreteHeapRef && ref.address <= UAddressCounter.INITIAL_INPUT_ADDRESS)
+
+        val resolvedRegion = resolvedInputSymbolicMapsLengths[descriptor]
+        val sizeSort = ref.uctx.sizeSort
+        val initialValue = regionIdToInitialValue[UInputSymbolicMapLengthId(descriptor, sizeSort, contextHeap = null)]
+
+        return when {
+            resolvedRegion != null -> resolvedRegion.read(ref)
+            initialValue != null -> {
+                val region = UMemory1DArray<UAddressSort, USizeSort>(initialValue.cast(), model, addressesMapping)
+                resolvedInputSymbolicMapsLengths[descriptor] = region
+                region.read(ref)
+            }
+
+            else -> sizeSort.sampleValue()
+        }
+    }
+
     override fun <Sort : USort> writeField(
         ref: UHeapRef,
         field: Field,
@@ -200,6 +260,17 @@ class ULazyHeapModel<Field, ArrayType>(
     override fun writeArrayLength(ref: UHeapRef, size: USizeExpr, arrayType: ArrayType) =
         error("Illegal operation for a model")
 
+    override fun <KeySort : USort, Reg : Region<Reg>, Sort : USort> writeSymbolicMap(
+        descriptor: USymbolicMapDescriptor<KeySort, Sort, Reg>,
+        ref: UHeapRef,
+        key: UExpr<KeySort>,
+        value: UExpr<out USort>,
+        guard: UBoolExpr
+    ) = error("Illegal operation for a model")
+
+    override fun writeSymbolicMapLength(descriptor: USymbolicMapDescriptor<*, *, *>, ref: UHeapRef, size: USizeExpr) =
+        error("Illegal operation for a model")
+
     override fun <Sort : USort> memcpy(
         srcRef: UHeapRef,
         dstRef: UHeapRef,
@@ -209,6 +280,16 @@ class ULazyHeapModel<Field, ArrayType>(
         fromDstIdx: USizeExpr,
         toDstIdx: USizeExpr,
         guard: UBoolExpr,
+    ) = error("Illegal operation for a model")
+
+    override fun <Reg : Region<Reg>, Sort : USort> copySymbolicMap(
+        descriptor: USymbolicMapDescriptor<USizeSort, Sort, Reg>,
+        srcRef: UHeapRef,
+        dstRef: UHeapRef,
+        fromSrcKey: USizeExpr,
+        fromDstKey: USizeExpr,
+        toDstKey: USizeExpr,
+        guard: UBoolExpr
     ) = error("Illegal operation for a model")
 
     override fun <Sort : USort> memset(

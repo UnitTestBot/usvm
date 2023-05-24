@@ -4,6 +4,7 @@ import org.usvm.constraints.UTypeEvaluator
 import org.usvm.memory.UReadOnlySymbolicHeap
 import org.usvm.memory.URegionId
 import org.usvm.memory.URegistersStackEvaluator
+import org.usvm.util.Region
 
 @Suppress("MemberVisibilityCanBePrivate")
 open class UComposer<Field, Type>(
@@ -56,6 +57,17 @@ open class UComposer<Field, Type>(
         transformHeapReading(expr, expr.index)
 
     override fun <Sort : USort> transform(expr: UInputFieldReading<Field, Sort>): UExpr<Sort> =
+        transformHeapReading(expr, expr.address)
+
+    override fun <KeySort : USort, Reg : Region<Reg>, Sort : USort> transform(
+        expr: UAllocatedSymbolicMapReading<KeySort, Reg, Sort>
+    ): UExpr<Sort> = transformHeapReading(expr, expr.key)
+
+    override fun <KeySort : USort, Reg : Region<Reg>, Sort : USort> transform(
+        expr: UInputSymbolicMapReading<KeySort, Reg, Sort>
+    ): UExpr<Sort> = transformHeapReading(expr, expr.address to expr.key)
+
+    override fun transform(expr: UInputSymbolicMapLengthReading): USizeExpr =
         transformHeapReading(expr, expr.address)
 
     override fun transform(expr: UConcreteHeapRef): UExpr<UAddressSort> = expr

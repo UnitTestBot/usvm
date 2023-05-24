@@ -12,11 +12,15 @@ import io.ksmt.utils.DefaultValueSampler
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
 import org.usvm.memory.UAllocatedArrayRegion
+import org.usvm.memory.UAllocatedSymbolicMapRegion
 import org.usvm.memory.UInputArrayLengthRegion
 import org.usvm.memory.UInputArrayRegion
 import org.usvm.memory.UInputFieldRegion
+import org.usvm.memory.UInputSymbolicMapLengthRegion
+import org.usvm.memory.UInputSymbolicMapRegion
 import org.usvm.memory.splitUHeapRef
 import org.usvm.solver.USolverBase
+import org.usvm.util.Region
 
 @Suppress("LeakingThis")
 open class UContext(
@@ -154,6 +158,37 @@ open class UContext(
     ): UInputArrayLengthReading<ArrayType> = inputArrayLengthReadingCache.createIfContextActive {
         UInputArrayLengthReading(this, region, address)
     }.cast()
+
+    private val allocatedSymbolicMapReadingCache = mkAstInterner<UAllocatedSymbolicMapReading<*, *, *>>()
+
+    fun <KeySort : USort, Reg : Region<Reg>, Sort : USort> mkAllocatedSymbolicMapReading(
+        region: UAllocatedSymbolicMapRegion<KeySort, Reg, Sort>,
+        key: UExpr<KeySort>
+    ): UAllocatedSymbolicMapReading<KeySort, Reg, Sort> =
+        allocatedSymbolicMapReadingCache.createIfContextActive {
+            UAllocatedSymbolicMapReading(this, region, key)
+        }.cast()
+
+    private val inputSymbolicMapReadingCache = mkAstInterner<UInputSymbolicMapReading<*, *, *>>()
+
+    fun <KeySort : USort, Reg : Region<Reg>, Sort : USort> mkInputSymbolicMapReading(
+        region: UInputSymbolicMapRegion<KeySort, Reg, Sort>,
+        address: UHeapRef,
+        key: UExpr<KeySort>
+    ): UInputSymbolicMapReading<KeySort, Reg, Sort> =
+        inputSymbolicMapReadingCache.createIfContextActive {
+            UInputSymbolicMapReading(this, region, address, key)
+        }.cast()
+
+    private val inputSymbolicMapLengthReadingCache = mkAstInterner<UInputSymbolicMapLengthReading>()
+
+    fun mkInputSymbolicMapLengthReading(
+        region: UInputSymbolicMapLengthRegion,
+        address: UHeapRef
+    ): UInputSymbolicMapLengthReading =
+        inputSymbolicMapLengthReadingCache.createIfContextActive {
+            UInputSymbolicMapLengthReading(this, region, address)
+        }
 
     private val indexedMethodReturnValueCache = mkAstInterner<UIndexedMethodReturnValue<Any, out USort>>()
 

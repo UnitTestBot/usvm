@@ -13,12 +13,13 @@ import org.usvm.USizeExpr
 import org.usvm.USizeSort
 import org.usvm.USort
 import org.usvm.memory.UAddressCounter
-import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.memory.URegistersStackEvaluator
 import org.usvm.memory.USymbolicArrayIndex
 import org.usvm.memory.USymbolicHeap
+import org.usvm.memory.USymbolicMapDescriptor
 import org.usvm.uctx
+import org.usvm.util.Region
 
 /**
  * An eager model for registers that stores mapping
@@ -124,6 +125,18 @@ class UHeapEagerModel<Field, ArrayType>(
         return region.read(ref)
     }
 
+    override fun <KeySort : USort, Reg : Region<Reg>, Sort : USort> readSymbolicMap(
+        descriptor: USymbolicMapDescriptor<KeySort, Sort, Reg>,
+        ref: UHeapRef,
+        key: UExpr<KeySort>
+    ): UExpr<out USort> {
+        TODO("Eager model: read symbolic map")
+    }
+
+    override fun readSymbolicMapLength(descriptor: USymbolicMapDescriptor<*, *, *>, ref: UHeapRef): USizeExpr {
+        TODO("Eager model: read symbolic map length")
+    }
+
     override fun <Sort : USort> writeField(
         ref: UHeapRef,
         field: Field,
@@ -144,6 +157,17 @@ class UHeapEagerModel<Field, ArrayType>(
     override fun writeArrayLength(ref: UHeapRef, size: USizeExpr, arrayType: ArrayType) =
         error("Illegal operation for a model")
 
+    override fun <KeySort : USort, Reg : Region<Reg>, Sort : USort> writeSymbolicMap(
+        descriptor: USymbolicMapDescriptor<KeySort, Sort, Reg>,
+        ref: UHeapRef,
+        key: UExpr<KeySort>,
+        value: UExpr<out USort>,
+        guard: UBoolExpr
+    ) = error("Illegal operation for a model")
+
+    override fun writeSymbolicMapLength(descriptor: USymbolicMapDescriptor<*, *, *>, ref: UHeapRef, size: USizeExpr) =
+        error("Illegal operation for a model")
+
     override fun <Sort : USort> memcpy(
         srcRef: UHeapRef,
         dstRef: UHeapRef,
@@ -153,6 +177,16 @@ class UHeapEagerModel<Field, ArrayType>(
         fromDstIdx: USizeExpr,
         toDstIdx: USizeExpr,
         guard: UBoolExpr,
+    ) = error("Illegal operation for a model")
+
+    override fun <Reg : Region<Reg>, Sort : USort> copySymbolicMap(
+        descriptor: USymbolicMapDescriptor<USizeSort, Sort, Reg>,
+        srcRef: UHeapRef,
+        dstRef: UHeapRef,
+        fromSrcKey: USizeExpr,
+        fromDstKey: USizeExpr,
+        toDstKey: USizeExpr,
+        guard: UBoolExpr
     ) = error("Illegal operation for a model")
 
     override fun <Sort : USort> memset(

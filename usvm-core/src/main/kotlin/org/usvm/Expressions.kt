@@ -8,15 +8,23 @@ import io.ksmt.expr.transformer.KTransformerBase
 import io.ksmt.sort.*
 import org.usvm.memory.UAllocatedArrayId
 import org.usvm.memory.UAllocatedArrayRegion
+import org.usvm.memory.UAllocatedSymbolicMapId
+import org.usvm.memory.UAllocatedSymbolicMapRegion
 import org.usvm.memory.UInputArrayId
 import org.usvm.memory.UInputArrayLengthId
 import org.usvm.memory.UInputArrayLengthRegion
 import org.usvm.memory.UInputArrayRegion
 import org.usvm.memory.UInputFieldId
 import org.usvm.memory.UInputFieldRegion
+import org.usvm.memory.UInputSymbolicMapId
+import org.usvm.memory.UInputSymbolicMapLengthId
+import org.usvm.memory.UInputSymbolicMapLengthRegion
+import org.usvm.memory.UInputSymbolicMapRegion
 import org.usvm.memory.URegionId
 import org.usvm.memory.USymbolicArrayIndex
+import org.usvm.memory.USymbolicMapKey
 import org.usvm.memory.USymbolicMemoryRegion
+import org.usvm.util.Region
 
 //region KSMT aliases
 
@@ -328,6 +336,99 @@ class UIsExpr<Type> internal constructor(
 
     override fun internHashCode(): Int = hash(ref, type)
 }
+//endregion
+
+// region symbolic collection expressions
+
+class UAllocatedSymbolicMapReading<KeySort : USort, Reg : Region<Reg>, Sort : USort> internal constructor(
+    ctx: UContext,
+    region: UAllocatedSymbolicMapRegion<KeySort, Reg, Sort>,
+    val key: UExpr<KeySort>,
+) : UHeapReading<UAllocatedSymbolicMapId<KeySort, Reg, Sort>, UExpr<KeySort>, Sort>(ctx, region) {
+
+    override fun accept(transformer: KTransformerBase): KExpr<Sort> {
+        require(transformer is UExprTransformer<*, *>)
+        return transformer.transform(this)
+    }
+
+    override fun internEquals(other: Any): Boolean =
+        structurallyEqual(
+            other,
+            { region },
+            { key },
+        )
+
+    override fun internHashCode(): Int = hash(region, key)
+
+    override fun print(printer: ExpressionPrinter) {
+        printer.append(region.toString())
+        printer.append("[")
+        printer.append(key)
+        printer.append("]")
+    }
+}
+
+class UInputSymbolicMapReading<KeySort : USort, Reg : Region<Reg>, Sort : USort> internal constructor(
+    ctx: UContext,
+    region: UInputSymbolicMapRegion<KeySort, Reg, Sort>,
+    val address: UHeapRef,
+    val key: UExpr<KeySort>
+) : UHeapReading<UInputSymbolicMapId<KeySort, Reg, Sort>, USymbolicMapKey<KeySort>, Sort>(ctx, region) {
+    init {
+        require(address !is UNullRef)
+    }
+
+    override fun accept(transformer: KTransformerBase): KExpr<Sort> {
+        require(transformer is UExprTransformer<*, *>)
+        return transformer.transform(this)
+    }
+
+    override fun internEquals(other: Any): Boolean =
+        structurallyEqual(
+            other,
+            { region },
+            { address },
+            { key },
+        )
+
+    override fun internHashCode(): Int = hash(region, address, key)
+
+    override fun print(printer: ExpressionPrinter) {
+        printer.append(region.toString())
+        printer.append("[")
+        printer.append(address)
+        printer.append(", ")
+        printer.append(key)
+        printer.append("]")
+    }
+}
+
+class UInputSymbolicMapLengthReading internal constructor(
+    ctx: UContext,
+    region: UInputSymbolicMapLengthRegion,
+    val address: UHeapRef,
+) : UHeapReading<UInputSymbolicMapLengthId, UHeapRef, USizeSort>(ctx, region) {
+    init {
+        require(address !is UNullRef)
+    }
+
+    override fun accept(transformer: KTransformerBase): USizeExpr {
+        require(transformer is UExprTransformer<*, *>)
+        return transformer.transform(this)
+    }
+
+    override fun internEquals(other: Any): Boolean = structurallyEqual(other, { region }, { address })
+
+    override fun internHashCode(): Int = hash(region, address)
+
+    override fun print(printer: ExpressionPrinter) {
+        printer.append(region.toString())
+        printer.append("[")
+        printer.append(address)
+        printer.append("]")
+    }
+}
+
 //endregion
 
 //region Utils
