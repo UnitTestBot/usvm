@@ -59,6 +59,11 @@ library {
 
 val cpythonClean = tasks.register<Exec>("cleanCPython") {
     workingDir = File(cpythonPath)
+    commandLine("make", "clean")
+}
+
+tasks.register<Exec>("distcleanCPython") {
+    workingDir = File(cpythonPath)
     commandLine("make", "distclean")
 }
 

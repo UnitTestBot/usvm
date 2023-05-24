@@ -3,11 +3,13 @@ package org.usvm.interpreter;
 import org.usvm.language.Symbol;
 
 public class CPythonAdapter {
-    public native long initializePython();  // returns pointer to __main__ module, might be null
+    public boolean isInitialized = false;
+    public native void initializePython();
     public native void finalizePython();
-    public native int concreteRun(long main_module, String code);
-    public native long eval(long main_module, String expr);  // returns PyObject *
-    public native void concolicRun(long main_modu, String functionName, Symbol[] args_symbolic);
+    public native long getNewNamespace();  // returns reference to a new dict
+    public native int concreteRun(long globals, String code);  // returns 0 on success
+    public native long eval(long globals, String expr);  // returns PyObject *
+    public native int concolicRun(long globals, long functionRef, Symbol[] symbolicArgs, ConcolicRunContext context);
 
     static {
         System.loadLibrary("cpythonadapter");
