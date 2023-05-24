@@ -10,9 +10,9 @@ extern "C" {
 /*
  * Class:     org_usvm_interpreter_CPythonAdapter
  * Method:    initializePython
- * Signature: ()J
+ * Signature: ()V
  */
-JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_initializePython
+JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_initializePython
   (JNIEnv *, jobject);
 
 /*
@@ -21,6 +21,14 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_initializePytho
  * Signature: ()V
  */
 JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_finalizePython
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     org_usvm_interpreter_CPythonAdapter
+ * Method:    getNewNamespace
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_getNewNamespace
   (JNIEnv *, jobject);
 
 /*
@@ -42,10 +50,10 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_eval
 /*
  * Class:     org_usvm_interpreter_CPythonAdapter
  * Method:    concolicRun
- * Signature: (JLjava/lang/String;[Lorg/usvm/language/Symbol;)V
+ * Signature: (JJ[Lorg/usvm/language/Symbol;Lorg/usvm/interpreter/ConcolicRunContext;)I
  */
-JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_concolicRun
-  (JNIEnv *, jobject, jlong, jstring, jobjectArray);
+JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_concolicRun
+  (JNIEnv *, jobject, jlong, jlong, jobjectArray, jobject);
 
 #ifdef __cplusplus
 }
