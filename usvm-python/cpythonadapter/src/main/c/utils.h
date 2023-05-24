@@ -23,7 +23,6 @@ typedef struct {
     JavaEnvironment *env;
 } JavaPythonObject;
 
-PyObject *run_python(const char *statements, const char *expression);
 PyObject *wrap_java_object(JavaEnvironment *env, jobject object);
 
 #ifdef __cplusplus

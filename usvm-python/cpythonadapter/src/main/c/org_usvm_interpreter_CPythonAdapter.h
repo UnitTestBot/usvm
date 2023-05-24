@@ -9,11 +9,43 @@ extern "C" {
 #endif
 /*
  * Class:     org_usvm_interpreter_CPythonAdapter
- * Method:    run
- * Signature: (Ljava/lang/String;Ljava/lang/String;[Lorg/usvm/language/Symbol;)V
+ * Method:    initializePython
+ * Signature: ()J
  */
-JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_run
-  (JNIEnv *, jobject, jstring, jstring, jobjectArray);
+JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_initializePython
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     org_usvm_interpreter_CPythonAdapter
+ * Method:    finalizePython
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_finalizePython
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     org_usvm_interpreter_CPythonAdapter
+ * Method:    concreteRun
+ * Signature: (JLjava/lang/String;)I
+ */
+JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_concreteRun
+  (JNIEnv *, jobject, jlong, jstring);
+
+/*
+ * Class:     org_usvm_interpreter_CPythonAdapter
+ * Method:    eval
+ * Signature: (JLjava/lang/String;)J
+ */
+JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_eval
+  (JNIEnv *, jobject, jlong, jstring);
+
+/*
+ * Class:     org_usvm_interpreter_CPythonAdapter
+ * Method:    concolicRun
+ * Signature: (JLjava/lang/String;[Lorg/usvm/language/Symbol;)V
+ */
+JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_concolicRun
+  (JNIEnv *, jobject, jlong, jstring, jobjectArray);
 
 #ifdef __cplusplus
 }

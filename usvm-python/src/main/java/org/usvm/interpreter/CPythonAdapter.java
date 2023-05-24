@@ -3,7 +3,11 @@ package org.usvm.interpreter;
 import org.usvm.language.Symbol;
 
 public class CPythonAdapter {
-    public native void run(String code, String functionName, Symbol[] args_symbolic);
+    public native long initializePython();  // returns pointer to __main__ module, might be null
+    public native void finalizePython();
+    public native int concreteRun(long main_module, String code);
+    public native long eval(long main_module, String expr);  // returns PyObject *
+    public native void concolicRun(long main_modu, String functionName, Symbol[] args_symbolic);
 
     static {
         System.loadLibrary("cpythonadapter");
