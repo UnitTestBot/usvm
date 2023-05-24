@@ -1,7 +1,8 @@
 #include "utils.h"
 
+/*
 PyObject *
-run_python(const char *statements, const char *expression) {
+run_python_statement(const char *statement) {
     PyObject *m, *d, *v;
     m = PyImport_AddModule("__main__");
     if (m == NULL)
@@ -19,6 +20,7 @@ run_python(const char *statements, const char *expression) {
     }
     return v;
 }
+*/
 
 static void
 java_python_object_dealloc(PyObject *op) {
