@@ -30,6 +30,7 @@ val cpython = tasks.register<Exec>("CPythonBuild") {
     outputs.dirs("$cpythonBuildPath/lib", "$cpythonBuildPath/include", "$cpythonBuildPath/bin")
     workingDir = File(cpythonPath)
     commandLine("make")
+    commandLine("echo", "`pwd`")
     commandLine("make", "install")
 }
 

@@ -1,4 +1,4 @@
 [submodule "usvm-python/cpythonadapter/cpython"]
 	path = usvm-python/cpythonadapter/cpython
 	url = git@github.com:tochilinak/cpython.git
-    branch = wrapper-v2
+	branch = wrapper-v2
