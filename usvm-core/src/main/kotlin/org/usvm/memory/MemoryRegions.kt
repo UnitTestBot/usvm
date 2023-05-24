@@ -52,7 +52,7 @@ data class USymbolicMemoryRegion<out RegionId : URegionId<Key, Sort, RegionId>, 
     // If we replace it with get(), we have to check for nullability in read function.
     val defaultValue = regionId.defaultValue
 
-    fun read(key: Key, updates: UMemoryUpdates<Key, Sort>): UExpr<Sort> {
+    private fun read(key: Key, updates: UMemoryUpdates<Key, Sort>): UExpr<Sort> {
         val lastUpdatedElement = updates.lastUpdatedElementOrNull()
 
         if (lastUpdatedElement == null && defaultValue != null) {
