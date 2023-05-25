@@ -17,6 +17,7 @@ import org.jacodb.api.ext.findClass
 import org.jacodb.api.ext.findMethodOrNull
 import org.usvm.instrumentation.generated.models.*
 import org.usvm.instrumentation.rd.RdServerProcess
+import org.usvm.instrumentation.serializer.SerializationContext
 import org.usvm.instrumentation.serializer.UTestExpressionSerializer.Companion.registerUTestExpressionSerializer
 import org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.Companion.registerUTestValueDescriptorSerializer
 import org.usvm.instrumentation.testcase.UTest
@@ -33,6 +34,7 @@ class ProcessRunner(
     private val jcClasspath: JcClasspath
 ) {
 
+    private val serializationContext = SerializationContext(jcClasspath)
     private val lifetime = LifetimeDefinition()
     private val scheduler = SingleThreadScheduler(lifetime, "usvm-executor-scheduler")
     private val coroutineScope = UsvmRdCoroutineScope(lifetime, scheduler)
@@ -49,8 +51,8 @@ class ProcessRunner(
 
     private suspend fun initRdProcess(): RdServerProcess {
         val serializers = Serializers()
-        serializers.registerUTestExpressionSerializer(jcClasspath)
-        serializers.registerUTestValueDescriptorSerializer(jcClasspath)
+        serializers.registerUTestExpressionSerializer(serializationContext)
+        serializers.registerUTestValueDescriptorSerializer(serializationContext)
         val protocol = Protocol(
             "usvm-executor",
             serializers,
@@ -93,7 +95,9 @@ class ProcessRunner(
 
     suspend fun callUTest(uTest: UTest): UTestExecutionResult {
         val serializedUTest = SerializedUTest(uTest.initStatements, uTest.callMethodExpression)
+        serializationContext.reset()
         val serializedExecutionResult = rdProcess.model.callUTest.startSuspending(lifetime, serializedUTest)
+        serializationContext.reset()
         return deserializeExecutionResult(serializedExecutionResult)
     }
 

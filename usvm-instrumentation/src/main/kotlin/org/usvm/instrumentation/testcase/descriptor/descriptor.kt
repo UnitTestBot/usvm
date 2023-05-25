@@ -7,6 +7,10 @@ sealed class UTestValueDescriptor {
     abstract val type: JcType
 }
 
+sealed interface UTestRefDescriptor {
+    val refId: Int
+}
+
 sealed class UTestConstantDescriptor : UTestValueDescriptor() {
 
     data class Null(override val type: JcType) : UTestConstantDescriptor()
@@ -110,9 +114,10 @@ sealed class UTestArrayDescriptor<T>(
     class Array(
         elementType: JcType,
         length: Int,
-        value: kotlin.Array<UTestValueDescriptor>
-    ) : UTestArrayDescriptor<kotlin.Array<UTestValueDescriptor>>(elementType, length, value) {
-        override fun valueToString() = value.contentToString()
+        value: List<UTestValueDescriptor>,
+        override val refId: Int
+    ) : UTestArrayDescriptor<List<UTestValueDescriptor>>(elementType, length, value), UTestRefDescriptor {
+        override fun valueToString() = value.toString()
     }
 
     override fun toString(): String {
@@ -120,12 +125,17 @@ sealed class UTestArrayDescriptor<T>(
     }
 }
 
+class UTestCyclicReferenceDescriptor(
+    val refId: Int,
+    override val type: JcType
+) : UTestValueDescriptor()
 
 //TODO: Avoid recursion via DescriptorPrinter
 class UTestObjectDescriptor(
     override val type: JcType,
-    val fields: Map<JcField, UTestValueDescriptor>
-) : UTestValueDescriptor() {
+    val fields: Map<JcField, UTestValueDescriptor>,
+    override val refId: Int
+) : UTestValueDescriptor(), UTestRefDescriptor {
 
     override fun toString(): String =
         "UTestObjectDescriptor(type=$type, fields:${fields.entries.joinToString(",") { "${it.key.name} to ${it.value}}" }}"
