@@ -12,7 +12,7 @@ import org.usvm.instrumentation.testcase.statement.UTestExpression
 import org.usvm.instrumentation.util.SystemTypeNames
 import java.util.*
 
-class DescriptorBuilder(private val classLoader: WorkerClassLoader) {
+class DescriptorBuilder(private val classLoader: WorkerClassLoader, private val previousState: DescriptorBuilder?) {
 
     private val jcClasspath = classLoader.jcClasspath
     private val objectToDescriptor = IdentityHashMap<Any, UTestValueDescriptor>()
@@ -41,7 +41,17 @@ class DescriptorBuilder(private val classLoader: WorkerClassLoader) {
             Result.failure(e)
         }
 
-    private fun buildDescriptorFromAny(any: Any?, depth: Int = 0): UTestValueDescriptor {
+    private fun buildDescriptorFromAny(any: Any?, depth: Int = 0) : UTestValueDescriptor {
+        val builtDescriptor = buildDescriptor(any, depth)
+        val descriptorFromPreviousState = previousState?.objectToDescriptor?.get(any) ?: return builtDescriptor
+        if (builtDescriptor.structurallyEqual(descriptorFromPreviousState)) {
+            objectToDescriptor[any] = descriptorFromPreviousState
+            return descriptorFromPreviousState
+        }
+        return builtDescriptor
+    }
+
+    private fun buildDescriptor(any: Any?, depth: Int = 0): UTestValueDescriptor {
         if (any == null) return `null`(jcClasspath.nullType)
         val jcType = jcClasspath.findTypeOrNull(any::class.java.name)!!
         return objectToDescriptor.getOrPut(any) {
