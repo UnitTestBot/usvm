@@ -1,8 +1,9 @@
 #include <jni.h>
 #include "Python.h"
+#include "SYMBOLIC_API.h"
 
-#ifndef _Included_CPythonAdapter_utils
-#define _Included_CPythonAdapter_utils
+#ifndef _Included_CPythonAdapter_symbolic_handler
+#define _Included_CPythonAdapter_symbolic_handler
 #ifdef __cplusplus
 extern "C" {
 #endif

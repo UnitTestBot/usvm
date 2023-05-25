@@ -4,7 +4,7 @@ import org.usvm.interpreter.ConcretePythonInterpreter
 import org.usvm.interpreter.PythonNamespace
 import org.usvm.interpreter.PythonObject
 
-data class Program(val asString: String)
+data class PythonProgram(val asString: String)
 
 class Slot
 class Attribute

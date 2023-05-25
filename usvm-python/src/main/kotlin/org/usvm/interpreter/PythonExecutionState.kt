@@ -18,7 +18,6 @@ class PythonExecutionState(
     models: List<UModel> = listOf(),
     path: PersistentList<Instruction> = persistentListOf()
 ): UState<PythonType, Attribute, Callable, Instruction>(ctx, callStack, pathConstraints, memory, models, path) {
-    override fun clone(newConstraints: UPathConstraints<PythonType>?): UState<PythonType, Attribute, Callable, Instruction> {
-        TODO("Not yet implemented")
-    }
+    override fun clone(newConstraints: UPathConstraints<PythonType>?): UState<PythonType, Attribute, Callable, Instruction> =
+        PythonExecutionState(ctx, callStack, pathConstraints, memory, models, path)
 }

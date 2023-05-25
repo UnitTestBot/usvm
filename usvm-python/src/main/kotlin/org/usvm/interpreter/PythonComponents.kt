@@ -1,19 +1,26 @@
 package org.usvm.interpreter
 
+import io.ksmt.solver.yices.KYicesSolver
+import io.ksmt.solver.z3.KZ3Solver
 import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.UTypeSystem
 import org.usvm.language.Attribute
 import org.usvm.language.Callable
 import org.usvm.language.PythonType
+import org.usvm.language.PythonTypeSystem
+import org.usvm.model.buildTranslatorAndLazyDecoder
+import org.usvm.solver.USoftConstraintsProvider
 import org.usvm.solver.USolverBase
 
 object PythonComponents: UComponents<Attribute, PythonType, Callable> {
     override fun mkSolver(ctx: UContext): USolverBase<Attribute, PythonType, Callable> {
-        TODO("Not yet implemented")
+        val (translator, decoder) = buildTranslatorAndLazyDecoder<Attribute, PythonType, Callable>(ctx)
+        val softConstraintsProvider = USoftConstraintsProvider<Attribute, PythonType>(ctx)
+        return USolverBase(ctx, KYicesSolver(ctx), translator, decoder, softConstraintsProvider)
     }
-
+    
     override fun mkTypeSystem(ctx: UContext): UTypeSystem<PythonType> {
-        TODO("Not yet implemented")
+        return PythonTypeSystem
     }
 }
