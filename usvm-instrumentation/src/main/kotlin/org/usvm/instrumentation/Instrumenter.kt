@@ -31,12 +31,6 @@ suspend fun main() {
     val jcClasspath = db.classpath(testingClassPath)
     val jcClass = jcClasspath.findClass("example.A")
     val jcMethod = jcClass.findMethodOrNull("isA")
-    println(jcClasspath.toString() + jcClass.toString())
-    val instrumentedJcClassPath = Paths.get(instrumentedPath + jcClass.packageName.replace('.', '/'))
-    jcClass.write(instrumentedJcClassPath)
-
-
-
     val port = NetUtils.findFreePort(0)
     val classPath = System.getProperty("java.class.path") ?: error("No class path")
     val entrypointClassName =

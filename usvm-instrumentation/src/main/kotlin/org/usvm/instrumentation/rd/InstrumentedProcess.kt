@@ -25,6 +25,7 @@ import org.usvm.instrumentation.generated.models.*
 import org.usvm.instrumentation.jacodb.transform.JcInstructionTracer
 import org.usvm.instrumentation.jacodb.util.enclosingClass
 import org.usvm.instrumentation.jacodb.util.enclosingMethod
+import org.usvm.instrumentation.serializer.SerializationContext
 import org.usvm.instrumentation.serializer.UTestExpressionSerializer.Companion.registerUTestExpressionSerializer
 import org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.Companion.registerUTestValueDescriptorSerializer
 import org.usvm.instrumentation.testcase.UTest
@@ -43,6 +44,7 @@ class InstrumentedProcess private constructor() {
 
     private lateinit var jcClasspath: JcClasspath
     private lateinit var userClassLoader: WorkerClassLoader
+    private lateinit var serializationCtx: SerializationContext
     private val traceCollector = JcInstructionTracer
 
 
@@ -94,13 +96,14 @@ class InstrumentedProcess private constructor() {
             TraceCollector::class.java.name,
             jcClasspath
         )
+        serializationCtx = SerializationContext(jcClasspath)
     }
 
     private suspend fun initiate(lifetime: Lifetime, port: Int) {
         val scheduler = SingleThreadScheduler(lifetime, "usvm-executor-worker-scheduler")
         val serializers = Serializers()
-        serializers.registerUTestExpressionSerializer(jcClasspath)
-        serializers.registerUTestValueDescriptorSerializer(jcClasspath)
+        serializers.registerUTestExpressionSerializer(serializationCtx)
+        serializers.registerUTestValueDescriptorSerializer(serializationCtx)
         val protocol = Protocol(
             "usvm-executor-worker",
             serializers,
@@ -134,8 +137,11 @@ class InstrumentedProcess private constructor() {
 
     private fun InstrumentedProcessModel.setup() {
         callUTest.measureExecutionForTermination { serializedUTest ->
+            serializationCtx.reset()
             val uTest = UTest(serializedUTest.initStatements, serializedUTest.callMethodExpression as UTestCall)
-            serializeExecutionResult(callUTest(uTest))
+            val callRes = callUTest(uTest)
+            serializeExecutionResult(callRes)
+                .also { serializationCtx.reset() }
         }
     }
 
@@ -153,11 +159,12 @@ class InstrumentedProcess private constructor() {
             is UTestExecutionExceptionResult -> ExecutionResult(
                 type = ExecutionResultType.UTestExecutionExceptionResult,
                 cause = uTestExecutionResult.cause,
-                trace = uTestExecutionResult.trace?.let{ serializeTrace(it) },
+                trace = uTestExecutionResult.trace?.let { serializeTrace(it) },
                 initialState = null,
                 result = null,
                 resultState = null
             )
+
             is UTestExecutionFailedResult -> ExecutionResult(
                 type = ExecutionResultType.UTestExecutionFailedResult,
                 cause = uTestExecutionResult.cause,
@@ -166,22 +173,25 @@ class InstrumentedProcess private constructor() {
                 result = null,
                 resultState = null
             )
+
             is UTestExecutionInitFailedResult -> ExecutionResult(
                 type = ExecutionResultType.UTestExecutionInitFailedResult,
                 cause = uTestExecutionResult.cause,
-                trace = uTestExecutionResult.trace?.let{ serializeTrace(it) },
+                trace = uTestExecutionResult.trace?.let { serializeTrace(it) },
                 initialState = null,
                 result = null,
                 resultState = null
             )
+
             is UTestExecutionSuccessResult -> ExecutionResult(
                 type = ExecutionResultType.UTestExecutionSuccessResult,
-                trace = uTestExecutionResult.trace?.let{ serializeTrace(it) },
+                trace = uTestExecutionResult.trace?.let { serializeTrace(it) },
                 initialState = serializeExecutionState(uTestExecutionResult.initialState),
                 result = uTestExecutionResult.result,
                 resultState = serializeExecutionState(uTestExecutionResult.resultState),
                 cause = null
             )
+
             is UTestExecutionTimedOutResult -> ExecutionResult(
                 type = ExecutionResultType.UTestExecutionTimedOutResult,
                 cause = uTestExecutionResult.cause,
