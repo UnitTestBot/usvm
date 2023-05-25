@@ -6,7 +6,6 @@ import org.jacodb.api.JcType
 import org.jacodb.api.ext.*
 import org.usvm.instrumentation.classloader.WorkerClassLoader
 import org.usvm.instrumentation.jacodb.util.stringType
-import org.usvm.instrumentation.jacodb.util.toJavaCLass
 import org.usvm.instrumentation.jacodb.util.toJavaField
 import org.usvm.instrumentation.testcase.UTestExecutor
 import org.usvm.instrumentation.testcase.statement.UTestExpression
@@ -16,8 +15,8 @@ import java.util.*
 class DescriptorBuilder(private val classLoader: WorkerClassLoader) {
 
     private val jcClasspath = classLoader.jcClasspath
-
-    val objectToDescriptor = IdentityHashMap<Any, UTestValueDescriptor>()
+    private val objectToDescriptor = IdentityHashMap<Any, UTestValueDescriptor>()
+    private var currentRefId = 0
 
     fun buildDescriptorFromUTestExpr(
         uTestExpressionList: UTestExpression,
@@ -99,28 +98,48 @@ class DescriptorBuilder(private val classLoader: WorkerClassLoader) {
             is DoubleArray -> UTestArrayDescriptor.DoubleArray(jcClasspath.double, array.size, array)
             is CharArray -> UTestArrayDescriptor.CharArray(jcClasspath.char, array.size, array)
             is Array<*> -> {
-                UTestArrayDescriptor.Array(
+                val listOfRefs = mutableListOf<UTestValueDescriptor>()
+                val descriptor = UTestArrayDescriptor.Array(
                     jcClasspath.findTypeOrNull(array.javaClass.componentType.name)!!,
                     array.size,
-                    array.map { buildDescriptorFromAny(it, depth) }.toTypedArray()
-
+                    listOfRefs,
+                    currentRefId++
                 )
+                createCyclicRef(descriptor, array) {
+                    for (i in array.indices) {
+                        listOfRefs.add(buildDescriptorFromAny(array[i], depth))
+                    }
+                }
             }
-
             else -> error("It is not array")
+        }
+
+    private fun <T> createCyclicRef(
+        valueDescriptor: T,
+        value: Any?,
+        body: T.() -> Unit
+    ): T where T : UTestRefDescriptor, T : UTestValueDescriptor =
+        try {
+            val objectCyclicRef = UTestCyclicReferenceDescriptor(valueDescriptor.refId, valueDescriptor.type)
+            objectToDescriptor[value] = objectCyclicRef
+            valueDescriptor.body()
+            valueDescriptor
+        } finally {
+            objectToDescriptor.remove(value)
         }
 
     private fun `object`(type: JcType, value: Any, depth: Int): UTestObjectDescriptor {
         val jcClass = jcClasspath.findClass(type.typeName)
         val fields = mutableMapOf<JcField, UTestValueDescriptor>()
-        val uTestObjectDescriptor = UTestObjectDescriptor(type, fields)
-        jcClass.fields.forEach { jcField ->
-            val jField = jcField.toJavaField(classLoader)
-            val fieldValue = jField.getFieldValue(value)
-            val fieldDescriptor = buildDescriptorFromAny(fieldValue, depth)
-            fields[jcField] = fieldDescriptor
+        val uTestObjectDescriptor = UTestObjectDescriptor(type, fields, currentRefId++)
+        return createCyclicRef(uTestObjectDescriptor, value) {
+            jcClass.fields.forEach { jcField ->
+                val jField = jcField.toJavaField(classLoader)
+                val fieldValue = jField.getFieldValue(value)
+                val fieldDescriptor = buildDescriptorFromAny(fieldValue, depth)
+                fields[jcField] = fieldDescriptor
+            }
         }
-        return uTestObjectDescriptor
     }
 
     private fun booleanWrapper(any: Boolean, depth: Int): UTestValueDescriptor {
