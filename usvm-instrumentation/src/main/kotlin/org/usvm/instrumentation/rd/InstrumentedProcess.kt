@@ -137,11 +137,9 @@ class InstrumentedProcess private constructor() {
 
     private fun InstrumentedProcessModel.setup() {
         callUTest.measureExecutionForTermination { serializedUTest ->
-            serializationCtx.reset()
             val uTest = UTest(serializedUTest.initStatements, serializedUTest.callMethodExpression as UTestCall)
             val callRes = callUTest(uTest)
             serializeExecutionResult(callRes)
-                .also { serializationCtx.reset() }
         }
     }
 
@@ -250,8 +248,13 @@ class InstrumentedProcess private constructor() {
 
     fun <T, R> RdCall<T, R>.measureExecutionForTermination(block: (T) -> R) {
         set { request ->
-            measureExecutionForTermination<R> {
-                block(request)
+            try {
+                serializationCtx.reset()
+                measureExecutionForTermination<R> {
+                    block(request)
+                }
+            } finally {
+                serializationCtx.reset()
             }
         }
     }
