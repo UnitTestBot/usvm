@@ -5,6 +5,18 @@ import org.jacodb.api.JcType
 
 sealed class UTestValueDescriptor {
     abstract val type: JcType
+    abstract fun structurallyEqual(other: UTestValueDescriptor): Boolean
+
+    companion object {
+
+        fun descriptorsAreEqual(descriptor1: UTestValueDescriptor, descriptor2: UTestValueDescriptor): Boolean {
+            return if (descriptor1 is UTestConstantDescriptor) {
+                descriptor1.structurallyEqual(descriptor2)
+            } else {
+                descriptor1 === descriptor2
+            }
+        }
+    }
 }
 
 sealed interface UTestRefDescriptor {
@@ -33,6 +45,7 @@ sealed class UTestConstantDescriptor : UTestValueDescriptor() {
 
     data class String(val value: kotlin.String, override val type: JcType) : UTestConstantDescriptor()
 
+    override fun structurallyEqual(other: UTestValueDescriptor): kotlin.Boolean = this == other
 
 }
 
@@ -53,6 +66,8 @@ sealed class UTestArrayDescriptor<T>(
         value: kotlin.BooleanArray
     ) : UTestArrayDescriptor<kotlin.BooleanArray>(elementType, length, value) {
         override fun valueToString() = value.contentToString()
+        override fun structurallyEqual(other: UTestValueDescriptor): Boolean =
+            other is BooleanArray && other.value.contentEquals(value)
     }
 
     class ByteArray(
@@ -61,6 +76,8 @@ sealed class UTestArrayDescriptor<T>(
         value: kotlin.ByteArray
     ) : UTestArrayDescriptor<kotlin.ByteArray>(elementType, length, value) {
         override fun valueToString() = value.contentToString()
+        override fun structurallyEqual(other: UTestValueDescriptor): Boolean =
+            other is ByteArray && other.value.contentEquals(value)
     }
 
     class ShortArray(
@@ -69,6 +86,8 @@ sealed class UTestArrayDescriptor<T>(
         value: kotlin.ShortArray
     ) : UTestArrayDescriptor<kotlin.ShortArray>(elementType, length, value) {
         override fun valueToString() = value.contentToString()
+        override fun structurallyEqual(other: UTestValueDescriptor): Boolean =
+            other is ShortArray && other.value.contentEquals(value)
     }
 
     class IntArray(
@@ -77,6 +96,8 @@ sealed class UTestArrayDescriptor<T>(
         value: kotlin.IntArray
     ) : UTestArrayDescriptor<kotlin.IntArray>(elementType, length, value) {
         override fun valueToString() = value.contentToString()
+        override fun structurallyEqual(other: UTestValueDescriptor): Boolean =
+            other is IntArray && other.value.contentEquals(value)
     }
 
     class LongArray(
@@ -85,6 +106,8 @@ sealed class UTestArrayDescriptor<T>(
         value: kotlin.LongArray
     ) : UTestArrayDescriptor<kotlin.LongArray>(elementType, length, value) {
         override fun valueToString() = value.contentToString()
+        override fun structurallyEqual(other: UTestValueDescriptor): Boolean =
+            other is LongArray && other.value.contentEquals(value)
     }
 
     class FloatArray(
@@ -93,6 +116,8 @@ sealed class UTestArrayDescriptor<T>(
         value: kotlin.FloatArray
     ) : UTestArrayDescriptor<kotlin.FloatArray>(elementType, length, value) {
         override fun valueToString() = value.contentToString()
+        override fun structurallyEqual(other: UTestValueDescriptor): Boolean =
+            other is FloatArray && other.value.contentEquals(value)
     }
 
     class DoubleArray(
@@ -101,6 +126,8 @@ sealed class UTestArrayDescriptor<T>(
         value: kotlin.DoubleArray
     ) : UTestArrayDescriptor<kotlin.DoubleArray>(elementType, length, value) {
         override fun valueToString() = value.contentToString()
+        override fun structurallyEqual(other: UTestValueDescriptor): Boolean =
+            other is DoubleArray && other.value.contentEquals(value)
     }
 
     class CharArray(
@@ -109,6 +136,8 @@ sealed class UTestArrayDescriptor<T>(
         value: kotlin.CharArray
     ) : UTestArrayDescriptor<kotlin.CharArray>(elementType, length, value) {
         override fun valueToString() = value.contentToString()
+        override fun structurallyEqual(other: UTestValueDescriptor): Boolean =
+            other is CharArray && other.value.contentEquals(value)
     }
 
     class Array(
@@ -118,6 +147,12 @@ sealed class UTestArrayDescriptor<T>(
         override val refId: Int
     ) : UTestArrayDescriptor<List<UTestValueDescriptor>>(elementType, length, value), UTestRefDescriptor {
         override fun valueToString() = value.toString()
+        override fun structurallyEqual(other: UTestValueDescriptor): Boolean {
+            if (other !is UTestArrayDescriptor.Array) return false
+            if (length != other.length) return false
+            if (elementType != other.elementType) return false
+            return value.zip(other.value).all { descriptorsAreEqual(it.first, it.second) }
+        }
     }
 
     override fun toString(): String {
@@ -125,10 +160,12 @@ sealed class UTestArrayDescriptor<T>(
     }
 }
 
-class UTestCyclicReferenceDescriptor(
+data class UTestCyclicReferenceDescriptor(
     val refId: Int,
     override val type: JcType
-) : UTestValueDescriptor()
+) : UTestValueDescriptor() {
+    override fun structurallyEqual(other: UTestValueDescriptor): Boolean = this == other
+}
 
 //TODO: Avoid recursion via DescriptorPrinter
 class UTestObjectDescriptor(
@@ -139,5 +176,16 @@ class UTestObjectDescriptor(
 
     override fun toString(): String =
         "UTestObjectDescriptor(type=$type, fields:${fields.entries.joinToString(",") { "${it.key.name} to ${it.value}}" }}"
+
+    override fun structurallyEqual(other: UTestValueDescriptor): Boolean {
+        if (other !is UTestObjectDescriptor) return false
+        if (type != other.type) return false
+        if (fields.keys != other.fields.keys) return false
+        for ((key, value) in fields) {
+            val otherFieldValue = other.fields[key] ?: return false
+            if (!descriptorsAreEqual(value, otherFieldValue)) return false
+        }
+        return true
+    }
 
 }
