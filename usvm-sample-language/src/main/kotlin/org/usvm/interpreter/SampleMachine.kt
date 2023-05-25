@@ -60,4 +60,9 @@ class SampleMachine(
     private fun isInterestingState(state: SampleState): Boolean {
         return state.callStack.isNotEmpty() && state.exceptionRegister == null
     }
+
+    override fun close() {
+        solver.close()
+        ctx.close()
+    }
 }
