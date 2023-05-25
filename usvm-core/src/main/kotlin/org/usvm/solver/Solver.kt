@@ -21,7 +21,7 @@ open class UUnsatResult<Model> : USolverResult<Model>
 
 open class UUnknownResult<Model> : USolverResult<Model>
 
-abstract class USolver<in PathCondition, out Model> {
+abstract class USolver<in PathCondition, out Model> : AutoCloseable {
     abstract fun check(pc: PathCondition, useSoftConstraints: Boolean): USolverResult<Model>
 }
 
@@ -135,4 +135,8 @@ open class USolverBase<Field, Type, Method>(
 
     fun emptyModel(): UModelBase<Field, Type> =
         (checkWithSoftConstraints(UPathConstraints(ctx)) as USatResult<UModelBase<Field, Type>>).model
+
+    override fun close() {
+        smtSolver.close()
+    }
 }
