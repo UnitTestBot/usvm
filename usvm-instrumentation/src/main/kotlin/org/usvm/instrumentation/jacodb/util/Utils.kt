@@ -75,6 +75,8 @@ fun JcMethod.toJavaConstructor(classLoader: ClassLoader): Constructor<*> {
 fun JcField.toJavaField(classLoader: ClassLoader): Field =
     enclosingClass.toType().toJavaCLass(classLoader).getFieldByName(name)
 
+fun TypeName.toJcType(jcClasspath: JcClasspath): JcType? = jcClasspath.findTypeOrNull(typeName)
+
 fun Method.toJcdbSignature(): String =
     name + "(" + parameterTypes.joinToString(";", postfix = ";") { it.typeName } + ")" + returnType.name + ";"
 
