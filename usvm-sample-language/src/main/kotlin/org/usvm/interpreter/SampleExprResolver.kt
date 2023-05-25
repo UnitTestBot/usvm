@@ -3,15 +3,16 @@ package org.usvm.interpreter
 import io.ksmt.expr.KBitVec32Value
 import io.ksmt.expr.KExpr
 import io.ksmt.utils.asExpr
-import org.usvm.UArrayIndexRef
+import org.usvm.UArrayIndexValue
+import org.usvm.UArrayLengthValue
 import org.usvm.UBoolExpr
 import org.usvm.UBv32Sort
 import org.usvm.UContext
 import org.usvm.UExpr
-import org.usvm.UFieldRef
+import org.usvm.UFieldValue
 import org.usvm.UHeapRef
 import org.usvm.ULValue
-import org.usvm.URegisterRef
+import org.usvm.URegisterValue
 import org.usvm.USizeExpr
 import org.usvm.USort
 import org.usvm.language.And
@@ -67,7 +68,7 @@ import org.usvm.language.UnaryMinus
  * [hardMaxArrayLength] will be rejected.
  */
 class SampleExprResolver(
-    private val uctx: UContext,
+    private val ctx: UContext,
     private val scope: SampleStepScope,
     private val hardMaxArrayLength: Int = 1_500,
 ) {
@@ -80,14 +81,14 @@ class SampleExprResolver(
             is StructType -> resolveStruct(expr as StructExpr)
         }
 
-    fun resolveStruct(expr: StructExpr): UHeapRef? = with(uctx) {
+    fun resolveStruct(expr: StructExpr): UHeapRef? = with(ctx) {
         when (expr) {
             is StructCreation -> {
                 val ref = scope.calcOnState { memory.alloc(expr.type) } ?: return null
 
                 for ((field, fieldExpr) in expr.fields) {
                     val sort = typeToSort(field.type)
-                    val fieldRef = UFieldRef(sort, ref, field)
+                    val fieldRef = UFieldValue(sort, ref, field)
                     val fieldUExpr = resolveExpr(fieldExpr) ?: return null
 
                     scope.doWithState { memory.write(fieldRef, fieldUExpr) } ?: return null
@@ -103,7 +104,7 @@ class SampleExprResolver(
         }
     }
 
-    fun resolveArray(expr: ArrayExpr<*>): UHeapRef? = with(uctx) {
+    fun resolveArray(expr: ArrayExpr<*>): UHeapRef? = with(ctx) {
         when (expr) {
             is ArrayCreation -> {
                 val size = resolveInt(expr.size) ?: return null
@@ -115,7 +116,7 @@ class SampleExprResolver(
 
                 val values = expr.values.map { resolveExpr(it) ?: return null }
                 values.forEachIndexed { index, kExpr ->
-                    val lvalue = UArrayIndexRef(cellSort, ref, mkBv(index), expr.type)
+                    val lvalue = UArrayIndexValue(cellSort, ref, mkBv(index), expr.type)
 
                     scope.doWithState { memory.write(lvalue, kExpr) } ?: return null
                 }
@@ -133,12 +134,13 @@ class SampleExprResolver(
         }
     }
 
-    fun resolveInt(expr: IntExpr): UExpr<UBv32Sort>? = with(uctx) {
+    fun resolveInt(expr: IntExpr): UExpr<UBv32Sort>? = with(ctx) {
         when (expr) {
             is ArraySize -> {
                 val ref = resolveArray(expr.array) ?: return null
                 checkNullPointer(ref) ?: return null
-                val length = scope.calcOnState { memory.length(ref, expr.array.type) } ?: return null
+                val lengthRef = UArrayLengthValue(ref, expr.array.type)
+                val length = scope.calcOnState { memory.read(lengthRef).asExpr(sizeSort) } ?: return null
                 checkHardMaxArrayLength(length) ?: return null
                 scope.assert(mkBvSignedLessOrEqualExpr(mkBv(0), length)) ?: return null
                 length
@@ -189,7 +191,7 @@ class SampleExprResolver(
         }
     }
 
-    fun resolveBoolean(expr: BooleanExpr): UBoolExpr? = with(uctx) {
+    fun resolveBoolean(expr: BooleanExpr): UBoolExpr? = with(ctx) {
         when (expr) {
             is And -> {
                 val lhs = resolveBoolean(expr.left) ?: return null
@@ -297,33 +299,34 @@ class SampleExprResolver(
         checkNullPointer(arrayRef) ?: return null
 
         val idx = resolveInt(index) ?: return null
-        val length = scope.calcOnState { memory.length(arrayRef, array.type) } ?: return null
+        val lengthRef = UArrayLengthValue(arrayRef, array.type)
+        val length = scope.calcOnState { memory.read(lengthRef).asExpr(ctx.sizeSort) } ?: return null
 
         checkHardMaxArrayLength(length) ?: return null
 
         checkArrayIndex(idx, length) ?: return null
 
-        val cellSort = uctx.typeToSort(array.type.elementType)
+        val cellSort = ctx.typeToSort(array.type.elementType)
 
-        return UArrayIndexRef(cellSort, arrayRef, idx, array.type)
+        return UArrayIndexValue(cellSort, arrayRef, idx, array.type)
     }
 
     private fun resolveFieldSelectRef(instance: StructExpr, field: Field<*>): ULValue? {
         val instanceRef = resolveStruct(instance) ?: return null
 
         checkNullPointer(instanceRef) ?: return null
-        val sort = uctx.typeToSort(field.type)
-        return UFieldRef(sort, instanceRef, field)
+        val sort = ctx.typeToSort(field.type)
+        return UFieldValue(sort, instanceRef, field)
     }
 
     private fun resolveRegisterRef(register: Register<*>): ULValue {
         val localIdx = register.idx
         val type = register.type
-        val sort = uctx.typeToSort(type)
-        return URegisterRef(sort, localIdx)
+        val sort = ctx.typeToSort(type)
+        return URegisterValue(sort, localIdx)
     }
 
-    private fun checkArrayIndex(idx: USizeExpr, length: USizeExpr) = with(uctx) {
+    private fun checkArrayIndex(idx: USizeExpr, length: USizeExpr) = with(ctx) {
         val inside = (mkBvSignedLessOrEqualExpr(mkBv(0), idx)) and (mkBvSignedLessExpr(idx, length))
 
         scope.fork(
@@ -338,7 +341,7 @@ class SampleExprResolver(
         )
     }
 
-    private fun checkArrayLength(length: KExpr<UBv32Sort>, actualLength: Int) = with(uctx) {
+    private fun checkArrayLength(length: KExpr<UBv32Sort>, actualLength: Int) = with(ctx) {
         checkHardMaxArrayLength(length) ?: return null
 
         val actualLengthLeThanLength = mkBvSignedLessOrEqualExpr(mkBv(actualLength), length)
@@ -355,7 +358,7 @@ class SampleExprResolver(
     }
 
 
-    private fun checkDivisionByZero(rhs: UExpr<UBv32Sort>) = with(uctx) {
+    private fun checkDivisionByZero(rhs: UExpr<UBv32Sort>) = with(ctx) {
         val neqZero = mkEq(rhs, mkBv(0)).not()
         scope.fork(neqZero,
             blockOnFalseState = {
@@ -364,7 +367,7 @@ class SampleExprResolver(
         )
     }
 
-    private fun checkNullPointer(ref: UHeapRef) = with(uctx) {
+    private fun checkNullPointer(ref: UHeapRef) = with(ctx) {
         val neqNull = mkHeapRefEq(ref, nullRef).not()
         scope.fork(
             neqNull,
@@ -374,7 +377,7 @@ class SampleExprResolver(
         )
     }
 
-    private fun checkHardMaxArrayLength(length: USizeExpr): Unit? = with(uctx) {
+    private fun checkHardMaxArrayLength(length: USizeExpr): Unit? = with(ctx) {
         val lengthLeThanMaxLength = mkBvSignedLessOrEqualExpr(length, mkBv(hardMaxArrayLength))
         scope.assert(lengthLeThanMaxLength) ?: return null
         return Unit

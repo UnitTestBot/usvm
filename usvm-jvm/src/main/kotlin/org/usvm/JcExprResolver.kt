@@ -250,7 +250,8 @@ class JcExprResolver(
     override fun visitJcLengthExpr(expr: JcLengthExpr): UExpr<out USort>? = with(ctx) {
         val ref = (resolveExpr(expr.array) ?: return null).asExpr(addressSort)
         checkNullPointer(ref) ?: return null
-        val length = scope.calcOnState { memory.length(ref, expr.array.type) } ?: return null
+        val lengthRef = UArrayLengthValue(ref, expr.array.type)
+        val length = scope.calcOnState { memory.read(lengthRef).asExpr(sizeSort) } ?: return null
         checkHardMaxArrayLength(length) ?: return null
         scope.assert(mkBvSignedLessOrEqualExpr(mkBv(0), length)) ?: return null
         length
@@ -366,7 +367,8 @@ class JcExprResolver(
         checkNullPointer(arrayRef) ?: return null
 
         val idx = resolveExpr(index)?.asExpr(bv32Sort) ?: return null
-        val length = scope.calcOnState { memory.length(arrayRef, array.type) } ?: return null
+        val lengthRef = UArrayLengthValue(arrayRef, array.type)
+        val length = scope.calcOnState { memory.read(lengthRef).asExpr(sizeSort) } ?: return null
 
         checkHardMaxArrayLength(length) ?: return null
 
@@ -375,7 +377,7 @@ class JcExprResolver(
         val elementType = requireNotNull(array.type.ifArrayGetElementType)
         val cellSort = typeToSort(elementType)
 
-        return UArrayIndexRef(cellSort, arrayRef, idx, array.type)
+        return UArrayIndexValue(cellSort, arrayRef, idx, array.type)
     }
 
     private fun resolveFieldRef(instance: JcValue?, field: JcTypedField): ULValue? = with(ctx) {
@@ -383,7 +385,7 @@ class JcExprResolver(
             val instanceRef = resolveExpr(instance)?.asExpr(addressSort) ?: return null
             checkNullPointer(instanceRef) ?: return null
             val sort = ctx.typeToSort(field.fieldType)
-            UFieldRef(sort, instanceRef, field)
+            UFieldValue(sort, instanceRef, field)
         } else {
             val sort = ctx.typeToSort(field.fieldType)
             JcStaticFieldRef(sort, field)
@@ -394,21 +396,21 @@ class JcExprResolver(
         val method = requireNotNull(scope.calcOnState { lastEnteredMethod })
         val localIdx = localToIdx(method, argument)
         val sort = ctx.typeToSort(argument.type)
-        return URegisterRef(sort, localIdx)
+        return URegisterValue(sort, localIdx)
     }
 
     private fun resolveThis(thisLocal: JcThis): ULValue {
         val method = requireNotNull(scope.calcOnState { lastEnteredMethod })
         val localIdx = localToIdx(method, thisLocal)
         val sort = ctx.typeToSort(thisLocal.type)
-        return URegisterRef(sort, localIdx)
+        return URegisterValue(sort, localIdx)
     }
 
     private fun resolveLocalVar(local: JcLocalVar): ULValue {
         val method = requireNotNull(scope.calcOnState { lastEnteredMethod })
         val localIdx = localToIdx(method, local)
         val sort = ctx.typeToSort(local.type)
-        return URegisterRef(sort, localIdx)
+        return URegisterValue(sort, localIdx)
     }
 
     private fun checkArrayIndex(idx: USizeExpr, length: USizeExpr) = with(ctx) {

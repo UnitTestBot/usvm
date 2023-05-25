@@ -47,7 +47,7 @@ class JcInterpreter(
 
         if (!method.isStatic) {
             with(ctx) {
-                val thisLValue = URegisterRef(addressSort, 0)
+                val thisLValue = URegisterValue(addressSort, 0)
 
                 val ref = checkNotNull(state.memory.read(thisLValue)).asExpr(addressSort)
 

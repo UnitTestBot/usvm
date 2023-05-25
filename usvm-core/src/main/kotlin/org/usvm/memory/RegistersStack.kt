@@ -2,9 +2,9 @@ package org.usvm.memory
 
 import io.ksmt.expr.KExpr
 import io.ksmt.utils.asExpr
-import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.USort
+import org.usvm.uctx
 
 interface URegistersStackEvaluator {
     fun <Sort : USort> readRegister(registerIndex: Int, sort: Sort): UExpr<Sort>
@@ -26,7 +26,6 @@ class URegistersStackFrame(
 }
 
 class URegistersStack(
-    private val ctx: UContext,
     private val stack: ArrayDeque<URegistersStackFrame> = ArrayDeque(),
 ) : URegistersStackEvaluator {
     fun push(registersCount: Int) = stack.add(URegistersStackFrame(registersCount))
@@ -38,7 +37,7 @@ class URegistersStack(
         stack.add(URegistersStackFrame(arguments, localsCount))
 
     override fun <Sort : USort> readRegister(registerIndex: Int, sort: Sort): KExpr<Sort> =
-        stack.last()[registerIndex]?.asExpr(sort) ?: ctx.mkRegisterReading(registerIndex, sort)
+        stack.last()[registerIndex]?.asExpr(sort) ?: sort.uctx.mkRegisterReading(registerIndex, sort)
 
     fun writeRegister(index: Int, value: UExpr<out USort>) {
         stack.last()[index] = value
@@ -48,6 +47,6 @@ class URegistersStack(
 
     fun clone(): URegistersStack {
         val newStack = ArrayDeque(stack.map { it.clone() })
-        return URegistersStack(ctx, newStack)
+        return URegistersStack(newStack)
     }
 }

@@ -32,8 +32,7 @@ class ResultModelConverter(
     fun convert(state: SampleState, method: Method<*>): ProgramExecutionResult {
         val exceptionRegister = state.exceptionRegister
 
-        @Suppress("UNCHECKED_CAST")
-        val model = state.models.first() as UModelBase<Field<*>, SampleType>
+        val model = state.models.first()
 
         val inputScope = InputScope(ctx, model)
 

@@ -86,7 +86,7 @@ class UAddressCounter {
     }
 }
 
-data class URegionHeap<Field, ArrayType>(
+class URegionHeap<Field, ArrayType>(
     private val ctx: UContext,
     private var lastAddress: UAddressCounter = UAddressCounter(),
     private var allocatedFields: PersistentMap<Pair<UConcreteHeapAddress, Field>, UExpr<out USort>> = persistentMapOf(),
