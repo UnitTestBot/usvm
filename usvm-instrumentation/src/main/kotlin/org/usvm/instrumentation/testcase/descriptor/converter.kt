@@ -16,7 +16,6 @@ class DescriptorBuilder(private val classLoader: WorkerClassLoader, private val 
 
     private val jcClasspath = classLoader.jcClasspath
     private val objectToDescriptor = IdentityHashMap<Any, UTestValueDescriptor>()
-    private var currentRefId = 0
 
     fun buildDescriptorFromUTestExpr(
         uTestExpressionList: UTestExpression,
@@ -41,7 +40,7 @@ class DescriptorBuilder(private val classLoader: WorkerClassLoader, private val 
             Result.failure(e)
         }
 
-    private fun buildDescriptorFromAny(any: Any?, depth: Int = 0) : UTestValueDescriptor {
+    private fun buildDescriptorFromAny(any: Any?, depth: Int = 0): UTestValueDescriptor {
         val builtDescriptor = buildDescriptor(any, depth)
         val descriptorFromPreviousState = previousState?.objectToDescriptor?.get(any) ?: return builtDescriptor
         if (builtDescriptor.structurallyEqual(descriptorFromPreviousState)) {
@@ -113,7 +112,7 @@ class DescriptorBuilder(private val classLoader: WorkerClassLoader, private val 
                     jcClasspath.findTypeOrNull(array.javaClass.componentType.name)!!,
                     array.size,
                     listOfRefs,
-                    currentRefId++
+                    System.identityHashCode(array)
                 )
                 createCyclicRef(descriptor, array) {
                     for (i in array.indices) {
@@ -121,6 +120,7 @@ class DescriptorBuilder(private val classLoader: WorkerClassLoader, private val 
                     }
                 }
             }
+
             else -> error("It is not array")
         }
 
@@ -141,7 +141,7 @@ class DescriptorBuilder(private val classLoader: WorkerClassLoader, private val 
     private fun `object`(type: JcType, value: Any, depth: Int): UTestObjectDescriptor {
         val jcClass = jcClasspath.findClass(type.typeName)
         val fields = mutableMapOf<JcField, UTestValueDescriptor>()
-        val uTestObjectDescriptor = UTestObjectDescriptor(type, fields, currentRefId++)
+        val uTestObjectDescriptor = UTestObjectDescriptor(type, fields, System.identityHashCode(value))
         return createCyclicRef(uTestObjectDescriptor, value) {
             jcClass.fields.forEach { jcField ->
                 val jField = jcField.toJavaField(classLoader)
