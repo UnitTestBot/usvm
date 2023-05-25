@@ -6,7 +6,7 @@ package org.usvm
  *
  * @see [run]
  */
-abstract class UMachine<State : UState<*, *, *, *>, Target> {
+abstract class UMachine<State : UState<*, *, *, *>, Target> : AutoCloseable {
     /**
      * The main entry point. Template method for running the machine on a specified [target].
      *
