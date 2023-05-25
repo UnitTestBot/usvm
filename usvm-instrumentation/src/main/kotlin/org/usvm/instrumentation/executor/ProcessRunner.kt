@@ -8,6 +8,7 @@ import com.jetbrains.rd.framework.Identities
 import com.jetbrains.rd.framework.Protocol
 import com.jetbrains.rd.framework.Serializers
 import com.jetbrains.rd.framework.SocketWire
+import com.jetbrains.rd.framework.impl.RdCall
 import com.jetbrains.rd.util.lifetime.LifetimeDefinition
 import com.jetbrains.rd.util.threading.SingleThreadScheduler
 import kotlinx.coroutines.delay
@@ -92,12 +93,17 @@ class ProcessRunner(
         return RdServerProcess(process, lifetime, protocol, model)
     }
 
+    private suspend fun <T, R> RdCall<T, R>.execute(request: T): R =
+        try {
+            this@ProcessRunner.serializationContext.reset()
+            startSuspending(lifetime, request)
+        } finally {
+            this@ProcessRunner.serializationContext.reset()
+        }
 
     suspend fun callUTest(uTest: UTest): UTestExecutionResult {
         val serializedUTest = SerializedUTest(uTest.initStatements, uTest.callMethodExpression)
-        serializationContext.reset()
-        val serializedExecutionResult = rdProcess.model.callUTest.startSuspending(lifetime, serializedUTest)
-        serializationContext.reset()
+        val serializedExecutionResult = rdProcess.model.callUTest.execute(serializedUTest)
         return deserializeExecutionResult(serializedExecutionResult)
     }
 
