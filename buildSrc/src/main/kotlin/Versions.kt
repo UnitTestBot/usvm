@@ -15,4 +15,6 @@ object Versions {
     const val samplesJavaxValidation = "2.0.0.Final"
     const val samplesFindBugs = "1.3.9-1"
     const val samplesJetbrainsAnnotations = "16.0.2"
+    const val rd = "2023.2.0"
+    const val ini4j = "0.5.4"
 }
