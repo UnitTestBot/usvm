@@ -31,11 +31,11 @@ JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_concreteRun(
     jlong globals,
     jstring code
 ) {
-    jboolean is_copy;
-    const char *c_code = (*env)->GetStringUTFChars(env, code, &is_copy);
+    const char *c_code = (*env)->GetStringUTFChars(env, code, 0);
 
     PyObject *dict = (PyObject *) globals;
     PyObject *v = PyRun_StringFlags(c_code, Py_file_input, dict, dict, 0);
+    (*env)->ReleaseStringUTFChars(env, code, c_code);
     if (v == NULL) {
         PyErr_Print();
         return 1;
@@ -50,11 +50,11 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_eval(
     jlong globals,
     jstring code
 ) {
-    jboolean is_copy;
-    const char *c_code = (*env)->GetStringUTFChars(env, code, &is_copy);
+    const char *c_code = (*env)->GetStringUTFChars(env, code, 0);
 
     PyObject *dict = (PyObject *) globals;
     PyObject *v = PyRun_StringFlags(c_code, Py_eval_input, dict, dict, 0);
+    (*env)->ReleaseStringUTFChars(env, code, c_code);
     if (v == NULL) {
         PyErr_Print();
         return 0;
@@ -68,9 +68,38 @@ JNIEXPORT int JNICALL Java_org_usvm_interpreter_CPythonAdapter_concolicRun(
     jobject cpython_adapter,
     jlong globals,
     jlong function_ref,
+    jlongArray concrete_args,
     jobjectArray symbolic_args,
     jobject context
 ) {
-    // TODO
+    PyObject *function = (PyObject *) function_ref;
+    printf("CONCOLIC RUN on \n");
+    PyObject_Print(function, stdout, 0);
+
+    int n = (*env)->GetArrayLength(env, concrete_args);
+    jlong *addresses = (*env)->GetLongArrayElements(env, concrete_args, 0);
+    PyObject **args = malloc(sizeof(PyObject *) * n);
+    for (int i = 0; i < n; i++) {
+        PyObject *tuple = PyTuple_New(2);
+        PyTuple_SetItem(tuple, 0, (PyObject *) addresses[i]);
+        PyTuple_SetItem(tuple, 1, Py_None);
+        args[i] = tuple;
+    }
+    (*env)->ReleaseLongArrayElements(env, concrete_args, addresses, 0);
+    printf("\n");
+    fflush(stdout);
+
+    SymbolicAdapter *adapter = create_new_adapter(handler, 0);
+    PyObject *result = SymbolicAdapter_run((PyObject *) adapter, function, n, args);
+    free(args);
+
+    if (result == NULL) {
+        PyErr_Print();
+        return 1;
+    }
+
+    PyObject_Print(result, stdout, 0);
+    printf("\n");
+    fflush(stdout);
     return 0;
 }

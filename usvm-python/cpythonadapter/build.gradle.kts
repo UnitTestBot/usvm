@@ -6,11 +6,12 @@ plugins {
 
 val cpythonPath = "${projectDir.path}/cpython"
 val cpythonBuildPath = "${project.buildDir.path}/cpython_build"
+val cpythonTaskGroup = "cpython"
 
 val configCPython = tasks.register<Exec>("CPythonBuildConfiguration") {
+    group = cpythonTaskGroup
     workingDir = File(cpythonPath)
-    val resultFile = File("$cpythonBuildPath/configured")
-    outputs.file(resultFile)
+    outputs.file("$cpythonPath/Makefile")
     commandLine(
         "$cpythonPath/configure",
         "--enable-shared",
@@ -19,12 +20,10 @@ val configCPython = tasks.register<Exec>("CPythonBuildConfiguration") {
         "--prefix=$cpythonBuildPath",
         "--disable-test-modules"
     )
-    doLast {
-        commandLine("touch", resultFile.path)  // for UP-TO-DATE
-    }
 }
 
 val cpython = tasks.register<Exec>("CPythonBuild") {
+    group = cpythonTaskGroup
     dependsOn(configCPython)
     inputs.dir(cpythonPath)
     outputs.dirs("$cpythonBuildPath/lib", "$cpythonBuildPath/include", "$cpythonBuildPath/bin")
@@ -58,11 +57,13 @@ library {
 
 
 val cpythonClean = tasks.register<Exec>("cleanCPython") {
+    group = cpythonTaskGroup
     workingDir = File(cpythonPath)
     commandLine("make", "clean")
 }
 
 tasks.register<Exec>("distcleanCPython") {
+    group = cpythonTaskGroup
     workingDir = File(cpythonPath)
     commandLine("make", "distclean")
 }
