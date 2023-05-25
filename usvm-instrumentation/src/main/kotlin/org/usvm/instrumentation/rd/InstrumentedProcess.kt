@@ -209,16 +209,18 @@ class InstrumentedProcess private constructor() {
         val executor = UTestExecutor(userClassLoader)
         executor.executeUTestExpressions(uTest.initStatements)
             ?.onFailure { return UTestExecutionInitFailedResult(it.message ?: "", traceCollector.getTrace()) }
-        val initExecutionState = buildExecutionState(callMethodExpr, executor)
+        val initStateDescriptorBuilder = DescriptorBuilder(userClassLoader, null)
+        val initExecutionState = buildExecutionState(callMethodExpr, executor, initStateDescriptorBuilder)
         val methodInvocationResult =
             executor.executeUTestExpression(callMethodExpr)
                 .onFailure { return UTestExecutionExceptionResult(it.message ?: "", traceCollector.getTrace()) }
                 .getOrNull()
+        val resultStateDescriptorBuilder = DescriptorBuilder(userClassLoader, initStateDescriptorBuilder)
         val methodInvocationResultDescriptor =
-            DescriptorBuilder(userClassLoader)
+            resultStateDescriptorBuilder
                 .buildDescriptorResultFromAny(methodInvocationResult)
                 .getOrNull()
-        val resultExecutionState = buildExecutionState(callMethodExpr, executor)
+        val resultExecutionState = buildExecutionState(callMethodExpr, executor, resultStateDescriptorBuilder)
         return UTestExecutionSuccessResult(
             traceCollector.getTrace(),
             methodInvocationResultDescriptor,
@@ -227,8 +229,7 @@ class InstrumentedProcess private constructor() {
         )
     }
 
-    private fun buildExecutionState(callMethodExpr: UTestMethodCall, executor: UTestExecutor): ExecutionState {
-        val descriptorBuilder = DescriptorBuilder(userClassLoader)
+    private fun buildExecutionState(callMethodExpr: UTestMethodCall, executor: UTestExecutor, descriptorBuilder: DescriptorBuilder): ExecutionState {
         val instanceDescriptor =
             descriptorBuilder.buildDescriptorFromUTestExpr(callMethodExpr.instance, executor)?.getOrNull()
         val argsDescriptors = callMethodExpr.args.map {
