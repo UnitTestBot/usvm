@@ -22,14 +22,20 @@ val configCPython = tasks.register<Exec>("CPythonBuildConfiguration") {
     )
 }
 
-val cpython = tasks.register<Exec>("CPythonBuild") {
+val cpythonBuild = tasks.register<Exec>("CPythonBuild") {
     group = cpythonTaskGroup
     dependsOn(configCPython)
     inputs.dir(cpythonPath)
-    outputs.dirs("$cpythonBuildPath/lib", "$cpythonBuildPath/include", "$cpythonBuildPath/bin")
     workingDir = File(cpythonPath)
     commandLine("make")
-    commandLine("echo", "`pwd`")
+}
+
+val cpython = tasks.register<Exec>("CPythonInstall") {
+    group = cpythonTaskGroup
+    dependsOn(cpythonBuild)
+    inputs.dir(cpythonPath)
+    outputs.dirs("$cpythonBuildPath/lib", "$cpythonBuildPath/include", "$cpythonBuildPath/bin")
+    workingDir = File(cpythonPath)
     commandLine("make", "install")
 }
 
@@ -49,20 +55,19 @@ library {
 
         compileTask.includes.from("$cpythonBuildPath/include/python3.11")
         compileTask.source.from(fileTree("src/main/c"))
-        compileTask.compilerArgs.addAll(listOf("-x", "c", "-std=c11", "-L$cpythonPath", "-lpython3.11"))
+        compileTask.compilerArgs.addAll(listOf("-x", "c", "-std=c11", "-L$cpythonBuildPath/lib", "-lpython3.11"))
 
         compileTask.dependsOn(cpython)
     }
 }
 
-
-val cpythonClean = tasks.register<Exec>("cleanCPython") {
+val cpythonClean = tasks.register<Exec>("CPythonClean") {
     group = cpythonTaskGroup
     workingDir = File(cpythonPath)
     commandLine("make", "clean")
 }
 
-tasks.register<Exec>("distcleanCPython") {
+tasks.register<Exec>("CPythonDistclean") {
     group = cpythonTaskGroup
     workingDir = File(cpythonPath)
     commandLine("make", "distclean")
@@ -70,4 +75,19 @@ tasks.register<Exec>("distcleanCPython") {
 
 tasks.clean {
     dependsOn(cpythonClean)
+}
+
+tasks.register<Exec>("cpython_check_compile") {
+    dependsOn(cpython)
+    workingDir = File("${projectDir.path}/cpython_check")
+    commandLine(
+        "gcc",
+        "-std=c11",
+        "-I$cpythonBuildPath/include/python3.11",
+        "sample_handler.c",
+        "-o",
+        "check",
+        "-L$cpythonBuildPath/lib",
+        "-lpython3.11"
+    )
 }
