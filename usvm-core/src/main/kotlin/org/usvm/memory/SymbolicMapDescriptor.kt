@@ -3,13 +3,14 @@ package org.usvm.memory
 import io.ksmt.cache.hash
 import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
+import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USizeSort
 import org.usvm.USort
 import org.usvm.uctx
 import org.usvm.util.Region
-import org.usvm.util.TrivialRegion
+import org.usvm.util.SetRegion
 
 abstract class USymbolicMapDescriptor<Key : USort, Value : USort, Reg : Region<Reg>> {
     abstract val keySort: Key
@@ -23,6 +24,8 @@ abstract class USymbolicMapDescriptor<Key : USort, Value : USort, Reg : Region<R
     abstract fun keyEqSymbolic(key1: UExpr<Key>, key2: UExpr<Key>): UBoolExpr
     abstract fun keyCmpSymbolic(key1: UExpr<Key>, key2: UExpr<Key>): UBoolExpr
     abstract fun keyCmpConcrete(key1: UExpr<Key>, key2: UExpr<Key>): Boolean
+
+    abstract fun mark(mark: Any?): USymbolicMapDescriptor<Key, Value, Reg>
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -40,22 +43,29 @@ abstract class USymbolicMapDescriptor<Key : USort, Value : USort, Reg : Region<R
         "Descriptor(keySort=$keySort, valueSort=$valueSort, info=$info)"
 }
 
+data class USymbolicMapDescriptorMark(val sourceMark: Any?, val mark: Any?)
+
 class USymbolicObjectReferenceMapDescriptor<Value : USort>(
     override val valueSort: Value,
     override val defaultValue: UExpr<Value>,
     override val info: Any? = null
-) : USymbolicMapDescriptor<UAddressSort, Value, TrivialRegion>() {
+) : USymbolicMapDescriptor<UAddressSort, Value, SetRegion<UHeapRef>>() {
 
     override val keySort: UAddressSort = valueSort.uctx.addressSort
 
     override fun mkKeyRegion(
         key: UHeapRef
-    ): TrivialRegion = TrivialRegion()
+    ): SetRegion<UHeapRef> {
+        if (key is UConcreteHeapRef) {
+            return SetRegion.singleton(key)
+        }
+        return SetRegion.universe()
+    }
 
     override fun mkKeyRangeRegion(
         key1: UHeapRef,
         key2: UHeapRef
-    ): TrivialRegion = TrivialRegion()
+    ) = error("Heap references should not be used in range queries!")
 
     override fun keyEqSymbolic(
         key1: UHeapRef,
@@ -73,6 +83,10 @@ class USymbolicObjectReferenceMapDescriptor<Value : USort>(
         key1: UHeapRef,
         key2: UHeapRef
     ): Boolean = error("Heap references should not be compared!")
+
+    override fun mark(mark: Any?) = USymbolicObjectReferenceMapDescriptor(
+        valueSort, defaultValue, USymbolicMapDescriptorMark(info, mark)
+    )
 }
 
 class USymbolicIndexMapDescriptor<Value : USort>(
@@ -96,4 +110,8 @@ class USymbolicIndexMapDescriptor<Value : USort>(
 
     override fun keyCmpConcrete(key1: UExpr<USizeSort>, key2: UExpr<USizeSort>): Boolean =
         indexLeConcrete(key1, key2)
+
+    override fun mark(mark: Any?) = USymbolicIndexMapDescriptor(
+        valueSort, defaultValue, USymbolicMapDescriptorMark(info, mark)
+    )
 }
