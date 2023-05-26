@@ -23,7 +23,6 @@ tasks.register<JavaExec>("runTestKt") {
     dependsOn(tasks.build)
     environment("LD_LIBRARY_PATH" to "$cpythonBuildPath/lib:$cpythonAdapterBuildPath")
     environment("LD_PRELOAD" to "$cpythonBuildPath/lib/libpython3.so")
-    //System.err.println("Here")
     classpath = sourceSets.main.get().runtimeClasspath
     mainClass.set("TestKt")
 }

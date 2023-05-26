@@ -8,3 +8,6 @@ buildSrc/.gradle
 
 # Ignore Idea directory
 .idea
+
+# Ignore vim cache
+*.swp
