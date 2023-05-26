@@ -10,12 +10,7 @@ fun main() {
 
     val program = PythonProgram(
         """
-            import time
             def f(x):
-                start = time.time()
-                y = 0
-                while y < 10**7: y += 1
-                print("TIME", time.time() - start, flush=True)
                 return x*2 if x > 0 else -x*2
         """.trimIndent()
     )
