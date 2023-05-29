@@ -80,6 +80,29 @@ object SymbolicListUtils {
         writeSymbolicMapLength(descriptor, listRef, newSize)
     }
 
+    fun UState<*, *, *, *>.symbolicListCopy(
+        srcRef: UHeapRef,
+        dstRef: UHeapRef,
+        elementSort: USort,
+        srcFrom: USizeExpr,
+        dstFrom: USizeExpr,
+        length: USizeExpr
+    ) = with(memory.heap) {
+        val descriptor = ctx.listDescriptor(elementSort)
+
+        val dstTo = ctx.mkBvAddExpr(dstFrom, length)
+
+        copySymbolicMap(
+            descriptor = descriptor,
+            srcRef = srcRef,
+            dstRef = dstRef,
+            fromSrcKey = srcFrom,
+            fromDstKey = dstFrom,
+            toDstKey = dstTo,
+            guard = ctx.trueExpr
+        )
+    }
+
     fun UState<*, *, *, *>.symbolicListSize(
         listRef: UHeapRef,
         elementSort: USort
