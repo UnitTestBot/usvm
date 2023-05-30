@@ -86,7 +86,7 @@ class JcRuntimeTraceInstrumenter(
         val jcClass = jcClasspath.findClassOrNull(className) ?: return classNode
         val asmMethods = classNode.methods
         jcClass.declaredMethods.filter { !it.isConstructor }.forEach { jcMethod ->
-            val asmMethod = asmMethods.find { jcMethod.body().isSameSignature(it) } ?: return@forEach
+            val asmMethod = asmMethods.find { jcMethod.asmNode().isSameSignature(it) } ?: return@forEach
             val tracedMethod = instrumentMethod(jcMethod)
             asmMethods.replace(asmMethod, tracedMethod)
         }
