@@ -1,7 +1,9 @@
 package org.usvm.instrumentation.testcase.statement
 
+import org.jacodb.api.JcField
 import org.jacodb.api.cfg.JcInst
 import org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor
+import java.lang.reflect.Field
 
 sealed class UTestExecutionResult
 
@@ -21,8 +23,8 @@ data class UTestExecutionInitFailedResult(
 data class UTestExecutionSuccessResult(
     val trace: List<JcInst>?,
     val result: UTestValueDescriptor?,
-    val initialState: ExecutionState,
-    val resultState: ExecutionState
+    val initialState: UTestExecutionState,
+    val resultState: UTestExecutionState
 ): UTestExecutionResult()
 
 data class UTestExecutionExceptionResult(
@@ -30,7 +32,8 @@ data class UTestExecutionExceptionResult(
     val trace: List<JcInst>?
 ): UTestExecutionResult()
 
-data class ExecutionState(
+data class UTestExecutionState(
     val instanceDescriptor: UTestValueDescriptor?,
-    val argsDescriptors: List<UTestValueDescriptor?>?
+    val argsDescriptors: List<UTestValueDescriptor?>?,
+    val statics: Map<JcField, UTestValueDescriptor>
 )

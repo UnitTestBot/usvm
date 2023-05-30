@@ -7,9 +7,9 @@ import org.jacodb.impl.jacodb
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.usvm.instrumentation.classloader.WorkerClassLoader
+import org.usvm.instrumentation.util.URLClassPathLoader
 import org.usvm.instrumentation.util.UTestCreator
 import java.io.File
-import java.nio.file.Paths
 import kotlin.test.assertEquals
 
 class UTestExpressionExecutorTest {
@@ -32,7 +32,7 @@ class UTestExpressionExecutorTest {
 
         fun createTestExecutor(): UTestExpressionExecutor {
             val classLoader = WorkerClassLoader(
-                arrayOf(Paths.get(testJarPath).toUri().toURL()),
+                URLClassPathLoader(listOf(File(testJarPath))),
                 this::class.java.classLoader,
                 "",
                 jcClasspath
