@@ -3,5 +3,6 @@ plugins {
 }
 
 dependencies {
-    implementation("com.github.UnitTestBot:jcdb:${Versions.jcdb}")
+    implementation("org.jacodb:jacodb-core:${Versions.jcdb}")
+    implementation("org.jacodb:jacodb-analysis:${Versions.jcdb}")
 }

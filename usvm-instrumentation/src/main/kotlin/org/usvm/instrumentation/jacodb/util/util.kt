@@ -3,20 +3,11 @@ package org.usvm.instrumentation.jacodb.util
 import getFieldByName
 import org.jacodb.api.*
 import org.jacodb.api.cfg.JcInst
-import org.jacodb.api.cfg.JcRawConstant
-import org.jacodb.api.cfg.JcRawExprVisitor
 import org.jacodb.api.ext.jcdbSignature
 import org.jacodb.api.ext.toType
 import org.jacodb.impl.types.TypeNameImpl
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
-import org.objectweb.asm.Label
-import org.objectweb.asm.commons.JSRInlinerAdapter
-import org.objectweb.asm.tree.ClassNode
-import org.objectweb.asm.tree.LabelNode
-import org.objectweb.asm.tree.MethodNode
-import org.objectweb.asm.tree.TryCatchBlockNode
-import org.objectweb.asm.util.CheckClassAdapter
 import org.usvm.instrumentation.testcase.TestExecutorException
 import java.io.File
 import java.lang.reflect.Constructor
@@ -28,6 +19,13 @@ fun JcClasspath.stringType(): JcType {
     return findClassOrNull("java.lang.String")!!.toType()
 }
 
+fun JcClasspath.findFieldByFullNameOrNull(fieldFullName: String): JcField? {
+    val className = fieldFullName.substringBeforeLast('.')
+    val fieldName = fieldFullName.substringAfterLast('.')
+    val jcClass = findClassOrNull(className) ?: return null
+    return jcClass.declaredFields.find { it.name == fieldName }
+}
+
 operator fun JcClasspath.get(klass: Class<*>) = this.findClassOrNull(klass.name)
 
 fun JcClassOrInterface.write(
@@ -36,7 +34,7 @@ fun JcClassOrInterface.write(
     try {
         path.toFile().apply {
             mkdirs()
-            File("$path/${this@write.simpleName}.class").writeBytes(this@write.binaryBytecode())
+            File("$path/${this@write.simpleName}.class").writeBytes(this@write.bytecode())
         }
     } catch (e: Throwable) {
         null

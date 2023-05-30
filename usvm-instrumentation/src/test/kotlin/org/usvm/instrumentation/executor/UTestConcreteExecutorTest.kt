@@ -8,6 +8,7 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.usvm.instrumentation.classloader.WorkerClassLoader
 import org.usvm.instrumentation.jacodb.transform.JcRuntimeTraceInstrumenterFactory
+import org.usvm.instrumentation.testcase.statement.UTestExecutionSuccessResult
 import org.usvm.instrumentation.util.InstrumentationModuleConstants
 import org.usvm.instrumentation.util.UTestCreator
 import java.io.File
@@ -43,11 +44,27 @@ class UTestConcreteExecutorTest {
     }
 
     @Test
+    fun testStaticsDescriptorBuilding() {
+        val uTestConcreteExecutor = createUTestConcreteExecutor()
+        runBlocking {
+            val uTest = UTestCreator.A.isA(jcClasspath)
+            repeat(1) {
+                val res = uTestConcreteExecutor.execute(uTest)
+                assert(res is UTestExecutionSuccessResult)
+                res as UTestExecutionSuccessResult
+                println("Statics before = ${res.initialState.statics.entries.joinToString { "${it.key.name} to ${it.value}" }}")
+                println("Statics after = ${res.resultState.statics.entries.joinToString { "${it.key.name} to ${it.value}" }}")
+            }
+        }
+        uTestConcreteExecutor.close()
+    }
+
+    @Test
     fun executeUTest100times() {
         val uTestConcreteExecutor = createUTestConcreteExecutor()
-        repeat(100) {
+        val uTest = UTestCreator.A.indexOf(jcClasspath)
+        repeat(1000) {
             runBlocking {
-                val uTest = UTestCreator.A.indexOf(jcClasspath)
                 val res = uTestConcreteExecutor.execute(uTest)
                 println("Res of $it-th execution: $res")
             }
