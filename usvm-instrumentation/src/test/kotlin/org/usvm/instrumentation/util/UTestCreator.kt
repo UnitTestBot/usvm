@@ -10,6 +10,19 @@ object UTestCreator {
 
     object A {
 
+        fun isA(jcClasspath: JcClasspath): UTest {
+            val jcClass = jcClasspath.findClass<example.A>()
+            val jcMethod = jcClass.findMethodOrNull("isA") ?: error("Cant find method indexOf in class A")
+            val constructor = jcClass.constructors.first()
+            val instance = UTestConstructorCall(constructor, listOf())
+            val arg1 = UTestIntExpression(1, jcClasspath.int)
+            val statements = listOf(
+                instance,
+                arg1
+            )
+            return UTest(statements, UTestMethodCall(instance, jcMethod, listOf(arg1)))
+        }
+
         fun indexOf(jcClasspath: JcClasspath): UTest {
             val jcClass = jcClasspath.findClass<example.A>()
             val jcMethod = jcClass.findMethodOrNull("indexOf") ?: error("Cant find method indexOf in class A")
