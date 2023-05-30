@@ -24,12 +24,11 @@ import org.usvm.instrumentation.util.isSameSignature
 import org.usvm.instrumentation.util.replace
 import java.lang.reflect.Method
 
-class RuntimeTraceInstrumenter(
-    override val jcClasspath: JcClasspath,
-    override val traceCollector: TraceCollector,
+class JcRuntimeTraceInstrumenter(
+    override val jcClasspath: JcClasspath
 ): JcInstrumenter {
 
-    private val traceCollectorClass = traceCollector::class.java
+    private val traceCollectorClass = TraceCollector::class.java
 
     private val jcCollectorClass =
         JcVirtualClassImpl(

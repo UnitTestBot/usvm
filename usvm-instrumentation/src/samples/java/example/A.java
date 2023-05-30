@@ -6,7 +6,6 @@ public class A {
 
     public int isA(int a) {
         int newA = isA1(a, 1);
-        field = 239;
         return a == 1 ? newA : -1;
     }
 
