@@ -7,8 +7,7 @@ import org.jacodb.api.ext.findMethodOrNull
 import org.jacodb.api.ext.int
 import org.jacodb.impl.features.InMemoryHierarchy
 import org.jacodb.impl.jacodb
-import org.usvm.instrumentation.jacodb.transform.JcInstrumenterFactory
-import org.usvm.instrumentation.jacodb.transform.JcRuntimeTraceInstrumenter
+import org.usvm.instrumentation.executor.UTestConcreteExecutor
 import org.usvm.instrumentation.jacodb.transform.JcRuntimeTraceInstrumenterFactory
 import org.usvm.instrumentation.testcase.UTest
 import org.usvm.instrumentation.testcase.statement.*
@@ -30,7 +29,7 @@ suspend fun main() {
         //persistent(location = "/home/.usvm/jcdb.db", clearOnStart = false)
     }
     val jcClasspath = db.classpath(testingClassPath) ?: error("Can't find jcClasspath")
-    val runner = UTestExecutor(JcRuntimeTraceInstrumenterFactory::class, testingJars, jcClasspath, InstrumentationModuleConstants.timeout)
+    val runner = UTestConcreteExecutor(JcRuntimeTraceInstrumenterFactory::class, testingJars, jcClasspath, InstrumentationModuleConstants.timeout)
     val uTest = createTestUTest(jcClasspath)
     val res = runner.execute(uTest)
     println("RES = $res")
