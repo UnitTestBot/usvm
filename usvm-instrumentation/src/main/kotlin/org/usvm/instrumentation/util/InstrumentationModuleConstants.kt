@@ -8,6 +8,7 @@ object InstrumentationModuleConstants {
 
     val timeout = 10.seconds
     const val triesToRecreateRdProcess = 3
-    const val pathToUsvmInstrumentationJar = "usvm-instrumentation/build/libs/usvm-instrumentation-1.0.jar"
+    val pathToUsvmInstrumentationJar: String
+        get() = System.getenv("usvm-instrumentation-jar")
 
 }
