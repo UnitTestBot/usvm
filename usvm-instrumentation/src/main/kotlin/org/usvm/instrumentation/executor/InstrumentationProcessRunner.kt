@@ -1,11 +1,10 @@
-package org.usvm.instrumentation
+package org.usvm.instrumentation.executor
 
 import com.jetbrains.rd.framework.util.NetUtils
 import com.jetbrains.rd.util.lifetime.Lifetime
 import com.jetbrains.rd.util.lifetime.LifetimeDefinition
 import com.jetbrains.rd.util.lifetime.isAlive
 import org.jacodb.api.JcClasspath
-import org.usvm.instrumentation.executor.ProcessRunner
 import org.usvm.instrumentation.jacodb.transform.JcInstrumenter
 import org.usvm.instrumentation.jacodb.transform.JcInstrumenterFactory
 import org.usvm.instrumentation.rd.InstrumentedProcess
