@@ -1,5 +1,9 @@
 package example;
 
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+
 public class A {
 
     int field = 777;
@@ -28,6 +32,12 @@ public class A {
             if (el.equals(arr[i])) return i;
         }
         return -1;
+    }
+
+    public List<Integer> javaStdLibCall() {
+        List<Integer> l = Arrays.asList(1, 2, 3);
+        l.sort(Comparator.naturalOrder());
+        return l;
     }
 
 

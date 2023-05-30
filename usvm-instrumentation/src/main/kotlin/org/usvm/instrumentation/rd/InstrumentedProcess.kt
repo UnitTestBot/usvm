@@ -29,7 +29,7 @@ import org.usvm.instrumentation.serializer.SerializationContext
 import org.usvm.instrumentation.serializer.UTestExpressionSerializer.Companion.registerUTestExpressionSerializer
 import org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.Companion.registerUTestValueDescriptorSerializer
 import org.usvm.instrumentation.testcase.UTest
-import org.usvm.instrumentation.testcase.UTestExecutor
+import org.usvm.instrumentation.testcase.UTestExpressionExecutor
 import org.usvm.instrumentation.testcase.descriptor.DescriptorBuilder
 import org.usvm.instrumentation.testcase.statement.*
 import org.usvm.instrumentation.testcase.statement.ExecutionState
@@ -206,7 +206,7 @@ class InstrumentedProcess private constructor() {
     private fun callUTest(uTest: UTest): UTestExecutionResult {
         traceCollector.reset()
         val callMethodExpr = uTest.callMethodExpression as UTestMethodCall
-        val executor = UTestExecutor(userClassLoader)
+        val executor = UTestExpressionExecutor(userClassLoader)
         executor.executeUTestExpressions(uTest.initStatements)
             ?.onFailure { return UTestExecutionInitFailedResult(it.message ?: "", traceCollector.getTrace()) }
         val initStateDescriptorBuilder = DescriptorBuilder(userClassLoader, null)
@@ -229,7 +229,7 @@ class InstrumentedProcess private constructor() {
         )
     }
 
-    private fun buildExecutionState(callMethodExpr: UTestMethodCall, executor: UTestExecutor, descriptorBuilder: DescriptorBuilder): ExecutionState {
+    private fun buildExecutionState(callMethodExpr: UTestMethodCall, executor: UTestExpressionExecutor, descriptorBuilder: DescriptorBuilder): ExecutionState {
         val instanceDescriptor =
             descriptorBuilder.buildDescriptorFromUTestExpr(callMethodExpr.instance, executor)?.getOrNull()
         val argsDescriptors = callMethodExpr.args.map {
