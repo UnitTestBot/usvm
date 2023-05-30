@@ -1,18 +1,19 @@
 package org.usvm.instrumentation
 
-import com.jetbrains.rd.framework.util.NetUtils
-import org.jacodb.api.ext.*
+import org.jacodb.api.JcClasspath
+import org.jacodb.api.ext.constructors
+import org.jacodb.api.ext.findClass
+import org.jacodb.api.ext.findMethodOrNull
+import org.jacodb.api.ext.int
 import org.jacodb.impl.features.InMemoryHierarchy
 import org.jacodb.impl.jacodb
-import org.usvm.instrumentation.executor.ProcessRunner
-import org.usvm.instrumentation.jacodb.util.write
-import org.usvm.instrumentation.rd.InstrumentedProcess
+import org.usvm.instrumentation.jacodb.transform.JcInstrumenterFactory
+import org.usvm.instrumentation.jacodb.transform.JcRuntimeTraceInstrumenter
+import org.usvm.instrumentation.jacodb.transform.JcRuntimeTraceInstrumenterFactory
 import org.usvm.instrumentation.testcase.UTest
-import org.usvm.instrumentation.testcase.descriptor.UTestConstantDescriptor
 import org.usvm.instrumentation.testcase.statement.*
+import org.usvm.instrumentation.util.InstrumentationModuleConstants
 import java.io.File
-import java.nio.file.Paths
-import kotlin.io.path.Path
 
 
 private val instrumentedPath = "./usvm-instrumentation/tmp/"
@@ -28,42 +29,33 @@ suspend fun main() {
         installFeatures(InMemoryHierarchy)
         //persistent(location = "/home/.usvm/jcdb.db", clearOnStart = false)
     }
-    val jcClasspath = db.classpath(testingClassPath)
-    val jcClass = jcClasspath.findClass("example.A")
-    val jcMethod = jcClass.findMethodOrNull("isA")
-    val port = NetUtils.findFreePort(0)
-    val classPath = System.getProperty("java.class.path") ?: error("No class path")
-    val entrypointClassName =
-        InstrumentedProcess::class.qualifiedName ?: error("Entrypoint class name is not available")
-    val javaHome = System.getProperty("java.home")
-    val javaExecutable = Path(javaHome).resolve("bin").resolve("java")
-    val workerCommand = listOf(
-        javaExecutable.toAbsolutePath().toString(),
-    ) + listOf(
-        "-javaagent:/home/zver/IdeaProjects/usvm/usvm-instrumentation/build/libs/usvm-instrumentation-1.0.jar",
-        "-classpath", classPath,
-    ) + listOf(
-        entrypointClassName
-    ) + listOf(
-        testingJars, "$port"
-    )
-    val pb = ProcessBuilder(workerCommand).inheritIO()
-    val process = pb.start()
-
-    val processRunner = ProcessRunner(process = process, rdPort = port, jcClasspath = jcClasspath)
-    processRunner.init()
-
-    val constructor = jcClass.constructors.first()
-    val constructorCall = UTestConstructorCall(constructor, listOf())
-    val arg = listOf(UTestIntExpression(1, jcClasspath.int))
-    val statements = listOf(
-        UTestMethodCall(constructorCall, jcMethod!!, arg)
-    )
-    val uTest = UTest(emptyList(), statements.single())
-    val result = processRunner.callUTest(uTest) as UTestExecutionSuccessResult
-    println("RESULT = $result")
-    println("LOL239")
-    println((result.result as UTestConstantDescriptor.Int).value)
-    processRunner.destroy()
+    val jcClasspath = db.classpath(testingClassPath) ?: error("Can't find jcClasspath")
+    val runner = UTestExecutor(JcRuntimeTraceInstrumenterFactory::class, testingJars, jcClasspath, InstrumentationModuleConstants.timeout)
+    val uTest = createTestUTest(jcClasspath)
+    val res = runner.execute(uTest)
+    println("RES = $res")
+    runner.close()
 }
 
+private fun createTestUTest(jcClasspath: JcClasspath): UTest {
+    val jcClass = jcClasspath.findClass("example.A")
+    val jcMethod = jcClass.findMethodOrNull("indexOf")!!
+    val constructor = jcClass.constructors.first()
+    val instance = UTestConstructorCall(constructor, listOf())
+    val arg1 = UTestCreateArrayExpression(jcClasspath.int, UTestIntExpression(10, jcClasspath.int))
+    val setStatement = UTestArraySetStatement(
+        arrayInstance = arg1,
+        index = UTestIntExpression(5, jcClasspath.int),
+        setValueExpression = UTestIntExpression(7, jcClasspath.int)
+    )
+    val arg2 = UTestIntExpression(7, jcClasspath.int)
+
+
+    val statements = listOf(
+        instance,
+        arg1,
+        setStatement,
+        UTestMethodCall(instance, jcMethod, listOf(arg1, arg2))
+    )
+    return UTest(statements.dropLast(1), statements.last() as UTestMethodCall)
+}
