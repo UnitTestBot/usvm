@@ -1,14 +1,12 @@
-package org.usvm.instrumentation
+package org.usvm.instrumentation.executor
 
 import UTestExecutorInitException
 import com.jetbrains.rd.util.lifetime.LifetimeDefinition
 import com.jetbrains.rd.util.lifetime.isAlive
-import com.jetbrains.rd.util.lifetime.isNotAlive
 import com.jetbrains.rd.util.reactive.RdFault
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withTimeout
 import org.jacodb.api.JcClasspath
-import org.usvm.instrumentation.jacodb.transform.JcInstrumenter
 import org.usvm.instrumentation.jacodb.transform.JcInstrumenterFactory
 import org.usvm.instrumentation.testcase.UTest
 import org.usvm.instrumentation.testcase.statement.UTestExecutionFailedResult
@@ -18,7 +16,7 @@ import org.usvm.instrumentation.util.InstrumentationModuleConstants
 import kotlin.reflect.KClass
 import kotlin.time.Duration
 
-class UTestExecutor(
+class UTestConcreteExecutor(
     private val instrumentationClassFactory: KClass<out JcInstrumenterFactory<*>>,
     private val testingProjectClasspath: String,
     private val jcClasspath: JcClasspath,

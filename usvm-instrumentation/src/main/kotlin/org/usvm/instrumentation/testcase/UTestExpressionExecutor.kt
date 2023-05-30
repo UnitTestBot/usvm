@@ -13,7 +13,7 @@ import setFieldValue
 import java.lang.ClassCastException
 import java.lang.reflect.Method
 
-class UTestExecutor(val userClassLoader: WorkerClassLoader) {
+class UTestExpressionExecutor(val userClassLoader: WorkerClassLoader) {
 
     private val jcClasspath = userClassLoader.jcClasspath
 
