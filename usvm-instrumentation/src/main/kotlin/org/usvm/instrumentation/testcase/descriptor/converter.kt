@@ -7,7 +7,7 @@ import org.jacodb.api.ext.*
 import org.usvm.instrumentation.classloader.WorkerClassLoader
 import org.usvm.instrumentation.jacodb.util.stringType
 import org.usvm.instrumentation.jacodb.util.toJavaField
-import org.usvm.instrumentation.testcase.UTestExecutor
+import org.usvm.instrumentation.testcase.UTestExpressionExecutor
 import org.usvm.instrumentation.testcase.statement.UTestExpression
 import org.usvm.instrumentation.util.SystemTypeNames
 import java.util.*
@@ -19,13 +19,13 @@ class DescriptorBuilder(private val classLoader: WorkerClassLoader, private val 
 
     fun buildDescriptorFromUTestExpr(
         uTestExpressionList: UTestExpression,
-        testExecutor: UTestExecutor
+        testExecutor: UTestExpressionExecutor
     ): Result<UTestValueDescriptor>? =
         buildDescriptorFromUTestExprs(listOf(uTestExpressionList), testExecutor)
 
     fun buildDescriptorFromUTestExprs(
         uTestExpressionList: List<UTestExpression>,
-        testExecutor: UTestExecutor
+        testExecutor: UTestExpressionExecutor
     ): Result<UTestValueDescriptor>? {
         testExecutor.executeUTestExpressions(uTestExpressionList)
             ?.onSuccess { return buildDescriptorResultFromAny(it) }
