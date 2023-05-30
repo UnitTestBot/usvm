@@ -19,9 +19,6 @@ class UTestExpressionExecutor(val userClassLoader: WorkerClassLoader) {
 
     private val executedModels: MutableMap<UTestExpression, Any?> = hashMapOf()
 
-//    fun executeUTest(uTest: UTest): Any? {
-//        return uTest.initStatements.map { executeUTestExpression(it) }.lastOrNull()
-//    }
 
     fun executeUTestExpression(uTestExpression: UTestExpression): Result<Any?> =
         try {
@@ -213,7 +210,6 @@ class UTestExpressionExecutor(val userClassLoader: WorkerClassLoader) {
         return klass.declaredMethods.find { it.isSameSignatures(this) }
             ?: throw TestExecutorException("Can't find method in classpath")
     }
-
 
 }
 
