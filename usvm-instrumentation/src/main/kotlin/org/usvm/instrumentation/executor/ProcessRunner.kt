@@ -9,6 +9,7 @@ import com.jetbrains.rd.framework.Protocol
 import com.jetbrains.rd.framework.Serializers
 import com.jetbrains.rd.framework.SocketWire
 import com.jetbrains.rd.framework.impl.RdCall
+import com.jetbrains.rd.util.lifetime.Lifetime
 import com.jetbrains.rd.util.lifetime.LifetimeDefinition
 import com.jetbrains.rd.util.threading.SingleThreadScheduler
 import kotlinx.coroutines.delay
@@ -32,11 +33,11 @@ class ProcessRunner(
     private val process: Process,
     private val checkProcessAliveDelay: Duration = 1.seconds,
     private val rdPort: Int,
-    private val jcClasspath: JcClasspath
+    private val jcClasspath: JcClasspath,
+    private val lifetime: LifetimeDefinition
 ) {
 
     private val serializationContext = SerializationContext(jcClasspath)
-    private val lifetime = LifetimeDefinition()
     private val scheduler = SingleThreadScheduler(lifetime, "usvm-executor-scheduler")
     private val coroutineScope = UsvmRdCoroutineScope(lifetime, scheduler)
     lateinit var rdProcess: RdServerProcess

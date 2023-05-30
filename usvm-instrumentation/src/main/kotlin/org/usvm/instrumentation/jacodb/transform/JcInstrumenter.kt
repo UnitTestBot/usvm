@@ -8,7 +8,6 @@ import org.usvm.instrumentation.trace.collector.TraceCollector
 interface JcInstrumenter {
 
     val jcClasspath: JcClasspath
-    val traceCollector: TraceCollector
 
     fun instrumentClass(classNode: ClassNode): ClassNode
 }
