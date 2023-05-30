@@ -11,11 +11,41 @@ import org.usvm.instrumentation.testcase.UTestExpressionExecutor
 import org.usvm.instrumentation.testcase.statement.UTestExpression
 import org.usvm.instrumentation.util.SystemTypeNames
 import java.util.*
+import kotlin.collections.HashMap
 
 class DescriptorBuilder(private val classLoader: WorkerClassLoader, private val previousState: DescriptorBuilder?) {
 
     private val jcClasspath = classLoader.jcClasspath
     private val objectToDescriptor = IdentityHashMap<Any, UTestValueDescriptor>()
+
+    private fun findTypeOrNull(jClass: Class<*>): JcType? =
+        if (jClass.isArray) {
+            findTypeOrNull(jClass.componentType)?.let {
+                jcClasspath.arrayTypeOf(it)
+            }
+        } else {
+            jcClasspath.findTypeOrNull(jClass.name)
+        }
+
+
+    fun buildDescriptorsForStatics(): Result<Map<JcField, UTestValueDescriptor>> {
+        try {
+            val allStatics = classLoader.loadedClasses.flatMap { it.declaredFields.filter { it.isStatic } }
+            val staticToValue = allStatics.mapNotNull { jcField ->
+                val jField = jcField.toJavaField(classLoader)
+                val jFieldValue = jField.getFieldValue(null)
+                val jFieldValueDescriptor = buildDescriptorResultFromAny(jFieldValue)
+                if (jFieldValueDescriptor.isSuccess) {
+                    jcField to jFieldValueDescriptor.getOrThrow()
+                } else {
+                    null
+                }
+            }
+            return Result.success(staticToValue.toMap())
+        } catch (e: Exception) {
+            return Result.failure(e)
+        }
+    }
 
     fun buildDescriptorFromUTestExpr(
         uTestExpressionList: UTestExpression,
@@ -52,7 +82,7 @@ class DescriptorBuilder(private val classLoader: WorkerClassLoader, private val 
 
     private fun buildDescriptor(any: Any?, depth: Int = 0): UTestValueDescriptor {
         if (any == null) return `null`(jcClasspath.nullType)
-        val jcType = jcClasspath.findTypeOrNull(any::class.java.name)!!
+        val jcType = findTypeOrNull(any::class.java)!!
         return objectToDescriptor.getOrPut(any) {
             when (any) {
                 is Boolean -> const(any)
@@ -109,7 +139,7 @@ class DescriptorBuilder(private val classLoader: WorkerClassLoader, private val 
             is Array<*> -> {
                 val listOfRefs = mutableListOf<UTestValueDescriptor>()
                 val descriptor = UTestArrayDescriptor.Array(
-                    jcClasspath.findTypeOrNull(array.javaClass.componentType.name)!!,
+                    findTypeOrNull(array.javaClass.componentType)!!,
                     array.size,
                     listOfRefs,
                     System.identityHashCode(array)
@@ -150,46 +180,6 @@ class DescriptorBuilder(private val classLoader: WorkerClassLoader, private val 
                 fields[jcField] = fieldDescriptor
             }
         }
-    }
-
-    private fun booleanWrapper(any: Boolean, depth: Int): UTestValueDescriptor {
-        val wrapperClass = jcClasspath.findTypeOrNull(SystemTypeNames.booleanClass)!!
-        return `object`(wrapperClass, any, depth)
-    }
-
-    private fun byteWrapper(any: Byte, depth: Int): UTestValueDescriptor {
-        val wrapperClass = jcClasspath.findTypeOrNull(SystemTypeNames.byteClass)!!
-        return `object`(wrapperClass, any, depth)
-    }
-
-    private fun shortWrapper(any: Short, depth: Int): UTestValueDescriptor {
-        val wrapperClass = jcClasspath.findTypeOrNull(SystemTypeNames.shortClass)!!
-        return `object`(wrapperClass, any, depth)
-    }
-
-    private fun intWrapper(any: Int, depth: Int): UTestValueDescriptor {
-        val wrapperClass = jcClasspath.findTypeOrNull(SystemTypeNames.integerClass)!!
-        return `object`(wrapperClass, any, depth)
-    }
-
-    private fun longWrapper(any: Long, depth: Int): UTestValueDescriptor {
-        val wrapperClass = jcClasspath.findTypeOrNull(SystemTypeNames.longClass)!!
-        return `object`(wrapperClass, any, depth)
-    }
-
-    private fun floatWrapper(any: Float, depth: Int): UTestValueDescriptor {
-        val wrapperClass = jcClasspath.findTypeOrNull(SystemTypeNames.floatClass)!!
-        return `object`(wrapperClass, any, depth)
-    }
-
-    private fun doubleWrapper(any: Double, depth: Int): UTestValueDescriptor {
-        val wrapperClass = jcClasspath.findTypeOrNull(SystemTypeNames.doubleClass)!!
-        return `object`(wrapperClass, any, depth)
-    }
-
-    private fun charWrapper(any: Char, depth: Int): UTestValueDescriptor {
-        val wrapperClass = jcClasspath.findTypeOrNull(SystemTypeNames.charClass)!!
-        return `object`(wrapperClass, any, depth)
     }
 
 }
