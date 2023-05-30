@@ -9,7 +9,6 @@ import com.jetbrains.rd.framework.Protocol
 import com.jetbrains.rd.framework.Serializers
 import com.jetbrains.rd.framework.SocketWire
 import com.jetbrains.rd.framework.impl.RdCall
-import com.jetbrains.rd.util.lifetime.Lifetime
 import com.jetbrains.rd.util.lifetime.LifetimeDefinition
 import com.jetbrains.rd.util.threading.SingleThreadScheduler
 import kotlinx.coroutines.delay
@@ -18,6 +17,7 @@ import org.jacodb.api.cfg.JcInst
 import org.jacodb.api.ext.findClass
 import org.jacodb.api.ext.findMethodOrNull
 import org.usvm.instrumentation.generated.models.*
+import org.usvm.instrumentation.jacodb.util.findFieldByFullNameOrNull
 import org.usvm.instrumentation.rd.RdServerProcess
 import org.usvm.instrumentation.serializer.SerializationContext
 import org.usvm.instrumentation.serializer.UTestExpressionSerializer.Companion.registerUTestExpressionSerializer
@@ -138,8 +138,14 @@ class ProcessRunner(
             )
         }
 
-    private fun deserializeExecutionState(state: ExecutionStateSerialized): ExecutionState =
-        ExecutionState(state.instanceDescriptor, state.argsDescriptors)
+    private fun deserializeExecutionState(state: ExecutionStateSerialized): UTestExecutionState {
+        val statics = state.statics?.associate {
+            val jcField = jcClasspath.findFieldByFullNameOrNull(it.fieldName) ?: error("deserialization failed")
+            val jcFieldDescriptor = it.fieldDescriptor
+            jcField to jcFieldDescriptor
+        } ?: mapOf()
+        return UTestExecutionState(state.instanceDescriptor, state.argsDescriptors, statics)
+    }
 
     private fun deserializeTrace(trace: List<SerializedTracedJcInst>): List<JcInst> = trace.map { serInst ->
         val method = jcClasspath

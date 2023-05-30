@@ -13,6 +13,7 @@ class ClassTransformer(instrumenterClassName: String) : ClassFileTransformer {
 
     private val instrumenterFactoryInstance =
         Class.forName(instrumenterClassName).constructors.first().newInstance() as JcInstrumenterFactory<*>
+    private val instrumenterCache = HashMap<String, ByteArray>()
 
     override fun transform(
         loader: ClassLoader?,
@@ -21,11 +22,13 @@ class ClassTransformer(instrumenterClassName: String) : ClassFileTransformer {
         protectionDomain: ProtectionDomain?,
         classfileBuffer: ByteArray
     ): ByteArray {
-        if (loader !is WorkerClassLoader) {
-            return super.transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer)
+        if (loader !is WorkerClassLoader || className == null) {
+            return classfileBuffer
         }
-        val instrumenter = instrumenterFactoryInstance.create(loader.jcClasspath)
-        return instrumenter.instrumentClass(classfileBuffer.toClassNode()).toByteArray(loader, checkClass = true)
+        return instrumenterCache.getOrPut(className) {
+            val instrumenter = instrumenterFactoryInstance.create(loader.jcClasspath)
+            instrumenter.instrumentClass(classfileBuffer.toClassNode()).toByteArray(loader, checkClass = true)
+        }
     }
 
 
