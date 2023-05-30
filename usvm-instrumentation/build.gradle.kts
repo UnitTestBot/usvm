@@ -1,5 +1,6 @@
 import com.jetbrains.rd.generator.gradle.RdGenExtension
 import com.jetbrains.rd.generator.gradle.RdGenTask
+import org.gradle.api.tasks.testing.Test
 import org.gradle.kotlin.dsl.sourceSets
 
 plugins {
@@ -108,7 +109,7 @@ tasks {
     }
 }
 
-tasks{
+tasks {
     register<Jar>("testJar") {
         group = "jar"
         archiveClassifier.set("test")
@@ -122,4 +123,11 @@ tasks{
     }
 
 
+}
+
+tasks.withType<Test> {
+    environment(
+        "usvm-instrumentation-jar",
+        buildDir.resolve("libs").resolve("usvm-instrumentation-1.0.jar").absolutePath
+    )
 }
