@@ -33,7 +33,8 @@ kotlin {
 }
 
 dependencies {
-    implementation("com.github.UnitTestBot:jacodb:${Versions.jcdb}")
+    implementation("org.jacodb:jacodb-core:${Versions.jcdb}")
+    implementation("org.jacodb:jacodb-analysis:${Versions.jcdb}")
 
     implementation("com.jetbrains.rd:rd-framework:${Versions.rd}")
     implementation("org.ini4j:ini4j:${Versions.ini4j}")
@@ -119,7 +120,7 @@ tasks {
 
         from(contents)
 //        with(jar.get() as CopySpec)
-        dependsOn(getByName("compileSamplesJava"))
+        dependsOn(getByName("compileSamplesJava"), configurations.testCompileClasspath)
     }
 
 
@@ -130,4 +131,5 @@ tasks.withType<Test> {
         "usvm-instrumentation-jar",
         buildDir.resolve("libs").resolve("usvm-instrumentation-1.0.jar").absolutePath
     )
+    jvmArgs("--add-opens", "java.base/jdk.internal.loader=ALL-UNNAMED")
 }

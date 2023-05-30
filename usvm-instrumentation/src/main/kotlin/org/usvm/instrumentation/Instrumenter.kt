@@ -14,10 +14,6 @@ import org.usvm.instrumentation.testcase.statement.*
 import org.usvm.instrumentation.util.InstrumentationModuleConstants
 import java.io.File
 
-
-private val instrumentedPath = "./usvm-instrumentation/tmp/"
-
-
 suspend fun main() {
     val testingJars =
         "/home/zver/IdeaProjects/usvm/usvm-instrumentation/build/libs/usvm-instrumentation-test.jar"

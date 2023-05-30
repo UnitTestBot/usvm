@@ -7,8 +7,12 @@ import java.util.List;
 public class A {
 
     int field = 777;
+    static int lol = 1;
+    static Integer lolInteger = 2;
 
     public int isA(int a) {
+        lol = 123;
+        lolInteger = 239;
         int newA = isA1(a, 1);
         return a == 1 ? newA : -1;
     }

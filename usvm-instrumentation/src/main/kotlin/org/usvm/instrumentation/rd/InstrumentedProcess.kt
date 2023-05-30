@@ -32,8 +32,8 @@ import org.usvm.instrumentation.testcase.UTest
 import org.usvm.instrumentation.testcase.UTestExpressionExecutor
 import org.usvm.instrumentation.testcase.descriptor.DescriptorBuilder
 import org.usvm.instrumentation.testcase.statement.*
-import org.usvm.instrumentation.testcase.statement.ExecutionState
 import org.usvm.instrumentation.trace.collector.TraceCollector
+import org.usvm.instrumentation.util.URLClassPathLoader
 import pumpAsync
 import terminateOnException
 import java.io.File
@@ -43,8 +43,9 @@ import kotlin.time.Duration.Companion.minutes
 class InstrumentedProcess private constructor() {
 
     private lateinit var jcClasspath: JcClasspath
-    private lateinit var userClassLoader: WorkerClassLoader
     private lateinit var serializationCtx: SerializationContext
+    private lateinit var fileClassPath: List<File>
+    private lateinit var ucp: URLClassPathLoader
     private val traceCollector = JcInstructionTracer
 
 
@@ -82,22 +83,26 @@ class InstrumentedProcess private constructor() {
     }
 
     private suspend fun initJcClasspath(classpath: String) {
-        val fileClassPath = classpath.split(':').map { File(it) }
+        fileClassPath = classpath.split(':').map { File(it) }
         val db = jacodb {
-            useProcessJavaRuntime()
+            //useProcessJavaRuntime()
             loadByteCode(fileClassPath)
             installFeatures(InMemoryHierarchy)
             //persistent(location = "/home/.usvm/jcdb.db", clearOnStart = false)
         }
         jcClasspath = db.classpath(fileClassPath)
-        userClassLoader = WorkerClassLoader(
-            fileClassPath.map { it.toURI().toURL() }.toTypedArray(),
+        serializationCtx = SerializationContext(jcClasspath)
+        @Suppress("removal", "DEPRECATION")
+        ucp = URLClassPathLoader(fileClassPath)
+    }
+
+    private fun createWorkerClassLoader(): WorkerClassLoader =
+        WorkerClassLoader(
+            ucp,
             this::class.java.classLoader,
             TraceCollector::class.java.name,
             jcClasspath
         )
-        serializationCtx = SerializationContext(jcClasspath)
-    }
 
     private suspend fun initiate(lifetime: Lifetime, port: Int) {
         val scheduler = SingleThreadScheduler(lifetime, "usvm-executor-worker-scheduler")
@@ -200,10 +205,15 @@ class InstrumentedProcess private constructor() {
             )
         }
 
-    private fun serializeExecutionState(executionState: ExecutionState): ExecutionStateSerialized =
-        ExecutionStateSerialized(executionState.instanceDescriptor, executionState.argsDescriptors)
+    private fun serializeExecutionState(executionState: UTestExecutionState): ExecutionStateSerialized {
+        val statics = executionState.statics.entries.map { (jcField, descriptor) ->
+            SerializedStaticField("${jcField.enclosingClass.name}.${jcField.name}", descriptor)
+        }
+        return ExecutionStateSerialized(executionState.instanceDescriptor, executionState.argsDescriptors, statics)
+    }
 
     private fun callUTest(uTest: UTest): UTestExecutionResult {
+        val userClassLoader = createWorkerClassLoader()
         traceCollector.reset()
         val callMethodExpr = uTest.callMethodExpression as UTestMethodCall
         val executor = UTestExpressionExecutor(userClassLoader)
@@ -229,14 +239,20 @@ class InstrumentedProcess private constructor() {
         )
     }
 
-    private fun buildExecutionState(callMethodExpr: UTestMethodCall, executor: UTestExpressionExecutor, descriptorBuilder: DescriptorBuilder): ExecutionState {
-        val instanceDescriptor =
-            descriptorBuilder.buildDescriptorFromUTestExpr(callMethodExpr.instance, executor)?.getOrNull()
-        val argsDescriptors = callMethodExpr.args.map {
-            descriptorBuilder.buildDescriptorFromUTestExpr(it, executor)?.getOrNull()
+    private fun buildExecutionState(
+        callMethodExpr: UTestMethodCall,
+        executor: UTestExpressionExecutor,
+        descriptorBuilder: DescriptorBuilder
+    ): UTestExecutionState =
+        with(descriptorBuilder) {
+            val instanceDescriptor =
+                buildDescriptorFromUTestExpr(callMethodExpr.instance, executor)?.getOrNull()
+            val argsDescriptors = callMethodExpr.args.map {
+                buildDescriptorFromUTestExpr(it, executor)?.getOrNull()
+            }
+            val statics = buildDescriptorsForStatics().getOrNull() ?: mapOf()
+            return UTestExecutionState(instanceDescriptor, argsDescriptors, statics)
         }
-        return ExecutionState(instanceDescriptor, argsDescriptors)
-    }
 
     private inline fun <T> measureExecutionForTermination(block: () -> T): T {
         try {
