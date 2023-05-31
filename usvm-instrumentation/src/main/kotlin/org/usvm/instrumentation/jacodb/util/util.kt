@@ -64,22 +64,45 @@ fun JcType.toJavaCLass(classLoader: ClassLoader): Class<*> =
 fun findClassInLoader(name: String, classLoader: ClassLoader): Class<*>? =
     Class.forName(name, true, classLoader)
 
-//TODO REWRITE!!!!
-fun JcMethod.toJavaConstructor(classLoader: ClassLoader): Constructor<*> {
-    val klass = Class.forName(enclosingClass.name, true, classLoader)
-    return klass.constructors.first()
-}
-
 fun JcField.toJavaField(classLoader: ClassLoader): Field =
     enclosingClass.toType().toJavaCLass(classLoader).getFieldByName(name)
 
 fun TypeName.toJcType(jcClasspath: JcClasspath): JcType? = jcClasspath.findTypeOrNull(typeName)
 
-fun Method.toJcdbSignature(): String =
-    name + "(" + parameterTypes.joinToString(";", postfix = ";") { it.typeName } + ")" + returnType.name + ";"
+fun JcMethod.toJavaMethod(classLoader: ClassLoader): Method {
+    val klass = Class.forName(enclosingClass.name, true, classLoader)
+    return klass.declaredMethods.find { it.isSameSignatures(this) }
+        ?: throw TestExecutorException("Can't find method in classpath")
+}
+
+fun JcMethod.toJavaConstructor(classLoader: ClassLoader): Constructor<*> {
+    require(isConstructor) { "Can't convert not constructor to constructor"}
+    val klass = Class.forName(enclosingClass.name, true, classLoader)
+    return klass.constructors.first()
+}
+
+fun Method.toJcdbSignature(): String {
+    val parameterTypesAsString = parameterTypes.toJcdbFormat()
+    return name + "(" + parameterTypesAsString +")" + returnType.name + ";"
+}
+
+fun Constructor<*>.toJcdbSignature(): String {
+    val methodName = "<init>"
+    //Because of jcdb
+    val returnType = "void;"
+    val parameterTypesAsString = parameterTypes.toJcdbFormat()
+    return "$methodName($parameterTypesAsString)$returnType"
+}
+
+private fun Array<Class<*>>.toJcdbFormat(): String =
+    if (isEmpty()) ""
+    else joinToString(";", postfix = ";") { it.typeName }
 
 fun JcMethod.isSameSignatures(method: Method) =
     jcdbSignature == method.toJcdbSignature()
+
+fun JcMethod.isSameSignatures(constructor: Constructor<*>) =
+    jcdbSignature == constructor.toJcdbSignature()
 
 fun Method.isSameSignatures(jcMethod: JcMethod) =
     toJcdbSignature() == jcMethod.jcdbSignature
