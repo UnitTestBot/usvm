@@ -16,8 +16,9 @@ class PythonExecutionState(
     pathConstraints: UPathConstraints<PythonType> = UPathConstraints(ctx),
     memory: UMemoryBase<Attribute, PythonType, Callable> = UMemoryBase(ctx, pathConstraints.typeConstraints),
     models: List<UModel> = listOf(),
-    path: PersistentList<Instruction> = persistentListOf()
+    path: PersistentList<Instruction> = persistentListOf(),
+    var wasExecuted: Boolean = false
 ): UState<PythonType, Attribute, Callable, Instruction>(ctx, callStack, pathConstraints, memory, models, path) {
     override fun clone(newConstraints: UPathConstraints<PythonType>?): UState<PythonType, Attribute, Callable, Instruction> =
-        PythonExecutionState(ctx, callStack, pathConstraints, memory, models, path)
+        PythonExecutionState(ctx, callStack, pathConstraints, memory, models, path, wasExecuted)
 }
