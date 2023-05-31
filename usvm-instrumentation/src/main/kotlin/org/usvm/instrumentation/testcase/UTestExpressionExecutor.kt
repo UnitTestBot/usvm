@@ -4,13 +4,11 @@ import getFieldValue
 import org.jacodb.api.JcMethod
 import org.jacodb.api.ext.*
 import org.usvm.instrumentation.classloader.WorkerClassLoader
-import org.usvm.instrumentation.jacodb.util.isSameSignatures
-import org.usvm.instrumentation.jacodb.util.toJavaCLass
-import org.usvm.instrumentation.jacodb.util.toJavaConstructor
-import org.usvm.instrumentation.jacodb.util.toJavaField
+import org.usvm.instrumentation.jacodb.util.*
 import org.usvm.instrumentation.testcase.statement.*
 import setFieldValue
 import java.lang.ClassCastException
+import java.lang.reflect.Constructor
 import java.lang.reflect.Method
 
 class UTestExpressionExecutor(val userClassLoader: WorkerClassLoader) {
@@ -177,7 +175,7 @@ class UTestExpressionExecutor(val userClassLoader: WorkerClassLoader) {
     }
 
     private fun executeUTestStaticMethodCall(uTestStaticMethodCall: UTestStaticMethodCall): Any? {
-        val jMethod = uTestStaticMethodCall.method.toJavaMethod()
+        val jMethod = uTestStaticMethodCall.method.toJavaMethod(userClassLoader)
         val args = uTestStaticMethodCall.args.map { exec(it) }
         return jMethod.invoke(null, *args.toTypedArray())
     }
@@ -201,14 +199,8 @@ class UTestExpressionExecutor(val userClassLoader: WorkerClassLoader) {
     private fun executeMethodCall(uMethodCall: UTestMethodCall): Any? {
         val instance = exec(uMethodCall.instance)
         val args = uMethodCall.args.map { exec(it) }
-        val jMethod = uMethodCall.method.toJavaMethod()
+        val jMethod = uMethodCall.method.toJavaMethod(userClassLoader)
         return jMethod.invoke(instance, *args.toTypedArray())
-    }
-
-    private fun JcMethod.toJavaMethod(): Method {
-        val klass = Class.forName(enclosingClass.name, true, userClassLoader)
-        return klass.declaredMethods.find { it.isSameSignatures(this) }
-            ?: throw TestExecutorException("Can't find method in classpath")
     }
 
 }
