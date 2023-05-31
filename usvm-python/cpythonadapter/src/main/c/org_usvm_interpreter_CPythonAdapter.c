@@ -72,26 +72,20 @@ JNIEXPORT int JNICALL Java_org_usvm_interpreter_CPythonAdapter_concolicRun(
     jobjectArray symbolic_args,
     jobject context
 ) {
+    PyObjectArray args;
+    ConcolicContext ctx;
+
     PyObject *function = (PyObject *) function_ref;
     printf("CONCOLIC RUN on \n");
     PyObject_Print(function, stdout, 0);
-
-    int n = (*env)->GetArrayLength(env, concrete_args);
-    jlong *addresses = (*env)->GetLongArrayElements(env, concrete_args, 0);
-    PyObject **args = malloc(sizeof(PyObject *) * n);
-    for (int i = 0; i < n; i++) {
-        PyObject *tuple = PyTuple_New(2);
-        PyTuple_SetItem(tuple, 0, (PyObject *) addresses[i]);
-        PyTuple_SetItem(tuple, 1, Py_None);
-        args[i] = tuple;
-    }
-    (*env)->ReleaseLongArrayElements(env, concrete_args, addresses, 0);
     printf("\n");
     fflush(stdout);
 
-    SymbolicAdapter *adapter = create_new_adapter(handler, 0);
-    PyObject *result = SymbolicAdapter_run((PyObject *) adapter, function, n, args);
-    free(args);
+    construct_concolic_context(env, context, cpython_adapter, &ctx);
+    SymbolicAdapter *adapter = create_new_adapter(handler, &ctx);
+    construct_args_for_symbolic_adapter(env, &concrete_args, symbolic_args, &args);
+    PyObject *result = SymbolicAdapter_run((PyObject *) adapter, function, args.size, args.ptr);
+    free(args.ptr);
 
     if (result == NULL) {
         PyErr_Print();

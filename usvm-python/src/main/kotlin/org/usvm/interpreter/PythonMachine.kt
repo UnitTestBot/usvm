@@ -41,7 +41,7 @@ class PythonMachine(
         run(
             callable,
             onState = { cnt += 1 },
-            continueAnalyzing = { true },
+            continueAnalyzing = { !it.wasExecuted },
             shouldStop = { cnt >= 10 }
         )
     }
