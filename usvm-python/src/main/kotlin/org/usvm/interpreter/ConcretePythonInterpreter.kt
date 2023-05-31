@@ -1,5 +1,7 @@
 package org.usvm.interpreter
 
+import org.usvm.UContext
+import org.usvm.UExpr
 import org.usvm.language.Symbol
 
 object ConcretePythonInterpreter {
@@ -26,13 +28,13 @@ object ConcretePythonInterpreter {
     }
 
     fun concolicRun(globals: PythonNamespace, functionRef: PythonObject, concreteArgs: Collection<PythonObject>,
-                    symbolicArgs: Array<Symbol>, stepScope: PythonStepScope) {
+                    symbolicArgs: List<UExpr<*>>, stepScope: PythonStepScope, ctx: UContext) {
         val result = pythonAdapter.concolicRun(
             globals.address,
             functionRef.address,
             concreteArgs.map { it.address }.toLongArray(),
-            symbolicArgs,
-            ConcolicRunContext(stepScope)
+            Array(symbolicArgs.size) { Symbol(symbolicArgs[it]) },
+            ConcolicRunContext(stepScope, ctx)
         )
         if (result != 0)
             throw CPythonExecutionException

@@ -18,6 +18,8 @@ git pull
 git submodule update --init
 ```
 
+You can always compare commit of submodule from GitHub page and in your local repository.
+
 ## CPython build
 
 Official instruction: https://devguide.python.org/getting-started/setup-building/.

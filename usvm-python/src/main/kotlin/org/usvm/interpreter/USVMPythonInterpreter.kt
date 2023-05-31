@@ -15,14 +15,16 @@ class USVMPythonInterpreter(
     override fun step(state: PythonExecutionState): StepResult<PythonExecutionState> =
         with(ctx) {
             val scope = PythonStepScope(ctx, state)
-            val registers = List(callable.numberOfArguments) { mkRegisterReading(it, intSort) }
+            val registers = List(callable.numberOfArguments) { mkRegisterReading(it, boolSort) }
             val seeds = (state.models zip registers).map { (model, register) -> model.eval(register) }
             val concrete = seeds.map {
                 println("CONCRETE: $it")
-                ConcretePythonInterpreter.eval(namespace, it.toString())
+                val repr = if (it.isTrue) "True" else "False"
+                ConcretePythonInterpreter.eval(namespace, repr)
             }
-            ConcretePythonInterpreter.concolicRun(namespace, functionRef, concrete, arrayOf(), scope)
-            scope.fork(registers.first() ge mkIntNum(0))
+            ConcretePythonInterpreter.concolicRun(namespace, functionRef, concrete, registers, scope, ctx)
+            scope.doWithState { wasExecuted = true }
+            // scope.fork(registers.first() ge mkIntNum(0))
             scope.stepResult()
         }
 }

@@ -1,31 +1,10 @@
 #include "utils.h"
-
-/*
-PyObject *
-run_python_statement(const char *statement) {
-    PyObject *m, *d, *v;
-    m = PyImport_AddModule("__main__");
-    if (m == NULL)
-        return 0;
-    d = PyModule_GetDict(m);
-    v = PyRun_StringFlags(statements, Py_file_input, d, d, 0);
-    if (v == NULL) {
-        PyErr_Print();
-        return 0;
-    }
-    v = PyRun_StringFlags(expression, Py_eval_input, d, d, 0);
-    if (v == NULL) {
-        PyErr_Print();
-        return 0;
-    }
-    return v;
-}
-*/
+#include "CPythonAdapterMethods.h"
 
 static void
 java_python_object_dealloc(PyObject *op) {
     JavaPythonObject *obj = (JavaPythonObject *) op;
-    (*(obj->env->env))->DeleteGlobalRef(obj->env->env, obj->reference);
+    (*(obj->env))->DeleteGlobalRef(obj->env, obj->reference);
     Py_TYPE(op)->tp_free(op);
 }
 
@@ -71,10 +50,47 @@ PyTypeObject JavaPythonObject_Type = {
     PyObject_Free,                              /* tp_free */
 };
 
-PyObject *wrap_java_object(JavaEnvironment *env, jobject object) {
+PyObject *wrap_java_object(JNIEnv *env, jobject object) {
     JavaPythonObject *result = PyObject_New(JavaPythonObject, &JavaPythonObject_Type);
     result->env = env;
     result->object = object;
-    result->reference = (*(env->env))->NewGlobalRef(env->env, object);
+    result->reference = (*env)->NewGlobalRef(env, object);
     return (PyObject*) result;
+}
+
+int is_wrapped_java_object(PyObject *object) {
+    return Py_TYPE(object) == &JavaPythonObject_Type;
+}
+
+void construct_concolic_context(JNIEnv *env, jobject context, jobject cpython_adapter, ConcolicContext *dist) {
+    dist->env = env;
+    dist->context = context;
+    dist->cpython_adapter = cpython_adapter;
+    dist->cpython_adapter_cls = (*env)->GetObjectClass(env, cpython_adapter);
+    dist->load_const_long = (*env)->GetStaticMethodID(env, dist->cpython_adapter_cls, load_const_long_name, load_const_long_sig);
+    dist->handle_fork = (*env)->GetStaticMethodID(env, dist->cpython_adapter_cls, handle_fork_name, handle_fork_sig);
+    dist->handle_fork_result = (*env)->GetStaticMethodID(env, dist->cpython_adapter_cls, handle_fork_result_name, handle_fork_result_sig);
+}
+
+void construct_args_for_symbolic_adapter(
+    JNIEnv *env,
+    jlongArray *concrete_args,
+    jobjectArray symbolic_args,
+    PyObjectArray *dist
+) {
+    int n = (*env)->GetArrayLength(env, *concrete_args);
+    assert(n == (*env)->GetArrayLength(env, symbolic_args));
+    jlong *addresses = (*env)->GetLongArrayElements(env, *concrete_args, 0);
+    PyObject **args = malloc(sizeof(PyObject *) * n);
+    for (int i = 0; i < n; i++) {
+        PyObject *tuple = PyTuple_New(2);
+        PyTuple_SetItem(tuple, 0, (PyObject *) addresses[i]);
+        PyObject *symbolic = wrap_java_object(env, (*env)->GetObjectArrayElement(env, symbolic_args, i));
+        PyTuple_SetItem(tuple, 1, symbolic);
+        args[i] = tuple;
+    }
+    (*env)->ReleaseLongArrayElements(env, *concrete_args, addresses, 0);
+
+    dist->size = n;
+    dist->ptr = args;
 }
