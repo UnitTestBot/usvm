@@ -10,12 +10,17 @@ fun main() {
 
     val program = PythonProgram(
         """
+            import time
             def f(x):
-                return x*2 if x > 0 else -x*2
+                #start = time.time()
+                #y = []
+                #while len(y) < 10**6: y += [1]
+                #print("TIME", time.time() - start, flush=True)
+                []
+                return x*2 if x else -x*2
         """.trimIndent()
     )
     val function = Callable.constructCallableFromName(1, "f")
     val machine = PythonMachine(program)
-    machine.analyze(function)
-    machine.close()
+    machine.use { it.analyze(function) }
 }
