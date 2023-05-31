@@ -6,6 +6,11 @@ import java.util.List;
 
 public class A {
 
+
+    public A() {}
+    public A(int field) {
+        this.field = field;
+    }
     int field = 777;
     static int lol = 1;
     static Integer lolInteger = 2;
