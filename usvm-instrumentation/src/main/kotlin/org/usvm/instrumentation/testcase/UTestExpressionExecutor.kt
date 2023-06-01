@@ -1,15 +1,12 @@
 package org.usvm.instrumentation.testcase
 
 import getFieldValue
-import org.jacodb.api.JcMethod
 import org.jacodb.api.ext.*
 import org.usvm.instrumentation.classloader.WorkerClassLoader
 import org.usvm.instrumentation.jacodb.util.*
 import org.usvm.instrumentation.testcase.statement.*
 import setFieldValue
 import java.lang.ClassCastException
-import java.lang.reflect.Constructor
-import java.lang.reflect.Method
 
 class UTestExpressionExecutor(val userClassLoader: WorkerClassLoader) {
 
@@ -120,7 +117,7 @@ class UTestExpressionExecutor(val userClassLoader: WorkerClassLoader) {
                 jcClasspath.double -> DoubleArray(size)
                 jcClasspath.float -> FloatArray(size)
                 jcClasspath.char -> CharArray(size)
-                else -> java.lang.reflect.Array.newInstance(uTestCreateArrayExpression.elementType.toJavaCLass(userClassLoader), size)
+                else -> java.lang.reflect.Array.newInstance(uTestCreateArrayExpression.elementType.toJavaClass(userClassLoader), size)
             }
     }
 
@@ -182,7 +179,7 @@ class UTestExpressionExecutor(val userClassLoader: WorkerClassLoader) {
 
     private fun executeUTestCastExpression(uTestCastExpression: UTestCastExpression): Any? {
         val castExpr = exec(uTestCastExpression.expr)
-        val toTypeJClass = uTestCastExpression.type.toJavaCLass(userClassLoader)
+        val toTypeJClass = uTestCastExpression.type.toJavaClass(userClassLoader)
         return try {
             toTypeJClass.cast(castExpr)
         } catch (e: ClassCastException) {
@@ -191,7 +188,7 @@ class UTestExpressionExecutor(val userClassLoader: WorkerClassLoader) {
     }
 
     private fun executeConstructorCall(uConstructorCall: UTestConstructorCall): Any {
-        val jConstructor = uConstructorCall.constructor.toJavaConstructor(userClassLoader)
+        val jConstructor = uConstructorCall.method.toJavaConstructor(userClassLoader)
         val args = uConstructorCall.args.map { exec(it) }
         return jConstructor.newInstance(*args.toTypedArray())
     }
