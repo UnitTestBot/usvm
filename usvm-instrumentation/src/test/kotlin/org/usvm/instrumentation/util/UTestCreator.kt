@@ -12,8 +12,8 @@ object UTestCreator {
 
         fun isA(jcClasspath: JcClasspath): UTest {
             val jcClass = jcClasspath.findClass<example.A>()
-            val jcMethod = jcClass.findMethodOrNull("isA") ?: error("Cant find method indexOf in class A")
-            val constructor = jcClass.constructors.first()
+            val jcMethod = jcClass.findMethodOrNull("isA") ?: error("Cant find method isA in class A")
+            val constructor = jcClass.constructors.find { it.parameters.isEmpty() }!!
             val instance = UTestConstructorCall(constructor, listOf())
             val arg1 = UTestIntExpression(1, jcClasspath.int)
             val statements = listOf(
@@ -86,6 +86,13 @@ object UTestCreator {
                 setStatement
             )
             return UTest(statements, UTestMethodCall(instanceOfA, jcMethod, listOf(arg1, instanceOfB2)))
+        }
+
+        fun javaStdLibCall(jcClasspath: JcClasspath): UTest {
+            val jcClassA = jcClasspath.findClass<example.A>()
+            val jcMethod = jcClassA.declaredMethods.find { it.name == "staticJavaStdLibCall" }!!
+            val staticMethodCall = UTestStaticMethodCall(jcMethod, listOf())
+            return UTest(listOf(), staticMethodCall)
         }
 
     }

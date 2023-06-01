@@ -20,7 +20,12 @@ fun AbstractBuffer.writeJcField(jcField: JcField) = with(jcField) {
 }
 
 fun AbstractBuffer.writeJcType(jcType: JcType?) {
-    val typeName = jcType?.typeName ?: "type_is_null"
+    val typeName =
+        if (jcType is JcClassType) {
+            jcType.jcClass.name
+        } else {
+            jcType?.typeName ?: "type_is_null"
+        }
     writeString(typeName)
 }
 
