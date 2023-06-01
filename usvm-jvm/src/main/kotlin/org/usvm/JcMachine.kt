@@ -63,4 +63,8 @@ class JcMachine(
     private fun isInterestingState(state: JcState): Boolean {
         return state.callStack.isNotEmpty() && state.methodResult !is JcMethodResult.Exception
     }
+
+    override fun close() {
+        components.close()
+    }
 }
