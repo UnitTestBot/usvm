@@ -45,17 +45,32 @@ class JcInterpreter(
         )
         state.addEntryMethodCall(applicationGraph, method)
 
+        val scope = StepScope(state)
         if (!method.isStatic) {
             with(ctx) {
                 val thisLValue = URegisterValue(addressSort, 0)
 
-                val ref = checkNotNull(state.memory.read(thisLValue)).asExpr(addressSort)
+                val ref = state.memory.read(thisLValue).asExpr(addressSort)
 
-                val scope = StepScope(state)
                 scope.assert(mkEq(ref, nullRef).not())
-                check(scope.alive)
+                val isConstraint = state.memory.types.evalIs(ref, method.enclosingType)
+                scope.assert(isConstraint)
             }
         }
+
+        with(ctx) {
+            method.parameters.withIndex().forEach { (idx, param) ->
+                val type = param.type
+                val lvalue = URegisterValue(addressSort, idx + if (!method.isStatic) 1 else 0)
+                val ref = state.memory.read(lvalue)
+                if (ref.sort == addressSort) {
+                    val isConstraint = state.memory.types.evalIs(ref.asExpr(addressSort), type)
+                    scope.assert(isConstraint)
+                }
+            }
+        }
+
+        check(scope.alive)
 
         return state
     }

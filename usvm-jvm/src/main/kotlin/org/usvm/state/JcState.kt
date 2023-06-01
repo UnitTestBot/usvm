@@ -83,7 +83,7 @@ fun JcState.addEntryMethodCall(
     applicationGraph: JcApplicationGraph,
     method: JcTypedMethod,
 ) {
-    val entryPoint = applicationGraph.entryPoint(method.method).single()
+    val entryPoint = applicationGraph.entryPoint(method).single()
     callStack.push(method, returnSite = null)
     memory.stack.push(method.parametersWithThisCount, method.localsCount)
     newStmt(entryPoint)
@@ -100,7 +100,7 @@ fun JcState.addNewMethodCall(
         return
     }
 
-    val entryPoint = applicationGraph.entryPoint(method.method).single()
+    val entryPoint = applicationGraph.entryPoint(method).single()
     val returnSite = lastStmt
     callStack.push(method, returnSite)
     memory.stack.push(arguments.toTypedArray(), method.localsCount)

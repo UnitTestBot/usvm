@@ -1,7 +1,7 @@
 package org.usvm.samples.operators
 
 import org.junit.jupiter.api.Test
-import org.usvm.TestRunner
+import org.usvm.samples.TestRunner
 
 class TestLogic : TestRunner() {
     @Test

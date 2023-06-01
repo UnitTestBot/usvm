@@ -1,6 +1,6 @@
 package org.usvm.samples.arrays;
 
-public class TwoDimensional {
+public class MultiDimensional {
     int sumOf() {
         int [][]sum = new int[][] {{1, 2,}, {2, 3,}, {3, 4}};
         int x = 0;

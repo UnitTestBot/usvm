@@ -4,14 +4,15 @@ import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcTypedMethod
 import org.usvm.ps.BfsPathSelector
 import org.usvm.ps.DfsPathSelector
+import org.usvm.ps.combinators.CustomStoppingStrategySelector
 import org.usvm.ps.combinators.InterleavedSelector
+import org.usvm.ps.stopstregies.TargetsCoveredStoppingStrategy
 import org.usvm.state.JcMethodResult
 import org.usvm.state.JcState
 
 class JcMachine(
     cp: JcClasspath,
-    val maxStates: Int = 40,
-) : UMachine<JcState, JcTypedMethod>() {
+) : UMachine<JcState>() {
     private val applicationGraph = JcApplicationGraph(cp)
 
     private val typeSystem = JcTypeSystem(cp)
@@ -22,27 +23,37 @@ class JcMachine(
 
     fun analyze(method: JcTypedMethod): List<JcState> {
         val collectedStates = mutableListOf<JcState>()
+        val coveredStoppingStrategy = TargetsCoveredStoppingStrategy(listOf(method), applicationGraph)
+
+        val pathSelector = CustomStoppingStrategySelector(getPathSelector(method), coveredStoppingStrategy)
 
         run(
-            method,
+            interpreter,
+            pathSelector,
             onState = { state ->
                 if (!isInterestingState(state)) {
-                    collectedStates += state
+                    val uncoveredStatementsBefore = coveredStoppingStrategy.uncoveredStatementsCount
+                    coveredStoppingStrategy.onStateTermination(state)
+                    val uncoveredStatementsCountAfter = coveredStoppingStrategy.uncoveredStatementsCount
+                    if (uncoveredStatementsCountAfter < uncoveredStatementsBefore) {
+                        collectedStates += state
+                    }
+                } else {
+                    coveredStoppingStrategy.onStateVisit(state)
                 }
             },
             continueAnalyzing = ::isInterestingState,
-            stoppingStrategy = { collectedStates.size >= maxStates }
         )
         return collectedStates
     }
 
-    override fun getInterpreter(target: JcTypedMethod): UInterpreter<JcState> =
-        interpreter
-
-    override fun getPathSelector(target: JcTypedMethod): UPathSelector<JcState> {
-        val ps = InterleavedSelector<JcState>(DfsPathSelector(), BfsPathSelector())
+    private fun getPathSelector(target: JcTypedMethod): UPathSelector<JcState> {
         val state = getInitialState(target)
-        ps.add(listOf(state))
+        val dfsPathSelector = DfsPathSelector<JcState>()
+        val bfsPathSelector = BfsPathSelector<JcState>()
+        val ps = InterleavedSelector(dfsPathSelector, bfsPathSelector)
+        bfsPathSelector.add(listOf(state))
+        dfsPathSelector.add(listOf(state.clone()))
         return ps
     }
 

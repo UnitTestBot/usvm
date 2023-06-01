@@ -17,7 +17,7 @@ import org.usvm.ps.stopstregies.CollectedStatesLimitStrategy
 class SampleMachine(
     program: Program,
     val maxStates: Int = 40,
-) : UMachine<SampleState, Method<*>>() {
+) : UMachine<SampleState>() {
     private val applicationGraph = SampleApplicationGraph(program)
     private val typeSystem = SampleTypeSystem()
     private val components = SampleLanguageComponents(typeSystem)
@@ -31,7 +31,8 @@ class SampleMachine(
         val collectedStates = mutableListOf<SampleState>()
         val stoppingStrategy = CollectedStatesLimitStrategy(maxStates)
         run(
-            method,
+            interpreter = interpreter,
+            pathSelector = getPathSelector(method),
             onState = { state ->
                 if (!isInterestingState(state)) {
                     collectedStates += state
@@ -39,14 +40,12 @@ class SampleMachine(
                 }
             },
             continueAnalyzing = ::isInterestingState,
-            stoppingStrategy = stoppingStrategy
+            stoppingStrategy = stoppingStrategy,
         )
         return collectedStates.map { resultModelConverter.convert(it, method) }
     }
 
-    override fun getInterpreter(target: Method<*>) = interpreter
-
-    override fun getPathSelector(target: Method<*>): UPathSelector<SampleState> {
+    fun getPathSelector(target: Method<*>): UPathSelector<SampleState> {
         val ps = DfsPathSelector<SampleState>()
         val initialState = getInitialState(target)
         ps.add(listOf(initialState))

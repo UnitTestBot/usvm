@@ -153,7 +153,7 @@ class JcTestResolver {
                 return resolveLValue(elemRef, type.elementType) as T
             }
 
-            val instance = when (type) {
+            val instance = when (type.elementType) {
                 ctx.cp.boolean -> BooleanArray(length, ::resolveElement)
                 ctx.cp.short -> ShortArray(length, ::resolveElement)
                 ctx.cp.int -> IntArray(length, ::resolveElement)
@@ -163,7 +163,7 @@ class JcTestResolver {
                 ctx.cp.byte -> ByteArray(length, ::resolveElement)
                 ctx.cp.char -> CharArray(length, ::resolveElement)
                 else -> {
-                    val jClass = resolveType(idx, type)
+                    val jClass = resolveType(idx, type.elementType as JcRefType)
                     val instance = Reflection.allocateArray(jClass, length)
                     for (i in 0 until length) {
                         instance[i] = resolveElement<Any?>(i)

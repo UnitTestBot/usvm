@@ -8,7 +8,7 @@ import org.usvm.ps.stopstregies.StoppingStrategy
  *
  * @see [run]
  */
-abstract class UMachine<State : UState<*, *, *, *>, Target> : AutoCloseable {
+abstract class UMachine<State> : AutoCloseable {
     /**
      * The main entry point. Template method for running the machine on a specified [target].
      *
@@ -20,14 +20,12 @@ abstract class UMachine<State : UState<*, *, *, *>, Target> : AutoCloseable {
      * Returning `true` aborts analysis.
      */
     fun run(
-        target: Target,
+        interpreter: UInterpreter<State>,
+        pathSelector: UPathSelector<State>,
         onState: (State) -> Unit,
         continueAnalyzing: (State) -> Boolean,
         stoppingStrategy: StoppingStrategy = StoppingStrategy { false },
     ) {
-        val interpreter = getInterpreter(target)
-        val pathSelector = getPathSelector(target)
-
         while (!pathSelector.isEmpty() && !stoppingStrategy.shouldStop()) {
             pathSelector.peekAndUpdate { state ->
                 val (forkedStates, stateAlive) = interpreter.step(state)
@@ -58,14 +56,4 @@ abstract class UMachine<State : UState<*, *, *, *>, Target> : AutoCloseable {
         }
         add(forkedStates.toList())
     }
-
-    /**
-     * @return a configured interpreter suitable for a [target].
-     */
-    protected abstract fun getInterpreter(target: Target): UInterpreter<State>
-
-    /**
-     * @return a configured path selector with initial states obtained from a [target].
-     */
-    protected abstract fun getPathSelector(target: Target): UPathSelector<State>
 }

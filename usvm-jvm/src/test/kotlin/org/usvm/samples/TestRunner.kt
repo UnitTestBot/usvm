@@ -1,4 +1,4 @@
-package org.usvm
+package org.usvm.samples
 
 import kotlinx.coroutines.runBlocking
 import org.jacodb.api.JcClasspath
@@ -7,6 +7,8 @@ import org.jacodb.api.ext.findClass
 import org.jacodb.api.ext.toType
 import org.jacodb.impl.jacodb
 import org.junit.jupiter.api.TestInstance
+import org.usvm.JcMachine
+import org.usvm.JcTestSuite
 import org.usvm.util.JcTestResolver
 import org.usvm.util.allClasspath
 import kotlin.reflect.KClass
@@ -116,8 +118,13 @@ abstract class TestRunner {
             assertTrue(suite.tests.isNotEmpty())
             for ((idx, matcher) in matchers.withIndex()) {
                 val matcherResult = suite.tests.any { test ->
-                    val instance = (test.before.thisInstance as? T) ?: return@any false
-                    val param0 = (test.before.parameters[0] as? A0) ?: return@any false
+                    if (test.before.thisInstance !is T ||
+                        test.before.parameters[0] !is A0) {
+                        return@any false
+                    }
+
+                    val instance = (test.before.thisInstance as T)
+                    val param0 = (test.before.parameters[0] as A0)
                     val result = (test.result.map { it as? R ?: return@any false })
                     matcher(instance, param0, result)
                 }
@@ -153,10 +160,16 @@ abstract class TestRunner {
             assertTrue(suite.tests.isNotEmpty())
             for ((idx, matcher) in matchers.withIndex()) {
                 val matcherResult = suite.tests.any { test ->
-                    val instance = (test.before.thisInstance as? T) ?: return@any false
-                    val param0 = (test.before.parameters[0] as? A0) ?: return@any false
-                    val param1 = (test.before.parameters[1] as? A1) ?: return@any false
-                    val param2 = (test.before.parameters[2] as? A2) ?: return@any false
+                    if (test.before.thisInstance !is T ||
+                        test.before.parameters[0] !is A0 ||
+                        test.before.parameters[1] !is A1 ||
+                        test.before.parameters[2] !is A2) {
+                        return@any false
+                    }
+                    val instance = (test.before.thisInstance as T)
+                    val param0 = (test.before.parameters[0] as A0)
+                    val param1 = (test.before.parameters[1] as A1)
+                    val param2 = (test.before.parameters[2] as A2)
                     val result = (test.result.map { it as? R ?: return@any false })
                     matcher(instance, param0, param1, param2, result)
                 }
@@ -181,19 +194,23 @@ abstract class TestRunner {
     companion object {
         private val classpath = allClasspath.filter { it.name.contains("samples") }
 
-        private val db: JcDatabase by lazy {
-            runBlocking {
-                jacodb {
+        private val db: JcDatabase
+        private val cp: JcClasspath
+
+        init {
+            val (db, cp) = runBlocking {
+                val db = jacodb {
                     useProcessJavaRuntime()
                     loadByteCode(classpath)
                 }
+                db to db.classpath(classpath)
             }
+            this.db = db
+            this.cp = cp
         }
-        private val cp: JcClasspath by lazy {
-            runBlocking {
-                db.classpath(classpath)
-            }
-        }
-        private val testResolver = JcTestResolver()
+
+
     }
+
+    private val testResolver = JcTestResolver()
 }
