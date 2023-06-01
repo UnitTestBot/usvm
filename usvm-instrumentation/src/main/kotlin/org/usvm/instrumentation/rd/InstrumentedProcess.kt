@@ -90,9 +90,8 @@ class InstrumentedProcess private constructor() {
             installFeatures(InMemoryHierarchy)
             //persistent(location = "/home/.usvm/jcdb.db", clearOnStart = false)
         }
-        jcClasspath = db.classpath(fileClassPath)
+        jcClasspath = db.asyncClasspath(fileClassPath).get()
         serializationCtx = SerializationContext(jcClasspath)
-        @Suppress("removal", "DEPRECATION")
         ucp = URLClassPathLoader(fileClassPath)
     }
 
@@ -215,7 +214,7 @@ class InstrumentedProcess private constructor() {
     private fun callUTest(uTest: UTest): UTestExecutionResult {
         val userClassLoader = createWorkerClassLoader()
         traceCollector.reset()
-        val callMethodExpr = uTest.callMethodExpression as UTestMethodCall
+        val callMethodExpr = uTest.callMethodExpression
         val executor = UTestExpressionExecutor(userClassLoader)
         executor.executeUTestExpressions(uTest.initStatements)
             ?.onFailure { return UTestExecutionInitFailedResult(it.message ?: "", traceCollector.getTrace()) }
@@ -240,13 +239,15 @@ class InstrumentedProcess private constructor() {
     }
 
     private fun buildExecutionState(
-        callMethodExpr: UTestMethodCall,
+        callMethodExpr: UTestCall,
         executor: UTestExpressionExecutor,
         descriptorBuilder: DescriptorBuilder
     ): UTestExecutionState =
         with(descriptorBuilder) {
             val instanceDescriptor =
-                buildDescriptorFromUTestExpr(callMethodExpr.instance, executor)?.getOrNull()
+                if (callMethodExpr.instance != null) {
+                    buildDescriptorFromUTestExpr(callMethodExpr.instance!!, executor)?.getOrNull()
+                } else null
             val argsDescriptors = callMethodExpr.args.map {
                 buildDescriptorFromUTestExpr(it, executor)?.getOrNull()
             }
@@ -293,26 +294,5 @@ class InstrumentedProcess private constructor() {
             }
         }
     }
-
-    private fun printTrace(trace: List<JcInst>) =
-        println(buildString {
-            var offset = 2
-            var curMethod = trace.first().location.method
-            for (i in 0 until trace.size - 1) {
-                val jcInst = trace[i]
-                if (jcInst.location.method != curMethod) {
-                    offset -= 2
-                    curMethod = jcInst.location.method
-                }
-                repeat(offset) { append("|") }
-                append(" ")
-                appendLine(jcInst)
-                val callExpr = jcInst.operands.find { it is JcCallExpr } as? JcCallExpr
-                if (callExpr != null || jcInst is JcCallInst) {
-                    offset += 2; curMethod = trace[i + 1].location.method
-                }
-            }
-        })
-
 
 }

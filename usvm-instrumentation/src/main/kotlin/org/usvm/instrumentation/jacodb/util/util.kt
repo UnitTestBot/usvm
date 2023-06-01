@@ -57,15 +57,22 @@ val JcInst.enclosingClass
 val JcInst.enclosingMethod
     get() = this.location.method
 
-fun JcType.toJavaCLass(classLoader: ClassLoader): Class<*> =
-    findClassInLoader(typeName, classLoader)
-        ?: throw TestExecutorException("Can't find class in classpath")
+//TODO!! Test with arrays
+fun JcType.toJavaClass(classLoader: ClassLoader): Class<*> =
+    when (this) {
+        is JcClassType -> this.jcClass.toJavaClass(classLoader)
+        else -> findClassInLoader(typeName, classLoader) ?: throw TestExecutorException("Can't find class in classpath")
+    }
+
+fun JcClassOrInterface.toJavaClass(classLoader: ClassLoader): Class<*> =
+    findClassInLoader(name, classLoader) ?: throw TestExecutorException("Can't find class in classpath")
+
 
 fun findClassInLoader(name: String, classLoader: ClassLoader): Class<*>? =
     Class.forName(name, true, classLoader)
 
 fun JcField.toJavaField(classLoader: ClassLoader): Field =
-    enclosingClass.toType().toJavaCLass(classLoader).getFieldByName(name)
+    enclosingClass.toType().toJavaClass(classLoader).getFieldByName(name)
 
 fun TypeName.toJcType(jcClasspath: JcClasspath): JcType? = jcClasspath.findTypeOrNull(typeName)
 
@@ -78,7 +85,7 @@ fun JcMethod.toJavaMethod(classLoader: ClassLoader): Method {
 fun JcMethod.toJavaConstructor(classLoader: ClassLoader): Constructor<*> {
     require(isConstructor) { "Can't convert not constructor to constructor"}
     val klass = Class.forName(enclosingClass.name, true, classLoader)
-    return klass.constructors.first()
+    return klass.constructors.find { it.toJcdbSignature() == this.jcdbSignature } ?: error("Can't find constructor")
 }
 
 fun Method.toJcdbSignature(): String {
