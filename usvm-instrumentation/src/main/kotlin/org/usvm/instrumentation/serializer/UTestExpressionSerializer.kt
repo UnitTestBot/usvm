@@ -503,7 +503,7 @@ class UTestExpressionSerializer(private val ctx: SerializationContext) {
                 serializeUTestExpressionList(args)
             },
             serialize = {
-                writeJcMethod(constructor)
+                writeJcMethod(method)
                 writeUTestExpressionList(args)
             }
         )
