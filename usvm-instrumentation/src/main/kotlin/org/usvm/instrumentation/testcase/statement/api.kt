@@ -18,33 +18,42 @@ class UTestMockObject(
     val methods: Map<JcMethod, UTestExpression>
 ) : UTestExpression()
 
-sealed class UTestCall : UTestExpression()
+sealed class UTestCall : UTestExpression() {
+    abstract val instance: UTestExpression?
+    abstract val method: JcMethod?
+    abstract val args: List<UTestExpression>
+}
 
 class UTestMethodCall(
-    val instance: UTestExpression,
-    val method: JcMethod,
-    val args: List<UTestExpression>
+    override val instance: UTestExpression,
+    override val method: JcMethod,
+    override val args: List<UTestExpression>
 ) : UTestCall() {
     override val type: JcType? = method.enclosingClass.classpath.findTypeOrNull(method.returnType)
 }
 
 class UTestStaticMethodCall(
-    val method: JcMethod,
-    val args: List<UTestExpression>
+    override val method: JcMethod,
+    override val args: List<UTestExpression>
 ) : UTestCall() {
+    override val instance: UTestExpression? = null
     override val type: JcType? = method.enclosingClass.classpath.findTypeOrNull(method.returnType)
 }
 
 class UTestConstructorCall(
-    val constructor: JcMethod,
-    val args: List<UTestExpression>
+    override val method: JcMethod,
+    override val args: List<UTestExpression>
 ) : UTestCall() {
-    override val type: JcType = constructor.enclosingClass.toType()
+    override val instance: UTestExpression? = null
+    override val type: JcType = method.enclosingClass.toType()
 }
 
 class UTestAllocateMemoryCall(
     val clazz: JcClassOrInterface
 ) : UTestCall() {
+    override val instance: UTestExpression? = null
+    override val method: JcMethod? = null
+    override val args: List<UTestExpression> = listOf()
     override val type: JcType = clazz.toType()
 }
 
