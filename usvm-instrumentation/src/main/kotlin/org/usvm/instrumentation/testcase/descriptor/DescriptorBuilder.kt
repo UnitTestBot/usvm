@@ -9,9 +9,7 @@ import org.usvm.instrumentation.jacodb.util.stringType
 import org.usvm.instrumentation.jacodb.util.toJavaField
 import org.usvm.instrumentation.testcase.UTestExpressionExecutor
 import org.usvm.instrumentation.testcase.statement.UTestExpression
-import org.usvm.instrumentation.util.SystemTypeNames
 import java.util.*
-import kotlin.collections.HashMap
 
 class DescriptorBuilder(private val classLoader: WorkerClassLoader, private val previousState: DescriptorBuilder?) {
 
@@ -82,7 +80,6 @@ class DescriptorBuilder(private val classLoader: WorkerClassLoader, private val 
 
     private fun buildDescriptor(any: Any?, depth: Int = 0): UTestValueDescriptor {
         if (any == null) return `null`(jcClasspath.nullType)
-        val jcType = findTypeOrNull(any::class.java)!!
         return objectToDescriptor.getOrPut(any) {
             when (any) {
                 is Boolean -> const(any)
@@ -103,7 +100,7 @@ class DescriptorBuilder(private val classLoader: WorkerClassLoader, private val 
                 is FloatArray -> array(any, depth + 1)
                 is DoubleArray -> array(any, depth + 1)
                 is Array<*> -> array(any, depth + 1)
-                else -> `object`(jcType, any, depth + 1)
+                else -> `object`(any, depth + 1)
             }
         }
     }
@@ -168,10 +165,11 @@ class DescriptorBuilder(private val classLoader: WorkerClassLoader, private val 
             objectToDescriptor.remove(value)
         }
 
-    private fun `object`(type: JcType, value: Any, depth: Int): UTestObjectDescriptor {
-        val jcClass = jcClasspath.findClass(type.typeName)
+    private fun `object`(value: Any, depth: Int): UTestObjectDescriptor {
+        val jcClass = jcClasspath.findClass(value::class.java.name)
+        val jcType = jcClass.toType()
         val fields = mutableMapOf<JcField, UTestValueDescriptor>()
-        val uTestObjectDescriptor = UTestObjectDescriptor(type, fields, System.identityHashCode(value))
+        val uTestObjectDescriptor = UTestObjectDescriptor(jcType, fields, System.identityHashCode(value))
         return createCyclicRef(uTestObjectDescriptor, value) {
             jcClass.fields.forEach { jcField ->
                 val jField = jcField.toJavaField(classLoader)
