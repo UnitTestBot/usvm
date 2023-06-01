@@ -5,6 +5,11 @@ import org.usvm.UConcreteHeapAddress
 import org.usvm.UConcreteHeapRef
 import org.usvm.UHeapRef
 import org.usvm.UTypeSystem
+import org.usvm.model.UModel
+import org.usvm.solver.USatResult
+import org.usvm.solver.USolverResult
+import org.usvm.solver.UUnknownResult
+import org.usvm.solver.UUnsatResult
 import org.usvm.uctx
 
 interface UTypeEvaluator<Type> {
@@ -43,6 +48,7 @@ class UTypeModel<Type>(
  */
 class UTypeConstraints<Type>(
     private val typeSystem: UTypeSystem<Type>,
+    private val topTypeStreamFactory: () -> UTypeStream<Type>,
     private val equalityConstraints: UEqualityConstraints,
     private val concreteTypes: MutableMap<UConcreteHeapAddress, Type> = mutableMapOf(),
     private val symbolicTypes: MutableMap<UHeapRef, UTypeRegion<Type>> = mutableMapOf(),
@@ -69,7 +75,10 @@ class UTypeConstraints<Type>(
     }
 
     private operator fun get(symbolicRef: UHeapRef) =
-        symbolicTypes[equalityConstraints.equalReferences.find(symbolicRef)] ?: UTypeRegion(typeSystem)
+        symbolicTypes[equalityConstraints.equalReferences.find(symbolicRef)] ?: UTypeRegion(
+            typeSystem,
+            topTypeStreamFactory()
+        )
 
     private operator fun set(symbolicRef: UHeapRef, value: UTypeRegion<Type>) {
         symbolicTypes[equalityConstraints.equalReferences.find(symbolicRef)] = value
@@ -135,5 +144,80 @@ class UTypeConstraints<Type>(
      * Creates a mutable copy of these constraints connected to new instance of [equalityConstraints].
      */
     fun clone(equalityConstraints: UEqualityConstraints) =
-        UTypeConstraints(typeSystem, equalityConstraints, concreteTypes.toMutableMap(), symbolicTypes.toMutableMap())
+        UTypeConstraints(
+            typeSystem,
+            topTypeStreamFactory,
+            equalityConstraints,
+            concreteTypes.toMutableMap(),
+            symbolicTypes.toMutableMap()
+        )
+
+    fun verify(model: UModel): USolverResult<UTypeModel<Type>> {
+        val concreteRefToTypeRegions = symbolicTypes.entries.groupBy { (key, _) -> (model.eval(key) as UConcreteHeapRef).address }
+        val bannedRefEqualities = mutableListOf<UBoolExpr>()
+
+        val concreteToRegionWithCluster = concreteRefToTypeRegions.mapValues { (_, cluster) ->
+            var currentRegion: UTypeRegion<Type>? = null
+
+            val potentialConflictingRefs = mutableListOf<UHeapRef>()
+
+            for ((heapRef, region) in cluster) {
+                if (currentRegion == null) {
+                    currentRegion = region
+                    potentialConflictingRefs.add(heapRef)
+                } else {
+                    val nextRegion = currentRegion.intersect(region)
+                    if (nextRegion.isEmpty) {
+                        val disjunct = potentialConflictingRefs.map {
+                            with(it.ctx) { it.neq(heapRef) }
+                        }
+                        bannedRefEqualities += heapRef.ctx.mkOr(disjunct)
+                    } else if (nextRegion === region) {
+                        potentialConflictingRefs.clear()
+                        potentialConflictingRefs.add(heapRef)
+                    } else if (nextRegion !== currentRegion) {
+                        potentialConflictingRefs.add(heapRef)
+                    }
+
+
+                    currentRegion = nextRegion
+                }
+            }
+            checkNotNull(currentRegion)
+
+            currentRegion to cluster
+        }
+
+        return if (bannedRefEqualities.isNotEmpty()) {
+            UTypeUnsatResult(bannedRefEqualities)
+        } else {
+            val resultList = mutableListOf<Type>()
+
+            val concreteToType = concreteToRegionWithCluster.mapValues { (_, regionToCluster) ->
+                val (region, cluster) = regionToCluster
+                val terminated = region.typeStream.take(1, resultList)
+                if (terminated) {
+                    if (resultList.isEmpty()) {
+                        check(cluster.size == 1)
+                        return UUnsatResult()
+                    } else {
+                        resultList.single()
+                    }
+                } else {
+                    return UUnknownResult()
+                }
+            }
+
+            val typeModel = UTypeModel(typeSystem, concreteToType)
+            UTypeSatResult(typeModel)
+        }
+    }
 }
+
+class UTypeUnsatResult<Type>(
+    val expressionsToAssert: List<UBoolExpr>
+) : UUnsatResult<UTypeModel<Type>>()
+
+class UTypeSatResult<Type>(
+    model: UTypeModel<Type>
+) : USatResult<UTypeModel<Type>>(model)
