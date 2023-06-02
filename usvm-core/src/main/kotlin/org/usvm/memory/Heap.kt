@@ -4,18 +4,7 @@ import io.ksmt.utils.asExpr
 import io.ksmt.utils.uncheckedCast
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentMapOf
-import org.usvm.UAddressSort
-import org.usvm.UBoolExpr
-import org.usvm.UConcreteHeapAddress
-import org.usvm.UConcreteHeapRef
-import org.usvm.UContext
-import org.usvm.UExpr
-import org.usvm.UHeapRef
-import org.usvm.USizeExpr
-import org.usvm.USizeSort
-import org.usvm.USort
-import org.usvm.sampleUValue
-import org.usvm.uctx
+import org.usvm.*
 import org.usvm.util.Region
 
 interface UReadOnlyHeap<Ref, Value, SizeT, Field, ArrayType, Guard> {
@@ -868,7 +857,7 @@ data class URegionHeap<Field, ArrayType>(
      *
      * rsk = dsk + ssk | merge node
      * */
-    fun <Reg : Region<Reg>, Sort : USort> mergeSymbolicRefMap(
+    private fun <Reg : Region<Reg>, Sort : USort> mergeSymbolicRefMap(
         descriptor: USymbolicMapDescriptor<UAddressSort, Sort, Reg>,
         checkSrcKeyOverwrite: (UHeapRef, UHeapRef) -> UBoolExpr,
         srcRef: UHeapRef,
@@ -884,13 +873,6 @@ data class URegionHeap<Field, ArrayType>(
                     address = srcRef.address,
                     tag = SymbolicKeyConcreteRefAllocatedMap
                 )
-
-                val srcKeysTag = ConcreteTaggedMapDescriptor(
-                    descriptor = descriptor,
-                    tag = ConcreteKeyConcreteRefAllocatedMap
-                )
-                val possibleSrcConcreteKeys = allocatedMaps[srcKeysTag]?.keys ?: emptySet()
-
 
                 withHeapRef(
                     dstRef,
@@ -924,15 +906,6 @@ data class URegionHeap<Field, ArrayType>(
                             newRegion = mergedSymbolicKeysRegion,
                             tag = SymbolicKeyConcreteRefAllocatedMap
                         )
-
-                        for (key in possibleSrcConcreteKeys) {
-                            val keyRef = ctx.mkConcreteHeapRef(key)
-                            val srcValue = readSymbolicRefMap(descriptor, srcRef, keyRef)
-                            val dstValue = readSymbolicRefMap(descriptor, dstRef, keyRef)
-                            val include = checkSrcKeyOverwrite(srcRef, keyRef)
-                            val mergedValue = ctx.mkIte(include, srcValue, dstValue)
-                            writeSymbolicRefMap(descriptor, dstRef, keyRef, mergedValue, deepGuard)
-                        }
                     },
                     blockOnSymbolic = { (dstRef, deepGuard) ->
                         val dstSymbolicKeysRegion = inputMapRegion(descriptor)
@@ -954,26 +927,32 @@ data class URegionHeap<Field, ArrayType>(
                         )
 
                         inputMaps = inputMaps.put(descriptor, mergedSymbolicKeysRegion.uncheckedCast())
-
-                        for (key in possibleSrcConcreteKeys) {
-                            val keyRef = ctx.mkConcreteHeapRef(key)
-                            val srcValue = readSymbolicRefMap(descriptor, srcRef, keyRef)
-                            val dstValue = readSymbolicRefMap(descriptor, dstRef, keyRef)
-                            val include = checkSrcKeyOverwrite(srcRef, keyRef)
-                            val mergedValue = ctx.mkIte(include, srcValue, dstValue)
-                            writeSymbolicRefMap(descriptor, dstRef, keyRef, mergedValue, deepGuard)
-                        }
                     },
                 )
-            },
-            blockOnSymbolic = { (srcRef, guard) ->
-                val srcSymbolicKeysRegion = inputMapRegion(descriptor)
+
 
                 val srcKeysTag = ConcreteTaggedMapDescriptor(
                     descriptor = descriptor,
-                    tag = ConcreteKeySymbolicRefAllocatedMap
+                    tag = ConcreteKeyConcreteRefAllocatedMap
                 )
                 val possibleSrcConcreteKeys = allocatedMaps[srcKeysTag]?.keys ?: emptySet()
+
+                for (key in possibleSrcConcreteKeys) {
+                    val keyRef = ctx.mkConcreteHeapRef(key)
+
+                    val include = checkSrcKeyOverwrite(srcRef, keyRef)
+                    check(include === ctx.trueExpr || include === ctx.falseExpr) {
+                        "Include check on concrete ref and key must return a constant expression"
+                    }
+
+                    if (include.isTrue) {
+                        val srcValue = readSymbolicRefMap(descriptor, srcRef, keyRef)
+                        writeSymbolicRefMap(descriptor, dstRef, keyRef, srcValue, guard)
+                    }
+                }
+            },
+            blockOnSymbolic = { (srcRef, guard) ->
+                val srcSymbolicKeysRegion = inputMapRegion(descriptor)
 
                 withHeapRef(
                     dstRef,
@@ -1009,15 +988,6 @@ data class URegionHeap<Field, ArrayType>(
                             newRegion = mergedSymbolicKeysRegion,
                             tag = SymbolicKeyConcreteRefAllocatedMap
                         )
-
-                        for (key in possibleSrcConcreteKeys) {
-                            val keyRef = ctx.mkConcreteHeapRef(key)
-                            val srcValue = readSymbolicRefMap(descriptor, srcRef, keyRef)
-                            val dstValue = readSymbolicRefMap(descriptor, dstRef, keyRef)
-                            val include = checkSrcKeyOverwrite(srcRef, keyRef)
-                            val mergedValue = ctx.mkIte(include, srcValue, dstValue)
-                            writeSymbolicRefMap(descriptor, dstRef, keyRef, mergedValue, deepGuard)
-                        }
                     },
                     blockOnSymbolic = { (dstRef, deepGuard) ->
                         val dstSymbolicKeysRegion = inputMapRegion(descriptor)
@@ -1043,17 +1013,23 @@ data class URegionHeap<Field, ArrayType>(
                         )
 
                         inputMaps = inputMaps.put(descriptor, mergedSymbolicKeysRegion.uncheckedCast())
-
-                        for (key in possibleSrcConcreteKeys) {
-                            val keyRef = ctx.mkConcreteHeapRef(key)
-                            val srcValue = readSymbolicRefMap(descriptor, srcRef, keyRef)
-                            val dstValue = readSymbolicRefMap(descriptor, dstRef, keyRef)
-                            val include = checkSrcKeyOverwrite(srcRef, keyRef)
-                            val mergedValue = ctx.mkIte(include, srcValue, dstValue)
-                            writeSymbolicRefMap(descriptor, dstRef, keyRef, mergedValue, deepGuard)
-                        }
                     },
                 )
+
+                val srcKeysTag = ConcreteTaggedMapDescriptor(
+                    descriptor = descriptor,
+                    tag = ConcreteKeySymbolicRefAllocatedMap
+                )
+                val possibleSrcConcreteKeys = allocatedMaps[srcKeysTag]?.keys ?: emptySet()
+
+                for (key in possibleSrcConcreteKeys) {
+                    val keyRef = ctx.mkConcreteHeapRef(key)
+                    val srcValue = readSymbolicRefMap(descriptor, srcRef, keyRef)
+                    val dstValue = readSymbolicRefMap(descriptor, dstRef, keyRef)
+                    val include = checkSrcKeyOverwrite(srcRef, keyRef)
+                    val mergedValue = ctx.mkIte(include, srcValue, dstValue)
+                    writeSymbolicRefMap(descriptor, dstRef, keyRef, mergedValue, guard)
+                }
             },
         )
     }

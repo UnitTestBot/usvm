@@ -1,6 +1,7 @@
 package org.usvm.memory.collections
 
 import io.ksmt.utils.asExpr
+import io.ksmt.utils.mkFreshConst
 import org.usvm.UBoolExpr
 import org.usvm.UContext
 import org.usvm.UExpr
@@ -95,6 +96,45 @@ object SymbolicObjectMapIntrinsics {
         // todo: skip values update?
         writeSymbolicMap(containsDescriptor, mapRef, keyId, value = ctx.falseExpr, guard = ctx.trueExpr)
         writeSymbolicMapLength(valueDescriptor, mapRef, newSize)
+    }
+
+    fun UState<*, *, *, *>.symbolicObjectMapMergeInto(
+        dstRef: UHeapRef,
+        srcRef: UHeapRef,
+        elementSort: USort
+    ): Unit = with(memory.heap) {
+        val valueDescriptor = ctx.valueDescriptor(elementSort)
+        val containsDescriptor = ctx.containsDescriptor()
+
+        mergeSymbolicMap(
+            descriptor = valueDescriptor,
+            checkSrcKeyOverwrite = { _, keyId ->
+                readSymbolicMap(containsDescriptor, srcRef, keyId).asExpr(ctx.boolSort)
+            },
+            srcRef = srcRef,
+            dstRef = dstRef,
+            guard = ctx.trueExpr
+        )
+
+        mergeSymbolicMap(
+            descriptor = containsDescriptor,
+            checkSrcKeyOverwrite = { _, keyId ->
+                readSymbolicMap(containsDescriptor, srcRef, keyId).asExpr(ctx.boolSort)
+            },
+            srcRef = srcRef,
+            dstRef = dstRef,
+            guard = ctx.trueExpr
+        )
+
+        // todo: precise map size approximation?
+        val mergedMapSize = ctx.sizeSort.mkFreshConst("mergedMapSize")
+        val srcMapSize = readSymbolicMapLength(valueDescriptor, srcRef)
+        val dstMapSize = readSymbolicMapLength(valueDescriptor, dstRef)
+        val sizeLowerBound = ctx.mkIte(ctx.mkBvSignedGreaterExpr(srcMapSize, dstMapSize), srcMapSize, dstMapSize)
+        val sizeUpperBound = ctx.mkBvAddExpr(srcMapSize, dstMapSize)
+        pathConstraints += ctx.mkBvSignedGreaterOrEqualExpr(mergedMapSize, sizeLowerBound)
+        pathConstraints += ctx.mkBvSignedGreaterOrEqualExpr(mergedMapSize, sizeUpperBound)
+        writeSymbolicMapLength(valueDescriptor, dstRef, mergedMapSize)
     }
 
     // todo: use identity equality instead of reference equality
