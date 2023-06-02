@@ -1,8 +1,12 @@
 package org.usvm.interpreter;
 
+import io.ksmt.expr.KExpr;
+import io.ksmt.sort.KBoolSort;
+import io.ksmt.sort.KIntSort;
 import org.usvm.language.Symbol;
 
 import static org.usvm.interpreter.CPythonAdapterHandlersKt.handlerForkResultKt;
+import static org.usvm.interpreter.CPythonAdapterHandlersKt.handlerGTLongKt;
 
 @SuppressWarnings("unused")
 public class CPythonAdapter {
@@ -33,5 +37,12 @@ public class CPythonAdapter {
 
     public static void handlerForkResult(ConcolicRunContext context, boolean result) {
         handlerForkResultKt(context.ctx, context.openedCondition, context.stepScope, result);
+    }
+
+    public static Symbol handlerGTLong(ConcolicRunContext context, Symbol left, Symbol right) {
+        KExpr<KBoolSort> res = handlerGTLongKt(context.ctx, left.expr, right.expr);
+        if (res == null)
+            return null;
+        return new Symbol(res);
     }
 }

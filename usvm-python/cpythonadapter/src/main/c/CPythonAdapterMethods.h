@@ -6,3 +6,6 @@
 
 #define handle_fork_result_name "handlerForkResult"
 #define handle_fork_result_sig  "(Lorg/usvm/interpreter/ConcolicRunContext;Z)V"
+
+#define handle_gt_long_name "handlerGTLong"
+#define handle_gt_long_sig  "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/Symbol;Lorg/usvm/language/Symbol;)Lorg/usvm/language/Symbol;"

@@ -14,17 +14,22 @@ class USVMPythonInterpreter(
     private val functionRef = callable.reference(namespace)
     override fun step(state: PythonExecutionState): StepResult<PythonExecutionState> =
         with(ctx) {
-            val scope = PythonStepScope(ctx, state)
-            val registers = List(callable.numberOfArguments) { mkRegisterReading(it, boolSort) }
-            val seeds = (state.models zip registers).map { (model, register) -> model.eval(register) }
+            println("Step on $state")
+            println(state.pathConstraints.logicalConstraints)
+            System.out.flush()
+            val symbols = state.symbols
+            val seeds = symbols.map { state.models.first().eval(it) }
             val concrete = seeds.map {
                 println("CONCRETE: $it")
-                val repr = if (it.isTrue) "True" else "False"
+                val repr = it.toString() //if (it.isTrue) "True" else "False"
                 ConcretePythonInterpreter.eval(namespace, repr)
             }
-            ConcretePythonInterpreter.concolicRun(namespace, functionRef, concrete, registers, scope, ctx)
+            val scope = PythonStepScope(ctx, state)
+            ConcretePythonInterpreter.concolicRun(namespace, functionRef, concrete, symbols, scope, ctx)
             scope.doWithState { wasExecuted = true }
             // scope.fork(registers.first() ge mkIntNum(0))
-            scope.stepResult()
+            val result = scope.stepResult()
+            println("Result of step: ${result.forkedStates.take(10).toList()}")
+            result
         }
 }
