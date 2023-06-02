@@ -70,6 +70,7 @@ void construct_concolic_context(JNIEnv *env, jobject context, jobject cpython_ad
     dist->load_const_long = (*env)->GetStaticMethodID(env, dist->cpython_adapter_cls, load_const_long_name, load_const_long_sig);
     dist->handle_fork = (*env)->GetStaticMethodID(env, dist->cpython_adapter_cls, handle_fork_name, handle_fork_sig);
     dist->handle_fork_result = (*env)->GetStaticMethodID(env, dist->cpython_adapter_cls, handle_fork_result_name, handle_fork_result_sig);
+    dist->handle_gt_long = (*env)->GetStaticMethodID(env, dist->cpython_adapter_cls, handle_gt_long_name, handle_gt_long_sig);
 }
 
 void construct_args_for_symbolic_adapter(
@@ -93,4 +94,12 @@ void construct_args_for_symbolic_adapter(
 
     dist->size = n;
     dist->ptr = args;
+}
+
+int take_instruction_from_frame(PyObject *frame) {
+    PyObject *res = PyObject_GetAttrString(frame, "f_lasti");
+    int overflow;
+    long value_as_long = PyLong_AsLongAndOverflow(res, &overflow);
+    assert(!overflow);
+    return (int) value_as_long;
 }
