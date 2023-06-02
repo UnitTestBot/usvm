@@ -27,6 +27,7 @@ typedef struct {
     jmethodID load_const_long;
     jmethodID handle_fork;
     jmethodID handle_fork_result;
+    jmethodID handle_gt_long;
 } ConcolicContext;
 
 void construct_concolic_context(JNIEnv *env, jobject context, jobject cpython_adapter, ConcolicContext *dist);
@@ -37,6 +38,7 @@ typedef struct {
 } PyObjectArray;
 
 void construct_args_for_symbolic_adapter(JNIEnv *env, jlongArray *concrete_args, jobjectArray symbolic_args, PyObjectArray *dist);
+int take_instruction_from_frame(PyObject *frame);
 
 #ifdef __cplusplus
 }
