@@ -11,7 +11,7 @@ import org.usvm.UState
 import org.usvm.memory.USymbolicObjectReferenceMapDescriptor
 import org.usvm.sampleUValue
 
-object SymbolicObjectMapUtils {
+object SymbolicObjectMapIntrinsics {
     object SymbolicObjectMapValueMarker {
         override fun toString(): String = "MapValue"
     }

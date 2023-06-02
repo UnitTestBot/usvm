@@ -9,7 +9,7 @@ import org.usvm.UState
 import org.usvm.memory.USymbolicIndexMapDescriptor
 import org.usvm.sampleUValue
 
-object SymbolicListUtils {
+object SymbolicListIntrinsics {
     object SymbolicListMarker
 
     fun UState<*, *, *, *>.mkSymbolicList(
