@@ -20,6 +20,7 @@ abstract class USymbolicMapDescriptor<Key : USort, Value : USort, Reg : Region<R
 
     abstract fun mkKeyRegion(key: UExpr<Key>): Reg
     abstract fun mkKeyRangeRegion(key1: UExpr<Key>, key2: UExpr<Key>): Reg
+    abstract fun mkKeyFullRangeRegion(): Reg
 
     abstract fun keyEqSymbolic(key1: UExpr<Key>, key2: UExpr<Key>): UBoolExpr
     abstract fun keyCmpSymbolic(key1: UExpr<Key>, key2: UExpr<Key>): UBoolExpr
@@ -76,6 +77,8 @@ class USymbolicObjectReferenceMapDescriptor<Value : USort>(
         key2: UHeapRef
     ) = error("Heap references should not be used in range queries!")
 
+    override fun mkKeyFullRangeRegion(): SetRegion<UHeapRefPoint> = SetRegion.universe()
+
     override fun keyEqSymbolic(
         key1: UHeapRef,
         key2: UHeapRef
@@ -106,6 +109,8 @@ class USymbolicIndexMapDescriptor<Value : USort>(
 
     override fun mkKeyRangeRegion(key1: UExpr<USizeSort>, key2: UExpr<USizeSort>): UArrayIndexRegion =
         indexRangeRegion(key1, key2)
+
+    override fun mkKeyFullRangeRegion(): UArrayIndexRegion = indexFullRangeRegion()
 
     override fun keyEqSymbolic(key1: UExpr<USizeSort>, key2: UExpr<USizeSort>): UBoolExpr =
         indexEq(key1, key2)

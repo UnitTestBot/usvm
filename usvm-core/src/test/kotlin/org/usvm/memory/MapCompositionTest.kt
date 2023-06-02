@@ -57,6 +57,7 @@ class MapCompositionTest<Field, Type> {
                 }
             },
             keyRangeToRegion = { _, _ -> error("Should not be called") },
+            fullRangeRegion = { SetRegion.universe() },
             symbolicEq = { _, _ -> error("Should not be called") },
             concreteCmp = { _, _ -> error("Should not be called") },
             symbolicCmp = { _, _ -> error("Should not be called") }
@@ -98,6 +99,7 @@ class MapCompositionTest<Field, Type> {
                     }
                 },
                 keyRangeToRegion = { _, _ -> shouldNotBeCalled() },
+                fullRangeRegion = { SetRegion.universe() },
                 symbolicEq = { _, _ -> shouldNotBeCalled() },
                 concreteCmp = { _, _ -> shouldNotBeCalled() },
                 symbolicCmp = { _, _ -> shouldNotBeCalled() }
@@ -328,6 +330,7 @@ class MapCompositionTest<Field, Type> {
             emptyRegionTree(),
             { k -> SetRegion.singleton(k) },
             { k1, k2 -> SetRegion.ofSet(k1, k2) },
+            { SetRegion.universe() },
             { _, _ -> shouldNotBeCalled() },
             { _, _ -> shouldNotBeCalled() },
             { _, _ -> shouldNotBeCalled() }
@@ -356,6 +359,7 @@ class MapCompositionTest<Field, Type> {
             emptyRegionTree(),
             { SetRegion.universe() },
             { _, _ -> SetRegion.universe() },
+            { SetRegion.universe() },
             { _, _ -> shouldNotBeCalled() },
             { _, _ -> shouldNotBeCalled() },
             { _, _ -> shouldNotBeCalled() }

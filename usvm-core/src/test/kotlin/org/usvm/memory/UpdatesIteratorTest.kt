@@ -35,6 +35,7 @@ class UpdatesIteratorTest {
                     }
                 },
                 { _, _ -> throw UnsupportedOperationException() },
+                { SetRegion.universe() },
                 { k1, k2 -> mkEq(k1.toBv(), k2.toBv()) },
                 { k1, k2 -> k1 == k2 },
                 { _, _ -> throw UnsupportedOperationException() }

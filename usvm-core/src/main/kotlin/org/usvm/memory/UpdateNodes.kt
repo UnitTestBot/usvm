@@ -1,11 +1,7 @@
 package org.usvm.memory
 
-import org.usvm.UBoolExpr
-import org.usvm.UComposer
-import org.usvm.UExpr
-import org.usvm.USizeExpr
-import org.usvm.USort
-import org.usvm.isTrue
+import org.usvm.*
+import org.usvm.util.Region
 import java.util.*
 
 /**
@@ -325,6 +321,64 @@ class URangedUpdateNode<RegionId : UArrayId<SrcKey, Sort, RegionId>, SrcKey, Dst
         return "{[$fromKey..$toKey] <- $region[keyConv($fromKey)..keyConv($toKey)]" +
             ("}".takeIf { guard.isTrue } ?: " | $guard}")
     }
+}
+
+interface UMergeKeyConverter<SrcKey, DstKey> {
+    val srcRef: UHeapRef
+    val dstRef: UHeapRef
+
+    fun convert(key: DstKey): SrcKey
+}
+
+interface UMergeKeyOverwriteCheck<SrcKey, KeySort : USort> {
+    fun check(key: SrcKey): UBoolExpr
+    fun check(ref: UHeapRef, key: UExpr<KeySort>): UBoolExpr
+}
+
+class UMergeUpdateNode<
+        RegionId : USymbolicMapId<SrcKey, KeySort, Reg, ValueSort, RegionId>,
+        SrcKey,
+        DstKey,
+        KeySort : USort,
+        Reg : Region<Reg>,
+        ValueSort : USort>(
+    val region: USymbolicMemoryRegion<RegionId, SrcKey, ValueSort>,
+    val keyOverwritesCheck: UMergeKeyOverwriteCheck<SrcKey, KeySort>,
+    val keyConverter: UMergeKeyConverter<SrcKey, DstKey>,
+    override val guard: UBoolExpr
+) : UUpdateNode<DstKey, ValueSort> {
+    override fun includesConcretely(key: DstKey, precondition: UBoolExpr): Boolean {
+        TODO("Not yet implemented")
+    }
+
+    override fun isIncludedByUpdateConcretely(update: UUpdateNode<DstKey, ValueSort>): Boolean {
+        TODO("Not yet implemented")
+    }
+
+    override fun includesSymbolically(key: DstKey): UBoolExpr {
+        val srcKey = keyConverter.convert(key)
+        val keyOverwrites = keyOverwritesCheck.check(srcKey)
+        return keyOverwrites.ctx.mkAnd(keyOverwrites, guard)
+    }
+
+    override fun split(
+        key: DstKey,
+        predicate: (UExpr<ValueSort>) -> Boolean,
+        matchingWrites: MutableList<GuardedExpr<UExpr<ValueSort>>>,
+        guardBuilder: GuardBuilder
+    ): UUpdateNode<DstKey, ValueSort>? {
+        TODO("Not yet implemented")
+    }
+
+    override fun value(key: DstKey): UExpr<ValueSort> = region.read(keyConverter.convert(key))
+
+    override fun <Field, Type> map(
+        keyMapper: KeyMapper<DstKey>,
+        composer: UComposer<Field, Type>
+    ): UUpdateNode<DstKey, ValueSort> {
+        TODO("Not yet implemented")
+    }
+
 }
 
 /**

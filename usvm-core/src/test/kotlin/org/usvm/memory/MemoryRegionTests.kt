@@ -40,6 +40,7 @@ class MemoryRegionTests {
                 updates = emptyRegionTree(),
                 keyToRegion = { SetRegion.universe() },
                 keyRangeToRegion = { _, _ -> shouldNotBeCalled() },
+                fullRangeRegion = { SetRegion.universe() },
                 symbolicEq = { _, _ -> shouldNotBeCalled() },
                 concreteCmp = { _, _ -> shouldNotBeCalled() },
                 symbolicCmp = { _, _ -> shouldNotBeCalled() }
@@ -65,6 +66,7 @@ class MemoryRegionTests {
                 updates = emptyRegionTree(),
                 keyToRegion = { SetRegion.universe() },
                 keyRangeToRegion = { _, _ -> shouldNotBeCalled() },
+                fullRangeRegion = { SetRegion.universe() },
                 symbolicEq = { _, _ -> shouldNotBeCalled() },
                 concreteCmp = { _, _ -> shouldNotBeCalled() },
                 symbolicCmp = { _, _ -> shouldNotBeCalled() }

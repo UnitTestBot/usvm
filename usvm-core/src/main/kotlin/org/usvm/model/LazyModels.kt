@@ -6,21 +6,9 @@ import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
 import io.ksmt.utils.sampleValue
 import io.ksmt.utils.uncheckedCast
-import org.usvm.UAddressSort
-import org.usvm.UBoolExpr
-import org.usvm.UConcreteHeapRef
-import org.usvm.UExpr
-import org.usvm.UHeapRef
-import org.usvm.UIndexedMethodReturnValue
-import org.usvm.UMockEvaluator
-import org.usvm.UMockSymbol
-import org.usvm.USizeExpr
-import org.usvm.USizeSort
-import org.usvm.USort
+import org.usvm.*
 import org.usvm.memory.*
-import org.usvm.uctx
 import org.usvm.util.Region
-import kotlin.with
 
 
 /**
@@ -282,6 +270,14 @@ class ULazyHeapModel<Field, ArrayType>(
         fromSrcKey: USizeExpr,
         fromDstKey: USizeExpr,
         toDstKey: USizeExpr,
+        guard: UBoolExpr
+    ) = error("Illegal operation for a model")
+
+    override fun <KeySort : USort, Reg : Region<Reg>, Sort : USort> mergeSymbolicMap(
+        descriptor: USymbolicMapDescriptor<KeySort, Sort, Reg>,
+        checkSrcKeyOverwrite: (UHeapRef, UExpr<KeySort>) -> UBoolExpr,
+        srcRef: UHeapRef,
+        dstRef: UHeapRef,
         guard: UBoolExpr
     ) = error("Illegal operation for a model")
 

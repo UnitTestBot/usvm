@@ -2,17 +2,7 @@ package org.usvm.model
 
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.sampleValue
-import org.usvm.UAddressSort
-import org.usvm.UBoolExpr
-import org.usvm.UConcreteHeapRef
-import org.usvm.UExpr
-import org.usvm.UHeapRef
-import org.usvm.UIndexedMethodReturnValue
-import org.usvm.UMockEvaluator
-import org.usvm.UMockSymbol
-import org.usvm.USizeExpr
-import org.usvm.USizeSort
-import org.usvm.USort
+import org.usvm.*
 import org.usvm.memory.UAddressCounter
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.memory.URegistersStackEvaluator
@@ -20,7 +10,6 @@ import org.usvm.memory.USymbolicArrayIndex
 import org.usvm.memory.USymbolicHeap
 import org.usvm.memory.USymbolicMapDescriptor
 import org.usvm.memory.USymbolicMapKey
-import org.usvm.uctx
 import org.usvm.util.Region
 
 /**
@@ -223,6 +212,14 @@ class UHeapEagerModel<Field, ArrayType>(
         fromSrcKey: USizeExpr,
         fromDstKey: USizeExpr,
         toDstKey: USizeExpr,
+        guard: UBoolExpr
+    ) = error("Illegal operation for a model")
+
+    override fun <KeySort : USort, Reg : Region<Reg>, Sort : USort> mergeSymbolicMap(
+        descriptor: USymbolicMapDescriptor<KeySort, Sort, Reg>,
+        checkSrcKeyOverwrite: (UHeapRef, UExpr<KeySort>) -> UBoolExpr,
+        srcRef: UHeapRef,
+        dstRef: UHeapRef,
         guard: UBoolExpr
     ) = error("Illegal operation for a model")
 
