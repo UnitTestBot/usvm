@@ -331,6 +331,8 @@ interface UMergeKeyConverter<SrcKey, DstKey> {
 }
 
 interface UMergeKeyOverwriteCheck<SrcKey, KeySort : USort> {
+    val descriptor: USymbolicMapDescriptor<KeySort, UBoolSort, *>
+
     fun check(key: SrcKey): UBoolExpr
     fun check(ref: UHeapRef, key: UExpr<KeySort>): UBoolExpr
 }
@@ -347,8 +349,11 @@ class UMergeUpdateNode<
     val keyConverter: UMergeKeyConverter<SrcKey, DstKey>,
     override val guard: UBoolExpr
 ) : UUpdateNode<DstKey, ValueSort> {
+
     override fun includesConcretely(key: DstKey, precondition: UBoolExpr): Boolean {
-        TODO("Not yet implemented")
+        val srcKey = keyConverter.convert(key)
+        val keyOverwrites = keyOverwritesCheck.check(srcKey)
+        return (keyOverwrites === keyOverwrites.ctx.trueExpr) && (guard == guard.ctx.trueExpr || precondition == guard)
     }
 
     override fun isIncludedByUpdateConcretely(update: UUpdateNode<DstKey, ValueSort>): Boolean {
@@ -379,6 +384,7 @@ class UMergeUpdateNode<
         TODO("Not yet implemented")
     }
 
+    override fun toString(): String = "(merge $region)"
 }
 
 /**

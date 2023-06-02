@@ -275,7 +275,7 @@ class ULazyHeapModel<Field, ArrayType>(
 
     override fun <KeySort : USort, Reg : Region<Reg>, Sort : USort> mergeSymbolicMap(
         descriptor: USymbolicMapDescriptor<KeySort, Sort, Reg>,
-        checkSrcKeyOverwrite: (UHeapRef, UExpr<KeySort>) -> UBoolExpr,
+        keyContainsDescriptor: USymbolicMapDescriptor<KeySort, UBoolSort, Reg>,
         srcRef: UHeapRef,
         dstRef: UHeapRef,
         guard: UBoolExpr

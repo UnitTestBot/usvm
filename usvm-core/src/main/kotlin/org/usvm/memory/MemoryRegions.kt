@@ -1,6 +1,7 @@
 package org.usvm.memory
 
 import io.ksmt.utils.asExpr
+import io.ksmt.utils.uncheckedCast
 import kotlinx.collections.immutable.toPersistentMap
 import org.usvm.*
 import org.usvm.util.Region
@@ -240,7 +241,7 @@ data class USymbolicMemoryRegion<out RegionId : URegionId<Key, Sort, RegionId>, 
 
         heap.mergeSymbolicMap(
             regionId.descriptor,
-            mergeNode.keyOverwritesCheck::check,
+            mergeNode.keyOverwritesCheck.descriptor.uncheckedCast(),
             srcRef,
             dstRef,
             mergeNode.guard

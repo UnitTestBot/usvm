@@ -108,9 +108,7 @@ object SymbolicObjectMapIntrinsics {
 
         mergeSymbolicMap(
             descriptor = valueDescriptor,
-            checkSrcKeyOverwrite = { _, keyId ->
-                readSymbolicMap(containsDescriptor, srcRef, keyId).asExpr(ctx.boolSort)
-            },
+            keyContainsDescriptor = containsDescriptor,
             srcRef = srcRef,
             dstRef = dstRef,
             guard = ctx.trueExpr
@@ -118,9 +116,7 @@ object SymbolicObjectMapIntrinsics {
 
         mergeSymbolicMap(
             descriptor = containsDescriptor,
-            checkSrcKeyOverwrite = { _, keyId ->
-                readSymbolicMap(containsDescriptor, srcRef, keyId).asExpr(ctx.boolSort)
-            },
+            keyContainsDescriptor = containsDescriptor,
             srcRef = srcRef,
             dstRef = dstRef,
             guard = ctx.trueExpr

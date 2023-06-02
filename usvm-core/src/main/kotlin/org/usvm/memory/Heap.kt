@@ -78,7 +78,7 @@ interface UHeap<Ref, Value, SizeT, Field, ArrayType, Guard> :
 
     fun <KeySort : USort, Reg : Region<Reg>, Sort : USort> mergeSymbolicMap(
         descriptor: USymbolicMapDescriptor<KeySort, Sort, Reg>,
-        checkSrcKeyOverwrite: (UHeapRef, UExpr<KeySort>) -> UBoolExpr,
+        keyContainsDescriptor: USymbolicMapDescriptor<KeySort, UBoolSort, Reg>,
         srcRef: Ref,
         dstRef: Ref,
         guard: Guard,
@@ -288,7 +288,6 @@ data class URegionHeap<Field, ArrayType>(
                     ).read(symbolicKeyRef)
                 }
             )
-            allocatedMapRegion(descriptor, concreteMapRef.address).read(key)
         },
         { symbolicMapRef ->
             key.map(
@@ -454,9 +453,6 @@ data class URegionHeap<Field, ArrayType>(
                     )
                 }
             )
-            val oldRegion = allocatedMapRegion(descriptor, concreteMapRef.address)
-            val newRegion = oldRegion.write(key, value, mapGuard)
-            storeAllocatedMapRegion(descriptor, concreteMapRef.address, newRegion)
         },
         blockOnSymbolic = { (symbolicMapRef, mapGuard) ->
             withHeapRef(
@@ -700,7 +696,7 @@ data class URegionHeap<Field, ArrayType>(
 
     override fun <KeySort : USort, Reg : Region<Reg>, Sort : USort> mergeSymbolicMap(
         descriptor: USymbolicMapDescriptor<KeySort, Sort, Reg>,
-        checkSrcKeyOverwrite: (UHeapRef, UExpr<KeySort>) -> UBoolExpr,
+        keyContainsDescriptor: USymbolicMapDescriptor<KeySort, UBoolSort, Reg>,
         srcRef: UHeapRef,
         dstRef: UHeapRef,
         guard: UBoolExpr
@@ -709,7 +705,7 @@ data class URegionHeap<Field, ArrayType>(
             @Suppress("UNCHECKED_CAST")
             return mergeSymbolicRefMap(
                 descriptor as USymbolicMapDescriptor<UAddressSort, Sort, Reg>,
-                checkSrcKeyOverwrite as (UHeapRef, UHeapRef) -> UBoolExpr,
+                keyContainsDescriptor as USymbolicMapDescriptor<UAddressSort, UBoolSort, Reg>,
                 srcRef,
                 dstRef,
                 guard
@@ -721,6 +717,7 @@ data class URegionHeap<Field, ArrayType>(
             guard,
             blockOnConcrete = { (srcRef, guard) ->
                 val srcRegion = allocatedMapRegion(descriptor, srcRef.address)
+                val srcKeyContainsRegion = allocatedMapRegion(keyContainsDescriptor, srcRef.address)
 
                 withHeapRef(
                     dstRef,
@@ -732,9 +729,12 @@ data class URegionHeap<Field, ArrayType>(
                             fromRegion = srcRegion,
                             guard = deepGuard,
                             keyOverwritesCheck = object : UMergeKeyOverwriteCheck<UExpr<KeySort>, KeySort> {
+                                override val descriptor: USymbolicMapDescriptor<KeySort, UBoolSort, *>
+                                    get() = keyContainsDescriptor
+
                                 override fun check(key: UExpr<KeySort>): UBoolExpr = check(srcRef, key)
                                 override fun check(ref: UHeapRef, key: UExpr<KeySort>): UBoolExpr =
-                                    checkSrcKeyOverwrite(ref, key)
+                                    srcKeyContainsRegion.read(key)
                             },
                             keyConverter = object : UMergeKeyConverter<UExpr<KeySort>, UExpr<KeySort>>{
                                 override val srcRef: UHeapRef = srcRef
@@ -753,9 +753,12 @@ data class URegionHeap<Field, ArrayType>(
                             fromRegion = srcRegion,
                             guard = deepGuard,
                             keyOverwritesCheck = object : UMergeKeyOverwriteCheck<UExpr<KeySort>, KeySort> {
+                                override val descriptor: USymbolicMapDescriptor<KeySort, UBoolSort, *>
+                                    get() = keyContainsDescriptor
+
                                 override fun check(key: UExpr<KeySort>): UBoolExpr = check(srcRef, key)
                                 override fun check(ref: UHeapRef, key: UExpr<KeySort>): UBoolExpr =
-                                    checkSrcKeyOverwrite(ref, key)
+                                    srcKeyContainsRegion.read(key)
                             },
                             keyConverter = object : UMergeKeyConverter<UExpr<KeySort>, USymbolicMapKey<KeySort>>{
                                 override val srcRef: UHeapRef = srcRef
@@ -771,6 +774,7 @@ data class URegionHeap<Field, ArrayType>(
             },
             blockOnSymbolic = { (srcRef, guard) ->
                 val srcRegion = inputMapRegion(descriptor)
+                val srcKeyContainsRegion = inputMapRegion(keyContainsDescriptor)
 
                 withHeapRef(
                     dstRef,
@@ -782,11 +786,14 @@ data class URegionHeap<Field, ArrayType>(
                             fromRegion = srcRegion,
                             guard = deepGuard,
                             keyOverwritesCheck = object : UMergeKeyOverwriteCheck<USymbolicMapKey<KeySort>, KeySort> {
+                                override val descriptor: USymbolicMapDescriptor<KeySort, UBoolSort, *>
+                                    get() = keyContainsDescriptor
+
                                 override fun check(key: USymbolicMapKey<KeySort>): UBoolExpr =
                                     check(key.first, key.second)
 
                                 override fun check(ref: UHeapRef, key: UExpr<KeySort>): UBoolExpr =
-                                    checkSrcKeyOverwrite(ref, key)
+                                    srcKeyContainsRegion.read(ref to key)
                             },
                             keyConverter = object : UMergeKeyConverter<USymbolicMapKey<KeySort>, UExpr<KeySort>> {
                                 override val srcRef: UHeapRef = srcRef
@@ -806,11 +813,14 @@ data class URegionHeap<Field, ArrayType>(
                             fromRegion = srcRegion,
                             guard = deepGuard,
                             keyOverwritesCheck = object : UMergeKeyOverwriteCheck<USymbolicMapKey<KeySort>, KeySort> {
+                                override val descriptor: USymbolicMapDescriptor<KeySort, UBoolSort, *>
+                                    get() = keyContainsDescriptor
+
                                 override fun check(key: USymbolicMapKey<KeySort>): UBoolExpr =
                                     check(key.first, key.second)
 
                                 override fun check(ref: UHeapRef, key: UExpr<KeySort>): UBoolExpr =
-                                    checkSrcKeyOverwrite(ref, key)
+                                    srcKeyContainsRegion.read(ref to key)
                             },
                             keyConverter = object : UMergeKeyConverter<USymbolicMapKey<KeySort>, USymbolicMapKey<KeySort>> {
                                 override val srcRef: UHeapRef = srcRef
@@ -859,7 +869,7 @@ data class URegionHeap<Field, ArrayType>(
      * */
     private fun <Reg : Region<Reg>, Sort : USort> mergeSymbolicRefMap(
         descriptor: USymbolicMapDescriptor<UAddressSort, Sort, Reg>,
-        checkSrcKeyOverwrite: (UHeapRef, UHeapRef) -> UBoolExpr,
+        keyContainsDescriptor: USymbolicMapDescriptor<UAddressSort, UBoolSort, Reg>,
         srcRef: UHeapRef,
         dstRef: UHeapRef,
         guard: UBoolExpr
@@ -870,6 +880,12 @@ data class URegionHeap<Field, ArrayType>(
             blockOnConcrete = { (srcRef, guard) ->
                 val srcSymbolicKeysRegion = allocatedMapRegion(
                     descriptor = descriptor,
+                    address = srcRef.address,
+                    tag = SymbolicKeyConcreteRefAllocatedMap
+                )
+
+                val srcSymbolicKeyContainsRegion = allocatedMapRegion(
+                    descriptor = keyContainsDescriptor,
                     address = srcRef.address,
                     tag = SymbolicKeyConcreteRefAllocatedMap
                 )
@@ -888,9 +904,12 @@ data class URegionHeap<Field, ArrayType>(
                             fromRegion = srcSymbolicKeysRegion,
                             guard = deepGuard,
                             keyOverwritesCheck = object : UMergeKeyOverwriteCheck<UHeapRef, UAddressSort> {
+                                override val descriptor: USymbolicMapDescriptor<UAddressSort, UBoolSort, *>
+                                    get() = keyContainsDescriptor
+
                                 override fun check(key: UHeapRef): UBoolExpr = check(srcRef, key)
                                 override fun check(ref: UHeapRef, key: UHeapRef): UBoolExpr =
-                                    checkSrcKeyOverwrite(ref, key)
+                                    srcSymbolicKeyContainsRegion.read(key)
                             },
                             keyConverter = object : UMergeKeyConverter<UHeapRef, UHeapRef>{
                                 override val srcRef: UHeapRef = srcRef
@@ -914,9 +933,12 @@ data class URegionHeap<Field, ArrayType>(
                             fromRegion = srcSymbolicKeysRegion,
                             guard = deepGuard,
                             keyOverwritesCheck = object : UMergeKeyOverwriteCheck<UHeapRef, UAddressSort> {
+                                override val descriptor: USymbolicMapDescriptor<UAddressSort, UBoolSort, *>
+                                    get() = keyContainsDescriptor
+
                                 override fun check(key: UHeapRef): UBoolExpr = check(srcRef, key)
                                 override fun check(ref: UHeapRef, key: UHeapRef): UBoolExpr =
-                                    checkSrcKeyOverwrite(ref, key)
+                                    srcSymbolicKeyContainsRegion.read(key)
                             },
                             keyConverter = object : UMergeKeyConverter<UHeapRef, USymbolicMapKey<UAddressSort>> {
                                 override val srcRef: UHeapRef = srcRef
@@ -940,7 +962,7 @@ data class URegionHeap<Field, ArrayType>(
                 for (key in possibleSrcConcreteKeys) {
                     val keyRef = ctx.mkConcreteHeapRef(key)
 
-                    val include = checkSrcKeyOverwrite(srcRef, keyRef)
+                    val include = readSymbolicRefMap(keyContainsDescriptor, srcRef, keyRef)
                     check(include === ctx.trueExpr || include === ctx.falseExpr) {
                         "Include check on concrete ref and key must return a constant expression"
                     }
@@ -953,6 +975,7 @@ data class URegionHeap<Field, ArrayType>(
             },
             blockOnSymbolic = { (srcRef, guard) ->
                 val srcSymbolicKeysRegion = inputMapRegion(descriptor)
+                val srcSymbolicKeysContainsRegion = inputMapRegion(keyContainsDescriptor)
 
                 withHeapRef(
                     dstRef,
@@ -968,11 +991,14 @@ data class URegionHeap<Field, ArrayType>(
                             fromRegion = srcSymbolicKeysRegion,
                             guard = deepGuard,
                             keyOverwritesCheck = object : UMergeKeyOverwriteCheck<USymbolicMapKey<UAddressSort>, UAddressSort> {
+                                override val descriptor: USymbolicMapDescriptor<UAddressSort, UBoolSort, *>
+                                    get() = keyContainsDescriptor
+
                                 override fun check(key: USymbolicMapKey<UAddressSort>): UBoolExpr =
                                     check(key.first, key.second)
 
                                 override fun check(ref: UHeapRef, key: UHeapRef): UBoolExpr =
-                                    checkSrcKeyOverwrite(ref, key)
+                                    srcSymbolicKeysContainsRegion.read(ref to key)
                             },
                             keyConverter = object : UMergeKeyConverter<USymbolicMapKey<UAddressSort>, UHeapRef>{
                                 override val srcRef: UHeapRef = srcRef
@@ -996,11 +1022,14 @@ data class URegionHeap<Field, ArrayType>(
                             fromRegion = srcSymbolicKeysRegion,
                             guard = deepGuard,
                             keyOverwritesCheck = object : UMergeKeyOverwriteCheck<USymbolicMapKey<UAddressSort>, UAddressSort> {
+                                override val descriptor: USymbolicMapDescriptor<UAddressSort, UBoolSort, *>
+                                    get() = keyContainsDescriptor
+
                                 override fun check(key: USymbolicMapKey<UAddressSort>): UBoolExpr =
                                     check(key.first, key.second)
 
                                 override fun check(ref: UHeapRef, key: UHeapRef): UBoolExpr =
-                                    checkSrcKeyOverwrite(ref, key)
+                                    srcSymbolicKeysContainsRegion.read(ref to key)
                             },
                             keyConverter = object : UMergeKeyConverter<USymbolicMapKey<UAddressSort>, USymbolicMapKey<UAddressSort>> {
                                 override val srcRef: UHeapRef = srcRef
@@ -1026,7 +1055,7 @@ data class URegionHeap<Field, ArrayType>(
                     val keyRef = ctx.mkConcreteHeapRef(key)
                     val srcValue = readSymbolicRefMap(descriptor, srcRef, keyRef)
                     val dstValue = readSymbolicRefMap(descriptor, dstRef, keyRef)
-                    val include = checkSrcKeyOverwrite(srcRef, keyRef)
+                    val include = readSymbolicRefMap(keyContainsDescriptor, srcRef, keyRef)
                     val mergedValue = ctx.mkIte(include, srcValue, dstValue)
                     writeSymbolicRefMap(descriptor, dstRef, keyRef, mergedValue, guard)
                 }
