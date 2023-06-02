@@ -60,7 +60,9 @@ object SymbolicObjectMapIntrinsics {
         val keyId = mkKeyId(key)
 
         val oldSize = readSymbolicMapLength(valueDescriptor, mapRef)
-        val newSize = ctx.mkBvAddExpr(oldSize, ctx.mkBv(1))
+        val increasedSize = ctx.mkBvAddExpr(oldSize, ctx.mkBv(1))
+        val keyIsInMap = readSymbolicMap(containsDescriptor, mapRef, keyId).asExpr(ctx.boolSort)
+        val newSize = ctx.mkIte(keyIsInMap, oldSize, increasedSize)
 
         writeSymbolicMap(valueDescriptor, mapRef, keyId, value, guard = ctx.trueExpr)
         writeSymbolicMap(containsDescriptor, mapRef, keyId, value = ctx.trueExpr, guard = ctx.trueExpr)
@@ -86,7 +88,9 @@ object SymbolicObjectMapIntrinsics {
         val keyId = mkKeyId(key)
 
         val oldSize = readSymbolicMapLength(valueDescriptor, mapRef)
-        val newSize = ctx.mkBvSubExpr(oldSize, ctx.mkBv(1))
+        val decreasedSize = ctx.mkBvSubExpr(oldSize, ctx.mkBv(1))
+        val keyIsInMap = readSymbolicMap(containsDescriptor, mapRef, keyId).asExpr(ctx.boolSort)
+        val newSize = ctx.mkIte(keyIsInMap, decreasedSize, oldSize)
 
         // todo: skip values update?
         writeSymbolicMap(containsDescriptor, mapRef, keyId, value = ctx.falseExpr, guard = ctx.trueExpr)

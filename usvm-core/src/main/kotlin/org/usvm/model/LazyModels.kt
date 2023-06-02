@@ -17,22 +17,10 @@ import org.usvm.UMockSymbol
 import org.usvm.USizeExpr
 import org.usvm.USizeSort
 import org.usvm.USort
-import org.usvm.memory.UAddressCounter
-import org.usvm.memory.UInputArrayId
-import org.usvm.memory.UInputArrayLengthId
-import org.usvm.memory.UInputFieldId
-import org.usvm.memory.UInputSymbolicMapId
-import org.usvm.memory.UInputSymbolicMapLengthId
-import org.usvm.memory.UMemoryRegion
-import org.usvm.memory.UReadOnlyMemoryRegion
-import org.usvm.memory.URegionId
-import org.usvm.memory.URegistersStackEvaluator
-import org.usvm.memory.USymbolicArrayIndex
-import org.usvm.memory.USymbolicHeap
-import org.usvm.memory.USymbolicMapDescriptor
-import org.usvm.memory.USymbolicMapKey
+import org.usvm.memory.*
 import org.usvm.uctx
 import org.usvm.util.Region
+import kotlin.with
 
 
 /**
@@ -196,10 +184,11 @@ class ULazyHeapModel<Field, ArrayType>(
         ref: UHeapRef,
         key: UExpr<KeySort>
     ): UExpr<out USort> {
-        // All the expressions in the model are interpreted, therefore, they must
-        // have concrete addresses. Moreover, the model knows only about input values
-        // which have addresses less or equal than INITIAL_INPUT_ADDRESS
-        require(ref is UConcreteHeapRef && ref.address <= UAddressCounter.INITIAL_INPUT_ADDRESS)
+        requireInputRef(ref)
+
+        if (key.sort == key.uctx.addressSort) {
+            requireInputRef(key.asExpr(key.uctx.addressSort))
+        }
 
         val symbolicMapKey = ref to key
 
@@ -219,10 +208,7 @@ class ULazyHeapModel<Field, ArrayType>(
     }
 
     override fun readSymbolicMapLength(descriptor: USymbolicMapDescriptor<*, *, *>, ref: UHeapRef): USizeExpr {
-        // All the expressions in the model are interpreted, therefore, they must
-        // have concrete addresses. Moreover, the model knows only about input values
-        // which have addresses less or equal than INITIAL_INPUT_ADDRESS
-        require(ref is UConcreteHeapRef && ref.address <= UAddressCounter.INITIAL_INPUT_ADDRESS)
+        requireInputRef(ref)
 
         val resolvedRegion = resolvedInputSymbolicMapsLengths[descriptor]
         val sizeSort = ref.uctx.sizeSort
@@ -238,6 +224,13 @@ class ULazyHeapModel<Field, ArrayType>(
 
             else -> sizeSort.sampleValue()
         }
+    }
+
+    private fun requireInputRef(ref: UHeapRef) {
+        // All the expressions in the model are interpreted, therefore, they must
+        // have concrete addresses. Moreover, the model knows only about input values
+        // which have addresses less or equal than INITIAL_INPUT_ADDRESS
+        require(ref is UConcreteHeapRef && ref.address <= UAddressCounter.INITIAL_INPUT_ADDRESS)
     }
 
     override fun <Sort : USort> writeField(

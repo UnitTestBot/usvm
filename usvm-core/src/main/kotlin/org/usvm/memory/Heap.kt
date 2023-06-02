@@ -119,7 +119,11 @@ class UAddressCounter {
     }
 }
 
-private typealias ConcreteRefSymbolicMapDescriptor = Pair<UConcreteHeapAddress, USymbolicMapDescriptor<*, *, *>>
+data class ConcreteTaggedMapDescriptor(
+    val address: UConcreteHeapAddress,
+    val descriptor: USymbolicMapDescriptor<*, *, *>,
+    val tag: Any?
+)
 
 data class URegionHeap<Field, ArrayType>(
     private val ctx: UContext,
@@ -130,7 +134,7 @@ data class URegionHeap<Field, ArrayType>(
     private var inputArrays: PersistentMap<ArrayType, UInputArrayRegion<ArrayType, out USort>> = persistentMapOf(),
     private var allocatedLengths: PersistentMap<UConcreteHeapAddress, USizeExpr> = persistentMapOf(),
     private var inputLengths: PersistentMap<ArrayType, UInputArrayLengthRegion<ArrayType>> = persistentMapOf(),
-    private var allocatedMaps: PersistentMap<ConcreteRefSymbolicMapDescriptor, UAllocatedSymbolicMapRegion<USort, *, *>> = persistentMapOf(),
+    private var allocatedMaps: PersistentMap<ConcreteTaggedMapDescriptor, UAllocatedSymbolicMapRegion<USort, *, *>> = persistentMapOf(),
     private var inputMaps: PersistentMap<USymbolicMapDescriptor<*, *, *>, UInputSymbolicMapRegion<USort, *, *>> = persistentMapOf(),
     private var allocatedMapsLengths: PersistentMap<UConcreteHeapAddress, USizeExpr> = persistentMapOf(),
     private var inputMapsLengths: PersistentMap<USymbolicMapDescriptor<*, *, *>, UInputSymbolicMapLengthRegion> = persistentMapOf(),
@@ -175,13 +179,26 @@ data class URegionHeap<Field, ArrayType>(
 
     private fun <KeySort : USort, Reg : Region<Reg>, Sort : USort> allocatedMapRegion(
         descriptor: USymbolicMapDescriptor<KeySort, Sort, Reg>,
-        address: UConcreteHeapAddress
-    ): UAllocatedSymbolicMapRegion<KeySort, Reg, Sort> =
-        allocatedMaps[address to descriptor]
+        address: UConcreteHeapAddress,
+        tag: Any? = null
+    ): UAllocatedSymbolicMapRegion<KeySort, Reg, Sort> {
+        val taggedKey = ConcreteTaggedMapDescriptor(address, descriptor, tag)
+        return allocatedMaps[taggedKey]
             ?.allocatedMapRegionUncheckedCast()
             ?: emptyAllocatedSymbolicMapRegion(descriptor, address).also { region ->
-                allocatedMaps = allocatedMaps.put(address to descriptor, region.uncheckedCast())
+                allocatedMaps = allocatedMaps.put(taggedKey, region.uncheckedCast())
             }
+    }
+
+    private fun <KeySort : USort, Reg : Region<Reg>, Sort : USort> storeAllocatedMapRegion(
+        descriptor: USymbolicMapDescriptor<KeySort, Sort, Reg>,
+        address: UConcreteHeapAddress,
+        newRegion: UAllocatedSymbolicMapRegion<KeySort, Reg, Sort>,
+        tag: Any? = null
+    ) {
+        val taggedKey = ConcreteTaggedMapDescriptor(address, descriptor, tag)
+        allocatedMaps = allocatedMaps.put(taggedKey, newRegion.uncheckedCast())
+    }
 
     private fun <KeySort : USort, Reg : Region<Reg>, Sort : USort> inputMapRegion(
         descriptor: USymbolicMapDescriptor<KeySort, Sort, Reg>
@@ -229,7 +246,7 @@ data class URegionHeap<Field, ArrayType>(
     ): UExpr<Sort> = if (key.sort == key.uctx.addressSort) {
         @Suppress("UNCHECKED_CAST")
         readSymbolicRefMap(
-            unclassifiedDescriptor = descriptor as USymbolicMapDescriptor<UAddressSort, Sort, Reg>,
+            descriptor = descriptor as USymbolicMapDescriptor<UAddressSort, Sort, Reg>,
             ref = ref,
             key = key.asExpr(key.uctx.addressSort)
         )
@@ -240,37 +257,27 @@ data class URegionHeap<Field, ArrayType>(
         )
     }
 
-    private object ConcreteRefConcreteKeyMap
-    private object ConcreteRefSymbolicKeyMap
-    private object SymbolicRefConcreteKeyMap
-    private object SymbolicRefSymbolicKeyMap
+    // Reorder map ref and key
+    private object ConcreteKeySymbolicRefAllocatedMap
 
     private fun <Reg : Region<Reg>, Sort : USort> readSymbolicRefMap(
-        unclassifiedDescriptor: USymbolicMapDescriptor<UAddressSort, Sort, Reg>,
+        descriptor: USymbolicMapDescriptor<UAddressSort, Sort, Reg>,
         ref: UHeapRef,
         key: UHeapRef
     ): UExpr<Sort> = ref.map(
         { concreteMapRef ->
-            key.map(
-                { concreteKeyRef ->
-                    val descriptor = unclassifiedDescriptor.mark(ConcreteRefConcreteKeyMap)
-                    allocatedMapRegion(descriptor, concreteMapRef.address).read(concreteKeyRef)
-                },
-                { symbolicKeyRef ->
-                    val descriptor = unclassifiedDescriptor.mark(ConcreteRefSymbolicKeyMap)
-                    allocatedMapRegion(descriptor, concreteMapRef.address).read(symbolicKeyRef)
-                }
-            )
+            allocatedMapRegion(descriptor, concreteMapRef.address).read(key)
         },
         { symbolicMapRef ->
             key.map(
                 { concreteKeyRef ->
-                    val descriptor = unclassifiedDescriptor.mark(SymbolicRefConcreteKeyMap)
-                    // Reorder map ref and key
-                    allocatedMapRegion(descriptor, concreteKeyRef.address).read(symbolicMapRef)
+                    allocatedMapRegion(
+                        descriptor = descriptor,
+                        address = concreteKeyRef.address,
+                        tag = ConcreteKeySymbolicRefAllocatedMap
+                    ).read(symbolicMapRef)
                 },
                 { symbolicKeyRef ->
-                    val descriptor = unclassifiedDescriptor.mark(SymbolicRefSymbolicKeyMap)
                     inputMapRegion(descriptor).read(symbolicMapRef to symbolicKeyRef)
                 }
             )
@@ -355,7 +362,7 @@ data class URegionHeap<Field, ArrayType>(
         if (key.sort == key.uctx.addressSort) {
             @Suppress("UNCHECKED_CAST")
             writeSymbolicRefMap(
-                unclassifiedDescriptor = descriptor as USymbolicMapDescriptor<UAddressSort, Sort, Reg>,
+                descriptor = descriptor as USymbolicMapDescriptor<UAddressSort, Sort, Reg>,
                 ref = ref,
                 key = key.asExpr(key.uctx.addressSort),
                 value = valueToWrite,
@@ -368,7 +375,7 @@ data class URegionHeap<Field, ArrayType>(
                 blockOnConcrete = { (concreteRef, innerGuard) ->
                     val oldRegion = allocatedMapRegion(descriptor, concreteRef.address)
                     val newRegion = oldRegion.write(key, valueToWrite, innerGuard)
-                    allocatedMaps = allocatedMaps.put(concreteRef.address to descriptor, newRegion.uncheckedCast())
+                    storeAllocatedMapRegion(descriptor, concreteRef.address, newRegion)
                 },
                 blockOnSymbolic = { (symbolicRef, innerGuard) ->
                     val oldRegion = inputMapRegion(descriptor)
@@ -380,7 +387,7 @@ data class URegionHeap<Field, ArrayType>(
     }
 
     private fun <Reg : Region<Reg>, Sort : USort> writeSymbolicRefMap(
-        unclassifiedDescriptor: USymbolicMapDescriptor<UAddressSort, Sort, Reg>,
+        descriptor: USymbolicMapDescriptor<UAddressSort, Sort, Reg>,
         ref: UHeapRef,
         key: UHeapRef,
         value: UExpr<Sort>,
@@ -389,56 +396,33 @@ data class URegionHeap<Field, ArrayType>(
         ref = ref,
         initialGuard = guard,
         blockOnConcrete = { (concreteMapRef, mapGuard) ->
-            withHeapRef(
-                ref = key,
-                initialGuard = mapGuard,
-                blockOnConcrete = { (concreteKeyRef, keyGuard) ->
-                    val descriptor = unclassifiedDescriptor.mark(ConcreteRefConcreteKeyMap)
-
-                    // Reorder map ref and key
-                    val oldRegion = allocatedMapRegion(descriptor, concreteMapRef.address)
-
-                    val newRegion = oldRegion.write(concreteKeyRef, value, keyGuard)
-
-                    allocatedMaps = allocatedMaps.put(
-                        concreteMapRef.address to descriptor,
-                        newRegion.uncheckedCast()
-                    )
-                },
-                blockOnSymbolic = { (symbolicKeyRef, keyGuard) ->
-                    val descriptor = unclassifiedDescriptor.mark(ConcreteRefSymbolicKeyMap)
-                    val oldRegion = allocatedMapRegion(descriptor, concreteMapRef.address)
-
-                    val newRegion = oldRegion.write(symbolicKeyRef, value, keyGuard)
-
-                    allocatedMaps = allocatedMaps.put(
-                        concreteMapRef.address to descriptor,
-                        newRegion.uncheckedCast()
-                    )
-                }
-            )
+            val oldRegion = allocatedMapRegion(descriptor, concreteMapRef.address)
+            val newRegion = oldRegion.write(key, value, mapGuard)
+            storeAllocatedMapRegion(descriptor, concreteMapRef.address, newRegion)
         },
         blockOnSymbolic = { (symbolicMapRef, mapGuard) ->
             withHeapRef(
                 ref = key,
                 initialGuard = mapGuard,
                 blockOnConcrete = { (concreteKeyRef, keyGuard) ->
-                    val descriptor = unclassifiedDescriptor.mark(SymbolicRefConcreteKeyMap)
-                    val oldRegion = allocatedMapRegion(descriptor, concreteKeyRef.address)
+                    val oldRegion = allocatedMapRegion(
+                        descriptor = descriptor,
+                        address = concreteKeyRef.address,
+                        tag = ConcreteKeySymbolicRefAllocatedMap
+                    )
 
                     val newRegion = oldRegion.write(symbolicMapRef, value, keyGuard)
 
-                    allocatedMaps = allocatedMaps.put(
-                        concreteKeyRef.address to descriptor,
-                        newRegion.uncheckedCast()
+                    storeAllocatedMapRegion(
+                        descriptor = descriptor,
+                        address = concreteKeyRef.address,
+                        newRegion = newRegion,
+                        tag = ConcreteKeySymbolicRefAllocatedMap
                     )
                 },
                 blockOnSymbolic = { (symbolicKeyRef, keyGuard) ->
-                    val descriptor = unclassifiedDescriptor.mark(SymbolicRefSymbolicKeyMap)
                     val oldRegion = inputMapRegion(descriptor)
-
                     val newRegion = oldRegion.write(symbolicMapRef to symbolicKeyRef, value, keyGuard)
-
                     inputMaps = inputMaps.put(descriptor, newRegion.uncheckedCast())
                 }
             )
@@ -598,7 +582,7 @@ data class URegionHeap<Field, ArrayType>(
                             keyConverter = keyConverter,
                             guard = deepGuard
                         )
-                        allocatedMaps = allocatedMaps.put(dstRef.address to descriptor, newDstRegion.uncheckedCast())
+                        storeAllocatedMapRegion(descriptor, dstRef.address, newDstRegion)
                     },
                     blockOnSymbolic = { (dstRef, deepGuard) ->
                         val dst = dstRef to fromDstKey
@@ -635,7 +619,7 @@ data class URegionHeap<Field, ArrayType>(
                             keyConverter = keyConverter,
                             guard = deepGuard
                         )
-                        allocatedMaps = allocatedMaps.put(dstRef.address to descriptor, newDstRegion.uncheckedCast())
+                        storeAllocatedMapRegion(descriptor, dstRef.address, newDstRegion)
                     },
                     blockOnSymbolic = { (dstRef, deepGuard) ->
                         val dst = dstRef to fromDstKey

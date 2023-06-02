@@ -137,10 +137,11 @@ class UHeapEagerModel<Field, ArrayType>(
         ref: UHeapRef,
         key: UExpr<KeySort>
     ): UExpr<out USort> {
-        // All the expressions in the model are interpreted, therefore, they must
-        // have concrete addresses. Moreover, the model knows only about input values
-        // which have addresses less or equal than INITIAL_INPUT_ADDRESS
-        require(ref is UConcreteHeapRef && ref.address <= UAddressCounter.INITIAL_INPUT_ADDRESS)
+        requireInputRef(ref)
+
+        if (key.sort == key.uctx.addressSort) {
+            requireInputRef(key.asExpr(key.uctx.addressSort))
+        }
 
         val mapKey = ref to key
 
@@ -156,10 +157,7 @@ class UHeapEagerModel<Field, ArrayType>(
     }
 
     override fun readSymbolicMapLength(descriptor: USymbolicMapDescriptor<*, *, *>, ref: UHeapRef): USizeExpr {
-        // All the expressions in the model are interpreted, therefore, they must
-        // have concrete addresses. Moreover, the model knows only about input values
-        // which have addresses less or equal than INITIAL_INPUT_ADDRESS
-        require(ref is UConcreteHeapRef && ref.address <= UAddressCounter.INITIAL_INPUT_ADDRESS)
+        requireInputRef(ref)
 
         val region = resolvedInputSymbolicMapsLengths.getOrElse<_, UReadOnlySymbolicMapLengthRegion>(descriptor) {
             // sampleValue here is important
@@ -167,6 +165,13 @@ class UHeapEagerModel<Field, ArrayType>(
         }
 
         return region.read(ref)
+    }
+
+    private fun requireInputRef(ref: UHeapRef) {
+        // All the expressions in the model are interpreted, therefore, they must
+        // have concrete addresses. Moreover, the model knows only about input values
+        // which have addresses less or equal than INITIAL_INPUT_ADDRESS
+        require(ref is UConcreteHeapRef && ref.address <= UAddressCounter.INITIAL_INPUT_ADDRESS)
     }
 
     override fun <Sort : USort> writeField(
