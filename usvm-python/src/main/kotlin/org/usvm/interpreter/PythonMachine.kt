@@ -25,7 +25,8 @@ class PythonMachine(
     private fun getInitialState(target: Callable): PythonExecutionState {
         return PythonExecutionState(
             ctx,
-            models = List(target.numberOfArguments) { solver.emptyModel() }
+            target,
+            models = listOf(solver.emptyModel())
         )
     }
 
@@ -42,7 +43,7 @@ class PythonMachine(
             callable,
             onState = { cnt += 1 },
             continueAnalyzing = { !it.wasExecuted },
-            shouldStop = { cnt >= 10 }
+            shouldStop = { cnt >= 100 }
         )
     }
 

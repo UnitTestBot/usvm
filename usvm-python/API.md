@@ -15,10 +15,11 @@ PyObject *handler(int event_type, int event_id, int nargs, PyObject *const *args
 
 For all events empty list may be given as a return value.
 
-|          event id          | Arguments                                      |  Expected return tuple  |
-|:--------------------------:|:-----------------------------------------------|:-----------------------:|
-| `SYM_EVENT_ID_CREATE_LIST` | Symbolic contents of the list (as Python list) |   `(symbolic_list,)`    |
-|    `SYM_EVENT_ID_CONST`    | Python constant                                | `(constant_as_symbol,)` |
+|          event id          | Arguments                                      |   Expected return tuple   |
+|:--------------------------:|:-----------------------------------------------|:-------------------------:|
+| `SYM_EVENT_ID_CREATE_LIST` | Symbolic contents of the list (as Python list) |    `(symbolic_list,)`     |
+|    `SYM_EVENT_ID_CONST`    | Python constant                                |  `(constant_as_symbol,)`  |
+|     `SYM_EVENT_ID_GT`      | 2 arguments: operands in corresponding order   | `(result_of_comparison,)` |
 
 ### `NOTIFY` events list
 
