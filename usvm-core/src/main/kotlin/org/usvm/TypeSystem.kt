@@ -1,5 +1,7 @@
 package org.usvm
 
+import org.usvm.constraints.UTypeStream
+
 interface UTypeSystem<Type> {
 
     /**
@@ -16,4 +18,6 @@ interface UTypeSystem<Type> {
      * Returns true if there is no type u distinct from [t] and subtyping [t].
      */
     fun isFinal(t: Type): Boolean
+
+    fun topTypeStream(): UTypeStream<Type>
 }

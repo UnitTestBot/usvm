@@ -48,7 +48,6 @@ class UTypeModel<Type>(
  */
 class UTypeConstraints<Type>(
     private val typeSystem: UTypeSystem<Type>,
-    private val topTypeStreamFactory: () -> UTypeStream<Type>,
     private val equalityConstraints: UEqualityConstraints,
     private val concreteTypes: MutableMap<UConcreteHeapAddress, Type> = mutableMapOf(),
     private val symbolicTypes: MutableMap<UHeapRef, UTypeRegion<Type>> = mutableMapOf(),
@@ -77,7 +76,7 @@ class UTypeConstraints<Type>(
     private operator fun get(symbolicRef: UHeapRef) =
         symbolicTypes[equalityConstraints.equalReferences.find(symbolicRef)] ?: UTypeRegion(
             typeSystem,
-            topTypeStreamFactory()
+            typeSystem.topTypeStream()
         )
 
     private operator fun set(symbolicRef: UHeapRef, value: UTypeRegion<Type>) {
@@ -146,7 +145,6 @@ class UTypeConstraints<Type>(
     fun clone(equalityConstraints: UEqualityConstraints) =
         UTypeConstraints(
             typeSystem,
-            topTypeStreamFactory,
             equalityConstraints,
             concreteTypes.toMutableMap(),
             symbolicTypes.toMutableMap()

@@ -27,7 +27,10 @@ open class UPathConstraints<Type> private constructor(
     /**
      * Constraints solved by type solver.
      */
-    val typeConstraints: UTypeConstraints<Type> = UTypeConstraints(ctx.typeSystem(), equalityConstraints)
+    val typeConstraints: UTypeConstraints<Type> = UTypeConstraints(
+        ctx.typeSystem(),
+        equalityConstraints
+    ),
 ) {
     /**
      * Constraints solved by SMT solver.
@@ -39,8 +42,8 @@ open class UPathConstraints<Type> private constructor(
 
     open val isFalse: Boolean
         get() = equalityConstraints.isContradiction ||
-                typeConstraints.isContradiction ||
-                logicalConstraints.singleOrNull() is UFalse
+            typeConstraints.isContradiction ||
+            logicalConstraints.singleOrNull() is UFalse
 
     @Suppress("UNCHECKED_CAST")
     open operator fun plusAssign(constraint: UBoolExpr): Unit =
@@ -61,7 +64,9 @@ open class UPathConstraints<Type> private constructor(
                 constraint is UNotExpr -> {
                     val notConstraint = constraint.arg
                     when {
-                        notConstraint is UEqExpr<*> && isSymbolicHeapRef(notConstraint.lhs) && isSymbolicHeapRef(notConstraint.rhs) -> {
+                        notConstraint is UEqExpr<*> && isSymbolicHeapRef(notConstraint.lhs) && isSymbolicHeapRef(
+                            notConstraint.rhs
+                        ) -> {
                             require(notConstraint.rhs.sort == addressSort)
                             equalityConstraints.addReferenceDisequality(
                                 notConstraint.lhs as UHeapRef,

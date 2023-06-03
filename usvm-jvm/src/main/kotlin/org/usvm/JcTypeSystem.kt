@@ -1,22 +1,23 @@
 package org.usvm
 
-import org.jacodb.api.JcClassOrInterface
-import org.jacodb.api.JcClasspath
+import org.jacodb.api.JcClassType
 import org.jacodb.api.JcType
 import org.jacodb.api.ext.isAssignable
 
-class JcTypeSystem(
-    private val cp: JcClasspath
-) : UTypeSystem<JcType> {
+class JcTypeSystem : UTypeSystem<JcType> {
     override fun isSupertype(u: JcType, t: JcType): Boolean {
         return t.isAssignable(u)
     }
 
     override fun isMultipleInheritanceAllowedFor(t: JcType): Boolean {
-        return (t as? JcClassOrInterface)?.isInterface ?: false
+        return (t as? JcClassType)?.jcClass?.isInterface ?: false
     }
 
     override fun isFinal(t: JcType): Boolean {
-        return (t as? JcClassOrInterface)?.isFinal ?: false
+        return (t as? JcClassType)?.isFinal ?: false
+    }
+
+    override fun topTypeStream(): JcTypeStream {
+        return JcTypeStream(this)
     }
 }
