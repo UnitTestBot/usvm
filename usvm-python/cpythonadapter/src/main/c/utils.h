@@ -1,5 +1,6 @@
 #include <jni.h>
 #include "Python.h"
+#include "CPythonAdapterMethods.h"
 
 #ifndef _Included_CPythonAdapter_utils
 #define _Included_CPythonAdapter_utils
@@ -24,10 +25,7 @@ typedef struct {
     JNIEnv *env;
     jclass cpython_adapter_cls;
     jobject cpython_adapter;
-    jmethodID load_const_long;
-    jmethodID handle_fork;
-    jmethodID handle_fork_result;
-    jmethodID handle_gt_long;
+    HANDLERS_DEFS
 } ConcolicContext;
 
 void construct_concolic_context(JNIEnv *env, jobject context, jobject cpython_adapter, ConcolicContext *dist);

@@ -1,5 +1,4 @@
 #include "utils.h"
-#include "CPythonAdapterMethods.h"
 
 static void
 java_python_object_dealloc(PyObject *op) {
@@ -62,15 +61,28 @@ int is_wrapped_java_object(PyObject *object) {
     return Py_TYPE(object) == &JavaPythonObject_Type;
 }
 
+#define REGISTER_HANDLER(name) \
+    dist->handle_##name = (*env)->GetStaticMethodID(env, dist->cpython_adapter_cls, handle_name_##name, handle_sig_##name);
+
 void construct_concolic_context(JNIEnv *env, jobject context, jobject cpython_adapter, ConcolicContext *dist) {
     dist->env = env;
     dist->context = context;
     dist->cpython_adapter = cpython_adapter;
     dist->cpython_adapter_cls = (*env)->GetObjectClass(env, cpython_adapter);
-    dist->load_const_long = (*env)->GetStaticMethodID(env, dist->cpython_adapter_cls, load_const_long_name, load_const_long_sig);
-    dist->handle_fork = (*env)->GetStaticMethodID(env, dist->cpython_adapter_cls, handle_fork_name, handle_fork_sig);
-    dist->handle_fork_result = (*env)->GetStaticMethodID(env, dist->cpython_adapter_cls, handle_fork_result_name, handle_fork_result_sig);
-    dist->handle_gt_long = (*env)->GetStaticMethodID(env, dist->cpython_adapter_cls, handle_gt_long_name, handle_gt_long_sig);
+    REGISTER_HANDLER(instruction);
+    REGISTER_HANDLER(load_const_long);
+    REGISTER_HANDLER(fork);
+    REGISTER_HANDLER(gt_long);
+    REGISTER_HANDLER(lt_long);
+    REGISTER_HANDLER(eq_long);
+    REGISTER_HANDLER(ne_long);
+    REGISTER_HANDLER(ge_long);
+    REGISTER_HANDLER(le_long);
+    REGISTER_HANDLER(add_long);
+    REGISTER_HANDLER(sub_long);
+    REGISTER_HANDLER(mul_long);
+    REGISTER_HANDLER(div_long);
+    REGISTER_HANDLER(rem_long);
 }
 
 void construct_args_for_symbolic_adapter(

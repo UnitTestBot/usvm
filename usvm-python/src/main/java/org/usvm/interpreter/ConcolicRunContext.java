@@ -1,19 +1,18 @@
 package org.usvm.interpreter;
 
-import io.ksmt.expr.KExpr;
-import io.ksmt.sort.KBoolSort;
-import org.usvm.StepScope;
 import org.usvm.UContext;
-import org.usvm.language.PythonType;
-import org.usvm.language.Symbol;
+
+import java.util.ArrayList;
 
 public class ConcolicRunContext {
-    public StepScope<PythonExecutionState, PythonType> stepScope;
+    public PythonExecutionState curState;
     public UContext ctx;
-    KExpr<KBoolSort> openedCondition = null;
+    public ArrayList<PythonExecutionState> forkedStates = new ArrayList<>();
+    int instructionCounter = 0;
 
-    ConcolicRunContext(StepScope<PythonExecutionState, PythonType> stepScope, UContext ctx) {
-        this.stepScope = stepScope;
+    ConcolicRunContext(PythonExecutionState curState, UContext ctx) {
+        this.curState = curState;
         this.ctx = ctx;
+        // forkedStates.add(curState);
     }
 }

@@ -28,13 +28,13 @@ object ConcretePythonInterpreter {
     }
 
     fun concolicRun(globals: PythonNamespace, functionRef: PythonObject, concreteArgs: Collection<PythonObject>,
-                    symbolicArgs: List<UExpr<*>>, stepScope: PythonStepScope, ctx: UContext) {
+                    symbolicArgs: List<UExpr<*>>, ctx: ConcolicRunContext) {
         val result = pythonAdapter.concolicRun(
             globals.address,
             functionRef.address,
             concreteArgs.map { it.address }.toLongArray(),
             Array(symbolicArgs.size) { Symbol(symbolicArgs[it]) },
-            ConcolicRunContext(stepScope, ctx)
+            ctx
         )
         if (result != 0)
             throw CPythonExecutionException

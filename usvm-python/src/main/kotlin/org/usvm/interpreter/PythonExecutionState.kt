@@ -11,29 +11,25 @@ import org.usvm.model.UModel
 class PythonExecutionState(
     ctx: UContext,
     val callable: Callable,
+    pathConstraints: UPathConstraints<PythonType>,
+    memory: UMemoryBase<Attribute, PythonType, Callable>,
+    models: List<UModel>,
     callStack: UCallStack<Callable, Instruction> = UCallStack(),
-    pathConstraints: UPathConstraints<PythonType> = UPathConstraints(ctx),
-    memory: UMemoryBase<Attribute, PythonType, Callable> =
-        UMemoryBase<Attribute, PythonType, Callable>(ctx, pathConstraints.typeConstraints).apply {
-            stack.push(callable.numberOfArguments)
-        },
-    models: List<UModel> = listOf(),
-    path: PersistentList<Instruction> = persistentListOf(),
-    var wasExecuted: Boolean = false
+    path: PersistentList<Instruction> = persistentListOf()
 ): UState<PythonType, Attribute, Callable, Instruction>(ctx, callStack, pathConstraints, memory, models, path) {
     override fun clone(newConstraints: UPathConstraints<PythonType>?): UState<PythonType, Attribute, Callable, Instruction> {
         val newPathConstraints = newConstraints ?: pathConstraints.clone()
+        val newMemory = memory.clone(newPathConstraints.typeConstraints)
         return PythonExecutionState(
             ctx,
             callable,
-            callStack,
             newPathConstraints,
-            memory.clone(newPathConstraints.typeConstraints),
+            newMemory,
             models,
-            path,
-            wasExecuted
+            callStack,
+            path
         )
     }
 
-    val symbols: List<UExpr<*>> = List(callable.numberOfArguments) { memory.read(URegisterRef(ctx.intSort, it)) }
+    var wasExecuted: Boolean = false
 }
