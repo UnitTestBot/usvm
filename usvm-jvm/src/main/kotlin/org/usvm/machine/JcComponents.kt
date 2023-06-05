@@ -1,6 +1,6 @@
 package org.usvm.machine
 
-import io.ksmt.solver.yices.KYicesSolver
+import io.ksmt.solver.z3.KZ3Solver
 import org.jacodb.api.JcField
 import org.jacodb.api.JcMethod
 import org.jacodb.api.JcType
@@ -18,7 +18,8 @@ class JcComponents(
         val (translator, decoder) = buildTranslatorAndLazyDecoder<JcField, JcType, JcMethod>(ctx)
         val softConstraintsProvider = USoftConstraintsProvider<JcField, JcType>(ctx)
 
-        val smtSolver = KYicesSolver(ctx)
+        // TODO until we get fp in yices
+        val smtSolver = KZ3Solver(ctx)
         closeableResources += smtSolver
         return USolverBase(ctx, smtSolver, translator, decoder, softConstraintsProvider)
     }

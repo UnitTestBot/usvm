@@ -9,7 +9,7 @@ class TestOverflow : JavaMethodTestRunner() {
     @Test
     @Disabled("TODO: disabled due to JacoDB incorrect types of local variables")
     fun `Test shortOverflow`() {
-        checkWithExceptionPropertiesMatches(
+        checkDiscoveredPropertiesWithExceptions(
             Overflow::shortOverflow,
             ignoreNumberOfAnalysisResults,
             { _, _, _, r ->
