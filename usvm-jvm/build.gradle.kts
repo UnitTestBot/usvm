@@ -30,3 +30,13 @@ sourceSets {
         runtimeClasspath += samples.output
     }
 }
+
+val samplesImplementation: Configuration by configurations.getting
+
+dependencies {
+    samplesImplementation("org.projectlombok:lombok:${Versions.samplesLombok}")
+    samplesImplementation("org.slf4j:slf4j-api:${Versions.samplesSl4j}")
+    samplesImplementation("javax.validation:validation-api:${Versions.samplesJavaxValidation}")
+    samplesImplementation("com.github.stephenc.findbugs:findbugs-annotations:${Versions.samplesFindBugs}")
+    samplesImplementation("org.jetbrains:annotations:${Versions.samplesJetbrainsAnnotations}")
+}
