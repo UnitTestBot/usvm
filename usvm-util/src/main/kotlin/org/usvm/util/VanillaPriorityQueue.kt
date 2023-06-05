@@ -2,6 +2,7 @@ package org.usvm.util
 
 import java.util.*
 
+// TODO: what to do if elements have same priority?
 class VanillaPriorityQueue<T, Priority>(comparator: Comparator<Priority>) : UPriorityCollection<T, Priority> {
 
     private val priorityQueue = PriorityQueue<Pair<T, Priority>> { (_, p1), (_, p2) -> comparator.compare(p1, p2) }

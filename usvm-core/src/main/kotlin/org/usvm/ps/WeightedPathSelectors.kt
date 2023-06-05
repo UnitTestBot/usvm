@@ -11,12 +11,14 @@ enum class WeightType {
     DEPTH
 }
 
-fun <State : UState<*, *, *, *>> createWeightedPathSelector(type: WeightType, randomSeed: Int? = null): UPathSelector<State> {
-    if (randomSeed == null) {
-        return WeightedPathSelector({ VanillaPriorityQueue(compareBy()) }) { it.path.size }
+// TODO: use deterministic ids to compare states
+private fun <T> compareByHash(): Comparator<T> = compareBy { it.hashCode() }
+
+fun <State : UState<*, *, *, *>> createWeightedPathSelector(type: WeightType, random: Random? = null): UPathSelector<State> {
+    if (random == null) {
+        return WeightedPathSelector({ VanillaPriorityQueue(compareByHash()) }) { it.path.size }
     }
 
-    val random = Random(randomSeed)
     // NB: Random never returns 1.0!
-    return WeightedPathSelector({ DiscretePdf({ random.nextFloat() }, compareBy()) }) { 1f / max(it.path.size, 1) }
+    return WeightedPathSelector({ DiscretePdf(compareByHash()) { random.nextFloat() } }) { 1f / max(it.path.size, 1) }
 }
