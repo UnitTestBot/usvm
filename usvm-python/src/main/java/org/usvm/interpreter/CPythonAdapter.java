@@ -3,10 +3,11 @@ package org.usvm.interpreter;
 import io.ksmt.expr.KExpr;
 import io.ksmt.sort.KBoolSort;
 import io.ksmt.sort.KIntSort;
+import org.usvm.language.Instruction;
 import org.usvm.language.Symbol;
 
-import static org.usvm.interpreter.CPythonAdapterHandlersKt.handlerForkResultKt;
-import static org.usvm.interpreter.CPythonAdapterHandlersKt.handlerGTLongKt;
+import static org.usvm.interpreter.operations.ForkKt.handlerForkKt;
+import static org.usvm.interpreter.operations.LongKt.*;
 
 @SuppressWarnings("unused")
 public class CPythonAdapter {
@@ -22,25 +23,93 @@ public class CPythonAdapter {
         System.loadLibrary("cpythonadapter");
     }
 
+    public static void handlerInstruction(ConcolicRunContext context, int instruction) {
+        context.instructionCounter++;
+        // TODO: check consistency
+        if (context.instructionCounter > context.curState.getPath().size())
+            context.curState.setPath(context.curState.getPath().add(new Instruction(instruction)));
+    }
+
     public static Symbol handlerLoadConstLong(ConcolicRunContext context, long value) {
         return new Symbol(context.ctx.mkIntNum(value));
     }
 
-    @SuppressWarnings("unchecked")
     public static void handlerFork(ConcolicRunContext context, Symbol cond) {
-        if (cond.expr.getSort() != context.ctx.getBoolSort()) {
-            context.openedCondition = null;
-        } else {
-            context.openedCondition = cond.expr;
-        }
-    }
-
-    public static void handlerForkResult(ConcolicRunContext context, boolean result) {
-        handlerForkResultKt(context.ctx, context.openedCondition, context.stepScope, result);
+        handlerForkKt(context, cond.expr);
     }
 
     public static Symbol handlerGTLong(ConcolicRunContext context, Symbol left, Symbol right) {
         KExpr<KBoolSort> res = handlerGTLongKt(context.ctx, left.expr, right.expr);
+        if (res == null)
+            return null;
+        return new Symbol(res);
+    }
+
+    public static Symbol handlerLTLong(ConcolicRunContext context, Symbol left, Symbol right) {
+        KExpr<KBoolSort> res = handlerLTLongKt(context.ctx, left.expr, right.expr);
+        if (res == null)
+            return null;
+        return new Symbol(res);
+    }
+
+    public static Symbol handlerEQLong(ConcolicRunContext context, Symbol left, Symbol right) {
+        KExpr<KBoolSort> res = handlerEQLongKt(context.ctx, left.expr, right.expr);
+        if (res == null)
+            return null;
+        return new Symbol(res);
+    }
+
+    public static Symbol handlerNELong(ConcolicRunContext context, Symbol left, Symbol right) {
+        KExpr<KBoolSort> res = handlerNELongKt(context.ctx, left.expr, right.expr);
+        if (res == null)
+            return null;
+        return new Symbol(res);
+    }
+
+    public static Symbol handlerGELong(ConcolicRunContext context, Symbol left, Symbol right) {
+        KExpr<KBoolSort> res = handlerGELongKt(context.ctx, left.expr, right.expr);
+        if (res == null)
+            return null;
+        return new Symbol(res);
+    }
+
+    public static Symbol handlerLELong(ConcolicRunContext context, Symbol left, Symbol right) {
+        KExpr<KBoolSort> res = handlerLELongKt(context.ctx, left.expr, right.expr);
+        if (res == null)
+            return null;
+        return new Symbol(res);
+    }
+
+    public static Symbol handlerADDLong(ConcolicRunContext context, Symbol left, Symbol right) {
+        KExpr<KIntSort> res = handlerADDLongKt(context.ctx, left.expr, right.expr);
+        if (res == null)
+            return null;
+        return new Symbol(res);
+    }
+
+    public static Symbol handlerSUBLong(ConcolicRunContext context, Symbol left, Symbol right) {
+        KExpr<KIntSort> res = handlerSUBLongKt(context.ctx, left.expr, right.expr);
+        if (res == null)
+            return null;
+        return new Symbol(res);
+    }
+
+    public static Symbol handlerMULLong(ConcolicRunContext context, Symbol left, Symbol right) {
+        KExpr<KIntSort> res = handlerMULLongKt(context.ctx, left.expr, right.expr);
+        if (res == null)
+            return null;
+        return new Symbol(res);
+    }
+
+    public static Symbol handlerDIVLong(ConcolicRunContext context, Symbol left, Symbol right) {
+        KExpr<KIntSort> res = handlerDIVLongKt(context.ctx, left.expr, right.expr);
+        if (res == null)
+            return null;
+        return new Symbol(res);
+    }
+
+    public static Symbol handlerREMLong(ConcolicRunContext context, Symbol left, Symbol right) {
+        KExpr<KIntSort> res = handlerREMLongKt(context.ctx, left.expr, right.expr);
         if (res == null)
             return null;
         return new Symbol(res);

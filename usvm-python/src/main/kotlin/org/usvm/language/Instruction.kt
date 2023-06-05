@@ -1,3 +1,3 @@
 package org.usvm.language
 
-class Instruction
+data class Instruction(val numberInBytecode: Int)
