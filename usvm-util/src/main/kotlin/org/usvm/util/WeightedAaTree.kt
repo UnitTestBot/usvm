@@ -1,10 +1,12 @@
 package org.usvm.util
 
+import java.util.*
 import kotlin.math.min
 
 data class AaTreeNode<T>(
     val value: T,
     val weight: Float,
+    val weightSum: Float,
     val level: Int,
     val left: AaTreeNode<T>?,
     val right: AaTreeNode<T>?
@@ -20,13 +22,14 @@ class WeightedAaTree<T>(private val comparator: Comparator<T>) {
 
     private fun AaTreeNode<T>.update(
         value: T = this.value,
+        weight: Float = this.weight,
         level: Int = this.level,
         left: AaTreeNode<T>? = this.left,
         right: AaTreeNode<T>? = this.right
     ): AaTreeNode<T> {
-        val leftWeight = left?.weight ?: 0f
-        val rightWeight = right?.weight ?: 0f
-        return AaTreeNode(value = value, weight = leftWeight + rightWeight + this.weight, level = level, left = left, right = right)
+        val leftWeightSum = left?.weightSum ?: 0f
+        val rightWeightSum = right?.weightSum ?: 0f
+        return AaTreeNode(value = value, weight = weight, weightSum = leftWeightSum + rightWeightSum + weight, level = level, left = left, right = right)
     }
 
     private fun AaTreeNode<T>.skew(): AaTreeNode<T> {
@@ -48,7 +51,7 @@ class WeightedAaTree<T>(private val comparator: Comparator<T>) {
     private tailrec fun addRec(value: T, weight: Float, insertTo: AaTreeNode<T>?, k: (AaTreeNode<T>) -> AaTreeNode<T>): AaTreeNode<T> {
         if (insertTo == null) {
             count++
-            return k(AaTreeNode(value, weight, 1, null, null))
+            return k(AaTreeNode(value, weight, weight, 1, null, null))
         }
 
         val compareResult = comparator.compare(value, insertTo.value)
@@ -63,14 +66,19 @@ class WeightedAaTree<T>(private val comparator: Comparator<T>) {
     }
 
     private fun AaTreeNode<T>.decreaseLevel(): AaTreeNode<T> {
-        checkNotNull(right)
-
-        val shouldBe = min(left?.level ?: 0, right.level) + 1
-        if (level >= shouldBe) {
+        val shouldBe = min(left?.level ?: 0, right?.level ?: 0) + 1
+        if (shouldBe >= level) {
             return this
         }
 
-        val updatedRight = if (shouldBe >= right.level) right else right.update(level = shouldBe)
+        val updatedRight =
+            if (shouldBe >= (right?.level ?: 0)) {
+                right
+            } else {
+                checkNotNull(right)
+                right.update(level = shouldBe)
+            }
+
         return update(level = shouldBe, right = updatedRight)
     }
 
@@ -144,5 +152,24 @@ class WeightedAaTree<T>(private val comparator: Comparator<T>) {
         val prevCount = count
         root = removeRec(value, root) { it }
         return prevCount != count
+    }
+
+    fun preOrderTraversal(): Sequence<AaTreeNode<T>> {
+        val currentRoot = root ?: return emptySequence()
+        var node: AaTreeNode<T>
+        val stack = Stack<AaTreeNode<T>>()
+        stack.push(currentRoot)
+        return sequence {
+            while (stack.isNotEmpty()) {
+                node = stack.pop()
+                yield(node)
+                if (node.right != null) {
+                    stack.push(node.right)
+                }
+                if (node.left != null) {
+                    stack.push(node.left)
+                }
+            }
+        }
     }
 }
