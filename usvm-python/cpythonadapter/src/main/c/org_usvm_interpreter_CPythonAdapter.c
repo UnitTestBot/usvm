@@ -76,10 +76,10 @@ JNIEXPORT int JNICALL Java_org_usvm_interpreter_CPythonAdapter_concolicRun(
     ConcolicContext ctx;
 
     PyObject *function = (PyObject *) function_ref;
-    printf("CONCOLIC RUN on \n");
-    PyObject_Print(function, stdout, 0);
-    printf("\n");
-    fflush(stdout);
+    //printf("CONCOLIC RUN on \n");
+    //PyObject_Print(function, stdout, 0);
+    //printf("\n");
+    //fflush(stdout);
 
     construct_concolic_context(env, context, cpython_adapter, &ctx);
     SymbolicAdapter *adapter = create_new_adapter(handler, &ctx);

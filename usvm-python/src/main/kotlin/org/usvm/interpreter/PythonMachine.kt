@@ -3,10 +3,12 @@ package org.usvm.interpreter
 import org.usvm.UContext
 import org.usvm.UMachine
 import org.usvm.UPathSelector
+import org.usvm.constraints.UPathConstraints
 import org.usvm.language.Attribute
 import org.usvm.language.Callable
 import org.usvm.language.PythonProgram
 import org.usvm.language.PythonType
+import org.usvm.memory.UMemoryBase
 import org.usvm.ps.DfsPathSelector
 
 class PythonMachine(
@@ -21,12 +23,20 @@ class PythonMachine(
     override fun getInterpreter(target: Callable): USVMPythonInterpreter =
         USVMPythonInterpreter(ctx, globals, target)
 
-    @Suppress("UNUSED_PARAMETER")
     private fun getInitialState(target: Callable): PythonExecutionState {
+        val pathConstraints = UPathConstraints<PythonType>(ctx)
+        val memory = UMemoryBase<Attribute, PythonType, Callable>(
+            ctx,
+            pathConstraints.typeConstraints
+        ).apply {
+            stack.push(target.numberOfArguments)
+        }
         return PythonExecutionState(
             ctx,
             target,
-            models = listOf(solver.emptyModel())
+            pathConstraints,
+            memory,
+            listOf(solver.emptyModel())
         )
     }
 
@@ -43,7 +53,7 @@ class PythonMachine(
             callable,
             onState = { cnt += 1 },
             continueAnalyzing = { !it.wasExecuted },
-            shouldStop = { cnt >= 100 }
+            shouldStop = { cnt >= 1000 }
         )
     }
 
