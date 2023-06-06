@@ -1,0 +1,77 @@
+[
+    {
+        "c_name": "instruction",
+        "java_name": "handlerInstruction",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;I)V"
+    },
+    {
+        "c_name": "load_const_long",
+        "java_name": "handlerLoadConstLong",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;J)Lorg/usvm/language/Symbol;"
+    },
+    {
+        "c_name": "fork",
+        "java_name": "handlerFork",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/Symbol;)V"
+    },
+    {
+        "c_name": "gt_long",
+        "java_name": "handlerGTLong",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/Symbol;Lorg/usvm/language/Symbol;)Lorg/usvm/language/Symbol;"
+    },
+    {
+        "c_name": "lt_long",
+        "java_name": "handlerLTLong",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/Symbol;Lorg/usvm/language/Symbol;)Lorg/usvm/language/Symbol;"
+    },
+    {
+        "c_name": "eq_long",
+        "java_name": "handlerEQLong",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/Symbol;Lorg/usvm/language/Symbol;)Lorg/usvm/language/Symbol;"
+    },
+    {
+        "c_name": "ne_long",
+        "java_name": "handlerNELong",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/Symbol;Lorg/usvm/language/Symbol;)Lorg/usvm/language/Symbol;"
+    },
+    {
+        "c_name": "le_long",
+        "java_name": "handlerLELong",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/Symbol;Lorg/usvm/language/Symbol;)Lorg/usvm/language/Symbol;"
+    },
+    {
+        "c_name": "ge_long",
+        "java_name": "handlerGELong",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/Symbol;Lorg/usvm/language/Symbol;)Lorg/usvm/language/Symbol;"
+    },
+    {
+        "c_name": "add_long",
+        "java_name": "handlerADDLong",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/Symbol;Lorg/usvm/language/Symbol;)Lorg/usvm/language/Symbol;"
+    },
+    {
+        "c_name": "sub_long",
+        "java_name": "handlerSUBLong",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/Symbol;Lorg/usvm/language/Symbol;)Lorg/usvm/language/Symbol;"
+    },
+    {
+        "c_name": "mul_long",
+        "java_name": "handlerMULLong",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/Symbol;Lorg/usvm/language/Symbol;)Lorg/usvm/language/Symbol;"
+    },
+    {
+        "c_name": "div_long",
+        "java_name": "handlerDIVLong",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/Symbol;Lorg/usvm/language/Symbol;)Lorg/usvm/language/Symbol;"
+    },
+    {
+        "c_name": "rem_long",
+        "java_name": "handlerREMLong",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/Symbol;Lorg/usvm/language/Symbol;)Lorg/usvm/language/Symbol;"
+    },
+    {
+        "c_name": "pow_long",
+        "java_name": "handlerPOWLong",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/Symbol;Lorg/usvm/language/Symbol;)Lorg/usvm/language/Symbol;"
+    }
+]
