@@ -1,6 +1,6 @@
 #include <jni.h>
 #include "Python.h"
-#include "CPythonAdapterMethods.h"
+#include "CPythonAdapterMethods.h"  // this is generated in Gradle script from "handler_defs.json"
 
 #ifndef _Included_CPythonAdapter_utils
 #define _Included_CPythonAdapter_utils

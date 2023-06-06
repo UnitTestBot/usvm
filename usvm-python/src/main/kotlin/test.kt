@@ -11,6 +11,8 @@ fun main() {
     val program = PythonProgram(
         """
         def f(x, y, z):
+            if x ** 2 == 4:
+                return -1
             if x + y > 100:
                 return 0
             y += 10 ** 9

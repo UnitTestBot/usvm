@@ -10,6 +10,7 @@ fun handlerForkKt(ctx: ConcolicRunContext, cond: UExpr<*>?) {
     with (ctx.ctx) {
         if (cond.sort != boolSort)
             return
+        //println("Fork on: $cond")
         val model = ctx.curState.models.first()
         val oldCurState = ctx.curState
         @Suppress("unchecked_cast")
@@ -23,5 +24,8 @@ fun handlerForkKt(ctx: ConcolicRunContext, cond: UExpr<*>?) {
         }
         if (forkResult.negativeState != oldCurState)
             forkResult.negativeState?.let { ctx.forkedStates.add(it) }
+
+        //println("RESULT: ${forkResult.positiveState} ${forkResult.negativeState} ${ctx.curState}")
+        //System.out.flush()
     }
 }
