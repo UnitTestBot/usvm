@@ -1,14 +1,11 @@
 package org.usvm.ps.statistics
 
-import org.usvm.ApplicationGraph
 import org.usvm.UState
-import java.util.concurrent.ConcurrentHashMap
+import org.usvm.statistics.ApplicationGraph
 
 abstract class Statistics<Method, Statement>(
     protected val graph: ApplicationGraph<Method, Statement>,
 ) {
-    private val observers: MutableSet<StatisticsObserver> = ConcurrentHashMap.newKeySet()
-
     private val coveredStatements: MutableSet<Statement> = hashSetOf()
 
     private val visitedMethods: MutableSet<Method> = hashSetOf()
@@ -44,32 +41,6 @@ abstract class Statistics<Method, Statement>(
     }
 
     abstract fun recalculate()
-
-    /**
-     * Subscribe to this statistics to track possible updates.
-     * If any occur, [notifyObserversAboutChange] will be called on the [observer].
-     */
-    fun subscribe(observer: StatisticsObserver) {
-        observers += observer
-    }
-
-    /**
-     * Remove [observer] from the list of [observers],
-     * it will no longer receive information about the statistics update.
-     */
-    fun unsubscribe(observer: StatisticsObserver) {
-        observers -= observer
-    }
-
-    /**
-     * Call this function if some changes occurred in the current statistics instance.
-     * Some observers may rely on statistics state and need to be updated.
-     */
-    protected fun notifyObserversAboutChange() {
-        observers.forEach {
-            it.updateOnStatisticsChange()
-        }
-    }
 
     private fun markStatementAsCovered(statement: Statement) {
         synchronized(writeLockForCoveredStatements) {

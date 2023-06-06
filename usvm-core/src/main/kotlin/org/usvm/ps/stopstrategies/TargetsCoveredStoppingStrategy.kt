@@ -1,7 +1,7 @@
 package org.usvm.ps.stopstrategies
 
-import org.usvm.ApplicationGraph
 import org.usvm.ps.statistics.Statistics
+import org.usvm.statistics.ApplicationGraph
 
 class TargetsCoveredStoppingStrategy<Method, Statement>(
     methods: List<Method>,
@@ -13,6 +13,29 @@ class TargetsCoveredStoppingStrategy<Method, Statement>(
 
     val uncoveredStatementsCount get() = uncoveredStatements.size
 
+<<<<<<< f42416ecdce887badc21e79d80d1fe85cd377b1e:usvm-core/src/main/kotlin/org/usvm/ps/stopstrategies/TargetsCoveredStoppingStrategy.kt
+=======
+    private fun findAllStatementsOfMethod(method: Method): Collection<Statement> {
+        val entryStatements = graph.entryPoints(method)
+        val statements = entryStatements.toMutableSet()
+
+        val queue = ArrayDeque(entryStatements.toList())
+
+        while (queue.isNotEmpty()) {
+            val statement = queue.removeLast()
+            val successors = graph.successors(statement)
+            for (successor in successors) {
+                if (successor !in statements) {
+                    statements += successor
+                    queue += successor
+                }
+            }
+        }
+
+        return statements
+    }
+
+>>>>>>> Add shortest distance to targets weighter:usvm-core/src/main/kotlin/org/usvm/ps/stopstregies/TargetsCoveredStoppingStrategy.kt
     override fun shouldStop(): Boolean = uncoveredStatements.isEmpty()
 
     override fun onStatementVisit(statement: Statement) {
