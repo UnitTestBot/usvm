@@ -45,7 +45,7 @@ class SampleMachine(
         return collectedStates.map { resultModelConverter.convert(it, method) }
     }
 
-    fun getPathSelector(target: Method<*>): UPathSelector<SampleState> {
+    private fun getPathSelector(target: Method<*>): UPathSelector<SampleState> {
         val ps = DfsPathSelector<SampleState>()
         val initialState = getInitialState(target)
         ps.add(listOf(initialState))

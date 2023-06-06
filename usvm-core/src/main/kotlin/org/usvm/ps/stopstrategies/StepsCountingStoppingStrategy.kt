@@ -1,7 +1,7 @@
 package org.usvm.ps.stopstrategies
 
-import org.usvm.ApplicationGraph
 import org.usvm.ps.statistics.Statistics
+import org.usvm.statistics.ApplicationGraph
 
 class StepsCountingStoppingStrategy<Method, Statement>(
     graph: ApplicationGraph<Method, Statement>,

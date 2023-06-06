@@ -1,15 +1,7 @@
 package org.usvm.machine
 
-import org.usvm.ApplicationGraph
-import org.usvm.language.Call
-import org.usvm.language.Goto
-import org.usvm.language.If
-import org.usvm.language.Method
-import org.usvm.language.Program
-import org.usvm.language.Return
-import org.usvm.language.SetLabel
-import org.usvm.language.SetValue
-import org.usvm.language.Stmt
+import org.usvm.language.*
+import org.usvm.statistics.ApplicationGraph
 
 class SampleApplicationGraph(
     program: Program,
@@ -122,7 +114,7 @@ class SampleApplicationGraph(
         return info.callers.asSequence()
     }
 
-    override fun entryPoint(method: Method<*>): Sequence<Stmt> {
+    override fun entryPoints(method: Method<*>): Sequence<Stmt> {
         val info = lazyGetMethodInfo(method)
         return listOfNotNull(info.entryPoint).asSequence()
     }

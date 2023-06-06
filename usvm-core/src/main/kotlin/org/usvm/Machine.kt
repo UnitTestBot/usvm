@@ -13,6 +13,7 @@ abstract class UMachine<State> : AutoCloseable {
      * The main entry point. Template method for running the machine on a specified [target].
      *
      * @param target a generic target to run on.
+     * TODO: rewrite
      * @param onState called on every forked state. Can be used for collecting results.
      * @param continueAnalyzing filtering function for states. If it returns `false`, a state
      * won't be analyzed further. It is called on an original state and every forked state as well.
