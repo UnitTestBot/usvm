@@ -99,7 +99,9 @@ class UTypeConstraints<Type>(
                     for ((key, value) in symbolicTypes.entries) {
                         // TODO: cache intersections?
                         if (key != ref && value.intersect(newConstraints).isEmpty) {
-                            equalityConstraints.addReferenceDisequality(ref, key)
+                            // If we have two inputs of incomparable reference types, then they are either equal,
+                            // or both nulls
+                            equalityConstraints.makeNonEqualOrBothNull(ref, key)
                         }
                     }
                     this[ref] = newConstraints

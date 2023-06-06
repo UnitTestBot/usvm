@@ -10,7 +10,7 @@ package org.usvm.util
 class DisjointSets<T> private constructor(
     private val parent: MutableMap<T, T>,
     private val rank: MutableMap<T, Int>,
-    private var unionCallback: ((T, T) -> Unit)?
+    private var unionCallback: ((T, T) -> Unit)?,
 ) : Iterable<Map.Entry<T, T>> by parent.entries {
     constructor() : this(mutableMapOf(), mutableMapOf(), unionCallback = null)
 

@@ -69,6 +69,23 @@ open class USolverBase<Field, Type, Method>(
                 }
             }
         }
+
+        processedConstraints.clear()
+        val translatedNull = translator.transform(ctx.nullRef)
+        for ((ref1, disequalRefs) in constraints.nullableDisequalities.entries) {
+            for (ref2 in disequalRefs) {
+                if (!processedConstraints.contains(ref2 to ref1)) {
+                    processedConstraints.add(ref1 to ref2)
+                    val translatedRef1 = translator.translate(ref1)
+                    val translatedRef2 = translator.translate(ref2)
+
+                    val disequalityConstraint = ctx.mkNot(ctx.mkEq(translatedRef1, translatedRef2))
+                    val nullConstraint1 = ctx.mkEq(translatedRef1, translatedNull)
+                    val nullConstraint2 = ctx.mkEq(translatedRef2, translatedNull)
+                    smtSolver.assert(ctx.mkOr(disequalityConstraint, ctx.mkAnd(nullConstraint1, nullConstraint2)))
+                }
+            }
+        }
     }
 
     protected fun translateToSmt(pc: UPathConstraints<Type>) {
