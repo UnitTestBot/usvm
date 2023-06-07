@@ -35,5 +35,5 @@ data class UTestExecutionExceptionResult(
 data class UTestExecutionState(
     val instanceDescriptor: UTestValueDescriptor?,
     val argsDescriptors: List<UTestValueDescriptor?>?,
-    val statics: Map<JcField, UTestValueDescriptor>
+    val statics: MutableMap<JcField, UTestValueDescriptor>
 )

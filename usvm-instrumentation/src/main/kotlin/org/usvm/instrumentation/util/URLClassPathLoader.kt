@@ -1,8 +1,7 @@
-@file:Suppress("JAVA_MODULE_DOES_NOT_EXPORT_PACKAGE", "removal")
 package org.usvm.instrumentation.util
 
-import jdk.internal.loader.Resource as InternalResource
-import jdk.internal.loader.URLClassPath
+import sun.misc.Resource as InternalResource
+import sun.misc.URLClassPath
 import java.io.File
 import java.io.InputStream
 import java.net.URL
