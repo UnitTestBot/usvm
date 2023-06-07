@@ -235,13 +235,16 @@ data class USymbolicMemoryRegion<out RegionId : URegionId<Key, Sort, RegionId>, 
     ) {
         mergeNode.region.applyTo(heap)
 
+        val keyIncludesCheck = mergeNode.keyIncludesCheck
+        keyIncludesCheck.region.applyTo(heap)
+
         val regionId = mergeNode.region.regionId
         val srcRef = mergeNode.keyConverter.srcRef
         val dstRef = mergeNode.keyConverter.dstRef
 
         heap.mergeSymbolicMap(
             regionId.descriptor,
-            mergeNode.keyOverwritesCheck.descriptor.uncheckedCast(),
+            keyIncludesCheck.descriptor.uncheckedCast(),
             srcRef,
             dstRef,
             mergeNode.guard
@@ -267,11 +270,11 @@ data class USymbolicMemoryRegion<out RegionId : URegionId<Key, Sort, RegionId>, 
     fun <OtherRegionId : USymbolicMapId<SrcKey, KeySort, Reg, Sort, OtherRegionId>,
             SrcKey, KeySort : USort, Reg : Region<Reg>> mergeWithRegion(
         fromRegion: USymbolicMemoryRegion<OtherRegionId, SrcKey, Sort>,
-        keyOverwritesCheck: UMergeKeyOverwriteCheck<SrcKey, KeySort>,
+        keyIncludesCheck: UMergeKeyIncludesCheck<SrcKey, KeySort>,
         keyConverter: UMergeKeyConverter<SrcKey, Key>,
         guard: UBoolExpr
     ): USymbolicMemoryRegion<RegionId, Key, Sort> {
-        val updatesCopy = updates.mergeWithRegion(fromRegion, keyOverwritesCheck, keyConverter, guard)
+        val updatesCopy = updates.mergeWithRegion(fromRegion, keyIncludesCheck, keyConverter, guard)
         return this.copy(updates = updatesCopy)
     }
 
