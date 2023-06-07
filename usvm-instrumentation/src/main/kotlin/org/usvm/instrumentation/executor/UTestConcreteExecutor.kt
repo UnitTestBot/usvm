@@ -13,6 +13,7 @@ import org.usvm.instrumentation.testcase.statement.UTestExecutionFailedResult
 import org.usvm.instrumentation.testcase.statement.UTestExecutionResult
 import org.usvm.instrumentation.testcase.statement.UTestExecutionTimedOutResult
 import org.usvm.instrumentation.util.InstrumentationModuleConstants
+import java.util.concurrent.TimeoutException
 import kotlin.reflect.KClass
 import kotlin.time.Duration
 
@@ -49,7 +50,7 @@ class UTestConcreteExecutor(
     fun executeSync(uTest: UTest): UTestExecutionResult {
         return try {
             instrumentationProcessRunner.executeUTestSync(uTest, timeout)
-        } catch (e: TimeoutCancellationException) {
+        } catch (e: TimeoutException) {
             UTestExecutionTimedOutResult(e.message ?: "timeout")
         } catch (e: RdFault) {
             UTestExecutionFailedResult(e.reasonAsText)
