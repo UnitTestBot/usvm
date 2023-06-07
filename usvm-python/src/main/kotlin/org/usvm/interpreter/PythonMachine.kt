@@ -12,16 +12,17 @@ import org.usvm.memory.UMemoryBase
 import org.usvm.ps.DfsPathSelector
 
 class PythonMachine(
-    private val program: PythonProgram,
+    program: PythonProgram,
 ): UMachine<PythonExecutionState, Callable>() {
     private val ctx = UContext(PythonComponents)
     private val globals = ConcretePythonInterpreter.getNewNamespace()
-    private val solver = ctx.solver<Attribute, PythonType, Callable>()
+    val solver = ctx.solver<Attribute, PythonType, Callable>()
+    private val iterationCounter = IterationCounter()
     init {
         ConcretePythonInterpreter.concreteRun(globals, program.asString)
     }
     override fun getInterpreter(target: Callable): USVMPythonInterpreter =
-        USVMPythonInterpreter(ctx, globals, target)
+        USVMPythonInterpreter(ctx, globals, target, iterationCounter)
 
     private fun getInitialState(target: Callable): PythonExecutionState {
         val pathConstraints = UPathConstraints<PythonType>(ctx)
@@ -47,14 +48,15 @@ class PythonMachine(
         return ps
     }
 
-    fun analyze(callable: Callable) {
+    fun analyze(callable: Callable): Int {
         var cnt = 0
         run(
             callable,
             onState = { cnt += 1 },
             continueAnalyzing = { !it.wasExecuted },
-            shouldStop = { cnt >= 1000 }
+            shouldStop = { cnt >= 10 }
         )
+        return iterationCounter.iterations
     }
 
     override fun close() {
@@ -62,3 +64,5 @@ class PythonMachine(
         ctx.close()
     }
 }
+
+data class IterationCounter(var iterations: Int = 0)

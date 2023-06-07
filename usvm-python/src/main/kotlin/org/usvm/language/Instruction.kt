@@ -1,3 +1,9 @@
 package org.usvm.language
 
-data class Instruction(val numberInBytecode: Int)
+sealed class PythonInstruction
+data class PythonOPCODE(val numberInBytecode: Int): PythonInstruction()
+data class MethodQuery(
+    val methodId: Int,
+    val operands: List<SymbolForCPython>,
+    val result: SymbolForCPython
+): PythonInstruction()
