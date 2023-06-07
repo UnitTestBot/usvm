@@ -4,13 +4,19 @@ import org.usvm.language.Callable
 import org.usvm.language.PythonProgram
 
 fun main() {
-    val globals = ConcretePythonInterpreter.getNewNamespace()
-    ConcretePythonInterpreter.concreteRun(globals, "x = 10 ** 100")
-    ConcretePythonInterpreter.concreteRun(globals, "print('Hello from Python!\\nx is', x, flush=True)")
+    //val globals = ConcretePythonInterpreter.getNewNamespace()
+    //ConcretePythonInterpreter.concreteRun(globals, "x = 10 ** 100")
+    //ConcretePythonInterpreter.concreteRun(globals, "print('Hello from Python!\\nx is', x, flush=True)")
 
     val program = PythonProgram(
         """
         def f(x, y, z):
+            while y < 10 ** 5:
+               y += 1
+            if x == y or z == y:
+               return 1
+            return 2
+            ${"\"\"\""}
             if x ** 2 == 4:
                 return -1
             if x + y > 100:
@@ -34,9 +40,13 @@ fun main() {
                 return 8
             else:
                 return 9
+            ${"\"\"\""}
         """.trimIndent()
     )
     val function = Callable.constructCallableFromName(3, "f")
     val machine = PythonMachine(program)
-    machine.use { it.analyze(function) }
+    val start = System.currentTimeMillis()
+    val iterations = machine.use { it.analyze(function) }
+    println("Finished in ${System.currentTimeMillis() - start} milliseconds. Made $iterations iterations.")
+    println("${machine.solver.cnt}")
 }
