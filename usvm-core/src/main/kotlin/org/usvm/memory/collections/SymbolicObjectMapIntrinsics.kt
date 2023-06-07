@@ -26,7 +26,7 @@ object SymbolicObjectMapIntrinsics {
     ): UHeapRef = with(memory.heap) {
         allocate().also { ref ->
             val valueDescriptor = ctx.valueDescriptor(elementSort)
-            writeSymbolicMapLength(valueDescriptor, ref, ctx.mkBv(0))
+            writeSymbolicMapLength(valueDescriptor, ref, size = ctx.mkBv(0), guard = ctx.trueExpr)
         }
     }
 
@@ -63,11 +63,10 @@ object SymbolicObjectMapIntrinsics {
         val oldSize = readSymbolicMapLength(valueDescriptor, mapRef)
         val increasedSize = ctx.mkBvAddExpr(oldSize, ctx.mkBv(1))
         val keyIsInMap = readSymbolicMap(containsDescriptor, mapRef, keyId).asExpr(ctx.boolSort)
-        val newSize = ctx.mkIte(keyIsInMap, oldSize, increasedSize)
 
         writeSymbolicMap(valueDescriptor, mapRef, keyId, value, guard = ctx.trueExpr)
         writeSymbolicMap(containsDescriptor, mapRef, keyId, value = ctx.trueExpr, guard = ctx.trueExpr)
-        writeSymbolicMapLength(valueDescriptor, mapRef, newSize)
+        writeSymbolicMapLength(valueDescriptor, mapRef, increasedSize, guard = keyIsInMap)
     }
 
     fun UState<*, *, *, *>.symbolicObjectMapSize(
@@ -91,11 +90,10 @@ object SymbolicObjectMapIntrinsics {
         val oldSize = readSymbolicMapLength(valueDescriptor, mapRef)
         val decreasedSize = ctx.mkBvSubExpr(oldSize, ctx.mkBv(1))
         val keyIsInMap = readSymbolicMap(containsDescriptor, mapRef, keyId).asExpr(ctx.boolSort)
-        val newSize = ctx.mkIte(keyIsInMap, decreasedSize, oldSize)
 
         // todo: skip values update?
         writeSymbolicMap(containsDescriptor, mapRef, keyId, value = ctx.falseExpr, guard = ctx.trueExpr)
-        writeSymbolicMapLength(valueDescriptor, mapRef, newSize)
+        writeSymbolicMapLength(valueDescriptor, mapRef, decreasedSize, guard = keyIsInMap)
     }
 
     fun UState<*, *, *, *>.symbolicObjectMapMergeInto(
@@ -130,7 +128,7 @@ object SymbolicObjectMapIntrinsics {
         val sizeUpperBound = ctx.mkBvAddExpr(srcMapSize, dstMapSize)
         pathConstraints += ctx.mkBvSignedGreaterOrEqualExpr(mergedMapSize, sizeLowerBound)
         pathConstraints += ctx.mkBvSignedGreaterOrEqualExpr(mergedMapSize, sizeUpperBound)
-        writeSymbolicMapLength(valueDescriptor, dstRef, mergedMapSize)
+        writeSymbolicMapLength(valueDescriptor, dstRef, mergedMapSize, guard = ctx.trueExpr)
     }
 
     // todo: use identity equality instead of reference equality

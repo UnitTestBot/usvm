@@ -17,7 +17,7 @@ object SymbolicListIntrinsics {
     ): UHeapRef = with(memory.heap) {
         allocate().also { ref ->
             val descriptor = ctx.listDescriptor(elementSort)
-            writeSymbolicMapLength(descriptor, ref, ctx.mkBv(0))
+            writeSymbolicMapLength(descriptor, ref, size = ctx.mkBv(0), guard = ctx.trueExpr)
         }
     }
 
@@ -41,7 +41,7 @@ object SymbolicListIntrinsics {
         val newSize = ctx.mkBvAddExpr(oldSize, ctx.mkBv(1))
 
         writeSymbolicMap(descriptor, listRef, oldSize, value, guard = ctx.trueExpr)
-        writeSymbolicMapLength(descriptor, listRef, newSize)
+        writeSymbolicMapLength(descriptor, listRef, newSize, guard = ctx.trueExpr)
     }
 
     fun UState<*, *, *, *>.symbolicListSet(
@@ -77,7 +77,7 @@ object SymbolicListIntrinsics {
         )
 
         writeSymbolicMap(descriptor, listRef, index, value, guard = ctx.trueExpr)
-        writeSymbolicMapLength(descriptor, listRef, newSize)
+        writeSymbolicMapLength(descriptor, listRef, newSize, guard = ctx.trueExpr)
     }
 
     fun UState<*, *, *, *>.symbolicListCopy(

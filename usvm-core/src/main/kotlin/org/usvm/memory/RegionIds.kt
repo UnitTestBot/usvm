@@ -430,8 +430,7 @@ data class UInputSymbolicMapLengthId internal constructor(
         value: UExpr<USizeSort>,
         guard: UBoolExpr,
     ) {
-        assert(guard.isTrue)
-        heap.writeSymbolicMapLength(descriptor, key, value)
+        heap.writeSymbolicMapLength(descriptor, key, value, guard)
     }
 
     override fun <Field, ArrayType> keyMapper(

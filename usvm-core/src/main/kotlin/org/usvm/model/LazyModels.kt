@@ -249,8 +249,12 @@ class ULazyHeapModel<Field, ArrayType>(
         guard: UBoolExpr
     ) = error("Illegal operation for a model")
 
-    override fun writeSymbolicMapLength(descriptor: USymbolicMapDescriptor<*, *, *>, ref: UHeapRef, size: USizeExpr) =
-        error("Illegal operation for a model")
+    override fun writeSymbolicMapLength(
+        descriptor: USymbolicMapDescriptor<*, *, *>,
+        ref: UHeapRef,
+        size: USizeExpr,
+        guard: UBoolExpr
+    ) = error("Illegal operation for a model")
 
     override fun <Sort : USort> memcpy(
         srcRef: UHeapRef,
