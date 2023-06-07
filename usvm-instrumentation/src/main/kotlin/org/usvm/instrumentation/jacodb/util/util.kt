@@ -3,8 +3,11 @@ package org.usvm.instrumentation.jacodb.util
 import getFieldByName
 import org.jacodb.api.*
 import org.jacodb.api.cfg.JcInst
+import org.jacodb.api.ext.jcdbName
 import org.jacodb.api.ext.jcdbSignature
 import org.jacodb.api.ext.toType
+import org.jacodb.impl.cfg.util.isArray
+import org.jacodb.impl.cfg.util.isPrimitive
 import org.jacodb.impl.types.TypeNameImpl
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
@@ -74,7 +77,42 @@ fun findClassInLoader(name: String, classLoader: ClassLoader): Class<*>? =
 fun JcField.toJavaField(classLoader: ClassLoader): Field =
     enclosingClass.toType().toJavaClass(classLoader).getFieldByName(name)
 
+fun JcClassOrInterface.isAllStaticsAreEasyToRollback(): Boolean {
+    val statics = declaredFields.filter { it.isStatic }
+    for (s in statics) {
+        val typeName = s.type
+        val isPrimitive = typeName.isPrimitive || typeName.isPrimitiveWrapper() || this.classpath.stringType().getTypename() == typeName
+        val isArrayOfPrimitive = typeName.isArray && (typeName.elementType().isPrimitive || typeName.elementType().isPrimitiveWrapper())
+        if (!isPrimitive && !isArrayOfPrimitive) return false
+    }
+    return true
+}
+
+private fun String.typeName(): TypeName = TypeNameImpl(this.jcdbName())
+private fun TypeName.elementType() = elementTypeOrNull() ?: this
+
+private val NULL = "null".typeName()
+private fun TypeName.elementTypeOrNull() = when {
+    this == NULL -> NULL
+    typeName.endsWith("[]") -> typeName.removeSuffix("[]").typeName()
+    else -> null
+}
+
 fun TypeName.toJcType(jcClasspath: JcClasspath): JcType? = jcClasspath.findTypeOrNull(typeName)
+fun TypeName.toJcClassOrInterface(jcClasspath: JcClasspath): JcClassOrInterface? = jcClasspath.findClassOrNull(typeName)
+
+fun TypeName.isPrimitiveWrapper() =
+    when (this.typeName) {
+        Boolean::class.javaObjectType.name -> true
+        Byte::class.javaObjectType.name -> true
+        Short::class.javaObjectType.name -> true
+        Int::class.javaObjectType.name -> true
+        Long::class.javaObjectType.name -> true
+        Float::class.javaObjectType.name -> true
+        Double::class.javaObjectType.name -> true
+        Char::class.javaObjectType.name -> true
+        else -> false
+    }
 
 fun JcMethod.toJavaMethod(classLoader: ClassLoader): Method {
     val klass = Class.forName(enclosingClass.name, true, classLoader)
