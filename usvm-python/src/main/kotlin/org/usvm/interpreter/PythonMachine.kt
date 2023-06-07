@@ -54,7 +54,7 @@ class PythonMachine(
             callable,
             onState = { cnt += 1 },
             continueAnalyzing = { !it.wasExecuted },
-            shouldStop = { cnt >= 10 }
+            shouldStop = { cnt >= 1000 }
         )
         return iterationCounter.iterations
     }
