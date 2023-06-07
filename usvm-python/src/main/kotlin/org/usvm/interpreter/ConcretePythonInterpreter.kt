@@ -1,8 +1,7 @@
 package org.usvm.interpreter
 
-import org.usvm.UContext
 import org.usvm.UExpr
-import org.usvm.language.Symbol
+import org.usvm.language.SymbolForCPython
 
 object ConcretePythonInterpreter {
     private val pythonAdapter = CPythonAdapter()
@@ -33,7 +32,7 @@ object ConcretePythonInterpreter {
             globals.address,
             functionRef.address,
             concreteArgs.map { it.address }.toLongArray(),
-            Array(symbolicArgs.size) { Symbol(symbolicArgs[it]) },
+            Array(symbolicArgs.size) { SymbolForCPython(symbolicArgs[it]) },
             ctx
         )
         if (result != 0)

@@ -14,10 +14,10 @@ class PythonExecutionState(
     pathConstraints: UPathConstraints<PythonType>,
     memory: UMemoryBase<Attribute, PythonType, Callable>,
     models: List<UModel>,
-    callStack: UCallStack<Callable, Instruction> = UCallStack(),
-    path: PersistentList<Instruction> = persistentListOf()
-): UState<PythonType, Attribute, Callable, Instruction>(ctx, callStack, pathConstraints, memory, models, path) {
-    override fun clone(newConstraints: UPathConstraints<PythonType>?): UState<PythonType, Attribute, Callable, Instruction> {
+    callStack: UCallStack<Callable, PythonInstruction> = UCallStack(),
+    path: PersistentList<PythonInstruction> = persistentListOf()
+): UState<PythonType, Attribute, Callable, PythonInstruction>(ctx, callStack, pathConstraints, memory, models, path) {
+    override fun clone(newConstraints: UPathConstraints<PythonType>?): UState<PythonType, Attribute, Callable, PythonInstruction> {
         val newPathConstraints = newConstraints ?: pathConstraints.clone()
         val newMemory = memory.clone(newPathConstraints.typeConstraints)
         return PythonExecutionState(
