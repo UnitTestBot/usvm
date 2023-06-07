@@ -96,26 +96,13 @@ class ProcessRunner(
         return RdServerProcess(process, lifetime, protocol, model)
     }
 
-
-    @OptIn(ExperimentalTime::class)
     private fun <TReq, Tres> RdCall<TReq, Tres>.fastSync(
         lifetime: Lifetime, request: TReq, timeout: Duration
     ): Tres {
-        println("START TIME = ${System.nanoTime()}")
         val task = start(lifetime, request, SynchronousScheduler)
-        return measureTimedValue { task.wait(timeout.inWholeMilliseconds).unwrap() }.also { println("W = ${it.duration}") }.value
+        return task.wait(timeout.inWholeMilliseconds).unwrap()
     }
 
-    /**
-     * We use future instead of internal rd SpinWait based implementation
-     * because usually requests don't fit into the `fast` time window, but
-     * the response time is still much faster than `wait` time.
-     *
-     * For example, we usually see the following pattern:
-     * 1. SpinWait performs 100 spins in less than 10us and forces the thread to sleep for the next 1ms.
-     * 2. We receive a response in 80us.
-     * 3. We are waiting for the processing of the response for the next 920us.
-     * */
     private fun <T> IRdTask<T>.wait(timeoutMs: Long): RdTaskResult<T> {
         val future = CompletableFuture<RdTaskResult<T>>()
         result.advise(lifetime) {
