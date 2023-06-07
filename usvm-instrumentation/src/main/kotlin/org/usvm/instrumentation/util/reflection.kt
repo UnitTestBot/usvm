@@ -107,9 +107,8 @@ var Field.isFinal: Boolean
     get() = (this.modifiers and Modifier.FINAL) == Modifier.FINAL
     set(value) {
         if (value == this.isFinal) return
+        // In java 9+ use varhandles
         val modifiersField = this.javaClass.getDeclaredField("modifiers")
         modifiersField.isAccessible = true
         modifiersField.setInt(this, this.modifiers and if (value) Modifier.FINAL else Modifier.FINAL.inv())
     }
-
-
