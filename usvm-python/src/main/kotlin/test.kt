@@ -11,14 +11,6 @@ fun main() {
     val program = PythonProgram(
         """
         def f(x, y, z):
-            while y < 10 ** 5:
-               y += 1
-            if x == y or z == y:
-               return 1
-            return 2
-            ${"\"\"\""}
-            if x ** 2 == 4:
-                return -1
             if x + y > 100:
                 return 0
             y += 10 ** 9
@@ -40,7 +32,6 @@ fun main() {
                 return 8
             else:
                 return 9
-            ${"\"\"\""}
         """.trimIndent()
     )
     val function = Callable.constructCallableFromName(3, "f")
