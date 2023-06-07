@@ -8,7 +8,7 @@ import org.usvm.util.DisjointSets
  * Represents equality constraints between heap references. There are three kinds of constraints:
  * - Equalities represented as collection of equivalence classes in union-find data structure [equalReferences].
  * - Disequalities: [referenceDisequalities].get(x).contains(y) means that x !== y.
- * - Nullable disequalities: [nullableDisequalities].contains(y) means that x !== y || (x == null && y == null).
+ * - Nullable disequalities: [nullableDisequalities].get(x).contains(y) means that x !== y || (x == null && y == null).
  *
  * Maintains graph of disequality constraints. Tries to detect (or at least approximate) maximal set of distinct heap references
  * by fast-check of clique in disequality graph (not exponential!) (see [distinctReferences]).
@@ -131,7 +131,7 @@ class UEqualityConstraints private constructor(
 
         val nullRepr = equalReferences.find(ctx.nullRef)
         if (to == nullRepr) {
-            // x == null satisfies nullable disequality (x != y || (x == null && y == null))
+            // x == null satisfies nullable disequality (x !== y || (x == null && y == null))
             val removedFrom = mutableNullableDisequalities.remove(from)
             val removedTo = mutableNullableDisequalities.remove(to)
             removedFrom?.forEach {
@@ -147,6 +147,7 @@ class UEqualityConstraints private constructor(
             val removedFrom = mutableNullableDisequalities.remove(from)
             removedFrom?.forEach {
                 mutableNullableDisequalities[it]?.remove(from)
+                makeNonEqualOrBothNull(to, it)
             }
         }
     }

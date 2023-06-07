@@ -2,6 +2,7 @@ package org.usvm.constraints
 
 import io.mockk.every
 import io.mockk.mockk
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.usvm.UComponents
@@ -41,13 +42,13 @@ class EqualityConstraintsTests {
         constraints.addReferenceDisequality(ref2, ref3)
         // ref1 still can be equal to ref3
         assertSame(3, constraints.distinctReferences.size)
-        assert(constraints.referenceDisequalities[ref2]!!.contains(ref3))
-        assert(constraints.referenceDisequalities[ref3]!!.contains(ref2))
+        assertTrue(constraints.referenceDisequalities[ref2]!!.contains(ref3))
+        assertTrue(constraints.referenceDisequalities[ref3]!!.contains(ref2))
 
         constraints.addReferenceDisequality(ref1, ref3)
         // Now ref1, ref2 and ref3 are guaranteed to be distinct
         assertSame(4, constraints.distinctReferences.size)
-        assert(constraints.referenceDisequalities.all { it.value.isEmpty() })
+        assertTrue(constraints.referenceDisequalities.all { it.value.isEmpty() })
 
         // Adding some entry into referenceDisequalities
         constraints.addReferenceDisequality(ref1, ref6)
@@ -94,11 +95,11 @@ class EqualityConstraintsTests {
         // Testing that equality constraints infer that both (ref1 == null) and (ref2 == null).
         // Furthermore, inferring that ref1 == null should simplify constraint (2) to true
         constraints.addReferenceEquality(ref1, ref2)
-        assert(!constraints.nullableDisequalities.containsKey(ref1))
-        assert(constraints.areEqual(ref1, ctx.nullRef))
-        assert(constraints.areEqual(ref2, ctx.nullRef))
-        assert(!constraints.areDistinct(ref1, ref3))
-        assert(!(constraints.nullableDisequalities[ref3]?.contains(ref1) ?: false))
+        assertFalse(constraints.nullableDisequalities.containsKey(ref1))
+        assertTrue(constraints.areEqual(ref1, ctx.nullRef))
+        assertTrue(constraints.areEqual(ref2, ctx.nullRef))
+        assertFalse(constraints.areDistinct(ref1, ref3))
+        assertFalse(constraints.nullableDisequalities[ref3]?.contains(ref1) ?: false)
 
         constraints.addReferenceDisequality(ref4, ctx.nullRef)
         constraints.makeNonEqualOrBothNull(ref3, ref4)
@@ -112,5 +113,4 @@ class EqualityConstraintsTests {
         // constraint...
         assertSame(3, constraints.distinctReferences.size)
     }
-
 }
