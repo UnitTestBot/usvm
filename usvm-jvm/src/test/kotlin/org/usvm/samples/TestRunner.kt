@@ -191,26 +191,7 @@ abstract class TestRunner {
         onSuite(suite)
     }
 
-    companion object {
-        private val classpath = allClasspath.filter { it.name.contains("samples") }
-
-        private val db: JcDatabase
-        private val cp: JcClasspath
-
-        init {
-            val (db, cp) = runBlocking {
-                val db = jacodb {
-                    useProcessJavaRuntime()
-                    loadByteCode(classpath)
-                }
-                db to db.classpath(classpath)
-            }
-            this.db = db
-            this.cp = cp
-        }
-
-
-    }
+    private val cp = JacoDBContainer(samplesKey).cp
 
     private val testResolver = JcTestResolver()
 }

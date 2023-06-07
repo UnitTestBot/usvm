@@ -1,6 +1,8 @@
 package org.usvm.samples.loops
 
+import org.junit.jupiter.api.RepeatedTest
 import org.junit.jupiter.api.Test
+import org.usvm.forksCount
 import org.usvm.samples.TestRunner
 
 class TestWhile : TestRunner() {
@@ -30,5 +32,15 @@ class TestWhile : TestRunner() {
             While::sumOf,
             { _, n, r -> n * (n + 1) / 2 == r},
         )
+    }
+
+    @RepeatedTest(5)
+    fun `Test while`() {
+        run(
+            While::func,
+            { _, _, _, _, r -> r == 1 },
+            { _, _, _, _, r -> r == 2 },
+        )
+        println(forksCount)
     }
 }

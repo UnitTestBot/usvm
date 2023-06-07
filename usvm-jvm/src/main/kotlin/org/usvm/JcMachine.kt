@@ -15,7 +15,7 @@ class JcMachine(
 ) : UMachine<JcState>() {
     private val applicationGraph = JcApplicationGraph(cp)
 
-    private val typeSystem = JcTypeSystem()
+    private val typeSystem = JcTypeSystem(cp)
     private val components = JcComponents(typeSystem)
     private val ctx = JcContext(cp, components)
 

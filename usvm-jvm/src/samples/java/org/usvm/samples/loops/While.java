@@ -36,4 +36,20 @@ public class While {
         }
         return ans;
     }
+
+    public int func(int x, int y, int z) {
+        if (!(0 <= y && y <= 10)) {
+            return -1;
+        }
+
+        while (y < 20_000) {
+            y++;
+        }
+
+        if (x == y || z == y) {
+            return 1;
+        }
+
+        return 2;
+    }
 }
