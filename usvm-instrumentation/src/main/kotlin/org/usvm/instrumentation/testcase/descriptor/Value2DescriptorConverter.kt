@@ -4,16 +4,18 @@ import getFieldValue
 import org.jacodb.api.JcField
 import org.jacodb.api.JcType
 import org.jacodb.api.ext.*
-import org.usvm.instrumentation.classloader.WorkerClassLoader
+import org.usvm.instrumentation.classloader.BaseWorkerClassLoader
 import org.usvm.instrumentation.jacodb.util.stringType
 import org.usvm.instrumentation.jacodb.util.toJavaField
 import org.usvm.instrumentation.testcase.UTestExpressionExecutor
 import org.usvm.instrumentation.testcase.statement.UTestExpression
 import java.util.*
 
-class DescriptorBuilder(private val classLoader: WorkerClassLoader, private val previousState: DescriptorBuilder?) {
+open class Value2DescriptorConverter(private val workerClassLoader: BaseWorkerClassLoader, val previousState: Value2DescriptorConverter?) {
 
-    private val jcClasspath = classLoader.jcClasspath
+    private val jcClasspath = workerClassLoader.jcClasspath
+    private val classLoader = workerClassLoader as ClassLoader
+
     private val objectToDescriptor = IdentityHashMap<Any, UTestValueDescriptor>()
 
     private fun findTypeOrNull(jClass: Class<*>): JcType? =
@@ -24,26 +26,6 @@ class DescriptorBuilder(private val classLoader: WorkerClassLoader, private val 
         } else {
             jcClasspath.findTypeOrNull(jClass.name)
         }
-
-
-    fun buildDescriptorsForStatics(): Result<Map<JcField, UTestValueDescriptor>> {
-        try {
-            val allStatics = classLoader.loadedClasses.flatMap { it.declaredFields.filter { it.isStatic } }
-            val staticToValue = allStatics.mapNotNull { jcField ->
-                val jField = jcField.toJavaField(classLoader)
-                val jFieldValue = jField.getFieldValue(null)
-                val jFieldValueDescriptor = buildDescriptorResultFromAny(jFieldValue)
-                if (jFieldValueDescriptor.isSuccess) {
-                    jcField to jFieldValueDescriptor.getOrThrow()
-                } else {
-                    null
-                }
-            }
-            return Result.success(staticToValue.toMap())
-        } catch (e: Exception) {
-            return Result.failure(e)
-        }
-    }
 
     fun buildDescriptorFromUTestExpr(
         uTestExpressionList: UTestExpression,
