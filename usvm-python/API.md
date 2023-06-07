@@ -2,6 +2,8 @@
 
 All constants are defined in header `SYMBOLIC_API.h`.
 
+Current CPython patch: https://github.com/tochilinak/cpython/pull/3/files.
+
 ## Handler signature
 
 ```
