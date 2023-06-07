@@ -14,6 +14,7 @@ import org.usvm.instrumentation.util.InstrumentationModuleConstants
 import osSpecificJavaExecutable
 import java.io.File
 import kotlin.reflect.KClass
+import kotlin.time.Duration
 
 class InstrumentationProcessRunner(
     private val testingProjectClasspath: String,
@@ -59,6 +60,8 @@ class InstrumentationProcessRunner(
             ProcessRunner(process = process, rdPort = rdPort, jcClasspath = jcClasspath, lifetime = processLifetime)
         processRunner.init()
     }
+
+    fun executeUTestSync(uTest: UTest, timeout: Duration): UTestExecutionResult = processRunner.callUTestSync(uTest, timeout)
 
     suspend fun executeUTest(uTest: UTest): UTestExecutionResult = processRunner.callUTest(uTest)
 

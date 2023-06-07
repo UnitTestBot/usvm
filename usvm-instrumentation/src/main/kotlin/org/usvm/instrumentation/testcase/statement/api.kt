@@ -7,7 +7,6 @@ import org.jacodb.api.ext.toType
 import org.jacodb.api.ext.void
 import org.jacodb.impl.types.JcArrayTypeImpl
 
-
 sealed class UTestExpression {
     abstract val type: JcType?
 }
