@@ -2,7 +2,6 @@ package org.usvm.samples.loops
 
 import org.junit.jupiter.api.RepeatedTest
 import org.junit.jupiter.api.Test
-import org.usvm.forksCount
 import org.usvm.samples.TestRunner
 
 class TestWhile : TestRunner() {
@@ -41,6 +40,5 @@ class TestWhile : TestRunner() {
             { _, _, _, _, r -> r == 1 },
             { _, _, _, _, r -> r == 2 },
         )
-        println(forksCount)
     }
 }

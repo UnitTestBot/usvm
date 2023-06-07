@@ -39,7 +39,7 @@ class JcTypeSystem(
         require(t is JcRefType)
         val jcClass = t.jcClass
         // TODO: deal with generics here
-        return hierarchy.findSubClasses(jcClass, false).map { it.toType() }
+        return hierarchy.findSubClasses(jcClass, allHierarchy = false).map { it.toType() }
     }
 
     fun isInstantiable(t: JcType): Boolean {

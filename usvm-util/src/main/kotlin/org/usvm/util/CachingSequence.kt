@@ -9,8 +9,11 @@ class CachingSequence<T> private constructor(
     constructor(iterator: Iterator<T>) : this(mutableListOf(), Sequence { iterator })
     constructor(sequence: Sequence<T>) : this(mutableListOf(), sequence)
 
-    override fun iterator(): Iterator<T> = object : Iterator<T> {
-        private var ptr = 0
+    override fun iterator(): Iterator<T> = CachingIterator(0)
+
+    private inner class CachingIterator(
+        private var ptr: Int
+    ) : Iterator<T> {
         override fun hasNext(): Boolean =
             ptr < cache.size || iterator.hasNext()
 
@@ -25,9 +28,9 @@ class CachingSequence<T> private constructor(
     fun filter(filteringFunction: (T) -> Boolean): CachingSequence<T> {
         return CachingSequence(
             cache.filterTo(mutableListOf(), filteringFunction),
-            sequence.filter(filteringFunction),
+            CachingIterator(cache.size).asSequence().filter(filteringFunction),
         )
     }
 }
 
-
+fun <T> Sequence<T>.cached() = CachingSequence(this)

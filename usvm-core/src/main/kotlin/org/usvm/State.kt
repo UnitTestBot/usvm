@@ -40,8 +40,6 @@ class ForkResult<T>(
     operator fun component2(): T? = negativeState
 }
 
-var forksCount = 0
-
 /**
  * Checks if [conditionToCheck] is satisfiable within path constraints of [state].
  * If it does, clones [state] and returns it with enriched constraints:
@@ -65,8 +63,6 @@ private fun <T : UState<Type, Field, *, *>, Type, Field> forkIfSat(
     if (pathConstraints.isFalse) {
         return null
     }
-
-    forksCount++
 
     val solver = state.ctx.solver<Field, Type, Any?>()
     val satResult = solver.check(pathConstraints, useSoftConstraints = true)

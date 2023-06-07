@@ -129,9 +129,21 @@ class JcTypeStreamTest {
         val top = typeSystem.topTypeStream()
             .filterBySupertype(base1)
         val result = mutableListOf<JcType>()
-        val success = top.take(100, result)
-        assertTrue(success)
+
+        val success1 = top.take(100, result)
+        assertTrue(success1)
         assertEquals(setOf(base1, derived1A, derived1B), result.toSet())
+
+
+        val success2 = top.take(100, result)
+        assertTrue(success2)
+        assertEquals(setOf(base1, derived1A, derived1B), result.toSet())
+
         verify(exactly = 1) { typeSystem.findSubTypes(base1) }
+    }
+
+    @Test
+    fun `Test everything results`() {
+
     }
 }

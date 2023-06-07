@@ -38,11 +38,7 @@ public class While {
     }
 
     public int func(int x, int y, int z) {
-        if (!(0 <= y && y <= 10)) {
-            return -1;
-        }
-
-        while (y < 20_000) {
+        while (y < 1_000) {
             y++;
         }
 
