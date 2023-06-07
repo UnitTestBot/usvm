@@ -4,14 +4,18 @@ package org.usvm.instrumentation.trace.collector;
 //USE TRACER
 public class TraceCollector {
     public static LongArrayWrapper trace = new LongArrayWrapper();
+    public static LongArrayWrapper statics = new LongArrayWrapper();
 
     public static void jcInstructionCovered(long jcInstructionId) {
         trace.add(jcInstructionId);
     }
+    public static void jcStaticFieldAccessed(long jcStaticFieldAccessId) {
+        statics.add(jcStaticFieldAccessId);
+    }
 
     public static class LongArrayWrapper {
         public long[] arr;
-        private int size;
+        public int size;
 
         LongArrayWrapper() {
             arr = new long[10];

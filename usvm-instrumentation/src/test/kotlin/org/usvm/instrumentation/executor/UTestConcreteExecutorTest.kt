@@ -13,6 +13,8 @@ import org.usvm.instrumentation.util.TracePrinter
 import org.usvm.instrumentation.util.UTestCreator
 import java.io.File
 import kotlin.test.assertEquals
+import kotlin.time.ExperimentalTime
+import kotlin.time.measureTimedValue
 
 class UTestConcreteExecutorTest {
 
@@ -25,7 +27,7 @@ class UTestConcreteExecutorTest {
         @BeforeAll
         @JvmStatic
         fun init() = runBlocking {
-            System.setProperty("java.home", "/usr/lib/jvm/java-11-openjdk/")
+            System.setProperty("java.home", "/usr/lib/jvm/java-8-openjdk/")
             val cp = listOf(File(testJarPath).absoluteFile)
             val db = jacodb {
                 loadByteCode(cp)
@@ -49,10 +51,12 @@ class UTestConcreteExecutorTest {
         uTestConcreteExecutor = createUTestConcreteExecutor()
     }
 
-    fun executeTest(body: () -> Unit) {
+    fun executeTest(body: suspend () -> Unit) {
         try {
             initExecutor()
-            body.invoke()
+            runBlocking {
+                body.invoke()
+            }
         } finally {
             uTestConcreteExecutor.close()
         }
@@ -60,48 +64,51 @@ class UTestConcreteExecutorTest {
 
     @Test
     fun simpleTest() = executeTest {
-        runBlocking {
-            val uTest = UTestCreator.A.isA(jcClasspath)
-            val res = uTestConcreteExecutor.execute(uTest)
-            assert(res is UTestExecutionSuccessResult)
-            res as UTestExecutionSuccessResult
-            TracePrinter.printTraceToConsole(res.trace!!)
-        }
+        val uTest = UTestCreator.A.isA(jcClasspath)
+        val res = uTestConcreteExecutor.execute(uTest)
+        assert(res is UTestExecutionSuccessResult)
+        res as UTestExecutionSuccessResult
+        TracePrinter.printTraceToConsole(res.trace!!)
     }
 
     @Test
     fun testStaticsDescriptorBuilding() = executeTest {
-        runBlocking {
-            val uTest = UTestCreator.A.isA(jcClasspath)
-            repeat(1) {
-                val res = uTestConcreteExecutor.execute(uTest)
-                assert(res is UTestExecutionSuccessResult)
-                res as UTestExecutionSuccessResult
-                println("Statics before = ${res.initialState.statics.entries.joinToString { "${it.key.name} to ${it.value}" }}")
-                println("Statics after = ${res.resultState.statics.entries.joinToString { "${it.key.name} to ${it.value}" }}")
-            }
+        val uTest = UTestCreator.A.isA(jcClasspath)
+        repeat(1) {
+            val res = uTestConcreteExecutor.execute(uTest)
+            assert(res is UTestExecutionSuccessResult)
+            res as UTestExecutionSuccessResult
+            println("Statics before = ${res.initialState.statics.entries.joinToString { "${it.key.name} to ${it.value}" }}")
+            println("Statics after = ${res.resultState.statics.entries.joinToString { "${it.key.name} to ${it.value}" }}")
         }
     }
 
+    @OptIn(ExperimentalTime::class)
     @Test
     fun executeUTest1000times() = executeTest {
         val uTest = UTestCreator.A.indexOf(jcClasspath)
         repeat(1000) {
-            runBlocking {
-                val res = uTestConcreteExecutor.execute(uTest)
-                assert(res is UTestExecutionSuccessResult)
-                println("Res of $it-th execution: $res")
-            }
+            val res = measureTimedValue { uTestConcreteExecutor.execute(uTest) }.also { println("T = ${it.duration}") }.value
+            assert(res is UTestExecutionSuccessResult)
+            println("Res of $it-th execution: $res")
         }
     }
 
     @Test
     fun staticCall() = executeTest {
         val uTest = UTestCreator.A.javaStdLibCall(jcClasspath)
-        val res = runBlocking {
-            uTestConcreteExecutor.execute(uTest)
-        }
+        val res = uTestConcreteExecutor.execute(uTest)
         assert(res is UTestExecutionSuccessResult)
-        println("res = $res")
+        res as UTestExecutionSuccessResult
+        assert(res.result != null)
+    }
+
+    @Test
+    fun `execute method with inner class usage`() = executeTest {
+        val uTest = UTestCreator.Arrays.checkAllSamePoints(jcClasspath)
+        val res = uTestConcreteExecutor.execute(uTest)
+        assert(res is UTestExecutionSuccessResult)
+        res as UTestExecutionSuccessResult
+        assert(res.result != null)
     }
 }

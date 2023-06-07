@@ -2,15 +2,16 @@ package org.usvm.instrumentation.testcase
 
 import getFieldValue
 import org.jacodb.api.ext.*
-import org.usvm.instrumentation.classloader.WorkerClassLoader
+import org.usvm.instrumentation.classloader.BaseWorkerClassLoader
 import org.usvm.instrumentation.jacodb.util.*
 import org.usvm.instrumentation.testcase.statement.*
 import setFieldValue
 import java.lang.ClassCastException
 
-class UTestExpressionExecutor(val userClassLoader: WorkerClassLoader) {
+class UTestExpressionExecutor(private val workerClassLoader: BaseWorkerClassLoader) {
 
-    private val jcClasspath = userClassLoader.jcClasspath
+    private val jcClasspath = workerClassLoader.jcClasspath
+
 
     private val executedModels: MutableMap<UTestExpression, Any?> = hashMapOf()
 
@@ -117,7 +118,7 @@ class UTestExpressionExecutor(val userClassLoader: WorkerClassLoader) {
                 jcClasspath.double -> DoubleArray(size)
                 jcClasspath.float -> FloatArray(size)
                 jcClasspath.char -> CharArray(size)
-                else -> java.lang.reflect.Array.newInstance(uTestCreateArrayExpression.elementType.toJavaClass(userClassLoader), size)
+                else -> java.lang.reflect.Array.newInstance(uTestCreateArrayExpression.elementType.toJavaClass(workerClassLoader), size)
             }
     }
 
@@ -132,13 +133,13 @@ class UTestExpressionExecutor(val userClassLoader: WorkerClassLoader) {
 
     private fun executeUTestSetFieldStatement(uTestSetFieldStatement: UTestSetFieldStatement) {
         val instance = exec(uTestSetFieldStatement.instance)
-        val field = uTestSetFieldStatement.field.toJavaField(userClassLoader)
+        val field = uTestSetFieldStatement.field.toJavaField(workerClassLoader)
         val fieldValue = exec(uTestSetFieldStatement.value)
         field.setFieldValue(instance, fieldValue)
     }
 
     private fun executeUTestSetStaticFieldStatement(uTestSetFieldStatement: UTestSetStaticFieldStatement) {
-        val field = uTestSetFieldStatement.field.toJavaField(userClassLoader)
+        val field = uTestSetFieldStatement.field.toJavaField(workerClassLoader)
         val fieldValue = exec(uTestSetFieldStatement.value)
         field.setFieldValue(null, fieldValue)
     }
@@ -162,24 +163,24 @@ class UTestExpressionExecutor(val userClassLoader: WorkerClassLoader) {
 
     private fun executeUTestGetFieldExpression(uTestGetFieldExpression: UTestGetFieldExpression): Any? {
         val instance = exec(uTestGetFieldExpression.instance)
-        val jField = uTestGetFieldExpression.field.toJavaField(userClassLoader)
+        val jField = uTestGetFieldExpression.field.toJavaField(workerClassLoader)
         return jField.getFieldValue(instance)
     }
 
     private fun executeUTestGetStaticFieldExpression(uTestGetStaticFieldExpression: UTestGetStaticFieldExpression): Any? {
-        val jField = uTestGetStaticFieldExpression.field.toJavaField(userClassLoader)
+        val jField = uTestGetStaticFieldExpression.field.toJavaField(workerClassLoader)
         return jField.getFieldValue(null)
     }
 
     private fun executeUTestStaticMethodCall(uTestStaticMethodCall: UTestStaticMethodCall): Any? {
-        val jMethod = uTestStaticMethodCall.method.toJavaMethod(userClassLoader)
+        val jMethod = uTestStaticMethodCall.method.toJavaMethod(workerClassLoader)
         val args = uTestStaticMethodCall.args.map { exec(it) }
         return jMethod.invoke(null, *args.toTypedArray())
     }
 
     private fun executeUTestCastExpression(uTestCastExpression: UTestCastExpression): Any? {
         val castExpr = exec(uTestCastExpression.expr)
-        val toTypeJClass = uTestCastExpression.type.toJavaClass(userClassLoader)
+        val toTypeJClass = uTestCastExpression.type.toJavaClass(workerClassLoader)
         return try {
             toTypeJClass.cast(castExpr)
         } catch (e: ClassCastException) {
@@ -188,7 +189,7 @@ class UTestExpressionExecutor(val userClassLoader: WorkerClassLoader) {
     }
 
     private fun executeConstructorCall(uConstructorCall: UTestConstructorCall): Any {
-        val jConstructor = uConstructorCall.method.toJavaConstructor(userClassLoader)
+        val jConstructor = uConstructorCall.method.toJavaConstructor(workerClassLoader)
         val args = uConstructorCall.args.map { exec(it) }
         return jConstructor.newInstance(*args.toTypedArray())
     }
@@ -196,7 +197,7 @@ class UTestExpressionExecutor(val userClassLoader: WorkerClassLoader) {
     private fun executeMethodCall(uMethodCall: UTestMethodCall): Any? {
         val instance = exec(uMethodCall.instance)
         val args = uMethodCall.args.map { exec(it) }
-        val jMethod = uMethodCall.method.toJavaMethod(userClassLoader)
+        val jMethod = uMethodCall.method.toJavaMethod(workerClassLoader)
         return jMethod.invoke(instance, *args.toTypedArray())
     }
 

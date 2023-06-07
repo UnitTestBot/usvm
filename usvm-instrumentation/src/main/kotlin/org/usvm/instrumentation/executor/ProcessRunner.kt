@@ -3,14 +3,12 @@ package org.usvm.instrumentation.executor
 import CHILD_PROCESS_NAME
 import MAIN_PROCESS_NAME
 import adviseForConditionAsync
-import com.jetbrains.rd.framework.IdKind
-import com.jetbrains.rd.framework.Identities
-import com.jetbrains.rd.framework.Protocol
-import com.jetbrains.rd.framework.Serializers
-import com.jetbrains.rd.framework.SocketWire
+import com.jetbrains.rd.framework.*
 import com.jetbrains.rd.framework.impl.RdCall
+import com.jetbrains.rd.util.lifetime.Lifetime
 import com.jetbrains.rd.util.lifetime.LifetimeDefinition
 import com.jetbrains.rd.util.threading.SingleThreadScheduler
+import com.jetbrains.rd.util.threading.SynchronousScheduler
 import kotlinx.coroutines.delay
 import org.jacodb.api.JcClasspath
 import org.jacodb.api.cfg.JcInst
@@ -25,9 +23,13 @@ import org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.Compan
 import org.usvm.instrumentation.testcase.UTest
 import org.usvm.instrumentation.testcase.statement.*
 import pumpAsync
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.TimeUnit
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.ExperimentalTime
+import kotlin.time.measureTimedValue
 
 class ProcessRunner(
     private val process: Process,
@@ -94,6 +96,34 @@ class ProcessRunner(
         return RdServerProcess(process, lifetime, protocol, model)
     }
 
+
+    @OptIn(ExperimentalTime::class)
+    private fun <TReq, Tres> RdCall<TReq, Tres>.fastSync(
+        lifetime: Lifetime, request: TReq, timeout: Duration
+    ): Tres {
+        println("START TIME = ${System.nanoTime()}")
+        val task = start(lifetime, request, SynchronousScheduler)
+        return measureTimedValue { task.wait(timeout.inWholeMilliseconds).unwrap() }.also { println("W = ${it.duration}") }.value
+    }
+
+    /**
+     * We use future instead of internal rd SpinWait based implementation
+     * because usually requests don't fit into the `fast` time window, but
+     * the response time is still much faster than `wait` time.
+     *
+     * For example, we usually see the following pattern:
+     * 1. SpinWait performs 100 spins in less than 10us and forces the thread to sleep for the next 1ms.
+     * 2. We receive a response in 80us.
+     * 3. We are waiting for the processing of the response for the next 920us.
+     * */
+    private fun <T> IRdTask<T>.wait(timeoutMs: Long): RdTaskResult<T> {
+        val future = CompletableFuture<RdTaskResult<T>>()
+        result.advise(lifetime) {
+            future.complete(it)
+        }
+        return future.get(timeoutMs, TimeUnit.MILLISECONDS)
+    }
+
     private suspend fun <T, R> RdCall<T, R>.execute(request: T): R =
         try {
             this@ProcessRunner.serializationContext.reset()
@@ -101,6 +131,20 @@ class ProcessRunner(
         } finally {
             this@ProcessRunner.serializationContext.reset()
         }
+
+    private fun <T, R> RdCall<T, R>.executeSync(request: T, timeout: Duration): R =
+        try {
+            this@ProcessRunner.serializationContext.reset()
+            fastSync(lifetime, request, timeout)
+        } finally {
+            this@ProcessRunner.serializationContext.reset()
+        }
+
+    fun callUTestSync(uTest: UTest, timeout: Duration): UTestExecutionResult {
+        val serializedUTest = SerializedUTest(uTest.initStatements, uTest.callMethodExpression)
+        val serializedExecutionResult = rdProcess.model.callUTest.executeSync(serializedUTest, timeout)
+        return deserializeExecutionResult(serializedExecutionResult)
+    }
 
     suspend fun callUTest(uTest: UTest): UTestExecutionResult {
         val serializedUTest = SerializedUTest(uTest.initStatements, uTest.callMethodExpression)
@@ -144,7 +188,7 @@ class ProcessRunner(
             val jcFieldDescriptor = it.fieldDescriptor
             jcField to jcFieldDescriptor
         } ?: mapOf()
-        return UTestExecutionState(state.instanceDescriptor, state.argsDescriptors, statics)
+        return UTestExecutionState(state.instanceDescriptor, state.argsDescriptors, statics.toMutableMap())
     }
 
     private fun deserializeTrace(trace: List<SerializedTracedJcInst>): List<JcInst> = trace.map { serInst ->

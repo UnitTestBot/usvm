@@ -1,10 +1,10 @@
 package org.usvm.instrumentation.util
 
-import example.B
 import org.jacodb.api.JcClasspath
 import org.jacodb.api.ext.*
 import org.usvm.instrumentation.testcase.UTest
 import org.usvm.instrumentation.testcase.statement.*
+import kotlin.random.Random
 
 object UTestCreator {
 
@@ -93,6 +93,35 @@ object UTestCreator {
             val jcMethod = jcClassA.declaredMethods.find { it.name == "staticJavaStdLibCall" }!!
             val staticMethodCall = UTestStaticMethodCall(jcMethod, listOf())
             return UTest(listOf(), staticMethodCall)
+        }
+
+    }
+
+    object Arrays {
+
+        fun checkAllSamePoints(jcClasspath: JcClasspath): UTest {
+            val jcClassArrays = jcClasspath.findClass<example.Arrays>()
+            val jcClassPoint = jcClassArrays.innerClasses.find { it.simpleName == "Arrays\$Point" }!!
+            val jcMethod = jcClassArrays.declaredMethods.find { it.name == "checkAllSamePoints" }!!
+            val jcClassPointConstructor = jcClassPoint.constructors.first()
+            val pointList = buildList {
+                repeat(Random.nextInt(2, 5)) {
+                    val xCoor = UTestIntExpression(Random.nextInt(1, 10), jcClasspath.int)
+                    val yCoor = UTestIntExpression(Random.nextInt(1, 10), jcClasspath.int)
+                    add(UTestConstructorCall(jcClassPointConstructor, listOf(xCoor, yCoor)))
+                }
+            }
+            val pointListArray = UTestCreateArrayExpression(jcClassPoint.toType(), UTestIntExpression(pointList.size, jcClasspath.int))
+            val arraySetStmts = buildList {
+                for ((i, p) in pointList.withIndex()) {
+                    val index = UTestIntExpression(i, jcClasspath.int)
+                    add(UTestArraySetStatement(pointListArray, index, p))
+                }
+            }
+            val jcArraysInstance = UTestConstructorCall(jcClassArrays.constructors.first(), listOf())
+            val methodCall = UTestMethodCall(jcArraysInstance, jcMethod, listOf(pointListArray))
+            val initStatements = pointList + listOf(pointListArray) + arraySetStmts + listOf(jcArraysInstance)
+            return UTest(initStatements, methodCall)
         }
 
     }
