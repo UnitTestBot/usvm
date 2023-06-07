@@ -1,10 +1,7 @@
 package org.usvm.instrumentation.agent
 
-import org.usvm.instrumentation.classloader.WorkerClassLoader
-import org.usvm.instrumentation.jacodb.transform.JcInstrumenter
+import org.usvm.instrumentation.classloader.BaseWorkerClassLoader
 import org.usvm.instrumentation.jacodb.transform.JcInstrumenterFactory
-import org.usvm.instrumentation.jacodb.transform.JcRuntimeTraceInstrumenter
-import org.usvm.instrumentation.trace.collector.TraceCollector
 import org.usvm.instrumentation.util.*
 import java.lang.instrument.ClassFileTransformer
 import java.security.ProtectionDomain
@@ -22,12 +19,13 @@ class ClassTransformer(instrumenterClassName: String) : ClassFileTransformer {
         protectionDomain: ProtectionDomain?,
         classfileBuffer: ByteArray
     ): ByteArray {
-        if (loader !is WorkerClassLoader || className == null) {
+        if (loader !is BaseWorkerClassLoader || className == null) {
             return classfileBuffer
         }
         return instrumenterCache.getOrPut(className) {
             val instrumenter = instrumenterFactoryInstance.create(loader.jcClasspath)
-            instrumenter.instrumentClass(classfileBuffer.toClassNode()).toByteArray(loader, checkClass = true)
+            val instrumentedClassNode = instrumenter.instrumentClass(classfileBuffer.toClassNode())
+            instrumentedClassNode.toByteArray(loader, checkClass = true)
         }
     }
 
