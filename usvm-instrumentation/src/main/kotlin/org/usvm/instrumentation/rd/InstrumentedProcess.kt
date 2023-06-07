@@ -15,12 +15,11 @@ import kotlinx.coroutines.channels.trySendBlocking
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 import org.jacodb.api.JcClasspath
-import org.jacodb.api.cfg.JcCallExpr
-import org.jacodb.api.cfg.JcCallInst
+import org.jacodb.api.JcField
 import org.jacodb.api.cfg.JcInst
 import org.jacodb.impl.features.InMemoryHierarchy
 import org.jacodb.impl.jacodb
-import org.usvm.instrumentation.classloader.WorkerClassLoader
+import org.usvm.instrumentation.classloader.*
 import org.usvm.instrumentation.generated.models.*
 import org.usvm.instrumentation.jacodb.transform.JcInstructionTracer
 import org.usvm.instrumentation.jacodb.util.enclosingClass
@@ -30,7 +29,8 @@ import org.usvm.instrumentation.serializer.UTestExpressionSerializer.Companion.r
 import org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.Companion.registerUTestValueDescriptorSerializer
 import org.usvm.instrumentation.testcase.UTest
 import org.usvm.instrumentation.testcase.UTestExpressionExecutor
-import org.usvm.instrumentation.testcase.descriptor.DescriptorBuilder
+import org.usvm.instrumentation.testcase.descriptor.Value2DescriptorConverter
+import org.usvm.instrumentation.testcase.descriptor.StaticDescriptorsBuilder
 import org.usvm.instrumentation.testcase.statement.*
 import org.usvm.instrumentation.trace.collector.TraceCollector
 import org.usvm.instrumentation.util.URLClassPathLoader
@@ -39,6 +39,9 @@ import terminateOnException
 import java.io.File
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.ExperimentalTime
+import kotlin.time.measureTime
+import kotlin.time.measureTimedValue
 
 class InstrumentedProcess private constructor() {
 
@@ -46,7 +49,15 @@ class InstrumentedProcess private constructor() {
     private lateinit var serializationCtx: SerializationContext
     private lateinit var fileClassPath: List<File>
     private lateinit var ucp: URLClassPathLoader
+
+    //private lateinit var userClassLoader: WorkerClassLoader
+    private lateinit var staticDescriptorsBuilder: StaticDescriptorsBuilder
+
+    //private lateinit var userClassLoader: UserCL
+    private lateinit var userClassLoader: HierarchicalWorkerClassLoader
+
     private val traceCollector = JcInstructionTracer
+    private val isClassLoaderStatic = true
 
 
     companion object {
@@ -59,8 +70,7 @@ class InstrumentedProcess private constructor() {
     }
 
     private enum class State {
-        STARTED,
-        ENDED
+        STARTED, ENDED
     }
 
     private val synchronizer = Channel<State>(capacity = 1)
@@ -93,15 +103,11 @@ class InstrumentedProcess private constructor() {
         jcClasspath = db.asyncClasspath(fileClassPath).get()
         serializationCtx = SerializationContext(jcClasspath)
         ucp = URLClassPathLoader(fileClassPath)
-    }
-
-    private fun createWorkerClassLoader(): WorkerClassLoader =
-        WorkerClassLoader(
-            ucp,
-            this::class.java.classLoader,
-            TraceCollector::class.java.name,
-            jcClasspath
+        userClassLoader = HierarchicalWorkerClassLoader(
+            ucp, this::class.java.classLoader, TraceCollector::class.java.name, jcClasspath
         )
+        staticDescriptorsBuilder = StaticDescriptorsBuilder(userClassLoader)
+    }
 
     private suspend fun initiate(lifetime: Lifetime, port: Int) {
         val scheduler = SingleThreadScheduler(lifetime, "usvm-executor-worker-scheduler")
@@ -212,48 +218,63 @@ class InstrumentedProcess private constructor() {
     }
 
     private fun callUTest(uTest: UTest): UTestExecutionResult {
-        val userClassLoader = createWorkerClassLoader()
+        userClassLoader.reset()
         traceCollector.reset()
         val callMethodExpr = uTest.callMethodExpression
-        val executor = UTestExpressionExecutor(userClassLoader)
+        val executor = UTestExpressionExecutor(userClassLoader.getClassLoader())
+
         executor.executeUTestExpressions(uTest.initStatements)
-            ?.onFailure { return UTestExecutionInitFailedResult(it.message ?: "", traceCollector.getTrace()) }
-        val initStateDescriptorBuilder = DescriptorBuilder(userClassLoader, null)
-        val initExecutionState = buildExecutionState(callMethodExpr, executor, initStateDescriptorBuilder)
+            ?.onFailure { return UTestExecutionInitFailedResult(it.message ?: "", traceCollector.getTrace().trace) }
+
+        val initStateDescriptorBuilder = Value2DescriptorConverter(userClassLoader.getClassLoader(), null)
+        val initExecutionState = buildExecutionState(
+            callMethodExpr, executor, initStateDescriptorBuilder, listOf()
+        )
         val methodInvocationResult =
-            executor.executeUTestExpression(callMethodExpr)
-                .onFailure { return UTestExecutionExceptionResult(it.message ?: "", traceCollector.getTrace()) }
-                .getOrNull()
-        val resultStateDescriptorBuilder = DescriptorBuilder(userClassLoader, initStateDescriptorBuilder)
+            executor.executeUTestExpression(callMethodExpr).onFailure {
+                    return UTestExecutionExceptionResult(
+                        it.message ?: "", traceCollector.getTrace().trace
+                    )
+                }.getOrNull()
+
+        val resultStateDescriptorBuilder =
+            Value2DescriptorConverter(userClassLoader.getClassLoader(), initStateDescriptorBuilder)
         val methodInvocationResultDescriptor =
-            resultStateDescriptorBuilder
-                .buildDescriptorResultFromAny(methodInvocationResult)
-                .getOrNull()
-        val resultExecutionState = buildExecutionState(callMethodExpr, executor, resultStateDescriptorBuilder)
+            resultStateDescriptorBuilder.buildDescriptorResultFromAny(methodInvocationResult).getOrNull()
+        val trace = traceCollector.getTrace()
+        val accessedStatics = trace.statics.toSet().toList()
+        val resultExecutionState =
+            buildExecutionState(callMethodExpr, executor, resultStateDescriptorBuilder, accessedStatics)
+
+        val staticsToRemoveFromInitState = initExecutionState.statics.keys.filter { it !in accessedStatics }
+        staticsToRemoveFromInitState.forEach { initExecutionState.statics.remove(it) }
+        staticDescriptorsBuilder.rollBackStatics()
+
         return UTestExecutionSuccessResult(
-            traceCollector.getTrace(),
-            methodInvocationResultDescriptor,
-            initExecutionState,
-            resultExecutionState
+            trace.trace, methodInvocationResultDescriptor, initExecutionState, resultExecutionState
         )
     }
 
     private fun buildExecutionState(
         callMethodExpr: UTestCall,
         executor: UTestExpressionExecutor,
-        descriptorBuilder: DescriptorBuilder
-    ): UTestExecutionState =
-        with(descriptorBuilder) {
-            val instanceDescriptor =
-                if (callMethodExpr.instance != null) {
-                    buildDescriptorFromUTestExpr(callMethodExpr.instance!!, executor)?.getOrNull()
-                } else null
-            val argsDescriptors = callMethodExpr.args.map {
-                buildDescriptorFromUTestExpr(it, executor)?.getOrNull()
-            }
-            val statics = buildDescriptorsForStatics().getOrNull() ?: mapOf()
-            return UTestExecutionState(instanceDescriptor, argsDescriptors, statics)
+        descriptorBuilder: Value2DescriptorConverter,
+        accessedStatics: List<JcField>
+    ): UTestExecutionState = with(descriptorBuilder) {
+        val instanceDescriptor = if (callMethodExpr.instance != null) {
+            buildDescriptorFromUTestExpr(callMethodExpr.instance!!, executor)?.getOrNull()
+        } else null
+        val argsDescriptors = callMethodExpr.args.map {
+            buildDescriptorFromUTestExpr(it, executor)?.getOrNull()
         }
+        val isInit = descriptorBuilder.previousState == null
+        val statics = if (isInit) {
+            staticDescriptorsBuilder.buildDescriptorsForLoadedStatics()
+        } else {
+            staticDescriptorsBuilder.buildDescriptorsForStatics(accessedStatics)
+        }.getOrThrow()
+        return UTestExecutionState(instanceDescriptor, argsDescriptors, statics.toMutableMap())
+    }
 
     private inline fun <T> measureExecutionForTermination(block: () -> T): T {
         try {
