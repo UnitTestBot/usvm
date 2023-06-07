@@ -472,7 +472,7 @@ class UTestExpressionSerializer(private val ctx: SerializationContext) {
         val instance = readUTestExpression()
         val setValueExpr = readUTestExpression()
         val index = readUTestExpression()
-        return UTestArraySetStatement(instance, setValueExpr, index)
+        return UTestArraySetStatement(instance, index, setValueExpr)
     }
 
     private fun AbstractBuffer.serialize(uTestCreateArrayExpression: UTestCreateArrayExpression) =

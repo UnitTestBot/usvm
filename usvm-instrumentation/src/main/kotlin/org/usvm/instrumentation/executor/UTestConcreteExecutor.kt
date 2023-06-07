@@ -21,16 +21,16 @@ class UTestConcreteExecutor(
     private val testingProjectClasspath: String,
     private val jcClasspath: JcClasspath,
     private val timeout: Duration
-): AutoCloseable {
+) : AutoCloseable {
 
     private val lifetime = LifetimeDefinition()
 
     private val instrumentationProcessRunner =
         InstrumentationProcessRunner(testingProjectClasspath, jcClasspath, instrumentationClassFactory)
 
-    private suspend fun ensureRunnerAlive() {
+    suspend fun ensureRunnerAlive() {
         check(lifetime.isAlive) { "Executor already closed" }
-        for (i in 0 .. InstrumentationModuleConstants.triesToRecreateRdProcess) {
+        for (i in 0..InstrumentationModuleConstants.triesToRecreateRdProcess) {
             if (instrumentationProcessRunner.isAlive()) {
                 return
             }
@@ -43,6 +43,16 @@ class UTestConcreteExecutor(
         }
         if (!instrumentationProcessRunner.isAlive()) {
             throw UTestExecutorInitException()
+        }
+    }
+
+    fun executeSync(uTest: UTest): UTestExecutionResult {
+        return try {
+            instrumentationProcessRunner.executeUTestSync(uTest, timeout)
+        } catch (e: TimeoutCancellationException) {
+            UTestExecutionTimedOutResult(e.message ?: "timeout")
+        } catch (e: RdFault) {
+            UTestExecutionFailedResult(e.reasonAsText)
         }
     }
 
