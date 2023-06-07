@@ -23,7 +23,7 @@ open class UPathConstraints<Type> private constructor(
     /**
      * Specially represented equalities and disequalities between objects, used in various part of constraints management.
      */
-    val equalityConstraints: UEqualityConstraints = UEqualityConstraints(),
+    val equalityConstraints: UEqualityConstraints = UEqualityConstraints(ctx),
     /**
      * Constraints solved by type solver.
      */
