@@ -1,6 +1,4 @@
-package org.usvm.constraints
-
-import org.usvm.UTypeSystem
+package org.usvm.types
 
 interface UTypeStream<Type> {
     fun filterBySupertype(type: Type): UTypeStream<Type>

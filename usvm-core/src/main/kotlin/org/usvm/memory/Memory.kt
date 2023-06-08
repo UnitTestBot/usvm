@@ -15,6 +15,7 @@ import org.usvm.URegisterValue
 import org.usvm.USizeExpr
 import org.usvm.USort
 import org.usvm.constraints.UTypeConstraints
+import org.usvm.types.UTypeStream
 
 interface UReadOnlyMemory<LValue, RValue> {
     /**

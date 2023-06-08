@@ -1,8 +1,7 @@
-package org.usvm.constraints
+package org.usvm.types
 
 import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.persistentSetOf
-import org.usvm.UTypeSystem
 import org.usvm.util.Region
 import org.usvm.util.RegionComparisonResult
 

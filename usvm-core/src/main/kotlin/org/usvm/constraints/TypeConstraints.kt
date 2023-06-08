@@ -4,12 +4,13 @@ import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapAddress
 import org.usvm.UConcreteHeapRef
 import org.usvm.UHeapRef
-import org.usvm.UTypeSystem
+import org.usvm.types.UTypeSystem
 import org.usvm.model.UModel
 import org.usvm.solver.USatResult
 import org.usvm.solver.USolverResult
 import org.usvm.solver.UUnknownResult
 import org.usvm.solver.UUnsatResult
+import org.usvm.types.UTypeRegion
 import org.usvm.uctx
 
 interface UTypeEvaluator<Type> {
@@ -191,7 +192,7 @@ class UTypeConstraints<Type>(
         } else {
             val resultList = mutableListOf<Type>()
 
-            val concreteToType = concreteToRegionWithCluster.mapValues { (_, regionToCluster) ->
+            val concreteToType = concreteToRegionWithCluster.mapValuesTo(hashMapOf()) { (_, regionToCluster) ->
                 val (region, cluster) = regionToCluster
                 val terminated = region.typeStream.take(1, resultList)
                 if (terminated) {
@@ -206,16 +207,16 @@ class UTypeConstraints<Type>(
                 }
             }
 
-            val typeModel = UTypeModel(typeSystem, concreteToType)
+            val typeModel = UTypeModel(typeSystem, concreteToType.apply { putAll(concreteTypes) })
             UTypeSatResult(typeModel)
         }
     }
 }
 
 class UTypeUnsatResult<Type>(
-    val expressionsToAssert: List<UBoolExpr>
+    val expressionsToAssert: List<UBoolExpr>,
 ) : UUnsatResult<UTypeModel<Type>>()
 
 class UTypeSatResult<Type>(
-    model: UTypeModel<Type>
+    model: UTypeModel<Type>,
 ) : USatResult<UTypeModel<Type>>(model)

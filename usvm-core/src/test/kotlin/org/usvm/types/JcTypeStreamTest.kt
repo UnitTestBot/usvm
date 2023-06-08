@@ -3,46 +3,30 @@ package org.usvm.types
 import io.mockk.every
 import io.mockk.spyk
 import io.mockk.verify
-import org.jacodb.api.JcType
-import org.jacodb.api.ext.findClass
-import org.jacodb.api.ext.toType
 import org.junit.jupiter.api.Test
-import org.usvm.JcTypeStream
-import org.usvm.JcTypeSystem
-import org.usvm.constraints.UTypeStream
-import org.usvm.samples.JacoDBContainer
-import org.usvm.samples.types.Hierarchy
-import org.usvm.samples.types.Hierarchy.DerivedMultiInterfaces
-import org.usvm.samples.types.Hierarchy.UserComparable
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class JcTypeStreamTest {
-    private val key = "typesTest"
+    private val typeSystem = testTypeSystem
 
-    private val cp = JacoDBContainer(key).cp
-    private val typeSystem = JcTypeSystem(cp)
+    @Test
+    fun `Test topType`() {
+        val typeStream = typeSystem.topTypeStream()
+            .filterBySupertype(top)
+        val result = mutableListOf<TestType>()
+        val success = typeStream.take(100, result)
+        assertTrue(success)
+        assertEquals(100, result.size)
+        assertTrue(result.all(typeSystem::isInstantiable))
+    }
 
-    private val base1 = cp.findClass<Hierarchy.Base1>().toType()
-    private val base2 = cp.findClass<Hierarchy.Base2>().toType()
-
-    private val interface1 = cp.findClass<Hierarchy.Interface1>().toType()
-    private val interface2 = cp.findClass<Hierarchy.Interface2>().toType()
-
-    private val derived1A = cp.findClass<Hierarchy.Derived1A>().toType()
-    private val derived1B = cp.findClass<Hierarchy.Derived1B>().toType()
-    private val derivedMulti = cp.findClass<Hierarchy.DerivedMulti>().toType()
-
-    private val comparable = cp.findClass<Comparable<*>>().toType()
-    private val userComparable = cp.findClass<UserComparable>().toType()
-
-    private val derivedMultiInterfaces = cp.findClass<DerivedMultiInterfaces>().toType()
 
     @Test
     fun `Test comparable`() {
         val typeStream = typeSystem.topTypeStream()
-            .filterBySupertype(cp.findClass<Comparable<*>>().toType())
-        val result = mutableListOf<JcType>()
+            .filterBySupertype(comparable)
+        val result = mutableListOf<TestType>()
         val success = typeStream.take(100, result)
         assertTrue(success)
         assertEquals(100, result.size)
@@ -125,22 +109,22 @@ class JcTypeStreamTest {
     fun `Test caching results`() {
         val typeSystem = spyk(typeSystem)
 
-        val jcObject = cp.findClass<Any>().toType()
+        val topType = typeSystem.topType
 
-        every { typeSystem.topTypeStream() } returns JcTypeStream.from(typeSystem, jcObject)
+        every { typeSystem.topTypeStream() } returns USupportTypeStream.from(typeSystem, topType)
 
         val typeStream = typeSystem.topTypeStream()
             .filterBySupertype(base1)
 
         typeStream.take100AndAssertEqualsToSetOf(base1, derived1A, derived1B)
 
-        verify(exactly = 1) { typeSystem.findSubTypes(jcObject) }
-        verify(exactly = 1) { typeSystem.findSubTypes(base1) }
+        verify(exactly = 1) { typeSystem.findSubtypes(topType) }
+        verify(exactly = 1) { typeSystem.findSubtypes(base1) }
 
         typeStream.take100AndAssertEqualsToSetOf(base1, derived1A, derived1B)
 
-        verify(exactly = 1) { typeSystem.findSubTypes(jcObject) }
-        verify(exactly = 1) { typeSystem.findSubTypes(base1) }
+        verify(exactly = 1) { typeSystem.findSubtypes(topType) }
+        verify(exactly = 1) { typeSystem.findSubtypes(base1) }
     }
 
 

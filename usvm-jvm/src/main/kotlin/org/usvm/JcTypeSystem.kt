@@ -8,6 +8,8 @@ import org.jacodb.api.ext.findClass
 import org.jacodb.api.ext.isAssignable
 import org.jacodb.api.ext.toType
 import org.jacodb.impl.features.HierarchyExtensionImpl
+import org.usvm.types.USupportTypeStream
+import org.usvm.types.UTypeSystem
 
 class JcTypeSystem(
     val cp: JcClasspath
@@ -28,21 +30,21 @@ class JcTypeSystem(
 
     private val topTypeStream by lazy {
         val jcObject = cp.findClass<Any>().toType()
-        JcTypeStream.from(this, jcObject)
+        USupportTypeStream.from(this, jcObject)
     }
 
-    override fun topTypeStream(): JcTypeStream {
+    override fun topTypeStream(): USupportTypeStream<JcType> {
         return topTypeStream
     }
 
-    fun findSubTypes(t: JcType): Sequence<JcType> {
+    override fun findSubtypes(t: JcType): Sequence<JcType> {
         require(t is JcRefType)
         val jcClass = t.jcClass
         // TODO: deal with generics here
         return hierarchy.findSubClasses(jcClass, allHierarchy = false).map { it.toType() }
     }
 
-    fun isInstantiable(t: JcType): Boolean {
+    override fun isInstantiable(t: JcType): Boolean {
         if (t !is JcRefType) {
             return true
         }
