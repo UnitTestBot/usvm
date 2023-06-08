@@ -28,6 +28,9 @@ public class Hierarchy {
     public static class DerivedMulti extends Base2 implements DerivedInterface12 {
     }
 
+    public static class DerivedMultiInterfaces extends Base2 implements Interface1, Interface2 {
+    }
+
     public static class UserComparable implements Interface2, Comparable<UserComparable> {
         @Override
         public int compareTo(@NotNull UserComparable o) {
