@@ -1,7 +1,7 @@
 package org.usvm.types
 
 import io.mockk.every
-import io.mockk.mockk
+import io.mockk.spyk
 import io.mockk.verify
 import org.jacodb.api.JcType
 import org.jacodb.api.ext.findClass
@@ -9,6 +9,7 @@ import org.jacodb.api.ext.toType
 import org.junit.jupiter.api.Test
 import org.usvm.JcTypeStream
 import org.usvm.JcTypeSystem
+import org.usvm.constraints.UTypeStream
 import org.usvm.samples.JacoDBContainer
 import org.usvm.samples.types.Hierarchy
 import org.usvm.samples.types.Hierarchy.DerivedMultiInterfaces
@@ -52,20 +53,16 @@ class JcTypeStreamTest {
     fun `Test open class inheritance`() {
         val typeStream = typeSystem.topTypeStream()
             .filterBySupertype(base1)
-        val result = mutableListOf<JcType>()
-        val success = typeStream.take(100, result)
-        assertTrue(success)
-        assertEquals(setOf(base1, derived1A, derived1B), result.toSet())
+
+        typeStream.take100AndAssertEqualsToSetOf(base1, derived1A, derived1B)
     }
 
     @Test
     fun `Test interface inheritance`() {
         val typeStream = typeSystem.topTypeStream()
             .filterBySupertype(interface1)
-        val result = mutableListOf<JcType>()
-        val success = typeStream.take(100, result)
-        assertTrue(success)
-        assertEquals(setOf(derived1A, derivedMulti, derivedMultiInterfaces), result.toSet())
+
+        typeStream.take100AndAssertEqualsToSetOf(derived1A, derivedMulti, derivedMultiInterfaces)
     }
 
 
@@ -74,10 +71,8 @@ class JcTypeStreamTest {
         val typeStream = typeSystem.topTypeStream()
             .filterBySupertype(base1)
             .filterBySupertype(base2)
-        val result = mutableListOf<JcType>()
-        val success = typeStream.take(100, result)
-        assertTrue(success)
-        assertTrue(result.isEmpty())
+
+        typeStream.take100AndAssertEqualsToSetOf()
     }
 
     @Test
@@ -85,10 +80,8 @@ class JcTypeStreamTest {
         val typeStream = typeSystem.topTypeStream()
             .filterBySupertype(derivedMulti)
             .filterBySubtype(derivedMulti)
-        val result = mutableListOf<JcType>()
-        val success = typeStream.take(100, result)
-        assertTrue(success)
-        assertEquals(setOf(derivedMulti), result.toSet())
+
+        typeStream.take100AndAssertEqualsToSetOf(derivedMulti)
     }
 
     @Test
@@ -96,10 +89,8 @@ class JcTypeStreamTest {
         val typeStream = typeSystem.topTypeStream()
             .filterBySupertype(interface1)
             .filterByNotSupertype(interface2)
-        val result = mutableListOf<JcType>()
-        val success = typeStream.take(100, result)
-        assertTrue(success)
-        assertEquals(setOf(derived1A), result.toSet())
+
+        typeStream.take100AndAssertEqualsToSetOf(derived1A)
     }
 
     @Test
@@ -107,10 +98,8 @@ class JcTypeStreamTest {
         val typeStream = typeSystem.topTypeStream()
             .filterBySupertype(comparable)
             .filterBySupertype(interface2)
-        val result = mutableListOf<JcType>()
-        val success = typeStream.take(100, result)
-        assertTrue(success)
-        assertEquals(setOf(userComparable), result.toSet())
+
+        typeStream.take100AndAssertEqualsToSetOf(userComparable)
     }
 
     @Test
@@ -118,53 +107,8 @@ class JcTypeStreamTest {
         val typeStream = typeSystem.topTypeStream()
             .filterBySupertype(interface2)
             .filterBySupertype(comparable)
-        val result = mutableListOf<JcType>()
-        val success = typeStream.take(100, result)
-        assertTrue(success)
-        assertEquals(setOf(userComparable), result.toSet())
-    }
 
-    @Test
-    fun `Test caching results`() {
-        val typeSystem = mockk<JcTypeSystem>()
-
-        val jcObject = cp.findClass<Any>().toType()
-        every { typeSystem.topTypeStream() } answers {
-            JcTypeStream.from(typeSystem, jcObject)
-        }
-        every {
-            typeSystem.isInstantiable(any())
-        } answers {
-            this@JcTypeStreamTest.typeSystem.isInstantiable(firstArg())
-        }
-
-        every {
-            typeSystem.isSupertype(any(), any())
-        } answers {
-            this@JcTypeStreamTest.typeSystem.isSupertype(firstArg(), secondArg())
-        }
-
-
-        every {
-            typeSystem.findSubTypes(any())
-        } answers {
-            this@JcTypeStreamTest.typeSystem.findSubTypes(firstArg())
-        }
-
-        val typeStream = typeSystem.topTypeStream()
-            .filterBySupertype(base1)
-        val result = mutableListOf<JcType>()
-
-        val success1 = typeStream.take(100, result)
-        assertTrue(success1)
-        assertEquals(setOf(base1, derived1A, derived1B), result.toSet())
-
-
-        val success2 = typeStream.take(100, result)
-        assertTrue(success2)
-        assertEquals(setOf(base1, derived1A, derived1B), result.toSet())
-        verify(exactly = 1) { typeSystem.findSubTypes(jcObject) }
-        verify(exactly = 1) { typeSystem.findSubTypes(base1) }
+        typeStream.take100AndAssertEqualsToSetOf(userComparable)
     }
 
     @Test
@@ -174,10 +118,38 @@ class JcTypeStreamTest {
             .filterBySupertype(interface1)
             .filterBySupertype(interface2)
 
-        val result = mutableListOf<JcType>()
-        val success = typeStream.take(100, result)
-        assertTrue(success)
+        typeStream.take100AndAssertEqualsToSetOf(derivedMulti, derivedMultiInterfaces)
+    }
 
-        assertEquals(setOf(derivedMulti, derivedMultiInterfaces), result.toSet())
+    @Test
+    fun `Test caching results`() {
+        val typeSystem = spyk(typeSystem)
+
+        val jcObject = cp.findClass<Any>().toType()
+
+        every { typeSystem.topTypeStream() } returns JcTypeStream.from(typeSystem, jcObject)
+
+        val typeStream = typeSystem.topTypeStream()
+            .filterBySupertype(base1)
+
+        typeStream.take100AndAssertEqualsToSetOf(base1, derived1A, derived1B)
+
+        verify(exactly = 1) { typeSystem.findSubTypes(jcObject) }
+        verify(exactly = 1) { typeSystem.findSubTypes(base1) }
+
+        typeStream.take100AndAssertEqualsToSetOf(base1, derived1A, derived1B)
+
+        verify(exactly = 1) { typeSystem.findSubTypes(jcObject) }
+        verify(exactly = 1) { typeSystem.findSubTypes(base1) }
+    }
+
+
+    private fun <T> UTypeStream<T>.take100AndAssertEqualsToSetOf(vararg elements: T) {
+        val result = mutableListOf<T>()
+        val success = take(100, result)
+        val set = elements.toSet()
+        assertTrue(success)
+        assertEquals(result.size, set.size)
+        assertEquals(result.toSet(), set)
     }
 }
