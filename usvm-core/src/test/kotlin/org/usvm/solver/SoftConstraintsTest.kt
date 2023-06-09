@@ -10,11 +10,11 @@ import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.UComponents
 import org.usvm.UContext
-import org.usvm.UTypeSystem
 import org.usvm.constraints.UPathConstraints
 import org.usvm.memory.emptyInputArrayLengthRegion
 import org.usvm.model.ULazyModelDecoder
 import org.usvm.model.buildTranslatorAndLazyDecoder
+import org.usvm.types.UTypeSystem
 import kotlin.test.assertSame
 
 open class SoftConstraintsTest<Field, Type, Method> {
