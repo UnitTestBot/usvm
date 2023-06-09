@@ -121,10 +121,15 @@ class UAddressCounter {
     }
 }
 
+/**
+ * Mark symbolic map descriptor with a tag to allow splitting.
+ * */
 data class ConcreteTaggedMapDescriptor(
     val descriptor: USymbolicMapDescriptor<*, *, *>,
-    val tag: Any?
-)
+    val tag: MapDescriptorTag?
+) {
+    interface MapDescriptorTag
+}
 
 data class URegionHeap<Field, ArrayType>(
     private val ctx: UContext,
@@ -181,7 +186,7 @@ data class URegionHeap<Field, ArrayType>(
     private fun <KeySort : USort, Reg : Region<Reg>, Sort : USort> allocatedMapRegion(
         descriptor: USymbolicMapDescriptor<KeySort, Sort, Reg>,
         address: UConcreteHeapAddress,
-        tag: Any? = null
+        tag: ConcreteTaggedMapDescriptor.MapDescriptorTag? = null
     ): UAllocatedSymbolicMapRegion<KeySort, Reg, Sort> {
         val taggedKey = ConcreteTaggedMapDescriptor(descriptor, tag)
         val allocatedConcreteMap = allocatedMaps[taggedKey] ?: persistentMapOf()
@@ -197,7 +202,7 @@ data class URegionHeap<Field, ArrayType>(
         descriptor: USymbolicMapDescriptor<KeySort, Sort, Reg>,
         address: UConcreteHeapAddress,
         newRegion: UAllocatedSymbolicMapRegion<KeySort, Reg, Sort>,
-        tag: Any? = null
+        tag: ConcreteTaggedMapDescriptor.MapDescriptorTag? = null
     ) {
         val taggedKey = ConcreteTaggedMapDescriptor(descriptor, tag)
         val allocatedConcreteMap = allocatedMaps[taggedKey] ?: persistentMapOf()
@@ -263,13 +268,13 @@ data class URegionHeap<Field, ArrayType>(
     }
 
     // Reorder map ref and key
-    private object ConcreteKeySymbolicRefAllocatedMap
+    private object ConcreteKeySymbolicRefAllocatedMap: ConcreteTaggedMapDescriptor.MapDescriptorTag
 
     // Reorder map ref and key
-    private object ConcreteKeyConcreteRefAllocatedMap
+    private object ConcreteKeyConcreteRefAllocatedMap: ConcreteTaggedMapDescriptor.MapDescriptorTag
 
     // Normal order
-    private object SymbolicKeyConcreteRefAllocatedMap
+    private object SymbolicKeyConcreteRefAllocatedMap: ConcreteTaggedMapDescriptor.MapDescriptorTag
 
     private fun <Reg : Region<Reg>, Sort : USort> readSymbolicRefMap(
         descriptor: USymbolicMapDescriptor<UAddressSort, Sort, Reg>,
