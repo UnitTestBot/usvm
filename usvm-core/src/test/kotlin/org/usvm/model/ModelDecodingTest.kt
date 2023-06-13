@@ -1,5 +1,6 @@
 package org.usvm.model
 
+import io.ksmt.solver.z3.KZ3Solver
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.Assertions.assertSame
