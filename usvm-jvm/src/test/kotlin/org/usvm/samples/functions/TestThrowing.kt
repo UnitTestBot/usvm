@@ -1,13 +1,15 @@
 package org.usvm.samples.functions
 
 import org.junit.jupiter.api.Test
-import org.usvm.samples.TestRunner
+import org.usvm.samples.JavaMethodTestRunner
+import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
-class TestThrowing : TestRunner() {
+class TestThrowing : JavaMethodTestRunner() {
     @Test
     fun `Test throwSometimes`() {
-        runWithException(
+        checkWithExceptionExecutionMatches(
             Throwing::throwSometimes,
+            ignoreNumberOfAnalysisResults,
             { _, x, r -> x == 1 && r.isFailure },
             { _, x, r -> x != 1 && r.isSuccess },
         )
