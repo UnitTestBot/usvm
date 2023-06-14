@@ -30,6 +30,9 @@ abstract class UState<Type, Field, Method, Statement>(
     // TODO or last? Do we add a current stmt into the path immediately?
     val currentStatement: Statement?
         get() = path.lastOrNull()
+
+    // TODO: implement
+    val id = 0u
 }
 
 class ForkResult<T>(

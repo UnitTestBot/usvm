@@ -4,11 +4,11 @@ import org.usvm.UState
 import org.usvm.util.bfsTraversal
 import java.util.concurrent.ConcurrentHashMap
 
-class CoverageStatistics<Method, Statement>(
+class CoverageStatistics<Method, Statement, State : UState<*, *, Method, Statement>>(
     methods: Set<Method>,
     private val applicationGraph: ApplicationGraph<Method, Statement>,
-    private val statisticsObservable: StatisticsObservable<Method, Statement>,
-) : StatisticsObserver<Method, Statement> {
+    private val statisticsObservable: StatisticsObservable<Method, Statement, State>,
+) : StatisticsObserver<Method, Statement, State> {
 
     // Set is actually concurrent
     private val uncoveredStatements = HashMap<Method, MutableSet<Statement>>()
@@ -48,7 +48,7 @@ class CoverageStatistics<Method, Statement>(
         return uncoveredStatements.flatMap { kvp -> kvp.value.map { kvp.key to it } }
     }
 
-    override fun onStateTerminated(state: UState<*, *, Method, Statement>) {
+    override fun onStateTerminated(state: State) {
         for (statement in state.path) {
             val method = applicationGraph.methodOf(statement)
 
