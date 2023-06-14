@@ -1,7 +1,7 @@
 package org.usvm.samples.arrays;
 
 public class OneDimensional {
-    int sumOf(int[] arr) {
+    static int sumOf(int[] arr) {
         int sum = 0;
         boolean allNonNegative = true;
         for (int x : arr) {
@@ -14,5 +14,12 @@ public class OneDimensional {
         }
 
         return sum;
+    }
+
+    static int[] minus(int[] a, int[] b) {
+        for (int i = 0; i < a.length; i++) {
+            a[i] -= b[i];
+        }
+        return a;
     }
 }

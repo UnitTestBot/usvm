@@ -35,7 +35,7 @@ class JcMachine(
                     val uncoveredStatementsBefore = coveredStoppingStrategy.uncoveredStatementsCount
                     coveredStoppingStrategy.onStateTermination(state)
                     val uncoveredStatementsCountAfter = coveredStoppingStrategy.uncoveredStatementsCount
-                    if (uncoveredStatementsCountAfter < uncoveredStatementsBefore) {
+                    if (uncoveredStatementsCountAfter < uncoveredStatementsBefore || state.methodResult is JcMethodResult.Exception) {
                         collectedStates += state
                     }
                 } else {

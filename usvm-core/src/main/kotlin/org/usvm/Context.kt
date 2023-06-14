@@ -17,7 +17,6 @@ import org.usvm.memory.UInputArrayRegion
 import org.usvm.memory.UInputFieldRegion
 import org.usvm.memory.splitUHeapRef
 import org.usvm.solver.USolverBase
-import org.usvm.types.UTypeSystem
 
 @Suppress("LeakingThis")
 open class UContext(

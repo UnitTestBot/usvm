@@ -15,6 +15,8 @@ import kotlin.reflect.KFunction1
 import kotlin.reflect.KFunction2
 import kotlin.reflect.KFunction3
 import kotlin.reflect.KFunction4
+import kotlin.reflect.full.instanceParameter
+import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.jvm.javaMethod
 
 
@@ -64,8 +66,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
             analysisResultsNumberMatcher,
             analysisResultsMatchers,
             extractValuesToCheck = { test: JcTest ->
-                val values = mutableListOf<Any?>()
-                values += test.before.thisInstance
+                val values = test.takeAllParameters(method, allParametersCount = 1)
                 test.result.let { values += it.getOrThrow() }
                 values
             },
@@ -117,9 +118,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
             analysisResultsNumberMatcher,
             analysisResultsMatchers,
             extractValuesToCheck = { test: JcTest ->
-                val values = mutableListOf<Any?>()
-                values += test.before.thisInstance
-                values += test.before.parameters.first()
+                val values = test.takeAllParameters(method, allParametersCount = 2)
                 test.result.let { values += it.getOrThrow() }
                 values
             },
@@ -171,10 +170,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
             analysisResultsNumberMatcher,
             analysisResultsMatchers,
             extractValuesToCheck = { test: JcTest ->
-                val values = mutableListOf<Any?>()
-                values += test.before.thisInstance
-                values += test.before.parameters.first()
-                values += test.before.parameters[1]
+                val values = test.takeAllParameters(method, allParametersCount = 3)
                 test.result.let { values += it.getOrThrow() }
                 values
             },
@@ -226,11 +222,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
             analysisResultsNumberMatcher,
             analysisResultsMatchers,
             extractValuesToCheck = { test: JcTest ->
-                val values = mutableListOf<Any?>()
-                values += test.before.thisInstance
-                values += test.before.parameters.first()
-                values += test.before.parameters[1]
-                values += test.before.parameters[2]
+                val values = test.takeAllParameters(method, allParametersCount = 4)
                 test.result.let { values += it.getOrThrow() }
                 values
             },
@@ -286,8 +278,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
             analysisResultsNumberMatcher,
             analysisResultsMatchers,
             extractValuesToCheck = { test: JcTest ->
-                val values = mutableListOf<Any?>()
-                values += test.before.thisInstance
+                val values = test.takeAllParameters(method, allParametersCount = 1)
                 test.result.let { values += it }
                 values
             },
@@ -339,9 +330,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
             analysisResultsNumberMatcher,
             analysisResultsMatchers,
             extractValuesToCheck = { test: JcTest ->
-                val values = mutableListOf<Any?>()
-                values += test.before.thisInstance
-                values += test.before.parameters.first()
+                val values = test.takeAllParameters(method, allParametersCount = 2)
                 test.result.let { values += it }
                 values
             },
@@ -393,10 +382,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
             analysisResultsNumberMatcher,
             analysisResultsMatchers,
             extractValuesToCheck = { test: JcTest ->
-                val values = mutableListOf<Any?>()
-                values += test.before.thisInstance
-                values += test.before.parameters.first()
-                values += test.before.parameters[1]
+                val values = test.takeAllParameters(method, allParametersCount = 3)
                 test.result.let { values += it }
                 values
             },
@@ -449,11 +435,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
             analysisResultsNumberMatcher,
             analysisResultsMatchers,
             extractValuesToCheck = { test: JcTest ->
-                val values = mutableListOf<Any?>()
-                values += test.before.thisInstance
-                values += test.before.parameters.first()
-                values += test.before.parameters[1]
-                values += test.before.parameters[2]
+                val values = test.takeAllParameters(method, allParametersCount = 4)
                 test.result.let { values += it }
                 values
             },
@@ -466,11 +448,28 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
 
     // endregion
 
+    protected fun JcTest.takeAllParameters(
+        method: KFunction<*>,
+        allParametersCount: Int,
+    ): MutableList<Any?> {
+        val values = mutableListOf<Any?>()
+        if (method.instanceParameter != null) {
+            requireNotNull(before.thisInstance)
+            values += before.thisInstance
+        } else {
+            require(before.thisInstance == null)
+        }
+        values.addAll(before.parameters.take(allParametersCount - values.size)) // add remaining arguments
+        return values
+    }
+
     private val cp = JacoDBContainer(samplesKey).cp
 
     private val testResolver = JcTestResolver()
 
     override val typeTransformer: (Any?) -> KClass<*>? = { value -> value?.let { it::class } }
+    override val checkType: (KClass<*>?, KClass<*>?) -> Boolean =
+        { expected, actual -> actual == null || expected != null && actual.isSubclassOf(expected) }
 
     override val runner: (KFunction<*>) -> List<JcTest> = { method ->
         val declaringClassName = requireNotNull(method.javaMethod?.declaringClass?.name)

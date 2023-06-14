@@ -49,26 +49,11 @@ class JcInterpreter(
         if (!method.isStatic) {
             with(ctx) {
                 val thisLValue = URegisterValue(addressSort, 0)
-
                 val ref = state.memory.read(thisLValue).asExpr(addressSort)
-
                 scope.assert(mkEq(ref, nullRef).not())
-//                val isConstraint = state.memory.types.evalIs(ref, method.enclosingType)
-//                scope.assert(isConstraint)
             }
         }
 
-//        with(ctx) {
-//            method.parameters.withIndex().forEach { (idx, param) ->
-//                val type = param.type
-//                val lvalue = URegisterValue(addressSort, idx + if (!method.isStatic) 1 else 0)
-//                val ref = state.memory.read(lvalue)
-//                if (ref.sort == addressSort) {
-//                    val isConstraint = state.memory.types.evalIs(ref.asExpr(addressSort), type)
-//                    scope.assert(isConstraint)
-//                }
-//            }
-//        }
 
         check(scope.alive)
 

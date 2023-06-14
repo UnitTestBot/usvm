@@ -7,7 +7,6 @@ import org.usvm.UContext
 import org.usvm.UHeapRef
 import org.usvm.constraints.UEqualityConstraints
 import org.usvm.constraints.UPathConstraints
-import org.usvm.constraints.UTypeUnsatResult
 import org.usvm.memory.UMemoryBase
 import org.usvm.model.UModelBase
 import org.usvm.model.UModelDecoder
@@ -33,6 +32,7 @@ open class USolverBase<Field, Type, Method>(
     protected val decoder: UModelDecoder<UMemoryBase<Field, Type, Method>, UModelBase<Field, Type>>,
     protected val softConstraintsProvider: USoftConstraintsProvider<Field, Type>,
 ) : USolver<UPathConstraints<Type>, UModelBase<Field, Type>>() {
+
     protected fun translateLogicalConstraints(constraints: Iterable<UBoolExpr>) {
         for (constraint in constraints) {
             val translated = translator.translate(constraint)
@@ -105,77 +105,49 @@ open class USolverBase<Field, Type, Method>(
             return UUnsatResult()
         }
 
-        smtSolver.withAssertionsScope {
-            translateToSmt(pc)
+        smtSolver.push()
 
-            val softConstraints = mutableListOf<UBoolExpr>()
-            if (useSoftConstraints) {
-                pc.logicalConstraints.flatMapTo(softConstraints) {
-                    softConstraintsProvider
-                        .provide(it)
-                        .map { sc -> translator.translate(sc) }
-                }
+        translateToSmt(pc)
+
+        var status: KSolverStatus
+
+        if (useSoftConstraints) {
+            var softConstraints = pc.logicalConstraints.flatMap {
+                softConstraintsProvider
+                    .provide(it)
+                    .map { sc -> translator.translate(sc) }
             }
 
-            var iter = 0
-            @Suppress("KotlinConstantConditions")
-            do {
-                iter++
-                val status: KSolverStatus = internalCheckWithSoftConstraints(softConstraints)
-
-                val kModel = when (status) {
-                    KSolverStatus.SAT -> smtSolver.model().detach()
-                    KSolverStatus.UNSAT -> return UUnsatResult()
-                    KSolverStatus.UNKNOWN -> return UUnknownResult()
-                }
-
-                val uModel = decoder.decode(kModel)
-
-                when (val typeResult = pc.typeConstraints.verify(uModel)) {
-                    is USatResult -> return USatResult(
-                        UModelBase(
-                            ctx,
-                            uModel.stack,
-                            uModel.heap,
-                            typeResult.model,
-                            uModel.mocks
-                        )
-                    )
-
-                    is UTypeUnsatResult<Type> -> typeResult.expressionsToAssert.forEach(smtSolver::assert)
-                    is UUnknownResult -> return UUnknownResult()
-                    is UUnsatResult -> return UUnsatResult()
-                }
-            } while (iter < ITERATIONS_THRESHOLD || ITERATIONS_THRESHOLD == INFINITE_ITERATIONS)
-
-            return UUnsatResult()
-        }
-    }
-
-    private fun internalCheckWithSoftConstraints(
-        softConstraints: MutableList<UBoolExpr>,
-    ): KSolverStatus {
-        var status: KSolverStatus
-        if (softConstraints.isNotEmpty()) {
             status = smtSolver.checkWithAssumptions(softConstraints)
 
             while (status == KSolverStatus.UNSAT) {
-                val unsatCore = smtSolver.unsatCore().toHashSet()
+                val unsatCore = smtSolver.unsatCore()
+
                 if (unsatCore.isEmpty()) break
-                softConstraints.removeAll { it in unsatCore}
+
+                softConstraints = softConstraints.filterNot { it in unsatCore }
                 status = smtSolver.checkWithAssumptions(softConstraints)
             }
         } else {
             status = smtSolver.check()
         }
-        return status
-    }
 
-    private inline fun <T> KSolver<*>.withAssertionsScope(block: KSolver<*>.() -> T): T = try {
-        push()
-        block()
-    } finally {
-        pop()
+        if (status != KSolverStatus.SAT) {
+            smtSolver.pop()
+
+            return if (status == KSolverStatus.UNSAT) {
+                UUnsatResult()
+            } else {
+                UUnknownResult()
+            }
+        }
+
+        val kModel = smtSolver.model().detach()
+        val uModel = decoder.decode(kModel)
+
+        smtSolver.pop()
+
+        return USatResult(uModel)
     }
 
     fun emptyModel(): UModelBase<Field, Type> =
@@ -183,13 +155,5 @@ open class USolverBase<Field, Type, Method>(
 
     override fun close() {
         smtSolver.close()
-    }
-
-    companion object {
-        /**
-         * -1 means no threshold
-         */
-        val ITERATIONS_THRESHOLD = -1
-        val INFINITE_ITERATIONS = -1
     }
 }
