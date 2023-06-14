@@ -2,41 +2,50 @@ package org.usvm.samples.loops
 
 import org.junit.jupiter.api.RepeatedTest
 import org.junit.jupiter.api.Test
-import org.usvm.samples.TestRunner
+import org.usvm.samples.JavaMethodTestRunner
+import org.usvm.test.util.checkers.eq
+import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
-class TestWhile : TestRunner() {
+class TestWhile : JavaMethodTestRunner() {
     @Test
     fun `Test singleLoop`() {
-        run(
+        checkExecutionMatches(
             While::singleLoop,
+            eq(3),
             { _, n, r -> r == 0 && n >= 5 },
             { _, n, r -> r == 1 && n <= 0 },
-            { _, n, r -> r == 2 && (n in 1..4)}
+            { _, n, r -> r == 2 && (n in 1..4) },
+            coverageChecker = { _ -> true }
         )
     }
 
     @Test
     fun `Test smallestPowerOfTwo`() {
-        run(
+        checkExecutionMatches(
             While::smallestPowerOfTwo,
+            eq(3),
             { _, n, r -> r == 0 && n.and(n - 1) == 0 },
             { _, n, r -> r == 1 && n <= 0 },
-            { _, n, r -> r == 2 && n > 0 && n.and(n - 1) != 0 }
+            { _, n, r -> r == 2 && n > 0 && n.and(n - 1) != 0 },
+            coverageChecker = { _ -> true }
         )
     }
 
     @Test
     fun `Test sumOf`() {
-        run(
+        checkPropertiesMatches(
             While::sumOf,
-            { _, n, r -> n * (n + 1) / 2 == r},
+            ignoreNumberOfAnalysisResults,
+            { _, n, r -> n * (n + 1) / 2 == r },
+            coverageChecker = { _ -> true }
         )
     }
 
     @RepeatedTest(5)
     fun `Test while`() {
-        run(
+        checkPropertiesMatches(
             While::func,
+            ignoreNumberOfAnalysisResults,
             { _, _, _, _, r -> r == 1 },
             { _, _, _, _, r -> r == 2 },
         )

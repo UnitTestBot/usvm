@@ -3,9 +3,6 @@ package org.usvm.test.util
 import org.usvm.test.util.TestRunner.CheckMode.MATCH_EXECUTIONS
 import org.usvm.test.util.TestRunner.CheckMode.MATCH_PROPERTIES
 import org.usvm.test.util.checkers.AnalysisResultsNumberMatcher
-import kotlin.reflect.KFunction
-import kotlin.reflect.jvm.ExperimentalReflectionOnLambdas
-import kotlin.reflect.jvm.reflect
 
 /**
  * A base class for test runners for all interpreters.
@@ -22,12 +19,11 @@ import kotlin.reflect.jvm.reflect
  * * [coverageRunner] calculates coverage (of any kind) of the list of [AnalysisResult].
  *
  */
-@OptIn(ExperimentalReflectionOnLambdas::class)
-open class TestRunner<AnalysisResult, Target, Type, Coverage>(
-    val typeTransformer: (Any?) -> Type,
-    val runner: (Target) -> List<AnalysisResult>,
-    val coverageRunner: (List<AnalysisResult>) -> Coverage,
-) {
+abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
+    abstract val typeTransformer: (Any?) -> Type
+    abstract val runner: (Target) -> List<AnalysisResult>
+    abstract val coverageRunner: (List<AnalysisResult>) -> Coverage
+
     /**
      * Runs an interpreter on the [target], after that makes several checks of the results it got:
      * * whether the interpreter produces as many results as we expected using [analysisResultsNumberMatcher];
@@ -41,7 +37,7 @@ open class TestRunner<AnalysisResult, Target, Type, Coverage>(
     protected fun internalCheck(
         target: Target,
         analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
-        analysisResultsMatchers: Array<out KFunction<Boolean>>,
+        analysisResultsMatchers: Array<out Function<Boolean>>,
         extractValuesToCheck: (AnalysisResult) -> List<Any?>,
         expectedTypesForExtractedValues: Array<out Type>,
         checkMode: CheckMode,
@@ -82,7 +78,13 @@ open class TestRunner<AnalysisResult, Target, Type, Coverage>(
                 .filter { it.value.first != it.value.second }
 
             check(mismatchedTypes.isEmpty()) {
-                "Some types don't match at positions (from 0): ${mismatchedTypes.map { it.index }}"
+                "Some types don't match at positions (from 0): ${mismatchedTypes.map { it.index }}. ${System.lineSeparator()}" +
+                        "Type pairs (index: Expected -> Found): " + mismatchedTypes.joinToString(
+                    prefix = System.lineSeparator(),
+                    separator = System.lineSeparator()
+                ) { (index, value) ->
+                    "\tAt index $index: ${value.first} -> ${value.second}"
+                }
             }
         }
     }
@@ -107,10 +109,15 @@ open class TestRunner<AnalysisResult, Target, Type, Coverage>(
         valuesToCheck: List<List<Any?>>,
         predicates: Array<out Function<Boolean>>,
     ) {
+        require(valuesToCheck.size == predicates.size) {
+            "Expected to find ${predicates.size} executions, but got ${valuesToCheck.size} instead. " +
+                    "They must be the same in $MATCH_EXECUTIONS mode."
+        }
+
         check(
             valuesToCheck,
             predicates,
-            successCriteria = { array -> valuesToCheck.size == predicates.size && array.all { it == 1 } },
+            successCriteria = { array -> array.all { it == 1 } },
             errorMessage = { array ->
                 buildString {
                     append("Some predicates where not satisfied or were satisfied more than once:")
@@ -136,7 +143,7 @@ open class TestRunner<AnalysisResult, Target, Type, Coverage>(
 
         valuesToCheck.forEach { values ->
             predicates.forEachIndexed { index, predicate ->
-                val isSatisfied = predicate.reflect()!!.call(values)
+                val isSatisfied = invokeMatcher(predicate, values)
                 if (isSatisfied) {
                     satisfied[index]++
                 }
@@ -160,5 +167,34 @@ open class TestRunner<AnalysisResult, Target, Type, Coverage>(
      */
     enum class CheckMode {
         MATCH_PROPERTIES, MATCH_EXECUTIONS
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    // TODO please use matcher.reflect().call(...) when it will be ready,
+    //      currently (Kotlin 1.8.22) call isn't fully supported in kotlin reflect
+    private fun invokeMatcher(matcher: Function<Boolean>, params: List<Any?>) = when (matcher) {
+        is Function1<*, *> -> (matcher as Function1<Any?, Boolean>).invoke(params[0])
+        is Function2<*, *, *> -> (matcher as Function2<Any?, Any?, Boolean>).invoke(params[0], params[1])
+        is Function3<*, *, *, *> -> (matcher as Function3<Any?, Any?, Any?, Boolean>).invoke(
+            params[0], params[1], params[2]
+        )
+
+        is Function4<*, *, *, *, *> -> (matcher as Function4<Any?, Any?, Any?, Any?, Boolean>).invoke(
+            params[0], params[1], params[2], params[3]
+        )
+
+        is Function5<*, *, *, *, *, *> -> (matcher as Function5<Any?, Any?, Any?, Any?, Any?, Boolean>).invoke(
+            params[0], params[1], params[2], params[3], params[4],
+        )
+
+        is Function6<*, *, *, *, *, *, *> -> (matcher as Function6<Any?, Any?, Any?, Any?, Any?, Any?, Boolean>).invoke(
+            params[0], params[1], params[2], params[3], params[4], params[5],
+        )
+
+        is Function7<*, *, *, *, *, *, *, *> -> (matcher as Function7<Any?, Any?, Any?, Any?, Any?, Any?, Any?, Boolean>).invoke(
+            params[0], params[1], params[2], params[3], params[4], params[5], params[6],
+        )
+
+        else -> error("Functions with arity > 7 are not supported")
     }
 }
