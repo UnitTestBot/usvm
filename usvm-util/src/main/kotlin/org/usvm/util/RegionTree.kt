@@ -99,9 +99,15 @@ class RegionTree<Key, Reg>(
 
     /**
      * Returns a subtree completely included into the [region].
+     *
+     * [keyFilter] is a predicate suitable to filter out particular nodes if their `key` satisfies it.
+     * Examples:
+     * * `{ false }` doesn't filter anything
+     * * `{ it != key }` writes into a tree and restrict for it to contain non-unique keys.
+     *   Suitable for deduplication.
      */
-    fun localize(region: Reg): RegionTree<Key, Reg> =
-        splitRecursively(region, keyFilter = { false }).completelyCoveredRegionTree
+    fun localize(region: Reg, keyFilter: (Key) -> Boolean = { false }): RegionTree<Key, Reg> =
+        splitRecursively(region, keyFilter).completelyCoveredRegionTree
 
     /**
      * Places a Pair([region], [key]) into the tree, preserving its invariants.

@@ -259,7 +259,7 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
 ) : UMemoryUpdates<Key, Sort> {
     override fun read(key: Key): UTreeUpdates<Key, Reg, Sort> {
         val reg = keyToRegion(key)
-        val updates = updates.localize(reg)
+        val updates = updates.localize(reg) { !it.includesSymbolically(key).isFalse }
         if (updates === this.updates) {
             return this
         }

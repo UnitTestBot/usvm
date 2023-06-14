@@ -21,6 +21,7 @@ import org.usvm.test.util.checkers.AnalysisResultsNumberMatcher
  */
 abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
     abstract val typeTransformer: (Any?) -> Type
+    abstract val checkType: (Type, Type) -> Boolean
     abstract val runner: (Target) -> List<AnalysisResult>
     abstract val coverageRunner: (List<AnalysisResult>) -> Coverage
 
@@ -75,7 +76,7 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
 
             val mismatchedTypes = expectedTypesWithActual
                 .withIndex()
-                .filter { it.value.first != it.value.second }
+                .filterNot { checkType(it.value.first, it.value.second) }
 
             check(mismatchedTypes.isEmpty()) {
                 "Some types don't match at positions (from 0): ${mismatchedTypes.map { it.index }}. ${System.lineSeparator()}" +
