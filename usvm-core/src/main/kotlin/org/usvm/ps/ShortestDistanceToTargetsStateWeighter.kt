@@ -3,7 +3,6 @@ package org.usvm.ps
 import org.usvm.UState
 import kotlin.math.min
 
-// TODO: write tests
 class ShortestDistanceToTargetsStateWeighter<Method, Statement, State : UState<*, *, Method, Statement>>(
     targets: Collection<Pair<Method, Statement>>,
     private val getCfgDistance: (Method, Statement, Statement) -> UInt,

@@ -24,9 +24,9 @@ fun <State : UState<*, *, *, *>> createDepthPathSelector(random: Random? = null)
 }
 
 fun <Method, Statement, State : UState<*, *, Method, Statement>> createClosestToUncoveredPathSelector(
-    coverageStatistics: CoverageStatistics<Method, Statement>,
+    coverageStatistics: CoverageStatistics<Method, Statement, State>,
     distanceStatistics: DistanceStatistics<Method, Statement>,
-    statisticsObservable: StatisticsObservable<Method, Statement>,
+    statisticsObservable: StatisticsObservable<Method, Statement, State>,
     random: Random? = null
 ): UPathSelector<State> {
     val weighter = ShortestDistanceToTargetsStateWeighter(
@@ -34,7 +34,7 @@ fun <Method, Statement, State : UState<*, *, Method, Statement>> createClosestTo
         distanceStatistics::getShortestCfgDistance,
         distanceStatistics::getShortestCfgDistanceToExitPoint
     )
-    val weighterObservable = object : StatisticsObserver<Method, Statement> {
+    val weighterObservable = object : StatisticsObserver<Method, Statement, State> {
         override fun onStatementCovered(method: Method, statement: Statement) {
             weighter.removeTarget(method, statement)
         }
