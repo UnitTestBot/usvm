@@ -26,3 +26,24 @@ tasks.register<JavaExec>("runTestKt") {
     classpath = sourceSets.main.get().runtimeClasspath
     mainClass.set("TestKt")
 }
+
+tasks.register<JavaExec>("testRunner") {
+    dependsOn(tasks.build)
+    environment("LD_LIBRARY_PATH" to "$cpythonBuildPath/lib:$cpythonAdapterBuildPath")
+    environment("LD_PRELOAD" to "$cpythonBuildPath/lib/libpython3.so")
+    classpath = sourceSets.test.get().runtimeClasspath
+    mainClass.set("org.usvm.samples.PythonTestRunnerKt")
+}
+
+sourceSets {
+    val samples by creating {
+        java {
+            srcDir("src/samples/java")
+        }
+    }
+
+    test {
+        compileClasspath += samples.output
+        runtimeClasspath += samples.output
+    }
+}
