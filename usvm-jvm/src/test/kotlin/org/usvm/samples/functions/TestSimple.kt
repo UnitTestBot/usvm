@@ -1,15 +1,17 @@
 package org.usvm.samples.functions
 
 import org.junit.jupiter.api.Test
-import org.usvm.samples.TestRunner
+import org.usvm.samples.JavaMethodTestRunner
+import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 
-class TestSimple : TestRunner() {
+class TestSimple : JavaMethodTestRunner() {
 
     @Test
     fun `Test calcTwoFunctions`() {
-        run(
+        checkExecutionMatches(
             Simple::calcTwoFunctions,
+            ignoreNumberOfAnalysisResults,
             { _, x, y, r -> r == 0 && y > 0 && x * x + y < 0 },
             { _, x, y, r -> r == 1 && !(y > 0 && x * x + y < 0) },
         )
@@ -17,8 +19,9 @@ class TestSimple : TestRunner() {
 
     @Test
     fun `Test factorial`() {
-        run(
+        checkPropertiesMatches(
             Simple::factorial,
+            ignoreNumberOfAnalysisResults,
             { _, x, r -> (1..x).fold(1, Int::times) == r },
         )
     }

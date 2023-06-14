@@ -15,6 +15,11 @@ fun between(bounds: IntRange) = AnalysisResultsNumberMatcher(
     matcherFailedMessage = { "Expected number of executions in bounds $bounds, but $it found" }
 ) { it in bounds }
 
+val ignoreNumberOfAnalysisResults = AnalysisResultsNumberMatcher(
+    description = "Allow any number of results except zero",
+    matcherFailedMessage = { _ -> "No analysis results received" }
+) { it > 0 }
+
 class AnalysisResultsNumberMatcher(
     private val description: String,
     val matcherFailedMessage: (Int) -> String,
