@@ -11,7 +11,11 @@ class Method<out R : SampleType?>(
     val argumentsTypes: List<SampleType>,
     val returnType: R,
     val body: Body?,
-)
+) {
+    override fun toString(): String {
+        return "$name(${argumentsTypes.joinToString()}): $returnType"
+    }
+}
 
 class Body(
     var registersCount: Int,

@@ -9,6 +9,7 @@ dependencies {
     api("io.ksmt:ksmt-z3:${Versions.ksmt}")
 
     implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable-jvm:${Versions.collections}")
+    implementation(group = "io.github.microutils", name = "kotlin-logging", version = Versions.klogging)
     testImplementation("io.mockk:mockk:${Versions.mockk}")
     testImplementation("org.junit.jupiter:junit-jupiter-params:${Versions.junitParams}")
 }
