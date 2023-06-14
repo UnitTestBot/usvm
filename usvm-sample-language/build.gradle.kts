@@ -12,4 +12,5 @@ dependencies {
 
     implementation(group =  "org.slf4j", name = "slf4j-simple", version = Versions.slf4j)
     implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable-jvm:${Versions.collections}")
+    testImplementation("ch.qos.logback:logback-classic:${Versions.logback}")
 }

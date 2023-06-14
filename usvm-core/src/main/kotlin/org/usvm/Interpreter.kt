@@ -10,4 +10,6 @@ abstract class UInterpreter<State> {
      * @return next states.
      */
     abstract fun step(state: State): StepResult<State>
+
+    override fun toString(): String = this::class.simpleName?:"<empty>"
 }

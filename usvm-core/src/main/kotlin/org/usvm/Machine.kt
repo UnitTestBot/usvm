@@ -1,13 +1,19 @@
 package org.usvm
 
+import mu.KLogging
 import org.usvm.statistics.UMachineObserver
 import org.usvm.stopstrategies.StopStrategy
+import org.usvm.util.bracket
+import org.usvm.util.debug
 
 /**
  * An abstract symbolic machine.
  *
  * @see [run]
  */
+
+val logger = object : KLogging() {}.logger
+
 abstract class UMachine<State> : AutoCloseable {
     /**
      * Runs symbolic execution loop.
@@ -28,34 +34,38 @@ abstract class UMachine<State> : AutoCloseable {
         isStateTerminated: (State) -> Boolean,
         stopStrategy: StopStrategy = StopStrategy { false }
     ) {
-        while (!pathSelector.isEmpty() && !stopStrategy.shouldStop()) {
-            val state = pathSelector.peek()
-            val (forkedStates, stateAlive) = interpreter.step(state)
+        logger.debug().bracket("$this.run($interpreter, ${pathSelector::class.simpleName})") {
+            while (!pathSelector.isEmpty() && !stopStrategy.shouldStop()) {
+                val state = pathSelector.peek()
+                val (forkedStates, stateAlive) = interpreter.step(state)
 
-            observer.onState(state, forkedStates)
+                observer.onState(state, forkedStates)
 
-            val originalStateAlive = stateAlive && !isStateTerminated(state)
-            val aliveForkedStates = mutableListOf<State>()
-            for (forkedState in forkedStates) {
-                if (!isStateTerminated(forkedState)) {
-                    aliveForkedStates.add(forkedState)
-                } else {
-                    // TODO: distinguish between states terminated by exception (runtime or user) and
-                    //  those which just exited
-                    observer.onStateTerminated(forkedState)
+                val originalStateAlive = stateAlive && !isStateTerminated(state)
+                val aliveForkedStates = mutableListOf<State>()
+                for (forkedState in forkedStates) {
+                    if (!isStateTerminated(forkedState)) {
+                        aliveForkedStates.add(forkedState)
+                    } else {
+                        // TODO: distinguish between states terminated by exception (runtime or user) and
+                        //  those which just exited
+                        observer.onStateTerminated(forkedState)
+                    }
                 }
-            }
 
-            if (originalStateAlive) {
-                pathSelector.update(state)
-            } else {
-                pathSelector.remove(state)
-                observer.onStateTerminated(state)
-            }
+                if (originalStateAlive) {
+                    pathSelector.update(state)
+                } else {
+                    pathSelector.remove(state)
+                    observer.onStateTerminated(state)
+                }
 
-            if (aliveForkedStates.isNotEmpty()) {
-                pathSelector.add(aliveForkedStates)
+                if (aliveForkedStates.isNotEmpty()) {
+                    pathSelector.add(aliveForkedStates)
+                }
             }
         }
     }
+
+    override fun toString(): String = this::class.simpleName?:"<empty>"
 }

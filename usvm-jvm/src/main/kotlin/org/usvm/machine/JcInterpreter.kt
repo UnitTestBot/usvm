@@ -1,6 +1,7 @@
 package org.usvm.machine
 
 import io.ksmt.utils.asExpr
+import mu.KLogging
 import org.jacodb.api.JcField
 import org.jacodb.api.JcMethod
 import org.jacodb.api.JcRefType
@@ -43,6 +44,11 @@ class JcInterpreter(
     private val ctx: JcContext,
     private val applicationGraph: JcApplicationGraph,
 ) : UInterpreter<JcState>() {
+
+    companion object {
+        val logger = object : KLogging() {}.logger
+    }
+
     fun getInitialState(method: JcMethod): JcState {
         val state = JcState(ctx)
         state.addEntryMethodCall(applicationGraph, method)
@@ -79,6 +85,9 @@ class JcInterpreter(
 
     override fun step(state: JcState): StepResult<JcState> {
         val stmt = state.lastStmt
+
+        logger.debug("Step: {}", stmt)
+
         val scope = StepScope(state)
 
         // handle exception firstly
