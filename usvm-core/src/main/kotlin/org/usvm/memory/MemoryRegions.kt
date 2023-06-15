@@ -15,6 +15,7 @@ import org.usvm.USizeSort
 import org.usvm.USort
 import org.usvm.sampleUValue
 import org.usvm.uctx
+import org.usvm.util.ProductRegion
 import org.usvm.util.RegionTree
 import org.usvm.util.SetRegion
 import org.usvm.util.emptyRegionTree
@@ -293,12 +294,22 @@ fun refIndexCmpConcrete(idx1: USymbolicArrayIndex, idx2: USymbolicArrayIndex): B
 
 // TODO: change it to intervals region
 typealias UArrayIndexRegion = SetRegion<UIndexType>
+typealias UInputArrayIndexRegion = ProductRegion<SetRegion<UConcreteHeapRef>, SetRegion<UIndexType>>
 
 fun indexRegion(idx: USizeExpr): UArrayIndexRegion =
     when (idx) {
         is UConcreteSize -> SetRegion.singleton(idx.numberValue)
         else -> SetRegion.universe()
     }
+
+fun refRegion(address: UHeapRef): SetRegion<UConcreteHeapRef> =
+    when (address) {
+        is UConcreteHeapRef -> SetRegion.singleton(address)
+        else -> SetRegion.universe()
+    }
+
+fun inputArrayRegion(address: UHeapRef, idx: USizeExpr): UInputArrayIndexRegion =
+    ProductRegion(refRegion(address), indexRegion(idx))
 
 fun indexRangeRegion(idx1: USizeExpr, idx2: USizeExpr): UArrayIndexRegion =
     when (idx1) {
@@ -311,11 +322,23 @@ fun indexRangeRegion(idx1: USizeExpr, idx2: USizeExpr): UArrayIndexRegion =
         else -> SetRegion.universe()
     }
 
-fun refIndexRegion(idx: USymbolicArrayIndex): UArrayIndexRegion = indexRegion(idx.second)
+fun inputArrayRangeRegion(
+    ref1: UHeapRef,
+    idx1: USizeExpr,
+    ref2: UHeapRef,
+    idx2: USizeExpr,
+): ProductRegion<SetRegion<UConcreteHeapRef>, SetRegion<UIndexType>> {
+    val refRegion1 = refRegion(ref1)
+    val refRegion2 = refRegion(ref2)
+    require(refRegion1 == refRegion2)
+    return ProductRegion(refRegion1, indexRangeRegion(idx1, idx2))
+}
+
+fun refIndexRegion(idx: USymbolicArrayIndex): UInputArrayIndexRegion = inputArrayRegion(idx.first, idx.second)
 fun refIndexRangeRegion(
     idx1: USymbolicArrayIndex,
     idx2: USymbolicArrayIndex,
-): UArrayIndexRegion = indexRangeRegion(idx1.second, idx2.second)
+): UInputArrayIndexRegion = inputArrayRangeRegion(idx1.first, idx1.second, idx2.first, idx2.second)
 
 typealias UInputFieldRegion<Field, Sort> = USymbolicMemoryRegion<UInputFieldId<Field, Sort>, UHeapRef, Sort>
 typealias UAllocatedArrayRegion<ArrayType, Sort> = USymbolicMemoryRegion<UAllocatedArrayId<ArrayType, Sort>, USizeExpr, Sort>
@@ -397,7 +420,7 @@ fun <ArrayType, Sort : USort> emptyInputArrayRegion(
     arrayType: ArrayType,
     sort: Sort,
 ): UInputArrayRegion<ArrayType, Sort> {
-    val updates = UTreeUpdates<USymbolicArrayIndex, UArrayIndexRegion, Sort>(
+    val updates = UTreeUpdates<USymbolicArrayIndex, UInputArrayIndexRegion, Sort>(
         updates = emptyRegionTree(),
         ::refIndexRegion, ::refIndexRangeRegion, ::refIndexEq, ::refIndexCmpConcrete, ::refIndexCmpSymbolic
     )
