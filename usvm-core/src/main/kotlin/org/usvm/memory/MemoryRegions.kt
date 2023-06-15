@@ -248,7 +248,7 @@ class GuardBuilder(nonMatchingUpdates: UBoolExpr) {
     }
 
     /**
-     * @return [expr] guarded by this guard builder. Implementation uses [UContext.mkAndNoFlat], because we accumulate
+     * @return [expr] guarded by this guard builder. Implementation uses no-flattening operations, because we accumulate
      * [nonMatchingUpdatesGuard] and otherwise it would take quadratic time.
      */
     fun guarded(expr: UBoolExpr): UBoolExpr = expr.ctx.mkAnd(nonMatchingUpdatesGuard, expr, flat = false)
