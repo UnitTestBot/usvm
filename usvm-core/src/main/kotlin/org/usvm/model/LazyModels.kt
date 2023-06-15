@@ -27,6 +27,7 @@ import org.usvm.memory.URegistersStackEvaluator
 import org.usvm.memory.USymbolicArrayIndex
 import org.usvm.memory.USymbolicHeap
 import org.usvm.sampleUValue
+import org.usvm.solver.UExprTranslator
 import org.usvm.uctx
 
 
@@ -54,7 +55,7 @@ private fun <K, T : USort> Map<K, UExpr<out USort>>.evalAndReplace(
 class ULazyRegistersStackModel(
     private val model: KModel,
     private val addressesMapping: AddressesMapping,
-    registerIdxToTranslated: Map<Int, UExpr<out USort>>
+    registerIdxToTranslated: Map<Int, UExpr<out USort>>,
 ) : URegistersStackEvaluator {
     private val registerIdxToTranslated = registerIdxToTranslated.toMap()
     override fun <Sort : USort> readRegister(

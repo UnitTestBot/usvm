@@ -8,7 +8,7 @@ import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.USort
-import org.usvm.operator.JcUnaryOperator
+import org.usvm.machine.operator.JcUnaryOperator
 import kotlin.test.assertEquals
 
 class JcUnaryOperatorTest {
@@ -67,7 +67,7 @@ class JcUnaryOperatorTest {
         )
 
     @Test
-    fun `Test  cast int to double`() =
+    fun `Test cast int to double`() =
         testOperatorOnInt(
             JcUnaryOperator.CastToDouble,
             "(double)",
@@ -95,7 +95,7 @@ class JcUnaryOperatorTest {
 
 
     @Test
-    fun `Test  cast long to double`() =
+    fun `Test cast long to double`() =
         testOperatorOnLong(
             JcUnaryOperator.CastToDouble,
             "(double)",
@@ -123,7 +123,7 @@ class JcUnaryOperatorTest {
 
 
     @Test
-    fun `Test  cast float to double`() =
+    fun `Test cast float to double`() =
         testOperatorOnFloat(
             JcUnaryOperator.CastToDouble,
             "(double)",
@@ -151,7 +151,7 @@ class JcUnaryOperatorTest {
 
 
     @Test
-    fun `Test  cast double to float`() =
+    fun `Test cast double to float`() =
         testOperatorOnDouble(
             JcUnaryOperator.CastToFloat,
             "(float)",

@@ -15,4 +15,16 @@ class TestVector2D : JavaMethodTestRunner() {
             { a, b, r -> r.getOrNull() == false && !a.isPerpendicularTo(b) },
         )
     }
+
+
+    @Test
+    fun `Test isCollinearTo`() {
+        checkWithExceptionPropertiesMatches(
+            Vector2D::isCollinearTo,
+            ignoreNumberOfAnalysisResults,
+            { _, b, r -> b == null && r.exceptionOrNull() is NullPointerException },
+            { a, b, r -> r.getOrNull() == true && a.isCollinearTo(b) },
+            { a, b, r -> r.getOrNull() == false && !a.isCollinearTo(b) },
+        )
+    }
 }
