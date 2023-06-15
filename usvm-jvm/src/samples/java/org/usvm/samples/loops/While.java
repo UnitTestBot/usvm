@@ -37,7 +37,7 @@ public class While {
         return ans;
     }
 
-    public int func(int x, int y, int z) {
+    public int while1000(int x, int y, int z) {
         while (y < 1_000) {
             y++;
         }

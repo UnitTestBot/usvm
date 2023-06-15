@@ -46,12 +46,11 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
     ) {
         val analysisResults = runner(target)
 
+        println(createStringFromResults(analysisResults))
+        println()
+
         require(analysisResultsNumberMatcher(analysisResults.size)) {
-            buildString {
-                appendLine(analysisResultsNumberMatcher.matcherFailedMessage(analysisResults.size))
-                appendLine()
-                appendLine(createStringFromResults(analysisResults))
-            }
+            analysisResultsNumberMatcher.matcherFailedMessage(analysisResults.size)
         }
 
         val valuesToCheck = analysisResults.map { extractValuesToCheck(it) }
@@ -59,8 +58,8 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
         checkTypes(expectedTypesForExtractedValues, valuesToCheck)
 
         when (checkMode) {
-            MATCH_EXECUTIONS -> matchExecutions(analysisResults, valuesToCheck, analysisResultsMatchers)
-            MATCH_PROPERTIES -> checkDiscoveredProperties(analysisResults, valuesToCheck, analysisResultsMatchers)
+            MATCH_EXECUTIONS -> matchExecutions(valuesToCheck, analysisResultsMatchers)
+            MATCH_PROPERTIES -> checkDiscoveredProperties(valuesToCheck, analysisResultsMatchers)
         }
 
         val coverageResult = coverageRunner(analysisResults)
@@ -95,7 +94,6 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
     }
 
     private fun checkDiscoveredProperties(
-        analysisResults: List<AnalysisResult>,
         valuesToCheck: List<List<Any?>>,
         propertiesToDiscover: Array<out Function<Boolean>>,
     ) {
@@ -108,12 +106,10 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
 
                 "Some properties were not discovered at positions (from 0): $unsatisfiedPositions"
             },
-            analysisResults
         )
     }
 
     private fun matchExecutions(
-        analysisResults: List<AnalysisResult>,
         valuesToCheck: List<List<Any?>>,
         predicates: Array<out Function<Boolean>>,
     ) {
@@ -138,7 +134,6 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
                     append(message)
                 }
             },
-            analysisResults
         )
     }
 
@@ -147,7 +142,6 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
         predicates: Array<out Function<Boolean>>,
         successCriteria: (IntArray) -> Boolean,
         errorMessage: (IntArray) -> String,
-        analysisResults: List<AnalysisResult>,
     ) {
         val satisfied = IntArray(predicates.size) { 0 }
 
@@ -162,16 +156,7 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
 
         val isSuccess = successCriteria(satisfied)
 
-        check(isSuccess) {
-            buildString {
-                appendLine(errorMessage(satisfied))
-                appendLine()
-
-                val analysisResultsString = createStringFromResults(analysisResults)
-
-                appendLine(analysisResultsString)
-            }
-        }
+        check(isSuccess) { errorMessage(satisfied) }
     }
 
     private fun createStringFromResults(analysisResults: List<AnalysisResult>): String =

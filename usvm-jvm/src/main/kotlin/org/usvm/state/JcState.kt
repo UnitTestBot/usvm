@@ -2,6 +2,7 @@ package org.usvm.state
 
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
+import org.jacodb.api.JcField
 import org.jacodb.api.JcType
 import org.jacodb.api.JcTypedField
 import org.jacodb.api.JcTypedMethod
@@ -21,11 +22,11 @@ class JcState(
     override val ctx: JcContext,
     callStack: UCallStack<JcTypedMethod, JcInst> = UCallStack(),
     pathConstraints: UPathConstraints<JcType> = UPathConstraints(ctx),
-    memory: UMemoryBase<JcTypedField, JcType, JcTypedMethod> = UMemoryBase(ctx, pathConstraints.typeConstraints),
-    models: List<UModelBase<JcTypedField, JcType>> = listOf(),
+    memory: UMemoryBase<JcField, JcType, JcTypedMethod> = UMemoryBase(ctx, pathConstraints.typeConstraints),
+    models: List<UModelBase<JcField, JcType>> = listOf(),
     path: PersistentList<JcInst> = persistentListOf(),
     var methodResult: JcMethodResult = JcMethodResult.NoCall,
-) : UState<JcType, JcTypedField, JcTypedMethod, JcInst>(
+) : UState<JcType, JcField, JcTypedMethod, JcInst>(
     ctx,
     callStack,
     pathConstraints,

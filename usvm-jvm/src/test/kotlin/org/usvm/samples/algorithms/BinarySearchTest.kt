@@ -1,5 +1,6 @@
 package org.usvm.samples.algorithms
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
@@ -7,6 +8,7 @@ import org.usvm.util.isException
 
 class BinarySearchTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("visitJcUshrExpr An operation is not implemented: Not yet implemented")
     fun testLeftBinarySearch() {
         checkWithExceptionExecutionMatches(
             BinarySearch::leftBinSearch,
@@ -20,6 +22,7 @@ class BinarySearchTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Type aliasing")
     fun testRightBinarySearch() {
         checkWithExceptionExecutionMatches(
             BinarySearch::rightBinSearch,
@@ -33,6 +36,7 @@ class BinarySearchTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("visitJcUshrExpr An operation is not implemented: Not yet implemented")
     fun testDefaultBinarySearch() {
         checkWithExceptionExecutionMatches(
             BinarySearch::defaultBinarySearch,

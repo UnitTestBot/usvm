@@ -1,9 +1,9 @@
 package org.usvm
 
 import io.ksmt.utils.asExpr
+import org.jacodb.api.JcField
 import org.jacodb.api.JcMethod
 import org.jacodb.api.JcType
-import org.jacodb.api.JcTypedField
 import org.jacodb.api.JcTypedMethod
 import org.jacodb.api.cfg.JcArgument
 import org.jacodb.api.cfg.JcAssignInst
@@ -27,7 +27,7 @@ import org.usvm.state.newStmt
 import org.usvm.state.returnValue
 import org.usvm.state.throwException
 
-typealias JcStepScope = StepScope<JcState, JcType, JcTypedField>
+typealias JcStepScope = StepScope<JcState, JcType, JcField>
 
 @Suppress("UNUSED_PARAMETER")
 class JcInterpreter(
@@ -36,7 +36,7 @@ class JcInterpreter(
 ) : UInterpreter<JcState>() {
 
     fun getInitialState(method: JcTypedMethod): JcState {
-        val solver = ctx.solver<JcTypedField, JcType, JcTypedMethod>()
+        val solver = ctx.solver<JcField, JcType, JcTypedMethod>()
         val model = solver.emptyModel()
 
         val state = JcState(
@@ -86,7 +86,7 @@ class JcInterpreter(
     }
 
     private fun handleException(
-        scope: StepScope<JcState, JcType, JcTypedField>,
+        scope: JcStepScope,
         exception: Exception,
         lastStmt: JcInst,
     ) {

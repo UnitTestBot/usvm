@@ -26,6 +26,7 @@ import org.usvm.memory.URegionId
 import org.usvm.memory.URegistersStackEvaluator
 import org.usvm.memory.USymbolicArrayIndex
 import org.usvm.memory.USymbolicHeap
+import org.usvm.sampleUValue
 import org.usvm.uctx
 
 
@@ -53,8 +54,9 @@ private fun <K, T : USort> Map<K, UExpr<out USort>>.evalAndReplace(
 class ULazyRegistersStackModel(
     private val model: KModel,
     private val addressesMapping: AddressesMapping,
-    private val registerIdxToTranslated: Map<Int, UExpr<out USort>>
+    registerIdxToTranslated: Map<Int, UExpr<out USort>>
 ) : URegistersStackEvaluator {
+    private val registerIdxToTranslated = registerIdxToTranslated.toMap()
     override fun <Sort : USort> readRegister(
         registerIndex: Int,
         sort: Sort,
@@ -70,9 +72,9 @@ class ULazyRegistersStackModel(
 class ULazyIndexedMockModel<Method>(
     private val model: KModel,
     private val addressesMapping: AddressesMapping,
-    private val indexedMethodReturnValueToTranslated: Map<Pair<*, Int>, UExpr<*>>,
+    indexedMethodReturnValueToTranslated: Map<Pair<*, Int>, UExpr<*>>,
 ) : UMockEvaluator {
-
+    private val indexedMethodReturnValueToTranslated = indexedMethodReturnValueToTranslated.toMap()
     override fun <Sort : USort> eval(symbol: UMockSymbol<Sort>): UExpr<Sort> {
         require(symbol is UIndexedMethodReturnValue<*, Sort>)
 
@@ -104,8 +106,9 @@ class ULazyHeapModel<Field, ArrayType>(
     private val model: KModel,
     private val nullRef: UConcreteHeapRef,
     private val addressesMapping: AddressesMapping,
-    private val regionIdToInitialValue: Map<URegionId<*, *, *>, KExpr<*>>,
+    regionIdToInitialValue: Map<URegionId<*, *, *>, KExpr<*>>,
 ) : USymbolicHeap<Field, ArrayType> {
+    private val regionIdToInitialValue = regionIdToInitialValue.toMap()
     private val resolvedInputFields = mutableMapOf<Field, UReadOnlyMemoryRegion<UHeapRef, out USort>>()
     private val resolvedInputArrays = mutableMapOf<ArrayType, UReadOnlyMemoryRegion<USymbolicArrayIndex, out USort>>()
     private val resolvedInputLengths = mutableMapOf<ArrayType, UReadOnlyMemoryRegion<UHeapRef, USizeSort>>()

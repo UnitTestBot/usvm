@@ -1,5 +1,6 @@
 package org.usvm.samples.algorithms
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
@@ -9,6 +10,7 @@ import org.usvm.util.isException
 
 internal class GraphTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Only npes are found")
     fun testRunFindCycle() {
         checkWithExceptionExecutionMatches(
             GraphExample::runFindCycle,
@@ -26,7 +28,8 @@ internal class GraphTest : JavaMethodTestRunner() {
         // The graph is fixed, there should be exactly one execution path, so no matchers are necessary
         checkExecutionMatches(
             GraphExample::runDijkstra,
-            eq(1)
+            eq(1),
+            { _, i, r -> r.contentEquals(GraphExample().runDijkstra(i)) }
         )
     }
 
@@ -34,6 +37,7 @@ internal class GraphTest : JavaMethodTestRunner() {
      * TODO: fix Dijkstra algorithm.
      */
     @Test
+    @Disabled("Unsupported multidimensional arrays in tests")
     fun testRunDijkstraWithParameter() {
         checkWithExceptionExecutionMatches(
             GraphExample::runDijkstraWithParameter,

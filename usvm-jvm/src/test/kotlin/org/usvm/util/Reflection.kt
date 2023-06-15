@@ -18,4 +18,13 @@ object Reflection {
     @Suppress("UNCHECKED_CAST")
     fun allocateArray(cls: Class<*>, length: Int): Array<Any?> =
         java.lang.reflect.Array.newInstance(cls, length) as Array<Any?>
+
+    fun setField(instance: Any?, javaField: Field, fieldValue: Any?) {
+        javaField.isAccessible = true
+        try {
+            javaField.set(instance, fieldValue)
+        } finally {
+            javaField.isAccessible = false
+        }
+    }
 }
