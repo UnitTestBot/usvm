@@ -1,12 +1,12 @@
 package org.usvm.samples.arrays
 
-import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.RepeatedTest
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.state.WrappedException
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 class TestOneDimensional : JavaMethodTestRunner() {
-    @Test
+    @RepeatedTest(5)
     fun `Test sumOf`() {
         checkWithExceptionPropertiesMatches(
             OneDimensional::sumOf,
@@ -17,7 +17,7 @@ class TestOneDimensional : JavaMethodTestRunner() {
         )
     }
 
-    @Test
+    @RepeatedTest(5)
     fun `Test minus`() {
         checkWithExceptionPropertiesMatches(
             OneDimensional::minus,

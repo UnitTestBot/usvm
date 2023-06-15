@@ -3,7 +3,7 @@ package org.usvm.interpreter
 import io.ksmt.solver.yices.KYicesSolver
 import org.usvm.UComponents
 import org.usvm.UContext
-import org.usvm.types.UTypeSystem
+import org.usvm.UTypeSystem
 import org.usvm.language.Field
 import org.usvm.language.Method
 import org.usvm.language.SampleType

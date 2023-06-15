@@ -77,7 +77,7 @@ interface UMemoryUpdates<Key, Sort : USort> : Sequence<UUpdateNode<Key, Sort>> {
 
     /**
      * Accepts the [visitor]. Implementations should call [UMemoryUpdatesVisitor.visitInitialValue] firstly, then call
-     * [UMemoryUpdatesVisitor.visitUpdateNode] in the chronological order
+     * [UMemoryUpdatesVisitor.visitUpdate] in the chronological order
      * (from the oldest to the newest) with accumulated [Result].
      *
      * Uses [lookupCache] to shortcut the traversal. The actual key is determined by the
@@ -259,7 +259,7 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
 ) : UMemoryUpdates<Key, Sort> {
     override fun read(key: Key): UTreeUpdates<Key, Reg, Sort> {
         val reg = keyToRegion(key)
-        val updates = updates.localize(reg) { !it.includesSymbolically(key).isFalse }
+        val updates = updates.localize(reg) { it.includesSymbolically(key).isFalse }
         if (updates === this.updates) {
             return this
         }
