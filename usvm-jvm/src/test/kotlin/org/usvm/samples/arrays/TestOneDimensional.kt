@@ -2,7 +2,7 @@ package org.usvm.samples.arrays
 
 import org.junit.jupiter.api.RepeatedTest
 import org.usvm.samples.JavaMethodTestRunner
-import org.usvm.state.WrappedException
+import org.usvm.machine.state.WrappedException
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 class TestOneDimensional : JavaMethodTestRunner() {

@@ -3,12 +3,12 @@ package org.usvm.samples
 import org.jacodb.api.ext.findClass
 import org.jacodb.api.ext.toType
 import org.junit.jupiter.api.TestInstance
-import org.usvm.JcClassCoverage
-import org.usvm.JcMachine
-import org.usvm.JcTest
+import org.usvm.api.JcClassCoverage
+import org.usvm.api.JcTest
+import org.usvm.api.util.JcTestResolver
+import org.usvm.machine.JcMachine
 import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.AnalysisResultsNumberMatcher
-import org.usvm.util.JcTestResolver
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 import kotlin.reflect.KFunction1

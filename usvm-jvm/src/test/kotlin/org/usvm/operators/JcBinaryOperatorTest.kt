@@ -10,7 +10,7 @@ import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.USort
-import org.usvm.operator.JcBinOperator
+import org.usvm.machine.operator.JcBinOperator
 import kotlin.test.assertEquals
 
 class JcBinaryOperatorTest {
