@@ -198,7 +198,7 @@ class JcExprResolver(
     }
 
     override fun visitJcLong(value: JcLong): UExpr<out USort> = with(ctx) {
-        mkBv(value.value)
+        mkBv(value.value, bv64Sort)
     }
 
     override fun visitJcFloat(value: JcFloat): UExpr<out USort> = with(ctx) {
@@ -385,10 +385,10 @@ class JcExprResolver(
             val instanceRef = resolveExpr(instance)?.asExpr(addressSort) ?: return null
             checkNullPointer(instanceRef) ?: return null
             val sort = ctx.typeToSort(field.fieldType)
-            UFieldValue(sort, instanceRef, field)
+            UFieldValue(sort, instanceRef, field.field)
         } else {
             val sort = ctx.typeToSort(field.fieldType)
-            JcStaticFieldRef(sort, field)
+            JcStaticFieldRef(sort, field.field)
         }
     }
 

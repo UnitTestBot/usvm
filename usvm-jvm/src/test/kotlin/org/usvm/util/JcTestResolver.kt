@@ -5,6 +5,7 @@ import io.ksmt.expr.KFp64Value
 import io.ksmt.utils.asExpr
 import org.jacodb.api.JcArrayType
 import org.jacodb.api.JcClassType
+import org.jacodb.api.JcField
 import org.jacodb.api.JcPrimitiveType
 import org.jacodb.api.JcRefType
 import org.jacodb.api.JcType
@@ -77,7 +78,7 @@ class JcTestResolver {
 
     private class MemoryScope(
         private val ctx: JcContext,
-        private val model: UModelBase<JcTypedField, JcType>?,
+        private val model: UModelBase<JcField, JcType>?,
         private val memory: UReadOnlySymbolicMemory,
         private val classLoader: ClassLoader = ClassLoader.getSystemClassLoader(),
     ) {
@@ -181,11 +182,11 @@ class JcTestResolver {
 
             val fields = type.jcClass.toType().declaredFields // TODO: now it skips inherited fields
             for (field in fields) {
-                val ref = UFieldValue(ctx.typeToSort(field.fieldType), heapRef, field)
+                val ref = UFieldValue(ctx.typeToSort(field.fieldType), heapRef, field.field)
                 val fieldValue = resolveLValue(ref, field.fieldType)
 
                 val javaField = jClass.getDeclaredField(field.name)
-                javaField.set(instance, fieldValue)
+                Reflection.setField(instance, javaField, fieldValue)
             }
             return instance
         }

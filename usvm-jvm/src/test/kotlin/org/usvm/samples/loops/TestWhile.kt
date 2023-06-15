@@ -42,9 +42,9 @@ class TestWhile : JavaMethodTestRunner() {
     }
 
     @RepeatedTest(5)
-    fun `Test while`() {
+    fun `Test while1000`() {
         checkPropertiesMatches(
-            While::func,
+            While::while1000,
             ignoreNumberOfAnalysisResults,
             { _, _, _, _, r -> r == 1 },
             { _, _, _, _, r -> r == 2 },

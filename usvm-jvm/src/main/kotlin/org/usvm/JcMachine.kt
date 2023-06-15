@@ -25,7 +25,7 @@ class JcMachine(
         val collectedStates = mutableListOf<JcState>()
         val coveredStoppingStrategy = TargetsCoveredStoppingStrategy(listOf(method), applicationGraph)
 
-        val pathSelector = CustomStoppingStrategySelector(getPathSelector(method), coveredStoppingStrategy)
+        val pathSelector = getPathSelector(method)
 
         run(
             interpreter,
@@ -43,6 +43,7 @@ class JcMachine(
                 }
             },
             continueAnalyzing = ::isInterestingState,
+            stoppingStrategy = coveredStoppingStrategy,
         )
         return collectedStates
     }

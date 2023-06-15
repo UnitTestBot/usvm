@@ -6,12 +6,16 @@ import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import io.ksmt.solver.z3.KZ3Solver
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.usvm.Field
 import org.usvm.Method
 import org.usvm.Type
+import org.usvm.UArrayIndexValue
 import org.usvm.UComponents
+import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UIndexedMocker
+import org.usvm.URegisterValue
 import org.usvm.constraints.UPathConstraints
 import org.usvm.memory.URegionHeap
 import org.usvm.memory.URegistersStack
@@ -194,5 +198,25 @@ class ModelDecodingTest {
 
         assertSame(falseExpr, model.eval(symbolicRef2 eq symbolicRef0))
         assertSame(model.eval(readedRef), model.eval(symbolicRef2))
+    }
+
+    @Test
+    fun testSimpleReadingFromModel() = with(ctx) {
+        val array = mockk<Type>()
+
+        val symbolicRef0 = stack.readRegister(0, addressSort)
+
+        val concreteIdx = mkBv(3)
+
+        val readedExpr = heap.readArrayIndex(symbolicRef0, concreteIdx, array, bv32Sort)
+        pc += symbolicRef0 neq nullRef
+        pc += readedExpr eq mkBv(42)
+
+        val status = solver.checkWithSoftConstraints(pc)
+        val model = assertIs<USatResult<UModelBase<Field, Type>>>(status).model
+
+        val ref = assertIs<UConcreteHeapRef>(model.read(URegisterValue(addressSort, 0)))
+        val expr = model.read(UArrayIndexValue(bv32Sort, ref, concreteIdx, array))
+        assertEquals(mkBv(42), expr)
     }
 }
