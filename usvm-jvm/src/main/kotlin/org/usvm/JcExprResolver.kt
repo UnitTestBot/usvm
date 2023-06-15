@@ -143,8 +143,15 @@ class JcExprResolver(
     override fun visitJcXorExpr(expr: JcXorExpr): UExpr<out USort>? =
         resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinOperator.Xor(lhs, rhs) }
 
-    override fun visitJcEqExpr(expr: JcEqExpr): UExpr<out USort>? =
-        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinOperator.Eq(lhs, rhs) }
+    override fun visitJcEqExpr(expr: JcEqExpr): UExpr<out USort>? = with(ctx) {
+        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs ->
+            if (lhs.sort == addressSort) {
+                mkHeapRefEq(lhs.asExpr(addressSort), rhs.asExpr(addressSort))
+            } else {
+                JcBinOperator.Eq(lhs, rhs)
+            }
+        }
+    }
 
     override fun visitJcNeqExpr(expr: JcNeqExpr): UExpr<out USort>? =
         resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinOperator.Neq(lhs, rhs) }

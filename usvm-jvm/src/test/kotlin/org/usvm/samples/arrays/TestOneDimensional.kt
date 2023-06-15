@@ -22,6 +22,7 @@ class TestOneDimensional : JavaMethodTestRunner() {
         checkWithExceptionPropertiesMatches(
             OneDimensional::minus,
             ignoreNumberOfAnalysisResults,
+            { a, _, r -> a != null && a.size == 0 && r.isSuccess && r.getOrNull() == null },
             { a, _, r -> a == null && r.exceptionOrNull() is NullPointerException },
             { a, b, r -> a != null && b == null && r.exceptionOrNull() is NullPointerException },
             { a, b, r -> a != null && b != null && a.size > b.size && r.exceptionOrNull() is IndexOutOfBoundsException },
