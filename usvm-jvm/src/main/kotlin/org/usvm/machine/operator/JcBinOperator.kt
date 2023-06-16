@@ -138,7 +138,7 @@ sealed class JcBinOperator(
         }
     )
 
-    // TODO shl, shr
+    // TODO shl, shr operators
 
     open operator fun invoke(lhsExpr: UExpr<out USort>, rhsExpr: UExpr<out USort>): UExpr<out USort> {
         val lhs = convertBoolIfNeeded(lhsExpr, rhsExpr)
@@ -152,13 +152,13 @@ sealed class JcBinOperator(
 
             lhsSort is UBvSort && rhsSort is UBvSort -> {
                 require(lhsSort == rhsSort) { "Sorts mismatch: $lhsSort and $rhsSort" }
-                require(lhsSort == lhs.uctx.bv32Sort || rhsSort == rhs.uctx.bv64Sort) { "Unexpected sort: $lhsSort" }
+                require(lhsSort == lhs.uctx.bv32Sort || lhsSort == lhs.uctx.bv64Sort) { "Unexpected sort: $lhsSort" }
                 lhs.uctx.onBv(lhs.cast(), rhs.cast())
             }
 
             lhsSort is UFpSort && rhsSort is UFpSort -> {
                 require(lhsSort == rhsSort) { "Sorts mismatch: $lhsSort and $rhsSort" }
-                require(lhsSort == lhs.uctx.fp32Sort || rhsSort == rhs.uctx.fp64Sort) { "Unexpected sort: $lhsSort" }
+                require(lhsSort == lhs.uctx.fp32Sort || lhsSort == lhs.uctx.fp64Sort) { "Unexpected sort: $lhsSort" }
                 lhs.uctx.onFp(lhs.cast(), rhs.cast())
             }
 
@@ -184,5 +184,3 @@ sealed class JcBinOperator(
             { _, _ -> error("Should not be called") }
     }
 }
-
-

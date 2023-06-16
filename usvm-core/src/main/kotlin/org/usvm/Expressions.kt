@@ -111,18 +111,18 @@ class UNullRef internal constructor(
 //region LValues
 open class ULValue(val sort: USort)
 
-class URegisterValue(sort: USort, val idx: Int) : ULValue(sort)
+class URegisterLValue(sort: USort, val idx: Int) : ULValue(sort)
 
-class UFieldValue<Field>(fieldSort: USort, val ref: UHeapRef, val field: Field) : ULValue(fieldSort)
+class UFieldLValue<Field>(fieldSort: USort, val ref: UHeapRef, val field: Field) : ULValue(fieldSort)
 
-class UArrayIndexValue<ArrayType>(
+class UArrayIndexLValue<ArrayType>(
     cellSort: USort,
     val ref: UHeapRef,
     val index: USizeExpr,
     val arrayType: ArrayType,
 ) : ULValue(cellSort)
 
-class UArrayLengthValue<ArrayType>(
+class UArrayLengthLValue<ArrayType>(
     val ref: UHeapRef,
     val arrayType: ArrayType,
 ) : ULValue(ref.uctx.sizeSort)
@@ -283,8 +283,7 @@ class UInputArrayLengthReading<ArrayType> internal constructor(
 
 //region Mocked Expressions
 
-abstract class UMockSymbol<Sort : USort>(ctx: UContext, override val sort: Sort) : USymbol<Sort>(ctx) {
-}
+abstract class UMockSymbol<Sort : USort>(ctx: UContext, override val sort: Sort) : USymbol<Sort>(ctx)
 
 // TODO: make indices compositional!
 class UIndexedMethodReturnValue<Method, Sort : USort> internal constructor(

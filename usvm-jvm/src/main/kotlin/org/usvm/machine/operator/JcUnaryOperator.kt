@@ -1,4 +1,4 @@
-package org.usvm.machine.operator
+ package org.usvm.machine.operator
 
 import io.ksmt.expr.KExpr
 import io.ksmt.expr.KFpRoundingMode
@@ -85,7 +85,8 @@ sealed class JcUnaryOperator(
 
 
         /**
-         * TODO: Add reference here
+         * Performs a java-like conversion to bit-vector accordingly to
+         * [Floating-Point Arithmetic](https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-2.html#jvms-2.8)
          */
         private fun UExpr<UFpSort>.castToBv(sizeBits: Int): UExpr<UBvSort> =
             with(ctx) {
@@ -115,6 +116,3 @@ sealed class JcUnaryOperator(
             }
     }
 }
-
-
-

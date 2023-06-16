@@ -23,18 +23,4 @@ public class Simple {
         }
         return (n == 0 ? 1 : factorial(n - 1));
     }
-
-    public int overload(int a) {
-        if (a == 0) {
-            return 0;
-        }
-        return 1;
-    }
-
-    public short overload(short b) {
-        if (b == 0) {
-            return 0;
-        }
-        return 2;
-    }
 }

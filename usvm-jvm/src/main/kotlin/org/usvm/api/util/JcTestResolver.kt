@@ -24,44 +24,58 @@ import org.usvm.machine.JcContext
 import org.usvm.api.JcCoverage
 import org.usvm.api.JcParametersState
 import org.usvm.api.JcTest
-import org.usvm.UArrayIndexValue
-import org.usvm.UArrayLengthValue
+import org.usvm.UArrayIndexLValue
+import org.usvm.UArrayLengthLValue
 import org.usvm.UConcreteHeapAddress
 import org.usvm.UConcreteHeapRef
 import org.usvm.UConcreteInt32
 import org.usvm.UConcreteInt64
 import org.usvm.UExpr
-import org.usvm.UFieldValue
+import org.usvm.UFieldLValue
 import org.usvm.UHeapRef
 import org.usvm.ULValue
-import org.usvm.URegisterValue
+import org.usvm.URegisterLValue
 import org.usvm.USort
 import org.usvm.memory.UAddressCounter
 import org.usvm.memory.UReadOnlySymbolicMemory
 import org.usvm.model.UModelBase
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
+import org.usvm.machine.state.WrappedException
 
-class JcTestResolver {
+/**
+ * A class, responsible for resolving a single [JcTest] for a specific method from a symbolic state.
+ *
+ * Uses reflection to resolve objects.
+ *
+ * @param classLoader a class loader to load target classes.
+ */
+class JcTestResolver(
+    private val classLoader: ClassLoader = ClassLoader.getSystemClassLoader()
+) {
+    /**
+     * Resolves a [JcTest] from a [method] from a [state].
+     */
     fun resolve(method: JcTypedMethod, state: JcState): JcTest {
         val model = state.models.first()
-        val initialMemory = MemoryScope(state.ctx, model = null, model)
+        val initialMemory = MemoryScope(state.ctx, model = null, model, method, classLoader)
 
         val memory = state.memory
-        val finalMemory = MemoryScope(state.ctx, model, memory)
+        val finalMemory = MemoryScope(state.ctx, model, memory, method, classLoader)
 
 
-        val before = with(initialMemory) { resolveState(method) }
-        val after = with(finalMemory) { resolveState(method) }
+        val before = with(initialMemory) { resolveState() }
+        val after = with(finalMemory) { resolveState() }
 
         val result = when (val res = state.methodResult) {
             is JcMethodResult.NoCall -> error("no result found")
             is JcMethodResult.Success -> with(finalMemory) { Result.success(resolveExpr(res.value, method.returnType)) }
-            is JcMethodResult.Exception -> Result.failure(res.exception)
+            is JcMethodResult.Exception -> Result.failure(resolveException(res.exception))
         }
         val coverage = resolveCoverage(method, state)
 
         return JcTest(
+            method,
             before,
             after,
             result,
@@ -69,23 +83,37 @@ class JcTestResolver {
         )
     }
 
+    private fun resolveException(exception: Exception): Throwable =
+        when (exception) {
+            is WrappedException -> Reflection.allocateInstance(classLoader.loadClass(exception.name)) as Throwable
+            else -> exception
+        }
+
     @Suppress("UNUSED_PARAMETER")
     private fun resolveCoverage(method: JcTypedMethod, state: JcState): JcCoverage {
         return JcCoverage(emptyMap())
     }
 
-
+    /**
+     * An actual class for resolving objects from [UExpr]s.
+     *
+     * @param model a model to which compose expressions.
+     * @param memory a read-only memory to read [ULValue]s from.
+     * @param classLoader a class loader to load target classes.
+     */
     private class MemoryScope(
         private val ctx: JcContext,
         private val model: UModelBase<JcField, JcType>?,
         private val memory: UReadOnlySymbolicMemory,
+        private val method: JcTypedMethod,
         private val classLoader: ClassLoader = ClassLoader.getSystemClassLoader(),
     ) {
         private val resolvedCache = mutableMapOf<Int, Any?>()
 
-        fun resolveState(method: JcTypedMethod): JcParametersState {
+        fun resolveState(): JcParametersState {
+            // TODO: now we need to explicitly evaluate indices of registers, because we don't have specific ULValues
             val thisInstance = if (!method.isStatic) {
-                val ref = URegisterValue(ctx.addressSort, idx = 0)
+                val ref = URegisterLValue(ctx.addressSort, idx = 0)
                 resolveLValue(ref, method.enclosingType)
             } else {
                 null
@@ -93,7 +121,7 @@ class JcTestResolver {
 
             val parameters = method.parameters.mapIndexed { idx, param ->
                 val registerIdx = if (method.isStatic) idx else idx + 1
-                val ref = URegisterValue(ctx.typeToSort(param.type), registerIdx)
+                val ref = URegisterLValue(ctx.typeToSort(param.type), registerIdx)
                 resolveLValue(ref, param.type)
             }
 
@@ -142,13 +170,13 @@ class JcTestResolver {
         }
 
         private fun resolveArray(idx: UConcreteHeapAddress, type: JcArrayType, heapRef: UHeapRef): Any {
-            val lengthRef = UArrayLengthValue(heapRef, type)
+            val lengthRef = UArrayLengthLValue(heapRef, type)
             val length = resolveLValue(lengthRef, ctx.cp.int) as Int
 
             val cellSort = ctx.typeToSort(type.elementType)
 
             fun <T> resolveElement(idx: Int): T {
-                val elemRef = UArrayIndexValue(cellSort, heapRef, ctx.mkBv(idx), type)
+                val elemRef = UArrayIndexLValue(cellSort, heapRef, ctx.mkBv(idx), type)
                 @Suppress("UNCHECKED_CAST")
                 return resolveLValue(elemRef, type.elementType) as T
             }
@@ -166,7 +194,7 @@ class JcTestResolver {
                     val jClass = resolveType(idx, type.elementType as JcRefType)
                     val instance = Reflection.allocateArray(jClass, length)
                     for (i in 0 until length) {
-                        instance[i] = resolveElement<Any?>(i)
+                        instance[i] = resolveElement(i)
                     }
                     instance
                 }
@@ -181,7 +209,7 @@ class JcTestResolver {
 
             val fields = type.jcClass.toType().declaredFields // TODO: now it skips inherited fields
             for (field in fields) {
-                val ref = UFieldValue(ctx.typeToSort(field.fieldType), heapRef, field.field)
+                val ref = UFieldLValue(ctx.typeToSort(field.fieldType), heapRef, field.field)
                 val fieldValue = resolveLValue(ref, field.fieldType)
 
                 val javaField = jClass.getDeclaredField(field.name)
@@ -200,6 +228,11 @@ class JcTestResolver {
             return clazz
         }
 
+        /**
+         * If we resolve state after, [expr] is read from a state memory, so it requires concretization via [model].
+         *
+         * @return a concretized expression, or [expr] if [model] is null.
+         */
         private fun <T : USort> tryConcretize(expr: UExpr<T>): UExpr<T> {
             return model?.eval(expr) ?: expr
         }

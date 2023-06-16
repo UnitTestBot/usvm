@@ -75,7 +75,7 @@ val floatData = listOf(
     Float.NaN,
     Float.NEGATIVE_INFINITY,
     Float.POSITIVE_INFINITY,
-)
+) + (Int.MAX_VALUE.toLong() - 20..Int.MAX_VALUE.toLong() + 20).map(Long::toFloat).toSet()
 
 val doubleData = listOf(
     0.0,

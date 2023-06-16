@@ -4,12 +4,12 @@ import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcTypedMethod
 import org.usvm.UMachine
 import org.usvm.UPathSelector
-import org.usvm.ps.BfsPathSelector
-import org.usvm.ps.DfsPathSelector
-import org.usvm.ps.combinators.InterleavedSelector
-import org.usvm.ps.stopstregies.TargetsCoveredStoppingStrategy
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
+import org.usvm.ps.BfsPathSelector
+import org.usvm.ps.DfsPathSelector
+import org.usvm.ps.combinators.ParallelSelector
+import org.usvm.ps.stopstregies.TargetsCoveredStoppingStrategy
 
 class JcMachine(
     cp: JcClasspath,
@@ -53,7 +53,7 @@ class JcMachine(
         val state = getInitialState(target)
         val dfsPathSelector = DfsPathSelector<JcState>()
         val bfsPathSelector = BfsPathSelector<JcState>()
-        val ps = InterleavedSelector(dfsPathSelector, bfsPathSelector)
+        val ps = ParallelSelector(dfsPathSelector, bfsPathSelector)
         bfsPathSelector.add(listOf(state))
         dfsPathSelector.add(listOf(state.clone()))
         return ps

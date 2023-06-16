@@ -1,15 +1,15 @@
 package org.usvm.model
 
 import io.ksmt.utils.asExpr
-import org.usvm.UArrayIndexValue
-import org.usvm.UArrayLengthValue
+import org.usvm.UArrayIndexLValue
+import org.usvm.UArrayLengthLValue
 import org.usvm.UComposer
 import org.usvm.UContext
 import org.usvm.UExpr
-import org.usvm.UFieldValue
+import org.usvm.UFieldLValue
 import org.usvm.ULValue
 import org.usvm.UMockEvaluator
-import org.usvm.URegisterValue
+import org.usvm.URegisterLValue
 import org.usvm.USort
 import org.usvm.constraints.UTypeModel
 import org.usvm.memory.UReadOnlySymbolicHeap
@@ -48,10 +48,10 @@ open class UModelBase<Field, Type>(
     @Suppress("UNCHECKED_CAST")
     override fun read(lvalue: ULValue): UExpr<out USort> = with(lvalue) {
         when (this) {
-            is URegisterValue -> stack.readRegister(idx, sort)
-            is UFieldValue<*> -> heap.readField(ref, field as Field, sort).asExpr(sort)
-            is UArrayIndexValue<*> -> heap.readArrayIndex(ref, index, arrayType as Type, sort).asExpr(sort)
-            is UArrayLengthValue<*> -> heap.readArrayLength(ref, arrayType as Type)
+            is URegisterLValue -> stack.readRegister(idx, sort)
+            is UFieldLValue<*> -> heap.readField(ref, field as Field, sort).asExpr(sort)
+            is UArrayIndexLValue<*> -> heap.readArrayIndex(ref, index, arrayType as Type, sort).asExpr(sort)
+            is UArrayLengthLValue<*> -> heap.readArrayLength(ref, arrayType as Type)
 
             else -> throw IllegalArgumentException("Unexpected lvalue $this")
         }

@@ -3,6 +3,7 @@ package org.usvm.model
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.sampleValue
 import org.usvm.UBoolExpr
+import org.usvm.UComposer
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
@@ -13,7 +14,6 @@ import org.usvm.USizeExpr
 import org.usvm.USizeSort
 import org.usvm.USort
 import org.usvm.memory.UAddressCounter
-import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.memory.URegistersStackEvaluator
 import org.usvm.memory.USymbolicArrayIndex

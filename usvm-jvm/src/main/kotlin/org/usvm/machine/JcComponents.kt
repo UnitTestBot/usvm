@@ -23,7 +23,6 @@ class JcComponents(
         return USolverBase(ctx, smtSolver, translator, decoder, softConstraintsProvider)
     }
 
-
     fun close() {
         closeableResources.forEach(AutoCloseable::close)
     }

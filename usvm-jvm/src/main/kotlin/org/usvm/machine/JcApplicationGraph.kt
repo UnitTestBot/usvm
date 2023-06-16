@@ -41,6 +41,7 @@ class JcApplicationGraph(
 
     private val JcMethod.toTyped
         get() = typedMethodsCache.getOrPut(this) {
+            // maybe there is a better way, but I didn't find it
             enclosingClass.toType().declaredMethods.first { it.method == this }
         }
 }
