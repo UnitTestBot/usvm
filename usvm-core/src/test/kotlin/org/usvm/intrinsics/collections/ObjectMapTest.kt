@@ -56,6 +56,64 @@ class ObjectMapTest {
     }
 
     @Test
+    fun testConcreteMapContains() {
+        val concreteMap = state.mkSymbolicObjectMap()
+        testMapContains(concreteMap)
+    }
+
+    @Test
+    fun testSymbolicMapContains() {
+        val symbolicMap = ctx.mkRegisterReading(99, ctx.addressSort)
+        testMapContains(symbolicMap)
+    }
+
+    private fun testMapContains(mapRef: UHeapRef) {
+        val concreteKeys = (1..5).map { ctx.mkConcreteHeapRef(it) }
+        val symbolicKeys = (1..5).map { ctx.mkRegisterReading(it, ctx.addressSort) }
+        val storedConcrete = concreteKeys.dropLast(1)
+        val missedConcrete = concreteKeys.last()
+        val storedSymbolic = symbolicKeys.dropLast(1)
+        val missedSymbolic = symbolicKeys.last()
+
+        fillMap(mapRef, storedConcrete + storedSymbolic, startValueIdx = 1)
+
+        checkWithSolver {
+            (storedConcrete + storedSymbolic).forEach { key ->
+                assertImpossible {
+                    val keyContains = state.symbolicObjectMapContains(mapRef, key)
+                    keyContains eq falseExpr
+                }
+            }
+
+            assertImpossible {
+                val keyContains = state.symbolicObjectMapContains(mapRef, missedConcrete)
+                keyContains eq trueExpr
+            }
+
+            assertPossible {
+                val keyContains = state.symbolicObjectMapContains(mapRef, missedSymbolic)
+                keyContains eq falseExpr
+            }
+        }
+
+        val removeConcrete = storedConcrete.first()
+        val removeSymbolic = storedSymbolic.first()
+        val removedKeys = listOf(removeConcrete, removeSymbolic)
+        removedKeys.forEach { key ->
+            state.symbolicObjectMapRemove(mapRef, key)
+        }
+
+        checkWithSolver {
+            removedKeys.forEach { key ->
+                assertImpossible {
+                    val keyContains = state.symbolicObjectMapContains(mapRef, key)
+                    keyContains eq trueExpr
+                }
+            }
+        }
+    }
+
+    @Test
     fun testConcreteMapSize() {
         val concreteMap = state.mkSymbolicObjectMap()
         testMapSize(concreteMap) { size, lowerBound, upperBound ->
