@@ -34,11 +34,12 @@ object SymbolicListIntrinsics : SymbolicCollectionIntrinsics {
     ) = with(memory.heap) {
         val descriptor = ctx.listDescriptor(elementSort)
 
-        val oldSize = readSymbolicMapLength(descriptor, listRef)
-        val newSize = ctx.mkBvAddExpr(oldSize, ctx.mkBv(1))
+        val size = readCollectionSize(listRef, elementSort)
+        writeSymbolicMap(descriptor, listRef, size, value, guard = ctx.trueExpr)
 
-        writeSymbolicMap(descriptor, listRef, oldSize, value, guard = ctx.trueExpr)
-        writeSymbolicMapLength(descriptor, listRef, newSize, guard = ctx.trueExpr)
+        updateCollectionSize(listRef, elementSort, ctx.trueExpr) { oldSize ->
+            ctx.mkBvAddExpr(oldSize, ctx.mkBv(1))
+        }
     }
 
     fun UState<*, *, *, *>.symbolicListSet(
@@ -59,22 +60,24 @@ object SymbolicListIntrinsics : SymbolicCollectionIntrinsics {
     ) = with(memory.heap) {
         val descriptor = ctx.listDescriptor(elementSort)
 
-        val oldSize = readSymbolicMapLength(descriptor, listRef)
-        val newIndex = ctx.mkBvAddExpr(index, ctx.mkBv(1))
-        val newSize = ctx.mkBvAddExpr(oldSize, ctx.mkBv(1))
+        val currentSize = readCollectionSize(listRef, elementSort)
+        val indexAfterInsert = ctx.mkBvAddExpr(index, ctx.mkBv(1))
+        val lastIndexAfterInsert = currentSize
 
         copySymbolicMapIndexRange(
             descriptor = descriptor,
             srcRef = listRef,
             dstRef = listRef,
             fromSrcKey = index,
-            fromDstKey = newIndex,
-            toDstKey = newSize,
+            fromDstKey = indexAfterInsert,
+            toDstKey = lastIndexAfterInsert,
             guard = ctx.trueExpr
         )
 
         writeSymbolicMap(descriptor, listRef, index, value, guard = ctx.trueExpr)
-        writeSymbolicMapLength(descriptor, listRef, newSize, guard = ctx.trueExpr)
+        updateCollectionSize(listRef, elementSort, ctx.trueExpr) { oldSize ->
+            ctx.mkBvAddExpr(oldSize, ctx.mkBv(1))
+        }
     }
 
     fun UState<*, *, *, *>.symbolicListRemove(
@@ -84,21 +87,23 @@ object SymbolicListIntrinsics : SymbolicCollectionIntrinsics {
     ) = with(memory.heap) {
         val descriptor = ctx.listDescriptor(elementSort)
 
-        val oldSize = readSymbolicMapLength(descriptor, listRef)
-        val newIndex = ctx.mkBvSubExpr(index, ctx.mkBv(1))
-        val newSize = ctx.mkBvSubExpr(oldSize, ctx.mkBv(1))
+        val currentSize = readCollectionSize(listRef, elementSort)
+        val firstIndexAfterRemove = ctx.mkBvSubExpr(index, ctx.mkBv(1))
+        val lastIndexAfterRemove = ctx.mkBvSubExpr(currentSize, ctx.mkBv(1))
 
         copySymbolicMapIndexRange(
             descriptor = descriptor,
             srcRef = listRef,
             dstRef = listRef,
             fromSrcKey = index,
-            fromDstKey = newIndex,
-            toDstKey = newSize,
+            fromDstKey = firstIndexAfterRemove,
+            toDstKey = lastIndexAfterRemove,
             guard = ctx.trueExpr
         )
 
-        writeSymbolicMapLength(descriptor, listRef, newSize, guard = ctx.trueExpr)
+        updateCollectionSize(listRef, elementSort, ctx.trueExpr) { oldSize ->
+            ctx.mkBvSubExpr(oldSize, ctx.mkBv(1))
+        }
     }
 
     fun UState<*, *, *, *>.symbolicListCopyRange(

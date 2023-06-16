@@ -1,15 +1,9 @@
 package org.usvm.intrinsics.collections
 
 import io.ksmt.solver.KSolver
-import io.ksmt.solver.KSolverStatus
-import io.ksmt.solver.z3.KZ3Solver
 import io.ksmt.utils.uncheckedCast
-import io.mockk.every
-import io.mockk.mockk
-import kotlinx.collections.immutable.persistentListOf
-import org.junit.jupiter.api.BeforeEach
-import org.usvm.*
-import org.usvm.constraints.UPathConstraints
+import org.usvm.UHeapRef
+import org.usvm.USizeExpr
 import org.usvm.intrinsics.collections.SymbolicObjectMapIntrinsics.mkSymbolicObjectMap
 import org.usvm.intrinsics.collections.SymbolicObjectMapIntrinsics.symbolicObjectMapContains
 import org.usvm.intrinsics.collections.SymbolicObjectMapIntrinsics.symbolicObjectMapGet
@@ -17,44 +11,9 @@ import org.usvm.intrinsics.collections.SymbolicObjectMapIntrinsics.symbolicObjec
 import org.usvm.intrinsics.collections.SymbolicObjectMapIntrinsics.symbolicObjectMapPut
 import org.usvm.intrinsics.collections.SymbolicObjectMapIntrinsics.symbolicObjectMapRemove
 import org.usvm.intrinsics.collections.SymbolicObjectMapIntrinsics.symbolicObjectMapSize
-import org.usvm.memory.UMemoryBase
-import org.usvm.solver.UExprTranslator
 import kotlin.test.Test
-import kotlin.test.assertEquals
 
-class ObjectMapTest {
-    private lateinit var ctx: UContext
-    private lateinit var pathConstraints: UPathConstraints<Type>
-    private lateinit var memory: UMemoryBase<Field, Type, Any?>
-    private lateinit var state: StateStub
-    private lateinit var translator: UExprTranslator<Field, Type>
-
-    @BeforeEach
-    fun initializeContext() {
-        val components: UComponents<*, *, *> = mockk()
-        every { components.mkTypeSystem(any()) } returns mockk()
-
-        ctx = UContext(components)
-        pathConstraints = UPathConstraints(ctx)
-        memory = UMemoryBase(ctx, pathConstraints.typeConstraints)
-        state = StateStub(ctx, pathConstraints, memory)
-
-        translator = UExprTranslator(ctx)
-    }
-
-    private class StateStub(
-        ctx: UContext,
-        pathConstraints: UPathConstraints<Type>,
-        memory: UMemoryBase<Field, Type, Any?>
-    ) : UState<Type, Field, Any?, Any?>(
-        ctx, UCallStack(),
-        pathConstraints, memory, emptyList(), persistentListOf()
-    ) {
-        override fun clone(newConstraints: UPathConstraints<Type>?): UState<Type, Field, Any?, Any?> {
-            error("Unsupported")
-        }
-    }
-
+class ObjectMapTest : SymbolicCollectionTestBase() {
     @Test
     fun testConcreteMapContains() {
         val concreteMap = state.mkSymbolicObjectMap(ctx.sizeSort)
@@ -306,36 +265,5 @@ class ObjectMapTest {
             )
             key to value
         }.toMap()
-    }
-
-    private fun checkNoConcreteHeapRefs(expr: UExpr<*>) {
-        // Translator throws exception if concrete ref occurs
-        translator.translate(expr)
-    }
-
-    private inline fun checkWithSolver(body: KSolver<*>.() -> Unit) {
-        KZ3Solver(ctx).use { solver ->
-            solver.body()
-        }
-    }
-
-    private fun KSolver<*>.assertPossible(mkCheck: UContext.() -> UBoolExpr) =
-        assertStatus(KSolverStatus.SAT) { mkCheck() }
-
-    private fun KSolver<*>.assertImpossible(mkCheck: UContext.() -> UBoolExpr) =
-        assertStatus(KSolverStatus.UNSAT) { mkCheck() }
-
-    private fun KSolver<*>.assertStatus(status: KSolverStatus, mkCheck: UContext.() -> UBoolExpr) = try {
-        push()
-
-        val expr = ctx.mkCheck()
-        val solverExpr = translator.translate(expr)
-
-        assert(solverExpr)
-
-        val actualStatus = check()
-        assertEquals(status, actualStatus)
-    } finally {
-        pop()
     }
 }
