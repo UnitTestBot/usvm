@@ -1,16 +1,9 @@
 package org.usvm.samples.objects;
 
+@SuppressWarnings("RedundantIfStatement")
 public class Vector2D {
     int x;
     int y;
-
-    boolean isZero() {
-        return x == 0 && y == 0;
-    }
-
-    long hypotSquared() {
-        return (long) x * x + (long) y * y;
-    }
 
     boolean isPerpendicularTo(Vector2D other) {
         long scalar = (long)x * other.x + (long)y * other.y;

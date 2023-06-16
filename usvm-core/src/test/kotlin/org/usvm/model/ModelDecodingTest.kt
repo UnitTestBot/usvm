@@ -10,12 +10,12 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.usvm.Field
 import org.usvm.Method
 import org.usvm.Type
-import org.usvm.UArrayIndexValue
+import org.usvm.UArrayIndexLValue
 import org.usvm.UComponents
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UIndexedMocker
-import org.usvm.URegisterValue
+import org.usvm.URegisterLValue
 import org.usvm.constraints.UPathConstraints
 import org.usvm.memory.URegionHeap
 import org.usvm.memory.URegistersStack
@@ -215,8 +215,8 @@ class ModelDecodingTest {
         val status = solver.checkWithSoftConstraints(pc)
         val model = assertIs<USatResult<UModelBase<Field, Type>>>(status).model
 
-        val ref = assertIs<UConcreteHeapRef>(model.read(URegisterValue(addressSort, 0)))
-        val expr = model.read(UArrayIndexValue(bv32Sort, ref, concreteIdx, array))
+        val ref = assertIs<UConcreteHeapRef>(model.read(URegisterLValue(addressSort, 0)))
+        val expr = model.read(UArrayIndexLValue(bv32Sort, ref, concreteIdx, array))
         assertEquals(mkBv(42), expr)
     }
 }

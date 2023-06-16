@@ -10,7 +10,7 @@ class TestThrowing : JavaMethodTestRunner() {
         checkWithExceptionExecutionMatches(
             Throwing::throwSometimes,
             ignoreNumberOfAnalysisResults,
-            { _, x, r -> x == 1 && r.isFailure },
+            { _, x, r -> x == 1 && r.isFailure && r.exceptionOrNull() is IllegalArgumentException },
             { _, x, r -> x != 1 && r.isSuccess },
         )
     }

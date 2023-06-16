@@ -2,10 +2,6 @@ plugins {
     id("usvm.kotlin-conventions")
 }
 
-repositories {
-    // jacodb
-}
-
 dependencies {
     implementation(project(":usvm-core"))
 

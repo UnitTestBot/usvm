@@ -68,14 +68,14 @@ import org.jacodb.api.ext.ifArrayGetElementType
 import org.jacodb.api.ext.int
 import org.jacodb.api.ext.long
 import org.jacodb.api.ext.short
-import org.usvm.UArrayIndexValue
-import org.usvm.UArrayLengthValue
+import org.usvm.UArrayIndexLValue
+import org.usvm.UArrayLengthLValue
 import org.usvm.UBvSort
 import org.usvm.UExpr
-import org.usvm.UFieldValue
+import org.usvm.UFieldLValue
 import org.usvm.UHeapRef
 import org.usvm.ULValue
-import org.usvm.URegisterValue
+import org.usvm.URegisterLValue
 import org.usvm.USizeExpr
 import org.usvm.USizeSort
 import org.usvm.USort
@@ -268,7 +268,7 @@ class JcExprResolver(
     override fun visitJcLengthExpr(expr: JcLengthExpr): UExpr<out USort>? = with(ctx) {
         val ref = (resolveExpr(expr.array) ?: return null).asExpr(addressSort)
         checkNullPointer(ref) ?: return null
-        val lengthRef = UArrayLengthValue(ref, expr.array.type)
+        val lengthRef = UArrayLengthLValue(ref, expr.array.type)
         val length = scope.calcOnState { memory.read(lengthRef).asExpr(sizeSort) } ?: return null
         checkHardMaxArrayLength(length) ?: return null
         scope.assert(mkBvSignedLessOrEqualExpr(mkBv(0), length)) ?: return null
@@ -385,7 +385,7 @@ class JcExprResolver(
         checkNullPointer(arrayRef) ?: return null
 
         val idx = resolveExpr(index)?.asExpr(bv32Sort) ?: return null
-        val lengthRef = UArrayLengthValue(arrayRef, array.type)
+        val lengthRef = UArrayLengthLValue(arrayRef, array.type)
         val length = scope.calcOnState { memory.read(lengthRef).asExpr(sizeSort) } ?: return null
 
         checkHardMaxArrayLength(length) ?: return null
@@ -395,7 +395,7 @@ class JcExprResolver(
         val elementType = requireNotNull(array.type.ifArrayGetElementType)
         val cellSort = typeToSort(elementType)
 
-        return UArrayIndexValue(cellSort, arrayRef, idx, array.type)
+        return UArrayIndexLValue(cellSort, arrayRef, idx, array.type)
     }
 
     private fun resolveFieldRef(instance: JcValue?, field: JcTypedField): ULValue? = with(ctx) {
@@ -403,7 +403,7 @@ class JcExprResolver(
             val instanceRef = resolveExpr(instance)?.asExpr(addressSort) ?: return null
             checkNullPointer(instanceRef) ?: return null
             val sort = ctx.typeToSort(field.fieldType)
-            UFieldValue(sort, instanceRef, field.field)
+            UFieldLValue(sort, instanceRef, field.field)
         } else {
             val sort = ctx.typeToSort(field.fieldType)
             JcStaticFieldRef(sort, field.field)
@@ -414,21 +414,21 @@ class JcExprResolver(
         val method = requireNotNull(scope.calcOnState { lastEnteredMethod })
         val localIdx = localToIdx(method, argument)
         val sort = ctx.typeToSort(argument.type)
-        return URegisterValue(sort, localIdx)
+        return URegisterLValue(sort, localIdx)
     }
 
     private fun resolveThis(thisLocal: JcThis): ULValue {
         val method = requireNotNull(scope.calcOnState { lastEnteredMethod })
         val localIdx = localToIdx(method, thisLocal)
         val sort = ctx.typeToSort(thisLocal.type)
-        return URegisterValue(sort, localIdx)
+        return URegisterLValue(sort, localIdx)
     }
 
     private fun resolveLocalVar(local: JcLocalVar): ULValue {
         val method = requireNotNull(scope.calcOnState { lastEnteredMethod })
         val localIdx = localToIdx(method, local)
         val sort = ctx.typeToSort(local.type)
-        return URegisterValue(sort, localIdx)
+        return URegisterLValue(sort, localIdx)
     }
 
     private fun checkArrayIndex(idx: USizeExpr, length: USizeExpr) = with(ctx) {
@@ -506,13 +506,5 @@ class JcExprResolver(
         val result0 = resolveExpr(dependency0) ?: return null
         val result1 = resolveExpr(dependency1) ?: return null
         return block(result0, result1)
-    }
-
-    private inline fun resolveAfterResolved(
-        dependencies: List<JcExpr>,
-        block: (List<UExpr<out USort>>) -> UExpr<out USort>?,
-    ): UExpr<out USort>? {
-        val results = dependencies.map { resolveExpr(it) ?: return null }
-        return block(results)
     }
 }

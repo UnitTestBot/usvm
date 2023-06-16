@@ -1,17 +1,18 @@
 package org.usvm.memory
 
 import io.ksmt.utils.asExpr
-import org.usvm.UArrayIndexValue
-import org.usvm.UArrayLengthValue
+import org.usvm.UArrayIndexLValue
+import org.usvm.UArrayLengthLValue
 import org.usvm.UComposer
+import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UExpr
-import org.usvm.UFieldValue
+import org.usvm.UFieldLValue
 import org.usvm.UHeapRef
 import org.usvm.UIndexedMocker
 import org.usvm.ULValue
 import org.usvm.UMocker
-import org.usvm.URegisterValue
+import org.usvm.URegisterLValue
 import org.usvm.USizeExpr
 import org.usvm.USort
 import org.usvm.constraints.UTypeConstraints
@@ -78,20 +79,20 @@ typealias USymbolicMemory<Type> = UMemory<ULValue, UExpr<out USort>, USizeExpr, 
 
 @Suppress("MemberVisibilityCanBePrivate")
 open class UMemoryBase<Field, Type, Method>(
-    protected open val ctx: UContext,
-    open val types: UTypeConstraints<Type>,
-    open val stack: URegistersStack = URegistersStack(),
-    open val heap: USymbolicHeap<Field, Type> = URegionHeap(ctx),
-    open val mocker: UMocker<Method> = UIndexedMocker(ctx),
+    protected val ctx: UContext,
+    val types: UTypeConstraints<Type>,
+    val stack: URegistersStack = URegistersStack(),
+    val heap: USymbolicHeap<Field, Type> = URegionHeap(ctx),
+    val mocker: UMocker<Method> = UIndexedMocker(ctx),
     // TODO: we can eliminate mocker by moving compose to UState?
 ) : USymbolicMemory<Type> {
     @Suppress("UNCHECKED_CAST")
     override fun read(lvalue: ULValue): UExpr<out USort> = with(lvalue) {
         when (this) {
-            is URegisterValue -> stack.readRegister(idx, sort)
-            is UFieldValue<*> -> heap.readField(ref, field as Field, sort).asExpr(sort)
-            is UArrayIndexValue<*> -> heap.readArrayIndex(ref, index, arrayType as Type, sort).asExpr(sort)
-            is UArrayLengthValue<*> -> heap.readArrayLength(ref, arrayType as Type)
+            is URegisterLValue -> stack.readRegister(idx, sort)
+            is UFieldLValue<*> -> heap.readField(ref, field as Field, sort).asExpr(sort)
+            is UArrayIndexLValue<*> -> heap.readArrayIndex(ref, index, arrayType as Type, sort).asExpr(sort)
+            is UArrayLengthLValue<*> -> heap.readArrayLength(ref, arrayType as Type)
             else -> error("Unexpected lvalue $this")
         }
     }
@@ -99,9 +100,9 @@ open class UMemoryBase<Field, Type, Method>(
     @Suppress("UNCHECKED_CAST")
     override fun write(lvalue: ULValue, rvalue: UExpr<out USort>) = with(lvalue) {
         when (this) {
-            is URegisterValue -> stack.writeRegister(idx, rvalue)
-            is UFieldValue<*> -> heap.writeField(ref, field as Field, sort, rvalue, guard = ctx.trueExpr)
-            is UArrayIndexValue<*> -> heap.writeArrayIndex(
+            is URegisterLValue -> stack.writeRegister(idx, rvalue)
+            is UFieldLValue<*> -> heap.writeField(ref, field as Field, sort, rvalue, guard = ctx.trueExpr)
+            is UArrayIndexLValue<*> -> heap.writeArrayIndex(
                 ref,
                 index,
                 arrayType as Type,
@@ -110,24 +111,24 @@ open class UMemoryBase<Field, Type, Method>(
                 guard = ctx.trueExpr
             )
 
-            is UArrayLengthValue<*> -> heap.writeArrayLength(ref, rvalue as USizeExpr, arrayType as Type)
+            is UArrayLengthLValue<*> -> heap.writeArrayLength(ref, rvalue as USizeExpr, arrayType as Type)
             else -> error("Unexpected lvalue $this")
         }
     }
 
-    override fun alloc(type: Type): UHeapRef {
+    override fun alloc(type: Type): UConcreteHeapRef {
         val concreteHeapRef = heap.allocate()
         types.allocate(concreteHeapRef.address, type)
         return concreteHeapRef
     }
 
-    override fun malloc(arrayType: Type, count: USizeExpr): UHeapRef {
+    override fun malloc(arrayType: Type, count: USizeExpr): UConcreteHeapRef {
         val concreteHeapRef = heap.allocateArray(count)
         types.allocate(concreteHeapRef.address, arrayType)
         return concreteHeapRef
     }
 
-    override fun malloc(arrayType: Type, elementSort: USort, contents: Sequence<UExpr<out USort>>): UHeapRef {
+    override fun malloc(arrayType: Type, elementSort: USort, contents: Sequence<UExpr<out USort>>): UConcreteHeapRef {
         val concreteHeapRef = heap.allocateArrayInitialized(arrayType, elementSort, contents)
         types.allocate(concreteHeapRef.address, arrayType)
         return concreteHeapRef

@@ -3,6 +3,9 @@ package org.usvm.api.util
 import sun.misc.Unsafe
 import java.lang.reflect.Field
 
+/**
+ * An util class encapsulating reflection usage.
+ */
 object Reflection {
     private val unsafe: Unsafe
 

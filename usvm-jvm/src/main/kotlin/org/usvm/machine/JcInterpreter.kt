@@ -21,7 +21,7 @@ import org.jacodb.api.cfg.JcThrowInst
 import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UInterpreter
-import org.usvm.URegisterValue
+import org.usvm.URegisterLValue
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.WrappedException
@@ -33,7 +33,6 @@ import org.usvm.machine.state.throwException
 
 typealias JcStepScope = StepScope<JcState, JcType, JcField>
 
-@Suppress("UNUSED_PARAMETER")
 class JcInterpreter(
     private val ctx: JcContext,
     private val applicationGraph: JcApplicationGraph,
@@ -52,7 +51,7 @@ class JcInterpreter(
         val scope = StepScope(state)
         if (!method.isStatic) {
             with(ctx) {
-                val thisLValue = URegisterValue(addressSort, 0)
+                val thisLValue = URegisterLValue(addressSort, 0)
                 val ref = state.memory.read(thisLValue).asExpr(addressSort)
                 scope.assert(mkEq(ref, nullRef).not())
             }
@@ -63,9 +62,6 @@ class JcInterpreter(
 
         return state
     }
-
-
-    private val localVarToIdx = mutableMapOf<JcMethod, MutableMap<String, Int>>() // (method, localName) -> idx
 
     override fun step(state: JcState): StepResult<JcState> {
         val stmt = state.lastStmt
@@ -144,10 +140,12 @@ class JcInterpreter(
         scope.doWithState { newStmt(nextStmt) }
     }
 
+    @Suppress("UNUSED_PARAMETER")
     private fun visitCatchStmt(scope: JcStepScope, stmt: JcCatchInst) {
         TODO("Not yet implemented")
     }
 
+    @Suppress("UNUSED_PARAMETER")
     private fun visitSwitchStmt(scope: JcStepScope, stmt: JcSwitchInst) {
         TODO("Not yet implemented")
     }
@@ -182,6 +180,8 @@ class JcInterpreter(
         }
     }
 
+    private val localVarToIdx = mutableMapOf<JcMethod, MutableMap<String, Int>>() // (method, localName) -> idx
+    // TODO: now we need to explicitly evaluate indices of registers, because we don't have specific ULValues
     private fun mapLocalToIdxMapper(method: JcTypedMethod, local: JcLocal) =
         when (local) {
             is JcLocalVar -> localVarToIdx

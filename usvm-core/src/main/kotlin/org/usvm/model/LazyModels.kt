@@ -26,8 +26,6 @@ import org.usvm.memory.URegionId
 import org.usvm.memory.URegistersStackEvaluator
 import org.usvm.memory.USymbolicArrayIndex
 import org.usvm.memory.USymbolicHeap
-import org.usvm.sampleUValue
-import org.usvm.solver.UExprTranslator
 import org.usvm.uctx
 
 
