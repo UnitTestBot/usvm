@@ -1,7 +1,6 @@
 package org.usvm.machine
 
 import io.ksmt.solver.yices.KYicesSolver
-import io.ksmt.solver.z3.KZ3Solver
 import org.jacodb.api.JcField
 import org.jacodb.api.JcMethod
 import org.jacodb.api.JcType
