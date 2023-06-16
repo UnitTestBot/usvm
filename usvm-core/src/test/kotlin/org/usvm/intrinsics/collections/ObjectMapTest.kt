@@ -16,6 +16,7 @@ import org.usvm.intrinsics.collections.SymbolicObjectMapIntrinsics.symbolicObjec
 import org.usvm.intrinsics.collections.SymbolicObjectMapIntrinsics.symbolicObjectMapMergeInto
 import org.usvm.intrinsics.collections.SymbolicObjectMapIntrinsics.symbolicObjectMapPut
 import org.usvm.intrinsics.collections.SymbolicObjectMapIntrinsics.symbolicObjectMapRemove
+import org.usvm.intrinsics.collections.SymbolicObjectMapIntrinsics.symbolicObjectMapSize
 import org.usvm.memory.UMemoryBase
 import org.usvm.solver.UExprTranslator
 import kotlin.test.Test
@@ -55,28 +56,85 @@ class ObjectMapTest {
     }
 
     @Test
-    fun testMapMergeSymbolicIntoConcrete() = with(state.memory.heap) {
-        val concreteMap = state.mkSymbolicObjectMap(ctx.sizeSort)
-        val symbolicMap = ctx.mkRegisterReading(99, ctx.addressSort)
-
-        runMapMerge(concreteMap, symbolicMap)
+    fun testConcreteMapSize() {
+        val concreteMap = state.mkSymbolicObjectMap()
+        testMapSize(concreteMap) { size, lowerBound, upperBound ->
+            assertPossible { size eq upperBound }
+            assertPossible { size eq lowerBound }
+            assertImpossible {
+                mkBvSignedLessExpr(size, lowerBound) or mkBvSignedGreaterExpr(size, upperBound)
+            }
+        }
     }
 
+    @Test
+    fun testSymbolicMapSize() {
+        val symbolicMap = ctx.mkRegisterReading(99, ctx.addressSort)
+        testMapSize(symbolicMap) { size, lowerBound, upperBound ->
+            assertPossible { size eq lowerBound }
+            assertPossible { size eq upperBound }
+        }
+    }
+
+    private fun testMapSize(mapRef: UHeapRef, checkSizeBounds: KSolver<*>.(USizeExpr, USizeExpr, USizeExpr) -> Unit) {
+        val concreteKeys = (1..5).map { ctx.mkConcreteHeapRef(it) }
+        val symbolicKeys = (1..5).map { ctx.mkRegisterReading(it, ctx.addressSort) }
+
+        fillMap(mapRef, concreteKeys + symbolicKeys, startValueIdx = 1)
+
+        checkWithSolver {
+            val sizeLowerBound = ctx.mkSizeExpr(concreteKeys.size + 1) // +1 for at least one symbolic key
+            val sizeUpperBound = ctx.mkSizeExpr(concreteKeys.size + symbolicKeys.size)
+
+            val actualSize = state.symbolicObjectMapSize(mapRef)
+
+            checkSizeBounds(actualSize, sizeLowerBound, sizeUpperBound)
+        }
+
+        val removedKeys = setOf(concreteKeys.first(), symbolicKeys.first())
+        removedKeys.forEach { key ->
+            state.symbolicObjectMapRemove(mapRef, key)
+        }
+
+        checkWithSolver {
+            /**
+             * Size lower bound before remove: concrete size + 1
+             * where we add 1 for at least one symbolic key
+             *
+             * Size after remove is concrete -1 since we remove 1 concrete key and one symbolic.
+             * */
+            val minKeySize = concreteKeys.size - 1
+            val sizeLowerBound = ctx.mkSizeExpr(minKeySize)
+            val sizeUpperBound = ctx.mkSizeExpr(concreteKeys.size + symbolicKeys.size - removedKeys.size)
+
+            val actualSize = state.symbolicObjectMapSize(mapRef)
+
+            checkSizeBounds(actualSize, sizeLowerBound, sizeUpperBound)
+        }
+    }
+
+    @Test
+    fun testMapMergeSymbolicIntoConcrete() = with(state.memory.heap) {
+        val concreteMap = state.mkSymbolicObjectMap()
+        val symbolicMap = ctx.mkRegisterReading(99, ctx.addressSort)
+
+        testMapMerge(concreteMap, symbolicMap)
+    }
 
     @Test
     fun testMapMergeConcreteIntoSymbolic() = with(state.memory.heap) {
-        val concreteMap = state.mkSymbolicObjectMap(ctx.sizeSort)
+        val concreteMap = state.mkSymbolicObjectMap()
         val symbolicMap = ctx.mkRegisterReading(99, ctx.addressSort)
 
-        runMapMerge(concreteMap, symbolicMap)
+        testMapMerge(concreteMap, symbolicMap)
     }
 
     @Test
     fun testMapMergeConcreteIntoConcrete() = with(state.memory.heap) {
-        val concreteMap0 = state.mkSymbolicObjectMap(ctx.sizeSort)
-        val concreteMap1 = state.mkSymbolicObjectMap(ctx.sizeSort)
+        val concreteMap0 = state.mkSymbolicObjectMap()
+        val concreteMap1 = state.mkSymbolicObjectMap()
 
-        runMapMerge(concreteMap0, concreteMap1)
+        testMapMerge(concreteMap0, concreteMap1)
     }
 
     @Test
@@ -84,10 +142,10 @@ class ObjectMapTest {
         val symbolicMap0 = ctx.mkRegisterReading(99, ctx.addressSort)
         val symbolicMap1 = ctx.mkRegisterReading(999, ctx.addressSort)
 
-        runMapMerge(symbolicMap0, symbolicMap1)
+        testMapMerge(symbolicMap0, symbolicMap1)
     }
 
-    private fun runMapMerge(mergeTarget: UHeapRef, otherMap: UHeapRef) {
+    private fun testMapMerge(mergeTarget: UHeapRef, otherMap: UHeapRef) {
         val overlapConcreteKeys = (1..3).map { ctx.mkConcreteHeapRef(it) }
         val nonOverlapConcreteKeys0 = (11..13).map { ctx.mkConcreteHeapRef(it) }
         val nonOverlapConcreteKeys1 = (21..23).map { ctx.mkConcreteHeapRef(it) }
@@ -119,8 +177,8 @@ class ObjectMapTest {
         val otherValues = fillMap(otherMap, otherMapKeys, 65536)
 
         for (key in removedKeys) {
-            state.symbolicObjectMapRemove(mergeTarget, key, ctx.sizeSort)
-            state.symbolicObjectMapRemove(otherMap, key, ctx.sizeSort)
+            state.symbolicObjectMapRemove(mergeTarget, key)
+            state.symbolicObjectMapRemove(otherMap, key)
         }
 
         state.symbolicObjectMapMergeInto(mergeTarget, otherMap, ctx.sizeSort)
@@ -137,7 +195,7 @@ class ObjectMapTest {
         mergedValues0.forEach { checkNoConcreteHeapRefs(it) }
         mergedValues1.forEach { checkNoConcreteHeapRefs(it) }
 
-        KZ3Solver(ctx).use { solver ->
+        checkWithSolver {
             val mergedNonOverlapKeys = listOf(
                 nonOverlapConcreteKeys0,
                 nonOverlapConcreteKeys1,
@@ -147,16 +205,16 @@ class ObjectMapTest {
 
             for (key in mergedNonOverlapKeys) {
                 val keyContains = state.symbolicObjectMapContains(mergeTarget, key)
-                solver.assertPossible { keyContains eq trueExpr }
+                assertPossible { keyContains eq trueExpr }
 
                 val storedValue = tgtValues[key] ?: otherValues[key] ?: error("$key was not stored")
                 val actualValue: USizeExpr = state.symbolicObjectMapGet(mergeTarget, key, ctx.sizeSort).uncheckedCast()
-                solver.assertPossible { storedValue eq actualValue }
+                assertPossible { storedValue eq actualValue }
             }
 
             for (key in removedKeys) {
                 val keyContains = state.symbolicObjectMapContains(mergeTarget, key)
-                solver.assertPossible { keyContains eq falseExpr }
+                assertPossible { keyContains eq falseExpr }
             }
 
             val overlapKeys = listOf(
@@ -166,13 +224,13 @@ class ObjectMapTest {
 
             for (key in overlapKeys) {
                 val keyContains = state.symbolicObjectMapContains(mergeTarget, key)
-                solver.assertPossible { keyContains eq trueExpr }
+                assertPossible { keyContains eq trueExpr }
 
                 val storedV1 = tgtValues.getValue(key)
                 val storedV2 = otherValues.getValue(key)
                 val actualValue: USizeExpr = state.symbolicObjectMapGet(mergeTarget, key, ctx.sizeSort).uncheckedCast()
 
-                solver.assertPossible {
+                assertPossible {
                     (actualValue eq storedV1) or (actualValue eq storedV2)
                 }
             }
@@ -195,6 +253,12 @@ class ObjectMapTest {
     private fun checkNoConcreteHeapRefs(expr: UExpr<*>) {
         // Translator throws exception if concrete ref occurs
         translator.translate(expr)
+    }
+
+    private inline fun checkWithSolver(body: KSolver<*>.() -> Unit) {
+        KZ3Solver(ctx).use { solver ->
+            solver.body()
+        }
     }
 
     private fun KSolver<*>.assertPossible(mkCheck: UContext.() -> UBoolExpr) =
