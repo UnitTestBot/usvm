@@ -16,7 +16,6 @@ import org.jacodb.api.ext.int
 import org.jacodb.api.ext.long
 import org.jacodb.api.ext.short
 import org.jacodb.api.ext.void
-import org.usvm.UAddressSort
 import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.USort

@@ -6,7 +6,6 @@ import org.usvm.UMachine
 import org.usvm.UPathSelector
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
-import org.usvm.machine.state.lastStmt
 import org.usvm.ps.BfsPathSelector
 import org.usvm.ps.DfsPathSelector
 import org.usvm.ps.combinators.ParallelSelector
@@ -63,9 +62,6 @@ class JcMachine(
         dfsPathSelector.add(listOf(state.clone()))
         return ps
     }
-
-    private fun getInitialState(method: JcTypedMethod): JcState =
-        interpreter.getInitialState(method)
 
     private fun continueAnalyzing(state: JcState): Boolean {
         return state.callStack.isNotEmpty() && state.methodResult !is JcMethodResult.Exception
