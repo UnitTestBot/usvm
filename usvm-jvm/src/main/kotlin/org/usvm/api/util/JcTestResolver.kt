@@ -61,15 +61,15 @@ class JcTestResolver(
         val initialMemory = MemoryScope(state.ctx, model = null, model, method, classLoader)
 
         val memory = state.memory
-        val finalMemory = MemoryScope(state.ctx, model, memory, method, classLoader)
+        val afterMemory = MemoryScope(state.ctx, model, memory, method, classLoader)
 
 
         val before = with(initialMemory) { resolveState() }
-        val after = with(finalMemory) { resolveState() }
+        val after = with(afterMemory) { resolveState() }
 
         val result = when (val res = state.methodResult) {
             is JcMethodResult.NoCall -> error("no result found")
-            is JcMethodResult.Success -> with(finalMemory) { Result.success(resolveExpr(res.value, method.returnType)) }
+            is JcMethodResult.Success -> with(afterMemory) { Result.success(resolveExpr(res.value, method.returnType)) }
             is JcMethodResult.Exception -> Result.failure(resolveException(res.exception))
         }
         val coverage = resolveCoverage(method, state)
@@ -91,6 +91,7 @@ class JcTestResolver(
 
     @Suppress("UNUSED_PARAMETER")
     private fun resolveCoverage(method: JcTypedMethod, state: JcState): JcCoverage {
+        // TODO: extract coverage
         return JcCoverage(emptyMap())
     }
 
@@ -191,6 +192,7 @@ class JcTestResolver(
                 ctx.cp.byte -> ByteArray(length, ::resolveElement)
                 ctx.cp.char -> CharArray(length, ::resolveElement)
                 else -> {
+                    // TODO: works incorrectly for inner array
                     val jClass = resolveType(idx, type.elementType as JcRefType)
                     val instance = Reflection.allocateArray(jClass, length)
                     for (i in 0 until length) {
