@@ -1,19 +1,25 @@
 package org.usvm.intrinsics.collections
 
+import io.ksmt.solver.KSolver
+import io.ksmt.solver.KSolverStatus
+import io.ksmt.solver.z3.KZ3Solver
+import io.ksmt.utils.uncheckedCast
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.collections.immutable.persistentListOf
 import org.junit.jupiter.api.BeforeEach
 import org.usvm.*
 import org.usvm.constraints.UPathConstraints
-import org.usvm.memory.UMemoryBase
 import org.usvm.intrinsics.collections.SymbolicObjectMapIntrinsics.mkSymbolicObjectMap
 import org.usvm.intrinsics.collections.SymbolicObjectMapIntrinsics.symbolicObjectMapContains
 import org.usvm.intrinsics.collections.SymbolicObjectMapIntrinsics.symbolicObjectMapGet
 import org.usvm.intrinsics.collections.SymbolicObjectMapIntrinsics.symbolicObjectMapMergeInto
 import org.usvm.intrinsics.collections.SymbolicObjectMapIntrinsics.symbolicObjectMapPut
+import org.usvm.intrinsics.collections.SymbolicObjectMapIntrinsics.symbolicObjectMapRemove
+import org.usvm.memory.UMemoryBase
 import org.usvm.solver.UExprTranslator
 import kotlin.test.Test
+import kotlin.test.assertEquals
 
 class ObjectMapTest {
     private lateinit var ctx: UContext
@@ -90,11 +96,32 @@ class ObjectMapTest {
         val nonOverlapSymbolicKeys0 = (41..43).map { ctx.mkRegisterReading(it, ctx.addressSort) }
         val nonOverlapSymbolicKeys1 = (51..53).map { ctx.mkRegisterReading(it, ctx.addressSort) }
 
-        val tgtMapKeys = overlapConcreteKeys + nonOverlapConcreteKeys0 + overlapSymbolicKeys + nonOverlapSymbolicKeys0
-        val otherMapKeys = overlapConcreteKeys + nonOverlapConcreteKeys1 + overlapSymbolicKeys + nonOverlapSymbolicKeys1
+        val tgtMapKeys = listOf(
+            overlapConcreteKeys,
+            nonOverlapConcreteKeys0,
+            overlapSymbolicKeys,
+            nonOverlapSymbolicKeys0
+        ).flatten()
 
-        fillMap(mergeTarget, tgtMapKeys, 256)
-        fillMap(otherMap, otherMapKeys, 65536)
+        val otherMapKeys = listOf(
+            overlapConcreteKeys,
+            nonOverlapConcreteKeys1,
+            overlapSymbolicKeys,
+            nonOverlapSymbolicKeys1
+        ).flatten()
+
+        val removedKeys = setOf(
+            nonOverlapConcreteKeys0.first(),
+            nonOverlapConcreteKeys1.first()
+        )
+
+        val tgtValues = fillMap(mergeTarget, tgtMapKeys, 256)
+        val otherValues = fillMap(otherMap, otherMapKeys, 65536)
+
+        for (key in removedKeys) {
+            state.symbolicObjectMapRemove(mergeTarget, key, ctx.sizeSort)
+            state.symbolicObjectMapRemove(otherMap, key, ctx.sizeSort)
+        }
 
         state.symbolicObjectMapMergeInto(mergeTarget, otherMap, ctx.sizeSort)
 
@@ -109,21 +136,84 @@ class ObjectMapTest {
 
         mergedValues0.forEach { checkNoConcreteHeapRefs(it) }
         mergedValues1.forEach { checkNoConcreteHeapRefs(it) }
+
+        KZ3Solver(ctx).use { solver ->
+            val mergedNonOverlapKeys = listOf(
+                nonOverlapConcreteKeys0,
+                nonOverlapConcreteKeys1,
+                nonOverlapSymbolicKeys0,
+                nonOverlapSymbolicKeys1
+            ).flatten() - removedKeys
+
+            for (key in mergedNonOverlapKeys) {
+                val keyContains = state.symbolicObjectMapContains(mergeTarget, key)
+                solver.assertPossible { keyContains eq trueExpr }
+
+                val storedValue = tgtValues[key] ?: otherValues[key] ?: error("$key was not stored")
+                val actualValue: USizeExpr = state.symbolicObjectMapGet(mergeTarget, key, ctx.sizeSort).uncheckedCast()
+                solver.assertPossible { storedValue eq actualValue }
+            }
+
+            for (key in removedKeys) {
+                val keyContains = state.symbolicObjectMapContains(mergeTarget, key)
+                solver.assertPossible { keyContains eq falseExpr }
+            }
+
+            val overlapKeys = listOf(
+                overlapConcreteKeys,
+                overlapSymbolicKeys
+            ).flatten()
+
+            for (key in overlapKeys) {
+                val keyContains = state.symbolicObjectMapContains(mergeTarget, key)
+                solver.assertPossible { keyContains eq trueExpr }
+
+                val storedV1 = tgtValues.getValue(key)
+                val storedV2 = otherValues.getValue(key)
+                val actualValue: USizeExpr = state.symbolicObjectMapGet(mergeTarget, key, ctx.sizeSort).uncheckedCast()
+
+                solver.assertPossible {
+                    (actualValue eq storedV1) or (actualValue eq storedV2)
+                }
+            }
+        }
     }
 
     private fun fillMap(mapRef: UHeapRef, keys: List<UHeapRef>, startValueIdx: Int) = with(state) {
-        keys.forEachIndexed { index, key ->
+        keys.mapIndexed { index, key ->
+            val value = ctx.mkSizeExpr(index + startValueIdx)
             symbolicObjectMapPut(
                 mapRef,
                 key,
                 ctx.sizeSort,
-                ctx.mkSizeExpr(index + startValueIdx)
+                value
             )
-        }
+            key to value
+        }.toMap()
     }
 
     private fun checkNoConcreteHeapRefs(expr: UExpr<*>) {
         // Translator throws exception if concrete ref occurs
         translator.translate(expr)
+    }
+
+    private fun KSolver<*>.assertPossible(mkCheck: UContext.() -> UBoolExpr) =
+        assertStatus(KSolverStatus.SAT) { mkCheck() }
+
+    private fun KSolver<*>.assertImpossible(mkCheck: UContext.() -> UBoolExpr) =
+        assertStatus(KSolverStatus.UNSAT) { mkCheck() }
+
+    private fun KSolver<*>.assertStatus(status: KSolverStatus, mkCheck: UContext.() -> UBoolExpr) = try {
+        push()
+
+        val expr = ctx.mkCheck()
+        val solverExpr = translator.translate(expr)
+
+        assert(solverExpr)
+
+        val actualStatus = check()
+        assertEquals(status, actualStatus)
+    } finally {
+        pop()
     }
 }
