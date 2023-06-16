@@ -1,28 +1,22 @@
 package org.usvm.intrinsics.collections
 
-import org.usvm.UContext
-import org.usvm.UExpr
-import org.usvm.UHeapRef
-import org.usvm.USizeExpr
-import org.usvm.USort
-import org.usvm.UState
+import org.usvm.*
 import org.usvm.memory.USymbolicIndexMapDescriptor
 import org.usvm.memory.USymbolicMapDescriptor
-import org.usvm.sampleUValue
 
-object SymbolicListIntrinsics {
+object SymbolicListIntrinsics : SymbolicCollectionIntrinsics {
     object SymbolicListMarker : USymbolicMapDescriptor.SymbolicMapInfo {
         override fun toString(): String = "List"
     }
 
     fun UState<*, *, *, *>.mkSymbolicList(
         elementSort: USort
-    ): UHeapRef = with(memory.heap) {
-        allocate().also { ref ->
-            val descriptor = ctx.listDescriptor(elementSort)
-            writeSymbolicMapLength(descriptor, ref, size = ctx.mkBv(0), guard = ctx.trueExpr)
-        }
-    }
+    ): UHeapRef = mkSymbolicCollection(elementSort)
+
+    fun UState<*, *, *, *>.symbolicListSize(
+        listRef: UHeapRef,
+        elementSort: USort
+    ): USizeExpr = symbolicCollectionSize(listRef, elementSort)
 
     fun UState<*, *, *, *>.symbolicListGet(
         listRef: UHeapRef,
@@ -107,7 +101,7 @@ object SymbolicListIntrinsics {
         writeSymbolicMapLength(descriptor, listRef, newSize, guard = ctx.trueExpr)
     }
 
-    fun UState<*, *, *, *>.symbolicListCopy(
+    fun UState<*, *, *, *>.symbolicListCopyRange(
         srcRef: UHeapRef,
         dstRef: UHeapRef,
         elementSort: USort,
@@ -130,13 +124,10 @@ object SymbolicListIntrinsics {
         )
     }
 
-    fun UState<*, *, *, *>.symbolicListSize(
-        listRef: UHeapRef,
+    override fun UState<*, *, *, *>.symbolicCollectionSizeDescriptor(
+        collection: UHeapRef,
         elementSort: USort
-    ): USizeExpr = with(memory.heap) {
-        val descriptor = ctx.listDescriptor(elementSort)
-        return readSymbolicMapLength(descriptor, listRef)
-    }
+    ): USymbolicMapDescriptor<*, *, *> = ctx.listDescriptor(elementSort)
 
     private fun UContext.listDescriptor(valueSort: USort) = USymbolicIndexMapDescriptor(
         valueSort = valueSort,

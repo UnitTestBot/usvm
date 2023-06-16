@@ -3,24 +3,28 @@ package org.usvm.intrinsics.collections
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.mkFreshConst
 import org.usvm.*
-import org.usvm.memory.USymbolicHeap
 import org.usvm.memory.USymbolicMapDescriptor
 import org.usvm.memory.USymbolicObjectReferenceMapDescriptor
 
-object SymbolicObjectMapIntrinsics {
-    object SymbolicObjectMapValueMarker: USymbolicMapDescriptor.SymbolicMapInfo {
-        override fun toString(): String = "MapValue"
+object SymbolicObjectMapIntrinsics : SymbolicCollectionIntrinsics {
+    data class SymbolicObjectMapValueMarker(
+        val valueSort: USort
+    ) : USymbolicMapDescriptor.SymbolicMapInfo {
+        override fun toString(): String = "Map<$valueSort>Value"
     }
 
-    object SymbolicObjectMapContainsMarker: USymbolicMapDescriptor.SymbolicMapInfo {
-        override fun toString(): String = "MapContains"
+    data class SymbolicObjectMapContainsMarker(
+        val valueSort: USort
+    ) : USymbolicMapDescriptor.SymbolicMapInfo {
+        override fun toString(): String = "Map<$valueSort>Contains"
     }
 
-    fun UState<*, *, *, *>.mkSymbolicObjectMap(): UHeapRef = with(memory.heap) {
-        allocate().also { ref ->
-            updateMapSize(ref, ctx.trueExpr) { _ -> ctx.mkBv(0) }
-        }
-    }
+    fun UState<*, *, *, *>.mkSymbolicObjectMap(elementSort: USort): UHeapRef =
+        mkSymbolicCollection(elementSort)
+
+    // todo: input map size can be inconsistent with contains
+    fun UState<*, *, *, *>.symbolicObjectMapSize(mapRef: UHeapRef, elementSort: USort): USizeExpr =
+        symbolicCollectionSize(mapRef, elementSort)
 
     fun UState<*, *, *, *>.symbolicObjectMapGet(
         mapRef: UHeapRef,
@@ -34,9 +38,10 @@ object SymbolicObjectMapIntrinsics {
 
     fun UState<*, *, *, *>.symbolicObjectMapContains(
         mapRef: UHeapRef,
-        key: UHeapRef
+        key: UHeapRef,
+        elementSort: USort
     ): UBoolExpr = with(memory.heap) {
-        val descriptor = ctx.containsDescriptor()
+        val descriptor = ctx.containsDescriptor(elementSort)
         val keyId = mkKeyId(key)
         readSymbolicMap(descriptor, mapRef, keyId).asExpr(ctx.boolSort)
     }
@@ -48,7 +53,7 @@ object SymbolicObjectMapIntrinsics {
         value: UExpr<out USort>
     ): Unit = with(memory.heap) {
         val valueDescriptor = ctx.valueDescriptor(elementSort)
-        val containsDescriptor = ctx.containsDescriptor()
+        val containsDescriptor = ctx.containsDescriptor(elementSort)
 
         val keyId = mkKeyId(key)
 
@@ -57,20 +62,15 @@ object SymbolicObjectMapIntrinsics {
 
         writeSymbolicMap(valueDescriptor, mapRef, keyId, value, guard = ctx.trueExpr)
         writeSymbolicMap(containsDescriptor, mapRef, keyId, value = ctx.trueExpr, guard = ctx.trueExpr)
-        updateMapSize(mapRef, keyIsNew) { oldSize -> ctx.mkBvAddExpr(oldSize, ctx.mkBv(1)) }
-    }
-
-    fun UState<*, *, *, *>.symbolicObjectMapSize(
-        mapRef: UHeapRef
-    ): USizeExpr = with(memory.heap) {
-        readMapSize(mapRef)
+        updateCollectionSize(mapRef, elementSort, keyIsNew) { ctx.mkBvAddExpr(it, ctx.mkBv(1)) }
     }
 
     fun UState<*, *, *, *>.symbolicObjectMapRemove(
         mapRef: UHeapRef,
-        key: UHeapRef
+        key: UHeapRef,
+        elementSort: USort
     ): Unit = with(memory.heap) {
-        val containsDescriptor = ctx.containsDescriptor()
+        val containsDescriptor = ctx.containsDescriptor(elementSort)
 
         val keyId = mkKeyId(key)
 
@@ -78,7 +78,7 @@ object SymbolicObjectMapIntrinsics {
 
         // todo: skip values update?
         writeSymbolicMap(containsDescriptor, mapRef, keyId, value = ctx.falseExpr, guard = ctx.trueExpr)
-        updateMapSize(mapRef, keyIsInMap) { oldSize -> ctx.mkBvSubExpr(oldSize, ctx.mkBv(1)) }
+        updateCollectionSize(mapRef, elementSort, keyIsInMap) { ctx.mkBvSubExpr(it, ctx.mkBv(1)) }
     }
 
     fun UState<*, *, *, *>.symbolicObjectMapMergeInto(
@@ -87,7 +87,7 @@ object SymbolicObjectMapIntrinsics {
         elementSort: USort
     ): Unit = with(memory.heap) {
         val valueDescriptor = ctx.valueDescriptor(elementSort)
-        val containsDescriptor = ctx.containsDescriptor()
+        val containsDescriptor = ctx.containsDescriptor(elementSort)
 
         mergeSymbolicMap(
             descriptor = valueDescriptor,
@@ -107,42 +107,19 @@ object SymbolicObjectMapIntrinsics {
 
         // todo: precise map size approximation?
         val mergedMapSize = ctx.sizeSort.mkFreshConst("mergedMapSize")
-        val srcMapSize = symbolicObjectMapSize(srcRef)
-        val dstMapSize = symbolicObjectMapSize(dstRef)
+        val srcMapSize = symbolicCollectionSize(srcRef, elementSort)
+        val dstMapSize = symbolicCollectionSize(dstRef, elementSort)
         val sizeLowerBound = ctx.mkIte(ctx.mkBvSignedGreaterExpr(srcMapSize, dstMapSize), srcMapSize, dstMapSize)
         val sizeUpperBound = ctx.mkBvAddExpr(srcMapSize, dstMapSize)
         pathConstraints += ctx.mkBvSignedGreaterOrEqualExpr(mergedMapSize, sizeLowerBound)
         pathConstraints += ctx.mkBvSignedGreaterOrEqualExpr(mergedMapSize, sizeUpperBound)
-        updateMapSize(dstRef, ctx.trueExpr) { _ -> mergedMapSize }
+        updateCollectionSize(dstRef, elementSort, ctx.trueExpr) { mergedMapSize }
     }
 
-    private fun USymbolicHeap<*, *>.readMapSize(
-        map: UHeapRef,
-    ): USizeExpr {
-        val descriptor = map.uctx.containsDescriptor()
-        val size = readSymbolicMapLength(descriptor, map)
-
-        return if (map is UConcreteHeapRef) {
-            size
-        } else {
-            // todo: input map size can be inconsistent with contains
-            size.uctx.ensureAtLeasZero(size)
-        }
-    }
-
-    private inline fun USymbolicHeap<*, *>.updateMapSize(
-        map: UHeapRef,
-        guard: UBoolExpr,
-        update: (USizeExpr) -> USizeExpr
-    ) {
-        val descriptor = map.uctx.containsDescriptor()
-        val oldSize = readMapSize(map)
-        val updatedSize = update(oldSize)
-        writeSymbolicMapLength(descriptor, map, updatedSize, guard)
-    }
-
-    private fun UContext.ensureAtLeasZero(expr: USizeExpr): USizeExpr =
-        mkIte(mkBvSignedGreaterOrEqualExpr(expr, mkSizeExpr(0)), expr, mkSizeExpr(0))
+    override fun UState<*, *, *, *>.symbolicCollectionSizeDescriptor(
+        collection: UHeapRef,
+        elementSort: USort
+    ): USymbolicMapDescriptor<*, *, *> = ctx.containsDescriptor(elementSort)
 
     // todo: use identity equality instead of reference equality
     private fun mkKeyId(key: UHeapRef): UHeapRef = key
@@ -150,12 +127,12 @@ object SymbolicObjectMapIntrinsics {
     private fun UContext.valueDescriptor(valueSort: USort) = USymbolicObjectReferenceMapDescriptor(
         valueSort = valueSort,
         defaultValue = valueSort.sampleUValue(),
-        info = SymbolicObjectMapValueMarker
+        info = SymbolicObjectMapValueMarker(valueSort)
     )
 
-    private fun UContext.containsDescriptor() = USymbolicObjectReferenceMapDescriptor(
+    private fun UContext.containsDescriptor(valueSort: USort) = USymbolicObjectReferenceMapDescriptor(
         valueSort = boolSort,
         defaultValue = falseExpr,
-        info = SymbolicObjectMapContainsMarker
+        info = SymbolicObjectMapContainsMarker(valueSort)
     )
 }
