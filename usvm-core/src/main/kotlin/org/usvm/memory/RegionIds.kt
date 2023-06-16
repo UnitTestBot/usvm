@@ -334,6 +334,11 @@ data class UAllocatedSymbolicMapId<KeySort : USort, Reg : Region<Reg>, Sort : US
         )
     }
 
+    override fun <R> accept(visitor: URegionIdVisitor<R>): R =
+        visitor.visit(this)
+
+    override fun toString(): String = "allocatedMap[$descriptor]($address)"
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
@@ -341,20 +346,12 @@ data class UAllocatedSymbolicMapId<KeySort : USort, Reg : Region<Reg>, Sort : US
         other as UAllocatedSymbolicMapId<*, *, *>
 
         if (address != other.address) return false
+        if (descriptor != other.descriptor) return false
 
         return true
     }
 
-    override fun <R> accept(visitor: URegionIdVisitor<R>): R =
-        visitor.visit(this)
-
-    override fun hashCode(): Int {
-        return address
-    }
-
-    override fun toString(): String {
-        return "allocatedMap($address)"
-    }
+    override fun hashCode(): Int = address * 31 + descriptor.hashCode()
 }
 
 data class UInputSymbolicMapId<KeySort : USort, Reg : Region<Reg>, Sort : USort> internal constructor(
@@ -402,9 +399,18 @@ data class UInputSymbolicMapId<KeySort : USort, Reg : Region<Reg>, Sort : USort>
         return copy(contextHeap = composer.heapEvaluator.toMutableHeap() as USymbolicHeap<*, *>)
     }
 
-    override fun toString(): String {
-        return "inputMap($descriptor)"
+    override fun toString(): String = "inputMap($descriptor)"
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as UInputSymbolicMapId<*, *, *>
+
+        return descriptor == other.descriptor
     }
+
+    override fun hashCode(): Int = descriptor.hashCode()
 }
 
 data class UInputSymbolicMapLengthId internal constructor(
@@ -445,7 +451,16 @@ data class UInputSymbolicMapLengthId internal constructor(
     override fun <R> accept(visitor: URegionIdVisitor<R>): R =
         visitor.visit(this)
 
-    override fun toString(): String {
-        return "length($descriptor)"
+    override fun toString(): String = "length($descriptor)"
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as UInputSymbolicMapLengthId
+
+        return descriptor == other.descriptor
     }
+
+    override fun hashCode(): Int = descriptor.hashCode()
 }
