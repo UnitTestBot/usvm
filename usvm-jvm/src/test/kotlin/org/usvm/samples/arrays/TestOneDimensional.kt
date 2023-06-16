@@ -8,7 +8,7 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 class TestOneDimensional : JavaMethodTestRunner() {
     @RepeatedTest(5)
     fun `Test sumOf`() {
-        checkWithExceptionPropertiesMatches(
+        checkWithExceptionExecutionMatches(
             OneDimensional::sumOf,
             ignoreNumberOfAnalysisResults,
             { arr, r -> arr == null && r.exceptionOrNull() is NullPointerException },
@@ -19,7 +19,7 @@ class TestOneDimensional : JavaMethodTestRunner() {
 
     @RepeatedTest(5)
     fun `Test minus`() {
-        checkWithExceptionPropertiesMatches(
+        checkWithExceptionExecutionMatches(
             OneDimensional::minus,
             ignoreNumberOfAnalysisResults,
             { a, _, r -> a == null && r.exceptionOrNull() is NullPointerException },
@@ -27,7 +27,7 @@ class TestOneDimensional : JavaMethodTestRunner() {
             { a, b, r -> a != null && b != null && a.size > b.size && r.exceptionOrNull() is IndexOutOfBoundsException },
             { a, b, r ->
                 val correctResult = (r
-                    .getOrNull() ?: return@checkWithExceptionPropertiesMatches false)
+                    .getOrNull() ?: return@checkWithExceptionExecutionMatches false)
                     .withIndex()
                     .all { (idx, expr) -> expr == a[idx] - b[idx] }
                 a != null && b != null && a.size <= b.size && correctResult

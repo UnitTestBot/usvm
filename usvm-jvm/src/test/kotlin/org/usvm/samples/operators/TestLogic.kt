@@ -7,7 +7,7 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 class TestLogic : JavaMethodTestRunner() {
     @Test
     fun `Test complexWithLocals`() {
-        checkPropertiesMatches(
+        checkExecutionMatches(
             Logic::complexWithLocals,
             ignoreNumberOfAnalysisResults,
             { _, x, y, z, r -> r && (x.toLong() or y.toLong() or z) != 1337.toLong() },

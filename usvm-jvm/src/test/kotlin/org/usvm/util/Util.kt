@@ -60,3 +60,5 @@ fun printAllMethods(jcClass: JcClassOrInterface) {
     }
     println(repr)
 }
+
+inline fun <reified T> Result<*>.isException(): Boolean = exceptionOrNull() is T

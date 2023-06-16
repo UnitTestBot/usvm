@@ -33,7 +33,7 @@ class TestWhile : JavaMethodTestRunner() {
 
     @Test
     fun `Test sumOf`() {
-        checkPropertiesMatches(
+        checkExecutionMatches(
             While::sumOf,
             ignoreNumberOfAnalysisResults,
             { _, n, r -> n * (n + 1) / 2 == r },
@@ -43,7 +43,7 @@ class TestWhile : JavaMethodTestRunner() {
 
     @RepeatedTest(5)
     fun `Test while`() {
-        checkPropertiesMatches(
+        checkExecutionMatches(
             While::func,
             ignoreNumberOfAnalysisResults,
             { _, _, _, _, r -> r == 1 },

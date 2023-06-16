@@ -7,6 +7,8 @@ class TargetsCoveredStoppingStrategy<Method, Statement>(
     methods: List<Method>,
     graph: ApplicationGraph<Method, Statement>,
 ) : Statistics<Method, Statement>(graph), StoppingStrategy {
+    val time = System.currentTimeMillis() // TODO tmp hack
+
     private val uncoveredStatements = methods
         .flatMap { findAllStatementsOfMethod(it) }
         .toMutableSet()
@@ -33,7 +35,7 @@ class TargetsCoveredStoppingStrategy<Method, Statement>(
         return statements
     }
 
-    override fun shouldStop(): Boolean = uncoveredStatements.isEmpty()
+    override fun shouldStop(): Boolean = uncoveredStatements.isEmpty() || System.currentTimeMillis() - time > 60000
 
     override fun onStatementVisit(statement: Statement) {
         // do nothing, because statement is visited doesn't mean it will be covered

@@ -19,7 +19,7 @@ class TestSimple : JavaMethodTestRunner() {
 
     @Test
     fun `Test factorial`() {
-        checkPropertiesMatches(
+        checkExecutionMatches(
             Simple::factorial,
             ignoreNumberOfAnalysisResults,
             { _, x, r -> (1..x).fold(1, Int::times) == r },

@@ -47,7 +47,11 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
         val analysisResults = runner(target)
 
         require(analysisResultsNumberMatcher(analysisResults.size)) {
-            analysisResultsNumberMatcher.matcherFailedMessage(analysisResults.size)
+            buildString {
+                appendLine(analysisResultsNumberMatcher.matcherFailedMessage(analysisResults.size))
+                appendLine()
+                appendLine(createStringFromResults(analysisResults))
+            }
         }
 
         val valuesToCheck = analysisResults.map { extractValuesToCheck(it) }
@@ -55,8 +59,8 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
         checkTypes(expectedTypesForExtractedValues, valuesToCheck)
 
         when (checkMode) {
-            MATCH_EXECUTIONS -> matchExecutions(valuesToCheck, analysisResultsMatchers)
-            MATCH_PROPERTIES -> checkDiscoveredProperties(valuesToCheck, analysisResultsMatchers)
+            MATCH_EXECUTIONS -> matchExecutions(analysisResults, valuesToCheck, analysisResultsMatchers)
+            MATCH_PROPERTIES -> checkDiscoveredProperties(analysisResults, valuesToCheck, analysisResultsMatchers)
         }
 
         val coverageResult = coverageRunner(analysisResults)
@@ -91,6 +95,7 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
     }
 
     private fun checkDiscoveredProperties(
+        analysisResults: List<AnalysisResult>,
         valuesToCheck: List<List<Any?>>,
         propertiesToDiscover: Array<out Function<Boolean>>,
     ) {
@@ -102,11 +107,13 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
                 val unsatisfiedPositions = array.withIndex().filter { it.value == 0 }.map { it.index }
 
                 "Some properties were not discovered at positions (from 0): $unsatisfiedPositions"
-            }
+            },
+            analysisResults
         )
     }
 
     private fun matchExecutions(
+        analysisResults: List<AnalysisResult>,
         valuesToCheck: List<List<Any?>>,
         predicates: Array<out Function<Boolean>>,
     ) {
@@ -130,7 +137,8 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
                         .joinToString(System.lineSeparator()) { "\t$it" }
                     append(message)
                 }
-            }
+            },
+            analysisResults
         )
     }
 
@@ -139,6 +147,7 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
         predicates: Array<out Function<Boolean>>,
         successCriteria: (IntArray) -> Boolean,
         errorMessage: (IntArray) -> String,
+        analysisResults: List<AnalysisResult>,
     ) {
         val satisfied = IntArray(predicates.size) { 0 }
 
@@ -153,8 +162,23 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
 
         val isSuccess = successCriteria(satisfied)
 
-        check(isSuccess) { errorMessage(satisfied) }
+        check(isSuccess) {
+            buildString {
+                appendLine(errorMessage(satisfied))
+                appendLine()
+
+                val analysisResultsString = createStringFromResults(analysisResults)
+
+                appendLine(analysisResultsString)
+            }
+        }
     }
+
+    private fun createStringFromResults(analysisResults: List<AnalysisResult>): String =
+        analysisResults.joinToString(
+            prefix = "Analysis results: ${System.lineSeparator()}",
+            separator = System.lineSeparator()
+        )
 
     /**
      * Modes for strategy of checking result matchers.
