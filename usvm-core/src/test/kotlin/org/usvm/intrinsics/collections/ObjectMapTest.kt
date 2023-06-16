@@ -1,4 +1,4 @@
-package org.usvm.memory.collections
+package org.usvm.intrinsics.collections
 
 import io.mockk.every
 import io.mockk.mockk
@@ -7,11 +7,11 @@ import org.junit.jupiter.api.BeforeEach
 import org.usvm.*
 import org.usvm.constraints.UPathConstraints
 import org.usvm.memory.UMemoryBase
-import org.usvm.memory.collections.SymbolicObjectMapIntrinsics.mkSymbolicObjectMap
-import org.usvm.memory.collections.SymbolicObjectMapIntrinsics.symbolicObjectMapContains
-import org.usvm.memory.collections.SymbolicObjectMapIntrinsics.symbolicObjectMapGet
-import org.usvm.memory.collections.SymbolicObjectMapIntrinsics.symbolicObjectMapMergeInto
-import org.usvm.memory.collections.SymbolicObjectMapIntrinsics.symbolicObjectMapPut
+import org.usvm.intrinsics.collections.SymbolicObjectMapIntrinsics.mkSymbolicObjectMap
+import org.usvm.intrinsics.collections.SymbolicObjectMapIntrinsics.symbolicObjectMapContains
+import org.usvm.intrinsics.collections.SymbolicObjectMapIntrinsics.symbolicObjectMapGet
+import org.usvm.intrinsics.collections.SymbolicObjectMapIntrinsics.symbolicObjectMapMergeInto
+import org.usvm.intrinsics.collections.SymbolicObjectMapIntrinsics.symbolicObjectMapPut
 import org.usvm.solver.UExprTranslator
 import kotlin.test.Test
 

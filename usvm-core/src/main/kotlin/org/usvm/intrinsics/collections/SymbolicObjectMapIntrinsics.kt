@@ -1,4 +1,4 @@
-package org.usvm.memory.collections
+package org.usvm.intrinsics.collections
 
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.mkFreshConst
@@ -9,15 +9,16 @@ import org.usvm.UHeapRef
 import org.usvm.USizeExpr
 import org.usvm.USort
 import org.usvm.UState
+import org.usvm.memory.USymbolicMapDescriptor
 import org.usvm.memory.USymbolicObjectReferenceMapDescriptor
 import org.usvm.sampleUValue
 
 object SymbolicObjectMapIntrinsics {
-    object SymbolicObjectMapValueMarker {
+    object SymbolicObjectMapValueMarker: USymbolicMapDescriptor.SymbolicMapInfo {
         override fun toString(): String = "MapValue"
     }
 
-    object SymbolicObjectMapContainsMarker {
+    object SymbolicObjectMapContainsMarker: USymbolicMapDescriptor.SymbolicMapInfo {
         override fun toString(): String = "MapContains"
     }
 

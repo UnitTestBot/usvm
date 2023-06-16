@@ -71,7 +71,7 @@ interface UHeap<Ref, Value, SizeT, Field, ArrayType, Guard> :
         guard: Guard,
     )
 
-    fun <Reg : Region<Reg>, Sort : USort> copySymbolicMap(
+    fun <Reg : Region<Reg>, Sort : USort> copySymbolicMapIndexRange(
         descriptor: USymbolicMapDescriptor<USizeSort, Sort, Reg>,
         srcRef: Ref,
         dstRef: Ref,
@@ -620,7 +620,7 @@ data class URegionHeap<Field, ArrayType>(
         )
     }
 
-    override fun <Reg : Region<Reg>, Sort : USort> copySymbolicMap(
+    override fun <Reg : Region<Reg>, Sort : USort> copySymbolicMapIndexRange(
         descriptor: USymbolicMapDescriptor<USizeSort, Sort, Reg>,
         srcRef: UHeapRef,
         dstRef: UHeapRef,

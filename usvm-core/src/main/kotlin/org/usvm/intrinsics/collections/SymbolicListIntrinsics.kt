@@ -1,4 +1,4 @@
-package org.usvm.memory.collections
+package org.usvm.intrinsics.collections
 
 import org.usvm.UContext
 import org.usvm.UExpr
@@ -7,10 +7,13 @@ import org.usvm.USizeExpr
 import org.usvm.USort
 import org.usvm.UState
 import org.usvm.memory.USymbolicIndexMapDescriptor
+import org.usvm.memory.USymbolicMapDescriptor
 import org.usvm.sampleUValue
 
 object SymbolicListIntrinsics {
-    object SymbolicListMarker
+    object SymbolicListMarker : USymbolicMapDescriptor.SymbolicMapInfo {
+        override fun toString(): String = "List"
+    }
 
     fun UState<*, *, *, *>.mkSymbolicList(
         elementSort: USort
@@ -66,7 +69,7 @@ object SymbolicListIntrinsics {
         val newIndex = ctx.mkBvAddExpr(index, ctx.mkBv(1))
         val newSize = ctx.mkBvAddExpr(oldSize, ctx.mkBv(1))
 
-        copySymbolicMap(
+        copySymbolicMapIndexRange(
             descriptor = descriptor,
             srcRef = listRef,
             dstRef = listRef,
@@ -77,6 +80,30 @@ object SymbolicListIntrinsics {
         )
 
         writeSymbolicMap(descriptor, listRef, index, value, guard = ctx.trueExpr)
+        writeSymbolicMapLength(descriptor, listRef, newSize, guard = ctx.trueExpr)
+    }
+
+    fun UState<*, *, *, *>.symbolicListRemove(
+        listRef: UHeapRef,
+        elementSort: USort,
+        index: USizeExpr
+    ) = with(memory.heap) {
+        val descriptor = ctx.listDescriptor(elementSort)
+
+        val oldSize = readSymbolicMapLength(descriptor, listRef)
+        val newIndex = ctx.mkBvSubExpr(index, ctx.mkBv(1))
+        val newSize = ctx.mkBvSubExpr(oldSize, ctx.mkBv(1))
+
+        copySymbolicMapIndexRange(
+            descriptor = descriptor,
+            srcRef = listRef,
+            dstRef = listRef,
+            fromSrcKey = index,
+            fromDstKey = newIndex,
+            toDstKey = newSize,
+            guard = ctx.trueExpr
+        )
+
         writeSymbolicMapLength(descriptor, listRef, newSize, guard = ctx.trueExpr)
     }
 
@@ -92,7 +119,7 @@ object SymbolicListIntrinsics {
 
         val dstTo = ctx.mkBvAddExpr(dstFrom, length)
 
-        copySymbolicMap(
+        copySymbolicMapIndexRange(
             descriptor = descriptor,
             srcRef = srcRef,
             dstRef = dstRef,

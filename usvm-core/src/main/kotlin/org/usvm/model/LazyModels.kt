@@ -267,7 +267,7 @@ class ULazyHeapModel<Field, ArrayType>(
         guard: UBoolExpr,
     ) = error("Illegal operation for a model")
 
-    override fun <Reg : Region<Reg>, Sort : USort> copySymbolicMap(
+    override fun <Reg : Region<Reg>, Sort : USort> copySymbolicMapIndexRange(
         descriptor: USymbolicMapDescriptor<USizeSort, Sort, Reg>,
         srcRef: UHeapRef,
         dstRef: UHeapRef,

@@ -16,7 +16,7 @@ abstract class USymbolicMapDescriptor<Key : USort, Value : USort, Reg : Region<R
     abstract val keySort: Key
     abstract val valueSort: Value
     abstract val defaultValue: UExpr<Value> // not used for descriptor comparison
-    abstract val info: Any?
+    abstract val info: SymbolicMapInfo?
 
     abstract fun mkKeyRegion(key: UExpr<Key>): Reg
     abstract fun mkKeyRangeRegion(key1: UExpr<Key>, key2: UExpr<Key>): Reg
@@ -40,6 +40,8 @@ abstract class USymbolicMapDescriptor<Key : USort, Value : USort, Reg : Region<R
     override fun hashCode(): Int = hash(keySort, valueSort, info)
     override fun toString(): String =
         "Descriptor(keySort=$keySort, valueSort=$valueSort, info=$info)"
+
+    interface SymbolicMapInfo
 }
 
 class UHeapRefPoint(val ref: UHeapRef) {
@@ -63,7 +65,7 @@ class UHeapRefPoint(val ref: UHeapRef) {
 class USymbolicObjectReferenceMapDescriptor<Value : USort>(
     override val valueSort: Value,
     override val defaultValue: UExpr<Value>,
-    override val info: Any? = null
+    override val info: SymbolicMapInfo? = null
 ) : USymbolicMapDescriptor<UAddressSort, Value, SetRegion<UHeapRefPoint>>() {
 
     override val keySort: UAddressSort = valueSort.uctx.addressSort
@@ -100,7 +102,7 @@ class USymbolicObjectReferenceMapDescriptor<Value : USort>(
 class USymbolicIndexMapDescriptor<Value : USort>(
     override val valueSort: Value,
     override val defaultValue: UExpr<Value>,
-    override val info: Any? = null
+    override val info: SymbolicMapInfo? = null
 ) : USymbolicMapDescriptor<USizeSort, Value, UArrayIndexRegion>() {
     override val keySort: USizeSort = valueSort.uctx.sizeSort
 

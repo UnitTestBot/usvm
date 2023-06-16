@@ -209,7 +209,7 @@ data class USymbolicMemoryRegion<out RegionId : URegionId<Key, Sort, RegionId>, 
                         }
                         is USymbolicMapId<*, *, *, *, *> -> {
                             val descriptor = regionId.descriptor
-                            heap.copySymbolicMap(
+                            heap.copySymbolicMapIndexRange(
                                 descriptor as USymbolicMapDescriptor<USizeSort, Sort, *>,
                                 srcFromRef,
                                 dstFromRef,
