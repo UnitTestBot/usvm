@@ -1,5 +1,6 @@
 package org.usvm.samples.objects;
 
+@SuppressWarnings("RedundantIfStatement")
 public class Id {
     public int id;
     boolean isOne() {

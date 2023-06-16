@@ -6,6 +6,7 @@ import org.usvm.UMachine
 import org.usvm.UPathSelector
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
+import org.usvm.machine.state.lastStmt
 import org.usvm.ps.BfsPathSelector
 import org.usvm.ps.DfsPathSelector
 import org.usvm.ps.combinators.ParallelSelector
@@ -32,25 +33,29 @@ class JcMachine(
             interpreter,
             pathSelector,
             onState = { state ->
-                if (!isInterestingState(state)) {
+                // TODO: think on correct place for this
+                if (!continueAnalyzing(state)) {
                     val uncoveredStatementsBefore = coveredStoppingStrategy.uncoveredStatementsCount
                     coveredStoppingStrategy.onStateTermination(state)
+                    // TODO: maybe we need do call onStateVisit(state)
                     val uncoveredStatementsCountAfter = coveredStoppingStrategy.uncoveredStatementsCount
-                    if (uncoveredStatementsCountAfter < uncoveredStatementsBefore || state.methodResult is JcMethodResult.Exception) {
+                    if (uncoveredStatementsCountAfter < uncoveredStatementsBefore ||
+                        state.methodResult is JcMethodResult.Exception // TODO: strange hack
+                    ) {
                         collectedStates += state
                     }
                 } else {
                     coveredStoppingStrategy.onStateVisit(state)
                 }
             },
-            continueAnalyzing = ::isInterestingState,
+            continueAnalyzing = ::continueAnalyzing,
             stoppingStrategy = coveredStoppingStrategy,
         )
         return collectedStates
     }
 
     private fun getPathSelector(target: JcTypedMethod): UPathSelector<JcState> {
-        val state = getInitialState(target)
+        val state = interpreter.getInitialState(target)
         val dfsPathSelector = DfsPathSelector<JcState>()
         val bfsPathSelector = BfsPathSelector<JcState>()
         val ps = ParallelSelector(dfsPathSelector, bfsPathSelector)
@@ -62,7 +67,7 @@ class JcMachine(
     private fun getInitialState(method: JcTypedMethod): JcState =
         interpreter.getInitialState(method)
 
-    private fun isInterestingState(state: JcState): Boolean {
+    private fun continueAnalyzing(state: JcState): Boolean {
         return state.callStack.isNotEmpty() && state.methodResult !is JcMethodResult.Exception
     }
 

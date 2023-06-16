@@ -141,8 +141,8 @@ sealed class JcBinOperator(
     // TODO shl, shr operators
 
     open operator fun invoke(lhsExpr: UExpr<out USort>, rhsExpr: UExpr<out USort>): UExpr<out USort> {
-        val lhs = convertBoolIfNeeded(lhsExpr, rhsExpr)
-        val rhs = convertBoolIfNeeded(rhsExpr, lhs)
+        val lhs = convertBoolIfNeeded(lhsExpr, rhsExpr.sort)
+        val rhs = convertBoolIfNeeded(rhsExpr, lhsExpr.sort)
         val lhsSort = lhs.sort
         val rhsSort = rhs.sort
         return when {
@@ -167,9 +167,8 @@ sealed class JcBinOperator(
     }
 
     companion object {
-        private fun convertBoolIfNeeded(lhs: KExpr<out USort>, rhs: KExpr<out USort>): UExpr<out USort> {
+        private fun convertBoolIfNeeded(lhs: KExpr<out USort>, rhsSort: USort): UExpr<out USort> {
             val lhsSort = lhs.sort
-            val rhsSort = rhs.sort
             return if (lhsSort is UBoolSort && rhsSort is UBvSort) {
                 with(lhs.uctx) {
                     @Suppress("UNCHECKED_CAST")

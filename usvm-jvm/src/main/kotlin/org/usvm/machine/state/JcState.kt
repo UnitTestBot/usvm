@@ -53,25 +53,31 @@ fun JcState.newStmt(stmt: JcInst) {
 }
 
 fun JcState.returnValue(valueToReturn: UExpr<out USort>) {
-    if (callStack.size > 1) {
-        val returnSite = callStack.pop()
+    // TODO: think about it later
+    val returnSite = callStack.pop()
+    if (callStack.isNotEmpty()) {
         memory.stack.pop()
-        requireNotNull(returnSite)
-        newStmt(returnSite)
     }
 
     methodResult = JcMethodResult.Success(valueToReturn)
+
+    if (returnSite != null) {
+        newStmt(returnSite)
+    }
 }
 
 fun JcState.throwException(exception: Exception) {
-    if (callStack.size > 1) {
-        val returnSite = callStack.pop()
+    // TODO: think about it later
+    val returnSite = callStack.pop()
+    if (callStack.isNotEmpty()) {
         memory.stack.pop()
-        requireNotNull(returnSite)
-        newStmt(returnSite)
     }
 
     methodResult = JcMethodResult.Exception(exception)
+
+    if (returnSite != null) {
+        newStmt(returnSite)
+    }
 }
 
 
@@ -90,6 +96,7 @@ fun JcState.addNewMethodCall(
     method: JcTypedMethod,
     arguments: List<UExpr<out USort>>,
 ) {
+    // TODO: move to appropriate place
     if (method.enclosingType.jcClass.name == "java.lang.Throwable") { // TODO: skipping construction of throwables
         val nextStmt = applicationGraph.successors(lastStmt).single()
         newStmt(nextStmt)

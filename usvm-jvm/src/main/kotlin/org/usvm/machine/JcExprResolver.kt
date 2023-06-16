@@ -93,16 +93,21 @@ class JcExprResolver(
     private val localToIdx: (JcTypedMethod, JcLocal) -> Int,
     private val hardMaxArrayLength: Int = 1_500,
 ) : JcExprVisitor<UExpr<out USort>?> {
+    /**
+     * TODO: add comment about null
+     */
     fun resolveExpr(value: JcExpr): UExpr<out USort>? {
         return value.accept(this)
     }
 
+    /**
+     * TODO: add comment about null
+     */
     fun resolveLValue(value: JcValue): ULValue? =
         when (value) {
             is JcFieldRef -> resolveFieldRef(value.instance, value.field)
             is JcArrayAccess -> resolveArrayAccess(value.array, value.index)
-            is JcLocalVar -> resolveLocalVar(value)
-            is JcArgument -> resolveArgument(value)
+            is JcLocal -> resolveLocal(value)
             else -> error("Unexpected value: $value")
         }
 
@@ -266,18 +271,18 @@ class JcExprResolver(
     }
 
     override fun visitJcLengthExpr(expr: JcLengthExpr): UExpr<out USort>? = with(ctx) {
-        val ref = (resolveExpr(expr.array) ?: return null).asExpr(addressSort)
+        val ref = resolveExpr(expr.array)?.asExpr(addressSort) ?: return null
         checkNullPointer(ref) ?: return null
         val lengthRef = UArrayLengthLValue(ref, expr.array.type)
         val length = scope.calcOnState { memory.read(lengthRef).asExpr(sizeSort) } ?: return null
-        checkHardMaxArrayLength(length) ?: return null
+        assertHardMaxArrayLength(length) ?: return null
         scope.assert(mkBvSignedLessOrEqualExpr(mkBv(0), length)) ?: return null
         length
     }
 
     override fun visitJcNewArrayExpr(expr: JcNewArrayExpr): UExpr<out USort>? = with(ctx) {
-        val size = (resolveExpr(expr.dimensions[0]) ?: return null).asExpr(sizeSort)
-        // TODO: other dimensions
+        val size = resolveExpr(expr.dimensions[0])?.asExpr(sizeSort) ?: return null
+        // TODO: other dimensions ( > 1)
         checkNewArrayLength(size) ?: return null
         val ref = scope.calcOnState { memory.malloc(expr.type, size) } ?: return null
         ref
@@ -287,14 +292,14 @@ class JcExprResolver(
         scope.calcOnState { memory.alloc(expr.type) }
 
     override fun visitJcPhiExpr(expr: JcPhiExpr): UExpr<out USort> = with(ctx) {
-        TODO("Not yet implemented")
+        error("unexpected expr: $expr")
     }
 
     //region invokes
 
     override fun visitJcSpecialCallExpr(expr: JcSpecialCallExpr): UExpr<out USort>? =
         resolveInvoke(expr.method) {
-            val instance = (resolveExpr(expr.instance) ?: return@resolveInvoke null).asExpr(ctx.addressSort)
+            val instance = resolveExpr(expr.instance)?.asExpr(ctx.addressSort) ?: return@resolveInvoke null
             checkNullPointer(instance) ?: return@resolveInvoke null
             val arguments = mutableListOf<UExpr<out USort>>(instance)
             expr.args.mapTo(arguments) { resolveExpr(it) ?: return@resolveInvoke null }
@@ -304,7 +309,7 @@ class JcExprResolver(
     override fun visitJcVirtualCallExpr(expr: JcVirtualCallExpr): UExpr<out USort>? =
         resolveInvoke(expr.method) {
             // TODO resolve actual method for interface invokes
-            val instance = (resolveExpr(expr.instance) ?: return@resolveInvoke null).asExpr(ctx.addressSort)
+            val instance = resolveExpr(expr.instance)?.asExpr(ctx.addressSort) ?: return@resolveInvoke null
             checkNullPointer(instance) ?: return@resolveInvoke null
             val arguments = mutableListOf<UExpr<out USort>>(instance)
             expr.args.mapTo(arguments) { resolveExpr(it) ?: return@resolveInvoke null }
@@ -338,9 +343,7 @@ class JcExprResolver(
                 null
             }
 
-            is JcMethodResult.Exception -> {
-                null
-            }
+            is JcMethodResult.Exception -> error("exception should be handled earlier")
         }
     }
 
@@ -349,17 +352,17 @@ class JcExprResolver(
     //region jc locals
 
     override fun visitJcLocalVar(value: JcLocalVar): UExpr<out USort>? = with(ctx) {
-        val ref = resolveLocalVar(value)
+        val ref = resolveLocal(value)
         scope.calcOnState { memory.read(ref) }
     }
 
     override fun visitJcThis(value: JcThis): UExpr<out USort>? = with(ctx) {
-        val ref = resolveThis(value)
+        val ref = resolveLocal(value)
         scope.calcOnState { memory.read(ref) }
     }
 
     override fun visitJcArgument(value: JcArgument): UExpr<out USort>? = with(ctx) {
-        val ref = resolveArgument(value)
+        val ref = resolveLocal(value)
         scope.calcOnState { memory.read(ref) }
     }
 
@@ -388,7 +391,7 @@ class JcExprResolver(
         val lengthRef = UArrayLengthLValue(arrayRef, array.type)
         val length = scope.calcOnState { memory.read(lengthRef).asExpr(sizeSort) } ?: return null
 
-        checkHardMaxArrayLength(length) ?: return null
+        assertHardMaxArrayLength(length) ?: return null
 
         checkArrayIndex(idx, length) ?: return null
 
@@ -407,24 +410,11 @@ class JcExprResolver(
         } else {
             val sort = ctx.typeToSort(field.fieldType)
             JcStaticFieldRef(sort, field.field)
+            // TODO: can't extend UMemoryBase for now...
         }
     }
 
-    private fun resolveArgument(argument: JcArgument): ULValue {
-        val method = requireNotNull(scope.calcOnState { lastEnteredMethod })
-        val localIdx = localToIdx(method, argument)
-        val sort = ctx.typeToSort(argument.type)
-        return URegisterLValue(sort, localIdx)
-    }
-
-    private fun resolveThis(thisLocal: JcThis): ULValue {
-        val method = requireNotNull(scope.calcOnState { lastEnteredMethod })
-        val localIdx = localToIdx(method, thisLocal)
-        val sort = ctx.typeToSort(thisLocal.type)
-        return URegisterLValue(sort, localIdx)
-    }
-
-    private fun resolveLocalVar(local: JcLocalVar): ULValue {
+    private fun resolveLocal(local: JcLocal): ULValue {
         val method = requireNotNull(scope.calcOnState { lastEnteredMethod })
         val localIdx = localToIdx(method, local)
         val sort = ctx.typeToSort(local.type)
@@ -444,13 +434,14 @@ class JcExprResolver(
     }
 
     private fun checkNewArrayLength(length: UExpr<USizeSort>) = with(ctx) {
-        checkHardMaxArrayLength(length) ?: return null
+        assertHardMaxArrayLength(length) ?: return null
 
         val lengthIsNonNegative = mkBvSignedLessOrEqualExpr(mkBv(0), length)
 
         scope.fork(lengthIsNonNegative,
             blockOnFalseState = {
-                val exception = NegativeArraySizeException()
+                val ln = lastStmt.lineNumber
+                val exception = NegativeArraySizeException("[negative array size] $ln")
                 throwException(exception)
             }
         )
@@ -472,6 +463,9 @@ class JcExprResolver(
         )
     }
 
+    /**
+     * TODO: add comments
+     */
     private fun checkNullPointer(ref: UHeapRef) = with(ctx) {
         val neqNull = mkHeapRefEq(ref, nullRef).not()
         scope.fork(
@@ -484,7 +478,7 @@ class JcExprResolver(
         )
     }
 
-    private fun checkHardMaxArrayLength(length: USizeExpr): Unit? = with(ctx) {
+    private fun assertHardMaxArrayLength(length: USizeExpr): Unit? = with(ctx) {
         val lengthLeThanMaxLength = mkBvSignedLessOrEqualExpr(length, mkBv(hardMaxArrayLength))
         scope.assert(lengthLeThanMaxLength) ?: return null
         return Unit

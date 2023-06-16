@@ -1,5 +1,6 @@
 package org.usvm.samples.operators;
 
+@SuppressWarnings("PointlessBooleanExpression")
 public class Logic {
     boolean and(boolean x, boolean y) {
         return x && y;

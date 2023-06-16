@@ -37,7 +37,6 @@ class JcInterpreter(
     private val ctx: JcContext,
     private val applicationGraph: JcApplicationGraph,
 ) : UInterpreter<JcState>() {
-
     fun getInitialState(method: JcTypedMethod): JcState {
         val solver = ctx.solver<JcField, JcType, JcTypedMethod>()
         val model = solver.emptyModel()
@@ -174,9 +173,7 @@ class JcInterpreter(
                 } ?: return
             }
 
-            is JcMethodResult.Exception -> {
-
-            }
+            is JcMethodResult.Exception -> error("exception should be handled earlier")
         }
     }
 

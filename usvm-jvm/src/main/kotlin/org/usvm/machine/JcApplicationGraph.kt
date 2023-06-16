@@ -10,6 +10,7 @@ import org.jacodb.impl.features.HierarchyExtensionImpl
 import org.jacodb.impl.features.SyncUsagesExtension
 import org.usvm.ApplicationGraph
 
+// TODO: add trap handlers
 class JcApplicationGraph(
     cp: JcClasspath,
 ) : ApplicationGraph<JcTypedMethod, JcInst> {
@@ -35,7 +36,6 @@ class JcApplicationGraph(
 
     override fun methodOf(node: JcInst): JcTypedMethod =
         jcApplicationGraph.methodOf(node).toTyped
-
 
     private val typedMethodsCache = mutableMapOf<JcMethod, JcTypedMethod>()
 

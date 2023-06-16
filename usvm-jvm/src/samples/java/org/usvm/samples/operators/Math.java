@@ -1,5 +1,6 @@
 package org.usvm.samples.operators;
 
+@SuppressWarnings("ConstantValue")
 public class Math {
     int addIntToInt(int x, int y) {
         return x + y;
@@ -58,5 +59,16 @@ public class Math {
 
     int bitwiseShift(short x, byte y) {
         return x << y;
+    }
+
+
+    int kek(short x, int y) {
+        if (y > 10 || y <= 0) {
+            return 0;
+        }
+        if (x + y < 0 && x > 0) {
+            throw new IllegalArgumentException();
+        }
+        return x + y;
     }
 }
