@@ -53,29 +53,25 @@ fun JcState.newStmt(stmt: JcInst) {
 }
 
 fun JcState.returnValue(valueToReturn: UExpr<out USort>) {
-    val returnSite = callStack.pop()
-    if (callStack.isNotEmpty()) {
+    if (callStack.size > 1) {
+        val returnSite = callStack.pop()
         memory.stack.pop()
+        requireNotNull(returnSite)
+        newStmt(returnSite)
     }
 
     methodResult = JcMethodResult.Success(valueToReturn)
-
-    if (returnSite != null) {
-        newStmt(returnSite)
-    }
 }
 
 fun JcState.throwException(exception: Exception) {
-    val returnSite = callStack.pop()
-    if (callStack.isNotEmpty()) {
+    if (callStack.size > 1) {
+        val returnSite = callStack.pop()
         memory.stack.pop()
+        requireNotNull(returnSite)
+        newStmt(returnSite)
     }
 
     methodResult = JcMethodResult.Exception(exception)
-
-    if (returnSite != null) {
-        newStmt(returnSite)
-    }
 }
 
 
