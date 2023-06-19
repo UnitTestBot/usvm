@@ -276,6 +276,10 @@ data class URegionHeap<Field, ArrayType>(
     // Normal order
     private object SymbolicKeyConcreteRefAllocatedMap: ConcreteTaggedMapDescriptor.MapDescriptorTag
 
+    /**
+     * Read from map with ref keys.
+     * See [writeSymbolicRefMap] for map representation details.
+     * */
     private fun <Reg : Region<Reg>, Sort : USort> readSymbolicRefMap(
         descriptor: USymbolicMapDescriptor<UAddressSort, Sort, Reg>,
         ref: UHeapRef,
@@ -417,6 +421,21 @@ data class URegionHeap<Field, ArrayType>(
         }
     }
 
+    /**
+     * Split maps with concrete keys.
+     * 
+     * concrete map ref x concrete key ref --- [ConcreteKeyConcreteRefAllocatedMap]
+     * stored as {concrete key ref x concrete map ref} to allow key enumeration 
+     * 
+     * concrete map ref x symbolic key ref --- [SymbolicKeyConcreteRefAllocatedMap]
+     * stored as {concrete map ref x symbolic key ref}, doesn't allow key enumeration
+     * 
+     * symbolic map ref x concrete key ref --- [ConcreteKeySymbolicRefAllocatedMap]
+     * stored as {concrete key ref x symbolic map ref} to allow key enumeration
+     * 
+     * symbolic map ref x symbolic key ref --- usual input map
+     * stored as {symbolic map ref x symbolic key ref}, doesn't allow key enumeration
+     * */
     private fun <Reg : Region<Reg>, Sort : USort> writeSymbolicRefMap(
         descriptor: USymbolicMapDescriptor<UAddressSort, Sort, Reg>,
         ref: UHeapRef,
@@ -800,33 +819,18 @@ data class URegionHeap<Field, ArrayType>(
     }
 
     /**
-     * Concrete src -> Symbolic dst
-     * sck, ssk        dck, dsk
+     * Merge maps with ref keys.
      *
-     * rck = dck (map concrete -> symbolic region) + sck (concrete region)
-     * for key in sck: write(dst, key, ite(include(src, key) read(src, key) read(dst, key)))
+     * Note 1: there are no concrete keys in input maps.
+     * Therefore, we can enumerate all possible concrete keys.
      *
-     * rsk = dsk + ssk | merge node
+     * Note 2: concrete keys can't intersect with symbolic ones.
      *
-     * -----------------
-     *
-     * Symbolic src -> Symbolic dst
-     * sck, ssk        dck, dsk
-     *
-     * rck = dck (map concrete -> symbolic region) + sck (map concrete -> symbolic region)
-     * for key in sck: write(dst, key, ite(include(src, key) read(src, key) read(dst, key)))
-     *
-     * rsk = dsk + ssk | merge node
-     *
-     * ------------------
-     *
-     * Symbolic src -> Concrete dst
-     * sck, ssk        dck, dsk
-     *
-     * rck = dck (concrete region) + sck (map concrete -> symbolic region)
-     * for key in sck: write(dst, key, ite(include(src, key) read(src, key) read(dst, key)))
-     *
-     * rsk = dsk + ssk | merge node
+     * Merge:
+     * 1. Merge src symbolic keys into dst symbolic keys using `merge update node`.
+     * 2. Merge src concrete keys into dst concrete keys.
+     *  2.1 enumerate all concrete keys using map writes.
+     *  2.2 write keys into dst with `map.write` operation.
      * */
     private fun <Reg : Region<Reg>, Sort : USort> mergeSymbolicRefMap(
         descriptor: USymbolicMapDescriptor<UAddressSort, Sort, Reg>,
