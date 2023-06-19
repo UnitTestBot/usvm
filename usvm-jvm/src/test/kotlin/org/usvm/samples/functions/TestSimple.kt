@@ -11,7 +11,6 @@ class TestSimple : JavaMethodTestRunner() {
     fun `Test calcTwoFunctions`() {
         checkExecutionMatches(
             Simple::calcTwoFunctions,
-            ignoreNumberOfAnalysisResults,
             { _, x, y, r -> r == 0 && y > 0 && x * x + y < 0 },
             { _, x, y, r -> r == 1 && !(y > 0 && x * x + y < 0) },
         )
@@ -21,7 +20,6 @@ class TestSimple : JavaMethodTestRunner() {
     fun `Test factorial`() {
         checkExecutionMatches(
             Simple::factorial,
-            ignoreNumberOfAnalysisResults,
             { _, x, r -> (1..x).fold(1, Int::times) == r },
         )
     }

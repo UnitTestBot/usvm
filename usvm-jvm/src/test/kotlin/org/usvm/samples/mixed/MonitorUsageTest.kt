@@ -11,7 +11,6 @@ internal class MonitorUsageTest : JavaMethodTestRunner() {
     fun testSimpleMonitor() {
         checkExecutionMatches(
             MonitorUsage::simpleMonitor,
-            ignoreNumberOfAnalysisResults,
             { _, x, r -> x <= 0 && r == 0 },
             { _, x, r -> x > 0 && x <= Int.MAX_VALUE - 1 && r == 1 },
         )

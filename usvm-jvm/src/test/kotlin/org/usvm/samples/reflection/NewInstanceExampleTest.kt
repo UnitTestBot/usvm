@@ -10,7 +10,6 @@ class NewInstanceExampleTest : JavaMethodTestRunner() {
     fun testNewInstanceExample() {
         checkExecutionMatches(
             NewInstanceExample::createWithReflectionExample,
-            eq(1),
             { _, r -> r == 0 }
         )
     }

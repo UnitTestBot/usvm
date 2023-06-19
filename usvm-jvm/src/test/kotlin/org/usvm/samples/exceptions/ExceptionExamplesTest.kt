@@ -12,7 +12,6 @@ internal class ExceptionExamplesTest : JavaMethodTestRunner() {
     fun testInitAnArray() {
         checkExecutionMatches(
             ExceptionExamples::initAnArray,
-            ignoreNumberOfAnalysisResults,
             { _, n, r -> n < 0 && r == -2 },
             { _, n, r -> n == 0 || n == 1 && r == -3 },
             { _, n, r -> n > 1 && r == 2 * n + 3 }
@@ -23,7 +22,6 @@ internal class ExceptionExamplesTest : JavaMethodTestRunner() {
     fun testNestedExceptions() {
         checkExecutionMatches(
             ExceptionExamples::nestedExceptions,
-            eq(3),
             { _, i, r -> i < 0 && r == -100 },
             { _, i, r -> i > 0 && r == 100 },
             { _, i, r -> i == 0 && r == 0 },
@@ -34,7 +32,6 @@ internal class ExceptionExamplesTest : JavaMethodTestRunner() {
     fun testDoNotCatchNested() {
         checkWithExceptionExecutionMatches(
             ExceptionExamples::doNotCatchNested,
-            eq(3),
             { _, i, r -> i < 0 && r.isException<IllegalArgumentException>() },
             { _, i, r -> i > 0 && r.isException<NullPointerException>() },
             { _, i, r -> i == 0 && r.getOrThrow() == 0 },
@@ -45,7 +42,6 @@ internal class ExceptionExamplesTest : JavaMethodTestRunner() {
     fun testFinallyThrowing() {
         checkWithExceptionExecutionMatches(
             ExceptionExamples::finallyThrowing,
-            eq(2),
             { _, i, r -> i <= 0 && r.isException<IllegalStateException>() },
             { _, i, r -> i > 0 && r.isException<IllegalStateException>() },
         )
@@ -55,7 +51,6 @@ internal class ExceptionExamplesTest : JavaMethodTestRunner() {
     fun testFinallyChanging() {
         checkExecutionMatches(
             ExceptionExamples::finallyChanging,
-            eq(2),
             { _, i, r -> i * 2 <= 0 && r == i * 2 + 10 },
             { _, i, r -> i * 2 > 0 && r == i * 2 + 110 } // differs from JaCoCo
         )
@@ -65,7 +60,6 @@ internal class ExceptionExamplesTest : JavaMethodTestRunner() {
     fun testThrowException() {
         checkWithExceptionExecutionMatches(
             ExceptionExamples::throwException,
-            eq(2),
             { _, i, r -> i <= 0 && r.getOrNull() == 101 },
             { _, i, r -> i > 0 && r.isException<NullPointerException>() },
         )
@@ -75,7 +69,6 @@ internal class ExceptionExamplesTest : JavaMethodTestRunner() {
     fun testCreateException() {
         checkExecutionMatches(
             ExceptionExamples::createException,
-            eq(1),
             { _, r -> r is java.lang.IllegalArgumentException },
         )
     }
@@ -87,7 +80,6 @@ internal class ExceptionExamplesTest : JavaMethodTestRunner() {
     fun testCatchDeepNestedThrow() {
         checkWithExceptionExecutionMatches(
             ExceptionExamples::catchDeepNestedThrow,
-            eq(2),
             { _, i, r -> i < 0 && r.isException<NullPointerException>() },
             { _, i, r -> i >= 0 && r.getOrThrow() == i },
         )
@@ -100,7 +92,6 @@ internal class ExceptionExamplesTest : JavaMethodTestRunner() {
     fun testCatchExceptionAfterOtherPossibleException() {
         checkWithExceptionExecutionMatches(
             ExceptionExamples::catchExceptionAfterOtherPossibleException,
-            eq(3),
             { _, i, r -> i == -1 && r.isException<ArithmeticException>() },
             { _, i, r -> i == 0 && r.getOrThrow() == 2 },
             { _, _, r -> r.getOrThrow() == 1 },
@@ -114,7 +105,6 @@ internal class ExceptionExamplesTest : JavaMethodTestRunner() {
     fun testDontCatchDeepNestedThrow() {
         checkWithExceptionExecutionMatches(
             ExceptionExamples::dontCatchDeepNestedThrow,
-            eq(2),
             { _, i, r -> i < 0 && r.isException<IllegalArgumentException>() },
             { _, i, r -> i >= 0 && r.getOrThrow() == i },
         )

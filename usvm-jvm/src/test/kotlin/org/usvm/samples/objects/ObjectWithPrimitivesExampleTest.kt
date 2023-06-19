@@ -13,7 +13,6 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
     fun testMax() {
         checkWithExceptionExecutionMatches(
             ObjectWithPrimitivesExample::max,
-            eq(7),
             { _, fst, _, r -> fst == null && r.isException<NullPointerException>() },
             { _, _, snd, r -> snd == null && r.isException<NullPointerException>() },
             { _, fst, snd, r -> fst != null && snd != null && fst.x > snd.x && fst.y > snd.y && r.getOrNull()!! == fst },
@@ -28,7 +27,6 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
     fun testIgnoredInputParameters() {
         checkExecutionMatches(
             ObjectWithPrimitivesExample::ignoredInputParameters,
-            eq(1),
             { _, fst, snd, r -> fst == null && snd == null && r != null }
         )
     }
@@ -37,7 +35,6 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
     fun testExample() {
         checkExecutionMatches(
             ObjectWithPrimitivesExample::example,
-            eq(3),
             { _, v, _ -> v == null },
             { _, v, r -> v != null && v.x == 1 && r?.x == 1 },
             { _, v, r -> v != null && v.x != 1 && r?.x == 1 },
@@ -58,7 +55,6 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
     fun testDefaultValueForSuperclassFields() {
         checkExecutionMatches(
             ObjectWithPrimitivesExample::defaultValueForSuperclassFields,
-            eq(1),
             { _, r -> r != null && r.x == 0 && r.y == 0 && r.weight == 0.0 && r.valueByDefault == 5 && r.anotherX == 0 },
         )
     }
@@ -68,7 +64,6 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
     fun testCreateObject() {
         checkWithExceptionExecutionMatches(
             ObjectWithPrimitivesExample::createObject,
-            eq(3),
             { _, _, _, o, r -> o == null && r.isException<NullPointerException>() },
             { _, _, _, o, r -> o != null && o.weight < 0 && r.isException<IllegalArgumentException>() },
             { _, a, b, o, r ->
@@ -87,7 +82,6 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
     fun testMemory() {
         checkWithExceptionExecutionMatches(
             ObjectWithPrimitivesExample::memory,
-            eq(4),
             { _, o, v, r -> o == null && v > 0 && r.isException<NullPointerException>() },
             { _, o, v, r ->
                 val resultValue = r.getOrNull()
@@ -119,7 +113,6 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
     fun testCompareWithNull() {
         checkExecutionMatches(
             ObjectWithPrimitivesExample::compareWithNull,
-            eq(3),
             { _, fst, _, r -> fst == null && r == 1 },
             { _, fst, snd, r -> fst != null && snd == null && r == 2 },
             { _, fst, snd, r -> fst != null && snd != null && r == 3 },
@@ -130,7 +123,6 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
     fun testCompareTwoNullObjects() {
         checkExecutionMatches(
             ObjectWithPrimitivesExample::compareTwoNullObjects,
-            eq(1),
         )
     }
 
@@ -138,7 +130,6 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
     fun testNullExample() {
         checkExecutionMatches(
             ObjectWithPrimitivesExample::nullExample,
-            eq(4),
             { _, o, _ -> o == null },
             { _, o, r -> o != null && o.x != 0 && r != null },
             { _, o, r -> o != null && o.x == 0 && o.y != 0 && r != null },
@@ -150,7 +141,6 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
     fun testCompareTwoOuterObjects() {
         checkWithExceptionExecutionMatches(
             ObjectWithPrimitivesExample::compareTwoOuterObjects,
-            eq(4),
             { _, x, _, r -> x == null && r.isException<NullPointerException>() },
             { _, x, y, r -> x != null && y == null && r.isException<NullPointerException>() },
             { _, x, y, r -> x != null && y != null && x === y && r.getOrNull() == true },
@@ -162,7 +152,6 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
     fun testCompareObjectWithArgument() {
         checkExecutionMatches(
             ObjectWithPrimitivesExample::compareObjectWithArgument,
-            eq(1),
         )
     }
 
@@ -170,7 +159,6 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
     fun testCompareTwoDifferentObjects() {
         checkExecutionMatches(
             ObjectWithPrimitivesExample::compareTwoDifferentObjects,
-            eq(1),
         )
     }
 
@@ -179,7 +167,6 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
     fun testCompareTwoIdenticalObjectsFromArguments() {
         checkWithExceptionExecutionMatches(
             ObjectWithPrimitivesExample::compareTwoIdenticalObjectsFromArguments,
-            eq(4),
             { _, fst, _, r -> fst == null && r.isException<NullPointerException>() },
             { _, _, snd, r -> snd == null && r.isException<NullPointerException>() },
             { _, fst, snd, r -> fst != null && snd != null && r.getOrNull() == 1 },
@@ -191,7 +178,6 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
     fun testCompareTwoRefEqualObjects() {
         checkExecutionMatches(
             ObjectWithPrimitivesExample::compareTwoRefEqualObjects,
-            eq(1),
         )
     }
 
@@ -199,7 +185,6 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
     fun testGetOrDefault() {
         checkWithExceptionExecutionMatches(
             ObjectWithPrimitivesExample::getOrDefault,
-            ignoreNumberOfAnalysisResults,
             { _, _, d, r -> d == null && r.isException<NullPointerException>() },
             { _, _, d, r -> d != null && d.x == 0 && d.y == 0 && r.isException<IllegalArgumentException>() },
             { _, o, d, r -> o == null && (d.x != 0 || d.y != 0) && r.getOrNull() == d },
@@ -211,7 +196,6 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
     fun testInheritorsFields() {
         checkWithExceptionExecutionMatches(
             ObjectWithPrimitivesExample::inheritorsFields,
-            eq(3),
             { _, fst, _, r -> fst == null && r.isException<NullPointerException>() },
             { _, fst, snd, r -> fst != null && snd == null && r.isException<NullPointerException>() },
             { _, fst, snd, r -> fst != null && snd != null && r.getOrNull() == 1 },
@@ -222,7 +206,6 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
     fun testCreateWithConstructor() {
         checkExecutionMatches(
             ObjectWithPrimitivesExample::createWithConstructor,
-            eq(1),
             { _, x, y, r -> r != null && r.x == x + 1 && r.y == y + 2 && r.weight == 3.3 }
         )
     }
@@ -231,7 +214,6 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
     fun testCreateWithSuperConstructor() {
         checkExecutionMatches(
             ObjectWithPrimitivesExample::createWithSuperConstructor,
-            eq(1),
             { _, x, y, anotherX, r ->
                 r != null && r.x == x + 1 && r.y == y + 2 && r.weight == 3.3 && r.anotherX == anotherX + 4
             }
@@ -242,7 +224,6 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
     fun testFieldWithDefaultValue() {
         checkExecutionMatches(
             ObjectWithPrimitivesExample::fieldWithDefaultValue,
-            eq(1),
             { _, x, y, r -> r != null && r.x == x && r.y == y && r.weight == 3.3 && r.valueByDefault == 5 }
         )
     }
@@ -251,7 +232,6 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
     fun testValueByDefault() {
         checkExecutionMatches(
             ObjectWithPrimitivesExample::valueByDefault,
-            eq(1),
             { _, r -> r == 5 }
         )
     }

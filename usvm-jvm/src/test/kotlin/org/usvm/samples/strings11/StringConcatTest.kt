@@ -12,7 +12,6 @@ class StringConcatTest : JavaMethodTestRunner() {
     fun testConcatArguments() {
         checkExecutionMatches(
             StringConcat::concatArguments,
-            eq(1),
             { _, a, b, c, r -> "$a$b$c" == r }
         )
     }
@@ -21,7 +20,6 @@ class StringConcatTest : JavaMethodTestRunner() {
     fun testConcatWithConstants() {
         checkExecutionMatches(
             StringConcat::concatWithConstants,
-            eq(4),
             { _, a, r -> a == "head" && r == 1 },
             { _, a, r -> a == "body" && r == 2 },
             { _, a, r -> a == null && r == 3 },
@@ -34,7 +32,6 @@ class StringConcatTest : JavaMethodTestRunner() {
     fun testConcatWithPrimitives() {
         checkExecutionMatches(
             StringConcat::concatWithPrimitives,
-            eq(1),
             { _, a, r -> "$a#4253.0" == r }
         )
     }
@@ -43,7 +40,6 @@ class StringConcatTest : JavaMethodTestRunner() {
     fun testExceptionInToString() {
         checkWithExceptionExecutionMatches(
             StringConcat::exceptionInToString,
-            ignoreNumberOfAnalysisResults,
             { _, t, r -> t.x == 42 && r.isException<IllegalArgumentException>() },
             { _, t, r -> t.x != 42 && r.getOrThrow() == "Test: x = ${t.x}!" },
         )
@@ -63,7 +59,6 @@ class StringConcatTest : JavaMethodTestRunner() {
     fun testConcatWithPrimitiveWrappers() {
         checkExecutionMatches(
             StringConcat::concatWithPrimitiveWrappers,
-            ignoreNumberOfAnalysisResults,
             { _, b, c, r -> b.toString().endsWith("4") && c == '2' && r == 1 },
             { _, _, c, r -> !c.toString().endsWith("42") && r == 2 },
         )
@@ -73,7 +68,6 @@ class StringConcatTest : JavaMethodTestRunner() {
     fun testSameConcat() {
         checkExecutionMatches(
             StringConcat::sameConcat,
-            ignoreNumberOfAnalysisResults,
             { _, a, b, r -> a == b && r == 0 },
             { _, a, b, r -> a != b && r == 1 },
         )
@@ -83,7 +77,6 @@ class StringConcatTest : JavaMethodTestRunner() {
     fun testConcatStrangeSymbols() {
         checkExecutionMatches(
             StringConcat::concatStrangeSymbols,
-            eq(1),
             { _, r -> r == "\u0000#\u0001!\u0002@\u0012\t" }
         )
     }

@@ -11,7 +11,6 @@ internal class IntegerWrapperTest : JavaMethodTestRunner() {
     fun primitiveToWrapperTest() {
         checkExecutionMatches(
             IntegerWrapper::primitiveToWrapper,
-            eq(2),
             { _, x, r -> x >= 0 && r!! <= 0 },
             { _, x, r -> x < 0 && r!! < 0 },
         )
@@ -21,7 +20,6 @@ internal class IntegerWrapperTest : JavaMethodTestRunner() {
     fun wrapperToPrimitiveTest() {
         checkExecutionMatches(
             IntegerWrapper::wrapperToPrimitive,
-            eq(3),
             { _, x, _ -> x == null },
             { _, x, r -> x >= 0 && r <= 0 },
             { _, x, r -> x < 0 && r < 0 },
@@ -32,7 +30,6 @@ internal class IntegerWrapperTest : JavaMethodTestRunner() {
     fun numberOfZerosTest() {
         checkExecutionMatches(
             IntegerWrapper::numberOfZeros,
-            eq(4),
             { _, x, _ -> x == null },
             { _, x, r -> Integer.numberOfLeadingZeros(x) >= 5 && r == 0 },
             { _, x, r -> Integer.numberOfLeadingZeros(x) < 5 && Integer.numberOfTrailingZeros(x) >= 5 && r == 0 },
@@ -44,7 +41,6 @@ internal class IntegerWrapperTest : JavaMethodTestRunner() {
     fun bitCountTest() {
         checkExecutionMatches(
             IntegerWrapper::bitCount,
-            eq(3),
             { _, x, _ -> x == null },
             { _, x, r -> Integer.bitCount(x) != 5 && r == 0 },
             { _, x, r -> Integer.bitCount(x) == 5 && r == 1 },
@@ -57,7 +53,6 @@ internal class IntegerWrapperTest : JavaMethodTestRunner() {
     fun equalityTest() {
         checkExecutionMatches(
             IntegerWrapper::equality,
-            eq(3),
             { _, a, b, result -> a == b && a >= -128 && a <= 127 && result == 1 },
             { _, a, b, result -> a == b && (a < -128 || a > 127) && result == 2 },
             { _, a, b, result -> a != b && result == 4 },

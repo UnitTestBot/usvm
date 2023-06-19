@@ -14,7 +14,6 @@ internal class ListIteratorsTest : JavaMethodTestRunner() {
     fun testReturnIterator() {
         checkExecutionMatches(
             ListIterators::returnIterator,
-            ignoreNumberOfAnalysisResults,
             { _, l, r -> l.isEmpty() && r!!.asSequence().toList().isEmpty() },
             { _, l, r -> l.isNotEmpty() && r!!.asSequence().toList() == l },
         )
@@ -24,7 +23,6 @@ internal class ListIteratorsTest : JavaMethodTestRunner() {
     fun testReturnListIterator() {
         checkExecutionMatches(
             ListIterators::returnListIterator,
-            ignoreNumberOfAnalysisResults,
             { _, l, r -> l.isEmpty() && r!!.asSequence().toList().isEmpty() },
             { _, l, r -> l.isNotEmpty() && r!!.asSequence().toList() == l },
         )
@@ -34,7 +32,6 @@ internal class ListIteratorsTest : JavaMethodTestRunner() {
     fun testIterate() {
         checkExecutionMatches(
             ListIterators::iterate,
-            eq(3),
             { _, l, _ -> l == null },
             { _, l, result -> l.isEmpty() && result == l },
             { _, l, result -> l.isNotEmpty() && result == l },
@@ -45,7 +42,6 @@ internal class ListIteratorsTest : JavaMethodTestRunner() {
     fun testIterateReversed() {
         checkExecutionMatches(
             ListIterators::iterateReversed,
-            eq(3),
             { _, l, _ -> l == null },
             { _, l, result -> l.isEmpty() && result == l },
             { _, l, result -> l.isNotEmpty() && result == l.reversed() },
@@ -56,7 +52,6 @@ internal class ListIteratorsTest : JavaMethodTestRunner() {
     fun testIterateForEach() {
         checkExecutionMatches(
             ListIterators::iterateForEach,
-            eq(4),
             { _, l, _ -> l == null },
             { _, l, result -> l.isEmpty() && result == 0 },
             { _, l, _ -> l.isNotEmpty() && l.any { it == null } },
@@ -69,7 +64,6 @@ internal class ListIteratorsTest : JavaMethodTestRunner() {
     fun testAddElements() {
         checkExecutionMatches(
             ListIterators::addElements,
-            eq(5),
             { _, l, _, _ -> l == null },
             { _, l, _, result -> l != null && l.isEmpty() && result == l },
             { _, l, arr, _ -> l != null && l.size > 0 && arr == null },
@@ -82,7 +76,6 @@ internal class ListIteratorsTest : JavaMethodTestRunner() {
     fun testSetElements() {
         checkExecutionMatches(
             ListIterators::setElements,
-            eq(5),
             { _, l, _, _ -> l == null },
             { _, l, _, result -> l != null && l.isEmpty() && result == l },
             { _, l, arr, _ -> l != null && arr != null && l.size > arr.size },
@@ -96,8 +89,7 @@ internal class ListIteratorsTest : JavaMethodTestRunner() {
     @Test
     fun testRemoveElements() {
         checkExecutionMatches(
-            ListIterators::removeElements,
-            ignoreNumberOfAnalysisResults, // the exact number of the executions depends on the decisions made by PathSelector
+            ListIterators::removeElements, // the exact number of the executions depends on the decisions made by PathSelector
             // so we can have either six results or seven, depending on the [pathSelectorType]
             // from UtSettings
             { _, l, _, _ -> l == null },

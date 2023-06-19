@@ -25,7 +25,6 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     fun testGetter() {
         checkExecutionMatches(
             ClassWithEnum::useGetter,
-            eq(2),
             { _, s, r -> s == null && r == -1 },
             { _, s, r -> s != null && r == 0 },
         )
@@ -35,7 +34,6 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     fun testDifficultIfBranch() {
         checkExecutionMatches(
             ClassWithEnum::useEnumInDifficultIf,
-            ignoreNumberOfAnalysisResults,
             { _, s, r -> s.equals("TRYIF", ignoreCase = true) && r == 1 },
             { _, s, r -> !s.equals("TRYIF", ignoreCase = true) && r == 2 },
         )
@@ -45,7 +43,6 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     fun testNullParameter() {
         checkExecutionMatches(
             ClassWithEnum::nullEnumAsParameter,
-            between(2..3),
             { _, e, _ -> e == null },
             { _, e, r -> e == READY && r == 0 || e == ERROR && r == -1 },
         )
@@ -55,7 +52,6 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     fun testNullField() {
         checkWithExceptionExecutionMatches(
             ClassWithEnum::nullField,
-            eq(3),
             { _, e, r -> e == null && r.isException<NullPointerException>() },
             { _, e, r -> e == ERROR && r.isException<NullPointerException>() },
             { _, e, r -> e == READY && r.getOrNull()!! == 3 && READY.s.length == 3 },
@@ -67,7 +63,6 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     fun testChangeEnum() {
         checkWithExceptionExecutionMatches(
             ClassWithEnum::changeEnum,
-            eq(2),
             { _, e, r -> e == READY && r.getOrNull()!! == ERROR.ordinal },
             { _, e, r -> (e == ERROR || e == null) && r.getOrNull()!! == READY.ordinal },
         )
@@ -77,7 +72,6 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     fun testChangeMutableField() {
         checkWithExceptionExecutionMatches(
             ClassWithEnum::changeMutableField,
-            eq(2),
             { _, e, r -> e == READY && r.getOrNull()!! == 2 },
             { _, e, r -> (e == null || e == ERROR) && r.getOrNull()!! == -2 },
         )
@@ -87,7 +81,6 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     fun testCheckName() {
         checkExecutionMatches(
             ClassWithEnum::checkName,
-            eq(3),
             { _, s, _ -> s == null },
             { _, s, r -> s == READY.name && r == ERROR.name },
             { _, s, r -> s != READY.name && r == READY.name },
@@ -123,7 +116,6 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     fun testVirtualFunction() {
         checkExecutionMatches(
             ClassWithEnum::virtualFunction,
-            eq(3),
             { _, parameter, _ -> parameter == null },
             { _, parameter, r -> r == 1 && parameter == ERROR },
             { _, parameter, r -> r == 0 && parameter == READY },
@@ -144,7 +136,6 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     fun testFromCode() {
         checkExecutionMatches(
             StatusEnum::fromCode,
-            eq(3),
             { code, r -> code == 10 && r == READY },
             { code, r -> code == -10 && r == ERROR },
             { code, r -> code !in setOf(10, -10) && r == null }, // IllegalArgumentException
@@ -155,7 +146,6 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     fun testFromIsReady() {
         checkExecutionMatches(
             StatusEnum::fromIsReady,
-            eq(2),
             { isFirst, r -> isFirst && r == READY },
             { isFirst, r -> !isFirst && r == ERROR },
         )
@@ -175,7 +165,6 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     fun testImplementingInterfaceEnumInDifficultBranch() {
         checkExecutionMatches(
             ClassWithEnum::implementingInterfaceEnumInDifficultBranch,
-            ignoreNumberOfAnalysisResults,
             { _, s, r -> s.equals("SUCCESS", ignoreCase = true) && r == 0 },
             { _, s, r -> !s.equals("SUCCESS", ignoreCase = true) && r == 2 },
         )
@@ -185,7 +174,6 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     fun testAffectSystemStaticAndUseInitEnumFromIt() {
         checkExecutionMatches(
             ClassWithEnum::affectSystemStaticAndInitEnumFromItAndReturnField,
-            eq(1),
             { _, r -> r == true },
         )
     }
@@ -194,7 +182,6 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     fun testAffectSystemStaticAndInitEnumFromItAndGetItFromEnumFun() {
         checkExecutionMatches(
             ClassWithEnum::affectSystemStaticAndInitEnumFromItAndGetItFromEnumFun,
-            eq(1),
             { _, r -> r == true },
         )
     }

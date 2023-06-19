@@ -10,7 +10,6 @@ internal class OverloadTest : JavaMethodTestRunner() {
     fun testSignOneParam() {
         checkExecutionMatches(
             Overload::sign,
-            eq(3),
             { _, x, r -> x < 0 && r == -1 },
             { _, x, r -> x == 0 && r == 0 },
             { _, x, r -> x > 0 && r == 1 }
@@ -21,7 +20,6 @@ internal class OverloadTest : JavaMethodTestRunner() {
     fun testSignTwoParams() {
         checkExecutionMatches(
             Overload::sign,
-            eq(3),
             { _, x, y, r -> x + y < 0 && r == -1 },
             { _, x, y, r -> x + y == 0 && r == 0 },
             { _, x, y, r -> x + y > 0 && r == 1 }

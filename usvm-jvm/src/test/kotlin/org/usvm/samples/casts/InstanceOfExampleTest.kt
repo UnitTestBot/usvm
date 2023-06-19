@@ -14,7 +14,6 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     fun testSimpleInstanceOf() {
         checkExecutionMatches(
             InstanceOfExample::simpleInstanceOf,
-            eq(2),
             { _, o, r -> o is CastClassFirstSucc && r is CastClassFirstSucc },
             { _, o, r -> o !is CastClassFirstSucc && r == null },
         )
@@ -24,7 +23,6 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     fun testNullPointerCheck() {
         checkExecutionMatches(
             InstanceOfExample::nullPointerCheck,
-            eq(3),
             { _, o, _ -> o == null },
             { _, o, r -> o is CastClassFirstSucc && r == o.z },
             { _, o, r -> o !is CastClassFirstSucc && o != null && r == o.x },
@@ -35,7 +33,6 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     fun testVirtualCall() {
         checkExecutionMatches(
             InstanceOfExample::virtualCall,
-            eq(2),
             { _, o, r -> o is CastClassFirstSucc && r == o.foo() },
             { _, o, r -> o !is CastClassFirstSucc && r == -1 },
         )
@@ -45,7 +42,6 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     fun testVirtualFunctionCallWithCast() {
         checkExecutionMatches(
             InstanceOfExample::virtualFunctionCallWithCast,
-            eq(3),
             { _, o, r -> o !is CastClassFirstSucc && r == -1 },
             { _, o, _ -> o is CastClass && o !is CastClassFirstSucc },
             { _, o, r -> o is CastClassFirstSucc && r == o.z },
@@ -56,7 +52,6 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     fun testVirtualCallWithoutOneInheritor() {
         checkExecutionMatches(
             InstanceOfExample::virtualCallWithoutOneInheritor,
-            eq(4),
             { _, o, r -> o !is CastClassFirstSucc && o is CastClass && r == o.foo() },
             { _, o, r -> o is CastClassSecondSucc && r == o.foo() },
             { _, o, _ -> o == null },
@@ -68,7 +63,6 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     fun testVirtualCallWithoutOneInheritorInverse() {
         checkExecutionMatches(
             InstanceOfExample::virtualCallWithoutOneInheritorInverse,
-            eq(4),
             { _, o, r -> o !is CastClassFirstSucc && o is CastClass && r == o.foo() },
             { _, o, r -> o is CastClassSecondSucc && r == o.foo() },
             { _, o, _ -> o == null },
@@ -80,7 +74,6 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     fun testWithoutOneInheritorOnArray() {
         checkExecutionMatches(
             InstanceOfExample::withoutOneInheritorOnArray,
-            eq(2),
             { _, o, r -> o.isInstanceOfArray<CastClassFirstSucc>() && r == 0 },
             { _, o, r -> !o.isInstanceOfArray<CastClassFirstSucc>() && r == 1 },
         )
@@ -90,7 +83,6 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     fun testWithoutOneInheritorOnArrayInverse() {
         checkExecutionMatches(
             InstanceOfExample::withoutOneInheritorOnArrayInverse,
-            eq(2),
             { _, o, r -> !o.isInstanceOfArray<CastClassFirstSucc>() && r == 0 },
             { _, o, r -> o.isInstanceOfArray<CastClassFirstSucc>() && r == 1 },
         )
@@ -101,7 +93,6 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     fun testInstanceOfAsPartOfInternalExpressions() {
         checkExecutionMatches(
             InstanceOfExample::instanceOfAsPartOfInternalExpressions,
-            ignoreNumberOfAnalysisResults,
             { _, o, r ->
                 val o0isFirst = o[0].isInstanceOfArray<CastClassFirstSucc>()
                 val o1isSecond = o[1].isInstanceOfArray<CastClassSecondSucc>()
@@ -133,7 +124,6 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     fun testInstanceOfAsPartOfInternalExpressionsCastClass() {
         checkExecutionMatches(
             InstanceOfExample::instanceOfAsPartOfInternalExpressionsCastClass,
-            ignoreNumberOfAnalysisResults,
             { _, o, r ->
                 val o0isFirst = o[0].isInstanceOfArray<CastClass>()
                 val o1isSecond = o[1].isInstanceOfArray<CastClass>()
@@ -165,7 +155,6 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     fun testInstanceOfAsPartOfInternalExpressionsXor() {
         checkExecutionMatches(
             InstanceOfExample::instanceOfAsPartOfInternalExpressionsXor,
-            eq(4),
             { _, o, r ->
                 val o0isSecond = o[0].isInstanceOfArray<CastClassSecondSucc>()
                 val o1isFirst = o[1].isInstanceOfArray<CastClassFirstSucc>()
@@ -193,7 +182,6 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     fun testInstanceOfAsPartOfInternalExpressionsXorInverse() {
         checkExecutionMatches(
             InstanceOfExample::instanceOfAsPartOfInternalExpressionsXorInverse,
-            eq(4),
             { _, o, r ->
                 val o0isSecond = o[0].isInstanceOfArray<CastClassSecondSucc>()
                 val o1isFirst = o[1].isInstanceOfArray<CastClassFirstSucc>()
@@ -221,7 +209,6 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     fun testInstanceOfAsPartOfInternalExpressionsIntValue() {
         checkExecutionMatches(
             InstanceOfExample::instanceOfAsPartOfInternalExpressionsIntValue,
-            ignoreNumberOfAnalysisResults,
             { _, o, r ->
                 val t1 = o.isInstanceOfArray<CastClass>()
                 val t2 = !o.isInstanceOfArray<CastClassSecondSucc>()
@@ -237,7 +224,6 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     fun testInstanceOfAsInternalExpressionsMap() {
         checkExecutionMatches(
             InstanceOfExample::instanceOfAsInternalExpressionsMap,
-            ge(3),
         )
     }
 
@@ -246,7 +232,6 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     fun testSymbolicInstanceOf() {
         checkExecutionMatches(
             InstanceOfExample::symbolicInstanceOf,
-            eq(6),
             { _, _, i, r -> i < 1 && r == null },
             { _, _, i, r -> i > 3 && r == null },
             { _, o, _, _ -> o == null },
@@ -261,7 +246,6 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     fun testComplicatedInstanceOf() {
         checkExecutionMatches(
             InstanceOfExample::complicatedInstanceOf,
-            eq(8),
             { _, _, index, _, result -> index < 0 && result == null },
             { _, _, index, _, result -> index > 2 && result == null },
             { _, objects, index, _, result -> index in 0..2 && objects == null && result == null },
@@ -304,7 +288,6 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     fun testInstanceOfFromArray() {
         checkExecutionMatches(
             InstanceOfExample::instanceOfFromArray,
-            eq(5),
             { _, a, _ -> a == null },
             { _, a, r -> a.size != 3 && r == null },
             { _, a, r -> a.size == 3 && a[0] is CastClassFirstSucc && r != null && r[0] is CastClassFirstSucc },
@@ -317,7 +300,6 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     fun testInstanceOfFromArrayWithReadingAnotherElement() {
         checkExecutionMatches(
             InstanceOfExample::instanceOfFromArrayWithReadingAnotherElement,
-            eq(4),
             { _, a, _ -> a == null },
             { _, a, r -> a != null && a.size < 2 && r == null },
             { _, a, r -> a != null && a.size >= 2 && a[0] is CastClassFirstSucc && r is CastClassFirstSucc },
@@ -329,7 +311,6 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     fun testInstanceOfFromArrayWithReadingSameElement() {
         checkExecutionMatches(
             InstanceOfExample::instanceOfFromArrayWithReadingSameElement,
-            eq(4),
             { _, a, _ -> a == null },
             { _, a, r -> a != null && a.size < 2 && r == null },
             { _, a, r -> a != null && a.size >= 2 && a[0] is CastClassFirstSucc && r is CastClassFirstSucc },
@@ -341,7 +322,6 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     fun testIsNull() {
         checkExecutionMatches(
             InstanceOfExample::isNull,
-            eq(2),
             { _, a, r -> a is Array<*> && a.isArrayOf<Number>() && r == 1 },
             { _, a, r -> a == null && r == 2 },
         )
@@ -351,7 +331,6 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     fun testArrayInstanceOfArray() {
         checkExecutionMatches(
             InstanceOfExample::arrayInstanceOfArray,
-            eq(4),
             { _, a, r -> a == null && r == null },
             { _, a, r -> a is Array<*> && a.isArrayOf<Int>() && r is Array<*> && r.isArrayOf<Int>() },
             { _, a, r -> a is Array<*> && a.isArrayOf<Double>() && r is Array<*> && r.isArrayOf<Double>() },
@@ -366,7 +345,6 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     fun testObjectInstanceOfArray() {
         checkExecutionMatches(
             InstanceOfExample::objectInstanceOfArray,
-            eq(3),
             { _, a, r -> a is IntArray && r is IntArray && a contentEquals r },
             { _, a, r -> a is BooleanArray && r is BooleanArray && a contentEquals r },
             { _, a, r -> (a == null && r == null) || (!(a is IntArray || a is BooleanArray) && a.equals(r)) },
@@ -377,7 +355,6 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     fun testInstanceOfObjectArray() {
         checkExecutionMatches(
             InstanceOfExample::instanceOfObjectArray,
-            eq(3),
             { _, a, r -> a == null && r == null },
             { _, a, r -> a is Array<*> && a.isArrayOf<Array<IntArray>>() && r is Array<*> && r contentDeepEquals a },
             { _, a, r -> a is Array<*> && !a.isArrayOf<Array<IntArray>>() && r!!::class == a::class },

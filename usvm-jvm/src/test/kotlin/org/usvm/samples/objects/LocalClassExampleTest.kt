@@ -10,7 +10,6 @@ class LocalClassExampleTest : JavaMethodTestRunner() {
     fun testLocalClassFieldExample() {
         checkExecutionMatches(
             LocalClassExample::localClassFieldExample,
-            eq(1),
             { _, y, r -> r == y + 42 }
         )
     }

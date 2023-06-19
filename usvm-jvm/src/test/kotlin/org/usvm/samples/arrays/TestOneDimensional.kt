@@ -10,7 +10,6 @@ class TestOneDimensional : JavaMethodTestRunner() {
     fun `Test sumOf`() {
         checkWithExceptionExecutionMatches(
             OneDimensional::sumOf,
-            ignoreNumberOfAnalysisResults,
             { arr, r -> arr == null && r.exceptionOrNull() is NullPointerException },
             { arr, r -> arr != null && arr.all { it >= 0 } && r.getOrNull()?.let { it >= 0 } ?: false },
             { arr, r -> arr != null && arr.all { it >= 0 } && r.exceptionOrNull() is WrappedException }
@@ -21,7 +20,6 @@ class TestOneDimensional : JavaMethodTestRunner() {
     fun `Test minus`() {
         checkWithExceptionExecutionMatches(
             OneDimensional::minus,
-            ignoreNumberOfAnalysisResults,
             { a, _, r -> a != null && a.size == 0 && r.isSuccess && r.getOrNull() == null },
             { a, _, r -> a == null && r.exceptionOrNull() is NullPointerException },
             { a, b, r -> a != null && b == null && r.exceptionOrNull() is NullPointerException },

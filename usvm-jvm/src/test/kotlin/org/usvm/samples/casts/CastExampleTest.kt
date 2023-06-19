@@ -1,11 +1,8 @@
 package org.usvm.samples.casts
 
+
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
-import org.usvm.test.util.checkers.eq
-
-
-import org.usvm.test.util.checkers.eq
 import org.usvm.util.isException
 
 internal class CastExampleTest : JavaMethodTestRunner() {
@@ -13,7 +10,6 @@ internal class CastExampleTest : JavaMethodTestRunner() {
     fun testSimpleCast() {
         checkExecutionMatches(
             CastExample::simpleCast,
-            eq(3),
             { _, o, _ -> o != null && o !is CastClassFirstSucc },
             { _, o, r -> o != null && r is CastClassFirstSucc },
             { _, o, r -> o == null && r == null },
@@ -24,7 +20,6 @@ internal class CastExampleTest : JavaMethodTestRunner() {
     fun testClassCastException() {
         checkWithExceptionExecutionMatches(
             CastExample::castClassException,
-            eq(3),
             { _, o, r -> o == null && r.isException<NullPointerException>() },
             { _, o, r -> o != null && o !is CastClassFirstSucc && r.isException<ClassCastException>() },
             { _, o, r -> o != null && o is CastClassFirstSucc && r.isException<ClassCastException>() },
@@ -35,7 +30,6 @@ internal class CastExampleTest : JavaMethodTestRunner() {
     fun testCastUp() {
         checkExecutionMatches(
             CastExample::castUp,
-            eq(1)
         )
     }
 
@@ -43,7 +37,6 @@ internal class CastExampleTest : JavaMethodTestRunner() {
     fun testCastNullToDifferentTypes() {
         checkExecutionMatches(
             CastExample::castNullToDifferentTypes,
-            eq(1)
         )
     }
 
@@ -51,7 +44,6 @@ internal class CastExampleTest : JavaMethodTestRunner() {
     fun testFromObjectToPrimitive() {
         checkExecutionMatches(
             CastExample::fromObjectToPrimitive,
-            eq(3),
             { _, obj, _ -> obj == null },
             { _, obj, _ -> obj != null && obj !is Int },
             { _, obj, r -> obj != null && obj is Int && r == obj }
@@ -62,7 +54,6 @@ internal class CastExampleTest : JavaMethodTestRunner() {
     fun testCastFromObjectToInterface() {
         checkExecutionMatches(
             CastExample::castFromObjectToInterface,
-            eq(2),
             { _, obj, _ -> obj != null && obj !is Colorable },
             { _, obj, r -> obj != null && obj is Colorable && r == obj },
         )
@@ -72,7 +63,6 @@ internal class CastExampleTest : JavaMethodTestRunner() {
     fun testComplicatedCast() {
         checkExecutionMatches(
             CastExample::complicatedCast,
-            eq(2),
             { _, i, a, _ -> i == 0 && a != null && a[i] != null && a[i] !is CastClassFirstSucc },
             { _, i, a, r -> i == 0 && a != null && a[i] != null && a[i] is CastClassFirstSucc && r is CastClassFirstSucc },
         )

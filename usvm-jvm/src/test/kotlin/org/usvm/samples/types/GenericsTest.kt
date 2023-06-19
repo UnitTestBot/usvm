@@ -12,7 +12,6 @@ internal class GenericsTest : JavaMethodTestRunner() {
     fun mapAsParameterTest() {
         checkExecutionMatches(
             Generics<*>::mapAsParameter,
-            eq(2),
             { _, map, _ -> map == null },
             { _, map, r -> map != null && r == "value" },
         )
@@ -23,7 +22,6 @@ internal class GenericsTest : JavaMethodTestRunner() {
     fun genericAsFieldTest() {
         checkExecutionMatches(
             Generics<*>::genericAsField,
-            ignoreNumberOfAnalysisResults,
             { _, obj, r -> obj?.field == null && r == false },
             // we can cover this line with any of these two conditions
             { _, obj, r -> (obj.field != null && obj.field != "abc" && r == false) || (obj.field == "abc" && r == true) },
@@ -34,7 +32,6 @@ internal class GenericsTest : JavaMethodTestRunner() {
     fun mapAsStaticFieldTest() {
         checkExecutionMatches(
             Generics<*>::mapAsStaticField,
-            ignoreNumberOfAnalysisResults,
             { _, r -> r == "value" },
         )
     }
@@ -43,7 +40,6 @@ internal class GenericsTest : JavaMethodTestRunner() {
     fun mapAsNonStaticFieldTest() {
         checkExecutionMatches(
             Generics<*>::mapAsNonStaticField,
-            ignoreNumberOfAnalysisResults,
             { _, map, _ -> map == null },
             { _, map, r -> map != null && r == "value" },
         )
@@ -53,7 +49,6 @@ internal class GenericsTest : JavaMethodTestRunner() {
     fun methodWithRawTypeTest() {
         checkExecutionMatches(
             Generics<*>::methodWithRawType,
-            eq(2),
             { _, map, _ -> map == null },
             { _, map, r -> map != null && r == "value" },
         )
@@ -63,7 +58,6 @@ internal class GenericsTest : JavaMethodTestRunner() {
     fun testMethodWithArrayTypeBoundary() {
         checkWithExceptionExecutionMatches(
             Generics<*>::methodWithArrayTypeBoundary,
-            eq(1),
             { _, r -> r.exceptionOrNull() is java.lang.NullPointerException },
         )
     }

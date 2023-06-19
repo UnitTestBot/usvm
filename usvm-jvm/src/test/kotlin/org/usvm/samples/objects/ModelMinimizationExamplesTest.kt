@@ -10,7 +10,6 @@ internal class ModelMinimizationExamplesTest : JavaMethodTestRunner() {
     fun singleValueComparisonTest() {
         checkExecutionMatches(
             ModelMinimizationExamples::singleValueComparison,
-            eq(4),
             { _, quad, _ -> quad == null }, // NPE
             { _, quad, _ -> quad.a == null }, // NPE
             { _, quad, r -> quad.a.value == 0 && r == true },
@@ -22,7 +21,6 @@ internal class ModelMinimizationExamplesTest : JavaMethodTestRunner() {
     fun singleValueComparisonNotNullTest() {
         checkExecutionMatches(
             ModelMinimizationExamples::singleValueComparisonNotNull,
-            eq(2),
             { _, quad, r -> quad.a.value == 0 && r == true },
             { _, quad, r -> quad.a.value != 0 && r == false }, // TODO: JIRA:1688
         )
@@ -36,7 +34,6 @@ internal class ModelMinimizationExamplesTest : JavaMethodTestRunner() {
         // The field `b.value` is not used and should not be initialized to avoid redundancy.
         checkExecutionMatches(
             ModelMinimizationExamples::conditionCheckANe,
-            eq(3),
             { _, a, _, r -> a.value == 42 && r == true },
             { _, a, _, r -> a.value <= 0 && r == true },
             { _, a, _, r -> a.value > 0 && a.value != 42 && r == false }, // TODO: JIRA:1688
@@ -51,7 +48,6 @@ internal class ModelMinimizationExamplesTest : JavaMethodTestRunner() {
         // The field `b.value` is not used but should be implicitly initialized, as `b` is `a` restored from cache.
         checkExecutionMatches(
             ModelMinimizationExamples::conditionCheckAEq,
-            eq(3),
             { _, a, _, r -> a.value == 42 && r == true },
             { _, a, _, r -> a.value <= 0 && r == true },
             { _, a, _, r -> a.value > 0 && a.value != 42 && r == false }, // TODO: JIRA:1688
@@ -66,7 +62,6 @@ internal class ModelMinimizationExamplesTest : JavaMethodTestRunner() {
         // The field `b.value` is used and should be initialized.
         checkExecutionMatches(
             ModelMinimizationExamples::conditionCheckBNe,
-            eq(3),
             { _, _, b, r -> b.value == 42 && r == true },
             { _, _, b, r -> b.value <= 0 && r == true },
             { _, _, b, r -> b.value > 0 && b.value != 42 && r == false }, // TODO: JIRA:1688
@@ -83,7 +78,6 @@ internal class ModelMinimizationExamplesTest : JavaMethodTestRunner() {
         // Note: `a` and `b` might have different `addr` but they will have the same `concreteAddr`.
         checkExecutionMatches(
             ModelMinimizationExamples::conditionCheckBEq,
-            eq(3),
             { _, _, b, r -> b.value == 42 && r == true },
             { _, _, b, r -> b.value <= 0 && r == true },
             { _, _, b, r -> b.value > 0 && b.value != 42 && r == false }, // TODO: JIRA:1688
@@ -95,7 +89,6 @@ internal class ModelMinimizationExamplesTest : JavaMethodTestRunner() {
         // Note: in this test we have no constraints on the second argument, so it becomes `null`.
         checkExecutionMatches(
             ModelMinimizationExamples::conditionCheckNoNullabilityConstraintExample,
-            eq(4),
             { _, a, _, _ -> a == null }, // NPE
             { _, a, _, r -> a.value == 42 && r == true },
             { _, a, _, r -> a.value <= 0 && r == true },
@@ -107,7 +100,6 @@ internal class ModelMinimizationExamplesTest : JavaMethodTestRunner() {
     fun firstArrayElementContainsSentinelTest() {
         checkExecutionMatches(
             ModelMinimizationExamples::firstArrayElementContainsSentinel,
-            eq(2),
             { _, values, r -> values[0].value == 42 && r == true },
             { _, values, r -> values[0].value != 42 && r == false }, // TODO: JIRA:1688
         )
@@ -117,7 +109,6 @@ internal class ModelMinimizationExamplesTest : JavaMethodTestRunner() {
     fun multipleConstraintsTest() {
         checkExecutionMatches(
             ModelMinimizationExamples::multipleConstraintsExample,
-            eq(3),
             { _, a, _, _, r -> a.value == 42 && r == 1 },
             { _, a, b, _, r -> a.value != 42 && b.value == 73 && r == 2 },
             { _, a, b, _, r -> a.value != 42 && b.value != 73 && r == 3 }, // TODO: JIRA:1688

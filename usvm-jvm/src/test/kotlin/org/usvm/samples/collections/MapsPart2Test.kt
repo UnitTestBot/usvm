@@ -12,7 +12,6 @@ internal class MapsPart2Test : JavaMethodTestRunner() {
     fun testReplaceEntryWithValue() {
         checkExecutionMatches(
             Maps::replaceEntryWithValue,
-            ge(6),
             { _, map, _, _, _ -> map == null },
             { _, map, key, value, result -> key !in map && value !in map.values && result == 0 },
             { _, map, key, value, result -> key in map && value !in map.values && result == -1 },
@@ -26,7 +25,6 @@ internal class MapsPart2Test : JavaMethodTestRunner() {
     fun testMerge() {
         checkWithExceptionExecutionMatches(
             Maps::merge,
-            ge(5),
             { _, map, _, _, result -> map == null && result.isException<NullPointerException>() },
             { _, map, _, value, result -> map != null && value == null && result.isException<NullPointerException>() },
             { _, map, key, value, result ->
@@ -54,7 +52,6 @@ internal class MapsPart2Test : JavaMethodTestRunner() {
     fun testPutAllEntries() {
         checkExecutionMatches(
             Maps::putAllEntries,
-            ge(5),
             { _, map, _, _ -> map == null },
             { _, map, other, _ -> map != null && other == null },
             { _, map, other, result -> map != null && other != null && map.keys.containsAll(other.keys) && result == 0 },

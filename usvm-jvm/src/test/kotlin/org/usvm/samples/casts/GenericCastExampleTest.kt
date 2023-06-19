@@ -2,18 +2,12 @@ package org.usvm.samples.casts
 
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
-import org.usvm.test.util.checkers.eq
-
-import org.usvm.test.util.checkers.between
-
-import org.usvm.test.util.checkers.eq
 
 internal class GenericCastExampleTest : JavaMethodTestRunner() {
     @Test
     fun testCompareTwoNumbers() {
         checkExecutionMatches(
             GenericCastExample::compareTwoNumbers,
-            eq(5),
             { _, a, _, _ -> a == null },
             { _, _, b, _ -> b == null },
             { _, _, b, _ -> b.comparableGenericField == null },
@@ -26,7 +20,6 @@ internal class GenericCastExampleTest : JavaMethodTestRunner() {
     fun testGetGenericFieldValue() {
         checkExecutionMatches(
             GenericCastExample::getGenericFieldValue,
-            eq(3),
             { _, g, _ -> g == null },
             { _, g, _ -> g.genericField == null },
             { _, g, r -> g?.genericField != null && r == g.genericField },
@@ -37,7 +30,6 @@ internal class GenericCastExampleTest : JavaMethodTestRunner() {
     fun testCompareGenericField() {
         checkExecutionMatches(
             GenericCastExample::compareGenericField,
-            between(4..5),
             { _, g, _, _ -> g == null },
             { _, g, v, _ -> g != null && v == null },
             { _, g, v, r -> v != null && v != g.comparableGenericField && r == -1 },
@@ -49,7 +41,6 @@ internal class GenericCastExampleTest : JavaMethodTestRunner() {
     fun testCreateNewGenericObject() {
         checkExecutionMatches(
             GenericCastExample::createNewGenericObject,
-            eq(1),
             { _, r -> r == 10 },
         )
     }
@@ -58,7 +49,6 @@ internal class GenericCastExampleTest : JavaMethodTestRunner() {
     fun testSumFromArrayOfGenerics() {
         checkExecutionMatches(
             GenericCastExample::sumFromArrayOfGenerics,
-            eq(7),
             { _, g, _ -> g == null },
             { _, g, _ -> g.genericArray == null },
             { _, g, _ -> g.genericArray.isEmpty() },

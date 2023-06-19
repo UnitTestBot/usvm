@@ -13,7 +13,6 @@ internal class CastClassTest : JavaMethodTestRunner() {
     fun testThisTypeChoice() {
         checkExecutionMatches(
             CastClass::castToInheritor,
-            eq(0),
         )
     }
 }

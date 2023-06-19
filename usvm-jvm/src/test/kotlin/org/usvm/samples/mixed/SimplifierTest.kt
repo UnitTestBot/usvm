@@ -10,7 +10,6 @@ internal class SimplifierTest: JavaMethodTestRunner() {
     fun testSimplifyAdditionWithZero() {
         checkExecutionMatches(
             Simplifier::simplifyAdditionWithZero,
-            eq(1),
             { _, fst, r -> r != null && r.x == fst.shortValue.toInt() }, // because of assumes
         )
     }

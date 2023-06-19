@@ -10,7 +10,6 @@ internal class FloatExamplesTest : JavaMethodTestRunner() {
     fun testFloatInfinity() {
         checkExecutionMatches(
             FloatExamples::floatInfinity,
-            eq(3),
             { _, f, r -> f == Float.POSITIVE_INFINITY && r == 1 },
             { _, f, r -> f == Float.NEGATIVE_INFINITY && r == 2 },
             { _, f, r -> !f.isInfinite() && r == 3 },

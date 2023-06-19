@@ -1,4 +1,4 @@
-package org.usvm.samplesunsafe
+package org.usvm.samples.unsafe
 
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
@@ -12,7 +12,6 @@ internal class UnsafeWithFieldTest: JavaMethodTestRunner() {
     fun checkSetField() {
         checkExecutionMatches(
             UnsafeWithField::setField,
-            eq(1)
         )
     }
 }

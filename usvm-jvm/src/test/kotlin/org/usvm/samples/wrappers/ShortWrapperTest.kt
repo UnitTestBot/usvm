@@ -11,7 +11,6 @@ internal class ShortWrapperTest : JavaMethodTestRunner() {
     fun primitiveToWrapperTest() {
         checkExecutionMatches(
             ShortWrapper::primitiveToWrapper,
-            eq(2),
             { _, x, r -> x >= 0 && r!! <= 0 },
             { _, x, r -> x < 0 && r!! < 0 },
         )
@@ -21,7 +20,6 @@ internal class ShortWrapperTest : JavaMethodTestRunner() {
     fun wrapperToPrimitiveTest() {
         checkExecutionMatches(
             ShortWrapper::wrapperToPrimitive,
-            eq(3),
             { _, x, _ -> x == null },
             { _, x, r -> x >= 0 && r <= 0 },
             { _, x, r -> x < 0 && r < 0 },
@@ -33,7 +31,6 @@ internal class ShortWrapperTest : JavaMethodTestRunner() {
     fun equalityTest() {
         checkExecutionMatches(
             ShortWrapper::equality,
-            eq(3),
             { _, a, b, result -> a == b && a >= -128 && a <= 127 && result == 1 },
             { _, a, b, result -> a == b && (a < -128 || a > 127) && result == 2 },
             { _, a, b, result -> a != b && result == 4 },

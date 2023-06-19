@@ -14,7 +14,6 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     fun testReturnList() {
         checkExecutionMatches(
             DeepEqualsTestingClass::returnList,
-            eq(1),
         )
     }
 
@@ -22,7 +21,6 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     fun testReturnSet() {
         checkExecutionMatches(
             DeepEqualsTestingClass::returnSet,
-            eq(1),
         )
     }
 
@@ -30,7 +28,6 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     fun testReturnMap() {
         checkExecutionMatches(
             DeepEqualsTestingClass::returnMap,
-            eq(1),
         )
     }
 
@@ -38,7 +35,6 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     fun testReturnArray() {
         checkExecutionMatches(
             DeepEqualsTestingClass::returnArray,
-            eq(1),
         )
     }
 
@@ -47,7 +43,6 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     fun testReturn2DList() {
         checkExecutionMatches(
             DeepEqualsTestingClass::return2DList,
-            eq(1),
         )
     }
 
@@ -56,7 +51,6 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     fun testReturn2DSet() {
         checkExecutionMatches(
             DeepEqualsTestingClass::return2DSet,
-            eq(1),
         )
     }
 
@@ -65,7 +59,6 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     fun testReturn2DMap() {
         checkExecutionMatches(
             DeepEqualsTestingClass::return2DMap,
-            eq(1),
         )
     }
 
@@ -74,7 +67,6 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     fun testIntegers2DList() {
         checkExecutionMatches(
             DeepEqualsTestingClass::returnIntegers2DList,
-            eq(1),
         )
     }
 
@@ -82,7 +74,6 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     fun testReturn2DArray() {
         checkExecutionMatches(
             DeepEqualsTestingClass::return2DArray,
-            eq(1),
         )
     }
 
@@ -90,7 +81,6 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     fun testReturnCommonClass() {
         checkExecutionMatches(
             DeepEqualsTestingClass::returnCommonClass,
-            eq(1),
         )
     }
 
@@ -98,7 +88,6 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     fun testTriangle() {
         checkExecutionMatches(
             DeepEqualsTestingClass::returnTriangle,
-            eq(1),
         )
     }
 
@@ -106,7 +95,6 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     fun testQuadrilateral() {
         checkExecutionMatches(
             DeepEqualsTestingClass::returnQuadrilateralFromNode,
-            eq(1),
         )
     }
 
@@ -114,7 +102,6 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     fun testIntMultiArray() {
         checkExecutionMatches(
             DeepEqualsTestingClass::fillIntMultiArrayWithConstValue,
-            eq(3),
         )
     }
 
@@ -122,7 +109,6 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     fun testDoubleMultiArray() {
         checkExecutionMatches(
             DeepEqualsTestingClass::fillDoubleMultiArrayWithConstValue,
-            eq(3),
         )
     }
 
@@ -130,7 +116,6 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     fun testIntegerWrapperMultiArray() {
         checkExecutionMatches(
             DeepEqualsTestingClass::fillIntegerWrapperMultiArrayWithConstValue,
-            eq(3),
         )
     }
 
@@ -138,7 +123,6 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     fun testDoubleWrapperMultiArray() {
         checkExecutionMatches(
             DeepEqualsTestingClass::fillDoubleWrapperMultiArrayWithConstValue,
-            eq(3),
         )
     }
 }

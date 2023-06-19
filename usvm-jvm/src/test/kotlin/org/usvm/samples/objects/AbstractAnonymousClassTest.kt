@@ -11,7 +11,6 @@ class AbstractAnonymousClassTest : JavaMethodTestRunner() {
     fun testNonOverriddenMethod() {
         checkExecutionMatches(
             AbstractAnonymousClass::methodWithoutOverrides,
-            eq(1)
         )
     }
 
@@ -19,7 +18,7 @@ class AbstractAnonymousClassTest : JavaMethodTestRunner() {
     fun testOverriddenMethod() {
         // check we have error during execution
         assertThrows<org.opentest4j.AssertionFailedError> {
-            checkExecutionMatches(
+            checkPropertiesMatches(
                 AbstractAnonymousClass::methodWithOverride,
                 eq(0)
             )

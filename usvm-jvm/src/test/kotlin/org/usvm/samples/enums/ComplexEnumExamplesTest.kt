@@ -15,7 +15,6 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     fun testEnumToEnumMapCountValues() {
         checkExecutionMatches(
             ComplexEnumExamples::enumToEnumMapCountValues,
-            ignoreNumberOfAnalysisResults,
             { _, m, r -> m.isEmpty() && r == 0 },
             { _, m, r -> m.isNotEmpty() && !m.values.contains(RED) && r == 0 },
             { _, m, r -> m.isNotEmpty() && m.values.contains(RED) && m.values.count { it == RED } == r }
@@ -26,7 +25,6 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     fun testEnumToEnumMapCountKeys() {
         checkExecutionMatches(
             ComplexEnumExamples::enumToEnumMapCountKeys,
-            ignoreNumberOfAnalysisResults,
             { _, m, r -> m.isEmpty() && r == 0 },
             { _, m, r -> m.isNotEmpty() && !m.keys.contains(GREEN) && !m.keys.contains(BLUE) && r == 0 },
             { _, m, r ->
@@ -40,7 +38,6 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     fun testEnumToEnumMapCountMatches() {
         checkExecutionMatches(
             ComplexEnumExamples::enumToEnumMapCountMatches,
-            ignoreNumberOfAnalysisResults,
             { _, m, r -> m.isEmpty() && r == 0 },
             { _, m, r -> m.entries.count { it.key == it.value } == r }
         )
@@ -50,7 +47,6 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     fun testCountEqualColors() {
         checkExecutionMatches(
             ComplexEnumExamples::countEqualColors,
-            ignoreNumberOfAnalysisResults,
             { _, a, b, c, r -> a == b && a == c && r == 3 },
             { _, a, b, c, r -> setOf(a, b, c).size == 2 && r == 2 },
             { _, a, b, c, r -> a != b && b != c && a != c && r == 1 }
@@ -61,7 +57,6 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     fun testCountNullColors() {
         checkExecutionMatches(
             ComplexEnumExamples::countNullColors,
-            eq(3),
             { _, a, b, r -> a == null && b == null && r == 2 },
             { _, a, b, r -> (a == null) != (b == null) && r == 1 },
             { _, a, b, r -> a != null && b != null && r == 0 },
@@ -72,7 +67,6 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     fun testFindState() {
         checkExecutionMatches(
             ComplexEnumExamples::findState,
-            ignoreNumberOfAnalysisResults,
             { _, c, r -> c in setOf(0, 127, 255) && r != null && r.code == c }
         )
     }
@@ -84,7 +78,6 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
 
         checkExecutionMatches(
             ComplexEnumExamples::countValuesInArray,
-            ignoreNumberOfAnalysisResults,
             { _, cs, r -> cs.isEmpty() && r != null && r.isEmpty() },
             { _, cs, r -> cs.toList().isEmpty() && r != null && r.isEmpty() },
             { _, cs, r -> cs.toList().isNotEmpty() && r != null && Color.values().all { it.isCorrectlyCounted(cs, r) } }
@@ -95,7 +88,6 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     fun testCountRedInArray() {
         checkExecutionMatches(
             ComplexEnumExamples::countRedInArray,
-            eq(3),
             { _, colors, result -> colors.count { it == RED } == result }
         )
     }

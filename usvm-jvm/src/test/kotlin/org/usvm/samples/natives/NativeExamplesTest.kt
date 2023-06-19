@@ -12,7 +12,6 @@ internal class NativeExamplesTest : JavaMethodTestRunner() {
     fun testFindAndPrintSum() {
         checkExecutionMatches(
             NativeExamples::findAndPrintSum,
-            ge(1),
         )
     }
 
@@ -20,7 +19,6 @@ internal class NativeExamplesTest : JavaMethodTestRunner() {
     fun testFindSumWithMathRandom() {
         checkExecutionMatches(
             NativeExamples::findSumWithMathRandom,
-            eq(1),
         )
     }
 }

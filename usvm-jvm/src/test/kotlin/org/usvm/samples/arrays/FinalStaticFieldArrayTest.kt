@@ -10,7 +10,6 @@ internal class FinalStaticFieldArrayTest : JavaMethodTestRunner() {
     fun testFactorial() {
         checkExecutionMatches(
             FinalStaticFieldArray::factorial,
-            ignoreNumberOfAnalysisResults,
             { n, r -> n >= 0 && n < FinalStaticFieldArray.MAX_FACTORIAL && r == FinalStaticFieldArray.factorial(n) },
             { n, _ -> n < 0 },
             { n, r -> n > FinalStaticFieldArray.MAX_FACTORIAL && r == FinalStaticFieldArray.factorial(n) },

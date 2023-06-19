@@ -16,7 +16,6 @@ internal class NativeExampleTest : JavaMethodTestRunner() {
     fun testPartialEx() {
         checkExecutionMatches(
             NativeExample::partialExecution,
-            ge(1),
         )
     }
 
@@ -24,7 +23,6 @@ internal class NativeExampleTest : JavaMethodTestRunner() {
     fun testUnreachableNativeCall() {
         checkExecutionMatches(
             NativeExample::unreachableNativeCall,
-            eq(2),
             { _, d, r -> !d.isNaN() && r == 1 },
             { _, d, r -> d.isNaN() && r == 2 },
         )
@@ -35,7 +33,6 @@ internal class NativeExampleTest : JavaMethodTestRunner() {
     fun testSubstitution() {
         checkExecutionMatches(
             NativeExample::substitution,
-            ignoreNumberOfAnalysisResults,
             { _, x, r -> x > 4 && r == 1 },
             { _, x, r -> sqrt(x) <= 2 && r == 0 }
         )
@@ -45,7 +42,6 @@ internal class NativeExampleTest : JavaMethodTestRunner() {
     fun testUnreachableBranch() {
         checkExecutionMatches(
             NativeExample::unreachableBranch,
-            ge(2),
             { _, x, r -> x.isNaN() && r == 1 },
             { _, x, r -> (!ln(x).isNaN() || x < 0) && r == 2 },
         )

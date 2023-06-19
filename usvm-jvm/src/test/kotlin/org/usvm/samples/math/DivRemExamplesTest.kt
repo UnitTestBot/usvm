@@ -1,9 +1,7 @@
-package org.usvm.samplesmath
+package org.usvm.samples.math
 
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
-import org.usvm.samples.math.DivRemExamples
-import org.usvm.test.util.checkers.eq
 import org.usvm.util.isException
 
 internal class DivRemExamplesTest : JavaMethodTestRunner() {
@@ -11,7 +9,6 @@ internal class DivRemExamplesTest : JavaMethodTestRunner() {
     fun testDiv() {
         checkWithExceptionExecutionMatches(
             DivRemExamples::div,
-            eq(2),
             { _, _, y, r -> y == 0 && r.isException<ArithmeticException>() },
             { _, x, y, r -> y != 0 && r.getOrNull() == x / y }
         )
@@ -21,7 +18,6 @@ internal class DivRemExamplesTest : JavaMethodTestRunner() {
     fun testRem() {
         checkWithExceptionExecutionMatches(
             DivRemExamples::rem,
-            eq(2),
             { _, _, y, r -> y == 0 && r.isException<ArithmeticException>() },
             { _, x, y, r -> y != 0 && r.getOrNull() == x % y }
         )
@@ -31,7 +27,6 @@ internal class DivRemExamplesTest : JavaMethodTestRunner() {
     fun testRemPositiveConditional() {
         checkWithExceptionExecutionMatches(
             DivRemExamples::remPositiveConditional,
-            eq(3),
             { _, d, r -> d == 0 && r.isException<ArithmeticException>() },
             { _, d, r -> d != 0 && 11 % d == 2 && r.getOrNull() == true },
             { _, d, r -> d != 0 && 11 % d != 2 && r.getOrNull() == false }
@@ -42,7 +37,6 @@ internal class DivRemExamplesTest : JavaMethodTestRunner() {
     fun testRemNegativeConditional() {
         checkWithExceptionExecutionMatches(
             DivRemExamples::remNegativeConditional,
-            eq(3),
             { _, d, r -> d == 0 && r.isException<ArithmeticException>() },
             { _, d, r -> d != 0 && -11 % d == -2 && r.getOrNull() == true },
             { _, d, r -> d != 0 && -11 % d != -2 && r.getOrNull() == false }
@@ -53,7 +47,6 @@ internal class DivRemExamplesTest : JavaMethodTestRunner() {
     fun testRemWithConditions() {
         checkWithExceptionExecutionMatches(
             DivRemExamples::remWithConditions,
-            eq(4),
             { _, d, r -> d < 0 && r.getOrNull() == false },
             { _, d, r -> d == 0 && r.isException<ArithmeticException>() },
             { _, d, r -> d > 0 && -11 % d == -2 && r.getOrNull() == true },
@@ -65,7 +58,6 @@ internal class DivRemExamplesTest : JavaMethodTestRunner() {
     fun testRemDoubles() {
         checkExecutionMatches(
             DivRemExamples::remDoubles,
-            eq(1)
         )
     }
 
@@ -73,7 +65,6 @@ internal class DivRemExamplesTest : JavaMethodTestRunner() {
     fun testRemDoubleInt() {
         checkExecutionMatches(
             DivRemExamples::remDoubleInt,
-            eq(1)
         )
     }
 }

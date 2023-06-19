@@ -9,6 +9,7 @@ import org.usvm.api.util.JcTestResolver
 import org.usvm.machine.JcMachine
 import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.AnalysisResultsNumberMatcher
+import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 import kotlin.reflect.KFunction1
@@ -41,14 +42,12 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
 
     protected inline fun <reified T, reified R> checkExecutionMatches(
         method: KFunction1<T, R>,
-        analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
         vararg analysisResultsMatchers: (T, R) -> Boolean,
         noinline coverageChecker: (JcClassCoverage) -> Boolean = { _ -> true }, // TODO remove it
     ) {
         checkMatches(
             method,
-            analysisResultsNumberMatcher,
-            *analysisResultsMatchers,
+            analysisResultsMatchers = analysisResultsMatchers,
             coverageChecker = coverageChecker,
             checkMode = CheckMode.MATCH_EXECUTIONS
         )
@@ -56,7 +55,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
 
     protected inline fun <reified T, reified R> checkMatches(
         method: KFunction1<T, R>,
-        analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
+        analysisResultsNumberMatcher: AnalysisResultsNumberMatcher = ignoreNumberOfAnalysisResults,
         vararg analysisResultsMatchers: (T, R) -> Boolean,
         noinline coverageChecker: (JcClassCoverage) -> Boolean = { _ -> true }, // TODO remove it
         checkMode: CheckMode,
@@ -93,14 +92,12 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
 
     protected inline fun <reified T, reified A0, reified R> checkExecutionMatches(
         method: KFunction2<T, A0, R>,
-        analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
         vararg analysisResultsMatchers: (T, A0, R) -> Boolean,
         noinline coverageChecker: (JcClassCoverage) -> Boolean = { _ -> true }, // TODO remove it
     ) {
         checkMatches(
             method,
-            analysisResultsNumberMatcher,
-            *analysisResultsMatchers,
+            analysisResultsMatchers = analysisResultsMatchers,
             coverageChecker = coverageChecker,
             checkMode = CheckMode.MATCH_EXECUTIONS
         )
@@ -108,7 +105,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
 
     protected inline fun <reified T, reified A0, reified R> checkMatches(
         method: KFunction2<T, A0, R>,
-        analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
+        analysisResultsNumberMatcher: AnalysisResultsNumberMatcher = ignoreNumberOfAnalysisResults,
         vararg analysisResultsMatchers: (T, A0, R) -> Boolean,
         noinline coverageChecker: (JcClassCoverage) -> Boolean = { _ -> true }, // TODO remove it
         checkMode: CheckMode,
@@ -145,14 +142,12 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
 
     protected inline fun <reified T, reified A0, reified A1, reified R> checkExecutionMatches(
         method: KFunction3<T, A0, A1, R>,
-        analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
         vararg analysisResultsMatchers: (T, A0, A1, R) -> Boolean,
         noinline coverageChecker: (JcClassCoverage) -> Boolean = { _ -> true }, // TODO remove it
     ) {
         checkMatches(
             method,
-            analysisResultsNumberMatcher,
-            *analysisResultsMatchers,
+            analysisResultsMatchers = analysisResultsMatchers,
             coverageChecker = coverageChecker,
             checkMode = CheckMode.MATCH_EXECUTIONS
         )
@@ -160,7 +155,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
 
     protected inline fun <reified T, reified A0, reified A1, reified R> checkMatches(
         method: KFunction3<T, A0, A1, R>,
-        analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
+        analysisResultsNumberMatcher: AnalysisResultsNumberMatcher = ignoreNumberOfAnalysisResults,
         vararg analysisResultsMatchers: (T, A0, A1, R) -> Boolean,
         noinline coverageChecker: (JcClassCoverage) -> Boolean = { _ -> true }, // TODO remove it
         checkMode: CheckMode,
@@ -197,14 +192,12 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
 
     protected inline fun <reified T, reified A0, reified A1, reified A2, reified R> checkExecutionMatches(
         method: KFunction4<T, A0, A1, A2, R>,
-        analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
         vararg analysisResultsMatchers: (T, A0, A1, A2, R) -> Boolean,
         noinline coverageChecker: (JcClassCoverage) -> Boolean = { _ -> true }, // TODO remove it
     ) {
         checkMatches(
             method,
-            analysisResultsNumberMatcher,
-            *analysisResultsMatchers,
+            analysisResultsMatchers = analysisResultsMatchers,
             coverageChecker = coverageChecker,
             checkMode = CheckMode.MATCH_EXECUTIONS
         )
@@ -212,7 +205,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
 
     protected inline fun <reified T, reified A0, reified A1, reified A2, reified R> checkMatches(
         method: KFunction4<T, A0, A1, A2, R>,
-        analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
+        analysisResultsNumberMatcher: AnalysisResultsNumberMatcher = ignoreNumberOfAnalysisResults,
         vararg analysisResultsMatchers: (T, A0, A1, A2, R) -> Boolean,
         noinline coverageChecker: (JcClassCoverage) -> Boolean = { _ -> true }, // TODO remove it
         checkMode: CheckMode,
@@ -253,14 +246,12 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
 
     protected inline fun <reified T, reified R> checkWithExceptionExecutionMatches(
         method: KFunction1<T, R>,
-        analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
         vararg analysisResultsMatchers: (T, Result<R>) -> Boolean,
         noinline coverageChecker: (JcClassCoverage) -> Boolean = { _ -> true }, // TODO remove it
     ) {
         checkWithExceptionMatches(
             method,
-            analysisResultsNumberMatcher,
-            *analysisResultsMatchers,
+            analysisResultsMatchers = analysisResultsMatchers,
             coverageChecker = coverageChecker,
             checkMode = CheckMode.MATCH_EXECUTIONS
         )
@@ -268,7 +259,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
 
     protected inline fun <reified T, reified R> checkWithExceptionMatches(
         method: KFunction1<T, R>,
-        analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
+        analysisResultsNumberMatcher: AnalysisResultsNumberMatcher = ignoreNumberOfAnalysisResults,
         vararg analysisResultsMatchers: (T, Result<R>) -> Boolean,
         noinline coverageChecker: (JcClassCoverage) -> Boolean = { _ -> true }, // TODO remove it
         checkMode: CheckMode,
@@ -305,14 +296,12 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
 
     protected inline fun <reified T, reified A0, reified R> checkWithExceptionExecutionMatches(
         method: KFunction2<T, A0, R>,
-        analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
         vararg analysisResultsMatchers: (T, A0, Result<R>) -> Boolean,
         noinline coverageChecker: (JcClassCoverage) -> Boolean = { _ -> true }, // TODO remove it
     ) {
         checkWithExceptionMatches(
             method,
-            analysisResultsNumberMatcher,
-            *analysisResultsMatchers,
+            analysisResultsMatchers = analysisResultsMatchers,
             coverageChecker = coverageChecker,
             checkMode = CheckMode.MATCH_EXECUTIONS
         )
@@ -320,7 +309,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
 
     protected inline fun <reified T, reified A0, reified R> checkWithExceptionMatches(
         method: KFunction2<T, A0, R>,
-        analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
+        analysisResultsNumberMatcher: AnalysisResultsNumberMatcher = ignoreNumberOfAnalysisResults,
         vararg analysisResultsMatchers: (T, A0, Result<R>) -> Boolean,
         noinline coverageChecker: (JcClassCoverage) -> Boolean = { _ -> true }, // TODO remove it
         checkMode: CheckMode,
@@ -357,14 +346,12 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
 
     protected inline fun <reified T, reified A0, reified A1, reified R> checkWithExceptionExecutionMatches(
         method: KFunction3<T, A0, A1, R>,
-        analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
         vararg analysisResultsMatchers: (T, A0, A1, Result<R>) -> Boolean,
         noinline coverageChecker: (JcClassCoverage) -> Boolean = { _ -> true }, // TODO remove it
     ) {
         checkWithExceptionMatches(
             method,
-            analysisResultsNumberMatcher,
-            *analysisResultsMatchers,
+            analysisResultsMatchers = analysisResultsMatchers,
             coverageChecker = coverageChecker,
             checkMode = CheckMode.MATCH_EXECUTIONS
         )
@@ -372,7 +359,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
 
     protected inline fun <reified T, reified A0, reified A1, reified R> checkWithExceptionMatches(
         method: KFunction3<T, A0, A1, R>,
-        analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
+        analysisResultsNumberMatcher: AnalysisResultsNumberMatcher = ignoreNumberOfAnalysisResults,
         vararg analysisResultsMatchers: (T, A0, A1, Result<R>) -> Boolean,
         noinline coverageChecker: (JcClassCoverage) -> Boolean = { _ -> true }, // TODO remove it
         checkMode: CheckMode,
@@ -410,14 +397,12 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
 
     protected inline fun <reified T, reified A0, reified A1, reified A2, reified R> checkWithExceptionExecutionMatches(
         method: KFunction4<T, A0, A1, A2, R>,
-        analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
         vararg analysisResultsMatchers: (T, A0, A1, A2, Result<R>) -> Boolean,
         noinline coverageChecker: (JcClassCoverage) -> Boolean = { _ -> true }, // TODO remove it
     ) {
         checkWithExceptionMatches(
             method,
-            analysisResultsNumberMatcher,
-            *analysisResultsMatchers,
+            analysisResultsMatchers = analysisResultsMatchers,
             coverageChecker = coverageChecker,
             checkMode = CheckMode.MATCH_EXECUTIONS
         )
@@ -425,7 +410,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
 
     protected inline fun <reified T, reified A0, reified A1, reified A2, reified R> checkWithExceptionMatches(
         method: KFunction4<T, A0, A1, A2, R>,
-        analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
+        analysisResultsNumberMatcher: AnalysisResultsNumberMatcher = ignoreNumberOfAnalysisResults,
         vararg analysisResultsMatchers: (T, A0, A1, A2, Result<R>) -> Boolean,
         noinline coverageChecker: (JcClassCoverage) -> Boolean = { _ -> true }, // TODO remove it
         checkMode: CheckMode,

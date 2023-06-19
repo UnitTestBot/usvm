@@ -11,7 +11,6 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     fun testCorrectAssignmentSamePrimitiveType() {
         checkWithExceptionExecutionMatches(
             ArrayStoreExceptionExamples::correctAssignmentSamePrimitiveType,
-            eq(3),
             { _, data, result -> result.isSuccess && result.getOrNull() == data?.isNotEmpty() }
         )
     }
@@ -20,7 +19,6 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     fun testCorrectAssignmentIntToIntegerArray() {
         checkWithExceptionExecutionMatches(
             ArrayStoreExceptionExamples::correctAssignmentIntToIntegerArray,
-            eq(3),
             { _, data, result -> result.isSuccess && result.getOrNull() == data?.isNotEmpty() }
         )
     }
@@ -29,7 +27,6 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     fun testCorrectAssignmentSubtype() {
         checkWithExceptionExecutionMatches(
             ArrayStoreExceptionExamples::correctAssignmentSubtype,
-            eq(3),
             { _, data, result -> result.isSuccess && result.getOrNull() == data?.isNotEmpty() }
         )
     }
@@ -38,7 +35,6 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     fun testCorrectAssignmentToObjectArray() {
         checkWithExceptionExecutionMatches(
             ArrayStoreExceptionExamples::correctAssignmentToObjectArray,
-            eq(3),
             { _, data, result -> result.isSuccess && result.getOrNull() == data?.isNotEmpty() }
         )
     }
@@ -47,7 +43,6 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     fun testWrongAssignmentUnrelatedType() {
         checkWithExceptionExecutionMatches(
             ArrayStoreExceptionExamples::wrongAssignmentUnrelatedType,
-            eq(3),
             { _, data, result -> data == null && result.isSuccess },
             { _, data, result -> data.isEmpty() && result.isSuccess },
             { _, data, result -> data.isNotEmpty() && result.isException<ArrayStoreException>() },
@@ -58,7 +53,6 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     fun testCheckGenericAssignmentWithCorrectCast() {
         checkWithExceptionExecutionMatches(
             ArrayStoreExceptionExamples::checkGenericAssignmentWithCorrectCast,
-            eq(1),
             { _, result -> result.isSuccess }
         )
     }
@@ -67,7 +61,6 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     fun testCheckGenericAssignmentWithWrongCast() {
         checkWithExceptionExecutionMatches(
             ArrayStoreExceptionExamples::checkGenericAssignmentWithWrongCast,
-            eq(1),
             { _, result -> result.isException<ArrayStoreException>() },
         )
     }
@@ -76,7 +69,6 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     fun testCheckGenericAssignmentWithExtendsSubtype() {
         checkWithExceptionExecutionMatches(
             ArrayStoreExceptionExamples::checkGenericAssignmentWithExtendsSubtype,
-            eq(1),
             { _, result -> result.isSuccess }
         )
     }
@@ -85,7 +77,6 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     fun testCheckGenericAssignmentWithExtendsUnrelated() {
         checkWithExceptionExecutionMatches(
             ArrayStoreExceptionExamples::checkGenericAssignmentWithExtendsUnrelated,
-            eq(1),
             { _, result -> result.isException<ArrayStoreException>() },
         )
     }
@@ -94,7 +85,6 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     fun testCheckObjectAssignment() {
         checkWithExceptionExecutionMatches(
             ArrayStoreExceptionExamples::checkObjectAssignment,
-            eq(1),
             { _, result -> result.isSuccess }
         )
     }
@@ -104,7 +94,6 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     fun testCheckWrongAssignmentOfItself() {
         checkWithExceptionExecutionMatches(
             ArrayStoreExceptionExamples::checkWrongAssignmentOfItself,
-            eq(1),
             { _, result -> result.isException<ArrayStoreException>() },
         )
     }
@@ -113,7 +102,6 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     fun testCheckGoodAssignmentOfItself() {
         checkWithExceptionExecutionMatches(
             ArrayStoreExceptionExamples::checkGoodAssignmentOfItself,
-            eq(1),
             { _, result -> result.isSuccess }
         )
     }
@@ -122,7 +110,6 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     fun testCheckAssignmentToObjectArray() {
         checkWithExceptionExecutionMatches(
             ArrayStoreExceptionExamples::checkAssignmentToObjectArray,
-            eq(1),
             { _, result -> result.isSuccess }
         )
     }
@@ -131,7 +118,6 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     fun testArrayCopyForIncompatiblePrimitiveTypes() {
         checkWithExceptionExecutionMatches(
             ArrayStoreExceptionExamples::arrayCopyForIncompatiblePrimitiveTypes,
-            eq(3),
             { _, data, result -> data == null && result.isSuccess && result.getOrNull() == null },
             { _, data, result -> data != null && data.isEmpty() && result.isSuccess && result.getOrNull()?.size == 0 },
             { _, data, result -> data != null && data.isNotEmpty() && result.isException<ArrayStoreException>() }
@@ -142,7 +128,6 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     fun testFill2DPrimitiveArray() {
         checkWithExceptionExecutionMatches(
             ArrayStoreExceptionExamples::fill2DPrimitiveArray,
-            eq(1),
             { _, result -> result.isSuccess }
         )
     }
@@ -151,7 +136,6 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     fun testFillObjectArrayWithList() {
         checkExecutionMatches(
             ArrayStoreExceptionExamples::fillObjectArrayWithList,
-            eq(2),
             { _, list, result -> list != null && result != null && result[0] != null },
             { _, list, result -> list == null && result == null }
         )
@@ -161,7 +145,6 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     fun testFillWithTreeSet() {
         checkExecutionMatches(
             ArrayStoreExceptionExamples::fillWithTreeSet,
-            eq(2),
             { _, treeSet, result -> treeSet != null && result != null && result[0] != null },
             { _, treeSet, result -> treeSet == null && result == null }
         )
@@ -171,7 +154,6 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     fun testFillSomeInterfaceArrayWithSomeInterface() {
         checkExecutionMatches(
             ArrayStoreExceptionExamples::fillSomeInterfaceArrayWithSomeInterface,
-            eq(2),
             { _, impl, result -> impl == null && result == null },
             { _, impl, result -> impl != null && result != null && result[0] != null }
         )
@@ -182,7 +164,6 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     fun testFillObjectArrayWithSomeInterface() {
         checkExecutionMatches(
             ArrayStoreExceptionExamples::fillObjectArrayWithSomeInterface,
-            eq(2),
             { _, impl, result -> impl == null && result == null },
             { _, impl, result -> impl != null && result != null && result[0] != null }
         )
@@ -192,7 +173,6 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     fun testFillWithSomeImplementation() {
         checkExecutionMatches(
             ArrayStoreExceptionExamples::fillWithSomeImplementation,
-            eq(2),
             { _, impl, result -> impl == null && result == null },
             { _, impl, result -> impl != null && result != null && result[0] != null }
         )

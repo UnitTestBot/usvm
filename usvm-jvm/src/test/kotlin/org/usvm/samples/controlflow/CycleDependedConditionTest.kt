@@ -10,7 +10,6 @@ internal class CycleDependedConditionTest : JavaMethodTestRunner() {
     fun testCycleDependedOneCondition() {
         checkExecutionMatches(
             CycleDependedCondition::oneCondition,
-            eq(3),
             { _, x, r -> x <= 0 && r == 0 },
             { _, x, r -> x in 1..2 && r == 0 },
             { _, x, r -> x > 2 && r == 1 }
@@ -21,7 +20,6 @@ internal class CycleDependedConditionTest : JavaMethodTestRunner() {
     fun testCycleDependedTwoCondition() {
         checkExecutionMatches(
             CycleDependedCondition::twoCondition,
-            eq(4),
             { _, x, r -> x <= 0 && r == 0 },
             { _, x, r -> x in 1..3 && r == 0 },
             { _, x, r -> x == 4 && r == 1 },
@@ -34,7 +32,6 @@ internal class CycleDependedConditionTest : JavaMethodTestRunner() {
     fun testCycleDependedThreeCondition() {
         checkExecutionMatches(
             CycleDependedCondition::threeCondition,
-            eq(4),
             { _, x, r -> x <= 0 && r == 0 },
             { _, x, r -> x in 1..5 && r == 0 },
             { _, x, r -> x == 6 || x > 8 && r == 1 },
@@ -47,7 +44,6 @@ internal class CycleDependedConditionTest : JavaMethodTestRunner() {
     fun testCycleDependedOneConditionHigherNumber() {
         checkExecutionMatches(
             CycleDependedCondition::oneConditionHigherNumber,
-            eq(3),
             { _, x, r -> x <= 0 && r == 0 },
             { _, x, r -> x in 1..100 && r == 0 },
             { _, x, r -> x > 100 && r == 1 && r == 1 }

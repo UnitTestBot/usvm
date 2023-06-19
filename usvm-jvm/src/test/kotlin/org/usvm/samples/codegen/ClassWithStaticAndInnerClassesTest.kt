@@ -12,7 +12,6 @@ internal class ClassWithStaticAndInnerClassesTest : JavaMethodTestRunner() {
     fun testUsePrivateStaticClassWithPrivateField() {
         checkExecutionMatches(
             ClassWithStaticAndInnerClasses::usePrivateStaticClassWithPrivateField,
-            eq(2),
         )
     }
 
@@ -20,7 +19,6 @@ internal class ClassWithStaticAndInnerClassesTest : JavaMethodTestRunner() {
     fun testUsePrivateStaticClassWithPublicField() {
         checkExecutionMatches(
             ClassWithStaticAndInnerClasses::usePrivateStaticClassWithPublicField,
-            eq(2),
         )
     }
 
@@ -28,7 +26,6 @@ internal class ClassWithStaticAndInnerClassesTest : JavaMethodTestRunner() {
     fun testUsePublicStaticClassWithPrivateField() {
         checkExecutionMatches(
             ClassWithStaticAndInnerClasses::usePublicStaticClassWithPrivateField,
-            eq(2),
         )
     }
 
@@ -36,7 +33,6 @@ internal class ClassWithStaticAndInnerClassesTest : JavaMethodTestRunner() {
     fun testUsePublicStaticClassWithPublicField() {
         checkExecutionMatches(
             ClassWithStaticAndInnerClasses::usePublicStaticClassWithPublicField,
-            eq(2),
         )
     }
 
@@ -44,7 +40,6 @@ internal class ClassWithStaticAndInnerClassesTest : JavaMethodTestRunner() {
     fun testUsePrivateInnerClassWithPrivateField() {
         checkExecutionMatches(
             ClassWithStaticAndInnerClasses::usePrivateInnerClassWithPrivateField,
-            eq(2),
         )
     }
 
@@ -52,7 +47,6 @@ internal class ClassWithStaticAndInnerClassesTest : JavaMethodTestRunner() {
     fun testUsePrivateInnerClassWithPublicField() {
         checkExecutionMatches(
             ClassWithStaticAndInnerClasses::usePrivateInnerClassWithPublicField,
-            eq(2),
         )
     }
 
@@ -60,7 +54,6 @@ internal class ClassWithStaticAndInnerClassesTest : JavaMethodTestRunner() {
     fun testUsePublicInnerClassWithPrivateField() {
         checkExecutionMatches(
             ClassWithStaticAndInnerClasses::usePublicInnerClassWithPrivateField,
-            eq(2),
         )
     }
 
@@ -68,7 +61,6 @@ internal class ClassWithStaticAndInnerClassesTest : JavaMethodTestRunner() {
     fun testUsePublicInnerClassWithPublicField() {
         checkExecutionMatches(
             ClassWithStaticAndInnerClasses::usePublicInnerClassWithPublicField,
-            eq(2),
         )
     }
 
@@ -76,7 +68,6 @@ internal class ClassWithStaticAndInnerClassesTest : JavaMethodTestRunner() {
     fun testUsePackagePrivateFinalStaticClassWithPackagePrivateField() {
         checkExecutionMatches(
             ClassWithStaticAndInnerClasses::usePackagePrivateFinalStaticClassWithPackagePrivateField,
-            eq(2),
         )
     }
 
@@ -84,7 +75,6 @@ internal class ClassWithStaticAndInnerClassesTest : JavaMethodTestRunner() {
     fun testUsePackagePrivateFinalInnerClassWithPackagePrivateField() {
         checkExecutionMatches(
             ClassWithStaticAndInnerClasses::usePackagePrivateFinalInnerClassWithPackagePrivateField,
-            eq(2),
         )
     }
 
@@ -92,7 +82,6 @@ internal class ClassWithStaticAndInnerClassesTest : JavaMethodTestRunner() {
     fun testGetValueFromPublicFieldWithPrivateType() {
         checkExecutionMatches(
             ClassWithStaticAndInnerClasses::getValueFromPublicFieldWithPrivateType,
-            eq(2),
         )
     }
 

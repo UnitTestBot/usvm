@@ -10,7 +10,6 @@ internal class GenericExamplesTest : JavaMethodTestRunner() {
     fun testContainsOkWithIntegerType() {
         checkWithExceptionExecutionMatches(
             GenericExamples<Int>::containsOk,
-            eq(2),
             { _, obj, result -> obj == null && result.isException<NullPointerException>() },
             { _, obj, result -> obj != null && result.isSuccess && result.getOrNull() == false }
         )
@@ -20,7 +19,6 @@ internal class GenericExamplesTest : JavaMethodTestRunner() {
     fun testContainsOkExampleTest() {
         checkExecutionMatches(
             GenericExamples<String>::containsOkExample,
-            eq(1),
             { _, result -> result == true }
         )
     }

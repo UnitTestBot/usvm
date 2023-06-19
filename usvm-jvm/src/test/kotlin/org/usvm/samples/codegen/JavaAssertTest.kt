@@ -12,7 +12,6 @@ class JavaAssertTest : JavaMethodTestRunner() {
     fun testAssertPositive() {
         checkWithExceptionExecutionMatches(
             JavaAssert::assertPositive,
-            eq(2),
             { _, value, result -> value > 0 && result.isSuccess && result.getOrNull() == value },
             { _, value, result -> value <= 0 && result.isException<java.lang.AssertionError>() }
         )

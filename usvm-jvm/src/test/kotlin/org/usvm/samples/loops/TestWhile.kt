@@ -3,7 +3,6 @@ package org.usvm.samples.loops
 import org.junit.jupiter.api.RepeatedTest
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
-import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 class TestWhile : JavaMethodTestRunner() {
@@ -11,7 +10,6 @@ class TestWhile : JavaMethodTestRunner() {
     fun `Test singleLoop`() {
         checkExecutionMatches(
             While::singleLoop,
-            eq(3),
             { _, n, r -> r == 0 && n >= 5 },
             { _, n, r -> r == 1 && n <= 0 },
             { _, n, r -> r == 2 && (n in 1..4) },
@@ -23,7 +21,6 @@ class TestWhile : JavaMethodTestRunner() {
     fun `Test smallestPowerOfTwo`() {
         checkExecutionMatches(
             While::smallestPowerOfTwo,
-            eq(3),
             { _, n, r -> r == 0 && n.and(n - 1) == 0 },
             { _, n, r -> r == 1 && n <= 0 },
             { _, n, r -> r == 2 && n > 0 && n.and(n - 1) != 0 },
@@ -35,7 +32,6 @@ class TestWhile : JavaMethodTestRunner() {
     fun `Test sumOf`() {
         checkExecutionMatches(
             While::sumOf,
-            ignoreNumberOfAnalysisResults,
             { _, n, r -> n * (n + 1) / 2 == r },
             coverageChecker = { _ -> true }
         )

@@ -15,7 +15,6 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     fun testTakeBooleanClassRef() {
         checkExecutionMatches(
             ClassRef::takeBooleanClassRef,
-            eq(1),
             { _, r -> r == Boolean.TYPE }
         )
     }
@@ -24,7 +23,6 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     fun testTakeClassRef() {
         checkExecutionMatches(
             ClassRef::takeClassRef,
-            eq(1),
             { _, r -> r == ClassRef::class.java }
         )
     }
@@ -33,7 +31,6 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     fun testTakeClassRefFromParam() {
         checkExecutionMatches(
             ClassRef::takeClassRefFromParam,
-            eq(2),
             { _, classRef, _ -> classRef == null },
             { _, classRef, r -> r == classRef.javaClass }
         )
@@ -44,7 +41,6 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     fun testTakeArrayClassRef() {
         checkExecutionMatches(
             ClassRef::takeArrayClassRef,
-            eq(1),
             { _, r -> r == arrayOf<ClassRef>()::class.java }
         )
     }
@@ -53,7 +49,6 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     fun testTwoDimArrayClassRef() {
         checkExecutionMatches(
             ClassRef::twoDimArrayClassRef,
-            eq(1),
             { _, r -> r == arrayOf<Array<ClassRef>>()::class.java }
         )
     }
@@ -62,7 +57,6 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     fun testTwoDimArrayClassRefFromParam() {
         checkExecutionMatches(
             ClassRef::twoDimArrayClassRefFromParam,
-            eq(2),
             { _, array, _ -> array == null },
             { _, array, r -> r == array::class.java }
         )
@@ -72,7 +66,6 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     fun testTakeConstantClassRef() {
         checkExecutionMatches(
             ClassRef::takeConstantClassRef,
-            eq(1),
             { _, r -> r == ClassRef::class.java }
         )
     }
@@ -81,7 +74,6 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     fun testEqualityOnClassRef() {
         checkExecutionMatches(
             ClassRef::equalityOnClassRef,
-            eq(1),
             { _, r -> r == true }, // we cannot find a way to have different class references
         )
     }
@@ -90,7 +82,6 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     fun testEqualityOnStringClassRef() {
         checkExecutionMatches(
             ClassRef::equalityOnStringClassRef,
-            eq(1),
             { _, r -> r == true }, // we cannot find a way to have different class references
         )
     }
@@ -99,7 +90,6 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     fun testEqualityOnArrayClassRef() {
         checkExecutionMatches(
             ClassRef::equalityOnArrayClassRef,
-            eq(1),
             { _, r -> r == true }, // we cannot find a way to have different class references
         )
     }
@@ -108,7 +98,6 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     fun testTwoDimensionalArrayClassRef() {
         checkExecutionMatches(
             ClassRef::twoDimensionalArrayClassRef,
-            eq(1),
             { _, r -> r == true },
         )
     }
@@ -117,7 +106,6 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     fun testEqualityOnGenericClassRef() {
         checkExecutionMatches(
             ClassRef::equalityOnGenericClassRef,
-            eq(1),
             { _, r -> r == true }, // we cannot find a way to have different class references
         )
     }

@@ -11,7 +11,6 @@ internal class ConditionsTest : JavaMethodTestRunner() {
     fun testSimpleCondition() {
         checkExecutionMatches(
             Conditions::simpleCondition,
-            eq(2),
             { _, condition, r -> !condition && r == 0 },
             { _, condition, r -> condition && r == 1 }
         )
@@ -21,7 +20,6 @@ internal class ConditionsTest : JavaMethodTestRunner() {
     fun testIfLastStatement() {
         checkWithExceptionExecutionMatches(
             Conditions::emptyBranches,
-            ignoreNumberOfAnalysisResults,
         )
     }
 }

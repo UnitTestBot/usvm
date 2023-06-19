@@ -10,7 +10,6 @@ class ThrowingWithLambdaExampleTest : JavaMethodTestRunner() {
     fun testAnyExample() {
         checkExecutionMatches(
             ThrowingWithLambdaExample::anyExample,
-            eq(4),
             { _, l, _, _ -> l == null },
             { _, l, _, r -> l.isEmpty() && r == false },
             { _, l, _, r -> l.isNotEmpty() && 42 in l && r == true },

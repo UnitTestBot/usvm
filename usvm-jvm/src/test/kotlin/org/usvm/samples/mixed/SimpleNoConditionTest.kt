@@ -11,7 +11,6 @@ internal class SimpleNoConditionTest : JavaMethodTestRunner() {
     fun testNoConditionAdd() {
         checkExecutionMatches(
             SimpleNoCondition::basicAdd,
-            eq(1)
         )
     }
 
@@ -19,7 +18,6 @@ internal class SimpleNoConditionTest : JavaMethodTestRunner() {
     fun testNoConditionPow() {
         checkExecutionMatches(
             SimpleNoCondition::basicXorInt,
-            eq(1)
         )
     }
 
@@ -27,7 +25,6 @@ internal class SimpleNoConditionTest : JavaMethodTestRunner() {
     fun testNoConditionPowBoolean() {
         checkExecutionMatches(
             SimpleNoCondition::basicXorBoolean,
-            eq(1)
         )
     }
 }

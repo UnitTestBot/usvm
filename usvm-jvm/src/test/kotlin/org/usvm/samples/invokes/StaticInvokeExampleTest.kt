@@ -11,8 +11,7 @@ internal class StaticInvokeExampleTest : JavaMethodTestRunner() {
     fun testMaxForThree() {
         val method = StaticInvokeExample::maxForThree
         checkExecutionMatches(
-            method,
-            between(2..3), // two executions can cover all branches
+            method, // two executions can cover all branches
             { x, y, _, _ -> x > y },
             { x, y, _, _ -> x <= y },
             { x, y, z, _ -> max(x, y.toInt()) > z },

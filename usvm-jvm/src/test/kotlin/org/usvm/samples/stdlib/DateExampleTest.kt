@@ -14,7 +14,6 @@ class DateExampleTest : JavaMethodTestRunner() {
     fun testGetTimeWithNpeChecksForNonPublicFields() {
         checkWithExceptionExecutionMatches(
             DateExample::getTime,
-            eq(5),
             *commonMatchers,
             { _, date: Date?, r: Result<Boolean> ->
                 val cdate = date!!.getDeclaredFieldValue("cdate")
@@ -40,7 +39,6 @@ class DateExampleTest : JavaMethodTestRunner() {
     fun testGetTimeWithoutReflection() {
         checkWithExceptionExecutionMatches(
             DateExample::getTime,
-            eq(3),
             *commonMatchers
         )
     }

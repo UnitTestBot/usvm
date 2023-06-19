@@ -1,6 +1,6 @@
 // TODO unsupported
 
-//package org.usvm.samplesmath
+//package org.usvm.samples.math
 //
 //import org.junit.jupiter.api.Disabled
 //import org.junit.jupiter.api.Test

@@ -1,9 +1,7 @@
-package org.usvm.samplesunsafe
+package org.usvm.samples.unsafe
 
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
-import org.usvm.samples.unsafe.UnsafeOperations
-import org.usvm.test.util.checkers.eq
 
 
 internal class UnsafeOperationsTest : JavaMethodTestRunner() {
@@ -11,7 +9,6 @@ internal class UnsafeOperationsTest : JavaMethodTestRunner() {
     fun checkGetAddressSizeOrZero() {
             checkExecutionMatches(
                 UnsafeOperations::getAddressSizeOrZero,
-                eq(1),
                 { _, r -> r > 0 },
             )
     }

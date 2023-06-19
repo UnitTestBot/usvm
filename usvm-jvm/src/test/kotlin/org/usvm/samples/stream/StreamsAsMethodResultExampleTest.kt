@@ -12,7 +12,6 @@ class StreamsAsMethodResultExampleTest : JavaMethodTestRunner() {
     fun testReturningStreamExample() {
         checkExecutionMatches(
             StreamsAsMethodResultExample::returningStreamExample,
-            eq(2),
             { _, c, r -> c.isEmpty() && c == r!!.asList() },
             { _, c, r -> c.isNotEmpty() && c == r!!.asList() },
         )

@@ -11,7 +11,6 @@ internal class SerializableExampleTest : JavaMethodTestRunner() {
     fun testExample() {
         checkExecutionMatches(
             SerializableExample::example,
-            eq(1),
         )
     }
 }

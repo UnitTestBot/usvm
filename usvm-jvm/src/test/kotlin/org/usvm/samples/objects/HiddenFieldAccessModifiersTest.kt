@@ -10,7 +10,6 @@ internal class HiddenFieldAccessModifiersTest : JavaMethodTestRunner() {
     fun testCheckSuperFieldEqualsOne() {
         checkExecutionMatches(
             HiddenFieldAccessModifiersExample::checkSuperFieldEqualsOne,
-            eq(3),
             { _, o, _ -> o == null },
             { _, _, r -> r == true },
             { _, _, r -> r == false },

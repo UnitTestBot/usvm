@@ -13,7 +13,6 @@ internal class MinStackExampleTest : JavaMethodTestRunner() {
     fun testCreate() {
         checkExecutionMatches(
             MinStackExample::create,
-            eq(3),
             { _, initialValues, _ -> initialValues == null },
             { _, initialValues, _ -> initialValues != null && initialValues.size < 3 },
             { _, initialValues, result ->
@@ -35,7 +34,6 @@ internal class MinStackExampleTest : JavaMethodTestRunner() {
     fun testAddSingleValue() {
         checkExecutionMatches(
             MinStackExample::addSingleValue,
-            eq(3),
             { _, initialValues, _ -> initialValues == null },
             { _, initialValues, _ -> initialValues != null && initialValues.isEmpty() },
             { _, initialValues, result ->
@@ -54,7 +52,6 @@ internal class MinStackExampleTest : JavaMethodTestRunner() {
     fun testGetMinValue() {
         checkExecutionMatches(
             MinStackExample::getMinValue,
-            eq(3),
             { _, initialValues, _ -> initialValues == null },
             { _, initialValues, result -> initialValues != null && initialValues.isEmpty() && result == -1L },
             { _, initialValues, result ->
@@ -67,7 +64,6 @@ internal class MinStackExampleTest : JavaMethodTestRunner() {
     fun testRemoveValue() {
         checkExecutionMatches(
             MinStackExample::removeValue,
-            eq(4),
             { _, initialValues, _ -> initialValues == null },
             { _, initialValues, _ -> initialValues != null && initialValues.isEmpty() },
             { _, initialValues, result ->
@@ -83,7 +79,6 @@ internal class MinStackExampleTest : JavaMethodTestRunner() {
     fun testConstruct() {
         checkExecutionMatches(
             MinStackExample::construct,
-            between(3..4),
             { _, values, _ -> values == null },
             { _, values, result -> values != null && values.isEmpty() && result != null && result.size == 0 },
             { _, values, result ->

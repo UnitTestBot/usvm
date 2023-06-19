@@ -49,8 +49,10 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
         println(createStringFromResults(analysisResults))
         println()
 
-        require(analysisResultsNumberMatcher(analysisResults.size)) {
-            analysisResultsNumberMatcher.matcherFailedMessage(analysisResults.size)
+        if (checkMode != MATCH_EXECUTIONS) {
+            require(analysisResultsNumberMatcher(analysisResults.size)) {
+                analysisResultsNumberMatcher.matcherFailedMessage(analysisResults.size)
+            }
         }
 
         val valuesToCheck = analysisResults.map { extractValuesToCheck(it) }

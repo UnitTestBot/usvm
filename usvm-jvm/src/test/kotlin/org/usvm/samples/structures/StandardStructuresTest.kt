@@ -11,7 +11,6 @@ internal class StandardStructuresTest : JavaMethodTestRunner() {
     fun testGetList() {
         checkExecutionMatches(
             StandardStructures::getList,
-            eq(4),
             { _, l, r -> l is ArrayList && r is ArrayList },
             { _, l, r -> l is LinkedList && r is LinkedList },
             { _, l, r -> l == null && r == null },
@@ -25,7 +24,6 @@ internal class StandardStructuresTest : JavaMethodTestRunner() {
     fun testGetMap() {
         checkExecutionMatches(
             StandardStructures::getMap,
-            eq(3),
             { _, m, r -> m is TreeMap && r is TreeMap },
             { _, m, r -> m == null && r == null },
             { _, m, r -> m !is TreeMap && m != null && r !is TreeMap && r != null },
@@ -36,7 +34,6 @@ internal class StandardStructuresTest : JavaMethodTestRunner() {
     fun testGetDeque() {
         checkExecutionMatches(
             StandardStructures::getDeque,
-            eq(4),
             { _, d, r -> d is java.util.ArrayDeque && r is java.util.ArrayDeque },
             { _, d, r -> d is LinkedList && r is LinkedList },
             { _, d, r -> d == null && r == null },

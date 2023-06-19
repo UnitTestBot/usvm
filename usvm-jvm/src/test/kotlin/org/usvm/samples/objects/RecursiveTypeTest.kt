@@ -10,7 +10,6 @@ internal class RecursiveTypeTest : JavaMethodTestRunner() {
     fun testNextValue() {
         checkExecutionMatches(
             RecursiveType::nextValue,
-            eq(5),
             { _, _, value, _ -> value == 0 },
             { _, node, _, _ -> node == null },
             { _, node, _, _ -> node != null && node.next == null },
@@ -23,7 +22,6 @@ internal class RecursiveTypeTest : JavaMethodTestRunner() {
     fun testWriteObjectFieldTest() {
         checkExecutionMatches(
             RecursiveType::writeObjectField,
-            eq(3),
             { _, node, _ -> node == null },
             { _, node, r ->
                 node != null && node.next == null && r?.next != null && r.next.value == RecursiveTypeClass().value + 1

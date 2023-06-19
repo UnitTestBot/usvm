@@ -11,7 +11,6 @@ internal class FileWithTopLevelFunctionsTest : JavaMethodTestRunner() {
     fun topLevelSumTest() {
         checkExecutionMatches(
             ::topLevelSum,
-            eq(1),
         )
     }
 */

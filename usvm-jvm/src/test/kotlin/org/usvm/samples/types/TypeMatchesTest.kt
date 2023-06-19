@@ -11,7 +11,6 @@ internal class TypeMatchesTest : JavaMethodTestRunner() {
     fun testCompareDoubleByte() {
         checkExecutionMatches(
             TypeMatches::compareDoubleByte,
-            eq(2),
             { _, a, b, r -> a < b && r == 0.0 },
             { _, a, b, r -> !(a < b) && r == 1.0 }
         )
@@ -21,7 +20,6 @@ internal class TypeMatchesTest : JavaMethodTestRunner() {
     fun testCompareShortLong() {
         checkExecutionMatches(
             TypeMatches::compareShortLong,
-            eq(2),
             { _, a, b, r -> a < b && r == 0.toShort() },
             { _, a, b, r -> a >= b && r == 1.toShort() }
         )
@@ -31,7 +29,6 @@ internal class TypeMatchesTest : JavaMethodTestRunner() {
     fun testCompareFloatDouble() {
         checkExecutionMatches(
             TypeMatches::compareFloatDouble,
-            eq(2),
             { _, a, b, r -> a < b && r == 0.0f },
             { _, a, b, r -> !(a < b) && r == 1.0f }
         )
@@ -41,7 +38,6 @@ internal class TypeMatchesTest : JavaMethodTestRunner() {
     fun testSumByteAndShort() {
         checkExecutionMatches(
             TypeMatches::sumByteAndShort,
-            eq(3),
             { _, a, b, r -> a + b > Short.MAX_VALUE && r == 1 },
             { _, a, b, r -> a + b < Short.MIN_VALUE && r == 2 },
             { _, a, b, r -> a + b in Short.MIN_VALUE..Short.MAX_VALUE && r == 3 },
@@ -52,7 +48,6 @@ internal class TypeMatchesTest : JavaMethodTestRunner() {
     fun testSumShortAndChar() {
         checkExecutionMatches(
             TypeMatches::sumShortAndChar,
-            eq(3),
             { _, a, b, r -> a + b.code > Char.MAX_VALUE.code && r == 1 },
             { _, a, b, r -> a + b.code < Char.MIN_VALUE.code && r == 2 },
             { _, a, b, r -> a + b.code in Char.MIN_VALUE.code..Char.MAX_VALUE.code && r == 3 },

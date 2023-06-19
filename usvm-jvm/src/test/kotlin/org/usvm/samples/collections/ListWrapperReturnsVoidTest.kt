@@ -10,7 +10,6 @@ internal class ListWrapperReturnsVoidTest : JavaMethodTestRunner() {
     fun testRunForEach() {
         checkWithExceptionExecutionMatches(
             ListWrapperReturnsVoidExample::runForEach,
-            eq(4),
             { _, l, r -> l == null && r.isException<NullPointerException>() },
             { _, l, r -> l.isEmpty() && r.getOrThrow() == 0 },
             { _, l, r -> l.isNotEmpty() && l.all { it != null } && r.getOrThrow() == 0 },
@@ -22,7 +21,6 @@ internal class ListWrapperReturnsVoidTest : JavaMethodTestRunner() {
     fun testSumPositiveForEach() {
         checkWithExceptionExecutionMatches(
             ListWrapperReturnsVoidExample::sumPositiveForEach,
-            eq(5),
             { _, l, r -> l == null && r.isException<NullPointerException>() },
             { _, l, r -> l.isEmpty() && r.getOrThrow() == 0 },
             { _, l, r -> l.isNotEmpty() && l.any { it == null } && r.isException<NullPointerException>() },

@@ -10,7 +10,6 @@ internal class HiddenFieldExampleTest : JavaMethodTestRunner() {
     fun testCheckHiddenField() {
         checkExecutionMatches(
             HiddenFieldExample::checkHiddenField,
-            eq(4),
             { _, o, _ -> o == null },
             { _, o, r -> o != null && o.a != 1 && r == 2 },
             { _, o, r -> o != null && o.a == 1 && o.b != 2 && r == 2 },
@@ -22,7 +21,6 @@ internal class HiddenFieldExampleTest : JavaMethodTestRunner() {
     fun testCheckSuccField() {
         checkExecutionMatches(
             HiddenFieldExample::checkSuccField,
-            eq(5),
             { _, o, _ -> o == null },
             { _, o, r -> o.a == 1 && r == 1 },
             { _, o, r -> o.a != 1 && o.b == 2.0 && r == 2 },

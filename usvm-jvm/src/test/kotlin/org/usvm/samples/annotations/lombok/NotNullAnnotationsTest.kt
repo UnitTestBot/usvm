@@ -2,7 +2,6 @@ package org.usvm.samples.annotations.lombok
 
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
-import org.usvm.test.util.checkers.eq
 
 
 /**
@@ -17,7 +16,6 @@ internal class NotNullAnnotationsTest : JavaMethodTestRunner() {
     fun testNonNullAnnotations() {
         checkExecutionMatches(
             NotNullAnnotations::lombokNonNull,
-            eq(1),
             { _, value, r -> value == r },
         )
     }

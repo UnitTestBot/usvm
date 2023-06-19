@@ -11,7 +11,6 @@ internal class FloatWrapperTest : JavaMethodTestRunner() {
     fun primitiveToWrapperTest() {
         checkExecutionMatches(
             FloatWrapper::primitiveToWrapper,
-            eq(2),
             { _, x, r -> x >= 0 && r!! >= 0 },
             { _, x, r -> (x < 0 || x.isNaN()) && (r!! > 0 || r.isNaN()) },
         )
@@ -21,7 +20,6 @@ internal class FloatWrapperTest : JavaMethodTestRunner() {
     fun wrapperToPrimitiveTest() {
         checkExecutionMatches(
             FloatWrapper::wrapperToPrimitive,
-            eq(3),
             { _, x, _ -> x == null },
             { _, x, r -> x >= 0 && r >= 0 },
             { _, x, r -> (x < 0 || x.isNaN()) && (r > 0 || r.isNaN()) },

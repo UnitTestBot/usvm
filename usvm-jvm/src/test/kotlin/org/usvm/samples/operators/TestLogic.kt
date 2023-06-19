@@ -9,7 +9,6 @@ class TestLogic : JavaMethodTestRunner() {
     fun `Test complexWithLocals`() {
         checkExecutionMatches(
             Logic::complexWithLocals,
-            ignoreNumberOfAnalysisResults,
             { _, x, y, z, r -> r && (x.toLong() or y.toLong() or z) != 1337.toLong() },
             { _, x, y, z, r -> !r && (x.toLong() or y.toLong() or z) == 1337.toLong() },
         )

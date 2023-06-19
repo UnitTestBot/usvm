@@ -11,7 +11,6 @@ class AnonymousClassesExampleTest : JavaMethodTestRunner() {
     fun testAnonymousClassAsParam() {
         checkWithExceptionExecutionMatches(
             AnonymousClassesExample::anonymousClassAsParam,
-            eq(3),
             { _, abstractAnonymousClass, r -> abstractAnonymousClass == null && r.isException<NullPointerException>() },
             { _, abstractAnonymousClass, r -> abstractAnonymousClass != null && r.getOrNull() == 0 },
             { _, abstractAnonymousClass, r -> abstractAnonymousClass != null && abstractAnonymousClass::class.java.isAnonymousClass && r.getOrNull() == 42 }
@@ -34,7 +33,6 @@ class AnonymousClassesExampleTest : JavaMethodTestRunner() {
     fun testAnonymousClassAsStatic() {
         checkExecutionMatches(
             AnonymousClassesExample::anonymousClassAsStatic,
-            eq(1),
             { _, r -> r == 42 }
         )
     }
@@ -43,7 +41,6 @@ class AnonymousClassesExampleTest : JavaMethodTestRunner() {
     fun testAnonymousClassAsResult() {
         checkExecutionMatches(
             AnonymousClassesExample::anonymousClassAsResult,
-            eq(1),
             { _, abstractAnonymousClass -> abstractAnonymousClass != null && abstractAnonymousClass::class.java.isAnonymousClass }
         )
     }

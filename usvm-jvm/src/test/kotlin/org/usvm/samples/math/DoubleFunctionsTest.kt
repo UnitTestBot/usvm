@@ -1,4 +1,4 @@
-package org.usvm.samplesmath
+package org.usvm.samples.math
 
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
@@ -16,7 +16,6 @@ internal class DoubleFunctionsTest : JavaMethodTestRunner() {
     fun testHypo() {
         checkExecutionMatches(
             DoubleFunctions::hypo,
-            eq(1),
             { _, a, b, r -> a > 1 && a < 10 && b > 1 && b < 10 && abs(r - hypot(a, b)) < 1e-5 },
         )
     }
@@ -25,7 +24,6 @@ internal class DoubleFunctionsTest : JavaMethodTestRunner() {
     fun testMax() {
         checkExecutionMatches(
             DoubleFunctions::max,
-            eq(2),
             { _, a, b, r -> a > b && r == a },
             { _, a, b, r -> !(a > b) && (r == b || r.isNaN()) }
         )
@@ -36,7 +34,6 @@ internal class DoubleFunctionsTest : JavaMethodTestRunner() {
     fun testCircleSquare() {
         checkWithExceptionExecutionMatches(
             DoubleFunctions::circleSquare,
-            eq(5),
             { _, radius, r -> radius < 0 && r.isException<IllegalArgumentException>() },
             { _, radius, r -> radius > 10000 && r.isException<IllegalArgumentException>() },
             { _, radius, r -> radius.isNaN() && r.isException<IllegalArgumentException>() },
@@ -49,8 +46,7 @@ internal class DoubleFunctionsTest : JavaMethodTestRunner() {
     @Tag("slow")
     fun testNumberOfRootsInSquareFunction() {
         checkExecutionMatches(
-            DoubleFunctions::numberOfRootsInSquareFunction,
-            eq(3), // sometimes solver substitutes a = nan || b = nan || c = nan || some combination of 0 and inf
+            DoubleFunctions::numberOfRootsInSquareFunction, // sometimes solver substitutes a = nan || b = nan || c = nan || some combination of 0 and inf
             { _, a, b, c, r -> !(b * b - 4 * a * c >= 0) && r == 0 },
             { _, a, b, c, r -> b * b - 4 * a * c == 0.0 && r == 1 },
             { _, a, b, c, r -> b * b - 4 * a * c > 0 && r == 2 },

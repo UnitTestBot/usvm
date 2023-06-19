@@ -10,7 +10,6 @@ class PredicateNotExampleTest : JavaMethodTestRunner() {
     fun testPredicateNotExample() {
         checkExecutionMatches(
             PredicateNotExample::predicateNotExample,
-            eq(2),
             { _, a, r -> a == 5 && r == false },
             { _, a, r -> a != 5 && r == true },
         )

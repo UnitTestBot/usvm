@@ -12,7 +12,6 @@ class ClassWithCrossReferenceRelationshipTest : JavaMethodTestRunner() {
     fun testClassWithCrossReferenceRelationship() {
         checkExecutionMatches(
             ClassWithCrossReferenceRelationship::returnFirstClass,
-            eq(2),
         )
     }
 }

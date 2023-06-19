@@ -1,9 +1,7 @@
-package org.usvm.samplesmath
+package org.usvm.samples.math
 
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
-import org.usvm.samples.math.BitOperators
-import org.usvm.test.util.checkers.eq
 
 
 internal class BitOperatorsTest : JavaMethodTestRunner() {
@@ -11,7 +9,6 @@ internal class BitOperatorsTest : JavaMethodTestRunner() {
     fun testComplement() {
         checkExecutionMatches(
             BitOperators::complement,
-            eq(2),
             { _, x, r -> x == -2 && r == true },
             { _, x, r -> x != -2 && r == false }
         )
@@ -21,7 +18,6 @@ internal class BitOperatorsTest : JavaMethodTestRunner() {
     fun testXor() {
         checkExecutionMatches(
             BitOperators::xor,
-            eq(2),
             { _, x, y, r -> x == y && r == true },
             { _, x, y, r -> x != y && r == false }
         )
@@ -31,7 +27,6 @@ internal class BitOperatorsTest : JavaMethodTestRunner() {
     fun testOr() {
         checkExecutionMatches(
             BitOperators::or,
-            eq(2),
             { _, x, r -> x < 16 && (x and 0xfffffff8.toInt()) == 8 && r == true },
             { _, x, r -> x >= 16 || (x and 0xfffffff8.toInt()) != 8 && r == false }
         )
@@ -42,7 +37,6 @@ internal class BitOperatorsTest : JavaMethodTestRunner() {
     fun testAnd() {
         checkExecutionMatches(
             BitOperators::and,
-            eq(2),
             { _, x, r -> x.countOneBits() <= 1 && r == true },
             { _, x, r -> x.countOneBits() > 1 && r == false }
         )
@@ -52,7 +46,6 @@ internal class BitOperatorsTest : JavaMethodTestRunner() {
     fun testBooleanNot() {
         checkExecutionMatches(
             BitOperators::booleanNot,
-            eq(3),
             { _, a, b, r -> a && b && r == 100 },
             { _, a, b, r -> a && !b && r == 200 },
             { _, a, b, r -> !a && !b && r == 200 },
@@ -63,7 +56,6 @@ internal class BitOperatorsTest : JavaMethodTestRunner() {
     fun testBooleanXor() {
         checkExecutionMatches(
             BitOperators::booleanXor,
-            eq(1)
         )
     }
 
@@ -71,7 +63,6 @@ internal class BitOperatorsTest : JavaMethodTestRunner() {
     fun testBooleanOr() {
         checkExecutionMatches(
             BitOperators::booleanOr,
-            eq(1)
         )
     }
 
@@ -79,7 +70,6 @@ internal class BitOperatorsTest : JavaMethodTestRunner() {
     fun testBooleanAnd() {
         checkExecutionMatches(
             BitOperators::booleanAnd,
-            eq(1)
         )
     }
 
@@ -87,7 +77,6 @@ internal class BitOperatorsTest : JavaMethodTestRunner() {
     fun testBooleanXorCompare() {
         checkExecutionMatches(
             BitOperators::booleanXorCompare,
-            eq(2),
             { _, a, b, r -> a != b && r == 1 },
             { _, a, b, r -> a == b && r == 0 }
         )
@@ -97,7 +86,6 @@ internal class BitOperatorsTest : JavaMethodTestRunner() {
     fun testShl() {
         checkExecutionMatches(
             BitOperators::shl,
-            eq(2),
             { _, x, r -> x == 1 && r == true },
             { _, x, r -> x != 1 && r == false }
         )
@@ -107,7 +95,6 @@ internal class BitOperatorsTest : JavaMethodTestRunner() {
     fun testShlLong() {
         checkExecutionMatches(
             BitOperators::shlLong,
-            eq(2),
             { _, x, r -> x == 1L && r == true },
             { _, x, r -> x != 1L && r == false }
         )
@@ -117,7 +104,6 @@ internal class BitOperatorsTest : JavaMethodTestRunner() {
     fun testShlWithBigLongShift() {
         checkExecutionMatches(
             BitOperators::shlWithBigLongShift,
-            eq(3),
             { _, shift, r -> shift < 40 && r == 1 },
             { _, shift, r -> shift >= 40 && shift and 0b11111 == 4L && r == 2 },
             { _, shift, r -> shift >= 40 && shift and 0b11111 != 4L && r == 3 },
@@ -128,7 +114,6 @@ internal class BitOperatorsTest : JavaMethodTestRunner() {
     fun testShr() {
         checkExecutionMatches(
             BitOperators::shr,
-            eq(2),
             { _, x, r -> x shr 1 == 1 && r == true },
             { _, x, r -> x shr 1 != 1 && r == false }
         )
@@ -138,7 +123,6 @@ internal class BitOperatorsTest : JavaMethodTestRunner() {
     fun testShrLong() {
         checkExecutionMatches(
             BitOperators::shrLong,
-            eq(2),
             { _, x, r -> x shr 1 == 1L && r == true },
             { _, x, r -> x shr 1 != 1L && r == false }
         )
@@ -148,7 +132,6 @@ internal class BitOperatorsTest : JavaMethodTestRunner() {
     fun testUshr() {
         checkExecutionMatches(
             BitOperators::ushr,
-            eq(2),
             { _, x, r -> x ushr 1 == 1 && r == true },
             { _, x, r -> x ushr 1 != 1 && r == false }
         )
@@ -158,7 +141,6 @@ internal class BitOperatorsTest : JavaMethodTestRunner() {
     fun testUshrLong() {
         checkExecutionMatches(
             BitOperators::ushrLong,
-            eq(2),
             { _, x, r -> x ushr 1 == 1L && r == true },
             { _, x, r -> x ushr 1 != 1L && r == false }
         )
@@ -168,7 +150,6 @@ internal class BitOperatorsTest : JavaMethodTestRunner() {
     fun testSign() {
         checkExecutionMatches(
             BitOperators::sign,
-            eq(3),
             { _, x, r -> x > 0 && r == 1 },
             { _, x, r -> x == 0 && r == 0 },
             { _, x, r -> x < 0 && r == -1 }

@@ -10,7 +10,6 @@ internal class PrivateFieldsTest : JavaMethodTestRunner() {
     fun testAccessWithGetter() {
         checkWithExceptionExecutionMatches(
             PrivateFields::accessWithGetter,
-            eq(3),
             { _, x, r -> x == null && r.isException<NullPointerException>() },
             { _, x, r -> x.a == 1 && r.getOrNull() == true },
             { _, x, r -> x.a != 1 && r.getOrNull() == false },

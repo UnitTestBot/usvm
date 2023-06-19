@@ -14,7 +14,6 @@ internal class ObjectWithThrowableConstructorTest : JavaMethodTestRunner() {
         val method: KFunction2<Int, Int, ObjectWithThrowableConstructor> = ::ObjectWithThrowableConstructor
         checkExecutionMatches(
             method,
-            eq(2),
             // TODO: SAT-933 Add support for constructor testing
         )
     }

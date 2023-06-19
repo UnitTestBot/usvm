@@ -10,7 +10,6 @@ class CustomPredicateExampleTest : JavaMethodTestRunner() {
     fun testNoCapturedValuesPredicateCheck() {
         checkWithExceptionExecutionMatches(
             CustomPredicateExample::noCapturedValuesPredicateCheck,
-            eq(3),
             { _, predicate, x, r -> !predicate.test(x) && r.getOrNull() == false },
             { _, predicate, x, r -> predicate.test(x) && r.getOrNull() == true },
             { _, predicate, _, r -> predicate == null && r.isException<NullPointerException>() },
@@ -21,7 +20,6 @@ class CustomPredicateExampleTest : JavaMethodTestRunner() {
     fun testCapturedLocalVariablePredicateCheck() {
         checkWithExceptionExecutionMatches(
             CustomPredicateExample::capturedLocalVariablePredicateCheck,
-            eq(3),
             { _, predicate, x, r -> !predicate.test(x) && r.getOrNull() == false },
             { _, predicate, x, r -> predicate.test(x) && r.getOrNull() == true },
             { _, predicate, _, r -> predicate == null && r.isException<NullPointerException>() },
@@ -32,7 +30,6 @@ class CustomPredicateExampleTest : JavaMethodTestRunner() {
     fun testCapturedParameterPredicateCheck() {
         checkWithExceptionExecutionMatches(
             CustomPredicateExample::capturedParameterPredicateCheck,
-            eq(3),
             { _, predicate, x, r -> !predicate.test(x) && r.getOrNull() == false },
             { _, predicate, x, r -> predicate.test(x) && r.getOrNull() == true },
             { _, predicate, _, r -> predicate == null && r.isException<NullPointerException>() },
@@ -43,7 +40,6 @@ class CustomPredicateExampleTest : JavaMethodTestRunner() {
     fun testCapturedStaticFieldPredicateCheck() {
         checkWithExceptionExecutionMatches(
             CustomPredicateExample::capturedStaticFieldPredicateCheck,
-            eq(3),
             { _, predicate, x, r -> !predicate.test(x) && r.getOrNull() == false },
             { _, predicate, x, r -> predicate.test(x) && r.getOrNull() == true },
             { _, predicate, _, r -> predicate == null && r.isException<NullPointerException>() },
@@ -54,7 +50,6 @@ class CustomPredicateExampleTest : JavaMethodTestRunner() {
     fun testCapturedNonStaticFieldPredicateCheck() {
         checkWithExceptionExecutionMatches(
             CustomPredicateExample::capturedNonStaticFieldPredicateCheck,
-            eq(3),
             { _, predicate, x, r -> !predicate.test(x) && r.getOrNull() == false },
             { _, predicate, x, r -> predicate.test(x) && r.getOrNull() == true },
             { _, predicate, _, r -> predicate == null && r.isException<NullPointerException>() },

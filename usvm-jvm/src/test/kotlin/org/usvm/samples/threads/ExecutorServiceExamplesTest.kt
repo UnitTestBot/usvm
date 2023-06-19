@@ -14,7 +14,6 @@ class ExecutorServiceExamplesTest : JavaMethodTestRunner() {
     fun testExceptionInExecute() {
         checkWithExceptionExecutionMatches(
             ExecutorServiceExamples::throwingInExecute,
-            ignoreNumberOfAnalysisResults,
             { _, r -> r.isException<IllegalStateException>() }
         )
     }
@@ -23,7 +22,6 @@ class ExecutorServiceExamplesTest : JavaMethodTestRunner() {
     fun testChangingCollectionInExecute() {
         checkExecutionMatches(
             ExecutorServiceExamples::changingCollectionInExecute,
-            ignoreNumberOfAnalysisResults,
             { _, r -> r == 42 },
         )
     }

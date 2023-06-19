@@ -12,7 +12,6 @@ internal class ObjectWithRefFieldsExampleTest : JavaMethodTestRunner() {
     fun testDefaultValue() {
         checkExecutionMatches(
             ObjectWithRefFieldExample::defaultValue,
-            eq(1),
             { _, r -> r != null && r.x == 0 && r.y == 0 && r.weight == 0.0 && r.arrayField == null && r.refField == null },
         )
     }
@@ -21,7 +20,6 @@ internal class ObjectWithRefFieldsExampleTest : JavaMethodTestRunner() {
     fun testWriteToRefTypeField() {
         checkExecutionMatches(
             ObjectWithRefFieldExample::writeToRefTypeField,
-            eq(4),
             { _, _, v, _ -> v != 42 },
             { _, o, v, _ -> v == 42 && o == null },
             { _, o, v, _ -> v == 42 && o != null && o.refField != null },
@@ -35,7 +33,6 @@ internal class ObjectWithRefFieldsExampleTest : JavaMethodTestRunner() {
     fun testDefaultFieldValues() {
         checkExecutionMatches(
             ObjectWithRefFieldExample::defaultFieldValues,
-            eq(1),
             { _, r ->
                 r != null && r.x == 0 && r.y == 0 && r.weight == 0.0 && r.refField == null && r.arrayField == null
             }
@@ -46,7 +43,6 @@ internal class ObjectWithRefFieldsExampleTest : JavaMethodTestRunner() {
     fun testReadFromRefTypeField() {
         checkExecutionMatches(
             ObjectWithRefFieldExample::readFromRefTypeField,
-            eq(4),
             { _, o, _ -> o == null },
             { _, o, _ -> o != null && o.refField == null },
             { _, o, r -> o?.refField != null && o.refField.a <= 0 && r == -1 },
@@ -58,7 +54,6 @@ internal class ObjectWithRefFieldsExampleTest : JavaMethodTestRunner() {
     fun testWriteToArrayField() {
         checkExecutionMatches(
             ObjectWithRefFieldExample::writeToArrayField,
-            eq(3),
             { _, _, length, _ -> length < 3 },
             { _, o, length, _ -> length >= 3 && o == null },
             { _, o, length, r ->
@@ -78,7 +73,6 @@ internal class ObjectWithRefFieldsExampleTest : JavaMethodTestRunner() {
     fun testReadFromArrayField() {
         checkExecutionMatches(
             ObjectWithRefFieldExample::readFromArrayField,
-            eq(5),
             { _, o, _, _ -> o == null },
             { _, o, _, _ -> o != null && o.arrayField == null },
             { _, o, _, _ -> o?.arrayField != null && o.arrayField.size < 3 },
@@ -91,7 +85,6 @@ internal class ObjectWithRefFieldsExampleTest : JavaMethodTestRunner() {
     fun testCompareTwoDifferentObjectsFromArguments() {
         checkExecutionMatches(
             ObjectWithRefFieldExample::compareTwoDifferentObjectsFromArguments,
-            ignoreNumberOfAnalysisResults,
             { _, fst, _, _ -> fst == null },
             { _, fst, snd, _ -> fst != null && fst.x > 0 && snd == null },
             { _, fst, snd, _ -> fst != null && fst.x <= 0 && snd == null },
@@ -105,7 +98,6 @@ internal class ObjectWithRefFieldsExampleTest : JavaMethodTestRunner() {
     fun testCompareTwoObjectsWithNullRefField() {
         checkWithExceptionExecutionMatches(
             ObjectWithRefFieldExample::compareTwoObjectsWithNullRefField,
-            eq(4),
             { _, fst, _, r -> fst == null && r.isException<NullPointerException>() },
             { _, fst, snd, r -> fst != null && snd == null && r.isException<NullPointerException>() },
             { _, fst, snd, r -> fst != null && snd != null && r.getOrNull() == 1 /* && fst == snd by ref */ },
@@ -117,7 +109,6 @@ internal class ObjectWithRefFieldsExampleTest : JavaMethodTestRunner() {
     fun testCompareTwoObjectsWithDifferentRefField() {
         checkWithExceptionExecutionMatches(
             ObjectWithRefFieldExample::compareTwoObjectsWithDifferentRefField,
-            eq(4),
             { _, fst, _, _, r -> fst == null && r.isException<NullPointerException>() },
             { _, fst, snd, _, r -> fst != null && snd == null && r.isException<NullPointerException>() },
             { _, fst, snd, _, r -> fst != null && snd != null && r.getOrNull() == 1 /* fst == snd by ref */ },
@@ -129,7 +120,6 @@ internal class ObjectWithRefFieldsExampleTest : JavaMethodTestRunner() {
     fun testCompareTwoObjectsWithTheDifferentRefField() {
         checkWithExceptionExecutionMatches(
             ObjectWithRefFieldExample::compareTwoObjectsWithDifferentRefField,
-            eq(4),
             { _, fst, _, r -> fst == null && r.isException<NullPointerException>() },
             { _, fst, snd, r -> fst != null && snd == null && r.isException<NullPointerException>() },
             { _, fst, snd, r -> fst != null && snd != null && fst.refField === snd.refField && r.getOrNull() == true },
@@ -141,7 +131,6 @@ internal class ObjectWithRefFieldsExampleTest : JavaMethodTestRunner() {
     fun testCompareTwoObjectsWithTheSameRefField() {
         checkWithExceptionExecutionMatches(
             ObjectWithRefFieldExample::compareTwoObjectsWithTheSameRefField,
-            eq(4),
             { _, fst, _, r -> fst == null && r.isException<NullPointerException>() },
             { _, fst, snd, r -> fst != null && snd == null && r.isException<NullPointerException>() },
             { _, fst, snd, r -> fst != null && snd != null && r.getOrNull() == 1 /* && fst == snd by ref */ },

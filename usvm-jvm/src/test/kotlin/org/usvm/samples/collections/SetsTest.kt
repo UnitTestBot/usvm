@@ -3,10 +3,6 @@ package org.usvm.samples.collections
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
-import org.usvm.test.util.checkers.between
-import org.usvm.test.util.checkers.eq
-import org.usvm.test.util.checkers.ge
-import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 
 // TODO failed Kotlin compilation SAT-1332
@@ -15,7 +11,6 @@ internal class SetsTest : JavaMethodTestRunner() {
     fun createTest() {
         checkExecutionMatches(
             Sets::create,
-            eq(3),
             { _, a, _ -> a == null },
             { _, a, r -> a != null && a.isEmpty() && r!!.isEmpty() },
             { _, a, r -> a != null && a.isNotEmpty() && r != null && r.isNotEmpty() && r.containsAll(a.toList()) },
@@ -26,7 +21,6 @@ internal class SetsTest : JavaMethodTestRunner() {
     fun testSetContainsInteger() {
         checkExecutionMatches(
             Sets::setContainsInteger,
-            ignoreNumberOfAnalysisResults,
             { _, set, _, _, _ -> set == null },
             { _, set, a, _, r -> 1 + a in set && r != null && 1 + a !in r && set.remove(1 + a) && r == set },
             { _, set, a, _, r -> 1 + a !in set && set.isEmpty() && r == null },
@@ -39,7 +33,6 @@ internal class SetsTest : JavaMethodTestRunner() {
     fun testSetContains() {
         checkExecutionMatches(
             Sets::setContains,
-            eq(-1),
         )
     }
 
@@ -47,7 +40,6 @@ internal class SetsTest : JavaMethodTestRunner() {
     fun testSimpleContains() {
         checkExecutionMatches(
             Sets::simpleContains,
-            ignoreNumberOfAnalysisResults,
             { _, set, _ -> set == null },
             { _, set, r -> set != null && "aaa" in set && r == true },
             { _, set, r -> set != null && "aaa" !in set && r == false }
@@ -58,8 +50,7 @@ internal class SetsTest : JavaMethodTestRunner() {
     @Disabled("Same problem from testSetContains JIRA:1529")
     fun testMoreComplicatedContains() {
         checkExecutionMatches(
-            Sets::moreComplicatedContains,
-            eq(-1), // TODO how many branches do we have?
+            Sets::moreComplicatedContains, // TODO how many branches do we have?
         )
     }
 
@@ -68,7 +59,6 @@ internal class SetsTest : JavaMethodTestRunner() {
     fun testFindAllChars() {
         checkExecutionMatches(
             Sets::findAllChars,
-            eq(3),
             { _, s, _ -> s == null },
             { _, s, result -> s == "" && result!!.isEmpty() },
             { _, s, result -> s != "" && result == s.toCollection(mutableSetOf()) },
@@ -80,7 +70,6 @@ internal class SetsTest : JavaMethodTestRunner() {
         val resultFun = { set: Set<Char> -> listOf(' ', '\t', '\r', '\n').intersect(set).size }
         checkExecutionMatches(
             Sets::removeSpace,
-            ge(3),
             { _, set, _ -> set == null },
             { _, set, res -> ' ' in set && resultFun(set) == res },
             { _, set, res -> '\t' in set && resultFun(set) == res },
@@ -97,7 +86,6 @@ internal class SetsTest : JavaMethodTestRunner() {
     fun addElementsTest() {
         checkExecutionMatches(
             Sets::addElements,
-            ge(5),
             { _, set, _, _ -> set == null },
             { _, set, a, _ -> set != null && set.isNotEmpty() && a == null },
             { _, set, _, r -> set.isEmpty() && r == set },
@@ -112,7 +100,6 @@ internal class SetsTest : JavaMethodTestRunner() {
     fun removeElementsTest() {
         checkExecutionMatches(
             Sets::removeElements,
-            between(6..8),
             { _, set, _, _, _ -> set == null },
             { _, set, i, j, res -> set != null && i !in set && j !in set && res == -1 },
             { _, set, i, j, res -> set != null && set.size >= 1 && i !in set && j in set && res == 4 },
@@ -127,7 +114,6 @@ internal class SetsTest : JavaMethodTestRunner() {
     fun createWithDifferentTypeTest() {
         checkExecutionMatches(
             Sets::createWithDifferentType,
-            eq(2),
             { _, seed, r -> seed % 2 != 0 && r is java.util.LinkedHashSet },
             { _, seed, r -> seed % 2 == 0 && r !is java.util.LinkedHashSet && r is java.util.HashSet },
         )
@@ -137,7 +123,6 @@ internal class SetsTest : JavaMethodTestRunner() {
     fun removeCustomObjectTest() {
         checkExecutionMatches(
             Sets::removeCustomObject,
-            ge(4),
             { _, set, _, _ -> set == null },
             { _, set, _, result -> set.isEmpty() && result == 0 },
             { _, set, i, result -> set.isNotEmpty() && CustomClass(i) !in set && result == 0 },
@@ -149,7 +134,6 @@ internal class SetsTest : JavaMethodTestRunner() {
     fun testAddAllElements() {
         checkExecutionMatches(
             Sets::addAllElements,
-            ignoreNumberOfAnalysisResults,
             { _, set, _, _ -> set == null },
             { _, set, other, _ -> set != null && other == null },
             { _, set, other, result -> set.containsAll(other) && result == 0 },
@@ -163,7 +147,6 @@ internal class SetsTest : JavaMethodTestRunner() {
     fun testRemoveAllElements() {
             checkExecutionMatches(
                 Sets::removeAllElements,
-                ignoreNumberOfAnalysisResults,
                 { _, set, _, _ -> set == null },
                 { _, set, other, _ -> set != null && other == null },
                 { _, set, other, result -> other.all { it !in set } && result == 0 },
@@ -178,7 +161,6 @@ internal class SetsTest : JavaMethodTestRunner() {
     fun testRetainAllElements() {
         checkExecutionMatches(
             Sets::retainAllElements,
-            ge(4),
             { _, set, _, _ -> set == null },
             { _, set, other, _ -> set != null && other == null },
             { _, set, other, result -> other.containsAll(set) && result == 1 },
@@ -190,7 +172,6 @@ internal class SetsTest : JavaMethodTestRunner() {
     fun testContainsAllElements() {
         checkExecutionMatches(
             Sets::containsAllElements,
-            ge(5),
             { _, set, _, _ -> set == null },
             { _, set, other, _ -> set != null && other == null },
             { _, set, other, result -> set.isEmpty() || other.isEmpty() && result == -1 },
@@ -204,7 +185,6 @@ internal class SetsTest : JavaMethodTestRunner() {
     fun testClearElements() {
         checkExecutionMatches(
             Sets::clearElements,
-            eq(3),
             { _, set, _ -> set == null },
             { _, set, result -> set.isEmpty() && result == 0 },
             { _, set, result -> set.isNotEmpty() && result == 1 },
@@ -216,7 +196,6 @@ internal class SetsTest : JavaMethodTestRunner() {
     fun testContainsElement() {
         checkExecutionMatches(
             Sets::containsElement,
-            between(3..5),
             { _, set, _, _ -> set == null },
             { _, set, i, result -> i !in set && result == 0 },
             { _, set, i, result -> i in set && result == 1 },

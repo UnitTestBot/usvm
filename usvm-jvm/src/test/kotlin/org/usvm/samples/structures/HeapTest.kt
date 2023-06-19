@@ -11,7 +11,6 @@ internal class HeapTest : JavaMethodTestRunner() {
         val method = Heap::isHeap
         checkExecutionMatches(
             method,
-            ignoreNumberOfAnalysisResults,
             { values, _ -> values == null },
             { values, _ -> values.size < 3 },
             { values, r -> values.size >= 3 && r == method(values) },

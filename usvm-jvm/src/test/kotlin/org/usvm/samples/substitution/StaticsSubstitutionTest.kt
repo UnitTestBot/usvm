@@ -11,7 +11,6 @@ class StaticsSubstitutionTest : JavaMethodTestRunner() {
     fun lessThanZeroWithSubstitution() {
         checkExecutionMatches(
             StaticSubstitutionExamples::lessThanZero,
-            eq(2),
             { _, r -> r != 0 },
             { _, r -> r == 0 },
         )

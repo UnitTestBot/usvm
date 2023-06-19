@@ -14,7 +14,6 @@ class FutureExamplesTest : JavaMethodTestRunner() {
     fun testThrowingRunnable() {
         checkWithExceptionExecutionMatches(
             FutureExamples::throwingRunnableExample,
-            eq(1),
             { _, r -> r.isException<ExecutionException>() },
         )
     }
@@ -23,7 +22,6 @@ class FutureExamplesTest : JavaMethodTestRunner() {
     fun testResultFromGet() {
         checkExecutionMatches(
             FutureExamples::resultFromGet,
-            eq(1),
             { _, r -> r == 42 },
         )
     }
@@ -32,7 +30,6 @@ class FutureExamplesTest : JavaMethodTestRunner() {
     fun testChangingCollectionInFuture() {
         checkExecutionMatches(
             FutureExamples::changingCollectionInFuture,
-            eq(1),
             { _, r -> r == 42 },
         )
     }
@@ -41,7 +38,6 @@ class FutureExamplesTest : JavaMethodTestRunner() {
     fun testChangingCollectionInFutureWithoutGet() {
         checkExecutionMatches(
             FutureExamples::changingCollectionInFutureWithoutGet,
-            eq(1),
             { _, r -> r == 42 },
         )
     }

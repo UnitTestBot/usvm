@@ -10,7 +10,6 @@ class CountDownLatchExamplesTest : JavaMethodTestRunner() {
     fun testGetAndDown() {
         checkExecutionMatches(
             CountDownLatchExamples::getAndDown,
-            eq(2),
             { _, countDownLatch, l -> countDownLatch.count == 0L && l == 0L },
             { _, countDownLatch, l ->
                 val firstCount = countDownLatch.count

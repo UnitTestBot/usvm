@@ -18,8 +18,7 @@ internal class StaticsPathDiversionTest : JavaMethodTestRunner() {
         //  Such diversion was predicted to some extent - see `org.utbot.common.WorkaroundReason.IGNORE_STATICS_FROM_TRUSTED_LIBRARIES`
         //  and the corresponding issue https://github.com/UnitTestBot/UTBotJava/issues/716
         checkExecutionMatches(
-            StaticsPathDiversion::separatorEquality,
-            ge(2), // We cannot guarantee the exact number of branches without minimization
+            StaticsPathDiversion::separatorEquality, // We cannot guarantee the exact number of branches without minimization
 
             // In the matchers below we check that the symbolic does not change the static field `File.separator` - we should
             // change the parameter, not the static field

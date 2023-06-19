@@ -17,7 +17,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     fun testByteToString() {
         checkExecutionMatches(
             StringExamples::byteToString,
-            eq(2),
             { _, a, b, r -> a > b && r == a.toString() },
             { _, a, b, r -> a <= b && r == b.toString() },
         )
@@ -37,7 +36,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
 
         checkExecutionMatches(
             StringExamples::byteToStringWithConstants,
-            eq(1),
             { _, r -> r != null && r.indices.all { r[it] == expected[it] } }
         )
     }
@@ -46,7 +44,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     fun testReplace() {
         checkExecutionMatches(
             StringExamples::replace,
-            between(3..4),
             { _, fst, _, _ -> fst == null },
             { _, fst, snd, _ -> fst != null && snd == null },
             { _, fst, snd, r -> fst != null && snd != null && r != null && (!r.contains("abc") || snd == "abc") },
@@ -57,7 +54,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     fun testShortToString() {
         checkExecutionMatches(
             StringExamples::shortToString,
-            ignoreNumberOfAnalysisResults,
             { _, a, b, r -> a > b && r == a.toString() },
             { _, a, b, r -> a <= b && r == b.toString() },
         )
@@ -77,7 +73,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
 
         checkExecutionMatches(
             StringExamples::shortToStringWithConstants,
-            eq(1),
             { _, r -> r != null && r.indices.all { r[it] == expected[it] } }
         )
     }
@@ -86,7 +81,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     fun testIntToString() {
         checkExecutionMatches(
             StringExamples::intToString,
-            ignoreNumberOfAnalysisResults,
             { _, a, b, r -> a > b && r == a.toString() },
             { _, a, b, r -> a <= b && r == b.toString() },
         )
@@ -106,7 +100,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
 
         checkExecutionMatches(
             StringExamples::intToStringWithConstants,
-            eq(1),
             { _, r -> r != null && r.indices.all { r[it] == expected[it] } }
         )
     }
@@ -115,7 +108,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     fun testLongToString() {
         checkExecutionMatches(
             StringExamples::longToString,
-            ignoreNumberOfAnalysisResults,
             { _, a, b, r -> a > b && r == a.toString() },
             { _, a, b, r -> a <= b && r == b.toString() },
         )
@@ -135,7 +127,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
 
         checkExecutionMatches(
             StringExamples::longToStringWithConstants,
-            eq(1),
             { _, r -> r != null && r.indices.all { r[it] == expected[it] } }
         )
     }
@@ -144,7 +135,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     fun testStartsWithLiteral() {
         checkExecutionMatches(
             StringExamples::startsWithLiteral,
-            ge(4),
             { _, v, _ -> v == null },
             { _, v, r -> v != null && v.startsWith("1234567890") && r!!.startsWith("12a4567890") },
             { _, v, r -> v != null && v[0] == 'x' && r!![0] == 'x' },
@@ -156,7 +146,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     fun testBooleanToString() {
         checkExecutionMatches(
             StringExamples::booleanToString,
-            eq(2),
             { _, a, b, r -> a == b && r == "false" },
             { _, a, b, r -> a != b && r == "true" },
         )
@@ -167,7 +156,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     fun testCharToString() {
         checkExecutionMatches(
             StringExamples::charToString,
-            eq(2),
             { _, a, b, r -> a > b && r == a.toString() },
             { _, a, b, r -> a <= b && r == b.toString() },
         )
@@ -178,7 +166,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     fun testStringToByte() {
         checkExecutionMatches(
             StringExamples::stringToByte,
-            eq(-1),
         )
     }
 
@@ -186,7 +173,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     fun testStringToShort() {
         checkExecutionMatches(
             StringExamples::stringToShort,
-            eq(-1),
         )
     }
 
@@ -194,7 +180,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     fun testStringToInt() {
         checkExecutionMatches(
             StringExamples::stringToInt,
-            eq(-1),
         )
     }
 
@@ -202,7 +187,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     fun testStringToLong() {
         checkExecutionMatches(
             StringExamples::stringToLong,
-            eq(-1),
         )
     }
 
@@ -210,7 +194,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     fun testStringToBoolean() {
         checkExecutionMatches(
             StringExamples::stringToBoolean,
-            ge(2),
             { _, s, r -> (s == null || r == java.lang.Boolean.valueOf(s)) && r == false }, // minimization
             { _, s, r -> s != null && r == true && r == java.lang.Boolean.valueOf(s) },
         )
@@ -220,7 +203,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     fun testConcat() {
         checkExecutionMatches(
             StringExamples::concat,
-            between(1..2),
             { _, fst, snd, r -> (fst == null || snd == null) && r == fst + snd },
             { _, fst, snd, r -> r == fst + snd },
         )
@@ -231,7 +213,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     fun testConcatWithObject() {
         checkExecutionMatches(
             StringExamples::concatWithObject,
-            between(2..3),
             { _, pair, r -> pair == null && r == "fst.toString() = $pair" },
             { _, pair, r -> pair != null && r == "fst.toString() = $pair" }
         )
@@ -241,7 +222,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     fun testStringConstants() {
         checkExecutionMatches(
             StringExamples::stringConstants,
-            between(1..2),
             { _, s, r -> r == "String('$s')" },
         )
     }
@@ -250,7 +230,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     fun testContainsOnLiterals() {
         checkExecutionMatches(
             StringExamples::containsOnLiterals,
-            eq(1),
         )
     }
 
@@ -258,7 +237,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     fun testConcatWithInt() {
         checkExecutionMatches(
             StringExamples::concatWithInts,
-            eq(3),
             { _, a, b, r -> a == b && r == null }, // IllegalArgumentException
             { _, a, b, r -> a > b && r == "a > b, a:$a, b:$b" },
             { _, a, b, r -> a < b && r == "a < b, a:$a, b:$b" },
@@ -269,7 +247,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     fun testUseStringBuffer() {
         checkExecutionMatches(
             StringExamples::useStringBuffer,
-            between(1..2),
             { _, fst, snd, r -> r == "$fst, $snd" },
         )
     }
@@ -278,7 +255,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     fun testStringBuilderAsParameterExample() {
         checkExecutionMatches(
             StringExamples::stringBuilderAsParameterExample,
-            eq(1),
         )
     }
 
@@ -286,7 +262,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     fun testNullableStringBuffer() {
         checkWithExceptionExecutionMatches(
             StringExamples::nullableStringBuffer,
-            eq(4),
             { _, _, i, r -> i >= 0 && r.isException<NullPointerException>() },
             { _, _, i, r -> i < 0 && r.isException<NullPointerException>() },
             { _, buffer, i, r -> i >= 0 && r.getOrNull() == "${buffer}Positive" },
@@ -298,7 +273,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     fun testIsStringBuilderEmpty() {
         checkExecutionMatches(
             StringExamples::isStringBuilderEmpty,
-            eq(2),
             { _, stringBuilder, result -> result == stringBuilder.isEmpty() }
         )
     }
@@ -309,7 +283,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
         val pattern = Regex("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
         checkExecutionMatches(
             StringExamples::isValidUuid,
-            ignoreNumberOfAnalysisResults,
             { _, uuid, r -> uuid == null || uuid.isEmpty() && r == false },
             { _, uuid, r -> uuid.isNotEmpty() && uuid.isBlank() && r == false },
             { _, uuid, r -> uuid.isNotEmpty() && uuid.isNotBlank() && r == false },
@@ -323,7 +296,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
         val pattern = Regex("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
         checkExecutionMatches(
             StringExamples::isValidUuidShortVersion,
-            eq(3),
             { _, uuid, r -> uuid == null && r == false },
             { _, uuid, r -> uuid.matches(pattern) && r == true },
             { _, uuid, r -> !uuid.matches(pattern) && r == false },
@@ -334,7 +306,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     fun testSplitExample() {
         checkExecutionMatches(
             StringExamples::splitExample,
-            ignoreNumberOfAnalysisResults,
             { _, s, r -> s.all { it.isWhitespace() } && r == 0 },
             { _, s, r -> s.none { it.isWhitespace() } && r == 1 },
             { _, s, r -> s[0].isWhitespace() && s.any { !it.isWhitespace() } && r == 2 },
@@ -347,7 +318,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     fun testIsBlank() {
         checkExecutionMatches(
             StringExamples::isBlank,
-            ge(4),
             { _, cs, r -> cs == null && r == true },
             { _, cs, r -> cs.isEmpty() && r == true },
             { _, cs, r -> cs.isNotEmpty() && cs.isBlank() && r == true },
@@ -358,8 +328,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     @Test
     fun testLength() {
         checkExecutionMatches(
-            StringExamples::length,
-            eq(2), // TODO: that strange, why we haven't 3rd option?
+            StringExamples::length, // TODO: that strange, why we haven't 3rd option?
             { _, cs, r -> cs == null && r == 0 },
             { _, cs, r -> cs != null && r == cs.length },
         )
@@ -369,7 +338,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     fun testLonger() {
         checkWithExceptionExecutionMatches(
             StringExamples::longer,
-            ignoreNumberOfAnalysisResults,
             { _, _, i, r -> i <= 0 && r.isException<IllegalArgumentException>() },
             { _, cs, i, r -> i > 0 && cs == null && !r.getOrThrow() },
             { _, cs, i, r -> i > 0 && cs != null && cs.length > i && r.getOrThrow() }, // TODO: Coverage calculation fails in the instrumented process with Illegal Argument Exception
@@ -380,7 +348,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     fun testEqualChar() {
         checkWithExceptionExecutionMatches(
             StringExamples::equalChar,
-            eq(4),
             { _, cs, r -> cs == null && r.isException<NullPointerException>() },
             { _, cs, r -> cs.isEmpty() && r.isException<StringIndexOutOfBoundsException>() },
             { _, cs, r -> cs.isNotEmpty() && cs[0] == 'a' && r.getOrThrow() },
@@ -392,7 +359,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     fun testSubstring() {
         checkWithExceptionExecutionMatches(
             StringExamples::substring,
-            between(5..8),
             { _, s, _, r -> s == null && r.isException<NullPointerException>() },
             { _, s, i, r -> s != null && i < 0 || i > s.length && r.isException<StringIndexOutOfBoundsException>() },
             { _, s, i, r -> s != null && i in 0..s.length && r.getOrThrow() == s.substring(i) && s.substring(i) != "password" },
@@ -405,7 +371,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     fun testSubstringWithEndIndex() {
         checkWithExceptionExecutionMatches(
             StringExamples::substringWithEndIndex,
-            ignoreNumberOfAnalysisResults,
             { _, s, _, _, r -> s == null && r.isException<NullPointerException>() },
             { _, s, b, e, r -> s != null && b < 0 || e > s.length || b > e && r.isException<StringIndexOutOfBoundsException>() },
             { _, s, b, e, r -> r.getOrThrow() == s.substring(b, e) && s.substring(b, e) != "password" },
@@ -423,7 +388,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     fun testSubstringWithEndIndexNotEqual() {
         checkWithExceptionExecutionMatches(
             StringExamples::substringWithEndIndexNotEqual,
-            ignoreNumberOfAnalysisResults,
             { _, s, _, r -> s == null && r.isException<NullPointerException>() },
             { _, s, e, r -> s != null && e < 1 || e > s.length && r.isException<StringIndexOutOfBoundsException>() },
             { _, s, e, r -> s != null && r.getOrThrow() == s.substring(1, e) },
@@ -434,7 +398,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     fun testFullSubstringEquality() {
         checkWithExceptionExecutionMatches(
             StringExamples::fullSubstringEquality,
-            eq(2),
             { _, s, r -> s == null && r.isException<NullPointerException>() },
             { _, s, r -> s != null && r.getOrThrow() },
         )
@@ -445,7 +408,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     fun testUseIntern() {
         checkWithExceptionExecutionMatches(
             StringExamples::useIntern,
-            eq(3),
             { _, s, r -> s == null && r.isException<NullPointerException>() },
             { _, s, r -> s != null && s != "abc" && r.getOrThrow() == 1 },
             { _, s, r -> s != null && s == "abc" && r.getOrThrow() == 3 },
@@ -456,7 +418,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     fun testPrefixAndSuffix() {
         checkExecutionMatches(
             StringExamples::prefixAndSuffix,
-            eq(6),
             { _, s, _ -> s == null }, // NullPointerException
             { _, s, r -> s.length != 5 && r == 0 },
             { _, s, r -> s.length == 5 && !s.startsWith("ab") && r == 1 },
@@ -470,7 +431,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     fun testPrefixWithTwoArgs() {
         checkWithExceptionExecutionMatches(
             StringExamples::prefixWithTwoArgs,
-            between(3..4),
             { _, s, r -> s == null && r.isException<NullPointerException>() },
             { _, s, r -> s != null && s.startsWith("abc", 1) && r.getOrThrow() == 1 },
             { _, s, r -> s != null && !s.startsWith("abc", 1) && r.getOrThrow() == 2 },
@@ -480,8 +440,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     @Test
     fun testPrefixWithOffset() {
         checkExecutionMatches(
-            StringExamples::prefixWithOffset,
-            eq(4), // should be 4, but path selector eliminates several results with false
+            StringExamples::prefixWithOffset, // should be 4, but path selector eliminates several results with false
             { _, o, r -> o < 0 && r == 2 },
             { _, o, r -> o > "babc".length - "abc".length && r == 2 },
             { _, o, r -> o in 0..1 && !"babc".startsWith("abc", o) && r == 2 },
@@ -493,7 +452,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     fun testStartsWith() {
         checkExecutionMatches(
             StringExamples::startsWith,
-            between(5..6),
             { _, _, prefix, _ -> prefix == null },
             { _, _, prefix, _ -> prefix != null && prefix.length < 2 },
             { _, s, prefix, _ -> prefix != null && prefix.length >= 2 && s == null },
@@ -507,7 +465,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     fun testStartsWithOffset() {
         checkExecutionMatches(
             StringExamples::startsWithOffset,
-            between(6..10),
             { _, _, prefix, _, _ -> prefix == null },
             { _, _, prefix, _, _ -> prefix != null && prefix.length < 2 },
             { _, s, prefix, _, _ -> prefix != null && prefix.length >= 2 && s == null },
@@ -527,7 +484,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     fun testEndsWith() {
         checkExecutionMatches(
             StringExamples::endsWith,
-            between(5..6),
             { _, _, suffix, _ -> suffix == null },
             { _, _, suffix, _ -> suffix != null && suffix.length < 2 },
             { _, s, suffix, _ -> suffix != null && suffix.length >= 2 && s == null },
@@ -541,7 +497,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     fun testReplaceAll() {
         checkWithExceptionExecutionMatches(
             StringExamples::replaceAll,
-            eq(4),
             { _, s, _, _, r -> s == null && r.isException<NullPointerException>() },
             { _, s, regex, _, r -> s != null && regex == null && r.isException<NullPointerException>() },
             { _, s, regex, replacement, r -> s != null && regex != null && replacement == null && r.isException<NullPointerException>() },
@@ -555,7 +510,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     fun testLastIndexOf() {
         checkExecutionMatches(
             StringExamples::lastIndexOf,
-            between(5..7),
             { _, s, _, _ -> s == null },
             { _, s, find, _ -> s != null && find == null },
             { _, s, find, r -> r == s.lastIndexOf(find) && r == s.length - find.length },
@@ -568,7 +522,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     fun testIndexOfWithOffset() {
         checkExecutionMatches(
             StringExamples::indexOfWithOffset,
-            between(5..9),
             { _, s, _, _, _ -> s == null },
             { _, s, find, _, _ -> s != null && find == null },
             { _, s, find, offset, r -> r == s.indexOf(find, offset) && r > offset && offset > 0 },
@@ -582,7 +535,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     fun testLastIndexOfWithOffset() {
         checkExecutionMatches(
             StringExamples::lastIndexOfWithOffset,
-            between(5..9),
             { _, s, _, _, _ -> s == null },
             { _, s, find, _, _ -> s != null && find == null },
             { _, s, find, i, r -> r == s.lastIndexOf(find, i) && r >= 0 && r < i - find.length && i < s.length },
@@ -595,7 +547,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     fun testCompareCodePoints() {
         checkWithExceptionExecutionMatches(
             StringExamples::compareCodePoints,
-            between(8..10),
             { _, s, _, _, r -> s == null && r.isException<NullPointerException>() },
             { _, s, _, i, r -> s != null && i < 0 || i >= s.length && r.isException<StringIndexOutOfBoundsException>() },
             { _, s, t, _, r -> s != null && t == null && r.isException<NullPointerException>() },
@@ -611,7 +562,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     fun testToCharArray() {
         checkExecutionMatches(
             StringExamples::toCharArray,
-            eq(2),
             { _, s, _ -> s == null },
             { _, s, r -> s.toCharArray().contentEquals(r) }
         )
@@ -621,7 +571,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     fun testGetObj() {
         checkExecutionMatches(
             StringExamples::getObj,
-            eq(1),
             { _, obj, r -> obj == r }
         )
     }
@@ -630,7 +579,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     fun testGetObjWithCondition() {
         checkExecutionMatches(
             StringExamples::getObjWithCondition,
-            between(3..4),
             { _, obj, r -> obj == null && r == "null" },
             { _, obj, r -> obj != null && obj == "BEDA" && r == "48858" },
             { _, obj, r -> obj != null && obj != "BEDA" && obj == r }
@@ -641,7 +589,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     fun testEqualsIgnoreCase() {
         checkExecutionMatches(
             StringExamples::equalsIgnoreCase,
-            ignoreNumberOfAnalysisResults,
             { _, s, r -> "SUCCESS".equals(s, ignoreCase = true) && r == "success" },
             { _, s, r -> !"SUCCESS".equals(s, ignoreCase = true) && r == "failure" },
         )
@@ -651,7 +598,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     fun testListToString() {
         checkExecutionMatches(
             StringExamples::listToString,
-            eq(1),
             { _, r -> r == "[a, b, c]" },
         )
     }

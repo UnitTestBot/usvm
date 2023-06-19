@@ -13,7 +13,6 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
     fun testSet() {
         checkExecutionMatches(
             LinkedLists::set,
-            eq(3),
             { _, l, _ -> l == null },
             { _, l, _ -> l.size <= 2 },
             { _, l, r -> l.size > 2 && r == 1 },
@@ -24,7 +23,6 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
     fun testOffer() {
         checkExecutionMatches(
             LinkedLists::offer,
-            eq(3),
             { _, l, _ -> l == null },
             { _, l, r -> l != null && l.size <= 1 && r == l },
             { _, l, r -> l != null && l.size > 1 && r == l + 1 },
@@ -35,7 +33,6 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
     fun testOfferLast() {
         checkExecutionMatches(
             LinkedLists::offerLast,
-            eq(3),
             { _, l, _ -> l == null },
             { _, l, r -> l != null && l.size <= 1 && r == l },
             { _, l, r -> l != null && l.size > 1 && r == l + 1 },
@@ -47,7 +44,6 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
     fun testAddLast() {
         checkExecutionMatches(
             LinkedLists::addLast,
-            eq(3),
             { _, l, _ -> l == null },
             { _, l, r -> l != null && l.size <= 1 && r == l },
             { _, l, r -> l != null && l.size > 1 && (r == l + 1) },
@@ -58,7 +54,6 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
     fun testPush() {
         checkExecutionMatches(
             LinkedLists::push,
-            eq(3),
             { _, l, _ -> l == null },
             { _, l, r -> l != null && l.size <= 1 && r == l },
             { _, l, r -> l != null && l.size > 1 && r == listOf(1) + l },
@@ -69,7 +64,6 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
     fun testOfferFirst() {
         checkExecutionMatches(
             LinkedLists::offerFirst,
-            eq(3),
             { _, l, _ -> l == null },
             { _, l, r -> l != null && l.size <= 1 && r == l },
             { _, l, r -> l != null && l.size > 1 && r == listOf(1) + l },
@@ -80,7 +74,6 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
     fun testAddFirst() {
         checkExecutionMatches(
             LinkedLists::addFirst,
-            eq(3),
             { _, l, _ -> l == null },
             { _, l, r -> l != null && l.size <= 1 && r == l },
             { _, l, r -> l != null && l.size > 1 && r!!.size == l.size + 1 && r[0] == 1 },
@@ -91,7 +84,6 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
     fun testPeek() {
         checkWithExceptionExecutionMatches(
             LinkedLists::peek,
-            eq(3),
             { _, l, _ -> l == null },
             { _, l, r -> l != null && (l.isEmpty() || l.first() == null) && r.isException<NullPointerException>() },
             { _, l, r -> l != null && l.isNotEmpty() && r.getOrNull() == l[0] },
@@ -102,7 +94,6 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
     fun testPeekFirst() {
         checkWithExceptionExecutionMatches(
             LinkedLists::peekFirst,
-            eq(3),
             { _, l, _ -> l == null },
             { _, l, r -> l != null && (l.isEmpty() || l.first() == null) && r.isException<NullPointerException>() },
             { _, l, r -> l != null && l.isNotEmpty() && r.getOrNull() == l[0] },
@@ -113,7 +104,6 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
     fun testPeekLast() {
         checkWithExceptionExecutionMatches(
             LinkedLists::peekLast,
-            eq(3),
             { _, l, _ -> l == null },
             { _, l, r -> l != null && (l.isEmpty() || l.last() == null) && r.isException<NullPointerException>() },
             { _, l, r -> l != null && l.isNotEmpty() && r.getOrNull() == l.last() },
@@ -124,7 +114,6 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
     fun testElement() {
         checkWithExceptionExecutionMatches(
             LinkedLists::element,
-            eq(4),
             { _, l, _ -> l == null },
             { _, l, r -> l != null && l.isEmpty() && r.isException<NoSuchElementException>() },
             { _, l, r -> l != null && l.isNotEmpty() && l[0] == null && r.isException<NullPointerException>() },
@@ -136,7 +125,6 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
     fun testGetFirst() {
         checkWithExceptionExecutionMatches(
             LinkedLists::getFirst,
-            eq(4),
             { _, l, _ -> l == null },
             { _, l, r -> l != null && l.isEmpty() && r.isException<NoSuchElementException>() },
             { _, l, _ -> l != null && l.isNotEmpty() && l[0] == null },
@@ -148,7 +136,6 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
     fun testGetLast() {
         checkWithExceptionExecutionMatches(
             LinkedLists::getLast,
-            eq(4),
             { _, l, _ -> l == null },
             { _, l, r -> l != null && l.isEmpty() && r.isException<NoSuchElementException>() },
             { _, l, _ -> l != null && l.isNotEmpty() && l.last() == null },
@@ -160,7 +147,6 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
     fun testPoll() {
         checkWithExceptionExecutionMatches(
             LinkedLists::poll,
-            eq(5),
             { _, l, _ -> l == null },
             { _, l, r -> l != null && l.isEmpty() && r.isException<NullPointerException>() },
             { _, l, r -> l != null && l.size == 1 && r.getOrNull() == l },
@@ -173,7 +159,6 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
     fun testPollFirst() {
         checkWithExceptionExecutionMatches(
             LinkedLists::pollFirst,
-            eq(5),
             { _, l, _ -> l == null },
             { _, l, r -> l != null && l.isEmpty() && r.isException<NullPointerException>() },
             { _, l, r -> l != null && l.size == 1 && r.getOrNull() == l },
@@ -186,7 +171,6 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
     fun testPollLast() {
         checkWithExceptionExecutionMatches(
             LinkedLists::pollLast,
-            eq(5),
             { _, l, _ -> l == null },
             { _, l, r -> l != null && l.isEmpty() && r.isException<NullPointerException>() },
             { _, l, r -> l != null && l.size == 1 && r.getOrNull() == l },
@@ -199,7 +183,6 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
     fun testRemove() {
         checkWithExceptionExecutionMatches(
             LinkedLists::removeFirst,
-            eq(5),
             { _, l, _ -> l == null },
             { _, l, r -> l != null && l.isEmpty() && r.isException<NoSuchElementException>() },
             { _, l, r -> l != null && l.size == 1 && r.getOrNull() == l },
@@ -212,7 +195,6 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
     fun testRemoveFirst() {
         checkWithExceptionExecutionMatches(
             LinkedLists::removeFirst,
-            eq(5),
             { _, l, _ -> l == null },
             { _, l, r -> l != null && l.isEmpty() && r.isException<NoSuchElementException>() },
             { _, l, r -> l != null && l.size == 1 && r.getOrNull() == l },
@@ -225,7 +207,6 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
     fun testRemoveLast() {
         checkWithExceptionExecutionMatches(
             LinkedLists::removeLast,
-            eq(5),
             { _, l, _ -> l == null },
             { _, l, r -> l != null && l.isEmpty() && r.isException<NoSuchElementException>() },
             { _, l, r -> l != null && l.size == 1 && r.getOrNull() == l },

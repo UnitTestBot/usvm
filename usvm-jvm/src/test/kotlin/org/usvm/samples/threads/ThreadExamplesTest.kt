@@ -14,7 +14,6 @@ class ThreadExamplesTest : JavaMethodTestRunner() {
     fun testExceptionInStart() {
         checkWithExceptionExecutionMatches(
             ThreadExamples::explicitExceptionInStart,
-            ignoreNumberOfAnalysisResults,
             { _, r -> r.isException<IllegalStateException>() }
         )
     }
@@ -23,7 +22,6 @@ class ThreadExamplesTest : JavaMethodTestRunner() {
     fun testChangingCollectionInThread() {
         checkExecutionMatches(
             ThreadExamples::changingCollectionInThread,
-            ignoreNumberOfAnalysisResults,
             { _, r -> r == 42 },
         )
     }
@@ -32,7 +30,6 @@ class ThreadExamplesTest : JavaMethodTestRunner() {
     fun testChangingCollectionInThreadWithoutStart() {
         checkWithExceptionExecutionMatches(
             ThreadExamples::changingCollectionInThreadWithoutStart,
-            ignoreNumberOfAnalysisResults,
             { _, r -> r.isException<IndexOutOfBoundsException>() },
         )
     }

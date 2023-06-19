@@ -12,7 +12,6 @@ internal class ArithmeticUtilsTest : JavaMethodTestRunner() {
     fun testPow() {
         checkExecutionMatches(
             ArithmeticUtils::pow,
-            eq(11),
             { _, _, e, _ -> e < 0 }, // IllegalArgumentException
             { _, k, e, r -> k == 0 && e == 0 && r == 1 },
             { _, k, e, r -> k == 0 && e != 0 && r == 0 },

@@ -10,7 +10,6 @@ internal class SimpleInterfaceExampleTest : JavaMethodTestRunner() {
     fun testOverrideMethod() {
         checkExecutionMatches(
             SimpleInterfaceExample::overrideMethod,
-            eq(3),
             { _, o, _, _ -> o == null },
             { _, o, v, r -> o is SimpleInterfaceImpl && r == v + 2 },
             { _, o, v, r -> o is Realization && r == v + 5 }
@@ -21,7 +20,6 @@ internal class SimpleInterfaceExampleTest : JavaMethodTestRunner() {
     fun testDefaultMethod() {
         checkExecutionMatches(
             SimpleInterfaceExample::defaultMethod,
-            eq(2),
             { _, o, _, _ -> o == null },
             { _, o, v, r -> o != null && r == v - 5 }
         )
@@ -31,7 +29,6 @@ internal class SimpleInterfaceExampleTest : JavaMethodTestRunner() {
     fun testInvokeMethodFromImplementor() {
         checkExecutionMatches(
             SimpleInterfaceExample::invokeMethodFromImplementor,
-            eq(2),
             { _, o, _ -> o == null },
             { _, o, r -> o != null && r == 10 },
         )

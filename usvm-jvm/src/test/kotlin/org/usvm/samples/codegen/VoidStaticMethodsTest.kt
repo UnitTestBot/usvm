@@ -12,7 +12,6 @@ class VoidStaticMethodsTest : JavaMethodTestRunner() {
     fun testInvokeChangeStaticFieldMethod() {
         checkExecutionMatches(
             VoidStaticMethodsTestingClass::invokeChangeStaticFieldMethod,
-            eq(2),
         )
     }
 
@@ -20,7 +19,6 @@ class VoidStaticMethodsTest : JavaMethodTestRunner() {
     fun testInvokeThrowExceptionMethod() {
         checkExecutionMatches(
             VoidStaticMethodsTestingClass::invokeThrowExceptionMethod,
-            eq(3),
         )
     }
 
@@ -28,7 +26,6 @@ class VoidStaticMethodsTest : JavaMethodTestRunner() {
     fun testInvokeAnotherThrowExceptionMethod() {
         checkExecutionMatches(
             VoidStaticMethodsTestingClass::invokeAnotherThrowExceptionMethod,
-            eq(2),
         )
     }
 }

@@ -1,6 +1,6 @@
 // TODO unsupported
 
-//package org.usvm.samplesmake.symbolic
+//package org.usvm.samples.make.symbolic
 //
 //import org.junit.jupiter.api.Disabled
 //import org.junit.jupiter.api.Test

@@ -13,7 +13,6 @@ internal class VirtualInvokeExampleTest : JavaMethodTestRunner() {
     fun testSimpleVirtualInvoke() {
         checkWithExceptionExecutionMatches(
             VirtualInvokeExample::simpleVirtualInvoke,
-            eq(3),
             { _, v, r -> v < 0 && r.getOrNull() == -2 },
             { _, v, r -> v == 0 && r.isException<RuntimeException>() },
             { _, v, r -> v > 0 && r.getOrNull() == 1 },
@@ -24,7 +23,6 @@ internal class VirtualInvokeExampleTest : JavaMethodTestRunner() {
     fun testVirtualNative() {
         checkExecutionMatches(
             VirtualInvokeExample::virtualNative,
-            eq(1),
             { _, r -> r == Boolean::class.java.modifiers }
         )
     }
@@ -33,7 +31,6 @@ internal class VirtualInvokeExampleTest : JavaMethodTestRunner() {
     fun testGetSigners() {
         checkExecutionMatches(
             VirtualInvokeExample::virtualNativeArray,
-            eq(1),
         )
     }
 
@@ -41,7 +38,6 @@ internal class VirtualInvokeExampleTest : JavaMethodTestRunner() {
     fun testObjectFromOutside() {
         checkWithExceptionExecutionMatches(
             VirtualInvokeExample::objectFromOutside,
-            eq(7),
             { _, o, _, r -> o == null && r.isException<NullPointerException>() },
             { _, o, v, r -> o != null && o is VirtualInvokeClassSucc && v < 0 && r.getOrNull() == -1 },
             { _, o, v, r -> o != null && o is VirtualInvokeClassSucc && v == 0 && r.getOrNull() == 0 },
@@ -56,7 +52,6 @@ internal class VirtualInvokeExampleTest : JavaMethodTestRunner() {
     fun testDoubleCall() {
         checkExecutionMatches(
             VirtualInvokeExample::doubleCall,
-            eq(2),
             { _, obj, _ -> obj == null },
             { _, obj, r -> obj != null && obj.returnX(obj) == r },
         )
@@ -66,7 +61,6 @@ internal class VirtualInvokeExampleTest : JavaMethodTestRunner() {
     fun testYetAnotherObjectFromOutside() {
         checkWithExceptionExecutionMatches(
             VirtualInvokeExample::yetAnotherObjectFromOutside,
-            eq(3),
             { _, o, r -> o == null && r.isException<NullPointerException>() },
             { _, o, r -> o != null && o !is VirtualInvokeClassSucc && r.getOrNull() == 1 },
             { _, o, r -> o != null && o is VirtualInvokeClassSucc && r.getOrNull() == 2 },
@@ -77,7 +71,6 @@ internal class VirtualInvokeExampleTest : JavaMethodTestRunner() {
     fun testTwoObjects() {
         checkWithExceptionExecutionMatches(
             VirtualInvokeExample::twoObjects,
-            eq(3),
             { _, o, r -> o == null && r.isException<NullPointerException>() },
             { _, o, r -> o != null && o is VirtualInvokeClassSucc && r.getOrNull() == 1 },
             { _, o, r -> o != null && o !is VirtualInvokeClassSucc && r.getOrNull() == 2 },
@@ -88,7 +81,6 @@ internal class VirtualInvokeExampleTest : JavaMethodTestRunner() {
     fun testNestedVirtualInvoke() {
         checkWithExceptionExecutionMatches(
             VirtualInvokeExample::nestedVirtualInvoke,
-            eq(3),
             { _, o, r -> o == null && r.isException<NullPointerException>() },
             { _, o, r -> o != null && o !is VirtualInvokeClassSucc && r.getOrNull() == 1 },
             { _, o, r -> o != null && o is VirtualInvokeClassSucc && r.getOrNull() == 2 },
@@ -99,7 +91,6 @@ internal class VirtualInvokeExampleTest : JavaMethodTestRunner() {
     fun testAbstractClassInstanceFromOutsideWithoutOverrideMethods() {
         checkExecutionMatches(
             VirtualInvokeExample::abstractClassInstanceFromOutsideWithoutOverrideMethods,
-            eq(2),
             { _, o, _ -> o == null },
             { _, o, r -> o is VirtualInvokeAbstractClassSucc && r == 1 },
         )
@@ -109,7 +100,6 @@ internal class VirtualInvokeExampleTest : JavaMethodTestRunner() {
     fun testAbstractClassInstanceFromOutside() {
         checkExecutionMatches(
             VirtualInvokeExample::abstractClassInstanceFromOutside,
-            eq(2),
             { _, o, _ -> o == null },
             { _, o, r -> o is VirtualInvokeAbstractClassSucc && r == 2 },
         )
@@ -119,7 +109,6 @@ internal class VirtualInvokeExampleTest : JavaMethodTestRunner() {
     fun testNullValueInReturnValue() {
         checkExecutionMatches(
             VirtualInvokeExample::nullValueInReturnValue,
-            eq(3),
             { _, o, _ -> o == null },
             { _, o, _ -> o is VirtualInvokeClassSucc },
             { _, o, r -> o is VirtualInvokeClass && r == 10L },
@@ -130,7 +119,6 @@ internal class VirtualInvokeExampleTest : JavaMethodTestRunner() {
     fun testQuasiImplementationInvoke() {
         checkExecutionMatches(
             VirtualInvokeExample::quasiImplementationInvoke,
-            eq(1),
             { _, result -> result == 0 },
         )
     }

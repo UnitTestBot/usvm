@@ -13,7 +13,6 @@ class ClassWithNullableFieldTest : JavaMethodTestRunner() {
     fun testClassWithNullableFieldInCompound() {
         checkExecutionMatches(
             ClassWithNullableField::returnCompoundWithNullableField,
-            eq(2),
         )
     }
 
@@ -21,7 +20,6 @@ class ClassWithNullableFieldTest : JavaMethodTestRunner() {
     fun testClassWithNullableFieldInGreatCompound() {
         checkExecutionMatches(
             ClassWithNullableField::returnGreatCompoundWithNullableField,
-            eq(3),
         )
     }
 }

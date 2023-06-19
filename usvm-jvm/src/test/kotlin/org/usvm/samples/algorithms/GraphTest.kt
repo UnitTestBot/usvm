@@ -3,8 +3,6 @@ package org.usvm.samples.algorithms
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
-import org.usvm.test.util.checkers.eq
-import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import org.usvm.util.isException
 
 
@@ -14,7 +12,6 @@ internal class GraphTest : JavaMethodTestRunner() {
     fun testRunFindCycle() {
         checkWithExceptionExecutionMatches(
             GraphExample::runFindCycle,
-            ignoreNumberOfAnalysisResults,
             { _, e, r -> e == null && r.isException<NullPointerException>() },
             { _, e, r -> e != null && e.contains(null) && r.isException<NullPointerException>() },
             { _, e, r -> e != null && e.any { it.first < 0 || it.first >= 10 } && r.isException<ArrayIndexOutOfBoundsException>() },
@@ -28,7 +25,6 @@ internal class GraphTest : JavaMethodTestRunner() {
         // The graph is fixed, there should be exactly one execution path, so no matchers are necessary
         checkExecutionMatches(
             GraphExample::runDijkstra,
-            eq(1),
             { _, i, r -> r.contentEquals(GraphExample().runDijkstra(i)) }
         )
     }
@@ -41,7 +37,6 @@ internal class GraphTest : JavaMethodTestRunner() {
     fun testRunDijkstraWithParameter() {
         checkWithExceptionExecutionMatches(
             GraphExample::runDijkstraWithParameter,
-            ignoreNumberOfAnalysisResults,
             { _, g, r -> g == null && r.isException<NullPointerException>() },
             { _, g, r -> g.isEmpty() && r.isException<IndexOutOfBoundsException>() },
             { _, g, r -> g.size == 1 && r.getOrNull()?.size == 1 && r.getOrNull()?.first() == 0 },

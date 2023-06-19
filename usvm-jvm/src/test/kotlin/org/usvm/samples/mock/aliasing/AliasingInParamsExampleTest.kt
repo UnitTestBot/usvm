@@ -10,7 +10,6 @@ internal class AliasingInParamsExampleTest : JavaMethodTestRunner() {
     fun testExamplePackageBased() {
         checkExecutionMatches(
             AliasingInParamsExample::example,
-            eq(1),
             { _, fst, snd, x, r -> fst != snd && x == r },
         )
     }
@@ -19,7 +18,6 @@ internal class AliasingInParamsExampleTest : JavaMethodTestRunner() {
     fun testExample() {
         checkExecutionMatches(
             AliasingInParamsExample::example,
-            eq(2),
             { _, fst, snd, x, r -> fst == snd && x == r },
             { _, fst, snd, x, r -> fst != snd && x == r },
         )

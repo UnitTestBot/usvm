@@ -3,9 +3,6 @@ package org.usvm.samples.collections
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
-import org.usvm.test.util.checkers.between
-import org.usvm.test.util.checkers.eq
-import org.usvm.test.util.checkers.ge
 import org.usvm.util.isException
 
 
@@ -15,7 +12,6 @@ internal class ListsPart3Test : JavaMethodTestRunner() {
     fun createTest() {
         checkExecutionMatches(
             Lists::create,
-            eq(3),
             { _, a, _ -> a == null },
             { _, a, r -> a != null && a.isEmpty() && r!!.isEmpty() },
             { _, a, r -> a != null && a.isNotEmpty() && r != null && r.isNotEmpty() && a.toList() == r.also { println(r) } },
@@ -26,7 +22,6 @@ internal class ListsPart3Test : JavaMethodTestRunner() {
     fun testBigListFromParameters() {
         checkExecutionMatches(
             Lists::bigListFromParameters,
-            eq(1),
             { _, list, r -> list.size == r && list.size == 11 },
         )
     }
@@ -35,7 +30,6 @@ internal class ListsPart3Test : JavaMethodTestRunner() {
     fun testGetNonEmptyCollection() {
         checkExecutionMatches(
             Lists::getNonEmptyCollection,
-            eq(3),
             { _, collection, _ -> collection == null },
             { _, collection, r -> collection.isEmpty() && r == null },
             { _, collection, r -> collection.isNotEmpty() && collection == r },
@@ -46,7 +40,6 @@ internal class ListsPart3Test : JavaMethodTestRunner() {
     fun testGetFromAnotherListToArray() {
         checkExecutionMatches(
             Lists::getFromAnotherListToArray,
-            eq(4),
             { _, l, _ -> l == null },
             { _, l, _ -> l.isEmpty() },
             { _, l, r -> l[0] == null && r == null },
@@ -58,7 +51,6 @@ internal class ListsPart3Test : JavaMethodTestRunner() {
     fun addElementsTest() {
         checkExecutionMatches(
             Lists::addElements,
-            eq(5),
             { _, list, _, _ -> list == null },
             { _, list, a, _ -> list != null && list.size >= 2 && a == null },
             { _, list, _, r -> list.size < 2 && r == list },
@@ -78,7 +70,6 @@ internal class ListsPart3Test : JavaMethodTestRunner() {
     fun removeElementsTest() {
         checkWithExceptionExecutionMatches(
             Lists::removeElements,
-            between(7..8),
             { _, list, _, _, r -> list == null && r.isException<NullPointerException>() },
             { _, list, i, _, r -> list != null && i < 0 && r.isException<IndexOutOfBoundsException>() },
             { _, list, i, _, r -> list != null && i >= 0 && list.size > i && list[i] == null && r.isException<NullPointerException>() },
@@ -127,7 +118,6 @@ internal class ListsPart3Test : JavaMethodTestRunner() {
     fun createArrayWithDifferentTypeTest() {
         checkExecutionMatches(
             Lists::createWithDifferentType,
-            eq(2),
             { _, x, r -> x % 2 != 0 && r is java.util.LinkedList && r == List(4) { it } },
             { _, x, r -> x % 2 == 0 && r is java.util.ArrayList && r == List(4) { it } },
         )
@@ -137,7 +127,6 @@ internal class ListsPart3Test : JavaMethodTestRunner() {
     fun getElementsTest() {
         checkExecutionMatches(
             Lists::getElements,
-            eq(4),
             { _, x, _ -> x == null },
             { _, x, r -> x != null && x.isEmpty() && r!!.isEmpty() },
             { _, x, _ -> x != null && x.isNotEmpty() && x.any { it == null } },
@@ -149,7 +138,6 @@ internal class ListsPart3Test : JavaMethodTestRunner() {
     fun setElementsTest() {
         checkExecutionMatches(
             Lists::setElements,
-            eq(3),
             { _, x, _ -> x == null },
             { _, x, r -> x != null && x.isEmpty() && r!!.isEmpty() },
             { _, x, r -> x != null && x.isNotEmpty() && r!!.containsAll(x.toList()) && r.size == x.size },
@@ -160,7 +148,6 @@ internal class ListsPart3Test : JavaMethodTestRunner() {
     fun testClear() {
         checkExecutionMatches(
             Lists::clear,
-            eq(3),
             { _, list, _ -> list == null },
             { _, list, r -> list.size >= 2 && r == emptyList<Int>() },
             { _, list, r -> list.size < 2 && r == emptyList<Int>() },
@@ -171,7 +158,6 @@ internal class ListsPart3Test : JavaMethodTestRunner() {
     fun testAddAll() {
         checkExecutionMatches(
             Lists::addAll,
-            eq(3),
             { _, list, _, _ -> list == null },
             { _, list, i, r ->
                 list != null && list.isEmpty() && r != null && r.size == 1 && r[0] == i
@@ -186,7 +172,6 @@ internal class ListsPart3Test : JavaMethodTestRunner() {
     fun testAddAllInIndex() {
         checkExecutionMatches(
             Lists::addAllByIndex,
-            eq(4),
             { _, list, i, _ -> list == null && i >= 0 },
             { _, list, i, _ -> list == null && i < 0 },
             { _, list, i, r -> list != null && i >= list.size && r == list },
@@ -200,7 +185,6 @@ internal class ListsPart3Test : JavaMethodTestRunner() {
     fun testAsListExample() {
         checkExecutionMatches(
             Lists::asListExample,
-            eq(2),
             { _, arr, r -> arr.isEmpty() && r!!.isEmpty() },
             { _, arr, r -> arr.isNotEmpty() && arr.contentEquals(r!!.toTypedArray()) },
         )
@@ -211,7 +195,6 @@ internal class ListsPart3Test : JavaMethodTestRunner() {
     fun testRemoveFromList() {
         checkWithExceptionExecutionMatches(
             Lists::removeFromList,
-            ge(4),
             { _, list, _, r -> list == null && r.isException<NullPointerException>() },
             { _, list, _, r -> list != null && list.isEmpty() && r.isException<IndexOutOfBoundsException>() },
             { _, list, i, r ->

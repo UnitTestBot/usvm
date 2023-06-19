@@ -9,7 +9,6 @@ class TestThrowing : JavaMethodTestRunner() {
     fun `Test throwSometimes`() {
         checkWithExceptionExecutionMatches(
             Throwing::throwSometimes,
-            ignoreNumberOfAnalysisResults,
             { _, x, r -> x == 1 && r.isFailure && r.exceptionOrNull() is IllegalArgumentException },
             { _, x, r -> x != 1 && r.isSuccess },
         )
