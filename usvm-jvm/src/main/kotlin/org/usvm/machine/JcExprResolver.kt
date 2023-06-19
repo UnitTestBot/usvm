@@ -3,6 +3,7 @@ package org.usvm.machine
 import io.ksmt.expr.KBitVec32Value
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
+import org.jacodb.api.JcMethod
 import org.jacodb.api.JcRefType
 import org.jacodb.api.JcTypedField
 import org.jacodb.api.JcTypedMethod
@@ -79,7 +80,7 @@ import org.usvm.URegisterLValue
 import org.usvm.USizeExpr
 import org.usvm.USizeSort
 import org.usvm.USort
-import org.usvm.machine.operator.JcBinOperator
+import org.usvm.machine.operator.JcBinaryOperator
 import org.usvm.machine.operator.JcUnaryOperator
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.addNewMethodCall
@@ -90,7 +91,7 @@ class JcExprResolver(
     private val ctx: JcContext,
     private val scope: JcStepScope,
     private val applicationGraph: JcApplicationGraph,
-    private val localToIdx: (JcTypedMethod, JcLocal) -> Int,
+    private val localToIdx: (JcMethod, JcLocal) -> Int,
     private val hardMaxArrayLength: Int = 1_500,
 ) : JcExprVisitor<UExpr<out USort>?> {
     /**
@@ -118,24 +119,24 @@ class JcExprResolver(
     //binary operators
 
     override fun visitJcAddExpr(expr: JcAddExpr): UExpr<out USort>? =
-        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinOperator.Add(lhs, rhs) }
+        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinaryOperator.Add(lhs, rhs) }
 
     override fun visitJcSubExpr(expr: JcSubExpr): UExpr<out USort>? =
-        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinOperator.Sub(lhs, rhs) }
+        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinaryOperator.Sub(lhs, rhs) }
 
     override fun visitJcMulExpr(expr: JcMulExpr): UExpr<out USort>? =
-        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinOperator.Mul(lhs, rhs) }
+        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinaryOperator.Mul(lhs, rhs) }
 
     override fun visitJcDivExpr(expr: JcDivExpr): UExpr<out USort>? =
         resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs ->
             checkDivisionByZero(rhs) ?: return null
-            JcBinOperator.Div(lhs, rhs)
+            JcBinaryOperator.Div(lhs, rhs)
         }
 
     override fun visitJcRemExpr(expr: JcRemExpr): UExpr<out USort>? =
         resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs ->
             checkDivisionByZero(rhs) ?: return null
-            JcBinOperator.Rem(lhs, rhs)
+            JcBinaryOperator.Rem(lhs, rhs)
         }
 
     override fun visitJcShlExpr(expr: JcShlExpr): UExpr<out USort> = with(ctx) {
@@ -151,20 +152,20 @@ class JcExprResolver(
     }
 
     override fun visitJcOrExpr(expr: JcOrExpr): UExpr<out USort>? =
-        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinOperator.Or(lhs, rhs) }
+        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinaryOperator.Or(lhs, rhs) }
 
     override fun visitJcAndExpr(expr: JcAndExpr): UExpr<out USort>? =
-        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinOperator.And(lhs, rhs) }
+        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinaryOperator.And(lhs, rhs) }
 
     override fun visitJcXorExpr(expr: JcXorExpr): UExpr<out USort>? =
-        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinOperator.Xor(lhs, rhs) }
+        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinaryOperator.Xor(lhs, rhs) }
 
     override fun visitJcEqExpr(expr: JcEqExpr): UExpr<out USort>? = with(ctx) {
         resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs ->
             if (lhs.sort == addressSort) {
                 mkHeapRefEq(lhs.asExpr(addressSort), rhs.asExpr(addressSort))
             } else {
-                JcBinOperator.Eq(lhs, rhs)
+                JcBinaryOperator.Eq(lhs, rhs)
             }
         }
     }
@@ -174,31 +175,31 @@ class JcExprResolver(
             if (lhs.sort == addressSort) {
                 mkHeapRefEq(lhs.asExpr(addressSort), rhs.asExpr(addressSort)).not()
             } else {
-                JcBinOperator.Neq(lhs, rhs)
+                JcBinaryOperator.Neq(lhs, rhs)
             }
         }
     }
 
     override fun visitJcGeExpr(expr: JcGeExpr): UExpr<out USort>? =
-        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinOperator.Ge(lhs, rhs) }
+        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinaryOperator.Ge(lhs, rhs) }
 
     override fun visitJcGtExpr(expr: JcGtExpr): UExpr<out USort>? =
-        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinOperator.Gt(lhs, rhs) }
+        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinaryOperator.Gt(lhs, rhs) }
 
     override fun visitJcLeExpr(expr: JcLeExpr): UExpr<out USort>? =
-        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinOperator.Le(lhs, rhs) }
+        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinaryOperator.Le(lhs, rhs) }
 
     override fun visitJcLtExpr(expr: JcLtExpr): UExpr<out USort>? =
-        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinOperator.Lt(lhs, rhs) }
+        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinaryOperator.Lt(lhs, rhs) }
 
     override fun visitJcCmpExpr(expr: JcCmpExpr): UExpr<out USort>? =
-        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinOperator.Cmp(lhs, rhs) }
+        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinaryOperator.Cmp(lhs, rhs) }
 
     override fun visitJcCmpgExpr(expr: JcCmpgExpr): UExpr<out USort>? =
-        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinOperator.Cmpg(lhs, rhs) }
+        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinaryOperator.Cmpg(lhs, rhs) }
 
     override fun visitJcCmplExpr(expr: JcCmplExpr): UExpr<out USort>? =
-        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinOperator.Cmpl(lhs, rhs) }
+        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinaryOperator.Cmpl(lhs, rhs) }
 
     override fun visitJcNegExpr(expr: JcNegExpr): UExpr<out USort>? =
         resolveAfterResolved(expr.operand) { operand -> JcUnaryOperator.Neg(operand) }
@@ -349,7 +350,7 @@ class JcExprResolver(
 
             is JcMethodResult.NoCall -> {
                 val arguments = resolveArguments() ?: return null
-                scope.doWithState { addNewMethodCall(applicationGraph, method, arguments) }
+                scope.doWithState { addNewMethodCall(applicationGraph, method.method, arguments) }
                 null
             }
 

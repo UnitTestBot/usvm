@@ -37,8 +37,8 @@ class JcInterpreter(
     private val ctx: JcContext,
     private val applicationGraph: JcApplicationGraph,
 ) : UInterpreter<JcState>() {
-    fun getInitialState(method: JcTypedMethod): JcState {
-        val solver = ctx.solver<JcField, JcType, JcTypedMethod>()
+    fun getInitialState(method: JcMethod): JcState {
+        val solver = ctx.solver<JcField, JcType, JcMethod>()
         val model = solver.emptyModel()
 
         val state = JcState(
@@ -179,10 +179,10 @@ class JcInterpreter(
 
     private val localVarToIdx = mutableMapOf<JcMethod, MutableMap<String, Int>>() // (method, localName) -> idx
     // TODO: now we need to explicitly evaluate indices of registers, because we don't have specific ULValues
-    private fun mapLocalToIdxMapper(method: JcTypedMethod, local: JcLocal) =
+    private fun mapLocalToIdxMapper(method: JcMethod, local: JcLocal) =
         when (local) {
             is JcLocalVar -> localVarToIdx
-                .getOrPut(method.method) { mutableMapOf() }
+                .getOrPut(method) { mutableMapOf() }
                 .run {
                     getOrPut(local.name) { method.parameters.size + size + if (method.isStatic) 0 else 1 }
                 }

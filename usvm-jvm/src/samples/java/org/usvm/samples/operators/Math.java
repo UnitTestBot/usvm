@@ -54,7 +54,7 @@ public class Math {
     }
 
     int complex(int x, float y, short z) {
-        return (int)(-x * y + (~z ^ x));
+        return (int) (-x * y + (~z ^ x));
     }
 
     int bitwiseShift(short x, byte y) {
@@ -70,5 +70,16 @@ public class Math {
             throw new IllegalArgumentException();
         }
         return x + y;
+    }
+
+    int kek2(short s, char c) {
+        short kek = (short) (s + c);
+        if (s < c) {
+            return 0;
+        } else if (c < s) {
+            return kek;
+        } else {
+            return s + c;
+        }
     }
 }

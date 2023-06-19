@@ -8,7 +8,7 @@ class TestMath : JavaMethodTestRunner() {
     @Test
     fun `Test complexWithLocals`() {
         checkDiscoveredPropertiesWithExceptions(
-            Math::kek,
+            Math::kek2,
             ignoreNumberOfAnalysisResults,
             { _, _, _, r ->
                 require(r.isSuccess)

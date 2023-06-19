@@ -11,84 +11,84 @@ import org.usvm.UFpSort
 import org.usvm.USort
 import org.usvm.uctx
 
-sealed class JcBinOperator(
+sealed class JcBinaryOperator(
     val onBool: UContext.(UExpr<UBoolSort>, UExpr<UBoolSort>) -> UExpr<out USort> = shouldNotBeCalled,
     val onBv: UContext.(UExpr<UBvSort>, UExpr<UBvSort>) -> UExpr<out USort> = shouldNotBeCalled,
     val onFp: UContext.(UExpr<UFpSort>, UExpr<UFpSort>) -> UExpr<out USort> = shouldNotBeCalled,
 ) {
-    object Add : JcBinOperator(
+    object Add : JcBinaryOperator(
         onBv = UContext::mkBvAddExpr,
         onFp = { lhs, rhs -> mkFpAddExpr(fpRoundingModeSortDefaultValue(), lhs, rhs) }
     )
 
-    object Sub : JcBinOperator(
+    object Sub : JcBinaryOperator(
         onBv = UContext::mkBvSubExpr,
         onFp = { lhs, rhs -> mkFpSubExpr(fpRoundingModeSortDefaultValue(), lhs, rhs) }
     )
 
-    object Mul : JcBinOperator(
+    object Mul : JcBinaryOperator(
         onBv = UContext::mkBvMulExpr,
         onFp = { lhs, rhs -> mkFpMulExpr(fpRoundingModeSortDefaultValue(), lhs, rhs) }
     )
 
-    object Div : JcBinOperator(
+    object Div : JcBinaryOperator(
         onBv = UContext::mkBvSignedDivExpr,
         onFp = { lhs, rhs -> mkFpDivExpr(fpRoundingModeSortDefaultValue(), lhs, rhs) }
     )
 
-    object Rem : JcBinOperator(
+    object Rem : JcBinaryOperator(
         onBv = UContext::mkBvSignedRemExpr,
         onFp = UContext::mkFpRemExpr, // TODO: it's incorrect. Waiting for sympfu in KSMT
     )
 
-    object Eq : JcBinOperator(
+    object Eq : JcBinaryOperator(
         onBool = UContext::mkEq,
         onBv = UContext::mkEq,
         onFp = UContext::mkFpEqualExpr,
     )
 
-    object Neq : JcBinOperator(
+    object Neq : JcBinaryOperator(
         onBool = { lhs, rhs -> lhs.neq(rhs) },
         onBv = { lhs, rhs -> lhs.neq(rhs) },
         onFp = { lhs, rhs -> mkFpEqualExpr(lhs, rhs).not() },
     )
 
-    object Lt : JcBinOperator(
+    object Lt : JcBinaryOperator(
         onBv = UContext::mkBvSignedLessExpr,
         onFp = UContext::mkFpLessExpr,
     )
 
-    object Le : JcBinOperator(
+    object Le : JcBinaryOperator(
         onBv = UContext::mkBvSignedLessOrEqualExpr,
         onFp = UContext::mkFpLessOrEqualExpr,
     )
 
-    object Gt : JcBinOperator(
+    object Gt : JcBinaryOperator(
         onBv = UContext::mkBvSignedGreaterExpr,
         onFp = UContext::mkFpGreaterExpr,
     )
 
-    object Ge : JcBinOperator(
+    object Ge : JcBinaryOperator(
         onBv = UContext::mkBvSignedGreaterOrEqualExpr,
         onFp = UContext::mkFpGreaterOrEqualExpr
     )
 
-    object And : JcBinOperator(
+    object And : JcBinaryOperator(
         onBool = UContext::mkAnd,
         onBv = UContext::mkBvAndExpr,
     )
 
-    object Or : JcBinOperator(
+    object Or : JcBinaryOperator(
         onBool = UContext::mkOr,
         onBv = UContext::mkBvOrExpr,
     )
 
-    object Xor : JcBinOperator(
+    object Xor : JcBinaryOperator(
         onBool = UContext::mkXor,
         onBv = UContext::mkBvXorExpr,
     )
 
-    object Cmp : JcBinOperator(
+    object Cmp : JcBinaryOperator(
         onBv = { lhs, rhs ->
             mkIte(
                 mkBvSignedLessExpr(lhs, rhs),
@@ -102,7 +102,7 @@ sealed class JcBinOperator(
         }
     )
 
-    object Cmpl : JcBinOperator(
+    object Cmpl : JcBinaryOperator(
         onFp = { lhs, rhs ->
             mkIte(
                 mkOr(mkFpIsNaNExpr(lhs), mkFpIsNaNExpr(rhs)),
@@ -120,7 +120,7 @@ sealed class JcBinOperator(
         }
     )
 
-    object Cmpg : JcBinOperator(
+    object Cmpg : JcBinaryOperator(
         onFp = { lhs, rhs ->
             mkIte(
                 mkOr(mkFpIsNaNExpr(lhs), mkFpIsNaNExpr(rhs)),
@@ -143,42 +143,27 @@ sealed class JcBinOperator(
     open operator fun invoke(lhsExpr: UExpr<out USort>, rhsExpr: UExpr<out USort>): UExpr<out USort> {
         val lhs = convertBoolIfNeeded(lhsExpr, rhsExpr.sort)
         val rhs = convertBoolIfNeeded(rhsExpr, lhsExpr.sort)
+
         val lhsSort = lhs.sort
         val rhsSort = rhs.sort
+
         return when {
-            lhsSort is UBoolSort && rhsSort is UBoolSort -> {
-                lhs.uctx.onBool(lhs.cast(), rhs.cast())
-            }
+            lhsSort is UBoolSort && rhsSort is UBoolSort -> lhs.uctx.onBool(lhs.cast(), rhs.cast())
 
             lhsSort is UBvSort && rhsSort is UBvSort -> {
-                require(lhsSort == rhsSort) { "Sorts mismatch: $lhsSort and $rhsSort" }
-                require(lhsSort == lhs.uctx.bv32Sort || lhsSort == lhs.uctx.bv64Sort) { "Unexpected sort: $lhsSort" }
+                if (lhsSort.sizeBits > rhsSort.sizeBits) {
+
+                }
                 lhs.uctx.onBv(lhs.cast(), rhs.cast())
             }
 
-            lhsSort is UFpSort && rhsSort is UFpSort -> {
-                require(lhsSort == rhsSort) { "Sorts mismatch: $lhsSort and $rhsSort" }
-                require(lhsSort == lhs.uctx.fp32Sort || lhsSort == lhs.uctx.fp64Sort) { "Unexpected sort: $lhsSort" }
-                lhs.uctx.onFp(lhs.cast(), rhs.cast())
-            }
+            lhsSort is UFpSort && rhsSort is UFpSort -> lhs.uctx.onFp(lhs.cast(), rhs.cast())
 
             else -> error("Expressions mismatch: $lhs, $rhs")
         }
     }
 
     companion object {
-        private fun convertBoolIfNeeded(lhs: KExpr<out USort>, rhsSort: USort): UExpr<out USort> {
-            val lhsSort = lhs.sort
-            return if (lhsSort is UBoolSort && rhsSort is UBvSort) {
-                with(lhs.uctx) {
-                    @Suppress("UNCHECKED_CAST")
-                    mkIte(lhs as UExpr<KBoolSort>, mkBv(1, rhsSort), mkBv(0, rhsSort))
-                }
-            } else {
-                lhs
-            }
-        }
-
         private val shouldNotBeCalled: UContext.(UExpr<out USort>, UExpr<out USort>) -> UExpr<out USort> =
             { _, _ -> error("Should not be called") }
     }

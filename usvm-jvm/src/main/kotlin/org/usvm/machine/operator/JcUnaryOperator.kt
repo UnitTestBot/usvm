@@ -68,51 +68,5 @@ sealed class JcUnaryOperator(
     companion object {
         private val shouldNotBeCalled: UContext.(UExpr<out USort>) -> KExpr<out USort> =
             { _ -> error("Should not be called") }
-
-        fun UExpr<UBvSort>.mkNarrow(sizeBits: Int, signed: Boolean): UExpr<UBvSort> {
-            val diff = sizeBits - sort.sizeBits.toInt()
-            val res = if (diff > 0) {
-                if (!signed) {
-                    ctx.mkBvZeroExtensionExpr(diff, this)
-                } else {
-                    ctx.mkBvSignExtensionExpr(diff, this)
-                }
-            } else {
-                ctx.mkBvExtractExpr(sizeBits - 1, 0, this)
-            }
-            return res
-        }
-
-
-        /**
-         * Performs a java-like conversion to bit-vector accordingly to
-         * [Floating-Point Arithmetic](https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-2.html#jvms-2.8)
-         */
-        fun UExpr<UFpSort>.castToBv(sizeBits: Int): UExpr<UBvSort> =
-            with(ctx) {
-                val bvMaxValue: KExpr<KBvSort> = bvMaxValueSigned(sizeBits.toUInt()).cast()
-                val bvMinValue: KExpr<KBvSort> = bvMinValueSigned(sizeBits.toUInt()).cast()
-                val fpBvMaxValue = mkBvToFpExpr(sort, fpRoundingModeSortDefaultValue(), bvMaxValue, signed = true)
-                val fpBvMinValue = mkBvToFpExpr(sort, fpRoundingModeSortDefaultValue(), bvMinValue, signed = true)
-
-                mkIte(
-                    mkFpIsNaNExpr(this@castToBv),
-                    mkBv(0, sizeBits.toUInt()),
-                    mkIte(
-                        mkFpLessExpr(fpBvMaxValue, this@castToBv),
-                        bvMaxValue,
-                        mkIte(
-                            mkFpLessExpr(this@castToBv, fpBvMinValue),
-                            bvMinValue,
-                            mkFpToBvExpr(
-                                mkFpRoundingModeExpr(KFpRoundingMode.RoundTowardZero),
-                                this@castToBv,
-                                sizeBits,
-                                isSigned = true
-                            )
-                        )
-                    )
-                )
-            }
     }
 }
