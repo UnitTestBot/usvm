@@ -367,16 +367,15 @@ class UMergeKeyConverter<SrcKey, DstKey>(
     }
 }
 
-class UMergeKeyIncludesCheck<SrcKey, KeySort : USort>(
-    val descriptor: USymbolicMapDescriptor<KeySort, UBoolSort, *>,
-    val region: USymbolicMemoryRegion<*, SrcKey, UBoolSort>
+class UMergeKeyIncludesCheck<SrcKey, KeySort : USort, RegionId : USymbolicMapId<SrcKey, KeySort, *, UBoolSort, RegionId>>(
+    val region: USymbolicMemoryRegion<RegionId, SrcKey, UBoolSort>
 ) {
     fun check(key: SrcKey): UBoolExpr = region.read(key)
 
-    fun <Field, Type> map(composer: UComposer<Field, Type>): UMergeKeyIncludesCheck<SrcKey, KeySort> {
+    fun <Field, Type> map(composer: UComposer<Field, Type>): UMergeKeyIncludesCheck<SrcKey, KeySort, RegionId> {
         val mappedRegion = region.map(composer)
         if (mappedRegion === region) return this
-        return UMergeKeyIncludesCheck(descriptor, region)
+        return UMergeKeyIncludesCheck(region)
     }
 }
 
@@ -388,7 +387,7 @@ class UMergeUpdateNode<
         Reg : Region<Reg>,
         ValueSort : USort>(
     override val region: USymbolicMemoryRegion<RegionId, SrcKey, ValueSort>,
-    val keyIncludesCheck: UMergeKeyIncludesCheck<SrcKey, KeySort>,
+    val keyIncludesCheck: UMergeKeyIncludesCheck<SrcKey, KeySort, *>,
     override val keyConverter: UMergeKeyConverter<SrcKey, DstKey>,
     override val guard: UBoolExpr
 ) : UMemoryRegionUpdate<SrcKey, DstKey, ValueSort,

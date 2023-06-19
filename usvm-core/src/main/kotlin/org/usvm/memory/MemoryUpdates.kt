@@ -89,7 +89,7 @@ interface UMemoryUpdates<Key, Sort : USort> : Sequence<UUpdateNode<Key, Sort>> {
     fun <RegionId : USymbolicMapId<SrcKey, KeySort, Reg, Sort, RegionId>,
             SrcKey, KeySort : USort, Reg : Region<Reg>> mergeWithRegion(
         fromRegion: USymbolicMemoryRegion<RegionId, SrcKey, Sort>,
-        keyIncludesCheck: UMergeKeyIncludesCheck<SrcKey, KeySort>,
+        keyIncludesCheck: UMergeKeyIncludesCheck<SrcKey, KeySort, *>,
         keyConverter: UMergeKeyConverter<SrcKey, Key>,
         guard: UBoolExpr
     ): UMemoryUpdates<Key, Sort>
@@ -160,7 +160,7 @@ class UFlatUpdates<Key, Sort : USort> private constructor(
     override fun <RegionId : USymbolicMapId<SrcKey, KeySort, Reg, Sort, RegionId>,
             SrcKey, KeySort : USort, Reg : Region<Reg>> mergeWithRegion(
         fromRegion: USymbolicMemoryRegion<RegionId, SrcKey, Sort>,
-        keyIncludesCheck: UMergeKeyIncludesCheck<SrcKey, KeySort>,
+        keyIncludesCheck: UMergeKeyIncludesCheck<SrcKey, KeySort, *>,
         keyConverter: UMergeKeyConverter<SrcKey, Key>,
         guard: UBoolExpr
     ): UMemoryUpdates<Key, Sort> = UFlatUpdates(
@@ -320,7 +320,7 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
     override fun <RegionId : USymbolicMapId<SrcKey, KeySort, Reg, Sort, RegionId>,
             SrcKey, KeySort : USort, Reg : Region<Reg>> mergeWithRegion(
         fromRegion: USymbolicMemoryRegion<RegionId, SrcKey, Sort>,
-        keyIncludesCheck: UMergeKeyIncludesCheck<SrcKey, KeySort>,
+        keyIncludesCheck: UMergeKeyIncludesCheck<SrcKey, KeySort, *>,
         keyConverter: UMergeKeyConverter<SrcKey, Key>,
         guard: UBoolExpr
     ): UMemoryUpdates<Key, Sort> {

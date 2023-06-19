@@ -743,7 +743,7 @@ data class URegionHeap<Field, ArrayType>(
                         val newDstRegion = dstRegion.mergeWithRegion(
                             fromRegion = srcRegion,
                             guard = deepGuard,
-                            keyIncludesCheck = UMergeKeyIncludesCheck(keyContainsDescriptor, srcKeyContainsRegion),
+                            keyIncludesCheck = UMergeKeyIncludesCheck(srcKeyContainsRegion),
                             keyConverter = UMergeKeyConverter(srcRef, dstRef) { it }
                         )
 
@@ -755,7 +755,7 @@ data class URegionHeap<Field, ArrayType>(
                         val newDstRegion = dstRegion.mergeWithRegion(
                             fromRegion = srcRegion,
                             guard = deepGuard,
-                            keyIncludesCheck = UMergeKeyIncludesCheck(keyContainsDescriptor, srcKeyContainsRegion),
+                            keyIncludesCheck = UMergeKeyIncludesCheck(srcKeyContainsRegion),
                             keyConverter = UMergeKeyConverter(srcRef, dstRef) { it.second }
                         )
 
@@ -776,7 +776,7 @@ data class URegionHeap<Field, ArrayType>(
                         val newDstRegion = dstRegion.mergeWithRegion(
                             fromRegion = srcRegion,
                             guard = deepGuard,
-                            keyIncludesCheck = UMergeKeyIncludesCheck(keyContainsDescriptor, srcKeyContainsRegion),
+                            keyIncludesCheck = UMergeKeyIncludesCheck(srcKeyContainsRegion),
                             keyConverter = UMergeKeyConverter(srcRef, dstRef) { this.srcRef to it }
                         )
 
@@ -788,7 +788,7 @@ data class URegionHeap<Field, ArrayType>(
                         val newDstRegion = dstRegion.mergeWithRegion(
                             fromRegion = srcRegion,
                             guard = deepGuard,
-                            keyIncludesCheck = UMergeKeyIncludesCheck(keyContainsDescriptor, srcKeyContainsRegion),
+                            keyIncludesCheck = UMergeKeyIncludesCheck(srcKeyContainsRegion),
                             keyConverter = UMergeKeyConverter(srcRef, dstRef) { this.srcRef to it.second }
                         )
 
@@ -864,10 +864,7 @@ data class URegionHeap<Field, ArrayType>(
                         val mergedSymbolicKeysRegion = dstSymbolicKeysRegion.mergeWithRegion(
                             fromRegion = srcSymbolicKeysRegion,
                             guard = deepGuard,
-                            keyIncludesCheck = UMergeKeyIncludesCheck(
-                                descriptor = keyContainsDescriptor,
-                                region = srcSymbolicKeyContainsRegion
-                            ),
+                            keyIncludesCheck = UMergeKeyIncludesCheck(srcSymbolicKeyContainsRegion),
                             keyConverter = UMergeKeyConverter(srcRef, dstRef) { it }
                         )
 
@@ -884,10 +881,7 @@ data class URegionHeap<Field, ArrayType>(
                         val mergedSymbolicKeysRegion = dstSymbolicKeysRegion.mergeWithRegion(
                             fromRegion = srcSymbolicKeysRegion,
                             guard = deepGuard,
-                            keyIncludesCheck = UMergeKeyIncludesCheck(
-                                descriptor = keyContainsDescriptor,
-                                region = srcSymbolicKeyContainsRegion
-                            ),
+                            keyIncludesCheck = UMergeKeyIncludesCheck(srcSymbolicKeyContainsRegion),
                             keyConverter = UMergeKeyConverter(srcRef, dstRef) { it.second }
                         )
 
@@ -927,10 +921,7 @@ data class URegionHeap<Field, ArrayType>(
                         val mergedSymbolicKeysRegion = dstSymbolicKeysRegion.mergeWithRegion(
                             fromRegion = srcSymbolicKeysRegion,
                             guard = deepGuard,
-                            keyIncludesCheck = UMergeKeyIncludesCheck(
-                                descriptor = keyContainsDescriptor,
-                                region = srcSymbolicKeysContainsRegion
-                            ),
+                            keyIncludesCheck = UMergeKeyIncludesCheck(srcSymbolicKeysContainsRegion),
                             keyConverter = UMergeKeyConverter(srcRef, dstRef) { this.srcRef to it }
                         )
 
@@ -947,10 +938,7 @@ data class URegionHeap<Field, ArrayType>(
                         val mergedSymbolicKeysRegion = dstSymbolicKeysRegion.mergeWithRegion(
                             fromRegion = srcSymbolicKeysRegion,
                             guard = deepGuard,
-                            keyIncludesCheck = UMergeKeyIncludesCheck(
-                                descriptor = keyContainsDescriptor,
-                                region = srcSymbolicKeysContainsRegion
-                            ),
+                            keyIncludesCheck = UMergeKeyIncludesCheck(srcSymbolicKeysContainsRegion),
                             keyConverter = UMergeKeyConverter(srcRef, dstRef) { this.srcRef to it.second }
                         )
 
