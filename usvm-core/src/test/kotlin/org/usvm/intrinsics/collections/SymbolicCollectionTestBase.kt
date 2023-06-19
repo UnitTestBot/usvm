@@ -72,6 +72,9 @@ abstract class SymbolicCollectionTestBase {
         assert(solverExpr)
 
         val actualStatus = check()
+        if (status != actualStatus){
+            println()
+        }
         assertEquals(status, actualStatus)
     } finally {
         pop()

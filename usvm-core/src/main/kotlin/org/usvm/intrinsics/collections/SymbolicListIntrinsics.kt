@@ -61,14 +61,15 @@ object SymbolicListIntrinsics : SymbolicCollectionIntrinsics {
         val descriptor = ctx.listDescriptor(elementSort)
 
         val currentSize = readCollectionSize(listRef, elementSort)
+        val srcIndex = ctx.mkBvAddExpr(index, ctx.mkBv(2))
         val indexAfterInsert = ctx.mkBvAddExpr(index, ctx.mkBv(1))
-        val lastIndexAfterInsert = currentSize
+        val lastIndexAfterInsert = ctx.mkBvSubExpr(currentSize, ctx.mkBv(1))
 
         copySymbolicMapIndexRange(
             descriptor = descriptor,
             srcRef = listRef,
             dstRef = listRef,
-            fromSrcKey = index,
+            fromSrcKey = srcIndex,
             fromDstKey = indexAfterInsert,
             toDstKey = lastIndexAfterInsert,
             guard = ctx.trueExpr
@@ -89,14 +90,14 @@ object SymbolicListIntrinsics : SymbolicCollectionIntrinsics {
 
         val currentSize = readCollectionSize(listRef, elementSort)
         val firstIndexAfterRemove = ctx.mkBvSubExpr(index, ctx.mkBv(1))
-        val lastIndexAfterRemove = ctx.mkBvSubExpr(currentSize, ctx.mkBv(1))
+        val lastIndexAfterRemove = ctx.mkBvSubExpr(currentSize, ctx.mkBv(2))
 
         copySymbolicMapIndexRange(
             descriptor = descriptor,
             srcRef = listRef,
             dstRef = listRef,
-            fromSrcKey = index,
-            fromDstKey = firstIndexAfterRemove,
+            fromSrcKey = firstIndexAfterRemove,
+            fromDstKey = index,
             toDstKey = lastIndexAfterRemove,
             guard = ctx.trueExpr
         )
