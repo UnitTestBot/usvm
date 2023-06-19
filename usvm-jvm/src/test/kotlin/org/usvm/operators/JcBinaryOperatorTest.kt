@@ -10,7 +10,7 @@ import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.USort
-import org.usvm.machine.operator.JcBinOperator
+import org.usvm.machine.operator.JcBinaryOperator
 import kotlin.test.assertEquals
 
 class JcBinaryOperatorTest {
@@ -26,7 +26,7 @@ class JcBinaryOperatorTest {
     @TestFactory
     fun `Test addition`() =
         testOnAll(
-            operator = JcBinOperator.Add,
+            operator = JcBinaryOperator.Add,
             operatorText = "+",
             onInts = Int::plus,
             onLongs = Long::plus,
@@ -37,7 +37,7 @@ class JcBinaryOperatorTest {
     @TestFactory
     fun `Test subtraction`() =
         testOnAll(
-            operator = JcBinOperator.Sub,
+            operator = JcBinaryOperator.Sub,
             operatorText = "-",
             onInts = Int::minus,
             onLongs = Long::minus,
@@ -48,7 +48,7 @@ class JcBinaryOperatorTest {
     @TestFactory
     fun `Test multiplication`() =
         testOnAll(
-            operator = JcBinOperator.Mul,
+            operator = JcBinaryOperator.Mul,
             operatorText = "+",
             onInts = Int::times,
             onLongs = Long::times,
@@ -61,7 +61,7 @@ class JcBinaryOperatorTest {
     @TestFactory
     fun `Test remainder`() =
         testOnAll(
-            operator = JcBinOperator.Rem,
+            operator = JcBinaryOperator.Rem,
             operatorText = "%",
             onInts = Int::rem,
             onLongs = Long::rem,
@@ -72,7 +72,7 @@ class JcBinaryOperatorTest {
     @TestFactory
     fun `Test eq`() =
         testBoolOperatorOnAll(
-            operator = JcBinOperator.Eq,
+            operator = JcBinaryOperator.Eq,
             operatorText = "==",
             onInts = Int::equals,
             onLongs = Long::equals,
@@ -83,7 +83,7 @@ class JcBinaryOperatorTest {
     @TestFactory
     fun `Test neq`() =
         testBoolOperatorOnAll(
-            operator = JcBinOperator.Neq,
+            operator = JcBinaryOperator.Neq,
             operatorText = "==",
             onInts = { lhs, rhs -> lhs != rhs },
             onLongs = { lhs, rhs -> lhs != rhs },
@@ -94,7 +94,7 @@ class JcBinaryOperatorTest {
     @TestFactory
     fun `Test lt`() =
         testBoolOperatorOnAll(
-            operator = JcBinOperator.Lt,
+            operator = JcBinaryOperator.Lt,
             operatorText = "<",
             onInts = { lhs, rhs -> lhs < rhs },
             onLongs = { lhs, rhs -> lhs < rhs },
@@ -105,7 +105,7 @@ class JcBinaryOperatorTest {
     @TestFactory
     fun `Test le`() =
         testBoolOperatorOnAll(
-            operator = JcBinOperator.Le,
+            operator = JcBinaryOperator.Le,
             operatorText = "<=",
             onInts = { lhs, rhs -> lhs <= rhs },
             onLongs = { lhs, rhs -> lhs <= rhs },
@@ -116,7 +116,7 @@ class JcBinaryOperatorTest {
     @TestFactory
     fun `Test gt`() =
         testBoolOperatorOnAll(
-            operator = JcBinOperator.Gt,
+            operator = JcBinaryOperator.Gt,
             operatorText = ">",
             onInts = { lhs, rhs -> lhs > rhs },
             onLongs = { lhs, rhs -> lhs > rhs },
@@ -127,7 +127,7 @@ class JcBinaryOperatorTest {
     @TestFactory
     fun `Test ge`() =
         testBoolOperatorOnAll(
-            operator = JcBinOperator.Ge,
+            operator = JcBinaryOperator.Ge,
             operatorText = ">=",
             onInts = { lhs, rhs -> lhs >= rhs },
             onLongs = { lhs, rhs -> lhs >= rhs },
@@ -139,7 +139,7 @@ class JcBinaryOperatorTest {
     fun `Test and`() =
         listOf(
             testOperatorOnIntegers(
-                operator = JcBinOperator.And,
+                operator = JcBinaryOperator.And,
                 operatorText = "&",
                 onInts = { lhs, rhs -> lhs and rhs },
                 ::extractInt
@@ -150,7 +150,7 @@ class JcBinaryOperatorTest {
     fun `Test or`() =
         listOf(
             testOperatorOnIntegers(
-                operator = JcBinOperator.Or,
+                operator = JcBinaryOperator.Or,
                 operatorText = "|",
                 onInts = { lhs, rhs -> lhs or rhs },
                 ::extractInt
@@ -161,7 +161,7 @@ class JcBinaryOperatorTest {
     fun `Test xor`() =
         listOf(
             testOperatorOnIntegers(
-                operator = JcBinOperator.Xor,
+                operator = JcBinaryOperator.Xor,
                 operatorText = "^",
                 onInts = { lhs, rhs -> lhs xor rhs },
                 ::extractInt
@@ -171,7 +171,7 @@ class JcBinaryOperatorTest {
     @TestFactory
     fun `Test division`() =
         testOnAll(
-            operator = JcBinOperator.Div,
+            operator = JcBinaryOperator.Div,
             operatorText = "/",
             onInts = Int::div,
             onLongs = Long::div,
@@ -183,7 +183,7 @@ class JcBinaryOperatorTest {
     fun `Test cmp`() =
         listOf(
             testOperatorOnLongs(
-                operator = JcBinOperator.Cmp,
+                operator = JcBinaryOperator.Cmp,
                 operatorText = "cmp",
                 onLongs = Long::compareTo,
                 ::extractLong,
@@ -194,7 +194,7 @@ class JcBinaryOperatorTest {
     fun `Test cmpl`() =
         listOf(
             testOperatorOnFloats(
-                operator = JcBinOperator.Cmpl,
+                operator = JcBinaryOperator.Cmpl,
                 operatorText = "cmpl",
                 onFloats = { lhs, rhs -> if (lhs.isNaN() || rhs.isNaN()) -1 else lhs.compareTo(rhs) },
                 ::extractInt,
@@ -205,7 +205,7 @@ class JcBinaryOperatorTest {
     fun `Test cmpg`() =
         listOf(
             testOperatorOnFloats(
-                operator = JcBinOperator.Cmpg,
+                operator = JcBinaryOperator.Cmpg,
                 operatorText = "cmpg",
                 onFloats = { lhs, rhs -> if (lhs.isNaN() || rhs.isNaN()) 1 else lhs.compareTo(rhs) },
                 ::extractInt,
@@ -214,7 +214,7 @@ class JcBinaryOperatorTest {
 
 
     private fun testOnAll(
-        operator: JcBinOperator,
+        operator: JcBinaryOperator,
         operatorText: String,
         onInts: (Int, Int) -> Int,
         onLongs: (Long, Long) -> Long,
@@ -248,7 +248,7 @@ class JcBinaryOperatorTest {
     )
 
     private fun testBoolOperatorOnAll(
-        operator: JcBinOperator,
+        operator: JcBinaryOperator,
         operatorText: String,
         onInts: (Int, Int) -> Boolean,
         onLongs: (Long, Long) -> Boolean,
@@ -282,7 +282,7 @@ class JcBinaryOperatorTest {
     )
 
     private fun <T> testOperatorOnIntegers(
-        operator: JcBinOperator,
+        operator: JcBinaryOperator,
         operatorText: String,
         onInts: (Int, Int) -> T,
         extractFromUExpr: (UExpr<out USort>) -> T?,
@@ -307,7 +307,7 @@ class JcBinaryOperatorTest {
     }
 
     private fun <T> testOperatorOnLongs(
-        operator: JcBinOperator,
+        operator: JcBinaryOperator,
         operatorText: String,
         onLongs: (Long, Long) -> T,
         extractFromUExpr: (UExpr<out USort>) -> T?,
@@ -332,7 +332,7 @@ class JcBinaryOperatorTest {
     }
 
     private fun <T> testOperatorOnFloats(
-        operator: JcBinOperator,
+        operator: JcBinaryOperator,
         operatorText: String,
         onFloats: (Float, Float) -> T,
         extractFromUExpr: (UExpr<out USort>) -> T?,
@@ -356,7 +356,7 @@ class JcBinaryOperatorTest {
     }
 
     private fun <T> testOperatorOnDoubles(
-        operator: JcBinOperator,
+        operator: JcBinaryOperator,
         operatorText: String,
         onDoubles: (Double, Double) -> T,
         extractFromUExpr: (UExpr<out USort>) -> T?,

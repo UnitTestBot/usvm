@@ -1,7 +1,7 @@
 package org.usvm.machine
 
 import org.jacodb.api.JcClasspath
-import org.jacodb.api.JcTypedMethod
+import org.jacodb.api.JcMethod
 import org.usvm.UMachine
 import org.usvm.UPathSelector
 import org.usvm.machine.state.JcMethodResult
@@ -22,7 +22,7 @@ class JcMachine(
 
     private val interpreter = JcInterpreter(ctx, applicationGraph)
 
-    fun analyze(method: JcTypedMethod): List<JcState> {
+    fun analyze(method: JcMethod): List<JcState> {
         val collectedStates = mutableListOf<JcState>()
         val coveredStoppingStrategy = TargetsCoveredStoppingStrategy(listOf(method), applicationGraph)
 
@@ -53,7 +53,7 @@ class JcMachine(
         return collectedStates
     }
 
-    private fun getPathSelector(target: JcTypedMethod): UPathSelector<JcState> {
+    private fun getPathSelector(target: JcMethod): UPathSelector<JcState> {
         val state = interpreter.getInitialState(target)
         val dfsPathSelector = DfsPathSelector<JcState>()
         val bfsPathSelector = BfsPathSelector<JcState>()

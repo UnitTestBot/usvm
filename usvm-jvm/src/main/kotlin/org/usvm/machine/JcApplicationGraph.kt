@@ -9,11 +9,12 @@ import org.jacodb.api.ext.toType
 import org.jacodb.impl.features.HierarchyExtensionImpl
 import org.jacodb.impl.features.SyncUsagesExtension
 import org.usvm.ApplicationGraph
+import java.util.concurrent.ConcurrentHashMap
 
 // TODO: add trap handlers
 class JcApplicationGraph(
     cp: JcClasspath,
-) : ApplicationGraph<JcTypedMethod, JcInst> {
+) : ApplicationGraph<JcMethod, JcInst> {
     private val jcApplicationGraph = JcApplicationGraphImpl(cp, SyncUsagesExtension(HierarchyExtensionImpl(cp), cp))
 
     override fun predecessors(node: JcInst): Sequence<JcInst> =
@@ -22,22 +23,22 @@ class JcApplicationGraph(
     override fun successors(node: JcInst): Sequence<JcInst> =
         jcApplicationGraph.successors(node)
 
-    override fun callees(node: JcInst): Sequence<JcTypedMethod> =
-        jcApplicationGraph.callees(node).map { it.toTyped }
+    override fun callees(node: JcInst): Sequence<JcMethod> =
+        jcApplicationGraph.callees(node)
 
-    override fun callers(method: JcTypedMethod): Sequence<JcInst> =
-        jcApplicationGraph.callers(method.method)
+    override fun callers(method: JcMethod): Sequence<JcInst> =
+        jcApplicationGraph.callers(method)
 
-    override fun entryPoint(method: JcTypedMethod): Sequence<JcInst> =
-        jcApplicationGraph.entryPoint(method.method)
+    override fun entryPoint(method: JcMethod): Sequence<JcInst> =
+        jcApplicationGraph.entryPoint(method)
 
-    override fun exitPoints(method: JcTypedMethod): Sequence<JcInst> =
-        jcApplicationGraph.exitPoints(method.method)
+    override fun exitPoints(method: JcMethod): Sequence<JcInst> =
+        jcApplicationGraph.exitPoints(method)
 
-    override fun methodOf(node: JcInst): JcTypedMethod =
-        jcApplicationGraph.methodOf(node).toTyped
+    override fun methodOf(node: JcInst): JcMethod =
+        jcApplicationGraph.methodOf(node)
 
-    private val typedMethodsCache = mutableMapOf<JcMethod, JcTypedMethod>()
+    private val typedMethodsCache = ConcurrentHashMap<JcMethod, JcTypedMethod>()
 
     private val JcMethod.toTyped
         get() = typedMethodsCache.getOrPut(this) {

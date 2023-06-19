@@ -3,8 +3,10 @@ package org.usvm.machine.state
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
 import org.jacodb.api.JcField
+import org.jacodb.api.JcMethod
 import org.jacodb.api.JcType
 import org.jacodb.api.JcTypedMethod
+import org.jacodb.api.cfg.JcArgument
 import org.jacodb.api.cfg.JcInst
 import org.jacodb.api.ext.cfg.locals
 import org.usvm.machine.JcApplicationGraph
@@ -19,13 +21,13 @@ import org.usvm.model.UModelBase
 
 class JcState(
     override val ctx: JcContext,
-    callStack: UCallStack<JcTypedMethod, JcInst> = UCallStack(),
+    callStack: UCallStack<JcMethod, JcInst> = UCallStack(),
     pathConstraints: UPathConstraints<JcType> = UPathConstraints(ctx),
-    memory: UMemoryBase<JcField, JcType, JcTypedMethod> = UMemoryBase(ctx, pathConstraints.typeConstraints),
+    memory: UMemoryBase<JcField, JcType, JcMethod> = UMemoryBase(ctx, pathConstraints.typeConstraints),
     models: List<UModelBase<JcField, JcType>> = listOf(),
     path: PersistentList<JcInst> = persistentListOf(),
     var methodResult: JcMethodResult = JcMethodResult.NoCall,
-) : UState<JcType, JcField, JcTypedMethod, JcInst>(
+) : UState<JcType, JcField, JcMethod, JcInst>(
     ctx,
     callStack,
     pathConstraints,
@@ -83,7 +85,7 @@ fun JcState.throwException(exception: Exception) {
 
 fun JcState.addEntryMethodCall(
     applicationGraph: JcApplicationGraph,
-    method: JcTypedMethod,
+    method: JcMethod,
 ) {
     val entryPoint = applicationGraph.entryPoint(method).single()
     callStack.push(method, returnSite = null)
@@ -93,11 +95,11 @@ fun JcState.addEntryMethodCall(
 
 fun JcState.addNewMethodCall(
     applicationGraph: JcApplicationGraph,
-    method: JcTypedMethod,
+    method: JcMethod,
     arguments: List<UExpr<out USort>>,
 ) {
     // TODO: move to appropriate place
-    if (method.enclosingType.jcClass.name == "java.lang.Throwable") { // TODO: skipping construction of throwables
+    if (method.enclosingClass.name == "java.lang.Throwable") { // TODO: skipping construction of throwables
         val nextStmt = applicationGraph.successors(lastStmt).single()
         newStmt(nextStmt)
         return
@@ -111,6 +113,6 @@ fun JcState.addNewMethodCall(
 }
 
 
-inline val JcTypedMethod.parametersWithThisCount get() = method.parameters.size + if (method.isStatic) 0 else 1
+inline val JcMethod.parametersWithThisCount get() = parameters.size + if (isStatic) 0 else 1
 
-inline val JcTypedMethod.localsCount get() = method.instList.locals.size - parameters.size
+inline val JcMethod.localsCount get() = instList.locals.filter { it !is JcArgument }.size
