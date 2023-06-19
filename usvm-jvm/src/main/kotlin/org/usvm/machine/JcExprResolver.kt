@@ -169,8 +169,15 @@ class JcExprResolver(
         }
     }
 
-    override fun visitJcNeqExpr(expr: JcNeqExpr): UExpr<out USort>? =
-        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinOperator.Neq(lhs, rhs) }
+    override fun visitJcNeqExpr(expr: JcNeqExpr): UExpr<out USort>? = with(ctx) {
+        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs ->
+            if (lhs.sort == addressSort) {
+                mkHeapRefEq(lhs.asExpr(addressSort), rhs.asExpr(addressSort)).not()
+            } else {
+                JcBinOperator.Neq(lhs, rhs)
+            }
+        }
+    }
 
     override fun visitJcGeExpr(expr: JcGeExpr): UExpr<out USort>? =
         resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinOperator.Ge(lhs, rhs) }
@@ -330,7 +337,10 @@ class JcExprResolver(
             expr.args.map { resolveExpr(it) ?: return@resolveInvoke null }
         }
 
-    private fun resolveInvoke(method: JcTypedMethod, resolveArguments: () -> List<UExpr<out USort>>?): UExpr<out USort>? {
+    private fun resolveInvoke(
+        method: JcTypedMethod,
+        resolveArguments: () -> List<UExpr<out USort>>?,
+    ): UExpr<out USort>? {
         return when (val result = scope.calcOnState { methodResult } ?: return null) {
             is JcMethodResult.Success -> {
                 scope.doWithState { methodResult = JcMethodResult.NoCall }

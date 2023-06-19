@@ -69,7 +69,7 @@ sealed class JcUnaryOperator(
         private val shouldNotBeCalled: UContext.(UExpr<out USort>) -> KExpr<out USort> =
             { _ -> error("Should not be called") }
 
-        private fun UExpr<UBvSort>.mkNarrow(sizeBits: Int, signed: Boolean): UExpr<UBvSort> {
+        fun UExpr<UBvSort>.mkNarrow(sizeBits: Int, signed: Boolean): UExpr<UBvSort> {
             val diff = sizeBits - sort.sizeBits.toInt()
             val res = if (diff > 0) {
                 if (!signed) {
@@ -88,7 +88,7 @@ sealed class JcUnaryOperator(
          * Performs a java-like conversion to bit-vector accordingly to
          * [Floating-Point Arithmetic](https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-2.html#jvms-2.8)
          */
-        private fun UExpr<UFpSort>.castToBv(sizeBits: Int): UExpr<UBvSort> =
+        fun UExpr<UFpSort>.castToBv(sizeBits: Int): UExpr<UBvSort> =
             with(ctx) {
                 val bvMaxValue: KExpr<KBvSort> = bvMaxValueSigned(sizeBits.toUInt()).cast()
                 val bvMinValue: KExpr<KBvSort> = bvMinValueSigned(sizeBits.toUInt()).cast()
