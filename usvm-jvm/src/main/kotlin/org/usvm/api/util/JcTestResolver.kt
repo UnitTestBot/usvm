@@ -15,15 +15,12 @@ import org.jacodb.api.ext.byte
 import org.jacodb.api.ext.char
 import org.jacodb.api.ext.double
 import org.jacodb.api.ext.float
+import org.jacodb.api.ext.ifArrayGetElementType
 import org.jacodb.api.ext.int
 import org.jacodb.api.ext.long
 import org.jacodb.api.ext.short
 import org.jacodb.api.ext.toType
 import org.jacodb.api.ext.void
-import org.usvm.machine.JcContext
-import org.usvm.api.JcCoverage
-import org.usvm.api.JcParametersState
-import org.usvm.api.JcTest
 import org.usvm.UArrayIndexLValue
 import org.usvm.UArrayLengthLValue
 import org.usvm.UConcreteHeapAddress
@@ -36,12 +33,16 @@ import org.usvm.UHeapRef
 import org.usvm.ULValue
 import org.usvm.URegisterLValue
 import org.usvm.USort
-import org.usvm.memory.UAddressCounter
-import org.usvm.memory.UReadOnlySymbolicMemory
-import org.usvm.model.UModelBase
+import org.usvm.api.JcCoverage
+import org.usvm.api.JcParametersState
+import org.usvm.api.JcTest
+import org.usvm.machine.JcContext
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.WrappedException
+import org.usvm.memory.UAddressCounter
+import org.usvm.memory.UReadOnlySymbolicMemory
+import org.usvm.model.UModelBase
 
 /**
  * A class, responsible for resolving a single [JcTest] for a specific method from a symbolic state.
@@ -51,7 +52,7 @@ import org.usvm.machine.state.WrappedException
  * @param classLoader a class loader to load target classes.
  */
 class JcTestResolver(
-    private val classLoader: ClassLoader = ClassLoader.getSystemClassLoader()
+    private val classLoader: ClassLoader = ClassLoader.getSystemClassLoader(),
 ) {
     /**
      * Resolves a [JcTest] from a [method] from a [state].
@@ -226,8 +227,24 @@ class JcTestResolver(
         @Suppress("UNUSED_PARAMETER")
         private fun resolveType(idx: UConcreteHeapAddress, type: JcRefType): Class<*> {
             // TODO: ask memory for exact type
-            val clazz = classLoader.loadClass(type.typeName)
-            return clazz
+            type.ifArrayGetElementType?.let {
+                return when (it) {
+                    ctx.cp.boolean -> BooleanArray::class.java
+                    ctx.cp.short -> ShortArray::class.java
+                    ctx.cp.int -> IntArray::class.java
+                    ctx.cp.long -> LongArray::class.java
+                    ctx.cp.float -> FloatArray::class.java
+                    ctx.cp.double -> DoubleArray::class.java
+                    ctx.cp.byte -> ByteArray::class.java
+                    ctx.cp.char -> CharArray::class.java
+                    else -> {
+                        val elementType = resolveType(idx, it as JcRefType)
+                        Reflection.allocateArray(elementType, length = 0).javaClass
+                    }
+                }
+            }
+
+            return classLoader.loadClass(type.typeName)
         }
 
         /**

@@ -66,7 +66,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
             analysisResultsMatchers,
             extractValuesToCheck = { test: JcTest ->
                 val values = test.takeAllParameters(method, allParametersCount = 1)
-                test.result.let { values += it.getOrThrow() }
+                test.result.let { values += it.getOrNull() }
                 values
             },
             expectedTypesForExtractedValues = arrayOf(T::class, R::class),
@@ -116,7 +116,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
             analysisResultsMatchers,
             extractValuesToCheck = { test: JcTest ->
                 val values = test.takeAllParameters(method, allParametersCount = 2)
-                test.result.let { values += it.getOrThrow() }
+                test.result.let { values += it.getOrNull() }
                 values
             },
             expectedTypesForExtractedValues = arrayOf(T::class, A0::class, R::class),
@@ -166,7 +166,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
             analysisResultsMatchers,
             extractValuesToCheck = { test: JcTest ->
                 val values = test.takeAllParameters(method, allParametersCount = 3)
-                test.result.let { values += it.getOrThrow() }
+                test.result.let { values += it.getOrNull() }
                 values
             },
             expectedTypesForExtractedValues = arrayOf(T::class, A0::class, A1::class, R::class),
@@ -216,7 +216,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
             analysisResultsMatchers,
             extractValuesToCheck = { test: JcTest ->
                 val values = test.takeAllParameters(method, allParametersCount = 4)
-                test.result.let { values += it.getOrThrow() }
+                test.result.let { values += it.getOrNull() }
                 values
             },
             expectedTypesForExtractedValues = arrayOf(T::class, A0::class, A1::class, A2::class, R::class),

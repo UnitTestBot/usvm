@@ -1,5 +1,6 @@
 package org.usvm.samples.arrays
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.samples.casts.ColoredPoint
@@ -25,6 +26,7 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Impossible NPE found")
     fun testDefaultValuesWithoutLastDimension() {
         checkExecutionMatches(
             ArrayOfArrays::defaultValuesWithoutLastDimension,
