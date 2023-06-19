@@ -289,7 +289,6 @@ class JcBinaryOperatorTest {
     ) = DynamicTest.dynamicTest("Int $operatorText Int") {
         intData.flatMap { lhs ->
             intData.map { rhs ->
-
                 val exprLhs = ctx.mkBv(lhs)
                 val exprRhs = ctx.mkBv(rhs)
                 val result = operator(exprLhs, exprRhs)
@@ -315,21 +314,19 @@ class JcBinaryOperatorTest {
     ) = DynamicTest.dynamicTest("Long $operatorText Long") {
         longData.flatMap { lhs ->
             longData.map { rhs ->
-                {
-                    val exprLhs = ctx.mkBv(lhs)
-                    val exprRhs = ctx.mkBv(rhs)
-                    val result = operator(exprLhs, exprRhs)
+                val exprLhs = ctx.mkBv(lhs)
+                val exprRhs = ctx.mkBv(rhs)
+                val result = operator(exprLhs, exprRhs)
 
-                    val expected = try {
-                        onLongs(lhs, rhs)
-                    } catch (_: ArithmeticException) {
-                        null
-                    }
-
-                    val actual = extractFromUExpr(result)
-
-                    assertEquals(expected, actual, "$lhs $operatorText $rhs failed")
+                val expected = try {
+                    onLongs(lhs, rhs)
+                } catch (_: ArithmeticException) {
+                    null
                 }
+
+                val actual = extractFromUExpr(result)
+
+                assertEquals(expected, actual, "$lhs $operatorText $rhs failed")
             }
         }
     }

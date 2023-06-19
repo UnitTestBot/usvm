@@ -337,7 +337,10 @@ class JcExprResolver(
             expr.args.map { resolveExpr(it) ?: return@resolveInvoke null }
         }
 
-    private fun resolveInvoke(method: JcTypedMethod, resolveArguments: () -> List<UExpr<out USort>>?): UExpr<out USort>? {
+    private fun resolveInvoke(
+        method: JcTypedMethod,
+        resolveArguments: () -> List<UExpr<out USort>>?,
+    ): UExpr<out USort>? {
         return when (val result = scope.calcOnState { methodResult } ?: return null) {
             is JcMethodResult.Success -> {
                 scope.doWithState { methodResult = JcMethodResult.NoCall }
