@@ -4,13 +4,16 @@ import io.ksmt.expr.KBitVec32Value
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
 import org.jacodb.api.JcMethod
+import org.jacodb.api.JcPrimitiveType
 import org.jacodb.api.JcRefType
+import org.jacodb.api.JcType
 import org.jacodb.api.JcTypedField
 import org.jacodb.api.JcTypedMethod
 import org.jacodb.api.cfg.JcAddExpr
 import org.jacodb.api.cfg.JcAndExpr
 import org.jacodb.api.cfg.JcArgument
 import org.jacodb.api.cfg.JcArrayAccess
+import org.jacodb.api.cfg.JcBinaryExpr
 import org.jacodb.api.cfg.JcBool
 import org.jacodb.api.cfg.JcByte
 import org.jacodb.api.cfg.JcCastExpr
@@ -67,6 +70,7 @@ import org.jacodb.api.ext.double
 import org.jacodb.api.ext.float
 import org.jacodb.api.ext.ifArrayGetElementType
 import org.jacodb.api.ext.int
+import org.jacodb.api.ext.isAssignable
 import org.jacodb.api.ext.long
 import org.jacodb.api.ext.short
 import org.usvm.UArrayIndexLValue
@@ -82,6 +86,7 @@ import org.usvm.USizeSort
 import org.usvm.USort
 import org.usvm.machine.operator.JcBinaryOperator
 import org.usvm.machine.operator.JcUnaryOperator
+import org.usvm.machine.operator.wideTo32BitsIfNeeded
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.addNewMethodCall
 import org.usvm.machine.state.lastStmt
@@ -97,9 +102,12 @@ class JcExprResolver(
     /**
      * TODO: add comment about null
      */
-    fun resolveExpr(value: JcExpr): UExpr<out USort>? {
-        return value.accept(this)
-    }
+    fun resolveExpr(value: JcExpr, type: JcType = value.type): UExpr<out USort>? =
+        if (value.type != type) {
+            resolveCast(value, type)
+        } else {
+            value.accept(this)
+        }
 
     /**
      * TODO: add comment about null
@@ -119,25 +127,19 @@ class JcExprResolver(
     //binary operators
 
     override fun visitJcAddExpr(expr: JcAddExpr): UExpr<out USort>? =
-        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinaryOperator.Add(lhs, rhs) }
+        resolveBinaryOperator(JcBinaryOperator.Add, expr)
 
     override fun visitJcSubExpr(expr: JcSubExpr): UExpr<out USort>? =
-        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinaryOperator.Sub(lhs, rhs) }
+        resolveBinaryOperator(JcBinaryOperator.Sub, expr)
 
     override fun visitJcMulExpr(expr: JcMulExpr): UExpr<out USort>? =
-        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinaryOperator.Mul(lhs, rhs) }
+        resolveBinaryOperator(JcBinaryOperator.Mul, expr)
 
     override fun visitJcDivExpr(expr: JcDivExpr): UExpr<out USort>? =
-        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs ->
-            checkDivisionByZero(rhs) ?: return null
-            JcBinaryOperator.Div(lhs, rhs)
-        }
+        resolveDivisionOperator(JcBinaryOperator.Div, expr)
 
     override fun visitJcRemExpr(expr: JcRemExpr): UExpr<out USort>? =
-        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs ->
-            checkDivisionByZero(rhs) ?: return null
-            JcBinaryOperator.Rem(lhs, rhs)
-        }
+        resolveDivisionOperator(JcBinaryOperator.Rem, expr)
 
     override fun visitJcShlExpr(expr: JcShlExpr): UExpr<out USort> = with(ctx) {
         TODO("Not yet implemented")
@@ -152,54 +154,54 @@ class JcExprResolver(
     }
 
     override fun visitJcOrExpr(expr: JcOrExpr): UExpr<out USort>? =
-        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinaryOperator.Or(lhs, rhs) }
+        resolveBinaryOperator(JcBinaryOperator.Or, expr)
 
     override fun visitJcAndExpr(expr: JcAndExpr): UExpr<out USort>? =
-        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinaryOperator.And(lhs, rhs) }
+        resolveBinaryOperator(JcBinaryOperator.And, expr)
 
     override fun visitJcXorExpr(expr: JcXorExpr): UExpr<out USort>? =
-        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinaryOperator.Xor(lhs, rhs) }
+        resolveBinaryOperator(JcBinaryOperator.Xor, expr)
 
     override fun visitJcEqExpr(expr: JcEqExpr): UExpr<out USort>? = with(ctx) {
-        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs ->
-            if (lhs.sort == addressSort) {
+        if (expr.lhv.type is JcRefType) {
+            resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs ->
                 mkHeapRefEq(lhs.asExpr(addressSort), rhs.asExpr(addressSort))
-            } else {
-                JcBinaryOperator.Eq(lhs, rhs)
             }
+        } else {
+            resolveBinaryOperator(JcBinaryOperator.Eq, expr)
         }
     }
 
     override fun visitJcNeqExpr(expr: JcNeqExpr): UExpr<out USort>? = with(ctx) {
-        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs ->
-            if (lhs.sort == addressSort) {
+        if (expr.lhv.type is JcRefType) {
+            resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs ->
                 mkHeapRefEq(lhs.asExpr(addressSort), rhs.asExpr(addressSort)).not()
-            } else {
-                JcBinaryOperator.Neq(lhs, rhs)
             }
+        } else {
+            resolveBinaryOperator(JcBinaryOperator.Neq, expr)
         }
     }
 
     override fun visitJcGeExpr(expr: JcGeExpr): UExpr<out USort>? =
-        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinaryOperator.Ge(lhs, rhs) }
+        resolveBinaryOperator(JcBinaryOperator.Ge, expr)
 
     override fun visitJcGtExpr(expr: JcGtExpr): UExpr<out USort>? =
-        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinaryOperator.Gt(lhs, rhs) }
+        resolveBinaryOperator(JcBinaryOperator.Gt, expr)
 
     override fun visitJcLeExpr(expr: JcLeExpr): UExpr<out USort>? =
-        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinaryOperator.Le(lhs, rhs) }
+        resolveBinaryOperator(JcBinaryOperator.Le, expr)
 
     override fun visitJcLtExpr(expr: JcLtExpr): UExpr<out USort>? =
-        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinaryOperator.Lt(lhs, rhs) }
+        resolveBinaryOperator(JcBinaryOperator.Lt, expr)
 
     override fun visitJcCmpExpr(expr: JcCmpExpr): UExpr<out USort>? =
-        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinaryOperator.Cmp(lhs, rhs) }
+        resolveBinaryOperator(JcBinaryOperator.Cmp, expr)
 
     override fun visitJcCmpgExpr(expr: JcCmpgExpr): UExpr<out USort>? =
-        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinaryOperator.Cmpg(lhs, rhs) }
+        resolveBinaryOperator(JcBinaryOperator.Cmpg, expr)
 
     override fun visitJcCmplExpr(expr: JcCmplExpr): UExpr<out USort>? =
-        resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs -> JcBinaryOperator.Cmpl(lhs, rhs) }
+        resolveBinaryOperator(JcBinaryOperator.Cmpl, expr)
 
     override fun visitJcNegExpr(expr: JcNegExpr): UExpr<out USort>? =
         resolveAfterResolved(expr.operand) { operand -> JcUnaryOperator.Neg(operand) }
@@ -209,35 +211,35 @@ class JcExprResolver(
     //region constants
 
     override fun visitJcBool(value: JcBool): UExpr<out USort> = with(ctx) {
-        mkBv(value.value, bv32Sort)
+        mkBool(value.value)
     }
 
     override fun visitJcChar(value: JcChar): UExpr<out USort> = with(ctx) {
-        mkBv(value.value.code, bv32Sort)
+        mkBv(value.value.code, charSort)
     }
 
     override fun visitJcByte(value: JcByte): UExpr<out USort> = with(ctx) {
-        mkBv(value.value, bv32Sort)
+        mkBv(value.value, byteSort)
     }
 
     override fun visitJcShort(value: JcShort): UExpr<out USort> = with(ctx) {
-        mkBv(value.value, bv32Sort)
+        mkBv(value.value, shortSort)
     }
 
     override fun visitJcInt(value: JcInt): UExpr<out USort> = with(ctx) {
-        mkBv(value.value, bv32Sort)
+        mkBv(value.value, integerSort)
     }
 
     override fun visitJcLong(value: JcLong): UExpr<out USort> = with(ctx) {
-        mkBv(value.value, bv64Sort)
+        mkBv(value.value, longSort)
     }
 
     override fun visitJcFloat(value: JcFloat): UExpr<out USort> = with(ctx) {
-        mkFp32(value.value)
+        mkFp(value.value, floatSort)
     }
 
     override fun visitJcDouble(value: JcDouble): UExpr<out USort> = with(ctx) {
-        mkFp64(value.value)
+        mkFp(value.value, doubleSort)
     }
 
     override fun visitJcNullConstant(value: JcNullConstant): UExpr<out USort> = with(ctx) {
@@ -258,22 +260,7 @@ class JcExprResolver(
 
     //endregion
 
-    override fun visitJcCastExpr(expr: JcCastExpr): UExpr<out USort>? = with(ctx) {
-        val operand = resolveExpr(expr.operand) ?: return null
-        when (expr.type) {
-            cp.boolean -> JcUnaryOperator.CastToBoolean(operand)
-            cp.short -> JcUnaryOperator.CastToShort(operand)
-            cp.int -> JcUnaryOperator.CastToInt(operand)
-            cp.long -> JcUnaryOperator.CastToLong(operand)
-            cp.float -> JcUnaryOperator.CastToFloat(operand)
-            cp.double -> JcUnaryOperator.CastToDouble(operand)
-            cp.byte -> JcUnaryOperator.CastToByte(operand)
-            cp.char -> JcUnaryOperator.CastToChar(operand)
-            is JcRefType -> TODO()
-            else -> error("unexpected cast expression: $expr")
-        }
-    }
-
+    override fun visitJcCastExpr(expr: JcCastExpr): UExpr<out USort>? = resolveCast(expr.operand, expr.type)
     override fun visitJcInstanceOfExpr(expr: JcInstanceOfExpr): UExpr<out USort> = with(ctx) {
         TODO("Not yet implemented")
     }
@@ -459,12 +446,12 @@ class JcExprResolver(
     }
 
 
-    private fun checkDivisionByZero(rhs: UExpr<out USort>) = with(ctx) {
-        val sort = rhs.sort
+    private fun checkDivisionByZero(expr: UExpr<out USort>) = with(ctx) {
+        val sort = expr.sort
         if (sort !is UBvSort) {
             return Unit
         }
-        val neqZero = mkEq(rhs.cast(), mkBv(0, sort)).not()
+        val neqZero = mkEq(expr.cast(), mkBv(0, sort)).not()
         scope.fork(neqZero,
             blockOnFalseState = {
                 val ln = lastStmt.lineNumber
@@ -495,6 +482,44 @@ class JcExprResolver(
         return Unit
     }
 
+    private fun resolveCast(
+        operand: JcExpr,
+        type: JcType,
+    ) = when (type) {
+        is JcRefType -> resolveReferenceCast(operand, type)
+        is JcPrimitiveType -> resolvePrimitiveCast(operand, type)
+        else -> error("unexpected type: $type")
+    }
+
+    private fun resolveReferenceCast(operand: JcExpr, type: JcRefType) = resolveAfterResolved(operand) { expr ->
+        if (!type.isAssignable(operand.type)) {
+            TODO("Not yet implemented")
+        }
+        expr
+    }
+
+    private fun resolvePrimitiveCast(operand: JcExpr, type: JcPrimitiveType) = resolveAfterResolved(operand) { expr ->
+        // we need this, because char is unsigned, so it should be widened before cast
+        val wideExpr = if (operand.type == ctx.cp.char) {
+            expr wideWith operand.type
+        } else {
+            expr
+        }
+
+        when (type) {
+            ctx.cp.boolean -> JcUnaryOperator.CastToBoolean(wideExpr)
+            ctx.cp.short -> JcUnaryOperator.CastToShort(wideExpr)
+            ctx.cp.int -> JcUnaryOperator.CastToInt(wideExpr)
+            ctx.cp.long -> JcUnaryOperator.CastToLong(wideExpr)
+            ctx.cp.float -> JcUnaryOperator.CastToFloat(wideExpr)
+            ctx.cp.double -> JcUnaryOperator.CastToDouble(wideExpr)
+            ctx.cp.byte -> JcUnaryOperator.CastToByte(wideExpr)
+            ctx.cp.char -> JcUnaryOperator.CastToChar(wideExpr)
+            else -> error("unexpected cast expression: $expr")
+        }
+    }
+
+
     private fun resolveAfterResolved(
         dependency0: JcExpr,
         block: (UExpr<out USort>) -> UExpr<out USort>?,
@@ -512,4 +537,36 @@ class JcExprResolver(
         val result1 = resolveExpr(dependency1) ?: return null
         return block(result0, result1)
     }
+
+    private fun resolveBinaryOperator(
+        operator: JcBinaryOperator,
+        expr: JcBinaryExpr,
+    ) = resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs ->
+        // we don't want to have extra casts on booleans
+        val (wideLhs, wideRhs) = if (lhs.sort == ctx.boolSort && rhs.sort == ctx.boolSort) {
+            lhs to rhs
+        } else {
+            (lhs wideWith expr.lhv.type) to (rhs wideWith expr.rhv.type)
+        }
+
+        operator(wideLhs, wideRhs)
+    }
+
+    private fun resolveDivisionOperator(
+        operator: JcBinaryOperator,
+        expr: JcBinaryExpr,
+    ) = resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs ->
+        checkDivisionByZero(rhs) ?: return null
+        operator(lhs wideWith expr.lhv.type, rhs wideWith expr.rhv.type)
+    }
+
+    private infix fun UExpr<out USort>.wideWith(
+        type: JcType,
+    ): UExpr<out USort> {
+        require(type is JcPrimitiveType)
+        return wideTo32BitsIfNeeded(type.isSigned)
+    }
+
+    private val JcPrimitiveType.isSigned
+        get() = this != classpath.char
 }

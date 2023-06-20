@@ -6,13 +6,29 @@ import io.ksmt.sort.KBvSort
 import io.ksmt.utils.BvUtils.bvMaxValueSigned
 import io.ksmt.utils.BvUtils.bvMinValueSigned
 import io.ksmt.utils.cast
-import org.jacodb.api.JcPrimitiveType
-import org.usvm.UBoolSort
 import org.usvm.UBvSort
 import org.usvm.UExpr
 import org.usvm.UFpSort
 import org.usvm.USort
-import org.usvm.uctx
+
+private val intSizeBits = Int.SIZE_BITS.toUInt()
+
+@Suppress("UNCHECKED_CAST")
+internal fun UExpr<out USort>.wideTo32BitsIfNeeded(signed: Boolean): UExpr<out USort> =
+    with(ctx) {
+        when (val sort = sort) {
+            boolSort -> mkIte(this@wideTo32BitsIfNeeded as UExpr<KBoolSort>, mkBv(1, intSizeBits), mkBv(0, intSizeBits))
+            is UBvSort -> {
+                if (sort.sizeBits < intSizeBits) {
+                    (this@wideTo32BitsIfNeeded as UExpr<UBvSort>).mkNarrow(intSizeBits.toInt(), signed)
+                } else {
+                    this@wideTo32BitsIfNeeded as UExpr<UBvSort>
+                }
+            }
+            is UFpSort -> this@wideTo32BitsIfNeeded
+            else -> error("unexpected sort: $sort")
+        }
+    }
 
 internal fun UExpr<UBvSort>.mkNarrow(sizeBits: Int, signed: Boolean): UExpr<UBvSort> {
     val diff = sizeBits - sort.sizeBits.toInt()
@@ -59,15 +75,3 @@ internal fun UExpr<UFpSort>.castToBv(sizeBits: Int): UExpr<UBvSort> =
             )
         )
     }
-
-internal fun convertBoolIfNeeded(lhs: KExpr<out USort>, rhsSort: USort): UExpr<out USort> {
-    val lhsSort = lhs.sort
-    return if (lhsSort is UBoolSort && rhsSort is UBvSort) {
-        with(lhs.uctx) {
-            @Suppress("UNCHECKED_CAST")
-            mkIte(lhs as UExpr<KBoolSort>, mkBv(1, rhsSort), mkBv(0, rhsSort))
-        }
-    } else {
-        lhs
-    }
-}

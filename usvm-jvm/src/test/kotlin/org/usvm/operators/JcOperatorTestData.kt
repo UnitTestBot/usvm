@@ -1,28 +1,41 @@
 package org.usvm.operators
 
-import io.ksmt.expr.KBitVec32Value
-import io.ksmt.expr.KBitVec64Value
-import io.ksmt.expr.KFp32Value
-import io.ksmt.expr.KFp64Value
-import org.usvm.UExpr
-import org.usvm.UFalse
-import org.usvm.USort
-import org.usvm.UTrue
+val byteData = listOf(
+    0.toByte(),
+    1.toByte(),
+    (-1).toByte(),
+    2.toByte(),
+    (-2).toByte(),
+    42.toByte(),
+    (-42).toByte(),
+    Byte.MIN_VALUE,
+    Byte.MAX_VALUE,
+)
 
-fun extractBool(expr: UExpr<out USort>): Boolean? = when (expr) {
-    is UTrue -> true
-    is UFalse -> false
-    else -> null
-}
 
-fun extractInt(expr: UExpr<out USort>): Int? = (expr as? KBitVec32Value)?.intValue
+val charData = listOf(
+    0.toChar(),
+    1.toChar(),
+    (-1).toChar(),
+    2.toChar(),
+    (-2).toChar(),
+    42.toChar(),
+    (-42).toChar(),
+    Char.MIN_VALUE,
+    Char.MAX_VALUE,
+)
 
-fun extractLong(expr: UExpr<out USort>): Long? = (expr as? KBitVec64Value)?.longValue
-
-fun extractFloat(expr: UExpr<out USort>): Float? = (expr as? KFp32Value)?.value
-
-fun extractDouble(expr: UExpr<out USort>): Double? = (expr as? KFp64Value)?.value
-
+val shortData = listOf(
+    0.toShort(),
+    1.toShort(),
+    (-1).toShort(),
+    2.toShort(),
+    (-2).toShort(),
+    42.toShort(),
+    (-42).toShort(),
+    Short.MIN_VALUE,
+    Short.MAX_VALUE,
+)
 
 val intData = listOf(
     0,

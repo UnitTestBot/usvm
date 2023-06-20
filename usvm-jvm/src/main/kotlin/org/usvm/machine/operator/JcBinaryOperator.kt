@@ -1,7 +1,5 @@
 package org.usvm.machine.operator
 
-import io.ksmt.expr.KExpr
-import io.ksmt.sort.KBoolSort
 import io.ksmt.utils.cast
 import org.usvm.UBoolSort
 import org.usvm.UBvSort
@@ -9,12 +7,13 @@ import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UFpSort
 import org.usvm.USort
-import org.usvm.uctx
+import org.usvm.machine.JcContext
+import org.usvm.machine.jctx
 
 sealed class JcBinaryOperator(
-    val onBool: UContext.(UExpr<UBoolSort>, UExpr<UBoolSort>) -> UExpr<out USort> = shouldNotBeCalled,
-    val onBv: UContext.(UExpr<UBvSort>, UExpr<UBvSort>) -> UExpr<out USort> = shouldNotBeCalled,
-    val onFp: UContext.(UExpr<UFpSort>, UExpr<UFpSort>) -> UExpr<out USort> = shouldNotBeCalled,
+    val onBool: JcContext.(UExpr<UBoolSort>, UExpr<UBoolSort>) -> UExpr<out USort> = shouldNotBeCalled,
+    val onBv: JcContext.(UExpr<UBvSort>, UExpr<UBvSort>) -> UExpr<out USort> = shouldNotBeCalled,
+    val onFp: JcContext.(UExpr<UFpSort>, UExpr<UFpSort>) -> UExpr<out USort> = shouldNotBeCalled,
 ) {
     object Add : JcBinaryOperator(
         onBv = UContext::mkBvAddExpr,
@@ -140,31 +139,25 @@ sealed class JcBinaryOperator(
 
     // TODO shl, shr operators
 
-    open operator fun invoke(lhsExpr: UExpr<out USort>, rhsExpr: UExpr<out USort>): UExpr<out USort> {
-        val lhs = convertBoolIfNeeded(lhsExpr, rhsExpr.sort)
-        val rhs = convertBoolIfNeeded(rhsExpr, lhsExpr.sort)
-
+    internal open operator fun invoke(lhs: UExpr<out USort>, rhs: UExpr<out USort>): UExpr<out USort> {
         val lhsSort = lhs.sort
         val rhsSort = rhs.sort
 
         return when {
-            lhsSort is UBoolSort && rhsSort is UBoolSort -> lhs.uctx.onBool(lhs.cast(), rhs.cast())
+            lhsSort != rhsSort -> error("expressions sorts mismatch: $lhsSort, $rhsSort")
 
-            lhsSort is UBvSort && rhsSort is UBvSort -> {
-                if (lhsSort.sizeBits > rhsSort.sizeBits) {
+            lhsSort is UBoolSort -> lhs.jctx.onBool(lhs.cast(), rhs.cast())
 
-                }
-                lhs.uctx.onBv(lhs.cast(), rhs.cast())
-            }
+            lhsSort is UBvSort -> lhs.jctx.onBv(lhs.cast(), rhs.cast())
 
-            lhsSort is UFpSort && rhsSort is UFpSort -> lhs.uctx.onFp(lhs.cast(), rhs.cast())
+            lhsSort is UFpSort -> lhs.jctx.onFp(lhs.cast(), rhs.cast())
 
-            else -> error("Expressions mismatch: $lhs, $rhs")
+            else -> error("unexpected sorts: $lhsSort, $rhsSort")
         }
     }
 
     companion object {
-        private val shouldNotBeCalled: UContext.(UExpr<out USort>, UExpr<out USort>) -> UExpr<out USort> =
+        private val shouldNotBeCalled: JcContext.(UExpr<out USort>, UExpr<out USort>) -> UExpr<out USort> =
             { _, _ -> error("Should not be called") }
     }
 }
