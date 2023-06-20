@@ -21,7 +21,7 @@ class ParallelSelector<State>(
         while (selectors[ptr].isEmpty()) {
             ptr = (ptr + 1) % selectors.size
             if (ptr == begin) {
-                error("empty queue")
+                error("Empty queue")
             }
         }
         return selectors[ptr].peek()

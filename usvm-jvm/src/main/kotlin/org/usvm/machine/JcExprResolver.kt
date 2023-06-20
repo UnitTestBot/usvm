@@ -92,25 +92,35 @@ import org.usvm.machine.state.addNewMethodCall
 import org.usvm.machine.state.lastStmt
 import org.usvm.machine.state.throwException
 
+/**
+ * An expression resolver based on JacoDb 3-address code. A result of resolving is `null`, iff
+ * the original state is dead, as stated in [JcStepScope].
+ */
 class JcExprResolver(
     private val ctx: JcContext,
     private val scope: JcStepScope,
     private val applicationGraph: JcApplicationGraph,
     private val localToIdx: (JcMethod, JcLocal) -> Int,
-    private val hardMaxArrayLength: Int = 1_500,
+    private val hardMaxArrayLength: Int = 1_500, // TODO: move to options
 ) : JcExprVisitor<UExpr<out USort>?> {
     /**
-     * TODO: add comment about null
+     * Resolves the [expr] and casts it to match the desired [type].
+     *
+     * @return a symbolic expression, with the sort corresponding to the [type].
      */
-    fun resolveExpr(value: JcExpr, type: JcType = value.type): UExpr<out USort>? =
-        if (value.type != type) {
-            resolveCast(value, type)
+    fun resolveJcExpr(expr: JcExpr, type: JcType = expr.type): UExpr<out USort>? =
+        if (expr.type != type) {
+            resolveCast(expr, type)
         } else {
-            value.accept(this)
+            expr.accept(this)
         }
 
     /**
-     * TODO: add comment about null
+     * Builds a [ULValue] from a [value].
+     *
+     * @return `null` if the symbolic state is dead, as stated in the [JcStepScope] documentation.
+     *
+     * @see JcStepScope
      */
     fun resolveLValue(value: JcValue): ULValue? =
         when (value) {
@@ -261,12 +271,13 @@ class JcExprResolver(
     //endregion
 
     override fun visitJcCastExpr(expr: JcCastExpr): UExpr<out USort>? = resolveCast(expr.operand, expr.type)
+
     override fun visitJcInstanceOfExpr(expr: JcInstanceOfExpr): UExpr<out USort> = with(ctx) {
         TODO("Not yet implemented")
     }
 
     override fun visitJcLengthExpr(expr: JcLengthExpr): UExpr<out USort>? = with(ctx) {
-        val ref = resolveExpr(expr.array)?.asExpr(addressSort) ?: return null
+        val ref = resolveJcExpr(expr.array)?.asExpr(addressSort) ?: return null
         checkNullPointer(ref) ?: return null
         val lengthRef = UArrayLengthLValue(ref, expr.array.type)
         val length = scope.calcOnState { memory.read(lengthRef).asExpr(sizeSort) } ?: return null
@@ -276,7 +287,7 @@ class JcExprResolver(
     }
 
     override fun visitJcNewArrayExpr(expr: JcNewArrayExpr): UExpr<out USort>? = with(ctx) {
-        val size = resolveExpr(expr.dimensions[0])?.asExpr(sizeSort) ?: return null
+        val size = resolveJcExpr(expr.dimensions[0])?.asExpr(sizeSort) ?: return null
         // TODO: other dimensions ( > 1)
         checkNewArrayLength(size) ?: return null
         val ref = scope.calcOnState { memory.malloc(expr.type, size) } ?: return null
@@ -287,33 +298,33 @@ class JcExprResolver(
         scope.calcOnState { memory.alloc(expr.type) }
 
     override fun visitJcPhiExpr(expr: JcPhiExpr): UExpr<out USort> = with(ctx) {
-        error("unexpected expr: $expr")
+        error("Unexpected expr: $expr")
     }
 
     //region invokes
 
     override fun visitJcSpecialCallExpr(expr: JcSpecialCallExpr): UExpr<out USort>? =
         resolveInvoke(expr.method) {
-            val instance = resolveExpr(expr.instance)?.asExpr(ctx.addressSort) ?: return@resolveInvoke null
+            val instance = resolveJcExpr(expr.instance)?.asExpr(ctx.addressSort) ?: return@resolveInvoke null
             checkNullPointer(instance) ?: return@resolveInvoke null
             val arguments = mutableListOf<UExpr<out USort>>(instance)
-            expr.args.mapTo(arguments) { resolveExpr(it) ?: return@resolveInvoke null }
+            expr.args.mapTo(arguments) { resolveJcExpr(it) ?: return@resolveInvoke null }
             arguments
         }
 
     override fun visitJcVirtualCallExpr(expr: JcVirtualCallExpr): UExpr<out USort>? =
         resolveInvoke(expr.method) {
             // TODO resolve actual method for interface invokes
-            val instance = resolveExpr(expr.instance)?.asExpr(ctx.addressSort) ?: return@resolveInvoke null
+            val instance = resolveJcExpr(expr.instance)?.asExpr(ctx.addressSort) ?: return@resolveInvoke null
             checkNullPointer(instance) ?: return@resolveInvoke null
             val arguments = mutableListOf<UExpr<out USort>>(instance)
-            expr.args.mapTo(arguments) { resolveExpr(it) ?: return@resolveInvoke null }
+            expr.args.mapTo(arguments) { resolveJcExpr(it) ?: return@resolveInvoke null }
             arguments
         }
 
     override fun visitJcStaticCallExpr(expr: JcStaticCallExpr): UExpr<out USort>? =
         resolveInvoke(expr.method) {
-            expr.args.map { resolveExpr(it) ?: return@resolveInvoke null }
+            expr.args.map { resolveJcExpr(it) ?: return@resolveInvoke null }
         }
 
     override fun visitJcDynamicCallExpr(expr: JcDynamicCallExpr): UExpr<out USort> = with(ctx) {
@@ -322,7 +333,7 @@ class JcExprResolver(
 
     override fun visitJcLambdaExpr(expr: JcLambdaExpr): UExpr<out USort>? =
         resolveInvoke(expr.method) {
-            expr.args.map { resolveExpr(it) ?: return@resolveInvoke null }
+            expr.args.map { resolveJcExpr(it) ?: return@resolveInvoke null }
         }
 
     private fun resolveInvoke(
@@ -341,7 +352,7 @@ class JcExprResolver(
                 null
             }
 
-            is JcMethodResult.Exception -> error("exception should be handled earlier")
+            is JcMethodResult.Exception -> error("Exception should be handled earlier")
         }
     }
 
@@ -368,24 +379,37 @@ class JcExprResolver(
 
     //region jc complex values
 
-    override fun visitJcFieldRef(value: JcFieldRef): UExpr<out USort>? = with(ctx) {
+    override fun visitJcFieldRef(value: JcFieldRef): UExpr<out USort>? {
         val ref = resolveFieldRef(value.instance, value.field) ?: return null
-        scope.calcOnState { memory.read(ref) }
+        return scope.calcOnState { memory.read(ref) }
     }
 
 
-    override fun visitJcArrayAccess(value: JcArrayAccess): UExpr<out USort>? = with(ctx) {
+    override fun visitJcArrayAccess(value: JcArrayAccess): UExpr<out USort>? {
         val ref = resolveArrayAccess(value.array, value.index) ?: return null
-        scope.calcOnState { memory.read(ref) }
+        return scope.calcOnState { memory.read(ref) }
     }
 
     //endregion
 
+    private fun resolveFieldRef(instance: JcValue?, field: JcTypedField): ULValue? = with(ctx) {
+        if (instance != null) {
+            val instanceRef = resolveJcExpr(instance)?.asExpr(addressSort) ?: return null
+            checkNullPointer(instanceRef) ?: return null
+            val sort = ctx.typeToSort(field.fieldType)
+            UFieldLValue(sort, instanceRef, field.field)
+        } else {
+            val sort = ctx.typeToSort(field.fieldType)
+            JcStaticFieldRef(sort, field.field)
+            // TODO: can't extend UMemoryBase for now...
+        }
+    }
+
     private fun resolveArrayAccess(array: JcValue, index: JcValue): ULValue? = with(ctx) {
-        val arrayRef = resolveExpr(array)?.asExpr(addressSort) ?: return null
+        val arrayRef = resolveJcExpr(array)?.asExpr(addressSort) ?: return null
         checkNullPointer(arrayRef) ?: return null
 
-        val idx = resolveExpr(index)?.asExpr(bv32Sort) ?: return null
+        val idx = resolveJcExpr(index)?.asExpr(bv32Sort) ?: return null
         val lengthRef = UArrayLengthLValue(arrayRef, array.type)
         val length = scope.calcOnState { memory.read(lengthRef).asExpr(sizeSort) } ?: return null
 
@@ -397,19 +421,6 @@ class JcExprResolver(
         val cellSort = typeToSort(elementType)
 
         return UArrayIndexLValue(cellSort, arrayRef, idx, array.type)
-    }
-
-    private fun resolveFieldRef(instance: JcValue?, field: JcTypedField): ULValue? = with(ctx) {
-        if (instance != null) {
-            val instanceRef = resolveExpr(instance)?.asExpr(addressSort) ?: return null
-            checkNullPointer(instanceRef) ?: return null
-            val sort = ctx.typeToSort(field.fieldType)
-            UFieldLValue(sort, instanceRef, field.field)
-        } else {
-            val sort = ctx.typeToSort(field.fieldType)
-            JcStaticFieldRef(sort, field.field)
-            // TODO: can't extend UMemoryBase for now...
-        }
     }
 
     private fun resolveLocal(local: JcLocal): ULValue {
@@ -482,62 +493,6 @@ class JcExprResolver(
         return Unit
     }
 
-    private fun resolveCast(
-        operand: JcExpr,
-        type: JcType,
-    ) = when (type) {
-        is JcRefType -> resolveReferenceCast(operand, type)
-        is JcPrimitiveType -> resolvePrimitiveCast(operand, type)
-        else -> error("unexpected type: $type")
-    }
-
-    private fun resolveReferenceCast(operand: JcExpr, type: JcRefType) = resolveAfterResolved(operand) { expr ->
-        if (!type.isAssignable(operand.type)) {
-            TODO("Not yet implemented")
-        }
-        expr
-    }
-
-    private fun resolvePrimitiveCast(operand: JcExpr, type: JcPrimitiveType) = resolveAfterResolved(operand) { expr ->
-        // we need this, because char is unsigned, so it should be widened before cast
-        val wideExpr = if (operand.type == ctx.cp.char) {
-            expr wideWith operand.type
-        } else {
-            expr
-        }
-
-        when (type) {
-            ctx.cp.boolean -> JcUnaryOperator.CastToBoolean(wideExpr)
-            ctx.cp.short -> JcUnaryOperator.CastToShort(wideExpr)
-            ctx.cp.int -> JcUnaryOperator.CastToInt(wideExpr)
-            ctx.cp.long -> JcUnaryOperator.CastToLong(wideExpr)
-            ctx.cp.float -> JcUnaryOperator.CastToFloat(wideExpr)
-            ctx.cp.double -> JcUnaryOperator.CastToDouble(wideExpr)
-            ctx.cp.byte -> JcUnaryOperator.CastToByte(wideExpr)
-            ctx.cp.char -> JcUnaryOperator.CastToChar(wideExpr)
-            else -> error("unexpected cast expression: $expr")
-        }
-    }
-
-
-    private fun resolveAfterResolved(
-        dependency0: JcExpr,
-        block: (UExpr<out USort>) -> UExpr<out USort>?,
-    ): UExpr<out USort>? {
-        val result0 = resolveExpr(dependency0) ?: return null
-        return block(result0)
-    }
-
-    private inline fun resolveAfterResolved(
-        dependency0: JcExpr,
-        dependency1: JcExpr,
-        block: (UExpr<out USort>, UExpr<out USort>) -> UExpr<out USort>?,
-    ): UExpr<out USort>? {
-        val result0 = resolveExpr(dependency0) ?: return null
-        val result1 = resolveExpr(dependency1) ?: return null
-        return block(result0, result1)
-    }
-
     private fun resolveBinaryOperator(
         operator: JcBinaryOperator,
         expr: JcBinaryExpr,
@@ -560,6 +515,43 @@ class JcExprResolver(
         operator(lhs wideWith expr.lhv.type, rhs wideWith expr.rhv.type)
     }
 
+    private fun resolveCast(
+        operand: JcExpr,
+        type: JcType,
+    ) = when (type) {
+        is JcRefType -> resolveReferenceCast(operand, type)
+        is JcPrimitiveType -> resolvePrimitiveCast(operand, type)
+        else -> error("Unexpected type: $type")
+    }
+
+    private fun resolveReferenceCast(operand: JcExpr, type: JcRefType) = resolveAfterResolved(operand) { expr ->
+        if (!type.isAssignable(operand.type)) {
+            TODO("Not yet implemented")
+        }
+        expr
+    }
+
+    private fun resolvePrimitiveCast(operand: JcExpr, type: JcPrimitiveType) = resolveAfterResolved(operand) { expr ->
+        // we need this, because char is unsigned, so it should be widened before a cast
+        val wideExpr = if (operand.type == ctx.cp.char) {
+            expr wideWith operand.type
+        } else {
+            expr
+        }
+
+        when (type) {
+            ctx.cp.boolean -> JcUnaryOperator.CastToBoolean(wideExpr)
+            ctx.cp.short -> JcUnaryOperator.CastToShort(wideExpr)
+            ctx.cp.int -> JcUnaryOperator.CastToInt(wideExpr)
+            ctx.cp.long -> JcUnaryOperator.CastToLong(wideExpr)
+            ctx.cp.float -> JcUnaryOperator.CastToFloat(wideExpr)
+            ctx.cp.double -> JcUnaryOperator.CastToDouble(wideExpr)
+            ctx.cp.byte -> JcUnaryOperator.CastToByte(wideExpr)
+            ctx.cp.char -> JcUnaryOperator.CastToChar(wideExpr)
+            else -> error("Unexpected cast expression: $operand")
+        }
+    }
+
     private infix fun UExpr<out USort>.wideWith(
         type: JcType,
     ): UExpr<out USort> {
@@ -569,4 +561,22 @@ class JcExprResolver(
 
     private val JcPrimitiveType.isSigned
         get() = this != classpath.char
+
+    private fun resolveAfterResolved(
+        dependency0: JcExpr,
+        block: (UExpr<out USort>) -> UExpr<out USort>?,
+    ): UExpr<out USort>? {
+        val result0 = resolveJcExpr(dependency0) ?: return null
+        return block(result0)
+    }
+
+    private inline fun resolveAfterResolved(
+        dependency0: JcExpr,
+        dependency1: JcExpr,
+        block: (UExpr<out USort>, UExpr<out USort>) -> UExpr<out USort>?,
+    ): UExpr<out USort>? {
+        val result0 = resolveJcExpr(dependency0) ?: return null
+        val result1 = resolveJcExpr(dependency1) ?: return null
+        return block(result0, result1)
+    }
 }

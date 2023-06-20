@@ -16,16 +16,6 @@ import io.ksmt.sort.KFp64Sort
 import org.usvm.UAddressSort
 import org.usvm.UExpr
 
-typealias JcLongSort = KBv64Sort
-typealias JcIntSort = KBv32Sort
-typealias JcShortSort = KBv16Sort
-typealias JcCharSort = KBv16Sort
-typealias JcByteSort = KBv8Sort
-typealias JcBooleanSort = KBoolSort
-
-typealias JcFloatSort = KFp32Sort
-typealias JcDoubleSort = KFp64Sort
-
 class JcVoidValue(ctx: JcContext) : UExpr<UAddressSort>(ctx) {
     override val sort: UAddressSort get() = jctx.voidSort
 
