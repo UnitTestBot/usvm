@@ -233,7 +233,7 @@ class JcTestResolver(
         }
 
         /**
-         * Works incorrectly with interface types.
+         * TODO: Works incorrectly with interface types.
          */
         @Suppress("UNUSED_PARAMETER")
         private fun resolveType(idx: UConcreteHeapAddress, type: JcRefType): Class<*> {

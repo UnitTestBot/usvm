@@ -10,6 +10,9 @@ import org.usvm.USort
 import org.usvm.machine.JcContext
 import org.usvm.machine.jctx
 
+/**
+ * An util class for performing binary operations on expressions.
+ */
 sealed class JcBinaryOperator(
     val onBool: JcContext.(UExpr<UBoolSort>, UExpr<UBoolSort>) -> UExpr<out USort> = shouldNotBeCalled,
     val onBv: JcContext.(UExpr<UBvSort>, UExpr<UBvSort>) -> UExpr<out USort> = shouldNotBeCalled,
@@ -139,6 +142,12 @@ sealed class JcBinaryOperator(
 
     // TODO shl, shr operators
 
+    /**
+     * Performs an operation on [lhs] and [rhs]. A caller has to ensure, that [lhs] and [rhs] have
+     * the same sorts.
+     *
+     * @return the result expression.
+     */
     internal open operator fun invoke(lhs: UExpr<out USort>, rhs: UExpr<out USort>): UExpr<out USort> {
         val lhsSort = lhs.sort
         val rhsSort = rhs.sort

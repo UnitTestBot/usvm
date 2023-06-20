@@ -34,6 +34,7 @@ fun JcState.throwException(exception: Exception) {
         memory.stack.pop()
     }
 
+    // TODO: the last place where we distinguish implicitly thrown and explicitly thrown exceptions
     methodResult = JcMethodResult.Exception(exception)
 
     if (returnSite != null) {
@@ -73,6 +74,8 @@ fun JcState.addNewMethodCall(
 }
 
 
+// TODO: cache it with JacoDB cache
 inline val JcMethod.parametersWithThisCount get() = parameters.size + if (isStatic) 0 else 1
 
+// TODO: cache it with JacoDB cache
 inline val JcMethod.localsCount get() = instList.locals.filter { it !is JcArgument }.size

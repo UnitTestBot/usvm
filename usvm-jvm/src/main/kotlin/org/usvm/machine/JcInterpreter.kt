@@ -32,6 +32,9 @@ import org.usvm.machine.state.throwException
 
 typealias JcStepScope = StepScope<JcState, JcType, JcField>
 
+/**
+ * A JacoDB interpreter.
+ */
 class JcInterpreter(
     private val ctx: JcContext,
     private val applicationGraph: JcApplicationGraph,

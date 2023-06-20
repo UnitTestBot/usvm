@@ -28,7 +28,6 @@ import org.usvm.memory.USymbolicArrayIndex
 import org.usvm.memory.USymbolicHeap
 import org.usvm.uctx
 
-
 /**
  * Since expressions from [this] might have the [UAddressSort] and therefore
  * they could be uninterpreted constants, we have to replace them with
@@ -55,6 +54,7 @@ class ULazyRegistersStackModel(
     private val addressesMapping: AddressesMapping,
     registerIdxToTranslated: Map<Int, UExpr<out USort>>,
 ) : URegistersStackEvaluator {
+    // TODO: temporary solution, it should be solved in a different way
     private val registerIdxToTranslated = registerIdxToTranslated.toMap()
     override fun <Sort : USort> readRegister(
         registerIndex: Int,
@@ -73,6 +73,7 @@ class ULazyIndexedMockModel<Method>(
     private val addressesMapping: AddressesMapping,
     indexedMethodReturnValueToTranslated: Map<Pair<*, Int>, UExpr<*>>,
 ) : UMockEvaluator {
+    // TODO: temporary solution, it should be solved in a different way
     private val indexedMethodReturnValueToTranslated = indexedMethodReturnValueToTranslated.toMap()
     override fun <Sort : USort> eval(symbol: UMockSymbol<Sort>): UExpr<Sort> {
         require(symbol is UIndexedMethodReturnValue<*, Sort>)
@@ -107,6 +108,7 @@ class ULazyHeapModel<Field, ArrayType>(
     private val addressesMapping: AddressesMapping,
     regionIdToInitialValue: Map<URegionId<*, *, *>, KExpr<*>>,
 ) : USymbolicHeap<Field, ArrayType> {
+    // TODO: temporary solution, it should be solved in a different way
     private val regionIdToInitialValue = regionIdToInitialValue.toMap()
     private val resolvedInputFields = mutableMapOf<Field, UReadOnlyMemoryRegion<UHeapRef, out USort>>()
     private val resolvedInputArrays = mutableMapOf<ArrayType, UReadOnlyMemoryRegion<USymbolicArrayIndex, out USort>>()

@@ -1,11 +1,6 @@
 package org.usvm.util
 
-import org.jacodb.api.JcClassOrInterface
-import org.jacodb.api.cfg.locals
 import java.io.File
-import java.nio.file.Paths
-import kotlin.io.path.createDirectory
-import kotlin.io.path.notExists
 
 val allClasspath: List<File>
     get() {

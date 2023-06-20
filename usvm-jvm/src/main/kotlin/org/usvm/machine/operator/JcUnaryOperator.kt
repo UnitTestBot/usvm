@@ -10,6 +10,9 @@ import org.usvm.USort
 import org.usvm.machine.JcContext
 import org.usvm.machine.jctx
 
+/**
+ * An util class for performing unary operations on expressions.
+ */
 sealed class JcUnaryOperator(
     val onBool: JcContext.(UExpr<UBoolSort>) -> UExpr<out USort> = shouldNotBeCalled,
     val onBv: JcContext.(UExpr<UBvSort>) -> UExpr<out USort> = shouldNotBeCalled,
@@ -57,6 +60,11 @@ sealed class JcUnaryOperator(
         onFp = { operand -> mkFpToFpExpr(fp64Sort, fpRoundingModeSortDefaultValue(), operand) }
     )
 
+    /**
+     * Performs an operation on [operand].
+     *
+     * @return the result expression.
+     */
     open operator fun invoke(operand: UExpr<out USort>): UExpr<out USort> =
         when (operand.sort) {
             is UBoolSort -> operand.jctx.onBool(operand.cast())

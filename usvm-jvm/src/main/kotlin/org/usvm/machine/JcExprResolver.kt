@@ -131,10 +131,10 @@ class JcExprResolver(
         }
 
     override fun visitExternalJcExpr(expr: JcExpr): UExpr<out USort> = with(ctx) {
-        TODO("Not yet implemented")
+        error("Unexpected expression: $expr")
     }
 
-    //binary operators
+    // region binary operators
 
     override fun visitJcAddExpr(expr: JcAddExpr): UExpr<out USort>? =
         resolveBinaryOperator(JcBinaryOperator.Add, expr)
@@ -216,9 +216,9 @@ class JcExprResolver(
     override fun visitJcNegExpr(expr: JcNegExpr): UExpr<out USort>? =
         resolveAfterResolved(expr.operand) { operand -> JcUnaryOperator.Neg(operand) }
 
-    //endregion
+    // endregion
 
-    //region constants
+    // region constants
 
     override fun visitJcBool(value: JcBool): UExpr<out USort> = with(ctx) {
         mkBool(value.value)
@@ -268,7 +268,7 @@ class JcExprResolver(
         TODO("Not yet implemented")
     }
 
-    //endregion
+    // endregion
 
     override fun visitJcCastExpr(expr: JcCastExpr): UExpr<out USort>? = resolveCast(expr.operand, expr.type)
 
@@ -301,7 +301,7 @@ class JcExprResolver(
         error("Unexpected expr: $expr")
     }
 
-    //region invokes
+    // region invokes
 
     override fun visitJcSpecialCallExpr(expr: JcSpecialCallExpr): UExpr<out USort>? =
         resolveInvoke(expr.method) {
@@ -356,9 +356,9 @@ class JcExprResolver(
         }
     }
 
-    //endregion
+    // endregion
 
-    //region jc locals
+    // region jc locals
 
     override fun visitJcLocalVar(value: JcLocalVar): UExpr<out USort>? = with(ctx) {
         val ref = resolveLocal(value)
@@ -375,9 +375,9 @@ class JcExprResolver(
         scope.calcOnState { memory.read(ref) }
     }
 
-    //endregion
+    // endregion
 
-    //region jc complex values
+    // region jc complex values
 
     override fun visitJcFieldRef(value: JcFieldRef): UExpr<out USort>? {
         val ref = resolveFieldRef(value.instance, value.field) ?: return null
@@ -390,7 +390,9 @@ class JcExprResolver(
         return scope.calcOnState { memory.read(ref) }
     }
 
-    //endregion
+    // endregion
+
+    // region lvalue resolving
 
     private fun resolveFieldRef(instance: JcValue?, field: JcTypedField): ULValue? = with(ctx) {
         if (instance != null) {
@@ -429,6 +431,10 @@ class JcExprResolver(
         val sort = ctx.typeToSort(local.type)
         return URegisterLValue(sort, localIdx)
     }
+
+    // endregion
+
+    // region implicit exceptions
 
     private fun checkArrayIndex(idx: USizeExpr, length: USizeExpr) = with(ctx) {
         val inside = (mkBvSignedLessOrEqualExpr(mkBv(0), idx)) and (mkBvSignedLessExpr(idx, length))
@@ -472,9 +478,6 @@ class JcExprResolver(
         )
     }
 
-    /**
-     * TODO: add comments
-     */
     private fun checkNullPointer(ref: UHeapRef) = with(ctx) {
         val neqNull = mkHeapRefEq(ref, nullRef).not()
         scope.fork(
@@ -487,11 +490,17 @@ class JcExprResolver(
         )
     }
 
+    // endregion
+
+    // region hard assertions
+
     private fun assertHardMaxArrayLength(length: USizeExpr): Unit? = with(ctx) {
         val lengthLeThanMaxLength = mkBvSignedLessOrEqualExpr(length, mkBv(hardMaxArrayLength))
         scope.assert(lengthLeThanMaxLength) ?: return null
         return Unit
     }
+
+    // endregion
 
     private fun resolveBinaryOperator(
         operator: JcBinaryOperator,
