@@ -5,17 +5,16 @@ import kotlinx.collections.immutable.persistentListOf
 import org.jacodb.api.JcField
 import org.jacodb.api.JcMethod
 import org.jacodb.api.JcType
-import org.jacodb.api.JcTypedMethod
 import org.jacodb.api.cfg.JcArgument
 import org.jacodb.api.cfg.JcInst
 import org.jacodb.api.ext.cfg.locals
-import org.usvm.machine.JcApplicationGraph
-import org.usvm.machine.JcContext
 import org.usvm.UCallStack
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.UState
 import org.usvm.constraints.UPathConstraints
+import org.usvm.machine.JcApplicationGraph
+import org.usvm.machine.JcContext
 import org.usvm.memory.UMemoryBase
 import org.usvm.model.UModelBase
 

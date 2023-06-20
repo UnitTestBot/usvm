@@ -1,34 +1,71 @@
 package org.usvm.operators
 
-import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import org.usvm.UComponents
-import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.USort
+import org.usvm.machine.JcContext
+import org.usvm.machine.extractByte
+import org.usvm.machine.extractChar
+import org.usvm.machine.extractDouble
+import org.usvm.machine.extractFloat
+import org.usvm.machine.extractInt
+import org.usvm.machine.extractLong
+import org.usvm.machine.extractShort
 import org.usvm.machine.operator.JcUnaryOperator
+import org.usvm.machine.operator.wideTo32BitsIfNeeded
 import kotlin.test.assertEquals
 
 class JcUnaryOperatorTest {
-    lateinit var ctx: UContext
+    lateinit var ctx: JcContext
 
     @BeforeEach
     fun initializeContext() {
-        val components: UComponents<*, *, *> = mockk()
-        every { components.mkTypeSystem(any()) } returns mockk()
-        ctx = UContext(components)
+        ctx = JcContext(mockk(), mockk())
     }
+
+    @Test
+    fun `Test cast byte to int`() =
+        testOperator(
+            JcUnaryOperator.CastToInt,
+            "(int)",
+            Byte::toInt,
+            ::extractInt,
+            ctx::mkBv,
+            byteData,
+        )
+
+    @Test
+    fun `Test cast char to int`() =
+        testOperator(
+            JcUnaryOperator.CastToInt,
+            "(int)",
+            Char::code,
+            ::extractInt,
+            { operand -> ctx.mkBv(operand.code, ctx.charSort).wideTo32BitsIfNeeded(false) },
+            charData,
+        )
+
+    @Test
+    fun `Test cast short to int`() =
+        testOperator(
+            JcUnaryOperator.CastToInt,
+            "(int)",
+            Short::toInt,
+            ::extractInt,
+            ctx::mkBv,
+            shortData,
+        )
 
     @Test
     fun `Test cast int to byte`() =
         testOperatorOnInt(
             JcUnaryOperator.CastToByte,
             "(byte)",
-            { operand -> operand.toByte().toInt() },
-            ::extractInt
+            Int::toByte,
+            ::extractByte
         )
 
     @Test
@@ -36,8 +73,8 @@ class JcUnaryOperatorTest {
         testOperatorOnInt(
             JcUnaryOperator.CastToChar,
             "(char)",
-            { operand -> operand.toChar().code },
-            ::extractInt
+            Int::toChar,
+            ::extractChar
         )
 
     @Test
@@ -45,8 +82,8 @@ class JcUnaryOperatorTest {
         testOperatorOnInt(
             JcUnaryOperator.CastToShort,
             "(short)",
-            { operand -> operand.toShort().toInt() },
-            ::extractInt
+            Int::toShort,
+            ::extractShort
         )
 
     @Test
@@ -54,7 +91,7 @@ class JcUnaryOperatorTest {
         testOperatorOnInt(
             JcUnaryOperator.CastToLong,
             "(long)",
-            { operand -> operand.toLong() },
+            Int::toLong,
             ::extractLong
         )
 
@@ -63,7 +100,7 @@ class JcUnaryOperatorTest {
         testOperatorOnInt(
             JcUnaryOperator.CastToFloat,
             "(float)",
-            { operand -> operand.toFloat() },
+            Int::toFloat,
             ::extractFloat
         )
 
@@ -72,7 +109,7 @@ class JcUnaryOperatorTest {
         testOperatorOnInt(
             JcUnaryOperator.CastToDouble,
             "(double)",
-            { operand -> operand.toDouble() },
+            Int::toDouble,
             ::extractDouble
         )
 
@@ -81,7 +118,7 @@ class JcUnaryOperatorTest {
         testOperatorOnLong(
             JcUnaryOperator.CastToInt,
             "(int)",
-            { operand -> operand.toInt() },
+            Long::toInt,
             ::extractInt
         )
 
@@ -90,7 +127,7 @@ class JcUnaryOperatorTest {
         testOperatorOnLong(
             JcUnaryOperator.CastToFloat,
             "(float)",
-            { operand -> operand.toFloat() },
+            Long::toFloat,
             ::extractFloat
         )
 
@@ -100,7 +137,7 @@ class JcUnaryOperatorTest {
         testOperatorOnLong(
             JcUnaryOperator.CastToDouble,
             "(double)",
-            { operand -> operand.toDouble() },
+            Long::toDouble,
             ::extractDouble
         )
 
@@ -110,7 +147,7 @@ class JcUnaryOperatorTest {
         testOperatorOnFloat(
             JcUnaryOperator.CastToInt,
             "(int)",
-            { operand -> operand.toInt() },
+            Float::toInt,
             ::extractInt
         )
 
@@ -119,7 +156,7 @@ class JcUnaryOperatorTest {
         testOperatorOnFloat(
             JcUnaryOperator.CastToLong,
             "(long)",
-            { operand -> operand.toLong() },
+            Float::toLong,
             ::extractLong
         )
 
@@ -129,7 +166,7 @@ class JcUnaryOperatorTest {
         testOperatorOnFloat(
             JcUnaryOperator.CastToDouble,
             "(double)",
-            { operand -> operand.toDouble() },
+            Float::toDouble,
             ::extractDouble
         )
 
@@ -138,7 +175,7 @@ class JcUnaryOperatorTest {
         testOperatorOnDouble(
             JcUnaryOperator.CastToInt,
             "(int)",
-            { operand -> operand.toInt() },
+            Double::toInt,
             ::extractInt
         )
 
@@ -147,7 +184,7 @@ class JcUnaryOperatorTest {
         testOperatorOnDouble(
             JcUnaryOperator.CastToLong,
             "(long)",
-            { operand -> operand.toLong() },
+            Double::toLong,
             ::extractLong
         )
 
@@ -157,7 +194,7 @@ class JcUnaryOperatorTest {
         testOperatorOnDouble(
             JcUnaryOperator.CastToFloat,
             "(float)",
-            { operand -> operand.toFloat() },
+            Double::toFloat,
             ::extractFloat
         )
 
@@ -166,80 +203,70 @@ class JcUnaryOperatorTest {
         operatorText: String,
         onInt: (Int) -> T,
         extractFromUExpr: (UExpr<out USort>) -> T?,
-    ) {
-        intData.map { operand ->
-            val expr = ctx.mkBv(operand)
-            val result = operator(expr)
-
-            val expected = try {
-                onInt(operand)
-            } catch (_: ArithmeticException) {
-                null
-            }
-            val actual = extractFromUExpr(result)
-
-            assertEquals(expected, actual, "$operatorText $operand failed")
-        }
-    }
+    ) = testOperator(
+        operator,
+        operatorText,
+        onInt,
+        extractFromUExpr,
+        ctx::mkBv,
+        intData
+    )
 
     private fun <T> testOperatorOnLong(
         operator: JcUnaryOperator,
         operatorText: String,
         onLong: (Long) -> T,
         extractFromUExpr: (UExpr<out USort>) -> T?,
-    ) {
-        longData.map { operand ->
-            val expr = ctx.mkBv(operand)
-            val result = operator(expr)
-
-            val expected = try {
-                onLong(operand)
-            } catch (_: ArithmeticException) {
-                null
-            }
-            val actual = extractFromUExpr(result)
-
-            assertEquals(expected, actual, "$operatorText $operand failed")
-        }
-    }
+    ) = testOperator(
+        operator,
+        operatorText,
+        onLong,
+        extractFromUExpr,
+        ctx::mkBv,
+        longData
+    )
 
     private fun <T> testOperatorOnFloat(
         operator: JcUnaryOperator,
         operatorText: String,
         onFloat: (Float) -> T,
         extractFromUExpr: (UExpr<out USort>) -> T?,
-    ) {
-        floatData.map { operand ->
-            val expr = ctx.mkFp32(operand)
-            val result = operator(expr)
-
-            val expected = try {
-                onFloat(operand)
-            } catch (_: ArithmeticException) {
-                null
-            }
-            val actual = extractFromUExpr(result)
-
-            assertEquals(expected, actual, "$operatorText $operand failed")
-        }
-    }
+    ) = testOperator(
+        operator,
+        operatorText,
+        onFloat,
+        extractFromUExpr,
+        ctx::mkFp32,
+        floatData
+    )
 
     private fun <T> testOperatorOnDouble(
         operator: JcUnaryOperator,
         operatorText: String,
-        onFloat: (Double) -> T,
+        onDouble: (Double) -> T,
         extractFromUExpr: (UExpr<out USort>) -> T?,
-    ) {
-        doubleData.map { operand ->
-            val expr = ctx.mkFp64(operand)
-            val result = operator(expr)
+    ) = testOperator(
+        operator,
+        operatorText,
+        onDouble,
+        extractFromUExpr,
+        ctx::mkFp64,
+        doubleData
+    )
 
-            val expected = try {
-                onFloat(operand)
-            } catch (_: ArithmeticException) {
-                null
-            }
-            val actual = extractFromUExpr(result)
+    private fun <Primitive, T> testOperator(
+        operator: JcUnaryOperator,
+        operatorText: String,
+        onPrimitive: (Primitive) -> T,
+        extractFromUExpr: (UExpr<out USort>) -> T?,
+        makeExpr: (Primitive) -> UExpr<out USort>,
+        data: List<Primitive>,
+    ) {
+        data.map { operand ->
+            val expected = onPrimitive(operand)
+
+            val expr = makeExpr(operand)
+            val actual = extractFromUExpr(operator(expr))
 
             assertEquals(expected, actual, "$operatorText $operand failed")
         }

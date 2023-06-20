@@ -1,7 +1,5 @@
 package org.usvm.api.util
 
-import io.ksmt.expr.KFp32Value
-import io.ksmt.expr.KFp64Value
 import io.ksmt.utils.asExpr
 import org.jacodb.api.JcArrayType
 import org.jacodb.api.JcClassType
@@ -20,28 +18,34 @@ import org.jacodb.api.ext.long
 import org.jacodb.api.ext.short
 import org.jacodb.api.ext.toType
 import org.jacodb.api.ext.void
-import org.usvm.machine.JcContext
-import org.usvm.api.JcCoverage
-import org.usvm.api.JcParametersState
-import org.usvm.api.JcTest
 import org.usvm.UArrayIndexLValue
 import org.usvm.UArrayLengthLValue
 import org.usvm.UConcreteHeapAddress
 import org.usvm.UConcreteHeapRef
-import org.usvm.UConcreteInt32
-import org.usvm.UConcreteInt64
 import org.usvm.UExpr
 import org.usvm.UFieldLValue
 import org.usvm.UHeapRef
 import org.usvm.ULValue
 import org.usvm.URegisterLValue
 import org.usvm.USort
-import org.usvm.memory.UAddressCounter
-import org.usvm.memory.UReadOnlySymbolicMemory
-import org.usvm.model.UModelBase
+import org.usvm.api.JcCoverage
+import org.usvm.api.JcParametersState
+import org.usvm.api.JcTest
+import org.usvm.machine.JcContext
+import org.usvm.machine.extractBool
+import org.usvm.machine.extractByte
+import org.usvm.machine.extractChar
+import org.usvm.machine.extractDouble
+import org.usvm.machine.extractFloat
+import org.usvm.machine.extractInt
+import org.usvm.machine.extractLong
+import org.usvm.machine.extractShort
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.WrappedException
+import org.usvm.memory.UAddressCounter
+import org.usvm.memory.UReadOnlySymbolicMemory
+import org.usvm.model.UModelBase
 
 /**
  * A class, responsible for resolving a single [JcTest] for a specific method from a symbolic state.
@@ -142,22 +146,24 @@ class JcTestResolver(
                 else -> error("Unexpected type: $type")
             }
 
-        fun resolvePrimitive(expr: UExpr<out USort>, type: JcPrimitiveType): Any =
-            when (type) {
-                ctx.cp.boolean -> (tryConcretize(expr) as UConcreteInt32).intValue != 0
-                ctx.cp.short -> (tryConcretize(expr) as UConcreteInt32).intValue.toShort()
-                ctx.cp.int -> (tryConcretize(expr) as UConcreteInt32).intValue
-                ctx.cp.long -> (tryConcretize(expr) as UConcreteInt64).longValue
-                ctx.cp.float -> (tryConcretize(expr) as KFp32Value).value
-                ctx.cp.double -> (tryConcretize(expr) as KFp64Value).value
-                ctx.cp.byte -> (tryConcretize(expr) as UConcreteInt32).intValue.toByte()
-                ctx.cp.char -> (tryConcretize(expr) as UConcreteInt32).intValue.toChar()
+        fun resolvePrimitive(expr: UExpr<out USort>, type: JcPrimitiveType): Any {
+            val exprInModel = evaluateInModel(expr)
+            return when (type) {
+                ctx.cp.boolean -> extractBool(exprInModel)
+                ctx.cp.short -> extractShort(exprInModel)
+                ctx.cp.int -> extractInt(exprInModel)
+                ctx.cp.long -> extractLong(exprInModel)
+                ctx.cp.float -> extractFloat(exprInModel)
+                ctx.cp.double -> extractDouble(exprInModel)
+                ctx.cp.byte -> extractByte(exprInModel)
+                ctx.cp.char -> extractChar(exprInModel)
                 ctx.cp.void -> Unit
-                else -> error("Unexpected type: $type")
-            }
+                else -> error("Unexpected type: ${type.typeName}")
+            } ?: error("can't extract $expr to ${type.typeName}")
+        }
 
         fun resolveReference(heapRef: UHeapRef, type: JcRefType): Any? {
-            val idx = requireNotNull(tryConcretize(heapRef) as UConcreteHeapRef).address
+            val idx = requireNotNull(evaluateInModel(heapRef) as UConcreteHeapRef).address
             if (idx == UAddressCounter.NULL_ADDRESS) {
                 return null
             }
@@ -235,7 +241,7 @@ class JcTestResolver(
          *
          * @return a concretized expression, or [expr] if [model] is null.
          */
-        private fun <T : USort> tryConcretize(expr: UExpr<T>): UExpr<T> {
+        private fun <T : USort> evaluateInModel(expr: UExpr<T>): UExpr<T> {
             return model?.eval(expr) ?: expr
         }
     }

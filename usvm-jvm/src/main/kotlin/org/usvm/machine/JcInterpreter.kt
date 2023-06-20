@@ -4,7 +4,6 @@ import io.ksmt.utils.asExpr
 import org.jacodb.api.JcField
 import org.jacodb.api.JcMethod
 import org.jacodb.api.JcType
-import org.jacodb.api.JcTypedMethod
 import org.jacodb.api.cfg.JcArgument
 import org.jacodb.api.cfg.JcAssignInst
 import org.jacodb.api.cfg.JcCallInst
@@ -96,7 +95,7 @@ class JcInterpreter(
     private fun visitAssignInst(scope: JcStepScope, stmt: JcAssignInst) {
         val exprResolver = JcExprResolver(ctx, scope, applicationGraph, ::mapLocalToIdxMapper)
         val lvalue = exprResolver.resolveLValue(stmt.lhv) ?: return
-        val expr = exprResolver.resolveExpr(stmt.rhv) ?: return
+        val expr = exprResolver.resolveExpr(stmt.rhv, stmt.lhv.type) ?: return
 
         val nextStmt = applicationGraph.successors(stmt).single()
         scope.doWithState {
@@ -126,8 +125,11 @@ class JcInterpreter(
 
     private fun visitReturnStmt(scope: JcStepScope, stmt: JcReturnInst) {
         val exprResolver = JcExprResolver(ctx, scope, applicationGraph, ::mapLocalToIdxMapper)
+        val method = requireNotNull(scope.calcOnState { callStack.lastMethod() })
+        val returnType = with(applicationGraph) { method.typed }.returnType
 
-        val valueToReturn = stmt.returnValue?.let { exprResolver.resolveExpr(it) ?: return } ?: ctx.mkVoidValue()
+        val valueToReturn = stmt.returnValue?.let { exprResolver.resolveExpr(it, returnType) ?: return }
+            ?: ctx.mkVoidValue()
 
         scope.doWithState {
             returnValue(valueToReturn)
@@ -178,6 +180,7 @@ class JcInterpreter(
     }
 
     private val localVarToIdx = mutableMapOf<JcMethod, MutableMap<String, Int>>() // (method, localName) -> idx
+
     // TODO: now we need to explicitly evaluate indices of registers, because we don't have specific ULValues
     private fun mapLocalToIdxMapper(method: JcMethod, local: JcLocal) =
         when (local) {

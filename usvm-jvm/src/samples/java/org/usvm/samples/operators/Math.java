@@ -62,24 +62,13 @@ public class Math {
     }
 
 
-    int kek(short x, int y) {
+    int shortOverflow(short x, int y) {
         if (y > 10 || y <= 0) {
             return 0;
         }
         if (x + y < 0 && x > 0) {
-            throw new IllegalArgumentException();
+            throw new IllegalStateException();
         }
         return x + y;
-    }
-
-    int kek2(short s, char c) {
-        short kek = (short) (s + c);
-        if (s < c) {
-            return 0;
-        } else if (c < s) {
-            return kek;
-        } else {
-            return s + c;
-        }
     }
 }

@@ -1,26 +1,28 @@
 package org.usvm.operators
 
-import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.DynamicTest
 import org.junit.jupiter.api.TestFactory
-import org.usvm.UComponents
-import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.USort
+import org.usvm.machine.JcContext
+import org.usvm.machine.extractBool
+import org.usvm.machine.extractDouble
+import org.usvm.machine.extractFloat
+import org.usvm.machine.extractInt
+import org.usvm.machine.extractLong
 import org.usvm.machine.operator.JcBinaryOperator
+import org.usvm.machine.operator.wideTo32BitsIfNeeded
 import kotlin.test.assertEquals
 
 class JcBinaryOperatorTest {
-    lateinit var ctx: UContext
+    lateinit var ctx: JcContext
 
     @BeforeEach
     fun initializeContext() {
-        val components: UComponents<*, *, *> = mockk()
-        every { components.mkTypeSystem(any()) } returns mockk()
-        ctx = UContext(components)
+        ctx = JcContext(mockk(), mockk())
     }
 
     @TestFactory
@@ -28,6 +30,9 @@ class JcBinaryOperatorTest {
         testOnAll(
             operator = JcBinaryOperator.Add,
             operatorText = "+",
+            onBytes = Byte::plus,
+            onChars = { a, b -> a.code + b.code },
+            onShorts = Short::plus,
             onInts = Int::plus,
             onLongs = Long::plus,
             onFloats = Float::plus,
@@ -39,6 +44,9 @@ class JcBinaryOperatorTest {
         testOnAll(
             operator = JcBinaryOperator.Sub,
             operatorText = "-",
+            onBytes = Byte::minus,
+            onChars = { a, b -> a.code - b.code },
+            onShorts = Short::minus,
             onInts = Int::minus,
             onLongs = Long::minus,
             onFloats = Float::minus,
@@ -49,6 +57,9 @@ class JcBinaryOperatorTest {
     fun `Test multiplication`() =
         testOnAll(
             operator = JcBinaryOperator.Mul,
+            onBytes = Byte::times,
+            onChars = { a, b -> a.code * b.code },
+            onShorts = Short::times,
             operatorText = "+",
             onInts = Int::times,
             onLongs = Long::times,
@@ -63,10 +74,27 @@ class JcBinaryOperatorTest {
         testOnAll(
             operator = JcBinaryOperator.Rem,
             operatorText = "%",
+            onBytes = Byte::rem,
+            onChars = { a, b -> a.code % b.code },
+            onShorts = Short::rem,
             onInts = Int::rem,
             onLongs = Long::rem,
             onFloats = Float::rem,
             onDoubles = Double::rem,
+        )
+
+    @TestFactory
+    fun `Test division`() =
+        testOnAll(
+            operator = JcBinaryOperator.Div,
+            operatorText = "/",
+            onBytes = Byte::div,
+            onChars = { a, b -> a.code / b.code },
+            onShorts = Short::div,
+            onInts = Int::div,
+            onLongs = Long::div,
+            onFloats = Float::div,
+            onDoubles = Double::div,
         )
 
     @TestFactory
@@ -84,7 +112,7 @@ class JcBinaryOperatorTest {
     fun `Test neq`() =
         testBoolOperatorOnAll(
             operator = JcBinaryOperator.Neq,
-            operatorText = "==",
+            operatorText = "!=",
             onInts = { lhs, rhs -> lhs != rhs },
             onLongs = { lhs, rhs -> lhs != rhs },
             onFloats = { lhs, rhs -> lhs != rhs },
@@ -138,7 +166,7 @@ class JcBinaryOperatorTest {
     @TestFactory
     fun `Test and`() =
         listOf(
-            testOperatorOnIntegers(
+            testOperatorOnInts(
                 operator = JcBinaryOperator.And,
                 operatorText = "&",
                 onInts = { lhs, rhs -> lhs and rhs },
@@ -149,7 +177,7 @@ class JcBinaryOperatorTest {
     @TestFactory
     fun `Test or`() =
         listOf(
-            testOperatorOnIntegers(
+            testOperatorOnInts(
                 operator = JcBinaryOperator.Or,
                 operatorText = "|",
                 onInts = { lhs, rhs -> lhs or rhs },
@@ -160,23 +188,12 @@ class JcBinaryOperatorTest {
     @TestFactory
     fun `Test xor`() =
         listOf(
-            testOperatorOnIntegers(
+            testOperatorOnInts(
                 operator = JcBinaryOperator.Xor,
                 operatorText = "^",
                 onInts = { lhs, rhs -> lhs xor rhs },
                 ::extractInt
             )
-        )
-
-    @TestFactory
-    fun `Test division`() =
-        testOnAll(
-            operator = JcBinaryOperator.Div,
-            operatorText = "/",
-            onInts = Int::div,
-            onLongs = Long::div,
-            onFloats = Float::div,
-            onDoubles = Double::div,
         )
 
     @TestFactory
@@ -186,7 +203,7 @@ class JcBinaryOperatorTest {
                 operator = JcBinaryOperator.Cmp,
                 operatorText = "cmp",
                 onLongs = Long::compareTo,
-                ::extractLong,
+                ::extractInt,
             )
         )
 
@@ -216,12 +233,33 @@ class JcBinaryOperatorTest {
     private fun testOnAll(
         operator: JcBinaryOperator,
         operatorText: String,
+        onBytes: (Byte, Byte) -> Int,
+        onChars: (Char, Char) -> Int,
+        onShorts: (Short, Short) -> Int,
         onInts: (Int, Int) -> Int,
         onLongs: (Long, Long) -> Long,
         onFloats: (Float, Float) -> Float,
         onDoubles: (Double, Double) -> Double,
     ) = listOf(
-        testOperatorOnIntegers(
+        testOperatorOnBytes(
+            operator,
+            operatorText,
+            onBytes,
+            ::extractInt
+        ),
+        testOperatorOnChars(
+            operator,
+            operatorText,
+            onChars,
+            ::extractInt
+        ),
+        testOperatorOnShorts(
+            operator,
+            operatorText,
+            onShorts,
+            ::extractInt
+        ),
+        testOperatorOnInts(
             operator,
             operatorText,
             onInts,
@@ -255,7 +293,7 @@ class JcBinaryOperatorTest {
         onFloats: (Float, Float) -> Boolean,
         onDoubles: (Double, Double) -> Boolean,
     ) = listOf(
-        testOperatorOnIntegers(
+        testOperatorOnInts(
             operator,
             operatorText,
             onInts,
@@ -281,29 +319,68 @@ class JcBinaryOperatorTest {
         )
     )
 
-    private fun <T> testOperatorOnIntegers(
+    private fun <T> testOperatorOnBytes(
+        operator: JcBinaryOperator,
+        operatorText: String,
+        onBytes: (Byte, Byte) -> T,
+        extractFromUExpr: (UExpr<out USort>) -> T?,
+    ) = DynamicTest.dynamicTest("Byte $operatorText Byte") {
+        testOperator(
+            operator,
+            operatorText,
+            onBytes,
+            extractFromUExpr,
+            { ctx.mkBv(it, ctx.byteSort).wideTo32BitsIfNeeded(true) },
+            byteData
+        )
+    }
+
+    private fun <T> testOperatorOnChars(
+        operator: JcBinaryOperator,
+        operatorText: String,
+        onChars: (Char, Char) -> T,
+        extractFromUExpr: (UExpr<out USort>) -> T?,
+    ) = DynamicTest.dynamicTest("Char $operatorText Char") {
+        testOperator(
+            operator,
+            operatorText,
+            onChars,
+            extractFromUExpr,
+            { ctx.mkBv(it.code, ctx.charSort).wideTo32BitsIfNeeded(false) },
+            charData
+        )
+    }
+
+    private fun <T> testOperatorOnShorts(
+        operator: JcBinaryOperator,
+        operatorText: String,
+        onShorts: (Short, Short) -> T,
+        extractFromUExpr: (UExpr<out USort>) -> T?,
+    ) = DynamicTest.dynamicTest("Short $operatorText Short") {
+        testOperator(
+            operator,
+            operatorText,
+            onShorts,
+            extractFromUExpr,
+            { ctx.mkBv(it, ctx.shortSort).wideTo32BitsIfNeeded(true) },
+            shortData
+        )
+    }
+
+    private fun <T> testOperatorOnInts(
         operator: JcBinaryOperator,
         operatorText: String,
         onInts: (Int, Int) -> T,
         extractFromUExpr: (UExpr<out USort>) -> T?,
     ) = DynamicTest.dynamicTest("Int $operatorText Int") {
-        intData.flatMap { lhs ->
-            intData.map { rhs ->
-                val exprLhs = ctx.mkBv(lhs)
-                val exprRhs = ctx.mkBv(rhs)
-                val result = operator(exprLhs, exprRhs)
-
-                val expected = try {
-                    onInts(lhs, rhs)
-                } catch (_: ArithmeticException) {
-                    null
-                }
-
-                val actual = extractFromUExpr(result)
-
-                assertEquals(expected, actual, "$lhs $operatorText $rhs failed")
-            }
-        }
+        testOperator(
+            operator,
+            operatorText,
+            onInts,
+            extractFromUExpr,
+            ctx::mkBv,
+            intData
+        )
     }
 
     private fun <T> testOperatorOnLongs(
@@ -312,23 +389,14 @@ class JcBinaryOperatorTest {
         onLongs: (Long, Long) -> T,
         extractFromUExpr: (UExpr<out USort>) -> T?,
     ) = DynamicTest.dynamicTest("Long $operatorText Long") {
-        longData.flatMap { lhs ->
-            longData.map { rhs ->
-                val exprLhs = ctx.mkBv(lhs)
-                val exprRhs = ctx.mkBv(rhs)
-                val result = operator(exprLhs, exprRhs)
-
-                val expected = try {
-                    onLongs(lhs, rhs)
-                } catch (_: ArithmeticException) {
-                    null
-                }
-
-                val actual = extractFromUExpr(result)
-
-                assertEquals(expected, actual, "$lhs $operatorText $rhs failed")
-            }
-        }
+        testOperator(
+            operator,
+            operatorText,
+            onLongs,
+            extractFromUExpr,
+            ctx::mkBv,
+            longData
+        )
     }
 
     private fun <T> testOperatorOnFloats(
@@ -337,22 +405,14 @@ class JcBinaryOperatorTest {
         onFloats: (Float, Float) -> T,
         extractFromUExpr: (UExpr<out USort>) -> T?,
     ) = DynamicTest.dynamicTest("Float $operatorText Float") {
-        floatData.flatMap { lhs ->
-            floatData.map { rhs ->
-                val exprLhs = ctx.mkFp32(lhs)
-                val exprRhs = ctx.mkFp32(rhs)
-                val result = operator(exprLhs, exprRhs)
-
-                val expected = try {
-                    onFloats(lhs, rhs)
-                } catch (_: ArithmeticException) {
-                    null
-                }
-                val actual = extractFromUExpr(result)
-
-                assertEquals(expected, actual, "$lhs $operatorText $rhs failed")
-            }
-        }
+        testOperator(
+            operator,
+            operatorText,
+            onFloats,
+            extractFromUExpr,
+            ctx::mkFp32,
+            floatData
+        )
     }
 
     private fun <T> testOperatorOnDoubles(
@@ -361,18 +421,35 @@ class JcBinaryOperatorTest {
         onDoubles: (Double, Double) -> T,
         extractFromUExpr: (UExpr<out USort>) -> T?,
     ) = DynamicTest.dynamicTest("Double $operatorText Double") {
-        doubleData.flatMap { lhs ->
-            doubleData.map { rhs ->
-                val exprLhs = ctx.mkFp64(lhs)
-                val exprRhs = ctx.mkFp64(rhs)
-                val result = operator(exprLhs, exprRhs)
+        testOperator(
+            operator,
+            operatorText,
+            onDoubles,
+            extractFromUExpr,
+            ctx::mkFp64,
+            doubleData
+        )
+    }
 
+    private fun <Primitive, T> testOperator(
+        operator: JcBinaryOperator,
+        operatorText: String,
+        onPrimitives: (Primitive, Primitive) -> T,
+        extractFromUExpr: (UExpr<out USort>) -> T?,
+        makeExpr: (Primitive) -> UExpr<out USort>,
+        data: List<Primitive>,
+    ) {
+        data.flatMap { lhs ->
+            data.map { rhs ->
                 val expected = try {
-                    onDoubles(lhs, rhs)
+                    onPrimitives(lhs, rhs)
                 } catch (_: ArithmeticException) {
-                    null
+                    null // useful for division by zero
                 }
-                val actual = extractFromUExpr(result)
+
+                val exprLhs = makeExpr(lhs)
+                val exprRhs = makeExpr(rhs)
+                val actual = extractFromUExpr(operator(exprLhs, exprRhs))
 
                 assertEquals(expected, actual, "$lhs $operatorText $rhs failed")
             }

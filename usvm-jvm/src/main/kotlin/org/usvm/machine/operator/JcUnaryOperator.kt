@@ -1,41 +1,40 @@
- package org.usvm.machine.operator
+package org.usvm.machine.operator
 
 import io.ksmt.expr.KExpr
-import io.ksmt.expr.KFpRoundingMode
-import io.ksmt.sort.KBvSort
-import io.ksmt.utils.BvUtils.bvMaxValueSigned
-import io.ksmt.utils.BvUtils.bvMinValueSigned
 import io.ksmt.utils.cast
+import org.usvm.UBoolSort
 import org.usvm.UBvSort
-import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UFpSort
 import org.usvm.USort
-import org.usvm.uctx
+import org.usvm.machine.JcContext
+import org.usvm.machine.jctx
 
 sealed class JcUnaryOperator(
-    val onBv: UContext.(UExpr<UBvSort>) -> UExpr<out USort> = shouldNotBeCalled,
-    val onFp: UContext.(UExpr<UFpSort>) -> UExpr<out USort> = shouldNotBeCalled,
+    val onBool: JcContext.(UExpr<UBoolSort>) -> UExpr<out USort> = shouldNotBeCalled,
+    val onBv: JcContext.(UExpr<UBvSort>) -> UExpr<out USort> = shouldNotBeCalled,
+    val onFp: JcContext.(UExpr<UFpSort>) -> UExpr<out USort> = shouldNotBeCalled,
 ) {
     object Neg : JcUnaryOperator(
-        onBv = UContext::mkBvNegationExpr,
-        onFp = UContext::mkFpNegationExpr,
+        onBv = JcContext::mkBvNegationExpr,
+        onFp = JcContext::mkFpNegationExpr,
     )
 
     object CastToBoolean : JcUnaryOperator(
-        onBv = { operand -> operand.mkNarrow(1, signed = true).mkNarrow(Int.SIZE_BITS, signed = true) }
+        onBool = { it },
+        onBv = { operand -> operand neq mkBv(0, operand.sort) }
     )
 
     object CastToByte : JcUnaryOperator(
-        onBv = { operand -> operand.mkNarrow(Byte.SIZE_BITS, signed = true).mkNarrow(Int.SIZE_BITS, signed = true) }
+        onBv = { operand -> operand.mkNarrow(Byte.SIZE_BITS, signed = true) }
     )
 
     object CastToChar : JcUnaryOperator(
-        onBv = { operand -> operand.mkNarrow(Char.SIZE_BITS, signed = true).mkNarrow(Int.SIZE_BITS, signed = false) }
+        onBv = { operand -> operand.mkNarrow(Char.SIZE_BITS, signed = true) }
     )
 
     object CastToShort : JcUnaryOperator(
-        onBv = { operand -> operand.mkNarrow(Short.SIZE_BITS, signed = true).mkNarrow(Int.SIZE_BITS, signed = true) }
+        onBv = { operand -> operand.mkNarrow(Short.SIZE_BITS, signed = true) }
     )
 
     object CastToInt : JcUnaryOperator(
@@ -60,13 +59,14 @@ sealed class JcUnaryOperator(
 
     open operator fun invoke(operand: UExpr<out USort>): UExpr<out USort> =
         when (operand.sort) {
-            is UBvSort -> operand.uctx.onBv(operand.cast())
-            is UFpSort -> operand.uctx.onFp(operand.cast())
+            is UBoolSort -> operand.jctx.onBool(operand.cast())
+            is UBvSort -> operand.jctx.onBv(operand.cast())
+            is UFpSort -> operand.jctx.onFp(operand.cast())
             else -> error("Expressions mismatch: $operand")
         }
 
     companion object {
-        private val shouldNotBeCalled: UContext.(UExpr<out USort>) -> KExpr<out USort> =
+        private val shouldNotBeCalled: JcContext.(UExpr<out USort>) -> KExpr<out USort> =
             { _ -> error("Should not be called") }
     }
 }
