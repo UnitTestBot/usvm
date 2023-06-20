@@ -39,7 +39,7 @@ class JcMachine(
                     // TODO: maybe we need do call onStateVisit(state)
                     val uncoveredStatementsCountAfter = coveredStoppingStrategy.uncoveredStatementsCount
                     if (uncoveredStatementsCountAfter < uncoveredStatementsBefore ||
-                        state.methodResult is JcMethodResult.Exception // TODO: strange hack
+                        state.methodResult is JcMethodResult.Exception // TODO: strange hack, we should cache it
                     ) {
                         collectedStates += state
                     }

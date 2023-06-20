@@ -13,11 +13,22 @@ import org.usvm.USort
 
 private val intSizeBits = Int.SIZE_BITS.toUInt()
 
+/**
+ * Widens a bit-vec expression to be at least of [intSizeBits] size regarding [signed] flag. Converts booleans to
+ * bit-vec expressions of a [intSizeBits] size
+ *
+ * @return the bit-vec expression of [intSizeBits] size.
+ */
 @Suppress("UNCHECKED_CAST")
 internal fun UExpr<out USort>.wideTo32BitsIfNeeded(signed: Boolean): UExpr<out USort> =
     with(ctx) {
         when (val sort = sort) {
-            boolSort -> mkIte(this@wideTo32BitsIfNeeded as UExpr<KBoolSort>, mkBv(1, intSizeBits), mkBv(0, intSizeBits))
+            boolSort -> mkIte(
+                this@wideTo32BitsIfNeeded as UExpr<KBoolSort>,
+                mkBv(1, intSizeBits),
+                mkBv(0, intSizeBits)
+            )
+
             is UBvSort -> {
                 if (sort.sizeBits < intSizeBits) {
                     (this@wideTo32BitsIfNeeded as UExpr<UBvSort>).mkNarrow(intSizeBits.toInt(), signed)
@@ -25,11 +36,17 @@ internal fun UExpr<out USort>.wideTo32BitsIfNeeded(signed: Boolean): UExpr<out U
                     this@wideTo32BitsIfNeeded as UExpr<UBvSort>
                 }
             }
+
             is UFpSort -> this@wideTo32BitsIfNeeded
             else -> error("Unexpected sort: $sort")
         }
     }
 
+/**
+ * Widens or narrows a bit-vec expression to match the [sizeBits] regarding [signed] flag.
+ *
+ * @return the bit-vec expression of [sizeBits] size.
+ */
 internal fun UExpr<UBvSort>.mkNarrow(sizeBits: Int, signed: Boolean): UExpr<UBvSort> {
     val diff = sizeBits - sort.sizeBits.toInt()
     val res = if (diff > 0) {

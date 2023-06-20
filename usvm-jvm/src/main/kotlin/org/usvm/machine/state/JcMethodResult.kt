@@ -3,21 +3,32 @@ package org.usvm.machine.state
 import org.usvm.UExpr
 import org.usvm.USort
 
+/**
+ * Represents a result of a method invocation.
+ */
 sealed class JcMethodResult {
+    /**
+     * No call was performed.
+     */
     object NoCall : JcMethodResult()
 
+    /**
+     * A method successfully returned a [value].
+     */
     class Success(
         val value: UExpr<out USort>
     ) : JcMethodResult()
 
-    // TODO: the last place where we distinguish implicitly thrown and explicitly thrown exceptions
+    /**
+     * A method threw an [exception].
+     */
     class Exception(
         val exception: kotlin.Exception
     ) : JcMethodResult()
 
 }
 
-// TODO: stub for exceptions
+// TODO: stub for symbolic exceptions
 class WrappedException(
     val name: String
 ) : kotlin.Exception()

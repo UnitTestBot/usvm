@@ -12,6 +12,9 @@ import org.usvm.ApplicationGraph
 import java.util.concurrent.ConcurrentHashMap
 
 // TODO: add trap handlers
+/**
+ * A [JcApplicationGraphImpl] wrapper.
+ */
 class JcApplicationGraph(
     cp: JcClasspath,
 ) : ApplicationGraph<JcMethod, JcInst> {
