@@ -77,7 +77,7 @@ class JcTestResolver(
         val after = with(afterMemory) { resolveState() }
 
         val result = when (val res = state.methodResult) {
-            is JcMethodResult.NoCall -> error("no result found")
+            is JcMethodResult.NoCall -> error("No result found")
             is JcMethodResult.Success -> with(afterMemory) { Result.success(resolveExpr(res.value, method.returnType)) }
             is JcMethodResult.Exception -> Result.failure(resolveException(res.exception))
         }
@@ -164,7 +164,7 @@ class JcTestResolver(
                 ctx.cp.char -> extractChar(exprInModel)
                 ctx.cp.void -> Unit
                 else -> error("Unexpected type: ${type.typeName}")
-            } ?: error("can't extract $expr to ${type.typeName}")
+            } ?: error("Can't extract $expr to ${type.typeName}")
         }
 
         fun resolveReference(heapRef: UHeapRef, type: JcRefType): Any? {

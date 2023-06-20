@@ -55,7 +55,6 @@ class JcInterpreter(
             }
         }
 
-
         check(scope.alive)
 
         return state
@@ -64,11 +63,14 @@ class JcInterpreter(
     override fun step(state: JcState): StepResult<JcState> {
         val stmt = state.lastStmt
         val scope = StepScope(state)
+
+        // handle exception firstly
         val result = state.methodResult
         if (result is JcMethodResult.Exception) {
             handleException(scope, result.exception, stmt)
             return scope.stepResult()
         }
+
         when (stmt) {
             is JcAssignInst -> visitAssignInst(scope, stmt)
             is JcIfInst -> visitIfStmt(scope, stmt)
@@ -93,9 +95,9 @@ class JcInterpreter(
     }
 
     private fun visitAssignInst(scope: JcStepScope, stmt: JcAssignInst) {
-        val exprResolver = JcExprResolver(ctx, scope, applicationGraph, ::mapLocalToIdxMapper)
+        val exprResolver = exprResolverWithScope(scope)
         val lvalue = exprResolver.resolveLValue(stmt.lhv) ?: return
-        val expr = exprResolver.resolveExpr(stmt.rhv, stmt.lhv.type) ?: return
+        val expr = exprResolver.resolveJcExpr(stmt.rhv, stmt.lhv.type) ?: return
 
         val nextStmt = applicationGraph.successors(stmt).single()
         scope.doWithState {
@@ -105,14 +107,12 @@ class JcInterpreter(
     }
 
     private fun visitIfStmt(scope: JcStepScope, stmt: JcIfInst) {
-        val exprResolver = JcExprResolver(ctx, scope, applicationGraph, ::mapLocalToIdxMapper)
+        val exprResolver = exprResolverWithScope(scope)
 
-        val boolExpr = with(ctx) {
-            exprResolver
-                .resolveExpr(stmt.condition)
-                ?.asExpr(boolSort)
-                ?: return
-        }
+        val boolExpr = exprResolver
+            .resolveJcExpr(stmt.condition)
+            ?.asExpr(ctx.boolSort)
+            ?: return
 
         val (posStmt, negStmt) = applicationGraph.successors(stmt).run { take(2).toList() }
 
@@ -124,11 +124,12 @@ class JcInterpreter(
     }
 
     private fun visitReturnStmt(scope: JcStepScope, stmt: JcReturnInst) {
-        val exprResolver = JcExprResolver(ctx, scope, applicationGraph, ::mapLocalToIdxMapper)
+        val exprResolver = exprResolverWithScope(scope)
         val method = requireNotNull(scope.calcOnState { callStack.lastMethod() })
         val returnType = with(applicationGraph) { method.typed }.returnType
 
-        val valueToReturn = stmt.returnValue?.let { exprResolver.resolveExpr(it, returnType) ?: return }
+        val valueToReturn = stmt.returnValue
+            ?.let { exprResolver.resolveJcExpr(it, returnType) ?: return }
             ?: ctx.mkVoidValue()
 
         scope.doWithState {
@@ -158,13 +159,13 @@ class JcInterpreter(
     }
 
     private fun visitCallStmt(scope: JcStepScope, stmt: JcCallInst) {
-        val exprResolver = JcExprResolver(ctx, scope, applicationGraph, ::mapLocalToIdxMapper)
+        val exprResolver = exprResolverWithScope(scope)
 
         val result = requireNotNull(scope.calcOnState { methodResult })
 
         when (result) {
             JcMethodResult.NoCall -> {
-                exprResolver.resolveExpr(stmt.callExpr)
+                exprResolver.resolveJcExpr(stmt.callExpr)
             }
 
             is JcMethodResult.Success -> {
@@ -175,9 +176,12 @@ class JcInterpreter(
                 } ?: return
             }
 
-            is JcMethodResult.Exception -> error("exception should be handled earlier")
+            is JcMethodResult.Exception -> error("Exception should be handled earlier")
         }
     }
+
+    private fun exprResolverWithScope(scope: JcStepScope) =
+        JcExprResolver(ctx, scope, applicationGraph, ::mapLocalToIdxMapper)
 
     private val localVarToIdx = mutableMapOf<JcMethod, MutableMap<String, Int>>() // (method, localName) -> idx
 

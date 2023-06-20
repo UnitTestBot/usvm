@@ -144,7 +144,7 @@ sealed class JcBinaryOperator(
         val rhsSort = rhs.sort
 
         return when {
-            lhsSort != rhsSort -> error("expressions sorts mismatch: $lhsSort, $rhsSort")
+            lhsSort != rhsSort -> error("Expressions sorts mismatch: $lhsSort, $rhsSort")
 
             lhsSort is UBoolSort -> lhs.jctx.onBool(lhs.cast(), rhs.cast())
 
@@ -152,7 +152,7 @@ sealed class JcBinaryOperator(
 
             lhsSort is UFpSort -> lhs.jctx.onFp(lhs.cast(), rhs.cast())
 
-            else -> error("unexpected sorts: $lhsSort, $rhsSort")
+            else -> error("Unexpected sorts: $lhsSort, $rhsSort")
         }
     }
 

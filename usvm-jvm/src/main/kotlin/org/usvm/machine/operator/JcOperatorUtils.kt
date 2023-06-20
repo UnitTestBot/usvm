@@ -26,7 +26,7 @@ internal fun UExpr<out USort>.wideTo32BitsIfNeeded(signed: Boolean): UExpr<out U
                 }
             }
             is UFpSort -> this@wideTo32BitsIfNeeded
-            else -> error("unexpected sort: $sort")
+            else -> error("Unexpected sort: $sort")
         }
     }
 
