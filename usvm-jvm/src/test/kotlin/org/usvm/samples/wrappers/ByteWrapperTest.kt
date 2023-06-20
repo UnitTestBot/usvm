@@ -8,8 +8,9 @@ import org.usvm.test.util.checkers.eq
 internal class ByteWrapperTest : JavaMethodTestRunner() {
     @Test
     fun primitiveToWrapperTest() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ByteWrapper::primitiveToWrapper,
+            eq(2),
             { _, x, r -> x >= 0 && r!! <= 0 },
             { _, x, r -> x < 0 && r!! < 0 },
         )
@@ -17,8 +18,9 @@ internal class ByteWrapperTest : JavaMethodTestRunner() {
 
     @Test
     fun wrapperToPrimitiveTest() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ByteWrapper::wrapperToPrimitive,
+            eq(3),
             { _, x, _ -> x == null },
             { _, x, r -> x >= 0 && r <= 0 },
             { _, x, r -> x < 0 && r < 0 },
@@ -27,8 +29,9 @@ internal class ByteWrapperTest : JavaMethodTestRunner() {
 
     @Test
     fun equalityTest() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ByteWrapper::equality,
+            eq(2),
             { _, a, b, result -> a == b && result == 1 },
             { _, a, b, result -> a != b && result == 4 }, // method under test has unreachable branches because of caching
         )

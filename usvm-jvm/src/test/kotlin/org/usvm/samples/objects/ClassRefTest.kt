@@ -13,24 +13,27 @@ import kotlin.arrayOf
 internal class ClassRefTest : JavaMethodTestRunner() {
     @Test
     fun testTakeBooleanClassRef() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ClassRef::takeBooleanClassRef,
+            eq(1),
             { _, r -> r == Boolean.TYPE }
         )
     }
 
     @Test
     fun testTakeClassRef() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ClassRef::takeClassRef,
+            eq(1),
             { _, r -> r == ClassRef::class.java }
         )
     }
 
     @Test
     fun testTakeClassRefFromParam() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ClassRef::takeClassRefFromParam,
+            eq(2),
             { _, classRef, _ -> classRef == null },
             { _, classRef, r -> r == classRef.javaClass }
         )
@@ -39,24 +42,27 @@ internal class ClassRefTest : JavaMethodTestRunner() {
 
     @Test
     fun testTakeArrayClassRef() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ClassRef::takeArrayClassRef,
+            eq(1),
             { _, r -> r == arrayOf<ClassRef>()::class.java }
         )
     }
 
     @Test
     fun testTwoDimArrayClassRef() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ClassRef::twoDimArrayClassRef,
+            eq(1),
             { _, r -> r == arrayOf<Array<ClassRef>>()::class.java }
         )
     }
 
     @Test
     fun testTwoDimArrayClassRefFromParam() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ClassRef::twoDimArrayClassRefFromParam,
+            eq(2),
             { _, array, _ -> array == null },
             { _, array, r -> r == array::class.java }
         )
@@ -64,48 +70,54 @@ internal class ClassRefTest : JavaMethodTestRunner() {
 
     @Test
     fun testTakeConstantClassRef() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ClassRef::takeConstantClassRef,
+            eq(1),
             { _, r -> r == ClassRef::class.java }
         )
     }
 
     @Test
     fun testEqualityOnClassRef() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ClassRef::equalityOnClassRef,
+            eq(1),
             { _, r -> r == true }, // we cannot find a way to have different class references
         )
     }
 
     @Test
     fun testEqualityOnStringClassRef() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ClassRef::equalityOnStringClassRef,
+            eq(1),
             { _, r -> r == true }, // we cannot find a way to have different class references
         )
     }
 
     @Test
     fun testEqualityOnArrayClassRef() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ClassRef::equalityOnArrayClassRef,
+            eq(1),
             { _, r -> r == true }, // we cannot find a way to have different class references
         )
     }
 
     @Test
     fun testTwoDimensionalArrayClassRef() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ClassRef::twoDimensionalArrayClassRef,
+            eq(1),
             { _, r -> r == true },
         )
     }
 
     @Test
     fun testEqualityOnGenericClassRef() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ClassRef::equalityOnGenericClassRef,
+            eq(1),
             { _, r -> r == true }, // we cannot find a way to have different class references
         )
     }

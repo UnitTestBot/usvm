@@ -9,8 +9,9 @@ import org.usvm.test.util.checkers.eq
 internal class TypeMatchesTest : JavaMethodTestRunner() {
     @Test
     fun testCompareDoubleByte() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             TypeMatches::compareDoubleByte,
+            eq(2),
             { _, a, b, r -> a < b && r == 0.0 },
             { _, a, b, r -> !(a < b) && r == 1.0 }
         )
@@ -18,8 +19,9 @@ internal class TypeMatchesTest : JavaMethodTestRunner() {
 
     @Test
     fun testCompareShortLong() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             TypeMatches::compareShortLong,
+            eq(2),
             { _, a, b, r -> a < b && r == 0.toShort() },
             { _, a, b, r -> a >= b && r == 1.toShort() }
         )
@@ -27,8 +29,9 @@ internal class TypeMatchesTest : JavaMethodTestRunner() {
 
     @Test
     fun testCompareFloatDouble() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             TypeMatches::compareFloatDouble,
+            eq(2),
             { _, a, b, r -> a < b && r == 0.0f },
             { _, a, b, r -> !(a < b) && r == 1.0f }
         )
@@ -36,8 +39,9 @@ internal class TypeMatchesTest : JavaMethodTestRunner() {
 
     @Test
     fun testSumByteAndShort() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             TypeMatches::sumByteAndShort,
+            eq(3),
             { _, a, b, r -> a + b > Short.MAX_VALUE && r == 1 },
             { _, a, b, r -> a + b < Short.MIN_VALUE && r == 2 },
             { _, a, b, r -> a + b in Short.MIN_VALUE..Short.MAX_VALUE && r == 3 },
@@ -46,8 +50,9 @@ internal class TypeMatchesTest : JavaMethodTestRunner() {
 
     @Test
     fun testSumShortAndChar() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             TypeMatches::sumShortAndChar,
+            eq(3),
             { _, a, b, r -> a + b.code > Char.MAX_VALUE.code && r == 1 },
             { _, a, b, r -> a + b.code < Char.MIN_VALUE.code && r == 2 },
             { _, a, b, r -> a + b.code in Char.MIN_VALUE.code..Char.MAX_VALUE.code && r == 3 },

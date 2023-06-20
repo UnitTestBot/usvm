@@ -10,8 +10,9 @@ import org.usvm.test.util.checkers.eq
 class ClassWithCrossReferenceRelationshipTest : JavaMethodTestRunner() {
     @Test
     fun testClassWithCrossReferenceRelationship() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ClassWithCrossReferenceRelationship::returnFirstClass,
+            eq(2),
         )
     }
 }

@@ -21,8 +21,9 @@ internal class ObjectWithPrimitivesClassTest : JavaMethodTestRunner() {
     @Test
     fun testConstructorWithParams() {
         val method: KFunction3<Int, Int, Double, ObjectWithPrimitivesClass> = ::ObjectWithPrimitivesClass
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             method,
+            eq(1),
 //            { _, x, y, weight, instance ->
 //                instance is ObjectWithPrimitivesClass && instance.x == x && instance.y == y && instance.weight == weight
 //            },

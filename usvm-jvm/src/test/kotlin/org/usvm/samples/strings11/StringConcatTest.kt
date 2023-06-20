@@ -10,16 +10,18 @@ import org.usvm.util.isException
 class StringConcatTest : JavaMethodTestRunner() {
     @Test
     fun testConcatArguments() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             StringConcat::concatArguments,
+            eq(1),
             { _, a, b, c, r -> "$a$b$c" == r }
         )
     }
 
     @Test
     fun testConcatWithConstants() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             StringConcat::concatWithConstants,
+            eq(4),
             { _, a, r -> a == "head" && r == 1 },
             { _, a, r -> a == "body" && r == 2 },
             { _, a, r -> a == null && r == 3 },
@@ -30,16 +32,18 @@ class StringConcatTest : JavaMethodTestRunner() {
     @Disabled("Flickers too much with JVM 17")
     @Test
     fun testConcatWithPrimitives() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             StringConcat::concatWithPrimitives,
+            eq(1),
             { _, a, r -> "$a#4253.0" == r }
         )
     }
 
     @Test
     fun testExceptionInToString() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             StringConcat::exceptionInToString,
+            ignoreNumberOfAnalysisResults,
             { _, t, r -> t.x == 42 && r.isException<IllegalArgumentException>() },
             { _, t, r -> t.x != 42 && r.getOrThrow() == "Test: x = ${t.x}!" },
         )
@@ -57,8 +61,9 @@ class StringConcatTest : JavaMethodTestRunner() {
 
     @Test
     fun testConcatWithPrimitiveWrappers() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             StringConcat::concatWithPrimitiveWrappers,
+            ignoreNumberOfAnalysisResults,
             { _, b, c, r -> b.toString().endsWith("4") && c == '2' && r == 1 },
             { _, _, c, r -> !c.toString().endsWith("42") && r == 2 },
         )
@@ -66,8 +71,9 @@ class StringConcatTest : JavaMethodTestRunner() {
 
     @Test
     fun testSameConcat() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             StringConcat::sameConcat,
+            ignoreNumberOfAnalysisResults,
             { _, a, b, r -> a == b && r == 0 },
             { _, a, b, r -> a != b && r == 1 },
         )
@@ -75,8 +81,9 @@ class StringConcatTest : JavaMethodTestRunner() {
 
     @Test
     fun testConcatStrangeSymbols() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             StringConcat::concatStrangeSymbols,
+            eq(1),
             { _, r -> r == "\u0000#\u0001!\u0002@\u0012\t" }
         )
     }

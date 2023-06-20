@@ -3,13 +3,16 @@ package org.usvm.samples.collections
 
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
+import org.usvm.test.util.checkers.between
+import org.usvm.test.util.checkers.eq
 import org.usvm.util.isException
 
 class OptionalsTest : JavaMethodTestRunner() {
     @Test
     fun testCreate() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             Optionals::create,
+            eq(2),
             { _, value, result -> value == null && result.isException<NullPointerException>() },
             { _, value, result -> value != null && result.getOrNull()!!.get() == value },
         )
@@ -17,24 +20,27 @@ class OptionalsTest : JavaMethodTestRunner() {
 
     @Test
     fun testCreateInt() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Optionals::createInt,
+            eq(1),
             { _, value, result -> result.asInt == value },
         )
     }
 
     @Test
     fun testCreateLong() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Optionals::createLong,
+            eq(1),
             { _, value, result -> result.asLong == value },
         )
     }
 
     @Test
     fun testCreateDouble() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Optionals::createDouble,
+            eq(1),
             { _, value, result -> result.asDouble == value || result.asDouble.isNaN() },
         )
     }
@@ -384,8 +390,9 @@ class OptionalsTest : JavaMethodTestRunner() {
 
     @Test
     fun testEqualOptionals() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Optionals::equalOptionals,
+            between(4..7),
             { _, left, _, _ -> left == null },
             { _, left, right, result -> left != null && left != right && !result },
             { _, left, right, result -> left != null && left === right && !left.isPresent && !right.isPresent && result },
@@ -395,8 +402,9 @@ class OptionalsTest : JavaMethodTestRunner() {
 
     @Test
     fun testEqualOptionalsInt() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Optionals::equalOptionalsInt,
+            between(4..8),
             { _, left, _, _ -> left == null },
             { _, left, right, result -> left != null && left != right && !result },
             { _, left, right, result -> left != null && left === right && !left.isPresent && !right.isPresent && result },
@@ -406,8 +414,9 @@ class OptionalsTest : JavaMethodTestRunner() {
 
     @Test
     fun testEqualOptionalsLong() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Optionals::equalOptionalsLong,
+            between(4..8),
             { _, left, _, _ -> left == null },
             { _, left, right, result -> left != null && left != right && !result },
             { _, left, right, result -> left != null && left === right && !left.isPresent && !right.isPresent && result },
@@ -417,8 +426,9 @@ class OptionalsTest : JavaMethodTestRunner() {
 
     @Test
     fun testEqualOptionalsDouble() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Optionals::equalOptionalsDouble,
+            between(4..8),
             { _, left, _, _ -> left == null  },
             { _, left, right, result -> left != null && left != right && !result },
             { _, left, right, result -> left != null && left === right && !left.isPresent && !right.isPresent && result },
@@ -428,8 +438,9 @@ class OptionalsTest : JavaMethodTestRunner() {
 
     @Test
     fun testOptionalOfPositive() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Optionals::optionalOfPositive,
+            eq(2),
             { _, value, result -> value > 0 && result != null && result.isPresent && result.get() == value },
             { _, value, result -> value <= 0 && result != null && !result.isPresent }
         )

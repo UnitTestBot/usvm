@@ -9,40 +9,45 @@ import org.usvm.util.isException
 class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     @Test
     fun testCorrectAssignmentSamePrimitiveType() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::correctAssignmentSamePrimitiveType,
+            eq(3),
             { _, data, result -> result.isSuccess && result.getOrNull() == data?.isNotEmpty() }
         )
     }
 
     @Test
     fun testCorrectAssignmentIntToIntegerArray() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::correctAssignmentIntToIntegerArray,
+            eq(3),
             { _, data, result -> result.isSuccess && result.getOrNull() == data?.isNotEmpty() }
         )
     }
 
     @Test
     fun testCorrectAssignmentSubtype() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::correctAssignmentSubtype,
+            eq(3),
             { _, data, result -> result.isSuccess && result.getOrNull() == data?.isNotEmpty() }
         )
     }
 
     @Test
     fun testCorrectAssignmentToObjectArray() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::correctAssignmentToObjectArray,
+            eq(3),
             { _, data, result -> result.isSuccess && result.getOrNull() == data?.isNotEmpty() }
         )
     }
 
     @Test
     fun testWrongAssignmentUnrelatedType() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::wrongAssignmentUnrelatedType,
+            eq(3),
             { _, data, result -> data == null && result.isSuccess },
             { _, data, result -> data.isEmpty() && result.isSuccess },
             { _, data, result -> data.isNotEmpty() && result.isException<ArrayStoreException>() },
@@ -51,40 +56,45 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
 
     @Test
     fun testCheckGenericAssignmentWithCorrectCast() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkGenericAssignmentWithCorrectCast,
+            eq(1),
             { _, result -> result.isSuccess }
         )
     }
 
     @Test
     fun testCheckGenericAssignmentWithWrongCast() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkGenericAssignmentWithWrongCast,
+            eq(1),
             { _, result -> result.isException<ArrayStoreException>() },
         )
     }
 
     @Test
     fun testCheckGenericAssignmentWithExtendsSubtype() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkGenericAssignmentWithExtendsSubtype,
+            eq(1),
             { _, result -> result.isSuccess }
         )
     }
 
     @Test
     fun testCheckGenericAssignmentWithExtendsUnrelated() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkGenericAssignmentWithExtendsUnrelated,
+            eq(1),
             { _, result -> result.isException<ArrayStoreException>() },
         )
     }
 
     @Test
     fun testCheckObjectAssignment() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkObjectAssignment,
+            eq(1),
             { _, result -> result.isSuccess }
         )
     }
@@ -92,32 +102,36 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     // Should this be allowed at all?
     @Test
     fun testCheckWrongAssignmentOfItself() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkWrongAssignmentOfItself,
+            eq(1),
             { _, result -> result.isException<ArrayStoreException>() },
         )
     }
 
     @Test
     fun testCheckGoodAssignmentOfItself() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkGoodAssignmentOfItself,
+            eq(1),
             { _, result -> result.isSuccess }
         )
     }
 
     @Test
     fun testCheckAssignmentToObjectArray() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkAssignmentToObjectArray,
+            eq(1),
             { _, result -> result.isSuccess }
         )
     }
 
     @Test
     fun testArrayCopyForIncompatiblePrimitiveTypes() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::arrayCopyForIncompatiblePrimitiveTypes,
+            eq(3),
             { _, data, result -> data == null && result.isSuccess && result.getOrNull() == null },
             { _, data, result -> data != null && data.isEmpty() && result.isSuccess && result.getOrNull()?.size == 0 },
             { _, data, result -> data != null && data.isNotEmpty() && result.isException<ArrayStoreException>() }
@@ -126,16 +140,18 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
 
     @Test
     fun testFill2DPrimitiveArray() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::fill2DPrimitiveArray,
+            eq(1),
             { _, result -> result.isSuccess }
         )
     }
 
     @Test
     fun testFillObjectArrayWithList() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ArrayStoreExceptionExamples::fillObjectArrayWithList,
+            eq(2),
             { _, list, result -> list != null && result != null && result[0] != null },
             { _, list, result -> list == null && result == null }
         )
@@ -143,8 +159,9 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
 
     @Test
     fun testFillWithTreeSet() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ArrayStoreExceptionExamples::fillWithTreeSet,
+            eq(2),
             { _, treeSet, result -> treeSet != null && result != null && result[0] != null },
             { _, treeSet, result -> treeSet == null && result == null }
         )
@@ -152,8 +169,9 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
 
     @Test
     fun testFillSomeInterfaceArrayWithSomeInterface() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ArrayStoreExceptionExamples::fillSomeInterfaceArrayWithSomeInterface,
+            eq(2),
             { _, impl, result -> impl == null && result == null },
             { _, impl, result -> impl != null && result != null && result[0] != null }
         )
@@ -162,8 +180,9 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     @Test
     @Disabled("TODO: Not null path is not found, need to investigate")
     fun testFillObjectArrayWithSomeInterface() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ArrayStoreExceptionExamples::fillObjectArrayWithSomeInterface,
+            eq(2),
             { _, impl, result -> impl == null && result == null },
             { _, impl, result -> impl != null && result != null && result[0] != null }
         )
@@ -171,8 +190,9 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
 
     @Test
     fun testFillWithSomeImplementation() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ArrayStoreExceptionExamples::fillWithSomeImplementation,
+            eq(2),
             { _, impl, result -> impl == null && result == null },
             { _, impl, result -> impl != null && result != null && result[0] != null }
         )

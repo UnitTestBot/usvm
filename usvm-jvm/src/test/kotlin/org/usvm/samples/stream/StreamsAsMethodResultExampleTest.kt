@@ -3,15 +3,13 @@ package org.usvm.samples.stream
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
-import org.usvm.util.isException
-
-import kotlin.streams.toList
 
 class StreamsAsMethodResultExampleTest : JavaMethodTestRunner() {
     @Test
     fun testReturningStreamExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             StreamsAsMethodResultExample::returningStreamExample,
+            eq(2),
             { _, c, r -> c.isEmpty() && c == r!!.asList() },
             { _, c, r -> c.isNotEmpty() && c == r!!.asList() },
         )

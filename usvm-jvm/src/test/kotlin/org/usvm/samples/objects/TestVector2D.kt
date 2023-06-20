@@ -7,7 +7,7 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 class TestVector2D : JavaMethodTestRunner() {
     @Test
     fun `Test isPerpendicularTo`() {
-        checkWithExceptionPropertiesMatches(
+        checkDiscoveredPropertiesWithExceptions(
             Vector2D::isPerpendicularTo,
             ignoreNumberOfAnalysisResults,
             { _, b, r -> b == null && r.exceptionOrNull() is NullPointerException },
@@ -19,7 +19,7 @@ class TestVector2D : JavaMethodTestRunner() {
 
     @Test
     fun `Test isCollinearTo`() {
-        checkWithExceptionPropertiesMatches(
+        checkDiscoveredPropertiesWithExceptions(
             Vector2D::isCollinearTo,
             ignoreNumberOfAnalysisResults,
             { _, b, r -> b == null && r.exceptionOrNull() is NullPointerException },

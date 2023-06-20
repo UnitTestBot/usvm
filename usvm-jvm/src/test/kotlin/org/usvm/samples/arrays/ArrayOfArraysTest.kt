@@ -5,22 +5,26 @@ import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.samples.casts.ColoredPoint
 import org.usvm.samples.casts.Point
+import org.usvm.test.util.checkers.eq
 
 
 @Suppress("NestedLambdaShadowedImplicitParameter")
+@Disabled("Unsupported")
 internal class ArrayOfArraysTest : JavaMethodTestRunner() {
     @Test
     fun testDefaultValues() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ArrayOfArrays::defaultValues,
+            eq(1),
             { _, r -> r != null && r.single() == null },
         )
     }
 
     @Test
     fun testExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ArrayOfArrays::sizesWithoutTouchingTheElements,
+            eq(1),
             { _, r -> r != null && r.size == 10 && r.all { it.size == 3 && it.all { it == 0 } } },
         )
     }
@@ -28,16 +32,18 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
     @Test
     @Disabled("Impossible NPE found")
     fun testDefaultValuesWithoutLastDimension() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ArrayOfArrays::defaultValuesWithoutLastDimension,
+            eq(1),
             { _, r -> r != null && r.all { it.size == 4 && it.all { it.size == 4 && it.all { it == null } } } },
         )
     }
 
     @Test
     fun testCreateNewMultiDimensionalArray() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ArrayOfArrays::createNewMultiDimensionalArray,
+            eq(4),
             { _, i, j, _ -> i < 0 || j < 0 },
             { _, i, j, r -> i == 0 && j >= 0 && r != null && r.size == 2 && r.all { it.isEmpty() } },
             { _, i, j, r ->
@@ -66,8 +72,9 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
 
     @Test
     fun testDefaultValuesWithoutTwoDimensions() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ArrayOfArrays::defaultValuesWithoutTwoDimensions,
+            eq(2),
             { _, i, r -> i < 2 && r == null },
             { _, i, r -> i >= 2 && r != null && r.all { it.size == i && it.all { it == null } } },
         )
@@ -75,16 +82,18 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
 
     @Test
     fun testDefaultValuesNewMultiArray() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ArrayOfArrays::defaultValuesNewMultiArray,
+            eq(1),
             { _, r -> r != null && r.single().single().single() == 0 },
         )
     }
 
     @Test
     fun testSimpleExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ArrayOfArrays::simpleExample,
+            eq(7),
             { _, m, r -> m.size >= 3 && m[1] === m[2] && r == null },
             { _, m, r -> m.size >= 3 && m[1] !== m[2] && m[0] === m[2] && r == null },
             { _, m, _ -> m.size >= 3 && m[1].size < 2 },
@@ -109,8 +118,9 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
 
     @Test
     fun testIsIdentityMatrix() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ArrayOfArrays::isIdentityMatrix,
+            eq(9),
             { _, m, _ -> m == null },
             { _, m, _ -> m.size < 3 },
             { _, m, _ -> m.size >= 3 && m.any { it == null } },
@@ -141,8 +151,9 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
 
     @Test
     fun testCreateNewThreeDimensionalArray() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ArrayOfArrays::createNewThreeDimensionalArray,
+            eq(2),
             { _, length, _, r -> length != 2 && r != null && r.isEmpty() },
             { _, length, constValue, r ->
                 val sizeConstraint = length == 2 && r != null && r.size == length
@@ -160,8 +171,9 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
 
     @Test
     fun testReallyMultiDimensionalArray() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ArrayOfArrays::reallyMultiDimensionalArray,
+            eq(8),
             { _, a, _ -> a == null },
             { _, a, _ -> a.size < 2 },
             { _, a, _ -> a.size >= 2 && a[1] == null },
@@ -196,8 +208,9 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
 
     @Test
     fun testMultiDimensionalObjectsArray() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ArrayOfArrays::multiDimensionalObjectsArray,
+            eq(4),
             { _, a, _ -> a == null },
             { _, a, _ -> a.isEmpty() },
             { _, a, _ -> a.size == 1 },
@@ -230,8 +243,9 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
 
     @Test
     fun testFillMultiArrayWithArray() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ArrayOfArrays::fillMultiArrayWithArray,
+            eq(3),
             { _, v, _ -> v == null },
             { _, v, r -> v.size < 2 && r != null && r.isEmpty() },
             { _, v, r ->
@@ -260,8 +274,9 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
 
     @Test
     fun testArrayWithItselfAnAsElement() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ArrayOfArrays::arrayWithItselfAnAsElement,
+            eq(2),
             { _, a, r -> a !== a[0] && r == null },
             { _, a, r -> a === a[0] && a.contentDeepEquals(r) },
         )

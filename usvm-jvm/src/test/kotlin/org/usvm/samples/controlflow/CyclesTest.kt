@@ -11,8 +11,9 @@ import org.usvm.util.isException
 internal class CyclesTest : JavaMethodTestRunner() {
     @Test
     fun testForCycle() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Cycles::forCycle,
+            eq(3),
             { _, x, r -> x <= 0 && r == -1 },
             { _, x, r -> x in 1..5 && r == -1 },
             { _, x, r -> x > 5 && r == 1 }
@@ -21,8 +22,9 @@ internal class CyclesTest : JavaMethodTestRunner() {
 
     @Test
     fun testForCycleFour() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Cycles::forCycleFour,
+            eq(3),
             { _, x, r -> x <= 0 && r == -1 },
             { _, x, r -> x in 1..4 && r == -1 },
             { _, x, r -> x > 4 && r == 1 }
@@ -31,8 +33,9 @@ internal class CyclesTest : JavaMethodTestRunner() {
 
     @Test
     fun testForCycleJayHorn() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Cycles::forCycleFromJayHorn,
+            eq(2),
             { _, x, r -> x <= 0 && r == 0 },
             { _, x, r -> x > 0 && r == 2 * x }
         )
@@ -40,8 +43,9 @@ internal class CyclesTest : JavaMethodTestRunner() {
 
     @Test
     fun testFiniteCycle() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Cycles::finiteCycle,
+            eq(2),
             { _, x, r -> x % 519 == 0 && r % 519 == 0 },
             { _, x, r -> x % 519 != 0 && r % 519 == 0 }
         )
@@ -49,8 +53,9 @@ internal class CyclesTest : JavaMethodTestRunner() {
 
     @Test
     fun testWhileCycle() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Cycles::whileCycle,
+            eq(2),
             { _, x, r -> x <= 0 && r == 0 },
             { _, x, r -> x > 0 && r == (0 until x).sum() }
         )
@@ -58,16 +63,18 @@ internal class CyclesTest : JavaMethodTestRunner() {
 
     @Test
     fun testCallInnerWhile() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Cycles::callInnerWhile,
+            between(1..2),
             { _, x, r -> x >= 42 && r == Cycles().callInnerWhile(x) }
         )
     }
 
     @Test
     fun testInnerLoop() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Cycles::innerLoop,
+            ignoreNumberOfAnalysisResults,
             { _, x, r -> x in 1..3 && r == 0 },
             { _, x, r -> x == 4 && r == 1 },
             { _, x, r -> x >= 5 && r == 0 }
@@ -76,8 +83,9 @@ internal class CyclesTest : JavaMethodTestRunner() {
 
     @Test
     fun testDivideByZeroCheckWithCycles() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             Cycles::divideByZeroCheckWithCycles,
+            eq(3),
             { _, n, _, r -> n < 5 && r.isException<IllegalArgumentException>() },
             { _, n, x, r -> n >= 5 && x == 0 && r.isException<ArithmeticException>() },
             { _, n, x, r -> n >= 5 && x != 0 && r.getOrNull() == Cycles().divideByZeroCheckWithCycles(n, x) }
@@ -86,8 +94,9 @@ internal class CyclesTest : JavaMethodTestRunner() {
 
     @Test
     fun moveToExceptionTest() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             Cycles::moveToException,
+            eq(3),
             { _, x, r -> x < 400 && r.isException<IllegalArgumentException>() },
             { _, x, r -> x > 400 && r.isException<IllegalArgumentException>() },
             { _, x, r -> x == 400 && r.isException<IllegalArgumentException>() },

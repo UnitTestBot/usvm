@@ -9,8 +9,9 @@ internal class SerializableExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             SerializableExample::example,
+            eq(1),
         )
     }
 }

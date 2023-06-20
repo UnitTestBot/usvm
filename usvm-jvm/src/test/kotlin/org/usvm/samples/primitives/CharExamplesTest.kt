@@ -8,8 +8,9 @@ import org.usvm.util.isException
 internal class CharExamplesTest : JavaMethodTestRunner() {
     @Test
     fun testCharDiv() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             CharExamples::charDiv,
+            eq(2),
             { _, _, b, r -> b == '\u0000' && r.isException<ArithmeticException>() },
             { _, a, b, r -> b != '\u0000' && r.getOrNull() == a.code / b.code }
         )
@@ -17,8 +18,9 @@ internal class CharExamplesTest : JavaMethodTestRunner() {
 
     @Test
     fun testCharNeg() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             CharExamples::charNeg,
+            eq(2),
             { _, c, r -> c !in '\u0000'..'\uC350' && r == 1 },
             { _, c, r -> c in '\u0000'..'\uC350' && r == 2 },
         )
@@ -26,8 +28,9 @@ internal class CharExamplesTest : JavaMethodTestRunner() {
 
     @Test
     fun testByteToChar() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             CharExamples::byteToChar,
+            eq(5),
             { _, b, r -> b == (-1).toByte() && r == -1 },
             { _, b, r -> b == (-128).toByte() && r == -128 },
             { _, b, r -> b == 0.toByte() && r == 0 },
@@ -38,8 +41,9 @@ internal class CharExamplesTest : JavaMethodTestRunner() {
 
     @Test
     fun testUpdateObject() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             CharExamples::updateObject,
+            eq(3),
             { _, obj, _, r -> obj == null && r.isException<NullPointerException>() },
             { _, obj, i, r -> obj != null && i <= 50000 && r.getOrNull()!!.c == '\u0444' },
             { _, obj, i, r -> obj != null && i.toChar() > 50000.toChar() && r.getOrNull()?.c == i.toChar() },

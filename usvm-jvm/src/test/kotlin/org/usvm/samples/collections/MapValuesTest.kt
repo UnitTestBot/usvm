@@ -11,8 +11,9 @@ import org.usvm.util.isException
 class MapValuesTest : JavaMethodTestRunner() {
     @Test
     fun testRemoveFromValues() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             MapValues::removeFromValues,
+            ignoreNumberOfAnalysisResults,
             { _, map, _, result -> map == null && result.isException<NullPointerException>() },
             { _, map, i, result -> i !in map.values && result.getOrNull() == map },
             { _, map, i, result ->
@@ -37,8 +38,9 @@ class MapValuesTest : JavaMethodTestRunner() {
 
     @Test
     fun testAddToValues() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             MapValues::addToValues,
+            between(2..4),
             { _, map, result -> map == null && result.isException<NullPointerException>() },
             { _, map, result -> map != null && result.isException<UnsupportedOperationException>() },
         )
@@ -46,8 +48,9 @@ class MapValuesTest : JavaMethodTestRunner() {
 
     @Test
     fun testGetFromValues() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             MapValues::getFromValues,
+            ignoreNumberOfAnalysisResults,
             { _, map, _, _ -> map == null },
             { _, map, i, result -> i !in map.values && result == 1 },
             { _, map, i, result -> i in map.values && result == 1 },
@@ -56,8 +59,9 @@ class MapValuesTest : JavaMethodTestRunner() {
 
     @Test
     fun testIteratorHasNext() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             MapValues::iteratorHasNext,
+            between(3..4),
             { _, map, _ -> map == null },
             { _, map, result -> map.values.isEmpty() && result == 0 },
             { _, map, result -> map.values.isNotEmpty() && result == map.values.size },
@@ -66,8 +70,9 @@ class MapValuesTest : JavaMethodTestRunner() {
 
     @Test
     fun testIteratorNext() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             MapValues::iteratorNext,
+            between(3..4),
             { _, map, result -> map == null && result.isException<NullPointerException>() },
             // We might lose this branch depending on the order of the exploration since
             // we do not register wrappers, and, therefore, do not try to cover all of their branches
@@ -80,8 +85,9 @@ class MapValuesTest : JavaMethodTestRunner() {
 
     @Test
     fun testIteratorRemove() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             MapValues::iteratorRemove,
+            between(3..4),
             { _, map, result -> map == null && result.isException<NullPointerException>() },
             { _, map, result -> map.values.isEmpty() && result.isException<NoSuchElementException>() },
             // test should work as long as default class for map is LinkedHashMap
@@ -107,8 +113,9 @@ class MapValuesTest : JavaMethodTestRunner() {
 
     @Test
     fun testIteratorRemoveOnIndex() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             MapValues::iteratorRemoveOnIndex,
+            ge(5),
             { _, _, i, result -> i == 0 && result.isSuccess && result.getOrNull() == null },
             { _, map, _, result -> map == null && result.isException<NullPointerException>() },
             { _, map, i, result -> map != null && i < 0 && result.isException<IllegalStateException>() },
@@ -134,8 +141,9 @@ class MapValuesTest : JavaMethodTestRunner() {
 
     @Test
     fun testIterateForEach() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             MapValues::iterateForEach,
+            between(3..5),
             { _, map, _ -> map == null },
             { _, map, _ -> null in map.values },
             { _, map, result -> map != null && result == map.values.sum() },
@@ -144,8 +152,9 @@ class MapValuesTest : JavaMethodTestRunner() {
 
     @Test
     fun testIterateWithIterator() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             MapValues::iterateWithIterator,
+            between(3..5),
             { _, map, _ -> map == null },
             { _, map, _ -> null in map.values },
             { _, map, result -> map != null && result == map.values.sum() },

@@ -9,8 +9,9 @@ internal class HeapTest : JavaMethodTestRunner() {
     @Test
     fun testIsHeap() {
         val method = Heap::isHeap
-        checkExecutionMatches(
+        this.checkDiscoveredProperties(
             method,
+            ignoreNumberOfAnalysisResults,
             { values, _ -> values == null },
             { values, _ -> values.size < 3 },
             { values, r -> values.size >= 3 && r == method(values) },

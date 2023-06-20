@@ -8,8 +8,9 @@ import org.usvm.test.util.checkers.eq
 class LocalClassExampleTest : JavaMethodTestRunner() {
     @Test
     fun testLocalClassFieldExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             LocalClassExample::localClassFieldExample,
+            eq(1),
             { _, y, r -> r == y + 42 }
         )
     }

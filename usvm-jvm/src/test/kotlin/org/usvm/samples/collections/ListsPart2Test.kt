@@ -10,8 +10,9 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 internal class ListsPart2Test : JavaMethodTestRunner() {
     @Test
     fun testCollectionContains() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Lists::collectionContains,
+            ignoreNumberOfAnalysisResults,
             { _, collection, _ -> collection == null },
             { _, collection, r -> 1 in collection && r },
             { _, collection, r -> 1 !in collection && !r },

@@ -8,8 +8,9 @@ import org.usvm.util.isException
 class CustomPredicateExampleTest : JavaMethodTestRunner() {
     @Test
     fun testNoCapturedValuesPredicateCheck() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             CustomPredicateExample::noCapturedValuesPredicateCheck,
+            eq(3),
             { _, predicate, x, r -> !predicate.test(x) && r.getOrNull() == false },
             { _, predicate, x, r -> predicate.test(x) && r.getOrNull() == true },
             { _, predicate, _, r -> predicate == null && r.isException<NullPointerException>() },
@@ -18,8 +19,9 @@ class CustomPredicateExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testCapturedLocalVariablePredicateCheck() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             CustomPredicateExample::capturedLocalVariablePredicateCheck,
+            eq(3),
             { _, predicate, x, r -> !predicate.test(x) && r.getOrNull() == false },
             { _, predicate, x, r -> predicate.test(x) && r.getOrNull() == true },
             { _, predicate, _, r -> predicate == null && r.isException<NullPointerException>() },
@@ -28,8 +30,9 @@ class CustomPredicateExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testCapturedParameterPredicateCheck() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             CustomPredicateExample::capturedParameterPredicateCheck,
+            eq(3),
             { _, predicate, x, r -> !predicate.test(x) && r.getOrNull() == false },
             { _, predicate, x, r -> predicate.test(x) && r.getOrNull() == true },
             { _, predicate, _, r -> predicate == null && r.isException<NullPointerException>() },
@@ -38,8 +41,9 @@ class CustomPredicateExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testCapturedStaticFieldPredicateCheck() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             CustomPredicateExample::capturedStaticFieldPredicateCheck,
+            eq(3),
             { _, predicate, x, r -> !predicate.test(x) && r.getOrNull() == false },
             { _, predicate, x, r -> predicate.test(x) && r.getOrNull() == true },
             { _, predicate, _, r -> predicate == null && r.isException<NullPointerException>() },
@@ -48,8 +52,9 @@ class CustomPredicateExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testCapturedNonStaticFieldPredicateCheck() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             CustomPredicateExample::capturedNonStaticFieldPredicateCheck,
+            eq(3),
             { _, predicate, x, r -> !predicate.test(x) && r.getOrNull() == false },
             { _, predicate, x, r -> predicate.test(x) && r.getOrNull() == true },
             { _, predicate, _, r -> predicate == null && r.isException<NullPointerException>() },

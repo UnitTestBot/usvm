@@ -10,15 +10,17 @@ internal class NativeExamplesTest : JavaMethodTestRunner() {
 
     @Test
     fun testFindAndPrintSum() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             NativeExamples::findAndPrintSum,
+            ge(1),
         )
     }
 
     @Test
     fun testFindSumWithMathRandom() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             NativeExamples::findSumWithMathRandom,
+            eq(1),
         )
     }
 }

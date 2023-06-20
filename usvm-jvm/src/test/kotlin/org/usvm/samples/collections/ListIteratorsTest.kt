@@ -12,8 +12,9 @@ import kotlin.math.min
 internal class ListIteratorsTest : JavaMethodTestRunner() {
     @Test
     fun testReturnIterator() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ListIterators::returnIterator,
+            ignoreNumberOfAnalysisResults,
             { _, l, r -> l.isEmpty() && r!!.asSequence().toList().isEmpty() },
             { _, l, r -> l.isNotEmpty() && r!!.asSequence().toList() == l },
         )
@@ -21,8 +22,9 @@ internal class ListIteratorsTest : JavaMethodTestRunner() {
 
     @Test
     fun testReturnListIterator() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ListIterators::returnListIterator,
+            ignoreNumberOfAnalysisResults,
             { _, l, r -> l.isEmpty() && r!!.asSequence().toList().isEmpty() },
             { _, l, r -> l.isNotEmpty() && r!!.asSequence().toList() == l },
         )
@@ -30,8 +32,9 @@ internal class ListIteratorsTest : JavaMethodTestRunner() {
 
     @Test
     fun testIterate() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ListIterators::iterate,
+            eq(3),
             { _, l, _ -> l == null },
             { _, l, result -> l.isEmpty() && result == l },
             { _, l, result -> l.isNotEmpty() && result == l },
@@ -40,8 +43,9 @@ internal class ListIteratorsTest : JavaMethodTestRunner() {
 
     @Test
     fun testIterateReversed() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ListIterators::iterateReversed,
+            eq(3),
             { _, l, _ -> l == null },
             { _, l, result -> l.isEmpty() && result == l },
             { _, l, result -> l.isNotEmpty() && result == l.reversed() },
@@ -50,8 +54,9 @@ internal class ListIteratorsTest : JavaMethodTestRunner() {
 
     @Test
     fun testIterateForEach() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ListIterators::iterateForEach,
+            eq(4),
             { _, l, _ -> l == null },
             { _, l, result -> l.isEmpty() && result == 0 },
             { _, l, _ -> l.isNotEmpty() && l.any { it == null } },
@@ -62,8 +67,9 @@ internal class ListIteratorsTest : JavaMethodTestRunner() {
     @Test
     @Disabled("Java 11 transition")
     fun testAddElements() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ListIterators::addElements,
+            eq(5),
             { _, l, _, _ -> l == null },
             { _, l, _, result -> l != null && l.isEmpty() && result == l },
             { _, l, arr, _ -> l != null && l.size > 0 && arr == null },
@@ -74,8 +80,9 @@ internal class ListIteratorsTest : JavaMethodTestRunner() {
 
     @Test
     fun testSetElements() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ListIterators::setElements,
+            eq(5),
             { _, l, _, _ -> l == null },
             { _, l, _, result -> l != null && l.isEmpty() && result == l },
             { _, l, arr, _ -> l != null && arr != null && l.size > arr.size },
@@ -88,10 +95,11 @@ internal class ListIteratorsTest : JavaMethodTestRunner() {
 
     @Test
     fun testRemoveElements() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ListIterators::removeElements, // the exact number of the executions depends on the decisions made by PathSelector
             // so we can have either six results or seven, depending on the [pathSelectorType]
             // from UtSettings
+            ignoreNumberOfAnalysisResults,
             { _, l, _, _ -> l == null },
             { _, l, i, _ -> l != null && i <= 0 },
             { _, l, i, _ -> l != null && l.isEmpty() && i > 0 },

@@ -10,78 +10,89 @@ import org.usvm.test.util.checkers.eq
 internal class ClassWithStaticAndInnerClassesTest : JavaMethodTestRunner() {
     @Test
     fun testUsePrivateStaticClassWithPrivateField() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ClassWithStaticAndInnerClasses::usePrivateStaticClassWithPrivateField,
+            eq(2),
         )
     }
 
     @Test
     fun testUsePrivateStaticClassWithPublicField() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ClassWithStaticAndInnerClasses::usePrivateStaticClassWithPublicField,
+            eq(2),
         )
     }
 
     @Test
     fun testUsePublicStaticClassWithPrivateField() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ClassWithStaticAndInnerClasses::usePublicStaticClassWithPrivateField,
+            eq(2),
         )
     }
 
     @Test
     fun testUsePublicStaticClassWithPublicField() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ClassWithStaticAndInnerClasses::usePublicStaticClassWithPublicField,
+            eq(2),
         )
     }
 
     @Test
     fun testUsePrivateInnerClassWithPrivateField() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ClassWithStaticAndInnerClasses::usePrivateInnerClassWithPrivateField,
+            eq(2),
         )
     }
 
     @Test
     fun testUsePrivateInnerClassWithPublicField() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ClassWithStaticAndInnerClasses::usePrivateInnerClassWithPublicField,
+            eq(2),
         )
     }
 
     @Test
     fun testUsePublicInnerClassWithPrivateField() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ClassWithStaticAndInnerClasses::usePublicInnerClassWithPrivateField,
+            eq(2),
         )
     }
 
     @Test
     fun testUsePublicInnerClassWithPublicField() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ClassWithStaticAndInnerClasses::usePublicInnerClassWithPublicField,
+            eq(2),
         )
     }
 
     @Test
     fun testUsePackagePrivateFinalStaticClassWithPackagePrivateField() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ClassWithStaticAndInnerClasses::usePackagePrivateFinalStaticClassWithPackagePrivateField,
+            eq(2),
         )
     }
 
     @Test
     fun testUsePackagePrivateFinalInnerClassWithPackagePrivateField() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ClassWithStaticAndInnerClasses::usePackagePrivateFinalInnerClassWithPackagePrivateField,
+            eq(2),
         )
     }
 
     @Test
     fun testGetValueFromPublicFieldWithPrivateType() {
-        checkExecutionMatches(
+        this.checkDiscoveredProperties(
             ClassWithStaticAndInnerClasses::getValueFromPublicFieldWithPrivateType,
+            eq(2),
         )
     }
 

@@ -10,8 +10,9 @@ import org.usvm.util.isException
 class MapEntrySetTest : JavaMethodTestRunner() {
     @Test
     fun testRemoveFromEntrySet() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             MapEntrySet::removeFromEntrySet,
+            between(3..7),
             { _, map, _, _, result -> map == null && result.isException<NullPointerException>() },
             { _, map, i, j, result -> map.entries.none { it.key == i && it.value == j } && result.getOrNull() == map },
             { _, map, i, j, result ->
@@ -27,8 +28,9 @@ class MapEntrySetTest : JavaMethodTestRunner() {
 
     @Test
     fun testAddToEntrySet() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             MapEntrySet::addToEntrySet,
+            between(2..4),
             { _, map, result -> map == null && result.isException<NullPointerException>() },
             { _, map, result -> map != null && result.isException<UnsupportedOperationException>() },
         )
@@ -36,8 +38,9 @@ class MapEntrySetTest : JavaMethodTestRunner() {
 
     @Test
     fun testGetFromEntrySet() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             MapEntrySet::getFromEntrySet,
+            between(3..7),
             { _, map, _, _, _ -> map == null },
             { _, map, i, j, result -> map.none { it.key == i && it.value == j } && result == 1 },
             { _, map, i, j, result -> map.any { it.key == i && it.value == j } && result == 1 },
@@ -46,8 +49,9 @@ class MapEntrySetTest : JavaMethodTestRunner() {
 
     @Test
     fun testIteratorHasNext() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             MapEntrySet::iteratorHasNext,
+            between(3..4),
             { _, map, _ -> map == null },
             { _, map, result -> map.entries.isEmpty() && result == 0 },
             { _, map, result -> map.entries.isNotEmpty() && result == map.entries.size },
@@ -56,8 +60,9 @@ class MapEntrySetTest : JavaMethodTestRunner() {
 
     @Test
     fun testIteratorNext() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             MapEntrySet::iteratorNext,
+            between(3..5),
             { _, map, result -> map == null && result.isException<NullPointerException>() },
             { _, map, result -> map.entries.isEmpty() && result.isException<NoSuchElementException>() },
             // test should work as long as default class for map is LinkedHashMap
@@ -72,8 +77,9 @@ class MapEntrySetTest : JavaMethodTestRunner() {
 
     @Test
     fun testIteratorRemove() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             MapEntrySet::iteratorRemove,
+            between(3..4),
             { _, map, result -> map == null && result.isException<NullPointerException>() },
             { _, map, result -> map.entries.isEmpty() && result.isException<NoSuchElementException>() },
             // test should work as long as default class for map is LinkedHashMap
@@ -89,8 +95,9 @@ class MapEntrySetTest : JavaMethodTestRunner() {
 
     @Test
     fun testIteratorRemoveOnIndex() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             MapEntrySet::iteratorRemoveOnIndex,
+            ge(5),
             { _, _, i, result -> i == 0 && result.isSuccess && result.getOrNull() == null },
             { _, map, _, result -> map == null && result.isException<NullPointerException>() },
             { _, map, i, result -> map != null && i < 0 && result.isException<IllegalStateException>() },
@@ -108,8 +115,9 @@ class MapEntrySetTest : JavaMethodTestRunner() {
 
     @Test
     fun testIterateForEach() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             MapEntrySet::iterateForEach,
+            between(3..5),
             { _, map, _ -> map == null },
             { _, map, _ -> null in map.values },
             { _, map, result -> result!![0] == map.keys.sum() && result[1] == map.values.sum() },
@@ -119,8 +127,9 @@ class MapEntrySetTest : JavaMethodTestRunner() {
 
     @Test
     fun testIterateWithIterator() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             MapEntrySet::iterateWithIterator,
+            ignoreNumberOfAnalysisResults,
             { _, map, result -> map == null && result.isException<NullPointerException>() },
             { _, map, result -> map.isEmpty() && result.getOrThrow().contentEquals(intArrayOf(0, 0)) },
             { _, map, result -> map.size % 2 == 1 && result.isException<NoSuchElementException>() },

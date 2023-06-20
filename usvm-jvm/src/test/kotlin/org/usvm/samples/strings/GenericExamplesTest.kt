@@ -8,8 +8,9 @@ import org.usvm.util.isException
 internal class GenericExamplesTest : JavaMethodTestRunner() {
     @Test
     fun testContainsOkWithIntegerType() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             GenericExamples<Int>::containsOk,
+            eq(2),
             { _, obj, result -> obj == null && result.isException<NullPointerException>() },
             { _, obj, result -> obj != null && result.isSuccess && result.getOrNull() == false }
         )
@@ -17,8 +18,9 @@ internal class GenericExamplesTest : JavaMethodTestRunner() {
 
     @Test
     fun testContainsOkExampleTest() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             GenericExamples<String>::containsOkExample,
+            eq(1),
             { _, result -> result == true }
         )
     }

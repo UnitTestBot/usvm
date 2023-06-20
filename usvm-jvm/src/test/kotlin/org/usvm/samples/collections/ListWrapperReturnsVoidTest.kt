@@ -8,8 +8,9 @@ import org.usvm.util.isException
 internal class ListWrapperReturnsVoidTest : JavaMethodTestRunner() {
     @Test
     fun testRunForEach() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             ListWrapperReturnsVoidExample::runForEach,
+            eq(4),
             { _, l, r -> l == null && r.isException<NullPointerException>() },
             { _, l, r -> l.isEmpty() && r.getOrThrow() == 0 },
             { _, l, r -> l.isNotEmpty() && l.all { it != null } && r.getOrThrow() == 0 },
@@ -19,8 +20,9 @@ internal class ListWrapperReturnsVoidTest : JavaMethodTestRunner() {
 
     @Test
     fun testSumPositiveForEach() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             ListWrapperReturnsVoidExample::sumPositiveForEach,
+            eq(5),
             { _, l, r -> l == null && r.isException<NullPointerException>() },
             { _, l, r -> l.isEmpty() && r.getOrThrow() == 0 },
             { _, l, r -> l.isNotEmpty() && l.any { it == null } && r.isException<NullPointerException>() },

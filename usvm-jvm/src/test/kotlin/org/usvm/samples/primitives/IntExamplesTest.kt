@@ -10,8 +10,9 @@ internal class IntExamplesTest : JavaMethodTestRunner() {
     @Test
     fun testIsInteger() {
         val method = IntExamples::isInteger
-        checkExecutionMatches(
+        this.checkDiscoveredProperties(
             method,
+            eq(2),
             { value, r -> runCatching { Integer.valueOf(value) }.isSuccess && r == true },
             { value, r -> runCatching { Integer.valueOf(value) }.isFailure && r == false },
         )
@@ -19,8 +20,9 @@ internal class IntExamplesTest : JavaMethodTestRunner() {
 
     @Test
     fun testMax() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             IntExamples::max,
+            eq(2),
             { _, x, y, r -> x > y && r == x },
             { _, x, y, r -> x <= y && r == y }
         )
@@ -28,8 +30,9 @@ internal class IntExamplesTest : JavaMethodTestRunner() {
 
     @Test
     fun testPreferableLt() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             IntExamples::preferableLt,
+            eq(2),
             { _, x, r -> x == 41 && r == 41 },
             { _, x, r -> x == 42 && r == 42 }
         )
@@ -37,8 +40,9 @@ internal class IntExamplesTest : JavaMethodTestRunner() {
 
     @Test
     fun testPreferableLe() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             IntExamples::preferableLe,
+            eq(2),
             { _, x, r -> x == 42 && r == 42 },
             { _, x, r -> x == 43 && r == 43 }
         )
@@ -46,8 +50,9 @@ internal class IntExamplesTest : JavaMethodTestRunner() {
 
     @Test
     fun testPreferableGe() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             IntExamples::preferableGe,
+            eq(2),
             { _, x, r -> x == 42 && r == 42 },
             { _, x, r -> x == 41 && r == 41 }
         )
@@ -55,8 +60,9 @@ internal class IntExamplesTest : JavaMethodTestRunner() {
 
     @Test
     fun testPreferableGt() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             IntExamples::preferableGt,
+            eq(2),
             { _, x, r -> x == 43 && r == 43 },
             { _, x, r -> x == 42 && r == 42 }
         )
@@ -65,8 +71,9 @@ internal class IntExamplesTest : JavaMethodTestRunner() {
 
     @Test
     fun testCompare() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             IntExamples::complexCompare,
+            eq(6),
             { _, a, b, r -> a < b && b < 11 && r == 0 },
             { _, a, b, r -> a < b && b > 11 && r == 1 },
             { _, a, b, r -> a == b && b == 11 && r == 3 },
@@ -78,8 +85,9 @@ internal class IntExamplesTest : JavaMethodTestRunner() {
 
     @Test
     fun testComplexCondition() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             IntExamples::complexCondition,
+            eq(3),
             { _, _, b, r -> b + 10 >= b + 22 && r == 0 }, // negative overflow, result = 1
             { _, a, b, r -> b + 10 < b + 22 && b + 22 >= a + b + 10 && r == 0 },
             { _, a, b, r -> b + 10 < b + 22 && b + 22 < a + b + 10 && r == 1 } // overflow involved
@@ -88,8 +96,9 @@ internal class IntExamplesTest : JavaMethodTestRunner() {
 
     @Test
     fun testOrderCheck() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             IntExamples::orderCheck,
+            eq(3),
             { _, first, second, _, r -> first >= second && r == false },
             { _, first, second, third, r -> first < second && second >= third && r == false },
             { _, first, second, third, r -> first < second && second < third && r == true }
@@ -98,8 +107,9 @@ internal class IntExamplesTest : JavaMethodTestRunner() {
 
     @Test
     fun testOrderCheckWithMethods() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             IntExamples::orderCheckWithMethods,
+            eq(3),
             { _, first, second, _, r -> first >= second && r == false },
             { _, first, second, third, r -> first < second && second >= third && r == false },
             { _, first, second, third, r -> first < second && second < third && r == true }

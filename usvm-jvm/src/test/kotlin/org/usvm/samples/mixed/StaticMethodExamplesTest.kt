@@ -9,8 +9,9 @@ internal class StaticMethodExamplesTest : JavaMethodTestRunner() {
     @Test
     fun testComplement() {
         val method = StaticMethodExamples::complement
-        checkExecutionMatches(
+        this.checkDiscoveredProperties(
             method,
+            eq(2),
             { x, r -> x == -2 && r == true },
             { x, r -> x != -2 && r == false }
         )
@@ -19,8 +20,9 @@ internal class StaticMethodExamplesTest : JavaMethodTestRunner() {
     @Test
     fun testMax2() {
         val method = StaticMethodExamples::max2
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             method,
+            eq(2),
             { x, y, r -> x > y && r == x },
             { x, y, r -> x <= y && r == y.toInt() }
         )
@@ -29,8 +31,9 @@ internal class StaticMethodExamplesTest : JavaMethodTestRunner() {
     @Test
     fun testSum() {
         val method = StaticMethodExamples::sum
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             method,
+            eq(3),
             { x, y, z, r -> x + y + z < -20 && r == (x + y + z).toLong() * 2 },
             { x, y, z, r -> x + y + z > 20 && r == (x + y + z).toLong() * 2 },
             { x, y, z, r -> x + y + z in -20..20 && r == (x + y + z).toLong() }

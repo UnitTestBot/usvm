@@ -2,14 +2,19 @@ package org.usvm.samples.collections
 
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
+import org.usvm.test.util.checkers.between
+import org.usvm.test.util.checkers.eq
+import org.usvm.test.util.checkers.ge
+import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 
 // TODO failed Kotlin compilation ($ in names, generics) SAT-1220 SAT-1332
 internal class MapsPart1Test : JavaMethodTestRunner() {
     @Test
     fun testPutElementIfAbsent() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Maps::putElementIfAbsent,
+            ignoreNumberOfAnalysisResults,
             { _, map, _, _, _ -> map == null },
             { _, map, key, _, result -> map != null && key in map && result == map },
             { _, map, key, value, result ->
@@ -22,8 +27,9 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
 
     @Test
     fun testReplaceEntry() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Maps::replaceEntry,
+            between(3..6),
             { _, map, _, _, _ -> map == null },
             { _, map, key, _, result -> key !in map && result == map },
             { _, map, key, value, result ->
@@ -36,8 +42,9 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
 
     @Test
     fun createTest() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Maps::create,
+            eq(5),
             { _, keys, _, _ -> keys == null },
             { _, keys, _, result -> keys.isEmpty() && result!!.isEmpty() },
             { _, keys, values, _ -> keys.isNotEmpty() && values == null },
@@ -51,24 +58,27 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
 
     @Test
     fun testToString() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Maps::mapToString,
+            eq(1),
             { _, a, b, c, r -> r == Maps().mapToString(a, b, c) }
         )
     }
 
     @Test
     fun testMapPutAndGet() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Maps::mapPutAndGet,
+            eq(1),
             { _, r -> r == 3 }
         )
     }
 
     @Test
     fun testPutInMapFromParameters() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Maps::putInMapFromParameters,
+            ignoreNumberOfAnalysisResults,
             { _, values, _ -> values == null },
             { _, values, r -> 1 in values.keys && r == 3 },
             { _, values, r -> 1 !in values.keys && r == 3 },
@@ -79,8 +89,9 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
     // caused errors with NPE as results while debugging `testPutInMapFromParameters`.
     @Test
     fun testContainsKeyAndPuts() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Maps::containsKeyAndPuts,
+            ignoreNumberOfAnalysisResults,
             { _, values, _ -> values == null },
             { _, values, r -> 1 !in values.keys && r == 3 },
         )
@@ -88,8 +99,9 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
 
     @Test
     fun testFindAllChars() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Maps::countChars,
+            eq(3),
             { _, s, _ -> s == null },
             { _, s, result -> s == "" && result!!.isEmpty() },
             { _, s, result -> s != "" && result == s.groupingBy { it }.eachCount() },
@@ -98,8 +110,9 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
 
     @Test
     fun putElementsTest() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Maps::putElements,
+            ge(5),
             { _, map, _, _ -> map == null },
             { _, map, array, _ -> map != null && map.isNotEmpty() && array == null },
             { _, map, _, result -> map.isEmpty() && result == map },
@@ -113,8 +126,9 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
 
     @Test
     fun removeEntries() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Maps::removeElements,
+            ge(6),
             { _, map, _, _, _ -> map == null },
             { _, map, i, j, res -> map != null && (i !in map || map[i] == null) && (j !in map || map[j] == null) && res == -1 },
             { _, map, i, j, res -> map != null && map.isNotEmpty() && i !in map && j in map && res == 4 },
@@ -126,17 +140,19 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
 
     @Test
     fun createWithDifferentTypeTest() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Maps::createWithDifferentType,
-            { _, seed, result -> seed % 2 != 0 && result is java.util.LinkedHashMap },
-            { _, seed, result -> seed % 2 == 0 && result !is java.util.LinkedHashMap && result is java.util.HashMap },
+            eq(2),
+            { _, seed, result -> seed % 2 != 0 && result is LinkedHashMap },
+            { _, seed, result -> seed % 2 == 0 && result !is LinkedHashMap && result is HashMap },
         )
     }
 
     @Test
     fun removeCustomObjectTest() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Maps::removeCustomObject,
+            ge(3),
             { _, map, _, _ -> map == null },
             { _, map, i, result -> (map.isEmpty() || CustomClass(i) !in map) && result == null },
             { _, map, i, result -> map.isNotEmpty() && CustomClass(i) in map && result == map[CustomClass(i)] },
@@ -145,15 +161,17 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
 
     @Test
     fun testMapOperator() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Maps::mapOperator,
+            ignoreNumberOfAnalysisResults
         )
     }
 
     @Test
     fun testComputeValue() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Maps::computeValue,
+            between(3..5),
             { _, map, _, _ -> map == null },
             { _, map, key, result ->
                 val valueWasUpdated = result!![key] == key + 1
@@ -192,8 +210,9 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
 
     @Test
     fun testComputeValueIfAbsent() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Maps::computeValueIfAbsent,
+            between(3..5),
             { _, map, _, _ -> map == null },
             { _, map, key, result -> map[key] != null && result == map },
             { _, map, key, result ->
@@ -206,8 +225,9 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
 
     @Test
     fun testComputeValueIfPresent() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Maps::computeValueIfPresent,
+            between(3..5),
             { _, map, _, _ -> map == null },
             { _, map, key, result -> map[key] == null && result == map },
             { _, map, key, result ->
@@ -220,8 +240,9 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
 
     @Test
     fun testClearEntries() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Maps::clearEntries,
+            between(3..4),
             { _, map, _ -> map == null },
             { _, map, result -> map.isEmpty() && result == 0 },
             { _, map, result -> map.isNotEmpty() && result == 1 },
@@ -230,8 +251,9 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
 
     @Test
     fun testContainsKey() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Maps::containsKey,
+            between(3..5),
             { _, map, _, _ -> map == null },
             { _, map, key, result -> key !in map && result == 0 },
             { _, map, key, result -> key in map && result == 1 },
@@ -240,8 +262,9 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
 
     @Test
     fun testContainsValue() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Maps::containsValue,
+            between(3..6),
             { _, map, _, _ -> map == null },
             { _, map, value, result -> value !in map.values && result == 0 },
             { _, map, value, result -> value in map.values && result == 1 },
@@ -250,8 +273,9 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
 
     @Test
     fun testGetOrDefaultElement() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Maps::getOrDefaultElement,
+            between(4..6),
             { _, map, _, _ -> map == null },
             { _, map, i, result -> i !in map && result == 1 },
             { _, map, i, result -> i in map && map[i] == null && result == 0 },
@@ -261,8 +285,9 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
 
     @Test
     fun testRemoveKeyWithValue() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Maps::removeKeyWithValue,
+            ge(6),
             { _, map, _, _, _ -> map == null },
             { _, map, key, value, result -> key !in map && value !in map.values && result == 0 },
             { _, map, key, value, result -> key in map && value !in map.values && result == -1 },
@@ -274,8 +299,9 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
 
     @Test
     fun testReplaceAllEntries() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Maps::replaceAllEntries,
+            between(5..6),
             { _, map, _ -> map == null },
             { _, map, result -> map.isEmpty() && result == null },
             { _, map, _ -> map.isNotEmpty() && map.containsValue(null) },
@@ -298,16 +324,18 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
 
     @Test
     fun testCreateMapWithString() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Maps::createMapWithString,
+            eq(1),
             { _, r -> r!!.isEmpty() }
         )
     }
 
     @Test
     fun testCreateMapWithEnum() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Maps::createMapWithEnum,
+            eq(1),
             { _, r -> r != null && r.size == 2 && r[Maps.WorkDays.Monday] == 112 && r[Maps.WorkDays.Friday] == 567 }
         )
     }

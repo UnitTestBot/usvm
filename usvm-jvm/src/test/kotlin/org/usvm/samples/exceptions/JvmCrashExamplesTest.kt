@@ -10,7 +10,7 @@ internal class JvmCrashExamplesTest : JavaMethodTestRunner() {
     @Test
     @Disabled("JIRA:1527")
     fun testExit() {
-        checkPropertiesMatches(
+        checkDiscoveredProperties(
             JvmCrashExamples::exit,
             eq(2)
         )
@@ -18,8 +18,9 @@ internal class JvmCrashExamplesTest : JavaMethodTestRunner() {
 
     @Test
     fun testCrash() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             JvmCrashExamples::crash, // we expect only one execution after minimization
+            eq(1)
             // It seems that we can't calculate coverage when the child JVM has crashed
         )
     }

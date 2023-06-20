@@ -9,8 +9,9 @@ import org.usvm.test.util.checkers.eq
 class AbstractAnonymousClassTest : JavaMethodTestRunner() {
     @Test
     fun testNonOverriddenMethod() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             AbstractAnonymousClass::methodWithoutOverrides,
+            eq(1)
         )
     }
 
@@ -18,7 +19,7 @@ class AbstractAnonymousClassTest : JavaMethodTestRunner() {
     fun testOverriddenMethod() {
         // check we have error during execution
         assertThrows<org.opentest4j.AssertionFailedError> {
-            checkPropertiesMatches(
+            checkDiscoveredProperties(
                 AbstractAnonymousClass::methodWithOverride,
                 eq(0)
             )

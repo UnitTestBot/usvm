@@ -12,8 +12,9 @@ class DateExampleTest : JavaMethodTestRunner() {
     @Tag("slow")
     @Test
     fun testGetTimeWithNpeChecksForNonPublicFields() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             DateExample::getTime,
+            eq(5),
             *commonMatchers,
             { _, date: Date?, r: Result<Boolean> ->
                 val cdate = date!!.getDeclaredFieldValue("cdate")
@@ -37,8 +38,9 @@ class DateExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testGetTimeWithoutReflection() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             DateExample::getTime,
+            eq(3),
             *commonMatchers
         )
     }

@@ -10,8 +10,9 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 internal class GenericsTest : JavaMethodTestRunner() {
     @Test
     fun mapAsParameterTest() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Generics<*>::mapAsParameter,
+            eq(2),
             { _, map, _ -> map == null },
             { _, map, r -> map != null && r == "value" },
         )
@@ -20,8 +21,9 @@ internal class GenericsTest : JavaMethodTestRunner() {
     @Test
     @Disabled("https://github.com/UnitTestBot/UTBotJava/issues/1620 wrong equals")
     fun genericAsFieldTest() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Generics<*>::genericAsField,
+            ignoreNumberOfAnalysisResults,
             { _, obj, r -> obj?.field == null && r == false },
             // we can cover this line with any of these two conditions
             { _, obj, r -> (obj.field != null && obj.field != "abc" && r == false) || (obj.field == "abc" && r == true) },
@@ -30,16 +32,18 @@ internal class GenericsTest : JavaMethodTestRunner() {
 
     @Test
     fun mapAsStaticFieldTest() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Generics<*>::mapAsStaticField,
+            ignoreNumberOfAnalysisResults,
             { _, r -> r == "value" },
         )
     }
 
     @Test
     fun mapAsNonStaticFieldTest() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Generics<*>::mapAsNonStaticField,
+            ignoreNumberOfAnalysisResults,
             { _, map, _ -> map == null },
             { _, map, r -> map != null && r == "value" },
         )
@@ -47,8 +51,9 @@ internal class GenericsTest : JavaMethodTestRunner() {
 
     @Test
     fun methodWithRawTypeTest() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Generics<*>::methodWithRawType,
+            eq(2),
             { _, map, _ -> map == null },
             { _, map, r -> map != null && r == "value" },
         )
@@ -56,8 +61,9 @@ internal class GenericsTest : JavaMethodTestRunner() {
 
     @Test
     fun testMethodWithArrayTypeBoundary() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             Generics<*>::methodWithArrayTypeBoundary,
+            eq(1),
             { _, r -> r.exceptionOrNull() is java.lang.NullPointerException },
         )
     }

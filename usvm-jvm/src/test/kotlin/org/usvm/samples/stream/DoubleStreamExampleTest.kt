@@ -15,16 +15,18 @@ import kotlin.streams.toList
 class DoubleStreamExampleTest : JavaMethodTestRunner() {
     @Test
     fun testReturningStreamAsParameterExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             DoubleStreamExample::returningStreamAsParameterExample,
+            eq(1),
             { _, s, r -> s != null && s.toList() == r!!.toList() },
         )
     }
 
     @Test
     fun testUseParameterStream() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             DoubleStreamExample::useParameterStream,
+            eq(2),
             { _, s, r -> s.toArray().isEmpty() && r == 0 },
             { _, s, r ->
                 s.toArray().let {
@@ -36,8 +38,9 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testFilterExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             DoubleStreamExample::filterExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> null !in c && r == false },
             { _, c, r -> null in c && r == true },
         )
@@ -45,8 +48,9 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testMapExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             DoubleStreamExample::mapExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> null in c && r.contentEquals(c.doubles { it?.toDouble()?.times(2) ?: 0.0 }) },
             { _, c: List<Short?>, r -> null !in c && r.contentEquals(c.doubles { it?.toDouble()?.times(2) ?: 0.0 }) },
         )
@@ -54,8 +58,9 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testMapToObjExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             DoubleStreamExample::mapToObjExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r ->
                 val intArrays = c.doubles().map { it.let { i -> doubleArrayOf(i, i) } }.toTypedArray()
 
@@ -73,8 +78,9 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testMapToIntExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             DoubleStreamExample::mapToIntExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r ->
                 val ints = c.doubles().map { it.toInt() }.toIntArray()
 
@@ -90,8 +96,9 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testMapToLongExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             DoubleStreamExample::mapToLongExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r ->
                 val longs = c.doubles().map { it.toLong() }.toLongArray()
 
@@ -107,8 +114,9 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testFlatMapExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             DoubleStreamExample::flatMapExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r ->
                 val intLists = c.mapNotNull {
                     it.toDouble().let { i -> listOf(i, i) }
@@ -121,8 +129,9 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testDistinctExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             DoubleStreamExample::distinctExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r ->
                 val doubles = c.doubles()
 
@@ -140,8 +149,9 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     @Tag("slow")
     // TODO slow sorting https://github.com/UnitTestBot/UTBotJava/issues/188
     fun testSortedExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             DoubleStreamExample::sortedExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.last() < c.first() && r!!.asSequence().isSorted() }
         )
     }
@@ -152,6 +162,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
         fun testPeekExample() {
             checkThisAndStaticsAfter(
                 DoubleStreamExample::peekExample,
+                ignoreNumberOfAnalysisResults,
                 *streamConsumerStaticsMatchers,
             )
         }
@@ -159,8 +170,9 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testLimitExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             DoubleStreamExample::limitExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.size <= 2 && c.doubles().contentEquals(r) },
             { _, c, r -> c.size > 2 && c.take(2).doubles().contentEquals(r) },
         )
@@ -168,8 +180,9 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testSkipExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             DoubleStreamExample::skipExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.size > 2 && c.drop(2).doubles().contentEquals(r) },
             { _, c, r -> c.size <= 2 && r!!.isEmpty() },
         )
@@ -187,16 +200,18 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testToArrayExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             DoubleStreamExample::toArrayExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.doubles().contentEquals(r) },
         )
     }
 
     @Test
     fun testReduceExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             DoubleStreamExample::reduceExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.isEmpty() && r == 42.0 },
             { _, c: List<Short?>, r -> c.isNotEmpty() && r == c.filterNotNull().sum() + 42.0 },
         )
@@ -204,8 +219,9 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testOptionalReduceExample() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             DoubleStreamExample::optionalReduceExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.isEmpty() && r.getOrThrow() == OptionalDouble.empty() },
             { _, c: List<Short?>, r ->
                 c.isNotEmpty() && r.getOrThrow() == OptionalDouble.of(
@@ -217,8 +233,9 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testSumExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             DoubleStreamExample::sumExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.isEmpty() && r == 0.0 },
             { _, c, r -> c.isNotEmpty() && c.filterNotNull().sum().toDouble() == r },
         )
@@ -226,8 +243,9 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testMinExample() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             DoubleStreamExample::minExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.isEmpty() && r.getOrThrow() == OptionalDouble.empty() },
             { _, c, r ->
                 c.isNotEmpty() && r.getOrThrow() == OptionalDouble.of(c.mapNotNull { it.toDouble() }.minOrNull()!!)
@@ -237,8 +255,9 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testMaxExample() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             DoubleStreamExample::maxExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.isEmpty() && r.getOrThrow() == OptionalDouble.empty() },
             { _, c, r ->
                 c.isNotEmpty() && r.getOrThrow() == OptionalDouble.of(c.mapNotNull { it.toDouble() }.maxOrNull()!!)
@@ -248,8 +267,9 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testCountExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             DoubleStreamExample::countExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.isEmpty() && r == 0L },
             { _, c, r -> c.isNotEmpty() && c.size.toLong() == r },
         )
@@ -257,8 +277,9 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testAverageExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             DoubleStreamExample::averageExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.isEmpty() && r == OptionalDouble.empty() },
             { _, c, r -> c.isNotEmpty() && c.mapNotNull { it.toDouble() }.average() == r!!.asDouble },
         )
@@ -266,8 +287,9 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testSummaryStatisticsExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             DoubleStreamExample::summaryStatisticsExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r ->
                 val sum = r!!.sum
                 val count = r.count
@@ -302,8 +324,9 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     @Test
     fun testAnyMatchExample() {
         // TODO exceeds even default step limit 3500 => too slow
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             DoubleStreamExample::anyMatchExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.isEmpty() && r == false },
             { _, c, r -> c.isNotEmpty() && c.doubles().all { it == 0.0 } && r == false },
             { _, c, r ->
@@ -326,8 +349,9 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testAllMatchExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             DoubleStreamExample::allMatchExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.isEmpty() && r == true },
             { _, c, r -> c.isNotEmpty() && c.doubles().all { it == 0.0 } && r == false },
             { _, c, r ->
@@ -350,8 +374,9 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testNoneMatchExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             DoubleStreamExample::noneMatchExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.isEmpty() && r == true },
             { _, c, r -> c.isNotEmpty() && c.doubles().all { it == 0.0 } && r == true },
             { _, c, r ->
@@ -374,8 +399,9 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testFindFirstExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             DoubleStreamExample::findFirstExample,
+            eq(3),
             { _, c, r -> c.isEmpty() && r == OptionalDouble.empty() },
             { _, c, r -> c.isNotEmpty() && r == OptionalDouble.of(c.doubles().first()) },
         )
@@ -383,16 +409,18 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testBoxedExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             DoubleStreamExample::boxedExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.doubles().toList() == r!!.toList() },
         )
     }
 
     @Test
     fun testIteratorExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             DoubleStreamExample::iteratorSumExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.isEmpty() && r == 0.0 },
             { _, c: List<Short?>, r -> c.isNotEmpty() && c.doubles().sum() == r },
         )
@@ -400,8 +428,9 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testStreamOfExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             DoubleStreamExample::streamOfExample,
+            ignoreNumberOfAnalysisResults,
             // NOTE: the order of the matchers is important because Stream could be used only once
             { _, c, r -> c.isNotEmpty() && c.contentEquals(r!!.toArray()) },
             { _, c, r -> c.isEmpty() && DoubleStream.empty().toArray().contentEquals(r!!.toArray()) },
@@ -410,32 +439,36 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testClosedStreamExample() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             DoubleStreamExample::closedStreamExample,
+            ignoreNumberOfAnalysisResults,
             { _, _, r -> r.isException<IllegalStateException>() },
         )
     }
 
     @Test
     fun testGenerateExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             DoubleStreamExample::generateExample,
+            ignoreNumberOfAnalysisResults,
             { _, r -> r!!.contentEquals(DoubleArray(10) { 42.0 }) }
         )
     }
 
     @Test
     fun testIterateExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             DoubleStreamExample::iterateExample,
+            ignoreNumberOfAnalysisResults,
             { _, r -> r!!.contentEquals(DoubleArray(10) { i -> 42.0 + i }) }
         )
     }
 
     @Test
     fun testConcatExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             DoubleStreamExample::concatExample,
+            ignoreNumberOfAnalysisResults,
             { _, r -> r!!.contentEquals(DoubleArray(10) { 42.0 } + DoubleArray(10) { i -> 42.0 + i }) }
         )
     }

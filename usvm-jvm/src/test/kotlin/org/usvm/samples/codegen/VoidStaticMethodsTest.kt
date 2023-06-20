@@ -10,22 +10,25 @@ import org.usvm.test.util.checkers.eq
 class VoidStaticMethodsTest : JavaMethodTestRunner() {
     @Test
     fun testInvokeChangeStaticFieldMethod() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             VoidStaticMethodsTestingClass::invokeChangeStaticFieldMethod,
+            eq(2),
         )
     }
 
     @Test
     fun testInvokeThrowExceptionMethod() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             VoidStaticMethodsTestingClass::invokeThrowExceptionMethod,
+            eq(3),
         )
     }
 
     @Test
     fun testInvokeAnotherThrowExceptionMethod() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             VoidStaticMethodsTestingClass::invokeAnotherThrowExceptionMethod,
+            eq(2),
         )
     }
 }

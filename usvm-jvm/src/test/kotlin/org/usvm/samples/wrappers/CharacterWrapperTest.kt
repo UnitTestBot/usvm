@@ -10,8 +10,9 @@ import org.usvm.test.util.checkers.eq
 internal class CharacterWrapperTest : JavaMethodTestRunner() {
     @Test
     fun primitiveToWrapperTest() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             CharacterWrapper::primitiveToWrapper,
+            eq(2),
             { _, x, r -> x.code >= 100 && r!!.code >= 100 },
             { _, x, r -> x.code < 100 && r!!.code == x.code + 100 },
         )
@@ -19,8 +20,9 @@ internal class CharacterWrapperTest : JavaMethodTestRunner() {
 
     @Test
     fun wrapperToPrimitiveTest() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             CharacterWrapper::wrapperToPrimitive,
+            eq(3),
             { _, x, _ -> x == null },
             { _, x, r -> x.code >= 100 && r.code >= 100 },
             { _, x, r -> x.code < 100 && r.code == x.code + 100 },
@@ -30,8 +32,9 @@ internal class CharacterWrapperTest : JavaMethodTestRunner() {
     @Disabled("Caching char values between -128 and 127 isn't supported JIRA:1481")
     @Test
     fun equalityTest() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             CharacterWrapper::equality,
+            eq(3),
             { _, a, b, result -> a == b && a.code <= 127 && result == 1 },
             { _, a, b, result -> a == b && a.code > 127 && result == 2 },
             { _, a, b, result -> a != b && result == 4 },

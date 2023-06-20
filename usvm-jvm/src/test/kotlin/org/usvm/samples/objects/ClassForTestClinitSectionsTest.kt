@@ -2,6 +2,7 @@ package org.usvm.samples.objects
 
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
+import org.usvm.test.util.checkers.eq
 
 
 internal class ClassForTestClinitSectionsTest : JavaMethodTestRunner() {
@@ -20,11 +21,12 @@ internal class ClassForTestClinitSectionsTest : JavaMethodTestRunner() {
 
     @Test
     fun testClinitWithClinitAnalysis() {
-            checkExecutionMatches(
-                ClassForTestClinitSections::resultDependingOnStaticSection,
-                { _, r -> r == -1 },
-                { _, r -> r == 1 }
-            )
+        checkDiscoveredProperties(
+            ClassForTestClinitSections::resultDependingOnStaticSection,
+            eq(2),
+            { _, r -> r == -1 },
+            { _, r -> r == 1 }
+        )
     }
 
 //    @Test

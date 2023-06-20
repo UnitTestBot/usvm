@@ -15,8 +15,9 @@ import kotlin.math.pow
 internal class RecursionTest : JavaMethodTestRunner() {
     @Test
     fun testFactorial() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             Recursion::factorial,
+            eq(3),
             { _, x, r -> x < 0 && r.isException<IllegalArgumentException>() },
             { _, x, r -> x == 0 && r.getOrNull() == 1 },
             { _, x, r -> x > 0 && r.getOrNull() == (1..x).reduce { a, b -> a * b } }
@@ -25,8 +26,9 @@ internal class RecursionTest : JavaMethodTestRunner() {
 
     @Test
     fun testFib() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             Recursion::fib,
+            eq(4),
             { _, x, r -> x < 0 && r.isException<IllegalArgumentException>() },
             { _, x, r -> x == 0 && r.getOrNull() == 0 },
             { _, x, r -> x == 1 && r.getOrNull() == 1 },
@@ -37,8 +39,9 @@ internal class RecursionTest : JavaMethodTestRunner() {
     @Test
     @Disabled("Freezes the execution when snd != 0 JIRA:1293")
     fun testSum() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Recursion::sum,
+            eq(2),
             { _, x, y, r -> y == 0 && r == x },
             { _, x, y, r -> y != 0 && r == x + y }
         )
@@ -46,8 +49,9 @@ internal class RecursionTest : JavaMethodTestRunner() {
 
     @Test
     fun testPow() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             Recursion::pow,
+            eq(4),
             { _, _, y, r -> y < 0 && r.isException<IllegalArgumentException>() },
             { _, _, y, r -> y == 0 && r.getOrNull() == 1 },
             { _, x, y, r -> y % 2 == 1 && r.getOrNull() == x.toDouble().pow(y.toDouble()).toInt() },
@@ -57,8 +61,9 @@ internal class RecursionTest : JavaMethodTestRunner() {
 
     @Test
     fun infiniteRecursionTest() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             Recursion::infiniteRecursion,
+            eq(2),
             { _, x, r -> x > 10000 && r.isException<StackOverflowError>() },
             { _, x, r -> x <= 10000 && r.isException<StackOverflowError>() },
         )
@@ -66,8 +71,9 @@ internal class RecursionTest : JavaMethodTestRunner() {
 
     @Test
     fun vertexSumTest() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Recursion::vertexSum,
+            between(2..3),
             { _, x, _ -> x <= 10 },
             { _, x, _ -> x > 10 }
         )
@@ -75,8 +81,9 @@ internal class RecursionTest : JavaMethodTestRunner() {
 
     @Test
     fun recursionWithExceptionTest() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             Recursion::recursionWithException,
+            ge(3),
             { _, x, r -> x < 42 && r.isException<IllegalArgumentException>() },
             { _, x, r -> x == 42 && r.isException<IllegalArgumentException>() },
             { _, x, r -> x > 42 && r.isException<IllegalArgumentException>() },
@@ -85,8 +92,9 @@ internal class RecursionTest : JavaMethodTestRunner() {
 
     @Test
     fun recursionLoopTest() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Recursion::firstMethod,
+            eq(2),
             { _, x, _ -> x < 4 },
             { _, x, _ -> x >= 4 },
         )

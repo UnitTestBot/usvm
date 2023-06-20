@@ -9,8 +9,9 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 internal class ConditionsTest : JavaMethodTestRunner() {
     @Test
     fun testSimpleCondition() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Conditions::simpleCondition,
+            eq(2),
             { _, condition, r -> !condition && r == 0 },
             { _, condition, r -> condition && r == 1 }
         )
@@ -18,8 +19,9 @@ internal class ConditionsTest : JavaMethodTestRunner() {
 
     @Test
     fun testIfLastStatement() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             Conditions::emptyBranches,
+            ignoreNumberOfAnalysisResults,
         )
     }
 }

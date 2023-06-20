@@ -11,8 +11,9 @@ import kotlin.math.min
 internal class MinStackExampleTest : JavaMethodTestRunner() {
     @Test
     fun testCreate() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             MinStackExample::create,
+            eq(3),
             { _, initialValues, _ -> initialValues == null },
             { _, initialValues, _ -> initialValues != null && initialValues.size < 3 },
             { _, initialValues, result ->
@@ -32,8 +33,9 @@ internal class MinStackExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testAddSingleValue() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             MinStackExample::addSingleValue,
+            eq(3),
             { _, initialValues, _ -> initialValues == null },
             { _, initialValues, _ -> initialValues != null && initialValues.isEmpty() },
             { _, initialValues, result ->
@@ -50,8 +52,9 @@ internal class MinStackExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testGetMinValue() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             MinStackExample::getMinValue,
+            eq(3),
             { _, initialValues, _ -> initialValues == null },
             { _, initialValues, result -> initialValues != null && initialValues.isEmpty() && result == -1L },
             { _, initialValues, result ->
@@ -62,8 +65,9 @@ internal class MinStackExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testRemoveValue() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             MinStackExample::removeValue,
+            eq(4),
             { _, initialValues, _ -> initialValues == null },
             { _, initialValues, _ -> initialValues != null && initialValues.isEmpty() },
             { _, initialValues, result ->
@@ -77,8 +81,9 @@ internal class MinStackExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testConstruct() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             MinStackExample::construct,
+            between(3..4),
             { _, values, _ -> values == null },
             { _, values, result -> values != null && values.isEmpty() && result != null && result.size == 0 },
             { _, values, result ->

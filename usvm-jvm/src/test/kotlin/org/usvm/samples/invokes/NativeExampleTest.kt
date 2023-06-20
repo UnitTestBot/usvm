@@ -14,15 +14,17 @@ import kotlin.math.sqrt
 internal class NativeExampleTest : JavaMethodTestRunner() {
     @Test
     fun testPartialEx() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             NativeExample::partialExecution,
+            ge(1),
         )
     }
 
     @Test
     fun testUnreachableNativeCall() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             NativeExample::unreachableNativeCall,
+            eq(2),
             { _, d, r -> !d.isNaN() && r == 1 },
             { _, d, r -> d.isNaN() && r == 2 },
         )
@@ -31,8 +33,9 @@ internal class NativeExampleTest : JavaMethodTestRunner() {
     @Test
     @Tag("slow")
     fun testSubstitution() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             NativeExample::substitution,
+            ignoreNumberOfAnalysisResults,
             { _, x, r -> x > 4 && r == 1 },
             { _, x, r -> sqrt(x) <= 2 && r == 0 }
         )
@@ -40,8 +43,9 @@ internal class NativeExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testUnreachableBranch() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             NativeExample::unreachableBranch,
+            ge(2),
             { _, x, r -> x.isNaN() && r == 1 },
             { _, x, r -> (!ln(x).isNaN() || x < 0) && r == 2 },
         )

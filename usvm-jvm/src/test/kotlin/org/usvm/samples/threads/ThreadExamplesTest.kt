@@ -12,24 +12,27 @@ import org.usvm.util.isException
 class ThreadExamplesTest : JavaMethodTestRunner() {
     @Test
     fun testExceptionInStart() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             ThreadExamples::explicitExceptionInStart,
+            ignoreNumberOfAnalysisResults,
             { _, r -> r.isException<IllegalStateException>() }
         )
     }
 
     @Test
     fun testChangingCollectionInThread() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ThreadExamples::changingCollectionInThread,
+            ignoreNumberOfAnalysisResults,
             { _, r -> r == 42 },
         )
     }
 
     @Test
     fun testChangingCollectionInThreadWithoutStart() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             ThreadExamples::changingCollectionInThreadWithoutStart,
+            ignoreNumberOfAnalysisResults,
             { _, r -> r.isException<IndexOutOfBoundsException>() },
         )
     }

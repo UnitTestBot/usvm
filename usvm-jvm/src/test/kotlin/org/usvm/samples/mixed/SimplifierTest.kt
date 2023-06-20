@@ -8,8 +8,9 @@ import org.usvm.test.util.checkers.eq
 internal class SimplifierTest: JavaMethodTestRunner() {
     @Test
     fun testSimplifyAdditionWithZero() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Simplifier::simplifyAdditionWithZero,
+            eq(1),
             { _, fst, r -> r != null && r.x == fst.shortValue.toInt() }, // because of assumes
         )
     }

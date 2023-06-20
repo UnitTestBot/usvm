@@ -9,8 +9,9 @@ class StaticsSubstitutionTest : JavaMethodTestRunner() {
 
     @Test
     fun lessThanZeroWithSubstitution() {
-        checkExecutionMatches(
+        this.checkDiscoveredProperties(
             StaticSubstitutionExamples::lessThanZero,
+            eq(2),
             { _, r -> r != 0 },
             { _, r -> r == 0 },
         )

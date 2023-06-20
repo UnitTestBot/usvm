@@ -10,8 +10,9 @@ internal class UnsafeWithFieldTest: JavaMethodTestRunner() {
 
     @Test
     fun checkSetField() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             UnsafeWithField::setField,
+            eq(1)
         )
     }
 }

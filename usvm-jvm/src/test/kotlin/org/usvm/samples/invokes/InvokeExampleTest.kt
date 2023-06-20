@@ -10,8 +10,9 @@ import org.usvm.util.isException
 internal class InvokeExampleTest : JavaMethodTestRunner() {
     @Test
     fun testSimpleFormula() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             InvokeExample::simpleFormula,
+            eq(3),
             { _, fst, _, _ -> fst < 100 },
             { _, _, snd, _ -> snd < 100 },
             { _, fst, snd, r -> fst >= 100 && snd >= 100 && r == (fst + 5) * (snd / 2) },
@@ -20,8 +21,9 @@ internal class InvokeExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testChangeObjectValueByMethod() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             InvokeExample::changeObjectValueByMethod,
+            eq(2),
             { _, o, _ -> o == null },
             { _, o, r -> o != null && r?.value == 4 },
         )
@@ -29,8 +31,9 @@ internal class InvokeExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testParticularValue() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             InvokeExample::particularValue,
+            eq(3),
             { _, o, _ -> o == null },
             { _, o, _ -> o != null && o.value < 0 },
             { _, o, r -> o != null && o.value >= 0 && r?.value == 12 },
@@ -39,8 +42,9 @@ internal class InvokeExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testCreateObjectFromValue() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             InvokeExample::createObjectFromValue,
+            eq(2),
             { _, value, r -> value == 0 && r?.value == 1 },
             { _, value, r -> value != 0 && r?.value == value }
         )
@@ -48,8 +52,9 @@ internal class InvokeExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testGetNullOrValue() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             InvokeExample::getNullOrValue,
+            eq(3),
             { _, o, _ -> o == null },
             { _, o, r -> o != null && o.value < 100 && r == null },
             { _, o, r -> o != null && o.value >= 100 && r?.value == 5 },
@@ -59,8 +64,9 @@ internal class InvokeExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testConstraintsFromOutside() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             InvokeExample::constraintsFromOutside,
+            eq(3),
             { _, value, r -> value >= 0 && r == value },
             { _, value, r -> value == Int.MIN_VALUE && r == 0 },
             { _, value, r -> value < 0 && value != Int.MIN_VALUE && r == -value },
@@ -70,8 +76,9 @@ internal class InvokeExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testConstraintsFromInside() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             InvokeExample::constraintsFromInside,
+            eq(3),
             { _, value, r -> value >= 0 && r == 1 },
             { _, value, r -> value == Int.MIN_VALUE && r == 1 },
             { _, value, r -> value < 0 && value != Int.MIN_VALUE && r == 1 },
@@ -80,8 +87,9 @@ internal class InvokeExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testAlwaysNPE() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             InvokeExample::alwaysNPE,
+            eq(4),
             { _, o, r -> o == null && r.isException<NullPointerException>() },
             { _, o, r -> o != null && o.value == 0 && r.isException<NullPointerException>() },
             { _, o, r -> o != null && o.value < 0 && r.isException<NullPointerException>() },
@@ -91,8 +99,9 @@ internal class InvokeExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testExceptionInNestedMethod() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             InvokeExample::exceptionInNestedMethod,
+            eq(3),
             { _, o, _, r -> o == null && r.isException<NullPointerException>() },
             { _, o, value, r -> o != null && value < 0 && r.isException<IllegalArgumentException>() },
             { _, o, value, r -> o != null && value >= 0 && value == (r.getOrNull() as InvokeClass).value },
@@ -101,8 +110,9 @@ internal class InvokeExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testFewNestedExceptions() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             InvokeExample::fewNestedException,
+            eq(5),
             { _, o, _, r -> o == null && r.isException<NullPointerException>() },
             { _, o, value, r -> o != null && value < 10 && r.isException<IllegalArgumentException>() },
             { _, o, value, r -> o != null && value in 10..99 && r.isException<IllegalArgumentException>() },
@@ -113,8 +123,9 @@ internal class InvokeExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testDivBy() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             InvokeExample::divBy,
+            eq(4),
             { _, o, _, r -> o == null && r.isException<NullPointerException>() },
             { _, o, _, r -> o != null && o.value < 1000 && r.isException<IllegalArgumentException>() },
             { _, o, den, r -> o != null && o.value >= 1000 && den == 0 && r.isException<ArithmeticException>() },
@@ -124,8 +135,9 @@ internal class InvokeExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testUpdateValue() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             InvokeExample::updateValue,
+            eq(4),
             { _, o, _, _ -> o == null },
             { _, o, _, r -> o != null && o.value > 0 && r != null && r.value > 0 },
             { _, o, value, r -> o != null && o.value <= 0 && value > 0 && r?.value == value },
@@ -135,15 +147,17 @@ internal class InvokeExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testNullAsParameter() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             InvokeExample::nullAsParameter,
+            eq(1),
         )
     }
 
     @Test
     fun testChangeArrayWithAssignFromMethod() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             InvokeExample::changeArrayWithAssignFromMethod,
+            eq(3),
             { _, a, _ -> a == null },
             { _, a, r -> a != null && a.isEmpty() && r != null && r.isEmpty() },
             { _, a, r ->
@@ -155,8 +169,9 @@ internal class InvokeExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testChangeArrayByMethod() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             InvokeExample::changeArrayByMethod,
+            ignoreNumberOfAnalysisResults,
             { _, a, _ -> a == null },
             { _, a, r -> a != null && a.isNotEmpty() && r != null && r.size == a.size && a.map { it + 5 } == r.toList() }
         )
@@ -164,8 +179,9 @@ internal class InvokeExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testArrayCopyExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             InvokeExample::arrayCopyExample,
+            eq(5),
             { _, a, _ -> a == null },
             { _, a, _ -> a != null && a.size < 3 },
             { _, a, r -> a != null && a.size >= 3 && a[0] <= a[1] && r == null },
@@ -176,8 +192,9 @@ internal class InvokeExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testUpdateValues() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             InvokeExample::updateValues,
+            eq(4),
             { _, fst, _, _ -> fst == null },
             { _, fst, snd, _ -> fst != null && snd == null },
             { _, fst, snd, r -> fst != null && snd != null && fst !== snd && r == 1 },

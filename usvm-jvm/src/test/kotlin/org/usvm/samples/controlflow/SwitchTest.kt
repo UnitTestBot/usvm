@@ -14,8 +14,9 @@ import java.math.RoundingMode.HALF_UP
 internal class SwitchTest : JavaMethodTestRunner() {
     @Test
     fun testSimpleSwitch() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Switch::simpleSwitch,
+            ge(4),
             { _, x, r -> x == 10 && r == 10 },
             { _, x, r -> (x == 11 || x == 12) && r == 12 }, // fall-through has it's own branch
             { _, x, r -> x == 13 && r == 13 },
@@ -25,8 +26,9 @@ internal class SwitchTest : JavaMethodTestRunner() {
 
     @Test
     fun testLookupSwitch() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Switch::lookupSwitch,
+            ge(4),
             { _, x, r -> x == 0 && r == 0 },
             { _, x, r -> (x == 10 || x == 20) && r == 20 }, // fall-through has it's own branch
             { _, x, r -> x == 30 && r == 30 },
@@ -36,8 +38,9 @@ internal class SwitchTest : JavaMethodTestRunner() {
 
     @Test
     fun testEnumSwitch() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Switch::enumSwitch,
+            eq(7),
             { _, m, _ -> m == null }, // NPE
             { _, m, r -> m == HALF_DOWN && r == 1 }, // We will minimize two of these branches
             { _, m, r -> m == HALF_EVEN && r == 1 }, // We will minimize two of these branches

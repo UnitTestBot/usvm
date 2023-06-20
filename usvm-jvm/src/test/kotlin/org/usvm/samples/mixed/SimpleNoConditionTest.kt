@@ -9,22 +9,25 @@ internal class SimpleNoConditionTest : JavaMethodTestRunner() {
 
     @Test
     fun testNoConditionAdd() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             SimpleNoCondition::basicAdd,
+            eq(1)
         )
     }
 
     @Test
     fun testNoConditionPow() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             SimpleNoCondition::basicXorInt,
+            eq(1)
         )
     }
 
     @Test
     fun testNoConditionPowBoolean() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             SimpleNoCondition::basicXorBoolean,
+            eq(1)
         )
     }
 }

@@ -8,8 +8,9 @@ import org.usvm.test.util.checkers.eq
 internal class CycleDependedConditionTest : JavaMethodTestRunner() {
     @Test
     fun testCycleDependedOneCondition() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             CycleDependedCondition::oneCondition,
+            eq(3),
             { _, x, r -> x <= 0 && r == 0 },
             { _, x, r -> x in 1..2 && r == 0 },
             { _, x, r -> x > 2 && r == 1 }
@@ -18,8 +19,9 @@ internal class CycleDependedConditionTest : JavaMethodTestRunner() {
 
     @Test
     fun testCycleDependedTwoCondition() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             CycleDependedCondition::twoCondition,
+            eq(4),
             { _, x, r -> x <= 0 && r == 0 },
             { _, x, r -> x in 1..3 && r == 0 },
             { _, x, r -> x == 4 && r == 1 },
@@ -30,8 +32,9 @@ internal class CycleDependedConditionTest : JavaMethodTestRunner() {
 
     @Test
     fun testCycleDependedThreeCondition() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             CycleDependedCondition::threeCondition,
+            eq(4),
             { _, x, r -> x <= 0 && r == 0 },
             { _, x, r -> x in 1..5 && r == 0 },
             { _, x, r -> x == 6 || x > 8 && r == 1 },
@@ -42,8 +45,9 @@ internal class CycleDependedConditionTest : JavaMethodTestRunner() {
 
     @Test
     fun testCycleDependedOneConditionHigherNumber() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             CycleDependedCondition::oneConditionHigherNumber,
+            eq(3),
             { _, x, r -> x <= 0 && r == 0 },
             { _, x, r -> x in 1..100 && r == 0 },
             { _, x, r -> x > 100 && r == 1 && r == 1 }

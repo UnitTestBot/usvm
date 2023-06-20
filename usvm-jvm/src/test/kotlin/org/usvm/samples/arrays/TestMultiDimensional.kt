@@ -8,7 +8,7 @@ import org.usvm.test.util.checkers.ge
 class TestMultiDimensional : JavaMethodTestRunner() {
     @Test
     fun `Test sumOf`() {
-        checkPropertiesMatches(
+        checkDiscoveredProperties(
             MultiDimensional::sumOf,
             ge(1),
             { x, a, b, r -> r == x.sumOf(a, b) }
@@ -18,7 +18,7 @@ class TestMultiDimensional : JavaMethodTestRunner() {
     @Test
     @Disabled("TODO: multidimensional arrays")
     fun `Test sumOfMultiNewArray`() {
-        checkPropertiesMatches(
+        checkDiscoveredProperties(
             MultiDimensional::sumOfMultiNewArray,
             ge(1),
             { x, a, b, r -> r == x.sumOfMultiNewArray(a, b) }

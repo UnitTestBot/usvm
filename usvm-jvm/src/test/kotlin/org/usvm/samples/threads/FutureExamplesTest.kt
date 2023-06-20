@@ -12,32 +12,36 @@ import java.util.concurrent.ExecutionException
 class FutureExamplesTest : JavaMethodTestRunner() {
     @Test
     fun testThrowingRunnable() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             FutureExamples::throwingRunnableExample,
+            eq(1),
             { _, r -> r.isException<ExecutionException>() },
         )
     }
 
     @Test
     fun testResultFromGet() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             FutureExamples::resultFromGet,
+            eq(1),
             { _, r -> r == 42 },
         )
     }
 
     @Test
     fun testChangingCollectionInFuture() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             FutureExamples::changingCollectionInFuture,
+            eq(1),
             { _, r -> r == 42 },
         )
     }
 
     @Test
     fun testChangingCollectionInFutureWithoutGet() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             FutureExamples::changingCollectionInFutureWithoutGet,
+            eq(1),
             { _, r -> r == 42 },
         )
     }

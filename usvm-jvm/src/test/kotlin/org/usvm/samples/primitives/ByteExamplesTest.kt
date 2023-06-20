@@ -8,8 +8,9 @@ import org.usvm.test.util.checkers.eq
 internal class ByteExamplesTest : JavaMethodTestRunner() {
     @Test
     fun testNegByte() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ByteExamples::negByte,
+            eq(2),
             { _, b, r -> b > 0 && r == 0 },
             { _, b, r -> b <= 0 && r == 1 },
         )
@@ -17,8 +18,9 @@ internal class ByteExamplesTest : JavaMethodTestRunner() {
 
     @Test
     fun testNegConstByte() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ByteExamples::negConstByte,
+            eq(3),
             { _, b, r -> b <= -10 && r == 1 },
             { _, b, r -> b in -9..9 && r == 0 },
             { _, b, r -> b >= 10 && r == 1 },
@@ -27,8 +29,9 @@ internal class ByteExamplesTest : JavaMethodTestRunner() {
 
     @Test
     fun testSumTwoBytes() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ByteExamples::sumTwoBytes,
+            eq(3),
             { _, a, b, r -> a + b > Byte.MAX_VALUE && r == 1 },
             { _, a, b, r -> a + b < Byte.MIN_VALUE && r == 2 },
             { _, a, b, r -> a + b in Byte.MIN_VALUE..Byte.MAX_VALUE && r == 3 },

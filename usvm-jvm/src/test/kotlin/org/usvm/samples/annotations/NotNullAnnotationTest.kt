@@ -1,59 +1,78 @@
 package org.usvm.samples.annotations
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
+import org.usvm.test.util.checkers.eq
 
 
+@Suppress("SENSELESS_COMPARISON")
 internal class NotNullAnnotationTest : JavaMethodTestRunner() {
     @Test
     fun testDoesNotThrowNPE() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             NotNullAnnotation::doesNotThrowNPE,
-            { _, value, r -> value == r }
+            eq(1),
+            { _, value, r -> value == r },
+            invariants = arrayOf(
+                { _, value, _ -> value != null }
+            )
         )
     }
 
     @Test
     fun testThrowsNPE() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             NotNullAnnotation::throwsNPE,
+            eq(2),
             { _, value, _ -> value == null },
-            { _, value, r -> value == r }
+            { _, value, r -> value == r },
         )
     }
 
     @Test
     fun testSeveralParameters() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             NotNullAnnotation::severalParameters,
+            eq(2),
             { _, _, second, _, _ -> second == null },
-            { _, first, second, third, result -> first + second + third == result }
+            { _, first, second, third, result -> first + second + third == result },
+            invariants = arrayOf(
+                { _, first, _, third, _ -> first != null && third != null }
+            )
         )
     }
 
     @Test
     fun testUseNotNullableValue() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             NotNullAnnotation::useNotNullableValue,
-            { _, value, r -> value == r }
+            eq(1),
+            { _, value, r -> value == r },
+            invariants = arrayOf(
+                { _, value, _ -> value != null }
+            )
         )
     }
 
     @Test
-    @Disabled("Annotations for local variables are not supported yet")
     fun testNotNullableVariable() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             NotNullAnnotation::notNullableVariable,
-            { _, first, second, third, r -> first + second + third == r }
+            eq(2),
+            { _, first, second, third, r -> first + second + third == r },
+            { _, _, second, _, _ -> second == null },
+            invariants = arrayOf(
+                { _, first, _, third, _ -> first != null && third != null },
+            )
         )
     }
 
     @Test
     fun testNotNullField() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             NotNullAnnotation::notNullField,
-            { _, value, result -> value.boxedInt == result }
+            eq(1),
+            { _, value, result -> value.boxedInt == result },
         )
     }
 
@@ -69,8 +88,9 @@ internal class NotNullAnnotationTest : JavaMethodTestRunner() {
 
     @Test
     fun testJavaxValidationNotNull() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             NotNullAnnotation::javaxValidationNotNull,
+            eq(1),
             { _, value, r -> value == r }
         )
     }

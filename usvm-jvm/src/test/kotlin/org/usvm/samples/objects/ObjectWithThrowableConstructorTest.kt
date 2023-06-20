@@ -12,8 +12,9 @@ internal class ObjectWithThrowableConstructorTest : JavaMethodTestRunner() {
     @Disabled("SAT-1500 Support verification of UtAssembleModel for possible exceptions")
     fun testThrowableConstructor() {
         val method: KFunction2<Int, Int, ObjectWithThrowableConstructor> = ::ObjectWithThrowableConstructor
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             method,
+            eq(2),
             // TODO: SAT-933 Add support for constructor testing
         )
     }

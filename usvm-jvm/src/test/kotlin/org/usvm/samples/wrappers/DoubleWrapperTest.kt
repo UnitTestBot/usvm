@@ -9,8 +9,9 @@ import org.usvm.test.util.checkers.eq
 internal class DoubleWrapperTest : JavaMethodTestRunner() {
     @Test
     fun primitiveToWrapperTest() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             DoubleWrapper::primitiveToWrapper,
+            eq(2),
             { _, x, r -> x >= 0 && r!!.toDouble() >= 0 },
             { _, x, r -> (x < 0 || x.isNaN()) && (r!!.toDouble() > 0 || r.isNaN()) },
         )
@@ -18,8 +19,9 @@ internal class DoubleWrapperTest : JavaMethodTestRunner() {
 
     @Test
     fun wrapperToPrimitiveTest() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             DoubleWrapper::wrapperToPrimitive,
+            eq(3),
             { _, x, _ -> x == null },
             { _, x, r -> x >= 0 && r >= 0 },
             { _, x, r -> (x < 0 || x.isNaN()) && (r > 0 || r.isNaN()) },

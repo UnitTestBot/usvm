@@ -8,8 +8,9 @@ import org.usvm.test.util.checkers.eq
 internal class HiddenFieldAccessModifiersTest : JavaMethodTestRunner() {
     @Test
     fun testCheckSuperFieldEqualsOne() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             HiddenFieldAccessModifiersExample::checkSuperFieldEqualsOne,
+            eq(3),
             { _, o, _ -> o == null },
             { _, _, r -> r == true },
             { _, _, r -> r == false },

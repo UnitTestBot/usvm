@@ -11,8 +11,9 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
 
     @Test
     fun testSet() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             LinkedLists::set,
+            eq(3),
             { _, l, _ -> l == null },
             { _, l, _ -> l.size <= 2 },
             { _, l, r -> l.size > 2 && r == 1 },
@@ -21,8 +22,9 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
 
     @Test
     fun testOffer() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             LinkedLists::offer,
+            eq(3),
             { _, l, _ -> l == null },
             { _, l, r -> l != null && l.size <= 1 && r == l },
             { _, l, r -> l != null && l.size > 1 && r == l + 1 },
@@ -31,8 +33,9 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
 
     @Test
     fun testOfferLast() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             LinkedLists::offerLast,
+            eq(3),
             { _, l, _ -> l == null },
             { _, l, r -> l != null && l.size <= 1 && r == l },
             { _, l, r -> l != null && l.size > 1 && r == l + 1 },
@@ -42,8 +45,9 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
 
     @Test
     fun testAddLast() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             LinkedLists::addLast,
+            eq(3),
             { _, l, _ -> l == null },
             { _, l, r -> l != null && l.size <= 1 && r == l },
             { _, l, r -> l != null && l.size > 1 && (r == l + 1) },
@@ -52,8 +56,9 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
 
     @Test
     fun testPush() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             LinkedLists::push,
+            eq(3),
             { _, l, _ -> l == null },
             { _, l, r -> l != null && l.size <= 1 && r == l },
             { _, l, r -> l != null && l.size > 1 && r == listOf(1) + l },
@@ -62,8 +67,9 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
 
     @Test
     fun testOfferFirst() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             LinkedLists::offerFirst,
+            eq(3),
             { _, l, _ -> l == null },
             { _, l, r -> l != null && l.size <= 1 && r == l },
             { _, l, r -> l != null && l.size > 1 && r == listOf(1) + l },
@@ -72,8 +78,9 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
 
     @Test
     fun testAddFirst() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             LinkedLists::addFirst,
+            eq(3),
             { _, l, _ -> l == null },
             { _, l, r -> l != null && l.size <= 1 && r == l },
             { _, l, r -> l != null && l.size > 1 && r!!.size == l.size + 1 && r[0] == 1 },
@@ -82,8 +89,9 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
 
     @Test
     fun testPeek() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             LinkedLists::peek,
+            eq(3),
             { _, l, _ -> l == null },
             { _, l, r -> l != null && (l.isEmpty() || l.first() == null) && r.isException<NullPointerException>() },
             { _, l, r -> l != null && l.isNotEmpty() && r.getOrNull() == l[0] },
@@ -92,8 +100,9 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
 
     @Test
     fun testPeekFirst() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             LinkedLists::peekFirst,
+            eq(3),
             { _, l, _ -> l == null },
             { _, l, r -> l != null && (l.isEmpty() || l.first() == null) && r.isException<NullPointerException>() },
             { _, l, r -> l != null && l.isNotEmpty() && r.getOrNull() == l[0] },
@@ -102,8 +111,9 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
 
     @Test
     fun testPeekLast() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             LinkedLists::peekLast,
+            eq(3),
             { _, l, _ -> l == null },
             { _, l, r -> l != null && (l.isEmpty() || l.last() == null) && r.isException<NullPointerException>() },
             { _, l, r -> l != null && l.isNotEmpty() && r.getOrNull() == l.last() },
@@ -112,8 +122,9 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
 
     @Test
     fun testElement() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             LinkedLists::element,
+            eq(4),
             { _, l, _ -> l == null },
             { _, l, r -> l != null && l.isEmpty() && r.isException<NoSuchElementException>() },
             { _, l, r -> l != null && l.isNotEmpty() && l[0] == null && r.isException<NullPointerException>() },
@@ -123,8 +134,9 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
 
     @Test
     fun testGetFirst() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             LinkedLists::getFirst,
+            eq(4),
             { _, l, _ -> l == null },
             { _, l, r -> l != null && l.isEmpty() && r.isException<NoSuchElementException>() },
             { _, l, _ -> l != null && l.isNotEmpty() && l[0] == null },
@@ -134,8 +146,9 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
 
     @Test
     fun testGetLast() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             LinkedLists::getLast,
+            eq(4),
             { _, l, _ -> l == null },
             { _, l, r -> l != null && l.isEmpty() && r.isException<NoSuchElementException>() },
             { _, l, _ -> l != null && l.isNotEmpty() && l.last() == null },
@@ -145,8 +158,9 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
 
     @Test
     fun testPoll() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             LinkedLists::poll,
+            eq(5),
             { _, l, _ -> l == null },
             { _, l, r -> l != null && l.isEmpty() && r.isException<NullPointerException>() },
             { _, l, r -> l != null && l.size == 1 && r.getOrNull() == l },
@@ -157,8 +171,9 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
 
     @Test
     fun testPollFirst() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             LinkedLists::pollFirst,
+            eq(5),
             { _, l, _ -> l == null },
             { _, l, r -> l != null && l.isEmpty() && r.isException<NullPointerException>() },
             { _, l, r -> l != null && l.size == 1 && r.getOrNull() == l },
@@ -169,8 +184,9 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
 
     @Test
     fun testPollLast() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             LinkedLists::pollLast,
+            eq(5),
             { _, l, _ -> l == null },
             { _, l, r -> l != null && l.isEmpty() && r.isException<NullPointerException>() },
             { _, l, r -> l != null && l.size == 1 && r.getOrNull() == l },
@@ -181,8 +197,9 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
 
     @Test
     fun testRemove() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             LinkedLists::removeFirst,
+            eq(5),
             { _, l, _ -> l == null },
             { _, l, r -> l != null && l.isEmpty() && r.isException<NoSuchElementException>() },
             { _, l, r -> l != null && l.size == 1 && r.getOrNull() == l },
@@ -193,8 +210,9 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
 
     @Test
     fun testRemoveFirst() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             LinkedLists::removeFirst,
+            eq(5),
             { _, l, _ -> l == null },
             { _, l, r -> l != null && l.isEmpty() && r.isException<NoSuchElementException>() },
             { _, l, r -> l != null && l.size == 1 && r.getOrNull() == l },
@@ -205,8 +223,9 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
 
     @Test
     fun testRemoveLast() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             LinkedLists::removeLast,
+            eq(5),
             { _, l, _ -> l == null },
             { _, l, r -> l != null && l.isEmpty() && r.isException<NoSuchElementException>() },
             { _, l, r -> l != null && l.size == 1 && r.getOrNull() == l },

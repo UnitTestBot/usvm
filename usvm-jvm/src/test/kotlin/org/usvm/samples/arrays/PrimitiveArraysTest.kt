@@ -10,32 +10,36 @@ import org.usvm.util.isException
 internal class PrimitiveArraysTest : JavaMethodTestRunner() {
     @Test
     fun testDefaultIntValues() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             PrimitiveArrays::defaultIntValues,
+            eq(1),
             { _, r -> r != null && r.all { it == 0 } },
         )
     }
 
     @Test
     fun testDefaultDoubleValues() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             PrimitiveArrays::defaultDoubleValues,
+            eq(1),
             { _, r -> r != null && r.all { it == 0.0 } },
         )
     }
 
     @Test
     fun testDefaultBooleanValues() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             PrimitiveArrays::defaultBooleanValues,
+            eq(1),
             { _, r -> r != null && r.none { it } },
         )
     }
 
     @Test
     fun testByteArray() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             PrimitiveArrays::byteArray,
+            eq(4),
             { _, a, _, r -> a == null && r.isException<NullPointerException>() },
             { _, a, _, r -> a != null && a.size != 2 && r.getOrNull() == (-1).toByte() },
             { _, a, x, r -> a != null && a.size == 2 && x + 5 <= 20 && r.getOrNull() == 0.toByte() },
@@ -45,8 +49,9 @@ internal class PrimitiveArraysTest : JavaMethodTestRunner() {
 
     @Test
     fun testShortArray() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             PrimitiveArrays::shortArray,
+            eq(4),
             { _, a, _, r -> a == null && r.isException<NullPointerException>() },
             { _, a, _, r -> a != null && a.size != 2 && r.getOrNull() == (-1).toByte() },
             { _, a, x, r -> a != null && a.size == 2 && x + 5 <= 20 && r.getOrNull() == 0.toByte() },
@@ -56,8 +61,9 @@ internal class PrimitiveArraysTest : JavaMethodTestRunner() {
 
     @Test
     fun testCharArray() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             PrimitiveArrays::charArray,
+            eq(4),
             { _, a, _, r -> a == null && r.isException<NullPointerException>() },
             { _, a, _, r -> a != null && a.size != 2 && r.getOrNull() == (-1).toByte() },
             { _, a, x, r -> a != null && a.size == 2 && x + 5 <= 20.toChar() && r.getOrNull() == 0.toByte() },
@@ -67,8 +73,9 @@ internal class PrimitiveArraysTest : JavaMethodTestRunner() {
 
     @Test
     fun testIntArray() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             PrimitiveArrays::intArray,
+            eq(4),
             { _, a, _, r -> a == null && r.isException<NullPointerException>() },
             { _, a, _, r -> a != null && a.size != 2 && r.getOrNull() == (-1).toByte() },
             { _, a, x, r -> a != null && a.size == 2 && x + 5 <= 20 && r.getOrNull() == 0.toByte() },
@@ -78,8 +85,9 @@ internal class PrimitiveArraysTest : JavaMethodTestRunner() {
 
     @Test
     fun testLongArray() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             PrimitiveArrays::longArray,
+            eq(4),
             { _, a, _, r -> a == null && r.isException<NullPointerException>() },
             { _, a, _, r -> a != null && a.size != 2 && r.getOrNull() == (-1).toLong() },
             { _, a, x, r -> a != null && a.size == 2 && x + 5 <= 20 && r.getOrNull() == 0.toLong() },
@@ -90,8 +98,9 @@ internal class PrimitiveArraysTest : JavaMethodTestRunner() {
     @Suppress("SimplifyNegatedBinaryExpression")
     @Test
     fun testFloatArray() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             PrimitiveArrays::floatArray,
+            eq(4),
             { _, a, _, r -> a == null && r.isException<NullPointerException>() },
             { _, a, _, r -> a != null && a.size != 2 && r.getOrNull() == (-1).toFloat() },
             { _, a, x, r -> a != null && a.size == 2 && !(x + 5 > 20) && r.getOrNull() == 0.toFloat() },
@@ -102,8 +111,9 @@ internal class PrimitiveArraysTest : JavaMethodTestRunner() {
     @Suppress("SimplifyNegatedBinaryExpression")
     @Test
     fun testDoubleArray() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             PrimitiveArrays::doubleArray,
+            eq(4),
             { _, a, _, r -> a == null && r.isException<NullPointerException>() },
             { _, a, _, r -> a != null && a.size != 2 && r.getOrNull() == (-1).toDouble() },
             { _, a, x, r -> a != null && a.size == 2 && !(x + 5 > 20) && r.getOrNull() == 0.toDouble() },
@@ -113,8 +123,9 @@ internal class PrimitiveArraysTest : JavaMethodTestRunner() {
 
     @Test
     fun testBooleanArray() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             PrimitiveArrays::booleanArray,
+            eq(4),
             { _, a, _, _, r -> a == null && r.isException<NullPointerException>() },
             { _, a, _, _, r -> a != null && a.size != 2 && r.getOrNull() == -1 },
             { _, a, x, y, r -> a != null && a.size == 2 && !(x xor y) && r.getOrNull() == 0 },
@@ -124,8 +135,9 @@ internal class PrimitiveArraysTest : JavaMethodTestRunner() {
 
     @Test
     fun testByteSizeAndIndex() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             PrimitiveArrays::byteSizeAndIndex,
+            eq(5),
             { _, a, _, r -> a == null && r == (-1).toByte() },
             { _, a, x, r -> a != null && a.size <= x.toInt() && r == (-1).toByte() },
             { _, a, x, r -> a != null && a.size > x.toInt() && x.toInt() < 1 && r == (-1).toByte() },
@@ -136,8 +148,9 @@ internal class PrimitiveArraysTest : JavaMethodTestRunner() {
 
     @Test
     fun testShortSizeAndIndex() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             PrimitiveArrays::shortSizeAndIndex,
+            eq(5),
             { _, a, _, r -> a == null && r == (-1).toByte() },
             { _, a, x, r -> a != null && a.size <= x.toInt() && r == (-1).toByte() },
             { _, a, x, r -> a != null && a.size > x.toInt() && x.toInt() < 1 && r == (-1).toByte() },
@@ -148,8 +161,9 @@ internal class PrimitiveArraysTest : JavaMethodTestRunner() {
 
     @Test
     fun testCharSizeAndIndex() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             PrimitiveArrays::charSizeAndIndex,
+            eq(5),
             { _, a, _, r -> a == null && r == (-1).toByte() },
             { _, a, x, r -> a != null && a.size <= x.code && r == (-1).toByte() },
             { _, a, x, r -> a != null && a.size > x.code && x.code < 1 && r == (-1).toByte() },

@@ -12,117 +12,133 @@ import org.usvm.test.util.checkers.eq
 class DeepEqualsTest : JavaMethodTestRunner() {
     @Test
     fun testReturnList() {
-        checkExecutionMatches(
+        this.checkDiscoveredProperties(
             DeepEqualsTestingClass::returnList,
+            eq(1),
         )
     }
 
     @Test
     fun testReturnSet() {
-        checkExecutionMatches(
+        this.checkDiscoveredProperties(
             DeepEqualsTestingClass::returnSet,
+            eq(1),
         )
     }
 
     @Test
     fun testReturnMap() {
-        checkExecutionMatches(
+        this.checkDiscoveredProperties(
             DeepEqualsTestingClass::returnMap,
+            eq(1),
         )
     }
 
     @Test
     fun testReturnArray() {
-        checkExecutionMatches(
+        this.checkDiscoveredProperties(
             DeepEqualsTestingClass::returnArray,
+            eq(1),
         )
     }
 
     @Test
     @Disabled("We do not support 2d generics containers right now")
     fun testReturn2DList() {
-        checkExecutionMatches(
+        this.checkDiscoveredProperties(
             DeepEqualsTestingClass::return2DList,
+            eq(1),
         )
     }
 
     @Test
     @Disabled("We do not support 2d generics containers right now")
     fun testReturn2DSet() {
-        checkExecutionMatches(
+        this.checkDiscoveredProperties(
             DeepEqualsTestingClass::return2DSet,
+            eq(1),
         )
     }
 
     @Test
     @Disabled("We do not support 2d generics containers right now")
     fun testReturn2DMap() {
-        checkExecutionMatches(
+        this.checkDiscoveredProperties(
             DeepEqualsTestingClass::return2DMap,
+            eq(1),
         )
     }
 
     @Test
     @Disabled("We do not support 2d generics containers right now")
     fun testIntegers2DList() {
-        checkExecutionMatches(
+        this.checkDiscoveredProperties(
             DeepEqualsTestingClass::returnIntegers2DList,
+            eq(1),
         )
     }
 
     @Test
     fun testReturn2DArray() {
-        checkExecutionMatches(
+        this.checkDiscoveredProperties(
             DeepEqualsTestingClass::return2DArray,
+            eq(1),
         )
     }
 
     @Test
     fun testReturnCommonClass() {
-        checkExecutionMatches(
+        this.checkDiscoveredProperties(
             DeepEqualsTestingClass::returnCommonClass,
+            eq(1),
         )
     }
 
     @Test
     fun testTriangle() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             DeepEqualsTestingClass::returnTriangle,
+            eq(1),
         )
     }
 
     @Test
     fun testQuadrilateral() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             DeepEqualsTestingClass::returnQuadrilateralFromNode,
+            eq(1),
         )
     }
 
     @Test
     fun testIntMultiArray() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             DeepEqualsTestingClass::fillIntMultiArrayWithConstValue,
+            eq(3),
         )
     }
 
     @Test
     fun testDoubleMultiArray() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             DeepEqualsTestingClass::fillDoubleMultiArrayWithConstValue,
+            eq(3),
         )
     }
 
     @Test
     fun testIntegerWrapperMultiArray() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             DeepEqualsTestingClass::fillIntegerWrapperMultiArrayWithConstValue,
+            eq(3),
         )
     }
 
     @Test
     fun testDoubleWrapperMultiArray() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             DeepEqualsTestingClass::fillDoubleWrapperMultiArrayWithConstValue,
+            eq(3),
         )
     }
 }

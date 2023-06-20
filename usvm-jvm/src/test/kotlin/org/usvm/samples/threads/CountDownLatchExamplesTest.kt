@@ -8,8 +8,9 @@ import org.usvm.test.util.checkers.eq
 class CountDownLatchExamplesTest : JavaMethodTestRunner() {
     @Test
     fun testGetAndDown() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             CountDownLatchExamples::getAndDown,
+            eq(2),
             { _, countDownLatch, l -> countDownLatch.count == 0L && l == 0L },
             { _, countDownLatch, l ->
                 val firstCount = countDownLatch.count

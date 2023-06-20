@@ -8,8 +8,9 @@ import org.usvm.test.util.checkers.eq
 internal class RecursiveTypeTest : JavaMethodTestRunner() {
     @Test
     fun testNextValue() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             RecursiveType::nextValue,
+            eq(5),
             { _, _, value, _ -> value == 0 },
             { _, node, _, _ -> node == null },
             { _, node, _, _ -> node != null && node.next == null },
@@ -20,8 +21,9 @@ internal class RecursiveTypeTest : JavaMethodTestRunner() {
 
     @Test
     fun testWriteObjectFieldTest() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             RecursiveType::writeObjectField,
+            eq(3),
             { _, node, _ -> node == null },
             { _, node, r ->
                 node != null && node.next == null && r?.next != null && r.next.value == RecursiveTypeClass().value + 1

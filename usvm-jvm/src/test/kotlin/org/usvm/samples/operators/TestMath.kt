@@ -7,7 +7,7 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 class TestMath : JavaMethodTestRunner() {
     @Test
     fun `Test complexWithLocals`() {
-        checkWithExceptionPropertiesMatches(
+        checkDiscoveredPropertiesWithExceptions(
             Math::kek,
             ignoreNumberOfAnalysisResults,
             { _, _, _, r ->

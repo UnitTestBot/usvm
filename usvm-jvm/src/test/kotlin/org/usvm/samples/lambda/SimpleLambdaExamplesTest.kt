@@ -9,8 +9,9 @@ import org.usvm.util.isException
 class SimpleLambdaExamplesTest : JavaMethodTestRunner() {
     @Test
     fun testBiFunctionLambdaExample() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             SimpleLambdaExamples::biFunctionLambdaExample,
+            eq(2),
             { _, _, b, r -> b == 0 && r.isException<ArithmeticException>() },
             { _, a, b, r -> b != 0 && r.getOrThrow() == a / b },
         )
@@ -18,8 +19,9 @@ class SimpleLambdaExamplesTest : JavaMethodTestRunner() {
 
     @Test
     fun testChoosePredicate() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             SimpleLambdaExamples::choosePredicate,
+            eq(2),
             { _, b, r -> b && !r!!.test(null) && r.test(0) },
             { _, b, r -> !b && r!!.test(null) && !r.test(0) }, // coverage could not be calculated since method result is lambda
         )

@@ -1,17 +1,17 @@
 package org.usvm.samples.algorithms
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
+import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import org.usvm.util.isException
 
 
 internal class GraphTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Only npes are found")
     fun testRunFindCycle() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             GraphExample::runFindCycle,
+            ignoreNumberOfAnalysisResults,
             { _, e, r -> e == null && r.isException<NullPointerException>() },
             { _, e, r -> e != null && e.contains(null) && r.isException<NullPointerException>() },
             { _, e, r -> e != null && e.any { it.first < 0 || it.first >= 10 } && r.isException<ArrayIndexOutOfBoundsException>() },
@@ -23,8 +23,9 @@ internal class GraphTest : JavaMethodTestRunner() {
     @Test
     fun testDijkstra() {
         // The graph is fixed, there should be exactly one execution path, so no matchers are necessary
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             GraphExample::runDijkstra,
+            ignoreNumberOfAnalysisResults,
             { _, i, r -> r.contentEquals(GraphExample().runDijkstra(i)) }
         )
     }
@@ -33,10 +34,10 @@ internal class GraphTest : JavaMethodTestRunner() {
      * TODO: fix Dijkstra algorithm.
      */
     @Test
-    @Disabled("Unsupported multidimensional arrays in tests")
     fun testRunDijkstraWithParameter() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             GraphExample::runDijkstraWithParameter,
+            ignoreNumberOfAnalysisResults,
             { _, g, r -> g == null && r.isException<NullPointerException>() },
             { _, g, r -> g.isEmpty() && r.isException<IndexOutOfBoundsException>() },
             { _, g, r -> g.size == 1 && r.getOrNull()?.size == 1 && r.getOrNull()?.first() == 0 },

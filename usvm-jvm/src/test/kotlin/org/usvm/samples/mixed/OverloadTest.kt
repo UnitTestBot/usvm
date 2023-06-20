@@ -8,8 +8,9 @@ import org.usvm.test.util.checkers.eq
 internal class OverloadTest : JavaMethodTestRunner() {
     @Test
     fun testSignOneParam() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Overload::sign,
+            eq(3),
             { _, x, r -> x < 0 && r == -1 },
             { _, x, r -> x == 0 && r == 0 },
             { _, x, r -> x > 0 && r == 1 }
@@ -18,8 +19,9 @@ internal class OverloadTest : JavaMethodTestRunner() {
 
     @Test
     fun testSignTwoParams() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Overload::sign,
+            eq(3),
             { _, x, y, r -> x + y < 0 && r == -1 },
             { _, x, y, r -> x + y == 0 && r == 0 },
             { _, x, y, r -> x + y > 0 && r == 1 }

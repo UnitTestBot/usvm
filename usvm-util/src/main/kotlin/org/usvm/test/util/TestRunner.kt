@@ -29,6 +29,7 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
      * Runs an interpreter on the [target], after that makes several checks of the results it got:
      * * whether the interpreter produces as many results as we expected using [analysisResultsNumberMatcher];
      * * whether all [analysisResultsMatchers] are satisfied with respect to the [checkMode];
+     * * whether all [invariants] are satisfied in all the analysis results;
      * * whether all types in the results matches with the expected ones ([expectedTypesForExtractedValues]);
      * * whether we got an expected coverage result ([coverageChecker]).
      *
@@ -39,6 +40,7 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
         target: Target,
         analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
         analysisResultsMatchers: Array<out Function<Boolean>>,
+        invariants: Array<out Function<Boolean>>,
         extractValuesToCheck: (AnalysisResult) -> List<Any?>,
         expectedTypesForExtractedValues: Array<out Type>,
         checkMode: CheckMode,
@@ -59,6 +61,8 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
 
         checkTypes(expectedTypesForExtractedValues, valuesToCheck)
 
+        checkInvariant(invariants, valuesToCheck)
+
         when (checkMode) {
             MATCH_EXECUTIONS -> matchExecutions(valuesToCheck, analysisResultsMatchers)
             MATCH_PROPERTIES -> checkDiscoveredProperties(valuesToCheck, analysisResultsMatchers)
@@ -68,6 +72,32 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
 
         require(coverageChecker(coverageResult)) {
             "Coverage check failed: $coverageChecker, result: $coverageResult"
+        }
+    }
+
+    private fun checkInvariant(
+        invariants: Array<out Function<Boolean>>,
+        valuesToCheck: List<List<Any?>>,
+    ) {
+        val violatedInvariants = mutableListOf<Pair<Int, List<Int>>>()
+        val indexedInvariants = invariants.withIndex()
+
+        valuesToCheck.withIndex().forEach { (valuesIndex, params) ->
+            val tmpViolatedInvariants = mutableListOf<Int>()
+
+            indexedInvariants.forEach { (invariantIndex, invariant) ->
+                val result = invokeFunction(invariant, params)
+                if (!result) tmpViolatedInvariants += invariantIndex
+            }
+
+            violatedInvariants += valuesIndex to tmpViolatedInvariants
+        }
+
+        require(violatedInvariants.isEmpty()) {
+            "Some executions violated invariants:" + System.lineSeparator() +
+                    violatedInvariants.joinToString(System.lineSeparator()) { (executionIndex, invariantsIndices) ->
+                        "Index: ${executionIndex}, invariants: ${invariantsIndices}}"
+                    }
         }
     }
 
@@ -149,7 +179,7 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
 
         valuesToCheck.forEach { values ->
             predicates.forEachIndexed { index, predicate ->
-                val isSatisfied = invokeMatcher(predicate, values)
+                val isSatisfied = invokeFunction(predicate, values)
                 if (isSatisfied) {
                     satisfied[index]++
                 }
@@ -184,7 +214,7 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
     @Suppress("UNCHECKED_CAST")
     // TODO please use matcher.reflect().call(...) when it will be ready,
     //      currently (Kotlin 1.8.22) call isn't fully supported in kotlin reflect
-    private fun invokeMatcher(matcher: Function<Boolean>, params: List<Any?>) = when (matcher) {
+    private fun invokeFunction(matcher: Function<Boolean>, params: List<Any?>) = when (matcher) {
         is Function1<*, *> -> (matcher as Function1<Any?, Boolean>).invoke(params[0])
         is Function2<*, *, *> -> (matcher as Function2<Any?, Any?, Boolean>).invoke(params[0], params[1])
         is Function3<*, *, *, *> -> (matcher as Function3<Any?, Any?, Any?, Boolean>).invoke(

@@ -11,8 +11,9 @@ import org.usvm.util.isException
 internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
     @Test
     fun testMax() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             ObjectWithPrimitivesExample::max,
+            eq(7),
             { _, fst, _, r -> fst == null && r.isException<NullPointerException>() },
             { _, _, snd, r -> snd == null && r.isException<NullPointerException>() },
             { _, fst, snd, r -> fst != null && snd != null && fst.x > snd.x && fst.y > snd.y && r.getOrNull()!! == fst },
@@ -25,16 +26,18 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testIgnoredInputParameters() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ObjectWithPrimitivesExample::ignoredInputParameters,
+            eq(1),
             { _, fst, snd, r -> fst == null && snd == null && r != null }
         )
     }
 
     @Test
     fun testExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ObjectWithPrimitivesExample::example,
+            eq(3),
             { _, v, _ -> v == null },
             { _, v, r -> v != null && v.x == 1 && r?.x == 1 },
             { _, v, r -> v != null && v.x != 1 && r?.x == 1 },
@@ -53,8 +56,9 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testDefaultValueForSuperclassFields() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ObjectWithPrimitivesExample::defaultValueForSuperclassFields,
+            eq(1),
             { _, r -> r != null && r.x == 0 && r.y == 0 && r.weight == 0.0 && r.valueByDefault == 5 && r.anotherX == 0 },
         )
     }
@@ -62,8 +66,9 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
     @Test
     @Disabled("TODO JIRA:1594")
     fun testCreateObject() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             ObjectWithPrimitivesExample::createObject,
+            eq(3),
             { _, _, _, o, r -> o == null && r.isException<NullPointerException>() },
             { _, _, _, o, r -> o != null && o.weight < 0 && r.isException<IllegalArgumentException>() },
             { _, a, b, o, r ->
@@ -80,8 +85,9 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testMemory() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             ObjectWithPrimitivesExample::memory,
+            eq(4),
             { _, o, v, r -> o == null && v > 0 && r.isException<NullPointerException>() },
             { _, o, v, r ->
                 val resultValue = r.getOrNull()
@@ -111,8 +117,9 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testCompareWithNull() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ObjectWithPrimitivesExample::compareWithNull,
+            eq(3),
             { _, fst, _, r -> fst == null && r == 1 },
             { _, fst, snd, r -> fst != null && snd == null && r == 2 },
             { _, fst, snd, r -> fst != null && snd != null && r == 3 },
@@ -121,15 +128,17 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testCompareTwoNullObjects() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ObjectWithPrimitivesExample::compareTwoNullObjects,
+            eq(1),
         )
     }
 
     @Test
     fun testNullExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ObjectWithPrimitivesExample::nullExample,
+            eq(4),
             { _, o, _ -> o == null },
             { _, o, r -> o != null && o.x != 0 && r != null },
             { _, o, r -> o != null && o.x == 0 && o.y != 0 && r != null },
@@ -139,8 +148,9 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testCompareTwoOuterObjects() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             ObjectWithPrimitivesExample::compareTwoOuterObjects,
+            eq(4),
             { _, x, _, r -> x == null && r.isException<NullPointerException>() },
             { _, x, y, r -> x != null && y == null && r.isException<NullPointerException>() },
             { _, x, y, r -> x != null && y != null && x === y && r.getOrNull() == true },
@@ -150,23 +160,26 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testCompareObjectWithArgument() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ObjectWithPrimitivesExample::compareObjectWithArgument,
+            eq(1),
         )
     }
 
     @Test
     fun testCompareTwoDifferentObjects() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ObjectWithPrimitivesExample::compareTwoDifferentObjects,
+            eq(1),
         )
     }
 
 
     @Test
     fun testCompareTwoIdenticalObjectsFromArguments() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             ObjectWithPrimitivesExample::compareTwoIdenticalObjectsFromArguments,
+            eq(4),
             { _, fst, _, r -> fst == null && r.isException<NullPointerException>() },
             { _, _, snd, r -> snd == null && r.isException<NullPointerException>() },
             { _, fst, snd, r -> fst != null && snd != null && r.getOrNull() == 1 },
@@ -176,15 +189,17 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testCompareTwoRefEqualObjects() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ObjectWithPrimitivesExample::compareTwoRefEqualObjects,
+            eq(1),
         )
     }
 
     @Test
     fun testGetOrDefault() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             ObjectWithPrimitivesExample::getOrDefault,
+            ignoreNumberOfAnalysisResults,
             { _, _, d, r -> d == null && r.isException<NullPointerException>() },
             { _, _, d, r -> d != null && d.x == 0 && d.y == 0 && r.isException<IllegalArgumentException>() },
             { _, o, d, r -> o == null && (d.x != 0 || d.y != 0) && r.getOrNull() == d },
@@ -194,8 +209,9 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testInheritorsFields() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             ObjectWithPrimitivesExample::inheritorsFields,
+            eq(3),
             { _, fst, _, r -> fst == null && r.isException<NullPointerException>() },
             { _, fst, snd, r -> fst != null && snd == null && r.isException<NullPointerException>() },
             { _, fst, snd, r -> fst != null && snd != null && r.getOrNull() == 1 },
@@ -204,16 +220,18 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testCreateWithConstructor() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ObjectWithPrimitivesExample::createWithConstructor,
+            eq(1),
             { _, x, y, r -> r != null && r.x == x + 1 && r.y == y + 2 && r.weight == 3.3 }
         )
     }
 
     @Test
     fun testCreateWithSuperConstructor() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ObjectWithPrimitivesExample::createWithSuperConstructor,
+            eq(1),
             { _, x, y, anotherX, r ->
                 r != null && r.x == x + 1 && r.y == y + 2 && r.weight == 3.3 && r.anotherX == anotherX + 4
             }
@@ -222,16 +240,18 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testFieldWithDefaultValue() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ObjectWithPrimitivesExample::fieldWithDefaultValue,
+            eq(1),
             { _, x, y, r -> r != null && r.x == x && r.y == y && r.weight == 3.3 && r.valueByDefault == 5 }
         )
     }
 
     @Test
     fun testValueByDefault() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ObjectWithPrimitivesExample::valueByDefault,
+            eq(1),
             { _, r -> r == 5 }
         )
     }

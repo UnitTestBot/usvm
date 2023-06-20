@@ -9,8 +9,9 @@ internal class ArrayCastExampleTest : JavaMethodTestRunner() {
     @Suppress("KotlinConstantConditions")
     @Test
     fun testCastToAncestor() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ArrayCastExample::castToAncestor,
+            eq(2),
             { _, a, r -> a == null && r != null && r is Array<CastClass> },
             { _, a, r -> a != null && r != null && r.isArrayOf<CastClassFirstSucc>() }
         )
@@ -18,8 +19,9 @@ internal class ArrayCastExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testClassCastException() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ArrayCastExample::classCastException,
+            eq(3),
             { _, a, r -> a == null && r != null && r.isEmpty() },
             { _, a, _ -> !a.isArrayOf<CastClassFirstSucc>() },
             { _, a, r -> a.isArrayOf<CastClassFirstSucc>() && r != null && r.isArrayOf<CastClassFirstSucc>() },
@@ -28,8 +30,9 @@ internal class ArrayCastExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testNullCast() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ArrayCastExample::nullCast,
+            eq(2),
             { _, a, r -> a != null && r == null },
             { _, a, r -> a == null && r == null }
         )
@@ -37,16 +40,18 @@ internal class ArrayCastExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testNullArray() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ArrayCastExample::nullArray,
+            eq(1),
             { _, r -> r == null }
         )
     }
 
     @Test
     fun testSuccessfulExampleFromJLS() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ArrayCastExample::successfulExampleFromJLS,
+            eq(1),
             { _, r ->
                 require(r != null)
 
@@ -62,8 +67,9 @@ internal class ArrayCastExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testCastAfterStore() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ArrayCastExample::castAfterStore,
+            eq(5),
             { _, a, _ -> a == null },
             { _, a, _ -> a.isEmpty() },
             { _, a, _ -> a.isNotEmpty() && !a.isArrayOf<ColoredPoint>() },
@@ -83,8 +89,9 @@ internal class ArrayCastExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testCastFromObject() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ArrayCastExample::castFromObject,
+            eq(3),
             { _, a, _ -> a !is Array<*> || !a.isArrayOf<CastClassFirstSucc>() },
             { _, a, r -> a == null && r != null && r.isArrayOf<CastClassFirstSucc>() && r.isEmpty() },
             { _, a, r -> a is Array<*> && a.isArrayOf<CastClassFirstSucc>() && r != null && r.isArrayOf<CastClassFirstSucc>() },
@@ -93,8 +100,9 @@ internal class ArrayCastExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testCastFromObjectToPrimitivesArray() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ArrayCastExample::castFromObjectToPrimitivesArray,
+            eq(2),
             { _, array, r -> array is IntArray && array.size > 0 && r is IntArray && array contentEquals r },
             { _, array, r -> array != null && array !is IntArray && r !is IntArray },
         )
@@ -102,8 +110,9 @@ internal class ArrayCastExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testCastsChainFromObject() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ArrayCastExample::castsChainFromObject,
+            eq(8),
             { _, a, r -> a == null && r == null },
             { _, a, _ -> a !is Array<*> || !a.isArrayOf<Point>() },
             { _, a, r -> a is Array<*> && a.isArrayOf<Point>() && a.isEmpty() && r == null },
@@ -117,8 +126,9 @@ internal class ArrayCastExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testCastFromCollections() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ArrayCastExample::castFromCollections,
+            eq(3),
             { _, c, r -> c == null && r == null },
             { _, c, r -> c != null && c is List<*> && r is List<*> },
             { _, c, _ -> c is Collection<*> && c !is List<*> },
@@ -127,8 +137,9 @@ internal class ArrayCastExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testCastFromIterable() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ArrayCastExample::castFromIterable,
+            eq(3),
             { _, i, r -> i == null && r == null },
             { _, i, r -> i is List<*> && r is List<*> },
             { _, i, _ -> i is Iterable<*> && i !is List<*> },
@@ -137,8 +148,9 @@ internal class ArrayCastExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testCastFromIterableToCollection() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ArrayCastExample::castFromIterableToCollection,
+            eq(3),
             { _, i, r -> i == null && r == null },
             { _, i, r -> i is Collection<*> && r is Collection<*> },
             { _, i, _ -> i is Iterable<*> && i !is Collection<*> },

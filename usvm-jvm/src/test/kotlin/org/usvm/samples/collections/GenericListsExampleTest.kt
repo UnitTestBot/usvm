@@ -8,7 +8,7 @@ import org.usvm.test.util.checkers.eq
 internal class GenericListsExampleTest : JavaMethodTestRunner() {
     @Test
     fun testListOfListsOfT() {
-        checkPropertiesMatches(
+        checkDiscoveredProperties(
             GenericListsExample<Long>::listOfListsOfT,
             eq(-1)
         )
@@ -16,30 +16,33 @@ internal class GenericListsExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testListOfComparable() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             GenericListsExample<Long>::listOfComparable,
+            eq(1),
             { _, v, r -> v != null && v.size > 1 && v[0] != null && v.all { it is Comparable<*> || it == null } && v == r },
         )
     }
 
     @Test
     fun testListOfT() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             GenericListsExample<Long>::listOfT,
+            eq(1),
             { _, v, r -> v != null && v.size >= 2 && v[0] != null && v == r },
         )
     }
 
     @Test
     fun testListOfTArray() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             GenericListsExample<Long>::listOfTArray,
+            eq(1)
         )
     }
 
     @Test
     fun testListOfExtendsTArray() {
-        checkPropertiesMatches(
+        checkDiscoveredProperties(
             GenericListsExample<Long>::listOfExtendsTArray,
             eq(-1)
         )
@@ -47,7 +50,7 @@ internal class GenericListsExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testListOfPrimitiveArrayInheritors() {
-        checkPropertiesMatches(
+        checkDiscoveredProperties(
             GenericListsExample<Long>::listOfPrimitiveArrayInheritors,
             eq(-1)
         )
@@ -55,8 +58,9 @@ internal class GenericListsExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun createWildcard() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             GenericListsExample<*>::wildcard,
+            eq(4),
             { _, v, r -> v == null && r?.isEmpty() == true },
             { _, v, r -> v != null && v.size == 1 && v[0] != null && v == r && v.all { it is Number || it == null } },
             { _, v, r -> v != null && (v.size != 1 || v[0] == null) && v == r && v.all { it is Number || it == null } },
@@ -66,8 +70,9 @@ internal class GenericListsExampleTest : JavaMethodTestRunner() {
     @Suppress("NestedLambdaShadowedImplicitParameter")
     @Test
     fun createListOfLists() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             GenericListsExample<*>::listOfLists,
+            eq(1),
             { _, v, r ->
                 val valueCondition = v != null && v[0] != null && v[0].isNotEmpty()
                 val typeCondition = v.all { (it is List<*> && it.all { it is Int || it == null }) || it == null }
@@ -79,8 +84,9 @@ internal class GenericListsExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun createWildcardWithOnlyQuestionMark() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             GenericListsExample<*>::wildcardWithOnlyQuestionMark,
+            eq(3),
             { _, v, r -> v == null && r?.isEmpty() == true },
             { _, v, r -> v.size == 1 && v == r },
             { _, v, r -> v.size != 1 && v == r },
@@ -90,8 +96,9 @@ internal class GenericListsExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testGenericWithArrayOfPrimitives() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             GenericListsExample<*>::genericWithArrayOfPrimitives,
+            eq(1),
             { _, v, _ ->
                 val valueCondition = v != null && v.size >= 2 && v[0] != null && v[0].isNotEmpty() && v[0][0] != 0L
                 val typeCondition = v.all { it is LongArray || it == null }
@@ -104,8 +111,9 @@ internal class GenericListsExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testGenericWithObject() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             GenericListsExample<*>::genericWithObject,
+            eq(1),
             { _, v, r -> v != null && v.size >= 2 && v[0] != null && v[0] is Long && v == r },
         )
     }
@@ -113,8 +121,9 @@ internal class GenericListsExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testGenericWithArrayOfArrays() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             GenericListsExample<*>::genericWithArrayOfArrays,
+            eq(1),
             { _, v, _ ->
                 val valueCondition = v != null && v.size >= 2 && v[0] != null && v[0].isNotEmpty() && v[0][0] != null
                 val typeCondition = v.all {

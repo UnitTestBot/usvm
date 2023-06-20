@@ -2,22 +2,25 @@ package org.usvm.samples.algorithms
 
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
+import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import org.usvm.util.isException
 
 
 internal class SortTest : JavaMethodTestRunner() {
     @Test
     fun testQuickSort() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Sort::quickSort,
+            ignoreNumberOfAnalysisResults,
             // TODO coverage or properties
         )
     }
 
     @Test
     fun testSwap() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             Sort::swap,
+            ignoreNumberOfAnalysisResults,
             { _, a, _, _, r -> a == null && r.isException<NullPointerException>() },
             { _, a, i, _, r -> a != null && (i < 0 || i >= a.size) && r.isException<IndexOutOfBoundsException>() },
             { _, a, i, j, r -> a != null && i in a.indices && (j < 0 || j >= a.size) && r.isException<IndexOutOfBoundsException>() },
@@ -27,16 +30,18 @@ internal class SortTest : JavaMethodTestRunner() {
 
     @Test
     fun testArrayCopy() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Sort::arrayCopy,
+            ignoreNumberOfAnalysisResults,
             { _, r -> r contentEquals intArrayOf(1, 2, 3) }
         )
     }
 
     @Test
     fun testMergeSort() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             Sort::mergeSort,
+            ignoreNumberOfAnalysisResults,
             { _, a, r -> a == null && r == null },
             { _, a, r -> a != null && r != null && a.size < 2 },
             { _, a, r ->
@@ -64,8 +69,9 @@ internal class SortTest : JavaMethodTestRunner() {
 
     @Test
     fun testMerge() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             Sort::merge,
+            ignoreNumberOfAnalysisResults,
             { _, lhs, _, r -> lhs == null && r.isException<NullPointerException>() },
             { _, lhs, rhs, r -> lhs != null && lhs.isEmpty() && r.getOrNull() contentEquals rhs },
             { _, lhs, rhs, _ -> lhs != null && lhs.isNotEmpty() && rhs == null },
@@ -95,8 +101,9 @@ internal class SortTest : JavaMethodTestRunner() {
 
     @Test
     fun testDefaultSort() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             Sort::defaultSort,
+            ignoreNumberOfAnalysisResults,
             { _, a, r -> a == null && r.isException<NullPointerException>() },
             { _, a, r -> a != null && a.size < 4 && r.isException<IllegalArgumentException>() },
             { _, a, r ->

@@ -11,15 +11,17 @@ import org.usvm.test.util.checkers.eq
 class ClassWithNullableFieldTest : JavaMethodTestRunner() {
     @Test
     fun testClassWithNullableFieldInCompound() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ClassWithNullableField::returnCompoundWithNullableField,
+            eq(2),
         )
     }
 
     @Test
     fun testClassWithNullableFieldInGreatCompound() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ClassWithNullableField::returnGreatCompoundWithNullableField,
+            eq(3),
         )
     }
 }

@@ -8,8 +8,9 @@ import org.usvm.test.util.checkers.eq
 internal class HiddenFieldExampleTest : JavaMethodTestRunner() {
     @Test
     fun testCheckHiddenField() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             HiddenFieldExample::checkHiddenField,
+            eq(4),
             { _, o, _ -> o == null },
             { _, o, r -> o != null && o.a != 1 && r == 2 },
             { _, o, r -> o != null && o.a == 1 && o.b != 2 && r == 2 },
@@ -19,8 +20,9 @@ internal class HiddenFieldExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testCheckSuccField() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             HiddenFieldExample::checkSuccField,
+            eq(5),
             { _, o, _ -> o == null },
             { _, o, r -> o.a == 1 && r == 1 },
             { _, o, r -> o.a != 1 && o.b == 2.0 && r == 2 },

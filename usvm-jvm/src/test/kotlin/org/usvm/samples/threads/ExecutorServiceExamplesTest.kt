@@ -12,16 +12,18 @@ import org.usvm.util.isException
 class ExecutorServiceExamplesTest : JavaMethodTestRunner() {
     @Test
     fun testExceptionInExecute() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             ExecutorServiceExamples::throwingInExecute,
+            ignoreNumberOfAnalysisResults,
             { _, r -> r.isException<IllegalStateException>() }
         )
     }
 
     @Test
     fun testChangingCollectionInExecute() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ExecutorServiceExamples::changingCollectionInExecute,
+            ignoreNumberOfAnalysisResults,
             { _, r -> r == 42 },
         )
     }

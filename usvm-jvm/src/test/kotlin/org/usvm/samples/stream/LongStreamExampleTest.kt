@@ -15,16 +15,18 @@ import kotlin.streams.toList
 class LongStreamExampleTest : JavaMethodTestRunner() {
     @Test
     fun testReturningStreamAsParameterExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             LongStreamExample::returningStreamAsParameterExample,
+            eq(1),
             { _, s, r -> s != null && s.toList() == r!!.toList() },
         )
     }
 
     @Test
     fun testUseParameterStream() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             LongStreamExample::useParameterStream,
+            eq(2),
             { _, s, r -> s.toArray().isEmpty() && r == 0 },
             { _, s, r ->
                 s.toArray().let {
@@ -36,8 +38,9 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testFilterExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             LongStreamExample::filterExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> null !in c && r == false },
             { _, c, r -> null in c && r == true },
         )
@@ -45,8 +48,9 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testMapExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             LongStreamExample::mapExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> null in c && r.contentEquals(c.longs { it?.toLong()?.times(2) ?: 0L }) },
             { _, c: List<Short?>, r -> null !in c && r.contentEquals(c.longs { it?.toLong()?.times(2) ?: 0L }) },
         )
@@ -54,8 +58,9 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testMapToObjExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             LongStreamExample::mapToObjExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r ->
                 val intArrays = c.longs().map { it.let { i -> longArrayOf(i, i) } }.toTypedArray()
 
@@ -71,8 +76,9 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testMapToIntExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             LongStreamExample::mapToIntExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r ->
                 val ints = c.longs().map { it.toInt() }.toIntArray()
 
@@ -88,8 +94,9 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testMapToDoubleExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             LongStreamExample::mapToDoubleExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r ->
                 val doubles = c.longs().map { it.toDouble() / 2 }.toDoubleArray()
 
@@ -105,8 +112,9 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testFlatMapExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             LongStreamExample::flatMapExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r ->
                 val intLists = c.map {
                     (it?.toLong() ?: 0L).let { i -> listOf(i, i) }
@@ -119,8 +127,9 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testDistinctExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             LongStreamExample::distinctExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r ->
                 val longs = c.longs()
 
@@ -138,8 +147,9 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
     @Tag("slow")
     // TODO slow sorting https://github.com/UnitTestBot/UTBotJava/issues/188
     fun testSortedExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             LongStreamExample::sortedExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.last() < c.first() && r!!.asSequence().isSorted() }
         )
     }
@@ -156,8 +166,9 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testLimitExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             LongStreamExample::limitExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.size <= 2 && c.longs().contentEquals(r) },
             { _, c, r -> c.size > 2 && c.take(2).longs().contentEquals(r) },
         )
@@ -165,8 +176,9 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testSkipExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             LongStreamExample::skipExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.size > 2 && c.drop(2).longs().contentEquals(r) },
             { _, c, r -> c.size <= 2 && r!!.isEmpty() },
         )
@@ -184,16 +196,18 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testToArrayExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             LongStreamExample::toArrayExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.longs().contentEquals(r) },
         )
     }
 
     @Test
     fun testReduceExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             LongStreamExample::reduceExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.isEmpty() && r == 42L },
             { _, c: List<Short?>, r -> c.isNotEmpty() && r == c.filterNotNull().sum() + 42L },
         )
@@ -201,8 +215,9 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testOptionalReduceExample() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             LongStreamExample::optionalReduceExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.isEmpty() && r.getOrThrow() == OptionalLong.empty() },
             { _, c: List<Short?>, r ->
                 c.isNotEmpty() && r.getOrThrow() == OptionalLong.of(
@@ -214,8 +229,9 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testSumExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             LongStreamExample::sumExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.isEmpty() && r == 0L },
             { _, c, r -> c.isNotEmpty() && c.filterNotNull().sum().toLong() == r },
         )
@@ -223,8 +239,9 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testMinExample() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             LongStreamExample::minExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.isEmpty() && r.getOrThrow() == OptionalLong.empty() },
             { _, c, r ->
                 c.isNotEmpty() && r.getOrThrow() == OptionalLong.of(c.mapNotNull { it.toLong() }.minOrNull()!!)
@@ -234,8 +251,9 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testMaxExample() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             LongStreamExample::maxExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.isEmpty() && r.getOrThrow() == OptionalLong.empty() },
             { _, c, r ->
                 c.isNotEmpty() && r.getOrThrow() == OptionalLong.of(c.mapNotNull { it.toLong() }.maxOrNull()!!)
@@ -245,8 +263,9 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testCountExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             LongStreamExample::countExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.isEmpty() && r == 0L },
             { _, c, r -> c.isNotEmpty() && c.size.toLong() == r },
         )
@@ -254,8 +273,9 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testAverageExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             LongStreamExample::averageExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.isEmpty() && r == OptionalDouble.empty() },
             { _, c, r -> c.isNotEmpty() && c.mapNotNull { it.toLong() }.average() == r!!.asDouble },
         )
@@ -263,8 +283,9 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testSummaryStatisticsExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             LongStreamExample::summaryStatisticsExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r ->
                 val sum = r!!.sum
                 val count = r.count
@@ -298,8 +319,9 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testAnyMatchExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             LongStreamExample::anyMatchExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.isEmpty() && r == false },
             { _, c, r -> c.isNotEmpty() && c.longs().all { it == 0L } && r == false },
             { _, c, r ->
@@ -322,8 +344,9 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testAllMatchExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             LongStreamExample::allMatchExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.isEmpty() && r == true },
             { _, c, r -> c.isNotEmpty() && c.longs().all { it == 0L } && r == false },
             { _, c, r ->
@@ -346,8 +369,9 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testNoneMatchExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             LongStreamExample::noneMatchExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.isEmpty() && r == true },
             { _, c, r -> c.isNotEmpty() && c.longs().all { it == 0L } && r == true },
             { _, c, r ->
@@ -370,8 +394,9 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testFindFirstExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             LongStreamExample::findFirstExample,
+            eq(3),
             { _, c, r -> c.isEmpty() && r == OptionalLong.empty() },
             { _, c, r -> c.isNotEmpty() && r == OptionalLong.of(c.longs().first()) },
         )
@@ -379,24 +404,27 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testAsDoubleStreamExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             LongStreamExample::asDoubleStreamExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.longs().map { it.toDouble() }.toList() == r!!.toList() },
         )
     }
 
     @Test
     fun testBoxedExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             LongStreamExample::boxedExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.longs().toList() == r!!.toList() },
         )
     }
 
     @Test
     fun testIteratorExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             LongStreamExample::iteratorSumExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.isEmpty() && r == 0L },
             { _, c: List<Short?>, r -> c.isNotEmpty() && c.longs().sum() == r },
         )
@@ -404,8 +432,9 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testStreamOfExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             LongStreamExample::streamOfExample,
+            ignoreNumberOfAnalysisResults,
             // NOTE: the order of the matchers is important because Stream could be used only once
             { _, c, r -> c.isNotEmpty() && c.contentEquals(r!!.toArray()) },
             { _, c, r -> c.isEmpty() && LongStream.empty().toArray().contentEquals(r!!.toArray()) },
@@ -414,48 +443,54 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testClosedStreamExample() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             LongStreamExample::closedStreamExample,
+            ignoreNumberOfAnalysisResults,
             { _, _, r -> r.isException<IllegalStateException>() },
         )
     }
 
     @Test
     fun testGenerateExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             LongStreamExample::generateExample,
+            ignoreNumberOfAnalysisResults,
             { _, r -> r!!.contentEquals(LongArray(10) { 42L }) }
         )
     }
 
     @Test
     fun testIterateExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             LongStreamExample::iterateExample,
+            ignoreNumberOfAnalysisResults,
             { _, r -> r!!.contentEquals(LongArray(10) { i -> 42L + i }) }
         )
     }
 
     @Test
     fun testConcatExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             LongStreamExample::concatExample,
+            ignoreNumberOfAnalysisResults,
             { _, r -> r!!.contentEquals(LongArray(10) { 42L } + LongArray(10) { i -> 42L + i }) }
         )
     }
 
     @Test
     fun testRangeExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             LongStreamExample::rangeExample,
+            ignoreNumberOfAnalysisResults,
             { _, r -> r!!.contentEquals(LongArray(10) { it.toLong() }) }
         )
     }
 
     @Test
     fun testRangeClosedExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             LongStreamExample::rangeClosedExample,
+            ignoreNumberOfAnalysisResults,
             { _, r -> r!!.contentEquals(LongArray(11) { it.toLong() }) }
         )
     }

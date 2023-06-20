@@ -15,16 +15,18 @@ import kotlin.streams.toList
 class IntStreamExampleTest : JavaMethodTestRunner() {
     @Test
     fun testReturningStreamAsParameterExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             IntStreamExample::returningStreamAsParameterExample,
+            eq(1),
             { _, s, r -> s != null && s.toList() == r!!.toList() },
         )
     }
 
     @Test
     fun testUseParameterStream() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             IntStreamExample::useParameterStream,
+            eq(2),
             { _, s, r -> s.toArray().isEmpty() && r == 0 },
             { _, s, r ->
                 s.toArray().let {
@@ -36,8 +38,9 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testFilterExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             IntStreamExample::filterExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> null !in c && r == false },
             { _, c, r -> null in c && r == true },
         )
@@ -45,8 +48,9 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testMapExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             IntStreamExample::mapExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> null in c && r.contentEquals(c.ints { it?.toInt()?.times(2) ?: 0 }) },
             { _, c: List<Short?>, r -> null !in c && r.contentEquals(c.ints { it?.toInt()?.times(2) ?: 0 }) },
         )
@@ -54,8 +58,9 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testMapToObjExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             IntStreamExample::mapToObjExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r ->
                 val intArrays = c.ints().map { it.let { i -> intArrayOf(i, i) } }.toTypedArray()
 
@@ -71,8 +76,9 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testMapToLongExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             IntStreamExample::mapToLongExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r ->
                 val longs = c.ints().map { it.toLong() * 2 }.toLongArray()
 
@@ -88,8 +94,9 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testMapToDoubleExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             IntStreamExample::mapToDoubleExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r ->
                 val doubles = c.ints().map { it.toDouble() / 2 }.toDoubleArray()
 
@@ -105,8 +112,9 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testFlatMapExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             IntStreamExample::flatMapExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r ->
                 val intLists = c.mapNotNull {
                     it.toInt().let { i -> listOf(i, i) }
@@ -119,8 +127,9 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testDistinctExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             IntStreamExample::distinctExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r ->
                 val ints = c.ints()
 
@@ -138,8 +147,9 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
     @Tag("slow")
     // TODO slow sorting https://github.com/UnitTestBot/UTBotJava/issues/188
     fun testSortedExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             IntStreamExample::sortedExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.last() < c.first() && r!!.asSequence().isSorted() }
         )
     }
@@ -156,8 +166,9 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testLimitExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             IntStreamExample::limitExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.size <= 2 && c.ints().contentEquals(r) },
             { _, c, r -> c.size > 2 && c.take(2).ints().contentEquals(r) },
         )
@@ -165,8 +176,9 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testSkipExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             IntStreamExample::skipExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.size > 2 && c.drop(2).ints().contentEquals(r) },
             { _, c, r -> c.size <= 2 && r!!.isEmpty() },
         )
@@ -184,16 +196,18 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testToArrayExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             IntStreamExample::toArrayExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.ints().contentEquals(r) },
         )
     }
 
     @Test
     fun testReduceExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             IntStreamExample::reduceExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.isEmpty() && r == 42 },
             { _, c: List<Short?>, r -> c.isNotEmpty() && r == c.filterNotNull().sum() + 42 },
         )
@@ -201,8 +215,9 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testOptionalReduceExample() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             IntStreamExample::optionalReduceExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.isEmpty() && r.getOrThrow() == OptionalInt.empty() },
             { _, c: List<Short?>, r -> c.isNotEmpty() && r.getOrThrow() == OptionalInt.of(c.filterNotNull().sum()) },
         )
@@ -210,8 +225,9 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testSumExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             IntStreamExample::sumExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.isEmpty() && r == 0 },
             { _, c, r -> c.isNotEmpty() && c.filterNotNull().sum() == r },
         )
@@ -219,8 +235,9 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testMinExample() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             IntStreamExample::minExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.isEmpty() && r.getOrThrow() == OptionalInt.empty() },
             { _, c, r ->
                 c.isNotEmpty() && r.getOrThrow() == OptionalInt.of(c.mapNotNull { it.toInt() }.minOrNull()!!)
@@ -230,8 +247,9 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testMaxExample() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             IntStreamExample::maxExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.isEmpty() && r.getOrThrow() == OptionalInt.empty() },
             { _, c, r ->
                 c.isNotEmpty() && r.getOrThrow() == OptionalInt.of(c.mapNotNull { it.toInt() }.maxOrNull()!!)
@@ -241,8 +259,9 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testCountExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             IntStreamExample::countExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.isEmpty() && r == 0L },
             { _, c, r -> c.isNotEmpty() && c.size.toLong() == r },
         )
@@ -250,8 +269,9 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testAverageExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             IntStreamExample::averageExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.isEmpty() && r == OptionalDouble.empty() },
             { _, c, r -> c.isNotEmpty() && c.mapNotNull { it.toInt() }.average() == r!!.asDouble },
         )
@@ -259,8 +279,9 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testSummaryStatisticsExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             IntStreamExample::summaryStatisticsExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r ->
                 val sum = r!!.sum
                 val count = r.count
@@ -294,8 +315,9 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testAnyMatchExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             IntStreamExample::anyMatchExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.isEmpty() && r == false },
             { _, c, r -> c.isNotEmpty() && c.ints().all { it == 0 } && r == false },
             { _, c, r ->
@@ -318,8 +340,9 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testAllMatchExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             IntStreamExample::allMatchExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.isEmpty() && r == true },
             { _, c, r -> c.isNotEmpty() && c.ints().all { it == 0 } && r == false },
             { _, c, r ->
@@ -342,8 +365,9 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testNoneMatchExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             IntStreamExample::noneMatchExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.isEmpty() && r == true },
             { _, c, r -> c.isNotEmpty() && c.ints().all { it == 0 } && r == true },
             { _, c, r ->
@@ -366,8 +390,9 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testFindFirstExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             IntStreamExample::findFirstExample,
+            eq(3),
             { _, c, r -> c.isEmpty() && r == OptionalInt.empty() },
             { _, c, r -> c.isNotEmpty() && r == OptionalInt.of(c.ints().first()) },
         )
@@ -375,32 +400,36 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testAsLongStreamExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             IntStreamExample::asLongStreamExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.ints().map { it.toLong() }.toList() == r!!.toList() },
         )
     }
 
     @Test
     fun testAsDoubleStreamExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             IntStreamExample::asDoubleStreamExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.ints().map { it.toDouble() }.toList() == r!!.toList() },
         )
     }
 
     @Test
     fun testBoxedExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             IntStreamExample::boxedExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.ints().toList() == r!!.toList() },
         )
     }
 
     @Test
     fun testIteratorExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             IntStreamExample::iteratorSumExample,
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c.isEmpty() && r == 0 },
             { _, c: List<Short?>, r -> c.isNotEmpty() && c.ints().sum() == r },
         )
@@ -408,8 +437,9 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testStreamOfExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             IntStreamExample::streamOfExample,
+            ignoreNumberOfAnalysisResults,
             // NOTE: the order of the matchers is important because Stream could be used only once
             { _, c, r -> c.isNotEmpty() && c.contentEquals(r!!.toArray()) },
             { _, c, r -> c.isEmpty() && IntStream.empty().toArray().contentEquals(r!!.toArray()) },
@@ -418,48 +448,54 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testClosedStreamExample() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             IntStreamExample::closedStreamExample,
+            ignoreNumberOfAnalysisResults,
             { _, _, r -> r.isException<IllegalStateException>() },
         )
     }
 
     @Test
     fun testGenerateExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             IntStreamExample::generateExample,
+            ignoreNumberOfAnalysisResults,
             { _, r -> r!!.contentEquals(IntArray(10) { 42 }) }
         )
     }
 
     @Test
     fun testIterateExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             IntStreamExample::iterateExample,
+            ignoreNumberOfAnalysisResults,
             { _, r -> r!!.contentEquals(IntArray(10) { i -> 42 + i }) }
         )
     }
 
     @Test
     fun testConcatExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             IntStreamExample::concatExample,
+            ignoreNumberOfAnalysisResults,
             { _, r -> r!!.contentEquals(IntArray(10) { 42 } + IntArray(10) { i -> 42 + i }) }
         )
     }
 
     @Test
     fun testRangeExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             IntStreamExample::rangeExample,
+            ignoreNumberOfAnalysisResults,
             { _, r -> r!!.contentEquals(IntArray(10) { it }) }
         )
     }
 
     @Test
     fun testRangeClosedExample() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             IntStreamExample::rangeClosedExample,
+            ignoreNumberOfAnalysisResults,
             { _, r -> r!!.contentEquals(IntArray(11) { it }) }
         )
     }

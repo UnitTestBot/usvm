@@ -10,8 +10,9 @@ import org.usvm.util.isException
 internal class SimpleClassExampleTest : JavaMethodTestRunner() {
     @Test
     fun simpleConditionTest() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             SimpleClassExample::simpleCondition,
+            eq(4),
             { _, c, _ -> c == null }, // NPE
             { _, c, r -> c.a >= 5 && r == 3 },
             { _, c, r -> c.a < 5 && c.b <= 10 && r == 3 },
@@ -27,8 +28,9 @@ internal class SimpleClassExampleTest : JavaMethodTestRunner() {
      */
     @Test
     fun singleFieldAccessTest() {
-        checkExecutionMatches(
-            SimpleClassExample::singleFieldAccess, // could be 6
+        checkDiscoveredProperties(
+            SimpleClassExample::singleFieldAccess,
+            between(5..6), // could be 6
             { _, c, _ -> c == null }, // NPE
             { _, c, r -> c.a == 3 && c.b != 5 && r == 2 },
             { _, c, r -> c.a == 3 && c.b == 5 && r == 1 },
@@ -43,8 +45,9 @@ internal class SimpleClassExampleTest : JavaMethodTestRunner() {
      */
     @Test
     fun multipleFieldAccessesTest() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             SimpleClassExample::multipleFieldAccesses,
+            eq(6),
             { _, c, _ -> c == null }, // NPE
             { _, c, r -> c.a != 2 && c.a != 3 && r == 2 }, // this one appears
             { _, c, r -> c.a == 3 && c.b != 5 && r == 2 },
@@ -56,8 +59,9 @@ internal class SimpleClassExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun immutableFieldAccessTest() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             SimpleClassExample::immutableFieldAccess,
+            eq(3),
             { _, c, r -> c == null && r.isException<NullPointerException>() },
             { _, c, r -> c.b == 10 && r.getOrNull() == 0 },
             { _, c, r -> c.b != 10 && r.getOrNull() == 1 }

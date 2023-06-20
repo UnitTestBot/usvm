@@ -2,21 +2,26 @@ package org.usvm.samples.arrays
 
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
+import org.usvm.test.util.checkers.between
+import org.usvm.test.util.checkers.eq
+import org.usvm.test.util.checkers.ge
 import org.usvm.util.isException
 
 internal class ArrayOfObjectsTest : JavaMethodTestRunner() {
     @Test
     fun testDefaultValues() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ArrayOfObjects::defaultValues,
+            eq(1),
             { _, r -> r != null && r.single() == null },
         )
     }
 
     @Test
     fun testCreateArray() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ArrayOfObjects::createArray,
+            eq(2),
             { _, _, _, length, _ -> length < 3 },
             { _, x, y, length, r ->
                 require(r != null)
@@ -31,8 +36,9 @@ internal class ArrayOfObjectsTest : JavaMethodTestRunner() {
 
     @Test
     fun testCopyArray() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             ArrayOfObjects::copyArray,
+            ge(4),
             { _, a, r -> a == null && r.isException<NullPointerException>() },
             { _, a, r -> a.size < 3 && r.isException<IllegalArgumentException>() },
             { _, a, r -> a.size >= 3 && null in a && r.isException<NullPointerException>() },
@@ -52,8 +58,9 @@ internal class ArrayOfObjectsTest : JavaMethodTestRunner() {
 
     @Test
     fun testArrayWithSucc() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ArrayOfObjects::arrayWithSucc,
+            eq(3),
             { _, length, _ -> length < 0 },
             { _, length, r -> length < 2 && r != null && r.size == length && r.all { it == null } },
             { _, length, r ->
@@ -70,8 +77,9 @@ internal class ArrayOfObjectsTest : JavaMethodTestRunner() {
 
     @Test
     fun testObjectArray() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ArrayOfObjects::objectArray,
+            eq(5),
             { _, a, _, _ -> a == null },
             { _, a, _, r -> a != null && a.size != 2 && r == -1 },
             { _, a, o, _ -> a != null && a.size == 2 && o == null },
@@ -82,8 +90,9 @@ internal class ArrayOfObjectsTest : JavaMethodTestRunner() {
 
     @Test
     fun testArrayOfArrays() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             ArrayOfObjects::arrayOfArrays,
+            between(4..5), // might be two ClassCastExceptions
             { _, a, _ -> a.any { it == null } },
             { _, a, _ -> a.any { it != null && it !is IntArray } },
             { _, a, r -> (a.all { it != null && it is IntArray && it.isEmpty() } || a.isEmpty()) && r == 0 },

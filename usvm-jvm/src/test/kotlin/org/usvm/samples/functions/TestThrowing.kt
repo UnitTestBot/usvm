@@ -7,8 +7,9 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 class TestThrowing : JavaMethodTestRunner() {
     @Test
     fun `Test throwSometimes`() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             Throwing::throwSometimes,
+            ignoreNumberOfAnalysisResults,
             { _, x, r -> x == 1 && r.isFailure && r.exceptionOrNull() is IllegalArgumentException },
             { _, x, r -> x != 1 && r.isSuccess },
         )

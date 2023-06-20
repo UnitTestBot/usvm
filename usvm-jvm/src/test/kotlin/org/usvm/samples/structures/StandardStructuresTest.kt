@@ -9,8 +9,9 @@ import java.util.TreeMap
 internal class StandardStructuresTest : JavaMethodTestRunner() {
     @Test
     fun testGetList() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             StandardStructures::getList,
+            eq(4),
             { _, l, r -> l is ArrayList && r is ArrayList },
             { _, l, r -> l is LinkedList && r is LinkedList },
             { _, l, r -> l == null && r == null },
@@ -22,8 +23,9 @@ internal class StandardStructuresTest : JavaMethodTestRunner() {
 
     @Test
     fun testGetMap() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             StandardStructures::getMap,
+            eq(3),
             { _, m, r -> m is TreeMap && r is TreeMap },
             { _, m, r -> m == null && r == null },
             { _, m, r -> m !is TreeMap && m != null && r !is TreeMap && r != null },
@@ -32,13 +34,14 @@ internal class StandardStructuresTest : JavaMethodTestRunner() {
 
     @Test
     fun testGetDeque() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             StandardStructures::getDeque,
-            { _, d, r -> d is java.util.ArrayDeque && r is java.util.ArrayDeque },
+            eq(4),
+            { _, d, r -> d is ArrayDeque<*> && r is ArrayDeque<*> },
             { _, d, r -> d is LinkedList && r is LinkedList },
             { _, d, r -> d == null && r == null },
             { _, d, r ->
-                d !is java.util.ArrayDeque<*> && d !is LinkedList && d != null && r !is java.util.ArrayDeque<*> && r !is LinkedList && r != null
+                d !is ArrayDeque<*> && d !is LinkedList && d != null && r !is ArrayDeque<*> && r !is LinkedList && r != null
             },
         )
     }

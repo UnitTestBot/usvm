@@ -10,8 +10,9 @@ import org.usvm.util.isException
 class JavaAssertTest : JavaMethodTestRunner() {
     @Test
     fun testAssertPositive() {
-        checkWithExceptionExecutionMatches(
+        checkDiscoveredPropertiesWithExceptions(
             JavaAssert::assertPositive,
+            eq(2),
             { _, value, result -> value > 0 && result.isSuccess && result.getOrNull() == value },
             { _, value, result -> value <= 0 && result.isException<java.lang.AssertionError>() }
         )

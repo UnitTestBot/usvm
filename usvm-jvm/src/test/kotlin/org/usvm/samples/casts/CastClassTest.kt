@@ -11,8 +11,9 @@ import org.usvm.test.util.checkers.eq
 internal class CastClassTest : JavaMethodTestRunner() {
     @Test
     fun testThisTypeChoice() {
-        checkExecutionMatches(
+        this.checkDiscoveredProperties(
             CastClass::castToInheritor,
+            eq(0),
         )
     }
 }
