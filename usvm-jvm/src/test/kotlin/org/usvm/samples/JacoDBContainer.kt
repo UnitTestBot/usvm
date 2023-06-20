@@ -8,7 +8,6 @@ import org.jacodb.impl.features.InMemoryHierarchy
 import org.jacodb.impl.jacodb
 import org.usvm.util.allClasspath
 import java.io.File
-import java.util.WeakHashMap
 
 class JacoDBContainer(
     classpath: List<File>,
@@ -34,17 +33,17 @@ class JacoDBContainer(
 
         operator fun invoke(
             key: Any?,
-            classpath: List<File> = testsClasspath,
+            classpath: List<File> = samplesClasspath,
             builder: JcSettings.() -> Unit = defaultBuilder,
         ): JacoDBContainer =
             keyToJacoDBContainer.getOrPut(key) { JacoDBContainer(classpath, builder) }
 
-        private val testsClasspath = allClasspath.filter { it.name.contains("samples") }
+        private val samplesClasspath = allClasspath.filter { it.name.contains("samples") }
 
         private val defaultBuilder: JcSettings.() -> Unit = {
             useProcessJavaRuntime()
             installFeatures(InMemoryHierarchy)
-            loadByteCode(testsClasspath)
+            loadByteCode(samplesClasspath)
         }
     }
 }

@@ -1,6 +1,5 @@
 package org.usvm.samples.operators;
 
-@SuppressWarnings("ConstantValue")
 public class Math {
     int addIntToInt(int x, int y) {
         return x + y;
@@ -9,7 +8,6 @@ public class Math {
     short addShortToShort(short x, short y) {
         return (short) (x + y);
     }
-
 
     long addLongToInt(int x, long y) {
         return x + y;
@@ -27,7 +25,6 @@ public class Math {
         return x * y;
     }
 
-
     int multiplyDoublesReturnInt(double x, double y) {
         return (int) (x * y);
     }
@@ -35,7 +32,6 @@ public class Math {
     short multiplyDoubleAndFloatReturnShort(double x, float y) {
         return (short) (x * y);
     }
-
 
     char divideIntsReturnChar(int x, int y) {
         return (char) (x / y);
@@ -59,16 +55,5 @@ public class Math {
 
     int bitwiseShift(short x, byte y) {
         return x << y;
-    }
-
-
-    int shortOverflow(short x, int y) {
-        if (y > 10 || y <= 0) {
-            return 0;
-        }
-        if (x + y < 0 && x > 0) {
-            throw new IllegalStateException();
-        }
-        return x + y;
     }
 }

@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
-class TestOneDimensional : JavaMethodTestRunner() {
+class TetOneDimensional : JavaMethodTestRunner() {
     @Test
     @Disabled("Failed requirement at org.usvm.model.ULazyHeapModel.readArrayLength(LazyModels.kt:167)")
     fun `Test sumOf`() {
