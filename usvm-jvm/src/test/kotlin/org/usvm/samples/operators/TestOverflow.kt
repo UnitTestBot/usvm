@@ -5,12 +5,12 @@ import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
-class TestMath : JavaMethodTestRunner() {
+class TestOverflow : JavaMethodTestRunner() {
     @Test
     @Disabled("TODO: disabled due to JacoDB incorrect types of local variables")
     fun `Test shortOverflow`() {
         checkWithExceptionPropertiesMatches(
-            Math::shortOverflow,
+            Overflow::shortOverflow,
             ignoreNumberOfAnalysisResults,
             { _, _, _, r ->
                 require(r.isSuccess)

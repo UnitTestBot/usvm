@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
-class TestOneDimensional : JavaMethodTestRunner() {
+class TetOneDimensional : JavaMethodTestRunner() {
     @Test
     fun `Test sumOf`() {
         checkWithExceptionPropertiesMatches(

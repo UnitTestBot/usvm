@@ -6,7 +6,6 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 
 class TestSimple : JavaMethodTestRunner() {
-
     @Test
     fun `Test calcTwoFunctions`() {
         checkExecutionMatches(
