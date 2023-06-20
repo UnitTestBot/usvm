@@ -44,42 +44,28 @@ abstract class USymbolicMapDescriptor<Key : USort, Value : USort, Reg : Region<R
     interface SymbolicMapInfo
 }
 
-class UHeapRefPoint(val ref: UHeapRef) {
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other !is UHeapRefPoint) return false
-
-        val otherRef = other.ref
-        return if (ref is UConcreteHeapRef) {
-            otherRef is UConcreteHeapRef && ref.address == otherRef.address
-        } else {
-            otherRef !is UConcreteHeapRef
-        }
-    }
-
-    override fun hashCode(): Int = if (ref is UConcreteHeapRef) ref.address else -1
-
-    override fun toString(): String = "$ref"
-}
-
 class USymbolicObjectReferenceMapDescriptor<Value : USort>(
     override val valueSort: Value,
     override val defaultValue: UExpr<Value>,
     override val info: SymbolicMapInfo? = null
-) : USymbolicMapDescriptor<UAddressSort, Value, SetRegion<UHeapRefPoint>>() {
+) : USymbolicMapDescriptor<UAddressSort, Value, SetRegion<UHeapRef>>() {
 
     override val keySort: UAddressSort = valueSort.uctx.addressSort
 
     override fun mkKeyRegion(
         key: UHeapRef
-    ): SetRegion<UHeapRefPoint> = SetRegion.singleton(UHeapRefPoint(key))
+    ): SetRegion<UHeapRef> = if (key is UConcreteHeapRef){
+        SetRegion.singleton(key)
+    } else {
+        SetRegion.universe()
+    }
 
     override fun mkKeyRangeRegion(
         key1: UHeapRef,
         key2: UHeapRef
     ) = error("Heap references should not be used in range queries!")
 
-    override fun mkKeyFullRangeRegion(): SetRegion<UHeapRefPoint> = SetRegion.universe()
+    override fun mkKeyFullRangeRegion(): SetRegion<UHeapRef> = SetRegion.universe()
 
     override fun keyEqSymbolic(
         key1: UHeapRef,
