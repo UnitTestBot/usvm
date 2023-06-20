@@ -2,8 +2,7 @@ package org.usvm.intrinsics.collections
 
 import io.ksmt.solver.KSolver
 import io.ksmt.utils.uncheckedCast
-import org.usvm.UHeapRef
-import org.usvm.USizeExpr
+import org.usvm.*
 import org.usvm.intrinsics.collections.SymbolicObjectMapIntrinsics.mkSymbolicObjectMap
 import org.usvm.intrinsics.collections.SymbolicObjectMapIntrinsics.symbolicObjectMapContains
 import org.usvm.intrinsics.collections.SymbolicObjectMapIntrinsics.symbolicObjectMapGet
@@ -11,7 +10,11 @@ import org.usvm.intrinsics.collections.SymbolicObjectMapIntrinsics.symbolicObjec
 import org.usvm.intrinsics.collections.SymbolicObjectMapIntrinsics.symbolicObjectMapPut
 import org.usvm.intrinsics.collections.SymbolicObjectMapIntrinsics.symbolicObjectMapRemove
 import org.usvm.intrinsics.collections.SymbolicObjectMapIntrinsics.symbolicObjectMapSize
+import org.usvm.model.UModelBase
+import org.usvm.solver.USatResult
 import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertIs
 
 class ObjectMapTest : SymbolicCollectionTestBase() {
     @Test
@@ -69,6 +72,49 @@ class ObjectMapTest : SymbolicCollectionTestBase() {
                     keyContains eq trueExpr
                 }
             }
+        }
+    }
+
+    @Test
+    fun testConcreteMapContainsComposition() {
+        val concreteMap = state.mkSymbolicObjectMap(ctx.sizeSort)
+        testMapContainsComposition(concreteMap)
+    }
+
+    @Test
+    fun testSymbolicMapContainsComposition() {
+        val symbolicMap = ctx.mkRegisterReading(99, ctx.addressSort)
+        testMapContainsComposition(symbolicMap)
+    }
+
+    private fun testMapContainsComposition(mapRef: UHeapRef) {
+        val concreteKeys = (1..5).map { ctx.mkConcreteHeapRef(it) }
+        val symbolicKeys = (1..5).map { ctx.mkRegisterReading(it, ctx.addressSort) }
+        val otherSymbolicKey = ctx.mkRegisterReading(symbolicKeys.size + 1, ctx.addressSort)
+
+        fillMap(mapRef, concreteKeys + symbolicKeys, startValueIdx = 1)
+
+        val otherKeyContains = state.symbolicObjectMapContains(mapRef, otherSymbolicKey, ctx.sizeSort)
+        state.pathConstraints += otherKeyContains
+
+        val result = uSolver.checkWithSoftConstraints(state.pathConstraints)
+        assertIs<USatResult<UModelBase<Field, Type>>>(result)
+
+        assertEquals(ctx.trueExpr, result.model.eval(otherKeyContains))
+
+        val removedKeys = setOf(concreteKeys.first(), symbolicKeys.first(), otherSymbolicKey)
+        removedKeys.forEach { key ->
+            state.symbolicObjectMapRemove(mapRef, key, ctx.sizeSort)
+        }
+
+        val removedKeysValues = removedKeys.mapTo(hashSetOf()) { result.model.eval(it) }
+        (concreteKeys + symbolicKeys + otherSymbolicKey).forEach { key ->
+            val keyContains = state.symbolicObjectMapContains(mapRef, key, ctx.sizeSort)
+            val keyContainsValue = result.model.eval(keyContains)
+            val keyValue = result.model.eval(key)
+
+            val expectedResult = ctx.mkBool(keyValue !in removedKeysValues)
+            assertEquals(expectedResult, keyContainsValue)
         }
     }
 

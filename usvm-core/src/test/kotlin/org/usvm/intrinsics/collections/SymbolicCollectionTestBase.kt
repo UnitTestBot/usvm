@@ -10,7 +10,10 @@ import org.junit.jupiter.api.BeforeEach
 import org.usvm.*
 import org.usvm.constraints.UPathConstraints
 import org.usvm.memory.UMemoryBase
+import org.usvm.model.buildTranslatorAndLazyDecoder
 import org.usvm.solver.UExprTranslator
+import org.usvm.solver.USoftConstraintsProvider
+import org.usvm.solver.USolverBase
 import kotlin.test.assertEquals
 
 abstract class SymbolicCollectionTestBase {
@@ -19,6 +22,7 @@ abstract class SymbolicCollectionTestBase {
     lateinit var memory: UMemoryBase<Field, Type, Any?>
     lateinit var state: StateStub
     lateinit var translator: UExprTranslator<Field, Type>
+    lateinit var uSolver: USolverBase<Field, Type, Any?>
 
     @BeforeEach
     fun initializeContext() {
@@ -30,7 +34,10 @@ abstract class SymbolicCollectionTestBase {
         memory = UMemoryBase(ctx, pathConstraints.typeConstraints)
         state = StateStub(ctx, pathConstraints, memory)
 
-        translator = UExprTranslator(ctx)
+        val softConstraintProvider = USoftConstraintsProvider<Field, Type>(ctx)
+        val (translator, decoder) = buildTranslatorAndLazyDecoder<Field, Type, Any?>(ctx)
+        this.translator = translator
+        uSolver = USolverBase(ctx, KZ3Solver(ctx), translator, decoder, softConstraintProvider)
     }
 
     class StateStub(
