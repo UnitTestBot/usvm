@@ -9,7 +9,7 @@ class StaticsSubstitutionTest : JavaMethodTestRunner() {
 
     @Test
     fun lessThanZeroWithSubstitution() {
-        this.checkDiscoveredProperties(
+        checkDiscoveredProperties(
             StaticSubstitutionExamples::lessThanZero,
             eq(2),
             { _, r -> r != 0 },

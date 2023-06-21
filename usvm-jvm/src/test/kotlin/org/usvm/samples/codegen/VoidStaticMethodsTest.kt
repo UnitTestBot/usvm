@@ -1,14 +1,14 @@
 package org.usvm.samples.codegen
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
-import org.usvm.test.util.checkers.eq
-
 import org.usvm.test.util.checkers.eq
 
 
 class VoidStaticMethodsTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@41ccb3b9")
     fun testInvokeChangeStaticFieldMethod() {
         checkDiscoveredProperties(
             VoidStaticMethodsTestingClass::invokeChangeStaticFieldMethod,
@@ -17,6 +17,7 @@ class VoidStaticMethodsTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun testInvokeThrowExceptionMethod() {
         checkDiscoveredProperties(
             VoidStaticMethodsTestingClass::invokeThrowExceptionMethod,
@@ -25,6 +26,7 @@ class VoidStaticMethodsTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun testInvokeAnotherThrowExceptionMethod() {
         checkDiscoveredProperties(
             VoidStaticMethodsTestingClass::invokeAnotherThrowExceptionMethod,

@@ -6,7 +6,7 @@ import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 
-@Disabled
+@Disabled("Unsupported")
 internal class ListsPart1Test : JavaMethodTestRunner() {
     @Test
     fun testIterableContains() {

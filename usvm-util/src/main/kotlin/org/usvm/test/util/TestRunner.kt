@@ -63,6 +63,8 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
 
         checkInvariant(invariants, valuesToCheck)
 
+        // TODO should I add a comparison between real run and symbolic one?
+
         when (checkMode) {
             MATCH_EXECUTIONS -> matchExecutions(valuesToCheck, analysisResultsMatchers)
             MATCH_PROPERTIES -> checkDiscoveredProperties(valuesToCheck, analysisResultsMatchers)
@@ -90,7 +92,9 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
                 if (!result) tmpViolatedInvariants += invariantIndex
             }
 
-            violatedInvariants += valuesIndex to tmpViolatedInvariants
+            if (tmpViolatedInvariants.isNotEmpty()) {
+                violatedInvariants += valuesIndex to tmpViolatedInvariants
+            }
         }
 
         require(violatedInvariants.isEmpty()) {
@@ -214,29 +218,31 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
     @Suppress("UNCHECKED_CAST")
     // TODO please use matcher.reflect().call(...) when it will be ready,
     //      currently (Kotlin 1.8.22) call isn't fully supported in kotlin reflect
-    private fun invokeFunction(matcher: Function<Boolean>, params: List<Any?>) = when (matcher) {
-        is Function1<*, *> -> (matcher as Function1<Any?, Boolean>).invoke(params[0])
-        is Function2<*, *, *> -> (matcher as Function2<Any?, Any?, Boolean>).invoke(params[0], params[1])
-        is Function3<*, *, *, *> -> (matcher as Function3<Any?, Any?, Any?, Boolean>).invoke(
-            params[0], params[1], params[2]
-        )
+    private fun invokeFunction(matcher: Function<Boolean>, params: List<Any?>): Boolean = runCatching {
+        when (matcher) {
+            is Function1<*, *> -> (matcher as Function1<Any?, Boolean>).invoke(params[0])
+            is Function2<*, *, *> -> (matcher as Function2<Any?, Any?, Boolean>).invoke(params[0], params[1])
+            is Function3<*, *, *, *> -> (matcher as Function3<Any?, Any?, Any?, Boolean>).invoke(
+                params[0], params[1], params[2]
+            )
 
-        is Function4<*, *, *, *, *> -> (matcher as Function4<Any?, Any?, Any?, Any?, Boolean>).invoke(
-            params[0], params[1], params[2], params[3]
-        )
+            is Function4<*, *, *, *, *> -> (matcher as Function4<Any?, Any?, Any?, Any?, Boolean>).invoke(
+                params[0], params[1], params[2], params[3]
+            )
 
-        is Function5<*, *, *, *, *, *> -> (matcher as Function5<Any?, Any?, Any?, Any?, Any?, Boolean>).invoke(
-            params[0], params[1], params[2], params[3], params[4],
-        )
+            is Function5<*, *, *, *, *, *> -> (matcher as Function5<Any?, Any?, Any?, Any?, Any?, Boolean>).invoke(
+                params[0], params[1], params[2], params[3], params[4],
+            )
 
-        is Function6<*, *, *, *, *, *, *> -> (matcher as Function6<Any?, Any?, Any?, Any?, Any?, Any?, Boolean>).invoke(
-            params[0], params[1], params[2], params[3], params[4], params[5],
-        )
+            is Function6<*, *, *, *, *, *, *> -> (matcher as Function6<Any?, Any?, Any?, Any?, Any?, Any?, Boolean>).invoke(
+                params[0], params[1], params[2], params[3], params[4], params[5],
+            )
 
-        is Function7<*, *, *, *, *, *, *, *> -> (matcher as Function7<Any?, Any?, Any?, Any?, Any?, Any?, Any?, Boolean>).invoke(
-            params[0], params[1], params[2], params[3], params[4], params[5], params[6],
-        )
+            is Function7<*, *, *, *, *, *, *, *> -> (matcher as Function7<Any?, Any?, Any?, Any?, Any?, Any?, Any?, Boolean>).invoke(
+                params[0], params[1], params[2], params[3], params[4], params[5], params[6],
+            )
 
-        else -> error("Functions with arity > 7 are not supported")
-    }
+            else -> error("Functions with arity > 7 are not supported")
+        }
+    }.getOrDefault(false) // exceptions leads to a failed matcher
 }

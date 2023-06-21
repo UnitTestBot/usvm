@@ -8,8 +8,7 @@ import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ge
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
-
-// TODO failed Kotlin compilation SAT-1332
+@Disabled("Unsupported")
 internal class SetsTest : JavaMethodTestRunner() {
     @Test
     fun createTest() {

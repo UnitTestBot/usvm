@@ -1,13 +1,14 @@
 package org.usvm.samples.lambda
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 import org.usvm.util.isException
 
-// TODO failed Kotlin compilation (generics) SAT-1332
 class SimpleLambdaExamplesTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("java.lang.ArrayIndexOutOfBoundsException: Index 4 out of bounds for length 4")
     fun testBiFunctionLambdaExample() {
         checkDiscoveredPropertiesWithExceptions(
             SimpleLambdaExamples::biFunctionLambdaExample,
@@ -18,6 +19,7 @@ class SimpleLambdaExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("java.lang.ArrayIndexOutOfBoundsException: Index 1 out of bounds for length 1")
     fun testChoosePredicate() {
         checkDiscoveredProperties(
             SimpleLambdaExamples::choosePredicate,

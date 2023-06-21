@@ -1,18 +1,16 @@
 package org.usvm.samples.codegen.deepequals
 
+
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 
-
-import org.usvm.test.util.checkers.eq
-
-
+@Disabled("Write matchers")
 class DeepEqualsTest : JavaMethodTestRunner() {
     @Test
     fun testReturnList() {
-        this.checkDiscoveredProperties(
+        checkDiscoveredProperties(
             DeepEqualsTestingClass::returnList,
             eq(1),
         )
@@ -20,7 +18,7 @@ class DeepEqualsTest : JavaMethodTestRunner() {
 
     @Test
     fun testReturnSet() {
-        this.checkDiscoveredProperties(
+        checkDiscoveredProperties(
             DeepEqualsTestingClass::returnSet,
             eq(1),
         )
@@ -28,7 +26,7 @@ class DeepEqualsTest : JavaMethodTestRunner() {
 
     @Test
     fun testReturnMap() {
-        this.checkDiscoveredProperties(
+        checkDiscoveredProperties(
             DeepEqualsTestingClass::returnMap,
             eq(1),
         )
@@ -36,7 +34,7 @@ class DeepEqualsTest : JavaMethodTestRunner() {
 
     @Test
     fun testReturnArray() {
-        this.checkDiscoveredProperties(
+        checkDiscoveredProperties(
             DeepEqualsTestingClass::returnArray,
             eq(1),
         )
@@ -45,7 +43,7 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     @Test
     @Disabled("We do not support 2d generics containers right now")
     fun testReturn2DList() {
-        this.checkDiscoveredProperties(
+        checkDiscoveredProperties(
             DeepEqualsTestingClass::return2DList,
             eq(1),
         )
@@ -54,7 +52,7 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     @Test
     @Disabled("We do not support 2d generics containers right now")
     fun testReturn2DSet() {
-        this.checkDiscoveredProperties(
+        checkDiscoveredProperties(
             DeepEqualsTestingClass::return2DSet,
             eq(1),
         )
@@ -63,7 +61,7 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     @Test
     @Disabled("We do not support 2d generics containers right now")
     fun testReturn2DMap() {
-        this.checkDiscoveredProperties(
+        checkDiscoveredProperties(
             DeepEqualsTestingClass::return2DMap,
             eq(1),
         )
@@ -72,7 +70,7 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     @Test
     @Disabled("We do not support 2d generics containers right now")
     fun testIntegers2DList() {
-        this.checkDiscoveredProperties(
+        checkDiscoveredProperties(
             DeepEqualsTestingClass::returnIntegers2DList,
             eq(1),
         )
@@ -80,7 +78,7 @@ class DeepEqualsTest : JavaMethodTestRunner() {
 
     @Test
     fun testReturn2DArray() {
-        this.checkDiscoveredProperties(
+        checkDiscoveredProperties(
             DeepEqualsTestingClass::return2DArray,
             eq(1),
         )
@@ -88,7 +86,7 @@ class DeepEqualsTest : JavaMethodTestRunner() {
 
     @Test
     fun testReturnCommonClass() {
-        this.checkDiscoveredProperties(
+        checkDiscoveredProperties(
             DeepEqualsTestingClass::returnCommonClass,
             eq(1),
         )
@@ -103,6 +101,7 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Sequence is empty.")
     fun testQuadrilateral() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::returnQuadrilateralFromNode,

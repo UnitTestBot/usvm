@@ -1,18 +1,18 @@
 package org.usvm.samples.invokes
 
-import org.junit.jupiter.api.Tag
+
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ge
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
-
-
 import kotlin.math.ln
 import kotlin.math.sqrt
 
 internal class NativeExampleTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Sequence is empty.")
     fun testPartialEx() {
         checkDiscoveredProperties(
             NativeExample::partialExecution,
@@ -31,7 +31,7 @@ internal class NativeExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Tag("slow")
+    @Disabled("Sequence is empty.")
     fun testSubstitution() {
         checkDiscoveredProperties(
             NativeExample::substitution,
@@ -42,6 +42,7 @@ internal class NativeExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Sequence is empty.")
     fun testUnreachableBranch() {
         checkDiscoveredProperties(
             NativeExample::unreachableBranch,

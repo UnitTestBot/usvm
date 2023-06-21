@@ -9,7 +9,7 @@ internal class StaticMethodExamplesTest : JavaMethodTestRunner() {
     @Test
     fun testComplement() {
         val method = StaticMethodExamples::complement
-        this.checkDiscoveredProperties(
+        checkDiscoveredProperties(
             method,
             eq(2),
             { x, r -> x == -2 && r == true },

@@ -10,7 +10,7 @@ internal class IntExamplesTest : JavaMethodTestRunner() {
     @Test
     fun testIsInteger() {
         val method = IntExamples::isInteger
-        this.checkDiscoveredProperties(
+        checkDiscoveredProperties(
             method,
             eq(2),
             { value, r -> runCatching { Integer.valueOf(value) }.isSuccess && r == true },

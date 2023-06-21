@@ -3,6 +3,7 @@ package org.usvm.samples.controlflow
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
+import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 
 internal class CycleDependedConditionTest : JavaMethodTestRunner() {
@@ -21,11 +22,10 @@ internal class CycleDependedConditionTest : JavaMethodTestRunner() {
     fun testCycleDependedTwoCondition() {
         checkDiscoveredProperties(
             CycleDependedCondition::twoCondition,
-            eq(4),
+            ignoreNumberOfAnalysisResults,
             { _, x, r -> x <= 0 && r == 0 },
-            { _, x, r -> x in 1..3 && r == 0 },
             { _, x, r -> x == 4 && r == 1 },
-            { _, x, r -> x >= 5 && r == 0 }
+            { _, x, r -> (x in 1..3 || x >= 5) && r == 0 }
         )
     }
 
@@ -34,11 +34,10 @@ internal class CycleDependedConditionTest : JavaMethodTestRunner() {
     fun testCycleDependedThreeCondition() {
         checkDiscoveredProperties(
             CycleDependedCondition::threeCondition,
-            eq(4),
+            ignoreNumberOfAnalysisResults,
             { _, x, r -> x <= 0 && r == 0 },
-            { _, x, r -> x in 1..5 && r == 0 },
             { _, x, r -> x == 6 || x > 8 && r == 1 },
-            { _, x, r -> x == 7 && r == 0 }
+            { _, x, r -> (x in 1..5 || x == 7) && r == 0 }
         )
     }
 

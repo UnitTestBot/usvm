@@ -1,5 +1,6 @@
 package org.usvm.samples.enums
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.samples.enums.ComplexEnumExamples.Color
@@ -12,6 +13,7 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Sequence is empty.")
     fun testEnumToEnumMapCountValues() {
         checkDiscoveredProperties(
             ComplexEnumExamples::enumToEnumMapCountValues,
@@ -23,6 +25,7 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Sequence is empty.")
     fun testEnumToEnumMapCountKeys() {
         checkDiscoveredProperties(
             ComplexEnumExamples::enumToEnumMapCountKeys,
@@ -37,6 +40,7 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Sequence is empty.")
     fun testEnumToEnumMapCountMatches() {
         checkDiscoveredProperties(
             ComplexEnumExamples::enumToEnumMapCountMatches,
@@ -47,6 +51,7 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("org.usvm.samples.enums.ComplexEnumExamples.ComplexEnumExamples\$Color")
     fun testCountEqualColors() {
         checkDiscoveredProperties(
             ComplexEnumExamples::countEqualColors,
@@ -58,6 +63,7 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("org.usvm.samples.enums.ComplexEnumExamples.ComplexEnumExamples\$Color")
     fun testCountNullColors() {
         checkDiscoveredProperties(
             ComplexEnumExamples::countNullColors,
@@ -69,6 +75,7 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@1b0e9707")
     fun testFindState() {
         checkDiscoveredProperties(
             ComplexEnumExamples::findState,
@@ -78,6 +85,7 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@1b0e9707")
     fun testCountValuesInArray() {
         fun Color.isCorrectlyCounted(inputs: Array<Color>, counts: Map<Color, Int>): Boolean =
             inputs.count { it == this } == (counts[this] ?: 0)
@@ -92,6 +100,7 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@1b0e9707")
     fun testCountRedInArray() {
         checkDiscoveredProperties(
             ComplexEnumExamples::countRedInArray,

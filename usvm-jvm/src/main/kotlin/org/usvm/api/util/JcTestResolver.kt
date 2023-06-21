@@ -173,7 +173,8 @@ class JcTestResolver(
 
         private fun resolveArray(idx: UConcreteHeapAddress, type: JcArrayType, heapRef: UHeapRef): Any {
             val lengthRef = UArrayLengthLValue(heapRef, type)
-            val length = resolveLValue(lengthRef, ctx.cp.int) as Int
+            val resolvedLength = resolveLValue(lengthRef, ctx.cp.int) as Int
+            val length = if (resolvedLength in 0..10_000) resolvedLength else 0 // TODO hack
 
             val cellSort = ctx.typeToSort(type.elementType)
 

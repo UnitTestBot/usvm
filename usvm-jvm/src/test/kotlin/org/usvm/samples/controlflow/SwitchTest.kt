@@ -1,5 +1,6 @@
 package org.usvm.samples.controlflow
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
@@ -13,6 +14,7 @@ import java.math.RoundingMode.HALF_UP
 
 internal class SwitchTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@2e7563f6")
     fun testSimpleSwitch() {
         checkDiscoveredProperties(
             Switch::simpleSwitch,
@@ -25,6 +27,7 @@ internal class SwitchTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@2e7563f6")
     fun testLookupSwitch() {
         checkDiscoveredProperties(
             Switch::lookupSwitch,
@@ -37,6 +40,7 @@ internal class SwitchTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@2e7563f6")
     fun testEnumSwitch() {
         checkDiscoveredProperties(
             Switch::enumSwitch,

@@ -8,6 +8,7 @@ import org.usvm.util.isException
 import java.util.Deque
 import java.util.LinkedList
 
+@Disabled("Unsupported")
 class QueueUsagesTest : JavaMethodTestRunner() {
     @Test
     fun testCreateArrayDeque() {

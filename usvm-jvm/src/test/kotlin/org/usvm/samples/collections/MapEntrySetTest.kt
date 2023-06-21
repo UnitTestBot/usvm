@@ -1,5 +1,6 @@
 package org.usvm.samples.collections
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.between
@@ -7,6 +8,7 @@ import org.usvm.test.util.checkers.ge
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import org.usvm.util.isException
 
+@Disabled("Unsupported")
 class MapEntrySetTest : JavaMethodTestRunner() {
     @Test
     fun testRemoveFromEntrySet() {

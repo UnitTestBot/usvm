@@ -17,6 +17,7 @@ internal class JvmCrashExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun testCrash() {
         checkDiscoveredProperties(
             JvmCrashExamples::crash, // we expect only one execution after minimization

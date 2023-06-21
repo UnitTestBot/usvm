@@ -1,10 +1,11 @@
 package org.usvm.samples.collections
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 
-
+@Disabled("Unsupported")
 internal class GenericListsExampleTest : JavaMethodTestRunner() {
     @Test
     fun testListOfListsOfT() {

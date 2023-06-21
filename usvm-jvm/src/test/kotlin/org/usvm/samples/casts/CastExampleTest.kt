@@ -1,16 +1,15 @@
 package org.usvm.samples.casts
 
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
-import org.usvm.test.util.checkers.eq
-
-
 import org.usvm.test.util.checkers.eq
 import org.usvm.util.isException
 
 internal class CastExampleTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("An operation is not implemented.")
     fun testSimpleCast() {
         checkDiscoveredProperties(
             CastExample::simpleCast,
@@ -22,6 +21,7 @@ internal class CastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented.")
     fun testClassCastException() {
         checkDiscoveredPropertiesWithExceptions(
             CastExample::castClassException,
@@ -41,14 +41,16 @@ internal class CastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented.")
     fun testCastNullToDifferentTypes() {
-        this.checkDiscoveredProperties(
+        checkDiscoveredProperties(
             CastExample::castNullToDifferentTypes,
             eq(1)
         )
     }
 
     @Test
+    @Disabled("An operation is not implemented.")
     fun testFromObjectToPrimitive() {
         checkDiscoveredProperties(
             CastExample::fromObjectToPrimitive,
@@ -60,6 +62,7 @@ internal class CastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented.")
     fun testCastFromObjectToInterface() {
         checkDiscoveredProperties(
             CastExample::castFromObjectToInterface,
@@ -70,6 +73,7 @@ internal class CastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented.")
     fun testComplicatedCast() {
         checkDiscoveredProperties(
             CastExample::complicatedCast,

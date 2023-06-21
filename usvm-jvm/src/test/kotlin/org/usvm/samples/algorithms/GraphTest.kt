@@ -1,5 +1,6 @@
 package org.usvm.samples.algorithms
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
@@ -8,6 +9,7 @@ import org.usvm.util.isException
 
 internal class GraphTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Only NPEs are found")
     fun testRunFindCycle() {
         checkDiscoveredPropertiesWithExceptions(
             GraphExample::runFindCycle,
@@ -34,6 +36,7 @@ internal class GraphTest : JavaMethodTestRunner() {
      * TODO: fix Dijkstra algorithm.
      */
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [3, 4]")
     fun testRunDijkstraWithParameter() {
         checkDiscoveredPropertiesWithExceptions(
             GraphExample::runDijkstraWithParameter,

@@ -1,12 +1,14 @@
 package org.usvm.samples.collections
 
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.between
 import org.usvm.test.util.checkers.eq
 import org.usvm.util.isException
 
+@Disabled("Unsupported")
 class OptionalsTest : JavaMethodTestRunner() {
     @Test
     fun testCreate() {

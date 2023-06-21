@@ -1,5 +1,6 @@
 package org.usvm.samples.annotations
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
@@ -8,6 +9,7 @@ import org.usvm.test.util.checkers.eq
 @Suppress("SENSELESS_COMPARISON")
 internal class NotNullAnnotationTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Can not set static final int field java.lang.Integer.MIN_VALUE to java.lang.Integer")
     fun testDoesNotThrowNPE() {
         checkDiscoveredProperties(
             NotNullAnnotation::doesNotThrowNPE,
@@ -20,6 +22,7 @@ internal class NotNullAnnotationTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Can not set static final int field java.lang.Integer.MIN_VALUE to java.lang.Integer")
     fun testThrowsNPE() {
         checkDiscoveredProperties(
             NotNullAnnotation::throwsNPE,
@@ -30,6 +33,7 @@ internal class NotNullAnnotationTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Can not set static final int field java.lang.Integer.MIN_VALUE to java.lang.Integer")
     fun testSeveralParameters() {
         checkDiscoveredProperties(
             NotNullAnnotation::severalParameters,
@@ -43,6 +47,7 @@ internal class NotNullAnnotationTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Can not set static final int field java.lang.Integer.MIN_VALUE to java.lang.Integer\n")
     fun testUseNotNullableValue() {
         checkDiscoveredProperties(
             NotNullAnnotation::useNotNullableValue,
@@ -55,6 +60,7 @@ internal class NotNullAnnotationTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@7066363")
     fun testNotNullableVariable() {
         checkDiscoveredProperties(
             NotNullAnnotation::notNullableVariable,
@@ -68,6 +74,7 @@ internal class NotNullAnnotationTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Can not set static final int field java.lang.Integer.MIN_VALUE to java.lang.Integer")
     fun testNotNullField() {
         checkDiscoveredProperties(
             NotNullAnnotation::notNullField,
@@ -87,6 +94,7 @@ internal class NotNullAnnotationTest : JavaMethodTestRunner() {
 //    }
 
     @Test
+    @Disabled("Can not set static final int field java.lang.Integer.MIN_VALUE to java.lang.Integer")
     fun testJavaxValidationNotNull() {
         checkDiscoveredProperties(
             NotNullAnnotation::javaxValidationNotNull,

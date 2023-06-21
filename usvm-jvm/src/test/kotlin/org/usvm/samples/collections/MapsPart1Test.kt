@@ -1,5 +1,6 @@
 package org.usvm.samples.collections
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.between
@@ -8,7 +9,7 @@ import org.usvm.test.util.checkers.ge
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 
-// TODO failed Kotlin compilation ($ in names, generics) SAT-1220 SAT-1332
+@Disabled("Unsupported")
 internal class MapsPart1Test : JavaMethodTestRunner() {
     @Test
     fun testPutElementIfAbsent() {

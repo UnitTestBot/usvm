@@ -1,12 +1,13 @@
 package org.usvm.samples.collections
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 
 import org.usvm.test.util.checkers.eq
 import org.usvm.util.isException
 
-// TODO failed Kotlin compilation (generics) SAT-1332
+@Disabled("Unsupported")
 internal class LinkedListsTest : JavaMethodTestRunner() {
 
     @Test

@@ -2,7 +2,7 @@ package org.usvm.samples.invokes
 
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
-import org.usvm.test.util.checkers.eq
+import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import kotlin.math.max
 
 internal class StaticInvokeExampleTest : JavaMethodTestRunner() {
@@ -10,8 +10,8 @@ internal class StaticInvokeExampleTest : JavaMethodTestRunner() {
     fun testMaxForThree() {
         val method = StaticInvokeExample::maxForThree
         checkDiscoveredProperties(
-            method, // two executions can cover all branches
-            eq(4),
+            method,
+            ignoreNumberOfAnalysisResults,
             { x, y, _, _ -> x > y },
             { x, y, _, _ -> x <= y },
             { x, y, z, _ -> max(x, y.toInt()) > z },

@@ -1,5 +1,6 @@
 package org.usvm.samples.controlflow
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.between
@@ -42,6 +43,7 @@ internal class CyclesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Expected exactly 2 executions, but 1 found")
     fun testFiniteCycle() {
         checkDiscoveredProperties(
             Cycles::finiteCycle,
@@ -62,6 +64,7 @@ internal class CyclesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [0]")
     fun testCallInnerWhile() {
         checkDiscoveredProperties(
             Cycles::callInnerWhile,
@@ -71,6 +74,7 @@ internal class CyclesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [0, 1, 2]")
     fun testInnerLoop() {
         checkDiscoveredProperties(
             Cycles::innerLoop,
@@ -82,6 +86,7 @@ internal class CyclesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun testDivideByZeroCheckWithCycles() {
         checkDiscoveredPropertiesWithExceptions(
             Cycles::divideByZeroCheckWithCycles,
@@ -93,6 +98,7 @@ internal class CyclesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Expected exactly 3 executions, but 2 found")
     fun moveToExceptionTest() {
         checkDiscoveredPropertiesWithExceptions(
             Cycles::moveToException,

@@ -247,7 +247,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
 
     @Test
     fun testContainsOnLiterals() {
-        this.checkDiscoveredProperties(
+        checkDiscoveredProperties(
             StringExamples::containsOnLiterals,
             eq(1),
         )

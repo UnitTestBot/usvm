@@ -9,6 +9,7 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 import kotlin.math.min
 
+@Disabled("Unsupported")
 internal class ListIteratorsTest : JavaMethodTestRunner() {
     @Test
     fun testReturnIterator() {

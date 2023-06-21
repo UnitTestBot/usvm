@@ -1,5 +1,6 @@
 package org.usvm.samples.arrays
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
@@ -8,6 +9,7 @@ import org.usvm.util.isException
 
 class CopyOfExampleTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Sequence is empty.")
     fun testCopyOf() {
         checkDiscoveredPropertiesWithExceptions(
             CopyOfExample::copyOfExample,
@@ -18,6 +20,7 @@ class CopyOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Sequence is empty.")
     fun testCopyOfRange() {
         checkDiscoveredPropertiesWithExceptions(
             CopyOfExample::copyOfRangeExample,

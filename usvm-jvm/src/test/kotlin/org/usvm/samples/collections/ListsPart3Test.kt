@@ -11,7 +11,7 @@ import java.util.ArrayList
 import java.util.LinkedList
 
 
-// TODO failed Kotlin compilation SAT-1332
+@Disabled("Unsupported")
 internal class ListsPart3Test : JavaMethodTestRunner() {
     @Test
     fun createTest() {

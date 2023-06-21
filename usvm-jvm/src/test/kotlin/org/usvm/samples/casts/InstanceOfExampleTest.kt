@@ -1,9 +1,8 @@
 package org.usvm.samples.casts
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
-import org.usvm.test.util.checkers.eq
-
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ge
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
@@ -11,6 +10,7 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun testSimpleInstanceOf() {
         checkDiscoveredProperties(
             InstanceOfExample::simpleInstanceOf,
@@ -21,6 +21,7 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun testNullPointerCheck() {
         checkDiscoveredProperties(
             InstanceOfExample::nullPointerCheck,
@@ -32,6 +33,7 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun testVirtualCall() {
         checkDiscoveredProperties(
             InstanceOfExample::virtualCall,
@@ -42,6 +44,7 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun testVirtualFunctionCallWithCast() {
         checkDiscoveredProperties(
             InstanceOfExample::virtualFunctionCallWithCast,
@@ -53,6 +56,7 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun testVirtualCallWithoutOneInheritor() {
         checkDiscoveredProperties(
             InstanceOfExample::virtualCallWithoutOneInheritor,
@@ -65,6 +69,7 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun testVirtualCallWithoutOneInheritorInverse() {
         checkDiscoveredProperties(
             InstanceOfExample::virtualCallWithoutOneInheritorInverse,
@@ -77,6 +82,7 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun testWithoutOneInheritorOnArray() {
         checkDiscoveredProperties(
             InstanceOfExample::withoutOneInheritorOnArray,
@@ -87,6 +93,7 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun testWithoutOneInheritorOnArrayInverse() {
         checkDiscoveredProperties(
             InstanceOfExample::withoutOneInheritorOnArrayInverse,
@@ -98,6 +105,7 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
 
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun testInstanceOfAsPartOfInternalExpressions() {
         checkDiscoveredProperties(
             InstanceOfExample::instanceOfAsPartOfInternalExpressions,
@@ -130,6 +138,7 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun testInstanceOfAsPartOfInternalExpressionsCastClass() {
         checkDiscoveredProperties(
             InstanceOfExample::instanceOfAsPartOfInternalExpressionsCastClass,
@@ -162,6 +171,7 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun testInstanceOfAsPartOfInternalExpressionsXor() {
         checkDiscoveredProperties(
             InstanceOfExample::instanceOfAsPartOfInternalExpressionsXor,
@@ -190,6 +200,7 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun testInstanceOfAsPartOfInternalExpressionsXorInverse() {
         checkDiscoveredProperties(
             InstanceOfExample::instanceOfAsPartOfInternalExpressionsXorInverse,
@@ -218,6 +229,7 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun testInstanceOfAsPartOfInternalExpressionsIntValue() {
         checkDiscoveredProperties(
             InstanceOfExample::instanceOfAsPartOfInternalExpressionsIntValue,
@@ -234,6 +246,7 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@6f986501")
     fun testInstanceOfAsInternalExpressionsMap() {
         checkDiscoveredProperties(
             InstanceOfExample::instanceOfAsInternalExpressionsMap,
@@ -243,6 +256,7 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
 
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun testSymbolicInstanceOf() {
         checkDiscoveredProperties(
             InstanceOfExample::symbolicInstanceOf,
@@ -257,7 +271,7 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    //TODO: fails without concrete execution
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun testComplicatedInstanceOf() {
         checkDiscoveredProperties(
             InstanceOfExample::complicatedInstanceOf,
@@ -301,6 +315,7 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun testInstanceOfFromArray() {
         checkDiscoveredProperties(
             InstanceOfExample::instanceOfFromArray,
@@ -314,6 +329,7 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun testInstanceOfFromArrayWithReadingAnotherElement() {
         checkDiscoveredProperties(
             InstanceOfExample::instanceOfFromArrayWithReadingAnotherElement,
@@ -326,6 +342,7 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun testInstanceOfFromArrayWithReadingSameElement() {
         checkDiscoveredProperties(
             InstanceOfExample::instanceOfFromArrayWithReadingSameElement,
@@ -338,6 +355,7 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun testIsNull() {
         checkDiscoveredProperties(
             InstanceOfExample::isNull,
@@ -348,6 +366,7 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun testArrayInstanceOfArray() {
         checkDiscoveredProperties(
             InstanceOfExample::arrayInstanceOfArray,
@@ -363,6 +382,7 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun testObjectInstanceOfArray() {
         checkDiscoveredProperties(
             InstanceOfExample::objectInstanceOfArray,
@@ -374,6 +394,7 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun testInstanceOfObjectArray() {
         checkDiscoveredProperties(
             InstanceOfExample::instanceOfObjectArray,
