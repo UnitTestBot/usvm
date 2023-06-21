@@ -1,6 +1,7 @@
 import org.usvm.instrumentation.util.`try`
 import sun.misc.Unsafe
 import java.lang.reflect.Field
+import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 
 
@@ -43,6 +44,11 @@ fun Field.getFieldValue(instance: Any?): Any? {
         return null
     }
 }
+
+fun Method.invokeWithAccessibility(instance: Any?, vararg args: Any?): Any? =
+    withAccessibility {
+        invoke(instance, args)
+    }
 
 fun Field.setFieldValue(instance: Any?, fieldValue: Any?) {
     withAccessibility {
@@ -98,6 +104,18 @@ inline fun <reified R> Field.withAccessibility(block: () -> R): R {
     } finally {
         isAccessible = prevAccessibility
         isFinal = prevIsFinal
+    }
+}
+
+inline fun <reified R> Method.withAccessibility(block: () -> R): R {
+    val prevAccessibility = isAccessible
+
+    isAccessible = true
+
+    try {
+        return block()
+    } finally {
+        isAccessible = prevAccessibility
     }
 }
 

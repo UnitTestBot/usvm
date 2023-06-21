@@ -3,8 +3,8 @@ package org.usvm.instrumentation.serializer
 import com.jetbrains.rd.framework.*
 import org.jacodb.api.*
 import org.jacodb.api.ext.*
-import org.usvm.instrumentation.jacodb.util.stringType
-import org.usvm.instrumentation.testcase.statement.*
+import org.usvm.instrumentation.util.stringType
+import org.usvm.instrumentation.testcase.api.*
 import readJcClass
 import readJcField
 import readJcMethod
