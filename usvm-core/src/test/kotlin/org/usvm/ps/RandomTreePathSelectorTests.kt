@@ -21,6 +21,8 @@ internal class RandomTreePathSelectorTests {
     class PathsTreeNodeMock<T>(
         override val children: MutableList<PathsTreeNode<T>>
     ) : PathsTreeNode<T> {
+        override val depth: Int = 0
+
         override var state: T? = null
 
         override var parent: PathsTreeNode<T>? = null

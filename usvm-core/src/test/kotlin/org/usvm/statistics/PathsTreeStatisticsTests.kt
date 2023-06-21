@@ -24,6 +24,9 @@ class PathsTreeStatisticsTests {
         assertEquals(2, pathsTreeStatistics.root.children.size)
         assertTrue(pathsTreeStatistics.root.children.any { it.state == initialState && it.children.isEmpty() })
         assertTrue(pathsTreeStatistics.root.children.any { it.state == fork && it.children.isEmpty() })
+
+        assertEquals(1, pathsTreeStatistics.getStateDepth(initialState))
+        assertEquals(1, pathsTreeStatistics.getStateDepth(fork))
     }
 
     @Test
@@ -40,6 +43,7 @@ class PathsTreeStatisticsTests {
         }
         var current = pathsTreeStatistics.root
         for (i in 1 until 100) {
+            assertEquals(i, pathsTreeStatistics.getStateDepth(forks[i - 1]))
             assertEquals(2, current.children.size)
             val next = current.children.single { it.state == null || it.state == initialState }
             assertTrue(current.children.any { it.state == forks[i - 1] && it.children.isEmpty() })
@@ -47,6 +51,7 @@ class PathsTreeStatisticsTests {
         }
         assertEquals(initialState, current.state)
         assertTrue(current.children.isEmpty())
+        assertEquals(99, pathsTreeStatistics.getStateDepth(initialState))
     }
 
     private fun <State> PathsTreeNode<State>.traversal(): Sequence<PathsTreeNode<State>> {
@@ -66,10 +71,13 @@ class PathsTreeStatisticsTests {
         for (i in 1 until 100) {
             val stateIdToFork = (hash(i) % i)
             val stateToFork = states[stateIdToFork]
+            val previousDepth = pathsTreeStatistics.getStateDepth(stateToFork)
             val forkedStateId = i.toUInt()
             val forkedState = mockk<UState<*, *, Any, Any>>()
             every { forkedState.id } returns forkedStateId
             pathsTreeStatistics.onStateForked(stateToFork, listOf(forkedState))
+            assertEquals(previousDepth + 1, pathsTreeStatistics.getStateDepth(stateToFork))
+            assertEquals(previousDepth + 1, pathsTreeStatistics.getStateDepth(forkedState))
             assertNotNull(pathsTreeStatistics.root.traversal().singleOrNull {
                 it.children.singleOrNull { it.state == stateToFork } != null &&
                     it.children.singleOrNull { it.state == forkedState } != null
@@ -137,5 +145,6 @@ class PathsTreeStatisticsTests {
         assertEquals(previous, currentNode.parent)
         assertEquals(initialState, currentNode.state)
         assertTrue(currentNode.children.isEmpty())
+        assertEquals(3, pathsTreeStatistics.getStateDepth(initialState))
     }
 }

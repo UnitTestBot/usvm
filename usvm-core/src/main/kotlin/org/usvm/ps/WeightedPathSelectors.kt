@@ -2,10 +2,7 @@ package org.usvm.ps
 
 import org.usvm.UPathSelector
 import org.usvm.UState
-import org.usvm.statistics.CoverageStatistics
-import org.usvm.statistics.DistanceStatistics
-import org.usvm.statistics.StatisticsObservable
-import org.usvm.statistics.StatisticsObserver
+import org.usvm.statistics.*
 import org.usvm.util.DiscretePdf
 import org.usvm.util.VanillaPriorityQueue
 import kotlin.math.max
@@ -45,5 +42,20 @@ fun <Method, Statement, State : UState<*, *, Method, Statement>> createClosestTo
         return WeightedPathSelector({ VanillaPriorityQueue(compareByHash()) }, weighter)
     }
 
-    return WeightedPathSelector({ DiscretePdf(compareByHash()) { random.nextFloat() } }) { 1f / max(weighter.weight(it).toFloat(), 1f) }
+    return WeightedPathSelector({ DiscretePdf(compareByHash()) { random.nextFloat() } }) {
+        1f / max(weighter.weight(it).toFloat(), 1f)
+    }
+}
+
+fun <Method, Statement, State : UState<*, *, Method, Statement>> createForkDepthPathSelector(
+    pathsTreeStatistics: PathsTreeStatistics<Method, Statement, State>,
+    random: Random? = null
+): UPathSelector<State> {
+    if (random == null) {
+        return WeightedPathSelector({ VanillaPriorityQueue(compareByHash()) }) { pathsTreeStatistics.getStateDepth(it) }
+    }
+
+    return WeightedPathSelector({ DiscretePdf(compareByHash()) { random.nextFloat() } }) {
+        1f / max(pathsTreeStatistics.getStateDepth(it).toFloat(), 1f)
+    }
 }
