@@ -1,0 +1,644 @@
+Compiled from "Throwables.java"
+public final class com.google.common.base.Throwables {
+  private static final java.lang.String JAVA_LANG_ACCESS_CLASSNAME;
+
+  static final java.lang.String SHARED_SECRETS_CLASSNAME;
+
+  private static final java.lang.Object jla;
+
+  private static final java.lang.reflect.Method getStackTraceElementMethod;
+
+  private static final java.lang.reflect.Method getStackTraceDepthMethod;
+
+  private com.google.common.base.Throwables();
+    Code:
+       0: aload_0
+       1: invokespecial #5                  // Method java/lang/Object."<init>":()V
+       4: return
+    LineNumberTable:
+      line 49: 0
+    LocalVariableTable:
+      Start  Length  Slot  Name   Signature
+          0       5     0  this   Lcom/google/common/base/Throwables;
+
+  public static <X extends java.lang.Throwable> void throwIfInstanceOf(java.lang.Throwable, java.lang.Class<X>) throws X;
+    Code:
+       0: aload_0
+       1: invokestatic  #6                  // Method com/google/common/base/Preconditions.checkNotNull:(Ljava/lang/Object;)Ljava/lang/Object;
+       4: pop
+       5: aload_1
+       6: aload_0
+       7: invokevirtual #7                  // Method java/lang/Class.isInstance:(Ljava/lang/Object;)Z
+      10: ifeq          22
+      13: aload_1
+      14: aload_0
+      15: invokevirtual #8                  // Method java/lang/Class.cast:(Ljava/lang/Object;)Ljava/lang/Object;
+      18: checkcast     #9                  // class java/lang/Throwable
+      21: athrow
+      22: return
+    LineNumberTable:
+      line 74: 0
+      line 75: 5
+      line 76: 13
+      line 78: 22
+    LocalVariableTable:
+      Start  Length  Slot  Name   Signature
+          0      23     0 throwable   Ljava/lang/Throwable;
+          0      23     1 declaredType   Ljava/lang/Class;
+
+  public static <X extends java.lang.Throwable> void propagateIfInstanceOf(java.lang.Throwable, java.lang.Class<X>) throws X;
+    Code:
+       0: aload_0
+       1: ifnull        9
+       4: aload_0
+       5: aload_1
+       6: invokestatic  #10                 // Method throwIfInstanceOf:(Ljava/lang/Throwable;Ljava/lang/Class;)V
+       9: return
+    LineNumberTable:
+      line 103: 0
+      line 104: 4
+      line 106: 9
+    LocalVariableTable:
+      Start  Length  Slot  Name   Signature
+          0      10     0 throwable   Ljava/lang/Throwable;
+          0      10     1 declaredType   Ljava/lang/Class;
+
+  public static void throwIfUnchecked(java.lang.Throwable);
+    Code:
+       0: aload_0
+       1: invokestatic  #6                  // Method com/google/common/base/Preconditions.checkNotNull:(Ljava/lang/Object;)Ljava/lang/Object;
+       4: pop
+       5: aload_0
+       6: instanceof    #11                 // class java/lang/RuntimeException
+       9: ifeq          17
+      12: aload_0
+      13: checkcast     #11                 // class java/lang/RuntimeException
+      16: athrow
+      17: aload_0
+      18: instanceof    #12                 // class java/lang/Error
+      21: ifeq          29
+      24: aload_0
+      25: checkcast     #12                 // class java/lang/Error
+      28: athrow
+      29: return
+    LineNumberTable:
+      line 128: 0
+      line 129: 5
+      line 130: 12
+      line 132: 17
+      line 133: 24
+      line 135: 29
+    LocalVariableTable:
+      Start  Length  Slot  Name   Signature
+          0      30     0 throwable   Ljava/lang/Throwable;
+
+  public static void propagateIfPossible(java.lang.Throwable);
+    Code:
+       0: aload_0
+       1: ifnull        8
+       4: aload_0
+       5: invokestatic  #13                 // Method throwIfUnchecked:(Ljava/lang/Throwable;)V
+       8: return
+    LineNumberTable:
+      line 158: 0
+      line 159: 4
+      line 161: 8
+    LocalVariableTable:
+      Start  Length  Slot  Name   Signature
+          0       9     0 throwable   Ljava/lang/Throwable;
+
+  public static <X extends java.lang.Throwable> void propagateIfPossible(java.lang.Throwable, java.lang.Class<X>) throws X;
+    Code:
+       0: aload_0
+       1: aload_1
+       2: invokestatic  #14                 // Method propagateIfInstanceOf:(Ljava/lang/Throwable;Ljava/lang/Class;)V
+       5: aload_0
+       6: invokestatic  #15                 // Method propagateIfPossible:(Ljava/lang/Throwable;)V
+       9: return
+    LineNumberTable:
+      line 184: 0
+      line 185: 5
+      line 186: 9
+    LocalVariableTable:
+      Start  Length  Slot  Name   Signature
+          0      10     0 throwable   Ljava/lang/Throwable;
+          0      10     1 declaredType   Ljava/lang/Class;
+
+  public static <X1 extends java.lang.Throwable, X2 extends java.lang.Throwable> void propagateIfPossible(java.lang.Throwable, java.lang.Class<X1>, java.lang.Class<X2>) throws X1, X2;
+    Code:
+       0: aload_2
+       1: invokestatic  #6                  // Method com/google/common/base/Preconditions.checkNotNull:(Ljava/lang/Object;)Ljava/lang/Object;
+       4: pop
+       5: aload_0
+       6: aload_1
+       7: invokestatic  #14                 // Method propagateIfInstanceOf:(Ljava/lang/Throwable;Ljava/lang/Class;)V
+      10: aload_0
+      11: aload_2
+      12: invokestatic  #16                 // Method propagateIfPossible:(Ljava/lang/Throwable;Ljava/lang/Class;)V
+      15: return
+    LineNumberTable:
+      line 203: 0
+      line 204: 5
+      line 205: 10
+      line 206: 15
+    LocalVariableTable:
+      Start  Length  Slot  Name   Signature
+          0      16     0 throwable   Ljava/lang/Throwable;
+          0      16     1 declaredType1   Ljava/lang/Class;
+          0      16     2 declaredType2   Ljava/lang/Class;
+
+  public static java.lang.RuntimeException propagate(java.lang.Throwable);
+    Code:
+       0: aload_0
+       1: invokestatic  #13                 // Method throwIfUnchecked:(Ljava/lang/Throwable;)V
+       4: new           #11                 // class java/lang/RuntimeException
+       7: dup
+       8: aload_0
+       9: invokespecial #17                 // Method java/lang/RuntimeException."<init>":(Ljava/lang/Throwable;)V
+      12: athrow
+    LineNumberTable:
+      line 240: 0
+      line 241: 4
+    LocalVariableTable:
+      Start  Length  Slot  Name   Signature
+          0      13     0 throwable   Ljava/lang/Throwable;
+
+  public static java.lang.Throwable getRootCause(java.lang.Throwable);
+    Code:
+       0: aload_0
+       1: astore_1
+       2: iconst_0
+       3: istore_2
+       4: aload_0
+       5: invokevirtual #18                 // Method java/lang/Throwable.getCause:()Ljava/lang/Throwable;
+       8: dup
+       9: astore_3
+      10: ifnull        53
+      13: aload_3
+      14: astore_0
+      15: aload_0
+      16: aload_1
+      17: if_acmpne     31
+      20: new           #19                 // class java/lang/IllegalArgumentException
+      23: dup
+      24: ldc           #20                 // String Loop in causal chain detected.
+      26: aload_0
+      27: invokespecial #21                 // Method java/lang/IllegalArgumentException."<init>":(Ljava/lang/String;Ljava/lang/Throwable;)V
+      30: athrow
+      31: iload_2
+      32: ifeq          40
+      35: aload_1
+      36: invokevirtual #18                 // Method java/lang/Throwable.getCause:()Ljava/lang/Throwable;
+      39: astore_1
+      40: iload_2
+      41: ifne          48
+      44: iconst_1
+      45: goto          49
+      48: iconst_0
+      49: istore_2
+      50: goto          4
+      53: aload_0
+      54: areturn
+    LineNumberTable:
+      line 257: 0
+      line 258: 2
+      line 261: 4
+      line 262: 13
+      line 264: 15
+      line 265: 20
+      line 267: 31
+      line 268: 35
+      line 270: 40
+      line 272: 53
+    LocalVariableTable:
+      Start  Length  Slot  Name   Signature
+          0      55     0 throwable   Ljava/lang/Throwable;
+          2      53     1 slowPointer   Ljava/lang/Throwable;
+          4      51     2 advanceSlowPointer   Z
+         10      45     3 cause   Ljava/lang/Throwable;
+
+  public static java.util.List<java.lang.Throwable> getCausalChain(java.lang.Throwable);
+    Code:
+       0: aload_0
+       1: invokestatic  #6                  // Method com/google/common/base/Preconditions.checkNotNull:(Ljava/lang/Object;)Ljava/lang/Object;
+       4: pop
+       5: new           #22                 // class java/util/ArrayList
+       8: dup
+       9: iconst_4
+      10: invokespecial #23                 // Method java/util/ArrayList."<init>":(I)V
+      13: astore_1
+      14: aload_1
+      15: aload_0
+      16: invokeinterface #24,  2           // InterfaceMethod java/util/List.add:(Ljava/lang/Object;)Z
+      21: pop
+      22: aload_0
+      23: astore_2
+      24: iconst_0
+      25: istore_3
+      26: aload_0
+      27: invokevirtual #18                 // Method java/lang/Throwable.getCause:()Ljava/lang/Throwable;
+      30: dup
+      31: astore        4
+      33: ifnull        85
+      36: aload         4
+      38: astore_0
+      39: aload_1
+      40: aload_0
+      41: invokeinterface #24,  2           // InterfaceMethod java/util/List.add:(Ljava/lang/Object;)Z
+      46: pop
+      47: aload_0
+      48: aload_2
+      49: if_acmpne     63
+      52: new           #19                 // class java/lang/IllegalArgumentException
+      55: dup
+      56: ldc           #20                 // String Loop in causal chain detected.
+      58: aload_0
+      59: invokespecial #21                 // Method java/lang/IllegalArgumentException."<init>":(Ljava/lang/String;Ljava/lang/Throwable;)V
+      62: athrow
+      63: iload_3
+      64: ifeq          72
+      67: aload_2
+      68: invokevirtual #18                 // Method java/lang/Throwable.getCause:()Ljava/lang/Throwable;
+      71: astore_2
+      72: iload_3
+      73: ifne          80
+      76: iconst_1
+      77: goto          81
+      80: iconst_0
+      81: istore_3
+      82: goto          26
+      85: aload_1
+      86: invokestatic  #25                 // Method java/util/Collections.unmodifiableList:(Ljava/util/List;)Ljava/util/List;
+      89: areturn
+    LineNumberTable:
+      line 293: 0
+      line 294: 5
+      line 295: 14
+      line 299: 22
+      line 300: 24
+      line 303: 26
+      line 304: 36
+      line 305: 39
+      line 307: 47
+      line 308: 52
+      line 310: 63
+      line 311: 67
+      line 313: 72
+      line 315: 85
+    LocalVariableTable:
+      Start  Length  Slot  Name   Signature
+          0      90     0 throwable   Ljava/lang/Throwable;
+         14      76     1 causes   Ljava/util/List;
+         24      66     2 slowPointer   Ljava/lang/Throwable;
+         26      64     3 advanceSlowPointer   Z
+         33      57     4 cause   Ljava/lang/Throwable;
+
+  public static <X extends java.lang.Throwable> X getCauseAs(java.lang.Throwable, java.lang.Class<X>);
+    Code:
+       0: aload_1
+       1: aload_0
+       2: invokevirtual #18                 // Method java/lang/Throwable.getCause:()Ljava/lang/Throwable;
+       5: invokevirtual #8                  // Method java/lang/Class.cast:(Ljava/lang/Object;)Ljava/lang/Object;
+       8: checkcast     #9                  // class java/lang/Throwable
+      11: areturn
+      12: astore_2
+      13: aload_2
+      14: aload_0
+      15: invokevirtual #27                 // Method java/lang/ClassCastException.initCause:(Ljava/lang/Throwable;)Ljava/lang/Throwable;
+      18: pop
+      19: aload_2
+      20: athrow
+    Exception table:
+       from    to  target type
+           0    11    12   Class java/lang/ClassCastException
+    LineNumberTable:
+      line 336: 0
+      line 337: 12
+      line 338: 13
+      line 339: 19
+    LocalVariableTable:
+      Start  Length  Slot  Name   Signature
+         13       8     2     e   Ljava/lang/ClassCastException;
+          0      21     0 throwable   Ljava/lang/Throwable;
+          0      21     1 expectedCauseType   Ljava/lang/Class;
+
+  public static java.lang.String getStackTraceAsString(java.lang.Throwable);
+    Code:
+       0: new           #28                 // class java/io/StringWriter
+       3: dup
+       4: invokespecial #29                 // Method java/io/StringWriter."<init>":()V
+       7: astore_1
+       8: aload_0
+       9: new           #30                 // class java/io/PrintWriter
+      12: dup
+      13: aload_1
+      14: invokespecial #31                 // Method java/io/PrintWriter."<init>":(Ljava/io/Writer;)V
+      17: invokevirtual #32                 // Method java/lang/Throwable.printStackTrace:(Ljava/io/PrintWriter;)V
+      20: aload_1
+      21: invokevirtual #33                 // Method java/io/StringWriter.toString:()Ljava/lang/String;
+      24: areturn
+    LineNumberTable:
+      line 351: 0
+      line 352: 8
+      line 353: 20
+    LocalVariableTable:
+      Start  Length  Slot  Name   Signature
+          0      25     0 throwable   Ljava/lang/Throwable;
+          8      17     1 stringWriter   Ljava/io/StringWriter;
+
+  public static java.util.List<java.lang.StackTraceElement> lazyStackTrace(java.lang.Throwable);
+    Code:
+       0: invokestatic  #34                 // Method lazyStackTraceIsLazy:()Z
+       3: ifeq          13
+       6: aload_0
+       7: invokestatic  #35                 // Method jlaStackTrace:(Ljava/lang/Throwable;)Ljava/util/List;
+      10: goto          23
+      13: aload_0
+      14: invokevirtual #36                 // Method java/lang/Throwable.getStackTrace:()[Ljava/lang/StackTraceElement;
+      17: invokestatic  #37                 // Method java/util/Arrays.asList:([Ljava/lang/Object;)Ljava/util/List;
+      20: invokestatic  #25                 // Method java/util/Collections.unmodifiableList:(Ljava/util/List;)Ljava/util/List;
+      23: areturn
+    LineNumberTable:
+      line 388: 0
+      line 389: 7
+      line 390: 14
+      line 388: 23
+    LocalVariableTable:
+      Start  Length  Slot  Name   Signature
+          0      24     0 throwable   Ljava/lang/Throwable;
+
+  public static boolean lazyStackTraceIsLazy();
+    Code:
+       0: getstatic     #4                  // Field getStackTraceElementMethod:Ljava/lang/reflect/Method;
+       3: ifnull        16
+       6: getstatic     #1                  // Field getStackTraceDepthMethod:Ljava/lang/reflect/Method;
+       9: ifnull        16
+      12: iconst_1
+      13: goto          17
+      16: iconst_0
+      17: ireturn
+    LineNumberTable:
+      line 402: 0
+
+  private static java.util.List<java.lang.StackTraceElement> jlaStackTrace(java.lang.Throwable);
+    Code:
+       0: aload_0
+       1: invokestatic  #6                  // Method com/google/common/base/Preconditions.checkNotNull:(Ljava/lang/Object;)Ljava/lang/Object;
+       4: pop
+       5: new           #38                 // class com/google/common/base/Throwables$1
+       8: dup
+       9: aload_0
+      10: invokespecial #39                 // Method com/google/common/base/Throwables$1."<init>":(Ljava/lang/Throwable;)V
+      13: areturn
+    LineNumberTable:
+      line 407: 0
+      line 414: 5
+    LocalVariableTable:
+      Start  Length  Slot  Name   Signature
+          0      14     0     t   Ljava/lang/Throwable;
+
+  private static java.lang.Object invokeAccessibleNonThrowingMethod(java.lang.reflect.Method, java.lang.Object, java.lang.Object...);
+    Code:
+       0: aload_0
+       1: aload_1
+       2: aload_2
+       3: invokevirtual #40                 // Method java/lang/reflect/Method.invoke:(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
+       6: areturn
+       7: astore_3
+       8: new           #11                 // class java/lang/RuntimeException
+      11: dup
+      12: aload_3
+      13: invokespecial #17                 // Method java/lang/RuntimeException."<init>":(Ljava/lang/Throwable;)V
+      16: athrow
+      17: astore_3
+      18: aload_3
+      19: invokevirtual #43                 // Method java/lang/reflect/InvocationTargetException.getCause:()Ljava/lang/Throwable;
+      22: invokestatic  #44                 // Method propagate:(Ljava/lang/Throwable;)Ljava/lang/RuntimeException;
+      25: athrow
+    Exception table:
+       from    to  target type
+           0     6     7   Class java/lang/IllegalAccessException
+           0     6    17   Class java/lang/reflect/InvocationTargetException
+    LineNumberTable:
+      line 432: 0
+      line 433: 7
+      line 434: 8
+      line 435: 17
+      line 436: 18
+    LocalVariableTable:
+      Start  Length  Slot  Name   Signature
+          8       9     3     e   Ljava/lang/IllegalAccessException;
+         18       8     3     e   Ljava/lang/reflect/InvocationTargetException;
+          0      26     0 method   Ljava/lang/reflect/Method;
+          0      26     1 receiver   Ljava/lang/Object;
+          0      26     2 params   [Ljava/lang/Object;
+
+  private static java.lang.Object getJLA();
+    Code:
+       0: ldc           #46                 // String sun.misc.SharedSecrets
+       2: iconst_0
+       3: aconst_null
+       4: invokestatic  #47                 // Method java/lang/Class.forName:(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;
+       7: astore_0
+       8: aload_0
+       9: ldc           #48                 // String getJavaLangAccess
+      11: iconst_0
+      12: anewarray     #49                 // class java/lang/Class
+      15: invokevirtual #50                 // Method java/lang/Class.getMethod:(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;
+      18: astore_1
+      19: aload_1
+      20: aconst_null
+      21: iconst_0
+      22: anewarray     #51                 // class java/lang/Object
+      25: invokevirtual #40                 // Method java/lang/reflect/Method.invoke:(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
+      28: areturn
+      29: astore_0
+      30: aload_0
+      31: athrow
+      32: astore_0
+      33: aconst_null
+      34: areturn
+    Exception table:
+       from    to  target type
+           0    28    29   Class java/lang/ThreadDeath
+           0    28    32   Class java/lang/Throwable
+    LineNumberTable:
+      line 480: 0
+      line 481: 8
+      line 482: 19
+      line 483: 29
+      line 484: 30
+      line 485: 32
+      line 490: 33
+    LocalVariableTable:
+      Start  Length  Slot  Name   Signature
+          8      21     0 sharedSecrets   Ljava/lang/Class;
+         19      10     1 langAccess   Ljava/lang/reflect/Method;
+         30       2     0 death   Ljava/lang/ThreadDeath;
+         33       2     0     t   Ljava/lang/Throwable;
+
+  private static java.lang.reflect.Method getGetMethod();
+    Code:
+       0: ldc           #53                 // String getStackTraceElement
+       2: iconst_2
+       3: anewarray     #49                 // class java/lang/Class
+       6: dup
+       7: iconst_0
+       8: ldc           #9                  // class java/lang/Throwable
+      10: aastore
+      11: dup
+      12: iconst_1
+      13: getstatic     #54                 // Field java/lang/Integer.TYPE:Ljava/lang/Class;
+      16: aastore
+      17: invokestatic  #55                 // Method getJlaMethod:(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;
+      20: areturn
+    LineNumberTable:
+      line 500: 0
+
+  private static java.lang.reflect.Method getSizeMethod();
+    Code:
+       0: ldc           #56                 // String getStackTraceDepth
+       2: iconst_1
+       3: anewarray     #49                 // class java/lang/Class
+       6: dup
+       7: iconst_0
+       8: ldc           #9                  // class java/lang/Throwable
+      10: aastore
+      11: invokestatic  #55                 // Method getJlaMethod:(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;
+      14: astore_0
+      15: aload_0
+      16: ifnonnull     21
+      19: aconst_null
+      20: areturn
+      21: aload_0
+      22: invokestatic  #57                 // Method getJLA:()Ljava/lang/Object;
+      25: iconst_1
+      26: anewarray     #51                 // class java/lang/Object
+      29: dup
+      30: iconst_0
+      31: new           #9                  // class java/lang/Throwable
+      34: dup
+      35: invokespecial #58                 // Method java/lang/Throwable."<init>":()V
+      38: aastore
+      39: invokevirtual #40                 // Method java/lang/reflect/Method.invoke:(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
+      42: pop
+      43: aload_0
+      44: areturn
+      45: astore_0
+      46: aconst_null
+      47: areturn
+    Exception table:
+       from    to  target type
+           0    20    45   Class java/lang/UnsupportedOperationException
+           0    20    45   Class java/lang/IllegalAccessException
+           0    20    45   Class java/lang/reflect/InvocationTargetException
+          21    44    45   Class java/lang/UnsupportedOperationException
+          21    44    45   Class java/lang/IllegalAccessException
+          21    44    45   Class java/lang/reflect/InvocationTargetException
+    LineNumberTable:
+      line 515: 0
+      line 516: 15
+      line 517: 19
+      line 519: 21
+      line 520: 43
+      line 521: 45
+      line 522: 46
+    LocalVariableTable:
+      Start  Length  Slot  Name   Signature
+         15      30     0 getStackTraceDepth   Ljava/lang/reflect/Method;
+         46       2     0     e   Ljava/lang/Exception;
+
+  private static java.lang.reflect.Method getJlaMethod(java.lang.String, java.lang.Class<?>...) throws java.lang.ThreadDeath;
+    Code:
+       0: ldc           #60                 // String sun.misc.JavaLangAccess
+       2: iconst_0
+       3: aconst_null
+       4: invokestatic  #47                 // Method java/lang/Class.forName:(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;
+       7: aload_0
+       8: aload_1
+       9: invokevirtual #50                 // Method java/lang/Class.getMethod:(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;
+      12: areturn
+      13: astore_2
+      14: aload_2
+      15: athrow
+      16: astore_2
+      17: aconst_null
+      18: areturn
+    Exception table:
+       from    to  target type
+           0    12    13   Class java/lang/ThreadDeath
+           0    12    16   Class java/lang/Throwable
+    LineNumberTable:
+      line 530: 0
+      line 531: 13
+      line 532: 14
+      line 533: 16
+      line 538: 17
+    LocalVariableTable:
+      Start  Length  Slot  Name   Signature
+         14       2     2 death   Ljava/lang/ThreadDeath;
+         17       2     2     t   Ljava/lang/Throwable;
+          0      19     0  name   Ljava/lang/String;
+          0      19     1 parameterTypes   [Ljava/lang/Class;
+
+  static java.lang.reflect.Method access$000();
+    Code:
+       0: getstatic     #4                  // Field getStackTraceElementMethod:Ljava/lang/reflect/Method;
+       3: areturn
+    LineNumberTable:
+      line 48: 0
+
+  static java.lang.Object access$100();
+    Code:
+       0: getstatic     #3                  // Field jla:Ljava/lang/Object;
+       3: areturn
+    LineNumberTable:
+      line 48: 0
+
+  static java.lang.Object access$200(java.lang.reflect.Method, java.lang.Object, java.lang.Object[]);
+    Code:
+       0: aload_0
+       1: aload_1
+       2: aload_2
+       3: invokestatic  #2                  // Method invokeAccessibleNonThrowingMethod:(Ljava/lang/reflect/Method;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
+       6: areturn
+    LineNumberTable:
+      line 48: 0
+    LocalVariableTable:
+      Start  Length  Slot  Name   Signature
+          0       7     0    x0   Ljava/lang/reflect/Method;
+          0       7     1    x1   Ljava/lang/Object;
+          0       7     2    x2   [Ljava/lang/Object;
+
+  static java.lang.reflect.Method access$300();
+    Code:
+       0: getstatic     #1                  // Field getStackTraceDepthMethod:Ljava/lang/reflect/Method;
+       3: areturn
+    LineNumberTable:
+      line 48: 0
+
+  static {};
+    Code:
+       0: invokestatic  #57                 // Method getJLA:()Ljava/lang/Object;
+       3: putstatic     #3                  // Field jla:Ljava/lang/Object;
+       6: getstatic     #3                  // Field jla:Ljava/lang/Object;
+       9: ifnonnull     16
+      12: aconst_null
+      13: goto          19
+      16: invokestatic  #61                 // Method getGetMethod:()Ljava/lang/reflect/Method;
+      19: putstatic     #4                  // Field getStackTraceElementMethod:Ljava/lang/reflect/Method;
+      22: getstatic     #3                  // Field jla:Ljava/lang/Object;
+      25: ifnonnull     32
+      28: aconst_null
+      29: goto          35
+      32: invokestatic  #62                 // Method getSizeMethod:()Ljava/lang/reflect/Method;
+      35: putstatic     #1                  // Field getStackTraceDepthMethod:Ljava/lang/reflect/Method;
+      38: return
+    LineNumberTable:
+      line 451: 0
+      line 458: 6
+      line 459: 16
+      line 466: 22
+      line 467: 32
+      line 466: 38
+}

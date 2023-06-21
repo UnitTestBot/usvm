@@ -2,7 +2,7 @@ package org.usvm.instrumentation.serializer
 
 import org.jacodb.api.JcClasspath
 import org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor
-import org.usvm.instrumentation.testcase.statement.UTestExpression
+import org.usvm.instrumentation.testcase.api.UTestExpression
 import java.util.*
 
 class SerializationContext(
