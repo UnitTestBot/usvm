@@ -167,6 +167,24 @@ data class UTestCyclicReferenceDescriptor(
     override fun structurallyEqual(other: UTestValueDescriptor): Boolean = this == other
 }
 
+class UTestEnumValueDescriptor(
+    override val type: JcType,
+    val enumValueName: String,
+    val fields: Map<JcField, UTestValueDescriptor>,
+    override val refId: Int
+) : UTestValueDescriptor(), UTestRefDescriptor {
+    override fun structurallyEqual(other: UTestValueDescriptor): Boolean {
+        if (other !is UTestEnumValueDescriptor) return false
+        if (type != other.type) return false
+        if (enumValueName != other.enumValueName) return false
+        for ((key, value) in fields) {
+            val otherFieldValue = other.fields[key] ?: return false
+            if (!descriptorsAreEqual(value, otherFieldValue)) return false
+        }
+        return true
+    }
+}
+
 //TODO: Avoid recursion via DescriptorPrinter
 class UTestObjectDescriptor(
     override val type: JcType,

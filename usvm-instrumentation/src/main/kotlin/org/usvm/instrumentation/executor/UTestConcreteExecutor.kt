@@ -7,22 +7,29 @@ import com.jetbrains.rd.util.reactive.RdFault
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withTimeout
 import org.jacodb.api.JcClasspath
-import org.usvm.instrumentation.jacodb.transform.JcInstrumenterFactory
+import org.usvm.instrumentation.instrumentation.JcInstrumenterFactory
 import org.usvm.instrumentation.testcase.UTest
-import org.usvm.instrumentation.testcase.statement.UTestExecutionFailedResult
-import org.usvm.instrumentation.testcase.statement.UTestExecutionResult
-import org.usvm.instrumentation.testcase.statement.UTestExecutionTimedOutResult
+import org.usvm.instrumentation.testcase.api.UTestExecutionFailedResult
+import org.usvm.instrumentation.testcase.api.UTestExecutionResult
+import org.usvm.instrumentation.testcase.api.UTestExecutionTimedOutResult
 import org.usvm.instrumentation.util.InstrumentationModuleConstants
 import java.util.concurrent.TimeoutException
 import kotlin.reflect.KClass
 import kotlin.time.Duration
 
 class UTestConcreteExecutor(
-    private val instrumentationClassFactory: KClass<out JcInstrumenterFactory<*>>,
-    private val testingProjectClasspath: String,
-    private val jcClasspath: JcClasspath,
+    instrumentationClassFactory: KClass<out JcInstrumenterFactory<*>>,
+    testingProjectClasspath: String,
+    jcClasspath: JcClasspath,
     private val timeout: Duration
 ) : AutoCloseable {
+
+    constructor(
+        instrumentationClassFactory: KClass<out JcInstrumenterFactory<*>>,
+        testingProjectClasspath: List<String>,
+        jcClasspath: JcClasspath,
+        timeout: Duration
+    ) : this(instrumentationClassFactory, testingProjectClasspath.joinToString(":"), jcClasspath, timeout)
 
     private val lifetime = LifetimeDefinition()
 
@@ -57,11 +64,11 @@ class UTestConcreteExecutor(
         }
     }
 
-    suspend fun execute(uTest: UTest): UTestExecutionResult {
+    suspend fun executeAsync(uTest: UTest): UTestExecutionResult {
         ensureRunnerAlive()
         return try {
             withTimeout(timeout) {
-                instrumentationProcessRunner.executeUTest(uTest)
+                instrumentationProcessRunner.executeUTestAsync(uTest)
             }
         } catch (e: TimeoutCancellationException) {
             UTestExecutionTimedOutResult(e.message ?: "timeout")
