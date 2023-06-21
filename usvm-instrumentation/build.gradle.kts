@@ -39,6 +39,7 @@ dependencies {
     implementation("com.jetbrains.rd:rd-framework:${Versions.rd}")
     implementation("org.ini4j:ini4j:${Versions.ini4j}")
     implementation("com.jetbrains.rd:rd-core:${Versions.rd}")
+    implementation("commons-cli:commons-cli:1.5.0")
 //    rdgenModelsCompileClasspath("com.jetbrains.rd:rd-gen:${Versions.rd}")
     implementation("com.jetbrains.rd:rd-gen:${Versions.rd}")
 }
@@ -94,7 +95,9 @@ tasks {
             attributes(
                 mapOf(
                     "Main-Class" to "org.usvm.instrumentation.rd.InstrumentedProcessKt",
-                    "Premain-Class" to "org.usvm.instrumentation.agent.Agent"
+                    "Premain-Class" to "org.usvm.instrumentation.agent.Agent",
+                    "Can-Retransform-Classes" to "true",
+                    "Can-Redefine-Classes" to "true"
                 )
             )
         } // Provided we set it up in the application plugin configuration
@@ -131,5 +134,4 @@ tasks.withType<Test> {
         "usvm-instrumentation-jar",
         buildDir.resolve("libs").resolve("usvm-instrumentation-1.0.jar").absolutePath
     )
-    jvmArgs("--add-opens", "java.base/jdk.internal.loader=ALL-UNNAMED")
 }

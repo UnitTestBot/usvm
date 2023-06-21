@@ -1,13 +1,13 @@
 package org.usvm.instrumentation.testcase.descriptor
 
 import ReflectionUtils
-import org.usvm.instrumentation.classloader.BaseWorkerClassLoader
-import org.usvm.instrumentation.jacodb.util.toJavaClass
-import org.usvm.instrumentation.jacodb.util.toJavaField
+import org.usvm.instrumentation.classloader.WorkerClassLoader
+import org.usvm.instrumentation.util.toJavaClass
+import org.usvm.instrumentation.util.toJavaField
 import setFieldValue
 import java.util.*
 
-class Descriptor2ValueConverter(private val workerClassLoader: BaseWorkerClassLoader) {
+class Descriptor2ValueConverter(private val workerClassLoader: WorkerClassLoader) {
 
     private val descriptorToObject = IdentityHashMap<UTestValueDescriptor, Any>()
 
@@ -16,7 +16,6 @@ class Descriptor2ValueConverter(private val workerClassLoader: BaseWorkerClassLo
             descriptorToObject.getOrPut(descriptor) {
                 buildObject(descriptor)
             }
-
 
     private fun buildObject(descriptor: UTestValueDescriptor): Any? =
         when (descriptor) {
@@ -41,6 +40,7 @@ class Descriptor2ValueConverter(private val workerClassLoader: BaseWorkerClassLo
             is UTestConstantDescriptor.String -> descriptor.value
             is UTestCyclicReferenceDescriptor -> descriptorToObject[descriptor] ?: error("Can't find descriptor in cache")
             is UTestObjectDescriptor -> `object`(descriptor)
+            is UTestEnumValueDescriptor -> `enum`(descriptor)
         }
 
 
@@ -55,6 +55,17 @@ class Descriptor2ValueConverter(private val workerClassLoader: BaseWorkerClassLo
             jField.setFieldValue(classInstance, jFieldValue)
         }
         return classInstance
+    }
+
+    private fun `enum`(descriptor: UTestEnumValueDescriptor): Any {
+        val klass = descriptor.type.toJavaClass(workerClassLoader)
+        val enumValue = klass.enumConstants.find { it.toString() == descriptor.enumValueName } ?: error("Can't build descriptor for enum")
+        for ((jcField, jcFieldDescr) in descriptor.fields) {
+            val jField = jcField.toJavaField(workerClassLoader)
+            val jFieldValue = buildObjectFromDescriptor(jcFieldDescr)
+            jField.setFieldValue(enumValue, jFieldValue)
+        }
+        return enumValue
     }
 
 }
