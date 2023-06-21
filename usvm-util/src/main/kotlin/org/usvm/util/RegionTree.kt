@@ -5,10 +5,16 @@ import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.toPersistentMap
 
 /**
- * Region tree is a data structure storing collection of values by abstract regions.
+ * Region tree is a data structure storing collection of values by abstract regions. You can think, that
+ * [RegionTree] is actually a persistent event-storage (event == [Value]) with
+ * support of grouped reading and writing, where events live in specific regions.
+ *
  * It maintains the following two invariants:
  * * (1) all sibling regions are pairwise disjoint;
  * * (2) all child regions are included into parent region.
+ *
+ * @param Reg a region of writing or reading
+ * @param Value a value to write or read
  */
 class RegionTree<Reg, Value>(
     val entries: PersistentMap<Reg, Pair<Value, RegionTree<Reg, Value>>>,
