@@ -3,7 +3,7 @@ package org.usvm.instrumentation.serializer
 import com.jetbrains.rd.framework.*
 import org.jacodb.api.JcField
 import org.jacodb.api.ext.*
-import org.usvm.instrumentation.jacodb.util.stringType
+import org.usvm.instrumentation.util.stringType
 import org.usvm.instrumentation.testcase.descriptor.*
 import readJcField
 import readJcType
@@ -51,6 +51,7 @@ class UTestValueDescriptorSerializer(private val ctx: SerializationContext) {
                     UTestValueDescriptorKind.FLOAT_ARRAY -> deserializeFloatArray()
                     UTestValueDescriptorKind.CHAR_ARRAY -> deserializeCharArray()
                     UTestValueDescriptorKind.OBJECT_ARRAY -> deserializeArray()
+                    UTestValueDescriptorKind.ENUM_VALUE -> deserializeEnumValue()
                 }
             ctx.deserializedDescriptors[id] = deserializedExpression
         }
@@ -81,6 +82,7 @@ class UTestValueDescriptorSerializer(private val ctx: SerializationContext) {
             is UTestConstantDescriptor.String -> serialize(uTestValueDescriptor)
             is UTestObjectDescriptor -> serialize(uTestValueDescriptor)
             is UTestCyclicReferenceDescriptor -> serialize(uTestValueDescriptor)
+            is UTestEnumValueDescriptor -> serialize(uTestValueDescriptor)
         }
     }
 
@@ -426,6 +428,40 @@ class UTestValueDescriptorSerializer(private val ctx: SerializationContext) {
         return UTestObjectDescriptor(jcType, fields, refId)
     }
 
+    private fun AbstractBuffer.serialize(uTestValueDescriptor: UTestEnumValueDescriptor) =
+        serialize(
+            uTestValueDescriptor = uTestValueDescriptor,
+            kind = UTestValueDescriptorKind.ENUM_VALUE,
+            serializeInternals = {
+                fields.values.forEach { serializeUTestValueDescriptor(it) }
+            },
+            serialize = {
+                writeJcType(type)
+                writeInt(refId)
+                writeString(enumValueName)
+                val entries = fields.entries
+                writeInt(entries.size)
+                fields.entries.forEach {
+                    writeJcField(it.key)
+                    writeUTestValueDescriptor(it.value)
+                }
+            }
+        )
+
+    private fun AbstractBuffer.deserializeEnumValue(): UTestEnumValueDescriptor {
+        val jcType = readJcType(jcClasspath) ?: jcClasspath.objectType
+        val refId = readInt()
+        val enumValueName = readString()
+        val entriesSize = readInt()
+        val fields = mutableMapOf<JcField, UTestValueDescriptor>()
+        repeat(entriesSize) {
+            val field = readJcField(jcClasspath)
+            val descriptor = readUTestValueDescriptor()
+            fields[field] = descriptor
+        }
+        return UTestEnumValueDescriptor(jcType, enumValueName, fields, refId)
+    }
+
     private fun getUTestValueDescriptor(id: Int) = ctx.deserializedDescriptors[id] ?: error("deserialization failed")
 
     private val UTestValueDescriptor.id
@@ -456,6 +492,7 @@ class UTestValueDescriptorSerializer(private val ctx: SerializationContext) {
         CHAR_ARRAY,
         OBJECT_ARRAY,
         CYCLIC_REF,
+        ENUM_VALUE
     }
 
 
