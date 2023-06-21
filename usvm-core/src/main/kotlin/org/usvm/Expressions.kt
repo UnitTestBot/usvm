@@ -7,23 +7,23 @@ import io.ksmt.expr.printer.ExpressionPrinter
 import io.ksmt.expr.transformer.KTransformerBase
 import io.ksmt.sort.*
 import org.usvm.memory.UAllocatedArrayId
-import org.usvm.memory.UAllocatedArrayRegion
+import org.usvm.memory.UAllocatedArrayCollection
 import org.usvm.memory.UAllocatedSymbolicMapId
-import org.usvm.memory.UAllocatedSymbolicMapRegion
+import org.usvm.memory.UAllocatedSymbolicMap
 import org.usvm.memory.UInputArrayId
 import org.usvm.memory.UInputArrayLengthId
-import org.usvm.memory.UInputArrayLengthRegion
-import org.usvm.memory.UInputArrayRegion
+import org.usvm.memory.UInputArrayLengthCollection
+import org.usvm.memory.UInputArrayCollection
 import org.usvm.memory.UInputFieldId
-import org.usvm.memory.UInputFieldRegion
+import org.usvm.memory.UInputFieldCollection
 import org.usvm.memory.UInputSymbolicMapId
 import org.usvm.memory.UInputSymbolicMapLengthId
-import org.usvm.memory.UInputSymbolicMapLengthRegion
-import org.usvm.memory.UInputSymbolicMapRegion
-import org.usvm.memory.URegionId
+import org.usvm.memory.UInputSymbolicMapLengthCollection
+import org.usvm.memory.UInputSymbolicMap
+import org.usvm.memory.USymbolicCollectionId
 import org.usvm.memory.USymbolicArrayIndex
 import org.usvm.memory.USymbolicMapKey
-import org.usvm.memory.USymbolicMemoryRegion
+import org.usvm.memory.USymbolicCollection
 import org.usvm.util.Region
 
 //region KSMT aliases
@@ -152,18 +152,18 @@ class URegisterReading<Sort : USort> internal constructor(
     }
 }
 
-abstract class UHeapReading<RegionId : URegionId<Key, Sort, RegionId>, Key, Sort : USort>(
+abstract class UCollectionReading<CollectionId : USymbolicCollectionId<Key, Sort, CollectionId>, Key, Sort : USort>(
     ctx: UContext,
-    val region: USymbolicMemoryRegion<RegionId, Key, Sort>
+    val collection: USymbolicCollection<CollectionId, Key, Sort>
 ) : USymbol<Sort>(ctx) {
-    override val sort: Sort get() = region.sort
+    override val sort: Sort get() = collection.sort
 }
 
 class UInputFieldReading<Field, Sort : USort> internal constructor(
     ctx: UContext,
-    region: UInputFieldRegion<Field, Sort>,
+    collection: UInputFieldCollection<Field, Sort>,
     val address: UHeapRef,
-) : UHeapReading<UInputFieldId<Field, Sort>, UHeapRef, Sort>(ctx, region) {
+) : UCollectionReading<UInputFieldId<Field, Sort>, UHeapRef, Sort>(ctx, collection) {
     init {
         require(address !is UNullRef)
     }
@@ -175,12 +175,12 @@ class UInputFieldReading<Field, Sort : USort> internal constructor(
         return (transformer as UExprTransformer<Field, *>).transform(this)
     }
 
-    override fun internEquals(other: Any): Boolean = structurallyEqual(other, { region }, { address })
+    override fun internEquals(other: Any): Boolean = structurallyEqual(other, { collection }, { address })
 
-    override fun internHashCode(): Int = hash(region, address)
+    override fun internHashCode(): Int = hash(collection, address)
 
     override fun print(printer: ExpressionPrinter) {
-        printer.append(region.toString())
+        printer.append(collection.toString())
         printer.append("[")
         printer.append(address)
         printer.append("]")
@@ -189,9 +189,9 @@ class UInputFieldReading<Field, Sort : USort> internal constructor(
 
 class UAllocatedArrayReading<ArrayType, Sort : USort> internal constructor(
     ctx: UContext,
-    region: UAllocatedArrayRegion<ArrayType, Sort>,
+    collection: UAllocatedArrayCollection<ArrayType, Sort>,
     val index: USizeExpr,
-) : UHeapReading<UAllocatedArrayId<ArrayType, Sort>, USizeExpr, Sort>(ctx, region) {
+) : UCollectionReading<UAllocatedArrayId<ArrayType, Sort>, USizeExpr, Sort>(ctx, collection) {
     @Suppress("UNCHECKED_CAST")
     override fun accept(transformer: KTransformerBase): KExpr<Sort> {
         require(transformer is UExprTransformer<*, *>)
@@ -202,14 +202,14 @@ class UAllocatedArrayReading<ArrayType, Sort : USort> internal constructor(
     override fun internEquals(other: Any): Boolean =
         structurallyEqual(
             other,
-            { region },
+            { collection },
             { index },
         )
 
-    override fun internHashCode(): Int = hash(region, index)
+    override fun internHashCode(): Int = hash(collection, index)
 
     override fun print(printer: ExpressionPrinter) {
-        printer.append(region.toString())
+        printer.append(collection.toString())
         printer.append("[")
         printer.append(index)
         printer.append("]")
@@ -218,10 +218,10 @@ class UAllocatedArrayReading<ArrayType, Sort : USort> internal constructor(
 
 class UInputArrayReading<ArrayType, Sort : USort> internal constructor(
     ctx: UContext,
-    region: UInputArrayRegion<ArrayType, Sort>,
+    collection: UInputArrayCollection<ArrayType, Sort>,
     val address: UHeapRef,
     val index: USizeExpr
-) : UHeapReading<UInputArrayId<ArrayType, Sort>, USymbolicArrayIndex, Sort>(ctx, region) {
+) : UCollectionReading<UInputArrayId<ArrayType, Sort>, USymbolicArrayIndex, Sort>(ctx, collection) {
     init {
         require(address !is UNullRef)
     }
@@ -236,15 +236,15 @@ class UInputArrayReading<ArrayType, Sort : USort> internal constructor(
     override fun internEquals(other: Any): Boolean =
         structurallyEqual(
             other,
-            { region },
+            { collection },
             { address },
             { index },
         )
 
-    override fun internHashCode(): Int = hash(region, address, index)
+    override fun internHashCode(): Int = hash(collection, address, index)
 
     override fun print(printer: ExpressionPrinter) {
-        printer.append(region.toString())
+        printer.append(collection.toString())
         printer.append("[")
         printer.append(address)
         printer.append(", ")
@@ -255,9 +255,9 @@ class UInputArrayReading<ArrayType, Sort : USort> internal constructor(
 
 class UInputArrayLengthReading<ArrayType> internal constructor(
     ctx: UContext,
-    region: UInputArrayLengthRegion<ArrayType>,
+    collection: UInputArrayLengthCollection<ArrayType>,
     val address: UHeapRef,
-) : UHeapReading<UInputArrayLengthId<ArrayType>, UHeapRef, USizeSort>(ctx, region) {
+) : UCollectionReading<UInputArrayLengthId<ArrayType>, UHeapRef, USizeSort>(ctx, collection) {
     init {
         require(address !is UNullRef)
     }
@@ -269,12 +269,12 @@ class UInputArrayLengthReading<ArrayType> internal constructor(
         return (transformer as UExprTransformer<*, ArrayType>).transform(this)
     }
 
-    override fun internEquals(other: Any): Boolean = structurallyEqual(other, { region }, { address })
+    override fun internEquals(other: Any): Boolean = structurallyEqual(other, { collection }, { address })
 
-    override fun internHashCode(): Int = hash(region, address)
+    override fun internHashCode(): Int = hash(collection, address)
 
     override fun print(printer: ExpressionPrinter) {
-        printer.append(region.toString())
+        printer.append(collection.toString())
         printer.append("[")
         printer.append(address)
         printer.append("]")
@@ -342,9 +342,9 @@ class UIsExpr<Type> internal constructor(
 
 class UAllocatedSymbolicMapReading<KeySort : USort, Reg : Region<Reg>, Sort : USort> internal constructor(
     ctx: UContext,
-    region: UAllocatedSymbolicMapRegion<KeySort, Reg, Sort>,
+    collection: UAllocatedSymbolicMap<KeySort, Reg, Sort>,
     val key: UExpr<KeySort>,
-) : UHeapReading<UAllocatedSymbolicMapId<KeySort, Reg, Sort>, UExpr<KeySort>, Sort>(ctx, region) {
+) : UCollectionReading<UAllocatedSymbolicMapId<KeySort, Reg, Sort>, UExpr<KeySort>, Sort>(ctx, collection) {
 
     override fun accept(transformer: KTransformerBase): KExpr<Sort> {
         require(transformer is UExprTransformer<*, *>)
@@ -354,14 +354,14 @@ class UAllocatedSymbolicMapReading<KeySort : USort, Reg : Region<Reg>, Sort : US
     override fun internEquals(other: Any): Boolean =
         structurallyEqual(
             other,
-            { region },
+            { collection },
             { key },
         )
 
-    override fun internHashCode(): Int = hash(region, key)
+    override fun internHashCode(): Int = hash(collection, key)
 
     override fun print(printer: ExpressionPrinter) {
-        printer.append(region.toString())
+        printer.append(collection.toString())
         printer.append("[")
         printer.append(key)
         printer.append("]")
@@ -370,10 +370,10 @@ class UAllocatedSymbolicMapReading<KeySort : USort, Reg : Region<Reg>, Sort : US
 
 class UInputSymbolicMapReading<KeySort : USort, Reg : Region<Reg>, Sort : USort> internal constructor(
     ctx: UContext,
-    region: UInputSymbolicMapRegion<KeySort, Reg, Sort>,
+    collection: UInputSymbolicMap<KeySort, Reg, Sort>,
     val address: UHeapRef,
     val key: UExpr<KeySort>
-) : UHeapReading<UInputSymbolicMapId<KeySort, Reg, Sort>, USymbolicMapKey<KeySort>, Sort>(ctx, region) {
+) : UCollectionReading<UInputSymbolicMapId<KeySort, Reg, Sort>, USymbolicMapKey<KeySort>, Sort>(ctx, collection) {
     init {
         require(address !is UNullRef)
     }
@@ -386,15 +386,15 @@ class UInputSymbolicMapReading<KeySort : USort, Reg : Region<Reg>, Sort : USort>
     override fun internEquals(other: Any): Boolean =
         structurallyEqual(
             other,
-            { region },
+            { collection },
             { address },
             { key },
         )
 
-    override fun internHashCode(): Int = hash(region, address, key)
+    override fun internHashCode(): Int = hash(collection, address, key)
 
     override fun print(printer: ExpressionPrinter) {
-        printer.append(region.toString())
+        printer.append(collection.toString())
         printer.append("[")
         printer.append(address)
         printer.append(", ")
@@ -405,9 +405,9 @@ class UInputSymbolicMapReading<KeySort : USort, Reg : Region<Reg>, Sort : USort>
 
 class UInputSymbolicMapLengthReading internal constructor(
     ctx: UContext,
-    region: UInputSymbolicMapLengthRegion,
+    collection: UInputSymbolicMapLengthCollection,
     val address: UHeapRef,
-) : UHeapReading<UInputSymbolicMapLengthId, UHeapRef, USizeSort>(ctx, region) {
+) : UCollectionReading<UInputSymbolicMapLengthId, UHeapRef, USizeSort>(ctx, collection) {
     init {
         require(address !is UNullRef)
     }
@@ -417,12 +417,12 @@ class UInputSymbolicMapLengthReading internal constructor(
         return transformer.transform(this)
     }
 
-    override fun internEquals(other: Any): Boolean = structurallyEqual(other, { region }, { address })
+    override fun internEquals(other: Any): Boolean = structurallyEqual(other, { collection }, { address })
 
-    override fun internHashCode(): Int = hash(region, address)
+    override fun internHashCode(): Int = hash(collection, address)
 
     override fun print(printer: ExpressionPrinter) {
-        printer.append(region.toString())
+        printer.append(collection.toString())
         printer.append("[")
         printer.append(address)
         printer.append("]")

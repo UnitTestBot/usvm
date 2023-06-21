@@ -75,10 +75,10 @@ class ULazyIndexedMockModel<Method>(
  * Declared as mutable heap for using in regions composition in [UComposer]. Any call to
  * modifying operation throws an exception.
  *
- * Any [UHeapReading] possibly writing to this heap in its [URegionId.instantiate] call actually has empty updates,
+ * Any [UCollectionReading] possibly writing to this heap in its [USymbolicCollectionId.instantiate] call actually has empty updates,
  * because localization happened, so this heap won't be mutated.
  *
- * @param regionIdToInitialValue mapping from [URegionId] to initial values. We decode memory regions
+ * @param regionIdToInitialValue mapping from [USymbolicCollectionId] to initial values. We decode symbolic collections
  * using this cache.
  * @param model has to be detached.
  */
@@ -86,7 +86,7 @@ class ULazyHeapModel<Field, ArrayType>(
     private val model: KModel,
     private val nullRef: UConcreteHeapRef,
     private val addressesMapping: AddressesMapping,
-    private val regionIdToInitialValue: Map<URegionId<*, *, *>, KExpr<*>>,
+    private val regionIdToInitialValue: Map<USymbolicCollectionId<*, *, *>, KExpr<*>>,
 ) : USymbolicHeap<Field, ArrayType> {
     private val resolvedInputFields = mutableMapOf<Field, UReadOnlyMemoryRegion<UHeapRef, out USort>>()
     private val resolvedInputArrays = mutableMapOf<ArrayType, UReadOnlyMemoryRegion<USymbolicArrayIndex, out USort>>()

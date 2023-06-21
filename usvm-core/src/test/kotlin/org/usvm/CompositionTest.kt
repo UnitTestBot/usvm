@@ -15,16 +15,16 @@ import org.junit.jupiter.api.assertThrows
 import org.usvm.constraints.UTypeEvaluator
 import org.usvm.memory.UAddressCounter.Companion.NULL_ADDRESS
 import org.usvm.memory.UAllocatedArrayId
-import org.usvm.memory.UAllocatedArrayRegion
+import org.usvm.memory.UAllocatedArrayCollection
 import org.usvm.memory.UFlatUpdates
 import org.usvm.memory.UInputArrayId
 import org.usvm.memory.UInputArrayLengthId
-import org.usvm.memory.UInputArrayLengthRegion
-import org.usvm.memory.UInputArrayRegion
+import org.usvm.memory.UInputArrayLengthCollection
+import org.usvm.memory.UInputArrayCollection
 import org.usvm.memory.UInputFieldId
-import org.usvm.memory.UInputFieldRegion
+import org.usvm.memory.UInputFieldCollection
 import org.usvm.memory.UInputToInputKeyConverter
-import org.usvm.memory.UMemoryUpdates
+import org.usvm.memory.USymbolicCollectionUpdates
 import org.usvm.memory.UPinpointUpdateNode
 import org.usvm.memory.URangedUpdateNode
 import org.usvm.memory.UReadOnlySymbolicHeap
@@ -32,8 +32,8 @@ import org.usvm.memory.URegionHeap
 import org.usvm.memory.URegistersStackEvaluator
 import org.usvm.memory.USymbolicArrayIndex
 import org.usvm.memory.UUpdateNode
-import org.usvm.memory.emptyAllocatedArrayRegion
-import org.usvm.memory.emptyInputArrayRegion
+import org.usvm.memory.emptyAllocatedArrayCollection
+import org.usvm.memory.emptyInputArrayCollection
 import org.usvm.model.URegistersStackEagerModel
 import kotlin.reflect.KClass
 import kotlin.test.assertEquals
@@ -229,9 +229,9 @@ internal class CompositionTest {
         ).write(fstAddress, fstResultValue, guard = trueExpr)
             .write(sndAddress, sndResultValue, guard = trueExpr)
 
-        val regionId = UInputArrayLengthId(arrayType, bv32Sort, contextHeap = null)
-        val regionArray = UInputArrayLengthRegion(
-            regionId,
+        val collectionId = UInputArrayLengthId(arrayType, bv32Sort, contextHeap = null)
+        val regionArray = UInputArrayLengthCollection(
+            collectionId,
             updates,
         )
 
@@ -282,7 +282,7 @@ internal class CompositionTest {
 
         val arrayType: KClass<Array<*>> = Array::class
 
-        val region = UInputArrayRegion(
+        val region = UInputArrayCollection(
             UInputArrayId(arrayType, bv32Sort, contextHeap = null),
             updates,
         )
@@ -323,7 +323,7 @@ internal class CompositionTest {
 
         val arrayType: KClass<Array<*>> = Array::class
         // Create an empty region
-        val region = emptyInputArrayRegion(arrayType, mkBv32Sort())
+        val region = emptyInputArrayCollection(arrayType, mkBv32Sort())
 
         // TODO replace with jacoDB type
         // create a reading from the region
@@ -365,7 +365,7 @@ internal class CompositionTest {
             .write(USymbolicArrayIndex(sndAddress, sndIndex), 2.toBv(), guard = mkTrue())
 
         require(fstComposedExpr is UInputArrayReading<*, *>)
-        assert(fstComposedExpr.region.updates.toList() == expectedRegion.updates.toList())
+        assert(fstComposedExpr.collection.updates.toList() == expectedRegion.updates.toList())
     }
 
     @Test
@@ -386,9 +386,9 @@ internal class CompositionTest {
         ).write(fstIndex, 1.toBv(), guard = trueExpr)
             .write(sndIndex, 2.toBv(), guard = trueExpr)
 
-        val regionId = UAllocatedArrayId(arrayType, bv32Sort, mkBv(0), address, contextHeap = null)
-        val regionArray = UAllocatedArrayRegion(
-            regionId,
+        val collectionId = UAllocatedArrayId(arrayType, bv32Sort, mkBv(0), address, contextHeap = null)
+        val regionArray = UAllocatedArrayCollection(
+            collectionId,
             updates,
         )
 
@@ -439,7 +439,7 @@ internal class CompositionTest {
         val field = mockk<java.lang.reflect.Field>() // TODO replace with jacoDB field
 
         // An empty region with one write in it
-        val region = UInputFieldRegion(
+        val region = UInputFieldCollection(
             UInputFieldId(field, bv32Sort, contextHeap = null),
             updates,
         ).write(aAddress, 43.toBv(), guard = trueExpr)
@@ -524,7 +524,7 @@ internal class CompositionTest {
         )
         val composer = UComposer(this, stackModel, regionHeap, mockk(), mockk())
 
-        val fromRegion0 = emptyInputArrayRegion(arrayType, bv32Sort)
+        val fromRegion0 = emptyInputArrayCollection(arrayType, bv32Sort)
             .write(symbolicRef0 to mkBv(0), mkBv(42), trueExpr)
 
         val keyConverter1 = UInputToInputKeyConverter(symbolicRef0 to mkBv(0), symbolicRef1 to mkBv(0), mkBv(5))
@@ -544,15 +544,15 @@ internal class CompositionTest {
         val composedExpr0 = composer.compose(reading0)
         val composedReading0 = assertIs<UAllocatedArrayReading<Type, UBv32Sort>>(composedExpr0)
 
-        fun UMemoryUpdates<*, *>.allUpdates(): Collection<UUpdateNode<*, *>> =
+        fun USymbolicCollectionUpdates<*, *>.allUpdates(): Collection<UUpdateNode<*, *>> =
             fold(mutableListOf()) { acc, r ->
                 acc += r
-                acc += (r as? URangedUpdateNode<*, *, *, *>)?.region?.updates?.allUpdates() ?: emptyList()
+                acc += (r as? URangedUpdateNode<*, *, *, *>)?.sourceCollection?.updates?.allUpdates() ?: emptyList()
                 acc
             }
 
         val pinpointUpdates = composedReading0
-            .region
+            .collection
             .updates
             .allUpdates()
             .filterIsInstance<UPinpointUpdateNode<USizeExpr, UBv32Sort>>()
@@ -571,7 +571,7 @@ internal class CompositionTest {
 
         val composer = UComposer(this, stackModel, heapEvaluator, mockk(), mockk())
 
-        val region = emptyAllocatedArrayRegion<Type, UAddressSort>(mockk(), 1, addressSort)
+        val region = emptyAllocatedArrayCollection<Type, UAddressSort>(mockk(), 1, addressSort)
         val reading = region.read(mkRegisterReading(0, sizeSort))
 
         val expr = composer.compose(reading)

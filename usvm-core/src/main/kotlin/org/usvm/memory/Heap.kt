@@ -131,55 +131,63 @@ data class ConcreteTaggedMapDescriptor(
     interface MapDescriptorTag
 }
 
+interface UReadOnlyMemoryRegion<Key, Sort : USort> {
+    fun read(key: Key): UExpr<Sort>
+}
+
+interface UMemoryRegion<Key, Sort : USort> : UReadOnlyMemoryRegion<Key, Sort> {
+    fun write(key: Key, value: UExpr<Sort>, guard: UBoolExpr): UMemoryRegion<Key, Sort>
+}
+
 data class URegionHeap<Field, ArrayType>(
     private val ctx: UContext,
     private var lastAddress: UAddressCounter = UAddressCounter(),
     private var allocatedFields: PersistentMap<Pair<UConcreteHeapAddress, Field>, UExpr<out USort>> = persistentMapOf(),
-    private var inputFields: PersistentMap<Field, UInputFieldRegion<Field, out USort>> = persistentMapOf(),
-    private var allocatedArrays: PersistentMap<UConcreteHeapAddress, UAllocatedArrayRegion<ArrayType, out USort>> = persistentMapOf(),
-    private var inputArrays: PersistentMap<ArrayType, UInputArrayRegion<ArrayType, out USort>> = persistentMapOf(),
+    private var inputFields: PersistentMap<Field, UInputFieldCollection<Field, out USort>> = persistentMapOf(),
+    private var allocatedArrays: PersistentMap<UConcreteHeapAddress, UAllocatedArrayCollection<ArrayType, out USort>> = persistentMapOf(),
+    private var inputArrays: PersistentMap<ArrayType, UInputArrayCollection<ArrayType, out USort>> = persistentMapOf(),
     private var allocatedLengths: PersistentMap<UConcreteHeapAddress, USizeExpr> = persistentMapOf(),
-    private var inputLengths: PersistentMap<ArrayType, UInputArrayLengthRegion<ArrayType>> = persistentMapOf(),
-    private var allocatedMaps: PersistentMap<ConcreteTaggedMapDescriptor, PersistentMap<UConcreteHeapAddress, UAllocatedSymbolicMapRegion<USort, *, *>>> = persistentMapOf(),
-    private var inputMaps: PersistentMap<USymbolicMapDescriptor<*, *, *>, UInputSymbolicMapRegion<USort, *, *>> = persistentMapOf(),
+    private var inputLengths: PersistentMap<ArrayType, UInputArrayLengthCollection<ArrayType>> = persistentMapOf(),
+    private var allocatedMaps: PersistentMap<ConcreteTaggedMapDescriptor, PersistentMap<UConcreteHeapAddress, UAllocatedSymbolicMap<USort, *, *>>> = persistentMapOf(),
+    private var inputMaps: PersistentMap<USymbolicMapDescriptor<*, *, *>, UInputSymbolicMap<USort, *, *>> = persistentMapOf(),
     private var allocatedMapsLengths: PersistentMap<UConcreteHeapAddress, USizeExpr> = persistentMapOf(),
-    private var inputMapsLengths: PersistentMap<USymbolicMapDescriptor<*, *, *>, UInputSymbolicMapLengthRegion> = persistentMapOf(),
+    private var inputMapsLengths: PersistentMap<USymbolicMapDescriptor<*, *, *>, UInputSymbolicMapLengthCollection> = persistentMapOf(),
 ) : USymbolicHeap<Field, ArrayType> {
     private fun <Sort : USort> inputFieldRegion(
         field: Field,
         sort: Sort,
-    ): UInputFieldRegion<Field, Sort> =
+    ): UInputFieldCollection<Field, Sort> =
         inputFields[field]
             ?.inputFieldsRegionUncheckedCast()
-            ?: emptyInputFieldRegion(field, sort)
+            ?: emptyInputFieldCollection(field, sort)
                 .also { inputFields = inputFields.put(field, it) } // to increase cache usage
 
     private fun <Sort : USort> allocatedArrayRegion(
         arrayType: ArrayType,
         address: UConcreteHeapAddress,
         elementSort: Sort,
-    ): UAllocatedArrayRegion<ArrayType, Sort> =
+    ): UAllocatedArrayCollection<ArrayType, Sort> =
         allocatedArrays[address]
             ?.allocatedArrayRegionUncheckedCast()
-            ?: emptyAllocatedArrayRegion(arrayType, address, elementSort).also { region ->
+            ?: emptyAllocatedArrayCollection(arrayType, address, elementSort).also { region ->
                 allocatedArrays = allocatedArrays.put(address, region)
             } // to increase cache usage
 
     private fun <Sort : USort> inputArrayRegion(
         arrayType: ArrayType,
         elementSort: Sort,
-    ): UInputArrayRegion<ArrayType, Sort> =
+    ): UInputArrayCollection<ArrayType, Sort> =
         inputArrays[arrayType]
             ?.inputArrayRegionUncheckedCast()
-            ?: emptyInputArrayRegion(arrayType, elementSort).also { region ->
+            ?: emptyInputArrayCollection(arrayType, elementSort).also { region ->
                 inputArrays = inputArrays.put(arrayType, region)
             } // to increase cache usage
 
     private fun inputArrayLengthRegion(
         arrayType: ArrayType,
-    ): UInputArrayLengthRegion<ArrayType> =
+    ): UInputArrayLengthCollection<ArrayType> =
         inputLengths[arrayType]
-            ?: emptyInputArrayLengthRegion(arrayType, ctx.sizeSort).also { region ->
+            ?: emptyInputArrayLengthCollection(arrayType, ctx.sizeSort).also { region ->
                 inputLengths = inputLengths.put(arrayType, region)
             } // to increase cache usage
 
@@ -187,12 +195,12 @@ data class URegionHeap<Field, ArrayType>(
         descriptor: USymbolicMapDescriptor<KeySort, Sort, Reg>,
         address: UConcreteHeapAddress,
         tag: ConcreteTaggedMapDescriptor.MapDescriptorTag? = null
-    ): UAllocatedSymbolicMapRegion<KeySort, Reg, Sort> {
+    ): UAllocatedSymbolicMap<KeySort, Reg, Sort> {
         val taggedKey = ConcreteTaggedMapDescriptor(descriptor, tag)
         val allocatedConcreteMap = allocatedMaps[taggedKey] ?: persistentMapOf()
         return allocatedConcreteMap[address]
             ?.allocatedMapRegionUncheckedCast()
-            ?: emptyAllocatedSymbolicMapRegion(descriptor, address).also { region ->
+            ?: emptyAllocatedSymbolicMap(descriptor, address).also { region ->
                 val concreteMap = allocatedConcreteMap.put(address, region.uncheckedCast())
                 allocatedMaps = allocatedMaps.put(taggedKey, concreteMap)
             }
@@ -201,7 +209,7 @@ data class URegionHeap<Field, ArrayType>(
     private fun <KeySort : USort, Reg : Region<Reg>, Sort : USort> storeAllocatedMapRegion(
         descriptor: USymbolicMapDescriptor<KeySort, Sort, Reg>,
         address: UConcreteHeapAddress,
-        newRegion: UAllocatedSymbolicMapRegion<KeySort, Reg, Sort>,
+        newRegion: UAllocatedSymbolicMap<KeySort, Reg, Sort>,
         tag: ConcreteTaggedMapDescriptor.MapDescriptorTag? = null
     ) {
         val taggedKey = ConcreteTaggedMapDescriptor(descriptor, tag)
@@ -212,18 +220,18 @@ data class URegionHeap<Field, ArrayType>(
 
     private fun <KeySort : USort, Reg : Region<Reg>, Sort : USort> inputMapRegion(
         descriptor: USymbolicMapDescriptor<KeySort, Sort, Reg>
-    ): UInputSymbolicMapRegion<KeySort, Reg, Sort> =
+    ): UInputSymbolicMap<KeySort, Reg, Sort> =
         inputMaps[descriptor]
             ?.inputMapRegionUncheckedCast()
-            ?: emptyInputSymbolicMapRegion(descriptor).also { region ->
+            ?: emptyInputSymbolicMapCollection(descriptor).also { region ->
                 inputMaps = inputMaps.put(descriptor, region.uncheckedCast())
             }
 
     private fun inputMapLengthRegion(
         descriptor: USymbolicMapDescriptor<*, *, *>
-    ): UInputSymbolicMapLengthRegion {
+    ): UInputSymbolicMapLengthCollection {
         return inputMapsLengths[descriptor]
-            ?: emptyInputSymbolicMapLengthRegion(descriptor, ctx.sizeSort).also { region ->
+            ?: emptyInputSymbolicMapLengthCollection(descriptor, ctx.sizeSort).also { region ->
                 inputMapsLengths = inputMapsLengths.put(descriptor, region)
             }
     }
@@ -424,16 +432,16 @@ data class URegionHeap<Field, ArrayType>(
     /**
      * Split maps with concrete keys.
      * 
-     * concrete map ref x concrete key ref --- [ConcreteKeyConcreteRefAllocatedMap]
+     * (concrete map ref) x (concrete key ref) --- [ConcreteKeyConcreteRefAllocatedMap]
      * stored as {concrete key ref x concrete map ref} to allow key enumeration 
      * 
-     * concrete map ref x symbolic key ref --- [SymbolicKeyConcreteRefAllocatedMap]
+     * (concrete map ref) x (symbolic key ref) --- [SymbolicKeyConcreteRefAllocatedMap]
      * stored as {concrete map ref x symbolic key ref}, doesn't allow key enumeration
      * 
-     * symbolic map ref x concrete key ref --- [ConcreteKeySymbolicRefAllocatedMap]
+     * (symbolic map ref) x (concrete key ref) --- [ConcreteKeySymbolicRefAllocatedMap]
      * stored as {concrete key ref x symbolic map ref} to allow key enumeration
      * 
-     * symbolic map ref x symbolic key ref --- usual input map
+     * (symbolic map ref) x (symbolic key ref) --- usual input map
      * stored as {symbolic map ref x symbolic key ref}, doesn't allow key enumeration
      * */
     private fun <Reg : Region<Reg>, Sort : USort> writeSymbolicRefMap(
@@ -664,7 +672,7 @@ data class URegionHeap<Field, ArrayType>(
                         val dstRegion = allocatedMapRegion(descriptor, dstRef.address)
                         val keyConverter = UAllocatedToAllocatedKeyConverter(src, dst, toDstKey)
                         val newDstRegion = dstRegion.copyRange(
-                            fromRegion = srcRegion,
+                            fromCollection = srcRegion,
                             fromKey = fromDstKey,
                             toKey = toDstKey,
                             keyConverter = keyConverter,
@@ -678,7 +686,7 @@ data class URegionHeap<Field, ArrayType>(
                         val dstRegion = inputMapRegion(descriptor)
                         val keyConverter = UAllocatedToInputKeyConverter(src, dst, toDstKey)
                         val newDstRegion = dstRegion.copyRange(
-                            fromRegion = srcRegion,
+                            fromCollection = srcRegion,
                             fromKey = src,
                             toKey = dst,
                             keyConverter = keyConverter,
@@ -701,7 +709,7 @@ data class URegionHeap<Field, ArrayType>(
                         val dstRegion = allocatedMapRegion(descriptor, dstRef.address)
                         val keyConverter = UInputToAllocatedKeyConverter(src, dst, toDstKey)
                         val newDstRegion = dstRegion.copyRange(
-                            fromRegion = srcRegion,
+                            fromCollection = srcRegion,
                             fromKey = fromDstKey,
                             toKey = toDstKey,
                             keyConverter = keyConverter,
@@ -715,7 +723,7 @@ data class URegionHeap<Field, ArrayType>(
                         val dstRegion = inputMapRegion(descriptor)
                         val keyConverter = UInputToInputKeyConverter(src, dst, toDstKey)
                         val newDstRegion = dstRegion.copyRange(
-                            fromRegion = srcRegion,
+                            fromCollection = srcRegion,
                             fromKey = dst,
                             toKey = dstRef to toDstKey,
                             keyConverter = keyConverter,
@@ -759,8 +767,8 @@ data class URegionHeap<Field, ArrayType>(
                     blockOnConcrete = { (dstRef, deepGuard) ->
                         val dstRegion = allocatedMapRegion(descriptor, dstRef.address)
 
-                        val newDstRegion = dstRegion.mergeWithRegion(
-                            fromRegion = srcRegion,
+                        val newDstRegion = dstRegion.mergeWithCollection(
+                            fromCollection = srcRegion,
                             guard = deepGuard,
                             keyIncludesCheck = UMergeKeyIncludesCheck(srcKeyContainsRegion),
                             keyConverter = UMergeKeyConverter(srcRef, dstRef) { it }
@@ -771,8 +779,8 @@ data class URegionHeap<Field, ArrayType>(
                     blockOnSymbolic = { (dstRef, deepGuard) ->
                         val dstRegion = inputMapRegion(descriptor)
 
-                        val newDstRegion = dstRegion.mergeWithRegion(
-                            fromRegion = srcRegion,
+                        val newDstRegion = dstRegion.mergeWithCollection(
+                            fromCollection = srcRegion,
                             guard = deepGuard,
                             keyIncludesCheck = UMergeKeyIncludesCheck(srcKeyContainsRegion),
                             keyConverter = UMergeKeyConverter(srcRef, dstRef) { it.second }
@@ -792,8 +800,8 @@ data class URegionHeap<Field, ArrayType>(
                     blockOnConcrete = { (dstRef, deepGuard) ->
                         val dstRegion = allocatedMapRegion(descriptor, dstRef.address)
 
-                        val newDstRegion = dstRegion.mergeWithRegion(
-                            fromRegion = srcRegion,
+                        val newDstRegion = dstRegion.mergeWithCollection(
+                            fromCollection = srcRegion,
                             guard = deepGuard,
                             keyIncludesCheck = UMergeKeyIncludesCheck(srcKeyContainsRegion),
                             keyConverter = UMergeKeyConverter(srcRef, dstRef) { this.srcRef to it }
@@ -804,8 +812,8 @@ data class URegionHeap<Field, ArrayType>(
                     blockOnSymbolic = { (dstRef, deepGuard) ->
                         val dstRegion = inputMapRegion(descriptor)
 
-                        val newDstRegion = dstRegion.mergeWithRegion(
-                            fromRegion = srcRegion,
+                        val newDstRegion = dstRegion.mergeWithCollection(
+                            fromCollection = srcRegion,
                             guard = deepGuard,
                             keyIncludesCheck = UMergeKeyIncludesCheck(srcKeyContainsRegion),
                             keyConverter = UMergeKeyConverter(srcRef, dstRef) { this.srcRef to it.second }
@@ -865,8 +873,8 @@ data class URegionHeap<Field, ArrayType>(
                             tag = SymbolicKeyConcreteRefAllocatedMap
                         )
 
-                        val mergedSymbolicKeysRegion = dstSymbolicKeysRegion.mergeWithRegion(
-                            fromRegion = srcSymbolicKeysRegion,
+                        val mergedSymbolicKeysRegion = dstSymbolicKeysRegion.mergeWithCollection(
+                            fromCollection = srcSymbolicKeysRegion,
                             guard = deepGuard,
                             keyIncludesCheck = UMergeKeyIncludesCheck(srcSymbolicKeyContainsRegion),
                             keyConverter = UMergeKeyConverter(srcRef, dstRef) { it }
@@ -882,8 +890,8 @@ data class URegionHeap<Field, ArrayType>(
                     blockOnSymbolic = { (dstRef, deepGuard) ->
                         val dstSymbolicKeysRegion = inputMapRegion(descriptor)
 
-                        val mergedSymbolicKeysRegion = dstSymbolicKeysRegion.mergeWithRegion(
-                            fromRegion = srcSymbolicKeysRegion,
+                        val mergedSymbolicKeysRegion = dstSymbolicKeysRegion.mergeWithCollection(
+                            fromCollection = srcSymbolicKeysRegion,
                             guard = deepGuard,
                             keyIncludesCheck = UMergeKeyIncludesCheck(srcSymbolicKeyContainsRegion),
                             keyConverter = UMergeKeyConverter(srcRef, dstRef) { it.second }
@@ -922,8 +930,8 @@ data class URegionHeap<Field, ArrayType>(
                             tag = SymbolicKeyConcreteRefAllocatedMap
                         )
 
-                        val mergedSymbolicKeysRegion = dstSymbolicKeysRegion.mergeWithRegion(
-                            fromRegion = srcSymbolicKeysRegion,
+                        val mergedSymbolicKeysRegion = dstSymbolicKeysRegion.mergeWithCollection(
+                            fromCollection = srcSymbolicKeysRegion,
                             guard = deepGuard,
                             keyIncludesCheck = UMergeKeyIncludesCheck(srcSymbolicKeysContainsRegion),
                             keyConverter = UMergeKeyConverter(srcRef, dstRef) { this.srcRef to it }
@@ -939,8 +947,8 @@ data class URegionHeap<Field, ArrayType>(
                     blockOnSymbolic = { (dstRef, deepGuard) ->
                         val dstSymbolicKeysRegion = inputMapRegion(descriptor)
 
-                        val mergedSymbolicKeysRegion = dstSymbolicKeysRegion.mergeWithRegion(
-                            fromRegion = srcSymbolicKeysRegion,
+                        val mergedSymbolicKeysRegion = dstSymbolicKeysRegion.mergeWithCollection(
+                            fromCollection = srcSymbolicKeysRegion,
                             guard = deepGuard,
                             keyIncludesCheck = UMergeKeyIncludesCheck(srcSymbolicKeysContainsRegion),
                             keyConverter = UMergeKeyConverter(srcRef, dstRef) { this.srcRef to it.second }
@@ -1014,7 +1022,7 @@ data class URegionHeap<Field, ArrayType>(
         sort: Sort,
         address: UConcreteHeapAddress,
         values: List<UExpr<Sort>>
-    ): UAllocatedArrayRegion<ArrayType, Sort> = initializedAllocatedArrayRegion(
+    ): UAllocatedArrayCollection<ArrayType, Sort> = initializedAllocatedArrayCollection(
         arrayType = type,
         address = address,
         sort = sort,
@@ -1037,21 +1045,21 @@ data class URegionHeap<Field, ArrayType>(
 }
 
 @Suppress("UNCHECKED_CAST")
-fun <Field, Sort : USort> UInputFieldRegion<Field, *>.inputFieldsRegionUncheckedCast(): UInputFieldRegion<Field, Sort> =
-    this as UInputFieldRegion<Field, Sort>
+fun <Field, Sort : USort> UInputFieldCollection<Field, *>.inputFieldsRegionUncheckedCast(): UInputFieldCollection<Field, Sort> =
+    this as UInputFieldCollection<Field, Sort>
 
 @Suppress("UNCHECKED_CAST")
-fun <ArrayType, Sort : USort> UAllocatedArrayRegion<ArrayType, *>.allocatedArrayRegionUncheckedCast(): UAllocatedArrayRegion<ArrayType, Sort> =
-    this as UAllocatedArrayRegion<ArrayType, Sort>
+fun <ArrayType, Sort : USort> UAllocatedArrayCollection<ArrayType, *>.allocatedArrayRegionUncheckedCast(): UAllocatedArrayCollection<ArrayType, Sort> =
+    this as UAllocatedArrayCollection<ArrayType, Sort>
 
 @Suppress("UNCHECKED_CAST")
-fun <ArrayType, Sort : USort> UInputArrayRegion<ArrayType, *>.inputArrayRegionUncheckedCast(): UInputArrayRegion<ArrayType, Sort> =
-    this as UInputArrayRegion<ArrayType, Sort>
+fun <ArrayType, Sort : USort> UInputArrayCollection<ArrayType, *>.inputArrayRegionUncheckedCast(): UInputArrayCollection<ArrayType, Sort> =
+    this as UInputArrayCollection<ArrayType, Sort>
 
 @Suppress("UNCHECKED_CAST")
-fun <KeySort : USort, Reg : Region<Reg>, Sort : USort> UAllocatedSymbolicMapRegion<USort, *, *>.allocatedMapRegionUncheckedCast(): UAllocatedSymbolicMapRegion<KeySort, Reg, Sort> =
-    this as UAllocatedSymbolicMapRegion<KeySort, Reg, Sort>
+fun <KeySort : USort, Reg : Region<Reg>, Sort : USort> UAllocatedSymbolicMap<USort, *, *>.allocatedMapRegionUncheckedCast(): UAllocatedSymbolicMap<KeySort, Reg, Sort> =
+    this as UAllocatedSymbolicMap<KeySort, Reg, Sort>
 
 @Suppress("UNCHECKED_CAST")
-fun <KeySort : USort, Reg : Region<Reg>, Sort : USort> UInputSymbolicMapRegion<USort, *, *>.inputMapRegionUncheckedCast(): UInputSymbolicMapRegion<KeySort, Reg, Sort> =
-    this as UInputSymbolicMapRegion<KeySort, Reg, Sort>
+fun <KeySort : USort, Reg : Region<Reg>, Sort : USort> UInputSymbolicMap<USort, *, *>.inputMapRegionUncheckedCast(): UInputSymbolicMap<KeySort, Reg, Sort> =
+    this as UInputSymbolicMap<KeySort, Reg, Sort>

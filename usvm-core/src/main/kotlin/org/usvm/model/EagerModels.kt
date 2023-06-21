@@ -59,7 +59,7 @@ typealias UReadOnlySymbolicMapLengthRegion = UReadOnlyMemoryRegion<UHeapRef, USi
  * Declared as mutable heap for using in regions composition in [UComposer]. Any call to
  * modifying operation throws an exception.
  *
- * Any [UHeapReading] possibly writing to this heap in its [URegionId.instantiate] call actually has empty updates,
+ * Any [UCollectionReading] possibly writing to this heap in its [UCollectionId.instantiate] call actually has empty updates,
  * because localization happened, so this heap won't be mutated.
  */
 class UHeapEagerModel<Field, ArrayType>(

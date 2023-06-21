@@ -15,7 +15,7 @@ import org.usvm.constraints.UTypeModel
 import org.usvm.memory.UAddressCounter.Companion.INITIAL_INPUT_ADDRESS
 import org.usvm.memory.UAddressCounter.Companion.NULL_ADDRESS
 import org.usvm.memory.UMemoryBase
-import org.usvm.memory.URegionId
+import org.usvm.memory.USymbolicCollectionId
 import org.usvm.uctx
 
 interface UModelDecoder<Memory, Model> {
@@ -64,8 +64,8 @@ open class ULazyModelDecoder<Field, Type, Method>(
     protected val registerIdxToTranslated: Map<Int, UExpr<out USort>>,
     protected val indexedMethodReturnValueToTranslated: Map<Pair<*, Int>, UExpr<*>>,
     protected val translatedNullRef: UHeapRef,
-    protected val translatedRegionIds: Set<URegionId<*, *, *>>,
-    protected val regionIdToInitialValue: Map<URegionId<*, *, *>, KExpr<*>>,
+    protected val translatedRegionIds: Set<USymbolicCollectionId<*, *, *>>,
+    protected val regionIdToInitialValue: Map<USymbolicCollectionId<*, *, *>, KExpr<*>>,
 ) : UModelDecoder<UMemoryBase<Field, Type, Method>, UModelBase<Field, Type>> {
     private val ctx: UContext = translatedNullRef.uctx
 

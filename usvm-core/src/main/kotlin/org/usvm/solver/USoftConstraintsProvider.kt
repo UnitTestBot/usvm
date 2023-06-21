@@ -30,7 +30,7 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UExprTransformer
-import org.usvm.UHeapReading
+import org.usvm.UCollectionReading
 import org.usvm.UIndexedMethodReturnValue
 import org.usvm.UInputArrayLengthReading
 import org.usvm.UInputArrayReading
@@ -87,7 +87,7 @@ class USoftConstraintsProvider<Field, Type>(ctx: UContext) : UExprTransformer<Fi
     override fun <Sort : USort> transform(expr: URegisterReading<Sort>): UExpr<Sort> = transformExpr(expr)
 
     override fun <Sort : USort> transform(
-        expr: UHeapReading<*, *, *>,
+        expr: UCollectionReading<*, *, *>,
     ): UExpr<Sort> = error("You must override `transform` function in UExprTranslator for ${expr::class}")
 
     override fun <Sort : USort> transform(
@@ -152,7 +152,7 @@ class USoftConstraintsProvider<Field, Type>(ctx: UContext) : UExprTransformer<Fi
     }
 
     private fun <Sort : USort> readingWithSingleArgumentTransform(
-        expr: UHeapReading<*, *, Sort>,
+        expr: UCollectionReading<*, *, Sort>,
         arg: UExpr<*>,
     ): UExpr<Sort> = transformExprAfterTransformed(expr, arg) { _ ->
         computeSideEffect(expr) {
@@ -164,7 +164,7 @@ class USoftConstraintsProvider<Field, Type>(ctx: UContext) : UExprTransformer<Fi
     }
 
     private fun <Sort : USort> readingWithTwoArgumentsTransform(
-        expr: UHeapReading<*, *, Sort>,
+        expr: UCollectionReading<*, *, Sort>,
         arg0: UExpr<*>,
         arg1: UExpr<*>,
     ): UExpr<Sort> = transformExprAfterTransformed(expr, arg0, arg1) { _, _ ->

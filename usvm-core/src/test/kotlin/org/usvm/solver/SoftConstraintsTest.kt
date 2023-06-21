@@ -12,7 +12,7 @@ import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.UTypeSystem
 import org.usvm.constraints.UPathConstraints
-import org.usvm.memory.emptyInputArrayLengthRegion
+import org.usvm.memory.emptyInputArrayLengthCollection
 import org.usvm.model.ULazyModelDecoder
 import org.usvm.model.buildTranslatorAndLazyDecoder
 import kotlin.test.assertSame
@@ -112,7 +112,7 @@ open class SoftConstraintsTest<Field, Type, Method> {
         val arrayType = IntArray::class
         val inputRef = mkRegisterReading(0, addressSort)
         val secondInputRef = mkRegisterReading(1, addressSort)
-        val region = emptyInputArrayLengthRegion(arrayType, sizeSort)
+        val region = emptyInputArrayLengthCollection(arrayType, sizeSort)
             .write(inputRef, mkRegisterReading(3, sizeSort), guard = trueExpr)
 
         val size = 25
@@ -136,7 +136,7 @@ open class SoftConstraintsTest<Field, Type, Method> {
     fun testUnsatCore() = with(ctx) {
         val arrayType = IntArray::class
         val inputRef = mkRegisterReading(0, addressSort)
-        val region = emptyInputArrayLengthRegion(arrayType, sizeSort)
+        val region = emptyInputArrayLengthCollection(arrayType, sizeSort)
             .write(inputRef, mkRegisterReading(3, sizeSort), guard = trueExpr)
 
         val pc = UPathConstraints<Type>(ctx)

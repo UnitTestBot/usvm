@@ -8,27 +8,27 @@ import org.usvm.util.emptyRegionTree
 /**
  * Represents a sequence of memory writes.
  */
-interface UMemoryUpdates<Key, Sort : USort> : Sequence<UUpdateNode<Key, Sort>> {
+interface USymbolicCollectionUpdates<Key, Sort : USort> : Sequence<UUpdateNode<Key, Sort>> {
     /**
      * @return Relevant updates for a given key.
      */
-    fun read(key: Key): UMemoryUpdates<Key, Sort>
+    fun read(key: Key): USymbolicCollectionUpdates<Key, Sort>
 
     /**
-     * @return Memory region which is obtained from this one by overwriting the address [key] with value [value]
+     * @return Symbolic collection which is obtained from this one by overwriting the address [key] with value [value]
      * guarded with condition [guard].
      */
-    fun write(key: Key, value: UExpr<Sort>, guard: UBoolExpr = value.ctx.trueExpr): UMemoryUpdates<Key, Sort>
+    fun write(key: Key, value: UExpr<Sort>, guard: UBoolExpr = value.ctx.trueExpr): USymbolicCollectionUpdates<Key, Sort>
 
     /**
-     * Splits this [UMemoryUpdates] into two parts:
+     * Splits this [USymbolicCollectionUpdates] into two parts:
      * * Values of [UUpdateNode]s satisfying [predicate] are added to the [matchingWrites].
      * * [UUpdateNode]s unsatisfying [predicate] remain in the result updates.
      *
      * The [guardBuilder] is used to build guards for values added to [matchingWrites]. In the end, the [guardBuilder]
      * is updated and contains a predicate indicating that the [key] can't be included in any of visited [UUpdateNode]s.
      *
-     * @return new [UMemoryUpdates] without writes satisfying [predicate].
+     * @return new [USymbolicCollectionUpdates] without writes satisfying [predicate].
      * @see [UUpdateNode.split]
      */
     fun split(
@@ -36,27 +36,27 @@ interface UMemoryUpdates<Key, Sort : USort> : Sequence<UUpdateNode<Key, Sort>> {
         predicate: (UExpr<Sort>) -> Boolean,
         matchingWrites: MutableList<GuardedExpr<UExpr<Sort>>>,
         guardBuilder: GuardBuilder,
-    ): UMemoryUpdates<Key, Sort>
+    ): USymbolicCollectionUpdates<Key, Sort>
 
     /**
-     * Returns a mapped [USymbolicMemoryRegion] using [keyMapper] and [composer].
+     * Returns a mapped [USymbolicCollection] using [keyMapper] and [composer].
      * It is used in [UComposer] during memory composition.
      */
-    fun <Field, Type> map(keyMapper: KeyMapper<Key>, composer: UComposer<Field, Type>): UMemoryUpdates<Key, Sort>
+    fun <Field, Type> map(keyMapper: KeyMapper<Key>, composer: UComposer<Field, Type>): USymbolicCollectionUpdates<Key, Sort>
 
     /**
-     * @return Updates which express copying the slice of [fromRegion]  guarded with
+     * @return Updates which express copying the slice of [fromCollection]  guarded with
      * condition [guard].
      *
-     * @see USymbolicMemoryRegion.copyRange
+     * @see USymbolicCollection.copyRange
      */
-    fun <RegionId : UArrayId<SrcKey, Sort, RegionId>, SrcKey> copyRange(
-        fromRegion: USymbolicMemoryRegion<RegionId, SrcKey, Sort>,
+    fun <CollectionId : UArrayId<SrcKey, Sort, CollectionId>, SrcKey> copyRange(
+        fromCollection: USymbolicCollection<CollectionId, SrcKey, Sort>,
         fromKey: Key,
         toKey: Key,
         keyConverter: UMemoryKeyConverter<SrcKey, Key>,
         guard: UBoolExpr,
-    ): UMemoryUpdates<Key, Sort>
+    ): USymbolicCollectionUpdates<Key, Sort>
 
     /**
      * Returns the last updated element if there were any updates or null otherwise.
@@ -77,7 +77,7 @@ interface UMemoryUpdates<Key, Sort : USort> : Sequence<UUpdateNode<Key, Sort>> {
      * (from the oldest to the newest) with accumulated [Result].
      *
      * Uses [lookupCache] to shortcut the traversal. The actual key is determined by the
-     * [UMemoryUpdates] implementation. A caller is responsible to maintain the lifetime of the [lookupCache].
+     * [USymbolicCollectionUpdates] implementation. A caller is responsible to maintain the lifetime of the [lookupCache].
      *
      * @return the final result.
      */
@@ -86,13 +86,13 @@ interface UMemoryUpdates<Key, Sort : USort> : Sequence<UUpdateNode<Key, Sort>> {
         lookupCache: MutableMap<Any?, Result>,
     ): Result
 
-    fun <RegionId : USymbolicMapId<SrcKey, KeySort, Reg, Sort, RegionId>,
-            SrcKey, KeySort : USort, Reg : Region<Reg>> mergeWithRegion(
-        fromRegion: USymbolicMemoryRegion<RegionId, SrcKey, Sort>,
+    fun <CollectionId : USymbolicMapId<SrcKey, KeySort, Reg, Sort, CollectionId>,
+            SrcKey, KeySort : USort, Reg : Region<Reg>> mergeWithCollection(
+        fromCollection: USymbolicCollection<CollectionId, SrcKey, Sort>,
         keyIncludesCheck: UMergeKeyIncludesCheck<SrcKey, KeySort, *>,
         keyConverter: UMergeKeyConverter<SrcKey, Key>,
         guard: UBoolExpr
-    ): UMemoryUpdates<Key, Sort>
+    ): USymbolicCollectionUpdates<Key, Sort>
 }
 
 /**
@@ -115,7 +115,7 @@ class UFlatUpdates<Key, Sort : USort> private constructor(
     private val symbolicEq: (Key, Key) -> UBoolExpr,
     private val concreteCmp: (Key, Key) -> Boolean,
     private val symbolicCmp: (Key, Key) -> UBoolExpr,
-) : UMemoryUpdates<Key, Sort> {
+) : USymbolicCollectionUpdates<Key, Sort> {
     constructor(
         symbolicEq: (Key, Key) -> UBoolExpr,
         concreteCmp: (Key, Key) -> Boolean,
@@ -141,15 +141,15 @@ class UFlatUpdates<Key, Sort : USort> private constructor(
             symbolicCmp
         )
 
-    override fun <RegionId : UArrayId<SrcKey, Sort, RegionId>, SrcKey> copyRange(
-        fromRegion: USymbolicMemoryRegion<RegionId, SrcKey, Sort>,
+    override fun <CollectionId : UArrayId<SrcKey, Sort, CollectionId>, SrcKey> copyRange(
+        fromCollection: USymbolicCollection<CollectionId, SrcKey, Sort>,
         fromKey: Key,
         toKey: Key,
         keyConverter: UMemoryKeyConverter<SrcKey, Key>,
         guard: UBoolExpr,
-    ): UMemoryUpdates<Key, Sort> = UFlatUpdates(
+    ): USymbolicCollectionUpdates<Key, Sort> = UFlatUpdates(
         UFlatUpdatesNode(
-            URangedUpdateNode(fromKey, toKey, fromRegion, concreteCmp, symbolicCmp, keyConverter, guard),
+            URangedUpdateNode(fromKey, toKey, fromCollection, concreteCmp, symbolicCmp, keyConverter, guard),
             this
         ),
         symbolicEq,
@@ -157,15 +157,15 @@ class UFlatUpdates<Key, Sort : USort> private constructor(
         symbolicCmp
     )
 
-    override fun <RegionId : USymbolicMapId<SrcKey, KeySort, Reg, Sort, RegionId>,
-            SrcKey, KeySort : USort, Reg : Region<Reg>> mergeWithRegion(
-        fromRegion: USymbolicMemoryRegion<RegionId, SrcKey, Sort>,
+    override fun <CollectionId : USymbolicMapId<SrcKey, KeySort, Reg, Sort, CollectionId>,
+            SrcKey, KeySort : USort, Reg : Region<Reg>> mergeWithCollection(
+        fromCollection: USymbolicCollection<CollectionId, SrcKey, Sort>,
         keyIncludesCheck: UMergeKeyIncludesCheck<SrcKey, KeySort, *>,
         keyConverter: UMergeKeyConverter<SrcKey, Key>,
         guard: UBoolExpr
-    ): UMemoryUpdates<Key, Sort> = UFlatUpdates(
+    ): USymbolicCollectionUpdates<Key, Sort> = UFlatUpdates(
         UFlatUpdatesNode(
-            UMergeUpdateNode(fromRegion, keyIncludesCheck, keyConverter, guard),
+            UMergeUpdateNode(fromCollection, keyIncludesCheck, keyConverter, guard),
             this
         ),
         symbolicEq,
@@ -277,7 +277,7 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
     private val symbolicEq: (Key, Key) -> UBoolExpr,
     private val concreteCmp: (Key, Key) -> Boolean,
     private val symbolicCmp: (Key, Key) -> UBoolExpr,
-) : UMemoryUpdates<Key, Sort> {
+) : USymbolicCollectionUpdates<Key, Sort> {
     override fun read(key: Key): UTreeUpdates<Key, Reg, Sort> {
         val reg = keyToRegion(key)
         val updates = updates.localize(reg)
@@ -299,15 +299,15 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
         return this.copy(updates = newUpdates)
     }
 
-    override fun <RegionId : UArrayId<SrcKey, Sort, RegionId>, SrcKey> copyRange(
-        fromRegion: USymbolicMemoryRegion<RegionId, SrcKey, Sort>,
+    override fun <CollectionId : UArrayId<SrcKey, Sort, CollectionId>, SrcKey> copyRange(
+        fromCollection: USymbolicCollection<CollectionId, SrcKey, Sort>,
         fromKey: Key,
         toKey: Key,
         keyConverter: UMemoryKeyConverter<SrcKey, Key>,
         guard: UBoolExpr
     ): UTreeUpdates<Key, Reg, Sort> {
         val region = keyRangeToRegion(fromKey, toKey)
-        val update = URangedUpdateNode(fromKey, toKey, fromRegion, concreteCmp, symbolicCmp, keyConverter, guard)
+        val update = URangedUpdateNode(fromKey, toKey, fromCollection, concreteCmp, symbolicCmp, keyConverter, guard)
         val newUpdates = updates.write(
             region,
             update,
@@ -317,15 +317,15 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
         return this.copy(updates = newUpdates)
     }
 
-    override fun <RegionId : USymbolicMapId<SrcKey, KeySort, Reg, Sort, RegionId>,
-            SrcKey, KeySort : USort, Reg : Region<Reg>> mergeWithRegion(
-        fromRegion: USymbolicMemoryRegion<RegionId, SrcKey, Sort>,
+    override fun <CollectionId : USymbolicMapId<SrcKey, KeySort, Reg, Sort, CollectionId>,
+            SrcKey, KeySort : USort, Reg : Region<Reg>> mergeWithCollection(
+        fromCollection: USymbolicCollection<CollectionId, SrcKey, Sort>,
         keyIncludesCheck: UMergeKeyIncludesCheck<SrcKey, KeySort, *>,
         keyConverter: UMergeKeyConverter<SrcKey, Key>,
         guard: UBoolExpr
-    ): UMemoryUpdates<Key, Sort> {
+    ): USymbolicCollectionUpdates<Key, Sort> {
         val region = fullRangeRegion()
-        val update = UMergeUpdateNode(fromRegion, keyIncludesCheck, keyConverter, guard)
+        val update = UMergeUpdateNode(fromCollection, keyIncludesCheck, keyConverter, guard)
         val newUpdates = updates.write(
             region,
             update,

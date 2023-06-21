@@ -171,13 +171,13 @@ class MapCompositionTest<Field, Type> {
         val addr = addressSort.mkConst("addr")
         val fromKey = sizeSort.mkConst("fromKey") as UExpr<USizeSort>
         val toKey = sizeSort.mkConst("toKey") as UExpr<USizeSort>
-        val region = mockk<USymbolicMemoryRegion<UAllocatedArrayId<Int, UBv32Sort>, UExpr<USizeSort>, UBv32Sort>>()
+        val region = mockk<USymbolicCollection<UAllocatedArrayId<Int, UBv32Sort>, UExpr<USizeSort>, UBv32Sort>>()
         val guard = boolSort.mkConst("guard")
 
         val updateNode = URangedUpdateNode(
             fromKey,
             toKey,
-            region = region,
+            sourceCollection = region,
             concreteComparer = { _, _ -> shouldNotBeCalled() },
             symbolicComparer = { _, _ -> shouldNotBeCalled() },
             keyConverter = UAllocatedToAllocatedKeyConverter(
@@ -204,13 +204,13 @@ class MapCompositionTest<Field, Type> {
         val addr = mkConcreteHeapRef(0)
         val fromKey = sizeSort.mkConst("fromKey")
         val toKey = sizeSort.mkConst("toKey")
-        val region = mockk<USymbolicMemoryRegion<UAllocatedArrayId<Int, UBv32Sort>, USizeExpr, UBv32Sort>>()
+        val region = mockk<USymbolicCollection<UAllocatedArrayId<Int, UBv32Sort>, USizeExpr, UBv32Sort>>()
         val guard = boolSort.mkConst("guard")
 
         val updateNode = URangedUpdateNode(
             fromKey,
             toKey,
-            region = region,
+            sourceCollection = region,
             concreteComparer = { _, _ -> shouldNotBeCalled() },
             symbolicComparer = { _, _ -> shouldNotBeCalled() },
             keyConverter = UAllocatedToAllocatedKeyConverter(
@@ -223,7 +223,7 @@ class MapCompositionTest<Field, Type> {
 
         val composedFromKey = sizeSort.mkConst("composedFromKey")
         val composedToKey = sizeSort.mkConst("composedToKey")
-        val composedRegion = mockk<USymbolicMemoryRegion<UAllocatedArrayId<Int, UBv32Sort>, UExpr<USizeSort>, UBv32Sort>>()
+        val composedRegion = mockk<USymbolicCollection<UAllocatedArrayId<Int, UBv32Sort>, UExpr<USizeSort>, UBv32Sort>>()
         val composedGuard = mkTrue()
 
         every { composer.compose(addr) } returns addr
@@ -237,7 +237,7 @@ class MapCompositionTest<Field, Type> {
         assertNotSame(illegal = updateNode, actual = mappedUpdateNode)
         assertSame(expected = composedFromKey, actual = mappedUpdateNode.fromKey)
         assertSame(expected = composedToKey, actual = mappedUpdateNode.toKey)
-        assertSame(expected = composedRegion, actual = mappedUpdateNode.region)
+        assertSame(expected = composedRegion, actual = mappedUpdateNode.sourceCollection)
         assertSame(expected = composedGuard, actual = mappedUpdateNode.guard)
     }
 

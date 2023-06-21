@@ -146,17 +146,17 @@ sealed interface UMemoryKeyConverterBase<SrcKey, DstKey, T : UMemoryKeyConverter
     fun <Field, Type> map(composer: UComposer<Field, Type>): T
 }
 
-sealed interface UMemoryRegionUpdate<
+sealed interface USymbolicCollectionUpdate<
         SrcKey, DstKey, Sort : USort,
-        Region : USymbolicMemoryRegion<*, SrcKey, Sort>,
+        Collection : USymbolicCollection<*, SrcKey, Sort>,
         KeyConverter : UMemoryKeyConverterBase<SrcKey, DstKey, KeyConverter>
         > : UUpdateNode<DstKey, Sort> {
     val keyConverter: KeyConverter
-    val region: Region
+    val sourceCollection: Collection
 
-    override fun value(key: DstKey): UExpr<Sort> = region.read(keyConverter.convert(key))
+    override fun value(key: DstKey): UExpr<Sort> = sourceCollection.read(keyConverter.convert(key))
 
-    fun changeRegion(newRegion: Region): UUpdateNode<DstKey, Sort>
+    fun changeCollection(newCollection: Collection): UUpdateNode<DstKey, Sort>
 
     override fun split(
         key: DstKey,
@@ -171,7 +171,7 @@ sealed interface UMemoryRegionUpdate<
         val nextGuardBuilder = GuardBuilder(nextGuard)
 
         /**
-         * Here's the explanation of the [split] function. Consider these memory regions and memory updates:
+         * Here's the explanation of the [split] function. Consider these symbolic collections and updates:
          *
          * ```
          *                  [this]   [UPinpointUpdateNode]
@@ -191,16 +191,16 @@ sealed interface UMemoryRegionUpdate<
          * Also, the result [matchingWrites] must contain { 0x1 }, but this must be guarded: [key] !in { 1..5 } which
          * is implied from [nodeExcludesKey].
          *
-         * Due to the [GuardBuilder] mutability, we have to create a new guard to pass into the [region.split] function,
+         * Due to the [GuardBuilder] mutability, we have to create a new guard to pass into the [sourceCollection.split] function,
          * it's a [nextGuardBuilder].
          */
-        val splitRegion = region.split(keyConverter.convert(key), predicate, matchingWrites, nextGuardBuilder)
+        val splitCollection = sourceCollection.split(keyConverter.convert(key), predicate, matchingWrites, nextGuardBuilder)
 
-        val resultUpdateNode = if (splitRegion === region) {
+        val resultUpdateNode = if (splitCollection === sourceCollection) {
             this
         } else {
             @Suppress("UNCHECKED_CAST")
-            changeRegion(splitRegion as Region)
+            changeCollection(splitCollection as Collection)
         }
 
         guardBuilder += nodeExcludesKey
@@ -210,7 +210,7 @@ sealed interface UMemoryRegionUpdate<
 }
 
 /**
- * Composable converter of memory region keys. Helps to transparently copy content of various regions
+ * Composable converter of symbolic collection keys. Helps to transparently copy content of various collections
  * each into other without eager address conversion.
  * For instance, when we copy array slice [i : i + len] to destination memory slice [j : j + len],
  * we emulate it by memorizing the source memory updates as-is, but read the destination memory by
@@ -268,19 +268,19 @@ sealed class UMemoryKeyConverter<SrcKey, DstKey>(
 
 /**
  * Represents a synchronous overwriting the range of addresses [[fromKey] : [toKey]]
- * with values from memory region [region] read from range
+ * with values from symbolic collection [sourceCollection] read from range
  * of addresses [[keyConverter].convert([fromKey]) : [keyConverter].convert([toKey])]
  */
-class URangedUpdateNode<RegionId : UArrayId<SrcKey, Sort, RegionId>, SrcKey, DstKey, Sort : USort>(
+class URangedUpdateNode<CollectionId : UArrayId<SrcKey, Sort, CollectionId>, SrcKey, DstKey, Sort : USort>(
     val fromKey: DstKey,
     val toKey: DstKey,
-    override val region: USymbolicMemoryRegion<RegionId, SrcKey, Sort>,
+    override val sourceCollection: USymbolicCollection<CollectionId, SrcKey, Sort>,
     private val concreteComparer: (DstKey, DstKey) -> Boolean,
     private val symbolicComparer: (DstKey, DstKey) -> UBoolExpr,
     override val keyConverter: UMemoryKeyConverter<SrcKey, DstKey>,
     override val guard: UBoolExpr
-) : UMemoryRegionUpdate<SrcKey, DstKey, Sort,
-        USymbolicMemoryRegion<RegionId, SrcKey, Sort>,
+) : USymbolicCollectionUpdate<SrcKey, DstKey, Sort,
+        USymbolicCollection<CollectionId, SrcKey, Sort>,
         UMemoryKeyConverter<SrcKey, DstKey>> {
 
     override fun includesConcretely(key: DstKey, precondition: UBoolExpr): Boolean =
@@ -302,17 +302,17 @@ class URangedUpdateNode<RegionId : UArrayId<SrcKey, Sort, RegionId>, SrcKey, Dst
     override fun <Field, Type> map(
         keyMapper: KeyMapper<DstKey>,
         composer: UComposer<Field, Type>
-    ): URangedUpdateNode<RegionId, SrcKey, DstKey, Sort> {
+    ): URangedUpdateNode<CollectionId, SrcKey, DstKey, Sort> {
         val mappedFromKey = keyMapper(fromKey)
         val mappedToKey = keyMapper(toKey)
-        val mappedRegion = region.map(composer)
+        val mappedCollection = sourceCollection.map(composer)
         val mappedKeyConverter = keyConverter.map(composer)
         val mappedGuard = composer.compose(guard)
 
         // If nothing changed, return this
         if (mappedFromKey === fromKey
             && mappedToKey === toKey
-            && mappedRegion === region
+            && mappedCollection === sourceCollection
             && mappedKeyConverter === keyConverter
             && mappedGuard === guard
         ) {
@@ -323,7 +323,7 @@ class URangedUpdateNode<RegionId : UArrayId<SrcKey, Sort, RegionId>, SrcKey, Dst
         return URangedUpdateNode(
             mappedFromKey,
             mappedToKey,
-            mappedRegion,
+            mappedCollection,
             concreteComparer,
             symbolicComparer,
             mappedKeyConverter,
@@ -331,8 +331,8 @@ class URangedUpdateNode<RegionId : UArrayId<SrcKey, Sort, RegionId>, SrcKey, Dst
         )
     }
 
-    override fun changeRegion(newRegion: USymbolicMemoryRegion<RegionId, SrcKey, Sort>) =
-        URangedUpdateNode(fromKey, toKey, newRegion, concreteComparer, symbolicComparer, keyConverter, guard)
+    override fun changeCollection(newCollection: USymbolicCollection<CollectionId, SrcKey, Sort>) =
+        URangedUpdateNode(fromKey, toKey, newCollection, concreteComparer, symbolicComparer, keyConverter, guard)
 
     // Ignores update
     override fun equals(other: Any?): Boolean =
@@ -345,7 +345,7 @@ class URangedUpdateNode<RegionId : UArrayId<SrcKey, Sort, RegionId>, SrcKey, Dst
     override fun hashCode(): Int = (17 * fromKey.hashCode() + toKey.hashCode()) * 31 + guard.hashCode()
 
     override fun toString(): String {
-        return "{[$fromKey..$toKey] <- $region[keyConv($fromKey)..keyConv($toKey)]" +
+        return "{[$fromKey..$toKey] <- $sourceCollection[keyConv($fromKey)..keyConv($toKey)]" +
             ("}".takeIf { guard.isTrue } ?: " | $guard}")
     }
 }
@@ -367,31 +367,31 @@ class UMergeKeyConverter<SrcKey, DstKey>(
     }
 }
 
-class UMergeKeyIncludesCheck<SrcKey, KeySort : USort, RegionId : USymbolicMapId<SrcKey, KeySort, *, UBoolSort, RegionId>>(
-    val region: USymbolicMemoryRegion<RegionId, SrcKey, UBoolSort>
+class UMergeKeyIncludesCheck<SrcKey, KeySort : USort, CollectionId : USymbolicMapId<SrcKey, KeySort, *, UBoolSort, CollectionId>>(
+    val collection: USymbolicCollection<CollectionId, SrcKey, UBoolSort>
 ) {
-    fun check(key: SrcKey): UBoolExpr = region.read(key)
+    fun check(key: SrcKey): UBoolExpr = collection.read(key)
 
-    fun <Field, Type> map(composer: UComposer<Field, Type>): UMergeKeyIncludesCheck<SrcKey, KeySort, RegionId> {
-        val mappedRegion = region.map(composer)
-        if (mappedRegion === region) return this
-        return UMergeKeyIncludesCheck(region)
+    fun <Field, Type> map(composer: UComposer<Field, Type>): UMergeKeyIncludesCheck<SrcKey, KeySort, CollectionId> {
+        val mappedCollection = collection.map(composer)
+        if (mappedCollection === collection) return this
+        return UMergeKeyIncludesCheck(collection)
     }
 }
 
 class UMergeUpdateNode<
-        RegionId : USymbolicMapId<SrcKey, KeySort, Reg, ValueSort, RegionId>,
+        CollectionId : USymbolicMapId<SrcKey, KeySort, Reg, ValueSort, CollectionId>,
         SrcKey,
         DstKey,
         KeySort : USort,
         Reg : Region<Reg>,
         ValueSort : USort>(
-    override val region: USymbolicMemoryRegion<RegionId, SrcKey, ValueSort>,
+    override val sourceCollection: USymbolicCollection<CollectionId, SrcKey, ValueSort>,
     val keyIncludesCheck: UMergeKeyIncludesCheck<SrcKey, KeySort, *>,
     override val keyConverter: UMergeKeyConverter<SrcKey, DstKey>,
     override val guard: UBoolExpr
-) : UMemoryRegionUpdate<SrcKey, DstKey, ValueSort,
-        USymbolicMemoryRegion<RegionId, SrcKey, ValueSort>,
+) : USymbolicCollectionUpdate<SrcKey, DstKey, ValueSort,
+        USymbolicCollection<CollectionId, SrcKey, ValueSort>,
         UMergeKeyConverter<SrcKey, DstKey>> {
 
     override fun includesConcretely(key: DstKey, precondition: UBoolExpr): Boolean {
@@ -408,19 +408,19 @@ class UMergeUpdateNode<
         return keyIncludes.ctx.mkAnd(keyIncludes, guard)
     }
 
-    override fun changeRegion(newRegion: USymbolicMemoryRegion<RegionId, SrcKey, ValueSort>) =
-        UMergeUpdateNode(newRegion, keyIncludesCheck, keyConverter, guard)
+    override fun changeCollection(newCollection: USymbolicCollection<CollectionId, SrcKey, ValueSort>) =
+        UMergeUpdateNode(newCollection, keyIncludesCheck, keyConverter, guard)
 
     override fun <Field, Type> map(
         keyMapper: KeyMapper<DstKey>,
         composer: UComposer<Field, Type>
     ): UUpdateNode<DstKey, ValueSort> {
-        val mappedRegion = region.map(composer)
+        val mappedCollection = sourceCollection.map(composer)
         val mappedKeyConverter = keyConverter.map(composer)
         val mappedIncludesCheck = keyIncludesCheck.map(composer)
         val mappedGuard = composer.compose(guard)
 
-        if (mappedRegion === region
+        if (mappedCollection === sourceCollection
             && mappedKeyConverter === keyConverter
             && mappedIncludesCheck === keyIncludesCheck
             && mappedGuard == guard
@@ -428,10 +428,10 @@ class UMergeUpdateNode<
             return this
         }
 
-        return UMergeUpdateNode(mappedRegion, mappedIncludesCheck, mappedKeyConverter, mappedGuard)
+        return UMergeUpdateNode(mappedCollection, mappedIncludesCheck, mappedKeyConverter, mappedGuard)
     }
 
-    override fun toString(): String = "(merge $region)"
+    override fun toString(): String = "(merge $sourceCollection)"
 }
 
 /**

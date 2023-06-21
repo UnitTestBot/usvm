@@ -20,10 +20,10 @@ import org.usvm.memory.UInputToAllocatedKeyConverter
 import org.usvm.memory.UInputToInputKeyConverter
 import org.usvm.memory.URegionHeap
 import org.usvm.memory.USymbolicObjectReferenceMapDescriptor
-import org.usvm.memory.emptyAllocatedArrayRegion
-import org.usvm.memory.emptyInputArrayLengthRegion
-import org.usvm.memory.emptyInputArrayRegion
-import org.usvm.memory.emptyInputFieldRegion
+import org.usvm.memory.emptyAllocatedArrayCollection
+import org.usvm.memory.emptyInputArrayLengthCollection
+import org.usvm.memory.emptyInputArrayCollection
+import org.usvm.memory.emptyInputFieldCollection
 import kotlin.test.assertSame
 
 class TranslationTest {
@@ -114,7 +114,7 @@ class TranslationTest {
         val val2 = mkBv(2)
 
 
-        val region = emptyInputArrayRegion(valueArrayDescr, bv32Sort)
+        val region = emptyInputArrayCollection(valueArrayDescr, bv32Sort)
             .write(ref1 to idx1, val1, trueExpr)
             .write(ref2 to idx2, val2, trueExpr)
 
@@ -126,7 +126,7 @@ class TranslationTest {
         val translated = translator.translate(reading)
 
         val expected = mkArraySort(addressSort, sizeSort, bv32Sort)
-            .mkConst(region.regionId.toString())
+            .mkConst(region.collectionId.toString())
             .store(translator.translate(ref1), translator.translate(idx1), val1)
             .store(translator.translate(ref2), translator.translate(idx2), val2)
             .select(translator.translate(ref3), translator.translate(idx3))
@@ -145,7 +145,7 @@ class TranslationTest {
         val idx2 = mkRegisterReading(3, sizeSort)
         val val2 = mkBv(2)
 
-        val region = emptyInputArrayRegion(valueArrayDescr, bv32Sort)
+        val region = emptyInputArrayCollection(valueArrayDescr, bv32Sort)
             .write(ref1 to idx1, val1, trueExpr)
             .write(ref2 to idx2, val2, trueExpr)
 
@@ -153,14 +153,14 @@ class TranslationTest {
 
 
         val keyConverter = UInputToAllocatedKeyConverter(ref1 to mkBv(0), concreteRef to mkBv(0), mkBv(5))
-        val concreteRegion = emptyAllocatedArrayRegion(valueArrayDescr, concreteRef.address, bv32Sort)
+        val concreteRegion = emptyAllocatedArrayCollection(valueArrayDescr, concreteRef.address, bv32Sort)
             .copyRange(region, mkBv(0), mkBv(5), keyConverter, trueExpr)
 
         val idx = mkRegisterReading(4, sizeSort)
         val reading = concreteRegion.read(idx)
 
 
-        val key = region.regionId.keyMapper(translator)(keyConverter.convert(translator.translate(idx)))
+        val key = region.collectionId.keyMapper(translator)(keyConverter.convert(translator.translate(idx)))
         val innerReading =
             translator.translateRegionReading(region, key)
         val guard =
@@ -187,7 +187,7 @@ class TranslationTest {
         val g2 = mkRegisterReading(-2, boolSort)
         val g3 = mkRegisterReading(-3, boolSort)
 
-        val region = emptyInputFieldRegion(mockk<Field>(), bv32Sort)
+        val region = emptyInputFieldCollection(mockk<Field>(), bv32Sort)
             .write(ref1, mkBv(1), g1)
             .write(ref2, mkBv(2), g2)
             .write(ref3, mkBv(3), g3)
@@ -212,7 +212,7 @@ class TranslationTest {
         val ref2 = mkRegisterReading(2, addressSort)
         val ref3 = mkRegisterReading(3, addressSort)
 
-        val region = emptyInputArrayLengthRegion(mockk<Field>(), bv32Sort)
+        val region = emptyInputArrayLengthCollection(mockk<Field>(), bv32Sort)
             .write(ref1, mkBv(1), trueExpr)
             .write(ref2, mkBv(2), trueExpr)
             .write(ref3, mkBv(3), trueExpr)
@@ -242,13 +242,13 @@ class TranslationTest {
         val idx2 = mkRegisterReading(3, sizeSort)
         val val2 = mkBv(2)
 
-        val inputRegion1 = emptyInputArrayRegion(valueArrayDescr, bv32Sort)
+        val inputRegion1 = emptyInputArrayCollection(valueArrayDescr, bv32Sort)
             .write(ref1 to idx1, val1, trueExpr)
             .write(ref2 to idx2, val2, trueExpr)
 
 
         val keyConverter = UInputToInputKeyConverter(ref1 to mkBv(0), ref1 to mkBv(0), mkBv(5))
-        var inputRegion2 = emptyInputArrayRegion(mockk<Type>(), bv32Sort)
+        var inputRegion2 = emptyInputArrayCollection(mockk<Type>(), bv32Sort)
 
         val idx = mkRegisterReading(4, sizeSort)
         val reading1 = inputRegion2.read(ref2 to idx)

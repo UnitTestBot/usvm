@@ -8,10 +8,10 @@ import org.junit.jupiter.api.Test
 import org.usvm.*
 import org.usvm.memory.UAddressCounter
 import org.usvm.memory.UInputToAllocatedKeyConverter
-import org.usvm.memory.emptyAllocatedArrayRegion
-import org.usvm.memory.emptyInputArrayLengthRegion
-import org.usvm.memory.emptyInputArrayRegion
-import org.usvm.memory.emptyInputFieldRegion
+import org.usvm.memory.emptyAllocatedArrayCollection
+import org.usvm.memory.emptyInputArrayLengthCollection
+import org.usvm.memory.emptyInputArrayCollection
+import org.usvm.memory.emptyInputFieldCollection
 import kotlin.test.assertSame
 
 class ModelCompositionTest {
@@ -41,7 +41,7 @@ class ModelCompositionTest {
 
         val composer = UComposer(this, stackModel, heapEvaluator, mockk(), mockk())
 
-        val region = emptyAllocatedArrayRegion<Type, UBv32Sort>(mockk(), 1, bv32Sort)
+        val region = emptyAllocatedArrayCollection<Type, UBv32Sort>(mockk(), 1, bv32Sort)
             .write(0.toBv(), 0.toBv(), trueExpr)
             .write(1.toBv(), 1.toBv(), trueExpr)
             .write(mkRegisterReading(1, sizeSort), 2.toBv(), trueExpr)
@@ -72,12 +72,12 @@ class ModelCompositionTest {
 
         val symbolicRef = mkRegisterReading(0, addressSort)
 
-        val fromRegion = emptyInputArrayRegion(arrayType, bv32Sort)
+        val fromRegion = emptyInputArrayCollection(arrayType, bv32Sort)
 
         val concreteRef = mkConcreteHeapRef(1)
 
         val keyConverter = UInputToAllocatedKeyConverter(symbolicRef to mkBv(0), concreteRef to mkBv(0), mkBv(5))
-        val concreteRegion = emptyAllocatedArrayRegion(arrayType, concreteRef.address, bv32Sort)
+        val concreteRegion = emptyAllocatedArrayCollection(arrayType, concreteRef.address, bv32Sort)
             .copyRange(fromRegion, mkBv(0), mkBv(5), keyConverter, trueExpr)
 
         val idx = mkRegisterReading(1, sizeSort)
@@ -123,7 +123,7 @@ class ModelCompositionTest {
 
         val composer = UComposer(this, stackModel, heapEvaluator, mockk(), mockk())
 
-        val region = emptyInputArrayLengthRegion(arrayType, bv32Sort)
+        val region = emptyInputArrayLengthCollection(arrayType, bv32Sort)
             .write(symbolicRef1, 0.toBv(), trueExpr)
             .write(symbolicRef2, 1.toBv(), trueExpr)
             .write(symbolicRef3, 2.toBv(), trueExpr)
@@ -168,7 +168,7 @@ class ModelCompositionTest {
 
         val composer = UComposer(this, stackModel, heapEvaluator, mockk(), mockk())
 
-        val region = emptyInputFieldRegion(field, addressSort)
+        val region = emptyInputFieldCollection(field, addressSort)
             .write(symbolicRef1, symbolicRef1, trueExpr)
             .write(symbolicRef2, symbolicRef2, trueExpr)
             .write(symbolicRef3, symbolicRef3, trueExpr)

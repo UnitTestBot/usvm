@@ -3,7 +3,6 @@ package org.usvm.solver
 import io.ksmt.expr.KExpr
 import io.ksmt.sort.KArray2Sort
 import io.ksmt.sort.KArraySort
-import io.ksmt.utils.uncheckedCast
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.memory.*
@@ -14,17 +13,17 @@ import java.util.IdentityHashMap
  * [URegionTranslator] defines a template method that translates a region reading to a specific [KExpr] with a sort
  * [Sort].
  */
-class URegionTranslator<RegionId : URegionId<Key, Sort, RegionId>, Key, Sort : USort, Result>(
+class URegionTranslator<CollectionId : USymbolicCollectionId<Key, Sort, CollectionId>, Key, Sort : USort, Result>(
     private val updateTranslator: UMemoryUpdatesVisitor<Key, Sort, Result>,
 ) {
-    fun translateReading(region: USymbolicMemoryRegion<RegionId, Key, Sort>, key: Key): KExpr<Sort> {
+    fun translateReading(region: USymbolicCollection<CollectionId, Key, Sort>, key: Key): KExpr<Sort> {
         val translated = translate(region)
         return updateTranslator.visitSelect(translated, key)
     }
 
     private val visitorCache = IdentityHashMap<Any?, Result>()
 
-    private fun translate(region: USymbolicMemoryRegion<RegionId, Key, Sort>): Result =
+    private fun translate(region: USymbolicCollection<CollectionId, Key, Sort>): Result =
         region.updates.accept(updateTranslator, visitorCache)
 }
 
@@ -72,9 +71,9 @@ internal class U1DArrayUpdateTranslate<KeySort : USort, Sort : USort>(
                         (update as URangedUpdateNode<UArrayId<Any?, Sort, *>, Any?, UExpr<KeySort>, Sort>)
                         val key = mkFreshConst("k", previous.sort.domain)
 
-                        val from = update.region
+                        val from = update.sourceCollection
 
-                        val keyMapper = from.regionId.keyMapper(exprTranslator)
+                        val keyMapper = from.collectionId.keyMapper(exprTranslator)
                         val convertedKey = keyMapper(update.keyConverter.convert(key))
                         val isInside = update.includesSymbolically(key).translated // already includes guard
                         val result = exprTranslator.translateRegionReading(from, convertedKey)
@@ -93,9 +92,9 @@ internal class U1DArrayUpdateTranslate<KeySort : USort, Sort : USort>(
 
                         val key = mkFreshConst("k", previous.sort.domain)
 
-                        val from = update.region
+                        val from = update.sourceCollection
 
-                        val keyMapper = from.regionId.keyMapper(exprTranslator)
+                        val keyMapper = from.collectionId.keyMapper(exprTranslator)
                         val convertedKey = keyMapper(update.keyConverter.convert(key))
                         val isInside = update.includesSymbolically(key).translated // already includes guard
                         val result = exprTranslator.translateRegionReading(from, convertedKey)
@@ -158,8 +157,8 @@ internal class U2DArrayUpdateVisitor<
                         val key1 = mkFreshConst("k1", previous.sort.domain0)
                         val key2 = mkFreshConst("k2", previous.sort.domain1)
 
-                        val region = update.region
-                        val keyMapper = region.regionId.keyMapper(exprTranslator)
+                        val region = update.sourceCollection
+                        val keyMapper = region.collectionId.keyMapper(exprTranslator)
                         val convertedKey = keyMapper(update.keyConverter.convert(key1 to key2))
                         val isInside = update.includesSymbolically(key1 to key2).translated // already includes guard
                         val result = exprTranslator.translateRegionReading(region, convertedKey)
@@ -179,8 +178,8 @@ internal class U2DArrayUpdateVisitor<
                         val key1 = mkFreshConst("k1", previous.sort.domain0)
                         val key2 = mkFreshConst("k2", previous.sort.domain1)
 
-                        val region = update.region
-                        val keyMapper = region.regionId.keyMapper(exprTranslator)
+                        val region = update.sourceCollection
+                        val keyMapper = region.collectionId.keyMapper(exprTranslator)
                         val convertedKey = keyMapper(update.keyConverter.convert(key1 to key2))
                         val isInside = update.includesSymbolically(key1 to key2).translated // already includes guard
                         val result = exprTranslator.translateRegionReading(region, convertedKey)

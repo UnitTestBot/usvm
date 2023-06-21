@@ -15,17 +15,17 @@ import org.usvm.uctx
 import org.usvm.util.Region
 
 /**
- * Represents any possible type of regions that can be used in the memory.
+ * Represents any possible type of symbolic collections that can be used in symbolic memory.
  */
-interface URegionId<Key, Sort : USort, out RegionId : URegionId<Key, Sort, RegionId>> {
+interface USymbolicCollectionId<Key, Sort : USort, out CollectionId : USymbolicCollectionId<Key, Sort, CollectionId>> {
     val sort: Sort
 
     val defaultValue: UExpr<Sort>?
 
     /**
-     * Performs a reading from a [region] by a [key]. Inheritors uses context heap in memory regions composition.
+     * Performs a reading from a [collection] by a [key]. Inheritors use context heap in symbolic collection composition.
      */
-    fun instantiate(region: USymbolicMemoryRegion<@UnsafeVariance RegionId, Key, Sort>, key: Key): UExpr<Sort>
+    fun instantiate(collection: USymbolicCollection<@UnsafeVariance CollectionId, Key, Sort>, key: Key): UExpr<Sort>
 
     fun <Field, ArrayType> write(
         heap: USymbolicHeap<Field, ArrayType>,
@@ -36,48 +36,48 @@ interface URegionId<Key, Sort : USort, out RegionId : URegionId<Key, Sort, Regio
 
     fun <Field, ArrayType> keyMapper(transformer: UExprTransformer<Field, ArrayType>): KeyMapper<Key>
 
-    fun <Field, ArrayType> map(composer: UComposer<Field, ArrayType>): RegionId
+    fun <Field, ArrayType> map(composer: UComposer<Field, ArrayType>): CollectionId
 
-    fun <R> accept(visitor: URegionIdVisitor<R>): R
+    fun <R> accept(visitor: UCollectionIdVisitor<R>): R
 }
 
-interface URegionIdVisitor<R> {
-    fun <Key, Sort : USort, RegionId : URegionId<Key, Sort, RegionId>> visit(regionId: URegionId<Key, Sort, RegionId>): Any? =
-        error("You must provide visit implementation for ${regionId::class} in ${this::class}")
+interface UCollectionIdVisitor<R> {
+    fun <Key, Sort : USort, CollectionId : USymbolicCollectionId<Key, Sort, CollectionId>> visit(collectionId: USymbolicCollectionId<Key, Sort, CollectionId>): Any? =
+        error("You must provide visit implementation for ${collectionId::class} in ${this::class}")
 
-    fun <Field, Sort : USort> visit(regionId: UInputFieldId<Field, Sort>): R
+    fun <Field, Sort : USort> visit(collectionId: UInputFieldId<Field, Sort>): R
 
-    fun <ArrayType, Sort : USort> visit(regionId: UAllocatedArrayId<ArrayType, Sort>): R
+    fun <ArrayType, Sort : USort> visit(collectionId: UAllocatedArrayId<ArrayType, Sort>): R
 
-    fun <ArrayType, Sort : USort> visit(regionId: UInputArrayId<ArrayType, Sort>): R
+    fun <ArrayType, Sort : USort> visit(collectionId: UInputArrayId<ArrayType, Sort>): R
 
-    fun <ArrayType> visit(regionId: UInputArrayLengthId<ArrayType>): R
+    fun <ArrayType> visit(collectionId: UInputArrayLengthId<ArrayType>): R
 
-    fun <KeySort : USort, Reg: Region<Reg>, Sort : USort> visit(regionId: UAllocatedSymbolicMapId<KeySort, Reg, Sort>): R
+    fun <KeySort : USort, Reg: Region<Reg>, Sort : USort> visit(collectionId: UAllocatedSymbolicMapId<KeySort, Reg, Sort>): R
 
-    fun <KeySort : USort, Reg: Region<Reg>, Sort : USort> visit(regionId: UInputSymbolicMapId<KeySort, Reg, Sort>): R
+    fun <KeySort : USort, Reg: Region<Reg>, Sort : USort> visit(collectionId: UInputSymbolicMapId<KeySort, Reg, Sort>): R
 
-    fun visit(regionId: UInputSymbolicMapLengthId): R
+    fun visit(collectionId: UInputSymbolicMapLengthId): R
 }
 
 /**
- * A region id for a region storing the specific [field].
+ * An id for a collection storing the specific [field].
  */
 data class UInputFieldId<Field, Sort : USort> internal constructor(
     val field: Field,
     override val sort: Sort,
     val contextHeap: USymbolicHeap<Field, *>?,
-) : URegionId<UHeapRef, Sort, UInputFieldId<Field, Sort>> {
+) : USymbolicCollectionId<UHeapRef, Sort, UInputFieldId<Field, Sort>> {
 
     override val defaultValue: UExpr<Sort>? get() = null
 
     override fun instantiate(
-        region: USymbolicMemoryRegion<UInputFieldId<Field, Sort>, UHeapRef, Sort>,
+        collection: USymbolicCollection<UInputFieldId<Field, Sort>, UHeapRef, Sort>,
         key: UHeapRef
     ): UExpr<Sort> = if (contextHeap == null) {
-        sort.uctx.mkInputFieldReading(region, key)
+        sort.uctx.mkInputFieldReading(collection, key)
     } else {
-        region.applyTo(contextHeap)
+        collection.applyTo(contextHeap)
         contextHeap.readField(key, field, sort).asExpr(sort)
     }
 
@@ -99,7 +99,7 @@ data class UInputFieldId<Field, Sort : USort> internal constructor(
         return copy(contextHeap = composer.heapEvaluator.toMutableHeap() as USymbolicHeap<Field, *>)
     }
 
-    override fun <R> accept(visitor: URegionIdVisitor<R>): R =
+    override fun <R> accept(visitor: UCollectionIdVisitor<R>): R =
         visitor.visit(this)
 
     override fun toString(): String {
@@ -107,21 +107,21 @@ data class UInputFieldId<Field, Sort : USort> internal constructor(
     }
 }
 
-sealed interface UArrayId<Key, Sort : USort, out RegionId : UArrayId<Key, Sort, RegionId>> :
-    URegionId<Key, Sort, RegionId>
+sealed interface UArrayId<Key, Sort : USort, out CollectionId : UArrayId<Key, Sort, CollectionId>> :
+    USymbolicCollectionId<Key, Sort, CollectionId>
 
-interface UTypedArrayId<ArrayType, Key, Sort : USort, out RegionId : UTypedArrayId<ArrayType, Key, Sort, RegionId>> :
-    UArrayId<Key, Sort, RegionId> {
+interface UTypedArrayId<ArrayType, Key, Sort : USort, out CollectionId : UTypedArrayId<ArrayType, Key, Sort, CollectionId>> :
+    UArrayId<Key, Sort, CollectionId> {
     val arrayType: ArrayType
 }
 
-interface USymbolicMapId<Key, KeySort : USort, Reg : Region<Reg>, Sort : USort, out RegionId : USymbolicMapId<Key, KeySort, Reg, Sort, RegionId>> :
-    UArrayId<Key, Sort, RegionId> {
+interface USymbolicMapId<Key, KeySort : USort, Reg : Region<Reg>, Sort : USort, out CollectionId : USymbolicMapId<Key, KeySort, Reg, Sort, CollectionId>> :
+    UArrayId<Key, Sort, CollectionId> {
     val descriptor: USymbolicMapDescriptor<KeySort, Sort, Reg>
 }
 
 /**
- * A region id for a region storing arrays allocated during execution.
+ * A collection id for a collection storing arrays allocated during execution.
  * Each identifier contains information about its [arrayType] and [address].
  */
 data class UAllocatedArrayId<ArrayType, Sort : USort> internal constructor(
@@ -133,12 +133,12 @@ data class UAllocatedArrayId<ArrayType, Sort : USort> internal constructor(
 ) : UTypedArrayId<ArrayType, USizeExpr, Sort, UAllocatedArrayId<ArrayType, Sort>> {
 
     override fun instantiate(
-        region: USymbolicMemoryRegion<UAllocatedArrayId<ArrayType, Sort>, USizeExpr, Sort>,
+        collection: USymbolicCollection<UAllocatedArrayId<ArrayType, Sort>, USizeExpr, Sort>,
         key: USizeExpr
     ): UExpr<Sort> = if (contextHeap == null) {
-        sort.uctx.mkAllocatedArrayReading(region, key)
+        sort.uctx.mkAllocatedArrayReading(collection, key)
     } else {
-        region.applyTo(contextHeap)
+        collection.applyTo(contextHeap)
         val ref = key.uctx.mkConcreteHeapRef(address)
         contextHeap.readArrayIndex(ref, key, arrayType, sort).asExpr(sort)
     }
@@ -182,7 +182,7 @@ data class UAllocatedArrayId<ArrayType, Sort : USort> internal constructor(
         return true
     }
 
-    override fun <R> accept(visitor: URegionIdVisitor<R>): R =
+    override fun <R> accept(visitor: UCollectionIdVisitor<R>): R =
         visitor.visit(this)
 
     override fun hashCode(): Int {
@@ -195,7 +195,7 @@ data class UAllocatedArrayId<ArrayType, Sort : USort> internal constructor(
 }
 
 /**
- * A region id for a region storing arrays retrieved as a symbolic value, contains only its [arrayType].
+ * A collection id for a collection storing arrays retrieved as a symbolic value, contains only its [arrayType].
  */
 data class UInputArrayId<ArrayType, Sort : USort> internal constructor(
     override val arrayType: ArrayType,
@@ -204,12 +204,12 @@ data class UInputArrayId<ArrayType, Sort : USort> internal constructor(
 ) : UTypedArrayId<ArrayType, USymbolicArrayIndex, Sort, UInputArrayId<ArrayType, Sort>> {
     override val defaultValue: UExpr<Sort>? get() = null
     override fun instantiate(
-        region: USymbolicMemoryRegion<UInputArrayId<ArrayType, Sort>, USymbolicArrayIndex, Sort>,
+        collection: USymbolicCollection<UInputArrayId<ArrayType, Sort>, USymbolicArrayIndex, Sort>,
         key: USymbolicArrayIndex
     ): UExpr<Sort> = if (contextHeap == null) {
-        sort.uctx.mkInputArrayReading(region, key.first, key.second)
+        sort.uctx.mkInputArrayReading(collection, key.first, key.second)
     } else {
-        region.applyTo(contextHeap)
+        collection.applyTo(contextHeap)
         contextHeap.readArrayIndex(key.first, key.second, arrayType, sort).asExpr(sort)
     }
 
@@ -229,7 +229,7 @@ data class UInputArrayId<ArrayType, Sort : USort> internal constructor(
         if (ref === it.first && idx === it.second) it else ref to idx
     }
 
-    override fun <R> accept(visitor: URegionIdVisitor<R>): R =
+    override fun <R> accept(visitor: UCollectionIdVisitor<R>): R =
         visitor.visit(this)
 
     override fun <Field, CArrayType> map(composer: UComposer<Field, CArrayType>): UInputArrayId<ArrayType, Sort> {
@@ -243,21 +243,21 @@ data class UInputArrayId<ArrayType, Sort : USort> internal constructor(
 }
 
 /**
- * A region id for a region storing array lengths for arrays of a specific [arrayType].
+ * A collection id for a collection storing array lengths for arrays of a specific [arrayType].
  */
 data class UInputArrayLengthId<ArrayType> internal constructor(
     val arrayType: ArrayType,
     override val sort: USizeSort,
     val contextHeap: USymbolicHeap<*, ArrayType>?,
-) : URegionId<UHeapRef, USizeSort, UInputArrayLengthId<ArrayType>> {
+) : USymbolicCollectionId<UHeapRef, USizeSort, UInputArrayLengthId<ArrayType>> {
     override val defaultValue: UExpr<USizeSort>? get() = null
     override fun instantiate(
-        region: USymbolicMemoryRegion<UInputArrayLengthId<ArrayType>, UHeapRef, USizeSort>,
+        collection: USymbolicCollection<UInputArrayLengthId<ArrayType>, UHeapRef, USizeSort>,
         key: UHeapRef
     ): UExpr<USizeSort> = if (contextHeap == null) {
-        sort.uctx.mkInputArrayLengthReading(region, key)
+        sort.uctx.mkInputArrayLengthReading(collection, key)
     } else {
-        region.applyTo(contextHeap)
+        collection.applyTo(contextHeap)
         contextHeap.readArrayLength(key, arrayType)
     }
 
@@ -281,7 +281,7 @@ data class UInputArrayLengthId<ArrayType> internal constructor(
         @Suppress("UNCHECKED_CAST")
         return copy(contextHeap = composer.heapEvaluator.toMutableHeap() as USymbolicHeap<*, ArrayType>)
     }
-    override fun <R> accept(visitor: URegionIdVisitor<R>): R =
+    override fun <R> accept(visitor: UCollectionIdVisitor<R>): R =
         visitor.visit(this)
 
     override fun toString(): String {
@@ -298,12 +298,12 @@ data class UAllocatedSymbolicMapId<KeySort : USort, Reg : Region<Reg>, Sort : US
     override val sort: Sort get() = descriptor.valueSort
 
     override fun instantiate(
-        region: USymbolicMemoryRegion<UAllocatedSymbolicMapId<KeySort, Reg, Sort>, UExpr<KeySort>, Sort>,
+        collection: USymbolicCollection<UAllocatedSymbolicMapId<KeySort, Reg, Sort>, UExpr<KeySort>, Sort>,
         key: UExpr<KeySort>
     ): UExpr<Sort> = if (contextHeap == null) {
-        sort.uctx.mkAllocatedSymbolicMapReading(region, key)
+        sort.uctx.mkAllocatedSymbolicMapReading(collection, key)
     } else {
-        region.applyTo(contextHeap)
+        collection.applyTo(contextHeap)
         val ref = key.uctx.mkConcreteHeapRef(address)
         contextHeap.readSymbolicMap(descriptor, ref, key).asExpr(sort)
     }
@@ -334,7 +334,7 @@ data class UAllocatedSymbolicMapId<KeySort : USort, Reg : Region<Reg>, Sort : US
         )
     }
 
-    override fun <R> accept(visitor: URegionIdVisitor<R>): R =
+    override fun <R> accept(visitor: UCollectionIdVisitor<R>): R =
         visitor.visit(this)
 
     override fun toString(): String = "allocatedMap[$descriptor]($address)"
@@ -362,12 +362,12 @@ data class UInputSymbolicMapId<KeySort : USort, Reg : Region<Reg>, Sort : USort>
     override val defaultValue: UExpr<Sort>? get() = null
 
     override fun instantiate(
-        region: USymbolicMemoryRegion<UInputSymbolicMapId<KeySort, Reg, Sort>, USymbolicMapKey<KeySort>, Sort>,
+        collection: USymbolicCollection<UInputSymbolicMapId<KeySort, Reg, Sort>, USymbolicMapKey<KeySort>, Sort>,
         key: USymbolicMapKey<KeySort>
     ): UExpr<Sort> = if (contextHeap == null) {
-        sort.uctx.mkInputSymbolicMapReading(region, key.first, key.second)
+        sort.uctx.mkInputSymbolicMapReading(collection, key.first, key.second)
     } else {
-        region.applyTo(contextHeap)
+        collection.applyTo(contextHeap)
         contextHeap.readSymbolicMap(descriptor, key.first, key.second).asExpr(sort)
     }
 
@@ -388,7 +388,7 @@ data class UInputSymbolicMapId<KeySort : USort, Reg : Region<Reg>, Sort : USort>
         if (ref === it.first && idx === it.second) it else ref to idx
     }
 
-    override fun <R> accept(visitor: URegionIdVisitor<R>): R =
+    override fun <R> accept(visitor: UCollectionIdVisitor<R>): R =
         visitor.visit(this)
 
 
@@ -417,16 +417,16 @@ data class UInputSymbolicMapLengthId internal constructor(
     val descriptor: USymbolicMapDescriptor<*, *, *>,
     override val sort: USizeSort,
     val contextHeap: USymbolicHeap<*, *>?,
-) : URegionId<UHeapRef, USizeSort, UInputSymbolicMapLengthId> {
+) : USymbolicCollectionId<UHeapRef, USizeSort, UInputSymbolicMapLengthId> {
     override val defaultValue: UExpr<USizeSort>? get() = null
 
     override fun instantiate(
-        region: USymbolicMemoryRegion<UInputSymbolicMapLengthId, UHeapRef, USizeSort>,
+        collection: USymbolicCollection<UInputSymbolicMapLengthId, UHeapRef, USizeSort>,
         key: UHeapRef
     ): UExpr<USizeSort> = if (contextHeap == null) {
-        sort.uctx.mkInputSymbolicMapLengthReading(region, key)
+        sort.uctx.mkInputSymbolicMapLengthReading(collection, key)
     } else {
-        region.applyTo(contextHeap)
+        collection.applyTo(contextHeap)
         contextHeap.readSymbolicMapLength(descriptor, key)
     }
 
@@ -448,7 +448,7 @@ data class UInputSymbolicMapLengthId internal constructor(
         return copy(contextHeap = composer.heapEvaluator.toMutableHeap())
     }
 
-    override fun <R> accept(visitor: URegionIdVisitor<R>): R =
+    override fun <R> accept(visitor: UCollectionIdVisitor<R>): R =
         visitor.visit(this)
 
     override fun toString(): String = "length($descriptor)"
