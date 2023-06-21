@@ -226,14 +226,10 @@ class JcTestResolver(
             return instance
         }
 
-        /**
-         * TODO: Works incorrectly with interface types.
-         */
         @Suppress("UNUSED_PARAMETER")
         private fun resolveType(idx: UConcreteHeapAddress, type: JcRefType): Class<*> {
-            // TODO: ask memory for exact type
-            val clazz = classLoader.loadClass(type.typeName)
-            return clazz
+            // TODO: Works incorrectly with interface types, so ask memory for exact type
+            return classLoader.loadClass(type.typeName)
         }
 
         /**
