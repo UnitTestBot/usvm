@@ -1,9 +1,11 @@
 package org.usvm.instrumentation.util
 
+import example.C
 import org.jacodb.api.JcClasspath
 import org.jacodb.api.ext.*
 import org.usvm.instrumentation.testcase.UTest
-import org.usvm.instrumentation.testcase.statement.*
+import org.usvm.instrumentation.testcase.api.*
+import java.lang.IllegalArgumentException
 import kotlin.random.Random
 
 object UTestCreator {
@@ -44,6 +46,53 @@ object UTestCreator {
                 instance,
                 arg1,
                 setStatement
+            )
+            return UTest(statements, UTestMethodCall(instance, jcMethod, listOf(arg1, arg2)))
+        }
+
+        fun indexOfWithIf(jcClasspath: JcClasspath): UTest {
+            val jcClass = jcClasspath.findClass<example.A>()
+            val jcMethod = jcClass.findMethodOrNull("indexOf") ?: error("Cant find method indexOf in class A")
+            val constructor = jcClass.constructors.first()
+            val instance = UTestConstructorCall(constructor, listOf())
+            val arg1 = UTestCreateArrayExpression(
+                jcClasspath.int,
+                UTestIntExpression(10, jcClasspath.int)
+            )
+            val setStatement = UTestArraySetStatement(
+                arrayInstance = arg1,
+                index = UTestIntExpression(5, jcClasspath.int),
+                setValueExpression = UTestIntExpression(7, jcClasspath.int)
+            )
+            val getArrEl = UTestArrayGetExpression(
+                arrayInstance = arg1,
+                index = UTestIntExpression(5, jcClasspath.int)
+            )
+            val arg2 = UTestIntExpression(1, jcClasspath.int)
+            val ifExpr = UTestConditionExpression(
+                ConditionType.EQ,
+                getArrEl,
+                UTestIntExpression(7, jcClasspath.int),
+                listOf(
+                    UTestArraySetStatement(
+                        arrayInstance = arg1,
+                        index = UTestIntExpression(5, jcClasspath.int),
+                        setValueExpression = UTestIntExpression(1, jcClasspath.int)
+                    )
+                ),
+                listOf(
+                    UTestArraySetStatement(
+                        arrayInstance = arg1,
+                        index = UTestIntExpression(5, jcClasspath.int),
+                        setValueExpression = UTestIntExpression(2, jcClasspath.int)
+                    )
+                )
+            )
+            val statements = listOf(
+                instance,
+                arg1,
+                setStatement,
+                ifExpr
             )
             return UTest(statements, UTestMethodCall(instance, jcMethod, listOf(arg1, arg2)))
         }
@@ -111,7 +160,8 @@ object UTestCreator {
                     add(UTestConstructorCall(jcClassPointConstructor, listOf(xCoor, yCoor)))
                 }
             }
-            val pointListArray = UTestCreateArrayExpression(jcClassPoint.toType(), UTestIntExpression(pointList.size, jcClasspath.int))
+            val pointListArray =
+                UTestCreateArrayExpression(jcClassPoint.toType(), UTestIntExpression(pointList.size, jcClasspath.int))
             val arraySetStmts = buildList {
                 for ((i, p) in pointList.withIndex()) {
                     val index = UTestIntExpression(i, jcClasspath.int)
@@ -124,5 +174,26 @@ object UTestCreator {
             return UTest(initStatements, methodCall)
         }
 
+    }
+
+    object Throwables {
+
+        fun getRootCause(jcClasspath: JcClasspath): UTest {
+            val jcClass = jcClasspath.findClass("com.google.common.base.Throwables")
+            val jcMethod = jcClass.declaredMethods.find { it.name == "getRootCause" }!!
+            val jcIllegalArgumentExceptionClass = jcClasspath.findClass<IllegalArgumentException>()
+            val arg1 = UTestConstructorCall(jcIllegalArgumentExceptionClass.constructors.first(), listOf())
+            val methodCall = UTestStaticMethodCall(jcMethod, listOf(arg1))
+            return UTest(listOf(arg1), methodCall)
+        }
+    }
+
+    object C {
+
+        fun lol(jcClasspath: JcClasspath): UTest {
+            val jcClass = jcClasspath.findClass<example.C>()
+            val jcMethod = jcClass.declaredMethods.find { it.name == "lol" }!!
+            return UTest(listOf(), UTestStaticMethodCall(jcMethod, listOf()))
+        }
     }
 }

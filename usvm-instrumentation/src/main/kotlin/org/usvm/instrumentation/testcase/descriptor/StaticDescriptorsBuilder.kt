@@ -1,65 +1,75 @@
 package org.usvm.instrumentation.testcase.descriptor
 
 import getFieldValue
+import org.jacodb.api.JcClassOrInterface
 import org.jacodb.api.JcField
-import org.usvm.instrumentation.classloader.HierarchicalWorkerClassLoader
-import org.usvm.instrumentation.classloader.UserClassLoaderWithPrimitiveStatics
-import org.usvm.instrumentation.jacodb.util.toJavaClass
-import org.usvm.instrumentation.jacodb.util.toJavaField
+import org.jacodb.api.ext.enumValues
+import org.jacodb.api.ext.isEnum
+import org.usvm.instrumentation.classloader.WorkerClassLoader
+import org.usvm.instrumentation.instrumentation.JcInstructionTracer.StaticFieldAccessType
+import org.usvm.instrumentation.util.toJavaField
 import setFieldValue
 
 class StaticDescriptorsBuilder(
-    private val workerClassLoader: HierarchicalWorkerClassLoader
-) : Value2DescriptorConverter(workerClassLoader.getClassLoader(), null) {
+    private var workerClassLoader: WorkerClassLoader,
+    private val initialValue2DescriptorConverter: Value2DescriptorConverter
+) {
 
-    val builtDescriptors = HashMap<JcField, UTestValueDescriptor?>()
+    val builtInitialDescriptors = HashMap<JcField, UTestValueDescriptor?>()
+
     private val stateAfterStaticsDescriptors = HashMap<JcField, UTestValueDescriptor?>()
-    private val descriptor2ValueConverter = Descriptor2ValueConverter(workerClassLoader.getClassLoader())
+    private val descriptor2ValueConverter = Descriptor2ValueConverter(workerClassLoader)
 
-    fun buildDescriptorsForLoadedStatics(): Result<Map<JcField, UTestValueDescriptor>> =
-        try {
-            val allStatics =
-                workerClassLoader.loadedClassesWithStatics.flatMap { it.declaredFields.filter { it.isStatic } }
-            val staticToValue = allStatics.associateWith { jcField ->
-                builtDescriptors.getOrPut(jcField) { buildDescriptor(jcField) }
+    fun setClassLoader(workerClassLoader: WorkerClassLoader) {
+        this.workerClassLoader = workerClassLoader
+    }
+
+    fun buildInitialDescriptorForClass(jcClass: JcClassOrInterface) {
+        jcClass.declaredFields
+            .filter { it.needToBuildDescriptor() }
+            .forEach { jcField ->
+                builtInitialDescriptors.getOrPut(jcField) { buildDescriptor(jcField, initialValue2DescriptorConverter) }
             }
-            Result.success(filterNullDescriptors(staticToValue))
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
+    }
 
-    fun buildDescriptorsForStatics(fields: List<JcField>): Result<Map<JcField, UTestValueDescriptor>> =
+    fun buildDescriptorsForExecutedStatics(
+        fields: Set<Pair<JcField, StaticFieldAccessType>>,
+        resultValue2DescriptorConverter: Value2DescriptorConverter
+    ): Result<Map<JcField, UTestValueDescriptor>> =
         try {
-            val descriptorMap = fields.associateWith { buildDescriptor(it) }
+            val descriptorMap = fields
+                .map { it.first }
+                .associateWith { buildDescriptor(it, resultValue2DescriptorConverter) }
             stateAfterStaticsDescriptors.putAll(descriptorMap)
             Result.success(filterNullDescriptors(descriptorMap))
         } catch (e: Exception) {
             Result.failure(e)
         }
 
-    fun rollBackStatics() {
-        for ((jcField, descrAfter) in stateAfterStaticsDescriptors) {
-            if (jcField.enclosingClass.toJavaClass(workerClassLoader.getClassLoader()).classLoader !is UserClassLoaderWithPrimitiveStatics) {
-                continue
-            }
-            if (descrAfter == null) continue
-            val descrBefore = builtDescriptors[jcField] ?: continue
-            if (descrBefore.structurallyEqual(descrAfter)) continue
-            val valueBeforeExec = descriptor2ValueConverter.buildObjectFromDescriptor(descrBefore)
-            jcField.toJavaField(workerClassLoader.getClassLoader()).setFieldValue(null, valueBeforeExec)
-        }
-        stateAfterStaticsDescriptors.clear()
-    }
-
     private fun filterNullDescriptors(statics: Map<JcField, UTestValueDescriptor?>): Map<JcField, UTestValueDescriptor> =
         statics.filterValues { it != null }.mapValues { it.value!! }
 
-    private fun buildDescriptor(jcField: JcField): UTestValueDescriptor? {
-        val jField = jcField.toJavaField(workerClassLoader.getClassLoader())
+    private fun JcField.needToBuildDescriptor(): Boolean {
+        if (isStatic && !isFinal) return true
+        return isStatic && isFinal && enclosingClass.isEnum && enclosingClass.enumValues?.contains(this) == true
+    }
+
+    private fun buildDescriptor(jcField: JcField, descriptorBuilder: Value2DescriptorConverter): UTestValueDescriptor? {
+        val jField = jcField.toJavaField(workerClassLoader)
         val jFieldValue = jField.getFieldValue(null)
-        val jFieldValueDescriptor = buildDescriptorResultFromAny(jFieldValue)
+        val jFieldValueDescriptor = descriptorBuilder.buildDescriptorResultFromAny(jFieldValue)
         return jFieldValueDescriptor.getOrNull()
     }
 
+    fun rollBackStatics() {
+        for ((jcField, descrAfter) in stateAfterStaticsDescriptors) {
+            if (descrAfter == null) continue
+            val descrBefore = builtInitialDescriptors[jcField] ?: continue
+            if (descrBefore.structurallyEqual(descrAfter)) continue
+            val valueBeforeExec = descriptor2ValueConverter.buildObjectFromDescriptor(descrBefore)
+            jcField.toJavaField(workerClassLoader).setFieldValue(null, valueBeforeExec)
+        }
+        stateAfterStaticsDescriptors.clear()
+    }
 
 }

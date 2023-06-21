@@ -6,7 +6,8 @@ import org.jacodb.impl.features.InMemoryHierarchy
 import org.jacodb.impl.jacodb
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
-import org.usvm.instrumentation.classloader.HierarchicalWorkerClassLoader
+import org.usvm.instrumentation.classloader.WorkerClassLoader
+import org.usvm.instrumentation.testcase.executor.UTestExpressionExecutor
 import org.usvm.instrumentation.util.URLClassPathLoader
 import org.usvm.instrumentation.util.UTestCreator
 import java.io.File
@@ -31,13 +32,13 @@ class UTestExpressionExecutorTest {
         }
 
         fun createTestExecutor(): UTestExpressionExecutor {
-            val classLoader = HierarchicalWorkerClassLoader(
+            val classLoader = WorkerClassLoader(
                 URLClassPathLoader(listOf(File(testJarPath))),
                 this::class.java.classLoader,
                 "",
                 jcClasspath
             )
-            return UTestExpressionExecutor(classLoader.getClassLoader())
+            return UTestExpressionExecutor(classLoader, mutableSetOf())
         }
 
     }

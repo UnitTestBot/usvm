@@ -5,11 +5,11 @@ import com.jetbrains.rd.util.lifetime.Lifetime
 import com.jetbrains.rd.util.lifetime.LifetimeDefinition
 import com.jetbrains.rd.util.lifetime.isAlive
 import org.jacodb.api.JcClasspath
-import org.usvm.instrumentation.jacodb.transform.JcInstrumenter
-import org.usvm.instrumentation.jacodb.transform.JcInstrumenterFactory
+import org.usvm.instrumentation.instrumentation.JcInstrumenter
+import org.usvm.instrumentation.instrumentation.JcInstrumenterFactory
 import org.usvm.instrumentation.rd.InstrumentedProcess
 import org.usvm.instrumentation.testcase.UTest
-import org.usvm.instrumentation.testcase.statement.UTestExecutionResult
+import org.usvm.instrumentation.testcase.api.UTestExecutionResult
 import org.usvm.instrumentation.util.InstrumentationModuleConstants
 import osSpecificJavaExecutable
 import java.io.File
@@ -22,7 +22,7 @@ class InstrumentationProcessRunner(
     private val instrumentationClassFactory: KClass<out JcInstrumenterFactory<out JcInstrumenter>>
 ) {
 
-    private lateinit var processRunner: ProcessRunner
+    private lateinit var rdProcessRunner: RdProcessRunner
     private lateinit var lifetime: Lifetime
 
     constructor(
@@ -33,7 +33,7 @@ class InstrumentationProcessRunner(
 
     fun isAlive() = this::lifetime.isInitialized && lifetime.isAlive
 
-    private val workerProcessArgs: List<String> by lazy {
+    private val jvmArgs: List<String> by lazy {
         val instrumentationClassNameFactoryName = instrumentationClassFactory.java.name
         val memoryLimit = listOf("-Xmx1g")
         val pathToJava = JdkInfoService.provide().path
@@ -46,26 +46,30 @@ class InstrumentationProcessRunner(
                 memoryLimit +
                 javaVersionSpecificArguments +
                 listOf("-classpath", usvmClasspath) +
-                listOf(instrumentedProcessClassName, testingProjectClasspath)
+                listOf(instrumentedProcessClassName)
     }
+
+    private fun createWorkerProcessArgs(rdPort: Int, timeout: Int): List<String> =
+        listOf("-cp", testingProjectClasspath) + listOf("-t", "$timeout") + listOf("-p", "$rdPort")
 
     suspend fun init(parentLifetime: Lifetime) {
         val processLifetime = LifetimeDefinition(parentLifetime)
         lifetime = processLifetime
         val rdPort = NetUtils.findFreePort(0)
-        val workerCommand = workerProcessArgs + listOf("$rdPort")
+        val workerCommand = jvmArgs + createWorkerProcessArgs(rdPort, 60)
         val pb = ProcessBuilder(workerCommand).inheritIO()
         val process = pb.start()
-        processRunner =
-            ProcessRunner(process = process, rdPort = rdPort, jcClasspath = jcClasspath, lifetime = processLifetime)
-        processRunner.init()
+        rdProcessRunner =
+            RdProcessRunner(process = process, rdPort = rdPort, jcClasspath = jcClasspath, lifetime = processLifetime)
+        rdProcessRunner.init()
     }
 
-    fun executeUTestSync(uTest: UTest, timeout: Duration): UTestExecutionResult = processRunner.callUTestSync(uTest, timeout)
+    fun executeUTestSync(uTest: UTest, timeout: Duration): UTestExecutionResult =
+        rdProcessRunner.callUTestSync(uTest, timeout)
 
-    suspend fun executeUTest(uTest: UTest): UTestExecutionResult = processRunner.callUTest(uTest)
+    suspend fun executeUTestAsync(uTest: UTest): UTestExecutionResult = rdProcessRunner.callUTestAsync(uTest)
 
-    suspend fun destroy() = processRunner.destroy()
+    suspend fun destroy() = rdProcessRunner.destroy()
 
 
 }
