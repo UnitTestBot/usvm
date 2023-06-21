@@ -3,6 +3,7 @@ package org.usvm.model
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.collections.immutable.persistentMapOf
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.usvm.*
@@ -168,5 +169,50 @@ class ModelCompositionTest {
 
         val expr = composer.compose(reading)
         assertSame(composedRef0, expr)
+    }
+
+    @Test
+    fun testComposeAllocatedArrayWithFalseOverwrite() = with(ctx) {
+        val heapEvaluator = UHeapEagerModel<Field, Type>(
+            concreteNull,
+            mapOf(),
+            mapOf(),
+            mapOf(),
+        )
+
+        val index0 = 0.toBv()
+        val index1 = 1.toBv()
+
+        val defaultValue = bv32Sort.sampleUValue()
+        val nonDefaultValue0 = 17.toBv()
+        val nonDefaultValue1 = 42.toBv()
+
+        val stackModel = URegistersStackEagerModel(concreteNull, mapOf(0 to trueExpr, 1 to falseExpr))
+        val trueGuard = mkRegisterReading(0, boolSort)
+        val falseGuard = mkRegisterReading(1, boolSort)
+
+        val composer = UComposer(this, stackModel, heapEvaluator, mockk(), mockk())
+
+        val emptyRegion = emptyAllocatedArrayRegion<Type, UBv32Sort>(mockk(), 1, bv32Sort)
+
+        run {
+            val region = emptyRegion
+                .write(index0, nonDefaultValue0, trueGuard)
+                .write(index0, nonDefaultValue1, falseGuard)
+            val reading = region.read(index0)
+
+            val expr = composer.compose(reading)
+            assertEquals(nonDefaultValue0, expr)
+        }
+
+        run {
+            val region = emptyRegion
+                .write(index1, nonDefaultValue0, trueGuard)
+                .write(index0, nonDefaultValue1, falseGuard)
+            val reading = region.read(index0)
+
+            val expr = composer.compose(reading)
+            assertEquals(defaultValue, expr)
+        }
     }
 }
