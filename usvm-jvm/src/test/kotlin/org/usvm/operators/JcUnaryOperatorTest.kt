@@ -27,6 +27,28 @@ class JcUnaryOperatorTest {
     }
 
     @Test
+    fun `Test cast byte to char`() =
+        testOperator(
+            JcUnaryOperator.CastToChar,
+            "(char)",
+            { it.toInt().toChar() },
+            ::extractChar,
+            ctx::mkBv,
+            byteData,
+        )
+
+    @Test
+    fun `Test cast byte to short`() =
+        testOperator(
+            JcUnaryOperator.CastToChar,
+            "(char)",
+            { it.toInt().toShort() },
+            ::extractShort,
+            ctx::mkBv,
+            byteData,
+        )
+
+    @Test
     fun `Test cast byte to int`() =
         testOperator(
             JcUnaryOperator.CastToInt,
