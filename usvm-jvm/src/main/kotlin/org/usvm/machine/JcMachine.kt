@@ -57,7 +57,7 @@ class JcMachine(
         val state = interpreter.getInitialState(target)
         val dfsPathSelector = DfsPathSelector<JcState>()
         val bfsPathSelector = BfsPathSelector<JcState>()
-        val ps = ParallelSelector(dfsPathSelector, bfsPathSelector)
+        val ps = InterleavedPathSelector(dfsPathSelector, bfsPathSelector)
         bfsPathSelector.add(listOf(state))
         dfsPathSelector.add(listOf(state.clone()))
         return ps
