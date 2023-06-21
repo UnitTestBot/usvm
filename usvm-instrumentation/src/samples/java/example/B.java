@@ -1,10 +1,17 @@
 package example;
 
+import java.util.ArrayList;
 import java.util.Objects;
 
 public class B implements Comparable<B> {
 
     public int f;
+
+    static ArrayList<Integer> l = new ArrayList<>();
+
+    static  {
+        l.add(43534);
+    }
 
     @Override
     public boolean equals(Object o) {

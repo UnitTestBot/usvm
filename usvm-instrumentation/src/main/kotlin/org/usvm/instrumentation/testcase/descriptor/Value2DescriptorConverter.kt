@@ -1,17 +1,21 @@
 package org.usvm.instrumentation.testcase.descriptor
 
 import getFieldValue
+import org.jacodb.api.JcClassOrInterface
 import org.jacodb.api.JcField
 import org.jacodb.api.JcType
 import org.jacodb.api.ext.*
-import org.usvm.instrumentation.classloader.BaseWorkerClassLoader
-import org.usvm.instrumentation.jacodb.util.stringType
-import org.usvm.instrumentation.jacodb.util.toJavaField
-import org.usvm.instrumentation.testcase.UTestExpressionExecutor
-import org.usvm.instrumentation.testcase.statement.UTestExpression
+import org.usvm.instrumentation.classloader.WorkerClassLoader
+import org.usvm.instrumentation.util.stringType
+import org.usvm.instrumentation.util.toJavaField
+import org.usvm.instrumentation.testcase.executor.UTestExpressionExecutor
+import org.usvm.instrumentation.testcase.api.UTestExpression
 import java.util.*
 
-open class Value2DescriptorConverter(private val workerClassLoader: BaseWorkerClassLoader, val previousState: Value2DescriptorConverter?) {
+open class Value2DescriptorConverter(
+    workerClassLoader: WorkerClassLoader,
+    val previousState: Value2DescriptorConverter?
+) {
 
     private val jcClasspath = workerClassLoader.jcClasspath
     private val classLoader = workerClassLoader as ClassLoader
@@ -147,18 +151,38 @@ open class Value2DescriptorConverter(private val workerClassLoader: BaseWorkerCl
             objectToDescriptor.remove(value)
         }
 
-    private fun `object`(value: Any, depth: Int): UTestObjectDescriptor {
+    private fun `object`(value: Any, depth: Int): UTestValueDescriptor {
         val jcClass = jcClasspath.findClass(value::class.java.name)
+        if (jcClass.isEnum) return `enum`(jcClass, value, depth)
         val jcType = jcClass.toType()
         val fields = mutableMapOf<JcField, UTestValueDescriptor>()
         val uTestObjectDescriptor = UTestObjectDescriptor(jcType, fields, System.identityHashCode(value))
         return createCyclicRef(uTestObjectDescriptor, value) {
-            jcClass.fields.forEach { jcField ->
-                val jField = jcField.toJavaField(classLoader)
-                val fieldValue = jField.getFieldValue(value)
-                val fieldDescriptor = buildDescriptorFromAny(fieldValue, depth)
-                fields[jcField] = fieldDescriptor
-            }
+            jcClass.fields
+                .filter { !it.isFinal }
+                .forEach { jcField ->
+                    val jField = jcField.toJavaField(classLoader)
+                    val fieldValue = jField.getFieldValue(value)
+                    val fieldDescriptor = buildDescriptorFromAny(fieldValue, depth)
+                    fields[jcField] = fieldDescriptor
+                }
+        }
+    }
+
+    private fun `enum`(jcClass: JcClassOrInterface, value: Any, depth: Int): UTestEnumValueDescriptor {
+        val fields = mutableMapOf<JcField, UTestValueDescriptor>()
+        val enumValueName = value.toString()
+        val jcType = jcClass.toType()
+        val uTestEnumValueDescriptor = UTestEnumValueDescriptor(jcType, enumValueName, fields, System.identityHashCode(value))
+        return createCyclicRef(uTestEnumValueDescriptor, value) {
+            jcClass.fields
+                .filter { jcClass.enumValues?.contains(it) == false && it.name != "\$VALUES" && !it.isFinal }
+                .forEach { jcField ->
+                    val jField = jcField.toJavaField(classLoader)
+                    val fieldValue = jField.getFieldValue(value)
+                    val fieldDescriptor = buildDescriptorFromAny(fieldValue, depth)
+                    fields[jcField] = fieldDescriptor
+                }
         }
     }
 

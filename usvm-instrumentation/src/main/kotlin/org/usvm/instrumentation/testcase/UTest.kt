@@ -1,7 +1,7 @@
 package org.usvm.instrumentation.testcase
 
-import org.usvm.instrumentation.testcase.statement.UTestCall
-import org.usvm.instrumentation.testcase.statement.UTestExpression
+import org.usvm.instrumentation.testcase.api.UTestCall
+import org.usvm.instrumentation.testcase.api.UTestExpression
 
 
 class UTest(
