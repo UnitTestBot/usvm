@@ -8,10 +8,12 @@ interface PathsTreeNode<State> {
     val state: State?
     val parent: PathsTreeNode<State>?
     val ignoreTokens: Set<Int>
+    val depth: Int
     fun addIgnoreToken(token: Int)
 }
 
 private class PathsTreeNodeImpl<State> (
+    override val depth: Int,
     val childrenImpl: MutableSet<PathsTreeNodeImpl<State>>,
     override val parent: PathsTreeNodeImpl<State>?,
     var stateValue: State?
@@ -40,9 +42,13 @@ class PathsTreeStatistics<Method, Statement, State : UState<*, *, Method, Statem
     val root: PathsTreeNode<State>
 
     init {
-        val initialStateLeaf = PathsTreeNodeImpl(HashSet(), null, initialState)
+        val initialStateLeaf = PathsTreeNodeImpl(0, HashSet(), null, initialState)
         root = initialStateLeaf
         stateIdToLeaf[initialState.id] = initialStateLeaf
+    }
+
+    fun getStateDepth(state: State): Int {
+        return stateIdToLeaf[state.id]?.depth ?: throw IllegalArgumentException("Trying to get depth of state not recorded in path tree statistics")
     }
 
     override fun onStateForked(
@@ -55,11 +61,12 @@ class PathsTreeStatistics<Method, Statement, State : UState<*, *, Method, Statem
             if (parentNode != stateIdToLeaf.getValue(parent.id)) {
                 return
             }
-            val newParentLeaf = PathsTreeNodeImpl(HashSet(), parentNode, parentNode.stateValue)
+            val depth = parentNode.depth + 1
+            val newParentLeaf = PathsTreeNodeImpl(depth, HashSet(), parentNode, parentNode.stateValue)
             parentNode.childrenImpl.add(newParentLeaf)
             parentNode.stateValue = null
             forks.forEach {
-                val forkLeaf = PathsTreeNodeImpl(HashSet(), parentNode, it)
+                val forkLeaf = PathsTreeNodeImpl(depth, HashSet(), parentNode, it)
                 stateIdToLeaf[it.id] = forkLeaf
                 parentNode.childrenImpl.add(forkLeaf)
             }
