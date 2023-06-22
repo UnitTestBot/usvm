@@ -77,7 +77,7 @@ interface UMemoryUpdates<Key, Sort : USort> : Sequence<UUpdateNode<Key, Sort>> {
 
     /**
      * Accepts the [visitor]. Implementations should call [UMemoryUpdatesVisitor.visitInitialValue] firstly, then call
-     * [UMemoryUpdatesVisitor.visitUpdateNode] in the chronological order
+     * [UMemoryUpdatesVisitor.visitUpdate] in the chronological order
      * (from the oldest to the newest) with accumulated [Result].
      *
      * Uses [lookupCache] to shortcut the traversal. The actual key is determined by the
@@ -377,14 +377,15 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
             // Map current node
             val mappedUpdateNode = updateNode.map(keyMapper, composer)
 
-            // Doesn't apply the node, if its guard maps to `false`
-            if (mappedUpdateNode.guard.isFalse) {
-                return@fold mappedUpdatesTree
-            }
 
             // Save information about whether something changed in the current node or not
             if (mappedUpdateNode !== updateNode) {
                 mappedNodeFound = true
+            }
+
+            // Doesn't apply the node, if its guard maps to `false`
+            if (mappedUpdateNode.guard.isFalse) {
+                return@fold mappedUpdatesTree
             }
 
             // Note that following code should be executed after checking for reference equality of a mapped node.
@@ -392,15 +393,13 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
             // it will be returned as a result, instead of an empty one.
 
             // Extract a new region by the mapped node
-            val newRegion = when (updateNode) {
+            val newRegion = when (mappedUpdateNode) {
                 is UPinpointUpdateNode -> {
-                    mappedUpdateNode as UPinpointUpdateNode
                     val currentRegion = keyToRegion(mappedUpdateNode.key)
                     oldRegion.intersect(currentRegion)
                 }
 
                 is URangedUpdateNode<*, *, Key, Sort> -> {
-                    mappedUpdateNode as URangedUpdateNode<*, *, Key, Sort>
                     val currentRegion = keyRangeToRegion(mappedUpdateNode.fromKey, mappedUpdateNode.toKey)
                     oldRegion.intersect(currentRegion)
                 }
