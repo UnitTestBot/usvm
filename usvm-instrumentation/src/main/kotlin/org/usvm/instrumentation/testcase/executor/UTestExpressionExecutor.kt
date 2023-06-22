@@ -185,7 +185,7 @@ class UTestExpressionExecutor(
     private fun executeUTestStaticMethodCall(uTestStaticMethodCall: UTestStaticMethodCall): Any? {
         val jMethod = uTestStaticMethodCall.method.toJavaMethod(workerClassLoader)
         val args = uTestStaticMethodCall.args.map { exec(it) }
-        return jMethod.invokeWithAccessibility(null, *args.toTypedArray())
+        return jMethod.invokeWithAccessibility(null, args)
     }
 
     private fun executeUTestCastExpression(uTestCastExpression: UTestCastExpression): Any? {
@@ -208,7 +208,7 @@ class UTestExpressionExecutor(
         val instance = exec(uMethodCall.instance)
         val args = uMethodCall.args.map { exec(it) }
         val jMethod = uMethodCall.method.toJavaMethod(workerClassLoader)
-        return jMethod.invokeWithAccessibility(instance, *args.toTypedArray())
+        return jMethod.invokeWithAccessibility(instance, args)
     }
 
 }
