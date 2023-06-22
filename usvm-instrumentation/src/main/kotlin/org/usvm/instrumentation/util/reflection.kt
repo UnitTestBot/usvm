@@ -45,9 +45,9 @@ fun Field.getFieldValue(instance: Any?): Any? {
     }
 }
 
-fun Method.invokeWithAccessibility(instance: Any?, vararg args: Any?): Any? =
+fun Method.invokeWithAccessibility(instance: Any?, args: List<Any?>): Any? =
     withAccessibility {
-        invoke(instance, args)
+        invoke(instance, *args.toTypedArray())
     }
 
 fun Field.setFieldValue(instance: Any?, fieldValue: Any?) {
