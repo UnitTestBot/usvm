@@ -196,4 +196,25 @@ object UTestCreator {
             return UTest(listOf(), UTestStaticMethodCall(jcMethod, listOf()))
         }
     }
+
+    //public static String join(String separator, double... array) {
+    object Doubles {
+
+        fun join(jcClasspath: JcClasspath): UTest {
+            val jcClass = jcClasspath.findClass("com.google.common.primitives.Doubles")
+            val jcMethod = jcClass.declaredMethods.find { it.name == "join" }!!
+            val separator = UTestStringExpression(",", jcClasspath.stringType())
+            val doubles = listOf(1.0, 2.0, 3.0, 4.0, 5.0)
+            val doubleArray = UTestCreateArrayExpression(jcClasspath.double, UTestIntExpression(5, jcClasspath.int))
+            val listInitializer = List(5) {
+                UTestArraySetStatement(
+                    doubleArray,
+                    UTestIntExpression(it, jcClasspath.int),
+                    UTestDoubleExpression(doubles[it], jcClasspath.double)
+                )
+            }
+            val callMethod = UTestStaticMethodCall(jcMethod, listOf(separator, doubleArray) )
+            return UTest(listOf(doubleArray) + listInitializer, callMethod)
+        }
+    }
 }
