@@ -12,8 +12,10 @@ import org.usvm.instrumentation.util.enclosingMethod
 import org.usvm.instrumentation.util.toJcClassOrInterface
 import org.usvm.instrumentation.trace.collector.TraceCollector
 
+//Jacodb instructions tracer
 object JcInstructionTracer : Tracer<Trace> {
 
+    // We are instrumenting statics access to build descriptors only for accessed while execution statics
     enum class StaticFieldAccessType {
         GET, SET
     }
