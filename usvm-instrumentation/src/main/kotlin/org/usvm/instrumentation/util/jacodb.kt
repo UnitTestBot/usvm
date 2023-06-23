@@ -3,6 +3,7 @@ package org.usvm.instrumentation.util
 import getFieldByName
 import org.jacodb.api.*
 import org.jacodb.api.cfg.JcInst
+import org.jacodb.api.ext.fields
 import org.jacodb.api.ext.jcdbName
 import org.jacodb.api.ext.jcdbSignature
 import org.jacodb.api.ext.toType
@@ -72,7 +73,7 @@ fun JcClassOrInterface.toJavaClass(classLoader: ClassLoader): Class<*> =
 fun findClassInLoader(name: String, classLoader: ClassLoader): Class<*>? =
     Class.forName(name, true, classLoader)
 
-fun JcField.toJavaField(classLoader: ClassLoader): Field =
+fun JcField.toJavaField(classLoader: ClassLoader): Field? =
     enclosingClass.toType().toJavaClass(classLoader).getFieldByName(name)
 
 fun JcClassOrInterface.isAllStaticsAreEasyToRollback(): Boolean {
@@ -87,6 +88,32 @@ fun JcClassOrInterface.isAllStaticsAreEasyToRollback(): Boolean {
     }
     return true
 }
+
+val JcClassOrInterface.allFields
+    get(): List<JcField> {
+        val result = HashMap<String, JcField>()
+        var current: JcClassOrInterface? = this
+        do {
+            current!!.fields.forEach {
+                result.putIfAbsent(it.name, it)
+            }
+            current = current.superClass
+        } while (current != null)
+        return result.values.toList()
+    }
+
+val JcClassOrInterface.allDeclaredFields
+    get(): List<JcField> {
+        val result = HashMap<String, JcField>()
+        var current: JcClassOrInterface? = this
+        do {
+            current!!.declaredFields.forEach {
+                result.putIfAbsent(it.name, it)
+            }
+            current = current.superClass
+        } while (current != null)
+        return result.values.toList()
+    }
 
 private fun String.typeName(): TypeName = TypeNameImpl(this.jcdbName())
 private fun TypeName.elementType() = elementTypeOrNull() ?: this
