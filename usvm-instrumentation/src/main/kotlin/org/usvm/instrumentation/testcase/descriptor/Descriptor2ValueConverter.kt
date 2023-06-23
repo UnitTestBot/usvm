@@ -50,7 +50,7 @@ class Descriptor2ValueConverter(private val workerClassLoader: WorkerClassLoader
         val classInstance = unsafe.allocateInstance(jClass)
         descriptorToObject[descriptor] = classInstance
         for ((jcField, jcFieldDescr) in descriptor.fields) {
-            val jField = jcField.toJavaField(workerClassLoader)
+            val jField = jcField.toJavaField(workerClassLoader) ?: continue
             val jFieldValue = buildObjectFromDescriptor(jcFieldDescr)
             jField.setFieldValue(classInstance, jFieldValue)
         }
@@ -61,7 +61,7 @@ class Descriptor2ValueConverter(private val workerClassLoader: WorkerClassLoader
         val klass = descriptor.type.toJavaClass(workerClassLoader)
         val enumValue = klass.enumConstants.find { it.toString() == descriptor.enumValueName } ?: error("Can't build descriptor for enum")
         for ((jcField, jcFieldDescr) in descriptor.fields) {
-            val jField = jcField.toJavaField(workerClassLoader)
+            val jField = jcField.toJavaField(workerClassLoader) ?: continue
             val jFieldValue = buildObjectFromDescriptor(jcFieldDescr)
             jField.setFieldValue(enumValue, jFieldValue)
         }
