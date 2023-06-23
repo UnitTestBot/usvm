@@ -7,6 +7,7 @@ import org.jacodb.api.ext.enumValues
 import org.jacodb.api.ext.isEnum
 import org.usvm.instrumentation.classloader.WorkerClassLoader
 import org.usvm.instrumentation.instrumentation.JcInstructionTracer.StaticFieldAccessType
+import org.usvm.instrumentation.util.allDeclaredFields
 import org.usvm.instrumentation.util.toJavaField
 import setFieldValue
 
@@ -25,7 +26,7 @@ class StaticDescriptorsBuilder(
     }
 
     fun buildInitialDescriptorForClass(jcClass: JcClassOrInterface) {
-        jcClass.declaredFields
+        jcClass.allDeclaredFields
             .filter { it.needToBuildDescriptor() }
             .forEach { jcField ->
                 builtInitialDescriptors.getOrPut(jcField) { buildDescriptor(jcField, initialValue2DescriptorConverter) }
@@ -39,6 +40,7 @@ class StaticDescriptorsBuilder(
         try {
             val descriptorMap = fields
                 .map { it.first }
+                .filter { it.needToBuildDescriptor() }
                 .associateWith { buildDescriptor(it, resultValue2DescriptorConverter) }
             stateAfterStaticsDescriptors.putAll(descriptorMap)
             Result.success(filterNullDescriptors(descriptorMap))
@@ -55,7 +57,7 @@ class StaticDescriptorsBuilder(
     }
 
     private fun buildDescriptor(jcField: JcField, descriptorBuilder: Value2DescriptorConverter): UTestValueDescriptor? {
-        val jField = jcField.toJavaField(workerClassLoader)
+        val jField = jcField.toJavaField(workerClassLoader) ?: return null
         val jFieldValue = jField.getFieldValue(null)
         val jFieldValueDescriptor = descriptorBuilder.buildDescriptorResultFromAny(jFieldValue)
         return jFieldValueDescriptor.getOrNull()
@@ -67,7 +69,7 @@ class StaticDescriptorsBuilder(
             val descrBefore = builtInitialDescriptors[jcField] ?: continue
             if (descrBefore.structurallyEqual(descrAfter)) continue
             val valueBeforeExec = descriptor2ValueConverter.buildObjectFromDescriptor(descrBefore)
-            jcField.toJavaField(workerClassLoader).setFieldValue(null, valueBeforeExec)
+            jcField.toJavaField(workerClassLoader)?.setFieldValue(null, valueBeforeExec)
         }
         stateAfterStaticsDescriptors.clear()
     }

@@ -142,14 +142,14 @@ class UTestExpressionExecutor(
         val instance = exec(uTestSetFieldStatement.instance)
         val field = uTestSetFieldStatement.field.toJavaField(workerClassLoader)
         val fieldValue = exec(uTestSetFieldStatement.value)
-        field.setFieldValue(instance, fieldValue)
+        field?.setFieldValue(instance, fieldValue)
     }
 
     private fun executeUTestSetStaticFieldStatement(uTestSetFieldStatement: UTestSetStaticFieldStatement) {
         val field = uTestSetFieldStatement.field.toJavaField(workerClassLoader)
         val fieldValue = exec(uTestSetFieldStatement.value)
         accessedStatics.add(uTestSetFieldStatement.field to StaticFieldAccessType.SET)
-        field.setFieldValue(null, fieldValue)
+        field?.setFieldValue(null, fieldValue)
     }
 
     private fun executeUTestConditionExpression(uTestConditionExpression: UTestConditionExpression): Any? {
@@ -172,13 +172,13 @@ class UTestExpressionExecutor(
     private fun executeUTestGetFieldExpression(uTestGetFieldExpression: UTestGetFieldExpression): Any? {
         val instance = exec(uTestGetFieldExpression.instance)
         val jField = uTestGetFieldExpression.field.toJavaField(workerClassLoader)
-        return jField.getFieldValue(instance)
+        return jField?.getFieldValue(instance)
     }
 
     private fun executeUTestGetStaticFieldExpression(uTestGetStaticFieldExpression: UTestGetStaticFieldExpression): Any? {
         val jField = uTestGetStaticFieldExpression.field.toJavaField(workerClassLoader)
         accessedStatics.add(uTestGetStaticFieldExpression.field to StaticFieldAccessType.GET)
-        return jField.getFieldValue(null)
+        return jField?.getFieldValue(null)
     }
 
     private fun executeUTestStaticMethodCall(uTestStaticMethodCall: UTestStaticMethodCall): Any? {

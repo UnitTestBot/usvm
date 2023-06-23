@@ -57,14 +57,14 @@ fun Field.setFieldValue(instance: Any?, fieldValue: Any?) {
                 null
             } else instance
         when (this.type) {
-            Boolean::class.javaPrimitiveType -> this.setBoolean(fixedInstance, fieldValue as Boolean)
-            Byte::class.javaPrimitiveType -> this.setByte(fixedInstance, fieldValue as Byte)
-            Char::class.javaPrimitiveType -> this.setChar(fixedInstance, fieldValue as Char)
-            Short::class.javaPrimitiveType -> this.setShort(fixedInstance, fieldValue as Short)
-            Int::class.javaPrimitiveType -> this.setInt(fixedInstance, fieldValue as Int)
-            Long::class.javaPrimitiveType -> this.setLong(fixedInstance, fieldValue as Long)
-            Float::class.javaPrimitiveType -> this.setFloat(fixedInstance, fieldValue as Float)
-            Double::class.javaPrimitiveType -> this.setDouble(fixedInstance, fieldValue as Double)
+            Boolean::class.javaPrimitiveType -> this.setBoolean(fixedInstance, fieldValue as? Boolean ?: false)
+            Byte::class.javaPrimitiveType -> this.setByte(fixedInstance, fieldValue as? Byte ?: 0)
+            Char::class.javaPrimitiveType -> this.setChar(fixedInstance, fieldValue as? Char ?: '\u0000')
+            Short::class.javaPrimitiveType -> this.setShort(fixedInstance, fieldValue as? Short ?: 0)
+            Int::class.javaPrimitiveType -> this.setInt(fixedInstance, fieldValue as? Int ?: 0)
+            Long::class.javaPrimitiveType -> this.setLong(fixedInstance, fieldValue as? Long ?: 0L)
+            Float::class.javaPrimitiveType -> this.setFloat(fixedInstance, fieldValue as? Float ?: 0.0f)
+            Double::class.javaPrimitiveType -> this.setDouble(fixedInstance, fieldValue as? Double ?: 0.0)
             else -> this.set(fixedInstance, fieldValue)
         }
     }
@@ -81,7 +81,7 @@ val Class<*>.allFields
         return result
     }
 
-fun Class<*>.getFieldByName(name: String): Field {
+fun Class<*>.getFieldByName(name: String): Field? {
     var result: Field?
     var current: Class<*> = this
     do {
@@ -89,7 +89,6 @@ fun Class<*>.getFieldByName(name: String): Field {
         current = current.superclass ?: break
     } while (result == null)
     return result
-        ?: throw NoSuchFieldException()
 }
 
 inline fun <reified R> Field.withAccessibility(block: () -> R): R {
