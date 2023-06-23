@@ -9,7 +9,7 @@ object InstrumentedProcessRoot : Root()
 
 object InstrumentedProcessModel : Ext(InstrumentedProcessRoot) {
 
-    const val uTestExpressionPackage = "org.usvm.instrumentation.testcase.statement"
+    const val uTestExpressionPackage = "org.usvm.instrumentation.testcase.api"
     const val uTestExpressionClassName = "$uTestExpressionPackage.UTestExpression"
     const val serializersPackage = "org.usvm.instrumentation.serializer"
     const val uTestExpressionSerializerMarshaller = "$serializersPackage.UTestExpressionSerializer"
