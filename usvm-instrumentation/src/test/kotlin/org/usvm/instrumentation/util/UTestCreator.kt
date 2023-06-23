@@ -213,8 +213,29 @@ object UTestCreator {
                     UTestDoubleExpression(doubles[it], jcClasspath.double)
                 )
             }
-            val callMethod = UTestStaticMethodCall(jcMethod, listOf(separator, doubleArray) )
+            val callMethod = UTestStaticMethodCall(jcMethod, listOf(separator, doubleArray))
             return UTest(listOf(doubleArray) + listInitializer, callMethod)
+        }
+    }
+    object Singleton {
+        fun addToArray(jcClasspath: JcClasspath): UTest {
+            val jcClass = jcClasspath.findClass("example.Singleton")
+            val addToArrayJcMethod = jcClass.declaredMethods.find { it.name == "addToArray" }!!
+            val getInstanceJcMethod = jcClass.declaredMethods.find { it.name == "getInstance" }!!
+            val arg1 = UTestIntExpression(1, jcClasspath.int)
+            val singletonInstance = UTestStaticMethodCall(getInstanceJcMethod, listOf())
+            val addToArrayMethodCall = UTestMethodCall(singletonInstance, addToArrayJcMethod, listOf(arg1))
+            return UTest(listOf(), addToArrayMethodCall)
+        }
+    }
+    object NestedClass {
+        fun getB(jcClasspath: JcClasspath): UTest {
+            val c = jcClasspath.findClass("example.ClassWithNestedClasses")
+            val jcClass = jcClasspath.findClass("example.ClassWithNestedClasses\$A\$B")
+            val jcMethod = jcClass.declaredMethods.find { it.name == "getB" }!!
+            val jcClassInstance = UTestConstructorCall(jcClass.constructors.first(), listOf(UTestIntExpression(1, jcClasspath.int)))
+            val jcMethodCall = UTestMethodCall(jcClassInstance, jcMethod, listOf())
+            return UTest(listOf(), jcMethodCall)
         }
     }
 }
