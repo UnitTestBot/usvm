@@ -308,7 +308,12 @@ class JcExprResolver(
             val instance = resolveJcExpr(expr.instance)?.asExpr(ctx.addressSort) ?: return@resolveInvoke null
             checkNullPointer(instance) ?: return@resolveInvoke null
             val arguments = mutableListOf<UExpr<out USort>>(instance)
-            expr.args.mapTo(arguments) { resolveJcExpr(it) ?: return@resolveInvoke null }
+
+            val argsWithTypes = expr.args.zip(expr.method.parameters.map { it.type })
+
+            argsWithTypes.mapTo(arguments) { (expr, type) ->
+                resolveJcExpr(expr, type) ?: return@resolveInvoke null
+            }
             arguments
         }
 
@@ -318,13 +323,21 @@ class JcExprResolver(
             val instance = resolveJcExpr(expr.instance)?.asExpr(ctx.addressSort) ?: return@resolveInvoke null
             checkNullPointer(instance) ?: return@resolveInvoke null
             val arguments = mutableListOf<UExpr<out USort>>(instance)
-            expr.args.mapTo(arguments) { resolveJcExpr(it) ?: return@resolveInvoke null }
+            val argsWithTypes = expr.args.zip(expr.method.parameters.map { it.type })
+
+            argsWithTypes.mapTo(arguments) { (expr, type) ->
+                resolveJcExpr(expr, type) ?: return@resolveInvoke null
+            }
             arguments
         }
 
     override fun visitJcStaticCallExpr(expr: JcStaticCallExpr): UExpr<out USort>? =
         resolveInvoke(expr.method) {
-            expr.args.map { resolveJcExpr(it) ?: return@resolveInvoke null }
+            val argsWithTypes = expr.args.zip(expr.method.parameters.map { it.type })
+
+            argsWithTypes.map { (expr, type) ->
+                resolveJcExpr(expr, type) ?: return@resolveInvoke null
+            }
         }
 
     override fun visitJcDynamicCallExpr(expr: JcDynamicCallExpr): UExpr<out USort> = with(ctx) {
@@ -333,7 +346,11 @@ class JcExprResolver(
 
     override fun visitJcLambdaExpr(expr: JcLambdaExpr): UExpr<out USort>? =
         resolveInvoke(expr.method) {
-            expr.args.map { resolveJcExpr(it) ?: return@resolveInvoke null }
+            val argsWithTypes = expr.args.zip(expr.method.parameters.map { it.type })
+
+            argsWithTypes.map { (expr, type) ->
+                resolveJcExpr(expr, type) ?: return@resolveInvoke null
+            }
         }
 
     private fun resolveInvoke(
