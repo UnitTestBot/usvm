@@ -19,7 +19,7 @@ class SimpleUTestConcreteExecutor: UTestConcreteExecutorTest() {
     }
 
     @Test
-    fun simpleTest() = executeTest {
+    fun `simple`() = executeTest {
         val uTest = UTestCreator.C.lol(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
         assert(res is UTestExecutionSuccessResult)
@@ -27,7 +27,7 @@ class SimpleUTestConcreteExecutor: UTestConcreteExecutorTest() {
     }
 
     @Test
-    fun `execute static method`() = executeTest {
+    fun `static method`() = executeTest {
         val uTest = UTestCreator.A.javaStdLibCall(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
         assert(res is UTestExecutionSuccessResult)
@@ -36,7 +36,7 @@ class SimpleUTestConcreteExecutor: UTestConcreteExecutorTest() {
     }
 
     @Test
-    fun `execute method with uTestCondition`() = executeTest {
+    fun `method with uTestCondition`() = executeTest {
         val uTest = UTestCreator.A.indexOfWithIf(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
         assert(res is UTestExecutionSuccessResult)
@@ -45,8 +45,26 @@ class SimpleUTestConcreteExecutor: UTestConcreteExecutorTest() {
     }
 
     @Test
-    fun `execute method with inner class usage`() = executeTest {
+    fun `method with inner class usage`() = executeTest {
         val uTest = UTestCreator.Arrays.checkAllSamePoints(jcClasspath)
+        val res = uTestConcreteExecutor.executeAsync(uTest)
+        assert(res is UTestExecutionSuccessResult)
+        res as UTestExecutionSuccessResult
+        assert(res.result != null)
+    }
+
+    @Test
+    fun `singleton`() = executeTest {
+        val uTest = UTestCreator.Singleton.addToArray(jcClasspath)
+        val res = uTestConcreteExecutor.executeAsync(uTest)
+        assert(res is UTestExecutionSuccessResult)
+        res as UTestExecutionSuccessResult
+        assert(res.result != null)
+    }
+
+    @Test
+    fun `nested class`() = executeTest {
+        val uTest = UTestCreator.NestedClass.getB(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
         assert(res is UTestExecutionSuccessResult)
         res as UTestExecutionSuccessResult
