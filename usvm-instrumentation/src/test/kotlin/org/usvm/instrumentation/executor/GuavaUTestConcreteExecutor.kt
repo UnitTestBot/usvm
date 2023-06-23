@@ -28,14 +28,14 @@ class GuavaUTestConcreteExecutor: UTestConcreteExecutorTest() {
         }
     }
 
-//    @Test
-//    fun `Throwables getRootCause`() = executeTest {
-//        val uTest = UTestCreator.Throwables.getRootCause(jcClasspath)
-//        val res = uTestConcreteExecutor.executeAsync(uTest)
-//        println(res)
-//        assert(res is UTestExecutionSuccessResult)
-//        res as UTestExecutionSuccessResult
-//    }
+    @Test
+    fun `Throwables getRootCause`() = executeTest {
+        val uTest = UTestCreator.Throwables.getRootCause(jcClasspath)
+        val res = uTestConcreteExecutor.executeAsync(uTest)
+        println(res)
+        assert(res is UTestExecutionSuccessResult)
+        res as UTestExecutionSuccessResult
+    }
 
     @Test
     fun `Doubles join`() = executeTest {
