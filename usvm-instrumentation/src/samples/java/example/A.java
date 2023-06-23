@@ -17,21 +17,21 @@ public class A {
 
     int field = 666;
 
-    static int lol2 = 1;
-    static int lol;
+    static int staticField2 = 1;
+    static int staticField1;
     final static ArrayList<Integer> a = new ArrayList<>();
-    final static int lol3;
+    final static int staticField3;
 
     static {
         a.add(B.l.get(0));
         a.add(12);
         a.add(555);
-        lol3 = a.size();
-        lol = 777;
-        if (lol == 1) {
-            lol2 = 5;
+        staticField3 = a.size();
+        staticField1 = 777;
+        if (staticField1 == 1) {
+            staticField2 = 5;
         } else {
-            lol2 = 6;
+            staticField2 = 6;
         }
     }
 
@@ -44,12 +44,12 @@ public class A {
     }
 
     public int isA(int b) {
-        lol++;
+        staticField1++;
 //        lolInteger = 239;
 //        int c = lol;
 //        int newA = isA1(a, c);
 //        return a == 1 ? newA : -1;
-        return lol;
+        return staticField1;
     }
 
     private int isA1(int a, int b) {
@@ -57,6 +57,11 @@ public class A {
             return a;
         }
         return a + 1;
+    }
+
+    private int methodWithBug() {
+        int[] array = new int[3];
+        return array[4];
     }
 
     public int indexOf(int[] arr, int el) {
