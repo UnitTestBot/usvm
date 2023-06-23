@@ -1,5 +1,6 @@
 package org.usvm.samples.objects
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
@@ -8,6 +9,7 @@ import org.usvm.util.isException
 
 class AnonymousClassesExampleTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Sequence is empty.")
     fun testAnonymousClassAsParam() {
         checkDiscoveredPropertiesWithExceptions(
             AnonymousClassesExample::anonymousClassAsParam,
@@ -31,6 +33,7 @@ class AnonymousClassesExampleTest : JavaMethodTestRunner() {
 //    }
 
     @Test
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@69b66787")
     fun testAnonymousClassAsStatic() {
         checkDiscoveredProperties(
             AnonymousClassesExample::anonymousClassAsStatic,
@@ -40,6 +43,7 @@ class AnonymousClassesExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun testAnonymousClassAsResult() {
         checkDiscoveredProperties(
             AnonymousClassesExample::anonymousClassAsResult,

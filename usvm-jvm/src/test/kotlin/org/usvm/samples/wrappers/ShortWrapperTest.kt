@@ -12,8 +12,8 @@ internal class ShortWrapperTest : JavaMethodTestRunner() {
         checkDiscoveredProperties(
             ShortWrapper::primitiveToWrapper,
             eq(2),
-            { _, x, r -> x >= 0 && r!! <= 0 },
-            { _, x, r -> x < 0 && r!! < 0 },
+            { _, x, r -> x >= 0 && r != null && r <= 0 },
+            { _, x, r -> x < 0 && r != null && r < 0 },
         )
     }
 
@@ -23,8 +23,8 @@ internal class ShortWrapperTest : JavaMethodTestRunner() {
             ShortWrapper::wrapperToPrimitive,
             eq(3),
             { _, x, _ -> x == null },
-            { _, x, r -> x >= 0 && r <= 0 },
-            { _, x, r -> x < 0 && r < 0 },
+            { _, x, r -> x >= 0 && r != null && r <= 0 },
+            { _, x, r -> x < 0 && r != null && r < 0 },
         )
     }
 

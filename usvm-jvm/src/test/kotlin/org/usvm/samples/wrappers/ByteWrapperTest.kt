@@ -11,8 +11,8 @@ internal class ByteWrapperTest : JavaMethodTestRunner() {
         checkDiscoveredProperties(
             ByteWrapper::primitiveToWrapper,
             eq(2),
-            { _, x, r -> x >= 0 && r!! <= 0 },
-            { _, x, r -> x < 0 && r!! < 0 },
+            { _, x, r -> x >= 0 && r != null && r <= 0 },
+            { _, x, r -> x < 0 && r != null && r < 0 },
         )
     }
 
@@ -22,8 +22,8 @@ internal class ByteWrapperTest : JavaMethodTestRunner() {
             ByteWrapper::wrapperToPrimitive,
             eq(3),
             { _, x, _ -> x == null },
-            { _, x, r -> x >= 0 && r <= 0 },
-            { _, x, r -> x < 0 && r < 0 },
+            { _, x, r -> x >= 0 && r != null && r <= 0 },
+            { _, x, r -> x < 0 && r != null && r < 0 },
         )
     }
 

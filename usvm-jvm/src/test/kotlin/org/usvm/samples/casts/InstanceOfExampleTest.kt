@@ -401,7 +401,7 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
             eq(3),
             { _, a, r -> a == null && r == null },
             { _, a, r -> a is Array<*> && a.isArrayOf<Array<IntArray>>() && r is Array<*> && r contentDeepEquals a },
-            { _, a, r -> a is Array<*> && !a.isArrayOf<Array<IntArray>>() && r!!::class == a::class },
+            { _, a, r -> a is Array<*> && !a.isArrayOf<Array<IntArray>>() && r != null && r::class == a::class },
         )
     }
 

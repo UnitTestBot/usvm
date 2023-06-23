@@ -24,8 +24,8 @@ class SimpleLambdaExamplesTest : JavaMethodTestRunner() {
         checkDiscoveredProperties(
             SimpleLambdaExamples::choosePredicate,
             eq(2),
-            { _, b, r -> b && !r!!.test(null) && r.test(0) },
-            { _, b, r -> !b && r!!.test(null) && !r.test(0) }, // coverage could not be calculated since method result is lambda
+            { _, b, r -> b && r != null && !r.test(null) && r.test(0) },
+            { _, b, r -> !b && r != null && r.test(null) && !r.test(0) }, // coverage could not be calculated since method result is lambda
         )
     }
 }

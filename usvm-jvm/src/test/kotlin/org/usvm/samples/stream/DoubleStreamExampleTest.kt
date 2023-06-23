@@ -122,7 +122,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
                     it.toDouble().let { i -> listOf(i, i) }
                 }
 
-                r!!.contentEquals(intLists.flatten().toDoubleArray())
+                r != null && r.contentEquals(intLists.flatten().toDoubleArray())
             },
         )
     }
@@ -152,7 +152,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
         checkDiscoveredProperties(
             DoubleStreamExample::sortedExample,
             ignoreNumberOfAnalysisResults,
-            { _, c, r -> c.last() < c.first() && r!!.asSequence().isSorted() }
+            { _, c, r -> c.last() < c.first() && r != null && r.asSequence().isSorted() }
         )
     }
 
@@ -184,7 +184,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
             DoubleStreamExample::skipExample,
             ignoreNumberOfAnalysisResults,
             { _, c, r -> c.size > 2 && c.drop(2).doubles().contentEquals(r) },
-            { _, c, r -> c.size <= 2 && r!!.isEmpty() },
+            { _, c, r -> c.size <= 2 && r != null && r.isEmpty() },
         )
     }
 
@@ -451,7 +451,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
         checkDiscoveredProperties(
             DoubleStreamExample::generateExample,
             ignoreNumberOfAnalysisResults,
-            { _, r -> r!!.contentEquals(DoubleArray(10) { 42.0 }) }
+            { _, r -> r != null && r.contentEquals(DoubleArray(10) { 42.0 }) }
         )
     }
 
@@ -460,7 +460,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
         checkDiscoveredProperties(
             DoubleStreamExample::iterateExample,
             ignoreNumberOfAnalysisResults,
-            { _, r -> r!!.contentEquals(DoubleArray(10) { i -> 42.0 + i }) }
+            { _, r -> r != null && r.contentEquals(DoubleArray(10) { i -> 42.0 + i }) }
         )
     }
 
@@ -469,7 +469,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
         checkDiscoveredProperties(
             DoubleStreamExample::concatExample,
             ignoreNumberOfAnalysisResults,
-            { _, r -> r!!.contentEquals(DoubleArray(10) { 42.0 } + DoubleArray(10) { i -> 42.0 + i }) }
+            { _, r -> r != null && r.contentEquals(DoubleArray(10) { 42.0 } + DoubleArray(10) { i -> 42.0 + i }) }
         )
     }
 }

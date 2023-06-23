@@ -13,3 +13,5 @@ private val classpath: List<String>
         return classpath.split(File.pathSeparatorChar)
             .toList()
     }
+
+inline fun <reified T> Result<*>.isException(): Boolean = exceptionOrNull() is T

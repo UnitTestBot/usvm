@@ -31,10 +31,10 @@
 //            ClassWithComplicatedMethods::applyMethodWithSideEffectAndReturn,
 //            eq(2),
 //            { _, x, mocks, instr, r ->
-//                x > 0 && mocks.isEmpty() && instr.isEmpty() && sqrt(x.toDouble()) == x.toDouble() && r!!.a == 2821
+//                x > 0 && mocks.isEmpty() && instr.isEmpty() && sqrt(x.toDouble()) == x.toDouble() && r != null && r.a == 2821
 //            },
 //            { _, x, mocks, instr, r ->
-//                x > 0 && mocks.isEmpty() && instr.isEmpty() && sqrt(x.toDouble()) != x.toDouble() && r!!.a == 10
+//                x > 0 && mocks.isEmpty() && instr.isEmpty() && sqrt(x.toDouble()) != x.toDouble() && r != null && r.a == 10
 //            },
 //        )
 //    }
@@ -44,7 +44,7 @@
 //        checkMocksAndInstrumentation(
 //            ClassWithComplicatedMethods::createWithOriginalConstructor,
 //            eq(1),
-//            { _, a, b, mocks, instr, r -> a > 10 && b > 10 && r!!.a == a + b && mocks.isEmpty() && instr.isEmpty() },
+//            { _, a, b, mocks, instr, r -> a > 10 && b > 10 && r != null && r.a == a + b && mocks.isEmpty() && instr.isEmpty() },
 //        )
 //    }
 //
@@ -54,7 +54,7 @@
 //            checkMocksAndInstrumentation(
 //                ClassWithComplicatedMethods::createWithSubstitutedConstructor,
 //                eq(1),
-//                { _, a, b, mocks, instr, r -> a < 0 && b < 0 && r!!.a == (a + b).toInt() && mocks.isEmpty() && instr.isEmpty() },
+//                { _, a, b, mocks, instr, r -> a < 0 && b < 0 && r != null && r.a == (a + b).toInt() && mocks.isEmpty() && instr.isEmpty() },
 //            )
 //        }
 //    }
@@ -64,7 +64,7 @@
 //        checkMocksAndInstrumentation(
 //            ClassWithComplicatedMethods::sqrt2,
 //            eq(1),
-//            { mocks, instr, r -> abs(r!! - sqrt(2.0)) < eps && mocks.isEmpty() && instr.isEmpty() },
+//            { mocks, instr, r -> abs(r != null && r - sqrt(2.0)) < eps && mocks.isEmpty() && instr.isEmpty() },
 //        )
 //    }
 //

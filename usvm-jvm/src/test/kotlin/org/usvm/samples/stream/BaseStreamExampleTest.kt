@@ -132,7 +132,7 @@ class BaseStreamExampleTest : JavaMethodTestRunner() {
         checkDiscoveredProperties(
             BaseStreamExample::sortedExample,
             ignoreNumberOfAnalysisResults,
-            { _, c, r -> c.last() < c.first() && r!!.asSequence().isSorted() }
+            { _, c, r -> c.last() < c.first() && r != null && r.asSequence().isSorted() }
         )
     }
 
@@ -162,7 +162,7 @@ class BaseStreamExampleTest : JavaMethodTestRunner() {
             BaseStreamExample::skipExample,
             ignoreNumberOfAnalysisResults,
             { _, c, r -> c.size > 5 && c.drop(5).toTypedArray().contentEquals(r) },
-            { _, c, r -> c.size <= 5 && r!!.isEmpty() },
+            { _, c, r -> c.size <= 5 && r != null && r.isEmpty() },
         )
     }
 
@@ -374,7 +374,7 @@ class BaseStreamExampleTest : JavaMethodTestRunner() {
         checkDiscoveredProperties(
             BaseStreamExample::generateExample,
             ignoreNumberOfAnalysisResults,
-            { _, r -> r!!.contentEquals(Array(10) { 42 }) }
+            { _, r -> r != null && r.contentEquals(Array(10) { 42 }) }
         )
     }
 
@@ -383,7 +383,7 @@ class BaseStreamExampleTest : JavaMethodTestRunner() {
         checkDiscoveredProperties(
             BaseStreamExample::iterateExample,
             ignoreNumberOfAnalysisResults,
-            { _, r -> r!!.contentEquals(Array(10) { i -> 42 + i }) }
+            { _, r -> r != null && r.contentEquals(Array(10) { i -> 42 + i }) }
         )
     }
 
@@ -392,7 +392,7 @@ class BaseStreamExampleTest : JavaMethodTestRunner() {
         checkDiscoveredProperties(
             BaseStreamExample::concatExample,
             ignoreNumberOfAnalysisResults,
-            { _, r -> r!!.contentEquals(Array(10) { 42 } + Array(10) { i -> 42 + i }) }
+            { _, r -> r != null && r.contentEquals(Array(10) { 42 } + Array(10) { i -> 42 + i }) }
         )
     }
 }

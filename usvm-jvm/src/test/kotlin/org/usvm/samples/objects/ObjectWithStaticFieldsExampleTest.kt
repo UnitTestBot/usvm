@@ -46,7 +46,7 @@
 //
 //                val objectCondition = o != null && o.x >= 100 && o.y >= 150 && r?.x == o.x * o.y && r.y == o.y
 //                val staticCondition = staticValue == o.y * o.x
-//                val connection = r!!.x == staticValue
+//                val connection = r != null && r.x == staticValue
 //
 //                objectCondition && staticCondition && connection
 //            },
@@ -141,7 +141,7 @@
 //            { _, statics, _ -> statics.singleValue() == null },
 //            { _, n, statics, _ -> n > 0 && (statics.singleValue() as IntArray).lastIndex < n },
 //            { _, n, statics, r ->
-//                r!!.toInt() == (1 until n).fold(1) { _, a, b -> a * b } * (statics.singleValue() as IntArray)[n]
+//                r != null && r.toInt() == (1 until n).fold(1) { _, a, b -> a * b } * (statics.singleValue() as IntArray)[n]
 //            },
 //        )
 //    }

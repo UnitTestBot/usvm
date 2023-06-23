@@ -244,5 +244,6 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
 
             else -> error("Functions with arity > 7 are not supported")
         }
+        // TODO does it work with invariants?
     }.getOrDefault(false) // exceptions leads to a failed matcher
 }

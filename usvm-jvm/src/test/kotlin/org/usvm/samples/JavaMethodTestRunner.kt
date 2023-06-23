@@ -27,8 +27,8 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
 
     protected inline fun <reified T, reified R> checkExecutionBranches(
         method: KFunction1<T, R>,
-        vararg analysisResultsMatchers: (T, R) -> Boolean,
-        invariants: Array<(T, R) -> Boolean> = emptyArray(),
+        vararg analysisResultsMatchers: (T, R?) -> Boolean,
+        invariants: Array<(T, R?) -> Boolean> = emptyArray(),
         noinline coverageChecker: (JcClassCoverage) -> Boolean = { _ -> true }, // TODO remove it
     ) {
         checkMatches(
@@ -44,8 +44,8 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
     protected inline fun <reified T, reified R> checkDiscoveredProperties(
         method: KFunction1<T, R>,
         analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
-        vararg analysisResultsMatchers: (T, R) -> Boolean,
-        invariants: Array<(T, R) -> Boolean> = emptyArray(),
+        vararg analysisResultsMatchers: (T, R?) -> Boolean,
+        invariants: Array<(T, R?) -> Boolean> = emptyArray(),
         noinline coverageChecker: (JcClassCoverage) -> Boolean = { _ -> true }, // TODO remove it
     ) {
         checkMatches(
@@ -61,8 +61,8 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
     protected inline fun <reified T, reified R> checkMatches(
         method: KFunction1<T, R>,
         analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
-        vararg analysisResultsMatchers: (T, R) -> Boolean,
-        invariants: Array<(T, R) -> Boolean> = emptyArray(),
+        vararg analysisResultsMatchers: (T, R?) -> Boolean,
+        invariants: Array<(T, R?) -> Boolean> = emptyArray(),
         noinline coverageChecker: (JcClassCoverage) -> Boolean = { _ -> true }, // TODO remove it
         checkMode: CheckMode,
     ) {
@@ -84,8 +84,8 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
 
     protected inline fun <reified T, reified A0, reified R> checkExecutionBranches(
         method: KFunction2<T, A0, R>,
-        vararg analysisResultsMatchers: (T, A0, R) -> Boolean,
-        invariants: Array<(T, A0, R) -> Boolean> = emptyArray(),
+        vararg analysisResultsMatchers: (T, A0, R?) -> Boolean,
+        invariants: Array<(T, A0, R?) -> Boolean> = emptyArray(),
         noinline coverageChecker: (JcClassCoverage) -> Boolean = { _ -> true }, // TODO remove it
     ) {
         checkMatches(
@@ -101,8 +101,8 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
     protected inline fun <reified T, reified A0, reified R> checkDiscoveredProperties(
         method: KFunction2<T, A0, R>,
         analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
-        vararg analysisResultsMatchers: (T, A0, R) -> Boolean,
-        invariants: Array<(T, A0, R) -> Boolean> = emptyArray(),
+        vararg analysisResultsMatchers: (T, A0, R?) -> Boolean,
+        invariants: Array<(T, A0, R?) -> Boolean> = emptyArray(),
         noinline coverageChecker: (JcClassCoverage) -> Boolean = { _ -> true }, // TODO remove it
     ) {
         checkMatches(
@@ -118,8 +118,8 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
     protected inline fun <reified T, reified A0, reified R> checkMatches(
         method: KFunction2<T, A0, R>,
         analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
-        vararg analysisResultsMatchers: (T, A0, R) -> Boolean,
-        invariants: Array<(T, A0, R) -> Boolean> = emptyArray(),
+        vararg analysisResultsMatchers: (T, A0, R?) -> Boolean,
+        invariants: Array<(T, A0, R?) -> Boolean> = emptyArray(),
         noinline coverageChecker: (JcClassCoverage) -> Boolean = { _ -> true }, // TODO remove it
         checkMode: CheckMode,
     ) {
@@ -141,8 +141,8 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
 
     protected inline fun <reified T, reified A0, reified A1, reified R> checkExecutionBranches(
         method: KFunction3<T, A0, A1, R>,
-        vararg analysisResultsMatchers: (T, A0, A1, R) -> Boolean,
-        invariants: Array<(T, A0, A1, R) -> Boolean> = emptyArray(),
+        vararg analysisResultsMatchers: (T, A0, A1, R?) -> Boolean,
+        invariants: Array<(T, A0, A1, R?) -> Boolean> = emptyArray(),
         noinline coverageChecker: (JcClassCoverage) -> Boolean = { _ -> true }, // TODO remove it
     ) {
         checkMatches(
@@ -158,8 +158,8 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
     protected inline fun <reified T, reified A0, reified A1, reified R> checkDiscoveredProperties(
         method: KFunction3<T, A0, A1, R>,
         analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
-        vararg analysisResultsMatchers: (T, A0, A1, R) -> Boolean,
-        invariants: Array<(T, A0, A1, R) -> Boolean> = emptyArray(),
+        vararg analysisResultsMatchers: (T, A0, A1, R?) -> Boolean,
+        invariants: Array<(T, A0, A1, R?) -> Boolean> = emptyArray(),
         noinline coverageChecker: (JcClassCoverage) -> Boolean = { _ -> true }, // TODO remove it
     ) {
         checkMatches(
@@ -175,8 +175,8 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
     protected inline fun <reified T, reified A0, reified A1, reified R> checkMatches(
         method: KFunction3<T, A0, A1, R>,
         analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
-        vararg analysisResultsMatchers: (T, A0, A1, R) -> Boolean,
-        invariants: Array<(T, A0, A1, R) -> Boolean> = emptyArray(),
+        vararg analysisResultsMatchers: (T, A0, A1, R?) -> Boolean,
+        invariants: Array<(T, A0, A1, R?) -> Boolean> = emptyArray(),
         noinline coverageChecker: (JcClassCoverage) -> Boolean = { _ -> true }, // TODO remove it
         checkMode: CheckMode,
     ) {
@@ -198,8 +198,8 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
 
     protected inline fun <reified T, reified A0, reified A1, reified A2, reified R> checkExecutionBranches(
         method: KFunction4<T, A0, A1, A2, R>,
-        vararg analysisResultsMatchers: (T, A0, A1, A2, R) -> Boolean,
-        invariants: Array<(T, A0, A1, A2, R) -> Boolean> = emptyArray(),
+        vararg analysisResultsMatchers: (T, A0, A1, A2, R?) -> Boolean,
+        invariants: Array<(T, A0, A1, A2, R?) -> Boolean> = emptyArray(),
         noinline coverageChecker: (JcClassCoverage) -> Boolean = { _ -> true }, // TODO remove it
     ) {
         checkMatches(
@@ -215,8 +215,8 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
     protected inline fun <reified T, reified A0, reified A1, reified A2, reified R> checkDiscoveredProperties(
         method: KFunction4<T, A0, A1, A2, R>,
         analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
-        vararg analysisResultsMatchers: (T, A0, A1, A2, R) -> Boolean,
-        invariants: Array<(T, A0, A1, A2, R) -> Boolean> = emptyArray(),
+        vararg analysisResultsMatchers: (T, A0, A1, A2, R?) -> Boolean,
+        invariants: Array<(T, A0, A1, A2, R?) -> Boolean> = emptyArray(),
         noinline coverageChecker: (JcClassCoverage) -> Boolean = { _ -> true }, // TODO remove it
     ) {
         checkMatches(
@@ -232,7 +232,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
     protected inline fun <reified T, reified A0, reified A1, reified A2, reified R> checkMatches(
         method: KFunction4<T, A0, A1, A2, R>,
         analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
-        vararg analysisResultsMatchers: (T, A0, A1, A2, R) -> Boolean,
+        vararg analysisResultsMatchers: (T, A0, A1, A2, R?) -> Boolean,
         invariants: Array<out Function<Boolean>> = emptyArray(),
         noinline coverageChecker: (JcClassCoverage) -> Boolean = { _ -> true }, // TODO remove it
         checkMode: CheckMode,

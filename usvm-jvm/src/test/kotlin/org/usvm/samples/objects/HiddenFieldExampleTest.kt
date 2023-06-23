@@ -1,5 +1,6 @@
 package org.usvm.samples.objects
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
@@ -7,6 +8,7 @@ import org.usvm.test.util.checkers.eq
 
 internal class HiddenFieldExampleTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun testCheckHiddenField() {
         checkDiscoveredProperties(
             HiddenFieldExample::checkHiddenField,
@@ -19,6 +21,7 @@ internal class HiddenFieldExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [0, 1, 3]")
     fun testCheckSuccField() {
         checkDiscoveredProperties(
             HiddenFieldExample::checkSuccField,

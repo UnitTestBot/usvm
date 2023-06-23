@@ -145,8 +145,8 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
             StringExamples::startsWithLiteral,
             ge(4),
             { _, v, _ -> v == null },
-            { _, v, r -> v != null && v.startsWith("1234567890") && r!!.startsWith("12a4567890") },
-            { _, v, r -> v != null && v[0] == 'x' && r!![0] == 'x' },
+            { _, v, r -> v != null && v.startsWith("1234567890") && r != null && r.startsWith("12a4567890") },
+            { _, v, r -> v != null && v[0] == 'x' && r != null && r[0] == 'x' },
             { _, v, r -> v != null && v.lowercase(Locale.getDefault()) == r }
         )
     }

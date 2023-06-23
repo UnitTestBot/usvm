@@ -19,8 +19,8 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
             { _, map, _, _, _ -> map == null },
             { _, map, key, _, result -> map != null && key in map && result == map },
             { _, map, key, value, result ->
-                val valueWasPut = result!![key] == value && result.size == map.size + 1
-                val otherValuesWerentTouched = result.entries.containsAll(map.entries)
+                val valueWasPut = result != null && result[key] == value && result.size == map.size + 1
+                val otherValuesWerentTouched = result!!.entries.containsAll(map.entries)
                 key !in map && valueWasPut && otherValuesWerentTouched
             },
         )
@@ -34,8 +34,8 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
             { _, map, _, _, _ -> map == null },
             { _, map, key, _, result -> key !in map && result == map },
             { _, map, key, value, result ->
-                val valueWasReplaced = result!![key] == value
-                val otherValuesWerentTouched = result.entries.all { it.key == key || it in map.entries }
+                val valueWasReplaced = result != null && result[key] == value
+                val otherValuesWerentTouched = result!!.entries.all { it.key == key || it in map.entries }
                 key in map && valueWasReplaced && otherValuesWerentTouched
             },
         )
@@ -47,12 +47,12 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
             Maps::create,
             eq(5),
             { _, keys, _, _ -> keys == null },
-            { _, keys, _, result -> keys.isEmpty() && result!!.isEmpty() },
+            { _, keys, _, result -> keys.isEmpty() && result != null && result.isEmpty() },
             { _, keys, values, _ -> keys.isNotEmpty() && values == null },
             { _, keys, values, _ -> keys.isNotEmpty() && values.size < keys.size },
             { _, keys, values, result ->
                 keys.isNotEmpty() && values.size >= keys.size &&
-                        result!!.size == keys.size && keys.indices.all { result[keys[it]] == values[it] }
+                        result != null && result.size == keys.size && keys.indices.all { result[keys[it]] == values[it] }
             },
         )
     }
@@ -104,7 +104,7 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
             Maps::countChars,
             eq(3),
             { _, s, _ -> s == null },
-            { _, s, result -> s == "" && result!!.isEmpty() },
+            { _, s, result -> s == "" && result != null && result.isEmpty() },
             { _, s, result -> s != "" && result == s.groupingBy { it }.eachCount() },
         )
     }
@@ -175,13 +175,13 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
             between(3..5),
             { _, map, _, _ -> map == null },
             { _, map, key, result ->
-                val valueWasUpdated = result!![key] == key + 1
-                val otherValuesWerentTouched = result.entries.all { it.key == key || it in map.entries }
+                val valueWasUpdated = result != null && result[key] == key + 1
+                val otherValuesWerentTouched = result!!.entries.all { it.key == key || it in map.entries }
                 map[key] == null && valueWasUpdated && otherValuesWerentTouched
             },
             { _, map, key, result ->
-                val valueWasUpdated = result!![key] == map[key]!! + 1
-                val otherValuesWerentTouched = result.entries.all { it.key == key || it in map.entries }
+                val valueWasUpdated = result != null && result[key] == map[key]!! + 1
+                val otherValuesWerentTouched = result!!.entries.all { it.key == key || it in map.entries }
                 map[key] != null && valueWasUpdated && otherValuesWerentTouched
             },
         )
@@ -196,13 +196,13 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
 //            between(3..5),
 //            { _, map, _, _ -> map == null },
 //            { _, map, key, result ->
-//                val valueWasUpdated = result!![key] == key + 1
-//                val otherValuesWerentTouched = result.entries.all { it.key == key || it in map.entries }
+//                val valueWasUpdated = result != null && result[key] == key + 1
+//                val otherValuesWerentTouched = result!!.entries.all { it.key == key || it in map.entries }
 //                map[key] == null && valueWasUpdated && otherValuesWerentTouched
 //            },
 //            { _, map, key, result ->
-//                val valueWasUpdated = result!![key] == map[key]!! + 1
-//                val otherValuesWerentTouched = result.entries.all { it.key == key || it in map.entries }
+//                val valueWasUpdated = result != null && result[key] == map[key]!! + 1
+//                val otherValuesWerentTouched = result!!.entries.all { it.key == key || it in map.entries }
 //                map[key] != null && valueWasUpdated && otherValuesWerentTouched
 //            },
 //            mockStrategy = MockStrategyApi.OTHER_PACKAGES, // checks that we do not generate mocks for lambda classes
@@ -217,8 +217,8 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
             { _, map, _, _ -> map == null },
             { _, map, key, result -> map[key] != null && result == map },
             { _, map, key, result ->
-                val valueWasUpdated = result!![key] == key + 1
-                val otherValuesWerentTouched = result.entries.all { it.key == key || it in map.entries }
+                val valueWasUpdated = result != null && result[key] == key + 1
+                val otherValuesWerentTouched = result!!.entries.all { it.key == key || it in map.entries }
                 map[key] == null && valueWasUpdated && otherValuesWerentTouched
             },
         )
@@ -232,8 +232,8 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
             { _, map, _, _ -> map == null },
             { _, map, key, result -> map[key] == null && result == map },
             { _, map, key, result ->
-                val valueWasUpdated = result!![key] == map[key]!! + 1
-                val otherValuesWerentTouched = result.entries.all { it.key == key || it in map.entries }
+                val valueWasUpdated = result != null && result[key] == map[key]!! + 1
+                val otherValuesWerentTouched = result!!.entries.all { it.key == key || it in map.entries }
                 map[key] != null && valueWasUpdated && otherValuesWerentTouched
             },
         )
@@ -328,7 +328,7 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
         checkDiscoveredProperties(
             Maps::createMapWithString,
             eq(1),
-            { _, r -> r!!.isEmpty() }
+            { _, r -> r != null && r.isEmpty() }
         )
     }
 

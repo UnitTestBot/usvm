@@ -16,8 +16,8 @@ internal class ListIteratorsTest : JavaMethodTestRunner() {
         checkDiscoveredProperties(
             ListIterators::returnIterator,
             ignoreNumberOfAnalysisResults,
-            { _, l, r -> l.isEmpty() && r!!.asSequence().toList().isEmpty() },
-            { _, l, r -> l.isNotEmpty() && r!!.asSequence().toList() == l },
+            { _, l, r -> l.isEmpty() && r != null && r.asSequence().toList().isEmpty() },
+            { _, l, r -> l.isNotEmpty() && r != null && r.asSequence().toList() == l },
         )
     }
 
@@ -26,8 +26,8 @@ internal class ListIteratorsTest : JavaMethodTestRunner() {
         checkDiscoveredProperties(
             ListIterators::returnListIterator,
             ignoreNumberOfAnalysisResults,
-            { _, l, r -> l.isEmpty() && r!!.asSequence().toList().isEmpty() },
-            { _, l, r -> l.isNotEmpty() && r!!.asSequence().toList() == l },
+            { _, l, r -> l.isEmpty() && r != null && r.asSequence().toList().isEmpty() },
+            { _, l, r -> l.isNotEmpty() && r != null && r.asSequence().toList() == l },
         )
     }
 

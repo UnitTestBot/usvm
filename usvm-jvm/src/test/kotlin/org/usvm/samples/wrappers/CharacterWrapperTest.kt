@@ -13,8 +13,8 @@ internal class CharacterWrapperTest : JavaMethodTestRunner() {
         checkDiscoveredProperties(
             CharacterWrapper::primitiveToWrapper,
             eq(2),
-            { _, x, r -> x.code >= 100 && r!!.code >= 100 },
-            { _, x, r -> x.code < 100 && r!!.code == x.code + 100 },
+            { _, x, r -> x.code >= 100 && r != null && r.code >= 100 },
+            { _, x, r -> x.code < 100 && r != null && r.code == x.code + 100 },
         )
     }
 
@@ -24,8 +24,8 @@ internal class CharacterWrapperTest : JavaMethodTestRunner() {
             CharacterWrapper::wrapperToPrimitive,
             eq(3),
             { _, x, _ -> x == null },
-            { _, x, r -> x.code >= 100 && r.code >= 100 },
-            { _, x, r -> x.code < 100 && r.code == x.code + 100 },
+            { _, x, r -> x.code >= 100 && r != null && r.code >= 100 },
+            { _, x, r -> x.code < 100 && r != null && r.code == x.code + 100 },
         )
     }
 

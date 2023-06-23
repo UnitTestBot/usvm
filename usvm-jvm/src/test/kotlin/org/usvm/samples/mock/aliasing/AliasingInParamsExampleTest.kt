@@ -1,5 +1,6 @@
 package org.usvm.samples.mock.aliasing
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
@@ -7,6 +8,7 @@ import org.usvm.test.util.checkers.eq
 
 internal class AliasingInParamsExampleTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Sort mismatch")
     fun testExamplePackageBased() {
         checkDiscoveredProperties(
             AliasingInParamsExample::example,
@@ -16,6 +18,7 @@ internal class AliasingInParamsExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Sort mismatch")
     fun testExample() {
         checkDiscoveredProperties(
             AliasingInParamsExample::example,

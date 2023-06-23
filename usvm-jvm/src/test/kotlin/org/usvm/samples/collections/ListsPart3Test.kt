@@ -7,7 +7,6 @@ import org.usvm.test.util.checkers.between
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ge
 import org.usvm.util.isException
-import java.util.ArrayList
 import java.util.LinkedList
 
 
@@ -19,7 +18,7 @@ internal class ListsPart3Test : JavaMethodTestRunner() {
             Lists::create,
             eq(3),
             { _, a, _ -> a == null },
-            { _, a, r -> a != null && a.isEmpty() && r!!.isEmpty() },
+            { _, a, r -> a != null && a.isEmpty() && r != null && r.isEmpty() },
             { _, a, r -> a != null && a.isNotEmpty() && r != null && r.isNotEmpty() && a.toList() == r.also { println(r) } },
         )
     }
@@ -141,9 +140,9 @@ internal class ListsPart3Test : JavaMethodTestRunner() {
             Lists::getElements,
             eq(4),
             { _, x, _ -> x == null },
-            { _, x, r -> x != null && x.isEmpty() && r!!.isEmpty() },
+            { _, x, r -> x != null && x.isEmpty() && r != null && r.isEmpty() },
             { _, x, _ -> x != null && x.isNotEmpty() && x.any { it == null } },
-            { _, x, r -> x != null && x.isNotEmpty() && x.all { it is Int } && r!!.toList() == x },
+            { _, x, r -> x != null && x.isNotEmpty() && x.all { it is Int } && r != null && r.toList() == x },
         )
     }
 
@@ -153,8 +152,8 @@ internal class ListsPart3Test : JavaMethodTestRunner() {
             Lists::setElements,
             eq(3),
             { _, x, _ -> x == null },
-            { _, x, r -> x != null && x.isEmpty() && r!!.isEmpty() },
-            { _, x, r -> x != null && x.isNotEmpty() && r!!.containsAll(x.toList()) && r.size == x.size },
+            { _, x, r -> x != null && x.isEmpty() && r != null && r.isEmpty() },
+            { _, x, r -> x != null && x.isNotEmpty() && r != null && r.containsAll(x.toList()) && r.size == x.size },
         )
     }
 
@@ -203,7 +202,7 @@ internal class ListsPart3Test : JavaMethodTestRunner() {
         checkDiscoveredProperties(
             Lists::asListExample,
             eq(2),
-            { _, arr, r -> arr.isEmpty() && r!!.isEmpty() },
+            { _, arr, r -> arr.isEmpty() && r != null && r.isEmpty() },
             { _, arr, r -> arr.isNotEmpty() && arr.contentEquals(r!!.toTypedArray()) },
         )
     }

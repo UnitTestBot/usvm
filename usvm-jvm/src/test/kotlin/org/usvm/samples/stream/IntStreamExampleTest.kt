@@ -120,7 +120,7 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
                     it.toInt().let { i -> listOf(i, i) }
                 }
 
-                r!!.contentEquals(intLists.flatten().toIntArray())
+                r != null && r.contentEquals(intLists.flatten().toIntArray())
             },
         )
     }
@@ -150,7 +150,7 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
         checkDiscoveredProperties(
             IntStreamExample::sortedExample,
             ignoreNumberOfAnalysisResults,
-            { _, c, r -> c.last() < c.first() && r!!.asSequence().isSorted() }
+            { _, c, r -> c.last() < c.first() && r != null && r.asSequence().isSorted() }
         )
     }
 
@@ -180,7 +180,7 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
             IntStreamExample::skipExample,
             ignoreNumberOfAnalysisResults,
             { _, c, r -> c.size > 2 && c.drop(2).ints().contentEquals(r) },
-            { _, c, r -> c.size <= 2 && r!!.isEmpty() },
+            { _, c, r -> c.size <= 2 && r != null && r.isEmpty() },
         )
     }
 
@@ -460,7 +460,7 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
         checkDiscoveredProperties(
             IntStreamExample::generateExample,
             ignoreNumberOfAnalysisResults,
-            { _, r -> r!!.contentEquals(IntArray(10) { 42 }) }
+            { _, r -> r != null && r.contentEquals(IntArray(10) { 42 }) }
         )
     }
 
@@ -469,7 +469,7 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
         checkDiscoveredProperties(
             IntStreamExample::iterateExample,
             ignoreNumberOfAnalysisResults,
-            { _, r -> r!!.contentEquals(IntArray(10) { i -> 42 + i }) }
+            { _, r -> r != null && r.contentEquals(IntArray(10) { i -> 42 + i }) }
         )
     }
 
@@ -478,7 +478,7 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
         checkDiscoveredProperties(
             IntStreamExample::concatExample,
             ignoreNumberOfAnalysisResults,
-            { _, r -> r!!.contentEquals(IntArray(10) { 42 } + IntArray(10) { i -> 42 + i }) }
+            { _, r -> r != null && r.contentEquals(IntArray(10) { 42 } + IntArray(10) { i -> 42 + i }) }
         )
     }
 
@@ -487,7 +487,7 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
         checkDiscoveredProperties(
             IntStreamExample::rangeExample,
             ignoreNumberOfAnalysisResults,
-            { _, r -> r!!.contentEquals(IntArray(10) { it }) }
+            { _, r -> r != null && r.contentEquals(IntArray(10) { it }) }
         )
     }
 
@@ -496,7 +496,7 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
         checkDiscoveredProperties(
             IntStreamExample::rangeClosedExample,
             ignoreNumberOfAnalysisResults,
-            { _, r -> r!!.contentEquals(IntArray(11) { it }) }
+            { _, r -> r != null && r.contentEquals(IntArray(11) { it }) }
         )
     }
 }

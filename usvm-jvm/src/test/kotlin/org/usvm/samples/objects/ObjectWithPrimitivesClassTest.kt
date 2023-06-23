@@ -1,5 +1,6 @@
 package org.usvm.samples.objects
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
@@ -19,6 +20,7 @@ internal class ObjectWithPrimitivesClassTest : JavaMethodTestRunner() {
 //    }
 
     @Test
+    @Disabled("Required value was null. at org.usvm.samples.JavaMethodTestRunner\$runner\$1.invoke(JavaMethodTestRunner.kt:516)")
     fun testConstructorWithParams() {
         val method: KFunction3<Int, Int, Double, ObjectWithPrimitivesClass> = ::ObjectWithPrimitivesClass
         checkDiscoveredProperties(

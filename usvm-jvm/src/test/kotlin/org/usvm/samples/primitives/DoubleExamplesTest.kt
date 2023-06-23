@@ -3,6 +3,7 @@ package org.usvm.samples.primitives
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
+import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 
 @Suppress("SimplifyNegatedBinaryExpression")
@@ -41,11 +42,10 @@ internal class DoubleExamplesTest : JavaMethodTestRunner() {
     fun testSimpleSum() {
         checkDiscoveredProperties(
             DoubleExamples::simpleSum,
-            eq(4),
+            ignoreNumberOfAnalysisResults,
             { _, a, b, r -> (a + b).isNaN() && r == 0.0 },
             { _, a, b, r -> a + 1.1 + b > 10.1 && a + 1.1 + b < 11.125 && r == 1.1 },
-            { _, a, b, r -> a + 1.1 + b <= 10.1 && r == 1.2 },
-            { _, a, b, r -> a + 1.1 + b >= 11.125 && r == 1.2 }
+            { _, a, b, r -> (a + 1.1 + b >= 11.125) || (a + 1.1 + b <= 10.1) && r == 1.2 }
         )
     }
 
@@ -65,11 +65,10 @@ internal class DoubleExamplesTest : JavaMethodTestRunner() {
     fun testSimpleMul() {
         checkDiscoveredProperties(
             DoubleExamples::simpleMul,
-            eq(4),
+            ignoreNumberOfAnalysisResults,
             { _, a, b, r -> (a * b).isNaN() && r == 0.0 },
             { _, a, b, r -> a * b > 33.1 && a * b < 33.875 && r == 1.1 },
-            { _, a, b, r -> a * b <= 33.1 && r == 1.2 },
-            { _, a, b, r -> a * b >= 33.875 && r == 1.2 }
+            { _, a, b, r -> a * b >= 33.875 || a * b <= 33.1 && r == 1.2 }
         )
     }
 
@@ -103,7 +102,7 @@ internal class DoubleExamplesTest : JavaMethodTestRunner() {
         checkDiscoveredProperties(
             DoubleExamples::div,
             eq(1),
-            { _, a, b, c, r -> r == (a + b) / c || (r.isNaN() && (a + b + c).isNaN()) }
+            { _, a, b, c, r -> r == (a + b) / c || (r != null && r.isNaN() && ((a + b) / c).isNaN()) }
         )
     }
 

@@ -10,7 +10,7 @@ import org.usvm.util.isException
 
 internal class InvokeExampleTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0, 1]")
+    // @Disabled("Some properties were not discovered at positions (from 0): [0, 1]")
     fun testSimpleFormula() {
         checkDiscoveredProperties(
             InvokeExample::simpleFormula,
@@ -206,7 +206,7 @@ internal class InvokeExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0, 1, 3]")
+    // @Disabled("Some properties were not discovered at positions (from 0): [0, 1, 3]")
     fun testUpdateValues() {
         checkDiscoveredProperties(
             InvokeExample::updateValues,

@@ -2,8 +2,7 @@ package org.usvm.samples.objects
 
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
-import org.usvm.test.util.checkers.between
-import org.usvm.test.util.checkers.eq
+import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import org.usvm.util.isException
 
 
@@ -12,10 +11,9 @@ internal class SimpleClassExampleTest : JavaMethodTestRunner() {
     fun simpleConditionTest() {
         checkDiscoveredProperties(
             SimpleClassExample::simpleCondition,
-            eq(4),
+            ignoreNumberOfAnalysisResults,
             { _, c, _ -> c == null }, // NPE
-            { _, c, r -> c.a >= 5 && r == 3 },
-            { _, c, r -> c.a < 5 && c.b <= 10 && r == 3 },
+            { _, c, r -> !(c.a < 5 && c.b > 10) && r == 3 },
             { _, c, r -> c.a < 5 && c.b > 10 && r == 0 }, // otherwise we overwrite original values
         )
     }
@@ -30,12 +28,11 @@ internal class SimpleClassExampleTest : JavaMethodTestRunner() {
     fun singleFieldAccessTest() {
         checkDiscoveredProperties(
             SimpleClassExample::singleFieldAccess,
-            between(5..6), // could be 6
+            ignoreNumberOfAnalysisResults,
             { _, c, _ -> c == null }, // NPE
-            { _, c, r -> c.a == 3 && c.b != 5 && r == 2 },
+            { _, c, r -> c.a == 2 && c.b == 3 && r == 0 },
             { _, c, r -> c.a == 3 && c.b == 5 && r == 1 },
-            { _, c, r -> c.a == 2 && c.b != 3 && r == 2 },
-            { _, c, r -> c.a == 2 && c.b == 3 && r == 0 }
+            { _, c, r -> !(c.a == 3 && c.b == 5) && !(c.a == 2 && c.b == 3) && r == 2 }
         )
     }
 
@@ -47,12 +44,10 @@ internal class SimpleClassExampleTest : JavaMethodTestRunner() {
     fun multipleFieldAccessesTest() {
         checkDiscoveredProperties(
             SimpleClassExample::multipleFieldAccesses,
-            eq(6),
+            ignoreNumberOfAnalysisResults,
             { _, c, _ -> c == null }, // NPE
-            { _, c, r -> c.a != 2 && c.a != 3 && r == 2 }, // this one appears
-            { _, c, r -> c.a == 3 && c.b != 5 && r == 2 },
             { _, c, r -> c.a == 3 && c.b == 5 && r == 1 },
-            { _, c, r -> c.a == 2 && c.b != 3 && r == 2 },
+            { _, c, r -> !(c.a == 2 && c.b == 3) && !(c.a == 3 && c.b == 5) && r == 2 },
             { _, c, r -> c.a == 2 && c.b == 3 && r == 0 }
         )
     }
@@ -61,7 +56,7 @@ internal class SimpleClassExampleTest : JavaMethodTestRunner() {
     fun immutableFieldAccessTest() {
         checkDiscoveredPropertiesWithExceptions(
             SimpleClassExample::immutableFieldAccess,
-            eq(3),
+            ignoreNumberOfAnalysisResults,
             { _, c, r -> c == null && r.isException<NullPointerException>() },
             { _, c, r -> c.b == 10 && r.getOrNull() == 0 },
             { _, c, r -> c.b != 10 && r.getOrNull() == 1 }

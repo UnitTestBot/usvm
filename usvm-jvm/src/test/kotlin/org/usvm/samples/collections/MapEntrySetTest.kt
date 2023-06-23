@@ -122,7 +122,7 @@ class MapEntrySetTest : JavaMethodTestRunner() {
             between(3..5),
             { _, map, _ -> map == null },
             { _, map, _ -> null in map.values },
-            { _, map, result -> result!![0] == map.keys.sum() && result[1] == map.values.sum() },
+            { _, map, result -> result != null && result[0] == map.keys.sum() && result[1] == map.values.sum() },
         )
     }
 

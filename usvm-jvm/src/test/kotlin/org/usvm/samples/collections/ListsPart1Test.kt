@@ -14,8 +14,8 @@ internal class ListsPart1Test : JavaMethodTestRunner() {
             Lists::iterableContains,
             ignoreNumberOfAnalysisResults,
             { _, iterable, _ -> iterable == null },
-            { _, iterable, r -> 1 in iterable && r },
-            { _, iterable, r -> 1 !in iterable && !r },
+            { _, iterable, r -> 1 in iterable && r != null && r },
+            { _, iterable, r -> 1 !in iterable && r != null && !r },
         )
     }
 }

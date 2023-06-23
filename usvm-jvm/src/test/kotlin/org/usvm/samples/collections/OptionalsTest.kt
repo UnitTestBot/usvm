@@ -25,7 +25,7 @@ class OptionalsTest : JavaMethodTestRunner() {
         checkDiscoveredProperties(
             Optionals::createInt,
             eq(1),
-            { _, value, result -> result.asInt == value },
+            { _, value, result -> result != null && result.asInt == value },
         )
     }
 
@@ -34,7 +34,7 @@ class OptionalsTest : JavaMethodTestRunner() {
         checkDiscoveredProperties(
             Optionals::createLong,
             eq(1),
-            { _, value, result -> result.asLong == value },
+            { _, value, result -> result != null && result.asLong == value },
         )
     }
 
@@ -43,7 +43,7 @@ class OptionalsTest : JavaMethodTestRunner() {
         checkDiscoveredProperties(
             Optionals::createDouble,
             eq(1),
-            { _, value, result -> result.asDouble == value || result.asDouble.isNaN() },
+            { _, value, result -> result != null && result.asDouble == value || result!!.asDouble.isNaN() },
         )
     }
 
@@ -396,9 +396,9 @@ class OptionalsTest : JavaMethodTestRunner() {
             Optionals::equalOptionals,
             between(4..7),
             { _, left, _, _ -> left == null },
-            { _, left, right, result -> left != null && left != right && !result },
-            { _, left, right, result -> left != null && left === right && !left.isPresent && !right.isPresent && result },
-            { _, left, right, result -> left != null && left == right && left.isPresent && right.isPresent && result },
+            { _, left, right, result -> left != null && left != right && result != null && !result },
+            { _, left, right, result -> left != null && left === right && !left.isPresent && !right.isPresent && result != null && result },
+            { _, left, right, result -> left != null && left == right && left.isPresent && right.isPresent && result != null && result },
         )
     }
 
@@ -408,9 +408,9 @@ class OptionalsTest : JavaMethodTestRunner() {
             Optionals::equalOptionalsInt,
             between(4..8),
             { _, left, _, _ -> left == null },
-            { _, left, right, result -> left != null && left != right && !result },
-            { _, left, right, result -> left != null && left === right && !left.isPresent && !right.isPresent && result },
-            { _, left, right, result -> left != null && left == right && left.isPresent && right.isPresent && result },
+            { _, left, right, result -> left != null && left != right && result != null && !result },
+            { _, left, right, result -> left != null && left === right && !left.isPresent && !right.isPresent && result != null && result },
+            { _, left, right, result -> left != null && left == right && left.isPresent && right.isPresent && result != null && result },
         )
     }
 
@@ -420,9 +420,9 @@ class OptionalsTest : JavaMethodTestRunner() {
             Optionals::equalOptionalsLong,
             between(4..8),
             { _, left, _, _ -> left == null },
-            { _, left, right, result -> left != null && left != right && !result },
-            { _, left, right, result -> left != null && left === right && !left.isPresent && !right.isPresent && result },
-            { _, left, right, result -> left != null && left == right && left.isPresent && right.isPresent && result },
+            { _, left, right, result -> left != null && left != right && result != null && !result },
+            { _, left, right, result -> left != null && left === right && !left.isPresent && !right.isPresent && result != null && result },
+            { _, left, right, result -> left != null && left == right && left.isPresent && right.isPresent && result != null && result },
         )
     }
 
@@ -432,9 +432,9 @@ class OptionalsTest : JavaMethodTestRunner() {
             Optionals::equalOptionalsDouble,
             between(4..8),
             { _, left, _, _ -> left == null  },
-            { _, left, right, result -> left != null && left != right && !result },
-            { _, left, right, result -> left != null && left === right && !left.isPresent && !right.isPresent && result },
-            { _, left, right, result -> left != null && left == right && left.isPresent && right.isPresent && result },
+            { _, left, right, result -> left != null && left != right && result != null && !result },
+            { _, left, right, result -> left != null && left === right && !left.isPresent && !right.isPresent && result != null && result },
+            { _, left, right, result -> left != null && left == right && left.isPresent && right.isPresent && result != null && result },
         )
     }
 

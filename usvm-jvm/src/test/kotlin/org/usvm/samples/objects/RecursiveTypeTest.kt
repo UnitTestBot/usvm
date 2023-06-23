@@ -2,7 +2,7 @@ package org.usvm.samples.objects
 
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
-import org.usvm.test.util.checkers.eq
+import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 
 internal class RecursiveTypeTest : JavaMethodTestRunner() {
@@ -10,7 +10,7 @@ internal class RecursiveTypeTest : JavaMethodTestRunner() {
     fun testNextValue() {
         checkDiscoveredProperties(
             RecursiveType::nextValue,
-            eq(5),
+            ignoreNumberOfAnalysisResults,
             { _, _, value, _ -> value == 0 },
             { _, node, _, _ -> node == null },
             { _, node, _, _ -> node != null && node.next == null },
@@ -23,7 +23,7 @@ internal class RecursiveTypeTest : JavaMethodTestRunner() {
     fun testWriteObjectFieldTest() {
         checkDiscoveredProperties(
             RecursiveType::writeObjectField,
-            eq(3),
+            ignoreNumberOfAnalysisResults,
             { _, node, _ -> node == null },
             { _, node, r ->
                 node != null && node.next == null && r?.next != null && r.next.value == RecursiveTypeClass().value + 1

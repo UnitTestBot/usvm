@@ -84,7 +84,7 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
             eq(3),
             { _, l, _ -> l == null },
             { _, l, r -> l != null && l.size <= 1 && r == l },
-            { _, l, r -> l != null && l.size > 1 && r!!.size == l.size + 1 && r[0] == 1 },
+            { _, l, r -> l != null && l.size > 1 && r != null && r.size == l.size + 1 && r[0] == 1 },
         )
     }
 

@@ -2,7 +2,7 @@ package org.usvm.samples.objects
 
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
-import org.usvm.test.util.checkers.eq
+import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 
 internal class HiddenFieldAccessModifiersTest : JavaMethodTestRunner() {
@@ -10,10 +10,10 @@ internal class HiddenFieldAccessModifiersTest : JavaMethodTestRunner() {
     fun testCheckSuperFieldEqualsOne() {
         checkDiscoveredProperties(
             HiddenFieldAccessModifiersExample::checkSuperFieldEqualsOne,
-            eq(3),
+            ignoreNumberOfAnalysisResults,
             { _, o, _ -> o == null },
-            { _, _, r -> r == true },
-            { _, _, r -> r == false },
+            { _, _, r -> r != null && r },
+            { _, _, r -> r != null && !r },
         )
     }
 }

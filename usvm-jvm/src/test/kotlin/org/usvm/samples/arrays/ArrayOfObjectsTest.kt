@@ -59,7 +59,7 @@ internal class ArrayOfObjectsTest : JavaMethodTestRunner() {
 //    }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [2]")
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun testArrayWithSucc() {
         checkDiscoveredProperties(
             ArrayOfObjects::arrayWithSucc,
@@ -79,7 +79,7 @@ internal class ArrayOfObjectsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0, 2]")
+    // @Disabled("Some properties were not discovered at positions (from 0): [0, 2]")
     fun testObjectArray() {
         checkDiscoveredProperties(
             ArrayOfObjects::objectArray,

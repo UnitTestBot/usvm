@@ -17,7 +17,7 @@ internal class DoubleFunctionsTest : JavaMethodTestRunner() {
         checkDiscoveredProperties(
             DoubleFunctions::hypo,
             eq(1),
-            { _, a, b, r -> a > 1 && a < 10 && b > 1 && b < 10 && abs(r - hypot(a, b)) < 1e-5 },
+            { _, a, b, r -> a > 1 && a < 10 && b > 1 && b < 10 && abs(r!! - hypot(a, b)) < 1e-5 },
         )
     }
 
@@ -27,7 +27,7 @@ internal class DoubleFunctionsTest : JavaMethodTestRunner() {
             DoubleFunctions::max,
             eq(2),
             { _, a, b, r -> a > b && r == a },
-            { _, a, b, r -> !(a > b) && (r == b || r.isNaN()) }
+            { _, a, b, r -> !(a > b) && (r == b || r != null && r.isNaN()) }
         )
     }
 
@@ -46,7 +46,7 @@ internal class DoubleFunctionsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0, 1, 2], probably timeout")
+    @Disabled("Sort mismatch")
     fun testNumberOfRootsInSquareFunction() {
         checkDiscoveredProperties(
             DoubleFunctions::numberOfRootsInSquareFunction,

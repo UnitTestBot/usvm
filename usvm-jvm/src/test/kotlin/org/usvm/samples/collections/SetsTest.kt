@@ -16,7 +16,7 @@ internal class SetsTest : JavaMethodTestRunner() {
             Sets::create,
             eq(3),
             { _, a, _ -> a == null },
-            { _, a, r -> a != null && a.isEmpty() && r!!.isEmpty() },
+            { _, a, r -> a != null && a.isEmpty() && r != null && r.isEmpty() },
             { _, a, r -> a != null && a.isNotEmpty() && r != null && r.isNotEmpty() && r.containsAll(a.toList()) },
         )
     }
@@ -69,7 +69,7 @@ internal class SetsTest : JavaMethodTestRunner() {
             Sets::findAllChars,
             eq(3),
             { _, s, _ -> s == null },
-            { _, s, result -> s == "" && result!!.isEmpty() },
+            { _, s, result -> s == "" && result != null && result.isEmpty() },
             { _, s, result -> s != "" && result == s.toCollection(mutableSetOf()) },
         )
     }

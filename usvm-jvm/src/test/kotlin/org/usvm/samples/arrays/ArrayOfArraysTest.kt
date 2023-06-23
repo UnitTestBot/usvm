@@ -124,14 +124,14 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
             { _, m, _ -> m == null },
             { _, m, _ -> m.size < 3 },
             { _, m, _ -> m.size >= 3 && m.any { it == null } },
-            { _, m, r -> m.size >= 3 && m.any { it.size != m.size } && !r },
-            { _, m, r -> m.size >= 3 && m.size == m[0].size && m[0][0] != 1 && !r },
-            { _, m, r -> m.size >= 3 && m.size == m[0].size && m[0][0] == 1 && m[0][1] != 0 && !r },
-            { _, m, r -> m.size >= 3 && m.size == m[0].size && m[0][0] == 1 && m[0][1] == 0 && m[0][2] != 0 && !r },
+            { _, m, r -> m.size >= 3 && m.any { it.size != m.size } && r != null && !r },
+            { _, m, r -> m.size >= 3 && m.size == m[0].size && m[0][0] != 1 && r != null && !r },
+            { _, m, r -> m.size >= 3 && m.size == m[0].size && m[0][0] == 1 && m[0][1] != 0 && r != null && !r },
+            { _, m, r -> m.size >= 3 && m.size == m[0].size && m[0][0] == 1 && m[0][1] == 0 && m[0][2] != 0 && r != null && !r },
             { _, m, r ->
                 val sizeConstraints = m.size >= 3 && m.size == m[0].size
                 val valueConstraint = m[0][0] == 1 && m[0].drop(1).all { it == 0 }
-                val resultCondition = m[1]?.size != m.size && !r
+                val resultCondition = m[1]?.size != m.size && r != null && !r
 
                 sizeConstraints && valueConstraint && resultCondition
             },
@@ -144,7 +144,7 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
                         }
                     }
 
-                sizeConstraint && contentConstraint && r
+                sizeConstraint && contentConstraint && r != null && r
             },
         )
     }
@@ -158,7 +158,7 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
             { _, length, constValue, r ->
                 val sizeConstraint = length == 2 && r != null && r.size == length
                 val contentConstraint =
-                    r!!.all {
+                    r != null && r.all {
                         it.size == length && it.all {
                             it.size == length && it.all { it == constValue + 1 }
                         }
@@ -251,7 +251,7 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
             { _, v, r ->
                 val sizeConstraint = v.size >= 2
                 val nullability = r != null
-                val resultsPredicate = r.all { a ->
+                val resultsPredicate = r != null && r.all { a ->
                     val arrayAsList = a.toList()
                     val mapIndexed = v.mapIndexed { i, elem -> elem + i }
                     arrayAsList == mapIndexed

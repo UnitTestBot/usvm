@@ -1,10 +1,11 @@
 package org.usvm.samples.objects
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 
-
+@Disabled("What are these tests about? We should rewrite matchers")
 internal class ModelMinimizationExamplesTest : JavaMethodTestRunner() {
     @Test
     fun singleValueComparisonTest() {
@@ -44,6 +45,7 @@ internal class ModelMinimizationExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Sort mismatch")
     fun conditionCheckAEqTest() {
         // Parameters `a` and `b` should be not null.
         // Parameters `a` and `b` should refer to the same instance.

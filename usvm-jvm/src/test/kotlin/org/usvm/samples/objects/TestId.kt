@@ -10,8 +10,8 @@ class TestId : JavaMethodTestRunner() {
         checkDiscoveredProperties(
             Id::isOne,
             ignoreNumberOfAnalysisResults,
-            { x, r -> x.isOne && r },
-            { x, r -> !x.isOne && !r },
+            { x, r -> x.isOne && r != null && r },
+            { x, r -> !x.isOne && r != null && !r },
         )
     }
 }

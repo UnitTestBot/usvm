@@ -41,10 +41,6 @@ import org.usvm.machine.extractFloat
 import org.usvm.machine.extractInt
 import org.usvm.machine.extractLong
 import org.usvm.machine.extractShort
-import org.usvm.api.JcCoverage
-import org.usvm.api.JcParametersState
-import org.usvm.api.JcTest
-import org.usvm.machine.JcContext
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.WrappedException

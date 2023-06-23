@@ -15,8 +15,8 @@ class SetIteratorsTest : JavaMethodTestRunner() {
         checkDiscoveredProperties(
             SetIterators::returnIterator,
             ignoreNumberOfAnalysisResults,
-            { _, s, r -> s.isEmpty() && r!!.asSequence().toSet().isEmpty() },
-            { _, s, r -> s.isNotEmpty() && r!!.asSequence().toSet() == s },
+            { _, s, r -> s.isEmpty() && r != null && r.asSequence().toSet().isEmpty() },
+            { _, s, r -> s.isNotEmpty() && r != null && r.asSequence().toSet() == s },
         )
     }
 

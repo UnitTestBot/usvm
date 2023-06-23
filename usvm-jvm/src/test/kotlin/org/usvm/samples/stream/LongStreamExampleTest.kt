@@ -120,7 +120,7 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
                     (it?.toLong() ?: 0L).let { i -> listOf(i, i) }
                 }
 
-                r!!.contentEquals(intLists.flatten().toLongArray())
+                r != null && r.contentEquals(intLists.flatten().toLongArray())
             },
         )
     }
@@ -150,7 +150,7 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
         checkDiscoveredProperties(
             LongStreamExample::sortedExample,
             ignoreNumberOfAnalysisResults,
-            { _, c, r -> c.last() < c.first() && r!!.asSequence().isSorted() }
+            { _, c, r -> c.last() < c.first() && r != null && r.asSequence().isSorted() }
         )
     }
 
@@ -180,7 +180,7 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
             LongStreamExample::skipExample,
             ignoreNumberOfAnalysisResults,
             { _, c, r -> c.size > 2 && c.drop(2).longs().contentEquals(r) },
-            { _, c, r -> c.size <= 2 && r!!.isEmpty() },
+            { _, c, r -> c.size <= 2 && r != null && r.isEmpty() },
         )
     }
 
@@ -455,7 +455,7 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
         checkDiscoveredProperties(
             LongStreamExample::generateExample,
             ignoreNumberOfAnalysisResults,
-            { _, r -> r!!.contentEquals(LongArray(10) { 42L }) }
+            { _, r -> r != null && r.contentEquals(LongArray(10) { 42L }) }
         )
     }
 
@@ -464,7 +464,7 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
         checkDiscoveredProperties(
             LongStreamExample::iterateExample,
             ignoreNumberOfAnalysisResults,
-            { _, r -> r!!.contentEquals(LongArray(10) { i -> 42L + i }) }
+            { _, r -> r != null && r.contentEquals(LongArray(10) { i -> 42L + i }) }
         )
     }
 
@@ -473,7 +473,7 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
         checkDiscoveredProperties(
             LongStreamExample::concatExample,
             ignoreNumberOfAnalysisResults,
-            { _, r -> r!!.contentEquals(LongArray(10) { 42L } + LongArray(10) { i -> 42L + i }) }
+            { _, r -> r != null && r.contentEquals(LongArray(10) { 42L } + LongArray(10) { i -> 42L + i }) }
         )
     }
 
@@ -482,7 +482,7 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
         checkDiscoveredProperties(
             LongStreamExample::rangeExample,
             ignoreNumberOfAnalysisResults,
-            { _, r -> r!!.contentEquals(LongArray(10) { it.toLong() }) }
+            { _, r -> r != null && r.contentEquals(LongArray(10) { it.toLong() }) }
         )
     }
 
@@ -491,7 +491,7 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
         checkDiscoveredProperties(
             LongStreamExample::rangeClosedExample,
             ignoreNumberOfAnalysisResults,
-            { _, r -> r!!.contentEquals(LongArray(11) { it.toLong() }) }
+            { _, r -> r != null && r.contentEquals(LongArray(11) { it.toLong() }) }
         )
     }
 }

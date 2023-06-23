@@ -43,7 +43,7 @@
 //            checkWithExceptionExecutionMatches(
 //                OverflowExamples::byteAddOverflow,
 //                eq(2),
-//                { _, _, r -> !r.isException<OverflowDetectionError>() },
+//                { _, _, r -> r != null && !r.isException<OverflowDetectionError>() },
 //                { _, x, y, r ->
 //                    val negOverflow = ((x + y).toByte() >= 0 && x < 0 && y < 0)
 //                    val posOverflow = ((x + y).toByte() <= 0 && x > 0 && y > 0)
@@ -75,7 +75,7 @@
 //            checkWithExceptionExecutionMatches(
 //                OverflowExamples::byteSubOverflow,
 //                eq(2),
-//                { _, _, r -> !r.isException<OverflowDetectionError>() },
+//                { _, _, r -> r != null && !r.isException<OverflowDetectionError>() },
 //                { _, x, y, r ->
 //                    val negOverflow = ((x - y).toByte() >= 0 && x < 0 && y > 0)
 //                    val posOverflow = ((x - y).toByte() <= 0 && x > 0 && y < 0)
@@ -91,7 +91,7 @@
 //            checkWithExceptionExecutionMatches(
 //                OverflowExamples::byteMulOverflow,
 //                eq(2),
-//                { _, _, r -> !r.isException<OverflowDetectionError>() },
+//                { _, _, r -> r != null && !r.isException<OverflowDetectionError>() },
 //                { _, _, r -> r.isException<OverflowDetectionError>() }, // through overflow
 //            )
 //        }
@@ -103,7 +103,7 @@
 //            checkWithExceptionExecutionMatches(
 //                OverflowExamples::shortAddOverflow,
 //                eq(2),
-//                { _, _, r -> !r.isException<OverflowDetectionError>() },
+//                { _, _, r -> r != null && !r.isException<OverflowDetectionError>() },
 //                { _, x, y, r ->
 //                    val negOverflow = ((x + y).toShort() >= 0 && x < 0 && y < 0)
 //                    val posOverflow = ((x + y).toShort() <= 0 && x > 0 && y > 0)
@@ -119,7 +119,7 @@
 //            checkWithExceptionExecutionMatches(
 //                OverflowExamples::shortSubOverflow,
 //                eq(2),
-//                { _, _, r -> !r.isException<OverflowDetectionError>() },
+//                { _, _, r -> r != null && !r.isException<OverflowDetectionError>() },
 //                { _, x, y, r ->
 //                    val negOverflow = ((x - y).toShort() >= 0 && x < 0 && y > 0)
 //                    val posOverflow = ((x - y).toShort() <= 0 && x > 0 && y < 0)
@@ -135,7 +135,7 @@
 //            checkWithExceptionExecutionMatches(
 //                OverflowExamples::shortMulOverflow,
 //                eq(2),
-//                { _, _, r -> !r.isException<OverflowDetectionError>() },
+//                { _, _, r -> r != null && !r.isException<OverflowDetectionError>() },
 //                { _, _, r -> r.isException<OverflowDetectionError>() }, // through overflow
 //            )
 //        }
@@ -147,7 +147,7 @@
 //            checkWithExceptionExecutionMatches(
 //                OverflowExamples::intAddOverflow,
 //                eq(2),
-//                { _, _, r -> !r.isException<OverflowDetectionError>() },
+//                { _, _, r -> r != null && !r.isException<OverflowDetectionError>() },
 //                { _, x, y, r ->
 //                    val negOverflow = ((x + y) >= 0 && x < 0 && y < 0)
 //                    val posOverflow = ((x + y) <= 0 && x > 0 && y > 0)
@@ -163,7 +163,7 @@
 //            checkWithExceptionExecutionMatches(
 //                OverflowExamples::intSubOverflow,
 //                eq(2),
-//                { _, _, r -> !r.isException<OverflowDetectionError>() },
+//                { _, _, r -> r != null && !r.isException<OverflowDetectionError>() },
 //                { _, x, y, r ->
 //                    val negOverflow = ((x - y) >= 0 && x < 0 && y > 0)
 //                    val posOverflow = ((x - y) <= 0 && x > 0 && y < 0)
@@ -183,7 +183,7 @@
 //                checkWithExceptionExecutionMatches(
 //                    OverflowExamples::intMulOverflow,
 //                    eq(2),
-//                    { _, _, r -> !r.isException<OverflowDetectionError>() },
+//                    { _, _, r -> r != null && !r.isException<OverflowDetectionError>() },
 //                    { _, _, r -> r.isException<OverflowDetectionError>() }, // through overflow
 //                )
 //            }
@@ -196,7 +196,7 @@
 //            checkWithExceptionExecutionMatches(
 //                OverflowExamples::longAddOverflow,
 //                eq(2),
-//                { _, _, r -> !r.isException<OverflowDetectionError>() },
+//                { _, _, r -> r != null && !r.isException<OverflowDetectionError>() },
 //                { _, x, y, r ->
 //                    val negOverflow = ((x + y) >= 0 && x < 0 && y < 0)
 //                    val posOverflow = ((x + y) <= 0 && x > 0 && y > 0)
@@ -212,7 +212,7 @@
 //            checkWithExceptionExecutionMatches(
 //                OverflowExamples::longSubOverflow,
 //                eq(2),
-//                { _, _, r -> !r.isException<OverflowDetectionError>() },
+//                { _, _, r -> r != null && !r.isException<OverflowDetectionError>() },
 //                { _, x, y, r ->
 //                    val negOverflow = ((x - y) >= 0 && x < 0 && y > 0)
 //                    val posOverflow = ((x - y) <= 0 && x > 0 && y < 0)
@@ -233,7 +233,7 @@
 //                checkWithExceptionExecutionMatches(
 //                    OverflowExamples::longMulOverflow,
 //                    eq(2),
-//                    { _, _, r -> !r.isException<OverflowDetectionError>() },
+//                    { _, _, r -> r != null && !r.isException<OverflowDetectionError>() },
 //                    { _, _, r -> r.isException<OverflowDetectionError>() }, // through overflow
 //                )
 //            }
@@ -246,7 +246,7 @@
 //            checkWithExceptionExecutionMatches(
 //                OverflowExamples::incOverflow,
 //                eq(2),
-//                { _, r -> !r.isException<OverflowDetectionError>() },
+//                { _, r -> r != null && !r.isException<OverflowDetectionError>() },
 //                { _, r -> r.isException<OverflowDetectionError>() }, // through overflow
 //            )
 //        }
@@ -259,7 +259,7 @@
 //            checkWithExceptionExecutionMatches(
 //                OverflowExamples::intCubeOverflow,
 //                eq(3),
-//                { _, r -> !r.isException<ArithmeticException>() },
+//                { _, r -> r != null && !r.isException<ArithmeticException>() },
 //                // Can't use abs(x) below, because abs(Int.MIN_VALUE) == Int.MIN_VALUE.
 //                // (Int.MAX_VALUE shr 16) is the border of square overflow and cube overflow.
 //                // Int.MAX_VALUE.toDouble().pow(1/3.toDouble())
@@ -277,7 +277,7 @@
 //            checkWithExceptionExecutionMatches(
 //                Sort::quickSort,
 //                ignoreNumberOfAnalysisResults,
-//                { _, _, _, r -> !r.isException<OverflowDetectionError>() },
+//                { _, _, _, r -> r != null && !r.isException<OverflowDetectionError>() },
 //                { _, _, _, r -> r.isException<OverflowDetectionError>() }, // through overflow
 //            )
 //        }

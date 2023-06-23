@@ -14,8 +14,8 @@ internal class CorrectBracketSequencesTest : JavaMethodTestRunner() {
         checkDiscoveredProperties(
             CorrectBracketSequences::isOpen,
             ignoreNumberOfAnalysisResults,
-            { c, r -> c in "({[".toList() && r },
-            { c, r -> c !in "({[".toList() && !r }
+            { c, r -> c in "({[".toList() && r != null && r },
+            { c, r -> c !in "({[".toList() && r != null && !r }
         )
     }
 
@@ -24,8 +24,8 @@ internal class CorrectBracketSequencesTest : JavaMethodTestRunner() {
         checkDiscoveredProperties(
             CorrectBracketSequences::isBracket,
             ignoreNumberOfAnalysisResults,
-            { c, r -> c in "(){}[]".toList() && r },
-            { c, r -> c !in "(){}[]".toList() && !r }
+            { c, r -> c in "(){}[]".toList() && r != null && r },
+            { c, r -> c !in "(){}[]".toList() && r != null && !r }
         )
     }
 
@@ -34,8 +34,8 @@ internal class CorrectBracketSequencesTest : JavaMethodTestRunner() {
         checkDiscoveredProperties(
             CorrectBracketSequences::isTheSameType,
             ignoreNumberOfAnalysisResults,
-            { a, b, r -> (a == '(' && b == ')' || a == '{' && b == '}' || a == '[' && b == ']') && r },
-            { a, b, r -> (a != '(' || b != ')') && (a != '{' || b != '}') && (a != '[' || b != ']') && !r }
+            { a, b, r -> (a == '(' && b == ')' || a == '{' && b == '}' || a == '[' && b == ']') && r == true },
+            { a, b, r -> (a != '(' || b != ')') && (a != '{' || b != '}') && (a != '[' || b != ']') && r == false }
         )
     }
 
