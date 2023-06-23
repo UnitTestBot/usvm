@@ -2,6 +2,7 @@ import org.usvm.instrumentation.util.`try`
 import sun.misc.Unsafe
 import java.lang.reflect.Constructor
 import java.lang.reflect.Field
+import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 
@@ -47,13 +48,21 @@ fun Field.getFieldValue(instance: Any?): Any? {
 }
 
 fun Method.invokeWithAccessibility(instance: Any?, args: List<Any?>): Any? =
-    withAccessibility {
-        invoke(instance, *args.toTypedArray())
+    try {
+        withAccessibility {
+            invoke(instance, *args.toTypedArray())
+        }
+    } catch (e: InvocationTargetException) {
+        throw e.cause ?: e
     }
 
 fun Constructor<*>.newInstanceWithAccessibility(args: List<Any?>): Any =
-    withAccessibility {
-        newInstance(*args.toTypedArray())
+    try {
+        withAccessibility {
+            newInstance(*args.toTypedArray())
+        }
+    } catch (e: InvocationTargetException) {
+        throw e.cause ?: e
     }
 
 fun Field.setFieldValue(instance: Any?, fieldValue: Any?) {
