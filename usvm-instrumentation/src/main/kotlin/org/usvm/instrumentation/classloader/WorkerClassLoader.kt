@@ -7,6 +7,9 @@ import org.usvm.instrumentation.util.URLClassPathLoader
 import java.security.CodeSource
 import java.security.SecureClassLoader
 
+/**
+ * Worker classloader using as classloader in testing project
+ */
 class WorkerClassLoader(
     private val urlClassPath: URLClassPathLoader,
     private val traceCollectorClassLoader: ClassLoader,
@@ -14,13 +17,16 @@ class WorkerClassLoader(
     val jcClasspath: JcClasspath
 ) : SecureClassLoader(null) {
 
+    //Loaded classes cache
     private val foundClasses = LinkedHashMap<String, Class<*>>()
+    //Using for static descriptor building after class initialization
     private var staticDescriptorsBuilder: StaticDescriptorsBuilder? = null
 
     fun setStaticDescriptorsBuilder(builder: StaticDescriptorsBuilder) {
         this.staticDescriptorsBuilder = builder
     }
 
+    //Invoking clinit method for loaded classes for statics reset between executions
     fun reset() {
         foundClasses.forEach { (_, cl) -> cl.declaredMethods.find { it.name == "generatedClinit0" }?.invoke(null) }
     }
