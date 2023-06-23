@@ -228,7 +228,6 @@ class InstrumentedProcess private constructor() {
 
     private fun callUTest(uTest: UTest): UTestExecutionResult {
         when (InstrumentationModuleConstants.rollbackStrategy) {
-            StaticsRollbackStrategy.REINIT -> userClassLoader.reset()
             StaticsRollbackStrategy.HARD -> userClassLoader = createWorkerClassLoader()
             else -> {}
         }
@@ -264,6 +263,8 @@ class InstrumentedProcess private constructor() {
         staticsToRemoveFromInitState.forEach { initExecutionState.statics.remove(it) }
         if (InstrumentationModuleConstants.rollbackStrategy == StaticsRollbackStrategy.ROLLBACK) {
             staticDescriptorsBuilder.rollBackStatics()
+        } else if (InstrumentationModuleConstants.rollbackStrategy == StaticsRollbackStrategy.REINIT) {
+            userClassLoader.reset(accessedStaticsFields)
         }
 
         return UTestExecutionSuccessResult(
