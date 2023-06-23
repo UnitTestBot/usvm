@@ -23,6 +23,10 @@ import org.usvm.instrumentation.util.isSameSignature
 import org.usvm.instrumentation.util.replace
 import java.lang.reflect.Method
 
+/**
+ * Class for runtime instrumentation for jcdb instructions
+ * Collecting trace and information about static access
+ */
 class JcRuntimeTraceInstrumenter(
     override val jcClasspath: JcClasspath
 ) : JcInstrumenter, AbstractFullRawExprSetCollector() {
@@ -33,6 +37,7 @@ class JcRuntimeTraceInstrumenter(
 
     private val traceCollectorClass = TraceCollector::class.java
 
+    //JcClass for trace collector
     private val jcCollectorClass = JcVirtualClassImpl(traceCollectorClass.name,
         traceCollectorClass.modifiers,
         listOf(),
@@ -40,13 +45,15 @@ class JcRuntimeTraceInstrumenter(
         it.classpath = jcClasspath
     }
 
+    //JcMethod for instrumenting jacodb instructions. See TraceCollector.jcInstructionCovered
     private val coveredJcInstructionMethod = jcCollectorClass.declaredMethods.find { it.name == "jcInstructionCovered" }
         ?: error("Can't find method in trace collector")
 
+    //JcMethod for instrumenting statics. See TraceCollector.jcInstructionCovered
     private val accessJcStaticFieldMethod = jcCollectorClass.declaredMethods.find { it.name == "jcStaticFieldAccessed" }
         ?: error("Can't find method in trace collector")
 
-
+    //We need virtual method to insert it invocation in instrumented instruction list
     private fun createJcVirtualMethod(jMethod: Method): JcVirtualMethod = JcVirtualMethodImpl(
         jMethod.name, jMethod.modifiers, TypeNameImpl(jMethod.returnType.name), createJcVirtualMethodParams(jMethod), ""
     )
@@ -54,7 +61,11 @@ class JcRuntimeTraceInstrumenter(
     private fun createJcVirtualMethodParams(jMethod: Method): List<JcVirtualParameter> =
         jMethod.parameters.mapIndexed { i, p -> JcVirtualParameter(i, TypeNameImpl(p.type.typeName)) }
 
-
+    /**
+     * This method create instrumenting method call to insert it in instruction list
+     * @param jcInstId --- Encoded instruction (see JcInstructionTracer.encode)
+     * @param jcTraceMethod --- virtual jacodb method for instrumenting
+     */
     private fun createTraceMethodCall(jcInstId: Long, jcTraceMethod: JcVirtualMethod): JcRawCallInst {
         val jcInstIdAsLongConst = JcRawLong(jcInstId)
         val staticCallExpr = JcRawStaticCallExpr(
@@ -122,7 +133,8 @@ class JcRuntimeTraceInstrumenter(
         } else {
             jcClass.declaredMethods.filterNot { it.isConstructor || it.isClassInitializer }
         }
-        //To be able to redefine statics
+        //Copy of clinit method to be able to rollback statics between executions!
+        //We are not able to call <clinit> method directly with reflection
         asmMethods.find { it.name == "<clinit>" }?.let { clinitNode ->
             val clinitCopy = MethodNode(9, "generatedClinit0", "()V", null, emptyArray())
             clinitNode.instructions.forEach { clinitCopy.instructions.add(it) }
