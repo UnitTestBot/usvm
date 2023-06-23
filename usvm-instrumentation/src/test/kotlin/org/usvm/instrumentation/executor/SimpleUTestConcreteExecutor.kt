@@ -28,6 +28,14 @@ class SimpleUTestConcreteExecutor: UTestConcreteExecutorTest() {
     }
 
     @Test
+    fun `static fields`() = executeTest {
+        val uTest = UTestCreator.A.isA(jcClasspath)
+        val res = uTestConcreteExecutor.executeAsync(uTest)
+        assert(res is UTestExecutionSuccessResult)
+        res as UTestExecutionSuccessResult
+    }
+
+    @Test
     fun `static method`() = executeTest {
         val uTest = UTestCreator.A.javaStdLibCall(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
