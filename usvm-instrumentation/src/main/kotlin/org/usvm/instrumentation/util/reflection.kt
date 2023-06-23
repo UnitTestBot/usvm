@@ -1,5 +1,6 @@
 import org.usvm.instrumentation.util.`try`
 import sun.misc.Unsafe
+import java.lang.reflect.Constructor
 import java.lang.reflect.Field
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
@@ -48,6 +49,11 @@ fun Field.getFieldValue(instance: Any?): Any? {
 fun Method.invokeWithAccessibility(instance: Any?, args: List<Any?>): Any? =
     withAccessibility {
         invoke(instance, *args.toTypedArray())
+    }
+
+fun Constructor<*>.newInstanceWithAccessibility(args: List<Any?>): Any =
+    withAccessibility {
+        newInstance(*args.toTypedArray())
     }
 
 fun Field.setFieldValue(instance: Any?, fieldValue: Any?) {
@@ -118,6 +124,17 @@ inline fun <reified R> Method.withAccessibility(block: () -> R): R {
     }
 }
 
+inline fun <reified R> Constructor<*>.withAccessibility(block: () -> R): R {
+    val prevAccessibility = isAccessible
+
+    isAccessible = true
+
+    try {
+        return block()
+    } finally {
+        isAccessible = prevAccessibility
+    }
+}
 fun Field.isStatic() = modifiers.and(Modifier.STATIC) > 0
 
 var Field.isFinal: Boolean
