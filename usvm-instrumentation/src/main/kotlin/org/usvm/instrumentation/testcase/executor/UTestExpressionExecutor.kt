@@ -2,6 +2,7 @@ package org.usvm.instrumentation.testcase.executor
 
 import getFieldValue
 import invokeWithAccessibility
+import newInstanceWithAccessibility
 import org.jacodb.api.JcField
 import org.jacodb.api.ext.*
 import org.usvm.instrumentation.classloader.WorkerClassLoader
@@ -200,7 +201,7 @@ class UTestExpressionExecutor(
     private fun executeConstructorCall(uConstructorCall: UTestConstructorCall): Any {
         val jConstructor = uConstructorCall.method.toJavaConstructor(workerClassLoader)
         val args = uConstructorCall.args.map { exec(it) }
-        return jConstructor.newInstance(*args.toTypedArray())
+        return jConstructor.newInstanceWithAccessibility(args)
     }
 
     private fun executeMethodCall(uMethodCall: UTestMethodCall): Any? {

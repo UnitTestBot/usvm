@@ -52,6 +52,7 @@ abstract class UTestConcreteExecutorTest {
             runBlocking {
                 body.invoke()
             }
+
         } finally {
             uTestConcreteExecutor.close()
         }
