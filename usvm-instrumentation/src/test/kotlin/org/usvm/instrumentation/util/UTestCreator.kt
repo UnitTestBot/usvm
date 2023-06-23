@@ -144,6 +144,14 @@ object UTestCreator {
             return UTest(listOf(), staticMethodCall)
         }
 
+        fun methodWithBug(jcClasspath: JcClasspath): UTest {
+            val jcClass = jcClasspath.findClass<example.A>()
+            val jcMethod = jcClass.findMethodOrNull("methodWithBug") ?: error("Cant find method indexOf in class A")
+            val constructor = jcClass.constructors.first()
+            val instance = UTestConstructorCall(constructor, listOf())
+            return UTest(listOf(), UTestMethodCall(instance, jcMethod, listOf()))
+        }
+
     }
 
     object Arrays {

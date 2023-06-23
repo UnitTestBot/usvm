@@ -246,7 +246,7 @@ class InstrumentedProcess private constructor() {
         val methodInvocationResult =
             executor.executeUTestExpression(callMethodExpr).onFailure {
                 return UTestExecutionExceptionResult(
-                    it.message ?: "", traceCollector.getTrace().trace
+                    "$it", traceCollector.getTrace().trace
                 )
             }.getOrNull()
 
