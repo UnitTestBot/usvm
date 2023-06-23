@@ -2,6 +2,7 @@ package org.usvm.instrumentation.executor
 
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
+import org.usvm.instrumentation.testcase.api.UTestExecutionExceptionResult
 import org.usvm.instrumentation.testcase.api.UTestExecutionSuccessResult
 import org.usvm.instrumentation.util.UTestCreator
 
@@ -69,6 +70,13 @@ class SimpleUTestConcreteExecutor: UTestConcreteExecutorTest() {
         assert(res is UTestExecutionSuccessResult)
         res as UTestExecutionSuccessResult
         assert(res.result != null)
+    }
+
+    @Test
+    fun `method with bug`() = executeTest {
+        val uTest = UTestCreator.A.methodWithBug(jcClasspath)
+        val res = uTestConcreteExecutor.executeAsync(uTest)
+        assert(res is UTestExecutionExceptionResult)
     }
 
 }
