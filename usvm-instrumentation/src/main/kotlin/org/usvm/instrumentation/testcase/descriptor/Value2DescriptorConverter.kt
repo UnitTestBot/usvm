@@ -10,6 +10,7 @@ import org.usvm.instrumentation.util.stringType
 import org.usvm.instrumentation.util.toJavaField
 import org.usvm.instrumentation.testcase.executor.UTestExpressionExecutor
 import org.usvm.instrumentation.testcase.api.UTestExpression
+import org.usvm.instrumentation.util.allDeclaredFields
 import java.util.*
 
 open class Value2DescriptorConverter(
@@ -158,10 +159,10 @@ open class Value2DescriptorConverter(
         val fields = mutableMapOf<JcField, UTestValueDescriptor>()
         val uTestObjectDescriptor = UTestObjectDescriptor(jcType, fields, System.identityHashCode(value))
         return createCyclicRef(uTestObjectDescriptor, value) {
-            jcClass.fields
-                .filter { !it.isFinal }
+            jcClass.allDeclaredFields
+                .filterNot { it.isFinal }
                 .forEach { jcField ->
-                    val jField = jcField.toJavaField(classLoader)
+                    val jField = jcField.toJavaField(classLoader) ?: return@forEach
                     val fieldValue = jField.getFieldValue(value)
                     val fieldDescriptor = buildDescriptorFromAny(fieldValue, depth)
                     fields[jcField] = fieldDescriptor
@@ -175,10 +176,10 @@ open class Value2DescriptorConverter(
         val jcType = jcClass.toType()
         val uTestEnumValueDescriptor = UTestEnumValueDescriptor(jcType, enumValueName, fields, System.identityHashCode(value))
         return createCyclicRef(uTestEnumValueDescriptor, value) {
-            jcClass.fields
+            jcClass.allDeclaredFields
                 .filter { jcClass.enumValues?.contains(it) == false && it.name != "\$VALUES" && !it.isFinal }
                 .forEach { jcField ->
-                    val jField = jcField.toJavaField(classLoader)
+                    val jField = jcField.toJavaField(classLoader) ?: return@forEach
                     val fieldValue = jField.getFieldValue(value)
                     val fieldDescriptor = buildDescriptorFromAny(fieldValue, depth)
                     fields[jcField] = fieldDescriptor
