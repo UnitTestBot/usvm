@@ -33,8 +33,8 @@ kotlin {
 }
 
 dependencies {
-    implementation("org.jacodb:jacodb-core:${Versions.jcdb}")
-    implementation("org.jacodb:jacodb-analysis:${Versions.jcdb}")
+    implementation("com.github.UnitTestBot.jacodb:jacodb-core:${Versions.jcdb}")
+    implementation("com.github.UnitTestBot.jacodb:jacodb-analysis:${Versions.jcdb}")
 
     implementation("com.jetbrains.rd:rd-framework:${Versions.rd}")
     implementation("org.ini4j:ini4j:${Versions.ini4j}")
@@ -54,6 +54,7 @@ val generatedModelsSourceDir = sourcesBaseDir.resolve(generatedModelsPackage.rep
 
 
 val generateModels = tasks.register<RdGenTask>("generateProtocolModels") {
+    dependsOn.addAll(listOf("compileKotlin"))
     val rdParams = extensions.getByName("params") as RdGenExtension
     val sourcesDir = projectDir.resolve("src/main/rdgen").resolve("org/usvm/instrumentation/models")
 
@@ -124,8 +125,8 @@ tasks {
         from(contents)
 //        with(jar.get() as CopySpec)
         dependsOn(getByName("compileSamplesJava"), configurations.testCompileClasspath)
+        dependsOn(configurations.compileClasspath)
     }
-
 
 }
 
