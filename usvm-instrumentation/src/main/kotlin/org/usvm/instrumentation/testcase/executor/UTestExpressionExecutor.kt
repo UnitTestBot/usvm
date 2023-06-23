@@ -24,7 +24,6 @@ class UTestExpressionExecutor(
 
     private val executedModels: MutableMap<UTestExpression, Any?> = hashMapOf()
 
-
     fun executeUTestExpression(uTestExpression: UTestExpression): Result<Any?> =
         try {
             Result.success(exec(uTestExpression))
