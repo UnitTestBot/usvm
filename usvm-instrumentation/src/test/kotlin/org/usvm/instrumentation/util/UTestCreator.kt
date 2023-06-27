@@ -1,6 +1,5 @@
 package org.usvm.instrumentation.util
 
-import example.C
 import org.jacodb.api.JcClasspath
 import org.jacodb.api.ext.*
 import org.usvm.instrumentation.testcase.UTest
@@ -152,6 +151,104 @@ object UTestCreator {
             return UTest(listOf(), UTestMethodCall(instance, jcMethod, listOf()))
         }
 
+        fun mock(jcClasspath: JcClasspath): UTest {
+            val jcClass = jcClasspath.findClass<example.A>()
+            val jcMethod = jcClass.findMethodOrNull("mock") ?: error("Cant find method indexOf in class A")
+            val constructor = jcClass.constructors.first()
+            val instance = UTestConstructorCall(constructor, listOf())
+
+            val jcMockClass = jcClasspath.findClass<example.MockClass>()
+
+            val mockedMethod1 = jcMockClass.declaredMethods.find { it.name == "getI" }!!
+            val mockedMethodRetValue1 = UTestIntExpression(239, jcClasspath.int)
+            val mockedMethod2 = jcMockClass.declaredMethods.find { it.name == "getStr" }!!
+            val mockedMethodRetValue2 = UTestStringExpression("a", jcClasspath.stringType())
+
+            val mockedField1 = jcMockClass.declaredFields.find { it.name == "intField" }!!
+            val mockedFieldValue1 = UTestIntExpression(1, jcClasspath.int)
+            val mockedField2 = jcMockClass.declaredFields.find { it.name == "stringField" }!!
+            val mockedFieldValue2 = UTestStringExpression("a", jcClasspath.stringType())
+            val mockedMethods = mapOf(
+                mockedMethod1 to mockedMethodRetValue1,
+                mockedMethod2 to mockedMethodRetValue2
+            )
+            val mockedFields = mapOf(
+                mockedField1 to mockedFieldValue1,
+                mockedField2 to mockedFieldValue2
+            )
+            val argMock = UTestMockObject(jcMockClass.toType(), mockedFields, mockedMethods)
+            return UTest(listOf(), UTestMethodCall(instance, jcMethod, listOf(argMock)))
+        }
+
+        fun mockInterface(jcClasspath: JcClasspath): UTest {
+            val jcClass = jcClasspath.findClass<example.A>()
+            val jcMethod = jcClass.findMethodOrNull("mockInterface") ?: error("Cant find method indexOf in class A")
+            val constructor = jcClass.constructors.first()
+            val instance = UTestConstructorCall(constructor, listOf())
+
+            val jcMockClass = jcClasspath.findClass<example.MockInterface>()
+            val mockedMethod1 = jcMockClass.declaredMethods.find { it.name == "intMock" }!!
+            val mockedMethodRetValue1 = UTestIntExpression(238, jcClasspath.int)
+            val mockedMethod2 = jcMockClass.declaredMethods.find { it.name == "strMock" }!!
+            val mockedMethodRetValue2 = UTestStringExpression("a", jcClasspath.stringType())
+            val mockedMethods = mapOf(
+                mockedMethod1 to mockedMethodRetValue1,
+                mockedMethod2 to mockedMethodRetValue2
+            )
+            val argMock = UTestMockObject(jcMockClass.toType(), mapOf(), mockedMethods)
+            return UTest(listOf(), UTestMethodCall(instance, jcMethod, listOf(argMock)))
+        }
+
+        fun mockAbstractClass(jcClasspath: JcClasspath): UTest {
+            val jcClass = jcClasspath.findClass<example.A>()
+            val jcMethod = jcClass.findMethodOrNull("mockAbstractClass") ?: error("Cant find method indexOf in class A")
+            val constructor = jcClass.constructors.first()
+            val instance = UTestConstructorCall(constructor, listOf())
+
+            val jcMockClass = jcClasspath.findClass<example.MockAbstractClass>()
+
+            val mockedMethod1 = jcMockClass.declaredMethods.find { it.name == "getI" }!!
+            val mockedMethodRetValue1 = UTestIntExpression(239, jcClasspath.int)
+            val mockedMethod2 = jcMockClass.declaredMethods.find { it.name == "getStr" }!!
+            val mockedMethodRetValue2 = UTestStringExpression("a", jcClasspath.stringType())
+
+            val mockedField1 = jcMockClass.declaredFields.find { it.name == "intField" }!!
+            val mockedFieldValue1 = UTestIntExpression(1, jcClasspath.int)
+            val mockedField2 = jcMockClass.declaredFields.find { it.name == "stringField" }!!
+            val mockedFieldValue2 = UTestStringExpression("a", jcClasspath.stringType())
+            val mockedMethods = mapOf(
+                mockedMethod1 to mockedMethodRetValue1,
+                mockedMethod2 to mockedMethodRetValue2
+            )
+            val mockedFields = mapOf(
+                mockedField1 to mockedFieldValue1,
+                mockedField2 to mockedFieldValue2
+            )
+            val argMock = UTestMockObject(jcMockClass.toType(), mockedFields, mockedMethods)
+            return UTest(listOf(), UTestMethodCall(instance, jcMethod, listOf(argMock)))
+        }
+
+        fun mockInterfaceWithDefaultMock(jcClasspath: JcClasspath): UTest {
+            val jcClass = jcClasspath.findClass<example.A>()
+            val jcMethod = jcClass.findMethodOrNull("mockInterface") ?: error("Cant find method indexOf in class A")
+            val constructor = jcClass.constructors.first()
+            val instance = UTestConstructorCall(constructor, listOf())
+
+            val jcMockClass = jcClasspath.findClass<example.MockInterface>()
+            val mockedMethod1 = jcMockClass.declaredMethods.find { it.name == "intMock" }!!
+            val mockedMethodRetValue1 = UTestIntExpression(240, jcClasspath.int)
+            val mockedMethod2 = jcMockClass.declaredMethods.find { it.name == "strMock" }!!
+            val mockedMethodRetValue2 = UTestStringExpression("a", jcClasspath.stringType())
+            val mockedMethod3 = jcMockClass.declaredMethods.find { it.name == "intMockDefault" }!!
+            val mockedMethodRetValue3 = UTestIntExpression(-1, jcClasspath.int)
+            val mockedMethods = mapOf(
+                mockedMethod1 to mockedMethodRetValue1,
+                mockedMethod2 to mockedMethodRetValue2,
+                mockedMethod3 to mockedMethodRetValue3
+            )
+            val argMock = UTestMockObject(jcMockClass.toType(), mapOf(), mockedMethods)
+            return UTest(listOf(), UTestMethodCall(instance, jcMethod, listOf(argMock)))
+        }
     }
 
     object Arrays {
@@ -225,6 +322,7 @@ object UTestCreator {
             return UTest(listOf(doubleArray) + listInitializer, callMethod)
         }
     }
+
     object Singleton {
         fun addToArray(jcClasspath: JcClasspath): UTest {
             val jcClass = jcClasspath.findClass("example.Singleton")
@@ -236,12 +334,14 @@ object UTestCreator {
             return UTest(listOf(), addToArrayMethodCall)
         }
     }
+
     object NestedClass {
         fun getB(jcClasspath: JcClasspath): UTest {
             val c = jcClasspath.findClass("example.ClassWithNestedClasses")
             val jcClass = jcClasspath.findClass("example.ClassWithNestedClasses\$A\$B")
             val jcMethod = jcClass.declaredMethods.find { it.name == "getB" }!!
-            val jcClassInstance = UTestConstructorCall(jcClass.constructors.first(), listOf(UTestIntExpression(1, jcClasspath.int)))
+            val jcClassInstance =
+                UTestConstructorCall(jcClass.constructors.first(), listOf(UTestIntExpression(1, jcClasspath.int)))
             val jcMethodCall = UTestMethodCall(jcClassInstance, jcMethod, listOf())
             return UTest(listOf(), jcMethodCall)
         }
