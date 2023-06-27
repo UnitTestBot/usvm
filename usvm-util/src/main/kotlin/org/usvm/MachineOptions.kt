@@ -1,0 +1,95 @@
+package org.usvm
+
+enum class PathSelectionStrategy {
+    /**
+     * Selects the states in depth-first order.
+     */
+    DFS,
+    /**
+     * Selects the states in breadth-first order.
+     */
+    BFS,
+    /**
+     * Selects the next state by descending from root to leaf in
+     * symbolic execution tree. The child on each step is selected randomly.
+     *
+     * See KLEE's random path search heuristic.
+     */
+    RANDOM_PATH,
+    /**
+     * Gives priority to states with shorter path lengths.
+     * The state with the shortest path is always selected.
+     */
+    DEPTH,
+    /**
+     * Gives priority to states with shorter path lengths.
+     * States are selected randomly with distribution based on path length.
+     */
+    DEPTH_RANDOM,
+    /**
+     * Gives priority to states with less number of forks.
+     * The state with the least number of forks is always selected.
+     */
+    FORK_DEPTH,
+    /**
+     * Gives priority to states with less number of forks.
+     * States are selected randomly with distribution based on number of forks.
+     */
+    FORK_DEPTH_RANDOM,
+    /**
+     * Gives priority to states closer to uncovered instructions in application
+     * graph.
+     * The closest to uncovered instruction state is always selected.
+     */
+    CLOSEST_TO_UNCOVERED,
+    /**
+     * Gives priority to states closer to uncovered instructions in application
+     * graph.
+     * States are selected randomly with distribution based on distance to uncovered instructions.
+     */
+    CLOSEST_TO_UNCOVERED_RANDOM
+}
+
+enum class PathSelectorCombinationStrategy {
+    /**
+     * Multiple path selectors have the common state set and are interleaved.
+     */
+    INTERLEAVED,
+
+    /**
+     * Multiple path selectors have independent state sets and are interleaved.
+     */
+    PARALLEL
+}
+
+data class MachineOptions(
+    /**
+     * State selection heuristics.
+     * If multiple heuristics are specified, they are combined according to [pathSelectorCombinationStrategy].
+     *
+     * @see PathSelectionStrategy
+     */
+    val pathSelectionStrategies: List<PathSelectionStrategy> = listOf(PathSelectionStrategy.BFS),
+    /**
+     * Strategy to combine multiple [pathSelectionStrategies].
+     *
+     * @see PathSelectorCombinationStrategy
+     */
+    val pathSelectorCombinationStrategy: PathSelectorCombinationStrategy = PathSelectorCombinationStrategy.INTERLEAVED,
+    /**
+     * Seed used for random operations.
+     */
+    val randomSeed: Long = 0,
+    /**
+     * Code coverage percent to stop execution on. Considered only if in range [1..100].
+     */
+    val stopOnCoverage: Int = 100,
+    /**
+     * Optional limit of symbolic execution steps to stop execution on.
+     */
+    val stepLimit: ULong? = null,
+    /**
+     * Optional limit of collected states to stop execution on.
+     */
+    val collectedStatesLimit: Int? = null
+)

@@ -8,7 +8,7 @@ import kotlin.test.assertTrue
 
 class LoopTests {
     val programDecl = LoopProgram
-    val machine = SampleMachine(programDecl.program, 40)
+    val machine = SampleMachine(programDecl.program)
 
     @Test
     fun runLoopLowIdx() {

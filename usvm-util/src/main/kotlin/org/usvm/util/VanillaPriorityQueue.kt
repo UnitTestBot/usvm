@@ -2,6 +2,9 @@ package org.usvm.util
 
 import java.util.*
 
+/**
+ * [UPriorityCollection] implementation based on [java.util.PriorityQueue].
+ */
 // TODO: what to do if elements have same priority?
 class VanillaPriorityQueue<T, Priority>(comparator: Comparator<Priority>) : UPriorityCollection<T, Priority> {
 

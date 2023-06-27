@@ -4,14 +4,37 @@ import java.util.*
 import kotlin.math.min
 
 data class AaTreeNode<T>(
+    /**
+     * Value attached to the node.
+     */
     val value: T,
+    /**
+     * Weight attached to the node.
+     */
     val weight: Float,
+    /**
+     * Sum of the children's weights.
+     */
     val weightSum: Float,
+    /**
+     * Node's depth in the tree. 1 for root node, 2 for its children etc.
+     */
     val level: Int,
+    /**
+     * Reference to the left child.
+     */
     val left: AaTreeNode<T>?,
+    /**
+     * Reference to the right child.
+     */
     val right: AaTreeNode<T>?
 )
 
+/**
+ * Balanced AA-tree of [AaTreeNode].
+ *
+ * @param comparator comparator to arrange elements in the tree. Doesn't affect the element's weights.
+ */
 class WeightedAaTree<T>(private val comparator: Comparator<T>) {
 
     var count: Int = 0
@@ -142,18 +165,31 @@ class WeightedAaTree<T>(private val comparator: Comparator<T>) {
         }
     }
 
+    /**
+     * Adds an element with specified weight.
+     *
+     * @return True if the element didn't exist in the tree and was added.
+     */
     fun add(value: T, weight: Float): Boolean {
         val prevCount = count
         root = addRec(value, weight, root) { it }
         return prevCount != count
     }
 
+    /**
+     * Removes an element.
+     *
+     * @return True if the element existed in the tree and was removed.
+     */
     fun remove(value: T): Boolean {
         val prevCount = count
         root = removeRec(value, root) { it }
         return prevCount != count
     }
 
+    /**
+     * Returns the sequence of nodes in pre-order manner.
+     */
     fun preOrderTraversal(): Sequence<AaTreeNode<T>> {
         val currentRoot = root ?: return emptySequence()
         var node: AaTreeNode<T>

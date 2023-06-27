@@ -1,5 +1,16 @@
 package org.usvm.util
 
+/**
+ * [UPriorityCollection] implementation which peeks elements randomly with distribution based on priority.
+ *
+ * Implemented with tree set in which each node contains sum of its children weights (priorities).
+ *
+ * To peek an element, a random point in interval [[0..sum of all leaf weights]] is selected, then the node which
+ * weight interval contains this point is found in binary-search manner.
+ *
+ * @param comparator comparator for elements to arrange them in tree. It doesn't affect the priorities.
+ * @param unitIntervalRandom function returning a random value in [[0..1]] interval which is used to peek the element.
+ */
 class DiscretePdf<T>(comparator: Comparator<T>, private val unitIntervalRandom: () -> Float) : UPriorityCollection<T, Float> {
 
     private val tree = WeightedAaTree(comparator)

@@ -2,9 +2,16 @@ package org.usvm.statistics
 
 import kotlinx.collections.immutable.ImmutableMap
 import kotlinx.collections.immutable.toImmutableMap
-import org.usvm.util.findShortestDistancesInUnweightedGraph
+import org.usvm.util.findMinDistancesInUnweightedGraph
 import java.util.concurrent.ConcurrentHashMap
 
+/**
+ * Calculates distances in CFG and caches them.
+ *
+ * Operations are thread-safe.
+ *
+ * @param applicationGraph [ApplicationGraph] instance to get CFG from.
+ */
 class DistanceStatistics<Method, Statement>(private val applicationGraph: ApplicationGraph<Method, Statement>) {
 
     private val allToAllShortestCfgDistanceCache = ConcurrentHashMap<Method, ConcurrentHashMap<Statement, ImmutableMap<Statement, UInt>>>()
@@ -12,7 +19,7 @@ class DistanceStatistics<Method, Statement>(private val applicationGraph: Applic
 
     private fun getAllShortestCfgDistances(method: Method, stmtFrom: Statement): ImmutableMap<Statement, UInt> {
         val methodCache = allToAllShortestCfgDistanceCache.computeIfAbsent(method) { ConcurrentHashMap() }
-        return methodCache.computeIfAbsent(stmtFrom) { findShortestDistancesInUnweightedGraph(stmtFrom, applicationGraph::successors, methodCache).toImmutableMap() }
+        return methodCache.computeIfAbsent(stmtFrom) { findMinDistancesInUnweightedGraph(stmtFrom, applicationGraph::successors, methodCache).toImmutableMap() }
     }
 
     fun getShortestCfgDistance(method: Method, stmtFrom: Statement, stmtTo: Statement): UInt {

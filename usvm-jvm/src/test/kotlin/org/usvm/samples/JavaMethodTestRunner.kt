@@ -3,19 +3,14 @@ package org.usvm.samples
 import org.jacodb.api.ext.findClass
 import org.jacodb.api.ext.toType
 import org.junit.jupiter.api.TestInstance
+import org.usvm.MachineOptions
 import org.usvm.api.JcClassCoverage
 import org.usvm.api.JcTest
 import org.usvm.api.util.JcTestResolver
 import org.usvm.machine.JcMachine
 import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.AnalysisResultsNumberMatcher
-import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
-import kotlin.reflect.KClass
-import kotlin.reflect.KFunction
-import kotlin.reflect.KFunction1
-import kotlin.reflect.KFunction2
-import kotlin.reflect.KFunction3
-import kotlin.reflect.KFunction4
+import kotlin.reflect.*
 import kotlin.reflect.full.instanceParameter
 import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.jvm.javaMethod
@@ -512,13 +507,13 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
     override val checkType: (KClass<*>?, KClass<*>?) -> Boolean =
         { expected, actual -> actual == null || expected != null && actual.isSubclassOf(expected) }
 
-    override val runner: (KFunction<*>) -> List<JcTest> = { method ->
+    override val runner: (KFunction<*>, MachineOptions) -> List<JcTest> = { method, options ->
         val declaringClassName = requireNotNull(method.javaMethod?.declaringClass?.name)
         val jcClass = cp.findClass(declaringClassName).toType()
         val jcMethod = jcClass.declaredMethods.first { it.name == method.name }
 
         val machine = JcMachine(cp)
-        val states = machine.analyze(jcMethod.method)
+        val states = machine.analyze(jcMethod.method, options)
 
         states.map { testResolver.resolve(jcMethod, it) }
     }

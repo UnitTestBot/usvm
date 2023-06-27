@@ -1,6 +1,7 @@
 package org.usvm.machine
 
 import org.junit.jupiter.api.Test
+import org.usvm.MachineOptions
 import org.usvm.language.BooleanConst
 import org.usvm.language.DivisionByZero
 import org.usvm.language.IntConst
@@ -24,7 +25,7 @@ class MathTests {
 
     @Test
     fun testDivByZero() {
-        val results = machine.analyze(programDecl.division)
+        val results = machine.analyze(programDecl.division, MachineOptions(stopOnCoverage = -1))
         assertTrue {
             results.any { it is SuccessfulExecutionResult && (it.inputModel.argumentExprs[1] as IntConst).const != 0 }
         }

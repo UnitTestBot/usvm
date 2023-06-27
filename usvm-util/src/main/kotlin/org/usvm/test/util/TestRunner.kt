@@ -1,5 +1,6 @@
 package org.usvm.test.util
 
+import org.usvm.MachineOptions
 import org.usvm.test.util.TestRunner.CheckMode.MATCH_EXECUTIONS
 import org.usvm.test.util.TestRunner.CheckMode.MATCH_PROPERTIES
 import org.usvm.test.util.checkers.AnalysisResultsNumberMatcher
@@ -22,8 +23,23 @@ import org.usvm.test.util.checkers.AnalysisResultsNumberMatcher
 abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
     abstract val typeTransformer: (Any?) -> Type
     abstract val checkType: (Type, Type) -> Boolean
-    abstract val runner: (Target) -> List<AnalysisResult>
+    abstract val runner: (Target, MachineOptions) -> List<AnalysisResult>
     abstract val coverageRunner: (List<AnalysisResult>) -> Coverage
+
+    private var options = MachineOptions()
+
+    /**
+     * Parametrizes [runner] with given options and executes [action].
+     */
+    protected fun <T> withOptions(options: MachineOptions, action: () -> T): T {
+        val prevOptions = options
+        try {
+            this.options = options
+            return action()
+        } finally {
+            this.options = prevOptions
+        }
+    }
 
     /**
      * Runs an interpreter on the [target], after that makes several checks of the results it got:
@@ -46,7 +62,7 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
         checkMode: CheckMode,
         coverageChecker: (Coverage) -> Boolean,
     ) {
-        val analysisResults = runner(target)
+        val analysisResults = runner(target, options)
 
         println(createStringFromResults(analysisResults))
         println()

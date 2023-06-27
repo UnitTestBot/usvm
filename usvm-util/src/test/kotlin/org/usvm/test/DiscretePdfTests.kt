@@ -25,7 +25,7 @@ internal class DiscretePdfTests {
         var prioritySum = 0f
 
         for (i in 1..valuesCount) {
-            val value = hash(i)
+            val value = pseudoRandom(i)
             val priority = i.toFloat()
             pdf.add(value, priority)
             priorities[value] = priority
@@ -53,7 +53,7 @@ internal class DiscretePdfTests {
         val pdf = DiscretePdf<Int>(naturalOrder()) { 1f }
 
         for (i in 1..100) {
-            val value = hash(i)
+            val value = pseudoRandom(i)
             val priority = i.toFloat()
             pdf.add(value, priority)
             pdf.peek()

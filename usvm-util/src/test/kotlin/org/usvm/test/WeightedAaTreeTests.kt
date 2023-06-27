@@ -62,7 +62,7 @@ internal class WeightedAaTreeTests {
         val elementsCount = 1000
 
         for (i in 1..elementsCount) {
-            val value = hash(i)
+            val value = pseudoRandom(i)
             val weight = i.toFloat()
             tree.add(value, weight)
         }
@@ -85,7 +85,7 @@ internal class WeightedAaTreeTests {
         val elementsCount = 1000
 
         for (i in 1..elementsCount) {
-            val value = hash(i)
+            val value = pseudoRandom(i)
             val weight = i.toFloat()
             tree.add(value, weight)
         }
@@ -94,7 +94,7 @@ internal class WeightedAaTreeTests {
         tree.preOrderTraversal().forEach(::checkInvariants)
 
         for (i in 1..elementsCount) {
-            val value = hash(i)
+            val value = pseudoRandom(i)
             tree.remove(value)
             tree.preOrderTraversal().forEach(::checkInvariants)
             assertEquals(elementsCount - i, tree.count)

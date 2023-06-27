@@ -1,4 +1,4 @@
-package org.usvm.ps.combinators
+package org.usvm.ps
 
 import org.usvm.UPathSelector
 
@@ -8,8 +8,8 @@ import org.usvm.UPathSelector
  * [update], [remove] and [add] operations are executed only on the current path selector. A pointer to
  * the next path selector advances when [add] is called.
  */
-class ParallelSelector<State>(
-    val selectors: List<UPathSelector<State>>,
+class ParallelPathSelector<State>(
+    private val selectors: List<UPathSelector<State>>,
 ) : UPathSelector<State> {
     constructor(vararg selectors: UPathSelector<State>) : this(selectors.toList())
 

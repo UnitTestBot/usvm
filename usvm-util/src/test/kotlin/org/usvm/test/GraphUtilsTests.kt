@@ -3,7 +3,7 @@ package org.usvm.test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
-import org.usvm.util.findShortestDistancesInUnweightedGraph
+import org.usvm.util.findMinDistancesInUnweightedGraph
 import kotlin.test.assertEquals
 
 internal class SimpleGraph(val vertexCount: Int) {
@@ -22,7 +22,7 @@ internal class GraphUtilsTests {
     @ParameterizedTest
     @MethodSource("testCases")
     fun findShortestDistancesInUnweightedGraphTest(graph: SimpleGraph, startVertex: Int, expected: Map<Int, UInt>) {
-        val foundDistances = findShortestDistancesInUnweightedGraph(startVertex, graph::getAdjacentVertices)
+        val foundDistances = findMinDistancesInUnweightedGraph(startVertex, graph::getAdjacentVertices)
         assertEquals(expected.size, foundDistances.size)
         expected.forEach { (i, d) -> assertEquals(d, foundDistances[i]) }
     }
@@ -33,14 +33,14 @@ internal class GraphUtilsTests {
         val cache = mutableMapOf<Int, Map<Int, UInt>>()
         for (i in 0 until graph.vertexCount) {
             if (i == startVertex) { continue }
-            val foundDistances = findShortestDistancesInUnweightedGraph(i, graph::getAdjacentVertices, cache)
-            val foundWithoutCacheDistances = findShortestDistancesInUnweightedGraph(i, graph::getAdjacentVertices)
+            val foundDistances = findMinDistancesInUnweightedGraph(i, graph::getAdjacentVertices, cache)
+            val foundWithoutCacheDistances = findMinDistancesInUnweightedGraph(i, graph::getAdjacentVertices)
             foundWithoutCacheDistances.forEach { (i, d) -> assertEquals(d, foundDistances[i]) }
             cache[i] = foundDistances
         }
 
-        val foundDistances = findShortestDistancesInUnweightedGraph(startVertex, graph::getAdjacentVertices)
-        val foundWithoutCacheDistances = findShortestDistancesInUnweightedGraph(startVertex, graph::getAdjacentVertices)
+        val foundDistances = findMinDistancesInUnweightedGraph(startVertex, graph::getAdjacentVertices)
+        val foundWithoutCacheDistances = findMinDistancesInUnweightedGraph(startVertex, graph::getAdjacentVertices)
 
         assertEquals(expected.size, foundDistances.size)
         foundWithoutCacheDistances.forEach { (i, d) -> assertEquals(d, foundDistances[i]) }
