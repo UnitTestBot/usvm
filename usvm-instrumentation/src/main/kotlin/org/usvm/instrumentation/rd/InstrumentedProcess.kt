@@ -25,8 +25,6 @@ import org.usvm.instrumentation.classloader.*
 import org.usvm.instrumentation.generated.models.*
 import org.usvm.instrumentation.instrumentation.JcInstructionTracer
 import org.usvm.instrumentation.instrumentation.JcInstructionTracer.StaticFieldAccessType
-import org.usvm.instrumentation.util.enclosingClass
-import org.usvm.instrumentation.util.enclosingMethod
 import org.usvm.instrumentation.serializer.SerializationContext
 import org.usvm.instrumentation.serializer.UTestExpressionSerializer.Companion.registerUTestExpressionSerializer
 import org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.Companion.registerUTestValueDescriptorSerializer
@@ -35,9 +33,9 @@ import org.usvm.instrumentation.testcase.executor.UTestExpressionExecutor
 import org.usvm.instrumentation.testcase.descriptor.StaticDescriptorsBuilder
 import org.usvm.instrumentation.testcase.descriptor.Value2DescriptorConverter
 import org.usvm.instrumentation.testcase.api.*
+import org.usvm.instrumentation.trace.collector.MockCollector
 import org.usvm.instrumentation.trace.collector.TraceCollector
-import org.usvm.instrumentation.util.InstrumentationModuleConstants
-import org.usvm.instrumentation.util.URLClassPathLoader
+import org.usvm.instrumentation.util.*
 import pumpAsync
 import terminateOnException
 import java.io.File
@@ -116,7 +114,7 @@ class InstrumentedProcess private constructor() {
     }
 
     private fun createWorkerClassLoader() =
-        WorkerClassLoader(ucp, this::class.java.classLoader, TraceCollector::class.java.name, jcClasspath)
+        WorkerClassLoader(ucp, this::class.java.classLoader, TraceCollector::class.java.name, MockCollector::class.java.name, jcClasspath)
 
     private suspend fun initiate(lifetime: Lifetime, port: Int) {
         val scheduler = SingleThreadScheduler(lifetime, "usvm-executor-worker-scheduler")
