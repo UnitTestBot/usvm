@@ -9,7 +9,7 @@ class Agent {
         @JvmStatic
         fun premain(arguments: String?, instrumentation: Instrumentation) {
             val instrumenterClassname = arguments ?: JcRuntimeTraceInstrumenter::class.java.name
-            val transformer = ClassTransformer(instrumenterClassname)
+            val transformer = ClassTransformer(instrumenterClassname, instrumentation)
             instrumentation.addTransformer(transformer)
         }
     }

@@ -1,5 +1,6 @@
 package org.usvm.instrumentation.testcase.executor
 
+import ReflectionUtils
 import getFieldValue
 import invokeWithAccessibility
 import newInstanceWithAccessibility
@@ -7,7 +8,9 @@ import org.jacodb.api.JcField
 import org.jacodb.api.ext.*
 import org.usvm.instrumentation.classloader.WorkerClassLoader
 import org.usvm.instrumentation.instrumentation.JcInstructionTracer.StaticFieldAccessType
+import org.usvm.instrumentation.org.usvm.instrumentation.classloader.MockHelper
 import org.usvm.instrumentation.testcase.api.*
+import org.usvm.instrumentation.trace.collector.MockCollector
 import org.usvm.instrumentation.util.toJavaClass
 import org.usvm.instrumentation.util.toJavaConstructor
 import org.usvm.instrumentation.util.toJavaField
@@ -62,6 +65,7 @@ class UTestExpressionExecutor(
             is UTestSetStaticFieldStatement -> executeUTestSetStaticFieldStatement(uTestExpression)
         }
     }
+
 
     private fun executeUTestConstant(uTestConstExpression: UTestConstExpression<*>): Any? = uTestConstExpression.value
 
@@ -118,25 +122,58 @@ class UTestExpressionExecutor(
     private fun executeUTestArrayCreateExpression(uTestCreateArrayExpression: UTestCreateArrayExpression): Any {
         val size = exec(uTestCreateArrayExpression.size) as Int
         return when (uTestCreateArrayExpression.elementType) {
-                jcClasspath.boolean -> BooleanArray(size)
-                jcClasspath.byte -> ByteArray(size)
-                jcClasspath.short -> ShortArray(size)
-                jcClasspath.int -> IntArray(size)
-                jcClasspath.long -> LongArray(size)
-                jcClasspath.double -> DoubleArray(size)
-                jcClasspath.float -> FloatArray(size)
-                jcClasspath.char -> CharArray(size)
-                else -> java.lang.reflect.Array.newInstance(uTestCreateArrayExpression.elementType.toJavaClass(workerClassLoader), size)
-            }
+            jcClasspath.boolean -> BooleanArray(size)
+            jcClasspath.byte -> ByteArray(size)
+            jcClasspath.short -> ShortArray(size)
+            jcClasspath.int -> IntArray(size)
+            jcClasspath.long -> LongArray(size)
+            jcClasspath.double -> DoubleArray(size)
+            jcClasspath.float -> FloatArray(size)
+            jcClasspath.char -> CharArray(size)
+            else -> java.lang.reflect.Array.newInstance(
+                uTestCreateArrayExpression.elementType.toJavaClass(
+                    workerClassLoader
+                ), size
+            )
+        }
     }
 
     private fun executeUTestAllocateMemoryCall(uTestAllocateMemoryCall: UTestAllocateMemoryCall): Any {
-        TODO()
+        val jClass = uTestAllocateMemoryCall.type.toJavaClass(workerClassLoader)
+        return ReflectionUtils.UNSAFE.allocateInstance(jClass)
     }
 
     private fun executeUTestMockObject(uTestMockObject: UTestMockObject): Any? {
-        //use mockito?
-        TODO()
+        val jcType = uTestMockObject.type!!
+        val jcClass = jcClasspath.findClass(jcType.typeName)
+
+        val methodsToMock = uTestMockObject.methods.keys.toList()
+        //Modify bytecode according to mocks
+        val (newClass, encodedMethods) =
+            MockHelper(jcClasspath, workerClassLoader).addMockInfoInBytecode(jcClass, methodsToMock)
+        println("NEW CLASS = $newClass")
+        val mockInstance =
+            try {
+                ReflectionUtils.UNSAFE.allocateInstance(newClass)
+            }catch (e: Throwable) {
+                println("E = $e")
+            }
+        println("AAA")
+        for ((jcMethod, encodedJcMethodId) in encodedMethods) {
+            val mockUTestExpression = uTestMockObject.methods[jcMethod] ?: error("Cant find expression for mocked method")
+            val mockValue = exec(mockUTestExpression)
+            MockCollector.addMock(MockCollector.MockInfo(encodedJcMethodId, mockInstance, mockValue))
+        }
+        println("BBB")
+        //Set mocked fields
+        for ((jcField, jcFieldUTestExpression) in uTestMockObject.fields) {
+            val jField = jcField.toJavaField(workerClassLoader) ?: error("Cant find java field for jcField")
+            val fieldValue = exec(jcFieldUTestExpression)
+            jField.setFieldValue(mockInstance, fieldValue)
+        }
+        println("CCC")
+        println("LOL")
+        return mockInstance
     }
 
     private fun executeUTestSetFieldStatement(uTestSetFieldStatement: UTestSetFieldStatement) {
