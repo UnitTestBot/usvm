@@ -1,16 +1,19 @@
 package org.usvm.instrumentation.util
 
 import getFieldByName
+import jdk.internal.org.objectweb.asm.Opcodes
 import org.jacodb.api.*
 import org.jacodb.api.cfg.JcInst
 import org.jacodb.api.ext.fields
 import org.jacodb.api.ext.jcdbName
 import org.jacodb.api.ext.jcdbSignature
 import org.jacodb.api.ext.toType
+import org.jacodb.impl.bytecode.JcMethodImpl
 import org.jacodb.impl.cfg.util.isArray
 import org.jacodb.impl.cfg.util.isPrimitive
 import org.jacodb.impl.types.TypeNameImpl
 import org.usvm.instrumentation.testcase.executor.TestExecutorException
+import setFieldValue
 import java.io.File
 import java.lang.reflect.Constructor
 import java.lang.reflect.Field
@@ -140,6 +143,9 @@ fun TypeName.isPrimitiveWrapper() =
         Char::class.javaObjectType.name -> true
         else -> false
     }
+
+fun TypeName.isPrimitiveArray() =
+    isArray && PredefinedPrimitives.matches(typeName.substringBefore('['))
 
 fun JcMethod.toJavaMethod(classLoader: ClassLoader): Method {
     val klass = Class.forName(enclosingClass.name, false, classLoader)
