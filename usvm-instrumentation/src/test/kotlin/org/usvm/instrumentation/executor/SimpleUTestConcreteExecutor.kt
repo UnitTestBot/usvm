@@ -4,6 +4,7 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.usvm.instrumentation.testcase.api.UTestExecutionExceptionResult
 import org.usvm.instrumentation.testcase.api.UTestExecutionSuccessResult
+import org.usvm.instrumentation.testcase.descriptor.UTestConstantDescriptor
 import org.usvm.instrumentation.util.UTestCreator
 
 class SimpleUTestConcreteExecutor: UTestConcreteExecutorTest() {
@@ -78,6 +79,50 @@ class SimpleUTestConcreteExecutor: UTestConcreteExecutorTest() {
         assert(res is UTestExecutionSuccessResult)
         res as UTestExecutionSuccessResult
         assert(res.result != null)
+    }
+
+    @Test
+    fun `simple class mock test`() = executeTest {
+        val uTest = UTestCreator.A.mock(jcClasspath)
+        val res = uTestConcreteExecutor.executeAsync(uTest)
+        assert(res is UTestExecutionSuccessResult)
+        res as UTestExecutionSuccessResult
+        val result = res.result
+        assert(result != null)
+        assert(result is UTestConstantDescriptor.Int && result.value == 240)
+    }
+
+    @Test
+    fun `simple abstract class mock test`() = executeTest {
+        val uTest = UTestCreator.A.mockAbstractClass(jcClasspath)
+        val res = uTestConcreteExecutor.executeAsync(uTest)
+        println("res = $res")
+        assert(res is UTestExecutionSuccessResult)
+        res as UTestExecutionSuccessResult
+        val result = res.result
+        assert(result != null)
+        assert(result is UTestConstantDescriptor.Int && result.value == 240)
+    }
+    @Test
+    fun `simple interface mock test`() = executeTest {
+        val uTest = UTestCreator.A.mockInterface(jcClasspath)
+        val res = uTestConcreteExecutor.executeAsync(uTest)
+        assert(res is UTestExecutionSuccessResult)
+        res as UTestExecutionSuccessResult
+        val result = res.result
+        assert(result != null)
+        assert(result is UTestConstantDescriptor.Int && result.value == 239)
+    }
+
+    @Test
+    fun `simple interface with default method mock test`() = executeTest {
+        val uTest = UTestCreator.A.mockInterfaceWithDefaultMock(jcClasspath)
+        val res = uTestConcreteExecutor.executeAsync(uTest)
+        assert(res is UTestExecutionSuccessResult)
+        res as UTestExecutionSuccessResult
+        val result = res.result
+        assert(result != null)
+        assert(result is UTestConstantDescriptor.Int && result.value == 239)
     }
 
     @Test
