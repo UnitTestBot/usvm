@@ -26,17 +26,21 @@ object JcInstructionTracer : Tracer<Trace> {
         return Trace(trace, statics)
     }
 
-    private class EncodedClass(val id: Long) {
+    class EncodedClass(val id: Long) {
         val encodedMethods = hashMapOf<JcMethod, EncodedMethod>()
-        var currenMethodIndex = 0L
+        val encodedFields = hashMapOf<JcField, EncodedField>()
+        var currentMethodIndex = 0L
+        var currentFieldIndex = 0L
     }
 
-    private class EncodedMethod(val id: Long) {
+    class EncodedMethod(val id: Long) {
         val encodedInstructions = hashMapOf<JcInst, EncodedInst>()
         var currentInstIndex = 0L
     }
 
-    private class EncodedInst(val id: Long)
+    class EncodedField(val id: Long)
+
+    class EncodedInst(val id: Long)
 
     private val encodedJcInstructions = hashMapOf<Long, JcInst>()
     private val encodedJcStaticFieldRef = hashMapOf<Long, Pair<JcField, StaticFieldAccessType>>()
@@ -52,13 +56,22 @@ object JcInstructionTracer : Tracer<Trace> {
         return (classId shl Byte.SIZE_BITS * 5) or (methodId shl Byte.SIZE_BITS * 3) or instId
     }
 
+    fun encodeClass(jcClass: JcClassOrInterface) = encodedClasses.getOrPut(jcClass) { EncodedClass(currentClassIndex++) }
+    fun encodeMethod(jcClass: JcClassOrInterface, jcMethod: JcMethod): EncodedMethod {
+        val encodedClass = encodeClass(jcClass)
+        return encodedClass.encodedMethods.getOrPut(jcMethod) { EncodedMethod(encodedClass.currentMethodIndex++) }
+    }
+
+    fun encodeField(jcClass: JcClassOrInterface, jcField: JcField): EncodedField {
+        val encodedClass = encodeClass(jcClass)
+        return encodedClass.encodedFields.getOrPut(jcField) { EncodedField(encodedClass.currentFieldIndex++) }
+    }
 
     fun encode(jcInst: JcInst): Long {
         val jcClass = jcInst.enclosingClass
         val jcMethod = jcInst.enclosingMethod
-        val encodedClass = encodedClasses.getOrPut(jcClass) { EncodedClass(currentClassIndex++) }
-        val encodedMethod =
-            encodedClass.encodedMethods.getOrPut(jcMethod) { EncodedMethod(encodedClass.currenMethodIndex++) }
+        val encodedClass = encodeClass(jcClass)
+        val encodedMethod = encodeMethod(jcClass, jcMethod)
         val encodedInst =
             encodedMethod.encodedInstructions.getOrPut(jcInst) { EncodedInst(encodedMethod.currentInstIndex++) }
         val instId = encodeTraceId(encodedClass.id, encodedMethod.id, encodedInst.id)
