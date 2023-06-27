@@ -4,7 +4,8 @@ import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.Test
 import org.usvm.UState
-import org.usvm.hash
+import org.usvm.pseudoRandom
+import kotlin.math.abs
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -19,7 +20,7 @@ class PathsTreeStatisticsTests {
         every { initialState.id } returns 0u
         every { fork.id } returns 1u
         val pathsTreeStatistics = PathsTreeStatistics(initialState)
-        pathsTreeStatistics.onStateForked(initialState, listOf(fork))
+        pathsTreeStatistics.onState(initialState, sequenceOf(fork))
         assertNull(pathsTreeStatistics.root.state)
         assertEquals(2, pathsTreeStatistics.root.children.size)
         assertTrue(pathsTreeStatistics.root.children.any { it.state == initialState && it.children.isEmpty() })
@@ -38,7 +39,7 @@ class PathsTreeStatisticsTests {
         for (i in 1 until 100) {
             val fork = mockk<UState<*, *, Any, Any>>()
             every { fork.id } returns i.toUInt()
-            pathsTreeStatistics.onStateForked(initialState, listOf(fork))
+            pathsTreeStatistics.onState(initialState, sequenceOf(fork))
             forks.add(fork)
         }
         var current = pathsTreeStatistics.root
@@ -69,13 +70,14 @@ class PathsTreeStatisticsTests {
         val pathsTreeStatistics = PathsTreeStatistics(initialState)
         val states = mutableListOf(initialState)
         for (i in 1 until 100) {
-            val stateIdToFork = (hash(i) % i)
+            val stateIdToFork = abs(pseudoRandom(i)) % i
             val stateToFork = states[stateIdToFork]
             val previousDepth = pathsTreeStatistics.getStateDepth(stateToFork)
             val forkedStateId = i.toUInt()
             val forkedState = mockk<UState<*, *, Any, Any>>()
+            states.add(forkedState)
             every { forkedState.id } returns forkedStateId
-            pathsTreeStatistics.onStateForked(stateToFork, listOf(forkedState))
+            pathsTreeStatistics.onState(stateToFork, sequenceOf(forkedState))
             assertEquals(previousDepth + 1, pathsTreeStatistics.getStateDepth(stateToFork))
             assertEquals(previousDepth + 1, pathsTreeStatistics.getStateDepth(forkedState))
             assertNotNull(pathsTreeStatistics.root.traversal().singleOrNull {
@@ -97,7 +99,7 @@ class PathsTreeStatisticsTests {
         every { fork1.id } returns 1u
         every { fork2.id } returns 2u
         every { fork3.id } returns 3u
-        pathsTreeStatistics.onStateForked(initialState, listOf(fork1, fork2, fork3))
+        pathsTreeStatistics.onState(initialState, sequenceOf(fork1, fork2, fork3))
         assertNull(pathsTreeStatistics.root.state)
         assertEquals(4, pathsTreeStatistics.root.children.size)
         assertTrue(pathsTreeStatistics.root.children.any { it.state == initialState && it.children.isEmpty() })
@@ -111,7 +113,7 @@ class PathsTreeStatisticsTests {
         every { fork4.id } returns 4u
         every { fork5.id } returns 5u
         every { fork6.id } returns 6u
-        pathsTreeStatistics.onStateForked(fork2, listOf(fork4, fork5, fork6))
+        pathsTreeStatistics.onState(fork2, sequenceOf(fork4, fork5, fork6))
         assertNull(pathsTreeStatistics.root.state)
         assertEquals(4, pathsTreeStatistics.root.children.size)
         assertTrue(pathsTreeStatistics.root.children.any { it.state == initialState && it.children.isEmpty() })
@@ -130,9 +132,9 @@ class PathsTreeStatisticsTests {
         val initialState = mockk<UState<*, *, Any, Any>>()
         every { initialState.id } returns 0u
         val pathsTreeStatistics = PathsTreeStatistics(initialState)
-        pathsTreeStatistics.onStateForked(initialState, emptyList())
-        pathsTreeStatistics.onStateForked(initialState, emptyList())
-        pathsTreeStatistics.onStateForked(initialState, emptyList())
+        pathsTreeStatistics.onState(initialState, emptySequence())
+        pathsTreeStatistics.onState(initialState, emptySequence())
+        pathsTreeStatistics.onState(initialState, emptySequence())
         var previous: PathsTreeNode<UState<*, *, Any, Any>>? = null
         var currentNode = pathsTreeStatistics.root
         for (i in 0 until 3) {

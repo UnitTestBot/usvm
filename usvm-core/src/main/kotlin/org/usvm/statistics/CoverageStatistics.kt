@@ -4,15 +4,24 @@ import org.usvm.UState
 import org.usvm.util.bfsTraversal
 import java.util.concurrent.ConcurrentHashMap
 
+/**
+ * [UMachineObserver] which tracks coverage of specified methods. Statements are
+ * considered covered when state visited them is terminated.
+ *
+ * Operations are thread-safe.
+ *
+ * @param methods methods to track coverage of.
+ * @param applicationGraph [ApplicationGraph] used to retrieve statements by method.
+ */
 class CoverageStatistics<Method, Statement, State : UState<*, *, Method, Statement>>(
     methods: Set<Method>,
-    private val applicationGraph: ApplicationGraph<Method, Statement>,
-    private val statisticsObservable: StatisticsObservable<Method, Statement, State>,
-) : StatisticsObserver<Method, Statement, State> {
+    private val applicationGraph: ApplicationGraph<Method, Statement>
+) : UMachineObserver<State> {
+
+    private val onStatementCoveredObservers: MutableSet<(State, Method, Statement) -> Unit> = ConcurrentHashMap.newKeySet()
 
     // Set is actually concurrent
     private val uncoveredStatements = HashMap<Method, MutableSet<Statement>>()
-
     private val coveredStatements = HashMap<Method, HashSet<Statement>>()
 
     private var totalUncoveredStatements = 0
@@ -32,35 +41,52 @@ class CoverageStatistics<Method, Statement, State : UState<*, *, Method, Stateme
         if (uncovered == 0) {
             return 100f
         }
-        return covered.toFloat() / uncovered.toFloat() * 100f
+        return covered.toFloat() / ((covered + uncovered).toFloat()) * 100f
     }
 
+    /**
+     * Returns current total coverage of all initial methods (in percents).
+     */
     fun getTotalCoverage(): Float {
         return computeCoverage(totalCoveredStatements, totalUncoveredStatements)
     }
 
+    /**
+     * Returns current coverage of specified method (in percents).
+     *
+     * @param method one of the initial methods to get coverage of.
+     */
     fun getMethodCoverage(method: Method): Float {
         val uncoveredStatementsCount = uncoveredStatements[method]?.size ?: throw IllegalArgumentException("Trying to get coverage of unknown method")
         return computeCoverage(coveredStatements.getValue(method).size, uncoveredStatementsCount)
     }
 
+    /**
+     * Returns statements from initial methods which have not been covered yet.
+     */
     fun getUncoveredStatements(): Collection<Pair<Method, Statement>> {
         return uncoveredStatements.flatMap { kvp -> kvp.value.map { kvp.key to it } }
+    }
+
+    /**
+     * Adds a listener triggered when a new statement is covered.
+     */
+    fun addOnCoveredObserver(observer: (State, Method, Statement) -> Unit) {
+        onStatementCoveredObservers.add(observer)
     }
 
     override fun onStateTerminated(state: State) {
         for (statement in state.path) {
             val method = applicationGraph.methodOf(statement)
 
-            val isRemoved = uncoveredStatements[method]?.remove(statement) ?: throw IllegalArgumentException("Trying to pass unknown method to coverage statistics")
-            if (!isRemoved) {
+            if (uncoveredStatements[method]?.remove(statement) != true) {
                 continue
             }
 
             totalUncoveredStatements--
             totalCoveredStatements++
             coveredStatements.getValue(method).add(statement)
-            statisticsObservable.onStatementCovered(method, statement)
+            onStatementCoveredObservers.forEach { it(state, method, statement) }
         }
     }
 }

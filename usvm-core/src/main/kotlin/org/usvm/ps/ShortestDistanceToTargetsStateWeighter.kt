@@ -3,6 +3,19 @@ package org.usvm.ps
 import org.usvm.UState
 import kotlin.math.min
 
+/**
+ * [StateWeighter] implementation which weights states by their application graph
+ * distance to specified targets.
+ *
+ * Distances in graph remain the same, only the targets can change, so the local CFG distances are
+ * cached while the targets of the method remain the same.
+ *
+ * @param targets initial collection of targets.
+ * @param getCfgDistance function with the following signature:
+ * (method, stmtFrom, stmtTo) -> shortest CFG distance from stmtFrom to stmtTo.
+ * @param getCfgDistanceToExitPoint function with the following signature:
+ * (method, stmt) -> shortest CFG distance from stmt to any of method's exit points.
+ */
 class ShortestDistanceToTargetsStateWeighter<Method, Statement, State : UState<*, *, Method, Statement>>(
     targets: Collection<Pair<Method, Statement>>,
     private val getCfgDistance: (Method, Statement, Statement) -> UInt,
@@ -49,6 +62,11 @@ class ShortestDistanceToTargetsStateWeighter<Method, Statement, State : UState<*
 
         val callStackArray = state.callStack.toTypedArray()
 
+        // minDistanceToTarget(F) =
+        //  min(
+        //      min distance from F to target in current frame (if there are any),
+        //      min distance from F to return point R of current frame + minDistanceToTarget(point in prev frame where R returns)
+        //  )
         for (i in callStackArray.indices) {
             val method = callStackArray[i].method
             val locationInMethod =
@@ -61,7 +79,10 @@ class ShortestDistanceToTargetsStateWeighter<Method, Statement, State : UState<*
             val minDistanceToTargetInCurrentFrame = getMinDistanceToTargetInCurrentFrame(method, locationInMethod)
 
             val minDistanceToTargetInPreviousFrames =
-                if (minDistanceToReturn == UInt.MAX_VALUE || currentMinDistanceToTarget == UInt.MAX_VALUE) UInt.MAX_VALUE else currentMinDistanceToTarget + minDistanceToReturn
+                if (minDistanceToReturn == UInt.MAX_VALUE || currentMinDistanceToTarget == UInt.MAX_VALUE)
+                    UInt.MAX_VALUE
+                else
+                    currentMinDistanceToTarget + minDistanceToReturn
 
             currentMinDistanceToTarget = min(minDistanceToTargetInPreviousFrames, minDistanceToTargetInCurrentFrame)
         }

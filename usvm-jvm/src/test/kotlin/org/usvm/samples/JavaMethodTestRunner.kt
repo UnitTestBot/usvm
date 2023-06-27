@@ -9,12 +9,7 @@ import org.usvm.api.util.JcTestResolver
 import org.usvm.machine.JcMachine
 import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.AnalysisResultsNumberMatcher
-import kotlin.reflect.KClass
-import kotlin.reflect.KFunction
-import kotlin.reflect.KFunction1
-import kotlin.reflect.KFunction2
-import kotlin.reflect.KFunction3
-import kotlin.reflect.KFunction4
+import kotlin.reflect.*
 import kotlin.reflect.full.instanceParameter
 import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.jvm.javaMethod

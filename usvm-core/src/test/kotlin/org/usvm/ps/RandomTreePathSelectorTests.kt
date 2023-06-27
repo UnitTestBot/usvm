@@ -8,7 +8,7 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
 import org.usvm.UState
-import org.usvm.hash
+import org.usvm.pseudoRandom
 import org.usvm.statistics.PathsTreeNode
 import org.usvm.statistics.PathsTreeStatistics
 import kotlin.test.assertEquals
@@ -27,8 +27,8 @@ internal class RandomTreePathSelectorTests {
 
         override var parent: PathsTreeNode<T>? = null
 
-        override val ignoreTokens = mutableSetOf<Int>()
-        override fun addIgnoreToken(token: Int) {
+        override val ignoreTokens = mutableSetOf<Long>()
+        override fun addIgnoreToken(token: Long) {
             ignoreTokens.add(token)
         }
     }
@@ -57,7 +57,7 @@ internal class RandomTreePathSelectorTests {
         val state1 = mockk<State>()
         val root = tree { child(state1) }
         every { statistics.root } returns root
-        val selector = RandomTreePathSelector(statistics, 0) { 0 }
+        val selector = RandomTreePathSelector(statistics, { 0 }, 0L)
         selector.add(listOf(state1))
         assertEquals(state1, selector.peek())
     }
@@ -68,7 +68,7 @@ internal class RandomTreePathSelectorTests {
         val state1 = mockk<State>()
         val root = tree { child(state1) }
         every { statistics.root } returns root
-        val selector = RandomTreePathSelector(statistics, 0) { 0 }
+        val selector = RandomTreePathSelector(statistics, { 0 }, 0L)
         assertThrows<NoSuchElementException> { selector.peek() }
     }
 
@@ -79,7 +79,7 @@ internal class RandomTreePathSelectorTests {
         val root = tree { child(state1) }
         every { statistics.root } returns root
         val state2 = mockk<State>()
-        val selector = RandomTreePathSelector(statistics, 0) { 0 }
+        val selector = RandomTreePathSelector(statistics, { 0 }, 0L)
         selector.add(listOf(state2))
         assertEquals(state2, selector.peek())
         selector.remove(state2)
@@ -92,10 +92,11 @@ internal class RandomTreePathSelectorTests {
         val statistics = mockk<PathsTreeStatistics<Any, Any, State>>()
         every { statistics.root } returns root
         var currentRandomIdx = -1
-        val selector = RandomTreePathSelector(statistics, 0) {
+        fun nextInt(): Int {
             currentRandomIdx++
-            randomChoices[currentRandomIdx]
+            return randomChoices[currentRandomIdx]
         }
+        val selector = RandomTreePathSelector(statistics, ::nextInt, 0L)
         selector.add(states)
         for (expectedState in expectedStates) {
             assertEquals(expectedState, selector.peek())
@@ -147,10 +148,11 @@ internal class RandomTreePathSelectorTests {
         }
         every { statistics.root } returns root
         var currentRandomIdx = -1
-        val selector = RandomTreePathSelector(statistics, 0) {
+        fun nextInt(): Int {
             currentRandomIdx++
-            hash(currentRandomIdx)
+            return pseudoRandom(currentRandomIdx)
         }
+        val selector = RandomTreePathSelector(statistics, ::nextInt, 0L)
         val currentStates = states.toMutableSet()
         selector.add(currentStates)
         for (state in states) {

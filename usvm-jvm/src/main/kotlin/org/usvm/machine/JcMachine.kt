@@ -2,14 +2,13 @@ package org.usvm.machine
 
 import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcMethod
+import org.jacodb.api.cfg.JcInst
 import org.usvm.UMachine
-import org.usvm.UPathSelector
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
-import org.usvm.ps.BfsPathSelector
-import org.usvm.ps.DfsPathSelector
-import org.usvm.ps.combinators.ParallelSelector
-import org.usvm.ps.stopstrategies.TargetsCoveredStoppingStrategy
+import org.usvm.ps.createPathSelector
+import org.usvm.statistics.*
+import org.usvm.stopstrategies.createStopStrategy
 
 class JcMachine(
     cp: JcClasspath,
@@ -22,49 +21,45 @@ class JcMachine(
 
     private val interpreter = JcInterpreter(ctx, applicationGraph)
 
-    fun analyze(method: JcMethod): List<JcState> {
-        val collectedStates = mutableListOf<JcState>()
-        val coveredStoppingStrategy = TargetsCoveredStoppingStrategy(listOf(method), applicationGraph)
+    private val distanceStatistics = DistanceStatistics(applicationGraph)
 
-        val pathSelector = getPathSelector(method)
+    fun analyze(method: JcMethod, options: JcMachineOptions = JcMachineOptions()): List<JcState> {
+        val initialState = interpreter.getInitialState(method)
+
+        val coverageStatistics: CoverageStatistics<JcMethod, JcInst, JcState> = CoverageStatistics(setOf(method), applicationGraph)
+        val pathsTreeStatistics = PathsTreeStatistics(initialState)
+
+        val pathSelector = createPathSelector(
+            options.pathSelectionStrategy,
+            { pathsTreeStatistics },
+            { coverageStatistics },
+            { distanceStatistics },
+            options.randomSeed
+        )
+        pathSelector.add(listOf(initialState))
+
+        // TODO: implement state limit stop strategy
+        val stopStrategy = createStopStrategy(options.expectedCoverage, options.stepLimit) { coverageStatistics }
+
+        val statesCollector = CoveredNewStatesCollector<JcState>(coverageStatistics) { it.methodResult is JcMethodResult.Exception }
 
         run(
             interpreter,
             pathSelector,
-            onState = { state ->
-                // TODO: think on correct place for this
-                if (!continueAnalyzing(state)) {
-                    val uncoveredStatementsBefore = coveredStoppingStrategy.uncoveredStatementsCount
-                    coveredStoppingStrategy.onStateTermination(state)
-                    // TODO: maybe we need do call onStateVisit(state)
-                    val uncoveredStatementsCountAfter = coveredStoppingStrategy.uncoveredStatementsCount
-                    if (uncoveredStatementsCountAfter < uncoveredStatementsBefore ||
-                        state.methodResult is JcMethodResult.Exception // TODO: strange hack, we should cache it
-                    ) {
-                        collectedStates += state
-                    }
-                } else {
-                    coveredStoppingStrategy.onStateVisit(state)
-                }
-            },
-            continueAnalyzing = ::continueAnalyzing,
-            stoppingStrategy = coveredStoppingStrategy,
+            observer = CompositeUMachineObserver(
+                coverageStatistics,
+                pathsTreeStatistics,
+                statesCollector
+            ),
+            continueAnalyzing = { !isFinishedState(it) },
+            stopStrategy = stopStrategy,
         )
-        return collectedStates
+
+        return statesCollector.collectedStates
     }
 
-    private fun getPathSelector(target: JcMethod): UPathSelector<JcState> {
-        val state = interpreter.getInitialState(target)
-        val dfsPathSelector = DfsPathSelector<JcState>()
-        val bfsPathSelector = BfsPathSelector<JcState>()
-        val ps = InterleavedPathSelector(dfsPathSelector, bfsPathSelector)
-        bfsPathSelector.add(listOf(state))
-        dfsPathSelector.add(listOf(state.clone()))
-        return ps
-    }
-
-    private fun continueAnalyzing(state: JcState): Boolean {
-        return state.callStack.isNotEmpty() && state.methodResult !is JcMethodResult.Exception
+    private fun isFinishedState(state: JcState): Boolean {
+        return state.callStack.isEmpty() || state.methodResult is JcMethodResult.Exception
     }
 
     override fun close() {

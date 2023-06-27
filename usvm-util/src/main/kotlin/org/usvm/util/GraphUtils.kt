@@ -2,7 +2,18 @@ package org.usvm.util
 
 import java.util.*
 
-inline fun <V> findShortestDistancesInUnweightedGraph(
+/**
+ * Finds minimal distances from one vertex to all other vertices in unweighted graph.
+ * A map with already calculated minimal distances can be specified to reduce the amount of calculations.
+ *
+ * @param startVertex vertex to find distances from.
+ * @param adjacentVertices function which maps a vertex to the sequence of vertices adjacent to
+ * it.
+ * @param distanceCache already calculated minimal distances map. Maps a start vertex to another map
+ * from end vertex to distance.
+ * @return Map from end vertex to minimal distance from startVertex to it.
+ */
+inline fun <V> findMinDistancesInUnweightedGraph(
     startVertex: V,
     adjacentVertices: (V) -> Sequence<V>,
     distanceCache: Map<V, Map<V, UInt>> = emptyMap()
@@ -59,6 +70,13 @@ inline fun <V> findShortestDistancesInUnweightedGraph(
     return currentDistances
 }
 
+/**
+ * Returns the sequence of vertices in breadth-first order.
+ *
+ * @param startVertices vertices to start traversal from.
+ * @param adjacentVertices function which maps a vertex to the sequence of vertices adjacent to
+ * it.
+ */
 inline fun <V> bfsTraversal(startVertices: Collection<V>, crossinline adjacentVertices: (V) -> Sequence<V>): Sequence<V> {
     val queue: Queue<V> = LinkedList(startVertices)
     val visited = HashSet<V>()

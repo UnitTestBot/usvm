@@ -1,9 +1,12 @@
-package org.usvm.ps.stopstrategies
+package org.usvm.stopstrategies
 
+/**
+ * [StopStrategy] which stops when [statesLimit] state number is reached.
+ */
 class CollectedStatesLimitStrategy(
-    val statesLimit: Int = STATES_LIMIT
-) : StoppingStrategy {
-    var statesCount = 0
+    private val statesLimit: Int = STATES_LIMIT
+) : StopStrategy {
+    private var statesCount = 0
 
     override fun shouldStop(): Boolean = statesCount > statesLimit
 

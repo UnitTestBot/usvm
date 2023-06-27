@@ -3,13 +3,10 @@ package org.usvm.machine
 import kotlinx.collections.immutable.persistentListOf
 import org.usvm.UContext
 import org.usvm.UMachine
-import org.usvm.UPathSelector
-import org.usvm.language.Field
-import org.usvm.language.Method
-import org.usvm.language.Program
-import org.usvm.language.SampleType
-import org.usvm.ps.DfsPathSelector
-import org.usvm.ps.stopstrategies.CollectedStatesLimitStrategy
+import org.usvm.language.*
+import org.usvm.ps.createPathSelector
+import org.usvm.statistics.*
+import org.usvm.stopstrategies.createStopStrategy
 
 /**
  * Entry point for a sample language analyzer.
@@ -27,29 +24,41 @@ class SampleMachine(
     private val interpreter = SampleInterpreter(ctx, applicationGraph)
     private val resultModelConverter = ResultModelConverter(ctx)
 
-    fun analyze(method: Method<*>): Collection<ProgramExecutionResult> {
-        val collectedStates = mutableListOf<SampleState>()
-        val stoppingStrategy = CollectedStatesLimitStrategy(maxStates)
+    private val distanceStatistics = DistanceStatistics(applicationGraph)
+
+    fun analyze(method: Method<*>, options: SampleMachineOptions = SampleMachineOptions()): Collection<ProgramExecutionResult> {
+        val initialState = getInitialState(method)
+
+        val coverageStatistics: CoverageStatistics<Method<*>, Stmt, SampleState> = CoverageStatistics(setOf(method), applicationGraph)
+        val pathsTreeStatistics = PathsTreeStatistics(initialState)
+
+        val pathSelector = createPathSelector(
+            options.pathSelectionStrategy,
+            { pathsTreeStatistics },
+            { coverageStatistics },
+            { distanceStatistics },
+            options.randomSeed
+        )
+        pathSelector.add(listOf(initialState))
+
+        // TODO: implement state limit stop strategy
+        val stopStrategy = createStopStrategy(options.expectedCoverage, options.stepLimit) { coverageStatistics }
+
+        val statesCollector = CoveredNewStatesCollector<SampleState>(coverageStatistics) { it.exceptionRegister != null }
+
         run(
             interpreter = interpreter,
-            pathSelector = getPathSelector(method),
-            onState = { state ->
-                if (!isInterestingState(state)) {
-                    collectedStates += state
-                    stoppingStrategy.incrementStatesCount()
-                }
-            },
+            pathSelector = pathSelector,
+            observer = CompositeUMachineObserver(
+                coverageStatistics,
+                pathsTreeStatistics,
+                statesCollector
+            ),
             continueAnalyzing = ::isInterestingState,
-            stoppingStrategy = stoppingStrategy,
+            stopStrategy = stopStrategy,
         )
-        return collectedStates.map { resultModelConverter.convert(it, method) }
-    }
 
-    private fun getPathSelector(target: Method<*>): UPathSelector<SampleState> {
-        val ps = DfsPathSelector<SampleState>()
-        val initialState = getInitialState(target)
-        ps.add(listOf(initialState))
-        return ps
+        return statesCollector.collectedStates.map { resultModelConverter.convert(it, method) }
     }
 
     private fun getInitialState(method: Method<*>): SampleState =
