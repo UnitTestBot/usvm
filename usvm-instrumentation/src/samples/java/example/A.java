@@ -8,6 +8,7 @@ import java.util.List;
 public class A {
 
 
+    public boolean isMocked0 = false;
     public A() {
     }
 
@@ -41,6 +42,40 @@ public class A {
         e.a = 7778;
         EnumClass.c++;
         return e.lol();
+    }
+
+
+    int mockNumberGenerated0 = 0;
+
+    public int mock(MockClass mc1) {
+        if (mc1.stringField.equals("a") && mc1.getStr().equals("a")) {
+            return mc1.intField + mc1.getI();
+        } else {
+            return -1;
+        }
+    }
+
+    public int mockInterface(MockInterface mc) {
+        if (mc.strMock().equals("a")) {
+            return mc.intMock() + mc.intMockDefault();
+        }
+        return -1;
+    }
+
+    public int mockAbstractClass(MockAbstractClass mc) {
+        if (mc.stringField.equals("a") && mc.getStr().equals("a")) {
+            return mc.intField + mc.getI();
+        } else {
+            return -1;
+        }
+    }
+
+
+    public int mockExample1() {
+        if (MockCollector.isMocked(214124124, this)) {
+            return MockCollector.getIntMockValue(214124124, this);
+        }
+        return -777;
     }
 
     public int isA(int b) {
@@ -89,4 +124,8 @@ public class A {
         return l;
     }
 
+    @Override
+    public String toString() {
+        return super.toString();
+    }
 }
