@@ -36,6 +36,7 @@ class UTestExpressionExecutorTest {
                 URLClassPathLoader(listOf(File(testJarPath))),
                 this::class.java.classLoader,
                 "",
+                "",
                 jcClasspath
             )
             return UTestExpressionExecutor(classLoader, mutableSetOf())

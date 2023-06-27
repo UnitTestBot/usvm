@@ -6,9 +6,14 @@ import org.jacodb.api.JcClassOrInterface
 import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcField
 import org.jacodb.api.ext.findClass
+import org.objectweb.asm.tree.ClassNode
 import org.usvm.instrumentation.testcase.descriptor.StaticDescriptorsBuilder
 import org.usvm.instrumentation.util.URLClassPathLoader
+import org.usvm.instrumentation.util.toByteArray
 import setFieldValue
+import java.io.File
+import java.lang.instrument.ClassDefinition
+import java.lang.instrument.Instrumentation
 import java.security.CodeSource
 import java.security.SecureClassLoader
 
@@ -19,8 +24,15 @@ class WorkerClassLoader(
     private val urlClassPath: URLClassPathLoader,
     private val traceCollectorClassLoader: ClassLoader,
     private val traceCollectorClassName: String,
+    private val mockCollectorClassName: String,
     val jcClasspath: JcClasspath
 ) : SecureClassLoader(null) {
+
+    private lateinit var instrumentation: Instrumentation
+
+    fun regInstrumentation(instrumentation: Instrumentation) {
+        this.instrumentation = instrumentation
+    }
 
     //Loaded classes cache
     private val foundClasses = LinkedHashMap<String, Pair<Class<*>, JcClassOrInterface>>()
@@ -55,13 +67,25 @@ class WorkerClassLoader(
         }
     }
 
+    fun redefineClass(jClass: Class<*>, asmBody: ClassNode) {
+        val classDefinition = ClassDefinition(jClass, asmBody.toByteArray(this))
+        instrumentation.redefineClasses(classDefinition)
+    }
+
     override fun loadClass(name: String): Class<*> {
         if (name == traceCollectorClassName) return traceCollectorClassLoader.loadClass(name)
+        if (name == mockCollectorClassName) return traceCollectorClassLoader.loadClass(name)
         return super.loadClass(name)
     }
 
-    override fun findClass(name: String): Class<*> =
-        foundClasses.getOrPut(name) {
+    fun defineClass(name: String, classNode: ClassNode): Class<*>? {
+        val classByteArray = classNode.toByteArray(this)
+        File("/tmp/mock.class").writeBytes(classByteArray)
+        return defineClass(name, classByteArray, 0, classByteArray.size)
+    }
+
+    override fun findClass(name: String): Class<*> {
+        return foundClasses.getOrPut(name) {
             val res = getWorkerResource(name)
             val bb = res.getBytes()
             val cs = CodeSource(res.getCodeSourceURL(), res.getCodeSigners())
@@ -70,6 +94,7 @@ class WorkerClassLoader(
             staticDescriptorsBuilder?.buildInitialDescriptorForClass(jcClass)
             foundClass to jcClass
         }.first
+    }
 
     private fun getWorkerResource(name: String): URLClassPathLoader.Resource = cachedClasses.getOrPut(name) {
         val path = name.replace('.', '/') + ".class"
