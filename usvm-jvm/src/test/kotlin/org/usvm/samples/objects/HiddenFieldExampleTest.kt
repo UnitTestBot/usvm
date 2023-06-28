@@ -21,7 +21,7 @@ internal class HiddenFieldExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0, 1, 3]")
+    @Disabled("Expected exactly 5 executions, but 6 found. Same exception discovered multiple times")
     fun testCheckSuccField() {
         checkDiscoveredProperties(
             HiddenFieldExample::checkSuccField,

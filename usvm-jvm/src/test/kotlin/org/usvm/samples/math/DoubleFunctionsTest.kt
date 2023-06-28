@@ -32,7 +32,7 @@ internal class DoubleFunctionsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1, 4]")
+    @Disabled("Expected exactly 5 executions, but 8 found. Same exception discovered multiple times")
     fun testCircleSquare() {
         checkDiscoveredPropertiesWithExceptions(
             DoubleFunctions::circleSquare,

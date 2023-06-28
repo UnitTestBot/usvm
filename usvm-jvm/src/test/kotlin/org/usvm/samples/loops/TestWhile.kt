@@ -1,6 +1,5 @@
 package org.usvm.samples.loops
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.RepeatedTest
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
@@ -43,7 +42,7 @@ class TestWhile : JavaMethodTestRunner() {
     }
 
     @RepeatedTest(5)
-    @Disabled("Some properties were not discovered at positions (from 0): [0]")
+//    @Disabled("Some properties were not discovered at positions (from 0): [0]")
     fun `Test while1000`() {
         checkDiscoveredProperties(
             While::while1000,

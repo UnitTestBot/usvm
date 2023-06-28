@@ -30,6 +30,19 @@ class TargetsCoveredStoppingStrategy<Method, Statement>(
                     queue += successor
                 }
             }
+
+            // Add all statements of called methods
+            // todo: maybe filter out std-lib methods?
+            val callees = graph.callees(statement)
+            for (callee in callees) {
+                val calledMethodEntry = graph.entryPoint(callee)
+                for (callEntry in calledMethodEntry) {
+                    if (callEntry !in statements) {
+                        statements += callEntry
+                        queue += callEntry
+                    }
+                }
+            }
         }
 
         return statements

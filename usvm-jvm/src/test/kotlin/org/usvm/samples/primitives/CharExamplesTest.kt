@@ -44,7 +44,7 @@ internal class CharExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [2]")
+    @Disabled("Expected exactly 3 executions, but 4 found. Same exception discovered multiple times")
     fun testUpdateObject() {
         checkDiscoveredPropertiesWithExceptions(
             CharExamples::updateObject,

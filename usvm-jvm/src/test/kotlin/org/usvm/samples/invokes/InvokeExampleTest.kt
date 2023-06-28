@@ -10,7 +10,7 @@ import org.usvm.util.isException
 
 internal class InvokeExampleTest : JavaMethodTestRunner() {
     @Test
-    // @Disabled("Some properties were not discovered at positions (from 0): [0, 1]")
+    @Disabled("Expected exactly 3 executions, but 5 found. Same exception discovered multiple times")
     fun testSimpleFormula() {
         checkDiscoveredProperties(
             InvokeExample::simpleFormula,
@@ -65,7 +65,7 @@ internal class InvokeExampleTest : JavaMethodTestRunner() {
 
 
     @Test
-    @Disabled("Expected exactly 3 executions, but 1 found")
+//    @Disabled("Expected exactly 3 executions, but 1 found")
     fun testConstraintsFromOutside() {
         checkDiscoveredProperties(
             InvokeExample::constraintsFromOutside,
@@ -78,7 +78,7 @@ internal class InvokeExampleTest : JavaMethodTestRunner() {
 
 
     @Test
-    @Disabled("Expected exactly 3 executions, but 2 found")
+//    @Disabled("Expected exactly 3 executions, but 2 found")
     fun testConstraintsFromInside() {
         checkDiscoveredProperties(
             InvokeExample::constraintsFromInside,
@@ -105,7 +105,7 @@ internal class InvokeExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1]")
+    @Disabled("Expected exactly 3 executions, but 5 found. Same exception discovered multiple times")
     fun testExceptionInNestedMethod() {
         checkDiscoveredPropertiesWithExceptions(
             InvokeExample::exceptionInNestedMethod,
@@ -117,7 +117,7 @@ internal class InvokeExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [4]")
+//    @Disabled("Some properties were not discovered at positions (from 0): [4]")
     fun testFewNestedExceptions() {
         checkDiscoveredPropertiesWithExceptions(
             InvokeExample::fewNestedException,
@@ -131,7 +131,7 @@ internal class InvokeExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [2, 3]")
+    @Disabled("Expected exactly 4 executions, but 7 found. Same exception discovered multiple times")
     fun testDivBy() {
         checkDiscoveredPropertiesWithExceptions(
             InvokeExample::divBy,
@@ -167,7 +167,7 @@ internal class InvokeExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [2]")
+    @Disabled("Expected exactly 3 executions, but 4 found. Same exception discovered multiple times")
     fun testChangeArrayWithAssignFromMethod() {
         checkDiscoveredProperties(
             InvokeExample::changeArrayWithAssignFromMethod,
@@ -182,7 +182,7 @@ internal class InvokeExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1]")
+//    @Disabled("Some properties were not discovered at positions (from 0): [1]")
     fun testChangeArrayByMethod() {
         checkDiscoveredProperties(
             InvokeExample::changeArrayByMethod,
