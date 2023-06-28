@@ -1,21 +1,13 @@
 package org.usvm.instrumentation.org.usvm.instrumentation.classloader
 
-import allFields
-import getFieldByName
-import getFieldValue
 import org.jacodb.api.*
 import org.jacodb.api.cfg.*
 import org.jacodb.api.ext.*
-import org.jacodb.impl.bytecode.JcClassOrInterfaceImpl
-import org.jacodb.impl.bytecode.JcMethodImpl
 import org.jacodb.impl.cfg.JcInstListImpl
 import org.jacodb.impl.cfg.JcRawBool
+import org.jacodb.impl.cfg.JcRawString
 import org.jacodb.impl.cfg.MethodNodeBuilder
 import org.jacodb.impl.cfg.util.isPrimitive
-import org.jacodb.impl.fs.ClassSourceImpl
-import org.jacodb.impl.types.AnnotationInfo
-import org.jacodb.impl.types.MethodInfo
-import org.jacodb.impl.types.ParameterInfo
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.MethodNode
@@ -24,39 +16,38 @@ import org.usvm.instrumentation.instrumentation.JcInstructionTracer
 import org.usvm.instrumentation.org.usvm.instrumentation.instrumentation.TraceHelper
 import org.usvm.instrumentation.trace.collector.MockCollector
 import org.usvm.instrumentation.util.*
-import setFieldValue
-import kotlin.reflect.full.declaredMemberProperties
-import kotlin.reflect.jvm.javaField
 
 class MockHelper(val jcClasspath: JcClasspath, val classLoader: WorkerClassLoader) {
 
-    private val mockedClasses = hashMapOf<JcClassOrInterface, Int>()
-    private val encodedMethods = hashMapOf<JcMethod, Long>()
-    private val mockCache = hashMapOf<JcMethod, MethodNode>()
+    //Using for not remock methods of usual classes
+    val mockCache = hashMapOf<JcMethod, Long>()
+
     private val traceHelper = TraceHelper(jcClasspath, MockCollector::class.java)
 
-    private fun createGetMockValueMethodName(returnTypeName: TypeName) =
-        when (returnTypeName) {
-            jcClasspath.boolean.getTypename() -> "getBooleanMockValue"
-            jcClasspath.byte.getTypename() -> "getByteMockValue"
-            jcClasspath.short.getTypename() -> "getShortMockValue"
-            jcClasspath.int.getTypename() -> "getIntMockValue"
-            jcClasspath.long.getTypename() -> "getLongMockValue"
-            jcClasspath.float.getTypename() -> "getFloatMockValue"
-            jcClasspath.double.getTypename() -> "getDoubleMockValue"
-            jcClasspath.char.getTypename() -> "getCharMockValue"
-            else -> "getMockValue"
-        }
+    private fun createGetMockValueMethodName(returnTypeName: TypeName) = when (returnTypeName) {
+        jcClasspath.boolean.getTypename() -> "getBooleanMockValue"
+        jcClasspath.byte.getTypename() -> "getByteMockValue"
+        jcClasspath.short.getTypename() -> "getShortMockValue"
+        jcClasspath.int.getTypename() -> "getIntMockValue"
+        jcClasspath.long.getTypename() -> "getLongMockValue"
+        jcClasspath.float.getTypename() -> "getFloatMockValue"
+        jcClasspath.double.getTypename() -> "getDoubleMockValue"
+        jcClasspath.char.getTypename() -> "getCharMockValue"
+        else -> "getMockValue"
+    }
 
-
-    private fun addMockToMethod(jcClass: JcClassOrInterface, jcMethod: JcMethod, mockedMethodId: Long): MethodNode {
-        val instList = jcMethod.rawInstList.toMutableList()
-        val firstInst = instList.first()
+    private fun addMockInvocationInJcdbInstructions(
+        jcClass: JcClassOrInterface,
+        jcMethod: JcMethod,
+        mockedMethodId: Long
+    ): List<JcRawInst> {
+        val newInstList = mutableListOf<JcRawInst>()
         val mockBeginLabel = JcRawLabelInst(jcMethod, "#mockBeginGenerated0")
         val mockTypeName = jcMethod.returnType
-        instList.insertBefore(firstInst, mockBeginLabel)
-        val mockEndLabel =
-            jcMethod.rawInstList.firstOrNull { it !is JcRawLineNumberInst }?.let { firstInstruction ->
+        newInstList.add(mockBeginLabel)
+        val mockEndLabel = jcMethod.rawInstList
+            .firstOrNull { it !is JcRawLineNumberInst }
+            ?.let { firstInstruction ->
                 if (firstInstruction is JcRawLabelInst) {
                     firstInstruction
                 } else {
@@ -72,141 +63,194 @@ class MockHelper(val jcClasspath: JcClasspath, val classLoader: WorkerClassLoade
         val returnMockValueLabel = JcRawLabelInst(jcMethod, "#returnMockValueGenerated0")
         val ifInst = JcRawIfInst(jcMethod, ifCondition, mockEndLabel.ref, returnMockValueLabel.ref)
 
-        val mockRetValueLocalVar =
-            if (mockTypeName.isPrimitive) {
-                JcRawLocalVar("%mockReturnValueGenerated0", mockTypeName)
-            } else {
-                JcRawLocalVar("%mockReturnValueGenerated0", jcClasspath.objectType.getTypename())
-            }
+        val mockRetValueLocalVar = if (mockTypeName.isPrimitive) {
+            JcRawLocalVar("%mockReturnValueGenerated0", mockTypeName)
+        } else {
+            JcRawLocalVar("%mockReturnValueGenerated0", jcClasspath.objectType.getTypename())
+        }
         val mockRetValueVirtualCall = traceHelper.createMockCollectorCall(
-            createGetMockValueMethodName(mockTypeName),
-            mockedMethodId,
-            JcRawThis(jcClass.typename)
+            createGetMockValueMethodName(mockTypeName), mockedMethodId, JcRawThis(jcClass.typename)
         )
         val mockRetValueAssignInst = JcRawAssignInst(jcMethod, mockRetValueLocalVar, mockRetValueVirtualCall)
         if (mockTypeName.isPrimitive) {
             val returnMock = JcRawReturnInst(jcMethod, mockRetValueLocalVar)
-            instList.insertBefore(
-                firstInst,
-                isMockedAssignInst,
-                ifInst,
-                returnMockValueLabel,
-                mockRetValueAssignInst,
-                returnMock
+            newInstList.addAll(
+                listOf(isMockedAssignInst, ifInst, returnMockValueLabel, mockRetValueAssignInst, returnMock)
             )
         } else {
             val localVar = JcRawLocalVar("%mockReturnValueGenerated1", mockTypeName)
             val assignAndCastInst =
                 JcRawAssignInst(jcMethod, localVar, JcRawCastExpr(mockTypeName, mockRetValueLocalVar))
             val returnMock = JcRawReturnInst(jcMethod, localVar)
-            instList.insertBefore(
-                firstInst,
-                isMockedAssignInst,
-                ifInst,
-                returnMockValueLabel,
-                mockRetValueAssignInst,
-                assignAndCastInst,
-                returnMock
+            newInstList.addAll(
+                listOf(
+                    isMockedAssignInst,
+                    ifInst,
+                    returnMockValueLabel,
+                    mockRetValueAssignInst,
+                    assignAndCastInst,
+                    returnMock
+                )
             )
         }
-        if (mockEndLabel.name == "mockEndGenerated0") instList.insertBefore(firstInst, mockEndLabel)
-        return MethodNodeBuilder(jcMethod, instList).build()
+        if (mockEndLabel.name == "#mockEndGenerated0") newInstList.add(mockEndLabel)
+        return newInstList
     }
 
-    private fun replaceMethodBodyToMock(
-        jcClass: JcClassOrInterface,
-        jcMethod: JcMethod,
-        mockedMethodId: Long
-    ): MethodNode {
-        val insnList = jcMethod.rawInstList.instructions.toMutableList()
-        val mockTypeName = jcMethod.returnType
-        val localVar1 =
-            if (mockTypeName.isPrimitive) {
-                JcRawLocalVar("%mockReturnValueGenerated0", mockTypeName)
-            } else {
-                JcRawLocalVar("%mockReturnValueGenerated0", jcClasspath.objectType.getTypename())
-            }
-        val rtv = traceHelper.createMockCollectorCall(
-            createGetMockValueMethodName(mockTypeName),
-            mockedMethodId,
-            JcRawThis(jcClass.typename)
+    private fun throwExceptionInJcdbInstructions(jcMethod: JcMethod): List<JcRawInst> {
+        val jcExceptionClass = jcClasspath.findClass<java.lang.IllegalStateException>()
+        val localVar = JcRawLocalVar("%notMockedException0", jcExceptionClass.typename)
+        val newExceptionInst = JcRawNewExpr(jcExceptionClass.typename)
+        val assignInst = JcRawAssignInst(jcMethod, localVar, newExceptionInst)
+        val specialCall = JcRawSpecialCallExpr(
+            jcExceptionClass.typename,
+            "<init>",
+            listOf(jcClasspath.stringType().getTypename()),
+            jcClasspath.void.getTypename(),
+            localVar,
+            listOf(JcRawString("Method should be mocked!!"))
         )
-        val assignInst = JcRawAssignInst(jcMethod, localVar1, rtv)
-        if (mockTypeName.isPrimitive) {
-            val returnInst = JcRawReturnInst(jcMethod, localVar1)
-            insnList.addAll(0, listOf(assignInst, returnInst))
-        } else {
-            val localVar2 = JcRawLocalVar("%mockReturnValueGenerated1", mockTypeName)
-            val assignAndCastInst = JcRawAssignInst(jcMethod, localVar2, JcRawCastExpr(mockTypeName, localVar1))
-            val returnInst = JcRawReturnInst(jcMethod, localVar2)
-            insnList.addAll(0, listOf(assignInst, assignAndCastInst, returnInst))
-        }
-        jcMethod.rawInstList.forEach { insnList.remove(it) }
-        return MethodNodeBuilder(jcMethod, JcInstListImpl(insnList))
-            .build()
-            .also { it.access = it.access and Opcodes.ACC_ABSTRACT.inv() }
+        val callInst = JcRawCallInst(jcMethod, specialCall)
+        val throwInst = JcRawThrowInst(jcMethod, localVar)
+        return listOf(assignInst, callInst, throwInst)
+    }
+
+    private fun addMockToAbstractMethod(
+        jcMethod: JcMethod,
+        mockedMethodId: Long,
+        classRebuilder: MockClassRebuilder
+    ): MethodNode {
+        val newJcMethod = classRebuilder.createNewVirtualMethod(jcMethod, true)
+        val mockInstructions =
+            addMockInvocationInJcdbInstructions(classRebuilder.mockedJcVirtualClass, newJcMethod, mockedMethodId)
+        val throwExceptionInstructions = throwExceptionInJcdbInstructions(newJcMethod)
+        return MethodNodeBuilder(newJcMethod, JcInstListImpl(mockInstructions + throwExceptionInstructions)).build()
+    }
+
+    private fun addMockToMethod(jcClass: JcClassOrInterface, jcMethod: JcMethod, mockedMethodId: Long): MethodNode {
+        val mockInstructions = addMockInvocationInJcdbInstructions(jcClass, jcMethod, mockedMethodId)
+        val oldInstructions = jcMethod.rawInstList.toMutableList()
+        return MethodNodeBuilder(jcMethod, JcInstListImpl(mockInstructions + oldInstructions)).build()
     }
 
     private fun addMockInfoAndRedefineClass(
-        jcClass: JcClassOrInterface,
-        methods: List<JcMethod>
-    ): Pair<Class<*>, Map<JcMethod, Long>> {
+        jcClass: JcClassOrInterface, methods: List<JcMethod>
+    ): Class<*> {
         val classNode = jcClass.asmNode()
         val asmMethods = classNode.methods
         for (jcMethod in methods) {
-            if (jcMethod in mockCache) continue
-            val encodedMethodId = encodeMethod(jcClass, jcMethod)
+            if (mockCache.contains(jcMethod)) continue
             val asmMethod = asmMethods.find { jcMethod.asmNode().isSameSignature(it) } ?: continue
+            val encodedMethodId = encodeMethod(jcClass, jcMethod)
             val mockedMethod = addMockToMethod(jcClass, jcMethod, encodedMethodId)
             asmMethods.replace(asmMethod, mockedMethod)
         }
         val jClass = jcClass.toJavaClass(classLoader)
         classLoader.redefineClass(jClass, classNode)
-        val redefinedClass = classLoader.loadClass(jcClass.name)
-        return redefinedClass to encodedMethods
+        return classLoader.loadClass(jcClass.name)
     }
 
+
+    private fun processMethodsWithDefaultImplementation(jcMethods: List<JcMethod>) {
+        val filteredMethods = jcMethods.filter { it !in mockCache && !it.isAbstract }
+        val groupedByClasses = filteredMethods.groupBy { it.enclosingClass }
+        for ((jcClass, methodsToModify) in groupedByClasses) {
+            val jcClassByteCode = jcClass.asmNode()
+            val jClass = jcClass.toJavaClass(classLoader)
+            val asmMethods = jcClassByteCode.methods
+            for (jcMethod in methodsToModify) {
+                val encodedMethodId = encodeMethod(jcClass, jcMethod)
+                val mockedMethod = addMockToMethod(jcClass, jcMethod, encodedMethodId)
+                val asmMethod = asmMethods.find { jcMethod.asmNode().isSameSignature(it) } ?: continue
+                asmMethods.replace(asmMethod, mockedMethod)
+            }
+            classLoader.redefineClass(jClass, jcClassByteCode)
+        }
+    }
+
+    //TODO Decide what to do with partially mocked classes
     private fun addMockInfoAndDefineNewClass(
-        jcClass: JcClassOrInterface,
-        methods: List<JcMethod>
-    ): Pair<Class<*>, Map<JcMethod, Long>> {
-        println("jcClass meth = ${jcClass.declaredMethods.map { it.name }}")
+        jcClass: JcClassOrInterface, methods: List<JcMethod>
+    ): Class<*> {
         val classNode = jcClass.asmNode()
+        val mockedClassJVMName = "${classNode.name}Mocked0"
+        val mockedClassName = mockedClassJVMName.replace('/', '.')
+        val mockedClass =
+            try {
+                Class.forName(mockedClassName, false, classLoader).also { println("OK") }
+            } catch (e: Throwable) {
+                null
+            }
+
+        if (mockedClass != null) {
+            processMethodsWithDefaultImplementation(methods)
+            return mockedClass
+        }
+
         val mockedClassNode = ClassNode()
         classNode.accept(mockedClassNode)
+        mockedClassNode.fields.removeAll { true }
+        val asmMethods = mockedClassNode.methods
+
+        mockedClassNode.name = mockedClassJVMName
         mockedClassNode.access = mockedClassNode.access and Opcodes.ACC_INTERFACE.inv() and Opcodes.ACC_ABSTRACT.inv()
         if (jcClass.isInterface) {
             mockedClassNode.interfaces.add(classNode.name)
         } else {
             mockedClassNode.superName = classNode.name
         }
-        val asmMethods = mockedClassNode.methods
-        val mockedObjectId = mockedClasses.getOrPut(jcClass) { 0 }
-        mockedClasses[jcClass] = mockedObjectId + 1
-        mockedClassNode.name = "${classNode.name}Mocked$mockedObjectId"
-        for (jcMethod in methods) {
-            val mockedMethod = mockCache.getOrPut(jcMethod) {
-                val encodedMethodId = encodeMethod(jcClass, jcMethod)
-                replaceMethodBodyToMock(jcClass, jcMethod, encodedMethodId)
-            }
+
+        val classRebuilder = MockClassRebuilder(jcClass, mockedClassName)
+
+
+        val abstractMethods =
+            (jcClass.declaredMethods + jcClass.allSuperHierarchy.flatMap { it.declaredMethods })
+                .filter { it.isAbstract }
+                .filterDuplicatesBy { it.jvmSignature }
+        for (jcMethod in abstractMethods) {
+            val encodedMethodId = encodeMethod(jcClass, jcMethod)
+            val mockedMethod = addMockToAbstractMethod(jcMethod, encodedMethodId, classRebuilder)
             val asmMethod = asmMethods.find { jcMethod.asmNode().isSameSignature(it) } ?: continue
             asmMethods.replace(asmMethod, mockedMethod)
         }
+
+        val defaultMethods = methods.filter { !it.isAbstract }
+        for (jcMethod in defaultMethods) {
+            val asmMethod = asmMethods.find { jcMethod.asmNode().isSameSignature(it) } ?: continue
+            asmMethods.remove(asmMethod)
+        }
+
+
+        //Also we need to rebuild constructors
+        for (jcConstructor in jcClass.constructors) {
+            val newConstructor = rebuildConstructorForAbstractClass(jcConstructor, classRebuilder)
+            val oldConstructor =
+                asmMethods.find { jcConstructor.asmNode().isSameSignature(it) } ?: error("cant find constructor in ASM")
+            asmMethods.replace(oldConstructor, newConstructor)
+        }
+
         //Load mockedClass
-        val mockedClassJvmName = mockedClassNode.name.replace('/', '.')
-        val newClass = classLoader.defineClass(mockedClassJvmName, mockedClassNode) ?: error("Mocking error")
-        return newClass to encodedMethods
+        val mockedJClass = classLoader.defineClass(mockedClassName, mockedClassNode) ?: error("Mocking error")
+
+        //Handle methods with default implementation
+        processMethodsWithDefaultImplementation(methods)
+
+        return mockedJClass
     }
 
+    private fun rebuildConstructorForAbstractClass(
+        jcConstructor: JcMethod, methodRebuilder: MockClassRebuilder
+    ): MethodNode {
+        val (newMethod, instList) = methodRebuilder.rebuildInstructions(jcConstructor, true)
+        return MethodNodeBuilder(newMethod, instList).build()
+    }
 
     fun addMockInfoInBytecode(
-        jcClass: JcClassOrInterface,
-        methods: List<JcMethod>
-    ): Pair<Class<*>, Map<JcMethod, Long>> =
-        when {
-            jcClass.isInterface || jcClass.isAbstract -> addMockInfoAndDefineNewClass(jcClass, methods)
-            else -> addMockInfoAndRedefineClass(jcClass, methods)
-        }
+        jcClass: JcClassOrInterface, methods: List<JcMethod>
+    ): Class<*> = when {
+        jcClass.isInterface || jcClass.isAbstract -> addMockInfoAndDefineNewClass(jcClass, methods)
+        else -> addMockInfoAndRedefineClass(jcClass, methods)
+    }
 
 
     /**
@@ -214,7 +258,7 @@ class MockHelper(val jcClasspath: JcClasspath, val classLoader: WorkerClassLoade
      *       |    class id     |      methodId     |
      */
     private fun encodeMethod(jcClass: JcClassOrInterface, jcMethod: JcMethod) =
-        encodedMethods.getOrPut(jcMethod) {
+        mockCache.getOrPut(jcMethod) {
             val encodedClassId = JcInstructionTracer.encodeClass(jcClass).id
             val encodedMethodId = JcInstructionTracer.encodeMethod(jcClass, jcMethod).id
             (encodedClassId shl Byte.SIZE_BITS * 4) or encodedMethodId
