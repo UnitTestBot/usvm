@@ -8,6 +8,7 @@ import org.usvm.model.UModelBase
 import org.usvm.solver.USatResult
 import org.usvm.solver.UUnknownResult
 import org.usvm.solver.UUnsatResult
+import org.usvm.util.TypesafeMap
 
 abstract class UState<Type, Field, Method, Statement>(
     // TODO: add interpreter-specific information
@@ -38,6 +39,9 @@ abstract class UState<Type, Field, Method, Statement>(
     // TODO or last? Do we add a current stmt into the path immediately?
     val currentStatement: Statement?
         get() = path.lastOrNull()
+
+    // TODO: clone
+    val properties = TypesafeMap()
 }
 
 class ForkResult<T>(
