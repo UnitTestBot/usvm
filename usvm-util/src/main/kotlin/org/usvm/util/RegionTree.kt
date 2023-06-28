@@ -32,6 +32,8 @@ class RegionTree<Reg, Value>(
      *
      * **NB**: it doesn't filter out all the values satisfying [valueFilter], only those, that were touched during
      * recursive split.
+     *
+     * @see localize
      */
     private fun splitRecursively(
         region: Reg,
@@ -127,7 +129,18 @@ class RegionTree<Reg, Value>(
      *   Suitable for deduplication.
      *
      * **NB**: it doesn't filter out all the values satisfying [valueFilter], only those, that were touched during
-     * recursive split.
+     * recursive split. Consider this example:
+     * ```
+     * r := some region
+     * tree := {r -> 1}
+     *             {r -> 2}
+     *                 {r -> 3}
+     * tree.localize(r) { it % 2 == 1) =
+     *     // first will be filtered out
+     *         {r -> 2}
+     *             {r -> 3} // this one won't be filtered out, though it satisfies `valueFilter`
+     *
+     * ```
      */
     fun localize(region: Reg, valueFilter: (Value) -> Boolean = { false }): RegionTree<Reg, Value> =
         splitRecursively(region, valueFilter).completelyCoveredRegionTree
@@ -143,6 +156,8 @@ class RegionTree<Reg, Value>(
      *
      * **NB**: it doesn't filter out all the values satisfying [valueFilter], only those, that were touched during
      * recursive split.
+     *
+     * @see localize
      */
     fun write(region: Reg, value: Value, valueFilter: (Value) -> Boolean = { false }): RegionTree<Reg, Value> {
         val (included, disjoint) = splitRecursively(region, valueFilter)
