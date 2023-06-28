@@ -18,7 +18,6 @@ fun <T : Any> withTracing(
     }
     val event = context.curState.path[context.instructionCounter - 1]
     if (event.parameters != newEventParameters) {
-        // path diversion
         println("Path diversion!")
         println(event.parameters)
         println(newEventParameters)
