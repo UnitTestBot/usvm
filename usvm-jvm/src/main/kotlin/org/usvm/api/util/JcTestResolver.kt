@@ -251,7 +251,7 @@ class JcTestResolver(
                 }
             }
 
-            return classLoader.loadClass(type.typeName)
+            return classLoader.loadClass(type.jcClass.name)
         }
 
         /**
