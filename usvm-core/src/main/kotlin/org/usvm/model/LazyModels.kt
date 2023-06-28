@@ -1,6 +1,5 @@
 package org.usvm.model
 
-import io.ksmt.expr.KExpr
 import io.ksmt.solver.KModel
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
@@ -26,22 +25,9 @@ import org.usvm.memory.URegionId
 import org.usvm.memory.URegistersStackEvaluator
 import org.usvm.memory.USymbolicArrayIndex
 import org.usvm.memory.USymbolicHeap
+import org.usvm.solver.UExprTranslator
 import org.usvm.uctx
 
-/**
- * Since expressions from [this] might have the [UAddressSort] and therefore
- * they could be uninterpreted constants, we have to replace them with
- * corresponding concrete addresses from the [addressesMapping].
- */
-private fun <K, T : USort> Map<K, UExpr<out USort>>.evalAndReplace(
-    key: K,
-    model: KModel,
-    addressesMapping: AddressesMapping,
-    sort: T
-): UExpr<T> {
-    val value = get(key)?.asExpr(sort) ?: sort.sampleValue()
-    return model.eval(value, isComplete = true).mapAddress(addressesMapping)
-}
 
 /**
  * A lazy model for registers. Firstly, searches for translated symbol, then evaluates it in [model].
@@ -52,14 +38,18 @@ private fun <K, T : USort> Map<K, UExpr<out USort>>.evalAndReplace(
 class ULazyRegistersStackModel(
     private val model: KModel,
     private val addressesMapping: AddressesMapping,
-    registerIdxToTranslated: Map<Int, UExpr<out USort>>,
+    private val translator: UExprTranslator<*, *>,
 ) : URegistersStackEvaluator {
-    // TODO: temporary solution, it should be solved in a different way
-    private val registerIdxToTranslated = registerIdxToTranslated.toMap()
-    override fun <Sort : USort> readRegister(
+    private val uctx = translator.ctx
+
+    override fun <Sort : USort> eval(
         registerIndex: Int,
         sort: Sort,
-    ): UExpr<Sort> = registerIdxToTranslated.evalAndReplace(key = registerIndex, model, addressesMapping, sort)
+    ): UExpr<Sort> {
+        val registerReading = uctx.mkRegisterReading(registerIndex, sort)
+        val translated = translator.translate(registerReading)
+        return model.eval(translated, isComplete = true).mapAddress(addressesMapping)
+    }
 }
 
 /**
@@ -68,22 +58,15 @@ class ULazyRegistersStackModel(
  * @param indexedMethodReturnValueToTranslated a translated cache.
  * @param model has to be detached.
  */
-class ULazyIndexedMockModel<Method>(
+class ULazyIndexedMockModel(
     private val model: KModel,
     private val addressesMapping: AddressesMapping,
-    indexedMethodReturnValueToTranslated: Map<Pair<*, Int>, UExpr<*>>,
+    private val translator: UExprTranslator<*, *>,
 ) : UMockEvaluator {
-    // TODO: temporary solution, it should be solved in a different way
-    private val indexedMethodReturnValueToTranslated = indexedMethodReturnValueToTranslated.toMap()
     override fun <Sort : USort> eval(symbol: UMockSymbol<Sort>): UExpr<Sort> {
         require(symbol is UIndexedMethodReturnValue<*, Sort>)
-
-        val sort = symbol.sort
-
-        @Suppress("UNCHECKED_CAST")
-        val key = symbol.method as Method to symbol.callIndex
-
-        return indexedMethodReturnValueToTranslated.evalAndReplace(key = key, model, addressesMapping, sort)
+        val translated = translator.translate(symbol)
+        return model.eval(translated, isComplete = true).mapAddress(addressesMapping)
     }
 }
 
@@ -104,15 +87,17 @@ class ULazyIndexedMockModel<Method>(
  */
 class ULazyHeapModel<Field, ArrayType>(
     private val model: KModel,
-    private val nullRef: UConcreteHeapRef,
     private val addressesMapping: AddressesMapping,
-    regionIdToInitialValue: Map<URegionId<*, *, *>, KExpr<*>>,
+    private val translator: UExprTranslator<Field, ArrayType>,
 ) : USymbolicHeap<Field, ArrayType> {
-    // TODO: temporary solution, it should be solved in a different way
-    private val regionIdToInitialValue = regionIdToInitialValue.toMap()
     private val resolvedInputFields = mutableMapOf<Field, UReadOnlyMemoryRegion<UHeapRef, out USort>>()
     private val resolvedInputArrays = mutableMapOf<ArrayType, UReadOnlyMemoryRegion<USymbolicArrayIndex, out USort>>()
     private val resolvedInputLengths = mutableMapOf<ArrayType, UReadOnlyMemoryRegion<UHeapRef, USizeSort>>()
+
+    private val nullRef = translator
+        .translate(translator.ctx.nullRef)
+        .mapAddress(addressesMapping) as UConcreteHeapRef
+
     override fun <Sort : USort> readField(ref: UHeapRef, field: Field, sort: Sort): UExpr<Sort> {
         // All the expressions in the model are interpreted, therefore, they must
         // have concrete addresses. Moreover, the model knows only about input values
@@ -120,17 +105,16 @@ class ULazyHeapModel<Field, ArrayType>(
         require(ref is UConcreteHeapRef && ref.address <= UAddressCounter.INITIAL_INPUT_ADDRESS)
 
         val resolvedRegion = resolvedInputFields[field]
-        val initialValue = regionIdToInitialValue[UInputFieldId(field, sort, null)]
+        val regionId = UInputFieldId(field, sort, null)
+        val initialValue = translator.translateInputFieldId(regionId)
 
         return when {
             resolvedRegion != null -> resolvedRegion.read(ref).asExpr(sort)
-            initialValue != null -> {
-                val region = UMemory1DArray<UAddressSort, Sort>(initialValue.cast(), model, addressesMapping)
+            else -> {
+                val region = UMemory1DArray(initialValue, model, addressesMapping)
                 resolvedInputFields[field] = region
                 region.read(ref)
             }
-
-            else -> sort.sampleValue().mapAddress(addressesMapping)
         }
     }
 
@@ -148,17 +132,16 @@ class ULazyHeapModel<Field, ArrayType>(
         val key = ref to index
 
         val resolvedRegion = resolvedInputArrays[arrayType]
-        val initialValue = regionIdToInitialValue[UInputArrayId(arrayType, sort, null)]
+        val regionId = UInputArrayId(arrayType, sort, null)
+        val initialValue = translator.translateInputArrayId(regionId)
 
         return when {
             resolvedRegion != null -> resolvedRegion.read(key).asExpr(sort)
-            initialValue != null -> {
-                val region = UMemory2DArray<UAddressSort, USizeSort, Sort>(initialValue.cast(), model, addressesMapping)
+            else -> {
+                val region = UMemory2DArray(initialValue, model, addressesMapping)
                 resolvedInputArrays[arrayType] = region
                 region.read(key)
             }
-
-            else -> sort.sampleValue().mapAddress(addressesMapping)
         }
     }
 
@@ -169,18 +152,16 @@ class ULazyHeapModel<Field, ArrayType>(
         require(ref is UConcreteHeapRef && ref.address <= UAddressCounter.INITIAL_INPUT_ADDRESS)
 
         val resolvedRegion = resolvedInputLengths[arrayType]
-        val sizeSort = ref.uctx.sizeSort
-        val initialValue = regionIdToInitialValue[UInputArrayLengthId(arrayType, sizeSort, null)]
+        val regionId = UInputArrayLengthId(arrayType, ref.uctx.sizeSort, null)
+        val initialValue = translator.translateInputArrayLengthId(regionId)
 
         return when {
             resolvedRegion != null -> resolvedRegion.read(ref)
-            initialValue != null -> {
-                val region = UMemory1DArray<UAddressSort, USizeSort>(initialValue.cast(), model, addressesMapping)
+            else -> {
+                val region = UMemory1DArray(initialValue.cast(), model, addressesMapping)
                 resolvedInputLengths[arrayType] = region
                 region.read(ref)
             }
-
-            else -> sizeSort.sampleValue()
         }
     }
 

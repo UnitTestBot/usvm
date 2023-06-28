@@ -7,16 +7,11 @@ import org.usvm.UAddressSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UExpr
-import org.usvm.solver.UExprTranslator
-import org.usvm.UHeapRef
-import org.usvm.USort
-import org.usvm.solver.UTrackingExprTranslator
 import org.usvm.constraints.UTypeModel
 import org.usvm.memory.UAddressCounter.Companion.INITIAL_INPUT_ADDRESS
 import org.usvm.memory.UAddressCounter.Companion.NULL_ADDRESS
 import org.usvm.memory.UMemoryBase
-import org.usvm.memory.URegionId
-import org.usvm.uctx
+import org.usvm.solver.UExprTranslator
 
 interface UModelDecoder<Memory, Model> {
     fun decode(model: KModel): Model
@@ -29,17 +24,11 @@ interface UModelDecoder<Memory, Model> {
 fun <Field, Type, Method> buildTranslatorAndLazyDecoder(
     ctx: UContext,
 ): Pair<UExprTranslator<Field, Type>, ULazyModelDecoder<Field, Type, Method>> {
-    val translator = UTrackingExprTranslator<Field, Type>(ctx)
+    val translator = UExprTranslator<Field, Type>(ctx)
 
-    val decoder = with(translator) {
-        ULazyModelDecoder<Field, Type, Method>(
-            registerIdxToTranslated,
-            indexedMethodReturnValueToTranslated,
-            translatedNullRef,
-            regionIdToTranslator.keys,
-            regionIdToInitialValue,
-        )
-    }
+    val decoder = ULazyModelDecoder<Field, Type, Method>(
+        translator
+    )
 
     return translator to decoder
 }
@@ -61,13 +50,11 @@ typealias AddressesMapping = Map<UExpr<UAddressSort>, UConcreteHeapRef>
  * concrete regions from a [KModel].
  */
 open class ULazyModelDecoder<Field, Type, Method>(
-    protected val registerIdxToTranslated: Map<Int, UExpr<out USort>>,
-    protected val indexedMethodReturnValueToTranslated: Map<Pair<*, Int>, UExpr<*>>,
-    protected val translatedNullRef: UHeapRef,
-    protected val translatedRegionIds: Set<URegionId<*, *, *>>,
-    protected val regionIdToInitialValue: Map<URegionId<*, *, *>, KExpr<*>>,
+    protected val translator: UExprTranslator<Field, Type>,
 ) : UModelDecoder<UMemoryBase<Field, Type, Method>, UModelBase<Field, Type>> {
-    private val ctx: UContext = translatedNullRef.uctx
+    private val ctx: UContext = translator.ctx
+
+    private val translatedNullRef = translator.translate(ctx.nullRef)
 
     /**
      * Build a mapping from instances of an uninterpreted [UAddressSort]
@@ -119,7 +106,7 @@ open class ULazyModelDecoder<Field, Type, Method>(
         ULazyRegistersStackModel(
             model,
             addressesMapping,
-            registerIdxToTranslated
+            translator
         )
 
     /**
@@ -130,18 +117,17 @@ open class ULazyModelDecoder<Field, Type, Method>(
         addressesMapping: AddressesMapping,
     ): ULazyHeapModel<Field, Type> = ULazyHeapModel(
         model,
-        addressesMapping.getValue(translatedNullRef),
         addressesMapping,
-        regionIdToInitialValue,
+        translator,
     )
 
     private fun decodeMocker(
         model: KModel,
         addressesMapping: AddressesMapping,
-    ): ULazyIndexedMockModel<Method> =
+    ): ULazyIndexedMockModel =
         ULazyIndexedMockModel(
             model,
             addressesMapping,
-            indexedMethodReturnValueToTranslated
+            translator
         )
 }
