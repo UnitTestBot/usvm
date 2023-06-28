@@ -25,6 +25,7 @@ import org.usvm.instrumentation.classloader.*
 import org.usvm.instrumentation.generated.models.*
 import org.usvm.instrumentation.instrumentation.JcInstructionTracer
 import org.usvm.instrumentation.instrumentation.JcInstructionTracer.StaticFieldAccessType
+import org.usvm.instrumentation.org.usvm.instrumentation.classloader.MockHelper
 import org.usvm.instrumentation.serializer.SerializationContext
 import org.usvm.instrumentation.serializer.UTestExpressionSerializer.Companion.registerUTestExpressionSerializer
 import org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.Companion.registerUTestValueDescriptorSerializer
@@ -54,6 +55,7 @@ class InstrumentedProcess private constructor() {
     private lateinit var staticDescriptorsBuilder: StaticDescriptorsBuilder
     private lateinit var initStateDescriptorBuilder: Value2DescriptorConverter
     private lateinit var userClassLoader: WorkerClassLoader
+    private lateinit var mockHelper: MockHelper
 
     private val traceCollector = JcInstructionTracer
 
@@ -111,6 +113,7 @@ class InstrumentedProcess private constructor() {
         initStateDescriptorBuilder = Value2DescriptorConverter(userClassLoader, null)
         staticDescriptorsBuilder = StaticDescriptorsBuilder(userClassLoader, initStateDescriptorBuilder)
         userClassLoader.setStaticDescriptorsBuilder(staticDescriptorsBuilder)
+        mockHelper = MockHelper(jcClasspath, userClassLoader)
     }
 
     private fun createWorkerClassLoader() =
@@ -230,9 +233,11 @@ class InstrumentedProcess private constructor() {
             else -> {}
         }
         traceCollector.reset()
+        MockCollector.mocks.clear()
+
         val accessedStatics = mutableSetOf<Pair<JcField, StaticFieldAccessType>>()
         val callMethodExpr = uTest.callMethodExpression
-        val executor = UTestExpressionExecutor(userClassLoader, accessedStatics)
+        val executor = UTestExpressionExecutor(userClassLoader, accessedStatics, mockHelper)
 
         executor.executeUTestExpressions(uTest.initStatements)
             ?.onFailure { return UTestExecutionInitFailedResult(it.message ?: "", traceCollector.getTrace().trace) }
@@ -243,7 +248,7 @@ class InstrumentedProcess private constructor() {
         val methodInvocationResult =
             executor.executeUTestExpression(callMethodExpr).onFailure {
                 return UTestExecutionExceptionResult(
-                    "$it", traceCollector.getTrace().trace
+                    "$it\n${it.stackTraceToString()}", traceCollector.getTrace().trace
                 )
             }.getOrNull()
 
