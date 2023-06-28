@@ -53,7 +53,11 @@ class RegionTree<Reg, Value>(
             // it is required for correct order of values returned by `iterator.next()` method
             val completelyCoveredRegionTree = if (!valueFilter(value)) {
                 val inside = persistentMapOf(region to entry)
-                RegionTree(inside)
+                if (entries.size == 1) {
+                    this
+                } else {
+                    RegionTree(inside)
+                }
             } else {
                 entry.second
             }
