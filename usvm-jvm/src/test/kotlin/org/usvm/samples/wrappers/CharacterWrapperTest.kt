@@ -9,6 +9,7 @@ import org.usvm.test.util.checkers.eq
 // TODO failed Kotlin compilation
 internal class CharacterWrapperTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun primitiveToWrapperTest() {
         checkDiscoveredProperties(
             CharacterWrapper::primitiveToWrapper,

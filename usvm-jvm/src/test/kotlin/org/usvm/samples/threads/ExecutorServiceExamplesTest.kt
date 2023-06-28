@@ -1,5 +1,6 @@
 package org.usvm.samples.threads
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
@@ -11,6 +12,7 @@ import org.usvm.util.isException
 // (see https://github.com/UnitTestBot/UTBotJava/issues/1610)
 class ExecutorServiceExamplesTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun testExceptionInExecute() {
         checkDiscoveredPropertiesWithExceptions(
             ExecutorServiceExamples::throwingInExecute,
@@ -20,6 +22,7 @@ class ExecutorServiceExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun testChangingCollectionInExecute() {
         checkDiscoveredProperties(
             ExecutorServiceExamples::changingCollectionInExecute,

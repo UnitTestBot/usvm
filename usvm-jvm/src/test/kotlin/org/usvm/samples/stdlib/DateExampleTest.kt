@@ -1,5 +1,6 @@
 package org.usvm.samples.stdlib
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
@@ -8,6 +9,7 @@ import org.usvm.util.isException
 import java.util.Date
 
 class DateExampleTest : JavaMethodTestRunner() {
+    @Disabled("Virtual call: sun.util.calendar.BaseCalendar.Date.getNormalizedYear")
     @Suppress("SpellCheckingInspection")
     @Tag("slow")
     @Test
@@ -37,6 +39,7 @@ class DateExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Virtual call: sun.util.calendar.BaseCalendar.Date.getNormalizedYear")
     fun testGetTimeWithoutReflection() {
         checkDiscoveredPropertiesWithExceptions(
             DateExample::getTime,

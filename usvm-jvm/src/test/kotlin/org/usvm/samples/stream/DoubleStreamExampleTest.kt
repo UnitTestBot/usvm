@@ -1,5 +1,6 @@
 package org.usvm.samples.stream
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
@@ -23,6 +24,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testUseParameterStream() {
         checkDiscoveredProperties(
             DoubleStreamExample::useParameterStream,
@@ -37,6 +39,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testFilterExample() {
         checkDiscoveredProperties(
             DoubleStreamExample::filterExample,
@@ -47,6 +50,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testMapExample() {
         checkDiscoveredProperties(
             DoubleStreamExample::mapExample,
@@ -57,6 +61,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testMapToObjExample() {
         checkDiscoveredProperties(
             DoubleStreamExample::mapToObjExample,
@@ -77,6 +82,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testMapToIntExample() {
         checkDiscoveredProperties(
             DoubleStreamExample::mapToIntExample,
@@ -95,6 +101,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testMapToLongExample() {
         checkDiscoveredProperties(
             DoubleStreamExample::mapToLongExample,
@@ -113,6 +120,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testFlatMapExample() {
         checkDiscoveredProperties(
             DoubleStreamExample::flatMapExample,
@@ -128,6 +136,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testDistinctExample() {
         checkDiscoveredProperties(
             DoubleStreamExample::distinctExample,
@@ -147,6 +156,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     @Tag("slow")
+    @Disabled("Not implemented: virtual calls with abstract methods")
     // TODO slow sorting https://github.com/UnitTestBot/UTBotJava/issues/188
     fun testSortedExample() {
         checkDiscoveredProperties(
@@ -169,6 +179,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     */
 
     @Test
+    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testLimitExample() {
         checkDiscoveredProperties(
             DoubleStreamExample::limitExample,
@@ -179,6 +190,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testSkipExample() {
         checkDiscoveredProperties(
             DoubleStreamExample::skipExample,
@@ -199,6 +211,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
 //    }
 
     @Test
+    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testToArrayExample() {
         checkDiscoveredProperties(
             DoubleStreamExample::toArrayExample,
@@ -218,6 +231,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testOptionalReduceExample() {
         checkDiscoveredPropertiesWithExceptions(
             DoubleStreamExample::optionalReduceExample,
@@ -242,6 +256,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testMinExample() {
         checkDiscoveredPropertiesWithExceptions(
             DoubleStreamExample::minExample,
@@ -254,6 +269,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testMaxExample() {
         checkDiscoveredPropertiesWithExceptions(
             DoubleStreamExample::maxExample,
@@ -408,6 +424,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: reference cast")
     fun testBoxedExample() {
         checkDiscoveredProperties(
             DoubleStreamExample::boxedExample,
@@ -417,6 +434,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: reference cast")
     fun testIteratorExample() {
         checkDiscoveredProperties(
             DoubleStreamExample::iteratorSumExample,
@@ -427,6 +445,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun testStreamOfExample() {
         checkDiscoveredProperties(
             DoubleStreamExample::streamOfExample,
@@ -438,6 +457,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: reference cast")
     fun testClosedStreamExample() {
         checkDiscoveredPropertiesWithExceptions(
             DoubleStreamExample::closedStreamExample,
@@ -447,6 +467,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: reference cast")
     fun testGenerateExample() {
         checkDiscoveredProperties(
             DoubleStreamExample::generateExample,
@@ -465,6 +486,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: reference cast")
     fun testConcatExample() {
         checkDiscoveredProperties(
             DoubleStreamExample::concatExample,

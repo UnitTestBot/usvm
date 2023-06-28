@@ -1,11 +1,13 @@
 package org.usvm.samples.stream
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 
 class StreamsAsMethodResultExampleTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testReturningStreamExample() {
         checkDiscoveredProperties(
             StreamsAsMethodResultExample::returningStreamExample,

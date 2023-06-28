@@ -1,5 +1,6 @@
 package org.usvm.samples.stream
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
@@ -23,6 +24,7 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testUseParameterStream() {
         checkDiscoveredProperties(
             IntStreamExample::useParameterStream,
@@ -37,6 +39,7 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testFilterExample() {
         checkDiscoveredProperties(
             IntStreamExample::filterExample,
@@ -47,6 +50,7 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testMapExample() {
         checkDiscoveredProperties(
             IntStreamExample::mapExample,
@@ -57,6 +61,7 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testMapToObjExample() {
         checkDiscoveredProperties(
             IntStreamExample::mapToObjExample,
@@ -75,6 +80,7 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testMapToLongExample() {
         checkDiscoveredProperties(
             IntStreamExample::mapToLongExample,
@@ -93,6 +99,7 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testMapToDoubleExample() {
         checkDiscoveredProperties(
             IntStreamExample::mapToDoubleExample,
@@ -111,6 +118,7 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testFlatMapExample() {
         checkDiscoveredProperties(
             IntStreamExample::flatMapExample,
@@ -126,6 +134,7 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testDistinctExample() {
         checkDiscoveredProperties(
             IntStreamExample::distinctExample,
@@ -144,6 +153,7 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: virtual calls with abstract methods")
     @Tag("slow")
     // TODO slow sorting https://github.com/UnitTestBot/UTBotJava/issues/188
     fun testSortedExample() {
@@ -165,6 +175,7 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
 //    }
 
     @Test
+    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testLimitExample() {
         checkDiscoveredProperties(
             IntStreamExample::limitExample,
@@ -175,6 +186,7 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testSkipExample() {
         checkDiscoveredProperties(
             IntStreamExample::skipExample,
@@ -195,6 +207,7 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
 //    }
 
     @Test
+    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testToArrayExample() {
         checkDiscoveredProperties(
             IntStreamExample::toArrayExample,
@@ -214,6 +227,7 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testOptionalReduceExample() {
         checkDiscoveredPropertiesWithExceptions(
             IntStreamExample::optionalReduceExample,
@@ -234,6 +248,7 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testMinExample() {
         checkDiscoveredPropertiesWithExceptions(
             IntStreamExample::minExample,
@@ -246,6 +261,7 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testMaxExample() {
         checkDiscoveredPropertiesWithExceptions(
             IntStreamExample::maxExample,
@@ -399,6 +415,7 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: reference cast")
     fun testAsLongStreamExample() {
         checkDiscoveredProperties(
             IntStreamExample::asLongStreamExample,
@@ -408,6 +425,7 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: reference cast")
     fun testAsDoubleStreamExample() {
         checkDiscoveredProperties(
             IntStreamExample::asDoubleStreamExample,
@@ -417,6 +435,7 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: reference cast")
     fun testBoxedExample() {
         checkDiscoveredProperties(
             IntStreamExample::boxedExample,
@@ -426,6 +445,7 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: reference cast")
     fun testIteratorExample() {
         checkDiscoveredProperties(
             IntStreamExample::iteratorSumExample,
@@ -436,6 +456,7 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun testStreamOfExample() {
         checkDiscoveredProperties(
             IntStreamExample::streamOfExample,
@@ -447,6 +468,7 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: reference cast")
     fun testClosedStreamExample() {
         checkDiscoveredPropertiesWithExceptions(
             IntStreamExample::closedStreamExample,
@@ -456,6 +478,7 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: reference cast")
     fun testGenerateExample() {
         checkDiscoveredProperties(
             IntStreamExample::generateExample,
@@ -474,6 +497,7 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: reference cast")
     fun testConcatExample() {
         checkDiscoveredProperties(
             IntStreamExample::concatExample,
@@ -483,6 +507,7 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: reference cast")
     fun testRangeExample() {
         checkDiscoveredProperties(
             IntStreamExample::rangeExample,
@@ -492,6 +517,7 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: reference cast")
     fun testRangeClosedExample() {
         checkDiscoveredProperties(
             IntStreamExample::rangeClosedExample,

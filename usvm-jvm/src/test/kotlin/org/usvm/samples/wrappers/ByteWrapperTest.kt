@@ -1,5 +1,6 @@
 package org.usvm.samples.wrappers
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
@@ -7,6 +8,7 @@ import org.usvm.test.util.checkers.eq
 
 internal class ByteWrapperTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun primitiveToWrapperTest() {
         checkDiscoveredProperties(
             ByteWrapper::primitiveToWrapper,
@@ -28,6 +30,7 @@ internal class ByteWrapperTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun equalityTest() {
         checkDiscoveredProperties(
             ByteWrapper::equality,

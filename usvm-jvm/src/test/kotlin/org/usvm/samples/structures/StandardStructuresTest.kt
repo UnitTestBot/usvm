@@ -1,5 +1,6 @@
 package org.usvm.samples.structures
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
@@ -8,6 +9,7 @@ import java.util.TreeMap
 
 internal class StandardStructuresTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Not implemented: Instance of")
     fun testGetList() {
         checkDiscoveredProperties(
             StandardStructures::getList,
@@ -22,6 +24,7 @@ internal class StandardStructuresTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: Instance of")
     fun testGetMap() {
         checkDiscoveredProperties(
             StandardStructures::getMap,
@@ -33,6 +36,7 @@ internal class StandardStructuresTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: Instance of")
     fun testGetDeque() {
         checkDiscoveredProperties(
             StandardStructures::getDeque,

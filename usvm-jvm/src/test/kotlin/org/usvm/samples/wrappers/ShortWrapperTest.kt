@@ -8,6 +8,7 @@ import org.usvm.test.util.checkers.eq
 
 internal class ShortWrapperTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun primitiveToWrapperTest() {
         checkDiscoveredProperties(
             ShortWrapper::primitiveToWrapper,

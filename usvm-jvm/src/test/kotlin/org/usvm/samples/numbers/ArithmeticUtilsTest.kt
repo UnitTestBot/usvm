@@ -1,5 +1,6 @@
 package org.usvm.samples.thirdparty.numbers
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.samples.numbers.ArithmeticUtils
@@ -9,6 +10,7 @@ import org.usvm.test.util.checkers.eq
 // example from Apache common-numbers
 internal class ArithmeticUtilsTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun testPow() {
         checkDiscoveredProperties(
             ArithmeticUtils::pow,

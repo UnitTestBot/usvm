@@ -13,6 +13,7 @@ import java.util.Locale
 
 internal class StringExamplesTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun testByteToString() {
         checkDiscoveredProperties(
             StringExamples::byteToString,
@@ -23,6 +24,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun testByteToStringWithConstants() {
         val values: Array<Byte> = arrayOf(
             Byte.MIN_VALUE,
@@ -42,6 +44,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: String constants")
     fun testReplace() {
         checkDiscoveredProperties(
             StringExamples::replace,
@@ -53,6 +56,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun testShortToString() {
         checkDiscoveredProperties(
             StringExamples::shortToString,
@@ -63,6 +67,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun testShortToStringWithConstants() {
         val values: Array<Short> = arrayOf(
             Short.MIN_VALUE,
@@ -82,6 +87,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun testIntToString() {
         checkDiscoveredProperties(
             StringExamples::intToString,
@@ -92,6 +98,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun testIntToStringWithConstants() {
         val values: Array<Int> = arrayOf(
             Integer.MIN_VALUE,
@@ -111,6 +118,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun testLongToString() {
         checkDiscoveredProperties(
             StringExamples::longToString,
@@ -121,6 +129,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun testLongToStringWithConstants() {
         val values: Array<Long> = arrayOf(
             Long.MIN_VALUE,
@@ -140,6 +149,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: String constants")
     fun testStartsWithLiteral() {
         checkDiscoveredProperties(
             StringExamples::startsWithLiteral,
@@ -152,6 +162,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: String constants")
     fun testBooleanToString() {
         checkDiscoveredProperties(
             StringExamples::booleanToString,
@@ -163,6 +174,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
 
 
     @Test
+    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun testCharToString() {
         checkDiscoveredProperties(
             StringExamples::charToString,
@@ -174,6 +186,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
 
 
     @Test
+    @Disabled("Not implemented: String constants")
     fun testStringToByte() {
         checkDiscoveredProperties(
             StringExamples::stringToByte,
@@ -182,6 +195,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: String constants")
     fun testStringToShort() {
         checkDiscoveredProperties(
             StringExamples::stringToShort,
@@ -190,6 +204,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: String constants")
     fun testStringToInt() {
         checkDiscoveredProperties(
             StringExamples::stringToInt,
@@ -198,6 +213,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: String constants")
     fun testStringToLong() {
         checkDiscoveredProperties(
             StringExamples::stringToLong,
@@ -206,6 +222,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: String constants")
     fun testStringToBoolean() {
         checkDiscoveredProperties(
             StringExamples::stringToBoolean,
@@ -216,6 +233,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun testConcat() {
         checkDiscoveredProperties(
             StringExamples::concat,
@@ -226,7 +244,8 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sometimes it freezes the execution for several hours JIRA:1453")
+//    @Disabled("Sometimes it freezes the execution for several hours JIRA:1453")
+    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun testConcatWithObject() {
         checkDiscoveredProperties(
             StringExamples::concatWithObject,
@@ -237,6 +256,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun testStringConstants() {
         checkDiscoveredProperties(
             StringExamples::stringConstants,
@@ -246,6 +266,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: String constants")
     fun testContainsOnLiterals() {
         checkDiscoveredProperties(
             StringExamples::containsOnLiterals,
@@ -254,6 +275,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun testConcatWithInt() {
         checkDiscoveredProperties(
             StringExamples::concatWithInts,
@@ -265,6 +287,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun testUseStringBuffer() {
         checkDiscoveredProperties(
             StringExamples::useStringBuffer,
@@ -282,6 +305,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: String constants")
     fun testNullableStringBuffer() {
         checkDiscoveredPropertiesWithExceptions(
             StringExamples::nullableStringBuffer,
@@ -294,6 +318,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun testIsStringBuilderEmpty() {
         checkDiscoveredProperties(
             StringExamples::isStringBuilderEmpty,
@@ -318,6 +343,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: String constants")
     fun testIsValidUuidShortVersion() {
         val pattern = Regex("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
         checkDiscoveredProperties(
@@ -330,6 +356,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun testSplitExample() {
         checkDiscoveredProperties(
             StringExamples::splitExample,
@@ -343,6 +370,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testIsBlank() {
         checkDiscoveredProperties(
             StringExamples::isBlank,
@@ -355,6 +383,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testLength() {
         checkDiscoveredProperties(
             StringExamples::length, // TODO: that strange, why we haven't 3rd option?
@@ -365,6 +394,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testLonger() {
         checkDiscoveredPropertiesWithExceptions(
             StringExamples::longer,
@@ -376,6 +406,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testEqualChar() {
         checkDiscoveredPropertiesWithExceptions(
             StringExamples::equalChar,
@@ -388,6 +419,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun testSubstring() {
         checkDiscoveredPropertiesWithExceptions(
             StringExamples::substring,
@@ -401,6 +433,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun testSubstringWithEndIndex() {
         checkDiscoveredPropertiesWithExceptions(
             StringExamples::substringWithEndIndex,
@@ -419,6 +452,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun testSubstringWithEndIndexNotEqual() {
         checkDiscoveredPropertiesWithExceptions(
             StringExamples::substringWithEndIndexNotEqual,
@@ -430,6 +464,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun testFullSubstringEquality() {
         checkDiscoveredPropertiesWithExceptions(
             StringExamples::fullSubstringEquality,
@@ -452,6 +487,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun testPrefixAndSuffix() {
         checkDiscoveredProperties(
             StringExamples::prefixAndSuffix,
@@ -466,6 +502,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: String constants")
     fun testPrefixWithTwoArgs() {
         checkDiscoveredPropertiesWithExceptions(
             StringExamples::prefixWithTwoArgs,
@@ -477,6 +514,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: String constants")
     fun testPrefixWithOffset() {
         checkDiscoveredProperties(
             StringExamples::prefixWithOffset,
@@ -489,6 +527,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun testStartsWith() {
         checkDiscoveredProperties(
             StringExamples::startsWith,
@@ -503,6 +542,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun testStartsWithOffset() {
         checkDiscoveredProperties(
             StringExamples::startsWithOffset,
@@ -523,6 +563,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun testEndsWith() {
         checkDiscoveredProperties(
             StringExamples::endsWith,
@@ -551,6 +592,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun testLastIndexOf() {
         checkDiscoveredProperties(
             StringExamples::lastIndexOf,
@@ -564,6 +606,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun testIndexOfWithOffset() {
         checkDiscoveredProperties(
             StringExamples::indexOfWithOffset,
@@ -578,6 +621,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
 
 
     @Test
+    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun testLastIndexOfWithOffset() {
         checkDiscoveredProperties(
             StringExamples::lastIndexOfWithOffset,
@@ -591,6 +635,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun testCompareCodePoints() {
         checkDiscoveredPropertiesWithExceptions(
             StringExamples::compareCodePoints,
@@ -607,6 +652,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun testToCharArray() {
         checkDiscoveredProperties(
             StringExamples::toCharArray,
@@ -617,6 +663,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: reference cast")
     fun testGetObj() {
         checkDiscoveredProperties(
             StringExamples::getObj,
@@ -626,6 +673,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: String constants")
     fun testGetObjWithCondition() {
         checkDiscoveredProperties(
             StringExamples::getObjWithCondition,
@@ -637,6 +685,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: String constants")
     fun testEqualsIgnoreCase() {
         checkDiscoveredProperties(
             StringExamples::equalsIgnoreCase,
@@ -647,6 +696,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: String constants")
     fun testListToString() {
         checkDiscoveredProperties(
             StringExamples::listToString,

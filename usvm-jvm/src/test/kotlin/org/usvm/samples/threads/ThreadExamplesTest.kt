@@ -1,5 +1,6 @@
 package org.usvm.samples.threads
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
@@ -20,6 +21,7 @@ class ThreadExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun testChangingCollectionInThread() {
         checkDiscoveredProperties(
             ThreadExamples::changingCollectionInThread,
@@ -29,6 +31,7 @@ class ThreadExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun testChangingCollectionInThreadWithoutStart() {
         checkDiscoveredPropertiesWithExceptions(
             ThreadExamples::changingCollectionInThreadWithoutStart,

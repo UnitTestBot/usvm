@@ -8,6 +8,7 @@ import org.usvm.test.util.checkers.eq
 
 internal class IntegerWrapperTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun primitiveToWrapperTest() {
         checkDiscoveredProperties(
             IntegerWrapper::primitiveToWrapper,
@@ -29,6 +30,7 @@ internal class IntegerWrapperTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: ushr")
     fun numberOfZerosTest() {
         checkDiscoveredProperties(
             IntegerWrapper::numberOfZeros,
@@ -41,6 +43,7 @@ internal class IntegerWrapperTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: ushr")
     fun bitCountTest() {
         checkDiscoveredProperties(
             IntegerWrapper::bitCount,

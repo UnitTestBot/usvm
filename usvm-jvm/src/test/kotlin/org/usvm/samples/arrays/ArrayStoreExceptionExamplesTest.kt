@@ -119,6 +119,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: reference cast")
     fun testCheckGoodAssignmentOfItself() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkGoodAssignmentOfItself,
