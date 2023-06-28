@@ -11,16 +11,14 @@ import org.usvm.instrumentation.instrumentation.JcInstructionTracer.StaticFieldA
 import org.usvm.instrumentation.org.usvm.instrumentation.classloader.MockHelper
 import org.usvm.instrumentation.testcase.api.*
 import org.usvm.instrumentation.trace.collector.MockCollector
-import org.usvm.instrumentation.util.toJavaClass
-import org.usvm.instrumentation.util.toJavaConstructor
-import org.usvm.instrumentation.util.toJavaField
-import org.usvm.instrumentation.util.toJavaMethod
+import org.usvm.instrumentation.util.*
 import setFieldValue
 import java.lang.ClassCastException
 
 class UTestExpressionExecutor(
     private val workerClassLoader: WorkerClassLoader,
-    private val accessedStatics: MutableSet<Pair<JcField, StaticFieldAccessType>>
+    private val accessedStatics: MutableSet<Pair<JcField, StaticFieldAccessType>>,
+    private val mockHelper: MockHelper
 ) {
 
     private val jcClasspath = workerClassLoader.jcClasspath
@@ -149,30 +147,20 @@ class UTestExpressionExecutor(
 
         val methodsToMock = uTestMockObject.methods.keys.toList()
         //Modify bytecode according to mocks
-        val (newClass, encodedMethods) =
-            MockHelper(jcClasspath, workerClassLoader).addMockInfoInBytecode(jcClass, methodsToMock)
-        println("NEW CLASS = $newClass")
-        val mockInstance =
-            try {
-                ReflectionUtils.UNSAFE.allocateInstance(newClass)
-            }catch (e: Throwable) {
-                println("E = $e")
-            }
-        println("AAA")
-        for ((jcMethod, encodedJcMethodId) in encodedMethods) {
-            val mockUTestExpression = uTestMockObject.methods[jcMethod] ?: error("Cant find expression for mocked method")
+        val newClass = mockHelper.addMockInfoInBytecode(jcClass, methodsToMock)
+        val mockInstance = ReflectionUtils.UNSAFE.allocateInstance(newClass)
+
+        for ((jcMethod, mockUTestExpression) in uTestMockObject.methods) {
             val mockValue = exec(mockUTestExpression)
-            MockCollector.addMock(MockCollector.MockInfo(encodedJcMethodId, mockInstance, mockValue))
+            val methodId = mockHelper.mockCache[jcMethod] ?: error("Method should be mocked")
+            MockCollector.addMock(MockCollector.MockInfo(methodId, mockInstance, mockValue))
         }
-        println("BBB")
         //Set mocked fields
         for ((jcField, jcFieldUTestExpression) in uTestMockObject.fields) {
-            val jField = jcField.toJavaField(workerClassLoader) ?: error("Cant find java field for jcField")
+            val jField = jcField.toJavaField(workerClassLoader) ?: error("Cant find field")
             val fieldValue = exec(jcFieldUTestExpression)
             jField.setFieldValue(mockInstance, fieldValue)
         }
-        println("CCC")
-        println("LOL")
         return mockInstance
     }
 

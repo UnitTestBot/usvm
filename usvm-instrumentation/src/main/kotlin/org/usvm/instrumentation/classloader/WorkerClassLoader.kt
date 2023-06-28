@@ -80,7 +80,6 @@ class WorkerClassLoader(
 
     fun defineClass(name: String, classNode: ClassNode): Class<*>? {
         val classByteArray = classNode.toByteArray(this)
-        File("/tmp/mock.class").writeBytes(classByteArray)
         return defineClass(name, classByteArray, 0, classByteArray.size)
     }
 
