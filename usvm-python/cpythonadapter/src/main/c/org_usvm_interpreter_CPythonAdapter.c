@@ -63,7 +63,7 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_eval(
     return (jlong) v;
 }
 
-JNIEXPORT int JNICALL Java_org_usvm_interpreter_CPythonAdapter_concolicRun(
+JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_concolicRun(
     JNIEnv *env,
     jobject cpython_adapter,
     jlong globals,
@@ -89,11 +89,12 @@ JNIEXPORT int JNICALL Java_org_usvm_interpreter_CPythonAdapter_concolicRun(
 
     if (result == NULL) {
         PyErr_Print();
-        return 1;
     }
+    return (PyObject *) result;
+}
 
-    PyObject_Print(result, stdout, 0);
+JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_printPythonObject(JNIEnv *env, jobject cpython_adapter, jlong object_ref) {
+    PyObject_Print((PyObject *) object_ref, stdout, 0);
     printf("\n");
     fflush(stdout);
-    return 0;
 }
