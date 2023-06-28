@@ -156,15 +156,15 @@ class ModelDecodingTest {
         val idx = stack.readRegister(3, bv32Sort)
 
         heap.writeArrayIndex(concreteRef, concreteIdx, array, addressSort, symbolicRef1, trueExpr)
-        val readedRef = heap.readArrayIndex(concreteRef, idx, array, addressSort)
+        val readRef = heap.readArrayIndex(concreteRef, idx, array, addressSort)
 
-        val readedRef1 = heap.readArrayIndex(symbolicRef2, idx, array, addressSort)
+        val readRef1 = heap.readArrayIndex(symbolicRef2, idx, array, addressSort)
 
-        heap.writeArrayIndex(readedRef, idx, array, addressSort, symbolicRef0, trueExpr)
+        heap.writeArrayIndex(readRef, idx, array, addressSort, symbolicRef0, trueExpr)
 
-        val readedRef2 = heap.readArrayIndex(symbolicRef2, idx, array, addressSort)
+        val readRef2 = heap.readArrayIndex(symbolicRef2, idx, array, addressSort)
 
-        pc += (symbolicRef2 neq nullRef) and (readedRef1 neq readedRef2)
+        pc += (symbolicRef2 neq nullRef) and (readRef1 neq readRef2)
 
         val status = solver.checkWithSoftConstraints(pc)
         val model = assertIs<USatResult<UModelBase<Field, Type>>>(status).model
@@ -186,18 +186,18 @@ class ModelDecodingTest {
         heap.writeArrayIndex(symbolicRef1, concreteIdx, array, addressSort, symbolicRef2, trueExpr)
         heap.writeArrayIndex(symbolicRef2, concreteIdx, array, addressSort, symbolicRef0, trueExpr)
 
-        val readedRef = heap.readArrayIndex(symbolicRef0, concreteIdx, array, addressSort)
+        val readRef = heap.readArrayIndex(symbolicRef0, concreteIdx, array, addressSort)
         pc += symbolicRef0 neq nullRef
         pc += symbolicRef1 neq nullRef
         pc += symbolicRef2 neq nullRef
-        pc += readedRef neq symbolicRef1
+        pc += readRef neq symbolicRef1
         pc += symbolicRef0 eq symbolicRef1
 
         val status = solver.checkWithSoftConstraints(pc)
         val model = assertIs<USatResult<UModelBase<Field, Type>>>(status).model
 
         assertSame(falseExpr, model.eval(symbolicRef2 eq symbolicRef0))
-        assertSame(model.eval(readedRef), model.eval(symbolicRef2))
+        assertSame(model.eval(readRef), model.eval(symbolicRef2))
     }
 
     @Test
@@ -208,9 +208,9 @@ class ModelDecodingTest {
 
         val concreteIdx = mkBv(3)
 
-        val readedExpr = heap.readArrayIndex(symbolicRef0, concreteIdx, array, bv32Sort)
+        val readExpr = heap.readArrayIndex(symbolicRef0, concreteIdx, array, bv32Sort)
         pc += symbolicRef0 neq nullRef
-        pc += readedExpr eq mkBv(42)
+        pc += readExpr eq mkBv(42)
 
         val status = solver.checkWithSoftConstraints(pc)
         val model = assertIs<USatResult<UModelBase<Field, Type>>>(status).model

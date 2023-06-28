@@ -45,7 +45,33 @@ class JcApplicationGraph(
 
     val JcMethod.typed
         get() = typedMethodsCache.getOrPut(this) {
-            // maybe there is a better way, but I didn't find it
             enclosingClass.toType().declaredMethods.first { it.method == this }
         }
+
+    private val statementsOfMethodCache = ConcurrentHashMap<JcMethod, Collection<JcInst>>()
+
+    override fun statementsOf(method: JcMethod): Sequence<JcInst> =
+        statementsOfMethodCache
+            .getOrPut(method) { computeAllStatementsOfMethod(method) }
+            .asSequence()
+
+    private fun computeAllStatementsOfMethod(method: JcMethod): Collection<JcInst> {
+        val entryStatements = entryPoint(method)
+        val statements = entryStatements.toMutableSet()
+
+        val queue = ArrayDeque(entryStatements.toList())
+
+        while (queue.isNotEmpty()) {
+            val statement = queue.removeLast()
+            val successors = successors(statement)
+            for (successor in successors) {
+                if (successor !in statements) {
+                    statements += successor
+                    queue += successor
+                }
+            }
+        }
+
+        return statements
+    }
 }

@@ -99,6 +99,9 @@ class SampleApplicationGraph(
         }
     }
 
+    override fun statementsOf(method: Method<*>): Sequence<Stmt> =
+        method.body?.stmts.orEmpty().asSequence()
+
     override fun predecessors(node: Stmt): Sequence<Stmt> {
         val info = lazyGetStmtInfo(node)
         return info.predecessors.asSequence()

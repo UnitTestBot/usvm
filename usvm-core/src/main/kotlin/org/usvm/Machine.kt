@@ -1,6 +1,6 @@
 package org.usvm
 
-import org.usvm.ps.stopstregies.StoppingStrategy
+import org.usvm.ps.stopstrategies.StoppingStrategy
 
 
 /**

@@ -1,4 +1,4 @@
-package org.usvm.ps.stopstregies
+package org.usvm.ps.stopstrategies
 
 import org.usvm.ApplicationGraph
 import org.usvm.ps.statistics.Statistics
@@ -8,30 +8,10 @@ class TargetsCoveredStoppingStrategy<Method, Statement>(
     graph: ApplicationGraph<Method, Statement>,
 ) : Statistics<Method, Statement>(graph), StoppingStrategy {
     private val uncoveredStatements = methods
-        .flatMap { findAllStatementsOfMethod(it) }
+        .flatMap { graph.statementsOf(it) }
         .toMutableSet()
 
     val uncoveredStatementsCount get() = uncoveredStatements.size
-
-    private fun findAllStatementsOfMethod(method: Method): Collection<Statement> {
-        val entryStatements = graph.entryPoint(method)
-        val statements = entryStatements.toMutableSet()
-
-        val queue = ArrayDeque(entryStatements.toList())
-
-        while (queue.isNotEmpty()) {
-            val statement = queue.removeLast()
-            val successors = graph.successors(statement)
-            for (successor in successors) {
-                if (successor !in statements) {
-                    statements += successor
-                    queue += successor
-                }
-            }
-        }
-
-        return statements
-    }
 
     override fun shouldStop(): Boolean = uncoveredStatements.isEmpty()
 

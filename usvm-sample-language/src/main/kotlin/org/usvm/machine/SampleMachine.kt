@@ -9,7 +9,7 @@ import org.usvm.language.Method
 import org.usvm.language.Program
 import org.usvm.language.SampleType
 import org.usvm.ps.DfsPathSelector
-import org.usvm.ps.stopstregies.CollectedStatesLimitStrategy
+import org.usvm.ps.stopstrategies.CollectedStatesLimitStrategy
 
 /**
  * Entry point for a sample language analyzer.

@@ -40,8 +40,8 @@ class JcUnaryOperatorTest {
     @Test
     fun `Test cast byte to short`() =
         testOperator(
-            JcUnaryOperator.CastToChar,
-            "(char)",
+            JcUnaryOperator.CastToShort,
+            "(short)",
             { it.toInt().toShort() },
             ::extractShort,
             ctx::mkBv,

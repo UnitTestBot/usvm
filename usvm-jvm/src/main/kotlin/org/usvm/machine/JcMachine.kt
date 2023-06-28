@@ -9,7 +9,7 @@ import org.usvm.machine.state.JcState
 import org.usvm.ps.BfsPathSelector
 import org.usvm.ps.DfsPathSelector
 import org.usvm.ps.combinators.ParallelSelector
-import org.usvm.ps.stopstregies.TargetsCoveredStoppingStrategy
+import org.usvm.ps.stopstrategies.TargetsCoveredStoppingStrategy
 
 class JcMachine(
     cp: JcClasspath,

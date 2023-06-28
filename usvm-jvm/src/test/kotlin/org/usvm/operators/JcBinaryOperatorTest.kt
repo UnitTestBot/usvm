@@ -60,7 +60,7 @@ class JcBinaryOperatorTest {
             onBytes = Byte::times,
             onChars = { a, b -> a.code * b.code },
             onShorts = Short::times,
-            operatorText = "+",
+            operatorText = "*",
             onInts = Int::times,
             onLongs = Long::times,
             onFloats = Float::times,

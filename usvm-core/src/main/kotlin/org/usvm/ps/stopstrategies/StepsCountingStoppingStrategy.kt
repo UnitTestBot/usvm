@@ -1,4 +1,4 @@
-package org.usvm.ps.stopstregies
+package org.usvm.ps.stopstrategies
 
 import org.usvm.ApplicationGraph
 import org.usvm.ps.statistics.Statistics

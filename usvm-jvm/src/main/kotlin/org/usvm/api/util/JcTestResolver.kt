@@ -113,7 +113,7 @@ class JcTestResolver(
         private val method: JcTypedMethod,
         private val classLoader: ClassLoader = ClassLoader.getSystemClassLoader(),
     ) {
-        private val resolvedCache = mutableMapOf<Int, Any?>()
+        private val resolvedCache = mutableMapOf<UConcreteHeapAddress, Any?>()
 
         fun resolveState(): JcParametersState {
             // TODO: now we need to explicitly evaluate indices of registers, because we don't have specific ULValues

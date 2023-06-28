@@ -1,4 +1,4 @@
-package org.usvm.ps.stopstregies
+package org.usvm.ps.stopstrategies
 
 fun interface StoppingStrategy {
     fun shouldStop(): Boolean
