@@ -50,10 +50,18 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_eval
 /*
  * Class:     org_usvm_interpreter_CPythonAdapter
  * Method:    concolicRun
- * Signature: (JJ[J[Lorg/usvm/language/SymbolForCPython;Lorg/usvm/interpreter/ConcolicRunContext;)I
+ * Signature: (JJ[J[Lorg/usvm/language/SymbolForCPython;Lorg/usvm/interpreter/ConcolicRunContext;)J
  */
-JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_concolicRun
+JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_concolicRun
   (JNIEnv *, jobject, jlong, jlong, jlongArray, jobjectArray, jobject);
+
+/*
+ * Class:     org_usvm_interpreter_CPythonAdapter
+ * Method:    printPythonObject
+ * Signature: (J)V
+ */
+JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_printPythonObject
+  (JNIEnv *, jobject, jlong);
 
 #ifdef __cplusplus
 }
