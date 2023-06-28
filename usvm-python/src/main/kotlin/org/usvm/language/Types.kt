@@ -2,7 +2,8 @@ package org.usvm.language
 
 import org.usvm.UTypeSystem
 
-object PythonType
+sealed class PythonType
+object PythonInt: PythonType()
 
 object PythonTypeSystem: UTypeSystem<PythonType> {
     override fun isSupertype(u: PythonType, t: PythonType): Boolean {

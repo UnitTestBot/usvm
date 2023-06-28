@@ -17,7 +17,7 @@ object PythonComponents: UComponents<Attribute, PythonType, Callable> {
     override fun mkSolver(ctx: UContext): USolverBase<Attribute, PythonType, Callable> {
         val (translator, decoder) = buildTranslatorAndLazyDecoder<Attribute, PythonType, Callable>(ctx)
         val softConstraintsProvider = USoftConstraintsProvider<Attribute, PythonType>(ctx)
-        val solver = KYicesSolver(ctx)
+        val solver = KZ3Solver(ctx)
         //solver.configure { setZ3Option("timeout", 100000) }
         return USolverBase(ctx, solver, translator, decoder, softConstraintsProvider)
     }

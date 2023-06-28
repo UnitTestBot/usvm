@@ -10,11 +10,12 @@ class Slot
 class Attribute
 
 class Callable(
-    val numberOfArguments: Int,
+    val signature: List<PythonType>,
     val reference: (PythonNamespace) -> /* function reference */ PythonObject
 ) {
+    val numberOfArguments: Int = signature.size
     companion object {
-        fun constructCallableFromName(numberOfArguments: Int, name: String) =
-            Callable(numberOfArguments) { globals -> ConcretePythonInterpreter.eval(globals, name) }
+        fun constructCallableFromName(signature: List<PythonType>, name: String) =
+            Callable(signature) { globals -> ConcretePythonInterpreter.eval(globals, name) }
     }
 }
