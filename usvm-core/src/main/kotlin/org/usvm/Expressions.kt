@@ -333,6 +333,6 @@ class UIsExpr<Type> internal constructor(
 //region Utils
 
 val UBoolExpr.isFalse get() = this === ctx.falseExpr
-val UBoolExpr.isTrue get() = !isFalse
+val UBoolExpr.isTrue get() = this === ctx.trueExpr
 
 //endregion

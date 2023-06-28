@@ -77,7 +77,7 @@ interface UMemoryUpdates<Key, Sort : USort> : Sequence<UUpdateNode<Key, Sort>> {
 
     /**
      * Accepts the [visitor]. Implementations should call [UMemoryUpdatesVisitor.visitInitialValue] firstly, then call
-     * [UMemoryUpdatesVisitor.visitUpdateNode] in the chronological order
+     * [UMemoryUpdatesVisitor.visitUpdate] in the chronological order
      * (from the oldest to the newest) with accumulated [Result].
      *
      * Uses [lookupCache] to shortcut the traversal. The actual key is determined by the
@@ -183,6 +183,11 @@ class UFlatUpdates<Key, Sort : USort> private constructor(
         val mappedNode = node.update.map(keyMapper, composer)
         val mappedNext = node.next.map(keyMapper, composer)
 
+        // Doesn't apply the node, if its guard maps to `false`
+        if (mappedNode.guard.isFalse) {
+            return mappedNext
+        }
+
         // If nothing changed, return this updates
         if (mappedNode === node.update && mappedNext === node.next) {
             return this
@@ -250,7 +255,7 @@ class UFlatUpdates<Key, Sort : USort> private constructor(
 //region Tree memory updates
 
 data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
-    private val updates: RegionTree<UUpdateNode<Key, Sort>, Reg>,
+    private val updates: RegionTree<Reg, UUpdateNode<Key, Sort>>,
     private val keyToRegion: (Key) -> Reg,
     private val keyRangeToRegion: (Key, Key) -> Reg,
     private val symbolicEq: (Key, Key) -> UBoolExpr,
@@ -259,7 +264,7 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
 ) : UMemoryUpdates<Key, Sort> {
     override fun read(key: Key): UTreeUpdates<Key, Reg, Sort> {
         val reg = keyToRegion(key)
-        val updates = updates.localize(reg)
+        val updates = updates.localize(reg) { it.includesSymbolically(key).isFalse }
         if (updates === this.updates) {
             return this
         }
@@ -272,7 +277,7 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
         val newUpdates = updates.write(
             keyToRegion(key),
             update,
-            keyFilter = { it.isIncludedByUpdateConcretely(update) }
+            valueFilter = { it.isIncludedByUpdateConcretely(update) }
         )
 
         return this.copy(updates = newUpdates)
@@ -290,7 +295,7 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
         val newUpdates = updates.write(
             region,
             update,
-            keyFilter = { it.isIncludedByUpdateConcretely(update) }
+            valueFilter = { it.isIncludedByUpdateConcretely(update) }
         )
 
         return this.copy(updates = newUpdates)
@@ -306,7 +311,7 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
         val updatesSuffix = mutableListOf<UUpdateNode<Key, Sort>?>()
 
         // reconstructed region tree, including all updates unsatisfying `predicate(update.value(key))` in the same order
-        var splitUpdates = emptyRegionTree<UUpdateNode<Key, Sort>, Reg>()
+        var splitUpdates = emptyRegionTree<Reg, UUpdateNode<Key, Sort>>()
 
         // add an update to result tree
         fun applyUpdate(update: UUpdateNode<Key, Sort>) {
@@ -314,7 +319,7 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
                 is UPinpointUpdateNode<Key, Sort> -> keyToRegion(update.key)
                 is URangedUpdateNode<*, *, Key, Sort> -> keyRangeToRegion(update.fromKey, update.toKey)
             }
-            splitUpdates = splitUpdates.write(region, update, keyFilter = { it.isIncludedByUpdateConcretely(update) })
+            splitUpdates = splitUpdates.write(region, update, valueFilter = { it.isIncludedByUpdateConcretely(update) })
         }
 
         // traverse all updates one by one from the oldest one
@@ -366,15 +371,21 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
         var mappedNodeFound = false
 
         // Traverse [updates] using its iterator and fold them into a new updates tree with new mapped nodes
-        val initialEmptyTree = emptyRegionTree<UUpdateNode<Key, Sort>, Reg>()
+        val initialEmptyTree = emptyRegionTree<Reg, UUpdateNode<Key, Sort>>()
         val mappedUpdates = updates.fold(initialEmptyTree) { mappedUpdatesTree, updateNodeWithRegion ->
             val (updateNode, oldRegion) = updateNodeWithRegion
             // Map current node
             val mappedUpdateNode = updateNode.map(keyMapper, composer)
 
+
             // Save information about whether something changed in the current node or not
             if (mappedUpdateNode !== updateNode) {
                 mappedNodeFound = true
+            }
+
+            // Doesn't apply the node, if its guard maps to `false`
+            if (mappedUpdateNode.guard.isFalse) {
+                return@fold mappedUpdatesTree
             }
 
             // Note that following code should be executed after checking for reference equality of a mapped node.
@@ -382,15 +393,13 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
             // it will be returned as a result, instead of an empty one.
 
             // Extract a new region by the mapped node
-            val newRegion = when (updateNode) {
+            val newRegion = when (mappedUpdateNode) {
                 is UPinpointUpdateNode -> {
-                    mappedUpdateNode as UPinpointUpdateNode
                     val currentRegion = keyToRegion(mappedUpdateNode.key)
                     oldRegion.intersect(currentRegion)
                 }
 
                 is URangedUpdateNode<*, *, Key, Sort> -> {
-                    mappedUpdateNode as URangedUpdateNode<*, *, Key, Sort>
                     val currentRegion = keyRangeToRegion(mappedUpdateNode.fromKey, mappedUpdateNode.toKey)
                     oldRegion.intersect(currentRegion)
                 }
@@ -512,7 +521,7 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
          * *
          *```
          */
-        private fun leftMostFold(updates: RegionTree<UUpdateNode<Key, Sort>, *>): Result {
+        private fun leftMostFold(updates: RegionTree<*, UUpdateNode<Key, Sort>>): Result {
             var result = cache[updates]
 
             if (result != null) {
@@ -531,7 +540,7 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
 
         private fun notLeftMostFold(
             accumulator: Result,
-            iterator: Iterator<Map.Entry<Region<*>, Pair<UUpdateNode<Key, Sort>, RegionTree<UUpdateNode<Key, Sort>, *>>>>,
+            iterator: Iterator<Map.Entry<Region<*>, Pair<UUpdateNode<Key, Sort>, RegionTree<*, UUpdateNode<Key, Sort>>>>>,
         ): Result {
             var accumulated = accumulator
             while (iterator.hasNext()) {

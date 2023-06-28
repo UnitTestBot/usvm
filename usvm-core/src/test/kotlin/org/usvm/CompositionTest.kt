@@ -315,11 +315,11 @@ internal class CompositionTest {
 
     @Test
     fun testComposeSeveralTimes() = with(ctx) {
-        val fstAddress = mockk<USymbolicHeapRef>()
-        val fstIndex = mockk<USizeExpr>()
+        val fstAddress = mkRegisterReading(0, addressSort)
+        val fstIndex = mkRegisterReading(1, sizeSort)
 
-        val sndAddress = mockk<USymbolicHeapRef>()
-        val sndIndex = mockk<USizeExpr>()
+        val sndAddress = mkRegisterReading(2, addressSort)
+        val sndIndex = mkRegisterReading(3, sizeSort)
 
         val arrayType: KClass<Array<*>> = Array::class
         // Create an empty region
