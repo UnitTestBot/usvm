@@ -1,5 +1,6 @@
 package org.usvm.instrumentation.executor
 
+import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.usvm.instrumentation.testcase.api.UTestExecutionExceptionResult
@@ -17,6 +18,12 @@ class SimpleUTestConcreteExecutor: UTestConcreteExecutorTest() {
         fun initClasspath() {
             testJarPath = listOf("build/libs/usvm-instrumentation-test.jar")
             init()
+        }
+
+        @AfterAll
+        @JvmStatic
+        fun close() {
+            uTestConcreteExecutor.close()
         }
     }
 
@@ -96,12 +103,25 @@ class SimpleUTestConcreteExecutor: UTestConcreteExecutorTest() {
     fun `simple abstract class mock test`() = executeTest {
         val uTest = UTestCreator.A.mockAbstractClass(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
-        println("res = $res")
+        println("RES = $res")
         assert(res is UTestExecutionSuccessResult)
         res as UTestExecutionSuccessResult
         val result = res.result
         assert(result != null)
         assert(result is UTestConstantDescriptor.Int && result.value == 240)
+    }
+
+    @Test
+    fun `simple abstract class partially mocked test`() = executeTest {
+        val uTest = UTestCreator.A.mockAbstractClass1(jcClasspath)
+        val res = uTestConcreteExecutor.executeAsync(uTest)
+        println("RES = $res")
+        assert(res is UTestExecutionSuccessResult)
+        res as UTestExecutionSuccessResult
+        val result = res.result
+        assert(result != null)
+        //Expected behavior!!
+        assert(result is UTestConstantDescriptor.Int && result.value == 1)
     }
     @Test
     fun `simple interface mock test`() = executeTest {
