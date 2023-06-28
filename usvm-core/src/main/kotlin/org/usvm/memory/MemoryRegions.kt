@@ -366,7 +366,7 @@ fun <ArrayType, Sort : USort> initializedAllocatedArrayRegion(
     content: Map<USizeExpr, UExpr<Sort>>,
     guard: UBoolExpr
 ): UAllocatedArrayRegion<ArrayType, Sort> {
-    val emptyRegionTree = emptyRegionTree<UUpdateNode<USizeExpr, Sort>, UArrayIndexRegion>()
+    val emptyRegionTree = emptyRegionTree<UArrayIndexRegion, UUpdateNode<USizeExpr, Sort>>()
 
     val entries = content.entries.associate { (key, value) ->
         val region = indexRegion(key)

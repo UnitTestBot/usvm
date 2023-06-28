@@ -12,7 +12,7 @@ class RegionTreeIteratorTest {
     @Test
     fun testSimpleRecursiveIterator() {
         val region = SetRegion.ofSet(0, 1, 2, 3, 4, 5)
-        val tree = emptyRegionTree<Int, SetRegion<Int>>()
+        val tree = emptyRegionTree<SetRegion<Int>, Int>()
             .write(region, 10)                // {0..5} -> 10
             .write(SetRegion.singleton(3), 5) // {0..2, 4, 5} -> 10, {3} -> (5, {3} -> 10)
 
@@ -34,7 +34,7 @@ class RegionTreeIteratorTest {
     fun testRecursiveIteratorWritingsInTheSameRegion() {
         val region = SetRegion.singleton(1)
         val writes = List(5) { it }
-        val tree = writes.fold(emptyRegionTree<Int, SetRegion<Int>>()) { acc, i ->
+        val tree = writes.fold(emptyRegionTree<SetRegion<Int>, Int>()) { acc, i ->
             acc.write(region, i)
         }
 
@@ -90,7 +90,7 @@ class RegionTreeIteratorTest {
 
     @Test
     fun test() {
-        val tree = emptyRegionTree<Int, SetRegion<Int>>()
+        val tree = emptyRegionTree<SetRegion<Int>, Int>()
             .write(SetRegion.ofSet(1, 2), 10)  // {1, 2} -> 10
             .write(SetRegion.singleton(1), 1)  // {2} -> 10, {1} -> (1, {1} -> 10)
             .write(SetRegion.singleton(2), 2)  // {1} -> (1, {1} -> 10), {2} -> (2, {2} -> 10)
@@ -136,7 +136,7 @@ class RegionTreeIteratorTest {
                         {3} -> 1:
                             emptyTree
      */
-    private fun constructComplicatedTree(): RegionTree<Int, SetRegion<Int>> {
+    private fun constructComplicatedTree(): RegionTree<SetRegion<Int>, Int> {
         val initialRegion = SetRegion.ofSet(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
         val firstRegion = SetRegion.ofSet(2, 3, 4)
         val secondRegion = SetRegion.ofSet(3, 4, 5)
@@ -147,7 +147,7 @@ class RegionTreeIteratorTest {
         val secondPoint = SetRegion.singleton(2)
         val thirdPoint = SetRegion.singleton(3)
 
-        return emptyRegionTree<Int, SetRegion<Int>>()
+        return emptyRegionTree<SetRegion<Int>, Int>()
             .write(initialRegion, 1)
             .write(firstRegion, 2)
             .write(secondRegion, 3)

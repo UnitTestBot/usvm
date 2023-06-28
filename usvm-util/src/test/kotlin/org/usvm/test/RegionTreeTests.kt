@@ -95,7 +95,7 @@ internal class RegionsTest {
         val seg2 = SetRegion.singleton(2)
         val seg3 = SetRegion.singleton(3)
         // Test writing
-        val tree0 = emptyRegionTree<Int, SetRegion<Int>>()
+        val tree0 = emptyRegionTree<SetRegion<Int>, Int>()
         val tree1 = tree0.write(seg0_10, 0)
         val tree2 = tree1.write(seg2_4, 1)
         val tree3 = tree2.write(seg3_5, 2)
