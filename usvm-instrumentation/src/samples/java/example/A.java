@@ -63,8 +63,20 @@ public class A {
     }
 
     public int mockAbstractClass(MockAbstractClass mc) {
+        if (mc.getStr().equals("a")) {
+            if (mc.stringField.equals("a")) {
+                return mc.intField + mc.getI();
+            } else {
+                return -1;
+            }
+        } else {
+            return -1;
+        }
+    }
+
+    public int mockAbstractClass1(MockAbstractClass mc) {
         if (mc.stringField.equals("a") && mc.getStr().equals("a")) {
-            return mc.intField + mc.getI();
+            return mc.methodWithInternalInvocation();
         } else {
             return -1;
         }
