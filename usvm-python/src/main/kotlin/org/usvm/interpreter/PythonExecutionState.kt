@@ -10,19 +10,21 @@ import org.usvm.model.UModel
 
 class PythonExecutionState(
     ctx: UContext,
-    val callable: Callable,
+    private val callable: Callable,
+    val inputSymbols: List<SymbolForCPython>,
     pathConstraints: UPathConstraints<PythonType>,
     memory: UMemoryBase<Attribute, PythonType, Callable>,
     models: List<UModel>,
-    callStack: UCallStack<Callable, PythonInstruction> = UCallStack(),
-    path: PersistentList<PythonInstruction> = persistentListOf()
-): UState<PythonType, Attribute, Callable, PythonInstruction>(ctx, callStack, pathConstraints, memory, models, path) {
-    override fun clone(newConstraints: UPathConstraints<PythonType>?): UState<PythonType, Attribute, Callable, PythonInstruction> {
+    callStack: UCallStack<Callable, SymbolicHandlerEvent<Any>> = UCallStack(),
+    path: PersistentList<SymbolicHandlerEvent<Any>> = persistentListOf()
+): UState<PythonType, Attribute, Callable, SymbolicHandlerEvent<Any>>(ctx, callStack, pathConstraints, memory, models, path) {
+    override fun clone(newConstraints: UPathConstraints<PythonType>?): UState<PythonType, Attribute, Callable, SymbolicHandlerEvent<Any>> {
         val newPathConstraints = newConstraints ?: pathConstraints.clone()
         val newMemory = memory.clone(newPathConstraints.typeConstraints)
         return PythonExecutionState(
             ctx,
             callable,
+            inputSymbols,
             newPathConstraints,
             newMemory,
             models,

@@ -1,13 +1,26 @@
 #include "symbolic_handler.h"
 #include "utils.h"
 
+#define CHECK_FOR_EXCEPTION(fail_value) \
+    if ((*ctx->env)->ExceptionCheck(ctx->env)) { \
+        /*printf("HERE\n"); \
+        fflush(stdout);*/ \
+        PyErr_SetString(PyExc_RuntimeError, "Java exception"); \
+        return fail_value; \
+    }
+
+#define CALL_JAVA_METHOD(result, ctx, func, args...) \
+    result = (*ctx->env)->CallStaticObjectMethod(ctx->env, ctx->cpython_adapter_cls, ctx->handle_##func, args); \
+    CHECK_FOR_EXCEPTION(Py_None)
+
 #define BINARY_INT_HANDLER(func) \
     PyObject *left = args[0], *right = args[1]; \
     if (!is_wrapped_java_object(left) || !is_wrapped_java_object(right)) \
         return Py_None; \
     jobject left_obj = ((JavaPythonObject *) left)->object; \
     jobject right_obj = ((JavaPythonObject *) right)->object; \
-    jobject result = (*ctx->env)->CallStaticObjectMethod(ctx->env, ctx->cpython_adapter_cls, ctx->handle_##func, ctx->context, left_obj, right_obj); \
+    jobject result; \
+    CALL_JAVA_METHOD(result, ctx, func, ctx->context, signal_id, left_obj, right_obj) \
     if (!result) \
         return Py_None; \
     PyObject *r = wrap_java_object(ctx->env, result); \
@@ -29,7 +42,8 @@ handler(int signal_type, int signal_id, int nargs, PyObject *const *args, void *
         if (overflow)
             return Py_None;
 
-        jobject result = (*ctx->env)->CallStaticObjectMethod(ctx->env, ctx->cpython_adapter_cls, ctx->handle_load_const_long, ctx->context, value_as_long);
+        jobject result;
+        CALL_JAVA_METHOD(result, ctx, load_const_long, ctx->context, value_as_long)
         return PyTuple_Pack(1, wrap_java_object(ctx->env, result));
 
     } else if (signal_id == SYM_EVENT_ID_FORK) {
@@ -41,6 +55,7 @@ handler(int signal_type, int signal_id, int nargs, PyObject *const *args, void *
             //fflush(stdout);
             jobject obj = ((JavaPythonObject *) value)->object;
             (*ctx->env)->CallStaticObjectMethod(ctx->env, ctx->cpython_adapter_cls, ctx->handle_fork, ctx->context, obj);
+            CHECK_FOR_EXCEPTION(1)
         }
 
         return Py_None;
@@ -101,6 +116,7 @@ handler(int signal_type, int signal_id, int nargs, PyObject *const *args, void *
         PyFrameObject *frame = args[0];
         int instruction = take_instruction_from_frame(frame);
         (*ctx->env)->CallStaticObjectMethod(ctx->env, ctx->cpython_adapter_cls, ctx->handle_instruction, ctx->context, instruction);
+        CHECK_FOR_EXCEPTION(1)
 
         return Py_None;
     }

@@ -11,12 +11,15 @@ fun main() {
     val program = PythonProgram(
         """
         import pickle
-        def f(x: int):
+        def f(x):
             print("x:", x, flush=True)
-            if x > 0:
-                return pickle.dumps(x)
+            if int(x) >= 0:
+                if x >= 0:
+                    return pickle.dumps(x)
+                else:
+                    return pickle.dumps(-x)
             else:
-                return pickle.dumps(-x)
+                return 1
         """.trimIndent()
     )
     val function = Callable.constructCallableFromName(List(1) { PythonInt }, "f")
