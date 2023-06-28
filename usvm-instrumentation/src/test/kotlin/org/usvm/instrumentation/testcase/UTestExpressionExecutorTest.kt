@@ -7,6 +7,7 @@ import org.jacodb.impl.jacodb
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.usvm.instrumentation.classloader.WorkerClassLoader
+import org.usvm.instrumentation.org.usvm.instrumentation.classloader.MockHelper
 import org.usvm.instrumentation.testcase.executor.UTestExpressionExecutor
 import org.usvm.instrumentation.util.URLClassPathLoader
 import org.usvm.instrumentation.util.UTestCreator
@@ -39,7 +40,8 @@ class UTestExpressionExecutorTest {
                 "",
                 jcClasspath
             )
-            return UTestExpressionExecutor(classLoader, mutableSetOf())
+            val mockHelper = MockHelper(jcClasspath, classLoader)
+            return UTestExpressionExecutor(classLoader, mutableSetOf(), mockHelper)
         }
 
     }

@@ -480,3 +480,13 @@ inline fun <A, B, R, C : MutableCollection<R>> Iterable<A>.zipTo(that: Iterable<
     }
     return to
 }
+
+fun <T, R : Comparable<R>> List<T>.filterDuplicatesBy(f: (T) -> R): List<T> {
+    val list1 = this.zip(this.map(f))
+    val res = mutableListOf<Pair<T, R>>()
+    for (i in 0 until size) {
+        val item = list1[i].second
+        if (res.all { it.second != item }) res.add(list1[i])
+    }
+    return res.map { it.first }
+}
