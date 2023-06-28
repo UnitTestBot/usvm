@@ -1,13 +1,16 @@
 package org.usvm.interpreter
 
+import com.microsoft.z3.Symbol
 import org.usvm.UContext
 import org.usvm.UMachine
 import org.usvm.UPathSelector
+import org.usvm.URegisterRef
 import org.usvm.constraints.UPathConstraints
 import org.usvm.language.Attribute
 import org.usvm.language.Callable
 import org.usvm.language.PythonProgram
 import org.usvm.language.PythonType
+import org.usvm.language.SymbolForCPython
 import org.usvm.memory.UMemoryBase
 import org.usvm.ps.DfsPathSelector
 
@@ -32,9 +35,11 @@ class PythonMachine(
         ).apply {
             stack.push(target.numberOfArguments)
         }
+        val symbols = List(target.numberOfArguments) { SymbolForCPython(memory.read(URegisterRef(ctx.intSort, it))) }
         return PythonExecutionState(
             ctx,
             target,
+            symbols,
             pathConstraints,
             memory,
             listOf(solver.emptyModel())

@@ -14,11 +14,11 @@ Handler might always return `Py_None`.
 
 ## Event types
 
-| event type              | Description                                                           | Expected return type |
-|-------------------------|-----------------------------------------------------------------------|:--------------------:|
-| `SYM_EVENT_TYPE_STACK`  | Asks for symbolic values that should be put on the interpreter stack. |       `tuple`        |
-| `SYM_EVENT_TYPE_NOTIFY` | Notifies about some action.                                           | Ignores return value |
-| `SYM_EVENT_TYPE_METHOD` | Asks for result of some standard operation.                           |     `PyObject *`     |
+| event type              | Description                                                           |         Expected return type         |
+|-------------------------|-----------------------------------------------------------------------|:------------------------------------:|
+| `SYM_EVENT_TYPE_STACK`  | Asks for symbolic values that should be put on the interpreter stack. |               `tuple`                |
+| `SYM_EVENT_TYPE_NOTIFY` | Notifies about some action.                                           | Must return `0` or `None` on success |
+| `SYM_EVENT_TYPE_METHOD` | Asks for result of some standard operation.                           |             `PyObject *`             |
 
 ## `SYM_EVENT_TYPE_STACK` events list
 

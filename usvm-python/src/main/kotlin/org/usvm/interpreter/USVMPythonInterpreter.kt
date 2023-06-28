@@ -2,7 +2,6 @@ package org.usvm.interpreter
 
 import org.usvm.*
 import org.usvm.language.Callable
-import org.usvm.language.PythonInt
 
 class USVMPythonInterpreter(
     private val ctx: UContext,
@@ -17,8 +16,8 @@ class USVMPythonInterpreter(
             //println("Step on $state. ${state.wasExecuted}. Executed path: ${state.path}")
             //println(state.pathConstraints.logicalConstraints)
             //System.out.flush()
-            val symbols = List(callable.numberOfArguments) { state.memory.read(URegisterRef(ctx.intSort, it)) }
-            val seeds = symbols.map { state.models.first().eval(it) }
+            val symbols = state.inputSymbols
+            val seeds = symbols.map { state.models.first().eval(it.expr) }
             val concrete = (seeds zip callable.signature).map { (seed, type) ->
                 //println("Concrete: $seed")
                 //System.out.flush()
