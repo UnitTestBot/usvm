@@ -1,13 +1,12 @@
 package org.usvm.interpreter
 
-import com.microsoft.z3.Symbol
 import org.usvm.UContext
 import org.usvm.UMachine
 import org.usvm.UPathSelector
 import org.usvm.URegisterRef
 import org.usvm.constraints.UPathConstraints
 import org.usvm.language.Attribute
-import org.usvm.language.Callable
+import org.usvm.language.PythonCallable
 import org.usvm.language.PythonProgram
 import org.usvm.language.PythonType
 import org.usvm.language.SymbolForCPython
@@ -15,21 +14,17 @@ import org.usvm.memory.UMemoryBase
 import org.usvm.ps.DfsPathSelector
 
 class PythonMachine(
-    program: PythonProgram,
-): UMachine<PythonExecutionState, Callable>() {
+    private val program: PythonProgram,
+): UMachine<PythonExecutionState, PythonCallable>() {
     private val ctx = UContext(PythonComponents)
-    private val globals = ConcretePythonInterpreter.getNewNamespace()
-    val solver = ctx.solver<Attribute, PythonType, Callable>()
+    val solver = ctx.solver<Attribute, PythonType, PythonCallable>()
     private val iterationCounter = IterationCounter()
-    init {
-        ConcretePythonInterpreter.concreteRun(globals, program.asString)
-    }
-    override fun getInterpreter(target: Callable): USVMPythonInterpreter =
-        USVMPythonInterpreter(ctx, globals, target, iterationCounter)
+    override fun getInterpreter(target: PythonCallable): USVMPythonInterpreter =
+        USVMPythonInterpreter(ctx, program, target, iterationCounter)
 
-    private fun getInitialState(target: Callable): PythonExecutionState {
+    private fun getInitialState(target: PythonCallable): PythonExecutionState {
         val pathConstraints = UPathConstraints<PythonType>(ctx)
-        val memory = UMemoryBase<Attribute, PythonType, Callable>(
+        val memory = UMemoryBase<Attribute, PythonType, PythonCallable>(
             ctx,
             pathConstraints.typeConstraints
         ).apply {
@@ -46,17 +41,17 @@ class PythonMachine(
         )
     }
 
-    override fun getPathSelector(target: Callable): UPathSelector<PythonExecutionState> {
+    override fun getPathSelector(target: PythonCallable): UPathSelector<PythonExecutionState> {
         val ps = DfsPathSelector<PythonExecutionState>()
         val initialState = getInitialState(target)
         ps.add(sequenceOf(initialState))
         return ps
     }
 
-    fun analyze(callable: Callable): Int {
+    fun analyze(pythonCallable: PythonCallable): Int {
         var cnt = 0
         run(
-            callable,
+            pythonCallable,
             onState = { cnt += 1 },
             continueAnalyzing = { !it.wasExecuted },
             shouldStop = { cnt >= 10000 }

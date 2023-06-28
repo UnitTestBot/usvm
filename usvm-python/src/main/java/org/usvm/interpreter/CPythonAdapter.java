@@ -21,7 +21,8 @@ public class CPythonAdapter {
     public native long getNewNamespace();  // returns reference to a new dict
     public native int concreteRun(long globals, String code);  // returns 0 on success
     public native long eval(long globals, String expr);  // returns PyObject *
-    public native int concolicRun(long globals, long functionRef, long[] concreteArgs, SymbolForCPython[] symbolicArgs, ConcolicRunContext context);
+    public native long concolicRun(long globals, long functionRef, long[] concreteArgs, SymbolForCPython[] symbolicArgs, ConcolicRunContext context);
+    public native void printPythonObject(long object);
 
     static {
         System.loadLibrary("cpythonadapter");
