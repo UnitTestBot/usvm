@@ -30,6 +30,7 @@ abstract class UTestConcreteExecutorTest {
                 installFeatures(InMemoryHierarchy)
             }
             jcClasspath = db.classpath(cp)
+            uTestConcreteExecutor = createUTestConcreteExecutor()
         }
 
         fun createUTestConcreteExecutor(): UTestConcreteExecutor {
@@ -42,19 +43,19 @@ abstract class UTestConcreteExecutorTest {
         }
     }
 
-    private fun initExecutor() {
-        uTestConcreteExecutor = createUTestConcreteExecutor()
-    }
+//    private fun initExecutor() {
+//        uTestConcreteExecutor = createUTestConcreteExecutor()
+//    }
 
     fun executeTest(body: suspend () -> Unit) {
         try {
-            initExecutor()
+//            initExecutor()
             runBlocking {
                 body.invoke()
             }
 
         } finally {
-            uTestConcreteExecutor.close()
+            //uTestConcreteExecutor.close()
         }
     }
 
