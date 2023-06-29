@@ -13,14 +13,23 @@ import org.usvm.language.SymbolForCPython
 import org.usvm.memory.UMemoryBase
 import org.usvm.ps.DfsPathSelector
 
-class PythonMachine(
+data class PythonAnalysisResult<PYTHON_OBJECT_REPRESENTATION>(
+    val inputValues: List<PYTHON_OBJECT_REPRESENTATION>,
+    val result: PYTHON_OBJECT_REPRESENTATION?
+)
+
+class PythonMachine<PYTHON_OBJECT_REPRESENTATION>(
     private val program: PythonProgram,
+    private val pythonObjectSerialization: (PythonObject) -> PYTHON_OBJECT_REPRESENTATION
 ): UMachine<PythonExecutionState, PythonCallable>() {
     private val ctx = UContext(PythonComponents)
-    val solver = ctx.solver<Attribute, PythonType, PythonCallable>()
+    private val solver = ctx.solver<Attribute, PythonType, PythonCallable>()
     private val iterationCounter = IterationCounter()
-    override fun getInterpreter(target: PythonCallable): USVMPythonInterpreter =
-        USVMPythonInterpreter(ctx, program, target, iterationCounter)
+    val results = mutableListOf<PythonAnalysisResult<PYTHON_OBJECT_REPRESENTATION>>()
+    override fun getInterpreter(target: PythonCallable): USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION> =
+        USVMPythonInterpreter(ctx, program, target, iterationCounter, pythonObjectSerialization) { inputs, result ->
+            results.add(PythonAnalysisResult(inputs, result))
+        }
 
     private fun getInitialState(target: PythonCallable): PythonExecutionState {
         val pathConstraints = UPathConstraints<PythonType>(ctx)
@@ -50,6 +59,7 @@ class PythonMachine(
 
     fun analyze(pythonCallable: PythonCallable): Int {
         var cnt = 0
+        results.clear()
         run(
             pythonCallable,
             onState = { cnt += 1 },
