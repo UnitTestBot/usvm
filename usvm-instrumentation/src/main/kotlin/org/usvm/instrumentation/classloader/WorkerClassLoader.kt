@@ -29,6 +29,7 @@ class WorkerClassLoader(
 ) : SecureClassLoader(null) {
 
     private lateinit var instrumentation: Instrumentation
+    var shouldInstrumentCurrentClass = true
 
     fun regInstrumentation(instrumentation: Instrumentation) {
         this.instrumentation = instrumentation
@@ -69,7 +70,9 @@ class WorkerClassLoader(
 
     fun redefineClass(jClass: Class<*>, asmBody: ClassNode) {
         val classDefinition = ClassDefinition(jClass, asmBody.toByteArray(this))
+        shouldInstrumentCurrentClass = false
         instrumentation.redefineClasses(classDefinition)
+        shouldInstrumentCurrentClass = true
     }
 
     override fun loadClass(name: String): Class<*> {
@@ -80,7 +83,10 @@ class WorkerClassLoader(
 
     fun defineClass(name: String, classNode: ClassNode): Class<*>? {
         val classByteArray = classNode.toByteArray(this)
-        return defineClass(name, classByteArray, 0, classByteArray.size)
+        shouldInstrumentCurrentClass = false
+        val newClass = defineClass(name, classByteArray, 0, classByteArray.size)
+        shouldInstrumentCurrentClass = true
+        return newClass
     }
 
     override fun findClass(name: String): Class<*> {
