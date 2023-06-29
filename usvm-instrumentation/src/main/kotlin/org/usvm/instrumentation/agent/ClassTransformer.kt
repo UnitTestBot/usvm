@@ -30,7 +30,7 @@ class ClassTransformer(
             return classfileBuffer
         }
         loader.regInstrumentation(instrumentation)
-        return classfileBuffer
+        if (!loader.shouldInstrumentCurrentClass) return classfileBuffer
         return instrumenterCache.getOrPut(className) {
             val instrumenter = instrumenterFactoryInstance.create(loader.jcClasspath)
             val instrumentedClassNode = instrumenter.instrumentClass(classfileBuffer.toClassNode())

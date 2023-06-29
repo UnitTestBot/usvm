@@ -56,8 +56,8 @@ object JcInstructionTracer : Tracer<Trace> {
         return (classId shl Byte.SIZE_BITS * 5) or (methodId shl Byte.SIZE_BITS * 3) or instId
     }
 
-    fun encodeClass(jcClass: JcClassOrInterface) = encodedClasses.getOrPut(jcClass) { EncodedClass(currentClassIndex++) }
-    fun encodeMethod(jcClass: JcClassOrInterface, jcMethod: JcMethod): EncodedMethod {
+    private fun encodeClass(jcClass: JcClassOrInterface) = encodedClasses.getOrPut(jcClass) { EncodedClass(currentClassIndex++) }
+    private fun encodeMethod(jcClass: JcClassOrInterface, jcMethod: JcMethod): EncodedMethod {
         val encodedClass = encodeClass(jcClass)
         return encodedClass.encodedMethods.getOrPut(jcMethod) { EncodedMethod(encodedClass.currentMethodIndex++) }
     }
@@ -77,6 +77,13 @@ object JcInstructionTracer : Tracer<Trace> {
         val instId = encodeTraceId(encodedClass.id, encodedMethod.id, encodedInst.id)
         encodedJcInstructions[instId] = jcInst
         return instId
+    }
+
+    fun encode(jcMethod: JcMethod): Long {
+        val jcClass = jcMethod.enclosingClass
+        val encodedClass = encodeClass(jcClass)
+        val encodedMethod = encodeMethod(jcClass, jcMethod)
+        return encodeTraceId(encodedClass.id, encodedMethod.id, 0L)
     }
 
     /**
