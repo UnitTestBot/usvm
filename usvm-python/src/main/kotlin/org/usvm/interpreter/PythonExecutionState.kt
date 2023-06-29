@@ -6,7 +6,7 @@ import org.usvm.*
 import org.usvm.constraints.UPathConstraints
 import org.usvm.language.*
 import org.usvm.memory.UMemoryBase
-import org.usvm.model.UModel
+import org.usvm.model.UModelBase
 
 class PythonExecutionState(
     ctx: UContext,
@@ -14,7 +14,7 @@ class PythonExecutionState(
     val inputSymbols: List<SymbolForCPython>,
     pathConstraints: UPathConstraints<PythonType>,
     memory: UMemoryBase<Attribute, PythonType, PythonCallable>,
-    models: List<UModel>,
+    models: List<UModelBase<Attribute, PythonType>>,
     callStack: UCallStack<PythonCallable, SymbolicHandlerEvent<Any>> = UCallStack(),
     path: PersistentList<SymbolicHandlerEvent<Any>> = persistentListOf()
 ): UState<PythonType, Attribute, PythonCallable, SymbolicHandlerEvent<Any>>(ctx, callStack, pathConstraints, memory, models, path) {
