@@ -78,6 +78,11 @@ public class A {
         }
     }
 
+    public int staticMock() {
+        return MockClass.staticMock();
+    }
+
+
 
     public int mockExample1() {
         if (MockCollector.isMocked(214124124, this)) {

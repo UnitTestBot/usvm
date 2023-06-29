@@ -55,8 +55,14 @@ class MockHelper(val jcClasspath: JcClasspath, val classLoader: WorkerClassLoade
                 }
             } ?: JcRawLabelInst(jcMethod, "#mockEndGenerated0")
         val isMockedLocalVar = JcRawLocalVar("%isMockedGenerated0", jcClasspath.boolean.getTypename())
+        val jcThisReference =
+            if (jcMethod.isStatic) {
+                JcRawNullConstant(jcClass.typename)
+            } else {
+                JcRawThis(jcClass.typename)
+            }
         val isMockedStaticCallExpr =
-            traceHelper.createMockCollectorCall("isMocked", mockedMethodId, JcRawThis(jcClass.typename))
+            traceHelper.createMockCollectorCall("isMocked", mockedMethodId, jcThisReference)
         val isMockedAssignInst = JcRawAssignInst(jcMethod, isMockedLocalVar, isMockedStaticCallExpr)
 
         val ifCondition = JcRawEqExpr(jcClasspath.boolean.getTypename(), isMockedLocalVar, JcRawBool(false))
@@ -69,7 +75,7 @@ class MockHelper(val jcClasspath: JcClasspath, val classLoader: WorkerClassLoade
             JcRawLocalVar("%mockReturnValueGenerated0", jcClasspath.objectType.getTypename())
         }
         val mockRetValueVirtualCall = traceHelper.createMockCollectorCall(
-            createGetMockValueMethodName(mockTypeName), mockedMethodId, JcRawThis(jcClass.typename)
+            createGetMockValueMethodName(mockTypeName), mockedMethodId, jcThisReference
         )
         val mockRetValueAssignInst = JcRawAssignInst(jcMethod, mockRetValueLocalVar, mockRetValueVirtualCall)
         if (mockTypeName.isPrimitive) {
