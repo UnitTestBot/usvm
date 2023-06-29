@@ -13,4 +13,8 @@ public class MockClass {
 
     public String getStr() { return "abcd"; }
 
+    static int staticMock() {
+        return 1;
+    }
+
 }
