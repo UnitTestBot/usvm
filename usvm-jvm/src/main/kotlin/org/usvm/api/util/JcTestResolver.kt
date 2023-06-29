@@ -163,7 +163,7 @@ class JcTestResolver(
         }
 
         fun resolveReference(heapRef: UHeapRef, type: JcRefType): Any? {
-            val idx = requireNotNull(evaluateInModel(heapRef) as UConcreteHeapRef).address
+            val idx = (evaluateInModel(heapRef) as UConcreteHeapRef).address
             if (idx == UAddressCounter.NULL_ADDRESS) {
                 return null
             }

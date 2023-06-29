@@ -26,7 +26,7 @@ class URegistersStackFrame(
 }
 
 class URegistersStack(
-    private val stack: ArrayDeque<URegistersStackFrame> = ArrayDeque(),
+    private val stack: MutableList<URegistersStackFrame> = mutableListOf(),
 ) : URegistersStackEvaluator {
     fun push(registersCount: Int) = stack.add(URegistersStackFrame(registersCount))
 

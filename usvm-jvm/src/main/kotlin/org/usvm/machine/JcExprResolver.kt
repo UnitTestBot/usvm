@@ -32,6 +32,7 @@ import org.jacodb.api.cfg.JcFieldRef
 import org.jacodb.api.cfg.JcFloat
 import org.jacodb.api.cfg.JcGeExpr
 import org.jacodb.api.cfg.JcGtExpr
+import org.jacodb.api.cfg.JcInstanceCallExpr
 import org.jacodb.api.cfg.JcInstanceOfExpr
 import org.jacodb.api.cfg.JcInt
 import org.jacodb.api.cfg.JcLambdaExpr
@@ -297,29 +298,19 @@ class JcExprResolver(
     override fun visitJcNewExpr(expr: JcNewExpr): UExpr<out USort>? =
         scope.calcOnState { memory.alloc(expr.type) }
 
-    override fun visitJcPhiExpr(expr: JcPhiExpr): UExpr<out USort> = with(ctx) {
+    override fun visitJcPhiExpr(expr: JcPhiExpr): UExpr<out USort> =
         error("Unexpected expr: $expr")
-    }
 
     // region invokes
 
     override fun visitJcSpecialCallExpr(expr: JcSpecialCallExpr): UExpr<out USort>? =
-        resolveInvoke(expr.method) {
-            val instance = resolveJcExpr(expr.instance)?.asExpr(ctx.addressSort) ?: return@resolveInvoke null
-            checkNullPointer(instance) ?: return@resolveInvoke null
-            val arguments = mutableListOf<UExpr<out USort>>(instance)
-
-            val argsWithTypes = expr.args.zip(expr.method.parameters.map { it.type })
-
-            argsWithTypes.mapTo(arguments) { (expr, type) ->
-                resolveJcExpr(expr, type) ?: return@resolveInvoke null
-            }
-            arguments
-        }
+        resolveInstanceCallExpr(expr)
 
     override fun visitJcVirtualCallExpr(expr: JcVirtualCallExpr): UExpr<out USort>? =
+        resolveInstanceCallExpr(expr) // TODO resolve actual method for interface invokes
+
+    private fun resolveInstanceCallExpr(expr: JcInstanceCallExpr): UExpr<out USort>? =
         resolveInvoke(expr.method) {
-            // TODO resolve actual method for interface invokes
             val instance = resolveJcExpr(expr.instance)?.asExpr(ctx.addressSort) ?: return@resolveInvoke null
             checkNullPointer(instance) ?: return@resolveInvoke null
             val arguments = mutableListOf<UExpr<out USort>>(instance)
@@ -357,7 +348,8 @@ class JcExprResolver(
         method: JcTypedMethod,
         resolveArguments: () -> List<UExpr<out USort>>?,
     ): UExpr<out USort>? {
-        return when (val result = scope.calcOnState { methodResult } ?: return null) {
+        val result = scope.calcOnState { methodResult } ?: return null
+        return when (result) {
             is JcMethodResult.Success -> {
                 scope.doWithState { methodResult = JcMethodResult.NoCall }
                 result.value
@@ -588,19 +580,19 @@ class JcExprResolver(
     private val JcPrimitiveType.isSigned
         get() = this != classpath.char
 
-    private fun resolveAfterResolved(
-        dependency0: JcExpr,
-        block: (UExpr<out USort>) -> UExpr<out USort>?,
-    ): UExpr<out USort>? {
-        val result0 = resolveJcExpr(dependency0) ?: return null
-        return block(result0)
+    private fun <T> resolveAfterResolved(
+        dependency: JcExpr,
+        block: (UExpr<out USort>) -> T,
+    ): T? {
+        val result = resolveJcExpr(dependency) ?: return null
+        return block(result)
     }
 
-    private inline fun resolveAfterResolved(
+    private inline fun <T> resolveAfterResolved(
         dependency0: JcExpr,
         dependency1: JcExpr,
-        block: (UExpr<out USort>, UExpr<out USort>) -> UExpr<out USort>?,
-    ): UExpr<out USort>? {
+        block: (UExpr<out USort>, UExpr<out USort>) -> T,
+    ): T? {
         val result0 = resolveJcExpr(dependency0) ?: return null
         val result1 = resolveJcExpr(dependency1) ?: return null
         return block(result0, result1)

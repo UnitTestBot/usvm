@@ -102,7 +102,7 @@ class JcInterpreter(
         val lvalue = exprResolver.resolveLValue(stmt.lhv) ?: return
         val expr = exprResolver.resolveJcExpr(stmt.rhv, stmt.lhv.type) ?: return
 
-        val nextStmt = applicationGraph.successors(stmt).single()
+        val nextStmt = stmt.nextStmt
         scope.doWithState {
             memory.write(lvalue, expr)
             newStmt(nextStmt)
@@ -117,7 +117,8 @@ class JcInterpreter(
             ?.asExpr(ctx.boolSort)
             ?: return
 
-        val (posStmt, negStmt) = applicationGraph.successors(stmt).run { take(2).toList() }
+        val instList = stmt.location.method.instList
+        val (posStmt, negStmt) = instList[stmt.trueBranch.index] to instList[stmt.falseBranch.index]
 
         scope.fork(
             boolExpr,
@@ -141,7 +142,7 @@ class JcInterpreter(
     }
 
     private fun visitGotoStmt(scope: JcStepScope, stmt: JcGotoInst) {
-        val nextStmt = applicationGraph.successors(stmt).single()
+        val nextStmt = stmt.location.method.instList[stmt.target.index]
         scope.doWithState { newStmt(nextStmt) }
     }
 
@@ -172,7 +173,7 @@ class JcInterpreter(
             }
 
             is JcMethodResult.Success -> {
-                val nextStmt = applicationGraph.successors(stmt).single()
+                val nextStmt = stmt.nextStmt
                 scope.doWithState {
                     methodResult = JcMethodResult.NoCall
                     newStmt(nextStmt)
@@ -201,4 +202,6 @@ class JcInterpreter(
             is JcArgument -> local.index + if (method.isStatic) 0 else 1
             else -> error("Unexpected local: $local")
         }
+
+    private val JcInst.nextStmt get() = location.method.instList[location.index + 1]
 }
