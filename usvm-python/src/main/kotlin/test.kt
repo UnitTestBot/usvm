@@ -18,6 +18,14 @@ fun main() {
         """.trimIndent()
     )
     val function = PythonCallable.constructCallableFromName(List(1) { PythonInt }, "f")
+
+    val namespace = ConcretePythonInterpreter.getNewNamespace()
+    ConcretePythonInterpreter.concreteRun(namespace, program.asString)
+    val functionRef = function.reference(namespace)
+    val args = listOf(ConcretePythonInterpreter.eval(namespace, "1"))
+    val result = ConcretePythonInterpreter.concreteRunOnFunctionRef(namespace, functionRef, args)
+    println("RESULT OF CONCRETE RUN: ${ConcretePythonInterpreter.getPythonObjectRepr(result)}")
+
     val machine = PythonMachine(program) { it }
     val start = System.currentTimeMillis()
     val iterations = machine.use { activeMachine ->
