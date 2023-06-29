@@ -65,8 +65,18 @@ public class MockCollector {
         }
 
         public MockInfo find(long mockId, Object mockedObject) {
+            if (mockedObject == null) return findStaticMethodMock(mockId);
             for (int i = 0; i < size; i++) {
                 if (arr[i].mockedId == mockId && arr[i].mockedObject == mockedObject) {
+                    return arr[i];
+                }
+            }
+            return null;
+        }
+
+        public MockInfo findStaticMethodMock(long mockId) {
+            for (int i = 0; i < size; i++) {
+                if (arr[i].mockedId == mockId) {
                     return arr[i];
                 }
             }
