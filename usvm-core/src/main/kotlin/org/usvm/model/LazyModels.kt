@@ -43,7 +43,7 @@ class ULazyRegistersStackModel(
 ) : URegistersStackEvaluator {
     private val uctx = translator.ctx
 
-    override fun <Sort : USort> eval(
+    override fun <Sort : USort> readRegister(
         registerIndex: Int,
         sort: Sort,
     ): UExpr<Sort> {
@@ -107,7 +107,7 @@ class ULazyHeapModel<Field, ArrayType>(
         require(ref is UConcreteHeapRef && ref.address <= UAddressCounter.INITIAL_INPUT_ADDRESS)
 
         val resolvedRegion = resolvedInputFields[field]
-        val regionId = UInputFieldId(field, sort, null)
+        val regionId = UInputFieldId(field, sort, contextHeap = null)
         val initialValue = translator.translateInputFieldId(regionId)
 
         return when {
@@ -134,7 +134,7 @@ class ULazyHeapModel<Field, ArrayType>(
         val key = ref to index
 
         val resolvedRegion = resolvedInputArrays[arrayType]
-        val regionId = UInputArrayId(arrayType, sort, null)
+        val regionId = UInputArrayId(arrayType, sort, contextHeap = null)
         val initialValue = translator.translateInputArrayId(regionId)
 
         return when {
@@ -154,7 +154,7 @@ class ULazyHeapModel<Field, ArrayType>(
         require(ref is UConcreteHeapRef && ref.address <= UAddressCounter.INITIAL_INPUT_ADDRESS)
 
         val resolvedRegion = resolvedInputLengths[arrayType]
-        val regionId = UInputArrayLengthId(arrayType, ref.uctx.sizeSort, null)
+        val regionId = UInputArrayLengthId(arrayType, ref.uctx.sizeSort, contextHeap = null)
         val initialValue = translator.translateInputArrayLengthId(regionId)
 
         return when {
