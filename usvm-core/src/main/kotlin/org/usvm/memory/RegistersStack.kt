@@ -2,25 +2,22 @@ package org.usvm.memory
 
 import io.ksmt.expr.KExpr
 import io.ksmt.utils.asExpr
-import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.USort
-import java.util.Stack
+import org.usvm.uctx
 
 interface URegistersStackEvaluator {
-    fun <Sort : USort> eval(registerIndex: Int, sort: Sort): UExpr<Sort>
+    fun <Sort : USort> readRegister(registerIndex: Int, sort: Sort): UExpr<Sort>
 }
 
-class URegistersStackFrame(registers: Array<UExpr<out USort>?>) {
+class URegistersStackFrame(
+    private val registers: Array<UExpr<out USort>?>
+) {
     constructor(registersCount: Int) :
         this(Array(registersCount) { null })
 
-    var registers: Array<UExpr<out USort>?> = registers
-        protected set
-
-    fun realloc(registersCount: Int) {
-        registers = Array(registersCount) { if (it < registers.size) registers[it] else null }
-    }
+    constructor(arguments: Array<UExpr<out USort>>, localsCount: Int) :
+        this(arguments.copyOf(arguments.size + localsCount))
 
     operator fun get(index: Int) = registers[index]
     operator fun set(index: Int, value: UExpr<out USort>) = registers.set(index, value)
@@ -29,35 +26,27 @@ class URegistersStackFrame(registers: Array<UExpr<out USort>?>) {
 }
 
 class URegistersStack(
-    private val ctx: UContext,
-    private val stack: Stack<URegistersStackFrame> = Stack<URegistersStackFrame>(),
-) : Sequence<URegistersStackFrame>, URegistersStackEvaluator {
-    override fun iterator() = stack.iterator()
+    private val stack: MutableList<URegistersStackFrame> = mutableListOf(),
+) : URegistersStackEvaluator {
+    fun push(registersCount: Int) = stack.add(URegistersStackFrame(registersCount))
 
-    fun push(registersCount: Int) = stack.push(URegistersStackFrame(registersCount))
+    fun push(argumentsCount: Int, localsCount: Int) =
+        stack.add(URegistersStackFrame(argumentsCount + localsCount))
 
-    fun push(registers: Array<UExpr<out USort>?>) = stack.push(URegistersStackFrame(registers))
+    fun push(arguments: Array<UExpr<out USort>>, localsCount: Int) =
+        stack.add(URegistersStackFrame(arguments, localsCount))
 
-    fun peek() = stack.peek()
-
-    fun <Sort : USort> readRegister(index: Int, sort: Sort): KExpr<Sort> =
-        peek()[index]?.asExpr(sort) ?: ctx.mkRegisterReading(index, sort)
+    override fun <Sort : USort> readRegister(registerIndex: Int, sort: Sort): KExpr<Sort> =
+        stack.last()[registerIndex]?.asExpr(sort) ?: sort.uctx.mkRegisterReading(registerIndex, sort)
 
     fun writeRegister(index: Int, value: UExpr<out USort>) {
-        peek()[index] = value
+        stack.last()[index] = value
     }
 
-    fun pop() = stack.pop()
+    fun pop() = stack.removeLast()
 
     fun clone(): URegistersStack {
-        val newStack = Stack<URegistersStackFrame>()
-        newStack.ensureCapacity(stack.size)
-        stack.forEach { newStack.push(it.clone()) }
-        return URegistersStack(ctx, newStack)
+        val newStack = ArrayDeque(stack.map { it.clone() })
+        return URegistersStack(newStack)
     }
-
-    override fun <Sort : USort> eval(
-        registerIndex: Int,
-        sort: Sort,
-    ): UExpr<Sort> = readRegister(registerIndex, sort).asExpr(sort)
 }

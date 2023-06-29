@@ -27,7 +27,10 @@ open class UPathConstraints<Type> private constructor(
     /**
      * Constraints solved by type solver.
      */
-    val typeConstraints: UTypeConstraints<Type> = UTypeConstraints(ctx.typeSystem(), equalityConstraints)
+    val typeConstraints: UTypeConstraints<Type> = UTypeConstraints(
+        ctx.typeSystem(),
+        equalityConstraints
+    ),
 ) {
     /**
      * Constraints solved by SMT solver.
@@ -39,8 +42,8 @@ open class UPathConstraints<Type> private constructor(
 
     open val isFalse: Boolean
         get() = equalityConstraints.isContradiction ||
-                typeConstraints.isContradiction ||
-                logicalConstraints.singleOrNull() is UFalse
+            typeConstraints.isContradiction ||
+            logicalConstraints.singleOrNull() is UFalse
 
     @Suppress("UNCHECKED_CAST")
     open operator fun plusAssign(constraint: UBoolExpr): Unit =
@@ -50,9 +53,8 @@ open class UPathConstraints<Type> private constructor(
 
                 constraint == trueExpr || constraint in logicalConstraints -> {}
 
-                constraint is UEqExpr<*> && isSymbolicHeapRef(constraint.lhs) && isSymbolicHeapRef(constraint.rhs) -> {
+                constraint is UEqExpr<*> && isSymbolicHeapRef(constraint.lhs) && isSymbolicHeapRef(constraint.rhs) ->
                     equalityConstraints.addReferenceEquality(constraint.lhs as UHeapRef, constraint.rhs as UHeapRef)
-                }
 
                 constraint is UIsExpr<*> -> typeConstraints.cast(constraint.ref, constraint.type as Type)
 
@@ -61,7 +63,9 @@ open class UPathConstraints<Type> private constructor(
                 constraint is UNotExpr -> {
                     val notConstraint = constraint.arg
                     when {
-                        notConstraint is UEqExpr<*> && isSymbolicHeapRef(notConstraint.lhs) && isSymbolicHeapRef(notConstraint.rhs) -> {
+                        notConstraint is UEqExpr<*> &&
+                            isSymbolicHeapRef(notConstraint.lhs) &&
+                            isSymbolicHeapRef(notConstraint.rhs) -> {
                             require(notConstraint.rhs.sort == addressSort)
                             equalityConstraints.addReferenceDisequality(
                                 notConstraint.lhs as UHeapRef,

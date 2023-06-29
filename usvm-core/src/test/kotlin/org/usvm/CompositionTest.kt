@@ -123,7 +123,7 @@ internal class CompositionTest {
         val expression = mkRegisterReading(idx, bv32Sort)
         val bvValue = 32.toBv()
 
-        every { stackEvaluator.eval(idx, bv32Sort) } returns bvValue
+        every { stackEvaluator.readRegister(idx, bv32Sort) } returns bvValue
 
         val composedExpression = composer.compose(expression) as UExpr<*>
 
@@ -138,7 +138,7 @@ internal class CompositionTest {
         val expression = mkBvNegationExpr(readingValue)
         val bvValue = 32.toBv()
 
-        every { stackEvaluator.eval(idx, bv32Sort) } returns bvValue
+        every { stackEvaluator.readRegister(idx, bv32Sort) } returns bvValue
 
         val composedExpression = composer.compose(expression) as UExpr<*>
 
@@ -167,7 +167,7 @@ internal class CompositionTest {
             mkEq(bvValue, bvOneValue)
         )
 
-        every { stackEvaluator.eval(idx, bv32Sort) } returns bvValue
+        every { stackEvaluator.readRegister(idx, bv32Sort) } returns bvValue
 
         val composedExpression = composer.compose(expression) as UExpr<*>
 

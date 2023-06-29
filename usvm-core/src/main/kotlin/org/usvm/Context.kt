@@ -27,7 +27,7 @@ open class UContext(
 ) : KContext(operationMode, astManagementMode, simplificationMode) {
 
     private val solver by lazy { components.mkSolver(this) }
-    private val typeSystem = components.mkTypeSystem(this)
+    private val typeSystem by lazy { components.mkTypeSystem(this) }
 
     @Suppress("UNCHECKED_CAST")
     fun <Field, Type, Method> solver(): USolverBase<Field, Type, Method> =

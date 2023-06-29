@@ -16,7 +16,7 @@ interface UPathSelector<State> {
     /**
      * Adds [states] to the path selector.
      */
-    fun add(states: Sequence<State>)
+    fun add(states: Collection<State>)
 
     /**
      * Updates the internal priority of the [state].
