@@ -47,4 +47,31 @@ class CachingSequenceTest {
 
         assertEquals(1, callCounter)
     }
+
+    @Test
+    fun `Test filters sequence and consumes exactly once`() {
+        var callCounter = 0
+        val intRange = 0..100
+        val sequence = Sequence {
+            callCounter++
+            intRange.iterator()
+        }
+
+        val cachingSequence = sequence.cached()
+
+        val all = cachingSequence.toList()
+
+        assertEquals(intRange.toList(), all)
+        assertEquals(1, callCounter)
+
+        val remainderTwoEquals1 = cachingSequence.filter { it % 2 == 1 }
+
+        assertEquals(intRange.filter { it % 2 == 1 }, remainderTwoEquals1.toList())
+        assertEquals(1, callCounter)
+
+        val remainderThreeEquals1 = remainderTwoEquals1.filter { it % 3 == 1 }
+
+        assertEquals(intRange.filter { it % 2 == 1 && it % 3 == 1 }, remainderThreeEquals1.toList())
+        assertEquals(1, callCounter)
+    }
 }
