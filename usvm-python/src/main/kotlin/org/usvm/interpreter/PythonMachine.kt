@@ -13,12 +13,14 @@ import org.usvm.ps.DfsPathSelector
 class PythonMachine<PYTHON_OBJECT_REPRESENTATION>(
     private val program: PythonProgram,
     private val pythonObjectSerialization: (PythonObject) -> PYTHON_OBJECT_REPRESENTATION
-): UMachine<PythonExecutionState, PythonCallable>() {
+): UMachine<PythonExecutionState>() {
     private val ctx = UContext(PythonComponents)
     private val solver = ctx.solver<Attribute, PythonType, PythonCallable>()
     private val iterationCounter = IterationCounter()
-    val results = mutableListOf<PythonAnalysisResult<PYTHON_OBJECT_REPRESENTATION>>()
-    override fun getInterpreter(target: PythonCallable): USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION> =
+    private fun getInterpreter(
+        target: PythonCallable,
+        results: MutableList<PythonAnalysisResult<PYTHON_OBJECT_REPRESENTATION>>
+    ): USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION> =
         USVMPythonInterpreter(ctx, program, target, iterationCounter, pythonObjectSerialization) {
             results.add(it)
         }
@@ -31,7 +33,7 @@ class PythonMachine<PYTHON_OBJECT_REPRESENTATION>(
         ).apply {
             stack.push(target.numberOfArguments)
         }
-        val symbols = List(target.numberOfArguments) { SymbolForCPython(memory.read(URegisterRef(ctx.intSort, it))) }
+        val symbols = List(target.numberOfArguments) { SymbolForCPython(memory.read(URegisterLValue(ctx.intSort, it))) }
         return PythonExecutionState(
             ctx,
             target,
@@ -42,21 +44,24 @@ class PythonMachine<PYTHON_OBJECT_REPRESENTATION>(
         )
     }
 
-    override fun getPathSelector(target: PythonCallable): UPathSelector<PythonExecutionState> {
+     fun getPathSelector(target: PythonCallable): UPathSelector<PythonExecutionState> {
         val ps = DfsPathSelector<PythonExecutionState>()
         val initialState = getInitialState(target)
-        ps.add(sequenceOf(initialState))
+        ps.add(listOf(initialState))
         return ps
     }
 
-    fun analyze(pythonCallable: PythonCallable): Int {
+    fun analyze(
+        pythonCallable: PythonCallable,
+        results: MutableList<PythonAnalysisResult<PYTHON_OBJECT_REPRESENTATION>>
+    ): Int {
         var cnt = 0
-        results.clear()
         run(
-            pythonCallable,
+            getInterpreter(pythonCallable, results),
+            getPathSelector(pythonCallable),
             onState = { cnt += 1 },
             continueAnalyzing = { !it.wasExecuted },
-            shouldStop = { cnt >= 10000 }
+            stoppingStrategy = { cnt >= 10000 }
         )
         return iterationCounter.iterations
     }
