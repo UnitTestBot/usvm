@@ -10,32 +10,23 @@ fun main() {
         import pickle
         def f(x):
             if x >= 0:
-                return x
+                return pickle.dumps(x)
             else:
-                return -x
-            ${"\"\"\""}
-            print("x:", x, flush=True)
-            if int(x) >= 0:
-                if x >= 0:
-                    return pickle.dumps(x)
-                else:
-                    return pickle.dumps(-x)
-            else:
-                return 1
-            ${"\"\"\""}
+                return pickle.dumps(-x)
         """.trimIndent()
     )
     val function = PythonCallable.constructCallableFromName(List(1) { PythonInt }, "f")
     val machine = PythonMachine(program) { it }
     val start = System.currentTimeMillis()
     val iterations = machine.use { activeMachine ->
-        activeMachine.analyze(function)
+        val returnValue = activeMachine.analyze(function)
         activeMachine.results.forEach { (inputs, result) ->
             println("INPUT:")
-            inputs.forEach { ConcretePythonInterpreter.printPythonObject(it) }
+            inputs.map { it.reprFromPythonObject }.forEach { ConcretePythonInterpreter.printPythonObject(it) }
             println("RESULT:")
-            ConcretePythonInterpreter.printPythonObject(result!!)
+            println(ConcretePythonInterpreter.getPythonObjectRepr(result!!))
         }
+        returnValue
     }
     println("Finished in ${System.currentTimeMillis() - start} milliseconds. Made $iterations iterations.")
 }

@@ -1,6 +1,5 @@
 package org.usvm.interpreter
 
-import org.usvm.UExpr
 import org.usvm.language.SymbolForCPython
 
 object ConcretePythonInterpreter {
@@ -42,6 +41,10 @@ object ConcretePythonInterpreter {
 
     fun printPythonObject(pythonObject: PythonObject) {
         pythonAdapter.printPythonObject(pythonObject.address)
+    }
+
+    fun getPythonObjectRepr(pythonObject: PythonObject): String {
+        return pythonAdapter.getPythonObjectRepr(pythonObject.address)
     }
 
     fun kill() {
