@@ -1,9 +1,6 @@
 package org.usvm.interpreter
 
-import org.usvm.UContext
-import org.usvm.UMachine
-import org.usvm.UPathSelector
-import org.usvm.URegisterRef
+import org.usvm.*
 import org.usvm.constraints.UPathConstraints
 import org.usvm.language.Attribute
 import org.usvm.language.PythonCallable
@@ -12,11 +9,6 @@ import org.usvm.language.PythonType
 import org.usvm.language.SymbolForCPython
 import org.usvm.memory.UMemoryBase
 import org.usvm.ps.DfsPathSelector
-
-data class PythonAnalysisResult<PYTHON_OBJECT_REPRESENTATION>(
-    val inputValues: List<PYTHON_OBJECT_REPRESENTATION>,
-    val result: PYTHON_OBJECT_REPRESENTATION?
-)
 
 class PythonMachine<PYTHON_OBJECT_REPRESENTATION>(
     private val program: PythonProgram,
@@ -27,8 +19,8 @@ class PythonMachine<PYTHON_OBJECT_REPRESENTATION>(
     private val iterationCounter = IterationCounter()
     val results = mutableListOf<PythonAnalysisResult<PYTHON_OBJECT_REPRESENTATION>>()
     override fun getInterpreter(target: PythonCallable): USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION> =
-        USVMPythonInterpreter(ctx, program, target, iterationCounter, pythonObjectSerialization) { inputs, result ->
-            results.add(PythonAnalysisResult(inputs, result))
+        USVMPythonInterpreter(ctx, program, target, iterationCounter, pythonObjectSerialization) {
+            results.add(it)
         }
 
     private fun getInitialState(target: PythonCallable): PythonExecutionState {
