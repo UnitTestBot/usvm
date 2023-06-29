@@ -48,11 +48,7 @@ public class A {
     int mockNumberGenerated0 = 0;
 
     public int mock(MockClass mc1) {
-        if (mc1.stringField.equals("a") && mc1.getStr().equals("a")) {
-            return mc1.intField + mc1.getI();
-        } else {
-            return -1;
-        }
+        return mc1.getI();
     }
 
     public int mockInterface(MockInterface mc) {
