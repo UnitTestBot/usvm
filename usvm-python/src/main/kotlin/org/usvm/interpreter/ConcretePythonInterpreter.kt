@@ -25,6 +25,21 @@ object ConcretePythonInterpreter {
         return PythonObject(result)
     }
 
+    fun concreteRunOnFunctionRef(
+        globals: PythonNamespace,
+        functionRef: PythonObject,
+        concreteArgs: Collection<PythonObject>
+    ): PythonObject {
+        val result = pythonAdapter.concreteRunOnFunctionRef(
+            globals.address,
+            functionRef.address,
+            concreteArgs.map { it.address }.toLongArray()
+        )
+        if (result == 0L)
+            throw CPythonExecutionException
+        return PythonObject(result)
+    }
+
     fun concolicRun(globals: PythonNamespace, functionRef: PythonObject, concreteArgs: Collection<PythonObject>,
                     symbolicArgs: List<SymbolForCPython>, ctx: ConcolicRunContext): PythonObject {
         val result = pythonAdapter.concolicRun(
