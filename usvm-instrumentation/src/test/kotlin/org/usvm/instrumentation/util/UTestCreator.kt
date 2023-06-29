@@ -180,6 +180,25 @@ object UTestCreator {
             return UTest(listOf(), UTestMethodCall(instance, jcMethod, listOf(argMock)))
         }
 
+        fun mockStaticMethod(jcClasspath: JcClasspath): UTest {
+            val jcClass = jcClasspath.findClass<example.A>()
+            val jcMethod = jcClass.findMethodOrNull("staticMock") ?: error("Cant find method indexOf in class A")
+            val constructor = jcClass.constructors.first()
+            val instance = UTestConstructorCall(constructor, listOf())
+
+            val jcMockClass = jcClasspath.findClass<example.MockClass>()
+
+            val mockedMethod1 = jcMockClass.declaredMethods.find { it.name == "staticMock" }!!
+            val mockedMethodRetValue1 = UTestIntExpression(239, jcClasspath.int)
+
+            val mockedMethods = mapOf(
+                mockedMethod1 to mockedMethodRetValue1
+            )
+
+            val mock = UTestMockObject(jcMockClass.toType(), mapOf(), mockedMethods)
+            return UTest(listOf(mock), UTestMethodCall(instance, jcMethod, listOf()))
+        }
+
         fun mockInterface(jcClasspath: JcClasspath): UTest {
             val jcClass = jcClasspath.findClass<example.A>()
             val jcMethod = jcClass.findMethodOrNull("mockInterface") ?: error("Cant find method indexOf in class A")
