@@ -28,7 +28,7 @@ class SimpleUTestConcreteExecutor: UTestConcreteExecutorTest() {
     }
 
     @Test
-    fun `simple`() = executeTest {
+    fun `simple test`() = executeTest {
         val uTest = UTestCreator.C.lol(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
         assert(res is UTestExecutionSuccessResult)
@@ -36,7 +36,7 @@ class SimpleUTestConcreteExecutor: UTestConcreteExecutorTest() {
     }
 
     @Test
-    fun `static fields`() = executeTest {
+    fun `static fields test`() = executeTest {
         val uTest = UTestCreator.A.isA(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
         assert(res is UTestExecutionSuccessResult)
@@ -44,7 +44,7 @@ class SimpleUTestConcreteExecutor: UTestConcreteExecutorTest() {
     }
 
     @Test
-    fun `static method`() = executeTest {
+    fun `static method test`() = executeTest {
         val uTest = UTestCreator.A.javaStdLibCall(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
         assert(res is UTestExecutionSuccessResult)
@@ -53,7 +53,7 @@ class SimpleUTestConcreteExecutor: UTestConcreteExecutorTest() {
     }
 
     @Test
-    fun `method with uTestCondition`() = executeTest {
+    fun `method with uTestCondition test`() = executeTest {
         val uTest = UTestCreator.A.indexOfWithIf(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
         assert(res is UTestExecutionSuccessResult)
@@ -62,7 +62,7 @@ class SimpleUTestConcreteExecutor: UTestConcreteExecutorTest() {
     }
 
     @Test
-    fun `method with inner class usage`() = executeTest {
+    fun `method with inner class usage test`() = executeTest {
         val uTest = UTestCreator.Arrays.checkAllSamePoints(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
         assert(res is UTestExecutionSuccessResult)
@@ -71,7 +71,7 @@ class SimpleUTestConcreteExecutor: UTestConcreteExecutorTest() {
     }
 
     @Test
-    fun `singleton`() = executeTest {
+    fun `singleton test`() = executeTest {
         val uTest = UTestCreator.Singleton.addToArray(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
         assert(res is UTestExecutionSuccessResult)
@@ -80,7 +80,7 @@ class SimpleUTestConcreteExecutor: UTestConcreteExecutorTest() {
     }
 
     @Test
-    fun `nested class`() = executeTest {
+    fun `nested class test`() = executeTest {
         val uTest = UTestCreator.NestedClass.getB(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
         assert(res is UTestExecutionSuccessResult)
@@ -91,6 +91,17 @@ class SimpleUTestConcreteExecutor: UTestConcreteExecutorTest() {
     @Test
     fun `simple class mock test`() = executeTest {
         val uTest = UTestCreator.A.mock(jcClasspath)
+        val res = uTestConcreteExecutor.executeAsync(uTest)
+        assert(res is UTestExecutionSuccessResult)
+        res as UTestExecutionSuccessResult
+        val result = res.result
+        assert(result != null)
+        assert(result is UTestConstantDescriptor.Int && result.value == 239)
+    }
+
+    @Test
+    fun `mock static method test`() = executeTest {
+        val uTest = UTestCreator.A.mockStaticMethod(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
         assert(res is UTestExecutionSuccessResult)
         res as UTestExecutionSuccessResult

@@ -3,7 +3,6 @@ package org.usvm.instrumentation.org.usvm.instrumentation.instrumentation
 import org.jacodb.api.JcClasspath
 import org.jacodb.api.cfg.JcRawCallInst
 import org.jacodb.api.cfg.JcRawStaticCallExpr
-import org.jacodb.api.cfg.JcRawThis
 import org.jacodb.api.cfg.JcRawValue
 import org.jacodb.api.ext.long
 import org.jacodb.api.ext.objectType
@@ -48,7 +47,7 @@ class TraceHelper(
         return JcRawCallInst(jcTraceMethod, createStaticExprWithLongArg(jcInstId, jcTraceMethod))
     }
 
-    fun createMockCollectorCall(traceMethodName: String, id: Long, jcRawThis: JcRawThis): JcRawStaticCallExpr {
+    fun createMockCollectorCall(traceMethodName: String, id: Long, jcThisReference: JcRawValue): JcRawStaticCallExpr {
         val jcTraceMethod = jcVirtualGlobalObjectClass.declaredMethods.find { it.name == traceMethodName }!!
         val jcRawLong = JcRawLong(id)
         return JcRawStaticCallExpr(
@@ -56,7 +55,7 @@ class TraceHelper(
             jcTraceMethod.name,
             listOf(jcClasspath.long.getTypename(), jcClasspath.objectType.getTypename()),
             jcTraceMethod.returnType,
-            listOf(jcRawLong, jcRawThis)
+            listOf(jcRawLong, jcThisReference)
         )
     }
 
