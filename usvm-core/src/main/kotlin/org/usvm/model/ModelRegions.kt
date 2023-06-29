@@ -1,23 +1,19 @@
 package org.usvm.model
 
-import kotlinx.collections.immutable.PersistentMap
-import kotlinx.collections.immutable.persistentMapOf
-import kotlinx.collections.immutable.toPersistentMap
 import io.ksmt.expr.KArray2Store
 import io.ksmt.expr.KArrayConst
 import io.ksmt.expr.KArrayStore
-import io.ksmt.expr.KConst
 import io.ksmt.expr.KExpr
 import io.ksmt.solver.KModel
 import io.ksmt.sort.KArray2Sort
 import io.ksmt.sort.KArraySort
-import org.usvm.UBoolExpr
+import kotlinx.collections.immutable.PersistentMap
+import kotlinx.collections.immutable.persistentMapOf
+import kotlinx.collections.immutable.toPersistentMap
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
-import org.usvm.isFalse
-import org.usvm.isTrue
 import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UReadOnlyMemoryRegion
 
@@ -49,7 +45,7 @@ class UMemory1DArray<KeySort : USort, Sort : USort> internal constructor(
          * to their concrete representation.
          */
         operator fun <KeySort : USort, Sort : USort> invoke(
-            initialValue: KConst<KArraySort<KeySort, Sort>>,
+            initialValue: KExpr<KArraySort<KeySort, Sort>>,
             model: KModel,
             mapping: Map<UHeapRef, UConcreteHeapRef>,
         ): UMemory1DArray<KeySort, Sort> {

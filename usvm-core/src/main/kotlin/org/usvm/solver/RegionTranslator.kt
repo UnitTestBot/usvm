@@ -39,13 +39,13 @@ class URegionTranslator<RegionId : URegionId<Key, Sort, RegionId>, Key, Sort : U
  * @param exprTranslator defines how to perform translation on inner values.
  * @param initialValue defines an initial value for a translated array.
  */
-internal class U1DArrayUpdateTranslate<KeySort : USort, Sort : USort>(
+internal class U1DUpdatesTranslator<KeySort : USort, Sort : USort>(
     private val exprTranslator: UExprTranslator<*, *>,
     private val initialValue: KExpr<KArraySort<KeySort, Sort>>,
 ) : UMemoryUpdatesVisitor<UExpr<KeySort>, Sort, KExpr<KArraySort<KeySort, Sort>>> {
 
     /**
-     * [key] is already translated, so we don't have to call it explicitly.
+     * Note: [key] is already translated, so we don't have to translate it explicitly.
      */
     override fun visitSelect(result: KExpr<KArraySort<KeySort, Sort>>, key: KExpr<KeySort>): KExpr<Sort> =
         result.ctx.mkArraySelect(result, key)
@@ -70,10 +70,10 @@ internal class U1DArrayUpdateTranslate<KeySort : USort, Sort : USort>(
             }
 
             is URangedUpdateNode<*, *, *, *> -> {
+                @Suppress("UNCHECKED_CAST")
                 when (update.guard) {
                     falseExpr -> previous
                     else -> {
-                        @Suppress("UNCHECKED_CAST")
                         (update as URangedUpdateNode<UArrayId<*, Any?, Sort, *>, Any?, UExpr<KeySort>, Sort>)
                         val key = mkFreshConst("k", previous.sort.domain)
 
@@ -82,7 +82,10 @@ internal class U1DArrayUpdateTranslate<KeySort : USort, Sort : USort>(
                         val keyMapper = from.regionId.keyMapper(exprTranslator)
                         val convertedKey = keyMapper(update.keyConverter.convert(key))
                         val isInside = update.includesSymbolically(key).translated // already includes guard
-                        val result = exprTranslator.translateRegionReading(from, convertedKey)
+                        val result = from.regionId.instantiate(
+                            from as USymbolicMemoryRegion<Nothing, Any?, Sort>,
+                            convertedKey
+                        ).translated
                         val ite = mkIte(isInside, result, previous.select(key))
                         mkArrayLambda(key.decl, ite)
                     }
@@ -100,7 +103,7 @@ internal class U1DArrayUpdateTranslate<KeySort : USort, Sort : USort>(
  * @param exprTranslator defines how to perform translation on inner values.
  * @param initialValue defines an initial value for a translated array.
  */
-internal class U2DArrayUpdateVisitor<
+internal class U2DUpdatesTranslator<
     Key1Sort : USort,
     Key2Sort : USort,
     Sort : USort,
@@ -110,7 +113,7 @@ internal class U2DArrayUpdateVisitor<
 ) : UMemoryUpdatesVisitor<Pair<UExpr<Key1Sort>, UExpr<Key2Sort>>, Sort, KExpr<KArray2Sort<Key1Sort, Key2Sort, Sort>>> {
 
     /**
-     * [key] is already translated, so we don't have to call it explicitly.
+     * Note: [key] is already translated, so we don't have to call it explicitly.
      */
     override fun visitSelect(
         result: KExpr<KArray2Sort<Key1Sort, Key2Sort, Sort>>,
@@ -134,10 +137,10 @@ internal class U2DArrayUpdateVisitor<
             }
 
             is URangedUpdateNode<*, *, *, *> -> {
+                @Suppress("UNCHECKED_CAST")
                 when (update.guard) {
                     falseExpr -> previous
                     else -> {
-                        @Suppress("UNCHECKED_CAST")
                         (update as URangedUpdateNode<UArrayId<*, Any?, Sort, *>, Any?, Pair<UExpr<Key1Sort>, UExpr<Key2Sort>>, Sort>)
                         val key1 = mkFreshConst("k1", previous.sort.domain0)
                         val key2 = mkFreshConst("k2", previous.sort.domain1)
@@ -146,7 +149,10 @@ internal class U2DArrayUpdateVisitor<
                         val keyMapper = region.regionId.keyMapper(exprTranslator)
                         val convertedKey = keyMapper(update.keyConverter.convert(key1 to key2))
                         val isInside = update.includesSymbolically(key1 to key2).translated // already includes guard
-                        val result = exprTranslator.translateRegionReading(region, convertedKey)
+                        val result = region.regionId.instantiate(
+                            region as USymbolicMemoryRegion<Nothing, Any?, Sort>,
+                            convertedKey
+                        ).translated
                         val ite = mkIte(isInside, result, previous.select(key1, key2))
                         mkArrayLambda(key1.decl, key2.decl, ite)
                     }

@@ -36,21 +36,6 @@ interface URegionId<Key, Sort : USort, out RegionId : URegionId<Key, Sort, Regio
     fun <Field, ArrayType> keyMapper(transformer: UExprTransformer<Field, ArrayType>): KeyMapper<Key>
 
     fun <Field, ArrayType> map(composer: UComposer<Field, ArrayType>): RegionId
-
-    fun <R> accept(visitor: URegionIdVisitor<R>): R
-}
-
-interface URegionIdVisitor<R> {
-    fun <Key, Sort : USort, RegionId : URegionId<Key, Sort, RegionId>> visit(regionId: URegionId<Key, Sort, RegionId>): Any? =
-        error("You must provide visit implementation for ${regionId::class} in ${this::class}")
-
-    fun <Field, Sort : USort> visit(regionId: UInputFieldId<Field, Sort>): R
-
-    fun <ArrayType, Sort : USort> visit(regionId: UAllocatedArrayId<ArrayType, Sort>): R
-
-    fun <ArrayType, Sort : USort> visit(regionId: UInputArrayId<ArrayType, Sort>): R
-
-    fun <ArrayType> visit(regionId: UInputArrayLengthId<ArrayType>): R
 }
 
 /**
@@ -91,9 +76,6 @@ data class UInputFieldId<Field, Sort : USort> internal constructor(
         @Suppress("UNCHECKED_CAST")
         return copy(contextHeap = composer.heapEvaluator.toMutableHeap() as USymbolicHeap<Field, *>)
     }
-
-    override fun <R> accept(visitor: URegionIdVisitor<R>): R =
-        visitor.visit(this)
 
     override fun toString(): String {
         return "inputField($field)"
@@ -167,9 +149,6 @@ data class UAllocatedArrayId<ArrayType, Sort : USort> internal constructor(
         return true
     }
 
-    override fun <R> accept(visitor: URegionIdVisitor<R>): R =
-        visitor.visit(this)
-
     override fun hashCode(): Int {
         return address
     }
@@ -213,9 +192,6 @@ data class UInputArrayId<ArrayType, Sort : USort> internal constructor(
         val idx = transformer.apply(it.second)
         if (ref === it.first && idx === it.second) it else ref to idx
     }
-
-    override fun <R> accept(visitor: URegionIdVisitor<R>): R =
-        visitor.visit(this)
 
     override fun <Field, CArrayType> map(composer: UComposer<Field, CArrayType>): UInputArrayId<ArrayType, Sort> {
         check(contextHeap == null) { "contextHeap is not null in composition" }
@@ -266,9 +242,6 @@ data class UInputArrayLengthId<ArrayType> internal constructor(
         @Suppress("UNCHECKED_CAST")
         return copy(contextHeap = composer.heapEvaluator.toMutableHeap() as USymbolicHeap<*, ArrayType>)
     }
-    override fun <R> accept(visitor: URegionIdVisitor<R>): R =
-        visitor.visit(this)
-
     override fun toString(): String {
         return "length($arrayType)"
     }
