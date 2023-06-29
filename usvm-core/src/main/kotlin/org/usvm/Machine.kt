@@ -1,12 +1,14 @@
 package org.usvm
 
+import org.usvm.ps.stopstrategies.StoppingStrategy
+
 
 /**
  * An abstract symbolic machine.
  *
  * @see [run]
  */
-abstract class UMachine<State : UState<*, *, *, *>, Target> : AutoCloseable {
+abstract class UMachine<State> : AutoCloseable {
     /**
      * The main entry point. Template method for running the machine on a specified [target].
      *
@@ -14,19 +16,17 @@ abstract class UMachine<State : UState<*, *, *, *>, Target> : AutoCloseable {
      * @param onState called on every forked state. Can be used for collecting results.
      * @param continueAnalyzing filtering function for states. If it returns `false`, a state
      * won't be analyzed further. It is called on an original state and every forked state as well.
-     * @param shouldStop is called on every step, before peeking a next state from path selector.
+     * @param stoppingStrategy is called on every step, before peeking a next state from the path selector.
      * Returning `true` aborts analysis.
      */
     fun run(
-        target: Target,
+        interpreter: UInterpreter<State>,
+        pathSelector: UPathSelector<State>,
         onState: (State) -> Unit,
         continueAnalyzing: (State) -> Boolean,
-        shouldStop: () -> Boolean = { false },
+        stoppingStrategy: StoppingStrategy = StoppingStrategy { false },
     ) {
-        val interpreter = getInterpreter(target)
-        val pathSelector = getPathSelector(target)
-
-        while (!pathSelector.isEmpty() && !shouldStop()) {
+        while (!pathSelector.isEmpty() && !stoppingStrategy.shouldStop()) {
             pathSelector.peekAndUpdate { state ->
                 val (forkedStates, stateAlive) = interpreter.step(state)
 
@@ -54,16 +54,6 @@ abstract class UMachine<State : UState<*, *, *, *>, Target> : AutoCloseable {
         } else {
             remove(state)
         }
-        add(forkedStates)
+        add(forkedStates.toList())
     }
-
-    /**
-     * @return a configured interpreter suitable for a [target].
-     */
-    protected abstract fun getInterpreter(target: Target): UInterpreter<State>
-
-    /**
-     * @return a configured path selector with initial states obtained from a [target].
-     */
-    protected abstract fun getPathSelector(target: Target): UPathSelector<State>
 }

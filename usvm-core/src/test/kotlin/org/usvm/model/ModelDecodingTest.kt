@@ -6,12 +6,16 @@ import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import io.ksmt.solver.z3.KZ3Solver
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.usvm.Field
 import org.usvm.Method
 import org.usvm.Type
+import org.usvm.UArrayIndexLValue
 import org.usvm.UComponents
+import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UIndexedMocker
+import org.usvm.URegisterLValue
 import org.usvm.constraints.UPathConstraints
 import org.usvm.memory.URegionHeap
 import org.usvm.memory.URegistersStack
@@ -40,7 +44,7 @@ class ModelDecodingTest {
         val (translator, decoder) = buildTranslatorAndLazyDecoder<Field, Type, Method>(ctx)
         solver = USolverBase(ctx, KZ3Solver(ctx), translator, decoder, softConstraintProvider)
 
-        stack = URegistersStack(ctx)
+        stack = URegistersStack()
         stack.push(10)
         heap = URegionHeap(ctx)
         mocker = UIndexedMocker(ctx)
@@ -152,15 +156,15 @@ class ModelDecodingTest {
         val idx = stack.readRegister(3, bv32Sort)
 
         heap.writeArrayIndex(concreteRef, concreteIdx, array, addressSort, symbolicRef1, trueExpr)
-        val readedRef = heap.readArrayIndex(concreteRef, idx, array, addressSort)
+        val readRef = heap.readArrayIndex(concreteRef, idx, array, addressSort)
 
-        val readedRef1 = heap.readArrayIndex(symbolicRef2, idx, array, addressSort)
+        val readRef1 = heap.readArrayIndex(symbolicRef2, idx, array, addressSort)
 
-        heap.writeArrayIndex(readedRef, idx, array, addressSort, symbolicRef0, trueExpr)
+        heap.writeArrayIndex(readRef, idx, array, addressSort, symbolicRef0, trueExpr)
 
-        val readedRef2 = heap.readArrayIndex(symbolicRef2, idx, array, addressSort)
+        val readRef2 = heap.readArrayIndex(symbolicRef2, idx, array, addressSort)
 
-        pc += (symbolicRef2 neq nullRef) and (readedRef1 neq readedRef2)
+        pc += (symbolicRef2 neq nullRef) and (readRef1 neq readRef2)
 
         val status = solver.checkWithSoftConstraints(pc)
         val model = assertIs<USatResult<UModelBase<Field, Type>>>(status).model
@@ -182,17 +186,37 @@ class ModelDecodingTest {
         heap.writeArrayIndex(symbolicRef1, concreteIdx, array, addressSort, symbolicRef2, trueExpr)
         heap.writeArrayIndex(symbolicRef2, concreteIdx, array, addressSort, symbolicRef0, trueExpr)
 
-        val readedRef = heap.readArrayIndex(symbolicRef0, concreteIdx, array, addressSort)
+        val readRef = heap.readArrayIndex(symbolicRef0, concreteIdx, array, addressSort)
         pc += symbolicRef0 neq nullRef
         pc += symbolicRef1 neq nullRef
         pc += symbolicRef2 neq nullRef
-        pc += readedRef neq symbolicRef1
+        pc += readRef neq symbolicRef1
         pc += symbolicRef0 eq symbolicRef1
 
         val status = solver.checkWithSoftConstraints(pc)
         val model = assertIs<USatResult<UModelBase<Field, Type>>>(status).model
 
         assertSame(falseExpr, model.eval(symbolicRef2 eq symbolicRef0))
-        assertSame(model.eval(readedRef), model.eval(symbolicRef2))
+        assertSame(model.eval(readRef), model.eval(symbolicRef2))
+    }
+
+    @Test
+    fun testSimpleReadingFromModel() = with(ctx) {
+        val array = mockk<Type>()
+
+        val symbolicRef0 = stack.readRegister(0, addressSort)
+
+        val concreteIdx = mkBv(3)
+
+        val readExpr = heap.readArrayIndex(symbolicRef0, concreteIdx, array, bv32Sort)
+        pc += symbolicRef0 neq nullRef
+        pc += readExpr eq mkBv(42)
+
+        val status = solver.checkWithSoftConstraints(pc)
+        val model = assertIs<USatResult<UModelBase<Field, Type>>>(status).model
+
+        val ref = assertIs<UConcreteHeapRef>(model.read(URegisterLValue(addressSort, 0)))
+        val expr = model.read(UArrayIndexLValue(bv32Sort, ref, concreteIdx, array))
+        assertEquals(mkBv(42), expr)
     }
 }
