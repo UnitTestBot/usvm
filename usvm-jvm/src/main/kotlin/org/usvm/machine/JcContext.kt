@@ -18,7 +18,7 @@ class JcContext(
     val cp: JcClasspath,
     components: JcComponents,
 ) : UContext(components) {
-    val voidSort get() = addressSort
+    val voidSort by lazy { JcVoidSort(this) }
 
     val longSort get() = bv64Sort
     val integerSort get() = bv32Sort

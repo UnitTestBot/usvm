@@ -19,7 +19,11 @@ class InterleavedSelector<State>(
     override fun peek(): State {
         val begin = ptr
         while (selectors[ptr].isEmpty()) {
-            ptr = (ptr + 1) % selectors.size
+            ptr++ // overflow here is impossible, because then selectors.size < 0
+            if (ptr == selectors.size) {
+                ptr = 0
+            }
+
             if (ptr == begin) {
                 error("Empty queue")
             }

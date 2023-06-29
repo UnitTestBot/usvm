@@ -6,25 +6,25 @@ import org.usvm.USort
 /**
  * Represents a result of a method invocation.
  */
-sealed class JcMethodResult {
+sealed interface JcMethodResult {
     /**
      * No call was performed.
      */
-    object NoCall : JcMethodResult()
+    object NoCall : JcMethodResult
 
     /**
      * A method successfully returned a [value].
      */
     class Success(
         val value: UExpr<out USort>
-    ) : JcMethodResult()
+    ) : JcMethodResult
 
     /**
      * A method threw an [exception].
      */
     class Exception(
         val exception: kotlin.Exception
-    ) : JcMethodResult()
+    ) : JcMethodResult
 
 }
 

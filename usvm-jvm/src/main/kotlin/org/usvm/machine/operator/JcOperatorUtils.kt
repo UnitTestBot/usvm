@@ -56,7 +56,7 @@ internal fun UExpr<UBvSort>.mkNarrow(sizeBits: Int, signed: Boolean): UExpr<UBvS
             ctx.mkBvZeroExtensionExpr(diff, this)
         }
     } else {
-        ctx.mkBvExtractExpr(sizeBits - 1, 0, this)
+        ctx.mkBvExtractExpr(high = sizeBits - 1, low = 0, this)
     }
     return res
 }

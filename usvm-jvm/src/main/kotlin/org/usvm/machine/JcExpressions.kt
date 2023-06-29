@@ -7,23 +7,30 @@ import io.ksmt.expr.KBitVec16Value
 import io.ksmt.expr.KBitVec32Value
 import io.ksmt.expr.KBitVec64Value
 import io.ksmt.expr.KBitVec8Value
-import io.ksmt.expr.KExpr
 import io.ksmt.expr.KFp32Value
 import io.ksmt.expr.KFp64Value
 import io.ksmt.expr.printer.ExpressionPrinter
 import io.ksmt.expr.transformer.KTransformerBase
-import org.usvm.UAddressSort
+import io.ksmt.sort.KSortVisitor
 import org.usvm.UExpr
 import org.usvm.USort
 
-class JcVoidValue(ctx: JcContext) : UExpr<UAddressSort>(ctx) {
-    override val sort: UAddressSort get() = jctx.voidSort
+class JcVoidSort(ctx: JcContext) : USort(ctx) {
+    override fun print(builder: StringBuilder) {
+        builder.append("void sort")
+    }
+
+    override fun <T> accept(visitor: KSortVisitor<T>): T = error("should not be called")
+}
+
+class JcVoidValue(ctx: JcContext) : UExpr<JcVoidSort>(ctx) {
+    override val sort: JcVoidSort get() = jctx.voidSort
 
     override fun internEquals(other: Any): Boolean = structurallyEqual(other)
 
     override fun internHashCode(): Int = hash()
 
-    override fun accept(transformer: KTransformerBase): KExpr<UAddressSort> = this
+    override fun accept(transformer: KTransformerBase): JcVoidValue = this
 
     override fun print(printer: ExpressionPrinter) {
         printer.append("void")
