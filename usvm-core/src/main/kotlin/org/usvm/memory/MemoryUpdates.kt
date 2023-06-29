@@ -176,7 +176,7 @@ class UFlatUpdates<Key, Sort : USort> private constructor(
 
     override fun <Field, Type> map(
         keyMapper: KeyMapper<Key>,
-        composer: UComposer<Field, Type>
+        composer: UComposer<Field, Type>,
     ): UFlatUpdates<Key, Sort> {
         node ?: return this
         // Map the current node and the next values recursively
@@ -288,7 +288,7 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
         fromKey: Key,
         toKey: Key,
         keyConverter: UMemoryKeyConverter<SrcKey, Key>,
-        guard: UBoolExpr
+        guard: UBoolExpr,
     ): UTreeUpdates<Key, Reg, Sort> {
         val region = keyRangeToRegion(fromKey, toKey)
         val update = URangedUpdateNode(fromKey, toKey, fromRegion, concreteCmp, symbolicCmp, keyConverter, guard)
@@ -500,10 +500,7 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
         private val visitor: UMemoryUpdatesVisitor<Key, Sort, Result>,
         private val cache: MutableMap<Any?, Result>,
     ) {
-        fun fold(): Result =
-            cache.getOrPut(updates) {
-                leftMostFold(updates)
-            }
+        fun fold() = leftMostFold(updates)
 
         private val emittedUpdates = hashSetOf<UUpdateNode<Key, Sort>>()
 
@@ -521,22 +518,18 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
          * *
          *```
          */
-        private fun leftMostFold(updates: RegionTree<*, UUpdateNode<Key, Sort>>): Result {
-            var result = cache[updates]
-
-            if (result != null) {
-                return result
+        private fun leftMostFold(updates: RegionTree<*, UUpdateNode<Key, Sort>>): Result =
+            cache.getOrPut(updates) {
+                val entryIterator = updates.entries.iterator()
+                if (!entryIterator.hasNext()) {
+                    visitor.visitInitialValue()
+                } else {
+                    val (update, nextUpdates) = entryIterator.next().value
+                    var result = leftMostFold(nextUpdates)
+                    result = visitor.visitUpdate(result, update)
+                    notLeftMostFold(result, entryIterator)
+                }
             }
-
-            val entryIterator = updates.entries.iterator()
-            if (!entryIterator.hasNext()) {
-                return visitor.visitInitialValue()
-            }
-            val (update, nextUpdates) = entryIterator.next().value
-            result = leftMostFold(nextUpdates)
-            result = visitor.visitUpdate(result, update)
-            return notLeftMostFold(result, entryIterator)
-        }
 
         private fun notLeftMostFold(
             accumulator: Result,

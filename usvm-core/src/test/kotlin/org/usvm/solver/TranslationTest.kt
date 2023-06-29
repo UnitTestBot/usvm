@@ -1,13 +1,15 @@
 package org.usvm.solver
 
+import io.ksmt.expr.KExpr
+import io.ksmt.solver.KSolverStatus
+import io.ksmt.solver.z3.KZ3Solver
+import io.ksmt.sort.KArraySort
+import io.ksmt.sort.KSort
+import io.ksmt.utils.mkConst
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.RepeatedTest
 import org.junit.jupiter.api.Test
-import io.ksmt.solver.KSolverStatus
-import io.ksmt.solver.z3.KZ3Solver
-import io.ksmt.utils.mkConst
 import org.usvm.Field
 import org.usvm.Type
 import org.usvm.UAddressSort
@@ -21,10 +23,11 @@ import org.usvm.memory.emptyAllocatedArrayRegion
 import org.usvm.memory.emptyInputArrayLengthRegion
 import org.usvm.memory.emptyInputArrayRegion
 import org.usvm.memory.emptyInputFieldRegion
+import kotlin.test.assertEquals
 import kotlin.test.assertSame
 
 class TranslationTest {
-    private lateinit var ctx: UContext
+    private lateinit var ctx: RecordingCtx
     private lateinit var heap: URegionHeap<Field, Type>
     private lateinit var translator: UExprTranslator<Field, Type>
 
@@ -33,12 +36,25 @@ class TranslationTest {
     private lateinit var valueArrayDescr: Type
     private lateinit var addressArrayDescr: Type
 
+    class RecordingCtx(components: UComponents<*, *, *>) : UContext(components) {
+        var storeCallCounter = 0
+            private set
+        override fun <D : KSort, R : KSort> mkArrayStore(
+            array: KExpr<KArraySort<D, R>>,
+            index: KExpr<D>,
+            value: KExpr<R>
+        ): KExpr<KArraySort<D, R>> {
+            storeCallCounter++
+            return super.mkArrayStore(array, index, value)
+        }
+    }
+
     @BeforeEach
     fun initializeContext() {
         val components: UComponents<*, *, *> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
 
-        ctx = UContext(components)
+        ctx = RecordingCtx(components)
         heap = URegionHeap(ctx)
         translator = UExprTranslator(ctx)
 
@@ -131,9 +147,8 @@ class TranslationTest {
         assertSame(expected, translated)
     }
 
-    @RepeatedTest(10)
+    @Test
     fun testTranslateInputToAllocatedArrayCopy() = with(ctx) {
-
         val ref1 = mkRegisterReading(0, addressSort)
         val idx1 = mkRegisterReading(1, sizeSort)
         val val1 = mkBv(1)
@@ -159,7 +174,7 @@ class TranslationTest {
 
         val key = region.regionId.keyMapper(translator)(keyConverter.convert(translator.translate(idx)))
         val innerReading =
-            translator.translateRegionReading(region, key)
+            translator.translate(region.read(key))
         val guard =
             translator.translate((mkBvSignedLessOrEqualExpr(mkBv(0), idx)) and mkBvSignedLessOrEqualExpr(idx, mkBv(5)))
         val expected = mkIte(guard, innerReading, mkBv(0))
@@ -230,7 +245,6 @@ class TranslationTest {
 
     @Test
     fun testTranslateInputToInputArrayCopy() = with(ctx) {
-
         val ref1 = mkRegisterReading(0, addressSort)
         val idx1 = mkRegisterReading(1, sizeSort)
         val val1 = mkBv(1)
@@ -263,5 +277,27 @@ class TranslationTest {
         val status = solver.check()
 
         assertSame(KSolverStatus.UNSAT, status)
+    }
+
+    @Test
+    fun testCachingOfTranslatedMemoryUpdates() = with(ctx) {
+        val allocatedRegion = emptyAllocatedArrayRegion(valueArrayDescr, 0, sizeSort)
+            .write(mkRegisterReading(0, sizeSort), mkBv(0), trueExpr)
+            .write(mkRegisterReading(1, sizeSort), mkBv(1), trueExpr)
+
+        val allocatedRegionExtended = allocatedRegion
+            .write(mkRegisterReading(2, sizeSort), mkBv(2), trueExpr)
+            .write(mkRegisterReading(3, sizeSort), mkBv(3), trueExpr)
+
+        val reading = allocatedRegion.read(mkRegisterReading(4, sizeSort))
+        val readingExtended = allocatedRegionExtended.read(mkRegisterReading(5, sizeSort))
+
+        translator.translate(reading)
+
+        assertEquals(2, ctx.storeCallCounter)
+
+        translator.translate(readingExtended)
+
+        assertEquals(4, ctx.storeCallCounter)
     }
 }
