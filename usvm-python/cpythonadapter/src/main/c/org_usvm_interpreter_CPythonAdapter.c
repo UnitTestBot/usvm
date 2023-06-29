@@ -98,3 +98,9 @@ JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_printPythonObjec
     printf("\n");
     fflush(stdout);
 }
+
+JNIEXPORT jstring JNICALL Java_org_usvm_interpreter_CPythonAdapter_getPythonObjectRepr(JNIEnv *env, jobject cpython_adapter, jlong object_ref) {
+    PyObject *repr = PyObject_Repr((PyObject *) object_ref);
+    char *repr_as_string = PyUnicode_AsUTF8AndSize(repr, 0);
+    return (*env)->NewStringUTF(env, repr_as_string);
+}

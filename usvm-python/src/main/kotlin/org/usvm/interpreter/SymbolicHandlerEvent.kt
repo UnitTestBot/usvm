@@ -17,13 +17,3 @@ class SymbolicHandlerEvent<out T>(
     val parameters: SymbolicHandlerEventParameters<T>,
     val result: T?
 )
-
-/*
-data class MethodQuery(
-    val methodId: Int,
-    val operands: List<SymbolForCPython>,
-    val result: SymbolForCPython
-): SymbolicHandlerEvent()
-*/
-
-// data class NextInstruction(val pythonInstruction: PythonInstruction): SymbolicHandlerEvent()
