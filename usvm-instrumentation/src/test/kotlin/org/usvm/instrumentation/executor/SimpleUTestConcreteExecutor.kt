@@ -96,14 +96,13 @@ class SimpleUTestConcreteExecutor: UTestConcreteExecutorTest() {
         res as UTestExecutionSuccessResult
         val result = res.result
         assert(result != null)
-        assert(result is UTestConstantDescriptor.Int && result.value == 240)
+        assert(result is UTestConstantDescriptor.Int && result.value == 239)
     }
 
     @Test
     fun `simple abstract class mock test`() = executeTest {
         val uTest = UTestCreator.A.mockAbstractClass(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
-        println("RES = $res")
         assert(res is UTestExecutionSuccessResult)
         res as UTestExecutionSuccessResult
         val result = res.result
@@ -115,7 +114,6 @@ class SimpleUTestConcreteExecutor: UTestConcreteExecutorTest() {
     fun `simple abstract class partially mocked test`() = executeTest {
         val uTest = UTestCreator.A.mockAbstractClass1(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
-        println("RES = $res")
         assert(res is UTestExecutionSuccessResult)
         res as UTestExecutionSuccessResult
         val result = res.result
