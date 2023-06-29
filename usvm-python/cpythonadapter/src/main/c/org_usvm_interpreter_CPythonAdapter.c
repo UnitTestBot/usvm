@@ -63,6 +63,30 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_eval(
     return (jlong) v;
 }
 
+JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_concreteRunOnFunctionRef(
+    JNIEnv *env,
+    jobject cpython_adapter,
+    jlong globals,
+    jlong function_ref,
+    jlongArray concrete_args
+) {
+    int n = (*env)->GetArrayLength(env, concrete_args);
+    jlong *addresses = (*env)->GetLongArrayElements(env, concrete_args, 0);
+
+    PyObject *args = PyTuple_New(n);
+    for (int i = 0; i < n; i++) {
+        PyTuple_SetItem(args, i, (PyObject *) addresses[i]);
+    }
+    PyObject *result = Py_TYPE(function_ref)->tp_call((PyObject *) function_ref, args, 0);
+    if (result == 0)
+        PyErr_Print();
+
+    Py_DECREF(args);
+    (*env)->ReleaseLongArrayElements(env, concrete_args, addresses, 0);
+
+    return (jlong) result;
+}
+
 JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_concolicRun(
     JNIEnv *env,
     jobject cpython_adapter,
@@ -76,10 +100,6 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_concolicRun(
     ConcolicContext ctx;
 
     PyObject *function = (PyObject *) function_ref;
-    //printf("CONCOLIC RUN on \n");
-    //PyObject_Print(function, stdout, 0);
-    //printf("\n");
-    //fflush(stdout);
 
     construct_concolic_context(env, context, cpython_adapter, &ctx);
     SymbolicAdapter *adapter = create_new_adapter(handler, &ctx);
@@ -90,7 +110,7 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_concolicRun(
     if (result == NULL) {
         PyErr_Print();
     }
-    return (PyObject *) result;
+    return (jlong) result;
 }
 
 JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_printPythonObject(JNIEnv *env, jobject cpython_adapter, jlong object_ref) {
