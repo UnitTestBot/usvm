@@ -3,11 +3,11 @@ package org.usvm.model
 import io.ksmt.solver.KModel
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
-import io.ksmt.utils.sampleValue
-import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
+import org.usvm.UComposer
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
+import org.usvm.UHeapReading
 import org.usvm.UHeapRef
 import org.usvm.UIndexedMethodReturnValue
 import org.usvm.UMockEvaluator
@@ -32,8 +32,9 @@ import org.usvm.uctx
 /**
  * A lazy model for registers. Firstly, searches for translated symbol, then evaluates it in [model].
  *
- * @param registerIdxToTranslated a translated cache.
- * @param model has to be detached.
+ * @param model to decode from. It has to be detached.
+ * @param translator an expression translator used for encoding constraints.
+ * Provides translated symbolic constants for registers readings.
  */
 class ULazyRegistersStackModel(
     private val model: KModel,
@@ -55,8 +56,9 @@ class ULazyRegistersStackModel(
 /**
  * A lazy model for an indexed mocker. Firstly, searches for translated symbol, then evaluates it in [model].
  *
- * @param indexedMethodReturnValueToTranslated a translated cache.
- * @param model has to be detached.
+ * @param model to decode from. It has to be detached.
+ * @param translator an expression translator used for encoding constraints.
+ * Provides translated symbolic constants for mock symbols.
  */
 class ULazyIndexedMockModel(
     private val model: KModel,
@@ -81,9 +83,9 @@ class ULazyIndexedMockModel(
  * Any [UHeapReading] possibly writing to this heap in its [URegionId.instantiate] call actually has empty updates,
  * because localization happened, so this heap won't be mutated.
  *
- * @param regionIdToInitialValue mapping from [URegionId] to initial values. We decode memory regions
- * using this cache.
- * @param model has to be detached.
+ * @param model to decode from. It has to be detached.
+ * @param translator an expression translator used for encoding constraints.
+ * Provides initial symbolic values by [URegionId]s.
  */
 class ULazyHeapModel<Field, ArrayType>(
     private val model: KModel,
@@ -171,7 +173,7 @@ class ULazyHeapModel<Field, ArrayType>(
         sort: Sort,
         value: UExpr<out USort>,
         guard: UBoolExpr,
-    ) = error("Illegal operation for a model")
+    ) = error("Illegal operation for a model heap")
 
     override fun <Sort : USort> writeArrayIndex(
         ref: UHeapRef,
@@ -180,10 +182,10 @@ class ULazyHeapModel<Field, ArrayType>(
         sort: Sort,
         value: UExpr<out USort>,
         guard: UBoolExpr,
-    ) = error("Illegal operation for a model")
+    ) = error("Illegal operation for a model heap")
 
     override fun writeArrayLength(ref: UHeapRef, size: USizeExpr, arrayType: ArrayType) =
-        error("Illegal operation for a model")
+        error("Illegal operation for a model heap")
 
     override fun <Sort : USort> memcpy(
         srcRef: UHeapRef,
@@ -194,7 +196,7 @@ class ULazyHeapModel<Field, ArrayType>(
         fromDstIdx: USizeExpr,
         toDstIdx: USizeExpr,
         guard: UBoolExpr,
-    ) = error("Illegal operation for a model")
+    ) = error("Illegal operation for a model heap")
 
     override fun <Sort : USort> memset(
         ref: UHeapRef,
@@ -203,15 +205,15 @@ class ULazyHeapModel<Field, ArrayType>(
         contents: Sequence<UExpr<out USort>>,
     ) = error("Illegal operation for a model")
 
-    override fun allocate() = error("Illegal operation for a model")
+    override fun allocate() = error("Illegal operation for a model heap")
 
-    override fun allocateArray(count: USizeExpr) = error("Illegal operation for a model")
+    override fun allocateArray(count: USizeExpr) = error("Illegal operation for a model heap")
 
     override fun <Sort : USort> allocateArrayInitialized(
         type: ArrayType,
         sort: Sort,
-        contents: Sequence<UExpr<out USort>>
-    ) = error("Illegal operation for a model")
+        contents: Sequence<UExpr<out USort>>,
+    ) = error("Illegal operation for a model heap")
 
     override fun nullRef(): UConcreteHeapRef = nullRef
 

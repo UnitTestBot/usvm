@@ -26,9 +26,7 @@ fun <Field, Type, Method> buildTranslatorAndLazyDecoder(
 ): Pair<UExprTranslator<Field, Type>, ULazyModelDecoder<Field, Type, Method>> {
     val translator = UExprTranslator<Field, Type>(ctx)
 
-    val decoder = ULazyModelDecoder<Field, Type, Method>(
-        translator
-    )
+    val decoder = ULazyModelDecoder<Field, Type, Method>(translator)
 
     return translator to decoder
 }
@@ -37,17 +35,9 @@ typealias AddressesMapping = Map<UExpr<UAddressSort>, UConcreteHeapRef>
 
 
 /**
- * A lazy decoder suitable for decoding [KModel] to [UModelBase]. It can't be reused between different root methods,
- * because of a matched translator caches.
+ * A lazy decoder suitable for decoding [KModel] to [UModelBase]. We can safely reuse it between different root methods.
  *
- * Passed parameters updates on the fly in a matched translator, so they are mutable in fact.
- *
- * @param registerIdxToTranslated a mapping from a register idx to a translated expression.
- * @param indexedMethodReturnValueToTranslated a mapping from an indexed mock symbol to a translated expression.
- * @param translatedNullRef translated null reference.
- * @param translatedRegionIds a set of translated region ids.
- * @param regionIdToInitialValue an initial value provider, the same as used in the translator, so we can build
- * concrete regions from a [KModel].
+ * @param translator an expression translator used for encoding constraints.
  */
 open class ULazyModelDecoder<Field, Type, Method>(
     protected val translator: UExprTranslator<Field, Type>,
@@ -102,12 +92,14 @@ open class ULazyModelDecoder<Field, Type, Method>(
         return UModelBase(ctx, stack, heap, types, mocks)
     }
 
-    private fun decodeStack(model: KModel, addressesMapping: AddressesMapping): ULazyRegistersStackModel =
-        ULazyRegistersStackModel(
-            model,
-            addressesMapping,
-            translator
-        )
+    private fun decodeStack(
+        model: KModel,
+        addressesMapping: AddressesMapping,
+    ): ULazyRegistersStackModel = ULazyRegistersStackModel(
+        model,
+        addressesMapping,
+        translator
+    )
 
     /**
      * Constructs a [ULazyHeapModel] for a heap by provided [model] and [addressesMapping].
@@ -124,10 +116,9 @@ open class ULazyModelDecoder<Field, Type, Method>(
     private fun decodeMocker(
         model: KModel,
         addressesMapping: AddressesMapping,
-    ): ULazyIndexedMockModel =
-        ULazyIndexedMockModel(
-            model,
-            addressesMapping,
-            translator
-        )
+    ): ULazyIndexedMockModel = ULazyIndexedMockModel(
+        model,
+        addressesMapping,
+        translator
+    )
 }
