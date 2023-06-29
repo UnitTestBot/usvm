@@ -1,5 +1,6 @@
 package org.usvm.instrumentation.executor
 
+import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.usvm.instrumentation.testcase.api.UTestExecutionSuccessResult
@@ -26,13 +27,18 @@ class GuavaUTestConcreteExecutor: UTestConcreteExecutorTest() {
             testJarPath = guavaJars
             init()
         }
+
+        @AfterAll
+        @JvmStatic
+        fun close() {
+            uTestConcreteExecutor.close()
+        }
     }
 
     @Test
     fun `Throwables getRootCause`() = executeTest {
         val uTest = UTestCreator.Throwables.getRootCause(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
-        println(res)
         assert(res is UTestExecutionSuccessResult)
         res as UTestExecutionSuccessResult
     }

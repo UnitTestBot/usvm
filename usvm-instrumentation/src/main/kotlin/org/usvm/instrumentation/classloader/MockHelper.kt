@@ -141,7 +141,7 @@ class MockHelper(val jcClasspath: JcClasspath, val classLoader: WorkerClassLoade
         for (jcMethod in methods) {
             if (mockCache.contains(jcMethod)) continue
             val asmMethod = asmMethods.find { jcMethod.asmNode().isSameSignature(it) } ?: continue
-            val encodedMethodId = encodeMethod(jcClass, jcMethod)
+            val encodedMethodId = encodeMethod(jcMethod)
             val mockedMethod = addMockToMethod(jcClass, jcMethod, encodedMethodId)
             asmMethods.replace(asmMethod, mockedMethod)
         }
@@ -159,7 +159,7 @@ class MockHelper(val jcClasspath: JcClasspath, val classLoader: WorkerClassLoade
             val jClass = jcClass.toJavaClass(classLoader)
             val asmMethods = jcClassByteCode.methods
             for (jcMethod in methodsToModify) {
-                val encodedMethodId = encodeMethod(jcClass, jcMethod)
+                val encodedMethodId = encodeMethod(jcMethod)
                 val mockedMethod = addMockToMethod(jcClass, jcMethod, encodedMethodId)
                 val asmMethod = asmMethods.find { jcMethod.asmNode().isSameSignature(it) } ?: continue
                 asmMethods.replace(asmMethod, mockedMethod)
@@ -177,7 +177,7 @@ class MockHelper(val jcClasspath: JcClasspath, val classLoader: WorkerClassLoade
         val mockedClassName = mockedClassJVMName.replace('/', '.')
         val mockedClass =
             try {
-                Class.forName(mockedClassName, false, classLoader).also { println("OK") }
+                Class.forName(mockedClassName, false, classLoader)
             } catch (e: Throwable) {
                 null
             }
@@ -208,7 +208,7 @@ class MockHelper(val jcClasspath: JcClasspath, val classLoader: WorkerClassLoade
                 .filter { it.isAbstract }
                 .filterDuplicatesBy { it.jvmSignature }
         for (jcMethod in abstractMethods) {
-            val encodedMethodId = encodeMethod(jcClass, jcMethod)
+            val encodedMethodId = encodeMethod(jcMethod)
             val mockedMethod = addMockToAbstractMethod(jcMethod, encodedMethodId, classRebuilder)
             val asmMethod = asmMethods.find { jcMethod.asmNode().isSameSignature(it) } ?: continue
             asmMethods.replace(asmMethod, mockedMethod)
@@ -253,15 +253,9 @@ class MockHelper(val jcClasspath: JcClasspath, val classLoader: WorkerClassLoade
     }
 
 
-    /**
-     *       0000 0000 0000 0000 0000 0000 0000 0000
-     *       |    class id     |      methodId     |
-     */
-    private fun encodeMethod(jcClass: JcClassOrInterface, jcMethod: JcMethod) =
+    private fun encodeMethod(jcMethod: JcMethod) =
         mockCache.getOrPut(jcMethod) {
-            val encodedClassId = JcInstructionTracer.encodeClass(jcClass).id
-            val encodedMethodId = JcInstructionTracer.encodeMethod(jcClass, jcMethod).id
-            (encodedClassId shl Byte.SIZE_BITS * 4) or encodedMethodId
+            JcInstructionTracer.encode(jcMethod)
         }
 
 }
