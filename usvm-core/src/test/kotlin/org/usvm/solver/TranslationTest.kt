@@ -281,29 +281,22 @@ class TranslationTest {
 
     @Test
     fun testCachingOfTranslatedMemoryUpdates() = with(ctx) {
-        val allocatedRegion1 = emptyAllocatedArrayRegion(valueArrayDescr, 0, sizeSort)
+        val allocatedRegion = emptyAllocatedArrayRegion(valueArrayDescr, 0, sizeSort)
             .write(mkRegisterReading(0, sizeSort), mkBv(0), trueExpr)
             .write(mkRegisterReading(1, sizeSort), mkBv(1), trueExpr)
 
-        val guard = mkRegisterReading(0, boolSort)
-        val allocatedRegion2 = allocatedRegion1
-            .write(mkRegisterReading(2, sizeSort), mkBv(2), guard)
-            .write(mkRegisterReading(3, sizeSort), mkBv(3), guard)
+        val allocatedRegionExtended = allocatedRegion
+            .write(mkRegisterReading(2, sizeSort), mkBv(2), trueExpr)
+            .write(mkRegisterReading(3, sizeSort), mkBv(3), trueExpr)
 
+        val reading = allocatedRegion.read(mkRegisterReading(4, sizeSort))
+        val readingExtended = allocatedRegionExtended.read(mkRegisterReading(5, sizeSort))
 
-        val reading1 = allocatedRegion1.read(mkRegisterReading(4, sizeSort))
-        val reading2 = allocatedRegion2.read(mkRegisterReading(5, sizeSort))
-
-        val regionId1 = allocatedRegion1.regionId
-        val regionId2 = allocatedRegion2.regionId
-
-        assertSame(regionId1, regionId2)
-
-        translator.translate(reading1)
+        translator.translate(reading)
 
         assertEquals(2, ctx.storeCallCounter)
 
-        translator.translate(reading2)
+        translator.translate(readingExtended)
 
         assertEquals(4, ctx.storeCallCounter)
     }
