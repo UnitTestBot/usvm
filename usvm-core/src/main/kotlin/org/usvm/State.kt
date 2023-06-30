@@ -20,6 +20,14 @@ abstract class UState<Type, Field, Method, Statement>(
     open var models: List<UModelBase<Field, Type>>,
     open var path: PersistentList<Statement>
 ) {
+    open val ctx: UContext = ctx
+
+    /**
+     * Deterministic state id.
+     * TODO: Can be replaced with overridden hashCode
+     */
+    val id: StateId = ctx.getNextStateId()
+
     /**
      * Deterministic state id.
      * TODO: Can be replaced with overridden hashCode
