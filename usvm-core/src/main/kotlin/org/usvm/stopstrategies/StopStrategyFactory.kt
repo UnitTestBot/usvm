@@ -1,10 +1,10 @@
 package org.usvm.stopstrategies
 
-import org.usvm.MachineOptions
+import org.usvm.UMachineOptions
 import org.usvm.statistics.CoverageStatistics
 
 fun createStopStrategy(
-    options: MachineOptions,
+    options: UMachineOptions,
     coverageStatistics: () -> CoverageStatistics<*, *, *>? = { null },
     getCollectedStatesCount: (() -> Int)? = null
 ) : StopStrategy {
@@ -22,6 +22,10 @@ fun createStopStrategy(
     if (collectedStatesLimit != null && collectedStatesLimit > 0) {
         requireNotNull(getCollectedStatesCount) { "Collected states count getter is required for stopping on collected states limit" }
         stopStrategies.add(StopStrategy { getCollectedStatesCount() >= collectedStatesLimit })
+    }
+    val timeoutMs = options.timeoutMs
+    if (timeoutMs != null) {
+        stopStrategies.add(TimeoutStopStrategy(timeoutMs, System::currentTimeMillis))
     }
 
     if (stopStrategies.isEmpty()) {

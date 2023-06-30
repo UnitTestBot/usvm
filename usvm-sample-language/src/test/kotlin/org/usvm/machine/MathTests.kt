@@ -1,7 +1,7 @@
 package org.usvm.machine
 
 import org.junit.jupiter.api.Test
-import org.usvm.MachineOptions
+import org.usvm.UMachineOptions
 import org.usvm.language.BooleanConst
 import org.usvm.language.DivisionByZero
 import org.usvm.language.IntConst
@@ -10,7 +10,7 @@ import kotlin.test.assertTrue
 
 class MathTests {
     val programDecl = MathProgram
-    val machine = SampleMachine(programDecl.program)
+    val machine = SampleMachine(programDecl.program, UMachineOptions(stopOnCoverage = -1))
 
     @Test
     fun testAbs() {
@@ -25,7 +25,7 @@ class MathTests {
 
     @Test
     fun testDivByZero() {
-        val results = machine.analyze(programDecl.division, MachineOptions(stopOnCoverage = -1))
+        val results = machine.analyze(programDecl.division)
         assertTrue {
             results.any { it is SuccessfulExecutionResult && (it.inputModel.argumentExprs[1] as IntConst).const != 0 }
         }

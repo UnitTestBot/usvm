@@ -9,6 +9,8 @@ import org.usvm.solver.USatResult
 import org.usvm.solver.UUnknownResult
 import org.usvm.solver.UUnsatResult
 
+typealias StateId = UInt
+
 abstract class UState<Type, Field, Method, Statement>(
     // TODO: add interpreter-specific information
     ctx: UContext,
@@ -24,7 +26,7 @@ abstract class UState<Type, Field, Method, Statement>(
      * Deterministic state id.
      * TODO: Can be replaced with overridden hashCode
      */
-    val id: UInt = ctx.getNextStateId()
+    val id: StateId = ctx.getNextStateId()
 
     /**
      * Creates new state structurally identical to this.

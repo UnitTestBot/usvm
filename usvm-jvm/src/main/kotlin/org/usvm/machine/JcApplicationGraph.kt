@@ -70,19 +70,6 @@ class JcApplicationGraph(
                     queue += successor
                 }
             }
-
-            // Add all statements of called methods
-            // todo: maybe filter out std-lib methods?
-            val callees = jcApplicationGraph.callees(statement)
-            for (callee in callees) {
-                val calledMethodEntry = jcApplicationGraph.entryPoint(callee)
-                for (callEntry in calledMethodEntry) {
-                    if (callEntry !in statements) {
-                        statements += callEntry
-                        queue += callEntry
-                    }
-                }
-            }
         }
 
         return statements

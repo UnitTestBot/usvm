@@ -3,11 +3,19 @@ package org.usvm
 import io.ksmt.KAst
 import io.ksmt.KContext
 import io.ksmt.expr.KExpr
-import io.ksmt.sort.*
+import io.ksmt.sort.KBoolSort
+import io.ksmt.sort.KBvSort
+import io.ksmt.sort.KSort
+import io.ksmt.sort.KSortVisitor
+import io.ksmt.sort.KUninterpretedSort
 import io.ksmt.utils.DefaultValueSampler
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
-import org.usvm.memory.*
+import org.usvm.memory.UAllocatedArrayRegion
+import org.usvm.memory.UInputArrayLengthRegion
+import org.usvm.memory.UInputArrayRegion
+import org.usvm.memory.UInputFieldRegion
+import org.usvm.memory.splitUHeapRef
 import org.usvm.solver.USolverBase
 
 @Suppress("LeakingThis")
@@ -26,10 +34,8 @@ open class UContext(
     /**
      * Generates new deterministic id of state in this context.
      */
-    fun getNextStateId(): UInt {
-        val result = currentStateId
-        currentStateId++
-        return result
+    fun getNextStateId(): StateId {
+        return currentStateId++
     }
 
     @Suppress("UNCHECKED_CAST")

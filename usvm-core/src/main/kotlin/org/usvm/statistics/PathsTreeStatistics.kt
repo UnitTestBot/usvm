@@ -1,5 +1,6 @@
 package org.usvm.statistics
 
+import org.usvm.StateId
 import org.usvm.UState
 import java.util.concurrent.ConcurrentHashMap
 
@@ -74,7 +75,7 @@ private class PathsTreeNodeImpl<State> (
  */
 class PathsTreeStatistics<Method, Statement, State : UState<*, *, Method, Statement>>(initialState: State) : UMachineObserver<State> {
 
-    private val stateIdToLeaf = ConcurrentHashMap<UInt, PathsTreeNodeImpl<State>>()
+    private val stateIdToLeaf = ConcurrentHashMap<StateId, PathsTreeNodeImpl<State>>()
 
     val root: PathsTreeNode<State>
 

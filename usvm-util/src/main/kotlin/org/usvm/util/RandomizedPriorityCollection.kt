@@ -11,14 +11,14 @@ package org.usvm.util
  * @param comparator comparator for elements to arrange them in tree. It doesn't affect the priorities.
  * @param unitIntervalRandom function returning a random value in [[0..1]] interval which is used to peek the element.
  */
-class DiscretePdf<T>(comparator: Comparator<T>, private val unitIntervalRandom: () -> Float) : UPriorityCollection<T, Float> {
+class RandomizedPriorityCollection<T>(comparator: Comparator<T>, private val unitIntervalRandom: () -> Double) : UPriorityCollection<T, Double> {
 
     private val tree = WeightedAaTree(comparator)
 
     override val count: Int get() = tree.count
 
-    private tailrec fun peekRec(targetPoint: Float, leftEndpoint: Float, peekAt: AaTreeNode<T>): T {
-        val leftSegmentEndsAt = leftEndpoint + (peekAt.left?.weightSum ?: 0f)
+    private tailrec fun peekRec(targetPoint: Double, leftEndpoint: Double, peekAt: AaTreeNode<T>): T {
+        val leftSegmentEndsAt = leftEndpoint + (peekAt.left?.weightSum ?: 0.0)
         val currentSegmentEndsAt = leftSegmentEndsAt + peekAt.weight
         return when {
             targetPoint < leftSegmentEndsAt && peekAt.left != null ->
@@ -32,12 +32,12 @@ class DiscretePdf<T>(comparator: Comparator<T>, private val unitIntervalRandom: 
     override fun peek(): T {
         val root = tree.root ?: throw NoSuchElementException("Discrete PDF was empty")
         val randomValue = unitIntervalRandom()
-        check(randomValue in 0f..1f) { "Random generator in discrete PDF returned a number outside the unit interval (${randomValue})" }
+        check(randomValue in 0.0..1.0) { "Random generator in discrete PDF returned a number outside the unit interval (${randomValue})" }
         val randomValueScaled = randomValue * root.weightSum
-        return peekRec(randomValueScaled, 0f, root)
+        return peekRec(randomValueScaled, 0.0, root)
     }
 
-    override fun update(element: T, priority: Float) {
+    override fun update(element: T, priority: Double) {
         remove(element)
         add(element, priority)
     }
@@ -48,8 +48,8 @@ class DiscretePdf<T>(comparator: Comparator<T>, private val unitIntervalRandom: 
         }
     }
 
-    override fun add(element: T, priority: Float) {
-        require(priority >= 0f) { "Discrete PDF cannot store elements with negative priority" }
+    override fun add(element: T, priority: Double) {
+        require(priority >= 0.0) { "Discrete PDF cannot store elements with negative priority" }
         check(tree.add(element, priority)) { "Element already exists in discrete PDF" }
     }
 }

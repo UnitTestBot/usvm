@@ -1,17 +1,21 @@
 package org.usvm.ps
 
-import org.usvm.*
+import org.usvm.PathSelectionStrategy
+import org.usvm.PathSelectorCombinationStrategy
+import org.usvm.UMachineOptions
+import org.usvm.UPathSelector
+import org.usvm.UState
 import org.usvm.statistics.CoverageStatistics
 import org.usvm.statistics.DistanceStatistics
 import org.usvm.statistics.PathsTreeStatistics
-import org.usvm.util.DiscretePdf
-import org.usvm.util.VanillaPriorityQueue
+import org.usvm.util.RandomizedPriorityCollection
+import org.usvm.util.DeterministicPriorityCollection
 import kotlin.math.max
 import kotlin.random.Random
 
 fun <Method, Statement, State : UState<*, *, Method, Statement>> createPathSelector(
     initialState: State,
-    options: MachineOptions,
+    options: UMachineOptions,
     pathsTreeStatistics: () -> PathsTreeStatistics<Method, Statement, State>? = { null },
     coverageStatistics: () -> CoverageStatistics<Method, Statement, State>? = { null },
     distanceStatistics: () -> DistanceStatistics<Method, Statement>? = { null }
@@ -77,11 +81,11 @@ private fun <State : UState<*, *, *, *>> compareById(): Comparator<State> = comp
 
 private fun <State : UState<*, *, *, *>> createDepthPathSelector(random: Random? = null): UPathSelector<State> {
     if (random == null) {
-        return WeightedPathSelector({ VanillaPriorityQueue(Comparator.naturalOrder()) }) { it.path.size }
+        return WeightedPathSelector({ DeterministicPriorityCollection(Comparator.naturalOrder()) }) { it.path.size }
     }
 
     // Notice: random never returns 1.0
-    return WeightedPathSelector({ DiscretePdf(compareById()) { random.nextFloat() } }) { 1f / max(it.path.size, 1) }
+    return WeightedPathSelector({ RandomizedPriorityCollection(compareById()) { random.nextDouble() } }) { 1.0 / max(it.path.size, 1) }
 }
 
 private fun <Method, Statement, State : UState<*, *, Method, Statement>> createClosestToUncoveredPathSelector(
@@ -98,11 +102,11 @@ private fun <Method, Statement, State : UState<*, *, Method, Statement>> createC
     coverageStatistics.addOnCoveredObserver { _, method, statement -> weighter.removeTarget(method, statement) }
 
     if (random == null) {
-        return WeightedPathSelector({ VanillaPriorityQueue(Comparator.naturalOrder()) }, weighter)
+        return WeightedPathSelector({ DeterministicPriorityCollection(Comparator.naturalOrder()) }, weighter)
     }
 
-    return WeightedPathSelector({ DiscretePdf(compareById()) { random.nextFloat() } }) {
-        1f / max(weighter.weight(it).toFloat(), 1f)
+    return WeightedPathSelector({ RandomizedPriorityCollection(compareById()) { random.nextDouble() } }) {
+        1.0 / max(weighter.weight(it).toDouble(), 1.0)
     }
 }
 
@@ -111,10 +115,10 @@ private fun <Method, Statement, State : UState<*, *, Method, Statement>> createF
     random: Random? = null
 ): UPathSelector<State> {
     if (random == null) {
-        return WeightedPathSelector({ VanillaPriorityQueue(Comparator.naturalOrder()) }) { pathsTreeStatistics.getStateDepth(it) }
+        return WeightedPathSelector({ DeterministicPriorityCollection(Comparator.naturalOrder()) }) { pathsTreeStatistics.getStateDepth(it) }
     }
 
-    return WeightedPathSelector({ DiscretePdf(compareById()) { random.nextFloat() } }) {
-        1f / max(pathsTreeStatistics.getStateDepth(it).toFloat(), 1f)
+    return WeightedPathSelector({ RandomizedPriorityCollection(compareById()) { random.nextDouble() } }) {
+        1.0 / max(pathsTreeStatistics.getStateDepth(it).toDouble(), 1.0)
     }
 }

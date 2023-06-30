@@ -6,15 +6,15 @@ import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.ArgumentsProvider
 import org.junit.jupiter.params.provider.ArgumentsSource
 import org.junit.jupiter.params.support.AnnotationConsumer
-import org.usvm.MachineOptions
-import org.usvm.PathSelectionStrategy
-import org.usvm.PathSelectorCombinationStrategy
+import org.usvm.*
 import java.util.stream.Stream
 
 annotation class Options(
     val strategies: Array<PathSelectionStrategy>,
     val combinationStrategy: PathSelectorCombinationStrategy = PathSelectorCombinationStrategy.INTERLEAVED,
-    val stopOnCoverage: Int = 100
+    val stopOnCoverage: Int = 100,
+    val coverageZone: CoverageZone = CoverageZone.METHOD,
+    val solverType: SolverType = SolverType.Z3
 )
 
 @ParameterizedTest
@@ -23,7 +23,7 @@ annotation class UsvmTest(val options: Array<Options>)
 
 class MachineOptionsArgumentsProvider : ArgumentsProvider, AnnotationConsumer<UsvmTest> {
 
-    private var options = listOf<MachineOptions>()
+    private var options = listOf<UMachineOptions>()
 
     override fun provideArguments(context: ExtensionContext?): Stream<out Arguments> {
         return options.map { Arguments.of(it) }.stream()
@@ -32,10 +32,12 @@ class MachineOptionsArgumentsProvider : ArgumentsProvider, AnnotationConsumer<Us
     override fun accept(t: UsvmTest?) {
         requireNotNull(t)
         options = t.options.map {
-            MachineOptions(
+            UMachineOptions(
                 pathSelectionStrategies = it.strategies.toList(),
                 pathSelectorCombinationStrategy = it.combinationStrategy,
-                stopOnCoverage = it.stopOnCoverage
+                stopOnCoverage = it.stopOnCoverage,
+                coverageZone = it.coverageZone,
+                solverType = it.solverType
             )
         }
     }

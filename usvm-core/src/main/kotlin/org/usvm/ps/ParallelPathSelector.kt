@@ -11,6 +11,10 @@ import org.usvm.UPathSelector
 class ParallelPathSelector<State>(
     private val selectors: List<UPathSelector<State>>,
 ) : UPathSelector<State> {
+    init {
+        require(selectors.size >= 2) { "Cannot create parallel path selector from less than 2 selectors" }
+    }
+
     constructor(vararg selectors: UPathSelector<State>) : this(selectors.toList())
 
     private var ptr = 0

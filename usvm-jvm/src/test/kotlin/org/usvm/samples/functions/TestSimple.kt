@@ -1,6 +1,6 @@
 package org.usvm.samples.functions
 
-import org.usvm.MachineOptions
+import org.usvm.UMachineOptions
 import org.usvm.PathSelectionStrategy
 import org.usvm.PathSelectorCombinationStrategy
 import org.usvm.samples.JavaMethodTestRunner
@@ -17,9 +17,9 @@ class TestSimple : JavaMethodTestRunner() {
             Options([PathSelectionStrategy.CLOSEST_TO_UNCOVERED])
         ]
     )
-    fun `Test calcTwoFunctions`(options: MachineOptions) {
+    fun `Test calcTwoFunctions`(options: UMachineOptions) {
         withOptions(options) {
-            checkExecutionMatches(
+            checkDiscoveredProperties(
                 Simple::calcTwoFunctions,
                 ignoreNumberOfAnalysisResults,
                 { _, x, y, r -> r == 0 && y > 0 && x * x + y < 0 },
@@ -34,9 +34,9 @@ class TestSimple : JavaMethodTestRunner() {
             Options([PathSelectionStrategy.CLOSEST_TO_UNCOVERED])
         ]
     )
-    fun `Test factorial`(options: MachineOptions) {
+    fun `Test factorial`(options: UMachineOptions) {
         withOptions(options) {
-            checkPropertiesMatches(
+            checkDiscoveredProperties(
                 Simple::factorial,
                 ignoreNumberOfAnalysisResults,
                 { _, x, r -> (1..x).fold(1, Int::times) == r },

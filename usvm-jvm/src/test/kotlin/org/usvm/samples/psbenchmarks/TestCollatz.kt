@@ -1,8 +1,6 @@
 package org.usvm.samples.psbenchmarks
 
-import org.usvm.MachineOptions
-import org.usvm.PathSelectionStrategy
-import org.usvm.PathSelectorCombinationStrategy
+import org.usvm.*
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import org.usvm.util.Options
@@ -12,14 +10,14 @@ class TestCollatz : JavaMethodTestRunner() {
 
     @UsvmTest(
         [
-            Options([PathSelectionStrategy.RANDOM_PATH]),
-            Options([PathSelectionStrategy.DFS]),
-            Options([PathSelectionStrategy.BFS, PathSelectionStrategy.DFS], PathSelectorCombinationStrategy.PARALLEL)
+            Options([PathSelectionStrategy.RANDOM_PATH], solverType = SolverType.YICES),
+            Options([PathSelectionStrategy.DFS], solverType = SolverType.YICES),
+            Options([PathSelectionStrategy.BFS, PathSelectionStrategy.DFS], PathSelectorCombinationStrategy.PARALLEL, solverType = SolverType.YICES)
         ]
     )
-    fun `Test collatzBomb1()`(options: MachineOptions) {
+    fun `Test collatzBomb1()`(options: UMachineOptions) {
         withOptions(options) {
-            checkWithExceptionPropertiesMatches(
+            checkDiscoveredPropertiesWithExceptions(
                 Collatz::collatzBomb1,
                 ignoreNumberOfAnalysisResults,
                 { _, _, r -> r.isSuccess && r.getOrThrow() == 1 },

@@ -1,5 +1,10 @@
 package org.usvm
 
+enum class SolverType {
+    YICES,
+    Z3
+}
+
 enum class PathSelectionStrategy {
     /**
      * Selects the states in depth-first order.
@@ -62,7 +67,19 @@ enum class PathSelectorCombinationStrategy {
     PARALLEL
 }
 
-data class MachineOptions(
+// TODO: add module/package coverage zone
+enum class CoverageZone {
+    /**
+     * Only target method coverage is considered.
+     */
+    METHOD,
+    /**
+     * Coverage of methods in target method's class id considered.
+     */
+    CLASS
+}
+
+data class UMachineOptions(
     /**
      * State selection heuristics.
      * If multiple heuristics are specified, they are combined according to [pathSelectorCombinationStrategy].
@@ -91,5 +108,19 @@ data class MachineOptions(
     /**
      * Optional limit of collected states to stop execution on.
      */
-    val collectedStatesLimit: Int? = null
+    val collectedStatesLimit: Int? = null,
+    /**
+     * Optional timeout in milliseconds to stop execution on.
+     */
+    val timeoutMs: Long? = 20000,
+    /**
+     * Scope of methods which coverage is considered.
+     *
+     * @see CoverageZone
+     */
+    val coverageZone: CoverageZone = CoverageZone.METHOD,
+    /**
+     * SMT solver type used for path constraint solving.
+     */
+    val solverType: SolverType = SolverType.Z3
 )

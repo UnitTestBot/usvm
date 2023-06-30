@@ -3,7 +3,9 @@ package org.usvm.machine
 import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcMethod
 import org.jacodb.api.cfg.JcInst
-import org.usvm.MachineOptions
+import org.jacodb.api.ext.methods
+import org.usvm.CoverageZone
+import org.usvm.UMachineOptions
 import org.usvm.PathSelectorCombinationStrategy
 import org.usvm.UMachine
 import org.usvm.machine.state.JcMethodResult
@@ -14,11 +16,12 @@ import org.usvm.stopstrategies.createStopStrategy
 
 class JcMachine(
     cp: JcClasspath,
+    private val options: UMachineOptions
 ) : UMachine<JcState>() {
     private val applicationGraph = JcApplicationGraph(cp)
 
     private val typeSystem = JcTypeSystem()
-    private val components = JcComponents(typeSystem)
+    private val components = JcComponents(typeSystem, options.solverType)
     private val ctx = JcContext(cp, components)
 
     private val interpreter = JcInterpreter(ctx, applicationGraph)
@@ -26,15 +29,23 @@ class JcMachine(
     private val distanceStatistics = DistanceStatistics(applicationGraph)
 
     fun analyze(
-        method: JcMethod,
-        options: MachineOptions = MachineOptions()
+        method: JcMethod
     ): List<JcState> {
         val initialState = interpreter.getInitialState(method)
 
         // TODO: now paths tree doesn't support parallel execution processes. It should be replaced with forest
         val disablePathsTreeStatistics = options.pathSelectorCombinationStrategy == PathSelectorCombinationStrategy.PARALLEL
 
-        val coverageStatistics: CoverageStatistics<JcMethod, JcInst, JcState> = CoverageStatistics(setOf(method), applicationGraph)
+        val methodsToTrackCoverage =
+            when (options.coverageZone) {
+                CoverageZone.METHOD -> setOf(method)
+                // TODO: more adequate method filtering. !it.isConstructor is used to exclude default constructor which is often not covered
+                CoverageZone.CLASS -> method.enclosingClass.methods.filter {
+                    it.enclosingClass == method.enclosingClass && !it.isConstructor
+                }.toSet()
+            }
+
+        val coverageStatistics: CoverageStatistics<JcMethod, JcInst, JcState> = CoverageStatistics(methodsToTrackCoverage, applicationGraph)
         val pathsTreeStatistics = PathsTreeStatistics(initialState)
 
         val pathSelector = createPathSelector(
@@ -58,14 +69,14 @@ class JcMachine(
             interpreter,
             pathSelector,
             observer = CompositeUMachineObserver(observers),
-            continueAnalyzing = { !isFinishedState(it) },
+            isStateTerminated = ::isStateTerminated,
             stopStrategy = stopStrategy,
         )
 
         return statesCollector.collectedStates
     }
 
-    private fun isFinishedState(state: JcState): Boolean {
+    private fun isStateTerminated(state: JcState): Boolean {
         return state.callStack.isEmpty() || state.methodResult is JcMethodResult.Exception
     }
 

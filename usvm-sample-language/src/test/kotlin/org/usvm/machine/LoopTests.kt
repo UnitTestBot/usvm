@@ -1,6 +1,9 @@
 package org.usvm.machine
 
 import org.junit.jupiter.api.Test
+import org.usvm.PathSelectionStrategy
+import org.usvm.SolverType
+import org.usvm.UMachineOptions
 import org.usvm.language.IntConst
 import org.usvm.programs.LoopProgram
 import kotlin.test.assertTrue
@@ -8,7 +11,7 @@ import kotlin.test.assertTrue
 
 class LoopTests {
     val programDecl = LoopProgram
-    val machine = SampleMachine(programDecl.program)
+    val machine = SampleMachine(programDecl.program, UMachineOptions(listOf(PathSelectionStrategy.DFS), solverType = SolverType.YICES))
 
     @Test
     fun runLoopLowIdx() {

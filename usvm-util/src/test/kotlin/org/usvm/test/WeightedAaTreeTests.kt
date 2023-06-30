@@ -38,21 +38,21 @@ internal class WeightedAaTreeTests {
         }
 
         // Additional weighted tree invariant
-        assertEquals(node.weight, node.weightSum - (node.left?.weightSum ?: 0f) - (node.right?.weightSum ?: 0f), 1e-5f)
+        assertEquals(node.weight, node.weightSum - (node.left?.weightSum ?: 0.0) - (node.right?.weightSum ?: 0.0), 1e-5)
     }
 
     @Test
     fun simpleCountTest() {
         val tree = WeightedAaTree<Int>(naturalOrder())
-        tree.add(5, 5f)
+        tree.add(5, 5.0)
         assertEquals(1, tree.count)
     }
 
     @Test
     fun sameElementsAreNotAddedTest() {
         val tree = WeightedAaTree<Int>(naturalOrder())
-        tree.add(5, 5f)
-        tree.add(5, 10f)
+        tree.add(5, 5.0)
+        tree.add(5, 10.0)
         assertEquals(1, tree.count)
     }
 
@@ -63,7 +63,7 @@ internal class WeightedAaTreeTests {
 
         for (i in 1..elementsCount) {
             val value = pseudoRandom(i)
-            val weight = i.toFloat()
+            val weight = i.toDouble()
             tree.add(value, weight)
         }
 
@@ -86,7 +86,7 @@ internal class WeightedAaTreeTests {
 
         for (i in 1..elementsCount) {
             val value = pseudoRandom(i)
-            val weight = i.toFloat()
+            val weight = i.toDouble()
             tree.add(value, weight)
         }
 

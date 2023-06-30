@@ -15,7 +15,7 @@ public class StaticMethodExamples {
 
     public static long sum(int x, short y, byte z) {
         int sum = x + y + z;
-        if (sum > 20 || sum < -20) {
+        if (sum > 20 | sum < -20) {
             return sum * 2L;
         }
         return sum;

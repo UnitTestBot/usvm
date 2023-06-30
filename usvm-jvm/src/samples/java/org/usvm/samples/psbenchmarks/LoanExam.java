@@ -1,5 +1,15 @@
 package org.usvm.samples.psbenchmarks;
 
+class CreditRequest {
+    public int age;
+    public int employment;
+    public int creditPurpose;
+    public long sum;
+    public int deposit;
+    public boolean hasCertificate;
+    public boolean hasOtherCredits;
+}
+
 public class LoanExam {
 
     private int calculateCreditInfoPoints(long sum, int deposit, int purpose) {

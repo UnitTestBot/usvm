@@ -1,24 +1,34 @@
 package org.usvm.machine
 
 import kotlinx.collections.immutable.persistentListOf
-import org.usvm.MachineOptions
+import org.usvm.UMachineOptions
 import org.usvm.PathSelectorCombinationStrategy
 import org.usvm.UContext
 import org.usvm.UMachine
-import org.usvm.language.*
+import org.usvm.language.Field
+import org.usvm.language.Method
+import org.usvm.language.Program
+import org.usvm.language.SampleType
+import org.usvm.language.Stmt
 import org.usvm.ps.createPathSelector
-import org.usvm.statistics.*
+import org.usvm.statistics.CompositeUMachineObserver
+import org.usvm.statistics.CoverageStatistics
+import org.usvm.statistics.CoveredNewStatesCollector
+import org.usvm.statistics.DistanceStatistics
+import org.usvm.statistics.PathsTreeStatistics
+import org.usvm.statistics.UMachineObserver
 import org.usvm.stopstrategies.createStopStrategy
 
 /**
  * Entry point for a sample language analyzer.
  */
 class SampleMachine(
-    program: Program
+    program: Program,
+    private val options: UMachineOptions
 ) : UMachine<SampleState>() {
     private val applicationGraph = SampleApplicationGraph(program)
     private val typeSystem = SampleTypeSystem()
-    private val components = SampleLanguageComponents(typeSystem)
+    private val components = SampleLanguageComponents(typeSystem, options.solverType)
     private val ctx = UContext(components)
     private val solver = ctx.solver<Field<*>, SampleType, Method<*>>()
 
@@ -28,8 +38,7 @@ class SampleMachine(
     private val distanceStatistics = DistanceStatistics(applicationGraph)
 
     fun analyze(
-        method: Method<*>,
-        options: MachineOptions = MachineOptions()
+        method: Method<*>
     ): Collection<ProgramExecutionResult> {
         val initialState = getInitialState(method)
 
@@ -60,7 +69,7 @@ class SampleMachine(
             interpreter = interpreter,
             pathSelector = pathSelector,
             observer = CompositeUMachineObserver(observers),
-            continueAnalyzing = ::isInterestingState,
+            isStateTerminated = ::isStateTerminated,
             stopStrategy = stopStrategy,
         )
 
@@ -74,8 +83,8 @@ class SampleMachine(
             models = persistentListOf(model)
         }
 
-    private fun isInterestingState(state: SampleState): Boolean {
-        return state.callStack.isNotEmpty() && state.exceptionRegister == null
+    private fun isStateTerminated(state: SampleState): Boolean {
+        return state.callStack.isEmpty() || state.exceptionRegister != null
     }
 
     override fun close() {

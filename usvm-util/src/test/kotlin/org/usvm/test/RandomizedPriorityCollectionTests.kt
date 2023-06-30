@@ -1,32 +1,32 @@
 package org.usvm.test
 
 import org.junit.jupiter.api.Test
-import org.usvm.util.DiscretePdf
+import org.usvm.util.RandomizedPriorityCollection
 import kotlin.test.assertEquals
 
-internal class DiscretePdfTests {
+internal class RandomizedPriorityCollectionTests {
 
     @Test
     fun distributionTest() {
         val hitsCount = 10000
         val valuesCount = 100
 
-        val step = 1f / hitsCount
+        val step = 1.0 / hitsCount
 
-        var currentFloat = 0f
-        fun nextFloat(): Float {
-            val res = currentFloat
-            currentFloat += step
+        var currentDouble = 0.0
+        fun nextDouble(): Double {
+            val res = currentDouble
+            currentDouble += step
             return res
         }
 
-        val pdf = DiscretePdf<Int>(naturalOrder(), ::nextFloat)
-        val priorities = HashMap<Int, Float>()
-        var prioritySum = 0f
+        val pdf = RandomizedPriorityCollection<Int>(naturalOrder(), ::nextDouble)
+        val priorities = HashMap<Int, Double>()
+        var prioritySum = 0.0
 
         for (i in 1..valuesCount) {
             val value = pseudoRandom(i)
-            val priority = i.toFloat()
+            val priority = i.toDouble()
             pdf.add(value, priority)
             priorities[value] = priority
             prioritySum += priority
@@ -44,17 +44,17 @@ internal class DiscretePdfTests {
         }
 
         for ((k, v) in hits) {
-            assertEquals(priorities.getValue(k) / prioritySum, v / hitsCount.toFloat(), 1e-3f)
+            assertEquals(priorities.getValue(k) / prioritySum, v / hitsCount.toDouble(), 1e-3)
         }
     }
 
     @Test
     fun randomEqualsOneTest() {
-        val pdf = DiscretePdf<Int>(naturalOrder()) { 1f }
+        val pdf = RandomizedPriorityCollection<Int>(naturalOrder()) { 1.0 }
 
         for (i in 1..100) {
             val value = pseudoRandom(i)
-            val priority = i.toFloat()
+            val priority = i.toDouble()
             pdf.add(value, priority)
             pdf.peek()
         }

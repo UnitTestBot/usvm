@@ -11,11 +11,11 @@ data class AaTreeNode<T>(
     /**
      * Weight attached to the node.
      */
-    val weight: Float,
+    val weight: Double,
     /**
      * Sum of the children's weights.
      */
-    val weightSum: Float,
+    val weightSum: Double,
     /**
      * Node's depth in the tree. 1 for root node, 2 for its children etc.
      */
@@ -45,13 +45,13 @@ class WeightedAaTree<T>(private val comparator: Comparator<T>) {
 
     private fun AaTreeNode<T>.update(
         value: T = this.value,
-        weight: Float = this.weight,
+        weight: Double = this.weight,
         level: Int = this.level,
         left: AaTreeNode<T>? = this.left,
         right: AaTreeNode<T>? = this.right
     ): AaTreeNode<T> {
-        val leftWeightSum = left?.weightSum ?: 0f
-        val rightWeightSum = right?.weightSum ?: 0f
+        val leftWeightSum = left?.weightSum ?: 0.0
+        val rightWeightSum = right?.weightSum ?: 0.0
         return AaTreeNode(value = value, weight = weight, weightSum = leftWeightSum + rightWeightSum + weight, level = level, left = left, right = right)
     }
 
@@ -71,7 +71,7 @@ class WeightedAaTree<T>(private val comparator: Comparator<T>) {
         return this
     }
 
-    private tailrec fun addRec(value: T, weight: Float, insertTo: AaTreeNode<T>?, k: (AaTreeNode<T>) -> AaTreeNode<T>): AaTreeNode<T> {
+    private tailrec fun addRec(value: T, weight: Double, insertTo: AaTreeNode<T>?, k: (AaTreeNode<T>) -> AaTreeNode<T>): AaTreeNode<T> {
         if (insertTo == null) {
             count++
             return k(AaTreeNode(value, weight, weight, 1, null, null))
@@ -170,7 +170,7 @@ class WeightedAaTree<T>(private val comparator: Comparator<T>) {
      *
      * @return True if the element didn't exist in the tree and was added.
      */
-    fun add(value: T, weight: Float): Boolean {
+    fun add(value: T, weight: Double): Boolean {
         val prevCount = count
         root = addRec(value, weight, root) { it }
         return prevCount != count

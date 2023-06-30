@@ -11,11 +11,9 @@ import org.usvm.statistics.PathsTreeStatistics
  *
  * This path selector is guaranteed to peek only and all states which were added via [add], even
  * if tree statistics contains some other states or doesn't contain some added states. To achieve this,
- * a separate from path tree collection of states is maintained, and to avoid revisiting the nodes in tree
+ * a separate from path tree collection of states is maintained, and to avoid revisiting the nodes in tree, and to avoid revisiting the nodes in tree
  * which states are not in our collection, an [ignoreToken] added to such nodes. Nodes with [ignoreToken] are not
  * visited on further traversals.
- * TODO: In fact, there should not be state which was not added to tree, but was added to selector, and vice versa,
- *  so in practice the separate collection can be removed.
  *
  * @param pathsTreeStatistics symbolic execution tree statistics used to peek states from.
  * @param randomNonNegativeInt function returning non negative random integer used to select the next child in tree.
@@ -29,7 +27,7 @@ internal class RandomTreePathSelector<State : UState<*, *, *, *>>(
 ) : UPathSelector<State> {
 
     private val states = HashSet<State>()
-    
+
     override fun isEmpty(): Boolean {
         return states.isEmpty()
     }
