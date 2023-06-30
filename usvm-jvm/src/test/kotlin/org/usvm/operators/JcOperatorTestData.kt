@@ -71,6 +71,7 @@ val longData = listOf(
 
 val floatData = listOf(
     0f,
+    -0f,
     1f,
     -1f,
     2f,
@@ -92,6 +93,7 @@ val floatData = listOf(
 
 val doubleData = listOf(
     0.0,
+    -0.0,
     1.0,
     -1.0,
     2.0,
