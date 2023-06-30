@@ -1,4 +1,7 @@
-def f(x, y, z):
+import pickle
+
+
+def f(x: int, y: int, z: int):
     if x + y > 100:
         return 0
     y += 10 ** 9
@@ -20,3 +23,16 @@ def f(x, y, z):
         return 8
     else:
         return 9
+
+
+def my_abs(x: int):
+    if x > 0:
+        return x
+    elif x == 0:
+        return "zero"
+    else:
+        return -x
+
+
+def pickle_sample(x):
+    return pickle.dumps(x)

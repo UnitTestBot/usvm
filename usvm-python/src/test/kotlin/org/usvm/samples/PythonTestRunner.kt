@@ -12,7 +12,10 @@ import java.io.File
 open class PythonTestRunner(sourcePath: String) : TestRunner<PythonTest, PythonCallable, PythonType, PythonCoverage>() {
     private val testSources = File(PythonTestRunner::class.java.getResource(sourcePath)!!.file).readText()
     private val machine = PythonMachine(PythonProgram(testSources)) { pythonObject ->
-        ConcretePythonInterpreter.getPythonObjectRepr(pythonObject)
+        PythonObjectInfo(
+            ConcretePythonInterpreter.getPythonObjectRepr(pythonObject),
+            ConcretePythonInterpreter.getPythonObjectTypeName(pythonObject)
+        )
     }
     override val typeTransformer: (Any?) -> PythonType
         get() = { _ -> PythonInt }
@@ -20,7 +23,7 @@ open class PythonTestRunner(sourcePath: String) : TestRunner<PythonTest, PythonC
         get() = { _, _ -> true }
     override val runner: (PythonCallable) -> List<PythonTest>
         get() = { callable ->
-            val results: MutableList<PythonAnalysisResult<String>> = mutableListOf()
+            val results: MutableList<PythonTest> = mutableListOf()
             machine.analyze(callable, results)
             results
         }
@@ -41,46 +44,67 @@ open class PythonTestRunner(sourcePath: String) : TestRunner<PythonTest, PythonC
         return check(concreteResult)
     }
 
-    private inline fun <reified FUNCTION_TYPE : Function<Boolean>> createCheckReprsWithConcreteRun(concreteRun: Boolean = true):
-                (PythonCallable, AnalysisResultsNumberMatcher, List<FUNCTION_TYPE>, List<FUNCTION_TYPE>, (PythonTest, PythonObject) -> Boolean) -> Unit = {
-            target: PythonCallable,
-            analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
-            invariants: List<FUNCTION_TYPE>,
-            propertiesToDiscover: List<FUNCTION_TYPE>,
-            compareConcolicAndConcrete: (PythonTest, PythonObject) -> Boolean ->
-        val onAnalysisResult = { pythonTest: PythonTest ->
-            val result = pythonTest.inputValues.map { it.reprFromPythonObject } + pythonTest.result
-            if (concreteRun) {
-                require(compareWithConcreteRun(target, pythonTest) { compareConcolicAndConcrete(pythonTest, it) }) {
-                    "Error in CPython patch: concrete and concolic results differ"
+    private inline fun <reified FUNCTION_TYPE : Function<Boolean>> createCheckWithConcreteRun(concreteRun: Boolean = true):
+                (PythonCallable, AnalysisResultsNumberMatcher, (PythonTest, PythonObject) -> Boolean, List<FUNCTION_TYPE>, List<FUNCTION_TYPE>) -> Unit =
+        { target: PythonCallable,
+          analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
+          compareConcolicAndConcrete: (PythonTest, PythonObject) -> Boolean,
+          invariants: List<FUNCTION_TYPE>,
+          propertiesToDiscover: List<FUNCTION_TYPE> ->
+            val onAnalysisResult = { pythonTest: PythonTest ->
+                val result = pythonTest.inputValues.map { it.reprFromPythonObject } + pythonTest.result
+                if (concreteRun) {
+                    require(compareWithConcreteRun(target, pythonTest) { compareConcolicAndConcrete(pythonTest, it) }) {
+                        "Error in CPython patch: concrete and concolic results differ"
+                    }
                 }
+                result
             }
-            result
+            internalCheck(
+                target,
+                analysisResultsNumberMatcher,
+                propertiesToDiscover.toTypedArray(),
+                invariants.toTypedArray(),
+                onAnalysisResult,
+                (target.signature.map { PythonInt } + PythonInt).toTypedArray(),
+                CheckMode.MATCH_PROPERTIES,
+                coverageChecker = { true }
+            )
         }
-        internalCheck(
-            target,
-            analysisResultsNumberMatcher,
-            propertiesToDiscover.toTypedArray(),
-            invariants.toTypedArray(),
-            onAnalysisResult,
-            (target.signature.map { PythonInt } + PythonInt).toTypedArray(),
-            CheckMode.MATCH_PROPERTIES,
-            coverageChecker = { true }
-        )
-    }
 
-    private inline fun <reified FUNCTION_TYPE : Function<Boolean>> createCheckReprs():
-                (PythonCallable, AnalysisResultsNumberMatcher, List<FUNCTION_TYPE>, List<FUNCTION_TYPE>) -> Unit = {
-        target: PythonCallable,
-        analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
-        invariants: List<FUNCTION_TYPE>,
-        propertiesToDiscover: List<FUNCTION_TYPE> ->
-        createCheckReprsWithConcreteRun<FUNCTION_TYPE>(concreteRun = false)(target, analysisResultsNumberMatcher, invariants, propertiesToDiscover) { _, _ -> true }
-    }
+    private inline fun <reified FUNCTION_TYPE : Function<Boolean>> createCheck():
+                (PythonCallable, AnalysisResultsNumberMatcher, List<FUNCTION_TYPE>, List<FUNCTION_TYPE>) -> Unit =
+        { target: PythonCallable,
+          analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
+          invariants: List<FUNCTION_TYPE>,
+          propertiesToDiscover: List<FUNCTION_TYPE> ->
+            createCheckWithConcreteRun<FUNCTION_TYPE>(concreteRun = false)(
+                target,
+                analysisResultsNumberMatcher,
+                { _, _ -> true },
+                invariants,
+                propertiesToDiscover
+            )
+        }
 
-    protected val checkReprs3 = createCheckReprs<(String, String, String, String) -> Boolean>()
-    protected val checkReprs3WithConcreteRun = createCheckReprsWithConcreteRun<(String, String, String, String) -> Boolean>()
+    protected val check1WithConcreteRun =
+        createCheckWithConcreteRun<(PythonObjectInfo, PythonObjectInfo) -> Boolean>()
+
+    protected val check3 = createCheck<(PythonObjectInfo, PythonObjectInfo, PythonObjectInfo, PythonObjectInfo) -> Boolean>()
+    protected val check3WithConcreteRun =
+        createCheckWithConcreteRun<(PythonObjectInfo, PythonObjectInfo, PythonObjectInfo, PythonObjectInfo) -> Boolean>()
+
+    protected val compareConcolicAndConcreteReprs:
+                (PythonTest, PythonObject) -> Boolean = { testFromConcolic, concreteResult ->
+        testFromConcolic.result?.repr == ConcretePythonInterpreter.getPythonObjectRepr(concreteResult)
+    }
 }
 
-typealias PythonTest = PythonAnalysisResult<String>
+data class PythonObjectInfo(
+    val repr: String,
+    val typeName: String
+)
+
+typealias PythonTest = PythonAnalysisResult<PythonObjectInfo>
+
 data class PythonCoverage(val int: Int)
