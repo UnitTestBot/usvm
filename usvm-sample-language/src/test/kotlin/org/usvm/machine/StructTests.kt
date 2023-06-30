@@ -1,6 +1,7 @@
 package org.usvm.machine
 
 import org.junit.jupiter.api.Test
+import org.usvm.UMachineOptions
 import org.usvm.language.BooleanConst
 import org.usvm.language.IntConst
 import org.usvm.programs.StructProgram
@@ -8,7 +9,7 @@ import kotlin.test.assertTrue
 
 class StructTests {
     val programDecl = StructProgram
-    val machine = SampleMachine(programDecl.program)
+    val machine = SampleMachine(programDecl.program, UMachineOptions())
 
     @Test
     fun testCheckRefEquality() {

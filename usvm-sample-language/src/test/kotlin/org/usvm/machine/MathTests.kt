@@ -1,6 +1,7 @@
 package org.usvm.machine
 
 import org.junit.jupiter.api.Test
+import org.usvm.UMachineOptions
 import org.usvm.language.BooleanConst
 import org.usvm.language.DivisionByZero
 import org.usvm.language.IntConst
@@ -9,7 +10,7 @@ import kotlin.test.assertTrue
 
 class MathTests {
     val programDecl = MathProgram
-    val machine = SampleMachine(programDecl.program)
+    val machine = SampleMachine(programDecl.program, UMachineOptions(stopOnCoverage = -1))
 
     @Test
     fun testAbs() {

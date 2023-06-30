@@ -1,16 +1,20 @@
-package org.usvm.ps.combinators
+package org.usvm.ps
 
 import org.usvm.UPathSelector
 
 /**
- * A parallel path selector.
+ * An interleaved path selector.
  *
- * [update], [remove] and [add] operations are executed only on the current path selector. A pointer to
- * the next path selector advances when [add] is called.
+ * [update], [remove] and [add] operations are executed on each path selector. A pointer to the next path selector
+ * advances when [add] is called.
  */
-class ParallelSelector<State>(
-    val selectors: List<UPathSelector<State>>,
+class InterleavedPathSelector<State>(
+    private val selectors: List<UPathSelector<State>>,
 ) : UPathSelector<State> {
+    init {
+        require(selectors.size >= 2) { "Cannot create interleaved path selector from less than 2 selectors" }
+    }
+
     constructor(vararg selectors: UPathSelector<State>) : this(selectors.toList())
 
     private var ptr = 0
@@ -28,15 +32,15 @@ class ParallelSelector<State>(
     }
 
     override fun update(state: State) {
-        selectors[ptr].update(state)
+        selectors.forEach { it.update(state) }
     }
 
     override fun add(states: Collection<State>) {
-        selectors[ptr].add(states)
+        selectors.forEach { it.add(states) }
         ptr = (ptr + 1) % selectors.size
     }
 
     override fun remove(state: State) {
-        selectors[ptr].remove(state)
+        selectors.forEach { it.remove(state) }
     }
 }

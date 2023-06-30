@@ -1,6 +1,9 @@
 package org.usvm.machine
 
 import org.junit.jupiter.api.Test
+import org.usvm.UMachineOptions
+import org.usvm.PathSelectionStrategy
+import org.usvm.SolverType
 import org.usvm.language.ArrayCreation
 import org.usvm.language.IntConst
 import org.usvm.language.IntType
@@ -10,7 +13,7 @@ import kotlin.test.assertTrue
 
 class DfsTests {
     val programDecl = DfsProgram
-    val machine = SampleMachine(programDecl.program, 13)
+    val machine = SampleMachine(programDecl.program, UMachineOptions(pathSelectionStrategies = listOf(PathSelectionStrategy.RANDOM_PATH), solverType = SolverType.YICES))
 
     @Test
     fun testDfs() {

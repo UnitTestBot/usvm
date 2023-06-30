@@ -2,10 +2,14 @@ package org.usvm.samples.controlflow
 
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.usvm.PathSelectionStrategy
+import org.usvm.UMachineOptions
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.between
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
+import org.usvm.util.Options
+import org.usvm.util.UsvmTest
 import org.usvm.util.isException
 
 
@@ -42,15 +46,19 @@ internal class CyclesTest : JavaMethodTestRunner() {
         )
     }
 
-    @Test
+    @UsvmTest(
+        [Options([PathSelectionStrategy.RANDOM_PATH])]
+    )
 //    @Disabled("Expected exactly 2 executions, but 1 found")
-    fun testFiniteCycle() {
-        checkDiscoveredProperties(
-            Cycles::finiteCycle,
-            eq(2),
-            { _, x, r -> x % 519 == 0 && r != null && r % 519 == 0 },
-            { _, x, r -> x % 519 != 0 && r != null && r % 519 == 0 }
-        )
+    fun testFiniteCycle(options: UMachineOptions) {
+        withOptions(options) {
+            checkDiscoveredProperties(
+                Cycles::finiteCycle,
+                eq(2),
+                { _, x, r -> x % 519 == 0 && r != null && r % 519 == 0 },
+                { _, x, r -> x % 519 != 0 && r != null && r % 519 == 0 }
+            )
+        }
     }
 
     @Test

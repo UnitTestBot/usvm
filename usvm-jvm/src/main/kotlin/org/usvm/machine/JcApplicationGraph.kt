@@ -8,7 +8,7 @@ import org.jacodb.api.cfg.JcInst
 import org.jacodb.api.ext.toType
 import org.jacodb.impl.features.HierarchyExtensionImpl
 import org.jacodb.impl.features.SyncUsagesExtension
-import org.usvm.ApplicationGraph
+import org.usvm.statistics.ApplicationGraph
 import java.util.concurrent.ConcurrentHashMap
 
 // TODO: add trap handlers
@@ -32,7 +32,7 @@ class JcApplicationGraph(
     override fun callers(method: JcMethod): Sequence<JcInst> =
         jcApplicationGraph.callers(method)
 
-    override fun entryPoint(method: JcMethod): Sequence<JcInst> =
+    override fun entryPoints(method: JcMethod): Sequence<JcInst> =
         jcApplicationGraph.entryPoint(method)
 
     override fun exitPoints(method: JcMethod): Sequence<JcInst> =
@@ -56,7 +56,7 @@ class JcApplicationGraph(
             .asSequence()
 
     private fun computeAllStatementsOfMethod(method: JcMethod): Collection<JcInst> {
-        val entryStatements = entryPoint(method)
+        val entryStatements = entryPoints(method)
         val statements = entryStatements.toMutableSet()
 
         val queue = ArrayDeque(entryStatements.toList())
@@ -68,19 +68,6 @@ class JcApplicationGraph(
                 if (successor !in statements) {
                     statements += successor
                     queue += successor
-                }
-            }
-
-            // Add all statements of called methods
-            // todo: maybe filter out std-lib methods?
-            val callees = jcApplicationGraph.callees(statement)
-            for (callee in callees) {
-                val calledMethodEntry = jcApplicationGraph.entryPoint(callee)
-                for (callEntry in calledMethodEntry) {
-                    if (callEntry !in statements) {
-                        statements += callEntry
-                        queue += callEntry
-                    }
                 }
             }
         }

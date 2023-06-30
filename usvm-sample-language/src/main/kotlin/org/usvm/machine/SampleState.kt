@@ -72,7 +72,7 @@ fun SampleState.addEntryMethodCall(
     applicationGraph: SampleApplicationGraph,
     method: Method<*>,
 ) {
-    val entryPoint = applicationGraph.entryPoint(method).single()
+    val entryPoint = applicationGraph.entryPoints(method).single()
     callStack.push(method, returnSite = null)
     memory.stack.push(method.argumentCount, method.localsCount)
     newStmt(entryPoint)
@@ -83,7 +83,7 @@ fun SampleState.addNewMethodCall(
     method: Method<*>,
     arguments: List<UExpr<out USort>>,
 ) {
-    val entryPoint = applicationGraph.entryPoint(method).single()
+    val entryPoint = applicationGraph.entryPoints(method).single()
     val returnSite = lastStmt
     callStack.push(method, returnSite)
     memory.stack.push(arguments.toTypedArray(), method.localsCount)

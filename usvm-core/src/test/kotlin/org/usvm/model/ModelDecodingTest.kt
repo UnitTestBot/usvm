@@ -1,12 +1,12 @@
 package org.usvm.model
 
+import io.ksmt.solver.z3.KZ3Solver
 import io.mockk.every
 import io.mockk.mockk
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import io.ksmt.solver.z3.KZ3Solver
-import org.junit.jupiter.api.Assertions.assertEquals
 import org.usvm.Field
 import org.usvm.Method
 import org.usvm.Type

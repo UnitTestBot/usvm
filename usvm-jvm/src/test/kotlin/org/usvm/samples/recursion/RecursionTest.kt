@@ -2,10 +2,14 @@ package org.usvm.samples.recursion
 
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.usvm.PathSelectionStrategy
+import org.usvm.UMachineOptions
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.between
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ge
+import org.usvm.util.Options
+import org.usvm.util.UsvmTest
 import org.usvm.util.isException
 
 
@@ -24,16 +28,18 @@ internal class RecursionTest : JavaMethodTestRunner() {
         )
     }
 
-    @Test
-    fun testFib() {
-        checkDiscoveredPropertiesWithExceptions(
-            Recursion::fib,
-            eq(4),
-            { _, x, r -> x < 0 && r.isException<IllegalArgumentException>() },
-            { _, x, r -> x == 0 && r.getOrNull() == 0 },
-            { _, x, r -> x == 1 && r.getOrNull() == 1 },
-            { _, x, r -> x > 1 && r.getOrNull() == Recursion().fib(x) }
-        )
+    @UsvmTest([Options([PathSelectionStrategy.RANDOM_PATH])])
+    fun testFib(options: UMachineOptions) {
+        withOptions(options) {
+            checkDiscoveredPropertiesWithExceptions(
+                Recursion::fib,
+                eq(4),
+                { _, x, r -> x < 0 && r.isException<IllegalArgumentException>() },
+                { _, x, r -> x == 0 && r.getOrNull() == 0 },
+                { _, x, r -> x == 1 && r.getOrNull() == 1 },
+                { _, x, r -> x > 1 && r.getOrNull() == Recursion().fib(x) }
+            )
+        }
     }
 
     @Test
@@ -94,13 +100,15 @@ internal class RecursionTest : JavaMethodTestRunner() {
         )
     }
 
-    @Test
-    fun recursionLoopTest() {
-        checkDiscoveredProperties(
-            Recursion::firstMethod,
-            eq(2),
-            { _, x, _ -> x < 4 },
-            { _, x, _ -> x >= 4 },
-        )
+    @UsvmTest([Options([PathSelectionStrategy.RANDOM_PATH])])
+    fun recursionLoopTest(options: UMachineOptions) {
+        withOptions(options) {
+            checkDiscoveredProperties(
+                Recursion::firstMethod,
+                eq(2),
+                { _, x, _ -> x < 4 },
+                { _, x, _ -> x >= 4 },
+            )
+        }
     }
 }

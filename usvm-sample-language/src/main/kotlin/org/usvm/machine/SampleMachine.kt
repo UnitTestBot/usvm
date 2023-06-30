@@ -1,55 +1,79 @@
 package org.usvm.machine
 
 import kotlinx.collections.immutable.persistentListOf
+import org.usvm.UMachineOptions
+import org.usvm.PathSelectorCombinationStrategy
 import org.usvm.UContext
 import org.usvm.UMachine
-import org.usvm.UPathSelector
 import org.usvm.language.Field
 import org.usvm.language.Method
 import org.usvm.language.Program
 import org.usvm.language.SampleType
-import org.usvm.ps.DfsPathSelector
-import org.usvm.ps.stopstrategies.CollectedStatesLimitStrategy
+import org.usvm.language.Stmt
+import org.usvm.ps.createPathSelector
+import org.usvm.statistics.CompositeUMachineObserver
+import org.usvm.statistics.CoverageStatistics
+import org.usvm.statistics.CoveredNewStatesCollector
+import org.usvm.statistics.DistanceStatistics
+import org.usvm.statistics.PathsTreeStatistics
+import org.usvm.statistics.UMachineObserver
+import org.usvm.stopstrategies.createStopStrategy
 
 /**
  * Entry point for a sample language analyzer.
  */
 class SampleMachine(
     program: Program,
-    val maxStates: Int = 40,
+    private val options: UMachineOptions
 ) : UMachine<SampleState>() {
     private val applicationGraph = SampleApplicationGraph(program)
     private val typeSystem = SampleTypeSystem()
-    private val components = SampleLanguageComponents(typeSystem)
+    private val components = SampleLanguageComponents(typeSystem, options.solverType)
     private val ctx = UContext(components)
     private val solver = ctx.solver<Field<*>, SampleType, Method<*>>()
 
     private val interpreter = SampleInterpreter(ctx, applicationGraph)
     private val resultModelConverter = ResultModelConverter(ctx)
 
-    fun analyze(method: Method<*>): Collection<ProgramExecutionResult> {
-        val collectedStates = mutableListOf<SampleState>()
-        val stoppingStrategy = CollectedStatesLimitStrategy(maxStates)
+    private val distanceStatistics = DistanceStatistics(applicationGraph)
+
+    fun analyze(
+        method: Method<*>
+    ): Collection<ProgramExecutionResult> {
+        val initialState = getInitialState(method)
+
+        // TODO: now paths tree doesn't support parallel execution processes. It should be replaced with forest
+        val disablePathsTreeStatistics = options.pathSelectorCombinationStrategy == PathSelectorCombinationStrategy.PARALLEL
+
+        val coverageStatistics: CoverageStatistics<Method<*>, Stmt, SampleState> = CoverageStatistics(setOf(method), applicationGraph)
+        val pathsTreeStatistics = PathsTreeStatistics(initialState)
+
+        val pathSelector = createPathSelector(
+            initialState,
+            options,
+            { if (disablePathsTreeStatistics) null else pathsTreeStatistics },
+            { coverageStatistics },
+            { distanceStatistics }
+        )
+
+        val statesCollector = CoveredNewStatesCollector<SampleState>(coverageStatistics) { it.exceptionRegister != null }
+        val stopStrategy = createStopStrategy(options, { coverageStatistics }, { statesCollector.collectedStates.size })
+
+        val observers = mutableListOf<UMachineObserver<SampleState>>(coverageStatistics)
+        if (!disablePathsTreeStatistics) {
+            observers.add(pathsTreeStatistics)
+        }
+        observers.add(statesCollector)
+
         run(
             interpreter = interpreter,
-            pathSelector = getPathSelector(method),
-            onState = { state ->
-                if (!isInterestingState(state)) {
-                    collectedStates += state
-                    stoppingStrategy.incrementStatesCount()
-                }
-            },
-            continueAnalyzing = ::isInterestingState,
-            stoppingStrategy = stoppingStrategy,
+            pathSelector = pathSelector,
+            observer = CompositeUMachineObserver(observers),
+            isStateTerminated = ::isStateTerminated,
+            stopStrategy = stopStrategy,
         )
-        return collectedStates.map { resultModelConverter.convert(it, method) }
-    }
 
-    fun getPathSelector(target: Method<*>): UPathSelector<SampleState> {
-        val ps = DfsPathSelector<SampleState>()
-        val initialState = getInitialState(target)
-        ps.add(listOf(initialState))
-        return ps
+        return statesCollector.collectedStates.map { resultModelConverter.convert(it, method) }
     }
 
     private fun getInitialState(method: Method<*>): SampleState =
@@ -59,8 +83,8 @@ class SampleMachine(
             models = persistentListOf(model)
         }
 
-    private fun isInterestingState(state: SampleState): Boolean {
-        return state.callStack.isNotEmpty() && state.exceptionRegister == null
+    private fun isStateTerminated(state: SampleState): Boolean {
+        return state.callStack.isEmpty() || state.exceptionRegister != null
     }
 
     override fun close() {
