@@ -62,6 +62,10 @@ object ConcretePythonInterpreter {
         return pythonAdapter.getPythonObjectRepr(pythonObject.address)
     }
 
+    fun getPythonObjectTypeName(pythonObject: PythonObject): String {
+        return pythonAdapter.getPythonObjectTypeName(pythonObject.address)
+    }
+
     fun kill() {
         pythonAdapter.finalizePython()
     }
