@@ -1,6 +1,5 @@
 package org.usvm.samples.math
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
@@ -95,7 +94,6 @@ internal class BitOperatorsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
     fun testShl() {
         checkDiscoveredProperties(
             BitOperators::shl,
@@ -106,7 +104,6 @@ internal class BitOperatorsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
     fun testShlLong() {
         checkDiscoveredProperties(
             BitOperators::shlLong,
@@ -117,7 +114,6 @@ internal class BitOperatorsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
     fun testShlWithBigLongShift() {
         checkDiscoveredProperties(
             BitOperators::shlWithBigLongShift,
@@ -129,7 +125,6 @@ internal class BitOperatorsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
     fun testShr() {
         checkDiscoveredProperties(
             BitOperators::shr,
@@ -140,7 +135,6 @@ internal class BitOperatorsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
     fun testShrLong() {
         checkDiscoveredProperties(
             BitOperators::shrLong,
@@ -151,7 +145,6 @@ internal class BitOperatorsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
     fun testUshr() {
         checkDiscoveredProperties(
             BitOperators::ushr,
@@ -162,7 +155,6 @@ internal class BitOperatorsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
     fun testUshrLong() {
         checkDiscoveredProperties(
             BitOperators::ushrLong,
@@ -173,7 +165,6 @@ internal class BitOperatorsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
     fun testSign() {
         checkDiscoveredProperties(
             BitOperators::sign,

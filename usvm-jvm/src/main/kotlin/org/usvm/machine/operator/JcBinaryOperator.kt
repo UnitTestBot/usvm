@@ -1,5 +1,6 @@
 package org.usvm.machine.operator
 
+import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
 import org.usvm.UBoolSort
 import org.usvm.UBvSort
@@ -9,6 +10,7 @@ import org.usvm.UFpSort
 import org.usvm.USort
 import org.usvm.machine.JcContext
 import org.usvm.machine.jctx
+import org.usvm.uctx
 
 /**
  * An util class for performing binary operations on expressions.
@@ -113,7 +115,7 @@ sealed class JcBinaryOperator(
                     mkFpLessExpr(lhs, rhs),
                     mkBv(-1, bv32Sort),
                     mkIte(
-                        mkEq(lhs, rhs),
+                        mkFpEqualExpr(lhs, rhs),
                         mkBv(0, bv32Sort),
                         mkBv(1, bv32Sort)
                     )
@@ -131,7 +133,7 @@ sealed class JcBinaryOperator(
                     mkFpLessExpr(lhs, rhs),
                     mkBv(-1, bv32Sort),
                     mkIte(
-                        mkEq(lhs, rhs),
+                        mkFpEqualExpr(lhs, rhs),
                         mkBv(0, bv32Sort),
                         mkBv(1, bv32Sort)
                     )
@@ -140,7 +142,17 @@ sealed class JcBinaryOperator(
         }
     )
 
-    // TODO shl, shr operators
+    object Shl : JcBinaryOperator(
+        onBv = { arg, shift -> mkBvShiftLeftExpr(arg, normalizeBvShift(shift)) }
+    )
+
+    object Shr : JcBinaryOperator(
+        onBv = { arg, shift -> mkBvArithShiftRightExpr(arg, normalizeBvShift(shift)) }
+    )
+
+    object Ushr : JcBinaryOperator(
+        onBv = { arg, shift -> mkBvLogicalShiftRightExpr(arg, normalizeBvShift(shift)) }
+    )
 
     /**
      * Performs an operation on [lhs] and [rhs]. A caller has to ensure, that [lhs] and [rhs] have
@@ -168,5 +180,24 @@ sealed class JcBinaryOperator(
     companion object {
         private val shouldNotBeCalled: JcContext.(UExpr<out USort>, UExpr<out USort>) -> UExpr<out USort> =
             { _, _ -> error("Should not be called") }
+
+        /**
+         * Normalize binary shift value according to the specification.
+         * */
+        internal fun <T : UBvSort> normalizeBvShift(shift: UExpr<T>): UExpr<T> = with(shift.uctx) {
+            return when (shift.sort) {
+                bv32Sort -> {
+                    val mask = mkBv(31) // 0b11111
+                    mkBvAndExpr(shift.asExpr(bv32Sort), mask).asExpr(shift.sort)
+                }
+
+                bv64Sort -> {
+                    val mask = mkBv(63L) // 0b111111
+                    mkBvAndExpr(shift.asExpr(bv64Sort), mask).asExpr(shift.sort)
+                }
+
+                else -> error("Incorrect bv shift: $shift")
+            }
+        }
     }
 }

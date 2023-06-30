@@ -87,6 +87,8 @@ import org.usvm.USizeSort
 import org.usvm.USort
 import org.usvm.machine.operator.JcBinaryOperator
 import org.usvm.machine.operator.JcUnaryOperator
+import org.usvm.machine.operator.ensureBvExpr
+import org.usvm.machine.operator.mkNarrow
 import org.usvm.machine.operator.wideTo32BitsIfNeeded
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.addNewMethodCall
@@ -152,17 +154,14 @@ class JcExprResolver(
     override fun visitJcRemExpr(expr: JcRemExpr): UExpr<out USort>? =
         resolveDivisionOperator(JcBinaryOperator.Rem, expr)
 
-    override fun visitJcShlExpr(expr: JcShlExpr): UExpr<out USort> = with(ctx) {
-        TODO("Not yet implemented")
-    }
+    override fun visitJcShlExpr(expr: JcShlExpr): UExpr<out USort>? =
+        resolveShiftOperator(JcBinaryOperator.Shl, expr)
 
-    override fun visitJcShrExpr(expr: JcShrExpr): UExpr<out USort> = with(ctx) {
-        TODO("Not yet implemented")
-    }
+    override fun visitJcShrExpr(expr: JcShrExpr): UExpr<out USort>? =
+        resolveShiftOperator(JcBinaryOperator.Shr, expr)
 
-    override fun visitJcUshrExpr(expr: JcUshrExpr): UExpr<out USort> = with(ctx) {
-        TODO("Not yet implemented")
-    }
+    override fun visitJcUshrExpr(expr: JcUshrExpr): UExpr<out USort>? =
+        resolveShiftOperator(JcBinaryOperator.Ushr, expr)
 
     override fun visitJcOrExpr(expr: JcOrExpr): UExpr<out USort>? =
         resolveBinaryOperator(JcBinaryOperator.Or, expr)
@@ -520,6 +519,29 @@ class JcExprResolver(
             lhs to rhs
         } else {
             (lhs wideWith expr.lhv.type) to (rhs wideWith expr.rhv.type)
+        }
+
+        operator(wideLhs, wideRhs)
+    }
+
+    private fun resolveShiftOperator(
+        operator: JcBinaryOperator,
+        expr: JcBinaryExpr,
+    ) = resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs ->
+        val wideLhs = lhs wideWith expr.lhv.type
+        val preWideRhs = rhs wideWith expr.rhv.type
+
+        val lhsSize = (wideLhs.sort as UBvSort).sizeBits
+        val rhsSize = (preWideRhs.sort as UBvSort).sizeBits
+
+        val wideRhs = if (lhsSize == rhsSize) {
+            preWideRhs
+        } else {
+            check(lhsSize == Long.SIZE_BITS.toUInt() && rhsSize == Int.SIZE_BITS.toUInt()) {
+                "Unexpected shift arguments: $lhs, $rhs"
+            }
+            // Wide rhs up to 64 bits to match lhs sort
+            preWideRhs.ensureBvExpr().mkNarrow(Long.SIZE_BITS, signed = true)
         }
 
         operator(wideLhs, wideRhs)
