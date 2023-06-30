@@ -29,6 +29,15 @@ open class UContext(
     private val solver by lazy { components.mkSolver(this) }
     private val typeSystem by lazy { components.mkTypeSystem(this) }
 
+    private var currentStateId = 0u
+
+    /**
+     * Generates new deterministic id of state in this context.
+     */
+    fun getNextStateId(): StateId {
+        return currentStateId++
+    }
+
     @Suppress("UNCHECKED_CAST")
     fun <Field, Type, Method> solver(): USolverBase<Field, Type, Method> =
         this.solver as USolverBase<Field, Type, Method>

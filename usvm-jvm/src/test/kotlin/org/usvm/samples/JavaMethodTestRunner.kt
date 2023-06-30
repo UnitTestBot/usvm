@@ -3,6 +3,7 @@ package org.usvm.samples
 import org.jacodb.api.ext.findClass
 import org.jacodb.api.ext.toType
 import org.junit.jupiter.api.TestInstance
+import org.usvm.UMachineOptions
 import org.usvm.api.JcClassCoverage
 import org.usvm.api.JcTest
 import org.usvm.api.util.JcTestResolver
@@ -512,12 +513,12 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
     override val checkType: (KClass<*>?, KClass<*>?) -> Boolean =
         { expected, actual -> actual == null || expected != null && actual.isSubclassOf(expected) }
 
-    override val runner: (KFunction<*>) -> List<JcTest> = { method ->
+    override val runner: (KFunction<*>, UMachineOptions) -> List<JcTest> = { method, options ->
         val declaringClassName = requireNotNull(method.javaMethod?.declaringClass?.name)
         val jcClass = cp.findClass(declaringClassName).toType()
         val jcMethod = jcClass.declaredMethods.first { it.name == method.name }
 
-        val machine = JcMachine(cp)
+        val machine = JcMachine(cp, options)
         val states = machine.analyze(jcMethod.method)
 
         states.map { testResolver.resolve(jcMethod, it) }

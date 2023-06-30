@@ -12,6 +12,7 @@ dependencies {
     implementation("io.ksmt:ksmt-cvc5:${Versions.ksmt}")
 
     testImplementation("io.mockk:mockk:${Versions.mockk}")
+    testImplementation("org.junit.jupiter:junit-jupiter-params:${Versions.junitParams}")
 }
 
 sourceSets {

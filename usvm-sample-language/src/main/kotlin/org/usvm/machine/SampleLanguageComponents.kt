@@ -1,6 +1,8 @@
 package org.usvm.machine
 
 import io.ksmt.solver.yices.KYicesSolver
+import io.ksmt.solver.z3.KZ3Solver
+import org.usvm.SolverType
 import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.UTypeSystem
@@ -12,13 +14,20 @@ import org.usvm.solver.USoftConstraintsProvider
 import org.usvm.solver.USolverBase
 
 class SampleLanguageComponents(
-    private val typeSystem: SampleTypeSystem
+    private val typeSystem: SampleTypeSystem,
+    private val solverType: SolverType
 ) : UComponents<Field<*>, SampleType, Method<*>> {
     override fun mkSolver(ctx: UContext): USolverBase<Field<*>, SampleType, Method<*>> {
         val (translator, decoder) = buildTranslatorAndLazyDecoder<Field<*>, SampleType, Method<*>>(ctx)
         val softConstraintsProvider = USoftConstraintsProvider<Field<*>, SampleType>(ctx)
 
-        return USolverBase(ctx, KYicesSolver(ctx), translator, decoder, softConstraintsProvider)
+        val solver =
+            when (solverType) {
+                SolverType.YICES -> KYicesSolver(ctx)
+                SolverType.Z3 -> KZ3Solver(ctx)
+            }
+
+        return USolverBase(ctx, solver, translator, decoder, softConstraintsProvider)
     }
 
     override fun mkTypeSystem(ctx: UContext): UTypeSystem<SampleType> = typeSystem

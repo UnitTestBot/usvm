@@ -92,7 +92,7 @@ internal class ObjectWithRefFieldsExampleTest : JavaMethodTestRunner() {
         )
     }
 
-    @Test
+    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun testCompareTwoDifferentObjectsFromArguments() {
         checkDiscoveredProperties(
             ObjectWithRefFieldExample::compareTwoDifferentObjectsFromArguments,

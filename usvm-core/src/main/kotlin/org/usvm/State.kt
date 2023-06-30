@@ -9,15 +9,25 @@ import org.usvm.solver.USatResult
 import org.usvm.solver.UUnknownResult
 import org.usvm.solver.UUnsatResult
 
+typealias StateId = UInt
+
 abstract class UState<Type, Field, Method, Statement>(
     // TODO: add interpreter-specific information
-    open val ctx: UContext,
+    ctx: UContext,
     open val callStack: UCallStack<Method, Statement>,
     open val pathConstraints: UPathConstraints<Type>,
     open val memory: UMemoryBase<Field, Type, Method>,
     open var models: List<UModelBase<Field, Type>>,
-    open var path: PersistentList<Statement>,
+    open var path: PersistentList<Statement>
 ) {
+    open val ctx: UContext = ctx
+
+    /**
+     * Deterministic state id.
+     * TODO: Can be replaced with overridden hashCode
+     */
+    val id: StateId = ctx.getNextStateId()
+
     /**
      * Creates new state structurally identical to this.
      * If [newConstraints] is null, clones [pathConstraints]. Otherwise, uses [newConstraints] in cloned state.

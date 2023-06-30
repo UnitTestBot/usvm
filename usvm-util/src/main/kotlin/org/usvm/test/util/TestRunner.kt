@@ -1,5 +1,7 @@
 package org.usvm.test.util
 
+import org.usvm.CoverageZone
+import org.usvm.UMachineOptions
 import org.usvm.test.util.TestRunner.CheckMode.MATCH_EXECUTIONS
 import org.usvm.test.util.TestRunner.CheckMode.MATCH_PROPERTIES
 import org.usvm.test.util.checkers.AnalysisResultsNumberMatcher
@@ -22,8 +24,23 @@ import org.usvm.test.util.checkers.AnalysisResultsNumberMatcher
 abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
     abstract val typeTransformer: (Any?) -> Type
     abstract val checkType: (Type, Type) -> Boolean
-    abstract val runner: (Target) -> List<AnalysisResult>
+    abstract val runner: (Target, UMachineOptions) -> List<AnalysisResult>
     abstract val coverageRunner: (List<AnalysisResult>) -> Coverage
+
+    private var options = UMachineOptions()
+
+    /**
+     * Parametrizes [runner] with given options and executes [action].
+     */
+    protected fun <T> withOptions(options: UMachineOptions, action: () -> T): T {
+        val prevOptions = options
+        try {
+            this.options = options
+            return action()
+        } finally {
+            this.options = prevOptions
+        }
+    }
 
     /**
      * Runs an interpreter on the [target], after that makes several checks of the results it got:
@@ -46,10 +63,10 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
         checkMode: CheckMode,
         coverageChecker: (Coverage) -> Boolean,
     ) {
-        val analysisResults = runner(target)
+        val analysisResults = runner(target, options)
 
-        println(createStringFromResults(analysisResults))
-        println()
+        //println(createStringFromResults(analysisResults))
+        //println()
 
         if (checkMode != MATCH_EXECUTIONS) {
             require(analysisResultsNumberMatcher(analysisResults.size)) {
