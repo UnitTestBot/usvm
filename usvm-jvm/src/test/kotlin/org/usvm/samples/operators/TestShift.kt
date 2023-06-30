@@ -8,7 +8,7 @@ import org.usvm.test.util.checkers.ge
 class TestShift : JavaMethodTestRunner() {
     @Test
     fun `Test left shift int`() {
-        checkPropertiesMatches(
+        checkDiscoveredProperties(
             Shift::shlInt,
             ge(2),
             { _, x, shift, r -> r == 0 && ((x shl shift) != x) },
@@ -19,7 +19,7 @@ class TestShift : JavaMethodTestRunner() {
     @Disabled("Incorrect primitive cast")
     @Test
     fun `Test left shift byte`() {
-        checkPropertiesMatches(
+        checkDiscoveredProperties(
             Shift::shlByte,
             ge(2),
             { _, x, shift, r -> r == 0 && ((x.toInt() shl shift.toInt()) != x.toInt()) },
@@ -30,7 +30,7 @@ class TestShift : JavaMethodTestRunner() {
     @Disabled("Incorrect primitive cast")
     @Test
     fun `Test left shift short`() {
-        checkPropertiesMatches(
+        checkDiscoveredProperties(
             Shift::shlShort,
             ge(2),
             { _, x, shift, r -> r == 0 && ((x.toInt() shl shift.toInt()) != x.toInt()) },
@@ -40,7 +40,7 @@ class TestShift : JavaMethodTestRunner() {
 
     @Test
     fun `Test left shift long`() {
-        checkPropertiesMatches(
+        checkDiscoveredProperties(
             Shift::shlLong,
             ge(2),
             { _, x, shift, r -> r == 0 && ((x shl shift.toInt()) != x) },
@@ -50,7 +50,7 @@ class TestShift : JavaMethodTestRunner() {
 
     @Test
     fun `Test left shift long with int shift`() {
-        checkPropertiesMatches(
+        checkDiscoveredProperties(
             Shift::shlLongByInt,
             ge(2),
             { _, x, shift, r -> r == 0 && ((x shl shift) != x) },
@@ -61,7 +61,7 @@ class TestShift : JavaMethodTestRunner() {
     @Disabled("Incorrect primitive cast")
     @Test
     fun `Test left shift byte with int shift`() {
-        checkPropertiesMatches(
+        checkDiscoveredProperties(
             Shift::shlByteByInt,
             ge(2),
             { _, x, shift, r -> r == 0 && ((x.toInt() shl shift) != x.toInt()) },
@@ -71,7 +71,7 @@ class TestShift : JavaMethodTestRunner() {
 
     @Test
     fun `Test right shift int`() {
-        checkPropertiesMatches(
+        checkDiscoveredProperties(
             Shift::shrInt,
             ge(2),
             { _, x, shift, r -> r == 0 && ((x shr shift) != x) },
@@ -82,7 +82,7 @@ class TestShift : JavaMethodTestRunner() {
     @Disabled("Incorrect primitive cast")
     @Test
     fun `Test right shift byte`() {
-        checkPropertiesMatches(
+        checkDiscoveredProperties(
             Shift::shrByte,
             ge(2),
             { _, x, shift, r -> r == 0 && ((x.toInt() shr shift.toInt()) != x.toInt()) },
@@ -93,7 +93,7 @@ class TestShift : JavaMethodTestRunner() {
     @Disabled("Incorrect primitive cast")
     @Test
     fun `Test right shift short`() {
-        checkPropertiesMatches(
+        checkDiscoveredProperties(
             Shift::shrShort,
             ge(2),
             { _, x, shift, r -> r == 0 && ((x.toInt() shr shift.toInt()) != x.toInt()) },
@@ -103,7 +103,7 @@ class TestShift : JavaMethodTestRunner() {
 
     @Test
     fun `Test right shift long`() {
-        checkPropertiesMatches(
+        checkDiscoveredProperties(
             Shift::shrLong,
             ge(2),
             { _, x, shift, r -> r == 0 && ((x shr shift.toInt()) != x) },
@@ -113,7 +113,7 @@ class TestShift : JavaMethodTestRunner() {
 
     @Test
     fun `Test right shift long with int shift`() {
-        checkPropertiesMatches(
+        checkDiscoveredProperties(
             Shift::shrLongByInt,
             ge(2),
             { _, x, shift, r -> r == 0 && ((x shr shift) != x) },
@@ -124,7 +124,7 @@ class TestShift : JavaMethodTestRunner() {
     @Disabled("Incorrect primitive cast")
     @Test
     fun `Test right shift byte with int shift`() {
-        checkPropertiesMatches(
+        checkDiscoveredProperties(
             Shift::shrByteByInt,
             ge(2),
             { _, x, shift, r -> r == 0 && ((x.toInt() shr shift) != x.toInt()) },
@@ -134,7 +134,7 @@ class TestShift : JavaMethodTestRunner() {
 
     @Test
     fun `Test unsigned right shift int`() {
-        checkPropertiesMatches(
+        checkDiscoveredProperties(
             Shift::ushrInt,
             ge(2),
             { _, x, shift, r -> r == 0 && ((x ushr shift) != x) },
@@ -145,7 +145,7 @@ class TestShift : JavaMethodTestRunner() {
     @Disabled("Incorrect primitive cast")
     @Test
     fun `Test unsigned right shift byte`() {
-        checkPropertiesMatches(
+        checkDiscoveredProperties(
             Shift::ushrByte,
             ge(2),
             { _, x, shift, r -> r == 0 && ((x.toInt() ushr shift.toInt()) != x.toInt()) },
@@ -156,7 +156,7 @@ class TestShift : JavaMethodTestRunner() {
     @Disabled("Incorrect primitive cast")
     @Test
     fun `Test unsigned right shift short`() {
-        checkPropertiesMatches(
+        checkDiscoveredProperties(
             Shift::ushrShort,
             ge(2),
             { _, x, shift, r -> r == 0 && ((x.toInt() ushr shift.toInt()) != x.toInt()) },
@@ -166,7 +166,7 @@ class TestShift : JavaMethodTestRunner() {
 
     @Test
     fun `Test unsigned right shift long`() {
-        checkPropertiesMatches(
+        checkDiscoveredProperties(
             Shift::ushrLong,
             ge(2),
             { _, x, shift, r -> r == 0 && ((x ushr shift.toInt()) != x) },
@@ -176,7 +176,7 @@ class TestShift : JavaMethodTestRunner() {
 
     @Test
     fun `Test unsigned right shift long with int shift`() {
-        checkPropertiesMatches(
+        checkDiscoveredProperties(
             Shift::ushrLongByInt,
             ge(2),
             { _, x, shift, r -> r == 0 && ((x ushr shift) != x) },
@@ -187,7 +187,7 @@ class TestShift : JavaMethodTestRunner() {
     @Disabled("Incorrect primitive cast")
     @Test
     fun `Test unsigned right shift byte with int shift`() {
-        checkPropertiesMatches(
+        checkDiscoveredProperties(
             Shift::ushrByteByInt,
             ge(2),
             { _, x, shift, r -> r == 0 && ((x.toInt() ushr shift) != x.toInt()) },

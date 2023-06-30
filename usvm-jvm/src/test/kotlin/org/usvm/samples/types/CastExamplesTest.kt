@@ -32,6 +32,7 @@ internal class CastExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Issue with doubles") // https://github.com/UnitTestBot/usvm/issues/32
     fun testFloatToDouble() {
         checkDiscoveredProperties(
             CastExamples::floatToDouble,

@@ -36,7 +36,7 @@ class BinarySearchTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
+    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun testDefaultBinarySearch() {
         checkDiscoveredPropertiesWithExceptions(
             BinarySearch::defaultBinarySearch,
