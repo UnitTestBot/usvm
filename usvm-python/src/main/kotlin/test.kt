@@ -36,6 +36,7 @@ fun main() {
             inputs.map { it.reprFromPythonObject }.forEach { ConcretePythonInterpreter.printPythonObject(it) }
             println("RESULT:")
             println(ConcretePythonInterpreter.getPythonObjectRepr(result!!))
+            println(ConcretePythonInterpreter.getPythonObjectTypeName(result))
         }
         returnValue
     }

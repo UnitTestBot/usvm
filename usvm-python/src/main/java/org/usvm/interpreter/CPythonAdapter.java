@@ -25,6 +25,7 @@ public class CPythonAdapter {
     public native long concolicRun(long globals, long functionRef, long[] concreteArgs, SymbolForCPython[] symbolicArgs, ConcolicRunContext context);
     public native void printPythonObject(long object);
     public native String getPythonObjectRepr(long object);
+    public native String getPythonObjectTypeName(long object);
 
     static {
         System.loadLibrary("cpythonadapter");
