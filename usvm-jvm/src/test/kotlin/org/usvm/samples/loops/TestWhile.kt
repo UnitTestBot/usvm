@@ -9,7 +9,7 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 class TestWhile : JavaMethodTestRunner() {
     @Test
     fun `Test singleLoop`() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             While::singleLoop,
             eq(3),
             { _, n, r -> r == 0 && n >= 5 },
@@ -21,7 +21,7 @@ class TestWhile : JavaMethodTestRunner() {
 
     @Test
     fun `Test smallestPowerOfTwo`() {
-        checkExecutionMatches(
+        checkDiscoveredProperties(
             While::smallestPowerOfTwo,
             eq(3),
             { _, n, r -> r == 0 && n.and(n - 1) == 0 },
@@ -33,7 +33,7 @@ class TestWhile : JavaMethodTestRunner() {
 
     @Test
     fun `Test sumOf`() {
-        checkPropertiesMatches(
+        checkDiscoveredProperties(
             While::sumOf,
             ignoreNumberOfAnalysisResults,
             { _, n, r -> n * (n + 1) / 2 == r },
@@ -42,8 +42,9 @@ class TestWhile : JavaMethodTestRunner() {
     }
 
     @RepeatedTest(5)
+//    @Disabled("Some properties were not discovered at positions (from 0): [0]")
     fun `Test while1000`() {
-        checkPropertiesMatches(
+        checkDiscoveredProperties(
             While::while1000,
             ignoreNumberOfAnalysisResults,
             { _, _, _, _, r -> r == 1 },

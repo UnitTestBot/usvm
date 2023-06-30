@@ -7,6 +7,7 @@ import org.usvm.UContext
 import org.usvm.UHeapRef
 import org.usvm.constraints.UEqualityConstraints
 import org.usvm.constraints.UPathConstraints
+import org.usvm.isFalse
 import org.usvm.memory.UMemoryBase
 import org.usvm.model.UModelBase
 import org.usvm.model.UModelDecoder
@@ -116,6 +117,7 @@ open class USolverBase<Field, Type, Method>(
                 softConstraintsProvider
                     .provide(it)
                     .map { sc -> translator.translate(sc) }
+                    .filterNot { sc -> sc.isFalse }
             }
 
             status = smtSolver.checkWithAssumptions(softConstraints)
