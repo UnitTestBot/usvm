@@ -13,6 +13,7 @@ import org.jacodb.api.ext.byte
 import org.jacodb.api.ext.char
 import org.jacodb.api.ext.double
 import org.jacodb.api.ext.float
+import org.jacodb.api.ext.ifArrayGetElementType
 import org.jacodb.api.ext.int
 import org.jacodb.api.ext.long
 import org.jacodb.api.ext.short
@@ -55,7 +56,7 @@ import org.usvm.model.UModelBase
  * @param classLoader a class loader to load target classes.
  */
 class JcTestResolver(
-    private val classLoader: ClassLoader = ClassLoader.getSystemClassLoader()
+    private val classLoader: ClassLoader = ClassLoader.getSystemClassLoader(),
 ) {
     /**
      * Resolves a [JcTest] from a [method] from a [state].
@@ -178,7 +179,8 @@ class JcTestResolver(
 
         private fun resolveArray(idx: UConcreteHeapAddress, type: JcArrayType, heapRef: UHeapRef): Any {
             val lengthRef = UArrayLengthLValue(heapRef, type)
-            val length = resolveLValue(lengthRef, ctx.cp.int) as Int
+            val resolvedLength = resolveLValue(lengthRef, ctx.cp.int) as Int
+            val length = if (resolvedLength in 0..10_000) resolvedLength else 0 // TODO hack
 
             val cellSort = ctx.typeToSort(type.elementType)
 
@@ -228,8 +230,25 @@ class JcTestResolver(
 
         @Suppress("UNUSED_PARAMETER")
         private fun resolveType(idx: UConcreteHeapAddress, type: JcRefType): Class<*> {
-            // TODO: Works incorrectly with interface types, so ask memory for exact type
-            return classLoader.loadClass(type.typeName)
+            // TODO: ask memory for exact type
+            type.ifArrayGetElementType?.let {
+                return when (it) {
+                    ctx.cp.boolean -> BooleanArray::class.java
+                    ctx.cp.short -> ShortArray::class.java
+                    ctx.cp.int -> IntArray::class.java
+                    ctx.cp.long -> LongArray::class.java
+                    ctx.cp.float -> FloatArray::class.java
+                    ctx.cp.double -> DoubleArray::class.java
+                    ctx.cp.byte -> ByteArray::class.java
+                    ctx.cp.char -> CharArray::class.java
+                    else -> {
+                        val elementType = resolveType(idx, it as JcRefType)
+                        Reflection.allocateArray(elementType, length = 0).javaClass
+                    }
+                }
+            }
+
+            return classLoader.loadClass(type.jcClass.name)
         }
 
         /**

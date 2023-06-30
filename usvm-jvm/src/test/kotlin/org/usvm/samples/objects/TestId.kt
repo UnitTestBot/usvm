@@ -7,11 +7,11 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 class TestId : JavaMethodTestRunner() {
     @Test
     fun `Test isOne`() {
-        checkPropertiesMatches(
+        checkDiscoveredProperties(
             Id::isOne,
             ignoreNumberOfAnalysisResults,
-            { x, r -> x.isOne && r },
-            { x, r -> !x.isOne && !r },
+            { x, r -> x.isOne && r != null && r },
+            { x, r -> !x.isOne && r != null && !r },
         )
     }
 }
