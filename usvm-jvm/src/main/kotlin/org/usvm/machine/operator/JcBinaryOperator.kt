@@ -115,7 +115,7 @@ sealed class JcBinaryOperator(
                     mkFpLessExpr(lhs, rhs),
                     mkBv(-1, bv32Sort),
                     mkIte(
-                        mkEq(lhs, rhs),
+                        mkFpEqualExpr(lhs, rhs),
                         mkBv(0, bv32Sort),
                         mkBv(1, bv32Sort)
                     )
@@ -133,7 +133,7 @@ sealed class JcBinaryOperator(
                     mkFpLessExpr(lhs, rhs),
                     mkBv(-1, bv32Sort),
                     mkIte(
-                        mkEq(lhs, rhs),
+                        mkFpEqualExpr(lhs, rhs),
                         mkBv(0, bv32Sort),
                         mkBv(1, bv32Sort)
                     )
