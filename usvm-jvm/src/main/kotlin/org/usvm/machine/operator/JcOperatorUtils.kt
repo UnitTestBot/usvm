@@ -61,6 +61,14 @@ internal fun UExpr<UBvSort>.mkNarrow(sizeBits: Int, signed: Boolean): UExpr<UBvS
     return res
 }
 
+/**
+ * Performs checked cast of any UExpr to bit-vec expression.
+ * */
+@Suppress("UNCHECKED_CAST")
+internal fun UExpr<*>.ensureBvExpr(): UExpr<UBvSort> {
+    check(sort is UBvSort) { "$this is not a Bv expr" }
+    return this as UExpr<UBvSort>
+}
 
 /**
  * Performs a java-like conversion to bit-vector accordingly to
