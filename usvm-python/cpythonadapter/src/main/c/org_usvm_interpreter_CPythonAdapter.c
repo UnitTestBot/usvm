@@ -124,3 +124,8 @@ JNIEXPORT jstring JNICALL Java_org_usvm_interpreter_CPythonAdapter_getPythonObje
     char *repr_as_string = PyUnicode_AsUTF8AndSize(repr, 0);
     return (*env)->NewStringUTF(env, repr_as_string);
 }
+
+JNIEXPORT jstring JNICALL Java_org_usvm_interpreter_CPythonAdapter_getPythonObjectTypeName(JNIEnv *env, jobject cpython_adapter, jlong object_ref) {
+    char *type_name = Py_TYPE(object_ref)->tp_name;
+    return (*env)->NewStringUTF(env, type_name);
+}
