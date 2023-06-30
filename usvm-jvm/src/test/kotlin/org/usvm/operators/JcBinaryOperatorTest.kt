@@ -213,7 +213,7 @@ class JcBinaryOperatorTest {
             testOperatorOnFloats(
                 operator = JcBinaryOperator.Cmpl,
                 operatorText = "cmpl",
-                onFloats = { lhs, rhs -> if (lhs.isNaN() || rhs.isNaN()) -1 else lhs.compareTo(rhs) },
+                onFloats = { lhs, rhs -> if (lhs.isNaN() || rhs.isNaN()) -1 else compareFloats(lhs, rhs) },
                 ::extractInt,
             )
         )
@@ -224,10 +224,22 @@ class JcBinaryOperatorTest {
             testOperatorOnFloats(
                 operator = JcBinaryOperator.Cmpg,
                 operatorText = "cmpg",
-                onFloats = { lhs, rhs -> if (lhs.isNaN() || rhs.isNaN()) 1 else lhs.compareTo(rhs) },
+                onFloats = { lhs, rhs -> if (lhs.isNaN() || rhs.isNaN()) 1 else compareFloats(lhs, rhs) },
                 ::extractInt,
             )
         )
+
+    /**
+     * According to the specification, 0.0 and -0.0 are equal,
+     * but according to the Float.compareTo -0.0 < 0.0.
+     * */
+    private fun compareFloats(lhs: Float, rhs: Float): Int {
+        check(!lhs.isNaN() && !rhs.isNaN())
+        if (lhs == 0.0f && rhs == 0.0f) {
+            return 0;
+        }
+        return lhs.compareTo(rhs)
+    }
 
 
     private fun testOnAll(
