@@ -1,24 +1,54 @@
 package org.usvm.samples
 
 import org.junit.jupiter.api.Test
-import org.usvm.interpreter.ConcretePythonInterpreter
 import org.usvm.language.PythonCallable
 import org.usvm.language.PythonInt
+import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 class SimpleExampleTest : PythonTestRunner("/samples/SimpleExample.py") {
     private val functionF = PythonCallable.constructCallableFromName(List(3) { PythonInt }, "f")
+    private val functionMyAbs = PythonCallable.constructCallableFromName(List(1) { PythonInt }, "my_abs")
+    private val functionSamplePickle = PythonCallable.constructCallableFromName(List(1) { PythonInt }, "pickle_sample")
+
     @Test
     fun testF() {
-        checkReprs3WithConcreteRun(
+        check3WithConcreteRun(
             functionF,
             ignoreNumberOfAnalysisResults,
-            /* invariants = */ emptyList(),
+            compareConcolicAndConcreteReprs,
+            /* invariants = */ listOf { x, y, z, res ->
+                listOf(x, y, z, res).all { it.typeName == "int" }
+            },
             /* propertiesToDiscover = */ List(10) { index ->
-                { _, _, _, res -> res == index.toString() }
+                { _, _, _, res -> res.repr == index.toString() }
             }
-        ) /* compareConcolicAndConcrete */ { testFromConcolic, concreteResult ->
-            testFromConcolic.result == ConcretePythonInterpreter.getPythonObjectRepr(concreteResult)
-        }
+        )
+    }
+
+    @Test
+    fun testMyAbs() {
+        check1WithConcreteRun(
+            functionMyAbs,
+            eq(3),
+            compareConcolicAndConcreteReprs,
+            /* invariants = */ listOf { x, _ -> x.typeName == "int" },
+            /* propertiesToDiscover = */ listOf(
+                { x, res -> x.repr.toInt() > 0 && res.typeName == "int" },
+                { x, res -> x.repr.toInt() == 0 && res.typeName == "str" },
+                { x, res -> x.repr.toInt() < 0 && res.typeName == "int" },
+            )
+        )
+    }
+
+    @Test
+    fun testSamplePickle() {
+        check1WithConcreteRun(
+            functionSamplePickle,
+            eq(1),
+            compareConcolicAndConcreteReprs,
+            /* invariants = */ listOf { _, res -> res.typeName == "bytes" },
+            /* propertiesToDiscover = */ emptyList()
+        )
     }
 }
