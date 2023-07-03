@@ -9,6 +9,7 @@ import org.usvm.language.PythonType
 import org.usvm.language.SymbolForCPython
 import org.usvm.memory.UMemoryBase
 import org.usvm.ps.DfsPathSelector
+import org.usvm.statistics.UMachineObserver
 
 class PythonMachine<PYTHON_OBJECT_REPRESENTATION>(
     private val program: PythonProgram,
@@ -55,13 +56,13 @@ class PythonMachine<PYTHON_OBJECT_REPRESENTATION>(
         pythonCallable: PythonCallable,
         results: MutableList<PythonAnalysisResult<PYTHON_OBJECT_REPRESENTATION>>
     ): Int {
-        var cnt = 0
+        val observer = PythonMachineObserver()
         run(
             getInterpreter(pythonCallable, results),
             getPathSelector(pythonCallable),
-            onState = { cnt += 1 },
-            continueAnalyzing = { !it.wasExecuted },
-            stoppingStrategy = { cnt >= 10000 }
+            observer = observer,
+            isStateTerminated = { it.wasExecuted },
+            stopStrategy = { observer.stateCounter >= 10000 }
         )
         return iterationCounter.iterations
     }
@@ -69,6 +70,15 @@ class PythonMachine<PYTHON_OBJECT_REPRESENTATION>(
     override fun close() {
         solver.close()
         ctx.close()
+    }
+
+    private class PythonMachineObserver(
+        var stateCounter: Int = 0
+    ): UMachineObserver<PythonExecutionState> {
+        override fun onState(parent: PythonExecutionState, forks: Sequence<PythonExecutionState>) {
+            super.onState(parent, forks)
+            stateCounter += 1
+        }
     }
 }
 
