@@ -6,10 +6,10 @@ import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.samples.casts.ColoredPoint
 import org.usvm.samples.casts.Point
 import org.usvm.test.util.checkers.eq
+import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 
 @Suppress("NestedLambdaShadowedImplicitParameter")
-@Disabled("Unsupported")
 internal class ArrayOfArraysTest : JavaMethodTestRunner() {
     @Test
     fun testDefaultValues() {
@@ -21,6 +21,7 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [0]")
     fun testExample() {
         checkDiscoveredProperties(
             ArrayOfArrays::sizesWithoutTouchingTheElements,
@@ -40,6 +41,7 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Expected exactly 4 executions, but 1 found")
     fun testCreateNewMultiDimensionalArray() {
         checkDiscoveredProperties(
             ArrayOfArrays::createNewMultiDimensionalArray,
@@ -71,6 +73,7 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [1]")
     fun testDefaultValuesWithoutTwoDimensions() {
         checkDiscoveredProperties(
             ArrayOfArrays::defaultValuesWithoutTwoDimensions,
@@ -81,6 +84,7 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [0]")
     fun testDefaultValuesNewMultiArray() {
         checkDiscoveredProperties(
             ArrayOfArrays::defaultValuesNewMultiArray,
@@ -90,6 +94,7 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Expected exactly 7 executions, but 11 found")
     fun testSimpleExample() {
         checkDiscoveredProperties(
             ArrayOfArrays::simpleExample,
@@ -104,19 +109,24 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
         )
     }
 
-    // TODO unsupported matchers
-//    @Test
-//    fun testSimpleExampleMutation() {
-//        checkParamsMutations(
-//            ArrayOfArrays::simpleExample,
-//            eq(7),
-//            { matrixBefore, matrixAfter -> matrixBefore[1][1] == 1 && matrixAfter[2][2] == 2 },
-//            { matrixBefore, matrixAfter -> matrixBefore[1][1] != 1 && matrixAfter[2][2] == -2 },
-//            coverage = DoNotCalculate
-//        )
-//    }
+    @Test
+    @Disabled("Expected exactly 7 executions, but 11 found")
+    fun testSimpleExampleMutation() {
+        checkThisAndParamsMutations(
+            ArrayOfArrays::simpleExample,
+            eq(7),
+            { _, matrixBefore, _, matrixAfter, r ->
+                matrixBefore[1][1] == 1 && matrixAfter[2][2] == 2 && r === matrixAfter
+            },
+            { _, matrixBefore, _, matrixAfter, r ->
+                matrixBefore[1][1] != 1 && matrixAfter[2][2] == -2 && r === matrixAfter
+            },
+            checkMode = CheckMode.MATCH_PROPERTIES,
+        )
+    }
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun testIsIdentityMatrix() {
         checkDiscoveredProperties(
             ArrayOfArrays::isIdentityMatrix,
@@ -150,6 +160,7 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [1]")
     fun testCreateNewThreeDimensionalArray() {
         checkDiscoveredProperties(
             ArrayOfArrays::createNewThreeDimensionalArray,
@@ -170,6 +181,7 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun testReallyMultiDimensionalArray() {
         checkDiscoveredProperties(
             ArrayOfArrays::reallyMultiDimensionalArray,
@@ -195,18 +207,24 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
         )
     }
 
-//    TODO unsupported matchers
-//    @Test
-//    fun testReallyMultiDimensionalArrayMutation() {
-//        checkParamsMutations(
-//            ArrayOfArrays::reallyMultiDimensionalArray,
-//            ignoreNumberOfAnalysisResults,
-//            { arrayBefore, arrayAfter -> arrayBefore[1][2][3] != 12345 && arrayAfter[1][2][3] == 12345 },
-//            { arrayBefore, arrayAfter -> arrayBefore[1][2][3] == 12345 && arrayAfter[1][2][3] == -12345 },
-//        )
-//    }
+    @Test
+    @Disabled("Some types don't match at positions (from 0): [1]. ")
+    fun testReallyMultiDimensionalArrayMutation() {
+        checkThisAndParamsMutations(
+            ArrayOfArrays::reallyMultiDimensionalArray,
+            ignoreNumberOfAnalysisResults,
+            { _, arrayBefore, _, arrayAfter, r ->
+                arrayBefore[1][2][3] != 12345 && arrayAfter[1][2][3] == 12345 && r === arrayAfter
+            },
+            { _, arrayBefore, _, arrayAfter, r ->
+                arrayBefore[1][2][3] == 12345 && arrayAfter[1][2][3] == -12345 && r === arrayAfter
+            },
+            checkMode = CheckMode.MATCH_PROPERTIES
+        )
+    }
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun testMultiDimensionalObjectsArray() {
         checkDiscoveredProperties(
             ArrayOfArrays::multiDimensionalObjectsArray,
@@ -226,22 +244,24 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
         )
     }
 
-    // TODO unsupported matchers
-//    @Test
-//    fun testMultiDimensionalObjectsArrayMutation() {
-//        checkParamsMutations(
-//            ArrayOfArrays::multiDimensionalObjectsArray,
-//            ignoreNumberOfAnalysisResults,
-//            { _, arrayAfter ->
-//                arrayAfter[0] is Array<*> && arrayAfter[0].isArrayOf<ColoredPoint>() && arrayAfter[0].size == 2
-//            },
-//            { _, arrayAfter ->
-//                arrayAfter[1] is Array<*> && arrayAfter[1].isArrayOf<Point>() && arrayAfter[1].size == 1
-//            },
-//        )
-//    }
+    @Test
+    @Disabled("An operation is not implemented: Not yet implemented")
+    fun testMultiDimensionalObjectsArrayMutation() {
+        checkThisAndParamsMutations(
+            ArrayOfArrays::multiDimensionalObjectsArray,
+            eq(1),
+            { _, _, _, arrayAfter, r ->
+                arrayAfter[0].isArrayOf<ColoredPoint>() && arrayAfter[0].size == 2 && r === arrayAfter
+            },
+            { _, _, _, arrayAfter, r ->
+                arrayAfter[1].isArrayOf<Point>() && arrayAfter[1].size == 1 && r === arrayAfter
+            },
+            checkMode = CheckMode.MATCH_PROPERTIES
+        )
+    }
 
     @Test
+    @Disabled("Expected exactly 3 executions, but 4 found")
     fun testFillMultiArrayWithArray() {
         checkDiscoveredProperties(
             ArrayOfArrays::fillMultiArrayWithArray,
@@ -262,17 +282,23 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
         )
     }
 
-    // TODO unsupported matchers
-//    @Test
-//    fun testFillMultiArrayWithArrayMutation() {
-//        checkParamsMutations(
-//            ArrayOfArrays::fillMultiArrayWithArray,
-//            ignoreNumberOfAnalysisResults,
-//            { valueBefore, valueAfter -> valueAfter.withIndex().all { it.value == valueBefore[it.index] + it.index } }
-//        )
-//    }
+    @Test
+    @Disabled("Some types don't match at positions (from 0): [1]. ")
+    fun testFillMultiArrayWithArrayMutation() {
+        checkThisAndParamsMutations(
+            ArrayOfArrays::fillMultiArrayWithArray,
+            ignoreNumberOfAnalysisResults,
+            { _, valueBefore, _, valueAfter, r ->
+                valueAfter.withIndex().all {
+                    it.value == valueBefore[it.index] + it.index
+                } && r!!.all { it.contentEquals(valueAfter) }
+            },
+            checkMode = CheckMode.MATCH_PROPERTIES
+        )
+    }
 
     @Test
+    @Disabled("Expected exactly 2 executions, but 4 found")
     fun testArrayWithItselfAnAsElement() {
         checkDiscoveredProperties(
             ArrayOfArrays::arrayWithItselfAnAsElement,

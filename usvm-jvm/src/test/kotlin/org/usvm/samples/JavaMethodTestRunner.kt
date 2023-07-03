@@ -5,6 +5,7 @@ import org.jacodb.api.ext.toType
 import org.junit.jupiter.api.TestInstance
 import org.usvm.UMachineOptions
 import org.usvm.api.JcClassCoverage
+import org.usvm.api.JcParametersState
 import org.usvm.api.JcTest
 import org.usvm.api.util.JcTestResolver
 import org.usvm.machine.JcMachine
@@ -72,12 +73,28 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
             analysisResultsNumberMatcher,
             analysisResultsMatchers,
             invariants = invariants,
-            extractValuesToCheck = { test: JcTest ->
-                val values = test.takeAllParameters(method, allParametersCount = 1)
-                test.result.let { values += it.getOrNull() }
-                values
-            },
+            extractValuesToCheck = { test: JcTest -> test.takeAllParametersBeforeWithResult(method) },
             expectedTypesForExtractedValues = arrayOf(T::class, R::class),
+            checkMode = checkMode,
+            coverageChecker
+        )
+    }
+
+    protected inline fun <reified T, reified R> checkThisAndParamsMutations(
+        method: KFunction1<T, R>,
+        analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
+        vararg paramsMutationsMatchers: (T, T, R?) -> Boolean,
+        invariants: Array<(T, R?) -> Boolean> = emptyArray(),
+        noinline coverageChecker: (JcClassCoverage) -> Boolean = { _ -> true }, // TODO remove it
+        checkMode: CheckMode,
+    ) {
+        internalCheck(
+            target = method,
+            analysisResultsNumberMatcher,
+            paramsMutationsMatchers,
+            invariants = invariants,
+            extractValuesToCheck = { test: JcTest -> test.takeAllParametersBeforeAndAfterWithResult(method) },
+            expectedTypesForExtractedValues = arrayOf(T::class, T::class, R::class),
             checkMode = checkMode,
             coverageChecker
         )
@@ -129,12 +146,28 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
             analysisResultsNumberMatcher,
             analysisResultsMatchers,
             invariants = invariants,
-            extractValuesToCheck = { test: JcTest ->
-                val values = test.takeAllParameters(method, allParametersCount = 2)
-                test.result.let { values += it.getOrNull() }
-                values
-            },
+            extractValuesToCheck = { test: JcTest -> test.takeAllParametersBeforeWithResult(method) },
             expectedTypesForExtractedValues = arrayOf(T::class, A0::class, R::class),
+            checkMode = checkMode,
+            coverageChecker
+        )
+    }
+
+    protected inline fun <reified T, reified A0, reified R> checkThisAndParamsMutations(
+        method: KFunction2<T, A0, R>,
+        analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
+        vararg paramsMutationsMatchers: (T, A0, T, A0, R?) -> Boolean,
+        invariants: Array<(T, A0, R?) -> Boolean> = emptyArray(),
+        noinline coverageChecker: (JcClassCoverage) -> Boolean = { _ -> true }, // TODO remove it
+        checkMode: CheckMode,
+    ) {
+        internalCheck(
+            target = method,
+            analysisResultsNumberMatcher,
+            paramsMutationsMatchers,
+            invariants = invariants,
+            extractValuesToCheck = { test: JcTest -> test.takeAllParametersBeforeAndAfterWithResult(method) },
+            expectedTypesForExtractedValues = arrayOf(T::class, A0::class, T::class, A0::class, R::class),
             checkMode = checkMode,
             coverageChecker
         )
@@ -186,12 +219,28 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
             analysisResultsNumberMatcher,
             analysisResultsMatchers,
             invariants = invariants,
-            extractValuesToCheck = { test: JcTest ->
-                val values = test.takeAllParameters(method, allParametersCount = 3)
-                test.result.let { values += it.getOrNull() }
-                values
-            },
+            extractValuesToCheck = { test: JcTest -> test.takeAllParametersBeforeWithResult(method) },
             expectedTypesForExtractedValues = arrayOf(T::class, A0::class, A1::class, R::class),
+            checkMode = checkMode,
+            coverageChecker
+        )
+    }
+
+    protected inline fun <reified T, reified A0, reified A1, reified R> checkThisAndParamsMutations(
+        method: KFunction3<T, A0, A1, R>,
+        analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
+        vararg paramsMutationsMatchers: (T, A0, A1, T, A0, A1, R?) -> Boolean,
+        invariants: Array<(T, A0, A1, R?) -> Boolean> = emptyArray(),
+        noinline coverageChecker: (JcClassCoverage) -> Boolean = { _ -> true }, // TODO remove it
+        checkMode: CheckMode,
+    ) {
+        internalCheck(
+            target = method,
+            analysisResultsNumberMatcher,
+            paramsMutationsMatchers,
+            invariants = invariants,
+            extractValuesToCheck = { test: JcTest -> test.takeAllParametersBeforeAndAfterWithResult(method) },
+            expectedTypesForExtractedValues = arrayOf(T::class, A0::class, A1::class, T::class, A0::class, A1::class, R::class),
             checkMode = checkMode,
             coverageChecker
         )
@@ -243,12 +292,38 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
             analysisResultsNumberMatcher,
             analysisResultsMatchers,
             invariants = invariants,
-            extractValuesToCheck = { test: JcTest ->
-                val values = test.takeAllParameters(method, allParametersCount = 4)
-                test.result.let { values += it.getOrNull() }
-                values
-            },
+            extractValuesToCheck = { test: JcTest -> test.takeAllParametersBeforeWithResult(method) },
             expectedTypesForExtractedValues = arrayOf(T::class, A0::class, A1::class, A2::class, R::class),
+            checkMode = checkMode,
+            coverageChecker
+        )
+    }
+
+    protected inline fun <reified T, reified A0, reified A1, reified A2, reified R> checkThisAndParamsMutations(
+        method: KFunction4<T, A0, A1, A2, R>,
+        analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
+        vararg paramsMutationsMatchers: (T, A0, A1, A2, T, A0, A1, A2, R?) -> Boolean,
+        invariants: Array<(T, A0, A1, A2, R?) -> Boolean> = emptyArray(),
+        noinline coverageChecker: (JcClassCoverage) -> Boolean = { _ -> true }, // TODO remove it
+        checkMode: CheckMode,
+    ) {
+        internalCheck(
+            target = method,
+            analysisResultsNumberMatcher,
+            paramsMutationsMatchers,
+            invariants = invariants,
+            extractValuesToCheck = { test: JcTest -> test.takeAllParametersBeforeAndAfterWithResult(method) },
+            expectedTypesForExtractedValues = arrayOf(
+                T::class,
+                A0::class,
+                A1::class,
+                A2::class,
+                T::class,
+                A0::class,
+                A1::class,
+                A2::class,
+                R::class
+            ),
             checkMode = checkMode,
             coverageChecker
         )
@@ -305,11 +380,32 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
             analysisResultsMatchers,
             invariants = invariants,
             extractValuesToCheck = { test: JcTest ->
-                val values = test.takeAllParameters(method, allParametersCount = 1)
+                val values = test.takeAllParametersBefore(method)
                 test.result.let { values += it }
                 values
             },
             expectedTypesForExtractedValues = arrayOf(T::class), // We don't check type for the result here
+            checkMode = checkMode,
+            coverageChecker
+        )
+    }
+
+    protected inline fun <reified T, reified R> checkThisAndParamsMutationsWithExceptions(
+        method: KFunction1<T, R>,
+        analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
+        vararg paramsMutationsMatchers: (T, T, Result<R>) -> Boolean,
+        invariants: Array<(T, Result<R>) -> Boolean> = emptyArray(),
+        noinline coverageChecker: (JcClassCoverage) -> Boolean = { _ -> true }, // TODO remove it
+        checkMode: CheckMode,
+    ) {
+        internalCheck(
+            target = method,
+            analysisResultsNumberMatcher,
+            paramsMutationsMatchers,
+            invariants = invariants,
+            extractValuesToCheck = { test: JcTest -> test.takeAllParametersBeforeAndAfterWithResult(method) },
+            // We don't check type for the result here
+            expectedTypesForExtractedValues = arrayOf(T::class, T::class),
             checkMode = checkMode,
             coverageChecker
         )
@@ -362,11 +458,32 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
             analysisResultsMatchers,
             invariants = invariants,
             extractValuesToCheck = { test: JcTest ->
-                val values = test.takeAllParameters(method, allParametersCount = 2)
+                val values = test.takeAllParametersBefore(method)
                 test.result.let { values += it }
                 values
             },
             expectedTypesForExtractedValues = arrayOf(T::class, A0::class), // We don't check type for the result here
+            checkMode = checkMode,
+            coverageChecker
+        )
+    }
+
+    protected inline fun <reified T, reified A0, reified R> checkThisAndParamsMutationsWithExceptions(
+        method: KFunction2<T, A0, R>,
+        analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
+        vararg paramsMutationsMatchers: (T, A0, T, A0, Result<R>) -> Boolean,
+        invariants: Array<(T, A0, Result<R>) -> Boolean> = emptyArray(),
+        noinline coverageChecker: (JcClassCoverage) -> Boolean = { _ -> true }, // TODO remove it
+        checkMode: CheckMode,
+    ) {
+        internalCheck(
+            target = method,
+            analysisResultsNumberMatcher,
+            paramsMutationsMatchers,
+            invariants = invariants,
+            extractValuesToCheck = { test: JcTest -> test.takeAllParametersBeforeAndAfterWithResult(method) },
+            // We don't check type for the result here
+            expectedTypesForExtractedValues = arrayOf(T::class, A0::class, T::class, A0::class),
             checkMode = checkMode,
             coverageChecker
         )
@@ -419,12 +536,33 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
             analysisResultsMatchers,
             invariants = invariants,
             extractValuesToCheck = { test: JcTest ->
-                val values = test.takeAllParameters(method, allParametersCount = 3)
+                val values = test.takeAllParametersBefore(method)
                 test.result.let { values += it }
                 values
             },
             // We don't check type for the result here
             expectedTypesForExtractedValues = arrayOf(T::class, A0::class, A1::class),
+            checkMode = checkMode,
+            coverageChecker
+        )
+    }
+
+    protected inline fun <reified T, reified A0, reified A1, reified R> checkThisAndParamsMutationsWithExceptions(
+        method: KFunction3<T, A0, A1, R>,
+        analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
+        vararg paramsMutationsMatchers: (T, A0, A1, T, A0, A1, Result<R>) -> Boolean,
+        invariants: Array<(T, A0, A1, Result<R>) -> Boolean> = emptyArray(),
+        noinline coverageChecker: (JcClassCoverage) -> Boolean = { _ -> true }, // TODO remove it
+        checkMode: CheckMode,
+    ) {
+        internalCheck(
+            target = method,
+            analysisResultsNumberMatcher,
+            paramsMutationsMatchers,
+            invariants = invariants,
+            extractValuesToCheck = { test: JcTest -> test.takeAllParametersBeforeAndAfterWithResult(method) },
+            // We don't check type for the result here
+            expectedTypesForExtractedValues = arrayOf(T::class, A0::class, A1::class, T::class, A0::class, A1::class),
             checkMode = checkMode,
             coverageChecker
         )
@@ -477,7 +615,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
             analysisResultsMatchers,
             invariants = invariants,
             extractValuesToCheck = { test: JcTest ->
-                val values = test.takeAllParameters(method, allParametersCount = 4)
+                val values = test.takeAllParametersBefore(method)
                 test.result.let { values += it }
                 values
             },
@@ -488,20 +626,83 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
         )
     }
 
+    protected inline fun <reified T, reified A0, reified A1, reified A2, reified R> checkThisAndParamsMutationsWithExceptions(
+        method: KFunction4<T, A0, A1, A2, R>,
+        analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
+        vararg paramsMutationsMatchers: (T, A0, A1, A2, T, A0, A1, A2, Result<R>) -> Boolean,
+        invariants: Array<(T, A0, A1, A2, Result<R>) -> Boolean> = emptyArray(),
+        noinline coverageChecker: (JcClassCoverage) -> Boolean = { _ -> true }, // TODO remove it
+        checkMode: CheckMode,
+    ) {
+        internalCheck(
+            target = method,
+            analysisResultsNumberMatcher,
+            paramsMutationsMatchers,
+            invariants = invariants,
+            extractValuesToCheck = { test: JcTest -> test.takeAllParametersBeforeAndAfterWithResult(method) },
+            // We don't check type for the result here
+            expectedTypesForExtractedValues = arrayOf(
+                T::class,
+                A0::class,
+                A1::class,
+                A2::class,
+                T::class,
+                A0::class,
+                A1::class,
+                A2::class
+            ),
+            checkMode = checkMode,
+            coverageChecker
+        )
+    }
+
     // endregion
 
-    protected fun JcTest.takeAllParameters(
+    protected fun JcTest.takeAllParametersBefore(method: KFunction<*>): MutableList<Any?> =
+        before.takeAllParameters(method)
+
+    protected fun JcTest.takeAllParametersBeforeWithResult(method: KFunction<*>): MutableList<Any?> {
+        val values = before.takeAllParameters(method)
+        result.let { values += it.getOrNull() }
+
+        return values
+    }
+
+    protected fun JcTest.takeAllParametersAfter(method: KFunction<*>): MutableList<Any?> =
+        after.takeAllParameters(method)
+
+    protected fun JcTest.takeAllParametersAfterWithResult(method: KFunction<*>): MutableList<Any?> {
+        val values = after.takeAllParameters(method)
+        result.let { values += it.getOrNull() }
+
+        return values
+    }
+
+    private fun JcTest.takeAllParametersBeforeAndAfter(method: KFunction<*>): MutableList<Any?> {
+        val parameters = before.takeAllParameters(method)
+        parameters.addAll(after.takeAllParameters(method))
+
+        return parameters
+    }
+
+    protected fun JcTest.takeAllParametersBeforeAndAfterWithResult(method: KFunction<*>): MutableList<Any?> {
+        val values = takeAllParametersBeforeAndAfter(method)
+        result.let { values += it.getOrNull() }
+
+        return values
+    }
+
+    private fun JcParametersState.takeAllParameters(
         method: KFunction<*>,
-        allParametersCount: Int,
     ): MutableList<Any?> {
         val values = mutableListOf<Any?>()
         if (method.instanceParameter != null) {
-            requireNotNull(before.thisInstance)
-            values += before.thisInstance
+            requireNotNull(thisInstance)
+            values += thisInstance
         } else {
-            require(before.thisInstance == null)
+            require(thisInstance == null)
         }
-        values.addAll(before.parameters.take(allParametersCount - values.size)) // add remaining arguments
+        values.addAll(parameters.take(method.parameters.size - values.size)) // add remaining arguments
         return values
     }
 
