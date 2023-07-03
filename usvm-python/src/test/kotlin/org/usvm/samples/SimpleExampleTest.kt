@@ -1,15 +1,15 @@
 package org.usvm.samples
 
 import org.junit.jupiter.api.Test
-import org.usvm.language.PythonCallable
 import org.usvm.language.PythonInt
+import org.usvm.language.PythonUnpinnedCallable
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 class SimpleExampleTest : PythonTestRunner("/samples/SimpleExample.py") {
-    private val functionF = PythonCallable.constructCallableFromName(List(3) { PythonInt }, "f")
-    private val functionMyAbs = PythonCallable.constructCallableFromName(List(1) { PythonInt }, "my_abs")
-    private val functionSamplePickle = PythonCallable.constructCallableFromName(List(1) { PythonInt }, "pickle_sample")
+    private val functionF = PythonUnpinnedCallable.constructCallableFromName(List(3) { PythonInt }, "f")
+    private val functionMyAbs = PythonUnpinnedCallable.constructCallableFromName(List(1) { PythonInt }, "my_abs")
+    private val functionSamplePickle = PythonUnpinnedCallable.constructCallableFromName(List(1) { PythonInt }, "pickle_sample")
 
     @Test
     fun testF() {

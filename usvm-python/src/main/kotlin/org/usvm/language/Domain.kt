@@ -9,13 +9,17 @@ data class PythonProgram(val asString: String)
 class Slot
 class Attribute
 
-class PythonCallable(
+sealed class PythonCallable
+
+data class PythonPinnedCallable(val asPythonObject: PythonObject): PythonCallable()
+
+class PythonUnpinnedCallable(
     val signature: List<PythonType>,
     val reference: (PythonNamespace) -> /* function reference */ PythonObject
-) {
+): PythonCallable() {
     val numberOfArguments: Int = signature.size
     companion object {
         fun constructCallableFromName(signature: List<PythonType>, name: String) =
-            PythonCallable(signature) { globals -> ConcretePythonInterpreter.eval(globals, name) }
+            PythonUnpinnedCallable(signature) { globals -> ConcretePythonInterpreter.eval(globals, name) }
     }
 }

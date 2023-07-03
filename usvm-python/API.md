@@ -31,11 +31,13 @@ For all events empty list may be given as a return value.
 
 ## `SYM_EVENT_TYPE_NOTIFY` events list
 
-|          event id          | Arguments                                                                                        |
-|:--------------------------:|:-------------------------------------------------------------------------------------------------|
-| `SYM_EVENT_ID_INSTRUCTION` | One argument: `PyFrameObject*`, frame that is about to execute next instruction.                 |
-|    `SYM_EVENT_ID_FORK`     | One argument: `PyObject*` inside `if` condition.                                                 |
-| `SYM_EVENT_ID_FORK_RESULT` | One argument: `Py_True` or `Py_False`. Result of concrete condition. Closes `SYM_EVENT_ID_FORK`. |
+|              event id               | Arguments                                                                                        |
+|:-----------------------------------:|:-------------------------------------------------------------------------------------------------|
+|     `SYM_EVENT_ID_INSTRUCTION`      | One argument: `PyFrameObject*`, frame that is about to execute next instruction.                 |
+|         `SYM_EVENT_ID_FORK`         | One argument: `PyObject*` inside `if` condition.                                                 |
+|     `SYM_EVENT_ID_FORK_RESULT`      | One argument: `Py_True` or `Py_False`. Result of concrete condition. Closes `SYM_EVENT_ID_FORK`. |
+| `SYM_EVENT_ID_PYTHON_FUNCTION_CALL` | One argument: `PyFunctionObject*` to be called.                                                  |
+|        `SYM_EVENT_ID_RETURN`        | No arguments.                                                                                    |
 
 ## `SYM_EVENT_TYPE_METHOD` events list
 

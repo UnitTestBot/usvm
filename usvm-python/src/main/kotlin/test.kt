@@ -2,22 +2,26 @@ import org.usvm.interpreter.ConcretePythonInterpreter
 import org.usvm.interpreter.PythonAnalysisResult
 import org.usvm.interpreter.PythonMachine
 import org.usvm.interpreter.PythonObject
-import org.usvm.language.PythonCallable
 import org.usvm.language.PythonInt
 import org.usvm.language.PythonProgram
+import org.usvm.language.PythonUnpinnedCallable
 
 fun main() {
     val program = PythonProgram(
         """
-        import pickle
-        def f(x):
-            if x >= 0:
-                return pickle.dumps(x)
+        def g(x):
+            if x > 0:
+                return x
             else:
-                return pickle.dumps(-x)
+                return -x
+
+        def f(x):
+            if g(x) == 0:
+                return 1
+            return 2
         """.trimIndent()
     )
-    val function = PythonCallable.constructCallableFromName(List(1) { PythonInt }, "f")
+    val function = PythonUnpinnedCallable.constructCallableFromName(List(1) { PythonInt }, "f")
 
     val namespace = ConcretePythonInterpreter.getNewNamespace()
     ConcretePythonInterpreter.concreteRun(namespace, program.asString)

@@ -4,6 +4,7 @@ import org.usvm.UBoolExpr
 import org.usvm.UExpr
 import org.usvm.fork
 import org.usvm.interpreter.ConcolicRunContext
+import org.usvm.language.PythonPinnedCallable
 
 fun handlerForkKt(ctx: ConcolicRunContext, cond: UExpr<*>?) {
     cond ?: return
@@ -28,4 +29,14 @@ fun handlerForkKt(ctx: ConcolicRunContext, cond: UExpr<*>?) {
         //println("RESULT: ${forkResult.positiveState} ${forkResult.negativeState} ${ctx.curState}")
         //System.out.flush()
     }
+}
+
+fun handlerFunctionCallKt(ctx: ConcolicRunContext, function: PythonPinnedCallable): Int {  // return value for Java call
+    ctx.curState.callStack.push(function, ctx.curState.lastHandlerEvent)
+    return 0
+}
+
+fun handlerReturnKt(ctx: ConcolicRunContext): Int {  // return value for Java call
+    ctx.curState.callStack.pop()
+    return 0
 }
