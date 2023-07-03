@@ -10,7 +10,7 @@ import org.usvm.model.UModelBase
 
 class PythonExecutionState(
     ctx: UContext,
-    private val pythonCallable: PythonCallable,
+    private val pythonCallable: PythonUnpinnedCallable,
     val inputSymbols: List<SymbolForCPython>,
     pathConstraints: UPathConstraints<PythonType>,
     memory: UMemoryBase<Attribute, PythonType, PythonCallable>,
@@ -34,4 +34,6 @@ class PythonExecutionState(
     }
 
     var wasExecuted: Boolean = false
+    val lastHandlerEvent: SymbolicHandlerEvent<Any>?
+        get() = if (path.isEmpty()) null else path.last()
 }

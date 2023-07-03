@@ -3,8 +3,6 @@
 
 #define CHECK_FOR_EXCEPTION(fail_value) \
     if ((*ctx->env)->ExceptionCheck(ctx->env)) { \
-        /*printf("HERE\n"); \
-        fflush(stdout);*/ \
         PyErr_SetString(PyExc_RuntimeError, "Java exception"); \
         return fail_value; \
     }
@@ -119,6 +117,14 @@ handler(int signal_type, int signal_id, int nargs, PyObject *const *args, void *
         CHECK_FOR_EXCEPTION(1)
 
         return Py_None;
+
+    } else if (signal_id == SYM_EVENT_ID_PYTHON_FUNCTION_CALL) {
+        assert(signal_type == SYM_EVENT_TYPE_NOTIFY && nargs == 1);
+
+
+    } else if (signal_id == SYM_EVENT_ID_RETURN) {
+        assert(signal_type == SYM_EVENT_TYPE_NOTIFY && nargs == 0);
+
     }
 
     return Py_None;

@@ -73,5 +73,15 @@
         "c_name": "pow_long",
         "java_name": "handlerPOWLong",
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;ILorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
+    },
+    {
+        "c_name": "function_call",
+        "java_name": "handlerFunctionCall",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;J)V"
+    },
+    {
+        "c_name": "python_return",
+        "java_name": "handlerReturn",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;)V"
     }
 ]

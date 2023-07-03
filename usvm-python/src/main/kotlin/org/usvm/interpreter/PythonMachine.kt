@@ -2,11 +2,7 @@ package org.usvm.interpreter
 
 import org.usvm.*
 import org.usvm.constraints.UPathConstraints
-import org.usvm.language.Attribute
-import org.usvm.language.PythonCallable
-import org.usvm.language.PythonProgram
-import org.usvm.language.PythonType
-import org.usvm.language.SymbolForCPython
+import org.usvm.language.*
 import org.usvm.memory.UMemoryBase
 import org.usvm.ps.DfsPathSelector
 import org.usvm.statistics.UMachineObserver
@@ -18,15 +14,21 @@ class PythonMachine<PYTHON_OBJECT_REPRESENTATION>(
     private val ctx = UContext(PythonComponents)
     private val solver = ctx.solver<Attribute, PythonType, PythonCallable>()
     private val iterationCounter = IterationCounter()
+    private val namespace = ConcretePythonInterpreter.getNewNamespace()
+
+    init {
+        ConcretePythonInterpreter.concreteRun(namespace, program.asString)
+    }
+
     private fun getInterpreter(
-        target: PythonCallable,
+        target: PythonUnpinnedCallable,
         results: MutableList<PythonAnalysisResult<PYTHON_OBJECT_REPRESENTATION>>
     ): USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION> =
-        USVMPythonInterpreter(ctx, program, target, iterationCounter, pythonObjectSerialization) {
+        USVMPythonInterpreter(ctx, namespace, target, iterationCounter, pythonObjectSerialization) {
             results.add(it)
         }
 
-    private fun getInitialState(target: PythonCallable): PythonExecutionState {
+    private fun getInitialState(target: PythonUnpinnedCallable): PythonExecutionState {
         val pathConstraints = UPathConstraints<PythonType>(ctx)
         val memory = UMemoryBase<Attribute, PythonType, PythonCallable>(
             ctx,
@@ -45,7 +47,7 @@ class PythonMachine<PYTHON_OBJECT_REPRESENTATION>(
         )
     }
 
-     fun getPathSelector(target: PythonCallable): UPathSelector<PythonExecutionState> {
+     private fun getPathSelector(target: PythonUnpinnedCallable): UPathSelector<PythonExecutionState> {
         val ps = DfsPathSelector<PythonExecutionState>()
         val initialState = getInitialState(target)
         ps.add(listOf(initialState))
@@ -53,7 +55,7 @@ class PythonMachine<PYTHON_OBJECT_REPRESENTATION>(
     }
 
     fun analyze(
-        pythonCallable: PythonCallable,
+        pythonCallable: PythonUnpinnedCallable,
         results: MutableList<PythonAnalysisResult<PYTHON_OBJECT_REPRESENTATION>>
     ): Int {
         val observer = PythonMachineObserver()
