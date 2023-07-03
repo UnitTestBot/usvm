@@ -2,15 +2,12 @@ package org.usvm.samples
 
 import org.usvm.UMachineOptions
 import org.usvm.interpreter.*
-import org.usvm.language.PythonCallable
-import org.usvm.language.PythonInt
-import org.usvm.language.PythonProgram
-import org.usvm.language.PythonType
+import org.usvm.language.*
 import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.AnalysisResultsNumberMatcher
 import java.io.File
 
-open class PythonTestRunner(sourcePath: String) : TestRunner<PythonTest, PythonCallable, PythonType, PythonCoverage>() {
+open class PythonTestRunner(sourcePath: String) : TestRunner<PythonTest, PythonUnpinnedCallable, PythonType, PythonCoverage>() {
     private val testSources = File(PythonTestRunner::class.java.getResource(sourcePath)!!.file).readText()
     private val machine = PythonMachine(PythonProgram(testSources)) { pythonObject ->
         PythonObjectInfo(
@@ -22,7 +19,7 @@ open class PythonTestRunner(sourcePath: String) : TestRunner<PythonTest, PythonC
         get() = { _ -> PythonInt }
     override val checkType: (PythonType, PythonType) -> Boolean
         get() = { _, _ -> true }
-    override val runner: (PythonCallable, UMachineOptions) -> List<PythonTest>
+    override val runner: (PythonUnpinnedCallable, UMachineOptions) -> List<PythonTest>
         get() = { callable, _ ->
             val results: MutableList<PythonTest> = mutableListOf()
             machine.analyze(callable, results)
@@ -32,7 +29,7 @@ open class PythonTestRunner(sourcePath: String) : TestRunner<PythonTest, PythonC
         get() = { _ -> PythonCoverage(0) }
 
     private fun compareWithConcreteRun(
-        target: PythonCallable,
+        target: PythonUnpinnedCallable,
         test: PythonTest,
         check: (PythonObject) -> Boolean
     ): Boolean {
@@ -46,8 +43,8 @@ open class PythonTestRunner(sourcePath: String) : TestRunner<PythonTest, PythonC
     }
 
     private inline fun <reified FUNCTION_TYPE : Function<Boolean>> createCheckWithConcreteRun(concreteRun: Boolean = true):
-                (PythonCallable, AnalysisResultsNumberMatcher, (PythonTest, PythonObject) -> Boolean, List<FUNCTION_TYPE>, List<FUNCTION_TYPE>) -> Unit =
-        { target: PythonCallable,
+                (PythonUnpinnedCallable, AnalysisResultsNumberMatcher, (PythonTest, PythonObject) -> Boolean, List<FUNCTION_TYPE>, List<FUNCTION_TYPE>) -> Unit =
+        { target: PythonUnpinnedCallable,
           analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
           compareConcolicAndConcrete: (PythonTest, PythonObject) -> Boolean,
           invariants: List<FUNCTION_TYPE>,
@@ -74,8 +71,8 @@ open class PythonTestRunner(sourcePath: String) : TestRunner<PythonTest, PythonC
         }
 
     private inline fun <reified FUNCTION_TYPE : Function<Boolean>> createCheck():
-                (PythonCallable, AnalysisResultsNumberMatcher, List<FUNCTION_TYPE>, List<FUNCTION_TYPE>) -> Unit =
-        { target: PythonCallable,
+                (PythonUnpinnedCallable, AnalysisResultsNumberMatcher, List<FUNCTION_TYPE>, List<FUNCTION_TYPE>) -> Unit =
+        { target: PythonUnpinnedCallable,
           analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
           invariants: List<FUNCTION_TYPE>,
           propertiesToDiscover: List<FUNCTION_TYPE> ->

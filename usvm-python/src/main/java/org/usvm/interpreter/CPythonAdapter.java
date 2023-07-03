@@ -3,13 +3,14 @@ package org.usvm.interpreter;
 import io.ksmt.expr.KExpr;
 import kotlin.Unit;
 import org.usvm.language.PythonInstruction;
+import org.usvm.language.PythonPinnedCallable;
 import org.usvm.language.SymbolForCPython;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Supplier;
 
-import static org.usvm.interpreter.operations.ForkKt.handlerForkKt;
+import static org.usvm.interpreter.operations.ControlKt.*;
 import static org.usvm.interpreter.operations.LongKt.*;
 import static org.usvm.interpreter.operations.PathTracingKt.withTracing;
 
@@ -113,5 +114,14 @@ public class CPythonAdapter {
 
     public static SymbolForCPython handlerPOWLong(ConcolicRunContext context, int methodId, SymbolForCPython left, SymbolForCPython right) {
         return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerPOWLongKt(context.ctx, left.expr, right.expr));
+    }
+
+    public static void handlerFunctionCall(ConcolicRunContext context, long function) {
+        PythonPinnedCallable callable = new PythonPinnedCallable(new PythonObject(function));
+        withTracing(context, new PythonFunctionCall(callable), () -> handlerFunctionCallKt(context, callable));
+    }
+
+    public static void handlerReturn(ConcolicRunContext context) {
+        withTracing(context, PythonReturn.INSTANCE, () -> handlerReturnKt(context));
     }
 }

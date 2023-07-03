@@ -1,6 +1,7 @@
 package org.usvm.interpreter
 
 import org.usvm.language.PythonInstruction
+import org.usvm.language.PythonPinnedCallable
 import org.usvm.language.SymbolForCPython
 
 sealed class SymbolicHandlerEventParameters<out T>
@@ -12,6 +13,8 @@ data class MethodQueryParameters(
 
 data class LoadConstParameters(val constToLoad: Any): SymbolicHandlerEventParameters<SymbolForCPython>()
 data class NextInstruction(val pythonInstruction: PythonInstruction): SymbolicHandlerEventParameters<Unit>()
+data class PythonFunctionCall(val function: PythonPinnedCallable): SymbolicHandlerEventParameters<Unit>()
+object PythonReturn: SymbolicHandlerEventParameters<Unit>()
 
 class SymbolicHandlerEvent<out T>(
     val parameters: SymbolicHandlerEventParameters<T>,
