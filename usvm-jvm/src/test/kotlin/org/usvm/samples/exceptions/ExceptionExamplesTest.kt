@@ -1,13 +1,11 @@
 package org.usvm.samples.exceptions
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import org.usvm.util.isException
 
-@Disabled("Unsupported")
 internal class ExceptionExamplesTest : JavaMethodTestRunner() {
     @Test
     fun testInitAnArray() {
@@ -82,7 +80,7 @@ internal class ExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     /**
-     * Used for path generation check in [org.utbot.engine.Traverser.fullPath]
+     * Used for path generation check in [org.usvm.engine.Traverser.fullPath]
      */
     @Test
     fun testCatchDeepNestedThrow() {
@@ -94,9 +92,6 @@ internal class ExceptionExamplesTest : JavaMethodTestRunner() {
         )
     }
 
-    /** // TODO do we want to have this????
-     * Covers [#656](https://github.com/UnitTestBot/UTBotJava/issues/656).
-     */
     @Test
     fun testCatchExceptionAfterOtherPossibleException() {
         checkDiscoveredPropertiesWithExceptions(
@@ -108,9 +103,6 @@ internal class ExceptionExamplesTest : JavaMethodTestRunner() {
         )
     }
 
-    /**
-     * Used for path generation check in [org.utbot.engine.Traverser.fullPath]
-     */
     @Test
     fun testDontCatchDeepNestedThrow() {
         checkDiscoveredPropertiesWithExceptions(

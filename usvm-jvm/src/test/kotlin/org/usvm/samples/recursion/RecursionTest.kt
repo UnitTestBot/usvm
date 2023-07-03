@@ -15,7 +15,6 @@ import org.usvm.util.isException
 
 import kotlin.math.pow
 
-// TODO Kotlin mocks generics https://github.com/UnitTestBot/UTBotJava/issues/88
 internal class RecursionTest : JavaMethodTestRunner() {
     @Test
     fun testFactorial() {

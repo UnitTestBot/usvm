@@ -20,7 +20,6 @@ public class MockStaticFieldExample {
         return a + b + 1;
     }
 
-    // This test is associated with https://github.com/UnitTestBot/UTBotJava/issues/1533
     public int checkMocksInLeftAndRightAssignPartFinalField() {
         staticFinalField.intField = 5;
         staticFinalField.anotherIntField = staticFinalField.foo();
@@ -28,7 +27,6 @@ public class MockStaticFieldExample {
         return staticFinalField.anotherIntField;
     }
 
-    // This test is associated with https://github.com/UnitTestBot/UTBotJava/issues/1533
     public int checkMocksInLeftAndRightAssignPart() {
         staticField.intField = 5;
         staticField.anotherIntField = staticField.foo();

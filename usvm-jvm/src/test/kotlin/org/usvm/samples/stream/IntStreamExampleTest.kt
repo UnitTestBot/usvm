@@ -147,7 +147,6 @@ class IntStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     @Tag("slow")
-    // TODO slow sorting https://github.com/UnitTestBot/UTBotJava/issues/188
     fun testSortedExample() {
         checkDiscoveredProperties(
             IntStreamExample::sortedExample,

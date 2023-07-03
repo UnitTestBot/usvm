@@ -9,7 +9,6 @@ import org.usvm.util.isException
 
 // IMPORTANT: most of the these tests test only the symbolic engine
 // and should not be used for testing conrete or code generation since they are possibly flaky in the concrete execution
-// (see https://github.com/UnitTestBot/UTBotJava/issues/1610)
 class ThreadExamplesTest : JavaMethodTestRunner() {
     @Test
     @Disabled("Support invokedynamic")

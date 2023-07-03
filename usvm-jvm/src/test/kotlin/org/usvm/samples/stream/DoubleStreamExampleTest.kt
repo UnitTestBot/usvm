@@ -150,7 +150,6 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     @Test
     @Tag("slow")
     @Disabled("Not implemented: virtual calls with abstract methods")
-    // TODO slow sorting https://github.com/UnitTestBot/UTBotJava/issues/188
     fun testSortedExample() {
         checkDiscoveredProperties(
             DoubleStreamExample::sortedExample,
