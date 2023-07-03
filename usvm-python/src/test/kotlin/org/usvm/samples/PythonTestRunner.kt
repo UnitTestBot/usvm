@@ -1,5 +1,6 @@
 package org.usvm.samples
 
+import org.usvm.UMachineOptions
 import org.usvm.interpreter.*
 import org.usvm.language.PythonCallable
 import org.usvm.language.PythonInt
@@ -21,8 +22,8 @@ open class PythonTestRunner(sourcePath: String) : TestRunner<PythonTest, PythonC
         get() = { _ -> PythonInt }
     override val checkType: (PythonType, PythonType) -> Boolean
         get() = { _, _ -> true }
-    override val runner: (PythonCallable) -> List<PythonTest>
-        get() = { callable ->
+    override val runner: (PythonCallable, UMachineOptions) -> List<PythonTest>
+        get() = { callable, _ ->
             val results: MutableList<PythonTest> = mutableListOf()
             machine.analyze(callable, results)
             results
