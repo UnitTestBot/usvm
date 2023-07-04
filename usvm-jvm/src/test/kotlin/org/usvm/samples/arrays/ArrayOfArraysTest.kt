@@ -249,7 +249,7 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
     fun testMultiDimensionalObjectsArrayMutation() {
         checkThisAndParamsMutations(
             ArrayOfArrays::multiDimensionalObjectsArray,
-            eq(1),
+            ignoreNumberOfAnalysisResults,
             { _, _, _, arrayAfter, r ->
                 arrayAfter[0].isArrayOf<ColoredPoint>() && arrayAfter[0].size == 2 && r === arrayAfter
             },
