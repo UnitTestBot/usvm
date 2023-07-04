@@ -124,9 +124,8 @@ open class USolverBase<Field, Type, Method>(
             @Suppress("KotlinConstantConditions")
             do {
                 iter++
-                val status: KSolverStatus = internalCheckWithSoftConstraints(softConstraints)
 
-                val kModel = when (status) {
+                val kModel = when (internalCheckWithSoftConstraints(softConstraints)) {
                     KSolverStatus.SAT -> smtSolver.model().detach()
                     KSolverStatus.UNSAT -> return UUnsatResult()
                     KSolverStatus.UNKNOWN -> return UUnknownResult()

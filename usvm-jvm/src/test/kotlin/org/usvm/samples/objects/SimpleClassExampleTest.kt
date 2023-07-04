@@ -9,7 +9,6 @@ import kotlin.test.Ignore
 
 
 internal class SimpleClassExampleTest : JavaMethodTestRunner() {
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun simpleConditionTest() {
         checkDiscoveredProperties(
             SimpleClassExample::simpleCondition,
@@ -44,7 +43,7 @@ internal class SimpleClassExampleTest : JavaMethodTestRunner() {
      * that affects their number
      */
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
+    @Disabled("Can not set static org.usvm.samples.objects.SimpleDataClass")
     fun multipleFieldAccessesTest() {
         checkDiscoveredProperties(
             SimpleClassExample::multipleFieldAccesses,
@@ -57,7 +56,6 @@ internal class SimpleClassExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun immutableFieldAccessTest() {
         checkDiscoveredPropertiesWithExceptions(
             SimpleClassExample::immutableFieldAccess,

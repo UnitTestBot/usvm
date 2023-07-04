@@ -22,7 +22,6 @@ internal class InvokeExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1, 2]. ")
     fun testChangeObjectValueByMethod() {
         checkDiscoveredProperties(
             InvokeExample::changeObjectValueByMethod,
@@ -33,7 +32,6 @@ internal class InvokeExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1, 2]. ")
     fun testParticularValue() {
         checkDiscoveredProperties(
             InvokeExample::particularValue,
@@ -55,7 +53,6 @@ internal class InvokeExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun testGetNullOrValue() {
         checkDiscoveredProperties(
             InvokeExample::getNullOrValue,
@@ -93,7 +90,6 @@ internal class InvokeExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun testAlwaysNPE() {
         checkDiscoveredPropertiesWithExceptions(
             InvokeExample::alwaysNPE,
@@ -121,7 +117,7 @@ internal class InvokeExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
+    @Disabled("Some properties were not discovered at positions (from 0): [1, 2, 3]")
     fun testFewNestedExceptions() {
         checkDiscoveredPropertiesWithExceptions(
             InvokeExample::fewNestedException,
@@ -148,7 +144,6 @@ internal class InvokeExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun testUpdateValue() {
         checkDiscoveredProperties(
             InvokeExample::updateValue,
@@ -187,7 +182,7 @@ internal class InvokeExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1, 2]. ")
+    @Disabled("Some properties were not discovered at positions (from 0): [1]")
     fun testChangeArrayByMethod() {
         checkDiscoveredProperties(
             InvokeExample::changeArrayByMethod,
@@ -198,7 +193,7 @@ internal class InvokeExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
+    @Disabled("Some properties were not discovered at positions (from 0): [3]")
     fun testArrayCopyExample() {
         checkDiscoveredProperties(
             InvokeExample::arrayCopyExample,
@@ -212,7 +207,6 @@ internal class InvokeExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1, 2]. ")
     fun testUpdateValues() {
         checkDiscoveredProperties(
             InvokeExample::updateValues,

@@ -83,7 +83,7 @@ open class UTypeRegion<Type>(
      * (here X is type from this region and t is [notSupertype]):
      *  X <: u && u <: t && X </: t, i.e. if [supertypes] contains subtype of [notSupertype]
      */
-    protected open fun excludeSupertype(notSupertype: Type): UTypeRegion<Type> {
+    open fun excludeSupertype(notSupertype: Type): UTypeRegion<Type> {
         if (isContradicting || notSupertypes.any { typeSystem.isSupertype(it, notSupertype) }) {
             return this
         }

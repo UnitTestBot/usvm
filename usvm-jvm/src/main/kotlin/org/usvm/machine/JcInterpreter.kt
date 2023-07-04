@@ -3,6 +3,7 @@ package org.usvm.machine
 import io.ksmt.utils.asExpr
 import org.jacodb.api.JcField
 import org.jacodb.api.JcMethod
+import org.jacodb.api.JcRefType
 import org.jacodb.api.JcType
 import org.jacodb.api.cfg.JcArgument
 import org.jacodb.api.cfg.JcAssignInst
@@ -17,8 +18,10 @@ import org.jacodb.api.cfg.JcReturnInst
 import org.jacodb.api.cfg.JcSwitchInst
 import org.jacodb.api.cfg.JcThis
 import org.jacodb.api.cfg.JcThrowInst
+import org.jacodb.api.ext.allSuperHierarchySequence
 import org.usvm.StepResult
 import org.usvm.StepScope
+import org.usvm.UBoolExpr
 import org.usvm.UInterpreter
 import org.usvm.URegisterLValue
 import org.usvm.machine.state.JcMethodResult
@@ -29,6 +32,7 @@ import org.usvm.machine.state.lastStmt
 import org.usvm.machine.state.newStmt
 import org.usvm.machine.state.returnValue
 import org.usvm.machine.state.throwException
+import org.usvm.solver.USatResult
 
 typealias JcStepScope = StepScope<JcState, JcType, JcField>
 
@@ -40,25 +44,38 @@ class JcInterpreter(
     private val applicationGraph: JcApplicationGraph,
 ) : UInterpreter<JcState>() {
     fun getInitialState(method: JcMethod): JcState {
-        val solver = ctx.solver<JcField, JcType, JcMethod>()
-        val model = solver.emptyModel()
-
-        val state = JcState(
-            ctx,
-            models = listOf(model)
-        )
+        val state = JcState(ctx)
         state.addEntryMethodCall(applicationGraph, method)
 
-        val scope = StepScope(state)
+        val initialAssertions = mutableListOf<UBoolExpr>()
+
+        val typedMethod = with(applicationGraph) { method.typed }
+
         if (!method.isStatic) {
             with(ctx) {
                 val thisLValue = URegisterLValue(addressSort, 0)
                 val ref = state.memory.read(thisLValue).asExpr(addressSort)
-                scope.assert(mkEq(ref, nullRef).not())
+                initialAssertions += mkEq(ref, nullRef).not()
+                initialAssertions += mkIsExpr(ref, typedMethod.enclosingType)
             }
         }
 
-        check(scope.alive)
+        typedMethod.parameters.forEachIndexed { idx, typedParameter ->
+            with(ctx) {
+                val type = typedParameter.type
+                if (type is JcRefType) {
+                    val argumentLValue = URegisterLValue(typeToSort(type), idx + if (method.isStatic) 0 else 1)
+                    val ref = state.memory.read(argumentLValue).asExpr(addressSort)
+                    initialAssertions += mkIsExpr(ref, type)
+                }
+            }
+        }
+
+        val solver = ctx.solver<JcField, JcType, JcMethod>()
+
+        initialAssertions.forEach(state.pathConstraints::plusAssign)
+        val model = (solver.check(state.pathConstraints, useSoftConstraints = true) as USatResult).model
+        state.models = listOf(model)
 
         return state
     }
@@ -94,6 +111,7 @@ class JcInterpreter(
         lastStmt: JcInst,
     ) {
         applicationGraph.successors(lastStmt) // TODO: check catchers for lastStmt
+
         scope.calcOnState { throwException(exception) }
     }
 

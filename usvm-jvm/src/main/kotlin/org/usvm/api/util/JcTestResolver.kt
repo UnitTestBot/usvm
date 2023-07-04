@@ -63,18 +63,18 @@ class JcTestResolver(
      */
     fun resolve(method: JcTypedMethod, state: JcState): JcTest {
         val model = state.models.first()
-        val initialMemory = MemoryScope(state.ctx, model = null, model, method, classLoader)
+        val ctx = state.pathConstraints.ctx as JcContext
+        val initialScope = MemoryScope(ctx, model = null, model, method, classLoader)
 
         val memory = state.memory
-        val afterMemory = MemoryScope(state.ctx, model, memory, method, classLoader)
+        val afterScope = MemoryScope(ctx, model, memory, method, classLoader)
 
-
-        val before = with(initialMemory) { resolveState() }
-        val after = with(afterMemory) { resolveState() }
+        val before = with(initialScope) { resolveState() }
+        val after = with(afterScope) { resolveState() }
 
         val result = when (val res = state.methodResult) {
             is JcMethodResult.NoCall -> error("No result found")
-            is JcMethodResult.Success -> with(afterMemory) { Result.success(resolveExpr(res.value, method.returnType)) }
+            is JcMethodResult.Success -> with(afterScope) { Result.success(resolveExpr(res.value, method.returnType)) }
             is JcMethodResult.Exception -> Result.failure(resolveException(res.exception))
         }
         val coverage = resolveCoverage(method, state)
@@ -201,10 +201,10 @@ class JcTestResolver(
                 ctx.cp.char -> CharArray(length, ::resolveElement)
                 else -> {
                     // TODO: works incorrectly for inner array
-                    val jClass = resolveType(idx, type.elementType as JcRefType)
-                    val instance = Reflection.allocateArray(jClass, length)
+                    val clazz = resolveType(idx, type.elementType as JcRefType)
+                    val instance = Reflection.allocateArray(clazz, length)
                     for (i in 0 until length) {
-                        instance[i] = resolveElement(i)
+                         instance[i] = resolveElement(i)
                     }
                     instance
                 }
@@ -213,8 +213,8 @@ class JcTestResolver(
         }
 
         private fun resolveReference(idx: UConcreteHeapAddress, type: JcRefType, heapRef: UHeapRef): Any {
-            val jClass = resolveType(idx, type)
-            val instance = Reflection.allocateInstance(jClass)
+            val clazz = resolveType(idx, type)
+            val instance = Reflection.allocateInstance(clazz)
             resolvedCache[idx] = instance
 
             val fields = type.jcClass.toType().declaredFields // TODO: now it skips inherited fields
@@ -222,13 +222,12 @@ class JcTestResolver(
                 val ref = UFieldLValue(ctx.typeToSort(field.fieldType), heapRef, field.field)
                 val fieldValue = resolveLValue(ref, field.fieldType)
 
-                val javaField = jClass.getDeclaredField(field.name)
+                val javaField = clazz.getDeclaredField(field.name)
                 Reflection.setField(instance, javaField, fieldValue)
             }
             return instance
         }
 
-        @Suppress("UNUSED_PARAMETER")
         private fun resolveType(idx: UConcreteHeapAddress, type: JcRefType): Class<*> {
             // TODO: ask memory for exact type
             type.ifArrayGetElementType?.let {

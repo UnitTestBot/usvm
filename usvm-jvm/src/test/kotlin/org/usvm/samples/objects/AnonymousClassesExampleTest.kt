@@ -43,7 +43,7 @@ class AnonymousClassesExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
+    @Disabled("Can not set static final org.usvm.samples.objects.AbstractAnonymousClass field")
     fun testAnonymousClassAsResult() {
         checkDiscoveredProperties(
             AnonymousClassesExample::anonymousClassAsResult,

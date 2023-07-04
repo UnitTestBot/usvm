@@ -272,8 +272,13 @@ class JcExprResolver(
 
     override fun visitJcCastExpr(expr: JcCastExpr): UExpr<out USort>? = resolveCast(expr.operand, expr.type)
 
-    override fun visitJcInstanceOfExpr(expr: JcInstanceOfExpr): UExpr<out USort> = with(ctx) {
-        TODO("Not yet implemented")
+    override fun visitJcInstanceOfExpr(expr: JcInstanceOfExpr): UExpr<out USort>? = with(ctx) {
+        val ref = resolveJcExpr(expr.operand)?.asExpr(addressSort) ?: return null
+        scope.calcOnState {
+            val notEqualsNull = mkHeapRefEq(ref, memory.heap.nullRef()).not()
+            val isExpr = mkIsExpr(ref, expr.targetType)
+            mkAnd(notEqualsNull, isExpr)
+        }
     }
 
     override fun visitJcLengthExpr(expr: JcLengthExpr): UExpr<out USort>? = with(ctx) {
@@ -566,9 +571,13 @@ class JcExprResolver(
 
     private fun resolveReferenceCast(operand: JcExpr, type: JcRefType) = resolveAfterResolved(operand) { expr ->
         if (!type.isAssignable(operand.type)) {
-            TODO("Not yet implemented")
+            with(ctx) {
+                scope.fork(mkIsExpr(expr.asExpr(addressSort), type)) ?: return@with null
+                expr
+            }
+        } else {
+            expr
         }
-        expr
     }
 
     private fun resolvePrimitiveCast(operand: JcExpr, type: JcPrimitiveType) = resolveAfterResolved(operand) { expr ->

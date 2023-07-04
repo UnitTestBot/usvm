@@ -8,7 +8,6 @@ import org.usvm.util.isException
 
 class BinarySearchTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun testLeftBinarySearch() {
         checkDiscoveredPropertiesWithExceptions(
             BinarySearch::leftBinSearch,
@@ -22,7 +21,6 @@ class BinarySearchTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun testRightBinarySearch() {
         checkDiscoveredPropertiesWithExceptions(
             BinarySearch::rightBinSearch,
@@ -36,7 +34,6 @@ class BinarySearchTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun testDefaultBinarySearch() {
         checkDiscoveredPropertiesWithExceptions(
             BinarySearch::defaultBinarySearch,

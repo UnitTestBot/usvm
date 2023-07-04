@@ -56,7 +56,7 @@ open class UPathConstraints<Type> private constructor(
                 constraint is UEqExpr<*> && isSymbolicHeapRef(constraint.lhs) && isSymbolicHeapRef(constraint.rhs) ->
                     equalityConstraints.addReferenceEquality(constraint.lhs as UHeapRef, constraint.rhs as UHeapRef)
 
-                constraint is UIsExpr<*> -> typeConstraints.cast(constraint.ref, constraint.type as Type)
+                constraint is UIsExpr<*> -> typeConstraints.addSupertype(constraint.ref, constraint.type as Type)
 
                 constraint is UAndExpr -> constraint.args.forEach(::plusAssign)
 
@@ -72,6 +72,11 @@ open class UPathConstraints<Type> private constructor(
                                 notConstraint.rhs as UHeapRef
                             )
                         }
+
+                        notConstraint is UIsExpr<*> -> typeConstraints.excludeSupertype(
+                            notConstraint.ref,
+                            notConstraint.type as Type
+                        )
 
                         notConstraint in logicalConstraints -> contradiction(ctx)
 

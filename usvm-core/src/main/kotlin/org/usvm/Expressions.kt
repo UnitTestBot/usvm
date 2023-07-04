@@ -358,7 +358,7 @@ class UIsExpr<Type> internal constructor(
 
 
     override fun print(printer: ExpressionPrinter) {
-        TODO("Not yet implemented")
+        printer.append("($ref instance of $type)")
     }
 
     override fun internEquals(other: Any): Boolean = structurallyEqual(other, { ref }, { type })

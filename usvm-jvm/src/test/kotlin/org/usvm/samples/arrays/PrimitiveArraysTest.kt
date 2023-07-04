@@ -77,7 +77,6 @@ internal class PrimitiveArraysTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun testIntArray() {
         checkDiscoveredPropertiesWithExceptions(
             PrimitiveArrays::intArray,
@@ -90,7 +89,6 @@ internal class PrimitiveArraysTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun testLongArray() {
         checkDiscoveredPropertiesWithExceptions(
             PrimitiveArrays::longArray,
@@ -104,7 +102,6 @@ internal class PrimitiveArraysTest : JavaMethodTestRunner() {
 
     @Suppress("SimplifyNegatedBinaryExpression")
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun testFloatArray() {
         checkDiscoveredPropertiesWithExceptions(
             PrimitiveArrays::floatArray,
@@ -118,7 +115,6 @@ internal class PrimitiveArraysTest : JavaMethodTestRunner() {
 
     @Suppress("SimplifyNegatedBinaryExpression")
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun testDoubleArray() {
         checkDiscoveredPropertiesWithExceptions(
             PrimitiveArrays::doubleArray,
@@ -131,7 +127,6 @@ internal class PrimitiveArraysTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun testBooleanArray() {
         checkDiscoveredPropertiesWithExceptions(
             PrimitiveArrays::booleanArray,

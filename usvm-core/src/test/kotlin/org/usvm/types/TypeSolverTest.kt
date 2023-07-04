@@ -11,6 +11,7 @@ import org.usvm.UComponents
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.constraints.UPathConstraints
+import org.usvm.memory.UAddressCounter.Companion.NULL_ADDRESS
 import org.usvm.memory.UMemoryBase
 import org.usvm.model.UModelBase
 import org.usvm.model.buildTranslatorAndLazyDecoder
@@ -60,9 +61,10 @@ class TypeSolverTest {
     fun `Test symbolic ref -- open type inheritance`() = with(ctx) {
         val ref = ctx.mkRegisterReading(0, addressSort)
         pc += mkIsExpr(ref, base1)
+        pc += mkHeapRefEq(ref, nullRef).not()
         val model = (solver.check(pc, useSoftConstraints = false) as USatResult<UModelBase<Field, TestType>>).model
-        val concreteRef = model.eval(ref) as UConcreteHeapRef
-        val type = model.types.typeOf(concreteRef.address)
+        val concreteRef = assertIs<UConcreteHeapRef>(model.eval(ref)).address
+        val type = model.types.typeOf(concreteRef)
         assertTrue(typeSystem.isSupertype(base1, type))
         assertTrue(typeSystem.isInstantiable(type))
     }
@@ -71,9 +73,10 @@ class TypeSolverTest {
     fun `Test symbolic ref -- interface type inheritance`() = with(ctx) {
         val ref = ctx.mkRegisterReading(0, addressSort)
         pc += mkIsExpr(ref, interface1)
+        pc += mkHeapRefEq(ref, nullRef).not()
         val model = (solver.check(pc, useSoftConstraints = false) as USatResult<UModelBase<Field, TestType>>).model
-        val concreteRef = model.eval(ref) as UConcreteHeapRef
-        val type = model.types.typeOf(concreteRef.address)
+        val concreteRef = assertIs<UConcreteHeapRef>(model.eval(ref)).address
+        val type = model.types.typeOf(concreteRef)
         assertTrue(typeSystem.isSupertype(interface1, type))
         assertTrue(typeSystem.isInstantiable(type))
     }
@@ -90,15 +93,15 @@ class TypeSolverTest {
         val ref = ctx.mkRegisterReading(0, addressSort)
         pc += mkIsExpr(ref, base1)
         pc += mkIsExpr(ref, base2)
+        pc += mkHeapRefEq(ref, nullRef).not()
         assertTrue(pc.isFalse)
     }
 
     @Test
-    @Disabled("TODO: can't evaluate complex UIsExpressions now")
     fun `Test symbolic ref cast -- empty intersection simplification`(): Unit = with(ctx) {
         val ref = ctx.mkRegisterReading(0, addressSort)
-        pc += (mkIsExpr(ref, base1) or mkHeapRefEq(ref, nullRef))
-        pc += (mkIsExpr(ref, base2) or mkHeapRefEq(ref, nullRef))
+        pc += mkIsExpr(ref, base1)
+        pc += mkIsExpr(ref, base2)
 
         val resultWithoutNullConstraint = solver.check(pc, useSoftConstraints = false)
         assertIs<USatResult<UModelBase<Field, TestType>>>(resultWithoutNullConstraint)
@@ -116,6 +119,8 @@ class TypeSolverTest {
 
         pc += mkIsExpr(ref0, base1)
         pc += mkIsExpr(ref1, base2)
+        pc += mkHeapRefEq(ref0, nullRef).not()
+        pc += mkHeapRefEq(ref1, nullRef).not()
 
         val resultWithoutEqConstraint = solver.check(pc, useSoftConstraints = false)
         val model = assertIs<USatResult<UModelBase<Field, TestType>>>(resultWithoutEqConstraint).model
@@ -135,17 +140,27 @@ class TypeSolverTest {
         pc += mkIsExpr(ref0, base1)
         pc += mkIsExpr(ref0, interface1)
         pc += mkIsExpr(ref1, base1)
-        pc += mkIsExpr(ref0, interface2)
-
-        TODO()
+        pc += mkIsExpr(ref1, interface2)
 
         val resultWithoutEqConstraint = solver.check(pc, useSoftConstraints = false)
-        val model = assertIs<USatResult<UModelBase<Field, TestType>>>(resultWithoutEqConstraint).model
-        assertNotEquals(model.eval(ref0), model.eval(ref1))
+        val modelWithoutEqConstraint = assertIs<USatResult<UModelBase<Field, TestType>>>(resultWithoutEqConstraint).model
+
+        val concreteRef0 = assertIs<UConcreteHeapRef>(modelWithoutEqConstraint.eval(ref0)).address
+        val concreteRef1 = assertIs<UConcreteHeapRef>(modelWithoutEqConstraint.eval(ref1)).address
+
+        assertTrue(concreteRef0 == NULL_ADDRESS && concreteRef1 == NULL_ADDRESS || concreteRef0 != concreteRef1)
 
         pc += mkHeapRefEq(ref0, ref1)
 
         val resultWithEqConstraint = solver.check(pc, useSoftConstraints = false)
-        assertIs<UUnsatResult<UModelBase<Field, TestType>>>(resultWithEqConstraint)
+        val modelWithEqConstraint = assertIs<USatResult<UModelBase<Field, TestType>>>(resultWithEqConstraint).model
+
+        assertEquals(mkConcreteHeapRef(NULL_ADDRESS), modelWithEqConstraint.eval(ref0))
+        assertEquals(mkConcreteHeapRef(NULL_ADDRESS), modelWithEqConstraint.eval(ref1))
+
+        pc += mkHeapRefEq(nullRef, ref0).not()
+
+        val resultWithEqAndNotNullConstraint = solver.check(pc, useSoftConstraints = false)
+        assertIs<UUnsatResult<UModelBase<Field, TestType>>>(resultWithEqAndNotNullConstraint)
     }
 }

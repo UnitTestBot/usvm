@@ -114,7 +114,6 @@ internal class ExceptionExamplesTest : JavaMethodTestRunner() {
      * Used for path generation check in [org.utbot.engine.Traverser.fullPath]
      */
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
     fun testDontCatchDeepNestedThrow() {
         checkDiscoveredPropertiesWithExceptions(
             ExceptionExamples::dontCatchDeepNestedThrow,

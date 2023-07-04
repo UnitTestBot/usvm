@@ -8,7 +8,6 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 internal class HiddenFieldAccessModifiersTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun testCheckSuperFieldEqualsOne() {
         checkDiscoveredProperties(
             HiddenFieldAccessModifiersExample::checkSuperFieldEqualsOne,

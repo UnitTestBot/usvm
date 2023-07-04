@@ -96,8 +96,8 @@ class ULazyHeapModel<Field, ArrayType>(
     private val resolvedInputArrays = mutableMapOf<ArrayType, UReadOnlyMemoryRegion<USymbolicArrayIndex, out USort>>()
     private val resolvedInputLengths = mutableMapOf<ArrayType, UReadOnlyMemoryRegion<UHeapRef, USizeSort>>()
 
-    private val nullRef = translator
-        .translate(translator.ctx.nullRef)
+    private val nullRef = model
+        .eval(translator.translate(translator.ctx.nullRef))
         .mapAddress(addressesMapping) as UConcreteHeapRef
 
     override fun <Sort : USort> readField(ref: UHeapRef, field: Field, sort: Sort): UExpr<Sort> {

@@ -19,7 +19,6 @@ internal class SortTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun testSwap() {
         checkDiscoveredPropertiesWithExceptions(
             Sort::swap,
@@ -106,7 +105,7 @@ internal class SortTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
+    @Disabled("Some properties were not discovered at positions (from 0): [1, 2]")
     fun testDefaultSort() {
         checkDiscoveredPropertiesWithExceptions(
             Sort::defaultSort,

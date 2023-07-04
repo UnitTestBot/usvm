@@ -8,7 +8,7 @@ import org.usvm.test.util.checkers.eq
 
 internal class HiddenFieldExampleTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
+    @Disabled("Unexpected UIsExpr in UExprTranslator, that has to be impossible by construction!")
     fun testCheckHiddenField() {
         checkDiscoveredProperties(
             HiddenFieldExample::checkHiddenField,
@@ -21,7 +21,7 @@ internal class HiddenFieldExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 5 executions, but 6 found. Same exception discovered multiple times")
+    @Disabled("Inherited fields are not supported yet")
     fun testCheckSuccField() {
         checkDiscoveredProperties(
             HiddenFieldExample::checkSuccField,

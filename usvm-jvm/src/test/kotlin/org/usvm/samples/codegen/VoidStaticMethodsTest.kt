@@ -17,7 +17,7 @@ class VoidStaticMethodsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@70c68e4e")
     fun testInvokeThrowExceptionMethod() {
         checkDiscoveredProperties(
             VoidStaticMethodsTestingClass::invokeThrowExceptionMethod,
@@ -26,7 +26,7 @@ class VoidStaticMethodsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
+    @Disabled("Expected exactly 2 executions, but 1 found")
     fun testInvokeAnotherThrowExceptionMethod() {
         checkDiscoveredProperties(
             VoidStaticMethodsTestingClass::invokeAnotherThrowExceptionMethod,

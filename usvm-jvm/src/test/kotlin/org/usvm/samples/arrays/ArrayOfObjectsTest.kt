@@ -38,7 +38,6 @@ internal class ArrayOfObjectsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun testCopyArray() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayOfObjects::copyArray,
@@ -64,7 +63,6 @@ internal class ArrayOfObjectsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
     fun testArrayWithSucc() {
         checkDiscoveredProperties(
             ArrayOfObjects::arrayWithSucc,
@@ -84,7 +82,6 @@ internal class ArrayOfObjectsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1, 2].")
     fun testObjectArray() {
         checkDiscoveredProperties(
             ArrayOfObjects::objectArray,

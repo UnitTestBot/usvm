@@ -4,6 +4,8 @@ import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapAddress
 import org.usvm.UConcreteHeapRef
 import org.usvm.UHeapRef
+import org.usvm.memory.UAddressCounter.Companion.NULL_ADDRESS
+import org.usvm.memory.map
 import org.usvm.types.UTypeSystem
 import org.usvm.model.UModel
 import org.usvm.solver.USatResult
@@ -12,6 +14,7 @@ import org.usvm.solver.UUnknownResult
 import org.usvm.solver.UUnsatResult
 import org.usvm.types.USingleTypeStream
 import org.usvm.types.UTypeRegion
+import org.usvm.types.takeFirst
 import org.usvm.uctx
 
 interface UTypeEvaluator<Type> {
@@ -22,7 +25,7 @@ class UTypeModel<Type>(
     private val typeSystem: UTypeSystem<Type>,
     private val typeByAddr: Map<UConcreteHeapAddress, Type>,
 ) : UTypeEvaluator<Type> {
-    fun typeOf(address: UConcreteHeapAddress): Type = typeByAddr.getValue(address)
+    fun typeOf(address: UConcreteHeapAddress): Type = typeByAddr[address] ?: typeSystem.topTypeStream().takeFirst()
 
     override fun evalIs(ref: UHeapRef, type: Type): UBoolExpr =
         when (ref) {
@@ -31,7 +34,7 @@ class UTypeModel<Type>(
                 if (holds) ref.ctx.trueExpr else ref.ctx.falseExpr
             }
 
-            else -> throw IllegalArgumentException("Expecting concrete ref, but got $ref")
+            else -> error("Expecting concrete ref, but got $ref")
         }
 }
 
@@ -42,7 +45,7 @@ class UTypeModel<Type>(
  * 3. x </: T, i.e. object referenced in x does not inherit T (notSupertype constraints for x)
  * 4. T </: x, i.e. object referenced in x is not inherited by T (notSubtype constraints for x)
  *
- * Adding subtype constraint for x is done via [cast] method.
+ * Adding subtype constraint for x is done via [addSupertype] method.
  * TODO: The API for rest type constraints will be added later.
  *
  * Manages allocated objects separately from input ones. Indeed, we know the type of an allocated object
@@ -51,8 +54,8 @@ class UTypeModel<Type>(
 class UTypeConstraints<Type>(
     private val typeSystem: UTypeSystem<Type>,
     private val equalityConstraints: UEqualityConstraints,
-    private val concreteTypes: MutableMap<UConcreteHeapAddress, Type> = mutableMapOf(),
-    private val symbolicTypes: MutableMap<UHeapRef, UTypeRegion<Type>> = mutableMapOf(),
+    private val concreteRefToType: MutableMap<UConcreteHeapAddress, Type> = mutableMapOf(),
+    private val symbolicRefToTypeRegion: MutableMap<UHeapRef, UTypeRegion<Type>> = mutableMapOf(),
 ) : UTypeEvaluator<Type> {
     init {
         equalityConstraints.subscribe(::intersectConstraints)
@@ -79,15 +82,15 @@ class UTypeConstraints<Type>(
      * Binds concrete heap address [ref] to its [type].
      */
     fun allocate(ref: UConcreteHeapAddress, type: Type) {
-        concreteTypes[ref] = type
+        concreteRefToType[ref] = type
     }
 
     private operator fun get(symbolicRef: UHeapRef) =
-        symbolicTypes[equalityConstraints.equalReferences.find(symbolicRef)] ?: topTypeRegion
+        symbolicRefToTypeRegion[equalityConstraints.equalReferences.find(symbolicRef)] ?: topTypeRegion
 
 
     private operator fun set(symbolicRef: UHeapRef, value: UTypeRegion<Type>) {
-        symbolicTypes[equalityConstraints.equalReferences.find(symbolicRef)] = value
+        symbolicRefToTypeRegion[equalityConstraints.equalReferences.find(symbolicRef)] = value
     }
 
     /**
@@ -95,10 +98,10 @@ class UTypeConstraints<Type>(
      * If it is impossible within current type and equality constraints,
      * then type constraints become contradicting (@see [isContradiction]).
      */
-    fun cast(ref: UHeapRef, type: Type) {
+    fun addSupertype(ref: UHeapRef, type: Type) {
         when (ref) {
             is UConcreteHeapRef -> {
-                val concreteType = concreteTypes.getValue(ref.address)
+                val concreteType = concreteRefToType.getValue(ref.address)
                 if (!typeSystem.isSupertype(type, concreteType)) {
                     contradiction()
                 }
@@ -108,10 +111,45 @@ class UTypeConstraints<Type>(
                 val constraints = this[ref]
                 val newConstraints = constraints.addSupertype(type)
                 if (newConstraints.isContradicting) {
-                    contradiction()
+                    equalityConstraints.addReferenceEquality(ref, ref.uctx.nullRef)
                 } else {
                     // Inferring new symbolic disequalities here
-                    for ((key, value) in symbolicTypes.entries) {
+                    for ((key, value) in symbolicRefToTypeRegion.entries) {
+                        // TODO: cache intersections?
+                        if (key != ref && value.intersect(newConstraints).isEmpty) {
+                            // If we have two inputs of incomparable reference types, then they are either non equal,
+                            // or both nulls
+                            equalityConstraints.makeNonEqualOrBothNull(ref, key)
+                        }
+                    }
+                    this[ref] = newConstraints
+                }
+            }
+        }
+    }
+
+    /**
+     * Constraints type of [ref] to be a noy subtype of [type].
+     * If it is impossible within current type and equality constraints,
+     * then type constraints become contradicting (@see [isContradiction]).
+     */
+    fun excludeSupertype(ref: UHeapRef, type: Type) {
+        when (ref) {
+            is UConcreteHeapRef -> {
+                val concreteType = concreteRefToType.getValue(ref.address)
+                if (typeSystem.isSupertype(type, concreteType)) {
+                    contradiction()
+                }
+            }
+
+            else -> {
+                val constraints = this[ref]
+                val newConstraints = constraints.excludeSupertype(type)
+                if (newConstraints.isContradicting) {
+                    equalityConstraints.addReferenceEquality(ref, ref.uctx.nullRef)
+                } else {
+                    // Inferring new symbolic disequalities here
+                    for ((key, value) in symbolicRefToTypeRegion.entries) {
                         // TODO: cache intersections?
                         if (key != ref && value.intersect(newConstraints).isEmpty) {
                             // If we have two inputs of incomparable reference types, then they are either non equal,
@@ -128,7 +166,7 @@ class UTypeConstraints<Type>(
     fun readTypeRegion(ref: UHeapRef): UTypeRegion<Type> =
         when (ref) {
             is UConcreteHeapRef -> {
-                val concreteType = concreteTypes[ref.address]
+                val concreteType = concreteRefToType[ref.address]
                 val typeStream = if (concreteType == null) {
                     typeSystem.topTypeStream()
                 } else {
@@ -146,24 +184,27 @@ class UTypeConstraints<Type>(
         this[ref1] = this[ref1].intersect(this[ref2])
     }
 
-    override fun evalIs(ref: UHeapRef, type: Type): UBoolExpr {
-        when (ref) {
-            is UConcreteHeapRef -> {
-                val concreteType = concreteTypes.getValue(ref.address)
-                return if (typeSystem.isSupertype(type, concreteType)) ref.ctx.trueExpr else ref.ctx.falseExpr
-            }
-
-            else -> {
-                val typeRegion = this[ref]
+    override fun evalIs(ref: UHeapRef, type: Type): UBoolExpr =
+        ref.map(
+            concreteMapper = { concreteRef ->
+                val concreteType = concreteRefToType.getValue(concreteRef.address)
+                if (typeSystem.isSupertype(type, concreteType)) {
+                    concreteRef.ctx.trueExpr
+                } else {
+                    concreteRef.ctx.falseExpr
+                }
+            },
+            symbolicMapper = { symbolicRef ->
+                val typeRegion = this[symbolicRef]
 
                 if (typeRegion.addSupertype(type).isContradicting) {
-                    return ref.ctx.falseExpr
+                    symbolicRef.ctx.falseExpr
+                } else {
+                    symbolicRef.uctx.mkIsExpr(symbolicRef, type)
                 }
-
-                return ref.uctx.mkIsExpr(ref, type)
             }
-        }
-    }
+        )
+
 
     /**
      * Creates a mutable copy of these constraints connected to new instance of [equalityConstraints].
@@ -172,13 +213,16 @@ class UTypeConstraints<Type>(
         UTypeConstraints(
             typeSystem,
             equalityConstraints,
-            concreteTypes.toMutableMap(),
-            symbolicTypes.toMutableMap()
+            concreteRefToType.toMutableMap(),
+            symbolicRefToTypeRegion.toMutableMap()
         )
 
     fun verify(model: UModel): USolverResult<UTypeModel<Type>> {
-        val concreteRefToTypeRegions =
-            symbolicTypes.entries.groupBy { (key, _) -> (model.eval(key) as UConcreteHeapRef).address }
+        val concreteRefToTypeRegions = symbolicRefToTypeRegion
+            .entries
+            .groupBy { (key, _) -> (model.eval(key) as UConcreteHeapRef).address }
+            .filter { it.key != NULL_ADDRESS }
+
         val bannedRefEqualities = mutableListOf<UBoolExpr>()
 
         val concreteToRegionWithCluster = concreteRefToTypeRegions.mapValues { (_, cluster) ->
@@ -204,7 +248,6 @@ class UTypeConstraints<Type>(
                         potentialConflictingRefs.add(heapRef)
                     }
 
-
                     currentRegion = nextRegion
                 }
             }
@@ -213,36 +256,32 @@ class UTypeConstraints<Type>(
             currentRegion to cluster
         }
 
-        return if (bannedRefEqualities.isNotEmpty()) {
-            UTypeUnsatResult(bannedRefEqualities)
-        } else {
-
-            val concreteToType = concreteToRegionWithCluster.mapValuesTo(hashMapOf()) { (_, regionToCluster) ->
-                val (region, cluster) = regionToCluster
-                val resultList = mutableListOf<Type>()
-                val terminated = region.typeStream.take(1, resultList)
-                if (terminated) {
-                    if (resultList.isEmpty()) {
-                        check(cluster.size == 1)
-                        return UUnsatResult()
-                    } else {
-                        resultList.single()
-                    }
-                } else {
-                    return UUnknownResult()
-                }
-            }
-
-            val typeModel = UTypeModel(typeSystem, concreteToType.apply { putAll(concreteTypes) })
-            UTypeSatResult(typeModel)
+        if (bannedRefEqualities.isNotEmpty()) {
+            return UTypeUnsatResult(bannedRefEqualities)
         }
+
+        val allConcreteRefToType = concreteRefToType.toMutableMap()
+        concreteToRegionWithCluster.mapValuesTo(allConcreteRefToType) { (_, regionToCluster) ->
+            val (region, cluster) = regionToCluster
+            val resultList = mutableListOf<Type>()
+            val terminated = region.typeStream.take(1, resultList)
+            if (terminated) {
+                if (resultList.isEmpty()) {
+                    check(cluster.size == 1)
+                    return UUnsatResult()
+                } else {
+                    resultList.single()
+                }
+            } else {
+                return UUnknownResult()
+            }
+        }
+
+        val typeModel = UTypeModel(typeSystem, allConcreteRefToType)
+        return USatResult(typeModel)
     }
 }
 
 class UTypeUnsatResult<Type>(
     val expressionsToAssert: List<UBoolExpr>,
 ) : UUnsatResult<UTypeModel<Type>>()
-
-class UTypeSatResult<Type>(
-    model: UTypeModel<Type>,
-) : USatResult<UTypeModel<Type>>(model)

@@ -25,7 +25,6 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun testIsValid() {
         checkDiscoveredPropertiesWithExceptions(
             IntArrayBasics::isValid,
@@ -40,7 +39,6 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun testGetValue() {
         checkDiscoveredPropertiesWithExceptions(
             IntArrayBasics::getValue,
@@ -53,7 +51,6 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun testSetValue() {
         checkDiscoveredPropertiesWithExceptions(
             IntArrayBasics::setValue,
@@ -67,7 +64,6 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun testCheckFour() {
         checkDiscoveredPropertiesWithExceptions(
             IntArrayBasics::checkFour,
@@ -90,7 +86,6 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun testNullability() {
         checkDiscoveredProperties(
             IntArrayBasics::nullability,
@@ -102,7 +97,7 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1, 2]. ")
+    @Disabled("Expected exactly 4 executions, but 3 found")
     fun testEquality() {
         checkDiscoveredProperties(
             IntArrayBasics::equality,
@@ -115,7 +110,6 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun testOverwrite() {
         checkDiscoveredPropertiesWithExceptions(
             IntArrayBasics::overwrite,
@@ -160,7 +154,6 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun testNewArrayInTheMiddle() {
         checkDiscoveredProperties(
             IntArrayBasics::newArrayInTheMiddle,
@@ -187,7 +180,7 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
+    @Disabled("Some properties were not discovered at positions (from 0): [3]")
     fun testReversed() {
         checkDiscoveredProperties(
             IntArrayBasics::reversed,

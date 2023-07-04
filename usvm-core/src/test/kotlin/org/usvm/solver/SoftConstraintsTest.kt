@@ -15,21 +15,20 @@ import org.usvm.memory.emptyInputArrayLengthRegion
 import org.usvm.model.ULazyModelDecoder
 import org.usvm.model.buildTranslatorAndLazyDecoder
 import org.usvm.types.UTypeSystem
+import org.usvm.types.single.SingleTypeSystem
 import kotlin.test.assertSame
 
 open class SoftConstraintsTest<Field, Type, Method> {
     private lateinit var ctx: UContext
     private lateinit var softConstraintsProvider: USoftConstraintsProvider<Field, Type>
-    private lateinit var typeSystem: UTypeSystem<Type>
     private lateinit var translator: UExprTranslator<Field, Type>
     private lateinit var decoder: ULazyModelDecoder<Field, Type, Method>
     private lateinit var solver: USolverBase<Field, Type, Method>
 
     @BeforeEach
     fun initialize() {
-        typeSystem = mockk<UTypeSystem<Type>>(relaxed = true)
         val components: UComponents<*, *, *> = mockk()
-        every { components.mkTypeSystem(any()) } returns typeSystem
+        every { components.mkTypeSystem(any()) } returns SingleTypeSystem
 
         ctx = UContext(components)
         softConstraintsProvider = USoftConstraintsProvider(ctx)

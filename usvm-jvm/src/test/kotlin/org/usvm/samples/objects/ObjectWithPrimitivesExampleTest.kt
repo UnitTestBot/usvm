@@ -10,7 +10,6 @@ import org.usvm.util.isException
 
 internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1, 2]. ")
     fun testMax() {
         checkDiscoveredPropertiesWithExceptions(
             ObjectWithPrimitivesExample::max,
@@ -24,7 +23,7 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1, 2]. ")
+    @Disabled("fst == null && snd == null fails, because softConstraint heapRef == null is not implemented yet")
     fun testIgnoredInputParameters() {
         checkDiscoveredProperties(
             ObjectWithPrimitivesExample::ignoredInputParameters,
@@ -34,7 +33,6 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1, 2]. ")
     fun testExample() {
         checkDiscoveredProperties(
             ObjectWithPrimitivesExample::example,
@@ -86,7 +84,6 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun testMemory() {
         checkDiscoveredPropertiesWithExceptions(
             ObjectWithPrimitivesExample::memory,
@@ -119,7 +116,6 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1, 2]. ")
     fun testCompareWithNull() {
         checkDiscoveredProperties(
             ObjectWithPrimitivesExample::compareWithNull,
@@ -139,7 +135,6 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun testNullExample() {
         checkDiscoveredProperties(
             ObjectWithPrimitivesExample::nullExample,
@@ -165,7 +160,6 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun testCompareObjectWithArgument() {
         checkDiscoveredProperties(
             ObjectWithPrimitivesExample::compareObjectWithArgument,
@@ -183,7 +177,6 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
 
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1, 2]. ")
     fun testCompareTwoIdenticalObjectsFromArguments() {
         checkDiscoveredPropertiesWithExceptions(
             ObjectWithPrimitivesExample::compareTwoIdenticalObjectsFromArguments,
@@ -204,7 +197,6 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1, 2]. ")
     fun testGetOrDefault() {
         checkDiscoveredPropertiesWithExceptions(
             ObjectWithPrimitivesExample::getOrDefault,
@@ -217,7 +209,6 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1, 2]. ")
     fun testInheritorsFields() {
         checkDiscoveredPropertiesWithExceptions(
             ObjectWithPrimitivesExample::inheritorsFields,

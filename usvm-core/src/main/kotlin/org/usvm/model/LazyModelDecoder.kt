@@ -54,18 +54,18 @@ open class ULazyModelDecoder<Field, Type, Method>(
     private fun buildMapping(model: KModel): AddressesMapping {
         // Translated null has to be equal to evaluated null, because it is of KUninterpretedSort and translatedNullRef
         // defined as mkUninterpretedSortValue(addressSort, 0).
-        check(translatedNullRef === model.eval(translatedNullRef, isComplete = true))
+        val evaluatedNullRef = model.eval(translatedNullRef, isComplete = true)
 
         val result = mutableMapOf<KExpr<KUninterpretedSort>, UConcreteHeapRef>()
         // Except the null value, it has the NULL_ADDRESS
-        result[translatedNullRef] = ctx.mkConcreteHeapRef(NULL_ADDRESS)
+        result[evaluatedNullRef] = ctx.mkConcreteHeapRef(NULL_ADDRESS)
 
         val universe = model.uninterpretedSortUniverse(ctx.addressSort) ?: return result
         // All the numbers are enumerated from the INITIAL_INPUT_ADDRESS to the Int.MIN_VALUE
         var counter = INITIAL_INPUT_ADDRESS
 
         for (interpretedAddress in universe) {
-            if (interpretedAddress == translatedNullRef) {
+            if (interpretedAddress == evaluatedNullRef) {
                 continue
             }
             result[interpretedAddress] = ctx.mkConcreteHeapRef(counter--)

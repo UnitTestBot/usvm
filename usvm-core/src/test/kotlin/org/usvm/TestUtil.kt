@@ -1,5 +1,9 @@
 package org.usvm
 
+import org.usvm.types.USingleTypeStream
+import org.usvm.types.UTypeStream
+import org.usvm.types.UTypeSystem
+
 typealias Field = java.lang.reflect.Field
 typealias Type = kotlin.reflect.KClass<*>
 typealias Method = kotlin.reflect.KFunction<*>

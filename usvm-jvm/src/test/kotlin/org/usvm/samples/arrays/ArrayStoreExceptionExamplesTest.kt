@@ -8,12 +8,14 @@ import org.usvm.util.isException
 
 class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
+    @Disabled("Some properties were not discovered at positions (from 0): [1]")
     fun testCorrectAssignmentSamePrimitiveType() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::correctAssignmentSamePrimitiveType,
-            eq(3),
-            { _, data, result -> result.isSuccess && result.getOrNull() == data?.isNotEmpty() }
+            eq(2),
+            { _, data, result -> result.isSuccess && result.getOrNull() == false && data == null },
+            { _, data, result -> result.isSuccess && result.getOrNull() == false && data != null && data.isEmpty() },
+            { _, data, result -> result.isSuccess && result.getOrNull() == true && data != null && data.isNotEmpty() }
         )
     }
 
@@ -209,7 +211,6 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
     fun testFillWithSomeImplementation() {
         checkDiscoveredProperties(
             ArrayStoreExceptionExamples::fillWithSomeImplementation,

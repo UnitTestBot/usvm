@@ -19,7 +19,7 @@ internal class ObjectWithRefFieldsExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
+    @Disabled("Can not set org.usvm.samples.objects.SimpleDataClass")
     fun testWriteToRefTypeField() {
         checkDiscoveredProperties(
             ObjectWithRefFieldExample::writeToRefTypeField,
@@ -45,7 +45,7 @@ internal class ObjectWithRefFieldsExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
+    @Disabled("Can not set org.usvm.samples.objects.SimpleDataClass")
     fun testReadFromRefTypeField() {
         checkDiscoveredProperties(
             ObjectWithRefFieldExample::readFromRefTypeField,
@@ -79,7 +79,7 @@ internal class ObjectWithRefFieldsExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
+    @Disabled("Can not set org.usvm.samples.objects.SimpleDataClass")
     fun testReadFromArrayField() {
         checkDiscoveredProperties(
             ObjectWithRefFieldExample::readFromArrayField,
@@ -92,7 +92,6 @@ internal class ObjectWithRefFieldsExampleTest : JavaMethodTestRunner() {
         )
     }
 
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun testCompareTwoDifferentObjectsFromArguments() {
         checkDiscoveredProperties(
             ObjectWithRefFieldExample::compareTwoDifferentObjectsFromArguments,
@@ -120,7 +119,7 @@ internal class ObjectWithRefFieldsExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1, 2]. ")
+    @Disabled("Can not set org.usvm.samples.objects.SimpleDataClass")
     fun testCompareTwoObjectsWithDifferentRefField() {
         checkDiscoveredPropertiesWithExceptions(
             ObjectWithRefFieldExample::compareTwoObjectsWithDifferentRefField,
@@ -146,7 +145,7 @@ internal class ObjectWithRefFieldsExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1, 2]. ")
+    @Disabled("Can not set org.usvm.samples.objects.SimpleDataClass")
     fun testCompareTwoObjectsWithTheSameRefField() {
         checkDiscoveredPropertiesWithExceptions(
             ObjectWithRefFieldExample::compareTwoObjectsWithTheSameRefField,
