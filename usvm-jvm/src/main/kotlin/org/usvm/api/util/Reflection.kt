@@ -2,6 +2,7 @@ package org.usvm.api.util
 
 import sun.misc.Unsafe
 import java.lang.reflect.Field
+import java.lang.reflect.Modifier
 
 /**
  * An util class encapsulating reflection usage.
@@ -23,11 +24,14 @@ object Reflection {
         java.lang.reflect.Array.newInstance(cls, length) as Array<Any?>
 
     fun setField(instance: Any?, javaField: Field, fieldValue: Any?) {
-        javaField.isAccessible = true
-        try {
-            javaField.set(instance, fieldValue)
-        } finally {
-            javaField.isAccessible = false
+        val (fieldBase, fieldOffset) = if (javaField.isStatic) {
+            unsafe.staticFieldBase(javaField) to unsafe.staticFieldOffset(javaField)
+        } else {
+            instance to unsafe.objectFieldOffset(javaField)
         }
+
+        unsafe.putObject(fieldBase, fieldOffset, fieldValue)
     }
 }
+
+val Field.isStatic: Boolean get() = Modifier.isStatic(modifiers)
