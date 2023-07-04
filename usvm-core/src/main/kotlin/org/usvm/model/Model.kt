@@ -4,6 +4,7 @@ import io.ksmt.utils.asExpr
 import org.usvm.UArrayIndexLValue
 import org.usvm.UArrayLengthLValue
 import org.usvm.UComposer
+import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UFieldLValue
@@ -14,6 +15,8 @@ import org.usvm.USort
 import org.usvm.constraints.UTypeModel
 import org.usvm.memory.UReadOnlySymbolicHeap
 import org.usvm.memory.UReadOnlySymbolicMemory
+import org.usvm.types.USingleTypeStream
+import org.usvm.types.UTypeStream
 
 interface UModel {
     fun <Sort : USort> eval(expr: UExpr<Sort>): UExpr<Sort>
@@ -55,5 +58,10 @@ open class UModelBase<Field, Type>(
 
             else -> throw IllegalArgumentException("Unexpected lvalue $this")
         }
+    }
+
+    fun typeStreamOf(heapRef: UConcreteHeapRef): UTypeStream<Type> {
+        val type = types.typeOrNull(heapRef) ?: return types.typeSystem.topTypeStream()
+        return USingleTypeStream(types.typeSystem, type)
     }
 }

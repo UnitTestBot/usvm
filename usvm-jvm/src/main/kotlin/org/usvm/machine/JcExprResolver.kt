@@ -572,7 +572,14 @@ class JcExprResolver(
     private fun resolveReferenceCast(operand: JcExpr, type: JcRefType) = resolveAfterResolved(operand) { expr ->
         if (!type.isAssignable(operand.type)) {
             with(ctx) {
-                scope.fork(mkIsExpr(expr.asExpr(addressSort), type)) ?: return@with null
+                scope.fork(
+                    mkIsExpr(expr.asExpr(addressSort), type),
+                    blockOnFalseState = {
+                        val ln = lastStmt.lineNumber
+                        val exception = ClassCastException("[class cast exception] $ln")
+                        throwException(exception)
+                    }
+                ) ?: return@with null
                 expr
             }
         } else {

@@ -3,7 +3,6 @@ package org.usvm.types
 import io.ksmt.solver.z3.KZ3Solver
 import io.mockk.every
 import io.mockk.mockk
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.Field
 import org.usvm.Method
@@ -28,6 +27,7 @@ import org.usvm.types.system.testTypeSystem
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class TypeSolverTest {
@@ -35,6 +35,7 @@ class TypeSolverTest {
     private val components = mockk<UComponents<Field, TestType, Method>>()
     private val ctx = UContext(components)
     private val solver: USolverBase<Field, TestType, Method>
+
     init {
         val (translator, decoder) = buildTranslatorAndLazyDecoder<Field, TestType, Method>(ctx)
         val softConstraintsProvider = USoftConstraintsProvider<Field, TestType>(ctx)
@@ -63,8 +64,8 @@ class TypeSolverTest {
         pc += mkIsExpr(ref, base1)
         pc += mkHeapRefEq(ref, nullRef).not()
         val model = (solver.check(pc, useSoftConstraints = false) as USatResult<UModelBase<Field, TestType>>).model
-        val concreteRef = assertIs<UConcreteHeapRef>(model.eval(ref)).address
-        val type = model.types.typeOf(concreteRef)
+        val concreteRef = assertIs<UConcreteHeapRef>(model.eval(ref))
+        val type = assertNotNull(model.types.typeOrNull(concreteRef))
         assertTrue(typeSystem.isSupertype(base1, type))
         assertTrue(typeSystem.isInstantiable(type))
     }
@@ -75,8 +76,8 @@ class TypeSolverTest {
         pc += mkIsExpr(ref, interface1)
         pc += mkHeapRefEq(ref, nullRef).not()
         val model = (solver.check(pc, useSoftConstraints = false) as USatResult<UModelBase<Field, TestType>>).model
-        val concreteRef = assertIs<UConcreteHeapRef>(model.eval(ref)).address
-        val type = model.types.typeOf(concreteRef)
+        val concreteRef = assertIs<UConcreteHeapRef>(model.eval(ref))
+        val type = assertNotNull(model.types.typeOrNull(concreteRef))
         assertTrue(typeSystem.isSupertype(interface1, type))
         assertTrue(typeSystem.isInstantiable(type))
     }
@@ -143,12 +144,14 @@ class TypeSolverTest {
         pc += mkIsExpr(ref1, interface2)
 
         val resultWithoutEqConstraint = solver.check(pc, useSoftConstraints = false)
-        val modelWithoutEqConstraint = assertIs<USatResult<UModelBase<Field, TestType>>>(resultWithoutEqConstraint).model
+        val modelWithoutEqConstraint =
+            assertIs<USatResult<UModelBase<Field, TestType>>>(resultWithoutEqConstraint).model
 
-        val concreteRef0 = assertIs<UConcreteHeapRef>(modelWithoutEqConstraint.eval(ref0)).address
-        val concreteRef1 = assertIs<UConcreteHeapRef>(modelWithoutEqConstraint.eval(ref1)).address
+        val concreteAddress0 = assertIs<UConcreteHeapRef>(modelWithoutEqConstraint.eval(ref0)).address
+        val concreteAddress1 = assertIs<UConcreteHeapRef>(modelWithoutEqConstraint.eval(ref1)).address
 
-        assertTrue(concreteRef0 == NULL_ADDRESS && concreteRef1 == NULL_ADDRESS || concreteRef0 != concreteRef1)
+        val bothNull = concreteAddress0 == NULL_ADDRESS && concreteAddress1 == NULL_ADDRESS
+        assertTrue(bothNull || concreteAddress0 != concreteAddress1)
 
         pc += mkHeapRefEq(ref0, ref1)
 

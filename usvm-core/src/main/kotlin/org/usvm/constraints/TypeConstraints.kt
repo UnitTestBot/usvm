@@ -14,7 +14,7 @@ import org.usvm.solver.UUnknownResult
 import org.usvm.solver.UUnsatResult
 import org.usvm.types.USingleTypeStream
 import org.usvm.types.UTypeRegion
-import org.usvm.types.takeFirst
+import org.usvm.types.take
 import org.usvm.uctx
 
 interface UTypeEvaluator<Type> {
@@ -22,15 +22,27 @@ interface UTypeEvaluator<Type> {
 }
 
 class UTypeModel<Type>(
-    private val typeSystem: UTypeSystem<Type>,
-    private val typeByAddr: Map<UConcreteHeapAddress, Type>,
+    val typeSystem: UTypeSystem<Type>,
+    typeByAddr: Map<UConcreteHeapAddress, Type>,
 ) : UTypeEvaluator<Type> {
-    fun typeOf(address: UConcreteHeapAddress): Type = typeByAddr[address] ?: typeSystem.topTypeStream().takeFirst()
+    private val typeByAddr = typeByAddr.toMutableMap()
+
+    fun typeOrNull(ref: UConcreteHeapRef): Type? = typeByAddr[ref.address]
 
     override fun evalIs(ref: UHeapRef, type: Type): UBoolExpr =
         when (ref) {
             is UConcreteHeapRef -> {
-                val holds = typeSystem.isSupertype(type, typeOf(ref.address))
+                val evaluatedType = typeOrNull(ref)
+                val holds = if (evaluatedType == null) {
+                    val anyTypes = typeSystem.topTypeStream().filterBySupertype(type).take(1)
+                    val typesNotEmpty = anyTypes.isNotEmpty()
+                    if (typesNotEmpty) {
+                        typeByAddr[ref.address] = anyTypes.single()
+                    }
+                    typesNotEmpty
+                } else {
+                    typeSystem.isSupertype(type, evaluatedType)
+                }
                 if (holds) ref.ctx.trueExpr else ref.ctx.falseExpr
             }
 
