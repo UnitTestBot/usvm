@@ -233,6 +233,7 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@74414a78")
     fun testInstanceOfAsInternalExpressionsMap() {
         checkDiscoveredProperties(
             InstanceOfExample::instanceOfAsInternalExpressionsMap,

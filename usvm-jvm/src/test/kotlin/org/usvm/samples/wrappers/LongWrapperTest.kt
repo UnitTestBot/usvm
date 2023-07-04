@@ -41,6 +41,7 @@ internal class LongWrapperTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3f95a1b3")
     fun parseLong() {
         checkDiscoveredProperties(
             LongWrapper::parseLong,

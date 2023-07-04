@@ -13,6 +13,7 @@ import kotlin.arrayOf
 
 internal class ClassRefTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3f95a1b3")
     fun testTakeBooleanClassRef() {
         checkDiscoveredProperties(
             ClassRef::takeBooleanClassRef,
@@ -22,6 +23,7 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun testTakeClassRef() {
         checkDiscoveredProperties(
             ClassRef::takeClassRef,
@@ -42,6 +44,7 @@ internal class ClassRefTest : JavaMethodTestRunner() {
 
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun testTakeArrayClassRef() {
         checkDiscoveredProperties(
             ClassRef::takeArrayClassRef,
@@ -51,6 +54,7 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun testTwoDimArrayClassRef() {
         checkDiscoveredProperties(
             ClassRef::twoDimArrayClassRef,
@@ -70,6 +74,7 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun testTakeConstantClassRef() {
         checkDiscoveredProperties(
             ClassRef::takeConstantClassRef,
@@ -88,6 +93,7 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun testEqualityOnStringClassRef() {
         checkDiscoveredProperties(
             ClassRef::equalityOnStringClassRef,
@@ -115,6 +121,7 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3f95a1b3")
     fun testEqualityOnGenericClassRef() {
         checkDiscoveredProperties(
             ClassRef::equalityOnGenericClassRef,

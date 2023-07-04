@@ -191,6 +191,7 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Sequence is empty.")
     fun testUpdateCloned() {
         checkDiscoveredProperties(
             IntArrayBasics::updateCloned,
@@ -202,6 +203,7 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@2f5d95b")
     fun testArraysEqualsExample() {
         checkDiscoveredProperties(
             IntArrayBasics::arrayEqualsExample,

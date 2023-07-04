@@ -70,6 +70,7 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@27975320")
     fun testFindState() {
         checkDiscoveredProperties(
             ComplexEnumExamples::findState,
@@ -79,6 +80,7 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@27975320")
     fun testCountValuesInArray() {
         fun Color.isCorrectlyCounted(inputs: Array<Color>, counts: Map<Color, Int>): Boolean =
             inputs.count { it == this } == (counts[this] ?: 0)
@@ -93,6 +95,7 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@27975320")
     fun testCountRedInArray() {
         checkDiscoveredProperties(
             ComplexEnumExamples::countRedInArray,

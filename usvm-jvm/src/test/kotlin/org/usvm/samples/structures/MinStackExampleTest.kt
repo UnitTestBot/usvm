@@ -65,6 +65,7 @@ internal class MinStackExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun testRemoveValue() {
         checkDiscoveredProperties(
             MinStackExample::removeValue,

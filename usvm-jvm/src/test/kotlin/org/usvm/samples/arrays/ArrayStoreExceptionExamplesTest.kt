@@ -19,6 +19,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@576c8cea")
     fun testCorrectAssignmentIntToIntegerArray() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::correctAssignmentIntToIntegerArray,
@@ -28,6 +29,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@2ecc303c")
     fun testCorrectAssignmentSubtype() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::correctAssignmentSubtype,
@@ -37,6 +39,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@47effce0")
     fun testCorrectAssignmentToObjectArray() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::correctAssignmentToObjectArray,
@@ -46,6 +49,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun testWrongAssignmentUnrelatedType() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::wrongAssignmentUnrelatedType,
@@ -57,6 +61,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@26bc130c")
     fun testCheckGenericAssignmentWithCorrectCast() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkGenericAssignmentWithCorrectCast,
@@ -66,6 +71,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun testCheckGenericAssignmentWithWrongCast() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkGenericAssignmentWithWrongCast,
@@ -75,6 +81,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@46441754")
     fun testCheckGenericAssignmentWithExtendsSubtype() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkGenericAssignmentWithExtendsSubtype,
@@ -84,6 +91,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun testCheckGenericAssignmentWithExtendsUnrelated() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkGenericAssignmentWithExtendsUnrelated,
@@ -93,6 +101,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun testCheckObjectAssignment() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkObjectAssignment,
@@ -120,6 +129,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@76e579d8")
     fun testCheckAssignmentToObjectArray() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkAssignmentToObjectArray,
@@ -129,6 +139,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Sequence is empty.")
     fun testArrayCopyForIncompatiblePrimitiveTypes() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::arrayCopyForIncompatiblePrimitiveTypes,

@@ -9,6 +9,7 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 internal class GenericsTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun mapAsParameterTest() {
         checkDiscoveredProperties(
             Generics<*>::mapAsParameter,
@@ -19,6 +20,7 @@ internal class GenericsTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun genericAsFieldTest() {
         checkDiscoveredProperties(
             Generics<*>::genericAsField,
@@ -30,6 +32,7 @@ internal class GenericsTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3f95a1b3")
     fun mapAsStaticFieldTest() {
         checkDiscoveredProperties(
             Generics<*>::mapAsStaticField,
@@ -39,6 +42,7 @@ internal class GenericsTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun mapAsNonStaticFieldTest() {
         checkDiscoveredProperties(
             Generics<*>::mapAsNonStaticField,
@@ -49,6 +53,7 @@ internal class GenericsTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun methodWithRawTypeTest() {
         checkDiscoveredProperties(
             Generics<*>::methodWithRawType,

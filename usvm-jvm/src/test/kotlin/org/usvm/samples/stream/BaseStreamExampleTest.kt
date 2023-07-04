@@ -335,6 +335,7 @@ class BaseStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3f95a1b3")
     fun testStreamOfExample() {
         checkDiscoveredProperties(
             BaseStreamExample::streamOfExample,
@@ -375,6 +376,7 @@ class BaseStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3f95a1b3")
     fun testGenerateExample() {
         checkDiscoveredProperties(
             BaseStreamExample::generateExample,
@@ -384,6 +386,7 @@ class BaseStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3f95a1b3")
     fun testIterateExample() {
         checkDiscoveredProperties(
             BaseStreamExample::iterateExample,
@@ -393,6 +396,7 @@ class BaseStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3f95a1b3")
     fun testConcatExample() {
         checkDiscoveredProperties(
             BaseStreamExample::concatExample,

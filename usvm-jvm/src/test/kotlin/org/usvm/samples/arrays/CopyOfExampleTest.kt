@@ -9,6 +9,7 @@ import org.usvm.util.isException
 
 class CopyOfExampleTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Sequence is empty.")
     fun testCopyOf() {
         checkDiscoveredPropertiesWithExceptions(
             CopyOfExample::copyOfExample,

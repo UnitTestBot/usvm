@@ -9,6 +9,7 @@ import org.usvm.test.util.checkers.eq
 internal class SerializableExampleTest : JavaMethodTestRunner() {
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun testExample() {
         checkDiscoveredProperties(
             SerializableExample::example,

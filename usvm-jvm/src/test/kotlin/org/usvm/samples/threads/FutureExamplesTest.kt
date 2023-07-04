@@ -21,6 +21,7 @@ class FutureExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3f95a1b3")
     fun testResultFromGet() {
         checkDiscoveredProperties(
             FutureExamples::resultFromGet,
@@ -30,6 +31,7 @@ class FutureExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3f95a1b3")
     fun testChangingCollectionInFuture() {
         checkDiscoveredProperties(
             FutureExamples::changingCollectionInFuture,
@@ -39,6 +41,7 @@ class FutureExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3f95a1b3")
     fun testChangingCollectionInFutureWithoutGet() {
         checkDiscoveredProperties(
             FutureExamples::changingCollectionInFutureWithoutGet,

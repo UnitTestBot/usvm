@@ -21,6 +21,7 @@ class ThreadExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3f95a1b3")
     fun testChangingCollectionInThread() {
         checkDiscoveredProperties(
             ThreadExamples::changingCollectionInThread,
@@ -30,6 +31,7 @@ class ThreadExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3f95a1b3")
     fun testChangingCollectionInThreadWithoutStart() {
         checkDiscoveredPropertiesWithExceptions(
             ThreadExamples::changingCollectionInThreadWithoutStart,

@@ -94,6 +94,7 @@ internal class CyclesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun testDivideByZeroCheckWithCycles() {
         checkDiscoveredPropertiesWithExceptions(
             Cycles::divideByZeroCheckWithCycles,

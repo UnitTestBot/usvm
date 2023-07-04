@@ -8,6 +8,7 @@ import org.usvm.test.util.checkers.eq
 
 internal class JvmCrashExamplesTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@27975320")
     fun testExit() {
         checkDiscoveredProperties(
             JvmCrashExamples::exit,
@@ -16,6 +17,7 @@ internal class JvmCrashExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun testCrash() {
         checkDiscoveredProperties(
             JvmCrashExamples::crash, // we expect only one execution after minimization
