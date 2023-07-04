@@ -23,7 +23,6 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("fst == null && snd == null fails, because softConstraint heapRef == null is not implemented yet")
     fun testIgnoredInputParameters() {
         checkDiscoveredProperties(
             ObjectWithPrimitivesExample::ignoredInputParameters,
@@ -54,7 +53,6 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
 //    }
 
     @Test
-    @Disabled("Unsupported default values")
     fun testDefaultValueForSuperclassFields() {
         checkDiscoveredProperties(
             ObjectWithPrimitivesExample::defaultValueForSuperclassFields,
@@ -64,7 +62,6 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("TODO JIRA:1594")
     fun testCreateObject() {
         checkDiscoveredPropertiesWithExceptions(
             ObjectWithPrimitivesExample::createObject,
@@ -147,7 +144,6 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 4 executions, but 6 found. Same exception discovered multiple times")
     fun testCompareTwoOuterObjects() {
         checkDiscoveredPropertiesWithExceptions(
             ObjectWithPrimitivesExample::compareTwoOuterObjects,
@@ -229,7 +225,6 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]")
     fun testCreateWithSuperConstructor() {
         checkDiscoveredProperties(
             ObjectWithPrimitivesExample::createWithSuperConstructor,

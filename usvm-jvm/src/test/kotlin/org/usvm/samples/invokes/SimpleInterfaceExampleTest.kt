@@ -8,7 +8,6 @@ import org.usvm.test.util.checkers.eq
 
 internal class SimpleInterfaceExampleTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("java.lang.InstantiationException: org.usvm.samples.invokes.SimpleInterface")
     fun testOverrideMethod() {
         checkDiscoveredProperties(
             SimpleInterfaceExample::overrideMethod,
@@ -20,7 +19,6 @@ internal class SimpleInterfaceExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("java.lang.InstantiationException: org.usvm.samples.invokes.SimpleInterface")
     fun testDefaultMethod() {
         checkDiscoveredProperties(
             SimpleInterfaceExample::defaultMethod,
@@ -31,7 +29,6 @@ internal class SimpleInterfaceExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sequence is empty.")
     fun testInvokeMethodFromImplementor() {
         checkDiscoveredProperties(
             SimpleInterfaceExample::invokeMethodFromImplementor,

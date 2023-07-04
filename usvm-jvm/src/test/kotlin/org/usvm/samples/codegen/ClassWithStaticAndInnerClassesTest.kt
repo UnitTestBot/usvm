@@ -10,7 +10,6 @@ import org.usvm.test.util.checkers.eq
 @Suppress("INACCESSIBLE_TYPE")
 internal class ClassWithStaticAndInnerClassesTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
     fun testUsePrivateStaticClassWithPrivateField() {
         checkDiscoveredProperties(
             ClassWithStaticAndInnerClasses::usePrivateStaticClassWithPrivateField,
@@ -19,7 +18,6 @@ internal class ClassWithStaticAndInnerClassesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
     fun testUsePrivateStaticClassWithPublicField() {
         checkDiscoveredProperties(
             ClassWithStaticAndInnerClasses::usePrivateStaticClassWithPublicField,
@@ -28,7 +26,6 @@ internal class ClassWithStaticAndInnerClassesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
     fun testUsePublicStaticClassWithPrivateField() {
         checkDiscoveredProperties(
             ClassWithStaticAndInnerClasses::usePublicStaticClassWithPrivateField,
@@ -37,7 +34,6 @@ internal class ClassWithStaticAndInnerClassesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
     fun testUsePublicStaticClassWithPublicField() {
         checkDiscoveredProperties(
             ClassWithStaticAndInnerClasses::usePublicStaticClassWithPublicField,
@@ -46,7 +42,6 @@ internal class ClassWithStaticAndInnerClassesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
     fun testUsePrivateInnerClassWithPrivateField() {
         checkDiscoveredProperties(
             ClassWithStaticAndInnerClasses::usePrivateInnerClassWithPrivateField,
@@ -55,7 +50,6 @@ internal class ClassWithStaticAndInnerClassesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
     fun testUsePrivateInnerClassWithPublicField() {
         checkDiscoveredProperties(
             ClassWithStaticAndInnerClasses::usePrivateInnerClassWithPublicField,
@@ -64,7 +58,6 @@ internal class ClassWithStaticAndInnerClassesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
     fun testUsePublicInnerClassWithPrivateField() {
         checkDiscoveredProperties(
             ClassWithStaticAndInnerClasses::usePublicInnerClassWithPrivateField,
@@ -73,7 +66,6 @@ internal class ClassWithStaticAndInnerClassesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
     fun testUsePublicInnerClassWithPublicField() {
         checkDiscoveredProperties(
             ClassWithStaticAndInnerClasses::usePublicInnerClassWithPublicField,
@@ -82,7 +74,6 @@ internal class ClassWithStaticAndInnerClassesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
     fun testUsePackagePrivateFinalStaticClassWithPackagePrivateField() {
         checkDiscoveredProperties(
             ClassWithStaticAndInnerClasses::usePackagePrivateFinalStaticClassWithPackagePrivateField,
@@ -91,7 +82,6 @@ internal class ClassWithStaticAndInnerClassesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
     fun testUsePackagePrivateFinalInnerClassWithPackagePrivateField() {
         checkDiscoveredProperties(
             ClassWithStaticAndInnerClasses::usePackagePrivateFinalInnerClassWithPackagePrivateField,
@@ -100,7 +90,6 @@ internal class ClassWithStaticAndInnerClassesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("java.lang.ClassNotFoundException: org.usvm.samples.codegen.ClassWithStaticAndInnerClasses.ClassWithStaticAndInnerClasses\$PrivateInnerClassWithPublicField")
     fun testGetValueFromPublicFieldWithPrivateType() {
         checkDiscoveredProperties(
             ClassWithStaticAndInnerClasses::getValueFromPublicFieldWithPrivateType,

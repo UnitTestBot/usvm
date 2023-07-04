@@ -8,7 +8,6 @@ import org.usvm.test.util.checkers.eq
 
 internal class HiddenFieldExampleTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Unexpected UIsExpr in UExprTranslator, that has to be impossible by construction!")
     fun testCheckHiddenField() {
         checkDiscoveredProperties(
             HiddenFieldExample::checkHiddenField,
@@ -21,7 +20,6 @@ internal class HiddenFieldExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Inherited fields are not supported yet")
     fun testCheckSuccField() {
         checkDiscoveredProperties(
             HiddenFieldExample::checkSuccField,

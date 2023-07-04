@@ -23,7 +23,6 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
 //    }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@1b0e9707")
     fun testGetter() {
         checkDiscoveredProperties(
             ClassWithEnum::useGetter,
@@ -34,7 +33,6 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
     fun testDifficultIfBranch() {
         checkDiscoveredProperties(
             ClassWithEnum::useEnumInDifficultIf,
@@ -45,7 +43,6 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("org.usvm.samples.enums.ClassWithEnum.ClassWithEnum\$StatusEnum")
     fun testNullParameter() {
         checkDiscoveredProperties(
             ClassWithEnum::nullEnumAsParameter,
@@ -56,7 +53,6 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@1b0e9707")
     fun testNullField() {
         checkDiscoveredPropertiesWithExceptions(
             ClassWithEnum::nullField,
@@ -69,7 +65,6 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
 
     @Suppress("KotlinConstantConditions")
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@1b0e9707")
     fun testChangeEnum() {
         checkDiscoveredPropertiesWithExceptions(
             ClassWithEnum::changeEnum,
@@ -80,7 +75,6 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@1b0e9707")
     fun testChangeMutableField() {
         checkDiscoveredPropertiesWithExceptions(
             ClassWithEnum::changeMutableField,
@@ -91,7 +85,6 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@1b0e9707")
     fun testCheckName() {
         checkDiscoveredProperties(
             ClassWithEnum::checkName,
@@ -128,7 +121,6 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
 */
 
     @Test
-    @Disabled("Sequence is empty.")
     fun testVirtualFunction() {
         checkDiscoveredProperties(
             ClassWithEnum::virtualFunction,
@@ -150,7 +142,6 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
 //    }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@1b0e9707")
     fun testFromCode() {
         checkDiscoveredProperties(
             StatusEnum::fromCode,
@@ -162,7 +153,6 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@1b0e9707")
     fun testFromIsReady() {
         checkDiscoveredProperties(
             StatusEnum::fromIsReady,
@@ -184,7 +174,6 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
     fun testImplementingInterfaceEnumInDifficultBranch() {
         checkDiscoveredProperties(
             ClassWithEnum::implementingInterfaceEnumInDifficultBranch,
@@ -195,7 +184,6 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@1b0e9707")
     fun testAffectSystemStaticAndUseInitEnumFromIt() {
         checkDiscoveredProperties(
             ClassWithEnum::affectSystemStaticAndInitEnumFromItAndReturnField,
@@ -205,7 +193,6 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@1b0e9707")
     fun testAffectSystemStaticAndInitEnumFromItAndGetItFromEnumFun() {
         checkDiscoveredProperties(
             ClassWithEnum::affectSystemStaticAndInitEnumFromItAndGetItFromEnumFun,

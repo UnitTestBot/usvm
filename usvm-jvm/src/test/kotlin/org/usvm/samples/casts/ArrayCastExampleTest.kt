@@ -9,7 +9,6 @@ import org.usvm.test.util.checkers.eq
 internal class ArrayCastExampleTest : JavaMethodTestRunner() {
     @Suppress("KotlinConstantConditions")
     @Test
-    @Disabled("An operation is not implemented.")
     fun testCastToAncestor() {
         checkDiscoveredProperties(
             ArrayCastExample::castToAncestor,
@@ -20,7 +19,6 @@ internal class ArrayCastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented.")
     fun testClassCastException() {
         checkDiscoveredProperties(
             ArrayCastExample::classCastException,
@@ -32,7 +30,6 @@ internal class ArrayCastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented.")
     fun testNullCast() {
         checkDiscoveredProperties(
             ArrayCastExample::nullCast,
@@ -52,7 +49,6 @@ internal class ArrayCastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented.")
     fun testSuccessfulExampleFromJLS() {
         checkDiscoveredProperties(
             ArrayCastExample::successfulExampleFromJLS,
@@ -71,7 +67,6 @@ internal class ArrayCastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented.")
     fun testCastAfterStore() {
         checkDiscoveredProperties(
             ArrayCastExample::castAfterStore,
@@ -94,7 +89,6 @@ internal class ArrayCastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented.")
     fun testCastFromObject() {
         checkDiscoveredProperties(
             ArrayCastExample::castFromObject,
@@ -106,7 +100,6 @@ internal class ArrayCastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented.")
     fun testCastFromObjectToPrimitivesArray() {
         checkDiscoveredProperties(
             ArrayCastExample::castFromObjectToPrimitivesArray,
@@ -133,7 +126,6 @@ internal class ArrayCastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented.")
     fun testCastFromCollections() {
         checkDiscoveredProperties(
             ArrayCastExample::castFromCollections,
@@ -145,7 +137,6 @@ internal class ArrayCastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented.")
     fun testCastFromIterable() {
         checkDiscoveredProperties(
             ArrayCastExample::castFromIterable,
@@ -157,7 +148,6 @@ internal class ArrayCastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented.")
     fun testCastFromIterableToCollection() {
         checkDiscoveredProperties(
             ArrayCastExample::castFromIterableToCollection,

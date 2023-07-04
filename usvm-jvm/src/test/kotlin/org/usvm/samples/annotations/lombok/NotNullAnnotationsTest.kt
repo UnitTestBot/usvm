@@ -15,7 +15,6 @@ import org.usvm.test.util.checkers.eq
  */
 internal class NotNullAnnotationsTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Can not set static final int field java.lang.Integer.MIN_VALUE to java.lang.Integer")
     fun testNonNullAnnotations() {
         checkDiscoveredProperties(
             NotNullAnnotations::lombokNonNull,

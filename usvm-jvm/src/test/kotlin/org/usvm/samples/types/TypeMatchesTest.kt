@@ -39,7 +39,6 @@ internal class TypeMatchesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sort mismatch")
     fun testSumByteAndShort() {
         checkDiscoveredProperties(
             TypeMatches::sumByteAndShort,
@@ -51,7 +50,6 @@ internal class TypeMatchesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sort mismatch")
     fun testSumShortAndChar() {
         checkDiscoveredProperties(
             TypeMatches::sumShortAndChar,

@@ -208,7 +208,6 @@ internal class ListsPart3Test : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("TODO: add choosing proper type in list wrapper")
     fun testRemoveFromList() {
         checkDiscoveredPropertiesWithExceptions(
             Lists::removeFromList,

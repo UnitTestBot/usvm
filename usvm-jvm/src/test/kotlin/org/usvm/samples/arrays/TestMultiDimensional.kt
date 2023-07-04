@@ -16,7 +16,6 @@ class TestMultiDimensional : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("TODO: multidimensional arrays")
     fun `Test sumOfMultiNewArray`() {
         checkDiscoveredProperties(
             MultiDimensional::sumOfMultiNewArray,

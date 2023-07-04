@@ -9,7 +9,6 @@ import java.util.TreeMap
 
 internal class StandardStructuresTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Not implemented: Instance of")
     fun testGetList() {
         checkDiscoveredProperties(
             StandardStructures::getList,
@@ -24,7 +23,6 @@ internal class StandardStructuresTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: Instance of")
     fun testGetMap() {
         checkDiscoveredProperties(
             StandardStructures::getMap,
@@ -36,7 +34,6 @@ internal class StandardStructuresTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: Instance of")
     fun testGetDeque() {
         checkDiscoveredProperties(
             StandardStructures::getDeque,

@@ -19,7 +19,6 @@ internal class ObjectWithRefFieldsExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Can not set org.usvm.samples.objects.SimpleDataClass")
     fun testWriteToRefTypeField() {
         checkDiscoveredProperties(
             ObjectWithRefFieldExample::writeToRefTypeField,
@@ -45,7 +44,6 @@ internal class ObjectWithRefFieldsExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Can not set org.usvm.samples.objects.SimpleDataClass")
     fun testReadFromRefTypeField() {
         checkDiscoveredProperties(
             ObjectWithRefFieldExample::readFromRefTypeField,
@@ -58,7 +56,6 @@ internal class ObjectWithRefFieldsExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 3 executions, but 129 found. Same exception discovered multiple times")
     fun testWriteToArrayField() {
         checkDiscoveredProperties(
             ObjectWithRefFieldExample::writeToArrayField,
@@ -79,7 +76,6 @@ internal class ObjectWithRefFieldsExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Can not set org.usvm.samples.objects.SimpleDataClass")
     fun testReadFromArrayField() {
         checkDiscoveredProperties(
             ObjectWithRefFieldExample::readFromArrayField,
@@ -106,7 +102,6 @@ internal class ObjectWithRefFieldsExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Failed requirement at org.usvm.UInputFieldReading.<init>(Expressions.kt:166)")
     fun testCompareTwoObjectsWithNullRefField() {
         checkDiscoveredPropertiesWithExceptions(
             ObjectWithRefFieldExample::compareTwoObjectsWithNullRefField,
@@ -119,7 +114,6 @@ internal class ObjectWithRefFieldsExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Can not set org.usvm.samples.objects.SimpleDataClass")
     fun testCompareTwoObjectsWithDifferentRefField() {
         checkDiscoveredPropertiesWithExceptions(
             ObjectWithRefFieldExample::compareTwoObjectsWithDifferentRefField,
@@ -132,7 +126,6 @@ internal class ObjectWithRefFieldsExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [2, 3]")
     fun testCompareTwoObjectsWithTheDifferentRefField() {
         checkDiscoveredPropertiesWithExceptions(
             ObjectWithRefFieldExample::compareTwoObjectsWithDifferentRefField,
@@ -145,7 +138,6 @@ internal class ObjectWithRefFieldsExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Can not set org.usvm.samples.objects.SimpleDataClass")
     fun testCompareTwoObjectsWithTheSameRefField() {
         checkDiscoveredPropertiesWithExceptions(
             ObjectWithRefFieldExample::compareTwoObjectsWithTheSameRefField,

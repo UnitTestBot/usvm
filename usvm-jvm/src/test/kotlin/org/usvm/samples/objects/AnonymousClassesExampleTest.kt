@@ -9,7 +9,6 @@ import org.usvm.util.isException
 
 class AnonymousClassesExampleTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Sequence is empty.")
     fun testAnonymousClassAsParam() {
         checkDiscoveredPropertiesWithExceptions(
             AnonymousClassesExample::anonymousClassAsParam,
@@ -33,7 +32,6 @@ class AnonymousClassesExampleTest : JavaMethodTestRunner() {
 //    }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@69b66787")
     fun testAnonymousClassAsStatic() {
         checkDiscoveredProperties(
             AnonymousClassesExample::anonymousClassAsStatic,
@@ -43,7 +41,6 @@ class AnonymousClassesExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Can not set static final org.usvm.samples.objects.AbstractAnonymousClass field")
     fun testAnonymousClassAsResult() {
         checkDiscoveredProperties(
             AnonymousClassesExample::anonymousClassAsResult,

@@ -12,7 +12,6 @@ import org.usvm.util.isException
 // (see https://github.com/UnitTestBot/UTBotJava/issues/1610)
 class ExecutorServiceExamplesTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun testExceptionInExecute() {
         checkDiscoveredPropertiesWithExceptions(
             ExecutorServiceExamples::throwingInExecute,
@@ -22,7 +21,6 @@ class ExecutorServiceExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun testChangingCollectionInExecute() {
         checkDiscoveredProperties(
             ExecutorServiceExamples::changingCollectionInExecute,

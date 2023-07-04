@@ -45,7 +45,6 @@ internal class ModelMinimizationExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sort mismatch")
     fun conditionCheckAEqTest() {
         // Parameters `a` and `b` should be not null.
         // Parameters `a` and `b` should refer to the same instance.

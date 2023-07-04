@@ -7,7 +7,6 @@ import org.usvm.test.util.checkers.eq
 
 class StreamsAsMethodResultExampleTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testReturningStreamExample() {
         checkDiscoveredProperties(
             StreamsAsMethodResultExample::returningStreamExample,

@@ -9,7 +9,6 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 internal class GenericsTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Not implemented: String constants")
     fun mapAsParameterTest() {
         checkDiscoveredProperties(
             Generics<*>::mapAsParameter,
@@ -20,7 +19,6 @@ internal class GenericsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("https://github.com/UnitTestBot/UTBotJava/issues/1620 wrong equals")
     fun genericAsFieldTest() {
         checkDiscoveredProperties(
             Generics<*>::genericAsField,
@@ -32,7 +30,6 @@ internal class GenericsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun mapAsStaticFieldTest() {
         checkDiscoveredProperties(
             Generics<*>::mapAsStaticField,
@@ -42,7 +39,6 @@ internal class GenericsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: String constants")
     fun mapAsNonStaticFieldTest() {
         checkDiscoveredProperties(
             Generics<*>::mapAsNonStaticField,
@@ -53,7 +49,6 @@ internal class GenericsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: String constants")
     fun methodWithRawTypeTest() {
         checkDiscoveredProperties(
             Generics<*>::methodWithRawType,
@@ -64,7 +59,6 @@ internal class GenericsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 1 executions, but 2 found. Same exception discovered multiple times")
     fun testMethodWithArrayTypeBoundary() {
         checkDiscoveredPropertiesWithExceptions(
             Generics<*>::methodWithArrayTypeBoundary,

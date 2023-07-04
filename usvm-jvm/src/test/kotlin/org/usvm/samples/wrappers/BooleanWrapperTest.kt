@@ -8,7 +8,6 @@ import org.usvm.test.util.checkers.eq
 
 internal class BooleanWrapperTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun primitiveToWrapperTest() {
         checkDiscoveredProperties(
             BooleanWrapper::primitiveToWrapper,
@@ -19,7 +18,6 @@ internal class BooleanWrapperTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Can not set static final java.lang.Boolean field java.lang.Boolean.TRUE to null value")
     fun wrapperToPrimitiveTest() {
         checkDiscoveredProperties(
             BooleanWrapper::wrapperToPrimitive,
@@ -31,7 +29,6 @@ internal class BooleanWrapperTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun equalityTest() {
         checkDiscoveredProperties(
             BooleanWrapper::equality,

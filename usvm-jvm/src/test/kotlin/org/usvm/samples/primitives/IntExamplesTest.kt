@@ -10,7 +10,6 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 @Suppress("ConvertTwoComparisonsToRangeCheck")
 internal class IntExamplesTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Not implemented: String constants")
     fun testIsInteger() {
         val method = IntExamples::isInteger
         checkDiscoveredProperties(

@@ -8,7 +8,6 @@ import org.usvm.test.util.checkers.eq
 
 internal class UnsafeOperationsTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Not implemented: Class constants")
     fun checkGetAddressSizeOrZero() {
             checkDiscoveredProperties(
                 UnsafeOperations::getAddressSizeOrZero,

@@ -14,7 +14,6 @@ import java.math.RoundingMode.HALF_UP
 
 internal class SwitchTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@2e7563f6")
     fun testSimpleSwitch() {
         checkDiscoveredProperties(
             Switch::simpleSwitch,
@@ -27,7 +26,6 @@ internal class SwitchTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@2e7563f6")
     fun testLookupSwitch() {
         checkDiscoveredProperties(
             Switch::lookupSwitch,
@@ -40,7 +38,6 @@ internal class SwitchTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@2e7563f6")
     fun testEnumSwitch() {
         checkDiscoveredProperties(
             Switch::enumSwitch,

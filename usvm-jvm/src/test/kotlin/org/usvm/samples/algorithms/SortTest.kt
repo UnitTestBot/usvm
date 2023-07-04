@@ -9,7 +9,6 @@ import org.usvm.util.isException
 
 internal class SortTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@b66d50c")
     fun testQuickSort() {
         checkDiscoveredProperties(
             Sort::quickSort,
@@ -31,7 +30,6 @@ internal class SortTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sequence is empty.")
     fun testArrayCopy() {
         checkDiscoveredProperties(
             Sort::arrayCopy,
@@ -41,7 +39,6 @@ internal class SortTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sequence is empty.")
     fun testMergeSort() {
         checkDiscoveredProperties(
             Sort::mergeSort,
@@ -72,7 +69,6 @@ internal class SortTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [4, 5]")
     fun testMerge() {
         checkDiscoveredPropertiesWithExceptions(
             Sort::merge,
@@ -105,7 +101,6 @@ internal class SortTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1, 2]")
     fun testDefaultSort() {
         checkDiscoveredPropertiesWithExceptions(
             Sort::defaultSort,

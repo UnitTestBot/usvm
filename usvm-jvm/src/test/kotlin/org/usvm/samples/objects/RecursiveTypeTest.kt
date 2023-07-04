@@ -8,7 +8,6 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 internal class RecursiveTypeTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Can not set org.usvm.samples.objects.RecursiveTypeClass")
     fun testNextValue() {
         checkDiscoveredProperties(
             RecursiveType::nextValue,
@@ -22,7 +21,6 @@ internal class RecursiveTypeTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Can not set org.usvm.samples.objects.RecursiveTypeClass")
     fun testWriteObjectFieldTest() {
         checkDiscoveredProperties(
             RecursiveType::writeObjectField,

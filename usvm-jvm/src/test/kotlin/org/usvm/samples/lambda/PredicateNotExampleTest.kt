@@ -8,7 +8,6 @@ import org.usvm.test.util.checkers.eq
 
 class PredicateNotExampleTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@4640195a")
     fun testPredicateNotExample() {
         checkDiscoveredProperties(
             PredicateNotExample::predicateNotExample,

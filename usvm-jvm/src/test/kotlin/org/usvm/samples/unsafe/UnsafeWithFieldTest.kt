@@ -10,7 +10,6 @@ import org.usvm.test.util.checkers.eq
 internal class UnsafeWithFieldTest: JavaMethodTestRunner() {
 
     @Test
-    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun checkSetField() {
         checkDiscoveredProperties(
             UnsafeWithField::setField,

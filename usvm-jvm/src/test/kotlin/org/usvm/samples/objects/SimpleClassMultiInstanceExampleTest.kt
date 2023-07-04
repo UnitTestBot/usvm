@@ -8,7 +8,6 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 internal class SimpleClassMultiInstanceExampleTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Can not set static org.usvm.samples.objects.SimpleDataClass")
     fun singleObjectChangeTest() {
         checkDiscoveredProperties(
             SimpleClassMultiInstanceExample::singleObjectChange,

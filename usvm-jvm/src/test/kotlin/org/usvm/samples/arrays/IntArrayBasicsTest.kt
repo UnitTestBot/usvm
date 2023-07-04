@@ -97,7 +97,6 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 4 executions, but 3 found")
     fun testEquality() {
         checkDiscoveredProperties(
             IntArrayBasics::equality,
@@ -123,7 +122,6 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [4, 5]")
     fun testMergeArrays() {
         checkDiscoveredProperties(
             IntArrayBasics::mergeArrays,
@@ -180,7 +178,6 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [3]")
     fun testReversed() {
         checkDiscoveredProperties(
             IntArrayBasics::reversed,
@@ -194,7 +191,6 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sequence is empty.")
     fun testUpdateCloned() {
         checkDiscoveredProperties(
             IntArrayBasics::updateCloned,
@@ -206,7 +202,6 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@42ac84a9")
     fun testArraysEqualsExample() {
         checkDiscoveredProperties(
             IntArrayBasics::arrayEqualsExample,

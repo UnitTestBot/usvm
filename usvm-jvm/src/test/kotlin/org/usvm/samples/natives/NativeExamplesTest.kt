@@ -10,7 +10,6 @@ import org.usvm.test.util.checkers.ge
 internal class NativeExamplesTest : JavaMethodTestRunner() {
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@6ba88a47")
     fun testFindAndPrintSum() {
         checkDiscoveredProperties(
             NativeExamples::findAndPrintSum,
@@ -19,7 +18,6 @@ internal class NativeExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@53b2e5")
     fun testFindSumWithMathRandom() {
         checkDiscoveredProperties(
             NativeExamples::findSumWithMathRandom,

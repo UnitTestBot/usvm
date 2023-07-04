@@ -31,7 +31,6 @@ internal class DoubleExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 2 executions, but 0 found. Timeout")
     fun testCompareWithDiv() {
         checkDiscoveredProperties(
             DoubleExamples::compareWithDiv,
@@ -64,7 +63,6 @@ internal class DoubleExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1]. Timeout")
     fun testSimpleMul() {
         checkDiscoveredProperties(
             DoubleExamples::simpleMul,
@@ -76,7 +74,6 @@ internal class DoubleExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 6 executions, but 3 found. Timeout")
     fun testMul() {
         checkDiscoveredProperties(
             DoubleExamples::mul,

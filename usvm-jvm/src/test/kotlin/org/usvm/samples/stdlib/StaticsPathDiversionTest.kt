@@ -9,7 +9,6 @@ import java.io.File
 
 internal class StaticsPathDiversionTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("See https://github.com/UnitTestBot/UTBotJava/issues/716")
     fun testJavaIOFile() {
         // TODO Here we have a path diversion example - the static field `java.io.File#separator` is considered as not meaningful,
         //  so it is not passed to the concrete execution because of absence in the `stateBefore` models.

@@ -26,7 +26,6 @@ internal class SimpleClassExampleTest : JavaMethodTestRunner() {
      * @see multipleFieldAccessesTest
      */
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun singleFieldAccessTest() {
         checkDiscoveredProperties(
             SimpleClassExample::singleFieldAccess,
@@ -43,7 +42,6 @@ internal class SimpleClassExampleTest : JavaMethodTestRunner() {
      * that affects their number
      */
     @Test
-    @Disabled("Can not set static org.usvm.samples.objects.SimpleDataClass")
     fun multipleFieldAccessesTest() {
         checkDiscoveredProperties(
             SimpleClassExample::multipleFieldAccesses,

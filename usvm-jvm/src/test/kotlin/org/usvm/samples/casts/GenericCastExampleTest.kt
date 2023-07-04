@@ -8,7 +8,6 @@ import org.usvm.test.util.checkers.eq
 
 internal class GenericCastExampleTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("An operation is not implemented.")
     fun testCompareTwoNumbers() {
         checkDiscoveredProperties(
             GenericCastExample::compareTwoNumbers,
@@ -22,7 +21,6 @@ internal class GenericCastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented.")
     fun testGetGenericFieldValue() {
         checkDiscoveredProperties(
             GenericCastExample::getGenericFieldValue,
@@ -34,7 +32,6 @@ internal class GenericCastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented.")
     fun testCompareGenericField() {
         checkDiscoveredProperties(
             GenericCastExample::compareGenericField,
@@ -47,7 +44,6 @@ internal class GenericCastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@5f0f70c7")
     fun testCreateNewGenericObject() {
         checkDiscoveredProperties(
             GenericCastExample::createNewGenericObject,
@@ -57,7 +53,6 @@ internal class GenericCastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented.")
     fun testSumFromArrayOfGenerics() {
         checkDiscoveredProperties(
             GenericCastExample::sumFromArrayOfGenerics,

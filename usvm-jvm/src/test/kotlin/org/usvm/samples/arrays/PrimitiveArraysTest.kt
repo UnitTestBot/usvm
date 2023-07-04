@@ -38,7 +38,6 @@ internal class PrimitiveArraysTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sort mismatch")
     fun testByteArray() {
         checkDiscoveredPropertiesWithExceptions(
             PrimitiveArrays::byteArray,
@@ -51,7 +50,6 @@ internal class PrimitiveArraysTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sort mismatch")
     fun testShortArray() {
         checkDiscoveredPropertiesWithExceptions(
             PrimitiveArrays::shortArray,
@@ -64,7 +62,6 @@ internal class PrimitiveArraysTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sort mismatch")
     fun testCharArray() {
         checkDiscoveredPropertiesWithExceptions(
             PrimitiveArrays::charArray,
@@ -139,7 +136,6 @@ internal class PrimitiveArraysTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sort mismatch")
     fun testByteSizeAndIndex() {
         checkDiscoveredProperties(
             PrimitiveArrays::byteSizeAndIndex,
@@ -151,7 +147,6 @@ internal class PrimitiveArraysTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sort mismatch")
     fun testShortSizeAndIndex() {
         checkDiscoveredProperties(
             PrimitiveArrays::shortSizeAndIndex,
@@ -163,7 +158,6 @@ internal class PrimitiveArraysTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("java.lang.OutOfMemoryError: Java heap space")
     fun testCharSizeAndIndex() {
         checkDiscoveredProperties(
             PrimitiveArrays::charSizeAndIndex,

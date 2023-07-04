@@ -8,7 +8,6 @@ import org.usvm.util.isException
 
 internal class CharExamplesTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Sort mismatch")
     fun testCharDiv() {
         checkDiscoveredPropertiesWithExceptions(
             CharExamples::charDiv,
@@ -19,7 +18,6 @@ internal class CharExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 2 executions, but 1 found")
     fun testCharNeg() {
         checkDiscoveredProperties(
             CharExamples::charNeg,
@@ -30,7 +28,6 @@ internal class CharExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
     fun testByteToChar() {
         checkDiscoveredProperties(
             CharExamples::byteToChar,
@@ -44,7 +41,6 @@ internal class CharExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 3 executions, but 4 found. Same exception discovered multiple times")
     fun testUpdateObject() {
         checkDiscoveredPropertiesWithExceptions(
             CharExamples::updateObject,

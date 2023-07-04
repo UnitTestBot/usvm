@@ -20,7 +20,6 @@ internal class ObjectWithPrimitivesClassTest : JavaMethodTestRunner() {
 //    }
 
     @Test
-    @Disabled("Required value was null. at org.usvm.samples.JavaMethodTestRunner\$runner\$1.invoke(JavaMethodTestRunner.kt:516)")
     fun testConstructorWithParams() {
         val method: KFunction3<Int, Int, Double, ObjectWithPrimitivesClass> = ::ObjectWithPrimitivesClass
         checkDiscoveredProperties(

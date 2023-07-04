@@ -9,7 +9,6 @@ import org.usvm.test.util.checkers.eq
 @Suppress("SimplifyNegatedBinaryExpression")
 internal class CastExamplesTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Sort mismatch")
     fun testLongToByte() {
         checkDiscoveredProperties(
             CastExamples::longToByte,
@@ -65,7 +64,6 @@ internal class CastExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sort mismatch")
     fun testShortToChar() {
         checkDiscoveredProperties(
             CastExamples::shortToChar,

@@ -11,7 +11,6 @@ import kotlin.math.min
 
 internal class MinStackExampleTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Expected exactly 3 executions, but 244 found. Same exception discovered multiple times")
     fun testCreate() {
         checkDiscoveredProperties(
             MinStackExample::create,
@@ -34,7 +33,6 @@ internal class MinStackExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 4 executions, but 5 found. Same exception discovered multiple times")
     fun testAddSingleValue() {
         checkDiscoveredProperties(
             MinStackExample::addSingleValue,
@@ -54,7 +52,6 @@ internal class MinStackExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 3 executions, but 593 found. Same exception discovered multiple times")
     fun testGetMinValue() {
         checkDiscoveredProperties(
             MinStackExample::getMinValue,
@@ -68,7 +65,6 @@ internal class MinStackExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: String constants")
     fun testRemoveValue() {
         checkDiscoveredProperties(
             MinStackExample::removeValue,
@@ -85,7 +81,6 @@ internal class MinStackExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected number of executions in bounds 3..4, but 6 found. Same exception discovered multiple times")
     fun testConstruct() {
         checkDiscoveredProperties(
             MinStackExample::construct,

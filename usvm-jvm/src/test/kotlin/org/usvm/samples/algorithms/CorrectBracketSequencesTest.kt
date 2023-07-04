@@ -40,7 +40,6 @@ internal class CorrectBracketSequencesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3e4ead73")
     fun testIsCbs() {
         val method = CorrectBracketSequences::isCbs
         checkDiscoveredPropertiesWithExceptions(

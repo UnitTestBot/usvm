@@ -9,7 +9,6 @@ import org.usvm.util.isException
 
 internal class CastExampleTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("An operation is not implemented.")
     fun testSimpleCast() {
         checkDiscoveredProperties(
             CastExample::simpleCast,
@@ -21,7 +20,6 @@ internal class CastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented.")
     fun testClassCastException() {
         checkDiscoveredPropertiesWithExceptions(
             CastExample::castClassException,
@@ -41,7 +39,6 @@ internal class CastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented.")
     fun testCastNullToDifferentTypes() {
         checkDiscoveredProperties(
             CastExample::castNullToDifferentTypes,
@@ -50,7 +47,6 @@ internal class CastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented.")
     fun testFromObjectToPrimitive() {
         checkDiscoveredProperties(
             CastExample::fromObjectToPrimitive,
@@ -62,7 +58,6 @@ internal class CastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented.")
     fun testCastFromObjectToInterface() {
         checkDiscoveredProperties(
             CastExample::castFromObjectToInterface,
@@ -73,7 +68,6 @@ internal class CastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented.")
     fun testComplicatedCast() {
         checkDiscoveredProperties(
             CastExample::complicatedCast,

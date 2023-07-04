@@ -8,7 +8,6 @@ import org.usvm.test.util.checkers.eq
 
 class VoidStaticMethodsTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@41ccb3b9")
     fun testInvokeChangeStaticFieldMethod() {
         checkDiscoveredProperties(
             VoidStaticMethodsTestingClass::invokeChangeStaticFieldMethod,
@@ -17,7 +16,6 @@ class VoidStaticMethodsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@70c68e4e")
     fun testInvokeThrowExceptionMethod() {
         checkDiscoveredProperties(
             VoidStaticMethodsTestingClass::invokeThrowExceptionMethod,
@@ -26,7 +24,6 @@ class VoidStaticMethodsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 2 executions, but 1 found")
     fun testInvokeAnotherThrowExceptionMethod() {
         checkDiscoveredProperties(
             VoidStaticMethodsTestingClass::invokeAnotherThrowExceptionMethod,

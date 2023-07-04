@@ -31,7 +31,6 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Impossible NPE found")
     fun testDefaultValuesWithoutLastDimension() {
         checkDiscoveredProperties(
             ArrayOfArrays::defaultValuesWithoutLastDimension,

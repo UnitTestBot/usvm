@@ -19,7 +19,6 @@ internal class OverloadTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0, 1, 2]")
     fun testSignTwoParams() {
         checkDiscoveredProperties(
             Overload::sign,

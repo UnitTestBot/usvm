@@ -12,7 +12,6 @@ import kotlin.math.hypot
 @Suppress("SimplifyNegatedBinaryExpression")
 internal class DoubleFunctionsTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Sequence is empty.")
     fun testHypo() {
         checkDiscoveredProperties(
             DoubleFunctions::hypo,
@@ -32,7 +31,6 @@ internal class DoubleFunctionsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 5 executions, but 8 found. Same exception discovered multiple times")
     fun testCircleSquare() {
         checkDiscoveredPropertiesWithExceptions(
             DoubleFunctions::circleSquare,
@@ -46,7 +44,6 @@ internal class DoubleFunctionsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sort mismatch")
     fun testNumberOfRootsInSquareFunction() {
         checkDiscoveredProperties(
             DoubleFunctions::numberOfRootsInSquareFunction,

@@ -9,7 +9,6 @@ import org.usvm.test.util.checkers.eq
 @Suppress("SimplifyNegatedBinaryExpression")
 internal class FloatWrapperTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Can not set static final float field java.lang.Float.POSITIVE_INFINITY to java.lang.Float")
     fun primitiveToWrapperTest() {
         checkDiscoveredProperties(
             FloatWrapper::primitiveToWrapper,
@@ -20,7 +19,6 @@ internal class FloatWrapperTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Can not set static final float field java.lang.Float.POSITIVE_INFINITY to java.lang.Float")
     fun wrapperToPrimitiveTest() {
         checkDiscoveredProperties(
             FloatWrapper::wrapperToPrimitive,

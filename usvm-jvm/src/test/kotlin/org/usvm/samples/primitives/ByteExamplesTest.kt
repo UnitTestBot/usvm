@@ -9,7 +9,6 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 internal class ByteExamplesTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Bytes are unsupported")
     fun testNegByte() {
         checkDiscoveredProperties(
             ByteExamples::negByte,
@@ -30,7 +29,6 @@ internal class ByteExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Bytes are unsupported")
     fun testSumTwoBytes() {
         checkDiscoveredProperties(
             ByteExamples::sumTwoBytes,
