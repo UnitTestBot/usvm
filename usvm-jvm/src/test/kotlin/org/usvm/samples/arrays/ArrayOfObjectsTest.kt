@@ -50,15 +50,18 @@ internal class ArrayOfObjectsTest : JavaMethodTestRunner() {
         )
     }
 
-    // TODO unsupported matchers
-//    @Test
-//    fun testCopyArrayMutation() {
-//        checkParamsMutations(
-//            ArrayOfObjects::copyArray,
-//            ignoreNumberOfAnalysisResults,
-//            { _, arrayAfter -> arrayAfter.all { it.x == -1 && it.y == 1 } }
-//        )
-//    }
+    @Test
+    @Disabled("Some types don't match at positions (from 0): [1]. ")
+    fun testCopyArrayMutation() {
+        checkThisAndParamsMutations(
+            ArrayOfObjects::copyArray,
+            ignoreNumberOfAnalysisResults,
+            { _, _, _, arrayAfter, r ->
+                arrayAfter.all { it.x == -1 && it.y == 1 } && r.contentEquals(arrayAfter)
+            },
+            checkMode = CheckMode.MATCH_PROPERTIES
+        )
+    }
 
     @Test
     @Disabled("An operation is not implemented: Not yet implemented")

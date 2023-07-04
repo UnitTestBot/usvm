@@ -173,15 +173,18 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
         )
     }
 
-    // TODO unsupported matchers
-//    @Test
-//    fun testNewArrayInTheMiddleMutation() {
-//        checkParamsMutations(
-//            IntArrayBasics::newArrayInTheMiddle,
-//            ignoreNumberOfAnalysisResults,
-//            { _, arrayAfter -> arrayAfter[0] == 1 && arrayAfter[1] == 2 && arrayAfter[2] == 3 }
-//        )
-//    }
+    @Test
+    @Disabled("Some types don't match at positions (from 0): [1].")
+    fun testNewArrayInTheMiddleMutation() {
+        checkThisAndParamsMutations(
+            IntArrayBasics::newArrayInTheMiddle,
+            ignoreNumberOfAnalysisResults,
+            { _, _, _, arrayAfter, r ->
+                arrayAfter[0] == 1 && arrayAfter[1] == 2 && arrayAfter[2] == 3 && r!!.zip(arrayAfter).all { it.first == it.second }
+            },
+            checkMode = CheckMode.MATCH_PROPERTIES
+        )
+    }
 
     @Test
     @Disabled("Some types don't match at positions (from 0): [1]. ")

@@ -172,15 +172,16 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
         )
     }
 
-    // TODO unsupported matchers
-//    @Test
-//    fun testPublicGetCodeMethod() {
-//        checkWithThis(
-//            StatusEnum::publicGetCode,
-//            between(1..2),
-//            { enumInstance, r -> enumInstance == READY && r == 10 || enumInstance == ERROR && r == -10 },
-//        )
-//    }
+    @Test
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@22d322f5")
+    fun testPublicGetCodeMethod() {
+        checkThisAndParamsMutations(
+            StatusEnum::publicGetCode,
+            between(1..2),
+            { enumInstance, _, r -> enumInstance == READY && r == 10 || enumInstance == ERROR && r == -10 },
+            checkMode = CheckMode.MATCH_PROPERTIES
+        )
+    }
 
     @Test
     @Disabled("An operation is not implemented: Not yet implemented")
