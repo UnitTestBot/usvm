@@ -84,7 +84,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
         method: KFunction1<T, R>,
         analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
         vararg paramsMutationsMatchers: (T, T, R?) -> Boolean,
-        invariants: Array<(T, R?) -> Boolean> = emptyArray(),
+        invariants: Array<(T, T, R?) -> Boolean> = emptyArray(),
         noinline coverageChecker: (JcClassCoverage) -> Boolean = { _ -> true }, // TODO remove it
         checkMode: CheckMode,
     ) {
@@ -157,7 +157,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
         method: KFunction2<T, A0, R>,
         analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
         vararg paramsMutationsMatchers: (T, A0, T, A0, R?) -> Boolean,
-        invariants: Array<(T, A0, R?) -> Boolean> = emptyArray(),
+        invariants: Array<(T, A0, T, A0, R?) -> Boolean> = emptyArray(),
         noinline coverageChecker: (JcClassCoverage) -> Boolean = { _ -> true }, // TODO remove it
         checkMode: CheckMode,
     ) {
@@ -230,7 +230,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
         method: KFunction3<T, A0, A1, R>,
         analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
         vararg paramsMutationsMatchers: (T, A0, A1, T, A0, A1, R?) -> Boolean,
-        invariants: Array<(T, A0, A1, R?) -> Boolean> = emptyArray(),
+        invariants: Array<(T, A0, A1, T, A0, A1, R?) -> Boolean> = emptyArray(),
         noinline coverageChecker: (JcClassCoverage) -> Boolean = { _ -> true }, // TODO remove it
         checkMode: CheckMode,
     ) {
@@ -303,7 +303,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
         method: KFunction4<T, A0, A1, A2, R>,
         analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
         vararg paramsMutationsMatchers: (T, A0, A1, A2, T, A0, A1, A2, R?) -> Boolean,
-        invariants: Array<(T, A0, A1, A2, R?) -> Boolean> = emptyArray(),
+        invariants: Array<(T, A0, A1, A2, T, A0, A1, A2, R?) -> Boolean> = emptyArray(),
         noinline coverageChecker: (JcClassCoverage) -> Boolean = { _ -> true }, // TODO remove it
         checkMode: CheckMode,
     ) {
@@ -394,7 +394,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
         method: KFunction1<T, R>,
         analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
         vararg paramsMutationsMatchers: (T, T, Result<R>) -> Boolean,
-        invariants: Array<(T, Result<R>) -> Boolean> = emptyArray(),
+        invariants: Array<(T, T, Result<R>) -> Boolean> = emptyArray(),
         noinline coverageChecker: (JcClassCoverage) -> Boolean = { _ -> true }, // TODO remove it
         checkMode: CheckMode,
     ) {
@@ -472,7 +472,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
         method: KFunction2<T, A0, R>,
         analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
         vararg paramsMutationsMatchers: (T, A0, T, A0, Result<R>) -> Boolean,
-        invariants: Array<(T, A0, Result<R>) -> Boolean> = emptyArray(),
+        invariants: Array<(T, A0, T, A0, Result<R>) -> Boolean> = emptyArray(),
         noinline coverageChecker: (JcClassCoverage) -> Boolean = { _ -> true }, // TODO remove it
         checkMode: CheckMode,
     ) {
@@ -551,7 +551,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
         method: KFunction3<T, A0, A1, R>,
         analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
         vararg paramsMutationsMatchers: (T, A0, A1, T, A0, A1, Result<R>) -> Boolean,
-        invariants: Array<(T, A0, A1, Result<R>) -> Boolean> = emptyArray(),
+        invariants: Array<(T, A0, A1, T, A0, A1, Result<R>) -> Boolean> = emptyArray(),
         noinline coverageChecker: (JcClassCoverage) -> Boolean = { _ -> true }, // TODO remove it
         checkMode: CheckMode,
     ) {
@@ -630,7 +630,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
         method: KFunction4<T, A0, A1, A2, R>,
         analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
         vararg paramsMutationsMatchers: (T, A0, A1, A2, T, A0, A1, A2, Result<R>) -> Boolean,
-        invariants: Array<(T, A0, A1, A2, Result<R>) -> Boolean> = emptyArray(),
+        invariants: Array<(T, A0, A1, A2, T, A0, A1, A2, Result<R>) -> Boolean> = emptyArray(),
         noinline coverageChecker: (JcClassCoverage) -> Boolean = { _ -> true }, // TODO remove it
         checkMode: CheckMode,
     ) {
