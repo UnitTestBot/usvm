@@ -2,10 +2,28 @@ package org.usvm
 
 import io.ksmt.cache.hash
 import io.ksmt.cache.structurallyEqual
-import io.ksmt.expr.*
+import io.ksmt.decl.KConstDecl
+import io.ksmt.expr.KAndExpr
+import io.ksmt.expr.KApp
+import io.ksmt.expr.KBitVec32Value
+import io.ksmt.expr.KBitVec64Value
+import io.ksmt.expr.KEqExpr
+import io.ksmt.expr.KExpr
+import io.ksmt.expr.KFalse
+import io.ksmt.expr.KIntNumExpr
+import io.ksmt.expr.KInterpretedValue
+import io.ksmt.expr.KIteExpr
+import io.ksmt.expr.KNotExpr
+import io.ksmt.expr.KOrExpr
+import io.ksmt.expr.KTrue
 import io.ksmt.expr.printer.ExpressionPrinter
 import io.ksmt.expr.transformer.KTransformerBase
-import io.ksmt.sort.*
+import io.ksmt.sort.KBoolSort
+import io.ksmt.sort.KBv32Sort
+import io.ksmt.sort.KBvSort
+import io.ksmt.sort.KFpSort
+import io.ksmt.sort.KSort
+import io.ksmt.sort.KUninterpretedSort
 import org.usvm.memory.UAllocatedArrayId
 import org.usvm.memory.UAllocatedArrayRegion
 import org.usvm.memory.UInputArrayId
@@ -37,6 +55,7 @@ typealias UOrExpr = KOrExpr
 typealias UIteExpr<Sort> = KIteExpr<Sort>
 typealias UEqExpr<Sort> = KEqExpr<Sort>
 typealias UNotExpr = KNotExpr
+typealias UIntepretedValue<Sort> = KInterpretedValue<Sort>
 typealias UConcreteInt = KIntNumExpr
 typealias UConcreteInt32 = KBitVec32Value
 typealias UConcreteInt64 = KBitVec64Value
@@ -69,7 +88,20 @@ typealias UConcreteHeapAddress = Int
 fun isSymbolicHeapRef(expr: UExpr<*>) =
     expr.sort == expr.uctx.addressSort && expr !is UConcreteHeapRef
 
-class UConcreteHeapRef internal constructor(ctx: UContext, val address: UConcreteHeapAddress) : UHeapRef(ctx) {
+class UConcreteHeapRefDecl internal constructor(
+    ctx: UContext,
+    val address: UConcreteHeapAddress,
+) : KConstDecl<UAddressSort>(ctx, "0x$address", ctx.addressSort) {
+    override fun apply(args: List<KExpr<*>>): KApp<UAddressSort, *> = uctx.mkConcreteHeapRef(address)
+}
+
+class UConcreteHeapRef internal constructor(
+    ctx: UContext,
+    val address: UConcreteHeapAddress,
+) : UIntepretedValue<UAddressSort>(ctx) {
+
+    override val decl: UConcreteHeapRefDecl get() = uctx.mkConcreteHeapRefDecl(address)
+
     override val sort: UAddressSort = ctx.addressSort
 
     override fun accept(transformer: KTransformerBase): KExpr<UAddressSort> {
