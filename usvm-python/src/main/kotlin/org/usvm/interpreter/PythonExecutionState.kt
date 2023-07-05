@@ -13,12 +13,12 @@ class PythonExecutionState(
     private val pythonCallable: PythonUnpinnedCallable,
     val inputSymbols: List<SymbolForCPython>,
     pathConstraints: UPathConstraints<PythonType>,
-    memory: UMemoryBase<Attribute, PythonType, PythonCallable>,
-    models: List<UModelBase<Attribute, PythonType>>,
+    memory: UMemoryBase<PropertyOfPythonObject, PythonType, PythonCallable>,
+    uModel: UModelBase<PropertyOfPythonObject, PythonType>,
     callStack: UCallStack<PythonCallable, SymbolicHandlerEvent<Any>> = UCallStack(),
     path: PersistentList<SymbolicHandlerEvent<Any>> = persistentListOf()
-): UState<PythonType, Attribute, PythonCallable, SymbolicHandlerEvent<Any>>(ctx, callStack, pathConstraints, memory, models, path) {
-    override fun clone(newConstraints: UPathConstraints<PythonType>?): UState<PythonType, Attribute, PythonCallable, SymbolicHandlerEvent<Any>> {
+): UState<PythonType, PropertyOfPythonObject, PythonCallable, SymbolicHandlerEvent<Any>>(ctx, callStack, pathConstraints, memory, listOf(uModel), path) {
+    override fun clone(newConstraints: UPathConstraints<PythonType>?): UState<PythonType, PropertyOfPythonObject, PythonCallable, SymbolicHandlerEvent<Any>> {
         val newPathConstraints = newConstraints ?: pathConstraints.clone()
         val newMemory = memory.clone(newPathConstraints.typeConstraints)
         return PythonExecutionState(
@@ -27,11 +27,14 @@ class PythonExecutionState(
             inputSymbols,
             newPathConstraints,
             newMemory,
-            models,
+            pyModel.uModel,
             callStack,
             path
         )
     }
+
+    val pyModel: PyModel
+        get() = PyModel(models.first())
 
     var wasExecuted: Boolean = false
     val lastHandlerEvent: SymbolicHandlerEvent<Any>?

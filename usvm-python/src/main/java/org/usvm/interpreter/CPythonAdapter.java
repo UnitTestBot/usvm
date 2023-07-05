@@ -1,7 +1,8 @@
 package org.usvm.interpreter;
 
-import io.ksmt.expr.KExpr;
 import kotlin.Unit;
+import org.usvm.interpreter.symbolicobjects.SymbolicPythonObject;
+import org.usvm.interpreter.symbolicobjects.UninterpretedSymbolicPythonObject;
 import org.usvm.language.PythonInstruction;
 import org.usvm.language.PythonPinnedCallable;
 import org.usvm.language.SymbolForCPython;
@@ -10,6 +11,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Supplier;
 
+import static org.usvm.interpreter.operations.ConstantsKt.handlerLoadConstLongKt;
 import static org.usvm.interpreter.operations.ControlKt.*;
 import static org.usvm.interpreter.operations.LongKt.*;
 import static org.usvm.interpreter.operations.PathTracingKt.withTracing;
@@ -21,7 +23,7 @@ public class CPythonAdapter {
     public native void finalizePython();
     public native long getNewNamespace();  // returns reference to a new dict
     public native int concreteRun(long globals, String code);  // returns 0 on success
-    public native long eval(long globals, String expr);  // returns PyObject *
+    public native long eval(long globals, String obj);  // returns PyObject *
     public native long concreteRunOnFunctionRef(long globals, long functionRef, long[] concreteArgs);
     public native long concolicRun(long globals, long functionRef, long[] concreteArgs, SymbolForCPython[] symbolicArgs, ConcolicRunContext context, boolean print_error_message);
     public native void printPythonObject(long object);
@@ -36,84 +38,82 @@ public class CPythonAdapter {
         withTracing(context, new NextInstruction(new PythonInstruction(instruction)), () -> Unit.INSTANCE);
     }
 
-    @SuppressWarnings("rawtypes")
-    private static SymbolForCPython wrap(KExpr expr) {
-        if (expr == null)
+    private static SymbolForCPython wrap(UninterpretedSymbolicPythonObject obj) {
+        if (obj == null)
             return null;
-        return new SymbolForCPython(expr);
+        return new SymbolForCPython(obj);
     }
 
-    @SuppressWarnings("rawtypes")
-    private static <T extends KExpr> SymbolForCPython methodWrapper(
+    private static SymbolForCPython methodWrapper(
             ConcolicRunContext context,
             int methodId,
             List<SymbolForCPython> operands,
-            Supplier<T> valueSupplier
+            Supplier<UninterpretedSymbolicPythonObject> valueSupplier
     ) {
         return withTracing(
                 context,
                 new MethodQueryParameters(methodId, operands),
                 () -> {
-                    T result = valueSupplier.get();
+                    UninterpretedSymbolicPythonObject result = valueSupplier.get();
                     return wrap(result);
                 }
         );
     }
 
     public static SymbolForCPython handlerLoadConstLong(ConcolicRunContext context, long value) {
-        return withTracing(context, new LoadConstParameters(value), () -> wrap(context.ctx.mkIntNum(value)));
+        return withTracing(context, new LoadConstParameters(value), () -> wrap(handlerLoadConstLongKt(context, value)));
     }
 
     public static void handlerFork(ConcolicRunContext context, SymbolForCPython cond) {
-        handlerForkKt(context, cond.expr);
+        handlerForkKt(context, cond.obj);
     }
 
     public static SymbolForCPython handlerGTLong(ConcolicRunContext context, int methodId, SymbolForCPython left, SymbolForCPython right) {
-        return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerGTLongKt(context, left.expr, right.expr));
+        return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerGTLongKt(context, left.obj, right.obj));
     }
 
     public static SymbolForCPython handlerLTLong(ConcolicRunContext context, int methodId, SymbolForCPython left, SymbolForCPython right) {
-        return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerLTLongKt(context, left.expr, right.expr));
+        return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerLTLongKt(context, left.obj, right.obj));
     }
 
     public static SymbolForCPython handlerEQLong(ConcolicRunContext context, int methodId, SymbolForCPython left, SymbolForCPython right) {
-        return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerEQLongKt(context, left.expr, right.expr));
+        return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerEQLongKt(context, left.obj, right.obj));
     }
 
     public static SymbolForCPython handlerNELong(ConcolicRunContext context, int methodId, SymbolForCPython left, SymbolForCPython right) {
-        return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerNELongKt(context, left.expr, right.expr));
+        return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerNELongKt(context, left.obj, right.obj));
     }
 
     public static SymbolForCPython handlerGELong(ConcolicRunContext context, int methodId, SymbolForCPython left, SymbolForCPython right) {
-        return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerGELongKt(context, left.expr, right.expr));
+        return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerGELongKt(context, left.obj, right.obj));
     }
 
     public static SymbolForCPython handlerLELong(ConcolicRunContext context, int methodId, SymbolForCPython left, SymbolForCPython right) {
-        return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerLELongKt(context, left.expr, right.expr));
+        return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerLELongKt(context, left.obj, right.obj));
     }
 
     public static SymbolForCPython handlerADDLong(ConcolicRunContext context, int methodId, SymbolForCPython left, SymbolForCPython right) {
-        return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerADDLongKt(context, left.expr, right.expr));
+        return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerADDLongKt(context, left.obj, right.obj));
     }
 
     public static SymbolForCPython handlerSUBLong(ConcolicRunContext context, int methodId, SymbolForCPython left, SymbolForCPython right) {
-        return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerSUBLongKt(context, left.expr, right.expr));
+        return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerSUBLongKt(context, left.obj, right.obj));
     }
 
     public static SymbolForCPython handlerMULLong(ConcolicRunContext context, int methodId, SymbolForCPython left, SymbolForCPython right) {
-        return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerMULLongKt(context, left.expr, right.expr));
+        return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerMULLongKt(context, left.obj, right.obj));
     }
 
     public static SymbolForCPython handlerDIVLong(ConcolicRunContext context, int methodId, SymbolForCPython left, SymbolForCPython right) {
-        return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerDIVLongKt(context, left.expr, right.expr));
+        return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerDIVLongKt(context, left.obj, right.obj));
     }
 
     public static SymbolForCPython handlerREMLong(ConcolicRunContext context, int methodId, SymbolForCPython left, SymbolForCPython right) {
-        return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerREMLongKt(context, left.expr, right.expr));
+        return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerREMLongKt(context, left.obj, right.obj));
     }
 
     public static SymbolForCPython handlerPOWLong(ConcolicRunContext context, int methodId, SymbolForCPython left, SymbolForCPython right) {
-        return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerPOWLongKt(context, left.expr, right.expr));
+        return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerPOWLongKt(context, left.obj, right.obj));
     }
 
     public static void handlerFunctionCall(ConcolicRunContext context, long function) {

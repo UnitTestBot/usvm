@@ -1,5 +1,5 @@
 import org.usvm.interpreter.*
-import org.usvm.language.PythonInt
+import org.usvm.language.pythonInt
 import org.usvm.language.PythonProgram
 import org.usvm.language.PythonUnpinnedCallable
 
@@ -10,7 +10,7 @@ fun main() {
             return x / 0
         """.trimIndent()
     )
-    val function = PythonUnpinnedCallable.constructCallableFromName(List(1) { PythonInt }, "f")
+    val function = PythonUnpinnedCallable.constructCallableFromName(List(1) { pythonInt }, "f")
     val machine = PythonMachine(program, printErrorMsg = true) { it }
     val start = System.currentTimeMillis()
     val iterations = machine.use { activeMachine ->
