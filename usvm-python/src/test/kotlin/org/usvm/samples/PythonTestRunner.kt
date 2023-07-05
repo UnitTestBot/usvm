@@ -50,7 +50,7 @@ open class PythonTestRunner(sourcePath: String) : TestRunner<PythonTest, PythonU
           invariants: List<FUNCTION_TYPE>,
           propertiesToDiscover: List<FUNCTION_TYPE> ->
             val onAnalysisResult = { pythonTest: PythonTest ->
-                val result = pythonTest.inputValues.map { it.reprFromPythonObject } + pythonTest.result
+                val result = pythonTest.inputValues.map { it.reprFromPythonObject } + (pythonTest.result as? Success)?.output
                 if (concreteRun) {
                     require(compareWithConcreteRun(target, pythonTest) { compareConcolicAndConcrete(pythonTest, it) }) {
                         "Error in CPython patch: concrete and concolic results differ"
@@ -85,16 +85,19 @@ open class PythonTestRunner(sourcePath: String) : TestRunner<PythonTest, PythonU
             )
         }
 
+    protected val check1 = createCheck<(PythonObjectInfo, PythonObjectInfo?) -> Boolean>()
     protected val check1WithConcreteRun =
-        createCheckWithConcreteRun<(PythonObjectInfo, PythonObjectInfo) -> Boolean>()
+        createCheckWithConcreteRun<(PythonObjectInfo, PythonObjectInfo?) -> Boolean>()
 
-    protected val check3 = createCheck<(PythonObjectInfo, PythonObjectInfo, PythonObjectInfo, PythonObjectInfo) -> Boolean>()
+    protected val check3 = createCheck<(PythonObjectInfo, PythonObjectInfo, PythonObjectInfo, PythonObjectInfo?) -> Boolean>()
     protected val check3WithConcreteRun =
-        createCheckWithConcreteRun<(PythonObjectInfo, PythonObjectInfo, PythonObjectInfo, PythonObjectInfo) -> Boolean>()
+        createCheckWithConcreteRun<(PythonObjectInfo, PythonObjectInfo, PythonObjectInfo, PythonObjectInfo?) -> Boolean>()
 
     protected val compareConcolicAndConcreteReprs:
                 (PythonTest, PythonObject) -> Boolean = { testFromConcolic, concreteResult ->
-        testFromConcolic.result?.repr == ConcretePythonInterpreter.getPythonObjectRepr(concreteResult)
+        (testFromConcolic.result as? Success)?.let {
+            it.output.repr == ConcretePythonInterpreter.getPythonObjectRepr(concreteResult)
+        } ?: true
     }
 }
 

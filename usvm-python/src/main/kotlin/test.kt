@@ -1,7 +1,4 @@
-import org.usvm.interpreter.ConcretePythonInterpreter
-import org.usvm.interpreter.PythonAnalysisResult
-import org.usvm.interpreter.PythonMachine
-import org.usvm.interpreter.PythonObject
+import org.usvm.interpreter.*
 import org.usvm.language.PythonInt
 import org.usvm.language.PythonProgram
 import org.usvm.language.PythonUnpinnedCallable
@@ -35,12 +32,11 @@ fun main() {
     val iterations = machine.use { activeMachine ->
         val results: MutableList<PythonAnalysisResult<PythonObject>> = mutableListOf()
         val returnValue = activeMachine.analyze(function, results)
-        results.forEach { (inputs, result) ->
+        results.forEach { (_, inputs, result) ->
             println("INPUT:")
             inputs.map { it.reprFromPythonObject }.forEach { ConcretePythonInterpreter.printPythonObject(it) }
             println("RESULT:")
-            println(ConcretePythonInterpreter.getPythonObjectRepr(result!!))
-            println(ConcretePythonInterpreter.getPythonObjectTypeName(result))
+            println((result as? Success)?.output?.let { ConcretePythonInterpreter.getPythonObjectRepr(it) } ?: "Bad execution")
         }
         returnValue
     }
