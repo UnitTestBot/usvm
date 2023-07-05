@@ -86,3 +86,5 @@ object ConcretePythonInterpreter {
 object CPythonExecutionException: Exception()
 data class PythonObject(val address: Long)
 data class PythonNamespace(val address: Long)
+
+val emptyNamespace = ConcretePythonInterpreter.getNewNamespace()
