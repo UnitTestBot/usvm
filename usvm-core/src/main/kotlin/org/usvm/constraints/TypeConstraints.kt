@@ -157,8 +157,9 @@ class UTypeConstraints<Type>(
             else -> {
                 val constraints = this[ref]
                 val newConstraints = constraints.excludeSupertype(type)
+                equalityConstraints.makeNonEqual(ref, ref.uctx.nullRef)
                 if (newConstraints.isContradicting) {
-                    equalityConstraints.addReferenceEquality(ref, ref.uctx.nullRef)
+                    contradiction()
                 } else {
                     // Inferring new symbolic disequalities here
                     for ((key, value) in symbolicRefToTypeRegion.entries) {
@@ -166,7 +167,7 @@ class UTypeConstraints<Type>(
                         if (key != ref && value.intersect(newConstraints).isEmpty) {
                             // If we have two inputs of incomparable reference types, then they are either non equal,
                             // or both nulls
-                            equalityConstraints.makeNonEqualOrBothNull(ref, key)
+                            equalityConstraints.makeNonEqual(ref, key)
                         }
                     }
                     this[ref] = newConstraints

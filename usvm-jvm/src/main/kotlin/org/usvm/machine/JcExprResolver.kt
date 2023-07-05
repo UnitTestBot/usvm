@@ -215,7 +215,14 @@ class JcExprResolver(
         resolveBinaryOperator(JcBinaryOperator.Cmpl, expr)
 
     override fun visitJcNegExpr(expr: JcNegExpr): UExpr<out USort>? =
-        resolveAfterResolved(expr.operand) { operand -> JcUnaryOperator.Neg(operand) }
+        resolveAfterResolved(expr.operand) { operand ->
+            val wideOperand = if (operand.sort != operand.ctx.boolSort) {
+                operand wideWith expr.operand.type
+            } else {
+                operand
+            }
+            JcUnaryOperator.Neg(wideOperand)
+        }
 
     // endregion
 
@@ -575,7 +582,7 @@ class JcExprResolver(
     }
 
     private fun resolveReferenceCast(operand: JcExpr, type: JcRefType) = resolveAfterResolved(operand) { expr ->
-        if (!type.isAssignable(operand.type)) {
+        if (!operand.type.isAssignable(type)) {
             with(ctx) {
                 scope.fork(
                     mkIsExpr(expr.asExpr(addressSort), type),

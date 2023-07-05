@@ -714,7 +714,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
 
     override val typeTransformer: (Any?) -> KClass<*>? = { value -> value?.let { it::class } }
     override val checkType: (KClass<*>?, KClass<*>?) -> Boolean =
-        { expected, actual -> actual == null || expected != null && actual.isSubclassOf(expected) }
+        { expected, actual -> actual == null || expected != null && expected.java.isAssignableFrom(actual.java) }
 
     override val runner: (KFunction<*>, UMachineOptions) -> List<JcTest> = { method, options ->
         val declaringClassName = requireNotNull(method.declaringClass?.name)

@@ -125,7 +125,7 @@ class UEqualityConstraints private constructor(
             mutableReferenceDisequalities.remove(from)
             fromDiseqs.forEach {
                 mutableReferenceDisequalities[it]?.remove(from)
-                addReferenceDisequality(to, it)
+                makeNonEqual(to, it)
             }
         }
 
@@ -210,7 +210,7 @@ class UEqualityConstraints private constructor(
     /**
      * Adds an assertion that [ref1] is never equal to [ref2].
      */
-    fun addReferenceDisequality(ref1: UHeapRef, ref2: UHeapRef) {
+    fun makeNonEqual(ref1: UHeapRef, ref2: UHeapRef) {
         if (isContradiction) {
             return
         }

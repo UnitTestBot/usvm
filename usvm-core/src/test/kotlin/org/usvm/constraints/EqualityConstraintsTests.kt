@@ -33,25 +33,25 @@ class EqualityConstraintsTests {
         val ref6: UHeapRef = ctx.mkRegisterReading(6, ctx.addressSort)
         val ref7: UHeapRef = ctx.mkRegisterReading(7, ctx.addressSort)
 
-        constraints.addReferenceDisequality(ref1, ctx.nullRef)
-        constraints.addReferenceDisequality(ref2, ctx.nullRef)
-        constraints.addReferenceDisequality(ref3, ctx.nullRef)
+        constraints.makeNonEqual(ref1, ctx.nullRef)
+        constraints.makeNonEqual(ref2, ctx.nullRef)
+        constraints.makeNonEqual(ref3, ctx.nullRef)
         // First, init 2 distinct non-null addresses
-        constraints.addReferenceDisequality(ref1, ref2)
+        constraints.makeNonEqual(ref1, ref2)
         // Add ref2 != ref3
-        constraints.addReferenceDisequality(ref2, ref3)
+        constraints.makeNonEqual(ref2, ref3)
         // ref1 still can be equal to ref3
         assertSame(3, constraints.distinctReferences.size)
         assertTrue(constraints.referenceDisequalities[ref2]!!.contains(ref3))
         assertTrue(constraints.referenceDisequalities[ref3]!!.contains(ref2))
 
-        constraints.addReferenceDisequality(ref1, ref3)
+        constraints.makeNonEqual(ref1, ref3)
         // Now ref1, ref2 and ref3 are guaranteed to be distinct
         assertSame(4, constraints.distinctReferences.size)
         assertTrue(constraints.referenceDisequalities.all { it.value.isEmpty() })
 
         // Adding some entry into referenceDisequalities
-        constraints.addReferenceDisequality(ref1, ref6)
+        constraints.makeNonEqual(ref1, ref6)
 
         constraints.addReferenceEquality(ref4, ref5)
         constraints.addReferenceEquality(ref5, ref1)
@@ -101,14 +101,14 @@ class EqualityConstraintsTests {
         assertFalse(constraints.areDistinct(ref1, ref3))
         assertFalse(constraints.nullableDisequalities[ref3]?.contains(ref1) ?: false)
 
-        constraints.addReferenceDisequality(ref4, ctx.nullRef)
+        constraints.makeNonEqual(ref4, ctx.nullRef)
         constraints.makeNonEqualOrBothNull(ref3, ref4)
         // Now, we've added 2 more constraints:
         // (3) ref4 != null
         // (4) ref3 != ref4 || (ref3 == ref4 == null)
         // These two should be automatically simplified to ref3 != ref4.
         assertSame(2, constraints.distinctReferences.size)
-        constraints.addReferenceDisequality(ref3, ctx.nullRef)
+        constraints.makeNonEqual(ref3, ctx.nullRef)
         // Now we have obtained that null, ref3 and ref4 are 3 distinct references. This should be represented as clique
         // constraint...
         assertSame(3, constraints.distinctReferences.size)

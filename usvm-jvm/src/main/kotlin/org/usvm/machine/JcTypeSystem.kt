@@ -1,5 +1,6 @@
 package org.usvm.machine
 
+import org.jacodb.api.JcArrayType
 import org.jacodb.api.JcClassType
 import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcRefType
@@ -8,15 +9,12 @@ import org.jacodb.api.ext.isAssignable
 import org.jacodb.api.ext.objectType
 import org.jacodb.api.ext.toType
 import org.jacodb.impl.features.HierarchyExtensionImpl
-import org.jacodb.impl.features.asyncHierarchy
-import org.jacodb.impl.features.hierarchyExt
-import org.usvm.types.USingleTypeStream
 import org.usvm.types.USupportTypeStream
 import org.usvm.types.UTypeStream
 import org.usvm.types.UTypeSystem
 
 class JcTypeSystem(
-    private val cp: JcClasspath
+    private val cp: JcClasspath,
 ) : UTypeSystem<JcType> {
     private val hierarchy = HierarchyExtensionImpl(cp)
 
@@ -38,9 +36,13 @@ class JcTypeSystem(
 
     // TODO: deal with generics
     override fun findSubtypes(t: JcType): Sequence<JcType> =
-        hierarchy
-            .findSubClasses((t as JcRefType).jcClass, allHierarchy = false)
-            .map { it.toType()}
+        if (t is JcArrayType) {
+            findSubtypes(t.elementType).map { cp.arrayTypeOf(it) }
+        } else {
+            hierarchy
+                .findSubClasses((t as JcRefType).jcClass, allHierarchy = false)
+                .map { it.toType() }
+        }
 
     override fun topTypeStream(): UTypeStream<JcType> =
         USupportTypeStream.from(this, cp.objectType)

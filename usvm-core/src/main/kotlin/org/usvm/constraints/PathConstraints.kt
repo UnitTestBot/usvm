@@ -67,7 +67,7 @@ open class UPathConstraints<Type> private constructor(
                             isSymbolicHeapRef(notConstraint.lhs) &&
                             isSymbolicHeapRef(notConstraint.rhs) -> {
                             require(notConstraint.rhs.sort == addressSort)
-                            equalityConstraints.addReferenceDisequality(
+                            equalityConstraints.makeNonEqual(
                                 notConstraint.lhs as UHeapRef,
                                 notConstraint.rhs as UHeapRef
                             )
