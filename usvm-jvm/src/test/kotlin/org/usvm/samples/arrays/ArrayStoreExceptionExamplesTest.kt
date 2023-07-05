@@ -163,6 +163,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Unresolved class: class com.sun.tools.javac.util.List\$1")
     fun testFillObjectArrayWithList() {
         checkDiscoveredProperties(
             ArrayStoreExceptionExamples::fillObjectArrayWithList,

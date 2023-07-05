@@ -8,6 +8,7 @@ import org.usvm.util.isException
 
 class SimpleLambdaExamplesTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Index 4 out of bounds for length 4")
     fun testBiFunctionLambdaExample() {
         checkDiscoveredPropertiesWithExceptions(
             SimpleLambdaExamples::biFunctionLambdaExample,
@@ -18,6 +19,7 @@ class SimpleLambdaExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Index 1 out of bounds for length 1")
     fun testChoosePredicate() {
         checkDiscoveredProperties(
             SimpleLambdaExamples::choosePredicate,

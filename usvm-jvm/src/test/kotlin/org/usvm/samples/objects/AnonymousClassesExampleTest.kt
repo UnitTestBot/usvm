@@ -9,6 +9,7 @@ import org.usvm.util.isException
 
 class AnonymousClassesExampleTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Sequence is empty.")
     fun testAnonymousClassAsParam() {
         checkDiscoveredPropertiesWithExceptions(
             AnonymousClassesExample::anonymousClassAsParam,

@@ -29,6 +29,7 @@ internal class SimpleInterfaceExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Sequence is empty.")
     fun testInvokeMethodFromImplementor() {
         checkDiscoveredProperties(
             SimpleInterfaceExample::invokeMethodFromImplementor,

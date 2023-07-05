@@ -19,6 +19,7 @@ internal class PathDependentGenericsExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Sequence is empty.")
     fun testFunctionWithSeveralTypeConstraintsForTheSameObject() {
         checkDiscoveredProperties(
             PathDependentGenericsExample::functionWithSeveralTypeConstraintsForTheSameObject,

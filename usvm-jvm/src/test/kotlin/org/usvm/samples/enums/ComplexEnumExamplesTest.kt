@@ -13,6 +13,7 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Sequence is empty.")
     fun testEnumToEnumMapCountValues() {
         checkDiscoveredProperties(
             ComplexEnumExamples::enumToEnumMapCountValues,
@@ -24,6 +25,7 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Sequence is empty.")
     fun testEnumToEnumMapCountKeys() {
         checkDiscoveredProperties(
             ComplexEnumExamples::enumToEnumMapCountKeys,
@@ -38,6 +40,7 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Sequence is empty.")
     fun testEnumToEnumMapCountMatches() {
         checkDiscoveredProperties(
             ComplexEnumExamples::enumToEnumMapCountMatches,

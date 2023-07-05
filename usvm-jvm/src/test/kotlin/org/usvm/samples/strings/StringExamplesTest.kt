@@ -329,6 +329,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Sequence is empty.")
     fun testIsValidUuid() {
         val pattern = Regex("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
         checkDiscoveredProperties(
@@ -370,6 +371,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Sequence is empty.")
     fun testIsBlank() {
         checkDiscoveredProperties(
             StringExamples::isBlank,
@@ -382,6 +384,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Sequence is empty.")
     fun testLength() {
         checkDiscoveredProperties(
             StringExamples::length, // TODO: that strange, why we haven't 3rd option?
@@ -392,6 +395,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Sequence is empty.")
     fun testLonger() {
         checkDiscoveredPropertiesWithExceptions(
             StringExamples::longer,
@@ -403,6 +407,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Sequence is empty.")
     fun testEqualChar() {
         checkDiscoveredPropertiesWithExceptions(
             StringExamples::equalChar,

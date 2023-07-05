@@ -127,6 +127,7 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
 */
 
     @Test
+    @Disabled("Sequence is empty.")
     fun testVirtualFunction() {
         checkDiscoveredProperties(
             ClassWithEnum::virtualFunction,

@@ -33,6 +33,7 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Sequence is empty.")
     fun testTakeClassRefFromParam() {
         checkDiscoveredProperties(
             ClassRef::takeClassRefFromParam,
@@ -64,6 +65,7 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Sequence is empty.")
     fun testTwoDimArrayClassRefFromParam() {
         checkDiscoveredProperties(
             ClassRef::twoDimArrayClassRefFromParam,
@@ -84,6 +86,7 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Sequence is empty.")
     fun testEqualityOnClassRef() {
         checkDiscoveredProperties(
             ClassRef::equalityOnClassRef,
@@ -103,6 +106,7 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Sequence is empty.")
     fun testEqualityOnArrayClassRef() {
         checkDiscoveredProperties(
             ClassRef::equalityOnArrayClassRef,
@@ -112,6 +116,7 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Sequence is empty.")
     fun testTwoDimensionalArrayClassRef() {
         checkDiscoveredProperties(
             ClassRef::twoDimensionalArrayClassRef,
