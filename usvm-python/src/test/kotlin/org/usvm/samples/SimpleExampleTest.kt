@@ -1,18 +1,18 @@
 package org.usvm.samples
 
 import org.junit.jupiter.api.Test
-import org.usvm.language.PythonInt
+import org.usvm.language.pythonInt
 import org.usvm.language.PythonUnpinnedCallable
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 class SimpleExampleTest : PythonTestRunner("/samples/SimpleExample.py") {
-    private val functionF = PythonUnpinnedCallable.constructCallableFromName(List(3) { PythonInt }, "f")
-    private val functionMyAbs = PythonUnpinnedCallable.constructCallableFromName(List(1) { PythonInt }, "my_abs")
-    private val functionSamplePickle = PythonUnpinnedCallable.constructCallableFromName(List(1) { PythonInt }, "pickle_sample")
-    private val functionCall = PythonUnpinnedCallable.constructCallableFromName(List(1) { PythonInt }, "call")
-    private val functionZeroDivision = PythonUnpinnedCallable.constructCallableFromName(List(1) { PythonInt }, "zero_division")
-    private val functionZeroDivisionInBranch = PythonUnpinnedCallable.constructCallableFromName(List(1) { PythonInt }, "zero_division_in_branch")
+    private val functionF = PythonUnpinnedCallable.constructCallableFromName(List(3) { pythonInt }, "f")
+    private val functionMyAbs = PythonUnpinnedCallable.constructCallableFromName(List(1) { pythonInt }, "my_abs")
+    private val functionSamplePickle = PythonUnpinnedCallable.constructCallableFromName(List(1) { pythonInt }, "pickle_sample")
+    private val functionCall = PythonUnpinnedCallable.constructCallableFromName(List(1) { pythonInt }, "call")
+    private val functionZeroDivision = PythonUnpinnedCallable.constructCallableFromName(List(1) { pythonInt }, "zero_division")
+    private val functionZeroDivisionInBranch = PythonUnpinnedCallable.constructCallableFromName(List(1) { pythonInt }, "zero_division_in_branch")
 
     @Test
     fun testF() {

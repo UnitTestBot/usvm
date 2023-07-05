@@ -1,11 +1,10 @@
 package org.usvm.language;
 
-import io.ksmt.expr.KExpr;
+import org.usvm.interpreter.symbolicobjects.UninterpretedSymbolicPythonObject;
 
-@SuppressWarnings("rawtypes")
 public class SymbolForCPython {
-    public KExpr expr;
-    public SymbolForCPython(KExpr expr) {
-        this.expr = expr;
+    public UninterpretedSymbolicPythonObject obj;
+    public SymbolForCPython(UninterpretedSymbolicPythonObject obj) {
+        this.obj = obj;
     }
 }

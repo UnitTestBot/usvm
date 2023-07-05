@@ -2,18 +2,21 @@ package org.usvm.interpreter
 
 import org.usvm.*
 import org.usvm.constraints.UPathConstraints
+import org.usvm.interpreter.symbolicobjects.InterpretedSymbolicPythonObject
+import org.usvm.interpreter.symbolicobjects.constructInputObject
 import org.usvm.language.*
 import org.usvm.memory.UMemoryBase
 import org.usvm.ps.DfsPathSelector
+import org.usvm.solver.USatResult
 import org.usvm.statistics.UMachineObserver
 
 class PythonMachine<PYTHON_OBJECT_REPRESENTATION>(
-    private val program: PythonProgram,
+    program: PythonProgram,
     private val printErrorMsg: Boolean = false,
     private val pythonObjectSerialization: (PythonObject) -> PYTHON_OBJECT_REPRESENTATION
 ): UMachine<PythonExecutionState>() {
     private val ctx = UContext(PythonComponents)
-    private val solver = ctx.solver<Attribute, PythonType, PythonCallable>()
+    private val solver = ctx.solver<PropertyOfPythonObject, PythonType, PythonCallable>()
     private val iterationCounter = IterationCounter()
     private val namespace = ConcretePythonInterpreter.getNewNamespace()
 
@@ -31,20 +34,25 @@ class PythonMachine<PYTHON_OBJECT_REPRESENTATION>(
 
     private fun getInitialState(target: PythonUnpinnedCallable): PythonExecutionState {
         val pathConstraints = UPathConstraints<PythonType>(ctx)
-        val memory = UMemoryBase<Attribute, PythonType, PythonCallable>(
+        val memory = UMemoryBase<PropertyOfPythonObject, PythonType, PythonCallable>(
             ctx,
             pathConstraints.typeConstraints
         ).apply {
             stack.push(target.numberOfArguments)
         }
-        val symbols = List(target.numberOfArguments) { SymbolForCPython(memory.read(URegisterLValue(ctx.intSort, it))) }
+        val symbols = target.signature.mapIndexed { index, type ->
+            SymbolForCPython(constructInputObject(index, (type as? ConcretePythonType)!!, ctx, memory))
+        }
+        val solverRes = solver.check(pathConstraints, useSoftConstraints = false)
+        if (solverRes !is USatResult)
+            error("Failed to construct initial model")
         return PythonExecutionState(
             ctx,
             target,
             symbols,
             pathConstraints,
             memory,
-            listOf(solver.emptyModel())
+            solverRes.model
         )
     }
 
@@ -88,7 +96,7 @@ class PythonMachine<PYTHON_OBJECT_REPRESENTATION>(
 data class IterationCounter(var iterations: Int = 0)
 
 data class InputObject<PYTHON_OBJECT_REPRESENTATION>(
-    val asUExpr: UExpr<*>,
+    val asUExpr: InterpretedSymbolicPythonObject,
     val type: PythonType,
     val reprFromPythonObject: PYTHON_OBJECT_REPRESENTATION
 )

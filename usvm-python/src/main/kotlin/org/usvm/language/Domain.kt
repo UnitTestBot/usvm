@@ -6,9 +6,6 @@ import org.usvm.interpreter.PythonObject
 
 data class PythonProgram(val asString: String)
 
-class Slot
-class Attribute
-
 sealed class PythonCallable
 
 data class PythonPinnedCallable(val asPythonObject: PythonObject): PythonCallable()

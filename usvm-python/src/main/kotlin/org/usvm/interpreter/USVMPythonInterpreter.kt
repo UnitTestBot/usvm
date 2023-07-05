@@ -1,6 +1,7 @@
 package org.usvm.interpreter
 
 import org.usvm.*
+import org.usvm.interpreter.symbolicobjects.interpretSymbolicPythonObject
 import org.usvm.language.PythonType
 import org.usvm.language.PythonUnpinnedCallable
 
@@ -18,7 +19,7 @@ class USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION>(
     override fun step(state: PythonExecutionState): StepResult<PythonExecutionState> =
         with(ctx) {
             val symbols = state.inputSymbols
-            val seeds = symbols.map { state.models.first().eval(it.expr) }
+            val seeds = symbols.map { interpretSymbolicPythonObject(it.obj, state.pyModel, ctx) }
             val converter = ConverterToPythonObject(namespace)
             val concrete = (seeds zip callable.signature).map { (seed, type) ->
                 converter.convert(seed, type) ?: error("Couldn't construct PythonObject from model")
