@@ -43,7 +43,6 @@ class AnonymousClassesExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unresolved class: class org.usvm.samples.objects.AbstractAnonymousClass\$1")
     fun testAnonymousClassAsResult() {
         checkDiscoveredProperties(
             AnonymousClassesExample::anonymousClassAsResult,

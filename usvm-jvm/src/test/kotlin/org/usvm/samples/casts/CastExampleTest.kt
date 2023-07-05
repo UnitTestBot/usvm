@@ -58,7 +58,6 @@ internal class CastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unresolved class: class sun.nio.cs.ext.AbstractCharsetProvider\$1")
     fun testCastFromObjectToInterface() {
         checkDiscoveredProperties(
             CastExample::castFromObjectToInterface,
