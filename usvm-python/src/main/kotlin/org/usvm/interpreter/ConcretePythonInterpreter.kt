@@ -40,14 +40,21 @@ object ConcretePythonInterpreter {
         return PythonObject(result)
     }
 
-    fun concolicRun(globals: PythonNamespace, functionRef: PythonObject, concreteArgs: Collection<PythonObject>,
-                    symbolicArgs: List<SymbolForCPython>, ctx: ConcolicRunContext): PythonObject {
+    fun concolicRun(
+        globals: PythonNamespace,
+        functionRef: PythonObject,
+        concreteArgs: Collection<PythonObject>,
+        symbolicArgs: List<SymbolForCPython>,
+        ctx: ConcolicRunContext,
+        printErrorMsg: Boolean = false
+    ): PythonObject {
         val result = pythonAdapter.concolicRun(
             globals.address,
             functionRef.address,
             concreteArgs.map { it.address }.toLongArray(),
             Array(symbolicArgs.size) { symbolicArgs[it] },
-            ctx
+            ctx,
+            printErrorMsg
         )
         if (result == 0L)
             throw CPythonExecutionException
