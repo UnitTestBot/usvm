@@ -23,31 +23,29 @@ class USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION>(
                 converter.convert(seed, type) ?: error("Couldn't construct PythonObject from model")
             }
             val serializedInputs = concrete.map(pythonObjectSerialization)
+            val inputForResult =
+                (seeds zip callable.signature zip serializedInputs).map { (p, z) ->
+                    val (x, y) = p
+                    InputObject(x, y, z)
+                }
             val concolicRunContext = ConcolicRunContext(state, ctx)
-            val result = ConcretePythonInterpreter.concolicRun(namespace, pinnedCallable, concrete, symbols, concolicRunContext)
-            val serializedResult = pythonObjectSerialization(result)
-            saveRunResult(
-                PythonAnalysisResult(
-                    (seeds zip callable.signature zip serializedInputs).map { (p, z) ->
-                        val (x, y) = p
-                        InputObject(x, y, z)
-                    },
-                    serializedResult
+            try {
+                val result = ConcretePythonInterpreter.concolicRun(
+                    namespace,
+                    pinnedCallable,
+                    concrete,
+                    symbols,
+                    concolicRunContext
                 )
-            )
+                val serializedResult = pythonObjectSerialization(result)
+                saveRunResult(PythonAnalysisResult(converter, inputForResult, Success(serializedResult)))
+
+            } catch (_: CPythonExecutionException) {
+                saveRunResult(PythonAnalysisResult(converter, inputForResult, Fail()))
+            }
+
             concolicRunContext.curState.wasExecuted = true
             iterationCounter.iterations += 1
             return StepResult(concolicRunContext.forkedStates.asSequence(), !state.wasExecuted)
         }
 }
-
-data class InputObject<PYTHON_OBJECT_REPRESENTATION>(
-    val asUExpr: UExpr<*>,
-    val type: PythonType,
-    val reprFromPythonObject: PYTHON_OBJECT_REPRESENTATION
-)
-
-data class PythonAnalysisResult<PYTHON_OBJECT_REPRESENTATION>(
-    val inputValues: List<InputObject<PYTHON_OBJECT_REPRESENTATION>>,
-    val result: PYTHON_OBJECT_REPRESENTATION?
-)

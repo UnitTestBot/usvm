@@ -69,51 +69,51 @@ public class CPythonAdapter {
     }
 
     public static SymbolForCPython handlerGTLong(ConcolicRunContext context, int methodId, SymbolForCPython left, SymbolForCPython right) {
-        return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerGTLongKt(context.ctx, left.expr, right.expr));
+        return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerGTLongKt(context, left.expr, right.expr));
     }
 
     public static SymbolForCPython handlerLTLong(ConcolicRunContext context, int methodId, SymbolForCPython left, SymbolForCPython right) {
-        return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerLTLongKt(context.ctx, left.expr, right.expr));
+        return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerLTLongKt(context, left.expr, right.expr));
     }
 
     public static SymbolForCPython handlerEQLong(ConcolicRunContext context, int methodId, SymbolForCPython left, SymbolForCPython right) {
-        return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerEQLongKt(context.ctx, left.expr, right.expr));
+        return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerEQLongKt(context, left.expr, right.expr));
     }
 
     public static SymbolForCPython handlerNELong(ConcolicRunContext context, int methodId, SymbolForCPython left, SymbolForCPython right) {
-        return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerNELongKt(context.ctx, left.expr, right.expr));
+        return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerNELongKt(context, left.expr, right.expr));
     }
 
     public static SymbolForCPython handlerGELong(ConcolicRunContext context, int methodId, SymbolForCPython left, SymbolForCPython right) {
-        return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerGELongKt(context.ctx, left.expr, right.expr));
+        return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerGELongKt(context, left.expr, right.expr));
     }
 
     public static SymbolForCPython handlerLELong(ConcolicRunContext context, int methodId, SymbolForCPython left, SymbolForCPython right) {
-        return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerLELongKt(context.ctx, left.expr, right.expr));
+        return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerLELongKt(context, left.expr, right.expr));
     }
 
     public static SymbolForCPython handlerADDLong(ConcolicRunContext context, int methodId, SymbolForCPython left, SymbolForCPython right) {
-        return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerADDLongKt(context.ctx, left.expr, right.expr));
+        return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerADDLongKt(context, left.expr, right.expr));
     }
 
     public static SymbolForCPython handlerSUBLong(ConcolicRunContext context, int methodId, SymbolForCPython left, SymbolForCPython right) {
-        return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerSUBLongKt(context.ctx, left.expr, right.expr));
+        return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerSUBLongKt(context, left.expr, right.expr));
     }
 
     public static SymbolForCPython handlerMULLong(ConcolicRunContext context, int methodId, SymbolForCPython left, SymbolForCPython right) {
-        return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerMULLongKt(context.ctx, left.expr, right.expr));
+        return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerMULLongKt(context, left.expr, right.expr));
     }
 
     public static SymbolForCPython handlerDIVLong(ConcolicRunContext context, int methodId, SymbolForCPython left, SymbolForCPython right) {
-        return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerDIVLongKt(context.ctx, left.expr, right.expr));
+        return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerDIVLongKt(context, left.expr, right.expr));
     }
 
     public static SymbolForCPython handlerREMLong(ConcolicRunContext context, int methodId, SymbolForCPython left, SymbolForCPython right) {
-        return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerREMLongKt(context.ctx, left.expr, right.expr));
+        return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerREMLongKt(context, left.expr, right.expr));
     }
 
     public static SymbolForCPython handlerPOWLong(ConcolicRunContext context, int methodId, SymbolForCPython left, SymbolForCPython right) {
-        return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerPOWLongKt(context.ctx, left.expr, right.expr));
+        return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerPOWLongKt(context, left.expr, right.expr));
     }
 
     public static void handlerFunctionCall(ConcolicRunContext context, long function) {

@@ -1,51 +1,50 @@
 package org.usvm.interpreter.operations
 
-import io.ksmt.expr.KExpr
-import io.ksmt.expr.KIntNumExpr
 import io.ksmt.sort.KIntSort
 import io.ksmt.sort.KSort
 import org.usvm.UBoolExpr
 import org.usvm.UContext
 import org.usvm.UExpr
+import org.usvm.interpreter.ConcolicRunContext
 
 
 fun <RES_SORT: KSort> createBinaryIntOp(
     op: (UContext, UExpr<KIntSort>, UExpr<KIntSort>) -> UExpr<RES_SORT>?
-): (UContext, UExpr<*>, UExpr<*>) -> UExpr<RES_SORT>? = { ctx, left, right ->
-    with (ctx) {
+): (ConcolicRunContext, UExpr<*>, UExpr<*>) -> UExpr<RES_SORT>? = { concolicContext, left, right ->
+    with (concolicContext.ctx) {
         if (left.sort != intSort || right.sort != intSort)
             null
         else {
             @Suppress("unchecked_cast")
-            op(ctx, left as UExpr<KIntSort>, right as UExpr<KIntSort>)
+            op(this, left as UExpr<KIntSort>, right as UExpr<KIntSort>)
         }
     }
 }
 
-fun handlerGTLongKt(x: UContext, y: UExpr<*>, z: UExpr<*>): UBoolExpr? =
+fun handlerGTLongKt(x: ConcolicRunContext, y: UExpr<*>, z: UExpr<*>): UBoolExpr? =
     createBinaryIntOp { ctx, left, right -> with(ctx) { left gt right } } (x, y, z)
-fun handlerLTLongKt(x: UContext, y: UExpr<*>, z: UExpr<*>): UBoolExpr? =
+fun handlerLTLongKt(x: ConcolicRunContext, y: UExpr<*>, z: UExpr<*>): UBoolExpr? =
     createBinaryIntOp { ctx, left, right -> with(ctx) { left lt right } } (x, y, z)
-fun handlerEQLongKt(x: UContext, y: UExpr<*>, z: UExpr<*>): UBoolExpr? =
+fun handlerEQLongKt(x: ConcolicRunContext, y: UExpr<*>, z: UExpr<*>): UBoolExpr? =
     createBinaryIntOp { ctx, left, right -> with(ctx) { left eq right } } (x, y, z)
-fun handlerNELongKt(x: UContext, y: UExpr<*>, z: UExpr<*>): UBoolExpr? =
+fun handlerNELongKt(x: ConcolicRunContext, y: UExpr<*>, z: UExpr<*>): UBoolExpr? =
     createBinaryIntOp { ctx, left, right -> with(ctx) { left neq right } } (x, y, z)
-fun handlerGELongKt(x: UContext, y: UExpr<*>, z: UExpr<*>): UBoolExpr? =
+fun handlerGELongKt(x: ConcolicRunContext, y: UExpr<*>, z: UExpr<*>): UBoolExpr? =
     createBinaryIntOp { ctx, left, right -> with(ctx) { left ge right } } (x, y, z)
-fun handlerLELongKt(x: UContext, y: UExpr<*>, z: UExpr<*>): UBoolExpr? =
+fun handlerLELongKt(x: ConcolicRunContext, y: UExpr<*>, z: UExpr<*>): UBoolExpr? =
     createBinaryIntOp { ctx, left, right -> with(ctx) { left le right } } (x, y, z)
-fun handlerADDLongKt(x: UContext, y: UExpr<*>, z: UExpr<*>): UExpr<KIntSort>? =
+fun handlerADDLongKt(x: ConcolicRunContext, y: UExpr<*>, z: UExpr<*>): UExpr<KIntSort>? =
     createBinaryIntOp { ctx, left, right -> val res = ctx.mkArithAdd(left, right); res } (x, y, z)
-fun handlerSUBLongKt(x: UContext, y: UExpr<*>, z: UExpr<*>): UExpr<KIntSort>? =
+fun handlerSUBLongKt(x: ConcolicRunContext, y: UExpr<*>, z: UExpr<*>): UExpr<KIntSort>? =
     createBinaryIntOp { ctx, left, right -> ctx.mkArithSub(left, right) } (x, y, z)
-fun handlerMULLongKt(x: UContext, y: UExpr<*>, z: UExpr<*>): UExpr<KIntSort>? =
+fun handlerMULLongKt(x: ConcolicRunContext, y: UExpr<*>, z: UExpr<*>): UExpr<KIntSort>? =
     createBinaryIntOp { ctx, left, right -> ctx.mkArithMul(left, right) } (x, y, z)
-fun handlerDIVLongKt(x: UContext, y: UExpr<*>, z: UExpr<*>): UExpr<KIntSort>? =
+fun handlerDIVLongKt(x: ConcolicRunContext, y: UExpr<*>, z: UExpr<*>): UExpr<KIntSort>? =
     createBinaryIntOp { ctx, left, right -> ctx.mkArithDiv(left, right) } (x, y, z)
-fun handlerREMLongKt(x: UContext, y: UExpr<*>, z: UExpr<*>): UExpr<KIntSort>? =
+fun handlerREMLongKt(x: ConcolicRunContext, y: UExpr<*>, z: UExpr<*>): UExpr<KIntSort>? =
     createBinaryIntOp { ctx, left, right -> ctx.mkIntMod(left, right) } (x, y, z)
 @Suppress("unused_parameter")
-fun handlerPOWLongKt(x: UContext, y: UExpr<*>, z: UExpr<*>): UExpr<KIntSort>? = null  // TODO
+fun handlerPOWLongKt(x: ConcolicRunContext, y: UExpr<*>, z: UExpr<*>): UExpr<KIntSort>? = null  // TODO
     //createBinaryIntOp { ctx, left, right ->
     //    if (right is KIntNumExpr) ctx.mkArithPower(left, right) else null
     //} (x, y, z)

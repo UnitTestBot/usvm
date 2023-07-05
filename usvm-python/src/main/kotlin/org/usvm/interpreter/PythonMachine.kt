@@ -85,3 +85,22 @@ class PythonMachine<PYTHON_OBJECT_REPRESENTATION>(
 }
 
 data class IterationCounter(var iterations: Int = 0)
+
+data class InputObject<PYTHON_OBJECT_REPRESENTATION>(
+    val asUExpr: UExpr<*>,
+    val type: PythonType,
+    val reprFromPythonObject: PYTHON_OBJECT_REPRESENTATION
+)
+
+sealed class ExecutionResult<PYTHON_OBJECT_REPRESENTATION>
+class Success<PYTHON_OBJECT_REPRESENTATION>(
+    val output: PYTHON_OBJECT_REPRESENTATION
+): ExecutionResult<PYTHON_OBJECT_REPRESENTATION>()
+
+class Fail<PYTHON_OBJECT_REPRESENTATION>: ExecutionResult<PYTHON_OBJECT_REPRESENTATION>()
+
+data class PythonAnalysisResult<PYTHON_OBJECT_REPRESENTATION>(
+    val inputValueConverter: ConverterToPythonObject,
+    val inputValues: List<InputObject<PYTHON_OBJECT_REPRESENTATION>>,
+    val result: ExecutionResult<PYTHON_OBJECT_REPRESENTATION>
+)
