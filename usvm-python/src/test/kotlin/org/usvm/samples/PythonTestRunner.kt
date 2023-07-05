@@ -16,7 +16,7 @@ open class PythonTestRunner(sourcePath: String) : TestRunner<PythonTest, PythonU
         )
     }
     override val typeTransformer: (Any?) -> PythonType
-        get() = { _ -> PythonInt }
+        get() = { _ -> pythonInt }
     override val checkType: (PythonType, PythonType) -> Boolean
         get() = { _, _ -> true }
     override val runner: (PythonUnpinnedCallable, UMachineOptions) -> List<PythonTest>
@@ -64,7 +64,7 @@ open class PythonTestRunner(sourcePath: String) : TestRunner<PythonTest, PythonU
                 propertiesToDiscover.toTypedArray(),
                 invariants.toTypedArray(),
                 onAnalysisResult,
-                (target.signature.map { PythonInt } + PythonInt).toTypedArray(),
+                (target.signature.map { pythonInt } + pythonInt).toTypedArray(),
                 CheckMode.MATCH_PROPERTIES,
                 coverageChecker = { true }
             )
