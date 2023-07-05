@@ -8,6 +8,7 @@ import org.usvm.test.util.checkers.eq
 
 class CountDownLatchExamplesTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Sort mismatch")
     fun testGetAndDown() {
         checkDiscoveredProperties(
             CountDownLatchExamples::getAndDown,

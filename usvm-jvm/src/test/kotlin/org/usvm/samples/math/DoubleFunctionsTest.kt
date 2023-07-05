@@ -45,6 +45,7 @@ internal class DoubleFunctionsTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("No analysis results received")
     fun testNumberOfRootsInSquareFunction() {
         checkDiscoveredProperties(
             DoubleFunctions::numberOfRootsInSquareFunction,

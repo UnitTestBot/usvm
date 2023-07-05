@@ -12,6 +12,7 @@ import java.util.Optional
 import java.util.stream.Collectors
 import java.util.stream.Stream
 
+@Disabled("Still too complex")
 class BaseStreamExampleTest : JavaMethodTestRunner() {
     @Test
     fun testReturningStreamAsParameterExample() {

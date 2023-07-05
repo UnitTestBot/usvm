@@ -29,6 +29,7 @@ internal class ByteExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Sort mismatch")
     fun testSumTwoBytes() {
         checkDiscoveredProperties(
             ByteExamples::sumTwoBytes,

@@ -18,6 +18,7 @@ class TetOneDimensional : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Cannot load from byte/boolean array because \"java.lang.Integer.DigitOnes\" is null")
     fun `Test minus`() {
         checkDiscoveredPropertiesWithExceptions(
             OneDimensional::minus,

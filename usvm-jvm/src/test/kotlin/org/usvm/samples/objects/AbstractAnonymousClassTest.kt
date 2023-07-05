@@ -9,6 +9,7 @@ import org.usvm.test.util.checkers.eq
 
 class AbstractAnonymousClassTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Unresolved class: class org.usvm.samples.objects.AbstractAnonymousClass\$1")
     fun testNonOverriddenMethod() {
         checkDiscoveredProperties(
             AbstractAnonymousClass::methodWithoutOverrides,

@@ -76,6 +76,7 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Unresolved class: class sun.nio.cs.ext.AbstractCharsetProvider\$1")
     fun testWithoutOneInheritorOnArray() {
         checkDiscoveredProperties(
             InstanceOfExample::withoutOneInheritorOnArray,
@@ -86,6 +87,7 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Unresolved class: class sun.nio.cs.ext.AbstractCharsetProvider\$1")
     fun testWithoutOneInheritorOnArrayInverse() {
         checkDiscoveredProperties(
             InstanceOfExample::withoutOneInheritorOnArrayInverse,

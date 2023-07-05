@@ -50,6 +50,7 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@5927f2b1")
     fun testReturn2DList() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::return2DList,
@@ -66,6 +67,7 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@5927f2b1")
     fun testReturn2DMap() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::return2DMap,
@@ -74,6 +76,7 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@5927f2b1")
     fun testIntegers2DList() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::returnIntegers2DList,

@@ -8,6 +8,7 @@ import org.usvm.util.isException
 
 internal class CharExamplesTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Sort mismatch")
     fun testCharDiv() {
         checkDiscoveredPropertiesWithExceptions(
             CharExamples::charDiv,

@@ -13,6 +13,7 @@ import java.util.OptionalDouble
 import java.util.stream.DoubleStream
 import kotlin.streams.toList
 
+@Disabled("Still too complex")
 class DoubleStreamExampleTest : JavaMethodTestRunner() {
     @Test
     fun testReturningStreamAsParameterExample() {

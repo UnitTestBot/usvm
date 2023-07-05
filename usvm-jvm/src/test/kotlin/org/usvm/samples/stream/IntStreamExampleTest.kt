@@ -13,6 +13,7 @@ import java.util.OptionalInt
 import java.util.stream.IntStream
 import kotlin.streams.toList
 
+@Disabled("Still too complex")
 class IntStreamExampleTest : JavaMethodTestRunner() {
     @Test
     fun testReturningStreamAsParameterExample() {

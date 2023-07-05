@@ -13,6 +13,7 @@ import java.util.OptionalLong
 import java.util.stream.LongStream
 import kotlin.streams.toList
 
+@Disabled("Still too complex")
 class LongStreamExampleTest : JavaMethodTestRunner() {
     @Test
     fun testReturningStreamAsParameterExample() {

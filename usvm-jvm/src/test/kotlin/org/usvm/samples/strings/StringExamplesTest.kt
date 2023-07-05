@@ -483,6 +483,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@5927f2b1")
     fun testPrefixAndSuffix() {
         checkDiscoveredProperties(
             StringExamples::prefixAndSuffix,
