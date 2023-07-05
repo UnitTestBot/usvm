@@ -12,6 +12,7 @@ class SimpleExampleTest : PythonTestRunner("/samples/SimpleExample.py") {
     private val functionSamplePickle = PythonUnpinnedCallable.constructCallableFromName(List(1) { PythonInt }, "pickle_sample")
     private val functionCall = PythonUnpinnedCallable.constructCallableFromName(List(1) { PythonInt }, "call")
     private val functionZeroDivision = PythonUnpinnedCallable.constructCallableFromName(List(1) { PythonInt }, "zero_division")
+    private val functionZeroDivisionInBranch = PythonUnpinnedCallable.constructCallableFromName(List(1) { PythonInt }, "zero_division_in_branch")
 
     @Test
     fun testF() {
@@ -76,6 +77,19 @@ class SimpleExampleTest : PythonTestRunner("/samples/SimpleExample.py") {
             eq(1),
             /* invariants = */ listOf { x, res -> x.typeName == "int" && res == null },
             /* propertiesToDiscover = */ listOf()
+        )
+    }
+
+    @Test
+    fun testZeroDivisionInBranch() {
+        check1(
+            functionZeroDivisionInBranch,
+            eq(2),
+            /* invariants = */ listOf(),
+            /* propertiesToDiscover = */ listOf(
+                { x, res -> x.repr.toInt() > 100 && res == null },
+                { x, res -> x.repr.toInt() <= 100 && res!!.repr == x.repr }
+            )
         )
     }
 }

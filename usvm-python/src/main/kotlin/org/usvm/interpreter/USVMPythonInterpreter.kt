@@ -9,6 +9,7 @@ class USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION>(
     private val namespace: PythonNamespace,
     private val callable: PythonUnpinnedCallable,
     private val iterationCounter: IterationCounter,
+    private val printErrorMsg: Boolean,
     private val pythonObjectSerialization: (PythonObject) -> PYTHON_OBJECT_REPRESENTATION,
     private val saveRunResult: (PythonAnalysisResult<PYTHON_OBJECT_REPRESENTATION>) -> Unit
 ) : UInterpreter<PythonExecutionState>() {
@@ -35,7 +36,8 @@ class USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION>(
                     pinnedCallable,
                     concrete,
                     symbols,
-                    concolicRunContext
+                    concolicRunContext,
+                    printErrorMsg
                 )
                 val serializedResult = pythonObjectSerialization(result)
                 saveRunResult(PythonAnalysisResult(converter, inputForResult, Success(serializedResult)))
