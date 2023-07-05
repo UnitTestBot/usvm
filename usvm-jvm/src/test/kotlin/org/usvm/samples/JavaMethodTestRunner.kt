@@ -20,6 +20,7 @@ import kotlin.reflect.KFunction3
 import kotlin.reflect.KFunction4
 import kotlin.reflect.full.instanceParameter
 import kotlin.reflect.full.isSubclassOf
+import kotlin.reflect.jvm.javaConstructor
 import kotlin.reflect.jvm.javaMethod
 
 
@@ -700,7 +701,8 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
             requireNotNull(thisInstance)
             values += thisInstance
         } else {
-            require(thisInstance == null)
+            // Note that for constructors we have thisInstance in such as case, in contrast to simple methods
+            require(thisInstance == null || method.javaConstructor != null)
         }
         values.addAll(parameters.take(method.parameters.size - values.size)) // add remaining arguments
         return values
@@ -715,7 +717,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
         { expected, actual -> actual == null || expected != null && actual.isSubclassOf(expected) }
 
     override val runner: (KFunction<*>, UMachineOptions) -> List<JcTest> = { method, options ->
-        val declaringClassName = requireNotNull(method.javaMethod?.declaringClass?.name)
+        val declaringClassName = requireNotNull(method.declaringClass?.name)
         val jcClass = cp.findClass(declaringClassName).toType()
         val jcMethod = jcClass.declaredMethods.first { it.name == method.name }
 
@@ -729,3 +731,6 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
         JcClassCoverage(visitedStmts = emptySet())
     }
 }
+
+private val KFunction<*>.declaringClass: Class<*>?
+    get() = javaMethod?.declaringClass ?: javaConstructor?.declaringClass

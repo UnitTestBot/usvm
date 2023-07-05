@@ -20,6 +20,7 @@ internal class ObjectWithPrimitivesClassTest : JavaMethodTestRunner() {
 //    }
 
     @Test
+    @Disabled("Support constructors in matchers")
     fun testConstructorWithParams() {
         val method: KFunction3<Int, Int, Double, ObjectWithPrimitivesClass> = ::ObjectWithPrimitivesClass
         checkDiscoveredProperties(

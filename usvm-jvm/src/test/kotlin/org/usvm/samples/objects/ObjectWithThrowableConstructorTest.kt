@@ -9,6 +9,7 @@ import kotlin.reflect.KFunction2
 
 internal class ObjectWithThrowableConstructorTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Support constructors in matchers")
     fun testThrowableConstructor() {
         val method: KFunction2<Int, Int, ObjectWithThrowableConstructor> = ::ObjectWithThrowableConstructor
         checkDiscoveredProperties(
