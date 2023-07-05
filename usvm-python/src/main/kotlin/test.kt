@@ -6,28 +6,12 @@ import org.usvm.language.PythonUnpinnedCallable
 fun main() {
     val program = PythonProgram(
         """
-        def g(x):
-            if x > 0:
-                return x
-            else:
-                return -x
-
         def f(x):
-            if g(x) == 0:
-                return 1
-            return 2
+            return x / 0
         """.trimIndent()
     )
     val function = PythonUnpinnedCallable.constructCallableFromName(List(1) { PythonInt }, "f")
-
-    val namespace = ConcretePythonInterpreter.getNewNamespace()
-    ConcretePythonInterpreter.concreteRun(namespace, program.asString)
-    val functionRef = function.reference(namespace)
-    val args = listOf(ConcretePythonInterpreter.eval(namespace, "1"))
-    val result = ConcretePythonInterpreter.concreteRunOnFunctionRef(namespace, functionRef, args)
-    println("RESULT OF CONCRETE RUN: ${ConcretePythonInterpreter.getPythonObjectRepr(result)}")
-
-    val machine = PythonMachine(program) { it }
+    val machine = PythonMachine(program, printErrorMsg = true) { it }
     val start = System.currentTimeMillis()
     val iterations = machine.use { activeMachine ->
         val results: MutableList<PythonAnalysisResult<PythonObject>> = mutableListOf()

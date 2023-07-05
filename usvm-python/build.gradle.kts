@@ -12,7 +12,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable-jvm:${Versions.collections}")
 }
 
-tasks.build {
+tasks.assemble {
     dependsOn(":usvm-python:cpythonadapter:linkDebug")
 }
 
@@ -20,7 +20,7 @@ val cpythonBuildPath = "${childProjects["cpythonadapter"]!!.buildDir}/cpython_bu
 val cpythonAdapterBuildPath = "${childProjects["cpythonadapter"]!!.buildDir}/lib/main/debug"
 
 tasks.register<JavaExec>("runTestKt") {
-    // dependsOn(tasks.build)
+    dependsOn(tasks.assemble)
     environment("LD_LIBRARY_PATH" to "$cpythonBuildPath/lib:$cpythonAdapterBuildPath")
     environment("LD_PRELOAD" to "$cpythonBuildPath/lib/libpython3.so")
     classpath = sourceSets.main.get().runtimeClasspath

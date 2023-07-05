@@ -23,7 +23,7 @@ public class CPythonAdapter {
     public native int concreteRun(long globals, String code);  // returns 0 on success
     public native long eval(long globals, String expr);  // returns PyObject *
     public native long concreteRunOnFunctionRef(long globals, long functionRef, long[] concreteArgs);
-    public native long concolicRun(long globals, long functionRef, long[] concreteArgs, SymbolForCPython[] symbolicArgs, ConcolicRunContext context);
+    public native long concolicRun(long globals, long functionRef, long[] concreteArgs, SymbolForCPython[] symbolicArgs, ConcolicRunContext context, boolean print_error_message);
     public native void printPythonObject(long object);
     public native String getPythonObjectRepr(long object);
     public native String getPythonObjectTypeName(long object);

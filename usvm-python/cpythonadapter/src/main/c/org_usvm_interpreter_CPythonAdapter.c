@@ -94,7 +94,8 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_concolicRun(
     jlong function_ref,
     jlongArray concrete_args,
     jobjectArray symbolic_args,
-    jobject context
+    jobject context,
+    jboolean print_error_message
 ) {
     PyObjectArray args;
     ConcolicContext ctx;
@@ -107,9 +108,10 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_concolicRun(
     PyObject *result = SymbolicAdapter_run((PyObject *) adapter, function, args.size, args.ptr);
     free(args.ptr);
 
-    if (result == NULL) {
+    if (result == NULL && print_error_message == JNI_TRUE) {
         PyErr_Print();
     }
+    PyErr_Clear();
     return (jlong) result;
 }
 
