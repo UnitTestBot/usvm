@@ -10,6 +10,8 @@ class SimpleExampleTest : PythonTestRunner("/samples/SimpleExample.py") {
     private val functionF = PythonUnpinnedCallable.constructCallableFromName(List(3) { PythonInt }, "f")
     private val functionMyAbs = PythonUnpinnedCallable.constructCallableFromName(List(1) { PythonInt }, "my_abs")
     private val functionSamplePickle = PythonUnpinnedCallable.constructCallableFromName(List(1) { PythonInt }, "pickle_sample")
+    private val functionCall = PythonUnpinnedCallable.constructCallableFromName(List(1) { PythonInt }, "call")
+    private val functionZeroDivision = PythonUnpinnedCallable.constructCallableFromName(List(1) { PythonInt }, "zero_division")
 
     @Test
     fun testF() {
@@ -18,10 +20,10 @@ class SimpleExampleTest : PythonTestRunner("/samples/SimpleExample.py") {
             ignoreNumberOfAnalysisResults,
             compareConcolicAndConcreteReprs,
             /* invariants = */ listOf { x, y, z, res ->
-                listOf(x, y, z, res).all { it.typeName == "int" }
+                listOf(x, y, z, res).all { it!!.typeName == "int" }
             },
             /* propertiesToDiscover = */ List(10) { index ->
-                { _, _, _, res -> res.repr == index.toString() }
+                { _, _, _, res -> res!!.repr == index.toString() }
             }
         )
     }
@@ -34,9 +36,9 @@ class SimpleExampleTest : PythonTestRunner("/samples/SimpleExample.py") {
             compareConcolicAndConcreteReprs,
             /* invariants = */ listOf { x, _ -> x.typeName == "int" },
             /* propertiesToDiscover = */ listOf(
-                { x, res -> x.repr.toInt() > 0 && res.typeName == "int" },
-                { x, res -> x.repr.toInt() == 0 && res.typeName == "str" },
-                { x, res -> x.repr.toInt() < 0 && res.typeName == "int" },
+                { x, res -> x.repr.toInt() > 0 && res!!.typeName == "int" },
+                { x, res -> x.repr.toInt() == 0 && res!!.typeName == "str" },
+                { x, res -> x.repr.toInt() < 0 && res!!.typeName == "int" },
             )
         )
     }
@@ -47,8 +49,33 @@ class SimpleExampleTest : PythonTestRunner("/samples/SimpleExample.py") {
             functionSamplePickle,
             eq(1),
             compareConcolicAndConcreteReprs,
-            /* invariants = */ listOf { _, res -> res.typeName == "bytes" },
+            /* invariants = */ listOf { _, res -> res!!.typeName == "bytes" },
             /* propertiesToDiscover = */ emptyList()
+        )
+    }
+
+    @Test
+    fun testCall() {
+        check1WithConcreteRun(
+            functionCall,
+            eq(3),
+            compareConcolicAndConcreteReprs,
+            /* invariants = */ listOf { x, _ -> x.typeName == "int" },
+            /* propertiesToDiscover = */ listOf(
+                { x, res -> x.repr.toInt() > 0 && res!!.typeName == "int" },
+                { x, res -> x.repr.toInt() == 0 && res!!.typeName == "str" },
+                { x, res -> x.repr.toInt() < 0 && res!!.typeName == "int" },
+            )
+        )
+    }
+
+    @Test
+    fun testZeroDivision() {
+        check1(
+            functionZeroDivision,
+            eq(1),
+            /* invariants = */ listOf { x, res -> x.typeName == "int" && res == null },
+            /* propertiesToDiscover = */ listOf()
         )
     }
 }
