@@ -23,7 +23,7 @@ open class UContext(
     components: UComponents<*, *, *>,
     operationMode: OperationMode = OperationMode.CONCURRENT,
     astManagementMode: AstManagementMode = AstManagementMode.GC,
-    simplificationMode: SimplificationMode = SimplificationMode.SIMPLIFY
+    simplificationMode: SimplificationMode = SimplificationMode.SIMPLIFY,
 ) : KContext(operationMode, astManagementMode, simplificationMode) {
 
     private val solver by lazy { components.mkSolver(this) }
@@ -169,17 +169,20 @@ open class UContext(
     fun <Method, Sort : USort> mkIndexedMethodReturnValue(
         method: Method,
         callIndex: Int,
-        sort: Sort
+        sort: Sort,
     ): UIndexedMethodReturnValue<Method, Sort> = indexedMethodReturnValueCache.createIfContextActive {
         UIndexedMethodReturnValue(this, method.cast(), callIndex, sort)
     }.cast()
 
     private val isExprCache = mkAstInterner<UIsExpr<Any>>()
     fun <Type> mkIsExpr(
-        ref: UHeapRef, type: Type
+        ref: UHeapRef, type: Type,
     ): UIsExpr<Type> = isExprCache.createIfContextActive {
         UIsExpr(this, ref, type.cast())
     }.cast()
+
+    fun mkConcreteHeapRefDecl(address: UConcreteHeapAddress): UConcreteHeapRefDecl =
+        UConcreteHeapRefDecl(this, address)
 
     override fun boolSortDefaultValue(): KExpr<KBoolSort> = falseExpr
 
