@@ -43,3 +43,9 @@ def call(x: int):
 
 def zero_division(x: int):
     return x / 0
+
+
+def zero_division_in_branch(x: int):
+    if x > 100:
+        return x / 0
+    return x

@@ -9,6 +9,7 @@ import org.usvm.statistics.UMachineObserver
 
 class PythonMachine<PYTHON_OBJECT_REPRESENTATION>(
     private val program: PythonProgram,
+    private val printErrorMsg: Boolean = false,
     private val pythonObjectSerialization: (PythonObject) -> PYTHON_OBJECT_REPRESENTATION
 ): UMachine<PythonExecutionState>() {
     private val ctx = UContext(PythonComponents)
@@ -24,7 +25,7 @@ class PythonMachine<PYTHON_OBJECT_REPRESENTATION>(
         target: PythonUnpinnedCallable,
         results: MutableList<PythonAnalysisResult<PYTHON_OBJECT_REPRESENTATION>>
     ): USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION> =
-        USVMPythonInterpreter(ctx, namespace, target, iterationCounter, pythonObjectSerialization) {
+        USVMPythonInterpreter(ctx, namespace, target, iterationCounter, printErrorMsg, pythonObjectSerialization) {
             results.add(it)
         }
 
