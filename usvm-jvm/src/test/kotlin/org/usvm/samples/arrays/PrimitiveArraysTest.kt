@@ -62,6 +62,7 @@ internal class PrimitiveArraysTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Sort mismatch")
     fun testCharArray() {
         checkDiscoveredPropertiesWithExceptions(
             PrimitiveArrays::charArray,

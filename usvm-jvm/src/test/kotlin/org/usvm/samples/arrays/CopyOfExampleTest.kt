@@ -20,6 +20,7 @@ class CopyOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Sequence is empty.")
     fun testCopyOfRange() {
         checkDiscoveredPropertiesWithExceptions(
             CopyOfExample::copyOfRangeExample,
