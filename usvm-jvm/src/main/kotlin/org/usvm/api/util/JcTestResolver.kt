@@ -205,7 +205,7 @@ class JcTestResolver(
                     val clazz = resolveType(type.elementType as JcRefType)
                     val instance = Reflection.allocateArray(clazz, length)
                     for (i in 0 until length) {
-                         instance[i] = resolveElement(i)
+                        instance[i] = resolveElement(i)
                     }
                     instance
                 }
@@ -218,7 +218,11 @@ class JcTestResolver(
             val instance = Reflection.allocateInstance(clazz)
             resolvedCache[ref.address] = instance
 
-            val fields = type.jcClass.toType().fields // TODO: for some reason jacodb doesn't return hidden fields...
+            val fields = generateSequence(type.jcClass) { it.superClass }
+                .map { it.toType() }
+                .flatMap { it.declaredFields }
+                .filter { !it.isStatic }
+
             for (field in fields) {
                 val lvalue = UFieldLValue(ctx.typeToSort(field.fieldType), heapRef, field.field)
                 val fieldValue = resolveLValue(lvalue, field.fieldType)
@@ -251,6 +255,7 @@ class JcTestResolver(
                         val clazz = classLoader.loadClass(elementType.jcClass.name)
                         Reflection.allocateArray(clazz, length = 0).javaClass
                     }
+
                     else -> error("Unexpected type: $elementType")
                 }
             } ?: classLoader.loadClass(type.jcClass.name)

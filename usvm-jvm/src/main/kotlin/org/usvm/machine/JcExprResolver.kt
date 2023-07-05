@@ -43,6 +43,7 @@ import org.jacodb.api.cfg.JcLocalVar
 import org.jacodb.api.cfg.JcLong
 import org.jacodb.api.cfg.JcLtExpr
 import org.jacodb.api.cfg.JcMethodConstant
+import org.jacodb.api.cfg.JcMethodType
 import org.jacodb.api.cfg.JcMulExpr
 import org.jacodb.api.cfg.JcNegExpr
 import org.jacodb.api.cfg.JcNeqExpr
@@ -261,6 +262,10 @@ class JcExprResolver(
     }
 
     override fun visitJcMethodConstant(value: JcMethodConstant): UExpr<out USort> = with(ctx) {
+        TODO("Not yet implemented")
+    }
+
+    override fun visitJcMethodType(value: JcMethodType): UExpr<out USort>? {
         TODO("Not yet implemented")
     }
 
