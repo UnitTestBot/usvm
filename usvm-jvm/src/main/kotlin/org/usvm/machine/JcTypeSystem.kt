@@ -1,10 +1,6 @@
 package org.usvm.machine
 
-import org.jacodb.api.JcArrayType
-import org.jacodb.api.JcClassType
-import org.jacodb.api.JcClasspath
-import org.jacodb.api.JcRefType
-import org.jacodb.api.JcType
+import org.jacodb.api.*
 import org.jacodb.api.ext.isAssignable
 import org.jacodb.api.ext.objectType
 import org.jacodb.api.ext.toType
@@ -35,14 +31,14 @@ class JcTypeSystem(
     }
 
     // TODO: deal with generics
-    override fun findSubtypes(t: JcType): Sequence<JcType> =
-        if (t is JcArrayType) {
-            findSubtypes(t.elementType).map { cp.arrayTypeOf(it) }
-        } else {
-            hierarchy
-                .findSubClasses((t as JcRefType).jcClass, allHierarchy = false)
-                .map { it.toType() }
-        }
+    override fun findSubtypes(t: JcType): Sequence<JcType> = when (t) {
+        is JcPrimitiveType -> emptySequence()
+        is JcArrayType -> findSubtypes(t.elementType).map { cp.arrayTypeOf(it) }
+        is JcRefType -> hierarchy
+            .findSubClasses(t.jcClass, allHierarchy = false)
+            .map { it.toType() }
+        else -> error("Unknown type $t")
+    }
 
     override fun topTypeStream(): UTypeStream<JcType> =
         USupportTypeStream.from(this, cp.objectType)
