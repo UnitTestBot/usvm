@@ -102,6 +102,9 @@ open class PythonTestRunner(sourcePath: String) : TestRunner<PythonTest, PythonU
             it.output.repr == ConcretePythonInterpreter.getPythonObjectRepr(concreteResult)
         } ?: true
     }
+
+    protected fun constructFunction(name: String, signature: List<PythonType>): PythonUnpinnedCallable =
+        PythonUnpinnedCallable.constructCallableFromName(signature, name)
 }
 
 data class PythonObjectInfo(
