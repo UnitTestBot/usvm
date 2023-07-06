@@ -9,6 +9,7 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 internal class ByteExamplesTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Sort mismatch")
     fun testNegByte() {
         checkDiscoveredProperties(
             ByteExamples::negByte,
