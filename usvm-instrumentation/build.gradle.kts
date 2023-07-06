@@ -26,6 +26,7 @@ sourceSets {
         runtimeClasspath += samples.output
     }
 }
+
 kotlin {
     sourceSets.create("rdgenModels").apply {
         kotlin.srcDir("src/main/rdgen")

@@ -36,6 +36,17 @@ class SimpleUTestConcreteExecutor: UTestConcreteExecutorTest() {
     }
 
     @Test
+    fun `arithmetic operation`() = executeTest {
+        val uTest = UTestCreator.A.arithmeticOperation(jcClasspath)
+        val res = uTestConcreteExecutor.executeAsync(uTest)
+        assert(res is UTestExecutionSuccessResult)
+        res as UTestExecutionSuccessResult
+        val result = res.result
+        assert(result != null)
+        assert(result is UTestConstantDescriptor.Int && result.value == 239)
+    }
+
+    @Test
     fun `static fields test`() = executeTest {
         val uTest = UTestCreator.A.isA(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
