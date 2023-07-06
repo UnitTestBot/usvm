@@ -37,6 +37,7 @@ def my_abs(x: int):
 def pickle_sample(x):
     return pickle.dumps(x)
 
+
 def call(x: int):
     return my_abs(x)
 
