@@ -4,10 +4,7 @@ import getFieldByName
 import jdk.internal.org.objectweb.asm.Opcodes
 import org.jacodb.api.*
 import org.jacodb.api.cfg.JcInst
-import org.jacodb.api.ext.fields
-import org.jacodb.api.ext.jcdbName
-import org.jacodb.api.ext.jcdbSignature
-import org.jacodb.api.ext.toType
+import org.jacodb.api.ext.*
 import org.jacodb.impl.bytecode.JcMethodImpl
 import org.jacodb.impl.cfg.util.isArray
 import org.jacodb.impl.cfg.util.isPrimitive
@@ -68,6 +65,8 @@ fun JcType.toJavaClass(classLoader: ClassLoader): Class<*> =
         is JcClassType -> this.jcClass.toJavaClass(classLoader)
         else -> findClassInLoader(typeName, classLoader) ?: throw TestExecutorException("Can't find class in classpath")
     }
+
+fun JcType.toJcClass(): JcClassOrInterface? = classpath.findClassOrNull(typeName)
 
 fun JcClassOrInterface.toJavaClass(classLoader: ClassLoader): Class<*> =
     findClassInLoader(name, classLoader) ?: throw TestExecutorException("Can't find class in classpath")
