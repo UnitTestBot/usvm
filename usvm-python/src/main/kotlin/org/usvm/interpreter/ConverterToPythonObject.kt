@@ -10,7 +10,7 @@ class ConverterToPythonObject(private val ctx: UContext) {
         when (obj.concreteType) {
             pythonInt -> convertInt(obj)
             pythonBool -> convertBool(obj)
-            else -> null
+            else -> TODO()
         }
 
     private fun convertInt(obj: InterpretedSymbolicPythonObject): PythonObject =

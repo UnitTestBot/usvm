@@ -14,6 +14,7 @@ private fun createConcreteType(name: String) = ConcretePythonType(name, Concrete
 
 val pythonInt = createConcreteType("int")
 val pythonBool = createConcreteType("bool")
+val pythonList = createConcreteType("list")
 
 object PythonTypeSystem: UTypeSystem<PythonType> {
     override fun isSupertype(u: PythonType, t: PythonType): Boolean { // TODO
