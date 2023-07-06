@@ -1,5 +1,6 @@
 package org.usvm.samples
 
+import org.usvm.UContext
 import org.usvm.UMachineOptions
 import org.usvm.interpreter.*
 import org.usvm.language.*
@@ -36,8 +37,8 @@ open class PythonTestRunner(sourcePath: String) : TestRunner<PythonTest, PythonU
         val namespace = ConcretePythonInterpreter.getNewNamespace()
         ConcretePythonInterpreter.concreteRun(namespace, testSources)
         val functionRef = target.reference(namespace)
-        val converter = ConverterToPythonObject(namespace)
-        val args = test.inputValues.map { converter.convert(it.asUExpr, it.type)!! }
+        val converter = test.inputValueConverter
+        val args = test.inputValues.map { converter.convert(it.asUExpr)!! }
         val concreteResult = ConcretePythonInterpreter.concreteRunOnFunctionRef(namespace, functionRef, args)
         return check(concreteResult)
     }
@@ -89,7 +90,9 @@ open class PythonTestRunner(sourcePath: String) : TestRunner<PythonTest, PythonU
     protected val check1WithConcreteRun =
         createCheckWithConcreteRun<(PythonObjectInfo, PythonObjectInfo?) -> Boolean>()
 
-    protected val check3 = createCheck<(PythonObjectInfo, PythonObjectInfo, PythonObjectInfo, PythonObjectInfo?) -> Boolean>()
+    protected val check2WithConcreteRun =
+        createCheckWithConcreteRun<(PythonObjectInfo, PythonObjectInfo, PythonObjectInfo?) -> Boolean>()
+
     protected val check3WithConcreteRun =
         createCheckWithConcreteRun<(PythonObjectInfo, PythonObjectInfo, PythonObjectInfo, PythonObjectInfo?) -> Boolean>()
 

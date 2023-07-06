@@ -2,15 +2,21 @@ import org.usvm.interpreter.*
 import org.usvm.language.pythonInt
 import org.usvm.language.PythonProgram
 import org.usvm.language.PythonUnpinnedCallable
+import org.usvm.language.pythonBool
 
 fun main() {
     val program = PythonProgram(
         """
-        def f(x):
-            return x / 0
+        def f(x: bool, y: int):
+            if x and y % 10 == 5:
+                return 1
+            elif not x:
+                return 2
+            else:
+                return 3
         """.trimIndent()
     )
-    val function = PythonUnpinnedCallable.constructCallableFromName(List(1) { pythonInt }, "f")
+    val function = PythonUnpinnedCallable.constructCallableFromName(listOf(pythonBool, pythonInt), "f")
     val machine = PythonMachine(program, printErrorMsg = true) { it }
     val start = System.currentTimeMillis()
     val iterations = machine.use { activeMachine ->
