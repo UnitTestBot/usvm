@@ -3,6 +3,7 @@ package org.usvm.samples
 import org.junit.jupiter.api.Test
 import org.usvm.language.pythonInt
 import org.usvm.language.PythonUnpinnedCallable
+import org.usvm.language.pythonBool
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
@@ -13,6 +14,8 @@ class SimpleExampleTest : PythonTestRunner("/samples/SimpleExample.py") {
     private val functionCall = PythonUnpinnedCallable.constructCallableFromName(List(1) { pythonInt }, "call")
     private val functionZeroDivision = PythonUnpinnedCallable.constructCallableFromName(List(1) { pythonInt }, "zero_division")
     private val functionZeroDivisionInBranch = PythonUnpinnedCallable.constructCallableFromName(List(1) { pythonInt }, "zero_division_in_branch")
+    private val functionBoolInput = PythonUnpinnedCallable.constructCallableFromName(List(1) { pythonBool }, "bool_input")
+    private val functionMixedInputTypes = PythonUnpinnedCallable.constructCallableFromName(listOf(pythonBool, pythonInt), "mixed_input_types")
 
     @Test
     fun testF() {
@@ -90,6 +93,32 @@ class SimpleExampleTest : PythonTestRunner("/samples/SimpleExample.py") {
                 { x, res -> x.repr.toInt() > 100 && res == null },
                 { x, res -> x.repr.toInt() <= 100 && res!!.repr == x.repr }
             )
+        )
+    }
+
+    @Test
+    fun testBoolInput() {
+        check1WithConcreteRun(
+            functionBoolInput,
+            eq(2),
+            compareConcolicAndConcreteReprs,
+            /* invariants = */ listOf { x, _ -> x.typeName == "bool" },
+            /* propertiesToDiscover = */ List(2) { index ->
+                { _, res -> res!!.repr == (index + 1).toString() }
+            }
+        )
+    }
+
+    @Test
+    fun testMixedInputTypes() {
+        check2WithConcreteRun(
+            functionMixedInputTypes,
+            eq(3),
+            compareConcolicAndConcreteReprs,
+            /* invariants = */ listOf { x, y, _ -> x.typeName == "bool" && y.typeName == "int" },
+            /* propertiesToDiscover = */ List(3) { index ->
+                { _, _, res -> res!!.repr == (index + 1).toString() }
+            }
         )
     }
 }

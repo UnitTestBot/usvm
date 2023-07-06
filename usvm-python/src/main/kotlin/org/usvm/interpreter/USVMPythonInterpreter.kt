@@ -2,7 +2,6 @@ package org.usvm.interpreter
 
 import org.usvm.*
 import org.usvm.interpreter.symbolicobjects.interpretSymbolicPythonObject
-import org.usvm.language.PythonType
 import org.usvm.language.PythonUnpinnedCallable
 
 class USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION>(
@@ -20,9 +19,9 @@ class USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION>(
         with(ctx) {
             val symbols = state.inputSymbols
             val seeds = symbols.map { interpretSymbolicPythonObject(it.obj, state.pyModel, ctx) }
-            val converter = ConverterToPythonObject(namespace)
-            val concrete = (seeds zip callable.signature).map { (seed, type) ->
-                converter.convert(seed, type) ?: error("Couldn't construct PythonObject from model")
+            val converter = ConverterToPythonObject(ctx)
+            val concrete = seeds.map { seed ->
+                converter.convert(seed) ?: error("Couldn't construct PythonObject from model")
             }
             val serializedInputs = concrete.map(pythonObjectSerialization)
             val inputForResult =
