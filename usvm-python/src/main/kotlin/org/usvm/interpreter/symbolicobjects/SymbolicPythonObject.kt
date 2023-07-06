@@ -1,5 +1,6 @@
 package org.usvm.interpreter.symbolicobjects
 
+import io.ksmt.expr.KInterpretedValue
 import io.ksmt.sort.KBoolSort
 import io.ksmt.sort.KIntSort
 import org.usvm.*
@@ -11,7 +12,7 @@ import org.usvm.memory.UReadOnlySymbolicHeap
 sealed class SymbolicPythonObject(
     open val address: UHeapRef,
     open val heap: UReadOnlySymbolicHeap<PropertyOfPythonObject, out PythonType>,
-    private val ctx: UContext
+    protected val ctx: UContext
 ) {
     override fun equals(other: Any?): Boolean {
         if (other !is SymbolicPythonObject)
@@ -23,18 +24,18 @@ sealed class SymbolicPythonObject(
         return (address to heap).hashCode()
     }
 
-    val concreteType: ConcretePythonType?
+    open val concreteType: ConcretePythonType?
         get() = castedTo
 
-    protected var castedTo: ConcretePythonType? = null
+    /*protected*/ var castedTo: ConcretePythonType? = null
 
-    fun getIntContent(): UExpr<KIntSort> {
+    open fun getIntContent(): UExpr<KIntSort> {
         require(castedTo == pythonInt)
         @Suppress("unchecked_cast")
         return heap.readField(address, IntContent, ctx.intSort) as UExpr<KIntSort>
     }
 
-    fun getBoolContent(): UExpr<KBoolSort> {
+    open fun getBoolContent(): UExpr<KBoolSort> {
         require(castedTo == pythonBool)
         @Suppress("unchecked_cast")
         return heap.readField(address, BoolContent, ctx.boolSort) as UExpr<KBoolSort>
@@ -73,14 +74,35 @@ class InterpretedSymbolicPythonObject(
     private val model: PyModel,
     ctx: UContext,
 ): SymbolicPythonObject(address, model.uModel.heap, ctx) {
-    init {
+    /*init {
         castedTo = model.uModel.types.typeOf(address.address) as ConcretePythonType
+    }*/
+
+    override val concreteType: ConcretePythonType
+        get() = super.concreteType!!
+
+    override fun getIntContent(): KInterpretedValue<KIntSort> {
+        require(castedTo == pythonInt)
+        @Suppress("unchecked_cast")
+        return model.readField(address, IntContent, ctx.intSort)
+    }
+
+    override fun getBoolContent(): KInterpretedValue<KBoolSort> {
+        require(castedTo == pythonBool)
+        @Suppress("unchecked_cast")
+        return model.readField(address, BoolContent, ctx.boolSort)
     }
 }
 
+// TODO
 fun interpretSymbolicPythonObject(
     obj: UninterpretedSymbolicPythonObject,
     model: PyModel,
     ctx: UContext
-): InterpretedSymbolicPythonObject =
-    InterpretedSymbolicPythonObject(model.eval(obj.address) as UConcreteHeapRef, model, ctx)
+): InterpretedSymbolicPythonObject {
+    // InterpretedSymbolicPythonObject(model.eval(obj.address) as UConcreteHeapRef, model, ctx)
+    val type = obj.concreteType!!
+    val result = InterpretedSymbolicPythonObject(model.eval(obj.address) as UConcreteHeapRef, model, ctx)
+    result.castedTo = type
+    return result
+}
