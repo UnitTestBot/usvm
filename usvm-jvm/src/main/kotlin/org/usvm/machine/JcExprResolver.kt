@@ -3,6 +3,7 @@ package org.usvm.machine
 import io.ksmt.expr.KBitVec32Value
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
+import org.jacodb.api.JcArrayType
 import org.jacodb.api.JcMethod
 import org.jacodb.api.JcPrimitiveType
 import org.jacodb.api.JcRefType
@@ -288,7 +289,7 @@ class JcExprResolver(
         val ref = resolveJcExpr(expr.operand)?.asExpr(addressSort) ?: return null
         scope.calcOnState {
             val notEqualsNull = mkHeapRefEq(ref, memory.heap.nullRef()).not()
-            val isExpr = mkIsExpr(ref, expr.targetType)
+            val isExpr = memory.types.evalIs(ref, expr.targetType)
             mkAnd(notEqualsNull, isExpr)
         }
     }
@@ -296,7 +297,8 @@ class JcExprResolver(
     override fun visitJcLengthExpr(expr: JcLengthExpr): UExpr<out USort>? = with(ctx) {
         val ref = resolveJcExpr(expr.array)?.asExpr(addressSort) ?: return null
         checkNullPointer(ref) ?: return null
-        val lengthRef = UArrayLengthLValue(ref, expr.array.type)
+        val arrayDescriptor = arrayDescriptorOf(expr.array.type as JcArrayType)
+        val lengthRef = UArrayLengthLValue(ref, arrayDescriptor)
         val length = scope.calcOnState { memory.read(lengthRef).asExpr(sizeSort) } ?: return null
         assertHardMaxArrayLength(length) ?: return null
         scope.assert(mkBvSignedLessOrEqualExpr(mkBv(0), length)) ?: return null
@@ -312,7 +314,9 @@ class JcExprResolver(
     }
 
     override fun visitJcNewExpr(expr: JcNewExpr): UExpr<out USort>? =
-        scope.calcOnState { memory.alloc(expr.type) }
+        scope.calcOnState {
+            memory.alloc(expr.type)
+        }
 
     override fun visitJcPhiExpr(expr: JcPhiExpr): UExpr<out USort> =
         error("Unexpected expr: $expr")
@@ -436,8 +440,10 @@ class JcExprResolver(
         val arrayRef = resolveJcExpr(array)?.asExpr(addressSort) ?: return null
         checkNullPointer(arrayRef) ?: return null
 
+        val arrayDescriptor = arrayDescriptorOf(array.type as JcArrayType)
+
         val idx = resolveJcExpr(index)?.asExpr(bv32Sort) ?: return null
-        val lengthRef = UArrayLengthLValue(arrayRef, array.type)
+        val lengthRef = UArrayLengthLValue(arrayRef, arrayDescriptor)
         val length = scope.calcOnState { memory.read(lengthRef).asExpr(sizeSort) } ?: return null
 
         assertHardMaxArrayLength(length) ?: return null
@@ -447,7 +453,7 @@ class JcExprResolver(
         val elementType = requireNotNull(array.type.ifArrayGetElementType)
         val cellSort = typeToSort(elementType)
 
-        return UArrayIndexLValue(cellSort, arrayRef, idx, array.type)
+        return UArrayIndexLValue(cellSort, arrayRef, idx, arrayDescriptor)
     }
 
     private fun resolveLocal(local: JcLocal): ULValue {
@@ -583,17 +589,17 @@ class JcExprResolver(
 
     private fun resolveReferenceCast(operand: JcExpr, type: JcRefType) = resolveAfterResolved(operand) { expr ->
         if (!operand.type.isAssignable(type)) {
-            with(ctx) {
-                scope.fork(
-                    mkIsExpr(expr.asExpr(addressSort), type),
-                    blockOnFalseState = {
-                        val ln = lastStmt.lineNumber
-                        val exception = ClassCastException("[class cast exception] $ln")
-                        throwException(exception)
-                    }
-                ) ?: return@with null
-                expr
-            }
+            val isExpr = scope.calcOnState { memory.types.evalIs(expr.asExpr(ctx.addressSort), type) }
+                ?: return@resolveAfterResolved null
+            scope.fork(
+                isExpr,
+                blockOnFalseState = {
+                    val ln = lastStmt.lineNumber
+                    val exception = ClassCastException("[class cast exception] $ln")
+                    throwException(exception)
+                }
+            ) ?: return@resolveAfterResolved null
+            expr
         } else {
             expr
         }

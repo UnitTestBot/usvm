@@ -45,6 +45,8 @@ import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.WrappedException
 import org.usvm.memory.UAddressCounter
+import org.usvm.memory.UAddressCounter.Companion.INITIAL_INPUT_ADDRESS
+import org.usvm.memory.UMemoryBase
 import org.usvm.memory.UReadOnlySymbolicMemory
 import org.usvm.model.UModelBase
 import org.usvm.types.takeFirst
@@ -170,31 +172,34 @@ class JcTestResolver(
                 return null
             }
             return resolvedCache.getOrElse(ref.address) {
-                when (type) {
-                    is JcArrayType -> resolveArray(ref, heapRef, type)
-                    is JcClassType -> resolveReference(ref, heapRef, type)
+                val evaluatedType = if (ref.address <= INITIAL_INPUT_ADDRESS) {
+                    val typeStream = model.typeStreamOf(ref).filterBySupertype(type)
+                    typeStream.takeFirst() as JcRefType
+                } else {
+                    (memory as UMemoryBase<*, *, *>).types.readTypeRegion(ref).typeStream.takeFirst()
+                }
+                when (evaluatedType) {
+                    is JcArrayType -> resolveArray(ref, heapRef, evaluatedType)
+                    is JcClassType -> resolveReference(ref, heapRef, evaluatedType)
                     else -> error("Unexpected type: $type")
                 }
             }
         }
 
         private fun resolveArray(ref: UConcreteHeapRef, heapRef: UHeapRef, type: JcArrayType): Any {
-            val typeStream = model.typeStreamOf(ref).filterBySupertype(type)
-            val typeFromModel = typeStream.takeFirst() as JcArrayType
-
-            val lengthRef = UArrayLengthLValue(heapRef, typeFromModel)
+            val lengthRef = UArrayLengthLValue(heapRef, ctx.arrayDescriptorOf(type))
             val resolvedLength = resolveLValue(lengthRef, ctx.cp.int) as Int
             val length = if (resolvedLength in 0..10_000) resolvedLength else 0 // TODO hack
 
-            val cellSort = ctx.typeToSort(typeFromModel.elementType)
+            val cellSort = ctx.typeToSort(type.elementType)
 
             fun <T> resolveElement(idx: Int): T {
-                val elemRef = UArrayIndexLValue(cellSort, heapRef, ctx.mkBv(idx), typeFromModel)
+                val elemRef = UArrayIndexLValue(cellSort, heapRef, ctx.mkBv(idx), ctx.arrayDescriptorOf(type))
                 @Suppress("UNCHECKED_CAST")
-                return resolveLValue(elemRef, typeFromModel.elementType) as T
+                return resolveLValue(elemRef, type.elementType) as T
             }
 
-            val instance = when (typeFromModel.elementType) {
+            val instance = when (type.elementType) {
                 ctx.cp.boolean -> BooleanArray(length, ::resolveElement)
                 ctx.cp.short -> ShortArray(length, ::resolveElement)
                 ctx.cp.int -> IntArray(length, ::resolveElement)
@@ -205,7 +210,7 @@ class JcTestResolver(
                 ctx.cp.char -> CharArray(length, ::resolveElement)
                 else -> {
                     // TODO: works incorrectly for inner array
-                    val clazz = resolveType(typeFromModel.elementType as JcRefType)
+                    val clazz = resolveType(type.elementType as JcRefType)
                     val instance = Reflection.allocateArray(clazz, length)
                     for (i in 0 until length) {
                         instance[i] = resolveElement(i)
@@ -213,11 +218,12 @@ class JcTestResolver(
                     instance
                 }
             }
+            resolvedCache[ref.address] = instance
             return instance
         }
 
         private fun resolveReference(ref: UConcreteHeapRef, heapRef: UHeapRef, type: JcRefType): Any {
-            val clazz = resolveType(ref, type)
+            val clazz = resolveType(type)
             val instance = Reflection.allocateInstance(clazz)
             resolvedCache[ref.address] = instance
 
@@ -235,12 +241,6 @@ class JcTestResolver(
                 Reflection.setField(instance, javaField, fieldValue)
             }
             return instance
-        }
-
-        private fun resolveType(ref: UConcreteHeapRef, type: JcRefType): Class<*> {
-            val typeStream = model.typeStreamOf(ref).filterBySupertype(type)
-            val typeFromModel = typeStream.takeFirst() as JcRefType
-            return resolveType(typeFromModel)
         }
 
         private fun resolveType(type: JcRefType): Class<*> =

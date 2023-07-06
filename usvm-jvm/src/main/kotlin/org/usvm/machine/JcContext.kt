@@ -1,8 +1,10 @@
 package org.usvm.machine
 
+import org.jacodb.api.JcArrayType
 import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcRefType
 import org.jacodb.api.JcType
+import org.jacodb.api.PredefinedPrimitives
 import org.jacodb.api.ext.boolean
 import org.jacodb.api.ext.byte
 import org.jacodb.api.ext.char
@@ -10,6 +12,7 @@ import org.jacodb.api.ext.double
 import org.jacodb.api.ext.float
 import org.jacodb.api.ext.int
 import org.jacodb.api.ext.long
+import org.jacodb.api.ext.objectType
 import org.jacodb.api.ext.short
 import org.jacodb.api.ext.void
 import org.usvm.UContext
@@ -47,4 +50,10 @@ class JcContext(
         cp.double -> doubleSort
         else -> error("Unknown type: $type")
     }
+    fun arrayDescriptorOf(type: JcArrayType): JcType =
+        if (PredefinedPrimitives.matches(type.elementType.typeName)) {
+            type.elementType
+        } else {
+            type.classpath.objectType
+        }
 }
