@@ -1,7 +1,6 @@
 package org.usvm.instrumentation.util
 
 import org.usvm.instrumentation.rd.StaticsRollbackStrategy
-import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 //TODO move in common settings file
