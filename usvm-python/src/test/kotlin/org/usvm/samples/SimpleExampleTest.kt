@@ -2,21 +2,13 @@ package org.usvm.samples
 
 import org.junit.jupiter.api.Test
 import org.usvm.language.pythonInt
-import org.usvm.language.PythonUnpinnedCallable
 import org.usvm.language.pythonBool
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 class SimpleExampleTest : PythonTestRunner("/samples/SimpleExample.py") {
-    private val functionF = PythonUnpinnedCallable.constructCallableFromName(List(3) { pythonInt }, "f")
-    private val functionMyAbs = PythonUnpinnedCallable.constructCallableFromName(List(1) { pythonInt }, "my_abs")
-    private val functionSamplePickle = PythonUnpinnedCallable.constructCallableFromName(List(1) { pythonInt }, "pickle_sample")
-    private val functionCall = PythonUnpinnedCallable.constructCallableFromName(List(1) { pythonInt }, "call")
-    private val functionZeroDivision = PythonUnpinnedCallable.constructCallableFromName(List(1) { pythonInt }, "zero_division")
-    private val functionZeroDivisionInBranch = PythonUnpinnedCallable.constructCallableFromName(List(1) { pythonInt }, "zero_division_in_branch")
-    private val functionBoolInput = PythonUnpinnedCallable.constructCallableFromName(List(1) { pythonBool }, "bool_input")
-    private val functionMixedInputTypes = PythonUnpinnedCallable.constructCallableFromName(listOf(pythonBool, pythonInt), "mixed_input_types")
 
+    private val functionF = constructFunction("f", List(3) { pythonInt })
     @Test
     fun testF() {
         check3WithConcreteRun(
@@ -32,6 +24,7 @@ class SimpleExampleTest : PythonTestRunner("/samples/SimpleExample.py") {
         )
     }
 
+    private val functionMyAbs = constructFunction("my_abs", List(1) { pythonInt })
     @Test
     fun testMyAbs() {
         check1WithConcreteRun(
@@ -47,6 +40,7 @@ class SimpleExampleTest : PythonTestRunner("/samples/SimpleExample.py") {
         )
     }
 
+    private val functionSamplePickle = constructFunction("pickle_sample", List(1) { pythonInt })
     @Test
     fun testSamplePickle() {
         check1WithConcreteRun(
@@ -58,6 +52,7 @@ class SimpleExampleTest : PythonTestRunner("/samples/SimpleExample.py") {
         )
     }
 
+    private val functionCall = constructFunction("call", List(1) { pythonInt })
     @Test
     fun testCall() {
         check1WithConcreteRun(
@@ -73,6 +68,7 @@ class SimpleExampleTest : PythonTestRunner("/samples/SimpleExample.py") {
         )
     }
 
+    private val functionZeroDivision = constructFunction("zero_division", List(1) { pythonInt })
     @Test
     fun testZeroDivision() {
         check1(
@@ -83,6 +79,7 @@ class SimpleExampleTest : PythonTestRunner("/samples/SimpleExample.py") {
         )
     }
 
+    private val functionZeroDivisionInBranch = constructFunction("zero_division_in_branch", List(1) { pythonInt })
     @Test
     fun testZeroDivisionInBranch() {
         check1(
@@ -96,6 +93,7 @@ class SimpleExampleTest : PythonTestRunner("/samples/SimpleExample.py") {
         )
     }
 
+    private val functionBoolInput = constructFunction("bool_input", List(1) { pythonBool })
     @Test
     fun testBoolInput() {
         check1WithConcreteRun(
@@ -109,6 +107,7 @@ class SimpleExampleTest : PythonTestRunner("/samples/SimpleExample.py") {
         )
     }
 
+    private val functionMixedInputTypes = constructFunction("mixed_input_types", listOf(pythonBool, pythonInt))
     @Test
     fun testMixedInputTypes() {
         check2WithConcreteRun(

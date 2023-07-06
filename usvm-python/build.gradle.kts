@@ -20,6 +20,7 @@ val cpythonBuildPath = "${childProjects["cpythonadapter"]!!.buildDir}/cpython_bu
 val cpythonAdapterBuildPath = "${childProjects["cpythonadapter"]!!.buildDir}/lib/main/debug"
 
 tasks.register<JavaExec>("runTestKt") {
+    group = "run"
     dependsOn(tasks.assemble)
     environment("LD_LIBRARY_PATH" to "$cpythonBuildPath/lib:$cpythonAdapterBuildPath")
     environment("LD_PRELOAD" to "$cpythonBuildPath/lib/libpython3.so")
