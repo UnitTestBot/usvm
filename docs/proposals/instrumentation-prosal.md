@@ -12,7 +12,7 @@ Requirements:
     * at the first stage only jacodb statements +
     * concolic?
   * statics rollback
-     * redefine classes in classloader (https://gist.github.com/Saloed/4bc30ca8b1ec8969f7e1307f967058b4)
+     * redefine classes in classloader
   * non-deterministic functions mocks ?
   * stdlib mocks ?
     * at the first stage just ignore ?

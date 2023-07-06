@@ -58,6 +58,10 @@ public class A {
         return -1;
     }
 
+    public int returnField() {
+        return field;
+    }
+
     public int mockAbstractClass(MockAbstractClass mc) {
         if (mc.getStr().equals("a")) {
             if (mc.stringField.equals("a")) {
@@ -105,6 +109,21 @@ public class A {
             return a;
         }
         return a + 1;
+    }
+
+    private int fuzz(int a, int b) {
+        if (a > b) {
+            return a;
+        }
+        if (b < field) {
+            return b;
+        }
+        return field;
+    }
+
+    private int test(Integer a, Integer b) {
+        Integer c = a / b;
+        return 0;
     }
 
     private int methodWithBug() {

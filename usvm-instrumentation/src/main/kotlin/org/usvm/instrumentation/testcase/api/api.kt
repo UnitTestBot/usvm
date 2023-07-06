@@ -89,6 +89,13 @@ class UTestConditionExpression(
         trueBranch.lastOrNull()?.type?.takeIf { elseBranch.isNotEmpty() } ?: lhv.type?.classpath?.void
 }
 
+class UTestArithmeticExpression(
+    val operationType: ArithmeticOperationType,
+    val lhv: UTestExpression,
+    val rhv: UTestExpression,
+    override val type: JcType
+) : UTestExpression()
+
 class UTestGetStaticFieldExpression(
     val field: JcField
 ) : UTestExpression() {
@@ -193,4 +200,15 @@ class UTestCastExpression(
 
 enum class ConditionType {
     EQ, NEQ, GEQ, GT
+}
+
+enum class ArithmeticOperationType {
+
+    //Arithmetic
+    PLUS, SUB, MUL, DIV, REM,
+    //UNARY
+    //Relational
+    EQ, NEQ, GT, GEQ, LT, LTQ,
+    //Bitwise
+    OR, AND, XOR
 }
