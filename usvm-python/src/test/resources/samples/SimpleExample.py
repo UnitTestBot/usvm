@@ -49,3 +49,18 @@ def zero_division_in_branch(x: int):
     if x > 100:
         return x / 0
     return x
+
+
+def bool_input(x: bool):
+    if x:
+        return 1
+    return 2
+
+
+def mixed_input_types(x: bool, y: int):
+    if x and y % 10 == 5:
+        return 1
+    elif not x:
+        return 2
+    else:
+        return 3
