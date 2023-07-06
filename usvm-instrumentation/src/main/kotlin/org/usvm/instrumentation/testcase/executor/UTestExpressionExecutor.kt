@@ -14,6 +14,7 @@ import org.usvm.instrumentation.trace.collector.MockCollector
 import org.usvm.instrumentation.util.*
 import setFieldValue
 import java.lang.ClassCastException
+import java.lang.IllegalArgumentException
 
 class UTestExpressionExecutor(
     private val workerClassLoader: WorkerClassLoader,
@@ -61,6 +62,7 @@ class UTestExpressionExecutor(
             is UTestConditionExpression -> executeUTestConditionExpression(uTestExpression)
             is UTestSetFieldStatement -> executeUTestSetFieldStatement(uTestExpression)
             is UTestSetStaticFieldStatement -> executeUTestSetStaticFieldStatement(uTestExpression)
+            is UTestArithmeticExpression -> executeUTestArithmeticExpression(uTestExpression)
         }
     }
 
@@ -139,6 +141,48 @@ class UTestExpressionExecutor(
     private fun executeUTestAllocateMemoryCall(uTestAllocateMemoryCall: UTestAllocateMemoryCall): Any {
         val jClass = uTestAllocateMemoryCall.type.toJavaClass(workerClassLoader)
         return ReflectionUtils.UNSAFE.allocateInstance(jClass)
+    }
+
+    private fun executeUTestArithmeticExpression(uTestArithmeticExpression: UTestArithmeticExpression): Any? {
+        val lhv = exec(uTestArithmeticExpression.lhv) ?: return null
+        val rhv = exec(uTestArithmeticExpression.rhv) ?: return null
+        if (lhv::class.java != rhv::class.java || lhv !is Number || rhv !is Number) {
+            throw IllegalArgumentException("Wrong argument types for arithmetic operation")
+        }
+        val lhvAsDouble =
+            if (lhv is Double || lhv is Float) {
+                lhv.toDouble()
+            } else {
+                null
+            }
+        val rhvAsDouble = lhvAsDouble?.let { rhv.toDouble() }
+        val lhvAsLong = lhv.toLong()
+        val rhvAsLong = rhv.toLong()
+        val res = when (uTestArithmeticExpression.operationType) {
+            ArithmeticOperationType.PLUS -> lhvAsDouble?.let { it + rhvAsDouble!! } ?: (lhvAsLong + rhvAsLong)
+            ArithmeticOperationType.SUB -> lhvAsDouble?.let { it - rhvAsDouble!! } ?: (lhvAsLong - rhvAsLong)
+            ArithmeticOperationType.MUL -> lhvAsDouble?.let { it * rhvAsDouble!! } ?: (lhvAsLong * rhvAsLong)
+            ArithmeticOperationType.DIV -> lhvAsDouble?.let { it / rhvAsDouble!! } ?: (lhvAsLong / rhvAsLong)
+            ArithmeticOperationType.REM -> lhvAsDouble?.let { it % rhvAsDouble!! } ?: (lhvAsLong % rhvAsLong)
+            ArithmeticOperationType.EQ -> lhvAsDouble?.compareTo(rhvAsDouble!!) ?: (lhvAsLong.compareTo(rhvAsLong))
+            ArithmeticOperationType.NEQ -> lhvAsDouble?.compareTo(rhvAsDouble!!) ?: (lhvAsLong.compareTo(rhvAsLong))
+            ArithmeticOperationType.GT -> lhvAsDouble?.compareTo(rhvAsDouble!!) ?: (lhvAsLong.compareTo(rhvAsLong))
+            ArithmeticOperationType.GEQ -> lhvAsDouble?.compareTo(rhvAsDouble!!) ?: (lhvAsLong.compareTo(rhvAsLong))
+            ArithmeticOperationType.LT -> lhvAsDouble?.compareTo(rhvAsDouble!!) ?: (lhvAsLong.compareTo(rhvAsLong))
+            ArithmeticOperationType.LTQ -> lhvAsDouble?.compareTo(rhvAsDouble!!) ?: (lhvAsLong.compareTo(rhvAsLong))
+            ArithmeticOperationType.OR -> lhvAsDouble?.let { error("Bit operation on double impossible") } ?: (lhvAsLong or rhvAsLong)
+            ArithmeticOperationType.AND -> lhvAsDouble?.let { error("Bit operation on double impossible") } ?: (lhvAsLong and rhvAsLong)
+            ArithmeticOperationType.XOR -> lhvAsDouble?.let { error("Bit operation on double impossible") } ?: (lhvAsLong xor rhvAsLong)
+        }
+        return when (lhv::class) {
+            Byte::class -> res.toByte()
+            Short::class -> res.toShort()
+            Int::class -> res.toInt()
+            Long::class -> res
+            Float::class -> res.toFloat()
+            Double::class -> res.toDouble()
+            else -> error("Wrong type for bit operation")
+        }
     }
 
     private fun executeUTestMockObject(uTestMockObject: UTestMockObject): Any? {

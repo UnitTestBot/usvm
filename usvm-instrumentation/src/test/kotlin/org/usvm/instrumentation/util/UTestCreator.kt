@@ -294,6 +294,24 @@ object UTestCreator {
             val argMock = UTestMockObject(jcMockClass.toType(), mapOf(), mockedMethods)
             return UTest(listOf(), UTestMethodCall(instance, jcMethod, listOf(argMock)))
         }
+
+        fun arithmeticOperation(jcClasspath: JcClasspath): UTest {
+            val jcClass = jcClasspath.findClass<example.A>()
+            val jcMethod = jcClass.findMethodOrNull("returnField") ?: error("Cant find method indexOf in class A")
+            val constructor = jcClass.constructors.first()
+            val instance = UTestConstructorCall(constructor, listOf())
+            val intExpr = UTestIntExpression(427, jcClasspath.int)
+            val field = jcClass.declaredFields.find { it.name == "field" }!!
+            val fieldValue = UTestGetFieldExpression(instance, field)
+            val arithExpr = UTestArithmeticExpression(ArithmeticOperationType.SUB, fieldValue, intExpr, jcClasspath.int)
+            val newFieldValue = UTestSetFieldStatement(instance, field, arithExpr)
+
+            val statements = listOf(
+                instance,
+                newFieldValue
+            )
+            return UTest(statements, UTestMethodCall(instance, jcMethod, listOf()))
+        }
     }
 
     object Arrays {
@@ -347,7 +365,6 @@ object UTestCreator {
         }
     }
 
-    //public static String join(String separator, double... array) {
     object Doubles {
 
         fun join(jcClasspath: JcClasspath): UTest {
@@ -382,7 +399,6 @@ object UTestCreator {
 
     object NestedClass {
         fun getB(jcClasspath: JcClasspath): UTest {
-            val c = jcClasspath.findClass("example.ClassWithNestedClasses")
             val jcClass = jcClasspath.findClass("example.ClassWithNestedClasses\$A\$B")
             val jcMethod = jcClass.declaredMethods.find { it.name == "getB" }!!
             val jcClassInstance =
