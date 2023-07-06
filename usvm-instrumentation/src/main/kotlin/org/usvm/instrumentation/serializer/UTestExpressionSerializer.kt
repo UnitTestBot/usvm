@@ -54,6 +54,7 @@ class UTestExpressionSerializer(private val ctx: SerializationContext) {
             is UTestIntExpression -> serialize(uTestExpression)
             is UTestLongExpression -> serialize(uTestExpression)
             is UTestShortExpression -> serialize(uTestExpression)
+            is UTestArithmeticExpression -> serialize(uTestExpression)
         }
 
     }
@@ -92,6 +93,7 @@ class UTestExpressionSerializer(private val ctx: SerializationContext) {
                     UTestExpressionKind.INT -> deserializeInt()
                     UTestExpressionKind.LONG -> deserializeLong()
                     UTestExpressionKind.SHORT -> deserializeShort()
+                    UTestExpressionKind.ARITHMETIC -> deserializeUTestArithmeticExpression()
                 }
             ctx.deserializerCache[id] = deserializedExpression
         }
@@ -411,6 +413,30 @@ class UTestExpressionSerializer(private val ctx: SerializationContext) {
         return UTestConditionExpression(conditionType, lhv, rhv, trueBranch, elseBranch)
     }
 
+    private fun AbstractBuffer.serialize(uTestArithmeticExpression: UTestArithmeticExpression) =
+        serialize(
+            uTestExpression = uTestArithmeticExpression,
+            kind = UTestExpressionKind.ARITHMETIC,
+            serializeInternals = {
+                serializeUTestExpression(lhv)
+                serializeUTestExpression(rhv)
+            },
+            serialize = {
+                writeEnum(operationType)
+                writeUTestExpression(lhv)
+                writeUTestExpression(rhv)
+                writeJcType(type)
+            }
+        )
+
+    private fun AbstractBuffer.deserializeUTestArithmeticExpression(): UTestArithmeticExpression {
+        val operationType = readEnum<ArithmeticOperationType>()
+        val lhv = readUTestExpression()
+        val rhv = readUTestExpression()
+        val type = readJcType(jcClasspath) ?: error("Deserialization error")
+        return UTestArithmeticExpression(operationType, lhv, rhv, type)
+    }
+
     private fun AbstractBuffer.serialize(uTestSetFieldStatement: UTestSetFieldStatement) =
         serialize(
             uTestExpression = uTestSetFieldStatement,
@@ -605,6 +631,7 @@ class UTestExpressionSerializer(private val ctx: SerializationContext) {
         SHORT,
         STATIC_METHOD_CALL,
         STRING,
+        ARITHMETIC,
     }
 
     companion object {
