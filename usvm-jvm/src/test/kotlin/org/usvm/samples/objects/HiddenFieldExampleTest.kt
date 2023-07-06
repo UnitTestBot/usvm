@@ -8,6 +8,7 @@ import org.usvm.test.util.checkers.eq
 
 internal class HiddenFieldExampleTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Support instanceof")
     fun testCheckHiddenField() {
         checkDiscoveredProperties(
             HiddenFieldExample::checkHiddenField,

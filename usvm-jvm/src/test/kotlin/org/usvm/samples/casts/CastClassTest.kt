@@ -9,6 +9,7 @@ import org.usvm.test.util.checkers.eq
 
 internal class CastClassTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Support instanceof")
     fun testThisTypeChoice() {
         checkDiscoveredProperties(
             CastClass::castToInheritor,

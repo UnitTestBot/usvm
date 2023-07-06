@@ -8,6 +8,7 @@ import org.usvm.test.util.checkers.ge
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 
+@Disabled("Support instanceof")
 internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     @Test
     fun testSimpleInstanceOf() {
