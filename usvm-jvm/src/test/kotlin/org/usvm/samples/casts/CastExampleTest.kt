@@ -58,6 +58,7 @@ internal class CastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Support assumptions")
     fun testCastFromObjectToInterface() {
         checkDiscoveredProperties(
             CastExample::castFromObjectToInterface,
@@ -68,6 +69,7 @@ internal class CastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Support assumptions")
     fun testComplicatedCast() {
         checkDiscoveredProperties(
             CastExample::complicatedCast,

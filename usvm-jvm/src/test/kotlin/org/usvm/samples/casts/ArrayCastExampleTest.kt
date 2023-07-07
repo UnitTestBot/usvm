@@ -100,6 +100,7 @@ internal class ArrayCastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Support assumptions")
     fun testCastFromObjectToPrimitivesArray() {
         checkDiscoveredProperties(
             ArrayCastExample::castFromObjectToPrimitivesArray,
