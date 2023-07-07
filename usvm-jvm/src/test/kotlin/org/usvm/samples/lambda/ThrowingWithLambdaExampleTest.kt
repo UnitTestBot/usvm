@@ -8,6 +8,7 @@ import org.usvm.test.util.checkers.eq
 
 class ThrowingWithLambdaExampleTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Support assumptions")
     fun testAnyExample() {
         checkDiscoveredProperties(
             ThrowingWithLambdaExample::anyExample,

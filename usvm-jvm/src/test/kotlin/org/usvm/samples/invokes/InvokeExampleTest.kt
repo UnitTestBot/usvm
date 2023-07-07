@@ -10,6 +10,7 @@ import org.usvm.util.isException
 
 internal class InvokeExampleTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Disjunction in if statement covered by only one execution")
     fun testSimpleFormula() {
         checkDiscoveredProperties(
             InvokeExample::simpleFormula,

@@ -97,6 +97,8 @@ tasks {
             "--add-opens", "java.base/sun.net.www.http=ALL-UNNAMED",
             "--add-opens", "java.base/sun.net.ext=ALL-UNNAMED",
             "--add-opens", "jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED",
+            "--add-opens", "jdk.attach/com.sun.tools.attach=ALL-UNNAMED",
+            "--add-opens", "jdk.jdeps/com.sun.tools.classfile=ALL-UNNAMED",
         )
     }
 }

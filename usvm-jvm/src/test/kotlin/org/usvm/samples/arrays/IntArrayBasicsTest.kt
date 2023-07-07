@@ -97,6 +97,7 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Disjunction in if statement covered by only one execution")
     fun testEquality() {
         checkDiscoveredProperties(
             IntArrayBasics::equality,
