@@ -23,4 +23,19 @@ public class Simple {
         }
         return (n == 0 ? 1 : factorial(n - 1));
     }
+
+    public int branching(int n) {
+        int x = 0;
+        while (n > 0) {
+            if (n > 5) {
+                if (n < 3) {
+                    x -= 10;
+                }
+                x += 1;
+                x += 1;
+            }
+            n -= 1;
+        }
+        return x;
+    }
 }

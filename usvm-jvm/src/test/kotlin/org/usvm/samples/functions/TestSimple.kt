@@ -43,4 +43,18 @@ class TestSimple : JavaMethodTestRunner() {
             )
         }
     }
+
+    @UsvmTest(
+        [
+            Options([PathSelectionStrategy.BFS_WITH_LOGGING])
+        ]
+    )
+    fun `Test branching`(options: UMachineOptions) {
+        withOptions(options) {
+            checkDiscoveredProperties(
+                Simple::branching,
+                ignoreNumberOfAnalysisResults
+            )
+        }
+    }
 }

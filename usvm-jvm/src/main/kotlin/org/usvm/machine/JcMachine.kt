@@ -53,7 +53,8 @@ class JcMachine(
             options,
             { if (disablePathsTreeStatistics) null else pathsTreeStatistics },
             { coverageStatistics },
-            { distanceStatistics }
+            { distanceStatistics },
+            { applicationGraph }
         )
 
         val statesCollector = CoveredNewStatesCollector<JcState>(coverageStatistics) { it.methodResult is JcMethodResult.Exception }

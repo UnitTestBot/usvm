@@ -5,6 +5,7 @@ import org.usvm.PathSelectorCombinationStrategy
 import org.usvm.UMachineOptions
 import org.usvm.UPathSelector
 import org.usvm.UState
+import org.usvm.statistics.ApplicationGraph
 import org.usvm.statistics.CoverageStatistics
 import org.usvm.statistics.DistanceStatistics
 import org.usvm.statistics.PathsTreeStatistics
@@ -18,7 +19,8 @@ fun <Method, Statement, State : UState<*, *, Method, Statement>> createPathSelec
     options: UMachineOptions,
     pathsTreeStatistics: () -> PathsTreeStatistics<Method, Statement, State>? = { null },
     coverageStatistics: () -> CoverageStatistics<Method, Statement, State>? = { null },
-    distanceStatistics: () -> DistanceStatistics<Method, Statement>? = { null }
+    distanceStatistics: () -> DistanceStatistics<Method, Statement>? = { null },
+    applicationGraph: () -> ApplicationGraph<Method, Statement>? = { null }
 ) : UPathSelector<State> {
     val strategies = options.pathSelectionStrategies
     require(strategies.isNotEmpty()) { "At least one path selector strategy should be specified" }
@@ -50,6 +52,11 @@ fun <Method, Statement, State : UState<*, *, Method, Statement>> createPathSelec
                 requireNotNull(coverageStatistics()) { "Coverage statistics is required for closest to uncovered path selector" },
                 requireNotNull(distanceStatistics()) { "Distance statistics is required for closest to uncovered path selector" },
                 random
+            )
+            PathSelectionStrategy.BFS_WITH_LOGGING -> BfsWithLoggingPathSelector(
+                requireNotNull(pathsTreeStatistics()) { "Paths tree statistics is required for BFS with logging path selector" },
+                requireNotNull(coverageStatistics()) { "Coverage statistics is required for BFS with logging path selector" },
+                requireNotNull(applicationGraph()) { "Application graph is required for BFS with logging path selector" }
             )
         }
     }
