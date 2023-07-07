@@ -104,6 +104,7 @@ class InstrumentedProcess private constructor() {
         val db = jacodb {
             loadByteCode(fileClassPath)
             installFeatures(InMemoryHierarchy)
+            jre = File(InstrumentationModuleConstants.pathToJava)
             //persistent(location = "/home/.usvm/jcdb.db", clearOnStart = false)
         }
         jcClasspath = db.asyncClasspath(fileClassPath).get()
