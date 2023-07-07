@@ -147,7 +147,7 @@ class JcTestResolver(
         fun resolveExpr(expr: UExpr<out USort>, type: JcType): Any? =
             when (type) {
                 is JcPrimitiveType -> resolvePrimitive(expr, type)
-                is JcRefType -> resolveObject(expr.asExpr(ctx.addressSort), type)
+                is JcRefType -> resolveReference(expr.asExpr(ctx.addressSort), type)
                 else -> error("Unexpected type: $type")
             }
 
@@ -167,7 +167,7 @@ class JcTestResolver(
             } ?: error("Can't extract $expr to ${type.typeName}")
         }
 
-        fun resolveObject(heapRef: UHeapRef, type: JcRefType): Any? {
+        fun resolveReference(heapRef: UHeapRef, type: JcRefType): Any? {
             val ref = evaluateInModel(heapRef) as UConcreteHeapRef
             if (ref.address == UAddressCounter.NULL_ADDRESS) {
                 return null
@@ -181,7 +181,7 @@ class JcTestResolver(
                 }
                 when (evaluatedType) {
                     is JcArrayType -> resolveArray(ref, heapRef, evaluatedType)
-                    is JcClassType -> resolveReference(ref, heapRef, evaluatedType)
+                    is JcClassType -> resolveObject(ref, heapRef, evaluatedType)
                     else -> error("Unexpected type: $type")
                 }
             }
@@ -223,7 +223,7 @@ class JcTestResolver(
             return instance
         }
 
-        private fun resolveReference(ref: UConcreteHeapRef, heapRef: UHeapRef, type: JcRefType): Any {
+        private fun resolveObject(ref: UConcreteHeapRef, heapRef: UHeapRef, type: JcRefType): Any {
             val clazz = resolveType(type)
             val instance = Reflection.allocateInstance(clazz)
             resolvedCache[ref.address] = instance
@@ -256,7 +256,7 @@ class JcTestResolver(
                     ctx.cp.byte -> ByteArray::class.java
                     ctx.cp.char -> CharArray::class.java
                     is JcRefType -> {
-                        val clazz = classLoader.loadClass(elementType.jcClass.name)
+                        val clazz = resolveType(elementType)
                         Reflection.allocateArray(clazz, length = 0).javaClass
                     }
 

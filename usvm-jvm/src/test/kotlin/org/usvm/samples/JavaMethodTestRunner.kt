@@ -733,4 +733,4 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
 }
 
 private val KFunction<*>.declaringClass: Class<*>?
-    get() = javaMethod?.declaringClass ?: javaConstructor?.declaringClass
+    get() = (javaMethod ?: javaConstructor)?.declaringClass

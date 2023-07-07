@@ -49,7 +49,6 @@ internal class ArrayOfObjectsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun testCopyArrayMutation() {
         checkThisAndParamsMutations(
             ArrayOfObjects::copyArray,
