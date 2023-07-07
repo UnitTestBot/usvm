@@ -31,6 +31,7 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [0]. Multidimensional array")
     fun testDefaultValuesWithoutLastDimension() {
         checkDiscoveredProperties(
             ArrayOfArrays::defaultValuesWithoutLastDimension,

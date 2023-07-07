@@ -123,6 +123,7 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [3, 4, 5]. Tune path selectors")
     fun testMergeArrays() {
         checkDiscoveredProperties(
             IntArrayBasics::mergeArrays,

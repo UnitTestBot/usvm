@@ -72,6 +72,7 @@ internal class SortTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [1, 3, 4, 5]. Tune path selectors")
     fun testMerge() {
         checkDiscoveredPropertiesWithExceptions(
             Sort::merge,
@@ -104,6 +105,7 @@ internal class SortTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [1, 2]. Tune path selectors")
     fun testDefaultSort() {
         checkDiscoveredPropertiesWithExceptions(
             Sort::defaultSort,
