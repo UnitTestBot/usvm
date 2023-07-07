@@ -1,5 +1,6 @@
 package org.usvm.samples.objects
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.usvm.samples.JavaMethodTestRunner
@@ -16,6 +17,7 @@ class AbstractAnonymousClassTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Repeats UTBot behavior, see require(possibleTypesWithNonOverriddenMethod.isNotEmpty()) in Traverser")
     fun testOverriddenMethod() {
         // check we have error during execution
         assertThrows<org.opentest4j.AssertionFailedError> {
