@@ -41,7 +41,6 @@ dependencies {
     implementation("org.ini4j:ini4j:${Versions.ini4j}")
     implementation("com.jetbrains.rd:rd-core:${Versions.rd}")
     implementation("commons-cli:commons-cli:1.5.0")
-//    rdgenModelsCompileClasspath("com.jetbrains.rd:rd-gen:${Versions.rd}")
     implementation("com.jetbrains.rd:rd-gen:${Versions.rd}")
 }
 
@@ -102,7 +101,7 @@ tasks {
                     "Can-Redefine-Classes" to "true"
                 )
             )
-        } // Provided we set it up in the application plugin configuration
+        }
 
         val contents = configurations.runtimeClasspath.get()
             .map { if (it.isDirectory) it else zipTree(it) }
@@ -110,21 +109,19 @@ tasks {
         from(contents)
         with(jar.get() as CopySpec)
     }
-    build {
-        dependsOn(configurations.compileClasspath)
-    }
 }
+
 
 tasks {
     register<Jar>("testJar") {
         group = "jar"
+        shouldRunAfter("compileTestKotlin")
         archiveClassifier.set("test")
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 
         val contents = sourceSets.getByName("samples").output
 
         from(contents)
-//        with(jar.get() as CopySpec)
         dependsOn(getByName("compileSamplesJava"), configurations.testCompileClasspath)
         dependsOn(configurations.compileClasspath)
     }
@@ -137,3 +134,7 @@ tasks.withType<Test> {
         buildDir.resolve("libs").resolve("usvm-instrumentation-1.0.jar").absolutePath
     )
 }
+
+
+tasks.getByName("compileKotlin").finalizedBy("instrumentationJar")
+tasks.getByName("compileTestKotlin").finalizedBy("testJar")

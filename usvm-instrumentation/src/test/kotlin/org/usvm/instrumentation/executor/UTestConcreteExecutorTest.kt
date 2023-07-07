@@ -28,6 +28,7 @@ abstract class UTestConcreteExecutorTest {
             val db = jacodb {
                 loadByteCode(cp)
                 installFeatures(InMemoryHierarchy)
+                jre = File(InstrumentationModuleConstants.pathToJava)
             }
             jcClasspath = db.classpath(cp)
             uTestConcreteExecutor = createUTestConcreteExecutor()

@@ -33,6 +33,7 @@ class SimpleUTestConcreteExecutor: UTestConcreteExecutorTest() {
         val res = uTestConcreteExecutor.executeAsync(uTest)
         assert(res is UTestExecutionSuccessResult)
         res as UTestExecutionSuccessResult
+        println("RES = $res")
     }
 
     @Test
