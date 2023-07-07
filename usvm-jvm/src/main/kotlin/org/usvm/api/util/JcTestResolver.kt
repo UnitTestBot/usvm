@@ -66,10 +66,11 @@ class JcTestResolver(
      */
     fun resolve(method: JcTypedMethod, state: JcState): JcTest {
         val model = state.models.first()
-        val ctx = state.pathConstraints.ctx as JcContext
-        val initialScope = MemoryScope(ctx, model, model, method, classLoader)
-
         val memory = state.memory
+
+        val ctx = state.pathConstraints.ctx as JcContext
+
+        val initialScope = MemoryScope(ctx, model, model, method, classLoader)
         val afterScope = MemoryScope(ctx, model, memory, method, classLoader)
 
         val before = with(initialScope) { resolveState() }
@@ -146,7 +147,7 @@ class JcTestResolver(
         fun resolveExpr(expr: UExpr<out USort>, type: JcType): Any? =
             when (type) {
                 is JcPrimitiveType -> resolvePrimitive(expr, type)
-                is JcRefType -> resolveReference(expr.asExpr(ctx.addressSort), type)
+                is JcRefType -> resolveObject(expr.asExpr(ctx.addressSort), type)
                 else -> error("Unexpected type: $type")
             }
 
@@ -166,7 +167,7 @@ class JcTestResolver(
             } ?: error("Can't extract $expr to ${type.typeName}")
         }
 
-        fun resolveReference(heapRef: UHeapRef, type: JcRefType): Any? {
+        fun resolveObject(heapRef: UHeapRef, type: JcRefType): Any? {
             val ref = evaluateInModel(heapRef) as UConcreteHeapRef
             if (ref.address == UAddressCounter.NULL_ADDRESS) {
                 return null

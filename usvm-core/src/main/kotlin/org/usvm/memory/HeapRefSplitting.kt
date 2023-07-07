@@ -6,9 +6,11 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.UIteExpr
+import org.usvm.UNullRef
 import org.usvm.USort
 import org.usvm.USymbolicHeapRef
 import org.usvm.isFalse
+import org.usvm.uctx
 
 data class GuardedExpr<out T>(
     val expr: T,
@@ -39,10 +41,14 @@ internal data class SplitHeapRefs(
  *
  * @param initialGuard an initial value for the accumulated guard.
  */
-internal fun splitUHeapRef(ref: UHeapRef, initialGuard: UBoolExpr = ref.ctx.trueExpr): SplitHeapRefs {
+internal fun splitUHeapRef(
+    ref: UHeapRef,
+    initialGuard: UBoolExpr = ref.ctx.trueExpr,
+    ignoreNullRefs: Boolean = true,
+): SplitHeapRefs {
     val concreteHeapRefs = mutableListOf<GuardedExpr<UConcreteHeapRef>>()
 
-    val symbolicHeapRef = filter(ref, initialGuard) { guarded ->
+    val symbolicHeapRef = filter(ref, initialGuard, ignoreNullRefs) { guarded ->
         if (guarded.expr is UConcreteHeapRef) {
             @Suppress("UNCHECKED_CAST")
             concreteHeapRefs += (guarded as GuardedExpr<UConcreteHeapRef>)
@@ -70,6 +76,7 @@ internal inline fun withHeapRef(
     initialGuard: UBoolExpr,
     crossinline blockOnConcrete: (GuardedExpr<UConcreteHeapRef>) -> Unit,
     crossinline blockOnSymbolic: (GuardedExpr<UHeapRef>) -> Unit,
+    ignoreNullRefs: Boolean = true,
 ) {
     if (initialGuard.isFalse) {
         return
@@ -77,9 +84,13 @@ internal inline fun withHeapRef(
 
     when (ref) {
         is UConcreteHeapRef -> blockOnConcrete(ref with initialGuard)
+        is UNullRef -> if (!ignoreNullRefs) {
+            blockOnSymbolic(ref with initialGuard)
+        }
+
         is USymbolicHeapRef -> blockOnSymbolic(ref with initialGuard)
         is UIteExpr<UAddressSort> -> {
-            val (concreteHeapRefs, symbolicHeapRef) = splitUHeapRef(ref, initialGuard)
+            val (concreteHeapRefs, symbolicHeapRef) = splitUHeapRef(ref, initialGuard, ignoreNullRefs)
 
             symbolicHeapRef?.let { (ref, guard) -> blockOnSymbolic(ref with guard) }
             concreteHeapRefs.onEach { (ref, guard) -> blockOnConcrete(ref with guard) }
@@ -102,6 +113,7 @@ private const val DONE = 2
 internal inline fun <Sort : USort> UHeapRef.map(
     crossinline concreteMapper: (UConcreteHeapRef) -> UExpr<Sort>,
     crossinline symbolicMapper: (USymbolicHeapRef) -> UExpr<Sort>,
+    ignoreNullRefs: Boolean = true,
 ): UExpr<Sort> = when (this) {
     is UConcreteHeapRef -> concreteMapper(this)
     is USymbolicHeapRef -> symbolicMapper(this)
@@ -115,21 +127,37 @@ internal inline fun <Sort : USort> UHeapRef.map(
 
         nodeToChild.add(this to LEFT_CHILD)
 
+
         while (nodeToChild.isNotEmpty()) {
             val (ref, state) = nodeToChild.removeLast()
             when (ref) {
                 is UConcreteHeapRef -> completelyMapped += concreteMapper(ref)
                 is USymbolicHeapRef -> completelyMapped += symbolicMapper(ref)
                 is UIteExpr<UAddressSort> -> {
+
                     when (state) {
                         LEFT_CHILD -> {
-                            nodeToChild += ref to RIGHT_CHILD
-                            nodeToChild += ref.trueBranch to LEFT_CHILD
+                            when {
+                                ignoreNullRefs && ref.trueBranch == uctx.nullRef -> {
+                                    nodeToChild += ref.falseBranch to LEFT_CHILD
+                                }
+
+                                ignoreNullRefs && ref.falseBranch == uctx.nullRef -> {
+                                    nodeToChild += ref.trueBranch to LEFT_CHILD
+                                }
+
+                                else -> {
+                                    nodeToChild += ref to RIGHT_CHILD
+                                    nodeToChild += ref.trueBranch to LEFT_CHILD
+                                }
+                            }
                         }
+
                         RIGHT_CHILD -> {
                             nodeToChild += ref to DONE
                             nodeToChild += ref.falseBranch to LEFT_CHILD
                         }
+
                         DONE -> {
                             // we firstly process the left child of [cur], so it will be under the top of the stack
                             // the top of the stack will be the right child
@@ -160,6 +188,7 @@ internal inline fun <Sort : USort> UHeapRef.map(
 internal inline fun filter(
     ref: UHeapRef,
     initialGuard: UBoolExpr,
+    ignoreNullRefs: Boolean,
     crossinline predicate: (GuardedExpr<UHeapRef>) -> Boolean,
 ): GuardedExpr<UHeapRef>? = with(ref.ctx) {
     when (ref) {
@@ -179,15 +208,29 @@ internal inline fun filter(
                 when (cur) {
                     is UIteExpr<UAddressSort> -> when (state) {
                         LEFT_CHILD -> {
-                            nodeToChild += guarded to RIGHT_CHILD
-                            val leftGuard = mkAnd(guardFromTop, cur.condition, flat = false)
-                            nodeToChild += (cur.trueBranch with leftGuard) to LEFT_CHILD
+                            when {
+                                ignoreNullRefs && cur.trueBranch == cur.uctx.nullRef -> {
+                                    nodeToChild += (cur.falseBranch with guardFromTop) to LEFT_CHILD
+                                }
+
+                                ignoreNullRefs && cur.falseBranch == cur.uctx.nullRef -> {
+                                    nodeToChild += (cur.trueBranch with guardFromTop) to LEFT_CHILD
+                                }
+
+                                else -> {
+                                    nodeToChild += guarded to RIGHT_CHILD
+                                    val leftGuard = mkAnd(guardFromTop, cur.condition, flat = false)
+                                    nodeToChild += (cur.trueBranch with leftGuard) to LEFT_CHILD
+                                }
+                            }
                         }
+
                         RIGHT_CHILD -> {
                             nodeToChild += guarded to DONE
                             val guardRhs = mkAnd(guardFromTop, !cur.condition, flat = false)
                             nodeToChild += (cur.falseBranch with guardRhs) to LEFT_CHILD
                         }
+
                         DONE -> {
                             // we firstly process the left child of [cur], so it will be under the top of the stack
                             // the top of the stack will be the right child
@@ -202,7 +245,7 @@ internal inline fun filter(
                                     /**
                                      *```
                                      *           cur.condition | guard = ( cur.condition -> lhs.guard) &&
-                                                   /        \            (!cur.condition -> rhs.guard)
+                                     *             /        \            (!cur.condition -> rhs.guard)
                                      *            /          \
                                      *           /            \
                                      *          /              \
@@ -213,14 +256,17 @@ internal inline fun filter(
                                     val guard = mkAnd(leftPart, rightPart, flat = false)
                                     mkIte(cur.condition, lhs.expr, rhs.expr) with guard
                                 }
+
                                 lhs != null -> {
                                     val guard = mkAnd(cur.condition, lhs.guard, flat = false)
                                     lhs.expr with guard
                                 }
+
                                 rhs != null -> {
                                     val guard = mkAnd(!cur.condition, rhs.guard, flat = false)
                                     rhs.expr with guard
                                 }
+
                                 else -> null
                             }
                             completelyMapped += next
@@ -234,6 +280,7 @@ internal inline fun filter(
 
             completelyMapped.single()?.withAlso(initialGuard)
         }
+
         else -> (ref with initialGuard).takeIf(predicate)
     }
 }

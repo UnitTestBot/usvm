@@ -4,6 +4,7 @@ import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapAddress
 import org.usvm.UConcreteHeapRef
 import org.usvm.UHeapRef
+import org.usvm.UNullRef
 import org.usvm.memory.UAddressCounter.Companion.NULL_ADDRESS
 import org.usvm.memory.map
 import org.usvm.types.UTypeSystem
@@ -119,6 +120,8 @@ class UTypeConstraints<Type>(
                 }
             }
 
+            is UNullRef -> return
+
             else -> {
                 val constraints = this[ref]
                 val newConstraints = constraints.addSupertype(type)
@@ -141,7 +144,7 @@ class UTypeConstraints<Type>(
     }
 
     /**
-     * Constraints type of [ref] to be a noy subtype of [type].
+     * Constraints type of [ref] to be a not subtype of [type].
      * If it is impossible within current type and equality constraints,
      * then type constraints become contradicting (@see [isContradiction]).
      */
@@ -153,6 +156,8 @@ class UTypeConstraints<Type>(
                     contradiction()
                 }
             }
+
+            is UNullRef -> contradiction()
 
             else -> {
                 val constraints = this[ref]
@@ -207,7 +212,11 @@ class UTypeConstraints<Type>(
                     concreteRef.ctx.falseExpr
                 }
             },
-            symbolicMapper = { symbolicRef ->
+            symbolicMapper = mapper@{ symbolicRef ->
+                if (symbolicRef == symbolicRef.uctx.nullRef) {
+                    // null reference
+                    return@mapper symbolicRef.ctx.trueExpr
+                }
                 val typeRegion = this[symbolicRef]
 
                 if (typeRegion.addSupertype(type).isContradicting) {
@@ -215,7 +224,8 @@ class UTypeConstraints<Type>(
                 } else {
                     symbolicRef.uctx.mkIsExpr(symbolicRef, type)
                 }
-            }
+            },
+            ignoreNullRefs = false
         )
 
 

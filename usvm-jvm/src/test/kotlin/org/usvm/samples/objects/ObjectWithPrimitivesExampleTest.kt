@@ -35,7 +35,7 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
     fun testExample() {
         checkDiscoveredProperties(
             ObjectWithPrimitivesExample::example,
-            ignoreNumberOfAnalysisResults,
+            eq(3),
             { _, v, _ -> v == null },
             { _, v, r -> v != null && v.x == 1 && r?.x == 1 },
             { _, v, r -> v != null && v.x != 1 && r?.x == 1 },

@@ -1,6 +1,5 @@
 package org.usvm.samples.objects
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
@@ -128,7 +127,7 @@ internal class ObjectWithRefFieldsExampleTest : JavaMethodTestRunner() {
     @Test
     fun testCompareTwoObjectsWithTheDifferentRefField() {
         checkDiscoveredPropertiesWithExceptions(
-            ObjectWithRefFieldExample::compareTwoObjectsWithDifferentRefField,
+            ObjectWithRefFieldExample::compareTwoObjectsWithTheDifferentRefField,
             ignoreNumberOfAnalysisResults,
             { _, fst, _, r -> fst == null && r.isException<NullPointerException>() },
             { _, fst, snd, r -> fst != null && snd == null && r.isException<NullPointerException>() },

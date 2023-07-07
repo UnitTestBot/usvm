@@ -92,8 +92,8 @@ open class UContext(
             lhs is UConcreteHeapRef && rhs is UConcreteHeapRef -> mkBool(lhs == rhs)
             // unfolding
             else -> {
-                val (concreteRefsLhs, symbolicRefLhs) = splitUHeapRef(lhs)
-                val (concreteRefsRhs, symbolicRefRhs) = splitUHeapRef(rhs)
+                val (concreteRefsLhs, symbolicRefLhs) = splitUHeapRef(lhs, ignoreNullRefs = false)
+                val (concreteRefsRhs, symbolicRefRhs) = splitUHeapRef(rhs, ignoreNullRefs = false)
 
                 val concreteRefLhsToGuard = concreteRefsLhs.associate { it.expr.address to it.guard }
 
