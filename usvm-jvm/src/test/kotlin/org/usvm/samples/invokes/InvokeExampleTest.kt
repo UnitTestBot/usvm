@@ -77,7 +77,6 @@ internal class InvokeExampleTest : JavaMethodTestRunner() {
 
 
     @Test
-//    @Disabled("Expected exactly 3 executions, but 2 found")
     fun testConstraintsFromInside() {
         checkDiscoveredProperties(
             InvokeExample::constraintsFromInside,
