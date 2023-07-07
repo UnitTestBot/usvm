@@ -2,6 +2,7 @@ package org.usvm.samples.controlflow
 
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.usvm.CoverageZone
 import org.usvm.PathSelectionStrategy
 import org.usvm.UMachineOptions
 import org.usvm.samples.JavaMethodTestRunner
@@ -71,13 +72,15 @@ internal class CyclesTest : JavaMethodTestRunner() {
         )
     }
 
-    @Test
-    fun testCallInnerWhile() {
-        checkDiscoveredProperties(
-            Cycles::callInnerWhile,
-            between(1..2),
-            { _, x, r -> x >= 42 && r == Cycles().callInnerWhile(x) }
-        )
+    @UsvmTest([Options([PathSelectionStrategy.RANDOM_PATH], coverageZone = CoverageZone.CLASS)])
+    fun testCallInnerWhile(options: UMachineOptions) {
+        withOptions(options) {
+            checkDiscoveredProperties(
+                Cycles::callInnerWhile,
+                between(1..2),
+                { _, x, r -> x >= 42 && r == Cycles().callInnerWhile(x) }
+            )
+        }
     }
 
     @Test
