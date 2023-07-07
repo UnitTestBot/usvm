@@ -89,7 +89,11 @@ tasks {
             "--add-opens", "java.base/jdk.internal.util.xml=ALL-UNNAMED",
             "--add-opens", "java.base/jdk.internal.util.xml.impl=ALL-UNNAMED",
             "--add-opens", "java.base/jdk.internal.vm=ALL-UNNAMED",
-            "--add-opens", "java.base/jdk.internal.vm.annotation=ALL-UNNAMED"
+            "--add-opens", "java.base/jdk.internal.vm.annotation=ALL-UNNAMED",
+            "--add-opens", "java.management/javax.management=ALL-UNNAMED",
+            "--add-opens", "jdk.charsets/sun.nio.cs.ext=ALL-UNNAMED",
+            "--add-opens", "jdk.zipfs/jdk.nio.zipfs=ALL-UNNAMED",
+            "--add-opens", "java.sql/java.sql=ALL-UNNAMED",
         )
     }
 }
