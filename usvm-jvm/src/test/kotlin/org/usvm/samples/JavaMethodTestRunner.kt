@@ -729,6 +729,13 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
     override val coverageRunner: (List<JcTest>) -> JcClassCoverage = { _ ->
         JcClassCoverage(visitedStmts = emptySet())
     }
+
+    companion object {
+        init {
+            // See https://dzone.com/articles/how-to-export-all-modules-to-all-modules-at-runtime-in-java?preview=true
+            org.burningwave.core.assembler.StaticComponentContainer.Modules.exportAllToAll()
+        }
+    }
 }
 
 private val KFunction<*>.declaringClass: Class<*>?
