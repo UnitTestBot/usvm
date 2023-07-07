@@ -94,6 +94,7 @@ tasks {
             "--add-opens", "jdk.charsets/sun.nio.cs.ext=ALL-UNNAMED",
             "--add-opens", "jdk.zipfs/jdk.nio.zipfs=ALL-UNNAMED",
             "--add-opens", "java.sql/java.sql=ALL-UNNAMED",
+            "--add-opens", "java.base/sun.net.www.http=ALL-UNNAMED",
         )
     }
 }
