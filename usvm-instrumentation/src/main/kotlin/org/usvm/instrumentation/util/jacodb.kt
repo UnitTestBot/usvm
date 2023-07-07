@@ -1,7 +1,6 @@
 package org.usvm.instrumentation.util
 
 import getFieldByName
-import jdk.internal.org.objectweb.asm.Opcodes
 import org.jacodb.api.*
 import org.jacodb.api.cfg.JcInst
 import org.jacodb.api.ext.*

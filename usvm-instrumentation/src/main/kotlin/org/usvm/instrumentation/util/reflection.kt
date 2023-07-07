@@ -1,10 +1,7 @@
 import org.usvm.instrumentation.util.`try`
 import sun.misc.Unsafe
-import java.lang.reflect.Constructor
-import java.lang.reflect.Field
-import java.lang.reflect.InvocationTargetException
-import java.lang.reflect.Method
-import java.lang.reflect.Modifier
+import java.lang.invoke.MethodHandles
+import java.lang.reflect.*
 
 
 object ReflectionUtils {
@@ -150,8 +147,7 @@ var Field.isFinal: Boolean
     get() = (this.modifiers and Modifier.FINAL) == Modifier.FINAL
     set(value) {
         if (value == this.isFinal) return
-        // In java 9+ use varhandles
-        val modifiersField = this.javaClass.getDeclaredField("modifiers")
-        modifiersField.isAccessible = true
-        modifiersField.setInt(this, this.modifiers and if (value) Modifier.FINAL else Modifier.FINAL.inv())
+        val lookup = MethodHandles.privateLookupIn(Field::class.java, MethodHandles.lookup())
+        val modifiersField = lookup.findVarHandle(Field::class.java, "modifiers", Int::class.javaPrimitiveType)
+        modifiersField.set(this, this.modifiers and (if (value) Modifier.FINAL else Modifier.FINAL.inv()))
     }
