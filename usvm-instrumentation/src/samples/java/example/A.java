@@ -86,15 +86,6 @@ public class A {
         return MockClass.staticMock();
     }
 
-
-
-    public int mockExample1() {
-        if (MockCollector.isMocked(214124124, this)) {
-            return MockCollector.getIntMockValue(214124124, this);
-        }
-        return -777;
-    }
-
     public int isA(int b) {
         staticField1++;
 //        lolInteger = 239;
