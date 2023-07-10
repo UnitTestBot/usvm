@@ -56,6 +56,7 @@ fun <Method, Statement, State : UState<*, *, Method, Statement>> createPathSelec
             PathSelectionStrategy.BFS_WITH_LOGGING -> BfsWithLoggingPathSelector(
                 requireNotNull(pathsTreeStatistics()) { "Paths tree statistics is required for BFS with logging path selector" },
                 requireNotNull(coverageStatistics()) { "Coverage statistics is required for BFS with logging path selector" },
+                requireNotNull(distanceStatistics()) { "Distance statistics is required for BFS with logging path selector" },
                 requireNotNull(applicationGraph()) { "Application graph is required for BFS with logging path selector" }
             )
         }
