@@ -48,13 +48,17 @@ class JcMachine(
         val methodsToTrackCoverage =
             when (options.coverageZone) {
                 CoverageZone.METHOD -> setOf(method)
+                CoverageZone.TRANSITIVE -> setOf(method)
                 // TODO: more adequate method filtering. !it.isConstructor is used to exclude default constructor which is often not covered
                 CoverageZone.CLASS -> method.enclosingClass.methods.filter {
                     it.enclosingClass == method.enclosingClass && !it.isConstructor
                 }.toSet()
             }
 
-        val coverageStatistics: CoverageStatistics<JcMethod, JcInst, JcState> = CoverageStatistics(methodsToTrackCoverage, applicationGraph)
+        val coverageStatistics: CoverageStatistics<JcMethod, JcInst, JcState> = CoverageStatistics(
+            methodsToTrackCoverage,
+            applicationGraph
+        )
         val pathsTreeStatistics = PathsTreeStatistics(initialState)
 
         val pathSelector = createPathSelector(
@@ -65,12 +69,30 @@ class JcMachine(
             { distanceStatistics }
         )
 
-        val statesCollector = CoveredNewStatesCollector<JcState>(coverageStatistics) { it.methodResult is JcMethodResult.Exception }
-        val stopStrategy = createStopStrategy(options, { coverageStatistics }, { statesCollector.collectedStates.size })
+        val statesCollector = CoveredNewStatesCollector<JcState>(coverageStatistics) {
+            it.methodResult is JcMethodResult.Exception
+        }
+        val stopStrategy = createStopStrategy(
+            options,
+            coverageStatistics = { coverageStatistics },
+            getCollectedStatesCount = { statesCollector.collectedStates.size }
+        )
 
         val observers = mutableListOf<UMachineObserver<JcState>>(coverageStatistics)
+
         if (!disablePathsTreeStatistics) {
             observers.add(pathsTreeStatistics)
+        }
+
+        if (options.coverageZone == CoverageZone.TRANSITIVE) {
+            observers.add(
+                TransitiveCoverageZoneObserver(
+                    initialMethod = method,
+                    methodExtractor = { state -> state.lastStmt.location.method },
+                    addCoverageZone = { coverageStatistics.addCoverageZone(it) },
+                    ignoreMethod = { false } // TODO replace with a configurable setting
+                )
+            )
         }
         observers.add(statesCollector)
 

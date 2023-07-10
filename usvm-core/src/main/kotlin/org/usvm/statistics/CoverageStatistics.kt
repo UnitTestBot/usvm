@@ -29,12 +29,28 @@ class CoverageStatistics<Method, Statement, State : UState<*, *, Method, Stateme
 
     init {
         for (method in methods) {
-            val methodStatements = bfsTraversal(applicationGraph.entryPoints(method).toList(), applicationGraph::successors)
-                .fold(ConcurrentHashMap.newKeySet<Statement>() as MutableSet<Statement>) { acc, stmt -> acc.add(stmt); acc  }
-            uncoveredStatements[method] = methodStatements
-            totalUncoveredStatements += methodStatements.size
-            coveredStatements[method] = HashSet()
+            addCoverageZone(method)
         }
+    }
+
+    /**
+     * Adds a new zone of coverage retrieved from the method.
+     * This method might be useful to add coverage zones dynamically,
+     * e.g., like in the [TransitiveCoverageZoneObserver].
+     */
+    fun addCoverageZone(method: Method) {
+        if (method in uncoveredStatements.keys) return
+
+        val methodStatements = bfsTraversal(
+            applicationGraph.entryPoints(method).toList(),
+            applicationGraph::successors
+        ).fold(ConcurrentHashMap.newKeySet<Statement>() as MutableSet<Statement>) { acc, stmt ->
+            acc.add(stmt); acc
+        }
+
+        uncoveredStatements[method] = methodStatements
+        totalUncoveredStatements += methodStatements.size
+        coveredStatements[method] = HashSet()
     }
 
     private fun computeCoverage(covered: Int, uncovered: Int): Float {

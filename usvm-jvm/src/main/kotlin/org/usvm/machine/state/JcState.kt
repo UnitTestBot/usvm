@@ -42,4 +42,7 @@ class JcState(
             methodResult,
         )
     }
+
+    override val isExceptional: Boolean
+        get() = methodResult is JcMethodResult.Exception
 }
