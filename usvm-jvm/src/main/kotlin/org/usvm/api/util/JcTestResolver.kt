@@ -19,6 +19,8 @@ import org.jacodb.api.ext.long
 import org.jacodb.api.ext.short
 import org.jacodb.api.ext.toType
 import org.jacodb.api.ext.void
+import org.usvm.INITIAL_INPUT_ADDRESS
+import org.usvm.NULL_ADDRESS
 import org.usvm.UArrayIndexLValue
 import org.usvm.UArrayLengthLValue
 import org.usvm.UConcreteHeapAddress
@@ -44,8 +46,6 @@ import org.usvm.machine.extractShort
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.WrappedException
-import org.usvm.memory.UAddressCounter
-import org.usvm.memory.UAddressCounter.Companion.INITIAL_INPUT_ADDRESS
 import org.usvm.memory.UMemoryBase
 import org.usvm.memory.UReadOnlySymbolicMemory
 import org.usvm.model.UModelBase
@@ -169,7 +169,7 @@ class JcTestResolver(
 
         fun resolveReference(heapRef: UHeapRef, type: JcRefType): Any? {
             val ref = evaluateInModel(heapRef) as UConcreteHeapRef
-            if (ref.address == UAddressCounter.NULL_ADDRESS) {
+            if (ref.address == NULL_ADDRESS) {
                 return null
             }
             return resolvedCache.getOrElse(ref.address) {

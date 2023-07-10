@@ -138,6 +138,28 @@ class UNullRef internal constructor(
     }
 }
 
+// We split all addresses into three parts:
+//     * input values: [Int.MIN_VALUE..0),
+//     * null value: [0]
+//     * allocated values: (0..[Int.MAX_VALUE]
+
+/**
+ * A constant corresponding to `null`.
+ */
+const val NULL_ADDRESS = 0
+
+/**
+ * A constant corresponding to the first input address in any decoded model.
+ * Input addresses takes this semi-interval: [[Int.MIN_VALUE]..0)
+ */
+const val INITIAL_INPUT_ADDRESS = NULL_ADDRESS - 1
+/**
+ * A constant corresponding to the first allocated address in any symbolic memory.
+ * Input addresses takes this semi-interval: (0..[Int.MAX_VALUE])
+ */
+const val INITIAL_CONCRETE_ADDRESS = NULL_ADDRESS + 1
+
+
 //endregion
 
 //region LValues
