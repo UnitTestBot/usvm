@@ -3,6 +3,12 @@ package org.usvm.types
 import org.usvm.util.CachingSequence
 import org.usvm.util.DfsIterator
 
+/**
+ * A persistent type stream based on the [supportType]. Takes inheritors of the [supportType] and
+ * provides those that satisfy the [filtering] function.
+ *
+ * Maintains invariant that [cachingSequence] already filtered with the [filtering] function.
+ */
 class USupportTypeStream<Type> private constructor(
     private val typeSystem: UTypeSystem<Type>,
     private val cachingSequence: CachingSequence<Type>,
@@ -11,7 +17,7 @@ class USupportTypeStream<Type> private constructor(
 ) : UTypeStream<Type> {
     override fun filterBySupertype(type: Type): UTypeStream<Type> {
         return when {
-            typeSystem.isSupertype(supportType, type) -> {
+            typeSystem.isSupertype(supportType, type) -> { // we update the [supportType]
                 USupportTypeStream(
                     typeSystem,
                     rootSequence(typeSystem, type).filter(filtering),
@@ -20,7 +26,7 @@ class USupportTypeStream<Type> private constructor(
                 )
             }
 
-            else -> {
+            else -> { // just add one more filter
                 USupportTypeStream(
                     typeSystem,
                     cachingSequence.filter { typeSystem.isSupertype(type, it) },
@@ -34,7 +40,7 @@ class USupportTypeStream<Type> private constructor(
     override fun filterBySubtype(type: Type): UTypeStream<Type> {
         return when {
             typeSystem.isSupertype(type, supportType) -> {
-                if (type == supportType && filtering(type)) { // exact type
+                if (type == supportType && filtering(type) && typeSystem.isInstantiable(type)) { // exact type
                     USingleTypeStream(typeSystem, type)
                 } else {
                     UEmptyTypeStream()
@@ -105,6 +111,7 @@ class USupportTypeStream<Type> private constructor(
             typeSystem: UTypeSystem<Type>,
             type: Type,
         ): CachingSequence<Type> {
+            // TODO: we might use another strategy of iterating here
             val dfsIterator = DfsIterator(type) { typeNode -> typeSystem.findSubtypes(typeNode).iterator() }
             return CachingSequence(dfsIterator)
         }

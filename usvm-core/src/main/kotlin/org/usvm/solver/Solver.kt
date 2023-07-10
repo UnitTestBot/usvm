@@ -120,19 +120,23 @@ open class USolverBase<Field, Type, Method>(
                 }
             }
 
+            // DPLL(T)-like solve procedure
             var iter = 0
             @Suppress("KotlinConstantConditions")
             do {
                 iter++
 
+                // first, get a model from the SMT solver
                 val kModel = when (internalCheckWithSoftConstraints(softConstraints)) {
                     KSolverStatus.SAT -> smtSolver.model().detach()
                     KSolverStatus.UNSAT -> return UUnsatResult()
                     KSolverStatus.UNKNOWN -> return UUnknownResult()
                 }
 
+                // second, decode it unto uModel
                 val uModel = decoder.decode(kModel)
 
+                // third, check it satisfies typeConstraints
                 when (val typeResult = pc.typeConstraints.verify(uModel)) {
                     is USatResult -> return USatResult(
                         UModelBase(
@@ -144,6 +148,7 @@ open class USolverBase<Field, Type, Method>(
                         )
                     )
 
+                    // in case of failure, assert reference disequality expressions
                     is UTypeUnsatResult<Type> -> typeResult.expressionsToAssert
                         .map(translator::translate)
                         .forEach(smtSolver::assert)
@@ -191,6 +196,7 @@ open class USolverBase<Field, Type, Method>(
     }
 
     companion object {
+        // TODO: options
         /**
          * -1 means no threshold
          */

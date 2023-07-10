@@ -3,14 +3,18 @@ package org.usvm.types
 import io.ksmt.solver.z3.KZ3Solver
 import io.mockk.every
 import io.mockk.mockk
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.Field
+import org.usvm.INITIAL_INPUT_ADDRESS
 import org.usvm.Method
+import org.usvm.NULL_ADDRESS
 import org.usvm.UComponents
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.constraints.UPathConstraints
-import org.usvm.memory.UAddressCounter.Companion.NULL_ADDRESS
+import org.usvm.constraints.UTypeUnsatResult
 import org.usvm.memory.UMemoryBase
 import org.usvm.model.UModelBase
 import org.usvm.model.buildTranslatorAndLazyDecoder
@@ -23,6 +27,10 @@ import org.usvm.types.system.base1
 import org.usvm.types.system.base2
 import org.usvm.types.system.interface1
 import org.usvm.types.system.interface2
+import org.usvm.types.system.interfaceAB
+import org.usvm.types.system.interfaceAC
+import org.usvm.types.system.interfaceBC1
+import org.usvm.types.system.interfaceBC2
 import org.usvm.types.system.testTypeSystem
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -165,5 +173,82 @@ class TypeSolverTest {
 
         val resultWithEqAndNotNullConstraint = solver.check(pc, useSoftConstraints = false)
         assertIs<UUnsatResult<UModelBase<Field, TestType>>>(resultWithEqAndNotNullConstraint)
+    }
+
+    @Test
+    fun `Test symbolic ref -- expressions to assert correctness`(): Unit = with(ctx) {
+        val a = ctx.mkRegisterReading(0, addressSort)
+        val b1 = ctx.mkRegisterReading(1, addressSort)
+        val b2 = ctx.mkRegisterReading(2, addressSort)
+
+        val c = ctx.mkRegisterReading(3, addressSort)
+        pc += mkHeapRefEq(a, nullRef).not() and
+            mkHeapRefEq(b1, nullRef).not() and
+            mkHeapRefEq(b2, nullRef).not() and
+            mkHeapRefEq(c, nullRef).not()
+
+        pc += mkIsExpr(a, interfaceAB)
+        pc += mkIsExpr(b1, interfaceBC1)
+        pc += mkIsExpr(b2, interfaceBC2)
+        pc += mkIsExpr(c, interfaceAC)
+
+        pc += mkHeapRefEq(b1, b2)
+
+        with(pc.clone()) {
+            val result = solver.check(this, useSoftConstraints = false)
+            assertIs<USatResult<UModelBase<Field, TestType>>>(result)
+
+            val concreteA = result.model.eval(a)
+            val concreteB1 = result.model.eval(b1)
+            val concreteB2 = result.model.eval(b2)
+            val concreteC = result.model.eval(c)
+
+            assertEquals(concreteB1, concreteB2)
+            assertTrue(concreteA != concreteB1 || concreteB1 != concreteC || concreteC != concreteA)
+        }
+
+        with(pc.clone()) {
+            val model = mockk<UModelBase<Field, TestType>> {
+                every { eval(a) } returns mkConcreteHeapRef(INITIAL_INPUT_ADDRESS)
+                every { eval(b1) } returns mkConcreteHeapRef(INITIAL_INPUT_ADDRESS)
+                every { eval(b2) } returns mkConcreteHeapRef(INITIAL_INPUT_ADDRESS)
+                every { eval(c) } returns mkConcreteHeapRef(INITIAL_INPUT_ADDRESS)
+            }
+            val result = typeConstraints.verify(model)
+            assertIs<UTypeUnsatResult<TestType>>(result)
+        }
+
+
+        with(pc.clone()) {
+            this += mkHeapRefEq(a, c) and mkHeapRefEq(b1, c)
+            val result = solver.check(this, useSoftConstraints = false)
+            assertIs<UUnsatResult<UModelBase<Field, TestType>>>(result)
+        }
+    }
+
+    @Test
+    @Disabled("Support propositional type variables")
+    fun `Test symbolic ref -- not instance of constraint`(): Unit = with(ctx) {
+        val a = ctx.mkRegisterReading(0, addressSort)
+        pc += mkHeapRefEq(a, nullRef) or mkIsExpr(a, interfaceAB).not()
+        val result = solver.check(pc, useSoftConstraints = false)
+        assertIs<USatResult<UModelBase<Field, TestType>>>(result)
+    }
+
+    @Test
+    @Disabled("Support propositional type variables")
+    fun `Test symbolic ref -- isExpr or bool variable`(): Unit = with(ctx) {
+        val a = ctx.mkRegisterReading(0, addressSort)
+        val unboundedBoolean = ctx.mkRegisterReading(1, boolSort)
+        pc += mkIsExpr(a, interfaceAB) xor unboundedBoolean
+        val result1 = solver.check(pc, useSoftConstraints = false)
+        assertIs<USatResult<UModelBase<Field, TestType>>>(result1)
+        pc += unboundedBoolean
+        val result2 = solver.check(pc, useSoftConstraints = false)
+        val model = assertIs<USatResult<UModelBase<Field, TestType>>>(result2).model
+        val concreteA = model.eval(a) as UConcreteHeapRef
+        val type = assertNotNull(model.types.typeOrNull(concreteA))
+        assertTrue(typeSystem.isInstantiable(type))
+        assertFalse(typeSystem.isSupertype(interfaceAB, type))
     }
 }

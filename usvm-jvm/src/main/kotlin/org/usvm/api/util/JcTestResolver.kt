@@ -173,10 +173,12 @@ class JcTestResolver(
                 return null
             }
             return resolvedCache.getOrElse(ref.address) {
-                val evaluatedType = if (ref.address <= INITIAL_INPUT_ADDRESS) {
+                // to find a type, we need to understand the source of the object
+                val evaluatedType = if (ref.address <= INITIAL_INPUT_ADDRESS) { // input object
                     val typeStream = model.typeStreamOf(ref).filterBySupertype(type)
                     typeStream.takeFirst() as JcRefType
-                } else {
+                } else { // allocated objectS
+                    // TODO: somehow refactor this
                     (memory as UMemoryBase<*, *, *>).types.readTypeRegion(ref).typeStream.takeFirst()
                 }
                 when (evaluatedType) {

@@ -28,5 +28,8 @@ interface UTypeSystem<Type> {
     fun findSubtypes(t: Type): Sequence<Type>
 
 
+    /**
+     * @return the top type stream, including all the types in the system.
+     */
     fun topTypeStream(): UTypeStream<Type>
 }

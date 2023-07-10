@@ -13,7 +13,6 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.usvm.constraints.UTypeEvaluator
-import org.usvm.memory.UAddressCounter.Companion.NULL_ADDRESS
 import org.usvm.memory.UAllocatedArrayId
 import org.usvm.memory.UAllocatedArrayRegion
 import org.usvm.memory.UFlatUpdates

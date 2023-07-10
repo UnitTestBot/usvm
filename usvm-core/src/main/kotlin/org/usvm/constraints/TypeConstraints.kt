@@ -77,7 +77,7 @@ class UTypeConstraints<Type>(
     /**
      * Returns if current type and equality constraints are unsatisfiable (syntactically).
      */
-    var isContradiction = false
+    var isContradicting = false
         private set
 
     private val topTypeRegion by lazy {
@@ -88,7 +88,7 @@ class UTypeConstraints<Type>(
     }
 
     private fun contradiction() {
-        isContradiction = true
+        isContradicting = true
     }
 
     /**
@@ -107,13 +107,14 @@ class UTypeConstraints<Type>(
     }
 
     /**
-     * Constraints type of [ref] to be a subtype of [type].
-     * If it is impossible within current type and equality constraints,
-     * then type constraints become contradicting (@see [isContradiction]).
+     * Constraints **either** the [ref] is null **or** the [ref] isn't null and the type of the [ref] to
+     * be a subtype of the [type]. If it is impossible within current type and equality constraints,
+     * then type constraints become contradicting (@see [isContradicting]).
      */
     fun addSupertype(ref: UHeapRef, type: Type) {
         when (ref) {
             is UConcreteHeapRef -> {
+                require(ref.address > 0)
                 val concreteType = concreteRefToType.getValue(ref.address)
                 if (!typeSystem.isSupertype(type, concreteType)) {
                     contradiction()
@@ -126,6 +127,7 @@ class UTypeConstraints<Type>(
                 val constraints = this[ref]
                 val newConstraints = constraints.addSupertype(type)
                 if (newConstraints.isContradicting) {
+                    // the only left option here is to be equal to null
                     equalityConstraints.addReferenceEquality(ref, ref.uctx.nullRef)
                 } else {
                     // Inferring new symbolic disequalities here
@@ -144,26 +146,28 @@ class UTypeConstraints<Type>(
     }
 
     /**
-     * Constraints type of [ref] to be a not subtype of [type].
+     * Constraints **both** the type of the [ref] to be a not subtype of the [type] and the [ref] not equals null.
      * If it is impossible within current type and equality constraints,
-     * then type constraints become contradicting (@see [isContradiction]).
+     * then type constraints become contradicting (@see [isContradicting]).
      */
     fun excludeSupertype(ref: UHeapRef, type: Type) {
         when (ref) {
             is UConcreteHeapRef -> {
+                require(ref.address > 0)
                 val concreteType = concreteRefToType.getValue(ref.address)
                 if (typeSystem.isSupertype(type, concreteType)) {
                     contradiction()
                 }
             }
 
-            is UNullRef -> contradiction()
+            is UNullRef -> contradiction() // the [ref] can't be equal to null
 
             else -> {
                 val constraints = this[ref]
                 val newConstraints = constraints.excludeSupertype(type)
                 equalityConstraints.makeNonEqual(ref, ref.uctx.nullRef)
-                if (newConstraints.isContradicting) {
+                if (newConstraints.isContradicting ||equalityConstraints.isContradicting) {
+                    // the [ref] can't be equal to null
                     contradiction()
                 } else {
                     // Inferring new symbolic disequalities here
@@ -181,9 +185,13 @@ class UTypeConstraints<Type>(
         }
     }
 
+    /**
+     * @return a type region corresponding to the [ref].
+     */
     fun readTypeRegion(ref: UHeapRef): UTypeRegion<Type> =
         when (ref) {
             is UConcreteHeapRef -> {
+                require(ref.address > 0)
                 val concreteType = concreteRefToType[ref.address]
                 val typeStream = if (concreteType == null) {
                     typeSystem.topTypeStream()
@@ -192,6 +200,8 @@ class UTypeConstraints<Type>(
                 }
                 UTypeRegion(typeSystem, typeStream)
             }
+
+            is UNullRef -> error("Null ref should be handled explicitly earlier")
 
             else -> {
                 this[ref]
@@ -202,6 +212,9 @@ class UTypeConstraints<Type>(
         this[ref1] = this[ref1].intersect(this[ref2])
     }
 
+    /**
+     * Evaluates the [ref] <: [type] in the current [UTypeConstraints]. Always returns true on null references.
+     */
     override fun evalIs(ref: UHeapRef, type: Type): UBoolExpr =
         ref.map(
             concreteMapper = { concreteRef ->
@@ -214,7 +227,7 @@ class UTypeConstraints<Type>(
             },
             symbolicMapper = mapper@{ symbolicRef ->
                 if (symbolicRef == symbolicRef.uctx.nullRef) {
-                    // null reference
+                    // accordingly to the [UIsExpr] specification, [nullRef] always satisfies the [type]
                     return@mapper symbolicRef.ctx.trueExpr
                 }
                 val typeRegion = this[symbolicRef]
@@ -240,7 +253,14 @@ class UTypeConstraints<Type>(
             symbolicRefToTypeRegion.toMutableMap()
         )
 
+    /**
+     * Checks if the [model] satisfies this [UTypeConstraints].
+     *
+     * @return [UTypeModel] if the [model] satisfies this [UTypeConstraints],
+     * and constraints on reference equalities if the [model] doesn't satisfy this [UTypeConstraints].
+     */
     fun verify(model: UModel): USolverResult<UTypeModel<Type>> {
+        // firstly, group symbolic references by their interpretations in the [model]
         val concreteRefToTypeRegions = symbolicRefToTypeRegion
             .entries
             .groupBy { (key, _) -> (model.eval(key) as UConcreteHeapRef).address }
@@ -248,26 +268,31 @@ class UTypeConstraints<Type>(
 
         val bannedRefEqualities = mutableListOf<UBoolExpr>()
 
+        // then for each group check conflicting types
         val concreteToRegionWithCluster = concreteRefToTypeRegions.mapValues { (_, cluster) ->
             var currentRegion: UTypeRegion<Type>? = null
-
             val potentialConflictingRefs = mutableListOf<UHeapRef>()
 
             for ((heapRef, region) in cluster) {
-                if (currentRegion == null) {
+                if (currentRegion == null) { // process the first element
                     currentRegion = region
                     potentialConflictingRefs.add(heapRef)
                 } else {
-                    val nextRegion = currentRegion.intersect(region)
+                    val nextRegion = currentRegion.intersect(region) // add [heapRef] to the current region
                     if (nextRegion.isEmpty) {
+                        // conflict detected, so it's impossible for [potentialConflictingRefs]
+                        // to have the common type with [heapRef], therefore they can't be equal
                         val disjunct = potentialConflictingRefs.map {
                             with(it.ctx) { it.neq(heapRef) }
                         }
                         bannedRefEqualities += heapRef.ctx.mkOr(disjunct)
                     } else if (nextRegion === region) {
+                        // the current [heapRef] gives the same region as the potentialConflictingRefs, so it's better
+                        // to keep only the [heapRef] to minimize the disequalities amount in disjunction
                         potentialConflictingRefs.clear()
                         potentialConflictingRefs.add(heapRef)
                     } else if (nextRegion !== currentRegion) {
+                        // no conflict detected, but the current region became smaller
                         potentialConflictingRefs.add(heapRef)
                     }
 
@@ -279,10 +304,12 @@ class UTypeConstraints<Type>(
             currentRegion to cluster
         }
 
+        // if there were some conflicts, return constraints on reference equalities
         if (bannedRefEqualities.isNotEmpty()) {
             return UTypeUnsatResult(bannedRefEqualities)
         }
 
+        // otherwise, return the type assignment
         val allConcreteRefToType = concreteRefToType.toMutableMap()
         concreteToRegionWithCluster.mapValuesTo(allConcreteRefToType) { (_, regionToCluster) ->
             val (region, cluster) = regionToCluster
@@ -290,6 +317,8 @@ class UTypeConstraints<Type>(
             val terminated = region.typeStream.take(1, resultList)
             if (terminated) {
                 if (resultList.isEmpty()) {
+                    // the only way to reach here is when some of the clusters consists of a single reference
+                    // because if the cluster is bigger, then we called region.isEmpty at least once previously
                     check(cluster.size == 1)
                     return UUnsatResult()
                 } else {

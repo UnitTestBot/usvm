@@ -41,8 +41,8 @@ open class UPathConstraints<Type> private constructor(
     constructor(ctx: UContext) : this(ctx, persistentSetOf())
 
     open val isFalse: Boolean
-        get() = equalityConstraints.isContradiction ||
-            typeConstraints.isContradiction ||
+        get() = equalityConstraints.isContradicting ||
+            typeConstraints.isContradicting ||
             logicalConstraints.singleOrNull() is UFalse
 
     @Suppress("UNCHECKED_CAST")

@@ -36,11 +36,11 @@ class UEqualityConstraints private constructor(
         equalReferences.subscribe(::rename)
     }
 
-    var isContradiction = false
+    var isContradicting = false
         private set
 
     private fun contradiction() {
-        isContradiction = true
+        isContradicting = true
         equalReferences.clear()
         mutableDistinctReferences.clear()
         mutableReferenceDisequalities.clear()
@@ -90,7 +90,7 @@ class UEqualityConstraints private constructor(
      * Adds an assertion that [ref1] is always equal to [ref2].
      */
     fun addReferenceEquality(ref1: UHeapRef, ref2: UHeapRef) {
-        if (isContradiction) {
+        if (isContradicting) {
             return
         }
 
@@ -211,7 +211,7 @@ class UEqualityConstraints private constructor(
      * Adds an assertion that [ref1] is never equal to [ref2].
      */
     fun makeNonEqual(ref1: UHeapRef, ref2: UHeapRef) {
-        if (isContradiction) {
+        if (isContradicting) {
             return
         }
 
@@ -233,7 +233,7 @@ class UEqualityConstraints private constructor(
      * Adds an assertion that [ref1] is never equal to [ref2] or both are null.
      */
     fun makeNonEqualOrBothNull(ref1: UHeapRef, ref2: UHeapRef) {
-        if (isContradiction) {
+        if (isContradicting) {
             return
         }
 
@@ -284,9 +284,9 @@ class UEqualityConstraints private constructor(
      * Note that current subscribers get unsubscribed!
      */
     fun clone(): UEqualityConstraints {
-        if (isContradiction) {
+        if (isContradicting) {
             val result = UEqualityConstraints(ctx, DisjointSets(), mutableSetOf(), mutableMapOf(), mutableMapOf())
-            result.isContradiction = true
+            result.isContradicting = true
             return result
         }
 

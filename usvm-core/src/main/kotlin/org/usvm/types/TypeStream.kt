@@ -1,5 +1,14 @@
 package org.usvm.types
 
+/**
+ * A persistent type stream interface. Represents these type constraints:
+ * * [filterBySupertype]
+ * * [filterBySubtype]
+ * * [filterByNotSubtype]
+ * * [filterByNotSupertype]
+ *
+ * Also provides a way to collect them via [take].
+ */
 interface UTypeStream<Type> {
     fun filterBySupertype(type: Type): UTypeStream<Type>
 
@@ -9,11 +18,15 @@ interface UTypeStream<Type> {
 
     fun filterByNotSubtype(type: Type): UTypeStream<Type>
 
+    // TODO: probably, we can consider it always terminates
     fun take(n: Int, result: MutableCollection<Type>): Boolean
 
     val isEmpty: Boolean
 }
 
+/**
+ * An empty type stream.
+ */
 class UEmptyTypeStream<Type> : UTypeStream<Type> {
     override fun filterBySupertype(type: Type): UTypeStream<Type> = this
 
@@ -38,6 +51,9 @@ fun <Type> UTypeStream<Type>.take(n: Int): List<Type> {
 
 fun <Type> UTypeStream<Type>.takeFirst(): Type = take(1).single()
 
+/**
+ * Consists of just one type [singleType].
+ */
 class USingleTypeStream<Type>(
     private val typeSystem: UTypeSystem<Type>,
     private val singleType: Type,
@@ -80,5 +96,3 @@ class USingleTypeStream<Type>(
     override val isEmpty: Boolean
         get() = false
 }
-
-// TODO add common part with caching

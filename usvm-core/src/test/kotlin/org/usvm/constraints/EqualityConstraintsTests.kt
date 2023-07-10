@@ -70,12 +70,12 @@ class EqualityConstraintsTests {
             assertTrue(!ref6Diseq.contains(ref1))
         }
 
-        assertTrue(!constraints.isContradiction)
+        assertTrue(!constraints.isContradicting)
         constraints.addReferenceEquality(ref7, ref3)
-        assertTrue(!constraints.isContradiction)
+        assertTrue(!constraints.isContradicting)
         constraints.addReferenceEquality(ref7, ref4)
         // Check that we've detected the conflict ref4 = ref5 = ref1 != ref3 = ref7 = ref4
-        assertTrue(constraints.isContradiction)
+        assertTrue(constraints.isContradicting)
     }
 
     @Test

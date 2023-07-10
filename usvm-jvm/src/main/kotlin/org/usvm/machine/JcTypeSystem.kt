@@ -14,29 +14,27 @@ class JcTypeSystem(
 ) : UTypeSystem<JcType> {
     private val hierarchy = HierarchyExtensionImpl(cp)
 
-    override fun isSupertype(u: JcType, t: JcType): Boolean {
-        return t.isAssignable(u)
-    }
+    override fun isSupertype(u: JcType, t: JcType): Boolean =
+        t.isAssignable(u)
 
-    override fun isMultipleInheritanceAllowedFor(t: JcType): Boolean {
-        return (t as? JcClassType)?.jcClass?.isInterface ?: false
-    }
+    override fun isMultipleInheritanceAllowedFor(t: JcType): Boolean =
+        (t as? JcClassType)?.jcClass?.isInterface ?: false
 
-    override fun isFinal(t: JcType): Boolean {
-        return (t as? JcClassType)?.isFinal ?: false
-    }
+    override fun isFinal(t: JcType): Boolean =
+        (t as? JcClassType)?.isFinal ?: false
 
-    override fun isInstantiable(t: JcType): Boolean {
-        return t !is JcRefType || (!t.jcClass.isInterface && !t.jcClass.isAbstract)
-    }
+    override fun isInstantiable(t: JcType): Boolean =
+        t !is JcRefType || (!t.jcClass.isInterface && !t.jcClass.isAbstract)
 
     // TODO: deal with generics
+    // TODO: handle object type, serializable and cloneable
     override fun findSubtypes(t: JcType): Sequence<JcType> = when (t) {
-        is JcPrimitiveType -> emptySequence()
+        is JcPrimitiveType -> emptySequence() // TODO: should not be called here
         is JcArrayType -> findSubtypes(t.elementType).map { cp.arrayTypeOf(it) }
         is JcRefType -> hierarchy
-            .findSubClasses(t.jcClass, allHierarchy = false)
+            .findSubClasses(t.jcClass, allHierarchy = false) // TODO: prioritize classes somehow and filter bad classes
             .map { it.toType() }
+
         else -> error("Unknown type $t")
     }
 

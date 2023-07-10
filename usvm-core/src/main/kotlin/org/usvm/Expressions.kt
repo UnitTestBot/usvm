@@ -364,6 +364,10 @@ class UIndexedMethodReturnValue<Method, Sort : USort> internal constructor(
 
 //region Subtyping Expressions
 
+/**
+ * Means **either** [ref] is [UNullRef] **or** [ref] !is [UNullRef] and [ref] <: [type]. Thus, the actual type
+ * inheritance is checked only on non-null refs.
+ */
 class UIsExpr<Type> internal constructor(
     ctx: UContext,
     val ref: UHeapRef,

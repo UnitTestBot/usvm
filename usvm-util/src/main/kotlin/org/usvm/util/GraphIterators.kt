@@ -32,12 +32,18 @@ abstract class GraphIterator<T> : Iterator<T> {
     }
 }
 
+/**
+ * Lazily iterates elements in a DFS order, emitting a node when all its children are completely traversed.
+ * Guarantees that [itemToChildren] will be called no more than once on each element.
+ *
+ * @param top an element to start from.
+ */
 class DfsIterator<T>(
     top: T,
     private val itemToChildren: (T) -> Iterator<T>,
 ) : GraphIterator<T>() {
     private val queue = ArrayDeque<Node<T>>().apply { add(Node(top, itemToChildren(top))) }
-    private var used = hashSetOf<T>()
+    private val used = hashSetOf<T>()
     private data class Node<T>(val item: T, val children: Iterator<T>)
     override fun calcNext(): IteratorState {
         while (queue.isNotEmpty()) {
