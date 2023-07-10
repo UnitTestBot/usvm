@@ -1,6 +1,11 @@
 package org.usvm.machine
 
-import org.jacodb.api.*
+import org.jacodb.api.JcArrayType
+import org.jacodb.api.JcClassType
+import org.jacodb.api.JcClasspath
+import org.jacodb.api.JcPrimitiveType
+import org.jacodb.api.JcRefType
+import org.jacodb.api.JcType
 import org.jacodb.api.ext.isAssignable
 import org.jacodb.api.ext.objectType
 import org.jacodb.api.ext.toType
