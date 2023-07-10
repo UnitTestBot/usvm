@@ -157,11 +157,11 @@ data class USymbolicMemoryRegion<out RegionId : URegionId<Key, Sort, RegionId>, 
         matchingWrites: MutableList<GuardedExpr<UExpr<Sort>>>,
         guardBuilder: GuardBuilder,
     ): USymbolicMemoryRegion<RegionId, Key, Sort> {
-        // TODO: either check in USymbolicMemoryRegion constructor that we do not construct memory region with
-        //       non-null reference as default value, or implement splitting by default value.
-        assert(defaultValue == null || !predicate(defaultValue))
-
         val splitUpdates = updates.read(key).split(key, predicate, matchingWrites, guardBuilder)
+
+        if (defaultValue != null && predicate(defaultValue)) {
+            matchingWrites += defaultValue with guardBuilder.nonMatchingUpdatesGuard
+        }
 
         return if (splitUpdates === updates) {
             this
