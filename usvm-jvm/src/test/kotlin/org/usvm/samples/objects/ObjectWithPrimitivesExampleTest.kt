@@ -27,7 +27,11 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
         checkDiscoveredProperties(
             ObjectWithPrimitivesExample::ignoredInputParameters,
             eq(1),
-            { _, fst, snd, r -> fst == null && snd == null && r != null }
+            { _, _, _, r ->
+                val instanceWithDefaultValues = ObjectWithPrimitivesClass()
+
+                r == instanceWithDefaultValues
+            }
         )
     }
 
