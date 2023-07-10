@@ -54,7 +54,7 @@ open class UPathConstraints<Type> private constructor(
                 constraint == trueExpr || constraint in logicalConstraints -> {}
 
                 constraint is UEqExpr<*> && isSymbolicHeapRef(constraint.lhs) && isSymbolicHeapRef(constraint.rhs) ->
-                    equalityConstraints.addReferenceEquality(constraint.lhs as UHeapRef, constraint.rhs as UHeapRef)
+                    equalityConstraints.makeEqual(constraint.lhs as UHeapRef, constraint.rhs as UHeapRef)
 
                 constraint is UIsExpr<*> -> typeConstraints.addSupertype(constraint.ref, constraint.type as Type)
 

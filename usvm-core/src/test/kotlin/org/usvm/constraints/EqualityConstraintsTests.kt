@@ -53,8 +53,8 @@ class EqualityConstraintsTests {
         // Adding some entry into referenceDisequalities
         constraints.makeNonEqual(ref1, ref6)
 
-        constraints.addReferenceEquality(ref4, ref5)
-        constraints.addReferenceEquality(ref5, ref1)
+        constraints.makeEqual(ref4, ref5)
+        constraints.makeEqual(ref5, ref1)
         // Engine should be able to infer that ref5 = ref1 != ref3
         assertTrue(constraints.areDistinct(ref5, ref3))
         // Checking that ref5 = ref4 = ref1 != ref6
@@ -71,9 +71,9 @@ class EqualityConstraintsTests {
         }
 
         assertTrue(!constraints.isContradicting)
-        constraints.addReferenceEquality(ref7, ref3)
+        constraints.makeEqual(ref7, ref3)
         assertTrue(!constraints.isContradicting)
-        constraints.addReferenceEquality(ref7, ref4)
+        constraints.makeEqual(ref7, ref4)
         // Check that we've detected the conflict ref4 = ref5 = ref1 != ref3 = ref7 = ref4
         assertTrue(constraints.isContradicting)
     }
@@ -94,7 +94,7 @@ class EqualityConstraintsTests {
         // Adding constraint ref1 == ref2.
         // Testing that equality constraints infer that both (ref1 == null) and (ref2 == null).
         // Furthermore, inferring that ref1 == null should simplify constraint (2) to true
-        constraints.addReferenceEquality(ref1, ref2)
+        constraints.makeEqual(ref1, ref2)
         assertFalse(constraints.nullableDisequalities.containsKey(ref1))
         assertTrue(constraints.areEqual(ref1, ctx.nullRef))
         assertTrue(constraints.areEqual(ref2, ctx.nullRef))

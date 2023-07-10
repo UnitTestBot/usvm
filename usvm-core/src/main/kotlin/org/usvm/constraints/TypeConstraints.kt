@@ -128,7 +128,7 @@ class UTypeConstraints<Type>(
                 val newConstraints = constraints.addSupertype(type)
                 if (newConstraints.isContradicting) {
                     // the only left option here is to be equal to null
-                    equalityConstraints.addReferenceEquality(ref, ref.uctx.nullRef)
+                    equalityConstraints.makeEqual(ref, ref.uctx.nullRef)
                 } else {
                     // Inferring new symbolic disequalities here
                     for ((key, value) in symbolicRefToTypeRegion.entries) {

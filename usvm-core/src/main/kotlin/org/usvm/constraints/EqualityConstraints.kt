@@ -89,7 +89,7 @@ class UEqualityConstraints private constructor(
     /**
      * Adds an assertion that [ref1] is always equal to [ref2].
      */
-    fun addReferenceEquality(ref1: UHeapRef, ref2: UHeapRef) {
+    fun makeEqual(ref1: UHeapRef, ref2: UHeapRef) {
         if (isContradicting) {
             return
         }
@@ -142,7 +142,7 @@ class UEqualityConstraints private constructor(
             }
         } else if (containsNullableDisequality(from, to)) {
             // If x === y, nullable disequality can hold only if both references are null
-            addReferenceEquality(to, nullRepr)
+            makeEqual(to, nullRepr)
         } else {
             val removedFrom = mutableNullableDisequalities.remove(from)
             removedFrom?.forEach {
@@ -242,7 +242,7 @@ class UEqualityConstraints private constructor(
 
         if (repr1 == repr2) {
             // In this case, (repr1 != repr2) || (repr1 == null && repr2 == null) is equivalent to (repr1 == null).
-            addReferenceEquality(repr1, ctx.nullRef)
+            makeEqual(repr1, ctx.nullRef)
             return
         }
 
