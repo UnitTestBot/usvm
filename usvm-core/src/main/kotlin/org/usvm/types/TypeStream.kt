@@ -1,21 +1,35 @@
 package org.usvm.types
 
 /**
- * A persistent type stream interface. Represents these type constraints:
- * * [filterBySupertype]
- * * [filterBySubtype]
- * * [filterByNotSubtype]
- * * [filterByNotSupertype]
+ * A base interface representing persistent type constraints and a way to access types satisfying them.
+ * Consists of a conjunction of constraints of four kinds:
  *
- * Also provides a way to collect them via [take].
+ * 1. x <: T, i.e. object referenced in x inherits T (supertype constraints for x)
+ * 2. T <: x, i.e. object referenced in x inherited by T (subtype constraints for x)
+ * 3. x </: T, i.e. object referenced in x does not inherit T (notSupertype constraints for x)
+ * 4. T </: x, i.e. object referenced in x is not inherited by T (notSubtype constraints for x)
+ *
+ * To collect types satisfying constraints use [take] function.
  */
 interface UTypeStream<Type> {
+    /**
+     * Excludes from this type stream types which are not subtypes of [type].
+     */
     fun filterBySupertype(type: Type): UTypeStream<Type>
 
+    /**
+     * Excludes from this type stream types which are not supertypes of [type].
+     */
     fun filterBySubtype(type: Type): UTypeStream<Type>
 
+    /**
+     * Excludes from this type stream types which are subtypes of [type].
+     */
     fun filterByNotSupertype(type: Type): UTypeStream<Type>
 
+    /**
+     * Excludes from this type stream types which are supertypes of [type].
+     */
     fun filterByNotSubtype(type: Type): UTypeStream<Type>
 
     // TODO: probably, we can consider it always terminates
