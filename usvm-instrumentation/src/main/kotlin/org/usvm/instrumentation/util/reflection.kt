@@ -1,6 +1,5 @@
 import org.usvm.instrumentation.util.`try`
 import sun.misc.Unsafe
-import java.lang.invoke.MethodHandles
 import java.lang.reflect.*
 
 
@@ -20,28 +19,20 @@ object ReflectionUtils {
 
 }
 
-fun Field.getFieldValue(instance: Any?): Any? {
-    try {
-        val fixedInstance =
-            if (this.isStatic()) {
-                null
-            } else instance
-        return withAccessibility {
-            when (this.type) {
-                Boolean::class.javaPrimitiveType -> this.getBoolean(fixedInstance)
-                Byte::class.javaPrimitiveType -> this.getByte(fixedInstance)
-                Char::class.javaPrimitiveType -> this.getChar(fixedInstance)
-                Short::class.javaPrimitiveType -> this.getShort(fixedInstance)
-                Int::class.javaPrimitiveType -> this.getInt(fixedInstance)
-                Long::class.javaPrimitiveType -> this.getLong(fixedInstance)
-                Float::class.javaPrimitiveType -> this.getFloat(fixedInstance)
-                Double::class.javaPrimitiveType -> this.getDouble(fixedInstance)
-                else -> this.get(fixedInstance)
-            }
-        }
-    } catch (_: Throwable) {
-        return null
+fun Field.getFieldValue(instance: Any?): Any? = with(ReflectionUtils.UNSAFE) {
+    val (fixedInstance, fieldOffset) = getInstanceAndOffset(instance)
+    return when (type) {
+        Boolean::class.javaPrimitiveType -> getBoolean(fixedInstance, fieldOffset)
+        Byte::class.javaPrimitiveType -> getByte(fixedInstance, fieldOffset)
+        Char::class.javaPrimitiveType -> getChar(fixedInstance, fieldOffset)
+        Short::class.javaPrimitiveType -> getShort(fixedInstance, fieldOffset)
+        Int::class.javaPrimitiveType -> getInt(fixedInstance, fieldOffset)
+        Long::class.javaPrimitiveType -> getLong(fixedInstance, fieldOffset)
+        Float::class.javaPrimitiveType -> getFloat(fixedInstance, fieldOffset)
+        Double::class.javaPrimitiveType -> getDouble(fixedInstance, fieldOffset)
+        else -> getObject(fixedInstance, fieldOffset)
     }
+
 }
 
 fun Method.invokeWithAccessibility(instance: Any?, args: List<Any?>): Any? =
@@ -62,23 +53,26 @@ fun Constructor<*>.newInstanceWithAccessibility(args: List<Any?>): Any =
         throw e.cause ?: e
     }
 
-fun Field.setFieldValue(instance: Any?, fieldValue: Any?) {
-    withAccessibility {
-        val fixedInstance =
-            if (this.isStatic()) {
-                null
-            } else instance
-        when (this.type) {
-            Boolean::class.javaPrimitiveType -> this.setBoolean(fixedInstance, fieldValue as? Boolean ?: false)
-            Byte::class.javaPrimitiveType -> this.setByte(fixedInstance, fieldValue as? Byte ?: 0)
-            Char::class.javaPrimitiveType -> this.setChar(fixedInstance, fieldValue as? Char ?: '\u0000')
-            Short::class.javaPrimitiveType -> this.setShort(fixedInstance, fieldValue as? Short ?: 0)
-            Int::class.javaPrimitiveType -> this.setInt(fixedInstance, fieldValue as? Int ?: 0)
-            Long::class.javaPrimitiveType -> this.setLong(fixedInstance, fieldValue as? Long ?: 0L)
-            Float::class.javaPrimitiveType -> this.setFloat(fixedInstance, fieldValue as? Float ?: 0.0f)
-            Double::class.javaPrimitiveType -> this.setDouble(fixedInstance, fieldValue as? Double ?: 0.0)
-            else -> this.set(fixedInstance, fieldValue)
-        }
+fun Field.setFieldValue(instance: Any?, fieldValue: Any?) = with(ReflectionUtils.UNSAFE) {
+    val (fixedInstance, fieldOffset) = getInstanceAndOffset(instance)
+    when (type) {
+        Boolean::class.javaPrimitiveType -> putBoolean(fixedInstance, fieldOffset, fieldValue as? Boolean ?: false)
+        Byte::class.javaPrimitiveType -> putByte(fixedInstance, fieldOffset, fieldValue as? Byte ?: 0)
+        Char::class.javaPrimitiveType -> putChar(fixedInstance, fieldOffset, fieldValue as? Char ?: '\u0000')
+        Short::class.javaPrimitiveType -> putShort(fixedInstance, fieldOffset, fieldValue as? Short ?: 0)
+        Int::class.javaPrimitiveType -> putInt(fixedInstance, fieldOffset, fieldValue as? Int ?: 0)
+        Long::class.javaPrimitiveType -> putLong(fixedInstance, fieldOffset, fieldValue as? Long ?: 0L)
+        Float::class.javaPrimitiveType -> putFloat(fixedInstance, fieldOffset, fieldValue as? Float ?: 0.0f)
+        Double::class.javaPrimitiveType -> putDouble(fixedInstance, fieldOffset, fieldValue as? Double ?: 0.0)
+        else -> putObject(fixedInstance, fieldOffset, fieldValue)
+    }
+}
+
+fun Field.getInstanceAndOffset(instance: Any?) = with(ReflectionUtils.UNSAFE) {
+    if (isStatic()) {
+        staticFieldBase(this@getInstanceAndOffset) to staticFieldOffset(this@getInstanceAndOffset)
+    } else {
+        instance to objectFieldOffset(this@getInstanceAndOffset)
     }
 }
 
@@ -101,21 +95,6 @@ fun Class<*>.getFieldByName(name: String): Field? {
         current = current.superclass ?: break
     } while (result == null)
     return result
-}
-
-inline fun <reified R> Field.withAccessibility(block: () -> R): R {
-    val prevIsFinal = isFinal
-    val prevAccessibility = isAccessible
-
-    isAccessible = true
-    isFinal = false
-
-    try {
-        return block()
-    } finally {
-        isAccessible = prevAccessibility
-        isFinal = prevIsFinal
-    }
 }
 
 inline fun <reified R> Method.withAccessibility(block: () -> R): R {
@@ -141,13 +120,8 @@ inline fun <reified R> Constructor<*>.withAccessibility(block: () -> R): R {
         isAccessible = prevAccessibility
     }
 }
+
 fun Field.isStatic() = modifiers.and(Modifier.STATIC) > 0
 
-var Field.isFinal: Boolean
+val Field.isFinal: Boolean
     get() = (this.modifiers and Modifier.FINAL) == Modifier.FINAL
-    set(value) {
-        if (value == this.isFinal) return
-        val lookup = MethodHandles.privateLookupIn(Field::class.java, MethodHandles.lookup())
-        val modifiersField = lookup.findVarHandle(Field::class.java, "modifiers", Int::class.javaPrimitiveType)
-        modifiersField.set(this, this.modifiers and (if (value) Modifier.FINAL else Modifier.FINAL.inv()))
-    }
