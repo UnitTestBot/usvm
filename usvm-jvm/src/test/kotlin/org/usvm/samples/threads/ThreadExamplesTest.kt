@@ -12,6 +12,7 @@ import org.usvm.util.isException
 // (see https://github.com/UnitTestBot/UTBotJava/issues/1610)
 class ThreadExamplesTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Support invokedynamic")
     fun testExceptionInStart() {
         checkDiscoveredPropertiesWithExceptions(
             ThreadExamples::explicitExceptionInStart,

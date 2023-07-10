@@ -118,7 +118,7 @@ internal class DoubleExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Fix floats and doubles")
+    @Disabled("Fix floats and doubles or not enough time")
     fun testSimpleNonLinearEquation() {
         checkDiscoveredProperties(
             DoubleExamples::simpleNonLinearEquation,

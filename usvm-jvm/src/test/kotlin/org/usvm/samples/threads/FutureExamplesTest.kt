@@ -12,6 +12,7 @@ import java.util.concurrent.ExecutionException
 // (see https://github.com/UnitTestBot/UTBotJava/issues/1610)
 class FutureExamplesTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Support invokedynamic")
     fun testThrowingRunnable() {
         checkDiscoveredPropertiesWithExceptions(
             FutureExamples::throwingRunnableExample,

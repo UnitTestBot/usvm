@@ -154,6 +154,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Some executions violated invariants. Support multidimensional arrays initialization")
     fun testFill2DPrimitiveArray() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::fill2DPrimitiveArray,

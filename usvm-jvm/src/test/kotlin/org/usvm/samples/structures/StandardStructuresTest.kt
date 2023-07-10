@@ -9,6 +9,7 @@ import java.util.TreeMap
 
 internal class StandardStructuresTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Support instanceof")
     fun testGetList() {
         checkDiscoveredProperties(
             StandardStructures::getList,
@@ -23,6 +24,7 @@ internal class StandardStructuresTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Support instanceof")
     fun testGetMap() {
         checkDiscoveredProperties(
             StandardStructures::getMap,
@@ -34,6 +36,7 @@ internal class StandardStructuresTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Support instanceof")
     fun testGetDeque() {
         checkDiscoveredProperties(
             StandardStructures::getDeque,

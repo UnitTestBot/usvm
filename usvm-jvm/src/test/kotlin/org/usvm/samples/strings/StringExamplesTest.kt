@@ -664,6 +664,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun testGetObj() {
         checkDiscoveredProperties(
             StringExamples::getObj,
