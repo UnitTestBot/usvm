@@ -43,6 +43,8 @@ class JcTypeSystem(
         else -> error("Unknown type $t")
     }
 
+    private val topTypeStream by lazy { USupportTypeStream.from(this, cp.objectType) }
+
     override fun topTypeStream(): UTypeStream<JcType> =
-        USupportTypeStream.from(this, cp.objectType)
+        topTypeStream
 }
