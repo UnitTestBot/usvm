@@ -1,5 +1,9 @@
 package org.usvm.types
 
+/**
+ * A base interface, instantiated in target machines. Provides type information and [topTypeStream],
+ * representing all possible types in the system.
+ */
 interface UTypeSystem<Type> {
 
     /**
