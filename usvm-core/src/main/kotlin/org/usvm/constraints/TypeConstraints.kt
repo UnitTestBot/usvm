@@ -1,11 +1,11 @@
 package org.usvm.constraints
 
+import org.usvm.NULL_ADDRESS
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapAddress
 import org.usvm.UConcreteHeapRef
 import org.usvm.UHeapRef
 import org.usvm.UNullRef
-import org.usvm.memory.UAddressCounter.Companion.NULL_ADDRESS
 import org.usvm.memory.map
 import org.usvm.types.UTypeSystem
 import org.usvm.model.UModel
@@ -244,7 +244,7 @@ class UTypeConstraints<Type>(
         val concreteRefToTypeRegions = symbolicRefToTypeRegion
             .entries
             .groupBy { (key, _) -> (model.eval(key) as UConcreteHeapRef).address }
-            .filter { it.key != NULL_ADDRESS }
+            .filter { it.key != NULL_ADDRESS } // we don't want to evaluate types of nulls
 
         val bannedRefEqualities = mutableListOf<UBoolExpr>()
 

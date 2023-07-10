@@ -3,13 +3,13 @@ package org.usvm.model
 import io.ksmt.expr.KExpr
 import io.ksmt.solver.KModel
 import io.ksmt.sort.KUninterpretedSort
+import org.usvm.INITIAL_INPUT_ADDRESS
+import org.usvm.NULL_ADDRESS
 import org.usvm.UAddressSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.constraints.UTypeModel
-import org.usvm.memory.UAddressCounter.Companion.INITIAL_INPUT_ADDRESS
-import org.usvm.memory.UAddressCounter.Companion.NULL_ADDRESS
 import org.usvm.memory.UMemoryBase
 import org.usvm.solver.UExprTranslator
 
