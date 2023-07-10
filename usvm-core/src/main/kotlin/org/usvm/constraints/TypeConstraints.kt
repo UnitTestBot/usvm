@@ -256,6 +256,31 @@ class UTypeConstraints<Type>(
     /**
      * Checks if the [model] satisfies this [UTypeConstraints].
      *
+     * Checking works as follows:
+     * 1. Groups symbolic references into clusters by their concrete interpretation in the [model] and filters out nulls
+     * 2. For each cluster processes symbolic references one by one and intersects their type regions
+     * 3. If the current region became empty, then we found a conflicting group, so add reference disequality
+     * 4. If no conflicting references were found, builds a type model
+     *
+     * Example:
+     * ```
+     * a <: T1 | T2
+     * b <: T2 | T3
+     * c <: T3 | T1
+     * d <: T1 | T2
+     * e <: T2
+     * cluster: (a, b, c, d, e)
+     * ```
+     * Suppose we have the single cluster, so we process it as follows:
+     *
+     * 1. Peek `a`. The current region is empty, so it becomes `T1 | T2`. Potential conflicting refs = `{a}`.
+     * 2. Peek `b`. The current region becomes `T2`. Potential conflicting refs = `{a, b}`.
+     * 3. Peek `c`. The intersection of the current region with `T3 | T1` is empty, so we add the following constraint:
+     * `a != c || b != c`. The region becomes `T3 | T1`. Potential conflicting refs = `{c}.
+     * 4. Peek `d`. The current region becomes `T1`. Potential conflicting refs = `{c, d}`.
+     * 5. Peek `e`. The intersection of the current region with `T2` is empty, so we add the following constraint:
+     * `c != e || d != e`.
+     *
      * @return [UTypeModel] if the [model] satisfies this [UTypeConstraints],
      * and constraints on reference equalities if the [model] doesn't satisfy this [UTypeConstraints].
      */
@@ -278,7 +303,7 @@ class UTypeConstraints<Type>(
                     currentRegion = region
                     potentialConflictingRefs.add(heapRef)
                 } else {
-                    val nextRegion = currentRegion.intersect(region) // add [heapRef] to the current region
+                    var nextRegion = currentRegion.intersect(region) // add [heapRef] to the current region
                     if (nextRegion.isEmpty) {
                         // conflict detected, so it's impossible for [potentialConflictingRefs]
                         // to have the common type with [heapRef], therefore they can't be equal
@@ -286,9 +311,14 @@ class UTypeConstraints<Type>(
                             with(it.ctx) { it.neq(heapRef) }
                         }
                         bannedRefEqualities += heapRef.ctx.mkOr(disjunct)
+
+                        // start a new group
+                        nextRegion = region
+                        potentialConflictingRefs.clear()
+                        potentialConflictingRefs.add(heapRef)
                     } else if (nextRegion === region) {
                         // the current [heapRef] gives the same region as the potentialConflictingRefs, so it's better
-                        // to keep only the [heapRef] to minimize the disequalities amount in disjunction
+                        // to keep only the [heapRef] to minimize the disequalities amount in the result disjunction
                         potentialConflictingRefs.clear()
                         potentialConflictingRefs.add(heapRef)
                     } else if (nextRegion !== currentRegion) {
