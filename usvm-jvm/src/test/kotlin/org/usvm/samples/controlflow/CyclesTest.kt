@@ -74,6 +74,7 @@ internal class CyclesTest : JavaMethodTestRunner() {
 
     @Test
     @Disabled("Some properties were not discovered at positions (from 0): [0]. Tune coverage zone")
+    @Suppress("UNUSED_PARAMETER")
     fun testCallInnerWhile(options: UMachineOptions) {
         checkDiscoveredProperties(
             Cycles::callInnerWhile,
