@@ -10,7 +10,6 @@ group = "org.usvm"
 
 repositories {
     mavenCentral()
-    mavenLocal()
     maven("https://jitpack.io")
 }
 
