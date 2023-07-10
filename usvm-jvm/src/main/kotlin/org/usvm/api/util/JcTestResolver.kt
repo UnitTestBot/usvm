@@ -79,7 +79,8 @@ class JcTestResolver(
         val result = when (val res = state.methodResult) {
             is JcMethodResult.NoCall -> error("No result found")
             is JcMethodResult.Success -> with(afterScope) { Result.success(resolveExpr(res.value, method.returnType)) }
-            is JcMethodResult.Exception -> Result.failure(resolveException(res.exception))
+            is JcMethodResult.UnprocessedException -> error("An unprocessed exception should never occur in the Resolver")
+            is JcMethodResult.Exception -> Result.failure(resolveException(res.exception, afterMemory))
         }
         val coverage = resolveCoverage(method, state)
 
@@ -92,9 +93,14 @@ class JcTestResolver(
         )
     }
 
-    private fun resolveException(exception: Exception): Throwable =
+    private fun resolveException(exception: Exception, afterMemory: MemoryScope): Throwable =
         when (exception) {
-            is WrappedException -> Reflection.allocateInstance(classLoader.loadClass(exception.name)) as Throwable
+            is WrappedException -> {
+                val address = exception.address
+                with(afterMemory) {
+                    resolveExpr(address, exception.type) as Throwable
+                }
+            }
             else -> exception
         }
 
@@ -231,11 +237,15 @@ class JcTestResolver(
             val instance = Reflection.allocateInstance(clazz)
             resolvedCache[ref.address] = instance
 
+            // TODO skips throwable construction for now
+            if (instance is Throwable) {
+                return instance
+            }
+
             val fields = generateSequence(type.jcClass) { it.superClass }
                 .map { it.toType() }
                 .flatMap { it.declaredFields }
                 .filter { !it.isStatic }
-
             for (field in fields) {
                 val lvalue = UFieldLValue(ctx.typeToSort(field.fieldType), heapRef, field.field)
                 val fieldValue = resolveLValue(lvalue, field.fieldType)

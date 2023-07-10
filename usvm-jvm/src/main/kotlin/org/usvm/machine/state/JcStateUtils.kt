@@ -28,6 +28,13 @@ fun JcState.returnValue(valueToReturn: UExpr<out USort>) {
     }
 }
 
+/**
+ * Create an unprocessed exception from the [exception] and assign it to the [JcState.methodResult].
+ */
+fun JcState.createUnprocessedException(exception: Exception) {
+    methodResult = JcMethodResult.UnprocessedException(exception)
+}
+
 fun JcState.throwException(exception: Exception) {
     // TODO: think about it later
     val returnSite = callStack.pop()

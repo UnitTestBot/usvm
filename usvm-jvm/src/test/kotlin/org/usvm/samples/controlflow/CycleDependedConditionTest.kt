@@ -49,7 +49,7 @@ internal class CycleDependedConditionTest : JavaMethodTestRunner() {
             eq(3),
             { _, x, r -> x <= 0 && r == 0 },
             { _, x, r -> x in 1..100 && r == 0 },
-            { _, x, r -> x > 100 && r == 1 && r == 1 }
+            { _, x, r -> x > 100 && r == 1 }
         )
     }
 }

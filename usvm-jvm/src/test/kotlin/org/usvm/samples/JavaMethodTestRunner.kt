@@ -3,6 +3,7 @@ package org.usvm.samples
 import org.jacodb.api.ext.findClass
 import org.jacodb.api.ext.toType
 import org.junit.jupiter.api.TestInstance
+import org.usvm.CoverageZone
 import org.usvm.UMachineOptions
 import org.usvm.api.JcClassCoverage
 import org.usvm.api.JcParametersState

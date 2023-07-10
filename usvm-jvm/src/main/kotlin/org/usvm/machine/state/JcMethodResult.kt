@@ -1,7 +1,9 @@
 package org.usvm.machine.state
 
 import org.jacodb.api.JcMethod
+import org.jacodb.api.JcType
 import org.usvm.UExpr
+import org.usvm.UHeapRef
 import org.usvm.USort
 
 /**
@@ -18,19 +20,23 @@ sealed interface JcMethodResult {
      */
     class Success(
         val method: JcMethod,
-        val value: UExpr<out USort>
+        val value: UExpr<out USort>,
     ) : JcMethodResult
 
     /**
      * A method threw an [exception].
      */
-    class Exception(
-        val exception: kotlin.Exception
+    open class Exception(
+        val exception: kotlin.Exception,
     ) : JcMethodResult
 
+    class UnprocessedException(
+        exception: kotlin.Exception,
+    ) : Exception(exception)
 }
 
 // TODO: stub for symbolic exceptions
 class WrappedException(
-    val name: String
+    val address: UHeapRef,
+    val type: JcType,
 ) : kotlin.Exception()

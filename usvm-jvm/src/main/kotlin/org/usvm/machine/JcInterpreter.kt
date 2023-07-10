@@ -32,6 +32,7 @@ import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.WrappedException
 import org.usvm.machine.state.addEntryMethodCall
+import org.usvm.machine.state.createUnprocessedException
 import org.usvm.machine.state.lastStmt
 import org.usvm.machine.state.localIdx
 import org.usvm.machine.state.newStmt
@@ -116,14 +117,71 @@ class JcInterpreter(
         return scope.stepResult()
     }
 
+    // TODO this section doesn't work as it should considering symbolic exceptions.
     private fun handleException(
         scope: JcStepScope,
         exception: Exception,
         lastStmt: JcInst,
     ) {
-        applicationGraph.successors(lastStmt) // TODO: check catchers for lastStmt
+        // TODO process WrapperExceptions here with their symbolic types
+        val exceptionTypeName = if (exception is WrappedException) {
+            exception.type.typeName
+        } else {
+            exception::class.java.name
+        }
 
-        scope.calcOnState { throwException(exception) }
+        // TODO replace it with type streams when they are ready
+        fun findAllSubtypes(type: JcType): List<JcType> {
+            val queue = mutableListOf(type)
+            val processedSubtypes = mutableSetOf<JcType>()
+            val result = mutableSetOf<JcType>()
+
+            while (queue.isNotEmpty()) {
+                val processingType = queue.removeLast()
+                result += processingType
+                processedSubtypes += processingType
+                ctx.typeSystem<JcType>().findSubtypes(processingType).forEach {
+                    if (it !in processedSubtypes) {
+                        queue += it
+                    }
+                }
+            }
+
+            return result.toList()
+        }
+
+        // TODO that's not true, we have to process a situation when a symbolic exception
+        //      can be handled in several catch sections
+        val catchInst = applicationGraph.successors(lastStmt)
+            .filterIsInstance<JcCatchInst>()
+            .firstOrNull { catchInst ->
+                val possibleTypesNames = catchInst
+                    .throwableTypes
+                    .flatMapTo(mutableSetOf()) { findAllSubtypes(it) }
+                    .map { it.typeName } // TODO use smth more efficient than strings for comparison
+
+                // TODO should be replaced with symbolic types intersection in the future
+                exceptionTypeName in possibleTypesNames
+            }
+
+        if (catchInst == null) {
+            scope.calcOnState { throwException(exception) }
+            return
+        }
+
+        scope.doWithState {
+            val lValue = exprResolverWithScope(scope).resolveLValue(catchInst.throwable) ?: return@doWithState
+            val exceptionResult = methodResult as JcMethodResult.Exception
+
+            // TODO shouldn't we process implicit exceptions here as well?
+            //      For now, it's impossible since they don't have addresses.
+            if (exceptionResult.exception is WrappedException) {
+                memory.write(lValue, (exceptionResult.exception).address)
+            }
+
+            methodResult = JcMethodResult.NoCall
+            newStmt(catchInst.nextStmt)
+        }
     }
 
     private fun visitAssignInst(scope: JcStepScope, stmt: JcAssignInst) {
@@ -206,8 +264,11 @@ class JcInterpreter(
     }
 
     private fun visitThrowStmt(scope: JcStepScope, stmt: JcThrowInst) {
+        val resolver = exprResolverWithScope(scope)
+        val address = resolver.resolveJcExpr(stmt.throwable)?.asExpr(ctx.addressSort) ?: return
+
         scope.calcOnState {
-            throwException(WrappedException(stmt.throwable.type.typeName))
+            createUnprocessedException(WrappedException(address, stmt.throwable.type))
         }
     }
 

@@ -11,6 +11,7 @@ import org.usvm.UMachine
 import org.usvm.UMachineOptions
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
+import org.usvm.machine.state.lastStmt
 import org.usvm.ps.createPathSelector
 import org.usvm.statistics.CompositeUMachineObserver
 import org.usvm.statistics.CoverageStatistics
@@ -18,6 +19,7 @@ import org.usvm.statistics.CoveredNewStatesCollector
 import org.usvm.statistics.DistanceStatistics
 import org.usvm.statistics.PathsTreeStatistics
 import org.usvm.statistics.UMachineObserver
+import org.usvm.statistics.TransitiveCoverageZoneObserver
 import org.usvm.stopstrategies.createStopStrategy
 
 val logger = object : KLogging() {}.logger
@@ -108,7 +110,7 @@ class JcMachine(
     }
 
     private fun isStateTerminated(state: JcState): Boolean {
-        return state.callStack.isEmpty() || state.methodResult is JcMethodResult.Exception
+        return state.callStack.isEmpty()
     }
 
     override fun close() {

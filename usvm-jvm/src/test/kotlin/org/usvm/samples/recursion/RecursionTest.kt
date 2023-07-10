@@ -16,15 +16,17 @@ import org.usvm.util.isException
 import kotlin.math.pow
 
 internal class RecursionTest : JavaMethodTestRunner() {
-    @Test
-    fun testFactorial() {
-        checkDiscoveredPropertiesWithExceptions(
-            Recursion::factorial,
-            eq(3),
-            { _, x, r -> x < 0 && r.isException<IllegalArgumentException>() },
-            { _, x, r -> x == 0 && r.getOrNull() == 1 },
-            { _, x, r -> x > 0 && r.getOrNull() == (1..x).reduce { a, b -> a * b } }
-        )
+    @UsvmTest([Options([PathSelectionStrategy.CLOSEST_TO_UNCOVERED_RANDOM])])
+    fun testFactorial(options: UMachineOptions) {
+        withOptions(options) {
+            checkDiscoveredPropertiesWithExceptions(
+                Recursion::factorial,
+                eq(3),
+                { _, x, r -> x < 0 && r.isException<IllegalArgumentException>() },
+                { _, x, r -> x == 0 && r.getOrNull() == 1 },
+                { _, x, r -> x > 0 && r.getOrNull() == (1..x).reduce { a, b -> a * b } }
+            )
+        }
     }
 
     @UsvmTest([Options([PathSelectionStrategy.RANDOM_PATH])])
@@ -42,7 +44,6 @@ internal class RecursionTest : JavaMethodTestRunner() {
     }
 
     @Test
-//    @Disabled("Freezes the execution when snd != 0 JIRA:1293")
     @Disabled("Native method invocation: java.lang.Float.floatToRawIntBits")
     fun testSum() {
         checkDiscoveredProperties(

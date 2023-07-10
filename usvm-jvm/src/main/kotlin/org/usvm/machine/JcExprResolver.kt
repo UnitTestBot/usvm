@@ -100,8 +100,8 @@ import org.usvm.machine.operator.wideTo32BitsIfNeeded
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.addNewMethodCall
+import org.usvm.machine.state.createUnprocessedException
 import org.usvm.machine.state.lastStmt
-import org.usvm.machine.state.throwException
 
 /**
  * An expression resolver based on JacoDb 3-address code. A result of resolving is `null`, iff
@@ -549,7 +549,7 @@ class JcExprResolver(
             inside,
             blockOnFalseState = {
                 val exception = ArrayIndexOutOfBoundsException((models.first().eval(idx) as KBitVec32Value).intValue)
-                throwException(exception)
+                createUnprocessedException(exception)
             }
         )
     }
@@ -563,7 +563,7 @@ class JcExprResolver(
             blockOnFalseState = {
                 val ln = lastStmt.lineNumber
                 val exception = NegativeArraySizeException("[negative array size] $ln")
-                throwException(exception)
+                createUnprocessedException(exception)
             }
         )
     }
@@ -579,7 +579,7 @@ class JcExprResolver(
             blockOnFalseState = {
                 val ln = lastStmt.lineNumber
                 val exception = ArithmeticException("[division by zero] $ln")
-                throwException(exception)
+                createUnprocessedException(exception)
             }
         )
     }
@@ -591,7 +591,7 @@ class JcExprResolver(
             blockOnFalseState = {
                 val ln = lastStmt.lineNumber
                 val exception = NullPointerException("[null pointer dereference] $ln")
-                throwException(exception)
+                createUnprocessedException(exception)
             }
         )
     }

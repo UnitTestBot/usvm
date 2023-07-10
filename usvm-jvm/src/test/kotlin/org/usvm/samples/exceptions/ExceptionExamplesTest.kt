@@ -1,10 +1,12 @@
 package org.usvm.samples.exceptions
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import org.usvm.util.isException
+import java.nio.file.InvalidPathException
 
 internal class ExceptionExamplesTest : JavaMethodTestRunner() {
     @Test
@@ -61,6 +63,7 @@ internal class ExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Native methods support")
     fun testThrowException() {
         checkDiscoveredPropertiesWithExceptions(
             ExceptionExamples::throwException,
@@ -79,9 +82,6 @@ internal class ExceptionExamplesTest : JavaMethodTestRunner() {
         )
     }
 
-    /**
-     * Used for path generation check in [org.usvm.engine.Traverser.fullPath]
-     */
     @Test
     fun testCatchDeepNestedThrow() {
         checkDiscoveredPropertiesWithExceptions(
@@ -110,6 +110,19 @@ internal class ExceptionExamplesTest : JavaMethodTestRunner() {
             eq(2),
             { _, i, r -> i < 0 && r.isException<IllegalArgumentException>() },
             { _, i, r -> i >= 0 && r.getOrThrow() == i },
+        )
+    }
+
+    @Test
+    @Disabled("Waits for symbolic types")
+    fun testSymbolicExceptions() {
+        checkDiscoveredProperties(
+            ExceptionExamples::symbolicExceptionCheck,
+            eq(4),
+            { _, e, r -> e is NumberFormatException && r == 1 },
+            { _, e, r -> e is InvalidPathException && r == 2 },
+            { _, e, r -> e is RuntimeException && e !is NumberFormatException && e !is InvalidPathException && r == 3 },
+            { _, e, r -> e !is RuntimeException && r == 4 },
         )
     }
 }
