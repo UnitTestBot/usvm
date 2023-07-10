@@ -306,7 +306,7 @@ class JcExprResolver(
     }
 
     override fun visitJcNewArrayExpr(expr: JcNewArrayExpr): UExpr<out USort>? = with(ctx) {
-        val size = resolveJcExpr(expr.dimensions[0])?.asExpr(sizeSort) ?: return null
+        val size = resolveCast(expr.dimensions[0], ctx.cp.int)?.asExpr(bv32Sort) ?: return null
         // TODO: other dimensions ( > 1)
         checkNewArrayLength(size) ?: return null
         val ref = scope.calcOnState { memory.malloc(expr.type, size) } ?: return null
@@ -442,7 +442,7 @@ class JcExprResolver(
 
         val arrayDescriptor = arrayDescriptorOf(array.type as JcArrayType)
 
-        val idx = resolveJcExpr(index)?.asExpr(bv32Sort) ?: return null
+        val idx = resolveCast(index, ctx.cp.int)?.asExpr(bv32Sort) ?: return null
         val lengthRef = UArrayLengthLValue(arrayRef, arrayDescriptor)
         val length = scope.calcOnState { memory.read(lengthRef).asExpr(sizeSort) } ?: return null
 
@@ -538,13 +538,11 @@ class JcExprResolver(
         expr: JcBinaryExpr,
     ) = resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs ->
         // we don't want to have extra casts on booleans
-        val (wideLhs, wideRhs) = if (lhs.sort == ctx.boolSort && rhs.sort == ctx.boolSort) {
-            lhs to rhs
+        if (lhs.sort == ctx.boolSort && rhs.sort == ctx.boolSort) {
+            resolvePrimitiveCast(operator(lhs, rhs), ctx.cp.boolean, expr.type as JcPrimitiveType)
         } else {
-            (lhs wideWith expr.lhv.type) to (rhs wideWith expr.rhv.type)
+            operator(lhs wideWith expr.lhv.type, rhs wideWith expr.rhv.type)
         }
-
-        operator(wideLhs, wideRhs)
     }
 
     private fun resolveShiftOperator(
@@ -581,16 +579,22 @@ class JcExprResolver(
     private fun resolveCast(
         operand: JcExpr,
         type: JcType,
-    ) = when (type) {
-        is JcRefType -> resolveReferenceCast(operand, type)
-        is JcPrimitiveType -> resolvePrimitiveCast(operand, type)
-        else -> error("Unexpected type: $type")
+    ) = resolveAfterResolved(operand) { expr ->
+        when (type) {
+            is JcRefType -> resolveReferenceCast(expr, operand.type as JcRefType, type)
+            is JcPrimitiveType -> resolvePrimitiveCast(expr, operand.type as JcPrimitiveType, type)
+            else -> error("Unexpected type: $type")
+        }
     }
 
-    private fun resolveReferenceCast(operand: JcExpr, type: JcRefType) = resolveAfterResolved(operand) { expr ->
-        if (!operand.type.isAssignable(type)) {
+    private fun resolveReferenceCast(
+        expr: UExpr<out USort>,
+        typeBefore: JcRefType,
+        type: JcRefType,
+    ): UExpr<out USort>? {
+        return if (!typeBefore.isAssignable(type)) {
             val isExpr = scope.calcOnState { memory.types.evalIs(expr.asExpr(ctx.addressSort), type) }
-                ?: return@resolveAfterResolved null
+                ?: return null
             scope.fork(
                 isExpr,
                 blockOnFalseState = {
@@ -598,22 +602,26 @@ class JcExprResolver(
                     val exception = ClassCastException("[class cast exception] $ln")
                     throwException(exception)
                 }
-            ) ?: return@resolveAfterResolved null
+            ) ?: return null
             expr
         } else {
             expr
         }
     }
 
-    private fun resolvePrimitiveCast(operand: JcExpr, type: JcPrimitiveType) = resolveAfterResolved(operand) { expr ->
+    private fun resolvePrimitiveCast(
+        expr: UExpr<out USort>,
+        typeBefore: JcPrimitiveType,
+        type: JcPrimitiveType,
+    ): UExpr<out USort> {
         // we need this, because char is unsigned, so it should be widened before a cast
-        val wideExpr = if (operand.type == ctx.cp.char) {
-            expr wideWith operand.type
+        val wideExpr = if (typeBefore == ctx.cp.char) {
+            expr wideWith typeBefore
         } else {
             expr
         }
 
-        when (type) {
+        return when (type) {
             ctx.cp.boolean -> JcUnaryOperator.CastToBoolean(wideExpr)
             ctx.cp.short -> JcUnaryOperator.CastToShort(wideExpr)
             ctx.cp.int -> JcUnaryOperator.CastToInt(wideExpr)
@@ -622,7 +630,7 @@ class JcExprResolver(
             ctx.cp.double -> JcUnaryOperator.CastToDouble(wideExpr)
             ctx.cp.byte -> JcUnaryOperator.CastToByte(wideExpr)
             ctx.cp.char -> JcUnaryOperator.CastToChar(wideExpr)
-            else -> error("Unexpected cast expression: $operand")
+            else -> error("Unexpected cast expression: ($type) $expr of $typeBefore")
         }
     }
 

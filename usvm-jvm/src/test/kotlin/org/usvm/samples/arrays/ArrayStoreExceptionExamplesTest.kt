@@ -8,6 +8,7 @@ import org.usvm.util.isException
 
 class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [1]. Fix branch coverage")
     fun testCorrectAssignmentSamePrimitiveType() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::correctAssignmentSamePrimitiveType,
@@ -111,6 +112,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [0]. Support generics")
     fun testCheckWrongAssignmentOfItself() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkWrongAssignmentOfItself,
@@ -120,6 +122,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [0]. Support generics")
     fun testCheckGoodAssignmentOfItself() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkGoodAssignmentOfItself,

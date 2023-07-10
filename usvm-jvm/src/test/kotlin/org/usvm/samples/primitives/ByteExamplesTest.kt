@@ -1,6 +1,5 @@
 package org.usvm.samples.primitives
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
@@ -9,7 +8,6 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 internal class ByteExamplesTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Sort mismatch")
     fun testNegByte() {
         checkDiscoveredProperties(
             ByteExamples::negByte,
@@ -30,7 +28,6 @@ internal class ByteExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sort mismatch")
     fun testSumTwoBytes() {
         checkDiscoveredProperties(
             ByteExamples::sumTwoBytes,

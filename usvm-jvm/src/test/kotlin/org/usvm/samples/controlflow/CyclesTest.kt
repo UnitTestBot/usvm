@@ -2,7 +2,6 @@ package org.usvm.samples.controlflow
 
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import org.usvm.CoverageZone
 import org.usvm.PathSelectionStrategy
 import org.usvm.UMachineOptions
 import org.usvm.samples.JavaMethodTestRunner
@@ -74,8 +73,7 @@ internal class CyclesTest : JavaMethodTestRunner() {
 
     @Test
     @Disabled("Some properties were not discovered at positions (from 0): [0]. Tune coverage zone")
-    @Suppress("UNUSED_PARAMETER")
-    fun testCallInnerWhile(options: UMachineOptions) {
+    fun testCallInnerWhile() {
         checkDiscoveredProperties(
             Cycles::callInnerWhile,
             between(1..2),

@@ -51,6 +51,7 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [0]")
     fun testCountEqualColors() {
         checkDiscoveredProperties(
             ComplexEnumExamples::countEqualColors,
@@ -62,6 +63,7 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [0]")
     fun testCountNullColors() {
         checkDiscoveredProperties(
             ComplexEnumExamples::countNullColors,

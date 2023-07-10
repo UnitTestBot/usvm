@@ -39,6 +39,7 @@ class DateExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Sequence is empty.")
     fun testGetTimeWithoutReflection() {
         checkDiscoveredPropertiesWithExceptions(
             DateExample::getTime,

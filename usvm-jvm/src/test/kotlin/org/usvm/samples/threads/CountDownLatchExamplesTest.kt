@@ -1,6 +1,5 @@
 package org.usvm.samples.threads
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
@@ -8,7 +7,6 @@ import org.usvm.test.util.checkers.eq
 
 class CountDownLatchExamplesTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Sort mismatch")
     fun testGetAndDown() {
         checkDiscoveredProperties(
             CountDownLatchExamples::getAndDown,
