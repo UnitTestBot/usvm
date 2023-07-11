@@ -53,7 +53,8 @@ enum class PathSelectionStrategy {
      * States are selected randomly with distribution based on distance to uncovered instructions.
      */
     CLOSEST_TO_UNCOVERED_RANDOM,
-    BFS_WITH_LOGGING
+    BFS_WITH_LOGGING,
+    INFERENCE_WITH_LOGGING
 }
 
 enum class PathSelectorCombinationStrategy {

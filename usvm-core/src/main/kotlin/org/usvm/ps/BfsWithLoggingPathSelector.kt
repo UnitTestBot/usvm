@@ -13,21 +13,21 @@ import java.io.File
 import kotlin.collections.ArrayDeque
 import kotlin.collections.HashSet
 
-internal class BfsWithLoggingPathSelector<State : UState<*, *, Method, Statement>, Statement, Method>(
+internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Statement>, Statement, Method>(
     private val pathsTreeStatistics: PathsTreeStatistics<Method, Statement, State>,
     private val coverageStatistics: CoverageStatistics<Method, Statement, State>,
     private val distanceStatistics: DistanceStatistics<Method, Statement>,
     private val applicationGraph: ApplicationGraph<Method, Statement>
 ) : UPathSelector<State> {
-    private val queue = ArrayDeque<State>()
+    protected val queue = ArrayDeque<State>()
 
     private var allStmts: Collection<Any?>? = null
     private val coveredStmts = HashSet<Any?>()
     private var coverage = 0.0
 
-    private val path = mutableListOf<ActionData>()
+    protected val path = mutableListOf<ActionData>()
 
-    private val filepath = "./paths_log/"
+    protected val filepath = "./paths_log/"
     private var filename: String? = null
     private val jsonScheme: JsonArray
     private var jsonFormat = Json {
@@ -46,7 +46,7 @@ internal class BfsWithLoggingPathSelector<State : UState<*, *, Method, Statement
     private val statePathCoverage = mutableMapOf<State, UInt>()
 
     @Serializable
-    private data class StateFeatures(
+    protected data class StateFeatures(
         val successorsCount: UInt = 0u,
         val finishedStatesCount: UInt = 0u,
         val logicalConstraintsLength: UInt = 0u,
@@ -60,7 +60,7 @@ internal class BfsWithLoggingPathSelector<State : UState<*, *, Method, Statement
     )
 
     @Serializable
-    private data class AverageStateFeatures(
+    protected data class AverageStateFeatures(
         val averageSuccessorsCount: Float = 0.0f,
         val averageLogicalConstraintsLength: Float = 0.0f,
         val averageStateTreeDepth: Float = 0.0f,
@@ -73,7 +73,7 @@ internal class BfsWithLoggingPathSelector<State : UState<*, *, Method, Statement
     )
 
     @Serializable
-    private data class ActionData(
+    protected data class ActionData(
         val queue: List<StateFeatures>,
         val averageStateFeatures: AverageStateFeatures,
         val chosenStateId: Int,
@@ -139,14 +139,15 @@ internal class BfsWithLoggingPathSelector<State : UState<*, *, Method, Statement
         )
     }
 
-    private fun getActionData(chosenState: State): ActionData {
-        val stateFeaturePairs = queue.map { state ->
-            Pair(state.id, getStateFeatures(state))
+    protected fun getStateFeatureQueue(): List<StateFeatures> {
+        return queue.map { state ->
+            getStateFeatures(state)
         }
-        val stateId = stateFeaturePairs.indexOfFirst { it.first == chosenState.id }
-        val stateFeatureQueue = stateFeaturePairs.map { it.second }
+    }
+
+    protected fun getAverageStateFeatures(stateFeatureQueue: List<StateFeatures>): AverageStateFeatures {
         val queueSize = stateFeatureQueue.size
-        val averageStateFeatures = AverageStateFeatures (
+        return AverageStateFeatures(
             stateFeatureQueue.sumOf { it.successorsCount }.toFloat() / queueSize,
             stateFeatureQueue.sumOf { it.logicalConstraintsLength }.toFloat() / queueSize,
             stateFeatureQueue.sumOf { it.stateTreeDepth }.toFloat() / queueSize,
@@ -157,6 +158,12 @@ internal class BfsWithLoggingPathSelector<State : UState<*, *, Method, Statement
             stateFeatureQueue.sumOf { it.pathCoverage }.toFloat() / queueSize,
             stateFeatureQueue.sumOf { it.reward.toDouble() }.toFloat() / queueSize,
         )
+    }
+
+    protected fun getActionData(stateFeatureQueue: List<StateFeatures>,
+                                averageStateFeatures: AverageStateFeatures,
+                                chosenState: State): ActionData {
+        val stateId = queue.indexOfFirst { it.id == chosenState.id }
         return ActionData (
             stateFeatureQueue,
             averageStateFeatures,
@@ -164,7 +171,7 @@ internal class BfsWithLoggingPathSelector<State : UState<*, *, Method, Statement
             stateFeatureQueue[stateId].reward)
     }
 
-    private fun savePath() {
+    protected fun savePath() {
         if (path.isEmpty()) {
             return
         }
@@ -196,7 +203,7 @@ internal class BfsWithLoggingPathSelector<State : UState<*, *, Method, Statement
             .writeText(jsonFormat.encodeToString(jsonData))
     }
 
-    private fun updateCoverage(state: State) {
+    protected fun updateCoverage(state: State) {
         if (allStmts === null) {
             val uncoveredStmts = coverageStatistics.getUncoveredStatements()
             allStmts = uncoveredStmts.map { it.second }
@@ -209,7 +216,9 @@ internal class BfsWithLoggingPathSelector<State : UState<*, *, Method, Statement
 
     override fun peek(): State {
         val state = queue.first()
-        path.add(getActionData(state))
+        val stateFeatureQueue = getStateFeatureQueue()
+        val averageStateFeatures = getAverageStateFeatures(stateFeatureQueue)
+        path.add(getActionData(stateFeatureQueue, averageStateFeatures, state))
         savePath()
         updateCoverage(state)
         return state

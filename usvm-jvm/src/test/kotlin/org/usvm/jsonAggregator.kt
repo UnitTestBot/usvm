@@ -29,6 +29,7 @@ fun main() {
             return@forEach
         }
         jsons.add(Json.decodeFromString(file.readText()))
+        file.delete()
     }
 
     if (jsons.isEmpty()) {
