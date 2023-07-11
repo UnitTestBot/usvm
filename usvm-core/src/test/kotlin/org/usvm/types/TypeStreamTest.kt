@@ -4,7 +4,6 @@ import io.mockk.every
 import io.mockk.spyk
 import io.mockk.verify
 import org.junit.jupiter.api.Test
-import org.usvm.types.system.TestType
 import org.usvm.types.system.base1
 import org.usvm.types.system.base2
 import org.usvm.types.system.comparable
@@ -27,9 +26,7 @@ class TypeStreamTest {
     fun `Test topType`() {
         val typeStream = typeSystem.topTypeStream()
             .filterBySupertype(top)
-        val result = mutableListOf<TestType>()
-        val success = typeStream.take(100, result)
-        assertTrue(success)
+        val result = typeStream.take(100)
         assertEquals(100, result.size)
         assertTrue(result.all(typeSystem::isInstantiable))
     }
@@ -39,9 +36,7 @@ class TypeStreamTest {
     fun `Test comparable`() {
         val typeStream = typeSystem.topTypeStream()
             .filterBySupertype(comparable)
-        val result = mutableListOf<TestType>()
-        val success = typeStream.take(100, result)
-        assertTrue(success)
+        val result = typeStream.take(100)
         assertEquals(100, result.size)
         assertTrue(result.all(typeSystem::isInstantiable))
     }
@@ -142,10 +137,8 @@ class TypeStreamTest {
 
 
     private fun <T> UTypeStream<T>.take100AndAssertEqualsToSetOf(vararg elements: T) {
-        val result = mutableListOf<T>()
-        val success = take(100, result)
         val set = elements.toSet()
-        assertTrue(success)
+        val result = take(100)
         assertEquals(result.size, set.size)
         assertEquals(result.toSet(), set)
     }

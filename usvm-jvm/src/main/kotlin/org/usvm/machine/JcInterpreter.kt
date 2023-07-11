@@ -18,10 +18,8 @@ import org.jacodb.api.cfg.JcReturnInst
 import org.jacodb.api.cfg.JcSwitchInst
 import org.jacodb.api.cfg.JcThis
 import org.jacodb.api.cfg.JcThrowInst
-import org.jacodb.api.ext.allSuperHierarchySequence
 import org.usvm.StepResult
 import org.usvm.StepScope
-import org.usvm.UBoolExpr
 import org.usvm.UInterpreter
 import org.usvm.URegisterLValue
 import org.usvm.machine.state.JcMethodResult
@@ -29,7 +27,9 @@ import org.usvm.machine.state.JcState
 import org.usvm.machine.state.WrappedException
 import org.usvm.machine.state.addEntryMethodCall
 import org.usvm.machine.state.lastStmt
+import org.usvm.machine.state.localIdx
 import org.usvm.machine.state.newStmt
+import org.usvm.machine.state.parametersWithThisCount
 import org.usvm.machine.state.returnValue
 import org.usvm.machine.state.throwException
 import org.usvm.solver.USatResult
@@ -47,16 +47,14 @@ class JcInterpreter(
         val state = JcState(ctx)
         state.addEntryMethodCall(applicationGraph, method)
 
-        val initialAssertions = mutableListOf<UBoolExpr>()
-
         val typedMethod = with(applicationGraph) { method.typed }
 
         if (!method.isStatic) {
             with(ctx) {
                 val thisLValue = URegisterLValue(addressSort, 0)
                 val ref = state.memory.read(thisLValue).asExpr(addressSort)
-                initialAssertions += mkEq(ref, nullRef).not()
-                initialAssertions += mkIsExpr(ref, typedMethod.enclosingType)
+                state.pathConstraints += mkEq(ref, nullRef).not()
+                state.pathConstraints += mkIsExpr(ref, typedMethod.enclosingType)
             }
         }
 
@@ -64,16 +62,15 @@ class JcInterpreter(
             with(ctx) {
                 val type = typedParameter.type
                 if (type is JcRefType) {
-                    val argumentLValue = URegisterLValue(typeToSort(type), idx + if (method.isStatic) 0 else 1)
+                    val argumentLValue = URegisterLValue(typeToSort(type), method.localIdx(idx))
                     val ref = state.memory.read(argumentLValue).asExpr(addressSort)
-                    initialAssertions += mkIsExpr(ref, type)
+                    state.pathConstraints += mkIsExpr(ref, type)
                 }
             }
         }
 
         val solver = ctx.solver<JcField, JcType, JcMethod>()
 
-        initialAssertions.forEach(state.pathConstraints::plusAssign)
         val model = (solver.check(state.pathConstraints, useSoftConstraints = true) as USatResult).model
         state.models = listOf(model)
 
@@ -213,11 +210,11 @@ class JcInterpreter(
             is JcLocalVar -> localVarToIdx
                 .getOrPut(method) { mutableMapOf() }
                 .run {
-                    getOrPut(local.name) { method.parameters.size + size + if (method.isStatic) 0 else 1 }
+                    getOrPut(local.name) { method.parametersWithThisCount + size }
                 }
 
             is JcThis -> 0
-            is JcArgument -> local.index + if (method.isStatic) 0 else 1
+            is JcArgument -> method.localIdx(local.index)
             else -> error("Unexpected local: $local")
         }
 

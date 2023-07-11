@@ -46,6 +46,7 @@ import org.usvm.machine.extractShort
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.WrappedException
+import org.usvm.machine.state.localIdx
 import org.usvm.memory.UMemoryBase
 import org.usvm.memory.UReadOnlySymbolicMemory
 import org.usvm.model.UModelBase
@@ -130,7 +131,7 @@ class JcTestResolver(
             }
 
             val parameters = method.parameters.mapIndexed { idx, param ->
-                val registerIdx = if (method.isStatic) idx else idx + 1
+                val registerIdx = method.method.localIdx(idx)
                 val ref = URegisterLValue(ctx.typeToSort(param.type), registerIdx)
                 resolveLValue(ref, param.type)
             }

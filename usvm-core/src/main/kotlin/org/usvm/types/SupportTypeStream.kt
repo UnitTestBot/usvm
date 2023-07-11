@@ -92,14 +92,11 @@ class USupportTypeStream<Type> private constructor(
         }
     }
 
-    override fun take(n: Int, result: MutableCollection<Type>): Boolean {
-        cachingSequence.take(n).toCollection(result)
-
-        return true
-    }
+    override fun take(n: Int): Collection<Type> =
+        cachingSequence.take(n).toList()
 
     override val isEmpty: Boolean
-        get() = cachingSequence.take(1).toList().isEmpty()
+        get() = take(1).isEmpty()
 
     companion object {
         fun <Type> from(typeSystem: UTypeSystem<Type>, type: Type): USupportTypeStream<Type> {

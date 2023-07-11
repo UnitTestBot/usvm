@@ -70,6 +70,8 @@ internal fun splitUHeapRef(
  * heap refs from the [ref] if it's ite.
  *
  * @param initialGuard the initial value fot the guard to be passed to [blockOnConcrete] and [blockOnSymbolic].
+ * @param ignoreNullRefs if true, then null references will be ignored. It means that all leafs with nulls
+ * considered unsatisfiable, so we assume their guards equal to false.
  */
 internal inline fun withHeapRef(
     ref: UHeapRef,
@@ -109,6 +111,10 @@ private const val DONE = 2
  * Reassembles [this] non-recursively with applying [concreteMapper] on [UConcreteHeapRef] and
  * [symbolicMapper] on [USymbolicHeapRef]. Respects [UIteExpr], so the structure of the result expression will be
  * the same as [this] is, but implicit simplifications may occur.
+ *
+ * @param ignoreNullRefs if true, then null references will be ignored. It means that all leafs with nulls
+ * considered unsatisfiable, so we assume their guards equal to false. If [ignoreNullRefs] is true and [this] is
+ * [UNullRef], throws an [IllegalArgumentException].
  */
 internal inline fun <Sort : USort> UHeapRef.map(
     crossinline concreteMapper: (UConcreteHeapRef) -> UExpr<Sort>,
@@ -116,6 +122,11 @@ internal inline fun <Sort : USort> UHeapRef.map(
     ignoreNullRefs: Boolean = true,
 ): UExpr<Sort> = when (this) {
     is UConcreteHeapRef -> concreteMapper(this)
+    is UNullRef -> {
+        require(!ignoreNullRefs) { "Got nullRef on the top!" }
+        symbolicMapper(this)
+    }
+
     is USymbolicHeapRef -> symbolicMapper(this)
     is UIteExpr<UAddressSort> -> {
         /**

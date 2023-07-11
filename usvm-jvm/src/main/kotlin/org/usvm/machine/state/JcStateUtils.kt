@@ -73,9 +73,10 @@ fun JcState.addNewMethodCall(
     newStmt(entryPoint)
 }
 
+fun JcMethod.localIdx(idx: Int) = if (isStatic) idx else idx + 1
 
 // TODO: cache it with JacoDB cache
-inline val JcMethod.parametersWithThisCount get() = parameters.size + if (isStatic) 0 else 1
+inline val JcMethod.parametersWithThisCount get() = localIdx(parameters.size)
 
 // TODO: cache it with JacoDB cache
 inline val JcMethod.localsCount get() = instList.locals.filter { it !is JcArgument }.size

@@ -62,7 +62,7 @@ internal class DoubleExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Fix floats and doubles")
+    @Disabled("Not enough time")
     fun testSimpleMul() {
         checkDiscoveredProperties(
             DoubleExamples::simpleMul,
@@ -74,7 +74,7 @@ internal class DoubleExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Fix floats and doubles")
+    @Disabled("Not enough time")
     fun testMul() {
         checkDiscoveredProperties(
             DoubleExamples::mul,
@@ -118,7 +118,7 @@ internal class DoubleExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Fix floats and doubles or not enough time")
+    @Disabled("Not enough time")
     fun testSimpleNonLinearEquation() {
         checkDiscoveredProperties(
             DoubleExamples::simpleNonLinearEquation,

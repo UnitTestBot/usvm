@@ -1,5 +1,6 @@
 package org.usvm.constraints
 
+import org.usvm.INITIAL_CONCRETE_ADDRESS
 import org.usvm.NULL_ADDRESS
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapAddress
@@ -11,11 +12,9 @@ import org.usvm.types.UTypeSystem
 import org.usvm.model.UModel
 import org.usvm.solver.USatResult
 import org.usvm.solver.USolverResult
-import org.usvm.solver.UUnknownResult
 import org.usvm.solver.UUnsatResult
 import org.usvm.types.USingleTypeStream
 import org.usvm.types.UTypeRegion
-import org.usvm.types.take
 import org.usvm.uctx
 
 interface UTypeEvaluator<Type> {
@@ -114,7 +113,7 @@ class UTypeConstraints<Type>(
     fun addSupertype(ref: UHeapRef, type: Type) {
         when (ref) {
             is UConcreteHeapRef -> {
-                require(ref.address > 0)
+                require(ref.address >= INITIAL_CONCRETE_ADDRESS)
                 val concreteType = concreteRefToType.getValue(ref.address)
                 if (!typeSystem.isSupertype(type, concreteType)) {
                     contradiction()
@@ -153,7 +152,7 @@ class UTypeConstraints<Type>(
     fun excludeSupertype(ref: UHeapRef, type: Type) {
         when (ref) {
             is UConcreteHeapRef -> {
-                require(ref.address > 0)
+                require(ref.address >= INITIAL_CONCRETE_ADDRESS)
                 val concreteType = concreteRefToType.getValue(ref.address)
                 if (typeSystem.isSupertype(type, concreteType)) {
                     contradiction()
@@ -191,7 +190,7 @@ class UTypeConstraints<Type>(
     fun readTypeRegion(ref: UHeapRef): UTypeRegion<Type> =
         when (ref) {
             is UConcreteHeapRef -> {
-                require(ref.address > 0)
+                require(ref.address >= INITIAL_CONCRETE_ADDRESS)
                 val concreteType = concreteRefToType[ref.address]
                 val typeStream = if (concreteType == null) {
                     typeSystem.topTypeStream()
@@ -343,19 +342,14 @@ class UTypeConstraints<Type>(
         val allConcreteRefToType = concreteRefToType.toMutableMap()
         concreteToRegionWithCluster.mapValuesTo(allConcreteRefToType) { (_, regionToCluster) ->
             val (region, cluster) = regionToCluster
-            val resultList = mutableListOf<Type>()
-            val terminated = region.typeStream.take(1, resultList)
-            if (terminated) {
-                if (resultList.isEmpty()) {
-                    // the only way to reach here is when some of the clusters consists of a single reference
-                    // because if the cluster is bigger, then we called region.isEmpty at least once previously
-                    check(cluster.size == 1)
-                    return UUnsatResult()
-                } else {
-                    resultList.single()
-                }
+            val result = region.typeStream.take(1)
+            if (result.isEmpty()) {
+                // the only way to reach here is when some of the clusters consists of a single reference
+                // because if the cluster is bigger, then we called region.isEmpty previously at least once
+                check(cluster.size == 1)
+                return UUnsatResult()
             } else {
-                return UUnknownResult()
+                result.single()
             }
         }
 
