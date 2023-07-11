@@ -230,7 +230,11 @@ data class USymbolicMemoryRegion<out RegionId : URegionId<Key, Sort, RegionId>, 
     override fun toString(): String =
         buildString {
             append('<')
-            append(defaultValue)
+            if (defaultValue != null) {
+                append(defaultValue)
+            } else {
+                append("_")
+            }
             updates.forEach {
                 append(it.toString())
             }

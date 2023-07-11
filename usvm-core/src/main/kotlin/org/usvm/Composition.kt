@@ -1,5 +1,8 @@
 package org.usvm
 
+import io.ksmt.expr.KExpr
+import io.ksmt.expr.KIteExpr
+import io.ksmt.sort.KSort
 import org.usvm.constraints.UTypeEvaluator
 import org.usvm.memory.UReadOnlySymbolicHeap
 import org.usvm.memory.URegionId
@@ -17,6 +20,15 @@ open class UComposer<Field, Type>(
 
     override fun <Sort : USort> transform(expr: USymbol<Sort>): UExpr<Sort> =
         error("You must override `transform` function in org.usvm.UComposer for ${expr::class}")
+
+    override fun <T : KSort> transform(expr: KIteExpr<T>): KExpr<T> =
+        transformExprAfterTransformed(expr, expr.condition) { condition ->
+            when {
+                condition.isTrue -> apply(expr.trueBranch)
+                condition.isFalse -> apply(expr.falseBranch)
+                else -> super.transform(expr)
+            }
+        }
 
     override fun <Sort : USort> transform(
         expr: URegisterReading<Sort>,

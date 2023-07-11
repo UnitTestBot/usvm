@@ -1,5 +1,7 @@
 package org.usvm.samples.arrays;
 
+import org.usvm.samples.objects.WrappedInt;
+
 public class OneDimensional {
     static int sumOf(int[] arr) {
         int sum = 0;
@@ -14,6 +16,18 @@ public class OneDimensional {
         }
 
         return sum;
+    }
+
+    static int symbolicIndex(int a, WrappedInt b, int index) {
+        WrappedInt[] arr = new WrappedInt[]{new WrappedInt(1), new WrappedInt(2), b};
+        arr[0].setValue(a);
+        if (arr[index].getValue() == 5) {
+            if (index == 0) {
+                return -1;
+            }
+            return 0;
+        }
+        return 1;
     }
 
     static int[] minus(int[] a, int[] b) {
