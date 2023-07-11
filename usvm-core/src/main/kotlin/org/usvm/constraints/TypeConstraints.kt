@@ -307,9 +307,14 @@ class UTypeConstraints<Type>(
                     var nextRegion = currentRegion.intersect(region) // add [heapRef] to the current region
                     if (nextRegion.isEmpty) {
                         // conflict detected, so it's impossible for [potentialConflictingRefs]
-                        // to have the common type with [heapRef], therefore they can't be equal
-                        val disjunct = potentialConflictingRefs.map {
-                            with(it.ctx) { it.neq(heapRef) }
+                        // to have the common type with [heapRef], therefore they can't be equal or
+                        // some of them equals null
+                        val disjunct = mutableListOf<UBoolExpr>()
+                        potentialConflictingRefs.mapTo(disjunct) { ref ->
+                            with(ref.uctx) { ref.neq(heapRef) }
+                        }
+                        potentialConflictingRefs.mapTo(disjunct) { ref ->
+                            with(ref.uctx) { ref.eq(nullRef) }
                         }
                         bannedRefEqualities += heapRef.ctx.mkOr(disjunct)
 

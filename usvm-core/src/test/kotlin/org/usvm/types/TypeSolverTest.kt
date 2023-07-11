@@ -180,8 +180,8 @@ class TypeSolverTest {
         val a = ctx.mkRegisterReading(0, addressSort)
         val b1 = ctx.mkRegisterReading(1, addressSort)
         val b2 = ctx.mkRegisterReading(2, addressSort)
-
         val c = ctx.mkRegisterReading(3, addressSort)
+
         pc += mkHeapRefEq(a, nullRef).not() and
             mkHeapRefEq(b1, nullRef).not() and
             mkHeapRefEq(b2, nullRef).not() and
@@ -224,6 +224,36 @@ class TypeSolverTest {
             val result = solver.check(this, useSoftConstraints = false)
             assertIs<UUnsatResult<UModelBase<Field, TestType>>>(result)
         }
+    }
+
+    @Test
+    fun `Test symbolic ref -- expressions to assert correctness about null`(): Unit = with(ctx) {
+        val a = ctx.mkRegisterReading(0, addressSort)
+        val b = ctx.mkRegisterReading(1, addressSort)
+        val c = ctx.mkRegisterReading(2, addressSort)
+
+        pc += mkIsExpr(a, interfaceAB)
+        pc += mkIsExpr(b, interfaceBC1)
+        pc += mkIsExpr(c, interfaceAC)
+
+        // it's overcomplicated a == c && b == c, so it's not leak to the UEqualityConstraints
+        pc += (mkHeapRefEq(a, c) or mkHeapRefEq(b, c)) and (!mkHeapRefEq(a, c) or !mkHeapRefEq(b, c)).not()
+
+        val resultBeforeNotNullConstraints = solver.check(pc, useSoftConstraints = false)
+        val model = assertIs<USatResult<UModelBase<Field, TestType>>>(resultBeforeNotNullConstraints).model
+
+        assertIs<USatResult<UModelBase<Field, TestType>>>(resultBeforeNotNullConstraints)
+
+        val concreteA = assertIs<UConcreteHeapRef>(model.eval(a)).address
+        val concreteB = assertIs<UConcreteHeapRef>(model.eval(b)).address
+        val concreteC = assertIs<UConcreteHeapRef>(model.eval(c)).address
+
+        assertTrue(concreteA == 0 && concreteB == 0 && concreteC == 0)
+
+        pc += mkOrNoSimplify(mkHeapRefEq(a, nullRef).not(), falseExpr)
+
+        val resultWithNotNullConstraints = solver.check(pc, useSoftConstraints = false)
+        assertIs<UUnsatResult<UModelBase<Field, TestType>>>(resultWithNotNullConstraints)
     }
 
     @Test
