@@ -1,23 +1,12 @@
 package org.usvm.machine
 
 import io.ksmt.utils.asExpr
+import io.ksmt.utils.cast
 import org.jacodb.api.JcField
 import org.jacodb.api.JcMethod
 import org.jacodb.api.JcRefType
 import org.jacodb.api.JcType
-import org.jacodb.api.cfg.JcArgument
-import org.jacodb.api.cfg.JcAssignInst
-import org.jacodb.api.cfg.JcCallInst
-import org.jacodb.api.cfg.JcCatchInst
-import org.jacodb.api.cfg.JcGotoInst
-import org.jacodb.api.cfg.JcIfInst
-import org.jacodb.api.cfg.JcInst
-import org.jacodb.api.cfg.JcLocal
-import org.jacodb.api.cfg.JcLocalVar
-import org.jacodb.api.cfg.JcReturnInst
-import org.jacodb.api.cfg.JcSwitchInst
-import org.jacodb.api.cfg.JcThis
-import org.jacodb.api.cfg.JcThrowInst
+import org.jacodb.api.cfg.*
 import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UInterpreter
@@ -32,6 +21,7 @@ import org.usvm.machine.state.newStmt
 import org.usvm.machine.state.parametersWithThisCount
 import org.usvm.machine.state.returnValue
 import org.usvm.machine.state.throwException
+import org.usvm.memory.with
 import org.usvm.solver.USatResult
 
 typealias JcStepScope = StepScope<JcState, JcType, JcField>
@@ -166,9 +156,67 @@ class JcInterpreter(
         TODO("Not yet implemented")
     }
 
-    @Suppress("UNUSED_PARAMETER")
     private fun visitSwitchStmt(scope: JcStepScope, stmt: JcSwitchInst) {
-        TODO("Not yet implemented")
+        val exprResolver = exprResolverWithScope(scope)
+
+        val switchKey = stmt.key
+        // Note that the switch key can be an rvalue, for example, a simple int constant.
+        val switchKeyExpr = exprResolver.resolveJcExpr(switchKey)?.let {
+            it.asExpr(it.sort)
+        } ?: return
+        val instList = stmt.location.method.instList
+
+        fun iterateCases(
+            scope: JcStepScope,
+            caseBranches: List<Map.Entry<JcValue, JcInstRef>>,
+            defaultBranchTarget: JcInstRef
+        ) {
+            if (caseBranches.isEmpty()) {
+                val nextStmt = instList[defaultBranchTarget.index]
+                scope.doWithState { newStmt(nextStmt) }
+            } else {
+                val (caseValue, caseTargetStmt) = caseBranches.first()
+                val nextStmt = instList[caseTargetStmt.index]
+                val resolvedCaseValue = exprResolver.resolveJcExpr(caseValue) ?: return
+                val caseCondition = ctx.mkEq(switchKeyExpr, resolvedCaseValue.asExpr(switchKeyExpr.sort))
+
+                scope.fork(
+                    caseCondition,
+                    blockOnTrueState = { newStmt(nextStmt) },
+                    blockOnFalseState = {
+                        scope.calcOnState(this) {
+                            iterateCases(
+                                /*StepScope(this)*/scope,
+                                caseBranches.subList(1, caseBranches.size),
+                                defaultBranchTarget
+                            )
+                        }
+                    }
+                )
+            }
+        }
+
+        iterateCases(scope, stmt.branches.entries.toList(), stmt.default)
+        /*val caseStmtsWithConditions = stmt.branches.map { (caseValue, caseTargetStmt) ->
+            val nextStmt = instList[caseTargetStmt.index]
+            val resolvedCaseValue = exprResolver.resolveJcExpr(caseValue) ?: return
+            val caseCondition = ctx.mkEq(switchKeyExpr, resolvedCaseValue.asExpr(switchKeyExpr.sort))
+
+            nextStmt to caseCondition
+        }
+
+        val defaultCaseWithCondition = instList[stmt.default.index] to caseStmtsWithConditions
+            .map { it.second }
+            .let {
+                with(ctx) { mkAnd(it.map { it.not() }) }
+            }
+
+        (caseStmtsWithConditions + defaultCaseWithCondition).forEach {
+            scope.fork(
+                it.second,
+                blockOnTrueState = { newStmt(it.first) }
+            )
+        }*/
     }
 
     private fun visitThrowStmt(scope: JcStepScope, stmt: JcThrowInst) {

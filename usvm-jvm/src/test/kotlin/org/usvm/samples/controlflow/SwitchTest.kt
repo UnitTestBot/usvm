@@ -14,7 +14,7 @@ import java.math.RoundingMode.HALF_UP
 
 internal class SwitchTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
+//    @Disabled("An operation is not implemented: Not yet implemented")
     fun testSimpleSwitch() {
         checkDiscoveredProperties(
             Switch::simpleSwitch,
@@ -27,7 +27,7 @@ internal class SwitchTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
+//    @Disabled("An operation is not implemented: Not yet implemented")
     fun testLookupSwitch() {
         checkDiscoveredProperties(
             Switch::lookupSwitch,
