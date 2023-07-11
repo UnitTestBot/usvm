@@ -31,7 +31,6 @@ internal class BfsWithLoggingPathSelector<State : UState<*, *, Method, Statement
     private var filename: String? = null
     private val jsonScheme: JsonArray
     private var jsonFormat = Json {
-        prettyPrint = true
         encodeDefaults = true
     }
 
@@ -98,7 +97,6 @@ internal class BfsWithLoggingPathSelector<State : UState<*, *, Method, Statement
             add("chosenStateId")
             add("reward")
         }
-        jsonFormat = Json
     }
 
     private fun getStateFeatures(state: State): StateFeatures {
