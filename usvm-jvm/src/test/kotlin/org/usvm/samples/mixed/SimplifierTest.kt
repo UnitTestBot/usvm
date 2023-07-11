@@ -8,7 +8,7 @@ import org.usvm.test.util.checkers.eq
 
 internal class SimplifierTest: JavaMethodTestRunner() {
     @Test
-    @Disabled("Support assumes")
+    @Disabled("Support assumptions")
     fun testSimplifyAdditionWithZero() {
         checkDiscoveredProperties(
             Simplifier::simplifyAdditionWithZero,

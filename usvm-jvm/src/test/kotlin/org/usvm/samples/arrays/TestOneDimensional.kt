@@ -1,6 +1,5 @@
 package org.usvm.samples.arrays
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
@@ -18,7 +17,6 @@ class TetOneDimensional : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Cannot load from byte/boolean array because \"java.lang.Integer.DigitOnes\" is null")
     fun `Test minus`() {
         checkDiscoveredPropertiesWithExceptions(
             OneDimensional::minus,
