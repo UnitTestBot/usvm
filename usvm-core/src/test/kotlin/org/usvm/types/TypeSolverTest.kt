@@ -3,7 +3,6 @@ package org.usvm.types
 import io.ksmt.solver.z3.KZ3Solver
 import io.mockk.every
 import io.mockk.mockk
-import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.Field
@@ -25,6 +24,11 @@ import org.usvm.solver.UUnsatResult
 import org.usvm.types.system.TestType
 import org.usvm.types.system.base1
 import org.usvm.types.system.base2
+import org.usvm.types.system.c
+import org.usvm.types.system.derived1A
+import org.usvm.types.system.derived1B
+import org.usvm.types.system.derivedMulti
+import org.usvm.types.system.derivedMultiInterfaces
 import org.usvm.types.system.interface1
 import org.usvm.types.system.interface2
 import org.usvm.types.system.interfaceAB
@@ -35,7 +39,6 @@ import org.usvm.types.system.testTypeSystem
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotEquals
-import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class TypeSolverTest {
@@ -61,9 +64,8 @@ class TypeSolverTest {
     @Test
     fun `Test concrete ref -- open type inheritance`() {
         val ref = memory.alloc(base1)
-        val typeRegion = memory.types.readTypeRegion(ref)
-        val type = typeRegion.typeStream.takeFirst()
-        assertEquals(base1, type)
+        val types = memory.typeStreamOf(ref)
+        types.take100AndAssertEqualsToSetOf(base1)
     }
 
     @Test
@@ -73,9 +75,8 @@ class TypeSolverTest {
         pc += mkHeapRefEq(ref, nullRef).not()
         val model = (solver.check(pc, useSoftConstraints = false) as USatResult<UModelBase<Field, TestType>>).model
         val concreteRef = assertIs<UConcreteHeapRef>(model.eval(ref))
-        val type = assertNotNull(model.types.typeOrNull(concreteRef))
-        assertTrue(typeSystem.isSupertype(base1, type))
-        assertTrue(typeSystem.isInstantiable(type))
+        val types = model.typeStreamOf(concreteRef)
+        types.take100AndAssertEqualsToSetOf(base1, derived1A, derived1B)
     }
 
     @Test
@@ -85,9 +86,8 @@ class TypeSolverTest {
         pc += mkHeapRefEq(ref, nullRef).not()
         val model = (solver.check(pc, useSoftConstraints = false) as USatResult<UModelBase<Field, TestType>>).model
         val concreteRef = assertIs<UConcreteHeapRef>(model.eval(ref))
-        val type = assertNotNull(model.types.typeOrNull(concreteRef))
-        assertTrue(typeSystem.isSupertype(interface1, type))
-        assertTrue(typeSystem.isInstantiable(type))
+        val types = model.typeStreamOf(concreteRef)
+        types.take100AndAssertEqualsToSetOf(derived1A, derivedMulti, derivedMultiInterfaces)
     }
 
     @Test
@@ -247,8 +247,14 @@ class TypeSolverTest {
         val result2 = solver.check(pc, useSoftConstraints = false)
         val model = assertIs<USatResult<UModelBase<Field, TestType>>>(result2).model
         val concreteA = model.eval(a) as UConcreteHeapRef
-        val type = assertNotNull(model.types.typeOrNull(concreteA))
-        assertTrue(typeSystem.isInstantiable(type))
-        assertFalse(typeSystem.isSupertype(interfaceAB, type))
+        val types = model.typeStreamOf(concreteA)
+        types.take100AndAssertEqualsToSetOf(c)
+    }
+
+    private fun <T> UTypeStream<T>.take100AndAssertEqualsToSetOf(vararg elements: T) {
+        val set = elements.toSet()
+        val result = take(100)
+        assertEquals(set.size, result.size)
+        assertEquals(set, result.toSet())
     }
 }

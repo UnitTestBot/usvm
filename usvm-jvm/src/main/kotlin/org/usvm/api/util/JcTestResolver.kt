@@ -47,7 +47,6 @@ import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.WrappedException
 import org.usvm.machine.state.localIdx
-import org.usvm.memory.UMemoryBase
 import org.usvm.memory.UReadOnlySymbolicMemory
 import org.usvm.model.UModelBase
 import org.usvm.types.takeFirst
@@ -115,7 +114,7 @@ class JcTestResolver(
     private class MemoryScope(
         private val ctx: JcContext,
         private val model: UModelBase<JcField, JcType>,
-        private val memory: UReadOnlySymbolicMemory,
+        private val memory: UReadOnlySymbolicMemory<JcType>,
         private val method: JcTypedMethod,
         private val classLoader: ClassLoader = ClassLoader.getSystemClassLoader(),
     ) {
@@ -175,12 +174,13 @@ class JcTestResolver(
             }
             return resolvedCache.getOrElse(ref.address) {
                 // to find a type, we need to understand the source of the object
-                val evaluatedType = if (ref.address <= INITIAL_INPUT_ADDRESS) { // input object
+                val evaluatedType = if (ref.address <= INITIAL_INPUT_ADDRESS) {
+                    // input object
                     val typeStream = model.typeStreamOf(ref).filterBySupertype(type)
                     typeStream.takeFirst() as JcRefType
-                } else { // allocated objectS
-                    // TODO: somehow refactor this
-                    (memory as UMemoryBase<*, *, *>).types.readTypeRegion(ref).typeStream.takeFirst()
+                } else {
+                    // allocated object
+                    memory.typeStreamOf(ref).takeFirst()
                 }
                 when (evaluatedType) {
                     is JcArrayType -> resolveArray(ref, heapRef, evaluatedType)

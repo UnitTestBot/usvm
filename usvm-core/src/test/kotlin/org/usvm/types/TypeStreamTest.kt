@@ -135,11 +135,10 @@ class TypeStreamTest {
         verify(exactly = 1) { typeSystem.findSubtypes(base1) }
     }
 
-
     private fun <T> UTypeStream<T>.take100AndAssertEqualsToSetOf(vararg elements: T) {
         val set = elements.toSet()
         val result = take(100)
-        assertEquals(result.size, set.size)
-        assertEquals(result.toSet(), set)
+        assertEquals(set.size, result.size)
+        assertEquals(set, result.toSet())
     }
 }

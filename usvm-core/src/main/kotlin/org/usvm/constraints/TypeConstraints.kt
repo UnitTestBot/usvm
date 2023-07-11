@@ -1,6 +1,7 @@
 package org.usvm.constraints
 
 import org.usvm.INITIAL_CONCRETE_ADDRESS
+import org.usvm.INITIAL_INPUT_ADDRESS
 import org.usvm.NULL_ADDRESS
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapAddress
@@ -15,6 +16,7 @@ import org.usvm.solver.USolverResult
 import org.usvm.solver.UUnsatResult
 import org.usvm.types.USingleTypeStream
 import org.usvm.types.UTypeRegion
+import org.usvm.types.UTypeStream
 import org.usvm.uctx
 
 interface UTypeEvaluator<Type> {
@@ -23,27 +25,30 @@ interface UTypeEvaluator<Type> {
 
 class UTypeModel<Type>(
     val typeSystem: UTypeSystem<Type>,
-    typeByAddr: Map<UConcreteHeapAddress, Type>,
+    typeStreamByAddr: Map<UConcreteHeapAddress, UTypeStream<Type>>,
 ) : UTypeEvaluator<Type> {
-    private val typeByAddr = typeByAddr.toMutableMap()
+    private val typeStreamByAddr = typeStreamByAddr.toMutableMap()
 
-    fun typeOrNull(ref: UConcreteHeapRef): Type? = typeByAddr[ref.address]
+    fun typeStream(ref: UConcreteHeapRef): UTypeStream<Type> =
+        typeStreamByAddr[ref.address] ?: typeSystem.topTypeStream()
 
     override fun evalIs(ref: UHeapRef, type: Type): UBoolExpr =
         when (ref) {
             is UConcreteHeapRef -> {
-                val evaluatedType = typeOrNull(ref)
-                val holds = if (evaluatedType == null) {
-                    val anyTypes = typeSystem.topTypeStream().filterBySupertype(type).take(1)
-                    val typesNotEmpty = anyTypes.isNotEmpty()
-                    if (typesNotEmpty) {
-                        typeByAddr[ref.address] = anyTypes.single()
-                    }
-                    typesNotEmpty
+                if (ref.address == NULL_ADDRESS) {
+                    ref.ctx.trueExpr
                 } else {
-                    typeSystem.isSupertype(type, evaluatedType)
+                    require(ref.address <= INITIAL_INPUT_ADDRESS)
+
+                    val evaluatedTypeStream = typeStream(ref)
+                    val typeStream = evaluatedTypeStream.filterBySupertype(type)
+                    if (!typeStream.isEmpty) {
+                        typeStreamByAddr[ref.address] = typeStream
+                        ref.ctx.trueExpr
+                    } else {
+                        ref.ctx.falseExpr
+                    }
                 }
-                if (holds) ref.ctx.trueExpr else ref.ctx.falseExpr
             }
 
             else -> error("Expecting concrete ref, but got $ref")
@@ -165,7 +170,7 @@ class UTypeConstraints<Type>(
                 val constraints = this[ref]
                 val newConstraints = constraints.excludeSupertype(type)
                 equalityConstraints.makeNonEqual(ref, ref.uctx.nullRef)
-                if (newConstraints.isContradicting ||equalityConstraints.isContradicting) {
+                if (newConstraints.isContradicting || equalityConstraints.isContradicting) {
                     // the [ref] can't be equal to null
                     contradiction()
                 } else {
@@ -185,9 +190,9 @@ class UTypeConstraints<Type>(
     }
 
     /**
-     * @return a type region corresponding to the [ref].
+     * @return a type stream corresponding to the [ref].
      */
-    fun readTypeRegion(ref: UHeapRef): UTypeRegion<Type> =
+    internal fun readTypeStream(ref: UHeapRef): UTypeStream<Type> =
         when (ref) {
             is UConcreteHeapRef -> {
                 require(ref.address >= INITIAL_CONCRETE_ADDRESS)
@@ -197,14 +202,11 @@ class UTypeConstraints<Type>(
                 } else {
                     USingleTypeStream(typeSystem, concreteType)
                 }
-                UTypeRegion(typeSystem, typeStream)
+                typeStream
             }
 
             is UNullRef -> error("Null ref should be handled explicitly earlier")
-
-            else -> {
-                this[ref]
-            }
+            else -> this[ref].typeStream
         }
 
     private fun intersectConstraints(ref1: UHeapRef, ref2: UHeapRef) {
@@ -339,17 +341,16 @@ class UTypeConstraints<Type>(
         }
 
         // otherwise, return the type assignment
-        val allConcreteRefToType = concreteRefToType.toMutableMap()
-        concreteToRegionWithCluster.mapValuesTo(allConcreteRefToType) { (_, regionToCluster) ->
+        val allConcreteRefToType = concreteToRegionWithCluster.mapValues { (_, regionToCluster) ->
             val (region, cluster) = regionToCluster
-            val result = region.typeStream.take(1)
-            if (result.isEmpty()) {
+            val typeStream = region.typeStream
+            if (typeStream.isEmpty) {
                 // the only way to reach here is when some of the clusters consists of a single reference
                 // because if the cluster is bigger, then we called region.isEmpty previously at least once
                 check(cluster.size == 1)
                 return UUnsatResult()
             } else {
-                result.single()
+                typeStream
             }
         }
 

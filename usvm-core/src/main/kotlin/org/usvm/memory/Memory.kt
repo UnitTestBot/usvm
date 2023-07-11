@@ -16,6 +16,7 @@ import org.usvm.URegisterLValue
 import org.usvm.USizeExpr
 import org.usvm.USort
 import org.usvm.constraints.UTypeConstraints
+import org.usvm.types.UTypeStream
 
 interface UReadOnlyMemory<LValue, RValue> {
     /**
@@ -24,7 +25,14 @@ interface UReadOnlyMemory<LValue, RValue> {
     fun read(lvalue: LValue): RValue
 }
 
-interface UMemory<LValue, RValue, SizeT, HeapRef, Type> : UReadOnlyMemory<LValue, RValue> {
+interface UReadOnlyTypedMemory<LValue, RValue, HeapRef, Type> : UReadOnlyMemory<LValue, RValue> {
+    /**
+     * @return a type stream corresponding to the [ref].
+     */
+    fun typeStreamOf(ref: HeapRef): UTypeStream<Type>
+}
+
+interface UMemory<LValue, RValue, SizeT, HeapRef, Type> : UReadOnlyTypedMemory<LValue, RValue, HeapRef, Type> {
     /**
      * Writes [rvalue] into memory cell referenced by [lvalue].
      */
@@ -74,7 +82,7 @@ interface UMemory<LValue, RValue, SizeT, HeapRef, Type> : UReadOnlyMemory<LValue
     )
 }
 
-typealias UReadOnlySymbolicMemory = UReadOnlyMemory<ULValue, UExpr<out USort>>
+typealias UReadOnlySymbolicMemory<Type> = UReadOnlyTypedMemory<ULValue, UExpr<out USort>, UHeapRef, Type>
 typealias USymbolicMemory<Type> = UMemory<ULValue, UExpr<out USort>, USizeExpr, UHeapRef, Type>
 
 @Suppress("MemberVisibilityCanBePrivate")
@@ -152,4 +160,7 @@ open class UMemoryBase<Field, Type, Method>(
 
     fun clone(typeConstraints: UTypeConstraints<Type>): UMemoryBase<Field, Type, Method> =
         UMemoryBase(ctx, typeConstraints, stack.clone(), heap.toMutableHeap(), mocker)
+
+    override fun typeStreamOf(ref: UHeapRef): UTypeStream<Type> =
+        types.readTypeStream(ref)
 }
