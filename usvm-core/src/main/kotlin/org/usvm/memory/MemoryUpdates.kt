@@ -3,6 +3,7 @@ package org.usvm.memory
 import org.usvm.UBoolExpr
 import org.usvm.UComposer
 import org.usvm.UExpr
+import org.usvm.UIteExpr
 import org.usvm.USort
 import org.usvm.isFalse
 import org.usvm.util.Region
@@ -307,9 +308,6 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
         matchingWrites: MutableList<GuardedExpr<UExpr<Sort>>>,
         guardBuilder: GuardBuilder,
     ): UTreeUpdates<Key, Reg, Sort> {
-        // the suffix of the [updates], starting from the earliest update satisfying `predicate(update.value(key))`
-        val updatesSuffix = mutableListOf<UUpdateNode<Key, Sort>?>()
-
         // reconstructed region tree, including all updates unsatisfying `predicate(update.value(key))` in the same order
         var splitUpdates = emptyRegionTree<Reg, UUpdateNode<Key, Sort>>()
 
@@ -323,39 +321,11 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
         }
 
         // traverse all updates one by one from the oldest one
-        for (update in this) {
-            val satisfies = predicate(update.value(key))
-
-            if (updatesSuffix.isNotEmpty()) {
-                updatesSuffix += update
-            } else if (satisfies) {
-                // we found the first matched update, so we have to apply already visited updates
-                // definitely unsatisfying `predicate(update.value(key))`
-                for (prevUpdate in this) {
-                    if (prevUpdate === update) {
-                        break
-                    }
-                    applyUpdate(update)
-                }
-                updatesSuffix += update
-            }
-        }
-
-        // no matching updates were found
-        if (updatesSuffix.isEmpty()) {
-            return this
-        }
-
         // here we collect matchingWrites and update guardBuilder in the correct order (from the newest to the oldest)
-        for (idx in updatesSuffix.indices.reversed()) {
-            val update = requireNotNull(updatesSuffix[idx])
-            updatesSuffix[idx] = update.split(key, predicate, matchingWrites, guardBuilder)
-        }
-
-        // here we apply the remaining updates
-        for (update in updatesSuffix) {
-            if (update != null) {
-                applyUpdate(update)
+        for (update in this) {
+            val splitUpdate = update.split(key, predicate, matchingWrites, guardBuilder)
+            if (splitUpdate != null) {
+                applyUpdate(splitUpdate)
             }
         }
 
