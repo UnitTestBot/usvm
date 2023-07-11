@@ -3,7 +3,6 @@ package org.usvm.memory
 import org.usvm.UBoolExpr
 import org.usvm.UComposer
 import org.usvm.UExpr
-import org.usvm.UIteExpr
 import org.usvm.USort
 import org.usvm.isFalse
 import org.usvm.util.Region
@@ -102,7 +101,6 @@ interface UMemoryUpdatesVisitor<Key, Sort : USort, Result> {
 
     fun visitUpdate(previous: Result, update: UUpdateNode<Key, Sort>): Result
 }
-
 
 
 //region Flat memory updates
@@ -309,7 +307,7 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
         guardBuilder: GuardBuilder,
     ): UTreeUpdates<Key, Reg, Sort> {
         // reconstructed region tree, including all updates unsatisfying `predicate(update.value(key))` in the same order
-        var splitUpdates = emptyRegionTree<Reg, UUpdateNode<Key, Sort>>()
+        var splitRegionTree = emptyRegionTree<Reg, UUpdateNode<Key, Sort>>()
 
         // add an update to result tree
         fun applyUpdate(update: UUpdateNode<Key, Sort>) {
@@ -317,20 +315,35 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
                 is UPinpointUpdateNode<Key, Sort> -> keyToRegion(update.key)
                 is URangedUpdateNode<*, *, Key, Sort> -> keyRangeToRegion(update.fromKey, update.toKey)
             }
-            splitUpdates = splitUpdates.write(region, update, valueFilter = { it.isIncludedByUpdateConcretely(update) })
+            splitRegionTree =
+                splitRegionTree.write(region, update, valueFilter = { it.isIncludedByUpdateConcretely(update) })
+        }
+
+
+        var hasChanged = false
+        // here we split updates from the newest to the oldest
+        val splitUpdates = toMutableList<UUpdateNode<Key, Sort>?>().apply { reverse() }
+        for ((idx, update) in splitUpdates.withIndex()) {
+            val splitUpdate = update?.split(key, predicate, matchingWrites, guardBuilder)
+            hasChanged = hasChanged or (update !== splitUpdate)
+            splitUpdates[idx] = splitUpdate
+        }
+
+        // if nothing changed, return this
+        if (!hasChanged) {
+            return this
         }
 
         // traverse all updates one by one from the oldest one
         // here we collect matchingWrites and update guardBuilder in the correct order (from the newest to the oldest)
-        for (update in this) {
-            val splitUpdate = update.split(key, predicate, matchingWrites, guardBuilder)
-            if (splitUpdate != null) {
-                applyUpdate(splitUpdate)
+        for (update in splitUpdates.asReversed()) {
+            if (update != null) {
+                applyUpdate(update)
             }
         }
 
 
-        return this.copy(updates = splitUpdates)
+        return this.copy(updates = splitRegionTree)
     }
 
 
