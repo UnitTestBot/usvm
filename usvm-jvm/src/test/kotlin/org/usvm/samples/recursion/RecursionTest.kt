@@ -55,7 +55,6 @@ internal class RecursionTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 4 executions, but 5 found. Same exception discovered multiple times")
     fun testPow() {
         checkDiscoveredPropertiesWithExceptions(
             Recursion::pow,
@@ -68,7 +67,7 @@ internal class RecursionTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 2 executions, but 28 found. Same exception discovered multiple times")
+    @Disabled("Expected exactly 2 executions, but 54 found. Fix minimization")
     fun infiniteRecursionTest() {
         checkDiscoveredPropertiesWithExceptions(
             Recursion::infiniteRecursion,
@@ -79,7 +78,7 @@ internal class RecursionTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@4640195a")
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3f95a1b3")
     fun vertexSumTest() {
         checkDiscoveredProperties(
             Recursion::vertexSum,

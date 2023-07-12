@@ -39,7 +39,7 @@ class DateExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Virtual call: sun.util.calendar.BaseCalendar.Date.getNormalizedYear")
+    @Disabled("Sequence is empty.")
     fun testGetTimeWithoutReflection() {
         checkDiscoveredPropertiesWithExceptions(
             DateExample::getTime,

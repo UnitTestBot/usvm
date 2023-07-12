@@ -41,8 +41,8 @@ open class UPathConstraints<Type> private constructor(
     constructor(ctx: UContext) : this(ctx, persistentSetOf())
 
     open val isFalse: Boolean
-        get() = equalityConstraints.isContradiction ||
-            typeConstraints.isContradiction ||
+        get() = equalityConstraints.isContradicting ||
+            typeConstraints.isContradicting ||
             logicalConstraints.singleOrNull() is UFalse
 
     @Suppress("UNCHECKED_CAST")
@@ -54,9 +54,9 @@ open class UPathConstraints<Type> private constructor(
                 constraint == trueExpr || constraint in logicalConstraints -> {}
 
                 constraint is UEqExpr<*> && isSymbolicHeapRef(constraint.lhs) && isSymbolicHeapRef(constraint.rhs) ->
-                    equalityConstraints.addReferenceEquality(constraint.lhs as UHeapRef, constraint.rhs as UHeapRef)
+                    equalityConstraints.makeEqual(constraint.lhs as UHeapRef, constraint.rhs as UHeapRef)
 
-                constraint is UIsExpr<*> -> typeConstraints.cast(constraint.ref, constraint.type as Type)
+                constraint is UIsExpr<*> -> typeConstraints.addSupertype(constraint.ref, constraint.type as Type)
 
                 constraint is UAndExpr -> constraint.args.forEach(::plusAssign)
 
@@ -67,11 +67,16 @@ open class UPathConstraints<Type> private constructor(
                             isSymbolicHeapRef(notConstraint.lhs) &&
                             isSymbolicHeapRef(notConstraint.rhs) -> {
                             require(notConstraint.rhs.sort == addressSort)
-                            equalityConstraints.addReferenceDisequality(
+                            equalityConstraints.makeNonEqual(
                                 notConstraint.lhs as UHeapRef,
                                 notConstraint.rhs as UHeapRef
                             )
                         }
+
+                        notConstraint is UIsExpr<*> -> typeConstraints.excludeSupertype(
+                            notConstraint.ref,
+                            notConstraint.type as Type
+                        )
 
                         notConstraint in logicalConstraints -> contradiction(ctx)
 

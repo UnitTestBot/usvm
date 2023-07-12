@@ -33,28 +33,28 @@ class EqualityConstraintsTests {
         val ref6: UHeapRef = ctx.mkRegisterReading(6, ctx.addressSort)
         val ref7: UHeapRef = ctx.mkRegisterReading(7, ctx.addressSort)
 
-        constraints.addReferenceDisequality(ref1, ctx.nullRef)
-        constraints.addReferenceDisequality(ref2, ctx.nullRef)
-        constraints.addReferenceDisequality(ref3, ctx.nullRef)
+        constraints.makeNonEqual(ref1, ctx.nullRef)
+        constraints.makeNonEqual(ref2, ctx.nullRef)
+        constraints.makeNonEqual(ref3, ctx.nullRef)
         // First, init 2 distinct non-null addresses
-        constraints.addReferenceDisequality(ref1, ref2)
+        constraints.makeNonEqual(ref1, ref2)
         // Add ref2 != ref3
-        constraints.addReferenceDisequality(ref2, ref3)
+        constraints.makeNonEqual(ref2, ref3)
         // ref1 still can be equal to ref3
         assertSame(3, constraints.distinctReferences.size)
         assertTrue(constraints.referenceDisequalities[ref2]!!.contains(ref3))
         assertTrue(constraints.referenceDisequalities[ref3]!!.contains(ref2))
 
-        constraints.addReferenceDisequality(ref1, ref3)
+        constraints.makeNonEqual(ref1, ref3)
         // Now ref1, ref2 and ref3 are guaranteed to be distinct
         assertSame(4, constraints.distinctReferences.size)
         assertTrue(constraints.referenceDisequalities.all { it.value.isEmpty() })
 
         // Adding some entry into referenceDisequalities
-        constraints.addReferenceDisequality(ref1, ref6)
+        constraints.makeNonEqual(ref1, ref6)
 
-        constraints.addReferenceEquality(ref4, ref5)
-        constraints.addReferenceEquality(ref5, ref1)
+        constraints.makeEqual(ref4, ref5)
+        constraints.makeEqual(ref5, ref1)
         // Engine should be able to infer that ref5 = ref1 != ref3
         assertTrue(constraints.areDistinct(ref5, ref3))
         // Checking that ref5 = ref4 = ref1 != ref6
@@ -70,12 +70,12 @@ class EqualityConstraintsTests {
             assertTrue(!ref6Diseq.contains(ref1))
         }
 
-        assertTrue(!constraints.isContradiction)
-        constraints.addReferenceEquality(ref7, ref3)
-        assertTrue(!constraints.isContradiction)
-        constraints.addReferenceEquality(ref7, ref4)
+        assertTrue(!constraints.isContradicting)
+        constraints.makeEqual(ref7, ref3)
+        assertTrue(!constraints.isContradicting)
+        constraints.makeEqual(ref7, ref4)
         // Check that we've detected the conflict ref4 = ref5 = ref1 != ref3 = ref7 = ref4
-        assertTrue(constraints.isContradiction)
+        assertTrue(constraints.isContradicting)
     }
 
     @Test
@@ -94,21 +94,21 @@ class EqualityConstraintsTests {
         // Adding constraint ref1 == ref2.
         // Testing that equality constraints infer that both (ref1 == null) and (ref2 == null).
         // Furthermore, inferring that ref1 == null should simplify constraint (2) to true
-        constraints.addReferenceEquality(ref1, ref2)
+        constraints.makeEqual(ref1, ref2)
         assertFalse(constraints.nullableDisequalities.containsKey(ref1))
         assertTrue(constraints.areEqual(ref1, ctx.nullRef))
         assertTrue(constraints.areEqual(ref2, ctx.nullRef))
         assertFalse(constraints.areDistinct(ref1, ref3))
         assertFalse(constraints.nullableDisequalities[ref3]?.contains(ref1) ?: false)
 
-        constraints.addReferenceDisequality(ref4, ctx.nullRef)
+        constraints.makeNonEqual(ref4, ctx.nullRef)
         constraints.makeNonEqualOrBothNull(ref3, ref4)
         // Now, we've added 2 more constraints:
         // (3) ref4 != null
         // (4) ref3 != ref4 || (ref3 == ref4 == null)
         // These two should be automatically simplified to ref3 != ref4.
         assertSame(2, constraints.distinctReferences.size)
-        constraints.addReferenceDisequality(ref3, ctx.nullRef)
+        constraints.makeNonEqual(ref3, ctx.nullRef)
         // Now we have obtained that null, ref3 and ref4 are 3 distinct references. This should be represented as clique
         // constraint...
         assertSame(3, constraints.distinctReferences.size)

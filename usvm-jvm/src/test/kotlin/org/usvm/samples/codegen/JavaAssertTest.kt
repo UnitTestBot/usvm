@@ -8,7 +8,7 @@ import org.usvm.util.isException
 
 class JavaAssertTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@41ccb3b9")
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@2efac41a")
     fun testAssertPositive() {
         checkDiscoveredPropertiesWithExceptions(
             JavaAssert::assertPositive,

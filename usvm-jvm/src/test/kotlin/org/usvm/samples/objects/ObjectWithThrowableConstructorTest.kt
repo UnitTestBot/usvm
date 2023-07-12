@@ -9,7 +9,7 @@ import kotlin.reflect.KFunction2
 
 internal class ObjectWithThrowableConstructorTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("SAT-1500 Support verification of UtAssembleModel for possible exceptions")
+    @Disabled("Support constructors in matchers")
     fun testThrowableConstructor() {
         val method: KFunction2<Int, Int, ObjectWithThrowableConstructor> = ::ObjectWithThrowableConstructor
         checkDiscoveredProperties(

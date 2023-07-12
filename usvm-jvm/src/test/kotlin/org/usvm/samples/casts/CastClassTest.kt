@@ -9,7 +9,7 @@ import org.usvm.test.util.checkers.eq
 
 internal class CastClassTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("An operation is not implemented.")
+    @Disabled("Support instanceof")
     fun testThisTypeChoice() {
         checkDiscoveredProperties(
             CastClass::castToInheritor,

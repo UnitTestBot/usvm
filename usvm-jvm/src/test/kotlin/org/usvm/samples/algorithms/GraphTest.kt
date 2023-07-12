@@ -9,7 +9,7 @@ import org.usvm.util.isException
 
 internal class GraphTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Only NPEs are found")
+    @Disabled("Some properties were not discovered at positions (from 0): [0, 1, 2, 3, 4]. Tune coverage zone")
     fun testRunFindCycle() {
         checkDiscoveredPropertiesWithExceptions(
             GraphExample::runFindCycle,
@@ -36,7 +36,7 @@ internal class GraphTest : JavaMethodTestRunner() {
      * TODO: fix Dijkstra algorithm.
      */
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [3, 4]")
+    @Disabled("Some properties were not discovered at positions (from 0): [3, 4]. Tune coverage zone")
     fun testRunDijkstraWithParameter() {
         checkDiscoveredPropertiesWithExceptions(
             GraphExample::runDijkstraWithParameter,

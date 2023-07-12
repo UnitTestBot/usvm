@@ -3,6 +3,8 @@ package org.usvm.model
 import io.ksmt.solver.KModel
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
+import org.usvm.INITIAL_INPUT_ADDRESS
+import org.usvm.NULL_ADDRESS
 import org.usvm.UBoolExpr
 import org.usvm.UComposer
 import org.usvm.UConcreteHeapRef
@@ -15,7 +17,6 @@ import org.usvm.UMockSymbol
 import org.usvm.USizeExpr
 import org.usvm.USizeSort
 import org.usvm.USort
-import org.usvm.memory.UAddressCounter
 import org.usvm.memory.UInputArrayId
 import org.usvm.memory.UInputArrayLengthId
 import org.usvm.memory.UInputFieldId
@@ -96,15 +97,27 @@ class ULazyHeapModel<Field, ArrayType>(
     private val resolvedInputArrays = mutableMapOf<ArrayType, UReadOnlyMemoryRegion<USymbolicArrayIndex, out USort>>()
     private val resolvedInputLengths = mutableMapOf<ArrayType, UReadOnlyMemoryRegion<UHeapRef, USizeSort>>()
 
-    private val nullRef = translator
-        .translate(translator.ctx.nullRef)
+    /**
+     * To resolve nullRef, we need to:
+     * * translate it
+     * * evaluate the translated value in the [model]
+     * * map the evaluated value with the [addressesMapping]
+     *
+     * Actually, its address should always be equal 0.
+     */
+    private val nullRef = model
+        .eval(translator.translate(translator.ctx.nullRef))
         .mapAddress(addressesMapping) as UConcreteHeapRef
+
+    init {
+        check(nullRef.address == NULL_ADDRESS)
+    }
 
     override fun <Sort : USort> readField(ref: UHeapRef, field: Field, sort: Sort): UExpr<Sort> {
         // All the expressions in the model are interpreted, therefore, they must
         // have concrete addresses. Moreover, the model knows only about input values
         // which have addresses less or equal than INITIAL_INPUT_ADDRESS
-        require(ref is UConcreteHeapRef && ref.address <= UAddressCounter.INITIAL_INPUT_ADDRESS)
+        require(ref is UConcreteHeapRef && ref.address <= INITIAL_INPUT_ADDRESS)
 
         val resolvedRegion = resolvedInputFields[field]
         val regionId = UInputFieldId(field, sort, contextHeap = null)
@@ -129,7 +142,7 @@ class ULazyHeapModel<Field, ArrayType>(
         // All the expressions in the model are interpreted, therefore, they must
         // have concrete addresses. Moreover, the model knows only about input values
         // which have addresses less or equal than INITIAL_INPUT_ADDRESS
-        require(ref is UConcreteHeapRef && ref.address <= UAddressCounter.INITIAL_INPUT_ADDRESS)
+        require(ref is UConcreteHeapRef && ref.address <= INITIAL_INPUT_ADDRESS)
 
         val key = ref to index
 
@@ -151,7 +164,7 @@ class ULazyHeapModel<Field, ArrayType>(
         // All the expressions in the model are interpreted, therefore, they must
         // have concrete addresses. Moreover, the model knows only about input values
         // which have addresses less or equal than INITIAL_INPUT_ADDRESS
-        require(ref is UConcreteHeapRef && ref.address <= UAddressCounter.INITIAL_INPUT_ADDRESS)
+        require(ref is UConcreteHeapRef && ref.address <= INITIAL_INPUT_ADDRESS)
 
         val resolvedRegion = resolvedInputLengths[arrayType]
         val regionId = UInputArrayLengthId(arrayType, ref.uctx.sizeSort, contextHeap = null)

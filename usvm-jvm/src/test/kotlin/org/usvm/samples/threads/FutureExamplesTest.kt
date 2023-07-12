@@ -12,7 +12,7 @@ import java.util.concurrent.ExecutionException
 // (see https://github.com/UnitTestBot/UTBotJava/issues/1610)
 class FutureExamplesTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Expected exactly 1 executions, but 2 found. Same exception discovered multiple times")
+    @Disabled("Support invokedynamic")
     fun testThrowingRunnable() {
         checkDiscoveredPropertiesWithExceptions(
             FutureExamples::throwingRunnableExample,
@@ -22,7 +22,7 @@ class FutureExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3f95a1b3")
     fun testResultFromGet() {
         checkDiscoveredProperties(
             FutureExamples::resultFromGet,
@@ -32,7 +32,7 @@ class FutureExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3f95a1b3")
     fun testChangingCollectionInFuture() {
         checkDiscoveredProperties(
             FutureExamples::changingCollectionInFuture,
@@ -42,7 +42,7 @@ class FutureExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3f95a1b3")
     fun testChangingCollectionInFutureWithoutGet() {
         checkDiscoveredProperties(
             FutureExamples::changingCollectionInFutureWithoutGet,

@@ -9,7 +9,7 @@ import org.usvm.util.isException
 
 internal class SortTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@b66d50c")
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3a182eaf")
     fun testQuickSort() {
         checkDiscoveredProperties(
             Sort::quickSort,
@@ -19,7 +19,6 @@ internal class SortTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun testSwap() {
         checkDiscoveredPropertiesWithExceptions(
             Sort::swap,
@@ -73,7 +72,7 @@ internal class SortTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [4, 5]")
+    @Disabled("Some properties were not discovered at positions (from 0): [1, 3, 4, 5]. Tune path selectors")
     fun testMerge() {
         checkDiscoveredPropertiesWithExceptions(
             Sort::merge,
@@ -106,7 +105,7 @@ internal class SortTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
+    @Disabled("Some properties were not discovered at positions (from 0): [1, 2]. Tune path selectors")
     fun testDefaultSort() {
         checkDiscoveredPropertiesWithExceptions(
             Sort::defaultSort,

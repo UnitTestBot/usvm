@@ -20,8 +20,6 @@ abstract class UState<Type, Field, Method, Statement>(
     open var models: List<UModelBase<Field, Type>>,
     open var path: PersistentList<Statement>
 ) {
-    open val ctx: UContext = ctx
-
     /**
      * Deterministic state id.
      * TODO: Can be replaced with overridden hashCode
@@ -74,7 +72,7 @@ private fun <T : UState<Type, Field, *, *>, Type, Field> forkIfSat(
         return null
     }
 
-    val solver = state.ctx.solver<Field, Type, Any?>()
+    val solver = satisfiedCondition.uctx.solver<Field, Type, Any?>()
     val satResult = solver.check(pathConstraints, useSoftConstraints = true)
 
     return when (satResult) {
@@ -133,7 +131,7 @@ fun <T : UState<Type, Field, *, *>, Type, Field> fork(
         holdsInModel.isTrue
     }
 
-    val notCondition = state.ctx.mkNot(condition)
+    val notCondition = condition.uctx.mkNot(condition)
     val (posState, negState) = when {
 
         trueModels.isNotEmpty() && falseModels.isNotEmpty() -> {

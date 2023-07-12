@@ -11,7 +11,7 @@ public class Overload {
         }
     }
 
-    public int sign(int x, int y) {
+    public int signBinary(int x, int y) {
         if (x + y > 0) {
             return 1;
         } else if (x + y < 0) {

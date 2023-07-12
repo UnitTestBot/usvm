@@ -8,7 +8,7 @@ import org.usvm.test.util.checkers.eq
 
 internal class AliasingInParamsExampleTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Sort mismatch")
+    @Disabled("Sequence is empty.")
     fun testExamplePackageBased() {
         checkDiscoveredProperties(
             AliasingInParamsExample::example,
@@ -18,7 +18,7 @@ internal class AliasingInParamsExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sort mismatch")
+    @Disabled("Sequence is empty.")
     fun testExample() {
         checkDiscoveredProperties(
             AliasingInParamsExample::example,

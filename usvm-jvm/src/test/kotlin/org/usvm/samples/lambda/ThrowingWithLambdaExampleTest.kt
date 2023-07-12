@@ -8,7 +8,7 @@ import org.usvm.test.util.checkers.eq
 
 class ThrowingWithLambdaExampleTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Sequence is empty.")
+    @Disabled("Support assumptions")
     fun testAnyExample() {
         checkDiscoveredProperties(
             ThrowingWithLambdaExample::anyExample,

@@ -8,7 +8,7 @@ import org.usvm.test.util.checkers.eq
 
 internal class HiddenFieldExampleTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
+    @Disabled("Support instanceof")
     fun testCheckHiddenField() {
         checkDiscoveredProperties(
             HiddenFieldExample::checkHiddenField,
@@ -21,7 +21,6 @@ internal class HiddenFieldExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 5 executions, but 6 found. Same exception discovered multiple times")
     fun testCheckSuccField() {
         checkDiscoveredProperties(
             HiddenFieldExample::checkSuccField,

@@ -66,7 +66,6 @@ internal class ListIteratorsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Java 11 transition")
     fun testAddElements() {
         checkDiscoveredProperties(
             ListIterators::addElements,

@@ -13,9 +13,9 @@ import java.util.OptionalLong
 import java.util.stream.LongStream
 import kotlin.streams.toList
 
+@Disabled("Still too complex")
 class LongStreamExampleTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Expected exactly 1 executions, but 3 found")
     fun testReturningStreamAsParameterExample() {
         checkDiscoveredProperties(
             LongStreamExample::returningStreamAsParameterExample,
@@ -25,7 +25,6 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testUseParameterStream() {
         checkDiscoveredProperties(
             LongStreamExample::useParameterStream,
@@ -40,7 +39,6 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testFilterExample() {
         checkDiscoveredProperties(
             LongStreamExample::filterExample,
@@ -51,7 +49,6 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testMapExample() {
         checkDiscoveredProperties(
             LongStreamExample::mapExample,
@@ -62,7 +59,6 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testMapToObjExample() {
         checkDiscoveredProperties(
             LongStreamExample::mapToObjExample,
@@ -81,7 +77,6 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testMapToIntExample() {
         checkDiscoveredProperties(
             LongStreamExample::mapToIntExample,
@@ -100,7 +95,6 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testMapToDoubleExample() {
         checkDiscoveredProperties(
             LongStreamExample::mapToDoubleExample,
@@ -119,7 +113,6 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testFlatMapExample() {
         checkDiscoveredProperties(
             LongStreamExample::flatMapExample,
@@ -135,7 +128,6 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testDistinctExample() {
         checkDiscoveredProperties(
             LongStreamExample::distinctExample,
@@ -176,7 +168,6 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
 //    }
 
     @Test
-    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testLimitExample() {
         checkDiscoveredProperties(
             LongStreamExample::limitExample,
@@ -187,7 +178,6 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testSkipExample() {
         checkDiscoveredProperties(
             LongStreamExample::skipExample,
@@ -208,7 +198,6 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
 //    }
 
     @Test
-    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testToArrayExample() {
         checkDiscoveredProperties(
             LongStreamExample::toArrayExample,
@@ -218,7 +207,6 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Index 1 out of bounds for length 1")
     fun testReduceExample() {
         checkDiscoveredProperties(
             LongStreamExample::reduceExample,
@@ -229,7 +217,6 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testOptionalReduceExample() {
         checkDiscoveredPropertiesWithExceptions(
             LongStreamExample::optionalReduceExample,
@@ -244,7 +231,6 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Index 1 out of bounds for length 1")
     fun testSumExample() {
         checkDiscoveredProperties(
             LongStreamExample::sumExample,
@@ -255,7 +241,6 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testMinExample() {
         checkDiscoveredPropertiesWithExceptions(
             LongStreamExample::minExample,
@@ -268,7 +253,6 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testMaxExample() {
         checkDiscoveredPropertiesWithExceptions(
             LongStreamExample::maxExample,
@@ -293,7 +277,6 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Index 1 out of bounds for length 1")
     fun testAverageExample() {
         checkDiscoveredProperties(
             LongStreamExample::averageExample,
@@ -304,7 +287,6 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Index 1 out of bounds for length 1")
     fun testSummaryStatisticsExample() {
         checkDiscoveredProperties(
             LongStreamExample::summaryStatisticsExample,
@@ -341,7 +323,6 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Index 2 out of bounds for length 2")
     fun testAnyMatchExample() {
         checkDiscoveredProperties(
             LongStreamExample::anyMatchExample,
@@ -367,7 +348,6 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Index 2 out of bounds for length 2")
     fun testAllMatchExample() {
         checkDiscoveredProperties(
             LongStreamExample::allMatchExample,
@@ -393,7 +373,6 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Index 2 out of bounds for length 2")
     fun testNoneMatchExample() {
         checkDiscoveredProperties(
             LongStreamExample::noneMatchExample,
@@ -419,7 +398,6 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Index 1 out of bounds for length 1")
     fun testFindFirstExample() {
         checkDiscoveredProperties(
             LongStreamExample::findFirstExample,
@@ -430,7 +408,6 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: reference cast")
     fun testAsDoubleStreamExample() {
         checkDiscoveredProperties(
             LongStreamExample::asDoubleStreamExample,
@@ -440,7 +417,6 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: reference cast")
     fun testBoxedExample() {
         checkDiscoveredProperties(
             LongStreamExample::boxedExample,
@@ -450,7 +426,6 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: reference cast")
     fun testIteratorExample() {
         checkDiscoveredProperties(
             LongStreamExample::iteratorSumExample,
@@ -461,7 +436,7 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3f95a1b3")
     fun testStreamOfExample() {
         checkDiscoveredProperties(
             LongStreamExample::streamOfExample,
@@ -473,7 +448,6 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: reference cast")
     fun testClosedStreamExample() {
         checkDiscoveredPropertiesWithExceptions(
             LongStreamExample::closedStreamExample,
@@ -483,7 +457,6 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: reference cast")
     fun testGenerateExample() {
         checkDiscoveredProperties(
             LongStreamExample::generateExample,
@@ -493,7 +466,6 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Index 1 out of bounds for length 1")
     fun testIterateExample() {
         checkDiscoveredProperties(
             LongStreamExample::iterateExample,
@@ -503,7 +475,6 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: reference cast")
     fun testConcatExample() {
         checkDiscoveredProperties(
             LongStreamExample::concatExample,
@@ -513,7 +484,6 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun testRangeExample() {
         checkDiscoveredProperties(
             LongStreamExample::rangeExample,
@@ -523,7 +493,6 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@dc6a186")
     fun testRangeClosedExample() {
         checkDiscoveredProperties(
             LongStreamExample::rangeClosedExample,

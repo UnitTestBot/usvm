@@ -10,7 +10,6 @@ import org.usvm.util.isException
 @Disabled("Unsupported")
 internal class ExceptionExamplesTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Sequence has more than one element.")
     fun testInitAnArray() {
         checkDiscoveredProperties(
             ExceptionExamples::initAnArray,
@@ -99,7 +98,6 @@ internal class ExceptionExamplesTest : JavaMethodTestRunner() {
      * Covers [#656](https://github.com/UnitTestBot/UTBotJava/issues/656).
      */
     @Test
-    @Disabled("Sequence has more than one element.")
     fun testCatchExceptionAfterOtherPossibleException() {
         checkDiscoveredPropertiesWithExceptions(
             ExceptionExamples::catchExceptionAfterOtherPossibleException,
@@ -114,7 +112,6 @@ internal class ExceptionExamplesTest : JavaMethodTestRunner() {
      * Used for path generation check in [org.utbot.engine.Traverser.fullPath]
      */
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
     fun testDontCatchDeepNestedThrow() {
         checkDiscoveredPropertiesWithExceptions(
             ExceptionExamples::dontCatchDeepNestedThrow,

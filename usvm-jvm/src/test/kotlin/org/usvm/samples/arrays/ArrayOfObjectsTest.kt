@@ -20,7 +20,6 @@ internal class ArrayOfObjectsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 2 executions, but 3 found. Same exception discovered multiple times")
     fun testCreateArray() {
         checkDiscoveredProperties(
             ArrayOfObjects::createArray,
@@ -38,7 +37,6 @@ internal class ArrayOfObjectsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun testCopyArray() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayOfObjects::copyArray,
@@ -51,7 +49,6 @@ internal class ArrayOfObjectsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun testCopyArrayMutation() {
         checkThisAndParamsMutations(
             ArrayOfObjects::copyArray,
@@ -64,7 +61,6 @@ internal class ArrayOfObjectsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
     fun testArrayWithSucc() {
         checkDiscoveredProperties(
             ArrayOfObjects::arrayWithSucc,
@@ -84,7 +80,8 @@ internal class ArrayOfObjectsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1, 2].")
+    @Disabled("java.lang.ArrayStoreException: org.usvm.samples.arrays.ObjectWithPrimitivesClass." +
+        "Connect element type and array type")
     fun testObjectArray() {
         checkDiscoveredProperties(
             ArrayOfObjects::objectArray,
@@ -98,7 +95,7 @@ internal class ArrayOfObjectsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented.")
+    @Disabled("List is empty. java.lang.ArrayStoreException: org.usvm.samples.arrays.ObjectWithPrimitivesClass")
     fun testArrayOfArrays() {
         checkDiscoveredProperties(
             ArrayOfObjects::arrayOfArrays,

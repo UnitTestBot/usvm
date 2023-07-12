@@ -1,13 +1,11 @@
 package org.usvm.samples.arrays
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 class TetOneDimensional : JavaMethodTestRunner() {
     @Test
-    @Disabled("Failed requirement at org.usvm.model.ULazyHeapModel.readArrayLength(LazyModels.kt:167)")
     fun `Test sumOf`() {
         checkDiscoveredPropertiesWithExceptions(
             OneDimensional::sumOf,
@@ -19,7 +17,6 @@ class TetOneDimensional : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Failed requirement at org.usvm.model.ULazyHeapModel.readArrayLength(LazyModels.kt:167)")
     fun `Test minus`() {
         checkDiscoveredPropertiesWithExceptions(
             OneDimensional::minus,

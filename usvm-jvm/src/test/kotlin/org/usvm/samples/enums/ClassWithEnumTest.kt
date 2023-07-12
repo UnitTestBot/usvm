@@ -23,7 +23,7 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
 //    }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@1b0e9707")
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@27975320")
     fun testGetter() {
         checkDiscoveredProperties(
             ClassWithEnum::useGetter,
@@ -45,7 +45,7 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("org.usvm.samples.enums.ClassWithEnum.ClassWithEnum\$StatusEnum")
+    @Disabled("Some properties were not discovered at positions (from 0): [1]. Support enums")
     fun testNullParameter() {
         checkDiscoveredProperties(
             ClassWithEnum::nullEnumAsParameter,
@@ -56,7 +56,7 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@1b0e9707")
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@27975320")
     fun testNullField() {
         checkDiscoveredPropertiesWithExceptions(
             ClassWithEnum::nullField,
@@ -67,9 +67,8 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
         )
     }
 
-    @Suppress("KotlinConstantConditions")
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@1b0e9707")
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@27975320")
     fun testChangeEnum() {
         checkDiscoveredPropertiesWithExceptions(
             ClassWithEnum::changeEnum,
@@ -80,7 +79,7 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@1b0e9707")
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@27975320")
     fun testChangeMutableField() {
         checkDiscoveredPropertiesWithExceptions(
             ClassWithEnum::changeMutableField,
@@ -91,7 +90,7 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@1b0e9707")
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@27975320")
     fun testCheckName() {
         checkDiscoveredProperties(
             ClassWithEnum::checkName,
@@ -150,7 +149,7 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
 //    }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@1b0e9707")
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@579caf9c")
     fun testFromCode() {
         checkDiscoveredProperties(
             StatusEnum::fromCode,
@@ -162,7 +161,7 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@1b0e9707")
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@27975320")
     fun testFromIsReady() {
         checkDiscoveredProperties(
             StatusEnum::fromIsReady,
@@ -195,7 +194,7 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@1b0e9707")
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@27975320")
     fun testAffectSystemStaticAndUseInitEnumFromIt() {
         checkDiscoveredProperties(
             ClassWithEnum::affectSystemStaticAndInitEnumFromItAndReturnField,
@@ -205,7 +204,7 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@1b0e9707")
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@7fbde9f0")
     fun testAffectSystemStaticAndInitEnumFromItAndGetItFromEnumFun() {
         checkDiscoveredProperties(
             ClassWithEnum::affectSystemStaticAndInitEnumFromItAndGetItFromEnumFun,

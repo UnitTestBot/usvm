@@ -122,7 +122,7 @@ class HeapRefSplittingTest {
 
         val res1 = heap.readArrayIndex(ref, idx1, arrayDescr.first, arrayDescr.second)
 
-        val (concreteRefs, symbolicRef) = splitUHeapRef(res1)
+        val (concreteRefs, symbolicRef) = splitUHeapRef(res1, ignoreNullRefs = false)
         assertNotNull(symbolicRef)
 
         assertEquals(3, concreteRefs.size)
@@ -149,7 +149,7 @@ class HeapRefSplittingTest {
 
         val res1 = heap.readArrayIndex(ref1, idx, arrayDescr.first, arrayDescr.second)
 
-        val (concreteRefs, _) = splitUHeapRef(res1)
+        val (concreteRefs, _) = splitUHeapRef(res1, ignoreNullRefs = false)
 
         assertEquals(2, concreteRefs.size)
         assertSame(val2, concreteRefs[0].expr)

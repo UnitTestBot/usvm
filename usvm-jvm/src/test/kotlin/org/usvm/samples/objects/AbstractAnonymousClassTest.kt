@@ -9,7 +9,6 @@ import org.usvm.test.util.checkers.eq
 
 class AbstractAnonymousClassTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("java.lang.InstantiationException: org.usvm.samples.objects.AbstractAnonymousClass")
     fun testNonOverriddenMethod() {
         checkDiscoveredProperties(
             AbstractAnonymousClass::methodWithoutOverrides,
@@ -18,7 +17,7 @@ class AbstractAnonymousClassTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected exception type thrown ==> expected: <org.opentest4j.AssertionFailedError> but was: <java.lang.InstantiationException>")
+    @Disabled("Repeats UTBot behavior, see require(possibleTypesWithNonOverriddenMethod.isNotEmpty()) in Traverser")
     fun testOverriddenMethod() {
         // check we have error during execution
         assertThrows<org.opentest4j.AssertionFailedError> {

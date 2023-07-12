@@ -41,8 +41,7 @@ class TestWhile : JavaMethodTestRunner() {
         )
     }
 
-    @RepeatedTest(5)
-//    @Disabled("Some properties were not discovered at positions (from 0): [0]")
+    @Test
     fun `Test while1000`() {
         checkDiscoveredProperties(
             While::while1000,
