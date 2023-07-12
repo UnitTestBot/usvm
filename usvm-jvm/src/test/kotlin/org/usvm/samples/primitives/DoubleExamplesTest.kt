@@ -29,7 +29,7 @@ internal class DoubleExamplesTest : JavaMethodTestRunner() {
         )
     }
 
-    @Disabled("Doubles fix needed")
+    @Test
     fun testCompareWithDiv() {
         checkDiscoveredProperties(
             DoubleExamples::compareWithDiv,
