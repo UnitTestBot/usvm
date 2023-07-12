@@ -23,6 +23,7 @@ import io.ksmt.sort.KUninterpretedSort
 import io.ksmt.utils.asExpr
 import org.usvm.UAddressSort
 import org.usvm.UAllocatedArrayReading
+import org.usvm.UAllocatedSymbolicMapReading
 import org.usvm.UBoolExpr
 import org.usvm.UBvSort
 import org.usvm.UConcreteHeapRef
@@ -34,6 +35,8 @@ import org.usvm.UIndexedMethodReturnValue
 import org.usvm.UInputArrayLengthReading
 import org.usvm.UInputArrayReading
 import org.usvm.UInputFieldReading
+import org.usvm.UInputSymbolicMapLengthReading
+import org.usvm.UInputSymbolicMapReading
 import org.usvm.UIsExpr
 import org.usvm.UMockSymbol
 import org.usvm.UNullRef
@@ -42,6 +45,7 @@ import org.usvm.USizeExpr
 import org.usvm.USort
 import org.usvm.USymbol
 import org.usvm.uctx
+import org.usvm.util.Region
 
 class USoftConstraintsProvider<Field, Type>(ctx: UContext) : UExprTransformer<Field, Type>(ctx) {
     // We have a list here since sometimes we want to add several soft constraints
@@ -118,23 +122,34 @@ class USoftConstraintsProvider<Field, Type>(ctx: UContext) : UExprTransformer<Fi
 
     override fun <Sort : USort> transform(
         expr: UInputArrayReading<Type, Sort>,
-    ): UExpr<Sort> = transformExprAfterTransformed(expr, expr.index, expr.address) { _, _ ->
-        computeSideEffect(expr) {
-            val constraints = mutableSetOf<UBoolExpr>()
+    ): UExpr<Sort> = readingWithTwoArgumentsTransform(expr, expr.index, expr.address)
 
-            constraints += caches.getValue(expr.index)
-            constraints += caches.getValue(expr.address)
-            constraints += expr.sort.accept(sortPreferredValuesProvider)(expr)
-
-            caches[expr] = constraints
-        }
-    }
+    override fun <KeySort : USort, Reg : Region<Reg>, Sort : USort> transform(
+        expr: UInputSymbolicMapReading<KeySort, Reg, Sort>
+    ): UExpr<Sort> = readingWithTwoArgumentsTransform(expr, expr.key, expr.address)
 
     override fun <Sort : USort> transform(expr: UAllocatedArrayReading<Type, Sort>): UExpr<Sort> =
         readingWithSingleArgumentTransform(expr, expr.index)
 
     override fun <Sort : USort> transform(expr: UInputFieldReading<Field, Sort>): UExpr<Sort> =
         readingWithSingleArgumentTransform(expr, expr.address)
+
+    override fun <KeySort : USort, Reg : Region<Reg>, Sort : USort> transform(
+        expr: UAllocatedSymbolicMapReading<KeySort, Reg, Sort>
+    ): UExpr<Sort> = readingWithSingleArgumentTransform(expr, expr.key)
+
+    override fun transform(
+        expr: UInputSymbolicMapLengthReading
+    ): USizeExpr = transformExprAfterTransformed(expr, expr.address) {
+        computeSideEffect(expr) {
+            with(expr.ctx) {
+                val addressConstraints = caches.getValue(expr.address)
+                val mapLength = mkBvSignedLessOrEqualExpr(expr, PREFERRED_MAX_ARRAY_SIZE.toBv())
+
+                caches[expr] = addressConstraints + mapLength
+            }
+        }
+    }
 
     private fun <Sort : USort> readingWithSingleArgumentTransform(
         expr: UHeapReading<*, *, Sort>,
@@ -147,6 +162,23 @@ class USoftConstraintsProvider<Field, Type>(ctx: UContext) : UExprTransformer<Fi
             caches[expr] = argConstraint + selfConstraint
         }
     }
+
+    private fun <Sort : USort> readingWithTwoArgumentsTransform(
+        expr: UHeapReading<*, *, Sort>,
+        arg0: UExpr<*>,
+        arg1: UExpr<*>,
+    ): UExpr<Sort> = transformExprAfterTransformed(expr, arg0, arg1) { _, _ ->
+        computeSideEffect(expr) {
+            val constraints = mutableSetOf<UBoolExpr>()
+
+            constraints += caches.getValue(arg0)
+            constraints += caches.getValue(arg1)
+            constraints += expr.sort.accept(sortPreferredValuesProvider)(expr)
+
+            caches[expr] = constraints
+        }
+    }
+
 
     // region KExpressions
 

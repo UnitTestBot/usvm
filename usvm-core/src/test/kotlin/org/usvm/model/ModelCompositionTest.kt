@@ -34,6 +34,8 @@ class ModelCompositionTest {
             mapOf(),
             mapOf(),
             mapOf(),
+            mapOf(),
+            mapOf(),
         )
 
         val stackModel = URegistersStackEagerModel(concreteNull, mapOf(0 to ctx.mkBv(0), 1 to ctx.mkBv(0), 2 to ctx.mkBv(2)))
@@ -60,6 +62,8 @@ class ModelCompositionTest {
             concreteNull,
             mapOf(),
             mapOf(arrayType to inputArray),
+            mapOf(),
+            mapOf(),
             mapOf(),
         )
 
@@ -104,6 +108,8 @@ class ModelCompositionTest {
             mapOf(),
             mapOf(),
             mapOf(arrayType to inputLength),
+            mapOf(),
+            mapOf(),
         )
 
         val stackModel = URegistersStackEagerModel(
@@ -147,6 +153,8 @@ class ModelCompositionTest {
             mapOf(field to inputField),
             mapOf(),
             mapOf(),
+            mapOf(),
+            mapOf(),
         )
 
         val stackModel = URegistersStackEagerModel(
@@ -175,6 +183,8 @@ class ModelCompositionTest {
     fun testComposeAllocatedArrayWithFalseOverwrite() = with(ctx) {
         val heapEvaluator = UHeapEagerModel<Field, Type>(
             concreteNull,
+            mapOf(),
+            mapOf(),
             mapOf(),
             mapOf(),
             mapOf(),

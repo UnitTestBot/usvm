@@ -7,9 +7,11 @@ import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.memory.UArrayId
 import org.usvm.memory.UMemoryUpdatesVisitor
+import org.usvm.memory.UMergeUpdateNode
 import org.usvm.memory.UPinpointUpdateNode
 import org.usvm.memory.URangedUpdateNode
 import org.usvm.memory.URegionId
+import org.usvm.memory.USymbolicMapId
 import org.usvm.memory.USymbolicMemoryRegion
 import org.usvm.memory.UUpdateNode
 import org.usvm.uctx
@@ -74,7 +76,30 @@ internal class U1DUpdatesTranslator<KeySort : USort, Sort : USort>(
                 when (update.guard) {
                     falseExpr -> previous
                     else -> {
-                        (update as URangedUpdateNode<UArrayId<*, Any?, Sort, *>, Any?, UExpr<KeySort>, Sort>)
+                        (update as URangedUpdateNode<UArrayId<Any?, Sort, *>, Any?, UExpr<KeySort>, Sort>)
+                        val key = mkFreshConst("k", previous.sort.domain)
+
+                        val from = update.region
+
+                        val keyMapper = from.regionId.keyMapper(exprTranslator)
+                        val convertedKey = keyMapper(update.keyConverter.convert(key))
+                        val isInside = update.includesSymbolically(key).translated // already includes guard
+                        val result = from.regionId.instantiate(
+                            from as USymbolicMemoryRegion<Nothing, Any?, Sort>,
+                            convertedKey
+                        ).translated
+                        val ite = mkIte(isInside, result, previous.select(key))
+                        mkArrayLambda(key.decl, ite)
+                    }
+                }
+            }
+
+            is UMergeUpdateNode<*, *, *, *, *, *> -> {
+                @Suppress("UNCHECKED_CAST")
+                when(update.guard){
+                    falseExpr -> previous
+                    else -> {
+                        update as UMergeUpdateNode<USymbolicMapId<Any?, KeySort, *, Sort, *>, Any?, Any?, KeySort, *, Sort>
                         val key = mkFreshConst("k", previous.sort.domain)
 
                         val from = update.region
@@ -141,7 +166,30 @@ internal class U2DUpdatesTranslator<
                 when (update.guard) {
                     falseExpr -> previous
                     else -> {
-                        (update as URangedUpdateNode<UArrayId<*, Any?, Sort, *>, Any?, Pair<UExpr<Key1Sort>, UExpr<Key2Sort>>, Sort>)
+                        (update as URangedUpdateNode<UArrayId<Any?, Sort, *>, Any?, Pair<UExpr<Key1Sort>, UExpr<Key2Sort>>, Sort>)
+                        val key1 = mkFreshConst("k1", previous.sort.domain0)
+                        val key2 = mkFreshConst("k2", previous.sort.domain1)
+
+                        val region = update.region
+                        val keyMapper = region.regionId.keyMapper(exprTranslator)
+                        val convertedKey = keyMapper(update.keyConverter.convert(key1 to key2))
+                        val isInside = update.includesSymbolically(key1 to key2).translated // already includes guard
+                        val result = region.regionId.instantiate(
+                            region as USymbolicMemoryRegion<Nothing, Any?, Sort>,
+                            convertedKey
+                        ).translated
+                        val ite = mkIte(isInside, result, previous.select(key1, key2))
+                        mkArrayLambda(key1.decl, key2.decl, ite)
+                    }
+                }
+            }
+
+            is UMergeUpdateNode<*, *, *, *, *, *> -> {
+                @Suppress("UNCHECKED_CAST")
+                when(update.guard){
+                    falseExpr -> previous
+                    else -> {
+                        update as UMergeUpdateNode<USymbolicMapId<Any?, *, *, Sort, *>, Any?, Any?, *, *, Sort>
                         val key1 = mkFreshConst("k1", previous.sort.domain0)
                         val key2 = mkFreshConst("k2", previous.sort.domain1)
 

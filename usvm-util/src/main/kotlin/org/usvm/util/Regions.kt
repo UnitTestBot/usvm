@@ -11,11 +11,13 @@ interface Region<T> {
     fun compare(other: T): RegionComparisonResult
     fun subtract(other: T): T
     fun intersect(other: T): T
+    fun union(other: T): T
 }
 
 class TrivialRegion: Region<TrivialRegion> {
     override val isEmpty = false
     override fun intersect(other: TrivialRegion): TrivialRegion = this
+    override fun union(other: TrivialRegion): TrivialRegion = this
     override fun subtract(other: TrivialRegion): TrivialRegion =
         throw UnsupportedOperationException("TrivialRegion.subtract should not be called")
     override fun compare(other: TrivialRegion): RegionComparisonResult = RegionComparisonResult.INCLUDES
@@ -159,7 +161,7 @@ data class Intervals<Point: Comparable<Point>>(private val points: List<Endpoint
         return combineWith(other, ::visit1, ::visit1, ::visit2, ::visit2, ::visit2, ::visit2)
     }
 
-    fun union(other: Intervals<Point>): Intervals<Point> {
+    override fun union(other: Intervals<Point>): Intervals<Point> {
         fun visit(x: Endpoint<Point>, inside1: Boolean, inside2: Boolean) = if (inside1 || inside2) null else x
         return combineWith(other, ::visit, ::visit, ::visit, ::visit, ::visit, ::visit)
     }
@@ -264,6 +266,15 @@ data class SetRegion<Point>(private val points: Set<Point>, private val thrown: 
             else -> throw Exception("Unreachable")
         }
 
+    override fun union(other: SetRegion<Point>): SetRegion<Point> =
+        when {
+            !this.thrown && !other.thrown -> SetRegion(this.points.union(other.points), false)
+            this.thrown && !other.thrown -> SetRegion(this.points.minus(other.points), true)
+            !this.thrown && other.thrown -> SetRegion(other.points.minus(this.points), true)
+            this.thrown && other.thrown -> SetRegion(this.points.intersect(other.points), true)
+            else -> throw Exception("Unreachable")
+        }
+
     override fun toString(): String =
         "${if (thrown) "Z \\ " else ""}{${points.joinToString(", ") }}"
 }
@@ -350,5 +361,9 @@ data class ProductRegion<X: Region<X>, Y: Region<Y>>(val products: List<Pair<X, 
             }
         }
         return ProductRegion(newProducts)
+    }
+
+    override fun union(other: ProductRegion<X, Y>): ProductRegion<X, Y> {
+        TODO("Union is not supported for product region")
     }
 }

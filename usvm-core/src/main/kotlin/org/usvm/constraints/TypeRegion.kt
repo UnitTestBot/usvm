@@ -184,4 +184,8 @@ open class UTypeRegion<Type>(
         return RegionComparisonResult.INTERSECTS
     }
 
+    override fun union(other: UTypeRegion<Type>): UTypeRegion<Type> {
+        TODO("Union is not supported for type region")
+    }
+
 }

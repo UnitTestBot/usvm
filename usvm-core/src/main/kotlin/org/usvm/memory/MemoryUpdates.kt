@@ -1,5 +1,6 @@
 package org.usvm.memory
 
+import io.ksmt.utils.uncheckedCast
 import org.usvm.UBoolExpr
 import org.usvm.UComposer
 import org.usvm.UExpr
@@ -54,7 +55,7 @@ interface UMemoryUpdates<Key, Sort : USort> : Sequence<UUpdateNode<Key, Sort>> {
      *
      * @see USymbolicMemoryRegion.copyRange
      */
-    fun <RegionId : UArrayId<*, SrcKey, Sort, RegionId>, SrcKey> copyRange(
+    fun <RegionId : UArrayId<SrcKey, Sort, RegionId>, SrcKey> copyRange(
         fromRegion: USymbolicMemoryRegion<RegionId, SrcKey, Sort>,
         fromKey: Key,
         toKey: Key,
@@ -89,6 +90,14 @@ interface UMemoryUpdates<Key, Sort : USort> : Sequence<UUpdateNode<Key, Sort>> {
         visitor: UMemoryUpdatesVisitor<Key, Sort, Result>,
         lookupCache: MutableMap<Any?, Result>,
     ): Result
+
+    fun <RegionId : USymbolicMapId<SrcKey, KeySort, Reg, Sort, RegionId>,
+            SrcKey, KeySort : USort, Reg : Region<Reg>> mergeWithRegion(
+        fromRegion: USymbolicMemoryRegion<RegionId, SrcKey, Sort>,
+        keyIncludesCheck: UMergeKeyIncludesCheck<SrcKey, KeySort, *, Reg>,
+        keyConverter: UMergeKeyConverter<SrcKey, Key>,
+        guard: UBoolExpr
+    ): UMemoryUpdates<Key, Sort>
 }
 
 /**
@@ -137,7 +146,7 @@ class UFlatUpdates<Key, Sort : USort> private constructor(
             symbolicCmp
         )
 
-    override fun <RegionId : UArrayId<*, SrcKey, Sort, RegionId>, SrcKey> copyRange(
+    override fun <RegionId : UArrayId<SrcKey, Sort, RegionId>, SrcKey> copyRange(
         fromRegion: USymbolicMemoryRegion<RegionId, SrcKey, Sort>,
         fromKey: Key,
         toKey: Key,
@@ -146,6 +155,22 @@ class UFlatUpdates<Key, Sort : USort> private constructor(
     ): UMemoryUpdates<Key, Sort> = UFlatUpdates(
         UFlatUpdatesNode(
             URangedUpdateNode(fromKey, toKey, fromRegion, concreteCmp, symbolicCmp, keyConverter, guard),
+            this
+        ),
+        symbolicEq,
+        concreteCmp,
+        symbolicCmp
+    )
+
+    override fun <RegionId : USymbolicMapId<SrcKey, KeySort, Reg, Sort, RegionId>,
+            SrcKey, KeySort : USort, Reg : Region<Reg>> mergeWithRegion(
+        fromRegion: USymbolicMemoryRegion<RegionId, SrcKey, Sort>,
+        keyIncludesCheck: UMergeKeyIncludesCheck<SrcKey, KeySort, *, Reg>,
+        keyConverter: UMergeKeyConverter<SrcKey, Key>,
+        guard: UBoolExpr
+    ): UMemoryUpdates<Key, Sort> = UFlatUpdates(
+        UFlatUpdatesNode(
+            UMergeUpdateNode(fromRegion, keyIncludesCheck, keyConverter, guard),
             this
         ),
         symbolicEq,
@@ -283,7 +308,7 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
         return this.copy(updates = newUpdates)
     }
 
-    override fun <RegionId : UArrayId<*, SrcKey, Sort, RegionId>, SrcKey> copyRange(
+    override fun <RegionId : UArrayId<SrcKey, Sort, RegionId>, SrcKey> copyRange(
         fromRegion: USymbolicMemoryRegion<RegionId, SrcKey, Sort>,
         fromKey: Key,
         toKey: Key,
@@ -294,6 +319,24 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
         val update = URangedUpdateNode(fromKey, toKey, fromRegion, concreteCmp, symbolicCmp, keyConverter, guard)
         val newUpdates = updates.write(
             region,
+            update,
+            valueFilter = { it.isIncludedByUpdateConcretely(update) }
+        )
+
+        return this.copy(updates = newUpdates)
+    }
+
+    override fun <RegionId : USymbolicMapId<SrcKey, KeySort, Reg, Sort, RegionId>,
+            SrcKey, KeySort : USort, Reg : Region<Reg>> mergeWithRegion(
+        fromRegion: USymbolicMemoryRegion<RegionId, SrcKey, Sort>,
+        keyIncludesCheck: UMergeKeyIncludesCheck<SrcKey, KeySort, *, Reg>,
+        keyConverter: UMergeKeyConverter<SrcKey, Key>,
+        guard: UBoolExpr
+    ): UMemoryUpdates<Key, Sort> {
+        val region = keyIncludesCheck.keyRegion()
+        val update = UMergeUpdateNode(fromRegion, keyIncludesCheck, keyConverter, guard)
+        val newUpdates = updates.write(
+            region.uncheckedCast(), // todo: unify Reg with TreeUpdate<Reg>
             update,
             valueFilter = { it.isIncludedByUpdateConcretely(update) }
         )
@@ -318,6 +361,7 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
             val region = when (update) {
                 is UPinpointUpdateNode<Key, Sort> -> keyToRegion(update.key)
                 is URangedUpdateNode<*, *, Key, Sort> -> keyRangeToRegion(update.fromKey, update.toKey)
+                is UMergeUpdateNode<*, *, Key, *, *, Sort> -> update.keyIncludesCheck.keyRegion().uncheckedCast()
             }
             splitUpdates = splitUpdates.write(region, update, valueFilter = { it.isIncludedByUpdateConcretely(update) })
         }
@@ -403,6 +447,11 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
                     val currentRegion = keyRangeToRegion(mappedUpdateNode.fromKey, mappedUpdateNode.toKey)
                     oldRegion.intersect(currentRegion)
                 }
+
+                is UMergeUpdateNode<*, *, Key, *, *, Sort> -> {
+                    val currentRegion = mappedUpdateNode.keyIncludesCheck.keyRegion()
+                    oldRegion.intersect(currentRegion.uncheckedCast())
+                }
             }
 
             // Ignore nodes estimated with an empty region
@@ -482,6 +531,7 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
         val initialRegion = when (update) {
             is UPinpointUpdateNode<Key, Sort> -> keyToRegion(update.key)
             is URangedUpdateNode<*, *, Key, Sort> -> keyRangeToRegion(update.fromKey, update.toKey)
+            is UMergeUpdateNode<*, *, Key, *, *, Sort> -> update.keyIncludesCheck.keyRegion().uncheckedCast()
         }
         val wasCloned = initialRegion != region
         return wasCloned

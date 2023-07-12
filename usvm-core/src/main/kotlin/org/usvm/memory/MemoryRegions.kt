@@ -1,6 +1,7 @@
 package org.usvm.memory
 
 import io.ksmt.utils.asExpr
+import io.ksmt.utils.uncheckedCast
 import kotlinx.collections.immutable.toPersistentMap
 import org.usvm.UBoolExpr
 import org.usvm.UComposer
@@ -16,6 +17,7 @@ import org.usvm.USort
 import org.usvm.sampleUValue
 import org.usvm.uctx
 import org.usvm.util.ProductRegion
+import org.usvm.util.Region
 import org.usvm.util.RegionTree
 import org.usvm.util.SetRegion
 import org.usvm.util.emptyRegionTree
@@ -202,12 +204,65 @@ data class USymbolicMemoryRegion<out RegionId : URegionId<Key, Sort, RegionId>, 
                     val (srcFromRef, srcFromIdx) = it.keyConverter.srcSymbolicArrayIndex
                     val (dstFromRef, dstFromIdx) = it.keyConverter.dstFromSymbolicArrayIndex
                     val dstToIdx = it.keyConverter.dstToIndex
-                    val arrayType = it.region.regionId.arrayType as Type
 
-                    heap.memcpy(srcFromRef, dstFromRef, arrayType, sort, srcFromIdx, dstFromIdx, dstToIdx, it.guard)
+                    val regionId = it.region.regionId
+                    when (regionId) {
+                        is UTypedArrayId<*, *, *, *> -> {
+                            val arrayType = regionId.arrayType as Type
+                            heap.memcpy(
+                                srcRef = srcFromRef,
+                                dstRef = dstFromRef,
+                                type = arrayType,
+                                elementSort = sort,
+                                fromSrcIdx = srcFromIdx,
+                                fromDstIdx = dstFromIdx,
+                                toDstIdx = dstToIdx,
+                                guard = it.guard
+                            )
+                        }
+                        is USymbolicMapId<*, *, *, *, *> -> {
+                            val descriptor = regionId.descriptor
+                            heap.copySymbolicMapIndexRange(
+                                descriptor as USymbolicMapDescriptor<USizeSort, Sort, *>,
+                                srcFromRef,
+                                dstFromRef,
+                                srcFromIdx,
+                                dstFromIdx,
+                                dstToIdx,
+                                it.guard
+                            )
+                        }
+                    }
+                }
+                is UMergeUpdateNode<*, *, Key, *, *, Sort> -> {
+                    applyMergeNodeToHeap(it, heap)
                 }
             }
         }
+    }
+
+    private fun <RegionId : USymbolicMapId<SrcKey, KeySort, Reg, Sort, RegionId>,
+            SrcKey, KeySort : USort, Reg : Region<Reg>> applyMergeNodeToHeap(
+        mergeNode: UMergeUpdateNode<RegionId, SrcKey, Key, KeySort, Reg, Sort>,
+        heap: USymbolicHeap<*, *>
+    ) {
+        mergeNode.region.applyTo(heap)
+
+        val keyIncludesCheck = mergeNode.keyIncludesCheck
+        keyIncludesCheck.region.applyTo(heap)
+        val keyContainsDescriptor = keyIncludesCheck.region.regionId.descriptor
+
+        val regionId = mergeNode.region.regionId
+        val srcRef = mergeNode.keyConverter.srcRef
+        val dstRef = mergeNode.keyConverter.dstRef
+
+        heap.mergeSymbolicMap(
+            regionId.descriptor,
+            keyContainsDescriptor.uncheckedCast(),
+            srcRef,
+            dstRef,
+            mergeNode.guard
+        )
     }
 
     /**
@@ -215,7 +270,7 @@ data class USymbolicMemoryRegion<out RegionId : URegionId<Key, Sort, RegionId>, 
      * with values from memory region [fromRegion] read from range
      * of addresses [[keyConverter].convert([fromKey]) : [keyConverter].convert([toKey])]
      */
-    fun <OtherRegionId : UArrayId<*, SrcKey, Sort, OtherRegionId>, SrcKey> copyRange(
+    fun <OtherRegionId : UArrayId<SrcKey, Sort, OtherRegionId>, SrcKey> copyRange(
         fromRegion: USymbolicMemoryRegion<OtherRegionId, SrcKey, Sort>,
         fromKey: Key,
         toKey: Key,
@@ -223,6 +278,17 @@ data class USymbolicMemoryRegion<out RegionId : URegionId<Key, Sort, RegionId>, 
         guard: UBoolExpr
     ): USymbolicMemoryRegion<RegionId, Key, Sort> {
         val updatesCopy = updates.copyRange(fromRegion, fromKey, toKey, keyConverter, guard)
+        return this.copy(updates = updatesCopy)
+    }
+
+    fun <OtherRegionId : USymbolicMapId<SrcKey, KeySort, Reg, Sort, OtherRegionId>,
+            SrcKey, KeySort : USort, Reg : Region<Reg>> mergeWithRegion(
+        fromRegion: USymbolicMemoryRegion<OtherRegionId, SrcKey, Sort>,
+        keyIncludesCheck: UMergeKeyIncludesCheck<SrcKey, KeySort, *, Reg>,
+        keyConverter: UMergeKeyConverter<SrcKey, Key>,
+        guard: UBoolExpr
+    ): USymbolicMemoryRegion<RegionId, Key, Sort> {
+        val updatesCopy = updates.mergeWithRegion(fromRegion, keyIncludesCheck, keyConverter, guard)
         return this.copy(updates = updatesCopy)
     }
 
@@ -259,6 +325,7 @@ class GuardBuilder(nonMatchingUpdates: UBoolExpr) {
 //region Instantiations
 
 typealias USymbolicArrayIndex = Pair<UHeapRef, USizeExpr>
+typealias USymbolicMapKey<KeySort> = Pair<UHeapRef, UExpr<KeySort>>
 
 fun heapRefEq(ref1: UHeapRef, ref2: UHeapRef): UBoolExpr =
     ref1.uctx.mkHeapRefEq(ref1, ref2)
@@ -335,15 +402,55 @@ fun inputArrayRangeRegion(
 }
 
 fun refIndexRegion(idx: USymbolicArrayIndex): UInputArrayIndexRegion = inputArrayRegion(idx.first, idx.second)
+fun indexUniverseRangeRegion(): UArrayIndexRegion = SetRegion.universe()
+fun indexEmptyRangeRegion(): UArrayIndexRegion = SetRegion.empty()
+
 fun refIndexRangeRegion(
     idx1: USymbolicArrayIndex,
     idx2: USymbolicArrayIndex,
 ): UInputArrayIndexRegion = inputArrayRangeRegion(idx1.first, idx1.second, idx2.first, idx2.second)
 
+fun <KeySort : USort, Reg : Region<Reg>> symbolicMapRefKeyRegion(
+    descriptor: USymbolicMapDescriptor<KeySort, *, Reg>,
+    key: USymbolicMapKey<KeySort>
+): Reg = descriptor.mkKeyRegion(key.second)
+
+fun <KeySort : USort, Reg : Region<Reg>> symbolicMapRefKeyRangeRegion(
+    descriptor: USymbolicMapDescriptor<KeySort, *, Reg>,
+    key1: USymbolicMapKey<KeySort>,
+    key2: USymbolicMapKey<KeySort>
+): Reg = descriptor.mkKeyRangeRegion(key1.second, key2.second)
+
+fun <KeySort : USort, Reg : Region<Reg>> symbolicMapRefKeyEq(
+    descriptor: USymbolicMapDescriptor<KeySort, *, Reg>,
+    key1: USymbolicMapKey<KeySort>,
+    key2: USymbolicMapKey<KeySort>
+): UBoolExpr = with(key1.first.ctx) {
+    (key1.first eq key2.first) and descriptor.keyEqSymbolic(key1.second, key2.second)
+}
+
+fun <KeySort : USort, Reg : Region<Reg>> symbolicMapRefKeyCmpSymbolic(
+    keyDescriptor: USymbolicMapDescriptor<KeySort, *, Reg>,
+    key1: USymbolicMapKey<KeySort>,
+    key2: USymbolicMapKey<KeySort>
+): UBoolExpr = with(key1.first.ctx) {
+    (key1.first eq key2.first) and keyDescriptor.keyCmpSymbolic(key1.second, key2.second)
+}
+
+fun <KeySort : USort, Reg : Region<Reg>> symbolicMapRefKeyCmpConcrete(
+    keyDescriptor: USymbolicMapDescriptor<KeySort, *, Reg>,
+    key1: USymbolicMapKey<KeySort>,
+    key2: USymbolicMapKey<KeySort>
+): Boolean = (key1.first == key2.first) && keyDescriptor.keyCmpConcrete(key1.second, key2.second)
+
+
 typealias UInputFieldRegion<Field, Sort> = USymbolicMemoryRegion<UInputFieldId<Field, Sort>, UHeapRef, Sort>
 typealias UAllocatedArrayRegion<ArrayType, Sort> = USymbolicMemoryRegion<UAllocatedArrayId<ArrayType, Sort>, USizeExpr, Sort>
 typealias UInputArrayRegion<ArrayType, Sort> = USymbolicMemoryRegion<UInputArrayId<ArrayType, Sort>, USymbolicArrayIndex, Sort>
 typealias UInputArrayLengthRegion<ArrayType> = USymbolicMemoryRegion<UInputArrayLengthId<ArrayType>, UHeapRef, USizeSort>
+typealias UAllocatedSymbolicMapRegion<KeySort, Reg, Sort> = USymbolicMemoryRegion<UAllocatedSymbolicMapId<KeySort, Reg, Sort>, UExpr<KeySort>, Sort>
+typealias UInputSymbolicMapRegion<KeySort, Reg, Sort> = USymbolicMemoryRegion<UInputSymbolicMapId<KeySort, Reg, Sort>, USymbolicMapKey<KeySort>, Sort>
+typealias UInputSymbolicMapLengthRegion = USymbolicMemoryRegion<UInputSymbolicMapLengthId, UHeapRef, USizeSort>
 
 typealias KeyMapper<Key> = (Key) -> Key
 
@@ -433,6 +540,46 @@ fun <ArrayType> emptyInputArrayLengthRegion(
 ): UInputArrayLengthRegion<ArrayType> =
     USymbolicMemoryRegion(
         UInputArrayLengthId(arrayType, sizeSort, contextHeap = null),
+        UFlatUpdates(::heapRefEq, ::heapRefCmpConcrete, ::heapRefCmpSymbolic),
+    )
+
+fun <KeySort : USort, Reg : Region<Reg>, Sort : USort> emptyAllocatedSymbolicMapRegion(
+    descriptor: USymbolicMapDescriptor<KeySort, Sort, Reg>,
+    address: UConcreteHeapAddress,
+): UAllocatedSymbolicMapRegion<KeySort, Reg, Sort> {
+    val updates = UTreeUpdates<UExpr<KeySort>, Reg, Sort>(
+        updates = emptyRegionTree(),
+        keyToRegion = { descriptor.mkKeyRegion(it) },
+        keyRangeToRegion = { k1, k2 -> descriptor.mkKeyRangeRegion(k1, k2) },
+        symbolicEq = { k1, k2 -> descriptor.keyEqSymbolic(k1, k2) },
+        concreteCmp = { k1, k2 -> descriptor.keyCmpConcrete(k1, k2) },
+        symbolicCmp = { k1, k2 -> descriptor.keyCmpSymbolic(k1, k2) },
+    )
+    val regionId = UAllocatedSymbolicMapId(descriptor, descriptor.defaultValue, address, contextHeap = null)
+    return USymbolicMemoryRegion(regionId, updates)
+}
+
+fun <KeySort : USort, Reg : Region<Reg>, Sort : USort> emptyInputSymbolicMapRegion(
+    descriptor: USymbolicMapDescriptor<KeySort, Sort, Reg>,
+): UInputSymbolicMapRegion<KeySort, Reg, Sort> {
+    val updates = UTreeUpdates<USymbolicMapKey<KeySort>, Reg, Sort>(
+        updates = emptyRegionTree(),
+        keyToRegion = { symbolicMapRefKeyRegion(descriptor, it) },
+        keyRangeToRegion = { k1, k2 -> symbolicMapRefKeyRangeRegion(descriptor, k1, k2) },
+        symbolicEq = { k1, k2 -> symbolicMapRefKeyEq(descriptor, k1, k2) },
+        concreteCmp = { k1, k2 -> symbolicMapRefKeyCmpConcrete(descriptor, k1, k2) },
+        symbolicCmp = { k1, k2 -> symbolicMapRefKeyCmpSymbolic(descriptor, k1, k2) },
+    )
+    val regionId = UInputSymbolicMapId(descriptor, contextHeap = null)
+    return USymbolicMemoryRegion(regionId, updates)
+}
+
+fun emptyInputSymbolicMapLengthRegion(
+    descriptor: USymbolicMapDescriptor<*, *, *>,
+    sizeSort: USizeSort,
+): UInputSymbolicMapLengthRegion =
+    USymbolicMemoryRegion(
+        UInputSymbolicMapLengthId(descriptor, sizeSort, contextHeap = null),
         UFlatUpdates(::heapRefEq, ::heapRefCmpConcrete, ::heapRefCmpSymbolic),
     )
 
