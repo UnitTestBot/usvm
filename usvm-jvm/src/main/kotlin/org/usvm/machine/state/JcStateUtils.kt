@@ -66,6 +66,13 @@ fun JcState.addNewMethodCall(
         return
     }
 
+    // TODO: move to appropriate place. Skip native method in static initializer
+    if (method.name == "registerNatives" && method.enclosingClass.name == "java.lang.Class") {
+        val nextStmt = applicationGraph.successors(lastStmt).single()
+        newStmt(nextStmt)
+        return
+    }
+
     // TODO: find concrete implementation (I guess, the method should be already concrete)
     val entryPoint = applicationGraph.entryPoints(method).singleOrNull()
         ?: error("No entrypoint found for method: $method")
