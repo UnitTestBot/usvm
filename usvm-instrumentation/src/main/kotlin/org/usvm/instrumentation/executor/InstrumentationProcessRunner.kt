@@ -13,6 +13,7 @@ import org.usvm.instrumentation.testcase.api.UTestExecutionResult
 import org.usvm.instrumentation.util.InstrumentationModuleConstants
 import osSpecificJavaExecutable
 import java.io.File
+import java.nio.file.Paths
 import kotlin.reflect.KClass
 import kotlin.time.Duration
 
@@ -37,7 +38,7 @@ class InstrumentationProcessRunner(
     private val jvmArgs: List<String> by lazy {
         val instrumentationClassNameFactoryName = instrumentationClassFactory.java.name
         val memoryLimit = listOf("-Xmx1g")
-        val pathToJava = JdkInfoService.provide().path
+        val pathToJava = Paths.get(InstrumentationModuleConstants.pathToJava)
         val usvmClasspath = System.getProperty("java.class.path")
         val javaVersionSpecificArguments = OpenModulesContainer.javaVersionSpecificArguments
         val instrumentedProcessClassName =
