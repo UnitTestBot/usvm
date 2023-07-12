@@ -40,13 +40,10 @@ abstract class UState<Type, Field, Method, Statement>(
         get() = path.lastOrNull()
 }
 
-class ForkResult<T>(
+data class ForkResult<T>(
     val positiveState: T?,
     val negativeState: T?,
-) {
-    operator fun component1(): T? = positiveState
-    operator fun component2(): T? = negativeState
-}
+)
 
 /**
  * Checks if [conditionToCheck] is satisfiable within path constraints of [state].
@@ -169,3 +166,68 @@ fun <T : UState<Type, Field, *, *>, Type, Field> fork(
     @Suppress("UNCHECKED_CAST")
     return ForkResult(posState, negState as T?)
 }
+
+@Suppress("UNCHECKED_CAST")
+fun <T : UState<Type, Field, *, *>, Type, Field> fork(
+    state: T,
+    conditions: Iterable<UBoolExpr>,
+): List<ForkResult<T>> {
+    val conditionsWithModels = conditions.map { condition ->
+        val notCondition = condition.uctx.mkNot(condition)
+
+        val (trueModels, falseModels) = state.clone().models.partition { model ->
+            val holdsInModel = model.eval(condition)
+            check(holdsInModel is KInterpretedValue<UBoolSort>) {
+                "Evaluation in $model on condition $condition: expected true or false, but got $holdsInModel"
+            }
+            holdsInModel.isTrue
+        }
+
+        ConditionWithModels(condition, notCondition, trueModels, falseModels)
+    }
+
+    return conditionsWithModels.map { (condition, notCondition, trueModels, falseModels) ->
+        val (posState, negState) = when {
+
+            trueModels.isNotEmpty() && falseModels.isNotEmpty() -> {
+                val posState = state
+                val negState = state.clone()
+
+                posState.models = trueModels
+                negState.models = falseModels
+                posState.pathConstraints += condition
+                negState.pathConstraints += notCondition
+
+                posState to negState
+            }
+
+            trueModels.isNotEmpty() -> state to forkIfSat(
+                state,
+                condition,
+                notCondition,
+                forkToSatisfied = false
+            )
+
+            falseModels.isNotEmpty() -> {
+                val forkedState = forkIfSat(state, notCondition, condition, forkToSatisfied = true)
+
+                if (forkedState != null) {
+                    state to forkedState
+                } else {
+                    null to state
+                }
+            }
+
+            else -> error("[trueModels] and [falseModels] are both empty, that has to be impossible by construction!")
+        }
+
+        ForkResult(posState, negState as T?)
+    }
+}
+
+data class ConditionWithModels<Field, Type>(
+    val condition: UBoolExpr,
+    val notCondition: UBoolExpr,
+    val trueModels: List<UModelBase<Field, Type>>,
+    val falseModels: List<UModelBase<Field, Type>>,
+)

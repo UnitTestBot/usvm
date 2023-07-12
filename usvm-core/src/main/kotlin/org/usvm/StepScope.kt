@@ -41,15 +41,9 @@ class StepScope<T : UState<Type, Field, *, *>, Type, Field>(
      *
      * @return `null` if the underlying state is `null`, otherwise returns result of calling [block].
      */
-    fun <R> calcOnState(state: T? = curState, block: T.() -> R): R? {
-        state ?: return null
-        val previousState = curState
-        try {
-            curState = state
-            return state.block()
-        } finally {
-            curState = previousState
-        }
+    fun <R> calcOnState(block: T.() -> R): R? {
+        val state = curState ?: return null
+        return state.block()
     }
 
     /**
@@ -99,6 +93,28 @@ class StepScope<T : UState<Type, Field, *, *>, Type, Field>(
         }
 
         return posState?.let { }
+    }
+
+    @Suppress("UNUSED_VARIABLE")
+    fun forkMulti(conditionsWithBlocks: List<Pair<UBoolExpr, (T) -> Unit?>>) {
+        val state = curState ?: return
+
+        val conditionStates = fork(state, conditionsWithBlocks.map { it.first })
+        val conditionStatesWithBlocks = conditionsWithBlocks.map { it.second }.zip(conditionStates)
+        conditionStatesWithBlocks.map { forResultWithBlock ->
+            val (positiveState, negativeState) = forResultWithBlock.second
+            val block = forResultWithBlock.first
+
+            positiveState?.let {
+                block(it)
+
+                if (positiveState !== state) {
+                    forkedStates += positiveState
+                }
+            }
+        }
+
+        curState = null
     }
 }
 

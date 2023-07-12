@@ -166,7 +166,7 @@ class JcInterpreter(
         } ?: return
         val instList = stmt.location.method.instList
 
-        fun iterateCases(
+        /*fun iterateCases(
             scope: JcStepScope,
             caseBranches: List<Map.Entry<JcValue, JcInstRef>>,
             defaultBranchTarget: JcInstRef
@@ -186,7 +186,7 @@ class JcInterpreter(
                     blockOnFalseState = {
                         scope.calcOnState(this) {
                             iterateCases(
-                                /*StepScope(this)*/scope,
+                                *//*StepScope(this)*//*scope,
                                 caseBranches.subList(1, caseBranches.size),
                                 defaultBranchTarget
                             )
@@ -196,27 +196,22 @@ class JcInterpreter(
             }
         }
 
-        iterateCases(scope, stmt.branches.entries.toList(), stmt.default)
-        /*val caseStmtsWithConditions = stmt.branches.map { (caseValue, caseTargetStmt) ->
+        iterateCases(scope, stmt.branches.entries.toList(), stmt.default)*/
+        val caseStmtsWithConditions = stmt.branches.map { (caseValue, caseTargetStmt) ->
             val nextStmt = instList[caseTargetStmt.index]
             val resolvedCaseValue = exprResolver.resolveJcExpr(caseValue) ?: return
             val caseCondition = ctx.mkEq(switchKeyExpr, resolvedCaseValue.asExpr(switchKeyExpr.sort))
 
-            nextStmt to caseCondition
+            caseCondition to { state: JcState -> state.newStmt(nextStmt) }
         }
 
-        val defaultCaseWithCondition = instList[stmt.default.index] to caseStmtsWithConditions
-            .map { it.second }
+        val defaultCaseWithCondition = caseStmtsWithConditions
+            .map { it.first }
             .let {
                 with(ctx) { mkAnd(it.map { it.not() }) }
-            }
+            } to { state: JcState -> state.newStmt(instList[stmt.default.index]) }
 
-        (caseStmtsWithConditions + defaultCaseWithCondition).forEach {
-            scope.fork(
-                it.second,
-                blockOnTrueState = { newStmt(it.first) }
-            )
-        }*/
+        scope.forkMulti(caseStmtsWithConditions + defaultCaseWithCondition)
     }
 
     private fun visitThrowStmt(scope: JcStepScope, stmt: JcThrowInst) {
