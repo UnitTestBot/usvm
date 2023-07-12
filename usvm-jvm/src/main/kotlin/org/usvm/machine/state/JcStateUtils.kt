@@ -14,13 +14,14 @@ fun JcState.newStmt(stmt: JcInst) {
 }
 
 fun JcState.returnValue(valueToReturn: UExpr<out USort>) {
+    val returnFromMethod = callStack.lastMethod()
     // TODO: think about it later
     val returnSite = callStack.pop()
     if (callStack.isNotEmpty()) {
         memory.stack.pop()
     }
 
-    methodResult = JcMethodResult.Success(valueToReturn)
+    methodResult = JcMethodResult.Success(returnFromMethod, valueToReturn)
 
     if (returnSite != null) {
         newStmt(returnSite)
@@ -66,7 +67,8 @@ fun JcState.addNewMethodCall(
     }
 
     // TODO: find concrete implementation (I guess, the method should be already concrete)
-    val entryPoint = applicationGraph.entryPoints(method).single()
+    val entryPoint = applicationGraph.entryPoints(method).singleOrNull()
+        ?: error("No entrypoint found for method: $method")
     val returnSite = lastStmt
     callStack.push(method, returnSite)
     memory.stack.push(arguments.toTypedArray(), method.localsCount)

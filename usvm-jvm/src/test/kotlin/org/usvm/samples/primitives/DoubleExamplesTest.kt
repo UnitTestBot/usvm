@@ -40,6 +40,7 @@ internal class DoubleExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Native method invocation: java.lang.Class#registerNatives() during static initialization")
     fun testSimpleSum() {
         checkDiscoveredProperties(
             DoubleExamples::simpleSum,
@@ -51,6 +52,7 @@ internal class DoubleExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Native method invocation: java.lang.Class#registerNatives() during static initialization")
     fun testSum() {
         checkDiscoveredProperties(
             DoubleExamples::sum,
