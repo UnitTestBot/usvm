@@ -53,7 +53,7 @@ class UninterpretedSymbolicPythonObject(
             return
         }
         castedTo = type
-        memory.types.cast(address, type)
+        memory.types.addSupertype(address, type)
     }
 
     fun <SORT: USort> setContent(expr: UExpr<SORT>, concretePythonType: ConcretePythonType) {
@@ -83,13 +83,11 @@ class InterpretedSymbolicPythonObject(
 
     override fun getIntContent(): KInterpretedValue<KIntSort> {
         require(castedTo == pythonInt)
-        @Suppress("unchecked_cast")
         return model.readField(address, IntContent, ctx.intSort)
     }
 
     override fun getBoolContent(): KInterpretedValue<KBoolSort> {
         require(castedTo == pythonBool)
-        @Suppress("unchecked_cast")
         return model.readField(address, BoolContent, ctx.boolSort)
     }
 }
