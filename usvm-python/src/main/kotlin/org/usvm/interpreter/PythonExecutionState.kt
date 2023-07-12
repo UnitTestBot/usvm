@@ -9,7 +9,7 @@ import org.usvm.memory.UMemoryBase
 import org.usvm.model.UModelBase
 
 class PythonExecutionState(
-    ctx: UContext,
+    private val ctx: UContext,
     private val pythonCallable: PythonUnpinnedCallable,
     val inputSymbols: List<SymbolForCPython>,
     pathConstraints: UPathConstraints<PythonType>,
