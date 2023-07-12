@@ -240,10 +240,11 @@ class UTypeConstraints<Type>(
      * 1. Peek `a`. The current region is empty, so it becomes `T1 | T2`. Potential conflicting refs = `{a}`.
      * 2. Peek `b`. The current region becomes `T2`. Potential conflicting refs = `{a, b}`.
      * 3. Peek `c`. The intersection of the current region with `T3 | T1` is empty, so we add the following constraint:
-     * `a != c || b != c`. The region becomes `T3 | T1`. Potential conflicting refs = `{c}.
+     * `a != c || b != c || a == null || b == null || c == null`. The region becomes `T3 | T1`.
+     * Potential conflicting refs = `{c}.
      * 4. Peek `d`. The current region becomes `T1`. Potential conflicting refs = `{c, d}`.
      * 5. Peek `e`. The intersection of the current region with `T2` is empty, so we add the following constraint:
-     * `c != e || d != e`.
+     * `c != e || d != e || c == null || d == null || e == null`.
      *
      * @return [UTypeModel] if the [model] satisfies this [UTypeConstraints],
      * and constraints on reference equalities if the [model] doesn't satisfy this [UTypeConstraints].
