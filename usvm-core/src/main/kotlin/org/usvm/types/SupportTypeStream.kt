@@ -43,7 +43,7 @@ class USupportTypeStream<Type> private constructor(
                 if (type == supportType && filtering(type) && typeSystem.isInstantiable(type)) { // exact type
                     USingleTypeStream(typeSystem, type)
                 } else {
-                    UEmptyTypeStream()
+                    emptyTypeStream()
                 }
             }
 
@@ -61,7 +61,7 @@ class USupportTypeStream<Type> private constructor(
     override fun filterByNotSupertype(type: Type): UTypeStream<Type> {
         return when {
             typeSystem.isSupertype(type, supportType) -> {
-                UEmptyTypeStream()
+                emptyTypeStream()
             }
 
             else -> {

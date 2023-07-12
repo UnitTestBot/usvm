@@ -53,27 +53,23 @@ interface UTypeStream<Type> {
 /**
  * An empty type stream.
  */
-class UEmptyTypeStream<Type> private constructor() : UTypeStream<Type> {
-    override fun filterBySupertype(type: Type): UTypeStream<Type> = this
+object UEmptyTypeStream : UTypeStream<Nothing> {
+    override fun filterBySupertype(type: Nothing): UTypeStream<Nothing> = this
 
-    override fun filterBySubtype(type: Type): UTypeStream<Type> = this
+    override fun filterBySubtype(type: Nothing): UTypeStream<Nothing> = this
 
-    override fun filterByNotSupertype(type: Type): UTypeStream<Type> = this
+    override fun filterByNotSupertype(type: Nothing): UTypeStream<Nothing> = this
 
-    override fun filterByNotSubtype(type: Type): UTypeStream<Type> = this
+    override fun filterByNotSubtype(type: Nothing): UTypeStream<Nothing> = this
 
-    override fun take(n: Int): Collection<Type> = emptyList()
+    override fun take(n: Int): Collection<Nothing> = emptyList()
 
     override val isEmpty: Boolean
         get() = true
-
-    companion object {
-        @Suppress("UNCHECKED_CAST")
-        operator fun <Type> invoke() = instance as UEmptyTypeStream<Type>
-
-        val instance = UEmptyTypeStream<Nothing>()
-    }
 }
+
+@Suppress("UNCHECKED_CAST")
+fun <Type> emptyTypeStream(): UTypeStream<Type> = UEmptyTypeStream as UTypeStream<Type>
 
 fun <Type> UTypeStream<Type>.takeFirst(): Type = take(1).single()
 
@@ -86,28 +82,28 @@ class USingleTypeStream<Type>(
 ) : UTypeStream<Type> {
     override fun filterBySupertype(type: Type): UTypeStream<Type> =
         if (!typeSystem.isSupertype(type, singleType)) {
-            UEmptyTypeStream()
+            emptyTypeStream()
         } else {
             this
         }
 
     override fun filterBySubtype(type: Type): UTypeStream<Type> =
         if (!typeSystem.isSupertype(singleType, type)) {
-            UEmptyTypeStream()
+            emptyTypeStream()
         } else {
             this
         }
 
     override fun filterByNotSupertype(type: Type): UTypeStream<Type> =
         if (typeSystem.isSupertype(type, singleType)) {
-            UEmptyTypeStream()
+            emptyTypeStream()
         } else {
             this
         }
 
     override fun filterByNotSubtype(type: Type): UTypeStream<Type> =
         if (typeSystem.isSupertype(singleType, type)) {
-            UEmptyTypeStream()
+            emptyTypeStream()
         } else {
             this
         }

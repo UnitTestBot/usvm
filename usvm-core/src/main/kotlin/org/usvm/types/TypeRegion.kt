@@ -22,7 +22,7 @@ open class UTypeRegion<Type>(
      * Returns region that represents empty set of types. Called when type
      * constraints contradict, for example if X <: Y and X </: Y.
      */
-    protected fun contradiction() = UTypeRegion(typeSystem, UEmptyTypeStream())
+    protected fun contradiction() = UTypeRegion(typeSystem, emptyTypeStream())
     // TODO: generate unsat core for DPLL(T)
 
     /**
