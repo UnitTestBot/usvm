@@ -59,6 +59,17 @@ class TraceHelper(
         )
     }
 
+    fun createMockCollectorIsInExecutionCall(): JcRawStaticCallExpr {
+        val jcTraceMethod = jcVirtualGlobalObjectClass.declaredMethods.find { it.name == "isInExecution" }!!
+        return JcRawStaticCallExpr(
+            jcVirtualGlobalObjectClass.typename,
+            jcTraceMethod.name,
+            listOf(),
+            jcTraceMethod.returnType,
+            listOf()
+        )
+    }
+
     fun createStaticExprWithLongArg(arg: Long, jcTraceMethod: JcVirtualMethod): JcRawStaticCallExpr {
         val argAsJcConst = JcRawLong(arg)
         return JcRawStaticCallExpr(
