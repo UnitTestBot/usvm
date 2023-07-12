@@ -10,7 +10,8 @@ import org.usvm.instrumentation.classloader.WorkerClassLoader
 import org.usvm.instrumentation.instrumentation.JcInstructionTracer.StaticFieldAccessType
 import org.usvm.instrumentation.org.usvm.instrumentation.classloader.MockHelper
 import org.usvm.instrumentation.testcase.api.*
-import org.usvm.instrumentation.trace.collector.MockCollector
+import org.usvm.instrumentation.collector.trace.MockCollector
+import org.usvm.instrumentation.collector.trace.MockCollector.MockValueArrayWrapper
 import org.usvm.instrumentation.util.*
 import setFieldValue
 import java.lang.ClassCastException
@@ -29,9 +30,12 @@ class UTestExpressionExecutor(
 
     fun executeUTestExpression(uTestExpression: UTestExpression): Result<Any?> =
         try {
+            MockCollector.inExecution = true
             Result.success(exec(uTestExpression))
         } catch (e: Throwable) {
             Result.failure(e)
+        } finally {
+            MockCollector.inExecution = false
         }
 
     fun executeUTestExpressions(uTestExpressions: List<UTestExpression>): Result<Any?>? {
@@ -58,7 +62,7 @@ class UTestExpressionExecutor(
             is UTestCastExpression -> executeUTestCastExpression(uTestExpression)
             is UTestGetFieldExpression -> executeUTestGetFieldExpression(uTestExpression)
             is UTestGetStaticFieldExpression -> executeUTestGetStaticFieldExpression(uTestExpression)
-            is UTestMockObject -> executeUTestMockObject(uTestExpression)
+            is UTestMock -> executeUTestMock(uTestExpression)
             is UTestConditionExpression -> executeUTestConditionExpression(uTestExpression)
             is UTestSetFieldStatement -> executeUTestSetFieldStatement(uTestExpression)
             is UTestSetStaticFieldStatement -> executeUTestSetStaticFieldStatement(uTestExpression)
@@ -185,19 +189,21 @@ class UTestExpressionExecutor(
         }
     }
 
-    private fun executeUTestMockObject(uTestMockObject: UTestMockObject): Any? {
-        val jcType = uTestMockObject.type!!
+    private fun executeUTestMock(uTestMockObject: UTestMock): Any? {
+        val jcType = uTestMockObject.type
         val jcClass = jcClasspath.findClass(jcType.typeName)
-
         val methodsToMock = uTestMockObject.methods.keys.toList()
+        val isGlobalMock = uTestMockObject is UTestGlobalMock
         //Modify bytecode according to mocks
-        val newClass = mockHelper.addMockInfoInBytecode(jcClass, methodsToMock)
+        val newClass = mockHelper.addMockInfoInBytecode(jcClass, methodsToMock, isGlobalMock)
         val mockInstance = ReflectionUtils.UNSAFE.allocateInstance(newClass)
 
-        for ((jcMethod, mockUTestExpression) in uTestMockObject.methods) {
-            val mockValue = exec(mockUTestExpression)
+        for ((jcMethod, mockUTestExpressions) in uTestMockObject.methods) {
             val methodId = mockHelper.mockCache[jcMethod] ?: error("Method should be mocked")
-            MockCollector.addMock(MockCollector.MockInfo(methodId, mockInstance, mockValue))
+            val mockValuesArray = MockValueArrayWrapper(mockUTestExpressions.size)
+            mockUTestExpressions.map { exec(it) }.forEach { mockValuesArray.add(it) }
+            val instance = if (jcMethod.isStatic || isGlobalMock) null else mockInstance
+            MockCollector.addMock(MockCollector.MockInfo(methodId, instance, mockValuesArray))
         }
         //Set mocked fields
         for ((jcField, jcFieldUTestExpression) in uTestMockObject.fields) {
