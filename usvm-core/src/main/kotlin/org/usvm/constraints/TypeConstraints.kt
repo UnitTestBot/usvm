@@ -246,8 +246,11 @@ class UTypeConstraints<Type>(
      * 5. Peek `e`. The intersection of the current region with `T2` is empty, so we add the following constraint:
      * `c != e || d != e || c == null || d == null || e == null`.
      *
-     * @return [UTypeModel] if the [model] satisfies this [UTypeConstraints],
-     * and constraints on reference equalities if the [model] doesn't satisfy this [UTypeConstraints].
+     * @return The result of verification:
+     * * [UTypeModel] if the [model] satisfies this [UTypeConstraints]
+     * * [UUnsatResult] if no model satisfying this [UTypeConstraints] exists
+     * * [UTypeUnsatResult] with reference disequalities constraints if the [model]
+     * doesn't satisfy this [UTypeConstraints], but other model may satisfy
      */
     fun verify(model: UModel): USolverResult<UTypeModel<Type>> {
         // firstly, group symbolic references by their interpretations in the [model]
