@@ -1,11 +1,13 @@
 package org.usvm.memory
 
+import io.ksmt.expr.rewrite.simplify.KExprSimplifier
+import io.ksmt.solver.KSolverStatus
+import io.ksmt.solver.z3.KZ3Solver
+import io.ksmt.utils.getValue
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import io.ksmt.expr.rewrite.simplify.KExprSimplifier
-import io.ksmt.utils.getValue
 import org.usvm.Field
 import org.usvm.Type
 import org.usvm.UAddressSort
@@ -14,6 +16,9 @@ import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.UInputFieldReading
 import org.usvm.UIteExpr
+import org.usvm.USizeExpr
+import org.usvm.solver.UExprTranslator
+import org.usvm.util.emptyRegionTree
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
@@ -22,6 +27,7 @@ import kotlin.test.assertSame
 class HeapRefSplittingTest {
     private lateinit var ctx: UContext
     private lateinit var heap: URegionHeap<Field, Type>
+    private lateinit var translator: UExprTranslator<Field, Type>
 
     private lateinit var valueFieldDescr: Pair<Field, UBv32Sort>
     private lateinit var addressFieldDescr: Pair<Field, UAddressSort>
@@ -33,6 +39,8 @@ class HeapRefSplittingTest {
         every { components.mkTypeSystem(any()) } returns mockk()
         ctx = UContext(components)
         heap = URegionHeap(ctx)
+        translator = UExprTranslator(ctx)
+
         valueFieldDescr = mockk<Field>() to ctx.bv32Sort
         addressFieldDescr = mockk<Field>() to ctx.addressSort
         arrayDescr = mockk<Type>() to ctx.addressSort
@@ -261,5 +269,61 @@ class HeapRefSplittingTest {
 
         assertSame(ite.condition, (ref1 eq ref3) and !cond)
         assertSame(ite.trueBranch, valueToWrite)
+    }
+
+    @Test
+    fun testSplittingWhenDefaultValueIsConcrete() = with(ctx) {
+        val regionId = UAllocatedArrayId(arrayDescr.first, addressSort, mkConcreteHeapRef(3), 1, contextHeap = null)
+        val updates = UTreeUpdates<USizeExpr, UArrayIndexRegion, UAddressSort>(
+            updates = emptyRegionTree(),
+            ::indexRegion, ::indexRangeRegion, ::indexEq, ::indexLeConcrete, ::indexLeSymbolic
+        )
+        val symbolicRef1 = mkRegisterReading(1, addressSort)
+        val symbolicRef2 = mkRegisterReading(2, addressSort)
+        val region = UAllocatedArrayRegion(regionId, updates)
+            .write(mkBv(1), mkConcreteHeapRef(0), trueExpr)
+            .write(mkBv(2), symbolicRef1, trueExpr)
+            .write(mkBv(3), symbolicRef2, trueExpr)
+
+        val key = mkRegisterReading(0, bv32Sort)
+        val reading = region.read(key)
+
+        val solver = KZ3Solver(this)
+
+        val refsNeq = translator.translate(symbolicRef1 neq symbolicRef2)
+        solver.assert(refsNeq)
+
+        with(solver) {
+            push()
+            val readingEq3 = translator.translate(reading eq mkConcreteHeapRef(3))
+            assert(readingEq3)
+            assertEquals(KSolverStatus.SAT, check())
+            val keyEquals123 = translator.translate(mkOr(key eq mkBv(1), key eq mkBv(2), key eq mkBv(3)))
+            assert(keyEquals123)
+            assertEquals(KSolverStatus.UNSAT, check())
+            pop()
+        }
+
+        with(solver) {
+            push()
+            val readingEq0 = translator.translate(reading eq mkConcreteHeapRef(0))
+            assert(readingEq0)
+            assertEquals(KSolverStatus.SAT, check())
+            val keyNeq1 = translator.translate(key neq mkBv(1))
+            assert(keyNeq1)
+            assertEquals(KSolverStatus.UNSAT, check())
+            pop()
+        }
+
+        with(solver) {
+            push()
+            val readingEqRef1 = translator.translate(reading eq symbolicRef1)
+            assert(readingEqRef1)
+            assertEquals(KSolverStatus.SAT, check())
+            val keyNeq2 = translator.translate(key neq mkBv(2))
+            assert(keyNeq2)
+            assertEquals(KSolverStatus.UNSAT, check())
+            pop()
+        }
     }
 }
