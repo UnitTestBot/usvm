@@ -29,23 +29,28 @@ sealed class JcUnaryOperator(
     )
 
     object CastToByte : JcUnaryOperator(
+        onBool = { operand -> operand.wideTo32BitsIfNeeded(false) },
         onBv = { operand -> operand.mkNarrow(Byte.SIZE_BITS, signed = true) }
     )
 
     object CastToChar : JcUnaryOperator(
+        onBool = { operand -> operand.wideTo32BitsIfNeeded(false) },
         onBv = { operand -> operand.mkNarrow(Char.SIZE_BITS, signed = true) }
     )
 
     object CastToShort : JcUnaryOperator(
+        onBool = { operand -> operand.wideTo32BitsIfNeeded(false) },
         onBv = { operand -> operand.mkNarrow(Short.SIZE_BITS, signed = true) }
     )
 
     object CastToInt : JcUnaryOperator(
+        onBool = { operand -> operand.wideTo32BitsIfNeeded(false) },
         onBv = { operand -> operand.mkNarrow(Int.SIZE_BITS, signed = true) },
         onFp = { operand -> operand.castToBv(Int.SIZE_BITS) }
     )
 
     object CastToLong : JcUnaryOperator(
+        onBool = { operand -> operand.wideTo32BitsIfNeeded(false) },
         onBv = { operand -> operand.mkNarrow(Long.SIZE_BITS, signed = true) },
         onFp = { operand -> operand.castToBv(Long.SIZE_BITS) }
     )

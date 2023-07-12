@@ -9,7 +9,7 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 internal class GenericsTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Not implemented: String constants")
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun mapAsParameterTest() {
         checkDiscoveredProperties(
             Generics<*>::mapAsParameter,
@@ -20,7 +20,7 @@ internal class GenericsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("https://github.com/UnitTestBot/UTBotJava/issues/1620 wrong equals")
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun genericAsFieldTest() {
         checkDiscoveredProperties(
             Generics<*>::genericAsField,
@@ -32,7 +32,7 @@ internal class GenericsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3f95a1b3")
     fun mapAsStaticFieldTest() {
         checkDiscoveredProperties(
             Generics<*>::mapAsStaticField,
@@ -42,7 +42,7 @@ internal class GenericsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: String constants")
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun mapAsNonStaticFieldTest() {
         checkDiscoveredProperties(
             Generics<*>::mapAsNonStaticField,
@@ -53,7 +53,7 @@ internal class GenericsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: String constants")
+    @Disabled("An operation is not implemented: Not yet implemented")
     fun methodWithRawTypeTest() {
         checkDiscoveredProperties(
             Generics<*>::methodWithRawType,
@@ -64,7 +64,6 @@ internal class GenericsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 1 executions, but 2 found. Same exception discovered multiple times")
     fun testMethodWithArrayTypeBoundary() {
         checkDiscoveredPropertiesWithExceptions(
             Generics<*>::methodWithArrayTypeBoundary,

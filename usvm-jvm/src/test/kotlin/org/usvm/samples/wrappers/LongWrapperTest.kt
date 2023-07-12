@@ -8,7 +8,6 @@ import org.usvm.test.util.checkers.eq
 
 internal class LongWrapperTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
     fun primitiveToWrapperTest() {
         checkDiscoveredProperties(
             LongWrapper::primitiveToWrapper,
@@ -19,7 +18,6 @@ internal class LongWrapperTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Can not set static final long field java.lang.Long.MIN_VALUE to java.lang.Long")
     fun wrapperToPrimitiveTest() {
         checkDiscoveredProperties(
             LongWrapper::wrapperToPrimitive,
@@ -43,7 +41,7 @@ internal class LongWrapperTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: String constants")
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3f95a1b3")
     fun parseLong() {
         checkDiscoveredProperties(
             LongWrapper::parseLong,

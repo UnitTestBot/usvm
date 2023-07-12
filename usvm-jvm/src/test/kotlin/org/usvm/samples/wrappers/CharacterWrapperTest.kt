@@ -9,7 +9,7 @@ import org.usvm.test.util.checkers.eq
 // TODO failed Kotlin compilation
 internal class CharacterWrapperTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3f95a1b3")
     fun primitiveToWrapperTest() {
         checkDiscoveredProperties(
             CharacterWrapper::primitiveToWrapper,
@@ -20,7 +20,6 @@ internal class CharacterWrapperTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Can not set static final int field java.lang.Character.MIN_RADIX to java.lang.Integer")
     fun wrapperToPrimitiveTest() {
         checkDiscoveredProperties(
             CharacterWrapper::wrapperToPrimitive,

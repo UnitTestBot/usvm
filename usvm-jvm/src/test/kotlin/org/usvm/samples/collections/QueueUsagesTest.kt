@@ -96,7 +96,6 @@ class QueueUsagesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("TODO: Related to https://github.com/UnitTestBot/UTBotJava/issues/820")
     fun testCheckSubtypesOfQueueWithUsage() {
         checkDiscoveredProperties(
             QueueUsages::checkSubtypesOfQueueWithUsage,

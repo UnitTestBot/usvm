@@ -9,7 +9,7 @@ import org.usvm.test.util.checkers.eq
 class StaticsSubstitutionTest : JavaMethodTestRunner() {
 
     @Test
-    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3f95a1b3")
     fun lessThanZeroWithSubstitution() {
         checkDiscoveredProperties(
             StaticSubstitutionExamples::lessThanZero,

@@ -3,13 +3,12 @@ package org.usvm.model
 import io.ksmt.expr.KExpr
 import io.ksmt.solver.KModel
 import io.ksmt.sort.KUninterpretedSort
+import org.usvm.INITIAL_INPUT_ADDRESS
+import org.usvm.NULL_ADDRESS
 import org.usvm.UAddressSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UExpr
-import org.usvm.constraints.UTypeModel
-import org.usvm.memory.UAddressCounter.Companion.INITIAL_INPUT_ADDRESS
-import org.usvm.memory.UAddressCounter.Companion.NULL_ADDRESS
 import org.usvm.memory.UMemoryBase
 import org.usvm.solver.UExprTranslator
 
@@ -52,20 +51,18 @@ open class ULazyModelDecoder<Field, Type, Method>(
      * equivalence classes of addresses and work with their number in the future.
      */
     private fun buildMapping(model: KModel): AddressesMapping {
-        // Translated null has to be equal to evaluated null, because it is of KUninterpretedSort and translatedNullRef
-        // defined as mkUninterpretedSortValue(addressSort, 0).
-        check(translatedNullRef === model.eval(translatedNullRef, isComplete = true))
+        val interpreterdNullRef = model.eval(translatedNullRef, isComplete = true)
 
         val result = mutableMapOf<KExpr<KUninterpretedSort>, UConcreteHeapRef>()
-        // Except the null value, it has the NULL_ADDRESS
-        result[translatedNullRef] = ctx.mkConcreteHeapRef(NULL_ADDRESS)
+        // The null value has the NULL_ADDRESS
+        result[interpreterdNullRef] = ctx.mkConcreteHeapRef(NULL_ADDRESS)
 
         val universe = model.uninterpretedSortUniverse(ctx.addressSort) ?: return result
         // All the numbers are enumerated from the INITIAL_INPUT_ADDRESS to the Int.MIN_VALUE
         var counter = INITIAL_INPUT_ADDRESS
 
         for (interpretedAddress in universe) {
-            if (interpretedAddress == translatedNullRef) {
+            if (interpretedAddress == interpreterdNullRef) {
                 continue
             }
             result[interpretedAddress] = ctx.mkConcreteHeapRef(counter--)
@@ -86,7 +83,7 @@ open class ULazyModelDecoder<Field, Type, Method>(
 
         val stack = decodeStack(model, addressesMapping)
         val heap = decodeHeap(model, addressesMapping)
-        val types = UTypeModel<Type>(ctx.typeSystem(), typeByAddr = emptyMap())
+        val types = UTypeModel<Type>(ctx.typeSystem(), typeStreamByAddr = emptyMap())
         val mocks = decodeMocker(model, addressesMapping)
 
         return UModelBase(ctx, stack, heap, types, mocks)

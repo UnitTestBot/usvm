@@ -7,7 +7,6 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 class TestOverflow : JavaMethodTestRunner() {
     @Test
-    @Disabled("TODO: disabled due to JacoDB incorrect types of local variables")
     fun `Test shortOverflow`() {
         checkDiscoveredPropertiesWithExceptions(
             Overflow::shortOverflow,

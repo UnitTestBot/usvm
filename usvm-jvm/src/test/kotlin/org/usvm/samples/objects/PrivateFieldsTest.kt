@@ -8,7 +8,6 @@ import org.usvm.util.isException
 
 internal class PrivateFieldsTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun testAccessWithGetter() {
         checkDiscoveredPropertiesWithExceptions(
             PrivateFields::accessWithGetter,

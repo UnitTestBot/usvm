@@ -34,7 +34,6 @@ internal class SetsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Does not find positive branches JIRA:1529")
     fun testSetContains() {
         checkDiscoveredProperties(
             Sets::setContains,
@@ -54,7 +53,6 @@ internal class SetsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Same problem from testSetContains JIRA:1529")
     fun testMoreComplicatedContains() {
         checkDiscoveredProperties(
             Sets::moreComplicatedContains, // TODO how many branches do we have?

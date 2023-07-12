@@ -23,6 +23,8 @@ import org.usvm.solver.USatResult
 import org.usvm.solver.USoftConstraintsProvider
 import org.usvm.solver.USolverBase
 import org.usvm.solver.UUnsatResult
+import org.usvm.types.USingleTypeStream
+import org.usvm.types.single.SingleTypeSystem
 import kotlin.test.assertIs
 
 class ModelDecodingTest {
@@ -37,7 +39,7 @@ class ModelDecodingTest {
     @BeforeEach
     fun initializeContext() {
         val components: UComponents<*, *, *> = mockk()
-        every { components.mkTypeSystem(any()) } returns mockk()
+        every { components.mkTypeSystem(any()) } returns SingleTypeSystem
 
         ctx = UContext(components)
         val softConstraintProvider = USoftConstraintsProvider<Field, Type>(ctx)

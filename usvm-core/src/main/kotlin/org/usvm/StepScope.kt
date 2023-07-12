@@ -50,7 +50,7 @@ class StepScope<T : UState<Type, Field, *, *>, Type, Field>(
      * Forks on a [condition], performing [blockOnTrueState] on a state satisfying [condition] and
      * [blockOnFalseState] on a state satisfying [condition].not().
      *
-     * If the [condition], sets underlying state to `null`.
+     * If the [condition] is unsatisfiable, sets underlying state to `null`.
      *
      * @return `null` if the [condition] is unsatisfiable.
      */

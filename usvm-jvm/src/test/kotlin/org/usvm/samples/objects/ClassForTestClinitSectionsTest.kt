@@ -21,7 +21,7 @@ internal class ClassForTestClinitSectionsTest : JavaMethodTestRunner() {
 //        }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@7e0a7b9e")
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3f95a1b3")
     fun testClinitWithClinitAnalysis() {
         checkDiscoveredProperties(
             ClassForTestClinitSections::resultDependingOnStaticSection,

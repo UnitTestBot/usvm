@@ -8,7 +8,7 @@ import org.usvm.test.util.checkers.eq
 
 internal class PathDependentGenericsExampleTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Not implemented: Instance of")
+    @Disabled("Support instanceof")
     fun testPathDependentGenerics() {
         checkDiscoveredProperties(
             PathDependentGenericsExample::pathDependentGenerics,
@@ -20,7 +20,7 @@ internal class PathDependentGenericsExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: Instance of")
+    @Disabled("Sequence is empty.")
     fun testFunctionWithSeveralTypeConstraintsForTheSameObject() {
         checkDiscoveredProperties(
             PathDependentGenericsExample::functionWithSeveralTypeConstraintsForTheSameObject,

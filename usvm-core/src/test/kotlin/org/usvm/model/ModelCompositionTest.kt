@@ -6,13 +6,20 @@ import kotlinx.collections.immutable.persistentMapOf
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.usvm.*
-import org.usvm.memory.UAddressCounter
+import org.usvm.Field
+import org.usvm.NULL_ADDRESS
+import org.usvm.Type
+import org.usvm.UBv32Sort
+import org.usvm.UComponents
+import org.usvm.UComposer
+import org.usvm.UConcreteHeapRef
+import org.usvm.UContext
 import org.usvm.memory.UInputToAllocatedKeyConverter
 import org.usvm.memory.emptyAllocatedArrayRegion
 import org.usvm.memory.emptyInputArrayLengthRegion
 import org.usvm.memory.emptyInputArrayRegion
 import org.usvm.memory.emptyInputFieldRegion
+import org.usvm.sampleUValue
 import kotlin.test.assertSame
 
 class ModelCompositionTest {
@@ -24,7 +31,7 @@ class ModelCompositionTest {
         val components: UComponents<*, *, *> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
         ctx = UContext(components)
-        concreteNull = ctx.mkConcreteHeapRef(UAddressCounter.NULL_ADDRESS)
+        concreteNull = ctx.mkConcreteHeapRef(NULL_ADDRESS)
     }
 
     @Test

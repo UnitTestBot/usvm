@@ -1,6 +1,7 @@
 package org.usvm
 
 import org.usvm.solver.USolverBase
+import org.usvm.types.UTypeSystem
 
 /**
  * Provides core USVM components tuned for specific language.

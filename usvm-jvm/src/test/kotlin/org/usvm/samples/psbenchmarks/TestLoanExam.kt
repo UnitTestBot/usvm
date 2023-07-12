@@ -1,6 +1,10 @@
 package org.usvm.samples.psbenchmarks
 
-import org.usvm.*
+import org.usvm.CoverageZone
+import org.usvm.PathSelectionStrategy
+import org.usvm.PathSelectorCombinationStrategy
+import org.usvm.SolverType
+import org.usvm.UMachineOptions
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import org.usvm.util.Options
