@@ -21,6 +21,12 @@ sourceSets {
         }
     }
 
+    val collectors by creating {
+        java {
+            srcDir("src/collectors/java")
+        }
+    }
+
     test {
         compileClasspath += samples.output
         runtimeClasspath += samples.output
@@ -42,6 +48,7 @@ dependencies {
     implementation("com.jetbrains.rd:rd-core:${Versions.rd}")
     implementation("commons-cli:commons-cli:1.5.0")
     implementation("com.jetbrains.rd:rd-gen:${Versions.rd}")
+    implementation(files(buildDir.resolve("libs").resolve("usvm-instrumentation-collectors.jar").absolutePath))
 }
 
 val sourcesBaseDir = projectDir.resolve("src/main/kotlin")
@@ -125,7 +132,21 @@ tasks {
         dependsOn(getByName("compileSamplesJava"), configurations.testCompileClasspath)
         dependsOn(configurations.compileClasspath)
     }
+}
 
+tasks {
+    register<Jar>("collectorsJar") {
+        group = "jar"
+        shouldRunAfter("compileKotlin")
+        archiveClassifier.set("collectors")
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+        val contents = sourceSets.getByName("collectors").output
+
+        from(contents)
+        dependsOn(getByName("compileCollectorsJava"), configurations.compileClasspath)
+        dependsOn(configurations.compileClasspath)
+    }
 }
 
 tasks.withType<Test> {
@@ -133,8 +154,13 @@ tasks.withType<Test> {
         "usvm-instrumentation-jar",
         buildDir.resolve("libs").resolve("usvm-instrumentation-1.0.jar").absolutePath
     )
+    environment(
+        "usvm-collectors-jar",
+        buildDir.resolve("libs").resolve("usvm-instrumentation-collectors.jar").absolutePath
+    )
 }
 
 
+tasks.getByName("compileKotlin").mustRunAfter("collectorsJar")
 tasks.getByName("compileKotlin").finalizedBy("instrumentationJar")
 tasks.getByName("compileTestKotlin").finalizedBy("testJar")
