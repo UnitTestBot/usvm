@@ -1,9 +1,7 @@
 package example;
 
-import java.util.ArrayList;
+import java.util.*;
 import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
 
 public class A {
 
@@ -93,6 +91,14 @@ public class A {
 //        int newA = isA1(a, c);
 //        return a == 1 ? newA : -1;
         return staticField1;
+    }
+
+    public int mockRandom() {
+        return (new Random()).nextInt();
+    }
+
+    public int multipleMock(MockClass mc) {
+        return mc.getI() + mc.getI();
     }
 
     private int isA1(int a, int b) {

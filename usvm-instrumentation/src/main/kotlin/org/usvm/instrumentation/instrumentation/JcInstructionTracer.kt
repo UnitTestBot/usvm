@@ -10,7 +10,7 @@ import org.usvm.instrumentation.instrumentation.JcInstructionTracer.StaticFieldA
 import org.usvm.instrumentation.util.enclosingClass
 import org.usvm.instrumentation.util.enclosingMethod
 import org.usvm.instrumentation.util.toJcClassOrInterface
-import org.usvm.instrumentation.trace.collector.TraceCollector
+import org.usvm.instrumentation.collector.trace.TraceCollector
 
 //Jacodb instructions tracer
 object JcInstructionTracer : Tracer<Trace> {
@@ -21,8 +21,10 @@ object JcInstructionTracer : Tracer<Trace> {
     }
 
     override fun getTrace(): Trace {
-        val trace = List(TraceCollector.trace.size) { idx -> decode(TraceCollector.trace.arr[idx]) }
-        val statics = List(TraceCollector.statics.size) { idx -> decodeStatic(TraceCollector.statics.arr[idx]) }
+        val trace = List(TraceCollector.trace.size) { idx -> decode(
+            TraceCollector.trace.arr[idx]) }
+        val statics = List(TraceCollector.statics.size) { idx -> decodeStatic(
+            TraceCollector.statics.arr[idx]) }
         return Trace(trace, statics)
     }
 

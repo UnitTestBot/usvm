@@ -33,7 +33,6 @@ class SimpleUTestConcreteExecutor: UTestConcreteExecutorTest() {
         val res = uTestConcreteExecutor.executeAsync(uTest)
         assert(res is UTestExecutionSuccessResult)
         res as UTestExecutionSuccessResult
-        println("RES = $res")
     }
 
     @Test
@@ -134,6 +133,17 @@ class SimpleUTestConcreteExecutor: UTestConcreteExecutorTest() {
     }
 
     @Test
+    fun `mock java random`() = executeTest {
+        val uTest = UTestCreator.A.mockRandom(jcClasspath)
+        val res = uTestConcreteExecutor.executeAsync(uTest)
+        assert(res is UTestExecutionSuccessResult)
+        res as UTestExecutionSuccessResult
+        val result = res.result
+        assert(result != null)
+        assert(result is UTestConstantDescriptor.Int && result.value == 239)
+    }
+
+    @Test
     fun `simple abstract class partially mocked test`() = executeTest {
         val uTest = UTestCreator.A.mockAbstractClass1(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
@@ -144,6 +154,18 @@ class SimpleUTestConcreteExecutor: UTestConcreteExecutorTest() {
         //Expected behavior!!
         assert(result is UTestConstantDescriptor.Int && result.value == 1)
     }
+
+    @Test
+    fun `multiple mock`() = executeTest {
+        val uTest = UTestCreator.A.mockMultiple(jcClasspath)
+        val res = uTestConcreteExecutor.executeAsync(uTest)
+        assert(res is UTestExecutionSuccessResult)
+        res as UTestExecutionSuccessResult
+        val result = res.result
+        assert(result != null)
+        assert(result is UTestConstantDescriptor.Int && result.value == 239)
+    }
+
     @Test
     fun `simple interface mock test`() = executeTest {
         val uTest = UTestCreator.A.mockInterface(jcClasspath)
