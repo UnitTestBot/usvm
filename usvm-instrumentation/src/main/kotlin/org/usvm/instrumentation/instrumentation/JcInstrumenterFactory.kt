@@ -1,7 +1,6 @@
 package org.usvm.instrumentation.instrumentation
 
 import org.jacodb.api.JcClasspath
-import org.usvm.instrumentation.trace.collector.TraceCollector
 
 interface JcInstrumenterFactory<T: JcInstrumenter> {
     fun create(jcClasspath: JcClasspath): T
