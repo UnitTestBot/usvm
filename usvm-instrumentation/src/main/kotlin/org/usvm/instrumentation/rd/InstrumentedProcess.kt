@@ -34,8 +34,8 @@ import org.usvm.instrumentation.testcase.executor.UTestExpressionExecutor
 import org.usvm.instrumentation.testcase.descriptor.StaticDescriptorsBuilder
 import org.usvm.instrumentation.testcase.descriptor.Value2DescriptorConverter
 import org.usvm.instrumentation.testcase.api.*
-import org.usvm.instrumentation.trace.collector.MockCollector
-import org.usvm.instrumentation.trace.collector.TraceCollector
+import org.usvm.instrumentation.collector.trace.MockCollector
+import org.usvm.instrumentation.collector.trace.TraceCollector
 import org.usvm.instrumentation.util.*
 import pumpAsync
 import terminateOnException
@@ -77,14 +77,15 @@ class InstrumentedProcess private constructor() {
     fun start(args: Array<String>) = runBlocking {
         val options = Options()
         with(options) {
-            addOption("cp",true, "Project class path")
-            addOption("t",true, "Process timeout in seconds")
-            addOption("p",true, "Rd port number")
+            addOption("cp", true, "Project class path")
+            addOption("t", true, "Process timeout in seconds")
+            addOption("p", true, "Rd port number")
         }
         val parser = DefaultParser()
         val cmd = parser.parse(options, args)
         val classPath = cmd.getOptionValue("cp") ?: error("Specify classpath")
-        val timeout = cmd.getOptionValue("t").toIntOrNull()?.toDuration(DurationUnit.SECONDS) ?: error("Specify timeout in seconds")
+        val timeout = cmd.getOptionValue("t").toIntOrNull()?.toDuration(DurationUnit.SECONDS)
+            ?: error("Specify timeout in seconds")
         val port = cmd.getOptionValue("p").toIntOrNull() ?: error("Specify rd port number")
         val def = LifetimeDefinition()
         initProcess(classPath)
@@ -118,7 +119,13 @@ class InstrumentedProcess private constructor() {
     }
 
     private fun createWorkerClassLoader() =
-        WorkerClassLoader(ucp, this::class.java.classLoader, TraceCollector::class.java.name, MockCollector::class.java.name, jcClasspath)
+        WorkerClassLoader(
+            urlClassPath = ucp,
+            traceCollectorClassLoader = this::class.java.classLoader,
+            traceCollectorClassName = TraceCollector::class.java.name,
+            mockCollectorClassName = MockCollector::class.java.name,
+            jcClasspath = jcClasspath
+        )
 
     private suspend fun initiate(lifetime: Lifetime, port: Int) {
         val scheduler = SingleThreadScheduler(lifetime, "usvm-executor-worker-scheduler")

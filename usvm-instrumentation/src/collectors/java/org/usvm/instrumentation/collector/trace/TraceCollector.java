@@ -1,4 +1,4 @@
-package org.usvm.instrumentation.trace.collector;
+package org.usvm.instrumentation.collector.trace;
 
 //DO NOT EDIT!
 //USE TRACER
