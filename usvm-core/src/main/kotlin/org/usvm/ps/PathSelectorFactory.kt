@@ -59,7 +59,7 @@ fun <Method, Statement, State : UState<*, *, Method, Statement>> createPathSelec
                 requireNotNull(distanceStatistics()) { "Distance statistics is required for BFS with logging path selector" },
                 requireNotNull(applicationGraph()) { "Application graph is required for BFS with logging path selector" }
             )
-            PathSelectionStrategy.INFERENCE_WITH_LOGGING -> BfsWithLoggingPathSelector(
+            PathSelectionStrategy.INFERENCE_WITH_LOGGING -> InferencePathSelector(
                 requireNotNull(pathsTreeStatistics()) { "Paths tree statistics is required for Inference with logging path selector" },
                 requireNotNull(coverageStatistics()) { "Coverage statistics is required for Inference with logging path selector" },
                 requireNotNull(distanceStatistics()) { "Distance statistics is required for Inference with logging path selector" },

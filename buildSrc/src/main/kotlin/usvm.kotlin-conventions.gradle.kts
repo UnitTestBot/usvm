@@ -11,6 +11,7 @@ group = "org.usvm"
 repositories {
     mavenCentral()
     maven("https://jitpack.io")
+    maven("https://packages.jetbrains.team/maven/p/ki/maven")
 }
 
 dependencies {
@@ -22,6 +23,8 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:${Versions.coroutines}")
 
     testImplementation(kotlin("test"))
+
+    implementation("io.kinference", "inference-core", "0.2.13")
 }
 
 tasks {

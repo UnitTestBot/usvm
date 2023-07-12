@@ -5,7 +5,6 @@ plugins {
 
 repositories {
     mavenCentral()
-    maven("https://packages.jetbrains.team/maven/p/ki/maven")
 }
 
 dependencies {
@@ -19,5 +18,4 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-params:${Versions.junitParams}")
 
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
-    implementation("io.kinference", "inference-core", "0.2.13")
 }

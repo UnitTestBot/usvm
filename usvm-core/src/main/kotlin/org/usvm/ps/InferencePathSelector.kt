@@ -74,7 +74,7 @@ internal class InferencePathSelector<State : UState<*, *, Method, Statement>, St
             model.predict(listOf(data))["target"] as FloatNDArray
         }.array.toArray()
         val stateId = output.indices.maxBy { output[it] }
-        return queue.first()
+        return queue[stateId]
     }
 
     override fun peek(): State {

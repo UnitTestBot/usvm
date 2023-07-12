@@ -17,7 +17,8 @@ fun String.runCommand() {
 
 
 fun main() {
-    "./gradlew test".runCommand()
+    val jdkPath = System.getProperty("java.home")
+    "./gradlew test -Dorg.gradle.java.home=$jdkPath".runCommand()
 
     val dirname = "./usvm-jvm/paths_log/"
     val resultDirname = "${dirname}final"
