@@ -1,7 +1,5 @@
 package org.usvm.constraints
 
-import org.usvm.INITIAL_CONCRETE_ADDRESS
-import org.usvm.INITIAL_INPUT_ADDRESS
 import org.usvm.NULL_ADDRESS
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapAddress
@@ -9,50 +7,19 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UHeapRef
 import org.usvm.UNullRef
 import org.usvm.memory.map
-import org.usvm.types.UTypeSystem
 import org.usvm.model.UModel
+import org.usvm.model.UTypeModel
 import org.usvm.solver.USatResult
 import org.usvm.solver.USolverResult
 import org.usvm.solver.UUnsatResult
 import org.usvm.types.USingleTypeStream
 import org.usvm.types.UTypeRegion
 import org.usvm.types.UTypeStream
+import org.usvm.types.UTypeSystem
 import org.usvm.uctx
 
 interface UTypeEvaluator<Type> {
     fun evalIs(ref: UHeapRef, type: Type): UBoolExpr
-}
-
-class UTypeModel<Type>(
-    val typeSystem: UTypeSystem<Type>,
-    typeStreamByAddr: Map<UConcreteHeapAddress, UTypeStream<Type>>,
-) : UTypeEvaluator<Type> {
-    private val typeStreamByAddr = typeStreamByAddr.toMutableMap()
-
-    fun typeStream(ref: UConcreteHeapRef): UTypeStream<Type> =
-        typeStreamByAddr[ref.address] ?: typeSystem.topTypeStream()
-
-    override fun evalIs(ref: UHeapRef, type: Type): UBoolExpr =
-        when (ref) {
-            is UConcreteHeapRef -> {
-                if (ref.address == NULL_ADDRESS) {
-                    ref.ctx.trueExpr
-                } else {
-                    require(ref.address <= INITIAL_INPUT_ADDRESS)
-
-                    val evaluatedTypeStream = typeStream(ref)
-                    val typeStream = evaluatedTypeStream.filterBySupertype(type)
-                    if (!typeStream.isEmpty) {
-                        typeStreamByAddr[ref.address] = typeStream
-                        ref.ctx.trueExpr
-                    } else {
-                        ref.ctx.falseExpr
-                    }
-                }
-            }
-
-            else -> error("Expecting concrete ref, but got $ref")
-        }
 }
 
 /**
@@ -79,7 +46,7 @@ class UTypeConstraints<Type>(
     }
 
     /**
-     * Returns if current type and equality constraints are unsatisfiable (syntactically).
+     * Returns true if the current type and equality constraints are unsatisfiable (syntactically).
      */
     var isContradicting = false
         private set
@@ -117,15 +84,14 @@ class UTypeConstraints<Type>(
      */
     fun addSupertype(ref: UHeapRef, type: Type) {
         when (ref) {
+            is UNullRef -> return
+
             is UConcreteHeapRef -> {
-                require(ref.address >= INITIAL_CONCRETE_ADDRESS)
                 val concreteType = concreteRefToType.getValue(ref.address)
                 if (!typeSystem.isSupertype(type, concreteType)) {
                     contradiction()
                 }
             }
-
-            is UNullRef -> return
 
             else -> {
                 val constraints = this[ref]
@@ -156,15 +122,14 @@ class UTypeConstraints<Type>(
      */
     fun excludeSupertype(ref: UHeapRef, type: Type) {
         when (ref) {
+            is UNullRef -> contradiction() // the [ref] can't be equal to null
+
             is UConcreteHeapRef -> {
-                require(ref.address >= INITIAL_CONCRETE_ADDRESS)
                 val concreteType = concreteRefToType.getValue(ref.address)
                 if (typeSystem.isSupertype(type, concreteType)) {
                     contradiction()
                 }
             }
-
-            is UNullRef -> contradiction() // the [ref] can't be equal to null
 
             else -> {
                 val constraints = this[ref]
@@ -178,8 +143,7 @@ class UTypeConstraints<Type>(
                     for ((key, value) in symbolicRefToTypeRegion.entries) {
                         // TODO: cache intersections?
                         if (key != ref && value.intersect(newConstraints).isEmpty) {
-                            // If we have two inputs of incomparable reference types, then they are either non equal,
-                            // or both nulls
+                            // If we have two inputs of incomparable reference types, then they are non equal
                             equalityConstraints.makeNonEqual(ref, key)
                         }
                     }
@@ -195,7 +159,6 @@ class UTypeConstraints<Type>(
     internal fun readTypeStream(ref: UHeapRef): UTypeStream<Type> =
         when (ref) {
             is UConcreteHeapRef -> {
-                require(ref.address >= INITIAL_CONCRETE_ADDRESS)
                 val concreteType = concreteRefToType[ref.address]
                 val typeStream = if (concreteType == null) {
                     typeSystem.topTypeStream()
@@ -310,11 +273,12 @@ class UTypeConstraints<Type>(
                         // to have the common type with [heapRef], therefore they can't be equal or
                         // some of them equals null
                         val disjunct = mutableListOf<UBoolExpr>()
-                        potentialConflictingRefs.mapTo(disjunct) { ref ->
-                            with(ref.uctx) { ref.neq(heapRef) }
-                        }
-                        potentialConflictingRefs.mapTo(disjunct) { ref ->
-                            with(ref.uctx) { ref.eq(nullRef) }
+                        with(heapRef.uctx) {
+                            // can't be equal to heapRef
+                            potentialConflictingRefs.mapTo(disjunct) { it.neq(heapRef) }
+                            // some of them is null
+                            potentialConflictingRefs.mapTo(disjunct) { it.eq(nullRef) }
+                            disjunct += heapRef.eq(nullRef)
                         }
                         bannedRefEqualities += heapRef.ctx.mkOr(disjunct)
 
@@ -322,12 +286,12 @@ class UTypeConstraints<Type>(
                         nextRegion = region
                         potentialConflictingRefs.clear()
                         potentialConflictingRefs.add(heapRef)
-                    } else if (nextRegion === region) {
+                    } else if (nextRegion == region) {
                         // the current [heapRef] gives the same region as the potentialConflictingRefs, so it's better
                         // to keep only the [heapRef] to minimize the disequalities amount in the result disjunction
                         potentialConflictingRefs.clear()
                         potentialConflictingRefs.add(heapRef)
-                    } else if (nextRegion !== currentRegion) {
+                    } else if (nextRegion != currentRegion) {
                         // no conflict detected, but the current region became smaller
                         potentialConflictingRefs.add(heapRef)
                     }
@@ -354,9 +318,9 @@ class UTypeConstraints<Type>(
                 // because if the cluster is bigger, then we called region.isEmpty previously at least once
                 check(cluster.size == 1)
                 return UUnsatResult()
-            } else {
-                typeStream
             }
+
+            typeStream
         }
 
         val typeModel = UTypeModel(typeSystem, allConcreteRefToType)
@@ -365,5 +329,5 @@ class UTypeConstraints<Type>(
 }
 
 class UTypeUnsatResult<Type>(
-    val expressionsToAssert: List<UBoolExpr>,
+    val referenceDisequalitiesDisjuncts: List<UBoolExpr>,
 ) : UUnsatResult<UTypeModel<Type>>()

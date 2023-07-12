@@ -13,7 +13,6 @@ import org.usvm.ULValue
 import org.usvm.UMockEvaluator
 import org.usvm.URegisterLValue
 import org.usvm.USort
-import org.usvm.constraints.UTypeModel
 import org.usvm.memory.UReadOnlySymbolicHeap
 import org.usvm.memory.UReadOnlySymbolicMemory
 import org.usvm.types.UTypeStream

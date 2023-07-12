@@ -92,7 +92,7 @@ class USupportTypeStream<Type> private constructor(
         }
     }
 
-    override fun take(n: Int): Collection<Type> =
+    override fun take(n: Int): List<Type> =
         cachingSequence.take(n).toList()
 
     override val isEmpty: Boolean

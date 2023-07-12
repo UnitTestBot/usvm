@@ -53,7 +53,7 @@ interface UTypeStream<Type> {
 /**
  * An empty type stream.
  */
-class UEmptyTypeStream<Type> : UTypeStream<Type> {
+class UEmptyTypeStream<Type> private constructor() : UTypeStream<Type> {
     override fun filterBySupertype(type: Type): UTypeStream<Type> = this
 
     override fun filterBySubtype(type: Type): UTypeStream<Type> = this
@@ -66,6 +66,13 @@ class UEmptyTypeStream<Type> : UTypeStream<Type> {
 
     override val isEmpty: Boolean
         get() = true
+
+    companion object {
+        @Suppress("UNCHECKED_CAST")
+        operator fun <Type> invoke() = instance as UEmptyTypeStream<Type>
+
+        val instance = UEmptyTypeStream<Nothing>()
+    }
 }
 
 fun <Type> UTypeStream<Type>.takeFirst(): Type = take(1).single()

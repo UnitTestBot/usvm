@@ -40,6 +40,8 @@ internal data class SplitHeapRefs(
  * leafs in the [ref] ite. Otherwise, it will contain an ite with the guard protecting from bubbled up concrete refs.
  *
  * @param initialGuard an initial value for the accumulated guard.
+ * @param ignoreNullRefs if true, then null references will be ignored. It means that all leafs with nulls
+ * considered unsatisfiable, so we assume their guards equal to false, and they won't be added to the result.
  */
 internal fun splitUHeapRef(
     ref: UHeapRef,
@@ -291,7 +293,10 @@ internal inline fun filter(
 
             completelyMapped.single()?.withAlso(initialGuard)
         }
-
-        else -> (ref with initialGuard).takeIf(predicate)
+        else -> if (ref != ref.uctx.nullRef || !ignoreNullRefs) {
+            (ref with initialGuard).takeIf(predicate)
+        } else {
+            null
+        }
     }
 }

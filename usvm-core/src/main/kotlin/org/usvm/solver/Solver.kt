@@ -149,7 +149,7 @@ open class USolverBase<Field, Type, Method>(
                     )
 
                     // in case of failure, assert reference disequality expressions
-                    is UTypeUnsatResult<Type> -> typeResult.expressionsToAssert
+                    is UTypeUnsatResult<Type> -> typeResult.referenceDisequalitiesDisjuncts
                         .map(translator::translate)
                         .forEach(smtSolver::assert)
 

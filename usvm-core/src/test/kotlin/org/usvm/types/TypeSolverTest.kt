@@ -227,7 +227,7 @@ class TypeSolverTest {
     }
 
     @Test
-    fun `Test symbolic ref -- expressions to assert correctness about null`(): Unit = with(ctx) {
+    fun `Test symbolic ref -- expressions to assert correctness about null -- three equals`(): Unit = with(ctx) {
         val a = ctx.mkRegisterReading(0, addressSort)
         val b = ctx.mkRegisterReading(1, addressSort)
         val c = ctx.mkRegisterReading(2, addressSort)
@@ -254,6 +254,31 @@ class TypeSolverTest {
 
         val resultWithNotNullConstraints = solver.check(pc, useSoftConstraints = false)
         assertIs<UUnsatResult<UModelBase<Field, TestType>>>(resultWithNotNullConstraints)
+    }
+
+    @Test
+    fun `Test symbolic ref -- expressions to assert correctness about null -- two equals`(): Unit = with(ctx) {
+        val a = ctx.mkRegisterReading(0, addressSort)
+        val b = ctx.mkRegisterReading(1, addressSort)
+        val c = ctx.mkRegisterReading(2, addressSort)
+
+        pc += mkIsExpr(a, interfaceAB)
+        pc += mkIsExpr(b, interfaceBC1)
+        pc += mkIsExpr(c, interfaceAC)
+
+        // it's overcomplicated a == b, so it's not leak to the UEqualityConstraints
+        pc += mkOrNoSimplify(mkHeapRefEq(a, b), falseExpr)
+
+        pc += mkOrNoSimplify(mkHeapRefEq(a, nullRef).not(), falseExpr)
+
+        val result = solver.check(pc, useSoftConstraints = false)
+        val model = assertIs<USatResult<UModelBase<Field, TestType>>>(result).model
+
+        val concreteA = assertIs<UConcreteHeapRef>(model.eval(a)).address
+        val concreteB = assertIs<UConcreteHeapRef>(model.eval(b)).address
+        val concreteC = assertIs<UConcreteHeapRef>(model.eval(c)).address
+
+        assertTrue(concreteA != 0 && concreteA == concreteB && concreteC == 0)
     }
 
     @Test

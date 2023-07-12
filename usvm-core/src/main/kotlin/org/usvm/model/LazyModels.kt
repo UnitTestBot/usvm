@@ -4,6 +4,7 @@ import io.ksmt.solver.KModel
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
 import org.usvm.INITIAL_INPUT_ADDRESS
+import org.usvm.NULL_ADDRESS
 import org.usvm.UBoolExpr
 import org.usvm.UComposer
 import org.usvm.UConcreteHeapRef
@@ -96,9 +97,21 @@ class ULazyHeapModel<Field, ArrayType>(
     private val resolvedInputArrays = mutableMapOf<ArrayType, UReadOnlyMemoryRegion<USymbolicArrayIndex, out USort>>()
     private val resolvedInputLengths = mutableMapOf<ArrayType, UReadOnlyMemoryRegion<UHeapRef, USizeSort>>()
 
+    /**
+     * To resolve nullRef, we need to:
+     * * translate it
+     * * evaluate the translated value in the [model]
+     * * map the evaluated value with the [addressesMapping]
+     *
+     * Actually, its address should always be equal 0.
+     */
     private val nullRef = model
         .eval(translator.translate(translator.ctx.nullRef))
         .mapAddress(addressesMapping) as UConcreteHeapRef
+
+    init {
+        check(nullRef.address == NULL_ADDRESS)
+    }
 
     override fun <Sort : USort> readField(ref: UHeapRef, field: Field, sort: Sort): UExpr<Sort> {
         // All the expressions in the model are interpreted, therefore, they must
