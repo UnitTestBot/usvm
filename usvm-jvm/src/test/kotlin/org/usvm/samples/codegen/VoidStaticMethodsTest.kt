@@ -8,7 +8,7 @@ import org.usvm.test.util.checkers.eq
 
 class VoidStaticMethodsTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@206987b2")
+    @Disabled("Not implemented: string constant")
     fun testInvokeChangeStaticFieldMethod() {
         checkDiscoveredProperties(
             VoidStaticMethodsTestingClass::invokeChangeStaticFieldMethod,
@@ -17,7 +17,7 @@ class VoidStaticMethodsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3d2bcab9")
+    @Disabled("Expected exactly 3 executions, but 1 found")
     fun testInvokeThrowExceptionMethod() {
         checkDiscoveredProperties(
             VoidStaticMethodsTestingClass::invokeThrowExceptionMethod,

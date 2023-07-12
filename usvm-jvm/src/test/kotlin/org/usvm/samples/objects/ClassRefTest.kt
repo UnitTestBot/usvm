@@ -13,7 +13,7 @@ import kotlin.arrayOf
 
 internal class ClassRefTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3f95a1b3")
+    @Disabled("Not implemented: string constant")
     fun testTakeBooleanClassRef() {
         checkDiscoveredProperties(
             ClassRef::takeBooleanClassRef,
@@ -23,7 +23,7 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
+    @Disabled("Not implemented: string constant")
     fun testTakeClassRef() {
         checkDiscoveredProperties(
             ClassRef::takeClassRef,
@@ -45,7 +45,7 @@ internal class ClassRefTest : JavaMethodTestRunner() {
 
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
+    @Disabled("Not implemented: class constant")
     fun testTakeArrayClassRef() {
         checkDiscoveredProperties(
             ClassRef::takeArrayClassRef,
@@ -55,7 +55,7 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
+    @Disabled("Not implemented: class constant")
     fun testTwoDimArrayClassRef() {
         checkDiscoveredProperties(
             ClassRef::twoDimArrayClassRef,
@@ -76,7 +76,7 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
+    @Disabled("Not implemented: class constant")
     fun testTakeConstantClassRef() {
         checkDiscoveredProperties(
             ClassRef::takeConstantClassRef,
@@ -96,7 +96,7 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
+    @Disabled("Not implemented: string constant")
     fun testEqualityOnStringClassRef() {
         checkDiscoveredProperties(
             ClassRef::equalityOnStringClassRef,
@@ -126,7 +126,7 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3f95a1b3")
+    @Disabled("No entrypoint found for method")
     fun testEqualityOnGenericClassRef() {
         checkDiscoveredProperties(
             ClassRef::equalityOnGenericClassRef,

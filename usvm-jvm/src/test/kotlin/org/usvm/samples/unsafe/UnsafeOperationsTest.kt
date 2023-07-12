@@ -8,7 +8,7 @@ import org.usvm.test.util.checkers.eq
 
 internal class UnsafeOperationsTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
+    @Disabled("Not implemented: class constant")
     fun checkGetAddressSizeOrZero() {
             checkDiscoveredProperties(
                 UnsafeOperations::getAddressSizeOrZero,

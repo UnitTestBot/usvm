@@ -22,7 +22,7 @@ class FutureExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3f95a1b3")
+    @Disabled("class org.jacodb.api.PredefinedPrimitive cannot be cast to class org.jacodb.api.JcRefType")
     fun testResultFromGet() {
         checkDiscoveredProperties(
             FutureExamples::resultFromGet,
@@ -32,7 +32,7 @@ class FutureExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3f95a1b3")
+    @Disabled("class org.jacodb.api.PredefinedPrimitive cannot be cast to class org.jacodb.api.JcRefType")
     fun testChangingCollectionInFuture() {
         checkDiscoveredProperties(
             FutureExamples::changingCollectionInFuture,
@@ -42,7 +42,7 @@ class FutureExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3f95a1b3")
+    @Disabled("class org.jacodb.api.PredefinedPrimitive cannot be cast to class org.jacodb.api.JcRefType")
     fun testChangingCollectionInFutureWithoutGet() {
         checkDiscoveredProperties(
             FutureExamples::changingCollectionInFutureWithoutGet,

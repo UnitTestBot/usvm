@@ -20,7 +20,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@576c8cea")
+    @Disabled("Not implemented: string constant")
     fun testCorrectAssignmentIntToIntegerArray() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::correctAssignmentIntToIntegerArray,
@@ -30,7 +30,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@2ecc303c")
+    @Disabled("Not implemented: string constant")
     fun testCorrectAssignmentSubtype() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::correctAssignmentSubtype,
@@ -40,7 +40,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@47effce0")
+    @Disabled("Not implemented: string constant")
     fun testCorrectAssignmentToObjectArray() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::correctAssignmentToObjectArray,
@@ -50,7 +50,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
+    @Disabled("Not implemented: string constant")
     fun testWrongAssignmentUnrelatedType() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::wrongAssignmentUnrelatedType,
@@ -62,7 +62,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@26bc130c")
+    @Disabled("Not implemented: string constant")
     fun testCheckGenericAssignmentWithCorrectCast() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkGenericAssignmentWithCorrectCast,
@@ -72,7 +72,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
+    @Disabled("Not implemented: string constant")
     fun testCheckGenericAssignmentWithWrongCast() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkGenericAssignmentWithWrongCast,
@@ -82,7 +82,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@46441754")
+    @Disabled("Not implemented: string constant")
     fun testCheckGenericAssignmentWithExtendsSubtype() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkGenericAssignmentWithExtendsSubtype,
@@ -92,7 +92,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
+    @Disabled("Not implemented: string constant")
     fun testCheckGenericAssignmentWithExtendsUnrelated() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkGenericAssignmentWithExtendsUnrelated,
@@ -102,7 +102,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
+    @Disabled("Not implemented: string constant")
     fun testCheckObjectAssignment() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkObjectAssignment,
@@ -132,7 +132,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@76e579d8")
+    @Disabled("Not implemented: string constant")
     fun testCheckAssignmentToObjectArray() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkAssignmentToObjectArray,
@@ -142,7 +142,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sequence is empty.")
+    @Disabled("No entrypoint found for method")
     fun testArrayCopyForIncompatiblePrimitiveTypes() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::arrayCopyForIncompatiblePrimitiveTypes,

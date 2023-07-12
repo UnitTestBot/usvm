@@ -8,7 +8,6 @@ import org.usvm.test.util.checkers.eq
 
 class DeepEqualsTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Not implemented: reference cast")
     fun testReturnList() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::returnList,
@@ -17,7 +16,6 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
     fun testReturnSet() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::returnSet,
@@ -26,7 +24,7 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method: (id:1)java.lang.Class#registerNatives()")
+    @Disabled("Not implemented: string constant")
     fun testReturnMap() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::returnMap,
@@ -50,7 +48,6 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@5927f2b1")
     fun testReturn2DList() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::return2DList,
@@ -67,7 +64,7 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@5927f2b1")
+    @Disabled("Not implemented: string constant")
     fun testReturn2DMap() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::return2DMap,
@@ -76,7 +73,7 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@5927f2b1")
+    @Disabled("Not implemented: string constant")
     fun testIntegers2DList() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::returnIntegers2DList,

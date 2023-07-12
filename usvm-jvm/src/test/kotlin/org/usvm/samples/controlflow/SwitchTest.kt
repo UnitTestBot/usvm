@@ -14,7 +14,7 @@ import java.math.RoundingMode.HALF_UP
 
 internal class SwitchTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
+    @Disabled("Not implemented: switch")
     fun testSimpleSwitch() {
         checkDiscoveredProperties(
             Switch::simpleSwitch,
@@ -27,7 +27,7 @@ internal class SwitchTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
+    @Disabled("Not implemented: switch")
     fun testLookupSwitch() {
         checkDiscoveredProperties(
             Switch::lookupSwitch,
@@ -40,7 +40,7 @@ internal class SwitchTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3e4141cf")
+    @Disabled("Index 1 out of bounds for length 1")
     fun testEnumSwitch() {
         checkDiscoveredProperties(
             Switch::enumSwitch,

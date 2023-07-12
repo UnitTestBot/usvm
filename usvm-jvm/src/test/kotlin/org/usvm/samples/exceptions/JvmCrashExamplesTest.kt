@@ -8,7 +8,7 @@ import org.usvm.test.util.checkers.eq
 
 internal class JvmCrashExamplesTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@27975320")
+    @Disabled("No entrypoint found for method")
     fun testExit() {
         checkDiscoveredProperties(
             JvmCrashExamples::exit,

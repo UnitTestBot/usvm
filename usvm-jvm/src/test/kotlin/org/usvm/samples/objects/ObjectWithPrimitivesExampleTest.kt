@@ -23,7 +23,6 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]. Fix minimization")
     fun testIgnoredInputParameters() {
         checkDiscoveredProperties(
             ObjectWithPrimitivesExample::ignoredInputParameters,

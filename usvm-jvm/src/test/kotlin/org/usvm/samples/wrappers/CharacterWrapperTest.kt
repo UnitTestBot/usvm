@@ -9,7 +9,7 @@ import org.usvm.test.util.checkers.eq
 // TODO failed Kotlin compilation
 internal class CharacterWrapperTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3f95a1b3")
+    @Disabled("Not implemented: string constant")
     fun primitiveToWrapperTest() {
         checkDiscoveredProperties(
             CharacterWrapper::primitiveToWrapper,
@@ -20,6 +20,7 @@ internal class CharacterWrapperTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: string constant")
     fun wrapperToPrimitiveTest() {
         checkDiscoveredProperties(
             CharacterWrapper::wrapperToPrimitive,

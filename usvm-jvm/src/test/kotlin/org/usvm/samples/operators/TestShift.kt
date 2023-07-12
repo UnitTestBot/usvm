@@ -16,7 +16,6 @@ class TestShift : JavaMethodTestRunner() {
         )
     }
 
-    @Disabled("Incorrect primitive cast")
     @Test
     fun `Test left shift byte`() {
         checkDiscoveredProperties(
@@ -27,7 +26,6 @@ class TestShift : JavaMethodTestRunner() {
         )
     }
 
-    @Disabled("Incorrect primitive cast")
     @Test
     fun `Test left shift short`() {
         checkDiscoveredProperties(
@@ -58,7 +56,6 @@ class TestShift : JavaMethodTestRunner() {
         )
     }
 
-    @Disabled("Incorrect primitive cast")
     @Test
     fun `Test left shift byte with int shift`() {
         checkDiscoveredProperties(
@@ -79,7 +76,6 @@ class TestShift : JavaMethodTestRunner() {
         )
     }
 
-    @Disabled("Incorrect primitive cast")
     @Test
     fun `Test right shift byte`() {
         checkDiscoveredProperties(
@@ -90,7 +86,6 @@ class TestShift : JavaMethodTestRunner() {
         )
     }
 
-    @Disabled("Incorrect primitive cast")
     @Test
     fun `Test right shift short`() {
         checkDiscoveredProperties(
@@ -121,7 +116,6 @@ class TestShift : JavaMethodTestRunner() {
         )
     }
 
-    @Disabled("Incorrect primitive cast")
     @Test
     fun `Test right shift byte with int shift`() {
         checkDiscoveredProperties(
@@ -142,7 +136,6 @@ class TestShift : JavaMethodTestRunner() {
         )
     }
 
-    @Disabled("Incorrect primitive cast")
     @Test
     fun `Test unsigned right shift byte`() {
         checkDiscoveredProperties(
@@ -153,7 +146,6 @@ class TestShift : JavaMethodTestRunner() {
         )
     }
 
-    @Disabled("Incorrect primitive cast")
     @Test
     fun `Test unsigned right shift short`() {
         checkDiscoveredProperties(
@@ -184,7 +176,6 @@ class TestShift : JavaMethodTestRunner() {
         )
     }
 
-    @Disabled("Incorrect primitive cast")
     @Test
     fun `Test unsigned right shift byte with int shift`() {
         checkDiscoveredProperties(
