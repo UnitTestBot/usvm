@@ -11,7 +11,6 @@ import org.usvm.instrumentation.testcase.descriptor.StaticDescriptorsBuilder
 import org.usvm.instrumentation.util.URLClassPathLoader
 import org.usvm.instrumentation.util.toByteArray
 import setFieldValue
-import java.io.File
 import java.lang.instrument.ClassDefinition
 import java.lang.instrument.Instrumentation
 import java.security.CodeSource
@@ -30,6 +29,7 @@ class WorkerClassLoader(
 
     private lateinit var instrumentation: Instrumentation
     var shouldInstrumentCurrentClass = true
+    private val redefineQueue = ArrayList<Pair<Class<*>, ClassNode>>()
 
     fun regInstrumentation(instrumentation: Instrumentation) {
         this.instrumentation = instrumentation
@@ -69,6 +69,10 @@ class WorkerClassLoader(
     }
 
     fun redefineClass(jClass: Class<*>, asmBody: ClassNode) {
+        if (!this::instrumentation.isInitialized) {
+            redefineQueue.add(jClass to asmBody)
+            return
+        }
         val classDefinition = ClassDefinition(jClass, asmBody.toByteArray(this))
         shouldInstrumentCurrentClass = false
         instrumentation.redefineClasses(classDefinition)
@@ -98,7 +102,10 @@ class WorkerClassLoader(
             val jcClass = jcClasspath.findClass(name)
             staticDescriptorsBuilder?.buildInitialDescriptorForClass(jcClass)
             foundClass to jcClass
-        }.first
+        }.first.also {
+            redefineQueue.forEach { redefineClass(it.first, it.second) }
+            redefineQueue.clear()
+        }
     }
 
     private fun getWorkerResource(name: String): URLClassPathLoader.Resource = cachedClasses.getOrPut(name) {

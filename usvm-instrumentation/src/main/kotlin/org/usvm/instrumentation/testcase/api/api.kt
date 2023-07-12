@@ -15,11 +15,30 @@ sealed class UTestExpression {
     abstract val type: JcType?
 }
 
+
+sealed class UTestMock(
+    override val type: JcType,
+    open val fields: Map<JcField, UTestExpression>,
+    open val methods: Map<JcMethod, List<UTestExpression>>
+): UTestExpression()
+/**
+ * Mock for specific object
+ */
 class UTestMockObject(
-    override val type: JcType?,
-    val fields: Map<JcField, UTestExpression>,
-    val methods: Map<JcMethod, UTestExpression>
-) : UTestExpression()
+    override val type: JcType,
+    override val fields: Map<JcField, UTestExpression>,
+    override val methods: Map<JcMethod, List<UTestExpression>>
+) : UTestMock(type, fields, methods)
+
+/**
+ * Mock for all objects of type
+ */
+class UTestGlobalMock(
+    override val type: JcType,
+    override val fields: Map<JcField, UTestExpression>,
+    override val methods: Map<JcMethod, List<UTestExpression>>
+) : UTestMock(type, fields, methods)
+
 
 sealed class UTestCall : UTestExpression() {
     abstract val instance: UTestExpression?
@@ -109,42 +128,42 @@ sealed class UTestConstExpression<T> : UTestExpression() {
 class UTestBooleanExpression(
     override val value: Boolean,
     override val type: JcType
-): UTestConstExpression<Boolean>()
+) : UTestConstExpression<Boolean>()
 
 class UTestByteExpression(
     override val value: Byte,
     override val type: JcType
-): UTestConstExpression<Byte>()
+) : UTestConstExpression<Byte>()
 
 class UTestShortExpression(
     override val value: Short,
     override val type: JcType
-): UTestConstExpression<Short>()
+) : UTestConstExpression<Short>()
 
 class UTestIntExpression(
     override val value: Int,
     override val type: JcType
-): UTestConstExpression<Int>()
+) : UTestConstExpression<Int>()
 
 class UTestLongExpression(
     override val value: Long,
     override val type: JcType
-): UTestConstExpression<Long>()
+) : UTestConstExpression<Long>()
 
 class UTestFloatExpression(
     override val value: Float,
     override val type: JcType
-): UTestConstExpression<Float>()
+) : UTestConstExpression<Float>()
 
 class UTestDoubleExpression(
     override val value: Double,
     override val type: JcType
-): UTestConstExpression<Double>()
+) : UTestConstExpression<Double>()
 
 class UTestCharExpression(
     override val value: Char,
     override val type: JcType
-): UTestConstExpression<Char>()
+) : UTestConstExpression<Char>()
 
 class UTestStringExpression(
     override val value: String,
@@ -206,9 +225,11 @@ enum class ArithmeticOperationType {
 
     //Arithmetic
     PLUS, SUB, MUL, DIV, REM,
+
     //UNARY
     //Relational
     EQ, NEQ, GT, GEQ, LT, LTQ,
+
     //Bitwise
     OR, AND, XOR
 }

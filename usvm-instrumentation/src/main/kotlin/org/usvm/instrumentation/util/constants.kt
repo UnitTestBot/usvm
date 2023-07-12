@@ -18,6 +18,9 @@ object InstrumentationModuleConstants {
     val pathToUsvmInstrumentationJar: String
         get() = System.getenv("usvm-instrumentation-jar")
 
+    val pathToUsvmCollectorsJar: String
+        get() = System.getenv("usvm-collectors-jar")
+
     val pathToJava: String
         get() = System.getenv()["JAVA_HOME"] ?: System.getProperty("java.home")
 
