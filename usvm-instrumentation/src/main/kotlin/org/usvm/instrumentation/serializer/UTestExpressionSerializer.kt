@@ -41,6 +41,7 @@ class UTestExpressionSerializer(private val ctx: SerializationContext) {
             is UTestGetFieldExpression -> serialize(uTestExpression)
             is UTestGetStaticFieldExpression -> serialize(uTestExpression)
             is UTestMockObject -> serialize(uTestExpression)
+            is UTestGlobalMock -> serialize(uTestExpression)
             is UTestConditionExpression -> serialize(uTestExpression)
             is UTestSetFieldStatement -> serialize(uTestExpression)
             is UTestSetStaticFieldStatement -> serialize(uTestExpression)
@@ -76,6 +77,7 @@ class UTestExpressionSerializer(private val ctx: SerializationContext) {
                     UTestExpressionKind.SET_FIELD -> deserializeUTestSetFieldStatement()
                     UTestExpressionKind.CONDITION -> deserializeUTestConditionExpression()
                     UTestExpressionKind.MOCK_OBJECT -> deserializeUTestMockObject()
+                    UTestExpressionKind.GLOBAL_MOCK -> deserializeUTestGlobalMock()
                     UTestExpressionKind.GET_STATIC_FIELD -> deserializeUTestGetStaticFieldExpression()
                     UTestExpressionKind.GET_FIELD -> deserializeUTestGetFieldExpression()
                     UTestExpressionKind.STRING -> deserializeUTestStringExpression()
@@ -355,7 +357,7 @@ class UTestExpressionSerializer(private val ctx: SerializationContext) {
             kind = UTestExpressionKind.MOCK_OBJECT,
             serializeInternals = {
                 fields.entries.map { serializeUTestExpression(it.value) }
-                methods.entries.map { serializeUTestExpression(it.value) }
+                methods.entries.map { it.value.map { serializeUTestExpression(it) } }
             },
             serialize = {
                 writeInt(fields.entries.size)
@@ -366,7 +368,7 @@ class UTestExpressionSerializer(private val ctx: SerializationContext) {
                 writeInt(methods.entries.size)
                 methods.entries.map {
                     writeJcMethod(it.key)
-                    writeUTestExpression(it.value)
+                    writeList(it.value) { writeUTestExpression(it) }
                 }
                 writeJcType(type)
             }
@@ -374,15 +376,51 @@ class UTestExpressionSerializer(private val ctx: SerializationContext) {
 
     private fun AbstractBuffer.deserializeUTestMockObject(): UTestMockObject {
         val fieldsToExpr = mutableMapOf<JcField, UTestExpression>()
-        val methodsToExpr = mutableMapOf<JcMethod, UTestExpression>()
+        val methodsToExpr = mutableMapOf<JcMethod, List<UTestExpression>>()
         repeat(readInt()) {
             fieldsToExpr[readJcField(jcClasspath)] = readUTestExpression()
         }
         repeat(readInt()) {
-            methodsToExpr[readJcMethod(jcClasspath)] = readUTestExpression()
+            methodsToExpr[readJcMethod(jcClasspath)] = readList { readUTestExpression() }
         }
-        val type = readJcType(jcClasspath)
+        val type = readJcType(jcClasspath) ?: error("Type should be not null")
         return UTestMockObject(type, fieldsToExpr, methodsToExpr)
+    }
+
+    private fun AbstractBuffer.serialize(uTestMockObject: UTestGlobalMock) =
+        serialize(
+            uTestExpression = uTestMockObject,
+            kind = UTestExpressionKind.GLOBAL_MOCK,
+            serializeInternals = {
+                fields.entries.map { serializeUTestExpression(it.value) }
+                methods.entries.map { it.value.map { serializeUTestExpression(it) } }
+            },
+            serialize = {
+                writeInt(fields.entries.size)
+                fields.entries.map {
+                    writeJcField(it.key)
+                    writeUTestExpression(it.value)
+                }
+                writeInt(methods.entries.size)
+                methods.entries.map {
+                    writeJcMethod(it.key)
+                    writeList(it.value) { writeUTestExpression(it) }
+                }
+                writeJcType(type)
+            }
+        )
+
+    private fun AbstractBuffer.deserializeUTestGlobalMock(): UTestGlobalMock {
+        val fieldsToExpr = mutableMapOf<JcField, UTestExpression>()
+        val methodsToExpr = mutableMapOf<JcMethod, List<UTestExpression>>()
+        repeat(readInt()) {
+            fieldsToExpr[readJcField(jcClasspath)] = readUTestExpression()
+        }
+        repeat(readInt()) {
+            methodsToExpr[readJcMethod(jcClasspath)] = readList { readUTestExpression() }
+        }
+        val type = readJcType(jcClasspath) ?: error("Type should be not null")
+        return UTestGlobalMock(type, fieldsToExpr, methodsToExpr)
     }
 
     private fun AbstractBuffer.serialize(uTestConditionExpression: UTestConditionExpression) =
@@ -624,6 +662,7 @@ class UTestExpressionSerializer(private val ctx: SerializationContext) {
         LONG,
         METHOD_CALL,
         MOCK_OBJECT,
+        GLOBAL_MOCK,
         NULL,
         SERIALIZED,
         SET_FIELD,

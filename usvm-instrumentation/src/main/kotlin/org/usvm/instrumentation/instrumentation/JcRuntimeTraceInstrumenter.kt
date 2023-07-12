@@ -9,7 +9,7 @@ import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.MethodNode
 import org.usvm.instrumentation.instrumentation.JcInstructionTracer.StaticFieldAccessType
 import org.usvm.instrumentation.org.usvm.instrumentation.instrumentation.TraceHelper
-import org.usvm.instrumentation.trace.collector.TraceCollector
+import org.usvm.instrumentation.collector.trace.TraceCollector
 import org.usvm.instrumentation.util.isSameSignature
 import org.usvm.instrumentation.util.replace
 
