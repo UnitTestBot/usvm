@@ -34,7 +34,7 @@ abstract class UMachine<State> : AutoCloseable {
 
             observer.onState(state, forkedStates)
 
-            val originalStateAlive = stateAlive && !isStateTerminated(state)
+            val continueAnalyzingOriginalState = stateAlive && !isStateTerminated(state)
             val aliveForkedStates = mutableListOf<State>()
             for (forkedState in forkedStates) {
                 if (!isStateTerminated(forkedState)) {
@@ -46,11 +46,13 @@ abstract class UMachine<State> : AutoCloseable {
                 }
             }
 
-            if (originalStateAlive) {
+            if (continueAnalyzingOriginalState) {
                 pathSelector.update(state)
             } else {
                 pathSelector.remove(state)
-                observer.onStateTerminated(state)
+                if (stateAlive) {
+                    observer.onStateTerminated(state)
+                }
             }
 
             if (aliveForkedStates.isNotEmpty()) {

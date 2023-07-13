@@ -5,7 +5,7 @@ package org.usvm
  * It should be created on every step in an interpreter.
  * You can think about an instance of [StepScope] as a monad `ExceptT null (State [T])`.
  *
- * An underlying state is `null`, iff one of the `condition`s passed to the [fork] was unsatisfiable.
+ * TODO: fix comment An underlying state is `null`, iff one of the `condition`s passed to the [fork] was unsatisfiable.
  *
  * To execute some function on a state, you should use [doWithState] or [calcOnState]. `null` is returned, when
  * the current state is `null`.
@@ -13,12 +13,13 @@ package org.usvm
  * @param originalState an initial state.
  */
 class StepScope<T : UState<Type, Field, *, *>, Type, Field>(
-    originalState: T,
+    private val originalState: T,
 ) {
     private val forkedStates = mutableListOf<T>()
-    private var curState: T? = originalState
-    var alive: Boolean = true
-        private set
+
+    private var alive: Boolean = true
+
+    private var canProcessFurtherOnCurrentStep: Boolean = true
 
     /**
      * @return forked states and the status of initial state.
@@ -31,8 +32,10 @@ class StepScope<T : UState<Type, Field, *, *>, Type, Field>(
      * @return `null` if the underlying state is `null`.
      */
     fun doWithState(block: T.() -> Unit): Unit? {
-        val state = curState ?: return null
-        state.block()
+        if (!canProcessFurtherOnCurrentStep) {
+            return null
+        }
+        originalState.block()
         return Unit
     }
 
@@ -41,10 +44,12 @@ class StepScope<T : UState<Type, Field, *, *>, Type, Field>(
      *
      * @return `null` if the underlying state is `null`, otherwise returns result of calling [block].
      */
-    fun <R> calcOnState(block: T.() -> R): R? {
-        val state = curState ?: return null
-        return state.block()
-    }
+    fun <R> calcOnState(block: T.() -> R): R? =
+        if (canProcessFurtherOnCurrentStep) {
+            originalState.block()
+        } else {
+            null
+        }
 
     /**
      * Forks on a [condition], performing [blockOnTrueState] on a state satisfying [condition] and
@@ -59,16 +64,22 @@ class StepScope<T : UState<Type, Field, *, *>, Type, Field>(
         blockOnTrueState: T.() -> Unit = {},
         blockOnFalseState: T.() -> Unit = {},
     ): Unit? {
-        val state = curState ?: return null
+        check(canProcessFurtherOnCurrentStep)
 
-        val (posState, negState) = fork(state, condition)
+        val (posState, negState) = fork(originalState, condition)
 
         posState?.blockOnTrueState()
-        curState = posState
+
+        if (posState == null) {
+            canProcessFurtherOnCurrentStep = false
+            check(negState === originalState)
+        } else {
+            check(posState === originalState)
+        }
 
         if (negState != null) {
             negState.blockOnFalseState()
-            if (negState !== state) {
+            if (negState !== originalState) {
                 forkedStates += negState
             }
         }
@@ -81,15 +92,15 @@ class StepScope<T : UState<Type, Field, *, *>, Type, Field>(
         constraint: UBoolExpr,
         block: T.() -> Unit = {},
     ): Unit? {
-        val state = curState ?: return null
+        check(canProcessFurtherOnCurrentStep)
 
-        val (posState, _) = fork(state, constraint)
+        val (posState, _) = fork(originalState, constraint)
 
         posState?.block()
-        curState = posState
 
         if (posState == null) {
             alive = false
+            canProcessFurtherOnCurrentStep = false
         }
 
         return posState?.let { }
@@ -97,32 +108,26 @@ class StepScope<T : UState<Type, Field, *, *>, Type, Field>(
 
     // TODO docs
     // TODO think about merging it with fork above
-    fun forkMulti(conditionsWithBlockOnStates: Iterable<Pair<UBoolExpr, T.() -> Unit?>>) {
-        val state = curState ?: return
+    fun forkMulti(conditionsWithBlockOnStates: List<Pair<UBoolExpr, T.() -> Unit>>) {
+        check(canProcessFurtherOnCurrentStep)
 
         val conditions = conditionsWithBlockOnStates.map { it.first }
-        val blocks = conditionsWithBlockOnStates.map { it.second }
 
-        val conditionStates = fork(state, conditions)
-        val conditionStatesWithBlocks = conditionStates.zip(blocks)
+        val conditionStates = fork(originalState, conditions)
 
-        val forkedStates = conditionStatesWithBlocks.mapNotNull { stateWithBlock ->
-            val positiveState = stateWithBlock.first
-            val block = stateWithBlock.second
+        val forkedStates = conditionStates.mapIndexedNotNull { idx, positiveState ->
+            val block = conditionsWithBlockOnStates[idx].second
 
-            positiveState?.let {
-                it.block()
-
-                positiveState
-            }
+            positiveState?.apply(block)
         }
 
-        val firstForkedState = forkedStates.firstOrNull()
-        val otherStates = forkedStates.filter { it !== firstForkedState }
+        canProcessFurtherOnCurrentStep = false
+        if (forkedStates.isEmpty()) {
+            alive = false
+            return
+        }
 
-        this.forkedStates += otherStates
-
-        curState = firstForkedState
+        this.forkedStates += forkedStates.subList(1, forkedStates.size)
     }
 }
 

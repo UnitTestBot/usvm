@@ -10,6 +10,7 @@ import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UInterpreter
 import org.usvm.URegisterLValue
+import org.usvm.machine.operator.JcBinaryOperator
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.WrappedException
@@ -159,9 +160,7 @@ class JcInterpreter(
 
         val switchKey = stmt.key
         // Note that the switch key can be an rvalue, for example, a simple int constant.
-        val switchKeyExpr = exprResolver.resolveJcExpr(switchKey)?.let {
-            it.asExpr(it.sort)
-        } ?: return
+        val switchKeyExpr = exprResolver.resolveJcExpr(switchKey) ?: return
         val instList = stmt.location.method.instList
 
         // TODO this is previous version that uses simple fork with 2 branches, remove it before the final review
@@ -200,7 +199,7 @@ class JcInterpreter(
             val caseStmtsWithConditions = stmt.branches.map { (caseValue, caseTargetStmt) ->
                 val nextStmt = instList.getInst(caseTargetStmt)
                 val resolvedCaseValue = exprResolver.resolveJcExpr(caseValue) ?: return
-                val caseCondition = mkEq(switchKeyExpr, resolvedCaseValue.asExpr(switchKeyExpr.sort))
+                val caseCondition = JcBinaryOperator.Eq(switchKeyExpr, resolvedCaseValue).asExpr(boolSort)
 
                 caseCondition to { state: JcState -> state.newStmt(nextStmt) }
             }
