@@ -14,7 +14,6 @@ import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.UInputFieldReading
 import org.usvm.UIteExpr
-import org.usvm.solver.UExprTranslator
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
@@ -23,7 +22,6 @@ import kotlin.test.assertSame
 class HeapRefSplittingTest {
     private lateinit var ctx: UContext
     private lateinit var heap: URegionHeap<Field, Type>
-    private lateinit var translator: UExprTranslator<Field, Type>
 
     private lateinit var valueFieldDescr: Pair<Field, UBv32Sort>
     private lateinit var addressFieldDescr: Pair<Field, UAddressSort>
@@ -35,7 +33,6 @@ class HeapRefSplittingTest {
         every { components.mkTypeSystem(any()) } returns mockk()
         ctx = UContext(components)
         heap = URegionHeap(ctx)
-        translator = UExprTranslator(ctx)
 
         valueFieldDescr = mockk<Field>() to ctx.bv32Sort
         addressFieldDescr = mockk<Field>() to ctx.addressSort
