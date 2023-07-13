@@ -5,6 +5,7 @@
 #include "symbolic_handler.h"
 
 #include "symbolicadapter.h"
+#include "investigator.h"
 
 #define SET_IS_INITIALIZED(value) \
     jclass cls = (*env)->GetObjectClass(env, cpython_adapter); \
@@ -118,6 +119,9 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_concolicRun(
 JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_printPythonObject(JNIEnv *env, jobject cpython_adapter, jlong object_ref) {
     PyObject_Print((PyObject *) object_ref, stdout, 0);
     printf("\n");
+    //if (Py_TYPE(object_ref) == &PyType_Type)
+    //    printf("tp_new: %p\n", ((PyTypeObject *) object_ref)->tp_new);
+
     fflush(stdout);
 }
 
@@ -130,4 +134,8 @@ JNIEXPORT jstring JNICALL Java_org_usvm_interpreter_CPythonAdapter_getPythonObje
 JNIEXPORT jstring JNICALL Java_org_usvm_interpreter_CPythonAdapter_getPythonObjectTypeName(JNIEnv *env, jobject cpython_adapter, jlong object_ref) {
     char *type_name = Py_TYPE(object_ref)->tp_name;
     return (*env)->NewStringUTF(env, type_name);
+}
+
+JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_createInvestigatorObject(JNIEnv *env, jobject cpython_adapter) {
+    return create_new_investigator();
 }

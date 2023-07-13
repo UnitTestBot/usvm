@@ -5,6 +5,8 @@ import org.usvm.constraints.UPathConstraints
 import org.usvm.interpreter.symbolicobjects.InterpretedSymbolicPythonObject
 import org.usvm.interpreter.symbolicobjects.constructInputObject
 import org.usvm.language.*
+import org.usvm.language.types.ConcretePythonType
+import org.usvm.language.types.PythonType
 import org.usvm.memory.UMemoryBase
 import org.usvm.ps.DfsPathSelector
 import org.usvm.solver.USatResult

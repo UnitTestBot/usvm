@@ -1,9 +1,10 @@
 package org.usvm.samples
 
-import org.usvm.UContext
 import org.usvm.UMachineOptions
 import org.usvm.interpreter.*
 import org.usvm.language.*
+import org.usvm.language.types.PythonType
+import org.usvm.language.types.pythonInt
 import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.AnalysisResultsNumberMatcher
 import java.io.File

@@ -1,4 +1,4 @@
-package org.usvm.interpreter
+package org.usvm.interpreter.operations.tracing
 
 import org.usvm.language.PythonInstruction
 import org.usvm.language.PythonPinnedCallable
@@ -15,6 +15,7 @@ data class LoadConstParameters(val constToLoad: Any): SymbolicHandlerEventParame
 data class NextInstruction(val pythonInstruction: PythonInstruction): SymbolicHandlerEventParameters<Unit>()
 data class PythonFunctionCall(val function: PythonPinnedCallable): SymbolicHandlerEventParameters<Unit>()
 object PythonReturn: SymbolicHandlerEventParameters<Unit>()
+data class Fork(val condition: SymbolForCPython): SymbolicHandlerEventParameters<Unit>()
 
 class SymbolicHandlerEvent<out T>(
     val parameters: SymbolicHandlerEventParameters<T>,

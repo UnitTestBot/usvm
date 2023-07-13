@@ -5,8 +5,8 @@ import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.language.PropertyOfPythonObject
 import org.usvm.language.PythonCallable
-import org.usvm.language.PythonType
-import org.usvm.language.PythonTypeSystem
+import org.usvm.language.types.PythonType
+import org.usvm.language.types.PythonTypeSystem
 import org.usvm.model.buildTranslatorAndLazyDecoder
 import org.usvm.solver.USoftConstraintsProvider
 import org.usvm.solver.USolverBase
