@@ -228,7 +228,8 @@ fun <T : UState<Type, Field, *, *>, Type, Field> fork(
     }
 }
 
-data class ConditionWithModels<Field, Type>(
+// TODO docs
+private data class ConditionWithModels<Field, Type>(
     val condition: UBoolExpr,
     val notCondition: UBoolExpr,
     val trueModels: List<UModelBase<Field, Type>>,
