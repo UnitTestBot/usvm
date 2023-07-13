@@ -204,12 +204,16 @@ fun <T : UState<Type, Field, *, *>, Type, Field> fork(
                 posState
             }
 
-            trueModels.isNotEmpty() -> (state to forkIfSat(
-                state,
-                condition,
-                notCondition,
-                forkToSatisfied = false
-            )).first
+            trueModels.isNotEmpty() -> {
+                forkIfSat(
+                    state,
+                    condition,
+                    notCondition,
+                    forkToSatisfied = false
+                )
+
+                state
+            }
 
             falseModels.isNotEmpty() -> {
                 val forkedState = forkIfSat(state, notCondition, condition, forkToSatisfied = true)
