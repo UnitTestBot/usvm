@@ -73,6 +73,13 @@ object ConcretePythonInterpreter {
         return pythonAdapter.getPythonObjectTypeName(pythonObject.address)
     }
 
+    fun createInvestigatorObject(): PythonObject {
+        val result = pythonAdapter.createInvestigatorObject()
+        if (result == 0L)
+            throw CPythonExecutionException
+        return PythonObject(result)
+    }
+
     fun kill() {
         pythonAdapter.finalizePython()
     }

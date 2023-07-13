@@ -87,6 +87,14 @@ JNIEXPORT jstring JNICALL Java_org_usvm_interpreter_CPythonAdapter_getPythonObje
 JNIEXPORT jstring JNICALL Java_org_usvm_interpreter_CPythonAdapter_getPythonObjectTypeName
   (JNIEnv *, jobject, jlong);
 
+/*
+ * Class:     org_usvm_interpreter_CPythonAdapter
+ * Method:    createInvestigatorObject
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_createInvestigatorObject
+  (JNIEnv *, jobject);
+
 #ifdef __cplusplus
 }
 #endif
