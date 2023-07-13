@@ -164,6 +164,7 @@ class JcInterpreter(
         } ?: return
         val instList = stmt.location.method.instList
 
+        // TODO this is previous version that uses simple fork with 2 branches, remove it before the final review
         /*fun iterateCases(
             scope: JcStepScope,
             caseBranches: List<Map.Entry<JcValue, JcInstRef>>,
@@ -195,21 +196,22 @@ class JcInterpreter(
         }
 
         iterateCases(scope, stmt.branches.entries.toList(), stmt.default)*/
-        val caseStmtsWithConditions = stmt.branches.map { (caseValue, caseTargetStmt) ->
-            val nextStmt = instList[caseTargetStmt.index]
-            val resolvedCaseValue = exprResolver.resolveJcExpr(caseValue) ?: return
-            val caseCondition = ctx.mkEq(switchKeyExpr, resolvedCaseValue.asExpr(switchKeyExpr.sort))
+        with(ctx) {
+            val caseStmtsWithConditions = stmt.branches.map { (caseValue, caseTargetStmt) ->
+                val nextStmt = instList.getInst(caseTargetStmt)
+                val resolvedCaseValue = exprResolver.resolveJcExpr(caseValue) ?: return
+                val caseCondition = mkEq(switchKeyExpr, resolvedCaseValue.asExpr(switchKeyExpr.sort))
 
-            caseCondition to { state: JcState -> state.newStmt(nextStmt) }
+                caseCondition to { state: JcState -> state.newStmt(nextStmt) }
+            }
+
+            // To make the default case possible, we need to ensure that all case labels are unsatisfiable
+            val defaultCaseWithCondition = mkAnd(
+                caseStmtsWithConditions.map { it.first.not() }
+            ) to { state: JcState -> state.newStmt(instList.getInst(stmt.default)) }
+
+            scope.forkMulti(caseStmtsWithConditions + defaultCaseWithCondition)
         }
-
-        val defaultCaseWithCondition = caseStmtsWithConditions
-            .map { it.first }
-            .let {
-                with(ctx) { mkAnd(it.map { it.not() }) }
-            } to { state: JcState -> state.newStmt(instList[stmt.default.index]) }
-
-        scope.forkMulti(caseStmtsWithConditions + defaultCaseWithCondition)
     }
 
     private fun visitThrowStmt(scope: JcStepScope, stmt: JcThrowInst) {
@@ -260,4 +262,6 @@ class JcInterpreter(
         }
 
     private val JcInst.nextStmt get() = location.method.instList[location.index + 1]
+
+    private fun JcInstList<JcInst>.getInst(instRef: JcInstRef): JcInst = this[instRef.index]
 }

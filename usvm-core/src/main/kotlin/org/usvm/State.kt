@@ -167,6 +167,8 @@ fun <T : UState<Type, Field, *, *>, Type, Field> fork(
     return ForkResult(posState, negState as T?)
 }
 
+// TODO docs
+// TODO think about merging it with fork above
 @Suppress("UNCHECKED_CAST")
 fun <T : UState<Type, Field, *, *>, Type, Field> fork(
     state: T,
