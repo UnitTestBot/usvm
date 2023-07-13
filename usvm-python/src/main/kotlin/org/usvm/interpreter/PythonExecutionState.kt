@@ -4,10 +4,11 @@ import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
 import org.usvm.*
 import org.usvm.constraints.UPathConstraints
+import org.usvm.interpreter.operations.tracing.SymbolicHandlerEvent
 import org.usvm.language.*
+import org.usvm.language.types.PythonType
 import org.usvm.memory.UMemoryBase
 import org.usvm.model.UModelBase
-
 class PythonExecutionState(
     private val ctx: UContext,
     private val pythonCallable: PythonUnpinnedCallable,
@@ -37,6 +38,7 @@ class PythonExecutionState(
         get() = PyModel(models.first())
 
     var wasExecuted: Boolean = false
+    var modelDied: Boolean = false
     val lastHandlerEvent: SymbolicHandlerEvent<Any>?
         get() = if (path.isEmpty()) null else path.last()
 }

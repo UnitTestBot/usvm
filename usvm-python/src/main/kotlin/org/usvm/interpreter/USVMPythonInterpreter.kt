@@ -18,7 +18,7 @@ class USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION>(
     override fun step(state: PythonExecutionState): StepResult<PythonExecutionState> =
         with(ctx) {
             val symbols = state.inputSymbols
-            val seeds = symbols.map { interpretSymbolicPythonObject(it.obj, state.pyModel, ctx) }
+            val seeds = symbols.map { interpretSymbolicPythonObject(it.obj, state.pyModel) }
             val converter = ConverterToPythonObject(ctx)
             val concrete = seeds.map { seed ->
                 converter.convert(seed) ?: error("Couldn't construct PythonObject from model")
