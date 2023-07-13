@@ -55,13 +55,13 @@ class UEqualityConstraints private constructor(
     /**
      * Returns if [ref1] is identical to [ref2] in *all* models.
      */
-    fun areEqual(ref1: UHeapRef, ref2: UHeapRef) =
+    internal fun areEqual(ref1: UHeapRef, ref2: UHeapRef) =
         equalReferences.connected(ref1, ref2)
 
     /**
      * Returns if [ref] is null in all models.
      */
-    fun isNull(ref: UHeapRef) = areEqual(ctx.nullRef, ref)
+    internal fun isNull(ref: UHeapRef) = areEqual(ctx.nullRef, ref)
 
     private fun areDistinctRepresentatives(repr1: UHeapRef, repr2: UHeapRef): Boolean {
         if (repr1 == repr2) {
@@ -75,7 +75,7 @@ class UEqualityConstraints private constructor(
     /**
      * Returns if [ref1] is distinct from [ref2] in *all* models.
      */
-    fun areDistinct(ref1: UHeapRef, ref2: UHeapRef): Boolean {
+    internal fun areDistinct(ref1: UHeapRef, ref2: UHeapRef): Boolean {
         val repr1 = equalReferences.find(ref1)
         val repr2 = equalReferences.find(ref2)
         return areDistinctRepresentatives(repr1, repr2)
@@ -84,12 +84,12 @@ class UEqualityConstraints private constructor(
     /**
      * Returns if [ref] is not null in all models.
      */
-    fun isNotNull(ref: UHeapRef) = areDistinct(ctx.nullRef, ref)
+    internal fun isNotNull(ref: UHeapRef) = areDistinct(ctx.nullRef, ref)
 
     /**
      * Adds an assertion that [ref1] is always equal to [ref2].
      */
-    fun makeEqual(ref1: UHeapRef, ref2: UHeapRef) {
+    internal fun makeEqual(ref1: UHeapRef, ref2: UHeapRef) {
         if (isContradicting) {
             return
         }
@@ -210,7 +210,7 @@ class UEqualityConstraints private constructor(
     /**
      * Adds an assertion that [ref1] is never equal to [ref2].
      */
-    fun makeNonEqual(ref1: UHeapRef, ref2: UHeapRef) {
+    internal fun makeNonEqual(ref1: UHeapRef, ref2: UHeapRef) {
         if (isContradicting) {
             return
         }
@@ -232,7 +232,7 @@ class UEqualityConstraints private constructor(
     /**
      * Adds an assertion that [ref1] is never equal to [ref2] or both are null.
      */
-    fun makeNonEqualOrBothNull(ref1: UHeapRef, ref2: UHeapRef) {
+    internal fun makeNonEqualOrBothNull(ref1: UHeapRef, ref2: UHeapRef) {
         if (isContradicting) {
             return
         }

@@ -86,7 +86,7 @@ typealias USymbolicHeapRef = USymbol<UAddressSort>
 typealias UConcreteHeapAddress = Int
 
 fun isSymbolicHeapRef(expr: UExpr<*>) =
-    expr.sort == expr.uctx.addressSort && expr !is UConcreteHeapRef
+    expr.sort == expr.uctx.addressSort && expr is USymbol<*>
 
 class UConcreteHeapRefDecl internal constructor(
     ctx: UContext,
