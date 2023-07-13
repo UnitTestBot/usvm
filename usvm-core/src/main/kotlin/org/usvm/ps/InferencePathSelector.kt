@@ -7,6 +7,7 @@ import org.usvm.statistics.DistanceStatistics
 import org.usvm.statistics.PathsTreeStatistics
 
 import io.kinference.core.KIEngine
+import io.kinference.core.data.tensor.KITensor
 import io.kinference.core.data.tensor.asTensor
 
 import io.kinference.model.Model
@@ -36,7 +37,7 @@ internal class InferencePathSelector<State : UState<*, *, Method, Statement>, St
             stateFeatures.stateTreeDepth.toFloat(),
             stateFeatures.statementRepetitionLocal.toFloat(),
             stateFeatures.statementRepetitionGlobal.toFloat(),
-            stateFeatures.distanceToUncovered.toFloat(),
+            stateFeatures.distanceToUncovered,
             stateFeatures.lastNewDistance.toFloat(),
             stateFeatures.pathCoverage.toFloat(),
             stateFeatures.reward
@@ -69,9 +70,9 @@ internal class InferencePathSelector<State : UState<*, *, Method, Statement>, St
         val shape = intArrayOf(allFeaturesList.size, allFeaturesList.first().size)
         val data = FloatNDArray(shape) { i ->
             allFeaturesList[i / shape[1]][i % shape[1]]
-        }.asTensor()
+        }.asTensor("input")
         val output = runBlocking {
-            model.predict(listOf(data))["target"] as FloatNDArray
+            (model.predict(listOf(data))["output"] as KITensor).data as FloatNDArray
         }.array.toArray()
         val stateId = output.indices.maxBy { output[it] }
         return queue[stateId]

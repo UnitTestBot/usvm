@@ -24,7 +24,7 @@ dependencies {
 
     testImplementation(kotlin("test"))
 
-    implementation("io.kinference", "inference-core", "0.2.13")
+    implementation("io.kinference", "inference-core", Versions.kinference)
 }
 
 tasks {

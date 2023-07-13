@@ -43,4 +43,38 @@ dependencies {
     samplesImplementation("javax.validation:validation-api:${Versions.samplesJavaxValidation}")
     samplesImplementation("com.github.stephenc.findbugs:findbugs-annotations:${Versions.samplesFindBugs}")
     samplesImplementation("org.jetbrains:annotations:${Versions.samplesJetbrainsAnnotations}")
+    samplesImplementation("org.jacodb:jacodb-core:${Versions.jcdb}")
+    samplesImplementation("org.jacodb:jacodb-analysis:${Versions.jcdb}")
+}
+
+tasks {
+    // Create a JAR file for jsonAggregator main function
+    val jarMain by creating(Jar::class) {
+        manifest {
+            attributes["Main-Class"] = "org.usvm.JsonAggregatorKt"
+        }
+
+        from(sourceSets.main.get().output)
+        from(java.sourceSets.getByName("test").output)
+        from(java.sourceSets.getByName("samples").output)
+
+        dependsOn(configurations.runtimeClasspath)
+        from({
+            configurations.runtimeClasspath.get().filter { it.name.endsWith("jar") }.map { zipTree(it) }
+        })
+
+        dependsOn(configurations.testRuntimeClasspath)
+        from({
+            // configurations.testRuntimeClasspath.get().filter { it.name.endsWith("jar") }.map { zipTree(it) }
+
+            java.sourceSets.getByName("test").runtimeClasspath.filter { it.name.endsWith("jar") }.map { zipTree(it) }
+        })
+
+        dependsOn(java.sourceSets.getByName("samples").runtimeClasspath)
+        from({
+            java.sourceSets.getByName("samples").runtimeClasspath.asFileTree.filter { it.name.endsWith("jar") }.map { zipTree(it) }
+        })
+
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    }
 }

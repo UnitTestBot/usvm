@@ -5,6 +5,7 @@ object Versions {
     const val jcdb = "1.0.0"
     const val mockk = "1.13.4"
     const val junitParams = "5.9.3"
+    const val kinference = "0.2.3"
 
     // versions for jvm samples
     const val samplesLombok = "1.18.20"

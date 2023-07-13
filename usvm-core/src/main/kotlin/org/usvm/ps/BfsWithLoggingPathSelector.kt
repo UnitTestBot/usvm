@@ -12,6 +12,7 @@ import org.usvm.statistics.PathsTreeStatistics
 import java.io.File
 import kotlin.collections.ArrayDeque
 import kotlin.collections.HashSet
+import kotlin.math.log2
 
 internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Statement>, Statement, Method>(
     private val pathsTreeStatistics: PathsTreeStatistics<Method, Statement, State>,
@@ -27,7 +28,7 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
 
     protected val path = mutableListOf<ActionData>()
 
-    protected val filepath = "./paths_log/"
+    private val filepath = "./paths_log/"
     private var filename: String? = null
     private val jsonScheme: JsonArray
     private var jsonFormat = Json {
@@ -53,7 +54,7 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
         val stateTreeDepth: UInt = 0u,
         val statementRepetitionLocal: UInt = 0u,
         val statementRepetitionGlobal: UInt = 0u,
-        val distanceToUncovered: UInt = 0u,
+        val distanceToUncovered: Float = 0.0f,
         val lastNewDistance: Int = 0,
         val pathCoverage: UInt = 0u,
         val reward: Float = 0.0f
@@ -116,7 +117,7 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
                 statement == currentStatement
             }.size.toUInt()
         }
-        val distanceToUncovered = weighter.weight(state)
+        val distanceToUncovered = log2(weighter.weight(state).toFloat() + 1)
         val lastNewDistance = state.path.size - 1 - stateLastNewStatement.getOrDefault(state, -1)
         val pathCoverage = statePathCoverage.getOrDefault(state, 0u)
 
@@ -153,7 +154,7 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
             stateFeatureQueue.sumOf { it.stateTreeDepth }.toFloat() / queueSize,
             stateFeatureQueue.sumOf { it.statementRepetitionLocal }.toFloat() / queueSize,
             stateFeatureQueue.sumOf { it.statementRepetitionGlobal }.toFloat() / queueSize,
-            stateFeatureQueue.sumOf { it.distanceToUncovered }.toFloat() / queueSize,
+            stateFeatureQueue.sumOf { it.distanceToUncovered.toDouble() }.toFloat() / queueSize,
             stateFeatureQueue.sumOf { it.lastNewDistance }.toFloat() / queueSize,
             stateFeatureQueue.sumOf { it.pathCoverage }.toFloat() / queueSize,
             stateFeatureQueue.sumOf { it.reward.toDouble() }.toFloat() / queueSize,
