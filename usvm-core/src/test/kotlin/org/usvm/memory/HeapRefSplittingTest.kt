@@ -1,8 +1,6 @@
 package org.usvm.memory
 
 import io.ksmt.expr.rewrite.simplify.KExprSimplifier
-import io.ksmt.solver.KSolverStatus
-import io.ksmt.solver.z3.KZ3Solver
 import io.ksmt.utils.getValue
 import io.mockk.every
 import io.mockk.mockk
@@ -16,9 +14,7 @@ import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.UInputFieldReading
 import org.usvm.UIteExpr
-import org.usvm.USizeExpr
 import org.usvm.solver.UExprTranslator
-import org.usvm.util.emptyRegionTree
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
