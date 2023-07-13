@@ -1,5 +1,6 @@
 package org.usvm.machine
 
+import mu.KLogging
 import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UContext
@@ -15,6 +16,8 @@ import org.usvm.language.SetValue
 
 typealias SampleStepScope = StepScope<SampleState, SampleType, Field<*>>
 
+
+val logger = object : KLogging() {}.logger
 /**
  * Symbolic interpreter for a sample language.
  */
@@ -30,7 +33,9 @@ class SampleInterpreter(
      */
     override fun step(state: SampleState): StepResult<SampleState> {
         val scope = StepScope(state)
-        when (val stmt = state.lastStmt) {
+        val stmt = state.lastStmt
+        logger.debug { "step: $stmt" }
+        when (stmt) {
             is Call -> visitCall(scope, stmt)
             is Goto -> visitGoto(scope, stmt)
             is If -> visitIf(scope, stmt)
