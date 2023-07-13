@@ -1,17 +1,16 @@
-package org.usvm.interpreter.operations
+package org.usvm.interpreter.operations.tracing
 
 import org.usvm.interpreter.ConcolicRunContext
-import org.usvm.interpreter.SymbolicHandlerEvent
-import org.usvm.interpreter.SymbolicHandlerEventParameters
+import java.util.function.Supplier
 
 fun <T : Any> withTracing(
     context: ConcolicRunContext,
     newEventParameters: SymbolicHandlerEventParameters<T>,
-    resultSupplier: () -> T?
+    resultSupplier: Supplier<T?>
 ): T? {
     context.instructionCounter++
     if (context.instructionCounter > context.curState.path.size) {
-        val result = resultSupplier()
+        val result = resultSupplier.get()
         val eventRecord = SymbolicHandlerEvent(newEventParameters, result)
         context.curState.path = context.curState.path.add(eventRecord)
         return result

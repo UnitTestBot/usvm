@@ -1,8 +1,8 @@
 package org.usvm.samples
 
 import org.junit.jupiter.api.Test
-import org.usvm.language.pythonInt
-import org.usvm.language.pythonBool
+import org.usvm.language.types.pythonInt
+import org.usvm.language.types.pythonBool
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
