@@ -1,7 +1,6 @@
 package org.usvm.machine
 
 import io.ksmt.utils.asExpr
-import io.ksmt.utils.cast
 import org.jacodb.api.JcField
 import org.jacodb.api.JcMethod
 import org.jacodb.api.JcRefType
@@ -21,7 +20,6 @@ import org.usvm.machine.state.newStmt
 import org.usvm.machine.state.parametersWithThisCount
 import org.usvm.machine.state.returnValue
 import org.usvm.machine.state.throwException
-import org.usvm.memory.with
 import org.usvm.solver.USatResult
 
 typealias JcStepScope = StepScope<JcState, JcType, JcField>

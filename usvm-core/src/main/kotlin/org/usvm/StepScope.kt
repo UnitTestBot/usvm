@@ -95,26 +95,28 @@ class StepScope<T : UState<Type, Field, *, *>, Type, Field>(
         return posState?.let { }
     }
 
-    @Suppress("UNUSED_VARIABLE")
     fun forkMulti(conditionsWithBlocks: List<Pair<UBoolExpr, (T) -> Unit?>>) {
         val state = curState ?: return
 
         val conditionStates = fork(state, conditionsWithBlocks.map { it.first })
         val conditionStatesWithBlocks = conditionsWithBlocks.map { it.second }.zip(conditionStates)
-        conditionStatesWithBlocks.map { forResultWithBlock ->
-            val (positiveState, negativeState) = forResultWithBlock.second
-            val block = forResultWithBlock.first
+        val forkedStates = conditionStatesWithBlocks.mapNotNull { forkResultWithBlock ->
+            val positiveState = forkResultWithBlock.second
+            val block = forkResultWithBlock.first
 
             positiveState?.let {
                 block(it)
 
-                if (positiveState !== state) {
-                    forkedStates += positiveState
-                }
+                positiveState
             }
         }
 
-        curState = null
+        val firstForkedState = forkedStates.firstOrNull()
+        val otherStates = forkedStates.filter { it !== firstForkedState }
+
+        this.forkedStates += otherStates
+
+        curState = firstForkedState
     }
 }
 
