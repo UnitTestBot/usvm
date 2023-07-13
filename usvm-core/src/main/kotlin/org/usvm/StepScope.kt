@@ -31,13 +31,12 @@ class StepScope<T : UState<Type, Field, *, *>, Type, Field>(
      *
      * @return `null` if the underlying state is `null`.
      */
-    fun doWithState(block: T.() -> Unit): Unit? {
-        if (!canProcessFurtherOnCurrentStep) {
-            return null
+    fun doWithState(block: T.() -> Unit): Unit? =
+        if (canProcessFurtherOnCurrentStep) {
+            originalState.block()
+        } else {
+            null
         }
-        originalState.block()
-        return Unit
-    }
 
     /**
      * Executes [block] on a state.
@@ -126,6 +125,7 @@ class StepScope<T : UState<Type, Field, *, *>, Type, Field>(
             alive = false
             return
         }
+        require(forkedStates.first() == originalState)
 
         this.forkedStates += forkedStates.subList(1, forkedStates.size)
     }

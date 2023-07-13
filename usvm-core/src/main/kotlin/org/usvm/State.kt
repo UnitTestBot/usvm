@@ -18,7 +18,7 @@ abstract class UState<Type, Field, Method, Statement>(
     open val pathConstraints: UPathConstraints<Type>,
     open val memory: UMemoryBase<Field, Type, Method>,
     open var models: List<UModelBase<Field, Type>>,
-    open var path: PersistentList<Statement>
+    open var path: PersistentList<Statement>,
 ) {
     /**
      * Deterministic state id.
@@ -45,59 +45,56 @@ data class ForkResult<T>(
     val negativeState: T?,
 )
 
+private typealias StateToCheck = Boolean
+
+private const val ForkedState = true
+private const val OriginalState = false
+
 /**
- * Checks if [conditionToCheck] is satisfiable within path constraints of [state].
- * If it does, clones [state] and returns it with enriched constraints:
- * - if [forkToSatisfied], then adds constraint [satisfiedCondition];
- * - if ![forkToSatisfied], then adds constraint [conditionToCheck].
- * Otherwise, returns null.
- * If [conditionToCheck] is not unsatisfiable (i.e., solver returns sat or unknown),
- * mutates [state] by adding new path constraint c:
- * - if [forkToSatisfied], then c = [conditionToCheck]
- * - if ![forkToSatisfied], then c = [satisfiedCondition]
+ * TODO: fix
+ *
  */
 private fun <T : UState<Type, Field, *, *>, Type, Field> forkIfSat(
     state: T,
-    satisfiedCondition: UBoolExpr,
-    conditionToCheck: UBoolExpr,
-    forkToSatisfied: Boolean,
+    newConstraintToOriginalState: UBoolExpr,
+    newConstraintToForkedState: UBoolExpr,
+    stateToCheck: StateToCheck,
+    addConstraintOnUnknown: Boolean = true,
 ): T? {
-    val pathConstraints = state.pathConstraints.clone()
-    pathConstraints += conditionToCheck
+    val constraintsToCheck = state.pathConstraints.clone()
 
-    if (pathConstraints.isFalse) {
-        return null
+    constraintsToCheck += if (stateToCheck) {
+        newConstraintToForkedState
+    } else {
+        newConstraintToOriginalState
     }
-
-    val solver = satisfiedCondition.uctx.solver<Field, Type, Any?>()
-    val satResult = solver.check(pathConstraints, useSoftConstraints = true)
+    val solver = newConstraintToForkedState.uctx.solver<Field, Type, Any?>()
+    val satResult = solver.check(constraintsToCheck, useSoftConstraints = true)
 
     return when (satResult) {
+        is UUnsatResult -> null
+
         is USatResult -> {
-            if (forkToSatisfied) {
+            if (stateToCheck) {
                 @Suppress("UNCHECKED_CAST")
-                val forkedState = state.clone() as T
-                // TODO: implement path condition setter (don't forget to reset UMemoryBase:types!)
-                state.pathConstraints += conditionToCheck
-                state.models = listOf(satResult.model)
-                forkedState.pathConstraints += satisfiedCondition
+                val forkedState = state.clone(constraintsToCheck) as T
+                state.pathConstraints += newConstraintToOriginalState
+                forkedState.models = listOf(satResult.model)
                 forkedState
             } else {
                 @Suppress("UNCHECKED_CAST")
-                val forkedState = state.clone(pathConstraints) as T
-                state.pathConstraints += satisfiedCondition
-                forkedState.models = listOf(satResult.model)
+                val forkedState = state.clone() as T
+                state.pathConstraints += newConstraintToOriginalState
+                state.models = listOf(satResult.model)
+                // TODO: implement path condition setter (don't forget t o reset UMemoryBase:types!)
+                forkedState.pathConstraints += newConstraintToForkedState
                 forkedState
             }
         }
 
-        is UUnsatResult -> null
-
         is UUnknownResult -> {
-            if (forkToSatisfied) {
-                state.pathConstraints += conditionToCheck
-            } else {
-                state.pathConstraints += satisfiedCondition
+            if (addConstraintOnUnknown) {
+                state.pathConstraints += newConstraintToOriginalState
             }
             null
         }
@@ -145,13 +142,18 @@ fun <T : UState<Type, Field, *, *>, Type, Field> fork(
 
         trueModels.isNotEmpty() -> state to forkIfSat(
             state,
-            condition,
-            notCondition,
-            forkToSatisfied = false
+            newConstraintToOriginalState = condition,
+            newConstraintToForkedState = notCondition,
+            stateToCheck = ForkedState
         )
 
         falseModels.isNotEmpty() -> {
-            val forkedState = forkIfSat(state, notCondition, condition, forkToSatisfied = true)
+            val forkedState = forkIfSat(
+                state,
+                newConstraintToOriginalState = condition,
+                newConstraintToForkedState = notCondition,
+                stateToCheck = OriginalState
+            )
 
             if (forkedState != null) {
                 state to forkedState
@@ -174,62 +176,40 @@ fun <T : UState<Type, Field, *, *>, Type, Field> fork(
     state: T,
     conditions: Iterable<UBoolExpr>,
 ): List<T?> {
-    val states = listOf(state) + (1 until conditions.count()).map { state.clone() as T }
-
-    val conditionsWithModels = conditions.zip(states).map { (condition, state) ->
-        val notCondition = condition.uctx.mkNot(condition)
-
-        val (trueModels, falseModels) = state.models.partition { model ->
+    var curState = state
+    val result = mutableListOf<T?>()
+    for (condition in conditions) {
+        val (trueModels, _) = curState.models.partition { model ->
             val holdsInModel = model.eval(condition)
             check(holdsInModel is KInterpretedValue<UBoolSort>) {
                 "Evaluation in $model on condition $condition: expected true or false, but got $holdsInModel"
             }
             holdsInModel.isTrue
         }
+        val nextRoot = if (trueModels.isNotEmpty()) {
+            val root = curState.clone() as T
 
-        ConditionWithModels(condition, notCondition, trueModels, falseModels)
-    }
+            curState.models = trueModels
+            curState.pathConstraints += condition
 
-    return conditionsWithModels.zip(states).map {
-        val (condition, notCondition, trueModels, falseModels) = it.first
-        @Suppress("NAME_SHADOWING") val state = it.second
+            root
+        } else {
+            val root = forkIfSat(
+                curState,
+                newConstraintToOriginalState = condition,
+                newConstraintToForkedState = condition.ctx.trueExpr,
+                stateToCheck = OriginalState,
+                addConstraintOnUnknown = false
+            )
 
-        val posState = when {
-
-            trueModels.isNotEmpty() && falseModels.isNotEmpty() -> {
-                val posState = state
-                posState.models = trueModels
-                posState.pathConstraints += condition
-
-                posState
-            }
-
-            trueModels.isNotEmpty() -> {
-                forkIfSat(
-                    state,
-                    condition,
-                    notCondition,
-                    forkToSatisfied = false
-                )
-
-                state
-            }
-
-            falseModels.isNotEmpty() -> {
-                val forkedState = forkIfSat(state, notCondition, condition, forkToSatisfied = true)
-
-                if (forkedState != null) {
-                    state
-                } else {
-                    null
-                }
-            }
-
-            else -> error("[trueModels] and [falseModels] are both empty, that has to be impossible by construction!")
+            root
         }
-
-        posState
+        if (nextRoot != null) {
+            result += curState
+            curState = nextRoot
+        }
     }
+    return result
 }
 
 // TODO docs
