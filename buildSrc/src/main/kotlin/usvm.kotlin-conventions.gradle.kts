@@ -25,6 +25,7 @@ dependencies {
     testImplementation(kotlin("test"))
 
     implementation("io.kinference", "inference-core", Versions.kinference)
+    implementation("com.microsoft.onnxruntime", "onnxruntime", Versions.onnxruntime)
 }
 
 tasks {

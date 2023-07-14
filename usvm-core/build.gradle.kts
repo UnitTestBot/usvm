@@ -17,5 +17,6 @@ dependencies {
     testImplementation("io.mockk:mockk:${Versions.mockk}")
     testImplementation("org.junit.jupiter:junit-jupiter-params:${Versions.junitParams}")
 
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
+    implementation("org.jetbrains.kotlinx", "kotlinx-serialization-json", Versions.serialization)
+    implementation("io.github.rchowell", "dotlin", Versions.graphViz)
 }

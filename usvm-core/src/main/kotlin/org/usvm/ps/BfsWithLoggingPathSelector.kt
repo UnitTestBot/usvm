@@ -100,15 +100,17 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
         }
     }
 
+    protected open fun getReward(state: State): Float {
+        return if (!coveredStmts.contains(state.currentStatement)) 1.0f else -penalty
+    }
+
     private fun getStateFeatures(state: State): StateFeatures {
         val currentStatement = state.currentStatement
-        val isNewStatement = !coveredStmts.contains(state.currentStatement)
 
         val successorsCount = if (currentStatement === null) 0u else
             applicationGraph.successors(currentStatement).count().toUInt()
         val logicalConstraintsLength = state.pathConstraints.logicalConstraints.size.toUInt()
         val stateTreeDepth = pathsTreeStatistics.getStateDepth(state).toUInt()
-        val reward = if (isNewStatement) 1.0f else -penalty
         val statementRepetitionLocal = state.path.filter { statement ->
             statement == currentStatement
         }.size.toUInt()
@@ -121,10 +123,12 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
         val lastNewDistance = state.path.size - 1 - stateLastNewStatement.getOrDefault(state, -1)
         val pathCoverage = statePathCoverage.getOrDefault(state, 0u)
 
-        if (isNewStatement) {
+        if (!coveredStmts.contains(state.currentStatement)) {
             stateLastNewStatement[state] = state.path.size - 1
             statePathCoverage[state] = statePathCoverage.getOrDefault(state, 0u) + 1u
         }
+
+        val reward = getReward(state)
 
         return StateFeatures (
             successorsCount,
