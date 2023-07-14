@@ -15,6 +15,8 @@ import org.usvm.UContext
 import org.usvm.constraints.UPathConstraints
 import org.usvm.constraints.UTypeUnsatResult
 import org.usvm.memory.UMemoryBase
+import org.usvm.memory.URegionHeap
+import org.usvm.memory.emptyInputArrayRegion
 import org.usvm.model.UModelBase
 import org.usvm.model.buildTranslatorAndLazyDecoder
 import org.usvm.solver.USatResult
@@ -183,9 +185,9 @@ class TypeSolverTest {
         val c = ctx.mkRegisterReading(3, addressSort)
 
         pc += mkHeapRefEq(a, nullRef).not() and
-            mkHeapRefEq(b1, nullRef).not() and
-            mkHeapRefEq(b2, nullRef).not() and
-            mkHeapRefEq(c, nullRef).not()
+                mkHeapRefEq(b1, nullRef).not() and
+                mkHeapRefEq(b2, nullRef).not() and
+                mkHeapRefEq(c, nullRef).not()
 
         pc += mkIsExpr(a, interfaceAB)
         pc += mkIsExpr(b1, interfaceBC1)
@@ -279,6 +281,67 @@ class TypeSolverTest {
         val concreteC = assertIs<UConcreteHeapRef>(model.eval(c)).address
 
         assertTrue(concreteA != 0 && concreteA == concreteB && concreteC == 0)
+    }
+
+    @Test
+    fun `ite must not occur as refs in type constraints`() = with(ctx) {
+        val arr1 = mkRegisterReading(0, addressSort)
+        val arr2 = mkRegisterReading(1, addressSort)
+
+        val val1 = mkConcreteHeapRef(1)
+        val val2 = mkConcreteHeapRef(2)
+
+        val pc = UPathConstraints<TestType>(ctx)
+
+        pc += mkHeapRefEq(arr1, nullRef).not()
+        pc += mkHeapRefEq(arr2, nullRef).not()
+
+        val idx1 = 0.toBv()
+        val idx2 = 0.toBv()
+
+        val field = mockk<Field>()
+        val heap = URegionHeap<Field, TestType>(ctx)
+
+        heap.writeField(val1, field, bv32Sort, 1.toBv(), trueExpr)
+        heap.writeField(val2, field, bv32Sort, 2.toBv(), trueExpr)
+
+        val inputRegion = emptyInputArrayRegion(mockk<TestType>(), addressSort)
+            .write(arr1 to idx1, val1, trueExpr)
+            .write(arr2 to idx2, val2, trueExpr)
+
+        val firstReading = inputRegion.read(arr1 to idx1)
+        val secondReading = inputRegion.read(arr2 to idx2)
+
+        pc += mkIsExpr(arr1, base1)
+        pc += mkIsExpr(arr2, base1)
+
+        pc.typeConstraints.allocate(val1.address, base2)
+        pc.typeConstraints.allocate(val2.address, base2)
+
+        pc += mkHeapRefEq(firstReading, nullRef).not()
+        pc += mkHeapRefEq(secondReading, nullRef).not()
+
+        pc += mkIsExpr(firstReading, base2)
+        pc += mkIsExpr(secondReading, base2)
+
+        val fstFieldValue = heap.readField(firstReading, field, bv32Sort)
+        val sndFieldValue = heap.readField(secondReading, field, bv32Sort)
+
+        pc += fstFieldValue eq sndFieldValue
+
+        val (translator, decoder) = buildTranslatorAndLazyDecoder<Field, TestType, Method>(ctx)
+
+        val solver = USolverBase(
+            this,
+            KZ3Solver(this),
+            translator,
+            decoder,
+            softConstraintsProvider = USoftConstraintsProvider(this)
+        )
+
+        val status = solver.check(pc, useSoftConstraints = true)
+
+        assertTrue { status is USatResult<*> }
     }
 
     @Test
