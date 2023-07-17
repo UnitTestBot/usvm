@@ -6,7 +6,6 @@ import org.usvm.*
 import org.usvm.constraints.UPathConstraints
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.*
-import org.usvm.language.types.ConcretePythonType
 import org.usvm.language.types.PythonType
 import org.usvm.language.types.pythonBool
 import org.usvm.language.types.pythonInt
@@ -14,7 +13,7 @@ import org.usvm.memory.UMemoryBase
 
 fun constructInputObject(
     stackIndex: Int,
-    type: ConcretePythonType,
+    type: PythonType,
     ctx: UContext,
     memory: UMemoryBase<PropertyOfPythonObject, PythonType, PythonCallable>,
     pathConstraints: UPathConstraints<PythonType>

@@ -90,7 +90,7 @@ library {
         compileTask.includes.from(adapterHeaderPath)
         compileTask.includes.from("$cpythonBuildPath/include/python3.11")
         compileTask.source.from(fileTree("src/main/c"))
-        compileTask.compilerArgs.addAll(listOf("-x", "c", "-std=c11", "-L$cpythonBuildPath/lib", "-lpython3.11"))
+        compileTask.compilerArgs.addAll(listOf("-x", "c", "-std=c11", "-L$cpythonBuildPath/lib", "-lpython3.11", "-Werror", "-Wall"))
 
         compileTask.dependsOn(cpython)
         compileTask.dependsOn(headers)

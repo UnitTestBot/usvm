@@ -1,4 +1,5 @@
 #include "utils.h"
+#include "virtual_objects.h"
 
 static void
 java_python_object_dealloc(PyObject *op) {
@@ -70,20 +71,32 @@ void construct_concolic_context(JNIEnv *env, jobject context, jobject cpython_ad
 }
 
 void construct_args_for_symbolic_adapter(
-    JNIEnv *env,
+    ConcolicContext *ctx,
     jlongArray *concrete_args,
+    jobjectArray virtual_args,
     jobjectArray symbolic_args,
     PyObjectArray *dist
 ) {
+    JNIEnv *env = ctx->env;
     int n = (*env)->GetArrayLength(env, *concrete_args);
+    assert(n == (*env)->GetArrayLength(env, virtual_args));
     assert(n == (*env)->GetArrayLength(env, symbolic_args));
     jlong *addresses = (*env)->GetLongArrayElements(env, *concrete_args, 0);
     PyObject **args = malloc(sizeof(PyObject *) * n);
     for (int i = 0; i < n; i++) {
         PyObject *tuple = PyTuple_New(2);
-        PyTuple_SetItem(tuple, 0, (PyObject *) addresses[i]);
+        jobject virtual_arg = (*env)->GetObjectArrayElement(env, virtual_args, i);
+        assert((addresses[i] == 0) ^ (virtual_arg == 0));
+
+        PyObject *concrete_arg = (PyObject *) addresses[i];
+        if (concrete_arg == 0) {
+            concrete_arg = create_new_virtual_object(ctx, virtual_arg);
+        }
+        PyTuple_SetItem(tuple, 0, concrete_arg);
+
         PyObject *symbolic = wrap_java_object(env, (*env)->GetObjectArrayElement(env, symbolic_args, i));
         PyTuple_SetItem(tuple, 1, symbolic);
+
         args[i] = tuple;
     }
     (*env)->ReleaseLongArrayElements(env, *concrete_args, addresses, 0);
@@ -92,8 +105,8 @@ void construct_args_for_symbolic_adapter(
     dist->ptr = args;
 }
 
-int take_instruction_from_frame(PyObject *frame) {
-    PyObject *res = PyObject_GetAttrString(frame, "f_lasti");
+int take_instruction_from_frame(PyFrameObject *frame) {
+    PyObject *res = PyObject_GetAttrString((PyObject *) frame, "f_lasti");
     int overflow;
     long value_as_long = PyLong_AsLongAndOverflow(res, &overflow);
     assert(!overflow);

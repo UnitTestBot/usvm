@@ -43,7 +43,7 @@ class PythonMachine<PYTHON_OBJECT_REPRESENTATION>(
             stack.push(target.numberOfArguments)
         }
         val symbols = target.signature.mapIndexed { index, type ->
-            SymbolForCPython(constructInputObject(index, (type as? ConcretePythonType)!!, ctx, memory, pathConstraints))
+            SymbolForCPython(constructInputObject(index, type, ctx, memory, pathConstraints))
         }
         val solverRes = solver.check(pathConstraints, useSoftConstraints = false)
         if (solverRes !is USatResult)

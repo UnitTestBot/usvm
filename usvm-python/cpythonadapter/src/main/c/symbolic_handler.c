@@ -1,16 +1,6 @@
 #include "symbolic_handler.h"
 #include "utils.h"
 
-#define CHECK_FOR_EXCEPTION(fail_value) \
-    if ((*ctx->env)->ExceptionCheck(ctx->env)) { \
-        PyErr_SetString(PyExc_RuntimeError, "Java exception"); \
-        return fail_value; \
-    }
-
-#define CALL_JAVA_METHOD(result, ctx, func, args...) \
-    result = (*ctx->env)->CallStaticObjectMethod(ctx->env, ctx->cpython_adapter_cls, ctx->handle_##func, args); \
-    CHECK_FOR_EXCEPTION(Py_None)
-
 #define BINARY_INT_HANDLER(func) \
     PyObject *left = args[0], *right = args[1]; \
     if (!is_wrapped_java_object(left) || !is_wrapped_java_object(right)) \
@@ -53,7 +43,7 @@ handler(int signal_type, int signal_id, int nargs, PyObject *const *args, void *
             //fflush(stdout);
             jobject obj = ((JavaPythonObject *) value)->object;
             (*ctx->env)->CallStaticObjectMethod(ctx->env, ctx->cpython_adapter_cls, ctx->handle_fork, ctx->context, obj);
-            CHECK_FOR_EXCEPTION(1)
+            CHECK_FOR_EXCEPTION(ctx, (PyObject *) 1)
         }
 
         return Py_None;
@@ -111,19 +101,26 @@ handler(int signal_type, int signal_id, int nargs, PyObject *const *args, void *
     } else if (signal_id == SYM_EVENT_ID_INSTRUCTION) {
         assert(signal_type == SYM_EVENT_TYPE_NOTIFY && nargs == 1);
 
-        PyFrameObject *frame = args[0];
+        PyFrameObject *frame = (PyFrameObject *) args[0];
         int instruction = take_instruction_from_frame(frame);
         (*ctx->env)->CallStaticObjectMethod(ctx->env, ctx->cpython_adapter_cls, ctx->handle_instruction, ctx->context, instruction);
-        CHECK_FOR_EXCEPTION(1)
+        CHECK_FOR_EXCEPTION(ctx, (PyObject *) 1)
 
         return Py_None;
 
     } else if (signal_id == SYM_EVENT_ID_PYTHON_FUNCTION_CALL) {
         assert(signal_type == SYM_EVENT_TYPE_NOTIFY && nargs == 1);
-
+        // TODO
 
     } else if (signal_id == SYM_EVENT_ID_RETURN) {
         assert(signal_type == SYM_EVENT_TYPE_NOTIFY && nargs == 0);
+        // TODO
+
+    } else if (signal_id == SYM_EVENT_ID_FORK_RESULT) {
+        assert(signal_type == SYM_EVENT_TYPE_NOTIFY && nargs == 1);
+
+        (*ctx->env)->CallStaticObjectMethod(ctx->env, ctx->cpython_adapter_cls, ctx->handle_fork_result, ctx->context, args[0] == Py_True);
+        CHECK_FOR_EXCEPTION(ctx, (PyObject *) 1)
 
     }
 
