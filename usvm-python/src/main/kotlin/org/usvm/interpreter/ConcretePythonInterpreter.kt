@@ -1,6 +1,7 @@
 package org.usvm.interpreter
 
 import org.usvm.language.SymbolForCPython
+import org.usvm.language.VirtualPythonObject
 
 object ConcretePythonInterpreter {
     private val pythonAdapter = CPythonAdapter()
@@ -43,7 +44,8 @@ object ConcretePythonInterpreter {
     fun concolicRun(
         globals: PythonNamespace,
         functionRef: PythonObject,
-        concreteArgs: Collection<PythonObject>,
+        concreteArgs: Collection<PythonObject?>,
+        virtualArgs: List<VirtualPythonObject?>,
         symbolicArgs: List<SymbolForCPython>,
         ctx: ConcolicRunContext,
         printErrorMsg: Boolean = false
@@ -51,7 +53,8 @@ object ConcretePythonInterpreter {
         val result = pythonAdapter.concolicRun(
             globals.address,
             functionRef.address,
-            concreteArgs.map { it.address }.toLongArray(),
+            concreteArgs.map { it?.address ?: 0L }.toLongArray(),
+            Array(virtualArgs.size) { virtualArgs[it] },
             Array(symbolicArgs.size) { symbolicArgs[it] },
             ctx,
             printErrorMsg
@@ -71,13 +74,6 @@ object ConcretePythonInterpreter {
 
     fun getPythonObjectTypeName(pythonObject: PythonObject): String {
         return pythonAdapter.getPythonObjectTypeName(pythonObject.address)
-    }
-
-    fun createInvestigatorObject(): PythonObject {
-        val result = pythonAdapter.createInvestigatorObject()
-        if (result == 0L)
-            throw CPythonExecutionException
-        return PythonObject(result)
     }
 
     fun kill() {

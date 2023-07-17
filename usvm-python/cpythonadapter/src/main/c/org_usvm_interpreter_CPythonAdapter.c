@@ -5,7 +5,7 @@
 #include "symbolic_handler.h"
 
 #include "symbolicadapter.h"
-#include "investigator.h"
+#include "virtual_objects.h"
 
 #define SET_IS_INITIALIZED(value) \
     jclass cls = (*env)->GetObjectClass(env, cpython_adapter); \
@@ -94,6 +94,7 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_concolicRun(
     jlong globals,
     jlong function_ref,
     jlongArray concrete_args,
+    jobjectArray virtual_args,
     jobjectArray symbolic_args,
     jobject context,
     jboolean print_error_message
@@ -105,7 +106,8 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_concolicRun(
 
     construct_concolic_context(env, context, cpython_adapter, &ctx);
     SymbolicAdapter *adapter = create_new_adapter(handler, &ctx);
-    construct_args_for_symbolic_adapter(env, &concrete_args, symbolic_args, &args);
+    construct_args_for_symbolic_adapter(&ctx, &concrete_args, virtual_args, symbolic_args, &args);
+
     PyObject *result = SymbolicAdapter_run((PyObject *) adapter, function, args.size, args.ptr);
     free(args.ptr);
 
@@ -127,15 +129,11 @@ JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_printPythonObjec
 
 JNIEXPORT jstring JNICALL Java_org_usvm_interpreter_CPythonAdapter_getPythonObjectRepr(JNIEnv *env, jobject cpython_adapter, jlong object_ref) {
     PyObject *repr = PyObject_Repr((PyObject *) object_ref);
-    char *repr_as_string = PyUnicode_AsUTF8AndSize(repr, 0);
+    const char *repr_as_string = PyUnicode_AsUTF8AndSize(repr, 0);
     return (*env)->NewStringUTF(env, repr_as_string);
 }
 
 JNIEXPORT jstring JNICALL Java_org_usvm_interpreter_CPythonAdapter_getPythonObjectTypeName(JNIEnv *env, jobject cpython_adapter, jlong object_ref) {
-    char *type_name = Py_TYPE(object_ref)->tp_name;
+    const char *type_name = Py_TYPE(object_ref)->tp_name;
     return (*env)->NewStringUTF(env, type_name);
-}
-
-JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_createInvestigatorObject(JNIEnv *env, jobject cpython_adapter) {
-    return create_new_investigator();
 }
