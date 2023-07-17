@@ -83,5 +83,15 @@
         "c_name": "python_return",
         "java_name": "handlerReturn",
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;)V"
+    },
+    {
+        "c_name": "fork_result",
+        "java_name": "handlerForkResult",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Z)V"
+    },
+    {
+        "c_name": "virtual_nb_bool",
+        "java_name": "virtualCallNbBool",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/VirtualPythonObject;)Z"
     }
 ]

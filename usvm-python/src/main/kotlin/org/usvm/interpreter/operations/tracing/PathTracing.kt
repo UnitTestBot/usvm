@@ -1,6 +1,7 @@
 package org.usvm.interpreter.operations.tracing
 
 import org.usvm.interpreter.ConcolicRunContext
+import org.usvm.isTrue
 import java.util.function.Supplier
 
 fun <T : Any> withTracing(
@@ -30,3 +31,17 @@ fun <T : Any> withTracing(
 }
 
 object PathDiversionException: Exception()
+
+
+// TODO: there might be events between fork and fork result
+fun handlerForkResultKt(context: ConcolicRunContext, result: Boolean) {
+    if (context.instructionCounter < 1)
+        return
+    val lastEventParams = context.curState.path[context.instructionCounter - 1].parameters
+    if (lastEventParams !is Fork)
+        return
+
+    val expectedResult = context.curState.pyModel.eval(lastEventParams.condition.obj.getBoolContent(context)).isTrue
+    if (result != expectedResult)
+        throw PathDiversionException
+}

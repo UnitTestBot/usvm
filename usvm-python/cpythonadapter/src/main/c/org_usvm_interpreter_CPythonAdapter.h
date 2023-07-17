@@ -58,10 +58,10 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_concreteRunOnFu
 /*
  * Class:     org_usvm_interpreter_CPythonAdapter
  * Method:    concolicRun
- * Signature: (JJ[J[Lorg/usvm/language/SymbolForCPython;Lorg/usvm/interpreter/ConcolicRunContext;Z)J
+ * Signature: (JJ[J[Lorg/usvm/language/VirtualPythonObject;[Lorg/usvm/language/SymbolForCPython;Lorg/usvm/interpreter/ConcolicRunContext;Z)J
  */
 JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_concolicRun
-  (JNIEnv *, jobject, jlong, jlong, jlongArray, jobjectArray, jobject, jboolean);
+  (JNIEnv *, jobject, jlong, jlong, jlongArray, jobjectArray, jobjectArray, jobject, jboolean);
 
 /*
  * Class:     org_usvm_interpreter_CPythonAdapter
@@ -86,14 +86,6 @@ JNIEXPORT jstring JNICALL Java_org_usvm_interpreter_CPythonAdapter_getPythonObje
  */
 JNIEXPORT jstring JNICALL Java_org_usvm_interpreter_CPythonAdapter_getPythonObjectTypeName
   (JNIEnv *, jobject, jlong);
-
-/*
- * Class:     org_usvm_interpreter_CPythonAdapter
- * Method:    createInvestigatorObject
- * Signature: ()J
- */
-JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_createInvestigatorObject
-  (JNIEnv *, jobject);
 
 #ifdef __cplusplus
 }

@@ -35,8 +35,22 @@ typedef struct {
     PyObject **ptr;
 } PyObjectArray;
 
-void construct_args_for_symbolic_adapter(JNIEnv *env, jlongArray *concrete_args, jobjectArray symbolic_args, PyObjectArray *dist);
-int take_instruction_from_frame(PyObject *frame);
+void construct_args_for_symbolic_adapter(ConcolicContext *ctx, jlongArray *concrete_args, jobjectArray virtual_args, jobjectArray symbolic_args, PyObjectArray *dist);
+int take_instruction_from_frame(PyFrameObject *frame);
+
+#define CHECK_FOR_EXCEPTION(ctx, fail_value) \
+    if ((*ctx->env)->ExceptionCheck(ctx->env)) { \
+        PyErr_SetString(PyExc_RuntimeError, "Java exception"); \
+        return fail_value; \
+    }
+
+#define CALL_JAVA_METHOD(result, ctx, func, args...) \
+    result = (*ctx->env)->CallStaticObjectMethod(ctx->env, ctx->cpython_adapter_cls, ctx->handle_##func, args); \
+    CHECK_FOR_EXCEPTION(ctx, Py_None)
+
+#define CALL_JAVA_METHOD_CUSTOM_FAIL(fail_value, result, ctx, func, args...) \
+    result = (*ctx->env)->CallStaticObjectMethod(ctx->env, ctx->cpython_adapter_cls, ctx->handle_##func, args); \
+    CHECK_FOR_EXCEPTION(ctx, fail_value)
 
 #ifdef __cplusplus
 }

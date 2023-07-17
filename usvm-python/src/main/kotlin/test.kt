@@ -1,17 +1,18 @@
 import org.usvm.interpreter.*
+import org.usvm.language.PythonProgram
+import org.usvm.language.PythonUnpinnedCallable
+import org.usvm.language.types.PythonAnyType
+import org.usvm.language.types.pythonBool
+import org.usvm.language.types.pythonInt
 
 fun main() {
-    val investigator = ConcretePythonInterpreter.createInvestigatorObject()
-    ConcretePythonInterpreter.printPythonObject(investigator)
-    /*
-    ConcretePythonInterpreter.printPythonObject(pythonNoneType.asObject)
+    /*ConcretePythonInterpreter.printPythonObject(pythonNoneType.asObject)
     ConcretePythonInterpreter.printPythonObject(pythonObjectType.asObject)
     val namespace = ConcretePythonInterpreter.getNewNamespace()
     ConcretePythonInterpreter.concreteRun(
         namespace,
         """
-        class A:
-            pass
+        class A: pass
 
         class B:
             def __init__(self, x):
@@ -33,21 +34,17 @@ fun main() {
     ConcretePythonInterpreter.printPythonObject(classA)
     ConcretePythonInterpreter.printPythonObject(classB)
     ConcretePythonInterpreter.printPythonObject(classC)
-    ConcretePythonInterpreter.printPythonObject(classD)
-     */
-    /*
+    ConcretePythonInterpreter.printPythonObject(classD)*/
     val program = PythonProgram(
         """
-        def f(x: bool, y: int):
-            if x and y % 10 == 5:
+        def f(x):
+            if x:
                 return 1
-            elif not x:
-                return 2
             else:
-                return 3
+                return 2
         """.trimIndent()
     )
-    val function = PythonUnpinnedCallable.constructCallableFromName(listOf(pythonBool, pythonInt), "f")
+    val function = PythonUnpinnedCallable.constructCallableFromName(listOf(PythonAnyType), "f")
     val machine = PythonMachine(program, printErrorMsg = true) { it }
     val start = System.currentTimeMillis()
     val iterations = machine.use { activeMachine ->
@@ -62,5 +59,4 @@ fun main() {
         returnValue
     }
     println("Finished in ${System.currentTimeMillis() - start} milliseconds. Made $iterations iterations.")
-     */
 }

@@ -6,6 +6,7 @@ import org.usvm.interpreter.symbolicobjects.UninterpretedSymbolicPythonObject;
 import org.usvm.language.PythonInstruction;
 import org.usvm.language.PythonPinnedCallable;
 import org.usvm.language.SymbolForCPython;
+import org.usvm.language.VirtualPythonObject;
 
 import java.util.Arrays;
 import java.util.List;
@@ -14,6 +15,8 @@ import java.util.function.Supplier;
 import static org.usvm.interpreter.operations.ConstantsKt.handlerLoadConstLongKt;
 import static org.usvm.interpreter.operations.ControlKt.*;
 import static org.usvm.interpreter.operations.LongKt.*;
+import static org.usvm.interpreter.operations.VirtualKt.nbBoolKt;
+import static org.usvm.interpreter.operations.tracing.PathTracingKt.handlerForkResultKt;
 import static org.usvm.interpreter.operations.tracing.PathTracingKt.withTracing;
 
 @SuppressWarnings("unused")
@@ -25,11 +28,10 @@ public class CPythonAdapter {
     public native int concreteRun(long globals, String code);  // returns 0 on success
     public native long eval(long globals, String obj);  // returns PyObject *
     public native long concreteRunOnFunctionRef(long globals, long functionRef, long[] concreteArgs);
-    public native long concolicRun(long globals, long functionRef, long[] concreteArgs, SymbolForCPython[] symbolicArgs, ConcolicRunContext context, boolean print_error_message);
+    public native long concolicRun(long globals, long functionRef, long[] concreteArgs, VirtualPythonObject[] virtualArgs, SymbolForCPython[] symbolicArgs, ConcolicRunContext context, boolean print_error_message);
     public native void printPythonObject(long object);
     public native String getPythonObjectRepr(long object);
     public native String getPythonObjectTypeName(long object);
-    public native long createInvestigatorObject();
 
     static {
         System.loadLibrary("cpythonadapter");
@@ -74,6 +76,10 @@ public class CPythonAdapter {
 
     public static void handlerFork(ConcolicRunContext context, SymbolForCPython cond) {
         withTracing(context, new Fork(cond), unit(() -> handlerForkKt(context, cond.obj)));
+    }
+
+    public static void handlerForkResult(ConcolicRunContext context, boolean result) {
+        handlerForkResultKt(context, result);
     }
 
     public static SymbolForCPython handlerGTLong(ConcolicRunContext context, int methodId, SymbolForCPython left, SymbolForCPython right) {
@@ -131,5 +137,10 @@ public class CPythonAdapter {
 
     public static void handlerReturn(ConcolicRunContext context) {
         withTracing(context, PythonReturn.INSTANCE, unit(() -> handlerReturnKt(context)));
+    }
+
+    // TODO: add tracing
+    public static boolean virtualCallNbBool(ConcolicRunContext context, VirtualPythonObject object) {
+        return nbBoolKt(context, object);
     }
 }
