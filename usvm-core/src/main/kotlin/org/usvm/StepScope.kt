@@ -5,7 +5,8 @@ package org.usvm
  * It should be created on every step in an interpreter.
  * You can think about an instance of [StepScope] as a monad `ExceptT null (State [T])`.
  *
- * TODO: fix comment An underlying state is `null`, iff one of the `condition`s passed to the [fork] was unsatisfiable.
+ * TODO: fix the whole comment below.
+ * An underlying state is `null`, iff one of the `condition`s passed to the [fork] was unsatisfiable.
  *
  * To execute some function on a state, you should use [doWithState] or [calcOnState]. `null` is returned, when
  * the current state is `null`.
@@ -19,6 +20,9 @@ class StepScope<T : UState<Type, Field, *, *>, Type, Field>(
 
     private var alive: Boolean = true
 
+    /**
+     * Determines whether we can [fork], [forkMulti] or [assert] using this scope on the current step.
+     */
     private var canProcessFurtherOnCurrentStep: Boolean = true
 
     /**
@@ -87,6 +91,40 @@ class StepScope<T : UState<Type, Field, *, *>, Type, Field>(
         return posState?.let { }
     }
 
+    /**
+     * Forks on a few disjoint conditions using `forkMulti` in `State.kt`
+     * and executes the corresponding block on each not-null state.
+     *
+     * NOTE: always sets [canProcessFurtherOnCurrentStep] to the `false` value.
+     */
+    fun forkMulti(conditionsWithBlockOnStates: List<Pair<UBoolExpr, T.() -> Unit>>) {
+        check(canProcessFurtherOnCurrentStep)
+
+        val conditions = conditionsWithBlockOnStates.map { it.first }
+
+        val conditionStates = forkMulti(originalState, conditions)
+
+        val forkedStates = conditionStates.mapIndexedNotNull { idx, positiveState ->
+            val block = conditionsWithBlockOnStates[idx].second
+
+            positiveState?.apply(block)
+        }
+
+        canProcessFurtherOnCurrentStep = false
+        if (forkedStates.isEmpty()) {
+            alive = false
+            return
+        }
+
+        val firstForkedState = forkedStates.first()
+        require(firstForkedState == originalState) {
+            "The original state $originalState was expected to become the first of forked states but $firstForkedState found"
+        }
+
+        // Interpret the first state as original and others as forked
+        this.forkedStates += forkedStates.subList(1, forkedStates.size)
+    }
+
     fun assert(
         constraint: UBoolExpr,
         block: T.() -> Unit = {},
@@ -103,31 +141,6 @@ class StepScope<T : UState<Type, Field, *, *>, Type, Field>(
         }
 
         return posState?.let { }
-    }
-
-    // TODO docs
-    // TODO think about merging it with fork above
-    fun forkMulti(conditionsWithBlockOnStates: List<Pair<UBoolExpr, T.() -> Unit>>) {
-        check(canProcessFurtherOnCurrentStep)
-
-        val conditions = conditionsWithBlockOnStates.map { it.first }
-
-        val conditionStates = fork(originalState, conditions)
-
-        val forkedStates = conditionStates.mapIndexedNotNull { idx, positiveState ->
-            val block = conditionsWithBlockOnStates[idx].second
-
-            positiveState?.apply(block)
-        }
-
-        canProcessFurtherOnCurrentStep = false
-        if (forkedStates.isEmpty()) {
-            alive = false
-            return
-        }
-        require(forkedStates.first() == originalState)
-
-        this.forkedStates += forkedStates.subList(1, forkedStates.size)
     }
 }
 

@@ -187,38 +187,6 @@ class JcInterpreter(
         val switchKeyExpr = exprResolver.resolveJcExpr(switchKey) ?: return
         val instList = stmt.location.method.instList
 
-        // TODO this is previous version that uses simple fork with 2 branches, remove it before the final review
-        /*fun iterateCases(
-            scope: JcStepScope,
-            caseBranches: List<Map.Entry<JcValue, JcInstRef>>,
-            defaultBranchTarget: JcInstRef
-        ) {
-            if (caseBranches.isEmpty()) {
-                val nextStmt = instList[defaultBranchTarget.index]
-                scope.doWithState { newStmt(nextStmt) }
-            } else {
-                val (caseValue, caseTargetStmt) = caseBranches.first()
-                val nextStmt = instList[caseTargetStmt.index]
-                val resolvedCaseValue = exprResolver.resolveJcExpr(caseValue) ?: return
-                val caseCondition = ctx.mkEq(switchKeyExpr, resolvedCaseValue.asExpr(switchKeyExpr.sort))
-
-                scope.fork(
-                    caseCondition,
-                    blockOnTrueState = { newStmt(nextStmt) },
-                    blockOnFalseState = {
-                        scope.calcOnState(this) {
-                            iterateCases(
-                                *//*StepScope(this)*//*scope,
-                                caseBranches.subList(1, caseBranches.size),
-                                defaultBranchTarget
-                            )
-                        }
-                    }
-                )
-            }
-        }
-
-        iterateCases(scope, stmt.branches.entries.toList(), stmt.default)*/
         with(ctx) {
             val caseStmtsWithConditions = stmt.branches.map { (caseValue, caseTargetStmt) ->
                 val nextStmt = instList.getInst(caseTargetStmt)

@@ -86,7 +86,7 @@ private fun <T : UState<Type, Field, *, *>, Type, Field> forkIfSat(
                 val forkedState = state.clone() as T
                 state.pathConstraints += newConstraintToOriginalState
                 state.models = listOf(satResult.model)
-                // TODO: implement path condition setter (don't forget t o reset UMemoryBase:types!)
+                // TODO: implement path condition setter (don't forget to reset UMemoryBase:types!)
                 forkedState.pathConstraints += newConstraintToForkedState
                 forkedState
             }
@@ -169,10 +169,11 @@ fun <T : UState<Type, Field, *, *>, Type, Field> fork(
     return ForkResult(posState, negState as T?)
 }
 
-// TODO docs
-// TODO think about merging it with fork above
-@Suppress("UNCHECKED_CAST")
-fun <T : UState<Type, Field, *, *>, Type, Field> fork(
+/**
+ * Implements symbolic branching on few disjoint conditions. Returns a list of states for each condition - `null` state
+ * means [UUnknownResult] of checking condition.
+ */
+fun <T : UState<Type, Field, *, *>, Type, Field> forkMulti(
     state: T,
     conditions: Iterable<UBoolExpr>,
 ): List<T?> {
@@ -186,7 +187,9 @@ fun <T : UState<Type, Field, *, *>, Type, Field> fork(
             }
             holdsInModel.isTrue
         }
+
         val nextRoot = if (trueModels.isNotEmpty()) {
+            @Suppress("UNCHECKED_CAST")
             val root = curState.clone() as T
 
             curState.models = trueModels
@@ -204,10 +207,12 @@ fun <T : UState<Type, Field, *, *>, Type, Field> fork(
 
             root
         }
+
         if (nextRoot != null) {
             result += curState
             curState = nextRoot
         }
     }
+
     return result
 }
