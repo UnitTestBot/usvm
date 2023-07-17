@@ -8,6 +8,7 @@ import org.usvm.language.types.pythonBool
 class ConverterToPythonObject(private val ctx: UContext) {
     fun convert(obj: InterpretedSymbolicPythonObject): PythonObject? =
         when (obj.getConcreteType()) {
+            null -> null
             pythonInt -> convertInt(obj)
             pythonBool -> convertBool(obj)
             else -> TODO()

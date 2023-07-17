@@ -18,7 +18,7 @@ object PythonTypeSystem: UTypeSystem<PythonType> {
     }
 
     override fun isFinal(t: PythonType): Boolean {  // TODO
-        return t != PythonAnyType
+        return t != PythonAnyType && t != HasNbBool
     }
 
     override fun isInstantiable(t: PythonType): Boolean {
@@ -28,6 +28,8 @@ object PythonTypeSystem: UTypeSystem<PythonType> {
     override fun findSubtypes(t: PythonType): Sequence<PythonType> {
         if (t == PythonAnyType)
             return sequenceOf(pythonInt, pythonBool)
+        if (t == HasNbBool)
+            return sequenceOf(pythonBool)
         return sequenceOf()
     }
 
