@@ -12,7 +12,7 @@ import org.usvm.util.isException
 // (see https://github.com/UnitTestBot/UTBotJava/issues/1610)
 class ExecutorServiceExamplesTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3f95a1b3")
+    @Disabled("Index 1 out of bounds for length 1")
     fun testExceptionInExecute() {
         checkDiscoveredPropertiesWithExceptions(
             ExecutorServiceExamples::throwingInExecute,
@@ -22,7 +22,7 @@ class ExecutorServiceExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3f95a1b3")
+    @Disabled("Index 1 out of bounds for length 1")
     fun testChangingCollectionInExecute() {
         checkDiscoveredProperties(
             ExecutorServiceExamples::changingCollectionInExecute,

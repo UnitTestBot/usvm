@@ -49,7 +49,6 @@ internal class CyclesTest : JavaMethodTestRunner() {
     @UsvmTest(
         [Options([PathSelectionStrategy.RANDOM_PATH])]
     )
-//    @Disabled("Expected exactly 2 executions, but 1 found")
     fun testFiniteCycle(options: UMachineOptions) {
         withOptions(options) {
             checkDiscoveredProperties(
@@ -95,7 +94,7 @@ internal class CyclesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
+    @Disabled("Not implemented: string constant")
     fun testDivideByZeroCheckWithCycles() {
         checkDiscoveredPropertiesWithExceptions(
             Cycles::divideByZeroCheckWithCycles,

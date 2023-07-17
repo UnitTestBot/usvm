@@ -158,7 +158,7 @@ internal class PrimitiveArraysTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@21698165")
+    @Disabled("Some properties were not discovered at positions (from 0): [2]")
     fun testCharSizeAndIndex() {
         checkDiscoveredProperties(
             PrimitiveArrays::charSizeAndIndex,

@@ -8,7 +8,7 @@ import org.usvm.util.isException
 
 class SimpleLambdaExamplesTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Index 4 out of bounds for length 4")
+    @Disabled("class org.jacodb.api.PredefinedPrimitive cannot be cast to class org.jacodb.api.JcRefType")
     fun testBiFunctionLambdaExample() {
         checkDiscoveredPropertiesWithExceptions(
             SimpleLambdaExamples::biFunctionLambdaExample,
@@ -19,7 +19,7 @@ class SimpleLambdaExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Index 1 out of bounds for length 1")
+    @Disabled("class org.jacodb.api.PredefinedPrimitive cannot be cast to class org.jacodb.api.JcRefType")
     fun testChoosePredicate() {
         checkDiscoveredProperties(
             SimpleLambdaExamples::choosePredicate,

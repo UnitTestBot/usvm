@@ -167,7 +167,6 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1].")
     fun testNewArrayInTheMiddleMutation() {
         checkThisAndParamsMutations(
             IntArrayBasics::newArrayInTheMiddle,
@@ -194,7 +193,7 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sequence is empty.")
+    @Disabled("No entrypoint found for method")
     fun testUpdateCloned() {
         checkDiscoveredProperties(
             IntArrayBasics::updateCloned,
@@ -206,7 +205,7 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@2f5d95b")
+    @Disabled("Not implemented: class constant")
     fun testArraysEqualsExample() {
         checkDiscoveredProperties(
             IntArrayBasics::arrayEqualsExample,

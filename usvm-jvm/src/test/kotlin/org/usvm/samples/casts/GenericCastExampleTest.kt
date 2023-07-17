@@ -47,7 +47,7 @@ internal class GenericCastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@5927f2b1")
+    @Disabled("Not implemented: string constant")
     fun testCreateNewGenericObject() {
         checkDiscoveredProperties(
             GenericCastExample::createNewGenericObject,

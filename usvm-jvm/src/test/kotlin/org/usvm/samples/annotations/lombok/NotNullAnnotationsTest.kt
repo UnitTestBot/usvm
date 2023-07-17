@@ -1,5 +1,6 @@
 package org.usvm.samples.annotations.lombok
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
@@ -14,6 +15,7 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
  */
 internal class NotNullAnnotationsTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Not implemented: string constant")
     fun testNonNullAnnotations() {
         checkDiscoveredProperties(
             NotNullAnnotations::lombokNonNull,

@@ -46,3 +46,10 @@ jobs:
       # Runs a set of commands using the runners shell
       - name: Build and run tests
         run: ./gradlew build --no-daemon
+
+      - name: Upload usvm test reports
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: usvm-tests-report-${{ matrix.os }}
+          path: ./**/build/reports/tests/test/

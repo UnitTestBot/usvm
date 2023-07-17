@@ -83,7 +83,6 @@ internal class BitOperatorsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    // @Disabled("Some properties were not discovered at positions (from 0): [0]")
     fun testBooleanXorCompare() {
         checkDiscoveredProperties(
             BitOperators::booleanXorCompare,

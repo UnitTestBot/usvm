@@ -1,5 +1,6 @@
 package org.usvm.machine.state
 
+import org.jacodb.api.JcMethod
 import org.usvm.UExpr
 import org.usvm.USort
 
@@ -13,9 +14,10 @@ sealed interface JcMethodResult {
     object NoCall : JcMethodResult
 
     /**
-     * A method successfully returned a [value].
+     * A [method] successfully returned a [value].
      */
     class Success(
+        val method: JcMethod,
         val value: UExpr<out USort>
     ) : JcMethodResult
 

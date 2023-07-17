@@ -21,7 +21,7 @@ internal class ClassForTestClinitSectionsTest : JavaMethodTestRunner() {
 //        }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3f95a1b3")
+    @Disabled("Expected exactly 2 executions, but 1 found") // todo: treat statics as input values
     fun testClinitWithClinitAnalysis() {
         checkDiscoveredProperties(
             ClassForTestClinitSections::resultDependingOnStaticSection,

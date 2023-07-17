@@ -6,7 +6,6 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 class TestLogic : JavaMethodTestRunner() {
     @Test
-//    @Disabled("Some properties were not discovered at positions (from 0): [1]")
     fun `Test complexWithLocals`() {
         checkDiscoveredProperties(
             Logic::complexWithLocals,

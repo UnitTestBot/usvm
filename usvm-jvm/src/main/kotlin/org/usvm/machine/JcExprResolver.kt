@@ -10,6 +10,7 @@ import org.jacodb.api.JcRefType
 import org.jacodb.api.JcType
 import org.jacodb.api.JcTypedField
 import org.jacodb.api.JcTypedMethod
+import org.jacodb.api.PredefinedPrimitives
 import org.jacodb.api.cfg.JcAddExpr
 import org.jacodb.api.cfg.JcAndExpr
 import org.jacodb.api.cfg.JcArgument
@@ -75,7 +76,10 @@ import org.jacodb.api.ext.ifArrayGetElementType
 import org.jacodb.api.ext.int
 import org.jacodb.api.ext.isAssignable
 import org.jacodb.api.ext.long
+import org.jacodb.api.ext.objectType
 import org.jacodb.api.ext.short
+import org.jacodb.impl.bytecode.JcFieldImpl
+import org.jacodb.impl.types.FieldInfo
 import org.usvm.UArrayIndexLValue
 import org.usvm.UArrayLengthLValue
 import org.usvm.UBvSort
@@ -87,12 +91,14 @@ import org.usvm.URegisterLValue
 import org.usvm.USizeExpr
 import org.usvm.USizeSort
 import org.usvm.USort
+import org.usvm.isTrue
 import org.usvm.machine.operator.JcBinaryOperator
 import org.usvm.machine.operator.JcUnaryOperator
 import org.usvm.machine.operator.ensureBvExpr
 import org.usvm.machine.operator.mkNarrow
 import org.usvm.machine.operator.wideTo32BitsIfNeeded
 import org.usvm.machine.state.JcMethodResult
+import org.usvm.machine.state.JcState
 import org.usvm.machine.state.addNewMethodCall
 import org.usvm.machine.state.lastStmt
 import org.usvm.machine.state.throwException
@@ -106,6 +112,7 @@ class JcExprResolver(
     private val scope: JcStepScope,
     private val applicationGraph: JcApplicationGraph,
     private val localToIdx: (JcMethod, JcLocal) -> Int,
+    private val mkClassRef: (JcRefType, JcState) -> UHeapRef,
     private val hardMaxArrayLength: Int = 1_500, // TODO: move to options
 ) : JcExprVisitor<UExpr<out USort>?> {
     /**
@@ -367,10 +374,20 @@ class JcExprResolver(
     private fun resolveInvoke(
         method: JcTypedMethod,
         resolveArguments: () -> List<UExpr<out USort>>?,
+    ): UExpr<out USort>? = ensureStaticFieldsInitialized(method.enclosingType) {
+        resolveInvokeNoStaticInitializationCheck(method, resolveArguments)
+    }
+
+    private fun resolveInvokeNoStaticInitializationCheck(
+        method: JcTypedMethod,
+        resolveArguments: () -> List<UExpr<out USort>>?,
     ): UExpr<out USort>? {
         val result = scope.calcOnState { methodResult } ?: return null
         return when (result) {
             is JcMethodResult.Success -> {
+                check(result.method == method.method) {
+                    "Expected result from ${method.method} but actual is ${result.method}"
+                }
                 scope.doWithState { methodResult = JcMethodResult.NoCall }
                 result.value
             }
@@ -423,18 +440,76 @@ class JcExprResolver(
 
     // region lvalue resolving
 
-    private fun resolveFieldRef(instance: JcValue?, field: JcTypedField): ULValue? = with(ctx) {
-        if (instance != null) {
-            val instanceRef = resolveJcExpr(instance)?.asExpr(addressSort) ?: return null
-            checkNullPointer(instanceRef) ?: return null
-            val sort = ctx.typeToSort(field.fieldType)
-            UFieldLValue(sort, instanceRef, field.field)
-        } else {
-            val sort = ctx.typeToSort(field.fieldType)
-            JcStaticFieldRef(sort, field.field)
-            // TODO: can't extend UMemoryBase for now...
+    private fun resolveFieldRef(instance: JcValue?, field: JcTypedField): ULValue? =
+        ensureStaticFieldsInitialized(field.enclosingType) {
+            with(ctx) {
+                if (instance != null) {
+                    val instanceRef = resolveJcExpr(instance)?.asExpr(addressSort) ?: return null
+                    checkNullPointer(instanceRef) ?: return null
+                    val sort = ctx.typeToSort(field.fieldType)
+                    UFieldLValue(sort, instanceRef, field.field)
+                } else {
+                    val sort = ctx.typeToSort(field.fieldType)
+                    val classRef = scope.calcOnState {
+                        mkClassRef(field.enclosingType, this)
+                    } ?: return null
+                    UFieldLValue(sort, classRef, field.field)
+                }
+            }
         }
+
+    /**
+     * Run a class static initializer for [type] if it didn't run before the current state.
+     * The class static initialization state is tracked by the synthetic [staticFieldsInitializedFlagField] field.
+     * */
+    private inline fun <T> ensureStaticFieldsInitialized(type: JcRefType, body: () -> T): T? {
+        // java.lang.Object has no static fields, but has non-trivial initializer
+        if (type == ctx.cp.objectType) {
+            return body()
+        }
+
+        val initializer = type.jcClass.declaredMethods.firstOrNull { it.isClassInitializer }
+
+        // Class has no static initializer
+        if (initializer == null) {
+            return body()
+        }
+
+        val classRef = scope.calcOnState { mkClassRef(type, this) } ?: return null
+
+        val initializedFlag = staticFieldsInitializedFlag(type, classRef)
+
+        val staticFieldsInitialized = scope.calcOnState {
+            memory.read(initializedFlag).asExpr(ctx.booleanSort)
+        } ?: return null
+
+
+        if (staticFieldsInitialized.isTrue) {
+            scope.doWithState {
+                // Handle static initializer result
+                val result = methodResult
+                if (result is JcMethodResult.Success && result.method == initializer) {
+                    methodResult = JcMethodResult.NoCall
+                }
+            }
+
+            return body()
+        }
+
+        // Run static initializer before the current statement
+        scope.doWithState {
+            memory.write(initializedFlag, ctx.trueExpr)
+            addNewMethodCall(applicationGraph, initializer, emptyList())
+        }
+        return null
     }
+
+    private fun staticFieldsInitializedFlag(type: JcRefType, classRef: UHeapRef) =
+        UFieldLValue(
+            fieldSort = ctx.booleanSort,
+            field = JcFieldImpl(type.jcClass, staticFieldsInitializedFlagField),
+            ref = classRef
+        )
 
     private fun resolveArrayAccess(array: JcValue, index: JcValue): ULValue? = with(ctx) {
         val arrayRef = resolveJcExpr(array)?.asExpr(addressSort) ?: return null
@@ -660,5 +735,20 @@ class JcExprResolver(
         val result0 = resolveJcExpr(dependency0) ?: return null
         val result1 = resolveJcExpr(dependency1) ?: return null
         return block(result0, result1)
+    }
+
+    companion object {
+        /**
+         * Synthetic field to track static field initialization state.
+         * */
+        private val staticFieldsInitializedFlagField by lazy {
+            FieldInfo(
+                name = "__initialized__",
+                signature = null,
+                access = 0,
+                type = PredefinedPrimitives.Boolean,
+                annotations = emptyList()
+            )
+        }
     }
 }

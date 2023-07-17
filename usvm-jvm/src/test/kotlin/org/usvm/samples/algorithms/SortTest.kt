@@ -9,7 +9,7 @@ import org.usvm.util.isException
 
 internal class SortTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3a182eaf")
+    @Disabled("No entrypoint found for method")
     fun testQuickSort() {
         checkDiscoveredProperties(
             Sort::quickSort,
@@ -31,7 +31,7 @@ internal class SortTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sequence is empty.")
+    @Disabled("No entrypoint found for method")
     fun testArrayCopy() {
         checkDiscoveredProperties(
             Sort::arrayCopy,
@@ -41,7 +41,7 @@ internal class SortTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sequence is empty.")
+    @Disabled("No entrypoint found for method")
     fun testMergeSort() {
         checkDiscoveredProperties(
             Sort::mergeSort,
