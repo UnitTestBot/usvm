@@ -1,11 +1,11 @@
 package org.usvm.memory
 
+import io.ksmt.expr.rewrite.simplify.KExprSimplifier
+import io.ksmt.utils.getValue
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import io.ksmt.expr.rewrite.simplify.KExprSimplifier
-import io.ksmt.utils.getValue
 import org.usvm.Field
 import org.usvm.Type
 import org.usvm.UAddressSort
@@ -33,6 +33,7 @@ class HeapRefSplittingTest {
         every { components.mkTypeSystem(any()) } returns mockk()
         ctx = UContext(components)
         heap = URegionHeap(ctx)
+
         valueFieldDescr = mockk<Field>() to ctx.bv32Sort
         addressFieldDescr = mockk<Field>() to ctx.addressSort
         arrayDescr = mockk<Type>() to ctx.addressSort

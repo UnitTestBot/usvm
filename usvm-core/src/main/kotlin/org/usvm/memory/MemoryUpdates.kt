@@ -103,7 +103,6 @@ interface UMemoryUpdatesVisitor<Key, Sort : USort, Result> {
 }
 
 
-
 //region Flat memory updates
 
 class UFlatUpdates<Key, Sort : USort> private constructor(
@@ -307,11 +306,8 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
         matchingWrites: MutableList<GuardedExpr<UExpr<Sort>>>,
         guardBuilder: GuardBuilder,
     ): UTreeUpdates<Key, Reg, Sort> {
-        // the suffix of the [updates], starting from the earliest update satisfying `predicate(update.value(key))`
-        val updatesSuffix = mutableListOf<UUpdateNode<Key, Sort>?>()
-
         // reconstructed region tree, including all updates unsatisfying `predicate(update.value(key))` in the same order
-        var splitUpdates = emptyRegionTree<Reg, UUpdateNode<Key, Sort>>()
+        var splitRegionTree = emptyRegionTree<Reg, UUpdateNode<Key, Sort>>()
 
         // add an update to result tree
         fun applyUpdate(update: UUpdateNode<Key, Sort>) {
@@ -319,48 +315,35 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
                 is UPinpointUpdateNode<Key, Sort> -> keyToRegion(update.key)
                 is URangedUpdateNode<*, *, Key, Sort> -> keyRangeToRegion(update.fromKey, update.toKey)
             }
-            splitUpdates = splitUpdates.write(region, update, valueFilter = { it.isIncludedByUpdateConcretely(update) })
+            splitRegionTree =
+                splitRegionTree.write(region, update, valueFilter = { it.isIncludedByUpdateConcretely(update) })
         }
 
-        // traverse all updates one by one from the oldest one
-        for (update in this) {
-            val satisfies = predicate(update.value(key))
 
-            if (updatesSuffix.isNotEmpty()) {
-                updatesSuffix += update
-            } else if (satisfies) {
-                // we found the first matched update, so we have to apply already visited updates
-                // definitely unsatisfying `predicate(update.value(key))`
-                for (prevUpdate in this) {
-                    if (prevUpdate === update) {
-                        break
-                    }
-                    applyUpdate(update)
-                }
-                updatesSuffix += update
-            }
+        var hasChanged = false
+        // here we split updates from the newest to the oldest
+        val splitUpdates = toMutableList<UUpdateNode<Key, Sort>?>().apply { reverse() }
+        for ((idx, update) in splitUpdates.withIndex()) {
+            val splitUpdate = update?.split(key, predicate, matchingWrites, guardBuilder)
+            hasChanged = hasChanged or (update !== splitUpdate)
+            splitUpdates[idx] = splitUpdate
         }
 
-        // no matching updates were found
-        if (updatesSuffix.isEmpty()) {
+        // if nothing changed, return this
+        if (!hasChanged) {
             return this
         }
 
+        // traverse all updates one by one from the oldest one
         // here we collect matchingWrites and update guardBuilder in the correct order (from the newest to the oldest)
-        for (idx in updatesSuffix.indices.reversed()) {
-            val update = requireNotNull(updatesSuffix[idx])
-            updatesSuffix[idx] = update.split(key, predicate, matchingWrites, guardBuilder)
-        }
-
-        // here we apply the remaining updates
-        for (update in updatesSuffix) {
+        for (update in splitUpdates.asReversed()) {
             if (update != null) {
                 applyUpdate(update)
             }
         }
 
 
-        return this.copy(updates = splitUpdates)
+        return this.copy(updates = splitRegionTree)
     }
 
 
