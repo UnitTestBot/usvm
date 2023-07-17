@@ -21,6 +21,7 @@ import org.jacodb.api.cfg.JcThis
 import org.jacodb.api.cfg.JcThrowInst
 import org.usvm.StepResult
 import org.usvm.StepScope
+import org.usvm.UHeapRef
 import org.usvm.UInterpreter
 import org.usvm.URegisterLValue
 import org.usvm.machine.state.JcMethodResult
@@ -188,28 +189,20 @@ class JcInterpreter(
 
     private fun visitCallStmt(scope: JcStepScope, stmt: JcCallInst) {
         val exprResolver = exprResolverWithScope(scope)
+        exprResolver.resolveJcExpr(stmt.callExpr) ?: return
 
-        val result = requireNotNull(scope.calcOnState { methodResult })
-
-        when (result) {
-            JcMethodResult.NoCall -> {
-                exprResolver.resolveJcExpr(stmt.callExpr)
-            }
-
-            is JcMethodResult.Success -> {
-                val nextStmt = stmt.nextStmt
-                scope.doWithState {
-                    methodResult = JcMethodResult.NoCall
-                    newStmt(nextStmt)
-                } ?: return
-            }
-
-            is JcMethodResult.Exception -> error("Exception should be handled earlier")
+        scope.doWithState {
+            val nextStmt = stmt.nextStmt
+            newStmt(nextStmt)
         }
     }
 
     private fun exprResolverWithScope(scope: JcStepScope) =
-        JcExprResolver(ctx, scope, applicationGraph, ::mapLocalToIdxMapper)
+        JcExprResolver(
+            ctx, scope, applicationGraph,
+            ::mapLocalToIdxMapper,
+            ::classInstanceAllocator
+        )
 
     private val localVarToIdx = mutableMapOf<JcMethod, MutableMap<String, Int>>() // (method, localName) -> idx
 
@@ -228,4 +221,15 @@ class JcInterpreter(
         }
 
     private val JcInst.nextStmt get() = location.method.instList[location.index + 1]
+
+    private val classInstanceAllocatedRefs = mutableMapOf<String, UHeapRef>()
+
+    private fun classInstanceAllocator(type: JcRefType, state: JcState): UHeapRef {
+        // Don't use type.typeName here, because it contains generic parameters
+        val className = type.jcClass.name
+        return classInstanceAllocatedRefs.getOrPut(className) {
+            // Allocate globally unique ref
+            state.memory.heap.allocate()
+        }
+    }
 }

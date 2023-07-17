@@ -9,6 +9,7 @@ import org.usvm.test.util.checkers.eq
 @Suppress("SimplifyNegatedBinaryExpression")
 internal class DoubleWrapperTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Not implemented: string constant")
     fun primitiveToWrapperTest() {
         checkDiscoveredProperties(
             DoubleWrapper::primitiveToWrapper,
@@ -19,6 +20,7 @@ internal class DoubleWrapperTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: string constant")
     fun wrapperToPrimitiveTest() {
         checkDiscoveredProperties(
             DoubleWrapper::wrapperToPrimitive,

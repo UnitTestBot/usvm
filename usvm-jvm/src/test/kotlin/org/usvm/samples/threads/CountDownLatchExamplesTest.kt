@@ -8,7 +8,7 @@ import org.usvm.test.util.checkers.eq
 
 class CountDownLatchExamplesTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("java.lang.IllegalStateException: Sort mismatch. Support exceptions")
+    @Disabled("No entrypoint found for method")
     fun testGetAndDown() {
         checkDiscoveredProperties(
             CountDownLatchExamples::getAndDown,

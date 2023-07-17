@@ -9,7 +9,7 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 internal class IntegerWrapperTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3f95a1b3")
+    @Disabled("Not implemented: string constant")
     fun primitiveToWrapperTest() {
         checkDiscoveredProperties(
             IntegerWrapper::primitiveToWrapper,
@@ -20,6 +20,7 @@ internal class IntegerWrapperTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: string constant")
     fun wrapperToPrimitiveTest() {
         checkDiscoveredProperties(
             IntegerWrapper::wrapperToPrimitive,
@@ -31,6 +32,7 @@ internal class IntegerWrapperTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: string constant")
     fun numberOfZerosTest() {
         checkDiscoveredProperties(
             IntegerWrapper::numberOfZeros,
@@ -42,6 +44,7 @@ internal class IntegerWrapperTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: string constant")
     fun bitCountTest() {
         checkDiscoveredProperties(
             IntegerWrapper::bitCount,

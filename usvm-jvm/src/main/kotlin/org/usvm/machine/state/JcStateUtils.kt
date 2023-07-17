@@ -14,13 +14,14 @@ fun JcState.newStmt(stmt: JcInst) {
 }
 
 fun JcState.returnValue(valueToReturn: UExpr<out USort>) {
+    val returnFromMethod = callStack.lastMethod()
     // TODO: think about it later
     val returnSite = callStack.pop()
     if (callStack.isNotEmpty()) {
         memory.stack.pop()
     }
 
-    methodResult = JcMethodResult.Success(valueToReturn)
+    methodResult = JcMethodResult.Success(returnFromMethod, valueToReturn)
 
     if (returnSite != null) {
         newStmt(returnSite)
@@ -65,8 +66,16 @@ fun JcState.addNewMethodCall(
         return
     }
 
+    // TODO: move to appropriate place. Skip native method in static initializer
+    if (method.name == "registerNatives" && method.enclosingClass.name == "java.lang.Class") {
+        val nextStmt = applicationGraph.successors(lastStmt).single()
+        newStmt(nextStmt)
+        return
+    }
+
     // TODO: find concrete implementation (I guess, the method should be already concrete)
-    val entryPoint = applicationGraph.entryPoints(method).single()
+    val entryPoint = applicationGraph.entryPoints(method).singleOrNull()
+        ?: error("No entrypoint found for method: $method")
     val returnSite = lastStmt
     callStack.push(method, returnSite)
     memory.stack.push(arguments.toTypedArray(), method.localsCount)

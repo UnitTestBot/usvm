@@ -10,7 +10,7 @@ import org.usvm.test.util.checkers.ge
 internal class NativeExamplesTest : JavaMethodTestRunner() {
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3f95a1b3")
+    @Disabled("No entrypoint found for method")
     fun testFindAndPrintSum() {
         checkDiscoveredProperties(
             NativeExamples::findAndPrintSum,
@@ -19,7 +19,7 @@ internal class NativeExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3f95a1b3")
+    @Disabled("Not implemented: class constant")
     fun testFindSumWithMathRandom() {
         checkDiscoveredProperties(
             NativeExamples::findSumWithMathRandom,
