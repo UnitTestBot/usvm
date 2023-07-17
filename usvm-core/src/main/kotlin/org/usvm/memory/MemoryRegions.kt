@@ -50,7 +50,7 @@ data class USymbolicMemoryRegion<out RegionId : URegionId<Key, Sort, RegionId>, 
     val sort: Sort get() = regionId.sort
 
     // If we replace it with get(), we have to check for nullability in read function.
-    val defaultValue = regionId.defaultValue
+    private val defaultValue = regionId.defaultValue
 
     private fun read(key: Key, updates: UMemoryUpdates<Key, Sort>): UExpr<Sort> {
         val lastUpdatedElement = updates.lastUpdatedElementOrNull()
@@ -79,6 +79,7 @@ data class USymbolicMemoryRegion<out RegionId : URegionId<Key, Sort, RegionId>, 
     override fun read(key: Key): UExpr<Sort> {
         if (sort == sort.uctx.addressSort) {
             // Here we split concrete heap addresses from symbolic ones to optimize further memory operations.
+            // But doing this for composition seems a little bit strange
             return splittingRead(key) { it is UConcreteHeapRef }
         }
 
@@ -157,11 +158,13 @@ data class USymbolicMemoryRegion<out RegionId : URegionId<Key, Sort, RegionId>, 
         matchingWrites: MutableList<GuardedExpr<UExpr<Sort>>>,
         guardBuilder: GuardBuilder,
     ): USymbolicMemoryRegion<RegionId, Key, Sort> {
-        // TODO: either check in USymbolicMemoryRegion constructor that we do not construct memory region with
-        //       non-null reference as default value, or implement splitting by default value.
-        assert(defaultValue == null || !predicate(defaultValue))
-
         val splitUpdates = updates.read(key).split(key, predicate, matchingWrites, guardBuilder)
+
+        // we traversed all updates, so predicate says that key misses all the writes to this memory region,
+        // therefore, the key maps to the default value
+        if (defaultValue != null && predicate(defaultValue)) {
+            matchingWrites += defaultValue with guardBuilder.nonMatchingUpdatesGuard
+        }
 
         return if (splitUpdates === updates) {
             this
@@ -230,7 +233,11 @@ data class USymbolicMemoryRegion<out RegionId : URegionId<Key, Sort, RegionId>, 
     override fun toString(): String =
         buildString {
             append('<')
-            append(defaultValue)
+            if (defaultValue != null) {
+                append(defaultValue)
+            } else {
+                append("_")
+            }
             updates.forEach {
                 append(it.toString())
             }

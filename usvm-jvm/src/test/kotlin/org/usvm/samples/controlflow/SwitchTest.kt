@@ -38,7 +38,7 @@ internal class SwitchTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3e4141cf")
+    @Disabled("Index 1 out of bounds for length 1")
     fun testEnumSwitch() {
         checkDiscoveredProperties(
             Switch::enumSwitch,

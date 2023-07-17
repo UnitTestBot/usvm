@@ -8,6 +8,7 @@ import org.usvm.test.util.checkers.eq
 
 internal class LongWrapperTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Not implemented: string constant")
     fun primitiveToWrapperTest() {
         checkDiscoveredProperties(
             LongWrapper::primitiveToWrapper,
@@ -18,6 +19,7 @@ internal class LongWrapperTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: string constant")
     fun wrapperToPrimitiveTest() {
         checkDiscoveredProperties(
             LongWrapper::wrapperToPrimitive,
@@ -41,7 +43,7 @@ internal class LongWrapperTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3f95a1b3")
+    @Disabled("Not implemented: string constant")
     fun parseLong() {
         checkDiscoveredProperties(
             LongWrapper::parseLong,

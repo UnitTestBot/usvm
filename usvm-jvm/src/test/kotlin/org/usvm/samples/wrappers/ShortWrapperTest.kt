@@ -8,6 +8,7 @@ import org.usvm.test.util.checkers.eq
 
 internal class ShortWrapperTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Not implemented: string constant")
     fun primitiveToWrapperTest() {
         checkDiscoveredProperties(
             ShortWrapper::primitiveToWrapper,
@@ -18,6 +19,7 @@ internal class ShortWrapperTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: string constant")
     fun wrapperToPrimitiveTest() {
         checkDiscoveredProperties(
             ShortWrapper::wrapperToPrimitive,

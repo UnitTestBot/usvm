@@ -33,7 +33,7 @@ class AnonymousClassesExampleTest : JavaMethodTestRunner() {
 //    }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3f95a1b3")
+    @Disabled("No entrypoint found for method")
     fun testAnonymousClassAsStatic() {
         checkDiscoveredProperties(
             AnonymousClassesExample::anonymousClassAsStatic,

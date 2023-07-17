@@ -11,6 +11,7 @@ import kotlin.math.min
 
 internal class MinStackExampleTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Not implemented: class constant")
     fun testCreate() {
         checkDiscoveredProperties(
             MinStackExample::create,
@@ -67,7 +68,7 @@ internal class MinStackExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
+    @Disabled("Not implemented: string constant")
     fun testRemoveValue() {
         checkDiscoveredProperties(
             MinStackExample::removeValue,

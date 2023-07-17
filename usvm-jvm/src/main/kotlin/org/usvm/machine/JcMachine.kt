@@ -1,5 +1,6 @@
 package org.usvm.machine
 
+import mu.KLogging
 import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcMethod
 import org.jacodb.api.cfg.JcInst
@@ -19,6 +20,8 @@ import org.usvm.statistics.PathsTreeStatistics
 import org.usvm.statistics.UMachineObserver
 import org.usvm.stopstrategies.createStopStrategy
 
+val logger = object : KLogging() {}.logger
+
 class JcMachine(
     cp: JcClasspath,
     private val options: UMachineOptions
@@ -36,6 +39,7 @@ class JcMachine(
     fun analyze(
         method: JcMethod
     ): List<JcState> {
+        logger.debug("$this.analyze($method)")
         val initialState = interpreter.getInitialState(method)
 
         // TODO: now paths tree doesn't support parallel execution processes. It should be replaced with forest

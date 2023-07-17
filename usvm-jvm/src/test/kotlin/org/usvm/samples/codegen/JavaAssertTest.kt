@@ -8,7 +8,7 @@ import org.usvm.util.isException
 
 class JavaAssertTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@2efac41a")
+    @Disabled("Not implemented: class constant")
     fun testAssertPositive() {
         checkDiscoveredPropertiesWithExceptions(
             JavaAssert::assertPositive,

@@ -78,7 +78,7 @@ internal class RecursionTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3f95a1b3")
+    @Disabled("Not implemented: string constant")
     fun vertexSumTest() {
         checkDiscoveredProperties(
             Recursion::vertexSum,

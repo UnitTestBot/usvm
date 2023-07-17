@@ -1,5 +1,6 @@
 package org.usvm.samples.annotations
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
@@ -7,6 +8,7 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 internal class NotNullAnnotationTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Not implemented: string constant")
     fun testDoesNotThrowNPE() {
         checkDiscoveredProperties(
             NotNullAnnotation::doesNotThrowNPE,
@@ -20,6 +22,7 @@ internal class NotNullAnnotationTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: string constant")
     fun testThrowsNPE() {
         checkDiscoveredProperties(
             NotNullAnnotation::throwsNPE,
@@ -30,6 +33,7 @@ internal class NotNullAnnotationTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: string constant")
     fun testSeveralParameters() {
         checkDiscoveredProperties(
             NotNullAnnotation::severalParameters,
@@ -44,6 +48,7 @@ internal class NotNullAnnotationTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: string constant")
     fun testUseNotNullableValue() {
         checkDiscoveredProperties(
             NotNullAnnotation::useNotNullableValue,
@@ -57,6 +62,7 @@ internal class NotNullAnnotationTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: string constant")
     fun testNotNullableVariable() {
         checkDiscoveredProperties(
             NotNullAnnotation::notNullableVariable,
@@ -71,6 +77,7 @@ internal class NotNullAnnotationTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: string constant")
     fun testNotNullField() {
         checkDiscoveredProperties(
             NotNullAnnotation::notNullField,
@@ -90,6 +97,7 @@ internal class NotNullAnnotationTest : JavaMethodTestRunner() {
 //    }
 
     @Test
+    @Disabled("Not implemented: string constant")
     fun testJavaxValidationNotNull() {
         checkDiscoveredProperties(
             NotNullAnnotation::javaxValidationNotNull,

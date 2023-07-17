@@ -1,13 +1,29 @@
 package org.usvm.machine
 
 import io.ksmt.utils.asExpr
+import mu.KLogging
 import org.jacodb.api.JcField
 import org.jacodb.api.JcMethod
 import org.jacodb.api.JcRefType
 import org.jacodb.api.JcType
-import org.jacodb.api.cfg.*
+import org.jacodb.api.cfg.JcArgument
+import org.jacodb.api.cfg.JcAssignInst
+import org.jacodb.api.cfg.JcCallInst
+import org.jacodb.api.cfg.JcCatchInst
+import org.jacodb.api.cfg.JcGotoInst
+import org.jacodb.api.cfg.JcIfInst
+import org.jacodb.api.cfg.JcInst
+import org.jacodb.api.cfg.JcInstList
+import org.jacodb.api.cfg.JcInstRef
+import org.jacodb.api.cfg.JcLocal
+import org.jacodb.api.cfg.JcLocalVar
+import org.jacodb.api.cfg.JcReturnInst
+import org.jacodb.api.cfg.JcSwitchInst
+import org.jacodb.api.cfg.JcThis
+import org.jacodb.api.cfg.JcThrowInst
 import org.usvm.StepResult
 import org.usvm.StepScope
+import org.usvm.UHeapRef
 import org.usvm.UInterpreter
 import org.usvm.URegisterLValue
 import org.usvm.machine.operator.JcBinaryOperator
@@ -32,6 +48,11 @@ class JcInterpreter(
     private val ctx: JcContext,
     private val applicationGraph: JcApplicationGraph,
 ) : UInterpreter<JcState>() {
+
+    companion object {
+        val logger = object : KLogging() {}.logger
+    }
+
     fun getInitialState(method: JcMethod): JcState {
         val state = JcState(ctx)
         state.addEntryMethodCall(applicationGraph, method)
@@ -68,6 +89,9 @@ class JcInterpreter(
 
     override fun step(state: JcState): StepResult<JcState> {
         val stmt = state.lastStmt
+
+        logger.debug("Step: {}", stmt)
+
         val scope = StepScope(state)
 
         // handle exception firstly
@@ -221,28 +245,20 @@ class JcInterpreter(
 
     private fun visitCallStmt(scope: JcStepScope, stmt: JcCallInst) {
         val exprResolver = exprResolverWithScope(scope)
+        exprResolver.resolveJcExpr(stmt.callExpr) ?: return
 
-        val result = requireNotNull(scope.calcOnState { methodResult })
-
-        when (result) {
-            JcMethodResult.NoCall -> {
-                exprResolver.resolveJcExpr(stmt.callExpr)
-            }
-
-            is JcMethodResult.Success -> {
-                val nextStmt = stmt.nextStmt
-                scope.doWithState {
-                    methodResult = JcMethodResult.NoCall
-                    newStmt(nextStmt)
-                } ?: return
-            }
-
-            is JcMethodResult.Exception -> error("Exception should be handled earlier")
+        scope.doWithState {
+            val nextStmt = stmt.nextStmt
+            newStmt(nextStmt)
         }
     }
 
     private fun exprResolverWithScope(scope: JcStepScope) =
-        JcExprResolver(ctx, scope, applicationGraph, ::mapLocalToIdxMapper)
+        JcExprResolver(
+            ctx, scope, applicationGraph,
+            ::mapLocalToIdxMapper,
+            ::classInstanceAllocator
+        )
 
     private val localVarToIdx = mutableMapOf<JcMethod, MutableMap<String, Int>>() // (method, localName) -> idx
 
@@ -261,6 +277,17 @@ class JcInterpreter(
         }
 
     private val JcInst.nextStmt get() = location.method.instList[location.index + 1]
+
+    private val classInstanceAllocatedRefs = mutableMapOf<String, UHeapRef>()
+
+    private fun classInstanceAllocator(type: JcRefType, state: JcState): UHeapRef {
+        // Don't use type.typeName here, because it contains generic parameters
+        val className = type.jcClass.name
+        return classInstanceAllocatedRefs.getOrPut(className) {
+            // Allocate globally unique ref
+            state.memory.heap.allocate()
+        }
+    }
 
     private fun JcInstList<JcInst>.getInst(instRef: JcInstRef): JcInst = this[instRef.index]
 }

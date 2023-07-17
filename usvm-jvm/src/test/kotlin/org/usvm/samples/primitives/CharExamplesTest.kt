@@ -28,7 +28,7 @@ internal class CharExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
+    @Disabled("Not implemented: switch")
     fun testByteToChar() {
         checkDiscoveredProperties(
             CharExamples::byteToChar,

@@ -22,7 +22,7 @@ class ThreadExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3f95a1b3")
+    @Disabled("class org.jacodb.api.PredefinedPrimitive cannot be cast to class org.jacodb.api.JcRefType")
     fun testChangingCollectionInThread() {
         checkDiscoveredProperties(
             ThreadExamples::changingCollectionInThread,
@@ -32,7 +32,7 @@ class ThreadExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3f95a1b3")
+    @Disabled("class org.jacodb.api.PredefinedPrimitive cannot be cast to class org.jacodb.api.JcRefType")
     fun testChangingCollectionInThreadWithoutStart() {
         checkDiscoveredPropertiesWithExceptions(
             ThreadExamples::changingCollectionInThreadWithoutStart,

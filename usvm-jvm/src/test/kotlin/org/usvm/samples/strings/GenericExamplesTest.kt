@@ -19,7 +19,7 @@ internal class GenericExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
+    @Disabled("Not implemented: string constant")
     fun testContainsOkExampleTest() {
         checkDiscoveredProperties(
             GenericExamples<String>::containsOkExample,
