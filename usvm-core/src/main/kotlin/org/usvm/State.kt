@@ -51,7 +51,17 @@ private const val ForkedState = true
 private const val OriginalState = false
 
 /**
- * TODO: fix
+ * Checks [newConstraintToOriginalState] or [newConstraintToForkedState], depending on the value of [stateToCheck].
+ * Depending on the result of checking this condition, do the following:
+ * - On [UUnsatResult] - returns `null`;
+ * - On [UUnknownResult] - adds [newConstraintToOriginalState] to the path constraints of the [state],
+ * iff [addConstraintOnUnknown] is `true`, and returns null;
+ * - On [USatResult]:
+ *     - If [stateToCheck] equals to [ForkedState], adds [newConstraintToOriginalState] to the path constraints of the [state],
+ *  clones the [state] with the checking constraint and with the satisfiable model and returns it.
+ *     - Otherwise, clones the [state] with extending its path constraints with [newConstraintToForkedState],
+ *  adds [newConstraintToOriginalState] to the original state, sets its model to the satisfiable model, and returns
+ *  the forked state.
  *
  */
 private fun <T : UState<Type, Field, *, *>, Type, Field> forkIfSat(

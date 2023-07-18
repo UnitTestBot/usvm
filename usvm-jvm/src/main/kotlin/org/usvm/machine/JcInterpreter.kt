@@ -189,7 +189,7 @@ class JcInterpreter(
 
         with(ctx) {
             val caseStmtsWithConditions = stmt.branches.map { (caseValue, caseTargetStmt) ->
-                val nextStmt = instList.getInst(caseTargetStmt)
+                val nextStmt = instList[caseTargetStmt]
                 val resolvedCaseValue = exprResolver.resolveJcExpr(caseValue) ?: return
                 val caseCondition = JcBinaryOperator.Eq(switchKeyExpr, resolvedCaseValue).asExpr(boolSort)
 
@@ -199,7 +199,7 @@ class JcInterpreter(
             // To make the default case possible, we need to ensure that all case labels are unsatisfiable
             val defaultCaseWithCondition = mkAnd(
                 caseStmtsWithConditions.map { it.first.not() }
-            ) to { state: JcState -> state.newStmt(instList.getInst(stmt.default)) }
+            ) to { state: JcState -> state.newStmt(instList[stmt.default]) }
 
             scope.forkMulti(caseStmtsWithConditions + defaultCaseWithCondition)
         }
@@ -245,6 +245,7 @@ class JcInterpreter(
         }
 
     private val JcInst.nextStmt get() = location.method.instList[location.index + 1]
+    private operator fun JcInstList<JcInst>.get(instRef: JcInstRef): JcInst = this[instRef.index]
 
     private val classInstanceAllocatedRefs = mutableMapOf<String, UHeapRef>()
 
@@ -256,6 +257,4 @@ class JcInterpreter(
             state.memory.heap.allocate()
         }
     }
-
-    private fun JcInstList<JcInst>.getInst(instRef: JcInstRef): JcInst = this[instRef.index]
 }
