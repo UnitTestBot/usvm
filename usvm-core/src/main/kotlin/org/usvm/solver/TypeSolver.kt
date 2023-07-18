@@ -27,6 +27,7 @@ class UTypeSolver<Field, Type>(
     private val typeSystem: UTypeSystem<Type>,
 ) : USolver<TypeSolverQuery<Type>, UTypeModel<Type>>() {
     private val uIsExprCollector = UIsExprCollector<Field, Type>(translator.ctx)
+    val topTypeRegion by lazy { UTypeRegion(typeSystem, typeSystem.topTypeStream()) }
 
     init {
         translator.addObserver(uIsExprCollector)
@@ -72,10 +73,9 @@ class UTypeSolver<Field, Type>(
     ): USolverResult<UTypeModel<Type>> {
         val allIsExpressions = pc
             .logicalConstraints
-            .flatMap(uIsExprCollector::provide)
+            .flatMap(uIsExprCollector::collect)
 
         val symbolicRefToIsExprs = allIsExpressions.groupBy { it.ref as USymbolicHeapRef }
-        val topTypeRegion = UTypeRegion(typeSystem, typeSystem.topTypeStream())
 
         val symbolicRefToRegion =
             symbolicRefToIsExprs.mapValues { topTypeRegion } + pc.typeConstraints.symbolicRefToTypeRegion

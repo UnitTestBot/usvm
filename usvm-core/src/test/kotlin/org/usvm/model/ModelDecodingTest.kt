@@ -9,7 +9,6 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.usvm.Field
 import org.usvm.Method
-import org.usvm.Type
 import org.usvm.UArrayIndexLValue
 import org.usvm.UComponents
 import org.usvm.UConcreteHeapRef
@@ -26,6 +25,8 @@ import org.usvm.solver.UTypeSolver
 import org.usvm.solver.UUnsatResult
 import org.usvm.types.single.SingleTypeSystem
 import kotlin.test.assertIs
+
+private typealias Type = SingleTypeSystem.SingleType
 
 class ModelDecodingTest {
     private lateinit var ctx: UContext
@@ -44,7 +45,7 @@ class ModelDecodingTest {
         ctx = UContext(components)
         val softConstraintsProvider = USoftConstraintsProvider<Field, Type>(ctx)
         val (translator, decoder) = buildTranslatorAndLazyDecoder<Field, Type, Method>(ctx)
-        val typeSolver = UTypeSolver(translator, mockk())
+        val typeSolver = UTypeSolver(translator, SingleTypeSystem)
         solver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder, softConstraintsProvider)
 
         stack = URegistersStack()

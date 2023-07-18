@@ -17,7 +17,9 @@ import org.usvm.model.buildTranslatorAndLazyDecoder
 import org.usvm.types.single.SingleTypeSystem
 import kotlin.test.assertSame
 
-open class SoftConstraintsTest<Field, Type, Method> {
+private typealias Type = SingleTypeSystem.SingleType
+
+open class SoftConstraintsTest<Field, Method> {
     private lateinit var ctx: UContext
     private lateinit var softConstraintsProvider: USoftConstraintsProvider<Field, Type>
     private lateinit var translator: UExprTranslator<Field, Type>
@@ -36,7 +38,7 @@ open class SoftConstraintsTest<Field, Type, Method> {
 
         translator = translatorWithDecoder.first
         decoder = translatorWithDecoder.second
-        val typeSolver = UTypeSolver(translator, mockk())
+        val typeSolver = UTypeSolver(translator, SingleTypeSystem)
         solver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder, softConstraintsProvider)
     }
 

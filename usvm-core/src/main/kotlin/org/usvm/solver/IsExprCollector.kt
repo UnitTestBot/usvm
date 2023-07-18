@@ -26,7 +26,7 @@ import org.usvm.UTransformer
 class UIsExprCollector<Field, Type>(override val ctx: KContext) : UTransformer<Field, Type> {
     private val caches = hashMapOf<UExpr<*>, Set<UIsExpr<Type>>>()
 
-    fun provide(initialExpr: UExpr<*>): Set<UIsExpr<Type>> =
+    fun collect(initialExpr: UExpr<*>): Set<UIsExpr<Type>> =
         caches.getOrElse(initialExpr) {
             apply(initialExpr)
             caches.getValue(initialExpr)
@@ -40,7 +40,7 @@ class UIsExprCollector<Field, Type>(override val ctx: KContext) : UTransformer<F
 
     override fun <T : KSort, A : KSort> transformApp(expr: KApp<T, A>): KExpr<T> =
         computeSideEffect(expr) {
-            val nestedConstraints = expr.args.flatMapTo(mutableSetOf()) { provide(it) }
+            val nestedConstraints = expr.args.flatMapTo(mutableSetOf()) { collect(it) }
 
             caches[expr] = nestedConstraints
         }
@@ -87,8 +87,8 @@ class UIsExprCollector<Field, Type>(override val ctx: KContext) : UTransformer<F
     ): UExpr<Sort> = computeSideEffect(expr) {
         val constraints = mutableSetOf<UIsExpr<Type>>()
 
-        constraints += provide(expr.index)
-        constraints += provide(expr.address)
+        constraints += collect(expr.index)
+        constraints += collect(expr.address)
 
         caches[expr] = constraints
     }
@@ -103,7 +103,7 @@ class UIsExprCollector<Field, Type>(override val ctx: KContext) : UTransformer<F
         expr: UHeapReading<*, *, Sort>,
         arg: UExpr<*>,
     ): UExpr<Sort> = computeSideEffect(expr) {
-        caches[expr] = provide(arg)
+        caches[expr] = collect(arg)
     }
 
     // region KExpressions

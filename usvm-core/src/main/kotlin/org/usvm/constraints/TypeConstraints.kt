@@ -40,9 +40,9 @@ class UTypeConstraints<Type>(
         equalityConstraints.subscribe(::intersectConstraints)
     }
 
-    val symbolicRefToTypeRegion get(): Map<USymbolicHeapRef, UTypeRegion<Type>> = symbolicRefToTypeRegion_
+    val symbolicRefToTypeRegion get(): Map<USymbolicHeapRef, UTypeRegion<Type>> = _symbolicRefToTypeRegion
 
-    private val symbolicRefToTypeRegion_ = symbolicRefToTypeRegion
+    private val _symbolicRefToTypeRegion = symbolicRefToTypeRegion
 
     /**
      * Returns true if the current type and equality constraints are unsatisfiable (syntactically).
@@ -68,12 +68,12 @@ class UTypeConstraints<Type>(
         concreteRefToType[ref] = type
     }
 
-    private operator fun get(symbolicRef: USymbolicHeapRef) =
-        symbolicRefToTypeRegion_[equalityConstraints.equalReferences.find(symbolicRef)] ?: topTypeRegion
+    private fun getRegion(symbolicRef: USymbolicHeapRef) =
+        _symbolicRefToTypeRegion[equalityConstraints.equalReferences.find(symbolicRef)] ?: topTypeRegion
 
 
-    private operator fun set(symbolicRef: USymbolicHeapRef, value: UTypeRegion<Type>) {
-        symbolicRefToTypeRegion_[equalityConstraints.equalReferences.find(symbolicRef)] = value
+    private fun setRegion(symbolicRef: USymbolicHeapRef, value: UTypeRegion<Type>) {
+        _symbolicRefToTypeRegion[equalityConstraints.equalReferences.find(symbolicRef)] = value
     }
 
     /**
@@ -96,14 +96,14 @@ class UTypeConstraints<Type>(
             }
 
             is USymbolicHeapRef -> {
-                val constraints = this[ref]
+                val constraints = getRegion(ref)
                 val newConstraints = constraints.addSupertype(type)
                 if (newConstraints.isContradicting) {
                     // the only left option here is to be equal to null
                     equalityConstraints.makeEqual(ref, ref.uctx.nullRef)
                 } else {
                     // Inferring new symbolic disequalities here
-                    for ((key, value) in symbolicRefToTypeRegion_.entries) {
+                    for ((key, value) in _symbolicRefToTypeRegion.entries) {
                         // TODO: cache intersections?
                         if (key != ref && value.intersect(newConstraints).isEmpty) {
                             // If we have two inputs of incomparable reference types, then they are either non equal,
@@ -111,7 +111,7 @@ class UTypeConstraints<Type>(
                             equalityConstraints.makeNonEqualOrBothNull(ref, key)
                         }
                     }
-                    this[ref] = newConstraints
+                    setRegion(ref, newConstraints)
                 }
             }
 
@@ -139,7 +139,7 @@ class UTypeConstraints<Type>(
             }
 
             is USymbolicHeapRef -> {
-                val constraints = this[ref]
+                val constraints = getRegion(ref)
                 val newConstraints = constraints.excludeSupertype(type)
                 equalityConstraints.makeNonEqual(ref, ref.uctx.nullRef)
                 if (newConstraints.isContradicting || equalityConstraints.isContradicting) {
@@ -147,14 +147,14 @@ class UTypeConstraints<Type>(
                     contradiction()
                 } else {
                     // Inferring new symbolic disequalities here
-                    for ((key, value) in symbolicRefToTypeRegion_.entries) {
+                    for ((key, value) in _symbolicRefToTypeRegion.entries) {
                         // TODO: cache intersections?
                         if (key != ref && value.intersect(newConstraints).isEmpty) {
                             // If we have two inputs of incomparable reference types, then they are non equal
                             equalityConstraints.makeNonEqual(ref, key)
                         }
                     }
-                    this[ref] = newConstraints
+                    setRegion(ref, newConstraints)
                 }
             }
 
@@ -180,14 +180,15 @@ class UTypeConstraints<Type>(
             is UNullRef -> error("Null ref should be handled explicitly earlier")
 
             is USymbolicHeapRef -> {
-                this[ref].typeStream
+                getRegion(ref).typeStream
             }
 
             else -> error("Unexpected ref: $ref")
         }
 
     private fun intersectConstraints(ref1: USymbolicHeapRef, ref2: USymbolicHeapRef) {
-        this[ref1] = this[ref1].intersect(this[ref2])
+        val newRegion = getRegion(ref1).intersect(getRegion(ref2))
+        setRegion(ref1, newRegion)
     }
 
     /**
@@ -208,7 +209,7 @@ class UTypeConstraints<Type>(
                     // accordingly to the [UIsExpr] specification, [nullRef] always satisfies the [type]
                     return@mapper symbolicRef.ctx.trueExpr
                 }
-                val typeRegion = this[symbolicRef]
+                val typeRegion = getRegion(symbolicRef)
 
                 if (typeRegion.addSupertype(type).isContradicting) {
                     symbolicRef.ctx.falseExpr
@@ -228,6 +229,6 @@ class UTypeConstraints<Type>(
             typeSystem,
             equalityConstraints,
             concreteRefToType.toMutableMap(),
-            symbolicRefToTypeRegion_.toMutableMap()
+            _symbolicRefToTypeRegion.toMutableMap()
         )
 }
