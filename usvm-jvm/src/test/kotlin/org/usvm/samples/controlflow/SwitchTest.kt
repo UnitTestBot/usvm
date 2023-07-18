@@ -52,4 +52,34 @@ internal class SwitchTest : JavaMethodTestRunner() {
             { _, m, r -> m !in setOf(HALF_DOWN, HALF_EVEN, HALF_UP, DOWN, CEILING) && r == -1 },
         )
     }
+
+    @Test
+    @Disabled("Expressions sorts mismatch: (BitVec 16), (BitVec 32)")
+    fun testCharToIntSwitch() {
+        checkDiscoveredPropertiesWithExceptions(
+            Switch::charToIntSwitch,
+            ge(8),
+            { _, c, r -> c == 'I' && r.getOrThrow() == 1 },
+            { _, c, r -> c == 'V' && r.getOrThrow() == 5 },
+            { _, c, r -> c == 'X' && r.getOrThrow() == 10 },
+            { _, c, r -> c == 'L' && r.getOrThrow() == 50 },
+            { _, c, r -> c == 'C' && r.getOrThrow() == 100 },
+            { _, c, r -> c == 'D' && r.getOrThrow() == 500 },
+            { _, c, r -> c == 'M' && r.getOrThrow() == 1000 },
+            { _, _, r -> r.exceptionOrNull() is IllegalAccessException },
+        )
+    }
+
+    @Test
+    @Disabled("An operation is not implemented: Not yet implemented. Support strings")
+    fun testStringSwitch() {
+        checkDiscoveredProperties(
+            Switch::stringSwitch,
+            ge(4),
+            { _, s, r -> s == "ABC" && r == 1 },
+            { _, s, r -> s == "DEF" && r == 2 },
+            { _, s, r -> s == "GHJ" && r == 2 },
+            { _, _, r -> r == -1 },
+        )
+    }
 }

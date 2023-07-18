@@ -59,17 +59,16 @@ public class Switch {
         }
     }
 
-    //TODO: String switch
-//    public int stringSwitch(String s) {
-//        switch (s) {
-//            case "ABC":
-//                return 1;
-//            case "DEF": // fall-through
-//            case "GHJ":
-//                return 2;
-//            default:
-//            return -1;
-//        }
-//    }
+    public int stringSwitch(String s) {
+        switch (s) {
+            case "ABC":
+                return 1;
+            case "DEF": // fall-through
+            case "GHJ":
+                return 2;
+            default:
+            return -1;
+        }
+    }
 }
 
