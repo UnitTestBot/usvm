@@ -29,4 +29,13 @@ class UCallStack<Method, Statement> private constructor(
         newStack.addAll(stack)
         return UCallStack(newStack)
     }
+
+    override fun toString(): String {
+        var frameCounter = 0
+
+        return joinToString(
+            prefix = "Call stack (contains $size frame${if (size > 1) "s" else ""}):${System.lineSeparator()}",
+            separator = System.lineSeparator()
+        ) { "\t${frameCounter++}: $it" }
+    }
 }

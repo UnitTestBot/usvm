@@ -26,22 +26,24 @@ sealed interface JcMethodResult {
     /**
      * A method threw an exception with [type] type.
      */
-    open class Exception(
+    open class JcException(
         val address: UHeapRef,
         val type: JcType,
 //        val symbolicStackTrace: List<JcMethod> // TODO should it contain locations? Probably, yes. Add message?
-    ) : JcMethodResult
+    ) : JcMethodResult {
+        override fun toString(): String = "${this::class.simpleName}: Address: $address, type: ${type.typeName}"
+    }
 
     /**
      * An unprocessed exception thrown by a method.
      *
-     * The difference between it and the [JcMethodResult.Exception] is that
+     * The difference between it and the [JcMethodResult.JcException] is that
      * this exception must be treated as an intermediate result of the method analysis,
-     * and it must be handled by an interpreter later, while the [Exception]
+     * and it must be handled by an interpreter later, while the [JcException]
      * is a final result that could be produced as a result of the symbolic execution.
      */
-    class UnprocessedException(
+    class UnprocessedJcException(
         address: UHeapRef,
         type: JcType,
-    ) : Exception(address, type)
+    ) : JcException(address, type)
 }

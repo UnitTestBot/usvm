@@ -78,8 +78,8 @@ class JcTestResolver(
         val result = when (val res = state.methodResult) {
             is JcMethodResult.NoCall -> error("No result found")
             is JcMethodResult.Success -> with(afterScope) { Result.success(resolveExpr(res.value, method.returnType)) }
-            is JcMethodResult.UnprocessedException -> error("An unprocessed exception should never occur in the Resolver")
-            is JcMethodResult.Exception -> Result.failure(resolveException(res, afterMemory))
+            is JcMethodResult.UnprocessedJcException -> error("An unprocessed exception should never occur in the Resolver")
+            is JcMethodResult.JcException -> Result.failure(resolveException(res, afterScope))
         }
         val coverage = resolveCoverage(method, state)
 
@@ -93,7 +93,7 @@ class JcTestResolver(
     }
 
     private fun resolveException(
-        exception: JcMethodResult.Exception,
+        exception: JcMethodResult.JcException,
         afterMemory: MemoryScope
     ): Throwable = with(afterMemory) {
         resolveExpr(exception.address, exception.type) as Throwable

@@ -1,9 +1,12 @@
 package org.usvm.test.util
 
+import mu.KLogging
 import org.usvm.UMachineOptions
 import org.usvm.test.util.TestRunner.CheckMode.MATCH_EXECUTIONS
 import org.usvm.test.util.TestRunner.CheckMode.MATCH_PROPERTIES
 import org.usvm.test.util.checkers.AnalysisResultsNumberMatcher
+
+val logger = object : KLogging() {}.logger
 
 /**
  * A base class for test runners for all interpreters.
@@ -64,11 +67,16 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
     ) {
         val analysisResults = runner(target, options)
 
-        // TODO replace with logs
-//        println(options)
-//
-//        println(createStringFromResults(analysisResults))
-//        println()
+        logger.debug { options }
+
+        logger.info {
+            buildString {
+                appendLine("${analysisResults.size} executions were found:")
+                analysisResults.forEach { appendLine("\t$it") }
+                appendLine("Extracted values:")
+                analysisResults.forEach { appendLine("\t${extractValuesToCheck(it)}") }
+            }
+        }
 
         if (checkMode != MATCH_EXECUTIONS) {
             require(analysisResultsNumberMatcher(analysisResults.size)) {

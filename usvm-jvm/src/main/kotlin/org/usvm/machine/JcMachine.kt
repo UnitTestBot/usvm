@@ -18,8 +18,8 @@ import org.usvm.statistics.CoverageStatistics
 import org.usvm.statistics.CoveredNewStatesCollector
 import org.usvm.statistics.DistanceStatistics
 import org.usvm.statistics.PathsTreeStatistics
-import org.usvm.statistics.UMachineObserver
 import org.usvm.statistics.TransitiveCoverageZoneObserver
+import org.usvm.statistics.UMachineObserver
 import org.usvm.stopstrategies.createStopStrategy
 
 val logger = object : KLogging() {}.logger
@@ -72,7 +72,7 @@ class JcMachine(
         )
 
         val statesCollector = CoveredNewStatesCollector<JcState>(coverageStatistics) {
-            it.methodResult is JcMethodResult.Exception
+            it.methodResult is JcMethodResult.JcException
         }
         val stopStrategy = createStopStrategy(
             options,

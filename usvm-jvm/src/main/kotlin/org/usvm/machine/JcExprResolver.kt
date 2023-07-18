@@ -397,7 +397,7 @@ class JcExprResolver(
                 null
             }
 
-            is JcMethodResult.Exception -> error("Exception should be handled earlier")
+            is JcMethodResult.JcException -> error("Exception should be handled earlier")
         }
     }
 
@@ -662,11 +662,7 @@ class JcExprResolver(
                 ?: return null
             scope.fork(
                 isExpr,
-                blockOnFalseState = {
-                    val ln = lastStmt.lineNumber
-                    val exception = ClassCastException("[class cast exception] $ln")
-                    throwException(exception)
-                }
+                blockOnFalseState = allocateException(classCastExceptionType)
             ) ?: return null
             expr
         } else {
@@ -728,7 +724,7 @@ class JcExprResolver(
     }
 
     private val arrayIndexOutOfBoundsExceptionType by lazy {
-        ctx.extractJcType(NegativeArraySizeException::class)
+        ctx.extractJcType(IndexOutOfBoundsException::class)
     }
 
     private val negativeArraySizeExceptionType by lazy {
@@ -741,6 +737,10 @@ class JcExprResolver(
 
     private val nullPointerExceptionType by lazy {
         ctx.extractJcType(NullPointerException::class)
+    }
+
+    private val classCastExceptionType by lazy {
+        ctx.extractJcType(ClassCastException::class)
     }
 
     companion object {

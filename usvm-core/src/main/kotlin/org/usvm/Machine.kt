@@ -3,6 +3,7 @@ package org.usvm
 import mu.KLogging
 import org.usvm.statistics.UMachineObserver
 import org.usvm.stopstrategies.StopStrategy
+import org.usvm.stopstrategies.stopReason
 import org.usvm.util.bracket
 import org.usvm.util.debug
 
@@ -63,6 +64,10 @@ abstract class UMachine<State> : AutoCloseable {
                 if (aliveForkedStates.isNotEmpty()) {
                     pathSelector.add(aliveForkedStates)
                 }
+            }
+
+            if (!pathSelector.isEmpty()) {
+                logger.debug { stopReason(stopStrategy) }
             }
         }
     }

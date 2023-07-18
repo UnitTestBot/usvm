@@ -52,18 +52,21 @@ internal class RecursionTest : JavaMethodTestRunner() {
             { _, x, y, r -> y == 0 && r == x },
             { _, x, y, r -> y != 0 && r == x + y }
         )
+
     }
 
-    @Test
-    fun testPow() {
-        checkDiscoveredPropertiesWithExceptions(
-            Recursion::pow,
-            eq(4),
-            { _, _, y, r -> y < 0 && r.isException<IllegalArgumentException>() },
-            { _, _, y, r -> y == 0 && r.getOrNull() == 1 },
-            { _, x, y, r -> y % 2 == 1 && r.getOrNull() == x.toDouble().pow(y.toDouble()).toInt() },
-            { _, x, y, r -> y % 2 != 1 && r.getOrNull() == x.toDouble().pow(y.toDouble()).toInt() }
-        )
+    @UsvmTest([Options([PathSelectionStrategy.CLOSEST_TO_UNCOVERED_RANDOM])])
+    fun testPow(options: UMachineOptions) {
+        withOptions(options) {
+            checkDiscoveredPropertiesWithExceptions(
+                Recursion::pow,
+                eq(4),
+                { _, _, y, r -> y < 0 && r.isException<IllegalArgumentException>() },
+                { _, _, y, r -> y == 0 && r.getOrNull() == 1 },
+                { _, x, y, r -> y % 2 == 1 && r.getOrNull() == x.toDouble().pow(y.toDouble()).toInt() },
+                { _, x, y, r -> y % 2 != 1 && r.getOrNull() == x.toDouble().pow(y.toDouble()).toInt() }
+            )
+        }
     }
 
     @Test

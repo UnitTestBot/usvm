@@ -97,7 +97,7 @@ class JcInterpreter(
 
         // handle exception firstly
         val result = state.methodResult
-        if (result is JcMethodResult.Exception) {
+        if (result is JcMethodResult.JcException) {
             handleException(scope, result, stmt)
             return scope.stepResult()
         }
@@ -119,60 +119,46 @@ class JcInterpreter(
     // TODO this section doesn't work as it should considering symbolic exceptions.
     private fun handleException(
         scope: JcStepScope,
-        exception: JcMethodResult.Exception,
+        exception: JcMethodResult.JcException,
         lastStmt: JcInst,
     ) {
-        // TODO process WrapperExceptions here with their symbolic types
-        val exceptionTypeName = exception.type.typeName
+        val catchStatements = applicationGraph.successors(lastStmt).filterIsInstance<JcCatchInst>().toList()
 
-        // TODO replace it with type streams when they are ready
-        fun findAllSubtypes(type: JcType): List<JcType> {
-            val queue = mutableListOf(type)
-            val processedSubtypes = mutableSetOf<JcType>()
-            val result = mutableSetOf<JcType>()
+        var negationCondition = ctx.mkTrue()
 
-            while (queue.isNotEmpty()) {
-                val processingType = queue.removeLast()
-                result += processingType
-                processedSubtypes += processingType
-                ctx.typeSystem<JcType>().findSubtypes(processingType).forEach {
-                    if (it !in processedSubtypes) {
-                        queue += it
-                    }
-                }
+        for (i in 0 until catchStatements.lastIndex) {
+            val catchInst = catchStatements[i]
+            val typeConstraints = scope.calcOnState {
+                ctx.mkOr(catchInst.throwableTypes.map { memory.types.evalIs(exception.address, it) } )
+            } ?: continue
+
+            scope.fork()
+        }
+
+        catchStatements.fold(ctx.trueExpr) { acc, catchInst ->
+                val types = catchInst.throwableTypes
+                val typeConstraints = scope.calcOnState {
+                    ctx.mkOr(types.map { memory.types.evalIs(exception.address, it) })
+                } ?: return@fold acc // TODO is it right?
+
+                scope.fork(
+                    condition = typeConstraints,
+                    blockOnTrueState = {
+                        val lValue = exprResolverWithScope(scope).resolveLValue(catchInst.throwable)
+                            ?: return@fork // TODO it is right?
+                        val exceptionResult = methodResult as JcMethodResult.JcException
+
+                        memory.write(lValue, exceptionResult.address)
+
+                        methodResult = JcMethodResult.NoCall
+                        newStmt(catchInst.nextStmt)
+                    },
+                )
+
+                acc
             }
 
-            return result.toList()
-        }
-
-        // TODO that's not true, we have to process a situation when a symbolic exception
-        //      can be handled in several catch sections
-        val catchInst = applicationGraph.successors(lastStmt)
-            .filterIsInstance<JcCatchInst>()
-            .firstOrNull { catchInst ->
-                val possibleTypesNames = catchInst
-                    .throwableTypes
-                    .flatMapTo(mutableSetOf()) { findAllSubtypes(it) }
-                    .map { it.typeName } // TODO use smth more efficient than strings for comparison
-
-                // TODO should be replaced with symbolic types intersection in the future
-                exceptionTypeName in possibleTypesNames
-            }
-
-        if (catchInst == null) {
-            scope.calcOnState { throwException(exception) }
-            return
-        }
-
-        scope.doWithState {
-            val lValue = exprResolverWithScope(scope).resolveLValue(catchInst.throwable) ?: return@doWithState
-            val exceptionResult = methodResult as JcMethodResult.Exception
-
-            memory.write(lValue, exceptionResult.address)
-
-            methodResult = JcMethodResult.NoCall
-            newStmt(catchInst.nextStmt)
-        }
+        scope.calcOnState { throwException(exception) }
     }
 
     private fun visitAssignInst(scope: JcStepScope, stmt: JcAssignInst) {
