@@ -88,7 +88,7 @@ data class UMachineOptions(
      *
      * @see PathSelectionStrategy
      */
-    val pathSelectionStrategies: List<PathSelectionStrategy> = listOf(PathSelectionStrategy.BFS),
+    val pathSelectionStrategies: List<PathSelectionStrategy> = listOf(PathSelectionStrategy.INFERENCE_WITH_LOGGING),
     /**
      * Strategy to combine multiple [pathSelectionStrategies].
      *

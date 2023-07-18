@@ -32,7 +32,7 @@ sourceSets {
     test {
         compileClasspath += samples.output
         runtimeClasspath += samples.output
-    }
+     }
 }
 
 val samplesImplementation: Configuration by configurations.getting
@@ -55,22 +55,19 @@ tasks {
         }
 
         from(sourceSets.main.get().output)
-        from(java.sourceSets.getByName("test").output)
+        from(sourceSets.test.get().output)
         from(java.sourceSets.getByName("samples").output)
 
-        dependsOn(configurations.runtimeClasspath)
+        dependsOn.addAll(listOf(configurations.runtimeClasspath,
+            configurations.testRuntimeClasspath,
+            java.sourceSets.getByName("samples").runtimeClasspath))
+
         from({
             configurations.runtimeClasspath.get().filter { it.name.endsWith("jar") }.map { zipTree(it) }
         })
-
-        dependsOn(configurations.testRuntimeClasspath)
         from({
-            // configurations.testRuntimeClasspath.get().filter { it.name.endsWith("jar") }.map { zipTree(it) }
-
-            java.sourceSets.getByName("test").runtimeClasspath.filter { it.name.endsWith("jar") }.map { zipTree(it) }
+             configurations.testRuntimeClasspath.get().filter { it.name.endsWith("jar") }.map { zipTree(it) }
         })
-
-        dependsOn(java.sourceSets.getByName("samples").runtimeClasspath)
         from({
             java.sourceSets.getByName("samples").runtimeClasspath.asFileTree.filter { it.name.endsWith("jar") }.map { zipTree(it) }
         })

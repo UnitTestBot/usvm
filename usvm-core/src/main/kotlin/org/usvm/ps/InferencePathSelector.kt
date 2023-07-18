@@ -30,12 +30,12 @@ internal open class InferencePathSelector<State : UState<*, *, Method, Statement
     distanceStatistics,
     applicationGraph
 ) {
-    private val modelPath = "./model/model.onnx"
+    private val modelPath = "../Game_env/model.onnx"
     private var model: Model<KIONNXData<*>>? = null
     private var env: OrtEnvironment? = null
     private var session: OrtSession? = null
 
-    private val graphsPath = "./graphs/"
+    private val graphsPath = "../Game_env/graphs/"
     private var qValues = listOf<Float>()
     private var stepCount = 0
 

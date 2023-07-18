@@ -1,13 +1,16 @@
 package org.usvm
 
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.*
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import java.io.File
-import java.net.URLClassLoader
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.*
 import java.lang.reflect.InvocationTargetException
+import java.net.URLClassLoader
 import kotlin.io.path.Path
+import kotlin.reflect.full.createInstance
+import kotlin.reflect.full.hasAnnotation
 
 
 fun recursiveLoad(currentDir: File, classes: MutableList<Class<*>>, classLoader: ClassLoader, path: String) {
@@ -26,7 +29,7 @@ fun recursiveLoad(currentDir: File, classes: MutableList<Class<*>>, classLoader:
 }
 
 fun main() {
-    val samplesDir = File("./usvm-jvm/src/test/kotlin")
+    val samplesDir = File("../Game_env/usvm-jvm/src/test/kotlin")
     println(File("").absoluteFile)
     val classLoader = URLClassLoader(arrayOf(samplesDir.toURI().toURL()))
     val classes = mutableListOf<Class<*>>()
@@ -38,30 +41,27 @@ fun main() {
         if (!cls.methods.any { it.isAnnotationPresent(Test::class.java) }) {
             return@forEach
         }
-        val instance = cls.getDeclaredConstructor().newInstance()
-        cls.methods.forEach loop@ { method ->
-            if (method.annotations.isEmpty()) {
-                return@loop
-            }
-            if (method.annotations.map { it.annotationClass.simpleName }.contains("BeforeEach")) {
-                method.invoke(instance)
-            }
-        }
-        cls.methods.forEach loop@ { method ->
-            if (method.declaringClass != cls) {
-                return@loop
-            }
-            if (method.annotations.isEmpty()) {
-                return@loop
-            }
-            if (method.isAnnotationPresent(Disabled::class.java)) {
-                return@loop
-            }
-            if (!method.isAnnotationPresent(Test::class.java)) {
+        val kotlinCls = cls::kotlin.get()
+        val instance = kotlinCls.createInstance()
+        kotlinCls.members.forEach loop@{ method ->
+            if (!method.hasAnnotation<BeforeEach>()) {
                 return@loop
             }
             try {
-                method.invoke(instance)
+                method.call(instance)
+            } catch (e: Exception) {
+                println("Before each exception: $e")
+            }
+        }
+        kotlinCls.members.forEach loop@{ method ->
+            if (method.hasAnnotation<Disabled>()) {
+                return@loop
+            }
+            if (!method.hasAnnotation<Test>()) {
+                return@loop
+            }
+            try {
+                method.call(instance)
             } catch (e: InvocationTargetException) {
                 println("InvocationTargetException: ${e.cause}")
             } catch (e: Exception) {
@@ -70,16 +70,20 @@ fun main() {
         }
     }
 
-    val dirname = "./paths_log/"
-    val resultDirname = "${dirname}final"
-    val resultFilename = "result.json"
+    val dirname = "../Data/jsons/"
+    val resultDirname = "../Data/"
+    val resultFilename = "current_dataset.json"
     val jsons = mutableListOf<JsonElement>()
 
     File(dirname).listFiles()?.forEach { file ->
         if (!file.isFile || file.extension != "json") {
             return@forEach
         }
-        jsons.add(Json.decodeFromString(file.readText()))
+        val json = Json.decodeFromString<JsonElement>(file.readText())
+        jsons.add(buildJsonObject {
+            put("methodHash", file.nameWithoutExtension.toInt())
+            put("json", json)
+        })
         file.delete()
     }
 
@@ -87,10 +91,13 @@ fun main() {
         return
     }
     val bigJson = buildJsonObject {
-        put("scheme", jsons.first().jsonObject["scheme"]!!)
+        put("scheme", jsons.first().jsonObject["json"]!!.jsonObject["scheme"]!!)
         putJsonArray("paths") {
             jsons.forEach {
-                add(it.jsonObject["path"]!!)
+                addJsonArray {
+                    add(it.jsonObject["methodHash"]!!)
+                    add(it.jsonObject["json"]!!.jsonObject["path"]!!)
+                }
             }
         }
     }

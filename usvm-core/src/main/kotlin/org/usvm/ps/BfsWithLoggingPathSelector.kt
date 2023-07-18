@@ -12,6 +12,7 @@ import org.usvm.statistics.PathsTreeStatistics
 import java.io.File
 import kotlin.collections.ArrayDeque
 import kotlin.collections.HashSet
+import kotlin.io.path.Path
 import kotlin.math.log2
 
 internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Statement>, Statement, Method>(
@@ -28,7 +29,7 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
 
     protected val path = mutableListOf<ActionData>()
 
-    private val filepath = "./paths_log/"
+    private val filepath = "../Data/jsons/"
     private var filename: String? = null
     private val jsonScheme: JsonArray
     private var jsonFormat = Json {
@@ -204,7 +205,7 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
                 }
             }
         }
-        File("$filepath$filename.json")
+        Path(filepath, "$filename.json").toFile()
             .writeText(jsonFormat.encodeToString(jsonData))
     }
 
