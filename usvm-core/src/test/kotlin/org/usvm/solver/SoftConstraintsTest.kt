@@ -14,7 +14,6 @@ import org.usvm.constraints.UPathConstraints
 import org.usvm.memory.emptyInputArrayLengthRegion
 import org.usvm.model.ULazyModelDecoder
 import org.usvm.model.buildTranslatorAndLazyDecoder
-import org.usvm.types.UTypeSystem
 import org.usvm.types.single.SingleTypeSystem
 import kotlin.test.assertSame
 
@@ -37,7 +36,8 @@ open class SoftConstraintsTest<Field, Type, Method> {
 
         translator = translatorWithDecoder.first
         decoder = translatorWithDecoder.second
-        solver = USolverBase(ctx, KZ3Solver(ctx), translator, decoder, softConstraintsProvider)
+        val typeSolver = UTypeSolver(translator, mockk())
+        solver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder, softConstraintsProvider)
     }
 
     @Test
@@ -78,7 +78,8 @@ open class SoftConstraintsTest<Field, Type, Method> {
         pc += sndExpr
         pc += sameAsFirstExpr
 
-        val solver = USolverBase(ctx, KZ3Solver(ctx), translator, decoder, softConstraintsProvider)
+        val typeSolver = UTypeSolver(translator, mockk())
+        val solver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder, softConstraintsProvider)
 
         val result = solver.checkWithSoftConstraints(pc) as USatResult
         val model = result.model

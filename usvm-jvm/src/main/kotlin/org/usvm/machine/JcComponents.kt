@@ -11,6 +11,7 @@ import org.usvm.UContext
 import org.usvm.model.buildTranslatorAndLazyDecoder
 import org.usvm.solver.USoftConstraintsProvider
 import org.usvm.solver.USolverBase
+import org.usvm.solver.UTypeSolver
 
 class JcComponents(
     private val typeSystem: JcTypeSystem,
@@ -26,8 +27,9 @@ class JcComponents(
                 SolverType.YICES -> KYicesSolver(ctx)
                 SolverType.Z3 -> KZ3Solver(ctx)
             }
+        val typeSolver = UTypeSolver(translator, typeSystem)
         closeableResources += smtSolver
-        return USolverBase(ctx, smtSolver, translator, decoder, softConstraintsProvider)
+        return USolverBase(ctx, smtSolver, typeSolver, translator, decoder, softConstraintsProvider)
     }
 
     fun close() {

@@ -83,7 +83,7 @@ class JcInterpreter(
 
         val solver = ctx.solver<JcField, JcType, JcMethod>()
 
-        val model = (solver.check(state.pathConstraints, useSoftConstraints = true) as USatResult).model
+        val model = (solver.checkWithSoftConstraints(state.pathConstraints) as USatResult).model
         state.models = listOf(model)
 
         return state

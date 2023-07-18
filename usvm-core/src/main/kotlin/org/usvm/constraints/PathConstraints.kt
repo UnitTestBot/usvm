@@ -7,10 +7,10 @@ import org.usvm.UBoolExpr
 import org.usvm.UContext
 import org.usvm.UEqExpr
 import org.usvm.UFalse
-import org.usvm.UHeapRef
 import org.usvm.UIsExpr
 import org.usvm.UNotExpr
 import org.usvm.UOrExpr
+import org.usvm.USymbolicHeapRef
 import org.usvm.isSymbolicHeapRef
 import org.usvm.memory.map
 import org.usvm.uctx
@@ -55,7 +55,7 @@ open class UPathConstraints<Type> private constructor(
                 constraint == trueExpr || constraint in logicalConstraints -> {}
 
                 constraint is UEqExpr<*> && isSymbolicHeapRef(constraint.lhs) && isSymbolicHeapRef(constraint.rhs) ->
-                    equalityConstraints.makeEqual(constraint.lhs as UHeapRef, constraint.rhs as UHeapRef)
+                    equalityConstraints.makeEqual(constraint.lhs as USymbolicHeapRef, constraint.rhs as USymbolicHeapRef)
 
                 constraint is UIsExpr<*> -> {
                     val expr = constraint.ref.map(
@@ -81,8 +81,8 @@ open class UPathConstraints<Type> private constructor(
                                 isSymbolicHeapRef(notConstraint.rhs) -> {
                             require(notConstraint.rhs.sort == addressSort)
                             equalityConstraints.makeNonEqual(
-                                notConstraint.lhs as UHeapRef,
-                                notConstraint.rhs as UHeapRef
+                                notConstraint.lhs as USymbolicHeapRef,
+                                notConstraint.rhs as USymbolicHeapRef
                             )
                         }
 

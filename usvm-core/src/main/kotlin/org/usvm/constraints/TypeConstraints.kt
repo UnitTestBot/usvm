@@ -1,6 +1,5 @@
 package org.usvm.constraints
 
-import org.usvm.NULL_ADDRESS
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapAddress
 import org.usvm.UConcreteHeapRef
@@ -8,11 +7,6 @@ import org.usvm.UHeapRef
 import org.usvm.UNullRef
 import org.usvm.USymbolicHeapRef
 import org.usvm.memory.map
-import org.usvm.model.UModel
-import org.usvm.model.UTypeModel
-import org.usvm.solver.USatResult
-import org.usvm.solver.USolverResult
-import org.usvm.solver.UUnsatResult
 import org.usvm.types.USingleTypeStream
 import org.usvm.types.UTypeRegion
 import org.usvm.types.UTypeStream
@@ -40,11 +34,15 @@ class UTypeConstraints<Type>(
     private val typeSystem: UTypeSystem<Type>,
     private val equalityConstraints: UEqualityConstraints,
     private val concreteRefToType: MutableMap<UConcreteHeapAddress, Type> = mutableMapOf(),
-    private val symbolicRefToTypeRegion: MutableMap<UHeapRef, UTypeRegion<Type>> = mutableMapOf(),
+    symbolicRefToTypeRegion: MutableMap<USymbolicHeapRef, UTypeRegion<Type>> = mutableMapOf(),
 ) : UTypeEvaluator<Type> {
     init {
         equalityConstraints.subscribe(::intersectConstraints)
     }
+
+    val symbolicRefToTypeRegion get(): Map<USymbolicHeapRef, UTypeRegion<Type>> = symbolicRefToTypeRegion_
+
+    private val symbolicRefToTypeRegion_ = symbolicRefToTypeRegion
 
     /**
      * Returns true if the current type and equality constraints are unsatisfiable (syntactically).
@@ -70,12 +68,12 @@ class UTypeConstraints<Type>(
         concreteRefToType[ref] = type
     }
 
-    private operator fun get(symbolicRef: UHeapRef) =
-        symbolicRefToTypeRegion[equalityConstraints.equalReferences.find(symbolicRef)] ?: topTypeRegion
+    private operator fun get(symbolicRef: USymbolicHeapRef) =
+        symbolicRefToTypeRegion_[equalityConstraints.equalReferences.find(symbolicRef)] ?: topTypeRegion
 
 
-    private operator fun set(symbolicRef: UHeapRef, value: UTypeRegion<Type>) {
-        symbolicRefToTypeRegion[equalityConstraints.equalReferences.find(symbolicRef)] = value
+    private operator fun set(symbolicRef: USymbolicHeapRef, value: UTypeRegion<Type>) {
+        symbolicRefToTypeRegion_[equalityConstraints.equalReferences.find(symbolicRef)] = value
     }
 
     /**
@@ -105,7 +103,7 @@ class UTypeConstraints<Type>(
                     equalityConstraints.makeEqual(ref, ref.uctx.nullRef)
                 } else {
                     // Inferring new symbolic disequalities here
-                    for ((key, value) in symbolicRefToTypeRegion.entries) {
+                    for ((key, value) in symbolicRefToTypeRegion_.entries) {
                         // TODO: cache intersections?
                         if (key != ref && value.intersect(newConstraints).isEmpty) {
                             // If we have two inputs of incomparable reference types, then they are either non equal,
@@ -149,7 +147,7 @@ class UTypeConstraints<Type>(
                     contradiction()
                 } else {
                     // Inferring new symbolic disequalities here
-                    for ((key, value) in symbolicRefToTypeRegion.entries) {
+                    for ((key, value) in symbolicRefToTypeRegion_.entries) {
                         // TODO: cache intersections?
                         if (key != ref && value.intersect(newConstraints).isEmpty) {
                             // If we have two inputs of incomparable reference types, then they are non equal
@@ -180,10 +178,15 @@ class UTypeConstraints<Type>(
             }
 
             is UNullRef -> error("Null ref should be handled explicitly earlier")
-            else -> this[ref].typeStream
+
+            is USymbolicHeapRef -> {
+                this[ref].typeStream
+            }
+
+            else -> error("Unexpected ref: $ref")
         }
 
-    private fun intersectConstraints(ref1: UHeapRef, ref2: UHeapRef) {
+    private fun intersectConstraints(ref1: USymbolicHeapRef, ref2: USymbolicHeapRef) {
         this[ref1] = this[ref1].intersect(this[ref2])
     }
 
@@ -225,124 +228,6 @@ class UTypeConstraints<Type>(
             typeSystem,
             equalityConstraints,
             concreteRefToType.toMutableMap(),
-            symbolicRefToTypeRegion.toMutableMap()
+            symbolicRefToTypeRegion_.toMutableMap()
         )
-
-    /**
-     * Checks if the [model] satisfies this [UTypeConstraints].
-     *
-     * Checking works as follows:
-     * 1. Groups symbolic references into clusters by their concrete interpretation in the [model] and filters out nulls
-     * 2. For each cluster processes symbolic references one by one and intersects their type regions
-     * 3. If the current region became empty, then we found a conflicting group, so add reference disequality
-     * 4. If no conflicting references were found, builds a type model
-     *
-     * Example:
-     * ```
-     * a <: T1 | T2
-     * b <: T2 | T3
-     * c <: T3 | T1
-     * d <: T1 | T2
-     * e <: T2
-     * cluster: (a, b, c, d, e)
-     * ```
-     * Suppose we have the single cluster, so we process it as follows:
-     *
-     * 1. Peek `a`. The current region is empty, so it becomes `T1 | T2`. Potential conflicting refs = `{a}`.
-     * 2. Peek `b`. The current region becomes `T2`. Potential conflicting refs = `{a, b}`.
-     * 3. Peek `c`. The intersection of the current region with `T3 | T1` is empty, so we add the following constraint:
-     * `a != c || b != c || a == null || b == null || c == null`. The region becomes `T3 | T1`.
-     * Potential conflicting refs = `{c}.
-     * 4. Peek `d`. The current region becomes `T1`. Potential conflicting refs = `{c, d}`.
-     * 5. Peek `e`. The intersection of the current region with `T2` is empty, so we add the following constraint:
-     * `c != e || d != e || c == null || d == null || e == null`.
-     *
-     * @return The result of verification:
-     * * [UTypeModel] if the [model] satisfies this [UTypeConstraints]
-     * * [UUnsatResult] if no model satisfying this [UTypeConstraints] exists
-     * * [UTypeUnsatResult] with reference disequalities constraints if the [model]
-     * doesn't satisfy this [UTypeConstraints], but other model may satisfy
-     */
-    internal fun verify(model: UModel): USolverResult<UTypeModel<Type>> {
-        // firstly, group symbolic references by their interpretations in the [model]
-        val concreteRefToTypeRegions = symbolicRefToTypeRegion
-            .entries
-            .groupBy { (key, _) -> (model.eval(key) as UConcreteHeapRef).address }
-            .filter { it.key != NULL_ADDRESS } // we don't want to evaluate types of nulls
-
-        val bannedRefEqualities = mutableListOf<UBoolExpr>()
-
-        // then for each group check conflicting types
-        val concreteToRegionWithCluster = concreteRefToTypeRegions.mapValues { (_, cluster) ->
-            var currentRegion: UTypeRegion<Type>? = null
-            val potentialConflictingRefs = mutableListOf<UHeapRef>()
-
-            for ((heapRef, region) in cluster) {
-                if (currentRegion == null) { // process the first element
-                    currentRegion = region
-                    potentialConflictingRefs.add(heapRef)
-                } else {
-                    var nextRegion = currentRegion.intersect(region) // add [heapRef] to the current region
-                    if (nextRegion.isEmpty) {
-                        // conflict detected, so it's impossible for [potentialConflictingRefs]
-                        // to have the common type with [heapRef], therefore they can't be equal or
-                        // some of them equals null
-                        val disjunct = mutableListOf<UBoolExpr>()
-                        with(heapRef.uctx) {
-                            // can't be equal to heapRef
-                            potentialConflictingRefs.mapTo(disjunct) { it.neq(heapRef) }
-                            // some of them is null
-                            potentialConflictingRefs.mapTo(disjunct) { it.eq(nullRef) }
-                            disjunct += heapRef.eq(nullRef)
-                        }
-                        bannedRefEqualities += heapRef.ctx.mkOr(disjunct)
-
-                        // start a new group
-                        nextRegion = region
-                        potentialConflictingRefs.clear()
-                        potentialConflictingRefs.add(heapRef)
-                    } else if (nextRegion == region) {
-                        // the current [heapRef] gives the same region as the potentialConflictingRefs, so it's better
-                        // to keep only the [heapRef] to minimize the disequalities amount in the result disjunction
-                        potentialConflictingRefs.clear()
-                        potentialConflictingRefs.add(heapRef)
-                    } else if (nextRegion != currentRegion) {
-                        // no conflict detected, but the current region became smaller
-                        potentialConflictingRefs.add(heapRef)
-                    }
-
-                    currentRegion = nextRegion
-                }
-            }
-            checkNotNull(currentRegion)
-
-            currentRegion to cluster
-        }
-
-        // if there were some conflicts, return constraints on reference equalities
-        if (bannedRefEqualities.isNotEmpty()) {
-            return UTypeUnsatResult(bannedRefEqualities)
-        }
-
-        // otherwise, return the type assignment
-        val allConcreteRefToType = concreteToRegionWithCluster.mapValues { (_, regionToCluster) ->
-            val (region, cluster) = regionToCluster
-            val typeStream = region.typeStream
-            if (typeStream.isEmpty) {
-                // the only way to reach here is when some of the clusters consists of a single reference
-                // because if the cluster is bigger, then we called region.isEmpty previously at least once
-                check(cluster.size == 1)
-                return UUnsatResult()
-            }
-
-            typeStream
-        }
-
-        val typeModel = UTypeModel(typeSystem, allConcreteRefToType)
-        return USatResult(typeModel)
-    }
 }
-
-class UTypeUnsatResult<Type>(
-    val referenceDisequalitiesDisjuncts: List<UBoolExpr>,
-) : UUnsatResult<UTypeModel<Type>>()

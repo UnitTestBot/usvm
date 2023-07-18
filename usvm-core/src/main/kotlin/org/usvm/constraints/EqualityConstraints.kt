@@ -1,7 +1,7 @@
 package org.usvm.constraints
 
 import org.usvm.UContext
-import org.usvm.UHeapRef
+import org.usvm.USymbolicHeapRef
 import org.usvm.util.DisjointSets
 
 /**
@@ -19,18 +19,18 @@ import org.usvm.util.DisjointSets
  */
 class UEqualityConstraints private constructor(
     private val ctx: UContext,
-    val equalReferences: DisjointSets<UHeapRef>,
-    private val mutableDistinctReferences: MutableSet<UHeapRef>,
-    private val mutableReferenceDisequalities: MutableMap<UHeapRef, MutableSet<UHeapRef>>,
-    private val mutableNullableDisequalities: MutableMap<UHeapRef, MutableSet<UHeapRef>>,
+    val equalReferences: DisjointSets<USymbolicHeapRef>,
+    private val mutableDistinctReferences: MutableSet<USymbolicHeapRef>,
+    private val mutableReferenceDisequalities: MutableMap<USymbolicHeapRef, MutableSet<USymbolicHeapRef>>,
+    private val mutableNullableDisequalities: MutableMap<USymbolicHeapRef, MutableSet<USymbolicHeapRef>>,
 ) {
     constructor(ctx: UContext) : this(ctx, DisjointSets(), mutableSetOf(ctx.nullRef), mutableMapOf(), mutableMapOf())
 
-    val distinctReferences: Set<UHeapRef> = mutableDistinctReferences
+    val distinctReferences: Set<USymbolicHeapRef> = mutableDistinctReferences
 
-    val referenceDisequalities: Map<UHeapRef, Set<UHeapRef>> = mutableReferenceDisequalities
+    val referenceDisequalities: Map<USymbolicHeapRef, Set<USymbolicHeapRef>> = mutableReferenceDisequalities
 
-    val nullableDisequalities: Map<UHeapRef, Set<UHeapRef>> = mutableNullableDisequalities
+    val nullableDisequalities: Map<USymbolicHeapRef, Set<USymbolicHeapRef>> = mutableNullableDisequalities
 
     init {
         equalReferences.subscribe(::rename)
@@ -46,24 +46,24 @@ class UEqualityConstraints private constructor(
         mutableReferenceDisequalities.clear()
     }
 
-    private fun containsReferenceDisequality(ref1: UHeapRef, ref2: UHeapRef) =
+    private fun containsReferenceDisequality(ref1: USymbolicHeapRef, ref2: USymbolicHeapRef) =
         referenceDisequalities[ref1]?.contains(ref2) ?: false
 
-    private fun containsNullableDisequality(ref1: UHeapRef, ref2: UHeapRef) =
+    private fun containsNullableDisequality(ref1: USymbolicHeapRef, ref2: USymbolicHeapRef) =
         nullableDisequalities[ref1]?.contains(ref2) ?: false
 
     /**
      * Returns if [ref1] is identical to [ref2] in *all* models.
      */
-    internal fun areEqual(ref1: UHeapRef, ref2: UHeapRef) =
+    internal fun areEqual(ref1: USymbolicHeapRef, ref2: USymbolicHeapRef) =
         equalReferences.connected(ref1, ref2)
 
     /**
      * Returns if [ref] is null in all models.
      */
-    internal fun isNull(ref: UHeapRef) = areEqual(ctx.nullRef, ref)
+    internal fun isNull(ref: USymbolicHeapRef) = areEqual(ctx.nullRef, ref)
 
-    private fun areDistinctRepresentatives(repr1: UHeapRef, repr2: UHeapRef): Boolean {
+    private fun areDistinctRepresentatives(repr1: USymbolicHeapRef, repr2: USymbolicHeapRef): Boolean {
         if (repr1 == repr2) {
             return false
         }
@@ -75,7 +75,7 @@ class UEqualityConstraints private constructor(
     /**
      * Returns if [ref1] is distinct from [ref2] in *all* models.
      */
-    internal fun areDistinct(ref1: UHeapRef, ref2: UHeapRef): Boolean {
+    internal fun areDistinct(ref1: USymbolicHeapRef, ref2: USymbolicHeapRef): Boolean {
         val repr1 = equalReferences.find(ref1)
         val repr2 = equalReferences.find(ref2)
         return areDistinctRepresentatives(repr1, repr2)
@@ -84,12 +84,12 @@ class UEqualityConstraints private constructor(
     /**
      * Returns if [ref] is not null in all models.
      */
-    internal fun isNotNull(ref: UHeapRef) = areDistinct(ctx.nullRef, ref)
+    internal fun isNotNull(ref: USymbolicHeapRef) = areDistinct(ctx.nullRef, ref)
 
     /**
      * Adds an assertion that [ref1] is always equal to [ref2].
      */
-    internal fun makeEqual(ref1: UHeapRef, ref2: UHeapRef) {
+    internal fun makeEqual(ref1: USymbolicHeapRef, ref2: USymbolicHeapRef) {
         if (isContradicting) {
             return
         }
@@ -104,7 +104,7 @@ class UEqualityConstraints private constructor(
      * Here we react to merging of equivalence classes of [from] and [to] into one represented by [to], by eliminating
      * [from] and merging its disequality constraints into [to].
      */
-    private fun rename(to: UHeapRef, from: UHeapRef) {
+    private fun rename(to: USymbolicHeapRef, from: USymbolicHeapRef) {
         if (distinctReferences.contains(from)) {
             if (distinctReferences.contains(to)) {
                 contradiction()
@@ -152,7 +152,7 @@ class UEqualityConstraints private constructor(
         }
     }
 
-    private fun addDisequalityUnguarded(repr1: UHeapRef, repr2: UHeapRef) {
+    private fun addDisequalityUnguarded(repr1: USymbolicHeapRef, repr2: USymbolicHeapRef) {
         when (distinctReferences.size) {
             0 -> {
                 require(referenceDisequalities.isEmpty())
@@ -210,7 +210,7 @@ class UEqualityConstraints private constructor(
     /**
      * Adds an assertion that [ref1] is never equal to [ref2].
      */
-    internal fun makeNonEqual(ref1: UHeapRef, ref2: UHeapRef) {
+    internal fun makeNonEqual(ref1: USymbolicHeapRef, ref2: USymbolicHeapRef) {
         if (isContradicting) {
             return
         }
@@ -232,7 +232,7 @@ class UEqualityConstraints private constructor(
     /**
      * Adds an assertion that [ref1] is never equal to [ref2] or both are null.
      */
-    internal fun makeNonEqualOrBothNull(ref1: UHeapRef, ref2: UHeapRef) {
+    internal fun makeNonEqualOrBothNull(ref1: USymbolicHeapRef, ref2: USymbolicHeapRef) {
         if (isContradicting) {
             return
         }
@@ -262,7 +262,7 @@ class UEqualityConstraints private constructor(
         (mutableNullableDisequalities.getOrPut(repr2) { mutableSetOf() }).add(repr1)
     }
 
-    private fun removeNullableDisequality(repr1: UHeapRef, repr2: UHeapRef) {
+    private fun removeNullableDisequality(repr1: USymbolicHeapRef, repr2: USymbolicHeapRef) {
         if (containsNullableDisequality(repr1, repr2)) {
             mutableNullableDisequalities[repr1]?.remove(repr2)
             mutableNullableDisequalities[repr2]?.remove(repr1)
@@ -275,7 +275,7 @@ class UEqualityConstraints private constructor(
      * [equalityCallback] (x, y) is called.
      * Note that the order of arguments matters: the first argument is a representative of the new equivalence class.
      */
-    fun subscribe(equalityCallback: (UHeapRef, UHeapRef) -> Unit) {
+    fun subscribe(equalityCallback: (USymbolicHeapRef, USymbolicHeapRef) -> Unit) {
         equalReferences.subscribe(equalityCallback)
     }
 
@@ -292,8 +292,8 @@ class UEqualityConstraints private constructor(
 
         val newEqualReferences = equalReferences.clone()
         val newDistinctReferences = distinctReferences.toMutableSet()
-        val newReferenceDisequalities = mutableMapOf<UHeapRef, MutableSet<UHeapRef>>()
-        val newNullableDisequalities = mutableMapOf<UHeapRef, MutableSet<UHeapRef>>()
+        val newReferenceDisequalities = mutableMapOf<USymbolicHeapRef, MutableSet<USymbolicHeapRef>>()
+        val newNullableDisequalities = mutableMapOf<USymbolicHeapRef, MutableSet<USymbolicHeapRef>>()
 
         referenceDisequalities.mapValuesTo(newReferenceDisequalities) { it.value.toMutableSet() }
         nullableDisequalities.mapValuesTo(newNullableDisequalities) { it.value.toMutableSet() }

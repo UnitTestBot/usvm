@@ -105,7 +105,7 @@ class UConcreteHeapRef internal constructor(
     override val sort: UAddressSort = ctx.addressSort
 
     override fun accept(transformer: KTransformerBase): KExpr<UAddressSort> {
-        require(transformer is UExprTransformer<*, *>)
+        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
         return transformer.transform(this)
     }
 
@@ -125,7 +125,7 @@ class UNullRef internal constructor(
         get() = uctx.addressSort
 
     override fun accept(transformer: KTransformerBase): KExpr<UAddressSort> {
-        require(transformer is UExprTransformer<*, *>)
+        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
         return transformer.transform(this)
     }
 
@@ -153,6 +153,7 @@ const val NULL_ADDRESS = 0
  * Input addresses takes this semi-interval: [[Int.MIN_VALUE]..0)
  */
 const val INITIAL_INPUT_ADDRESS = NULL_ADDRESS - 1
+
 /**
  * A constant corresponding to the first allocated address in any symbolic memory.
  * Input addresses takes this semi-interval: (0..[Int.MAX_VALUE])
@@ -191,7 +192,7 @@ class URegisterReading<Sort : USort> internal constructor(
     override val sort: Sort,
 ) : USymbol<Sort>(ctx) {
     override fun accept(transformer: KTransformerBase): KExpr<Sort> {
-        require(transformer is UExprTransformer<*, *>)
+        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
         return transformer.transform(this)
     }
 
@@ -222,9 +223,9 @@ class UInputFieldReading<Field, Sort : USort> internal constructor(
 
     @Suppress("UNCHECKED_CAST")
     override fun accept(transformer: KTransformerBase): KExpr<Sort> {
-        require(transformer is UExprTransformer<*, *>)
-        // An unchecked cast here it to be able to choose the right overload from UExprTransformer
-        return (transformer as UExprTransformer<Field, *>).transform(this)
+        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
+        // An unchecked cast here it to be able to choose the right overload from UTransformer
+        return (transformer as UTransformer<Field, *>).transform(this)
     }
 
     override fun internEquals(other: Any): Boolean = structurallyEqual(other, { region }, { address })
@@ -246,9 +247,9 @@ class UAllocatedArrayReading<ArrayType, Sort : USort> internal constructor(
 ) : UHeapReading<UAllocatedArrayId<ArrayType, Sort>, USizeExpr, Sort>(ctx, region) {
     @Suppress("UNCHECKED_CAST")
     override fun accept(transformer: KTransformerBase): KExpr<Sort> {
-        require(transformer is UExprTransformer<*, *>)
-        // An unchecked cast here it to be able to choose the right overload from UExprTransformer
-        return (transformer as UExprTransformer<*, ArrayType>).transform(this)
+        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
+        // An unchecked cast here it to be able to choose the right overload from UTransformer
+        return (transformer as UTransformer<*, ArrayType>).transform(this)
     }
 
     override fun internEquals(other: Any): Boolean =
@@ -280,9 +281,9 @@ class UInputArrayReading<ArrayType, Sort : USort> internal constructor(
 
     @Suppress("UNCHECKED_CAST")
     override fun accept(transformer: KTransformerBase): KExpr<Sort> {
-        require(transformer is UExprTransformer<*, *>)
-        // An unchecked cast here it to be able to choose the right overload from UExprTransformer
-        return (transformer as UExprTransformer<*, ArrayType>).transform(this)
+        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
+        // An unchecked cast here it to be able to choose the right overload from UTransformer
+        return (transformer as UTransformer<*, ArrayType>).transform(this)
     }
 
     override fun internEquals(other: Any): Boolean =
@@ -316,9 +317,9 @@ class UInputArrayLengthReading<ArrayType> internal constructor(
 
     @Suppress("UNCHECKED_CAST")
     override fun accept(transformer: KTransformerBase): USizeExpr {
-        require(transformer is UExprTransformer<*, *>)
-        // An unchecked cast here it to be able to choose the right overload from UExprTransformer
-        return (transformer as UExprTransformer<*, ArrayType>).transform(this)
+        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
+        // An unchecked cast here it to be able to choose the right overload from UTransformer
+        return (transformer as UTransformer<*, ArrayType>).transform(this)
     }
 
     override fun internEquals(other: Any): Boolean = structurallyEqual(other, { region }, { address })
@@ -347,7 +348,7 @@ class UIndexedMethodReturnValue<Method, Sort : USort> internal constructor(
     override val sort: Sort,
 ) : UMockSymbol<Sort>(ctx, sort) {
     override fun accept(transformer: KTransformerBase): KExpr<Sort> {
-        require(transformer is UExprTransformer<*, *>)
+        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
         return transformer.transform(this)
     }
 
@@ -377,14 +378,14 @@ class UIsExpr<Type> internal constructor(
 
     @Suppress("UNCHECKED_CAST")
     override fun accept(transformer: KTransformerBase): UBoolExpr {
-        require(transformer is UExprTransformer<*, *>)
-        // An unchecked cast here it to be able to choose the right overload from UExprTransformer
-        return (transformer as UExprTransformer<*, Type>).transform(this)
+        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
+        // An unchecked cast here it to be able to choose the right overload from UTransformer
+        return (transformer as UTransformer<*, Type>).transform(this)
     }
 
 
     override fun print(printer: ExpressionPrinter) {
-        printer.append("($ref instance of $type)")
+        printer.append("($ref is of $type)")
     }
 
     override fun internEquals(other: Any): Boolean = structurallyEqual(other, { ref }, { type })
