@@ -26,6 +26,18 @@ internal class SwitchTest : JavaMethodTestRunner() {
     }
 
     @Test
+    fun testSimpleSwitchWithPrecondition() {
+        checkDiscoveredProperties(
+            Switch::simpleSwitchWithPrecondition,
+            ge(4),
+            { _, x, r -> (x == 10 || x == 11) && r == 0 },
+            { _, x, r -> x == 12 && r == 12 },
+            { _, x, r -> x == 13 && r == 13 },
+            { _, x, r -> x !in 10..13 && r == -1 }, // one for default is enough
+        )
+    }
+
+    @Test
     fun testLookupSwitch() {
         checkDiscoveredProperties(
             Switch::lookupSwitch,
@@ -54,7 +66,6 @@ internal class SwitchTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expressions sorts mismatch: (BitVec 16), (BitVec 32)")
     fun testCharToIntSwitch() {
         checkDiscoveredPropertiesWithExceptions(
             Switch::charToIntSwitch,
@@ -66,7 +77,7 @@ internal class SwitchTest : JavaMethodTestRunner() {
             { _, c, r -> c == 'C' && r.getOrThrow() == 100 },
             { _, c, r -> c == 'D' && r.getOrThrow() == 500 },
             { _, c, r -> c == 'M' && r.getOrThrow() == 1000 },
-            { _, _, r -> r.exceptionOrNull() is IllegalAccessException },
+            { _, _, r -> r.exceptionOrNull() is IllegalArgumentException },
         )
     }
 

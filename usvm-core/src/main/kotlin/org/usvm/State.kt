@@ -180,8 +180,10 @@ fun <T : UState<Type, Field, *, *>, Type, Field> fork(
 }
 
 /**
- * Implements symbolic branching on few disjoint conditions. Returns a list of states for each condition - `null` state
- * means [UUnknownResult] of checking condition.
+ * Implements symbolic branching on few disjoint conditions.
+ *
+ * @return a list of states for each condition - `null` state
+ * means [UUnknownResult] or [UUnsatResult] of checking condition.
  */
 fun <T : UState<Type, Field, *, *>, Type, Field> forkMulti(
     state: T,
@@ -221,6 +223,8 @@ fun <T : UState<Type, Field, *, *>, Type, Field> forkMulti(
         if (nextRoot != null) {
             result += curState
             curState = nextRoot
+        } else {
+            result += null
         }
     }
 

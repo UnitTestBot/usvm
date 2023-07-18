@@ -18,6 +18,25 @@ public class Switch {
         }
     }
 
+    @SuppressWarnings("ConstantConditions")
+    public int simpleSwitchWithPrecondition(int x) {
+        if (x == 10 || x == 11) {
+            return 0;
+        }
+        switch (x) {
+            case 10:
+                return 10;
+            case 11: // fall-through
+            case 12:
+                return 12;
+            case 13:
+                return 13;
+            default:
+                return -1;
+        }
+    }
+
+
     public int lookupSwitch(int x) {
         switch (x) {
             case 0:
@@ -55,7 +74,7 @@ public class Switch {
             case 'C': return 100;
             case 'D': return 500;
             case 'M': return 1000;
-            default: throw new IllegalArgumentException("Unrecognized symbol: " + c);
+            default: throw new IllegalArgumentException();
         }
     }
 

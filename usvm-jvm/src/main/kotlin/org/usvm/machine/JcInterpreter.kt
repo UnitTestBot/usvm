@@ -10,6 +10,7 @@ import org.jacodb.api.cfg.JcArgument
 import org.jacodb.api.cfg.JcAssignInst
 import org.jacodb.api.cfg.JcCallInst
 import org.jacodb.api.cfg.JcCatchInst
+import org.jacodb.api.cfg.JcEqExpr
 import org.jacodb.api.cfg.JcGotoInst
 import org.jacodb.api.cfg.JcIfInst
 import org.jacodb.api.cfg.JcInst
@@ -21,12 +22,12 @@ import org.jacodb.api.cfg.JcReturnInst
 import org.jacodb.api.cfg.JcSwitchInst
 import org.jacodb.api.cfg.JcThis
 import org.jacodb.api.cfg.JcThrowInst
+import org.jacodb.api.ext.boolean
 import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UHeapRef
 import org.usvm.UInterpreter
 import org.usvm.URegisterLValue
-import org.usvm.machine.operator.JcBinaryOperator
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.WrappedException
@@ -184,14 +185,13 @@ class JcInterpreter(
 
         val switchKey = stmt.key
         // Note that the switch key can be an rvalue, for example, a simple int constant.
-        val switchKeyExpr = exprResolver.resolveJcExpr(switchKey) ?: return
         val instList = stmt.location.method.instList
 
         with(ctx) {
             val caseStmtsWithConditions = stmt.branches.map { (caseValue, caseTargetStmt) ->
                 val nextStmt = instList[caseTargetStmt]
-                val resolvedCaseValue = exprResolver.resolveJcExpr(caseValue) ?: return
-                val caseCondition = JcBinaryOperator.Eq(switchKeyExpr, resolvedCaseValue).asExpr(boolSort)
+                val jcEqExpr = JcEqExpr(cp.boolean, switchKey, caseValue)
+                val caseCondition = exprResolver.resolveJcExpr(jcEqExpr)?.asExpr(boolSort) ?: return
 
                 caseCondition to { state: JcState -> state.newStmt(nextStmt) }
             }
