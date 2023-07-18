@@ -45,7 +45,6 @@ import org.usvm.machine.extractLong
 import org.usvm.machine.extractShort
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
-import org.usvm.machine.state.WrappedException
 import org.usvm.machine.state.localIdx
 import org.usvm.memory.UReadOnlySymbolicMemory
 import org.usvm.model.UModelBase
@@ -80,7 +79,7 @@ class JcTestResolver(
             is JcMethodResult.NoCall -> error("No result found")
             is JcMethodResult.Success -> with(afterScope) { Result.success(resolveExpr(res.value, method.returnType)) }
             is JcMethodResult.UnprocessedException -> error("An unprocessed exception should never occur in the Resolver")
-            is JcMethodResult.Exception -> Result.failure(resolveException(res.exception, afterMemory))
+            is JcMethodResult.Exception -> Result.failure(resolveException(res, afterMemory))
         }
         val coverage = resolveCoverage(method, state)
 
@@ -93,16 +92,12 @@ class JcTestResolver(
         )
     }
 
-    private fun resolveException(exception: Exception, afterMemory: MemoryScope): Throwable =
-        when (exception) {
-            is WrappedException -> {
-                val address = exception.address
-                with(afterMemory) {
-                    resolveExpr(address, exception.type) as Throwable
-                }
-            }
-            else -> exception
-        }
+    private fun resolveException(
+        exception: JcMethodResult.Exception,
+        afterMemory: MemoryScope
+    ): Throwable = with(afterMemory) {
+        resolveExpr(exception.address, exception.type) as Throwable
+    }
 
     @Suppress("UNUSED_PARAMETER")
     private fun resolveCoverage(method: JcTypedMethod, state: JcState): JcCoverage {

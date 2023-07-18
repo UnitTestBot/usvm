@@ -24,19 +24,24 @@ sealed interface JcMethodResult {
     ) : JcMethodResult
 
     /**
-     * A method threw an [exception].
+     * A method threw an exception with [type] type.
      */
     open class Exception(
-        val exception: kotlin.Exception,
+        val address: UHeapRef,
+        val type: JcType,
+//        val symbolicStackTrace: List<JcMethod> // TODO should it contain locations? Probably, yes. Add message?
     ) : JcMethodResult
 
+    /**
+     * An unprocessed exception thrown by a method.
+     *
+     * The difference between it and the [JcMethodResult.Exception] is that
+     * this exception must be treated as an intermediate result of the method analysis,
+     * and it must be handled by an interpreter later, while the [Exception]
+     * is a final result that could be produced as a result of the symbolic execution.
+     */
     class UnprocessedException(
-        exception: kotlin.Exception,
-    ) : Exception(exception)
+        address: UHeapRef,
+        type: JcType,
+    ) : Exception(address, type)
 }
-
-// TODO: stub for symbolic exceptions
-class WrappedException(
-    val address: UHeapRef,
-    val type: JcType,
-) : kotlin.Exception()

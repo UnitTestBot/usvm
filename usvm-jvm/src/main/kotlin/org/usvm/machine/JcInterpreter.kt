@@ -30,7 +30,6 @@ import org.usvm.UInterpreter
 import org.usvm.URegisterLValue
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
-import org.usvm.machine.state.WrappedException
 import org.usvm.machine.state.addEntryMethodCall
 import org.usvm.machine.state.createUnprocessedException
 import org.usvm.machine.state.lastStmt
@@ -99,7 +98,7 @@ class JcInterpreter(
         // handle exception firstly
         val result = state.methodResult
         if (result is JcMethodResult.Exception) {
-            handleException(scope, result.exception, stmt)
+            handleException(scope, result, stmt)
             return scope.stepResult()
         }
 
@@ -120,15 +119,11 @@ class JcInterpreter(
     // TODO this section doesn't work as it should considering symbolic exceptions.
     private fun handleException(
         scope: JcStepScope,
-        exception: Exception,
+        exception: JcMethodResult.Exception,
         lastStmt: JcInst,
     ) {
         // TODO process WrapperExceptions here with their symbolic types
-        val exceptionTypeName = if (exception is WrappedException) {
-            exception.type.typeName
-        } else {
-            exception::class.java.name
-        }
+        val exceptionTypeName = exception.type.typeName
 
         // TODO replace it with type streams when they are ready
         fun findAllSubtypes(type: JcType): List<JcType> {
@@ -173,11 +168,7 @@ class JcInterpreter(
             val lValue = exprResolverWithScope(scope).resolveLValue(catchInst.throwable) ?: return@doWithState
             val exceptionResult = methodResult as JcMethodResult.Exception
 
-            // TODO shouldn't we process implicit exceptions here as well?
-            //      For now, it's impossible since they don't have addresses.
-            if (exceptionResult.exception is WrappedException) {
-                memory.write(lValue, (exceptionResult.exception).address)
-            }
+            memory.write(lValue, exceptionResult.address)
 
             methodResult = JcMethodResult.NoCall
             newStmt(catchInst.nextStmt)
@@ -268,7 +259,7 @@ class JcInterpreter(
         val address = resolver.resolveJcExpr(stmt.throwable)?.asExpr(ctx.addressSort) ?: return
 
         scope.calcOnState {
-            createUnprocessedException(WrappedException(address, stmt.throwable.type))
+            createUnprocessedException(address, stmt.throwable.type)
         }
     }
 

@@ -1,10 +1,12 @@
 package org.usvm.machine.state
 
 import org.jacodb.api.JcMethod
+import org.jacodb.api.JcType
 import org.jacodb.api.cfg.JcArgument
 import org.jacodb.api.cfg.JcInst
 import org.jacodb.api.ext.cfg.locals
 import org.usvm.UExpr
+import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.machine.JcApplicationGraph
 
@@ -29,13 +31,14 @@ fun JcState.returnValue(valueToReturn: UExpr<out USort>) {
 }
 
 /**
+ * TODO change docs
  * Create an unprocessed exception from the [exception] and assign it to the [JcState.methodResult].
  */
-fun JcState.createUnprocessedException(exception: Exception) {
-    methodResult = JcMethodResult.UnprocessedException(exception)
+fun JcState.createUnprocessedException(address: UHeapRef, type: JcType) {
+    methodResult = JcMethodResult.UnprocessedException(address, type)
 }
 
-fun JcState.throwException(exception: Exception) {
+fun JcState.throwException(exception: JcMethodResult.Exception) {
     // TODO: think about it later
     val returnSite = callStack.pop()
     if (callStack.isNotEmpty()) {
@@ -43,7 +46,11 @@ fun JcState.throwException(exception: Exception) {
     }
 
     // TODO: the last place where we distinguish implicitly thrown and explicitly thrown exceptions
-    methodResult = JcMethodResult.Exception(exception)
+    methodResult = if (exception is JcMethodResult.UnprocessedException) {
+        JcMethodResult.Exception(exception.address, exception.type)
+    } else {
+        exception
+    }
 
     if (returnSite != null) {
         newStmt(returnSite)

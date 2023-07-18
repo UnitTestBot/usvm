@@ -1,6 +1,5 @@
 package org.usvm.machine
 
-import io.ksmt.expr.KBitVec32Value
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
 import org.jacodb.api.JcArrayType
@@ -101,7 +100,7 @@ import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.addNewMethodCall
 import org.usvm.machine.state.createUnprocessedException
-import org.usvm.machine.state.lastStmt
+import org.usvm.util.extractJcType
 
 /**
  * An expression resolver based on JacoDb 3-address code. A result of resolving is `null`, iff
@@ -542,15 +541,17 @@ class JcExprResolver(
 
     // region implicit exceptions
 
+    private fun allocateException(type: JcType): (JcState) -> Unit = { state ->
+        val address = state.memory.alloc(type)
+        state.createUnprocessedException(address, type)
+    }
+
     private fun checkArrayIndex(idx: USizeExpr, length: USizeExpr) = with(ctx) {
         val inside = (mkBvSignedLessOrEqualExpr(mkBv(0), idx)) and (mkBvSignedLessExpr(idx, length))
 
         scope.fork(
             inside,
-            blockOnFalseState = {
-                val exception = ArrayIndexOutOfBoundsException((models.first().eval(idx) as KBitVec32Value).intValue)
-                createUnprocessedException(exception)
-            }
+            blockOnFalseState = allocateException(arrayIndexOutOfBoundsExceptionType)
         )
     }
 
@@ -559,15 +560,11 @@ class JcExprResolver(
 
         val lengthIsNonNegative = mkBvSignedLessOrEqualExpr(mkBv(0), length)
 
-        scope.fork(lengthIsNonNegative,
-            blockOnFalseState = {
-                val ln = lastStmt.lineNumber
-                val exception = NegativeArraySizeException("[negative array size] $ln")
-                createUnprocessedException(exception)
-            }
+        scope.fork(
+            lengthIsNonNegative,
+            blockOnFalseState = allocateException(negativeArraySizeExceptionType)
         )
     }
-
 
     private fun checkDivisionByZero(expr: UExpr<out USort>) = with(ctx) {
         val sort = expr.sort
@@ -575,12 +572,9 @@ class JcExprResolver(
             return Unit
         }
         val neqZero = mkEq(expr.cast(), mkBv(0, sort)).not()
-        scope.fork(neqZero,
-            blockOnFalseState = {
-                val ln = lastStmt.lineNumber
-                val exception = ArithmeticException("[division by zero] $ln")
-                createUnprocessedException(exception)
-            }
+        scope.fork(
+            neqZero,
+            blockOnFalseState = allocateException(arithmeticExceptionType)
         )
     }
 
@@ -588,11 +582,7 @@ class JcExprResolver(
         val neqNull = mkHeapRefEq(ref, nullRef).not()
         scope.fork(
             neqNull,
-            blockOnFalseState = {
-                val ln = lastStmt.lineNumber
-                val exception = NullPointerException("[null pointer dereference] $ln")
-                createUnprocessedException(exception)
-            }
+            blockOnFalseState = allocateException(nullPointerExceptionType)
         )
     }
 
@@ -735,6 +725,22 @@ class JcExprResolver(
         val result0 = resolveJcExpr(dependency0) ?: return null
         val result1 = resolveJcExpr(dependency1) ?: return null
         return block(result0, result1)
+    }
+
+    private val arrayIndexOutOfBoundsExceptionType by lazy {
+        ctx.extractJcType(NegativeArraySizeException::class)
+    }
+
+    private val negativeArraySizeExceptionType by lazy {
+        ctx.extractJcType(NegativeArraySizeException::class)
+    }
+
+    private val arithmeticExceptionType by lazy {
+        ctx.extractJcType(ArithmeticException::class)
+    }
+
+    private val nullPointerExceptionType by lazy {
+        ctx.extractJcType(NullPointerException::class)
     }
 
     companion object {

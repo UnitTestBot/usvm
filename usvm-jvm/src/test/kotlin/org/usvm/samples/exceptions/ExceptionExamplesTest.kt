@@ -114,7 +114,6 @@ internal class ExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Waits for symbolic types")
     fun testSymbolicExceptions() {
         checkDiscoveredProperties(
             ExceptionExamples::symbolicExceptionCheck,
