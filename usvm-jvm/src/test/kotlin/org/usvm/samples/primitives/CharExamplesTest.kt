@@ -28,7 +28,7 @@ internal class CharExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: switch")
+    @Disabled("Expressions sorts mismatch: (BitVec 16), (BitVec 32)")
     fun testByteToChar() {
         checkDiscoveredProperties(
             CharExamples::byteToChar,
