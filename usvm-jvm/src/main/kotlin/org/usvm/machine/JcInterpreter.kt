@@ -25,6 +25,7 @@ import org.jacodb.api.cfg.JcThrowInst
 import org.jacodb.api.ext.boolean
 import org.usvm.StepResult
 import org.usvm.StepScope
+import org.usvm.UBoolExpr
 import org.usvm.UHeapRef
 import org.usvm.UInterpreter
 import org.usvm.URegisterLValue
@@ -116,7 +117,6 @@ class JcInterpreter(
         return scope.stepResult()
     }
 
-    // TODO this section doesn't work as it should considering symbolic exceptions.
     private fun handleException(
         scope: JcStepScope,
         exception: JcMethodResult.JcException,
@@ -124,41 +124,44 @@ class JcInterpreter(
     ) {
         val catchStatements = applicationGraph.successors(lastStmt).filterIsInstance<JcCatchInst>().toList()
 
-        var negationCondition = ctx.mkTrue()
+        val typeConstraintsNegations = mutableListOf<UBoolExpr>()
+        val catchForks = mutableListOf<Pair<UBoolExpr, JcState.() -> Unit>>()
 
-        for (i in 0 until catchStatements.lastIndex) {
-            val catchInst = catchStatements[i]
-            val typeConstraints = scope.calcOnState {
-                ctx.mkOr(catchInst.throwableTypes.map { memory.types.evalIs(exception.address, it) } )
-            } ?: continue
+        val blockToFork: (JcCatchInst) -> (JcState) -> Unit = { catchInst: JcCatchInst ->
+            block@{ state: JcState ->
+                val lValue = exprResolverWithScope(scope).resolveLValue(catchInst.throwable) ?: return@block
+                val exceptionResult = state.methodResult as JcMethodResult.JcException
 
-            scope.fork()
+                state.memory.write(lValue, exceptionResult.address)
+
+                state.methodResult = JcMethodResult.NoCall
+                state.newStmt(catchInst.nextStmt)
+            }
         }
 
-        catchStatements.fold(ctx.trueExpr) { acc, catchInst ->
-                val types = catchInst.throwableTypes
-                val typeConstraints = scope.calcOnState {
-                    ctx.mkOr(types.map { memory.types.evalIs(exception.address, it) })
-                } ?: return@fold acc // TODO is it right?
+        catchStatements.forEach { catchInst ->
+            val throwableTypes = catchInst.throwableTypes
 
-                scope.fork(
-                    condition = typeConstraints,
-                    blockOnTrueState = {
-                        val lValue = exprResolverWithScope(scope).resolveLValue(catchInst.throwable)
-                            ?: return@fork // TODO it is right?
-                        val exceptionResult = methodResult as JcMethodResult.JcException
+            val typeConstraint = scope.calcOnState {
+                val currentTypeConstraints = throwableTypes.map { memory.types.evalIs(exception.address, it) }
+                val result = ctx.mkAnd(typeConstraintsNegations + ctx.mkOr(currentTypeConstraints))
 
-                        memory.write(lValue, exceptionResult.address)
+                typeConstraintsNegations += currentTypeConstraints.map { ctx.mkNot(it) }
 
-                        methodResult = JcMethodResult.NoCall
-                        newStmt(catchInst.nextStmt)
-                    },
-                )
+                result
+            } ?: return@forEach
 
-                acc
-            }
+            catchForks += typeConstraint to blockToFork(catchInst)
+        }
 
-        scope.calcOnState { throwException(exception) }
+        val typeConditionToMiss = ctx.mkAnd(typeConstraintsNegations)
+        val functionBlockOnMiss = block@{ _: JcState ->
+            scope.calcOnState { throwException(exception) } ?: return@block
+        }
+
+        val catchSectionMiss = typeConditionToMiss to functionBlockOnMiss
+
+        scope.forkMulti(catchForks + catchSectionMiss)
     }
 
     private fun visitAssignInst(scope: JcStepScope, stmt: JcAssignInst) {

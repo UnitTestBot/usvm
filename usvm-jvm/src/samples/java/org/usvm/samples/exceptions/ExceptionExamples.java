@@ -136,6 +136,10 @@ public class ExceptionExamples {
 
             return 2;
         } catch (RuntimeException exception) {
+            if (e instanceof NumberFormatException) {
+                return -1; // unreachable
+            }
+
             return 3;
         } catch (Exception exception) {
             return 4;
