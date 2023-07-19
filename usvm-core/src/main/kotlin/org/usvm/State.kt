@@ -56,12 +56,9 @@ private const val OriginalState = false
  * - On [UUnsatResult] - returns `null`;
  * - On [UUnknownResult] - adds [newConstraintToOriginalState] to the path constraints of the [state],
  * iff [addConstraintOnUnknown] is `true`, and returns null;
- * - On [USatResult]:
- *     - If [stateToCheck] equals to [ForkedState], adds [newConstraintToOriginalState] to the path constraints of the [state],
- *  clones the [state] with the checking constraint and with the satisfiable model and returns it.
- *     - Otherwise, clones the [state] with extending its path constraints with [newConstraintToForkedState],
- *  adds [newConstraintToOriginalState] to the original state, sets its model to the satisfiable model, and returns
- *  the forked state.
+ * - On [USatResult] - clones the original state and adds the [newConstraintToForkedState] to it, adds [newConstraintToOriginalState]
+ * to the original state, sets the satisfiable model to the corresponding state depending on the [stateToCheck], and returns the
+ * forked state.
  *
  */
 private fun <T : UState<Type, Field, *, *>, Type, Field> forkIfSat(
@@ -85,21 +82,19 @@ private fun <T : UState<Type, Field, *, *>, Type, Field> forkIfSat(
         is UUnsatResult -> null
 
         is USatResult -> {
+            @Suppress("UNCHECKED_CAST")
+            val forkedState = state.clone() as T
+            // TODO: implement path condition setter (don't forget to reset UMemoryBase:types!)
+            forkedState.pathConstraints += newConstraintToForkedState
+            state.pathConstraints += newConstraintToOriginalState
+
             if (stateToCheck) {
-                @Suppress("UNCHECKED_CAST")
-                val forkedState = state.clone(constraintsToCheck) as T
-                state.pathConstraints += newConstraintToOriginalState
                 forkedState.models = listOf(satResult.model)
-                forkedState
             } else {
-                @Suppress("UNCHECKED_CAST")
-                val forkedState = state.clone() as T
-                state.pathConstraints += newConstraintToOriginalState
                 state.models = listOf(satResult.model)
-                // TODO: implement path condition setter (don't forget to reset UMemoryBase:types!)
-                forkedState.pathConstraints += newConstraintToForkedState
-                forkedState
             }
+
+            forkedState
         }
 
         is UUnknownResult -> {
