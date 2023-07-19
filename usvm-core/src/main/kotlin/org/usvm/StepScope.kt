@@ -1,24 +1,36 @@
 package org.usvm
 
+import org.usvm.StepScope.StepScopeState.CANNOT_BE_PROCESSED
+import org.usvm.StepScope.StepScopeState.CAN_BE_PROCESSED
+import org.usvm.StepScope.StepScopeState.DEAD
+
 /**
  * An auxiliary class, which carefully maintains forks and asserts via [fork] and [assert].
  * It should be created on every step in an interpreter.
  * You can think about an instance of [StepScope] as a monad `ExceptT null (State [T])`.
  *
- * An underlying state is `null`, iff one of the `condition`s passed to the [fork] was unsatisfiable.
+ * This scope is considered as [DEAD], iff the condition in [assert] was unsatisfiable or unknown.
+ * The underlying state cannot be processed further (see [CANNOT_BE_PROCESSED]),
+ * if the first passed to [fork] or [forkMulti] condition was unsatisfiable or unknown.
  *
  * To execute some function on a state, you should use [doWithState] or [calcOnState]. `null` is returned, when
- * the current state is `null`.
+ * this scope cannot be processed on the current step - see [CANNOT_BE_PROCESSED].
  *
  * @param originalState an initial state.
  */
 class StepScope<T : UState<Type, Field, *, *>, Type, Field>(
-    originalState: T,
+    private val originalState: T,
 ) {
     private val forkedStates = mutableListOf<T>()
-    private var curState: T? = originalState
-    var alive: Boolean = true
-        private set
+
+    private val alive: Boolean get() = stepScopeState != DEAD
+    private val canProcessFurtherOnCurrentStep: Boolean get() = stepScopeState == CAN_BE_PROCESSED
+
+    /**
+     * Determines whether we interact this scope on the current step.
+     * @see [StepScopeState].
+     */
+    private var stepScopeState: StepScopeState = CAN_BE_PROCESSED
 
     /**
      * @return forked states and the status of initial state.
@@ -30,45 +42,54 @@ class StepScope<T : UState<Type, Field, *, *>, Type, Field>(
      *
      * @return `null` if the underlying state is `null`.
      */
-    fun doWithState(block: T.() -> Unit): Unit? {
-        val state = curState ?: return null
-        state.block()
-        return Unit
-    }
+    fun doWithState(block: T.() -> Unit): Unit? =
+        if (canProcessFurtherOnCurrentStep) {
+            originalState.block()
+        } else {
+            null
+        }
 
     /**
      * Executes [block] on a state.
      *
      * @return `null` if the underlying state is `null`, otherwise returns result of calling [block].
      */
-    fun <R> calcOnState(block: T.() -> R): R? {
-        val state = curState ?: return null
-        return state.block()
-    }
+    fun <R> calcOnState(block: T.() -> R): R? =
+        if (canProcessFurtherOnCurrentStep) {
+            originalState.block()
+        } else {
+            null
+        }
 
     /**
      * Forks on a [condition], performing [blockOnTrueState] on a state satisfying [condition] and
      * [blockOnFalseState] on a state satisfying [condition].not().
      *
-     * If the [condition] is unsatisfiable, sets underlying state to `null`.
+     * If the [condition] is unsatisfiable or unknown, sets the scope state to the [CANNOT_BE_PROCESSED].
      *
-     * @return `null` if the [condition] is unsatisfiable.
+     * @return `null` if the [condition] is unsatisfiable or unknown.
      */
     fun fork(
         condition: UBoolExpr,
         blockOnTrueState: T.() -> Unit = {},
         blockOnFalseState: T.() -> Unit = {},
     ): Unit? {
-        val state = curState ?: return null
+        check(canProcessFurtherOnCurrentStep)
 
-        val (posState, negState) = fork(state, condition)
+        val (posState, negState) = fork(originalState, condition)
 
         posState?.blockOnTrueState()
-        curState = posState
+
+        if (posState == null) {
+            stepScopeState = CANNOT_BE_PROCESSED
+            check(negState === originalState)
+        } else {
+            check(posState === originalState)
+        }
 
         if (negState != null) {
             negState.blockOnFalseState()
-            if (negState !== state) {
+            if (negState !== originalState) {
                 forkedStates += negState
             }
         }
@@ -77,22 +98,74 @@ class StepScope<T : UState<Type, Field, *, *>, Type, Field>(
         return posState?.let { }
     }
 
+    /**
+     * Forks on a few disjoint conditions using `forkMulti` in `State.kt`
+     * and executes the corresponding block on each not-null state.
+     *
+     * NOTE: always sets the [stepScopeState] to the [CANNOT_BE_PROCESSED] value.
+     */
+    fun forkMulti(conditionsWithBlockOnStates: List<Pair<UBoolExpr, T.() -> Unit>>) {
+        check(canProcessFurtherOnCurrentStep)
+
+        val conditions = conditionsWithBlockOnStates.map { it.first }
+
+        val conditionStates = forkMulti(originalState, conditions)
+
+        val forkedStates = conditionStates.mapIndexedNotNull { idx, positiveState ->
+            val block = conditionsWithBlockOnStates[idx].second
+
+            positiveState?.apply(block)
+        }
+
+        stepScopeState = CANNOT_BE_PROCESSED
+        if (forkedStates.isEmpty()) {
+            stepScopeState = DEAD
+            return
+        }
+
+        val firstForkedState = forkedStates.first()
+        require(firstForkedState == originalState) {
+            "The original state $originalState was expected to become the first of forked states but $firstForkedState found"
+        }
+
+        // Interpret the first state as original and others as forked
+        this.forkedStates += forkedStates.subList(1, forkedStates.size)
+    }
+
     fun assert(
         constraint: UBoolExpr,
         block: T.() -> Unit = {},
     ): Unit? {
-        val state = curState ?: return null
+        check(canProcessFurtherOnCurrentStep)
 
-        val (posState, _) = fork(state, constraint)
+        val (posState, _) = fork(originalState, constraint)
 
         posState?.block()
-        curState = posState
 
         if (posState == null) {
-            alive = false
+            stepScopeState = DEAD
         }
 
         return posState?.let { }
+    }
+
+    /**
+     * Represents the current state of this [StepScope].
+     */
+    private enum class StepScopeState {
+        /**
+         * Cannot be processed further with any actions.
+         */
+        DEAD,
+        /**
+         * Cannot be forked or asserted using [fork], [forkMulti] or [assert],
+         * but is considered as alive from the Machine's point of view.
+         */
+        CANNOT_BE_PROCESSED,
+        /**
+         * Can be forked using [fork] or [forkMulti] and asserted using [assert].
+         */
+        CAN_BE_PROCESSED;
     }
 }
 

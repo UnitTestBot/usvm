@@ -14,7 +14,6 @@ import java.math.RoundingMode.HALF_UP
 
 internal class SwitchTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Not implemented: switch")
     fun testSimpleSwitch() {
         checkDiscoveredProperties(
             Switch::simpleSwitch,
@@ -27,7 +26,18 @@ internal class SwitchTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: switch")
+    fun testSimpleSwitchWithPrecondition() {
+        checkDiscoveredProperties(
+            Switch::simpleSwitchWithPrecondition,
+            ge(4),
+            { _, x, r -> (x == 10 || x == 11) && r == 0 },
+            { _, x, r -> x == 12 && r == 12 },
+            { _, x, r -> x == 13 && r == 13 },
+            { _, x, r -> x !in 10..13 && r == -1 }, // one for default is enough
+        )
+    }
+
+    @Test
     fun testLookupSwitch() {
         checkDiscoveredProperties(
             Switch::lookupSwitch,
@@ -52,6 +62,35 @@ internal class SwitchTest : JavaMethodTestRunner() {
             { _, m, r -> m == DOWN && r == 2 },
             { _, m, r -> m == CEILING && r == 3 },
             { _, m, r -> m !in setOf(HALF_DOWN, HALF_EVEN, HALF_UP, DOWN, CEILING) && r == -1 },
+        )
+    }
+
+    @Test
+    fun testCharToIntSwitch() {
+        checkDiscoveredPropertiesWithExceptions(
+            Switch::charToIntSwitch,
+            ge(8),
+            { _, c, r -> c == 'I' && r.getOrThrow() == 1 },
+            { _, c, r -> c == 'V' && r.getOrThrow() == 5 },
+            { _, c, r -> c == 'X' && r.getOrThrow() == 10 },
+            { _, c, r -> c == 'L' && r.getOrThrow() == 50 },
+            { _, c, r -> c == 'C' && r.getOrThrow() == 100 },
+            { _, c, r -> c == 'D' && r.getOrThrow() == 500 },
+            { _, c, r -> c == 'M' && r.getOrThrow() == 1000 },
+            { _, _, r -> r.exceptionOrNull() is IllegalArgumentException },
+        )
+    }
+
+    @Test
+    @Disabled("An operation is not implemented: Not yet implemented. Support strings")
+    fun testStringSwitch() {
+        checkDiscoveredProperties(
+            Switch::stringSwitch,
+            ge(4),
+            { _, s, r -> s == "ABC" && r == 1 },
+            { _, s, r -> s == "DEF" && r == 2 },
+            { _, s, r -> s == "GHJ" && r == 2 },
+            { _, _, r -> r == -1 },
         )
     }
 }

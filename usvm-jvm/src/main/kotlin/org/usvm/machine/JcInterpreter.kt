@@ -10,15 +10,19 @@ import org.jacodb.api.cfg.JcArgument
 import org.jacodb.api.cfg.JcAssignInst
 import org.jacodb.api.cfg.JcCallInst
 import org.jacodb.api.cfg.JcCatchInst
+import org.jacodb.api.cfg.JcEqExpr
 import org.jacodb.api.cfg.JcGotoInst
 import org.jacodb.api.cfg.JcIfInst
 import org.jacodb.api.cfg.JcInst
+import org.jacodb.api.cfg.JcInstList
+import org.jacodb.api.cfg.JcInstRef
 import org.jacodb.api.cfg.JcLocal
 import org.jacodb.api.cfg.JcLocalVar
 import org.jacodb.api.cfg.JcReturnInst
 import org.jacodb.api.cfg.JcSwitchInst
 import org.jacodb.api.cfg.JcThis
 import org.jacodb.api.cfg.JcThrowInst
+import org.jacodb.api.ext.boolean
 import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UHeapRef
@@ -176,9 +180,29 @@ class JcInterpreter(
         TODO("Not yet implemented")
     }
 
-    @Suppress("UNUSED_PARAMETER")
     private fun visitSwitchStmt(scope: JcStepScope, stmt: JcSwitchInst) {
-        TODO("Not yet implemented")
+        val exprResolver = exprResolverWithScope(scope)
+
+        val switchKey = stmt.key
+        // Note that the switch key can be an rvalue, for example, a simple int constant.
+        val instList = stmt.location.method.instList
+
+        with(ctx) {
+            val caseStmtsWithConditions = stmt.branches.map { (caseValue, caseTargetStmt) ->
+                val nextStmt = instList[caseTargetStmt]
+                val jcEqExpr = JcEqExpr(cp.boolean, switchKey, caseValue)
+                val caseCondition = exprResolver.resolveJcExpr(jcEqExpr)?.asExpr(boolSort) ?: return
+
+                caseCondition to { state: JcState -> state.newStmt(nextStmt) }
+            }
+
+            // To make the default case possible, we need to ensure that all case labels are unsatisfiable
+            val defaultCaseWithCondition = mkAnd(
+                caseStmtsWithConditions.map { it.first.not() }
+            ) to { state: JcState -> state.newStmt(instList[stmt.default]) }
+
+            scope.forkMulti(caseStmtsWithConditions + defaultCaseWithCondition)
+        }
     }
 
     private fun visitThrowStmt(scope: JcStepScope, stmt: JcThrowInst) {
@@ -221,6 +245,7 @@ class JcInterpreter(
         }
 
     private val JcInst.nextStmt get() = location.method.instList[location.index + 1]
+    private operator fun JcInstList<JcInst>.get(instRef: JcInstRef): JcInst = this[instRef.index]
 
     private val classInstanceAllocatedRefs = mutableMapOf<String, UHeapRef>()
 
