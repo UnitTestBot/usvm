@@ -82,19 +82,24 @@ private fun <T : UState<Type, Field, *, *>, Type, Field> forkIfSat(
         is UUnsatResult -> null
 
         is USatResult -> {
-            @Suppress("UNCHECKED_CAST")
-            val forkedState = state.clone() as T
-            // TODO: implement path condition setter (don't forget to reset UMemoryBase:types!)
-            forkedState.pathConstraints += newConstraintToForkedState
-            state.pathConstraints += newConstraintToOriginalState
-
+            // Note that we cannot extract common code here due to
+            // heavy plusAssign operator in path constraints.
+            // Therefore, it is better to reuse already constructed [constraintToCheck].
             if (stateToCheck) {
+                @Suppress("UNCHECKED_CAST")
+                val forkedState = state.clone(constraintsToCheck) as T
+                state.pathConstraints += newConstraintToOriginalState
                 forkedState.models = listOf(satResult.model)
+                forkedState
             } else {
+                @Suppress("UNCHECKED_CAST")
+                val forkedState = state.clone() as T
+                state.pathConstraints += newConstraintToOriginalState
                 state.models = listOf(satResult.model)
+                // TODO: implement path condition setter (don't forget to reset UMemoryBase:types!)
+                forkedState.pathConstraints += newConstraintToForkedState
+                forkedState
             }
-
-            forkedState
         }
 
         is UUnknownResult -> {
