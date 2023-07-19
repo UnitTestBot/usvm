@@ -82,7 +82,12 @@ class WorkerClassLoader(
     override fun loadClass(name: String): Class<*> {
         if (name == traceCollectorClassName) return traceCollectorClassLoader.loadClass(name)
         if (name == mockCollectorClassName) return traceCollectorClassLoader.loadClass(name)
-        return super.loadClass(name)
+        return try {
+            super.loadClass(name)
+        } catch (e: Throwable) {
+            //In case of jdk classes which are not in Bootstrap classloader
+            traceCollectorClassLoader.loadClass(name)
+        }
     }
 
     fun defineClass(name: String, classNode: ClassNode): Class<*>? {

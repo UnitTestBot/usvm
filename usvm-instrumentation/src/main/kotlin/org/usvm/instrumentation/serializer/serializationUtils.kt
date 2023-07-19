@@ -3,6 +3,7 @@ import org.jacodb.api.*
 import org.jacodb.api.ext.findClass
 import org.jacodb.api.ext.findFieldOrNull
 import org.jacodb.api.ext.findMethodOrNull
+import java.io.File
 
 fun AbstractBuffer.writeJcMethod(jcMethod: JcMethod) = with(jcMethod) {
     writeString(enclosingClass.name)
@@ -21,10 +22,10 @@ fun AbstractBuffer.writeJcField(jcField: JcField) = with(jcField) {
 
 fun AbstractBuffer.writeJcType(jcType: JcType?) {
     val typeName =
-        if (jcType is JcClassType) {
-            jcType.jcClass.name
-        } else {
-            jcType?.typeName ?: "type_is_null"
+        when (jcType) {
+            is JcClassType -> jcType.jcClass.name
+            is JcTypeVariable -> jcType.jcClass.name
+            else -> jcType?.typeName ?: "type_is_null"
         }
     writeString(typeName)
 }
@@ -50,5 +51,5 @@ fun AbstractBuffer.readJcField(jcClasspath: JcClasspath): JcField {
 fun AbstractBuffer.readJcType(jcClasspath: JcClasspath): JcType? {
     val typeName = readString()
     if (typeName == "type_is_null") return null
-    return jcClasspath.findTypeOrNull(typeName)!!
+    return jcClasspath.findTypeOrNull(typeName)
 }
