@@ -18,7 +18,7 @@ abstract class UState<Type, Field, Method, Statement>(
     open val pathConstraints: UPathConstraints<Type>,
     open val memory: UMemoryBase<Field, Type, Method>,
     open var models: List<UModelBase<Field, Type>>,
-    open var path: PersistentList<Statement>
+    open var path: PersistentList<Statement>,
 ) {
     /**
      * Deterministic state id.
@@ -40,67 +40,71 @@ abstract class UState<Type, Field, Method, Statement>(
         get() = path.lastOrNull()
 }
 
-class ForkResult<T>(
+data class ForkResult<T>(
     val positiveState: T?,
     val negativeState: T?,
-) {
-    operator fun component1(): T? = positiveState
-    operator fun component2(): T? = negativeState
-}
+)
+
+private typealias StateToCheck = Boolean
+
+private const val ForkedState = true
+private const val OriginalState = false
 
 /**
- * Checks if [conditionToCheck] is satisfiable within path constraints of [state].
- * If it does, clones [state] and returns it with enriched constraints:
- * - if [forkToSatisfied], then adds constraint [satisfiedCondition];
- * - if ![forkToSatisfied], then adds constraint [conditionToCheck].
- * Otherwise, returns null.
- * If [conditionToCheck] is not unsatisfiable (i.e., solver returns sat or unknown),
- * mutates [state] by adding new path constraint c:
- * - if [forkToSatisfied], then c = [conditionToCheck]
- * - if ![forkToSatisfied], then c = [satisfiedCondition]
+ * Checks [newConstraintToOriginalState] or [newConstraintToForkedState], depending on the value of [stateToCheck].
+ * Depending on the result of checking this condition, do the following:
+ * - On [UUnsatResult] - returns `null`;
+ * - On [UUnknownResult] - adds [newConstraintToOriginalState] to the path constraints of the [state],
+ * iff [addConstraintOnUnknown] is `true`, and returns null;
+ * - On [USatResult] - clones the original state and adds the [newConstraintToForkedState] to it, adds [newConstraintToOriginalState]
+ * to the original state, sets the satisfiable model to the corresponding state depending on the [stateToCheck], and returns the
+ * forked state.
+ *
  */
 private fun <T : UState<Type, Field, *, *>, Type, Field> forkIfSat(
     state: T,
-    satisfiedCondition: UBoolExpr,
-    conditionToCheck: UBoolExpr,
-    forkToSatisfied: Boolean,
+    newConstraintToOriginalState: UBoolExpr,
+    newConstraintToForkedState: UBoolExpr,
+    stateToCheck: StateToCheck,
+    addConstraintOnUnknown: Boolean = true,
 ): T? {
-    val pathConstraints = state.pathConstraints.clone()
-    pathConstraints += conditionToCheck
+    val constraintsToCheck = state.pathConstraints.clone()
 
-    if (pathConstraints.isFalse) {
-        return null
+    constraintsToCheck += if (stateToCheck) {
+        newConstraintToForkedState
+    } else {
+        newConstraintToOriginalState
     }
-
-    val solver = satisfiedCondition.uctx.solver<Field, Type, Any?>()
-    val satResult = solver.check(pathConstraints, useSoftConstraints = true)
+    val solver = newConstraintToForkedState.uctx.solver<Field, Type, Any?>()
+    val satResult = solver.check(constraintsToCheck, useSoftConstraints = true)
 
     return when (satResult) {
+        is UUnsatResult -> null
+
         is USatResult -> {
-            if (forkToSatisfied) {
+            // Note that we cannot extract common code here due to
+            // heavy plusAssign operator in path constraints.
+            // Therefore, it is better to reuse already constructed [constraintToCheck].
+            if (stateToCheck) {
                 @Suppress("UNCHECKED_CAST")
-                val forkedState = state.clone() as T
-                // TODO: implement path condition setter (don't forget to reset UMemoryBase:types!)
-                state.pathConstraints += conditionToCheck
-                state.models = listOf(satResult.model)
-                forkedState.pathConstraints += satisfiedCondition
+                val forkedState = state.clone(constraintsToCheck) as T
+                state.pathConstraints += newConstraintToOriginalState
+                forkedState.models = listOf(satResult.model)
                 forkedState
             } else {
                 @Suppress("UNCHECKED_CAST")
-                val forkedState = state.clone(pathConstraints) as T
-                state.pathConstraints += satisfiedCondition
-                forkedState.models = listOf(satResult.model)
+                val forkedState = state.clone() as T
+                state.pathConstraints += newConstraintToOriginalState
+                state.models = listOf(satResult.model)
+                // TODO: implement path condition setter (don't forget to reset UMemoryBase:types!)
+                forkedState.pathConstraints += newConstraintToForkedState
                 forkedState
             }
         }
 
-        is UUnsatResult -> null
-
         is UUnknownResult -> {
-            if (forkToSatisfied) {
-                state.pathConstraints += conditionToCheck
-            } else {
-                state.pathConstraints += satisfiedCondition
+            if (addConstraintOnUnknown) {
+                state.pathConstraints += newConstraintToOriginalState
             }
             null
         }
@@ -148,13 +152,18 @@ fun <T : UState<Type, Field, *, *>, Type, Field> fork(
 
         trueModels.isNotEmpty() -> state to forkIfSat(
             state,
-            condition,
-            notCondition,
-            forkToSatisfied = false
+            newConstraintToOriginalState = condition,
+            newConstraintToForkedState = notCondition,
+            stateToCheck = ForkedState
         )
 
         falseModels.isNotEmpty() -> {
-            val forkedState = forkIfSat(state, notCondition, condition, forkToSatisfied = true)
+            val forkedState = forkIfSat(
+                state,
+                newConstraintToOriginalState = condition,
+                newConstraintToForkedState = notCondition,
+                stateToCheck = OriginalState
+            )
 
             if (forkedState != null) {
                 state to forkedState
@@ -168,4 +177,56 @@ fun <T : UState<Type, Field, *, *>, Type, Field> fork(
 
     @Suppress("UNCHECKED_CAST")
     return ForkResult(posState, negState as T?)
+}
+
+/**
+ * Implements symbolic branching on few disjoint conditions.
+ *
+ * @return a list of states for each condition - `null` state
+ * means [UUnknownResult] or [UUnsatResult] of checking condition.
+ */
+fun <T : UState<Type, Field, *, *>, Type, Field> forkMulti(
+    state: T,
+    conditions: Iterable<UBoolExpr>,
+): List<T?> {
+    var curState = state
+    val result = mutableListOf<T?>()
+    for (condition in conditions) {
+        val (trueModels, _) = curState.models.partition { model ->
+            val holdsInModel = model.eval(condition)
+            check(holdsInModel is KInterpretedValue<UBoolSort>) {
+                "Evaluation in $model on condition $condition: expected true or false, but got $holdsInModel"
+            }
+            holdsInModel.isTrue
+        }
+
+        val nextRoot = if (trueModels.isNotEmpty()) {
+            @Suppress("UNCHECKED_CAST")
+            val root = curState.clone() as T
+
+            curState.models = trueModels
+            curState.pathConstraints += condition
+
+            root
+        } else {
+            val root = forkIfSat(
+                curState,
+                newConstraintToOriginalState = condition,
+                newConstraintToForkedState = condition.ctx.trueExpr,
+                stateToCheck = OriginalState,
+                addConstraintOnUnknown = false
+            )
+
+            root
+        }
+
+        if (nextRoot != null) {
+            result += curState
+            curState = nextRoot
+        } else {
+            result += null
+        }
+    }
+
+    return result
 }

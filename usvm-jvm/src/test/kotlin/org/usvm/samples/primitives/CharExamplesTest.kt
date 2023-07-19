@@ -1,6 +1,5 @@
 package org.usvm.samples.primitives
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
@@ -28,7 +27,6 @@ internal class CharExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: switch")
     fun testByteToChar() {
         checkDiscoveredProperties(
             CharExamples::byteToChar,
