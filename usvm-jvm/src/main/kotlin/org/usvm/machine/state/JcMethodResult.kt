@@ -2,9 +2,11 @@ package org.usvm.machine.state
 
 import org.jacodb.api.JcMethod
 import org.jacodb.api.JcType
+import org.jacodb.api.cfg.JcInst
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
+import org.usvm.UStackTraceFrame
 
 /**
  * Represents a result of a method invocation.
@@ -29,7 +31,7 @@ sealed interface JcMethodResult {
     open class JcException(
         val address: UHeapRef,
         val type: JcType,
-//        val symbolicStackTrace: List<JcMethod> // TODO should it contain locations? Probably, yes. Add message?
+        val symbolicStackTrace: List<UStackTraceFrame<JcMethod, JcInst>>
     ) : JcMethodResult {
         override fun toString(): String = "${this::class.simpleName}: Address: $address, type: ${type.typeName}"
     }
@@ -45,5 +47,6 @@ sealed interface JcMethodResult {
     class UnprocessedJcException(
         address: UHeapRef,
         type: JcType,
-    ) : JcException(address, type)
+        symbolicStackTrace: List<UStackTraceFrame<JcMethod, JcInst>>
+    ) : JcException(address, type, symbolicStackTrace)
 }

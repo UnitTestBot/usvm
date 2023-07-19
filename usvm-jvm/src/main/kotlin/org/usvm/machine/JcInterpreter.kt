@@ -215,7 +215,7 @@ class JcInterpreter(
 
     @Suppress("UNUSED_PARAMETER")
     private fun visitCatchStmt(scope: JcStepScope, stmt: JcCatchInst) {
-        TODO("Not yet implemented")
+        error("The catch instruction must be unfolded during processing of the instructions led to it")
     }
 
     private fun visitSwitchStmt(scope: JcStepScope, stmt: JcSwitchInst) {

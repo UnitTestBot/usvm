@@ -5,6 +5,11 @@ data class UCallStackFrame<Method, Statement>(
     val returnSite: Statement?,
 )
 
+data class UStackTraceFrame<Method, Statement>(
+    val method: Method,
+    val instruction: Statement,
+)
+
 class UCallStack<Method, Statement> private constructor(
     private val stack: ArrayDeque<UCallStackFrame<Method, Statement>>,
 ) : Collection<UCallStackFrame<Method, Statement>> by stack {
@@ -28,6 +33,16 @@ class UCallStack<Method, Statement> private constructor(
         val newStack = ArrayDeque<UCallStackFrame<Method, Statement>>()
         newStack.addAll(stack)
         return UCallStack(newStack)
+    }
+
+    fun stackTrace(currentInstruction: Statement): List<UStackTraceFrame<Method, Statement>> {
+        val stacktrace: MutableList<UStackTraceFrame<Method, Statement>> = stack
+            .zipWithNext()
+            .mapTo(mutableListOf()) {
+                UStackTraceFrame(it.first.method, it.second.returnSite!!)
+            }
+
+        return stacktrace + UStackTraceFrame(stack.last().method, currentInstruction)
     }
 
     override fun toString(): String {

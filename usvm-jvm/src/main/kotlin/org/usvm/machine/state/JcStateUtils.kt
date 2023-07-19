@@ -31,11 +31,10 @@ fun JcState.returnValue(valueToReturn: UExpr<out USort>) {
 }
 
 /**
- * TODO change docs
- * Create an unprocessed exception from the [exception] and assign it to the [JcState.methodResult].
+ * Create an unprocessed exception with the [address] and the [type] and assign it to the [JcState.methodResult].
  */
 fun JcState.createUnprocessedException(address: UHeapRef, type: JcType) {
-    methodResult = JcMethodResult.UnprocessedJcException(address, type)
+    methodResult = JcMethodResult.UnprocessedJcException(address, type, callStack.stackTrace(lastStmt))
 }
 
 fun JcState.throwException(exception: JcMethodResult.JcException) {
@@ -47,7 +46,7 @@ fun JcState.throwException(exception: JcMethodResult.JcException) {
 
     // TODO: the last place where we distinguish implicitly thrown and explicitly thrown exceptions
     methodResult = if (exception is JcMethodResult.UnprocessedJcException) {
-        JcMethodResult.JcException(exception.address, exception.type)
+        JcMethodResult.JcException(exception.address, exception.type, exception.symbolicStackTrace)
     } else {
         exception
     }

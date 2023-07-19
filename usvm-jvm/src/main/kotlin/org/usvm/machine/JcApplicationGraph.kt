@@ -11,7 +11,6 @@ import org.jacodb.impl.features.SyncUsagesExtension
 import org.usvm.statistics.ApplicationGraph
 import java.util.concurrent.ConcurrentHashMap
 
-// TODO: add trap handlers
 /**
  * A [JcApplicationGraphImpl] wrapper.
  */
