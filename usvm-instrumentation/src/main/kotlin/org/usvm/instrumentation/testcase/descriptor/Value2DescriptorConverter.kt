@@ -33,18 +33,12 @@ open class Value2DescriptorConverter(
         }
 
     fun buildDescriptorFromUTestExpr(
-        uTestExpressionList: UTestExpression,
-        testExecutor: UTestExpressionExecutor
-    ): Result<UTestValueDescriptor>? =
-        buildDescriptorFromUTestExprs(listOf(uTestExpressionList), testExecutor)
-
-    fun buildDescriptorFromUTestExprs(
-        uTestExpressionList: List<UTestExpression>,
-        testExecutor: UTestExpressionExecutor
+        uTestExpression: UTestExpression,
+        testExecutor: UTestExpressionExecutor,
     ): Result<UTestValueDescriptor>? {
-        testExecutor.executeUTestExpressions(uTestExpressionList)
-            ?.onSuccess { return buildDescriptorResultFromAny(it) }
-            ?.onFailure { return Result.failure(it) }
+        testExecutor.executeUTestExpression(uTestExpression)
+            .onSuccess { return buildDescriptorResultFromAny(it) }
+            .onFailure { return Result.failure(it) }
         return null
     }
 

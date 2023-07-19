@@ -26,7 +26,11 @@ class UTestExpressionExecutor(
     private val jcClasspath = workerClassLoader.jcClasspath
 
 
-    private val executedModels: MutableMap<UTestExpression, Any?> = hashMapOf()
+    private val executedUTestExpressions: MutableMap<UTestExpression, Any?> = hashMapOf()
+
+    fun removeFromCache(uTestExpression: UTestExpression) = executedUTestExpressions.remove(uTestExpression)
+
+    fun clearCache() = executedUTestExpressions.clear()
 
     fun executeUTestExpression(uTestExpression: UTestExpression): Result<Any?> =
         try {
@@ -48,7 +52,7 @@ class UTestExpressionExecutor(
     }
 
 
-    private fun exec(uTestExpression: UTestExpression) = executedModels.getOrPut(uTestExpression) {
+    private fun exec(uTestExpression: UTestExpression) = executedUTestExpressions.getOrPut(uTestExpression) {
         when (uTestExpression) {
             is UTestConstExpression<*> -> executeUTestConstant(uTestExpression)
             is UTestArrayLengthExpression -> executeUTestArrayLengthExpression(uTestExpression)
