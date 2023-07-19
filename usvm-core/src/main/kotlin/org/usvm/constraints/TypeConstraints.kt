@@ -30,14 +30,14 @@ interface UTypeEvaluator<Type> {
  * Manages allocated objects separately from input ones. Indeed, we know the type of an allocated object
  * precisely, thus we can evaluate the subtyping constraints for them concretely (modulo generic type variables).
  */
-class UTypeConstraints<Type>(
+open class UTypeConstraints<Type>(
     private val typeSystem: UTypeSystem<Type>,
     private val equalityConstraints: UEqualityConstraints,
-    private val concreteRefToType: MutableMap<UConcreteHeapAddress, Type> = mutableMapOf(),
+    protected val concreteRefToType: MutableMap<UConcreteHeapAddress, Type> = mutableMapOf(),
     symbolicRefToTypeRegion: MutableMap<USymbolicHeapRef, UTypeRegion<Type>> = mutableMapOf(),
 ) : UTypeEvaluator<Type> {
     init {
-        equalityConstraints.subscribe(::intersectConstraints)
+        equalityConstraints.subscribe(::intersectRegions)
     }
 
     val symbolicRefToTypeRegion get(): Map<USymbolicHeapRef, UTypeRegion<Type>> = _symbolicRefToTypeRegion
@@ -57,7 +57,7 @@ class UTypeConstraints<Type>(
         )
     }
 
-    private fun contradiction() {
+    protected fun contradiction() {
         isContradicting = true
     }
 
@@ -68,11 +68,13 @@ class UTypeConstraints<Type>(
         concreteRefToType[ref] = type
     }
 
-    private fun getRegion(symbolicRef: USymbolicHeapRef) =
-        _symbolicRefToTypeRegion[equalityConstraints.equalReferences.find(symbolicRef)] ?: topTypeRegion
+    fun getTypeRegion(symbolicRef: USymbolicHeapRef, useRepresentative: Boolean = false): UTypeRegion<Type> {
+        val representative = if (useRepresentative) equalityConstraints.equalReferences.find(symbolicRef) else symbolicRef
+        return _symbolicRefToTypeRegion[representative] ?: topTypeRegion
+    }
 
 
-    private fun setRegion(symbolicRef: USymbolicHeapRef, value: UTypeRegion<Type>) {
+    private fun setTypeRegion(symbolicRef: USymbolicHeapRef, value: UTypeRegion<Type>) {
         _symbolicRefToTypeRegion[equalityConstraints.equalReferences.find(symbolicRef)] = value
     }
 
@@ -96,23 +98,7 @@ class UTypeConstraints<Type>(
             }
 
             is USymbolicHeapRef -> {
-                val constraints = getRegion(ref)
-                val newConstraints = constraints.addSupertype(type)
-                if (newConstraints.isContradicting) {
-                    // the only left option here is to be equal to null
-                    equalityConstraints.makeEqual(ref, ref.uctx.nullRef)
-                } else {
-                    // Inferring new symbolic disequalities here
-                    for ((key, value) in _symbolicRefToTypeRegion.entries) {
-                        // TODO: cache intersections?
-                        if (key != ref && value.intersect(newConstraints).isEmpty) {
-                            // If we have two inputs of incomparable reference types, then they are either non equal,
-                            // or both nulls
-                            equalityConstraints.makeNonEqualOrBothNull(ref, key)
-                        }
-                    }
-                    setRegion(ref, newConstraints)
-                }
+                updateRegionCanBeEqualNull(ref) { it.addSupertype(type) }
             }
 
             else -> error("Provided heap ref must be either concrete or purely symbolic one, found $ref")
@@ -139,23 +125,7 @@ class UTypeConstraints<Type>(
             }
 
             is USymbolicHeapRef -> {
-                val constraints = getRegion(ref)
-                val newConstraints = constraints.excludeSupertype(type)
-                equalityConstraints.makeNonEqual(ref, ref.uctx.nullRef)
-                if (newConstraints.isContradicting || equalityConstraints.isContradicting) {
-                    // the [ref] can't be equal to null
-                    contradiction()
-                } else {
-                    // Inferring new symbolic disequalities here
-                    for ((key, value) in _symbolicRefToTypeRegion.entries) {
-                        // TODO: cache intersections?
-                        if (key != ref && value.intersect(newConstraints).isEmpty) {
-                            // If we have two inputs of incomparable reference types, then they are non equal
-                            equalityConstraints.makeNonEqual(ref, key)
-                        }
-                    }
-                    setRegion(ref, newConstraints)
-                }
+                updateRegionCannotBeEqualNull(ref) { it.excludeSupertype(type) }
             }
 
             else -> error("Provided heap ref must be either concrete or purely symbolic one, found $ref")
@@ -165,7 +135,7 @@ class UTypeConstraints<Type>(
     /**
      * @return a type stream corresponding to the [ref].
      */
-    internal fun readTypeStream(ref: UHeapRef): UTypeStream<Type> =
+    internal fun getTypeStream(ref: UHeapRef): UTypeStream<Type> =
         when (ref) {
             is UConcreteHeapRef -> {
                 val concreteType = concreteRefToType[ref.address]
@@ -180,15 +150,61 @@ class UTypeConstraints<Type>(
             is UNullRef -> error("Null ref should be handled explicitly earlier")
 
             is USymbolicHeapRef -> {
-                getRegion(ref).typeStream
+                getTypeRegion(ref).typeStream
             }
 
             else -> error("Unexpected ref: $ref")
         }
 
-    private fun intersectConstraints(ref1: USymbolicHeapRef, ref2: USymbolicHeapRef) {
-        val newRegion = getRegion(ref1).intersect(getRegion(ref2))
-        setRegion(ref1, newRegion)
+    private fun intersectRegions(ref1: USymbolicHeapRef, ref2: USymbolicHeapRef) {
+        val region = getTypeRegion(ref2)
+        updateRegionCanBeEqualNull(ref1, region::intersect)
+    }
+
+    protected fun updateRegionCannotBeEqualNull(
+        ref: USymbolicHeapRef,
+        regionMapper: (UTypeRegion<Type>) -> UTypeRegion<Type>,
+    ) {
+        val region = getTypeRegion(ref)
+        val newRegion = regionMapper(region)
+        if (newRegion == region) {
+            return
+        }
+        equalityConstraints.makeNonEqual(ref, ref.uctx.nullRef)
+        if (newRegion.isEmpty || equalityConstraints.isContradicting) {
+            contradiction()
+            return
+        }
+        for ((key, value) in _symbolicRefToTypeRegion.entries) {
+            // TODO: cache intersections?
+            if (key != ref && value.intersect(newRegion).isEmpty) {
+                // If we have two inputs of incomparable reference types, then they are non equal
+                equalityConstraints.makeNonEqual(ref, key)
+            }
+        }
+        setTypeRegion(ref, newRegion)
+    }
+
+    protected fun updateRegionCanBeEqualNull(
+        ref: USymbolicHeapRef,
+        regionMapper: (UTypeRegion<Type>) -> UTypeRegion<Type>,
+    ) {
+        val region = getTypeRegion(ref)
+        val newRegion = regionMapper(region)
+        if (newRegion == region) {
+            return
+        }
+        if (newRegion.isEmpty) {
+            equalityConstraints.makeEqual(ref, ref.uctx.nullRef)
+        }
+        for ((key, value) in _symbolicRefToTypeRegion.entries) {
+            // TODO: cache intersections?
+            if (key != ref && value.intersect(newRegion).isEmpty) {
+                // If we have two inputs of incomparable reference types, then they are non equal
+                equalityConstraints.makeNonEqualOrBothNull(ref, key)
+            }
+        }
+        setTypeRegion(ref, newRegion)
     }
 
     /**
@@ -209,9 +225,9 @@ class UTypeConstraints<Type>(
                     // accordingly to the [UIsExpr] specification, [nullRef] always satisfies the [type]
                     return@mapper symbolicRef.ctx.trueExpr
                 }
-                val typeRegion = getRegion(symbolicRef)
+                val typeRegion = getTypeRegion(symbolicRef)
 
-                if (typeRegion.addSupertype(type).isContradicting) {
+                if (typeRegion.addSupertype(type).isEmpty) {
                     symbolicRef.ctx.falseExpr
                 } else {
                     symbolicRef.uctx.mkIsExpr(symbolicRef, type)

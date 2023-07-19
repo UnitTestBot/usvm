@@ -8,6 +8,7 @@ import org.jacodb.api.JcRefType
 import org.jacodb.api.JcType
 import org.jacodb.api.ext.isAssignable
 import org.jacodb.api.ext.objectType
+import org.jacodb.api.ext.packageName
 import org.jacodb.api.ext.toType
 import org.jacodb.impl.features.HierarchyExtensionImpl
 import org.usvm.types.USupportTypeStream
@@ -41,6 +42,17 @@ class JcTypeSystem(
             .map { it.toType() }
 
         else -> error("Unknown type $t")
+    }
+
+    fun isArrayElemType(elemType: JcType, arrayType: JcType): Boolean {
+        if (arrayType !is JcArrayType) {
+            return false
+        }
+        return isSupertype(arrayType.elementType, elemType)
+    }
+
+    fun arrayTypeOf(type: JcType): JcType {
+        return type.classpath.arrayTypeOf(type)
     }
 
     private val topTypeStream by lazy { USupportTypeStream.from(this, cp.objectType) }

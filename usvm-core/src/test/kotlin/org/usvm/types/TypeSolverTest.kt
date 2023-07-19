@@ -149,6 +149,29 @@ class TypeSolverTest {
     }
 
     @Test
+    fun `Test symbolic ref -- different types 3 refs`(): Unit = with(ctx) {
+        val ref0 = ctx.mkRegisterReading(0, addressSort)
+        val ref1 = ctx.mkRegisterReading(1, addressSort)
+        val ref2 = ctx.mkRegisterReading(2, addressSort)
+
+        pc += mkIsExpr(ref0, interfaceAB)
+        pc += mkIsExpr(ref1, interfaceBC1)
+        pc += mkIsExpr(ref2, interfaceAC)
+        pc += mkHeapRefEq(ref0, nullRef).not()
+        pc += mkHeapRefEq(ref1, nullRef).not()
+        pc += mkHeapRefEq(ref2, nullRef).not()
+
+        val resultWithoutEqConstraint = solver.check(pc)
+        val model = assertIs<USatResult<UModelBase<Field, TestType>>>(resultWithoutEqConstraint).model
+        assertNotEquals(model.eval(ref0), model.eval(ref1))
+
+        pc += mkHeapRefEq(ref0, ref1)
+        pc += mkHeapRefEq(ref1, ref2)
+
+        assertTrue(pc.isFalse)
+    }
+
+    @Test
     fun `Test symbolic ref -- different interface types but same base type`(): Unit = with(ctx) {
         val ref0 = ctx.mkRegisterReading(0, addressSort)
         val ref1 = ctx.mkRegisterReading(1, addressSort)

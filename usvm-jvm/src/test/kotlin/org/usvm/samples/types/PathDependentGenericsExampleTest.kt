@@ -8,7 +8,6 @@ import org.usvm.test.util.checkers.eq
 
 internal class PathDependentGenericsExampleTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Support instanceof")
     fun testPathDependentGenerics() {
         checkDiscoveredProperties(
             PathDependentGenericsExample::pathDependentGenerics,

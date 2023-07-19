@@ -1,14 +1,11 @@
 package org.usvm.samples.casts
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ge
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
-
-@Disabled("Support instanceof")
 internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     @Test
     fun testSimpleInstanceOf() {
@@ -234,7 +231,6 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@74414a78")
     fun testInstanceOfAsInternalExpressionsMap() {
         checkDiscoveredProperties(
             InstanceOfExample::instanceOfAsInternalExpressionsMap,
@@ -247,9 +243,8 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     fun testSymbolicInstanceOf() {
         checkDiscoveredProperties(
             InstanceOfExample::symbolicInstanceOf,
-            eq(6),
-            { _, _, i, r -> i < 1 && r == null },
-            { _, _, i, r -> i > 3 && r == null },
+            eq(5),
+            { _, _, i, r -> (i < 1 || i > 3) && r == null },
             { _, o, _, _ -> o == null },
             { _, o, i, _ -> o != null && i > o.lastIndex },
             { _, o, i, r -> o != null && o[i] is CastClassFirstSucc && r is CastClassFirstSucc },
