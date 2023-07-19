@@ -61,9 +61,27 @@ val JcInst.enclosingMethod
 //TODO!! Test with arrays
 fun JcType.toJavaClass(classLoader: ClassLoader): Class<*> =
     when (this) {
+        is JcArrayType -> findClassInLoader(toJvmType(), classLoader) ?: throw TestExecutorException("Can't find class in classpath")
         is JcClassType -> this.jcClass.toJavaClass(classLoader)
         else -> findClassInLoader(typeName, classLoader) ?: throw TestExecutorException("Can't find class in classpath")
     }
+
+fun JcArrayType.toJvmType(strBuilder: StringBuilder = StringBuilder()): String {
+    strBuilder.append('[')
+    when (elementType) {
+        is JcArrayType -> (elementType as JcArrayType).toJvmType(strBuilder)
+        elementType.classpath.boolean -> strBuilder.append("Z")
+        elementType.classpath.byte -> strBuilder.append("B")
+        elementType.classpath.short -> strBuilder.append("S")
+        elementType.classpath.int -> strBuilder.append("I")
+        elementType.classpath.long -> strBuilder.append("J")
+        elementType.classpath.float -> strBuilder.append("F")
+        elementType.classpath.double -> strBuilder.append("D")
+        elementType.classpath.char -> strBuilder.append("C")
+        else -> strBuilder.append("L${elementType.typeName};")
+    }
+    return strBuilder.toString()
+}
 
 fun JcType.toJcClass(): JcClassOrInterface? = classpath.findClassOrNull(typeName)
 
@@ -109,7 +127,7 @@ val JcClassOrInterface.allDeclaredFields
         var current: JcClassOrInterface? = this
         do {
             current!!.declaredFields.forEach {
-                result.putIfAbsent(it.name, it)
+                result.putIfAbsent("${it.name}${it.type}", it)
             }
             current = current.superClass
         } while (current != null)
@@ -164,7 +182,7 @@ fun JcMethod.toJavaConstructor(classLoader: ClassLoader): Constructor<*> {
 
 fun Method.toJcdbSignature(): String {
     val parameterTypesAsString = parameterTypes.toJcdbFormat()
-    return name + "(" + parameterTypesAsString + ")" + returnType.name + ";"
+    return name + "(" + parameterTypesAsString + ")" + returnType.typeName + ";"
 }
 
 fun Constructor<*>.toJcdbSignature(): String {
