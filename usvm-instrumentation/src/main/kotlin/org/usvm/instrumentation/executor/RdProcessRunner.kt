@@ -155,7 +155,11 @@ class RdProcessRunner(
 
             ExecutionResultType.UTestExecutionExceptionResult -> UTestExecutionExceptionResult(
                 cause = executionResult.cause ?: error("deserialization failed"),
-                trace = executionResult.trace?.let { deserializeTrace(it) }
+                trace = executionResult.trace?.let { deserializeTrace(it) },
+                initialState = executionResult.initialState?.let { deserializeExecutionState(it) }
+                    ?: error("deserialization failed"),
+                resultState = executionResult.resultState?.let { deserializeExecutionState(it) }
+                    ?: error("deserialization failed"),
             )
 
             ExecutionResultType.UTestExecutionFailedResult -> UTestExecutionFailedResult(
