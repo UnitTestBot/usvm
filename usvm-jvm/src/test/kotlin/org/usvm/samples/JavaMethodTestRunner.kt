@@ -14,14 +14,16 @@ import org.usvm.api.util.JcTestResolver
 import org.usvm.api.targets.JcTarget
 import org.usvm.api.util.JcTestResolver
 import org.usvm.machine.JcInterpreterObserver
+import org.usvm.api.util.JcTestResolver
 import org.usvm.machine.JcMachine
 import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.AnalysisResultsNumberMatcher
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
-import org.usvm.util.declaringClass
+import org.usvm.util.UTestRunnerController
 import kotlin.reflect.*
 import kotlin.reflect.full.instanceParameter
 import kotlin.reflect.jvm.javaConstructor
+import kotlin.reflect.jvm.javaMethod
 
 
 @ExtendWith(UTestRunnerController::class)

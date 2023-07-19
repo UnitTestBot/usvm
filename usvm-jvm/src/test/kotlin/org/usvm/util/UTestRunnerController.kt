@@ -3,6 +3,7 @@ package org.usvm.util
 import org.junit.jupiter.api.extension.BeforeAllCallback
 import org.junit.jupiter.api.extension.ExtensionContext
 import org.junit.jupiter.api.extension.ExtensionContext.Namespace.GLOBAL
+import org.usvm.api.util.UTestRunner
 
 
 class UTestRunnerController: BeforeAllCallback, ExtensionContext.Store.CloseableResource {
@@ -20,8 +21,6 @@ class UTestRunnerController: BeforeAllCallback, ExtensionContext.Store.Closeable
     }
 
     override fun close() {
-        if (UTestRunner.isInitialized()) {
-            UTestRunner.runner.close()
-        }
+        UTestRunner.runner.close()
     }
 }
