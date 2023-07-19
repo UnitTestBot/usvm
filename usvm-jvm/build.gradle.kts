@@ -27,8 +27,8 @@ val approximationsVersion = "d9d6f30985"
 dependencies {
     implementation(project(":usvm-core"))
 
-    implementation("org.jacodb:jacodb-core:${Versions.jcdb}")
-    implementation("org.jacodb:jacodb-analysis:${Versions.jcdb}")
+    implementation("com.github.UnitTestBot.jacodb:jacodb-core:${Versions.jcdb}")
+    implementation("com.github.UnitTestBot.jacodb:jacodb-analysis:${Versions.jcdb}")
 
     implementation("org.jacodb:jacodb-approximations:${Versions.jcdb}")
 
@@ -61,6 +61,7 @@ dependencies {
 val samplesImplementation: Configuration by configurations.getting
 
 dependencies {
+    implementation(project(mapOf("path" to ":usvm-instrumentation")))
     samplesImplementation("org.projectlombok:lombok:${Versions.samplesLombok}")
     samplesImplementation("org.slf4j:slf4j-api:${Versions.samplesSl4j}")
     samplesImplementation("javax.validation:validation-api:${Versions.samplesJavaxValidation}")
@@ -166,4 +167,48 @@ publishing {
             artifact(`usvm-api-jar`)
         }
     }
+}
+
+
+tasks {
+    register<Jar>("testJar") {
+        group = "jar"
+        shouldRunAfter("compileTestKotlin")
+        archiveClassifier.set("test")
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+        val contents = sourceSets.getByName("samples").output
+
+        from(contents)
+        dependsOn(getByName("compileSamplesJava"), configurations.testCompileClasspath)
+        dependsOn(configurations.compileClasspath)
+    }
+}
+
+tasks.withType<Test> {
+    environment(
+        "usvm-test-jar",
+        buildDir
+            .resolve("libs")
+            .resolve("usvm-jvm-test.jar")
+            .absolutePath
+    )
+    environment(
+        "usvm-instrumentation-jar",
+        rootDir
+            .resolve("usvm-instrumentation")
+            .resolve("build")
+            .resolve("libs")
+            .resolve("usvm-instrumentation-1.0.jar")
+            .absolutePath
+    )
+    environment(
+        "usvm-collectors-jar",
+        rootDir
+            .resolve("usvm-instrumentation")
+            .resolve("build")
+            .resolve("libs")
+            .resolve("usvm-instrumentation-collectors.jar")
+            .absolutePath
+    )
 }
