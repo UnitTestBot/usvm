@@ -56,7 +56,9 @@ data class UTestExecutionSuccessResult(
  */
 data class UTestExecutionExceptionResult(
     val cause: String,
-    val trace: List<JcInst>?
+    val trace: List<JcInst>?,
+    val initialState: UTestExecutionState,
+    val resultState: UTestExecutionState
 ): UTestExecutionResult()
 
 /**
