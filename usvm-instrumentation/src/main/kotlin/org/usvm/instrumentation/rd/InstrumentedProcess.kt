@@ -186,9 +186,9 @@ class InstrumentedProcess private constructor() {
                 type = ExecutionResultType.UTestExecutionExceptionResult,
                 cause = uTestExecutionResult.cause,
                 trace = uTestExecutionResult.trace?.let { serializeTrace(it) },
-                initialState = null,
+                initialState = serializeExecutionState(uTestExecutionResult.initialState),
                 result = null,
-                resultState = null
+                resultState = serializeExecutionState(uTestExecutionResult.resultState),
             )
 
             is UTestExecutionFailedResult -> ExecutionResult(
@@ -246,20 +246,26 @@ class InstrumentedProcess private constructor() {
         val accessedStatics = mutableSetOf<Pair<JcField, StaticFieldAccessType>>()
         val callMethodExpr = uTest.callMethodExpression
         val executor = UTestExpressionExecutor(userClassLoader, accessedStatics, mockHelper)
-
         executor.executeUTestExpressions(uTest.initStatements)
             ?.onFailure { return UTestExecutionInitFailedResult(it.message ?: "", traceCollector.getTrace().trace) }
 
         val initExecutionState = buildExecutionState(
             callMethodExpr, executor, initStateDescriptorBuilder, hashSetOf()
         )
+
+        executor.executeUTestExpressions(uTest.initStatements)
+            ?.onFailure { return UTestExecutionInitFailedResult(it.message ?: "", traceCollector.getTrace().trace) }
+
         val methodInvocationResult =
             executor.executeUTestExpression(callMethodExpr).onFailure {
                 return UTestExecutionExceptionResult(
-                    "$it\n${it.stackTraceToString()}", traceCollector.getTrace().trace
+                    "$it\n${it.stackTraceToString()}",
+                    traceCollector.getTrace().trace,
+                    initExecutionState,
+                    //TODO!!! decide if should we build resulting state
+                    initExecutionState
                 )
             }.getOrNull()
-
         val resultStateDescriptorBuilder =
             Value2DescriptorConverter(userClassLoader, initStateDescriptorBuilder)
         val methodInvocationResultDescriptor =
@@ -295,6 +301,7 @@ class InstrumentedProcess private constructor() {
         val argsDescriptors = callMethodExpr.args.map {
             buildDescriptorFromUTestExpr(it, executor)?.getOrNull()
         }
+        executor.clearCache()
         val isInit = descriptorBuilder.previousState == null
         val statics = if (isInit) {
             staticDescriptorsBuilder.builtInitialDescriptors.mapValues { it.value!! }
