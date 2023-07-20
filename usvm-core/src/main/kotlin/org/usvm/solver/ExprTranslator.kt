@@ -18,7 +18,8 @@ import org.usvm.UIndexedMethodReturnValue
 import org.usvm.UInputArrayLengthReading
 import org.usvm.UInputArrayReading
 import org.usvm.UInputFieldReading
-import org.usvm.UIsExpr
+import org.usvm.UIsSubtypeExpr
+import org.usvm.UIsSupertypeExpr
 import org.usvm.UMockSymbol
 import org.usvm.UNullRef
 import org.usvm.URegisterReading
@@ -86,11 +87,19 @@ open class UExprTranslator<Field, Type>(
     override fun transform(expr: UConcreteHeapRef): KExpr<UAddressSort> =
         error("Unexpected UConcreteHeapRef $expr in UExprTranslator, that has to be impossible by construction!")
 
-    private var isCounter = 0
-    override fun transform(expr: UIsExpr<Type>): KExpr<KBoolSort> {
-        require(expr.ref is USymbolicHeapRef) { "Unexpected ref: ${expr.ref}"}
+    private var isSubtypeCounter = 0
+    override fun transform(expr: UIsSubtypeExpr<Type>): KExpr<KBoolSort> {
+        require(expr.ref is USymbolicHeapRef) { "Unexpected ref: ${expr.ref}" }
 
-        val const = expr.sort.mkConst("evalIs#${isCounter++}")
+        val const = expr.sort.mkConst("isSubtype#${isSubtypeCounter++}")
+        return const
+    }
+
+    private var isSupertypeCounter = 0
+    override fun transform(expr: UIsSupertypeExpr<Type>): KExpr<KBoolSort> {
+        require(expr.ref is USymbolicHeapRef) { "Unexpected ref: ${expr.ref}" }
+
+        val const = expr.sort.mkConst("isSupertype#${isSupertypeCounter++}")
         return const
     }
 

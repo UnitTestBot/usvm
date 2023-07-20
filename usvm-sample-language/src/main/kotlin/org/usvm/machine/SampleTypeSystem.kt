@@ -6,15 +6,15 @@ import org.usvm.types.UTypeSystem
 import org.usvm.types.emptyTypeStream
 
 class SampleTypeSystem : UTypeSystem<SampleType> {
-    override fun isSupertype(u: SampleType, t: SampleType): Boolean =
-        u == t
+    override fun isSupertype(supertype: SampleType, type: SampleType): Boolean =
+        supertype == type
 
-    override fun isFinal(t: SampleType): Boolean = true
+    override fun isFinal(type: SampleType): Boolean = true
 
-    override fun isMultipleInheritanceAllowedFor(t: SampleType): Boolean = false
-    override fun isInstantiable(t: SampleType): Boolean = true
+    override fun isMultipleInheritanceAllowedFor(type: SampleType): Boolean = false
+    override fun isInstantiable(type: SampleType): Boolean = true
 
-    override fun findSubtypes(t: SampleType): Sequence<SampleType> = emptySequence()
+    override fun findSubtypes(type: SampleType): Sequence<SampleType> = emptySequence()
 
     override fun topTypeStream(): UTypeStream<SampleType> = emptyTypeStream
 

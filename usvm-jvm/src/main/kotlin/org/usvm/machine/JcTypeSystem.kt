@@ -8,7 +8,6 @@ import org.jacodb.api.JcRefType
 import org.jacodb.api.JcType
 import org.jacodb.api.ext.isAssignable
 import org.jacodb.api.ext.objectType
-import org.jacodb.api.ext.packageName
 import org.jacodb.api.ext.toType
 import org.jacodb.impl.features.HierarchyExtensionImpl
 import org.usvm.types.USupportTypeStream
@@ -20,39 +19,28 @@ class JcTypeSystem(
 ) : UTypeSystem<JcType> {
     private val hierarchy = HierarchyExtensionImpl(cp)
 
-    override fun isSupertype(u: JcType, t: JcType): Boolean =
-        t.isAssignable(u)
+    override fun isSupertype(supertype: JcType, type: JcType): Boolean =
+        type.isAssignable(supertype)
 
-    override fun isMultipleInheritanceAllowedFor(t: JcType): Boolean =
-        (t as? JcClassType)?.jcClass?.isInterface ?: false
+    override fun isMultipleInheritanceAllowedFor(type: JcType): Boolean =
+        (type as? JcClassType)?.jcClass?.isInterface ?: false
 
-    override fun isFinal(t: JcType): Boolean =
-        (t as? JcClassType)?.isFinal ?: false
+    override fun isFinal(type: JcType): Boolean =
+        (type as? JcClassType)?.isFinal ?: false
 
-    override fun isInstantiable(t: JcType): Boolean =
-        t !is JcRefType || (!t.jcClass.isInterface && !t.jcClass.isAbstract)
+    override fun isInstantiable(type: JcType): Boolean =
+        type !is JcRefType || (!type.jcClass.isInterface && !type.jcClass.isAbstract)
 
     // TODO: deal with generics
     // TODO: handle object type, serializable and cloneable
-    override fun findSubtypes(t: JcType): Sequence<JcType> = when (t) {
+    override fun findSubtypes(type: JcType): Sequence<JcType> = when (type) {
         is JcPrimitiveType -> emptySequence() // TODO: should not be called here
-        is JcArrayType -> findSubtypes(t.elementType).map { cp.arrayTypeOf(it) }
+        is JcArrayType -> findSubtypes(type.elementType).map { cp.arrayTypeOf(it) }
         is JcRefType -> hierarchy
-            .findSubClasses(t.jcClass, allHierarchy = false) // TODO: prioritize classes somehow and filter bad classes
+            .findSubClasses(type.jcClass, allHierarchy = false) // TODO: prioritize classes somehow and filter bad classes
             .map { it.toType() }
 
-        else -> error("Unknown type $t")
-    }
-
-    fun isArrayElemType(elemType: JcType, arrayType: JcType): Boolean {
-        if (arrayType !is JcArrayType) {
-            return false
-        }
-        return isSupertype(arrayType.elementType, elemType)
-    }
-
-    fun arrayTypeOf(type: JcType): JcType {
-        return type.classpath.arrayTypeOf(type)
+        else -> error("Unknown type $type")
     }
 
     private val topTypeStream by lazy { USupportTypeStream.from(this, cp.objectType) }

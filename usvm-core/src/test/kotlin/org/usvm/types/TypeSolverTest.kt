@@ -78,7 +78,7 @@ class TypeSolverTest {
     @Test
     fun `Test symbolic ref -- open type inheritance`() = with(ctx) {
         val ref = ctx.mkRegisterReading(0, addressSort)
-        pc += mkIsExpr(ref, base1)
+        pc += mkIsSubtypeExpr(ref, base1)
         pc += mkHeapRefEq(ref, nullRef).not()
         val model = (solver.check(pc) as USatResult<UModelBase<Field, TestType>>).model
         val concreteRef = assertIs<UConcreteHeapRef>(model.eval(ref))
@@ -89,7 +89,7 @@ class TypeSolverTest {
     @Test
     fun `Test symbolic ref -- interface type inheritance`() = with(ctx) {
         val ref = ctx.mkRegisterReading(0, addressSort)
-        pc += mkIsExpr(ref, interface1)
+        pc += mkIsSubtypeExpr(ref, interface1)
         pc += mkHeapRefEq(ref, nullRef).not()
         val model = (solver.check(pc) as USatResult<UModelBase<Field, TestType>>).model
         val concreteRef = assertIs<UConcreteHeapRef>(model.eval(ref))
@@ -100,15 +100,15 @@ class TypeSolverTest {
     @Test
     fun `Test concrete ref -- empty intersection simplification`() = with(ctx) {
         val ref = memory.alloc(base1)
-        pc += mkIsExpr(ref, base2)
+        pc += mkIsSubtypeExpr(ref, base2)
         assertTrue(pc.isFalse)
     }
 
     @Test
     fun `Test symbolic ref -- empty intersection simplification`() = with(ctx) {
         val ref = ctx.mkRegisterReading(0, addressSort)
-        pc += mkIsExpr(ref, base1)
-        pc += mkIsExpr(ref, base2)
+        pc += mkIsSubtypeExpr(ref, base1)
+        pc += mkIsSubtypeExpr(ref, base2)
         pc += mkHeapRefEq(ref, nullRef).not()
         assertTrue(pc.isFalse)
     }
@@ -116,8 +116,8 @@ class TypeSolverTest {
     @Test
     fun `Test symbolic ref cast -- empty intersection simplification`(): Unit = with(ctx) {
         val ref = ctx.mkRegisterReading(0, addressSort)
-        pc += mkIsExpr(ref, base1)
-        pc += mkIsExpr(ref, base2)
+        pc += mkIsSubtypeExpr(ref, base1)
+        pc += mkIsSubtypeExpr(ref, base2)
 
         val resultWithoutNullConstraint = solver.check(pc)
         assertIs<USatResult<UModelBase<Field, TestType>>>(resultWithoutNullConstraint)
@@ -133,8 +133,8 @@ class TypeSolverTest {
         val ref0 = ctx.mkRegisterReading(0, addressSort)
         val ref1 = ctx.mkRegisterReading(1, addressSort)
 
-        pc += mkIsExpr(ref0, base1)
-        pc += mkIsExpr(ref1, base2)
+        pc += mkIsSubtypeExpr(ref0, base1)
+        pc += mkIsSubtypeExpr(ref1, base2)
         pc += mkHeapRefEq(ref0, nullRef).not()
         pc += mkHeapRefEq(ref1, nullRef).not()
 
@@ -154,9 +154,9 @@ class TypeSolverTest {
         val ref1 = ctx.mkRegisterReading(1, addressSort)
         val ref2 = ctx.mkRegisterReading(2, addressSort)
 
-        pc += mkIsExpr(ref0, interfaceAB)
-        pc += mkIsExpr(ref1, interfaceBC1)
-        pc += mkIsExpr(ref2, interfaceAC)
+        pc += mkIsSubtypeExpr(ref0, interfaceAB)
+        pc += mkIsSubtypeExpr(ref1, interfaceBC1)
+        pc += mkIsSubtypeExpr(ref2, interfaceAC)
         pc += mkHeapRefEq(ref0, nullRef).not()
         pc += mkHeapRefEq(ref1, nullRef).not()
         pc += mkHeapRefEq(ref2, nullRef).not()
@@ -176,10 +176,10 @@ class TypeSolverTest {
         val ref0 = ctx.mkRegisterReading(0, addressSort)
         val ref1 = ctx.mkRegisterReading(1, addressSort)
 
-        pc += mkIsExpr(ref0, base1)
-        pc += mkIsExpr(ref0, interface1)
-        pc += mkIsExpr(ref1, base1)
-        pc += mkIsExpr(ref1, interface2)
+        pc += mkIsSubtypeExpr(ref0, base1)
+        pc += mkIsSubtypeExpr(ref0, interface1)
+        pc += mkIsSubtypeExpr(ref1, base1)
+        pc += mkIsSubtypeExpr(ref1, interface2)
 
         val resultWithoutEqConstraint = solver.check(pc)
         val modelWithoutEqConstraint =
@@ -217,10 +217,10 @@ class TypeSolverTest {
             mkHeapRefEq(b2, nullRef).not() and
             mkHeapRefEq(c, nullRef).not()
 
-        pc += mkIsExpr(a, interfaceAB)
-        pc += mkIsExpr(b1, interfaceBC1)
-        pc += mkIsExpr(b2, interfaceBC2)
-        pc += mkIsExpr(c, interfaceAC)
+        pc += mkIsSubtypeExpr(a, interfaceAB)
+        pc += mkIsSubtypeExpr(b1, interfaceBC1)
+        pc += mkIsSubtypeExpr(b2, interfaceBC2)
+        pc += mkIsSubtypeExpr(c, interfaceAC)
 
         pc += mkHeapRefEq(b1, b2)
 
@@ -270,9 +270,9 @@ class TypeSolverTest {
         val b = ctx.mkRegisterReading(1, addressSort)
         val c = ctx.mkRegisterReading(2, addressSort)
 
-        pc += mkIsExpr(a, interfaceAB)
-        pc += mkIsExpr(b, interfaceBC1)
-        pc += mkIsExpr(c, interfaceAC)
+        pc += mkIsSubtypeExpr(a, interfaceAB)
+        pc += mkIsSubtypeExpr(b, interfaceBC1)
+        pc += mkIsSubtypeExpr(c, interfaceAC)
 
         // it's overcomplicated a == c && b == c, so it's not leak to the UEqualityConstraints
         pc += (mkHeapRefEq(a, c) or mkHeapRefEq(b, c)) and (!mkHeapRefEq(a, c) or !mkHeapRefEq(b, c)).not()
@@ -300,9 +300,9 @@ class TypeSolverTest {
         val b = ctx.mkRegisterReading(1, addressSort)
         val c = ctx.mkRegisterReading(2, addressSort)
 
-        pc += mkIsExpr(a, interfaceAB)
-        pc += mkIsExpr(b, interfaceBC1)
-        pc += mkIsExpr(c, interfaceAC)
+        pc += mkIsSubtypeExpr(a, interfaceAB)
+        pc += mkIsSubtypeExpr(b, interfaceBC1)
+        pc += mkIsSubtypeExpr(c, interfaceAC)
 
         // it's overcomplicated a == b, so it's not leak to the UEqualityConstraints
         pc += mkOrNoSimplify(mkHeapRefEq(a, b), falseExpr)
@@ -346,14 +346,14 @@ class TypeSolverTest {
         val firstReading = inputRegion.read(arr1 to idx1)
         val secondReading = inputRegion.read(arr2 to idx2)
 
-        pc += mkIsExpr(arr1, base1)
-        pc += mkIsExpr(arr2, base1)
+        pc += mkIsSubtypeExpr(arr1, base1)
+        pc += mkIsSubtypeExpr(arr2, base1)
 
         pc += mkHeapRefEq(firstReading, nullRef).not()
         pc += mkHeapRefEq(secondReading, nullRef).not()
 
-        pc += mkIsExpr(firstReading, base2)
-        pc += mkIsExpr(secondReading, base2)
+        pc += pc.typeConstraints.evalIsSubtype(firstReading, base2)
+        pc += pc.typeConstraints.evalIsSubtype(secondReading, base2)
 
         val fstFieldValue = heap.readField(firstReading, field, bv32Sort)
         val sndFieldValue = heap.readField(secondReading, field, bv32Sort)
@@ -369,10 +369,10 @@ class TypeSolverTest {
     fun `Test symbolic ref -- not instance of constraint`(): Unit = with(ctx) {
         val ref = ctx.mkRegisterReading(0, addressSort)
 
-        pc += mkHeapRefEq(ref, nullRef) or mkIsExpr(ref, interfaceAB).not()
+        pc += mkHeapRefEq(ref, nullRef) or mkIsSubtypeExpr(ref, interfaceAB).not()
         assertIs<USatResult<UModelBase<Field, TestType>>>(solver.check(pc))
 
-        pc += heapRefEq(ref, nullRef).not() and (mkIsExpr(ref, a) or mkIsExpr(ref, b))
+        pc += heapRefEq(ref, nullRef).not() and (mkIsSubtypeExpr(ref, a) or mkIsSubtypeExpr(ref, b))
         assertIs<UUnsatResult<*>>(solver.check(pc))
     }
 
@@ -380,8 +380,8 @@ class TypeSolverTest {
     fun `Test symbolic ref -- isExpr or bool variable`(): Unit = with(ctx) {
         val ref = ctx.mkRegisterReading(0, addressSort)
         val unboundedBoolean = ctx.mkRegisterReading(1, boolSort)
-        pc += mkIsExpr(ref, a) or mkIsExpr(ref, b) or mkIsExpr(ref, c)
-        pc += mkIsExpr(ref, interfaceAB) xor unboundedBoolean
+        pc += mkIsSubtypeExpr(ref, a) or mkIsSubtypeExpr(ref, b) or mkIsSubtypeExpr(ref, c)
+        pc += mkIsSubtypeExpr(ref, interfaceAB) xor unboundedBoolean
         val result1 = solver.check(pc)
         assertIs<USatResult<UModelBase<Field, TestType>>>(result1)
         pc += unboundedBoolean
@@ -403,8 +403,8 @@ class TypeSolverTest {
         pc += mkHeapRefEq(ref1, nullRef).not()
         pc += mkHeapRefEq(ref2, nullRef).not()
 
-        val iteIsExpr1 = pc.typeConstraints.evalIs(mkIte(unboundedBoolean1, ref1, ref2), base1)
-        val iteIsExpr2 = pc.typeConstraints.evalIs(mkIte(unboundedBoolean2, ref1, ref2), base2)
+        val iteIsExpr1 = pc.typeConstraints.evalIsSubtype(mkIte(unboundedBoolean1, ref1, ref2), base1)
+        val iteIsExpr2 = pc.typeConstraints.evalIsSubtype(mkIte(unboundedBoolean2, ref1, ref2), base2)
 
         pc += iteIsExpr1
         pc += iteIsExpr2

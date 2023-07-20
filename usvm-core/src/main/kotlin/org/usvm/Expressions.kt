@@ -366,13 +366,13 @@ class UIndexedMethodReturnValue<Method, Sort : USort> internal constructor(
 //region Subtyping Expressions
 
 /**
- * Means **either** [ref] is [UNullRef] **or** [ref] !is [UNullRef] and [ref] <: [type]. Thus, the actual type
+ * Means **either** [ref] is [UNullRef] **or** [ref] !is [UNullRef] and [ref] <: [supertype]. Thus, the actual type
  * inheritance is checked only on non-null refs.
  */
-class UIsExpr<Type> internal constructor(
+class UIsSubtypeExpr<Type> internal constructor(
     ctx: UContext,
     val ref: UHeapRef,
-    val type: Type,
+    val supertype: Type,
 ) : USymbol<UBoolSort>(ctx) {
     override val sort = ctx.boolSort
 
@@ -383,15 +383,41 @@ class UIsExpr<Type> internal constructor(
         return (transformer as UTransformer<*, Type>).transform(this)
     }
 
-
     override fun print(printer: ExpressionPrinter) {
-        printer.append("($ref is of $type)")
+        printer.append("($ref is of $supertype)")
     }
 
-    override fun internEquals(other: Any): Boolean = structurallyEqual(other, { ref }, { type })
+    override fun internEquals(other: Any): Boolean = structurallyEqual(other, { ref }, { supertype })
 
-    override fun internHashCode(): Int = hash(ref, type)
+    override fun internHashCode(): Int = hash(ref, supertype)
 }
+
+/**
+ * Means [ref] !is [UNullRef] and [subtype] <: [ref]. Thus, the actual type
+ * inheritance is checked only on non-null refs.
+ */
+class UIsSupertypeExpr<Type> internal constructor(
+    ctx: UContext,
+    val ref: UHeapRef,
+    val subtype: Type,
+) : USymbol<UBoolSort>(ctx) {
+    override val sort = ctx.boolSort
+    @Suppress("UNCHECKED_CAST")
+    override fun accept(transformer: KTransformerBase): UBoolExpr {
+        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
+        // An unchecked cast here it to be able to choose the right overload from UTransformer
+        return (transformer as UTransformer<*, Type>).transform(this)
+    }
+
+    override fun print(printer: ExpressionPrinter) {
+        printer.append("($subtype is subtype of type($ref))")
+    }
+
+    override fun internEquals(other: Any): Boolean = structurallyEqual(other, { ref }, { subtype })
+
+    override fun internHashCode(): Int = hash(ref, subtype)
+}
+
 //endregion
 
 //region Utils

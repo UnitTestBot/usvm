@@ -14,7 +14,8 @@ import org.usvm.UIndexedMethodReturnValue
 import org.usvm.UInputArrayLengthReading
 import org.usvm.UInputArrayReading
 import org.usvm.UInputFieldReading
-import org.usvm.UIsExpr
+import org.usvm.UIsSubtypeExpr
+import org.usvm.UIsSupertypeExpr
 import org.usvm.UMockSymbol
 import org.usvm.UNullRef
 import org.usvm.URegisterReading
@@ -24,9 +25,9 @@ import org.usvm.USymbol
 import org.usvm.UTransformer
 
 class UIsExprCollector<Field, Type>(override val ctx: KContext) : UTransformer<Field, Type> {
-    private val caches = hashMapOf<UExpr<*>, Set<UIsExpr<Type>>>()
+    private val caches = hashMapOf<UExpr<*>, Set<UIsSubtypeExpr<Type>>>()
 
-    fun collect(initialExpr: UExpr<*>): Set<UIsExpr<Type>> =
+    fun collect(initialExpr: UExpr<*>): Set<UIsSubtypeExpr<Type>> =
         caches.getOrElse(initialExpr) {
             apply(initialExpr)
             caches.getValue(initialExpr)
@@ -75,9 +76,15 @@ class UIsExprCollector<Field, Type>(override val ctx: KContext) : UTransformer<F
 
     override fun transform(expr: UNullRef): UExpr<UAddressSort> = transformExpr(expr)
 
-    override fun transform(expr: UIsExpr<Type>): UBoolExpr = computeSideEffect(expr) {
+    override fun transform(expr: UIsSubtypeExpr<Type>): UBoolExpr = computeSideEffect(expr) {
         caches[expr] = setOf(expr)
     }
+
+    override fun transform(expr: UIsSupertypeExpr<Type>): UBoolExpr = computeSideEffect(expr) {
+        @Suppress("UNREACHABLE_CODE")
+        caches[expr] = TODO()
+    }
+
     override fun transform(
         expr: UInputArrayLengthReading<Type>,
     ): USizeExpr = readingWithSingleArgumentTransform(expr, expr.address)
@@ -85,7 +92,7 @@ class UIsExprCollector<Field, Type>(override val ctx: KContext) : UTransformer<F
     override fun <Sort : USort> transform(
         expr: UInputArrayReading<Type, Sort>,
     ): UExpr<Sort> = computeSideEffect(expr) {
-        val constraints = mutableSetOf<UIsExpr<Type>>()
+        val constraints = mutableSetOf<UIsSubtypeExpr<Type>>()
 
         constraints += collect(expr.index)
         constraints += collect(expr.address)

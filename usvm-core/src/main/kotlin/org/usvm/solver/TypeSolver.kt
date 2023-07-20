@@ -3,7 +3,7 @@ package org.usvm.solver
 import org.usvm.NULL_ADDRESS
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
-import org.usvm.UIsExpr
+import org.usvm.UIsSubtypeExpr
 import org.usvm.USymbolicHeapRef
 import org.usvm.constraints.UTypeConstraints
 import org.usvm.model.UTypeModel
@@ -15,7 +15,7 @@ data class TypeSolverQuery<Type>(
     val typeConstraints: UTypeConstraints<Type>,
     val logicalConstraints: Collection<UBoolExpr>,
     val symbolicToConcrete: (USymbolicHeapRef) -> UConcreteHeapRef,
-    val isExprToInterpreted: (UIsExpr<Type>) -> Boolean,
+    val isExprToInterpreted: (UIsSubtypeExpr<Type>) -> Boolean,
 )
 
 class UTypeUnsatResult<Type>(
@@ -34,6 +34,7 @@ class UTypeSolver<Field, Type>(
     }
 
     /**
+     * TODO: rewrite this comment
      * Checks if the [model] satisfies this [UTypeConstraints].
      *
      * Checking works as follows:
@@ -114,10 +115,10 @@ class UTypeSolver<Field, Type>(
                 val evaluatedIsExpressions = isExpressions.map { isExpr ->
                     val holds = pc.isExprToInterpreted(isExpr)
                     if (holds) {
-                        nextRegion = nextRegion.addSupertype(isExpr.type)
+                        nextRegion = nextRegion.addSupertype(isExpr.supertype)
                         isExpr
                     } else {
-                        nextRegion = nextRegion.excludeSupertype(isExpr.type)
+                        nextRegion = nextRegion.excludeSupertype(isExpr.supertype)
                         isExpr.ctx.mkNot(isExpr)
                     }
                 }

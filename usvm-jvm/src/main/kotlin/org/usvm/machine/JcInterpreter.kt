@@ -66,7 +66,7 @@ class JcInterpreter(
                 val thisLValue = URegisterLValue(addressSort, 0)
                 val ref = state.memory.read(thisLValue).asExpr(addressSort)
                 state.pathConstraints += mkEq(ref, nullRef).not()
-                state.pathConstraints += mkIsExpr(ref, typedMethod.enclosingType)
+                state.pathConstraints += mkIsSubtypeExpr(ref, typedMethod.enclosingType)
             }
         }
 
@@ -76,7 +76,7 @@ class JcInterpreter(
                 if (type is JcRefType) {
                     val argumentLValue = URegisterLValue(typeToSort(type), method.localIdx(idx))
                     val ref = state.memory.read(argumentLValue).asExpr(addressSort)
-                    state.pathConstraints += mkIsExpr(ref, type)
+                    state.pathConstraints += mkIsSubtypeExpr(ref, type)
                 }
             }
         }

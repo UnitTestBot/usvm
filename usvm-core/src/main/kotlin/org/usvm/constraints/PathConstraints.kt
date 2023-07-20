@@ -7,12 +7,12 @@ import org.usvm.UBoolExpr
 import org.usvm.UContext
 import org.usvm.UEqExpr
 import org.usvm.UFalse
-import org.usvm.UIsExpr
+import org.usvm.UIsSubtypeExpr
+import org.usvm.UIsSupertypeExpr
 import org.usvm.UNotExpr
 import org.usvm.UOrExpr
 import org.usvm.USymbolicHeapRef
 import org.usvm.isSymbolicHeapRef
-import org.usvm.memory.map
 import org.usvm.uctx
 
 /**
@@ -57,18 +57,12 @@ open class UPathConstraints<Type> private constructor(
                 constraint is UEqExpr<*> && isSymbolicHeapRef(constraint.lhs) && isSymbolicHeapRef(constraint.rhs) ->
                     equalityConstraints.makeEqual(constraint.lhs as USymbolicHeapRef, constraint.rhs as USymbolicHeapRef)
 
-                constraint is UIsExpr<*> -> {
-                    val expr = constraint.ref.map(
-                        concreteMapper = { typeConstraints.evalIs(it, constraint.type as Type) },
-                        symbolicMapper = { if (it == nullRef) trueExpr else ctx.mkIsExpr(it, constraint.type) },
-                        ignoreNullRefs = false
-                    )
+                constraint is UIsSubtypeExpr<*> -> {
+                    typeConstraints.addSupertype(constraint.ref, constraint.supertype as Type)
+                }
 
-                    if (expr is UIsExpr<*>) {
-                        typeConstraints.addSupertype(expr.ref, expr.type as Type)
-                    } else {
-                        logicalConstraints = logicalConstraints.add(expr)
-                    }
+                constraint is UIsSupertypeExpr<*> -> {
+                    typeConstraints.addSubtype(constraint.ref, constraint.subtype as Type)
                 }
 
                 constraint is UAndExpr -> constraint.args.forEach(::plusAssign)
@@ -86,9 +80,14 @@ open class UPathConstraints<Type> private constructor(
                             )
                         }
 
-                        notConstraint is UIsExpr<*> -> typeConstraints.excludeSupertype(
+                        notConstraint is UIsSubtypeExpr<*> -> typeConstraints.excludeSupertype(
                             notConstraint.ref,
-                            notConstraint.type as Type
+                            notConstraint.supertype as Type
+                        )
+
+                        notConstraint is UIsSupertypeExpr<*> -> typeConstraints.excludeSubtype(
+                            notConstraint.ref,
+                            notConstraint.subtype as Type
                         )
 
                         notConstraint in logicalConstraints -> contradiction(ctx)

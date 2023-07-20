@@ -33,7 +33,8 @@ import org.usvm.UIndexedMethodReturnValue
 import org.usvm.UInputArrayLengthReading
 import org.usvm.UInputArrayReading
 import org.usvm.UInputFieldReading
-import org.usvm.UIsExpr
+import org.usvm.UIsSubtypeExpr
+import org.usvm.UIsSupertypeExpr
 import org.usvm.UMockSymbol
 import org.usvm.UNullRef
 import org.usvm.URegisterReading
@@ -52,7 +53,7 @@ class USoftConstraintsProvider<Field, Type>(override val ctx: UContext) : UTrans
     fun provide(initialExpr: UExpr<*>): Set<UBoolExpr> =
         caches.getOrElse(initialExpr) {
             apply(initialExpr)
-            caches.getValue(initialExpr)
+            caches.getOrPut(initialExpr, ::emptySet)
         }
 
     // region The most common methods
@@ -97,9 +98,11 @@ class USoftConstraintsProvider<Field, Type>(override val ctx: UContext) : UTrans
         expr: UConcreteHeapRef,
     ): UExpr<UAddressSort> = error("Illegal operation since UConcreteHeapRef must not be translated into a solver")
 
-    override fun transform(expr: UNullRef): UExpr<UAddressSort> = transformExpr(expr)
+    override fun transform(expr: UNullRef): UExpr<UAddressSort> = expr
 
-    override fun transform(expr: UIsExpr<Type>): UBoolExpr = transformExpr(expr)
+    override fun transform(expr: UIsSubtypeExpr<Type>): UBoolExpr = expr
+
+    override fun transform(expr: UIsSupertypeExpr<Type>): UBoolExpr = expr
 
     override fun transform(
         expr: UInputArrayLengthReading<Type>,

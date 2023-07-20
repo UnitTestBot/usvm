@@ -14,7 +14,8 @@ import org.usvm.types.UTypeSystem
 import org.usvm.uctx
 
 interface UTypeEvaluator<Type> {
-    fun evalIs(ref: UHeapRef, type: Type): UBoolExpr
+    fun evalIsSubtype(ref: UHeapRef, supertype: Type): UBoolExpr
+    fun evalIsSupertype(ref: UHeapRef, subtype: Type): UBoolExpr
 }
 
 /**
@@ -68,7 +69,7 @@ open class UTypeConstraints<Type>(
         concreteRefToType[ref] = type
     }
 
-    fun getTypeRegion(symbolicRef: USymbolicHeapRef, useRepresentative: Boolean = false): UTypeRegion<Type> {
+    fun getTypeRegion(symbolicRef: USymbolicHeapRef, useRepresentative: Boolean = true): UTypeRegion<Type> {
         val representative = if (useRepresentative) equalityConstraints.equalReferences.find(symbolicRef) else symbolicRef
         return _symbolicRefToTypeRegion[representative] ?: topTypeRegion
     }
@@ -84,7 +85,7 @@ open class UTypeConstraints<Type>(
      * then type constraints become contradicting (@see [isContradicting]).
      *
      * NB: this function **must not** be used to cast types in interpreters.
-     * To do so you should add corresponding constraint using [evalIs] function.
+     * To do so you should add corresponding constraint using [evalIsSubtype] function.
      */
     internal fun addSupertype(ref: UHeapRef, type: Type) {
         when (ref) {
@@ -111,7 +112,7 @@ open class UTypeConstraints<Type>(
      * then type constraints become contradicting (@see [isContradicting]).
      *
      * NB: this function **must not** be used to exclude types in interpreters.
-     * To do so you should add corresponding constraint using [evalIs] function.
+     * To do so you should add corresponding constraint using [evalIsSubtype] function.
      */
     internal fun excludeSupertype(ref: UHeapRef, type: Type) {
         when (ref) {
@@ -126,6 +127,61 @@ open class UTypeConstraints<Type>(
 
             is USymbolicHeapRef -> {
                 updateRegionCannotBeEqualNull(ref) { it.excludeSupertype(type) }
+            }
+
+            else -> error("Provided heap ref must be either concrete or purely symbolic one, found $ref")
+        }
+    }
+
+    /**
+     * Constraints the [ref] isn't null and the type of the [ref] to
+     * be a supertype of the [type]. If it is impossible within current type and equality constraints,
+     * then type constraints become contradicting (@see [isContradicting]).
+     *
+     * NB: this function **must not** be used to cast types in interpreters.
+     * To do so you should add corresponding constraint using [evalIsSupertype] function.
+     */
+    internal fun addSubtype(ref: UHeapRef, type: Type) {
+        when (ref) {
+            is UNullRef -> contradiction()
+
+            is UConcreteHeapRef -> {
+                val concreteType = concreteRefToType.getValue(ref.address)
+                if (!typeSystem.isSupertype(concreteType, type)) {
+                    contradiction()
+                }
+            }
+
+            is USymbolicHeapRef -> {
+                updateRegionCannotBeEqualNull(ref) { it.addSubtype(type) }
+            }
+
+            else -> error("Provided heap ref must be either concrete or purely symbolic one, found $ref")
+        }
+    }
+
+    /**
+     * Constraints **either** the [ref] is null or the [ref] isn't null and the type of
+     * the [ref] to be a not supertype of the [type].
+     * If it is impossible within current type and equality constraints,
+     * then type constraints become contradicting (@see [isContradicting]).
+     *
+     * NB: this function **must not** be used to exclude types in interpreters.
+     * To do so you should add corresponding constraint using [evalIsSupertype] function.
+     */
+    internal fun excludeSubtype(ref: UHeapRef, type: Type) {
+        when (ref) {
+            is UNullRef -> return
+
+            is UConcreteHeapRef -> {
+                val concreteType = concreteRefToType.getValue(ref.address)
+                if (typeSystem.isSupertype(concreteType, type)) {
+                    contradiction()
+                }
+            }
+
+            is USymbolicHeapRef -> {
+                updateRegionCanBeEqualNull(ref) { it.excludeSubtype(type) }
             }
 
             else -> error("Provided heap ref must be either concrete or purely symbolic one, found $ref")
@@ -156,9 +212,9 @@ open class UTypeConstraints<Type>(
             else -> error("Unexpected ref: $ref")
         }
 
-    private fun intersectRegions(ref1: USymbolicHeapRef, ref2: USymbolicHeapRef) {
-        val region = getTypeRegion(ref2)
-        updateRegionCanBeEqualNull(ref1, region::intersect)
+    private fun intersectRegions(to: USymbolicHeapRef, from: USymbolicHeapRef) {
+        val region = getTypeRegion(from, useRepresentative = false).intersect(getTypeRegion(to))
+        updateRegionCanBeEqualNull(to, region::intersect)
     }
 
     protected fun updateRegionCannotBeEqualNull(
@@ -208,13 +264,13 @@ open class UTypeConstraints<Type>(
     }
 
     /**
-     * Evaluates the [ref] <: [type] in the current [UTypeConstraints]. Always returns true on null references.
+     * Evaluates the [ref] <: [supertype] in the current [UTypeConstraints]. Always returns true on null references.
      */
-    override fun evalIs(ref: UHeapRef, type: Type): UBoolExpr =
+    override fun evalIsSubtype(ref: UHeapRef, supertype: Type): UBoolExpr =
         ref.map(
             concreteMapper = { concreteRef ->
                 val concreteType = concreteRefToType.getValue(concreteRef.address)
-                if (typeSystem.isSupertype(type, concreteType)) {
+                if (typeSystem.isSupertype(supertype, concreteType)) {
                     concreteRef.ctx.trueExpr
                 } else {
                     concreteRef.ctx.falseExpr
@@ -222,20 +278,45 @@ open class UTypeConstraints<Type>(
             },
             symbolicMapper = mapper@{ symbolicRef ->
                 if (symbolicRef == symbolicRef.uctx.nullRef) {
-                    // accordingly to the [UIsExpr] specification, [nullRef] always satisfies the [type]
+                    // accordingly to the [UIsSubtypeExpr] specification, [nullRef] always satisfies the [type]
                     return@mapper symbolicRef.ctx.trueExpr
                 }
                 val typeRegion = getTypeRegion(symbolicRef)
 
-                if (typeRegion.addSupertype(type).isEmpty) {
+                if (typeRegion.addSupertype(supertype).isEmpty) {
                     symbolicRef.ctx.falseExpr
                 } else {
-                    symbolicRef.uctx.mkIsExpr(symbolicRef, type)
+                    symbolicRef.uctx.mkIsSubtypeExpr(symbolicRef, supertype)
                 }
             },
             ignoreNullRefs = false
         )
 
+    override fun evalIsSupertype(ref: UHeapRef, subtype: Type): UBoolExpr =
+        ref.map(
+            concreteMapper = { concreteRef ->
+                val concreteType = concreteRefToType.getValue(concreteRef.address)
+                if (typeSystem.isSupertype(concreteType, subtype)) {
+                    concreteRef.ctx.trueExpr
+                } else {
+                    concreteRef.ctx.falseExpr
+                }
+            },
+            symbolicMapper = mapper@{ symbolicRef ->
+                if (symbolicRef == symbolicRef.uctx.nullRef) {
+                    // accordingly to the [UIsSupertypeExpr] specification, on [nullRef] return false
+                    return@mapper symbolicRef.ctx.falseExpr
+                }
+                val typeRegion = getTypeRegion(symbolicRef)
+
+                if (typeRegion.addSubtype(subtype).isEmpty) {
+                    symbolicRef.ctx.falseExpr
+                } else {
+                    symbolicRef.uctx.mkIsSupertypeExpr(symbolicRef, subtype)
+                }
+            },
+            ignoreNullRefs = false
+        )
 
     /**
      * Creates a mutable copy of these constraints connected to new instance of [equalityConstraints].

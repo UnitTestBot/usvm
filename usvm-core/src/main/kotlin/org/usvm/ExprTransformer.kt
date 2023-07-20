@@ -17,7 +17,9 @@ interface UTransformer<Field, Type> : KTransformer {
     fun <Sort : USort> transform(expr: UMockSymbol<Sort>): UExpr<Sort>
     fun <Method, Sort : USort> transform(expr: UIndexedMethodReturnValue<Method, Sort>): UExpr<Sort>
 
-    fun transform(expr: UIsExpr<Type>): UBoolExpr
+    fun transform(expr: UIsSubtypeExpr<Type>): UBoolExpr
+
+    fun transform(expr: UIsSupertypeExpr<Type>): UBoolExpr
 
     fun transform(expr: UConcreteHeapRef): UExpr<UAddressSort>
 
