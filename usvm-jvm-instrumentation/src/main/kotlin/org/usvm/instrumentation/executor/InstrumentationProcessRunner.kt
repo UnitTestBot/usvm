@@ -58,7 +58,7 @@ class InstrumentationProcessRunner(
         val processLifetime = LifetimeDefinition(parentLifetime)
         lifetime = processLifetime
         val rdPort = NetUtils.findFreePort(0)
-        val workerCommand = jvmArgs + createWorkerProcessArgs(rdPort, 120)
+        val workerCommand = jvmArgs + createWorkerProcessArgs(rdPort, 60)
         val pb = ProcessBuilder(workerCommand).inheritIO()
         val process = pb.start()
         rdProcessRunner =

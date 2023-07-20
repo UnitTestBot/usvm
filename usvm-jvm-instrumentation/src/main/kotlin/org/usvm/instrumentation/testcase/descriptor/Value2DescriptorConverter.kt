@@ -154,8 +154,7 @@ open class Value2DescriptorConverter(
         val uTestObjectDescriptor = UTestObjectDescriptor(jcType, fields, System.identityHashCode(value))
         return createCyclicRef(uTestObjectDescriptor, value) {
             jcClass.allDeclaredFields
-                //TODO! Decide for which fields descriptors should be build
-                //.filterNot { it.isFinal }
+                .filterNot { it.isFinal }
                 .forEach { jcField ->
                     val jField = jcField.toJavaField(classLoader) ?: return@forEach
                     val fieldValue = jField.getFieldValue(value)

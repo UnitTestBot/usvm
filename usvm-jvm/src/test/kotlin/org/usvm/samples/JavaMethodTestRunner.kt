@@ -15,6 +15,7 @@ import org.usvm.api.targets.JcTarget
 import org.usvm.api.util.JcTestResolver
 import org.usvm.machine.JcInterpreterObserver
 import org.usvm.api.util.JcTestResolver
+import org.usvm.util.JcTestExecutor
 import org.usvm.machine.JcMachine
 import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.AnalysisResultsNumberMatcher

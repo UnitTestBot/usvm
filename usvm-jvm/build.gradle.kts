@@ -50,12 +50,12 @@ dependencies {
 val samplesImplementation: Configuration by configurations.getting
 
 dependencies {
-    implementation(project(mapOf("path" to ":usvm-instrumentation")))
     samplesImplementation("org.projectlombok:lombok:${Versions.samplesLombok}")
     samplesImplementation("org.slf4j:slf4j-api:${Versions.samplesSl4j}")
     samplesImplementation("javax.validation:validation-api:${Versions.samplesJavaxValidation}")
     samplesImplementation("com.github.stephenc.findbugs:findbugs-annotations:${Versions.samplesFindBugs}")
     samplesImplementation("org.jetbrains:annotations:${Versions.samplesJetbrainsAnnotations}")
+    testImplementation(project(":usvm-jvm-instrumentation"))
     // Use usvm-api in samples for makeSymbolic, assume, etc.
     samplesImplementation(`usvm-api`.output)
 }
