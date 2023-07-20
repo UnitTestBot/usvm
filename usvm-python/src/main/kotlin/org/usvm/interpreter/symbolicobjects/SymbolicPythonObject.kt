@@ -6,11 +6,9 @@ import io.ksmt.sort.KIntSort
 import org.usvm.*
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.interpreter.PyModel
-import org.usvm.interpreter.PythonExecutionState
 import org.usvm.interpreter.operations.myAssert
 import org.usvm.language.*
 import org.usvm.language.types.*
-import org.usvm.memory.UMemoryBase
 
 sealed class SymbolicPythonObject(open val address: UHeapRef) {
     override fun equals(other: Any?): Boolean {
@@ -37,18 +35,18 @@ sealed class SymbolicPythonObject(open val address: UHeapRef) {
 }
 
 class UninterpretedSymbolicPythonObject(address: UHeapRef): SymbolicPythonObject(address) {
-    private fun addTypeConstraint(ctx: ConcolicRunContext, type: PythonType) {
+    fun addSupertype(ctx: ConcolicRunContext, type: PythonType) {
         myAssert(ctx, ctx.curState.pathConstraints.typeConstraints.evalIs(address, type))
     }
 
     fun setIntContent(ctx: ConcolicRunContext, expr: UExpr<KIntSort>) {
-        addTypeConstraint(ctx, pythonInt)
+        addSupertype(ctx, pythonInt)
         val lvalue = UFieldLValue(expr.sort, address, IntContent)
         ctx.curState.memory.write(lvalue, expr)
     }
 
     fun setBoolContent(ctx: ConcolicRunContext, expr: UBoolExpr) {
-        addTypeConstraint(ctx, pythonBool)
+        addSupertype(ctx, pythonBool)
         val lvalue = UFieldLValue(expr.sort, address, BoolContent)
         ctx.curState.memory.write(lvalue, expr)
     }

@@ -5,10 +5,13 @@ import kotlinx.collections.immutable.persistentListOf
 import org.usvm.*
 import org.usvm.constraints.UPathConstraints
 import org.usvm.interpreter.operations.tracing.SymbolicHandlerEvent
+import org.usvm.interpreter.symbolicobjects.InterpretedSymbolicPythonObject
 import org.usvm.language.*
 import org.usvm.language.types.PythonType
 import org.usvm.memory.UMemoryBase
 import org.usvm.model.UModelBase
+import org.usvm.types.UTypeStream
+
 class PythonExecutionState(
     private val ctx: UContext,
     private val pythonCallable: PythonUnpinnedCallable,
@@ -17,7 +20,8 @@ class PythonExecutionState(
     memory: UMemoryBase<PropertyOfPythonObject, PythonType, PythonCallable>,
     uModel: UModelBase<PropertyOfPythonObject, PythonType>,
     callStack: UCallStack<PythonCallable, SymbolicHandlerEvent<Any>> = UCallStack(),
-    path: PersistentList<SymbolicHandlerEvent<Any>> = persistentListOf()
+    path: PersistentList<SymbolicHandlerEvent<Any>> = persistentListOf(),
+    var delayedForks: PersistentList<DelayedFork> = persistentListOf()
 ): UState<PythonType, PropertyOfPythonObject, PythonCallable, SymbolicHandlerEvent<Any>>(ctx, callStack, pathConstraints, memory, listOf(uModel), path) {
     override fun clone(newConstraints: UPathConstraints<PythonType>?): UState<PythonType, PropertyOfPythonObject, PythonCallable, SymbolicHandlerEvent<Any>> {
         val newPathConstraints = newConstraints ?: pathConstraints.clone()
@@ -30,9 +34,12 @@ class PythonExecutionState(
             newMemory,
             pyModel.uModel,
             callStack,
-            path
+            path,
+            delayedForks
         )
     }
+
+    var extractedFrom: UPathSelector<PythonExecutionState>? = null
 
     val pyModel: PyModel
         get() = PyModel(models.first())
@@ -41,4 +48,14 @@ class PythonExecutionState(
     var modelDied: Boolean = false
     val lastHandlerEvent: SymbolicHandlerEvent<Any>?
         get() = if (path.isEmpty()) null else path.last()
+
+    // TODO: here we will use Python type hints to prioritize concrete types
+    fun makeTypeRating(delayedFork: DelayedFork): UTypeStream<PythonType> {
+        return pyModel.uModel.typeStreamOf(pyModel.eval(delayedFork.symbol.obj.address))
+    }
 }
+
+data class DelayedFork(
+    val state: PythonExecutionState,
+    val symbol: SymbolForCPython
+)

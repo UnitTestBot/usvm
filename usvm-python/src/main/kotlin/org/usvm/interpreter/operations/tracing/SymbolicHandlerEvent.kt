@@ -16,6 +16,7 @@ data class NextInstruction(val pythonInstruction: PythonInstruction): SymbolicHa
 data class PythonFunctionCall(val function: PythonPinnedCallable): SymbolicHandlerEventParameters<Unit>()
 object PythonReturn: SymbolicHandlerEventParameters<Unit>()
 data class Fork(val condition: SymbolForCPython): SymbolicHandlerEventParameters<Unit>()
+data class NbBool(val on: SymbolForCPython): SymbolicHandlerEventParameters<Unit>()
 
 class SymbolicHandlerEvent<out T>(
     val parameters: SymbolicHandlerEventParameters<T>,

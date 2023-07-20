@@ -2,10 +2,10 @@ package org.usvm.interpreter
 
 import org.usvm.*
 import org.usvm.constraints.UPathConstraints
+import org.usvm.interpreter.symbolicobjects.ConverterToPythonObject
 import org.usvm.interpreter.symbolicobjects.InterpretedSymbolicPythonObject
 import org.usvm.interpreter.symbolicobjects.constructInputObject
 import org.usvm.language.*
-import org.usvm.language.types.ConcretePythonType
 import org.usvm.language.types.PythonType
 import org.usvm.memory.UMemoryBase
 import org.usvm.ps.DfsPathSelector
@@ -59,10 +59,10 @@ class PythonMachine<PYTHON_OBJECT_REPRESENTATION>(
     }
 
      private fun getPathSelector(target: PythonUnpinnedCallable): UPathSelector<PythonExecutionState> {
-        val ps = DfsPathSelector<PythonExecutionState>()
-        val initialState = getInitialState(target)
-        ps.add(listOf(initialState))
-        return ps
+         val ps = PythonVirtualPathSelector(DfsPathSelector(), DfsPathSelector())
+         val initialState = getInitialState(target)
+         ps.add(listOf(initialState))
+         return ps
     }
 
     fun analyze(
@@ -70,11 +70,12 @@ class PythonMachine<PYTHON_OBJECT_REPRESENTATION>(
         results: MutableList<PythonAnalysisResult<PYTHON_OBJECT_REPRESENTATION>>
     ): Int {
         val observer = PythonMachineObserver()
+        val interpreter = getInterpreter(pythonCallable, results)
         run(
-            getInterpreter(pythonCallable, results),
+            interpreter,
             getPathSelector(pythonCallable),
             observer = observer,
-            isStateTerminated = { it.wasExecuted },
+            isStateTerminated = { it.modelDied },
             stopStrategy = { observer.stateCounter >= 10000 }
         )
         return iterationCounter.iterations
