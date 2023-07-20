@@ -1,18 +1,18 @@
 package org.usvm.ps
 
+import io.github.rchowell.dotlin.digraph
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.*
 import org.usvm.UPathSelector
 import org.usvm.UState
-import org.usvm.statistics.ApplicationGraph
-import org.usvm.statistics.CoverageStatistics
-import org.usvm.statistics.DistanceStatistics
-import org.usvm.statistics.PathsTreeStatistics
+import org.usvm.statistics.*
 import java.io.File
+import java.nio.file.Path
 import kotlin.collections.ArrayDeque
 import kotlin.collections.HashSet
 import kotlin.io.path.Path
+import kotlin.io.path.writeText
 import kotlin.math.log2
 
 internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Statement>, Statement, Method>(
@@ -30,6 +30,7 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
     protected val path = mutableListOf<ActionData>()
 
     private val filepath = "../Data/jsons/"
+//    private val filepath = "./paths/"
     private var filename: String? = null
     private val jsonScheme: JsonArray
     private var jsonFormat = Json {
@@ -125,6 +126,33 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
         fun successors(block: Block<Statement>): List<Block<Statement>> {
             return successorsMap.getValue(block).map { coveredStatements[it]!! }
         }
+
+        fun saveGraph(filePath: Path) {
+            val nodes = mutableListOf<Block<Statement>>()
+            val treeQueue = ArrayDeque<Block<Statement>>()
+            treeQueue.add(root)
+            val visitedBlocks = mutableSetOf<Block<Statement>>()
+            visitedBlocks.add(root)
+            while (treeQueue.isNotEmpty()) {
+                val currentNode = treeQueue.removeFirst()
+                nodes.add(currentNode)
+                val successors = successors(currentNode)
+                treeQueue.addAll(successors.filter { !visitedBlocks.contains(it) })
+                visitedBlocks.addAll(successors)
+            }
+            val graph = digraph ("BlockGraph") {
+                nodes.forEach { node ->
+                    val nodeName = "\"${node.path}\""
+                    +nodeName
+                    successors(node).forEach { child ->
+                        val childName = "\"${child.path}\""
+                        nodeName - childName
+                    }
+                }
+            }
+            filePath.parent.toFile().mkdirs()
+            filePath.writeText(graph.dot())
+        }
     }
 
     private data class Block<Statement>(
@@ -135,6 +163,7 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
     protected data class StateFeatures(
         val successorsCount: UInt = 0u,
         val finishedStatesCount: UInt = 0u,
+        val finishedStatesFraction: Float = 0.0f,
         val logicalConstraintsLength: UInt = 0u,
         val stateTreeDepth: UInt = 0u,
         val statementRepetitionLocal: UInt = 0u,
@@ -194,6 +223,7 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
 
         val successorsCount = if (currentStatement === null) 0u else
             applicationGraph.successors(currentStatement).count().toUInt()
+        val finishedStatesFraction = finishedStatesCount.toFloat() / allStates.size.toFloat()
         val logicalConstraintsLength = state.pathConstraints.logicalConstraints.size.toUInt()
         val stateTreeDepth = pathsTreeStatistics.getStateDepth(state).toUInt()
         val statementRepetitionLocal = state.path.filter { statement ->
@@ -218,6 +248,7 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
         return StateFeatures (
             successorsCount,
             finishedStatesCount,
+            finishedStatesFraction,
             logicalConstraintsLength,
             stateTreeDepth,
             statementRepetitionLocal,
@@ -265,7 +296,6 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
         if (path.isEmpty()) {
             return
         }
-        val filename = applicationGraph.methodOf(queue.first().path.first()).hashCode()
         val jsonData = buildJsonObject {
             put("scheme", jsonScheme)
             putJsonArray("path") {
@@ -322,8 +352,9 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
         }
         if (filename === null) {
             val firstStatement = states.first().path.first()
-            filename = applicationGraph.methodOf(firstStatement).hashCode().toString()
+            filename = applicationGraph.methodOf(firstStatement).toString()
             blockGraph = BlockGraph(applicationGraph, firstStatement)
+            blockGraph.saveGraph(Path("./BlockGraph.dot"))
         }
         queue.addAll(states)
         allStates.addAll(states)

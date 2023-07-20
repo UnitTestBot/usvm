@@ -30,14 +30,13 @@ fun recursiveLoad(currentDir: File, classes: MutableList<Class<*>>, classLoader:
 
 fun main() {
     val samplesDir = File("../Game_env/usvm-jvm/src/test/kotlin")
-    println(File("").absoluteFile)
     val classLoader = URLClassLoader(arrayOf(samplesDir.toURI().toURL()))
     val classes = mutableListOf<Class<*>>()
     recursiveLoad(samplesDir, classes, classLoader, "")
     println()
     println("LOADING COMPLETE")
     println()
-    classes.forEach { cls ->
+    classes.sortedBy { it.name }.forEach { cls ->
         if (cls.isAnnotationPresent(Disabled::class.java)) {
             return@forEach
         }
@@ -85,8 +84,9 @@ fun main() {
         }
         val json = Json.decodeFromString<JsonElement>(file.readText())
         jsons.add(buildJsonObject {
-            put("methodHash", file.nameWithoutExtension.toInt())
+            put("methodHash", file.nameWithoutExtension.hashCode())
             put("json", json)
+            put("methodName", file.nameWithoutExtension)
         })
         file.delete()
     }
@@ -101,6 +101,7 @@ fun main() {
                 addJsonArray {
                     add(it.jsonObject["methodHash"]!!)
                     add(it.jsonObject["json"]!!.jsonObject["path"]!!)
+                    add(it.jsonObject["methodName"]!!)
                 }
             }
         }
