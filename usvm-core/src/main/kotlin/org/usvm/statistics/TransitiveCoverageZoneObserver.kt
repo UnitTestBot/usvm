@@ -1,7 +1,7 @@
 package org.usvm.statistics
 
 /**
- * Adds new coverage zones if some state contained an instruction
+ * Adds new coverage zones if some state contains an instruction
  * that doesn't belong to any of the already known coverage zones.
  *
  * [ignoreMethod] is a predicate allowing to filter out some methods,

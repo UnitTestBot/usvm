@@ -35,7 +35,7 @@ fun createStopStrategy(
     }
 
     val stepsFromLastCovered = options.stepsFromLastCovered
-    if (stepsFromLastCovered != null) {
+    if (stepsFromLastCovered != null && getCollectedStatesCount != null) {
         val stepsFromLastCoveredStopStrategy = StepsFromLastCoveredStopStrategy(
             stepsFromLastCovered.toULong(),
             getCollectedStatesCount

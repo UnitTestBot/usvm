@@ -39,7 +39,7 @@ class CoverageStatistics<Method, Statement, State : UState<*, *, Method, Stateme
      * e.g., like in the [TransitiveCoverageZoneObserver].
      */
     fun addCoverageZone(method: Method) {
-        if (method in uncoveredStatements.keys) return
+        if (method in uncoveredStatements) return
 
         val methodStatements = bfsTraversal(
             applicationGraph.entryPoints(method).toList(),

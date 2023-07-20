@@ -9,6 +9,8 @@ fun interface StopStrategy {
      * If true, symbolic execution process is terminated.
      */
     fun shouldStop(): Boolean
+
+    fun stopReason(): String = "Stop reason: ${this::class.simpleName ?: this}"
 }
 
 class GroupedStopStrategy(
@@ -18,14 +20,7 @@ class GroupedStopStrategy(
 
     override fun shouldStop() = strategies.any { it.shouldStop() }
 
-    fun stopReason(): String = strategies
+    override fun stopReason(): String = strategies
         .filter { it.shouldStop() }
         .joinToString(prefix = "Stop reasons: ", separator = ", ") { "${it::class.simpleName ?: it}" }
 }
-
-fun stopReason(stopStrategy: StopStrategy): String =
-    if (stopStrategy is GroupedStopStrategy) {
-        stopStrategy.stopReason()
-    } else {
-        "Stop reason: ${stopStrategy::class.simpleName ?: stopStrategy}"
-    }
