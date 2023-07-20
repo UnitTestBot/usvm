@@ -53,6 +53,9 @@ class PythonExecutionState(
     fun makeTypeRating(delayedFork: DelayedFork): UTypeStream<PythonType> {
         return pyModel.uModel.typeStreamOf(pyModel.eval(delayedFork.symbol.obj.address))
     }
+
+    var symbolsWithoutConcreteTypes: Collection<SymbolForCPython>? = null
+    var fromStateWithVirtualObjectAndWithoutDelayedForks: PythonExecutionState? = null
 }
 
 data class DelayedFork(

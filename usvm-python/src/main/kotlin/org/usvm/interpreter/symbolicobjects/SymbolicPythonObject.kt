@@ -22,7 +22,7 @@ sealed class SymbolicPythonObject(open val address: UHeapRef) {
     }
 
     open fun getIntContent(ctx: ConcolicRunContext): UExpr<KIntSort> {
-        myAssert(ctx, ctx.curState.pathConstraints.typeConstraints.evalIs(address, pythonInt))
+        myAssert(ctx, ctx.curState.pathConstraints.typeConstraints.evalIs(address, HasNbInt))
         @Suppress("unchecked_cast")
         return ctx.curState.memory.heap.readField(address, IntContent, ctx.ctx.intSort) as UExpr<KIntSort>
     }
@@ -54,11 +54,11 @@ class UninterpretedSymbolicPythonObject(address: UHeapRef): SymbolicPythonObject
 
 class InterpretedSymbolicPythonObject(
     override val address: UConcreteHeapRef,
-    private val model: PyModel
+    val model: PyModel
 ): SymbolicPythonObject(address) {
     fun getConcreteType(): ConcretePythonType? = model.getConcreteType(address)
     fun getIntContent(ctx: UContext): KInterpretedValue<KIntSort> {
-        require(getConcreteType() == pythonInt)
+        require(getConcreteType() == pythonInt) // TODO: types with nb_int ?
         return model.readField(address, IntContent, ctx.intSort)
     }
 
