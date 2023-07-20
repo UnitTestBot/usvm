@@ -91,6 +91,8 @@ tasks {
     }
 }
 
+tasks.getByName("compileTestKotlin").finalizedBy("testJar")
+
 tasks.withType<Test> {
     environment(
         "usvm-test-jar",
@@ -100,21 +102,19 @@ tasks.withType<Test> {
             .absolutePath
     )
     environment(
-        "usvm-instrumentation-jar",
-        rootDir
-            .resolve("usvm-instrumentation")
-            .resolve("build")
+        "usvm-jvm-instrumentation-jar",
+        project(":usvm-jvm-instrumentation")
+            .buildDir
             .resolve("libs")
-            .resolve("usvm-instrumentation-1.0.jar")
+            .resolve("usvm-jvm-instrumentation-1.0.jar")
             .absolutePath
     )
     environment(
-        "usvm-collectors-jar",
-        rootDir
-            .resolve("usvm-instrumentation")
-            .resolve("build")
+        "usvm-jvm-collectors-jar",
+        project(":usvm-jvm-instrumentation")
+            .buildDir
             .resolve("libs")
-            .resolve("usvm-instrumentation-collectors.jar")
+            .resolve("usvm-jvm-instrumentation-collectors.jar")
             .absolutePath
     )
 }
