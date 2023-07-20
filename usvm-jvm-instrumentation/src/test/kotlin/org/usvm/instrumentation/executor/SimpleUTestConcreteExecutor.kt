@@ -16,7 +16,7 @@ class SimpleUTestConcreteExecutor: UTestConcreteExecutorTest() {
         @BeforeAll
         @JvmStatic
         fun initClasspath() {
-            testJarPath = listOf("build/libs/usvm-instrumentation-test.jar")
+            testJarPath = listOf("build/libs/usvm-jvm-instrumentation-test.jar")
             init()
         }
 

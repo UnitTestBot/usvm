@@ -5,6 +5,8 @@ include("usvm-jvm")
 include("usvm-util")
 include("usvm-jvm-instrumentation")
 include("usvm-sample-language")
+include("usvm-fuzzer")
+include("usvm-jvm")
 
 pluginManagement {
     resolutionStrategy {

@@ -7,19 +7,18 @@ import kotlin.time.Duration.Companion.seconds
 object InstrumentationModuleConstants {
 
     //Timeout for method execution
-    val timeout = 10.seconds
+    val testExecutionTimeout = 10.seconds
     //If something gone wrong with RD
-    const val triesToRecreateRdProcess = 3
+    const val triesToRecreateExecutorRdProcess = 3
     //Rollback strategy
-    val rollbackStrategy = StaticsRollbackStrategy.REINIT
-
+    val testExecutorStaticsRollbackStrategy = StaticsRollbackStrategy.REINIT
 
     //Passes as environment parameter
     val pathToUsvmInstrumentationJar: String
-        get() = System.getenv("usvm-instrumentation-jar")
+        get() = System.getenv("usvm-jvm-instrumentation-jar")
 
     val pathToUsvmCollectorsJar: String
-        get() = System.getenv("usvm-collectors-jar")
+        get() = System.getenv("usvm-jvm-collectors-jar")
 
     val pathToJava: String
         get() = System.getenv()["JAVA_HOME"] ?: System.getProperty("java.home")
