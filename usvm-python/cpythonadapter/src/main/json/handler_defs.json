@@ -98,5 +98,10 @@
         "c_name": "virtual_nb_bool",
         "java_name": "virtualNbBool",
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/VirtualPythonObject;)Z"
+    },
+    {
+        "c_name": "virtual_nb_int",
+        "java_name": "virtualNbInt",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/VirtualPythonObject;)J"
     }
 ]

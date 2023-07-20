@@ -8,18 +8,19 @@ import org.usvm.interpreter.PythonObject
 import org.usvm.interpreter.emptyNamespace
 import org.usvm.language.SymbolForCPython
 import org.usvm.language.VirtualPythonObject
-import org.usvm.language.types.pythonInt
-import org.usvm.language.types.pythonBool
+import org.usvm.language.types.*
+import org.usvm.types.UTypeStream
 
 class ConverterToPythonObject(private val ctx: UContext) {
     private val constructedObjects = mutableMapOf<UConcreteHeapRef, PythonObject>()
-    private val virtualObjects = mutableMapOf<UConcreteHeapRef, Pair<VirtualPythonObject, PythonObject>>()
+    private val virtualObjects = mutableMapOf<SymbolForCPython, Pair<VirtualPythonObject, PythonObject>>()
     fun restart() {
         constructedObjects.clear()
         virtualObjects.clear()
     }
 
     fun getVirtualObjects(): Collection<PythonObject> = virtualObjects.values.map { it.second }
+    fun getSymbolsWithoutConcreteTypes(): Collection<SymbolForCPython> = virtualObjects.keys
 
     fun convert(
         obj: InterpretedSymbolicPythonObject,
@@ -36,6 +37,8 @@ class ConverterToPythonObject(private val ctx: UContext) {
             )
             pythonInt -> convertInt(obj)
             pythonBool -> convertBool(obj)
+            pythonObjectType -> ConcretePythonInterpreter.eval(emptyNamespace, "object()")
+            pythonNoneType -> ConcretePythonInterpreter.eval(emptyNamespace, "None")
             else -> TODO()
         }
         constructedObjects[obj.address] = result
@@ -45,7 +48,7 @@ class ConverterToPythonObject(private val ctx: UContext) {
     private fun constructVirtualObject(obj: InterpretedSymbolicPythonObject, symbol: SymbolForCPython): PythonObject {
         val virtual = VirtualPythonObject(obj, symbol)
         val result = ConcretePythonInterpreter.allocateVirtualObject(virtual)
-        virtualObjects[obj.address] = virtual to result
+        virtualObjects[symbol] = virtual to result
         return result
     }
 
