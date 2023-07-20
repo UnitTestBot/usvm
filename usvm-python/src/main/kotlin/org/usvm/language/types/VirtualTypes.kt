@@ -1,7 +1,28 @@
 package org.usvm.language.types
 
-object PythonAnyType: VirtualPythonType()
+import org.usvm.interpreter.ConcretePythonInterpreter
 
-sealed class TypeProtocol: VirtualPythonType()
+object PythonAnyType: VirtualPythonType() {
+    override fun accepts(type: PythonType): Boolean = true
+}
 
-object HasNbBool: TypeProtocol()
+sealed class TypeProtocol: VirtualPythonType() {
+    abstract fun acceptsConcrete(type: ConcretePythonType): Boolean
+    override fun accepts(type: PythonType): Boolean {
+        if (type == this)
+            return true
+        if (type !is ConcretePythonType)
+            return false
+        return acceptsConcrete(type)
+    }
+}
+
+object HasNbBool: TypeProtocol() {
+    override fun acceptsConcrete(type: ConcretePythonType): Boolean =
+        ConcretePythonInterpreter.typeHasNbBool(type.asObject)
+}
+
+object HasNbInt: TypeProtocol() {
+    override fun acceptsConcrete(type: ConcretePythonType): Boolean =
+        ConcretePythonInterpreter.typeHasNbInt(type.asObject)
+}

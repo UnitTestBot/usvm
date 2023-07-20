@@ -39,7 +39,8 @@ open class PythonTestRunner(sourcePath: String) : TestRunner<PythonTest, PythonU
         ConcretePythonInterpreter.concreteRun(namespace, testSources)
         val functionRef = target.reference(namespace)
         val converter = test.inputValueConverter
-        val args = test.inputValues.map { converter.convert(it.asUExpr)!! }
+        converter.restart()
+        val args = test.inputValues.map { converter.convert(it.asUExpr) }
         val concreteResult = ConcretePythonInterpreter.concreteRunOnFunctionRef(namespace, functionRef, args)
         return check(concreteResult)
     }

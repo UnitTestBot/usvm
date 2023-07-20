@@ -94,7 +94,7 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_concolicRun(
     jlong globals,
     jlong function_ref,
     jlongArray concrete_args,
-    jobjectArray virtual_args,
+    jlongArray virtual_args,
     jobjectArray symbolic_args,
     jobject context,
     jboolean print_error_message
@@ -106,7 +106,9 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_concolicRun(
 
     construct_concolic_context(env, context, cpython_adapter, &ctx);
     SymbolicAdapter *adapter = create_new_adapter(handler, &ctx);
-    construct_args_for_symbolic_adapter(&ctx, &concrete_args, virtual_args, symbolic_args, &args);
+    register_virtual_methods();
+
+    construct_args_for_symbolic_adapter(adapter, &ctx, &concrete_args, &virtual_args, &symbolic_args, &args);
 
     PyObject *result = SymbolicAdapter_run((PyObject *) adapter, function, args.size, args.ptr);
     free(args.ptr);
@@ -136,4 +138,24 @@ JNIEXPORT jstring JNICALL Java_org_usvm_interpreter_CPythonAdapter_getPythonObje
 JNIEXPORT jstring JNICALL Java_org_usvm_interpreter_CPythonAdapter_getPythonObjectTypeName(JNIEnv *env, jobject cpython_adapter, jlong object_ref) {
     const char *type_name = Py_TYPE(object_ref)->tp_name;
     return (*env)->NewStringUTF(env, type_name);
+}
+
+JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_allocateVirtualObject(JNIEnv *env, jobject cpython_adapter, jobject virtual_object) {
+    return (jlong) allocate_raw_virtual_object(env, virtual_object);
+}
+
+JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasNbBool(JNIEnv *env, jobject cpython_adapter, jlong type_ref) {
+    if (Py_TYPE(type_ref) != &PyType_Type)
+        return -1;
+
+    PyTypeObject *type = (PyTypeObject *) type_ref;
+    return type->tp_as_number && type->tp_as_number->nb_bool;
+}
+
+JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasNbInt(JNIEnv *env, jobject cpython_adapter, jlong type_ref) {
+    if (Py_TYPE(type_ref) != &PyType_Type)
+        return -1;
+
+    PyTypeObject *type = (PyTypeObject *) type_ref;
+    return type->tp_as_number && type->tp_as_number->nb_int;
 }

@@ -90,8 +90,13 @@
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Z)V"
     },
     {
+        "c_name": "nb_bool",
+        "java_name": "notifyNbBool",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;)V"
+    },
+    {
         "c_name": "virtual_nb_bool",
-        "java_name": "virtualCallNbBool",
+        "java_name": "virtualNbBool",
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/VirtualPythonObject;)Z"
     }
 ]
