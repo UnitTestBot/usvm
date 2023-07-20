@@ -58,10 +58,10 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_concreteRunOnFu
 /*
  * Class:     org_usvm_interpreter_CPythonAdapter
  * Method:    concolicRun
- * Signature: (JJ[J[Lorg/usvm/language/VirtualPythonObject;[Lorg/usvm/language/SymbolForCPython;Lorg/usvm/interpreter/ConcolicRunContext;Z)J
+ * Signature: (JJ[J[J[Lorg/usvm/language/SymbolForCPython;Lorg/usvm/interpreter/ConcolicRunContext;Z)J
  */
 JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_concolicRun
-  (JNIEnv *, jobject, jlong, jlong, jlongArray, jobjectArray, jobjectArray, jobject, jboolean);
+  (JNIEnv *, jobject, jlong, jlong, jlongArray, jlongArray, jobjectArray, jobject, jboolean);
 
 /*
  * Class:     org_usvm_interpreter_CPythonAdapter
@@ -85,6 +85,30 @@ JNIEXPORT jstring JNICALL Java_org_usvm_interpreter_CPythonAdapter_getPythonObje
  * Signature: (J)Ljava/lang/String;
  */
 JNIEXPORT jstring JNICALL Java_org_usvm_interpreter_CPythonAdapter_getPythonObjectTypeName
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_usvm_interpreter_CPythonAdapter
+ * Method:    allocateVirtualObject
+ * Signature: (Lorg/usvm/language/VirtualPythonObject;)J
+ */
+JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_allocateVirtualObject
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_usvm_interpreter_CPythonAdapter
+ * Method:    typeHasNbBool
+ * Signature: (J)I
+ */
+JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasNbBool
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_usvm_interpreter_CPythonAdapter
+ * Method:    typeHasNbInt
+ * Signature: (J)I
+ */
+JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasNbInt
   (JNIEnv *, jobject, jlong);
 
 #ifdef __cplusplus

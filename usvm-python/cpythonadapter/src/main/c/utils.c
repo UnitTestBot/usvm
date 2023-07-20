@@ -3,8 +3,8 @@
 
 static void
 java_python_object_dealloc(PyObject *op) {
-    JavaPythonObject *obj = (JavaPythonObject *) op;
-    (*(obj->env))->DeleteGlobalRef(obj->env, obj->reference);
+    // JavaPythonObject *obj = (JavaPythonObject *) op;
+    // (*(obj->env))->DeleteGlobalRef(obj->env, obj->reference);
     Py_TYPE(op)->tp_free(op);
 }
 
@@ -53,8 +53,8 @@ PyTypeObject JavaPythonObject_Type = {
 PyObject *wrap_java_object(JNIEnv *env, jobject object) {
     JavaPythonObject *result = PyObject_New(JavaPythonObject, &JavaPythonObject_Type);
     result->env = env;
-    result->object = object;
-    result->reference = (*env)->NewGlobalRef(env, object);
+    result->reference = object;
+    // result->reference = (*env)->NewGlobalRef(env, object);
     return (PyObject*) result;
 }
 
@@ -70,31 +70,46 @@ void construct_concolic_context(JNIEnv *env, jobject context, jobject cpython_ad
     DO_REGISTRATIONS(dist, env)
 }
 
-void construct_args_for_symbolic_adapter(
+static void
+finish_virtual_objects_initialization(
+    SymbolicAdapter *adapter,
     ConcolicContext *ctx,
-    jlongArray *concrete_args,
-    jobjectArray virtual_args,
-    jobjectArray symbolic_args,
-    PyObjectArray *dist
+    jlongArray *virtual_args
 ) {
     JNIEnv *env = ctx->env;
+    int n = (*env)->GetArrayLength(env, *virtual_args);
+    jlong *addresses = (*env)->GetLongArrayElements(env, *virtual_args, 0);
+    for (int i = 0; i < n; i++) {
+        finish_virtual_object_initialization((VirtualPythonObject *) addresses[i], ctx, adapter);
+    }
+    (*env)->ReleaseLongArrayElements(env, *virtual_args, addresses, 0);
+}
+
+void
+construct_args_for_symbolic_adapter(
+    SymbolicAdapter *adapter,
+    ConcolicContext *ctx,
+    jlongArray *concrete_args,
+    jlongArray *virtual_args,
+    jobjectArray *symbolic_args,
+    PyObjectArray *dist
+) {
+    finish_virtual_objects_initialization(adapter, ctx, virtual_args);
+    JNIEnv *env = ctx->env;
     int n = (*env)->GetArrayLength(env, *concrete_args);
-    assert(n == (*env)->GetArrayLength(env, virtual_args));
-    assert(n == (*env)->GetArrayLength(env, symbolic_args));
+    assert(n == (*env)->GetArrayLength(env, *symbolic_args));
     jlong *addresses = (*env)->GetLongArrayElements(env, *concrete_args, 0);
     PyObject **args = malloc(sizeof(PyObject *) * n);
     for (int i = 0; i < n; i++) {
         PyObject *tuple = PyTuple_New(2);
-        jobject virtual_arg = (*env)->GetObjectArrayElement(env, virtual_args, i);
-        assert((addresses[i] == 0) ^ (virtual_arg == 0));
 
         PyObject *concrete_arg = (PyObject *) addresses[i];
-        if (concrete_arg == 0) {
-            concrete_arg = create_new_virtual_object(ctx, virtual_arg);
-        }
         PyTuple_SetItem(tuple, 0, concrete_arg);
 
-        PyObject *symbolic = wrap_java_object(env, (*env)->GetObjectArrayElement(env, symbolic_args, i));
+        jobject java_symbolic_object = (*env)->GetObjectArrayElement(env, *symbolic_args, i);
+        PyObject *symbolic = Py_None;
+        if (java_symbolic_object)
+            symbolic = wrap_java_object(env, java_symbolic_object);
         PyTuple_SetItem(tuple, 1, symbolic);
 
         args[i] = tuple;
