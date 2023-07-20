@@ -45,6 +45,7 @@ internal open class InferencePathSelector<State : UState<*, *, Method, Statement
         return listOf(
             stateFeatures.successorsCount.toFloat(),
             stateFeatures.finishedStatesCount.toFloat(),
+            stateFeatures.finishedStatesFraction,
             stateFeatures.logicalConstraintsLength.toFloat(),
             stateFeatures.stateTreeDepth.toFloat(),
             stateFeatures.statementRepetitionLocal.toFloat(),
@@ -64,7 +65,7 @@ internal open class InferencePathSelector<State : UState<*, *, Method, Statement
         if (stateId == -1) {
             return "\"$id: fin\""
         }
-        return "\"$id: Q=${DecimalFormat("0.00E0").format(qValues[stateId])}\""
+        return "\"$id: Q=${DecimalFormat("0.00E0").format(qValues.getOrElse(stateId) { -1.0f })}\""
     }
 
     private fun saveGraph() {
@@ -90,7 +91,7 @@ internal open class InferencePathSelector<State : UState<*, *, Method, Statement
             }
         }
         stepCount += 1
-        val path = Path(graphsPath, "${graph.name}.dot")
+        val path = Path(graphsPath, filename ?: "Unknown_method", "${graph.name}.dot")
         path.parent.toFile().mkdirs()
         path.writeText(graph.dot())
     }
@@ -132,7 +133,7 @@ internal open class InferencePathSelector<State : UState<*, *, Method, Statement
         return queue[chosenStateId]
     }
 
-    protected fun peekWithOnnxRuntime(stateFeatureQueue: List<StateFeatures>?,
+    private fun peekWithOnnxRuntime(stateFeatureQueue: List<StateFeatures>?,
                                     averageStateFeatures: AverageStateFeatures?) : State {
         if (stateFeatureQueue == null || averageStateFeatures == null) {
             throw IllegalArgumentException("No features")

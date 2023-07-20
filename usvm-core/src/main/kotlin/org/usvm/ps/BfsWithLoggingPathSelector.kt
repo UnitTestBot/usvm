@@ -30,12 +30,12 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
     protected val path = mutableListOf<ActionData>()
 
     private val filepath = "../Data/jsons/"
-//    private val filepath = "./paths/"
-    private var filename: String? = null
+    protected var filename: String? = null
     private val jsonScheme: JsonArray
     private var jsonFormat = Json {
         encodeDefaults = true
     }
+    private val blockGraphPath = "../Game_env/block_graphs/"
 
     private val penalty = 0.0f
     private var finishedStatesCount = 0u
@@ -72,20 +72,21 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
 
         private fun addSuccessor(block: Block<Statement>, statement: Statement) {
             successorsMap[block] = successorsMap.getValue(block) + statement
-
         }
 
         private fun buildBlocks(statement: Statement): Block<Statement> {
             var currentStatement = statement
             val statementQueue = ArrayDeque<Statement>()
-            val rootBlock = Block(mutableListOf<Statement>())
+            var currentBlockId = 0
+            val rootBlock = Block(mutableListOf<Statement>(), currentBlockId)
             var currentBlock = rootBlock
             while (true) {
                 if (coveredStatements.contains(currentStatement)) {
                     addSuccessor(currentBlock, currentStatement)
                     val nextStatement = chooseNextStatement(statementQueue) ?: break
                     currentStatement = nextStatement
-                    currentBlock = Block(mutableListOf())
+                    currentBlockId += 1
+                    currentBlock = Block(mutableListOf(), currentBlockId)
                     continue
                 }
                 val predecessors = applicationGraph.predecessors(currentStatement).toList()
@@ -100,7 +101,8 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
                 }
                 if (newBlock) {
                     addSuccessor(currentBlock, currentStatement)
-                    currentBlock = Block(mutableListOf())
+                    currentBlockId += 1
+                    currentBlock = Block(mutableListOf(), currentBlockId)
                 }
                 coveredStatements[currentStatement] = currentBlock
                 currentBlock.path.add(currentStatement)
@@ -111,11 +113,13 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
                     }
                     val nextStatement = chooseNextStatement(statementQueue) ?: break
                     currentStatement = nextStatement
-                    currentBlock = Block(mutableListOf())
+                    currentBlockId += 1
+                    currentBlock = Block(mutableListOf(), currentBlockId)
                 } else if (successors.isEmpty()) {
                     val nextStatement = chooseNextStatement(statementQueue) ?: break
                     currentStatement = nextStatement
-                    currentBlock = Block(mutableListOf())
+                    currentBlockId += 1
+                    currentBlock = Block(mutableListOf(), currentBlockId)
                 } else {
                     currentStatement = successors.first()
                 }
@@ -142,10 +146,10 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
             }
             val graph = digraph ("BlockGraph") {
                 nodes.forEach { node ->
-                    val nodeName = "\"${node.path}\""
+                    val nodeName = node.toString()
                     +nodeName
                     successors(node).forEach { child ->
-                        val childName = "\"${child.path}\""
+                        val childName = child.toString()
                         nodeName - childName
                     }
                 }
@@ -156,8 +160,13 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
     }
 
     private data class Block<Statement>(
-        var path: MutableList<Statement>
-    )
+        var path: MutableList<Statement>,
+        val id: Int
+    ) {
+        override fun toString(): String {
+            return "\"${id}: ${path}\""
+        }
+    }
 
     @Serializable
     protected data class StateFeatures(
@@ -354,7 +363,7 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
             val firstStatement = states.first().path.first()
             filename = applicationGraph.methodOf(firstStatement).toString()
             blockGraph = BlockGraph(applicationGraph, firstStatement)
-            blockGraph.saveGraph(Path("./BlockGraph.dot"))
+            blockGraph.saveGraph(Path(blockGraphPath, filename ?: "Unknown_method", "graph.dot"))
         }
         queue.addAll(states)
         allStates.addAll(states)
