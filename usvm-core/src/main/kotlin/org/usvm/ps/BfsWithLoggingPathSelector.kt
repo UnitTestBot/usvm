@@ -47,6 +47,90 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
     private val stateLastNewStatement = mutableMapOf<State, Int>()
     private val statePathCoverage = mutableMapOf<State, UInt>()
 
+    private lateinit var blockGraph: BlockGraph<Method, Statement>
+
+    private class BlockGraph<Method, Statement>(
+        private val applicationGraph: ApplicationGraph<Method, Statement>,
+        initialStatement: Statement
+    ) {
+        val root: Block<Statement>
+        private val successorsMap = mutableMapOf<Block<Statement>, List<Statement>>().withDefault { listOf() }
+        private val coveredStatements = mutableMapOf<Statement, Block<Statement>>()
+
+        init {
+            root = buildBlocks(initialStatement)
+        }
+
+        private fun chooseNextStatement(statementQueue: ArrayDeque<Statement>): Statement? {
+            var currentStatement = statementQueue.removeFirstOrNull()
+            while (currentStatement != null && coveredStatements.contains(currentStatement)) {
+                currentStatement = statementQueue.removeFirstOrNull()
+            }
+            return currentStatement
+        }
+
+        private fun addSuccessor(block: Block<Statement>, statement: Statement) {
+            successorsMap[block] = successorsMap.getValue(block) + statement
+
+        }
+
+        private fun buildBlocks(statement: Statement): Block<Statement> {
+            var currentStatement = statement
+            val statementQueue = ArrayDeque<Statement>()
+            val rootBlock = Block(mutableListOf<Statement>())
+            var currentBlock = rootBlock
+            while (true) {
+                if (coveredStatements.contains(currentStatement)) {
+                    addSuccessor(currentBlock, currentStatement)
+                    val nextStatement = chooseNextStatement(statementQueue) ?: break
+                    currentStatement = nextStatement
+                    currentBlock = Block(mutableListOf())
+                    continue
+                }
+                val predecessors = applicationGraph.predecessors(currentStatement).toList()
+                val successors = applicationGraph.successors(currentStatement).toList()
+                var newBlock = false
+                predecessors.forEach { previousStatement ->
+                    val previousBlock = coveredStatements[previousStatement]
+                    if (previousBlock == currentBlock) {
+                        return@forEach
+                    }
+                    newBlock = true
+                }
+                if (newBlock) {
+                    addSuccessor(currentBlock, currentStatement)
+                    currentBlock = Block(mutableListOf())
+                }
+                coveredStatements[currentStatement] = currentBlock
+                currentBlock.path.add(currentStatement)
+                if (successors.size > 1) {
+                    statementQueue.addAll(successors)
+                    successors.forEach {
+                        addSuccessor(currentBlock, it)
+                    }
+                    val nextStatement = chooseNextStatement(statementQueue) ?: break
+                    currentStatement = nextStatement
+                    currentBlock = Block(mutableListOf())
+                } else if (successors.isEmpty()) {
+                    val nextStatement = chooseNextStatement(statementQueue) ?: break
+                    currentStatement = nextStatement
+                    currentBlock = Block(mutableListOf())
+                } else {
+                    currentStatement = successors.first()
+                }
+            }
+            return rootBlock
+        }
+
+        fun successors(block: Block<Statement>): List<Block<Statement>> {
+            return successorsMap.getValue(block).map { coveredStatements[it]!! }
+        }
+    }
+
+    private data class Block<Statement>(
+        var path: MutableList<Statement>
+    )
+
     @Serializable
     protected data class StateFeatures(
         val successorsCount: UInt = 0u,
@@ -237,7 +321,9 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
             return
         }
         if (filename === null) {
-            filename = applicationGraph.methodOf(states.first().path.first()).hashCode().toString()
+            val firstStatement = states.first().path.first()
+            filename = applicationGraph.methodOf(firstStatement).hashCode().toString()
+            blockGraph = BlockGraph(applicationGraph, firstStatement)
         }
         queue.addAll(states)
         allStates.addAll(states)

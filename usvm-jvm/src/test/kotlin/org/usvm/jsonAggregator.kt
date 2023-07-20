@@ -38,6 +38,9 @@ fun main() {
     println("LOADING COMPLETE")
     println()
     classes.forEach { cls ->
+        if (cls.isAnnotationPresent(Disabled::class.java)) {
+            return@forEach
+        }
         if (!cls.methods.any { it.isAnnotationPresent(Test::class.java) }) {
             return@forEach
         }
@@ -61,6 +64,7 @@ fun main() {
                 return@loop
             }
             try {
+                println("Running test ${method.name}")
                 method.call(instance)
             } catch (e: InvocationTargetException) {
                 println("InvocationTargetException: ${e.cause}")

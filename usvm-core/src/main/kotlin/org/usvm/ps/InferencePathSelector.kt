@@ -165,7 +165,11 @@ internal open class InferencePathSelector<State : UState<*, *, Method, Statement
     override fun peek(): State {
         val stateFeatureQueue = getStateFeatureQueue()
         val averageStateFeatures = getAverageStateFeatures(stateFeatureQueue)
-        val state = peekWithOnnxRuntime(stateFeatureQueue, averageStateFeatures)
+        val state = if (File(modelPath).isFile) {
+            peekWithOnnxRuntime(stateFeatureQueue, averageStateFeatures)
+        } else {
+            queue.first()
+        }
         path.add(getActionData(stateFeatureQueue, averageStateFeatures, state))
         saveGraph()
         savePath()
