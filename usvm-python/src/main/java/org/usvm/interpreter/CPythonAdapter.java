@@ -17,6 +17,7 @@ import static org.usvm.interpreter.operations.ControlKt.*;
 import static org.usvm.interpreter.operations.LongKt.*;
 import static org.usvm.interpreter.operations.MethodNotificationsKt.nbBoolKt;
 import static org.usvm.interpreter.operations.VirtualKt.virtualNbBoolKt;
+import static org.usvm.interpreter.operations.VirtualKt.virtualNbIntKt;
 import static org.usvm.interpreter.operations.tracing.PathTracingKt.handlerForkResultKt;
 import static org.usvm.interpreter.operations.tracing.PathTracingKt.withTracing;
 
@@ -149,5 +150,9 @@ public class CPythonAdapter {
 
     public static boolean virtualNbBool(ConcolicRunContext context, VirtualPythonObject obj) {
         return virtualNbBoolKt(context, obj);
+    }
+
+    public static long virtualNbInt(ConcolicRunContext context, VirtualPythonObject obj) {
+        return virtualNbIntKt(context, obj).getAddress();
     }
 }
