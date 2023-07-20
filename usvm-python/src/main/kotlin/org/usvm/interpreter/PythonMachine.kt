@@ -59,7 +59,7 @@ class PythonMachine<PYTHON_OBJECT_REPRESENTATION>(
     }
 
      private fun getPathSelector(target: PythonUnpinnedCallable): UPathSelector<PythonExecutionState> {
-         val ps = PythonVirtualPathSelector(DfsPathSelector(), DfsPathSelector())
+         val ps = PythonVirtualPathSelector(DfsPathSelector(), DfsPathSelector(), DfsPathSelector())
          val initialState = getInitialState(target)
          ps.add(listOf(initialState))
          return ps
@@ -71,9 +71,10 @@ class PythonMachine<PYTHON_OBJECT_REPRESENTATION>(
     ): Int {
         val observer = PythonMachineObserver()
         val interpreter = getInterpreter(pythonCallable, results)
+        val pathSelector = getPathSelector(pythonCallable)
         run(
             interpreter,
-            getPathSelector(pythonCallable),
+            pathSelector,
             observer = observer,
             isStateTerminated = { it.modelDied },
             stopStrategy = { observer.stateCounter >= 10000 }

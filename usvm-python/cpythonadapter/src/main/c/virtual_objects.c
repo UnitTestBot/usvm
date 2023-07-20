@@ -37,8 +37,19 @@ nb_bool(PyObject *self) {
     ConcolicContext *ctx = obj->ctx;
     adapter->ignore = 1;
     jboolean result = (*ctx->env)->CallStaticBooleanMethod(ctx->env, ctx->cpython_adapter_cls, ctx->handle_virtual_nb_bool, ctx->context, obj->reference);
+    CHECK_FOR_EXCEPTION(obj->ctx, -1)
     adapter->ignore = 0;
     return (int) result;
+}
+
+static PyObject *
+nb_int(PyObject *self) {
+    VirtualPythonObject *obj = (VirtualPythonObject *) self;
+    obj->adapter->ignore = 1;
+    jlong result = (*obj->ctx->env)->CallStaticLongMethod(obj->ctx->env, obj->ctx->cpython_adapter_cls, obj->ctx->handle_virtual_nb_int, obj->ctx->context, obj->reference);
+    obj->adapter->ignore = 0;
+    CHECK_FOR_EXCEPTION(obj->ctx, 0)
+    return (PyObject *) result;
 }
 
 static PyNumberMethods virtual_as_number = {
@@ -58,7 +69,7 @@ static PyNumberMethods virtual_as_number = {
     0,                          /*nb_and*/
     0,                          /*nb_xor*/
     0,                          /*nb_or*/
-    0,                          /*nb_int*/
+    nb_int,                     /*nb_int*/
     0,                          /*nb_reserved*/
     0,                          /*nb_float*/
     0,                          /* nb_inplace_add */
