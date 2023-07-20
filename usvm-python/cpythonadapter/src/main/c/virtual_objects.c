@@ -7,11 +7,37 @@ virtual_object_dealloc(PyObject *op) {
     Py_TYPE(op)->tp_free(op);
 }
 
+/*
+static PyObject *
+tp_richcompare(PyObject *o1, PyObject *o2, int op) {
+    ConcolicContext *ctx = 0;
+    SymbolicAdapter *adapter = 0;
+    if (is_virtual_object(o1)) {
+        ctx = ((VirtualPythonObject *) o1)->ctx;
+        adapter = ((VirtualPythonObject *) o1)->adapter;
+    } else if (is_virtual_object(o2)) {
+        ctx = ((VirtualPythonObject *) o2)->ctx;
+        adapter = ((VirtualPythonObject *) o2)->adapter;
+    } else {
+        PyErr_SetString(PyExc_RuntimeError, "Internal error in virtual tp_richcompare");
+        return 0; // should not be reachable
+    }
+    adapter->ignore = 1;
+    jobject virtual_object = (*ctx->env)->CallStaticObjectMethod(ctx->env, ctx->cpython_adapter_cls, ctx->handle_virtual_call, ctx->context);
+    adapter->ignore = 0;
+    CHECK_FOR_EXCEPTION(ctx, 0)
+    return (PyObject *) create_new_virtual_object(ctx, virtual_object, adapter);
+}
+*/
+
 static int
 nb_bool(PyObject *self) {
     VirtualPythonObject *obj = (VirtualPythonObject *) self;
-    jboolean result = (*obj->ctx->env)->CallStaticBooleanMethod(obj->ctx->env, obj->ctx->cpython_adapter_cls, obj->ctx->handle_virtual_nb_bool, obj->ctx->context, obj->object);
-    CHECK_FOR_EXCEPTION(obj->ctx, -1)
+    SymbolicAdapter *adapter = obj->adapter;
+    ConcolicContext *ctx = obj->ctx;
+    adapter->ignore = 1;
+    jboolean result = (*ctx->env)->CallStaticBooleanMethod(ctx->env, ctx->cpython_adapter_cls, ctx->handle_virtual_nb_bool, ctx->context, obj->reference);
+    adapter->ignore = 0;
     return (int) result;
 }
 
@@ -93,13 +119,41 @@ PyTypeObject VirtualPythonObject_Type = {
     0,                                       /*tp_new */
 };
 
-
 PyObject *
-create_new_virtual_object(ConcolicContext *ctx, jobject object) {
+allocate_raw_virtual_object(JNIEnv *env, jobject object) {
     VirtualPythonObject *result = PyObject_New(VirtualPythonObject, &VirtualPythonObject_Type);
-    result->ctx = ctx;
-    result->object = object;
-    result->reference = (*ctx->env)->NewGlobalRef(ctx->env, object);
+
+    if (!result)
+        return 0;
+
+    result->reference = (*env)->NewGlobalRef(env, object);
+    result->ctx = 0;
+    result->adapter = 0;
 
     return (PyObject *) result;
+}
+
+void
+finish_virtual_object_initialization(VirtualPythonObject *object, ConcolicContext *ctx, SymbolicAdapter *adapter) {
+    object->ctx = ctx;
+    object->adapter = adapter;
+}
+
+PyObject *
+create_new_virtual_object(ConcolicContext *ctx, jobject object, SymbolicAdapter *adapter) {
+    VirtualPythonObject *result = (VirtualPythonObject *) allocate_raw_virtual_object(ctx->env, object);
+    finish_virtual_object_initialization(result, ctx, adapter);
+
+    return (PyObject *) result;
+}
+
+int
+is_virtual_object(PyObject *obj) {
+    if (!obj)
+        return 0;
+    return Py_TYPE(obj) == &VirtualPythonObject_Type;
+}
+
+void register_virtual_methods() {
+    // virtual_tp_richcompare = tp_richcompare;
 }

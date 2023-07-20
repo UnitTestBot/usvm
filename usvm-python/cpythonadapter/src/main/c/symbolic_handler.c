@@ -1,12 +1,13 @@
 #include "symbolic_handler.h"
 #include "utils.h"
+#include "virtual_objects.h"
 
 #define BINARY_INT_HANDLER(func) \
     PyObject *left = args[0], *right = args[1]; \
     if (!is_wrapped_java_object(left) || !is_wrapped_java_object(right)) \
         return Py_None; \
-    jobject left_obj = ((JavaPythonObject *) left)->object; \
-    jobject right_obj = ((JavaPythonObject *) right)->object; \
+    jobject left_obj = ((JavaPythonObject *) left)->reference; \
+    jobject right_obj = ((JavaPythonObject *) right)->reference; \
     jobject result; \
     CALL_JAVA_METHOD(result, ctx, func, ctx->context, signal_id, left_obj, right_obj) \
     if (!result) \
@@ -41,7 +42,7 @@ handler(int signal_type, int signal_id, int nargs, PyObject *const *args, void *
         if (is_wrapped_java_object(value)) {
             //printf("Fork on known condition\n");
             //fflush(stdout);
-            jobject obj = ((JavaPythonObject *) value)->object;
+            jobject obj = ((JavaPythonObject *) value)->reference;
             (*ctx->env)->CallStaticObjectMethod(ctx->env, ctx->cpython_adapter_cls, ctx->handle_fork, ctx->context, obj);
             CHECK_FOR_EXCEPTION(ctx, (PyObject *) 1)
         }
@@ -121,6 +122,16 @@ handler(int signal_type, int signal_id, int nargs, PyObject *const *args, void *
 
         (*ctx->env)->CallStaticObjectMethod(ctx->env, ctx->cpython_adapter_cls, ctx->handle_fork_result, ctx->context, args[0] == Py_True);
         CHECK_FOR_EXCEPTION(ctx, (PyObject *) 1)
+
+    } else if (signal_id == SYM_EVENT_ID_NB_BOOL) {
+        assert(signal_type == SYM_EVENT_TYPE_NOTIFY && nargs == 1);
+
+        PyObject *symbolic = args[0];
+        if (is_wrapped_java_object(symbolic)) {
+            jobject object = ((JavaPythonObject *) symbolic)->reference;
+            (*ctx->env)->CallStaticVoidMethod(ctx->env, ctx->cpython_adapter_cls, ctx->handle_nb_bool, ctx->context, object);
+            CHECK_FOR_EXCEPTION(ctx, (PyObject *) 1)
+        }
 
     }
 

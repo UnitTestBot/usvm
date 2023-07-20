@@ -44,8 +44,8 @@ object ConcretePythonInterpreter {
     fun concolicRun(
         globals: PythonNamespace,
         functionRef: PythonObject,
-        concreteArgs: Collection<PythonObject?>,
-        virtualArgs: List<VirtualPythonObject?>,
+        concreteArgs: List<PythonObject>,
+        virtualArgs: Collection<PythonObject>,
         symbolicArgs: List<SymbolForCPython>,
         ctx: ConcolicRunContext,
         printErrorMsg: Boolean = false
@@ -53,8 +53,8 @@ object ConcretePythonInterpreter {
         val result = pythonAdapter.concolicRun(
             globals.address,
             functionRef.address,
-            concreteArgs.map { it?.address ?: 0L }.toLongArray(),
-            Array(virtualArgs.size) { virtualArgs[it] },
+            concreteArgs.map { it.address }.toLongArray(),
+            virtualArgs.map { it.address }.toLongArray(),
             Array(symbolicArgs.size) { symbolicArgs[it] },
             ctx,
             printErrorMsg
@@ -63,6 +63,7 @@ object ConcretePythonInterpreter {
             throw CPythonExecutionException
         return PythonObject(result)
     }
+
 
     fun printPythonObject(pythonObject: PythonObject) {
         pythonAdapter.printPythonObject(pythonObject.address)
@@ -74,6 +75,27 @@ object ConcretePythonInterpreter {
 
     fun getPythonObjectTypeName(pythonObject: PythonObject): String {
         return pythonAdapter.getPythonObjectTypeName(pythonObject.address)
+    }
+
+    fun allocateVirtualObject(virtualObject: VirtualPythonObject): PythonObject {
+        val ref = pythonAdapter.allocateVirtualObject(virtualObject)
+        if (ref == 0L)
+            throw CPythonExecutionException
+        return PythonObject(ref);
+    }
+
+    fun typeHasNbBool(pythonObject: PythonObject): Boolean {
+        val result = pythonAdapter.typeHasNbBool(pythonObject.address)
+        if (result < 0)
+            error("Given Python object is not a type")
+        return result != 0
+    }
+
+    fun typeHasNbInt(pythonObject: PythonObject): Boolean {
+        val result = pythonAdapter.typeHasNbInt(pythonObject.address)
+        if (result < 0)
+            error("Given Python object is not a type")
+        return result != 0
     }
 
     fun kill() {

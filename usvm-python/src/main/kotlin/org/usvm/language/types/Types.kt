@@ -3,13 +3,12 @@ package org.usvm.language.types
 import org.usvm.interpreter.ConcretePythonInterpreter
 import org.usvm.interpreter.PythonObject
 import org.usvm.interpreter.emptyNamespace
-import org.usvm.types.USupportTypeStream
-import org.usvm.types.UTypeStream
-import org.usvm.types.UTypeSystem
 
 sealed class PythonType
 
-open class VirtualPythonType: PythonType()
+abstract class VirtualPythonType: PythonType() {
+    abstract fun accepts(type: PythonType): Boolean
+}
 
 data class ConcretePythonType(val typeName: String, val asObject: PythonObject): PythonType()
 
@@ -20,3 +19,5 @@ val pythonBool = createConcreteType("bool")
 val pythonObjectType = createConcreteType("object")
 val pythonNoneType = ConcretePythonType("NoneType", ConcretePythonInterpreter.eval(emptyNamespace, "type(None)"))
 val pythonTypeType = createConcreteType("type")
+val pythonList = createConcreteType("list")
+val pythonTuple = createConcreteType("tuple")

@@ -15,7 +15,8 @@ import java.util.function.Supplier;
 import static org.usvm.interpreter.operations.ConstantsKt.handlerLoadConstLongKt;
 import static org.usvm.interpreter.operations.ControlKt.*;
 import static org.usvm.interpreter.operations.LongKt.*;
-import static org.usvm.interpreter.operations.VirtualKt.nbBoolKt;
+import static org.usvm.interpreter.operations.MethodNotificationsKt.nbBoolKt;
+import static org.usvm.interpreter.operations.VirtualKt.virtualNbBoolKt;
 import static org.usvm.interpreter.operations.tracing.PathTracingKt.handlerForkResultKt;
 import static org.usvm.interpreter.operations.tracing.PathTracingKt.withTracing;
 
@@ -28,10 +29,13 @@ public class CPythonAdapter {
     public native int concreteRun(long globals, String code);  // returns 0 on success
     public native long eval(long globals, String obj);  // returns PyObject *
     public native long concreteRunOnFunctionRef(long globals, long functionRef, long[] concreteArgs);
-    public native long concolicRun(long globals, long functionRef, long[] concreteArgs, VirtualPythonObject[] virtualArgs, SymbolForCPython[] symbolicArgs, ConcolicRunContext context, boolean print_error_message);
+    public native long concolicRun(long globals, long functionRef, long[] concreteArgs, long[] virtualArgs, SymbolForCPython[] symbolicArgs, ConcolicRunContext context, boolean print_error_message);
     public native void printPythonObject(long object);
     public native String getPythonObjectRepr(long object);
     public native String getPythonObjectTypeName(long object);
+    public native long allocateVirtualObject(VirtualPythonObject object);
+    public native int typeHasNbBool(long type);
+    public native int typeHasNbInt(long type);
 
     static {
         System.loadLibrary("cpythonadapter");
@@ -139,8 +143,11 @@ public class CPythonAdapter {
         withTracing(context, PythonReturn.INSTANCE, unit(() -> handlerReturnKt(context)));
     }
 
-    // TODO: add tracing
-    public static boolean virtualCallNbBool(ConcolicRunContext context, VirtualPythonObject object) {
-        return nbBoolKt(context, object);
+    public static void notifyNbBool(ConcolicRunContext context, SymbolForCPython symbol) {
+        withTracing(context, new NbBool(symbol), unit(() -> nbBoolKt(context, symbol.obj)));
+    }
+
+    public static boolean virtualNbBool(ConcolicRunContext context, VirtualPythonObject obj) {
+        return virtualNbBoolKt(context, obj);
     }
 }
