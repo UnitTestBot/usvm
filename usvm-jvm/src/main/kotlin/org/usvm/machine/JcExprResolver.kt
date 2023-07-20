@@ -100,7 +100,7 @@ import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.addNewMethodCall
 import org.usvm.machine.state.createUnprocessedException
-import org.usvm.util.extractJcType
+import org.usvm.util.extractJcRefType
 
 /**
  * An expression resolver based on JacoDb 3-address code. A result of resolving is `null`, iff
@@ -541,7 +541,7 @@ class JcExprResolver(
 
     // region implicit exceptions
 
-    private fun allocateException(type: JcType): (JcState) -> Unit = { state ->
+    private fun allocateException(type: JcRefType): (JcState) -> Unit = { state ->
         val address = state.memory.alloc(type)
         state.createUnprocessedException(address, type)
     }
@@ -724,23 +724,23 @@ class JcExprResolver(
     }
 
     private val arrayIndexOutOfBoundsExceptionType by lazy {
-        ctx.extractJcType(IndexOutOfBoundsException::class)
+        ctx.extractJcRefType(IndexOutOfBoundsException::class)
     }
 
     private val negativeArraySizeExceptionType by lazy {
-        ctx.extractJcType(NegativeArraySizeException::class)
+        ctx.extractJcRefType(NegativeArraySizeException::class)
     }
 
     private val arithmeticExceptionType by lazy {
-        ctx.extractJcType(ArithmeticException::class)
+        ctx.extractJcRefType(ArithmeticException::class)
     }
 
     private val nullPointerExceptionType by lazy {
-        ctx.extractJcType(NullPointerException::class)
+        ctx.extractJcRefType(NullPointerException::class)
     }
 
     private val classCastExceptionType by lazy {
-        ctx.extractJcType(ClassCastException::class)
+        ctx.extractJcRefType(ClassCastException::class)
     }
 
     companion object {

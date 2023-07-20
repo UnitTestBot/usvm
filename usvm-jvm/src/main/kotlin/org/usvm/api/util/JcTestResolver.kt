@@ -78,7 +78,9 @@ class JcTestResolver(
         val result = when (val res = state.methodResult) {
             is JcMethodResult.NoCall -> error("No result found")
             is JcMethodResult.Success -> with(afterScope) { Result.success(resolveExpr(res.value, method.returnType)) }
-            is JcMethodResult.UnprocessedJcException -> error("An unprocessed exception should never occur in the Resolver")
+            is JcMethodResult.UnprocessedJcException -> {
+                error("An unprocessed exception should never occur in the Resolver, but it did: $res")
+            }
             is JcMethodResult.JcException -> Result.failure(resolveException(res, afterScope))
         }
         val coverage = resolveCoverage(method, state)

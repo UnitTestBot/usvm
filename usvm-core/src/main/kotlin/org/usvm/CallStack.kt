@@ -36,11 +36,10 @@ class UCallStack<Method, Statement> private constructor(
     }
 
     fun stackTrace(currentInstruction: Statement): List<UStackTraceFrame<Method, Statement>> {
-        val stacktrace: MutableList<UStackTraceFrame<Method, Statement>> = stack
-            .zipWithNext()
-            .mapTo(mutableListOf()) {
-                UStackTraceFrame(it.first.method, it.second.returnSite!!)
-            }
+        val stacktrace = stack
+            .asSequence()
+            .zipWithNext { first, second -> UStackTraceFrame<Method, Statement>(first.method, second.returnSite!!) }
+            .toMutableList()
 
         return stacktrace + UStackTraceFrame(stack.last().method, currentInstruction)
     }

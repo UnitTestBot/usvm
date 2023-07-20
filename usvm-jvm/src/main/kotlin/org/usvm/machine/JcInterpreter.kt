@@ -215,7 +215,7 @@ class JcInterpreter(
 
     @Suppress("UNUSED_PARAMETER")
     private fun visitCatchStmt(scope: JcStepScope, stmt: JcCatchInst) {
-        error("The catch instruction must be unfolded during processing of the instructions led to it")
+        error("The catch instruction must be unfolded during processing of the instructions led to it. Encountered inst: $stmt")
     }
 
     private fun visitSwitchStmt(scope: JcStepScope, stmt: JcSwitchInst) {
