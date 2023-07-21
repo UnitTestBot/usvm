@@ -82,6 +82,7 @@ open class UExprTranslator<Field, Type>(
         require(expr.ref is USymbolicHeapRef) { "Unexpected ref: ${expr.ref}" }
 
         val const = expr.sort.mkConst("isSubtype#${_declToIsSubtypeExpr.size}")
+        // we need to track declarations to pass them to the type solver in the DPLL(T) procedure
         _declToIsSubtypeExpr[const.decl] = expr
         return const
     }
@@ -92,6 +93,7 @@ open class UExprTranslator<Field, Type>(
         require(expr.ref is USymbolicHeapRef) { "Unexpected ref: ${expr.ref}" }
 
         val const = expr.sort.mkConst("isSupertype#${_declToIsSupertypeExpr.size}")
+        // we need to track declarations to pass them to the type solver in the DPLL(T) procedure
         _declToIsSupertypeExpr[const.decl] = expr
         return const
     }

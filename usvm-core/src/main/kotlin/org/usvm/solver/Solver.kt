@@ -144,6 +144,8 @@ open class USolverBase<Field, Type, Method>(
                 // second, decode it unto uModel
                 val uModel = decoder.decode(kModel)
 
+                // find interpretations of type constraints
+
                 val isSubtypeToInterpretation = kModel.declarations.mapNotNull { decl ->
                     translator.declToIsSubtypeExpr[decl]?.let { isSubtypeExpr ->
                         val expr = decl.apply(emptyList())
@@ -158,15 +160,15 @@ open class USolverBase<Field, Type, Method>(
                     }
                 }
 
+                // third, build a type solver query
                 val typeSolverQuery = TypeSolverQuery(
-                    pc.typeConstraints,
-                    pc.logicalConstraints,
                     symbolicToConcrete = { uModel.eval(it) as UConcreteHeapRef },
+                    symbolicRefToTypeRegion = pc.typeConstraints.symbolicRefToTypeRegion,
                     isSubtypeToInterpretation = isSubtypeToInterpretation,
                     isSupertypeToInterpretation = isSupertypeToInterpretation,
                 )
 
-                // third, check it satisfies typeConstraints
+                // fourth, check it satisfies typeConstraints
                 when (val typeResult = typeSolver.check(typeSolverQuery)) {
                     is USatResult -> return USatResult(
                         UModelBase(
@@ -179,7 +181,7 @@ open class USolverBase<Field, Type, Method>(
                     )
 
                     // in case of failure, assert reference disequality expressions
-                    is UTypeUnsatResult<Type> -> typeResult.referenceDisequalitiesDisjuncts
+                    is UTypeUnsatResult<Type> -> typeResult.conflictLemmas
                         .map(translator::translate)
                         .forEach(smtSolver::assert)
 
