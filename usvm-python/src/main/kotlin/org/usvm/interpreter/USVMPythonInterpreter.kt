@@ -20,13 +20,25 @@ class USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION>(
 ) : UInterpreter<PythonExecutionState>() {
     private val pinnedCallable = callable.reference(namespace)
 
-    private fun getSeeds(state: PythonExecutionState, symbols: List<SymbolForCPython>): List<InterpretedSymbolicPythonObject> =
+    private fun getSeeds(
+        state: PythonExecutionState,
+        symbols: List<SymbolForCPython>
+    ): List<InterpretedSymbolicPythonObject> =
         symbols.map { interpretSymbolicPythonObject(it.obj, state.pyModel) }
 
-    private fun getConcrete(converter: ConverterToPythonObject, seeds: List<InterpretedSymbolicPythonObject>, symbols: List<SymbolForCPython>): List<PythonObject> =
-        (seeds zip symbols).map { (seed, symbol) -> converter.convert(seed, symbol) }
+    private fun getConcrete(
+        converter: ConverterToPythonObject,
+        seeds: List<InterpretedSymbolicPythonObject>,
+        symbols: List<SymbolForCPython>,
+        concolicRunContext: ConcolicRunContext
+    ): List<PythonObject> =
+        (seeds zip symbols).map { (seed, symbol) -> converter.convert(seed, symbol, concolicRunContext) }
 
-    private fun getInputs(virtualObjects: Collection<PythonObject>, concrete: List<PythonObject?>, seeds: List<InterpretedSymbolicPythonObject>): List<InputObject<PYTHON_OBJECT_REPRESENTATION>>? =
+    private fun getInputs(
+        virtualObjects: Collection<PythonObject>,
+        concrete: List<PythonObject?>,
+        seeds: List<InterpretedSymbolicPythonObject>
+    ): List<InputObject<PYTHON_OBJECT_REPRESENTATION>>? =
         if (virtualObjects.isEmpty()) {
             val serializedInputs = concrete.map { it!! }.map(pythonObjectSerialization)
             (seeds zip callable.signature zip serializedInputs).map { (p, z) ->
@@ -46,7 +58,7 @@ class USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION>(
             symbols.forEach { validator.check(it.obj) }
             val seeds = getSeeds(state, symbols)
             val converter = ConverterToPythonObject(ctx)
-            val concrete = getConcrete(converter, seeds, symbols)
+            val concrete = getConcrete(converter, seeds, symbols, concolicRunContext)
             val virtualObjects = converter.getVirtualObjects()
             val inputs = getInputs(virtualObjects, concrete, seeds)
 
@@ -56,7 +68,6 @@ class USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION>(
 
             try {
                 val result = ConcretePythonInterpreter.concolicRun(
-                    namespace,
                     pinnedCallable,
                     concrete,
                     virtualObjects,
