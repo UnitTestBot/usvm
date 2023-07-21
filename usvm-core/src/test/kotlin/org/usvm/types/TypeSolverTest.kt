@@ -416,7 +416,7 @@ class TypeSolverTest {
         val concreteA = model.eval(ref1)
         val concreteB = model.eval(ref2)
 
-        assertNotEquals(model.typeStreamOf(concreteA).takeFirst(), model.typeStreamOf(concreteB).takeFirst())
+        assertNotEquals(model.typeStreamOf(concreteA).first(), model.typeStreamOf(concreteB).first())
         assertNotEquals(model.eval(unboundedBoolean1), model.eval(unboundedBoolean2))
 
         pc += unboundedBoolean1 eq unboundedBoolean2

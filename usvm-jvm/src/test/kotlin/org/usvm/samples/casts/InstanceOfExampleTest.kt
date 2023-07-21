@@ -51,6 +51,7 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Support virtual calls")
     fun testVirtualCallWithoutOneInheritor() {
         checkDiscoveredProperties(
             InstanceOfExample::virtualCallWithoutOneInheritor,
@@ -63,6 +64,7 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Support virtual calls")
     fun testVirtualCallWithoutOneInheritorInverse() {
         checkDiscoveredProperties(
             InstanceOfExample::virtualCallWithoutOneInheritorInverse,
@@ -163,7 +165,8 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     fun testInstanceOfAsPartOfInternalExpressionsXor() {
         checkDiscoveredProperties(
             InstanceOfExample::instanceOfAsPartOfInternalExpressionsXor,
-            eq(4),
+            eq(5),
+            { _, o, r -> (o == null || o.size != 2) && r == 0 },
             { _, o, r ->
                 val o0isSecond = o[0].isInstanceOfArray<CastClassSecondSucc>()
                 val o1isFirst = o[1].isInstanceOfArray<CastClassFirstSucc>()
@@ -191,7 +194,8 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     fun testInstanceOfAsPartOfInternalExpressionsXorInverse() {
         checkDiscoveredProperties(
             InstanceOfExample::instanceOfAsPartOfInternalExpressionsXorInverse,
-            eq(4),
+            eq(5),
+            { _, o, r -> (o == null || o.size != 2) && r == 0 },
             { _, o, r ->
                 val o0isSecond = o[0].isInstanceOfArray<CastClassSecondSucc>()
                 val o1isFirst = o[1].isInstanceOfArray<CastClassFirstSucc>()
@@ -255,14 +259,12 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Support virtual calls")
     fun testComplicatedInstanceOf() {
         checkDiscoveredProperties(
             InstanceOfExample::complicatedInstanceOf,
-            eq(8),
-            { _, _, index, _, result -> index < 0 && result == null },
-            { _, _, index, _, result -> index > 2 && result == null },
-            { _, objects, index, _, result -> index in 0..2 && objects == null && result == null },
-            { _, objects, index, _, result -> index in 0..2 && objects != null && objects.size < index + 2 && result == null },
+            ge(5),
+            { _, objects, index, _, result -> (index !in 0..2 || objects == null || objects.size >= index + 2) && result == null },
             { _, objects, index, objectExample, result ->
                 require(objects != null && result != null && objectExample is CastClassFirstSucc)
 

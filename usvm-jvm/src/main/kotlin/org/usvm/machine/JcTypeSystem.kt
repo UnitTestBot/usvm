@@ -37,8 +37,18 @@ class JcTypeSystem(
         is JcPrimitiveType -> emptySequence() // TODO: should not be called here
         is JcArrayType -> findSubtypes(type.elementType).map { cp.arrayTypeOf(it) }
         is JcRefType -> hierarchy
-            .findSubClasses(type.jcClass, allHierarchy = false) // TODO: prioritize classes somehow and filter bad classes
+            .findSubClasses(
+                type.jcClass,
+                allHierarchy = false
+            ) // TODO: prioritize classes somehow and filter bad classes
             .map { it.toType() }
+            .run {
+                if (type == cp.objectType) {
+                    flatMap { listOf(it, cp.arrayTypeOf(it)) } + sequenceOf(cp.arrayTypeOf(type))
+                } else {
+                    this
+                }
+            }
 
         else -> error("Unknown type $type")
     }

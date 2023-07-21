@@ -48,7 +48,7 @@ import org.usvm.machine.state.JcState
 import org.usvm.machine.state.localIdx
 import org.usvm.memory.UReadOnlySymbolicMemory
 import org.usvm.model.UModelBase
-import org.usvm.types.takeFirst
+import org.usvm.types.firstOrNull
 
 /**
  * A class, responsible for resolving a single [JcTest] for a specific method from a symbolic state.
@@ -172,16 +172,17 @@ class JcTestResolver(
             if (ref.address == NULL_ADDRESS) {
                 return null
             }
+            // to find a type, we need to understand the source of the object
+            val typeStream = if (ref.address <= INITIAL_INPUT_ADDRESS) {
+                // input object
+                model.typeStreamOf(ref)
+            } else {
+                // allocated object
+                memory.typeStreamOf(ref)
+            }.filterBySupertype(type)
+            val evaluatedType = typeStream.firstOrNull() ?: return null
+
             return resolvedCache.getOrElse(ref.address) {
-                // to find a type, we need to understand the source of the object
-                val evaluatedType = if (ref.address <= INITIAL_INPUT_ADDRESS) {
-                    // input object
-                    val typeStream = model.typeStreamOf(ref).filterBySupertype(type)
-                    typeStream.takeFirst() as JcRefType
-                } else {
-                    // allocated object
-                    memory.typeStreamOf(ref).takeFirst()
-                }
                 when (evaluatedType) {
                     is JcArrayType -> resolveArray(ref, heapRef, evaluatedType)
                     is JcClassType -> resolveObject(ref, heapRef, evaluatedType)
@@ -216,13 +217,13 @@ class JcTestResolver(
                     // TODO: works incorrectly for inner array
                     val clazz = resolveType(type.elementType as JcRefType)
                     val instance = Reflection.allocateArray(clazz, length)
+                    resolvedCache[ref.address] = instance
                     for (i in 0 until length) {
                         instance[i] = resolveElement(i)
                     }
                     instance
                 }
             }
-            resolvedCache[ref.address] = instance
             return instance
         }
 
