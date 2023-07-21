@@ -75,6 +75,36 @@
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;ILorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
     },
     {
+        "c_name": "create_list",
+        "java_name": "handlerCreateList",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;[Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
+    },
+    {
+        "c_name": "list_get_item",
+        "java_name": "handlerListGetItem",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;ILorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
+    },
+    {
+        "c_name": "list_set_item",
+        "java_name": "handlerListSetItem",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;ILorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)V"
+    },
+    {
+        "c_name": "load_const_tuple",
+        "java_name": "handlerLoadConstTuple",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;[Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
+    },
+    {
+        "c_name": "list_extend",
+        "java_name": "handlerListExtend",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;ILorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
+    },
+    {
+        "c_name": "list_append",
+        "java_name": "handlerListAppend",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;ILorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
+    },
+    {
         "c_name": "function_call",
         "java_name": "handlerFunctionCall",
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;J)V"

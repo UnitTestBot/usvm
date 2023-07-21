@@ -4,6 +4,17 @@ import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.isTrue
 import java.util.function.Supplier
 
+private fun <T : Any> getResult(resultSupplier: Supplier<T?>): T? {
+    var exception: Throwable? = null
+    val result = runCatching { resultSupplier.get() }.onFailure {
+        System.err.println(it)
+        exception = it
+    }.getOrNull()
+    if (exception != null)
+        throw exception as Throwable
+    return result
+}
+
 fun <T : Any> withTracing(
     context: ConcolicRunContext,
     newEventParameters: SymbolicHandlerEventParameters<T>,
@@ -11,7 +22,7 @@ fun <T : Any> withTracing(
 ): T? {
     context.instructionCounter++
     if (context.instructionCounter > context.curState.path.size) {
-        val result = resultSupplier.get()
+        val result = getResult(resultSupplier)
         val eventRecord = SymbolicHandlerEvent(newEventParameters, result)
         context.curState.path = context.curState.path.add(eventRecord)
         return result

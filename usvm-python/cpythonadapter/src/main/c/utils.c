@@ -67,6 +67,7 @@ void construct_concolic_context(JNIEnv *env, jobject context, jobject cpython_ad
     dist->context = context;
     dist->cpython_adapter = cpython_adapter;
     dist->cpython_adapter_cls = (*env)->GetObjectClass(env, cpython_adapter);
+    dist->symbol_cls = (*env)->FindClass(env, "Lorg/usvm/language/SymbolForCPython;");
     DO_REGISTRATIONS(dist, env)
 }
 

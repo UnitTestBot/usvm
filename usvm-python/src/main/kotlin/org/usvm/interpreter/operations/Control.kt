@@ -3,8 +3,10 @@ package org.usvm.interpreter.operations
 import io.ksmt.sort.KBoolSort
 import org.usvm.UExpr
 import org.usvm.fork
+import org.usvm.forkMulti
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.interpreter.symbolicobjects.SymbolicPythonObject
+import org.usvm.isTrue
 import org.usvm.language.PythonPinnedCallable
 
 fun myFork(ctx: ConcolicRunContext, cond: UExpr<KBoolSort>) {
@@ -23,13 +25,9 @@ fun myFork(ctx: ConcolicRunContext, cond: UExpr<KBoolSort>) {
 }
 
 fun myAssert(ctx: ConcolicRunContext, cond: UExpr<KBoolSort>) {
-    val model = ctx.curState.pyModel
-    val forkResult = fork(ctx.curState, cond)
-    if (forkResult.positiveState?.pyModel != model) {
-
-        if (forkResult.negativeState == ctx.curState)
-            ctx.curState.modelDied = true
-
+    val forkResult = forkMulti(ctx.curState, listOf(cond)).single()
+    if (forkResult == null) {
+        ctx.curState.modelDied = true
         throw BadModelException
     }
 }
