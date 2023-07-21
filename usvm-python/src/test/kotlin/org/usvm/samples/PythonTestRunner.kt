@@ -41,7 +41,7 @@ open class PythonTestRunner(sourcePath: String) : TestRunner<PythonTest, PythonU
         val converter = test.inputValueConverter
         converter.restart()
         val args = test.inputValues.map { converter.convert(it.asUExpr) }
-        val concreteResult = ConcretePythonInterpreter.concreteRunOnFunctionRef(namespace, functionRef, args)
+        val concreteResult = ConcretePythonInterpreter.concreteRunOnFunctionRef(functionRef, args)
         return check(concreteResult)
     }
 
@@ -92,6 +92,7 @@ open class PythonTestRunner(sourcePath: String) : TestRunner<PythonTest, PythonU
     protected val check1WithConcreteRun =
         createCheckWithConcreteRun<(PythonObjectInfo, PythonObjectInfo?) -> Boolean>()
 
+    protected val check2 = createCheck<(PythonObjectInfo, PythonObjectInfo, PythonObjectInfo?) -> Boolean>()
     protected val check2WithConcreteRun =
         createCheckWithConcreteRun<(PythonObjectInfo, PythonObjectInfo, PythonObjectInfo?) -> Boolean>()
 

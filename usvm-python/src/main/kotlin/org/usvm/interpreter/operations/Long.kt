@@ -6,14 +6,16 @@ import org.usvm.UBoolExpr
 import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.interpreter.ConcolicRunContext
-import org.usvm.interpreter.symbolicobjects.SymbolicPythonObject
 import org.usvm.interpreter.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.interpreter.symbolicobjects.constructBool
 import org.usvm.interpreter.symbolicobjects.constructInt
+import org.usvm.language.types.pythonInt
 
 fun <RES_SORT: KSort> createBinaryIntOp(
     op: (UContext, UExpr<KIntSort>, UExpr<KIntSort>) -> UExpr<RES_SORT>?
-): (ConcolicRunContext, SymbolicPythonObject, SymbolicPythonObject) -> UninterpretedSymbolicPythonObject? = { concolicContext, left, right ->
+): (ConcolicRunContext, UninterpretedSymbolicPythonObject, UninterpretedSymbolicPythonObject) -> UninterpretedSymbolicPythonObject? = { concolicContext, left, right ->
+    left.addSupertype(concolicContext, pythonInt)
+    right.addSupertype(concolicContext, pythonInt)
     op(concolicContext.ctx, left.getIntContent(concolicContext), right.getIntContent(concolicContext))?.let {
         @Suppress("unchecked_cast")
         when (it.sort) {
@@ -24,30 +26,30 @@ fun <RES_SORT: KSort> createBinaryIntOp(
     }
 }
 
-fun handlerGTLongKt(x: ConcolicRunContext, y: SymbolicPythonObject, z: SymbolicPythonObject): UninterpretedSymbolicPythonObject? =
+fun handlerGTLongKt(x: ConcolicRunContext, y: UninterpretedSymbolicPythonObject, z: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? =
     createBinaryIntOp { ctx, left, right -> with(ctx) { left gt right } } (x, y, z)
-fun handlerLTLongKt(x: ConcolicRunContext, y: SymbolicPythonObject, z: SymbolicPythonObject): UninterpretedSymbolicPythonObject? =
+fun handlerLTLongKt(x: ConcolicRunContext, y: UninterpretedSymbolicPythonObject, z: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? =
     createBinaryIntOp { ctx, left, right -> with(ctx) { left lt right } } (x, y, z)
-fun handlerEQLongKt(x: ConcolicRunContext, y: SymbolicPythonObject, z: SymbolicPythonObject): UninterpretedSymbolicPythonObject? =
+fun handlerEQLongKt(x: ConcolicRunContext, y: UninterpretedSymbolicPythonObject, z: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? =
     createBinaryIntOp { ctx, left, right -> with(ctx) { left eq right } } (x, y, z)
-fun handlerNELongKt(x: ConcolicRunContext, y: SymbolicPythonObject, z: SymbolicPythonObject): UninterpretedSymbolicPythonObject? =
+fun handlerNELongKt(x: ConcolicRunContext, y: UninterpretedSymbolicPythonObject, z: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? =
     createBinaryIntOp { ctx, left, right -> with(ctx) { left neq right } } (x, y, z)
-fun handlerGELongKt(x: ConcolicRunContext, y: SymbolicPythonObject, z: SymbolicPythonObject): UninterpretedSymbolicPythonObject? =
+fun handlerGELongKt(x: ConcolicRunContext, y: UninterpretedSymbolicPythonObject, z: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? =
     createBinaryIntOp { ctx, left, right -> with(ctx) { left ge right } } (x, y, z)
-fun handlerLELongKt(x: ConcolicRunContext, y: SymbolicPythonObject, z: SymbolicPythonObject): UninterpretedSymbolicPythonObject? =
+fun handlerLELongKt(x: ConcolicRunContext, y: UninterpretedSymbolicPythonObject, z: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? =
     createBinaryIntOp { ctx, left, right -> with(ctx) { left le right } } (x, y, z)
-fun handlerADDLongKt(x: ConcolicRunContext, y: SymbolicPythonObject, z: SymbolicPythonObject): UninterpretedSymbolicPythonObject? =
+fun handlerADDLongKt(x: ConcolicRunContext, y: UninterpretedSymbolicPythonObject, z: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? =
     createBinaryIntOp { ctx, left, right -> val res = ctx.mkArithAdd(left, right); res } (x, y, z)
-fun handlerSUBLongKt(x: ConcolicRunContext, y: SymbolicPythonObject, z: SymbolicPythonObject): UninterpretedSymbolicPythonObject? =
+fun handlerSUBLongKt(x: ConcolicRunContext, y: UninterpretedSymbolicPythonObject, z: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? =
     createBinaryIntOp { ctx, left, right -> ctx.mkArithSub(left, right) } (x, y, z)
-fun handlerMULLongKt(x: ConcolicRunContext, y: SymbolicPythonObject, z: SymbolicPythonObject): UninterpretedSymbolicPythonObject? =
+fun handlerMULLongKt(x: ConcolicRunContext, y: UninterpretedSymbolicPythonObject, z: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? =
     createBinaryIntOp { ctx, left, right -> ctx.mkArithMul(left, right) } (x, y, z)
-fun handlerDIVLongKt(x: ConcolicRunContext, y: SymbolicPythonObject, z: SymbolicPythonObject): UninterpretedSymbolicPythonObject? =
+fun handlerDIVLongKt(x: ConcolicRunContext, y: UninterpretedSymbolicPythonObject, z: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? =
     createBinaryIntOp { ctx, left, right -> ctx.mkArithDiv(left, right) } (x, y, z)
-fun handlerREMLongKt(x: ConcolicRunContext, y: SymbolicPythonObject, z: SymbolicPythonObject): UninterpretedSymbolicPythonObject? =
+fun handlerREMLongKt(x: ConcolicRunContext, y: UninterpretedSymbolicPythonObject, z: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? =
     createBinaryIntOp { ctx, left, right -> ctx.mkIntMod(left, right) } (x, y, z)
 @Suppress("unused_parameter")
-fun handlerPOWLongKt(x: ConcolicRunContext, y: SymbolicPythonObject, z: SymbolicPythonObject): UninterpretedSymbolicPythonObject? = null  // TODO
+fun handlerPOWLongKt(x: ConcolicRunContext, y: UninterpretedSymbolicPythonObject, z: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? = null  // TODO
     //createBinaryIntOp { ctx, left, right ->
     //    if (right is KIntNumExpr) ctx.mkArithPower(left, right) else null
     //} (x, y, z)

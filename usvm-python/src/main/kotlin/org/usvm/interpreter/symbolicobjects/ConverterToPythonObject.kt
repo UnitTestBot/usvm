@@ -1,7 +1,10 @@
 package org.usvm.interpreter.symbolicobjects
 
+import io.ksmt.expr.KInt32NumExpr
+import org.usvm.UArrayIndexLValue
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
+import org.usvm.UHeapRef
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.interpreter.ConcretePythonInterpreter
 import org.usvm.interpreter.PythonObject
@@ -25,7 +28,7 @@ class ConverterToPythonObject(private val ctx: UContext) {
     fun convert(
         obj: InterpretedSymbolicPythonObject,
         symbol: SymbolForCPython? = null,
-        //concolicRunContext: ConcolicRunContext? = null
+        concolicRunContext: ConcolicRunContext? = null
     ): PythonObject {
         val cached = constructedObjects[obj.address]
         if (cached != null)
@@ -39,6 +42,7 @@ class ConverterToPythonObject(private val ctx: UContext) {
             pythonBool -> convertBool(obj)
             pythonObjectType -> ConcretePythonInterpreter.eval(emptyNamespace, "object()")
             pythonNoneType -> ConcretePythonInterpreter.eval(emptyNamespace, "None")
+            pythonList -> convertList(obj, symbol?.obj, concolicRunContext)
             else -> TODO()
         }
         constructedObjects[obj.address] = result
@@ -61,4 +65,22 @@ class ConverterToPythonObject(private val ctx: UContext) {
             ctx.falseExpr -> ConcretePythonInterpreter.eval(emptyNamespace, "False")
             else -> error("Not reachable")
         }
+
+    private fun convertList(obj: InterpretedSymbolicPythonObject, symbol: UninterpretedSymbolicPythonObject?, concolicRunContext: ConcolicRunContext?): PythonObject = with(ctx) {
+        val size = obj.model.uModel.heap.readArrayLength(obj.address, pythonList) as KInt32NumExpr
+        val listOfPythonObjects = List(size.value) { index ->
+            val indexExpr = mkSizeExpr(index)
+            val element = obj.model.uModel.heap.readArrayIndex(obj.address, indexExpr, pythonList, addressSort) as UConcreteHeapRef
+            val elemInterpretedObject = InterpretedSymbolicPythonObject(element, obj.model)
+            val elementSymbolicAddress = symbol?.address?.let { address ->
+                concolicRunContext?.curState?.memory?.read(UArrayIndexLValue(addressSort, address, indexExpr, pythonList))
+            }
+            val elementSymbol = elementSymbolicAddress?.let {
+                @Suppress("unchecked_cast")
+                SymbolForCPython(UninterpretedSymbolicPythonObject(it as UHeapRef))
+            }
+            convert(elemInterpretedObject, elementSymbol, concolicRunContext)
+        }
+        return ConcretePythonInterpreter.makeList(listOfPythonObjects)
+    }
 }

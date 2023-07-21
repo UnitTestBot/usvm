@@ -67,7 +67,6 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_eval(
 JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_concreteRunOnFunctionRef(
     JNIEnv *env,
     jobject cpython_adapter,
-    jlong globals,
     jlong function_ref,
     jlongArray concrete_args
 ) {
@@ -91,7 +90,6 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_concreteRunOnFu
 JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_concolicRun(
     JNIEnv *env,
     jobject cpython_adapter,
-    jlong globals,
     jlong function_ref,
     jlongArray concrete_args,
     jlongArray virtual_args,
@@ -142,6 +140,17 @@ JNIEXPORT jstring JNICALL Java_org_usvm_interpreter_CPythonAdapter_getPythonObje
 
 JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_allocateVirtualObject(JNIEnv *env, jobject cpython_adapter, jobject virtual_object) {
     return (jlong) allocate_raw_virtual_object(env, virtual_object);
+}
+
+JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_makeList(JNIEnv *env, jobject cpython_adapter, jlongArray elements) {
+    int size = (*env)->GetArrayLength(env, elements);
+    PyObject *result = PyList_New(size);
+    jlong *addresses = (*env)->GetLongArrayElements(env, elements, 0);
+    for (int i = 0; i < size; i++) {
+        PyList_SetItem(result, i, (PyObject *) addresses[i]);
+    }
+    (*env)->ReleaseLongArrayElements(env, elements, addresses, 0);
+    return (jlong) result;
 }
 
 JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasNbBool(JNIEnv *env, jobject cpython_adapter, jlong type_ref) {
