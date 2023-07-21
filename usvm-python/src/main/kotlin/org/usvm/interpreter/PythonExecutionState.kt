@@ -5,7 +5,6 @@ import kotlinx.collections.immutable.persistentListOf
 import org.usvm.*
 import org.usvm.constraints.UPathConstraints
 import org.usvm.interpreter.operations.tracing.SymbolicHandlerEvent
-import org.usvm.interpreter.symbolicobjects.InterpretedSymbolicPythonObject
 import org.usvm.language.*
 import org.usvm.language.types.PythonType
 import org.usvm.memory.UMemoryBase
@@ -58,7 +57,7 @@ class PythonExecutionState(
     var fromStateWithVirtualObjectAndWithoutDelayedForks: PythonExecutionState? = null
 }
 
-data class DelayedFork(
+class DelayedFork(
     val state: PythonExecutionState,
     val symbol: SymbolForCPython
 )

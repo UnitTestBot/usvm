@@ -1,9 +1,15 @@
 package org.usvm.interpreter.symbolicobjects
 
+import io.ksmt.expr.KInt32NumExpr
+import org.usvm.UArrayIndexLValue
+import org.usvm.UArrayLengthLValue
+import org.usvm.UHeapRef
+import org.usvm.USizeExpr
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.interpreter.operations.myAssert
 import org.usvm.language.types.pythonBool
 import org.usvm.language.types.pythonInt
+import org.usvm.language.types.pythonList
 import org.usvm.language.types.pythonNoneType
 
 class ObjectValidator(private val concolicRunContext: ConcolicRunContext) {
@@ -17,6 +23,7 @@ class ObjectValidator(private val concolicRunContext: ConcolicRunContext) {
             pythonInt -> checkInt(symbol)
             pythonNoneType -> checkNone(symbol)
             pythonBool -> checkBool(symbol)
+            pythonList -> checkList(symbol, concrete)
         }
     }
 
@@ -37,7 +44,6 @@ class ObjectValidator(private val concolicRunContext: ConcolicRunContext) {
         myAssert(concolicRunContext, isFalse implies (asInt eq mkIntNum(0)))
     }
 
-    /*
     private fun checkList(symbolic: UninterpretedSymbolicPythonObject, concrete: InterpretedSymbolicPythonObject) = with(concolicRunContext.ctx) {
         @Suppress("unchecked_cast")
         val symbolicSize = concolicRunContext.curState.memory.read(UArrayLengthLValue(symbolic.address, pythonList)) as USizeExpr
@@ -48,9 +54,8 @@ class ObjectValidator(private val concolicRunContext: ConcolicRunContext) {
             val element = concolicRunContext.curState.memory.read(UArrayIndexLValue(addressSort, symbolic.address, mkSizeExpr(index), pythonList)) as UHeapRef
             myAssert(concolicRunContext, (symbolicSize gt mkIntNum(index)) implies mkNot(mkHeapRefEq(element, nullRef)))
             val elemObj = UninterpretedSymbolicPythonObject(element)
-            //elemObj.assertIsExactly(concolicRunContext, pythonInt) // temporary
+            elemObj.addSupertype(concolicRunContext, pythonInt) // temporary
             check(elemObj)
         }
     }
-     */
 }

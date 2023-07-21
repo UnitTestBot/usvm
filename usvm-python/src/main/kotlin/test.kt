@@ -1,25 +1,21 @@
 import org.usvm.interpreter.*
 import org.usvm.language.PythonProgram
 import org.usvm.language.PythonUnpinnedCallable
-import org.usvm.language.types.PythonAnyType
-import org.usvm.language.types.pythonBool
 import org.usvm.language.types.pythonInt
+import org.usvm.language.types.pythonList
 
 fun main() {
     val program = PythonProgram(
         """
-        def f(x, y):
-            if x and y:
+        def f(y: list, i: int):
+            if y[i] == 0:
                 return 1
-            elif x:
+            elif y[i] == 167:
                 return 2
-            elif y:
-                return 3
-            else:
-                return 4
+            return 3
         """.trimIndent()
     )
-    val function = PythonUnpinnedCallable.constructCallableFromName(listOf(PythonAnyType, PythonAnyType), "f")
+    val function = PythonUnpinnedCallable.constructCallableFromName(listOf(pythonList, pythonInt), "f")
     val machine = PythonMachine(program, printErrorMsg = true) { it }
     val start = System.currentTimeMillis()
     val iterations = machine.use { activeMachine ->

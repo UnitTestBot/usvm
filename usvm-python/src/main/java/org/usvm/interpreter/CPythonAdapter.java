@@ -13,7 +13,9 @@ import java.util.List;
 import java.util.function.Supplier;
 
 import static org.usvm.interpreter.operations.ConstantsKt.handlerLoadConstLongKt;
+import static org.usvm.interpreter.operations.ConstantsKt.handlerLoadConstTupleKt;
 import static org.usvm.interpreter.operations.ControlKt.*;
+import static org.usvm.interpreter.operations.ListKt.*;
 import static org.usvm.interpreter.operations.LongKt.*;
 import static org.usvm.interpreter.operations.MethodNotificationsKt.nbBoolKt;
 import static org.usvm.interpreter.operations.VirtualKt.virtualNbBoolKt;
@@ -29,12 +31,13 @@ public class CPythonAdapter {
     public native long getNewNamespace();  // returns reference to a new dict
     public native int concreteRun(long globals, String code);  // returns 0 on success
     public native long eval(long globals, String obj);  // returns PyObject *
-    public native long concreteRunOnFunctionRef(long globals, long functionRef, long[] concreteArgs);
-    public native long concolicRun(long globals, long functionRef, long[] concreteArgs, long[] virtualArgs, SymbolForCPython[] symbolicArgs, ConcolicRunContext context, boolean print_error_message);
+    public native long concreteRunOnFunctionRef(long functionRef, long[] concreteArgs);
+    public native long concolicRun(long functionRef, long[] concreteArgs, long[] virtualArgs, SymbolForCPython[] symbolicArgs, ConcolicRunContext context, boolean print_error_message);
     public native void printPythonObject(long object);
     public native String getPythonObjectRepr(long object);
     public native String getPythonObjectTypeName(long object);
     public native long allocateVirtualObject(VirtualPythonObject object);
+    public native long makeList(long[] elements);
     public native int typeHasNbBool(long type);
     public native int typeHasNbInt(long type);
 
@@ -77,6 +80,10 @@ public class CPythonAdapter {
 
     public static SymbolForCPython handlerLoadConstLong(ConcolicRunContext context, long value) {
         return withTracing(context, new LoadConstParameters(value), () -> wrap(handlerLoadConstLongKt(context, value)));
+    }
+
+    public static SymbolForCPython handlerLoadConstTuple(ConcolicRunContext context, SymbolForCPython[] elements) {
+        return withTracing(context, new LoadConstParameters(Arrays.asList(elements)), () -> wrap(handlerLoadConstTupleKt(context,  Arrays.stream(elements).map(s -> s.obj))));
     }
 
     public static void handlerFork(ConcolicRunContext context, SymbolForCPython cond) {
@@ -133,6 +140,27 @@ public class CPythonAdapter {
 
     public static SymbolForCPython handlerPOWLong(ConcolicRunContext context, int methodId, SymbolForCPython left, SymbolForCPython right) {
         return methodWrapper(context, methodId, Arrays.asList(left, right), () -> handlerPOWLongKt(context, left.obj, right.obj));
+    }
+
+    public static SymbolForCPython handlerCreateList(ConcolicRunContext context, SymbolForCPython[] elements) {
+        ListCreation event = new ListCreation(Arrays.asList(elements));
+        return withTracing(context, event, () -> wrap(handlerCreateListKt(context, Arrays.stream(elements).map(s -> s.obj))));
+    }
+
+    public static SymbolForCPython handlerListGetItem(ConcolicRunContext context, int methodId, SymbolForCPython list, SymbolForCPython index) {
+        return methodWrapper(context, methodId, Arrays.asList(list, index), () -> handlerListGetItemKt(context, list.obj, index.obj));
+    }
+
+    public static SymbolForCPython handlerListExtend(ConcolicRunContext context, int methodId, SymbolForCPython list, SymbolForCPython tuple) {
+        return methodWrapper(context, methodId, Arrays.asList(list, tuple), () -> handlerListExtendKt(context, list.obj, tuple.obj));
+    }
+
+    public static SymbolForCPython handlerListAppend(ConcolicRunContext context, int methodId, SymbolForCPython list, SymbolForCPython elem) {
+        return methodWrapper(context, methodId, Arrays.asList(list, elem), () -> handlerListAppendKt(context, list.obj, elem.obj));
+    }
+
+    public static void handlerListSetItem(ConcolicRunContext context, int methodId, SymbolForCPython list, SymbolForCPython index, SymbolForCPython value) {
+        withTracing(context, new MethodWithoutReturnValueParameters(methodId, Arrays.asList(list, index, value)), unit(() -> handlerListSetItemKt(context, list.obj, index.obj, value.obj)));
     }
 
     public static void handlerFunctionCall(ConcolicRunContext context, long function) {

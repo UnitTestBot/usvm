@@ -25,6 +25,7 @@ typedef struct {
     JNIEnv *env;
     jclass cpython_adapter_cls;
     jobject cpython_adapter;
+    jclass symbol_cls;
     HANDLERS_DEFS
 } ConcolicContext;
 
