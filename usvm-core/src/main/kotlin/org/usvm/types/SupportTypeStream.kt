@@ -14,7 +14,7 @@ import org.usvm.util.DfsIterator
 class USupportTypeStream<Type> private constructor(
     private val typeSystem: UTypeSystem<Type>,
     private val cachingSequence: CachingSequence<Type>,
-    private val fromQueries: PersistentSet<Type>,
+    private val fromQueries: List<Type>,
     private val supportType: Type,
     private val filtering: (Type) -> Boolean,
 ) : UTypeStream<Type> {
@@ -92,7 +92,7 @@ class USupportTypeStream<Type> private constructor(
     companion object {
         fun <Type> from(typeSystem: UTypeSystem<Type>, type: Type): USupportTypeStream<Type> {
             val root = rootSequence(typeSystem, type).filter(typeSystem::isInstantiable)
-            val fromQueries = if (typeSystem.isInstantiable(type)) persistentSetOf(type) else persistentSetOf()
+            val fromQueries = if (typeSystem.isInstantiable(type)) listOf(type) else listOf()
             return USupportTypeStream(typeSystem, root, fromQueries, type, typeSystem::isInstantiable)
         }
 
@@ -105,18 +105,18 @@ class USupportTypeStream<Type> private constructor(
             return CachingSequence(dfsIterator)
         }
 
-        private const val MAX_SIZE = 5
+        private const val MAX_SIZE = 8
 
-        private fun <Type> PersistentSet<Type>.addIfDoesntExceedSizeAndFilter(
+        private inline fun <Type> List<Type>.addIfDoesntExceedSizeAndFilter(
             type: Type,
             maxSize: Int,
             filtering: (Type) -> Boolean,
             newFiltering: (Type) -> Boolean,
-        ): PersistentSet<Type> =
-            removeAll { !newFiltering(it) }
+        ): List<Type> =
+            filterNot(newFiltering)
                 .run {
                     if (size < maxSize && filtering(type) && newFiltering(type)) {
-                        add(type)
+                       this + type
                     } else {
                         this
                     }

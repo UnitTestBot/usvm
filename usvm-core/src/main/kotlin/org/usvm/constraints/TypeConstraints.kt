@@ -31,10 +31,10 @@ interface UTypeEvaluator<Type> {
  * Manages allocated objects separately from input ones. Indeed, we know the type of an allocated object
  * precisely, thus we can evaluate the subtyping constraints for them concretely (modulo generic type variables).
  */
-open class UTypeConstraints<Type>(
+class UTypeConstraints<Type>(
     private val typeSystem: UTypeSystem<Type>,
     private val equalityConstraints: UEqualityConstraints,
-    protected val concreteRefToType: MutableMap<UConcreteHeapAddress, Type> = mutableMapOf(),
+    private val concreteRefToType: MutableMap<UConcreteHeapAddress, Type> = mutableMapOf(),
     symbolicRefToTypeRegion: MutableMap<USymbolicHeapRef, UTypeRegion<Type>> = mutableMapOf(),
 ) : UTypeEvaluator<Type> {
     init {
@@ -58,7 +58,7 @@ open class UTypeConstraints<Type>(
         )
     }
 
-    protected fun contradiction() {
+    private fun contradiction() {
         isContradicting = true
     }
 
@@ -69,8 +69,12 @@ open class UTypeConstraints<Type>(
         concreteRefToType[ref] = type
     }
 
-    fun getTypeRegion(symbolicRef: USymbolicHeapRef, useRepresentative: Boolean = true): UTypeRegion<Type> {
-        val representative = if (useRepresentative) equalityConstraints.equalReferences.find(symbolicRef) else symbolicRef
+    private fun getTypeRegion(symbolicRef: USymbolicHeapRef, useRepresentative: Boolean = true): UTypeRegion<Type> {
+        val representative = if (useRepresentative) {
+            equalityConstraints.equalReferences.find(symbolicRef)
+        } else {
+            symbolicRef
+        }
         return _symbolicRefToTypeRegion[representative] ?: topTypeRegion
     }
 

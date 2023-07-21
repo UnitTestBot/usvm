@@ -27,7 +27,7 @@ class UTypeModel<Type>(
                 // All the expressions in the model are interpreted, therefore, they must
                 // have concrete addresses. Moreover, the model knows only about input values
                 // which have addresses less or equal than INITIAL_INPUT_ADDRESS
-                require(ref.address <= INITIAL_INPUT_ADDRESS)
+                require(ref.address <= INITIAL_INPUT_ADDRESS) { "Unexpected ref: $ref" }
 
                 val evaluatedTypeStream = typeStream(ref)
                 val typeStream = evaluatedTypeStream.filterBySupertype(supertype)
@@ -50,7 +50,7 @@ class UTypeModel<Type>(
                 // All the expressions in the model are interpreted, therefore, they must
                 // have concrete addresses. Moreover, the model knows only about input values
                 // which have addresses less or equal than INITIAL_INPUT_ADDRESS
-                require(ref.address <= INITIAL_INPUT_ADDRESS)
+                require(ref.address <= INITIAL_INPUT_ADDRESS) { "Unexpected ref: $ref" }
 
                 val evaluatedTypeStream = typeStream(ref)
                 val typeStream = evaluatedTypeStream.filterBySubtype(subtype)

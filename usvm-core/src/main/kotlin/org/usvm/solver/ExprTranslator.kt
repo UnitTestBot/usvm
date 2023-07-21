@@ -89,6 +89,7 @@ open class UExprTranslator<Field, Type>(
 
     private val _declToIsSupertypeExpr = mutableMapOf<KDecl<UBoolSort>, UIsSupertypeExpr<Type>>()
     val declToIsSupertypeExpr: Map<KDecl<UBoolSort>, UIsSupertypeExpr<Type>> get() = _declToIsSupertypeExpr
+
     override fun transform(expr: UIsSupertypeExpr<Type>): KExpr<KBoolSort> {
         require(expr.ref is USymbolicHeapRef) { "Unexpected ref: ${expr.ref}" }
 

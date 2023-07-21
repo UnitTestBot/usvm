@@ -98,9 +98,8 @@ open class USolverBase<Field, Type, Method>(
         translateLogicalConstraints(pc.logicalConstraints)
     }
 
-    override fun check(query: UPathConstraints<Type>): USolverResult<UModelBase<Field, Type>> {
-        return internalCheck(query, useSoftConstraints = false)
-    }
+    override fun check(query: UPathConstraints<Type>): USolverResult<UModelBase<Field, Type>> =
+        internalCheck(query, useSoftConstraints = false)
 
     fun checkWithSoftConstraints(
         pc: UPathConstraints<Type>,

@@ -151,7 +151,7 @@ open class UTypeRegion<Type>(
         return UTypeRegion(typeSystem, newTypeStream, notSubtypes = newNotSubtypes)
     }
 
-    override val isEmpty: Boolean = typeStream.isEmpty
+    override val isEmpty: Boolean get() = typeStream.isEmpty
 
     override fun intersect(other: UTypeRegion<Type>): UTypeRegion<Type> {
         if (this == other) {

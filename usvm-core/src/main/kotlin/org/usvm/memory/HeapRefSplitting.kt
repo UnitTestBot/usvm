@@ -26,7 +26,7 @@ infix fun <T> GuardedExpr<T>.withAlso(guard: UBoolExpr) = GuardedExpr(expr, guar
  * @param symbolicHeapRef an ite made of all [USymbolicHeapRef]s with its guard, the single [USymbolicHeapRef] if it's
  * the single [USymbolicHeapRef] in the base expression or `null` if there are no [USymbolicHeapRef]s at all.
  */
-data class SplitHeapRefs(
+internal data class SplitHeapRefs(
     val concreteHeapRefs: List<GuardedExpr<UConcreteHeapRef>>,
     val symbolicHeapRef: GuardedExpr<UHeapRef>?,
 )
@@ -43,7 +43,7 @@ data class SplitHeapRefs(
  * @param ignoreNullRefs if true, then null references will be ignored. It means that all leafs with nulls
  * considered unsatisfiable, so we assume their guards equal to false, and they won't be added to the result.
  */
-fun splitUHeapRef(
+internal fun splitUHeapRef(
     ref: UHeapRef,
     initialGuard: UBoolExpr = ref.ctx.trueExpr,
     ignoreNullRefs: Boolean = true,
@@ -75,7 +75,7 @@ fun splitUHeapRef(
  * @param ignoreNullRefs if true, then null references will be ignored. It means that all leafs with nulls
  * considered unsatisfiable, so we assume their guards equal to false.
  */
-inline fun withHeapRef(
+internal inline fun withHeapRef(
     ref: UHeapRef,
     initialGuard: UBoolExpr,
     crossinline blockOnConcrete: (GuardedExpr<UConcreteHeapRef>) -> Unit,
@@ -104,9 +104,9 @@ inline fun withHeapRef(
     }
 }
 
-const val LEFT_CHILD = 0
-const val RIGHT_CHILD = 1
-const val DONE = 2
+private const val LEFT_CHILD = 0
+private const val RIGHT_CHILD = 1
+private const val DONE = 2
 
 
 /**
@@ -118,7 +118,7 @@ const val DONE = 2
  * considered unsatisfiable, so we assume their guards equal to false. If [ignoreNullRefs] is true and [this] is
  * [UNullRef], throws an [IllegalArgumentException].
  */
-inline fun <Sort : USort> UHeapRef.map(
+internal inline fun <Sort : USort> UHeapRef.map(
     crossinline concreteMapper: (UConcreteHeapRef) -> UExpr<Sort>,
     crossinline symbolicMapper: (USymbolicHeapRef) -> UExpr<Sort>,
     ignoreNullRefs: Boolean = true,

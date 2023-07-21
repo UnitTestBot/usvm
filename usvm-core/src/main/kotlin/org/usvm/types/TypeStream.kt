@@ -73,7 +73,7 @@ fun <Type> emptyTypeStream(): UTypeStream<Type> = UEmptyTypeStream as UTypeStrea
 
 fun <Type> UTypeStream<Type>.first(): Type = take(1).single()
 
-fun <Type> UTypeStream<Type>.firstOrNull(): Type? = take(1).firstOrNull()
+fun <Type> UTypeStream<Type>.firstOrNull(): Type? = take(1).singleOrNull()
 
 /**
  * Consists of just one type [singleType].

@@ -44,15 +44,15 @@ open class UComposer<Field, Type>(
         expr: UIndexedMethodReturnValue<Method, Sort>,
     ): UExpr<Sort> = mockEvaluator.eval(expr)
 
-    override fun transform(expr: UIsSubtypeExpr<Type>): UBoolExpr = with(expr) {
-        val composedAddress = compose(ref)
-        typeEvaluator.evalIsSubtype(composedAddress, supertype)
-    }
+    override fun transform(expr: UIsSubtypeExpr<Type>): UBoolExpr =
+        transformExprAfterTransformed(expr, expr.ref) { ref ->
+            typeEvaluator.evalIsSubtype(ref, expr.supertype)
+        }
 
-    override fun transform(expr: UIsSupertypeExpr<Type>): UBoolExpr = with(expr) {
-        val composedAddress = compose(ref)
-        typeEvaluator.evalIsSupertype(composedAddress, subtype)
-    }
+    override fun transform(expr: UIsSupertypeExpr<Type>): UBoolExpr =
+        transformExprAfterTransformed(expr, expr.ref) { ref ->
+            typeEvaluator.evalIsSupertype(ref, expr.subtype)
+        }
 
     fun <RegionId : URegionId<Key, Sort, RegionId>, Key, Sort : USort> transformHeapReading(
         expr: UHeapReading<RegionId, Key, Sort>,
