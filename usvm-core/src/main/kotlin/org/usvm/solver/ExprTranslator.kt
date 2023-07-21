@@ -1,13 +1,14 @@
 package org.usvm.solver
 
+import io.ksmt.decl.KDecl
 import io.ksmt.expr.KExpr
 import io.ksmt.sort.KArray2Sort
 import io.ksmt.sort.KArraySort
 import io.ksmt.sort.KBoolSort
-import io.ksmt.sort.KSort
 import io.ksmt.utils.mkConst
 import org.usvm.UAddressSort
 import org.usvm.UAllocatedArrayReading
+import org.usvm.UBoolSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UExpr
@@ -28,7 +29,6 @@ import org.usvm.USizeSort
 import org.usvm.USort
 import org.usvm.USymbol
 import org.usvm.USymbolicHeapRef
-import org.usvm.UTransformer
 import org.usvm.memory.UAllocatedArrayId
 import org.usvm.memory.UInputArrayId
 import org.usvm.memory.UInputArrayLengthId
@@ -46,19 +46,7 @@ import java.util.concurrent.ConcurrentHashMap
 open class UExprTranslator<Field, Type>(
     override val ctx: UContext,
 ) : UExprTransformer<Field, Type>(ctx) {
-    private val observers = mutableListOf<UTransformer<Field, Type>>()
-
-    fun addObserver(observer: UTransformer<Field, Type>) {
-        observers += observer
-    }
-
     open fun <Sort : USort> translate(expr: UExpr<Sort>): KExpr<Sort> = apply(expr)
-
-    override fun <T : KSort> apply(expr: KExpr<T>): KExpr<T> {
-        val result = super.apply(expr)
-        observers.forEach { it.apply(expr) }
-        return result
-    }
 
     override fun <Sort : USort> transform(expr: USymbol<Sort>): KExpr<Sort> =
         error("You must override `transform` function in UExprTranslator for ${expr::class}")
@@ -87,19 +75,24 @@ open class UExprTranslator<Field, Type>(
     override fun transform(expr: UConcreteHeapRef): KExpr<UAddressSort> =
         error("Unexpected UConcreteHeapRef $expr in UExprTranslator, that has to be impossible by construction!")
 
-    private var isSubtypeCounter = 0
+    private val _declToIsSubtypeExpr = mutableMapOf<KDecl<UBoolSort>, UIsSubtypeExpr<Type>>()
+    val declToIsSubtypeExpr: Map<KDecl<UBoolSort>, UIsSubtypeExpr<Type>> get() = _declToIsSubtypeExpr
+
     override fun transform(expr: UIsSubtypeExpr<Type>): KExpr<KBoolSort> {
         require(expr.ref is USymbolicHeapRef) { "Unexpected ref: ${expr.ref}" }
 
-        val const = expr.sort.mkConst("isSubtype#${isSubtypeCounter++}")
+        val const = expr.sort.mkConst("isSubtype#${_declToIsSubtypeExpr.size}")
+        _declToIsSubtypeExpr[const.decl] = expr
         return const
     }
 
-    private var isSupertypeCounter = 0
+    private val _declToIsSupertypeExpr = mutableMapOf<KDecl<UBoolSort>, UIsSupertypeExpr<Type>>()
+    val declToIsSupertypeExpr: Map<KDecl<UBoolSort>, UIsSupertypeExpr<Type>> get() = _declToIsSupertypeExpr
     override fun transform(expr: UIsSupertypeExpr<Type>): KExpr<KBoolSort> {
         require(expr.ref is USymbolicHeapRef) { "Unexpected ref: ${expr.ref}" }
 
-        val const = expr.sort.mkConst("isSupertype#${isSupertypeCounter++}")
+        val const = expr.sort.mkConst("isSupertype#${_declToIsSupertypeExpr.size}")
+        _declToIsSupertypeExpr[const.decl] = expr
         return const
     }
 

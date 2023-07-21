@@ -38,7 +38,7 @@ open class SoftConstraintsTest<Field, Method> {
 
         translator = translatorWithDecoder.first
         decoder = translatorWithDecoder.second
-        val typeSolver = UTypeSolver(translator, SingleTypeSystem)
+        val typeSolver = UTypeSolver(SingleTypeSystem)
         solver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder, softConstraintsProvider)
     }
 
@@ -80,7 +80,7 @@ open class SoftConstraintsTest<Field, Method> {
         pc += sndExpr
         pc += sameAsFirstExpr
 
-        val typeSolver = UTypeSolver(translator, mockk())
+        val typeSolver = UTypeSolver<Type>(mockk())
         val solver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder, softConstraintsProvider)
 
         val result = solver.checkWithSoftConstraints(pc) as USatResult

@@ -75,8 +75,16 @@ class USupportTypeStream<Type> private constructor(
             filtering = { filtering(it) && newFiltering(it) }
         )
 
-    override fun take(n: Int): List<Type> =
-        fromQueries.take(n) + cachingSequence.take(n - fromQueries.size)
+    override fun take(n: Int): Set<Type> {
+        val set = fromQueries.toMutableSet()
+        for (it in cachingSequence) {
+            if (set.size == n) {
+                break
+            }
+            set += it
+        }
+        return set
+    }
 
     override val isEmpty: Boolean
         get() = take(1).isEmpty()

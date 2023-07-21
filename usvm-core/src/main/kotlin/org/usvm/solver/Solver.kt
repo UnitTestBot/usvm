@@ -2,6 +2,7 @@ package org.usvm.solver
 
 import io.ksmt.solver.KSolver
 import io.ksmt.solver.KSolverStatus
+import io.ksmt.utils.asExpr
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
@@ -24,14 +25,14 @@ open class UUnsatResult<Model> : USolverResult<Model>
 
 open class UUnknownResult<Model> : USolverResult<Model>
 
-abstract class USolver<in PathCondition, out Model> {
-    abstract fun check(pc: PathCondition): USolverResult<Model>
+abstract class USolver<in Query, out Model> {
+    abstract fun check(query: Query): USolverResult<Model>
 }
 
 open class USolverBase<Field, Type, Method>(
     protected val ctx: UContext,
     protected val smtSolver: KSolver<*>,
-    protected val typeSolver: UTypeSolver<Field, Type>,
+    protected val typeSolver: UTypeSolver<Type>,
     protected val translator: UExprTranslator<Field, Type>,
     protected val decoder: UModelDecoder<UMemoryBase<Field, Type, Method>, UModelBase<Field, Type>>,
     protected val softConstraintsProvider: USoftConstraintsProvider<Field, Type>,
@@ -97,8 +98,8 @@ open class USolverBase<Field, Type, Method>(
         translateLogicalConstraints(pc.logicalConstraints)
     }
 
-    override fun check(pc: UPathConstraints<Type>): USolverResult<UModelBase<Field, Type>> {
-        return internalCheck(pc, useSoftConstraints = false)
+    override fun check(query: UPathConstraints<Type>): USolverResult<UModelBase<Field, Type>> {
+        return internalCheck(query, useSoftConstraints = false)
     }
 
     fun checkWithSoftConstraints(
@@ -143,11 +144,26 @@ open class USolverBase<Field, Type, Method>(
                 // second, decode it unto uModel
                 val uModel = decoder.decode(kModel)
 
+                val isSubtypeToInterpretation = kModel.declarations.mapNotNull { decl ->
+                    translator.declToIsSubtypeExpr[decl]?.let { isSubtypeExpr ->
+                        val expr = decl.apply(emptyList())
+                        isSubtypeExpr to kModel.eval(expr, isComplete = true).asExpr(ctx.boolSort).isTrue
+                    }
+                }
+
+                val isSupertypeToInterpretation = kModel.declarations.mapNotNull { decl ->
+                    translator.declToIsSupertypeExpr[decl]?.let { isSupertypeExpr ->
+                        val expr = decl.apply(emptyList())
+                        isSupertypeExpr to kModel.eval(expr, isComplete = true).asExpr(ctx.boolSort).isTrue
+                    }
+                }
+
                 val typeSolverQuery = TypeSolverQuery(
                     pc.typeConstraints,
                     pc.logicalConstraints,
                     symbolicToConcrete = { uModel.eval(it) as UConcreteHeapRef },
-                    isExprToInterpreted = { kModel.eval(translator.translate(it), isComplete = true).isTrue }
+                    isSubtypeToInterpretation = isSubtypeToInterpretation,
+                    isSupertypeToInterpretation = isSupertypeToInterpretation,
                 )
 
                 // third, check it satisfies typeConstraints

@@ -27,7 +27,7 @@ class JcComponents(
                 SolverType.YICES -> KYicesSolver(ctx)
                 SolverType.Z3 -> KZ3Solver(ctx)
             }
-        val typeSolver = UTypeSolver(translator, typeSystem)
+        val typeSolver = UTypeSolver(typeSystem)
         closeableResources += smtSolver
         return USolverBase(ctx, smtSolver, typeSolver, translator, decoder, softConstraintsProvider)
     }

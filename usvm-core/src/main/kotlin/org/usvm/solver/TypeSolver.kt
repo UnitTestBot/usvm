@@ -4,6 +4,7 @@ import org.usvm.NULL_ADDRESS
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UIsSubtypeExpr
+import org.usvm.UIsSupertypeExpr
 import org.usvm.USymbolicHeapRef
 import org.usvm.constraints.UTypeConstraints
 import org.usvm.model.UTypeModel
@@ -15,23 +16,18 @@ data class TypeSolverQuery<Type>(
     val typeConstraints: UTypeConstraints<Type>,
     val logicalConstraints: Collection<UBoolExpr>,
     val symbolicToConcrete: (USymbolicHeapRef) -> UConcreteHeapRef,
-    val isExprToInterpreted: (UIsSubtypeExpr<Type>) -> Boolean,
+    val isSubtypeToInterpretation: List<Pair<UIsSubtypeExpr<Type>, Boolean>>,
+    val isSupertypeToInterpretation: List<Pair<UIsSupertypeExpr<Type>, Boolean>>,
 )
 
 class UTypeUnsatResult<Type>(
     val referenceDisequalitiesDisjuncts: List<UBoolExpr>,
 ) : UUnsatResult<UTypeModel<Type>>()
 
-class UTypeSolver<Field, Type>(
-    translator: UExprTranslator<Field, Type>,
+class UTypeSolver<Type>(
     private val typeSystem: UTypeSystem<Type>,
 ) : USolver<TypeSolverQuery<Type>, UTypeModel<Type>>() {
-    private val uIsExprCollector = UIsExprCollector<Field, Type>(translator.ctx)
     val topTypeRegion by lazy { UTypeRegion(typeSystem, typeSystem.topTypeStream()) }
-
-    init {
-        translator.addObserver(uIsExprCollector)
-    }
 
     /**
      * TODO: rewrite this comment
@@ -70,34 +66,52 @@ class UTypeSolver<Field, Type>(
      * doesn't satisfy this [UTypeConstraints], but other model may satisfy
      */
     override fun check(
-        pc: TypeSolverQuery<Type>,
+        query: TypeSolverQuery<Type>,
     ): USolverResult<UTypeModel<Type>> {
-        val allIsExpressions = pc
-            .logicalConstraints
-            .flatMap(uIsExprCollector::collect)
+        val isSubtypeExpressions = query.isSubtypeToInterpretation
 
-        val symbolicRefToIsExprs = allIsExpressions.groupBy { it.ref as USymbolicHeapRef }
-
-        val symbolicRefToRegion =
-            symbolicRefToIsExprs.mapValues { topTypeRegion } + pc.typeConstraints.symbolicRefToTypeRegion
+        val symbolicRefToIsSubtypeExprs = isSubtypeExpressions.groupBy { it.first.ref as USymbolicHeapRef }
 
         val bannedRefEqualities = mutableListOf<UBoolExpr>()
 
-        for ((ref, isExprs) in symbolicRefToIsExprs) {
-            val concreteRef = pc.symbolicToConcrete(ref).address
+        for ((ref, isSubtypeExprs) in symbolicRefToIsSubtypeExprs) {
+            val concreteRef = query.symbolicToConcrete(ref).address
             if (concreteRef != NULL_ADDRESS) {
                 continue
             }
-            for (isExpr in isExprs) {
-                val holds = pc.isExprToInterpreted(isExpr)
+            for ((isSubtypeExpr, holds) in isSubtypeExprs) {
                 if (!holds) {
-                    bannedRefEqualities += with(ref.uctx) { mkOr(ref neq nullRef, isExpr) }
+                    bannedRefEqualities += with(ref.uctx) { mkOr(ref neq nullRef, isSubtypeExpr) }
                 }
             }
         }
 
+        val isSupertypeExpressions = query.isSupertypeToInterpretation
+
+        val symbolicRefToIsSupertypeExprs = isSupertypeExpressions.groupBy { it.first.ref as USymbolicHeapRef }
+
+        for ((ref, isSupertypeExprs) in symbolicRefToIsSupertypeExprs) {
+            val concreteRef = query.symbolicToConcrete(ref).address
+            if (concreteRef != NULL_ADDRESS) {
+                continue
+            }
+            for ((isSupertypeExpr, holds) in isSupertypeExprs) {
+                if (holds) {
+                    bannedRefEqualities += with(ref.uctx) { mkOr(ref neq nullRef, !isSupertypeExpr) }
+                }
+
+            }
+        }
+
+
+        val symbolicRefToRegion =
+            symbolicRefToIsSubtypeExprs.mapValues { topTypeRegion } +
+            symbolicRefToIsSupertypeExprs.mapValues { topTypeRegion } +
+                query.typeConstraints.symbolicRefToTypeRegion
+
+
         val concreteRefToCluster = symbolicRefToRegion.entries
-            .groupBy { (ref, _) -> pc.symbolicToConcrete(ref).address }
+            .groupBy { (ref, _) -> query.symbolicToConcrete(ref).address }
             .filterNot { (address, _) -> address == NULL_ADDRESS }
 
 
@@ -110,10 +124,10 @@ class UTypeSolver<Field, Type>(
             for ((heapRef, region) in cluster) {
                 var nextRegion = currentRegion.intersect(region) // add [heapRef] to the current region
 
-                val isExpressions = symbolicRefToIsExprs.getOrElse(heapRef, ::emptyList)
+                val isSubtypeExprs = symbolicRefToIsSubtypeExprs.getOrElse(heapRef, ::emptyList)
+                val isSupertypeExprs = symbolicRefToIsSupertypeExprs.getOrElse(heapRef, ::emptyList)
 
-                val evaluatedIsExpressions = isExpressions.map { isExpr ->
-                    val holds = pc.isExprToInterpreted(isExpr)
+                val evaluatedIsSubtypeExprs = isSubtypeExprs.map { (isExpr, holds) ->
                     if (holds) {
                         nextRegion = nextRegion.addSupertype(isExpr.supertype)
                         isExpr
@@ -122,6 +136,17 @@ class UTypeSolver<Field, Type>(
                         isExpr.ctx.mkNot(isExpr)
                     }
                 }
+
+                val evaluatedIsSupertypeExprs = isSupertypeExprs.map { (isExpr, holds) ->
+                    if (holds) {
+                        nextRegion = nextRegion.addSubtype(isExpr.subtype)
+                        isExpr
+                    } else {
+                        nextRegion = nextRegion.excludeSubtype(isExpr.subtype)
+                        isExpr.ctx.mkNot(isExpr)
+                    }
+                }
+
 
                 if (nextRegion.isEmpty) {
                     // conflict detected, so it's impossible for [potentialConflictingRefs]
@@ -136,7 +161,8 @@ class UTypeSolver<Field, Type>(
                         disjunct += heapRef.eq(nullRef)
                         //
                         potentialConflictingIsExprs.mapTo(disjunct) { it.not() }
-                        evaluatedIsExpressions.mapTo(disjunct) { it.not() }
+                        evaluatedIsSubtypeExprs.mapTo(disjunct) { it.not() }
+                        evaluatedIsSupertypeExprs.mapTo(disjunct) { it.not() }
                     }
                     bannedRefEqualities += heapRef.ctx.mkOr(disjunct)
 
@@ -154,7 +180,8 @@ class UTypeSolver<Field, Type>(
                 } else if (nextRegion != currentRegion) {
                     // no conflict detected, but the current region became smaller
                     potentialConflictingRefs.add(heapRef)
-                    potentialConflictingIsExprs += evaluatedIsExpressions
+                    potentialConflictingIsExprs += evaluatedIsSubtypeExprs
+                    potentialConflictingIsExprs += evaluatedIsSupertypeExprs
                 }
 
                 currentRegion = nextRegion

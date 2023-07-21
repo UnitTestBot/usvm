@@ -28,7 +28,7 @@ class SampleLanguageComponents(
                 SolverType.Z3 -> KZ3Solver(ctx)
             }
 
-        val typeSolver = UTypeSolver(translator, typeSystem)
+        val typeSolver = UTypeSolver(typeSystem)
         return USolverBase(ctx, solver, typeSolver, translator, decoder, softConstraintsProvider)
     }
 
