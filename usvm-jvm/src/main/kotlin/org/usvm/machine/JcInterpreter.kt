@@ -25,19 +25,20 @@ import org.jacodb.api.cfg.JcThrowInst
 import org.jacodb.api.ext.boolean
 import org.usvm.StepResult
 import org.usvm.StepScope
+import org.usvm.UBoolExpr
 import org.usvm.UHeapRef
 import org.usvm.UInterpreter
 import org.usvm.URegisterLValue
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
-import org.usvm.machine.state.WrappedException
 import org.usvm.machine.state.addEntryMethodCall
 import org.usvm.machine.state.lastStmt
 import org.usvm.machine.state.localIdx
 import org.usvm.machine.state.newStmt
 import org.usvm.machine.state.parametersWithThisCount
 import org.usvm.machine.state.returnValue
-import org.usvm.machine.state.throwException
+import org.usvm.machine.state.throwExceptionAndDropStackFrame
+import org.usvm.machine.state.throwExceptionWithoutStackFrameDrop
 import org.usvm.solver.USatResult
 
 typealias JcStepScope = StepScope<JcState, JcType, JcField>
@@ -97,8 +98,8 @@ class JcInterpreter(
 
         // handle exception firstly
         val result = state.methodResult
-        if (result is JcMethodResult.Exception) {
-            handleException(scope, result.exception, stmt)
+        if (result is JcMethodResult.JcException) {
+            handleException(scope, result, stmt)
             return scope.stepResult()
         }
 
@@ -118,12 +119,49 @@ class JcInterpreter(
 
     private fun handleException(
         scope: JcStepScope,
-        exception: Exception,
+        exception: JcMethodResult.JcException,
         lastStmt: JcInst,
     ) {
-        applicationGraph.successors(lastStmt) // TODO: check catchers for lastStmt
+        val catchStatements = applicationGraph.successors(lastStmt).filterIsInstance<JcCatchInst>().toList()
 
-        scope.calcOnState { throwException(exception) }
+        val typeConstraintsNegations = mutableListOf<UBoolExpr>()
+        val catchForks = mutableListOf<Pair<UBoolExpr, JcState.() -> Unit>>()
+
+        val blockToFork: (JcCatchInst) -> (JcState) -> Unit = { catchInst: JcCatchInst ->
+            block@{ state: JcState ->
+                val lValue = exprResolverWithScope(scope).resolveLValue(catchInst.throwable) ?: return@block
+                val exceptionResult = state.methodResult as JcMethodResult.JcException
+
+                state.memory.write(lValue, exceptionResult.address)
+
+                state.methodResult = JcMethodResult.NoCall
+                state.newStmt(catchInst.nextStmt)
+            }
+        }
+
+        catchStatements.forEach { catchInst ->
+            val throwableTypes = catchInst.throwableTypes
+
+            val typeConstraint = scope.calcOnState {
+                val currentTypeConstraints = throwableTypes.map { memory.types.evalIs(exception.address, it) }
+                val result = ctx.mkAnd(typeConstraintsNegations + ctx.mkOr(currentTypeConstraints))
+
+                typeConstraintsNegations += currentTypeConstraints.map { ctx.mkNot(it) }
+
+                result
+            } ?: return@forEach
+
+            catchForks += typeConstraint to blockToFork(catchInst)
+        }
+
+        val typeConditionToMiss = ctx.mkAnd(typeConstraintsNegations)
+        val functionBlockOnMiss = block@{ _: JcState ->
+            scope.calcOnState { throwExceptionAndDropStackFrame() } ?: return@block
+        }
+
+        val catchSectionMiss = typeConditionToMiss to functionBlockOnMiss
+
+        scope.forkMulti(catchForks + catchSectionMiss)
     }
 
     private fun visitAssignInst(scope: JcStepScope, stmt: JcAssignInst) {
@@ -177,7 +215,7 @@ class JcInterpreter(
 
     @Suppress("UNUSED_PARAMETER")
     private fun visitCatchStmt(scope: JcStepScope, stmt: JcCatchInst) {
-        TODO("Not yet implemented")
+        error("The catch instruction must be unfolded during processing of the instructions led to it. Encountered inst: $stmt")
     }
 
     private fun visitSwitchStmt(scope: JcStepScope, stmt: JcSwitchInst) {
@@ -206,8 +244,11 @@ class JcInterpreter(
     }
 
     private fun visitThrowStmt(scope: JcStepScope, stmt: JcThrowInst) {
+        val resolver = exprResolverWithScope(scope)
+        val address = resolver.resolveJcExpr(stmt.throwable)?.asExpr(ctx.addressSort) ?: return
+
         scope.calcOnState {
-            throwException(WrappedException(stmt.throwable.type.typeName))
+            throwExceptionWithoutStackFrameDrop(address, stmt.throwable.type)
         }
     }
 

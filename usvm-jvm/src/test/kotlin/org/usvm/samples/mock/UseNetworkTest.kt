@@ -3,7 +3,7 @@
 //
 //import org.junit.jupiter.api.Test
 //import org.usvm.samples.JavaMethodTestRunner
-//import org.utbot.framework.plugin.api.UtConcreteValue
+//import org.usvm.framework.plugin.api.UtConcreteValue
 //import org.usvm.test.util.checkers.eq
 //
 //internal class UseNetworkTest : JavaMethodTestRunner(testClass = UseNetwork::class) {

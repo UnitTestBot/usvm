@@ -3,13 +3,13 @@
 //
 //import org.junit.Test
 //
-//import org.utbot.framework.plugin.api.FieldId
-//import org.utbot.framework.plugin.api.UtAssembleModel
-//import org.utbot.framework.plugin.api.UtCompositeModel
-//import org.utbot.framework.plugin.api.UtModel
-//import org.utbot.framework.plugin.api.UtReferenceModel
+//import org.usvm.framework.plugin.api.FieldId
+//import org.usvm.framework.plugin.api.UtAssembleModel
+//import org.usvm.framework.plugin.api.UtCompositeModel
+//import org.usvm.framework.plugin.api.UtModel
+//import org.usvm.framework.plugin.api.UtReferenceModel
 //import org.usvm.test.util.checkers.eq
-//import org.utbot.testing.UtModelTestCaseChecker
+//import org.usvm.testing.UtModelTestCaseChecker
 //
 //internal class CompositeModelMinimizationChecker : UtModelTestCaseChecker(
 //    testClass = CompositeModelMinimizationExample::class,

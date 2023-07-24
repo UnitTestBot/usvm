@@ -9,8 +9,8 @@
 //.OTHER_PACKAGES
 //import org.usvm.test.util.checkers.eq
 //
-//import org.utbot.testing.mocksMethod
-//import org.utbot.testing.value
+//import org.usvm.testing.mocksMethod
+//import org.usvm.testing.value
 //
 //internal class StaticFieldMockTest : JavaMethodTestRunner(testClass = ServiceWithStaticField::class) {
 //

@@ -4,16 +4,15 @@
 //import org.junit.jupiter.api.Test
 //import org.usvm.samples.JavaMethodTestRunner
 //
-//import org.utbot.framework.plugin.api.UtPrimitiveModel
-//import org.utbot.framework.plugin.api.util.id
-//import org.utbot.framework.util.singleModel
-//import org.utbot.framework.util.singleStaticMethod
-//import org.utbot.framework.util.singleValue
+//import org.usvm.framework.plugin.api.UtPrimitiveModel
+//import org.usvm.framework.plugin.api.util.id
+//import org.usvm.framework.util.singleModel
+//import org.usvm.framework.util.singleStaticMethod
+//import org.usvm.framework.util.singleValue
 //import org.usvm.test.util.checkers.eq
-//import org.utbot.testing.TestExecution
+//import org.usvm.testing.TestExecution
 //
 //
-//// TODO Kotlin mocks generics https://github.com/UnitTestBot/UTBotJava/issues/88
 //internal class MockStaticMethodExampleTest : JavaMethodTestRunner(
 //    testClass = MockStaticMethodExample::class,
 //    testCodeGeneration = true,

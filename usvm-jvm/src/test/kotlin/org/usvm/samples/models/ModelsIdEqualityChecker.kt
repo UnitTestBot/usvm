@@ -3,13 +3,13 @@
 //
 //import org.junit.jupiter.api.Test
 //import org.usvm.samples.JavaMethodTestRunner
-//import org.utbot.framework.plugin.api.UtArrayModel
-//import org.utbot.framework.plugin.api.UtAssembleModel
-//import org.utbot.framework.plugin.api.UtDirectSetFieldModel
-//import org.utbot.framework.plugin.api.UtExecutionSuccess
-//import org.utbot.framework.plugin.api.UtReferenceModel
+//import org.usvm.framework.plugin.api.UtArrayModel
+//import org.usvm.framework.plugin.api.UtAssembleModel
+//import org.usvm.framework.plugin.api.UtDirectSetFieldModel
+//import org.usvm.framework.plugin.api.UtExecutionSuccess
+//import org.usvm.framework.plugin.api.UtReferenceModel
 //import org.usvm.test.util.checkers.eq
-//import org.utbot.testing.UtModelTestCaseChecker
+//import org.usvm.testing.UtModelTestCaseChecker
 //
 //// TODO failed Kotlin compilation SAT-1332
 //internal class ModelsIdEqualityChecker : UtModelTestCaseChecker(

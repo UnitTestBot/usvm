@@ -48,6 +48,9 @@ class SampleState(
             exceptionRegister
         )
     }
+
+    override val isExceptional: Boolean
+        get() = exceptionRegister != null
 }
 
 val SampleState.lastStmt get() = path.last()

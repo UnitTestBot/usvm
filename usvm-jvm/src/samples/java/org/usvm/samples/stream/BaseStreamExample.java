@@ -2,8 +2,6 @@ package org.usvm.samples.stream;
 
 import org.jetbrains.annotations.NotNull;
 
-import static org.usvm.api.mock.UMockKt.assume;
-
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
@@ -19,6 +17,8 @@ import java.util.function.ToIntFunction;
 import java.util.function.ToLongFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static org.usvm.api.mock.UMockKt.assume;
 
 @SuppressWarnings({"IfStatementWithIdenticalBranches", "RedundantOperationOnEmptyContainer"})
 public class BaseStreamExample {
@@ -485,7 +485,6 @@ public class BaseStreamExample {
     }
 
     @SuppressWarnings({"ReplaceInefficientStreamCount", "ConstantConditions"})
-    // TODO wrong generic type for data field https://github.com/UnitTestBot/UTBotJava/issues/730
     long customCollectionStreamExample(CustomCollection<Integer> customCollection) {
         assume(customCollection != null && customCollection.data != null);
 

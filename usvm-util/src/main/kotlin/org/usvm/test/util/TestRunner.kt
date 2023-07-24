@@ -1,10 +1,12 @@
 package org.usvm.test.util
 
-import org.usvm.CoverageZone
+import mu.KLogging
 import org.usvm.UMachineOptions
 import org.usvm.test.util.TestRunner.CheckMode.MATCH_EXECUTIONS
 import org.usvm.test.util.TestRunner.CheckMode.MATCH_PROPERTIES
 import org.usvm.test.util.checkers.AnalysisResultsNumberMatcher
+
+val logger = object : KLogging() {}.logger
 
 /**
  * A base class for test runners for all interpreters.
@@ -27,13 +29,13 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
     abstract val runner: (Target, UMachineOptions) -> List<AnalysisResult>
     abstract val coverageRunner: (List<AnalysisResult>) -> Coverage
 
-    private var options = UMachineOptions()
+    abstract var options: UMachineOptions
 
     /**
      * Parametrizes [runner] with given options and executes [action].
      */
     protected fun <T> withOptions(options: UMachineOptions, action: () -> T): T {
-        val prevOptions = options
+        val prevOptions = this.options
         try {
             this.options = options
             return action()
@@ -65,8 +67,16 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
     ) {
         val analysisResults = runner(target, options)
 
-        //println(createStringFromResults(analysisResults))
-        //println()
+        logger.debug { options }
+
+        logger.info {
+            buildString {
+                appendLine("${analysisResults.size} executions were found:")
+                analysisResults.forEach { appendLine("\t$it") }
+                appendLine("Extracted values:")
+                analysisResults.forEach { appendLine("\t${extractValuesToCheck(it)}") }
+            }
+        }
 
         if (checkMode != MATCH_EXECUTIONS) {
             require(analysisResultsNumberMatcher(analysisResults.size)) {
@@ -83,8 +93,8 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
         // TODO should I add a comparison between real run and symbolic one?
 
         when (checkMode) {
-            MATCH_EXECUTIONS -> matchExecutions(analysisResults, valuesToCheck, analysisResultsMatchers)
-            MATCH_PROPERTIES -> checkDiscoveredProperties(analysisResults, valuesToCheck, analysisResultsMatchers)
+            MATCH_EXECUTIONS -> matchExecutions(valuesToCheck, analysisResultsMatchers)
+            MATCH_PROPERTIES -> checkDiscoveredProperties(valuesToCheck, analysisResultsMatchers)
         }
 
         val coverageResult = coverageRunner(analysisResults)
@@ -147,7 +157,6 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
     }
 
     private fun checkDiscoveredProperties(
-        analysisResults: List<AnalysisResult>,
         valuesToCheck: List<List<Any?>>,
         propertiesToDiscover: Array<out Function<Boolean>>,
     ) {
@@ -160,12 +169,10 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
 
                 "Some properties were not discovered at positions (from 0): $unsatisfiedPositions"
             },
-            analysisResults
         )
     }
 
     private fun matchExecutions(
-        analysisResults: List<AnalysisResult>,
         valuesToCheck: List<List<Any?>>,
         predicates: Array<out Function<Boolean>>,
     ) {
@@ -190,7 +197,6 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
                     append(message)
                 }
             },
-            analysisResults
         )
     }
 
@@ -199,7 +205,6 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
         predicates: Array<out Function<Boolean>>,
         successCriteria: (IntArray) -> Boolean,
         errorMessage: (IntArray) -> String,
-        analysisResults: List<AnalysisResult>,
     ) {
         val satisfied = IntArray(predicates.size) { 0 }
 
@@ -217,20 +222,9 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
         check(isSuccess) {
             buildString {
                 appendLine(errorMessage(satisfied))
-                appendLine()
-
-                val analysisResultsString = createStringFromResults(analysisResults)
-
-                appendLine(analysisResultsString)
             }
         }
     }
-
-    private fun createStringFromResults(analysisResults: List<AnalysisResult>): String =
-        analysisResults.joinToString(
-            prefix = "Analysis results: ${System.lineSeparator()}",
-            separator = System.lineSeparator()
-        )
 
     /**
      * Modes for strategy of checking result matchers.

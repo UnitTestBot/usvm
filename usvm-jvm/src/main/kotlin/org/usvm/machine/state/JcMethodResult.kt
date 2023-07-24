@@ -1,8 +1,12 @@
 package org.usvm.machine.state
 
 import org.jacodb.api.JcMethod
+import org.jacodb.api.JcType
+import org.jacodb.api.cfg.JcInst
 import org.usvm.UExpr
+import org.usvm.UHeapRef
 import org.usvm.USort
+import org.usvm.UStackTraceFrame
 
 /**
  * Represents a result of a method invocation.
@@ -18,19 +22,17 @@ sealed interface JcMethodResult {
      */
     class Success(
         val method: JcMethod,
-        val value: UExpr<out USort>
+        val value: UExpr<out USort>,
     ) : JcMethodResult
 
     /**
-     * A method threw an [exception].
+     * A method threw an exception with [type] type.
      */
-    class Exception(
-        val exception: kotlin.Exception
-    ) : JcMethodResult
-
+    open class JcException(
+        val address: UHeapRef,
+        val type: JcType,
+        val symbolicStackTrace: List<UStackTraceFrame<JcMethod, JcInst>>
+    ) : JcMethodResult {
+        override fun toString(): String = "${this::class.simpleName}: Address: $address, type: ${type.typeName}"
+    }
 }
-
-// TODO: stub for symbolic exceptions
-class WrappedException(
-    val name: String
-) : kotlin.Exception()
