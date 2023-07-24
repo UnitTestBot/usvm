@@ -67,6 +67,9 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         ctx.bvOne(sort.sizeBits).uncheckedCast()
     }
 
+    /**
+     * Retrieve actual constraints.
+     * */
     fun constraints(): Sequence<UBoolExpr> {
         if (isContradicting) {
             return sequenceOf(ctx.falseExpr)
@@ -143,6 +146,20 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         )
     }
 
+    /**
+     * Add constraint on [lhs] and [rhs].
+     *
+     * 1. Rewrite both expressions in the form: a + b + c0
+     * where a and b are terms (e.g. variables or complex expressions)
+     * and c0 is a constant value.
+     * See [collectLinearTerms].
+     *
+     * 2. Add constraint on rewritten expressions.
+     *
+     * 3. Propagate constraints.
+     * Constraint addition may update lower or upper bounds on the expressions,
+     * which can result in better bounds on other expressions.
+     * */
     private fun addConstraint(lhs: UExpr<Sort>, rhs: UExpr<Sort>, kind: ConstraintKind) {
         if (isContradicting) return
 
@@ -166,6 +183,9 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         propagateConstraints()
     }
 
+    /**
+     * Retrieve lower and upper bounds for the [expr].
+     * */
     fun evalInterval(expr: UExpr<Sort>): Intervals<UBvIntervalPoint<Sort>>? {
         val (terms, const) = collectLinearTerms(expr)
 
@@ -219,6 +239,16 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         constraintPropagationQueue.add(update)
     }
 
+
+    /**
+     * Find an appropriate constraint for the [terms].
+     *
+     * [bounds] --- [terms] are constrained with [BoundsConstraint].
+     * Additional constant bias is passed to the [bounds] when
+     * [terms] are biased wrt equality constraint.
+     *
+     * [value] --- [terms] are constrained with concrete value.
+     * */
     private inline fun <T> withConstraint(
         terms: ConstraintTerms<Sort>,
         bounds: (BoundsConstraint<Sort>, KBitVecValue<Sort>) -> T,
@@ -665,7 +695,12 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         }
     )
 
-    // dst + dst.bias = src + src.bias <=> src + (src.bias - dst.bias) = dst
+    /**
+     *  Merge [source] constraints into [destination].
+     *
+     *  Substitute all occurrences of [source] with [destination]:
+     *  dst + dst.bias = src + src.bias <=> src + (src.bias - dst.bias) = dst
+     *  */
     private fun mergeEqualBoundTermsConstraint(
         destination: BoundsConstraint<Sort>,
         destinationBias: KBitVecValue<Sort>,
@@ -684,6 +719,10 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         source.propagateTermEquality(bias, destination)
     }
 
+    /**
+     * Substitute all occurrences of [lhsConstraint] with concrete value:
+     * lhs + lhsBias = rhs <=> lhs = rhs - lhsBias
+     * */
     private fun addBoundConcreteEqualityConstraint(
         lhsConstraint: BoundsConstraint<Sort>,
         lhsBias: KBitVecValue<Sort>,
@@ -1764,6 +1803,34 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         abstract fun mkExpressions(): Sequence<UBoolExpr>
     }
 
+    /**
+     * Term constraints.
+     *
+     * Concrete constraints --- constraints with concrete values.
+     * 1. lower bounds --- [constrainedTerms] + bias >= value
+     * 2. upper bounds --- [constrainedTerms] + bias <= value
+     * 3. disequality --- [constrainedTerms] + bias != 0
+     *
+     * Concrete constraints can be primary or not.
+     * Primary constraints are added using [addConstraint] and must be
+     * a part of the [constraints].
+     * Non-primary constraints are inferred from other primary constraints
+     * and can be skipped in [constraints].
+     *
+     * See [ValueConstraint].
+     *
+     * Term constraints --- constraints with other terms.
+     * 1. lower bounds --- [constrainedTerms] + bias >= rhsTerms + rhsBias
+     * 2. upper bounds --- [constrainedTerms] + bias <= rhsTerms + rhsBias
+     * 3. disequality --- [constrainedTerms] + bias != rhsTerms + 0
+     *
+     * Lower bounds are always inferred from upper bounds of rhs terms
+     * and can be skipped in [constraints].
+     * Upper bounds and desequalities are always primary and must be
+     * a part of the [constraints].
+     *
+     * See [TermConstraintSet].
+     * */
     class BoundsConstraint<Sort : UBvSort>(
         constrainedTerms: ConstraintTerms<Sort>,
         val concreteLowerBounds: PersistentMap<KBitVecValue<Sort>, ValueConstraint<Sort>>,
