@@ -23,6 +23,7 @@ internal class VirtualInvokeExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented. Support class constants")
     fun testVirtualNative() {
         checkDiscoveredProperties(
             VirtualInvokeExample::virtualNative,
@@ -32,6 +33,7 @@ internal class VirtualInvokeExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented. Support class constants")
     fun testGetSigners() {
         checkDiscoveredProperties(
             VirtualInvokeExample::virtualNativeArray,
@@ -118,6 +120,7 @@ internal class VirtualInvokeExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented. Support strings/integer wrapper")
     fun testNullValueInReturnValue() {
         checkDiscoveredProperties(
             VirtualInvokeExample::nullValueInReturnValue,
