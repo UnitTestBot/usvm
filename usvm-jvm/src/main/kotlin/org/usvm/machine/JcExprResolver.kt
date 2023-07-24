@@ -33,7 +33,6 @@ import org.jacodb.api.cfg.JcFieldRef
 import org.jacodb.api.cfg.JcFloat
 import org.jacodb.api.cfg.JcGeExpr
 import org.jacodb.api.cfg.JcGtExpr
-import org.jacodb.api.cfg.JcInstanceCallExpr
 import org.jacodb.api.cfg.JcInstanceOfExpr
 import org.jacodb.api.cfg.JcInt
 import org.jacodb.api.cfg.JcLambdaExpr
@@ -112,6 +111,7 @@ class JcExprResolver(
     private val applicationGraph: JcApplicationGraph,
     private val localToIdx: (JcMethod, JcLocal) -> Int,
     private val mkClassRef: (JcRefType, JcState) -> UHeapRef,
+    private val invokeResolver: JcInvokeResolver,
     private val hardMaxArrayLength: Int = 1_500, // TODO: move to options
 ) : JcExprVisitor<UExpr<out USort>?> {
     /**
@@ -330,12 +330,6 @@ class JcExprResolver(
     // region invokes
 
     override fun visitJcSpecialCallExpr(expr: JcSpecialCallExpr): UExpr<out USort>? =
-        resolveInstanceCallExpr(expr)
-
-    override fun visitJcVirtualCallExpr(expr: JcVirtualCallExpr): UExpr<out USort>? =
-        resolveInstanceCallExpr(expr) // TODO resolve actual method for interface invokes
-
-    private fun resolveInstanceCallExpr(expr: JcInstanceCallExpr): UExpr<out USort>? =
         resolveInvoke(expr.method) {
             val instance = resolveJcExpr(expr.instance)?.asExpr(ctx.addressSort) ?: return@resolveInvoke null
             checkNullPointer(instance) ?: return@resolveInvoke null
@@ -347,6 +341,19 @@ class JcExprResolver(
             }
             arguments
         }
+
+    override fun visitJcVirtualCallExpr(expr: JcVirtualCallExpr): UExpr<out USort>? =
+        resolveInvoke(expr.method) {
+            val instance = resolveJcExpr(expr.instance)?.asExpr(ctx.addressSort) ?: return null
+            checkNullPointer(instance) ?: return null
+            val arguments = mutableListOf<UExpr<out USort>>(instance)
+            val argsWithTypes = expr.args.zip(expr.method.parameters.map { it.type })
+
+            argsWithTypes.mapTo(arguments) { (expr, type) ->
+                resolveJcExpr(expr, type) ?: return null
+            }
+            with(invokeResolver) { resolveInvoke(expr.method, arguments) }
+        } // TODO resolve actual method for interface invokes
 
     override fun visitJcStaticCallExpr(expr: JcStaticCallExpr): UExpr<out USort>? =
         resolveInvoke(expr.method) {
@@ -374,19 +381,15 @@ class JcExprResolver(
         method: JcTypedMethod,
         resolveArguments: () -> List<UExpr<out USort>>?,
     ): UExpr<out USort>? = ensureStaticFieldsInitialized(method.enclosingType) {
-        resolveInvokeNoStaticInitializationCheck(method, resolveArguments)
+        resolveInvokeNoStaticInitializationCheck(onNoCallPresent)
     }
 
-    private fun resolveInvokeNoStaticInitializationCheck(
-        method: JcTypedMethod,
-        resolveArguments: () -> List<UExpr<out USort>>?,
+    private inline fun resolveInvokeNoStaticInitializationCheck(
+        onNoCallPresent: JcStepScope.() -> Unit,
     ): UExpr<out USort>? {
         val result = scope.calcOnState { methodResult } ?: return null
         return when (result) {
             is JcMethodResult.Success -> {
-                check(result.method == method.method) {
-                    "Expected result from ${method.method} but actual is ${result.method}"
-                }
                 scope.doWithState { methodResult = JcMethodResult.NoCall }
                 result.value
             }

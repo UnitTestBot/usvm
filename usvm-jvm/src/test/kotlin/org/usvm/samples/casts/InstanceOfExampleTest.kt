@@ -51,7 +51,6 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Support virtual calls")
     fun testVirtualCallWithoutOneInheritor() {
         checkDiscoveredProperties(
             InstanceOfExample::virtualCallWithoutOneInheritor,
@@ -64,7 +63,6 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Support virtual calls")
     fun testVirtualCallWithoutOneInheritorInverse() {
         checkDiscoveredProperties(
             InstanceOfExample::virtualCallWithoutOneInheritorInverse,
@@ -236,7 +234,6 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Support collections")
     fun testInstanceOfAsInternalExpressionsMap() {
         checkDiscoveredProperties(
             InstanceOfExample::instanceOfAsInternalExpressionsMap,
@@ -259,7 +256,6 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Support virtual calls")
     fun testComplicatedInstanceOf() {
         checkDiscoveredProperties(
             InstanceOfExample::complicatedInstanceOf,

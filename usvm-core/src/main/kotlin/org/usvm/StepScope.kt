@@ -23,8 +23,8 @@ class StepScope<T : UState<Type, Field, *, *>, Type, Field>(
 ) {
     private val forkedStates = mutableListOf<T>()
 
-    private val alive: Boolean get() = stepScopeState != DEAD
-    private val canProcessFurtherOnCurrentStep: Boolean get() = stepScopeState == CAN_BE_PROCESSED
+    private inline val alive: Boolean get() = stepScopeState != DEAD
+    private inline val canProcessFurtherOnCurrentStep: Boolean get() = stepScopeState == CAN_BE_PROCESSED
 
     /**
      * Determines whether we interact this scope on the current step.

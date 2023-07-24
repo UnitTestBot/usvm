@@ -29,6 +29,9 @@ import org.usvm.UBoolExpr
 import org.usvm.UHeapRef
 import org.usvm.UInterpreter
 import org.usvm.URegisterLValue
+import org.usvm.machine.resolver.JcExprResolver
+import org.usvm.machine.resolver.JcInvokeResolver
+import org.usvm.machine.resolver.JcVirtualInvokeResolver
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.addEntryMethodCall
@@ -262,11 +265,16 @@ class JcInterpreter(
         }
     }
 
+    private val invokeResolver = JcVirtualInvokeResolver(ctx, applicationGraph)
+
     private fun exprResolverWithScope(scope: JcStepScope) =
         JcExprResolver(
-            ctx, scope, applicationGraph,
+            ctx,
+            scope,
+            applicationGraph,
             ::mapLocalToIdxMapper,
-            ::classInstanceAllocator
+            ::classInstanceAllocator,
+            invokeResolver
         )
 
     private val localVarToIdx = mutableMapOf<JcMethod, MutableMap<String, Int>>() // (method, localName) -> idx
