@@ -1,7 +1,5 @@
 package org.usvm.types
 
-import kotlinx.collections.immutable.PersistentSet
-import kotlinx.collections.immutable.persistentSetOf
 import org.usvm.util.CachingSequence
 import org.usvm.util.DfsIterator
 

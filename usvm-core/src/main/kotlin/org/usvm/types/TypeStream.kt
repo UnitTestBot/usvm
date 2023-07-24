@@ -71,9 +71,9 @@ object UEmptyTypeStream : UTypeStream<Nothing> {
 @Suppress("UNCHECKED_CAST")
 fun <Type> emptyTypeStream(): UTypeStream<Type> = UEmptyTypeStream as UTypeStream<Type>
 
-fun <Type> UTypeStream<Type>.first(): Type = take(1).single()
+fun <Type> UTypeStream<Type>.first(): Type = take(1).first()
 
-fun <Type> UTypeStream<Type>.firstOrNull(): Type? = take(1).singleOrNull()
+fun <Type> UTypeStream<Type>.firstOrNull(): Type? = take(1).firstOrNull()
 
 /**
  * Consists of just one type [singleType].
