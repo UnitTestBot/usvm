@@ -99,7 +99,7 @@ import org.usvm.machine.operator.wideTo32BitsIfNeeded
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.addNewMethodCall
-import org.usvm.machine.state.createUnprocessedException
+import org.usvm.machine.state.throwExceptionWithoutStackFrameDrop
 import org.usvm.util.extractJcRefType
 
 /**
@@ -543,7 +543,7 @@ class JcExprResolver(
 
     private fun allocateException(type: JcRefType): (JcState) -> Unit = { state ->
         val address = state.memory.alloc(type)
-        state.createUnprocessedException(address, type)
+        state.throwExceptionWithoutStackFrameDrop(address, type)
     }
 
     private fun checkArrayIndex(idx: USizeExpr, length: USizeExpr) = with(ctx) {

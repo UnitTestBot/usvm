@@ -35,18 +35,4 @@ sealed interface JcMethodResult {
     ) : JcMethodResult {
         override fun toString(): String = "${this::class.simpleName}: Address: $address, type: ${type.typeName}"
     }
-
-    /**
-     * An unprocessed exception thrown by a method.
-     *
-     * The difference between it and the [JcMethodResult.JcException] is that
-     * this exception must be treated as an intermediate result of the method analysis,
-     * and it must be handled by an interpreter later, while the [JcException]
-     * is a final result that could be produced as a result of the symbolic execution.
-     */
-    class UnprocessedJcException(
-        address: UHeapRef,
-        type: JcType,
-        symbolicStackTrace: List<UStackTraceFrame<JcMethod, JcInst>>
-    ) : JcException(address, type, symbolicStackTrace)
 }

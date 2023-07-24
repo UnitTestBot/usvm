@@ -33,22 +33,19 @@ fun JcState.returnValue(valueToReturn: UExpr<out USort>) {
 /**
  * Create an unprocessed exception with the [address] and the [type] and assign it to the [JcState.methodResult].
  */
-fun JcState.createUnprocessedException(address: UHeapRef, type: JcType) {
-    methodResult = JcMethodResult.UnprocessedJcException(address, type, callStack.stackTrace(lastStmt))
+fun JcState.throwExceptionWithoutStackFrameDrop(address: UHeapRef, type: JcType) {
+    methodResult = JcMethodResult.JcException(address, type, callStack.stackTrace(lastStmt))
 }
 
-fun JcState.throwException(exception: JcMethodResult.JcException) {
+fun JcState.throwExceptionAndDropStackFrame() {
+    // Exception is allowed to be thrown only after
+    // it is created via `throwExceptionWithoutStackFrameDrop` function
+    require(methodResult is JcMethodResult.JcException)
+
     // TODO: think about it later
     val returnSite = callStack.pop()
     if (callStack.isNotEmpty()) {
         memory.stack.pop()
-    }
-
-    // TODO: the last place where we distinguish implicitly thrown and explicitly thrown exceptions
-    methodResult = if (exception is JcMethodResult.UnprocessedJcException) {
-        JcMethodResult.JcException(exception.address, exception.type, exception.symbolicStackTrace)
-    } else {
-        exception
     }
 
     if (returnSite != null) {

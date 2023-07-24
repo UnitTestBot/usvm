@@ -32,13 +32,13 @@ import org.usvm.URegisterLValue
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.addEntryMethodCall
-import org.usvm.machine.state.createUnprocessedException
 import org.usvm.machine.state.lastStmt
 import org.usvm.machine.state.localIdx
 import org.usvm.machine.state.newStmt
 import org.usvm.machine.state.parametersWithThisCount
 import org.usvm.machine.state.returnValue
-import org.usvm.machine.state.throwException
+import org.usvm.machine.state.throwExceptionAndDropStackFrame
+import org.usvm.machine.state.throwExceptionWithoutStackFrameDrop
 import org.usvm.solver.USatResult
 
 typealias JcStepScope = StepScope<JcState, JcType, JcField>
@@ -156,7 +156,7 @@ class JcInterpreter(
 
         val typeConditionToMiss = ctx.mkAnd(typeConstraintsNegations)
         val functionBlockOnMiss = block@{ _: JcState ->
-            scope.calcOnState { throwException(exception) } ?: return@block
+            scope.calcOnState { throwExceptionAndDropStackFrame() } ?: return@block
         }
 
         val catchSectionMiss = typeConditionToMiss to functionBlockOnMiss
@@ -248,7 +248,7 @@ class JcInterpreter(
         val address = resolver.resolveJcExpr(stmt.throwable)?.asExpr(ctx.addressSort) ?: return
 
         scope.calcOnState {
-            createUnprocessedException(address, stmt.throwable.type)
+            throwExceptionWithoutStackFrameDrop(address, stmt.throwable.type)
         }
     }
 
