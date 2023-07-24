@@ -113,9 +113,9 @@ class USupportTypeStream<Type> private constructor(
             filtering: (Type) -> Boolean,
             newFiltering: (Type) -> Boolean,
         ): List<Type> =
-            filterNot(newFiltering)
+            filter(newFiltering)
                 .run {
-                    if (size < maxSize && filtering(type) && newFiltering(type)) {
+                    if (size < maxSize && filtering(type) && newFiltering(type) && type !in this) {
                        this + type
                     } else {
                         this
