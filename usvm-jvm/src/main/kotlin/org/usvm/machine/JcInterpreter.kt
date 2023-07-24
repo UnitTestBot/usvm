@@ -143,7 +143,7 @@ class JcInterpreter(
             val throwableTypes = catchInst.throwableTypes
 
             val typeConstraint = scope.calcOnState {
-                val currentTypeConstraints = throwableTypes.map { memory.types.evalIs(exception.address, it) }
+                val currentTypeConstraints = throwableTypes.map { memory.types.evalIsSubtype(exception.address, it) }
                 val result = ctx.mkAnd(typeConstraintsNegations + ctx.mkOr(currentTypeConstraints))
 
                 typeConstraintsNegations += currentTypeConstraints.map { ctx.mkNot(it) }
