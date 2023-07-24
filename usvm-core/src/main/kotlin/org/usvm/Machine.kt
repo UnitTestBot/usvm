@@ -1,5 +1,6 @@
 package org.usvm
 
+import org.usvm.ps.BfsWithLoggingPathSelector
 import org.usvm.statistics.UMachineObserver
 import org.usvm.stopstrategies.StopStrategy
 
@@ -56,6 +57,9 @@ abstract class UMachine<State> : AutoCloseable {
             if (aliveForkedStates.isNotEmpty()) {
                 pathSelector.add(aliveForkedStates)
             }
+        }
+        if (pathSelector is BfsWithLoggingPathSelector<*, *, *>) { // TODO REMOVE
+            pathSelector.savePath()
         }
     }
 }

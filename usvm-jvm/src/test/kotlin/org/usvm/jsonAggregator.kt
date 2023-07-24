@@ -13,7 +13,6 @@ import kotlin.io.path.Path
 import kotlin.reflect.full.createInstance
 import kotlin.reflect.full.hasAnnotation
 
-
 fun recursiveLoad(currentDir: File, classes: MutableList<Class<*>>, classLoader: ClassLoader, path: String) {
     currentDir.listFiles()?.forEach { file ->
         if (file.isDirectory) {
@@ -30,7 +29,15 @@ fun recursiveLoad(currentDir: File, classes: MutableList<Class<*>>, classLoader:
 }
 
 fun main(args: Array<String>) {
-    val testsDir = File(args.getOrElse(0) { "../Game_env/usvm-jvm/src/test/kotlin" })
+    val options = args.getOrNull(0)?.let { File(it) }?.readText()?.let {
+        Json.decodeFromString<JsonObject>(it)
+    }
+    if (options != null) {
+        MainConfig.testsPath = options.getOrDefault("testsPath", MainConfig.testsPath).toString()
+        MainConfig.gameEnvPath = options.getOrDefault("gameEnvPath", MainConfig.gameEnvPath).toString()
+        MainConfig.testsPath = options.getOrDefault("dataPath", MainConfig.dataPath).toString()
+    }
+    val testsDir = File(MainConfig.testsPath)
     val classLoader = URLClassLoader(arrayOf(testsDir.toURI().toURL()))
     val classes = mutableListOf<Class<*>>()
     recursiveLoad(testsDir, classes, classLoader, "")
@@ -81,8 +88,8 @@ fun main(args: Array<String>) {
         tests.joinAll()
     }
 
-    val dirname = "../Data/jsons/"
-    val resultDirname = "../Data/"
+    val resultDirname = MainConfig.dataPath
+    val dirname = Path(resultDirname, "jsons").toString()
     val resultFilename = "current_dataset.json"
     val jsons = mutableListOf<JsonElement>()
 

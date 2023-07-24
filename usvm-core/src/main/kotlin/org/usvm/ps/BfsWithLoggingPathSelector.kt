@@ -14,6 +14,10 @@ import kotlin.collections.HashSet
 import kotlin.io.path.Path
 import kotlin.io.path.writeText
 import kotlin.math.log2
+import org.usvm.MainConfig
+import kotlin.math.log
+import kotlin.math.pow
+import kotlin.math.sqrt
 
 internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Statement>, Statement, Method>(
     private val pathsTreeStatistics: PathsTreeStatistics<Method, Statement, State>,
@@ -23,21 +27,25 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
 ) : UPathSelector<State> {
     protected val queue = ArrayDeque<State>()
 
-    private var allStmts: Collection<Any?>? = null
-    private val coveredStmts = HashSet<Any?>()
-    private var coverage = 0.0
+    private val allStatements: List<Statement>
+    private val visitedStatements = HashSet<Statement>()
 
     protected val path = mutableListOf<ActionData>()
 
-    private val filepath = "../Data/jsons/"
-    protected var filename: String? = null
+    private val filepath = Path(MainConfig.dataPath, "jsons").toString()
+    protected val method: Method
+    private val filename: String
     private val jsonScheme: JsonArray
     private var jsonFormat = Json {
         encodeDefaults = true
     }
-    private val blockGraphPath = "../Game_env/block_graphs/"
+
+    private var stepCount = 0
+    private val graphsPath = Path(MainConfig.gameEnvPath, "graphs").toString()
+    private val blockGraphPath = Path(MainConfig.gameEnvPath, "block_graphs").toString()
 
     private val penalty = 0.0f
+    private val logBase = 1.42
     private var finishedStatesCount = 0u
     private val allStates = mutableSetOf<State>()
     private val weighter = ShortestDistanceToTargetsStateWeighter(
@@ -46,9 +54,11 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
         distanceStatistics::getShortestCfgDistanceToExitPoint
     )
     private val stateLastNewStatement = mutableMapOf<State, Int>()
-    private val statePathCoverage = mutableMapOf<State, UInt>()
+    private val statePathCoverage = mutableMapOf<State, UInt>().withDefault { 0u }
+    private val stateForkCount = mutableMapOf<State, UInt>().withDefault { 0u }
+    private val distancesToExit: Map<Statement, UInt>
 
-    private lateinit var blockGraph: BlockGraph<Method, Statement>
+    private val blockGraph: BlockGraph<Method, Statement>
 
     private class BlockGraph<Method, Statement>(
         private val applicationGraph: ApplicationGraph<Method, Statement>,
@@ -131,6 +141,10 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
             return successorsMap.getValue(block).map { coveredStatements[it]!! }
         }
 
+        fun getBlock(statement: Statement): Block<Statement>? {
+            return coveredStatements[statement]
+        }
+
         fun saveGraph(filePath: Path) {
             val nodes = mutableListOf<Block<Statement>>()
             val treeQueue = ArrayDeque<Block<Statement>>()
@@ -170,36 +184,41 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
 
     @Serializable
     protected data class StateFeatures(
-        val successorsCount: UInt = 0u,
-        val finishedStatesCount: UInt = 0u,
-        val finishedStatesFraction: Float = 0.0f,
-        val logicalConstraintsLength: UInt = 0u,
-        val stateTreeDepth: UInt = 0u,
-        val statementRepetitionLocal: UInt = 0u,
-        val statementRepetitionGlobal: UInt = 0u,
-        val distanceToUncovered: Float = 0.0f,
-        val lastNewDistance: Int = 0,
-        val pathCoverage: UInt = 0u,
-        val reward: Float = 0.0f
+        val logSuccessorsCount: Float = 0.0f,
+        val logLogicalConstraintsLength: Float = 0.0f,
+        val logStateTreeDepth: Float = 0.0f,
+        val logStatementRepetitionLocal: Float = 0.0f,
+        val logStatementRepetitionGlobal: Float = 0.0f,
+        val logDistanceToUncovered: Float = 0.0f,
+        val logLastNewDistance: Float = 0.0f,
+        val logPathCoverage: Float = 0.0f,
+        val logDistanceToBlockEnd: Float = 0.0f,
+        val logDistanceToExit: Float = 0.0f,
+        val logForkCount: Float = 0.0f,
+        val logReward: Float = 0.0f,
     )
 
     @Serializable
-    protected data class AverageStateFeatures(
-        val averageSuccessorsCount: Float = 0.0f,
-        val averageLogicalConstraintsLength: Float = 0.0f,
-        val averageStateTreeDepth: Float = 0.0f,
-        val averageStatementRepetitionLocal: Float = 0.0f,
-        val averageStatementRepetitionGlobal: Float = 0.0f,
-        val averageDistanceToUncovered: Float = 0.0f,
-        val averageLastNewDistance: Float = 0.0f,
-        val averagePathCoverage: Float = 0.0f,
-        val averageReward: Float = 0.0f
+    protected data class GlobalStateFeatures( // TODO std
+        val averageLogLogicalConstraintsLength: Float = 0.0f,
+        val averageLogStateTreeDepth: Float = 0.0f,
+        val averageLogStatementRepetitionLocal: Float = 0.0f,
+        val averageLogStatementRepetitionGlobal: Float = 0.0f,
+        val averageLogDistanceToUncovered: Float = 0.0f,
+        val averageLogLastNewDistance: Float = 0.0f,
+        val averageLogPathCoverage: Float = 0.0f,
+        val averageLogDistanceToBlockEnd: Float = 0.0f,
+        val averageLogReward: Float = 0.0f,
+        val logFinishedStatesCount: Float = 0.0f,
+        val finishedStatesFraction: Float = 0.0f,
+        val visitedStatesFraction: Float = 0.0f,
+        val totalCoverage: Float = 0.0f,
     )
 
     @Serializable
     protected data class ActionData(
         val queue: List<StateFeatures>,
-        val averageStateFeatures: AverageStateFeatures,
+        val globalStateFeatures: GlobalStateFeatures,
         val chosenStateId: Int,
         val reward: Float
     )
@@ -214,58 +233,109 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
                 jsonFormat.encodeToJsonElement(StateFeatures()).jsonObject.forEach { t, _ ->
                     add(t)
                 }
-                jsonFormat.encodeToJsonElement(AverageStateFeatures()).jsonObject.forEach { t, _ ->
+                jsonFormat.encodeToJsonElement(GlobalStateFeatures()).jsonObject.forEach { t, _ ->
                     add(t)
                 }
             }
             add("chosenStateId")
             add("reward")
         }
+        allStatements = coverageStatistics.getUncoveredStatements().map { it.second }
+        method = applicationGraph.methodOf(allStatements.first())
+        filename = method.toString()
+        blockGraph = BlockGraph(applicationGraph, applicationGraph.entryPoints(method).first())
+        blockGraph.saveGraph(Path(blockGraphPath, filename, "graph.dot"))
+        distancesToExit = getDistancesToExit()
+    }
+
+    private fun getDistancesToExit(): Map<Statement, UInt> {
+        val exits = applicationGraph.exitPoints(method)
+        val statementsQueue = ArrayDeque<Statement>()
+        val distancesToExit = exits.associateWith { 0u }.toMutableMap()
+        statementsQueue.addAll(exits)
+        while (statementsQueue.isNotEmpty()) {
+            val currentStatement = statementsQueue.removeFirst()
+            val distance = distancesToExit.getValue(currentStatement) + 1u
+            applicationGraph.predecessors(currentStatement).forEach {  statement ->
+                if (distancesToExit.contains(statement)) {
+                    return@forEach
+                }
+                distancesToExit[statement] = distance
+                statementsQueue.add(currentStatement)
+            }
+        }
+        return distancesToExit.withDefault { 0u }
     }
 
     protected open fun getReward(state: State): Float {
-        return if (!coveredStmts.contains(state.currentStatement)) 1.0f else -penalty
+        return if (!visitedStatements.contains(state.currentStatement) &&
+            allStatements.contains(state.currentStatement)) 1.0f else -penalty
+    }
+
+    private fun Collection<Float>.average(): Float {
+        return this.sumOf { it.toDouble() }.toFloat() / this.size
+    }
+
+    private fun Collection<Float>.std(): Float {
+        if (this.size <= 1) {
+            return 0.0f
+        }
+        val average = this.average().toDouble()
+        return sqrt(this.map { it.toDouble() }.fold(0.0) { a, b ->
+            a + (b - average).pow(2)
+        } / (this.size - 1)).toFloat()
+    }
+
+    private fun Number.log(): Float {
+        return log(this.toDouble() + 1, logBase).toFloat()
+    }
+
+    private fun UInt.log(): Float {
+        return this.toInt().log()
     }
 
     private fun getStateFeatures(state: State): StateFeatures {
-        val currentStatement = state.currentStatement
+        val currentStatement = state.currentStatement!!
+        val currentBlock = blockGraph.getBlock(currentStatement)
 
-        val successorsCount = if (currentStatement === null) 0u else
-            applicationGraph.successors(currentStatement).count().toUInt()
-        val finishedStatesFraction = finishedStatesCount.toFloat() / allStates.size.toFloat()
-        val logicalConstraintsLength = state.pathConstraints.logicalConstraints.size.toUInt()
-        val stateTreeDepth = pathsTreeStatistics.getStateDepth(state).toUInt()
+        val successorsCount = applicationGraph.successors(currentStatement).count()
+        val logicalConstraintsLength = state.pathConstraints.logicalConstraints.size
+        val stateTreeDepth = pathsTreeStatistics.getStateDepth(state)
         val statementRepetitionLocal = state.path.filter { statement ->
             statement == currentStatement
-        }.size.toUInt()
+        }.size
         val statementRepetitionGlobal = allStates.sumOf { currentState ->
             currentState.path.filter { statement ->
                 statement == currentStatement
-            }.size.toUInt()
+            }.size
         }
         val distanceToUncovered = log2(weighter.weight(state).toFloat() + 1)
-        val lastNewDistance = state.path.size - 1 - stateLastNewStatement.getOrDefault(state, -1)
-        val pathCoverage = statePathCoverage.getOrDefault(state, 0u)
-
-        if (!coveredStmts.contains(state.currentStatement)) {
-            stateLastNewStatement[state] = state.path.size - 1
-            statePathCoverage[state] = statePathCoverage.getOrDefault(state, 0u) + 1u
+        val lastNewDistance = if (stateLastNewStatement.contains(state)) {
+            state.path.size - stateLastNewStatement.getValue(state)
+        } else {
+            1 / logBase - 1 // Should be -1 after log
         }
+        val pathCoverage = statePathCoverage.getValue(state)
+        val distanceToBlockEnd = (currentBlock?.path?.size ?: 1) - 1 -
+                (currentBlock?.path?.indexOf(currentStatement) ?: 0)
+        val distanceToExit = distancesToExit.getValue(currentStatement)
+        val forkCount = stateForkCount.getValue(state)
 
         val reward = getReward(state)
 
         return StateFeatures (
-            successorsCount,
-            finishedStatesCount,
-            finishedStatesFraction,
-            logicalConstraintsLength,
-            stateTreeDepth,
-            statementRepetitionLocal,
-            statementRepetitionGlobal,
-            distanceToUncovered,
-            lastNewDistance,
-            pathCoverage,
-            reward
+            successorsCount.log(),
+            logicalConstraintsLength.log(),
+            stateTreeDepth.log(),
+            statementRepetitionLocal.log(),
+            statementRepetitionGlobal.log(),
+            distanceToUncovered.log(),
+            lastNewDistance.log(),
+            pathCoverage.log(),
+            distanceToBlockEnd.log(),
+            distanceToExit.log(),
+            forkCount.log(),
+            reward.log(),
         )
     }
 
@@ -275,33 +345,43 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
         }
     }
 
-    protected fun getAverageStateFeatures(stateFeatureQueue: List<StateFeatures>): AverageStateFeatures {
-        val queueSize = stateFeatureQueue.size
-        return AverageStateFeatures(
-            stateFeatureQueue.sumOf { it.successorsCount }.toFloat() / queueSize,
-            stateFeatureQueue.sumOf { it.logicalConstraintsLength }.toFloat() / queueSize,
-            stateFeatureQueue.sumOf { it.stateTreeDepth }.toFloat() / queueSize,
-            stateFeatureQueue.sumOf { it.statementRepetitionLocal }.toFloat() / queueSize,
-            stateFeatureQueue.sumOf { it.statementRepetitionGlobal }.toFloat() / queueSize,
-            stateFeatureQueue.sumOf { it.distanceToUncovered.toDouble() }.toFloat() / queueSize,
-            stateFeatureQueue.sumOf { it.lastNewDistance }.toFloat() / queueSize,
-            stateFeatureQueue.sumOf { it.pathCoverage }.toFloat() / queueSize,
-            stateFeatureQueue.sumOf { it.reward.toDouble() }.toFloat() / queueSize,
+    protected fun getGlobalStateFeatures(stateFeatureQueue: List<StateFeatures>): GlobalStateFeatures {
+        val uncoveredStatements = coverageStatistics.getUncoveredStatements().map { it.second }.toSet()
+
+        val logFinishedStatesCount = log(finishedStatesCount.toDouble() + 1, logBase)
+        val finishedStatesFraction = finishedStatesCount.toFloat() / allStates.size.toFloat()
+        val totalCoverage = coverageStatistics.getTotalCoverage() / 100
+        val visitedStatesFraction = visitedStatements.intersect(uncoveredStatements).size.toFloat() / allStatements.size
+
+        return GlobalStateFeatures(
+            stateFeatureQueue.map { it.logLogicalConstraintsLength }.average(),
+            stateFeatureQueue.map { it.logStateTreeDepth }.average(),
+            stateFeatureQueue.map { it.logStatementRepetitionLocal }.average(),
+            stateFeatureQueue.map { it.logStatementRepetitionGlobal }.average(),
+            stateFeatureQueue.map { it.logDistanceToUncovered }.average(),
+            stateFeatureQueue.map { it.logLastNewDistance }.average(),
+            stateFeatureQueue.map { it.logPathCoverage }.average(),
+            stateFeatureQueue.map { it.logDistanceToBlockEnd }.average(),
+            stateFeatureQueue.map { it.logReward }.average(),
+            logFinishedStatesCount.toFloat(),
+            finishedStatesFraction,
+            visitedStatesFraction,
+            totalCoverage,
         )
     }
 
-    protected fun getActionData(stateFeatureQueue: List<StateFeatures>,
-                                averageStateFeatures: AverageStateFeatures,
+    private fun getActionData(stateFeatureQueue: List<StateFeatures>,
+                                globalStateFeatures: GlobalStateFeatures,
                                 chosenState: State): ActionData {
         val stateId = queue.indexOfFirst { it.id == chosenState.id }
         return ActionData (
             stateFeatureQueue,
-            averageStateFeatures,
+            globalStateFeatures,
             stateId,
-            stateFeatureQueue[stateId].reward)
+            getReward(queue[stateId]))
     }
 
-    protected fun savePath() {
+    fun savePath() {
         if (path.isEmpty()) {
             return
         }
@@ -311,18 +391,19 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
                 path.forEach { actionData ->
                     addJsonArray {
                         addJsonArray {
-                            actionData.queue.forEach { stateFeatures ->
+//                            actionData.queue.forEach { stateFeatures ->
                                 addJsonArray {
-                                    jsonFormat.encodeToJsonElement(stateFeatures).jsonObject.forEach { _, u ->
+                                    jsonFormat.encodeToJsonElement(/* stateFeatures */actionData.queue[actionData.chosenStateId]).jsonObject.forEach { _, u ->
                                         add(u)
                                     }
-                                    jsonFormat.encodeToJsonElement(actionData.averageStateFeatures).jsonObject.forEach { _, u ->
+                                    jsonFormat.encodeToJsonElement(actionData.globalStateFeatures).jsonObject.forEach { _, u ->
                                         add(u)
                                     }
                                 }
-                            }
+//                            }
                         }
-                        add(actionData.chosenStateId)
+//                        add(actionData.chosenStateId)
+                        add(0)
                         add(actionData.reward)
                     }
                 }
@@ -332,13 +413,66 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
             .writeText(jsonFormat.encodeToString(jsonData))
     }
 
-    protected fun updateCoverage(state: State) {
-        if (allStmts === null) {
-            val uncoveredStmts = coverageStatistics.getUncoveredStatements()
-            allStmts = uncoveredStmts.map { it.second }
+    private fun updateCoverage(state: State) {
+        val statement = state.currentStatement!!
+        visitedStatements.add(statement)
+        if (applicationGraph.successors(statement).count() > 1) {
+            stateForkCount[state] = stateForkCount.getValue(state) + 1u
         }
-        coveredStmts.add(state.currentStatement)
-        coverage = coveredStmts.size * 100.0 / (allStmts?.size ?: 1)
+        if (coverageStatistics.getUncoveredStatements().map { it.second }.contains(statement)) {
+            stateLastNewStatement[state] = state.path.size
+            statePathCoverage[state] = statePathCoverage.getValue(state) + 1u
+        }
+    }
+
+    protected open fun getNodeName(node: PathsTreeNode<State>, id: Int): String {
+        val state = node.state
+        if (state === null) {
+            return "\"$id: null\""
+        }
+        if (!queue.contains(state)) {
+            return "\"$id: fin\""
+        }
+        return "\"$id: ${state.currentStatement}\""
+    }
+
+    private fun saveGraph() {
+        val nodes = mutableListOf<PathsTreeNode<State>>()
+        val treeQueue = ArrayDeque<PathsTreeNode<State>>()
+        treeQueue.add(pathsTreeStatistics.root)
+        while (treeQueue.isNotEmpty()) {
+            val currentNode = treeQueue.removeFirst()
+            nodes.add(currentNode)
+            treeQueue.addAll(currentNode.children)
+        }
+        val nodeNames = nodes.zip(nodes.indices).associate { (node, id) ->
+            Pair(node, getNodeName(node, id))
+        }.withDefault { "" }
+        val graph = digraph ("step$stepCount") {
+            nodes.forEach { node ->
+                val nodeName = nodeNames.getValue(node)
+                +nodeName
+                node.children.forEach { child ->
+                    val childName = nodeNames.getValue(child)
+                    nodeName - childName
+                }
+            }
+        }
+        stepCount += 1
+        val path = Path(graphsPath, filename, "${graph.name}.dot")
+        path.parent.toFile().mkdirs()
+        path.writeText(graph.dot())
+    }
+
+    protected fun afterPeek(state: State,
+                          stateFeatureQueue: List<StateFeatures>,
+                          globalStateFeatures: GlobalStateFeatures) {
+        path.add(getActionData(stateFeatureQueue, globalStateFeatures, state))
+//        savePath()
+        updateCoverage(state)
+        if (stepCount < 500) {
+            saveGraph()
+        }
     }
 
     override fun isEmpty() = queue.isEmpty()
@@ -346,10 +480,8 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
     override fun peek(): State {
         val state = queue.first()
         val stateFeatureQueue = getStateFeatureQueue()
-        val averageStateFeatures = getAverageStateFeatures(stateFeatureQueue)
-        path.add(getActionData(stateFeatureQueue, averageStateFeatures, state))
-        savePath()
-        updateCoverage(state)
+        val globalStateFeatures = getGlobalStateFeatures(stateFeatureQueue)
+        afterPeek(state, stateFeatureQueue, globalStateFeatures)
         return state
     }
 
@@ -358,12 +490,6 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
     override fun add(states: Collection<State>) {
         if (states.isEmpty()) {
             return
-        }
-        if (filename === null) {
-            val firstStatement = states.first().path.first()
-            filename = applicationGraph.methodOf(firstStatement).toString()
-            blockGraph = BlockGraph(applicationGraph, firstStatement)
-            blockGraph.saveGraph(Path(blockGraphPath, filename ?: "Unknown_method", "graph.dot"))
         }
         queue.addAll(states)
         allStates.addAll(states)

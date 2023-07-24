@@ -32,7 +32,7 @@ sourceSets {
     test {
         compileClasspath += samples.output
         runtimeClasspath += samples.output
-     }
+    }
 }
 
 val samplesImplementation: Configuration by configurations.getting

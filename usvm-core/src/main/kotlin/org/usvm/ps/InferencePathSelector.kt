@@ -3,7 +3,6 @@ package org.usvm.ps
 import ai.onnxruntime.OnnxTensor
 import ai.onnxruntime.OrtEnvironment
 import ai.onnxruntime.OrtSession
-import io.github.rchowell.dotlin.digraph
 import io.kinference.core.KIEngine
 import io.kinference.core.KIONNXData
 import io.kinference.core.data.tensor.KITensor
@@ -11,116 +10,106 @@ import io.kinference.core.data.tensor.asTensor
 import io.kinference.model.Model
 import io.kinference.ndarray.arrays.FloatNDArray
 import kotlinx.coroutines.runBlocking
+import org.usvm.MainConfig
 import org.usvm.UState
 import org.usvm.statistics.*
 import java.io.File
 import java.nio.FloatBuffer
 import java.text.DecimalFormat
 import kotlin.io.path.Path
-import kotlin.io.path.writeText
 
 internal open class InferencePathSelector<State : UState<*, *, Method, Statement>, Statement, Method> (
-    private val pathsTreeStatistics: PathsTreeStatistics<Method, Statement, State>,
-    coverageStatistics: CoverageStatistics<Method, Statement, State>,
+    pathsTreeStatistics: PathsTreeStatistics<Method, Statement, State>,
+    private val coverageStatistics: CoverageStatistics<Method, Statement, State>,
     distanceStatistics: DistanceStatistics<Method, Statement>,
-    applicationGraph: ApplicationGraph<Method, Statement>
+    private val applicationGraph: ApplicationGraph<Method, Statement>
 ) : BfsWithLoggingPathSelector<State, Statement, Method>(
     pathsTreeStatistics,
     coverageStatistics,
     distanceStatistics,
     applicationGraph
 ) {
-    private val modelPath = "../Game_env/model.onnx"
+    private val modelPath = Path(MainConfig.gameEnvPath, "model.onnx").toString()
     private var model: Model<KIONNXData<*>>? = null
     private var env: OrtEnvironment? = null
     private var session: OrtSession? = null
 
-    private val graphsPath = "../Game_env/graphs/"
     private var qValues = listOf<Float>()
-    private var stepCount = 0
 
-    protected var chosenStateId = 0
+    private var chosenStateId = 0
+
+    override fun getReward(state: State): Float {
+        val statement = state.currentStatement
+        if (statement === null ||
+            (applicationGraph.successors(statement).toList().size +
+             applicationGraph.callees(statement).toList().size != 0) ||
+            applicationGraph.methodOf(statement) != method ||
+            state.callStack.size != 1) {
+            return 0.0f
+        }
+        return coverageStatistics.getUncoveredStatements().map { it.second }.toSet()
+            .intersect(state.path.toSet()).size.toFloat()
+    }
+
+    override fun getNodeName(node: PathsTreeNode<State>, id: Int): String {
+        val state = node.state
+        if (state === null) {
+            return super.getNodeName(node, id)
+        }
+        val stateId = queue.indexOf(state)
+        if (stateId == -1) {
+            return super.getNodeName(node, id)
+        }
+        return "\"$id: Q=${DecimalFormat("0.00E0").format(qValues.getOrElse(stateId) { -1.0f })}, " +
+                "${state.currentStatement}\""
+    }
 
     private fun stateFeaturesToFloatList(stateFeatures: StateFeatures): List<Float> {
         return listOf(
-            stateFeatures.successorsCount.toFloat(),
-            stateFeatures.finishedStatesCount.toFloat(),
-            stateFeatures.finishedStatesFraction,
-            stateFeatures.logicalConstraintsLength.toFloat(),
-            stateFeatures.stateTreeDepth.toFloat(),
-            stateFeatures.statementRepetitionLocal.toFloat(),
-            stateFeatures.statementRepetitionGlobal.toFloat(),
-            stateFeatures.distanceToUncovered,
-            stateFeatures.lastNewDistance.toFloat(),
-            stateFeatures.pathCoverage.toFloat(),
-            stateFeatures.reward
+            stateFeatures.logSuccessorsCount,
+            stateFeatures.logLogicalConstraintsLength,
+            stateFeatures.logStateTreeDepth,
+            stateFeatures.logStatementRepetitionLocal,
+            stateFeatures.logStatementRepetitionGlobal,
+            stateFeatures.logDistanceToUncovered,
+            stateFeatures.logLastNewDistance,
+            stateFeatures.logPathCoverage,
+            stateFeatures.logDistanceToBlockEnd,
+            stateFeatures.logDistanceToExit,
+            stateFeatures.logForkCount,
+            stateFeatures.logReward,
         )
     }
 
-    private fun getNodeName(node: PathsTreeNode<State>, id: Int): String {
-        if (node.state === null) {
-            return "\"$id: null\""
-        }
-        val stateId = queue.indexOf(node.state)
-        if (stateId == -1) {
-            return "\"$id: fin\""
-        }
-        return "\"$id: Q=${DecimalFormat("0.00E0").format(qValues.getOrElse(stateId) { -1.0f })}\""
-    }
-
-    private fun saveGraph() {
-        val nodes = mutableListOf<PathsTreeNode<State>>()
-        val treeQueue = ArrayDeque<PathsTreeNode<State>>()
-        treeQueue.add(pathsTreeStatistics.root)
-        while (treeQueue.isNotEmpty()) {
-            val currentNode = treeQueue.removeFirst()
-            nodes.add(currentNode)
-            treeQueue.addAll(currentNode.children)
-        }
-        val nodeNames = nodes.zip(nodes.indices).associate { (node, id) ->
-            Pair(node, getNodeName(node, id))
-        }.withDefault { "" }
-        val graph = digraph ("step$stepCount") {
-            nodes.forEach { node ->
-                val nodeName = nodeNames.getValue(node)
-                +nodeName
-                node.children.forEach { child ->
-                    val childName = nodeNames.getValue(child)
-                    nodeName - childName
-                }
-            }
-        }
-        stepCount += 1
-        val path = Path(graphsPath, filename ?: "Unknown_method", "${graph.name}.dot")
-        path.parent.toFile().mkdirs()
-        path.writeText(graph.dot())
-    }
-
-    private fun averageStateFeaturesToFloatList(averageStateFeatures: AverageStateFeatures): List<Float> {
+    private fun globalStateFeaturesToFloatList(globalStateFeatures: GlobalStateFeatures): List<Float> {
         return listOf(
-            averageStateFeatures.averageSuccessorsCount,
-            averageStateFeatures.averageLogicalConstraintsLength,
-            averageStateFeatures.averageStateTreeDepth,
-            averageStateFeatures.averageStatementRepetitionLocal,
-            averageStateFeatures.averageStatementRepetitionGlobal,
-            averageStateFeatures.averageDistanceToUncovered,
-            averageStateFeatures.averageLastNewDistance,
-            averageStateFeatures.averagePathCoverage,
-            averageStateFeatures.averageReward
+            globalStateFeatures.averageLogLogicalConstraintsLength,
+            globalStateFeatures.averageLogStateTreeDepth,
+            globalStateFeatures.averageLogStatementRepetitionLocal,
+            globalStateFeatures.averageLogStatementRepetitionGlobal,
+            globalStateFeatures.averageLogDistanceToUncovered,
+            globalStateFeatures.averageLogLastNewDistance,
+            globalStateFeatures.averageLogPathCoverage,
+            globalStateFeatures.averageLogDistanceToBlockEnd,
+            globalStateFeatures.averageLogReward,
+            globalStateFeatures.logFinishedStatesCount,
+            globalStateFeatures.finishedStatesFraction,
+            globalStateFeatures.visitedStatesFraction,
+            globalStateFeatures.totalCoverage,
         )
     }
 
     protected fun peekWithKInference(stateFeatureQueue: List<StateFeatures>?,
-                                   averageStateFeatures: AverageStateFeatures?) : State {
-        if (stateFeatureQueue == null || averageStateFeatures == null) {
+                                     globalStateFeatures: GlobalStateFeatures?) : State {
+        if (stateFeatureQueue == null || globalStateFeatures == null) {
             throw IllegalArgumentException("No features")
         }
         if (model === null) {
             model = runBlocking { Model.load(File(modelPath).readBytes(), KIEngine) }
         }
-        val averageFeaturesList = averageStateFeaturesToFloatList(averageStateFeatures)
+        val globalFeaturesList = globalStateFeaturesToFloatList(globalStateFeatures)
         val allFeaturesList = stateFeatureQueue.map { stateFeatures ->
-            stateFeaturesToFloatList(stateFeatures) + averageFeaturesList
+            stateFeaturesToFloatList(stateFeatures) + globalFeaturesList
         }
         val shape = intArrayOf(allFeaturesList.size, allFeaturesList.first().size)
         val data = FloatNDArray(shape) { i ->
@@ -134,17 +123,17 @@ internal open class InferencePathSelector<State : UState<*, *, Method, Statement
     }
 
     private fun peekWithOnnxRuntime(stateFeatureQueue: List<StateFeatures>?,
-                                    averageStateFeatures: AverageStateFeatures?) : State {
-        if (stateFeatureQueue == null || averageStateFeatures == null) {
+                                    globalStateFeatures: GlobalStateFeatures?) : State {
+        if (stateFeatureQueue == null || globalStateFeatures == null) {
             throw IllegalArgumentException("No features")
         }
         if (env === null || session === null) {
             env = OrtEnvironment.getEnvironment()
             session = env!!.createSession(modelPath, OrtSession.SessionOptions())
         }
-        val averageFeaturesList = averageStateFeaturesToFloatList(averageStateFeatures)
+        val globalFeaturesList = globalStateFeaturesToFloatList(globalStateFeatures)
         val allFeaturesList = stateFeatureQueue.map { stateFeatures ->
-            stateFeaturesToFloatList(stateFeatures) + averageFeaturesList
+            stateFeaturesToFloatList(stateFeatures) + globalFeaturesList
         }
         val shape = longArrayOf(allFeaturesList.size.toLong(), allFeaturesList.first().size.toLong())
         val dataBuffer = FloatBuffer.allocate(allFeaturesList.size * allFeaturesList.first().size)
@@ -165,16 +154,13 @@ internal open class InferencePathSelector<State : UState<*, *, Method, Statement
 
     override fun peek(): State {
         val stateFeatureQueue = getStateFeatureQueue()
-        val averageStateFeatures = getAverageStateFeatures(stateFeatureQueue)
+        val globalStateFeatures = getGlobalStateFeatures(stateFeatureQueue)
         val state = if (File(modelPath).isFile) {
-            peekWithOnnxRuntime(stateFeatureQueue, averageStateFeatures)
+            peekWithOnnxRuntime(stateFeatureQueue, globalStateFeatures)
         } else {
             queue.first()
         }
-        path.add(getActionData(stateFeatureQueue, averageStateFeatures, state))
-        saveGraph()
-        savePath()
-        updateCoverage(state)
+        afterPeek(state, stateFeatureQueue, globalStateFeatures)
         return state
     }
 }
