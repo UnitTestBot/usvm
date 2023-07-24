@@ -17,6 +17,7 @@ import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UNotExpr
 import org.usvm.isFalse
+import org.usvm.logger
 import org.usvm.util.Intervals
 import kotlin.random.Random
 import kotlin.test.assertEquals
@@ -217,8 +218,8 @@ class NumericConstraintsTests {
         }
         val lastExpr = unsimplifiedConstraints.last()
 
-        println("Incorrect state after add: $lastExpr")
-        println("Unsatisfied statements: $failedStatements")
+        logger.debug { "Incorrect state after add: $lastExpr" }
+        logger.debug { "Unsatisfied statements: $failedStatements" }
 
         previousConstraints?.addConstraint(lastExpr)
     }
@@ -227,7 +228,7 @@ class NumericConstraintsTests {
         val logStep = times / 100 + 1
         repeat(times) {
             if (it % logStep == 0) {
-                println("$it / $times")
+                logger.debug { "$it / $times" }
             }
             body(it)
         }
