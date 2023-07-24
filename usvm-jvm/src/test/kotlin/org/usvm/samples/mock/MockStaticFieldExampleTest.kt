@@ -6,18 +6,18 @@
 //import org.usvm.samples.mock.others.ClassWithStaticField
 //import org.usvm.samples.mock.others.Generator
 //
-//import org.utbot.framework.plugin.api.FieldMockTarget
-//import org.utbot.framework.plugin.api.MockInfo
+//import org.usvm.framework.plugin.api.FieldMockTarget
+//import org.usvm.framework.plugin.api.MockInfo
 //.OTHER_PACKAGES
-//import org.utbot.framework.plugin.api.UtCompositeModel
-//import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
+//import org.usvm.framework.plugin.api.UtCompositeModel
+//import org.usvm.framework.plugin.api.UtNewInstanceInstrumentation
 //import org.usvm.test.util.checkers.eq
 //import org.usvm.test.util.checkers.withoutConcrete
-//import org.utbot.testing.TestExecution
+//import org.usvm.testing.TestExecution
 //
-//import org.utbot.testing.singleMock
-//import org.utbot.testing.singleMockOrNull
-//import org.utbot.testing.value
+//import org.usvm.testing.singleMock
+//import org.usvm.testing.singleMockOrNull
+//import org.usvm.testing.value
 //import kotlin.reflect.KClass
 //
 //internal class MockStaticFieldExampleTest : JavaMethodTestRunner(
@@ -25,7 +25,6 @@
 //    testCodeGeneration = true,
 //    pipelines = listOf(
 //        TestLastStage(CodegenLanguage.JAVA, lastStage = TestExecution),
-//        // disabled due to https://github.com/UnitTestBot/UTBotJava/issues/88
 //        TestLastStage(CodegenLanguage.KOTLIN, lastStage = CodeGeneration)
 //    )
 //) {

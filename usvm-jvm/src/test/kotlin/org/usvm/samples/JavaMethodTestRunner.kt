@@ -3,6 +3,7 @@ package org.usvm.samples
 import org.jacodb.api.ext.findClass
 import org.jacodb.api.ext.toType
 import org.junit.jupiter.api.TestInstance
+import org.usvm.CoverageZone
 import org.usvm.UMachineOptions
 import org.usvm.api.JcClassCoverage
 import org.usvm.api.JcParametersState
@@ -712,8 +713,16 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
     private val testResolver = JcTestResolver()
 
     override val typeTransformer: (Any?) -> KClass<*>? = { value -> value?.let { it::class } }
+
     override val checkType: (KClass<*>?, KClass<*>?) -> Boolean =
         { expected, actual -> actual == null || expected != null && expected.java.isAssignableFrom(actual.java) }
+
+    override var options: UMachineOptions = UMachineOptions().copy(
+        coverageZone = CoverageZone.TRANSITIVE,
+        exceptionsPropagation = true,
+        timeoutMs = 60_000,
+        stepsFromLastCovered = 3500L,
+    )
 
     override val runner: (KFunction<*>, UMachineOptions) -> List<JcTest> = { method, options ->
         val declaringClassName = requireNotNull(method.declaringClass?.name)

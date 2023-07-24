@@ -134,7 +134,6 @@ class BaseStreamExampleTest : JavaMethodTestRunner() {
     @Test
     @Tag("slow")
     @Disabled("Not implemented: virtual calls with abstract methods")
-    // TODO slow sorting https://github.com/UnitTestBot/UTBotJava/issues/188
     fun testSortedExample() {
         checkDiscoveredProperties(
             BaseStreamExample::sortedExample,
@@ -209,7 +208,7 @@ class BaseStreamExampleTest : JavaMethodTestRunner() {
             ignoreNumberOfAnalysisResults,
             { _, c, r -> c.isEmpty() && r.getOrThrow() == Optional.empty<Int>() },
             { _, c, r -> c.isNotEmpty() && c.single() == null && r.isException<NullPointerException>() },
-            { _, c, r -> c.isNotEmpty() && r.getOrThrow() == Optional.of<Int>(c.sum()) }, // TODO 2 instructions are uncovered https://github.com/UnitTestBot/UTBotJava/issues/193
+            { _, c, r -> c.isNotEmpty() && r.getOrThrow() == Optional.of<Int>(c.sum()) },
         )
     }
 
@@ -238,7 +237,7 @@ class BaseStreamExampleTest : JavaMethodTestRunner() {
             BaseStreamExample::collectExample,
             eq(2), // 3 executions instead of 2 expected
             { _, c, r -> null in c && r.isException<NullPointerException>() },
-            { _, c, r -> null !in c && c.sum() == r.getOrThrow() }, // TODO 2 instructions are uncovered https://github.com/UnitTestBot/UTBotJava/issues/193
+            { _, c, r -> null !in c && c.sum() == r.getOrThrow() },
         )
     }
 
@@ -249,7 +248,7 @@ class BaseStreamExampleTest : JavaMethodTestRunner() {
             ignoreNumberOfAnalysisResults,
             { _, c, r -> c.isEmpty() && r.getOrThrow() == Optional.empty<Int>() },
             { _, c, r -> c.isNotEmpty() && c.all { it == null } && r.isException<NullPointerException>() },
-            { _, c, r -> c.isNotEmpty() && r.getOrThrow() == Optional.of<Int>(c.minOrNull()!!) }, // TODO 2 instructions are uncovered https://github.com/UnitTestBot/UTBotJava/issues/193
+            { _, c, r -> c.isNotEmpty() && r.getOrThrow() == Optional.of<Int>(c.minOrNull()!!) },
         )
     }
 
@@ -260,7 +259,7 @@ class BaseStreamExampleTest : JavaMethodTestRunner() {
             ignoreNumberOfAnalysisResults,
             { _, c, r -> c.isEmpty() && r.getOrThrow() == Optional.empty<Int>() },
             { _, c, r -> c.isNotEmpty() && c.all { it == null } && r.isException<NullPointerException>() },
-            { _, c, r -> c.isNotEmpty() && r.getOrThrow() == Optional.of<Int>(c.maxOrNull()!!) }, // TODO 2 instructions are uncovered https://github.com/UnitTestBot/UTBotJava/issues/193
+            { _, c, r -> c.isNotEmpty() && r.getOrThrow() == Optional.of<Int>(c.maxOrNull()!!) },
         )
     }
 

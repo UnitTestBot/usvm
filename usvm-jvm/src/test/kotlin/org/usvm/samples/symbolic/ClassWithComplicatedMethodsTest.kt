@@ -8,7 +8,7 @@
 //
 //import org.usvm.test.util.checkers.eq
 //import org.usvm.test.util.checkers.withoutConcrete
-//import org.utbot.testing.Compilation
+//import org.usvm.testing.Compilation
 //
 //import kotlin.math.abs
 //import kotlin.math.sqrt

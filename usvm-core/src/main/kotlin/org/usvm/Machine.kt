@@ -64,6 +64,10 @@ abstract class UMachine<State> : AutoCloseable {
                     pathSelector.add(aliveForkedStates)
                 }
             }
+
+            if (!pathSelector.isEmpty()) {
+                logger.debug { stopStrategy.stopReason() }
+            }
         }
     }
 

@@ -9,10 +9,10 @@
 //.OTHER_PACKAGES
 //import org.usvm.test.util.checkers.eq
 //
-//import org.utbot.testing.mockValue
-//import org.utbot.testing.singleMock
-//import org.utbot.testing.singleMockOrNull
-//import org.utbot.testing.value
+//import org.usvm.testing.mockValue
+//import org.usvm.testing.singleMock
+//import org.usvm.testing.singleMockOrNull
+//import org.usvm.testing.value
 //
 //internal class MockReturnObjectExampleTest : JavaMethodTestRunner(testClass = MockReturnObjectExample::class) {
 //    @Test

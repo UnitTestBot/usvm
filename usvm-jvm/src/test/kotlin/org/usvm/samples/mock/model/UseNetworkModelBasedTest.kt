@@ -4,10 +4,10 @@
 //import org.usvm.samples.JavaMethodTestRunner
 //import org.usvm.samples.mock.UseNetwork
 //
-//import org.utbot.framework.plugin.api.UtCompositeModel
-//import org.utbot.framework.plugin.api.UtVoidModel
+//import org.usvm.framework.plugin.api.UtCompositeModel
+//import org.usvm.framework.plugin.api.UtVoidModel
 //import org.usvm.test.util.checkers.eq
-//import org.utbot.testing.UtModelTestCaseChecker
+//import org.usvm.testing.UtModelTestCaseChecker
 //
 //internal class UseNetworkModelBasedTest : UtModelTestCaseChecker(testClass = UseNetwork::class) {
 //    @Test

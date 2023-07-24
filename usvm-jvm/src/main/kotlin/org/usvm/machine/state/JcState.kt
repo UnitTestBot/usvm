@@ -10,7 +10,6 @@ import org.usvm.UCallStack
 import org.usvm.UContext
 import org.usvm.UState
 import org.usvm.constraints.UPathConstraints
-import org.usvm.machine.JcContext
 import org.usvm.memory.UMemoryBase
 import org.usvm.model.UModelBase
 
@@ -41,5 +40,14 @@ class JcState(
             path,
             methodResult,
         )
+    }
+
+    override val isExceptional: Boolean
+        get() = methodResult is JcMethodResult.JcException
+
+    override fun toString(): String = buildString {
+        appendLine("Instruction: $lastStmt")
+        if (isExceptional) appendLine("Exception: $methodResult")
+        appendLine(callStack)
     }
 }

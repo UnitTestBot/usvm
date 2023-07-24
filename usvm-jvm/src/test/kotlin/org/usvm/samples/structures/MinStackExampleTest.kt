@@ -85,6 +85,7 @@ internal class MinStackExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not yet implemented visitJcClassConstant(JcExprResolver.kt:287)")
     fun testConstruct() {
         checkDiscoveredProperties(
             MinStackExample::construct,

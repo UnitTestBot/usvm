@@ -4,19 +4,18 @@
 //
 //import org.junit.jupiter.api.Test
 //import org.usvm.samples.JavaMethodTestRunner
-//import org.utbot.framework.plugin.api.UtCompositeModel
-//import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
+//import org.usvm.framework.plugin.api.UtCompositeModel
+//import org.usvm.framework.plugin.api.UtNewInstanceInstrumentation
 //import org.usvm.test.util.checkers.eq
-//import org.utbot.testing.TestExecution
+//import org.usvm.testing.TestExecution
 //
-//import org.utbot.testing.isParameter
-//import org.utbot.testing.mockValues
-//import org.utbot.testing.mocksMethod
-//import org.utbot.testing.singleMock
-//import org.utbot.testing.value
+//import org.usvm.testing.isParameter
+//import org.usvm.testing.mockValues
+//import org.usvm.testing.mocksMethod
+//import org.usvm.testing.singleMock
+//import org.usvm.testing.value
 //import java.util.Random
 //
-//// TODO Kotlin mocks generics https://github.com/UnitTestBot/UTBotJava/issues/88
 //internal class MockRandomTest : JavaMethodTestRunner(
 //    testClass = MockRandomExamples::class,
 //    testCodeGeneration = true,

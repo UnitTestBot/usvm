@@ -6,12 +6,12 @@
 //import org.usvm.samples.mock.service.impl.ServiceWithField
 //import org.usvm.samples.mock.service.impl.ServiceWithField
 //.OTHER_PACKAGES
-//import org.utbot.framework.plugin.api.UtModel
-//import org.utbot.framework.plugin.api.isNotNull
-//import org.utbot.framework.plugin.api.isNull
+//import org.usvm.framework.plugin.api.UtModel
+//import org.usvm.framework.plugin.api.isNotNull
+//import org.usvm.framework.plugin.api.isNull
 //import org.usvm.test.util.checkers.eq
-//import org.utbot.testing.UtModelTestCaseChecker
-//import org.utbot.testing.primitiveValue
+//import org.usvm.testing.UtModelTestCaseChecker
+//import org.usvm.testing.primitiveValue
 //
 //internal class FieldMockChecker : UtModelTestCaseChecker() {
 //    @Test

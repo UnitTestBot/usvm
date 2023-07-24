@@ -38,6 +38,11 @@ abstract class UState<Type, Field, Method, Statement>(
     // TODO or last? Do we add a current stmt into the path immediately?
     val currentStatement: Statement?
         get() = path.lastOrNull()
+
+    /**
+     * A property containing information about whether the state is exceptional or not.
+     */
+    abstract val isExceptional: Boolean
 }
 
 data class ForkResult<T>(

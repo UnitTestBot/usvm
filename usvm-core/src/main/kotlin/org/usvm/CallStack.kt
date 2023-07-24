@@ -5,6 +5,11 @@ data class UCallStackFrame<Method, Statement>(
     val returnSite: Statement?,
 )
 
+data class UStackTraceFrame<Method, Statement>(
+    val method: Method,
+    val instruction: Statement,
+)
+
 class UCallStack<Method, Statement> private constructor(
     private val stack: ArrayDeque<UCallStackFrame<Method, Statement>>,
 ) : Collection<UCallStackFrame<Method, Statement>> by stack {
@@ -28,5 +33,25 @@ class UCallStack<Method, Statement> private constructor(
         val newStack = ArrayDeque<UCallStackFrame<Method, Statement>>()
         newStack.addAll(stack)
         return UCallStack(newStack)
+    }
+
+    fun stackTrace(currentInstruction: Statement): List<UStackTraceFrame<Method, Statement>> {
+        val stacktrace = stack
+            .asSequence()
+            .zipWithNext { first, second -> UStackTraceFrame<Method, Statement>(first.method, second.returnSite!!) }
+            .toMutableList()
+
+        stacktrace += UStackTraceFrame(stack.last().method, currentInstruction)
+
+        return stacktrace
+    }
+
+    override fun toString(): String {
+        var frameCounter = 0
+
+        return joinToString(
+            prefix = "Call stack (contains $size frame${if (size > 1) "s" else ""}):${System.lineSeparator()}",
+            separator = System.lineSeparator()
+        ) { "\t${frameCounter++}: $it" }
     }
 }
