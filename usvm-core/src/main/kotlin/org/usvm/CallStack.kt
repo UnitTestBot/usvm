@@ -41,7 +41,9 @@ class UCallStack<Method, Statement> private constructor(
             .zipWithNext { first, second -> UStackTraceFrame<Method, Statement>(first.method, second.returnSite!!) }
             .toMutableList()
 
-        return stacktrace + UStackTraceFrame(stack.last().method, currentInstruction)
+        stacktrace += UStackTraceFrame(stack.last().method, currentInstruction)
+
+        return stacktrace
     }
 
     override fun toString(): String {

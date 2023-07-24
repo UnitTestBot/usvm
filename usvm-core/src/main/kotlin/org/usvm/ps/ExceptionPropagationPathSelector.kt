@@ -15,13 +15,13 @@ class ExceptionPropagationPathSelector<State : UState<*, *, *, *>>(
     // to determine whether some state is already in the queue or not
     // without extra time consumption.
     // We use only keys from this map.
-    private val exceptionalStates = IdentityHashMap<State, Any?>()
+    private val exceptionalStates = IdentityHashMap<State, Nothing>()
 
     // An identity map of the states that were added in the internal selector.
     // That means that these states present not only in the internal queue, but in
     // the queue of the selector, and we have to process them as well.
     // We use only keys from this map.
-    private val statesInSelector = IdentityHashMap<State, Any?>()
+    private val statesInSelector = IdentityHashMap<State, Nothing>()
 
     override fun isEmpty(): Boolean = exceptionalStates.isEmpty() && selector.isEmpty()
 
