@@ -30,7 +30,7 @@ import org.usvm.UHeapRef
 import org.usvm.UInterpreter
 import org.usvm.URegisterLValue
 import org.usvm.machine.resolver.JcExprResolver
-import org.usvm.machine.resolver.JcInvokeResolver
+import org.usvm.machine.resolver.JcTypeSelector
 import org.usvm.machine.resolver.JcVirtualInvokeResolver
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
@@ -152,14 +152,14 @@ class JcInterpreter(
                 typeConstraintsNegations += currentTypeConstraints.map { ctx.mkNot(it) }
 
                 result
-            } ?: return@forEach
+            }
 
             catchForks += typeConstraint to blockToFork(catchInst)
         }
 
         val typeConditionToMiss = ctx.mkAnd(typeConstraintsNegations)
         val functionBlockOnMiss = block@{ _: JcState ->
-            scope.calcOnState { throwExceptionAndDropStackFrame() } ?: return@block
+            scope.calcOnState { throwExceptionAndDropStackFrame() }
         }
 
         val catchSectionMiss = typeConditionToMiss to functionBlockOnMiss
@@ -265,13 +265,12 @@ class JcInterpreter(
         }
     }
 
-    private val invokeResolver = JcVirtualInvokeResolver(ctx, applicationGraph)
+    private val invokeResolver = JcVirtualInvokeResolver(ctx, applicationGraph, JcTypeSelector())
 
     private fun exprResolverWithScope(scope: JcStepScope) =
         JcExprResolver(
             ctx,
             scope,
-            applicationGraph,
             ::mapLocalToIdxMapper,
             ::classInstanceAllocator,
             invokeResolver

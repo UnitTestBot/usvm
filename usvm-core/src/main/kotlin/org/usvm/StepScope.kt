@@ -42,24 +42,20 @@ class StepScope<T : UState<Type, Field, *, *>, Type, Field>(
      *
      * @return `null` if the underlying state is `null`.
      */
-    fun doWithState(block: T.() -> Unit): Unit? =
-        if (canProcessFurtherOnCurrentStep) {
-            originalState.block()
-        } else {
-            null
-        }
+    fun doWithState(block: T.() -> Unit) {
+        check(canProcessFurtherOnCurrentStep) { "Caller should check before processing the current hop further" }
+        return originalState.block()
+    }
 
     /**
      * Executes [block] on a state.
      *
      * @return `null` if the underlying state is `null`, otherwise returns result of calling [block].
      */
-    fun <R> calcOnState(block: T.() -> R): R? =
-        if (canProcessFurtherOnCurrentStep) {
-            originalState.block()
-        } else {
-            null
-        }
+    fun <R> calcOnState(block: T.() -> R): R {
+        check(canProcessFurtherOnCurrentStep) { "Caller should check before processing the current hop further" }
+        return originalState.block()
+    }
 
     /**
      * Forks on a [condition], performing [blockOnTrueState] on a state satisfying [condition] and
@@ -138,7 +134,7 @@ class StepScope<T : UState<Type, Field, *, *>, Type, Field>(
     ): Unit? {
         check(canProcessFurtherOnCurrentStep)
 
-        val (posState, _) = fork(originalState, constraint)
+        val (posState) = forkMulti(originalState, listOf(constraint))
 
         posState?.block()
 
