@@ -180,7 +180,17 @@ class JcTestResolver(
                 // allocated object
                 memory.typeStreamOf(ref)
             }.filterBySupertype(type)
+
+            // We filter allocated object type stream, because it could be stored in the input array,
+            // which resolved to a wrong type, since we do not build connections between element types
+            // and array types right now.
+            // In such cases, we need to resolve this element to null.
+
             val evaluatedType = typeStream.firstOrNull() ?: return null
+
+            // We check for the type stream emptiness firsly and only then for the resolved cache,
+            // because even if the object is already resolved, it could be incompatible with the [type], if it
+            // is an element of an array of the wrong type.
 
             return resolvedCache.getOrElse(ref.address) {
                 when (evaluatedType) {
@@ -223,6 +233,9 @@ class JcTestResolver(
                     }
                     instance
                 }
+            }
+            if (type.elementType is JcPrimitiveType) {
+                resolvedCache[ref.address] = instance
             }
             return instance
         }

@@ -69,6 +69,11 @@ class UTypeConstraints<Type>(
         concreteRefToType[ref] = type
     }
 
+    /**
+     * @param useRepresentative use the representive from the [equalityConstraints] for the [symbolicRef]. The false
+     * value used, when we intersect regions on their refs union.
+     * @see intersectRegions
+     */
     private fun getTypeRegion(symbolicRef: USymbolicHeapRef, useRepresentative: Boolean = true): UTypeRegion<Type> {
         val representative = if (useRepresentative) {
             equalityConstraints.equalReferences.find(symbolicRef)
@@ -85,25 +90,25 @@ class UTypeConstraints<Type>(
 
     /**
      * Constraints **either** the [ref] is null **or** the [ref] isn't null and the type of the [ref] to
-     * be a subtype of the [type]. If it is impossible within current type and equality constraints,
+     * be a subtype of the [supertype]. If it is impossible within current type and equality constraints,
      * then type constraints become contradicting (@see [isContradicting]).
      *
      * NB: this function **must not** be used to cast types in interpreters.
      * To do so you should add corresponding constraint using [evalIsSubtype] function.
      */
-    internal fun addSupertype(ref: UHeapRef, type: Type) {
+    internal fun addSupertype(ref: UHeapRef, supertype: Type) {
         when (ref) {
             is UNullRef -> return
 
             is UConcreteHeapRef -> {
                 val concreteType = concreteRefToType.getValue(ref.address)
-                if (!typeSystem.isSupertype(type, concreteType)) {
+                if (!typeSystem.isSupertype(supertype, concreteType)) {
                     contradiction()
                 }
             }
 
             is USymbolicHeapRef -> {
-                updateRegionCanBeEqualNull(ref) { it.addSupertype(type) }
+                updateRegionCanBeEqualNull(ref) { it.addSupertype(supertype) }
             }
 
             else -> error("Provided heap ref must be either concrete or purely symbolic one, found $ref")
@@ -111,26 +116,26 @@ class UTypeConstraints<Type>(
     }
 
     /**
-     * Constraints **both** the type of the [ref] to be a not subtype of the [type] and the [ref] not equals null.
+     * Constraints **both** the type of the [ref] to be a not subtype of the [supertype] and the [ref] not equals null.
      * If it is impossible within current type and equality constraints,
      * then type constraints become contradicting (@see [isContradicting]).
      *
      * NB: this function **must not** be used to exclude types in interpreters.
      * To do so you should add corresponding constraint using [evalIsSubtype] function.
      */
-    internal fun excludeSupertype(ref: UHeapRef, type: Type) {
+    internal fun excludeSupertype(ref: UHeapRef, supertype: Type) {
         when (ref) {
             is UNullRef -> contradiction() // the [ref] can't be equal to null
 
             is UConcreteHeapRef -> {
                 val concreteType = concreteRefToType.getValue(ref.address)
-                if (typeSystem.isSupertype(type, concreteType)) {
+                if (typeSystem.isSupertype(supertype, concreteType)) {
                     contradiction()
                 }
             }
 
             is USymbolicHeapRef -> {
-                updateRegionCannotBeEqualNull(ref) { it.excludeSupertype(type) }
+                updateRegionCannotBeEqualNull(ref) { it.excludeSupertype(supertype) }
             }
 
             else -> error("Provided heap ref must be either concrete or purely symbolic one, found $ref")
@@ -139,25 +144,25 @@ class UTypeConstraints<Type>(
 
     /**
      * Constraints the [ref] isn't null and the type of the [ref] to
-     * be a supertype of the [type]. If it is impossible within current type and equality constraints,
+     * be a supertype of the [subtype]. If it is impossible within current type and equality constraints,
      * then type constraints become contradicting (@see [isContradicting]).
      *
      * NB: this function **must not** be used to cast types in interpreters.
      * To do so you should add corresponding constraint using [evalIsSupertype] function.
      */
-    internal fun addSubtype(ref: UHeapRef, type: Type) {
+    internal fun addSubtype(ref: UHeapRef, subtype: Type) {
         when (ref) {
             is UNullRef -> contradiction()
 
             is UConcreteHeapRef -> {
                 val concreteType = concreteRefToType.getValue(ref.address)
-                if (!typeSystem.isSupertype(concreteType, type)) {
+                if (!typeSystem.isSupertype(concreteType, subtype)) {
                     contradiction()
                 }
             }
 
             is USymbolicHeapRef -> {
-                updateRegionCannotBeEqualNull(ref) { it.addSubtype(type) }
+                updateRegionCannotBeEqualNull(ref) { it.addSubtype(subtype) }
             }
 
             else -> error("Provided heap ref must be either concrete or purely symbolic one, found $ref")
@@ -166,26 +171,26 @@ class UTypeConstraints<Type>(
 
     /**
      * Constraints **either** the [ref] is null or the [ref] isn't null and the type of
-     * the [ref] to be a not supertype of the [type].
+     * the [ref] to be a not supertype of the [subtype].
      * If it is impossible within current type and equality constraints,
      * then type constraints become contradicting (@see [isContradicting]).
      *
      * NB: this function **must not** be used to exclude types in interpreters.
      * To do so you should add corresponding constraint using [evalIsSupertype] function.
      */
-    internal fun excludeSubtype(ref: UHeapRef, type: Type) {
+    internal fun excludeSubtype(ref: UHeapRef, subtype: Type) {
         when (ref) {
             is UNullRef -> return
 
             is UConcreteHeapRef -> {
                 val concreteType = concreteRefToType.getValue(ref.address)
-                if (typeSystem.isSupertype(concreteType, type)) {
+                if (typeSystem.isSupertype(concreteType, subtype)) {
                     contradiction()
                 }
             }
 
             is USymbolicHeapRef -> {
-                updateRegionCanBeEqualNull(ref) { it.excludeSubtype(type) }
+                updateRegionCanBeEqualNull(ref) { it.excludeSubtype(subtype) }
             }
 
             else -> error("Provided heap ref must be either concrete or purely symbolic one, found $ref")
@@ -221,7 +226,7 @@ class UTypeConstraints<Type>(
         updateRegionCanBeEqualNull(to, region::intersect)
     }
 
-    protected fun updateRegionCannotBeEqualNull(
+    private fun updateRegionCannotBeEqualNull(
         ref: USymbolicHeapRef,
         regionMapper: (UTypeRegion<Type>) -> UTypeRegion<Type>,
     ) {
@@ -245,7 +250,7 @@ class UTypeConstraints<Type>(
         setTypeRegion(ref, newRegion)
     }
 
-    protected fun updateRegionCanBeEqualNull(
+    private fun updateRegionCanBeEqualNull(
         ref: USymbolicHeapRef,
         regionMapper: (UTypeRegion<Type>) -> UTypeRegion<Type>,
     ) {
@@ -260,7 +265,7 @@ class UTypeConstraints<Type>(
         for ((key, value) in _symbolicRefToTypeRegion.entries) {
             // TODO: cache intersections?
             if (key != ref && value.intersect(newRegion).isEmpty) {
-                // If we have two inputs of incomparable reference types, then they are non equal
+                // If we have two inputs of incomparable reference types, then they are non equal or both null
                 equalityConstraints.makeNonEqualOrBothNull(ref, key)
             }
         }

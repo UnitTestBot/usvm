@@ -8,21 +8,26 @@ import org.usvm.util.DfsIterator
  * provides those that satisfy the [filtering] function.
  *
  * Maintains invariant that [cachingSequence] already filtered with the [filtering] function.
+ *
+ * @param cacheFromQueries is a list for the types from queries, which satisfy [filtering].
+ * It's based on an observation, that in practice many of them satisfy [filtering], so they can be used for
+ * fast checking on emptiness. The list is used, because if the size is small,
+ * it's faster than a [kotlinx.collections.immutable.PersistentSet].
  */
 class USupportTypeStream<Type> private constructor(
     private val typeSystem: UTypeSystem<Type>,
     private val cachingSequence: CachingSequence<Type>,
-    private val fromQueries: List<Type>,
+    private val cacheFromQueries: List<Type>,
     private val supportType: Type,
     private val filtering: (Type) -> Boolean,
 ) : UTypeStream<Type> {
     override fun filterBySupertype(type: Type): UTypeStream<Type> =
         when {
-            // we update the [supportType
+            // we update the [supportType]
             typeSystem.isSupertype(supportType, type) -> USupportTypeStream(
                 typeSystem,
                 rootSequence(typeSystem, type).filter(filtering),
-                fromQueries.addIfDoesntExceedSizeAndFilter(
+                cacheFromQueries.addIfDoesntExceedSizeAndFilter(
                     type,
                     maxSize = MAX_SIZE,
                     filtering
@@ -64,7 +69,7 @@ class USupportTypeStream<Type> private constructor(
         USupportTypeStream(
             typeSystem,
             cachingSequence.filter(newFiltering),
-            fromQueries.addIfDoesntExceedSizeAndFilter(
+            cacheFromQueries.addIfDoesntExceedSizeAndFilter(
                 type,
                 maxSize = MAX_SIZE,
                 filtering
@@ -74,7 +79,7 @@ class USupportTypeStream<Type> private constructor(
         )
 
     override fun take(n: Int): Set<Type> {
-        val set = fromQueries.toMutableSet()
+        val set = cacheFromQueries.toMutableSet()
         for (it in cachingSequence) {
             if (set.size == n) {
                 break
@@ -103,8 +108,18 @@ class USupportTypeStream<Type> private constructor(
             return CachingSequence(dfsIterator)
         }
 
+        /**
+         * In practice, usually the type doesn't have more than 8 concrete inheritors, and [MAX_SIZE] is less than
+         * the default capacity of [java.util.ArrayList].
+         */
         private const val MAX_SIZE = 8
 
+        /**
+         * @param type the type to be added
+         * @param maxSize the maximum size of the result list
+         * @param filtering the filtering function for checking the [type]
+         * @param newFiltering the filtering function for checking the types in [this] list and the [type]
+         */
         private inline fun <Type> List<Type>.addIfDoesntExceedSizeAndFilter(
             type: Type,
             maxSize: Int,

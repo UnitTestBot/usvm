@@ -72,7 +72,7 @@ abstract class USymbol<Sort : USort>(ctx: UContext) : UExpr<Sort>(ctx)
 //region Object References
 
 /**
- * An expr is of a [UHeapRef] type iff it's a [UConcreteHeapRef], [USymbolicHeapRef] or [UIteExpr] with [UAddressSort].
+ * An expr is a [UHeapRef] iff it's a [UConcreteHeapRef], [USymbolicHeapRef] or [UIteExpr] with [UAddressSort].
  * [UIteExpr]s have [UConcreteHeapRef]s and [USymbolicHeapRef]s as leafs.
  */
 typealias UHeapRef = UExpr<UAddressSort>
@@ -384,7 +384,7 @@ class UIsSubtypeExpr<Type> internal constructor(
     }
 
     override fun print(printer: ExpressionPrinter) {
-        printer.append("($ref is of $supertype)")
+        printer.append("($ref is $supertype)")
     }
 
     override fun internEquals(other: Any): Boolean = structurallyEqual(other, { ref }, { supertype })

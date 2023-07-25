@@ -44,6 +44,9 @@ class JcTypeSystem(
             .map { it.toType() }
             .run {
                 if (type == cp.objectType) {
+                    // since we use DFS iterator, the array of objects should come last
+                    // here we return only the direct successors, so (2,3,...)-dimensional arrays isn't returned here
+                    // such arrays are subtypes of `Object[]`
                     flatMap { listOf(it, cp.arrayTypeOf(it)) } + sequenceOf(cp.arrayTypeOf(type))
                 } else {
                     this

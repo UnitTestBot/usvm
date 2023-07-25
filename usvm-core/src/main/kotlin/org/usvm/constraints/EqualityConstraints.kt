@@ -5,17 +5,18 @@ import org.usvm.USymbolicHeapRef
 import org.usvm.util.DisjointSets
 
 /**
- * Represents equality constraints between heap references. There are three kinds of constraints:
+ * Represents equality constraints between symbolic heap references. There are three kinds of constraints:
  * - Equalities represented as collection of equivalence classes in union-find data structure [equalReferences].
  * - Disequalities: [referenceDisequalities].get(x).contains(y) means that x !== y.
  * - Nullable disequalities: [nullableDisequalities].get(x).contains(y) means that x !== y || (x == null && y == null).
  *
- * Maintains graph of disequality constraints. Tries to detect (or at least approximate) maximal set of distinct heap references
- * by fast-check of clique in disequality graph (not exponential!) (see [distinctReferences]).
+ * Maintains graph of disequality constraints. Tries to detect (or at least approximate) maximal set of distinct
+ * symbolic heap references by fast-check of clique in disequality graph (not exponential!) (see [distinctReferences]).
  * All the rest disequalities (i.e., outside of the maximal clique) are stored into [referenceDisequalities].
  *
  * Important invariant: [distinctReferences], [referenceDisequalities] and [nullableDisequalities] include
- * *only* representatives of reference equivalence classes, i.e. only references x such that [equalReferences].find(x) == x.
+ * *only* representatives of reference equivalence classes, i.e. only references x,
+ * such that [equalReferences].find(x) == x.
  */
 class UEqualityConstraints private constructor(
     private val ctx: UContext,

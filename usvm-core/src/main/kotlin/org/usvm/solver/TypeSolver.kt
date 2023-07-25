@@ -35,8 +35,8 @@ class UTypeSolver<Type>(
      * 2. Groups symbolic references into clusters by their concrete interpretations and filters out nulls.
      * 3. For each cluster processes symbolic references one by one, intersects their type regions according to
      * [UIsSubtypeExpr]s and [UIsSupertypeExpr]s.
-     * 4. If the current region became empty, then we found a conflicting group, so build a new reference disequality
-     * lemma with negation of [UIsSubtypeExpr]s and [UIsSupertypeExpr]s.
+     * 4. If the current region became empty, then we have found a conflicting group, so build a new reference
+     * disequality lemma with negation of [UIsSubtypeExpr]s and [UIsSupertypeExpr]s.
      * 5. If no conflicting references were found, builds a type model.
      *
      * Example:
