@@ -36,6 +36,22 @@ import org.usvm.util.Intervals
 
 private typealias ConstraintTerms<Sort> = UExpr<Sort>
 
+/**
+ * Manage and simplify numeric constraints over bit-vectors (e.g. geq, lt, eq).
+ *
+ * [isNumericConstraint] --- check if expression is numeric constraint over bit-vectors and can
+ * be handled with [UNumericConstraints].
+ *
+ * [addNumericConstraint] --- add numeric constraint.
+ * Throws exception if constraint is not [isNumericConstraint]
+ *
+ * [addNegatedNumericConstraint] --- add negation of constraint.
+ * Throws exception if constraint is not [isNumericConstraint]
+ *
+ * [constraints] --- retrieve currently added constraints (possibly simplified).
+ *
+ * [evalInterval] --- retrieve possible values interval for the expression.
+ * */
 class UNumericConstraints<Sort : UBvSort> private constructor(
     private val ctx: UContext,
     val sort: Sort,
@@ -79,6 +95,10 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
             .flatMap { it.value.mkExpressions() }
     }
 
+    /**
+     * Check if [expr] is numeric constraint over bit-vectors and can
+     * be handled with [UNumericConstraints].
+     * */
     fun isNumericConstraint(expr: UBoolExpr): Boolean =
         recognizeNumericConstraint(
             expr = expr,
@@ -88,6 +108,10 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
             unknownConstraint = { false }
         )
 
+    /**
+     * Add numeric constraint [expr].
+     * Throws exception if constraint is not [isNumericConstraint]
+     * */
     fun addNumericConstraint(expr: UBoolExpr) {
         recognizeNumericConstraint(
             expr = expr,
@@ -116,6 +140,10 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         )
     }
 
+    /**
+     * Add negation of constraint [expr].
+     * Throws exception if constraint is not [isNumericConstraint]
+     * */
     fun addNegatedNumericConstraint(expr: UBoolExpr) {
         recognizeNumericConstraint(
             expr = expr,
