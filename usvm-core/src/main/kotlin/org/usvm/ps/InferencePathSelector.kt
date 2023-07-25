@@ -77,6 +77,12 @@ internal open class InferencePathSelector<State : UState<*, *, Method, Statement
             stateFeatures.logDistanceToBlockEnd,
             stateFeatures.logDistanceToExit,
             stateFeatures.logForkCount,
+            stateFeatures.logStatementFinishCount,
+            stateFeatures.logForkCountToExit,
+            stateFeatures.logMinForkCountToExit,
+            stateFeatures.logSubpathCount2,
+            stateFeatures.logSubpathCount4,
+            stateFeatures.logSubpathCount8,
             stateFeatures.logReward,
         )
     }
@@ -91,6 +97,9 @@ internal open class InferencePathSelector<State : UState<*, *, Method, Statement
             globalStateFeatures.averageLogLastNewDistance,
             globalStateFeatures.averageLogPathCoverage,
             globalStateFeatures.averageLogDistanceToBlockEnd,
+            globalStateFeatures.averageLogSubpathCount2,
+            globalStateFeatures.averageLogSubpathCount4,
+            globalStateFeatures.averageLogSubpathCount8,
             globalStateFeatures.averageLogReward,
             globalStateFeatures.logFinishedStatesCount,
             globalStateFeatures.finishedStatesFraction,

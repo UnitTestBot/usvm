@@ -47,7 +47,7 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
     private val penalty = 0.0f
     private val logBase = 1.42
     private var finishedStatesCount = 0u
-    private val allStates = mutableSetOf<State>()
+    private var allStatesCount = 0u
     private val weighter = ShortestDistanceToTargetsStateWeighter(
         coverageStatistics.getUncoveredStatements(),
         distanceStatistics::getShortestCfgDistance,
@@ -56,7 +56,12 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
     private val stateLastNewStatement = mutableMapOf<State, Int>()
     private val statePathCoverage = mutableMapOf<State, UInt>().withDefault { 0u }
     private val stateForkCount = mutableMapOf<State, UInt>().withDefault { 0u }
+    private val statementFinishCounts = mutableMapOf<Statement, UInt>().withDefault { 0u }
     private val distancesToExit: Map<Statement, UInt>
+    private val forkCountsToExit: Map<Statement, UInt>
+    private val minForkCountsToExit: Map<Statement, UInt>
+    private val statementRepetitions = mutableMapOf<Statement, UInt>().withDefault { 0u }
+    private val subpathCounts = mutableMapOf<List<Statement>, UInt>().withDefault { 0u }
 
     private val blockGraph: BlockGraph<Method, Statement>
 
@@ -195,6 +200,12 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
         val logDistanceToBlockEnd: Float = 0.0f,
         val logDistanceToExit: Float = 0.0f,
         val logForkCount: Float = 0.0f,
+        val logStatementFinishCount: Float = 0.0f,
+        val logForkCountToExit: Float = 0.0f,
+        val logMinForkCountToExit: Float = 0.0f,
+        val logSubpathCount2: Float = 0.0f,
+        val logSubpathCount4: Float = 0.0f,
+        val logSubpathCount8: Float = 0.0f,
         val logReward: Float = 0.0f,
     )
 
@@ -208,6 +219,9 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
         val averageLogLastNewDistance: Float = 0.0f,
         val averageLogPathCoverage: Float = 0.0f,
         val averageLogDistanceToBlockEnd: Float = 0.0f,
+        val averageLogSubpathCount2: Float = 0.0f,
+        val averageLogSubpathCount4: Float = 0.0f,
+        val averageLogSubpathCount8: Float = 0.0f,
         val averageLogReward: Float = 0.0f,
         val logFinishedStatesCount: Float = 0.0f,
         val finishedStatesFraction: Float = 0.0f,
@@ -245,26 +259,58 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
         filename = method.toString()
         blockGraph = BlockGraph(applicationGraph, applicationGraph.entryPoints(method).first())
         blockGraph.saveGraph(Path(blockGraphPath, filename, "graph.dot"))
-        distancesToExit = getDistancesToExit()
+        val (tmpDistancesToExit, tmpForkCountsToExit) = getDistancesToExit()
+        distancesToExit = tmpDistancesToExit
+        forkCountsToExit = tmpForkCountsToExit
+        minForkCountsToExit = getMinForkCountsToExit()
     }
 
-    private fun getDistancesToExit(): Map<Statement, UInt> {
+    private fun getDistancesToExit(): Array<Map<Statement, UInt>> {
         val exits = applicationGraph.exitPoints(method)
         val statementsQueue = ArrayDeque<Statement>()
-        val distancesToExit = exits.associateWith { 0u }.toMutableMap()
+        val distancesToExit = mutableMapOf<Statement, UInt>().withDefault { 0u }
+        val forkCountsToExit = mutableMapOf<Statement, UInt>().withDefault { 0u }
         statementsQueue.addAll(exits)
         while (statementsQueue.isNotEmpty()) {
             val currentStatement = statementsQueue.removeFirst()
             val distance = distancesToExit.getValue(currentStatement) + 1u
-            applicationGraph.predecessors(currentStatement).forEach {  statement ->
+            val lastForkCount = forkCountsToExit.getValue(currentStatement)
+            applicationGraph.predecessors(currentStatement).forEach { statement ->
                 if (distancesToExit.contains(statement)) {
                     return@forEach
                 }
                 distancesToExit[statement] = distance
+                val isFork = applicationGraph.successors(statement).count() > 1
+                forkCountsToExit[statement] = lastForkCount + if (isFork) 1u else 0u
                 statementsQueue.add(currentStatement)
             }
         }
-        return distancesToExit.withDefault { 0u }
+        return arrayOf(distancesToExit, forkCountsToExit)
+    }
+
+    private fun getMinForkCountsToExit(): Map<Statement, UInt> {
+        val exits = applicationGraph.exitPoints(method)
+        val statementsQueue = ArrayDeque<Statement>()
+        val forkCountsToExit = mutableMapOf<Statement, UInt>().withDefault { 0u }
+        statementsQueue.addAll(exits)
+        while (statementsQueue.isNotEmpty()) {
+            val currentStatement = statementsQueue.removeFirst()
+            val lastForkCount = forkCountsToExit.getValue(currentStatement)
+            applicationGraph.predecessors(currentStatement).forEach { statement ->
+                val isFork = applicationGraph.successors(statement).count() > 1
+                val newForkCount = lastForkCount + if (isFork) 1u else 0u
+                if (forkCountsToExit.contains(statement) || newForkCount > forkCountsToExit.getValue(statement)) {
+                    return@forEach
+                }
+                forkCountsToExit[statement] = newForkCount
+                if (isFork) {
+                    statementsQueue.add(currentStatement)
+                } else {
+                    statementsQueue.addFirst(currentStatement)
+                }
+            }
+        }
+        return forkCountsToExit
     }
 
     protected open fun getReward(state: State): Float {
@@ -294,6 +340,10 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
         return this.toInt().log()
     }
 
+    private fun <T> List<T>.getLast(count: Int): List<T> {
+        return this.subList(this.size - count, this.size)
+    }
+
     private fun getStateFeatures(state: State): StateFeatures {
         val currentStatement = state.currentStatement!!
         val currentBlock = blockGraph.getBlock(currentStatement)
@@ -304,22 +354,24 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
         val statementRepetitionLocal = state.path.filter { statement ->
             statement == currentStatement
         }.size
-        val statementRepetitionGlobal = allStates.sumOf { currentState ->
-            currentState.path.filter { statement ->
-                statement == currentStatement
-            }.size
-        }
+        val statementRepetitionGlobal = statementRepetitions.getValue(currentStatement)
         val distanceToUncovered = log2(weighter.weight(state).toFloat() + 1)
         val lastNewDistance = if (stateLastNewStatement.contains(state)) {
             state.path.size - stateLastNewStatement.getValue(state)
         } else {
-            1 / logBase - 1 // Should be -1 after log
+            1 / logBase - 1 // Equal to -1 after log
         }
         val pathCoverage = statePathCoverage.getValue(state)
         val distanceToBlockEnd = (currentBlock?.path?.size ?: 1) - 1 -
                 (currentBlock?.path?.indexOf(currentStatement) ?: 0)
         val distanceToExit = distancesToExit.getValue(currentStatement)
         val forkCount = stateForkCount.getValue(state)
+        val statementFinishCount = statementFinishCounts.getValue(currentStatement)
+        val forkCountToExit = forkCountsToExit.getValue(currentStatement)
+        val minForkCountToExit = minForkCountsToExit.getValue(currentStatement)
+        val subpathCount2 = if (state.path.size >= 2) subpathCounts.getValue(state.path.getLast(2)) else 0u
+        val subpathCount4 = if (state.path.size >= 4) subpathCounts.getValue(state.path.getLast(4)) else 0u
+        val subpathCount8 = if (state.path.size >= 8) subpathCounts.getValue(state.path.getLast(8)) else 0u
 
         val reward = getReward(state)
 
@@ -335,6 +387,12 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
             distanceToBlockEnd.log(),
             distanceToExit.log(),
             forkCount.log(),
+            statementFinishCount.log(),
+            forkCountToExit.log(),
+            minForkCountToExit.log(),
+            subpathCount2.log(),
+            subpathCount4.log(),
+            subpathCount8.log(),
             reward.log(),
         )
     }
@@ -349,7 +407,7 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
         val uncoveredStatements = coverageStatistics.getUncoveredStatements().map { it.second }.toSet()
 
         val logFinishedStatesCount = log(finishedStatesCount.toDouble() + 1, logBase)
-        val finishedStatesFraction = finishedStatesCount.toFloat() / allStates.size.toFloat()
+        val finishedStatesFraction = finishedStatesCount.toFloat() / allStatesCount.toFloat()
         val totalCoverage = coverageStatistics.getTotalCoverage() / 100
         val visitedStatesFraction = visitedStatements.intersect(uncoveredStatements).size.toFloat() / allStatements.size
 
@@ -363,6 +421,9 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
             stateFeatureQueue.map { it.logPathCoverage }.average(),
             stateFeatureQueue.map { it.logDistanceToBlockEnd }.average(),
             stateFeatureQueue.map { it.logReward }.average(),
+            stateFeatureQueue.map { it.logSubpathCount2 }.average(),
+            stateFeatureQueue.map { it.logSubpathCount4 }.average(),
+            stateFeatureQueue.map { it.logSubpathCount8 }.average(),
             logFinishedStatesCount.toFloat(),
             finishedStatesFraction,
             visitedStatesFraction,
@@ -414,11 +475,22 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
     }
 
     private fun updateCoverage(state: State) {
+        arrayOf(2, 4, 8).forEach { length ->
+            if (state.path.size < length) {
+                return@forEach
+            }
+            val subpath = state.path.getLast(length)
+            subpathCounts[subpath] = subpathCounts.getValue(subpath) + 1u
+        }
+
         val statement = state.currentStatement!!
+        statementRepetitions[statement] = statementRepetitions.getValue(statement) + 1u
         visitedStatements.add(statement)
+
         if (applicationGraph.successors(statement).count() > 1) {
             stateForkCount[state] = stateForkCount.getValue(state) + 1u
         }
+
         if (coverageStatistics.getUncoveredStatements().map { it.second }.contains(statement)) {
             stateLastNewStatement[state] = state.path.size
             statePathCoverage[state] = statePathCoverage.getValue(state) + 1u
@@ -492,7 +564,7 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
             return
         }
         queue.addAll(states)
-        allStates.addAll(states)
+        allStatesCount += 1u
     }
 
     override fun remove(state: State) {
@@ -502,5 +574,8 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
             else -> queue.remove(state)
         }
         finishedStatesCount += 1u
+        state.path.toSet().forEach {  statement ->
+            statementFinishCounts[statement] = statementFinishCounts.getValue(statement) + 1u
+        }
     }
 }

@@ -33,9 +33,9 @@ fun main(args: Array<String>) {
         Json.decodeFromString<JsonObject>(it)
     }
     if (options != null) {
-        MainConfig.testsPath = options.getOrDefault("testsPath", MainConfig.testsPath).toString()
-        MainConfig.gameEnvPath = options.getOrDefault("gameEnvPath", MainConfig.gameEnvPath).toString()
-        MainConfig.testsPath = options.getOrDefault("dataPath", MainConfig.dataPath).toString()
+        MainConfig.testsPath = (options.getOrDefault("testsPath", MainConfig.testsPath) as JsonPrimitive).content
+        MainConfig.gameEnvPath = (options.getOrDefault("gameEnvPath", MainConfig.gameEnvPath) as JsonPrimitive).content
+        MainConfig.dataPath = (options.getOrDefault("dataPath", MainConfig.dataPath) as JsonPrimitive).content
     }
     val testsDir = File(MainConfig.testsPath)
     val classLoader = URLClassLoader(arrayOf(testsDir.toURI().toURL()))
