@@ -120,7 +120,7 @@ internal class VirtualInvokeExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented. Support strings/integer wrapper")
+    @Disabled("An operation is not implemented: Not yet implemented. Support strings/integer approximations")
     fun testNullValueInReturnValue() {
         checkDiscoveredProperties(
             VirtualInvokeExample::nullValueInReturnValue,

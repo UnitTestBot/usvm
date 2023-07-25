@@ -272,19 +272,19 @@ class JcExprResolver(
     }
 
     override fun visitJcStringConstant(value: JcStringConstant): UExpr<out USort> = with(ctx) {
-        TODO("Not yet implemented")
+        TODO("String constant")
     }
 
     override fun visitJcMethodConstant(value: JcMethodConstant): UExpr<out USort> = with(ctx) {
-        TODO("Not yet implemented")
+        TODO("Method constant")
     }
 
     override fun visitJcMethodType(value: JcMethodType): UExpr<out USort>? {
-        TODO("Not yet implemented")
+        TODO("Method type")
     }
 
     override fun visitJcClassConstant(value: JcClassConstant): UExpr<out USort> = with(ctx) {
-        TODO("Not yet implemented")
+        TODO("Class constant")
     }
 
     // endregion

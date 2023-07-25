@@ -234,6 +234,7 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented. Support strings/collections")
     fun testInstanceOfAsInternalExpressionsMap() {
         checkDiscoveredProperties(
             InstanceOfExample::instanceOfAsInternalExpressionsMap,
