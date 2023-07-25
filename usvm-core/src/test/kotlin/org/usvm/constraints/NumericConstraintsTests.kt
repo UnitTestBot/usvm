@@ -48,16 +48,16 @@ class NumericConstraintsTests {
     }
 
     @Test
-    fun testRandom1(): Unit = repeatWithLog(RANDOM_TEST_1_ITERATIONS) { testRandomConstraints(seed = it, size = 1) }
+    fun testRandom1(): Unit = repeatWithRandom(RANDOM_TEST_1_ITERATIONS) { testRandomConstraints(seed = it, size = 1) }
 
     @Test
-    fun testRandom2(): Unit = repeatWithLog(RANDOM_TEST_2_ITERATIONS) { testRandomConstraints(seed = it, size = 2) }
+    fun testRandom2(): Unit = repeatWithRandom(RANDOM_TEST_2_ITERATIONS) { testRandomConstraints(seed = it, size = 2) }
 
     @Test
-    fun testRandom3(): Unit = repeatWithLog(RANDOM_TEST_3_ITERATIONS) { testRandomConstraints(seed = it, size = 3) }
+    fun testRandom3(): Unit = repeatWithRandom(RANDOM_TEST_3_ITERATIONS) { testRandomConstraints(seed = it, size = 3) }
 
     @Test
-    fun testRandom4(): Unit = repeatWithLog(RANDOM_TEST_4_ITERATIONS) { testRandomConstraints(seed = it, size = 4) }
+    fun testRandom4(): Unit = repeatWithRandom(RANDOM_TEST_4_ITERATIONS) { testRandomConstraints(seed = it, size = 4) }
 
     @Test
     fun testLinearPattern(): Unit = KZ3Solver(ctx).use { solver ->
@@ -224,13 +224,13 @@ class NumericConstraintsTests {
         previousConstraints?.addConstraint(lastExpr)
     }
 
-    private inline fun repeatWithLog(times: Int, body: (Int) -> Unit) {
+    private inline fun repeatWithRandom(times: Int, body: (Int) -> Unit) {
         val logStep = times / 100 + 1
         repeat(times) {
             if (it % logStep == 0) {
                 logger.debug { "$it / $times" }
             }
-            body(it)
+            body(Random.nextInt())
         }
     }
 

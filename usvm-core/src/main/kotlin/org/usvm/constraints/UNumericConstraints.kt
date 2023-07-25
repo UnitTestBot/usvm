@@ -830,11 +830,10 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         return actualized
     }
 
-    private inline fun refineGroundConstraint(
-        bias: KBitVecValue<Sort>,
-        body: () -> BoundsConstraint<Sort>
+    private fun BoundsConstraint<Sort>.refineGroundConstraint(
+        bias: KBitVecValue<Sort>
     ): BoundsConstraint<Sort> =
-        body().refineBounds(bias, zero) { subNoOverflow(it, bias) }
+        refineBounds(bias, zero) { subNoOverflow(it, bias) }
 
     private fun BoundsConstraint<Sort>.refineFromGround(
         bias: KBitVecValue<Sort>
@@ -929,11 +928,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
             }
         }
 
-        constraintUpdated(ConstraintUpdateEvent(constrainedTerms, bias, BoundsUpdateKind.LOWER))
-
-        return refineGroundConstraint(bias) {
-            modifyConcreteLowerBounds(bias, ValueConstraint(value, isPrimary))
-        }
+        return addRefinedConcreteLowerBound(bias, ValueConstraint(value, isPrimary))
     }
 
     private fun BoundsConstraint<Sort>.updateConcreteUpperBound(
@@ -963,11 +958,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
             }
         }
 
-        constraintUpdated(ConstraintUpdateEvent(constrainedTerms, bias, BoundsUpdateKind.UPPER))
-
-        return refineGroundConstraint(bias) {
-            modifyConcreteUpperBounds(bias, ValueConstraint(value, isPrimary))
-        }
+        return addRefinedConcreteUpperBound(bias, ValueConstraint(value, isPrimary))
     }
 
     private fun BoundsConstraint<Sort>.updateConcreteDisequality(
@@ -1030,15 +1021,9 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         val constraint = TermsConstraint(rhs.constrainedTerms, rhsBias, isStrict)
 
         if (rhsLB != null && (lhsLB == null || rhsLB.value.signedGreater(lhsLB.value))) {
-            return refineGroundConstraint(lhsBias) {
-                addInferredLowerBound(lhsBias, rhs, constraint, rhsLB.value) { bounds ->
-                    // we have more strict constraint than current concrete
-                    constraintUpdated(ConstraintUpdateEvent(constrainedTerms, lhsBias, BoundsUpdateKind.LOWER))
-                    bounds.modifyConcreteLowerBounds(
-                        bias = lhsBias,
-                        bound = ValueConstraint(rhsLB.value, isPrimary = false)
-                    )
-                }
+            return addInferredLowerBound(lhsBias, rhs, constraint, rhsLB.value) { bounds ->
+                // we have more strict constraint than current concrete
+                bounds.addConcreteLowerBound(lhsBias, rhsLB.value, isPrimary = false)
             }
         }
 
@@ -1074,15 +1059,9 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         val constraint = TermsConstraint(rhs.constrainedTerms, rhsBias, isStrict)
 
         if (rhsUB != null && (lhsUB == null || rhsUB.value.signedLess(lhsUB.value))) {
-            return refineGroundConstraint(lhsBias) {
-                addUpperBound(lhsBias, rhs, constraint, rhsUB.value) { bounds ->
-                    // we have more strict constraint than current concrete
-                    constraintUpdated(ConstraintUpdateEvent(constrainedTerms, lhsBias, BoundsUpdateKind.UPPER))
-                    bounds.modifyConcreteUpperBounds(
-                        bias = lhsBias,
-                        bound = ValueConstraint(rhsUB.value, isPrimary = false)
-                    )
-                }
+            return addUpperBound(lhsBias, rhs, constraint, rhsUB.value) { bounds ->
+                // we have more strict constraint than current concrete
+                bounds.addConcreteUpperBound(lhsBias, rhsUB.value, isPrimary = false)
             }
         }
 
@@ -1509,7 +1488,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
      *    -------
      *    remove l + x1
      * */
-    private inline fun eliminateLowerBound(
+    private inline fun eliminateTermLowerBound(
         boundsConstraint: BoundsConstraint<Sort>,
         bias: KBitVecValue<Sort>,
         rhs: BoundsConstraint<Sort>,
@@ -1517,11 +1496,21 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         rhsLB: KBitVecValue<Sort>?,
         cont: (BoundsConstraint<Sort>) -> BoundsConstraint<Sort>
     ): BoundsConstraint<Sort> = eliminateBoundConstraints(
-        boundsConstraint, bias, rhs, constraint, rhsLB,
-        bounds = boundsConstraint.inferredTermLowerBounds,
-        updateBounds = { updatedBounds -> boundsConstraint.modifyTermLowerBounds(updatedBounds) },
-        removeOppositeConstraint = { constraints, constraintToRemove, biasToRemove ->
-            constraints.removeTermUpperBound(biasToRemove, constraintToRemove)
+        boundsConstraint, bias, rhsLB, rhsConstraint = rhs,
+        findRelevantBiases = {
+            boundsConstraint.inferredTermLowerBounds.findBiasesWithConstraint(constraint)
+        },
+        removeConstraintForBias = { bc, biasToRemove ->
+            val modifiedBounds = bc.inferredTermLowerBounds.removeTermConstraint(biasToRemove, constraint)
+            bc.modifyTermLowerBounds(modifiedBounds)
+        },
+        removeOppositeConstraintForBias = { bc, biasToRemove ->
+            val oppositeConstraint = TermsConstraint(
+                boundsConstraint.constrainedTerms,
+                biasToRemove,
+                constraint.isStrict
+            )
+            bc.removeTermUpperBound(constraint.bias, oppositeConstraint)
         },
         cont = { cont(it) }
     )
@@ -1554,7 +1543,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
      *    (x2 - x0) < (MAX_VALUE + bound)
      *    l + x1 can be removed
      * */
-    private inline fun eliminateUpperBound(
+    private inline fun eliminateTermUpperBound(
         boundsConstraint: BoundsConstraint<Sort>,
         bias: KBitVecValue<Sort>,
         rhs: BoundsConstraint<Sort>,
@@ -1562,26 +1551,77 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         rhsUB: KBitVecValue<Sort>?,
         cont: (BoundsConstraint<Sort>) -> BoundsConstraint<Sort>
     ): BoundsConstraint<Sort> = eliminateBoundConstraints(
-        boundsConstraint, bias, rhs, constraint, rhsUB,
-        bounds = boundsConstraint.termUpperBounds,
-        updateBounds = { updatedBounds -> boundsConstraint.modifyTermUpperBounds(updatedBounds) },
-        removeOppositeConstraint = { constraints, constraintToRemove, biasToRemove ->
-            constraints.removeTermLowerBound(biasToRemove, constraintToRemove)
+        boundsConstraint, bias, rhsUB, rhsConstraint = rhs,
+        findRelevantBiases = {
+            boundsConstraint.termUpperBounds.findBiasesWithConstraint(constraint)
         },
+        removeConstraintForBias = { bc, biasToRemove ->
+            val modifiedBounds = bc.termUpperBounds.removeTermConstraint(biasToRemove, constraint)
+            bc.modifyTermUpperBounds(modifiedBounds)
+        },
+        removeOppositeConstraintForBias = { bc, biasToRemove ->
+            val oppositeConstraint = TermsConstraint(
+                boundsConstraint.constrainedTerms,
+                biasToRemove,
+                constraint.isStrict
+            )
+            bc.removeTermLowerBound(constraint.bias, oppositeConstraint)
+        },
+        cont = { cont(it) }
+    )
+
+    /**
+     * See [eliminateTermUpperBound] for the details.
+     * */
+    private inline fun eliminateConcreteUpperBound(
+        boundsConstraint: BoundsConstraint<Sort>,
+        bias: KBitVecValue<Sort>,
+        constraint: ValueConstraint<Sort>,
+        rhsUB: KBitVecValue<Sort>?,
+        cont: (BoundsConstraint<Sort>) -> BoundsConstraint<Sort>
+    ): BoundsConstraint<Sort> = eliminateBoundConstraints(
+        boundsConstraint, bias, rhsUB, rhsConstraint = null,
+        findRelevantBiases = {
+            boundsConstraint.concreteUpperBounds.asSequence()
+                .mapNotNull { (bias, c) -> bias.takeIf { c == constraint } }
+        },
+        removeConstraintForBias = { bc, biasToRemove ->
+            bc.removeConcreteUpperBound(biasToRemove)
+        },
+        removeOppositeConstraintForBias = { bc, _ -> bc },
+        cont = { cont(it) }
+    )
+
+    /**
+     * See [eliminateTermLowerBound] for the details.
+     * */
+    private inline fun eliminateConcreteLowerBound(
+        boundsConstraint: BoundsConstraint<Sort>,
+        bias: KBitVecValue<Sort>,
+        constraint: ValueConstraint<Sort>,
+        rhsLB: KBitVecValue<Sort>?,
+        cont: (BoundsConstraint<Sort>) -> BoundsConstraint<Sort>
+    ): BoundsConstraint<Sort> = eliminateBoundConstraints(
+        boundsConstraint, bias, rhsLB, rhsConstraint = null,
+        findRelevantBiases = {
+            boundsConstraint.concreteLowerBounds.asSequence()
+                .mapNotNull { (bias, c) -> bias.takeIf { c == constraint } }
+        },
+        removeConstraintForBias = { bc, biasToRemove ->
+            bc.removeConcreteLowerBound(biasToRemove)
+        },
+        removeOppositeConstraintForBias = { bc, _ -> bc },
         cont = { cont(it) }
     )
 
     private inline fun eliminateBoundConstraints(
         boundsConstraint: BoundsConstraint<Sort>,
         bias: KBitVecValue<Sort>,
-        rhs: BoundsConstraint<Sort>,
-        constraint: TermsConstraint<Sort>,
         rhsBound: KBitVecValue<Sort>?,
-        bounds: TermConstraintSet<Sort>,
-        updateBounds: (TermConstraintSet<Sort>) -> BoundsConstraint<Sort>,
-        removeOppositeConstraint: (
-            BoundsConstraint<Sort>, TermsConstraint<Sort>, KBitVecValue<Sort>
-        ) -> BoundsConstraint<Sort>,
+        rhsConstraint: BoundsConstraint<Sort>?,
+        findRelevantBiases: () -> Sequence<KBitVecValue<Sort>>,
+        removeConstraintForBias: (BoundsConstraint<Sort>, KBitVecValue<Sort>) -> BoundsConstraint<Sort>,
+        removeOppositeConstraintForBias: (BoundsConstraint<Sort>, KBitVecValue<Sort>) -> BoundsConstraint<Sort>,
         cont: (BoundsConstraint<Sort>) -> BoundsConstraint<Sort>
     ): BoundsConstraint<Sort> {
         if (rhsBound == null) {
@@ -1589,7 +1629,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         }
 
         val searchPositive = bias.signedGreaterOrEqual(zero)
-        val relevantConstraints = bounds.findBiasesWithConstraint(constraint)
+        val relevantConstraints = findRelevantBiases()
             .filter { if (searchPositive) it.signedGreaterOrEqual(zero) else it.signedLess(zero) }
             .toMutableList()
 
@@ -1628,10 +1668,10 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
             return cont(boundsConstraint)
         }
 
-        var modifiedBounds = bounds
+        var modifiedConstraint = boundsConstraint
         var removeCurrent = false
 
-        var relatedNumericConstraints = rhs
+        var modifiedRhsConstraint = rhsConstraint
 
         for (biasToRemove in biasesToRemove) {
             if (biasToRemove == bias) {
@@ -1639,30 +1679,19 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
                 continue
             }
 
-            modifiedBounds = modifiedBounds.removeTermConstraint(biasToRemove, constraint)
-
-            val oppositeConstraint = TermsConstraint(
-                boundsConstraint.constrainedTerms,
-                biasToRemove,
-                constraint.isStrict
-            )
-            relatedNumericConstraints = removeOppositeConstraint(
-                relatedNumericConstraints,
-                oppositeConstraint,
-                constraint.bias
-            )
+            modifiedConstraint = removeConstraintForBias(modifiedConstraint, biasToRemove)
+            modifiedRhsConstraint = modifiedRhsConstraint?.let { removeOppositeConstraintForBias(it, biasToRemove) }
         }
 
-        if (relatedNumericConstraints !== rhs) {
-            updateConstraint(relatedNumericConstraints)
+        if (modifiedRhsConstraint !== null && modifiedRhsConstraint !== rhsConstraint) {
+            updateConstraint(modifiedRhsConstraint)
         }
 
-        val result = updateBounds(modifiedBounds)
         if (removeCurrent) {
-            return result
+            return modifiedConstraint
         }
 
-        return cont(result)
+        return cont(modifiedConstraint)
     }
 
     private inline fun BoundsConstraint<Sort>.addInferredLowerBound(
@@ -1672,7 +1701,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         rhsLB: KBitVecValue<Sort>?,
         postProcessConstraint: (BoundsConstraint<Sort>) -> BoundsConstraint<Sort> = { it }
     ): BoundsConstraint<Sort> =
-        eliminateLowerBound(this, bias, rhs, constraint, rhsLB) { boundsConstraint ->
+        eliminateTermLowerBound(this, bias, rhs, constraint, rhsLB) { boundsConstraint ->
             constraintAddDependency(boundsConstraint.constrainedTerms, constraint.terms)
             val updatedBounds = boundsConstraint.inferredTermLowerBounds.addTermConstraint(bias, constraint)
             val result = boundsConstraint.modifyTermLowerBounds(updatedBounds)
@@ -1686,12 +1715,36 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         rhsUB: KBitVecValue<Sort>?,
         postProcessConstraint: (BoundsConstraint<Sort>) -> BoundsConstraint<Sort> = { it }
     ): BoundsConstraint<Sort> =
-        eliminateUpperBound(this, bias, rhs, constraint, rhsUB) { boundsConstraint ->
+        eliminateTermUpperBound(this, bias, rhs, constraint, rhsUB) { boundsConstraint ->
             constraintAddDependency(boundsConstraint.constrainedTerms, constraint.terms)
             val updatedBounds = boundsConstraint.termUpperBounds.addTermConstraint(bias, constraint)
             val result = boundsConstraint.modifyTermUpperBounds(updatedBounds)
             postProcessConstraint(result)
         }
+
+    private fun BoundsConstraint<Sort>.addRefinedConcreteUpperBound(
+        bias: KBitVecValue<Sort>,
+        constraint: ValueConstraint<Sort>
+    ): BoundsConstraint<Sort> = eliminateConcreteUpperBound(
+        this, bias, constraint, rhsUB = constraint.value
+    ) { boundsConstraint ->
+        constraintUpdated(ConstraintUpdateEvent(constrainedTerms, bias, BoundsUpdateKind.UPPER))
+        return boundsConstraint
+            .modifyConcreteUpperBounds(bias, constraint)
+            .refineGroundConstraint(bias)
+    }
+
+    private fun BoundsConstraint<Sort>.addRefinedConcreteLowerBound(
+        bias: KBitVecValue<Sort>,
+        constraint: ValueConstraint<Sort>
+    ): BoundsConstraint<Sort> = eliminateConcreteLowerBound(
+        this, bias, constraint, rhsLB = constraint.value
+    ) { boundsConstraint ->
+        constraintUpdated(ConstraintUpdateEvent(constrainedTerms, bias, BoundsUpdateKind.LOWER))
+        return boundsConstraint
+            .modifyConcreteLowerBounds(bias, constraint)
+            .refineGroundConstraint(bias)
+    }
 
     private fun propagate(
         constraint: BoundsConstraint<Sort>,
@@ -1887,6 +1940,30 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
             return BoundsConstraint(
                 constrainedTerms,
                 concreteLowerBounds, modified, concreteDisequalitites,
+                inferredTermLowerBounds, termUpperBounds, termDisequalities
+            )
+        }
+
+        fun removeConcreteUpperBound(bias: KBitVecValue<Sort>): BoundsConstraint<Sort> {
+            val modified = concreteUpperBounds.remove(bias)
+            if (modified === this.concreteUpperBounds) {
+                return this
+            }
+            return BoundsConstraint(
+                constrainedTerms,
+                concreteLowerBounds, modified, concreteDisequalitites,
+                inferredTermLowerBounds, termUpperBounds, termDisequalities
+            )
+        }
+
+        fun removeConcreteLowerBound(bias: KBitVecValue<Sort>): BoundsConstraint<Sort> {
+            val modified = concreteLowerBounds.remove(bias)
+            if (modified === this.concreteLowerBounds) {
+                return this
+            }
+            return BoundsConstraint(
+                constrainedTerms,
+                modified, concreteUpperBounds, concreteDisequalitites,
                 inferredTermLowerBounds, termUpperBounds, termDisequalities
             )
         }
