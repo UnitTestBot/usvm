@@ -203,22 +203,7 @@ class UTypeSolver<Type>(
         onNotHolds: (USymbolicHeapRef, UIsExpr<Type>) -> Unit = { _, _ -> },
     ): Map<USymbolicHeapRef, List<Pair<UIsExpr<Type>, Boolean>>> {
         val symbolicRefToIsSubtypeExprs = isExpressions.groupBy { (expr, _) -> expr.ref as USymbolicHeapRef }
-        findNullConflicts(
-            symbolicRefToIsSubtypeExprs,
-            symbolicToConcrete,
-            onHolds,
-            onNotHolds,
-        )
-        return symbolicRefToIsSubtypeExprs
-    }
-
-    private inline fun findNullConflicts(
-        symbolicRefToIsSupertypeExprs: Map<USymbolicHeapRef, List<Pair<UIsExpr<Type>, Boolean>>>,
-        symbolicToConcrete: (USymbolicHeapRef) -> UConcreteHeapRef,
-        onHolds: (USymbolicHeapRef, UIsExpr<Type>) -> Unit = { _, _ -> },
-        onNotHolds: (USymbolicHeapRef, UIsExpr<Type>) -> Unit = { _, _ -> },
-    ) {
-        for ((ref, isSupertypeExprs) in symbolicRefToIsSupertypeExprs) {
+        for ((ref, isSupertypeExprs) in symbolicRefToIsSubtypeExprs) {
             val concreteRef = symbolicToConcrete(ref).address
             if (concreteRef != NULL_ADDRESS) {
                 continue
@@ -231,5 +216,7 @@ class UTypeSolver<Type>(
                 }
             }
         }
+        return symbolicRefToIsSubtypeExprs
     }
+
 }
