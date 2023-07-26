@@ -73,8 +73,7 @@ open class UExprTranslator<Field, Type>(
         return const
     }
 
-    override fun transform(expr: UConcreteHeapRef): KExpr<UAddressSort> =
-        error("Unexpected UConcreteHeapRef $expr in UExprTranslator, that has to be impossible by construction!")
+    override fun transform(expr: UConcreteHeapRef): KExpr<UAddressSort> = ctx.mkUninterpretedSortValue(ctx.addressSort, expr.address)
 
     private val _declToIsExpr = mutableMapOf<KDecl<UBoolSort>, UIsExpr<Type>>()
     val declToIsExpr: Map<KDecl<UBoolSort>, UIsExpr<Type>> get() = _declToIsExpr

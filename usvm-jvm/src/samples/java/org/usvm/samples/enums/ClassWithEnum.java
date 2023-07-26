@@ -62,6 +62,8 @@ public class ClassWithEnum {
             statusEnum = StatusEnum.READY;
         }
 
+        // ERROR -> READY -> 0
+        // READY -> ERROR -> 1
         return statusEnum.ordinal();
     }
 

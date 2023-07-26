@@ -64,6 +64,12 @@ open class ULazyModelDecoder<Field, Type, Method>(
             if (interpretedAddress == interpreterdNullRef) {
                 continue
             }
+
+            if (interpretedAddress.valueIdx <= INITIAL_INPUT_ADDRESS) {
+                result[interpretedAddress] = ctx.mkConcreteHeapRef(interpretedAddress.valueIdx)
+                continue
+            }
+
             result[interpretedAddress] = ctx.mkConcreteHeapRef(counter--)
         }
 

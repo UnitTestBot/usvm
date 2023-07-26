@@ -6,12 +6,14 @@ import org.usvm.UAndExpr
 import org.usvm.UBoolExpr
 import org.usvm.UContext
 import org.usvm.UEqExpr
+import org.usvm.UExpr
 import org.usvm.UFalse
+import org.usvm.UHeapRef
 import org.usvm.UIsSubtypeExpr
 import org.usvm.UIsSupertypeExpr
 import org.usvm.UNotExpr
 import org.usvm.UOrExpr
-import org.usvm.USymbolicHeapRef
+import org.usvm.isStaticInitializedConcreteHeapRef
 import org.usvm.isSymbolicHeapRef
 import org.usvm.uctx
 
@@ -33,6 +35,9 @@ open class UPathConstraints<Type> private constructor(
         equalityConstraints
     ),
 ) {
+    init {
+        equalityConstraints.setTypesCheck(typeConstraints::isStaticRefAssignableToSymbolic)
+    }
     /**
      * Constraints solved by SMT solver.
      */
@@ -54,8 +59,8 @@ open class UPathConstraints<Type> private constructor(
 
                 constraint == trueExpr || constraint in logicalConstraints -> {}
 
-                constraint is UEqExpr<*> && isSymbolicHeapRef(constraint.lhs) && isSymbolicHeapRef(constraint.rhs) ->
-                    equalityConstraints.makeEqual(constraint.lhs as USymbolicHeapRef, constraint.rhs as USymbolicHeapRef)
+                constraint is UEqExpr<*> && arePossiblyEqualReferences(constraint.lhs, constraint.rhs) ->
+                    equalityConstraints.makeEqual(constraint.lhs as UHeapRef, constraint.rhs as UHeapRef)
 
                 constraint is UIsSubtypeExpr<*> -> {
                     typeConstraints.addSupertype(constraint.ref, constraint.supertype as Type)
@@ -70,13 +75,11 @@ open class UPathConstraints<Type> private constructor(
                 constraint is UNotExpr -> {
                     val notConstraint = constraint.arg
                     when {
-                        notConstraint is UEqExpr<*> &&
-                                isSymbolicHeapRef(notConstraint.lhs) &&
-                                isSymbolicHeapRef(notConstraint.rhs) -> {
+                        notConstraint is UEqExpr<*> && arePossiblyEqualReferences(notConstraint.lhs, notConstraint.rhs) -> {
                             require(notConstraint.rhs.sort == addressSort)
                             equalityConstraints.makeNonEqual(
-                                notConstraint.lhs as USymbolicHeapRef,
-                                notConstraint.rhs as USymbolicHeapRef
+                                notConstraint.lhs as UHeapRef,
+                                notConstraint.rhs as UHeapRef
                             )
                         }
 
@@ -112,5 +115,21 @@ open class UPathConstraints<Type> private constructor(
 
     protected fun contradiction(ctx: UContext) {
         logicalConstraints = persistentSetOf(ctx.falseExpr)
+    }
+
+    // Only symbolic references or a pair of symbolic-static could be equal by reference
+    private fun arePossiblyEqualReferences(ref1: UExpr<*>, ref2: UExpr<*>): Boolean {
+        val isFirstSymbolic = isSymbolicHeapRef(ref1)
+        val isSecondSymbolic = isSymbolicHeapRef(ref2)
+
+        val isFirstStaticallyInitialized = isStaticInitializedConcreteHeapRef(ref1)
+        val isSecondStaticallyInitialized = isStaticInitializedConcreteHeapRef(ref2)
+
+        return when {
+            isFirstSymbolic && isSecondSymbolic -> true
+            isFirstSymbolic && isSecondStaticallyInitialized -> true
+            isFirstStaticallyInitialized && isSecondSymbolic -> true
+            else -> false
+        }
     }
 }

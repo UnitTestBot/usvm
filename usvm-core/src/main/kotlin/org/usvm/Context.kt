@@ -89,7 +89,13 @@ open class UContext(
         when {
             // fast checks
             lhs is USymbolicHeapRef && rhs is USymbolicHeapRef -> super.mkEq(lhs, rhs, order = true)
+            isAllocatedConcreteHeapRef(lhs) && isStaticInitializedConcreteHeapRef(rhs) -> mkFalse()
+            isStaticInitializedConcreteHeapRef(lhs) && isAllocatedConcreteHeapRef(rhs) -> mkFalse()
             lhs is UConcreteHeapRef && rhs is UConcreteHeapRef -> mkBool(lhs == rhs)
+            isStaticInitializedConcreteHeapRef(lhs) && rhs is UNullRef -> mkFalse()
+            lhs is UNullRef && isStaticInitializedConcreteHeapRef(rhs) -> mkFalse()
+            lhs is USymbolicHeapRef && isStaticInitializedConcreteHeapRef(rhs) -> super.mkEq(lhs, rhs, order = true)
+            isStaticInitializedConcreteHeapRef(lhs) && rhs is USymbolicHeapRef -> super.mkEq(lhs, rhs, order = true)
             // unfolding
             else -> {
                 val (concreteRefsLhs, symbolicRefLhs) = splitUHeapRef(lhs, ignoreNullRefs = false)

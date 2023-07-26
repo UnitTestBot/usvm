@@ -13,6 +13,7 @@ import org.usvm.UIndexType
 import org.usvm.USizeExpr
 import org.usvm.USizeSort
 import org.usvm.USort
+import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.sampleUValue
 import org.usvm.uctx
 import org.usvm.util.ProductRegion
@@ -80,7 +81,7 @@ data class USymbolicMemoryRegion<out RegionId : URegionId<Key, Sort, RegionId>, 
         if (sort == sort.uctx.addressSort) {
             // Here we split concrete heap addresses from symbolic ones to optimize further memory operations.
             // But doing this for composition seems a little bit strange
-            return splittingRead(key) { it is UConcreteHeapRef }
+            return splittingRead(key) { isAllocatedConcreteHeapRef(it) }
         }
 
         val updates = updates.read(key)
@@ -127,6 +128,7 @@ data class USymbolicMemoryRegion<out RegionId : URegionId<Key, Sort, RegionId>, 
                 value.asExpr(sort.uctx.addressSort),
                 initialGuard = guard,
                 blockOnConcrete = { (ref, guard) -> newUpdates = newUpdates.write(key, ref.asExpr(sort), guard) },
+                blockOnStatic = { (ref, guard) -> newUpdates = newUpdates.write(key, ref.asExpr(sort), guard) },
                 blockOnSymbolic = { (ref, guard) -> newUpdates = newUpdates.write(key, ref.asExpr(sort), guard) },
                 ignoreNullRefs = false
             )

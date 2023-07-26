@@ -96,7 +96,7 @@ class USoftConstraintsProvider<Field, Type>(override val ctx: UContext) : UTrans
 
     override fun transform(
         expr: UConcreteHeapRef,
-    ): UExpr<UAddressSort> = error("Illegal operation since UConcreteHeapRef must not be translated into a solver")
+    ): UExpr<UAddressSort> = ctx.mkUninterpretedSortValue(ctx.addressSort, expr.address)
 
     override fun transform(expr: UNullRef): UExpr<UAddressSort> = expr
 

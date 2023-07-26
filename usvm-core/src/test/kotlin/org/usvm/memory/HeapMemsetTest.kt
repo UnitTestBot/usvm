@@ -34,7 +34,7 @@ class HeapMemsetTest {
         val concreteAddresses = (17..30).toList()
         val values = concreteAddresses.map { mkConcreteHeapRef(it) }
 
-        val ref = heap.allocateArray(mkSizeExpr(concreteAddresses.size))
+        val ref = heap.allocateArray(arrayType, mkSizeExpr(concreteAddresses.size))
         val initiallyStoredValues = concreteAddresses.indices.map { idx ->
             heap.readArrayIndex(ref, mkSizeExpr(idx), arrayType, arrayValueSort)
         }
@@ -55,7 +55,7 @@ class HeapMemsetTest {
         val values = concreteAddresses.map { mkConcreteHeapRef(it) }
 
         val initialSize = concreteAddresses.size * 2
-        val ref = heap.allocateArray(mkSizeExpr(initialSize))
+        val ref = heap.allocateArray(arrayType, mkSizeExpr(initialSize))
         val actualInitialSize = heap.readArrayLength(ref, arrayType)
 
         heap.memset(ref, arrayType, arrayValueSort, values.asSequence())

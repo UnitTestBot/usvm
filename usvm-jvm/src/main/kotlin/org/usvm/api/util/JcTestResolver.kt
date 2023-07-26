@@ -8,18 +8,20 @@ import org.jacodb.api.JcPrimitiveType
 import org.jacodb.api.JcRefType
 import org.jacodb.api.JcType
 import org.jacodb.api.JcTypedMethod
+import org.jacodb.api.ext.allSuperHierarchySequence
 import org.jacodb.api.ext.boolean
 import org.jacodb.api.ext.byte
 import org.jacodb.api.ext.char
 import org.jacodb.api.ext.double
+import org.jacodb.api.ext.findFieldOrNull
 import org.jacodb.api.ext.float
 import org.jacodb.api.ext.ifArrayGetElementType
 import org.jacodb.api.ext.int
+import org.jacodb.api.ext.isEnum
 import org.jacodb.api.ext.long
 import org.jacodb.api.ext.short
 import org.jacodb.api.ext.toType
 import org.jacodb.api.ext.void
-import org.usvm.INITIAL_CONCRETE_ADDRESS
 import org.usvm.INITIAL_INPUT_ADDRESS
 import org.usvm.NULL_ADDRESS
 import org.usvm.UArrayIndexLValue
@@ -138,7 +140,8 @@ class JcTestResolver(
             val parameters = method.parameters.mapIndexed { idx, param ->
                 val registerIdx = method.method.localIdx(idx)
                 val ref = URegisterLValue(ctx.typeToSort(param.type), registerIdx)
-                resolveLValue(ref, param.type)
+                val resolveLValue = resolveLValue(ref, param.type)
+                resolveLValue
             }
 
             return JcParametersState(thisInstance, parameters)
@@ -176,6 +179,7 @@ class JcTestResolver(
         fun resolveReference(heapRef: UHeapRef, type: JcRefType): Any? {
             val ref = evaluateInModel(heapRef) as UConcreteHeapRef
             if (ref.address == NULL_ADDRESS) {
+
                 return null
             }
             // to find a type, we need to understand the source of the object
@@ -247,12 +251,30 @@ class JcTestResolver(
         }
 
         private fun resolveObject(ref: UConcreteHeapRef, heapRef: UHeapRef, type: JcRefType): Any {
-            if (type == ctx.classType() && ref.address >= INITIAL_CONCRETE_ADDRESS) {
+            // It is important to compare exactly jcClasses because java.lang.Class is parametrized type so we need to
+            // drop current type argument.
+            if (type.jcClass == ctx.classType().jcClass && ref.address <= INITIAL_INPUT_ADDRESS) {
+                // Note that non-negative addresses are possible only for the result value.
                 return resolveAllocatedClass(ref)
             }
 
-            if (type == ctx.stringType() && ref.address >= INITIAL_CONCRETE_ADDRESS) {
+            if (type == ctx.stringType() && ref.address <= INITIAL_INPUT_ADDRESS) {
+                // Note that non-negative addresses are possible only for the result value.
                 return resolveAllocatedString(ref)
+            }
+
+            // TODO simple org.jacodb.api.ext.JcClasses.isEnum does not work with enums with abstract methods
+            val anyEnumAncestor = (sequenceOf(type.jcClass) + type.jcClass.allSuperHierarchySequence).firstOrNull { it.isEnum }
+            if (anyEnumAncestor != null){
+                with(ctx) {
+                    val ordinalField =
+                        (cp.findTypeOrNull("java.lang.Enum") as JcRefType).jcClass.findFieldOrNull("ordinal")!!
+                    val ordinalLValue = UFieldLValue(sizeSort, heapRef, ordinalField)
+                    val ordinalFieldValue = resolveLValue(ordinalLValue, cp.int)
+                    val clazz = resolveType(anyEnumAncestor.toType())
+
+                    return clazz.enumConstants[ordinalFieldValue as Int]
+                }
             }
 
             val clazz = resolveType(type)
@@ -269,7 +291,9 @@ class JcTestResolver(
                 .flatMap { it.declaredFields }
                 .filter { !it.isStatic }
             for (field in fields) {
-                val lvalue = UFieldLValue(ctx.typeToSort(field.fieldType), heapRef, field.field)
+//                val takeFieldFromRef = if (isStaticInitializedConcreteHeapRef(ref)) ref else heapRef
+
+                val lvalue = UFieldLValue(ctx.typeToSort(field.fieldType), /*takeFieldFromRef*/heapRef, field.field)
                 val fieldValue = resolveLValue(lvalue, field.fieldType)
 
                 val fieldClazz = resolveType(field.enclosingType)

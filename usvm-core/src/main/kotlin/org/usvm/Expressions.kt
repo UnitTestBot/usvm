@@ -35,6 +35,8 @@ import org.usvm.memory.UInputFieldRegion
 import org.usvm.memory.URegionId
 import org.usvm.memory.USymbolicArrayIndex
 import org.usvm.memory.USymbolicMemoryRegion
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.contract
 
 //region KSMT aliases
 
@@ -85,8 +87,29 @@ typealias UHeapRef = UExpr<UAddressSort>
 typealias USymbolicHeapRef = USymbol<UAddressSort>
 typealias UConcreteHeapAddress = Int
 
-fun isSymbolicHeapRef(expr: UExpr<*>) =
-    expr.sort == expr.uctx.addressSort && expr is USymbol<*>
+@OptIn(ExperimentalContracts::class)
+fun isSymbolicHeapRef(expr: UExpr<*>): Boolean {
+    contract {
+        returns(true) implies (expr is USymbol<*>)
+    }
+    return expr.sort == expr.uctx.addressSort && expr is USymbol<*>
+}
+
+@OptIn(ExperimentalContracts::class)
+fun isAllocatedConcreteHeapRef(expr: UExpr<*>): Boolean {
+    contract {
+        returns(true) implies (expr is UConcreteHeapRef)
+    }
+    return expr is UConcreteHeapRef && expr.address >= INITIAL_CONCRETE_ADDRESS
+}
+// TODO replace with <=
+@OptIn(ExperimentalContracts::class)
+fun isStaticInitializedConcreteHeapRef(expr: UExpr<*>): Boolean {
+    contract {
+        returns(true) implies (expr is UConcreteHeapRef)
+    }
+    return expr is UConcreteHeapRef && expr.address <= INITIAL_STATIC_ADDRESS
+}
 
 class UConcreteHeapRefDecl internal constructor(
     ctx: UContext,
@@ -148,6 +171,9 @@ class UNullRef internal constructor(
  */
 const val NULL_ADDRESS = 0
 
+// TODO remove comment?
+const val INITIAL_STATIC_ADDRESS = -(1 shl 20) // Use value not less than UNINTERPRETED_SORT_MIN_ALLOWED_VALUE in ksmt
+
 /**
  * A constant corresponding to the first input address in any decoded model.
  * Input addresses takes this semi-interval: [[Int.MIN_VALUE]..0)
@@ -185,7 +211,6 @@ class UArrayLengthLValue<ArrayType>(
 //endregion
 
 //region Read Expressions
-
 class URegisterReading<Sort : USort> internal constructor(
     ctx: UContext,
     val idx: Int,

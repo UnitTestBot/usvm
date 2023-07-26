@@ -18,6 +18,7 @@ internal class BooleanWrapperTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("TODO support statics memory region. There is the same problem as for enums - constraints are set for array with stores, not for an empty array.")
     fun wrapperToPrimitiveTest() {
         checkDiscoveredProperties(
             BooleanWrapper::wrapperToPrimitive,

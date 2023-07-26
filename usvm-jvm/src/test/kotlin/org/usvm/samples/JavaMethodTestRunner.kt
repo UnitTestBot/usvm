@@ -720,7 +720,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
     override var options: UMachineOptions = UMachineOptions().copy(
         coverageZone = CoverageZone.TRANSITIVE,
         exceptionsPropagation = true,
-        timeoutMs = 60_000,
+        timeoutMs = 60_000/*_000_000*/,
         stepsFromLastCovered = 3500L,
     )
 

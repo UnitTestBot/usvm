@@ -218,14 +218,15 @@ class ULazyHeapModel<Field, ArrayType>(
         contents: Sequence<UExpr<out USort>>,
     ) = error("Illegal operation for a model")
 
-    override fun allocate() = error("Illegal operation for a model heap")
+    override fun allocate(usePositiveAddress: Boolean) = error("Illegal operation for a model heap")
 
-    override fun allocateArray(count: USizeExpr) = error("Illegal operation for a model heap")
+    override fun allocateArray(type: ArrayType, count: USizeExpr, usePositiveAddress: Boolean) = error("Illegal operation for a model heap")
 
     override fun <Sort : USort> allocateArrayInitialized(
         type: ArrayType,
         sort: Sort,
         contents: Sequence<UExpr<out USort>>,
+        usePositiveAddress: Boolean,
     ) = error("Illegal operation for a model heap")
 
     override fun nullRef(): UConcreteHeapRef = nullRef

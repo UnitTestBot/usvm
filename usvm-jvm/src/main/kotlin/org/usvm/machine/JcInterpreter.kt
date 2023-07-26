@@ -208,7 +208,12 @@ class JcInterpreter(
             ?: ctx.mkVoidValue()
 
         scope.doWithState {
+            val isReturnFromStaticInitializer = callStack.lastMethod().name == "<clinit>"
             returnValue(valueToReturn)
+
+            if (isReturnFromStaticInitializer) {
+                exprResolver.mutatePrimitiveFieldValuesToSymbolic(scope)
+            }
         }
     }
 
@@ -299,7 +304,7 @@ class JcInterpreter(
     private fun stringConstantAllocator(value: String, state: JcState): UConcreteHeapRef =
         stringConstantAllocatedRefs.getOrPut(value) {
             // Allocate globally unique ref
-            state.memory.heap.allocate()
+            state.memory.heap.allocate(usePositiveAddress = false)
         }
 
     private val typeInstanceAllocatedRefs = mutableMapOf<JcTypeInfo, UConcreteHeapRef>()
@@ -308,7 +313,7 @@ class JcInterpreter(
         val typeInfo = resolveTypeInfo(type)
         return typeInstanceAllocatedRefs.getOrPut(typeInfo) {
             // Allocate globally unique ref
-            state.memory.heap.allocate()
+            state.memory.heap.allocate(usePositiveAddress = false)
         }
     }
 

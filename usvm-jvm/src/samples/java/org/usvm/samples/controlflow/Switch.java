@@ -51,7 +51,98 @@ public class Switch {
         }
     }
 
-    public int enumSwitch(RoundingMode m) {
+    public enum EnumExample {
+        SUCCESS(10), ERROR(-10);
+
+        final int x;
+
+        EnumExample(int x) {
+            this.x = x;
+        }
+
+        @Override
+        public String toString() {
+            return String.format("Enum: {name: %s, x: %d, ordinal: %d}", name(), x, ordinal());
+        }
+    }
+
+    public int enumSwitch(EnumExample e) {
+        switch (e) {
+            case SUCCESS:
+                return 1;
+            case ERROR:
+                return 2;
+        }
+        return -1; // Unreachable
+    }
+
+    public int enumCustomField(EnumExample e) {
+        if (e == null) {
+            return 42;
+        }
+
+        return e.x;
+    }
+
+    public String enumName(EnumExample e) {
+        if (e == null) {
+            return "";
+        }
+
+        if (e == EnumExample.SUCCESS) {
+            return "S";
+        }
+
+        return e.name();
+    }
+
+    @SuppressWarnings("unused")
+    public int unusedEnumParameter(EnumExample e) {
+        if (e == null) {
+            return 0;
+        }
+
+        return 42;
+    }
+
+    public String customEnumName(CustomEnum customEnum) {
+        if (customEnum == null) {
+            return "";
+        }
+
+        return customEnum.name();
+    }
+
+    static class ClassWithStaticInstance {
+
+        final int x;
+
+        static int z = 42;
+
+        public static ClassWithStaticInstance instance1 = new ClassWithStaticInstance(A.a.x);
+
+        ClassWithStaticInstance(int x) {
+            this.x = x;
+        }
+    }
+
+    static class A {
+        static A a = new A();
+
+        final int x = -42;
+
+        public A() {
+            if (ClassWithStaticInstance.z != 42) {
+                throw new IllegalStateException();
+            }
+        }
+    }
+
+    public int returnInstanceX() {
+        return ClassWithStaticInstance.instance1.x;
+    }
+
+    public int roundingModeSwitch(RoundingMode m) {
         switch (m) {
             case HALF_DOWN: // fall-through
             case HALF_EVEN: // fall-through

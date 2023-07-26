@@ -9,7 +9,10 @@ import org.usvm.UIteExpr
 import org.usvm.UNullRef
 import org.usvm.USort
 import org.usvm.USymbolicHeapRef
+import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.isFalse
+import org.usvm.isStaticInitializedConcreteHeapRef
+import org.usvm.isSymbolicHeapRef
 import org.usvm.uctx
 
 data class GuardedExpr<out T>(
@@ -32,6 +35,7 @@ internal data class SplitHeapRefs(
 )
 
 /**
+ * TODO update docs.
  * Traverses the [ref] non-recursively and collects [UConcreteHeapRef]s and [USymbolicHeapRef] as well as
  * guards for them. If the object is not a [UConcreteHeapRef] nor a [USymbolicHeapRef], e.g. KConst<UAddressSort>,
  * treats such an object as a [USymbolicHeapRef].
@@ -51,12 +55,15 @@ internal fun splitUHeapRef(
     val concreteHeapRefs = mutableListOf<GuardedExpr<UConcreteHeapRef>>()
 
     val symbolicHeapRef = filter(ref, initialGuard, ignoreNullRefs) { guarded ->
-        if (guarded.expr is UConcreteHeapRef) {
-            @Suppress("UNCHECKED_CAST")
-            concreteHeapRefs += (guarded as GuardedExpr<UConcreteHeapRef>)
-            false
-        } else {
-            true
+        val expr = guarded.expr
+
+        when {
+            isAllocatedConcreteHeapRef(expr) -> {
+                @Suppress("UNCHECKED_CAST")
+                concreteHeapRefs += (guarded as GuardedExpr<UConcreteHeapRef>)
+                false
+            }
+            else -> true
         }
     }
 
@@ -67,6 +74,7 @@ internal fun splitUHeapRef(
 }
 
 /**
+ * TODO update docs.
  * Traverses the [ref], accumulating guards and applying the [blockOnConcrete] on [UConcreteHeapRef]s and
  * [blockOnSymbolic] on [USymbolicHeapRef]. An argument for the [blockOnSymbolic] is obtained by removing all concrete
  * heap refs from the [ref] if it's ite.
@@ -79,6 +87,7 @@ internal inline fun withHeapRef(
     ref: UHeapRef,
     initialGuard: UBoolExpr,
     crossinline blockOnConcrete: (GuardedExpr<UConcreteHeapRef>) -> Unit,
+    crossinline blockOnStatic: (GuardedExpr<UConcreteHeapRef>) -> Unit,
     crossinline blockOnSymbolic: (GuardedExpr<UHeapRef>) -> Unit,
     ignoreNullRefs: Boolean = true,
 ) {
@@ -86,14 +95,15 @@ internal inline fun withHeapRef(
         return
     }
 
-    when (ref) {
-        is UConcreteHeapRef -> blockOnConcrete(ref with initialGuard)
-        is UNullRef -> if (!ignoreNullRefs) {
+    when {
+        isStaticInitializedConcreteHeapRef(ref) -> blockOnStatic(ref with initialGuard) // TODO or blockOnSymbolic?
+        ref is UConcreteHeapRef -> blockOnConcrete(ref with initialGuard)
+        ref is UNullRef -> if (!ignoreNullRefs) { // TODO make null static
             blockOnSymbolic(ref with initialGuard)
         }
 
-        is USymbolicHeapRef -> blockOnSymbolic(ref with initialGuard)
-        is UIteExpr<UAddressSort> -> {
+        ref is USymbolicHeapRef -> blockOnSymbolic(ref with initialGuard)
+        ref is UIteExpr<UAddressSort> -> {
             val (concreteHeapRefs, symbolicHeapRef) = splitUHeapRef(ref, initialGuard, ignoreNullRefs)
 
             symbolicHeapRef?.let { (ref, guard) -> blockOnSymbolic(ref with guard) }
@@ -110,6 +120,7 @@ private const val DONE = 2
 
 
 /**
+ * TODO update docs
  * Reassembles [this] non-recursively with applying [concreteMapper] on [UConcreteHeapRef] and
  * [symbolicMapper] on [USymbolicHeapRef]. Respects [UIteExpr], so the structure of the result expression will be
  * the same as [this] is, but implicit simplifications may occur.
@@ -120,17 +131,20 @@ private const val DONE = 2
  */
 internal inline fun <Sort : USort> UHeapRef.map(
     crossinline concreteMapper: (UConcreteHeapRef) -> UExpr<Sort>,
+    crossinline staticMapper: (UConcreteHeapRef) -> UExpr<Sort>,
     crossinline symbolicMapper: (USymbolicHeapRef) -> UExpr<Sort>,
     ignoreNullRefs: Boolean = true,
-): UExpr<Sort> = when (this) {
-    is UConcreteHeapRef -> concreteMapper(this)
-    is UNullRef -> {
+): UExpr<Sort> = when {
+    isStaticInitializedConcreteHeapRef(this) -> staticMapper(this) // TODO or concreteMapper?
+    // TODO should we use symbolicMapper for static refs?
+    this is UConcreteHeapRef -> concreteMapper(this)
+    this is UNullRef -> {
         require(!ignoreNullRefs) { "Got nullRef on the top!" }
         symbolicMapper(this)
     }
 
-    is USymbolicHeapRef -> symbolicMapper(this)
-    is UIteExpr<UAddressSort> -> {
+    this is USymbolicHeapRef -> symbolicMapper(this)
+    this is UIteExpr<UAddressSort> -> {
         /**
          * This code simulates DFS on a binary tree without an explicit recursion. Pair.second represents the first
          * unprocessed child of the pair.first (`0` means the left child, `1` means the right child).

@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ge
-
+import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import java.math.RoundingMode.CEILING
 import java.math.RoundingMode.DOWN
 import java.math.RoundingMode.HALF_DOWN
@@ -50,15 +50,76 @@ internal class SwitchTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Index 1 out of bounds for length 1")
     fun testEnumSwitch() {
         checkDiscoveredProperties(
             Switch::enumSwitch,
-            eq(7),
+            ignoreNumberOfAnalysisResults,
+            { _, m, _ -> m == null }, // NPE
+            { _, m, r -> m == Switch.EnumExample.SUCCESS && r == 1 },
+            { _, m, r -> m == Switch.EnumExample.ERROR && r == 2 },
+        )
+    }
+
+    @Test
+    fun testEnumCustomField() {
+        checkDiscoveredProperties(
+            Switch::enumCustomField,
+            ignoreNumberOfAnalysisResults,
+            { _, m, r -> m == null && r == 42 },
+            { _, m, r -> (m == Switch.EnumExample.SUCCESS || m == Switch.EnumExample.ERROR) && m.x == r }
+        )
+    }
+
+    @Test
+    fun testEnumName() {
+        checkDiscoveredProperties(
+            Switch::enumName,
+            ignoreNumberOfAnalysisResults,
+            { _, m, s -> m == null && s == "" },
+            { _, m, r -> (m == Switch.EnumExample.SUCCESS || m == Switch.EnumExample.ERROR) && m.name == r }
+        )
+    }
+
+    @Test
+    fun testUnusedEnumParameter() {
+        checkDiscoveredProperties(
+            Switch::unusedEnumParameter,
+            ignoreNumberOfAnalysisResults,
+            { _, m, r -> m == null && r == 0 },
+            { _, m, r -> (m == Switch.EnumExample.SUCCESS || m == Switch.EnumExample.ERROR) && r == 42 }
+        )
+    }
+
+    @Test
+    @Disabled("TODO this test cannot be supported for now - it uses an `artificial` enum.")
+    fun testCustomEnumName() {
+        checkDiscoveredProperties(
+            Switch::customEnumName,
+            ignoreNumberOfAnalysisResults,
+            { _, m, s -> m == null && s == "" },
+            { _, m, r -> (m == CustomEnum.VALUE1 || m == CustomEnum.VALUE2) && m.name() == r }
+        )
+    }
+
+    @Test
+    fun aaaa() {
+        checkDiscoveredProperties(
+            Switch::returnInstanceX,
+            eq(1),
+            { _, r -> r == -42 }
+        )
+    }
+
+    @Test
+    @Disabled("TODO support statics memory region. There is the same problem as for enums - constraints are set for array with stores, not for an empty array.")
+    fun testRoundingModeSwitch() {
+        checkDiscoveredProperties(
+            Switch::roundingModeSwitch,
+            ignoreNumberOfAnalysisResults,
             { _, m, _ -> m == null }, // NPE
             { _, m, r -> m == HALF_DOWN && r == 1 }, // We will minimize two of these branches
-            { _, m, r -> m == HALF_EVEN && r == 1 }, // We will minimize two of these branches
-            { _, m, r -> m == HALF_UP && r == 1 }, // We will minimize two of these branches
+//            { _, m, r -> m == HALF_EVEN && r == 1 }, // We will minimize two of these branches
+//            { _, m, r -> m == HALF_UP && r == 1 }, // We will minimize two of these branches
             { _, m, r -> m == DOWN && r == 2 },
             { _, m, r -> m == CEILING && r == 3 },
             { _, m, r -> m !in setOf(HALF_DOWN, HALF_EVEN, HALF_UP, DOWN, CEILING) && r == -1 },

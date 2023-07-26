@@ -5,8 +5,10 @@ plugins {
 dependencies {
     implementation(project(":usvm-core"))
 
-    implementation("org.jacodb:jacodb-core:${Versions.jcdb}")
-    implementation("org.jacodb:jacodb-analysis:${Versions.jcdb}")
+//    implementation("com.github.UnitTestBot.jacodb:jacodb-core:develop-SNAPSHOT")
+//    implementation("com.github.UnitTestBot.jacodb:jacodb-analysis:develop-SNAPSHOT")
+    implementation("org.jacodb:jacodb-core:damtev-SNAPSHOT")
+    implementation("org.jacodb:jacodb-analysis:damtev-SNAPSHOT")
 
     implementation("io.ksmt:ksmt-yices:${Versions.ksmt}")
     implementation("io.ksmt:ksmt-cvc5:${Versions.ksmt}")

@@ -42,13 +42,13 @@ interface UMemory<LValue, RValue, SizeT, HeapRef, Type> : UReadOnlyTypedMemory<L
      * Allocates dictionary-based structure in heap.
      * @return Concrete heap address of an allocated object.
      */
-    fun alloc(type: Type): HeapRef
+    fun alloc(type: Type, usePositiveAddress: Boolean = true): HeapRef
 
     /**
      * Allocates array in heap.
      * @return Concrete heap address of an allocated array.
      */
-    fun malloc(arrayType: Type, count: SizeT): HeapRef
+    fun malloc(arrayType: Type, count: SizeT, usePositiveAddress: Boolean = true): HeapRef
 
     /**
      * Allocates array in heap.
@@ -56,7 +56,7 @@ interface UMemory<LValue, RValue, SizeT, HeapRef, Type> : UReadOnlyTypedMemory<L
      *                 First element will be written to index 0, second -- to index 1, etc.
      * @return Concrete heap address of an allocated array.
      */
-    fun malloc(arrayType: Type, elementSort: USort, contents: Sequence<RValue>): HeapRef
+    fun malloc(arrayType: Type, elementSort: USort, contents: Sequence<RValue>, usePositiveAddress: Boolean = true): HeapRef
 
     /**
      * Optimized writing of many concretely-indexed entries at a time.
@@ -124,21 +124,26 @@ open class UMemoryBase<Field, Type, Method>(
         }
     }
 
-    override fun alloc(type: Type): UConcreteHeapRef {
-        val concreteHeapRef = heap.allocate()
-        types.allocate(concreteHeapRef.address, type)
+    override fun alloc(type: Type, usePositiveAddress: Boolean): UConcreteHeapRef {
+        val concreteHeapRef = heap.allocate(usePositiveAddress)
+        types.allocate(concreteHeapRef, type)
         return concreteHeapRef
     }
 
-    override fun malloc(arrayType: Type, count: USizeExpr): UConcreteHeapRef {
-        val concreteHeapRef = heap.allocateArray(count)
-        types.allocate(concreteHeapRef.address, arrayType)
+    override fun malloc(arrayType: Type, count: USizeExpr, usePositiveAddress: Boolean): UConcreteHeapRef {
+        val concreteHeapRef = heap.allocateArray(arrayType, count, usePositiveAddress)
+        types.allocate(concreteHeapRef, arrayType)
         return concreteHeapRef
     }
 
-    override fun malloc(arrayType: Type, elementSort: USort, contents: Sequence<UExpr<out USort>>): UConcreteHeapRef {
+    override fun malloc(
+        arrayType: Type,
+        elementSort: USort,
+        contents: Sequence<UExpr<out USort>>,
+        usePositiveAddress: Boolean
+    ): UConcreteHeapRef {
         val concreteHeapRef = heap.allocateArrayInitialized(arrayType, elementSort, contents)
-        types.allocate(concreteHeapRef.address, arrayType)
+        types.allocate(concreteHeapRef, arrayType)
         return concreteHeapRef
     }
 

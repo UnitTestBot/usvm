@@ -10,6 +10,7 @@ import org.usvm.UHeapRef
 import org.usvm.constraints.UEqualityConstraints
 import org.usvm.constraints.UPathConstraints
 import org.usvm.isFalse
+import org.usvm.isStaticInitializedConcreteHeapRef
 import org.usvm.isTrue
 import org.usvm.memory.UMemoryBase
 import org.usvm.model.UModelBase
@@ -38,11 +39,15 @@ open class USolverBase<Field, Type, Method>(
     protected val softConstraintsProvider: USoftConstraintsProvider<Field, Type>,
 ) : USolver<UPathConstraints<Type>, UModelBase<Field, Type>>(), AutoCloseable {
 
-    protected fun translateLogicalConstraints(constraints: Iterable<UBoolExpr>) {
+    protected fun translateLogicalConstraints(constraints: Iterable<UBoolExpr>): List<UBoolExpr> {
+        val result = mutableListOf<UBoolExpr>()
         for (constraint in constraints) {
             val translated = translator.translate(constraint)
+            result += translated
             smtSolver.assert(translated)
         }
+
+        return result
     }
 
     protected fun translateEqualityConstraints(constraints: UEqualityConstraints) {
@@ -50,16 +55,24 @@ open class USolverBase<Field, Type, Method>(
 
         val nullRepr = constraints.equalReferences.find(ctx.nullRef)
         for (ref in constraints.distinctReferences) {
+            if (isStaticInitializedConcreteHeapRef(ref)) {
+                continue
+            }
+
             val refIndex = if (ref == nullRepr) 0 else index++
             val translatedRef = translator.translate(ref)
             val preInterpretedValue = ctx.mkUninterpretedSortValue(ctx.addressSort, refIndex)
-            smtSolver.assert(ctx.mkEq(translatedRef, preInterpretedValue))
+            val expr = ctx.mkEq(translatedRef, preInterpretedValue)
+
+            smtSolver.assert(expr)
         }
 
         for ((key, value) in constraints.equalReferences) {
             val translatedLeft = translator.translate(key)
             val translatedRight = translator.translate(value)
-            smtSolver.assert(ctx.mkEq(translatedLeft, translatedRight))
+            val expr = ctx.mkEq(translatedLeft, translatedRight)
+
+            smtSolver.assert(expr)
         }
 
         val processedConstraints = mutableSetOf<Pair<UHeapRef, UHeapRef>>()
@@ -70,7 +83,9 @@ open class USolverBase<Field, Type, Method>(
                     processedConstraints.add(ref1 to ref2)
                     val translatedRef1 = translator.translate(ref1)
                     val translatedRef2 = translator.translate(ref2)
-                    smtSolver.assert(ctx.mkNot(ctx.mkEq(translatedRef1, translatedRef2)))
+                    val expr = ctx.mkNot(ctx.mkEq(translatedRef1, translatedRef2))
+
+                    smtSolver.assert(expr)
                 }
             }
         }
@@ -87,7 +102,9 @@ open class USolverBase<Field, Type, Method>(
                     val disequalityConstraint = ctx.mkNot(ctx.mkEq(translatedRef1, translatedRef2))
                     val nullConstraint1 = ctx.mkEq(translatedRef1, translatedNull)
                     val nullConstraint2 = ctx.mkEq(translatedRef2, translatedNull)
-                    smtSolver.assert(ctx.mkOr(disequalityConstraint, ctx.mkAnd(nullConstraint1, nullConstraint2)))
+                    val expr = ctx.mkOr(disequalityConstraint, ctx.mkAnd(nullConstraint1, nullConstraint2))
+
+                    smtSolver.assert(expr)
                 }
             }
         }
@@ -155,7 +172,7 @@ open class USolverBase<Field, Type, Method>(
                 // third, build a type solver query
                 val typeSolverQuery = TypeSolverQuery(
                     symbolicToConcrete = { uModel.eval(it) as UConcreteHeapRef },
-                    symbolicRefToTypeRegion = pc.typeConstraints.symbolicRefToTypeRegion,
+                    symbolicOrStaticRefToTypeRegion = pc.typeConstraints.symbolicOrStaticRefToTypeRegion,
                     isExprToInterpretation = isExprToInterpretation,
                 )
 

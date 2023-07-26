@@ -250,7 +250,7 @@ class TypeSolverTest {
 
             val query = TypeSolverQuery(
                 symbolicToConcrete = { model.eval(it) as UConcreteHeapRef },
-                symbolicRefToTypeRegion = typeConstraints.symbolicRefToTypeRegion,
+                symbolicOrStaticRefToTypeRegion = typeConstraints.symbolicOrStaticRefToTypeRegion,
                 isExprToInterpretation = emptyList(),
             )
 
@@ -492,7 +492,7 @@ class TypeSolverTest {
     @Test
     fun `Test symbolic ref -- exclude supertype and subtype`(): Unit = with(ctx) {
         val ref = mkConcreteHeapRef(1)
-        pc.typeConstraints.allocate(ref.address, base1)
+        pc.typeConstraints.allocate(ref, base1)
 
         with(pc.clone()) {
             this += mkIsSubtypeExpr(ref, top).not()

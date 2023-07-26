@@ -130,5 +130,9 @@ fun JcContext.stringType(): JcRefType =
     cp.findTypeOrNull("java.lang.String") as? JcRefType
         ?: error("No string type in classpath")
 
+fun JcContext.enumType(): JcRefType =
+    cp.findTypeOrNull("java.lang.Enum") as? JcRefType
+        ?: error("No enum type in classpath")
+
 fun JcContext.stringValueField(): JcTypedField =
     stringType().jcClass.toType().declaredFields.first { it.name == "value" }

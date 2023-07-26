@@ -162,14 +162,15 @@ class UHeapEagerModel<Field, ArrayType>(
         contents: Sequence<UExpr<out USort>>,
     ) = error("Illegal operation for a model")
 
-    override fun allocate() = error("Illegal operation for a model")
+    override fun allocate(usePositiveAddress: Boolean) = error("Illegal operation for a model")
 
-    override fun allocateArray(count: USizeExpr) = error("Illegal operation for a model")
+    override fun allocateArray(type: ArrayType, count: USizeExpr, usePositiveAddress: Boolean) = error("Illegal operation for a model")
 
     override fun <Sort : USort> allocateArrayInitialized(
         type: ArrayType,
         sort: Sort,
-        contents: Sequence<UExpr<out USort>>
+        contents: Sequence<UExpr<out USort>>,
+        usePositiveAddress: Boolean
     ) = error("Illegal operation for a model")
 
     override fun nullRef(): UConcreteHeapRef = nullRef

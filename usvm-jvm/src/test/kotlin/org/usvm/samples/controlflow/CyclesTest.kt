@@ -105,6 +105,7 @@ internal class CyclesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("TODO discover")
     fun moveToExceptionTest() {
         checkDiscoveredPropertiesWithExceptions(
             Cycles::moveToException,

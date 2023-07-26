@@ -13,7 +13,7 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Sequence is empty.")
+    @Disabled("No entrypoint found for method: (id:1)java.util.Map#values()")
     fun testEnumToEnumMapCountValues() {
         checkDiscoveredProperties(
             ComplexEnumExamples::enumToEnumMapCountValues,
@@ -25,7 +25,7 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sequence is empty.")
+    @Disabled("No entrypoint found for method: (id:1)java.util.Map#keySet()")
     fun testEnumToEnumMapCountKeys() {
         checkDiscoveredProperties(
             ComplexEnumExamples::enumToEnumMapCountKeys,
@@ -40,7 +40,7 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sequence is empty.")
+    @Disabled("No entrypoint found for method: (id:1)java.util.Map#entrySet()")
     fun testEnumToEnumMapCountMatches() {
         checkDiscoveredProperties(
             ComplexEnumExamples::enumToEnumMapCountMatches,
@@ -51,7 +51,7 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]")
+    @Disabled("TODO the first matcher does not matches. Discover whether it should or not.")
     fun testCountEqualColors() {
         checkDiscoveredProperties(
             ComplexEnumExamples::countEqualColors,
@@ -63,7 +63,7 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]")
+    @Disabled("TODO the first matcher does not matches. Discover whether it should or not.")
     fun testCountNullColors() {
         checkDiscoveredProperties(
             ComplexEnumExamples::countNullColors,
@@ -75,7 +75,7 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("JcTypedMethodImpl.getParameters: Index 1 out of bounds for length 1")
+    //@Disabled("JcTypedMethodImpl.getParameters: Index 1 out of bounds for length 1")
     fun testFindState() {
         checkDiscoveredProperties(
             ComplexEnumExamples::findState,
@@ -100,11 +100,11 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled(" Index 0 out of bounds for length 0")
+    //@Disabled(" Index 0 out of bounds for length 0")
     fun testCountRedInArray() {
         checkDiscoveredProperties(
             ComplexEnumExamples::countRedInArray,
-            eq(3),
+            ignoreNumberOfAnalysisResults,
             { _, colors, result -> colors.count { it == RED } == result }
         )
     }

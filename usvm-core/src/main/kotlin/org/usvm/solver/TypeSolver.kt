@@ -3,6 +3,7 @@ package org.usvm.solver
 import org.usvm.NULL_ADDRESS
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
+import org.usvm.UHeapRef
 import org.usvm.UIsExpr
 import org.usvm.UIsSubtypeExpr
 import org.usvm.UIsSupertypeExpr
@@ -14,7 +15,7 @@ import org.usvm.uctx
 
 data class TypeSolverQuery<Type>(
     val symbolicToConcrete: (USymbolicHeapRef) -> UConcreteHeapRef,
-    val symbolicRefToTypeRegion: Map<USymbolicHeapRef, UTypeRegion<Type>>,
+    val symbolicOrStaticRefToTypeRegion: Map<UHeapRef, UTypeRegion<Type>>,
     val isExprToInterpretation: List<Pair<UIsExpr<Type>, Boolean>>,
 )
 
@@ -87,10 +88,10 @@ class UTypeSolver<Type>(
 
         val symbolicRefToRegion =
             symbolicRefToIsExprs.mapValues { topTypeRegion } +
-                query.symbolicRefToTypeRegion
+                query.symbolicOrStaticRefToTypeRegion
 
 
-        val concreteRefToCluster = symbolicRefToRegion.entries
+        val concreteRefToCluster = symbolicRefToRegion.entries.filterIsInstance<Map.Entry<USymbolicHeapRef, UTypeRegion<Type>>>()
             .groupBy { (ref, _) -> query.symbolicToConcrete(ref).address }
             .filterNot { (address, _) -> address == NULL_ADDRESS }
 
