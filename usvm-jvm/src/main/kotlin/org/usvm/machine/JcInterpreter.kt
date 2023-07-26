@@ -29,7 +29,6 @@ import org.usvm.UBoolExpr
 import org.usvm.UHeapRef
 import org.usvm.UInterpreter
 import org.usvm.URegisterLValue
-import org.usvm.machine.resolver.JcExprResolver
 import org.usvm.machine.resolver.JcTypeSelector
 import org.usvm.machine.resolver.JcVirtualInvokeResolver
 import org.usvm.machine.state.JcMethodResult

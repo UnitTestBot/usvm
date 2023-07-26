@@ -97,6 +97,7 @@ import org.usvm.machine.operator.JcUnaryOperator
 import org.usvm.machine.operator.ensureBvExpr
 import org.usvm.machine.operator.mkNarrow
 import org.usvm.machine.operator.wideTo32BitsIfNeeded
+import org.usvm.machine.resolver.JcInvokeResolver
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.throwExceptionWithoutStackFrameDrop
@@ -336,7 +337,7 @@ class JcExprResolver(
             val argsWithTypes = expr.args.zip(method.parameters.map { it.type })
 
             argsWithTypes.mapTo(arguments) { (expr, type) ->
-                resolveJcExpr(expr, type) ?: return@resolveInvoke null
+                resolveJcExpr(expr, type) ?: return null
             }
             with(invokeResolver) { resolveSpecialInvoke(method.method, arguments) }
         }
@@ -390,9 +391,9 @@ class JcExprResolver(
         }
     }
 
-    private fun resolveInvoke(
+    private inline fun resolveInvoke(
         method: JcTypedMethod,
-        resolveArguments: () -> List<UExpr<out USort>>?,
+        onNoCallPresent: JcStepScope.() -> Unit,
     ): UExpr<out USort>? = ensureStaticFieldsInitialized(method.enclosingType) {
         resolveInvokeNoStaticInitializationCheck(onNoCallPresent)
     }
@@ -408,8 +409,7 @@ class JcExprResolver(
             }
 
             is JcMethodResult.NoCall -> {
-                val arguments = resolveArguments() ?: return null
-                scope.doWithState { addNewMethodCall(applicationGraph, method.method, arguments) }
+                scope.onNoCallPresent()
                 null
             }
 
