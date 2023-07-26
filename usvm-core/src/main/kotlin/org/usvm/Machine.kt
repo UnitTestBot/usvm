@@ -70,6 +70,7 @@ abstract class UMachine<State> : AutoCloseable {
                 logger.debug { stopStrategy.stopReason() }
             }
         }
+
         if (pathSelector is BfsWithLoggingPathSelector<*, *, *>) { // TODO REMOVE
             pathSelector.savePath()
         }

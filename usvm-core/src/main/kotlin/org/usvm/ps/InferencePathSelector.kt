@@ -10,6 +10,7 @@ import io.kinference.core.data.tensor.asTensor
 import io.kinference.model.Model
 import io.kinference.ndarray.arrays.FloatNDArray
 import kotlinx.coroutines.runBlocking
+import org.usvm.Algorithm
 import org.usvm.MainConfig
 import org.usvm.UState
 import org.usvm.statistics.*
@@ -17,6 +18,8 @@ import java.io.File
 import java.nio.FloatBuffer
 import java.text.DecimalFormat
 import kotlin.io.path.Path
+import kotlin.math.exp
+import kotlin.random.Random
 
 internal open class InferencePathSelector<State : UState<*, *, Method, Statement>, Statement, Method> (
     pathsTreeStatistics: PathsTreeStatistics<Method, Statement, State>,
@@ -29,14 +32,16 @@ internal open class InferencePathSelector<State : UState<*, *, Method, Statement
     distanceStatistics,
     applicationGraph
 ) {
-    private val modelPath = Path(MainConfig.gameEnvPath, "model.onnx").toString()
-    private var model: Model<KIONNXData<*>>? = null
-    private var env: OrtEnvironment? = null
-    private var session: OrtSession? = null
-
     private var qValues = listOf<Float>()
-
     private var chosenStateId = 0
+    private val random = Random(java.time.LocalDateTime.now().nano)
+
+    companion object {
+        private val modelPath = Path(MainConfig.gameEnvPath, "model.onnx").toString()
+        private var model: Model<KIONNXData<*>>? = null
+        private var env: OrtEnvironment? = null
+        private var session: OrtSession? = null
+    }
 
     override fun getReward(state: State): Float {
         val statement = state.currentStatement
@@ -108,6 +113,18 @@ internal open class InferencePathSelector<State : UState<*, *, Method, Statement
         )
     }
 
+    private fun chooseRandomId(probabilities: Collection<Float>): Int {
+        val randomNumber = random.nextFloat()
+        var probability = 0.0f
+        probabilities.withIndex().forEach {
+            probability += it.value
+            if (randomNumber < probability) {
+                return it.index
+            }
+        }
+        return probabilities.size - 1
+    }
+
     protected fun peekWithKInference(stateFeatureQueue: List<StateFeatures>?,
                                      globalStateFeatures: GlobalStateFeatures?) : State {
         if (stateFeatureQueue == null || globalStateFeatures == null) {
@@ -127,7 +144,13 @@ internal open class InferencePathSelector<State : UState<*, *, Method, Statement
         val output = runBlocking {
             (model!!.predict(listOf(data))["output"] as KITensor).data as FloatNDArray
         }.array.toArray()
-        chosenStateId = output.indices.maxBy { output[it] }
+        chosenStateId = if (MainConfig.algorithm == Algorithm.TD) {
+            output.indices.maxBy { output[it] }
+        } else {
+            val exponents = output.map { exp(it) }
+            val exponentsSum = exponents.sum()
+            chooseRandomId(exponents.map { it / exponentsSum })
+        }
         return queue[chosenStateId]
     }
 

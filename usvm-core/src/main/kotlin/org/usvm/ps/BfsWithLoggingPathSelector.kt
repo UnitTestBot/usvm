@@ -452,19 +452,18 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
                 path.forEach { actionData ->
                     addJsonArray {
                         addJsonArray {
-//                            actionData.queue.forEach { stateFeatures ->
+                            actionData.queue.forEach { stateFeatures ->
                                 addJsonArray {
-                                    jsonFormat.encodeToJsonElement(/* stateFeatures */actionData.queue[actionData.chosenStateId]).jsonObject.forEach { _, u ->
+                                    jsonFormat.encodeToJsonElement(stateFeatures).jsonObject.forEach { _, u ->
                                         add(u)
                                     }
                                     jsonFormat.encodeToJsonElement(actionData.globalStateFeatures).jsonObject.forEach { _, u ->
                                         add(u)
                                     }
                                 }
-//                            }
+                            }
                         }
-//                        add(actionData.chosenStateId)
-                        add(0)
+                        add(actionData.chosenStateId)
                         add(actionData.reward)
                     }
                 }
