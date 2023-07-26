@@ -33,7 +33,7 @@ class AnonymousClassesExampleTest : JavaMethodTestRunner() {
 //    }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@69b66787")
+    @Disabled("No entrypoint found for method")
     fun testAnonymousClassAsStatic() {
         checkDiscoveredProperties(
             AnonymousClassesExample::anonymousClassAsStatic,
@@ -43,7 +43,6 @@ class AnonymousClassesExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
     fun testAnonymousClassAsResult() {
         checkDiscoveredProperties(
             AnonymousClassesExample::anonymousClassAsResult,

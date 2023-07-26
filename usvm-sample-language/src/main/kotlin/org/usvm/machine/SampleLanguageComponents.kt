@@ -5,7 +5,7 @@ import io.ksmt.solver.z3.KZ3Solver
 import org.usvm.SolverType
 import org.usvm.UComponents
 import org.usvm.UContext
-import org.usvm.UTypeSystem
+import org.usvm.types.UTypeSystem
 import org.usvm.language.Field
 import org.usvm.language.Method
 import org.usvm.language.SampleType

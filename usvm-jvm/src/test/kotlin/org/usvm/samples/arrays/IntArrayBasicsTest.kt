@@ -25,7 +25,6 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun testIsValid() {
         checkDiscoveredPropertiesWithExceptions(
             IntArrayBasics::isValid,
@@ -40,7 +39,6 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun testGetValue() {
         checkDiscoveredPropertiesWithExceptions(
             IntArrayBasics::getValue,
@@ -53,7 +51,6 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun testSetValue() {
         checkDiscoveredPropertiesWithExceptions(
             IntArrayBasics::setValue,
@@ -67,7 +64,6 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun testCheckFour() {
         checkDiscoveredPropertiesWithExceptions(
             IntArrayBasics::checkFour,
@@ -90,7 +86,6 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun testNullability() {
         checkDiscoveredProperties(
             IntArrayBasics::nullability,
@@ -102,7 +97,7 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1, 2]. ")
+    @Disabled("Disjunction in if statement covered by only one execution")
     fun testEquality() {
         checkDiscoveredProperties(
             IntArrayBasics::equality,
@@ -115,7 +110,6 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun testOverwrite() {
         checkDiscoveredPropertiesWithExceptions(
             IntArrayBasics::overwrite,
@@ -129,7 +123,7 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [4, 5]")
+    @Disabled("Some properties were not discovered at positions (from 0): [3, 4, 5]. Tune path selectors")
     fun testMergeArrays() {
         checkDiscoveredProperties(
             IntArrayBasics::mergeArrays,
@@ -160,7 +154,6 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun testNewArrayInTheMiddle() {
         checkDiscoveredProperties(
             IntArrayBasics::newArrayInTheMiddle,
@@ -174,7 +167,6 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1].")
     fun testNewArrayInTheMiddleMutation() {
         checkThisAndParamsMutations(
             IntArrayBasics::newArrayInTheMiddle,
@@ -187,7 +179,7 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
+    @Disabled("Some properties were not discovered at positions (from 0): [3]. Fix branch coverage")
     fun testReversed() {
         checkDiscoveredProperties(
             IntArrayBasics::reversed,
@@ -201,7 +193,7 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sequence is empty.")
+    @Disabled("No entrypoint found for method")
     fun testUpdateCloned() {
         checkDiscoveredProperties(
             IntArrayBasics::updateCloned,
@@ -213,7 +205,7 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@42ac84a9")
+    @Disabled("Not implemented: class constant")
     fun testArraysEqualsExample() {
         checkDiscoveredProperties(
             IntArrayBasics::arrayEqualsExample,

@@ -9,8 +9,8 @@
 //.OTHER_CLASSES
 //import org.usvm.test.util.checkers.ge
 //
-//import org.utbot.testing.singleMock
-//import org.utbot.testing.value
+//import org.usvm.testing.singleMock
+//import org.usvm.testing.value
 //
 //internal class MockFinalClassTest : JavaMethodTestRunner(
 //    testClass = MockFinalClassExample::class,

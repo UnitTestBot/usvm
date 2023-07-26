@@ -8,7 +8,6 @@ import org.usvm.test.util.checkers.eq
 
 class DeepEqualsTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@34136bd1")
     fun testReturnList() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::returnList,
@@ -17,7 +16,6 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
     fun testReturnSet() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::returnSet,
@@ -26,7 +24,7 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@6a55594b")
+    @Disabled("Not implemented: string constant")
     fun testReturnMap() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::returnMap,
@@ -50,7 +48,6 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("We do not support 2d generics containers right now")
     fun testReturn2DList() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::return2DList,
@@ -59,7 +56,6 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("We do not support 2d generics containers right now")
     fun testReturn2DSet() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::return2DSet,
@@ -68,7 +64,7 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("We do not support 2d generics containers right now")
+    @Disabled("Not implemented: string constant")
     fun testReturn2DMap() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::return2DMap,
@@ -77,7 +73,7 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("We do not support 2d generics containers right now")
+    @Disabled("Not implemented: string constant")
     fun testIntegers2DList() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::returnIntegers2DList,

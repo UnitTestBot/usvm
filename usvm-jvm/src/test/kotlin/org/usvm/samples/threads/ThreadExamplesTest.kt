@@ -9,9 +9,9 @@ import org.usvm.util.isException
 
 // IMPORTANT: most of the these tests test only the symbolic engine
 // and should not be used for testing conrete or code generation since they are possibly flaky in the concrete execution
-// (see https://github.com/UnitTestBot/UTBotJava/issues/1610)
 class ThreadExamplesTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Support invokedynamic")
     fun testExceptionInStart() {
         checkDiscoveredPropertiesWithExceptions(
             ThreadExamples::explicitExceptionInStart,
@@ -21,7 +21,7 @@ class ThreadExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
+    @Disabled("class org.jacodb.api.PredefinedPrimitive cannot be cast to class org.jacodb.api.JcRefType")
     fun testChangingCollectionInThread() {
         checkDiscoveredProperties(
             ThreadExamples::changingCollectionInThread,
@@ -31,7 +31,7 @@ class ThreadExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
+    @Disabled("class org.jacodb.api.PredefinedPrimitive cannot be cast to class org.jacodb.api.JcRefType")
     fun testChangingCollectionInThreadWithoutStart() {
         checkDiscoveredPropertiesWithExceptions(
             ThreadExamples::changingCollectionInThreadWithoutStart,

@@ -8,7 +8,7 @@ import org.usvm.test.util.checkers.eq
 
 internal class SimpleInterfaceExampleTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("java.lang.InstantiationException: org.usvm.samples.invokes.SimpleInterface")
+    @Disabled("Expected exactly 3 executions, but 2 found. Virtual invokes are not supported yet")
     fun testOverrideMethod() {
         checkDiscoveredProperties(
             SimpleInterfaceExample::overrideMethod,
@@ -20,7 +20,6 @@ internal class SimpleInterfaceExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("java.lang.InstantiationException: org.usvm.samples.invokes.SimpleInterface")
     fun testDefaultMethod() {
         checkDiscoveredProperties(
             SimpleInterfaceExample::defaultMethod,

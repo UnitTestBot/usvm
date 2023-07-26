@@ -3,14 +3,14 @@
 //
 //import org.junit.jupiter.api.Test
 //import org.usvm.samples.JavaMethodTestRunner.OTHER_PACKAGES
-//import org.utbot.framework.plugin.api.UtModel
-//import org.utbot.framework.plugin.api.isMockModel
-//import org.utbot.framework.plugin.api.isNotNull
-//import org.utbot.framework.plugin.api.isNull
+//import org.usvm.framework.plugin.api.UtModel
+//import org.usvm.framework.plugin.api.isMockModel
+//import org.usvm.framework.plugin.api.isNotNull
+//import org.usvm.framework.plugin.api.isNull
 //import org.usvm.test.util.checkers.eq
-//import org.utbot.testing.UtModelTestCaseChecker
-//import org.utbot.testing.getOrThrow
-//import org.utbot.testing.primitiveValue
+//import org.usvm.testing.UtModelTestCaseChecker
+//import org.usvm.testing.getOrThrow
+//import org.usvm.testing.primitiveValue
 //
 //internal class InnerMockWithFieldChecker : UtModelTestCaseChecker(testClass = InnerMockWithFieldExample::class) {
 //    @Test

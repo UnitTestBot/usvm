@@ -51,7 +51,7 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("org.usvm.samples.enums.ComplexEnumExamples.ComplexEnumExamples\$Color")
+    @Disabled("Some properties were not discovered at positions (from 0): [0]")
     fun testCountEqualColors() {
         checkDiscoveredProperties(
             ComplexEnumExamples::countEqualColors,
@@ -63,7 +63,7 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("org.usvm.samples.enums.ComplexEnumExamples.ComplexEnumExamples\$Color")
+    @Disabled("Some properties were not discovered at positions (from 0): [0]")
     fun testCountNullColors() {
         checkDiscoveredProperties(
             ComplexEnumExamples::countNullColors,
@@ -75,7 +75,7 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@1b0e9707")
+    @Disabled("Not implemented: string constant")
     fun testFindState() {
         checkDiscoveredProperties(
             ComplexEnumExamples::findState,
@@ -85,7 +85,7 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@1b0e9707")
+    @Disabled("Not implemented: string constant")
     fun testCountValuesInArray() {
         fun Color.isCorrectlyCounted(inputs: Array<Color>, counts: Map<Color, Int>): Boolean =
             inputs.count { it == this } == (counts[this] ?: 0)
@@ -100,7 +100,7 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@1b0e9707")
+    @Disabled(" Index 0 out of bounds for length 0")
     fun testCountRedInArray() {
         checkDiscoveredProperties(
             ComplexEnumExamples::countRedInArray,

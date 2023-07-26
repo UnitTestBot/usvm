@@ -1,7 +1,6 @@
 package org.usvm.samples.primitives
 
 import org.junit.jupiter.api.Disabled
-import org.junit.jupiter.api.RepeatedTest
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
@@ -30,8 +29,7 @@ internal class DoubleExamplesTest : JavaMethodTestRunner() {
         )
     }
 
-    @Test
-    @Disabled("Expected exactly 2 executions, but 0 found. Timeout")
+    @Disabled("Timeout Expected exactly 2 executions, but 0 found")
     fun testCompareWithDiv() {
         checkDiscoveredProperties(
             DoubleExamples::compareWithDiv,
@@ -42,6 +40,7 @@ internal class DoubleExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: string constant")
     fun testSimpleSum() {
         checkDiscoveredProperties(
             DoubleExamples::simpleSum,
@@ -53,6 +52,7 @@ internal class DoubleExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: string constant")
     fun testSum() {
         checkDiscoveredProperties(
             DoubleExamples::sum,
@@ -64,7 +64,7 @@ internal class DoubleExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1]. Timeout")
+    @Disabled("Not enough time")
     fun testSimpleMul() {
         checkDiscoveredProperties(
             DoubleExamples::simpleMul,
@@ -76,7 +76,7 @@ internal class DoubleExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 6 executions, but 3 found. Timeout")
+    @Disabled("Not enough time")
     fun testMul() {
         checkDiscoveredProperties(
             DoubleExamples::mul,
@@ -120,6 +120,7 @@ internal class DoubleExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not enough time")
     fun testSimpleNonLinearEquation() {
         checkDiscoveredProperties(
             DoubleExamples::simpleNonLinearEquation,

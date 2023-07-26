@@ -19,7 +19,6 @@ internal class ConditionsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("java.lang.IndexOutOfBoundsException: Index: 1, Size: 1")
     fun testIfLastStatement() {
         checkDiscoveredPropertiesWithExceptions(
             Conditions::emptyBranches,

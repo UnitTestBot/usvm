@@ -8,7 +8,7 @@ import org.usvm.test.util.checkers.eq
 
 internal class ShortWrapperTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
+    @Disabled("Not implemented: string constant")
     fun primitiveToWrapperTest() {
         checkDiscoveredProperties(
             ShortWrapper::primitiveToWrapper,
@@ -19,7 +19,7 @@ internal class ShortWrapperTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Can not set static final short field java.lang.Short.MIN_VALUE to java.lang.Short")
+    @Disabled("Not implemented: string constant")
     fun wrapperToPrimitiveTest() {
         checkDiscoveredProperties(
             ShortWrapper::wrapperToPrimitive,

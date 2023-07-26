@@ -8,7 +8,7 @@ import org.usvm.test.util.checkers.eq
 
 internal class JvmCrashExamplesTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("JIRA:1527")
+    @Disabled("No entrypoint found for method")
     fun testExit() {
         checkDiscoveredProperties(
             JvmCrashExamples::exit,

@@ -8,7 +8,7 @@ import org.usvm.test.util.checkers.eq
 
 class NewInstanceExampleTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Not implemented: String constants")
+    @Disabled("Not implemented: string constant")
     fun testNewInstanceExample() {
         checkDiscoveredProperties(
             NewInstanceExample::createWithReflectionExample,

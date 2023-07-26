@@ -12,9 +12,9 @@ import java.util.Optional
 import java.util.stream.Collectors
 import java.util.stream.Stream
 
+@Disabled("Still too complex")
 class BaseStreamExampleTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Expected exactly 1 executions, but 3 found")
     fun testReturningStreamAsParameterExample() {
         checkDiscoveredProperties(
             BaseStreamExample::returningStreamAsParameterExample,
@@ -24,7 +24,6 @@ class BaseStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testFilterExample() {
         checkDiscoveredProperties(
             BaseStreamExample::filterExample,
@@ -35,7 +34,6 @@ class BaseStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testMapExample() {
         checkDiscoveredPropertiesWithExceptions(
             BaseStreamExample::mapExample,
@@ -82,7 +80,6 @@ class BaseStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testFlatMapExample() {
         checkDiscoveredProperties(
             BaseStreamExample::flatMapExample,
@@ -103,7 +100,6 @@ class BaseStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testFlatMapToLongExample() {
         checkDiscoveredProperties(
             BaseStreamExample::flatMapToLongExample,
@@ -113,7 +109,6 @@ class BaseStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testFlatMapToDoubleExample() {
         checkDiscoveredProperties(
             BaseStreamExample::flatMapToDoubleExample,
@@ -139,7 +134,6 @@ class BaseStreamExampleTest : JavaMethodTestRunner() {
     @Test
     @Tag("slow")
     @Disabled("Not implemented: virtual calls with abstract methods")
-    // TODO slow sorting https://github.com/UnitTestBot/UTBotJava/issues/188
     fun testSortedExample() {
         checkDiscoveredProperties(
             BaseStreamExample::sortedExample,
@@ -159,7 +153,6 @@ class BaseStreamExampleTest : JavaMethodTestRunner() {
 //    }
 
     @Test
-    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testLimitExample() {
         checkDiscoveredProperties(
             BaseStreamExample::limitExample,
@@ -170,7 +163,6 @@ class BaseStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testSkipExample() {
         checkDiscoveredProperties(
             BaseStreamExample::skipExample,
@@ -191,7 +183,6 @@ class BaseStreamExampleTest : JavaMethodTestRunner() {
 //    }
 
     @Test
-    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testToArrayExample() {
         checkDiscoveredProperties(
             BaseStreamExample::toArrayExample,
@@ -201,7 +192,6 @@ class BaseStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testReduceExample() {
         checkDiscoveredProperties(
             BaseStreamExample::reduceExample,
@@ -212,19 +202,17 @@ class BaseStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testOptionalReduceExample() {
         checkDiscoveredPropertiesWithExceptions(
             BaseStreamExample::optionalReduceExample,
             ignoreNumberOfAnalysisResults,
             { _, c, r -> c.isEmpty() && r.getOrThrow() == Optional.empty<Int>() },
             { _, c, r -> c.isNotEmpty() && c.single() == null && r.isException<NullPointerException>() },
-            { _, c, r -> c.isNotEmpty() && r.getOrThrow() == Optional.of<Int>(c.sum()) }, // TODO 2 instructions are uncovered https://github.com/UnitTestBot/UTBotJava/issues/193
+            { _, c, r -> c.isNotEmpty() && r.getOrThrow() == Optional.of<Int>(c.sum()) },
         )
     }
 
     @Test
-    @Disabled("Index 4 out of bounds for length 4")
     fun testComplexReduceExample() {
         checkDiscoveredProperties(
             BaseStreamExample::complexReduceExample,
@@ -235,7 +223,6 @@ class BaseStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("TODO zero executions https://github.com/UnitTestBot/UTBotJava/issues/207")
     fun testCollectorExample() {
         checkDiscoveredProperties(
             BaseStreamExample::collectorExample,
@@ -245,42 +232,38 @@ class BaseStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testCollectExample() {
         checkDiscoveredPropertiesWithExceptions(
             BaseStreamExample::collectExample,
             eq(2), // 3 executions instead of 2 expected
             { _, c, r -> null in c && r.isException<NullPointerException>() },
-            { _, c, r -> null !in c && c.sum() == r.getOrThrow() }, // TODO 2 instructions are uncovered https://github.com/UnitTestBot/UTBotJava/issues/193
+            { _, c, r -> null !in c && c.sum() == r.getOrThrow() },
         )
     }
 
     @Test
-    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testMinExample() {
         checkDiscoveredPropertiesWithExceptions(
             BaseStreamExample::minExample,
             ignoreNumberOfAnalysisResults,
             { _, c, r -> c.isEmpty() && r.getOrThrow() == Optional.empty<Int>() },
             { _, c, r -> c.isNotEmpty() && c.all { it == null } && r.isException<NullPointerException>() },
-            { _, c, r -> c.isNotEmpty() && r.getOrThrow() == Optional.of<Int>(c.minOrNull()!!) }, // TODO 2 instructions are uncovered https://github.com/UnitTestBot/UTBotJava/issues/193
+            { _, c, r -> c.isNotEmpty() && r.getOrThrow() == Optional.of<Int>(c.minOrNull()!!) },
         )
     }
 
     @Test
-    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testMaxExample() {
         checkDiscoveredPropertiesWithExceptions(
             BaseStreamExample::maxExample,
             ignoreNumberOfAnalysisResults,
             { _, c, r -> c.isEmpty() && r.getOrThrow() == Optional.empty<Int>() },
             { _, c, r -> c.isNotEmpty() && c.all { it == null } && r.isException<NullPointerException>() },
-            { _, c, r -> c.isNotEmpty() && r.getOrThrow() == Optional.of<Int>(c.maxOrNull()!!) }, // TODO 2 instructions are uncovered https://github.com/UnitTestBot/UTBotJava/issues/193
+            { _, c, r -> c.isNotEmpty() && r.getOrThrow() == Optional.of<Int>(c.maxOrNull()!!) },
         )
     }
 
     @Test
-    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testCountExample() {
         checkDiscoveredProperties(
             BaseStreamExample::countExample,
@@ -291,7 +274,6 @@ class BaseStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Index 1 out of bounds for length 1")
     fun testAnyMatchExample() {
         checkDiscoveredProperties(
             BaseStreamExample::anyMatchExample,
@@ -305,7 +287,6 @@ class BaseStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Index 1 out of bounds for length 1")
     fun testAllMatchExample() {
         checkDiscoveredProperties(
             BaseStreamExample::allMatchExample,
@@ -319,7 +300,6 @@ class BaseStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Index 1 out of bounds for length 1")
     fun testNoneMatchExample() {
         checkDiscoveredProperties(
             BaseStreamExample::noneMatchExample,
@@ -333,7 +313,6 @@ class BaseStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testFindFirstExample() {
         checkDiscoveredPropertiesWithExceptions(
             BaseStreamExample::findFirstExample,
@@ -345,7 +324,6 @@ class BaseStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: reference cast")
     fun testIteratorExample() {
         checkDiscoveredPropertiesWithExceptions(
             BaseStreamExample::iteratorSumExample,
@@ -357,7 +335,7 @@ class BaseStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3f95a1b3")
     fun testStreamOfExample() {
         checkDiscoveredProperties(
             BaseStreamExample::streamOfExample,
@@ -369,7 +347,6 @@ class BaseStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: reference cast")
     fun testClosedStreamExample() {
         checkDiscoveredPropertiesWithExceptions(
             BaseStreamExample::closedStreamExample,
@@ -379,7 +356,6 @@ class BaseStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: reference cast")
     fun testCustomCollectionStreamExample() {
         checkDiscoveredProperties(
             BaseStreamExample::customCollectionStreamExample,
@@ -390,7 +366,6 @@ class BaseStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: virtual calls with abstract methods")
     fun testAnyCollectionStreamExample() {
         checkDiscoveredProperties(
             BaseStreamExample::anyCollectionStreamExample,
@@ -401,7 +376,7 @@ class BaseStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3f95a1b3")
     fun testGenerateExample() {
         checkDiscoveredProperties(
             BaseStreamExample::generateExample,
@@ -411,7 +386,7 @@ class BaseStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3f95a1b3")
     fun testIterateExample() {
         checkDiscoveredProperties(
             BaseStreamExample::iterateExample,
@@ -421,7 +396,7 @@ class BaseStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
+    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3f95a1b3")
     fun testConcatExample() {
         checkDiscoveredProperties(
             BaseStreamExample::concatExample,

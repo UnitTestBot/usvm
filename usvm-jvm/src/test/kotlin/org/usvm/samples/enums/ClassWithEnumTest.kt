@@ -23,7 +23,7 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
 //    }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@1b0e9707")
+    @Disabled("Not implemented: string constant")
     fun testGetter() {
         checkDiscoveredProperties(
             ClassWithEnum::useGetter,
@@ -34,7 +34,7 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
+    @Disabled("Not implemented: string constant")
     fun testDifficultIfBranch() {
         checkDiscoveredProperties(
             ClassWithEnum::useEnumInDifficultIf,
@@ -45,7 +45,7 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("org.usvm.samples.enums.ClassWithEnum.ClassWithEnum\$StatusEnum")
+    @Disabled("Some properties were not discovered at positions (from 0): [1]. Support enums")
     fun testNullParameter() {
         checkDiscoveredProperties(
             ClassWithEnum::nullEnumAsParameter,
@@ -56,7 +56,7 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@1b0e9707")
+    @Disabled("Not implemented: string constant")
     fun testNullField() {
         checkDiscoveredPropertiesWithExceptions(
             ClassWithEnum::nullField,
@@ -67,9 +67,8 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
         )
     }
 
-    @Suppress("KotlinConstantConditions")
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@1b0e9707")
+    @Disabled("Not implemented: string constant")
     fun testChangeEnum() {
         checkDiscoveredPropertiesWithExceptions(
             ClassWithEnum::changeEnum,
@@ -80,7 +79,7 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@1b0e9707")
+    @Disabled("Not implemented: string constant")
     fun testChangeMutableField() {
         checkDiscoveredPropertiesWithExceptions(
             ClassWithEnum::changeMutableField,
@@ -91,7 +90,7 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@1b0e9707")
+    @Disabled("Not implemented: string constant")
     fun testCheckName() {
         checkDiscoveredProperties(
             ClassWithEnum::checkName,
@@ -150,7 +149,7 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
 //    }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@1b0e9707")
+    @Disabled("Not implemented: string constant")
     fun testFromCode() {
         checkDiscoveredProperties(
             StatusEnum::fromCode,
@@ -162,7 +161,7 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@1b0e9707")
+    @Disabled("Not implemented: string constant")
     fun testFromIsReady() {
         checkDiscoveredProperties(
             StatusEnum::fromIsReady,
@@ -173,7 +172,7 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@22d322f5")
+    @Disabled("Not implemented: string constant")
     fun testPublicGetCodeMethod() {
         checkThisAndParamsMutations(
             StatusEnum::publicGetCode,
@@ -184,7 +183,7 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
+    @Disabled("Not implemented: string constant")
     fun testImplementingInterfaceEnumInDifficultBranch() {
         checkDiscoveredProperties(
             ClassWithEnum::implementingInterfaceEnumInDifficultBranch,
@@ -195,7 +194,7 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@1b0e9707")
+    @Disabled(" Index 0 out of bounds for length 0")
     fun testAffectSystemStaticAndUseInitEnumFromIt() {
         checkDiscoveredProperties(
             ClassWithEnum::affectSystemStaticAndInitEnumFromItAndReturnField,
@@ -205,7 +204,7 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@1b0e9707")
+    @Disabled(" Index 0 out of bounds for length 0")
     fun testAffectSystemStaticAndInitEnumFromItAndGetItFromEnumFun() {
         checkDiscoveredProperties(
             ClassWithEnum::affectSystemStaticAndInitEnumFromItAndGetItFromEnumFun,

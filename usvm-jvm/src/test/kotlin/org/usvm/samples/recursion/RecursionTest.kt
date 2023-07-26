@@ -15,17 +15,18 @@ import org.usvm.util.isException
 
 import kotlin.math.pow
 
-// TODO Kotlin mocks generics https://github.com/UnitTestBot/UTBotJava/issues/88
 internal class RecursionTest : JavaMethodTestRunner() {
-    @Test
-    fun testFactorial() {
-        checkDiscoveredPropertiesWithExceptions(
-            Recursion::factorial,
-            eq(3),
-            { _, x, r -> x < 0 && r.isException<IllegalArgumentException>() },
-            { _, x, r -> x == 0 && r.getOrNull() == 1 },
-            { _, x, r -> x > 0 && r.getOrNull() == (1..x).reduce { a, b -> a * b } }
-        )
+    @UsvmTest([Options([PathSelectionStrategy.CLOSEST_TO_UNCOVERED_RANDOM])])
+    fun testFactorial(options: UMachineOptions) {
+        withOptions(options) {
+            checkDiscoveredPropertiesWithExceptions(
+                Recursion::factorial,
+                eq(3),
+                { _, x, r -> x < 0 && r.isException<IllegalArgumentException>() },
+                { _, x, r -> x == 0 && r.getOrNull() == 1 },
+                { _, x, r -> x > 0 && r.getOrNull() == (1..x).reduce { a, b -> a * b } }
+            )
+        }
     }
 
     @UsvmTest([Options([PathSelectionStrategy.RANDOM_PATH])])
@@ -43,7 +44,6 @@ internal class RecursionTest : JavaMethodTestRunner() {
     }
 
     @Test
-//    @Disabled("Freezes the execution when snd != 0 JIRA:1293")
     @Disabled("Native method invocation: java.lang.Float.floatToRawIntBits")
     fun testSum() {
         checkDiscoveredProperties(
@@ -52,23 +52,25 @@ internal class RecursionTest : JavaMethodTestRunner() {
             { _, x, y, r -> y == 0 && r == x },
             { _, x, y, r -> y != 0 && r == x + y }
         )
+
+    }
+
+    @UsvmTest([Options([PathSelectionStrategy.CLOSEST_TO_UNCOVERED_RANDOM])])
+    fun testPow(options: UMachineOptions) {
+        withOptions(options) {
+            checkDiscoveredPropertiesWithExceptions(
+                Recursion::pow,
+                eq(4),
+                { _, _, y, r -> y < 0 && r.isException<IllegalArgumentException>() },
+                { _, _, y, r -> y == 0 && r.getOrNull() == 1 },
+                { _, x, y, r -> y % 2 == 1 && r.getOrNull() == x.toDouble().pow(y.toDouble()).toInt() },
+                { _, x, y, r -> y % 2 != 1 && r.getOrNull() == x.toDouble().pow(y.toDouble()).toInt() }
+            )
+        }
     }
 
     @Test
-    @Disabled("Expected exactly 4 executions, but 5 found. Same exception discovered multiple times")
-    fun testPow() {
-        checkDiscoveredPropertiesWithExceptions(
-            Recursion::pow,
-            eq(4),
-            { _, _, y, r -> y < 0 && r.isException<IllegalArgumentException>() },
-            { _, _, y, r -> y == 0 && r.getOrNull() == 1 },
-            { _, x, y, r -> y % 2 == 1 && r.getOrNull() == x.toDouble().pow(y.toDouble()).toInt() },
-            { _, x, y, r -> y % 2 != 1 && r.getOrNull() == x.toDouble().pow(y.toDouble()).toInt() }
-        )
-    }
-
-    @Test
-    @Disabled("Expected exactly 2 executions, but 28 found. Same exception discovered multiple times")
+    @Disabled("Expected exactly 2 executions, but 54 found. Fix minimization")
     fun infiniteRecursionTest() {
         checkDiscoveredPropertiesWithExceptions(
             Recursion::infiniteRecursion,
@@ -79,7 +81,7 @@ internal class RecursionTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@4640195a")
+    @Disabled("Not implemented: string constant")
     fun vertexSumTest() {
         checkDiscoveredProperties(
             Recursion::vertexSum,

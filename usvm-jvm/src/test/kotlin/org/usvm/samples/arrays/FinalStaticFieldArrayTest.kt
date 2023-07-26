@@ -8,7 +8,7 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 internal class FinalStaticFieldArrayTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
+    @Disabled("Not implemented: string constant")
     fun testFactorial() {
         checkDiscoveredProperties(
             FinalStaticFieldArray::factorial,

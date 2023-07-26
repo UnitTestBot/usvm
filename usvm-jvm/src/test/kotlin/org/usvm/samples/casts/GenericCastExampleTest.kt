@@ -8,7 +8,7 @@ import org.usvm.test.util.checkers.eq
 
 internal class GenericCastExampleTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("An operation is not implemented.")
+    @Disabled("Expected exactly 5 executions, but 1 found. Support generics")
     fun testCompareTwoNumbers() {
         checkDiscoveredProperties(
             GenericCastExample::compareTwoNumbers,
@@ -22,7 +22,7 @@ internal class GenericCastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented.")
+    @Disabled("Expected exactly 3 executions, but 2 found. Support generics")
     fun testGetGenericFieldValue() {
         checkDiscoveredProperties(
             GenericCastExample::getGenericFieldValue,
@@ -34,7 +34,7 @@ internal class GenericCastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented.")
+    @Disabled("List is empty. Support generics")
     fun testCompareGenericField() {
         checkDiscoveredProperties(
             GenericCastExample::compareGenericField,
@@ -47,7 +47,7 @@ internal class GenericCastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@5f0f70c7")
+    @Disabled("Not implemented: string constant")
     fun testCreateNewGenericObject() {
         checkDiscoveredProperties(
             GenericCastExample::createNewGenericObject,
@@ -57,7 +57,7 @@ internal class GenericCastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented.")
+    @Disabled("List is empty. Support generics")
     fun testSumFromArrayOfGenerics() {
         checkDiscoveredProperties(
             GenericCastExample::sumFromArrayOfGenerics,

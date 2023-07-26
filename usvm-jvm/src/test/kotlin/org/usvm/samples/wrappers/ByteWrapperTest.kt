@@ -8,7 +8,7 @@ import org.usvm.test.util.checkers.eq
 
 internal class ByteWrapperTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
+    @Disabled("Not implemented: string constant")
     fun primitiveToWrapperTest() {
         checkDiscoveredProperties(
             ByteWrapper::primitiveToWrapper,
@@ -19,7 +19,7 @@ internal class ByteWrapperTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Can not set static final byte field java.lang.Byte.MIN_VALUE to java.lang.Byte")
+    @Disabled("Not implemented: string constant")
     fun wrapperToPrimitiveTest() {
         checkDiscoveredProperties(
             ByteWrapper::wrapperToPrimitive,
@@ -31,7 +31,7 @@ internal class ByteWrapperTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
+    @Disabled("Not implemented: string constant")
     fun equalityTest() {
         checkDiscoveredProperties(
             ByteWrapper::equality,

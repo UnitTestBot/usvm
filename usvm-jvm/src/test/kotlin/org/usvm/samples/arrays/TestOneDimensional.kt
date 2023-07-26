@@ -1,13 +1,12 @@
 package org.usvm.samples.arrays
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
+import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
-class TetOneDimensional : JavaMethodTestRunner() {
+class TestOneDimensional : JavaMethodTestRunner() {
     @Test
-    @Disabled("Failed requirement at org.usvm.model.ULazyHeapModel.readArrayLength(LazyModels.kt:167)")
     fun `Test sumOf`() {
         checkDiscoveredPropertiesWithExceptions(
             OneDimensional::sumOf,
@@ -19,7 +18,20 @@ class TetOneDimensional : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Failed requirement at org.usvm.model.ULazyHeapModel.readArrayLength(LazyModels.kt:167)")
+    fun `Test symbolicIndex`() {
+        checkDiscoveredPropertiesWithExceptions(
+            OneDimensional::symbolicIndex,
+            eq(5),
+            { _, _, index, r -> index !in 0..2 && r.exceptionOrNull() is IndexOutOfBoundsException },
+            { _, b, index, r -> b == null && index == 2 && r.exceptionOrNull() is NullPointerException },
+            { a, _, index, r -> a == 5 && index == 0 && r.getOrNull() == -1 },
+            { _, b, index, r -> b.value == 5 && index == 2 && r.getOrNull() == 0 },
+            { _, _, _, r -> r.getOrNull() == 1 },
+        )
+    }
+
+
+    @Test
     fun `Test minus`() {
         checkDiscoveredPropertiesWithExceptions(
             OneDimensional::minus,

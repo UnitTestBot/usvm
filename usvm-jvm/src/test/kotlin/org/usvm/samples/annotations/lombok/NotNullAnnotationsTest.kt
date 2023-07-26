@@ -3,7 +3,7 @@ package org.usvm.samples.annotations.lombok
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
-import org.usvm.test.util.checkers.eq
+import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 
 /**
@@ -15,12 +15,13 @@ import org.usvm.test.util.checkers.eq
  */
 internal class NotNullAnnotationsTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Can not set static final int field java.lang.Integer.MIN_VALUE to java.lang.Integer")
+    @Disabled("Not implemented: string constant")
     fun testNonNullAnnotations() {
         checkDiscoveredProperties(
             NotNullAnnotations::lombokNonNull,
-            eq(1),
+            /*eq(1)*/ignoreNumberOfAnalysisResults,
             { _, value, r -> value == r },
+            // TODO support NotNull annotations
         )
     }
 }

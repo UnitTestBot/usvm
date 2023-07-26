@@ -8,7 +8,7 @@ import org.usvm.util.isException
 
 internal class GenericExamplesTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Not implemented: Unexpected lvalue org.usvm.machine.JcStaticFieldRef")
+    @Disabled("Expected exactly 2 executions, but 1 found. Support strings")
     fun testContainsOkWithIntegerType() {
         checkDiscoveredPropertiesWithExceptions(
             GenericExamples<Int>::containsOk,
@@ -19,7 +19,7 @@ internal class GenericExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: String constants")
+    @Disabled("Not implemented: string constant")
     fun testContainsOkExampleTest() {
         checkDiscoveredProperties(
             GenericExamples<String>::containsOkExample,

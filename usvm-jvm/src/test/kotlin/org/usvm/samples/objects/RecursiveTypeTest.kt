@@ -8,7 +8,6 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 internal class RecursiveTypeTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun testNextValue() {
         checkDiscoveredProperties(
             RecursiveType::nextValue,
@@ -22,7 +21,6 @@ internal class RecursiveTypeTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1, 2]. ")
     fun testWriteObjectFieldTest() {
         checkDiscoveredProperties(
             RecursiveType::writeObjectField,

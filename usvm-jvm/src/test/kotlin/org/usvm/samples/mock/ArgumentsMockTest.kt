@@ -10,9 +10,9 @@
 //import org.usvm.test.util.checkers.eq
 //
 //
-//import org.utbot.testing.isParameter
-//import org.utbot.testing.mocksMethod
-//import org.utbot.testing.value
+//import org.usvm.testing.isParameter
+//import org.usvm.testing.mocksMethod
+//import org.usvm.testing.value
 //
 //internal class ArgumentsMockTest : JavaMethodTestRunner() {
 //    @Test

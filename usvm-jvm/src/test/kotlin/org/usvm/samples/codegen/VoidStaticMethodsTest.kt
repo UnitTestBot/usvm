@@ -8,7 +8,7 @@ import org.usvm.test.util.checkers.eq
 
 class VoidStaticMethodsTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@41ccb3b9")
+    @Disabled("Not implemented: string constant")
     fun testInvokeChangeStaticFieldMethod() {
         checkDiscoveredProperties(
             VoidStaticMethodsTestingClass::invokeChangeStaticFieldMethod,
@@ -17,7 +17,7 @@ class VoidStaticMethodsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
+    @Disabled("Expected exactly 3 executions, but 1 found")
     fun testInvokeThrowExceptionMethod() {
         checkDiscoveredProperties(
             VoidStaticMethodsTestingClass::invokeThrowExceptionMethod,
@@ -26,7 +26,7 @@ class VoidStaticMethodsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
+    @Disabled("Expected exactly 2 executions, but 1 found. Tune coverage ZONE")
     fun testInvokeAnotherThrowExceptionMethod() {
         checkDiscoveredProperties(
             VoidStaticMethodsTestingClass::invokeAnotherThrowExceptionMethod,

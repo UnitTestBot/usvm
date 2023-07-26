@@ -9,11 +9,11 @@ import io.ksmt.expr.transformer.KTransformerBase
 import io.ksmt.sort.KBv32Sort
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.spyk
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.usvm.constraints.UTypeEvaluator
-import org.usvm.memory.UAddressCounter.Companion.NULL_ADDRESS
 import org.usvm.memory.UAllocatedArrayId
 import org.usvm.memory.UAllocatedArrayRegion
 import org.usvm.memory.UFlatUpdates
@@ -34,6 +34,7 @@ import org.usvm.memory.USymbolicArrayIndex
 import org.usvm.memory.UUpdateNode
 import org.usvm.memory.emptyAllocatedArrayRegion
 import org.usvm.memory.emptyInputArrayRegion
+import org.usvm.model.UHeapEagerModel
 import org.usvm.model.URegistersStackEagerModel
 import kotlin.reflect.KClass
 import kotlin.test.assertEquals
@@ -424,6 +425,38 @@ internal class CompositionTest {
 
         assertSame(2.toBv(), fstComposedValue)
         assertSame(fstComposedValue, sndComposedValue)
+    }
+
+    @Test
+    fun testUAllocatedArrayAddressSortIndexReading() = with(ctx) {
+        val arrayType: KClass<Array<*>> = Array::class
+
+        val symbolicIndex = mockk<USizeExpr>()
+        val symbolicAddress = mkRegisterReading(0, addressSort)
+
+        val regionArray = emptyAllocatedArrayRegion(arrayType, 0, addressSort)
+            .write(mkBv(0), symbolicAddress, trueExpr)
+            .write(mkBv(1), mkConcreteHeapRef(1), trueExpr)
+
+        val reading = mkAllocatedArrayReading(regionArray, symbolicIndex)
+
+        val concreteNullRef = mkConcreteHeapRef(NULL_ADDRESS)
+        val heapToComposeWith = UHeapEagerModel<Field, KClass<Array<*>>>(
+            concreteNullRef,
+            emptyMap(),
+            emptyMap(),
+            emptyMap()
+        )
+
+        val typeEvaluator = mockk<UTypeEvaluator<KClass<Array<*>>>>()
+        val composer = spyk(UComposer(ctx, stackEvaluator, heapToComposeWith, typeEvaluator, mockEvaluator))
+
+        every { symbolicIndex.accept(composer) } returns mkBv(2)
+        every { symbolicAddress.accept(composer) } returns mkConcreteHeapRef(-1)
+
+        val composedReading = composer.compose(reading)
+
+        assertSame(composedReading, concreteNullRef)
     }
 
     @Test

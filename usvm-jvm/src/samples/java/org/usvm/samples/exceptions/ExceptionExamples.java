@@ -1,5 +1,7 @@
 package org.usvm.samples.exceptions;
 
+import java.nio.file.InvalidPathException;
+
 public class ExceptionExamples {
     public int initAnArray(int n) {
         try {
@@ -32,14 +34,14 @@ public class ExceptionExamples {
 
     private int checkAll(int i) {
         if (i < 0) {
-            throw new IllegalArgumentException("Negative");
+            throw new IllegalArgumentException();
         }
         return checkPositive(i);
     }
 
     private int checkPositive(int i) {
         if (i > 0) {
-            throw new NullPointerException("Positive");
+            throw new NullPointerException();
         }
         return 0;
     }
@@ -51,7 +53,7 @@ public class ExceptionExamples {
         } catch (NullPointerException e) {
             throw e;
         } finally {
-            throw new IllegalStateException("finally");
+            throw new IllegalStateException();
         }
     }
 
@@ -99,7 +101,7 @@ public class ExceptionExamples {
     }
 
     public IllegalArgumentException createException() {
-        return new IllegalArgumentException("Here we are: " + Math.sqrt(10));
+        return new IllegalArgumentException();
     }
 
     public int hangForSeconds(int seconds) throws InterruptedException {
@@ -119,8 +121,28 @@ public class ExceptionExamples {
 
     private int nestedWithThrow(int i) {
         if (i < 0) {
-            throw new IllegalArgumentException("Negative");
+            throw new IllegalArgumentException();
         }
         return i;
+    }
+
+    public int symbolicExceptionCheck(Exception e) {
+        try {
+            throw e;
+        } catch (NumberFormatException | InvalidPathException exception) {
+            if (e instanceof NumberFormatException) {
+                return 1;
+            }
+
+            return 2;
+        } catch (RuntimeException exception) {
+            if (e instanceof NumberFormatException) {
+                return -1; // unreachable
+            }
+
+            return 3;
+        } catch (Exception exception) {
+            return 4;
+        }
     }
 }

@@ -38,7 +38,7 @@ class SampleState(
     override fun clone(newConstraints: UPathConstraints<SampleType>?): SampleState {
         val clonedConstraints = newConstraints ?: pathConstraints.clone()
         return SampleState(
-            ctx,
+            pathConstraints.ctx,
             callStack.clone(),
             clonedConstraints,
             memory.clone(clonedConstraints.typeConstraints),
@@ -48,6 +48,9 @@ class SampleState(
             exceptionRegister
         )
     }
+
+    override val isExceptional: Boolean
+        get() = exceptionRegister != null
 }
 
 val SampleState.lastStmt get() = path.last()

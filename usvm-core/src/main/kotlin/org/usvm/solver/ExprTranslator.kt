@@ -64,7 +64,7 @@ open class UExprTranslator<Field, Type>(
     }
 
     override fun transform(expr: UNullRef): KExpr<UAddressSort> {
-        val const = ctx.mkUninterpretedSortValue(ctx.addressSort, valueIdx = 0)
+        val const = expr.sort.mkConst("null")
         return const
     }
 

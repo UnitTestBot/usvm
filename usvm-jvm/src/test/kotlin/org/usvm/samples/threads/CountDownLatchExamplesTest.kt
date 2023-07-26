@@ -8,7 +8,7 @@ import org.usvm.test.util.checkers.eq
 
 class CountDownLatchExamplesTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Unable to make field private final java.util.concurrent.CountDownLatch\$Sync java.util.concurrent.CountDownLatch.sync accessible: module java.base does not \"opens java.util.concurrent\" to unnamed module @399f45b1\n")
+    @Disabled("No entrypoint found for method")
     fun testGetAndDown() {
         checkDiscoveredProperties(
             CountDownLatchExamples::getAndDown,

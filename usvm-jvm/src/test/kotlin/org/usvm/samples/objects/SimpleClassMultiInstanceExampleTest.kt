@@ -8,7 +8,6 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 internal class SimpleClassMultiInstanceExampleTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1, 2]. ")
     fun singleObjectChangeTest() {
         checkDiscoveredProperties(
             SimpleClassMultiInstanceExample::singleObjectChange,

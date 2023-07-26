@@ -7,14 +7,14 @@ import org.jacodb.api.JcMethod
 import org.jacodb.api.JcType
 import org.jacodb.api.cfg.JcInst
 import org.usvm.UCallStack
+import org.usvm.UContext
 import org.usvm.UState
 import org.usvm.constraints.UPathConstraints
-import org.usvm.machine.JcContext
 import org.usvm.memory.UMemoryBase
 import org.usvm.model.UModelBase
 
 class JcState(
-    override val ctx: JcContext,
+    ctx: UContext,
     callStack: UCallStack<JcMethod, JcInst> = UCallStack(),
     pathConstraints: UPathConstraints<JcType> = UPathConstraints(ctx),
     memory: UMemoryBase<JcField, JcType, JcMethod> = UMemoryBase(ctx, pathConstraints.typeConstraints),
@@ -32,7 +32,7 @@ class JcState(
     override fun clone(newConstraints: UPathConstraints<JcType>?): JcState {
         val clonedConstraints = newConstraints ?: pathConstraints.clone()
         return JcState(
-            ctx,
+            pathConstraints.ctx,
             callStack.clone(),
             clonedConstraints,
             memory.clone(clonedConstraints.typeConstraints),
@@ -40,5 +40,14 @@ class JcState(
             path,
             methodResult,
         )
+    }
+
+    override val isExceptional: Boolean
+        get() = methodResult is JcMethodResult.JcException
+
+    override fun toString(): String = buildString {
+        appendLine("Instruction: $lastStmt")
+        if (isExceptional) appendLine("Exception: $methodResult")
+        appendLine(callStack)
     }
 }

@@ -9,7 +9,7 @@ import org.usvm.test.util.checkers.eq
 @Suppress("SimplifyNegatedBinaryExpression")
 internal class DoubleWrapperTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Can not set static final double field java.lang.Double.POSITIVE_INFINITY to java.lang.Double")
+    @Disabled("Not implemented: string constant")
     fun primitiveToWrapperTest() {
         checkDiscoveredProperties(
             DoubleWrapper::primitiveToWrapper,
@@ -20,7 +20,7 @@ internal class DoubleWrapperTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Can not set static final double field java.lang.Double.POSITIVE_INFINITY to java.lang.Double")
+    @Disabled("Not implemented: string constant")
     fun wrapperToPrimitiveTest() {
         checkDiscoveredProperties(
             DoubleWrapper::wrapperToPrimitive,

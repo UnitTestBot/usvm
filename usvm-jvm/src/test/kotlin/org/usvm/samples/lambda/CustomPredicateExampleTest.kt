@@ -8,7 +8,7 @@ import org.usvm.util.isException
 
 class CustomPredicateExampleTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@4640195a")
+    @Disabled("Not implemented: string constant")
     fun testNoCapturedValuesPredicateCheck() {
         checkDiscoveredPropertiesWithExceptions(
             CustomPredicateExample::noCapturedValuesPredicateCheck,
@@ -20,7 +20,7 @@ class CustomPredicateExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@4640195a")
+    @Disabled("Not implemented: string constant")
     fun testCapturedLocalVariablePredicateCheck() {
         checkDiscoveredPropertiesWithExceptions(
             CustomPredicateExample::capturedLocalVariablePredicateCheck,
@@ -32,7 +32,7 @@ class CustomPredicateExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@4640195a")
+    @Disabled("Not implemented: string constant")
     fun testCapturedParameterPredicateCheck() {
         checkDiscoveredPropertiesWithExceptions(
             CustomPredicateExample::capturedParameterPredicateCheck,
@@ -44,7 +44,7 @@ class CustomPredicateExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@4640195a")
+    @Disabled("Not implemented: string constant")
     fun testCapturedStaticFieldPredicateCheck() {
         checkDiscoveredPropertiesWithExceptions(
             CustomPredicateExample::capturedStaticFieldPredicateCheck,
@@ -56,7 +56,7 @@ class CustomPredicateExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@4640195a")
+    @Disabled("Not implemented: string constant")
     fun testCapturedNonStaticFieldPredicateCheck() {
         checkDiscoveredPropertiesWithExceptions(
             CustomPredicateExample::capturedNonStaticFieldPredicateCheck,

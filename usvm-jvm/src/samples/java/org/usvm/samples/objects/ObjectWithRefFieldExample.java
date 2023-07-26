@@ -107,7 +107,7 @@ public class ObjectWithRefFieldExample {
         return 2;
     }
 
-    public boolean compareTwoObjectsWithDifferentRefField(ObjectWithRefFieldClass fst, ObjectWithRefFieldClass snd) {
+    public boolean compareTwoObjectsWithTheDifferentRefField(ObjectWithRefFieldClass fst, ObjectWithRefFieldClass snd) {
         return fst.refField == snd.refField;
     }
 

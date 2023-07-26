@@ -36,11 +36,11 @@ class UEqualityConstraints private constructor(
         equalReferences.subscribe(::rename)
     }
 
-    var isContradiction = false
+    var isContradicting = false
         private set
 
     private fun contradiction() {
-        isContradiction = true
+        isContradicting = true
         equalReferences.clear()
         mutableDistinctReferences.clear()
         mutableReferenceDisequalities.clear()
@@ -55,13 +55,13 @@ class UEqualityConstraints private constructor(
     /**
      * Returns if [ref1] is identical to [ref2] in *all* models.
      */
-    fun areEqual(ref1: UHeapRef, ref2: UHeapRef) =
+    internal fun areEqual(ref1: UHeapRef, ref2: UHeapRef) =
         equalReferences.connected(ref1, ref2)
 
     /**
      * Returns if [ref] is null in all models.
      */
-    fun isNull(ref: UHeapRef) = areEqual(ctx.nullRef, ref)
+    internal fun isNull(ref: UHeapRef) = areEqual(ctx.nullRef, ref)
 
     private fun areDistinctRepresentatives(repr1: UHeapRef, repr2: UHeapRef): Boolean {
         if (repr1 == repr2) {
@@ -75,7 +75,7 @@ class UEqualityConstraints private constructor(
     /**
      * Returns if [ref1] is distinct from [ref2] in *all* models.
      */
-    fun areDistinct(ref1: UHeapRef, ref2: UHeapRef): Boolean {
+    internal fun areDistinct(ref1: UHeapRef, ref2: UHeapRef): Boolean {
         val repr1 = equalReferences.find(ref1)
         val repr2 = equalReferences.find(ref2)
         return areDistinctRepresentatives(repr1, repr2)
@@ -84,13 +84,13 @@ class UEqualityConstraints private constructor(
     /**
      * Returns if [ref] is not null in all models.
      */
-    fun isNotNull(ref: UHeapRef) = areDistinct(ctx.nullRef, ref)
+    internal fun isNotNull(ref: UHeapRef) = areDistinct(ctx.nullRef, ref)
 
     /**
      * Adds an assertion that [ref1] is always equal to [ref2].
      */
-    fun addReferenceEquality(ref1: UHeapRef, ref2: UHeapRef) {
-        if (isContradiction) {
+    internal fun makeEqual(ref1: UHeapRef, ref2: UHeapRef) {
+        if (isContradicting) {
             return
         }
 
@@ -125,7 +125,7 @@ class UEqualityConstraints private constructor(
             mutableReferenceDisequalities.remove(from)
             fromDiseqs.forEach {
                 mutableReferenceDisequalities[it]?.remove(from)
-                addReferenceDisequality(to, it)
+                makeNonEqual(to, it)
             }
         }
 
@@ -142,7 +142,7 @@ class UEqualityConstraints private constructor(
             }
         } else if (containsNullableDisequality(from, to)) {
             // If x === y, nullable disequality can hold only if both references are null
-            addReferenceEquality(to, nullRepr)
+            makeEqual(to, nullRepr)
         } else {
             val removedFrom = mutableNullableDisequalities.remove(from)
             removedFrom?.forEach {
@@ -210,8 +210,8 @@ class UEqualityConstraints private constructor(
     /**
      * Adds an assertion that [ref1] is never equal to [ref2].
      */
-    fun addReferenceDisequality(ref1: UHeapRef, ref2: UHeapRef) {
-        if (isContradiction) {
+    internal fun makeNonEqual(ref1: UHeapRef, ref2: UHeapRef) {
+        if (isContradicting) {
             return
         }
 
@@ -232,8 +232,8 @@ class UEqualityConstraints private constructor(
     /**
      * Adds an assertion that [ref1] is never equal to [ref2] or both are null.
      */
-    fun makeNonEqualOrBothNull(ref1: UHeapRef, ref2: UHeapRef) {
-        if (isContradiction) {
+    internal fun makeNonEqualOrBothNull(ref1: UHeapRef, ref2: UHeapRef) {
+        if (isContradicting) {
             return
         }
 
@@ -242,7 +242,7 @@ class UEqualityConstraints private constructor(
 
         if (repr1 == repr2) {
             // In this case, (repr1 != repr2) || (repr1 == null && repr2 == null) is equivalent to (repr1 == null).
-            addReferenceEquality(repr1, ctx.nullRef)
+            makeEqual(repr1, ctx.nullRef)
             return
         }
 
@@ -284,9 +284,9 @@ class UEqualityConstraints private constructor(
      * Note that current subscribers get unsubscribed!
      */
     fun clone(): UEqualityConstraints {
-        if (isContradiction) {
+        if (isContradicting) {
             val result = UEqualityConstraints(ctx, DisjointSets(), mutableSetOf(), mutableMapOf(), mutableMapOf())
-            result.isContradiction = true
+            result.isContradicting = true
             return result
         }
 

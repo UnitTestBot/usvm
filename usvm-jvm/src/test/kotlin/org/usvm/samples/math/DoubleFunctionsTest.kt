@@ -32,7 +32,7 @@ internal class DoubleFunctionsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 5 executions, but 8 found. Same exception discovered multiple times")
+    @Disabled("Expected exactly 5 executions, but 1 found. Fix floats and doubles")
     fun testCircleSquare() {
         checkDiscoveredPropertiesWithExceptions(
             DoubleFunctions::circleSquare,
@@ -46,7 +46,7 @@ internal class DoubleFunctionsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sort mismatch")
+    @Disabled("No analysis results received")
     fun testNumberOfRootsInSquareFunction() {
         checkDiscoveredProperties(
             DoubleFunctions::numberOfRootsInSquareFunction,

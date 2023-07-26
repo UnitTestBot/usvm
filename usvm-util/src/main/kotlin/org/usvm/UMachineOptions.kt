@@ -78,7 +78,11 @@ enum class CoverageZone {
     /**
      * Coverage of methods in target method's class id considered.
      */
-    CLASS
+    CLASS,
+    /**
+     * Coverage of methods transitively reachable from a start method.
+     */
+    TRANSITIVE
 }
 
 data class UMachineOptions(
@@ -114,13 +118,21 @@ data class UMachineOptions(
     /**
      * Optional timeout in milliseconds to stop execution on.
      */
-    val timeoutMs: Long? = 20000,
+    val timeoutMs: Long? = 20_000,
+    /**
+     * A number of steps from the last terminated state.
+     */
+    val stepsFromLastCovered: Long? = null,
     /**
      * Scope of methods which coverage is considered.
      *
      * @see CoverageZone
      */
     val coverageZone: CoverageZone = CoverageZone.METHOD,
+    /**
+     * Whether we should prefer exceptional state in the queue to the regular ones.
+     */
+    val exceptionsPropagation: Boolean = true,
     /**
      * SMT solver type used for path constraint solving.
      */

@@ -51,7 +51,6 @@ internal class DivRemExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [3]")
     fun testRemWithConditions() {
         checkDiscoveredPropertiesWithExceptions(
             DivRemExamples::remWithConditions,

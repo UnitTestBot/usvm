@@ -9,7 +9,7 @@ import org.usvm.util.isException
 
 class StringConcatTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@1d628a88")
+    @Disabled("Not implemented: class constant")
     fun testConcatArguments() {
         checkDiscoveredProperties(
             StringConcat::concatArguments,
@@ -19,7 +19,7 @@ class StringConcatTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@1d628a88")
+    @Disabled("Not implemented: class constant")
     fun testConcatWithConstants() {
         checkDiscoveredProperties(
             StringConcat::concatWithConstants,
@@ -42,7 +42,7 @@ class StringConcatTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@78181f7f")
+    @Disabled("Not implemented: string constant")
     fun testExceptionInToString() {
         checkDiscoveredPropertiesWithExceptions(
             StringConcat::exceptionInToString,
@@ -63,7 +63,7 @@ class StringConcatTest : JavaMethodTestRunner() {
 //    }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@549fc0b3")
+    @Disabled("Not implemented: string constant")
     fun testConcatWithPrimitiveWrappers() {
         checkDiscoveredProperties(
             StringConcat::concatWithPrimitiveWrappers,
@@ -74,7 +74,7 @@ class StringConcatTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@7e8e111d")
+    @Disabled("Not implemented: class constant")
     fun testSameConcat() {
         checkDiscoveredProperties(
             StringConcat::sameConcat,
@@ -85,7 +85,7 @@ class StringConcatTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
+    @Disabled("Not implemented: string constant")
     fun testConcatStrangeSymbols() {
         checkDiscoveredProperties(
             StringConcat::concatStrangeSymbols,

@@ -19,7 +19,7 @@ internal class ObjectWithRefFieldsExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
+    @Disabled("Some properties were not discovered at positions (from 0): [2]. Fix branch coverage")
     fun testWriteToRefTypeField() {
         checkDiscoveredProperties(
             ObjectWithRefFieldExample::writeToRefTypeField,
@@ -45,7 +45,6 @@ internal class ObjectWithRefFieldsExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun testReadFromRefTypeField() {
         checkDiscoveredProperties(
             ObjectWithRefFieldExample::readFromRefTypeField,
@@ -58,7 +57,6 @@ internal class ObjectWithRefFieldsExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 3 executions, but 129 found. Same exception discovered multiple times")
     fun testWriteToArrayField() {
         checkDiscoveredProperties(
             ObjectWithRefFieldExample::writeToArrayField,
@@ -79,7 +77,6 @@ internal class ObjectWithRefFieldsExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun testReadFromArrayField() {
         checkDiscoveredProperties(
             ObjectWithRefFieldExample::readFromArrayField,
@@ -92,7 +89,6 @@ internal class ObjectWithRefFieldsExampleTest : JavaMethodTestRunner() {
         )
     }
 
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun testCompareTwoDifferentObjectsFromArguments() {
         checkDiscoveredProperties(
             ObjectWithRefFieldExample::compareTwoDifferentObjectsFromArguments,
@@ -107,7 +103,6 @@ internal class ObjectWithRefFieldsExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Failed requirement at org.usvm.UInputFieldReading.<init>(Expressions.kt:166)")
     fun testCompareTwoObjectsWithNullRefField() {
         checkDiscoveredPropertiesWithExceptions(
             ObjectWithRefFieldExample::compareTwoObjectsWithNullRefField,
@@ -120,7 +115,6 @@ internal class ObjectWithRefFieldsExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1, 2]. ")
     fun testCompareTwoObjectsWithDifferentRefField() {
         checkDiscoveredPropertiesWithExceptions(
             ObjectWithRefFieldExample::compareTwoObjectsWithDifferentRefField,
@@ -133,10 +127,9 @@ internal class ObjectWithRefFieldsExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [2, 3]")
     fun testCompareTwoObjectsWithTheDifferentRefField() {
         checkDiscoveredPropertiesWithExceptions(
-            ObjectWithRefFieldExample::compareTwoObjectsWithDifferentRefField,
+            ObjectWithRefFieldExample::compareTwoObjectsWithTheDifferentRefField,
             ignoreNumberOfAnalysisResults,
             { _, fst, _, r -> fst == null && r.isException<NullPointerException>() },
             { _, fst, snd, r -> fst != null && snd == null && r.isException<NullPointerException>() },
@@ -146,7 +139,6 @@ internal class ObjectWithRefFieldsExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1, 2]. ")
     fun testCompareTwoObjectsWithTheSameRefField() {
         checkDiscoveredPropertiesWithExceptions(
             ObjectWithRefFieldExample::compareTwoObjectsWithTheSameRefField,
