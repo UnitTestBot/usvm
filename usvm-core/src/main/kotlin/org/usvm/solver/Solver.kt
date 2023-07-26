@@ -145,17 +145,10 @@ open class USolverBase<Field, Type, Method>(
 
                 // find interpretations of type constraints
 
-                val isSubtypeToInterpretation = kModel.declarations.mapNotNull { decl ->
-                    translator.declToIsSubtypeExpr[decl]?.let { isSubtypeExpr ->
+                val isExprToInterpretation = kModel.declarations.mapNotNull { decl ->
+                    translator.declToIsExpr[decl]?.let { isSubtypeExpr ->
                         val expr = decl.apply(emptyList())
                         isSubtypeExpr to kModel.eval(expr, isComplete = true).asExpr(ctx.boolSort).isTrue
-                    }
-                }
-
-                val isSupertypeToInterpretation = kModel.declarations.mapNotNull { decl ->
-                    translator.declToIsSupertypeExpr[decl]?.let { isSupertypeExpr ->
-                        val expr = decl.apply(emptyList())
-                        isSupertypeExpr to kModel.eval(expr, isComplete = true).asExpr(ctx.boolSort).isTrue
                     }
                 }
 
@@ -163,8 +156,7 @@ open class USolverBase<Field, Type, Method>(
                 val typeSolverQuery = TypeSolverQuery(
                     symbolicToConcrete = { uModel.eval(it) as UConcreteHeapRef },
                     symbolicRefToTypeRegion = pc.typeConstraints.symbolicRefToTypeRegion,
-                    isSubtypeToInterpretation = isSubtypeToInterpretation,
-                    isSupertypeToInterpretation = isSupertypeToInterpretation,
+                    isExprToInterpretation = isExprToInterpretation,
                 )
 
                 // fourth, check it satisfies typeConstraints

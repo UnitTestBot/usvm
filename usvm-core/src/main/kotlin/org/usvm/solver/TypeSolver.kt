@@ -3,6 +3,7 @@ package org.usvm.solver
 import org.usvm.NULL_ADDRESS
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
+import org.usvm.UIsExpr
 import org.usvm.UIsSubtypeExpr
 import org.usvm.UIsSupertypeExpr
 import org.usvm.USymbolicHeapRef
@@ -14,8 +15,7 @@ import org.usvm.uctx
 data class TypeSolverQuery<Type>(
     val symbolicToConcrete: (USymbolicHeapRef) -> UConcreteHeapRef,
     val symbolicRefToTypeRegion: Map<USymbolicHeapRef, UTypeRegion<Type>>,
-    val isSubtypeToInterpretation: List<Pair<UIsSubtypeExpr<Type>, Boolean>>,
-    val isSupertypeToInterpretation: List<Pair<UIsSupertypeExpr<Type>, Boolean>>,
+    val isExprToInterpretation: List<Pair<UIsExpr<Type>, Boolean>>,
 )
 
 class UTypeUnsatResult<Type>(
@@ -70,12 +70,23 @@ class UTypeSolver<Type>(
     ): USolverResult<UTypeModel<Type>> {
         val conflictLemmas = mutableListOf<UBoolExpr>()
 
-        val symbolicRefToIsSubtypeExprs = extractIsSubtypeExprs(query, conflictLemmas)
-        val symbolicRefToIsSupertypeExprs = extractIsSupertypeExprs(query, conflictLemmas)
+        val symbolicRefToIsExprs = extractIsExpressionsAndFindNullConflicts(
+            query.symbolicToConcrete,
+            query.isExprToInterpretation,
+            onHolds = { ref, isExpr ->
+                if (isExpr is UIsSupertypeExpr) {
+                    conflictLemmas += with(ref.uctx) { mkOr(ref neq nullRef, !isExpr) }
+                }
+            },
+            onNotHolds = { ref, isExpr ->
+                if (isExpr is UIsSubtypeExpr) {
+                    conflictLemmas += with(ref.uctx) { mkOr(ref neq nullRef, isExpr) }
+                }
+            }
+        )
 
         val symbolicRefToRegion =
-            symbolicRefToIsSubtypeExprs.mapValues { topTypeRegion } +
-            symbolicRefToIsSupertypeExprs.mapValues { topTypeRegion } +
+            symbolicRefToIsExprs.mapValues { topTypeRegion } +
                 query.symbolicRefToTypeRegion
 
 
@@ -86,7 +97,7 @@ class UTypeSolver<Type>(
 
         // then for each group check conflicting types
         val concreteToRegionWithCluster = concreteRefToCluster.mapValues { (_, cluster) ->
-            checkCluster(cluster, symbolicRefToIsSubtypeExprs, symbolicRefToIsSupertypeExprs, conflictLemmas)
+            checkCluster(cluster, symbolicRefToIsExprs, conflictLemmas)
         }
 
         // if there were some conflicts, return constraints on reference equalities
@@ -114,8 +125,7 @@ class UTypeSolver<Type>(
 
     private fun checkCluster(
         cluster: List<Map.Entry<USymbolicHeapRef, UTypeRegion<Type>>>,
-        symbolicRefToIsSubtypeExprs: Map<USymbolicHeapRef, List<Pair<UIsSubtypeExpr<Type>, Boolean>>>,
-        symbolicRefToIsSupertypeExprs: Map<USymbolicHeapRef, List<Pair<UIsSupertypeExpr<Type>, Boolean>>>,
+        symbolicRefToIsExpr: Map<USymbolicHeapRef, List<Pair<UIsExpr<Type>, Boolean>>>,
         conflictLemmas: MutableList<UBoolExpr>,
     ): Pair<UTypeRegion<Type>, List<Map.Entry<USymbolicHeapRef, UTypeRegion<Type>>>> {
         var currentRegion = topTypeRegion
@@ -125,29 +135,25 @@ class UTypeSolver<Type>(
         for ((heapRef, region) in cluster) {
             var nextRegion = currentRegion.intersect(region) // add [heapRef] to the current region
 
-            val isSubtypeExprs = symbolicRefToIsSubtypeExprs.getOrElse(heapRef, ::emptyList)
-            val isSupertypeExprs = symbolicRefToIsSupertypeExprs.getOrElse(heapRef, ::emptyList)
+            val isExprs = symbolicRefToIsExpr.getOrElse(heapRef, ::emptyList)
 
-            val evaluatedIsSubtypeExprs = isSubtypeExprs.map { (isExpr, holds) ->
+            val evaluatedIsExprs = isExprs.map { (isExpr, holds) ->
                 if (holds) {
-                    nextRegion = nextRegion.addSupertype(isExpr.supertype)
+                    nextRegion = when (isExpr) {
+                        is UIsSupertypeExpr -> nextRegion.addSubtype(isExpr.subtype)
+                        is UIsSubtypeExpr -> nextRegion.addSupertype(isExpr.supertype)
+                        else -> error("Unexpected isExpr: $isExpr")
+                    }
                     isExpr
                 } else {
-                    nextRegion = nextRegion.excludeSupertype(isExpr.supertype)
+                    nextRegion = when (isExpr) {
+                        is UIsSupertypeExpr -> nextRegion.excludeSubtype(isExpr.subtype)
+                        is UIsSubtypeExpr -> nextRegion.excludeSupertype(isExpr.supertype)
+                        else -> error("Unexpected isExpr: $isExpr")
+                    }
                     isExpr.ctx.mkNot(isExpr)
                 }
             }
-
-            val evaluatedIsSupertypeExprs = isSupertypeExprs.map { (isExpr, holds) ->
-                if (holds) {
-                    nextRegion = nextRegion.addSubtype(isExpr.subtype)
-                    isExpr
-                } else {
-                    nextRegion = nextRegion.excludeSubtype(isExpr.subtype)
-                    isExpr.ctx.mkNot(isExpr)
-                }
-            }
-
 
             if (nextRegion.isEmpty) {
                 // conflict detected, so it's impossible for [potentialConflictingRefs]
@@ -160,10 +166,10 @@ class UTypeSolver<Type>(
                     // some of them is null
                     potentialConflictingRefs.mapTo(disjunct) { it.eq(nullRef) }
                     disjunct += heapRef.eq(nullRef)
-                    //
+                    // the accumulated conflicting propositional variables
                     potentialConflictingIsExprs.mapTo(disjunct) { it.not() }
-                    evaluatedIsSubtypeExprs.mapTo(disjunct) { it.not() }
-                    evaluatedIsSupertypeExprs.mapTo(disjunct) { it.not() }
+                    // the new propositional variables
+                    evaluatedIsExprs.mapTo(disjunct) { it.not() }
                 }
                 conflictLemmas += heapRef.ctx.mkOr(disjunct)
 
@@ -181,8 +187,7 @@ class UTypeSolver<Type>(
             } else if (nextRegion != currentRegion) {
                 // no conflict detected, but the current region became smaller
                 potentialConflictingRefs.add(heapRef)
-                potentialConflictingIsExprs += evaluatedIsSubtypeExprs
-                potentialConflictingIsExprs += evaluatedIsSupertypeExprs
+                potentialConflictingIsExprs += evaluatedIsExprs
             }
 
             currentRegion = nextRegion
@@ -191,47 +196,40 @@ class UTypeSolver<Type>(
         return currentRegion to cluster
     }
 
-    private fun extractIsSubtypeExprs(
-        query: TypeSolverQuery<Type>,
-        bannedRefEqualities: MutableList<UBoolExpr>,
-    ): Map<USymbolicHeapRef, List<Pair<UIsSubtypeExpr<Type>, Boolean>>> {
-        val isSubtypeExpressions = query.isSubtypeToInterpretation
-
-        val symbolicRefToIsSubtypeExprs = isSubtypeExpressions.groupBy { (expr, _) -> expr.ref as USymbolicHeapRef }
-
-        for ((ref, isSubtypeExprs) in symbolicRefToIsSubtypeExprs) {
-            val concreteRef = query.symbolicToConcrete(ref).address
-            if (concreteRef != NULL_ADDRESS) {
-                continue
-            }
-            for ((isSubtypeExpr, holds) in isSubtypeExprs) {
-                if (!holds) {
-                    bannedRefEqualities += with(ref.uctx) { mkOr(ref neq nullRef, isSubtypeExpr) }
-                }
-            }
-        }
+    private inline fun extractIsExpressionsAndFindNullConflicts(
+        symbolicToConcrete: (USymbolicHeapRef) -> UConcreteHeapRef,
+        isExpressions: List<Pair<UIsExpr<Type>, Boolean>>,
+        onHolds: (USymbolicHeapRef, UIsExpr<Type>) -> Unit = { _, _ -> },
+        onNotHolds: (USymbolicHeapRef, UIsExpr<Type>) -> Unit = { _, _ -> },
+    ): Map<USymbolicHeapRef, List<Pair<UIsExpr<Type>, Boolean>>> {
+        val symbolicRefToIsSubtypeExprs = isExpressions.groupBy { (expr, _) -> expr.ref as USymbolicHeapRef }
+        findNullConflicts(
+            symbolicRefToIsSubtypeExprs,
+            symbolicToConcrete,
+            onHolds,
+            onNotHolds,
+        )
         return symbolicRefToIsSubtypeExprs
     }
 
-    private fun extractIsSupertypeExprs(
-        query: TypeSolverQuery<Type>,
-        bannedRefEqualities: MutableList<UBoolExpr>,
-    ): Map<USymbolicHeapRef, List<Pair<UIsSupertypeExpr<Type>, Boolean>>> {
-        val isSupertypeExpressions = query.isSupertypeToInterpretation
-
-        val symbolicRefToIsSupertypeExprs = isSupertypeExpressions.groupBy { (expr, _) -> expr.ref as USymbolicHeapRef }
-
+    private inline fun findNullConflicts(
+        symbolicRefToIsSupertypeExprs: Map<USymbolicHeapRef, List<Pair<UIsExpr<Type>, Boolean>>>,
+        symbolicToConcrete: (USymbolicHeapRef) -> UConcreteHeapRef,
+        onHolds: (USymbolicHeapRef, UIsExpr<Type>) -> Unit = { _, _ -> },
+        onNotHolds: (USymbolicHeapRef, UIsExpr<Type>) -> Unit = { _, _ -> },
+    ) {
         for ((ref, isSupertypeExprs) in symbolicRefToIsSupertypeExprs) {
-            val concreteRef = query.symbolicToConcrete(ref).address
+            val concreteRef = symbolicToConcrete(ref).address
             if (concreteRef != NULL_ADDRESS) {
                 continue
             }
-            for ((isSupertypeExpr, holds) in isSupertypeExprs) {
+            for ((isExpr, holds) in isSupertypeExprs) {
                 if (holds) {
-                    bannedRefEqualities += with(ref.uctx) { mkOr(ref neq nullRef, !isSupertypeExpr) }
+                    onHolds(ref, isExpr)
+                } else {
+                    onNotHolds(ref, isExpr)
                 }
             }
         }
-        return symbolicRefToIsSupertypeExprs
     }
 }

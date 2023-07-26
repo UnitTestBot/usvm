@@ -365,17 +365,22 @@ class UIndexedMethodReturnValue<Method, Sort : USort> internal constructor(
 
 //region Subtyping Expressions
 
+abstract class UIsExpr<Type> internal constructor(
+    ctx: UContext,
+    val ref: UHeapRef,
+) : USymbol<UBoolSort>(ctx) {
+    final override val sort = ctx.boolSort
+}
+
 /**
  * Means **either** [ref] is [UNullRef] **or** [ref] !is [UNullRef] and [ref] <: [supertype]. Thus, the actual type
  * inheritance is checked only on non-null refs.
  */
 class UIsSubtypeExpr<Type> internal constructor(
     ctx: UContext,
-    val ref: UHeapRef,
+    ref: UHeapRef,
     val supertype: Type,
-) : USymbol<UBoolSort>(ctx) {
-    override val sort = ctx.boolSort
-
+) : UIsExpr<Type>(ctx, ref) {
     @Suppress("UNCHECKED_CAST")
     override fun accept(transformer: KTransformerBase): UBoolExpr {
         require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
@@ -398,10 +403,9 @@ class UIsSubtypeExpr<Type> internal constructor(
  */
 class UIsSupertypeExpr<Type> internal constructor(
     ctx: UContext,
-    val ref: UHeapRef,
+    ref: UHeapRef,
     val subtype: Type,
-) : USymbol<UBoolSort>(ctx) {
-    override val sort = ctx.boolSort
+) : UIsExpr<Type>(ctx, ref) {
     @Suppress("UNCHECKED_CAST")
     override fun accept(transformer: KTransformerBase): UBoolExpr {
         require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }

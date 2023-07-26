@@ -19,6 +19,7 @@ import org.usvm.UIndexedMethodReturnValue
 import org.usvm.UInputArrayLengthReading
 import org.usvm.UInputArrayReading
 import org.usvm.UInputFieldReading
+import org.usvm.UIsExpr
 import org.usvm.UIsSubtypeExpr
 import org.usvm.UIsSupertypeExpr
 import org.usvm.UMockSymbol
@@ -75,27 +76,24 @@ open class UExprTranslator<Field, Type>(
     override fun transform(expr: UConcreteHeapRef): KExpr<UAddressSort> =
         error("Unexpected UConcreteHeapRef $expr in UExprTranslator, that has to be impossible by construction!")
 
-    private val _declToIsSubtypeExpr = mutableMapOf<KDecl<UBoolSort>, UIsSubtypeExpr<Type>>()
-    val declToIsSubtypeExpr: Map<KDecl<UBoolSort>, UIsSubtypeExpr<Type>> get() = _declToIsSubtypeExpr
+    private val _declToIsExpr = mutableMapOf<KDecl<UBoolSort>, UIsExpr<Type>>()
+    val declToIsExpr: Map<KDecl<UBoolSort>, UIsExpr<Type>> get() = _declToIsExpr
 
     override fun transform(expr: UIsSubtypeExpr<Type>): KExpr<KBoolSort> {
         require(expr.ref is USymbolicHeapRef) { "Unexpected ref: ${expr.ref}" }
 
-        val const = expr.sort.mkConst("isSubtype#${_declToIsSubtypeExpr.size}")
+        val const = expr.sort.mkConst("isSubtype#${_declToIsExpr.size}")
         // we need to track declarations to pass them to the type solver in the DPLL(T) procedure
-        _declToIsSubtypeExpr[const.decl] = expr
+        _declToIsExpr[const.decl] = expr
         return const
     }
-
-    private val _declToIsSupertypeExpr = mutableMapOf<KDecl<UBoolSort>, UIsSupertypeExpr<Type>>()
-    val declToIsSupertypeExpr: Map<KDecl<UBoolSort>, UIsSupertypeExpr<Type>> get() = _declToIsSupertypeExpr
 
     override fun transform(expr: UIsSupertypeExpr<Type>): KExpr<KBoolSort> {
         require(expr.ref is USymbolicHeapRef) { "Unexpected ref: ${expr.ref}" }
 
-        val const = expr.sort.mkConst("isSupertype#${_declToIsSupertypeExpr.size}")
+        val const = expr.sort.mkConst("isSupertype#${_declToIsExpr.size}")
         // we need to track declarations to pass them to the type solver in the DPLL(T) procedure
-        _declToIsSupertypeExpr[const.decl] = expr
+        _declToIsExpr[const.decl] = expr
         return const
     }
 

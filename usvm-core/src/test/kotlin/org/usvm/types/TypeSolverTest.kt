@@ -251,8 +251,7 @@ class TypeSolverTest {
             val query = TypeSolverQuery(
                 symbolicToConcrete = { model.eval(it) as UConcreteHeapRef },
                 symbolicRefToTypeRegion = typeConstraints.symbolicRefToTypeRegion,
-                isSubtypeToInterpretation = emptyList(),
-                isSupertypeToInterpretation = emptyList(),
+                isExprToInterpretation = emptyList(),
             )
 
             val result = typeSolver.check(query)
@@ -488,6 +487,23 @@ class TypeSolverTest {
         pc += mkIte(cond, mkIsSubtypeExpr(ref, interface2), mkIsSubtypeExpr(ref, interface1))
 
         assertIs<UUnsatResult<*>>(solver.check(pc))
+    }
+
+    @Test
+    fun `Test symbolic ref -- exclude supertype and subtype`(): Unit = with(ctx) {
+        val ref = mkConcreteHeapRef(1)
+        pc.typeConstraints.allocate(ref.address, base1)
+
+        with(pc.clone()) {
+            this += mkIsSubtypeExpr(ref, top).not()
+            assertTrue(isFalse)
+        }
+
+        with(pc.clone()) {
+            this += mkIsSupertypeExpr(ref, derived1A).not()
+            assertTrue(isFalse)
+        }
+
     }
 
     private fun <T> UTypeStream<T>.take100AndAssertEqualsToSetOf(vararg elements: T) {
