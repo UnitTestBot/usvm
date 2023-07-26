@@ -28,31 +28,33 @@ import org.usvm.UBvSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UExpr
-import org.usvm.UExprTransformer
 import org.usvm.UHeapReading
 import org.usvm.UIndexedMethodReturnValue
 import org.usvm.UInputArrayLengthReading
 import org.usvm.UInputArrayReading
 import org.usvm.UInputFieldReading
-import org.usvm.UIsExpr
+import org.usvm.UIsSubtypeExpr
+import org.usvm.UIsSupertypeExpr
 import org.usvm.UMockSymbol
 import org.usvm.UNullRef
 import org.usvm.URegisterReading
 import org.usvm.USizeExpr
 import org.usvm.USort
 import org.usvm.USymbol
+import org.usvm.UTransformer
 import org.usvm.uctx
 
-class USoftConstraintsProvider<Field, Type>(ctx: UContext) : UExprTransformer<Field, Type>(ctx) {
+class USoftConstraintsProvider<Field, Type>(override val ctx: UContext) : UTransformer<Field, Type> {
     // We have a list here since sometimes we want to add several soft constraints
     // to make it possible to drop only a part of them, not the whole soft constraint
-    private val caches = hashMapOf<UExpr<*>, Set<UBoolExpr>>().withDefault { emptySet() }
+    private val caches = hashMapOf<UExpr<*>, Set<UBoolExpr>>()
     private val sortPreferredValuesProvider = SortPreferredValuesProvider()
 
-    fun provide(initialExpr: UExpr<*>): Set<UBoolExpr> {
-        apply(initialExpr)
-        return caches.getValue(initialExpr)
-    }
+    fun provide(initialExpr: UExpr<*>): Set<UBoolExpr> =
+        caches.getOrElse(initialExpr) {
+            apply(initialExpr)
+            caches.getOrPut(initialExpr, ::emptySet)
+        }
 
     // region The most common methods
 
@@ -61,13 +63,11 @@ class USoftConstraintsProvider<Field, Type>(ctx: UContext) : UExprTransformer<Fi
     }
 
     override fun <T : KSort, A : KSort> transformApp(expr: KApp<T, A>): KExpr<T> =
-        transformExprAfterTransformed(expr, expr.args) { args ->
-            computeSideEffect(expr) {
-                val nestedConstraints = args.flatMapTo(mutableSetOf()) { caches.getValue(it) }
-                val selfConstraint = expr.sort.accept(sortPreferredValuesProvider)(expr)
+        computeSideEffect(expr) {
+            val nestedConstraints = expr.args.flatMapTo(mutableSetOf(), ::provide)
+            val selfConstraint = expr.sort.accept(sortPreferredValuesProvider)(expr)
 
-                caches[expr] = nestedConstraints + selfConstraint
-            }
+            caches[expr] = nestedConstraints + selfConstraint
         }
 
     private fun <Sort : USort> transformAppIfPossible(expr: UExpr<Sort>): UExpr<Sort> =
@@ -100,34 +100,31 @@ class USoftConstraintsProvider<Field, Type>(ctx: UContext) : UExprTransformer<Fi
 
     override fun transform(expr: UNullRef): UExpr<UAddressSort> = expr
 
-    override fun transform(expr: UIsExpr<Type>): UBoolExpr =
-        error("Illegal operation since UIsExpr should not be translated into a SMT solver")
+    override fun transform(expr: UIsSubtypeExpr<Type>): UBoolExpr = expr
+
+    override fun transform(expr: UIsSupertypeExpr<Type>): UBoolExpr = expr
 
     override fun transform(
         expr: UInputArrayLengthReading<Type>,
-    ): USizeExpr = transformExprAfterTransformed(expr, expr.address) {
-        computeSideEffect(expr) {
-            with(expr.ctx) {
-                val addressIsNull = caches.getValue(expr.address)
-                val arraySize = mkBvSignedLessOrEqualExpr(expr, PREFERRED_MAX_ARRAY_SIZE.toBv())
+    ): USizeExpr = computeSideEffect(expr) {
+        with(expr.ctx) {
+            val addressIsNull = provide(expr.address)
+            val arraySize = mkBvSignedLessOrEqualExpr(expr, PREFERRED_MAX_ARRAY_SIZE.toBv())
 
-                caches[expr] = addressIsNull + arraySize
-            }
+            caches[expr] = addressIsNull + arraySize
         }
     }
 
     override fun <Sort : USort> transform(
         expr: UInputArrayReading<Type, Sort>,
-    ): UExpr<Sort> = transformExprAfterTransformed(expr, expr.index, expr.address) { _, _ ->
-        computeSideEffect(expr) {
-            val constraints = mutableSetOf<UBoolExpr>()
+    ): UExpr<Sort> = computeSideEffect(expr) {
+        val constraints = mutableSetOf<UBoolExpr>()
 
-            constraints += caches.getValue(expr.index)
-            constraints += caches.getValue(expr.address)
-            constraints += expr.sort.accept(sortPreferredValuesProvider)(expr)
+        constraints += provide(expr.index)
+        constraints += provide(expr.address)
+        constraints += expr.sort.accept(sortPreferredValuesProvider)(expr)
 
-            caches[expr] = constraints
-        }
+        caches[expr] = constraints
     }
 
     override fun <Sort : USort> transform(expr: UAllocatedArrayReading<Type, Sort>): UExpr<Sort> =
@@ -139,23 +136,19 @@ class USoftConstraintsProvider<Field, Type>(ctx: UContext) : UExprTransformer<Fi
     private fun <Sort : USort> readingWithSingleArgumentTransform(
         expr: UHeapReading<*, *, Sort>,
         arg: UExpr<*>,
-    ): UExpr<Sort> = transformExprAfterTransformed(expr, arg) { _ ->
-        computeSideEffect(expr) {
-            val argConstraint = caches.getValue(arg)
-            val selfConstraint = expr.sort.accept(sortPreferredValuesProvider)(expr)
+    ): UExpr<Sort> = computeSideEffect(expr) {
+        val argConstraint = provide(arg)
+        val selfConstraint = expr.sort.accept(sortPreferredValuesProvider)(expr)
 
-            caches[expr] = argConstraint + selfConstraint
-        }
+        caches[expr] = argConstraint + selfConstraint
     }
 
     // region KExpressions
 
     override fun <T : KBvSort> transform(expr: KBvSignedLessOrEqualExpr<T>): KExpr<KBoolSort> = with(expr.ctx) {
-        transformExprAfterTransformed(expr, expr.arg0, expr.arg1) { lhs, rhs ->
-            computeSideEffect(expr) {
-                val selfConstraint = mkEq(lhs, rhs)
-                caches[expr] = mutableSetOf(selfConstraint) + caches.getValue(lhs) + caches.getValue(rhs)
-            }
+        computeSideEffect(expr) {
+            val selfConstraint = mkEq(expr.arg0, expr.arg1)
+            caches[expr] = mutableSetOf(selfConstraint) + provide(expr.arg0) + provide(expr.arg1)
         }
     }
 
@@ -267,10 +260,8 @@ private class SortPreferredValuesProvider : KSortVisitor<(KExpr<*>) -> KExpr<KBo
             with(sort.uctx) {
                 { expr ->
                     mkAnd(
-                        mkAnd(
-                            mkArithLe(mkRealNum(INT_MIN_VALUE), expr.asExpr(sort)),
-                            mkArithGe(mkRealNum(INT_MAX_VALUE), expr.asExpr(sort))
-                        )
+                        mkArithLe(mkRealNum(INT_MIN_VALUE), expr.asExpr(sort)),
+                        mkArithGe(mkRealNum(INT_MAX_VALUE), expr.asExpr(sort))
                     )
                 }
             }

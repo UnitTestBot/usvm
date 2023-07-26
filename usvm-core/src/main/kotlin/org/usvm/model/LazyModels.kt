@@ -117,7 +117,7 @@ class ULazyHeapModel<Field, ArrayType>(
         // All the expressions in the model are interpreted, therefore, they must
         // have concrete addresses. Moreover, the model knows only about input values
         // which have addresses less or equal than INITIAL_INPUT_ADDRESS
-        require(ref is UConcreteHeapRef && ref.address <= INITIAL_INPUT_ADDRESS)
+        require(ref is UConcreteHeapRef && ref.address <= INITIAL_INPUT_ADDRESS) { "Unexpected ref: $ref" }
 
         val resolvedRegion = resolvedInputFields[field]
         val regionId = UInputFieldId(field, sort, contextHeap = null)
@@ -142,7 +142,7 @@ class ULazyHeapModel<Field, ArrayType>(
         // All the expressions in the model are interpreted, therefore, they must
         // have concrete addresses. Moreover, the model knows only about input values
         // which have addresses less or equal than INITIAL_INPUT_ADDRESS
-        require(ref is UConcreteHeapRef && ref.address <= INITIAL_INPUT_ADDRESS)
+        require(ref is UConcreteHeapRef && ref.address <= INITIAL_INPUT_ADDRESS) { "Unexpected ref: $ref" }
 
         val key = ref to index
 
@@ -164,7 +164,7 @@ class ULazyHeapModel<Field, ArrayType>(
         // All the expressions in the model are interpreted, therefore, they must
         // have concrete addresses. Moreover, the model knows only about input values
         // which have addresses less or equal than INITIAL_INPUT_ADDRESS
-        require(ref is UConcreteHeapRef && ref.address <= INITIAL_INPUT_ADDRESS)
+        require(ref is UConcreteHeapRef && ref.address <= INITIAL_INPUT_ADDRESS) { "Unexpected ref: $ref" }
 
         val resolvedRegion = resolvedInputLengths[arrayType]
         val regionId = UInputArrayLengthId(arrayType, ref.uctx.sizeSort, contextHeap = null)

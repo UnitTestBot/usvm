@@ -42,11 +42,11 @@ public class PathDependentGenericsExample {
     }
 
     private <T> void functionWithOneGeneric(ClassWithOneGeneric<T> value) {
-        System.out.println();
+
     }
 
     private <T, K> void functionWithTwoGenerics(ClassWithTwoGenerics<T, K> value) {
-        System.out.println();
+
     }
 }
 

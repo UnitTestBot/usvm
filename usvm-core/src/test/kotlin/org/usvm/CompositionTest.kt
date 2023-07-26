@@ -201,10 +201,10 @@ internal class CompositionTest {
         val heapEvaluator = mockk<UReadOnlySymbolicHeap<Field, KClass<*>>>() // TODO replace with jacoDB type
         val composer = UComposer(ctx, stackEvaluator, heapEvaluator, typeEvaluator, mockEvaluator) // TODO remove
 
-        val isExpression = ctx.mkIsExpr(heapRef, type)
+        val isExpression = ctx.mkIsSubtypeExpr(heapRef, type)
 
         every { heapRef.accept(any()) } returns addressFromMemory as KExpr<UAddressSort>
-        every { typeEvaluator.evalIs(addressFromMemory, type) } returns typeResult
+        every { typeEvaluator.evalIsSubtype(addressFromMemory, type) } returns typeResult
 
         val composedExpression = composer.compose(isExpression)
 

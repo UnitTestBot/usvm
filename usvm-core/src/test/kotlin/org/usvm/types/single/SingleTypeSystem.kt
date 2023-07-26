@@ -7,15 +7,15 @@ import org.usvm.types.UTypeSystem
 object SingleTypeSystem : UTypeSystem<SingleTypeSystem.SingleType> {
     object SingleType
 
-    override fun isSupertype(u: SingleType, t: SingleType): Boolean = true
+    override fun isSupertype(supertype: SingleType, type: SingleType): Boolean = true
 
-    override fun isMultipleInheritanceAllowedFor(t: SingleType): Boolean = false
+    override fun isMultipleInheritanceAllowedFor(type: SingleType): Boolean = false
 
-    override fun isFinal(t: SingleType): Boolean = true
+    override fun isFinal(type: SingleType): Boolean = true
 
-    override fun isInstantiable(t: SingleType): Boolean = true
+    override fun isInstantiable(type: SingleType): Boolean = true
 
-    override fun findSubtypes(t: SingleType): Sequence<SingleType> = emptySequence()
+    override fun findSubtypes(type: SingleType): Sequence<SingleType> = emptySequence()
 
     override fun topTypeStream(): UTypeStream<SingleType> = USingleTypeStream(this, SingleType)
 }
