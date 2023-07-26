@@ -9,6 +9,7 @@ import org.usvm.CoverageZone
 import org.usvm.PathSelectorCombinationStrategy
 import org.usvm.UMachine
 import org.usvm.UMachineOptions
+import org.usvm.machine.interpreter.JcInterpreter
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.lastStmt

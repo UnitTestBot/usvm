@@ -1,4 +1,4 @@
-package org.usvm.machine.resolver
+package org.usvm.machine.interpreter
 
 import org.jacodb.api.JcType
 import org.usvm.types.UTypeStream

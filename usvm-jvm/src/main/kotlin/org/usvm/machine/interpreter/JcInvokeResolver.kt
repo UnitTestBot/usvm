@@ -1,4 +1,4 @@
-package org.usvm.machine.resolver
+package org.usvm.machine.interpreter
 
 import io.ksmt.utils.asExpr
 import org.jacodb.api.JcClassType
@@ -9,7 +9,6 @@ import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.machine.JcApplicationGraph
 import org.usvm.machine.JcContext
-import org.usvm.machine.JcStepScope
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.addNewMethodCall
 import org.usvm.machine.state.lastStmt

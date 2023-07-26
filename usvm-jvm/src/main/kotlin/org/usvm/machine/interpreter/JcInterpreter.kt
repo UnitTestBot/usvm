@@ -1,4 +1,4 @@
-package org.usvm.machine
+package org.usvm.machine.interpreter
 
 import io.ksmt.utils.asExpr
 import mu.KLogging
@@ -29,8 +29,8 @@ import org.usvm.UBoolExpr
 import org.usvm.UHeapRef
 import org.usvm.UInterpreter
 import org.usvm.URegisterLValue
-import org.usvm.machine.resolver.JcTypeSelector
-import org.usvm.machine.resolver.JcVirtualInvokeResolver
+import org.usvm.machine.JcApplicationGraph
+import org.usvm.machine.JcContext
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.addEntryMethodCall

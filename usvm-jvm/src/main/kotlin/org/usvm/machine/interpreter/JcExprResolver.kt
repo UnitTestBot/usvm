@@ -1,4 +1,4 @@
-package org.usvm.machine
+package org.usvm.machine.interpreter
 
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
@@ -91,13 +91,11 @@ import org.usvm.USizeSort
 import org.usvm.USort
 import org.usvm.isTrue
 import org.usvm.machine.JcContext
-import org.usvm.machine.JcStepScope
 import org.usvm.machine.operator.JcBinaryOperator
 import org.usvm.machine.operator.JcUnaryOperator
 import org.usvm.machine.operator.ensureBvExpr
 import org.usvm.machine.operator.mkNarrow
 import org.usvm.machine.operator.wideTo32BitsIfNeeded
-import org.usvm.machine.resolver.JcInvokeResolver
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.throwExceptionWithoutStackFrameDrop
