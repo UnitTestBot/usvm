@@ -11,8 +11,8 @@ import org.usvm.UIsSubtypeExpr
 import org.usvm.UIsSupertypeExpr
 import org.usvm.UNotExpr
 import org.usvm.UOrExpr
-import org.usvm.USymbolicHeapRef
 import org.usvm.USizeSort
+import org.usvm.USymbolicHeapRef
 import org.usvm.isSymbolicHeapRef
 import org.usvm.uctx
 
