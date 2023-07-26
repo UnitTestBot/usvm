@@ -8,7 +8,6 @@ import org.usvm.util.isException
 
 class JavaAssertTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Not implemented: class constant")
     fun testAssertPositive() {
         checkDiscoveredPropertiesWithExceptions(
             JavaAssert::assertPositive,

@@ -8,7 +8,6 @@ import org.usvm.test.util.checkers.eq
 
 internal class BooleanWrapperTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Not implemented: string constant")
     fun primitiveToWrapperTest() {
         checkDiscoveredProperties(
             BooleanWrapper::primitiveToWrapper,
@@ -19,7 +18,6 @@ internal class BooleanWrapperTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun wrapperToPrimitiveTest() {
         checkDiscoveredProperties(
             BooleanWrapper::wrapperToPrimitive,
@@ -31,7 +29,6 @@ internal class BooleanWrapperTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun equalityTest() {
         checkDiscoveredProperties(
             BooleanWrapper::equality,

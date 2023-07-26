@@ -19,7 +19,7 @@ internal class NativeExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: class constant")
+    @Disabled("java.lang.Math#<clinit> has native calls")
     fun testFindSumWithMathRandom() {
         checkDiscoveredProperties(
             NativeExamples::findSumWithMathRandom,

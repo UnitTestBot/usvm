@@ -65,7 +65,6 @@ internal class InvokeExampleTest : JavaMethodTestRunner() {
 
 
     @Test
-    @Disabled("Expected exactly 3 executions, but 1 found. Tune coverage zone")
     fun testConstraintsFromOutside() {
         checkDiscoveredProperties(
             InvokeExample::constraintsFromOutside,
@@ -104,7 +103,6 @@ internal class InvokeExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 3 executions, but 2 found. Tune coverage zone")
     fun testExceptionInNestedMethod() {
         checkDiscoveredPropertiesWithExceptions(
             InvokeExample::exceptionInNestedMethod,
@@ -116,7 +114,6 @@ internal class InvokeExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1, 2, 3]. Tune coverage zone")
     fun testFewNestedExceptions() {
         checkDiscoveredPropertiesWithExceptions(
             InvokeExample::fewNestedException,
@@ -165,7 +162,6 @@ internal class InvokeExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 3 executions, but 2 found. Tune coverage zone")
     fun testChangeArrayWithAssignFromMethod() {
         checkDiscoveredProperties(
             InvokeExample::changeArrayWithAssignFromMethod,
@@ -180,7 +176,6 @@ internal class InvokeExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1]. Tune coverage zone")
     fun testChangeArrayByMethod() {
         checkDiscoveredProperties(
             InvokeExample::changeArrayByMethod,

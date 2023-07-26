@@ -94,7 +94,6 @@ internal class CyclesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testDivideByZeroCheckWithCycles() {
         checkDiscoveredPropertiesWithExceptions(
             Cycles::divideByZeroCheckWithCycles,
