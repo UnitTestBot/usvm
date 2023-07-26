@@ -200,14 +200,14 @@ class UContextInterningTest {
         val fstSort = bv16Sort // TODO replace with jacodb type
         val sndSort = bv32Sort
 
-        val equal = List(10) { mkIsExpr(fstRef, fstSort) }
+        val equal = List(10) { mkIsSubtypeExpr(fstRef, fstSort) }
 
-        val createdWithoutContext = UIsExpr(this, fstRef, fstSort)
+        val createdWithoutContext = UIsSubtypeExpr(this, fstRef, fstSort)
 
         val distinct = listOf(
-            mkIsExpr(fstRef, fstSort),
-            mkIsExpr(fstRef, sndSort),
-            mkIsExpr(sndRef, sndSort),
+            mkIsSubtypeExpr(fstRef, fstSort),
+            mkIsSubtypeExpr(fstRef, sndSort),
+            mkIsSubtypeExpr(sndRef, sndSort),
             createdWithoutContext
         )
 

@@ -295,7 +295,7 @@ class JcExprResolver(
         val ref = resolveJcExpr(expr.operand)?.asExpr(addressSort) ?: return null
         scope.calcOnState {
             val notEqualsNull = mkHeapRefEq(ref, memory.heap.nullRef()).not()
-            val isExpr = memory.types.evalIs(ref, expr.targetType)
+            val isExpr = memory.types.evalIsSubtype(ref, expr.targetType)
             mkAnd(notEqualsNull, isExpr)
         }
     }
@@ -510,7 +510,7 @@ class JcExprResolver(
             ref = classRef
         )
 
-    private fun resolveArrayAccess(array: JcValue, index: JcValue): ULValue? = with(ctx) {
+    private fun resolveArrayAccess(array: JcValue, index: JcValue): UArrayIndexLValue<JcType>? = with(ctx) {
         val arrayRef = resolveJcExpr(array)?.asExpr(addressSort) ?: return null
         checkNullPointer(arrayRef) ?: return null
 
@@ -530,7 +530,7 @@ class JcExprResolver(
         return UArrayIndexLValue(cellSort, arrayRef, idx, arrayDescriptor)
     }
 
-    private fun resolveLocal(local: JcLocal): ULValue {
+    private fun resolveLocal(local: JcLocal): URegisterLValue {
         val method = requireNotNull(scope.calcOnState { lastEnteredMethod })
         val localIdx = localToIdx(method, local)
         val sort = ctx.typeToSort(local.type)
@@ -658,7 +658,7 @@ class JcExprResolver(
         type: JcRefType,
     ): UExpr<out USort>? {
         return if (!typeBefore.isAssignable(type)) {
-            val isExpr = scope.calcOnState { memory.types.evalIs(expr.asExpr(ctx.addressSort), type) }
+            val isExpr = scope.calcOnState { memory.types.evalIsSubtype(expr.asExpr(ctx.addressSort), type) }
                 ?: return null
             scope.fork(
                 isExpr,

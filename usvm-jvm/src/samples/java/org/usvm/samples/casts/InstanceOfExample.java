@@ -112,8 +112,9 @@ public class InstanceOfExample {
     }
 
     public int instanceOfAsPartOfInternalExpressionsXor(Object[] objectExample) {
-        assume(objectExample != null);
-        assume(objectExample.length == 2);
+        if (objectExample == null || objectExample.length != 2) {
+            return 0;
+        }
 
         boolean isElem0SecondSucc = objectExample[0] instanceof CastClassSecondSucc[];
         boolean isElem1FirstSucc = objectExample[1] instanceof CastClassFirstSucc[];
@@ -135,8 +136,9 @@ public class InstanceOfExample {
     }
 
     public int instanceOfAsPartOfInternalExpressionsXorInverse(Object[] objectExample) {
-        assume(objectExample != null);
-        assume(objectExample.length == 2);
+        if (objectExample == null || objectExample.length != 2) {
+            return 0;
+        }
 
         boolean isElem0SecondSucc = objectExample[0] instanceof CastClassSecondSucc[];
         boolean isElem1FirstSucc = objectExample[1] instanceof CastClassFirstSucc[];

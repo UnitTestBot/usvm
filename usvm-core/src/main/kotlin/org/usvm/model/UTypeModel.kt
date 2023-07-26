@@ -19,7 +19,7 @@ class UTypeModel<Type>(
     fun typeStream(ref: UConcreteHeapRef): UTypeStream<Type> =
         typeStreamByAddr[ref.address] ?: typeSystem.topTypeStream()
 
-    override fun evalIs(ref: UHeapRef, type: Type): UBoolExpr =
+    override fun evalIsSubtype(ref: UHeapRef, supertype: Type): UBoolExpr =
         when {
             ref is UConcreteHeapRef && ref.address == NULL_ADDRESS -> ref.ctx.trueExpr
 
@@ -27,10 +27,33 @@ class UTypeModel<Type>(
                 // All the expressions in the model are interpreted, therefore, they must
                 // have concrete addresses. Moreover, the model knows only about input values
                 // which have addresses less or equal than INITIAL_INPUT_ADDRESS
-                require(ref.address <= INITIAL_INPUT_ADDRESS)
+                require(ref.address <= INITIAL_INPUT_ADDRESS) { "Unexpected ref: $ref" }
 
                 val evaluatedTypeStream = typeStream(ref)
-                val typeStream = evaluatedTypeStream.filterBySupertype(type)
+                val typeStream = evaluatedTypeStream.filterBySupertype(supertype)
+                if (!typeStream.isEmpty) {
+                    typeStreamByAddr[ref.address] = typeStream
+                    ref.ctx.trueExpr
+                } else {
+                    ref.ctx.falseExpr
+                }
+            }
+
+            else -> error("Expecting concrete ref, but got $ref")
+        }
+
+    override fun evalIsSupertype(ref: UHeapRef, subtype: Type): UBoolExpr =
+        when {
+            ref is UConcreteHeapRef && ref.address == NULL_ADDRESS -> ref.ctx.falseExpr
+
+            ref is UConcreteHeapRef -> {
+                // All the expressions in the model are interpreted, therefore, they must
+                // have concrete addresses. Moreover, the model knows only about input values
+                // which have addresses less or equal than INITIAL_INPUT_ADDRESS
+                require(ref.address <= INITIAL_INPUT_ADDRESS) { "Unexpected ref: $ref" }
+
+                val evaluatedTypeStream = typeStream(ref)
+                val typeStream = evaluatedTypeStream.filterBySubtype(subtype)
                 if (!typeStream.isEmpty) {
                     typeStreamByAddr[ref.address] = typeStream
                     ref.ctx.trueExpr

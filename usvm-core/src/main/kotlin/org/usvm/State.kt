@@ -81,7 +81,7 @@ private fun <T : UState<Type, Field, *, *>, Type, Field> forkIfSat(
         newConstraintToOriginalState
     }
     val solver = newConstraintToForkedState.uctx.solver<Field, Type, Any?>()
-    val satResult = solver.check(constraintsToCheck, useSoftConstraints = true)
+    val satResult = solver.checkWithSoftConstraints(constraintsToCheck)
 
     return when (satResult) {
         is UUnsatResult -> null

@@ -8,7 +8,7 @@ import org.usvm.util.RegionComparisonResult
 /**
  * Class representing possible types which certain objects can have.
  */
-open class UTypeRegion<Type>(
+class UTypeRegion<Type>(
     val typeSystem: UTypeSystem<Type>,
     val typeStream: UTypeStream<Type>,
     val supertypes: PersistentSet<Type> = persistentSetOf(),
@@ -16,14 +16,13 @@ open class UTypeRegion<Type>(
     val subtypes: PersistentSet<Type> = persistentSetOf(),
     val notSubtypes: PersistentSet<Type> = persistentSetOf(),
 ) : Region<UTypeRegion<Type>> {
-    val isContradicting get() = typeStream.isEmpty
-
     /**
      * Returns region that represents empty set of types. Called when type
      * constraints contradict, for example if X <: Y and X </: Y.
      */
-    protected fun contradiction() = UTypeRegion(typeSystem, emptyTypeStream())
-    // TODO: generate unsat core for DPLL(T)
+    private fun contradiction() = UTypeRegion(typeSystem, emptyTypeStream())
+
+    override val isEmpty: Boolean get() = typeStream.isEmpty
 
     /**
      * Excludes from this type region types which are not subtypes of [supertype].
@@ -36,8 +35,8 @@ open class UTypeRegion<Type>(
      *  - X <: t && X <: u && u </: t && t </: u && t and u can't be multiply inherited
      *  - t is final && t </: X && X <: t
      */
-    open fun addSupertype(supertype: Type): UTypeRegion<Type> {
-        if (isContradicting || supertypes.any { typeSystem.isSupertype(supertype, it) }) {
+    fun addSupertype(supertype: Type): UTypeRegion<Type> {
+        if (isEmpty || supertypes.any { typeSystem.isSupertype(supertype, it) }) {
             return this
         }
 
@@ -83,8 +82,8 @@ open class UTypeRegion<Type>(
      * (here X is type from this region and t is [notSupertype]):
      *  X <: u && u <: t && X </: t, i.e. if [supertypes] contains subtype of [notSupertype]
      */
-    open fun excludeSupertype(notSupertype: Type): UTypeRegion<Type> {
-        if (isContradicting || notSupertypes.any { typeSystem.isSupertype(it, notSupertype) }) {
+    fun excludeSupertype(notSupertype: Type): UTypeRegion<Type> {
+        if (isEmpty || notSupertypes.any { typeSystem.isSupertype(it, notSupertype) }) {
             return this
         }
 
@@ -108,8 +107,8 @@ open class UTypeRegion<Type>(
      *  - t <: X && u <: t && u </: X, i.e. if [notSubtypes] contains subtype of [subtype]
      *  - t <: X && X <: u && t </: u
      */
-    protected open fun addSubtype(subtype: Type): UTypeRegion<Type> {
-        if (isContradicting || subtypes.any { typeSystem.isSupertype(it, subtype) }) {
+    fun addSubtype(subtype: Type): UTypeRegion<Type> {
+        if (isEmpty || subtypes.any { typeSystem.isSupertype(it, subtype) }) {
             return this
         }
 
@@ -134,8 +133,8 @@ open class UTypeRegion<Type>(
      *  - u <: X && t <: u && t </: X, i.e. if [subtypes] contains supertype of [notSubtype]
      *  - t is final && t </: X && X <: t
      */
-    protected open fun excludeSubtype(notSubtype: Type): UTypeRegion<Type> {
-        if (isContradicting || notSubtypes.any { typeSystem.isSupertype(notSubtype, it) }) {
+    fun excludeSubtype(notSubtype: Type): UTypeRegion<Type> {
+        if (isEmpty || notSubtypes.any { typeSystem.isSupertype(notSubtype, it) }) {
             return this
         }
 
@@ -153,9 +152,10 @@ open class UTypeRegion<Type>(
         return UTypeRegion(typeSystem, newTypeStream, notSubtypes = newNotSubtypes)
     }
 
-    override val isEmpty: Boolean = isContradicting
-
     override fun intersect(other: UTypeRegion<Type>): UTypeRegion<Type> {
+        if (this == other) {
+            return this
+        }
         // TODO: optimize things up by not re-allocating type regions after each operation
         val otherSize = other.size
         val thisSize = this.size
@@ -163,6 +163,9 @@ open class UTypeRegion<Type>(
             other to this
         } else {
             this to other
+        }
+        if (smallRegion.isEmpty) {
+            return smallRegion
         }
 
         val result1 = smallRegion.supertypes.fold(largeRegion) { acc, t -> acc.addSupertype(t) }
@@ -172,6 +175,9 @@ open class UTypeRegion<Type>(
     }
 
     override fun subtract(other: UTypeRegion<Type>): UTypeRegion<Type> {
+        if (isEmpty || other.isEmpty) {
+            return this
+        }
         if (other.notSupertypes.isNotEmpty() || other.notSubtypes.isEmpty() || other.supertypes.size + other.subtypes.size != 1) {
             TODO("For now, we are able to subtract only positive singleton type constraints")
         }

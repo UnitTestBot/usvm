@@ -2,13 +2,15 @@ package org.usvm.solver
 
 import io.ksmt.solver.KSolver
 import io.ksmt.solver.KSolverStatus
+import io.ksmt.utils.asExpr
 import org.usvm.UBoolExpr
+import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UHeapRef
 import org.usvm.constraints.UEqualityConstraints
 import org.usvm.constraints.UPathConstraints
-import org.usvm.constraints.UTypeUnsatResult
 import org.usvm.isFalse
+import org.usvm.isTrue
 import org.usvm.memory.UMemoryBase
 import org.usvm.model.UModelBase
 import org.usvm.model.UModelDecoder
@@ -23,17 +25,18 @@ open class UUnsatResult<Model> : USolverResult<Model>
 
 open class UUnknownResult<Model> : USolverResult<Model>
 
-abstract class USolver<in PathCondition, out Model> : AutoCloseable {
-    abstract fun check(pc: PathCondition, useSoftConstraints: Boolean): USolverResult<Model>
+abstract class USolver<in Query, out Model> {
+    abstract fun check(query: Query): USolverResult<Model>
 }
 
 open class USolverBase<Field, Type, Method>(
     protected val ctx: UContext,
     protected val smtSolver: KSolver<*>,
+    protected val typeSolver: UTypeSolver<Type>,
     protected val translator: UExprTranslator<Field, Type>,
     protected val decoder: UModelDecoder<UMemoryBase<Field, Type, Method>, UModelBase<Field, Type>>,
     protected val softConstraintsProvider: USoftConstraintsProvider<Field, Type>,
-) : USolver<UPathConstraints<Type>, UModelBase<Field, Type>>() {
+) : USolver<UPathConstraints<Type>, UModelBase<Field, Type>>(), AutoCloseable {
 
     protected fun translateLogicalConstraints(constraints: Iterable<UBoolExpr>) {
         for (constraint in constraints) {
@@ -95,11 +98,15 @@ open class USolverBase<Field, Type, Method>(
         translateLogicalConstraints(pc.logicalConstraints)
     }
 
-    internal fun checkWithSoftConstraints(
-        pc: UPathConstraints<Type>,
-    ) = check(pc, useSoftConstraints = true)
+    override fun check(query: UPathConstraints<Type>): USolverResult<UModelBase<Field, Type>> =
+        internalCheck(query, useSoftConstraints = false)
 
-    override fun check(
+    fun checkWithSoftConstraints(
+        pc: UPathConstraints<Type>,
+    ) = internalCheck(pc, useSoftConstraints = true)
+
+
+    private fun internalCheck(
         pc: UPathConstraints<Type>,
         useSoftConstraints: Boolean,
     ): USolverResult<UModelBase<Field, Type>> {
@@ -115,8 +122,8 @@ open class USolverBase<Field, Type, Method>(
                 pc.logicalConstraints.flatMapTo(softConstraints) {
                     softConstraintsProvider
                         .provide(it)
-                        .map { sc -> translator.translate(sc) }
-                        .filterNot { sc -> sc.isFalse }
+                        .map(translator::translate)
+                        .filterNot(UBoolExpr::isFalse)
                 }
             }
 
@@ -136,8 +143,24 @@ open class USolverBase<Field, Type, Method>(
                 // second, decode it unto uModel
                 val uModel = decoder.decode(kModel)
 
-                // third, check it satisfies typeConstraints
-                when (val typeResult = pc.typeConstraints.verify(uModel)) {
+                // find interpretations of type constraints
+
+                val isExprToInterpretation = kModel.declarations.mapNotNull { decl ->
+                    translator.declToIsExpr[decl]?.let { isSubtypeExpr ->
+                        val expr = decl.apply(emptyList())
+                        isSubtypeExpr to kModel.eval(expr, isComplete = true).asExpr(ctx.boolSort).isTrue
+                    }
+                }
+
+                // third, build a type solver query
+                val typeSolverQuery = TypeSolverQuery(
+                    symbolicToConcrete = { uModel.eval(it) as UConcreteHeapRef },
+                    symbolicRefToTypeRegion = pc.typeConstraints.symbolicRefToTypeRegion,
+                    isExprToInterpretation = isExprToInterpretation,
+                )
+
+                // fourth, check it satisfies typeConstraints
+                when (val typeResult = typeSolver.check(typeSolverQuery)) {
                     is USatResult -> return USatResult(
                         UModelBase(
                             ctx,
@@ -149,7 +172,7 @@ open class USolverBase<Field, Type, Method>(
                     )
 
                     // in case of failure, assert reference disequality expressions
-                    is UTypeUnsatResult<Type> -> typeResult.referenceDisequalitiesDisjuncts
+                    is UTypeUnsatResult<Type> -> typeResult.conflictLemmas
                         .map(translator::translate)
                         .forEach(smtSolver::assert)
 

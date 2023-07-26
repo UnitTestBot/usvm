@@ -19,28 +19,41 @@ class JcTypeSystem(
 ) : UTypeSystem<JcType> {
     private val hierarchy = HierarchyExtensionImpl(cp)
 
-    override fun isSupertype(u: JcType, t: JcType): Boolean =
-        t.isAssignable(u)
+    override fun isSupertype(supertype: JcType, type: JcType): Boolean =
+        type.isAssignable(supertype)
 
-    override fun isMultipleInheritanceAllowedFor(t: JcType): Boolean =
-        (t as? JcClassType)?.jcClass?.isInterface ?: false
+    override fun isMultipleInheritanceAllowedFor(type: JcType): Boolean =
+        (type as? JcClassType)?.jcClass?.isInterface ?: false
 
-    override fun isFinal(t: JcType): Boolean =
-        (t as? JcClassType)?.isFinal ?: false
+    override fun isFinal(type: JcType): Boolean =
+        (type as? JcClassType)?.isFinal ?: false
 
-    override fun isInstantiable(t: JcType): Boolean =
-        t !is JcRefType || (!t.jcClass.isInterface && !t.jcClass.isAbstract)
+    override fun isInstantiable(type: JcType): Boolean =
+        type !is JcRefType || (!type.jcClass.isInterface && !type.jcClass.isAbstract)
 
     // TODO: deal with generics
     // TODO: handle object type, serializable and cloneable
-    override fun findSubtypes(t: JcType): Sequence<JcType> = when (t) {
+    override fun findSubtypes(type: JcType): Sequence<JcType> = when (type) {
         is JcPrimitiveType -> emptySequence() // TODO: should not be called here
-        is JcArrayType -> findSubtypes(t.elementType).map { cp.arrayTypeOf(it) }
+        is JcArrayType -> findSubtypes(type.elementType).map { cp.arrayTypeOf(it) }
         is JcRefType -> hierarchy
-            .findSubClasses(t.jcClass, allHierarchy = false) // TODO: prioritize classes somehow and filter bad classes
+            .findSubClasses(
+                type.jcClass,
+                allHierarchy = false
+            ) // TODO: prioritize classes somehow and filter bad classes
             .map { it.toType() }
+            .run {
+                if (type == cp.objectType) {
+                    // since we use DFS iterator, the array of objects should come last
+                    // here we return only the direct successors, so (2,3,...)-dimensional arrays isn't returned here
+                    // such arrays are subtypes of `Object[]`
+                    flatMap { listOf(it, cp.arrayTypeOf(it)) } + sequenceOf(cp.arrayTypeOf(type))
+                } else {
+                    this
+                }
+            }
 
-        else -> error("Unknown type $t")
+        else -> error("Unknown type $type")
     }
 
     private val topTypeStream by lazy { USupportTypeStream.from(this, cp.objectType) }

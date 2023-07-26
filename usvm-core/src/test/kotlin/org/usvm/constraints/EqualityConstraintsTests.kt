@@ -7,7 +7,6 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.usvm.UComponents
 import org.usvm.UContext
-import org.usvm.UHeapRef
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
@@ -25,13 +24,13 @@ class EqualityConstraintsTests {
 
     @Test
     fun testDiseq() {
-        val ref1: UHeapRef = ctx.mkRegisterReading(1, ctx.addressSort)
-        val ref2: UHeapRef = ctx.mkRegisterReading(2, ctx.addressSort)
-        val ref3: UHeapRef = ctx.mkRegisterReading(3, ctx.addressSort)
-        val ref4: UHeapRef = ctx.mkRegisterReading(4, ctx.addressSort)
-        val ref5: UHeapRef = ctx.mkRegisterReading(5, ctx.addressSort)
-        val ref6: UHeapRef = ctx.mkRegisterReading(6, ctx.addressSort)
-        val ref7: UHeapRef = ctx.mkRegisterReading(7, ctx.addressSort)
+        val ref1 = ctx.mkRegisterReading(1, ctx.addressSort)
+        val ref2 = ctx.mkRegisterReading(2, ctx.addressSort)
+        val ref3 = ctx.mkRegisterReading(3, ctx.addressSort)
+        val ref4 = ctx.mkRegisterReading(4, ctx.addressSort)
+        val ref5 = ctx.mkRegisterReading(5, ctx.addressSort)
+        val ref6 = ctx.mkRegisterReading(6, ctx.addressSort)
+        val ref7 = ctx.mkRegisterReading(7, ctx.addressSort)
 
         constraints.makeNonEqual(ref1, ctx.nullRef)
         constraints.makeNonEqual(ref2, ctx.nullRef)
@@ -80,10 +79,10 @@ class EqualityConstraintsTests {
 
     @Test
     fun testNullableDiseq() {
-        val ref1: UHeapRef = ctx.mkRegisterReading(1, ctx.addressSort)
-        val ref2: UHeapRef = ctx.mkRegisterReading(2, ctx.addressSort)
-        val ref3: UHeapRef = ctx.mkRegisterReading(3, ctx.addressSort)
-        val ref4: UHeapRef = ctx.mkRegisterReading(4, ctx.addressSort)
+        val ref1 = ctx.mkRegisterReading(1, ctx.addressSort)
+        val ref2 = ctx.mkRegisterReading(2, ctx.addressSort)
+        val ref3 = ctx.mkRegisterReading(3, ctx.addressSort)
+        val ref4 = ctx.mkRegisterReading(4, ctx.addressSort)
 
         constraints.makeNonEqualOrBothNull(ref1, ref2)
         constraints.makeNonEqualOrBothNull(ref1, ref3)

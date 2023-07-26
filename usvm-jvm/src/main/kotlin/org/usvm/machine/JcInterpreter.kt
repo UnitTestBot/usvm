@@ -66,7 +66,7 @@ class JcInterpreter(
                 val thisLValue = URegisterLValue(addressSort, 0)
                 val ref = state.memory.read(thisLValue).asExpr(addressSort)
                 state.pathConstraints += mkEq(ref, nullRef).not()
-                state.pathConstraints += mkIsExpr(ref, typedMethod.enclosingType)
+                state.pathConstraints += mkIsSubtypeExpr(ref, typedMethod.enclosingType)
             }
         }
 
@@ -76,14 +76,14 @@ class JcInterpreter(
                 if (type is JcRefType) {
                     val argumentLValue = URegisterLValue(typeToSort(type), method.localIdx(idx))
                     val ref = state.memory.read(argumentLValue).asExpr(addressSort)
-                    state.pathConstraints += mkIsExpr(ref, type)
+                    state.pathConstraints += mkIsSubtypeExpr(ref, type)
                 }
             }
         }
 
         val solver = ctx.solver<JcField, JcType, JcMethod>()
 
-        val model = (solver.check(state.pathConstraints, useSoftConstraints = true) as USatResult).model
+        val model = (solver.checkWithSoftConstraints(state.pathConstraints) as USatResult).model
         state.models = listOf(model)
 
         return state
@@ -143,7 +143,7 @@ class JcInterpreter(
             val throwableTypes = catchInst.throwableTypes
 
             val typeConstraint = scope.calcOnState {
-                val currentTypeConstraints = throwableTypes.map { memory.types.evalIs(exception.address, it) }
+                val currentTypeConstraints = throwableTypes.map { memory.types.evalIsSubtype(exception.address, it) }
                 val result = ctx.mkAnd(typeConstraintsNegations + ctx.mkOr(currentTypeConstraints))
 
                 typeConstraintsNegations += currentTypeConstraints.map { ctx.mkNot(it) }

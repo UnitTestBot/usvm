@@ -1,10 +1,10 @@
 package org.usvm.samples.objects;
 
-import static org.usvm.api.mock.UMockKt.assume;
-
 public class HiddenFieldExample {
     public int checkHiddenField(HiddenFieldSuperClass o) {
-        assume(!(o instanceof HiddenFieldSuccClass));
+        if (o instanceof HiddenFieldSuccClass) {
+            return 0;
+        }
 
         if (o.a == 1 && o.b == 2) {
             return 1;
