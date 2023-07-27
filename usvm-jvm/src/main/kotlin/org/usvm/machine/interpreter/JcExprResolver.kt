@@ -326,74 +326,81 @@ class JcExprResolver(
 
     // region invokes
 
-    override fun visitJcSpecialCallExpr(expr: JcSpecialCallExpr): UExpr<out USort>? {
-        val method = expr.method
-        return resolveInvoke(method) {
-            val instance = resolveJcExpr(expr.instance)?.asExpr(ctx.addressSort) ?: return null
-            checkNullPointer(instance) ?: return null
-            val arguments = mutableListOf<UExpr<out USort>>(instance)
-            val argsWithTypes = expr.args.zip(method.parameters.map { it.type })
-
-            argsWithTypes.mapTo(arguments) { (expr, type) ->
-                resolveJcExpr(expr, type) ?: return null
-            }
-            with(invokeResolver) { resolveSpecialInvoke(method.method, arguments) }
+    override fun visitJcSpecialCallExpr(expr: JcSpecialCallExpr): UExpr<out USort>? =
+        resolveInvoke(
+            expr.method,
+            instanceExpr = expr.instance,
+            argumentExprs = expr::args,
+            argumentTypes = { expr.method.parameters.map { it.type } }
+        ) { arguments ->
+            with(invokeResolver) { resolveSpecialInvoke(expr.method.method, arguments) }
         }
-    }
 
-    override fun visitJcVirtualCallExpr(expr: JcVirtualCallExpr): UExpr<out USort>? {
-        val method = expr.method
-        return resolveInvoke(method) {
-            val instance = resolveJcExpr(expr.instance)?.asExpr(ctx.addressSort) ?: return null
-            checkNullPointer(instance) ?: return null
-            val arguments = mutableListOf<UExpr<out USort>>(instance)
-            val argsWithTypes = expr.args.zip(method.parameters.map { it.type })
-
-            argsWithTypes.mapTo(arguments) { (expr, type) ->
-                resolveJcExpr(expr, type) ?: return null
-            }
-            with(invokeResolver) { resolveVirtualInvoke(method.method, arguments) }
+    override fun visitJcVirtualCallExpr(expr: JcVirtualCallExpr): UExpr<out USort>? =
+        resolveInvoke(
+            expr.method,
+            instanceExpr = expr.instance,
+            argumentExprs = expr::args,
+            argumentTypes = { expr.method.parameters.map { it.type } }
+        ) { arguments ->
+            with(invokeResolver) { resolveVirtualInvoke(expr.method.method, arguments) }
         }
-    }
 
-    override fun visitJcStaticCallExpr(expr: JcStaticCallExpr): UExpr<out USort>? {
-        val method = expr.method
-        return resolveInvoke(method) {
-            val argsWithTypes = expr.args.zip(method.parameters.map { it.type })
-            val arguments = argsWithTypes.map { (expr, type) ->
-                resolveJcExpr(expr, type) ?: return null
+    override fun visitJcStaticCallExpr(expr: JcStaticCallExpr): UExpr<out USort>? =
+        resolveInvoke(
+            expr.method,
+            instanceExpr = null,
+            argumentExprs = expr::args,
+            argumentTypes = { expr.method.parameters.map { it.type } }
+        ) { arguments ->
+            with(invokeResolver) {
+                resolveStaticInvoke(expr.method.method, arguments)
             }
-            with (invokeResolver) { resolveStaticInvoke(method.method, arguments) }
         }
-    }
 
-    override fun visitJcDynamicCallExpr(expr: JcDynamicCallExpr): UExpr<out USort>? {
-        val method = expr.method
-        return resolveInvoke(method) {
-            val argsWithTypes = expr.args.zip(expr.callSiteArgTypes)
-            val arguments = argsWithTypes.map { (expr, type) ->
-                resolveJcExpr(expr, type) ?: return null
+    override fun visitJcDynamicCallExpr(expr: JcDynamicCallExpr): UExpr<out USort>? =
+        resolveInvoke(
+            expr.method,
+            instanceExpr = null,
+            argumentExprs = expr::args,
+            argumentTypes = expr::callSiteArgTypes
+        ) { arguments ->
+            with(invokeResolver) {
+                resolveDynamicInvoke(expr.method.method, arguments)
             }
-            with(invokeResolver) { resolveDynamicInvoke(method.method, arguments) }
         }
-    }
 
-    override fun visitJcLambdaExpr(expr: JcLambdaExpr): UExpr<out USort>? {
-        val method = expr.method
-        return resolveInvoke(method) {
-            val argsWithTypes = expr.args.zip(method.parameters.map { it.type })
-            val arguments = argsWithTypes.map { (expr, type) ->
-                resolveJcExpr(expr, type) ?: return null
+    override fun visitJcLambdaExpr(expr: JcLambdaExpr): UExpr<out USort>? =
+        resolveInvoke(
+            expr.method,
+            instanceExpr = null,
+            argumentExprs = expr::args,
+            argumentTypes = { expr.method.parameters.map { it.type } }
+        ) { arguments ->
+            with(invokeResolver) {
+                resolveLambdaInvoke(expr.method.method, arguments)
             }
-            with(invokeResolver) { resolveLambdaInvoke(method.method, arguments)}
         }
-    }
 
     private inline fun resolveInvoke(
         method: JcTypedMethod,
-        onNoCallPresent: JcStepScope.() -> Unit,
+        instanceExpr: JcValue?,
+        argumentExprs: () -> List<JcValue>,
+        argumentTypes: () -> List<JcType>,
+        onNoCallPresent: JcStepScope.(List<UExpr<out USort>>) -> Unit,
     ): UExpr<out USort>? = ensureStaticFieldsInitialized(method.enclosingType) {
-        resolveInvokeNoStaticInitializationCheck(onNoCallPresent)
+        val arguments = mutableListOf<UExpr<out USort>>()
+        if (instanceExpr != null) {
+            val instance = resolveJcExpr(instanceExpr)?.asExpr(ctx.addressSort) ?: return null
+            checkNullPointer(instance) ?: return null
+            arguments += instance
+        }
+        val argsWithTypes = argumentExprs().zip(argumentTypes())
+        argsWithTypes.mapTo(arguments) { (expr, type) ->
+            resolveJcExpr(expr, type) ?: return null
+        }
+
+        resolveInvokeNoStaticInitializationCheck { onNoCallPresent(arguments) }
     }
 
     private inline fun resolveInvokeNoStaticInitializationCheck(
