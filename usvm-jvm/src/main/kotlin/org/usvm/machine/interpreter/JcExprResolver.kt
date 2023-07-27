@@ -446,14 +446,26 @@ class JcExprResolver(
     // region jc complex values
 
     override fun visitJcFieldRef(value: JcFieldRef): UExpr<out USort>? {
-        val ref = resolveFieldRef(value.instance, value.field) ?: return null
-        return scope.calcOnState { memory.read(ref) }
+        val lValue = resolveFieldRef(value.instance, value.field) ?: return null
+        val expr = scope.calcOnState { memory.read(lValue) }
+        if (value.type is JcRefType) {
+            val heapRef = expr.asExpr(ctx.addressSort)
+            val isExpr = scope.calcOnState { memory.types.evalIsSubtype(heapRef, value.type) }
+            scope.assert(isExpr) ?: return null
+        }
+        return expr
     }
 
 
     override fun visitJcArrayAccess(value: JcArrayAccess): UExpr<out USort>? {
-        val ref = resolveArrayAccess(value.array, value.index) ?: return null
-        return scope.calcOnState { memory.read(ref) }
+        val lValue = resolveArrayAccess(value.array, value.index) ?: return null
+        val expr = scope.calcOnState { memory.read(lValue) }
+        if (value.type is JcRefType) {
+            val heapRef = expr.asExpr(ctx.addressSort)
+            val isExpr = scope.calcOnState { memory.types.evalIsSubtype(heapRef, value.type) }
+            scope.assert(isExpr) ?: return null
+        }
+        return expr
     }
 
     // endregion
@@ -666,19 +678,19 @@ class JcExprResolver(
         type: JcType,
     ) = resolveAfterResolved(operand) { expr ->
         when (type) {
-            is JcRefType -> resolveReferenceCast(expr, operand.type as JcRefType, type)
+            is JcRefType -> resolveReferenceCast(expr.asExpr(ctx.addressSort), operand.type as JcRefType, type)
             is JcPrimitiveType -> resolvePrimitiveCast(expr, operand.type as JcPrimitiveType, type)
             else -> error("Unexpected type: $type")
         }
     }
 
     private fun resolveReferenceCast(
-        expr: UExpr<out USort>,
+        expr: UHeapRef,
         typeBefore: JcRefType,
         type: JcRefType,
-    ): UExpr<out USort>? {
+    ): UHeapRef? {
         return if (!typeBefore.isAssignable(type)) {
-            val isExpr = scope.calcOnState { memory.types.evalIsSubtype(expr.asExpr(ctx.addressSort), type) }
+            val isExpr = scope.calcOnState { memory.types.evalIsSubtype(expr, type) }
             scope.fork(
                 isExpr,
                 blockOnFalseState = allocateException(classCastExceptionType)
