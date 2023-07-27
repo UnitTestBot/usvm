@@ -24,6 +24,9 @@ class UTypeRegion<Type>(
 
     override val isEmpty: Boolean get() = typeStream.isEmpty
 
+    private val <Type> UTypeRegion<Type>.size: Int
+        get() = supertypes.size + notSupertypes.size + subtypes.size + notSubtypes.size
+
     /**
      * Excludes from this type region types which are not subtypes of [supertype].
      * If new type constraints contradict with already existing ones,
@@ -32,15 +35,22 @@ class UTypeRegion<Type>(
      * The default implementation checks for the following contradictions
      * (here X is type from this region and t is [supertype]):
      *  - X <: t && t <: u && X </: u, i.e. if [notSupertypes] contains supertype of [supertype]
+     *  - X <: t && u <: X && u </: t
      *  - X <: t && X <: u && u </: t && t </: u && t and u can't be multiply inherited
      *  - t is final && t </: X && X <: t
+     *
+     * Also, if u <: X && X <: t && u <: t, then X = u = t.
      */
     fun addSupertype(supertype: Type): UTypeRegion<Type> {
         if (isEmpty || supertypes.any { typeSystem.isSupertype(supertype, it) }) {
             return this
         }
 
-        if (notSubtypes.any { typeSystem.isSupertype(it, supertype) }) {
+        if (notSupertypes.any { typeSystem.isSupertype(it, supertype) }) {
+            return contradiction()
+        }
+
+        if (subtypes.any { !typeSystem.isSupertype(supertype, it) }) {
             return contradiction()
         }
 
@@ -67,10 +77,14 @@ class UTypeRegion<Type>(
             subtypes
         }
 
+        if (newSubtypes.any { typeSystem.isSupertype(it, supertype) }) {
+            return checkSingleTypeRegion(supertype)
+        }
+
         val newSupertypes = supertypes.removeAll { typeSystem.isSupertype(it, supertype) }.add(supertype)
         val newTypeStream = typeStream.filterBySupertype(supertype)
 
-        return UTypeRegion(typeSystem, newTypeStream, supertypes = newSupertypes, subtypes = newSubtypes)
+        return clone(newTypeStream, supertypes = newSupertypes, subtypes = newSubtypes)
     }
 
     /**
@@ -94,7 +108,7 @@ class UTypeRegion<Type>(
         val newNotSupertypes = notSupertypes.removeAll { typeSystem.isSupertype(notSupertype, it) }.add(notSupertype)
         val newTypeStream = typeStream.filterByNotSupertype(notSupertype)
 
-        return UTypeRegion(typeSystem, newTypeStream, notSupertypes = newNotSupertypes)
+        return clone(newTypeStream, notSupertypes = newNotSupertypes)
     }
 
     /**
@@ -106,6 +120,8 @@ class UTypeRegion<Type>(
      * (here X is type from this region and t is [subtype]):
      *  - t <: X && u <: t && u </: X, i.e. if [notSubtypes] contains subtype of [subtype]
      *  - t <: X && X <: u && t </: u
+     *
+     *  Also, if t <: X && X <: u && u <: t, then X = u = t.
      */
     fun addSubtype(subtype: Type): UTypeRegion<Type> {
         if (isEmpty || subtypes.any { typeSystem.isSupertype(it, subtype) }) {
@@ -118,6 +134,10 @@ class UTypeRegion<Type>(
 
         if (supertypes.any { !typeSystem.isSupertype(it, subtype) }) {
             return contradiction()
+        }
+
+        if (supertypes.any { typeSystem.isSupertype(subtype, it) }) {
+            return checkSingleTypeRegion(subtype)
         }
 
         val newSubtypes = subtypes.removeAll { typeSystem.isSupertype(subtype, it) }.add(subtype)
@@ -149,7 +169,7 @@ class UTypeRegion<Type>(
         val newNotSubtypes = notSubtypes.removeAll { typeSystem.isSupertype(it, notSubtype) }.add(notSubtype)
         val newTypeStream = typeStream.filterByNotSubtype(notSubtype)
 
-        return UTypeRegion(typeSystem, newTypeStream, notSubtypes = newNotSubtypes)
+        return clone(newTypeStream, notSubtypes = newNotSubtypes)
     }
 
     override fun intersect(other: UTypeRegion<Type>): UTypeRegion<Type> {
@@ -202,7 +222,36 @@ class UTypeRegion<Type>(
         return RegionComparisonResult.INTERSECTS
     }
 
-}
+    private fun checkSingleTypeRegion(type: Type): UTypeRegion<Type> {
+        if (!typeSystem.isInstantiable(type)) {
+            return contradiction()
+        }
+        if (supertypes.any { !typeSystem.isSupertype(it, type) }) {
+            return contradiction()
+        }
+        if (notSupertypes.any { typeSystem.isSupertype(it, type) }) {
+            return contradiction()
+        }
+        if (subtypes.any { !typeSystem.isSupertype(type, it) }) {
+            return contradiction()
+        }
+        if (notSubtypes.any { typeSystem.isSupertype(type, it) }) {
+            return contradiction()
+        }
 
-private val <Type> UTypeRegion<Type>.size: Int
-    get() = supertypes.size + subtypes.size + notSupertypes.size + notSubtypes.size
+        return UTypeRegion(
+            typeSystem,
+            USingleTypeStream(typeSystem, type),
+            supertypes = persistentSetOf(type),
+            subtypes = persistentSetOf(type)
+        )
+    }
+
+    private fun clone(
+        typeStream: UTypeStream<Type>,
+        supertypes: PersistentSet<Type> = this.supertypes,
+        notSupertypes: PersistentSet<Type> = this.notSupertypes,
+        subtypes: PersistentSet<Type> = this.subtypes,
+        notSubtypes: PersistentSet<Type> = this.notSubtypes,
+    ) = UTypeRegion(typeSystem, typeStream, supertypes, notSupertypes, subtypes, notSubtypes)
+}

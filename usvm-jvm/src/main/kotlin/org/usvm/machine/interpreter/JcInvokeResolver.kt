@@ -13,6 +13,7 @@ import org.usvm.machine.state.JcState
 import org.usvm.machine.state.addNewMethodCall
 import org.usvm.machine.state.lastStmt
 import org.usvm.machine.state.newStmt
+import org.usvm.types.first
 
 interface JcInvokeResolver {
     fun JcStepScope.resolveStaticInvoke(method: JcMethod, arguments: List<UExpr<out USort>>)
@@ -53,25 +54,35 @@ class JcVirtualInvokeResolver(
 
         val instance = arguments.first().asExpr(ctx.addressSort)
         val concreteRef = calcOnState { models.first().eval(instance) } as UConcreteHeapRef
-        val typeStream = if (concreteRef.address < 0) {
-            calcOnState { models.first().typeStreamOf(concreteRef) }
-        } else {
-            calcOnState { memory.typeStreamOf(concreteRef) }
-        }
-        val inheritors = typeSelector.choose(typeStream)
-        val conditionalWithBlockOnStates = inheritors.map { type ->
-            val isExpr = calcOnState {
-                with(ctx) {
-                    memory.types.evalIsSubtype(instance, type) and
-                        memory.types.evalIsSupertype(instance, type)
+
+        if (concreteRef.address < 0) {
+            val typeStream = calcOnState { models.first().typeStreamOf(concreteRef) }
+
+            val inheritors = typeSelector.choose(typeStream)
+            val conditionalWithBlockOnStates = inheritors.map { type ->
+                val isExpr = calcOnState {
+                    with(ctx) {
+                        memory.types.evalIsSubtype(instance, type) and
+                            memory.types.evalIsSupertype(instance, type)
+                    }
                 }
+                val concreteMethod = (type as JcClassType).findMethodOrNull(method.name, method.description)
+                    ?: error("Can't find method $method in type $type")
+
+                val block = { state: JcState ->
+                    state.addNewMethodCall(applicationGraph, concreteMethod.method, arguments)
+                }
+                isExpr to block
             }
-            val concreteMethod = (type as JcClassType).findMethodOrNull(method.name, method.description)
-                ?: error("Not found")
-            val block = { state: JcState -> state.addNewMethodCall(applicationGraph, concreteMethod.method, arguments) }
-            isExpr to block
+            forkMulti(conditionalWithBlockOnStates)
+        } else {
+            val type = calcOnState { memory.typeStreamOf(concreteRef) }.first() as JcClassType
+
+            val concreteMethod = type.findMethodOrNull(method.name, method.description)
+                ?: error("Can't find method $method in type $type")
+
+            doWithState { addNewMethodCall(applicationGraph, concreteMethod.method, arguments) }
         }
-        forkMulti(conditionalWithBlockOnStates)
     }
 
     override fun JcStepScope.resolveSpecialInvoke(
@@ -83,6 +94,10 @@ class JcVirtualInvokeResolver(
         }
 
         doWithState { addNewMethodCall(applicationGraph, method, arguments) }
+    }
+
+    override fun JcStepScope.resolveDynamicInvoke(method: JcMethod, arguments: List<UExpr<out USort>>) {
+        TODO("Dynamic invoke")
     }
 
     private fun JcStepScope.skip(method: JcMethod): Boolean {
@@ -99,7 +114,5 @@ class JcVirtualInvokeResolver(
         return false
     }
 
-    override fun JcStepScope.resolveDynamicInvoke(method: JcMethod, arguments: List<UExpr<out USort>>) {
-        TODO("Dynamic invoke")
-    }
+
 }
