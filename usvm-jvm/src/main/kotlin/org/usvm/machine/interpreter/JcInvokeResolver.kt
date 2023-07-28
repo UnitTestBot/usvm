@@ -4,6 +4,7 @@ import io.ksmt.utils.asExpr
 import org.jacodb.api.JcClassType
 import org.jacodb.api.JcMethod
 import org.jacodb.api.ext.findMethodOrNull
+import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.USort
@@ -27,6 +28,7 @@ class JcVirtualInvokeResolver(
     private val ctx: JcContext,
     private val applicationGraph: JcApplicationGraph,
     private val typeSelector: JcTypeSelector,
+    private val forkOnRemainingTypes: Boolean = false,
 ) : JcInvokeResolver {
     override fun JcStepScope.resolveStaticInvoke(method: JcMethod, arguments: List<UExpr<out USort>>) {
         if (skip(method)) {
@@ -58,14 +60,15 @@ class JcVirtualInvokeResolver(
         if (concreteRef.address < 0) {
             val typeStream = calcOnState { models.first().typeStreamOf(concreteRef) }
 
-            val inheritors = typeSelector.choose(typeStream)
-            val conditionalWithBlockOnStates = inheritors.map { type ->
-                val isExpr = calcOnState {
-                    with(ctx) {
-                        memory.types.evalIsSubtype(instance, type) and
-                            memory.types.evalIsSupertype(instance, type)
-                    }
+            val inheritors = typeSelector.choose(method, typeStream)
+            val typeConstraints = inheritors.map { type ->
+                calcOnState {
+                    ctx.mkAnd(memory.types.evalIsSubtype(instance, type), memory.types.evalIsSubtype(instance, type))
                 }
+            }
+            val typeConstraintsWithBlockOnStates = mutableListOf<Pair<UBoolExpr, (JcState) -> Unit>>()
+            inheritors.mapIndexedTo(typeConstraintsWithBlockOnStates) { idx, type ->
+                val isExpr = typeConstraints[idx]
                 val concreteMethod = (type as JcClassType).findMethodOrNull(method.name, method.description)
                     ?: error("Can't find method $method in type $type")
 
@@ -74,7 +77,13 @@ class JcVirtualInvokeResolver(
                 }
                 isExpr to block
             }
-            forkMulti(conditionalWithBlockOnStates)
+
+            if (forkOnRemainingTypes) {
+                val excludeAllTypesConstraint = ctx.mkOr(typeConstraints.map { ctx.mkNot(it) })
+                typeConstraintsWithBlockOnStates += excludeAllTypesConstraint to { } // do nothing, just exclude types
+            }
+
+            forkMulti(typeConstraintsWithBlockOnStates)
         } else {
             val type = calcOnState { memory.typeStreamOf(concreteRef) }.first() as JcClassType
 
@@ -113,6 +122,4 @@ class JcVirtualInvokeResolver(
         }
         return false
     }
-
-
 }

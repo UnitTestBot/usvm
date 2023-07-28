@@ -264,7 +264,7 @@ class JcInterpreter(
         }
     }
 
-    private val invokeResolver = JcVirtualInvokeResolver(ctx, applicationGraph, JcTypeSelector())
+    private val invokeResolver = JcVirtualInvokeResolver(ctx, applicationGraph, JcConstantInheritorsTypeSelector())
 
     private fun exprResolverWithScope(scope: JcStepScope) =
         JcExprResolver(
