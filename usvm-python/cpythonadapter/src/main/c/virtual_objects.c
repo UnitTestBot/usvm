@@ -1,13 +1,15 @@
 #include "virtual_objects.h"
+#include "SYMBOLIC_API.h"
 
 static void
 virtual_object_dealloc(PyObject *op) {
+    //printf("DELETING: %p\n", op);
+    //fflush(stdout);
     VirtualPythonObject *obj = (VirtualPythonObject *) op;
     (*(obj->ctx->env))->DeleteGlobalRef(obj->ctx->env, obj->reference);
     Py_TYPE(op)->tp_free(op);
 }
 
-/*
 static PyObject *
 tp_richcompare(PyObject *o1, PyObject *o2, int op) {
     ConcolicContext *ctx = 0;
@@ -28,7 +30,6 @@ tp_richcompare(PyObject *o1, PyObject *o2, int op) {
     CHECK_FOR_EXCEPTION(ctx, 0)
     return (PyObject *) create_new_virtual_object(ctx, virtual_object, adapter);
 }
-*/
 
 static int
 nb_bool(PyObject *self) {
@@ -113,7 +114,7 @@ PyTypeObject VirtualPythonObject_Type = {
     0,                                       /*tp_doc */
     0,                                       /*tp_traverse */
     0,                                       /*tp_clear */
-    0,                                       /*tp_richcompare */
+    tp_richcompare,                          /*tp_richcompare */
     0,                                       /*tp_weaklistoffset */
     0,                                       /*tp_iter */
     0,                                       /*tp_iternext */
@@ -166,5 +167,5 @@ is_virtual_object(PyObject *obj) {
 }
 
 void register_virtual_methods() {
-    // virtual_tp_richcompare = tp_richcompare;
+    virtual_tp_richcompare = tp_richcompare;
 }

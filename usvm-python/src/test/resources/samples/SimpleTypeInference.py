@@ -5,11 +5,6 @@ def bool_input(x):
         return 2
 
 
-def int_convertation(x):
-    y = int(x)
-    return y
-
-
 def two_args(x, y):
     if x and y:
         return 1

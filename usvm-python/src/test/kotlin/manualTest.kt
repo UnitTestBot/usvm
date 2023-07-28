@@ -1,18 +1,20 @@
 import org.usvm.interpreter.*
 import org.usvm.language.PythonProgram
 import org.usvm.language.PythonUnpinnedCallable
+import org.usvm.language.types.PythonAnyType
 import org.usvm.language.types.pythonInt
 import org.usvm.language.types.pythonList
 
 fun main() {
     val program = PythonProgram(
         """
-        def f(y: list, i: int):
-            if y[i] == 0:
+        def f(arr: list, x: int):
+            arr[0] = x
+            if arr[0] < 0:
+                return 0
+            elif arr[1] > arr[0] + 500:
                 return 1
-            elif y[i] == 167:
-                return 2
-            return 3
+            return 2
         """.trimIndent()
     )
     val function = PythonUnpinnedCallable.constructCallableFromName(listOf(pythonList, pythonInt), "f")

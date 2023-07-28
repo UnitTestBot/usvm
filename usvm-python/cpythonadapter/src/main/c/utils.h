@@ -26,6 +26,8 @@ typedef struct {
     jclass cpython_adapter_cls;
     jobject cpython_adapter;
     jclass symbol_cls;
+    jclass virtual_cls;
+    PyObject *java_exception;
     HANDLERS_DEFS
 } ConcolicContext;
 
@@ -38,10 +40,11 @@ typedef struct {
 
 void construct_args_for_symbolic_adapter(SymbolicAdapter *adapter, ConcolicContext *ctx, jlongArray *concrete_args, jlongArray *virtual_args, jobjectArray *symbolic_args, PyObjectArray *dist);
 int take_instruction_from_frame(PyFrameObject *frame);
+int extract_int_value(PyObject *int_object);
 
 #define CHECK_FOR_EXCEPTION(ctx, fail_value) \
     if ((*ctx->env)->ExceptionCheck(ctx->env)) { \
-        PyErr_SetString(PyExc_RuntimeError, "Java exception"); \
+        PyErr_SetString(ctx->java_exception, "Java exception"); \
         return fail_value; \
     }
 

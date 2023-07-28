@@ -126,4 +126,17 @@ class ListsTest : PythonTestRunner("/samples/SimpleLists.py") {
             )
         )
     }
+
+    private val functionPositiveAndNegativeIndex = constructFunction("positive_and_negative_index", listOf(pythonList, pythonInt))
+    @Test
+    fun testPositiveAndNegativeIndex() {
+        check2(
+            functionPositiveAndNegativeIndex,
+            ignoreNumberOfAnalysisResults,
+            /* invariants = */ listOf { i, j, _ -> i.typeName == "list" && j.typeName == "int" },
+            /* propertiesToDiscover = */ List(6) { index ->
+                { _, _, res -> res?.repr == (index + 1).toString() }
+            }
+        )
+    }
 }
