@@ -61,3 +61,20 @@ def set_item(arr: list, x: int):
     elif arr[1] > arr[0] + 500:
         return 1
     return 2
+
+
+def positive_and_negative_index(y: list, i: int):
+    if y[i] == 0:
+        if i >= 0:
+            return 1
+        else:
+            return 2
+    elif y[i] == 167:
+        if i >= 0:
+            return 3
+        else:
+            return 4
+    if i >= 0:
+        return 5
+    else:
+        return 6

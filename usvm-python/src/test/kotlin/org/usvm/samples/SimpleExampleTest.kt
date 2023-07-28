@@ -8,11 +8,11 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 class SimpleExampleTest : PythonTestRunner("/samples/SimpleExample.py") {
 
-    private val functionF = constructFunction("f", List(3) { pythonInt })
+    private val functionManyBranches = constructFunction("many_branches", List(3) { pythonInt })
     @Test
-    fun testF() {
+    fun testManyBranches() {
         check3WithConcreteRun(
-            functionF,
+            functionManyBranches,
             ignoreNumberOfAnalysisResults,
             compareConcolicAndConcreteReprs,
             /* invariants = */ listOf { x, y, z, res ->

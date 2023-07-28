@@ -2,27 +2,16 @@ package org.usvm.interpreter.operations.tracing
 
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.isTrue
-import java.util.function.Supplier
-
-private fun <T : Any> getResult(resultSupplier: Supplier<T?>): T? {
-    var exception: Throwable? = null
-    val result = runCatching { resultSupplier.get() }.onFailure {
-        System.err.println(it)
-        exception = it
-    }.getOrNull()
-    if (exception != null)
-        throw exception as Throwable
-    return result
-}
+import java.util.concurrent.Callable
 
 fun <T : Any> withTracing(
     context: ConcolicRunContext,
     newEventParameters: SymbolicHandlerEventParameters<T>,
-    resultSupplier: Supplier<T?>
+    resultSupplier: Callable<T?>
 ): T? {
     context.instructionCounter++
     if (context.instructionCounter > context.curState.path.size) {
-        val result = getResult(resultSupplier)
+        val result = runCatching { resultSupplier.call() }.onFailure { System.err.println(it) }.getOrThrow()
         val eventRecord = SymbolicHandlerEvent(newEventParameters, result)
         context.curState.path = context.curState.path.add(eventRecord)
         return result

@@ -5,9 +5,15 @@ import org.usvm.UExpr
 import org.usvm.fork
 import org.usvm.forkMulti
 import org.usvm.interpreter.ConcolicRunContext
+import org.usvm.interpreter.DelayedFork
+import org.usvm.interpreter.PythonExecutionState
+import org.usvm.interpreter.operations.tracing.withTracing
 import org.usvm.interpreter.symbolicobjects.SymbolicPythonObject
+import org.usvm.interpreter.symbolicobjects.UninterpretedSymbolicPythonObject
+import org.usvm.interpreter.symbolicobjects.interpretSymbolicPythonObject
 import org.usvm.isTrue
 import org.usvm.language.PythonPinnedCallable
+import org.usvm.language.SymbolForCPython
 
 fun myFork(ctx: ConcolicRunContext, cond: UExpr<KBoolSort>) {
     val model = ctx.curState.pyModel
@@ -25,16 +31,30 @@ fun myFork(ctx: ConcolicRunContext, cond: UExpr<KBoolSort>) {
 }
 
 fun myAssert(ctx: ConcolicRunContext, cond: UExpr<KBoolSort>) {
+    val oldModel = ctx.curState.pyModel
     val forkResult = forkMulti(ctx.curState, listOf(cond)).single()
-    if (forkResult == null) {
+    if (forkResult == null)
         ctx.curState.modelDied = true
+
+    if (forkResult?.pyModel != oldModel)
         throw BadModelException
-    }
 }
 
-fun handlerForkKt(ctx: ConcolicRunContext, cond: SymbolicPythonObject?) {
-    cond ?: return
-    val expr = cond.getBoolContent(ctx)
+fun addDelayedFork(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObject, clonedState: PythonExecutionState) {
+    context.curState.delayedForks = context.curState.delayedForks.add(
+        DelayedFork(
+            clonedState,
+            on,
+            context.curState.delayedForks
+        )
+    )
+}
+
+fun handlerForkKt(ctx: ConcolicRunContext, cond: UninterpretedSymbolicPythonObject) {
+    if (cond.getConcreteTypeInModel(ctx) == null) {
+        addDelayedFork(ctx, cond, ctx.curState.clone())
+    }
+    val expr = cond.getToBoolValue(ctx) ?: return
     myFork(ctx, expr)
 }
 

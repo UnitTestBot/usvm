@@ -9,19 +9,24 @@ import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.interpreter.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.interpreter.symbolicobjects.constructBool
 import org.usvm.interpreter.symbolicobjects.constructInt
+import org.usvm.language.types.pythonBool
 import org.usvm.language.types.pythonInt
 
 fun <RES_SORT: KSort> createBinaryIntOp(
     op: (UContext, UExpr<KIntSort>, UExpr<KIntSort>) -> UExpr<RES_SORT>?
 ): (ConcolicRunContext, UninterpretedSymbolicPythonObject, UninterpretedSymbolicPythonObject) -> UninterpretedSymbolicPythonObject? = { concolicContext, left, right ->
-    left.addSupertype(concolicContext, pythonInt)
-    right.addSupertype(concolicContext, pythonInt)
-    op(concolicContext.ctx, left.getIntContent(concolicContext), right.getIntContent(concolicContext))?.let {
-        @Suppress("unchecked_cast")
-        when (it.sort) {
-            concolicContext.ctx.intSort -> constructInt(concolicContext, it as UExpr<KIntSort>)
-            concolicContext.ctx.boolSort -> constructBool(concolicContext, it as UBoolExpr)
-            else -> TODO()
+    with (concolicContext.ctx) {
+        val leftType = left.getConcreteTypeInModel(concolicContext)
+        val rightType = right.getConcreteTypeInModel(concolicContext)
+        require(leftType == pythonInt || leftType == pythonBool)
+        require(rightType == pythonInt || rightType == pythonBool)
+        op(concolicContext.ctx, left.getToIntContent(concolicContext), right.getToIntContent(concolicContext))?.let {
+            @Suppress("unchecked_cast")
+            when (it.sort) {
+                intSort -> constructInt(concolicContext, it as UExpr<KIntSort>)
+                boolSort -> constructBool(concolicContext, it as UBoolExpr)
+                else -> TODO()
+            }
         }
     }
 }

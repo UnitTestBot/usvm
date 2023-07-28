@@ -17,6 +17,8 @@ data class PythonFunctionCall(val function: PythonPinnedCallable): SymbolicHandl
 object PythonReturn: SymbolicHandlerEventParameters<Unit>()
 data class Fork(val condition: SymbolForCPython): SymbolicHandlerEventParameters<Unit>()
 data class NbBool(val on: SymbolForCPython): SymbolicHandlerEventParameters<Unit>()
+data class NbInt(val on: SymbolForCPython): SymbolicHandlerEventParameters<Unit>()
+data class TpRichcmp(val op: Int, val left: SymbolForCPython, val right: SymbolForCPython): SymbolicHandlerEventParameters<Unit>()
 data class ListCreation(val elements: List<SymbolForCPython>): SymbolicHandlerEventParameters<SymbolForCPython>()
 data class MethodWithoutReturnValueParameters(val methodId: Int, val operands: List<SymbolForCPython?>): SymbolicHandlerEventParameters<Unit>()
 

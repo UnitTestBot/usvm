@@ -5,11 +5,16 @@ import kotlinx.collections.immutable.persistentListOf
 import org.usvm.*
 import org.usvm.constraints.UPathConstraints
 import org.usvm.interpreter.operations.tracing.SymbolicHandlerEvent
+import org.usvm.interpreter.symbolicobjects.ConverterToPythonObject
+import org.usvm.interpreter.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.language.*
 import org.usvm.language.types.PythonType
+import org.usvm.language.types.PythonTypeSystem
+import org.usvm.language.types.TypeOfVirtualObject
 import org.usvm.memory.UMemoryBase
 import org.usvm.model.UModelBase
-import org.usvm.types.UTypeStream
+
+private const val MAX_CONCRETE_TYPES_TO_CONSIDER = 1000
 
 class PythonExecutionState(
     private val ctx: UContext,
@@ -20,9 +25,10 @@ class PythonExecutionState(
     uModel: UModelBase<PropertyOfPythonObject, PythonType>,
     callStack: UCallStack<PythonCallable, SymbolicHandlerEvent<Any>> = UCallStack(),
     path: PersistentList<SymbolicHandlerEvent<Any>> = persistentListOf(),
-    var delayedForks: PersistentList<DelayedFork> = persistentListOf()
+    var delayedForks: PersistentList<DelayedFork> = persistentListOf(),
+    private val mocks: MutableMap<MockHeader, UMockSymbol<UAddressSort>> = mutableMapOf()
 ): UState<PythonType, PropertyOfPythonObject, PythonCallable, SymbolicHandlerEvent<Any>>(ctx, callStack, pathConstraints, memory, listOf(uModel), path) {
-    override fun clone(newConstraints: UPathConstraints<PythonType>?): UState<PythonType, PropertyOfPythonObject, PythonCallable, SymbolicHandlerEvent<Any>> {
+    override fun clone(newConstraints: UPathConstraints<PythonType>?): PythonExecutionState {
         val newPathConstraints = newConstraints ?: pathConstraints.clone()
         val newMemory = memory.clone(newPathConstraints.typeConstraints)
         return PythonExecutionState(
@@ -34,30 +40,56 @@ class PythonExecutionState(
             pyModel.uModel,
             callStack,
             path,
-            delayedForks
+            delayedForks,
+            mocks.toMutableMap()  // copy
         )
     }
 
-    var extractedFrom: UPathSelector<PythonExecutionState>? = null
+    override val isExceptional: Boolean = false  // TODO
 
+    var extractedFrom: UPathSelector<PythonExecutionState>? = null
     val pyModel: PyModel
         get() = PyModel(models.first())
-
     var wasExecuted: Boolean = false
     var modelDied: Boolean = false
     val lastHandlerEvent: SymbolicHandlerEvent<Any>?
         get() = if (path.isEmpty()) null else path.last()
 
     // TODO: here we will use Python type hints to prioritize concrete types
-    fun makeTypeRating(delayedFork: DelayedFork): UTypeStream<PythonType> {
-        return pyModel.uModel.typeStreamOf(pyModel.eval(delayedFork.symbol.obj.address))
+    @Suppress("unused_parameter")
+    fun makeTypeRating(delayedFork: DelayedFork): List<PythonType> {
+        val res = PythonTypeSystem.topTypeStream().take(MAX_CONCRETE_TYPES_TO_CONSIDER).toList()
+        require(res.first() == TypeOfVirtualObject)
+        return res.drop(1)
     }
 
-    var symbolsWithoutConcreteTypes: Collection<SymbolForCPython>? = null
-    var fromStateWithVirtualObjectAndWithoutDelayedForks: PythonExecutionState? = null
+    var objectsWithoutConcreteTypes: Set<VirtualPythonObject>? = null
+    var lastConverter: ConverterToPythonObject? = null
+
+    fun mock(what: MockHeader): MockResult {
+        val cached = mocks[what]
+        if (cached != null)
+            return MockResult(UninterpretedSymbolicPythonObject(cached), false)
+        val (result, newMocker) = memory.mocker.call(what.method, what.args.map { it.obj.address }.asSequence(), ctx.addressSort)
+        memory.mocker = newMocker
+        mocks[what] = result
+        return MockResult(UninterpretedSymbolicPythonObject(result), true)
+    }
 }
 
 class DelayedFork(
     val state: PythonExecutionState,
-    val symbol: SymbolForCPython
+    val symbol: UninterpretedSymbolicPythonObject,
+    val delayedForkPrefix: PersistentList<DelayedFork>
+)
+
+data class MockHeader(
+    val method: TypeMethod,
+    val args: List<SymbolForCPython>,
+    val methodOwner: SymbolForCPython
+)
+
+data class MockResult(
+    val mockedObject: UninterpretedSymbolicPythonObject,
+    val isNew: Boolean
 )

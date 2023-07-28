@@ -1,12 +1,11 @@
 package org.usvm.interpreter
 
 import io.ksmt.expr.KInterpretedValue
-import org.usvm.UConcreteHeapRef
-import org.usvm.UExpr
-import org.usvm.USort
+import org.usvm.*
 import org.usvm.language.PropertyOfPythonObject
 import org.usvm.language.types.ConcretePythonType
 import org.usvm.language.types.PythonType
+import org.usvm.language.types.TypeOfVirtualObject
 import org.usvm.model.UModelBase
 
 @Suppress("unchecked_cast")
@@ -25,6 +24,17 @@ class PyModel(val uModel: UModelBase<PropertyOfPythonObject, PythonType>) {
 
     override fun hashCode(): Int {
         return uModel.hashCode()
+    }
+
+    fun getFirstType(ref: UConcreteHeapRef): PythonType? {
+        val typeStream = uModel.types.typeStream(ref)
+        if (typeStream.isEmpty)
+            return null
+        val first = typeStream.take(1).first()
+        val concrete = getConcreteType(ref)
+        if (concrete == null)
+            require(first is TypeOfVirtualObject)
+        return first
     }
 
     fun getConcreteType(ref: UConcreteHeapRef): ConcretePythonType? {

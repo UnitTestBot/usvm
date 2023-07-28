@@ -10,6 +10,7 @@ import org.usvm.language.types.PythonTypeSystem
 import org.usvm.model.buildTranslatorAndLazyDecoder
 import org.usvm.solver.USoftConstraintsProvider
 import org.usvm.solver.USolverBase
+import org.usvm.solver.UTypeSolver
 import org.usvm.types.UTypeSystem
 
 object PythonComponents: UComponents<PropertyOfPythonObject, PythonType, PythonCallable> {
@@ -18,7 +19,7 @@ object PythonComponents: UComponents<PropertyOfPythonObject, PythonType, PythonC
         val softConstraintsProvider = USoftConstraintsProvider<PropertyOfPythonObject, PythonType>(ctx)
         val solver = KZ3Solver(ctx)
         //solver.configure { setZ3Option("timeout", 100000) }
-        return USolverBase(ctx, solver, translator, decoder, softConstraintsProvider)
+        return USolverBase(ctx, solver, UTypeSolver(PythonTypeSystem),  translator, decoder, softConstraintsProvider)
     }
 
     override fun mkTypeSystem(ctx: UContext): UTypeSystem<PythonType> {
