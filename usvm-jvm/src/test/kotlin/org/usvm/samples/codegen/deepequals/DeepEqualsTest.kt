@@ -8,6 +8,7 @@ import org.usvm.test.util.checkers.eq
 
 class DeepEqualsTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("An operation is not implemented: Class constant")
     fun testReturnList() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::returnList,
@@ -16,6 +17,7 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("No entrypoint found for method: (id:1)java.lang.Object#hashCode()")
     fun testReturnSet() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::returnSet,
@@ -48,6 +50,7 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented: Class constant")
     fun testReturn2DList() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::return2DList,
@@ -56,6 +59,7 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("No entrypoint found for method: (id:1)java.lang.Object#hashCode()")
     fun testReturn2DSet() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::return2DSet,

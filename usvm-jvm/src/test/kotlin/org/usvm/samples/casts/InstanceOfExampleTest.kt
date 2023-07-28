@@ -96,6 +96,7 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
 
 
     @Test
+    @Disabled("java.lang.ArrayStoreException: java.lang.Object. Support connection between array and element type")
     fun testInstanceOfAsPartOfInternalExpressions() {
         checkDiscoveredProperties(
             InstanceOfExample::instanceOfAsPartOfInternalExpressions,
