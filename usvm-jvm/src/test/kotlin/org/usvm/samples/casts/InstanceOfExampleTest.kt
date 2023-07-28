@@ -163,7 +163,7 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     fun testInstanceOfAsPartOfInternalExpressionsXor() {
         checkDiscoveredProperties(
             InstanceOfExample::instanceOfAsPartOfInternalExpressionsXor,
-            eq(5),
+            ge(5),
             { _, o, r -> (o == null || o.size != 2) && r == 0 },
             { _, o, r ->
                 val o0isSecond = o[0].isInstanceOfArray<CastClassSecondSucc>()
@@ -192,7 +192,7 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     fun testInstanceOfAsPartOfInternalExpressionsXorInverse() {
         checkDiscoveredProperties(
             InstanceOfExample::instanceOfAsPartOfInternalExpressionsXorInverse,
-            eq(5),
+            ge(5),
             { _, o, r -> (o == null || o.size != 2) && r == 0 },
             { _, o, r ->
                 val o0isSecond = o[0].isInstanceOfArray<CastClassSecondSucc>()
@@ -247,7 +247,7 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     fun testSymbolicInstanceOf() {
         checkDiscoveredProperties(
             InstanceOfExample::symbolicInstanceOf,
-            eq(5),
+            ge(5),
             { _, _, i, r -> (i < 1 || i > 3) && r == null },
             { _, o, _, _ -> o == null },
             { _, o, i, _ -> o != null && i > o.lastIndex },

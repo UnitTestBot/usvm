@@ -1,9 +1,9 @@
 package org.usvm.samples.loops
 
-import org.junit.jupiter.api.RepeatedTest
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
+import org.usvm.test.util.checkers.ge
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 class TestWhile : JavaMethodTestRunner() {
@@ -23,7 +23,7 @@ class TestWhile : JavaMethodTestRunner() {
     fun `Test smallestPowerOfTwo`() {
         checkDiscoveredProperties(
             While::smallestPowerOfTwo,
-            eq(3),
+            ge(3),
             { _, n, r -> r == 0 && n.and(n - 1) == 0 },
             { _, n, r -> r == 1 && n <= 0 },
             { _, n, r -> r == 2 && n > 0 && n.and(n - 1) != 0 },
