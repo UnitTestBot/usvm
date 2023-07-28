@@ -9,10 +9,10 @@ public class ConcolicRunContext {
     public UContext ctx;
     public ArrayList<PythonExecutionState> forkedStates = new ArrayList<>();
     public int instructionCounter = 0;
+    public MockHeader curOperation = null;
 
     ConcolicRunContext(PythonExecutionState curState, UContext ctx) {
         this.curState = curState;
         this.ctx = ctx;
-        // forkedStates.add(curState);
     }
 }

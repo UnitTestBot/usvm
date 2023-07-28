@@ -84,19 +84,16 @@ object ConcretePythonInterpreter {
         return PythonObject(pythonAdapter.makeList(elements.map { it.address }.toLongArray()))
     }
 
-    fun typeHasNbBool(pythonObject: PythonObject): Boolean {
-        val result = pythonAdapter.typeHasNbBool(pythonObject.address)
+    private fun createTypeQuery(checkMethod: (Long) -> Int): (PythonObject) -> Boolean = { pythonObject ->
+        val result = checkMethod(pythonObject.address)
         if (result < 0)
             error("Given Python object is not a type")
-        return result != 0
+        result != 0
     }
 
-    fun typeHasNbInt(pythonObject: PythonObject): Boolean {
-        val result = pythonAdapter.typeHasNbInt(pythonObject.address)
-        if (result < 0)
-            error("Given Python object is not a type")
-        return result != 0
-    }
+    val typeHasNbBool = createTypeQuery { pythonAdapter.typeHasNbBool(it) }
+    val typeHasNbInt = createTypeQuery { pythonAdapter.typeHasNbInt(it) }
+    val typeHasTpRichcmp = createTypeQuery { pythonAdapter.typeHasTpRichcmp(it) }
 
     fun kill() {
         pythonAdapter.finalizePython()

@@ -125,6 +125,16 @@
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;)V"
     },
     {
+        "c_name": "nb_int",
+        "java_name": "notifyNbInt",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;)V"
+    },
+    {
+        "c_name": "tp_richcmp",
+        "java_name": "notifyTpRichcmp",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;ILorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)V"
+    },
+    {
         "c_name": "virtual_nb_bool",
         "java_name": "virtualNbBool",
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/VirtualPythonObject;)Z"
@@ -133,5 +143,15 @@
         "c_name": "virtual_nb_int",
         "java_name": "virtualNbInt",
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/VirtualPythonObject;)J"
+    },
+    {
+        "c_name": "virtual_call",
+        "java_name": "virtualCall",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;)Lorg/usvm/language/VirtualPythonObject;"
+    },
+    {
+        "c_name": "symbolic_virtual_tp_richcmp",
+        "java_name": "handlerVirtualTpRichcmp",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;ILorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
     }
 ]

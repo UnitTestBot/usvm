@@ -1,5 +1,6 @@
 #include "utils.h"
 #include "virtual_objects.h"
+#include "limits.h"
 
 static void
 java_python_object_dealloc(PyObject *op) {
@@ -67,7 +68,9 @@ void construct_concolic_context(JNIEnv *env, jobject context, jobject cpython_ad
     dist->context = context;
     dist->cpython_adapter = cpython_adapter;
     dist->cpython_adapter_cls = (*env)->GetObjectClass(env, cpython_adapter);
-    dist->symbol_cls = (*env)->FindClass(env, "Lorg/usvm/language/SymbolForCPython;");
+    dist->symbol_cls = (*env)->FindClass(env, "org/usvm/language/SymbolForCPython");
+    dist->virtual_cls = (*env)->FindClass(env, "org/usvm/language/VirtualPythonObject");
+    dist->java_exception = PyErr_NewException("ibmviqhlye.JavaException", 0, 0);
     DO_REGISTRATIONS(dist, env)
 }
 
@@ -121,10 +124,16 @@ construct_args_for_symbolic_adapter(
     dist->ptr = args;
 }
 
-int take_instruction_from_frame(PyFrameObject *frame) {
-    PyObject *res = PyObject_GetAttrString((PyObject *) frame, "f_lasti");
+int
+extract_int_value(PyObject *int_object) {
+    assert(PyLong_Check(int_object));
     int overflow;
-    long value_as_long = PyLong_AsLongAndOverflow(res, &overflow);
+    long value_as_long = PyLong_AsLongAndOverflow(int_object, &overflow);
     assert(!overflow);
+    assert(value_as_long < INT_MAX);
     return (int) value_as_long;
+}
+
+int take_instruction_from_frame(PyFrameObject *frame) {
+    return extract_int_value(PyObject_GetAttrString((PyObject *) frame, "f_lasti"));
 }

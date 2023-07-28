@@ -147,24 +147,31 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_makeList(JNIEnv
     PyObject *result = PyList_New(size);
     jlong *addresses = (*env)->GetLongArrayElements(env, elements, 0);
     for (int i = 0; i < size; i++) {
-        PyList_SetItem(result, i, (PyObject *) addresses[i]);
+        PyList_SET_ITEM(result, i, (PyObject *) addresses[i]);
+        Py_INCREF(addresses[i]);
     }
+    Py_INCREF(result);
     (*env)->ReleaseLongArrayElements(env, elements, addresses, 0);
     return (jlong) result;
 }
 
-JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasNbBool(JNIEnv *env, jobject cpython_adapter, jlong type_ref) {
-    if (Py_TYPE(type_ref) != &PyType_Type)
-        return -1;
+#define QUERY_TYPE_HAS_PREFIX \
+    if (Py_TYPE(type_ref) != &PyType_Type) \
+            return -1; \
+    PyTypeObject *type = (PyTypeObject *) type_ref; \
 
-    PyTypeObject *type = (PyTypeObject *) type_ref;
+
+JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasNbBool(JNIEnv *env, jobject _, jlong type_ref) {
+    QUERY_TYPE_HAS_PREFIX
     return type->tp_as_number && type->tp_as_number->nb_bool;
 }
 
-JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasNbInt(JNIEnv *env, jobject cpython_adapter, jlong type_ref) {
-    if (Py_TYPE(type_ref) != &PyType_Type)
-        return -1;
-
-    PyTypeObject *type = (PyTypeObject *) type_ref;
+JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasNbInt(JNIEnv *env, jobject _, jlong type_ref) {
+    QUERY_TYPE_HAS_PREFIX
     return type->tp_as_number && type->tp_as_number->nb_int;
+}
+
+JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasTpRichcmp(JNIEnv *env, jobject _, jlong type_ref) {
+    QUERY_TYPE_HAS_PREFIX
+    return type->tp_richcompare != 0;
 }

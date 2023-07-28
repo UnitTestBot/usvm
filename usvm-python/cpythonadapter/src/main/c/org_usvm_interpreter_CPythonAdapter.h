@@ -119,6 +119,14 @@ JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasNbBool
 JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasNbInt
   (JNIEnv *, jobject, jlong);
 
+/*
+ * Class:     org_usvm_interpreter_CPythonAdapter
+ * Method:    typeHasTpRichcmp
+ * Signature: (J)I
+ */
+JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasTpRichcmp
+  (JNIEnv *, jobject, jlong);
+
 #ifdef __cplusplus
 }
 #endif

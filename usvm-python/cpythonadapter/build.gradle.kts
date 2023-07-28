@@ -9,7 +9,7 @@ val cpythonPath = "${projectDir.path}/cpython"
 val cpythonBuildPath = "${project.buildDir.path}/cpython_build"
 val cpythonTaskGroup = "cpython"
 
-val configCPython = tasks.register<Exec>("CPythonBuildConfiguration") {
+val configCPythonDebug = tasks.register<Exec>("CPythonBuildConfigurationDebug") {
     group = cpythonTaskGroup
     workingDir = File(cpythonPath)
     outputs.file("$cpythonPath/Makefile")
@@ -19,24 +19,43 @@ val configCPython = tasks.register<Exec>("CPythonBuildConfiguration") {
         "--without-static-libpython",
         "--with-ensurepip=no",
         "--prefix=$cpythonBuildPath",
-        "--disable-test-modules"
+        "--disable-test-modules",
+        "--with-assertions"
     )
 }
 
-val cpythonBuild = tasks.register<Exec>("CPythonBuild") {
+val configCPythonRelease = tasks.register<Exec>("CPythonBuildConfigurationRelease") {
     group = cpythonTaskGroup
-    dependsOn(configCPython)
-    inputs.dir(cpythonPath)
     workingDir = File(cpythonPath)
-    commandLine("make")
+    outputs.file("$cpythonPath/Makefile")
+    commandLine(
+        "$cpythonPath/configure",
+        "--enable-shared",
+        "--without-static-libpython",
+        "--with-ensurepip=no",
+        "--prefix=$cpythonBuildPath",
+        "--disable-test-modules",
+        "--enable-optimizations"
+    )
 }
 
-val cpython = tasks.register<Exec>("CPythonInstall") {
+val cpythonBuildDebug = tasks.register<Exec>("CPythonBuildDebug") {
     group = cpythonTaskGroup
-    dependsOn(cpythonBuild)
+    dependsOn(configCPythonDebug)
     inputs.dir(cpythonPath)
     outputs.dirs("$cpythonBuildPath/lib", "$cpythonBuildPath/include", "$cpythonBuildPath/bin")
     workingDir = File(cpythonPath)
+    commandLine("make")
+    commandLine("make", "install")
+}
+
+val cpythonBuildRelease = tasks.register<Exec>("CPythonBuildRelease") {
+    group = cpythonTaskGroup
+    dependsOn(configCPythonRelease)
+    inputs.dir(cpythonPath)
+    outputs.dirs("$cpythonBuildPath/lib", "$cpythonBuildPath/include", "$cpythonBuildPath/bin")
+    workingDir = File(cpythonPath)
+    commandLine("make")
     commandLine("make", "install")
 }
 
@@ -92,8 +111,12 @@ library {
         compileTask.source.from(fileTree("src/main/c"))
         compileTask.compilerArgs.addAll(listOf("-x", "c", "-std=c11", "-L$cpythonBuildPath/lib", "-lpython3.11", "-Werror", "-Wall"))
 
-        compileTask.dependsOn(cpython)
         compileTask.dependsOn(headers)
+        if (!compileTask.isOptimized) {
+            compileTask.dependsOn(cpythonBuildDebug)
+        } else {
+            compileTask.dependsOn(cpythonBuildRelease)
+        }
     }
 }
 
@@ -114,7 +137,7 @@ tasks.clean {
 }
 
 tasks.register<Exec>("cpython_check_compile") {
-    dependsOn(cpython)
+    dependsOn(cpythonBuildDebug)
     workingDir = File("${projectDir.path}/cpython_check")
     commandLine(
         "gcc",

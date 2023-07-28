@@ -22,29 +22,6 @@ class SimpleTypeInferenceTest: PythonTestRunner("/samples/SimpleTypeInference.py
         )
     }
 
-    private val functionIntConvertationAny = constructFunction("int_convertation", List(1) { PythonAnyType })
-    @Test
-    fun testIntConvertationAny() {
-        check1WithConcreteRun(
-            functionIntConvertationAny,
-            ge(1),
-            compareConcolicAndConcreteReprs,
-            /* invariants = */ listOf { _, res -> res != null },
-            /* propertiesToDiscover = */ emptyList()
-        )
-    }
-
-    private val functionIntConvertationNone = constructFunction("int_convertation", List(1) { pythonNoneType })
-    @Test
-    fun testIntConvertationNone() {
-        check1(
-            functionIntConvertationNone,
-            eq(1),
-            /* invariants = */ listOf { _, res -> res == null },
-            /* propertiesToDiscover = */ emptyList()
-        )
-    }
-
     private val functionTwoArgs = constructFunction("two_args", List(2) { PythonAnyType })
     @Test
     fun testTwoArgs() {

@@ -28,7 +28,11 @@ Official instruction: https://devguide.python.org/getting-started/setup-building
 
 Gradle tasks should do everything automatically.
 
-Task for running `src/main/kotlin/test.kt`: `:usvm-python:runTestKt`.
+Tasks for running `src/test/kotlin/manualTest.kt` (name of task group --- `run`): 
+
+- `:usvm-python:manualTestDebug`: run with debug logging and debug build of CPython
+- `:usvm-python:manualTestDebugNoLogs`: run with info logging and debug build of CPython
+- `:usvm-python:manualTestRelease`: run with info logging and release build of CPython
 
 ## Addition of a method in CPythonAdapter
 
