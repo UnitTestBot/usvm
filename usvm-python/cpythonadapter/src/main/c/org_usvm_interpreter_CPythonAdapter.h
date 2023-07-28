@@ -89,6 +89,22 @@ JNIEXPORT jstring JNICALL Java_org_usvm_interpreter_CPythonAdapter_getPythonObje
 
 /*
  * Class:     org_usvm_interpreter_CPythonAdapter
+ * Method:    getPythonObjectType
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_getPythonObjectType
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_usvm_interpreter_CPythonAdapter
+ * Method:    getNameOfPythonType
+ * Signature: (J)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_org_usvm_interpreter_CPythonAdapter_getNameOfPythonType
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_usvm_interpreter_CPythonAdapter
  * Method:    allocateVirtualObject
  * Signature: (Lorg/usvm/language/VirtualPythonObject;)J
  */
@@ -125,6 +141,14 @@ JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasNbInt
  * Signature: (J)I
  */
 JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasTpRichcmp
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_usvm_interpreter_CPythonAdapter
+ * Method:    extractException
+ * Signature: (J)Ljava/lang/Throwable;
+ */
+JNIEXPORT jthrowable JNICALL Java_org_usvm_interpreter_CPythonAdapter_extractException
   (JNIEnv *, jobject, jlong);
 
 #ifdef __cplusplus

@@ -2,8 +2,6 @@ package org.usvm.samples
 
 import org.junit.jupiter.api.Test
 import org.usvm.language.types.PythonAnyType
-import org.usvm.language.types.pythonNoneType
-import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ge
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
@@ -14,10 +12,10 @@ class SimpleTypeInferenceTest: PythonTestRunner("/samples/SimpleTypeInference.py
         check1WithConcreteRun(
             functionBoolInput,
             ignoreNumberOfAnalysisResults,
-            compareConcolicAndConcreteReprs,
+            compareConcolicAndConcreteReprsIfSuccess,
             /* invariants = */ emptyList(),
             /* propertiesToDiscover = */ List(2) { index ->
-                { _, res -> res!!.repr == (index + 1).toString() }
+                { _, res -> res.repr == (index + 1).toString() }
             }
         )
     }
@@ -28,10 +26,10 @@ class SimpleTypeInferenceTest: PythonTestRunner("/samples/SimpleTypeInference.py
         check2WithConcreteRun(
             functionTwoArgs,
             ge(4),
-            compareConcolicAndConcreteReprs,
-            /* invariants = */ listOf { _, _, res -> res != null },
+            compareConcolicAndConcreteReprsIfSuccess,
+            /* invariants = */ emptyList(),
             /* propertiesToDiscover = */ List(4) { index ->
-                { _, _, res -> res!!.repr == (index + 1).toString() }
+                { _, _, res -> res.repr == (index + 1).toString() }
             }
         )
     }

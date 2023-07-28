@@ -4,8 +4,8 @@
 
 static void
 java_python_object_dealloc(PyObject *op) {
-    // JavaPythonObject *obj = (JavaPythonObject *) op;
-    // (*(obj->env))->DeleteGlobalRef(obj->env, obj->reference);
+    JavaPythonObject *obj = (JavaPythonObject *) op;
+    (*(obj->env))->DeleteGlobalRef(obj->env, obj->reference);
     Py_TYPE(op)->tp_free(op);
 }
 
@@ -54,8 +54,8 @@ PyTypeObject JavaPythonObject_Type = {
 PyObject *wrap_java_object(JNIEnv *env, jobject object) {
     JavaPythonObject *result = PyObject_New(JavaPythonObject, &JavaPythonObject_Type);
     result->env = env;
-    result->reference = object;
-    // result->reference = (*env)->NewGlobalRef(env, object);
+    // result->reference = object;
+    result->reference = (*env)->NewGlobalRef(env, object);
     return (PyObject*) result;
 }
 
@@ -71,6 +71,8 @@ void construct_concolic_context(JNIEnv *env, jobject context, jobject cpython_ad
     dist->symbol_cls = (*env)->FindClass(env, "org/usvm/language/SymbolForCPython");
     dist->virtual_cls = (*env)->FindClass(env, "org/usvm/language/VirtualPythonObject");
     dist->java_exception = PyErr_NewException("ibmviqhlye.JavaException", 0, 0);
+    dist->cpython_thrown_exception_field = (*env)->GetFieldID(env, dist->cpython_adapter_cls, "thrownException", "J");
+    dist->cpython_java_exception_field = (*env)->GetFieldID(env, dist->cpython_adapter_cls, "javaExceptionType", "J");
     DO_REGISTRATIONS(dist, env)
 }
 

@@ -83,10 +83,19 @@ class USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION>(
                 }
                 logger.debug("Step result: Successful run")
 
-            } catch (_: CPythonExecutionException) {
-                logger.debug("Step result: Exception")
-                if (inputs != null)
-                    saveRunResult(PythonAnalysisResult(converter, inputs, Fail()))
+            } catch (exception: CPythonExecutionException) {
+                require(exception.pythonExceptionValue != null)
+                if (ConcretePythonInterpreter.isJavaException(exception.pythonExceptionValue)) {
+                    throw ConcretePythonInterpreter.extractException(exception.pythonExceptionValue)
+                }
+                logger.debug(
+                    "Step result: exception from CPython: {}",
+                    ConcretePythonInterpreter.getPythonObjectRepr(exception.pythonExceptionValue)
+                )
+                if (inputs != null) {
+                    val serializedException = pythonObjectSerialization(exception.pythonExceptionValue)
+                    saveRunResult(PythonAnalysisResult(converter, inputs, Fail(serializedException)))
+                }
             }
 
             concolicRunContext.curState.wasExecuted = true
