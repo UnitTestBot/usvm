@@ -60,7 +60,7 @@ class PythonVirtualPathSelector(
             return null
         val state = executionsWithVirtualObjectAndWithoutDelayedForks.random()
         executionsWithVirtualObjectAndWithoutDelayedForks.remove(state)
-        val objects = state.objectsWithoutConcreteTypes!!.map { it.interpretedObj }
+        val objects = state.meta.objectsWithoutConcreteTypes!!.map { it.interpretedObj }
         val typeStreams = objects.map { it.getTypeStream() }
         if (typeStreams.any { it.take(2).size < 2 }) {
             return generateStateWithConcretizedTypeWithoutDelayedForks()
@@ -68,10 +68,10 @@ class PythonVirtualPathSelector(
         require(typeStreams.all { it.first() == TypeOfVirtualObject })
         val types = typeStreams.map {it.take(2).last()}
         (objects zip types).forEach { (obj, type) ->
-            state.lastConverter!!.forcedConcreteTypes[obj.address] = type
+            state.meta.lastConverter!!.forcedConcreteTypes[obj.address] = type
         }
-        state.wasExecuted = false
-        state.extractedFrom = null
+        state.meta.wasExecuted = false
+        state.meta.extractedFrom = null
         return state
     }
 
@@ -83,7 +83,7 @@ class PythonVirtualPathSelector(
             return peekCache
         if (!pathSelectorForStatesWithConcretizedTypes.isEmpty()) {
             val result = pathSelectorForStatesWithConcretizedTypes.peek()
-            result.extractedFrom = pathSelectorForStatesWithConcretizedTypes
+            result.meta.extractedFrom = pathSelectorForStatesWithConcretizedTypes
             peekCache = result
             return result
         }
@@ -94,7 +94,7 @@ class PythonVirtualPathSelector(
         }
         if (!basePathSelector.isEmpty()) {
             val result = basePathSelector.peek()
-            result.extractedFrom = basePathSelector
+            result.meta.extractedFrom = basePathSelector
             peekCache = result
             return result
         }
@@ -108,7 +108,7 @@ class PythonVirtualPathSelector(
 
         } else if (!pathSelectorForStatesWithDelayedForks.isEmpty()  && (secondCoin < threshold || servedDelayedForks.isEmpty())) {
             val result = pathSelectorForStatesWithDelayedForks.peek()
-            result.extractedFrom = pathSelectorForStatesWithDelayedForks
+            result.meta.extractedFrom = pathSelectorForStatesWithDelayedForks
             peekCache = result
             return result
 
@@ -125,7 +125,7 @@ class PythonVirtualPathSelector(
 
     override fun peek(): PythonExecutionState {
         val result = nullablePeek()!!
-        val source = when (result.extractedFrom) {
+        val source = when (result.meta.extractedFrom) {
             basePathSelector -> "basePathSelector"
             pathSelectorForStatesWithDelayedForks -> "pathSelectorForStatesWithDelayedForks"
             pathSelectorForStatesWithConcretizedTypes -> "pathSelectorForStatesWithConcretizedTypes"
@@ -135,36 +135,42 @@ class PythonVirtualPathSelector(
         return result
     }
 
+    private fun processDelayedForksOfExecutedState(state: PythonExecutionState) {
+        require(state.meta.wasExecuted)
+        state.delayedForks.firstOrNull()?.let {
+            unservedDelayedForks.add(
+                DelayedForkWithTypeRating(
+                    it,
+                    state.makeTypeRating(it).toMutableList()
+                )
+            )
+        }
+    }
+
     override fun update(state: PythonExecutionState) {
         peekCache = null
-        if (state.objectsWithoutConcreteTypes != null) {
-            require(state.wasExecuted)
+        if (state.meta.objectsWithoutConcreteTypes != null) {
+            require(state.meta.wasExecuted)
             executionsWithVirtualObjectAndWithoutDelayedForks.add(state)
         }
-        if (state.wasExecuted) {
-            state.extractedFrom?.remove(state)
-            state.delayedForks.firstOrNull()?.let {
-                unservedDelayedForks.add(
-                    DelayedForkWithTypeRating(
-                        it,
-                        state.makeTypeRating(it).toMutableList()
-                    )
-                )
-            }
+        if (state.meta.wasExecuted) {
+            state.meta.extractedFrom?.remove(state)
+            processDelayedForksOfExecutedState(state)
 
         } else {
-            state.extractedFrom?.update(state)
+            state.meta.extractedFrom?.update(state)
         }
     }
 
     override fun add(states: Collection<PythonExecutionState>) {
         peekCache = null
         states.forEach { state ->
-            if (state.objectsWithoutConcreteTypes != null) {
-                require(state.wasExecuted)
+            if (state.meta.objectsWithoutConcreteTypes != null) {
+                require(state.meta.wasExecuted)
                 executionsWithVirtualObjectAndWithoutDelayedForks.add(state)
             }
-            if (state.wasExecuted) {
+            if (state.meta.wasExecuted) {
+                processDelayedForksOfExecutedState(state)
                 return@forEach
             }
             if (state.delayedForks.isEmpty()) {
@@ -177,7 +183,7 @@ class PythonVirtualPathSelector(
 
     override fun remove(state: PythonExecutionState) {
         peekCache = null
-        state.extractedFrom?.remove(state)
+        state.meta.extractedFrom?.remove(state)
     }
 
     companion object {

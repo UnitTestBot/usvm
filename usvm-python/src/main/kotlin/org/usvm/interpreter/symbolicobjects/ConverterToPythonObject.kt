@@ -10,7 +10,7 @@ import org.usvm.language.types.*
 
 class ConverterToPythonObject(
     private val ctx: UContext,
-    private val model: PyModel
+    val modelHolder: PyModelHolder
 ) {
     val forcedConcreteTypes = mutableMapOf<UHeapRef, PythonType>()
     private val constructedObjects = mutableMapOf<UHeapRef, PythonObject>()
@@ -22,8 +22,8 @@ class ConverterToPythonObject(
     fun restart() {
         constructedObjects.clear()
         virtualObjects.clear()
-        val nullRef = model.eval(ctx.nullRef) as UConcreteHeapRef
-        val defaultObject = constructVirtualObject(InterpretedInputSymbolicPythonObject(nullRef, model))
+        val nullRef = modelHolder.model.eval(ctx.nullRef) as UConcreteHeapRef
+        val defaultObject = constructVirtualObject(InterpretedInputSymbolicPythonObject(nullRef, modelHolder))
         constructedObjects[ctx.nullRef] = defaultObject
         numberOfGeneratedVirtualObjects = 0
     }
@@ -32,7 +32,7 @@ class ConverterToPythonObject(
     fun numberOfVirtualObjectUsages(): Int = numberOfGeneratedVirtualObjects
 
     fun convert(obj: InterpretedInputSymbolicPythonObject): PythonObject {
-        require(obj.model == model)
+        require(obj.modelHolder == modelHolder)
         val cached = constructedObjects[obj.address]
         if (cached != null)
             return cached
@@ -51,7 +51,7 @@ class ConverterToPythonObject(
     }
 
     private fun constructVirtualObject(obj: InterpretedInputSymbolicPythonObject): PythonObject {
-        val default = forcedConcreteTypes[obj.address]?.let { TypeDefaultValueProvider.provide(it) }
+        val default = forcedConcreteTypes[obj.address]?.let { DefaultValueProvider.provide(it) }
         if (default != null)
             return default
 
@@ -73,11 +73,11 @@ class ConverterToPythonObject(
         }
 
     private fun convertList(obj: InterpretedInputSymbolicPythonObject): PythonObject = with(ctx) {
-        val size = obj.model.uModel.heap.readArrayLength(obj.address, pythonList) as KInt32NumExpr
+        val size = obj.modelHolder.model.uModel.heap.readArrayLength(obj.address, pythonList) as KInt32NumExpr
         val listOfPythonObjects = List(size.value) { index ->
             val indexExpr = mkSizeExpr(index)
-            val element = obj.model.uModel.heap.readArrayIndex(obj.address, indexExpr, pythonList, addressSort) as UConcreteHeapRef
-            val elemInterpretedObject = InterpretedInputSymbolicPythonObject(element, obj.model)
+            val element = obj.modelHolder.model.uModel.heap.readArrayIndex(obj.address, indexExpr, pythonList, addressSort) as UConcreteHeapRef
+            val elemInterpretedObject = InterpretedInputSymbolicPythonObject(element, obj.modelHolder)
             convert(elemInterpretedObject)
         }
         return ConcretePythonInterpreter.makeList(listOfPythonObjects)

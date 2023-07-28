@@ -2,7 +2,7 @@ package org.usvm.interpreter
 
 import org.usvm.language.types.*
 
-object TypeDefaultValueProvider {
+object DefaultValueProvider {
     fun provide(type: PythonType): PythonObject {
         require(PythonTypeSystem.isInstantiable(type))
 

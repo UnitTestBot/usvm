@@ -6,7 +6,7 @@ import io.ksmt.sort.KIntSort
 import org.usvm.*
 import org.usvm.constraints.UTypeConstraints
 import org.usvm.interpreter.ConcolicRunContext
-import org.usvm.interpreter.PyModel
+import org.usvm.interpreter.PyModelHolder
 import org.usvm.interpreter.operations.myAssert
 import org.usvm.language.*
 import org.usvm.language.types.*
@@ -73,7 +73,7 @@ class UninterpretedSymbolicPythonObject(address: UHeapRef): SymbolicPythonObject
     }
 
     fun getToBoolValue(ctx: ConcolicRunContext): UBoolExpr? {
-        val interpreted = interpretSymbolicPythonObject(this, ctx.curState.pyModel)
+        val interpreted = interpretSymbolicPythonObject(this, ctx.modelHolder)
         with (ctx.ctx) {
             return when (interpreted.getConcreteType(ctx)) {
                 pythonBool -> getBoolContent(ctx)
@@ -84,7 +84,7 @@ class UninterpretedSymbolicPythonObject(address: UHeapRef): SymbolicPythonObject
     }
 
     fun getConcreteTypeInModel(ctx: ConcolicRunContext): ConcretePythonType? {
-        val interpreted = interpretSymbolicPythonObject(this, ctx.curState.pyModel)
+        val interpreted = interpretSymbolicPythonObject(this, ctx.modelHolder)
         return interpreted.getConcreteType(ctx)
     }
 }
@@ -99,7 +99,7 @@ sealed class InterpretedSymbolicPythonObject(
 
 class InterpretedInputSymbolicPythonObject(
     address: UConcreteHeapRef,
-    val model: PyModel
+    val modelHolder: PyModelHolder
 ): InterpretedSymbolicPythonObject(address) {
     init {
         require(address.address <= 0)
@@ -114,28 +114,28 @@ class InterpretedInputSymbolicPythonObject(
     fun getFirstType(): PythonType? {
         if (address.address == 0)
             return PythonTypeSystem.topTypeStream().first()
-        return model.getFirstType(address)
+        return modelHolder.model.getFirstType(address)
     }
     fun getConcreteType(): ConcretePythonType? {
         if (address.address == 0)
             return null
-        return model.getConcreteType(address)
+        return modelHolder.model.getConcreteType(address)
     }
 
     fun getTypeStream(): UTypeStream<PythonType> {
         if (address.address == 0)
             return PythonTypeSystem.topTypeStream()
-        return model.uModel.typeStreamOf(address)
+        return modelHolder.model.uModel.typeStreamOf(address)
     }
 
     fun getIntContent(ctx: UContext): KInterpretedValue<KIntSort> {
         require(getConcreteType() == pythonInt)
-        return model.readField(address, IntContent, ctx.intSort)
+        return modelHolder.model.readField(address, IntContent, ctx.intSort)
     }
 
     fun getBoolContent(ctx: UContext): KInterpretedValue<KBoolSort> {
         require(getConcreteType() == pythonBool)
-        return model.readField(address, BoolContent, ctx.boolSort)
+        return modelHolder.model.readField(address, BoolContent, ctx.boolSort)
     }
 }
 
@@ -162,10 +162,10 @@ class InterpretedAllocatedSymbolicPythonObject(
 
 fun interpretSymbolicPythonObject(
     obj: UninterpretedSymbolicPythonObject,
-    model: PyModel
+    modelHolder: PyModelHolder
 ): InterpretedSymbolicPythonObject {
-    val evaluated = model.eval(obj.address) as UConcreteHeapRef
+    val evaluated = modelHolder.model.eval(obj.address) as UConcreteHeapRef
     if (evaluated.address > 0)
         return InterpretedAllocatedSymbolicPythonObject(evaluated)
-    return InterpretedInputSymbolicPythonObject(evaluated, model)
+    return InterpretedInputSymbolicPythonObject(evaluated, modelHolder)
 }

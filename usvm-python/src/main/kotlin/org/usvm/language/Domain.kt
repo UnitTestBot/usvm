@@ -22,8 +22,8 @@ class PythonUnpinnedCallable(
     }
 }
 
-sealed class TypeMethod: PythonCallable()
+sealed class TypeMethod(val isMethodWithNonVirtualReturn: Boolean): PythonCallable()
 
-object NbBoolMethod: TypeMethod()
-object NbIntMethod: TypeMethod()
-data class TpRichcmpMethod(val op: Int): TypeMethod()
+object NbBoolMethod: TypeMethod(true)
+object NbIntMethod: TypeMethod(true)
+data class TpRichcmpMethod(val op: Int): TypeMethod(false)
