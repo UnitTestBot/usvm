@@ -12,6 +12,17 @@
     jfieldID f = (*env)->GetFieldID(env, cls, "isInitialized", "Z"); \
     (*env)->SetBooleanField(env, cpython_adapter, f, value);
 
+#define SET_EXCEPTION_IN_CPYTHONADAPTER \
+    PyObject *type, *value, *traceback; \
+    PyErr_Fetch(&type, &value, &traceback); \
+    jclass cls = (*env)->GetObjectClass(env, cpython_adapter); \
+    jfieldID f = (*env)->GetFieldID(env, cls, "thrownException", "J"); \
+    jfieldID f_type = (*env)->GetFieldID(env, cls, "thrownExceptionType", "J"); \
+    (*env)->SetLongField(env, cpython_adapter, f, (jlong) value); \
+    (*env)->SetLongField(env, cpython_adapter, f_type, (jlong) type); \
+    Py_INCREF(value); \
+    PyErr_Restore(type, value, traceback); \
+
 JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_initializePython(JNIEnv *env, jobject cpython_adapter) {
     Py_Initialize();
     SET_IS_INITIALIZED(JNI_TRUE);
@@ -78,8 +89,11 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_concreteRunOnFu
         PyTuple_SetItem(args, i, (PyObject *) addresses[i]);
     }
     PyObject *result = Py_TYPE(function_ref)->tp_call((PyObject *) function_ref, args, 0);
-    if (result == 0)
-        PyErr_Print();
+
+    if (result == NULL) {
+        SET_EXCEPTION_IN_CPYTHONADAPTER
+        PyErr_Clear();
+    }
 
     Py_DECREF(args);
     (*env)->ReleaseLongArrayElements(env, concrete_args, addresses, 0);
@@ -103,6 +117,8 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_concolicRun(
     PyObject *function = (PyObject *) function_ref;
 
     construct_concolic_context(env, context, cpython_adapter, &ctx);
+    (*env)->SetLongField(env, cpython_adapter, ctx.cpython_java_exception_field, (jlong) ctx.java_exception);
+
     SymbolicAdapter *adapter = create_new_adapter(handler, &ctx);
     register_virtual_methods();
 
@@ -110,6 +126,10 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_concolicRun(
 
     PyObject *result = SymbolicAdapter_run((PyObject *) adapter, function, args.size, args.ptr);
     free(args.ptr);
+
+    if (result == NULL) {
+        SET_EXCEPTION_IN_CPYTHONADAPTER
+    }
 
     if (result == NULL && print_error_message == JNI_TRUE) {
         PyErr_Print();
@@ -127,14 +147,24 @@ JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_printPythonObjec
     fflush(stdout);
 }
 
-JNIEXPORT jstring JNICALL Java_org_usvm_interpreter_CPythonAdapter_getPythonObjectRepr(JNIEnv *env, jobject cpython_adapter, jlong object_ref) {
+JNIEXPORT jstring JNICALL Java_org_usvm_interpreter_CPythonAdapter_getPythonObjectRepr(JNIEnv *env, jobject _, jlong object_ref) {
     PyObject *repr = PyObject_Repr((PyObject *) object_ref);
     const char *repr_as_string = PyUnicode_AsUTF8AndSize(repr, 0);
     return (*env)->NewStringUTF(env, repr_as_string);
 }
 
-JNIEXPORT jstring JNICALL Java_org_usvm_interpreter_CPythonAdapter_getPythonObjectTypeName(JNIEnv *env, jobject cpython_adapter, jlong object_ref) {
+JNIEXPORT jstring JNICALL Java_org_usvm_interpreter_CPythonAdapter_getPythonObjectTypeName(JNIEnv *env, jobject _, jlong object_ref) {
     const char *type_name = Py_TYPE(object_ref)->tp_name;
+    return (*env)->NewStringUTF(env, type_name);
+}
+
+JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_getPythonObjectType(JNIEnv *env, jobject _, jlong object_ref) {
+    return (jlong) Py_TYPE(object_ref);
+}
+
+JNIEXPORT jstring JNICALL Java_org_usvm_interpreter_CPythonAdapter_getNameOfPythonType(JNIEnv *env, jobject _, jlong type_ref) {
+    assert(PyType_Check((PyObject *) type_ref));
+    const char *type_name = ((PyTypeObject *) type_ref)->tp_name;
     return (*env)->NewStringUTF(env, type_name);
 }
 
@@ -174,4 +204,10 @@ JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasNbInt(JNI
 JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasTpRichcmp(JNIEnv *env, jobject _, jlong type_ref) {
     QUERY_TYPE_HAS_PREFIX
     return type->tp_richcompare != 0;
+}
+
+JNIEXPORT jthrowable JNICALL Java_org_usvm_interpreter_CPythonAdapter_extractException(JNIEnv *env, jobject _, jlong exception) {
+    PyObject *wrapped = PyObject_GetAttrString((PyObject *) exception, "java_exception");
+    assert(is_wrapped_java_object(wrapped));
+    return ((JavaPythonObject *) wrapped)->reference;
 }
