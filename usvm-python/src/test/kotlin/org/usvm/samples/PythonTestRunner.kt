@@ -44,8 +44,13 @@ open class PythonTestRunner(
         val converter = test.inputValueConverter
         converter.restart()
         val args = test.inputValues.map { converter.convert(it.asUExpr) }
-        val concreteResult = ConcretePythonInterpreter.concreteRunOnFunctionRef(functionRef, args)
-        return check(concreteResult)
+        return try {
+            val concreteResult = ConcretePythonInterpreter.concreteRunOnFunctionRef(functionRef, args)
+            check(concreteResult)
+        } catch (exception: CPythonExecutionException) {
+            require(exception.pythonExceptionType != null)
+            check(exception.pythonExceptionType!!)
+        }
     }
 
     private inline fun <reified FUNCTION_TYPE : Function<Boolean>> createCheckWithConcreteRun(concreteRun: Boolean = true):
@@ -56,7 +61,11 @@ open class PythonTestRunner(
           invariants: List<FUNCTION_TYPE>,
           propertiesToDiscover: List<FUNCTION_TYPE> ->
             val onAnalysisResult = { pythonTest: PythonTest ->
-                val result = pythonTest.inputValues.map { it.reprFromPythonObject } + (pythonTest.result as? Success)?.output
+                val executionResult = when (val result = pythonTest.result) {
+                    is Success -> result.output
+                    is Fail -> result.exception
+                }
+                val result = pythonTest.inputValues.map { it.reprFromPythonObject } + executionResult
                 if (concreteRun) {
                     require(compareWithConcreteRun(target, pythonTest) { compareConcolicAndConcrete(pythonTest, it) }) {
                         "Error in CPython patch: concrete and concolic results differ"
@@ -91,32 +100,48 @@ open class PythonTestRunner(
             )
         }
 
-    protected val check1 = createCheck<(PythonObjectInfo, PythonObjectInfo?) -> Boolean>()
+    protected val check1 = createCheck<(PythonObjectInfo, PythonObjectInfo) -> Boolean>()
     protected val check1WithConcreteRun =
-        createCheckWithConcreteRun<(PythonObjectInfo, PythonObjectInfo?) -> Boolean>()
+        createCheckWithConcreteRun<(PythonObjectInfo, PythonObjectInfo) -> Boolean>()
 
-    protected val check2 = createCheck<(PythonObjectInfo, PythonObjectInfo, PythonObjectInfo?) -> Boolean>()
+    protected val check2 = createCheck<(PythonObjectInfo, PythonObjectInfo, PythonObjectInfo) -> Boolean>()
     protected val check2WithConcreteRun =
-        createCheckWithConcreteRun<(PythonObjectInfo, PythonObjectInfo, PythonObjectInfo?) -> Boolean>()
+        createCheckWithConcreteRun<(PythonObjectInfo, PythonObjectInfo, PythonObjectInfo) -> Boolean>()
 
     protected val check3WithConcreteRun =
-        createCheckWithConcreteRun<(PythonObjectInfo, PythonObjectInfo, PythonObjectInfo, PythonObjectInfo?) -> Boolean>()
+        createCheckWithConcreteRun<(PythonObjectInfo, PythonObjectInfo, PythonObjectInfo, PythonObjectInfo) -> Boolean>()
 
-    protected val compareConcolicAndConcreteReprs:
+    protected val compareConcolicAndConcreteReprsIfSuccess:
                 (PythonTest, PythonObject) -> Boolean = { testFromConcolic, concreteResult ->
         (testFromConcolic.result as? Success)?.let {
             it.output.repr == ConcretePythonInterpreter.getPythonObjectRepr(concreteResult)
         } ?: true
     }
 
+    protected val compareConcolicAndConcreteTypesIfFail:
+                (PythonTest, PythonObject) -> Boolean = { testFromConcolic, concreteResult ->
+        (testFromConcolic.result as? Fail)?.let {
+            ConcretePythonInterpreter.getPythonObjectTypeName(concreteResult) == "type" &&
+            it.exception.typeName == ConcretePythonInterpreter.getNameOfPythonType(concreteResult)
+        } ?: true
+    }
+
+    protected val standardConcolicAndConcreteChecks:
+                (PythonTest, PythonObject) -> Boolean = { testFromConcolic, concreteResult ->
+        compareConcolicAndConcreteReprsIfSuccess(testFromConcolic, concreteResult) &&
+                compareConcolicAndConcreteTypesIfFail(testFromConcolic, concreteResult)
+    }
+
     protected fun constructFunction(name: String, signature: List<PythonType>): PythonUnpinnedCallable =
         PythonUnpinnedCallable.constructCallableFromName(signature, name)
 }
 
-data class PythonObjectInfo(
+class PythonObjectInfo(
     val repr: String,
     val typeName: String
-)
+) {
+    override fun toString(): String = "$repr: $typeName"
+}
 
 typealias PythonTest = PythonAnalysisResult<PythonObjectInfo>
 

@@ -8,13 +8,21 @@ import org.usvm.language.types.pythonList
 fun main() {
     val program = PythonProgram(
         """
-        def f(arr: list, x: int):
-            arr[0] = x
-            if arr[0] < 0:
-                return 0
-            elif arr[1] > arr[0] + 500:
-                return 1
-            return 2
+        def f(y: list, i: int):
+            if y[i] == 0:
+                if i >= 0:
+                    return 1
+                else:
+                    return 2
+            elif y[i] == 167:
+                if i >= 0:
+                    return 3
+                else:
+                    return 4
+            if i >= 0:
+                return 5
+            else:
+                return 6
         """.trimIndent()
     )
     val function = PythonUnpinnedCallable.constructCallableFromName(listOf(pythonList, pythonInt), "f")
@@ -27,7 +35,11 @@ fun main() {
             println("INPUT:")
             inputs.map { it.reprFromPythonObject }.forEach { ConcretePythonInterpreter.printPythonObject(it) }
             println("RESULT:")
-            println((result as? Success)?.output?.let { ConcretePythonInterpreter.getPythonObjectRepr(it) } ?: "Bad execution")
+            when (result) {
+                is Success -> println(ConcretePythonInterpreter.getPythonObjectRepr(result.output))
+                is Fail -> println(ConcretePythonInterpreter.getPythonObjectTypeName(result.exception))
+            }
+            println()
         }
         returnValue
     }

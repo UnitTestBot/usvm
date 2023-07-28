@@ -28,6 +28,8 @@ typedef struct {
     jclass symbol_cls;
     jclass virtual_cls;
     PyObject *java_exception;
+    jfieldID cpython_thrown_exception_field;
+    jfieldID cpython_java_exception_field;
     HANDLERS_DEFS
 } ConcolicContext;
 
@@ -43,8 +45,12 @@ int take_instruction_from_frame(PyFrameObject *frame);
 int extract_int_value(PyObject *int_object);
 
 #define CHECK_FOR_EXCEPTION(ctx, fail_value) \
-    if ((*ctx->env)->ExceptionCheck(ctx->env)) { \
-        PyErr_SetString(ctx->java_exception, "Java exception"); \
+    jthrowable cur_exception = (*ctx->env)->ExceptionOccurred(ctx->env); \
+    if (cur_exception) { \
+        (*ctx->env)->ExceptionClear(ctx->env); \
+        PyObject *exception_instance = ((PyTypeObject *)ctx->java_exception)->tp_new((PyTypeObject *)ctx->java_exception, 0, 0); \
+        PyObject_SetAttrString(exception_instance, "java_exception", wrap_java_object(ctx->env, cur_exception)); \
+        PyErr_SetObject(ctx->java_exception, exception_instance); \
         return fail_value; \
     }
 

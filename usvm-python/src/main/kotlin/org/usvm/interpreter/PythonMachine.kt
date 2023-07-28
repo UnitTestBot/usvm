@@ -110,7 +110,9 @@ class Success<PYTHON_OBJECT_REPRESENTATION>(
     val output: PYTHON_OBJECT_REPRESENTATION
 ): ExecutionResult<PYTHON_OBJECT_REPRESENTATION>()
 
-class Fail<PYTHON_OBJECT_REPRESENTATION>: ExecutionResult<PYTHON_OBJECT_REPRESENTATION>()
+class Fail<PYTHON_OBJECT_REPRESENTATION>(
+    val exception: PYTHON_OBJECT_REPRESENTATION
+): ExecutionResult<PYTHON_OBJECT_REPRESENTATION>()
 
 data class PythonAnalysisResult<PYTHON_OBJECT_REPRESENTATION>(
     val inputValueConverter: ConverterToPythonObject,

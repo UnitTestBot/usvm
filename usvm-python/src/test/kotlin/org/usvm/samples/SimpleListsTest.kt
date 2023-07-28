@@ -1,6 +1,5 @@
 package org.usvm.samples
 
-
 import org.junit.jupiter.api.Test
 import org.usvm.language.types.pythonInt
 import org.usvm.language.types.pythonList
@@ -12,17 +11,18 @@ class ListsTest : PythonTestRunner("/samples/SimpleLists.py") {
     private val functionSimpleListSample = constructFunction("simple_list_sample", listOf(pythonList, pythonInt))
     @Test
     fun testSimpleListSample() {
-        check2(
+        check2WithConcreteRun(
             functionSimpleListSample,
             ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
             /* invariants = */ listOf { list, index, _ ->
                 list.typeName == "list" && index.typeName == "int"
             },
             /* propertiesToDiscover = */ listOf(
-                { _, _, res -> res == null },
-                { _, _, res -> res?.repr == "1" },
-                { _, _, res -> res?.repr == "2" },
-                { _, _, res -> res?.repr == "3" }
+                { _, _, res -> res.typeName == "IndexError" },
+                { _, _, res -> res.repr == "1" },
+                { _, _, res -> res.repr == "2" },
+                { _, _, res -> res.repr == "3" }
             )
         )
     }
@@ -30,18 +30,19 @@ class ListsTest : PythonTestRunner("/samples/SimpleLists.py") {
     private val functionAllocatedList = constructFunction("allocated_list_sample", listOf(pythonInt))
     @Test
     fun testAllocatedList() {
-        check1(
+        check1WithConcreteRun(
             functionAllocatedList,
             ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
             /* invariants = */ listOf { index, _ ->
                 index.typeName == "int"
             },
             /* propertiesToDiscover = */ listOf(
-                { _, res -> res == null },
-                { _, res -> res?.repr == "1" },
-                { _, res -> res?.repr == "2" },
-                { _, res -> res?.repr == "3" },
-                { _, res -> res?.repr == "4" }
+                { _, res -> res.typeName == "IndexError" },
+                { _, res -> res.repr == "1" },
+                { _, res -> res.repr == "2" },
+                { _, res -> res.repr == "3" },
+                { _, res -> res.repr == "4" }
             )
         )
     }
@@ -49,19 +50,20 @@ class ListsTest : PythonTestRunner("/samples/SimpleLists.py") {
     private val functionMixedAllocation = constructFunction("mixed_allocation", listOf(pythonInt, pythonInt))
     @Test
     fun testMixedAllocation() {
-        check2(
+        check2WithConcreteRun(
             functionMixedAllocation,
             ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
             /* invariants = */ listOf { x, i, _ ->
                 x.typeName == "int" && i.typeName == "int"
             },
             /* propertiesToDiscover = */ listOf(
-                { _, _, res -> res == null },
-                { _, _, res -> res?.repr == "1" },
-                { _, _, res -> res?.repr == "2" },
-                { _, _, res -> res?.repr == "3" },
-                { _, _, res -> res?.repr == "4" },
-                { _, _, res -> res?.repr == "5" }
+                { _, _, res -> res.typeName == "IndexError" },
+                { _, _, res -> res.repr == "1" },
+                { _, _, res -> res.repr == "2" },
+                { _, _, res -> res.repr == "3" },
+                { _, _, res -> res.repr == "4" },
+                { _, _, res -> res.repr == "5" }
             )
         )
     }
@@ -72,11 +74,11 @@ class ListsTest : PythonTestRunner("/samples/SimpleLists.py") {
         check1WithConcreteRun(
             functionNegativeIndex,
             eq(2),
-            compareConcolicAndConcreteReprs,
+            compareConcolicAndConcreteReprsIfSuccess,
             /* invariants = */ listOf { i, _ -> i.typeName == "int" },
             /* propertiesToDiscover = */ listOf(
-                { _, res -> res?.repr == "1" },
-                { _, res -> res?.repr == "2" }
+                { _, res -> res.repr == "1" },
+                { _, res -> res.repr == "2" }
             )
         )
     }
@@ -87,11 +89,11 @@ class ListsTest : PythonTestRunner("/samples/SimpleLists.py") {
         check1WithConcreteRun(
             functionLongList,
             eq(2),
-            compareConcolicAndConcreteReprs,
+            compareConcolicAndConcreteReprsIfSuccess,
             /* invariants = */ listOf { i, _ -> i.typeName == "int" },
             /* propertiesToDiscover = */ listOf(
-                { _, res -> res?.repr == "1" },
-                { _, res -> res?.repr == "2" }
+                { _, res -> res.repr == "1" },
+                { _, res -> res.repr == "2" }
             )
         )
     }
@@ -99,15 +101,16 @@ class ListsTest : PythonTestRunner("/samples/SimpleLists.py") {
     private val functionSetItem = constructFunction("set_item", listOf(pythonList, pythonInt))
     @Test
     fun testSetItem() {
-        check2(
+        check2WithConcreteRun(
             functionSetItem,
             ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
             /* invariants = */ listOf { arr, x, _ -> arr.typeName == "list" && x.typeName == "int" },
             /* propertiesToDiscover = */ listOf(
-                { _, _, res -> res == null },
-                { _, _, res -> res?.repr == "0" },
-                { _, _, res -> res?.repr == "1" },
-                { _, _, res -> res?.repr == "2" }
+                { _, _, res -> res.typeName == "IndexError" },
+                { _, _, res -> res.repr == "0" },
+                { _, _, res -> res.repr == "1" },
+                { _, _, res -> res.repr == "2" }
             )
         )
     }
@@ -115,14 +118,15 @@ class ListsTest : PythonTestRunner("/samples/SimpleLists.py") {
     private val functionMemoryModel = constructFunction("memory_model", listOf(pythonList, pythonList))
     @Test
     fun testMemoryModel() {
-        check2(
+        check2WithConcreteRun(
             functionMemoryModel,
             ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
             /* invariants = */ listOf { i, j, _ -> i.typeName == "list" && j.typeName == "list" },
             /* propertiesToDiscover = */ listOf(
-                { _, _, res -> res == null },
-                { _, _, res -> res?.repr == "1" },
-                { _, _, res -> res?.repr == "2" }
+                { _, _, res -> res.typeName == "IndexError" },
+                { _, _, res -> res.repr == "1" },
+                { _, _, res -> res.repr == "2" }
             )
         )
     }
@@ -130,12 +134,13 @@ class ListsTest : PythonTestRunner("/samples/SimpleLists.py") {
     private val functionPositiveAndNegativeIndex = constructFunction("positive_and_negative_index", listOf(pythonList, pythonInt))
     @Test
     fun testPositiveAndNegativeIndex() {
-        check2(
+        check2WithConcreteRun(
             functionPositiveAndNegativeIndex,
             ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
             /* invariants = */ listOf { i, j, _ -> i.typeName == "list" && j.typeName == "int" },
             /* propertiesToDiscover = */ List(6) { index ->
-                { _, _, res -> res?.repr == (index + 1).toString() }
+                { _, _, res -> res.repr == (index + 1).toString() }
             }
         )
     }
