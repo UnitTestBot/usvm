@@ -1,6 +1,7 @@
 package org.usvm.interpreter;
 
 import kotlin.Unit;
+import org.jetbrains.annotations.NotNull;
 import org.usvm.interpreter.operations.tracing.*;
 import org.usvm.interpreter.symbolicobjects.UninterpretedSymbolicPythonObject;
 import org.usvm.language.*;
@@ -23,6 +24,9 @@ import static org.usvm.interpreter.operations.tracing.PathTracingKt.withTracing;
 @SuppressWarnings("unused")
 public class CPythonAdapter {
     public boolean isInitialized = false;
+    public long thrownException = 0L;
+    public long thrownExceptionType = 0L;
+    public long javaExceptionType = 0L;
     public native void initializePython();
     public native void finalizePython();
     public native long getNewNamespace();  // returns reference to a new dict
@@ -33,17 +37,20 @@ public class CPythonAdapter {
     public native void printPythonObject(long object);
     public native String getPythonObjectRepr(long object);
     public native String getPythonObjectTypeName(long object);
+    public native long getPythonObjectType(long object);
+    public native String getNameOfPythonType(long type);
     public native long allocateVirtualObject(VirtualPythonObject object);
     public native long makeList(long[] elements);
     public native int typeHasNbBool(long type);
     public native int typeHasNbInt(long type);
     public native int typeHasTpRichcmp(long type);
+    public native Throwable extractException(long exception);
 
     static {
         System.loadLibrary("cpythonadapter");
     }
 
-    public static void handlerInstruction(ConcolicRunContext context, int instruction) {
+    public static void handlerInstruction(@NotNull ConcolicRunContext context, int instruction) {
         context.curOperation = null;
         withTracing(context, new NextInstruction(new PythonInstruction(instruction)), () -> Unit.INSTANCE);
     }
@@ -70,6 +77,7 @@ public class CPythonAdapter {
         );
     }
 
+    @NotNull
     private static Callable<Unit> unit(Runnable function) {
         return () -> {
             function.run();
@@ -175,17 +183,17 @@ public class CPythonAdapter {
         return methodWrapper(context, methodId, Arrays.asList(left, right), () -> virtualCallSymbolKt(context));
     }
 
-    public static void notifyNbBool(ConcolicRunContext context, SymbolForCPython symbol) {
+    public static void notifyNbBool(@NotNull ConcolicRunContext context, SymbolForCPython symbol) {
         context.curOperation = new MockHeader(NbBoolMethod.INSTANCE, Collections.singletonList(symbol), symbol);
         withTracing(context, new NbBool(symbol), unit(() -> nbBoolKt(context, symbol.obj)));
     }
 
-    public static void notifyNbInt(ConcolicRunContext context, SymbolForCPython symbol) {
+    public static void notifyNbInt(@NotNull ConcolicRunContext context, SymbolForCPython symbol) {
         context.curOperation = new MockHeader(NbIntMethod.INSTANCE, Collections.singletonList(symbol), symbol);
         withTracing(context, new NbInt(symbol), unit(() -> nbIntKt(context, symbol.obj)));
     }
 
-    public static void notifyTpRichcmp(ConcolicRunContext context, int op, SymbolForCPython left, SymbolForCPython right) {
+    public static void notifyTpRichcmp(@NotNull ConcolicRunContext context, int op, SymbolForCPython left, SymbolForCPython right) {
         context.curOperation = new MockHeader(new TpRichcmpMethod(op), Arrays.asList(left, right), left);
         withTracing(context, new TpRichcmp(op, left, right), unit(() -> tpRichcmpKt(context, left.obj, right.obj)));
     }
@@ -198,6 +206,7 @@ public class CPythonAdapter {
         return virtualNbIntKt(context, obj).getAddress();
     }
 
+    @NotNull
     public static VirtualPythonObject virtualCall(ConcolicRunContext context) {
         return virtualCallKt(context);
     }

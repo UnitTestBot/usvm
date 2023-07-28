@@ -14,12 +14,12 @@ class SimpleExampleTest : PythonTestRunner("/samples/SimpleExample.py") {
         check3WithConcreteRun(
             functionManyBranches,
             ignoreNumberOfAnalysisResults,
-            compareConcolicAndConcreteReprs,
+            standardConcolicAndConcreteChecks,
             /* invariants = */ listOf { x, y, z, res ->
-                listOf(x, y, z, res).all { it!!.typeName == "int" }
+                listOf(x, y, z, res).all { it.typeName == "int" }
             },
             /* propertiesToDiscover = */ List(10) { index ->
-                { _, _, _, res -> res!!.repr == index.toString() }
+                { _, _, _, res -> res.repr == index.toString() }
             }
         )
     }
@@ -30,12 +30,12 @@ class SimpleExampleTest : PythonTestRunner("/samples/SimpleExample.py") {
         check1WithConcreteRun(
             functionMyAbs,
             eq(3),
-            compareConcolicAndConcreteReprs,
+            compareConcolicAndConcreteReprsIfSuccess,
             /* invariants = */ listOf { x, _ -> x.typeName == "int" },
             /* propertiesToDiscover = */ listOf(
-                { x, res -> x.repr.toInt() > 0 && res!!.typeName == "int" },
-                { x, res -> x.repr.toInt() == 0 && res!!.typeName == "str" },
-                { x, res -> x.repr.toInt() < 0 && res!!.typeName == "int" },
+                { x, res -> x.repr.toInt() > 0 && res.typeName == "int" },
+                { x, res -> x.repr.toInt() == 0 && res.typeName == "str" },
+                { x, res -> x.repr.toInt() < 0 && res.typeName == "int" },
             )
         )
     }
@@ -46,8 +46,8 @@ class SimpleExampleTest : PythonTestRunner("/samples/SimpleExample.py") {
         check1WithConcreteRun(
             functionSamplePickle,
             eq(1),
-            compareConcolicAndConcreteReprs,
-            /* invariants = */ listOf { _, res -> res!!.typeName == "bytes" },
+            compareConcolicAndConcreteReprsIfSuccess,
+            /* invariants = */ listOf { _, res -> res.typeName == "bytes" },
             /* propertiesToDiscover = */ emptyList()
         )
     }
@@ -58,12 +58,12 @@ class SimpleExampleTest : PythonTestRunner("/samples/SimpleExample.py") {
         check1WithConcreteRun(
             functionCall,
             eq(3),
-            compareConcolicAndConcreteReprs,
+            compareConcolicAndConcreteReprsIfSuccess,
             /* invariants = */ listOf { x, _ -> x.typeName == "int" },
             /* propertiesToDiscover = */ listOf(
-                { x, res -> x.repr.toInt() > 0 && res!!.typeName == "int" },
-                { x, res -> x.repr.toInt() == 0 && res!!.typeName == "str" },
-                { x, res -> x.repr.toInt() < 0 && res!!.typeName == "int" },
+                { x, res -> x.repr.toInt() > 0 && res.typeName == "int" },
+                { x, res -> x.repr.toInt() == 0 && res.typeName == "str" },
+                { x, res -> x.repr.toInt() < 0 && res.typeName == "int" },
             )
         )
     }
@@ -71,10 +71,11 @@ class SimpleExampleTest : PythonTestRunner("/samples/SimpleExample.py") {
     private val functionZeroDivision = constructFunction("zero_division", List(1) { pythonInt })
     @Test
     fun testZeroDivision() {
-        check1(
+        check1WithConcreteRun(
             functionZeroDivision,
             eq(1),
-            /* invariants = */ listOf { x, res -> x.typeName == "int" && res == null },
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ listOf { x, res -> x.typeName == "int" && res.typeName == "ZeroDivisionError" },
             /* propertiesToDiscover = */ listOf()
         )
     }
@@ -82,13 +83,14 @@ class SimpleExampleTest : PythonTestRunner("/samples/SimpleExample.py") {
     private val functionZeroDivisionInBranch = constructFunction("zero_division_in_branch", List(1) { pythonInt })
     @Test
     fun testZeroDivisionInBranch() {
-        check1(
+        check1WithConcreteRun(
             functionZeroDivisionInBranch,
             eq(2),
+            standardConcolicAndConcreteChecks,
             /* invariants = */ listOf(),
             /* propertiesToDiscover = */ listOf(
-                { x, res -> x.repr.toInt() > 100 && res == null },
-                { x, res -> x.repr.toInt() <= 100 && res!!.repr == x.repr }
+                { x, res -> x.repr.toInt() > 100 && res.typeName == "ZeroDivisionError" },
+                { x, res -> x.repr.toInt() <= 100 && res.repr == x.repr }
             )
         )
     }
@@ -99,10 +101,10 @@ class SimpleExampleTest : PythonTestRunner("/samples/SimpleExample.py") {
         check1WithConcreteRun(
             functionBoolInput,
             eq(2),
-            compareConcolicAndConcreteReprs,
+            compareConcolicAndConcreteReprsIfSuccess,
             /* invariants = */ listOf { x, _ -> x.typeName == "bool" },
             /* propertiesToDiscover = */ List(2) { index ->
-                { _, res -> res!!.repr == (index + 1).toString() }
+                { _, res -> res.repr == (index + 1).toString() }
             }
         )
     }
@@ -113,10 +115,10 @@ class SimpleExampleTest : PythonTestRunner("/samples/SimpleExample.py") {
         check2WithConcreteRun(
             functionMixedInputTypes,
             eq(3),
-            compareConcolicAndConcreteReprs,
+            compareConcolicAndConcreteReprsIfSuccess,
             /* invariants = */ listOf { x, y, _ -> x.typeName == "bool" && y.typeName == "int" },
             /* propertiesToDiscover = */ List(3) { index ->
-                { _, _, res -> res!!.repr == (index + 1).toString() }
+                { _, _, res -> res.repr == (index + 1).toString() }
             }
         )
     }
