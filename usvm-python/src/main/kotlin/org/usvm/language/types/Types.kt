@@ -6,6 +6,8 @@ import org.usvm.interpreter.emptyNamespace
 
 sealed class PythonType
 
+object TypeOfVirtualObject: PythonType()
+
 abstract class VirtualPythonType: PythonType() {
     abstract fun accepts(type: PythonType): Boolean
 }

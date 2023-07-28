@@ -1,7 +1,7 @@
 import pickle
 
 
-def f(x: int, y: int, z: int):
+def many_branches(x: int, y: int, z: int):
     if x + y > 100:
         return 0
     y += 10 ** 9

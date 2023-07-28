@@ -9,7 +9,10 @@ import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.AnalysisResultsNumberMatcher
 import java.io.File
 
-open class PythonTestRunner(sourcePath: String) : TestRunner<PythonTest, PythonUnpinnedCallable, PythonType, PythonCoverage>() {
+open class PythonTestRunner(
+    sourcePath: String
+): TestRunner<PythonTest, PythonUnpinnedCallable, PythonType, PythonCoverage>() {
+    override var options: UMachineOptions = UMachineOptions()
     private val testSources = File(PythonTestRunner::class.java.getResource(sourcePath)!!.file).readText()
     private val machine = PythonMachine(PythonProgram(testSources)) { pythonObject ->
         PythonObjectInfo(

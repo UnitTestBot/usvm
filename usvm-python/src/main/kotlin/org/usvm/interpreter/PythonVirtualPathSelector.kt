@@ -1,97 +1,155 @@
 package org.usvm.interpreter
 
+import mu.KLogging
+import org.usvm.UContext
 import org.usvm.UPathSelector
 import org.usvm.fork
-import org.usvm.interpreter.symbolicobjects.interpretSymbolicPythonObject
 import org.usvm.language.types.PythonType
-import org.usvm.types.UTypeStream
-import org.usvm.types.takeFirst
+import org.usvm.language.types.TypeOfVirtualObject
+import org.usvm.types.first
+import kotlin.random.Random
 
 class PythonVirtualPathSelector(
+    private val ctx: UContext,
     private val basePathSelector: UPathSelector<PythonExecutionState>,
     private val pathSelectorForStatesWithDelayedForks: UPathSelector<PythonExecutionState>,
     private val pathSelectorForStatesWithConcretizedTypes: UPathSelector<PythonExecutionState>
 ) : UPathSelector<PythonExecutionState> {
-    private val delayedForks = mutableSetOf<DelayedForkWithTypeRating>()
+    private val unservedDelayedForks = mutableSetOf<DelayedForkWithTypeRating>()
+    private val servedDelayedForks = mutableSetOf<DelayedForkWithTypeRating>()
     private val executionsWithVirtualObjectAndWithoutDelayedForks = mutableSetOf<PythonExecutionState>()
+    private val random = Random(0)
 
     override fun isEmpty(): Boolean {
-        return basePathSelector.isEmpty() && delayedForks.isEmpty() && pathSelectorForStatesWithDelayedForks.isEmpty()
-                && executionsWithVirtualObjectAndWithoutDelayedForks.isEmpty() && pathSelectorForStatesWithConcretizedTypes.isEmpty()
+        return nullablePeek() == null
     }
 
-    private fun generateStateWithConcretizedType(): PythonExecutionState? {
+    private fun generateStateWithConcretizedTypeFromDelayedFork(
+        delayedForkStorage: MutableSet<DelayedForkWithTypeRating>
+    ): PythonExecutionState? = with(ctx) {
+        if (delayedForkStorage.isEmpty())
+            return null
+        val delayedFork = delayedForkStorage.random()  // TODO: add weights (the less unresolved types, the more probable choice)
+        val state = delayedFork.delayedFork.state
+        val symbol = delayedFork.delayedFork.symbol
+        val typeRating = delayedFork.typeRating
+        if (typeRating.isEmpty()) {
+            delayedForkStorage.remove(delayedFork)
+            return generateStateWithConcretizedTypeFromDelayedFork(delayedForkStorage)
+        }
+        val concreteType = typeRating.first()
+        require(concreteType != TypeOfVirtualObject)
+        val forkResult = fork(state, symbol.evalIs(ctx, state.pathConstraints.typeConstraints, concreteType).not())
+        if (forkResult.positiveState != state) {
+            unservedDelayedForks.removeIf { it.delayedFork.state == state }
+            servedDelayedForks.removeIf { it.delayedFork.state == state }
+        } else {
+            typeRating.removeFirst()
+        }
+        if (forkResult.negativeState != null && unservedDelayedForks.remove(delayedFork))
+            servedDelayedForks.add(delayedFork)
+
+        return forkResult.negativeState?.let {
+            it.delayedForks = delayedFork.delayedFork.delayedForkPrefix
+            it
+        }
+    }
+
+    private fun generateStateWithConcretizedTypeWithoutDelayedForks(): PythonExecutionState? {
         if (executionsWithVirtualObjectAndWithoutDelayedForks.isEmpty())
             return null
         val state = executionsWithVirtualObjectAndWithoutDelayedForks.random()
-        val symbol = state.symbolsWithoutConcreteTypes!!.first()
-        val obj = interpretSymbolicPythonObject(symbol.obj, state.pyModel)
-        val typeStream = state.pyModel.uModel.types.typeStream(obj.address)
-        if (typeStream.isEmpty) {
-            executionsWithVirtualObjectAndWithoutDelayedForks.remove(state)
-            return generateStateWithConcretizedType()
-        }
-        val type = typeStream.takeFirst()
-        val forkResult = fork(state, state.pathConstraints.typeConstraints.evalIs(symbol.obj.address, type))
         executionsWithVirtualObjectAndWithoutDelayedForks.remove(state)
-        val stateWithRemainingTypes = forkResult.negativeState
-        if (stateWithRemainingTypes != null) {
-            stateWithRemainingTypes.symbolsWithoutConcreteTypes = state.symbolsWithoutConcreteTypes!!
-            executionsWithVirtualObjectAndWithoutDelayedForks.add(stateWithRemainingTypes)
+        val objects = state.objectsWithoutConcreteTypes!!.map { it.interpretedObj }
+        val typeStreams = objects.map { it.getTypeStream() }
+        if (typeStreams.any { it.take(2).size < 2 }) {
+            return generateStateWithConcretizedTypeWithoutDelayedForks()
         }
-
-        require(forkResult.positiveState != null)
-
-        val result = forkResult.positiveState!!
-        result.fromStateWithVirtualObjectAndWithoutDelayedForks = stateWithRemainingTypes
-        result.extractedFrom = null
-        result.wasExecuted = false
-        return result
+        require(typeStreams.all { it.first() == TypeOfVirtualObject })
+        val types = typeStreams.map {it.take(2).last()}
+        (objects zip types).forEach { (obj, type) ->
+            state.lastConverter!!.forcedConcreteTypes[obj.address] = type
+        }
+        state.wasExecuted = false
+        state.extractedFrom = null
+        return state
     }
 
-    override fun peek(): PythonExecutionState {
+    private val threshold: Double = 0.5
+    private var peekCache: PythonExecutionState? = null
+
+    private fun nullablePeek(): PythonExecutionState? {
+        if (peekCache != null)
+            return peekCache
         if (!pathSelectorForStatesWithConcretizedTypes.isEmpty()) {
             val result = pathSelectorForStatesWithConcretizedTypes.peek()
             result.extractedFrom = pathSelectorForStatesWithConcretizedTypes
+            peekCache = result
             return result
         }
-        val stateWithConcreteType = generateStateWithConcretizedType()
+        val stateWithConcreteType = generateStateWithConcretizedTypeWithoutDelayedForks()
         if (stateWithConcreteType != null) {
             pathSelectorForStatesWithConcretizedTypes.add(listOf(stateWithConcreteType))
-            return peek()
+            return nullablePeek()
         }
         if (!basePathSelector.isEmpty()) {
             val result = basePathSelector.peek()
             result.extractedFrom = basePathSelector
+            peekCache = result
             return result
         }
-        if (delayedForks.isNotEmpty()) {
-            TODO()
 
-        } else if (!pathSelectorForStatesWithDelayedForks.isEmpty()) {
+        val firstCoin = random.nextDouble()
+        val secondCoin = random.nextDouble()
+        if (unservedDelayedForks.isNotEmpty() && (firstCoin < threshold || pathSelectorForStatesWithDelayedForks.isEmpty())) {
+            val newState = generateStateWithConcretizedTypeFromDelayedFork(unservedDelayedForks)
+            newState?.let { add(listOf(it)) }
+            return nullablePeek()
+
+        } else if (!pathSelectorForStatesWithDelayedForks.isEmpty()  && (secondCoin < threshold || servedDelayedForks.isEmpty())) {
             val result = pathSelectorForStatesWithDelayedForks.peek()
             result.extractedFrom = pathSelectorForStatesWithDelayedForks
+            peekCache = result
             return result
 
+        } else if (servedDelayedForks.isNotEmpty()) {
+            val newState = generateStateWithConcretizedTypeFromDelayedFork(servedDelayedForks)
+            newState?.let { add(listOf(it)) }
+            return nullablePeek()
+
         } else {
-            error("Not reachable")
+            peekCache = null
+            return null
         }
     }
 
+    override fun peek(): PythonExecutionState {
+        val result = nullablePeek()!!
+        val source = when (result.extractedFrom) {
+            basePathSelector -> "basePathSelector"
+            pathSelectorForStatesWithDelayedForks -> "pathSelectorForStatesWithDelayedForks"
+            pathSelectorForStatesWithConcretizedTypes -> "pathSelectorForStatesWithConcretizedTypes"
+            else -> error("Not reachable")
+        }
+        logger.debug("Extracted from {} state {}", source, result)
+        return result
+    }
+
     override fun update(state: PythonExecutionState) {
-        if (state.symbolsWithoutConcreteTypes != null) {
+        peekCache = null
+        if (state.objectsWithoutConcreteTypes != null) {
             require(state.wasExecuted)
             executionsWithVirtualObjectAndWithoutDelayedForks.add(state)
         }
-        if (state.wasExecuted && !state.modelDied) {
-            state.fromStateWithVirtualObjectAndWithoutDelayedForks?.let {
-                executionsWithVirtualObjectAndWithoutDelayedForks.remove(it)
-            }
-        }
         if (state.wasExecuted) {
             state.extractedFrom?.remove(state)
-            state.delayedForks.forEach {
-                delayedForks.add(DelayedForkWithTypeRating(it, state.makeTypeRating(it)))
+            state.delayedForks.firstOrNull()?.let {
+                unservedDelayedForks.add(
+                    DelayedForkWithTypeRating(
+                        it,
+                        state.makeTypeRating(it).toMutableList()
+                    )
+                )
             }
 
         } else {
@@ -100,13 +158,9 @@ class PythonVirtualPathSelector(
     }
 
     override fun add(states: Collection<PythonExecutionState>) {
+        peekCache = null
         states.forEach { state ->
-            if (state.wasExecuted && !state.modelDied) {
-                state.fromStateWithVirtualObjectAndWithoutDelayedForks?.let {
-                    executionsWithVirtualObjectAndWithoutDelayedForks.remove(it)
-                }
-            }
-            if (state.symbolsWithoutConcreteTypes != null) {
+            if (state.objectsWithoutConcreteTypes != null) {
                 require(state.wasExecuted)
                 executionsWithVirtualObjectAndWithoutDelayedForks.add(state)
             }
@@ -122,12 +176,16 @@ class PythonVirtualPathSelector(
     }
 
     override fun remove(state: PythonExecutionState) {
+        peekCache = null
         state.extractedFrom?.remove(state)
     }
 
+    companion object {
+        val logger = object : KLogging() {}.logger
+    }
 }
 
-data class DelayedForkWithTypeRating(
+class DelayedForkWithTypeRating(
     val delayedFork: DelayedFork,
-    val typeRating: UTypeStream<PythonType>
+    val typeRating: MutableList<PythonType>
 )

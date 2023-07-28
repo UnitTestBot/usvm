@@ -3,7 +3,7 @@ package org.usvm.interpreter
 import org.usvm.*
 import org.usvm.constraints.UPathConstraints
 import org.usvm.interpreter.symbolicobjects.ConverterToPythonObject
-import org.usvm.interpreter.symbolicobjects.InterpretedSymbolicPythonObject
+import org.usvm.interpreter.symbolicobjects.InterpretedInputSymbolicPythonObject
 import org.usvm.interpreter.symbolicobjects.constructInputObject
 import org.usvm.language.*
 import org.usvm.language.types.PythonType
@@ -45,7 +45,7 @@ class PythonMachine<PYTHON_OBJECT_REPRESENTATION>(
         val symbols = target.signature.mapIndexed { index, type ->
             SymbolForCPython(constructInputObject(index, type, ctx, memory, pathConstraints))
         }
-        val solverRes = solver.check(pathConstraints, useSoftConstraints = false)
+        val solverRes = solver.check(pathConstraints)
         if (solverRes !is USatResult)
             error("Failed to construct initial model")
         return PythonExecutionState(
@@ -59,7 +59,7 @@ class PythonMachine<PYTHON_OBJECT_REPRESENTATION>(
     }
 
      private fun getPathSelector(target: PythonUnpinnedCallable): UPathSelector<PythonExecutionState> {
-         val ps = PythonVirtualPathSelector(DfsPathSelector(), DfsPathSelector(), DfsPathSelector())
+         val ps = PythonVirtualPathSelector(ctx, DfsPathSelector(), DfsPathSelector(), DfsPathSelector())
          val initialState = getInitialState(target)
          ps.add(listOf(initialState))
          return ps
@@ -77,7 +77,7 @@ class PythonMachine<PYTHON_OBJECT_REPRESENTATION>(
             pathSelector,
             observer = observer,
             isStateTerminated = { it.modelDied },
-            stopStrategy = { observer.stateCounter >= 10000 }
+            stopStrategy = { observer.stateCounter >= 1000 }
         )
         return iterationCounter.iterations
     }
@@ -100,7 +100,7 @@ class PythonMachine<PYTHON_OBJECT_REPRESENTATION>(
 data class IterationCounter(var iterations: Int = 0)
 
 data class InputObject<PYTHON_OBJECT_REPRESENTATION>(
-    val asUExpr: InterpretedSymbolicPythonObject,
+    val asUExpr: InterpretedInputSymbolicPythonObject,
     val type: PythonType,
     val reprFromPythonObject: PYTHON_OBJECT_REPRESENTATION
 )

@@ -16,7 +16,7 @@ fun handlerCreateListKt(context: ConcolicRunContext, elements: Stream<Uninterpre
     with (context.ctx) {
         val listAddress = context.curState.memory.malloc(pythonList, addressSort, addresses)
         val result = UninterpretedSymbolicPythonObject(listAddress)
-        myAssert(context, context.curState.pathConstraints.typeConstraints.evalIs(listAddress, pythonList))
+        myAssert(context, context.curState.pathConstraints.typeConstraints.evalIsSubtype(listAddress, pythonList))
         return result
     }
 }
@@ -57,18 +57,14 @@ fun handlerListGetItemKt(context: ConcolicRunContext, list: UninterpretedSymboli
 
         @Suppress("unchecked_cast")
         val elemAddr = context.curState.memory.read(lvalue) as UHeapRef
-        if (elemAddr == nullRef)
-            return null
-        myAssert(context, mkNot(mkHeapRefEq(elemAddr, nullRef)))
-
         return UninterpretedSymbolicPythonObject(elemAddr)
     }
 }
 
 
-fun handlerListSetItemKt(context: ConcolicRunContext, list: UninterpretedSymbolicPythonObject?, index: UninterpretedSymbolicPythonObject?, value: UninterpretedSymbolicPythonObject?) {
-    val lvalue = resolveIndex(context, list ?: return, index ?: return) ?: return
-    context.curState.memory.write(lvalue, value?.address ?: context.ctx.nullRef)
+fun handlerListSetItemKt(context: ConcolicRunContext, list: UninterpretedSymbolicPythonObject, index: UninterpretedSymbolicPythonObject, value: UninterpretedSymbolicPythonObject) {
+    val lvalue = resolveIndex(context, list, index) ?: return
+    context.curState.memory.write(lvalue, value.address)
 }
 
 

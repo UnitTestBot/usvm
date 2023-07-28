@@ -21,3 +21,9 @@ class PythonUnpinnedCallable(
             PythonUnpinnedCallable(signature) { globals -> ConcretePythonInterpreter.eval(globals, name) }
     }
 }
+
+sealed class TypeMethod: PythonCallable()
+
+object NbBoolMethod: TypeMethod()
+object NbIntMethod: TypeMethod()
+data class TpRichcmpMethod(val op: Int): TypeMethod()
