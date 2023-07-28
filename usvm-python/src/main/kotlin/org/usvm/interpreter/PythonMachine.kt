@@ -17,7 +17,7 @@ class PythonMachine<PYTHON_OBJECT_REPRESENTATION>(
     private val printErrorMsg: Boolean = false,
     private val pythonObjectSerialization: (PythonObject) -> PYTHON_OBJECT_REPRESENTATION
 ): UMachine<PythonExecutionState>() {
-    private val ctx = UContext(PythonComponents)
+    private val ctx = UPythonContext()
     private val solver = ctx.solver<PropertyOfPythonObject, PythonType, PythonCallable>()
     private val iterationCounter = IterationCounter()
     private val namespace = ConcretePythonInterpreter.getNewNamespace()
@@ -76,7 +76,7 @@ class PythonMachine<PYTHON_OBJECT_REPRESENTATION>(
             interpreter,
             pathSelector,
             observer = observer,
-            isStateTerminated = { it.modelDied },
+            isStateTerminated = { it.meta.modelDied },
             stopStrategy = { observer.stateCounter >= 1000 }
         )
         return iterationCounter.iterations

@@ -17,7 +17,7 @@ import org.usvm.model.UModelBase
 private const val MAX_CONCRETE_TYPES_TO_CONSIDER = 1000
 
 class PythonExecutionState(
-    private val ctx: UContext,
+    private val ctx: UPythonContext,
     private val pythonCallable: PythonUnpinnedCallable,
     val inputSymbols: List<SymbolForCPython>,
     pathConstraints: UPathConstraints<PythonType>,
@@ -44,14 +44,10 @@ class PythonExecutionState(
             mocks.toMutableMap()  // copy
         )
     }
-
     override val isExceptional: Boolean = false  // TODO
-
-    var extractedFrom: UPathSelector<PythonExecutionState>? = null
+    val meta = PythonExecutionStateInfo()
     val pyModel: PyModel
         get() = PyModel(models.first())
-    var wasExecuted: Boolean = false
-    var modelDied: Boolean = false
     val lastHandlerEvent: SymbolicHandlerEvent<Any>?
         get() = if (path.isEmpty()) null else path.last()
 
@@ -63,17 +59,14 @@ class PythonExecutionState(
         return res.drop(1)
     }
 
-    var objectsWithoutConcreteTypes: Set<VirtualPythonObject>? = null
-    var lastConverter: ConverterToPythonObject? = null
-
     fun mock(what: MockHeader): MockResult {
         val cached = mocks[what]
         if (cached != null)
-            return MockResult(UninterpretedSymbolicPythonObject(cached), false)
+            return MockResult(UninterpretedSymbolicPythonObject(cached), false, cached)
         val (result, newMocker) = memory.mocker.call(what.method, what.args.map { it.obj.address }.asSequence(), ctx.addressSort)
         memory.mocker = newMocker
         mocks[what] = result
-        return MockResult(UninterpretedSymbolicPythonObject(result), true)
+        return MockResult(UninterpretedSymbolicPythonObject(result), true, result)
     }
 }
 
@@ -91,5 +84,14 @@ data class MockHeader(
 
 data class MockResult(
     val mockedObject: UninterpretedSymbolicPythonObject,
-    val isNew: Boolean
+    val isNew: Boolean,
+    val mockSymbol: UMockSymbol<UAddressSort>
 )
+
+class PythonExecutionStateInfo {
+    var extractedFrom: UPathSelector<PythonExecutionState>? = null
+    var wasExecuted: Boolean = false
+    var modelDied: Boolean = false
+    var objectsWithoutConcreteTypes: Set<VirtualPythonObject>? = null
+    var lastConverter: ConverterToPythonObject? = null
+}

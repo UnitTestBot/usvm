@@ -34,7 +34,7 @@ fun myAssert(ctx: ConcolicRunContext, cond: UExpr<KBoolSort>) {
     val oldModel = ctx.curState.pyModel
     val forkResult = forkMulti(ctx.curState, listOf(cond)).single()
     if (forkResult == null)
-        ctx.curState.modelDied = true
+        ctx.curState.meta.modelDied = true
 
     if (forkResult?.pyModel != oldModel)
         throw BadModelException
