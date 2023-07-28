@@ -15,7 +15,7 @@ import org.usvm.types.first
 
 fun virtualNbBoolKt(context: ConcolicRunContext, on: VirtualPythonObject): Boolean {
     context.curOperation ?: throw UnregisteredVirtualOperation
-    val interpretedArg = interpretSymbolicPythonObject(context.curOperation!!.args.first().obj, context.curState.pyModel)
+    val interpretedArg = interpretSymbolicPythonObject(context.curOperation!!.args.first().obj, context.modelHolder)
     require(context.curOperation?.method == NbBoolMethod && interpretedArg == on.interpretedObj)
     val (virtualObject, symbolic) = internalVirtualCallKt(context)
     symbolic.addSupertype(context, pythonBool)
@@ -26,7 +26,7 @@ fun virtualNbBoolKt(context: ConcolicRunContext, on: VirtualPythonObject): Boole
 
 fun virtualNbIntKt(context: ConcolicRunContext, on: VirtualPythonObject): PythonObject {
     context.curOperation ?: throw UnregisteredVirtualOperation
-    val interpretedArg = interpretSymbolicPythonObject(context.curOperation!!.args.first().obj, context.curState.pyModel)
+    val interpretedArg = interpretSymbolicPythonObject(context.curOperation!!.args.first().obj, context.modelHolder)
     require(context.curOperation?.method == NbIntMethod && interpretedArg == on.interpretedObj)
     val (virtualObject, symbolic) = internalVirtualCallKt(context)
     symbolic.addSupertype(context, pythonInt)
@@ -39,16 +39,20 @@ private fun internalVirtualCallKt(context: ConcolicRunContext): Pair<VirtualPyth
     val interpretedOwner =
         interpretSymbolicPythonObject(
             context.curOperation.methodOwner.obj,
-            context.curState.pyModel
+            context.modelHolder
         ) as InterpretedInputSymbolicPythonObject
     val typeStreamOfOwner = interpretedOwner.getTypeStream()
     val ownerIsAlreadyMocked = typeStreamOfOwner.first() == TypeOfVirtualObject && typeStreamOfOwner.take(2).size == 1
     val clonedState = if (!ownerIsAlreadyMocked) context.curState.clone() else null
-    val (symbolic, _) = context.curState.mock(context.curOperation)
+    val (symbolic, _, mockSymbol) = context.curState.mock(context.curOperation)
     if (!ownerIsAlreadyMocked) {
         addDelayedFork(context, context.curOperation.methodOwner.obj, clonedState!!)
     }
-    val concrete = interpretSymbolicPythonObject(symbolic, context.curState.pyModel)
+    if (context.curOperation.method.isMethodWithNonVirtualReturn) {
+        val newModel = constructModelWithNewMockEvaluator(context.ctx, context.modelHolder.model, mockSymbol)
+        substituteModel(context.curState, newModel, context)
+    }
+    val concrete = interpretSymbolicPythonObject(symbolic, context.modelHolder)
     return VirtualPythonObject(concrete as InterpretedInputSymbolicPythonObject) to symbolic
 }
 

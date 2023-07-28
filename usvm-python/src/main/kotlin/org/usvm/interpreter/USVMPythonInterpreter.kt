@@ -8,7 +8,7 @@ import org.usvm.language.PythonUnpinnedCallable
 import org.usvm.language.SymbolForCPython
 
 class USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION>(
-    private val ctx: UContext,
+    private val ctx: UPythonContext,
     namespace: PythonNamespace,
     private val callable: PythonUnpinnedCallable,
     private val iterationCounter: IterationCounter,
@@ -19,10 +19,10 @@ class USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION>(
     private val pinnedCallable = callable.reference(namespace)
 
     private fun getSeeds(
-        state: PythonExecutionState,
+        concolicRunContext: ConcolicRunContext,
         symbols: List<SymbolForCPython>
     ): List<InterpretedInputSymbolicPythonObject> =
-        symbols.map { interpretSymbolicPythonObject(it.obj, state.pyModel) as InterpretedInputSymbolicPythonObject }
+        symbols.map { interpretSymbolicPythonObject(it.obj, concolicRunContext.modelHolder) as InterpretedInputSymbolicPythonObject }
 
     private fun getConcrete(
         converter: ConverterToPythonObject,
@@ -47,16 +47,21 @@ class USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION>(
         }
 
     override fun step(state: PythonExecutionState): StepResult<PythonExecutionState> = with(ctx) {
-        val concolicRunContext = ConcolicRunContext(state, ctx)
-        state.objectsWithoutConcreteTypes = null
-        state.lastConverter?.restart()
+        val modelHolder =
+            if (state.meta.lastConverter != null)
+                state.meta.lastConverter!!.modelHolder
+            else
+                PyModelHolder(state.pyModel)
+        val concolicRunContext = ConcolicRunContext(state, ctx, modelHolder)
+        state.meta.objectsWithoutConcreteTypes = null
+        state.meta.lastConverter?.restart()
         try {
             logger.debug("Step on state: {}", state)
             val validator = ObjectValidator(concolicRunContext)
             val symbols = state.inputSymbols
             symbols.forEach { validator.check(it.obj) }
-            val seeds = getSeeds(state, symbols)
-            val converter = state.lastConverter ?: ConverterToPythonObject(ctx, state.pyModel)
+            val seeds = getSeeds(concolicRunContext, symbols)
+            val converter = state.meta.lastConverter ?: ConverterToPythonObject(ctx, concolicRunContext.modelHolder)
             val concrete = getConcrete(converter, seeds, symbols)
             val virtualObjects = converter.getPythonVirtualObjects()
             val inputs = getInputs(converter, concrete, seeds)
@@ -98,21 +103,22 @@ class USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION>(
                 }
             }
 
-            concolicRunContext.curState.wasExecuted = true
+            concolicRunContext.curState.meta.wasExecuted = true
             iterationCounter.iterations += 1
 
             if (concolicRunContext.curState.delayedForks.isEmpty() && inputs == null) {
-                concolicRunContext.curState.objectsWithoutConcreteTypes = converter.getUSVMVirtualObjects()
-                concolicRunContext.curState.lastConverter = converter
+                concolicRunContext.curState.meta.objectsWithoutConcreteTypes = converter.getUSVMVirtualObjects()
+                concolicRunContext.curState.meta.lastConverter = converter
             }
+            logger.debug((concolicRunContext.curState == state).toString())
 
-            return StepResult(concolicRunContext.forkedStates.asSequence(), !state.modelDied)
+            return StepResult(concolicRunContext.forkedStates.asSequence(), !state.meta.modelDied)
 
         } catch (_: BadModelException) {
 
             iterationCounter.iterations += 1
             logger.debug("Step result: Bad model")
-            return StepResult(concolicRunContext.forkedStates.asSequence(), !state.modelDied)
+            return StepResult(concolicRunContext.forkedStates.asSequence(), !state.meta.modelDied)
         }
     }
 
