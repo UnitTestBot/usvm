@@ -7,6 +7,7 @@ import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UHeapRef
+import org.usvm.USizeExpr
 import org.usvm.constraints.UEqualityConstraints
 import org.usvm.constraints.UPathConstraints
 import org.usvm.isFalse
@@ -98,6 +99,40 @@ open class USolverBase<Field, Type, Method>(
         translateLogicalConstraints(pc.logicalConstraints)
     }
 
+    protected fun translateMinimizeConstraint(pc: UPathConstraints<Type>): MinimizeConstraint {
+        if (pc.minimizeConstraints.isEmpty()) {
+            return NoMinimizeConstraint
+        }
+
+        val constraintsCount = pc.minimizeConstraints.size
+        val constraintExpr = pc.minimizeConstraints.asSequence()
+            .map { translator.translate(it) }
+            .reduce { acc, expr -> ctx.mkBvAddExpr(acc, expr) }
+
+        val initialBound = mulNoOverflow(constraintsCount, PREFERRED_SIZE) ?: return NoMinimizeConstraint
+        return BoundedMinimizeConstraint(constraintExpr, initialBound)
+    }
+
+    protected fun relaxMinimizeConstraint(constraint: MinimizeConstraint): MinimizeConstraint =
+        when (constraint) {
+            is NoMinimizeConstraint -> constraint
+            is BoundedMinimizeConstraint -> {
+                val relaxedBound = mulNoOverflow(constraint.bound, times = 2)
+                relaxedBound?.let { BoundedMinimizeConstraint(constraint.expr, it) } ?: NoMinimizeConstraint
+            }
+        }
+
+    protected fun mkMinimizeConstraintExpr(constraint: MinimizeConstraint): UBoolExpr? =
+        when (constraint) {
+            is NoMinimizeConstraint -> null
+            is BoundedMinimizeConstraint -> ctx.mkBvSignedLessOrEqualExpr(constraint.expr, ctx.mkBv(constraint.bound))
+        }
+
+    protected fun mulNoOverflow(value: Int, times: Int): Int? {
+        if (value > Int.MAX_VALUE / times) return null
+        return value * times
+    }
+
     override fun check(query: UPathConstraints<Type>): USolverResult<UModelBase<Field, Type>> =
         internalCheck(query, useSoftConstraints = false)
 
@@ -117,6 +152,8 @@ open class USolverBase<Field, Type, Method>(
         smtSolver.withAssertionsScope {
             translateToSmt(pc)
 
+            val minimizeConstraint = MutableMinimizeConstraint(translateMinimizeConstraint(pc))
+
             val softConstraints = mutableListOf<UBoolExpr>()
             if (useSoftConstraints) {
                 pc.logicalConstraints.flatMapTo(softConstraints) {
@@ -134,7 +171,7 @@ open class USolverBase<Field, Type, Method>(
                 iter++
 
                 // first, get a model from the SMT solver
-                val kModel = when (internalCheckWithSoftConstraints(softConstraints)) {
+                val kModel = when (internalCheckWithSoftConstraints(softConstraints, minimizeConstraint)) {
                     KSolverStatus.SAT -> smtSolver.model().detach()
                     KSolverStatus.UNSAT -> return UUnsatResult()
                     KSolverStatus.UNKNOWN -> return UUnknownResult()
@@ -187,21 +224,32 @@ open class USolverBase<Field, Type, Method>(
 
     private fun internalCheckWithSoftConstraints(
         softConstraints: MutableList<UBoolExpr>,
+        minimizeConstraint: MutableMinimizeConstraint,
     ): KSolverStatus {
-        var status: KSolverStatus
-        if (softConstraints.isNotEmpty()) {
-            status = smtSolver.checkWithAssumptions(softConstraints)
-
-            while (status == KSolverStatus.UNSAT) {
-                val unsatCore = smtSolver.unsatCore().toHashSet()
-                if (unsatCore.isEmpty()) break
-                softConstraints.removeAll { it in unsatCore }
-                status = smtSolver.checkWithAssumptions(softConstraints)
-            }
-        } else {
-            status = smtSolver.check()
+        if (softConstraints.isEmpty() && minimizeConstraint.constraint is NoMinimizeConstraint) {
+            return smtSolver.check()
         }
-        return status
+
+        while (true) {
+            val minimizeConstraintExpr = mkMinimizeConstraintExpr(minimizeConstraint.constraint)
+
+            val status = softConstraints.withNotNullElement(minimizeConstraintExpr) {
+                smtSolver.checkWithAssumptions(softConstraints)
+            }
+
+            if (status != KSolverStatus.UNSAT) return status
+
+            val unsatCore = smtSolver.unsatCore().toHashSet()
+            if (unsatCore.isEmpty()) return KSolverStatus.UNSAT
+
+            // Try relax minimize constraint first
+            if (minimizeConstraintExpr in unsatCore) {
+                minimizeConstraint.constraint = relaxMinimizeConstraint(minimizeConstraint.constraint)
+                continue
+            }
+
+            softConstraints.removeAll { it in unsatCore }
+        }
     }
 
     private inline fun <T> KSolver<*>.withAssertionsScope(block: KSolver<*>.() -> T): T = try {
@@ -211,12 +259,31 @@ open class USolverBase<Field, Type, Method>(
         pop()
     }
 
+    private inline fun <R, T> MutableList<T>.withNotNullElement(element: T?, block: () -> R): R = try {
+        if (element != null) {
+            add(element)
+        }
+        block()
+    } finally {
+        if (element != null) {
+            removeLast()
+        }
+    }
+
     fun emptyModel(): UModelBase<Field, Type> =
         (checkWithSoftConstraints(UPathConstraints(ctx)) as USatResult<UModelBase<Field, Type>>).model
 
     override fun close() {
         smtSolver.close()
     }
+
+    class MutableMinimizeConstraint(var constraint: MinimizeConstraint)
+
+    sealed interface MinimizeConstraint
+
+    object NoMinimizeConstraint : MinimizeConstraint
+
+    class BoundedMinimizeConstraint(val expr: USizeExpr, val bound: Int): MinimizeConstraint
 
     companion object {
         // TODO: options
@@ -225,5 +292,7 @@ open class USolverBase<Field, Type, Method>(
          */
         val ITERATIONS_THRESHOLD = -1
         val INFINITE_ITERATIONS = -1
+
+        const val PREFERRED_SIZE = 10
     }
 }

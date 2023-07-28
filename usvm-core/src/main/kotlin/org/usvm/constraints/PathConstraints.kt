@@ -7,10 +7,12 @@ import org.usvm.UBoolExpr
 import org.usvm.UContext
 import org.usvm.UEqExpr
 import org.usvm.UFalse
+import org.usvm.UIntepretedValue
 import org.usvm.UIsSubtypeExpr
 import org.usvm.UIsSupertypeExpr
 import org.usvm.UNotExpr
 import org.usvm.UOrExpr
+import org.usvm.USizeExpr
 import org.usvm.USymbolicHeapRef
 import org.usvm.isSymbolicHeapRef
 import org.usvm.uctx
@@ -32,11 +34,21 @@ open class UPathConstraints<Type> private constructor(
         ctx.typeSystem(),
         equalityConstraints
     ),
+    /**
+     * Expressions to minimize.
+     * */
+    minimizeConstraints: PersistentSet<USizeExpr> = persistentSetOf(),
 ) {
     /**
      * Constraints solved by SMT solver.
      */
     var logicalConstraints: PersistentSet<UBoolExpr> = logicalConstraints
+        private set
+
+    /**
+     * Constraints minimized by SMT solver.
+     */
+    var minimizeConstraints: PersistentSet<USizeExpr> = minimizeConstraints
         private set
 
     constructor(ctx: UContext) : this(ctx, persistentSetOf())
@@ -104,10 +116,25 @@ open class UPathConstraints<Type> private constructor(
             }
         }
 
+    fun minimize(expr: USizeExpr) {
+        // no need to minimize values
+        if (expr is UIntepretedValue<*>) {
+            return
+        }
+
+        minimizeConstraints = minimizeConstraints.add(expr)
+    }
+
     open fun clone(): UPathConstraints<Type> {
         val clonedEqualityConstraints = equalityConstraints.clone()
         val clonedTypeConstraints = typeConstraints.clone(clonedEqualityConstraints)
-        return UPathConstraints(ctx, logicalConstraints, clonedEqualityConstraints, clonedTypeConstraints)
+        return UPathConstraints(
+            ctx,
+            logicalConstraints,
+            clonedEqualityConstraints,
+            clonedTypeConstraints,
+            minimizeConstraints
+        )
     }
 
     protected fun contradiction(ctx: UContext) {
