@@ -45,3 +45,10 @@ class PyModel(val uModel: UModelBase<PropertyOfPythonObject, PythonType>) {
         return prefix.first() as? ConcretePythonType
     }
 }
+
+class PyModelHolder(var model: PyModel)
+
+fun substituteModel(state: PythonExecutionState, newModel: PyModel, ctx: ConcolicRunContext) {
+    state.models = listOf(newModel.uModel)
+    ctx.modelHolder.model = newModel
+}
