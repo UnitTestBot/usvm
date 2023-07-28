@@ -110,6 +110,8 @@ class SampleExprResolver(
                 val size = resolveInt(expr.size) ?: return null
                 checkArrayLength(size, expr.values.size) ?: return null
 
+                scope.doWithState { pathConstraints.minimize(size) }
+
                 val ref = scope.calcOnState { memory.malloc(expr.type, size) } ?: return null
 
                 val cellSort = typeToSort(expr.type.elementType)
@@ -141,6 +143,7 @@ class SampleExprResolver(
                 checkNullPointer(ref) ?: return null
                 val lengthRef = UArrayLengthLValue(ref, expr.array.type)
                 val length = scope.calcOnState { memory.read(lengthRef).asExpr(sizeSort) } ?: return null
+                scope.doWithState { pathConstraints.minimize(length) }
                 checkHardMaxArrayLength(length) ?: return null
                 scope.assert(mkBvSignedLessOrEqualExpr(mkBv(0), length)) ?: return null
                 length
@@ -302,6 +305,7 @@ class SampleExprResolver(
         val lengthRef = UArrayLengthLValue(arrayRef, array.type)
         val length = scope.calcOnState { memory.read(lengthRef).asExpr(ctx.sizeSort) } ?: return null
 
+        scope.doWithState { pathConstraints.minimize(length) }
         checkHardMaxArrayLength(length) ?: return null
 
         checkArrayIndex(idx, length) ?: return null

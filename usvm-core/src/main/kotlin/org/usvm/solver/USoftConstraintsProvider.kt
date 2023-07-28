@@ -58,20 +58,12 @@ class USoftConstraintsProvider<Field, Type>(override val ctx: UContext) : UTrans
 
     // region The most common methods
 
-    override fun <T : KSort> transformExpr(expr: KExpr<T>): KExpr<T> = computeSideEffect(expr) {
-        caches[expr] = setOf(expr.sort.accept(sortPreferredValuesProvider)(expr))
-    }
-
     override fun <T : KSort, A : KSort> transformApp(expr: KApp<T, A>): KExpr<T> =
         computeSideEffect(expr) {
+            // Transform for expr was not overridden -> no specific soft constraints for expr
             val nestedConstraints = expr.args.flatMapTo(mutableSetOf(), ::provide)
-            val selfConstraint = expr.sort.accept(sortPreferredValuesProvider)(expr)
-
-            caches[expr] = nestedConstraints + selfConstraint
+            caches[expr] = nestedConstraints
         }
-
-    private fun <Sort : USort> transformAppIfPossible(expr: UExpr<Sort>): UExpr<Sort> =
-        if (expr is KApp<Sort, *>) transformApp(expr) else transformExpr(expr)
 
     // endregion
 
@@ -80,7 +72,11 @@ class USoftConstraintsProvider<Field, Type>(override val ctx: UContext) : UTrans
     override fun <Sort : USort> transform(expr: USymbol<Sort>): UExpr<Sort> =
         error("You must override `transform` function in UExprTranslator for ${expr::class}")
 
-    override fun <Sort : USort> transform(expr: URegisterReading<Sort>): UExpr<Sort> = transformExpr(expr)
+    override fun <Sort : USort> transform(
+        expr: URegisterReading<Sort>
+    ): UExpr<Sort> = computeSideEffect(expr) {
+        caches[expr] = setOf(expr.sort.accept(sortPreferredValuesProvider)(expr))
+    }
 
     override fun <Sort : USort> transform(
         expr: UHeapReading<*, *, *>,
@@ -92,7 +88,9 @@ class USoftConstraintsProvider<Field, Type>(override val ctx: UContext) : UTrans
 
     override fun <Method, Sort : USort> transform(
         expr: UIndexedMethodReturnValue<Method, Sort>,
-    ): UExpr<Sort> = transformAppIfPossible(expr)
+    ): UExpr<Sort> = computeSideEffect(expr) {
+        caches[expr] = setOf(expr.sort.accept(sortPreferredValuesProvider)(expr))
+    }
 
     override fun transform(
         expr: UConcreteHeapRef,
@@ -107,12 +105,7 @@ class USoftConstraintsProvider<Field, Type>(override val ctx: UContext) : UTrans
     override fun transform(
         expr: UInputArrayLengthReading<Type>,
     ): USizeExpr = computeSideEffect(expr) {
-        with(expr.ctx) {
-            val addressIsNull = provide(expr.address)
-            val arraySize = mkBvSignedLessOrEqualExpr(expr, PREFERRED_MAX_ARRAY_SIZE.toBv())
-
-            caches[expr] = addressIsNull + arraySize
-        }
+        caches[expr] = provide(expr.address)
     }
 
     override fun <Sort : USort> transform(
@@ -160,10 +153,6 @@ class USoftConstraintsProvider<Field, Type>(override val ctx: UContext) : UTrans
     ): UExpr<T> {
         operationWithSideEffect()
         return expr
-    }
-
-    companion object {
-        const val PREFERRED_MAX_ARRAY_SIZE = 10
     }
 }
 
@@ -232,7 +221,7 @@ private class SortPreferredValuesProvider : KSortVisitor<(KExpr<*>) -> KExpr<KBo
         sort: KArraySort<D, R>,
     ): (KExpr<*>) -> KExpr<KBoolSort> = sort.range.accept(this)
 
-    override fun visit(sort: KBoolSort): (KExpr<*>) -> KExpr<KBoolSort> = { it.asExpr(sort) }
+    override fun visit(sort: KBoolSort): (KExpr<*>) -> KExpr<KBoolSort> = { _ -> sort.uctx.noConstraint() }
 
     override fun visit(sort: KFpRoundingModeSort): (KExpr<*>) -> KExpr<KBoolSort> =
         caches.getOrPut(sort) {
@@ -273,10 +262,12 @@ private class SortPreferredValuesProvider : KSortVisitor<(KExpr<*>) -> KExpr<KBo
                 if (sort === addressSort) {
                     { expr -> mkHeapRefEq(nullRef, expr.asExpr(sort)) }
                 } else {
-                    { _ -> trueExpr }
+                    { _ -> noConstraint() }
                 }
             }
         }
+
+    private fun UContext.noConstraint() = falseExpr
 
     companion object {
         const val SMALL_INT_MIN_VALUE = -8

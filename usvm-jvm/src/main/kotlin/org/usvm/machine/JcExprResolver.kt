@@ -306,6 +306,9 @@ class JcExprResolver(
         val arrayDescriptor = arrayDescriptorOf(expr.array.type as JcArrayType)
         val lengthRef = UArrayLengthLValue(ref, arrayDescriptor)
         val length = scope.calcOnState { memory.read(lengthRef).asExpr(sizeSort) } ?: return null
+
+        scope.doWithState { pathConstraints.minimize(length) }
+
         assertHardMaxArrayLength(length) ?: return null
         scope.assert(mkBvSignedLessOrEqualExpr(mkBv(0), length)) ?: return null
         length
@@ -315,6 +318,9 @@ class JcExprResolver(
         val size = resolveCast(expr.dimensions[0], ctx.cp.int)?.asExpr(bv32Sort) ?: return null
         // TODO: other dimensions ( > 1)
         checkNewArrayLength(size) ?: return null
+
+        scope.doWithState { pathConstraints.minimize(size) }
+
         val ref = scope.calcOnState { memory.malloc(expr.type, size) } ?: return null
         ref
     }
@@ -519,6 +525,8 @@ class JcExprResolver(
         val idx = resolveCast(index, ctx.cp.int)?.asExpr(bv32Sort) ?: return null
         val lengthRef = UArrayLengthLValue(arrayRef, arrayDescriptor)
         val length = scope.calcOnState { memory.read(lengthRef).asExpr(sizeSort) } ?: return null
+
+        scope.doWithState { pathConstraints.minimize(length) }
 
         assertHardMaxArrayLength(length) ?: return null
 

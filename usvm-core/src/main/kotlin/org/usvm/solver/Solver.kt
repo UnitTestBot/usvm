@@ -12,6 +12,7 @@ import org.usvm.constraints.UEqualityConstraints
 import org.usvm.constraints.UPathConstraints
 import org.usvm.isFalse
 import org.usvm.isTrue
+import org.usvm.logger
 import org.usvm.memory.UMemoryBase
 import org.usvm.model.UModelBase
 import org.usvm.model.UModelDecoder
@@ -110,6 +111,9 @@ open class USolverBase<Field, Type, Method>(
             .reduce { acc, expr -> ctx.mkBvAddExpr(acc, expr) }
 
         val initialBound = mulNoOverflow(constraintsCount, PREFERRED_SIZE) ?: return NoMinimizeConstraint
+
+        logger.debug { "Minimize size constraint: $constraintExpr -> $initialBound" }
+
         return BoundedMinimizeConstraint(constraintExpr, initialBound)
     }
 
@@ -118,6 +122,9 @@ open class USolverBase<Field, Type, Method>(
             is NoMinimizeConstraint -> constraint
             is BoundedMinimizeConstraint -> {
                 val relaxedBound = mulNoOverflow(constraint.bound, times = 2)
+
+                logger.debug { "Relax size constraint: ${constraint.bound} -> $relaxedBound" }
+
                 relaxedBound?.let { BoundedMinimizeConstraint(constraint.expr, it) } ?: NoMinimizeConstraint
             }
         }
@@ -125,7 +132,8 @@ open class USolverBase<Field, Type, Method>(
     protected fun mkMinimizeConstraintExpr(constraint: MinimizeConstraint): UBoolExpr? =
         when (constraint) {
             is NoMinimizeConstraint -> null
-            is BoundedMinimizeConstraint -> ctx.mkBvSignedLessOrEqualExpr(constraint.expr, ctx.mkBv(constraint.bound))
+            is BoundedMinimizeConstraint ->
+                ctx.mkBvSignedLessOrEqualExpr(constraint.expr, ctx.mkSizeExpr(constraint.bound))
         }
 
     protected fun mulNoOverflow(value: Int, times: Int): Int? {
