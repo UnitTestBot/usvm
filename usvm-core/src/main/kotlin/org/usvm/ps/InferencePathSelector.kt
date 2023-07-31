@@ -3,13 +3,6 @@ package org.usvm.ps
 import ai.onnxruntime.OnnxTensor
 import ai.onnxruntime.OrtEnvironment
 import ai.onnxruntime.OrtSession
-import io.kinference.core.KIEngine
-import io.kinference.core.KIONNXData
-import io.kinference.core.data.tensor.KITensor
-import io.kinference.core.data.tensor.asTensor
-import io.kinference.model.Model
-import io.kinference.ndarray.arrays.FloatNDArray
-import kotlinx.coroutines.runBlocking
 import org.usvm.Algorithm
 import org.usvm.MainConfig
 import org.usvm.UState
@@ -38,7 +31,6 @@ internal open class InferencePathSelector<State : UState<*, *, Method, Statement
 
     companion object {
         private val modelPath = Path(MainConfig.gameEnvPath, "model.onnx").toString()
-        private var model: Model<KIONNXData<*>>? = null
         private var env: OrtEnvironment? = null
         private var session: OrtSession? = null
     }
@@ -125,35 +117,6 @@ internal open class InferencePathSelector<State : UState<*, *, Method, Statement
         return probabilities.size - 1
     }
 
-    protected fun peekWithKInference(stateFeatureQueue: List<StateFeatures>?,
-                                     globalStateFeatures: GlobalStateFeatures?) : State {
-        if (stateFeatureQueue == null || globalStateFeatures == null) {
-            throw IllegalArgumentException("No features")
-        }
-        if (model === null) {
-            model = runBlocking { Model.load(File(modelPath).readBytes(), KIEngine) }
-        }
-        val globalFeaturesList = globalStateFeaturesToFloatList(globalStateFeatures)
-        val allFeaturesList = stateFeatureQueue.map { stateFeatures ->
-            stateFeaturesToFloatList(stateFeatures) + globalFeaturesList
-        }
-        val shape = intArrayOf(allFeaturesList.size, allFeaturesList.first().size)
-        val data = FloatNDArray(shape) { i ->
-            allFeaturesList[i / shape[1]][i % shape[1]]
-        }.asTensor("input")
-        val output = runBlocking {
-            (model!!.predict(listOf(data))["output"] as KITensor).data as FloatNDArray
-        }.array.toArray()
-        chosenStateId = if (MainConfig.algorithm == Algorithm.TD) {
-            output.indices.maxBy { output[it] }
-        } else {
-            val exponents = output.map { exp(it) }
-            val exponentsSum = exponents.sum()
-            chooseRandomId(exponents.map { it / exponentsSum })
-        }
-        return queue[chosenStateId]
-    }
-
     private fun peekWithOnnxRuntime(stateFeatureQueue: List<StateFeatures>?,
                                     globalStateFeatures: GlobalStateFeatures?) : State {
         if (stateFeatureQueue == null || globalStateFeatures == null) {
@@ -167,7 +130,7 @@ internal open class InferencePathSelector<State : UState<*, *, Method, Statement
         val allFeaturesList = stateFeatureQueue.map { stateFeatures ->
             stateFeaturesToFloatList(stateFeatures) + globalFeaturesList
         }
-        val shape = longArrayOf(allFeaturesList.size.toLong(), allFeaturesList.first().size.toLong())
+        val shape = longArrayOf(1, allFeaturesList.size.toLong(), allFeaturesList.first().size.toLong())
         val dataBuffer = FloatBuffer.allocate(allFeaturesList.size * allFeaturesList.first().size)
         allFeaturesList.forEach { stateFeatures ->
             stateFeatures.forEach { feature ->
@@ -179,8 +142,14 @@ internal open class InferencePathSelector<State : UState<*, *, Method, Statement
         val result = session!!.run(mapOf(Pair("input", data)))
         val output = (result.get("output").get().value as Array<*>)
             .asList().map { (it as FloatArray)[0] }
+        chosenStateId = if (MainConfig.algorithm == Algorithm.TD) {
+            output.indices.maxBy { output[it] }
+        } else {
+            val exponents = output.map { exp(it) }
+            val exponentsSum = exponents.sum()
+            chooseRandomId(exponents.map { it / exponentsSum })
+        }
         qValues = output
-        chosenStateId = output.indices.maxBy { output[it] }
         return queue[chosenStateId]
     }
 

@@ -13,7 +13,6 @@ import kotlin.collections.ArrayDeque
 import kotlin.collections.HashSet
 import kotlin.io.path.Path
 import kotlin.io.path.writeText
-import kotlin.math.log2
 import org.usvm.MainConfig
 import kotlin.math.log
 import kotlin.math.pow
@@ -337,7 +336,7 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
     }
 
     private fun UInt.log(): Float {
-        return this.toInt().log()
+        return this.toDouble().log()
     }
 
     private fun <T> List<T>.getLast(count: Int): List<T> {
@@ -355,7 +354,7 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
             statement == currentStatement
         }.size
         val statementRepetitionGlobal = statementRepetitions.getValue(currentStatement)
-        val distanceToUncovered = log2(weighter.weight(state).toFloat() + 1)
+        val distanceToUncovered = weighter.weight(state)
         val lastNewDistance = if (stateLastNewStatement.contains(state)) {
             state.path.size - stateLastNewStatement.getValue(state)
         } else {
@@ -541,7 +540,7 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
         path.add(getActionData(stateFeatureQueue, globalStateFeatures, state))
 //        savePath()
         updateCoverage(state)
-        if (stepCount < 500) {
+        if (stepCount < 100) {
             saveGraph()
         }
     }
