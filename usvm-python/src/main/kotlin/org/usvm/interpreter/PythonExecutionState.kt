@@ -45,7 +45,7 @@ class PythonExecutionState(
         )
     }
     override val isExceptional: Boolean = false  // TODO
-    val meta = PythonExecutionStateInfo()
+    val meta = PythonExecutionStateMeta()
     val pyModel: PyModel
         get() = PyModel(models.first())
     val lastHandlerEvent: SymbolicHandlerEvent<Any>?
@@ -88,10 +88,11 @@ data class MockResult(
     val mockSymbol: UMockSymbol<UAddressSort>
 )
 
-class PythonExecutionStateInfo {
+class PythonExecutionStateMeta {
     var extractedFrom: UPathSelector<PythonExecutionState>? = null
     var wasExecuted: Boolean = false
     var modelDied: Boolean = false
     var objectsWithoutConcreteTypes: Set<VirtualPythonObject>? = null
     var lastConverter: ConverterToPythonObject? = null
+    var generatedFrom: String = ""  // for debugging only
 }

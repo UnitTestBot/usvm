@@ -33,4 +33,52 @@ class SimpleTypeInferenceTest: PythonTestRunner("/samples/SimpleTypeInference.py
             }
         )
     }
+
+    private val functionListOfInt = constructFunction("list_of_int", List(1) { PythonAnyType })
+    @Test
+    fun testListOfInt() {
+        check1WithConcreteRun(
+            functionListOfInt,
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ listOf { _, res -> res.selfTypeName != "TypeError" },
+            /* propertiesToDiscover = */ listOf(
+                { _, res -> res.selfTypeName == "IndexError" },
+                { _, res -> res.repr == "1" },
+                { _, res -> res.repr == "2" }
+            )
+        )
+    }
+
+    private val functionDoubleSubscript = constructFunction("double_subscript", listOf(PythonAnyType))
+    @Test
+    fun testDoubleSubscript() {
+        check1WithConcreteRun(
+            functionDoubleSubscript,
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ listOf { _, res -> res.selfTypeName != "TypeError" },
+            /* propertiesToDiscover = */ listOf(
+                { _, res -> res.selfTypeName == "IndexError" },
+                { _, res -> res.repr == "1" },
+                { _, res -> res.repr == "2" }
+            )
+        )
+    }
+
+    private val functionSimpleComparison = constructFunction("simple_comparison", List(2) { PythonAnyType })
+    @Test
+    fun testSimpleComparison() {
+        check2WithConcreteRun(
+            functionSimpleComparison,
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, _, res -> res.repr == "1" },
+                { _, _, res -> res.repr == "2" },
+                { _, _, res -> res.repr == "3" }
+            )
+        )
+    }
 }

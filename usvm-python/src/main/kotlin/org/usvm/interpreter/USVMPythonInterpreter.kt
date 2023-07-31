@@ -57,6 +57,7 @@ class USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION>(
         state.meta.lastConverter?.restart()
         try {
             logger.debug("Step on state: {}", state)
+            logger.debug("Source of the state: {}", state.meta.generatedFrom)
             val validator = ObjectValidator(concolicRunContext)
             val symbols = state.inputSymbols
             symbols.forEach { validator.check(it.obj) }
@@ -89,16 +90,17 @@ class USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION>(
                 logger.debug("Step result: Successful run")
 
             } catch (exception: CPythonExecutionException) {
-                require(exception.pythonExceptionValue != null)
+                require(exception.pythonExceptionValue != null && exception.pythonExceptionType != null)
                 if (ConcretePythonInterpreter.isJavaException(exception.pythonExceptionValue)) {
                     throw ConcretePythonInterpreter.extractException(exception.pythonExceptionValue)
                 }
                 logger.debug(
-                    "Step result: exception from CPython: {}",
+                    "Step result: exception from CPython: {} - {}",
+                    ConcretePythonInterpreter.getNameOfPythonType(exception.pythonExceptionType),
                     ConcretePythonInterpreter.getPythonObjectRepr(exception.pythonExceptionValue)
                 )
                 if (inputs != null) {
-                    val serializedException = pythonObjectSerialization(exception.pythonExceptionValue)
+                    val serializedException = pythonObjectSerialization(exception.pythonExceptionType)
                     saveRunResult(PythonAnalysisResult(converter, inputs, Fail(serializedException)))
                 }
             }
@@ -110,7 +112,7 @@ class USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION>(
                 concolicRunContext.curState.meta.objectsWithoutConcreteTypes = converter.getUSVMVirtualObjects()
                 concolicRunContext.curState.meta.lastConverter = converter
             }
-            logger.debug((concolicRunContext.curState == state).toString())
+            logger.debug("Finished step on state: {}", concolicRunContext.curState)
 
             return StepResult(concolicRunContext.forkedStates.asSequence(), !state.meta.modelDied)
 

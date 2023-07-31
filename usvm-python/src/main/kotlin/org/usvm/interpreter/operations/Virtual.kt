@@ -11,7 +11,6 @@ import org.usvm.language.VirtualPythonObject
 import org.usvm.language.types.TypeOfVirtualObject
 import org.usvm.language.types.pythonBool
 import org.usvm.language.types.pythonInt
-import org.usvm.types.first
 
 fun virtualNbBoolKt(context: ConcolicRunContext, on: VirtualPythonObject): Boolean {
     context.curOperation ?: throw UnregisteredVirtualOperation
@@ -36,13 +35,7 @@ fun virtualNbIntKt(context: ConcolicRunContext, on: VirtualPythonObject): Python
 
 private fun internalVirtualCallKt(context: ConcolicRunContext): Pair<VirtualPythonObject, UninterpretedSymbolicPythonObject> = with(context.ctx) {
     context.curOperation ?: throw UnregisteredVirtualOperation
-    val interpretedOwner =
-        interpretSymbolicPythonObject(
-            context.curOperation.methodOwner.obj,
-            context.modelHolder
-        ) as InterpretedInputSymbolicPythonObject
-    val typeStreamOfOwner = interpretedOwner.getTypeStream()
-    val ownerIsAlreadyMocked = typeStreamOfOwner.first() == TypeOfVirtualObject && typeStreamOfOwner.take(2).size == 1
+    val ownerIsAlreadyMocked = context.curOperation.methodOwner.obj.getTypeIfDefined(context) is TypeOfVirtualObject
     val clonedState = if (!ownerIsAlreadyMocked) context.curState.clone() else null
     val (symbolic, _, mockSymbol) = context.curState.mock(context.curOperation)
     if (!ownerIsAlreadyMocked) {

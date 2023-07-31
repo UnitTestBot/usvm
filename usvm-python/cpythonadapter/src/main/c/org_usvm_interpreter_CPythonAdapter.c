@@ -37,6 +37,13 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_getNewNamespace
     return (jlong) PyDict_New();
 }
 
+JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_addName(JNIEnv *env, jobject _, jlong dict, jlong ref, jstring name) {
+    assert(PyDict_Check((PyObject *) dict));
+    const char *c_name = (*env)->GetStringUTFChars(env, name, 0);
+    PyDict_SetItemString((PyObject *) dict, c_name, (PyObject *) ref);
+    (*env)->ReleaseStringUTFChars(env, name, c_name);
+}
+
 JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_concreteRun(
     JNIEnv *env,
     jobject cpython_adapter,
@@ -199,6 +206,11 @@ JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasNbBool(JN
 JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasNbInt(JNIEnv *env, jobject _, jlong type_ref) {
     QUERY_TYPE_HAS_PREFIX
     return type->tp_as_number && type->tp_as_number->nb_int;
+}
+
+JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasMpSubscript(JNIEnv *env, jobject _, jlong type_ref) {
+    QUERY_TYPE_HAS_PREFIX
+    return type->tp_as_mapping && type->tp_as_mapping->mp_subscript;
 }
 
 JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasTpRichcmp(JNIEnv *env, jobject _, jlong type_ref) {

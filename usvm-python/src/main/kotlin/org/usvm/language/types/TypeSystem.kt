@@ -27,7 +27,8 @@ object PythonTypeSystem: UTypeSystem<PythonType> {
         pythonInt,
         pythonBool,
         pythonObjectType,
-        pythonNoneType
+        pythonNoneType,
+        pythonList
     )
 
     override fun findSubtypes(type: PythonType): Sequence<PythonType> {
