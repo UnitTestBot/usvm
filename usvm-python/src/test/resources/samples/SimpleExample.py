@@ -7,7 +7,7 @@ def many_branches(x: int, y: int, z: int):
     y += 10 ** 9
     if 0 < x + z + 1 < 100 and y > 0:
         return 1
-    elif x + 3 < -2 - z and x < y:
+    elif x + 3 < -2 - z and x <= y:
         return 2
     elif x * 100 % 7 == 0 and z + y % 100 == 0:
         return 3

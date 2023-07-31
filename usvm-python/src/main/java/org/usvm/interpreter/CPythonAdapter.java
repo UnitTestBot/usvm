@@ -30,6 +30,7 @@ public class CPythonAdapter {
     public native void initializePython();
     public native void finalizePython();
     public native long getNewNamespace();  // returns reference to a new dict
+    public native void addName(long dict, long object, String name);
     public native int concreteRun(long globals, String code);  // returns 0 on success
     public native long eval(long globals, String obj);  // returns PyObject *
     public native long concreteRunOnFunctionRef(long functionRef, long[] concreteArgs);
@@ -43,6 +44,7 @@ public class CPythonAdapter {
     public native long makeList(long[] elements);
     public native int typeHasNbBool(long type);
     public native int typeHasNbInt(long type);
+    public native int typeHasMpSubscript(long type);
     public native int typeHasTpRichcmp(long type);
     public native Throwable extractException(long exception);
 
@@ -179,23 +181,28 @@ public class CPythonAdapter {
         withTracing(context, PythonReturn.INSTANCE, unit(() -> handlerReturnKt(context)));
     }
 
-    public static SymbolForCPython handlerVirtualTpRichcmp(ConcolicRunContext context, int methodId, SymbolForCPython left, SymbolForCPython right) {
+    public static SymbolForCPython handlerVirtualBinaryFun(ConcolicRunContext context, int methodId, SymbolForCPython left, SymbolForCPython right) {
         return methodWrapper(context, methodId, Arrays.asList(left, right), () -> virtualCallSymbolKt(context));
     }
 
     public static void notifyNbBool(@NotNull ConcolicRunContext context, SymbolForCPython symbol) {
         context.curOperation = new MockHeader(NbBoolMethod.INSTANCE, Collections.singletonList(symbol), symbol);
-        withTracing(context, new NbBool(symbol), unit(() -> nbBoolKt(context, symbol.obj)));
+        nbBoolKt(context, symbol.obj);
     }
 
     public static void notifyNbInt(@NotNull ConcolicRunContext context, SymbolForCPython symbol) {
         context.curOperation = new MockHeader(NbIntMethod.INSTANCE, Collections.singletonList(symbol), symbol);
-        withTracing(context, new NbInt(symbol), unit(() -> nbIntKt(context, symbol.obj)));
+        nbIntKt(context, symbol.obj);
+    }
+
+    public static void notifyMpSubscript(@NotNull ConcolicRunContext context, SymbolForCPython storage, SymbolForCPython item) {
+        context.curOperation = new MockHeader(MpSubscriptMethod.INSTANCE, Arrays.asList(storage, item), storage);
+        mpSubscriptKt(context, storage.obj);
     }
 
     public static void notifyTpRichcmp(@NotNull ConcolicRunContext context, int op, SymbolForCPython left, SymbolForCPython right) {
         context.curOperation = new MockHeader(new TpRichcmpMethod(op), Arrays.asList(left, right), left);
-        withTracing(context, new TpRichcmp(op, left, right), unit(() -> tpRichcmpKt(context, left.obj, right.obj)));
+        tpRichcmpKt(context, left.obj);
     }
 
     public static boolean virtualNbBool(ConcolicRunContext context, VirtualPythonObject obj) {

@@ -58,11 +58,11 @@ class UninterpretedSymbolicPythonObject(address: UHeapRef): SymbolicPythonObject
         return ctx.curState.memory.heap.readField(address, IntContent, ctx.ctx.intSort) as UExpr<KIntSort>
     }
 
-    fun getToIntContent(ctx: ConcolicRunContext): UExpr<KIntSort> = with(ctx.ctx) {
-        return when (getConcreteTypeInModel(ctx)) {
+    fun getToIntContent(ctx: ConcolicRunContext): UExpr<KIntSort>? = with(ctx.ctx) {
+        return when (getTypeIfDefined(ctx)) {
             pythonInt -> getIntContent(ctx)
             pythonBool -> mkIte(getBoolContent(ctx), mkIntNum(1), mkIntNum(0))
-            else -> TODO()
+            else -> null
         }
     }
 
@@ -72,18 +72,16 @@ class UninterpretedSymbolicPythonObject(address: UHeapRef): SymbolicPythonObject
         return ctx.curState.memory.heap.readField(address, BoolContent, ctx.ctx.boolSort) as UExpr<KBoolSort>
     }
 
-    fun getToBoolValue(ctx: ConcolicRunContext): UBoolExpr? {
-        val interpreted = interpretSymbolicPythonObject(this, ctx.modelHolder)
-        with (ctx.ctx) {
-            return when (interpreted.getConcreteType(ctx)) {
-                pythonBool -> getBoolContent(ctx)
-                pythonInt -> getIntContent(ctx) neq mkIntNum(0)
-                else -> null
-            }
+    fun getToBoolValue(ctx: ConcolicRunContext): UBoolExpr? = with (ctx.ctx) {
+        return when (getTypeIfDefined(ctx)) {
+            pythonBool -> getBoolContent(ctx)
+            pythonInt -> getIntContent(ctx) neq mkIntNum(0)
+            pythonList -> ctx.curState.memory.heap.readArrayLength(address, pythonList) gt mkIntNum(0)
+            else -> null
         }
     }
 
-    fun getConcreteTypeInModel(ctx: ConcolicRunContext): ConcretePythonType? {
+    fun getTypeIfDefined(ctx: ConcolicRunContext): PythonType? {
         val interpreted = interpretSymbolicPythonObject(this, ctx.modelHolder)
         return interpreted.getConcreteType(ctx)
     }

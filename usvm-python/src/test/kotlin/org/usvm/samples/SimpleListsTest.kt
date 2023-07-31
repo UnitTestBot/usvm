@@ -19,7 +19,7 @@ class ListsTest : PythonTestRunner("/samples/SimpleLists.py") {
                 list.typeName == "list" && index.typeName == "int"
             },
             /* propertiesToDiscover = */ listOf(
-                { _, _, res -> res.typeName == "IndexError" },
+                { _, _, res -> res.selfTypeName == "IndexError" },
                 { _, _, res -> res.repr == "1" },
                 { _, _, res -> res.repr == "2" },
                 { _, _, res -> res.repr == "3" }
@@ -38,7 +38,7 @@ class ListsTest : PythonTestRunner("/samples/SimpleLists.py") {
                 index.typeName == "int"
             },
             /* propertiesToDiscover = */ listOf(
-                { _, res -> res.typeName == "IndexError" },
+                { _, res -> res.selfTypeName == "IndexError" },
                 { _, res -> res.repr == "1" },
                 { _, res -> res.repr == "2" },
                 { _, res -> res.repr == "3" },
@@ -58,7 +58,7 @@ class ListsTest : PythonTestRunner("/samples/SimpleLists.py") {
                 x.typeName == "int" && i.typeName == "int"
             },
             /* propertiesToDiscover = */ listOf(
-                { _, _, res -> res.typeName == "IndexError" },
+                { _, _, res -> res.selfTypeName == "IndexError" },
                 { _, _, res -> res.repr == "1" },
                 { _, _, res -> res.repr == "2" },
                 { _, _, res -> res.repr == "3" },
@@ -107,7 +107,7 @@ class ListsTest : PythonTestRunner("/samples/SimpleLists.py") {
             standardConcolicAndConcreteChecks,
             /* invariants = */ listOf { arr, x, _ -> arr.typeName == "list" && x.typeName == "int" },
             /* propertiesToDiscover = */ listOf(
-                { _, _, res -> res.typeName == "IndexError" },
+                { _, _, res -> res.selfTypeName == "IndexError" },
                 { _, _, res -> res.repr == "0" },
                 { _, _, res -> res.repr == "1" },
                 { _, _, res -> res.repr == "2" }
@@ -124,7 +124,7 @@ class ListsTest : PythonTestRunner("/samples/SimpleLists.py") {
             standardConcolicAndConcreteChecks,
             /* invariants = */ listOf { i, j, _ -> i.typeName == "list" && j.typeName == "list" },
             /* propertiesToDiscover = */ listOf(
-                { _, _, res -> res.typeName == "IndexError" },
+                { _, _, res -> res.selfTypeName == "IndexError" },
                 { _, _, res -> res.repr == "1" },
                 { _, _, res -> res.repr == "2" }
             )
