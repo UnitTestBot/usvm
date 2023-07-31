@@ -130,6 +130,11 @@
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;)V"
     },
     {
+        "c_name": "mp_subscript",
+        "java_name": "notifyMpSubscript",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)V"
+    },
+    {
         "c_name": "tp_richcmp",
         "java_name": "notifyTpRichcmp",
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;ILorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)V"
@@ -150,8 +155,8 @@
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;)Lorg/usvm/language/VirtualPythonObject;"
     },
     {
-        "c_name": "symbolic_virtual_tp_richcmp",
-        "java_name": "handlerVirtualTpRichcmp",
+        "c_name": "symbolic_virtual_binary_fun",
+        "java_name": "handlerVirtualBinaryFun",
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;ILorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
     }
 ]

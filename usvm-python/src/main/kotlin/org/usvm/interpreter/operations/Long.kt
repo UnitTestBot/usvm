@@ -16,11 +16,9 @@ fun <RES_SORT: KSort> createBinaryIntOp(
     op: (UContext, UExpr<KIntSort>, UExpr<KIntSort>) -> UExpr<RES_SORT>?
 ): (ConcolicRunContext, UninterpretedSymbolicPythonObject, UninterpretedSymbolicPythonObject) -> UninterpretedSymbolicPythonObject? = { concolicContext, left, right ->
     with (concolicContext.ctx) {
-        val leftType = left.getConcreteTypeInModel(concolicContext)
-        val rightType = right.getConcreteTypeInModel(concolicContext)
-        require(leftType == pythonInt || leftType == pythonBool)
-        require(rightType == pythonInt || rightType == pythonBool)
-        op(concolicContext.ctx, left.getToIntContent(concolicContext), right.getToIntContent(concolicContext))?.let {
+        myAssert(concolicContext, left.evalIs(concolicContext, pythonInt) or left.evalIs(concolicContext, pythonBool))
+        myAssert(concolicContext, right.evalIs(concolicContext, pythonInt) or right.evalIs(concolicContext, pythonBool))
+        op(concolicContext.ctx, left.getToIntContent(concolicContext)!!, right.getToIntContent(concolicContext)!!)?.let {
             @Suppress("unchecked_cast")
             when (it.sort) {
                 intSort -> constructInt(concolicContext, it as UExpr<KIntSort>)

@@ -13,6 +13,10 @@ object ConcretePythonInterpreter {
         return PythonNamespace(result)
     }
 
+    fun addObjectToNamespace(namespace: PythonNamespace, pythonObject: PythonObject, name: String) {
+        pythonAdapter.addName(namespace.address, pythonObject.address, name)
+    }
+
     fun concreteRun(globals: PythonNamespace, code: String) {
         val result = pythonAdapter.concreteRun(globals.address, code)
         if (result != 0)
@@ -120,6 +124,7 @@ object ConcretePythonInterpreter {
 
     val typeHasNbBool = createTypeQuery { pythonAdapter.typeHasNbBool(it) }
     val typeHasNbInt = createTypeQuery { pythonAdapter.typeHasNbInt(it) }
+    val typeHasMpSubscript = createTypeQuery { pythonAdapter.typeHasMpSubscript(it) }
     val typeHasTpRichcmp = createTypeQuery { pythonAdapter.typeHasTpRichcmp(it) }
 
     fun kill() {

@@ -10,25 +10,19 @@ virtual_object_dealloc(PyObject *op) {
     Py_TYPE(op)->tp_free(op);
 }
 
+#define MAKE_USVM_VIRUAL_CALL(obj) \
+    SymbolicAdapter *adapter = (obj)->adapter; \
+    ConcolicContext *ctx = (obj)->ctx; \
+    adapter->ignore = 1; \
+    jobject virtual_object = (*ctx->env)->CallStaticObjectMethod(ctx->env, ctx->cpython_adapter_cls, ctx->handle_virtual_call, ctx->context); \
+    adapter->ignore = 0; \
+    CHECK_FOR_EXCEPTION(ctx, 0) \
+    return (PyObject *) create_new_virtual_object(ctx, virtual_object, adapter);
+
 static PyObject *
 tp_richcompare(PyObject *o1, PyObject *o2, int op) {
-    ConcolicContext *ctx = 0;
-    SymbolicAdapter *adapter = 0;
-    if (is_virtual_object(o1)) {
-        ctx = ((VirtualPythonObject *) o1)->ctx;
-        adapter = ((VirtualPythonObject *) o1)->adapter;
-    } else if (is_virtual_object(o2)) {
-        ctx = ((VirtualPythonObject *) o2)->ctx;
-        adapter = ((VirtualPythonObject *) o2)->adapter;
-    } else {
-        PyErr_SetString(PyExc_RuntimeError, "Internal error in virtual tp_richcompare");
-        return 0; // should not be reachable
-    }
-    adapter->ignore = 1;
-    jobject virtual_object = (*ctx->env)->CallStaticObjectMethod(ctx->env, ctx->cpython_adapter_cls, ctx->handle_virtual_call, ctx->context);
-    adapter->ignore = 0;
-    CHECK_FOR_EXCEPTION(ctx, 0)
-    return (PyObject *) create_new_virtual_object(ctx, virtual_object, adapter);
+    assert(is_virtual_object(o1));
+    MAKE_USVM_VIRUAL_CALL((VirtualPythonObject *) o1)
 }
 
 static int
@@ -51,6 +45,11 @@ nb_int(PyObject *self) {
     obj->adapter->ignore = 0;
     CHECK_FOR_EXCEPTION(obj->ctx, 0)
     return (PyObject *) result;
+}
+
+static PyObject *
+mp_subscript(PyObject *self, PyObject *item) {
+    MAKE_USVM_VIRUAL_CALL((VirtualPythonObject *) self)
 }
 
 static PyNumberMethods virtual_as_number = {
@@ -90,6 +89,12 @@ static PyNumberMethods virtual_as_number = {
     0,                          /* nb_index */
 };
 
+PyMappingMethods virtual_as_mapping = {
+    0,                          /* mp_length */
+    mp_subscript,               /* mp_subscript */
+    0                           /* mp_ass_subscript */
+};
+
 PyTypeObject VirtualPythonObject_Type = {
     PyVarObject_HEAD_INIT(&PyType_Type, 0)
     VirtualObjectTypeName,
@@ -103,7 +108,7 @@ PyTypeObject VirtualPythonObject_Type = {
     0,                                       /*tp_repr*/
     &virtual_as_number,                      /*tp_as_number*/
     0,                                       /*tp_as_sequence*/
-    0,                                       /*tp_as_mapping*/
+    &virtual_as_mapping,                     /*tp_as_mapping*/
     0,                                       /*tp_hash */
     0,                                       /*tp_call */
     0,                                       /*tp_str */
@@ -168,4 +173,5 @@ is_virtual_object(PyObject *obj) {
 
 void register_virtual_methods() {
     virtual_tp_richcompare = tp_richcompare;
+    virtual_mp_subscript = mp_subscript;
 }

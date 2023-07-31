@@ -55,7 +55,9 @@ class PythonMachine<PYTHON_OBJECT_REPRESENTATION>(
             pathConstraints,
             memory,
             solverRes.model
-        )
+        ).also {
+            it.meta.generatedFrom = "Initial state"
+        }
     }
 
      private fun getPathSelector(target: PythonUnpinnedCallable): UPathSelector<PythonExecutionState> {
