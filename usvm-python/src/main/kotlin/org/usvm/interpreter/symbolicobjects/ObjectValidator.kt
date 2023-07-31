@@ -1,21 +1,26 @@
 package org.usvm.interpreter.symbolicobjects
 
+import io.ksmt.expr.KInt32NumExpr
+import org.usvm.*
 import org.usvm.interpreter.ConcolicRunContext
+import org.usvm.interpreter.PyModelHolder
+import org.usvm.interpreter.operations.myAssert
+import org.usvm.language.types.pythonList
 
 class ObjectValidator(private val concolicRunContext: ConcolicRunContext) {
-    @Suppress("unused_parameter")
+    private val checked = mutableSetOf<UConcreteHeapRef>()
     fun check(symbol: UninterpretedSymbolicPythonObject) {
-        /*val model = concolicRunContext.curState.pyModel
-        val concrete = interpretSymbolicPythonObject(symbol, model)
-        with(concolicRunContext.ctx) {
-            myAssert(concolicRunContext, mkHeapRefEq(symbol.address, nullRef).not())
+        val modelHolder = concolicRunContext.modelHolder
+        val concrete = interpretSymbolicPythonObject(symbol, modelHolder)
+        if (checked.contains(concrete.address))
+            return
+        checked.add(concrete.address)
+        when (concrete.getConcreteType(concolicRunContext)) {
+            //pythonInt -> checkInt(symbol)
+            //pythonNoneType -> checkNone(symbol)
+            //pythonBool -> checkBool(symbol)
+            pythonList -> checkList(symbol, modelHolder)
         }
-        when (concrete.getConcreteType()) {
-            pythonInt -> checkInt(symbol)
-            pythonNoneType -> checkNone(symbol)
-            pythonBool -> checkBool(symbol)
-            pythonList -> checkList(symbol, concrete)
-        }*/
     }
 
     /*
@@ -34,23 +39,19 @@ class ObjectValidator(private val concolicRunContext: ConcolicRunContext) {
         val asInt = symbolic.getIntContent(concolicRunContext)
         myAssert(concolicRunContext, isTrue implies (asInt eq mkIntNum(1)))
         myAssert(concolicRunContext, isFalse implies (asInt eq mkIntNum(0)))
-    }
+    }*/
 
-    private fun checkList(symbolic: UninterpretedSymbolicPythonObject, concrete: InterpretedSymbolicPythonObject) = with(concolicRunContext.ctx) {
+    @Suppress("unchecked_parameter")
+    private fun checkList(symbolic: UninterpretedSymbolicPythonObject, modelHolder: PyModelHolder) = with(concolicRunContext.ctx) {
         @Suppress("unchecked_cast")
         val symbolicSize = concolicRunContext.curState.memory.read(UArrayLengthLValue(symbolic.address, pythonList)) as USizeExpr
         myAssert(concolicRunContext, symbolicSize ge mkIntNum(0))
-        val size = concrete.model.eval(symbolicSize) as KInt32NumExpr
-        myAssert(concolicRunContext, symbolicSize le mkIntNum(10))  // temporary
+        val size = modelHolder.model.eval(symbolicSize) as KInt32NumExpr
         List(size.value) { index ->
             @Suppress("unchecked_cast")
             val element = concolicRunContext.curState.memory.read(UArrayIndexLValue(addressSort, symbolic.address, mkSizeExpr(index), pythonList)) as UHeapRef
-            myAssert(concolicRunContext, (symbolicSize gt mkIntNum(index)) implies mkNot(mkHeapRefEq(element, nullRef)))
             val elemObj = UninterpretedSymbolicPythonObject(element)
-            if (concolicRunContext.curState.useOnlyIntsAsInternalObjects)
-                elemObj.addSupertype(concolicRunContext, pythonInt)
             check(elemObj)
         }
     }
-     */
 }

@@ -19,8 +19,8 @@ fun <T : Any> withTracing(
     val event = context.curState.path[context.instructionCounter - 1]
     if (event.parameters != newEventParameters) {
         println("Path diversion!")
-        println(event.parameters)
-        println(newEventParameters)
+        println("Expected: ${event.parameters}")
+        println("Got: $newEventParameters")
         System.out.flush()
         throw PathDiversionException
     }
@@ -41,7 +41,10 @@ fun handlerForkResultKt(context: ConcolicRunContext, result: Boolean) {
     if (lastEventParams !is Fork)
         return
 
-    val expectedResult = context.curState.pyModel.eval(lastEventParams.condition.obj.getBoolContent(context)).isTrue
+    val expectedResult = lastEventParams.condition.obj.getToBoolValue(context)?.let {
+        context.curState.pyModel.eval(it)
+    }?.isTrue ?: return
+
     if (result != expectedResult)
         throw PathDiversionException
 }

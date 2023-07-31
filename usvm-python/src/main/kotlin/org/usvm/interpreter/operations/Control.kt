@@ -27,7 +27,10 @@ fun myFork(ctx: ConcolicRunContext, cond: UExpr<KBoolSort>) {
         error("Should not be reachable")
     }
     if (forkResult.negativeState != oldCurState)
-        forkResult.negativeState?.let { ctx.forkedStates.add(it) }
+        forkResult.negativeState?.let {
+            ctx.forkedStates.add(it)
+            it.meta.generatedFrom = "From ordinary fork"
+        }
 }
 
 fun myAssert(ctx: ConcolicRunContext, cond: UExpr<KBoolSort>) {
@@ -51,7 +54,7 @@ fun addDelayedFork(context: ConcolicRunContext, on: UninterpretedSymbolicPythonO
 }
 
 fun handlerForkKt(ctx: ConcolicRunContext, cond: UninterpretedSymbolicPythonObject) {
-    if (cond.getConcreteTypeInModel(ctx) == null) {
+    if (cond.getTypeIfDefined(ctx) == null) {
         addDelayedFork(ctx, cond, ctx.curState.clone())
     }
     val expr = cond.getToBoolValue(ctx) ?: return

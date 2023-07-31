@@ -51,6 +51,7 @@ class PythonVirtualPathSelector(
 
         return forkResult.negativeState?.let {
             it.delayedForks = delayedFork.delayedFork.delayedForkPrefix
+            it.meta.generatedFrom = "From delayed fork"
             it
         }
     }

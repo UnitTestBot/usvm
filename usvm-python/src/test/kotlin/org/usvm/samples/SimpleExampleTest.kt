@@ -75,7 +75,7 @@ class SimpleExampleTest : PythonTestRunner("/samples/SimpleExample.py") {
             functionZeroDivision,
             eq(1),
             standardConcolicAndConcreteChecks,
-            /* invariants = */ listOf { x, res -> x.typeName == "int" && res.typeName == "ZeroDivisionError" },
+            /* invariants = */ listOf { x, res -> x.typeName == "int" && res.selfTypeName == "ZeroDivisionError" },
             /* propertiesToDiscover = */ listOf()
         )
     }
@@ -89,7 +89,7 @@ class SimpleExampleTest : PythonTestRunner("/samples/SimpleExample.py") {
             standardConcolicAndConcreteChecks,
             /* invariants = */ listOf(),
             /* propertiesToDiscover = */ listOf(
-                { x, res -> x.repr.toInt() > 100 && res.typeName == "ZeroDivisionError" },
+                { x, res -> x.repr.toInt() > 100 && res.selfTypeName == "ZeroDivisionError" },
                 { x, res -> x.repr.toInt() <= 100 && res.repr == x.repr }
             )
         )

@@ -23,6 +23,16 @@
         CHECK_FOR_EXCEPTION(ctx, (PyObject *) 1) \
     }
 
+#define NOTIFY_BINARY(func) \
+    PyObject *first = args[0]; \
+    PyObject *second = args[1]; \
+    if (is_wrapped_java_object(first) && is_wrapped_java_object(second)) { \
+        jobject j_first = ((JavaPythonObject *) first)->reference; \
+        jobject j_second = ((JavaPythonObject *) second)->reference; \
+        (*ctx->env)->CallStaticVoidMethod(ctx->env, ctx->cpython_adapter_cls, ctx->handle_##func, ctx->context, j_first, j_second); \
+        CHECK_FOR_EXCEPTION(ctx, (PyObject *) 1) \
+    }
+
 static jobject
 make_load_const(ConcolicContext *ctx, PyObject *value) {
     if (PyLong_Check(value)) {
@@ -70,6 +80,10 @@ handler(int signal_type, int signal_id, int nargs, PyObject *const *args, void *
             PyErr_Print();
             printf("EVENT_ID: %d\n", signal_id);
             fflush(stdout);
+            PyObject *wrapped = PyObject_GetAttrString((PyObject *) value, "java_exception");
+            printf("%p\n", wrapped);
+            fflush(stdout);
+            (*ctx->env)->Throw(ctx->env, ((JavaPythonObject *) wrapped)->reference);
             (*ctx->env)->ExceptionDescribe(ctx->env);
         }
         assert(type != ctx->java_exception);
@@ -240,11 +254,19 @@ handler(int signal_type, int signal_id, int nargs, PyObject *const *args, void *
             CHECK_FOR_EXCEPTION(ctx, (PyObject *) 1)
         }
 
+    } else if (signal_id == SYM_EVENT_ID_MP_SUBSCRIPT) {
+        assert(signal_type == SYM_EVENT_TYPE_NOTIFY && nargs == 2);
+        NOTIFY_BINARY(mp_subscript)
+
     } else if (signal_id == SYM_EVENT_ID_VIRTUAL_RICHCMP) {
         assert(signal_type == SYM_EVENT_TYPE_METHOD && nargs == 2);
-        BINARY_METHOD_HANDLER(symbolic_virtual_tp_richcmp)
+        BINARY_METHOD_HANDLER(symbolic_virtual_binary_fun)
 
-    }
+    } else if (signal_id == SYM_EVENT_ID_VIRTUAL_MP_SUBSCRIPT) {
+         assert(signal_type == SYM_EVENT_TYPE_METHOD && nargs == 2);
+         BINARY_METHOD_HANDLER(symbolic_virtual_binary_fun)
+
+     }
 
     return Py_None;
 }

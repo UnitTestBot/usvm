@@ -15,9 +15,11 @@ open class PythonTestRunner(
     override var options: UMachineOptions = UMachineOptions()
     private val testSources = File(PythonTestRunner::class.java.getResource(sourcePath)!!.file).readText()
     private val machine = PythonMachine(PythonProgram(testSources)) { pythonObject ->
+        val typeName = ConcretePythonInterpreter.getPythonObjectTypeName(pythonObject)
         PythonObjectInfo(
             ConcretePythonInterpreter.getPythonObjectRepr(pythonObject),
-            ConcretePythonInterpreter.getPythonObjectTypeName(pythonObject)
+            typeName,
+            if (typeName == "type") ConcretePythonInterpreter.getNameOfPythonType(pythonObject) else null
         )
     }
     override val typeTransformer: (Any?) -> PythonType
@@ -121,8 +123,9 @@ open class PythonTestRunner(
     protected val compareConcolicAndConcreteTypesIfFail:
                 (PythonTest, PythonObject) -> Boolean = { testFromConcolic, concreteResult ->
         (testFromConcolic.result as? Fail)?.let {
-            ConcretePythonInterpreter.getPythonObjectTypeName(concreteResult) == "type" &&
-            it.exception.typeName == ConcretePythonInterpreter.getNameOfPythonType(concreteResult)
+            it.exception.typeName == "type" &&
+                    ConcretePythonInterpreter.getPythonObjectTypeName(concreteResult) == "type" &&
+                    it.exception.selfTypeName == ConcretePythonInterpreter.getNameOfPythonType(concreteResult)
         } ?: true
     }
 
@@ -138,7 +141,8 @@ open class PythonTestRunner(
 
 class PythonObjectInfo(
     val repr: String,
-    val typeName: String
+    val typeName: String,
+    val selfTypeName: String?
 ) {
     override fun toString(): String = "$repr: $typeName"
 }

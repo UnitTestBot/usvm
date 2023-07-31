@@ -33,6 +33,14 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_getNewNamespace
 
 /*
  * Class:     org_usvm_interpreter_CPythonAdapter
+ * Method:    addName
+ * Signature: (JJLjava/lang/String;)V
+ */
+JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_addName
+  (JNIEnv *, jobject, jlong, jlong, jstring);
+
+/*
+ * Class:     org_usvm_interpreter_CPythonAdapter
  * Method:    concreteRun
  * Signature: (JLjava/lang/String;)I
  */
@@ -133,6 +141,14 @@ JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasNbBool
  * Signature: (J)I
  */
 JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasNbInt
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_usvm_interpreter_CPythonAdapter
+ * Method:    typeHasMpSubscript
+ * Signature: (J)I
+ */
+JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasMpSubscript
   (JNIEnv *, jobject, jlong);
 
 /*
