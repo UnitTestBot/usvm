@@ -15,6 +15,7 @@ import org.usvm.statistics.UMachineObserver
 class PythonMachine<PYTHON_OBJECT_REPRESENTATION>(
     program: PythonProgram,
     private val printErrorMsg: Boolean = false,
+    private val allowPathDiversion: Boolean = true,
     private val pythonObjectSerialization: (PythonObject) -> PYTHON_OBJECT_REPRESENTATION
 ): UMachine<PythonExecutionState>() {
     private val ctx = UPythonContext()
@@ -30,7 +31,7 @@ class PythonMachine<PYTHON_OBJECT_REPRESENTATION>(
         target: PythonUnpinnedCallable,
         results: MutableList<PythonAnalysisResult<PYTHON_OBJECT_REPRESENTATION>>
     ): USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION> =
-        USVMPythonInterpreter(ctx, namespace, target, iterationCounter, printErrorMsg, pythonObjectSerialization) {
+        USVMPythonInterpreter(ctx, namespace, target, iterationCounter, printErrorMsg, allowPathDiversion, pythonObjectSerialization) {
             results.add(it)
         }
 

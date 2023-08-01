@@ -19,7 +19,9 @@ def two_args(x, y):
 def list_of_int(x):
     if x[0] == 10:
         return 1
-    return 2
+    elif x[-1] == 150:
+        return 2
+    return 3
 
 
 def double_subscript(x):

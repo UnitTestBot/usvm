@@ -28,14 +28,16 @@ fun constructInputObject(
 
 
 fun constructInt(context: ConcolicRunContext, expr: UExpr<KIntSort>): UninterpretedSymbolicPythonObject {
-    val address = context.curState.memory.alloc(pythonInt)
+    require(context.curState != null)
+    val address = context.curState!!.memory.alloc(pythonInt)
     val result = UninterpretedSymbolicPythonObject(address)
     result.setIntContent(context, expr)
     return result
 }
 
 fun constructBool(context: ConcolicRunContext, expr: UExpr<KBoolSort>): UninterpretedSymbolicPythonObject {
-    val address = context.curState.memory.alloc(pythonBool)
+    require(context.curState != null)
+    val address = context.curState!!.memory.alloc(pythonBool)
     val result = UninterpretedSymbolicPythonObject(address)
     result.setBoolContent(context, expr)
     return result

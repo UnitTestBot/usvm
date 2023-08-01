@@ -70,11 +70,13 @@ def positive_and_negative_index(y: list, i: int):
         else:
             return 2
     elif y[i] == 167:
-        if i >= 0:
+        if i % 10 == 7:
             return 3
-        else:
+        elif i >= 0:
             return 4
+        else:
+            return 5
     if i >= 0:
-        return 5
-    else:
         return 6
+    else:
+        return 7
