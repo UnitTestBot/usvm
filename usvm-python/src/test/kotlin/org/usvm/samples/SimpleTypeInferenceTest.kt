@@ -45,7 +45,8 @@ class SimpleTypeInferenceTest: PythonTestRunner("/samples/SimpleTypeInference.py
             /* propertiesToDiscover = */ listOf(
                 { _, res -> res.selfTypeName == "IndexError" },
                 { _, res -> res.repr == "1" },
-                { _, res -> res.repr == "2" }
+                { _, res -> res.repr == "2" },
+                { _, res -> res.repr == "3" }
             )
         )
     }

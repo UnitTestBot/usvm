@@ -15,7 +15,9 @@ import org.usvm.language.types.pythonInt
 fun <RES_SORT: KSort> createBinaryIntOp(
     op: (UContext, UExpr<KIntSort>, UExpr<KIntSort>) -> UExpr<RES_SORT>?
 ): (ConcolicRunContext, UninterpretedSymbolicPythonObject, UninterpretedSymbolicPythonObject) -> UninterpretedSymbolicPythonObject? = { concolicContext, left, right ->
-    with (concolicContext.ctx) {
+    if (concolicContext.curState == null)
+        null
+    else with (concolicContext.ctx) {
         myAssert(concolicContext, left.evalIs(concolicContext, pythonInt) or left.evalIs(concolicContext, pythonBool))
         myAssert(concolicContext, right.evalIs(concolicContext, pythonInt) or right.evalIs(concolicContext, pythonBool))
         op(concolicContext.ctx, left.getToIntContent(concolicContext)!!, right.getToIntContent(concolicContext)!!)?.let {

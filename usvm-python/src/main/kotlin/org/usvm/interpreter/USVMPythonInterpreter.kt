@@ -13,6 +13,7 @@ class USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION>(
     private val callable: PythonUnpinnedCallable,
     private val iterationCounter: IterationCounter,
     private val printErrorMsg: Boolean,
+    private val allowPathDiversion: Boolean = true,
     private val pythonObjectSerialization: (PythonObject) -> PYTHON_OBJECT_REPRESENTATION,
     private val saveRunResult: (PythonAnalysisResult<PYTHON_OBJECT_REPRESENTATION>) -> Unit
 ) : UInterpreter<PythonExecutionState>() {
@@ -52,7 +53,7 @@ class USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION>(
                 state.meta.lastConverter!!.modelHolder
             else
                 PyModelHolder(state.pyModel)
-        val concolicRunContext = ConcolicRunContext(state, ctx, modelHolder)
+        val concolicRunContext = ConcolicRunContext(state, ctx, modelHolder, allowPathDiversion)
         state.meta.objectsWithoutConcreteTypes = null
         state.meta.lastConverter?.restart()
         try {
@@ -105,16 +106,23 @@ class USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION>(
                 }
             }
 
-            concolicRunContext.curState.meta.wasExecuted = true
             iterationCounter.iterations += 1
+            val resultState = concolicRunContext.curState
+            if (resultState != null) {
+                resultState.meta.wasExecuted = true
 
-            if (concolicRunContext.curState.delayedForks.isEmpty() && inputs == null) {
-                concolicRunContext.curState.meta.objectsWithoutConcreteTypes = converter.getUSVMVirtualObjects()
-                concolicRunContext.curState.meta.lastConverter = converter
+                if (resultState.delayedForks.isEmpty() && inputs == null) {
+                    resultState.meta.objectsWithoutConcreteTypes = converter.getUSVMVirtualObjects()
+                    resultState.meta.lastConverter = converter
+                }
+                logger.debug("Finished step on state: {}", concolicRunContext.curState)
+
+                return StepResult(concolicRunContext.forkedStates.asSequence(), !state.meta.modelDied)
+
+            } else {
+                logger.debug("Ended step with path diversion")
+                return StepResult(emptySequence(), false)
             }
-            logger.debug("Finished step on state: {}", concolicRunContext.curState)
-
-            return StepResult(concolicRunContext.forkedStates.asSequence(), !state.meta.modelDied)
 
         } catch (_: BadModelException) {
 
