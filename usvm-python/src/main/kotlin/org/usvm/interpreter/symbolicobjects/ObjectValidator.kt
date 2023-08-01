@@ -43,13 +43,14 @@ class ObjectValidator(private val concolicRunContext: ConcolicRunContext) {
 
     @Suppress("unchecked_parameter")
     private fun checkList(symbolic: UninterpretedSymbolicPythonObject, modelHolder: PyModelHolder) = with(concolicRunContext.ctx) {
+        require(concolicRunContext.curState != null)
         @Suppress("unchecked_cast")
-        val symbolicSize = concolicRunContext.curState.memory.read(UArrayLengthLValue(symbolic.address, pythonList)) as USizeExpr
+        val symbolicSize = concolicRunContext.curState!!.memory.read(UArrayLengthLValue(symbolic.address, pythonList)) as USizeExpr
         myAssert(concolicRunContext, symbolicSize ge mkIntNum(0))
         val size = modelHolder.model.eval(symbolicSize) as KInt32NumExpr
         List(size.value) { index ->
             @Suppress("unchecked_cast")
-            val element = concolicRunContext.curState.memory.read(UArrayIndexLValue(addressSort, symbolic.address, mkSizeExpr(index), pythonList)) as UHeapRef
+            val element = concolicRunContext.curState!!.memory.read(UArrayIndexLValue(addressSort, symbolic.address, mkSizeExpr(index), pythonList)) as UHeapRef
             val elemObj = UninterpretedSymbolicPythonObject(element)
             check(elemObj)
         }
