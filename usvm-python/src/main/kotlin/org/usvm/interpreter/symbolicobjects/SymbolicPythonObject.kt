@@ -27,11 +27,14 @@ sealed class SymbolicPythonObject(open val address: UHeapRef) {
 
 class UninterpretedSymbolicPythonObject(address: UHeapRef): SymbolicPythonObject(address) {
     fun addSupertype(ctx: ConcolicRunContext, type: PythonType) {
+        require(ctx.curState != null)
         myAssert(ctx, evalIs(ctx, type))
     }
 
-    fun evalIs(ctx: ConcolicRunContext, type: PythonType): UBoolExpr =
-        evalIs(ctx.ctx, ctx.curState.pathConstraints.typeConstraints, type)
+    fun evalIs(ctx: ConcolicRunContext, type: PythonType): UBoolExpr {
+        require(ctx.curState != null)
+        return evalIs(ctx.ctx, ctx.curState!!.pathConstraints.typeConstraints, type)
+    }
 
     fun evalIs(ctx: UContext, typeConstraints: UTypeConstraints<PythonType>, type: PythonType): UBoolExpr = with(ctx) {
         var result: UBoolExpr = typeConstraints.evalIsSubtype(address, type)
@@ -41,21 +44,24 @@ class UninterpretedSymbolicPythonObject(address: UHeapRef): SymbolicPythonObject
     }
 
     fun setIntContent(ctx: ConcolicRunContext, expr: UExpr<KIntSort>) {
+        require(ctx.curState != null)
         addSupertype(ctx, pythonInt)
         val lvalue = UFieldLValue(expr.sort, address, IntContent)
-        ctx.curState.memory.write(lvalue, expr)
+        ctx.curState!!.memory.write(lvalue, expr)
     }
 
     fun setBoolContent(ctx: ConcolicRunContext, expr: UBoolExpr) {
+        require(ctx.curState != null)
         addSupertype(ctx, pythonBool)
         val lvalue = UFieldLValue(expr.sort, address, BoolContent)
-        ctx.curState.memory.write(lvalue, expr)
+        ctx.curState!!.memory.write(lvalue, expr)
     }
 
     fun getIntContent(ctx: ConcolicRunContext): UExpr<KIntSort> {
+        require(ctx.curState != null)
         addSupertype(ctx, pythonInt)
         @Suppress("unchecked_cast")
-        return ctx.curState.memory.heap.readField(address, IntContent, ctx.ctx.intSort) as UExpr<KIntSort>
+        return ctx.curState!!.memory.heap.readField(address, IntContent, ctx.ctx.intSort) as UExpr<KIntSort>
     }
 
     fun getToIntContent(ctx: ConcolicRunContext): UExpr<KIntSort>? = with(ctx.ctx) {
@@ -67,16 +73,18 @@ class UninterpretedSymbolicPythonObject(address: UHeapRef): SymbolicPythonObject
     }
 
     fun getBoolContent(ctx: ConcolicRunContext): UExpr<KBoolSort> {
+        require(ctx.curState != null)
         addSupertype(ctx, pythonBool)
         @Suppress("unchecked_cast")
-        return ctx.curState.memory.heap.readField(address, BoolContent, ctx.ctx.boolSort) as UExpr<KBoolSort>
+        return ctx.curState!!.memory.heap.readField(address, BoolContent, ctx.ctx.boolSort) as UExpr<KBoolSort>
     }
 
     fun getToBoolValue(ctx: ConcolicRunContext): UBoolExpr? = with (ctx.ctx) {
+        require(ctx.curState != null)
         return when (getTypeIfDefined(ctx)) {
             pythonBool -> getBoolContent(ctx)
             pythonInt -> getIntContent(ctx) neq mkIntNum(0)
-            pythonList -> ctx.curState.memory.heap.readArrayLength(address, pythonList) gt mkIntNum(0)
+            pythonList -> ctx.curState!!.memory.heap.readArrayLength(address, pythonList) gt mkIntNum(0)
             else -> null
         }
     }
@@ -144,17 +152,20 @@ class InterpretedAllocatedSymbolicPythonObject(
         require(address.address > 0)
     }
     override fun getConcreteType(ctx: ConcolicRunContext): ConcretePythonType? {
-        return ctx.curState.memory.typeStreamOf(address).first() as? ConcretePythonType
+        require(ctx.curState != null)
+        return ctx.curState!!.memory.typeStreamOf(address).first() as? ConcretePythonType
     }
 
     override fun getBoolContent(ctx: ConcolicRunContext): KInterpretedValue<KBoolSort> {
+        require(ctx.curState != null)
         @Suppress("unchecked_cast")
-        return ctx.curState.memory.heap.readField(address, BoolContent, ctx.ctx.boolSort) as KInterpretedValue<KBoolSort>
+        return ctx.curState!!.memory.heap.readField(address, BoolContent, ctx.ctx.boolSort) as KInterpretedValue<KBoolSort>
     }
 
     override fun getIntContent(ctx: ConcolicRunContext): KInterpretedValue<KIntSort> {
+        require(ctx.curState != null)
         @Suppress("unchecked_cast")
-        return ctx.curState.memory.heap.readField(address, IntContent, ctx.ctx.intSort) as KInterpretedValue<KIntSort>
+        return ctx.curState!!.memory.heap.readField(address, IntContent, ctx.ctx.intSort) as KInterpretedValue<KIntSort>
     }
 }
 

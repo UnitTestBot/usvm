@@ -1,28 +1,35 @@
 package org.usvm.interpreter.operations.tracing
 
+import mu.KLogging
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.isTrue
 import java.util.concurrent.Callable
+
+private val logger = object : KLogging() {}.logger
+object PathDiversionException: Exception()
 
 fun <T : Any> withTracing(
     context: ConcolicRunContext,
     newEventParameters: SymbolicHandlerEventParameters<T>,
     resultSupplier: Callable<T?>
 ): T? {
+    if (context.curState == null)
+        return null
     context.instructionCounter++
-    if (context.instructionCounter > context.curState.path.size) {
+    if (context.instructionCounter > context.curState!!.path.size) {
         val result = runCatching { resultSupplier.call() }.onFailure { System.err.println(it) }.getOrThrow()
+        if (context.curState == null)
+            return null
         val eventRecord = SymbolicHandlerEvent(newEventParameters, result)
-        context.curState.path = context.curState.path.add(eventRecord)
+        context.curState!!.path = context.curState!!.path.add(eventRecord)
         return result
     }
-    val event = context.curState.path[context.instructionCounter - 1]
+    val event = context.curState!!.path[context.instructionCounter - 1]
     if (event.parameters != newEventParameters) {
-        println("Path diversion!")
-        println("Expected: ${event.parameters}")
-        println("Got: $newEventParameters")
-        System.out.flush()
-        throw PathDiversionException
+        logger.debug("Path diversion!")
+        logger.debug("Expected: {}", event.parameters)
+        logger.debug("Got: {}", newEventParameters)
+        context.pathDiversion()
     }
     event.result ?: return null
 
@@ -30,21 +37,19 @@ fun <T : Any> withTracing(
     return event.result as T
 }
 
-object PathDiversionException: Exception()
-
 
 // TODO: there might be events between fork and fork result
 fun handlerForkResultKt(context: ConcolicRunContext, result: Boolean) {
-    if (context.instructionCounter < 1)
+    if (context.instructionCounter < 1 || context.curState == null)
         return
-    val lastEventParams = context.curState.path[context.instructionCounter - 1].parameters
+    val lastEventParams = context.curState!!.path[context.instructionCounter - 1].parameters
     if (lastEventParams !is Fork)
         return
 
     val expectedResult = lastEventParams.condition.obj.getToBoolValue(context)?.let {
-        context.curState.pyModel.eval(it)
+        context.curState!!.pyModel.eval(it)
     }?.isTrue ?: return
 
     if (result != expectedResult)
-        throw PathDiversionException
+        context.pathDiversion()
 }

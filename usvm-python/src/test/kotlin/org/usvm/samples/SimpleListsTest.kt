@@ -6,7 +6,7 @@ import org.usvm.language.types.pythonList
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
-class ListsTest : PythonTestRunner("/samples/SimpleLists.py") {
+class SimpleListsTest : PythonTestRunner("/samples/SimpleLists.py") {
 
     private val functionSimpleListSample = constructFunction("simple_list_sample", listOf(pythonList, pythonInt))
     @Test
@@ -139,7 +139,7 @@ class ListsTest : PythonTestRunner("/samples/SimpleLists.py") {
             ignoreNumberOfAnalysisResults,
             standardConcolicAndConcreteChecks,
             /* invariants = */ listOf { i, j, _ -> i.typeName == "list" && j.typeName == "int" },
-            /* propertiesToDiscover = */ List(6) { index ->
+            /* propertiesToDiscover = */ List(7) { index ->
                 { _, _, res -> res.repr == (index + 1).toString() }
             }
         )

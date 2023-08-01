@@ -35,15 +35,16 @@ fun virtualNbIntKt(context: ConcolicRunContext, on: VirtualPythonObject): Python
 
 private fun internalVirtualCallKt(context: ConcolicRunContext): Pair<VirtualPythonObject, UninterpretedSymbolicPythonObject> = with(context.ctx) {
     context.curOperation ?: throw UnregisteredVirtualOperation
+    context.curState ?: throw UnregisteredVirtualOperation
     val ownerIsAlreadyMocked = context.curOperation.methodOwner.obj.getTypeIfDefined(context) is TypeOfVirtualObject
-    val clonedState = if (!ownerIsAlreadyMocked) context.curState.clone() else null
-    val (symbolic, _, mockSymbol) = context.curState.mock(context.curOperation)
+    val clonedState = if (!ownerIsAlreadyMocked) context.curState!!.clone() else null
+    val (symbolic, _, mockSymbol) = context.curState!!.mock(context.curOperation)
     if (!ownerIsAlreadyMocked) {
         addDelayedFork(context, context.curOperation.methodOwner.obj, clonedState!!)
     }
     if (context.curOperation.method.isMethodWithNonVirtualReturn) {
         val newModel = constructModelWithNewMockEvaluator(context.ctx, context.modelHolder.model, mockSymbol)
-        substituteModel(context.curState, newModel, context)
+        substituteModel(context.curState!!, newModel, context)
     }
     val concrete = interpretSymbolicPythonObject(symbolic, context.modelHolder)
     return VirtualPythonObject(concrete as InterpretedInputSymbolicPythonObject) to symbolic
