@@ -100,6 +100,11 @@
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
     },
     {
+        "c_name": "symbolic_isinstance",
+        "java_name": "handlerIsinstance",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;J)Lorg/usvm/language/SymbolForCPython;"
+    },
+    {
         "c_name": "function_call",
         "java_name": "handlerFunctionCall",
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;J)V"

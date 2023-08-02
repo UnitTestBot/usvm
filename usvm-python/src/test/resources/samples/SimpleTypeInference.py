@@ -36,3 +36,15 @@ def simple_comparison(x, y):
     elif x == y:
         return 2
     return 3
+
+
+def isinstance_sample(x):
+    if isinstance(x, bool):
+        return 1
+    if isinstance(x, int):
+        return 2
+    elif isinstance(x, list):
+        return 3
+    elif isinstance(x, object):
+        return 4
+    return "Not reachable"

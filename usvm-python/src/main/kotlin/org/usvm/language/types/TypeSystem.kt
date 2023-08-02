@@ -1,5 +1,6 @@
 package org.usvm.language.types
 
+import org.usvm.interpreter.PythonObject
 import org.usvm.types.USupportTypeStream
 import org.usvm.types.UTypeStream
 import org.usvm.types.UTypeSystem
@@ -23,13 +24,15 @@ object PythonTypeSystem: UTypeSystem<PythonType> {
         return type is ConcretePythonType || type is TypeOfVirtualObject
     }
 
-    private val basicConcretePythonTypes = listOf(
-        pythonInt,
-        pythonBool,
-        pythonObjectType,
-        pythonNoneType,
-        pythonList
+    private val addressToConcreteType = mapOf(
+        pythonInt.asObject to pythonInt,
+        pythonBool.asObject to pythonBool,
+        pythonObjectType.asObject to pythonObjectType,
+        pythonNoneType.asObject to pythonNoneType,
+        pythonList.asObject to pythonList
     )
+
+    private val basicConcretePythonTypes = addressToConcreteType.values
 
     override fun findSubtypes(type: PythonType): Sequence<PythonType> {
         if (isFinal(type))
@@ -40,5 +43,8 @@ object PythonTypeSystem: UTypeSystem<PythonType> {
     override fun topTypeStream(): UTypeStream<PythonType> {
         return USupportTypeStream.from(this, PythonAnyType)
     }
+
+    fun getConcreteTypeByAddress(typeAsObject: PythonObject): ConcretePythonType? =
+        addressToConcreteType[typeAsObject]
 
 }
