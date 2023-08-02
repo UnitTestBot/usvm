@@ -50,6 +50,10 @@ fun handlerForkResultKt(context: ConcolicRunContext, result: Boolean) {
         context.curState!!.pyModel.eval(it)
     }?.isTrue ?: return
 
-    if (result != expectedResult)
+    if (result != expectedResult) {
+        logger.debug("Path diversion after fork!")
+        logger.debug("Expected: {}", expectedResult)
+        logger.debug("Got: {}", result)
         context.pathDiversion()
+    }
 }
