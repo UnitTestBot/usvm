@@ -1,5 +1,6 @@
 #include "utils.h"
 #include "virtual_objects.h"
+#include "approximations.h"
 #include "limits.h"
 
 static void
@@ -74,6 +75,10 @@ void construct_concolic_context(JNIEnv *env, jobject context, jobject cpython_ad
     dist->cpython_thrown_exception_field = (*env)->GetFieldID(env, dist->cpython_adapter_cls, "thrownException", "J");
     dist->cpython_java_exception_field = (*env)->GetFieldID(env, dist->cpython_adapter_cls, "javaExceptionType", "J");
     DO_REGISTRATIONS(dist, env)
+}
+
+void register_approximations(SymbolicAdapter *adapter) {
+    adapter->approximation_builtin_len = Approximation_len;
 }
 
 static void

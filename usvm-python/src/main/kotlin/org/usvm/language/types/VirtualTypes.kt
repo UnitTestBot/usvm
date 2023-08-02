@@ -27,6 +27,21 @@ object HasNbInt: TypeProtocol() {
         ConcretePythonInterpreter.typeHasNbInt(type.asObject)
 }
 
+object HasNbAdd: TypeProtocol() {
+    override fun acceptsConcrete(type: ConcretePythonType): Boolean =
+        ConcretePythonInterpreter.typeHasNbAdd(type.asObject)
+}
+
+object HasSqLength: TypeProtocol() {
+    override fun acceptsConcrete(type: ConcretePythonType): Boolean =
+        ConcretePythonInterpreter.typeHasSqLength(type.asObject)
+}
+
+object HasMpLength: TypeProtocol() {
+    override fun acceptsConcrete(type: ConcretePythonType): Boolean =
+        ConcretePythonInterpreter.typeHasMpLength(type.asObject)
+}
+
 object HasMpSubscript: TypeProtocol() {
     override fun acceptsConcrete(type: ConcretePythonType): Boolean =
         ConcretePythonInterpreter.typeHasMpSubscript(type.asObject)

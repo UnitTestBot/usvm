@@ -44,7 +44,7 @@ fun handlerGELongKt(x: ConcolicRunContext, y: UninterpretedSymbolicPythonObject,
 fun handlerLELongKt(x: ConcolicRunContext, y: UninterpretedSymbolicPythonObject, z: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? =
     createBinaryIntOp { ctx, left, right -> with(ctx) { left le right } } (x, y, z)
 fun handlerADDLongKt(x: ConcolicRunContext, y: UninterpretedSymbolicPythonObject, z: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? =
-    createBinaryIntOp { ctx, left, right -> val res = ctx.mkArithAdd(left, right); res } (x, y, z)
+    createBinaryIntOp { ctx, left, right -> ctx.mkArithAdd(left, right) } (x, y, z)
 fun handlerSUBLongKt(x: ConcolicRunContext, y: UninterpretedSymbolicPythonObject, z: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? =
     createBinaryIntOp { ctx, left, right -> ctx.mkArithSub(left, right) } (x, y, z)
 fun handlerMULLongKt(x: ConcolicRunContext, y: UninterpretedSymbolicPythonObject, z: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? =

@@ -80,3 +80,22 @@ def positive_and_negative_index(y: list, i: int):
         return 6
     else:
         return 7
+
+
+def len_usage(x: list):
+    if len(x) > 5:
+        return 1
+    return 2
+
+
+def sum_of_elements(x: list):
+    i = 0
+    sum_ = 0
+    while i < len(x):
+        sum_ += x[i]
+        i += 1
+    if sum_ == 100:
+        return 1
+    elif sum_ % 200 == 153:
+        return 2
+    return 3

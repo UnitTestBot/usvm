@@ -154,13 +154,8 @@ class PythonVirtualPathSelector(
             require(state.meta.wasExecuted)
             executionsWithVirtualObjectAndWithoutDelayedForks.add(state)
         }
-        if (state.meta.wasExecuted) {
-            state.meta.extractedFrom?.remove(state)
-            processDelayedForksOfExecutedState(state)
-
-        } else {
-            state.meta.extractedFrom?.update(state)
-        }
+        state.meta.extractedFrom?.remove(state)
+        add(listOf(state))
     }
 
     override fun add(states: Collection<PythonExecutionState>) {

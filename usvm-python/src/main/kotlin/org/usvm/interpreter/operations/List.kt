@@ -4,6 +4,7 @@ import io.ksmt.sort.KIntSort
 import org.usvm.*
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.interpreter.symbolicobjects.UninterpretedSymbolicPythonObject
+import org.usvm.interpreter.symbolicobjects.constructInt
 import org.usvm.language.types.PythonType
 import org.usvm.language.types.pythonInt
 import org.usvm.language.types.pythonList
@@ -21,6 +22,14 @@ fun handlerCreateListKt(context: ConcolicRunContext, elements: Stream<Uninterpre
         myAssert(context, context.curState!!.pathConstraints.typeConstraints.evalIsSubtype(listAddress, pythonList))
         return result
     }
+}
+
+fun handlerListGetSizeKt(context: ConcolicRunContext, list: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
+    if (context.curState == null)
+        return null
+    @Suppress("unchecked_cast")
+    val listSize = context.curState!!.memory.read(UArrayLengthLValue(list.address, pythonList)) as UExpr<KIntSort>
+    return constructInt(context, listSize)
 }
 
 private fun resolveIndex(context: ConcolicRunContext, list: UninterpretedSymbolicPythonObject, index: UninterpretedSymbolicPythonObject): UArrayIndexLValue<PythonType>? {

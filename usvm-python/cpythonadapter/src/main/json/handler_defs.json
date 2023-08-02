@@ -125,6 +125,11 @@
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;)V"
     },
     {
+        "c_name": "nb_add",
+        "java_name": "notifyNbAdd",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)V"
+    },
+    {
         "c_name": "mp_subscript",
         "java_name": "notifyMpSubscript",
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)V"
@@ -147,11 +152,16 @@
     {
         "c_name": "virtual_call",
         "java_name": "virtualCall",
-        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;)Lorg/usvm/language/VirtualPythonObject;"
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;I)Lorg/usvm/language/VirtualPythonObject;"
     },
     {
         "c_name": "symbolic_virtual_binary_fun",
         "java_name": "handlerVirtualBinaryFun",
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
+    },
+    {
+        "c_name": "list_get_size",
+        "java_name": "handlerListGetSize",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
     }
 ]
