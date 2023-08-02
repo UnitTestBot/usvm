@@ -70,7 +70,8 @@ class PythonMachine<PYTHON_OBJECT_REPRESENTATION>(
 
     fun analyze(
         pythonCallable: PythonUnpinnedCallable,
-        results: MutableList<PythonAnalysisResult<PYTHON_OBJECT_REPRESENTATION>>
+        results: MutableList<PythonAnalysisResult<PYTHON_OBJECT_REPRESENTATION>>,
+        maxIterations: Int = 300
     ): Int {
         val observer = PythonMachineObserver()
         val interpreter = getInterpreter(pythonCallable, results)
@@ -80,7 +81,7 @@ class PythonMachine<PYTHON_OBJECT_REPRESENTATION>(
             pathSelector,
             observer = observer,
             isStateTerminated = { it.meta.modelDied },
-            stopStrategy = { observer.stateCounter >= 1000 }
+            stopStrategy = { observer.stateCounter >= 1000 || iterationCounter.iterations >= maxIterations }
         )
         return iterationCounter.iterations
     }

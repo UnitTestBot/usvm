@@ -7,13 +7,8 @@ import org.usvm.forkMulti
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.interpreter.DelayedFork
 import org.usvm.interpreter.PythonExecutionState
-import org.usvm.interpreter.operations.tracing.withTracing
-import org.usvm.interpreter.symbolicobjects.SymbolicPythonObject
 import org.usvm.interpreter.symbolicobjects.UninterpretedSymbolicPythonObject
-import org.usvm.interpreter.symbolicobjects.interpretSymbolicPythonObject
-import org.usvm.isTrue
 import org.usvm.language.PythonPinnedCallable
-import org.usvm.language.SymbolForCPython
 
 fun myFork(ctx: ConcolicRunContext, cond: UExpr<KBoolSort>) {
     if (ctx.curState == null)

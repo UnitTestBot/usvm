@@ -8,25 +8,25 @@ import org.usvm.language.types.pythonList
 fun main() {
     val program = PythonProgram(
         """
-        import pickle
-        def f(x: int):
-            y = pickle.loads(pickle.dumps(x))  # y is equal to x
-            if y >= 0:
-                if x >= 0:
-                    return 1
-                return 2  # unreachable
-            else:
-                if x >= 0:
-                    return 3  # unreachable
-                return 4
+        def f(x):
+            i = 0
+            sum_ = 0
+            while i < len(x):
+                sum_ += x[i]
+                i += 1
+            if sum_ == 100:
+                return 1
+            elif sum_ % 200 == 153:
+                return 2
+            return 3
         """.trimIndent()
     )
-    val function = PythonUnpinnedCallable.constructCallableFromName(listOf(pythonInt), "f")
-    val machine = PythonMachine(program, printErrorMsg = true, allowPathDiversion = false) { it }
+    val function = PythonUnpinnedCallable.constructCallableFromName(listOf(pythonList), "f")
+    val machine = PythonMachine(program, printErrorMsg = true, allowPathDiversion = true) { it }
     val start = System.currentTimeMillis()
     val iterations = machine.use { activeMachine ->
         val results: MutableList<PythonAnalysisResult<PythonObject>> = mutableListOf()
-        val returnValue = activeMachine.analyze(function, results)
+        val returnValue = activeMachine.analyze(function, results, maxIterations = 10)
         results.forEach { (_, inputs, result) ->
             println("INPUT:")
             inputs.map { it.reprFromPythonObject }.forEach { ConcretePythonInterpreter.printPythonObject(it) }
