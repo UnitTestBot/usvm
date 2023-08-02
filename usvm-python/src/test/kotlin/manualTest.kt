@@ -8,17 +8,21 @@ import org.usvm.language.types.pythonList
 fun main() {
     val program = PythonProgram(
         """
-        import copy
-
-        def f(x):
-            y = copy.deepcopy(x)
-            if y:
-                return 1
-            return 2
+        import pickle
+        def f(x: int):
+            y = pickle.loads(pickle.dumps(x))  # y is equal to x
+            if y >= 0:
+                if x >= 0:
+                    return 1
+                return 2  # unreachable
+            else:
+                if x >= 0:
+                    return 3  # unreachable
+                return 4
         """.trimIndent()
     )
-    val function = PythonUnpinnedCallable.constructCallableFromName(listOf(PythonAnyType), "f")
-    val machine = PythonMachine(program, printErrorMsg = true, allowPathDiversion = true) { it }
+    val function = PythonUnpinnedCallable.constructCallableFromName(listOf(pythonInt), "f")
+    val machine = PythonMachine(program, printErrorMsg = true, allowPathDiversion = false) { it }
     val start = System.currentTimeMillis()
     val iterations = machine.use { activeMachine ->
         val results: MutableList<PythonAnalysisResult<PythonObject>> = mutableListOf()

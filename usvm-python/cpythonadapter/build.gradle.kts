@@ -59,7 +59,80 @@ val cpythonBuildRelease = tasks.register<Exec>("CPythonBuildRelease") {
     commandLine("make", "install")
 }
 
-fun generateHandlerDefs(): String {
+@Suppress("unchecked_cast")
+fun generateSymbolicAdapterMethod(description: Map<String, Any>): String {
+    val cName = description["c_name"] as String
+    val cReturnType = description["c_return_type"] as String
+    val numberOfArgs = description["nargs"] as Int
+    val cArgTypes = description["c_arg_types"] as List<String>
+    val cArgs = List(numberOfArgs) { index -> "${cArgTypes[index]} arg_$index" }
+    val javaArgTypes = description["java_arg_types"] as List<String>
+    val argConverters = description["argument_converters"] as List<String>
+    val failValue = description["fail_value"] as String
+    val defaultValue = description["default_value"] as String
+    val javaArgsCreation = List(numberOfArgs) { index ->
+        """
+            ${javaArgTypes[index]} java_arg_$index = ${argConverters[index]}(ctx, arg_$index, &fail); if (fail) return $defaultValue;
+        """.trimIndent()
+    }
+    val javaReturnType = description["java_return_type"] as String
+    val javaReturnDescr: String = when (javaReturnType) {
+        "jobject" -> "Object"
+        "void" -> "Void"
+        else -> error("Incorrect handler definition")
+    }
+    val javaArgs = (listOf("ctx->context") + List(numberOfArgs) { "java_arg_$it" }).joinToString(", ")
+    val returnValueCreation =
+        if (javaReturnType != "void")
+            "$javaReturnType java_return = (*ctx->env)->CallStatic${javaReturnDescr}Method(ctx->env, ctx->cpython_adapter_cls, ctx->handle_$cName, $javaArgs);"
+        else
+            "(*ctx->env)->CallStaticVoidMethod(ctx->env, ctx->cpython_adapter_cls, ctx->handle_$cName, $javaArgs);"
+    val returnConverted = description["result_converter"] as String
+    val returnStmt =
+        if (javaReturnType == "void")
+            "return $defaultValue;"
+        else
+            "return $returnConverted(ctx, java_return);"
+    return """
+        static $cReturnType
+        $cName(${(listOf("void *arg") + cArgs).joinToString(", ")}) {
+            // printf("INSIDE $cName!\n"); fflush(stdout);
+            ConcolicContext *ctx = (ConcolicContext *) arg;
+            int fail = 0;
+            ${javaArgsCreation.joinToString("\n            ")}
+            // printf("CALLING JAVA METHOD IN $cName!\n"); fflush(stdout);
+            $returnValueCreation
+            CHECK_FOR_EXCEPTION(ctx, $failValue)
+            $returnStmt
+        }
+    """.trimIndent()
+}
+
+fun generateSymbolicAdapterMethods(): String {
+    val handlerDefs by extra {
+        @Suppress("unchecked_cast")
+        JsonSlurper().parse(file("${projectDir.path}/src/main/json/adapter_method_defs.json")) as List<Map<String, Any>>
+    }
+    val defs = handlerDefs.joinToString("\n\n", transform = ::generateSymbolicAdapterMethod)
+    val registration = """
+        static void
+        REGISTER_ADAPTER_METHODS(SymbolicAdapter *adapter) {
+            ${
+                handlerDefs.joinToString(" ") {
+                    val name = it["c_name"]!!
+                    "adapter->$name = $name;"
+                }
+            }
+        }
+    """.trimIndent()
+    return defs + "\n\n" + registration
+}
+
+tasks.register<Exec>("testGenerateTask") {
+    commandLine("echo", generateSymbolicAdapterMethods())
+}
+
+fun generateCPythonAdapterDefs(): String {
     val handlerDefs by extra {
         @Suppress("unchecked_cast")
         JsonSlurper().parse(file("${projectDir.path}/src/main/json/handler_defs.json")) as List<Map<String, String>>
@@ -87,9 +160,12 @@ val adapterHeaderPath = "${project.buildDir.path}/adapter_include"
 
 val headers = tasks.register("generateHeaders") {
     File(adapterHeaderPath).mkdirs()
-    val file = File("$adapterHeaderPath/CPythonAdapterMethods.h")
-    file.createNewFile()
-    file.writeText(generateHandlerDefs())
+    val fileForCPythonAdapterMethods = File("$adapterHeaderPath/CPythonAdapterMethods.h")
+    fileForCPythonAdapterMethods.createNewFile()
+    fileForCPythonAdapterMethods.writeText(generateCPythonAdapterDefs())
+    val fileForSymbolicAdapterMethods = File("$adapterHeaderPath/SymbolicAdapterMethods.h")
+    fileForSymbolicAdapterMethods.createNewFile()
+    fileForSymbolicAdapterMethods.writeText(generateSymbolicAdapterMethods())
 }
 
 library {
