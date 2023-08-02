@@ -5,74 +5,74 @@
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;I)V"
     },
     {
-        "c_name": "load_const_long",
-        "java_name": "handlerLoadConstLong",
+        "c_name": "load_const",
+        "java_name": "handlerLoadConst",
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;J)Lorg/usvm/language/SymbolForCPython;"
     },
     {
-        "c_name": "fork",
+        "c_name": "fork_notify",
         "java_name": "handlerFork",
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;)V"
     },
     {
         "c_name": "gt_long",
         "java_name": "handlerGTLong",
-        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;ILorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
     },
     {
         "c_name": "lt_long",
         "java_name": "handlerLTLong",
-        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;ILorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
     },
     {
         "c_name": "eq_long",
         "java_name": "handlerEQLong",
-        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;ILorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
     },
     {
         "c_name": "ne_long",
         "java_name": "handlerNELong",
-        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;ILorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
     },
     {
         "c_name": "le_long",
         "java_name": "handlerLELong",
-        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;ILorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
     },
     {
         "c_name": "ge_long",
         "java_name": "handlerGELong",
-        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;ILorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
     },
     {
         "c_name": "add_long",
         "java_name": "handlerADDLong",
-        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;ILorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
     },
     {
         "c_name": "sub_long",
         "java_name": "handlerSUBLong",
-        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;ILorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
     },
     {
         "c_name": "mul_long",
         "java_name": "handlerMULLong",
-        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;ILorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
     },
     {
         "c_name": "div_long",
         "java_name": "handlerDIVLong",
-        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;ILorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
     },
     {
         "c_name": "rem_long",
         "java_name": "handlerREMLong",
-        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;ILorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
     },
     {
         "c_name": "pow_long",
         "java_name": "handlerPOWLong",
-        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;ILorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
     },
     {
         "c_name": "create_list",
@@ -82,27 +82,22 @@
     {
         "c_name": "list_get_item",
         "java_name": "handlerListGetItem",
-        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;ILorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
     },
     {
         "c_name": "list_set_item",
         "java_name": "handlerListSetItem",
-        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;ILorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)V"
-    },
-    {
-        "c_name": "load_const_tuple",
-        "java_name": "handlerLoadConstTuple",
-        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;[Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)V"
     },
     {
         "c_name": "list_extend",
         "java_name": "handlerListExtend",
-        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;ILorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
     },
     {
         "c_name": "list_append",
         "java_name": "handlerListAppend",
-        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;ILorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
     },
     {
         "c_name": "function_call",
@@ -135,7 +130,7 @@
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)V"
     },
     {
-        "c_name": "tp_richcmp",
+        "c_name": "tp_richcompare",
         "java_name": "notifyTpRichcmp",
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;ILorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)V"
     },
@@ -157,6 +152,6 @@
     {
         "c_name": "symbolic_virtual_binary_fun",
         "java_name": "handlerVirtualBinaryFun",
-        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;ILorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
     }
 ]
