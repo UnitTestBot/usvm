@@ -115,6 +115,11 @@ object ConcretePythonInterpreter {
         return PythonObject(pythonAdapter.makeList(elements.map { it.address }.toLongArray()))
     }
 
+    fun getIterableElements(iterable: PythonObject): List<PythonObject> {
+        val addresses = pythonAdapter.getIterableElements(iterable.address)
+        return addresses.map { PythonObject(it) }
+    }
+
     private fun createTypeQuery(checkMethod: (Long) -> Int): (PythonObject) -> Boolean = { pythonObject ->
         val result = checkMethod(pythonObject.address)
         if (result < 0)

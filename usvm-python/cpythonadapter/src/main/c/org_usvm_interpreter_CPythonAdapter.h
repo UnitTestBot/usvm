@@ -81,6 +81,14 @@ JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_printPythonObjec
 
 /*
  * Class:     org_usvm_interpreter_CPythonAdapter
+ * Method:    getIterableElements
+ * Signature: (J)[J
+ */
+JNIEXPORT jlongArray JNICALL Java_org_usvm_interpreter_CPythonAdapter_getIterableElements
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_usvm_interpreter_CPythonAdapter
  * Method:    getPythonObjectRepr
  * Signature: (J)Ljava/lang/String;
  */
