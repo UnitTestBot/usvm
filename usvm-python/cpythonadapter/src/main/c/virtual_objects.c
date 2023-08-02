@@ -1,5 +1,4 @@
 #include "virtual_objects.h"
-#include "SYMBOLIC_API.h"
 
 static void
 virtual_object_dealloc(PyObject *op) {
@@ -171,7 +170,7 @@ is_virtual_object(PyObject *obj) {
     return Py_TYPE(obj) == &VirtualPythonObject_Type;
 }
 
-void register_virtual_methods() {
-    virtual_tp_richcompare = tp_richcompare;
-    virtual_mp_subscript = mp_subscript;
+void register_virtual_methods(SymbolicAdapter *adapter) {
+    adapter->virtual_tp_richcompare = tp_richcompare;
+    adapter->virtual_mp_subscript = mp_subscript;
 }

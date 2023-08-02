@@ -2,7 +2,8 @@
 
 #include "org_usvm_interpreter_CPythonAdapter.h"
 #include "utils.h"
-#include "symbolic_handler.h"
+#include "converters.h"
+#include "SymbolicAdapterMethods.h"  // generated from Gradle script
 
 #include "symbolicadapter.h"
 #include "virtual_objects.h"
@@ -126,8 +127,9 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_concolicRun(
     construct_concolic_context(env, context, cpython_adapter, &ctx);
     (*env)->SetLongField(env, cpython_adapter, ctx.cpython_java_exception_field, (jlong) ctx.java_exception);
 
-    SymbolicAdapter *adapter = create_new_adapter(handler, &ctx);
-    register_virtual_methods();
+    SymbolicAdapter *adapter = create_new_adapter(&ctx);
+    register_virtual_methods(adapter);
+    REGISTER_ADAPTER_METHODS(adapter);
 
     construct_args_for_symbolic_adapter(adapter, &ctx, &concrete_args, &virtual_args, &symbolic_args, &args);
 
@@ -152,6 +154,21 @@ JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_printPythonObjec
     //    printf("tp_new: %p\n", ((PyTypeObject *) object_ref)->tp_new);
 
     fflush(stdout);
+}
+
+JNIEXPORT jlongArray JNICALL Java_org_usvm_interpreter_CPythonAdapter_getIterableElements(JNIEnv *env, jobject _, jlong ref) {
+    PyObject *obj = (PyObject *) ref;
+    int n = PyObject_Size(obj);
+    jlong *elements = malloc(n * sizeof(jlong));
+    for (int i = 0; i < n; i++) {
+        elements[i] = (jlong) PyObject_GetItem(obj, PyLong_FromLong(i));
+    }
+
+    jlongArray result = (*env)->NewLongArray(env, n);
+    (*env)->SetLongArrayRegion(env, result, 0, n, elements);
+    free(elements);
+
+    return result;
 }
 
 JNIEXPORT jstring JNICALL Java_org_usvm_interpreter_CPythonAdapter_getPythonObjectRepr(JNIEnv *env, jobject _, jlong object_ref) {
