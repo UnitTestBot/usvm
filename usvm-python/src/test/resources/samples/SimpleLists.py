@@ -98,4 +98,6 @@ def sum_of_elements(x: list):
         return 1
     elif sum_ % 200 == 153:
         return 2
-    return 3
+    elif sum_ < -100:
+        return 3
+    return 4

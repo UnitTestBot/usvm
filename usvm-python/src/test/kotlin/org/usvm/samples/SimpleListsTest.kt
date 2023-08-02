@@ -170,7 +170,7 @@ class SimpleListsTest : PythonTestRunner("/samples/SimpleLists.py") {
             ignoreNumberOfAnalysisResults,
             standardConcolicAndConcreteChecks,
             /* invariants = */ listOf { x, res -> x.typeName == "list" && res.typeName == "int" },
-            /* propertiesToDiscover = */ List(3) { index ->
+            /* propertiesToDiscover = */ List(4) { index ->
                 { _, res -> res.repr == (index + 1).toString() }
             }
         )

@@ -82,4 +82,18 @@ class SimpleTypeInferenceTest: PythonTestRunner("/samples/SimpleTypeInference.py
             )
         )
     }
+
+    private val functionIsinstanceSample = constructFunction("isinstance_sample", List(1) { PythonAnyType })
+    @Test
+    fun testIsinstanceSample() {
+        check1WithConcreteRun(
+            functionIsinstanceSample,
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ listOf { _, res -> res.typeName == "int" },
+            /* propertiesToDiscover = */ List(4) { index ->
+                { _, res -> res.repr == (index + 1).toString() }
+            }
+        )
+    }
 }
