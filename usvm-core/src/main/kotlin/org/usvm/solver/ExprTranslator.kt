@@ -1,5 +1,6 @@
 package org.usvm.solver
 
+import io.ksmt.decl.KDecl
 import io.ksmt.expr.KExpr
 import io.ksmt.sort.KArray2Sort
 import io.ksmt.sort.KArraySort
@@ -7,6 +8,7 @@ import io.ksmt.sort.KBoolSort
 import io.ksmt.utils.mkConst
 import org.usvm.UAddressSort
 import org.usvm.UAllocatedArrayReading
+import org.usvm.UBoolSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UExpr
@@ -18,6 +20,8 @@ import org.usvm.UInputArrayLengthReading
 import org.usvm.UInputArrayReading
 import org.usvm.UInputFieldReading
 import org.usvm.UIsExpr
+import org.usvm.UIsSubtypeExpr
+import org.usvm.UIsSupertypeExpr
 import org.usvm.UMockSymbol
 import org.usvm.UNullRef
 import org.usvm.URegisterReading
@@ -25,6 +29,7 @@ import org.usvm.USizeExpr
 import org.usvm.USizeSort
 import org.usvm.USort
 import org.usvm.USymbol
+import org.usvm.USymbolicHeapRef
 import org.usvm.memory.UAllocatedArrayId
 import org.usvm.memory.UInputArrayId
 import org.usvm.memory.UInputArrayLengthId
@@ -71,8 +76,26 @@ open class UExprTranslator<Field, Type>(
     override fun transform(expr: UConcreteHeapRef): KExpr<UAddressSort> =
         error("Unexpected UConcreteHeapRef $expr in UExprTranslator, that has to be impossible by construction!")
 
-    override fun transform(expr: UIsExpr<Type>): KExpr<KBoolSort> =
-        error("Unexpected UIsExpr $expr in UExprTranslator, that has to be impossible by construction!")
+    private val _declToIsExpr = mutableMapOf<KDecl<UBoolSort>, UIsExpr<Type>>()
+    val declToIsExpr: Map<KDecl<UBoolSort>, UIsExpr<Type>> get() = _declToIsExpr
+
+    override fun transform(expr: UIsSubtypeExpr<Type>): KExpr<KBoolSort> {
+        require(expr.ref is USymbolicHeapRef) { "Unexpected ref: ${expr.ref}" }
+
+        val const = expr.sort.mkConst("isSubtype#${_declToIsExpr.size}")
+        // we need to track declarations to pass them to the type solver in the DPLL(T) procedure
+        _declToIsExpr[const.decl] = expr
+        return const
+    }
+
+    override fun transform(expr: UIsSupertypeExpr<Type>): KExpr<KBoolSort> {
+        require(expr.ref is USymbolicHeapRef) { "Unexpected ref: ${expr.ref}" }
+
+        val const = expr.sort.mkConst("isSupertype#${_declToIsExpr.size}")
+        // we need to track declarations to pass them to the type solver in the DPLL(T) procedure
+        _declToIsExpr[const.decl] = expr
+        return const
+    }
 
     override fun transform(expr: UInputArrayLengthReading<Type>): KExpr<USizeSort> =
         transformExprAfterTransformed(expr, expr.address) { address ->

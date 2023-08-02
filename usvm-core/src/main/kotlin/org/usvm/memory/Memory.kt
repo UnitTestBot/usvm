@@ -162,5 +162,5 @@ open class UMemoryBase<Field, Type, Method>(
         UMemoryBase(ctx, typeConstraints, stack.clone(), heap.toMutableHeap(), mocker)
 
     override fun typeStreamOf(ref: UHeapRef): UTypeStream<Type> =
-        types.readTypeStream(ref)
+        types.getTypeStream(ref)
 }

@@ -7,8 +7,6 @@ import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ge
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
-
-@Disabled("Support instanceof")
 internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     @Test
     fun testSimpleInstanceOf() {
@@ -53,6 +51,7 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Support virtual calls")
     fun testVirtualCallWithoutOneInheritor() {
         checkDiscoveredProperties(
             InstanceOfExample::virtualCallWithoutOneInheritor,
@@ -65,6 +64,7 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Support virtual calls")
     fun testVirtualCallWithoutOneInheritorInverse() {
         checkDiscoveredProperties(
             InstanceOfExample::virtualCallWithoutOneInheritorInverse,
@@ -165,7 +165,8 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     fun testInstanceOfAsPartOfInternalExpressionsXor() {
         checkDiscoveredProperties(
             InstanceOfExample::instanceOfAsPartOfInternalExpressionsXor,
-            eq(4),
+            eq(5),
+            { _, o, r -> (o == null || o.size != 2) && r == 0 },
             { _, o, r ->
                 val o0isSecond = o[0].isInstanceOfArray<CastClassSecondSucc>()
                 val o1isFirst = o[1].isInstanceOfArray<CastClassFirstSucc>()
@@ -193,7 +194,8 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     fun testInstanceOfAsPartOfInternalExpressionsXorInverse() {
         checkDiscoveredProperties(
             InstanceOfExample::instanceOfAsPartOfInternalExpressionsXorInverse,
-            eq(4),
+            eq(5),
+            { _, o, r -> (o == null || o.size != 2) && r == 0 },
             { _, o, r ->
                 val o0isSecond = o[0].isInstanceOfArray<CastClassSecondSucc>()
                 val o1isFirst = o[1].isInstanceOfArray<CastClassFirstSucc>()
@@ -234,7 +236,7 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@74414a78")
+    @Disabled("An operation is not implemented: Support collections")
     fun testInstanceOfAsInternalExpressionsMap() {
         checkDiscoveredProperties(
             InstanceOfExample::instanceOfAsInternalExpressionsMap,
@@ -247,9 +249,8 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     fun testSymbolicInstanceOf() {
         checkDiscoveredProperties(
             InstanceOfExample::symbolicInstanceOf,
-            eq(6),
-            { _, _, i, r -> i < 1 && r == null },
-            { _, _, i, r -> i > 3 && r == null },
+            eq(5),
+            { _, _, i, r -> (i < 1 || i > 3) && r == null },
             { _, o, _, _ -> o == null },
             { _, o, i, _ -> o != null && i > o.lastIndex },
             { _, o, i, r -> o != null && o[i] is CastClassFirstSucc && r is CastClassFirstSucc },
@@ -258,14 +259,12 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Support virtual calls")
     fun testComplicatedInstanceOf() {
         checkDiscoveredProperties(
             InstanceOfExample::complicatedInstanceOf,
-            eq(8),
-            { _, _, index, _, result -> index < 0 && result == null },
-            { _, _, index, _, result -> index > 2 && result == null },
-            { _, objects, index, _, result -> index in 0..2 && objects == null && result == null },
-            { _, objects, index, _, result -> index in 0..2 && objects != null && objects.size < index + 2 && result == null },
+            ge(5),
+            { _, objects, index, _, result -> (index !in 0..2 || objects == null || objects.size >= index + 2) && result == null },
             { _, objects, index, objectExample, result ->
                 require(objects != null && result != null && objectExample is CastClassFirstSucc)
 

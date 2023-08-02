@@ -7,29 +7,29 @@ package org.usvm.types
 interface UTypeSystem<Type> {
 
     /**
-     * @return true if t <: u.
+     * @return true if [type] <: [supertype].
      */
-    fun isSupertype(u: Type, t: Type): Boolean
+    fun isSupertype(supertype: Type, type: Type): Boolean
 
     /**
-     * @return true if [t] can be supertype for some type together with some incomparable type u.
+     * @return true if [type] can be supertype for some type together with some incomparable type u.
      */
-    fun isMultipleInheritanceAllowedFor(t: Type): Boolean
+    fun isMultipleInheritanceAllowedFor(type: Type): Boolean
 
     /**
-     * @return true if there is no type u distinct from [t] and subtyping [t].
+     * @return true if there is no type u distinct from [type] and subtyping [type].
      */
-    fun isFinal(t: Type): Boolean
+    fun isFinal(type: Type): Boolean
 
     /**
-     * @return true if [t] is instantiable, meaning it can be created via constructor.
+     * @return true if [type] is instantiable, meaning it can be created via constructor.
      */
-    fun isInstantiable(t: Type): Boolean
+    fun isInstantiable(type: Type): Boolean
 
     /**
-     * @return a sequence of **direct** inheritors of the [t].
+     * @return a sequence of **direct** inheritors of the [type].
      */
-    fun findSubtypes(t: Type): Sequence<Type>
+    fun findSubtypes(type: Type): Sequence<Type>
 
 
     /**

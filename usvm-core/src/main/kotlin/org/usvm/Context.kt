@@ -175,11 +175,18 @@ open class UContext(
         UIndexedMethodReturnValue(this, method.cast(), callIndex, sort)
     }.cast()
 
-    private val isExprCache = mkAstInterner<UIsExpr<Any>>()
-    fun <Type> mkIsExpr(
+    private val isSubtypeExprCache = mkAstInterner<UIsSubtypeExpr<Any>>()
+    fun <Type> mkIsSubtypeExpr(
         ref: UHeapRef, type: Type,
-    ): UIsExpr<Type> = isExprCache.createIfContextActive {
-        UIsExpr(this, ref, type.cast())
+    ): UIsSubtypeExpr<Type> = isSubtypeExprCache.createIfContextActive {
+        UIsSubtypeExpr(this, ref, type.cast())
+    }.cast()
+
+    private val isSupertypeExprCache = mkAstInterner<UIsSupertypeExpr<Any>>()
+    fun <Type> mkIsSupertypeExpr(
+        ref: UHeapRef, type: Type,
+    ): UIsSupertypeExpr<Type> = isSupertypeExprCache.createIfContextActive {
+        UIsSupertypeExpr(this, ref, type.cast())
     }.cast()
 
     fun mkConcreteHeapRefDecl(address: UConcreteHeapAddress): UConcreteHeapRefDecl =

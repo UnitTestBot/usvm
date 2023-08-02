@@ -1,6 +1,5 @@
 package org.usvm.samples.objects
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
@@ -8,12 +7,12 @@ import org.usvm.test.util.checkers.eq
 
 internal class HiddenFieldExampleTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Support instanceof")
     fun testCheckHiddenField() {
         checkDiscoveredProperties(
             HiddenFieldExample::checkHiddenField,
-            eq(4),
+            eq(5),
             { _, o, _ -> o == null },
+            { _, o, r -> o is HiddenFieldSuccClass && r == 0 },
             { _, o, r -> o != null && o.a != 1 && r == 2 },
             { _, o, r -> o != null && o.a == 1 && o.b != 2 && r == 2 },
             { _, o, r -> o != null && o.a == 1 && o.b == 2 && r == 1 },
