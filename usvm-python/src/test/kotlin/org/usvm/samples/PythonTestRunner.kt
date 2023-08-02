@@ -28,9 +28,9 @@ open class PythonTestRunner(
     override val checkType: (PythonType, PythonType) -> Boolean
         get() = { _, _ -> true }
     override val runner: (PythonUnpinnedCallable, UMachineOptions) -> List<PythonTest>
-        get() = { callable, _ ->
+        get() = { callable, options ->
             val results: MutableList<PythonTest> = mutableListOf()
-            machine.analyze(callable, results)
+            machine.analyze(callable, results, options.stepLimit?.toInt() ?: 300)
             results
         }
     override val coverageRunner: (List<PythonTest>) -> PythonCoverage

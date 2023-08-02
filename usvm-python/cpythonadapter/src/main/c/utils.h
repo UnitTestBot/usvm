@@ -34,6 +34,7 @@ typedef struct {
 } ConcolicContext;
 
 void construct_concolic_context(JNIEnv *env, jobject context, jobject cpython_adapter, ConcolicContext *dist);
+void register_approximations(SymbolicAdapter *adapter);
 
 typedef struct {
     int size;
