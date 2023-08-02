@@ -1,5 +1,6 @@
 package org.usvm.interpreter.operations.tracing
 
+import org.usvm.interpreter.PythonObject
 import org.usvm.language.PythonInstruction
 import org.usvm.language.PythonPinnedCallable
 import org.usvm.language.SymbolForCPython
@@ -12,6 +13,7 @@ data class PythonFunctionCall(val function: PythonPinnedCallable): SymbolicHandl
 object PythonReturn: SymbolicHandlerEventParameters<Unit>()
 data class Fork(val condition: SymbolForCPython): SymbolicHandlerEventParameters<Unit>()
 data class ListCreation(val elements: List<SymbolForCPython>): SymbolicHandlerEventParameters<SymbolForCPython>()
+data class IsinstanceCheck(val on: SymbolForCPython, val type: PythonObject): SymbolicHandlerEventParameters<SymbolForCPython>()
 data class MethodParameters(
     val name: String,
     val operands: List<SymbolForCPython>

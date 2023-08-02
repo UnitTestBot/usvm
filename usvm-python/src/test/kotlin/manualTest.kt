@@ -9,19 +9,18 @@ fun main() {
     val program = PythonProgram(
         """
         def f(x):
-            i = 0
-            sum_ = 0
-            while i < len(x):
-                sum_ += x[i]
-                i += 1
-            if sum_ == 100:
+            if isinstance(x, bool):
                 return 1
-            elif sum_ % 200 == 153:
+            if isinstance(x, int):
                 return 2
-            return 3
+            elif isinstance(x, list):
+                return 3
+            elif isinstance(x, object):
+                return 4
+            return "Not reachable"
         """.trimIndent()
     )
-    val function = PythonUnpinnedCallable.constructCallableFromName(listOf(pythonList), "f")
+    val function = PythonUnpinnedCallable.constructCallableFromName(listOf(PythonAnyType), "f")
     val machine = PythonMachine(program, printErrorMsg = true, allowPathDiversion = true) { it }
     val start = System.currentTimeMillis()
     val iterations = machine.use { activeMachine ->
