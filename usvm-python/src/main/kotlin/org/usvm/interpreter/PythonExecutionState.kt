@@ -79,7 +79,7 @@ class DelayedFork(
 data class MockHeader(
     val method: TypeMethod,
     val args: List<SymbolForCPython>,
-    val methodOwner: SymbolForCPython
+    var methodOwner: SymbolForCPython?
 )
 
 data class MockResult(

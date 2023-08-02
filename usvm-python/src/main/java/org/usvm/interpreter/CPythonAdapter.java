@@ -43,6 +43,9 @@ public class CPythonAdapter {
     public native long makeList(long[] elements);
     public native int typeHasNbBool(long type);
     public native int typeHasNbInt(long type);
+    public native int typeHasNbAdd(long type);
+    public native int typeHasSqLength(long type);
+    public native int typeHasMpLength(long type);
     public native int typeHasMpSubscript(long type);
     public native int typeHasTpRichcmp(long type);
     public native Throwable extractException(long exception);
@@ -167,6 +170,10 @@ public class CPythonAdapter {
         withTracing(context, new MethodParametersNoReturn("list_set_item", Arrays.asList(list, index, value)), unit(() -> handlerListSetItemKt(context, list.obj, index.obj, value.obj)));
     }
 
+    public static SymbolForCPython handlerListGetSize(ConcolicRunContext context, SymbolForCPython list) {
+        return methodWrapper(context, new MethodParameters("list_get_size", Collections.singletonList(list)), () -> handlerListGetSizeKt(context, list.obj));
+    }
+
     public static void handlerFunctionCall(ConcolicRunContext context, long function) {
         PythonPinnedCallable callable = new PythonPinnedCallable(new PythonObject(function));
         withTracing(context, new PythonFunctionCall(callable), unit(() -> handlerFunctionCallKt(context, callable)));
@@ -190,6 +197,11 @@ public class CPythonAdapter {
         nbIntKt(context, symbol.obj);
     }
 
+    public static void notifyNbAdd(@NotNull ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
+        context.curOperation = new MockHeader(NbAddMethod.INSTANCE, Arrays.asList(left, right), null);
+        nbAddKt(context, left.obj, right.obj);
+    }
+
     public static void notifyMpSubscript(@NotNull ConcolicRunContext context, SymbolForCPython storage, SymbolForCPython item) {
         context.curOperation = new MockHeader(MpSubscriptMethod.INSTANCE, Arrays.asList(storage, item), storage);
         mpSubscriptKt(context, storage.obj);
@@ -209,7 +221,10 @@ public class CPythonAdapter {
     }
 
     @NotNull
-    public static VirtualPythonObject virtualCall(ConcolicRunContext context) {
+    public static VirtualPythonObject virtualCall(ConcolicRunContext context, int owner) {
+        if (context.curOperation != null && owner != -1) {
+            context.curOperation.setMethodOwner(context.curOperation.getArgs().get(owner));
+        }
         return virtualCallKt(context);
     }
 }

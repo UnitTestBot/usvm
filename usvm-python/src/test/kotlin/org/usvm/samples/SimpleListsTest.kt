@@ -1,6 +1,7 @@
 package org.usvm.samples
 
 import org.junit.jupiter.api.Test
+import org.usvm.UMachineOptions
 import org.usvm.language.types.pythonInt
 import org.usvm.language.types.pythonList
 import org.usvm.test.util.checkers.eq
@@ -143,5 +144,36 @@ class SimpleListsTest : PythonTestRunner("/samples/SimpleLists.py") {
                 { _, _, res -> res.repr == (index + 1).toString() }
             }
         )
+    }
+
+    private val functionLenUsage = constructFunction("len_usage", listOf(pythonList))
+    @Test
+    fun testLenUsage() {
+        check1WithConcreteRun(
+            functionLenUsage,
+            eq(2),
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ listOf { x, res -> x.typeName == "list" && res.typeName == "int" },
+            /* propertiesToDiscover = */ List(2) { index ->
+                { _, res -> res.repr == (index + 1).toString() }
+            }
+        )
+    }
+
+    private val functionSumOfElements = constructFunction("sum_of_elements", listOf(pythonList))
+    @Test
+    fun testSumOfElements() {
+        val oldOptions = options
+        options = UMachineOptions(stepLimit = 20U)
+        check1WithConcreteRun(
+            functionSumOfElements,
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ listOf { x, res -> x.typeName == "list" && res.typeName == "int" },
+            /* propertiesToDiscover = */ List(3) { index ->
+                { _, res -> res.repr == (index + 1).toString() }
+            }
+        )
+        options = oldOptions
     }
 }

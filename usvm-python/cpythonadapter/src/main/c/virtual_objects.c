@@ -9,11 +9,11 @@ virtual_object_dealloc(PyObject *op) {
     Py_TYPE(op)->tp_free(op);
 }
 
-#define MAKE_USVM_VIRUAL_CALL(obj) \
+#define MAKE_USVM_VIRUAL_CALL(obj, owner_id) \
     SymbolicAdapter *adapter = (obj)->adapter; \
     ConcolicContext *ctx = (obj)->ctx; \
     adapter->ignore = 1; \
-    jobject virtual_object = (*ctx->env)->CallStaticObjectMethod(ctx->env, ctx->cpython_adapter_cls, ctx->handle_virtual_call, ctx->context); \
+    jobject virtual_object = (*ctx->env)->CallStaticObjectMethod(ctx->env, ctx->cpython_adapter_cls, ctx->handle_virtual_call, ctx->context, owner_id); \
     adapter->ignore = 0; \
     CHECK_FOR_EXCEPTION(ctx, 0) \
     return (PyObject *) create_new_virtual_object(ctx, virtual_object, adapter);
@@ -21,7 +21,7 @@ virtual_object_dealloc(PyObject *op) {
 static PyObject *
 tp_richcompare(PyObject *o1, PyObject *o2, int op) {
     assert(is_virtual_object(o1));
-    MAKE_USVM_VIRUAL_CALL((VirtualPythonObject *) o1)
+    MAKE_USVM_VIRUAL_CALL((VirtualPythonObject *) o1, 0)
 }
 
 static int
@@ -47,12 +47,28 @@ nb_int(PyObject *self) {
 }
 
 static PyObject *
+nb_add(PyObject *first, PyObject *second) {
+    PyObject *owner = 0;
+    int owner_id = -1;
+    if (is_virtual_object(first)) {
+        owner = first;
+        owner_id = 0;
+    } else if (is_virtual_object(second)) {
+        owner = second;
+        owner_id = 1;
+    } else {
+        assert(0);  // Not reachable
+    }
+    MAKE_USVM_VIRUAL_CALL((VirtualPythonObject *) owner, owner_id)
+}
+
+static PyObject *
 mp_subscript(PyObject *self, PyObject *item) {
-    MAKE_USVM_VIRUAL_CALL((VirtualPythonObject *) self)
+    MAKE_USVM_VIRUAL_CALL((VirtualPythonObject *) self, 0)
 }
 
 static PyNumberMethods virtual_as_number = {
-    0,                          /*nb_add*/
+    nb_add,                     /*nb_add*/
     0,                          /*nb_subtract*/
     0,                          /*nb_multiply*/
     0,                          /*nb_remainder*/
@@ -172,5 +188,6 @@ is_virtual_object(PyObject *obj) {
 
 void register_virtual_methods(SymbolicAdapter *adapter) {
     adapter->virtual_tp_richcompare = tp_richcompare;
+    adapter->virtual_nb_add = nb_add;
     adapter->virtual_mp_subscript = mp_subscript;
 }
