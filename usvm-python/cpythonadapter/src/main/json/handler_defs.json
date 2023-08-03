@@ -2,7 +2,7 @@
     {
         "c_name": "instruction",
         "java_name": "handlerInstruction",
-        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;I)V"
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;J)V"
     },
     {
         "c_name": "load_const",
@@ -72,6 +72,11 @@
     {
         "c_name": "pow_long",
         "java_name": "handlerPOWLong",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
+    },
+    {
+        "c_name": "bool_and",
+        "java_name": "handlerAND",
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
     },
     {

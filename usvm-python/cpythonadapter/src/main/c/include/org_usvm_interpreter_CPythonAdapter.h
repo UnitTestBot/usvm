@@ -121,6 +121,22 @@ JNIEXPORT jstring JNICALL Java_org_usvm_interpreter_CPythonAdapter_getNameOfPyth
 
 /*
  * Class:     org_usvm_interpreter_CPythonAdapter
+ * Method:    getInstructionFromFrame
+ * Signature: (J)I
+ */
+JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_getInstructionFromFrame
+  (JNIEnv *, jclass, jlong);
+
+/*
+ * Class:     org_usvm_interpreter_CPythonAdapter
+ * Method:    getFunctionFromFrame
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_getFunctionFromFrame
+  (JNIEnv *, jclass, jlong);
+
+/*
+ * Class:     org_usvm_interpreter_CPythonAdapter
  * Method:    allocateVirtualObject
  * Signature: (Lorg/usvm/language/VirtualPythonObject;)J
  */
