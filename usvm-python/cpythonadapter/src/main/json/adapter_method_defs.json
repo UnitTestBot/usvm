@@ -4,7 +4,7 @@
     "nargs": 1,
     "c_arg_types": ["PyFrameObject *"],
     "c_return_type": "int",
-    "java_arg_types": ["jint"],
+    "java_arg_types": ["jlong"],
     "java_return_type": "void",
     "argument_converters": ["frame_converter"],
     "result_converter": "",
@@ -181,6 +181,18 @@
   },
   {
     "c_name": "rem_long",
+    "nargs": 2,
+    "c_arg_types": ["PyObject *", "PyObject *"],
+    "c_return_type": "PyObject *",
+    "java_arg_types": ["jobject", "jobject"],
+    "java_return_type": "jobject",
+    "argument_converters": ["object_converter", "object_converter"],
+    "result_converter": "object_wrapper",
+    "fail_value": "0",
+    "default_value": "Py_None"
+  },
+  {
+    "c_name": "bool_and",
     "nargs": 2,
     "c_arg_types": ["PyObject *", "PyObject *"],
     "c_return_type": "PyObject *",
