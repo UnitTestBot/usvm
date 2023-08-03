@@ -96,4 +96,18 @@ class SimpleTypeInferenceTest: PythonTestRunner("/samples/SimpleTypeInference.py
             }
         )
     }
+
+    private val functionLenUsage = constructFunction("len_usage", List(1) { PythonAnyType })
+    @Test
+    fun testLenUsage() {
+        check1WithConcreteRun(
+            functionLenUsage,
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ listOf { _, res -> res.typeName == "int" },
+            /* propertiesToDiscover = */ List(2) { index ->
+                { _, res -> res.repr == (index + 1).toString() }
+            }
+        )
+    }
 }

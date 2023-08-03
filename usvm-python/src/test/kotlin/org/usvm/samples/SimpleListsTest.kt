@@ -193,4 +193,19 @@ class SimpleListsTest : PythonTestRunner("/samples/SimpleLists.py") {
         )
         options = oldOptions
     }
+
+    private val functionSimpleAssertion = constructFunction("simple_assertion", listOf(pythonList))
+    @Test
+    fun testSimpleAssertion() {
+        check1WithConcreteRun(
+            functionSimpleAssertion,
+            eq(2),
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ listOf { x, _ -> x.typeName == "list" },
+            /* propertiesToDiscover = */ listOf(
+                { _, res -> res.selfTypeName == "AssertionError" },
+                { _, res -> res.repr == "None" }
+            )
+        )
+    }
 }

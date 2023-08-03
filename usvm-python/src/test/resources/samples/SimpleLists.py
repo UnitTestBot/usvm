@@ -20,11 +20,11 @@ def allocated_list_sample(y: int):
 
 def mixed_allocation(x: int, i: int):
     arr = [1, x, 10, 11, 12]
-    if arr[i] == 1 and i != 1:
+    if arr[i] == 1 and i != 1 and i >= 0:
         return 1
     elif arr[i] == 1:
         return 2
-    elif arr[i] >= 10 and i != 1:
+    elif arr[i] >= 10 and i != 1 and i >= 0:
         return 3
     elif arr[i] == 3:
         return 4
@@ -46,7 +46,7 @@ def long_list(x: int):
     return 2
 
 
-def memory_model(arr1: list[int], arr2: list[int]):
+def memory_model(arr1: list, arr2: list):
     arr1[0] = 1
     arr2[0] = 2
     if arr1[0] == arr2[0]:
@@ -113,3 +113,7 @@ def for_loop(x: list):
     elif len(x) == 3 and sum_ < -100:
         return 2
     return 3
+
+
+def simple_assertion(x: list):
+    assert len(x) == 10

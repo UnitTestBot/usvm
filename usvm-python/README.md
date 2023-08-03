@@ -45,7 +45,7 @@ Regenerate `org_usvm_interpreter_CPythonAdapter.h`:
 ```
 cd src/main/java
 javah org.usvm.interpreter.CPythonAdapter
-mv org_usvm_interpreter_CPythonAdapter.h ../../../cpythonadapter/src/main/c
+mv org_usvm_interpreter_CPythonAdapter.h ../../../cpythonadapter/src/main/c/include
 ```
 
 Then implement the corresponding methods in `org_usvm_interpreter_CPythonAdapter.c`.

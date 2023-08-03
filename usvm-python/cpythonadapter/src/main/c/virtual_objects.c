@@ -62,6 +62,18 @@ nb_add(PyObject *first, PyObject *second) {
     MAKE_USVM_VIRUAL_CALL((VirtualPythonObject *) owner, owner_id)
 }
 
+static Py_ssize_t
+sq_length(PyObject *self) {
+    VirtualPythonObject *obj = (VirtualPythonObject *) self;
+    SymbolicAdapter *adapter = obj->adapter;
+    ConcolicContext *ctx = obj->ctx;
+    adapter->ignore = 1;
+    jint result = (*ctx->env)->CallStaticIntMethod(ctx->env, ctx->cpython_adapter_cls, ctx->handle_virtual_sq_length, ctx->context, obj->reference);
+    CHECK_FOR_EXCEPTION(obj->ctx, -1)
+    adapter->ignore = 0;
+    return result;
+}
+
 static PyObject *
 mp_subscript(PyObject *self, PyObject *item) {
     MAKE_USVM_VIRUAL_CALL((VirtualPythonObject *) self, 0)
@@ -104,6 +116,19 @@ static PyNumberMethods virtual_as_number = {
     0,                          /* nb_index */
 };
 
+static PySequenceMethods virtual_as_sequence = {
+    sq_length,                  /* sq_length */
+    0,                          /* sq_concat */
+    0,                          /* sq_repeat */
+    0,                          /* sq_item */
+    0,                          /* sq_slice */
+    0,                          /* sq_ass_item */
+    0,                          /* sq_ass_slice */
+    0,                          /* sq_contains */
+    0,                          /* sq_inplace_concat */
+    0,                          /* sq_inplace_repeat */
+};
+
 PyMappingMethods virtual_as_mapping = {
     0,                          /* mp_length */
     mp_subscript,               /* mp_subscript */
@@ -122,7 +147,7 @@ PyTypeObject VirtualPythonObject_Type = {
     0,                                       /*tp_as_async*/
     0,                                       /*tp_repr*/
     &virtual_as_number,                      /*tp_as_number*/
-    0,                                       /*tp_as_sequence*/
+    &virtual_as_sequence,                    /*tp_as_sequence*/
     &virtual_as_mapping,                     /*tp_as_mapping*/
     0,                                       /*tp_hash */
     0,                                       /*tp_call */
