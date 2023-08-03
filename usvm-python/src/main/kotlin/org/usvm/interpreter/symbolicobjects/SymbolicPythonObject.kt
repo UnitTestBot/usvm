@@ -57,6 +57,36 @@ class UninterpretedSymbolicPythonObject(address: UHeapRef): SymbolicPythonObject
         ctx.curState!!.memory.write(lvalue, expr)
     }
 
+    fun setListIteratorContent(ctx: ConcolicRunContext, list: UninterpretedSymbolicPythonObject) = with(ctx.ctx) {
+        require(ctx.curState != null)
+        addSupertype(ctx, pythonListIteratorType)
+        val listLValue = UFieldLValue(addressSort, address, ListOfListIterator)
+        ctx.curState!!.memory.write(listLValue, list.address)
+        val indexLValue = UFieldLValue(intSort, address, IndexOfListIterator)
+        ctx.curState!!.memory.write(indexLValue, mkIntNum(0))
+    }
+
+    fun increaseListIteratorCounter(ctx: ConcolicRunContext) = with(ctx.ctx) {
+        require(ctx.curState != null)
+        addSupertype(ctx, pythonListIteratorType)
+        val indexLValue = UFieldLValue(intSort, address, IndexOfListIterator)
+        @Suppress("unchecked_cast")
+        val oldIndexValue = ctx.curState!!.memory.read(indexLValue) as UExpr<KIntSort>
+        ctx.curState!!.memory.write(indexLValue, mkArithAdd(oldIndexValue, mkIntNum(1)))
+    }
+
+    fun getListIteratorContent(ctx: ConcolicRunContext): Pair<UHeapRef, UExpr<KIntSort>> = with(ctx.ctx) {
+        require(ctx.curState != null)
+        addSupertype(ctx, pythonListIteratorType)
+        val listLValue = UFieldLValue(addressSort, address, ListOfListIterator)
+        val indexLValue = UFieldLValue(intSort, address, IndexOfListIterator)
+        @Suppress("unchecked_cast")
+        val listRef = ctx.curState!!.memory.read(listLValue) as UHeapRef
+        @Suppress("unchecked_cast")
+        val index = ctx.curState!!.memory.read(indexLValue) as UExpr<KIntSort>
+        return listRef to index
+    }
+
     fun getIntContent(ctx: ConcolicRunContext): UExpr<KIntSort> {
         require(ctx.curState != null)
         addSupertype(ctx, pythonInt)

@@ -5,6 +5,7 @@ import org.usvm.*
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.interpreter.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.interpreter.symbolicobjects.constructInt
+import org.usvm.interpreter.symbolicobjects.constructListIterator
 import org.usvm.language.types.PythonType
 import org.usvm.language.types.pythonInt
 import org.usvm.language.types.pythonList
@@ -116,4 +117,29 @@ fun handlerListAppendKt(context: ConcolicRunContext, list: UninterpretedSymbolic
         context.curState!!.memory.write(UArrayLengthLValue(list.address, pythonList), mkArithAdd(currentSize, mkIntNum(1)))
         return list
     }
+}
+
+fun handlerListIterKt(context: ConcolicRunContext, list: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
+    if (context.curState == null)
+        return null
+    return constructListIterator(context, list)
+}
+
+fun handlerListIteratorNextKt(context: ConcolicRunContext, iterator: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? = with(context.ctx) {
+    if (context.curState == null)
+        return null
+
+    val (listAddress, index) = iterator.getListIteratorContent(context)
+    @Suppress("unchecked_cast")
+    val listSize = context.curState!!.memory.read(UArrayLengthLValue(listAddress, pythonList)) as UExpr<KIntSort>
+    val indexCond = index lt listSize
+    myFork(context, indexCond)
+    if (context.curState!!.pyModel.eval(indexCond).isFalse)
+        return null
+
+    iterator.increaseListIteratorCounter(context)
+
+    @Suppress("unchecked_cast")
+    val elemAddr = context.curState!!.memory.read(UArrayIndexLValue(addressSort, listAddress, index, pythonList)) as UHeapRef
+    return UninterpretedSymbolicPythonObject(elemAddr)
 }

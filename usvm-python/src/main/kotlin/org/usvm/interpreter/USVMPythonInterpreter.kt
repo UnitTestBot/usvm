@@ -3,6 +3,7 @@ package org.usvm.interpreter
 import mu.KLogging
 import org.usvm.*
 import org.usvm.interpreter.operations.BadModelException
+import org.usvm.interpreter.operations.UnregisteredVirtualOperation
 import org.usvm.interpreter.symbolicobjects.*
 import org.usvm.language.PythonUnpinnedCallable
 import org.usvm.language.SymbolForCPython
@@ -129,6 +130,13 @@ class USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION>(
             iterationCounter.iterations += 1
             logger.debug("Step result: Bad model")
             return StepResult(concolicRunContext.forkedStates.asSequence(), !state.meta.modelDied)
+
+        } catch (_: UnregisteredVirtualOperation) {
+
+            iterationCounter.iterations += 1
+            logger.debug("Step result: Unregistrered virtual operation")
+            return StepResult(emptySequence(), false)
+
         }
     }
 

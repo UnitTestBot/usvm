@@ -176,4 +176,21 @@ class SimpleListsTest : PythonTestRunner("/samples/SimpleLists.py") {
         )
         options = oldOptions
     }
+
+    private val functionForLoop = constructFunction("for_loop", listOf(pythonList))
+    @Test
+    fun testForLoop() {
+        val oldOptions = options
+        options = UMachineOptions(stepLimit = 20U)
+        check1WithConcreteRun(
+            functionForLoop,
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ listOf { x, res -> x.typeName == "list" && res.typeName == "int" },
+            /* propertiesToDiscover = */ List(3) { index ->
+                { _, res -> res.repr == (index + 1).toString() }
+            }
+        )
+        options = oldOptions
+    }
 }

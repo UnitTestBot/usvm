@@ -101,3 +101,15 @@ def sum_of_elements(x: list):
     elif sum_ < -100:
         return 3
     return 4
+
+
+def for_loop(x: list):
+    sum_ = 0
+    for elem in x:
+        sum_ += elem
+
+    if sum_ == 10 ** 5:
+        return 1
+    elif len(x) == 3 and sum_ < -100:
+        return 2
+    return 3
