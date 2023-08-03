@@ -23,3 +23,7 @@ val pythonNoneType = ConcretePythonType("NoneType", ConcretePythonInterpreter.ev
 val pythonTypeType = createConcreteType("type")
 val pythonList = createConcreteType("list")
 val pythonTuple = createConcreteType("tuple")
+val pythonListIteratorType = ConcretePythonType(
+    "list_iterator",
+    ConcretePythonInterpreter.eval(emptyNamespace, "type(iter([]))")
+)
