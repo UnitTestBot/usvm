@@ -324,6 +324,18 @@
     "default_value": "0"
   },
   {
+    "c_name": "sq_length",
+    "nargs": 1,
+    "c_arg_types": ["PyObject *"],
+    "c_return_type": "int",
+    "java_arg_types": ["jobject"],
+    "java_return_type": "void",
+    "argument_converters": ["object_converter"],
+    "result_converter": "",
+    "fail_value": "-1",
+    "default_value": "0"
+  },
+  {
     "c_name": "mp_subscript",
     "nargs": 2,
     "c_arg_types": ["PyObject *", "PyObject *"],
@@ -346,6 +358,18 @@
     "result_converter": "",
     "fail_value": "-1",
     "default_value": "0"
+  },
+  {
+    "c_name": "symbolic_virtual_unary_fun",
+    "nargs": 1,
+    "c_arg_types": ["PyObject *"],
+    "c_return_type": "PyObject *",
+    "java_arg_types": ["jobject"],
+    "java_return_type": "jobject",
+    "argument_converters": ["object_converter"],
+    "result_converter": "object_wrapper",
+    "fail_value": "0",
+    "default_value": "Py_None"
   },
   {
     "c_name": "symbolic_virtual_binary_fun",

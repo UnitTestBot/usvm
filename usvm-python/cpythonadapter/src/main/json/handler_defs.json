@@ -145,6 +145,11 @@
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)V"
     },
     {
+        "c_name": "sq_length",
+        "java_name": "notifySqLength",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;)V"
+    },
+    {
         "c_name": "mp_subscript",
         "java_name": "notifyMpSubscript",
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)V"
@@ -165,9 +170,19 @@
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/VirtualPythonObject;)J"
     },
     {
+        "c_name": "virtual_sq_length",
+        "java_name": "virtualSqLength",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/VirtualPythonObject;)I"
+    },
+    {
         "c_name": "virtual_call",
         "java_name": "virtualCall",
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;I)Lorg/usvm/language/VirtualPythonObject;"
+    },
+    {
+        "c_name": "symbolic_virtual_unary_fun",
+        "java_name": "handlerVirtualUnaryFun",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
     },
     {
         "c_name": "symbolic_virtual_binary_fun",

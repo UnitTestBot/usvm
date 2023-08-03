@@ -27,5 +27,6 @@ sealed class TypeMethod(val isMethodWithNonVirtualReturn: Boolean): PythonCallab
 object NbBoolMethod: TypeMethod(true)
 object NbIntMethod: TypeMethod(true)
 object NbAddMethod: TypeMethod(false)
+object SqLengthMethod: TypeMethod(true)
 object MpSubscriptMethod: TypeMethod(false)
 data class TpRichcmpMethod(val op: Int): TypeMethod(false)
