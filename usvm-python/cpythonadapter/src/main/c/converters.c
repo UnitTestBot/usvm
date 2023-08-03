@@ -1,8 +1,8 @@
 #include "converters.h"
 #include "utils.h"
 
-jint frame_converter(ConcolicContext *ctx, PyFrameObject *value, int *fail) {
-    return take_instruction_from_frame(value);
+jlong frame_converter(ConcolicContext *ctx, PyFrameObject *value, int *fail) {
+    return (jlong) value;
 }
 
 jobject object_converter(ConcolicContext *ctx, PyObject *value, int *fail) {

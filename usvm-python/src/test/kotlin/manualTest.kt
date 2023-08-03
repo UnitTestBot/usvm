@@ -8,18 +8,20 @@ import org.usvm.language.types.pythonList
 fun main() {
     val program = PythonProgram(
         """
-        def f(x):
-            if len(x) == 5:
+        def f(x, y):
+            if x > y:
                 return 1
-            return 2
+            elif x == y:
+                return 2
+            return 3
         """.trimIndent()
     )
-    val function = PythonUnpinnedCallable.constructCallableFromName(listOf(PythonAnyType), "f")
+    val function = PythonUnpinnedCallable.constructCallableFromName(listOf(PythonAnyType, PythonAnyType), "f")
     val machine = PythonMachine(program, printErrorMsg = true, allowPathDiversion = true) { it }
     val start = System.currentTimeMillis()
     val iterations = machine.use { activeMachine ->
         val results: MutableList<PythonAnalysisResult<PythonObject>> = mutableListOf()
-        val returnValue = activeMachine.analyze(function, results, maxIterations = 20)
+        val returnValue = activeMachine.analyze(function, results, maxIterations = 300)
         results.forEach { (_, inputs, result) ->
             println("INPUT:")
             inputs.map { it.reprFromPythonObject }.forEach { ConcretePythonInterpreter.printPythonObject(it) }

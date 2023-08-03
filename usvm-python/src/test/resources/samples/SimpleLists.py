@@ -117,3 +117,27 @@ def for_loop(x: list):
 
 def simple_assertion(x: list):
     assert len(x) == 10
+
+
+def lt(x: list, y: list):
+    assert x < y
+
+
+def gt(x: list, y: list):
+    assert x > y
+
+
+def eq(x: list, y: list):
+    assert x == y
+
+
+def ne(x: list, y: list):
+    assert x != y
+
+
+def le(x: list, y: list):
+    assert x <= y
+
+
+def ge(x: list, y: list):
+    assert x >= y

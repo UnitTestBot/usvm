@@ -8,6 +8,7 @@ import org.usvm.interpreter.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.interpreter.symbolicobjects.constructBool
 import org.usvm.interpreter.symbolicobjects.interpretSymbolicPythonObject
 import org.usvm.language.types.PythonTypeSystem
+import org.usvm.language.types.pythonBool
 import org.usvm.language.types.pythonObjectType
 
 fun handlerIsinstanceKt(ctx: ConcolicRunContext, obj: UninterpretedSymbolicPythonObject, typeRef: PythonObject): UninterpretedSymbolicPythonObject? = with(ctx.ctx) {
@@ -33,4 +34,13 @@ fun handlerIsinstanceKt(ctx: ConcolicRunContext, obj: UninterpretedSymbolicPytho
     } else {
         constructBool(ctx, obj.evalIs(ctx, type))
     }
+}
+
+fun handlerAndKt(ctx: ConcolicRunContext, left: UninterpretedSymbolicPythonObject, right: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? = with(ctx.ctx) {
+    ctx.curState ?: return null
+    left.addSupertype(ctx, pythonBool)
+    right.addSupertype(ctx, pythonBool)
+    val leftValue = left.getBoolContent(ctx)
+    val rightValue = right.getBoolContent(ctx)
+    return constructBool(ctx, mkAnd(leftValue, rightValue))
 }

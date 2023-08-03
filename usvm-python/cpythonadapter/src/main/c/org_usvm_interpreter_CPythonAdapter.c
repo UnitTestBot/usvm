@@ -8,6 +8,8 @@
 #include "symbolicadapter.h"
 #include "virtual_objects.h"
 
+#include "internal/pycore_frame.h"
+
 #define SET_IS_INITIALIZED(value) \
     jclass cls = (*env)->GetObjectClass(env, cpython_adapter); \
     jfieldID f = (*env)->GetFieldID(env, cls, "isInitialized", "Z"); \
@@ -191,6 +193,16 @@ JNIEXPORT jstring JNICALL Java_org_usvm_interpreter_CPythonAdapter_getNameOfPyth
     assert(PyType_Check((PyObject *) type_ref));
     const char *type_name = ((PyTypeObject *) type_ref)->tp_name;
     return (*env)->NewStringUTF(env, type_name);
+}
+
+JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_getInstructionFromFrame(JNIEnv *env, jclass _, jlong frame_ref) {
+    assert(PyFrame_Check(frame_ref));
+    return take_instruction_from_frame((PyFrameObject *) frame_ref);
+}
+
+JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_getFunctionFromFrame(JNIEnv *env, jclass _, jlong frame_ref) {
+    assert(PyFrame_Check(frame_ref));
+    return (jlong) PyFrame_GetCode((PyFrameObject *) frame_ref);
 }
 
 JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_allocateVirtualObject(JNIEnv *env, jobject cpython_adapter, jobject virtual_object) {
