@@ -9,6 +9,7 @@ import org.usvm.language.*
 import org.usvm.language.types.PythonType
 import org.usvm.language.types.pythonBool
 import org.usvm.language.types.pythonInt
+import org.usvm.language.types.pythonListIteratorType
 import org.usvm.memory.UMemoryBase
 
 fun constructInputObject(
@@ -40,5 +41,13 @@ fun constructBool(context: ConcolicRunContext, expr: UExpr<KBoolSort>): Uninterp
     val address = context.curState!!.memory.alloc(pythonBool)
     val result = UninterpretedSymbolicPythonObject(address)
     result.setBoolContent(context, expr)
+    return result
+}
+
+fun constructListIterator(context: ConcolicRunContext, list: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject {
+    require(context.curState != null)
+    val address = context.curState!!.memory.alloc(pythonListIteratorType)
+    val result = UninterpretedSymbolicPythonObject(address)
+    result.setListIteratorContent(context, list)
     return result
 }
