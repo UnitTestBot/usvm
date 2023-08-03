@@ -89,7 +89,7 @@ class USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION>(
                     val serializedResult = pythonObjectSerialization(result)
                     saveRunResult(PythonAnalysisResult(converter, inputs, Success(serializedResult)))
                 }
-                logger.debug("Step result: Successful run")
+                logger.debug("Step result: Successful run. Returned ${ConcretePythonInterpreter.getPythonObjectRepr(result)}")
 
             } catch (exception: CPythonExecutionException) {
                 require(exception.pythonExceptionValue != null && exception.pythonExceptionType != null)

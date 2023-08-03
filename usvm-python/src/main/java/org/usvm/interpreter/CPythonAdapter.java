@@ -192,6 +192,10 @@ public class CPythonAdapter {
         withTracing(context, PythonReturn.INSTANCE, unit(() -> handlerReturnKt(context)));
     }
 
+    public static SymbolForCPython handlerVirtualUnaryFun(ConcolicRunContext context, SymbolForCPython obj) {
+        return methodWrapper(context, new MethodParameters("virtual_unary_fun", Arrays.asList(obj)), () -> virtualCallSymbolKt(context));
+    }
+
     public static SymbolForCPython handlerVirtualBinaryFun(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
         return methodWrapper(context, new MethodParameters("virtual_binary_fun", Arrays.asList(left, right)), () -> virtualCallSymbolKt(context));
     }
@@ -216,6 +220,11 @@ public class CPythonAdapter {
         nbAddKt(context, left.obj, right.obj);
     }
 
+    public static void notifySqLength(@NotNull ConcolicRunContext context, SymbolForCPython on) {
+        context.curOperation = new MockHeader(SqLengthMethod.INSTANCE, Collections.singletonList(on), on);
+        sqLengthKt(context, on.obj);
+    }
+
     public static void notifyMpSubscript(@NotNull ConcolicRunContext context, SymbolForCPython storage, SymbolForCPython item) {
         context.curOperation = new MockHeader(MpSubscriptMethod.INSTANCE, Arrays.asList(storage, item), storage);
         mpSubscriptKt(context, storage.obj);
@@ -232,6 +241,10 @@ public class CPythonAdapter {
 
     public static long virtualNbInt(ConcolicRunContext context, VirtualPythonObject obj) {
         return virtualNbIntKt(context, obj).getAddress();
+    }
+
+    public static int virtualSqLength(ConcolicRunContext context, VirtualPythonObject obj) {
+        return virtualSqLengthKt(context, obj);
     }
 
     @NotNull

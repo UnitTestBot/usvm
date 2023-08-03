@@ -8,16 +8,10 @@ import org.usvm.language.types.pythonList
 fun main() {
     val program = PythonProgram(
         """
-        def f(x: list):
-            sum_ = 0
-            for elem in x:
-                sum_ += elem
-            
-            if sum_ == 10 ** 5:
+        def f(x):
+            if len(x) == 5:
                 return 1
-            elif len(x) == 3 and sum_ < -100:
-                return 2
-            return 3
+            return 2
         """.trimIndent()
     )
     val function = PythonUnpinnedCallable.constructCallableFromName(listOf(PythonAnyType), "f")
