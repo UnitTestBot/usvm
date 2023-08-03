@@ -175,6 +175,14 @@ public class CPythonAdapter {
         return methodWrapper(context, new MethodParameters("list_get_size", Collections.singletonList(list)), () -> handlerListGetSizeKt(context, list.obj));
     }
 
+    public static SymbolForCPython handlerListIter(ConcolicRunContext context, SymbolForCPython list) {
+        return methodWrapper(context, new MethodParameters("list_iter", Collections.singletonList(list)), () -> handlerListIterKt(context, list.obj));
+    }
+
+    public static SymbolForCPython handlerListIteratorNext(ConcolicRunContext context, SymbolForCPython iterator) {
+        return methodWrapper(context, new MethodParameters("list_iterator_next", Collections.singletonList(iterator)), () -> handlerListIteratorNextKt(context, iterator.obj));
+    }
+
     public static void handlerFunctionCall(ConcolicRunContext context, long function) {
         PythonPinnedCallable callable = new PythonPinnedCallable(new PythonObject(function));
         withTracing(context, new PythonFunctionCall(callable), unit(() -> handlerFunctionCallKt(context, callable)));
