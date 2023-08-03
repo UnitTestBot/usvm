@@ -80,6 +80,7 @@ void construct_concolic_context(JNIEnv *env, jobject context, jobject cpython_ad
 void register_approximations(SymbolicAdapter *adapter) {
     adapter->approximation_builtin_len = Approximation_len;
     adapter->approximation_builtin_isinstance = Approximation_isinstance;
+    adapter->approximation_list_richcompare = Approximation_list_richcompare;
 }
 
 static void

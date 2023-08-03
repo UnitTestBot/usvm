@@ -8,7 +8,7 @@ extern "C" {
 #include "Python.h"
 #include "utils.h"
 
-jint frame_converter(ConcolicContext *ctx, PyFrameObject *value, int *fail);
+jlong frame_converter(ConcolicContext *ctx, PyFrameObject *value, int *fail);
 jobject object_converter(ConcolicContext *ctx, PyObject *value, int *fail);
 jint int_converter(ConcolicContext *ctx, int value, int *fail);
 jlong ref_converter(ConcolicContext *ctx, PyObject *ref, int *fail);

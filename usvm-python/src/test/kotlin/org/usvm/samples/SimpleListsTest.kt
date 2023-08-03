@@ -2,6 +2,7 @@ package org.usvm.samples
 
 import org.junit.jupiter.api.Test
 import org.usvm.UMachineOptions
+import org.usvm.language.PythonUnpinnedCallable
 import org.usvm.language.types.pythonInt
 import org.usvm.language.types.pythonList
 import org.usvm.test.util.checkers.eq
@@ -207,5 +208,46 @@ class SimpleListsTest : PythonTestRunner("/samples/SimpleLists.py") {
                 { _, res -> res.repr == "None" }
             )
         )
+    }
+
+    private fun richcompareCheck(function: PythonUnpinnedCallable) {
+        val oldOptions = options
+        options = UMachineOptions(stepLimit = 10U)
+        check2WithConcreteRun(
+            function,
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ listOf { x, y, _ -> x.typeName == "list" && y.typeName == "list" },
+            /* propertiesToDiscover = */ listOf(
+                { _, _, res -> res.selfTypeName == "AssertionError" },
+                { _, _, res -> res.repr == "None" }
+            )
+        )
+        options = oldOptions
+    }
+
+    @Test
+    fun testLt() {
+        richcompareCheck(constructFunction("lt", listOf(pythonList, pythonList)))
+    }
+    @Test
+    fun testGt() {
+        richcompareCheck(constructFunction("gt", listOf(pythonList, pythonList)))
+    }
+    @Test
+    fun testEq() {
+        richcompareCheck(constructFunction("eq", listOf(pythonList, pythonList)))
+    }
+    @Test
+    fun testNe() {
+        richcompareCheck(constructFunction("ne", listOf(pythonList, pythonList)))
+    }
+    @Test
+    fun testLe() {
+        richcompareCheck(constructFunction("le", listOf(pythonList, pythonList)))
+    }
+    @Test
+    fun testGe() {
+        richcompareCheck(constructFunction("ge", listOf(pythonList, pythonList)))
     }
 }

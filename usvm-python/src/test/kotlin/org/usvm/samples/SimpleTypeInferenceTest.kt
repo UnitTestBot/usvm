@@ -1,12 +1,16 @@
 package org.usvm.samples
 
 import org.junit.jupiter.api.Test
+import org.usvm.UMachineOptions
 import org.usvm.language.types.PythonAnyType
 import org.usvm.test.util.checkers.ge
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 class SimpleTypeInferenceTest: PythonTestRunner("/samples/SimpleTypeInference.py") {
     private val functionBoolInput = constructFunction("bool_input", List(1) { PythonAnyType })
+    init {
+        options = UMachineOptions(stepLimit = 20U)
+    }
     @Test
     fun testBoolInput() {
         check1WithConcreteRun(

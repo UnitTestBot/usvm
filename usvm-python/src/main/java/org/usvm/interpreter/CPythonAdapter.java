@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.concurrent.Callable;
 
+import static org.usvm.interpreter.operations.CommonKt.handlerAndKt;
 import static org.usvm.interpreter.operations.CommonKt.handlerIsinstanceKt;
 import static org.usvm.interpreter.operations.ConstantsKt.*;
 import static org.usvm.interpreter.operations.ControlKt.*;
@@ -40,6 +41,8 @@ public class CPythonAdapter {
     public native String getPythonObjectTypeName(long object);
     public native long getPythonObjectType(long object);
     public native String getNameOfPythonType(long type);
+    public static native int getInstructionFromFrame(long frameRef);
+    public static native long getFunctionFromFrame(long frameRef);
     public native long allocateVirtualObject(VirtualPythonObject object);
     public native long makeList(long[] elements);
     public native int typeHasNbBool(long type);
@@ -55,9 +58,12 @@ public class CPythonAdapter {
         System.loadLibrary("cpythonadapter");
     }
 
-    public static void handlerInstruction(@NotNull ConcolicRunContext context, int instruction) {
+    public static void handlerInstruction(@NotNull ConcolicRunContext context, long frameRef) {
         context.curOperation = null;
-        withTracing(context, new NextInstruction(new PythonInstruction(instruction)), () -> Unit.INSTANCE);
+        int instruction = getInstructionFromFrame(frameRef);
+        long functionRef = getFunctionFromFrame(frameRef);
+        PythonPinnedCallable function = new PythonPinnedCallable(new PythonObject(functionRef));
+        withTracing(context, new NextInstruction(new PythonInstruction(instruction), function), () -> Unit.INSTANCE);
     }
 
     private static SymbolForCPython wrap(UninterpretedSymbolicPythonObject obj) {
@@ -148,6 +154,10 @@ public class CPythonAdapter {
 
     public static SymbolForCPython handlerPOWLong(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
         return methodWrapper(context, new MethodParameters("pow_long", Arrays.asList(left, right)), () -> handlerPOWLongKt(context, left.obj, right.obj));
+    }
+
+    public static SymbolForCPython handlerAND(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
+        return methodWrapper(context, new MethodParameters("bool_ans", Arrays.asList(left, right)), () -> handlerAndKt(context, left.obj, right.obj));
     }
 
     public static SymbolForCPython handlerCreateList(ConcolicRunContext context, SymbolForCPython[] elements) {
