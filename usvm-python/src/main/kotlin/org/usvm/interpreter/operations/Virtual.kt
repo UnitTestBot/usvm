@@ -5,9 +5,7 @@ import org.usvm.interpreter.symbolicobjects.InterpretedInputSymbolicPythonObject
 import org.usvm.interpreter.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.interpreter.symbolicobjects.interpretSymbolicPythonObject
 import org.usvm.isTrue
-import org.usvm.language.NbBoolMethod
-import org.usvm.language.NbIntMethod
-import org.usvm.language.VirtualPythonObject
+import org.usvm.language.*
 import org.usvm.language.types.TypeOfVirtualObject
 import org.usvm.language.types.pythonBool
 import org.usvm.language.types.pythonInt
@@ -31,6 +29,18 @@ fun virtualNbIntKt(context: ConcolicRunContext, on: VirtualPythonObject): Python
     symbolic.addSupertype(context, pythonInt)
     val intValue = virtualObject.interpretedObj.getIntContent(context)
     return ConcretePythonInterpreter.eval(emptyNamespace, intValue.toString())
+}
+
+fun virtualSqLengthKt(context: ConcolicRunContext, on: VirtualPythonObject): Int = with(context.ctx) {
+    context.curOperation ?:
+        throw UnregisteredVirtualOperation
+    val interpretedArg = interpretSymbolicPythonObject(context.curOperation!!.args.first().obj, context.modelHolder)
+    require(context.curOperation?.method == SqLengthMethod && interpretedArg == on.interpretedObj)
+    val (virtualObject, symbolic) = internalVirtualCallKt(context)
+    symbolic.addSupertype(context, pythonInt)
+    val intValue = virtualObject.interpretedObj.getIntContent(context)
+    myAssert(context, intValue le mkIntNum(Int.MAX_VALUE))
+    return intValue.toString().toInt()
 }
 
 private fun internalVirtualCallKt(context: ConcolicRunContext): Pair<VirtualPythonObject, UninterpretedSymbolicPythonObject> = with(context.ctx) {

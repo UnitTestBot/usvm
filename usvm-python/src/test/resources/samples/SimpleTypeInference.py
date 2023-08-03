@@ -48,3 +48,9 @@ def isinstance_sample(x):
     elif isinstance(x, object):
         return 4
     return "Not reachable"
+
+
+def len_usage(x):
+    if len(x) == 5:
+        return 1
+    return 2

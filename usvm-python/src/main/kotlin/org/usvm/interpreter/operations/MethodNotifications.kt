@@ -19,6 +19,11 @@ fun nbAddKt(context: ConcolicRunContext, left: UninterpretedSymbolicPythonObject
     myAssert(context, left.evalIs(context, HasNbAdd) or right.evalIs(context, HasNbAdd))
 }
 
+fun sqLengthKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObject) {
+    context.curState ?: return
+    on.addSupertype(context, HasSqLength)
+}
+
 fun mpSubscriptKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObject) {
     context.curState ?: return
     on.addSupertype(context, HasMpSubscript)
