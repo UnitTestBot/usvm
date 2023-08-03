@@ -1,17 +1,18 @@
 package org.usvm
 
 import kotlinx.coroutines.*
-import kotlinx.serialization.encodeToString
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.*
-import mu.KLogging
 import java.io.File
 import java.net.URLClassLoader
 import kotlin.io.path.Path
 import org.usvm.samples.JavaMethodTestRunner
+import java.lang.reflect.Method
 import kotlin.reflect.KFunction
 import kotlin.reflect.jvm.kotlinFunction
+import kotlin.system.measureTimeMillis
 
-val logger = object : KLogging() {}.logger
+val jsonsDirname = Path(MainConfig.dataPath, "jsons").toString()
 
 fun recursiveLoad(currentDir: File, classes: MutableList<Class<*>>, classLoader: ClassLoader, path: String) {
     currentDir.listFiles()?.forEach { file ->
@@ -22,7 +23,7 @@ fun recursiveLoad(currentDir: File, classes: MutableList<Class<*>>, classLoader:
             try {
                 classes.add(classLoader.loadClass("${path}.${file.nameWithoutExtension}"))
             } catch (e: Exception) {
-                logger.debug("Error when loading", e)
+                println(e)
             }
         }
     }
@@ -33,7 +34,8 @@ private class MainTestRunner : JavaMethodTestRunner() {
         exceptionsPropagation = false,
         timeoutMs = 20000,
         stepLimit = 1500u,
-        pathSelectionStrategies = listOf(PathSelectionStrategy.INFERENCE_WITH_LOGGING)
+        pathSelectionStrategies = listOf(PathSelectionStrategy.INFERENCE_WITH_LOGGING),
+        solverType = SolverType.Z3
     )
 
     fun runTest(method: KFunction<*>) {
@@ -41,41 +43,50 @@ private class MainTestRunner : JavaMethodTestRunner() {
     }
 }
 
-fun main(args: Array<String>) {
+fun getName(method: Method): String {
+    return "${method.declaringClass.name}#${method.name}(${method.parameters.joinToString { it.type.typeName }})"
+}
+
+fun calculate() {
     val testRunner = MainTestRunner()
-    val options = args.getOrNull(0)?.let { File(it) }?.readText()?.let {
-        Json.decodeFromString<JsonObject>(it)
-    }
-    if (options != null) {
-        MainConfig.samplesPath =
-            (options.getOrDefault("samplesPath", JsonPrimitive(MainConfig.samplesPath)) as JsonPrimitive).content
-        MainConfig.gameEnvPath =
-            (options.getOrDefault("gameEnvPath", JsonPrimitive(MainConfig.gameEnvPath)) as JsonPrimitive).content
-        MainConfig.dataPath =
-            (options.getOrDefault("dataPath", JsonPrimitive(MainConfig.dataPath)) as JsonPrimitive).content
-        MainConfig.algorithm = Algorithm.valueOf((options.getOrDefault("algortihm",
-            JsonPrimitive(MainConfig.algorithm.name)) as JsonPrimitive).content)
-    }
     val samplesDir = File(MainConfig.samplesPath)
     val classLoader = URLClassLoader(arrayOf(samplesDir.toURI().toURL()))
     val classes = mutableListOf<Class<*>>()
     recursiveLoad(samplesDir, classes, classLoader, "")
-    logger.debug("\nLOADING COMPLETE\n")
+    println("\nLOADING COMPLETE\n")
+
+    val longFile = Path(MainConfig.gameEnvPath, "long-methods.txt").toFile()
+    longFile.parentFile.mkdirs()
+    longFile.createNewFile()
+    val badFile = Path(MainConfig.gameEnvPath, "bad-methods.txt").toFile()
+    badFile.parentFile.mkdirs()
+    badFile.createNewFile()
+
+    val oldLongMethods = longFile.readLines()
+    val oldBadMethods = badFile.readLines()
+
+    val badMethods = mutableListOf<String>()
+    val tests = mutableListOf<Job>()
     runBlocking(Dispatchers.IO) {
-        val tests = mutableListOf<Job>()
         classes.forEach { cls ->
-            cls.methods.forEach loop@{ method ->
-                if (method.declaringClass != cls) {
-                    return@loop
-                }
+            cls.methods.filter { it.declaringClass === cls && getName(it) !in oldLongMethods && getName(it) !in oldBadMethods }.forEach { method ->
                 val test = launch {
                     try {
-                        logger.debug("Running test ${method.name}")
-                        method.kotlinFunction?.let { testRunner.runTest(it) }
+                        //                        logger.debug("Running test ${method.name}")
+                        println("Running test ${method.declaringClass.name}#${method.name}(${method.parameters.joinToString { it.type.typeName }})")
+                        val time = measureTimeMillis {
+                            method.kotlinFunction?.let { testRunner.runTest(it) }
+                        }
+                        println("Test ${method.name} finished after ${time}ms")
+                        if (time > 50000) {
+                            MainConfig.longTests.add("${method.declaringClass.name}#${method.name}(${method.parameters.joinToString { it.type.typeName }})")
+                        }
                     } catch (e: Exception) {
-                        logger.debug("Exception during test ${method.name}", e)
+                        badMethods.add("${method.declaringClass.name}#${method.name}(${method.parameters.joinToString { it.type.typeName }})")
+                        println(e)
                     } catch (e: NotImplementedError) {
-                        logger.debug("Test not implemented ${method.name}", e)
+                        badMethods.add("${method.declaringClass.name}#${method.name}(${method.parameters.joinToString { it.type.typeName }})")
+                        println(e)
                     }
                 }
                 tests.add(test)
@@ -84,20 +95,30 @@ fun main(args: Array<String>) {
         tests.joinAll()
     }
 
+    println("\nALL TESTS FINISHED\n")
+    if (MainConfig.longTests.isNotEmpty()) {
+        longFile.appendText(MainConfig.longTests.joinToString("\n", prefix = "\n") { it })
+    }
+    if (badMethods.isNotEmpty()) {
+        badFile.appendText(badMethods.joinToString("\n", prefix = "\n") { it })
+    }
+}
+
+@OptIn(ExperimentalSerializationApi::class)
+fun aggregate() {
     val resultDirname = MainConfig.dataPath
-    val dirname = Path(resultDirname, "jsons").toString()
     val resultFilename = "current_dataset.json"
     val jsons = mutableListOf<JsonElement>()
 
-    File(dirname).listFiles()?.forEach { file ->
+    File(jsonsDirname).listFiles()?.forEach { file ->
         if (!file.isFile || file.extension != "json") {
             return@forEach
         }
         val json = Json.decodeFromString<JsonElement>(file.readText())
         jsons.add(buildJsonObject {
-            put("methodHash", file.nameWithoutExtension.hashCode())
             put("json", json)
             put("methodName", file.nameWithoutExtension)
+            put("methodHash", file.nameWithoutExtension.hashCode())
         })
         file.delete()
     }
@@ -114,6 +135,7 @@ fun main(args: Array<String>) {
                     add(it.jsonObject["methodHash"]!!)
                     add(it.jsonObject["json"]!!.jsonObject["path"]!!)
                     add(it.jsonObject["methodName"]!!)
+                    add(it.jsonObject["json"]!!.jsonObject["statementsCount"]!!)
                 }
             }
         }
@@ -121,5 +143,57 @@ fun main(args: Array<String>) {
 
     val resultFile = Path(resultDirname, resultFilename).toFile()
     resultFile.parentFile.mkdirs()
-    resultFile.writeText(Json.encodeToString(bigJson))
+    Json.encodeToStream(bigJson, resultFile.outputStream())
+}
+
+fun main(args: Array<String>) {
+    val options = args.getOrNull(0)?.let { File(it) }?.readText()?.let {
+        Json.decodeFromString<JsonObject>(it)
+    }
+    if (options != null) {
+        MainConfig.samplesPath =
+            (options.getOrDefault("samplesPath", JsonPrimitive(MainConfig.samplesPath)) as JsonPrimitive).content
+        MainConfig.gameEnvPath =
+            (options.getOrDefault("gameEnvPath", JsonPrimitive(MainConfig.gameEnvPath)) as JsonPrimitive).content
+        MainConfig.dataPath =
+            (options.getOrDefault("dataPath", JsonPrimitive(MainConfig.dataPath)) as JsonPrimitive).content
+        MainConfig.postprocessing = Postprocessing.valueOf((options.getOrDefault("postprocessing",
+            JsonPrimitive(MainConfig.postprocessing.name)) as JsonPrimitive).content)
+        MainConfig.mode = Mode.valueOf((options.getOrDefault("mode",
+            JsonPrimitive(MainConfig.mode.name)) as JsonPrimitive).content)
+        MainConfig.inputShape =
+            (options.getOrDefault("inputShape", JsonArray(MainConfig.inputShape
+                .map { JsonPrimitive(it) })) as JsonArray).map { (it as JsonPrimitive).content.toLong() }
+        MainConfig.maxAttentionLength =
+            (options.getOrDefault("maxAttentionLength",
+                JsonPrimitive(MainConfig.maxAttentionLength)) as JsonPrimitive).content.toInt()
+    }
+
+    println("OPTIONS:")
+    println("POSTPROCESSING: ${MainConfig.postprocessing}")
+    println("INPUT SHAPE: ${MainConfig.inputShape}")
+    println("MAX ATTENTION LENGTH: ${MainConfig.maxAttentionLength}")
+    println()
+
+    if (MainConfig.mode == Mode.Calculation || MainConfig.mode == Mode.Both) {
+        try {
+            calculate()
+        } catch (e: Throwable) {
+            File(jsonsDirname).listFiles()?.forEach { file ->
+                file.delete()
+            }
+            println(e)
+        }
+    }
+
+    if (MainConfig.mode == Mode.Aggregation || MainConfig.mode == Mode.Both) {
+        try {
+            aggregate()
+        } catch (e: Throwable) {
+            File(jsonsDirname).listFiles()?.forEach { file ->
+                file.delete()
+            }
+            println(e)
+        }
+    }
 }

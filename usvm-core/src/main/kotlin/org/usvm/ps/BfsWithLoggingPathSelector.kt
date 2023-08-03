@@ -467,6 +467,7 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
                     }
                 }
             }
+            put("statementsCount", allStatements.size)
         }
         Path(filepath, "$filename.json").toFile()
             .writeText(jsonFormat.encodeToString(jsonData))

@@ -3,7 +3,7 @@ package org.usvm.ps
 import ai.onnxruntime.OnnxTensor
 import ai.onnxruntime.OrtEnvironment
 import ai.onnxruntime.OrtSession
-import org.usvm.Algorithm
+import org.usvm.Postprocessing
 import org.usvm.MainConfig
 import org.usvm.UState
 import org.usvm.statistics.*
@@ -25,7 +25,7 @@ internal open class InferencePathSelector<State : UState<*, *, Method, Statement
     distanceStatistics,
     applicationGraph
 ) {
-    private var qValues = listOf<Float>()
+    private var outputValues = listOf<Float>()
     private var chosenStateId = 0
     private val random = Random(java.time.LocalDateTime.now().nano)
 
@@ -57,7 +57,7 @@ internal open class InferencePathSelector<State : UState<*, *, Method, Statement
         if (stateId == -1) {
             return super.getNodeName(node, id)
         }
-        return "\"$id: Q=${DecimalFormat("0.00E0").format(qValues.getOrElse(stateId) { -1.0f })}, " +
+        return "\"$id: ${DecimalFormat("0.00E0").format(outputValues.getOrElse(stateId) { -1.0f })}, " +
                 "${state.currentStatement}\""
     }
 
@@ -127,11 +127,16 @@ internal open class InferencePathSelector<State : UState<*, *, Method, Statement
             session = env!!.createSession(modelPath, OrtSession.SessionOptions())
         }
         val globalFeaturesList = globalStateFeaturesToFloatList(globalStateFeatures)
-        val allFeaturesList = stateFeatureQueue.map { stateFeatures ->
+        val allFeaturesListFull = stateFeatureQueue.map { stateFeatures ->
             stateFeaturesToFloatList(stateFeatures) + globalFeaturesList
         }
-        val shape = longArrayOf(1, allFeaturesList.size.toLong(), allFeaturesList.first().size.toLong())
-        val dataBuffer = FloatBuffer.allocate(allFeaturesList.size * allFeaturesList.first().size)
+        val firstIndex = if (MainConfig.maxAttentionLength == -1) 0 else
+            maxOf(0, queue.size - MainConfig.maxAttentionLength)
+        val allFeaturesList = allFeaturesListFull.subList(firstIndex, queue.size)
+        val totalSize = allFeaturesList.size * allFeaturesList.first().size
+        val totalKnownSize = MainConfig.inputShape.reduce { acc, l -> acc * l }
+        val shape = MainConfig.inputShape.map { if (it != -1L) it else -totalSize / totalKnownSize }.toLongArray()
+        val dataBuffer = FloatBuffer.allocate(totalSize)
         allFeaturesList.forEach { stateFeatures ->
             stateFeatures.forEach { feature ->
                 dataBuffer.put(feature)
@@ -140,16 +145,21 @@ internal open class InferencePathSelector<State : UState<*, *, Method, Statement
         dataBuffer.rewind()
         val data = OnnxTensor.createTensor(env, dataBuffer, shape)
         val result = session!!.run(mapOf(Pair("input", data)))
-        val output = (result.get("output").get().value as Array<*>)
-            .asList().map { (it as FloatArray)[0] }
-        chosenStateId = if (MainConfig.algorithm == Algorithm.TD) {
-            output.indices.maxBy { output[it] }
-        } else {
-            val exponents = output.map { exp(it) }
-            val exponentsSum = exponents.sum()
-            chooseRandomId(exponents.map { it / exponentsSum })
+        val output = (result.get("output").get().value as Array<*>).flatMap { (it as FloatArray).toList() }
+        chosenStateId = firstIndex + when (MainConfig.postprocessing) {
+            Postprocessing.Argmax -> {
+                output.indices.maxBy { output[it] }
+            }
+            Postprocessing.Softmax -> {
+                val exponents = output.map { exp(it) }
+                val exponentsSum = exponents.sum()
+                chooseRandomId(exponents.map { it / exponentsSum })
+            }
+            else -> {
+                chooseRandomId(output)
+            }
         }
-        qValues = output
+        outputValues = List(firstIndex) { -1.0f } + output
         return queue[chosenStateId]
     }
 
