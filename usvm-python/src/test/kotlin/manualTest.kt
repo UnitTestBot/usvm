@@ -8,12 +8,19 @@ import org.usvm.language.types.pythonList
 fun main() {
     val program = PythonProgram(
         """
-        def f(x, y):
-            x[0][0] += 1
-            assert x < y
+        def f(x):
+            if isinstance(x, bool):
+                return 1
+            if isinstance(x, int):
+                return 2
+            elif isinstance(x, list):
+                return 3
+            elif isinstance(x, object):
+                return 4
+            return "Not reachable"
         """.trimIndent()
     )
-    val function = PythonUnpinnedCallable.constructCallableFromName(listOf(pythonList, pythonList), "f")
+    val function = PythonUnpinnedCallable.constructCallableFromName(listOf(PythonAnyType), "f")
     val machine = PythonMachine(program, printErrorMsg = true, allowPathDiversion = true) {
         ConcretePythonInterpreter.getPythonObjectRepr(it)
     }
