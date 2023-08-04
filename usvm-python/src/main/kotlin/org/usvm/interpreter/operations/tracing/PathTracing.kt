@@ -3,6 +3,7 @@ package org.usvm.interpreter.operations.tracing
 import mu.KLogging
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.isTrue
+import org.usvm.language.SymbolForCPython
 import java.util.concurrent.Callable
 
 private val logger = object : KLogging() {}.logger
@@ -38,20 +39,17 @@ fun <T : Any> withTracing(
 }
 
 
-// TODO: there might be events between fork and fork result
-fun handlerForkResultKt(context: ConcolicRunContext, result: Boolean) {
-    if (context.instructionCounter < 1 || context.curState == null)
-        return
-    val lastEventParams = context.curState!!.path[context.instructionCounter - 1].parameters
-    if (lastEventParams !is Fork)
+fun handlerForkResultKt(context: ConcolicRunContext, cond: SymbolForCPython, result: Boolean) {
+    if (context.curState == null)
         return
 
-    val expectedResult = lastEventParams.condition.obj.getToBoolValue(context)?.let {
+    val expectedResult = cond.obj.getToBoolValue(context)?.let {
         context.curState!!.pyModel.eval(it)
     }?.isTrue ?: return
 
     if (result != expectedResult) {
         logger.debug("Path diversion after fork!")
+        logger.debug("Condition: {}", cond.obj.getToBoolValue(context))
         logger.debug("Expected: {}", expectedResult)
         logger.debug("Got: {}", result)
         context.pathDiversion()

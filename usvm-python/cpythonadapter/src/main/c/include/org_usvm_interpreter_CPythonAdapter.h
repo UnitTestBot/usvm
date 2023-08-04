@@ -201,10 +201,26 @@ JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasMpSubscri
 
 /*
  * Class:     org_usvm_interpreter_CPythonAdapter
+ * Method:    typeHasMpAssSubscript
+ * Signature: (J)I
+ */
+JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasMpAssSubscript
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_usvm_interpreter_CPythonAdapter
  * Method:    typeHasTpRichcmp
  * Signature: (J)I
  */
 JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasTpRichcmp
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_usvm_interpreter_CPythonAdapter
+ * Method:    typeHasTpIter
+ * Signature: (J)I
+ */
+JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasTpIter
   (JNIEnv *, jobject, jlong);
 
 /*

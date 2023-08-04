@@ -18,8 +18,24 @@ virtual_object_dealloc(PyObject *op) {
     CHECK_FOR_EXCEPTION(ctx, 0) \
     return (PyObject *) create_new_virtual_object(ctx, virtual_object, adapter);
 
+
+#define MAKE_USVM_VIRUAL_CALL_NO_RETURN(obj, owner_id) \
+    SymbolicAdapter *adapter = (obj)->adapter; \
+    ConcolicContext *ctx = (obj)->ctx; \
+    adapter->ignore = 1; \
+    (*ctx->env)->CallStaticObjectMethod(ctx->env, ctx->cpython_adapter_cls, ctx->handle_virtual_call, ctx->context, owner_id); \
+    adapter->ignore = 0; \
+    CHECK_FOR_EXCEPTION(ctx, -1) \
+    return 0;
+
 static PyObject *
 tp_richcompare(PyObject *o1, PyObject *o2, int op) {
+    assert(is_virtual_object(o1));
+    MAKE_USVM_VIRUAL_CALL((VirtualPythonObject *) o1, 0)
+}
+
+static PyObject *
+tp_iter(PyObject *o1) {
     assert(is_virtual_object(o1));
     MAKE_USVM_VIRUAL_CALL((VirtualPythonObject *) o1, 0)
 }
@@ -76,7 +92,14 @@ sq_length(PyObject *self) {
 
 static PyObject *
 mp_subscript(PyObject *self, PyObject *item) {
+    assert(is_virtual_object(self));
     MAKE_USVM_VIRUAL_CALL((VirtualPythonObject *) self, 0)
+}
+
+static int
+mp_ass_subscript(PyObject *self, PyObject *item, PyObject *value) {
+    assert(is_virtual_object(self));
+    MAKE_USVM_VIRUAL_CALL_NO_RETURN((VirtualPythonObject *) self, 0)
 }
 
 static PyNumberMethods virtual_as_number = {
@@ -132,7 +155,7 @@ static PySequenceMethods virtual_as_sequence = {
 PyMappingMethods virtual_as_mapping = {
     0,                          /* mp_length */
     mp_subscript,               /* mp_subscript */
-    0                           /* mp_ass_subscript */
+    mp_ass_subscript            /* mp_ass_subscript */
 };
 
 PyTypeObject VirtualPythonObject_Type = {
@@ -161,7 +184,7 @@ PyTypeObject VirtualPythonObject_Type = {
     0,                                       /*tp_clear */
     tp_richcompare,                          /*tp_richcompare */
     0,                                       /*tp_weaklistoffset */
-    0,                                       /*tp_iter */
+    tp_iter,                                 /*tp_iter */
     0,                                       /*tp_iternext */
     0,                                       /*tp_methods */
     0,                                       /*tp_members */
@@ -213,6 +236,7 @@ is_virtual_object(PyObject *obj) {
 
 void register_virtual_methods(SymbolicAdapter *adapter) {
     adapter->virtual_tp_richcompare = tp_richcompare;
+    adapter->virtual_tp_iter = tp_iter;
     adapter->virtual_nb_add = nb_add;
     adapter->virtual_mp_subscript = mp_subscript;
 }
