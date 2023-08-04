@@ -8,9 +8,9 @@
     "    while i < len(x) and i < len(y):         \n" \
     "        xitem = x[i]                         \n" \
     "        yitem = y[i]                         \n" \
-    "        #if xitem is yitem:                   \n" \
-    "        #    i += 1                           \n" \
-    "        #    continue                         \n" \
+    "        #if xitem is yitem:                  \n" \
+    "        #    i += 1                          \n" \
+    "        #    continue                        \n" \
     "        if xitem != yitem:                   \n" \
     "            break                            \n" \
     "        i += 1                               \n" \
@@ -83,6 +83,10 @@ Approximation_list_richcompare(PyObject *v, PyObject *w, int op) {
         Py_RETURN_NOTIMPLEMENTED;
 
     SymbolicAdapter *adapter = get_adapter(v);
+    if (adapter->add_concrete_supertype(adapter->handler_param, get_symbolic_or_none(v), (PyObject *) &PyList_Type))
+        return 0;
+    if (adapter->add_concrete_supertype(adapter->handler_param, get_symbolic_or_none(w), (PyObject *) &PyList_Type))
+        return 0;
     initialize_list_richcompare_impl(adapter);
     PyObject *wrapped = 0;
     if (op == Py_LT) {

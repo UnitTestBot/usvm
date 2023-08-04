@@ -65,12 +65,14 @@ fun handlerForkKt(ctx: ConcolicRunContext, cond: UninterpretedSymbolicPythonObje
     myFork(ctx, expr)
 }
 
+@Suppress("unused_parameter")
 fun handlerFunctionCallKt(ctx: ConcolicRunContext, function: PythonPinnedCallable) {
-    (ctx.curState ?: return).callStack.push(function, (ctx.curState ?: return).lastHandlerEvent)
+    // (ctx.curState ?: return).callStack.push(function, (ctx.curState ?: return).lastHandlerEvent)
 }
 
+@Suppress("unused_parameter")
 fun handlerReturnKt(ctx: ConcolicRunContext) {
-    (ctx.curState ?: return).callStack.pop()
+    // (ctx.curState ?: return).callStack.pop()
 }
 
 object BadModelException: Exception()
