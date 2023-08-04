@@ -29,7 +29,17 @@ fun mpSubscriptKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonOb
     on.addSupertype(context, HasMpSubscript)
 }
 
+fun mpAssSubscriptKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObject) {
+    context.curState ?: return
+    on.addSupertype(context, HasMpAssSubscript)
+}
+
 fun tpRichcmpKt(context: ConcolicRunContext, left: UninterpretedSymbolicPythonObject) {
     context.curState ?: return
     myAssert(context, left.evalIs(context, HasTpRichcmp))
+}
+
+fun tpIterKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObject) {
+    context.curState ?: return
+    myAssert(context, on.evalIs(context, HasTpIter))
 }

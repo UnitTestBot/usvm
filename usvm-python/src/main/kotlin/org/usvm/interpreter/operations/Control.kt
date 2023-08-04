@@ -49,6 +49,7 @@ fun addDelayedFork(context: ConcolicRunContext, on: UninterpretedSymbolicPythonO
         DelayedFork(
             clonedState,
             on,
+            on.getTypeStreamOfModel(context),
             context.curState!!.delayedForks
         )
     )

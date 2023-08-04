@@ -133,7 +133,9 @@ object ConcretePythonInterpreter {
     val typeHasSqLength = createTypeQuery { pythonAdapter.typeHasSqLength(it) }
     val typeHasMpLength = createTypeQuery { pythonAdapter.typeHasMpLength(it) }
     val typeHasMpSubscript = createTypeQuery { pythonAdapter.typeHasMpSubscript(it) }
+    val typeHasMpAssSubscript = createTypeQuery { pythonAdapter.typeHasMpAssSubscript(it) }
     val typeHasTpRichcmp = createTypeQuery { pythonAdapter.typeHasTpRichcmp(it) }
+    val typeHasTpIter = createTypeQuery { pythonAdapter.typeHasTpIter(it) }
 
     fun kill() {
         pythonAdapter.finalizePython()
