@@ -83,6 +83,14 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         ctx.bvOne(sort.sizeBits).uncheckedCast()
     }
 
+    private val minValue: KBitVecValue<Sort> by lazy {
+        ctx.bvMinValueSigned(sort.sizeBits).uncheckedCast()
+    }
+
+    private val maxValue: KBitVecValue<Sort> by lazy {
+        ctx.bvMaxValueSigned(sort.sizeBits).uncheckedCast()
+    }
+
     /**
      * Retrieve actual constraints.
      * */
@@ -214,7 +222,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
     /**
      * Retrieve lower and upper bounds for the [expr].
      * */
-    fun evalInterval(expr: UExpr<Sort>): Intervals<UBvIntervalPoint<Sort>>? {
+    fun evalInterval(expr: UExpr<Sort>): Intervals<UBvIntervalPoint<Sort>> {
         val (terms, const) = collectLinearTerms(expr)
 
         if (terms == null) {
@@ -225,31 +233,30 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
             terms = terms,
             bounds = { bounds, boundsBias ->
                 val bias = add(boundsBias, const)
-                val lowerBound = bounds.lowerBound(bias)?.value
-                val upperBound = bounds.upperBound(bias)?.value
-                when {
-                    lowerBound != null && upperBound != null -> Intervals.closed(
-                        from = UBvIntervalPoint(lowerBound),
-                        to = UBvIntervalPoint(upperBound)
-                    )
 
-                    lowerBound != null -> Intervals.closed(
-                        from = UBvIntervalPoint(lowerBound),
-                        to = UBvIntervalPoint(sort.ctx.bvMaxValueSigned(sort.sizeBits).uncheckedCast())
-                    )
+                val actualConstraints = bounds.actualizeConstraint(bias)
 
-                    upperBound != null -> Intervals.closed(
-                        from = UBvIntervalPoint(sort.ctx.bvMinValueSigned(sort.sizeBits).uncheckedCast()),
-                        to = UBvIntervalPoint(upperBound)
-                    )
+                val lowerBound = actualConstraints.lowerBound(bias)?.value ?: minValue
+                val upperBound = actualConstraints.upperBound(bias)?.value ?: maxValue
 
-                    else -> null
+                var interval = Intervals.closed(UBvIntervalPoint(lowerBound), UBvIntervalPoint(upperBound))
+
+                actualConstraints.excludedPoints(bias).forEach { value ->
+                    val point = Intervals.singleton(UBvIntervalPoint(value))
+                    interval = interval.subtract(point)
                 }
+
+                interval
             },
             value = { value ->
-                Intervals.singleton(UBvIntervalPoint(add(value, const)))
+                val biasedValue = add(value, const)
+                Intervals.singleton(UBvIntervalPoint(biasedValue))
             },
-            noConstraint = { null }
+            noConstraint = {
+                val lowerBound = UBvIntervalPoint(minValue)
+                val upperBound = UBvIntervalPoint(maxValue)
+                Intervals.closed(lowerBound, upperBound)
+            }
         )
     }
 
@@ -690,10 +697,10 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
             if (rhsConstraint === lhsConstraint) {
                 val simplifiedRhs = if (isStrict) {
                     // (a + c0) < (a + c1) <=> (a + c0) < (MIN_VALUE + c0 - c1)
-                    ctx.bvMinValueSigned(sort.sizeBits) + (lhsBias - normalizedRhsConst)
+                    minValue + (lhsBias - normalizedRhsConst)
                 } else {
                     // (a + c0) <= (a + c1) <=> (a + c0) <= (MAX_VALUE + c0 - c1)
-                    ctx.bvMaxValueSigned(sort.sizeBits) + (lhsBias - normalizedRhsConst)
+                    maxValue + (lhsBias - normalizedRhsConst)
                 }
 
                 lhsConstraint.addConcreteUpperBound(
@@ -1019,6 +1026,14 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
 
         return modifyConcreteDisequalitites(bias, ValueConstraint(value, isPrimary))
     }
+
+    private fun BoundsConstraint<Sort>.excludedPoints(
+        bias: KBitVecValue<Sort>
+    ): Sequence<KBitVecValue<Sort>> =
+        concreteDisequalitites.asSequence().map { (constraintBias, _) ->
+            // x + constraintBias != 0 <=> x + bias != bias - constraintBias
+            sub(bias, constraintBias)
+        }
 
     private fun BoundsConstraint<Sort>.updateTermsInferredLowerBound(
         lhsBias: KBitVecValue<Sort>,
@@ -1668,10 +1683,10 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         relevantConstraints.add(bias)
         relevantConstraints.sortWith(BvValueComparator)
 
-        val delta: KBitVecValue<Sort> = if (rhsBound.signedGreaterOrEqual(zero)) {
-            (ctx.bvMaxValueSigned(sort.sizeBits) - rhsBound).uncheckedCast()
+        val delta = if (rhsBound.signedGreaterOrEqual(zero)) {
+            sub(maxValue, rhsBound)
         } else {
-            (ctx.bvMaxValueSigned(sort.sizeBits) + rhsBound).uncheckedCast()
+            add(maxValue, rhsBound)
         }
 
         val biasesToRemove = arrayListOf<KBitVecValue<Sort>>()

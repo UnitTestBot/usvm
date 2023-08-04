@@ -100,18 +100,23 @@ class NumericConstraintsTests {
     @Test
     fun testEvalInterval(): Unit = with(ctx) {
         val x by bvSort
-        val lb = mkBv(-5, bvSort)
-        val ub = mkBv(5, bvSort)
 
-        constraints.addNumericConstraint(mkBvSignedGreaterOrEqualExpr(x, lb))
-        constraints.addNumericConstraint(mkBvSignedLessOrEqualExpr(x, ub))
+        // x in [-5, -1] U [1, 5]
+        constraints.addNumericConstraint(mkBvSignedGreaterOrEqualExpr(x, mkBv(-5, bvSort)))
+        constraints.addNumericConstraint(mkBvSignedLessOrEqualExpr(x, mkBv(5, bvSort)))
+        constraints.addNegatedNumericConstraint(mkEq(x, mkBv(0, bvSort)))
 
-        val actualInterval = constraints.evalInterval(x)
+        val expr = mkBvAddExpr(x, mkBv(3, bvSort))
+
+        // expr in [-2, 2] U [4, 8]
         val expectedInterval = Intervals.closed(
-            UNumericConstraints.UBvIntervalPoint(lb),
-            UNumericConstraints.UBvIntervalPoint(ub)
+            UNumericConstraints.UBvIntervalPoint(mkBv(-2, bvSort)),
+            UNumericConstraints.UBvIntervalPoint(mkBv(8, bvSort))
+        ).subtract(
+            Intervals.singleton(UNumericConstraints.UBvIntervalPoint(mkBv(3, bvSort)))
         )
 
+        val actualInterval = constraints.evalInterval(expr)
         assertEquals(expectedInterval, actualInterval)
     }
 
