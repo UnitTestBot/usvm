@@ -10,8 +10,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.concurrent.Callable;
 
-import static org.usvm.interpreter.operations.CommonKt.handlerAndKt;
-import static org.usvm.interpreter.operations.CommonKt.handlerIsinstanceKt;
+import static org.usvm.interpreter.operations.CommonKt.*;
 import static org.usvm.interpreter.operations.ConstantsKt.*;
 import static org.usvm.interpreter.operations.ControlKt.*;
 import static org.usvm.interpreter.operations.ListKt.*;
@@ -195,13 +194,14 @@ public class CPythonAdapter {
         return methodWrapper(context, new MethodParameters("list_iterator_next", Collections.singletonList(iterator)), () -> handlerListIteratorNextKt(context, iterator.obj));
     }
 
-    public static void handlerFunctionCall(ConcolicRunContext context, long function) {
-        PythonPinnedCallable callable = new PythonPinnedCallable(new PythonObject(function));
+    public static void handlerFunctionCall(ConcolicRunContext context, long codeRef) {
+        PythonPinnedCallable callable = new PythonPinnedCallable(new PythonObject(codeRef));
         withTracing(context, new PythonFunctionCall(callable), unit(() -> handlerFunctionCallKt(context, callable)));
     }
 
-    public static void handlerReturn(ConcolicRunContext context) {
-        withTracing(context, PythonReturn.INSTANCE, unit(() -> handlerReturnKt(context)));
+    public static void handlerReturn(ConcolicRunContext context, long codeRef) {
+        PythonPinnedCallable callable = new PythonPinnedCallable(new PythonObject(codeRef));
+        withTracing(context, new PythonReturn(callable), unit(() -> handlerReturnKt(context)));
     }
 
     public static SymbolForCPython handlerVirtualUnaryFun(ConcolicRunContext context, SymbolForCPython obj) {
@@ -215,6 +215,11 @@ public class CPythonAdapter {
     public static SymbolForCPython handlerIsinstance(ConcolicRunContext context, SymbolForCPython obj, long typeRef) {
         PythonObject type = new PythonObject(typeRef);
         return methodWrapper(context, new IsinstanceCheck(obj, type), () -> handlerIsinstanceKt(context, obj.obj, type));
+    }
+
+    public static void addConcreteSupertype(ConcolicRunContext context, SymbolForCPython obj, long typeRef) {
+        PythonObject type = new PythonObject(typeRef);
+        addConcreteSupertypeKt(context, obj.obj, type);
     }
 
     public static void notifyNbBool(@NotNull ConcolicRunContext context, SymbolForCPython symbol) {

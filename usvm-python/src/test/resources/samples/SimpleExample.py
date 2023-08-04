@@ -65,3 +65,11 @@ def mixed_input_types(x: bool, y: int):
         return 2
     else:
         return 3
+
+
+def simple_condition(x):
+    return x < 0
+
+
+def symbolic_call(x):
+    assert simple_condition(x)

@@ -18,7 +18,7 @@ object PythonComponents: UComponents<PropertyOfPythonObject, PythonType, PythonC
         val (translator, decoder) = buildTranslatorAndLazyDecoder<PropertyOfPythonObject, PythonType, PythonCallable>(ctx)
         val softConstraintsProvider = USoftConstraintsProvider<PropertyOfPythonObject, PythonType>(ctx)
         val solver = KZ3Solver(ctx)
-        //solver.configure { setZ3Option("timeout", 100000) }
+        solver.configure { setZ3Option("timeout", 1) }
         return USolverBase(ctx, solver, UTypeSolver(PythonTypeSystem),  translator, decoder, softConstraintsProvider)
     }
 

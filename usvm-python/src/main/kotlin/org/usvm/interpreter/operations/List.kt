@@ -28,6 +28,7 @@ fun handlerCreateListKt(context: ConcolicRunContext, elements: Stream<Uninterpre
 fun handlerListGetSizeKt(context: ConcolicRunContext, list: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
     if (context.curState == null)
         return null
+    list.addSupertype(context, pythonList)
     @Suppress("unchecked_cast")
     val listSize = context.curState!!.memory.read(UArrayLengthLValue(list.address, pythonList)) as UExpr<KIntSort>
     return constructInt(context, listSize)
@@ -63,15 +64,16 @@ private fun resolveIndex(context: ConcolicRunContext, list: UninterpretedSymboli
     }
 }
 
-fun handlerListGetItemKt(context: ConcolicRunContext, list: UninterpretedSymbolicPythonObject?, index: UninterpretedSymbolicPythonObject?): UninterpretedSymbolicPythonObject? {
+fun handlerListGetItemKt(context: ConcolicRunContext, list: UninterpretedSymbolicPythonObject, index: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? = with(context.ctx) {
     if (context.curState == null)
         return null
-    list ?: return null
-    index ?: return null
     val lvalue = resolveIndex(context, list, index) ?: return null
 
     @Suppress("unchecked_cast")
     val elemAddr = context.curState!!.memory.read(lvalue) as UHeapRef
+
+    myAssert(context, mkHeapRefEq(list.address, elemAddr).not())  // to avoid recursive lists
+
     return UninterpretedSymbolicPythonObject(elemAddr)
 }
 
@@ -84,11 +86,9 @@ fun handlerListSetItemKt(context: ConcolicRunContext, list: UninterpretedSymboli
 }
 
 
-fun handlerListExtendKt(context: ConcolicRunContext, list: UninterpretedSymbolicPythonObject?, tuple: UninterpretedSymbolicPythonObject?): UninterpretedSymbolicPythonObject? {
+fun handlerListExtendKt(context: ConcolicRunContext, list: UninterpretedSymbolicPythonObject, tuple: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
     if (context.curState == null)
         return null
-    list ?: return null
-    tuple ?: return null
     with (context.ctx) {
         list.addSupertype(context, pythonList)
         tuple.addSupertype(context, pythonTuple)
@@ -104,11 +104,9 @@ fun handlerListExtendKt(context: ConcolicRunContext, list: UninterpretedSymbolic
     }
 }
 
-fun handlerListAppendKt(context: ConcolicRunContext, list: UninterpretedSymbolicPythonObject?, elem: UninterpretedSymbolicPythonObject?): UninterpretedSymbolicPythonObject? {
+fun handlerListAppendKt(context: ConcolicRunContext, list: UninterpretedSymbolicPythonObject, elem: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
     if (context.curState == null)
         return null
-    list ?: return null
-    elem ?: return null
     with (context.ctx) {
         list.addSupertype(context, pythonList)
         @Suppress("unchecked_cast")
@@ -122,6 +120,7 @@ fun handlerListAppendKt(context: ConcolicRunContext, list: UninterpretedSymbolic
 fun handlerListIterKt(context: ConcolicRunContext, list: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
     if (context.curState == null)
         return null
+    list.addSupertype(context, pythonList)
     return constructListIterator(context, list)
 }
 
