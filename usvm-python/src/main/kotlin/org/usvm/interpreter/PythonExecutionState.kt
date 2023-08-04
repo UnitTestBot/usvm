@@ -13,6 +13,7 @@ import org.usvm.language.types.PythonTypeSystem
 import org.usvm.language.types.TypeOfVirtualObject
 import org.usvm.memory.UMemoryBase
 import org.usvm.model.UModelBase
+import org.usvm.types.UTypeStream
 
 private const val MAX_CONCRETE_TYPES_TO_CONSIDER = 1000
 
@@ -52,9 +53,8 @@ class PythonExecutionState(
         get() = if (path.isEmpty()) null else path.last()
 
     // TODO: here we will use Python type hints to prioritize concrete types
-    @Suppress("unused_parameter")
     fun makeTypeRating(delayedFork: DelayedFork): List<PythonType> {
-        val res = PythonTypeSystem.topTypeStream().take(MAX_CONCRETE_TYPES_TO_CONSIDER).toList()
+        val res = delayedFork.possibleTypes.take(MAX_CONCRETE_TYPES_TO_CONSIDER).toList()
         require(res.first() == TypeOfVirtualObject)
         return res.drop(1)
     }
@@ -73,6 +73,7 @@ class PythonExecutionState(
 class DelayedFork(
     val state: PythonExecutionState,
     val symbol: UninterpretedSymbolicPythonObject,
+    val possibleTypes: UTypeStream<PythonType>,
     val delayedForkPrefix: PersistentList<DelayedFork>
 )
 

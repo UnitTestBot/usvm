@@ -38,7 +38,7 @@ class UninterpretedSymbolicPythonObject(address: UHeapRef): SymbolicPythonObject
 
     fun evalIs(ctx: UContext, typeConstraints: UTypeConstraints<PythonType>, type: PythonType): UBoolExpr = with(ctx) {
         var result: UBoolExpr = typeConstraints.evalIsSubtype(address, type)
-        if (type is ConcretePythonType)
+        if (type !is PythonAnyType)
             result = result and mkHeapRefEq(address, nullRef).not()
         return result
     }
@@ -123,6 +123,11 @@ class UninterpretedSymbolicPythonObject(address: UHeapRef): SymbolicPythonObject
         val interpreted = interpretSymbolicPythonObject(this, ctx.modelHolder)
         return interpreted.getConcreteType(ctx)
     }
+
+    fun getTypeStreamOfModel(ctx: ConcolicRunContext): UTypeStream<PythonType> {
+        val interpreted = interpretSymbolicPythonObject(this, ctx.modelHolder)
+        return interpreted.getTypeStream(ctx)
+    }
 }
 
 sealed class InterpretedSymbolicPythonObject(
@@ -131,6 +136,7 @@ sealed class InterpretedSymbolicPythonObject(
     abstract fun getConcreteType(ctx: ConcolicRunContext): ConcretePythonType?
     abstract fun getBoolContent(ctx: ConcolicRunContext): KInterpretedValue<KBoolSort>
     abstract fun getIntContent(ctx: ConcolicRunContext): KInterpretedValue<KIntSort>
+    abstract fun getTypeStream(ctx: ConcolicRunContext): UTypeStream<PythonType>
 }
 
 class InterpretedInputSymbolicPythonObject(
@@ -146,6 +152,7 @@ class InterpretedInputSymbolicPythonObject(
     override fun getBoolContent(ctx: ConcolicRunContext): KInterpretedValue<KBoolSort> = getBoolContent(ctx.ctx)
 
     override fun getIntContent(ctx: ConcolicRunContext): KInterpretedValue<KIntSort> = getIntContent(ctx.ctx)
+    override fun getTypeStream(ctx: ConcolicRunContext): UTypeStream<PythonType> = getTypeStream()
 
     fun getFirstType(): PythonType? {
         if (address.address == 0)
@@ -181,10 +188,8 @@ class InterpretedAllocatedSymbolicPythonObject(
     init {
         require(address.address > 0)
     }
-    override fun getConcreteType(ctx: ConcolicRunContext): ConcretePythonType? {
-        require(ctx.curState != null)
-        return ctx.curState!!.memory.typeStreamOf(address).first() as? ConcretePythonType
-    }
+    override fun getConcreteType(ctx: ConcolicRunContext): ConcretePythonType? =
+        getTypeStream(ctx).first() as? ConcretePythonType
 
     override fun getBoolContent(ctx: ConcolicRunContext): KInterpretedValue<KBoolSort> {
         require(ctx.curState != null)
@@ -196,6 +201,11 @@ class InterpretedAllocatedSymbolicPythonObject(
         require(ctx.curState != null)
         @Suppress("unchecked_cast")
         return ctx.curState!!.memory.heap.readField(address, IntContent, ctx.ctx.intSort) as KInterpretedValue<KIntSort>
+    }
+
+    override fun getTypeStream(ctx: ConcolicRunContext): UTypeStream<PythonType> {
+        require(ctx.curState != null)
+        return ctx.curState!!.memory.typeStreamOf(address)
     }
 }
 

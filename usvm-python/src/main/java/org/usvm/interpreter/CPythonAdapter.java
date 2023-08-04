@@ -51,7 +51,9 @@ public class CPythonAdapter {
     public native int typeHasSqLength(long type);
     public native int typeHasMpLength(long type);
     public native int typeHasMpSubscript(long type);
+    public native int typeHasMpAssSubscript(long type);
     public native int typeHasTpRichcmp(long type);
+    public native int typeHasTpIter(long type);
     public native Throwable extractException(long exception);
 
     static {
@@ -104,8 +106,8 @@ public class CPythonAdapter {
         withTracing(context, new Fork(cond), unit(() -> handlerForkKt(context, cond.obj)));
     }
 
-    public static void handlerForkResult(ConcolicRunContext context, boolean result) {
-        handlerForkResultKt(context, result);
+    public static void handlerForkResult(ConcolicRunContext context, SymbolForCPython cond, boolean result) {
+        handlerForkResultKt(context, cond, result);
     }
 
     public static SymbolForCPython handlerGTLong(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
@@ -203,7 +205,7 @@ public class CPythonAdapter {
     }
 
     public static SymbolForCPython handlerVirtualUnaryFun(ConcolicRunContext context, SymbolForCPython obj) {
-        return methodWrapper(context, new MethodParameters("virtual_unary_fun", Arrays.asList(obj)), () -> virtualCallSymbolKt(context));
+        return methodWrapper(context, new MethodParameters("virtual_unary_fun", Collections.singletonList(obj)), () -> virtualCallSymbolKt(context));
     }
 
     public static SymbolForCPython handlerVirtualBinaryFun(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
@@ -240,9 +242,19 @@ public class CPythonAdapter {
         mpSubscriptKt(context, storage.obj);
     }
 
+    public static void notifyMpAssSubscript(@NotNull ConcolicRunContext context, SymbolForCPython storage, SymbolForCPython item, SymbolForCPython value) {
+        context.curOperation = new MockHeader(MpAssSubscriptMethod.INSTANCE, Arrays.asList(storage, item, value), storage);
+        mpAssSubscriptKt(context, storage.obj);
+    }
+
     public static void notifyTpRichcmp(@NotNull ConcolicRunContext context, int op, SymbolForCPython left, SymbolForCPython right) {
         context.curOperation = new MockHeader(new TpRichcmpMethod(op), Arrays.asList(left, right), left);
         tpRichcmpKt(context, left.obj);
+    }
+
+    public static void notifyTpIter(@NotNull ConcolicRunContext context, SymbolForCPython on) {
+        context.curOperation = new MockHeader(TpIterMethod.INSTANCE, Collections.singletonList(on), on);
+        tpIterKt(context, on.obj);
     }
 
     public static boolean virtualNbBool(ConcolicRunContext context, VirtualPythonObject obj) {

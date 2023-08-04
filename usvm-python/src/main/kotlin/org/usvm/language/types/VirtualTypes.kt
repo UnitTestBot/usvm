@@ -6,6 +6,12 @@ object PythonAnyType: VirtualPythonType() {
     override fun accepts(type: PythonType): Boolean = true
 }
 
+class ConcreteTypeNegation(private val concreteType: ConcretePythonType): VirtualPythonType() {
+    override fun accepts(type: PythonType): Boolean {
+        return type != concreteType
+    }
+}
+
 sealed class TypeProtocol: VirtualPythonType() {
     abstract fun acceptsConcrete(type: ConcretePythonType): Boolean
     override fun accepts(type: PythonType): Boolean {
@@ -47,7 +53,17 @@ object HasMpSubscript: TypeProtocol() {
         ConcretePythonInterpreter.typeHasMpSubscript(type.asObject)
 }
 
+object HasMpAssSubscript: TypeProtocol() {
+    override fun acceptsConcrete(type: ConcretePythonType): Boolean =
+        ConcretePythonInterpreter.typeHasMpAssSubscript(type.asObject)
+}
+
 object HasTpRichcmp: TypeProtocol() {
     override fun acceptsConcrete(type: ConcretePythonType): Boolean =
         ConcretePythonInterpreter.typeHasTpRichcmp(type.asObject)
+}
+
+object HasTpIter: TypeProtocol() {
+    override fun acceptsConcrete(type: ConcretePythonType): Boolean =
+        ConcretePythonInterpreter.typeHasTpIter(type.asObject)
 }

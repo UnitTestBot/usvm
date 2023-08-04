@@ -141,3 +141,8 @@ def le(x: list, y: list):
 
 def ge(x: list, y: list):
     assert x >= y
+
+
+def add_and_compare(x: list, y: list):
+    x[0] += 1
+    assert x < y

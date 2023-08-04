@@ -258,9 +258,19 @@ JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasMpSubscri
     return type->tp_as_mapping && type->tp_as_mapping->mp_subscript;
 }
 
+JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasMpAssSubscript(JNIEnv *env, jobject _, jlong type_ref) {
+    QUERY_TYPE_HAS_PREFIX
+    return type->tp_as_mapping && type->tp_as_mapping->mp_ass_subscript;
+}
+
 JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasTpRichcmp(JNIEnv *env, jobject _, jlong type_ref) {
     QUERY_TYPE_HAS_PREFIX
     return type->tp_richcompare != 0;
+}
+
+JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasTpIter(JNIEnv *env, jobject _, jlong type_ref) {
+    QUERY_TYPE_HAS_PREFIX
+    return type->tp_iter != 0;
 }
 
 JNIEXPORT jthrowable JNICALL Java_org_usvm_interpreter_CPythonAdapter_extractException(JNIEnv *env, jobject _, jlong exception) {

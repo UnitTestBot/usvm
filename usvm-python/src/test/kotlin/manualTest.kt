@@ -9,26 +9,25 @@ fun main() {
     val program = PythonProgram(
         """
         def f(x, y):
-            if x > y:
-                return 1
-            elif x == y:
-                return 2
-            return 3
+            x[0][0] += 1
+            assert x < y
         """.trimIndent()
     )
-    val function = PythonUnpinnedCallable.constructCallableFromName(listOf(PythonAnyType, PythonAnyType), "f")
-    val machine = PythonMachine(program, printErrorMsg = true, allowPathDiversion = true) { it }
+    val function = PythonUnpinnedCallable.constructCallableFromName(listOf(pythonList, pythonList), "f")
+    val machine = PythonMachine(program, printErrorMsg = true, allowPathDiversion = true) {
+        ConcretePythonInterpreter.getPythonObjectRepr(it)
+    }
     val start = System.currentTimeMillis()
     val iterations = machine.use { activeMachine ->
-        val results: MutableList<PythonAnalysisResult<PythonObject>> = mutableListOf()
-        val returnValue = activeMachine.analyze(function, results, maxIterations = 300)
+        val results: MutableList<PythonAnalysisResult<String>> = mutableListOf()
+        val returnValue = activeMachine.analyze(function, results, maxIterations = 20)
         results.forEach { (_, inputs, result) ->
             println("INPUT:")
-            inputs.map { it.reprFromPythonObject }.forEach { ConcretePythonInterpreter.printPythonObject(it) }
+            inputs.map { it.reprFromPythonObject }.forEach { println(it) }
             println("RESULT:")
             when (result) {
-                is Success -> println(ConcretePythonInterpreter.getPythonObjectRepr(result.output))
-                is Fail -> println(ConcretePythonInterpreter.getNameOfPythonType(result.exception))
+                is Success -> println(result.output)
+                is Fail -> println(result.exception)
             }
             println()
         }

@@ -25,12 +25,12 @@
   },
   {
     "c_name": "fork_result",
-    "nargs": 1,
-    "c_arg_types": ["int"],
+    "nargs": 2,
+    "c_arg_types": ["PyObject *", "int"],
     "c_return_type": "int",
-    "java_arg_types": ["jint"],
+    "java_arg_types": ["jobject", "jint"],
     "java_return_type": "void",
-    "argument_converters": ["int_converter"],
+    "argument_converters": ["object_converter", "int_converter"],
     "result_converter": "",
     "fail_value": "-1",
     "default_value": "0"
@@ -360,6 +360,18 @@
     "default_value": "0"
   },
   {
+    "c_name": "mp_ass_subscript",
+    "nargs": 3,
+    "c_arg_types": ["PyObject *", "PyObject *", "PyObject *"],
+    "c_return_type": "int",
+    "java_arg_types": ["jobject", "jobject", "jobject"],
+    "java_return_type": "void",
+    "argument_converters": ["object_converter", "object_converter", "object_converter"],
+    "result_converter": "",
+    "fail_value": "-1",
+    "default_value": "0"
+  },
+  {
     "c_name": "tp_richcompare",
     "nargs": 3,
     "c_arg_types": ["int", "PyObject *", "PyObject *"],
@@ -367,6 +379,18 @@
     "java_arg_types": ["jint", "jobject", "jobject"],
     "java_return_type": "void",
     "argument_converters": ["int_converter", "object_converter", "object_converter"],
+    "result_converter": "",
+    "fail_value": "-1",
+    "default_value": "0"
+  },
+  {
+    "c_name": "tp_iter",
+    "nargs": 1,
+    "c_arg_types": ["PyObject *"],
+    "c_return_type": "int",
+    "java_arg_types": ["jobject"],
+    "java_return_type": "void",
+    "argument_converters": ["object_converter"],
     "result_converter": "",
     "fail_value": "-1",
     "default_value": "0"

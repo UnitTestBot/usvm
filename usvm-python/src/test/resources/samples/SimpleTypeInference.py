@@ -54,3 +54,16 @@ def len_usage(x):
     if len(x) == 5:
         return 1
     return 2
+
+
+def iteration(x):
+    sum_ = 0
+    for elem in x:
+        sum_ += elem
+
+    assert sum_ % 153 == 152
+
+
+def add_and_compare(x, y):
+    x[0] += 1
+    assert x < y
