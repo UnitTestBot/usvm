@@ -13,7 +13,7 @@ data class NextInstruction(
     val function: PythonPinnedCallable
 ): SymbolicHandlerEventParameters<Unit>()
 data class PythonFunctionCall(val function: PythonPinnedCallable): SymbolicHandlerEventParameters<Unit>()
-object PythonReturn: SymbolicHandlerEventParameters<Unit>()
+data class PythonReturn(val function: PythonPinnedCallable): SymbolicHandlerEventParameters<Unit>()
 data class Fork(val condition: SymbolForCPython): SymbolicHandlerEventParameters<Unit>()
 data class ListCreation(val elements: List<SymbolForCPython>): SymbolicHandlerEventParameters<SymbolForCPython>()
 data class IsinstanceCheck(val on: SymbolForCPython, val type: PythonObject): SymbolicHandlerEventParameters<SymbolForCPython>()

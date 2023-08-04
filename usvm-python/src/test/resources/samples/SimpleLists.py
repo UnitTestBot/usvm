@@ -146,3 +146,8 @@ def ge(x: list, y: list):
 def add_and_compare(x: list, y: list):
     x[0] += 1
     assert x < y
+
+
+def double_subscript_and_compare(x: list, y: list):
+    x[0][0] += 1
+    assert x < y
