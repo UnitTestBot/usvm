@@ -36,12 +36,20 @@ class UninterpretedSymbolicPythonObject(address: UHeapRef): SymbolicPythonObject
         return evalIs(ctx.ctx, ctx.curState!!.pathConstraints.typeConstraints, type)
     }
 
+    fun rawEvalIs(ctx: ConcolicRunContext, type: PythonType): UBoolExpr {
+        require(ctx.curState != null)
+        return rawEvalIs(ctx.curState!!.pathConstraints.typeConstraints, type)
+    }
+
     fun evalIs(ctx: UContext, typeConstraints: UTypeConstraints<PythonType>, type: PythonType): UBoolExpr = with(ctx) {
         var result: UBoolExpr = typeConstraints.evalIsSubtype(address, type)
         if (type !is PythonAnyType)
             result = result and mkHeapRefEq(address, nullRef).not()
         return result
     }
+
+    fun rawEvalIs(typeConstraints: UTypeConstraints<PythonType>, type: PythonType): UBoolExpr =
+        typeConstraints.evalIsSubtype(address, type)
 
     fun setIntContent(ctx: ConcolicRunContext, expr: UExpr<KIntSort>) {
         require(ctx.curState != null)

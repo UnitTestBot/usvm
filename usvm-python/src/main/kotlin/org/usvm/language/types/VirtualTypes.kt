@@ -8,6 +8,10 @@ object PythonAnyType: VirtualPythonType() {
 
 class ConcreteTypeNegation(private val concreteType: ConcretePythonType): VirtualPythonType() {
     override fun accepts(type: PythonType): Boolean {
+        if (type is TypeOfVirtualObject)
+            return true
+        if (type !is ConcretePythonType)
+            return false
         return type != concreteType
     }
 }
