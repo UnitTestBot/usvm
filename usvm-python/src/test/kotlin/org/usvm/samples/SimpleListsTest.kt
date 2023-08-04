@@ -9,6 +9,9 @@ import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 class SimpleListsTest : PythonTestRunner("/samples/SimpleLists.py") {
+    init {
+        options = UMachineOptions(stepLimit = 20U)
+    }
 
     @Test
     fun testSimpleListSample() {
@@ -155,8 +158,6 @@ class SimpleListsTest : PythonTestRunner("/samples/SimpleLists.py") {
 
     @Test
     fun testSumOfElements() {
-        val oldOptions = options
-        options = UMachineOptions(stepLimit = 20U)
         check1WithConcreteRun(
             constructFunction("sum_of_elements", listOf(pythonList)),
             ignoreNumberOfAnalysisResults,
@@ -166,13 +167,10 @@ class SimpleListsTest : PythonTestRunner("/samples/SimpleLists.py") {
                 { _, res -> res.repr == (index + 1).toString() }
             }
         )
-        options = oldOptions
     }
 
     @Test
     fun testForLoop() {
-        val oldOptions = options
-        options = UMachineOptions(stepLimit = 20U)
         check1WithConcreteRun(
             constructFunction("for_loop", listOf(pythonList)),
             ignoreNumberOfAnalysisResults,
@@ -182,7 +180,6 @@ class SimpleListsTest : PythonTestRunner("/samples/SimpleLists.py") {
                 { _, res -> res.repr == (index + 1).toString() }
             }
         )
-        options = oldOptions
     }
 
     @Test
@@ -242,8 +239,6 @@ class SimpleListsTest : PythonTestRunner("/samples/SimpleLists.py") {
 
     @Test
     fun testAddAndCompare() {
-        val oldOptions = options
-        options = UMachineOptions(stepLimit = 10U)
         check2WithConcreteRun(
             constructFunction("add_and_compare", listOf(pythonList, pythonList)),
             ignoreNumberOfAnalysisResults,
@@ -255,6 +250,20 @@ class SimpleListsTest : PythonTestRunner("/samples/SimpleLists.py") {
                 { _, _, res -> res.repr == "None" }
             )
         )
-        options = oldOptions
+    }
+
+    @Test
+    fun testDoubleSubscriptAndCompare() {
+        check2WithConcreteRun(
+            constructFunction("double_subscript_and_compare", listOf(pythonList, pythonList)),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ listOf { x, y, _ -> x.typeName == "list" && y.typeName == "list" },
+            /* propertiesToDiscover = */ listOf(
+                { _, _, res -> res.selfTypeName == "AssertionError" },
+                { _, _, res -> res.selfTypeName == "IndexError" },
+                { _, _, res -> res.repr == "None" }
+            )
+        )
     }
 }

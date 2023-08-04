@@ -8,11 +8,10 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 class SimpleExampleTest : PythonTestRunner("/samples/SimpleExample.py") {
 
-    private val functionManyBranches = constructFunction("many_branches", List(3) { pythonInt })
     @Test
     fun testManyBranches() {
         check3WithConcreteRun(
-            functionManyBranches,
+            constructFunction("many_branches", List(3) { pythonInt }),
             ignoreNumberOfAnalysisResults,
             standardConcolicAndConcreteChecks,
             /* invariants = */ listOf { x, y, z, res ->
@@ -24,11 +23,10 @@ class SimpleExampleTest : PythonTestRunner("/samples/SimpleExample.py") {
         )
     }
 
-    private val functionMyAbs = constructFunction("my_abs", List(1) { pythonInt })
     @Test
     fun testMyAbs() {
         check1WithConcreteRun(
-            functionMyAbs,
+            constructFunction("my_abs", List(1) { pythonInt }),
             eq(3),
             compareConcolicAndConcreteReprsIfSuccess,
             /* invariants = */ listOf { x, _ -> x.typeName == "int" },
@@ -40,11 +38,10 @@ class SimpleExampleTest : PythonTestRunner("/samples/SimpleExample.py") {
         )
     }
 
-    private val functionSamplePickle = constructFunction("pickle_sample", List(1) { pythonInt })
     @Test
     fun testSamplePickle() {
         check1WithConcreteRun(
-            functionSamplePickle,
+            constructFunction("pickle_sample", List(1) { pythonInt }),
             eq(1),
             compareConcolicAndConcreteReprsIfSuccess,
             /* invariants = */ listOf { _, res -> res.typeName == "bytes" },
@@ -52,11 +49,10 @@ class SimpleExampleTest : PythonTestRunner("/samples/SimpleExample.py") {
         )
     }
 
-    private val functionCall = constructFunction("call", List(1) { pythonInt })
     @Test
     fun testCall() {
         check1WithConcreteRun(
-            functionCall,
+            constructFunction("call", List(1) { pythonInt }),
             eq(3),
             compareConcolicAndConcreteReprsIfSuccess,
             /* invariants = */ listOf { x, _ -> x.typeName == "int" },
@@ -68,11 +64,10 @@ class SimpleExampleTest : PythonTestRunner("/samples/SimpleExample.py") {
         )
     }
 
-    private val functionZeroDivision = constructFunction("zero_division", List(1) { pythonInt })
     @Test
     fun testZeroDivision() {
         check1WithConcreteRun(
-            functionZeroDivision,
+            constructFunction("zero_division", List(1) { pythonInt }),
             eq(1),
             standardConcolicAndConcreteChecks,
             /* invariants = */ listOf { x, res -> x.typeName == "int" && res.selfTypeName == "ZeroDivisionError" },
@@ -80,11 +75,10 @@ class SimpleExampleTest : PythonTestRunner("/samples/SimpleExample.py") {
         )
     }
 
-    private val functionZeroDivisionInBranch = constructFunction("zero_division_in_branch", List(1) { pythonInt })
     @Test
     fun testZeroDivisionInBranch() {
         check1WithConcreteRun(
-            functionZeroDivisionInBranch,
+            constructFunction("zero_division_in_branch", List(1) { pythonInt }),
             eq(2),
             standardConcolicAndConcreteChecks,
             /* invariants = */ listOf(),
@@ -95,11 +89,10 @@ class SimpleExampleTest : PythonTestRunner("/samples/SimpleExample.py") {
         )
     }
 
-    private val functionBoolInput = constructFunction("bool_input", List(1) { pythonBool })
     @Test
     fun testBoolInput() {
         check1WithConcreteRun(
-            functionBoolInput,
+            constructFunction("bool_input", List(1) { pythonBool }),
             eq(2),
             compareConcolicAndConcreteReprsIfSuccess,
             /* invariants = */ listOf { x, _ -> x.typeName == "bool" },
@@ -109,17 +102,30 @@ class SimpleExampleTest : PythonTestRunner("/samples/SimpleExample.py") {
         )
     }
 
-    private val functionMixedInputTypes = constructFunction("mixed_input_types", listOf(pythonBool, pythonInt))
     @Test
     fun testMixedInputTypes() {
         check2WithConcreteRun(
-            functionMixedInputTypes,
+            constructFunction("mixed_input_types", listOf(pythonBool, pythonInt)),
             eq(3),
             compareConcolicAndConcreteReprsIfSuccess,
             /* invariants = */ listOf { x, y, _ -> x.typeName == "bool" && y.typeName == "int" },
             /* propertiesToDiscover = */ List(3) { index ->
                 { _, _, res -> res.repr == (index + 1).toString() }
             }
+        )
+    }
+
+    @Test
+    fun testSymbolicCall() {
+        check1WithConcreteRun(
+            constructFunction("symbolic_call", List(1) { pythonInt }),
+            eq(2),
+            compareConcolicAndConcreteReprsIfSuccess,
+            /* invariants = */ listOf { x, _ -> x.typeName == "int" },
+            /* propertiesToDiscover = */ listOf(
+                { _, res -> res.selfTypeName == "AssertionError" },
+                { _, res -> res.repr == "None" }
+            )
         )
     }
 }

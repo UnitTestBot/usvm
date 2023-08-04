@@ -120,14 +120,19 @@
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;J)Lorg/usvm/language/SymbolForCPython;"
     },
     {
+        "c_name": "add_concrete_supertype",
+        "java_name": "addConcreteSupertype",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;J)V"
+    },
+    {
         "c_name": "function_call",
         "java_name": "handlerFunctionCall",
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;J)V"
     },
     {
-        "c_name": "python_return",
+        "c_name": "function_return",
         "java_name": "handlerReturn",
-        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;)V"
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;J)V"
     },
     {
         "c_name": "fork_result",

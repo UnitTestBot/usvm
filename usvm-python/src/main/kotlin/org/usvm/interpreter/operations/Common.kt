@@ -36,6 +36,12 @@ fun handlerIsinstanceKt(ctx: ConcolicRunContext, obj: UninterpretedSymbolicPytho
     }
 }
 
+fun addConcreteSupertypeKt(ctx: ConcolicRunContext, obj: UninterpretedSymbolicPythonObject, typeRef: PythonObject) {
+    ctx.curState ?: return
+    val type = PythonTypeSystem.getConcreteTypeByAddress(typeRef) ?: return
+    obj.addSupertype(ctx, type)
+}
+
 fun handlerAndKt(ctx: ConcolicRunContext, left: UninterpretedSymbolicPythonObject, right: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? = with(ctx.ctx) {
     ctx.curState ?: return null
     left.addSupertype(ctx, pythonBool)

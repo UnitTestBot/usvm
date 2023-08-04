@@ -31,6 +31,7 @@ fun <T : Any> withTracing(
         logger.debug("Expected: {}", event.parameters)
         logger.debug("Got: {}", newEventParameters)
         context.pathDiversion()
+        return null
     }
     event.result ?: return null
 
