@@ -2,6 +2,7 @@ package org.usvm.machine
 
 import io.ksmt.solver.yices.KYicesSolver
 import io.ksmt.solver.z3.KZ3Solver
+import io.ksmt.symfpu.solver.SymFpuSolver
 import org.jacodb.api.JcField
 import org.jacodb.api.JcMethod
 import org.jacodb.api.JcType
@@ -24,7 +25,8 @@ class JcComponents(
 
         val smtSolver =
             when (solverType) {
-                SolverType.YICES -> KYicesSolver(ctx)
+                // Yices with Fp support via SymFpu
+                SolverType.YICES -> SymFpuSolver(KYicesSolver(ctx), ctx)
                 SolverType.Z3 -> KZ3Solver(ctx)
             }
         val typeSolver = UTypeSolver(typeSystem)
