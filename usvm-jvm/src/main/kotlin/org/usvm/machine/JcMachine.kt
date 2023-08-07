@@ -72,8 +72,6 @@ class JcMachine(
             { distanceStatistics }
         )
 
-
-
         val statesCollector = CoveredNewStatesCollector<JcState>(coverageStatistics) {
             it.methodResult is JcMethodResult.JcException
         }

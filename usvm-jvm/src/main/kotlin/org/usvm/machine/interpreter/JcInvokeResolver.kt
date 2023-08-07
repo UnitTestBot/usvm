@@ -4,6 +4,7 @@ import io.ksmt.utils.asExpr
 import org.jacodb.api.JcClassType
 import org.jacodb.api.JcMethod
 import org.jacodb.api.ext.findMethodOrNull
+import org.usvm.INITIAL_INPUT_ADDRESS
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
@@ -57,13 +58,13 @@ class JcVirtualInvokeResolver(
         val instance = arguments.first().asExpr(ctx.addressSort)
         val concreteRef = calcOnState { models.first().eval(instance) } as UConcreteHeapRef
 
-        if (concreteRef.address < 0) {
+        if (concreteRef.address <= INITIAL_INPUT_ADDRESS) {
             val typeStream = calcOnState { models.first().typeStreamOf(concreteRef) }
 
             val inheritors = typeSelector.choose(method, typeStream)
             val typeConstraints = inheritors.map { type ->
                 calcOnState {
-                    ctx.mkAnd(memory.types.evalIsSubtype(instance, type), memory.types.evalIsSubtype(instance, type))
+                    ctx.mkAnd(memory.types.evalIsSubtype(instance, type), memory.types.evalIsSupertype(instance, type))
                 }
             }
             val typeConstraintsWithBlockOnStates = mutableListOf<Pair<UBoolExpr, (JcState) -> Unit>>()
