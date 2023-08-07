@@ -14,9 +14,9 @@ fun virtualNbBoolKt(context: ConcolicRunContext, on: VirtualPythonObject): Boole
     context.curOperation ?: throw UnregisteredVirtualOperation
     val interpretedArg = interpretSymbolicPythonObject(context.curOperation!!.args.first().obj, context.modelHolder)
     require(context.curOperation?.method == NbBoolMethod && interpretedArg == on.interpretedObj)
-    val (virtualObject, symbolic) = internalVirtualCallKt(context)
+    val (interpretedObj, symbolic) = internalVirtualCallKt(context)
     symbolic.addSupertype(context, pythonBool)
-    val boolValue = virtualObject.interpretedObj.getBoolContent(context)
+    val boolValue = interpretedObj.getBoolContent(context)
     myFork(context, boolValue)
     return boolValue.isTrue
 }
@@ -25,9 +25,9 @@ fun virtualNbIntKt(context: ConcolicRunContext, on: VirtualPythonObject): Python
     context.curOperation ?: throw UnregisteredVirtualOperation
     val interpretedArg = interpretSymbolicPythonObject(context.curOperation!!.args.first().obj, context.modelHolder)
     require(context.curOperation?.method == NbIntMethod && interpretedArg == on.interpretedObj)
-    val (virtualObject, symbolic) = internalVirtualCallKt(context)
+    val (interpretedObj, symbolic) = internalVirtualCallKt(context)
     symbolic.addSupertype(context, pythonInt)
-    val intValue = virtualObject.interpretedObj.getIntContent(context)
+    val intValue = interpretedObj.getIntContent(context)
     return ConcretePythonInterpreter.eval(emptyNamespace, intValue.toString())
 }
 
@@ -36,32 +36,40 @@ fun virtualSqLengthKt(context: ConcolicRunContext, on: VirtualPythonObject): Int
         throw UnregisteredVirtualOperation
     val interpretedArg = interpretSymbolicPythonObject(context.curOperation!!.args.first().obj, context.modelHolder)
     require(context.curOperation?.method == SqLengthMethod && interpretedArg == on.interpretedObj)
-    val (virtualObject, symbolic) = internalVirtualCallKt(context)
+    val (interpretedObj, symbolic) = internalVirtualCallKt(context)
     symbolic.addSupertype(context, pythonInt)
-    val intValue = virtualObject.interpretedObj.getIntContent(context)
+    val intValue = interpretedObj.getIntContent(context)
     myAssert(context, intValue le mkIntNum(Int.MAX_VALUE))
     return intValue.toString().toInt()
 }
 
-private fun internalVirtualCallKt(context: ConcolicRunContext): Pair<VirtualPythonObject, UninterpretedSymbolicPythonObject> = with(context.ctx) {
+private fun internalVirtualCallKt(context: ConcolicRunContext): Pair<InterpretedInputSymbolicPythonObject, UninterpretedSymbolicPythonObject> = with(context.ctx) {
     context.curOperation ?: throw UnregisteredVirtualOperation
     context.curState ?: throw UnregisteredVirtualOperation
     val owner = context.curOperation.methodOwner ?: throw UnregisteredVirtualOperation
     val ownerIsAlreadyMocked = owner.obj.getTypeIfDefined(context) is TypeOfVirtualObject
-    val clonedState = if (!ownerIsAlreadyMocked) context.curState!!.clone() else null
+    var clonedState = if (!ownerIsAlreadyMocked) context.curState!!.clone() else null
+    if (clonedState != null) {
+        clonedState = myAssertOnState(clonedState, mkHeapRefEq(owner.obj.address, nullRef).not())
+    }
     val (symbolic, _, mockSymbol) = context.curState!!.mock(context.curOperation)
-    if (!ownerIsAlreadyMocked) {
-        addDelayedFork(context, owner.obj, clonedState!!)
+    if (!ownerIsAlreadyMocked && clonedState != null) {
+        addDelayedFork(context, owner.obj, clonedState)
     }
     if (context.curOperation.method.isMethodWithNonVirtualReturn) {
         val newModel = constructModelWithNewMockEvaluator(context.ctx, context.modelHolder.model, mockSymbol)
         substituteModel(context.curState!!, newModel, context)
     }
     val concrete = interpretSymbolicPythonObject(symbolic, context.modelHolder)
-    return VirtualPythonObject(concrete as InterpretedInputSymbolicPythonObject) to symbolic
+    return (concrete as InterpretedInputSymbolicPythonObject) to symbolic
 }
 
-fun virtualCallKt(context: ConcolicRunContext): VirtualPythonObject = internalVirtualCallKt(context).first
+fun virtualCallKt(context: ConcolicRunContext): PythonObject {
+    val (interpreted, _) = internalVirtualCallKt(context)
+    val converter = context.converter
+    return converter.convert(interpreted)
+}
+
 fun virtualCallSymbolKt(context: ConcolicRunContext): UninterpretedSymbolicPythonObject = internalVirtualCallKt(context).second
 
 object UnregisteredVirtualOperation: Exception()

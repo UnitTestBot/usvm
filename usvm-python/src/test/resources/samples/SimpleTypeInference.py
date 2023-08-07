@@ -67,3 +67,16 @@ def iteration(x):
 def add_and_compare(x, y):
     x[0] += 1
     assert x < y
+
+
+def multiply_and_compare(x, y):
+    y[10] *= 5
+    assert x[0] < y
+
+
+def subscript_and_isinstance(x):
+    if isinstance(x[5], bool):
+        return 1
+    elif isinstance(x[3], type(None)):
+        return 2
+    return 3

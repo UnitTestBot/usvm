@@ -43,7 +43,7 @@ class UninterpretedSymbolicPythonObject(address: UHeapRef): SymbolicPythonObject
 
     fun evalIs(ctx: UContext, typeConstraints: UTypeConstraints<PythonType>, type: PythonType): UBoolExpr = with(ctx) {
         var result: UBoolExpr = typeConstraints.evalIsSubtype(address, type)
-        if (type !is PythonAnyType)
+        if (type is ConcretePythonType)
             result = result and mkHeapRefEq(address, nullRef).not()
         return result
     }

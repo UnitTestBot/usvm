@@ -155,6 +155,11 @@
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)V"
     },
     {
+        "c_name": "nb_multiply",
+        "java_name": "notifyNbMultiply",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)V"
+    },
+    {
         "c_name": "sq_length",
         "java_name": "notifySqLength",
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;)V"
@@ -197,7 +202,7 @@
     {
         "c_name": "virtual_call",
         "java_name": "virtualCall",
-        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;I)Lorg/usvm/language/VirtualPythonObject;"
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;I)J"
     },
     {
         "c_name": "symbolic_virtual_unary_fun",

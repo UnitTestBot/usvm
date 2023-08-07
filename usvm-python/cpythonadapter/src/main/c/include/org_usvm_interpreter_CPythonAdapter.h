@@ -177,6 +177,14 @@ JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasNbAdd
 
 /*
  * Class:     org_usvm_interpreter_CPythonAdapter
+ * Method:    typeHasNbMultiply
+ * Signature: (J)I
+ */
+JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasNbMultiply
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_usvm_interpreter_CPythonAdapter
  * Method:    typeHasSqLength
  * Signature: (J)I
  */

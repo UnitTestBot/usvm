@@ -64,7 +64,7 @@ class USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION>(
             val symbols = state.inputSymbols
             symbols.forEach { validator.check(it.obj) }
             val seeds = getSeeds(concolicRunContext, symbols)
-            val converter = state.meta.lastConverter ?: ConverterToPythonObject(ctx, concolicRunContext.modelHolder)
+            val converter = concolicRunContext.converter
             val concrete = getConcrete(converter, seeds, symbols)
             val virtualObjects = converter.getPythonVirtualObjects()
             val inputs = getInputs(converter, concrete, seeds)

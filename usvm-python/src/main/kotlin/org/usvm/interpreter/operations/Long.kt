@@ -20,7 +20,11 @@ fun <RES_SORT: KSort> createBinaryIntOp(
     else with (concolicContext.ctx) {
         myAssert(concolicContext, left.evalIs(concolicContext, pythonInt) or left.evalIs(concolicContext, pythonBool))
         myAssert(concolicContext, right.evalIs(concolicContext, pythonInt) or right.evalIs(concolicContext, pythonBool))
-        op(concolicContext.ctx, left.getToIntContent(concolicContext)!!, right.getToIntContent(concolicContext)!!)?.let {
+        op(
+            concolicContext.ctx,
+            left.getToIntContent(concolicContext) ?: return@with null,
+            right.getToIntContent(concolicContext) ?: return@with null
+        )?.let {
             @Suppress("unchecked_cast")
             when (it.sort) {
                 intSort -> constructInt(concolicContext, it as UExpr<KIntSort>)
