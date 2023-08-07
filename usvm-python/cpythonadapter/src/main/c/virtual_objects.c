@@ -13,17 +13,20 @@ virtual_object_dealloc(PyObject *op) {
     SymbolicAdapter *adapter = (obj)->adapter; \
     ConcolicContext *ctx = (obj)->ctx; \
     adapter->ignore = 1; \
-    jobject virtual_object = (*ctx->env)->CallStaticObjectMethod(ctx->env, ctx->cpython_adapter_cls, ctx->handle_virtual_call, ctx->context, owner_id); \
+    jlong result_address = (*ctx->env)->CallStaticLongMethod(ctx->env, ctx->cpython_adapter_cls, ctx->handle_virtual_call, ctx->context, owner_id); \
     adapter->ignore = 0; \
     CHECK_FOR_EXCEPTION(ctx, 0) \
-    return (PyObject *) create_new_virtual_object(ctx, virtual_object, adapter);
+    if (is_virtual_object((PyObject *) result_address)) { \
+        finish_virtual_object_initialization((VirtualPythonObject *) result_address, ctx, adapter); \
+    } \
+    return (PyObject *) result_address;
 
 
 #define MAKE_USVM_VIRUAL_CALL_NO_RETURN(obj, owner_id) \
     SymbolicAdapter *adapter = (obj)->adapter; \
     ConcolicContext *ctx = (obj)->ctx; \
     adapter->ignore = 1; \
-    (*ctx->env)->CallStaticObjectMethod(ctx->env, ctx->cpython_adapter_cls, ctx->handle_virtual_call, ctx->context, owner_id); \
+    (*ctx->env)->CallStaticLongMethod(ctx->env, ctx->cpython_adapter_cls, ctx->handle_virtual_call, ctx->context, owner_id); \
     adapter->ignore = 0; \
     CHECK_FOR_EXCEPTION(ctx, -1) \
     return 0;
@@ -62,20 +65,29 @@ nb_int(PyObject *self) {
     return (PyObject *) result;
 }
 
+#define BINARY_FUNCTION \
+    PyObject *owner = 0; \
+    int owner_id = -1; \
+    if (is_virtual_object(first)) { \
+        owner = first; \
+        owner_id = 0; \
+    } else if (is_virtual_object(second)) { \
+        owner = second; \
+        owner_id = 1; \
+    } else { \
+        assert(0);  /* Not reachable */ \
+    } \
+    MAKE_USVM_VIRUAL_CALL((VirtualPythonObject *) owner, owner_id)
+
+
 static PyObject *
 nb_add(PyObject *first, PyObject *second) {
-    PyObject *owner = 0;
-    int owner_id = -1;
-    if (is_virtual_object(first)) {
-        owner = first;
-        owner_id = 0;
-    } else if (is_virtual_object(second)) {
-        owner = second;
-        owner_id = 1;
-    } else {
-        assert(0);  // Not reachable
-    }
-    MAKE_USVM_VIRUAL_CALL((VirtualPythonObject *) owner, owner_id)
+    BINARY_FUNCTION
+}
+
+static PyObject *
+nb_multiply(PyObject *first, PyObject *second) {
+    BINARY_FUNCTION
 }
 
 static Py_ssize_t
@@ -105,7 +117,7 @@ mp_ass_subscript(PyObject *self, PyObject *item, PyObject *value) {
 static PyNumberMethods virtual_as_number = {
     nb_add,                     /*nb_add*/
     0,                          /*nb_subtract*/
-    0,                          /*nb_multiply*/
+    nb_multiply,                /*nb_multiply*/
     0,                          /*nb_remainder*/
     0,                          /*nb_divmod*/
     0,                          /*nb_power*/
@@ -238,5 +250,6 @@ void register_virtual_methods(SymbolicAdapter *adapter) {
     adapter->virtual_tp_richcompare = tp_richcompare;
     adapter->virtual_tp_iter = tp_iter;
     adapter->virtual_nb_add = nb_add;
+    adapter->virtual_nb_multiply = nb_multiply;
     adapter->virtual_mp_subscript = mp_subscript;
 }

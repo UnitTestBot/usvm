@@ -47,6 +47,7 @@ public class CPythonAdapter {
     public native int typeHasNbBool(long type);
     public native int typeHasNbInt(long type);
     public native int typeHasNbAdd(long type);
+    public native int typeHasNbMultiply(long type);
     public native int typeHasSqLength(long type);
     public native int typeHasMpLength(long type);
     public native int typeHasMpSubscript(long type);
@@ -237,6 +238,11 @@ public class CPythonAdapter {
         nbAddKt(context, left.obj, right.obj);
     }
 
+    public static void notifyNbMultiply(@NotNull ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
+        context.curOperation = new MockHeader(NbMultiplyMethod.INSTANCE, Arrays.asList(left, right), null);
+        nbMultiplyKt(context, left.obj, right.obj);
+    }
+
     public static void notifySqLength(@NotNull ConcolicRunContext context, SymbolForCPython on) {
         context.curOperation = new MockHeader(SqLengthMethod.INSTANCE, Collections.singletonList(on), on);
         sqLengthKt(context, on.obj);
@@ -274,11 +280,10 @@ public class CPythonAdapter {
         return virtualSqLengthKt(context, obj);
     }
 
-    @NotNull
-    public static VirtualPythonObject virtualCall(ConcolicRunContext context, int owner) {
+    public static long virtualCall(ConcolicRunContext context, int owner) {
         if (context.curOperation != null && owner != -1) {
             context.curOperation.setMethodOwner(context.curOperation.getArgs().get(owner));
         }
-        return virtualCallKt(context);
+        return virtualCallKt(context).getAddress();
     }
 }

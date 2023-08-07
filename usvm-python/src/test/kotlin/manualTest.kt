@@ -9,15 +9,11 @@ fun main() {
     val program = PythonProgram(
         """
         def f(x):
-            if isinstance(x, bool):
+            if isinstance(x[5], bool):
                 return 1
-            if isinstance(x, int):
+            elif isinstance(x[3], type(None)):
                 return 2
-            elif isinstance(x, list):
-                return 3
-            elif isinstance(x, object):
-                return 4
-            return "Not reachable"
+            return 3
         """.trimIndent()
     )
     val function = PythonUnpinnedCallable.constructCallableFromName(listOf(PythonAnyType), "f")
@@ -27,7 +23,7 @@ fun main() {
     val start = System.currentTimeMillis()
     val iterations = machine.use { activeMachine ->
         val results: MutableList<PythonAnalysisResult<String>> = mutableListOf()
-        val returnValue = activeMachine.analyze(function, results, maxIterations = 20)
+        val returnValue = activeMachine.analyze(function, results, maxIterations = 40)
         results.forEach { (_, inputs, result) ->
             println("INPUT:")
             inputs.map { it.reprFromPythonObject }.forEach { println(it) }

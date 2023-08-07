@@ -130,6 +130,7 @@ object ConcretePythonInterpreter {
     val typeHasNbBool = createTypeQuery { pythonAdapter.typeHasNbBool(it) }
     val typeHasNbInt = createTypeQuery { pythonAdapter.typeHasNbInt(it) }
     val typeHasNbAdd = createTypeQuery { pythonAdapter.typeHasNbAdd(it) }
+    val typeHasNbMultiply = createTypeQuery { pythonAdapter.typeHasNbMultiply(it) }
     val typeHasSqLength = createTypeQuery { pythonAdapter.typeHasSqLength(it) }
     val typeHasMpLength = createTypeQuery { pythonAdapter.typeHasMpLength(it) }
     val typeHasMpSubscript = createTypeQuery { pythonAdapter.typeHasMpSubscript(it) }
