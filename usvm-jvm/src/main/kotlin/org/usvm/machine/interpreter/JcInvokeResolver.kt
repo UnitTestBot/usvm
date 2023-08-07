@@ -80,7 +80,7 @@ class JcVirtualInvokeResolver(
             }
 
             if (forkOnRemainingTypes) {
-                val excludeAllTypesConstraint = ctx.mkOr(typeConstraints.map { ctx.mkNot(it) })
+                val excludeAllTypesConstraint = ctx.mkAnd(typeConstraints.map { ctx.mkNot(it) })
                 typeConstraintsWithBlockOnStates += excludeAllTypesConstraint to { } // do nothing, just exclude types
             }
 
