@@ -1,9 +1,12 @@
 package org.usvm.memory
 
 import io.ksmt.utils.asExpr
+import io.ksmt.utils.sampleValue
 import org.usvm.UBoolExpr
+import org.usvm.UBoolSort
 import org.usvm.UComposer
 import org.usvm.UConcreteHeapAddress
+import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UExprTransformer
 import org.usvm.UHeapRef
@@ -13,12 +16,19 @@ import org.usvm.USort
 import org.usvm.isTrue
 import org.usvm.uctx
 import org.usvm.util.Region
+import org.usvm.util.TrivialRegion
+
+typealias KeyTransformer<Key> = (Key) -> Key
+typealias KeyMapper<Key, MappedKey> = (Key) -> MappedKey?
+
+data class DecomposedKey<Key, Sort : USort>(val collectionId: USymbolicCollectionId<Key, Sort, *>, val key: Key)
 
 /**
  * Represents any possible type of symbolic collections that can be used in symbolic memory.
  */
-interface USymbolicCollectionId<Key, Sort : USort, out CollectionId : USymbolicCollectionId<Key, Sort, CollectionId>> {
-    val sort: Sort
+interface USymbolicCollectionId<Key, Sort : USort, out CollectionId : USymbolicCollectionId<Key, Sort, CollectionId>>
+    : UMemoryRegionId<Sort> {
+    override val sort: Sort
 
     val defaultValue: UExpr<Sort>?
 
@@ -28,24 +38,56 @@ interface USymbolicCollectionId<Key, Sort : USort, out CollectionId : USymbolicC
     fun instantiate(collection: USymbolicCollection<@UnsafeVariance CollectionId, Key, Sort>, key: Key): UExpr<Sort>
 
     fun <Field, ArrayType> write(
-        heap: USymbolicHeap<Field, ArrayType>,
+        heap: UHeap<Field, ArrayType>,
         key: Key,
         value: UExpr<Sort>,
         guard: UBoolExpr,
     )
 
-    fun <Field, ArrayType> keyMapper(transformer: UExprTransformer<Field, ArrayType>): KeyMapper<Key>
+    fun <Field, ArrayType> keyMapper(transformer: UExprTransformer<Field, ArrayType>): KeyTransformer<Key>
+
+    fun <Field, ArrayType, MappedKey> keyFilterMapper(
+        transformer: UExprTransformer<Field, ArrayType>,
+        expectedId: USymbolicCollectionId<MappedKey, Sort, *>
+    ): KeyMapper<Key, MappedKey> {
+        val mapper = keyMapper(transformer)
+        return filter@{
+            val transformedKey = mapper(it)
+            val decomposedKey = rebindKey(transformedKey)
+            if (decomposedKey == null || decomposedKey.collectionId != expectedId)
+                return@filter null
+            @Suppress("UNCHECKED_CAST")
+            return@filter decomposedKey.key as MappedKey
+        }
+    }
 
     fun <Field, ArrayType> map(composer: UComposer<Field, ArrayType>): CollectionId
+
+    /**
+     * Checks that [key] still belongs to symbolic collection with this id. If yes, then returns null.
+     * If [key] belongs to some new memory region, returns lvalue for this new region.
+     * The implementation might assume that [key] is obtained by [keyMapper] from some key of symbolic collection with this id.
+     */
+    fun rebindKey(key: Key): DecomposedKey<*, Sort>?
+
+    /**
+     * Returns information about the key of this collection.
+     * TODO: pass here context in the form of path constraints here.
+     */
+    fun keyInfo(): USymbolicCollectionKeyInfo<Key>
 
     fun <R> accept(visitor: UCollectionIdVisitor<R>): R
 }
 
 interface UCollectionIdVisitor<R> {
-    fun <Key, Sort : USort, CollectionId : USymbolicCollectionId<Key, Sort, CollectionId>> visit(collectionId: USymbolicCollectionId<Key, Sort, CollectionId>): Any? =
+    fun <Key, Sort : USort, CollectionId : USymbolicCollectionId<Key, Sort, CollectionId>> visit(
+        collectionId: USymbolicCollectionId<Key, Sort, CollectionId>
+    ): Any? =
         error("You must provide visit implementation for ${collectionId::class} in ${this::class}")
 
     fun <Field, Sort : USort> visit(collectionId: UInputFieldId<Field, Sort>): R
+
+    fun <Field, Sort : USort> visit(collectionId: UAllocatedFieldCollectionId<Field, Sort>): R
 
     fun <ArrayType, Sort : USort> visit(collectionId: UAllocatedArrayId<ArrayType, Sort>): R
 
@@ -53,11 +95,61 @@ interface UCollectionIdVisitor<R> {
 
     fun <ArrayType> visit(collectionId: UInputArrayLengthId<ArrayType>): R
 
-    fun <KeySort : USort, Reg: Region<Reg>, Sort : USort> visit(collectionId: UAllocatedSymbolicMapId<KeySort, Reg, Sort>): R
+    fun <KeySort : USort, Sort : USort> visit(collectionId: UAllocatedSymbolicMapId<KeySort, Sort>): R
 
-    fun <KeySort : USort, Reg: Region<Reg>, Sort : USort> visit(collectionId: UInputSymbolicMapId<KeySort, Reg, Sort>): R
+    fun <KeySort : USort, Reg : Region<Reg>, Sort : USort> visit(collectionId: UInputSymbolicMapId<KeySort, Reg, Sort>): R
 
     fun visit(collectionId: UInputSymbolicMapLengthId): R
+}
+
+/**
+ * An id for a collection storing the concretely allocated [field] at heap address [address].
+ * This id cannot be used directly but can be obtained temporary while mapping [UInputFieldId].
+ * See [UInputFieldId.rebindKey]
+ */
+data class UAllocatedFieldCollectionId<Field, Sort : USort> internal constructor(
+    val field: Field,
+    val address: UConcreteHeapAddress,
+    override val sort: Sort
+) : USymbolicCollectionId<Unit, Sort, UAllocatedFieldCollectionId<Field, Sort>> {
+
+    override val defaultValue: UExpr<Sort> =
+        sort.sampleValue()
+
+    override fun <Field, ArrayType> keyMapper(transformer: UExprTransformer<Field, ArrayType>): KeyTransformer<Unit> =
+        error("This should not be called")
+
+    override fun <CField, ArrayType> map(composer: UComposer<CField, ArrayType>): UAllocatedFieldCollectionId<Field, Sort> =
+        error("This should not be called")
+
+    override fun keyInfo(): USymbolicCollectionKeyInfo<Unit> =
+        error("This should not be called")
+
+    override fun <R> accept(visitor: UCollectionIdVisitor<R>) =
+        visitor.visit(this)
+
+    override fun rebindKey(key: Unit): DecomposedKey<*, Sort>? =
+        null
+
+    override fun <Field, ArrayType> write(
+        heap: UHeap<Field, ArrayType>,
+        key: Unit,
+        value: UExpr<Sort>,
+        guard: UBoolExpr
+    ) {
+        TODO("Not yet implemented")
+    }
+
+    override fun instantiate(
+        collection: USymbolicCollection<UAllocatedFieldCollectionId<Field, Sort>, Unit, Sort>,
+        key: Unit
+    ): UExpr<Sort> {
+        TODO("Not yet implemented")
+    }
+
+    override fun toString(): String {
+        return "allocatedField($field)"
+    }
 }
 
 /**
@@ -66,7 +158,7 @@ interface UCollectionIdVisitor<R> {
 data class UInputFieldId<Field, Sort : USort> internal constructor(
     val field: Field,
     override val sort: Sort,
-    val contextHeap: USymbolicHeap<Field, *>?,
+    val contextHeap: UHeap<Field, *>?,
 ) : USymbolicCollectionId<UHeapRef, Sort, UInputFieldId<Field, Sort>> {
 
     override val defaultValue: UExpr<Sort>? get() = null
@@ -83,7 +175,7 @@ data class UInputFieldId<Field, Sort : USort> internal constructor(
 
     @Suppress("UNCHECKED_CAST")
     override fun <Field, ArrayType> write(
-        heap: USymbolicHeap<Field, ArrayType>,
+        heap: UHeap<Field, ArrayType>,
         key: UHeapRef,
         value: UExpr<Sort>,
         guard: UBoolExpr,
@@ -91,13 +183,22 @@ data class UInputFieldId<Field, Sort : USort> internal constructor(
 
     override fun <Field, ArrayType> keyMapper(
         transformer: UExprTransformer<Field, ArrayType>,
-    ): KeyMapper<UHeapRef> = { transformer.apply(it) }
+    ): KeyTransformer<UHeapRef> = { transformer.apply(it) }
 
     override fun <CField, ArrayType> map(composer: UComposer<CField, ArrayType>): UInputFieldId<Field, Sort> {
         check(contextHeap == null) { "contextHeap is not null in composition" }
         @Suppress("UNCHECKED_CAST")
-        return copy(contextHeap = composer.heapEvaluator.toMutableHeap() as USymbolicHeap<Field, *>)
+        return copy(contextHeap = composer.heapEvaluator.toMutableHeap() as UHeap<Field, *>)
     }
+
+    override fun keyInfo(): UHeapRefKeyInfo =
+        UHeapRefKeyInfo()
+
+    override fun rebindKey(key: UHeapRef): DecomposedKey<*, Sort>? =
+        when (key) {
+            is UConcreteHeapRef -> DecomposedKey(UAllocatedFieldCollectionId(field, key.address, sort), Unit)
+            else -> null
+        }
 
     override fun <R> accept(visitor: UCollectionIdVisitor<R>): R =
         visitor.visit(this)
@@ -107,17 +208,22 @@ data class UInputFieldId<Field, Sort : USort> internal constructor(
     }
 }
 
-sealed interface UArrayId<Key, Sort : USort, out CollectionId : UArrayId<Key, Sort, CollectionId>> :
-    USymbolicCollectionId<Key, Sort, CollectionId>
-
-interface UTypedArrayId<ArrayType, Key, Sort : USort, out CollectionId : UTypedArrayId<ArrayType, Key, Sort, CollectionId>> :
-    UArrayId<Key, Sort, CollectionId> {
+interface UArrayId<ArrayType, Key, Sort : USort, out ArrayId : UArrayId<ArrayType, Key, Sort, ArrayId>> :
+    USymbolicCollectionId<Key, Sort, ArrayId> {
     val arrayType: ArrayType
 }
 
-interface USymbolicMapId<Key, KeySort : USort, Reg : Region<Reg>, Sort : USort, out CollectionId : USymbolicMapId<Key, KeySort, Reg, Sort, CollectionId>> :
-    UArrayId<Key, Sort, CollectionId> {
-    val descriptor: USymbolicMapDescriptor<KeySort, Sort, Reg>
+interface USymbolicSetId<Element, ElementSort : USort, out SetId : USymbolicSetId<Element, ElementSort, SetId>>
+    : USymbolicCollectionId<Element, UBoolSort, SetId>
+
+interface USymbolicMapId<
+        Key,
+        KeySort : USort,
+        ValueSort : USort,
+        out KeysSetId : USymbolicSetId<Key, KeySort, KeysSetId>,
+        out MapId : USymbolicMapId<Key, KeySort, ValueSort, KeysSetId, MapId>>
+    : USymbolicCollectionId<Key, ValueSort, MapId> {
+    val keysSetId: KeysSetId
 }
 
 /**
@@ -129,8 +235,8 @@ data class UAllocatedArrayId<ArrayType, Sort : USort> internal constructor(
     override val sort: Sort,
     override val defaultValue: UExpr<Sort>,
     val address: UConcreteHeapAddress,
-    val contextHeap: USymbolicHeap<*, ArrayType>?,
-) : UTypedArrayId<ArrayType, USizeExpr, Sort, UAllocatedArrayId<ArrayType, Sort>> {
+    val contextHeap: UHeap<*, ArrayType>?,
+) : UArrayId<ArrayType, USizeExpr, Sort, UAllocatedArrayId<ArrayType, Sort>> {
 
     override fun instantiate(
         collection: USymbolicCollection<UAllocatedArrayId<ArrayType, Sort>, USizeExpr, Sort>,
@@ -145,7 +251,7 @@ data class UAllocatedArrayId<ArrayType, Sort : USort> internal constructor(
 
     @Suppress("UNCHECKED_CAST")
     override fun <Field, ArrayType> write(
-        heap: USymbolicHeap<Field, ArrayType>,
+        heap: UHeap<Field, ArrayType>,
         key: USizeExpr,
         value: UExpr<Sort>,
         guard: UBoolExpr,
@@ -157,7 +263,7 @@ data class UAllocatedArrayId<ArrayType, Sort : USort> internal constructor(
 
     override fun <Field, ArrayType> keyMapper(
         transformer: UExprTransformer<Field, ArrayType>,
-    ): KeyMapper<USizeExpr> = { transformer.apply(it) }
+    ): KeyTransformer<USizeExpr> = { transformer.apply(it) }
 
 
     override fun <Field, CArrayType> map(composer: UComposer<Field, CArrayType>): UAllocatedArrayId<ArrayType, Sort> {
@@ -165,10 +271,16 @@ data class UAllocatedArrayId<ArrayType, Sort : USort> internal constructor(
         check(contextHeap == null) { "contextHeap is not null in composition" }
         @Suppress("UNCHECKED_CAST")
         return copy(
-            contextHeap = composer.heapEvaluator.toMutableHeap() as USymbolicHeap<*, ArrayType>,
+            contextHeap = composer.heapEvaluator.toMutableHeap() as UHeap<*, ArrayType>,
             defaultValue = composedDefaultValue
         )
     }
+
+    override fun keyInfo(): USizeExprKeyInfo =
+        USizeExprKeyInfo()
+
+    override fun rebindKey(key: USizeExpr): DecomposedKey<*, Sort>? =
+        null
 
     // we don't include arrayType into hashcode and equals, because [address] already defines unambiguously
     override fun equals(other: Any?): Boolean {
@@ -200,8 +312,8 @@ data class UAllocatedArrayId<ArrayType, Sort : USort> internal constructor(
 data class UInputArrayId<ArrayType, Sort : USort> internal constructor(
     override val arrayType: ArrayType,
     override val sort: Sort,
-    val contextHeap: USymbolicHeap<*, ArrayType>?,
-) : UTypedArrayId<ArrayType, USymbolicArrayIndex, Sort, UInputArrayId<ArrayType, Sort>> {
+    val contextHeap: UHeap<*, ArrayType>?,
+) : UArrayId<ArrayType, USymbolicArrayIndex, Sort, UInputArrayId<ArrayType, Sort>> {
     override val defaultValue: UExpr<Sort>? get() = null
     override fun instantiate(
         collection: USymbolicCollection<UInputArrayId<ArrayType, Sort>, USymbolicArrayIndex, Sort>,
@@ -215,7 +327,7 @@ data class UInputArrayId<ArrayType, Sort : USort> internal constructor(
 
     @Suppress("UNCHECKED_CAST")
     override fun <Field, ArrayType> write(
-        heap: USymbolicHeap<Field, ArrayType>,
+        heap: UHeap<Field, ArrayType>,
         key: USymbolicArrayIndex,
         value: UExpr<Sort>,
         guard: UBoolExpr,
@@ -223,7 +335,7 @@ data class UInputArrayId<ArrayType, Sort : USort> internal constructor(
 
     override fun <Field, ArrayType> keyMapper(
         transformer: UExprTransformer<Field, ArrayType>,
-    ): KeyMapper<USymbolicArrayIndex> = {
+    ): KeyTransformer<USymbolicArrayIndex> = {
         val ref = transformer.apply(it.first)
         val idx = transformer.apply(it.second)
         if (ref === it.first && idx === it.second) it else ref to idx
@@ -235,8 +347,29 @@ data class UInputArrayId<ArrayType, Sort : USort> internal constructor(
     override fun <Field, CArrayType> map(composer: UComposer<Field, CArrayType>): UInputArrayId<ArrayType, Sort> {
         check(contextHeap == null) { "contextHeap is not null in composition" }
         @Suppress("UNCHECKED_CAST")
-        return copy(contextHeap = composer.heapEvaluator.toMutableHeap() as USymbolicHeap<*, ArrayType>)
+        return copy(contextHeap = composer.heapEvaluator.toMutableHeap() as UHeap<*, ArrayType>)
     }
+
+    override fun keyInfo(): USymbolicArrayIndexKeyInfo =
+        USymbolicArrayIndexKeyInfo()
+
+    override fun rebindKey(key: USymbolicArrayIndex): DecomposedKey<*, Sort>? {
+        val heapRef = key.first
+        return when (heapRef) {
+            is UConcreteHeapRef -> DecomposedKey(
+                UAllocatedArrayId(
+                    arrayType,
+                    sort,
+                    sort.sampleValue(),
+                    heapRef.address,
+                    contextHeap
+                ), key.second
+            )
+
+            else -> null
+        }
+    }
+
     override fun toString(): String {
         return "inputArray($arrayType)"
     }
@@ -248,7 +381,7 @@ data class UInputArrayId<ArrayType, Sort : USort> internal constructor(
 data class UInputArrayLengthId<ArrayType> internal constructor(
     val arrayType: ArrayType,
     override val sort: USizeSort,
-    val contextHeap: USymbolicHeap<*, ArrayType>?,
+    val contextHeap: UHeap<*, ArrayType>?,
 ) : USymbolicCollectionId<UHeapRef, USizeSort, UInputArrayLengthId<ArrayType>> {
     override val defaultValue: UExpr<USizeSort>? get() = null
     override fun instantiate(
@@ -263,7 +396,7 @@ data class UInputArrayLengthId<ArrayType> internal constructor(
 
     @Suppress("UNCHECKED_CAST")
     override fun <Field, ArrayType> write(
-        heap: USymbolicHeap<Field, ArrayType>,
+        heap: UHeap<Field, ArrayType>,
         key: UHeapRef,
         value: UExpr<USizeSort>,
         guard: UBoolExpr,
@@ -274,13 +407,21 @@ data class UInputArrayLengthId<ArrayType> internal constructor(
 
     override fun <Field, ArrayType> keyMapper(
         transformer: UExprTransformer<Field, ArrayType>,
-    ): KeyMapper<UHeapRef> = { transformer.apply(it) }
+    ): KeyTransformer<UHeapRef> = { transformer.apply(it) }
 
     override fun <Field, CArrayType> map(composer: UComposer<Field, CArrayType>): UInputArrayLengthId<ArrayType> {
         check(contextHeap == null) { "contextHeap is not null in composition" }
         @Suppress("UNCHECKED_CAST")
-        return copy(contextHeap = composer.heapEvaluator.toMutableHeap() as USymbolicHeap<*, ArrayType>)
+        return copy(contextHeap = composer.heapEvaluator.toMutableHeap() as UHeap<*, ArrayType>)
     }
+
+    override fun keyInfo(): UHeapRefKeyInfo =
+        UHeapRefKeyInfo()
+
+    override fun rebindKey(key: UHeapRef): DecomposedKey<*, USizeSort>? {
+        TODO("Not yet implemented")
+    }
+
     override fun <R> accept(visitor: UCollectionIdVisitor<R>): R =
         visitor.visit(this)
 
@@ -289,13 +430,57 @@ data class UInputArrayLengthId<ArrayType> internal constructor(
     }
 }
 
-data class UAllocatedSymbolicMapId<KeySort : USort, Reg : Region<Reg>, Sort : USort> internal constructor(
-    override val descriptor: USymbolicMapDescriptor<KeySort, Sort, Reg>,
-    override val defaultValue: UExpr<Sort>,
+data class UAllocatedSymbolicSetId<Element, ElementSort : USort>()
+    : USymbolicSetId<Element, ElementSort, UAllocatedSymbolicSetId<Element, ElementSort>> {
+    override val sort: ElementSort
+        get() = TODO("Not yet implemented")
+    override val defaultValue: UExpr<ElementSort>?
+        get() = TODO("Not yet implemented")
+
+    override fun <Field, ArrayType> keyMapper(transformer: UExprTransformer<Field, ArrayType>): KeyTransformer<Element> {
+        TODO("Not yet implemented")
+    }
+
+    override fun <Field, ArrayType> map(composer: UComposer<Field, ArrayType>): UAllocatedSymbolicSetId<Element, ElementSort> {
+        TODO("Not yet implemented")
+    }
+
+    override fun keyInfo(): USymbolicCollectionKeyInfo<Element> {
+        TODO("Not yet implemented")
+    }
+
+    override fun <R> accept(visitor: UCollectionIdVisitor<R>): R {
+        TODO("Not yet implemented")
+    }
+
+    override fun rebindKey(key: Element): DecomposedKey<*, ElementSort>? {
+        TODO("Not yet implemented")
+    }
+
+    override fun <Field, ArrayType> write(
+        heap: UHeap<Field, ArrayType>,
+        key: Element,
+        value: UExpr<ElementSort>,
+        guard: UBoolExpr
+    ) {
+        TODO("Not yet implemented")
+    }
+
+    override fun instantiate(
+        collection: USymbolicCollection<UAllocatedSymbolicSetId<Element, ElementSort>, Element, ElementSort>,
+        key: Element
+    ): UExpr<ElementSort> {
+        TODO("Not yet implemented")
+    }
+
+}
+
+data class UAllocatedSymbolicMapId<KeySort : USort, ValueSort : USort> internal constructor(
+    override val defaultValue: UExpr<ValueSort>,
     val address: UConcreteHeapAddress,
-    val contextHeap: USymbolicHeap<*, *>?,
-) : USymbolicMapId<UExpr<KeySort>, KeySort, Reg, Sort, UAllocatedSymbolicMapId<KeySort, Reg, Sort>> {
-    override val sort: Sort get() = descriptor.valueSort
+    val contextHeap: UHeap<*, *>?,
+) : USymbolicMapId<UExpr<KeySort>, KeySort, ValueSort, UAllocatedSymbolicSetId<UExpr<KeySort>, KeySort>, UAllocatedSymbolicMapId<KeySort, ValueSort>> {
+    override val sort: ValueSort get() = descriptor.valueSort
 
     override fun instantiate(
         collection: USymbolicCollection<UAllocatedSymbolicMapId<KeySort, Reg, Sort>, UExpr<KeySort>, Sort>,
@@ -309,7 +494,7 @@ data class UAllocatedSymbolicMapId<KeySort : USort, Reg : Region<Reg>, Sort : US
     }
 
     override fun <Field, ArrayType> write(
-        heap: USymbolicHeap<Field, ArrayType>,
+        heap: UHeap<Field, ArrayType>,
         key: UExpr<KeySort>,
         value: UExpr<Sort>,
         guard: UBoolExpr
@@ -320,7 +505,7 @@ data class UAllocatedSymbolicMapId<KeySort : USort, Reg : Region<Reg>, Sort : US
 
     override fun <Field, ArrayType> keyMapper(
         transformer: UExprTransformer<Field, ArrayType>,
-    ): KeyMapper<UExpr<KeySort>> = { transformer.apply(it) }
+    ): KeyTransformer<UExpr<KeySort>> = { transformer.apply(it) }
 
 
     override fun <Field, CArrayType> map(
@@ -332,6 +517,10 @@ data class UAllocatedSymbolicMapId<KeySort : USort, Reg : Region<Reg>, Sort : US
             contextHeap = composer.heapEvaluator.toMutableHeap(),
             defaultValue = composedDefaultValue
         )
+    }
+
+    override fun rebindKey(key: UExpr<KeySort>): DecomposedKey<*, Sort>? {
+        TODO("Not yet implemented")
     }
 
     override fun <R> accept(visitor: UCollectionIdVisitor<R>): R =
@@ -356,7 +545,7 @@ data class UAllocatedSymbolicMapId<KeySort : USort, Reg : Region<Reg>, Sort : US
 
 data class UInputSymbolicMapId<KeySort : USort, Reg : Region<Reg>, Sort : USort> internal constructor(
     override val descriptor: USymbolicMapDescriptor<KeySort, Sort, Reg>,
-    val contextHeap: USymbolicHeap<*, *>?,
+    val contextHeap: UHeap<*, *>?,
 ) : USymbolicMapId<USymbolicMapKey<KeySort>, KeySort, Reg, Sort, UInputSymbolicMapId<KeySort, Reg, Sort>> {
     override val sort: Sort get() = descriptor.valueSort
     override val defaultValue: UExpr<Sort>? get() = null
@@ -372,7 +561,7 @@ data class UInputSymbolicMapId<KeySort : USort, Reg : Region<Reg>, Sort : USort>
     }
 
     override fun <Field, ArrayType> write(
-        heap: USymbolicHeap<Field, ArrayType>,
+        heap: UHeap<Field, ArrayType>,
         key: USymbolicMapKey<KeySort>,
         value: UExpr<Sort>,
         guard: UBoolExpr
@@ -382,7 +571,7 @@ data class UInputSymbolicMapId<KeySort : USort, Reg : Region<Reg>, Sort : USort>
 
     override fun <Field, ArrayType> keyMapper(
         transformer: UExprTransformer<Field, ArrayType>,
-    ): KeyMapper<USymbolicMapKey<KeySort>> = {
+    ): KeyTransformer<USymbolicMapKey<KeySort>> = {
         val ref = transformer.apply(it.first)
         val idx = transformer.apply(it.second)
         if (ref === it.first && idx === it.second) it else ref to idx
@@ -396,7 +585,11 @@ data class UInputSymbolicMapId<KeySort : USort, Reg : Region<Reg>, Sort : USort>
         composer: UComposer<Field, CArrayType>
     ): UInputSymbolicMapId<KeySort, Reg, Sort> {
         check(contextHeap == null) { "contextHeap is not null in composition" }
-        return copy(contextHeap = composer.heapEvaluator.toMutableHeap() as USymbolicHeap<*, *>)
+        return copy(contextHeap = composer.heapEvaluator.toMutableHeap() as UHeap<*, *>)
+    }
+
+    override fun rebindKey(key: USymbolicMapKey<KeySort>): DecomposedKey<*, Sort>? {
+        TODO("Not yet implemented")
     }
 
     override fun toString(): String = "inputMap($descriptor)"
@@ -416,7 +609,7 @@ data class UInputSymbolicMapId<KeySort : USort, Reg : Region<Reg>, Sort : USort>
 data class UInputSymbolicMapLengthId internal constructor(
     val descriptor: USymbolicMapDescriptor<*, *, *>,
     override val sort: USizeSort,
-    val contextHeap: USymbolicHeap<*, *>?,
+    val contextHeap: UHeap<*, *>?,
 ) : USymbolicCollectionId<UHeapRef, USizeSort, UInputSymbolicMapLengthId> {
     override val defaultValue: UExpr<USizeSort>? get() = null
 
@@ -431,7 +624,7 @@ data class UInputSymbolicMapLengthId internal constructor(
     }
 
     override fun <Field, ArrayType> write(
-        heap: USymbolicHeap<Field, ArrayType>,
+        heap: UHeap<Field, ArrayType>,
         key: UHeapRef,
         value: UExpr<USizeSort>,
         guard: UBoolExpr,
@@ -441,11 +634,15 @@ data class UInputSymbolicMapLengthId internal constructor(
 
     override fun <Field, ArrayType> keyMapper(
         transformer: UExprTransformer<Field, ArrayType>,
-    ): KeyMapper<UHeapRef> = { transformer.apply(it) }
+    ): KeyTransformer<UHeapRef> = { transformer.apply(it) }
 
     override fun <Field, CArrayType> map(composer: UComposer<Field, CArrayType>): UInputSymbolicMapLengthId {
         check(contextHeap == null) { "contextHeap is not null in composition" }
         return copy(contextHeap = composer.heapEvaluator.toMutableHeap())
+    }
+
+    override fun rebindKey(key: UHeapRef): DecomposedKey<*, USizeSort>? {
+        TODO("Not yet implemented")
     }
 
     override fun <R> accept(visitor: UCollectionIdVisitor<R>): R =

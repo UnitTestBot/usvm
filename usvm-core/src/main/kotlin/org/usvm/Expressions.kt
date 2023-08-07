@@ -71,7 +71,8 @@ typealias UHeapRef = UExpr<UAddressSort>
  * **symbolic** expressions.
  */
 typealias USymbolicHeapRef = USymbol<UAddressSort>
-typealias UConcreteHeapAddress = Int
+typealias
+UConcreteHeapAddress = Int
 
 fun isSymbolicHeapRef(expr: UExpr<*>) =
     expr.sort == expr.uctx.addressSort && expr !is UConcreteHeapRef
@@ -112,22 +113,6 @@ class UNullRef internal constructor(
         printer.append("null")
     }
 }
-
-//endregion
-
-//region LValues
-open class ULValue(val sort: USort)
-
-class URegisterRef(sort: USort, val idx: Int) : ULValue(sort)
-
-class UFieldRef<Field>(fieldSort: USort, val ref: UHeapRef, val field: Field) : ULValue(fieldSort)
-
-class UArrayIndexRef<ArrayType>(
-    cellSort: USort,
-    val ref: UHeapRef,
-    val index: USizeExpr,
-    val arrayType: ArrayType
-) : ULValue(cellSort)
 
 //endregion
 

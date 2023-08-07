@@ -7,98 +7,183 @@ import kotlinx.collections.immutable.persistentMapOf
 import org.usvm.*
 import org.usvm.util.Region
 
-interface UReadOnlyHeap<Ref, Value, SizeT, Field, ArrayType, Guard> {
-    fun <Sort : USort> readField(ref: Ref, field: Field, sort: Sort): Value
-    fun <Sort : USort> readArrayIndex(ref: Ref, index: SizeT, arrayType: ArrayType, sort: Sort): Value
-    fun readArrayLength(ref: Ref, arrayType: ArrayType): SizeT
+//interface UReadOnlyHeap<Ref, Value, SizeT, Field, ArrayType, Guard> {
+//    fun <Sort : USort> readField(ref: Ref, field: Field, sort: Sort): Value
+//    fun <Sort : USort> readArrayIndex(ref: Ref, index: SizeT, arrayType: ArrayType, sort: Sort): Value
+//    fun readArrayLength(ref: Ref, arrayType: ArrayType): SizeT
+//
+//    fun <KeySort : USort, Reg : Region<Reg>, Sort : USort> readSymbolicMap(
+//        descriptor: USymbolicMapDescriptor<KeySort, Sort, Reg>,
+//        ref: Ref,
+//        key: UExpr<KeySort>
+//    ): Value
+//
+//    fun readSymbolicMapLength(descriptor: USymbolicMapDescriptor<*, *, *>, ref: Ref): SizeT
+//
+//    /**
+//     * Returns a copy of the current map to be able to modify it without changing the original one.
+//     */
+//    fun toMutableHeap(): UHeap<Ref, Value, SizeT, Field, ArrayType, Guard>
+//
+//    fun nullRef(): Ref
+//}
+
+interface UReadOnlyHeap<Field, ArrayType> {
+    fun <Sort : USort> readField(ref: UHeapRef, field: Field, sort: Sort): UExpr<Sort>
+    fun <Sort : USort> readArrayIndex(ref: UHeapRef, index: USizeExpr, arrayType: ArrayType, sort: Sort): UExpr<Sort>
+    fun readArrayLength(ref: UHeapRef, arrayType: ArrayType): USizeExpr
 
     fun <KeySort : USort, Reg : Region<Reg>, Sort : USort> readSymbolicMap(
         descriptor: USymbolicMapDescriptor<KeySort, Sort, Reg>,
-        ref: Ref,
+        ref: UHeapRef,
         key: UExpr<KeySort>
-    ): Value
+    ): UExpr<Sort>
 
-    fun readSymbolicMapLength(descriptor: USymbolicMapDescriptor<*, *, *>, ref: Ref): SizeT
+    fun readSymbolicMapLength(descriptor: USymbolicMapDescriptor<*, *, *>, ref: UHeapRef): USizeExpr
 
     /**
      * Returns a copy of the current map to be able to modify it without changing the original one.
      */
-    fun toMutableHeap(): UHeap<Ref, Value, SizeT, Field, ArrayType, Guard>
+    fun toMutableHeap(): UHeap<Field, ArrayType>
 
-    fun nullRef(): Ref
+    fun nullRef(): UHeapRef
 }
 
-typealias UReadOnlySymbolicHeap<Field, ArrayType> = UReadOnlyHeap<UHeapRef, UExpr<out USort>, USizeExpr, Field, ArrayType, UBoolExpr>
+//interface UHeap<Ref, Value, SizeT, Field, ArrayType, Guard> :
+//    UReadOnlyHeap<Ref, Value, SizeT, Field, ArrayType, Guard> {
+//    fun <Sort : USort> writeField(ref: Ref, field: Field, sort: Sort, value: Value, guard: Guard)
+//    fun <Sort : USort> writeArrayIndex(
+//        ref: Ref,
+//        index: SizeT,
+//        type: ArrayType,
+//        sort: Sort,
+//        value: Value,
+//        guard: Guard,
+//    )
+//
+//    fun writeArrayLength(ref: Ref, size: SizeT, arrayType: ArrayType)
+//
+//    fun <KeySort : USort, Reg : Region<Reg>, Sort : USort> writeSymbolicMap(
+//        descriptor: USymbolicMapDescriptor<KeySort, Sort, Reg>,
+//        ref: Ref,
+//        key: UExpr<KeySort>,
+//        value: Value,
+//        guard: Guard
+//    )
+//
+//    fun writeSymbolicMapLength(
+//        descriptor: USymbolicMapDescriptor<*, *, *>,
+//        ref: Ref,
+//        size: SizeT,
+//        guard: Guard
+//    )
+//
+//    fun <Sort : USort> memset(ref: Ref, type: ArrayType, sort: Sort, contents: Sequence<Value>)
+//    fun <Sort : USort> memcpy(
+//        srcRef: Ref,
+//        dstRef: Ref,
+//        type: ArrayType,
+//        elementSort: Sort,
+//        fromSrcIdx: SizeT,
+//        fromDstIdx: SizeT,
+//        toDstIdx: SizeT,
+//        guard: Guard,
+//    )
+//
+//    fun <Reg : Region<Reg>, Sort : USort> copySymbolicMapIndexRange(
+//        descriptor: USymbolicMapDescriptor<USizeSort, Sort, Reg>,
+//        srcRef: Ref,
+//        dstRef: Ref,
+//        fromSrcKey: SizeT,
+//        fromDstKey: SizeT,
+//        toDstKey: SizeT,
+//        guard: Guard,
+//    )
+//
+//    fun <KeySort : USort, Reg : Region<Reg>, Sort : USort> mergeSymbolicMap(
+//        descriptor: USymbolicMapDescriptor<KeySort, Sort, Reg>,
+//        keyContainsDescriptor: USymbolicMapDescriptor<KeySort, UBoolSort, Reg>,
+//        srcRef: Ref,
+//        dstRef: Ref,
+//        guard: Guard,
+//    )
+//
+//    fun allocate(): UConcreteHeapRef
+//    fun allocateArray(count: SizeT): UConcreteHeapRef
+//    fun <Sort : USort> allocateArrayInitialized(
+//        type: ArrayType,
+//        sort: Sort,
+//        contents: Sequence<Value>
+//    ): UConcreteHeapRef
+//}
 
-interface UHeap<Ref, Value, SizeT, Field, ArrayType, Guard> :
-    UReadOnlyHeap<Ref, Value, SizeT, Field, ArrayType, Guard> {
-    fun <Sort : USort> writeField(ref: Ref, field: Field, sort: Sort, value: Value, guard: Guard)
+interface UHeap<Field, ArrayType> : UReadOnlyHeap<Field, ArrayType> {
+    fun <Sort : USort> writeField(ref: UHeapRef, field: Field, sort: Sort, value: UExpr<Sort>, guard: UBoolExpr)
+
     fun <Sort : USort> writeArrayIndex(
-        ref: Ref,
-        index: SizeT,
+        ref: UHeapRef,
+        index: USizeExpr,
         type: ArrayType,
         sort: Sort,
-        value: Value,
-        guard: Guard,
+        value: UExpr<Sort>,
+        guard: UBoolExpr,
     )
 
-    fun writeArrayLength(ref: Ref, size: SizeT, arrayType: ArrayType)
+    fun writeArrayLength(ref: UHeapRef, size: USizeExpr, arrayType: ArrayType)
 
     fun <KeySort : USort, Reg : Region<Reg>, Sort : USort> writeSymbolicMap(
         descriptor: USymbolicMapDescriptor<KeySort, Sort, Reg>,
-        ref: Ref,
+        ref: UHeapRef,
         key: UExpr<KeySort>,
-        value: Value,
-        guard: Guard
+        value: UExpr<Sort>,
+        guard: UBoolExpr
     )
 
     fun writeSymbolicMapLength(
         descriptor: USymbolicMapDescriptor<*, *, *>,
-        ref: Ref,
-        size: SizeT,
-        guard: Guard
+        ref: UHeapRef,
+        size: USizeExpr,
+        guard: UBoolExpr
     )
 
-    fun <Sort : USort> memset(ref: Ref, type: ArrayType, sort: Sort, contents: Sequence<Value>)
+    fun <Sort : USort> memset(ref: UHeapRef, type: ArrayType, sort: Sort, contents: Sequence<UExpr<Sort>>)
     fun <Sort : USort> memcpy(
-        srcRef: Ref,
-        dstRef: Ref,
+        srcRef: UHeapRef,
+        dstRef: UHeapRef,
         type: ArrayType,
         elementSort: Sort,
-        fromSrcIdx: SizeT,
-        fromDstIdx: SizeT,
-        toDstIdx: SizeT,
-        guard: Guard,
+        fromSrcIdx: USizeExpr,
+        fromDstIdx: USizeExpr,
+        toDstIdx: USizeExpr,
+        guard: UBoolExpr,
     )
 
     fun <Reg : Region<Reg>, Sort : USort> copySymbolicMapIndexRange(
         descriptor: USymbolicMapDescriptor<USizeSort, Sort, Reg>,
-        srcRef: Ref,
-        dstRef: Ref,
-        fromSrcKey: SizeT,
-        fromDstKey: SizeT,
-        toDstKey: SizeT,
-        guard: Guard,
+        srcRef: UHeapRef,
+        dstRef: UHeapRef,
+        fromSrcKey: USizeExpr,
+        fromDstKey: USizeExpr,
+        toDstKey: USizeExpr,
+        guard: UBoolExpr,
     )
 
     fun <KeySort : USort, Reg : Region<Reg>, Sort : USort> mergeSymbolicMap(
         descriptor: USymbolicMapDescriptor<KeySort, Sort, Reg>,
         keyContainsDescriptor: USymbolicMapDescriptor<KeySort, UBoolSort, Reg>,
-        srcRef: Ref,
-        dstRef: Ref,
-        guard: Guard,
+        srcRef: UHeapRef,
+        dstRef: UHeapRef,
+        guard: UBoolExpr,
     )
 
     fun allocate(): UConcreteHeapRef
-    fun allocateArray(count: SizeT): UConcreteHeapRef
+    fun allocateArray(count: USizeExpr): UConcreteHeapRef
     fun <Sort : USort> allocateArrayInitialized(
         type: ArrayType,
         sort: Sort,
-        contents: Sequence<Value>
+        contents: Sequence<UExpr<Sort>>
     ): UConcreteHeapRef
 }
-
-typealias USymbolicHeap<Field, ArrayType> = UHeap<UHeapRef, UExpr<out USort>, USizeExpr, Field, ArrayType, UBoolExpr>
 
 /**
  * Current heap address holder. Calling [freshAddress] advances counter globally.
@@ -152,7 +237,7 @@ data class URegionHeap<Field, ArrayType>(
     private var inputMaps: PersistentMap<USymbolicMapDescriptor<*, *, *>, UInputSymbolicMap<USort, *, *>> = persistentMapOf(),
     private var allocatedMapsLengths: PersistentMap<UConcreteHeapAddress, USizeExpr> = persistentMapOf(),
     private var inputMapsLengths: PersistentMap<USymbolicMapDescriptor<*, *, *>, UInputSymbolicMapLengthCollection> = persistentMapOf(),
-) : USymbolicHeap<Field, ArrayType> {
+) : UHeap<Field, ArrayType> {
     private fun <Sort : USort> inputFieldRegion(
         field: Field,
         sort: Sort,
@@ -276,13 +361,13 @@ data class URegionHeap<Field, ArrayType>(
     }
 
     // Reorder map ref and key
-    private object ConcreteKeySymbolicRefAllocatedMap: ConcreteTaggedMapDescriptor.MapDescriptorTag
+    private object ConcreteKeySymbolicRefAllocatedMap : ConcreteTaggedMapDescriptor.MapDescriptorTag
 
     // Reorder map ref and key
-    private object ConcreteKeyConcreteRefAllocatedMap: ConcreteTaggedMapDescriptor.MapDescriptorTag
+    private object ConcreteKeyConcreteRefAllocatedMap : ConcreteTaggedMapDescriptor.MapDescriptorTag
 
     // Normal order
-    private object SymbolicKeyConcreteRefAllocatedMap: ConcreteTaggedMapDescriptor.MapDescriptorTag
+    private object SymbolicKeyConcreteRefAllocatedMap : ConcreteTaggedMapDescriptor.MapDescriptorTag
 
     /**
      * Read from map with ref keys.
@@ -343,11 +428,9 @@ data class URegionHeap<Field, ArrayType>(
         ref: UHeapRef,
         field: Field,
         sort: Sort,
-        value: UExpr<out USort>,
+        value: UExpr<Sort>,
         guard: UBoolExpr,
     ) {
-        val valueToWrite = value.asExpr(sort)
-
         withHeapRef(
             ref,
             guard,
@@ -355,12 +438,12 @@ data class URegionHeap<Field, ArrayType>(
                 val key = concreteRef.address to field
 
                 val oldValue = readField(concreteRef, field, sort)
-                val newValue = ctx.mkIte(innerGuard, valueToWrite, oldValue)
+                val newValue = ctx.mkIte(innerGuard, value, oldValue)
                 allocatedFields = allocatedFields.put(key, newValue)
             },
             { (symbolicRef, innerGuard) ->
                 val oldRegion = inputFieldRegion(field, sort)
-                val newRegion = oldRegion.write(symbolicRef, valueToWrite, innerGuard)
+                val newRegion = oldRegion.write(symbolicRef, value, innerGuard)
                 inputFields = inputFields.put(field, newRegion)
 
             }
@@ -372,22 +455,20 @@ data class URegionHeap<Field, ArrayType>(
         index: USizeExpr,
         type: ArrayType,
         sort: Sort,
-        value: UExpr<out USort>,
+        value: UExpr<Sort>,
         guard: UBoolExpr,
     ) {
-        val valueToWrite = value.asExpr(sort)
-
         withHeapRef(
             ref,
             guard,
             { (concreteRef, innerGuard) ->
                 val oldRegion = allocatedArrayRegion(type, concreteRef.address, sort)
-                val newRegion = oldRegion.write(index, valueToWrite, innerGuard)
+                val newRegion = oldRegion.write(index, value, innerGuard)
                 allocatedArrays = allocatedArrays.put(concreteRef.address, newRegion)
             },
             { (symbolicRef, innerGuard) ->
                 val oldRegion = inputArrayRegion(type, sort)
-                val newRegion = oldRegion.write(symbolicRef to index, valueToWrite, innerGuard)
+                val newRegion = oldRegion.write(symbolicRef to index, value, innerGuard)
                 inputArrays = inputArrays.put(type, newRegion)
             }
         )
@@ -397,18 +478,16 @@ data class URegionHeap<Field, ArrayType>(
         descriptor: USymbolicMapDescriptor<KeySort, Sort, Reg>,
         ref: UHeapRef,
         key: UExpr<KeySort>,
-        value: UExpr<out USort>,
+        value: UExpr<Sort>,
         guard: UBoolExpr
     ) {
-        val valueToWrite = value.asExpr(descriptor.valueSort)
-
         if (key.sort == key.uctx.addressSort) {
             @Suppress("UNCHECKED_CAST")
             writeSymbolicRefMap(
                 descriptor = descriptor as USymbolicMapDescriptor<UAddressSort, Sort, Reg>,
                 ref = ref,
                 key = key.asExpr(key.uctx.addressSort),
-                value = valueToWrite,
+                value = value,
                 guard = guard
             )
         } else {
@@ -417,12 +496,12 @@ data class URegionHeap<Field, ArrayType>(
                 initialGuard = guard,
                 blockOnConcrete = { (concreteRef, innerGuard) ->
                     val oldRegion = allocatedMapRegion(descriptor, concreteRef.address)
-                    val newRegion = oldRegion.write(key, valueToWrite, innerGuard)
+                    val newRegion = oldRegion.write(key, value, innerGuard)
                     storeAllocatedMapRegion(descriptor, concreteRef.address, newRegion)
                 },
                 blockOnSymbolic = { (symbolicRef, innerGuard) ->
                     val oldRegion = inputMapRegion(descriptor)
-                    val newRegion = oldRegion.write(symbolicRef to key, valueToWrite, innerGuard)
+                    val newRegion = oldRegion.write(symbolicRef to key, value, innerGuard)
                     inputMaps = inputMaps.put(descriptor, newRegion.uncheckedCast())
                 }
             )
@@ -431,16 +510,16 @@ data class URegionHeap<Field, ArrayType>(
 
     /**
      * Split maps with concrete keys.
-     * 
+     *
      * (concrete map ref) x (concrete key ref) --- [ConcreteKeyConcreteRefAllocatedMap]
-     * stored as {concrete key ref x concrete map ref} to allow key enumeration 
-     * 
+     * stored as {concrete key ref x concrete map ref} to allow key enumeration
+     *
      * (concrete map ref) x (symbolic key ref) --- [SymbolicKeyConcreteRefAllocatedMap]
      * stored as {concrete map ref x symbolic key ref}, doesn't allow key enumeration
-     * 
+     *
      * (symbolic map ref) x (concrete key ref) --- [ConcreteKeySymbolicRefAllocatedMap]
      * stored as {concrete key ref x symbolic map ref} to allow key enumeration
-     * 
+     *
      * (symbolic map ref) x (symbolic key ref) --- usual input map
      * stored as {symbolic map ref x symbolic key ref}, doesn't allow key enumeration
      * */
@@ -563,7 +642,7 @@ data class URegionHeap<Field, ArrayType>(
         ref: UHeapRef,
         type: ArrayType,
         sort: Sort,
-        contents: Sequence<UExpr<out USort>>,
+        contents: Sequence<UExpr<Sort>>,
     ) {
         val tmpArrayRef = allocateArrayInitialized(type, sort, contents)
         val contentLength = allocatedLengths.getValue(tmpArrayRef.address)
@@ -771,7 +850,7 @@ data class URegionHeap<Field, ArrayType>(
                             fromCollection = srcRegion,
                             guard = deepGuard,
                             keyIncludesCheck = UMergeKeyIncludesCheck(srcKeyContainsRegion),
-                            keyConverter = UMergeKeyConverter(srcRef, dstRef) { it }
+                            keyConverter = USymbolicMapMergeAdapter(srcRef, dstRef) { it }
                         )
 
                         storeAllocatedMapRegion(descriptor, dstRef.address, newDstRegion)
@@ -783,7 +862,7 @@ data class URegionHeap<Field, ArrayType>(
                             fromCollection = srcRegion,
                             guard = deepGuard,
                             keyIncludesCheck = UMergeKeyIncludesCheck(srcKeyContainsRegion),
-                            keyConverter = UMergeKeyConverter(srcRef, dstRef) { it.second }
+                            keyConverter = USymbolicMapMergeAdapter(srcRef, dstRef) { it.second }
                         )
 
                         inputMaps = inputMaps.put(descriptor, newDstRegion.uncheckedCast())
@@ -804,7 +883,7 @@ data class URegionHeap<Field, ArrayType>(
                             fromCollection = srcRegion,
                             guard = deepGuard,
                             keyIncludesCheck = UMergeKeyIncludesCheck(srcKeyContainsRegion),
-                            keyConverter = UMergeKeyConverter(srcRef, dstRef) { this.srcRef to it }
+                            keyConverter = USymbolicMapMergeAdapter(srcRef, dstRef) { this.srcRef to it }
                         )
 
                         storeAllocatedMapRegion(descriptor, dstRef.address, newDstRegion)
@@ -816,7 +895,7 @@ data class URegionHeap<Field, ArrayType>(
                             fromCollection = srcRegion,
                             guard = deepGuard,
                             keyIncludesCheck = UMergeKeyIncludesCheck(srcKeyContainsRegion),
-                            keyConverter = UMergeKeyConverter(srcRef, dstRef) { this.srcRef to it.second }
+                            keyConverter = USymbolicMapMergeAdapter(srcRef, dstRef) { this.srcRef to it.second }
                         )
 
                         inputMaps = inputMaps.put(descriptor, newDstRegion.uncheckedCast())
@@ -877,7 +956,7 @@ data class URegionHeap<Field, ArrayType>(
                             fromCollection = srcSymbolicKeysRegion,
                             guard = deepGuard,
                             keyIncludesCheck = UMergeKeyIncludesCheck(srcSymbolicKeyContainsRegion),
-                            keyConverter = UMergeKeyConverter(srcRef, dstRef) { it }
+                            keyConverter = USymbolicMapMergeAdapter(srcRef, dstRef) { it }
                         )
 
                         storeAllocatedMapRegion(
@@ -894,7 +973,7 @@ data class URegionHeap<Field, ArrayType>(
                             fromCollection = srcSymbolicKeysRegion,
                             guard = deepGuard,
                             keyIncludesCheck = UMergeKeyIncludesCheck(srcSymbolicKeyContainsRegion),
-                            keyConverter = UMergeKeyConverter(srcRef, dstRef) { it.second }
+                            keyConverter = USymbolicMapMergeAdapter(srcRef, dstRef) { it.second }
                         )
 
                         inputMaps = inputMaps.put(descriptor, mergedSymbolicKeysRegion.uncheckedCast())
@@ -934,7 +1013,7 @@ data class URegionHeap<Field, ArrayType>(
                             fromCollection = srcSymbolicKeysRegion,
                             guard = deepGuard,
                             keyIncludesCheck = UMergeKeyIncludesCheck(srcSymbolicKeysContainsRegion),
-                            keyConverter = UMergeKeyConverter(srcRef, dstRef) { this.srcRef to it }
+                            keyConverter = USymbolicMapMergeAdapter(srcRef, dstRef) { this.srcRef to it }
                         )
 
                         storeAllocatedMapRegion(
@@ -951,7 +1030,7 @@ data class URegionHeap<Field, ArrayType>(
                             fromCollection = srcSymbolicKeysRegion,
                             guard = deepGuard,
                             keyIncludesCheck = UMergeKeyIncludesCheck(srcSymbolicKeysContainsRegion),
-                            keyConverter = UMergeKeyConverter(srcRef, dstRef) { this.srcRef to it.second }
+                            keyConverter = USymbolicMapMergeAdapter(srcRef, dstRef) { this.srcRef to it.second }
                         )
 
                         inputMaps = inputMaps.put(descriptor, mergedSymbolicKeysRegion.uncheckedCast())
@@ -1004,9 +1083,9 @@ data class URegionHeap<Field, ArrayType>(
     override fun <Sort : USort> allocateArrayInitialized(
         type: ArrayType,
         sort: Sort,
-        contents: Sequence<UExpr<out USort>>
+        contents: Sequence<UExpr<Sort>>
     ): UConcreteHeapRef {
-        val arrayValues = contents.mapTo(mutableListOf()) { it.asExpr(sort) }
+        val arrayValues = contents.mapTo(mutableListOf()) { it }
         val arrayLength = ctx.mkSizeExpr(arrayValues.size)
 
         val address = allocateArray(arrayLength)

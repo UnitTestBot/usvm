@@ -3,6 +3,7 @@ package org.usvm.memory
 import io.ksmt.cache.hash
 import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
+import org.usvm.UBoolSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
@@ -20,7 +21,7 @@ abstract class USymbolicMapDescriptor<Key : USort, Value : USort, Reg : Region<R
 
     abstract fun mkKeyRegion(key: UExpr<Key>): Reg
     abstract fun mkKeyRangeRegion(key1: UExpr<Key>, key2: UExpr<Key>): Reg
-    abstract fun mkKeyFullRangeRegion(): Reg
+    abstract fun mkKeySymbolicSetRegion(set: USymbolicCollection<*, Key, UBoolSort>): Reg
 
     abstract fun keyEqSymbolic(key1: UExpr<Key>, key2: UExpr<Key>): UBoolExpr
     abstract fun keyCmpSymbolic(key1: UExpr<Key>, key2: UExpr<Key>): UBoolExpr
@@ -44,68 +45,68 @@ abstract class USymbolicMapDescriptor<Key : USort, Value : USort, Reg : Region<R
     interface SymbolicMapInfo
 }
 
-class USymbolicObjectReferenceMapDescriptor<Value : USort>(
-    override val valueSort: Value,
-    override val defaultValue: UExpr<Value>,
-    override val info: SymbolicMapInfo? = null
-) : USymbolicMapDescriptor<UAddressSort, Value, SetRegion<UHeapRef>>() {
+//class USymbolicObjectReferenceMapDescriptor<Value : USort>(
+//    override val valueSort: Value,
+//    override val defaultValue: UExpr<Value>,
+//    override val info: SymbolicMapInfo? = null
+//) : USymbolicMapDescriptor<UAddressSort, Value, SetRegion<UHeapRef>>() {
+//
+//    override val keySort: UAddressSort = valueSort.uctx.addressSort
+//
+//    override fun mkKeyRegion(
+//        key: UHeapRef
+//    ): SetRegion<UHeapRef> = if (key is UConcreteHeapRef){
+//        SetRegion.singleton(key)
+//    } else {
+//        SetRegion.universe()
+//    }
+//
+//    override fun mkKeyRangeRegion(
+//        key1: UHeapRef,
+//        key2: UHeapRef
+//    ) = error("Heap references should not be used in range queries!")
+//
+//    override fun mkKeyFullRangeRegion(): SetRegion<UHeapRef> = SetRegion.universe()
+//
+//    override fun keyEqSymbolic(
+//        key1: UHeapRef,
+//        key2: UHeapRef
+//    ): UBoolExpr = with(key1.ctx) {
+//        key1 eq key2
+//    }
+//
+//    override fun keyCmpSymbolic(
+//        key1: UHeapRef,
+//        key2: UHeapRef
+//    ): UBoolExpr = error("Heap references should not be compared!")
+//
+//    override fun keyCmpConcrete(
+//        key1: UHeapRef,
+//        key2: UHeapRef
+//    ): Boolean = error("Heap references should not be compared!")
+//}
 
-    override val keySort: UAddressSort = valueSort.uctx.addressSort
-
-    override fun mkKeyRegion(
-        key: UHeapRef
-    ): SetRegion<UHeapRef> = if (key is UConcreteHeapRef){
-        SetRegion.singleton(key)
-    } else {
-        SetRegion.universe()
-    }
-
-    override fun mkKeyRangeRegion(
-        key1: UHeapRef,
-        key2: UHeapRef
-    ) = error("Heap references should not be used in range queries!")
-
-    override fun mkKeyFullRangeRegion(): SetRegion<UHeapRef> = SetRegion.universe()
-
-    override fun keyEqSymbolic(
-        key1: UHeapRef,
-        key2: UHeapRef
-    ): UBoolExpr = with(key1.ctx) {
-        key1 eq key2
-    }
-
-    override fun keyCmpSymbolic(
-        key1: UHeapRef,
-        key2: UHeapRef
-    ): UBoolExpr = error("Heap references should not be compared!")
-
-    override fun keyCmpConcrete(
-        key1: UHeapRef,
-        key2: UHeapRef
-    ): Boolean = error("Heap references should not be compared!")
-}
-
-class USymbolicIndexMapDescriptor<Value : USort>(
-    override val valueSort: Value,
-    override val defaultValue: UExpr<Value>,
-    override val info: SymbolicMapInfo? = null
-) : USymbolicMapDescriptor<USizeSort, Value, UArrayIndexRegion>() {
-    override val keySort: USizeSort = valueSort.uctx.sizeSort
-
-    override fun mkKeyRegion(key: UExpr<USizeSort>): UArrayIndexRegion =
-        indexRegion(key)
-
-    override fun mkKeyRangeRegion(key1: UExpr<USizeSort>, key2: UExpr<USizeSort>): UArrayIndexRegion =
-        indexRangeRegion(key1, key2)
-
-    override fun mkKeyFullRangeRegion(): UArrayIndexRegion = indexFullRangeRegion()
-
-    override fun keyEqSymbolic(key1: UExpr<USizeSort>, key2: UExpr<USizeSort>): UBoolExpr =
-        indexEq(key1, key2)
-
-    override fun keyCmpSymbolic(key1: UExpr<USizeSort>, key2: UExpr<USizeSort>): UBoolExpr =
-        indexLeSymbolic(key1, key2)
-
-    override fun keyCmpConcrete(key1: UExpr<USizeSort>, key2: UExpr<USizeSort>): Boolean =
-        indexLeConcrete(key1, key2)
-}
+//class USymbolicIndexMapDescriptor<Value : USort>(
+//    override val valueSort: Value,
+//    override val defaultValue: UExpr<Value>,
+//    override val info: SymbolicMapInfo? = null
+//) : USymbolicMapDescriptor<USizeSort, Value, UArrayIndexRegion>() {
+//    override val keySort: USizeSort = valueSort.uctx.sizeSort
+//
+//    override fun mkKeyRegion(key: UExpr<USizeSort>): UArrayIndexRegion =
+//        indexRegion(key)
+//
+//    override fun mkKeyRangeRegion(key1: UExpr<USizeSort>, key2: UExpr<USizeSort>): UArrayIndexRegion =
+//        indexRangeRegion(key1, key2)
+//
+//    override fun mkKeyFullRangeRegion(): UArrayIndexRegion = indexFullRangeRegion()
+//
+//    override fun keyEqSymbolic(key1: UExpr<USizeSort>, key2: UExpr<USizeSort>): UBoolExpr =
+//        indexEq(key1, key2)
+//
+//    override fun keyCmpSymbolic(key1: UExpr<USizeSort>, key2: UExpr<USizeSort>): UBoolExpr =
+//        indexLeSymbolic(key1, key2)
+//
+//    override fun keyCmpConcrete(key1: UExpr<USizeSort>, key2: UExpr<USizeSort>): Boolean =
+//        indexLeConcrete(key1, key2)
+//}

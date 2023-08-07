@@ -7,6 +7,24 @@ import org.usvm.UExpr
 import org.usvm.USort
 import java.util.Stack
 
+class StackId<Sort: USort>(override val sort: Sort): UMemoryRegionId<Sort> {
+    override fun equals(other: Any?): Boolean =
+        this === other || this.javaClass == other?.javaClass
+
+    override fun hashCode(): Int =
+        javaClass.hashCode()
+}
+
+class URegisterRef<Sort: USort>(sort: Sort, val idx: Int) : ULValue<Sort>(sort) {
+    override val memoryRegionId: UMemoryRegionId<Sort> = StackId(sort)
+
+    override fun <Field, Type, Method> read(memory: UMemoryBase<Field, Type, Method>): UExpr<Sort> =
+        memory.stack.readRegister(idx, sort)
+
+    override fun <Field, Type, Method> write(memory: UMemoryBase<Field, Type, Method>, value: UExpr<Sort>) =
+        memory.stack.writeRegister(idx, value)
+}
+
 interface URegistersStackEvaluator {
     fun <Sort : USort> eval(registerIndex: Int, sort: Sort): UExpr<Sort>
 }

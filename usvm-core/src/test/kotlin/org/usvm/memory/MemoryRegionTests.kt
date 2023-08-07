@@ -41,9 +41,6 @@ class MemoryRegionTests {
                 keyToRegion = { SetRegion.universe() },
                 keyRangeToRegion = { _, _ -> shouldNotBeCalled() },
                 fullRangeRegion = { SetRegion.universe() },
-                symbolicEq = { _, _ -> shouldNotBeCalled() },
-                concreteCmp = { _, _ -> shouldNotBeCalled() },
-                symbolicCmp = { _, _ -> shouldNotBeCalled() }
             ).write(address, 1.toBv(), mkTrue())
                 .write(address, 2.toBv(), mkTrue())
                 .write(address, 3.toBv(), mkTrue())
@@ -67,9 +64,6 @@ class MemoryRegionTests {
                 keyToRegion = { SetRegion.universe() },
                 keyRangeToRegion = { _, _ -> shouldNotBeCalled() },
                 fullRangeRegion = { SetRegion.universe() },
-                symbolicEq = { _, _ -> shouldNotBeCalled() },
-                concreteCmp = { _, _ -> shouldNotBeCalled() },
-                symbolicCmp = { _, _ -> shouldNotBeCalled() }
             ).write(address, 1.toBv(), guard)
                 .write(address, 2.toBv(), anotherGuard)
 

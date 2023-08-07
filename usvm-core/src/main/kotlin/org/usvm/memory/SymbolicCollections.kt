@@ -6,10 +6,7 @@ import kotlinx.collections.immutable.toPersistentMap
 import org.usvm.*
 import org.usvm.util.Region
 import org.usvm.util.RegionTree
-import org.usvm.util.SetRegion
 import org.usvm.util.emptyRegionTree
-
-//region Implementation of symbolic collection
 
 /**
  * A uniform unbounded slice of memory. Indexed by [Key], stores symbolic values.
@@ -23,14 +20,18 @@ import org.usvm.util.emptyRegionTree
 data class USymbolicCollection<out CollectionId : USymbolicCollectionId<Key, Sort, CollectionId>, Key, Sort : USort>(
     val collectionId: CollectionId,
     val updates: USymbolicCollectionUpdates<Key, Sort>,
-) : UMemoryRegion<Key, Sort> {
+) {
+    // : UMemoryRegion<Key, Sort> {
     // to save memory usage
     val sort: Sort get() = collectionId.sort
 
     // If we replace it with get(), we have to check for nullability in read function.
     val defaultValue = collectionId.defaultValue
 
-    private fun read(key: Key, updates: USymbolicCollectionUpdates<Key, Sort>): UExpr<Sort> {
+    private fun read(
+        key: Key,
+        updates: USymbolicCollectionUpdates<Key, Sort>
+    ): UExpr<Sort> {
         val lastUpdatedElement = updates.lastUpdatedElementOrNull()
 
         if (lastUpdatedElement == null && defaultValue != null) {
@@ -54,7 +55,7 @@ data class USymbolicCollection<out CollectionId : USymbolicCollectionId<Key, Sor
         return collectionId.instantiate(localizedRegion, key)
     }
 
-    override fun read(key: Key): UExpr<Sort> {
+    fun read(key: Key): UExpr<Sort> {
         if (sort == sort.uctx.addressSort) {
             // Here we split concrete heap addresses from symbolic ones to optimize further memory operations.
             return splittingRead(key) { it is UConcreteHeapRef }
@@ -74,7 +75,10 @@ data class USymbolicCollection<out CollectionId : USymbolicCollectionId<Key, Sor
      * These two expressions are semantically equivalent, but the second one 'splits' v out of the rest
      * memory updates.
      */
-    private fun splittingRead(key: Key, predicate: (UExpr<Sort>) -> Boolean): UExpr<Sort> {
+    private fun splittingRead(
+        key: Key,
+        predicate: (UExpr<Sort>) -> Boolean
+    ): UExpr<Sort> {
         val ctx = sort.ctx
         val guardBuilder = GuardBuilder(ctx.trueExpr)
         val matchingWrites = ArrayList<GuardedExpr<UExpr<Sort>>>() // works faster than linked list
@@ -92,7 +96,11 @@ data class USymbolicCollection<out CollectionId : USymbolicCollectionId<Key, Sor
         return readingWithBubbledWrites
     }
 
-    override fun write(key: Key, value: UExpr<Sort>, guard: UBoolExpr): USymbolicCollection<CollectionId, Key, Sort> {
+    fun write(
+        key: Key,
+        value: UExpr<Sort>,
+        guard: UBoolExpr
+    ): USymbolicCollection<CollectionId, Key, Sort> {
         assert(value.sort == sort)
 
         val newUpdates = if (sort == sort.uctx.addressSort) {
@@ -103,8 +111,12 @@ data class USymbolicCollection<out CollectionId : USymbolicCollectionId<Key, Sor
             withHeapRef(
                 value.asExpr(sort.uctx.addressSort),
                 initialGuard = guard,
-                blockOnConcrete = { (ref, guard) -> newUpdates = newUpdates.write(key, ref.asExpr(sort), guard) },
-                blockOnSymbolic = { (ref, guard) -> newUpdates = newUpdates.write(key, ref.asExpr(sort), guard) }
+                blockOnConcrete = { (ref, guard) ->
+                    newUpdates = newUpdates.write(key, ref.asExpr(sort), guard)
+                },
+                blockOnSymbolic = { (ref, guard) ->
+                    newUpdates = newUpdates.write(key, ref.asExpr(sort), guard)
+                }
             )
 
             newUpdates
@@ -150,26 +162,29 @@ data class USymbolicCollection<out CollectionId : USymbolicCollectionId<Key, Sor
     /**
      * Maps the collection using [composer].
      * It is used in [UComposer] for composition operation.
+     * All updates which after mapping do not touch [targetCollectionId] will be thrown out.
      *
      * Note: after this operation a collection returned as a result might be in `broken` state:
-     * it might have both symbolic and concrete values as keys in it.
+     * it might [UIteExpr] with both symbolic and concrete references as keys in it.
      */
-    fun <Field, Type> map(
+    fun <Field, Type, MappedKey> mapTo(
         composer: UComposer<Field, Type>,
-    ): USymbolicCollection<CollectionId, Key, Sort> {
+        targetCollectionId: USymbolicCollectionId<MappedKey, Sort, *>
+    ): USymbolicCollection<USymbolicCollectionId<MappedKey, Sort, *>, MappedKey, Sort> {
         // Map the updates and the collectionId
-        val mappedCollectionId = collectionId.map(composer)
-        val mappedUpdates = updates.map(collectionId.keyMapper(composer), composer)
+        val mapper = collectionId.keyFilterMapper(composer, targetCollectionId)
+        val mappedUpdates = updates.filterMap(mapper, composer, targetCollectionId.keyInfo())
 
-        if (mappedUpdates === updates && mappedCollectionId === collectionId) {
-            return this
+        if (mappedUpdates === updates && targetCollectionId === collectionId) {
+            @Suppress("UNCHECKED_CAST")
+            return this as USymbolicCollection<USymbolicCollectionId<MappedKey, Sort, *>, MappedKey, Sort>
         }
 
-        return USymbolicCollection(mappedCollectionId, mappedUpdates)
+        return USymbolicCollection(targetCollectionId, mappedUpdates)
     }
 
     @Suppress("UNCHECKED_CAST")
-    fun <Field, Type> applyTo(heap: USymbolicHeap<Field, Type>) {
+    fun <Field, Type> applyTo(heap: UHeap<Field, Type>) {
         // Apply each update on the copy
         updates.forEach {
             when (it) {
@@ -177,13 +192,13 @@ data class USymbolicCollection<out CollectionId : USymbolicCollectionId<Key, Sor
                 is URangedUpdateNode<*, *, Key, Sort> -> {
                     it.sourceCollection.applyTo(heap)
 
-                    val (srcFromRef, srcFromIdx) = it.keyConverter.srcSymbolicArrayIndex
-                    val (dstFromRef, dstFromIdx) = it.keyConverter.dstFromSymbolicArrayIndex
-                    val dstToIdx = it.keyConverter.dstToIndex
+                    val (srcFromRef, srcFromIdx) = it.adapter.srcSymbolicArrayIndex
+                    val (dstFromRef, dstFromIdx) = it.adapter.dstFromSymbolicArrayIndex
+                    val dstToIdx = it.adapter.dstToIndex
 
                     val collectionId = it.sourceCollection.collectionId
-                    when (collectionId) {
-                        is UTypedArrayId<*, *, *, *> -> {
+//                    when (collectionId) {
+//                        is UTypedArrayId<*, *, *, *> -> {
                             val arrayType = collectionId.arrayType as Type
                             heap.memcpy(
                                 srcRef = srcFromRef,
@@ -196,75 +211,64 @@ data class USymbolicCollection<out CollectionId : USymbolicCollectionId<Key, Sor
                                 guard = it.guard
                             )
                         }
-                        is USymbolicMapId<*, *, *, *, *> -> {
-                            val descriptor = collectionId.descriptor
-                            heap.copySymbolicMapIndexRange(
-                                descriptor as USymbolicMapDescriptor<USizeSort, Sort, *>,
-                                srcFromRef,
-                                dstFromRef,
-                                srcFromIdx,
-                                dstFromIdx,
-                                dstToIdx,
-                                it.guard
-                            )
-                        }
-                    }
+
+//                        is USymbolicMapId<*, *, *, *, *> -> {
+//                            val descriptor = collectionId.descriptor
+//                            heap.copySymbolicMapIndexRange(
+//                                descriptor as USymbolicMapDescriptor<USizeSort, Sort, *>,
+//                                srcFromRef,
+//                                dstFromRef,
+//                                srcFromIdx,
+//                                dstFromIdx,
+//                                dstToIdx,
+//                                it.guard
+//                            )
+//                        }
+//                    }
                 }
-                is UMergeUpdateNode<*, *, Key, *, *, Sort> -> {
-                    applyMergeNodeToHeap(it, heap)
-                }
-            }
+
+//                is UMergeUpdateNode<*, *, Key, *, *, Sort> -> {
+//                    applyMergeNodeToHeap(it, heap)
+//                }
+//            }
         }
     }
 
-    private fun <CollectionId : USymbolicMapId<SrcKey, KeySort, Reg, Sort, CollectionId>,
-            SrcKey, KeySort : USort, Reg : Region<Reg>> applyMergeNodeToHeap(
-        mergeNode: UMergeUpdateNode<CollectionId, SrcKey, Key, KeySort, Reg, Sort>,
-        heap: USymbolicHeap<*, *>
-    ) {
-        mergeNode.sourceCollection.applyTo(heap)
-
-        val keyIncludesCheck = mergeNode.keyIncludesCheck
-        keyIncludesCheck.collection.applyTo(heap)
-        val keyContainsDescriptor = keyIncludesCheck.collection.collectionId.descriptor
-
-        val collectionId = mergeNode.sourceCollection.collectionId
-        val srcRef = mergeNode.keyConverter.srcRef
-        val dstRef = mergeNode.keyConverter.dstRef
-
-        heap.mergeSymbolicMap(
-            collectionId.descriptor,
-            keyContainsDescriptor.uncheckedCast(),
-            srcRef,
-            dstRef,
-            mergeNode.guard
-        )
-    }
+//    private fun <CollectionId : USymbolicMapId<SrcKey, KeySort, Reg, Sort, CollectionId>,
+//            SrcKey, KeySort : USort, Reg : Region<Reg>> applyMergeNodeToHeap(
+//        mergeNode: UMergeUpdateNode<CollectionId, SrcKey, Key, KeySort, Reg, Sort>,
+//        heap: UHeap<*, *>
+//    ) {
+//        mergeNode.sourceCollection.applyTo(heap)
+//
+//        val keyIncludesCheck = mergeNode.keyIncludesCheck
+//        keyIncludesCheck.collection.applyTo(heap)
+//        val keyContainsDescriptor = keyIncludesCheck.collection.collectionId.descriptor
+//
+//        val collectionId = mergeNode.sourceCollection.collectionId
+//        val srcRef = mergeNode.keyConverter.srcRef
+//        val dstRef = mergeNode.keyConverter.dstRef
+//
+//        heap.mergeSymbolicMap(
+//            collectionId.descriptor,
+//            keyContainsDescriptor.uncheckedCast(),
+//            srcRef,
+//            dstRef,
+//            mergeNode.guard
+//        )
+//    }
 
     /**
      * @return Symbolic collection which obtained from this one by overwriting the range of addresses [[fromKey] : [toKey]]
      * with values from collection [fromCollection] read from range
      * of addresses [[keyConverter].convert([fromKey]) : [keyConverter].convert([toKey])]
      */
-    fun <OtherCollectionId : UArrayId<SrcKey, Sort, OtherCollectionId>, SrcKey> copyRange(
+    fun <OtherCollectionId : USymbolicCollectionId<SrcKey, Sort, OtherCollectionId>, SrcKey> copyRange(
         fromCollection: USymbolicCollection<OtherCollectionId, SrcKey, Sort>,
-        fromKey: Key,
-        toKey: Key,
-        keyConverter: UMemoryKeyConverter<SrcKey, Key>,
+        adapter: USymbolicCollectionAdapter<SrcKey, Key>,
         guard: UBoolExpr
     ): USymbolicCollection<CollectionId, Key, Sort> {
-        val updatesCopy = updates.copyRange(fromCollection, fromKey, toKey, keyConverter, guard)
-        return this.copy(updates = updatesCopy)
-    }
-
-    fun <OtherCollectionId : USymbolicMapId<SrcKey, KeySort, Reg, Sort, OtherCollectionId>,
-            SrcKey, KeySort : USort, Reg : Region<Reg>> mergeWithCollection(
-        fromCollection: USymbolicCollection<OtherCollectionId, SrcKey, Sort>,
-        keyIncludesCheck: UMergeKeyIncludesCheck<SrcKey, KeySort, *>,
-        keyConverter: UMergeKeyConverter<SrcKey, Key>,
-        guard: UBoolExpr
-    ): USymbolicCollection<CollectionId, Key, Sort> {
-        val updatesCopy = updates.mergeWithCollection(fromCollection, keyIncludesCheck, keyConverter, guard)
+        val updatesCopy = updates.copyRange(fromCollection, adapter, guard)
         return this.copy(updates = updatesCopy)
     }
 
@@ -296,116 +300,13 @@ class GuardBuilder(nonMatchingUpdates: UBoolExpr) {
     fun guarded(expr: UBoolExpr): UBoolExpr = expr.ctx.mkAnd(nonMatchingUpdatesGuard, expr, flat = false)
 }
 
-//endregion
-
-//region Instantiations
-
-typealias USymbolicArrayIndex = Pair<UHeapRef, USizeExpr>
-typealias USymbolicMapKey<KeySort> = Pair<UHeapRef, UExpr<KeySort>>
-
-fun heapRefEq(ref1: UHeapRef, ref2: UHeapRef): UBoolExpr =
-    ref1.uctx.mkHeapRefEq(ref1, ref2)
-
-@Suppress("UNUSED_PARAMETER")
-fun heapRefCmpSymbolic(ref1: UHeapRef, ref2: UHeapRef): UBoolExpr =
-    error("Heap references should not be compared!")
-
-@Suppress("UNUSED_PARAMETER")
-fun heapRefCmpConcrete(ref1: UHeapRef, ref2: UHeapRef): Boolean =
-    error("Heap references should not be compared!")
-
-fun indexEq(idx1: USizeExpr, idx2: USizeExpr): UBoolExpr =
-    idx1.ctx.mkEq(idx1, idx2)
-
-fun indexLeSymbolic(idx1: USizeExpr, idx2: USizeExpr): UBoolExpr =
-    idx1.ctx.mkBvSignedLessOrEqualExpr(idx1, idx2)
-
-fun indexLeConcrete(idx1: USizeExpr, idx2: USizeExpr): Boolean =
-    // TODO: to optimize things up, we could pass path constraints here and lookup the numeric bounds for idx1 and idx2
-    idx1 == idx2 || (idx1 is UConcreteSize && idx2 is UConcreteSize && idx1.numberValue <= idx2.numberValue)
-
-fun refIndexEq(idx1: USymbolicArrayIndex, idx2: USymbolicArrayIndex): UBoolExpr = with(idx1.first.ctx) {
-    return@with (idx1.first eq idx2.first) and indexEq(idx1.second, idx2.second)
-}
-
-fun refIndexCmpSymbolic(idx1: USymbolicArrayIndex, idx2: USymbolicArrayIndex): UBoolExpr = with(idx1.first.ctx) {
-    return@with (idx1.first eq idx2.first) and indexLeSymbolic(idx1.second, idx2.second)
-}
-
-fun refIndexCmpConcrete(idx1: USymbolicArrayIndex, idx2: USymbolicArrayIndex): Boolean =
-    idx1.first == idx2.first && indexLeConcrete(idx1.second, idx2.second)
-
-// TODO: change it to intervals region
-typealias UArrayIndexRegion = SetRegion<UIndexType>
-
-fun indexRegion(idx: USizeExpr): UArrayIndexRegion =
-    when (idx) {
-        is UConcreteSize -> SetRegion.singleton(idx.numberValue)
-        else -> SetRegion.universe()
-    }
-
-fun indexRangeRegion(idx1: USizeExpr, idx2: USizeExpr): UArrayIndexRegion =
-    when (idx1) {
-        is UConcreteSize ->
-            when (idx2) {
-                is UConcreteSize -> SetRegion.ofSequence((idx1.numberValue..idx2.numberValue).asSequence())
-                else -> SetRegion.universe()
-            }
-
-        else -> SetRegion.universe()
-    }
-
-fun indexFullRangeRegion(): UArrayIndexRegion = SetRegion.universe()
-
-fun refIndexRegion(idx: USymbolicArrayIndex): UArrayIndexRegion = indexRegion(idx.second)
-fun refIndexRangeRegion(
-    idx1: USymbolicArrayIndex,
-    idx2: USymbolicArrayIndex,
-): UArrayIndexRegion = indexRangeRegion(idx1.second, idx2.second)
-
-fun <KeySort : USort, Reg : Region<Reg>> symbolicMapRefKeyRegion(
-    descriptor: USymbolicMapDescriptor<KeySort, *, Reg>,
-    key: USymbolicMapKey<KeySort>
-): Reg = descriptor.mkKeyRegion(key.second)
-
-fun <KeySort : USort, Reg : Region<Reg>> symbolicMapRefKeyRangeRegion(
-    descriptor: USymbolicMapDescriptor<KeySort, *, Reg>,
-    key1: USymbolicMapKey<KeySort>,
-    key2: USymbolicMapKey<KeySort>
-): Reg = descriptor.mkKeyRangeRegion(key1.second, key2.second)
-
-fun <KeySort : USort, Reg : Region<Reg>> symbolicMapRefKeyEq(
-    descriptor: USymbolicMapDescriptor<KeySort, *, Reg>,
-    key1: USymbolicMapKey<KeySort>,
-    key2: USymbolicMapKey<KeySort>
-): UBoolExpr = with(key1.first.ctx) {
-    (key1.first eq key2.first) and descriptor.keyEqSymbolic(key1.second, key2.second)
-}
-
-fun <KeySort : USort, Reg : Region<Reg>> symbolicMapRefKeyCmpSymbolic(
-    keyDescriptor: USymbolicMapDescriptor<KeySort, *, Reg>,
-    key1: USymbolicMapKey<KeySort>,
-    key2: USymbolicMapKey<KeySort>
-): UBoolExpr = with(key1.first.ctx) {
-    (key1.first eq key2.first) and keyDescriptor.keyCmpSymbolic(key1.second, key2.second)
-}
-
-fun <KeySort : USort, Reg : Region<Reg>> symbolicMapRefKeyCmpConcrete(
-    keyDescriptor: USymbolicMapDescriptor<KeySort, *, Reg>,
-    key1: USymbolicMapKey<KeySort>,
-    key2: USymbolicMapKey<KeySort>
-): Boolean = (key1.first == key2.first) && keyDescriptor.keyCmpConcrete(key1.second, key2.second)
-
-
 typealias UInputFieldCollection<Field, Sort> = USymbolicCollection<UInputFieldId<Field, Sort>, UHeapRef, Sort>
 typealias UAllocatedArrayCollection<ArrayType, Sort> = USymbolicCollection<UAllocatedArrayId<ArrayType, Sort>, USizeExpr, Sort>
 typealias UInputArrayCollection<ArrayType, Sort> = USymbolicCollection<UInputArrayId<ArrayType, Sort>, USymbolicArrayIndex, Sort>
 typealias UInputArrayLengthCollection<ArrayType> = USymbolicCollection<UInputArrayLengthId<ArrayType>, UHeapRef, USizeSort>
-typealias UAllocatedSymbolicMap<KeySort, Reg, Sort> = USymbolicCollection<UAllocatedSymbolicMapId<KeySort, Reg, Sort>, UExpr<KeySort>, Sort>
+typealias UAllocatedSymbolicMap<KeySort, Sort> = USymbolicCollection<UAllocatedSymbolicMapId<KeySort, Sort>, UExpr<KeySort>, Sort>
 typealias UInputSymbolicMap<KeySort, Reg, Sort> = USymbolicCollection<UInputSymbolicMapId<KeySort, Reg, Sort>, USymbolicMapKey<KeySort>, Sort>
 typealias UInputSymbolicMapLengthCollection = USymbolicCollection<UInputSymbolicMapLengthId, UHeapRef, USizeSort>
-
-typealias KeyMapper<Key> = (Key) -> Key
 
 val <Field, Sort : USort> UInputFieldCollection<Field, Sort>.field
     get() = collectionId.field
@@ -427,7 +328,7 @@ fun <Field, Sort : USort> emptyInputFieldCollection(
 ): UInputFieldCollection<Field, Sort> =
     USymbolicCollection(
         UInputFieldId(field, sort, contextHeap = null),
-        UFlatUpdates(::heapRefEq, ::heapRefCmpConcrete, ::heapRefCmpSymbolic)
+        UFlatUpdates()
     )
 
 fun <ArrayType, Sort : USort> emptyAllocatedArrayCollection(
@@ -437,7 +338,7 @@ fun <ArrayType, Sort : USort> emptyAllocatedArrayCollection(
 ): UAllocatedArrayCollection<ArrayType, Sort> {
     val updates = UTreeUpdates<USizeExpr, UArrayIndexRegion, Sort>(
         updates = emptyRegionTree(),
-        ::indexRegion, ::indexRangeRegion, ::indexFullRangeRegion, ::indexEq, ::indexLeConcrete, ::indexLeSymbolic
+        ::indexRegion, ::indexRangeRegion, ::indexFullRangeRegion
     )
     return createAllocatedArrayCollection(arrayType, sort, address, updates)
 }
@@ -453,13 +354,13 @@ fun <ArrayType, Sort : USort> initializedAllocatedArrayCollection(
 
     val entries = content.entries.associate { (key, value) ->
         val region = indexRegion(key)
-        val update = UPinpointUpdateNode(key, value, ::indexEq, guard)
+        val update = UPinpointUpdateNode(key, value, guard)
         region to (update to emptyRegionTree)
     }
 
     val updates = UTreeUpdates(
         updates = RegionTree(entries.toPersistentMap()),
-        ::indexRegion, ::indexRangeRegion, ::indexFullRangeRegion, ::indexEq, ::indexLeConcrete, ::indexLeSymbolic
+        ::indexRegion, ::indexRangeRegion, ::indexFullRangeRegion
     )
 
     return createAllocatedArrayCollection(arrayType, sort, address, updates)
@@ -482,7 +383,9 @@ fun <ArrayType, Sort : USort> emptyInputArrayCollection(
 ): UInputArrayCollection<ArrayType, Sort> {
     val updates = UTreeUpdates<USymbolicArrayIndex, UArrayIndexRegion, Sort>(
         updates = emptyRegionTree(),
-        ::refIndexRegion, ::refIndexRangeRegion, ::indexFullRangeRegion, ::refIndexEq, ::refIndexCmpConcrete, ::refIndexCmpSymbolic
+        ::refIndexRegion,
+        ::refIndexRangeRegion,
+        ::indexFullRangeRegion,
     )
     return USymbolicCollection(UInputArrayId(arrayType, sort, contextHeap = null), updates)
 }
@@ -493,7 +396,7 @@ fun <ArrayType> emptyInputArrayLengthCollection(
 ): UInputArrayLengthCollection<ArrayType> =
     USymbolicCollection(
         UInputArrayLengthId(arrayType, sizeSort, contextHeap = null),
-        UFlatUpdates(::heapRefEq, ::heapRefCmpConcrete, ::heapRefCmpSymbolic),
+        UFlatUpdates(),
     )
 
 fun <KeySort : USort, Reg : Region<Reg>, Sort : USort> emptyAllocatedSymbolicMap(
@@ -505,9 +408,6 @@ fun <KeySort : USort, Reg : Region<Reg>, Sort : USort> emptyAllocatedSymbolicMap
         keyToRegion = { descriptor.mkKeyRegion(it) },
         keyRangeToRegion = { k1, k2 -> descriptor.mkKeyRangeRegion(k1, k2) },
         fullRangeRegion = { descriptor.mkKeyFullRangeRegion() },
-        symbolicEq = { k1, k2 -> descriptor.keyEqSymbolic(k1, k2) },
-        concreteCmp = { k1, k2 -> descriptor.keyCmpConcrete(k1, k2) },
-        symbolicCmp = { k1, k2 -> descriptor.keyCmpSymbolic(k1, k2) },
     )
     val collectionId = UAllocatedSymbolicMapId(descriptor, descriptor.defaultValue, address, contextHeap = null)
     return USymbolicCollection(collectionId, updates)
@@ -518,12 +418,9 @@ fun <KeySort : USort, Reg : Region<Reg>, Sort : USort> emptyInputSymbolicMapColl
 ): UInputSymbolicMap<KeySort, Reg, Sort> {
     val updates = UTreeUpdates<USymbolicMapKey<KeySort>, Reg, Sort>(
         updates = emptyRegionTree(),
-        keyToRegion = { symbolicMapRefKeyRegion(descriptor, it) },
-        keyRangeToRegion = { k1, k2 -> symbolicMapRefKeyRangeRegion(descriptor, k1, k2) },
-        fullRangeRegion = { descriptor.mkKeyFullRangeRegion() },
-        symbolicEq = { k1, k2 -> symbolicMapRefKeyEq(descriptor, k1, k2) },
-        concreteCmp = { k1, k2 -> symbolicMapRefKeyCmpConcrete(descriptor, k1, k2) },
-        symbolicCmp = { k1, k2 -> symbolicMapRefKeyCmpSymbolic(descriptor, k1, k2) },
+//        keyToRegion = { symbolicMapRefKeyRegion(descriptor, it) },
+//        keyRangeToRegion = { k1, k2 -> symbolicMapRefKeyRangeRegion(descriptor, k1, k2) },
+//        fullRangeRegion = { descriptor.mkKeyFullRangeRegion() },
     )
     val collectionId = UInputSymbolicMapId(descriptor, contextHeap = null)
     return USymbolicCollection(collectionId, updates)
@@ -535,7 +432,33 @@ fun emptyInputSymbolicMapLengthCollection(
 ): UInputSymbolicMapLengthCollection =
     USymbolicCollection(
         UInputSymbolicMapLengthId(descriptor, sizeSort, contextHeap = null),
-        UFlatUpdates(::heapRefEq, ::heapRefCmpConcrete, ::heapRefCmpSymbolic),
+        UFlatUpdates(),
     )
 
-//endregion
+
+class UFieldRef<Field, Sort : USort>(fieldSort: Sort, val ref: UHeapRef, val field: Field) :
+    ULValue<Sort>(fieldSort) {
+    override fun <Field, Type, Method> read(memory: UMemoryBase<Field, Type, Method>): UExpr<Sort> {
+        TODO("Not yet implemented")
+    }
+
+    override fun <Field, Type, Method> write(memory: UMemoryBase<Field, Type, Method>, value: UExpr<Sort>) {
+        TODO("Not yet implemented")
+    }
+}
+
+class UArrayIndexRef<ArrayType, Sort : USort>(
+    cellSort: Sort,
+    val ref: UHeapRef,
+    val index: USizeExpr,
+    val arrayType: ArrayType,
+) : ULValue<Sort>(cellSort) {
+
+    override fun <Field, Type, Method> read(memory: UMemoryBase<Field, Type, Method>): UExpr<Sort> {
+        TODO("Not yet implemented")
+    }
+
+    override fun <Field, Type, Method> write(memory: UMemoryBase<Field, Type, Method>, value: UExpr<Sort>) {
+        TODO("Not yet implemented")
+    }
+}
