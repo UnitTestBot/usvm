@@ -14,7 +14,7 @@ annotation class Options(
     val combinationStrategy: PathSelectorCombinationStrategy = PathSelectorCombinationStrategy.INTERLEAVED,
     val stopOnCoverage: Int = 100,
     val coverageZone: CoverageZone = CoverageZone.METHOD,
-    val solverType: SolverType = SolverType.Z3
+    val solverType: SolverType = SolverType.YICES
 )
 
 @ParameterizedTest
