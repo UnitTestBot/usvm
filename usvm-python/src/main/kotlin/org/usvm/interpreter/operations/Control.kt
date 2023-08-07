@@ -30,14 +30,21 @@ fun myFork(ctx: ConcolicRunContext, cond: UExpr<KBoolSort>) {
         }
 }
 
+fun myAssertOnState(state: PythonExecutionState, cond: UExpr<KBoolSort>): PythonExecutionState? {
+    val forkResult = forkMulti(state, listOf(cond)).single()
+    if (forkResult != null)
+        require(forkResult == state)
+
+    return forkResult
+}
+
 fun myAssert(ctx: ConcolicRunContext, cond: UExpr<KBoolSort>) {
     if (ctx.curState == null)
         return
     val oldModel = ctx.curState!!.pyModel
-    val forkResult = forkMulti(ctx.curState!!, listOf(cond)).single()
+    val forkResult = myAssertOnState(ctx.curState!!, cond)
     if (forkResult == null)
         ctx.curState!!.meta.modelDied = true
-
     if (forkResult?.pyModel != oldModel)
         throw BadModelException
 }
@@ -49,7 +56,7 @@ fun addDelayedFork(context: ConcolicRunContext, on: UninterpretedSymbolicPythonO
         DelayedFork(
             clonedState,
             on,
-            on.getTypeStreamOfModel(context),
+            clonedState.pyModel.uModel.typeStreamOf(clonedState.pyModel.eval(on.address)),
             context.curState!!.delayedForks
         )
     )

@@ -42,6 +42,11 @@ object HasNbAdd: TypeProtocol() {
         ConcretePythonInterpreter.typeHasNbAdd(type.asObject)
 }
 
+object HasNbMultiply: TypeProtocol() {
+    override fun acceptsConcrete(type: ConcretePythonType): Boolean =
+        ConcretePythonInterpreter.typeHasNbMultiply(type.asObject)
+}
+
 object HasSqLength: TypeProtocol() {
     override fun acceptsConcrete(type: ConcretePythonType): Boolean =
         ConcretePythonInterpreter.typeHasSqLength(type.asObject)

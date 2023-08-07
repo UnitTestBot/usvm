@@ -136,4 +136,38 @@ class SimpleTypeInferenceTest: PythonTestRunner("/samples/SimpleTypeInference.py
             )
         )
     }
+
+    @Test
+    fun testMultiplyAndCompare() {
+        val oldOptions = options
+        options = UMachineOptions(stepLimit = 40U)
+        check2WithConcreteRun(
+            constructFunction("multiply_and_compare", List(2) { PythonAnyType }),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, _, res -> res.selfTypeName == "AssertionError" },
+                { _, _, res -> res.selfTypeName == "IndexError" },
+                { _, _, res -> res.repr == "None" }
+            )
+        )
+        options = oldOptions
+    }
+
+    @Test
+    fun testSubscriptAndIsinstance() {
+        check1WithConcreteRun(
+            constructFunction("subscript_and_isinstance", List(1) { PythonAnyType }),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, res -> res.selfTypeName == "IndexError" },
+                { _, res -> res.repr == "1" },
+                { _, res -> res.repr == "2" },
+                { _, res -> res.repr == "3" }
+            )
+        )
+    }
 }
