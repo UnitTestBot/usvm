@@ -11,7 +11,6 @@ group = "org.usvm"
 repositories {
     mavenCentral()
     maven("https://jitpack.io")
-    maven("https://s01.oss.sonatype.org/content/repositories/snapshots")
 }
 
 dependencies {
