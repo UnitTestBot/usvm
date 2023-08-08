@@ -18,6 +18,34 @@ import kotlin.math.log
 import kotlin.math.pow
 import kotlin.math.sqrt
 
+private const val LOG_BASE = 1.42
+
+private fun Collection<Float>.average(): Float {
+    return this.sumOf { it.toDouble() }.toFloat() / this.size
+}
+
+private fun Collection<Float>.std(): Float {
+    if (this.size <= 1) {
+        return 0.0f
+    }
+    val average = this.average().toDouble()
+    return sqrt(this.map { it.toDouble() }.fold(0.0) { a, b ->
+        a + (b - average).pow(2)
+    } / (this.size - 1)).toFloat()
+}
+
+private fun Number.log(): Float {
+    return log(this.toDouble() + 1, LOG_BASE).toFloat()
+}
+
+private fun UInt.log(): Float {
+    return this.toDouble().log()
+}
+
+private fun <T> List<T>.getLast(count: Int): List<T> {
+    return this.subList(this.size - count, this.size)
+}
+
 internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Statement>, Statement, Method>(
     private val pathsTreeStatistics: PathsTreeStatistics<Method, Statement, State>,
     private val coverageStatistics: CoverageStatistics<Method, Statement, State>,
@@ -44,7 +72,6 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
     private val blockGraphsPath = Path(MainConfig.gameEnvPath, "block_graphs").toString()
 
     private val penalty = 0.0f
-    private val logBase = 1.42
     private var finishedStatesCount = 0u
     private var allStatesCount = 0u
     private val weighter = ShortestDistanceToTargetsStateWeighter(
@@ -63,6 +90,7 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
     private val subpathCounts = mutableMapOf<List<Statement>, UInt>().withDefault { 0u }
 
     private val blockGraph: BlockGraph<Method, Statement>
+    private val graphFeaturesList = mutableListOf<List<BlockFeatures>>()
 
     private class BlockGraph<Method, Statement>(
         private val applicationGraph: ApplicationGraph<Method, Statement>,
@@ -72,6 +100,7 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
         private val successorsMap = mutableMapOf<Block<Statement>, List<Statement>>().withDefault { listOf() }
         private val coveredStatements = mutableMapOf<Statement, Block<Statement>>()
         var currentBlockId = 0
+        val blockList = mutableListOf<Block<Statement>>()
 
         init {
             root = buildBlocks(initialStatement)
@@ -92,7 +121,7 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
         private fun buildBlocks(statement: Statement): Block<Statement> {
             var currentStatement = statement
             val statementQueue = ArrayDeque<Statement>()
-            val rootBlock = Block<Statement>(this)
+            val rootBlock = Block(this)
             var currentBlock = rootBlock
             while (true) {
                 if (coveredStatements.contains(currentStatement)) {
@@ -141,8 +170,28 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
             return successorsMap.getValue(block).map { coveredStatements[it]!! }
         }
 
+        fun getEdges(): Pair<List<Int>, List<Int>> {
+            return blockList.flatMap { block ->
+                successors(block).map { Pair(block.id, it.id) }
+            }.unzip()
+        }
+
         fun getBlock(statement: Statement): Block<Statement>? {
             return coveredStatements[statement]
+        }
+
+        fun getBlockFeatures(block: Block<Statement>): BlockFeatures {
+            val length = block.path.size
+            val successorsCount = successors(block).size
+
+            return BlockFeatures(
+                length.log(),
+                successorsCount.log()
+            )
+        }
+
+        fun getGraphFeatures(): List<BlockFeatures> {
+            return blockList.map { getBlockFeatures(it) }
         }
 
         fun saveGraph(filePath: Path) {
@@ -173,15 +222,21 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
         }
     }
 
+    @Serializable
+    private data class BlockFeatures(
+        val logLength: Float = 0.0f,
+        val logSuccessorsCount: Float = 0.0f
+    )
+
     private data class Block<Statement>(
-        var path: MutableList<Statement>,
-        val id: Int = 0
+        val id: Int = 0,
+        var path: MutableList<Statement> = mutableListOf()
     ) {
-        constructor(blockGraph: BlockGraph<*, *>) : this(
-            path = mutableListOf(),
+        constructor(blockGraph: BlockGraph<*, Statement>) : this(
             id = blockGraph.currentBlockId
         ) {
             blockGraph.currentBlockId += 1
+            blockGraph.blockList.add(this)
         }
 
         private fun escape(input: String): String {
@@ -282,6 +337,7 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
         method = applicationGraph.methodOf(allStatements.first())
         filename = method.toString()
         blockGraph = BlockGraph(applicationGraph, applicationGraph.entryPoints(method).first())
+        graphFeaturesList.add(blockGraph.getGraphFeatures())
         blockGraph.saveGraph(Path(blockGraphsPath, filename, "graph.dot"))
         val (tmpDistancesToExit, tmpForkCountsToExit) = getDistancesToExit()
         distancesToExit = tmpDistancesToExit
@@ -342,32 +398,6 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
             allStatements.contains(state.currentStatement)) 1.0f else -penalty
     }
 
-    private fun Collection<Float>.average(): Float {
-        return this.sumOf { it.toDouble() }.toFloat() / this.size
-    }
-
-    private fun Collection<Float>.std(): Float {
-        if (this.size <= 1) {
-            return 0.0f
-        }
-        val average = this.average().toDouble()
-        return sqrt(this.map { it.toDouble() }.fold(0.0) { a, b ->
-            a + (b - average).pow(2)
-        } / (this.size - 1)).toFloat()
-    }
-
-    private fun Number.log(): Float {
-        return log(this.toDouble() + 1, logBase).toFloat()
-    }
-
-    private fun UInt.log(): Float {
-        return this.toDouble().log()
-    }
-
-    private fun <T> List<T>.getLast(count: Int): List<T> {
-        return this.subList(this.size - count, this.size)
-    }
-
     private fun getStateFeatures(state: State): StateFeatures {
         val currentStatement = state.currentStatement!!
         val currentBlock = blockGraph.getBlock(currentStatement)
@@ -383,7 +413,7 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
         val lastNewDistance = if (stateLastNewStatement.contains(state)) {
             state.path.size - stateLastNewStatement.getValue(state)
         } else {
-            1 / logBase - 1 // Equal to -1 after log
+            1 / LOG_BASE - 1 // Equal to -1 after log
         }
         val pathCoverage = statePathCoverage.getValue(state)
         val distanceToBlockEnd = (currentBlock?.path?.size ?: 1) - 1 -
@@ -430,7 +460,7 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
     protected fun getGlobalStateFeatures(stateFeatureQueue: List<StateFeatures>): GlobalStateFeatures {
         val uncoveredStatements = coverageStatistics.getUncoveredStatements().map { it.second }.toSet()
 
-        val logFinishedStatesCount = log(finishedStatesCount.toDouble() + 1, logBase)
+        val logFinishedStatesCount = finishedStatesCount.log()
         val finishedStatesFraction = finishedStatesCount.toFloat() / allStatesCount.toFloat()
         val totalCoverage = coverageStatistics.getTotalCoverage() / 100
         val visitedStatesFraction = visitedStatements.intersect(uncoveredStatements).size.toFloat() / allStatements.size
@@ -448,7 +478,7 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
             stateFeatureQueue.map { it.logSubpathCount2 }.average(),
             stateFeatureQueue.map { it.logSubpathCount4 }.average(),
             stateFeatureQueue.map { it.logSubpathCount8 }.average(),
-            logFinishedStatesCount.toFloat(),
+            logFinishedStatesCount,
             finishedStatesFraction,
             visitedStatesFraction,
             totalCoverage,
@@ -502,6 +532,28 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
                 }
             }
             put("statementsCount", allStatements.size)
+            putJsonArray("graphFeatures") {
+                graphFeaturesList.forEach {  graphFeatures ->
+                    addJsonArray {
+                        graphFeatures.forEach {nodeFeatures ->
+                            addJsonArray {
+                                jsonFormat.encodeToJsonElement(nodeFeatures).jsonObject.forEach { _, u ->
+                                    add(u)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            putJsonArray("graphEdges") {
+                blockGraph.getEdges().toList().forEach { nodeList ->
+                    addJsonArray {
+                        nodeList.forEach {
+                            add(it)
+                        }
+                    }
+                }
+            }
         }
         Path(filepath, "$filename.json").toFile()
             .writeText(jsonFormat.encodeToString(jsonData))

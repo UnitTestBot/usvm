@@ -12,8 +12,6 @@ import kotlin.reflect.KFunction
 import kotlin.reflect.jvm.kotlinFunction
 import kotlin.system.measureTimeMillis
 
-val jsonsDirname = Path(MainConfig.dataPath, "jsons").toString()
-
 fun recursiveLoad(currentDir: File, classes: MutableList<Class<*>>, classLoader: ClassLoader, path: String) {
     currentDir.listFiles()?.forEach { file ->
         if (file.isDirectory) {
@@ -88,7 +86,7 @@ fun aggregate() {
     val resultFilename = "current_dataset.json"
     val jsons = mutableListOf<JsonElement>()
 
-    File(jsonsDirname).listFiles()?.forEach { file ->
+    Path(resultDirname, "jsons").toFile().listFiles()?.forEach { file ->
         if (!file.isFile || file.extension != "json") {
             return@forEach
         }
@@ -103,17 +101,20 @@ fun aggregate() {
     jsons.sortBy { it.jsonObject["methodName"].toString() }
 
     if (jsons.isEmpty()) {
+        println("NO JSONS FOUND")
         return
     }
     val bigJson = buildJsonObject {
-        put("scheme", jsons.first().jsonObject["json"]!!.jsonObject["scheme"]!!)
+        put("scheme", jsons.first().jsonObject.getValue("json").jsonObject.getValue("scheme"))
         putJsonArray("paths") {
             jsons.forEach {
                 addJsonArray {
-                    add(it.jsonObject["methodHash"]!!)
-                    add(it.jsonObject["json"]!!.jsonObject["path"]!!)
-                    add(it.jsonObject["methodName"]!!)
-                    add(it.jsonObject["json"]!!.jsonObject["statementsCount"]!!)
+                    add(it.jsonObject.getValue("methodHash"))
+                    add(it.jsonObject.getValue("json").jsonObject.getValue("path"))
+                    add(it.jsonObject.getValue("methodName"))
+                    add(it.jsonObject.getValue("json").jsonObject.getValue("statementsCount"))
+                    add(it.jsonObject.getValue("json").jsonObject.getValue("graphFeatures"))
+                    add(it.jsonObject.getValue("json").jsonObject.getValue("graphEdges"))
                 }
             }
         }
@@ -122,6 +123,9 @@ fun aggregate() {
     val resultFile = Path(resultDirname, resultFilename).toFile()
     resultFile.parentFile.mkdirs()
     Json.encodeToStream(bigJson, resultFile.outputStream())
+    resultFile.appendText(" ")
+
+    println("\nAGGREGATION FINISHED IN DIRECTORY $resultDirname\n")
 }
 
 fun main(args: Array<String>) {
@@ -161,10 +165,10 @@ fun main(args: Array<String>) {
         try {
             calculate()
         } catch (e: Throwable) {
-            File(jsonsDirname).listFiles()?.forEach { file ->
+            println(e)
+            Path(MainConfig.dataPath, "jsons").toFile().listFiles()?.forEach { file ->
                 file.delete()
             }
-            println(e)
         }
     }
 
@@ -172,10 +176,10 @@ fun main(args: Array<String>) {
         try {
             aggregate()
         } catch (e: Throwable) {
-            File(jsonsDirname).listFiles()?.forEach { file ->
+            println(e)
+            Path(MainConfig.dataPath, "jsons").toFile().listFiles()?.forEach { file ->
                 file.delete()
             }
-            println(e)
         }
     }
 }
