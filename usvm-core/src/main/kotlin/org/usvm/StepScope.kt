@@ -23,8 +23,8 @@ class StepScope<T : UState<Type, Field, *, *>, Type, Field>(
 ) {
     private val forkedStates = mutableListOf<T>()
 
-    private val alive: Boolean get() = stepScopeState != DEAD
-    private val canProcessFurtherOnCurrentStep: Boolean get() = stepScopeState == CAN_BE_PROCESSED
+    private inline val alive: Boolean get() = stepScopeState != DEAD
+    private inline val canProcessFurtherOnCurrentStep: Boolean get() = stepScopeState == CAN_BE_PROCESSED
 
     /**
      * Determines whether we interact this scope on the current step.
@@ -42,24 +42,20 @@ class StepScope<T : UState<Type, Field, *, *>, Type, Field>(
      *
      * @return `null` if the underlying state is `null`.
      */
-    fun doWithState(block: T.() -> Unit): Unit? =
-        if (canProcessFurtherOnCurrentStep) {
-            originalState.block()
-        } else {
-            null
-        }
+    fun doWithState(block: T.() -> Unit) {
+        check(canProcessFurtherOnCurrentStep) { "Caller should check before processing the current hop further" }
+        return originalState.block()
+    }
 
     /**
      * Executes [block] on a state.
      *
      * @return `null` if the underlying state is `null`, otherwise returns result of calling [block].
      */
-    fun <R> calcOnState(block: T.() -> R): R? =
-        if (canProcessFurtherOnCurrentStep) {
-            originalState.block()
-        } else {
-            null
-        }
+    fun <R> calcOnState(block: T.() -> R): R {
+        check(canProcessFurtherOnCurrentStep) { "Caller should check before processing the current hop further" }
+        return originalState.block()
+    }
 
     /**
      * Forks on a [condition], performing [blockOnTrueState] on a state satisfying [condition] and
@@ -138,7 +134,7 @@ class StepScope<T : UState<Type, Field, *, *>, Type, Field>(
     ): Unit? {
         check(canProcessFurtherOnCurrentStep)
 
-        val (posState, _) = fork(originalState, constraint)
+        val (posState) = forkMulti(originalState, listOf(constraint))
 
         posState?.block()
 

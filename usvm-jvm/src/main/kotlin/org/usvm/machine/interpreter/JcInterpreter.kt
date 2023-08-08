@@ -1,4 +1,4 @@
-package org.usvm.machine
+package org.usvm.machine.interpreter
 
 import io.ksmt.utils.asExpr
 import mu.KLogging
@@ -29,6 +29,8 @@ import org.usvm.UBoolExpr
 import org.usvm.UHeapRef
 import org.usvm.UInterpreter
 import org.usvm.URegisterLValue
+import org.usvm.machine.JcApplicationGraph
+import org.usvm.machine.JcContext
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.addEntryMethodCall
@@ -149,14 +151,14 @@ class JcInterpreter(
                 typeConstraintsNegations += currentTypeConstraints.map { ctx.mkNot(it) }
 
                 result
-            } ?: return@forEach
+            }
 
             catchForks += typeConstraint to blockToFork(catchInst)
         }
 
         val typeConditionToMiss = ctx.mkAnd(typeConstraintsNegations)
         val functionBlockOnMiss = block@{ _: JcState ->
-            scope.calcOnState { throwExceptionAndDropStackFrame() } ?: return@block
+            scope.calcOnState { throwExceptionAndDropStackFrame() }
         }
 
         val catchSectionMiss = typeConditionToMiss to functionBlockOnMiss
@@ -262,11 +264,15 @@ class JcInterpreter(
         }
     }
 
+    private val invokeResolver = JcVirtualInvokeResolver(ctx, applicationGraph, JcFixedInheritorsNumberTypeSelector())
+
     private fun exprResolverWithScope(scope: JcStepScope) =
         JcExprResolver(
-            ctx, scope, applicationGraph,
+            ctx,
+            scope,
             ::mapLocalToIdxMapper,
-            ::classInstanceAllocator
+            ::classInstanceAllocator,
+            invokeResolver
         )
 
     private val localVarToIdx = mutableMapOf<JcMethod, MutableMap<String, Int>>() // (method, localName) -> idx

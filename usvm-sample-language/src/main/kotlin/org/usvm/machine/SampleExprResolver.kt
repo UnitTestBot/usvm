@@ -84,14 +84,14 @@ class SampleExprResolver(
     fun resolveStruct(expr: StructExpr): UHeapRef? = with(ctx) {
         when (expr) {
             is StructCreation -> {
-                val ref = scope.calcOnState { memory.alloc(expr.type) } ?: return null
+                val ref = scope.calcOnState { memory.alloc(expr.type) }
 
                 for ((field, fieldExpr) in expr.fields) {
                     val sort = typeToSort(field.type)
                     val fieldRef = UFieldLValue(sort, ref, field)
                     val fieldUExpr = resolveExpr(fieldExpr) ?: return null
 
-                    scope.doWithState { memory.write(fieldRef, fieldUExpr) } ?: return null
+                    scope.doWithState { memory.write(fieldRef, fieldUExpr) }
                 }
 
                 ref
@@ -110,7 +110,7 @@ class SampleExprResolver(
                 val size = resolveInt(expr.size) ?: return null
                 checkArrayLength(size, expr.values.size) ?: return null
 
-                val ref = scope.calcOnState { memory.malloc(expr.type, size) } ?: return null
+                val ref = scope.calcOnState { memory.malloc(expr.type, size) }
 
                 val cellSort = typeToSort(expr.type.elementType)
 
@@ -118,7 +118,7 @@ class SampleExprResolver(
                 values.forEachIndexed { index, kExpr ->
                     val lvalue = UArrayIndexLValue(cellSort, ref, mkBv(index), expr.type)
 
-                    scope.doWithState { memory.write(lvalue, kExpr) } ?: return null
+                    scope.doWithState { memory.write(lvalue, kExpr) }
                 }
 
                 // TODO: memset is not implemented
@@ -140,7 +140,7 @@ class SampleExprResolver(
                 val ref = resolveArray(expr.array) ?: return null
                 checkNullPointer(ref) ?: return null
                 val lengthRef = UArrayLengthLValue(ref, expr.array.type)
-                val length = scope.calcOnState { memory.read(lengthRef).asExpr(sizeSort) } ?: return null
+                val length = scope.calcOnState { memory.read(lengthRef).asExpr(sizeSort) }
                 checkHardMaxArrayLength(length) ?: return null
                 scope.assert(mkBvSignedLessOrEqualExpr(mkBv(0), length)) ?: return null
                 length
@@ -300,7 +300,7 @@ class SampleExprResolver(
 
         val idx = resolveInt(index) ?: return null
         val lengthRef = UArrayLengthLValue(arrayRef, array.type)
-        val length = scope.calcOnState { memory.read(lengthRef).asExpr(ctx.sizeSort) } ?: return null
+        val length = scope.calcOnState { memory.read(lengthRef).asExpr(ctx.sizeSort) }
 
         checkHardMaxArrayLength(length) ?: return null
 
