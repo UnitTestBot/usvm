@@ -44,7 +44,7 @@ Regenerate `org_usvm_interpreter_CPythonAdapter.h`:
 
 ```
 cd src/main/java
-javah org.usvm.interpreter.CPythonAdapter
+javah org.usvm.machine.CPythonAdapter
 mv org_usvm_interpreter_CPythonAdapter.h ../../../cpythonadapter/src/main/c/include
 ```
 

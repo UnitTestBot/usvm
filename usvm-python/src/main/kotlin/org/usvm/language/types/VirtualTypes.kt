@@ -1,6 +1,6 @@
 package org.usvm.language.types
 
-import org.usvm.interpreter.ConcretePythonInterpreter
+import org.usvm.machine.interpreters.ConcretePythonInterpreter
 
 object PythonAnyType: VirtualPythonType() {
     override fun accepts(type: PythonType): Boolean = true
