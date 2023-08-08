@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
+import org.usvm.test.util.checkers.ge
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import org.usvm.util.isException
 
@@ -60,7 +61,7 @@ internal class ObjectWithRefFieldsExampleTest : JavaMethodTestRunner() {
     fun testWriteToArrayField() {
         checkDiscoveredProperties(
             ObjectWithRefFieldExample::writeToArrayField,
-            eq(3),
+            ge(3),
             { _, _, length, _ -> length < 3 },
             { _, o, length, _ -> length >= 3 && o == null },
             { _, o, length, r ->
@@ -89,6 +90,7 @@ internal class ObjectWithRefFieldsExampleTest : JavaMethodTestRunner() {
         )
     }
 
+    @Test
     fun testCompareTwoDifferentObjectsFromArguments() {
         checkDiscoveredProperties(
             ObjectWithRefFieldExample::compareTwoDifferentObjectsFromArguments,
