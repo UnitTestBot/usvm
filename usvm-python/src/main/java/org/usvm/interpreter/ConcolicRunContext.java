@@ -2,8 +2,12 @@ package org.usvm.interpreter;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.usvm.interpreter.operations.tracing.PathDiversionException;
-import org.usvm.interpreter.symbolicobjects.ConverterToPythonObject;
+import org.usvm.machine.MockHeader;
+import org.usvm.machine.PyModelHolder;
+import org.usvm.machine.PythonExecutionState;
+import org.usvm.machine.UPythonContext;
+import org.usvm.machine.interpreters.operations.tracing.PathDiversionException;
+import org.usvm.machine.symbolicobjects.ConverterToPythonObject;
 
 import java.util.ArrayList;
 
@@ -18,7 +22,7 @@ public class ConcolicRunContext {
     public boolean allowPathDiversion;
     public ConverterToPythonObject converter;
 
-    ConcolicRunContext(
+    public ConcolicRunContext(
             @NotNull PythonExecutionState curState,
             UPythonContext ctx,
             PyModelHolder modelHolder,

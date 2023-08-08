@@ -2,23 +2,18 @@ package org.usvm.interpreter;
 
 import kotlin.Unit;
 import org.jetbrains.annotations.NotNull;
-import org.usvm.interpreter.operations.tracing.*;
-import org.usvm.interpreter.symbolicobjects.UninterpretedSymbolicPythonObject;
+import org.usvm.machine.MockHeader;
+import org.usvm.machine.interpreters.PythonObject;
+import org.usvm.machine.interpreters.operations.tracing.*;
+import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject;
 import org.usvm.language.*;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.concurrent.Callable;
 
-import static org.usvm.interpreter.operations.CommonKt.*;
-import static org.usvm.interpreter.operations.ConstantsKt.*;
-import static org.usvm.interpreter.operations.ControlKt.*;
-import static org.usvm.interpreter.operations.ListKt.*;
-import static org.usvm.interpreter.operations.LongKt.*;
-import static org.usvm.interpreter.operations.MethodNotificationsKt.*;
-import static org.usvm.interpreter.operations.VirtualKt.*;
-import static org.usvm.interpreter.operations.tracing.PathTracingKt.handlerForkResultKt;
-import static org.usvm.interpreter.operations.tracing.PathTracingKt.withTracing;
+import static org.usvm.machine.interpreters.operations.tracing.PathTracingKt.handlerForkResultKt;
+import static org.usvm.machine.interpreters.operations.tracing.PathTracingKt.withTracing;
 
 @SuppressWarnings("unused")
 public class CPythonAdapter {
@@ -99,11 +94,11 @@ public class CPythonAdapter {
 
     public static SymbolForCPython handlerLoadConst(ConcolicRunContext context, long ref) {
         PythonObject obj = new PythonObject(ref);
-        return withTracing(context, new LoadConstParameters(obj), () -> wrap(handlerLoadConstKt(context, obj)));
+        return withTracing(context, new LoadConstParameters(obj), () -> wrap(org.usvm.machine.interpreters.operations.ConstantsKt.handlerLoadConstKt(context, obj)));
     }
 
     public static void handlerFork(ConcolicRunContext context, SymbolForCPython cond) {
-        withTracing(context, new Fork(cond), unit(() -> handlerForkKt(context, cond.obj)));
+        withTracing(context, new Fork(cond), unit(() -> org.usvm.machine.interpreters.operations.ControlKt.handlerForkKt(context, cond.obj)));
     }
 
     public static void handlerForkResult(ConcolicRunContext context, SymbolForCPython cond, boolean result) {
@@ -111,179 +106,179 @@ public class CPythonAdapter {
     }
 
     public static SymbolForCPython handlerGTLong(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
-        return methodWrapper(context, new MethodParameters("gt_long", Arrays.asList(left, right)), () -> handlerGTLongKt(context, left.obj, right.obj));
+        return methodWrapper(context, new MethodParameters("gt_long", Arrays.asList(left, right)), () -> org.usvm.machine.interpreters.operations.LongKt.handlerGTLongKt(context, left.obj, right.obj));
     }
 
     public static SymbolForCPython handlerLTLong(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
-        return methodWrapper(context, new MethodParameters("lt_long", Arrays.asList(left, right)), () -> handlerLTLongKt(context, left.obj, right.obj));
+        return methodWrapper(context, new MethodParameters("lt_long", Arrays.asList(left, right)), () -> org.usvm.machine.interpreters.operations.LongKt.handlerLTLongKt(context, left.obj, right.obj));
     }
 
     public static SymbolForCPython handlerEQLong(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
-        return methodWrapper(context, new MethodParameters("eq_long", Arrays.asList(left, right)), () -> handlerEQLongKt(context, left.obj, right.obj));
+        return methodWrapper(context, new MethodParameters("eq_long", Arrays.asList(left, right)), () -> org.usvm.machine.interpreters.operations.LongKt.handlerEQLongKt(context, left.obj, right.obj));
     }
 
     public static SymbolForCPython handlerNELong(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
-        return methodWrapper(context, new MethodParameters("ne_long", Arrays.asList(left, right)), () -> handlerNELongKt(context, left.obj, right.obj));
+        return methodWrapper(context, new MethodParameters("ne_long", Arrays.asList(left, right)), () -> org.usvm.machine.interpreters.operations.LongKt.handlerNELongKt(context, left.obj, right.obj));
     }
 
     public static SymbolForCPython handlerGELong(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
-        return methodWrapper(context, new MethodParameters("ge_long", Arrays.asList(left, right)), () -> handlerGELongKt(context, left.obj, right.obj));
+        return methodWrapper(context, new MethodParameters("ge_long", Arrays.asList(left, right)), () -> org.usvm.machine.interpreters.operations.LongKt.handlerGELongKt(context, left.obj, right.obj));
     }
 
     public static SymbolForCPython handlerLELong(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
-        return methodWrapper(context, new MethodParameters("le_long", Arrays.asList(left, right)), () -> handlerLELongKt(context, left.obj, right.obj));
+        return methodWrapper(context, new MethodParameters("le_long", Arrays.asList(left, right)), () -> org.usvm.machine.interpreters.operations.LongKt.handlerLELongKt(context, left.obj, right.obj));
     }
 
     public static SymbolForCPython handlerADDLong(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
-        return methodWrapper(context, new MethodParameters("add_long", Arrays.asList(left, right)), () -> handlerADDLongKt(context, left.obj, right.obj));
+        return methodWrapper(context, new MethodParameters("add_long", Arrays.asList(left, right)), () -> org.usvm.machine.interpreters.operations.LongKt.handlerADDLongKt(context, left.obj, right.obj));
     }
 
     public static SymbolForCPython handlerSUBLong(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
-        return methodWrapper(context, new MethodParameters("sub_long", Arrays.asList(left, right)), () -> handlerSUBLongKt(context, left.obj, right.obj));
+        return methodWrapper(context, new MethodParameters("sub_long", Arrays.asList(left, right)), () -> org.usvm.machine.interpreters.operations.LongKt.handlerSUBLongKt(context, left.obj, right.obj));
     }
 
     public static SymbolForCPython handlerMULLong(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
-        return methodWrapper(context, new MethodParameters("mul_long", Arrays.asList(left, right)), () -> handlerMULLongKt(context, left.obj, right.obj));
+        return methodWrapper(context, new MethodParameters("mul_long", Arrays.asList(left, right)), () -> org.usvm.machine.interpreters.operations.LongKt.handlerMULLongKt(context, left.obj, right.obj));
     }
 
     public static SymbolForCPython handlerDIVLong(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
-        return methodWrapper(context, new MethodParameters("div_long", Arrays.asList(left, right)), () -> handlerDIVLongKt(context, left.obj, right.obj));
+        return methodWrapper(context, new MethodParameters("div_long", Arrays.asList(left, right)), () -> org.usvm.machine.interpreters.operations.LongKt.handlerDIVLongKt(context, left.obj, right.obj));
     }
 
     public static SymbolForCPython handlerREMLong(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
-        return methodWrapper(context, new MethodParameters("rem_long", Arrays.asList(left, right)), () -> handlerREMLongKt(context, left.obj, right.obj));
+        return methodWrapper(context, new MethodParameters("rem_long", Arrays.asList(left, right)), () -> org.usvm.machine.interpreters.operations.LongKt.handlerREMLongKt(context, left.obj, right.obj));
     }
 
     public static SymbolForCPython handlerPOWLong(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
-        return methodWrapper(context, new MethodParameters("pow_long", Arrays.asList(left, right)), () -> handlerPOWLongKt(context, left.obj, right.obj));
+        return methodWrapper(context, new MethodParameters("pow_long", Arrays.asList(left, right)), () -> org.usvm.machine.interpreters.operations.LongKt.handlerPOWLongKt(context, left.obj, right.obj));
     }
 
     public static SymbolForCPython handlerAND(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
-        return methodWrapper(context, new MethodParameters("bool_ans", Arrays.asList(left, right)), () -> handlerAndKt(context, left.obj, right.obj));
+        return methodWrapper(context, new MethodParameters("bool_ans", Arrays.asList(left, right)), () -> org.usvm.machine.interpreters.operations.CommonKt.handlerAndKt(context, left.obj, right.obj));
     }
 
     public static SymbolForCPython handlerCreateList(ConcolicRunContext context, SymbolForCPython[] elements) {
         ListCreation event = new ListCreation(Arrays.asList(elements));
-        return withTracing(context, event, () -> wrap(handlerCreateListKt(context, Arrays.stream(elements).map(s -> s.obj))));
+        return withTracing(context, event, () -> wrap(org.usvm.machine.interpreters.operations.ListKt.handlerCreateListKt(context, Arrays.stream(elements).map(s -> s.obj))));
     }
 
     public static SymbolForCPython handlerListGetItem(ConcolicRunContext context, SymbolForCPython list, SymbolForCPython index) {
-        return methodWrapper(context, new MethodParameters("list_get_item", Arrays.asList(list, index)), () -> handlerListGetItemKt(context, list.obj, index.obj));
+        return methodWrapper(context, new MethodParameters("list_get_item", Arrays.asList(list, index)), () -> org.usvm.machine.interpreters.operations.ListKt.handlerListGetItemKt(context, list.obj, index.obj));
     }
 
     public static SymbolForCPython handlerListExtend(ConcolicRunContext context, SymbolForCPython list, SymbolForCPython tuple) {
-        return methodWrapper(context, new MethodParameters("list_extend", Arrays.asList(list, tuple)), () -> handlerListExtendKt(context, list.obj, tuple.obj));
+        return methodWrapper(context, new MethodParameters("list_extend", Arrays.asList(list, tuple)), () -> org.usvm.machine.interpreters.operations.ListKt.handlerListExtendKt(context, list.obj, tuple.obj));
     }
 
     public static SymbolForCPython handlerListAppend(ConcolicRunContext context, SymbolForCPython list, SymbolForCPython elem) {
-        return methodWrapper(context, new MethodParameters("list_append", Arrays.asList(list, elem)), () -> handlerListAppendKt(context, list.obj, elem.obj));
+        return methodWrapper(context, new MethodParameters("list_append", Arrays.asList(list, elem)), () -> org.usvm.machine.interpreters.operations.ListKt.handlerListAppendKt(context, list.obj, elem.obj));
     }
 
     public static void handlerListSetItem(ConcolicRunContext context, SymbolForCPython list, SymbolForCPython index, SymbolForCPython value) {
-        withTracing(context, new MethodParametersNoReturn("list_set_item", Arrays.asList(list, index, value)), unit(() -> handlerListSetItemKt(context, list.obj, index.obj, value.obj)));
+        withTracing(context, new MethodParametersNoReturn("list_set_item", Arrays.asList(list, index, value)), unit(() -> org.usvm.machine.interpreters.operations.ListKt.handlerListSetItemKt(context, list.obj, index.obj, value.obj)));
     }
 
     public static SymbolForCPython handlerListGetSize(ConcolicRunContext context, SymbolForCPython list) {
-        return methodWrapper(context, new MethodParameters("list_get_size", Collections.singletonList(list)), () -> handlerListGetSizeKt(context, list.obj));
+        return methodWrapper(context, new MethodParameters("list_get_size", Collections.singletonList(list)), () -> org.usvm.machine.interpreters.operations.ListKt.handlerListGetSizeKt(context, list.obj));
     }
 
     public static SymbolForCPython handlerListIter(ConcolicRunContext context, SymbolForCPython list) {
-        return methodWrapper(context, new MethodParameters("list_iter", Collections.singletonList(list)), () -> handlerListIterKt(context, list.obj));
+        return methodWrapper(context, new MethodParameters("list_iter", Collections.singletonList(list)), () -> org.usvm.machine.interpreters.operations.ListKt.handlerListIterKt(context, list.obj));
     }
 
     public static SymbolForCPython handlerListIteratorNext(ConcolicRunContext context, SymbolForCPython iterator) {
-        return methodWrapper(context, new MethodParameters("list_iterator_next", Collections.singletonList(iterator)), () -> handlerListIteratorNextKt(context, iterator.obj));
+        return methodWrapper(context, new MethodParameters("list_iterator_next", Collections.singletonList(iterator)), () -> org.usvm.machine.interpreters.operations.ListKt.handlerListIteratorNextKt(context, iterator.obj));
     }
 
     public static void handlerFunctionCall(ConcolicRunContext context, long codeRef) {
         PythonPinnedCallable callable = new PythonPinnedCallable(new PythonObject(codeRef));
-        withTracing(context, new PythonFunctionCall(callable), unit(() -> handlerFunctionCallKt(context, callable)));
+        withTracing(context, new PythonFunctionCall(callable), unit(() -> org.usvm.machine.interpreters.operations.ControlKt.handlerFunctionCallKt(context, callable)));
     }
 
     public static void handlerReturn(ConcolicRunContext context, long codeRef) {
         PythonPinnedCallable callable = new PythonPinnedCallable(new PythonObject(codeRef));
-        withTracing(context, new PythonReturn(callable), unit(() -> handlerReturnKt(context)));
+        withTracing(context, new PythonReturn(callable), unit(() -> org.usvm.machine.interpreters.operations.ControlKt.handlerReturnKt(context)));
     }
 
     public static SymbolForCPython handlerVirtualUnaryFun(ConcolicRunContext context, SymbolForCPython obj) {
-        return methodWrapper(context, new MethodParameters("virtual_unary_fun", Collections.singletonList(obj)), () -> virtualCallSymbolKt(context));
+        return methodWrapper(context, new MethodParameters("virtual_unary_fun", Collections.singletonList(obj)), () -> org.usvm.machine.interpreters.operations.VirtualKt.virtualCallSymbolKt(context));
     }
 
     public static SymbolForCPython handlerVirtualBinaryFun(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
-        return methodWrapper(context, new MethodParameters("virtual_binary_fun", Arrays.asList(left, right)), () -> virtualCallSymbolKt(context));
+        return methodWrapper(context, new MethodParameters("virtual_binary_fun", Arrays.asList(left, right)), () -> org.usvm.machine.interpreters.operations.VirtualKt.virtualCallSymbolKt(context));
     }
 
     public static SymbolForCPython handlerIsinstance(ConcolicRunContext context, SymbolForCPython obj, long typeRef) {
         PythonObject type = new PythonObject(typeRef);
-        return methodWrapper(context, new IsinstanceCheck(obj, type), () -> handlerIsinstanceKt(context, obj.obj, type));
+        return methodWrapper(context, new IsinstanceCheck(obj, type), () -> org.usvm.machine.interpreters.operations.CommonKt.handlerIsinstanceKt(context, obj.obj, type));
     }
 
     public static void addConcreteSupertype(ConcolicRunContext context, SymbolForCPython obj, long typeRef) {
         PythonObject type = new PythonObject(typeRef);
-        addConcreteSupertypeKt(context, obj.obj, type);
+        org.usvm.machine.interpreters.operations.CommonKt.addConcreteSupertypeKt(context, obj.obj, type);
     }
 
     public static void notifyNbBool(@NotNull ConcolicRunContext context, SymbolForCPython symbol) {
         context.curOperation = new MockHeader(NbBoolMethod.INSTANCE, Collections.singletonList(symbol), symbol);
-        nbBoolKt(context, symbol.obj);
+        org.usvm.machine.interpreters.operations.MethodNotificationsKt.nbBoolKt(context, symbol.obj);
     }
 
     public static void notifyNbInt(@NotNull ConcolicRunContext context, SymbolForCPython symbol) {
         context.curOperation = new MockHeader(NbIntMethod.INSTANCE, Collections.singletonList(symbol), symbol);
-        nbIntKt(context, symbol.obj);
+        org.usvm.machine.interpreters.operations.MethodNotificationsKt.nbIntKt(context, symbol.obj);
     }
 
     public static void notifyNbAdd(@NotNull ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
         context.curOperation = new MockHeader(NbAddMethod.INSTANCE, Arrays.asList(left, right), null);
-        nbAddKt(context, left.obj, right.obj);
+        org.usvm.machine.interpreters.operations.MethodNotificationsKt.nbAddKt(context, left.obj, right.obj);
     }
 
     public static void notifyNbMultiply(@NotNull ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
         context.curOperation = new MockHeader(NbMultiplyMethod.INSTANCE, Arrays.asList(left, right), null);
-        nbMultiplyKt(context, left.obj, right.obj);
+        org.usvm.machine.interpreters.operations.MethodNotificationsKt.nbMultiplyKt(context, left.obj, right.obj);
     }
 
     public static void notifySqLength(@NotNull ConcolicRunContext context, SymbolForCPython on) {
         context.curOperation = new MockHeader(SqLengthMethod.INSTANCE, Collections.singletonList(on), on);
-        sqLengthKt(context, on.obj);
+        org.usvm.machine.interpreters.operations.MethodNotificationsKt.sqLengthKt(context, on.obj);
     }
 
     public static void notifyMpSubscript(@NotNull ConcolicRunContext context, SymbolForCPython storage, SymbolForCPython item) {
         context.curOperation = new MockHeader(MpSubscriptMethod.INSTANCE, Arrays.asList(storage, item), storage);
-        mpSubscriptKt(context, storage.obj);
+        org.usvm.machine.interpreters.operations.MethodNotificationsKt.mpSubscriptKt(context, storage.obj);
     }
 
     public static void notifyMpAssSubscript(@NotNull ConcolicRunContext context, SymbolForCPython storage, SymbolForCPython item, SymbolForCPython value) {
         context.curOperation = new MockHeader(MpAssSubscriptMethod.INSTANCE, Arrays.asList(storage, item, value), storage);
-        mpAssSubscriptKt(context, storage.obj);
+        org.usvm.machine.interpreters.operations.MethodNotificationsKt.mpAssSubscriptKt(context, storage.obj);
     }
 
     public static void notifyTpRichcmp(@NotNull ConcolicRunContext context, int op, SymbolForCPython left, SymbolForCPython right) {
         context.curOperation = new MockHeader(new TpRichcmpMethod(op), Arrays.asList(left, right), left);
-        tpRichcmpKt(context, left.obj);
+        org.usvm.machine.interpreters.operations.MethodNotificationsKt.tpRichcmpKt(context, left.obj);
     }
 
     public static void notifyTpIter(@NotNull ConcolicRunContext context, SymbolForCPython on) {
         context.curOperation = new MockHeader(TpIterMethod.INSTANCE, Collections.singletonList(on), on);
-        tpIterKt(context, on.obj);
+        org.usvm.machine.interpreters.operations.MethodNotificationsKt.tpIterKt(context, on.obj);
     }
 
     public static boolean virtualNbBool(ConcolicRunContext context, VirtualPythonObject obj) {
-        return virtualNbBoolKt(context, obj);
+        return org.usvm.machine.interpreters.operations.VirtualKt.virtualNbBoolKt(context, obj);
     }
 
     public static long virtualNbInt(ConcolicRunContext context, VirtualPythonObject obj) {
-        return virtualNbIntKt(context, obj).getAddress();
+        return org.usvm.machine.interpreters.operations.VirtualKt.virtualNbIntKt(context, obj).getAddress();
     }
 
     public static int virtualSqLength(ConcolicRunContext context, VirtualPythonObject obj) {
-        return virtualSqLengthKt(context, obj);
+        return org.usvm.machine.interpreters.operations.VirtualKt.virtualSqLengthKt(context, obj);
     }
 
     public static long virtualCall(ConcolicRunContext context, int owner) {
         if (context.curOperation != null && owner != -1) {
             context.curOperation.setMethodOwner(context.curOperation.getArgs().get(owner));
         }
-        return virtualCallKt(context).getAddress();
+        return org.usvm.machine.interpreters.operations.VirtualKt.virtualCallKt(context).getAddress();
     }
 }

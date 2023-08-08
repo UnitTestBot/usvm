@@ -1,8 +1,8 @@
 package org.usvm.language.types
 
-import org.usvm.interpreter.ConcretePythonInterpreter
-import org.usvm.interpreter.PythonObject
-import org.usvm.interpreter.emptyNamespace
+import org.usvm.machine.interpreters.ConcretePythonInterpreter
+import org.usvm.machine.interpreters.PythonObject
+import org.usvm.machine.interpreters.emptyNamespace
 
 sealed class PythonType
 
