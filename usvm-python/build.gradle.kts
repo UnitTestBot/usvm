@@ -5,6 +5,7 @@ plugins {
 
 dependencies {
     implementation(project(":usvm-core"))
+    implementation(project(":usvm-python:utbot-python-types"))
 
     implementation("io.ksmt:ksmt-yices:${Versions.ksmt}")
     implementation("io.ksmt:ksmt-cvc5:${Versions.ksmt}")

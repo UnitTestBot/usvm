@@ -1,6 +1,6 @@
 package org.usvm.language;
 
-import org.usvm.interpreter.symbolicobjects.InterpretedInputSymbolicPythonObject;
+import org.usvm.machine.symbolicobjects.InterpretedInputSymbolicPythonObject;
 
 public class VirtualPythonObject {
     public InterpretedInputSymbolicPythonObject interpretedObj;

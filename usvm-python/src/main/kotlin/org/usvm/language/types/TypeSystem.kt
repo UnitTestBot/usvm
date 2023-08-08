@@ -1,6 +1,6 @@
 package org.usvm.language.types
 
-import org.usvm.interpreter.PythonObject
+import org.usvm.machine.interpreters.PythonObject
 import org.usvm.types.USupportTypeStream
 import org.usvm.types.UTypeStream
 import org.usvm.types.UTypeSystem

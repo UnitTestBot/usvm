@@ -1,9 +1,8 @@
-import org.usvm.interpreter.*
+import org.usvm.machine.*
 import org.usvm.language.PythonProgram
 import org.usvm.language.PythonUnpinnedCallable
 import org.usvm.language.types.PythonAnyType
-import org.usvm.language.types.pythonInt
-import org.usvm.language.types.pythonList
+import org.usvm.machine.interpreters.ConcretePythonInterpreter
 
 fun main() {
     val program = PythonProgram(
