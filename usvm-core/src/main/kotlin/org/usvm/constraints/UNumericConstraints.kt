@@ -76,19 +76,19 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
     }
 
     private val zero: KBitVecValue<Sort> by lazy {
-        ctx.bvZero(sort.sizeBits).uncheckedCast()
+        ctx.bvZero(sort.sizeBits)
     }
 
     private val one: KBitVecValue<Sort> by lazy {
-        ctx.bvOne(sort.sizeBits).uncheckedCast()
+        ctx.bvOne(sort.sizeBits)
     }
 
     private val minValue: KBitVecValue<Sort> by lazy {
-        ctx.bvMinValueSigned(sort.sizeBits).uncheckedCast()
+        ctx.bvMinValueSigned(sort.sizeBits)
     }
 
     private val maxValue: KBitVecValue<Sort> by lazy {
-        ctx.bvMaxValueSigned(sort.sizeBits).uncheckedCast()
+        ctx.bvMaxValueSigned(sort.sizeBits)
     }
 
     /**
