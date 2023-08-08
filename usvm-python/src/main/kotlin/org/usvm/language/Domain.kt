@@ -1,8 +1,8 @@
 package org.usvm.language
 
-import org.usvm.interpreter.ConcretePythonInterpreter
-import org.usvm.interpreter.PythonNamespace
-import org.usvm.interpreter.PythonObject
+import org.usvm.machine.interpreters.ConcretePythonInterpreter
+import org.usvm.machine.interpreters.PythonNamespace
+import org.usvm.machine.interpreters.PythonObject
 import org.usvm.language.types.PythonType
 
 data class PythonProgram(val asString: String)

@@ -1,6 +1,6 @@
 package org.usvm.language;
 
-import org.usvm.interpreter.symbolicobjects.UninterpretedSymbolicPythonObject;
+import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject;
 
 public class SymbolForCPython {
     public UninterpretedSymbolicPythonObject obj;
