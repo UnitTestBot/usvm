@@ -41,7 +41,7 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
 
     private var stepCount = 0
     private val graphsPath = Path(MainConfig.gameEnvPath, "graphs").toString()
-    private val blockGraphPath = Path(MainConfig.gameEnvPath, "block_graphs").toString()
+    private val blockGraphsPath = Path(MainConfig.gameEnvPath, "block_graphs").toString()
 
     private val penalty = 0.0f
     private val logBase = 1.42
@@ -71,6 +71,7 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
         val root: Block<Statement>
         private val successorsMap = mutableMapOf<Block<Statement>, List<Statement>>().withDefault { listOf() }
         private val coveredStatements = mutableMapOf<Statement, Block<Statement>>()
+        var currentBlockId = 0
 
         init {
             root = buildBlocks(initialStatement)
@@ -91,16 +92,14 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
         private fun buildBlocks(statement: Statement): Block<Statement> {
             var currentStatement = statement
             val statementQueue = ArrayDeque<Statement>()
-            var currentBlockId = 0
-            val rootBlock = Block(mutableListOf<Statement>(), currentBlockId)
+            val rootBlock = Block<Statement>(this)
             var currentBlock = rootBlock
             while (true) {
                 if (coveredStatements.contains(currentStatement)) {
                     addSuccessor(currentBlock, currentStatement)
                     val nextStatement = chooseNextStatement(statementQueue) ?: break
                     currentStatement = nextStatement
-                    currentBlockId += 1
-                    currentBlock = Block(mutableListOf(), currentBlockId)
+                    currentBlock = Block(this)
                     continue
                 }
                 val predecessors = applicationGraph.predecessors(currentStatement).toList()
@@ -113,10 +112,9 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
                     }
                     newBlock = true
                 }
-                if (newBlock) {
+                if (newBlock && currentBlock.path.isNotEmpty()) {
                     addSuccessor(currentBlock, currentStatement)
-                    currentBlockId += 1
-                    currentBlock = Block(mutableListOf(), currentBlockId)
+                    currentBlock = Block(this)
                 }
                 coveredStatements[currentStatement] = currentBlock
                 currentBlock.path.add(currentStatement)
@@ -127,13 +125,11 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
                     }
                     val nextStatement = chooseNextStatement(statementQueue) ?: break
                     currentStatement = nextStatement
-                    currentBlockId += 1
-                    currentBlock = Block(mutableListOf(), currentBlockId)
+                    currentBlock = Block(this)
                 } else if (successors.isEmpty()) {
                     val nextStatement = chooseNextStatement(statementQueue) ?: break
                     currentStatement = nextStatement
-                    currentBlockId += 1
-                    currentBlock = Block(mutableListOf(), currentBlockId)
+                    currentBlock = Block(this)
                 } else {
                     currentStatement = successors.first()
                 }
@@ -179,10 +175,35 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
 
     private data class Block<Statement>(
         var path: MutableList<Statement>,
-        val id: Int
+        val id: Int = 0
     ) {
+        constructor(blockGraph: BlockGraph<*, *>) : this(
+            path = mutableListOf(),
+            id = blockGraph.currentBlockId
+        ) {
+            blockGraph.currentBlockId += 1
+        }
+
+        private fun escape(input: String): String {
+            val result = StringBuilder(input.length)
+            input.forEach { ch ->
+                result.append(when (ch) {
+                    '\n' -> "\\n"
+                    '\t' -> "\\t"
+                    '\b' -> "\\b"
+                    '\r' -> "\\r"
+                    '\"' -> "\\\""
+                    '\'' -> "\\\'"
+                    '\\' -> "\\\\"
+                    '$' -> "\\$"
+                    else -> ch
+                })
+            }
+            return result.toString()
+        }
+
         override fun toString(): String {
-            return "\"${id}: ${path}\""
+            return "\"${id}: ${path.map { escape(it.toString()) }}\""
         }
     }
 
@@ -233,7 +254,9 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
         val queue: List<StateFeatures>,
         val globalStateFeatures: GlobalStateFeatures,
         val chosenStateId: Int,
-        val reward: Float
+        val reward: Float,
+        val graphId: Int = 0,
+        val blockIds: List<Int>,
     )
 
     init {
@@ -252,12 +275,14 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
             }
             add("chosenStateId")
             add("reward")
+            add("graphId")
+            add("blockIds")
         }
         allStatements = coverageStatistics.getUncoveredStatements().map { it.second }
         method = applicationGraph.methodOf(allStatements.first())
         filename = method.toString()
         blockGraph = BlockGraph(applicationGraph, applicationGraph.entryPoints(method).first())
-        blockGraph.saveGraph(Path(blockGraphPath, filename, "graph.dot"))
+        blockGraph.saveGraph(Path(blockGraphsPath, filename, "graph.dot"))
         val (tmpDistancesToExit, tmpForkCountsToExit) = getDistancesToExit()
         distancesToExit = tmpDistancesToExit
         forkCountsToExit = tmpForkCountsToExit
@@ -438,7 +463,10 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
             stateFeatureQueue,
             globalStateFeatures,
             stateId,
-            getReward(queue[stateId]))
+            getReward(queue[stateId]),
+            0,
+            queue.map { it.currentStatement!! }.map { blockGraph.getBlock(it)?.id ?: -1 }
+        )
     }
 
     fun savePath() {
@@ -464,6 +492,12 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
                         }
                         add(actionData.chosenStateId)
                         add(actionData.reward)
+                        add(actionData.graphId)
+                        addJsonArray {
+                            actionData.blockIds.forEach {
+                                add(it)
+                            }
+                        }
                     }
                 }
             }
