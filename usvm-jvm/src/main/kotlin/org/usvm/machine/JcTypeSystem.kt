@@ -21,7 +21,9 @@ class JcTypeSystem(
     private val hierarchy = HierarchyExtensionImpl(cp)
 
     override fun isSupertype(supertype: JcType, type: JcType): Boolean =
-        type.isAssignable(supertype) || (supertype is JcTypeVariable && type.isAssignable(supertype.jcClass.toType()))
+        type.isAssignable(supertype) ||
+                // It is possible when, for example, the returning type of a method is a type variable
+                (supertype is JcTypeVariable && type.isAssignable(supertype.jcClass.toType()))
 
     override fun isMultipleInheritanceAllowedFor(type: JcType): Boolean =
         (type as? JcClassType)?.jcClass?.isInterface ?: false

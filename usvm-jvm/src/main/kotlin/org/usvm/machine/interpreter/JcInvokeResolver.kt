@@ -67,7 +67,9 @@ class JcVirtualInvokeResolver(
                     ctx.mkAnd(memory.types.evalIsSubtype(instance, type), memory.types.evalIsSupertype(instance, type))
                 }
             }
+
             val typeConstraintsWithBlockOnStates = mutableListOf<Pair<UBoolExpr, (JcState) -> Unit>>()
+
             inheritors.mapIndexedTo(typeConstraintsWithBlockOnStates) { idx, type ->
                 val isExpr = typeConstraints[idx]
                 val concreteMethod = (type as JcClassType).findMethodOrNull(method.name, method.description)
@@ -76,6 +78,7 @@ class JcVirtualInvokeResolver(
                 val block = { state: JcState ->
                     state.addNewMethodCall(applicationGraph, concreteMethod.method, arguments)
                 }
+
                 isExpr to block
             }
 

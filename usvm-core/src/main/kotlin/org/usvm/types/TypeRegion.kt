@@ -42,19 +42,23 @@ class UTypeRegion<Type>(
      * Also, if u <: X && X <: t && u <: t, then X = u = t.
      */
     fun addSupertype(supertype: Type): UTypeRegion<Type> {
+        // X <: it && it <: supertype -> nothing changes
         if (isEmpty || supertypes.any { typeSystem.isSupertype(supertype, it) }) {
             return this
         }
 
+        // X </: it && supertype <: it -> X </: supertype
         if (notSupertypes.any { typeSystem.isSupertype(it, supertype) }) {
             return contradiction()
         }
 
+        // it <: X && it </: supertype -> X </: supertype
         if (subtypes.any { !typeSystem.isSupertype(supertype, it) }) {
             return contradiction()
         }
 
         val multipleInheritanceIsNotAllowed = !typeSystem.isMultipleInheritanceAllowedFor(supertype)
+
         if (multipleInheritanceIsNotAllowed) {
             // We've already checked it </: supertype
             val incomparableSupertypeWithoutMultipleInheritanceAllowedExists = supertypes.any {
@@ -77,6 +81,7 @@ class UTypeRegion<Type>(
             subtypes
         }
 
+        // it <: X && supertype <: it -> X == supertype
         if (newSubtypes.any { typeSystem.isSupertype(it, supertype) }) {
             return checkSingleTypeRegion(supertype)
         }
@@ -124,18 +129,22 @@ class UTypeRegion<Type>(
      *  Also, if t <: X && X <: u && u <: t, then X = u = t.
      */
     fun addSubtype(subtype: Type): UTypeRegion<Type> {
+        // it <: X && subtype <: it -> nothing changes
         if (isEmpty || subtypes.any { typeSystem.isSupertype(it, subtype) }) {
             return this
         }
 
+        // it </: X && it <: subtype -> subtype </: X
         if (notSubtypes.any { typeSystem.isSupertype(subtype, it) }) {
             return contradiction()
         }
 
+        // X <: it && subtype </: it -> subtype </: X
         if (supertypes.any { !typeSystem.isSupertype(it, subtype) }) {
             return contradiction()
         }
 
+        // X <: it && it <: subtype -> X <: subtype -> X == subtype
         if (supertypes.any { typeSystem.isSupertype(subtype, it) }) {
             return checkSingleTypeRegion(subtype)
         }
@@ -143,7 +152,7 @@ class UTypeRegion<Type>(
         val newSubtypes = subtypes.removeAll { typeSystem.isSupertype(subtype, it) }.add(subtype)
         val newTypeStream = typeStream.filterBySubtype(subtype)
 
-        return UTypeRegion(typeSystem, newTypeStream, subtypes = newSubtypes)
+        return clone(newTypeStream, subtypes = newSubtypes)
     }
 
     /**
@@ -226,21 +235,28 @@ class UTypeRegion<Type>(
         if (!typeSystem.isInstantiable(type)) {
             return contradiction()
         }
+
+        // X <: it && type </: it && X == type -> X <: X && X </: X
         if (supertypes.any { !typeSystem.isSupertype(it, type) }) {
             return contradiction()
         }
+
+        // X </: it && type <: it && X == type -> X </: it && X <: it
         if (notSupertypes.any { typeSystem.isSupertype(it, type) }) {
             return contradiction()
         }
+
+        // it <: X && it </: type && X == type -> it <: X && it </: X
         if (subtypes.any { !typeSystem.isSupertype(type, it) }) {
             return contradiction()
         }
+
+        // it </: X && it <: type && X == type -> it </: X && it <: X
         if (notSubtypes.any { typeSystem.isSupertype(type, it) }) {
             return contradiction()
         }
 
-        return UTypeRegion(
-            typeSystem,
+        return clone(
             USingleTypeStream(typeSystem, type),
             supertypes = persistentSetOf(type),
             subtypes = persistentSetOf(type)

@@ -8,14 +8,14 @@ interface JcTypeSelector {
     fun choose(method: JcMethod, typeStream: UTypeStream<JcType>): Collection<JcType>
 }
 
-class JcConstantInheritorsTypeSelector(
-    private val inheritorsToChoose: Int = DEFAULT_INHERITORS_TO_CHOOSE,
+class JcFixedInheritorsNumberTypeSelector(
+    private val inheritorsNumberToChoose: Int = DEFAULT_INHERITORS_NUMBER_TO_CHOOSE,
 ) : JcTypeSelector {
     override fun choose(method: JcMethod, typeStream: UTypeStream<JcType>): Collection<JcType> {
-        return typeStream.take(inheritorsToChoose)
+        return typeStream.take(inheritorsNumberToChoose)
     }
 
     companion object {
-        const val DEFAULT_INHERITORS_TO_CHOOSE = 4
+        const val DEFAULT_INHERITORS_NUMBER_TO_CHOOSE: Int = 4
     }
 }

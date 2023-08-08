@@ -1,5 +1,6 @@
 package org.usvm.machine.interpreter
 
+import io.ksmt.expr.KExpr
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
 import org.jacodb.api.JcArrayType
@@ -390,14 +391,15 @@ class JcExprResolver(
         onNoCallPresent: JcStepScope.(List<UExpr<out USort>>) -> Unit,
     ): UExpr<out USort>? = ensureStaticFieldsInitialized(method.enclosingType) {
         val arguments = mutableListOf<UExpr<out USort>>()
+
         if (instanceExpr != null) {
             val instance = resolveJcExpr(instanceExpr)?.asExpr(ctx.addressSort) ?: return null
             checkNullPointer(instance) ?: return null
             arguments += instance
         }
-        val argsWithTypes = argumentExprs().zip(argumentTypes())
-        argsWithTypes.mapTo(arguments) { (expr, type) ->
-            resolveJcExpr(expr, type) ?: return null
+
+        argumentExprs().zip(argumentTypes()) { expr, type ->
+            arguments += resolveJcExpr(expr, type) ?: return null
         }
 
         resolveInvokeNoStaticInitializationCheck { onNoCallPresent(arguments) }
@@ -448,24 +450,29 @@ class JcExprResolver(
     override fun visitJcFieldRef(value: JcFieldRef): UExpr<out USort>? {
         val lValue = resolveFieldRef(value.instance, value.field) ?: return null
         val expr = scope.calcOnState { memory.read(lValue) }
-        if (value.type is JcRefType) {
-            val heapRef = expr.asExpr(ctx.addressSort)
-            val isExpr = scope.calcOnState { memory.types.evalIsSubtype(heapRef, value.type) }
-            scope.assert(isExpr) ?: return null
-        }
-        return expr
-    }
 
+        if (assertIsSubtype(expr, value.type)) return expr
+
+        return null
+    }
 
     override fun visitJcArrayAccess(value: JcArrayAccess): UExpr<out USort>? {
         val lValue = resolveArrayAccess(value.array, value.index) ?: return null
         val expr = scope.calcOnState { memory.read(lValue) }
-        if (value.type is JcRefType) {
+
+        if (assertIsSubtype(expr, value.type)) return expr
+
+        return null
+    }
+
+    private fun assertIsSubtype(expr: KExpr<out USort>, type: JcType): Boolean {
+        if (type is JcRefType) {
             val heapRef = expr.asExpr(ctx.addressSort)
-            val isExpr = scope.calcOnState { memory.types.evalIsSubtype(heapRef, value.type) }
-            scope.assert(isExpr) ?: return null
+            val isExpr = scope.calcOnState { memory.types.evalIsSubtype(heapRef, type) }
+            scope.assert(isExpr) ?: return false
         }
-        return expr
+
+        return true
     }
 
     // endregion
