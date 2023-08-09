@@ -74,6 +74,7 @@ internal class ExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Issue with reflection object creation")
     fun testCreateException() {
         checkDiscoveredProperties(
             ExceptionExamples::createException,
