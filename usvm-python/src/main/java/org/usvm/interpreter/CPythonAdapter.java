@@ -50,6 +50,7 @@ public class CPythonAdapter {
     public native int typeHasTpRichcmp(long type);
     public native int typeHasTpIter(long type);
     public native Throwable extractException(long exception);
+    public native void decref(long object);
 
     static {
         System.loadLibrary("cpythonadapter");

@@ -51,7 +51,7 @@ private fun internalVirtualCallKt(context: ConcolicRunContext): Pair<Interpreted
     context.curOperation ?: throw UnregisteredVirtualOperation
     context.curState ?: throw UnregisteredVirtualOperation
     val owner = context.curOperation.methodOwner ?: throw UnregisteredVirtualOperation
-    val ownerIsAlreadyMocked = owner.obj.getTypeIfDefined(context) is TypeOfVirtualObject
+    val ownerIsAlreadyMocked = context.curState!!.mockedObjects.contains(owner)
     var clonedState = if (!ownerIsAlreadyMocked) context.curState!!.clone() else null
     if (clonedState != null) {
         clonedState = myAssertOnState(clonedState, mkHeapRefEq(owner.obj.address, nullRef).not())

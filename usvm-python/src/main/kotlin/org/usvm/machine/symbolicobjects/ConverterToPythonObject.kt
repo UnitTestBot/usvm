@@ -13,8 +13,10 @@ import org.usvm.machine.interpreters.emptyNamespace
 
 class ConverterToPythonObject(
     private val ctx: UContext,
+    private val typeSystem: PythonTypeSystem,
     val modelHolder: PyModelHolder
 ) {
+    private val defaultValueProvider = DefaultValueProvider(typeSystem)
     val forcedConcreteTypes = mutableMapOf<UHeapRef, PythonType>()
     private val constructedObjects = mutableMapOf<UHeapRef, PythonObject>()
     private val virtualObjects = mutableSetOf<Pair<VirtualPythonObject, PythonObject>>()
@@ -54,7 +56,7 @@ class ConverterToPythonObject(
     }
 
     private fun constructVirtualObject(obj: InterpretedInputSymbolicPythonObject): PythonObject {
-        val default = forcedConcreteTypes[obj.address]?.let { DefaultValueProvider.provide(it) }
+        val default = forcedConcreteTypes[obj.address]?.let { defaultValueProvider.provide(it) }
         if (default != null)
             return default
 

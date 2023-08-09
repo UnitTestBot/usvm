@@ -6,19 +6,18 @@ import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.constructBool
 import org.usvm.machine.symbolicobjects.interpretSymbolicPythonObject
 import org.usvm.language.types.ConcreteTypeNegation
-import org.usvm.language.types.PythonTypeSystem
 import org.usvm.language.types.pythonBool
 import org.usvm.language.types.pythonObjectType
 
 fun handlerIsinstanceKt(ctx: ConcolicRunContext, obj: UninterpretedSymbolicPythonObject, typeRef: PythonObject): UninterpretedSymbolicPythonObject? = with(ctx.ctx) {
     ctx.curState ?: return null
-    val type = PythonTypeSystem.getConcreteTypeByAddress(typeRef) ?: return null
+    val type = ctx.typeSystem.getConcreteTypeByAddress(typeRef) ?: return null
     if (type == pythonObjectType)
         return constructBool(ctx, ctx.ctx.trueExpr)
 
     val interpreted = interpretSymbolicPythonObject(obj, ctx.modelHolder)
     return if (interpreted.getConcreteType(ctx) == null) {
-        myFork(ctx, obj.rawEvalIs(ctx, ConcreteTypeNegation(type)).not())
+        myFork(ctx, obj.evalIs(ctx, ConcreteTypeNegation(type)))
         require(interpreted.getConcreteType(ctx) == null)
         constructBool(ctx, falseExpr)
     } else {
@@ -28,7 +27,7 @@ fun handlerIsinstanceKt(ctx: ConcolicRunContext, obj: UninterpretedSymbolicPytho
 
 fun addConcreteSupertypeKt(ctx: ConcolicRunContext, obj: UninterpretedSymbolicPythonObject, typeRef: PythonObject) {
     ctx.curState ?: return
-    val type = PythonTypeSystem.getConcreteTypeByAddress(typeRef) ?: return
+    val type = ctx.typeSystem.getConcreteTypeByAddress(typeRef) ?: return
     obj.addSupertype(ctx, type)
 }
 

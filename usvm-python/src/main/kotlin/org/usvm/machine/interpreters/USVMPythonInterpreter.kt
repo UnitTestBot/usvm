@@ -3,16 +3,20 @@ package org.usvm.machine.interpreters
 import mu.KLogging
 import org.usvm.*
 import org.usvm.interpreter.ConcolicRunContext
+import org.usvm.language.PythonProgram
 import org.usvm.machine.interpreters.operations.BadModelException
 import org.usvm.machine.interpreters.operations.UnregisteredVirtualOperation
 import org.usvm.machine.symbolicobjects.*
 import org.usvm.language.PythonUnpinnedCallable
 import org.usvm.language.SymbolForCPython
+import org.usvm.language.types.PythonTypeSystem
 import org.usvm.machine.*
+import org.usvm.machine.interpreters.operations.myAssertOnState
 
 class USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION>(
     private val ctx: UPythonContext,
-    namespace: PythonNamespace,
+    private val typeSystem: PythonTypeSystem,
+    program: PythonProgram,
     private val callable: PythonUnpinnedCallable,
     private val iterationCounter: IterationCounter,
     private val printErrorMsg: Boolean,
@@ -20,7 +24,7 @@ class USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION>(
     private val pythonObjectSerialization: (PythonObject) -> PYTHON_OBJECT_REPRESENTATION,
     private val saveRunResult: (PythonAnalysisResult<PYTHON_OBJECT_REPRESENTATION>) -> Unit
 ) : UInterpreter<PythonExecutionState>() {
-    private val pinnedCallable = callable.reference(namespace)
+    private val pinnedCallable = program.pinCallable(callable)
 
     private fun getSeeds(
         concolicRunContext: ConcolicRunContext,
@@ -57,7 +61,7 @@ class USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION>(
             else
                 PyModelHolder(state.pyModel)
         val concolicRunContext =
-            ConcolicRunContext(state, ctx, modelHolder, allowPathDiversion)
+            ConcolicRunContext(state, ctx, modelHolder, typeSystem, allowPathDiversion)
         state.meta.objectsWithoutConcreteTypes = null
         state.meta.lastConverter?.restart()
         try {
@@ -81,7 +85,7 @@ class USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION>(
 
             try {
                 val result = ConcretePythonInterpreter.concolicRun(
-                    pinnedCallable,
+                    pinnedCallable.asPythonObject,
                     concrete,
                     virtualObjects,
                     symbols,
@@ -116,8 +120,20 @@ class USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION>(
                 resultState.meta.wasExecuted = true
 
                 if (resultState.delayedForks.isEmpty() && inputs == null) {
+                    var newResultState = resultState
+                    concolicRunContext.delayedNonNullObjects.forEach { obj ->
+                        newResultState = newResultState?.let {
+                            myAssertOnState(it, ctx.mkNot(ctx.mkHeapRefEq(obj.address, ctx.nullRef)))
+                        }
+                    }
+                    if (newResultState == null) {
+                        logger.debug("Error in concretization of virtual objects")
+                        return StepResult(emptySequence(), false)
+                    }
+                    require(newResultState == resultState)
                     resultState.meta.objectsWithoutConcreteTypes = converter.getUSVMVirtualObjects()
                     resultState.meta.lastConverter = converter
+                    converter.modelHolder.model = resultState.pyModel
                 }
                 logger.debug("Finished step on state: {}", concolicRunContext.curState)
 

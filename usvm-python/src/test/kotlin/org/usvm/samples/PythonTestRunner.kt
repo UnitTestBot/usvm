@@ -4,6 +4,7 @@ import org.usvm.UMachineOptions
 import org.usvm.machine.*
 import org.usvm.language.*
 import org.usvm.language.types.PythonType
+import org.usvm.language.types.PythonTypeSystem
 import org.usvm.language.types.pythonInt
 import org.usvm.machine.interpreters.CPythonExecutionException
 import org.usvm.machine.interpreters.ConcretePythonInterpreter
@@ -17,8 +18,14 @@ open class PythonTestRunner(
     allowPathDiversions: Boolean = false
 ): TestRunner<PythonTest, PythonUnpinnedCallable, PythonType, PythonCoverage>() {
     override var options: UMachineOptions = UMachineOptions()
+    // private val buildRoot = System.getProperty("samples.build.path")
     private val testSources = File(PythonTestRunner::class.java.getResource(sourcePath)!!.file).readText()
-    private val machine = PythonMachine(PythonProgram(testSources), allowPathDiversion = allowPathDiversions) { pythonObject ->
+    private val typeSystem = PythonTypeSystem()
+    private val machine = PythonMachine(
+        PrimitivePythonProgram(testSources),
+        typeSystem,
+        allowPathDiversion = allowPathDiversions
+    ) { pythonObject ->
         val typeName = ConcretePythonInterpreter.getPythonObjectTypeName(pythonObject)
         PythonObjectInfo(
             ConcretePythonInterpreter.getPythonObjectRepr(pythonObject),

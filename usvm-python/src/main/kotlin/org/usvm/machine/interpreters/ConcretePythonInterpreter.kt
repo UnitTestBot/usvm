@@ -144,8 +144,14 @@ object ConcretePythonInterpreter {
         pythonAdapter.finalizePython()
     }
 
+    val initialSysPath: PythonObject
+
     init {
         pythonAdapter.initializePython()
+        val namespace = pythonAdapter.newNamespace
+        pythonAdapter.concreteRun(namespace, "import sys, copy")
+        initialSysPath = PythonObject(pythonAdapter.eval(namespace, "copy.deepcopy(sys.path)"))
+        pythonAdapter.decref(namespace)
     }
 }
 

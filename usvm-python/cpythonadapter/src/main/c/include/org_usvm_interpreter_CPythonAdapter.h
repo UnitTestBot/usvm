@@ -239,6 +239,14 @@ JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasTpIter
 JNIEXPORT jthrowable JNICALL Java_org_usvm_interpreter_CPythonAdapter_extractException
   (JNIEnv *, jobject, jlong);
 
+/*
+ * Class:     org_usvm_interpreter_CPythonAdapter
+ * Method:    decref
+ * Signature: (J)V
+ */
+JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_decref
+  (JNIEnv *, jobject, jlong);
+
 #ifdef __cplusplus
 }
 #endif
