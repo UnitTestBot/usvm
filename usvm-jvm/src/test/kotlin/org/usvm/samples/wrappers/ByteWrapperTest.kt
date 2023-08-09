@@ -8,7 +8,7 @@ import org.usvm.test.util.checkers.eq
 
 internal class ByteWrapperTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("java.lang.ByteCache has native calls")
     fun primitiveToWrapperTest() {
         checkDiscoveredProperties(
             ByteWrapper::primitiveToWrapper,
@@ -19,7 +19,6 @@ internal class ByteWrapperTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun wrapperToPrimitiveTest() {
         checkDiscoveredProperties(
             ByteWrapper::wrapperToPrimitive,
@@ -31,7 +30,7 @@ internal class ByteWrapperTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("java.lang.ByteCache has native calls")
     fun equalityTest() {
         checkDiscoveredProperties(
             ByteWrapper::equality,

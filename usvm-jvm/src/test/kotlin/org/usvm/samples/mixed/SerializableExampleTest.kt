@@ -9,7 +9,7 @@ import org.usvm.test.util.checkers.eq
 internal class SerializableExampleTest : JavaMethodTestRunner() {
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("java.io.File#<clinit> has native calls")
     fun testExample() {
         checkDiscoveredProperties(
             SerializableExample::example,

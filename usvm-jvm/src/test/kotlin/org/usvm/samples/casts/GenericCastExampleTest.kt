@@ -22,7 +22,7 @@ internal class GenericCastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 3 executions, but 2 found. Support generics")
+    @Disabled("org.jacodb.impl.fs.ByteCodeConverterKt: java.lang.OutOfMemoryError: Java heap space")
     fun testGetGenericFieldValue() {
         checkDiscoveredProperties(
             GenericCastExample::getGenericFieldValue,
@@ -47,7 +47,7 @@ internal class GenericCastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("java.lang.Integer#valueOf(int). Native calls in IntegerCache#<clinit>")
     fun testCreateNewGenericObject() {
         checkDiscoveredProperties(
             GenericCastExample::createNewGenericObject,

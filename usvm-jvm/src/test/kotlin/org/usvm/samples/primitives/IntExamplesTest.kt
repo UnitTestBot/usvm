@@ -10,7 +10,7 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 @Suppress("ConvertTwoComparisonsToRangeCheck")
 internal class IntExamplesTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("No entrypoint found for method: java.lang.StringUTF16#isBigEndian()")
     fun testIsInteger() {
         val method = IntExamples::isInteger
         checkDiscoveredProperties(

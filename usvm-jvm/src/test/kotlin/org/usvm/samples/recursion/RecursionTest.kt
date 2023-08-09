@@ -81,7 +81,7 @@ internal class RecursionTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("java.lang.Integer#valueOf(int). Native calls in IntegerCache#<clinit>")
     fun vertexSumTest() {
         checkDiscoveredProperties(
             Recursion::vertexSum,

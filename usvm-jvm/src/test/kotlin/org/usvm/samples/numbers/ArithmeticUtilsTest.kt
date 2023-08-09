@@ -10,7 +10,7 @@ import org.usvm.test.util.checkers.eq
 // example from Apache common-numbers
 internal class ArithmeticUtilsTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Not implemented: class constant")
+    @Disabled("java.lang.Math#<clinit>() has native calls")
     fun testPow() {
         checkDiscoveredProperties(
             ArithmeticUtils::pow,
