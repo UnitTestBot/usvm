@@ -31,8 +31,7 @@ internal class DoubleFunctionsTest : JavaMethodTestRunner() {
         )
     }
 
-    @Test // todo: solver timout
-    @Disabled("Expected exactly 5 executions, but 4 found")
+    @Test
     fun testCircleSquare() {
         checkDiscoveredPropertiesWithExceptions(
             DoubleFunctions::circleSquare,
