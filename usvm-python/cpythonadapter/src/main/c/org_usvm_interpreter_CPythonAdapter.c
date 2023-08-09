@@ -283,3 +283,7 @@ JNIEXPORT jthrowable JNICALL Java_org_usvm_interpreter_CPythonAdapter_extractExc
     assert(is_wrapped_java_object(wrapped));
     return ((JavaPythonObject *) wrapped)->reference;
 }
+
+JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_decref(JNIEnv *env, jobject _, jlong obj_ref) {
+    Py_XDECREF((PyObject *) obj_ref);
+}

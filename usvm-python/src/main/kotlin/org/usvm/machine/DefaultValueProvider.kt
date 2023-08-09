@@ -5,9 +5,9 @@ import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.PythonObject
 import org.usvm.machine.interpreters.emptyNamespace
 
-object DefaultValueProvider {
+class DefaultValueProvider(private val typeSystem: PythonTypeSystem) {
     fun provide(type: PythonType): PythonObject {
-        require(PythonTypeSystem.isInstantiable(type))
+        require(typeSystem.isInstantiable(type))
 
         return when (type) {
             pythonInt -> ConcretePythonInterpreter.eval(emptyNamespace, "0")

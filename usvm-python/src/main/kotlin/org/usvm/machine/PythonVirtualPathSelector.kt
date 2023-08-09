@@ -5,12 +5,14 @@ import org.usvm.UContext
 import org.usvm.UPathSelector
 import org.usvm.fork
 import org.usvm.language.types.PythonType
+import org.usvm.language.types.PythonTypeSystem
 import org.usvm.language.types.TypeOfVirtualObject
 import org.usvm.types.first
 import kotlin.random.Random
 
 class PythonVirtualPathSelector(
     private val ctx: UContext,
+    private val typeSystem: PythonTypeSystem,
     private val basePathSelector: UPathSelector<PythonExecutionState>,
     private val pathSelectorForStatesWithDelayedForks: UPathSelector<PythonExecutionState>,
     private val pathSelectorForStatesWithConcretizedTypes: UPathSelector<PythonExecutionState>
@@ -39,7 +41,7 @@ class PythonVirtualPathSelector(
         }
         val concreteType = typeRating.first()
         require(concreteType != TypeOfVirtualObject)
-        val forkResult = fork(state, symbol.evalIs(ctx, state.pathConstraints.typeConstraints, concreteType).not())
+        val forkResult = fork(state, symbol.evalIs(ctx, state.pathConstraints.typeConstraints, concreteType, null).not())
         if (forkResult.positiveState != state) {
             unservedDelayedForks.removeIf { it.delayedFork.state == state }
             servedDelayedForks.removeIf { it.delayedFork.state == state }
@@ -62,7 +64,7 @@ class PythonVirtualPathSelector(
         val state = executionsWithVirtualObjectAndWithoutDelayedForks.random()
         executionsWithVirtualObjectAndWithoutDelayedForks.remove(state)
         val objects = state.meta.objectsWithoutConcreteTypes!!.map { it.interpretedObj }
-        val typeStreams = objects.map { it.getTypeStream() }
+        val typeStreams = objects.map { it.getTypeStream() ?: typeSystem.topTypeStream() }
         if (typeStreams.any { it.take(2).size < 2 }) {
             return generateStateWithConcretizedTypeWithoutDelayedForks()
         }

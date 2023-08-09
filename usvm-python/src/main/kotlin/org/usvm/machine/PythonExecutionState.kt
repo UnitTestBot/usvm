@@ -26,7 +26,8 @@ class PythonExecutionState(
     callStack: UCallStack<PythonCallable, SymbolicHandlerEvent<Any>> = UCallStack(),
     path: PersistentList<SymbolicHandlerEvent<Any>> = persistentListOf(),
     var delayedForks: PersistentList<DelayedFork> = persistentListOf(),
-    private val mocks: MutableMap<MockHeader, UMockSymbol<UAddressSort>> = mutableMapOf()
+    private val mocks: MutableMap<MockHeader, UMockSymbol<UAddressSort>> = mutableMapOf(),
+    val mockedObjects: MutableSet<SymbolForCPython> = mutableSetOf()
 ): UState<PythonType, PropertyOfPythonObject, PythonCallable, SymbolicHandlerEvent<Any>>(ctx, callStack, pathConstraints, memory, listOf(uModel), path) {
     override fun clone(newConstraints: UPathConstraints<PythonType>?): PythonExecutionState {
         val newPathConstraints = newConstraints ?: pathConstraints.clone()
@@ -41,7 +42,8 @@ class PythonExecutionState(
             callStack,
             path,
             delayedForks,
-            mocks.toMutableMap()  // copy
+            mocks.toMutableMap(),  // copy
+            mockedObjects.toMutableSet()  // copy
         )
     }
     override val isExceptional: Boolean = false  // TODO
@@ -65,6 +67,7 @@ class PythonExecutionState(
         val (result, newMocker) = memory.mocker.call(what.method, what.args.map { it.obj.address }.asSequence(), ctx.addressSort)
         memory.mocker = newMocker
         mocks[what] = result
+        what.methodOwner?.let { mockedObjects.add(it) }
         return MockResult(UninterpretedSymbolicPythonObject(result), true, result)
     }
 }
