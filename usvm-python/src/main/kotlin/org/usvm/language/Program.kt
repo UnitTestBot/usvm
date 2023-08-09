@@ -33,7 +33,6 @@ class StructuredPythonProgram(private val roots: Set<File>): PythonProgram(roots
         withAdditionalPaths(roots) {
             val namespace = ConcretePythonInterpreter.getNewNamespace()
             ConcretePythonInterpreter.concreteRun(namespace, "import sys")
-            ConcretePythonInterpreter.printPythonObject(ConcretePythonInterpreter.eval(namespace, "sys.path"))
             module.split(".").fold("") { acc, name ->
                 val curModule = acc + name
                 ConcretePythonInterpreter.concreteRun(namespace, "import $curModule")
