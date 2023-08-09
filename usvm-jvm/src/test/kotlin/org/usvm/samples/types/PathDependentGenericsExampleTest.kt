@@ -8,6 +8,7 @@ import org.usvm.test.util.checkers.eq
 
 internal class PathDependentGenericsExampleTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Jacodb Method Builder issue with instanceOf")
     fun testPathDependentGenerics() {
         checkDiscoveredProperties(
             PathDependentGenericsExample::pathDependentGenerics,
