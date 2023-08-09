@@ -11,6 +11,7 @@ import org.usvm.UIsSubtypeExpr
 import org.usvm.UIsSupertypeExpr
 import org.usvm.UNotExpr
 import org.usvm.UOrExpr
+import org.usvm.USizeSort
 import org.usvm.USymbolicHeapRef
 import org.usvm.isSymbolicHeapRef
 import org.usvm.uctx
@@ -32,6 +33,10 @@ open class UPathConstraints<Type> private constructor(
         ctx.typeSystem(),
         equalityConstraints
     ),
+    /**
+     * Specially represented numeric constraints (e.g. >, <, >=, ...).
+     */
+    val numericConstraints: UNumericConstraints<USizeSort> = UNumericConstraints(ctx, sort = ctx.sizeSort)
 ) {
     /**
      * Constraints solved by SMT solver.
@@ -44,6 +49,7 @@ open class UPathConstraints<Type> private constructor(
     open val isFalse: Boolean
         get() = equalityConstraints.isContradicting ||
                 typeConstraints.isContradicting ||
+                numericConstraints.isContradicting ||
                 logicalConstraints.singleOrNull() is UFalse
 
     @Suppress("UNCHECKED_CAST")
@@ -53,6 +59,9 @@ open class UPathConstraints<Type> private constructor(
                 constraint == falseExpr -> contradiction(this)
 
                 constraint == trueExpr || constraint in logicalConstraints -> {}
+
+                numericConstraints.isNumericConstraint(constraint) ->
+                    numericConstraints.addNumericConstraint(constraint)
 
                 constraint is UEqExpr<*> && isSymbolicHeapRef(constraint.lhs) && isSymbolicHeapRef(constraint.rhs) ->
                     equalityConstraints.makeEqual(constraint.lhs as USymbolicHeapRef, constraint.rhs as USymbolicHeapRef)
@@ -90,6 +99,9 @@ open class UPathConstraints<Type> private constructor(
                             notConstraint.subtype as Type
                         )
 
+                        numericConstraints.isNumericConstraint(notConstraint) ->
+                            numericConstraints.addNegatedNumericConstraint(notConstraint)
+
                         notConstraint in logicalConstraints -> contradiction(ctx)
 
                         notConstraint is UOrExpr -> notConstraint.args.forEach { plusAssign(ctx.mkNot(it)) }
@@ -107,7 +119,14 @@ open class UPathConstraints<Type> private constructor(
     open fun clone(): UPathConstraints<Type> {
         val clonedEqualityConstraints = equalityConstraints.clone()
         val clonedTypeConstraints = typeConstraints.clone(clonedEqualityConstraints)
-        return UPathConstraints(ctx, logicalConstraints, clonedEqualityConstraints, clonedTypeConstraints)
+        val clonedNumericConstraints = numericConstraints.clone()
+        return UPathConstraints(
+            ctx = ctx,
+            logicalConstraints = logicalConstraints,
+            equalityConstraints = clonedEqualityConstraints,
+            typeConstraints = clonedTypeConstraints,
+            numericConstraints = clonedNumericConstraints
+        )
     }
 
     protected fun contradiction(ctx: UContext) {
