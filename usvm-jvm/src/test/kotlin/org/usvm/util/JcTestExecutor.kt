@@ -37,7 +37,8 @@ import org.usvm.machine.state.JcState
 import org.usvm.machine.state.localIdx
 import org.usvm.memory.UReadOnlySymbolicMemory
 import org.usvm.model.UModelBase
-import org.usvm.types.takeFirst
+import org.usvm.types.firstOrNull
+import java.util.concurrent.CancellationException
 
 /**
  * A class, responsible for resolving a single [JcTest] for a specific method from a symbolic state.
@@ -76,57 +77,64 @@ class JcTestExecutor(
         val after: JcParametersState
         val uTest = memoryScope.createUTest()
 
-        val execResult = runBlocking {
-            runner.executeAsync(uTest)
-        }
-        val result =
-            when (execResult) {
-                is UTestExecutionSuccessResult -> {
-                    val thisBeforeDescr = execResult.initialState.instanceDescriptor
-                    val thisBefore = thisBeforeDescr?.let { descriptor2ValueConverter.buildObjectFromDescriptor(it) }
-                    val beforeArgsDescr = execResult.initialState.argsDescriptors
-                    val argsBefore = beforeArgsDescr?.let { descriptors ->
-                        descriptors.map { descr ->
-                            descr?.let { descriptor2ValueConverter.buildObjectFromDescriptor(it) }
-                        }
-                    } ?: listOf()
-                    before = JcParametersState(thisBefore, argsBefore)
-                    val thisAfterDescr = execResult.resultState.instanceDescriptor
-                    val thisAfter = thisAfterDescr?.let { descriptor2ValueConverter.buildObjectFromDescriptor(it) }
-                    val afterArgsDescr = execResult.resultState.argsDescriptors
-                    val argsAfter = afterArgsDescr?.let { descriptors ->
-                        descriptors.map { descr ->
-                            descr?.let { descriptor2ValueConverter.buildObjectFromDescriptor(it) }
-                        }
-                    } ?: listOf()
-                    after = JcParametersState(thisAfter, argsAfter)
-                    Result.success(execResult.result?.let { descriptor2ValueConverter.buildObjectFromDescriptor(it) })
-                }
-
-                is UTestExecutionExceptionResult -> {
-                    val exceptionName = execResult.cause.split("\n").first()
-                    val exceptionInstance = Class.forName(exceptionName.substringBefore(":"))
-                        .constructors
-                        .first { it.parameterCount == 0 }
-                        .newInstance() as Throwable
-                    val thisBeforeDescr = execResult.initialState.instanceDescriptor
-                    val thisBefore = thisBeforeDescr?.let { descriptor2ValueConverter.buildObjectFromDescriptor(it) }
-                    val beforeArgsDescr = execResult.initialState.argsDescriptors
-                    val argsBefore = beforeArgsDescr?.let { descriptors ->
-                        descriptors.map { descr ->
-                            descr?.let { descriptor2ValueConverter.buildObjectFromDescriptor(it) }
-                        }
-                    } ?: listOf()
-                    before = JcParametersState(thisBefore, argsBefore)
-                    after = before
-                    Result.failure(exceptionInstance)
-                }
-
-                else -> {
-                    println("RES = $execResult")
-                    error("No result")
-                }
+        val execResult = try {
+            runBlocking {
+                runner.executeAsync(uTest)
             }
+        } catch (e: CancellationException) {
+            return JcTest(
+                method = method,
+                before = JcParametersState(null, listOf()),
+                after = JcParametersState(null, listOf()),
+                result = Result.failure(IllegalAccessException()),
+                coverage = JcCoverage(emptyMap())
+            )
+        }
+        val result = when (execResult) {
+            is UTestExecutionSuccessResult -> {
+                val thisBeforeDescr = execResult.initialState.instanceDescriptor
+                val thisBefore = thisBeforeDescr?.let { descriptor2ValueConverter.buildObjectFromDescriptor(it) }
+                val beforeArgsDescr = execResult.initialState.argsDescriptors
+                val argsBefore = beforeArgsDescr?.let { descriptors ->
+                    descriptors.map { descr ->
+                        descr?.let { descriptor2ValueConverter.buildObjectFromDescriptor(it) }
+                    }
+                } ?: listOf()
+                before = JcParametersState(thisBefore, argsBefore)
+                val thisAfterDescr = execResult.resultState.instanceDescriptor
+                val thisAfter = thisAfterDescr?.let { descriptor2ValueConverter.buildObjectFromDescriptor(it) }
+                val afterArgsDescr = execResult.resultState.argsDescriptors
+                val argsAfter = afterArgsDescr?.let { descriptors ->
+                    descriptors.map { descr ->
+                        descr?.let { descriptor2ValueConverter.buildObjectFromDescriptor(it) }
+                    }
+                } ?: listOf()
+                after = JcParametersState(thisAfter, argsAfter)
+                Result.success(execResult.result?.let { descriptor2ValueConverter.buildObjectFromDescriptor(it) })
+            }
+
+            is UTestExecutionExceptionResult -> {
+                val exceptionName = execResult.cause.split("\n").first()
+                val exceptionInstance =
+                    Class.forName(exceptionName.substringBefore(":")).constructors.first { it.parameterCount == 0 }
+                        .newInstance() as Throwable
+                val thisBeforeDescr = execResult.initialState.instanceDescriptor
+                val thisBefore = thisBeforeDescr?.let { descriptor2ValueConverter.buildObjectFromDescriptor(it) }
+                val beforeArgsDescr = execResult.initialState.argsDescriptors
+                val argsBefore = beforeArgsDescr?.let { descriptors ->
+                    descriptors.map { descr ->
+                        descr?.let { descriptor2ValueConverter.buildObjectFromDescriptor(it) }
+                    }
+                } ?: listOf()
+                before = JcParametersState(thisBefore, argsBefore)
+                after = before
+                Result.failure(exceptionInstance)
+            }
+
+            else -> {
+                error("No result")
+            }
+        }
 
         val coverage = resolveCoverage(method, state)
 
@@ -214,16 +222,27 @@ class JcTestExecutor(
             if (ref.address == NULL_ADDRESS) {
                 return UTestNullExpression(type) to listOf()
             }
+            // to find a type, we need to understand the source of the object
+            val typeStream = if (ref.address <= INITIAL_INPUT_ADDRESS) {
+                // input object
+                model.typeStreamOf(ref)
+            } else {
+                // allocated object
+                memory.typeStreamOf(ref)
+            }.filterBySupertype(type)
+
+            // We filter allocated object type stream, because it could be stored in the input array,
+            // which resolved to a wrong type, since we do not build connections between element types
+            // and array types right now.
+            // In such cases, we need to resolve this element to null.
+
+            val evaluatedType = typeStream.firstOrNull() ?: return UTestNullExpression(type) to listOf()
+
+            // We check for the type stream emptiness firsly and only then for the resolved cache,
+            // because even if the object is already resolved, it could be incompatible with the [type], if it
+            // is an element of an array of the wrong type.
+
             return resolvedCache.getOrElse(ref.address) {
-                // to find a type, we need to understand the source of the object
-                val evaluatedType = if (ref.address <= INITIAL_INPUT_ADDRESS) {
-                    // input object
-                    val typeStream = model.typeStreamOf(ref).filterBySupertype(type)
-                    typeStream.takeFirst() as JcRefType
-                } else {
-                    // allocated object
-                    memory.typeStreamOf(ref).takeFirst()
-                }
                 when (evaluatedType) {
                     is JcArrayType -> resolveArray(ref, heapRef, evaluatedType)
                     is JcClassType -> resolveObject(ref, heapRef, evaluatedType)
