@@ -48,4 +48,17 @@ public class While {
 
         return 2;
     }
+
+    public int while1000slowConstraints(int x, int y, int z) {
+        int t = y;
+        while (y < 1_000) {
+            y++;
+        }
+
+        if (x == y && (t + 1_000 == y)) {
+            return 1;
+        }
+
+        return 2;
+    }
 }
