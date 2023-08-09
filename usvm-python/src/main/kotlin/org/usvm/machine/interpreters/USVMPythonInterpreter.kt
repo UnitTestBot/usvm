@@ -12,11 +12,13 @@ import org.usvm.language.SymbolForCPython
 import org.usvm.language.types.PythonTypeSystem
 import org.usvm.machine.*
 import org.usvm.machine.interpreters.operations.myAssertOnState
+import org.usvm.machine.utils.PyModelHolder
+import org.usvm.utils.withAdditionalPaths
 
 class USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION>(
     private val ctx: UPythonContext,
     private val typeSystem: PythonTypeSystem,
-    program: PythonProgram,
+    private val program: PythonProgram,
     private val callable: PythonUnpinnedCallable,
     private val iterationCounter: IterationCounter,
     private val printErrorMsg: Boolean,
@@ -84,14 +86,16 @@ class USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION>(
             }
 
             try {
-                val result = ConcretePythonInterpreter.concolicRun(
-                    pinnedCallable.asPythonObject,
-                    concrete,
-                    virtualObjects,
-                    symbols,
-                    concolicRunContext,
-                    printErrorMsg
-                )
+                val result = withAdditionalPaths(program.additionalPaths) {  // for the case of inner imports (but they would probably lead to path diversions)
+                    ConcretePythonInterpreter.concolicRun(
+                        pinnedCallable.asPythonObject,
+                        concrete,
+                        virtualObjects,
+                        symbols,
+                        concolicRunContext,
+                        printErrorMsg
+                    )
+                }
                 if (inputs != null) {
                     val serializedResult = pythonObjectSerialization(result)
                     saveRunResult(PythonAnalysisResult(converter, inputs, Success(serializedResult)))

@@ -1,32 +1,60 @@
 import org.usvm.language.PrimitivePythonProgram
 import org.usvm.machine.*
 import org.usvm.language.PythonUnpinnedCallable
-import org.usvm.language.types.PythonAnyType
-import org.usvm.language.types.PythonTypeSystem
-import org.usvm.language.types.pythonInt
-import org.usvm.language.types.pythonList
+import org.usvm.language.types.*
 import org.usvm.machine.interpreters.ConcretePythonInterpreter
+import org.usvm.samples.SamplesBuild
+
+@Suppress("SameParameterValue")
+private fun constructPrimitiveProgram(
+    asString: String,
+    signature: List<PythonType>,
+    functionName: String
+): Pair<PrimitivePythonProgram, PythonUnpinnedCallable> {
+    val program = PrimitivePythonProgram.fromString(asString)
+    val function = PythonUnpinnedCallable.constructCallableFromName(signature, functionName)
+    return program to function
+}
+
+@Suppress("SameParameterValue")
+private fun constructPrimitiveProgramFromStructured(
+    module: String,
+    signature: List<PythonType>,
+    functionName: String
+): Pair<PrimitivePythonProgram, PythonUnpinnedCallable> {
+    val program = SamplesBuild.program.getPrimitiveProgram(module)
+    val function = PythonUnpinnedCallable.constructCallableFromName(signature, functionName)
+    return program to function
+}
 
 fun main() {
     println("Initial sys.path:")
     System.out.flush()
     ConcretePythonInterpreter.printPythonObject(ConcretePythonInterpreter.initialSysPath)
-    val program = PrimitivePythonProgram(
-        """
-        def f(x: list, y: list):
-            x[0][0] += 1
-            assert x < y
-        """.trimIndent()
+    val (program, function) = constructPrimitiveProgramFromStructured(
+        "sample_submodule.SimpleUsageOfModules",
+        listOf(pythonInt),
+        "inner_import"
     )
-    val function = PythonUnpinnedCallable.constructCallableFromName(listOf(pythonList, pythonList), "f")
+    println("sys.path before analysis:")
+    System.out.flush()
+    val namespace = ConcretePythonInterpreter.getNewNamespace()
+    ConcretePythonInterpreter.concreteRun(namespace, "import sys")
+    ConcretePythonInterpreter.printPythonObject(ConcretePythonInterpreter.eval(namespace, "sys.path"))
+    ConcretePythonInterpreter.decref(namespace)
+
+    println("Initial sys.path:")
+    System.out.flush()
+    ConcretePythonInterpreter.printPythonObject(ConcretePythonInterpreter.initialSysPath)
+
     val typeSystem = PythonTypeSystem()
-    val machine = PythonMachine(program, typeSystem, printErrorMsg = true, allowPathDiversion = true) {
+    val machine = PythonMachine(program, typeSystem, printErrorMsg = true) {
         ConcretePythonInterpreter.getPythonObjectRepr(it)
     }
     val start = System.currentTimeMillis()
     val iterations = machine.use { activeMachine ->
         val results: MutableList<PythonAnalysisResult<String>> = mutableListOf()
-        val returnValue = activeMachine.analyze(function, results, maxIterations = 15)
+        val returnValue = activeMachine.analyze(function, results, maxIterations = 15, allowPathDiversion = true)
         results.forEach { (_, inputs, result) ->
             println("INPUT:")
             inputs.map { it.reprFromPythonObject }.forEach { println(it) }

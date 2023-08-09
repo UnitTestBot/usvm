@@ -19,7 +19,6 @@ class PythonMachine<PYTHON_OBJECT_REPRESENTATION>(
     private val program: PythonProgram,
     private val typeSystem: PythonTypeSystem,
     private val printErrorMsg: Boolean = false,
-    private val allowPathDiversion: Boolean = true,
     private val pythonObjectSerialization: (PythonObject) -> PYTHON_OBJECT_REPRESENTATION
 ): UMachine<PythonExecutionState>() {
     private val ctx = UPythonContext(typeSystem)
@@ -28,7 +27,8 @@ class PythonMachine<PYTHON_OBJECT_REPRESENTATION>(
 
     private fun getInterpreter(
         target: PythonUnpinnedCallable,
-        results: MutableList<PythonAnalysisResult<PYTHON_OBJECT_REPRESENTATION>>
+        results: MutableList<PythonAnalysisResult<PYTHON_OBJECT_REPRESENTATION>>,
+        allowPathDiversion: Boolean
     ): USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION> =
         USVMPythonInterpreter(
             ctx,
@@ -79,10 +79,11 @@ class PythonMachine<PYTHON_OBJECT_REPRESENTATION>(
     fun analyze(
         pythonCallable: PythonUnpinnedCallable,
         results: MutableList<PythonAnalysisResult<PYTHON_OBJECT_REPRESENTATION>>,
-        maxIterations: Int = 300
+        maxIterations: Int = 300,
+        allowPathDiversion: Boolean = true
     ): Int {
         val observer = PythonMachineObserver()
-        val interpreter = getInterpreter(pythonCallable, results)
+        val interpreter = getInterpreter(pythonCallable, results, allowPathDiversion)
         val pathSelector = getPathSelector(pythonCallable)
         run(
             interpreter,

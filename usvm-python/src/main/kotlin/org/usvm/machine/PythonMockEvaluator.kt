@@ -1,6 +1,7 @@
 package org.usvm.machine
 
 import org.usvm.*
+import org.usvm.machine.utils.PyModel
 import org.usvm.model.UModelBase
 
 class PythonMockEvaluator(
