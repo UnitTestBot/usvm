@@ -186,7 +186,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
      * Add constraint on [lhs] and [rhs].
      *
      * 1. Rewrite both expressions in the form: a + b + c0
-     * where a and b are terms (e.g. variables or complex expressions)
+     * where a and b are terms (e.g., variables or complex expressions),
      * and c0 is a constant value.
      * See [collectLinearTerms].
      *
@@ -1013,7 +1013,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
             }
         }
 
-        // We must have single constraint for each bias, but we can have multiple biases
+        // We must have a single constraint for each bias, but we can have multiple biases
         // this + bias != value <=> this + (bias - value) != 0
         if (value != zero) {
             return addConcreteDisequality(sub(bias, value), zero, isPrimary)
@@ -1065,7 +1065,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
 
         if (rhsLB != null && (lhsLB == null || rhsLB.value.signedGreater(lhsLB.value))) {
             return addInferredLowerBound(lhsBias, rhs, constraint, rhsLB.value) { bounds ->
-                // we have more strict constraint than current concrete
+                // we have stricter constraint than current concrete
                 bounds.addConcreteLowerBound(lhsBias, rhsLB.value, isPrimary = false)
             }
         }
@@ -1103,7 +1103,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
 
         if (rhsUB != null && (lhsUB == null || rhsUB.value.signedLess(lhsUB.value))) {
             return addUpperBound(lhsBias, rhs, constraint, rhsUB.value) { bounds ->
-                // we have more strict constraint than current concrete
+                // we have stricter constraint than current concrete
                 bounds.addConcreteUpperBound(lhsBias, rhsUB.value, isPrimary = false)
             }
         }
@@ -1130,7 +1130,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
             return this
         }
 
-        // Since we store biases for each constraint it is better to have fewer constraints but more biases
+        // Since we store biases for each constraint, it is better to have fewer constraints but more biases
         // this + bias != rhs + rhsBias <=> this + (bias - rhsBias) != rhs + 0
         if (rhsBias != zero) {
             return addTermsDisequality(sub(lhsBias, rhsBias), rhs, zero)
@@ -1922,7 +1922,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
      *
      * Lower bounds are always inferred from upper bounds of rhs terms
      * and can be skipped in [constraints].
-     * Upper bounds and desequalities are always primary and must be
+     * Upper bounds and disequalities are always primary and must be
      * a part of the [constraints].
      *
      * See [TermConstraintSet].
