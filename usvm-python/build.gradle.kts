@@ -15,6 +15,32 @@ dependencies {
     testImplementation("ch.qos.logback:logback-classic:${Versions.logback}")
 }
 
+val samplesSourceDir = File(projectDir, "src/test/resources/samples")
+val samplesBuildDir = File(project.buildDir, "samples_build")
+val samplesJVMArgs = listOf(
+    "-Dsamples.build.path=${samplesBuildDir.canonicalPath}",
+    "-Dsamples.sources.path=${samplesSourceDir.canonicalPath}"
+)
+
+// temporary
+val installMypyRunner = tasks.register<Exec>("installUtbotMypyRunner") {
+    group = "samples"
+    environment("LD_LIBRARY_PATH" to "$cpythonBuildPath/lib:$cpythonAdapterBuildPath")
+    environment("PYTHONHOME" to cpythonBuildPath)
+    commandLine("$cpythonBuildPath/bin/python3", "-m", "ensurepip")
+    commandLine("$cpythonBuildPath/bin/python3", "-m", "pip", "install", "utbot-mypy-runner==0.2.11")
+}
+
+val buildSamples = tasks.register<JavaExec>("buildSamples") {
+    dependsOn(installMypyRunner)
+    group = "samples"
+    classpath = sourceSets.test.get().runtimeClasspath
+    args = listOf(samplesSourceDir.canonicalPath, samplesBuildDir.canonicalPath, "$cpythonBuildPath/bin/python3")
+    environment("LD_LIBRARY_PATH" to "$cpythonBuildPath/lib:$cpythonAdapterBuildPath")
+    environment("PYTHONHOME" to cpythonBuildPath)
+    mainClass.set("BuildSamplesKt")
+}
+
 val cpythonBuildPath = "${childProjects["cpythonadapter"]!!.buildDir}/cpython_build"
 val cpythonAdapterBuildPath = "${childProjects["cpythonadapter"]!!.buildDir}/lib/main/debug"  // TODO: and release?
 
@@ -30,7 +56,8 @@ fun registerCpython(task: JavaExec, debug: Boolean) = task.apply {
 tasks.register<JavaExec>("manualTestDebug") {
     group = "run"
     registerCpython(this, debug = true)
-    jvmArgs = listOf("-Dlogback.configurationFile=logging/logback-debug.xml") //, "-Xcheck:jni")
+    dependsOn(buildSamples)
+    jvmArgs = samplesJVMArgs + listOf("-Dlogback.configurationFile=logging/logback-debug.xml") //, "-Xcheck:jni")
     classpath = sourceSets.test.get().runtimeClasspath
     mainClass.set("ManualTestKt")
 }
@@ -38,7 +65,8 @@ tasks.register<JavaExec>("manualTestDebug") {
 tasks.register<JavaExec>("manualTestDebugNoLogs") {
     group = "run"
     registerCpython(this, debug = true)
-    jvmArgs = listOf("-Dlogback.configurationFile=logging/logback-info.xml")
+    dependsOn(buildSamples)
+    jvmArgs = samplesJVMArgs + "-Dlogback.configurationFile=logging/logback-info.xml"
     classpath = sourceSets.test.get().runtimeClasspath
     mainClass.set("ManualTestKt")
 }
@@ -46,39 +74,16 @@ tasks.register<JavaExec>("manualTestDebugNoLogs") {
 tasks.register<JavaExec>("manualTestRelease") {
     group = "run"
     registerCpython(this, debug = false)
-    jvmArgs = listOf("-Dlogback.configurationFile=logging/logback-info.xml")
+    dependsOn(buildSamples)
+    jvmArgs = samplesJVMArgs + "-Dlogback.configurationFile=logging/logback-info.xml"
     classpath = sourceSets.test.get().runtimeClasspath
     mainClass.set("ManualTestKt")
 }
 
-val samplesSourceDir = File(projectDir, "src/test/resources/samples")
-val samplesBuildDir = File(project.buildDir, "samples_build")
-
-// temporary
-val installMypyRunner = tasks.register<Exec>("installUtbotMypyRunner") {
-    group = "samples"
-    environment("LD_LIBRARY_PATH" to "$cpythonBuildPath/lib:$cpythonAdapterBuildPath")
-    environment("PYTHONHOME" to cpythonBuildPath)
-    commandLine("$cpythonBuildPath/bin/python3", "-m", "ensurepip")
-    commandLine("$cpythonBuildPath/bin/python3", "-m", "pip", "install", "utbot-mypy-runner==0.2.11")
-}
-
-tasks.register<JavaExec>("buildSamples") {
-    dependsOn(installMypyRunner)
-    group = "samples"
-    classpath = sourceSets.test.get().runtimeClasspath
-    args = listOf(samplesSourceDir.canonicalPath, samplesBuildDir.canonicalPath, "$cpythonBuildPath/bin/python3")
-    environment("LD_LIBRARY_PATH" to "$cpythonBuildPath/lib:$cpythonAdapterBuildPath")
-    environment("PYTHONHOME" to cpythonBuildPath)
-    mainClass.set("BuildSamplesKt")
-}
-
 tasks.test {
-    jvmArgs = listOf(
-        "-Dlogback.configurationFile=logging/logback-info.xml",
-        "-Dsamples.build.path="
-    )
+    jvmArgs = samplesJVMArgs + "-Dlogback.configurationFile=logging/logback-info.xml"
     dependsOn(":usvm-python:cpythonadapter:linkDebug")
+    dependsOn(buildSamples)
     environment("LD_LIBRARY_PATH" to "$cpythonBuildPath/lib:$cpythonAdapterBuildPath")
     environment("LD_PRELOAD" to "$cpythonBuildPath/lib/libpython3.so")
 }

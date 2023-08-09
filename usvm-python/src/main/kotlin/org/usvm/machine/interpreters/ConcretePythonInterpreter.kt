@@ -122,6 +122,14 @@ object ConcretePythonInterpreter {
         return addresses.map { PythonObject(it) }
     }
 
+    fun decref(obj: PythonObject) {
+        pythonAdapter.decref(obj.address)
+    }
+
+    fun decref(namespace: PythonNamespace) {
+        pythonAdapter.decref(namespace.address)
+    }
+
     private fun createTypeQuery(checkMethod: (Long) -> Int): (PythonObject) -> Boolean = { pythonObject ->
         val result = checkMethod(pythonObject.address)
         if (result < 0)
@@ -145,12 +153,14 @@ object ConcretePythonInterpreter {
     }
 
     val initialSysPath: PythonObject
+    val initialSysModules: PythonObject
 
     init {
         pythonAdapter.initializePython()
         val namespace = pythonAdapter.newNamespace
         pythonAdapter.concreteRun(namespace, "import sys, copy")
-        initialSysPath = PythonObject(pythonAdapter.eval(namespace, "copy.deepcopy(sys.path)"))
+        initialSysPath = PythonObject(pythonAdapter.eval(namespace, "copy.copy(sys.path)"))
+        initialSysModules = PythonObject(pythonAdapter.eval(namespace, "copy.copy(sys.modules)"))
         pythonAdapter.decref(namespace)
     }
 }

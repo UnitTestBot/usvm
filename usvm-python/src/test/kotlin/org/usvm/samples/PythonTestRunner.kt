@@ -11,21 +11,17 @@ import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.PythonObject
 import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.AnalysisResultsNumberMatcher
+import org.usvm.utils.withAdditionalPaths
 import java.io.File
 
 open class PythonTestRunner(
-    sourcePath: String,
-    allowPathDiversions: Boolean = false
+    private val module: String,
+    override var options: UMachineOptions = UMachineOptions(),
+    var allowPathDiversions: Boolean = false
 ): TestRunner<PythonTest, PythonUnpinnedCallable, PythonType, PythonCoverage>() {
-    override var options: UMachineOptions = UMachineOptions()
-    // private val buildRoot = System.getProperty("samples.build.path")
-    private val testSources = File(PythonTestRunner::class.java.getResource(sourcePath)!!.file).readText()
     private val typeSystem = PythonTypeSystem()
-    private val machine = PythonMachine(
-        PrimitivePythonProgram(testSources),
-        typeSystem,
-        allowPathDiversion = allowPathDiversions
-    ) { pythonObject ->
+    private val program = SamplesBuild.program.getPrimitiveProgram(module)
+    private val machine = PythonMachine(program, typeSystem) { pythonObject ->
         val typeName = ConcretePythonInterpreter.getPythonObjectTypeName(pythonObject)
         PythonObjectInfo(
             ConcretePythonInterpreter.getPythonObjectRepr(pythonObject),
@@ -40,7 +36,12 @@ open class PythonTestRunner(
     override val runner: (PythonUnpinnedCallable, UMachineOptions) -> List<PythonTest>
         get() = { callable, options ->
             val results: MutableList<PythonTest> = mutableListOf()
-            machine.analyze(callable, results, options.stepLimit?.toInt() ?: 300)
+            machine.analyze(
+                callable,
+                results,
+                options.stepLimit?.toInt() ?: 300,
+                allowPathDiversion = allowPathDiversions
+            )
             results
         }
     override val coverageRunner: (List<PythonTest>) -> PythonCoverage
@@ -51,14 +52,16 @@ open class PythonTestRunner(
         test: PythonTest,
         check: (PythonObject) -> String?
     ): String? {
-        val namespace = ConcretePythonInterpreter.getNewNamespace()
-        ConcretePythonInterpreter.concreteRun(namespace, testSources)
-        val functionRef = target.reference(namespace)
+        val cleanProgram = SamplesBuild.program.getPrimitiveProgram(module)
+        val pinnedCallable = cleanProgram.pinCallable(target)
         val converter = test.inputValueConverter
         converter.restart()
         val args = test.inputValues.map { converter.convert(it.asUExpr) }
         return try {
-            val concreteResult = ConcretePythonInterpreter.concreteRunOnFunctionRef(functionRef, args)
+            val concreteResult =
+                withAdditionalPaths(cleanProgram.additionalPaths) {
+                    ConcretePythonInterpreter.concreteRunOnFunctionRef(pinnedCallable.asPythonObject, args)
+                }
             check(concreteResult)
         } catch (exception: CPythonExecutionException) {
             require(exception.pythonExceptionType != null)
@@ -138,6 +141,15 @@ open class PythonTestRunner(
         }
     }
 
+    protected val compareConcolicAndConcreteTypesIfSuccess:
+                (PythonTest, PythonObject) -> String? = { testFromConcolic, concreteResult ->
+        (testFromConcolic.result as? Success)?.let {
+            val concolic = it.output.typeName
+            val concrete = ConcretePythonInterpreter.getPythonObjectTypeName(concreteResult)
+            if (concolic == concrete) null else "(Success) Expected result type $concrete, got $concolic"
+        }
+    }
+
     protected val compareConcolicAndConcreteTypesIfFail:
                 (PythonTest, PythonObject) -> String? = { testFromConcolic, concreteResult ->
         (testFromConcolic.result as? Fail)?.let {
@@ -155,6 +167,12 @@ open class PythonTestRunner(
                 (PythonTest, PythonObject) -> String? = { testFromConcolic, concreteResult ->
         compareConcolicAndConcreteReprsIfSuccess(testFromConcolic, concreteResult) ?:
                 compareConcolicAndConcreteTypesIfFail(testFromConcolic, concreteResult)
+    }
+
+    protected val compareConcolicAndConcreteTypes:
+                (PythonTest, PythonObject) -> String? = { testFromConcolic, concreteResult ->
+        compareConcolicAndConcreteTypesIfSuccess(testFromConcolic, concreteResult) ?:
+        compareConcolicAndConcreteTypesIfFail(testFromConcolic, concreteResult)
     }
 
     protected fun constructFunction(name: String, signature: List<PythonType>): PythonUnpinnedCallable =

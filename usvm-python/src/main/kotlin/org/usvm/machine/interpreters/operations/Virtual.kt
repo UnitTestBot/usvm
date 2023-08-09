@@ -7,12 +7,12 @@ import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.interpretSymbolicPythonObject
 import org.usvm.isTrue
 import org.usvm.language.*
-import org.usvm.language.types.TypeOfVirtualObject
 import org.usvm.language.types.pythonBool
 import org.usvm.language.types.pythonInt
 import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.PythonObject
 import org.usvm.machine.interpreters.emptyNamespace
+import org.usvm.machine.utils.substituteModel
 
 fun virtualNbBoolKt(context: ConcolicRunContext, on: VirtualPythonObject): Boolean {
     context.curOperation ?: throw UnregisteredVirtualOperation

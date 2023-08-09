@@ -1,4 +1,4 @@
-package org.usvm.machine
+package org.usvm.machine.utils
 
 import org.usvm.language.types.*
 import org.usvm.machine.interpreters.ConcretePythonInterpreter
