@@ -254,6 +254,8 @@ class SimpleListsTest : PythonTestRunner("/samples/SimpleLists.py") {
 
     @Test
     fun testDoubleSubscriptAndCompare() {
+        val oldOptions = options
+        options = UMachineOptions(stepLimit = 15U)
         check2WithConcreteRun(
             constructFunction("double_subscript_and_compare", listOf(pythonList, pythonList)),
             ignoreNumberOfAnalysisResults,
@@ -265,5 +267,6 @@ class SimpleListsTest : PythonTestRunner("/samples/SimpleLists.py") {
                 { _, _, res -> res.repr == "None" }
             )
         )
+        options = oldOptions
     }
 }

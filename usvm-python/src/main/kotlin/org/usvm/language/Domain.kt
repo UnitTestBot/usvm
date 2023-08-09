@@ -5,7 +5,20 @@ import org.usvm.machine.interpreters.PythonNamespace
 import org.usvm.machine.interpreters.PythonObject
 import org.usvm.language.types.PythonType
 
-data class PythonProgram(val asString: String)
+sealed class PythonProgram {
+    abstract fun pinCallable(callable: PythonUnpinnedCallable): PythonPinnedCallable
+}
+
+data class PrimitivePythonProgram(val asString: String): PythonProgram() {
+    private val namespace = ConcretePythonInterpreter.getNewNamespace()
+    init {
+        ConcretePythonInterpreter.concreteRun(namespace, asString)
+    }
+    override fun pinCallable(callable: PythonUnpinnedCallable): PythonPinnedCallable =
+        PythonPinnedCallable(callable.reference(namespace))
+}
+
+abstract class StructuredPythonProgram: PythonProgram()
 
 sealed class PythonCallable
 

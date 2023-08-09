@@ -13,16 +13,18 @@ import org.usvm.solver.USolverBase
 import org.usvm.solver.UTypeSolver
 import org.usvm.types.UTypeSystem
 
-object PythonComponents: UComponents<PropertyOfPythonObject, PythonType, PythonCallable> {
+class PythonComponents(
+    private val typeSystem: PythonTypeSystem
+): UComponents<PropertyOfPythonObject, PythonType, PythonCallable> {
     override fun mkSolver(ctx: UContext): USolverBase<PropertyOfPythonObject, PythonType, PythonCallable> {
         val (translator, decoder) = buildTranslatorAndLazyDecoder<PropertyOfPythonObject, PythonType, PythonCallable>(ctx)
         val softConstraintsProvider = USoftConstraintsProvider<PropertyOfPythonObject, PythonType>(ctx)
         val solver = KZ3Solver(ctx)
         solver.configure { setZ3Option("timeout", 1) }
-        return USolverBase(ctx, solver, UTypeSolver(PythonTypeSystem),  translator, decoder, softConstraintsProvider)
+        return USolverBase(ctx, solver, UTypeSolver(typeSystem),  translator, decoder, softConstraintsProvider)
     }
 
     override fun mkTypeSystem(ctx: UContext): UTypeSystem<PythonType> {
-        return PythonTypeSystem
+        return typeSystem
     }
 }

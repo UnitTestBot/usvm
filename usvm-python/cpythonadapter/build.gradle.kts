@@ -17,7 +17,7 @@ val configCPythonDebug = tasks.register<Exec>("CPythonBuildConfigurationDebug") 
         "$cpythonPath/configure",
         "--enable-shared",
         "--without-static-libpython",
-        "--with-ensurepip=no",
+        "--with-ensurepip=yes",
         "--prefix=$cpythonBuildPath",
         "--disable-test-modules",
         "--with-assertions"
@@ -32,7 +32,7 @@ val configCPythonRelease = tasks.register<Exec>("CPythonBuildConfigurationReleas
         "$cpythonPath/configure",
         "--enable-shared",
         "--without-static-libpython",
-        "--with-ensurepip=no",
+        "--with-ensurepip=yes",
         "--prefix=$cpythonBuildPath",
         "--disable-test-modules",
         "--enable-optimizations"

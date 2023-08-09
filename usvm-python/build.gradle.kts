@@ -16,7 +16,7 @@ dependencies {
 }
 
 val cpythonBuildPath = "${childProjects["cpythonadapter"]!!.buildDir}/cpython_build"
-val cpythonAdapterBuildPath = "${childProjects["cpythonadapter"]!!.buildDir}/lib/main/debug"
+val cpythonAdapterBuildPath = "${childProjects["cpythonadapter"]!!.buildDir}/lib/main/debug"  // TODO: and release?
 
 fun registerCpython(task: JavaExec, debug: Boolean) = task.apply {
     if (debug)
@@ -51,8 +51,33 @@ tasks.register<JavaExec>("manualTestRelease") {
     mainClass.set("ManualTestKt")
 }
 
+val samplesSourceDir = File(projectDir, "src/test/resources/samples")
+val samplesBuildDir = File(project.buildDir, "samples_build")
+
+// temporary
+val installMypyRunner = tasks.register<Exec>("installUtbotMypyRunner") {
+    group = "samples"
+    environment("LD_LIBRARY_PATH" to "$cpythonBuildPath/lib:$cpythonAdapterBuildPath")
+    environment("PYTHONHOME" to cpythonBuildPath)
+    commandLine("$cpythonBuildPath/bin/python3", "-m", "ensurepip")
+    commandLine("$cpythonBuildPath/bin/python3", "-m", "pip", "install", "utbot-mypy-runner==0.2.11")
+}
+
+tasks.register<JavaExec>("buildSamples") {
+    dependsOn(installMypyRunner)
+    group = "samples"
+    classpath = sourceSets.test.get().runtimeClasspath
+    args = listOf(samplesSourceDir.canonicalPath, samplesBuildDir.canonicalPath, "$cpythonBuildPath/bin/python3")
+    environment("LD_LIBRARY_PATH" to "$cpythonBuildPath/lib:$cpythonAdapterBuildPath")
+    environment("PYTHONHOME" to cpythonBuildPath)
+    mainClass.set("BuildSamplesKt")
+}
+
 tasks.test {
-    jvmArgs = listOf("-Dlogback.configurationFile=logging/logback-info.xml")
+    jvmArgs = listOf(
+        "-Dlogback.configurationFile=logging/logback-info.xml",
+        "-Dsamples.build.path="
+    )
     dependsOn(":usvm-python:cpythonadapter:linkDebug")
     environment("LD_LIBRARY_PATH" to "$cpythonBuildPath/lib:$cpythonAdapterBuildPath")
     environment("LD_PRELOAD" to "$cpythonBuildPath/lib/libpython3.so")

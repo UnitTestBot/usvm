@@ -42,23 +42,27 @@ class MypyBuildDirectory(
 
 fun readMypyAnnotationStorageAndInitialErrors(
     pythonPath: String,
-    sourcePath: String,
-    module: String,
-    mypyBuildDir: MypyBuildDirectory
+    sourcePaths: List<String>,
+    modules: List<String>,
+    mypyBuildDir: MypyBuildDirectory,
+    isolated: Boolean = false
 ): Pair<MypyInfoBuild, List<MypyReportLine>> {
+    val pythonArgs = listOf(
+        pythonPath,
+        "-X",
+        "utf8"
+    ) + if (isolated) listOf("-s") else emptyList()
     val result = runCommand(
+        pythonArgs +
         listOf(
-            pythonPath,
-            "-X",
-            "utf8",
             "-m",
             "utbot_mypy_runner",
             "--config",
             mypyBuildDir.configFile.absolutePath,
-            "--sources",
-            sourcePath.modifyWindowsPath(),
-            "--modules",
-            module,
+            "--sources"
+        ) + sourcePaths.map { it.modifyWindowsPath() } +
+        listOf("--modules") + modules +
+        listOf(
             "--annotations_out",
             mypyBuildDir.fileForAnnotationStorage.absolutePath,
             "--mypy_stdout",
@@ -66,10 +70,8 @@ fun readMypyAnnotationStorageAndInitialErrors(
             "--mypy_stderr",
             mypyBuildDir.fileForMypyStderr.absolutePath,
             "--mypy_exit_status",
-            mypyBuildDir.fileForMypyExitStatus.absolutePath,
-            "--module_for_types",
-            module
-        )
+            mypyBuildDir.fileForMypyExitStatus.absolutePath) +
+            if (modules.size == 1) listOf("--module_for_types", modules.first()) else emptyList()
     )
     val stderr = if (mypyBuildDir.fileForMypyStderr.exists()) mypyBuildDir.fileForMypyStderr.readText() else null
     val stdout = if (mypyBuildDir.fileForMypyStdout.exists()) mypyBuildDir.fileForMypyStdout.readText() else null

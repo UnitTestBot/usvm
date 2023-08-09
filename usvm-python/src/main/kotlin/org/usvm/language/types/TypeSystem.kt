@@ -5,7 +5,7 @@ import org.usvm.types.USupportTypeStream
 import org.usvm.types.UTypeStream
 import org.usvm.types.UTypeSystem
 
-object PythonTypeSystem: UTypeSystem<PythonType> {
+open class PythonTypeSystem: UTypeSystem<PythonType> {
     override fun isSupertype(supertype: PythonType, type: PythonType): Boolean {
         if (supertype is VirtualPythonType)
             return supertype.accepts(type)

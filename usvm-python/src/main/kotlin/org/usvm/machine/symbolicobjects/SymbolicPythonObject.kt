@@ -33,23 +33,22 @@ class UninterpretedSymbolicPythonObject(address: UHeapRef): SymbolicPythonObject
 
     fun evalIs(ctx: ConcolicRunContext, type: PythonType): UBoolExpr {
         require(ctx.curState != null)
-        return evalIs(ctx.ctx, ctx.curState!!.pathConstraints.typeConstraints, type)
+        return evalIs(ctx.ctx, ctx.curState!!.pathConstraints.typeConstraints, type, ctx)
     }
 
-    fun rawEvalIs(ctx: ConcolicRunContext, type: PythonType): UBoolExpr {
-        require(ctx.curState != null)
-        return rawEvalIs(ctx.curState!!.pathConstraints.typeConstraints, type)
-    }
-
-    fun evalIs(ctx: UContext, typeConstraints: UTypeConstraints<PythonType>, type: PythonType): UBoolExpr = with(ctx) {
+    fun evalIs(
+        ctx: UContext,
+        typeConstraints: UTypeConstraints<PythonType>,
+        type: PythonType,
+        concolicContext: ConcolicRunContext?
+    ): UBoolExpr {
         var result: UBoolExpr = typeConstraints.evalIsSubtype(address, type)
         if (type is ConcretePythonType)
-            result = result and mkHeapRefEq(address, nullRef).not()
+            result = with(ctx) { result and mkHeapRefEq(address, nullRef).not() }
+        else if (type !is PythonAnyType && concolicContext != null)
+            concolicContext.delayedNonNullObjects.add(this)
         return result
     }
-
-    fun rawEvalIs(typeConstraints: UTypeConstraints<PythonType>, type: PythonType): UBoolExpr =
-        typeConstraints.evalIsSubtype(address, type)
 
     fun setIntContent(ctx: ConcolicRunContext, expr: UExpr<KIntSort>) {
         require(ctx.curState != null)
@@ -131,11 +130,6 @@ class UninterpretedSymbolicPythonObject(address: UHeapRef): SymbolicPythonObject
         val interpreted = interpretSymbolicPythonObject(this, ctx.modelHolder)
         return interpreted.getConcreteType(ctx)
     }
-
-    fun getTypeStreamOfModel(ctx: ConcolicRunContext): UTypeStream<PythonType> {
-        val interpreted = interpretSymbolicPythonObject(this, ctx.modelHolder)
-        return interpreted.getTypeStream(ctx)
-    }
 }
 
 sealed class InterpretedSymbolicPythonObject(
@@ -144,7 +138,6 @@ sealed class InterpretedSymbolicPythonObject(
     abstract fun getConcreteType(ctx: ConcolicRunContext): ConcretePythonType?
     abstract fun getBoolContent(ctx: ConcolicRunContext): KInterpretedValue<KBoolSort>
     abstract fun getIntContent(ctx: ConcolicRunContext): KInterpretedValue<KIntSort>
-    abstract fun getTypeStream(ctx: ConcolicRunContext): UTypeStream<PythonType>
 }
 
 class InterpretedInputSymbolicPythonObject(
@@ -160,11 +153,10 @@ class InterpretedInputSymbolicPythonObject(
     override fun getBoolContent(ctx: ConcolicRunContext): KInterpretedValue<KBoolSort> = getBoolContent(ctx.ctx)
 
     override fun getIntContent(ctx: ConcolicRunContext): KInterpretedValue<KIntSort> = getIntContent(ctx.ctx)
-    override fun getTypeStream(ctx: ConcolicRunContext): UTypeStream<PythonType> = getTypeStream()
 
     fun getFirstType(): PythonType? {
         if (address.address == 0)
-            return PythonTypeSystem.topTypeStream().first()
+            return TypeOfVirtualObject
         return modelHolder.model.getFirstType(address)
     }
     fun getConcreteType(): ConcretePythonType? {
@@ -173,9 +165,9 @@ class InterpretedInputSymbolicPythonObject(
         return modelHolder.model.getConcreteType(address)
     }
 
-    fun getTypeStream(): UTypeStream<PythonType> {
+    fun getTypeStream(): UTypeStream<PythonType>? {
         if (address.address == 0)
-            return PythonTypeSystem.topTypeStream()
+            return null
         return modelHolder.model.uModel.typeStreamOf(address)
     }
 
@@ -211,7 +203,7 @@ class InterpretedAllocatedSymbolicPythonObject(
         return ctx.curState!!.memory.heap.readField(address, IntContent, ctx.ctx.intSort) as KInterpretedValue<KIntSort>
     }
 
-    override fun getTypeStream(ctx: ConcolicRunContext): UTypeStream<PythonType> {
+    fun getTypeStream(ctx: ConcolicRunContext): UTypeStream<PythonType> {
         require(ctx.curState != null)
         return ctx.curState!!.memory.typeStreamOf(address)
     }
