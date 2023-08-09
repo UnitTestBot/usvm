@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 import org.usvm.instrumentation.util.`try`
 import sun.misc.Unsafe
 import java.lang.reflect.*
