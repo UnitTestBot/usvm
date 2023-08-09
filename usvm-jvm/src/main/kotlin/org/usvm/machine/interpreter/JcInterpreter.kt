@@ -2,8 +2,12 @@ package org.usvm.machine.interpreter
 
 import io.ksmt.utils.asExpr
 import mu.KLogging
+import org.jacodb.api.JcArrayType
+import org.jacodb.api.JcClassOrInterface
+import org.jacodb.api.JcClassType
 import org.jacodb.api.JcField
 import org.jacodb.api.JcMethod
+import org.jacodb.api.JcPrimitiveType
 import org.jacodb.api.JcRefType
 import org.jacodb.api.JcType
 import org.jacodb.api.cfg.JcArgument
@@ -26,7 +30,7 @@ import org.jacodb.api.ext.boolean
 import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UBoolExpr
-import org.usvm.UHeapRef
+import org.usvm.UConcreteHeapRef
 import org.usvm.UInterpreter
 import org.usvm.URegisterLValue
 import org.usvm.machine.JcApplicationGraph
@@ -271,7 +275,8 @@ class JcInterpreter(
             ctx,
             scope,
             ::mapLocalToIdxMapper,
-            ::classInstanceAllocator,
+            ::typeInstanceAllocator,
+            ::stringConstantAllocator,
             invokeResolver
         )
 
@@ -294,14 +299,40 @@ class JcInterpreter(
     private val JcInst.nextStmt get() = location.method.instList[location.index + 1]
     private operator fun JcInstList<JcInst>.get(instRef: JcInstRef): JcInst = this[instRef.index]
 
-    private val classInstanceAllocatedRefs = mutableMapOf<String, UHeapRef>()
+    private val stringConstantAllocatedRefs = mutableMapOf<String, UConcreteHeapRef>()
 
-    private fun classInstanceAllocator(type: JcRefType, state: JcState): UHeapRef {
-        // Don't use type.typeName here, because it contains generic parameters
-        val className = type.jcClass.name
-        return classInstanceAllocatedRefs.getOrPut(className) {
+    // Equal string constants must have equal references
+    private fun stringConstantAllocator(value: String, state: JcState): UConcreteHeapRef =
+        stringConstantAllocatedRefs.getOrPut(value) {
+            // Allocate globally unique ref
+            state.memory.heap.allocate()
+        }
+
+    private val typeInstanceAllocatedRefs = mutableMapOf<JcTypeInfo, UConcreteHeapRef>()
+
+    private fun typeInstanceAllocator(type: JcType, state: JcState): UConcreteHeapRef {
+        val typeInfo = resolveTypeInfo(type)
+        return typeInstanceAllocatedRefs.getOrPut(typeInfo) {
             // Allocate globally unique ref
             state.memory.heap.allocate()
         }
     }
+
+    private fun resolveTypeInfo(type: JcType): JcTypeInfo = when (type) {
+        is JcClassType -> JcClassTypeInfo(type.jcClass)
+        is JcPrimitiveType -> JcPrimitiveTypeInfo(type)
+        is JcArrayType -> JcArrayTypeInfo(resolveTypeInfo(type.elementType))
+        else -> error("Unexpected type: $type")
+    }
+
+    private sealed interface JcTypeInfo
+
+    private data class JcClassTypeInfo(val className: String) : JcTypeInfo {
+        // Don't use type.typeName here, because it contains generic parameters
+        constructor(cls: JcClassOrInterface) : this(cls.name)
+    }
+
+    private data class JcPrimitiveTypeInfo(val type: JcPrimitiveType) : JcTypeInfo
+
+    private data class JcArrayTypeInfo(val element: JcTypeInfo) : JcTypeInfo
 }

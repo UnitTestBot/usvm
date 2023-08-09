@@ -18,6 +18,7 @@ import org.jacodb.api.cfg.JcArrayAccess
 import org.jacodb.api.cfg.JcBinaryExpr
 import org.jacodb.api.cfg.JcBool
 import org.jacodb.api.cfg.JcByte
+import org.jacodb.api.cfg.JcCallExpr
 import org.jacodb.api.cfg.JcCastExpr
 import org.jacodb.api.cfg.JcChar
 import org.jacodb.api.cfg.JcClassConstant
@@ -82,6 +83,7 @@ import org.jacodb.impl.types.FieldInfo
 import org.usvm.UArrayIndexLValue
 import org.usvm.UArrayLengthLValue
 import org.usvm.UBvSort
+import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UFieldLValue
 import org.usvm.UHeapRef
@@ -110,7 +112,8 @@ class JcExprResolver(
     private val ctx: JcContext,
     private val scope: JcStepScope,
     private val localToIdx: (JcMethod, JcLocal) -> Int,
-    private val mkClassRef: (JcRefType, JcState) -> UHeapRef,
+    private val mkTypeRef: (JcType, JcState) -> UConcreteHeapRef,
+    private val mkStringConstRef: (String, JcState) -> UConcreteHeapRef,
     private val invokeResolver: JcInvokeResolver,
     private val hardMaxArrayLength: Int = 1_500, // TODO: move to options
 ) : JcExprVisitor<UExpr<out USort>?> {
@@ -271,8 +274,32 @@ class JcExprResolver(
         nullRef
     }
 
-    override fun visitJcStringConstant(value: JcStringConstant): UExpr<out USort> {
-        TODO("String constant")
+    override fun visitJcStringConstant(value: JcStringConstant): UExpr<out USort> = with(ctx) {
+        scope.calcOnState {
+            // String.value type depends on the JVM version
+            val charValues = when (stringValueField.fieldType.ifArrayGetElementType) {
+                cp.char -> value.value.asSequence().map { mkBv(it.code, charSort) }
+                cp.byte -> value.value.encodeToByteArray().asSequence().map { mkBv(it, byteSort) }
+                else -> error("Unexpected string values type: ${stringValueField.fieldType}")
+            }
+
+            val valuesArrayDescriptor = arrayDescriptorOf(stringValueField.fieldType as JcArrayType)
+            val elementType = requireNotNull(stringValueField.fieldType.ifArrayGetElementType)
+            val charArrayRef = memory.malloc(valuesArrayDescriptor, typeToSort(elementType), charValues)
+
+            // overwrite array type because descriptor is element type
+            memory.types.allocate(charArrayRef.address, stringValueField.fieldType)
+
+            // Equal string constants always have equal references
+            val ref = mkStringConstRef(value.value, this)
+
+            // String constants are immutable. Therefore, it is correct to overwrite value and type.
+            val stringValueLValue = UFieldLValue(addressSort, ref, stringValueField.field)
+            memory.write(stringValueLValue, charArrayRef)
+            memory.types.allocate(ref.address, stringType)
+
+            ref
+        }
     }
 
     override fun visitJcMethodConstant(value: JcMethodConstant): UExpr<out USort> {
@@ -283,9 +310,24 @@ class JcExprResolver(
         TODO("Method type")
     }
 
-    override fun visitJcClassConstant(value: JcClassConstant): UExpr<out USort> {
-        TODO("Class constant")
+    private fun JcState.resolveClassRef(type: JcType): UConcreteHeapRef {
+        val ref = mkTypeRef(type, this)
+
+        // Ref type is java.lang.Class
+        memory.types.allocate(ref.address, ctx.classType)
+
+        // Save ref original class type
+        val classRefType = memory.alloc(type)
+        val classRefTypeLValue = UFieldLValue(ctx.addressSort, ref, ctx.classTypeSyntheticField)
+        memory.write(classRefTypeLValue, classRefType)
+
+        return ref
     }
+
+    override fun visitJcClassConstant(value: JcClassConstant): UExpr<out USort> =
+        scope.calcOnState {
+            resolveClassRef(value.klass)
+        }
 
     // endregion
 
@@ -338,24 +380,28 @@ class JcExprResolver(
         }
 
     override fun visitJcVirtualCallExpr(expr: JcVirtualCallExpr): UExpr<out USort>? =
-        resolveInvoke(
-            expr.method,
-            instanceExpr = expr.instance,
-            argumentExprs = expr::args,
-            argumentTypes = { expr.method.parameters.map { it.type } }
-        ) { arguments ->
-            with(invokeResolver) { resolveVirtualInvoke(expr.method.method, arguments) }
+        approximateClassNativeCalls(expr) {
+            resolveInvoke(
+                expr.method,
+                instanceExpr = expr.instance,
+                argumentExprs = expr::args,
+                argumentTypes = { expr.method.parameters.map { it.type } }
+            ) { arguments ->
+                with(invokeResolver) { resolveVirtualInvoke(expr.method.method, arguments) }
+            }
         }
 
     override fun visitJcStaticCallExpr(expr: JcStaticCallExpr): UExpr<out USort>? =
-        resolveInvoke(
-            expr.method,
-            instanceExpr = null,
-            argumentExprs = expr::args,
-            argumentTypes = { expr.method.parameters.map { it.type } }
-        ) { arguments ->
-            with(invokeResolver) {
-                resolveStaticInvoke(expr.method.method, arguments)
+        approximateClassNativeCalls(expr) {
+            resolveInvoke(
+                expr.method,
+                instanceExpr = null,
+                argumentExprs = expr::args,
+                argumentTypes = { expr.method.parameters.map { it.type } }
+            ) { arguments ->
+                with(invokeResolver) {
+                    resolveStaticInvoke(expr.method.method, arguments)
+                }
             }
         }
 
@@ -490,7 +536,7 @@ class JcExprResolver(
                 } else {
                     val sort = ctx.typeToSort(field.fieldType)
                     val classRef = scope.calcOnState {
-                        mkClassRef(field.enclosingType, this)
+                        resolveClassRef(field.enclosingType)
                     }
                     UFieldLValue(sort, classRef, field.field)
                 }
@@ -514,7 +560,7 @@ class JcExprResolver(
             return body()
         }
 
-        val classRef = scope.calcOnState { mkClassRef(type, this) }
+        val classRef = scope.calcOnState { resolveClassRef(type) }
 
         val initializedFlag = staticFieldsInitializedFlag(type, classRef)
 
@@ -779,6 +825,43 @@ class JcExprResolver(
 
     private val classCastExceptionType by lazy {
         ctx.extractJcRefType(ClassCastException::class)
+    }
+
+    /**
+     * TODO: use approximations.
+     *
+     * Approximate java.lang.Class methods that usually appears in static initializers.
+     * */
+    private inline fun approximateClassNativeCalls(
+        expr: JcCallExpr,
+        body: () -> UExpr<out USort>?
+    ): UExpr<out USort>? {
+        if (expr.method.method.enclosingClass != ctx.classType.jcClass) {
+            return body()
+        }
+
+        return when (expr.method.method.name) {
+            /**
+             * Approximate assertions enabled check.
+             * It is correct to enable assertions during analysis.
+             * */
+            "desiredAssertionStatus" -> {
+                ctx.trueExpr
+            }
+
+            /**
+             * Approximate retrieval of class instance for primitives.
+             * */
+            "getPrimitiveClass" -> {
+                val primitiveNameConst = expr.operands.singleOrNull() as? JcStringConstant ?: return body()
+                val primitive = PredefinedPrimitives.of(primitiveNameConst.value, ctx.cp) ?: return body()
+                scope.calcOnState {
+                    resolveClassRef(primitive)
+                }
+            }
+
+            else -> body()
+        }
     }
 
     companion object {
