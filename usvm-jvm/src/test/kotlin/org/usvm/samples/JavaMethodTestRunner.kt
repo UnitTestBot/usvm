@@ -3,8 +3,8 @@ package org.usvm.samples
 import org.jacodb.api.ext.findClass
 import org.jacodb.api.ext.toType
 import org.junit.jupiter.api.TestInstance
-import org.junit.jupiter.api.extension.ExtendWith
 import org.usvm.CoverageZone
+import org.junit.jupiter.api.extension.ExtendWith
 import org.usvm.PathSelectionStrategy
 import org.usvm.UMachineOptions
 import org.usvm.api.JcClassCoverage
