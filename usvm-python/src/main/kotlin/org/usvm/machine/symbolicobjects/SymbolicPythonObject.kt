@@ -6,7 +6,7 @@ import io.ksmt.sort.KIntSort
 import org.usvm.*
 import org.usvm.constraints.UTypeConstraints
 import org.usvm.interpreter.ConcolicRunContext
-import org.usvm.machine.PyModelHolder
+import org.usvm.machine.utils.PyModelHolder
 import org.usvm.machine.interpreters.operations.myAssert
 import org.usvm.language.*
 import org.usvm.language.types.*

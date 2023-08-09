@@ -6,10 +6,7 @@ import org.usvm.language.types.PythonAnyType
 import org.usvm.test.util.checkers.ge
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
-class SimpleTypeInferenceTest: PythonTestRunner("/samples/SimpleTypeInference.py") {
-    init {
-        options = UMachineOptions(stepLimit = 30U)
-    }
+class SimpleTypeInferenceTest: PythonTestRunner("SimpleTypeInference", UMachineOptions(stepLimit = 30U)) {
     @Test
     fun testBoolInput() {
         check1WithConcreteRun(

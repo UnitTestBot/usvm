@@ -8,11 +8,7 @@ import org.usvm.language.types.pythonList
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
-class SimpleListsTest : PythonTestRunner("/samples/SimpleLists.py") {
-    init {
-        options = UMachineOptions(stepLimit = 20U)
-    }
-
+class SimpleListsTest : PythonTestRunner("SimpleLists", UMachineOptions(stepLimit = 20U)) {
     @Test
     fun testSimpleListSample() {
         check2WithConcreteRun(

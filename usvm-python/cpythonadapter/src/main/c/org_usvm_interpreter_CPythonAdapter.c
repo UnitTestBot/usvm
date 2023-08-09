@@ -27,7 +27,11 @@
     PyErr_Restore(type, value, traceback); \
 
 JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_initializePython(JNIEnv *env, jobject cpython_adapter) {
-    Py_Initialize();
+    PyConfig config;
+    PyConfig_InitIsolatedConfig(&config);
+
+    Py_InitializeFromConfig(&config);
+    PyConfig_Clear(&config);
     SET_IS_INITIALIZED(JNI_TRUE);
 }
 
