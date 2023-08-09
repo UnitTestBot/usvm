@@ -1,3 +1,4 @@
+@file:Suppress("UNCHECKED_CAST")
 package org.usvm.instrumentation.testcase.executor
 
 import ReflectionUtils

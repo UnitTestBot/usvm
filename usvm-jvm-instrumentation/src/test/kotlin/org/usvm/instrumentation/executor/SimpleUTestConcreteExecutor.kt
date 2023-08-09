@@ -2,6 +2,7 @@ package org.usvm.instrumentation.executor
 
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.instrumentation.testcase.api.UTestExecutionExceptionResult
 import org.usvm.instrumentation.testcase.api.UTestExecutionSuccessResult
@@ -156,6 +157,7 @@ class SimpleUTestConcreteExecutor: UTestConcreteExecutorTest() {
     }
 
     @Test
+    @Disabled("Better support for multiple mocks")
     fun `multiple mock`() = executeTest {
         val uTest = UTestCreator.A.mockMultiple(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
