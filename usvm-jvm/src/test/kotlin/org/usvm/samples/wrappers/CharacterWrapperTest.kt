@@ -9,7 +9,7 @@ import org.usvm.test.util.checkers.eq
 // TODO failed Kotlin compilation
 internal class CharacterWrapperTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("java.lang.CharacterCache has native calls")
     fun primitiveToWrapperTest() {
         checkDiscoveredProperties(
             CharacterWrapper::primitiveToWrapper,
@@ -20,7 +20,7 @@ internal class CharacterWrapperTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("java.lang.CharacterCache has native calls")
     fun wrapperToPrimitiveTest() {
         checkDiscoveredProperties(
             CharacterWrapper::wrapperToPrimitive,

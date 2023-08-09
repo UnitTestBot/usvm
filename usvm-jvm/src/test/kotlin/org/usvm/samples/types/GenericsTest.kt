@@ -20,7 +20,7 @@ internal class GenericsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("org.jacodb.impl.fs.ByteCodeConverterKt: java.lang.OutOfMemoryError: Java heap space")
     fun genericAsFieldTest() {
         checkDiscoveredProperties(
             Generics<*>::genericAsField,

@@ -23,7 +23,7 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
 //    }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("JcTypedMethodImpl.getParameters: Index 3 out of bounds for length 3")
     fun testGetter() {
         checkDiscoveredProperties(
             ClassWithEnum::useGetter,
@@ -34,7 +34,7 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("JcTypedMethodImpl.getParameters: Index 0 out of bounds for length 0")
     fun testDifficultIfBranch() {
         checkDiscoveredProperties(
             ClassWithEnum::useEnumInDifficultIf,
@@ -56,7 +56,7 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("JcTypedMethodImpl.getParameters: Index 3 out of bounds for length 3")
     fun testNullField() {
         checkDiscoveredPropertiesWithExceptions(
             ClassWithEnum::nullField,
@@ -68,7 +68,7 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("JcTypedMethodImpl.getParameters: Index 3 out of bounds for length 3")
     fun testChangeEnum() {
         checkDiscoveredPropertiesWithExceptions(
             ClassWithEnum::changeEnum,
@@ -79,7 +79,7 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("JcTypedMethodImpl.getParameters: Index 3 out of bounds for length 3")
     fun testChangeMutableField() {
         checkDiscoveredPropertiesWithExceptions(
             ClassWithEnum::changeMutableField,
@@ -90,7 +90,7 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("JcTypedMethodImpl.getParameters: Index 3 out of bounds for length 3")
     fun testCheckName() {
         checkDiscoveredProperties(
             ClassWithEnum::checkName,
@@ -149,7 +149,7 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
 //    }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("JcTypedMethodImpl.getParameters: Index 3 out of bounds for length 3")
     fun testFromCode() {
         checkDiscoveredProperties(
             StatusEnum::fromCode,
@@ -161,7 +161,7 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("JcTypedMethodImpl.getParameters: Index 3 out of bounds for length 3")
     fun testFromIsReady() {
         checkDiscoveredProperties(
             StatusEnum::fromIsReady,
@@ -172,7 +172,7 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("JcTypedMethodImpl.getParameters: Index 3 out of bounds for length 3")
     fun testPublicGetCodeMethod() {
         checkThisAndParamsMutations(
             StatusEnum::publicGetCode,
@@ -183,7 +183,7 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("JcTypedMethodImpl.getParameters: Index 0 out of bounds for length 0")
     fun testImplementingInterfaceEnumInDifficultBranch() {
         checkDiscoveredProperties(
             ClassWithEnum::implementingInterfaceEnumInDifficultBranch,

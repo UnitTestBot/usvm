@@ -11,7 +11,7 @@ import kotlin.math.min
 
 internal class MinStackExampleTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Not implemented: class constant")
+    @Disabled("java.lang.Math#<clinit>() has native calls")
     fun testCreate() {
         checkDiscoveredProperties(
             MinStackExample::create,
@@ -68,7 +68,7 @@ internal class MinStackExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("java.lang.Math#<clinit>() has native calls")
     fun testRemoveValue() {
         checkDiscoveredProperties(
             MinStackExample::removeValue,

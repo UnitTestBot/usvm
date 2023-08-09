@@ -47,7 +47,6 @@ internal class CastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testFromObjectToPrimitive() {
         checkDiscoveredProperties(
             CastExample::fromObjectToPrimitive,
