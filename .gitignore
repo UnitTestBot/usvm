@@ -11,3 +11,6 @@ buildSrc/.gradle
 
 # Ignore vim cache
 *.swp
+
+# Ignore Python execution cache
+__pycache__/

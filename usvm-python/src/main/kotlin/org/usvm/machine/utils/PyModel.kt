@@ -1,4 +1,4 @@
-package org.usvm.machine
+package org.usvm.machine.utils
 
 import io.ksmt.expr.KInterpretedValue
 import org.usvm.*
@@ -7,6 +7,7 @@ import org.usvm.language.PropertyOfPythonObject
 import org.usvm.language.types.ConcretePythonType
 import org.usvm.language.types.PythonType
 import org.usvm.language.types.TypeOfVirtualObject
+import org.usvm.machine.PythonExecutionState
 import org.usvm.model.UModelBase
 
 @Suppress("unchecked_cast")

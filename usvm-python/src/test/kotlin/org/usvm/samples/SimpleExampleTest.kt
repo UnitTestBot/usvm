@@ -1,12 +1,13 @@
 package org.usvm.samples
 
 import org.junit.jupiter.api.Test
+import org.usvm.language.PythonUnpinnedCallable
 import org.usvm.language.types.pythonInt
 import org.usvm.language.types.pythonBool
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
-class SimpleExampleTest : PythonTestRunner("/samples/SimpleExample.py") {
+class SimpleExampleTest : PythonTestRunner("SimpleExample") {
 
     @Test
     fun testManyBranches() {
@@ -125,6 +126,20 @@ class SimpleExampleTest : PythonTestRunner("/samples/SimpleExample.py") {
             /* propertiesToDiscover = */ listOf(
                 { _, res -> res.selfTypeName == "AssertionError" },
                 { _, res -> res.repr == "None" }
+            )
+        )
+    }
+
+    @Test
+    fun testSimpleLambda() {
+        check1WithConcreteRun(
+            PythonUnpinnedCallable.constructLambdaFunction(listOf(pythonInt), "lambda x: 1 if x == 157 else 0"),
+            eq(2),
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ listOf { x, res -> x.typeName == "int" && res.typeName == "int" },
+            /* propertiesToDiscover = */ listOf(
+                { x, res -> res.repr == "1" && x.repr == "157" },
+                { _, res -> res.repr == "0" }
             )
         )
     }

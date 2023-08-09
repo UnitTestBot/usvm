@@ -10,6 +10,7 @@ import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.language.*
 import org.usvm.language.types.PythonType
 import org.usvm.language.types.TypeOfVirtualObject
+import org.usvm.machine.utils.PyModel
 import org.usvm.memory.UMemoryBase
 import org.usvm.model.UModelBase
 import org.usvm.types.UTypeStream
