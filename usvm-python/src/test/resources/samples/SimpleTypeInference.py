@@ -77,6 +77,8 @@ def multiply_and_compare(x, y):
 def subscript_and_isinstance(x):
     if isinstance(x[5], bool):
         return 1
-    elif isinstance(x[3], type(None)):
+    elif isinstance(x[5], int):
         return 2
-    return 3
+    elif isinstance(x[3], type(None)):
+        return 3
+    return 4

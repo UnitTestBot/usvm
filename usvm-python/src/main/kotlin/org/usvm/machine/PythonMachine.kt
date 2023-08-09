@@ -7,7 +7,7 @@ import org.usvm.machine.symbolicobjects.InterpretedInputSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.constructInputObject
 import org.usvm.language.*
 import org.usvm.language.types.PythonType
-import org.usvm.machine.interpreters.ConcretePythonInterpreter
+import org.usvm.language.types.PythonTypeSystem
 import org.usvm.machine.interpreters.PythonObject
 import org.usvm.machine.interpreters.USVMPythonInterpreter
 import org.usvm.memory.UMemoryBase
@@ -16,25 +16,30 @@ import org.usvm.solver.USatResult
 import org.usvm.statistics.UMachineObserver
 
 class PythonMachine<PYTHON_OBJECT_REPRESENTATION>(
-    program: PythonProgram,
+    private val program: PythonProgram,
+    private val typeSystem: PythonTypeSystem,
     private val printErrorMsg: Boolean = false,
     private val allowPathDiversion: Boolean = true,
     private val pythonObjectSerialization: (PythonObject) -> PYTHON_OBJECT_REPRESENTATION
 ): UMachine<PythonExecutionState>() {
-    private val ctx = UPythonContext()
+    private val ctx = UPythonContext(typeSystem)
     private val solver = ctx.solver<PropertyOfPythonObject, PythonType, PythonCallable>()
     private val iterationCounter = IterationCounter()
-    private val namespace = ConcretePythonInterpreter.getNewNamespace()
-
-    init {
-        ConcretePythonInterpreter.concreteRun(namespace, program.asString)
-    }
 
     private fun getInterpreter(
         target: PythonUnpinnedCallable,
         results: MutableList<PythonAnalysisResult<PYTHON_OBJECT_REPRESENTATION>>
     ): USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION> =
-        USVMPythonInterpreter(ctx, namespace, target, iterationCounter, printErrorMsg, allowPathDiversion, pythonObjectSerialization) {
+        USVMPythonInterpreter(
+            ctx,
+            typeSystem,
+            program,
+            target,
+            iterationCounter,
+            printErrorMsg,
+            allowPathDiversion,
+            pythonObjectSerialization
+        ) {
             results.add(it)
         }
 
@@ -65,7 +70,7 @@ class PythonMachine<PYTHON_OBJECT_REPRESENTATION>(
     }
 
      private fun getPathSelector(target: PythonUnpinnedCallable): UPathSelector<PythonExecutionState> {
-         val ps = PythonVirtualPathSelector(ctx, DfsPathSelector(), DfsPathSelector(), DfsPathSelector())
+         val ps = PythonVirtualPathSelector(ctx, typeSystem, DfsPathSelector(), DfsPathSelector(), DfsPathSelector())
          val initialState = getInitialState(target)
          ps.add(listOf(initialState))
          return ps

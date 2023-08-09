@@ -166,7 +166,8 @@ class SimpleTypeInferenceTest: PythonTestRunner("/samples/SimpleTypeInference.py
                 { _, res -> res.selfTypeName == "IndexError" },
                 { _, res -> res.repr == "1" },
                 { _, res -> res.repr == "2" },
-                { _, res -> res.repr == "3" }
+                { _, res -> res.repr == "3" },
+                { _, res -> res.repr == "4" }
             )
         )
     }

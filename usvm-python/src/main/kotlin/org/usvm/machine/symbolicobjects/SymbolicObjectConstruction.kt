@@ -23,7 +23,7 @@ fun constructInputObject(
     val address = memory.read(URegisterLValue(ctx.addressSort, stackIndex)) as UExpr<UAddressSort>
     pathConstraints += ctx.mkNot(ctx.mkHeapRefEq(address, ctx.nullRef))
     val result = UninterpretedSymbolicPythonObject(address)
-    pathConstraints += result.evalIs(ctx, pathConstraints.typeConstraints, type)
+    pathConstraints += result.evalIs(ctx, pathConstraints.typeConstraints, type, null)
     return result
 }
 
