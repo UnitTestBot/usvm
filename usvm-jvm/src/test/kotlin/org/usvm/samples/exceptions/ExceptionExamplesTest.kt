@@ -117,6 +117,7 @@ internal class ExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Jacodb Method Builder issue with instanceOf")
     fun testSymbolicExceptions() {
         checkDiscoveredProperties(
             ExceptionExamples::symbolicExceptionCheck,

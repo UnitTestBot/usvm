@@ -1,5 +1,6 @@
 package org.usvm.samples.invokes
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.samples.ast.AstExample
@@ -8,6 +9,7 @@ import org.usvm.test.util.checkers.ge
 
 class AstExampleTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Jacodb Method Builder issue with instanceOf")
     fun testSubstituteAndEvaluate() {
         checkDiscoveredPropertiesWithExceptions(
             AstExample::replaceLeafAndCheck,
