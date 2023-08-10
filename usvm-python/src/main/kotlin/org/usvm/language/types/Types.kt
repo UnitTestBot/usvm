@@ -12,18 +12,39 @@ abstract class VirtualPythonType: PythonType() {
     abstract fun accepts(type: PythonType): Boolean
 }
 
-data class ConcretePythonType(val typeName: String, val asObject: PythonObject): PythonType()
+class ConcretePythonType(
+    val typeName: String,
+    val asObject: PythonObject,
+    val refreshAddress: () -> PythonObject
+): PythonType() {
+    fun refresh(): ConcretePythonType =
+        ConcretePythonType(typeName, refreshAddress(), refreshAddress)
 
-private fun createConcreteType(name: String) = ConcretePythonType(name, ConcretePythonInterpreter.eval(emptyNamespace, name))
+    override fun equals(other: Any?): Boolean {
+        if (other !is ConcretePythonType)
+            return false
+        return asObject == other.asObject
+    }
+
+    override fun hashCode(): Int {
+        return asObject.hashCode()
+    }
+}
+
+private fun createConcreteType(refreshAddress: () -> PythonObject): ConcretePythonType {
+    val address = refreshAddress()
+    val typeName = ConcretePythonInterpreter.getNameOfPythonType(address)
+    return ConcretePythonType(typeName, address, refreshAddress)
+}
+private fun createConcreteType(name: String) = createConcreteType {
+    ConcretePythonInterpreter.eval(emptyNamespace, name)
+}
 
 val pythonInt = createConcreteType("int")
 val pythonBool = createConcreteType("bool")
 val pythonObjectType = createConcreteType("object")
-val pythonNoneType = ConcretePythonType("NoneType", ConcretePythonInterpreter.eval(emptyNamespace, "type(None)"))
+val pythonNoneType = createConcreteType("type(None)")
 val pythonTypeType = createConcreteType("type")
 val pythonList = createConcreteType("list")
 val pythonTuple = createConcreteType("tuple")
-val pythonListIteratorType = ConcretePythonType(
-    "list_iterator",
-    ConcretePythonInterpreter.eval(emptyNamespace, "type(iter([]))")
-)
+val pythonListIteratorType = createConcreteType("type(iter([]))")
