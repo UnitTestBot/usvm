@@ -15,11 +15,11 @@ import org.usvm.ps.DfsPathSelector
 import org.usvm.solver.USatResult
 import org.usvm.statistics.UMachineObserver
 
-class PythonMachine<PYTHON_OBJECT_REPRESENTATION>(
+class PythonMachine<PythonObjectRepresentation>(
     private val program: PythonProgram,
     private val typeSystem: PythonTypeSystem,
-    private val printErrorMsg: Boolean = false,
-    private val pythonObjectSerialization: (PythonObject) -> PYTHON_OBJECT_REPRESENTATION
+    private val serializer: PythonObjectSerializer<PythonObjectRepresentation>,
+    private val printErrorMsg: Boolean = false
 ): UMachine<PythonExecutionState>() {
     private val ctx = UPythonContext(typeSystem)
     private val solver = ctx.solver<PropertyOfPythonObject, PythonType, PythonCallable>()
@@ -28,9 +28,9 @@ class PythonMachine<PYTHON_OBJECT_REPRESENTATION>(
     private fun getInterpreter(
         target: PythonUnpinnedCallable,
         pinnedTarget: PythonPinnedCallable,
-        results: MutableList<PythonAnalysisResult<PYTHON_OBJECT_REPRESENTATION>>,
+        results: MutableList<PythonAnalysisResult<PythonObjectRepresentation>>,
         allowPathDiversion: Boolean
-    ): USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION> =
+    ): USVMPythonInterpreter<PythonObjectRepresentation> =
         USVMPythonInterpreter(
             ctx,
             typeSystem,
@@ -39,7 +39,7 @@ class PythonMachine<PYTHON_OBJECT_REPRESENTATION>(
             iterationCounter,
             printErrorMsg,
             allowPathDiversion,
-            pythonObjectSerialization
+            serializer
         ) {
             results.add(it)
         }
@@ -79,7 +79,7 @@ class PythonMachine<PYTHON_OBJECT_REPRESENTATION>(
 
     fun analyze(
         pythonCallable: PythonUnpinnedCallable,
-        results: MutableList<PythonAnalysisResult<PYTHON_OBJECT_REPRESENTATION>>,
+        results: MutableList<PythonAnalysisResult<PythonObjectRepresentation>>,
         maxIterations: Int = 300,
         allowPathDiversion: Boolean = true
     ): Int = program.withPinnedCallable(pythonCallable) { pinnedCallable ->
@@ -114,23 +114,23 @@ class PythonMachine<PYTHON_OBJECT_REPRESENTATION>(
 
 data class IterationCounter(var iterations: Int = 0)
 
-data class InputObject<PYTHON_OBJECT_REPRESENTATION>(
+data class InputObject<PythonObjectRepresentation>(
     val asUExpr: InterpretedInputSymbolicPythonObject,
     val type: PythonType,
-    val reprFromPythonObject: PYTHON_OBJECT_REPRESENTATION
+    val reprFromPythonObject: PythonObjectRepresentation
 )
 
-sealed class ExecutionResult<PYTHON_OBJECT_REPRESENTATION>
-class Success<PYTHON_OBJECT_REPRESENTATION>(
-    val output: PYTHON_OBJECT_REPRESENTATION
-): ExecutionResult<PYTHON_OBJECT_REPRESENTATION>()
+sealed class ExecutionResult<PythonObjectRepresentation>
+class Success<PythonObjectRepresentation>(
+    val output: PythonObjectRepresentation
+): ExecutionResult<PythonObjectRepresentation>()
 
-class Fail<PYTHON_OBJECT_REPRESENTATION>(
-    val exception: PYTHON_OBJECT_REPRESENTATION
-): ExecutionResult<PYTHON_OBJECT_REPRESENTATION>()
+class Fail<PythonObjectRepresentation>(
+    val exception: PythonObjectRepresentation
+): ExecutionResult<PythonObjectRepresentation>()
 
-data class PythonAnalysisResult<PYTHON_OBJECT_REPRESENTATION>(
+data class PythonAnalysisResult<PythonObjectRepresentation>(
     val inputValueConverter: ConverterToPythonObject,
-    val inputValues: List<InputObject<PYTHON_OBJECT_REPRESENTATION>>,
-    val result: ExecutionResult<PYTHON_OBJECT_REPRESENTATION>
+    val inputValues: List<InputObject<PythonObjectRepresentation>>,
+    val result: ExecutionResult<PythonObjectRepresentation>
 )
