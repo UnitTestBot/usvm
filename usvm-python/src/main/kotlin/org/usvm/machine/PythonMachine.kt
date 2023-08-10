@@ -27,14 +27,15 @@ class PythonMachine<PYTHON_OBJECT_REPRESENTATION>(
 
     private fun getInterpreter(
         target: PythonUnpinnedCallable,
+        pinnedTarget: PythonPinnedCallable,
         results: MutableList<PythonAnalysisResult<PYTHON_OBJECT_REPRESENTATION>>,
         allowPathDiversion: Boolean
     ): USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION> =
         USVMPythonInterpreter(
             ctx,
             typeSystem,
-            program,
             target,
+            pinnedTarget,
             iterationCounter,
             printErrorMsg,
             allowPathDiversion,
@@ -81,9 +82,10 @@ class PythonMachine<PYTHON_OBJECT_REPRESENTATION>(
         results: MutableList<PythonAnalysisResult<PYTHON_OBJECT_REPRESENTATION>>,
         maxIterations: Int = 300,
         allowPathDiversion: Boolean = true
-    ): Int {
+    ): Int = program.withPinnedCallable(pythonCallable) { pinnedCallable ->
+        typeSystem.restart()
         val observer = PythonMachineObserver()
-        val interpreter = getInterpreter(pythonCallable, results, allowPathDiversion)
+        val interpreter = getInterpreter(pythonCallable, pinnedCallable, results, allowPathDiversion)
         val pathSelector = getPathSelector(pythonCallable)
         run(
             interpreter,
@@ -92,7 +94,7 @@ class PythonMachine<PYTHON_OBJECT_REPRESENTATION>(
             isStateTerminated = { it.meta.modelDied },
             stopStrategy = { observer.stateCounter >= 1000 || iterationCounter.iterations >= maxIterations }
         )
-        return iterationCounter.iterations
+        iterationCounter.iterations
     }
 
     override fun close() {

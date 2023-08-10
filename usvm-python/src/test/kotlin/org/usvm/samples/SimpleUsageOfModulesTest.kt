@@ -1,10 +1,12 @@
 package org.usvm.samples
 
 import org.junit.jupiter.api.Test
+import org.usvm.language.types.PythonAnyType
 import org.usvm.language.types.pythonInt
+import org.usvm.runner.PythonTestRunnerForStructuredProgram
 import org.usvm.test.util.checkers.eq
 
-class SimpleUsageOfModulesTest: PythonTestRunner("sample_submodule.SimpleUsageOfModules") {
+class SimpleUsageOfModulesTest: PythonTestRunnerForStructuredProgram("sample_submodule.SimpleUsageOfModules") {
     @Test
     fun testConstructClassInstance() {
         check1WithConcreteRun(
@@ -33,5 +35,21 @@ class SimpleUsageOfModulesTest: PythonTestRunner("sample_submodule.SimpleUsageOf
             )
         )
         allowPathDiversions = false
+    }
+
+    // TODO: fix concrete run
+    @Test
+    fun testSimpleClassIsinstance() {
+        check1(
+            constructFunction("simple_class_isinstance", List(1) { PythonAnyType }),
+            eq(4),
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { x, res -> x.typeName == "int" && res.repr == "2" },
+                { x, res -> x.typeName == "int" && res.selfTypeName == "AssertionError" },
+                { x, res -> x.typeName == "SimpleClass" && res.repr == "1" },
+                { _, res -> res.repr == "3" }
+            )
+        )
     }
 }

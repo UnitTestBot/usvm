@@ -5,10 +5,11 @@ import org.usvm.UMachineOptions
 import org.usvm.language.PythonUnpinnedCallable
 import org.usvm.language.types.pythonInt
 import org.usvm.language.types.pythonList
+import org.usvm.runner.PythonTestRunnerForPrimitiveProgram
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
-class SimpleListsTest : PythonTestRunner("SimpleLists", UMachineOptions(stepLimit = 20U)) {
+class SimpleListsTest : PythonTestRunnerForPrimitiveProgram("SimpleLists", UMachineOptions(stepLimit = 20U)) {
     @Test
     fun testSimpleListSample() {
         check2WithConcreteRun(

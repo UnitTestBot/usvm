@@ -11,7 +11,7 @@ import org.usvm.language.types.pythonObjectType
 
 fun handlerIsinstanceKt(ctx: ConcolicRunContext, obj: UninterpretedSymbolicPythonObject, typeRef: PythonObject): UninterpretedSymbolicPythonObject? = with(ctx.ctx) {
     ctx.curState ?: return null
-    val type = ctx.typeSystem.getConcreteTypeByAddress(typeRef) ?: return null
+    val type = ctx.typeSystem.addressToConcreteType[typeRef] ?: return null
     if (type == pythonObjectType)
         return constructBool(ctx, ctx.ctx.trueExpr)
 
@@ -27,7 +27,7 @@ fun handlerIsinstanceKt(ctx: ConcolicRunContext, obj: UninterpretedSymbolicPytho
 
 fun addConcreteSupertypeKt(ctx: ConcolicRunContext, obj: UninterpretedSymbolicPythonObject, typeRef: PythonObject) {
     ctx.curState ?: return
-    val type = ctx.typeSystem.getConcreteTypeByAddress(typeRef) ?: return
+    val type = ctx.typeSystem.addressToConcreteType[typeRef] ?: return
     obj.addSupertype(ctx, type)
 }
 

@@ -38,7 +38,7 @@ val buildSamples = tasks.register<JavaExec>("buildSamples") {
     args = listOf(samplesSourceDir.canonicalPath, samplesBuildDir.canonicalPath, "$cpythonBuildPath/bin/python3")
     environment("LD_LIBRARY_PATH" to "$cpythonBuildPath/lib:$cpythonAdapterBuildPath")
     environment("PYTHONHOME" to cpythonBuildPath)
-    mainClass.set("BuildSamplesKt")
+    mainClass.set("org.usvm.runner.BuildSamplesKt")
 }
 
 val cpythonBuildPath = "${childProjects["cpythonadapter"]!!.buildDir}/cpython_build"
