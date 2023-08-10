@@ -81,6 +81,7 @@ open class Value2DescriptorConverter(
                 is FloatArray -> array(any, depth + 1)
                 is DoubleArray -> array(any, depth + 1)
                 is Array<*> -> array(any, depth + 1)
+                is Class<*> -> `class`(any)
                 else -> `object`(any, depth + 1)
             }
         }
@@ -145,6 +146,10 @@ open class Value2DescriptorConverter(
         } finally {
             objectToDescriptor.remove(value)
         }
+
+    private fun `class`(value: Any): UTestValueDescriptor {
+        return UTestClassDescriptor(value::class.java.name, jcClasspath.findTypeOrNull<Class<*>>() ?: jcClasspath.objectType)
+    }
 
     private fun `object`(value: Any, depth: Int): UTestValueDescriptor {
         val jcClass = jcClasspath.findClass(value::class.java.name)

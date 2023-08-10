@@ -14,10 +14,10 @@ class Descriptor2ValueConverter(private val workerClassLoader: ClassLoader) {
 
     fun buildObjectFromDescriptor(descriptor: UTestValueDescriptor): Any? =
         descriptorToObject.getOrPut(descriptor) {
-            buildObject(descriptor)
+            build(descriptor)
         }
 
-    private fun buildObject(descriptor: UTestValueDescriptor): Any? =
+    private fun build(descriptor: UTestValueDescriptor): Any? =
         when (descriptor) {
             is UTestArrayDescriptor.Array -> array(descriptor)
             is UTestArrayDescriptor.BooleanArray -> descriptor.value
@@ -46,6 +46,7 @@ class Descriptor2ValueConverter(private val workerClassLoader: ClassLoader) {
             }
             is UTestObjectDescriptor -> `object`(descriptor)
             is UTestEnumValueDescriptor -> `enum`(descriptor)
+            is UTestClassDescriptor -> workerClassLoader.loadClass(descriptor.className)
         }
 
     private fun array(descriptor: UTestArrayDescriptor.Array): Any {

@@ -52,6 +52,7 @@ class UTestValueDescriptorSerializer(private val ctx: SerializationContext) {
                     UTestValueDescriptorKind.CHAR_ARRAY -> deserializeCharArray()
                     UTestValueDescriptorKind.OBJECT_ARRAY -> deserializeArray()
                     UTestValueDescriptorKind.ENUM_VALUE -> deserializeEnumValue()
+                    UTestValueDescriptorKind.CLASS -> deserializeClass()
                 }
             ctx.deserializedDescriptors[id] = deserializedExpression
         }
@@ -83,6 +84,7 @@ class UTestValueDescriptorSerializer(private val ctx: SerializationContext) {
             is UTestObjectDescriptor -> serialize(uTestValueDescriptor)
             is UTestCyclicReferenceDescriptor -> serialize(uTestValueDescriptor)
             is UTestEnumValueDescriptor -> serialize(uTestValueDescriptor)
+            is UTestClassDescriptor -> serialize(uTestValueDescriptor)
         }
     }
 
@@ -428,6 +430,18 @@ class UTestValueDescriptorSerializer(private val ctx: SerializationContext) {
         return UTestObjectDescriptor(jcType, fields, refId)
     }
 
+    private fun AbstractBuffer.serialize(uTestObjectDescriptor: UTestClassDescriptor) =
+        serialize(
+            uTestValueDescriptor = uTestObjectDescriptor,
+            kind = UTestValueDescriptorKind.CLASS,
+            serializeInternals = {},
+            serialize = { writeString(className) }
+        )
+
+    private fun AbstractBuffer.deserializeClass(): UTestClassDescriptor {
+        return UTestClassDescriptor(readString(), jcClasspath.findTypeOrNull<Class<*>>() ?: jcClasspath.objectType)
+    }
+
     private fun AbstractBuffer.serialize(uTestValueDescriptor: UTestEnumValueDescriptor) =
         serialize(
             uTestValueDescriptor = uTestValueDescriptor,
@@ -492,7 +506,8 @@ class UTestValueDescriptorSerializer(private val ctx: SerializationContext) {
         CHAR_ARRAY,
         OBJECT_ARRAY,
         CYCLIC_REF,
-        ENUM_VALUE
+        ENUM_VALUE,
+        CLASS
     }
 
 

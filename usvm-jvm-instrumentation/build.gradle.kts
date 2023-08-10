@@ -40,8 +40,8 @@ kotlin {
 }
 
 dependencies {
-    implementation("com.github.UnitTestBot.jacodb:jacodb-core:${Versions.jcdb}")
-    implementation("com.github.UnitTestBot.jacodb:jacodb-analysis:${Versions.jcdb}")
+    implementation("org.jacodb:jacodb-core:${Versions.jcdb}")
+    implementation("org.jacodb:jacodb-analysis:${Versions.jcdb}")
 
     implementation("com.jetbrains.rd:rd-framework:${Versions.rd}")
     implementation("org.ini4j:ini4j:${Versions.ini4j}")
