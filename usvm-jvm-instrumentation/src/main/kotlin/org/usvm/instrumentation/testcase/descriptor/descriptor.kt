@@ -148,7 +148,7 @@ sealed class UTestArrayDescriptor<T>(
     ) : UTestArrayDescriptor<List<UTestValueDescriptor>>(elementType, length, value), UTestRefDescriptor {
         override fun valueToString() = value.toString()
         override fun structurallyEqual(other: UTestValueDescriptor): Boolean {
-            if (other !is UTestArrayDescriptor.Array) return false
+            if (other !is Array) return false
             if (length != other.length) return false
             if (elementType != other.elementType) return false
             return value.zip(other.value).all { descriptorsAreEqual(it.first, it.second) }
@@ -183,6 +183,16 @@ class UTestEnumValueDescriptor(
         }
         return true
     }
+}
+
+class UTestClassDescriptor(
+    val className: String, override val type: JcType
+): UTestValueDescriptor() {
+    override fun structurallyEqual(other: UTestValueDescriptor): Boolean =
+        other is UTestClassDescriptor && className == other.className
+
+    override fun toString(): String =
+        "UTestClassDescriptor(className = $className)"
 }
 
 //TODO: Avoid recursion via DescriptorPrinter
