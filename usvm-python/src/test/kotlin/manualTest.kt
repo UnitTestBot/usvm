@@ -26,9 +26,7 @@ fun main() {
     System.out.flush()
     ConcretePythonInterpreter.printPythonObject(ConcretePythonInterpreter.initialSysPath)
 
-    val machine = PythonMachine(program, typeSystem, printErrorMsg = true) {
-        ConcretePythonInterpreter.getPythonObjectRepr(it)
-    }
+    val machine = PythonMachine(program, typeSystem, ReprObjectSerializer, printErrorMsg = true)
     val start = System.currentTimeMillis()
     val iterations = machine.use { activeMachine ->
         val results: MutableList<PythonAnalysisResult<String>> = mutableListOf()
