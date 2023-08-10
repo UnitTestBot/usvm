@@ -18,7 +18,6 @@ import org.jacodb.api.cfg.JcArrayAccess
 import org.jacodb.api.cfg.JcBinaryExpr
 import org.jacodb.api.cfg.JcBool
 import org.jacodb.api.cfg.JcByte
-import org.jacodb.api.cfg.JcCallExpr
 import org.jacodb.api.cfg.JcCastExpr
 import org.jacodb.api.cfg.JcChar
 import org.jacodb.api.cfg.JcClassConstant
@@ -109,11 +108,11 @@ import org.usvm.util.extractJcRefType
  * the original state is dead, as stated in [JcStepScope].
  */
 class JcExprResolver(
-    private val ctx: JcContext,
-    private val scope: JcStepScope,
-    private val localToIdx: (JcMethod, JcLocal) -> Int,
-    private val mkTypeRef: (JcType, JcState) -> UConcreteHeapRef,
-    private val mkStringConstRef: (String, JcState) -> UConcreteHeapRef,
+    val ctx: JcContext,
+    val scope: JcStepScope,
+    val localToIdx: (JcMethod, JcLocal) -> Int,
+    val mkTypeRef: (JcType, JcState) -> UConcreteHeapRef,
+    val mkStringConstRef: (String, JcState) -> UConcreteHeapRef,
     private val invokeResolver: JcInvokeResolver,
     private val hardMaxArrayLength: Int = 1_500, // TODO: move to options
 ) : JcExprVisitor<UExpr<out USort>?> {
@@ -128,6 +127,14 @@ class JcExprResolver(
         } else {
             expr.accept(this)
         }
+
+    fun resolveJcNotNullRefExpr(expr: JcExpr, type: JcType): UHeapRef? {
+        check(type is JcRefType) { "Non ref type: $expr" }
+
+        val refExpr = resolveJcExpr(expr, type)?.asExpr(ctx.addressSort) ?: return null
+        checkNullPointer(refExpr) ?: return null
+        return refExpr
+    }
 
     /**
      * Builds a [ULValue] from a [value].
@@ -310,7 +317,7 @@ class JcExprResolver(
         TODO("Method type")
     }
 
-    private fun JcState.resolveClassRef(type: JcType): UConcreteHeapRef {
+    fun JcState.resolveClassRef(type: JcType): UConcreteHeapRef {
         val ref = mkTypeRef(type, this)
 
         // Ref type is java.lang.Class
@@ -380,28 +387,24 @@ class JcExprResolver(
         }
 
     override fun visitJcVirtualCallExpr(expr: JcVirtualCallExpr): UExpr<out USort>? =
-        approximateClassNativeCalls(expr) {
-            resolveInvoke(
-                expr.method,
-                instanceExpr = expr.instance,
-                argumentExprs = expr::args,
-                argumentTypes = { expr.method.parameters.map { it.type } }
-            ) { arguments ->
-                with(invokeResolver) { resolveVirtualInvoke(expr.method.method, arguments) }
-            }
+        resolveInvoke(
+            expr.method,
+            instanceExpr = expr.instance,
+            argumentExprs = expr::args,
+            argumentTypes = { expr.method.parameters.map { it.type } }
+        ) { arguments ->
+            with(invokeResolver) { resolveVirtualInvoke(expr.method.method, arguments) }
         }
 
     override fun visitJcStaticCallExpr(expr: JcStaticCallExpr): UExpr<out USort>? =
-        approximateClassNativeCalls(expr) {
-            resolveInvoke(
-                expr.method,
-                instanceExpr = null,
-                argumentExprs = expr::args,
-                argumentTypes = { expr.method.parameters.map { it.type } }
-            ) { arguments ->
-                with(invokeResolver) {
-                    resolveStaticInvoke(expr.method.method, arguments)
-                }
+        resolveInvoke(
+            expr.method,
+            instanceExpr = null,
+            argumentExprs = expr::args,
+            argumentTypes = { expr.method.parameters.map { it.type } }
+        ) { arguments ->
+            with(invokeResolver) {
+                resolveStaticInvoke(expr.method.method, arguments)
             }
         }
 
@@ -434,7 +437,7 @@ class JcExprResolver(
         instanceExpr: JcValue?,
         argumentExprs: () -> List<JcValue>,
         argumentTypes: () -> List<JcType>,
-        onNoCallPresent: JcStepScope.(List<UExpr<out USort>>) -> Unit,
+        onNoCallPresent: (List<UExpr<out USort>>) -> Unit,
     ): UExpr<out USort>? = ensureStaticFieldsInitialized(method.enclosingType) {
         val arguments = mutableListOf<UExpr<out USort>>()
 
@@ -452,7 +455,7 @@ class JcExprResolver(
     }
 
     private inline fun resolveInvokeNoStaticInitializationCheck(
-        onNoCallPresent: JcStepScope.() -> Unit,
+        onNoCallPresent: () -> Unit,
     ): UExpr<out USort>? {
         val result = scope.calcOnState { methodResult }
         return when (result) {
@@ -462,7 +465,7 @@ class JcExprResolver(
             }
 
             is JcMethodResult.NoCall -> {
-                scope.onNoCallPresent()
+                onNoCallPresent()
                 null
             }
 
@@ -585,7 +588,7 @@ class JcExprResolver(
         scope.doWithState {
             memory.write(initializedFlag, ctx.trueExpr)
         }
-        with(invokeResolver) { scope.resolveStaticInvoke(initializer, emptyList()) }
+        with(invokeResolver) { resolveStaticInvoke(initializer, emptyList()) }
         return null
     }
 
@@ -825,43 +828,6 @@ class JcExprResolver(
 
     private val classCastExceptionType by lazy {
         ctx.extractJcRefType(ClassCastException::class)
-    }
-
-    /**
-     * TODO: use approximations.
-     *
-     * Approximate java.lang.Class methods that usually appears in static initializers.
-     * */
-    private inline fun approximateClassNativeCalls(
-        expr: JcCallExpr,
-        body: () -> UExpr<out USort>?
-    ): UExpr<out USort>? {
-        if (expr.method.method.enclosingClass != ctx.classType.jcClass) {
-            return body()
-        }
-
-        return when (expr.method.method.name) {
-            /**
-             * Approximate assertions enabled check.
-             * It is correct to enable assertions during analysis.
-             * */
-            "desiredAssertionStatus" -> {
-                ctx.trueExpr
-            }
-
-            /**
-             * Approximate retrieval of class instance for primitives.
-             * */
-            "getPrimitiveClass" -> {
-                val primitiveNameConst = expr.operands.singleOrNull() as? JcStringConstant ?: return body()
-                val primitive = PredefinedPrimitives.of(primitiveNameConst.value, ctx.cp) ?: return body()
-                scope.calcOnState {
-                    resolveClassRef(primitive)
-                }
-            }
-
-            else -> body()
-        }
     }
 
     companion object {

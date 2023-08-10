@@ -11,6 +11,7 @@ import org.usvm.UFieldLValue
 import org.usvm.UHeapRef
 import org.usvm.UIndexedMocker
 import org.usvm.ULValue
+import org.usvm.UMockSymbol
 import org.usvm.UMocker
 import org.usvm.URegisterLValue
 import org.usvm.USizeExpr
@@ -91,7 +92,7 @@ open class UMemoryBase<Field, Type, Method>(
     val types: UTypeConstraints<Type>,
     val stack: URegistersStack = URegistersStack(),
     val heap: USymbolicHeap<Field, Type> = URegionHeap(ctx),
-    val mocker: UMocker<Method> = UIndexedMocker(ctx),
+    private var mocker: UMocker<Method> = UIndexedMocker(ctx),
     // TODO: we can eliminate mocker by moving compose to UState?
 ) : USymbolicMemory<Type> {
     @Suppress("UNCHECKED_CAST")
@@ -163,4 +164,10 @@ open class UMemoryBase<Field, Type, Method>(
 
     override fun typeStreamOf(ref: UHeapRef): UTypeStream<Type> =
         types.getTypeStream(ref)
+
+    fun <Sort : USort> mock(body: UMocker<Method>.() -> Pair<UMockSymbol<Sort>, UMocker<Method>>): UMockSymbol<Sort> {
+        val (symbol, updatedMocker) = mocker.body()
+        mocker = updatedMocker
+        return symbol
+    }
 }

@@ -78,12 +78,6 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
             }
         }
 
-        if (checkMode != MATCH_EXECUTIONS) {
-            require(analysisResultsNumberMatcher(analysisResults.size)) {
-                analysisResultsNumberMatcher.matcherFailedMessage(analysisResults.size)
-            }
-        }
-
         val valuesToCheck = analysisResults.map { extractValuesToCheck(it) }
 
         checkTypes(expectedTypesForExtractedValues, valuesToCheck)
@@ -94,7 +88,13 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
 
         when (checkMode) {
             MATCH_EXECUTIONS -> matchExecutions(valuesToCheck, analysisResultsMatchers)
-            MATCH_PROPERTIES -> checkDiscoveredProperties(valuesToCheck, analysisResultsMatchers)
+            MATCH_PROPERTIES -> {
+                checkDiscoveredProperties(valuesToCheck, analysisResultsMatchers)
+
+                require(analysisResultsNumberMatcher(analysisResults.size)) {
+                    analysisResultsNumberMatcher.matcherFailedMessage(analysisResults.size)
+                }
+            }
         }
 
         val coverageResult = coverageRunner(analysisResults)
