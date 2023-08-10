@@ -16,7 +16,7 @@ import org.usvm.machine.interpreters.operations.myAssertOnState
 import org.usvm.machine.utils.PyModelHolder
 import org.usvm.utils.withAdditionalPaths
 
-class USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION>(
+class USVMPythonInterpreter<PythonObjectRepresentation>(
     private val ctx: UPythonContext,
     private val typeSystem: PythonTypeSystem,
     private val unpinnedCallable: PythonUnpinnedCallable,
@@ -24,8 +24,8 @@ class USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION>(
     private val iterationCounter: IterationCounter,
     private val printErrorMsg: Boolean,
     private val allowPathDiversion: Boolean = true,
-    private val pythonObjectSerialization: (PythonObject) -> PYTHON_OBJECT_REPRESENTATION,
-    private val saveRunResult: (PythonAnalysisResult<PYTHON_OBJECT_REPRESENTATION>) -> Unit
+    private val serializer: PythonObjectSerializer<PythonObjectRepresentation>,
+    private val saveRunResult: (PythonAnalysisResult<PythonObjectRepresentation>) -> Unit
 ) : UInterpreter<PythonExecutionState>() {
     private fun getSeeds(
         concolicRunContext: ConcolicRunContext,
@@ -42,11 +42,11 @@ class USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION>(
 
     private fun getInputs(
         converter: ConverterToPythonObject,
-        concrete: List<PythonObject?>,
+        concrete: List<PythonObject>,
         seeds: List<InterpretedInputSymbolicPythonObject>
-    ): List<InputObject<PYTHON_OBJECT_REPRESENTATION>>? =
+    ): List<InputObject<PythonObjectRepresentation>>? =
         if (converter.numberOfVirtualObjectUsages() == 0) {
-            val serializedInputs = concrete.map { it!! }.map(pythonObjectSerialization)
+            val serializedInputs = concrete.map { serializer.serialize(it) }
             (seeds zip unpinnedCallable.signature zip serializedInputs).map { (p, z) ->
                 val (x, y) = p
                 InputObject(x, y, z)
@@ -94,7 +94,7 @@ class USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION>(
                     printErrorMsg
                 )
                 if (inputs != null) {
-                    val serializedResult = pythonObjectSerialization(result)
+                    val serializedResult = serializer.serialize(result)
                     saveRunResult(PythonAnalysisResult(converter, inputs, Success(serializedResult)))
                 }
                 logger.debug("Step result: Successful run. Returned ${ConcretePythonInterpreter.getPythonObjectRepr(result)}")
@@ -110,7 +110,7 @@ class USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION>(
                     ConcretePythonInterpreter.getPythonObjectRepr(exception.pythonExceptionValue)
                 )
                 if (inputs != null) {
-                    val serializedException = pythonObjectSerialization(exception.pythonExceptionType)
+                    val serializedException = serializer.serialize(exception.pythonExceptionType)
                     saveRunResult(PythonAnalysisResult(converter, inputs, Fail(serializedException)))
                 }
             }

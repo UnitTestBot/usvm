@@ -14,26 +14,19 @@ sealed class PythonTestRunner(
     protected val module: String,
     override var options: UMachineOptions = UMachineOptions(),
     protected var allowPathDiversions: Boolean = false
-): TestRunner<PythonTest, PythonUnpinnedCallable, PythonType, PythonCoverage>() {
+): TestRunner<PythonAnalysisResult<PythonObjectInfo>, PythonUnpinnedCallable, PythonType, PythonCoverage>() {
     protected abstract val typeSystem: PythonTypeSystem
     protected abstract val program: PythonProgram
     private val machine by lazy {
-        PythonMachine(program, typeSystem) { pythonObject ->
-            val typeName = ConcretePythonInterpreter.getPythonObjectTypeName(pythonObject)
-            PythonObjectInfo(
-                ConcretePythonInterpreter.getPythonObjectRepr(pythonObject),
-                typeName,
-                if (typeName == "type") ConcretePythonInterpreter.getNameOfPythonType(pythonObject) else null
-            )
-        }
+        PythonMachine(program, typeSystem, StandardPythonObjectSerializer)
     }
     override val typeTransformer: (Any?) -> PythonType
         get() = { _ -> pythonInt }
     override val checkType: (PythonType, PythonType) -> Boolean
         get() = { _, _ -> true }
-    override val runner: (PythonUnpinnedCallable, UMachineOptions) -> List<PythonTest>
+    override val runner: (PythonUnpinnedCallable, UMachineOptions) -> List<PythonAnalysisResult<PythonObjectInfo>>
         get() = { callable, options ->
-            val results: MutableList<PythonTest> = mutableListOf()
+            val results: MutableList<PythonAnalysisResult<PythonObjectInfo>> = mutableListOf()
             machine.analyze(
                 callable,
                 results,
@@ -42,12 +35,12 @@ sealed class PythonTestRunner(
             )
             results
         }
-    override val coverageRunner: (List<PythonTest>) -> PythonCoverage
+    override val coverageRunner: (List<PythonAnalysisResult<PythonObjectInfo>>) -> PythonCoverage
         get() = { _ -> PythonCoverage(0) }
 
     private fun compareWithConcreteRun(
         target: PythonUnpinnedCallable,
-        test: PythonTest,
+        test: PythonAnalysisResult<PythonObjectInfo>,
         check: (PythonObject) -> String?
     ): String? =
         program.withPinnedCallable(target) { pinnedCallable ->
@@ -65,13 +58,13 @@ sealed class PythonTestRunner(
         }
 
     private inline fun <reified FUNCTION_TYPE : Function<Boolean>> createCheckWithConcreteRun(concreteRun: Boolean = true):
-                (PythonUnpinnedCallable, AnalysisResultsNumberMatcher, (PythonTest, PythonObject) -> String?, List<FUNCTION_TYPE>, List<FUNCTION_TYPE>) -> Unit =
+                (PythonUnpinnedCallable, AnalysisResultsNumberMatcher, (PythonAnalysisResult<PythonObjectInfo>, PythonObject) -> String?, List<FUNCTION_TYPE>, List<FUNCTION_TYPE>) -> Unit =
         { target: PythonUnpinnedCallable,
           analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
-          compareConcolicAndConcrete: (PythonTest, PythonObject) -> String?,
+          compareConcolicAndConcrete: (PythonAnalysisResult<PythonObjectInfo>, PythonObject) -> String?,
           invariants: List<FUNCTION_TYPE>,
           propertiesToDiscover: List<FUNCTION_TYPE> ->
-            val onAnalysisResult = { pythonTest: PythonTest ->
+            val onAnalysisResult = { pythonTest: PythonAnalysisResult<PythonObjectInfo> ->
                 val executionResult = when (val result = pythonTest.result) {
                     is Success -> result.output
                     is Fail -> result.exception
@@ -128,7 +121,7 @@ sealed class PythonTestRunner(
         createCheckWithConcreteRun<(PythonObjectInfo, PythonObjectInfo, PythonObjectInfo, PythonObjectInfo) -> Boolean>()
 
     protected val compareConcolicAndConcreteReprsIfSuccess:
-                (PythonTest, PythonObject) -> String? = { testFromConcolic, concreteResult ->
+                (PythonAnalysisResult<PythonObjectInfo>, PythonObject) -> String? = { testFromConcolic, concreteResult ->
         (testFromConcolic.result as? Success)?.let {
             val concolic = it.output.repr
             val concrete = ConcretePythonInterpreter.getPythonObjectRepr(concreteResult)
@@ -137,7 +130,7 @@ sealed class PythonTestRunner(
     }
 
     protected val compareConcolicAndConcreteTypesIfSuccess:
-                (PythonTest, PythonObject) -> String? = { testFromConcolic, concreteResult ->
+                (PythonAnalysisResult<PythonObjectInfo>, PythonObject) -> String? = { testFromConcolic, concreteResult ->
         (testFromConcolic.result as? Success)?.let {
             val concolic = it.output.typeName
             val concrete = ConcretePythonInterpreter.getPythonObjectTypeName(concreteResult)
@@ -146,7 +139,7 @@ sealed class PythonTestRunner(
     }
 
     protected val compareConcolicAndConcreteTypesIfFail:
-                (PythonTest, PythonObject) -> String? = { testFromConcolic, concreteResult ->
+                (PythonAnalysisResult<PythonObjectInfo>, PythonObject) -> String? = { testFromConcolic, concreteResult ->
         (testFromConcolic.result as? Fail)?.let {
             if (ConcretePythonInterpreter.getPythonObjectTypeName(concreteResult) != "type")
                 "Fail in concolic (${it.exception.selfTypeName}), but success in concrete (${ConcretePythonInterpreter.getPythonObjectRepr(concreteResult)})"
@@ -159,13 +152,13 @@ sealed class PythonTestRunner(
     }
 
     protected val standardConcolicAndConcreteChecks:
-                (PythonTest, PythonObject) -> String? = { testFromConcolic, concreteResult ->
+                (PythonAnalysisResult<PythonObjectInfo>, PythonObject) -> String? = { testFromConcolic, concreteResult ->
         compareConcolicAndConcreteReprsIfSuccess(testFromConcolic, concreteResult) ?:
                 compareConcolicAndConcreteTypesIfFail(testFromConcolic, concreteResult)
     }
 
     protected val compareConcolicAndConcreteTypes:
-                (PythonTest, PythonObject) -> String? = { testFromConcolic, concreteResult ->
+                (PythonAnalysisResult<PythonObjectInfo>, PythonObject) -> String? = { testFromConcolic, concreteResult ->
         compareConcolicAndConcreteTypesIfSuccess(testFromConcolic, concreteResult) ?:
         compareConcolicAndConcreteTypesIfFail(testFromConcolic, concreteResult)
     }
@@ -193,15 +186,5 @@ open class PythonTestRunnerForStructuredProgram(
     override fun constructFunction(name: String, signature: List<PythonType>): PythonUnpinnedCallable =
         PythonUnpinnedCallable.constructCallableFromName(signature, name, module)
 }
-
-class PythonObjectInfo(
-    val repr: String,
-    val typeName: String,
-    val selfTypeName: String?
-) {
-    override fun toString(): String = "$repr: $typeName"
-}
-
-typealias PythonTest = PythonAnalysisResult<PythonObjectInfo>
 
 data class PythonCoverage(val int: Int)
