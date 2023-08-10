@@ -1,40 +1,19 @@
 import org.usvm.language.PrimitivePythonProgram
+import org.usvm.language.PythonProgram
 import org.usvm.machine.*
 import org.usvm.language.PythonUnpinnedCallable
 import org.usvm.language.types.*
 import org.usvm.machine.interpreters.ConcretePythonInterpreter
-import org.usvm.samples.SamplesBuild
-
-@Suppress("SameParameterValue")
-private fun constructPrimitiveProgram(
-    asString: String,
-    signature: List<PythonType>,
-    functionName: String
-): Pair<PrimitivePythonProgram, PythonUnpinnedCallable> {
-    val program = PrimitivePythonProgram.fromString(asString)
-    val function = PythonUnpinnedCallable.constructCallableFromName(signature, functionName)
-    return program to function
-}
-
-@Suppress("SameParameterValue")
-private fun constructPrimitiveProgramFromStructured(
-    module: String,
-    signature: List<PythonType>,
-    functionName: String
-): Pair<PrimitivePythonProgram, PythonUnpinnedCallable> {
-    val program = SamplesBuild.program.getPrimitiveProgram(module)
-    val function = PythonUnpinnedCallable.constructCallableFromName(signature, functionName)
-    return program to function
-}
+import org.usvm.runner.SamplesBuild
 
 fun main() {
     println("Initial sys.path:")
     System.out.flush()
     ConcretePythonInterpreter.printPythonObject(ConcretePythonInterpreter.initialSysPath)
-    val (program, function) = constructPrimitiveProgramFromStructured(
+    val (program, function, typeSystem) = constructStructuredProgram(
         "sample_submodule.SimpleUsageOfModules",
-        listOf(pythonInt),
-        "inner_import"
+        listOf(PythonAnyType),
+        "simple_class_isinstance"
     )
     println("sys.path before analysis:")
     System.out.flush()
@@ -47,7 +26,6 @@ fun main() {
     System.out.flush()
     ConcretePythonInterpreter.printPythonObject(ConcretePythonInterpreter.initialSysPath)
 
-    val typeSystem = PythonTypeSystem()
     val machine = PythonMachine(program, typeSystem, printErrorMsg = true) {
         ConcretePythonInterpreter.getPythonObjectRepr(it)
     }
@@ -68,4 +46,46 @@ fun main() {
         returnValue
     }
     println("Finished in ${System.currentTimeMillis() - start} milliseconds. Made $iterations iterations.")
+}
+
+private data class RunConfig(
+    val program: PythonProgram,
+    val target: PythonUnpinnedCallable,
+    val typeSystem: PythonTypeSystem
+)
+
+@Suppress("SameParameterValue")
+private fun constructPrimitiveProgram(
+    asString: String,
+    signature: List<PythonType>,
+    functionName: String
+): RunConfig {
+    val program = PrimitivePythonProgram.fromString(asString)
+    val function = PythonUnpinnedCallable.constructCallableFromName(signature, functionName)
+    val typeSystem = BasicPythonTypeSystem()
+    return RunConfig(program, function, typeSystem)
+}
+
+@Suppress("SameParameterValue")
+private fun constructPrimitiveProgramFromStructured(
+    module: String,
+    signature: List<PythonType>,
+    functionName: String
+): RunConfig {
+    val program = SamplesBuild.program.getPrimitiveProgram(module)
+    val function = PythonUnpinnedCallable.constructCallableFromName(signature, functionName)
+    val typeSystem = BasicPythonTypeSystem()
+    return RunConfig(program, function, typeSystem)
+}
+
+@Suppress("SameParameterValue")
+private fun constructStructuredProgram(
+    module: String,
+    signature: List<PythonType>,
+    functionName: String
+): RunConfig {
+    val program = SamplesBuild.program
+    val function = PythonUnpinnedCallable.constructCallableFromName(signature, functionName, module)
+    val typeSystem = PythonTypeSystemWithMypyInfo(SamplesBuild.mypyBuild, program)
+    return RunConfig(program, function, typeSystem)
 }

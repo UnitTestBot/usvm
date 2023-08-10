@@ -42,18 +42,18 @@ JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_addName
 /*
  * Class:     org_usvm_interpreter_CPythonAdapter
  * Method:    concreteRun
- * Signature: (JLjava/lang/String;)I
+ * Signature: (JLjava/lang/String;Z)I
  */
 JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_concreteRun
-  (JNIEnv *, jobject, jlong, jstring);
+  (JNIEnv *, jobject, jlong, jstring, jboolean);
 
 /*
  * Class:     org_usvm_interpreter_CPythonAdapter
  * Method:    eval
- * Signature: (JLjava/lang/String;)J
+ * Signature: (JLjava/lang/String;Z)J
  */
 JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_eval
-  (JNIEnv *, jobject, jlong, jstring);
+  (JNIEnv *, jobject, jlong, jstring, jboolean);
 
 /*
  * Class:     org_usvm_interpreter_CPythonAdapter
@@ -229,6 +229,22 @@ JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasTpRichcmp
  * Signature: (J)I
  */
 JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasTpIter
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_usvm_interpreter_CPythonAdapter
+ * Method:    typeHasStandardNew
+ * Signature: (J)I
+ */
+JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasStandardNew
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_usvm_interpreter_CPythonAdapter
+ * Method:    callStandardNew
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_callStandardNew
   (JNIEnv *, jobject, jlong);
 
 /*

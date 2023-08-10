@@ -19,14 +19,14 @@ object ConcretePythonInterpreter {
         pythonAdapter.addName(namespace.address, pythonObject.address, name)
     }
 
-    fun concreteRun(globals: PythonNamespace, code: String) {
-        val result = pythonAdapter.concreteRun(globals.address, code)
+    fun concreteRun(globals: PythonNamespace, code: String, printErrorMsg: Boolean = false) {
+        val result = pythonAdapter.concreteRun(globals.address, code, printErrorMsg)
         if (result != 0)
             throw CPythonExecutionException()
     }
 
-    fun eval(globals: PythonNamespace, expr: String): PythonObject {
-        val result = pythonAdapter.eval(globals.address, expr)
+    fun eval(globals: PythonNamespace, expr: String, printErrorMsg: Boolean = false): PythonObject {
+        val result = pythonAdapter.eval(globals.address, expr, printErrorMsg)
         if (result == 0L)
             throw CPythonExecutionException()
         return PythonObject(result)
@@ -147,6 +147,11 @@ object ConcretePythonInterpreter {
     val typeHasMpAssSubscript = createTypeQuery { pythonAdapter.typeHasMpAssSubscript(it) }
     val typeHasTpRichcmp = createTypeQuery { pythonAdapter.typeHasTpRichcmp(it) }
     val typeHasTpIter = createTypeQuery { pythonAdapter.typeHasTpIter(it) }
+    val typeHasStandardNew = createTypeQuery { pythonAdapter.typeHasStandardNew(it) }
+
+    fun callStandardNew(type: PythonObject): PythonObject  {
+        return PythonObject(pythonAdapter.callStandardNew(type.address))
+    }
 
     fun kill() {
         pythonAdapter.finalizePython()
@@ -158,9 +163,10 @@ object ConcretePythonInterpreter {
     init {
         pythonAdapter.initializePython()
         val namespace = pythonAdapter.newNamespace
-        pythonAdapter.concreteRun(namespace, "import sys, copy")
-        initialSysPath = PythonObject(pythonAdapter.eval(namespace, "copy.copy(sys.path)"))
-        initialSysModules = PythonObject(pythonAdapter.eval(namespace, "copy.copy(sys.modules)"))
+        val initialModules = listOf("sys", "copy", "builtins", "ctypes", "array")
+        pythonAdapter.concreteRun(namespace, "import " + initialModules.joinToString(", "), false)
+        initialSysPath = PythonObject(pythonAdapter.eval(namespace, "copy.copy(sys.path)", false))
+        initialSysModules = PythonObject(pythonAdapter.eval(namespace, "copy.copy(sys.modules)", false))
         pythonAdapter.decref(namespace)
     }
 }

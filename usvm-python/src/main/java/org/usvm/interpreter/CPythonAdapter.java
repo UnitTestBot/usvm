@@ -25,8 +25,8 @@ public class CPythonAdapter {
     public native void finalizePython();
     public native long getNewNamespace();  // returns reference to a new dict
     public native void addName(long dict, long object, String name);
-    public native int concreteRun(long globals, String code);  // returns 0 on success
-    public native long eval(long globals, String obj);  // returns PyObject *
+    public native int concreteRun(long globals, String code, boolean print_error_message);  // returns 0 on success
+    public native long eval(long globals, String obj, boolean print_error_message);  // returns PyObject *
     public native long concreteRunOnFunctionRef(long functionRef, long[] concreteArgs);
     public native long concolicRun(long functionRef, long[] concreteArgs, long[] virtualArgs, SymbolForCPython[] symbolicArgs, ConcolicRunContext context, boolean print_error_message);
     public native void printPythonObject(long object);
@@ -49,6 +49,8 @@ public class CPythonAdapter {
     public native int typeHasMpAssSubscript(long type);
     public native int typeHasTpRichcmp(long type);
     public native int typeHasTpIter(long type);
+    public native int typeHasStandardNew(long type);
+    public native long callStandardNew(long type);
     public native Throwable extractException(long exception);
     public native void decref(long object);
 
