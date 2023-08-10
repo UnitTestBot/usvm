@@ -9,9 +9,9 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 import kotlin.math.min
 
-@Disabled("Unsupported")
 internal class ListIteratorsTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [1]")
     fun testReturnIterator() {
         checkDiscoveredProperties(
             ListIterators::returnIterator,
@@ -22,6 +22,7 @@ internal class ListIteratorsTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [1]")
     fun testReturnListIterator() {
         checkDiscoveredProperties(
             ListIterators::returnListIterator,
@@ -32,6 +33,7 @@ internal class ListIteratorsTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Expected exactly 3 executions, but 240 found")
     fun testIterate() {
         checkDiscoveredProperties(
             ListIterators::iterate,
@@ -43,6 +45,7 @@ internal class ListIteratorsTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Expected exactly 3 executions, but 152 found")
     fun testIterateReversed() {
         checkDiscoveredProperties(
             ListIterators::iterateReversed,
@@ -54,6 +57,7 @@ internal class ListIteratorsTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Expected exactly 4 executions, but 328 found")
     fun testIterateForEach() {
         checkDiscoveredProperties(
             ListIterators::iterateForEach,
@@ -66,6 +70,7 @@ internal class ListIteratorsTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [2]")
     fun testAddElements() {
         checkDiscoveredProperties(
             ListIterators::addElements,
@@ -79,6 +84,7 @@ internal class ListIteratorsTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Expected exactly 5 executions, but 203 found")
     fun testSetElements() {
         checkDiscoveredProperties(
             ListIterators::setElements,
@@ -94,6 +100,7 @@ internal class ListIteratorsTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [6]")
     fun testRemoveElements() {
         checkDiscoveredProperties(
             ListIterators::removeElements, // the exact number of the executions depends on the decisions made by PathSelector

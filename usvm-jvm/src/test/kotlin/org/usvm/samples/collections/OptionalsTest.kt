@@ -8,7 +8,6 @@ import org.usvm.test.util.checkers.between
 import org.usvm.test.util.checkers.eq
 import org.usvm.util.isException
 
-@Disabled("Unsupported")
 class OptionalsTest : JavaMethodTestRunner() {
     @Test
     fun testCreate() {
@@ -391,6 +390,7 @@ class OptionalsTest : JavaMethodTestRunner() {
 //    }
 
     @Test
+    @Disabled("No result found")
     fun testEqualOptionals() {
         checkDiscoveredProperties(
             Optionals::equalOptionals,
@@ -403,6 +403,7 @@ class OptionalsTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Expected number of executions in bounds 4..8, but 9 found")
     fun testEqualOptionalsInt() {
         checkDiscoveredProperties(
             Optionals::equalOptionalsInt,
@@ -415,6 +416,7 @@ class OptionalsTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Expected number of executions in bounds 4..8, but 9 found")
     fun testEqualOptionalsLong() {
         checkDiscoveredProperties(
             Optionals::equalOptionalsLong,
@@ -427,6 +429,7 @@ class OptionalsTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Expected number of executions in bounds 4..8, but 12 found")
     fun testEqualOptionalsDouble() {
         checkDiscoveredProperties(
             Optionals::equalOptionalsDouble,
@@ -439,6 +442,7 @@ class OptionalsTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [0]")
     fun testOptionalOfPositive() {
         checkDiscoveredProperties(
             Optionals::optionalOfPositive,

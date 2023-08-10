@@ -9,7 +9,7 @@ import org.usvm.util.isException
 import java.util.Date
 
 class DateExampleTest : JavaMethodTestRunner() {
-    @Disabled("Virtual call: sun.util.calendar.BaseCalendar.Date.getNormalizedYear")
+    @Disabled("Some properties were not discovered at positions (from 0): [4]")
     @Suppress("SpellCheckingInspection")
     @Tag("slow")
     @Test
@@ -39,7 +39,7 @@ class DateExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sequence is empty.")
+    @Disabled("Expected exactly 3 executions, but 20 found")
     fun testGetTimeWithoutReflection() {
         checkDiscoveredPropertiesWithExceptions(
             DateExample::getTime,

@@ -158,7 +158,6 @@ internal class PrimitiveArraysTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [2]")
     fun testCharSizeAndIndex() {
         checkDiscoveredProperties(
             PrimitiveArrays::charSizeAndIndex,

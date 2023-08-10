@@ -15,7 +15,7 @@ import org.usvm.util.UsvmTest
 @Suppress("ConvertTwoComparisonsToRangeCheck")
 internal class IntExamplesTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("No entrypoint found for method: java.lang.StringUTF16#isBigEndian()")
+    @Disabled("Some properties were not discovered at positions (from 0): [0]")
     fun testIsInteger() {
         val method = IntExamples::isInteger
         checkDiscoveredProperties(

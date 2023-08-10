@@ -97,7 +97,6 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Disjunction in if statement covered by only one execution")
     fun testEquality() {
         checkDiscoveredProperties(
             IntArrayBasics::equality,
@@ -123,7 +122,7 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [3, 4, 5]. Tune path selectors")
+    @Disabled("Some properties were not discovered at positions (from 0): [4, 5]. Tune path selectors")
     fun testMergeArrays() {
         checkDiscoveredProperties(
             IntArrayBasics::mergeArrays,
@@ -179,7 +178,6 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [3]. Fix branch coverage")
     fun testReversed() {
         checkDiscoveredProperties(
             IntArrayBasics::reversed,
@@ -193,7 +191,7 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method")
+    @Disabled("Some properties were not discovered at positions (from 0): [2]")
     fun testUpdateCloned() {
         checkDiscoveredProperties(
             IntArrayBasics::updateCloned,
@@ -205,7 +203,7 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: class constant")
+    @Disabled("Some properties were not discovered at positions (from 0): [0]")
     fun testArraysEqualsExample() {
         checkDiscoveredProperties(
             IntArrayBasics::arrayEqualsExample,

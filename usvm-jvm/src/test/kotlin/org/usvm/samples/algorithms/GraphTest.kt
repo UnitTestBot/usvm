@@ -36,7 +36,7 @@ internal class GraphTest : JavaMethodTestRunner() {
      * TODO: fix Dijkstra algorithm.
      */
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [3, 4]. Tune coverage zone")
+    @Disabled("Some properties were not discovered at positions (from 0): [3]. Tune coverage zone")
     fun testRunDijkstraWithParameter() {
         checkDiscoveredPropertiesWithExceptions(
             GraphExample::runDijkstraWithParameter,

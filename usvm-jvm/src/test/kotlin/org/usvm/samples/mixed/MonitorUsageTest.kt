@@ -8,7 +8,6 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 internal class MonitorUsageTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Unknown stmt: enter monitor this")
     fun testSimpleMonitor() {
         checkDiscoveredProperties(
             MonitorUsage::simpleMonitor,

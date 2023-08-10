@@ -8,7 +8,7 @@ import org.usvm.test.util.checkers.eq
 
 class PredicateNotExampleTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("class org.jacodb.api.PredefinedPrimitive cannot be cast to class org.jacodb.api.JcRefType")
+    @Disabled("Some properties were not discovered at positions (from 0): [0, 1]")
     fun testPredicateNotExample() {
         checkDiscoveredProperties(
             PredicateNotExample::predicateNotExample,

@@ -41,7 +41,7 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 4 executions, but 1 found")
+    @Disabled("Some properties were not discovered at positions (from 0): [0, 1, 2, 3]")
     fun testCreateNewMultiDimensionalArray() {
         checkDiscoveredProperties(
             ArrayOfArrays::createNewMultiDimensionalArray,
@@ -94,7 +94,7 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 7 executions, but 11 found")
+    @Disabled("Expected exactly 7 executions, but 12 found")
     fun testSimpleExample() {
         checkDiscoveredProperties(
             ArrayOfArrays::simpleExample,
@@ -110,7 +110,7 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 7 executions, but 11 found")
+    @Disabled("Expected exactly 7 executions, but 12 found")
     fun testSimpleExampleMutation() {
         checkThisAndParamsMutations(
             ArrayOfArrays::simpleExample,
@@ -126,7 +126,7 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
+    @Disabled("Some properties were not discovered at positions (from 0): [6, 7]")
     fun testIsIdentityMatrix() {
         checkDiscoveredProperties(
             ArrayOfArrays::isIdentityMatrix,
@@ -181,7 +181,6 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun testReallyMultiDimensionalArray() {
         checkDiscoveredProperties(
             ArrayOfArrays::reallyMultiDimensionalArray,
@@ -208,7 +207,6 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun testReallyMultiDimensionalArrayMutation() {
         checkThisAndParamsMutations(
             ArrayOfArrays::reallyMultiDimensionalArray,
@@ -224,7 +222,6 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
     fun testMultiDimensionalObjectsArray() {
         checkDiscoveredProperties(
             ArrayOfArrays::multiDimensionalObjectsArray,
@@ -245,7 +242,6 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
     fun testMultiDimensionalObjectsArrayMutation() {
         checkThisAndParamsMutations(
             ArrayOfArrays::multiDimensionalObjectsArray,
@@ -283,7 +279,6 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some types don't match at positions (from 0): [1]. ")
     fun testFillMultiArrayWithArrayMutation() {
         checkThisAndParamsMutations(
             ArrayOfArrays::fillMultiArrayWithArray,
@@ -298,7 +293,7 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 2 executions, but 4 found")
+    @Disabled("Some properties were not discovered at positions (from 0): [1]")
     fun testArrayWithItselfAnAsElement() {
         checkDiscoveredProperties(
             ArrayOfArrays::arrayWithItselfAnAsElement,

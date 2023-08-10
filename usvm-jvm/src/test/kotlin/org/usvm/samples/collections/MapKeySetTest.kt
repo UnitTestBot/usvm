@@ -9,9 +9,9 @@ import org.usvm.test.util.checkers.ge
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import org.usvm.util.isException
 
-@Disabled("Unsupported")
 class MapKeySetTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [1, 2]")
     fun testRemoveFromKeySet() {
         checkDiscoveredPropertiesWithExceptions(
             MapKeySet::removeFromKeySet,
@@ -29,6 +29,7 @@ class MapKeySetTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [1]")
     fun testAddToKeySet() {
         checkDiscoveredPropertiesWithExceptions(
             MapKeySet::addToKeySet,
@@ -39,6 +40,7 @@ class MapKeySetTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [1, 2]")
     fun testGetFromKeySet() {
         checkDiscoveredProperties(
             MapKeySet::getFromKeySet, // branches with null keys may appear
@@ -50,6 +52,7 @@ class MapKeySetTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [2]")
     fun testIteratorHasNext() {
         checkDiscoveredProperties(
             MapKeySet::iteratorHasNext,
@@ -61,6 +64,7 @@ class MapKeySetTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [1, 2]")
     fun testIteratorNext() {
         checkDiscoveredPropertiesWithExceptions(
             MapKeySet::iteratorNext,
@@ -73,6 +77,7 @@ class MapKeySetTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [1, 2]")
     fun testIteratorRemove() {
         checkDiscoveredPropertiesWithExceptions(
             MapKeySet::iteratorRemove,
@@ -91,6 +96,7 @@ class MapKeySetTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [2, 3, 4]")
     fun testIteratorRemoveOnIndex() {
         checkDiscoveredPropertiesWithExceptions(
             MapKeySet::iteratorRemoveOnIndex,
@@ -111,6 +117,7 @@ class MapKeySetTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [1, 2]")
     fun testIterateForEach() {
         checkDiscoveredProperties(
             MapKeySet::iterateForEach,
@@ -122,6 +129,7 @@ class MapKeySetTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [1, 2]")
     fun testIterateWithIterator() {
         checkDiscoveredProperties(
             MapKeySet::iterateWithIterator,
@@ -133,6 +141,7 @@ class MapKeySetTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [1, 2]")
     fun testNullKey() {
         checkDiscoveredProperties(
             MapKeySet::nullKey,

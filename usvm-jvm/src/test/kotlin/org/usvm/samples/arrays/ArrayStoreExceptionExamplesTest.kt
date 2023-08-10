@@ -8,11 +8,10 @@ import org.usvm.util.isException
 
 class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1]. Fix branch coverage")
     fun testCorrectAssignmentSamePrimitiveType() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::correctAssignmentSamePrimitiveType,
-            eq(2),
+            eq(3),
             { _, data, result -> result.isSuccess && result.getOrNull() == false && data == null },
             { _, data, result -> result.isSuccess && result.getOrNull() == false && data != null && data.isEmpty() },
             { _, data, result -> result.isSuccess && result.getOrNull() == true && data != null && data.isNotEmpty() }
@@ -20,7 +19,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("Some properties were not discovered at positions (from 0): [0]")
     fun testCorrectAssignmentIntToIntegerArray() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::correctAssignmentIntToIntegerArray,
@@ -30,7 +29,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("Some properties were not discovered at positions (from 0): [0]")
     fun testCorrectAssignmentSubtype() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::correctAssignmentSubtype,
@@ -40,7 +39,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("Some properties were not discovered at positions (from 0): [0]")
     fun testCorrectAssignmentToObjectArray() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::correctAssignmentToObjectArray,
@@ -50,7 +49,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("Some properties were not discovered at positions (from 0): [2]")
     fun testWrongAssignmentUnrelatedType() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::wrongAssignmentUnrelatedType,
@@ -62,7 +61,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("Some properties were not discovered at positions (from 0): [0]")
     fun testCheckGenericAssignmentWithCorrectCast() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkGenericAssignmentWithCorrectCast,
@@ -72,7 +71,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("Some properties were not discovered at positions (from 0): [0]")
     fun testCheckGenericAssignmentWithWrongCast() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkGenericAssignmentWithWrongCast,
@@ -82,7 +81,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("Some properties were not discovered at positions (from 0): [0]")
     fun testCheckGenericAssignmentWithExtendsSubtype() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkGenericAssignmentWithExtendsSubtype,
@@ -92,7 +91,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("Some properties were not discovered at positions (from 0): [0]")
     fun testCheckGenericAssignmentWithExtendsUnrelated() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkGenericAssignmentWithExtendsUnrelated,
@@ -102,7 +101,6 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testCheckObjectAssignment() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkObjectAssignment,
@@ -122,7 +120,6 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]. Support generics")
     fun testCheckGoodAssignmentOfItself() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkGoodAssignmentOfItself,
@@ -132,7 +129,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("Some properties were not discovered at positions (from 0): [0]")
     fun testCheckAssignmentToObjectArray() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkAssignmentToObjectArray,
@@ -142,7 +139,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method")
+    @Disabled("Some properties were not discovered at positions (from 0): [2]")
     fun testArrayCopyForIncompatiblePrimitiveTypes() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::arrayCopyForIncompatiblePrimitiveTypes,

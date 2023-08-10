@@ -435,7 +435,6 @@ class LongStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3f95a1b3")
     fun testStreamOfExample() {
         checkDiscoveredProperties(
             LongStreamExample::streamOfExample,

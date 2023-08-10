@@ -5,7 +5,6 @@ import org.junit.jupiter.api.Disabled
 import org.usvm.samples.JavaMethodTestRunner
 
 
-@Disabled("Unsupported")
 internal class CustomerExamplesTest : JavaMethodTestRunner() {
 // TODO unsupported matchers
 

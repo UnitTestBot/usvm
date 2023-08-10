@@ -8,7 +8,7 @@ import org.usvm.test.util.checkers.eq
 
 internal class ShortWrapperTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("java.lang.ShortCache has native calls")
+    @Disabled("Some properties were not discovered at positions (from 0): [0]")
     fun primitiveToWrapperTest() {
         checkDiscoveredProperties(
             ShortWrapper::primitiveToWrapper,
@@ -29,8 +29,8 @@ internal class ShortWrapperTest : JavaMethodTestRunner() {
         )
     }
 
-    @Disabled("Caching short values between -128 and 127 isn't supported JIRA:1481")
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [0, 1, 2]")
     fun equalityTest() {
         checkDiscoveredProperties(
             ShortWrapper::equality,

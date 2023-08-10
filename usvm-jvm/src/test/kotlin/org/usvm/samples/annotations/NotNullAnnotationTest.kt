@@ -1,6 +1,5 @@
 package org.usvm.samples.annotations
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
@@ -58,7 +57,6 @@ internal class NotNullAnnotationTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("java.lang.Integer#valueOf(int). Native calls in IntegerCache#<clinit>")
     fun testNotNullableVariable() {
         checkDiscoveredProperties(
             NotNullAnnotation::notNullableVariable,
@@ -73,7 +71,6 @@ internal class NotNullAnnotationTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("java.lang.Integer#valueOf(int). Native calls in IntegerCache#<clinit>")
     fun testNotNullField() {
         checkDiscoveredProperties(
             NotNullAnnotation::notNullField,

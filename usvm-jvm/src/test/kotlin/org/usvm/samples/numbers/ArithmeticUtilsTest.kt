@@ -10,7 +10,7 @@ import org.usvm.test.util.checkers.eq
 // example from Apache common-numbers
 internal class ArithmeticUtilsTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("java.lang.Math#<clinit>() has native calls")
+    @Disabled("Expected exactly 11 executions, but 122 found")
     fun testPow() {
         checkDiscoveredProperties(
             ArithmeticUtils::pow,

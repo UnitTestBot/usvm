@@ -50,7 +50,7 @@ internal class SwitchTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Index 1 out of bounds for length 1")
+    @Disabled("Some properties were not discovered at positions (from 0): [1, 2, 3, 4, 5]")
     fun testEnumSwitch() {
         checkDiscoveredProperties(
             Switch::enumSwitch,
@@ -82,7 +82,7 @@ internal class SwitchTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented. Support strings")
+    @Disabled("A fatal error has been detected by the Java Runtime Environment")
     fun testStringSwitch() {
         checkDiscoveredProperties(
             Switch::stringSwitch,

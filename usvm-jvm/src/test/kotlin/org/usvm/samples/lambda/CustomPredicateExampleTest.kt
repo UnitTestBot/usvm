@@ -8,7 +8,7 @@ import org.usvm.util.isException
 
 class CustomPredicateExampleTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("java.lang.Integer#valueOf(int). Native calls in IntegerCache#<clinit>")
+    @Disabled("Some properties were not discovered at positions (from 0): [0, 1]")
     fun testNoCapturedValuesPredicateCheck() {
         checkDiscoveredPropertiesWithExceptions(
             CustomPredicateExample::noCapturedValuesPredicateCheck,
@@ -20,7 +20,7 @@ class CustomPredicateExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("java.lang.Integer#valueOf(int). Native calls in IntegerCache#<clinit>")
+    @Disabled("Some properties were not discovered at positions (from 0): [0, 1]")
     fun testCapturedLocalVariablePredicateCheck() {
         checkDiscoveredPropertiesWithExceptions(
             CustomPredicateExample::capturedLocalVariablePredicateCheck,
@@ -32,7 +32,7 @@ class CustomPredicateExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("java.lang.Integer#valueOf(int). Native calls in IntegerCache#<clinit>")
+    @Disabled("Some properties were not discovered at positions (from 0): [0, 1]")
     fun testCapturedParameterPredicateCheck() {
         checkDiscoveredPropertiesWithExceptions(
             CustomPredicateExample::capturedParameterPredicateCheck,
@@ -44,7 +44,7 @@ class CustomPredicateExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("java.lang.Integer#valueOf(int). Native calls in IntegerCache#<clinit>")
+    @Disabled("Some properties were not discovered at positions (from 0): [0, 1]")
     fun testCapturedStaticFieldPredicateCheck() {
         checkDiscoveredPropertiesWithExceptions(
             CustomPredicateExample::capturedStaticFieldPredicateCheck,
@@ -56,7 +56,7 @@ class CustomPredicateExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("java.lang.Integer#valueOf(int). Native calls in IntegerCache#<clinit>")
+    @Disabled("Some properties were not discovered at positions (from 0): [0, 1]")
     fun testCapturedNonStaticFieldPredicateCheck() {
         checkDiscoveredPropertiesWithExceptions(
             CustomPredicateExample::capturedNonStaticFieldPredicateCheck,

@@ -8,7 +8,7 @@ import org.usvm.util.isException
 
 internal class GenericExamplesTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("org.jooq.exception.DataAccessException: SQLException: Out of memory")
+    @Disabled("Can't find method (id:1)java.lang.String#length() in type java.lang.Object")
     fun testContainsOkWithIntegerType() {
         checkDiscoveredPropertiesWithExceptions(
             GenericExamples<Int>::containsOk,
@@ -19,7 +19,6 @@ internal class GenericExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testContainsOkExampleTest() {
         checkDiscoveredProperties(
             GenericExamples<String>::containsOkExample,

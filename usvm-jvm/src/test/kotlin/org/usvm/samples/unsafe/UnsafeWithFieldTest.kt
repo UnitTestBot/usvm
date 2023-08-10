@@ -10,7 +10,7 @@ import org.usvm.test.util.checkers.eq
 internal class UnsafeWithFieldTest: JavaMethodTestRunner() {
 
     @Test
-    @Disabled("No entrypoint found for method: java.lang.Object#getClass()")
+    @Disabled("Expected exactly 1 executions, but 0 found")
     fun checkSetField() {
         checkDiscoveredProperties(
             UnsafeWithField::setField,

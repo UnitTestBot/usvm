@@ -9,7 +9,7 @@ import org.usvm.test.util.checkers.eq
 class StaticsSubstitutionTest : JavaMethodTestRunner() {
 
     @Test
-    @Disabled("Expected exactly 2 executions, but 1 found") // todo: treat static fields as input values
+    @Disabled("Some properties were not discovered at positions (from 0): [1]") // todo: treat static fields as input values
     fun lessThanZeroWithSubstitution() {
         checkDiscoveredProperties(
             StaticSubstitutionExamples::lessThanZero,
