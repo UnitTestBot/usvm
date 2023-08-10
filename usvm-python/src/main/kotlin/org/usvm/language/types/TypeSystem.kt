@@ -78,13 +78,16 @@ class PythonTypeSystemWithMypyInfo(
 
     override fun restart() {
         allConcreteTypes = typeHintsStorage.simpleTypes.mapNotNull { utType ->
-            val ref = try {
+            val pin = {
                 val namespace = program.getNamespaceOfModule(utType.pythonModuleName())
                 ConcretePythonInterpreter.eval(namespace, utType.pythonName())
+            }
+            val ref = try {
+                pin()
             } catch (_: CPythonExecutionException) {
                 return@mapNotNull null
             }
-            val result = ConcretePythonType(ConcretePythonInterpreter.getNameOfPythonType(ref), ref)
+            val result = ConcretePythonType(ConcretePythonInterpreter.getNameOfPythonType(ref), ref, pin)
             if (isWorkingType(result)) result else null
         }
         println("Restarted!")

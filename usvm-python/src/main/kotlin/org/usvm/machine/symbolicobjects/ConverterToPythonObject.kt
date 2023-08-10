@@ -60,7 +60,8 @@ class ConverterToPythonObject(
     }
 
     private fun constructFromDefaultConstructor(type: ConcretePythonType): PythonObject {
-        return ConcretePythonInterpreter.callStandardNew(type.asObject)
+        val refreshed = type.refresh()
+        return ConcretePythonInterpreter.callStandardNew(refreshed.asObject)
     }
 
     private fun constructVirtualObject(obj: InterpretedInputSymbolicPythonObject): PythonObject {

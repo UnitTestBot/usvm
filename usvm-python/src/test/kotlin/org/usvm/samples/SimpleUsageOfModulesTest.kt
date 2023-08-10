@@ -37,12 +37,12 @@ class SimpleUsageOfModulesTest: PythonTestRunnerForStructuredProgram("sample_sub
         allowPathDiversions = false
     }
 
-    // TODO: fix concrete run
     @Test
     fun testSimpleClassIsinstance() {
-        check1(
+        check1WithConcreteRun(
             constructFunction("simple_class_isinstance", List(1) { PythonAnyType }),
             eq(4),
+            standardConcolicAndConcreteChecks,
             /* invariants = */ emptyList(),
             /* propertiesToDiscover = */ listOf(
                 { x, res -> x.typeName == "int" && res.repr == "2" },
