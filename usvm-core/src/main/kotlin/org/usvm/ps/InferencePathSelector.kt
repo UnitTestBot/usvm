@@ -9,6 +9,7 @@ import org.usvm.UState
 import org.usvm.statistics.*
 import java.io.File
 import java.nio.FloatBuffer
+import java.nio.LongBuffer
 import java.text.DecimalFormat
 import kotlin.io.path.Path
 import kotlin.math.exp
@@ -30,9 +31,11 @@ internal open class InferencePathSelector<State : UState<*, *, Method, Statement
     private val random = Random(java.time.LocalDateTime.now().nano)
 
     companion object {
-        private val modelPath = Path(MainConfig.gameEnvPath, "model.onnx").toString()
+        private val actorModelPath = Path(MainConfig.gameEnvPath, "actor_model.onnx").toString()
+        private val gnnModelPath = Path(MainConfig.gameEnvPath, "gnn_model.onnx").toString()
         private var env: OrtEnvironment? = null
-        private var session: OrtSession? = null
+        private var actorSession: OrtSession? = null
+        private var gnnSession: OrtSession? = null
     }
 
     override fun getReward(state: State): Float {
@@ -105,6 +108,13 @@ internal open class InferencePathSelector<State : UState<*, *, Method, Statement
         )
     }
 
+    private fun blockFeaturesToList(blockFeatures: BlockFeatures): List<Float> {
+        return listOf(
+            blockFeatures.logLength,
+            blockFeatures.logSuccessorsCount,
+        )
+    }
+
     private fun chooseRandomId(probabilities: Collection<Float>): Int {
         val randomNumber = random.nextFloat()
         var probability = 0.0f
@@ -117,19 +127,40 @@ internal open class InferencePathSelector<State : UState<*, *, Method, Statement
         return probabilities.size - 1
     }
 
-    private fun peekWithOnnxRuntime(stateFeatureQueue: List<StateFeatures>?,
-                                    globalStateFeatures: GlobalStateFeatures?) : State {
-        if (stateFeatureQueue == null || globalStateFeatures == null) {
-            throw IllegalArgumentException("No features")
+    private fun runGnn(): List<List<Float>> {
+        if (gnnSession === null) {
+            gnnSession = env!!.createSession(gnnModelPath, OrtSession.SessionOptions())
         }
-        if (env === null || session === null) {
-            env = OrtEnvironment.getEnvironment()
-            session = env!!.createSession(modelPath, OrtSession.SessionOptions())
+        val graphFeatures = graphFeaturesList.last().map { blockFeaturesToList(it) }
+        val graphEdges = blockGraph.getEdges().toList()
+        val featuresShape = listOf(graphFeatures.size, graphFeatures.first().size)
+        val edgesShape = listOf(2, graphEdges.first().size)
+        val featuresDataBuffer = FloatBuffer.allocate(featuresShape.reduce { acc, i -> acc * i })
+        graphFeatures.forEach { blockFeatures ->
+            blockFeatures.forEach { feature ->
+                featuresDataBuffer.put(feature)
+            }
         }
-        val globalFeaturesList = globalStateFeaturesToFloatList(globalStateFeatures)
-        val allFeaturesListFull = stateFeatureQueue.map { stateFeatures ->
-            stateFeaturesToFloatList(stateFeatures) + globalFeaturesList
+        featuresDataBuffer.rewind()
+        val edgesDataBuffer = LongBuffer.allocate(edgesShape.reduce { acc, i -> acc * i})
+        graphEdges.forEach { nodes ->
+            nodes.forEach { node ->
+                edgesDataBuffer.put(node.toLong())
+            }
         }
+        edgesDataBuffer.rewind()
+        val featuresData = OnnxTensor.createTensor(env, featuresDataBuffer,
+            featuresShape.map { it.toLong() }.toLongArray())
+        val edgesData = OnnxTensor.createTensor(env, edgesDataBuffer,
+            edgesShape.map { it.toLong() }.toLongArray())
+        val result = gnnSession!!.run(mapOf(Pair("x", featuresData), Pair("edge_index", edgesData)))
+        val output = (result.get("output").get().value as Array<*>).map {
+            (it as FloatArray).toList()
+        }
+        return output
+    }
+
+    private fun runActor(allFeaturesListFull: List<List<Float>>) {
         val firstIndex = if (MainConfig.maxAttentionLength == -1) 0 else
             maxOf(0, queue.size - MainConfig.maxAttentionLength)
         val allFeaturesList = allFeaturesListFull.subList(firstIndex, queue.size)
@@ -144,7 +175,7 @@ internal open class InferencePathSelector<State : UState<*, *, Method, Statement
         }
         dataBuffer.rewind()
         val data = OnnxTensor.createTensor(env, dataBuffer, shape)
-        val result = session!!.run(mapOf(Pair("input", data)))
+        val result = actorSession!!.run(mapOf(Pair("input", data)))
         val output = (result.get("output").get().value as Array<*>).flatMap { (it as FloatArray).toList() }
         chosenStateId = firstIndex + when (MainConfig.postprocessing) {
             Postprocessing.Argmax -> {
@@ -160,13 +191,33 @@ internal open class InferencePathSelector<State : UState<*, *, Method, Statement
             }
         }
         outputValues = List(firstIndex) { -1.0f } + output
+    }
+
+    private fun peekWithOnnxRuntime(stateFeatureQueue: List<StateFeatures>?,
+                                    globalStateFeatures: GlobalStateFeatures?): State {
+        if (stateFeatureQueue == null || globalStateFeatures == null) {
+            throw IllegalArgumentException("No features")
+        }
+        if (env === null || actorSession === null) {
+            env = OrtEnvironment.getEnvironment()
+            actorSession = env!!.createSession(actorModelPath, OrtSession.SessionOptions())
+        }
+        val globalFeaturesList = globalStateFeaturesToFloatList(globalStateFeatures)
+        val graphFeatures = if (MainConfig.useGnn) runGnn() else listOf()
+        val blockFeaturesCount = graphFeatures.firstOrNull()?.size ?: 0
+        val allFeaturesListFull = stateFeatureQueue.zip(queue).map { (stateFeatures, state) ->
+            stateFeaturesToFloatList(stateFeatures) + globalFeaturesList +
+            (blockGraph.getBlock(state.currentStatement!!)?.id?.let { graphFeatures.getOrNull(it) }
+                ?: List(blockFeaturesCount) { 0.0f })
+        }
+        runActor(allFeaturesListFull)
         return queue[chosenStateId]
     }
 
     override fun peek(): State {
         val stateFeatureQueue = getStateFeatureQueue()
         val globalStateFeatures = getGlobalStateFeatures(stateFeatureQueue)
-        val state = if (File(modelPath).isFile) {
+        val state = if (File(actorModelPath).isFile) {
             peekWithOnnxRuntime(stateFeatureQueue, globalStateFeatures)
         } else {
             queue.first()

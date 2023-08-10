@@ -89,10 +89,10 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
     private val statementRepetitions = mutableMapOf<Statement, UInt>().withDefault { 0u }
     private val subpathCounts = mutableMapOf<List<Statement>, UInt>().withDefault { 0u }
 
-    private val blockGraph: BlockGraph<Method, Statement>
-    private val graphFeaturesList = mutableListOf<List<BlockFeatures>>()
+    protected val blockGraph: BlockGraph<Method, Statement>
+    protected val graphFeaturesList = mutableListOf<List<BlockFeatures>>()
 
-    private class BlockGraph<Method, Statement>(
+    protected class BlockGraph<Method, Statement>(
         private val applicationGraph: ApplicationGraph<Method, Statement>,
         initialStatement: Statement
     ) {
@@ -180,7 +180,7 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
             return coveredStatements[statement]
         }
 
-        fun getBlockFeatures(block: Block<Statement>): BlockFeatures {
+        private fun getBlockFeatures(block: Block<Statement>): BlockFeatures {
             val length = block.path.size
             val successorsCount = successors(block).size
 
@@ -223,12 +223,12 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
     }
 
     @Serializable
-    private data class BlockFeatures(
+    protected data class BlockFeatures(
         val logLength: Float = 0.0f,
         val logSuccessorsCount: Float = 0.0f
     )
 
-    private data class Block<Statement>(
+    protected data class Block<Statement>(
         val id: Int = 0,
         var path: MutableList<Statement> = mutableListOf()
     ) {

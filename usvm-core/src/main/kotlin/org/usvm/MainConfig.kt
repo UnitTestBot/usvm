@@ -20,6 +20,7 @@ object MainConfig {
     var mode = Mode.Both
     var inputShape = listOf<Long>(1, -1, 34)
     var maxAttentionLength = -1
+    var useGnn = true
     var dataConsumption = 100.0f
     var hardTimeLimit = 30000 // in ms
 }

@@ -128,37 +128,44 @@ fun aggregate() {
     println("\nAGGREGATION FINISHED IN DIRECTORY $resultDirname\n")
 }
 
+fun updateConfig(options: JsonObject) {
+    MainConfig.samplesPath =
+        (options.getOrDefault("samplesPath", JsonPrimitive(MainConfig.samplesPath)) as JsonPrimitive).content
+    MainConfig.gameEnvPath =
+        (options.getOrDefault("gameEnvPath", JsonPrimitive(MainConfig.gameEnvPath)) as JsonPrimitive).content
+    MainConfig.dataPath = (options.getOrDefault("dataPath",
+        JsonPrimitive(MainConfig.dataPath)) as JsonPrimitive).content
+    MainConfig.postprocessing = Postprocessing.valueOf((options.getOrDefault("postprocessing",
+        JsonPrimitive(MainConfig.postprocessing.name)) as JsonPrimitive).content)
+    MainConfig.mode = Mode.valueOf((options.getOrDefault("mode",
+        JsonPrimitive(MainConfig.mode.name)) as JsonPrimitive).content)
+    MainConfig.inputShape = (options.getOrDefault("inputShape", JsonArray(MainConfig.inputShape
+        .map { JsonPrimitive(it) })) as JsonArray).map { (it as JsonPrimitive).content.toLong() }
+    MainConfig.maxAttentionLength = (options.getOrDefault("maxAttentionLength",
+        JsonPrimitive(MainConfig.maxAttentionLength)) as JsonPrimitive).content.toInt()
+    MainConfig.dataConsumption = (options.getOrDefault("dataConsumption",
+        JsonPrimitive(MainConfig.dataConsumption)) as JsonPrimitive).content.toFloat()
+    MainConfig.hardTimeLimit = (options.getOrDefault("hardTimeLimit",
+        JsonPrimitive(MainConfig.hardTimeLimit)) as JsonPrimitive).content.toInt()
+    MainConfig.useGnn = (options.getOrDefault("useGnn",
+        JsonPrimitive(MainConfig.useGnn)) as JsonPrimitive).content.toBoolean()
+}
+
 fun main(args: Array<String>) {
     val options = args.getOrNull(0)?.let { File(it) }?.readText()?.let {
         Json.decodeFromString<JsonObject>(it)
     }
     if (options != null) {
-        MainConfig.samplesPath =
-            (options.getOrDefault("samplesPath", JsonPrimitive(MainConfig.samplesPath)) as JsonPrimitive).content
-        MainConfig.gameEnvPath =
-            (options.getOrDefault("gameEnvPath", JsonPrimitive(MainConfig.gameEnvPath)) as JsonPrimitive).content
-        MainConfig.dataPath = (options.getOrDefault("dataPath",
-            JsonPrimitive(MainConfig.dataPath)) as JsonPrimitive).content
-        MainConfig.postprocessing = Postprocessing.valueOf((options.getOrDefault("postprocessing",
-            JsonPrimitive(MainConfig.postprocessing.name)) as JsonPrimitive).content)
-        MainConfig.mode = Mode.valueOf((options.getOrDefault("mode",
-            JsonPrimitive(MainConfig.mode.name)) as JsonPrimitive).content)
-        MainConfig.inputShape = (options.getOrDefault("inputShape", JsonArray(MainConfig.inputShape
-            .map { JsonPrimitive(it) })) as JsonArray).map { (it as JsonPrimitive).content.toLong() }
-        MainConfig.maxAttentionLength = (options.getOrDefault("maxAttentionLength",
-            JsonPrimitive(MainConfig.maxAttentionLength)) as JsonPrimitive).content.toInt()
-        MainConfig.dataConsumption = (options.getOrDefault("dataConsumption",
-            JsonPrimitive(MainConfig.dataConsumption)) as JsonPrimitive).content.toFloat()
-        MainConfig.hardTimeLimit = (options.getOrDefault("hardTimeLimit",
-            JsonPrimitive(MainConfig.hardTimeLimit)) as JsonPrimitive).content.toInt()
+        updateConfig(options)
     }
 
     println("OPTIONS:")
-    println("POSTPROCESSING: ${MainConfig.postprocessing}")
-    println("INPUT SHAPE: ${MainConfig.inputShape}")
-    println("MAX ATTENTION LENGTH: ${MainConfig.maxAttentionLength}")
-    println("DATA CONSUMPTION: ${MainConfig.dataConsumption}%")
-    println("HARD TIME LIMIT: ${MainConfig.hardTimeLimit}ms")
+    println("  POSTPROCESSING: ${MainConfig.postprocessing}")
+    println("  INPUT SHAPE: ${MainConfig.inputShape}")
+    println("  MAX ATTENTION LENGTH: ${MainConfig.maxAttentionLength}")
+    println("  DATA CONSUMPTION: ${MainConfig.dataConsumption}%")
+    println("  HARD TIME LIMIT: ${MainConfig.hardTimeLimit}ms")
+    println("  USE GNN: ${MainConfig.useGnn}")
     println()
 
     if (MainConfig.mode == Mode.Calculation || MainConfig.mode == Mode.Both) {
