@@ -13,7 +13,7 @@ object UTestCreator {
 
         fun isA(jcClasspath: JcClasspath): UTest {
             val jcClass = jcClasspath.findClass<example.A>()
-            val jcMethod = jcClass.findMethodOrNull("isA") ?: error("Cant find method isA in class A")
+            val jcMethod = jcClass.findDeclaredMethodOrNull("isA") ?: error("Cant find method isA in class A")
             val constructor = jcClass.constructors.find { it.parameters.isEmpty() }!!
             val instance = UTestConstructorCall(constructor, listOf())
             val arg1 = UTestIntExpression(1, jcClasspath.int)
@@ -26,7 +26,7 @@ object UTestCreator {
 
         fun indexOf(jcClasspath: JcClasspath): UTest {
             val jcClass = jcClasspath.findClass<example.A>()
-            val jcMethod = jcClass.findMethodOrNull("indexOf") ?: error("Cant find method indexOf in class A")
+            val jcMethod = jcClass.findDeclaredMethodOrNull("indexOf") ?: error("Cant find method indexOf in class A")
             val constructor = jcClass.constructors.first()
             val instance = UTestConstructorCall(constructor, listOf())
             val arg1 = UTestCreateArrayExpression(
@@ -51,7 +51,7 @@ object UTestCreator {
 
         fun indexOfWithIf(jcClasspath: JcClasspath): UTest {
             val jcClass = jcClasspath.findClass<example.A>()
-            val jcMethod = jcClass.findMethodOrNull("indexOf") ?: error("Cant find method indexOf in class A")
+            val jcMethod = jcClass.findDeclaredMethodOrNull("indexOf") ?: error("Cant find method indexOf in class A")
             val constructor = jcClass.constructors.first()
             val instance = UTestConstructorCall(constructor, listOf())
             val arg1 = UTestCreateArrayExpression(
@@ -99,7 +99,7 @@ object UTestCreator {
         fun indexOfT(jcClasspath: JcClasspath): UTest {
             val jcClassA = jcClasspath.findClass<example.A>()
             val jcClassB = jcClasspath.findClass<example.B>()
-            val jcMethod = jcClassA.findMethodOrNull("indexOfT")!!
+            val jcMethod = jcClassA.findDeclaredMethodOrNull("indexOfT")!!
             val constructorA = jcClassA.constructors.first()
             val constructorB = jcClassB.constructors.first()
             val instanceOfA = UTestConstructorCall(constructorA, listOf())
@@ -145,7 +145,7 @@ object UTestCreator {
 
         fun methodWithBug(jcClasspath: JcClasspath): UTest {
             val jcClass = jcClasspath.findClass<example.A>()
-            val jcMethod = jcClass.findMethodOrNull("methodWithBug") ?: error("Cant find method indexOf in class A")
+            val jcMethod = jcClass.findDeclaredMethodOrNull("methodWithBug") ?: error("Cant find method indexOf in class A")
             val constructor = jcClass.constructors.first()
             val instance = UTestConstructorCall(constructor, listOf())
             return UTest(listOf(), UTestMethodCall(instance, jcMethod, listOf()))
@@ -153,7 +153,7 @@ object UTestCreator {
 
         fun mock(jcClasspath: JcClasspath): UTest {
             val jcClass = jcClasspath.findClass<example.A>()
-            val jcMethod = jcClass.findMethodOrNull("mock") ?: error("Cant find method indexOf in class A")
+            val jcMethod = jcClass.findDeclaredMethodOrNull("mock") ?: error("Cant find method indexOf in class A")
             val constructor = jcClass.constructors.first()
             val instance = UTestConstructorCall(constructor, listOf())
 
@@ -182,7 +182,7 @@ object UTestCreator {
 
         fun mockMultiple(jcClasspath: JcClasspath): UTest {
             val jcClass = jcClasspath.findClass<example.A>()
-            val jcMethod = jcClass.findMethodOrNull("multipleMock") ?: error("Cant find method indexOf in class A")
+            val jcMethod = jcClass.findDeclaredMethodOrNull("multipleMock") ?: error("Cant find method indexOf in class A")
             val constructor = jcClass.constructors.first()
             val instance = UTestConstructorCall(constructor, listOf())
 
@@ -202,7 +202,7 @@ object UTestCreator {
 
         fun mockStaticMethod(jcClasspath: JcClasspath): UTest {
             val jcClass = jcClasspath.findClass<example.A>()
-            val jcMethod = jcClass.findMethodOrNull("staticMock") ?: error("Cant find method indexOf in class A")
+            val jcMethod = jcClass.findDeclaredMethodOrNull("staticMock") ?: error("Cant find method indexOf in class A")
             val constructor = jcClass.constructors.first()
             val instance = UTestConstructorCall(constructor, listOf())
 
@@ -221,7 +221,7 @@ object UTestCreator {
 
         fun mockInterface(jcClasspath: JcClasspath): UTest {
             val jcClass = jcClasspath.findClass<example.A>()
-            val jcMethod = jcClass.findMethodOrNull("mockInterface") ?: error("Cant find method indexOf in class A")
+            val jcMethod = jcClass.findDeclaredMethodOrNull("mockInterface") ?: error("Cant find method indexOf in class A")
             val constructor = jcClass.constructors.first()
             val instance = UTestConstructorCall(constructor, listOf())
 
@@ -240,7 +240,7 @@ object UTestCreator {
 
         fun mockRandom(jcClasspath: JcClasspath): UTest {
             val jcClass = jcClasspath.findClass<example.A>()
-            val jcMethod = jcClass.findMethodOrNull("mockRandom") ?: error("Cant find method indexOf in class A")
+            val jcMethod = jcClass.findDeclaredMethodOrNull("mockRandom") ?: error("Cant find method indexOf in class A")
             val constructor = jcClass.constructors.first()
             val instance = UTestConstructorCall(constructor, listOf())
 
@@ -253,7 +253,7 @@ object UTestCreator {
 
         fun mockAbstractClass(jcClasspath: JcClasspath): UTest {
             val jcClass = jcClasspath.findClass<example.A>()
-            val jcMethod = jcClass.findMethodOrNull("mockAbstractClass") ?: error("Cant find method indexOf in class A")
+            val jcMethod = jcClass.findDeclaredMethodOrNull("mockAbstractClass") ?: error("Cant find method indexOf in class A")
             val constructor = jcClass.constructors.first()
             val instance = UTestConstructorCall(constructor, listOf())
 
@@ -282,7 +282,7 @@ object UTestCreator {
 
         fun mockAbstractClass1(jcClasspath: JcClasspath): UTest {
             val jcClass = jcClasspath.findClass<example.A>()
-            val jcMethod = jcClass.findMethodOrNull("mockAbstractClass1") ?: error("Cant find method indexOf in class A")
+            val jcMethod = jcClass.findDeclaredMethodOrNull("mockAbstractClass1") ?: error("Cant find method indexOf in class A")
             val constructor = jcClass.constructors.first()
             val instance = UTestConstructorCall(constructor, listOf())
 
@@ -308,7 +308,7 @@ object UTestCreator {
 
         fun mockInterfaceWithDefaultMock(jcClasspath: JcClasspath): UTest {
             val jcClass = jcClasspath.findClass<example.A>()
-            val jcMethod = jcClass.findMethodOrNull("mockInterface") ?: error("Cant find method indexOf in class A")
+            val jcMethod = jcClass.findDeclaredMethodOrNull("mockInterface") ?: error("Cant find method indexOf in class A")
             val constructor = jcClass.constructors.first()
             val instance = UTestConstructorCall(constructor, listOf())
 
@@ -330,7 +330,7 @@ object UTestCreator {
 
         fun arithmeticOperation(jcClasspath: JcClasspath): UTest {
             val jcClass = jcClasspath.findClass<example.A>()
-            val jcMethod = jcClass.findMethodOrNull("returnField") ?: error("Cant find method indexOf in class A")
+            val jcMethod = jcClass.findDeclaredMethodOrNull("returnField") ?: error("Cant find method indexOf in class A")
             val constructor = jcClass.constructors.first()
             val instance = UTestConstructorCall(constructor, listOf())
             val intExpr = UTestIntExpression(427, jcClasspath.int)
