@@ -31,7 +31,7 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method: java.lang.Object#getClass()")
+    @Disabled("Some properties were not discovered at positions (from 0): [1]")
     fun testTakeClassRefFromParam() {
         checkDiscoveredProperties(
             ClassRef::takeClassRefFromParam,
@@ -61,7 +61,7 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method: java.lang.Object#getClass()")
+    @Disabled("Some properties were not discovered at positions (from 0): [1]")
     fun testTwoDimArrayClassRefFromParam() {
         checkDiscoveredProperties(
             ClassRef::twoDimArrayClassRefFromParam,
@@ -81,7 +81,6 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method: java.lang.Object#getClass()")
     fun testEqualityOnClassRef() {
         checkDiscoveredProperties(
             ClassRef::equalityOnClassRef,
@@ -91,7 +90,6 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method: java.lang.Object#getClass()")
     fun testEqualityOnStringClassRef() {
         checkDiscoveredProperties(
             ClassRef::equalityOnStringClassRef,
@@ -101,7 +99,6 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method: java.lang.Object#getClass()")
     fun testEqualityOnArrayClassRef() {
         checkDiscoveredProperties(
             ClassRef::equalityOnArrayClassRef,
@@ -111,7 +108,6 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method: java.lang.Object#getClass()")
     fun testTwoDimensionalArrayClassRef() {
         checkDiscoveredProperties(
             ClassRef::twoDimensionalArrayClassRef,
@@ -121,7 +117,6 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method: java.lang.Object#getClass()")
     fun testEqualityOnGenericClassRef() {
         checkDiscoveredProperties(
             ClassRef::equalityOnGenericClassRef,

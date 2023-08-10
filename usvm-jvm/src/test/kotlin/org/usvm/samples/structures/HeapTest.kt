@@ -8,7 +8,6 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 internal class HeapTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [4]. Fix branch coverage")
     fun testIsHeap() {
         val method = Heap::isHeap
         checkDiscoveredProperties(

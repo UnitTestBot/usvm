@@ -9,7 +9,7 @@ import org.usvm.util.isException
 
 class StringConcatTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("String builder has native calls")
+    @Disabled(" Some properties were not discovered at positions (from 0): [0]")
     fun testConcatArguments() {
         checkDiscoveredProperties(
             StringConcat::concatArguments,
@@ -19,7 +19,7 @@ class StringConcatTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: class constant")
+    @Disabled("A fatal error has been detected by the Java Runtime Environment: EXCEPTION_ACCESS_VIOLATION")
     fun testConcatWithConstants() {
         checkDiscoveredProperties(
             StringConcat::concatWithConstants,
@@ -42,7 +42,7 @@ class StringConcatTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method: java.lang.Object#getClass()")
+    @Disabled("Some properties were not discovered at positions (from 0): [1]")
     fun testExceptionInToString() {
         checkDiscoveredPropertiesWithExceptions(
             StringConcat::exceptionInToString,
@@ -63,7 +63,7 @@ class StringConcatTest : JavaMethodTestRunner() {
 //    }
 
     @Test
-    @Disabled("No entrypoint found for method: java.lang.Object#getClass()")
+    @Disabled("Some properties were not discovered at positions (from 0): [0]")
     fun testConcatWithPrimitiveWrappers() {
         checkDiscoveredProperties(
             StringConcat::concatWithPrimitiveWrappers,

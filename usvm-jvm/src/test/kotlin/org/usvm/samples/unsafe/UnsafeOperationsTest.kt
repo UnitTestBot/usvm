@@ -8,7 +8,7 @@ import org.usvm.test.util.checkers.eq
 
 internal class UnsafeOperationsTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Not implemented: class constant")
+    @Disabled("Can't find method (id:1)java.lang.Thread#getThreadGroup() in type java.lang.Object")
     fun checkGetAddressSizeOrZero() {
             checkDiscoveredProperties(
                 UnsafeOperations::getAddressSizeOrZero,

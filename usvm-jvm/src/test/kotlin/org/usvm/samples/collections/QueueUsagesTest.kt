@@ -8,9 +8,9 @@ import org.usvm.util.isException
 import java.util.Deque
 import java.util.LinkedList
 
-@Disabled("Unsupported")
 class QueueUsagesTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Sort mismatch at io.ksmt.utils.ContextUtilsKt.asExpr")
     fun testCreateArrayDeque() {
         checkDiscoveredPropertiesWithExceptions(
             QueueUsages::createArrayDeque,
@@ -31,6 +31,7 @@ class QueueUsagesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [0, 2]")
     fun testCreateLinkedBlockingDeque() {
         checkDiscoveredPropertiesWithExceptions(
             QueueUsages::createLinkedBlockingDeque,
@@ -42,6 +43,7 @@ class QueueUsagesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [1]")
     fun testContainsQueue() {
         checkDiscoveredPropertiesWithExceptions(
             QueueUsages::containsQueue,
@@ -53,6 +55,7 @@ class QueueUsagesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Expected exactly 3 executions, but 11 found")
     fun testAddQueue() {
         checkDiscoveredPropertiesWithExceptions(
             QueueUsages::addQueue,
@@ -63,6 +66,7 @@ class QueueUsagesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [2]")
     fun testAddAllQueue() {
         checkDiscoveredPropertiesWithExceptions(
             QueueUsages::addAllQueue,
@@ -84,6 +88,7 @@ class QueueUsagesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [2]")
     fun testCheckSubtypesOfQueue() {
         checkDiscoveredProperties(
             QueueUsages::checkSubtypesOfQueue,
@@ -96,6 +101,7 @@ class QueueUsagesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [1, 2, 3]")
     fun testCheckSubtypesOfQueueWithUsage() {
         checkDiscoveredProperties(
             QueueUsages::checkSubtypesOfQueueWithUsage,
@@ -108,6 +114,7 @@ class QueueUsagesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [0, 1, 2]")
     fun testAddConcurrentLinkedQueue() {
         checkDiscoveredPropertiesWithExceptions(
             QueueUsages::addConcurrentLinkedQueue,

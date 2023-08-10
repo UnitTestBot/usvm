@@ -8,7 +8,7 @@ import org.usvm.test.util.checkers.eq
 
 internal class JvmCrashExamplesTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("No entrypoint found for method")
+    @Disabled("skipMethodInvocation: Sequence has more than one element")
     fun testExit() {
         checkDiscoveredProperties(
             JvmCrashExamples::exit,
@@ -17,7 +17,7 @@ internal class JvmCrashExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
+    @Disabled("Can't find method (id:1)java.lang.Thread#getThreadGroup() in type java.lang.Object")
     fun testCrash() {
         checkDiscoveredProperties(
             JvmCrashExamples::crash, // we expect only one execution after minimization

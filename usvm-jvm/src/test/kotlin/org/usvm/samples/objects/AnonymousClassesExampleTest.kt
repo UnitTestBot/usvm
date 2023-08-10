@@ -9,7 +9,6 @@ import org.usvm.util.isException
 
 class AnonymousClassesExampleTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Sequence is empty.")
     fun testAnonymousClassAsParam() {
         checkDiscoveredPropertiesWithExceptions(
             AnonymousClassesExample::anonymousClassAsParam,
@@ -33,7 +32,6 @@ class AnonymousClassesExampleTest : JavaMethodTestRunner() {
 //    }
 
     @Test
-    @Disabled("No entrypoint found for method")
     fun testAnonymousClassAsStatic() {
         checkDiscoveredProperties(
             AnonymousClassesExample::anonymousClassAsStatic,

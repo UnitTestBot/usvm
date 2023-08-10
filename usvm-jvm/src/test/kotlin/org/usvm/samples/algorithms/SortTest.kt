@@ -9,7 +9,7 @@ import org.usvm.util.isException
 
 internal class SortTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("No entrypoint found for method")
+    @Disabled("Can't find method (id:1)java.lang.Thread#getThreadGroup() in type java.lang.Object")
     fun testQuickSort() {
         checkDiscoveredProperties(
             Sort::quickSort,
@@ -31,7 +31,7 @@ internal class SortTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method")
+    @Disabled("Some properties were not discovered at positions (from 0): [0]")
     fun testArrayCopy() {
         checkDiscoveredProperties(
             Sort::arrayCopy,
@@ -41,7 +41,7 @@ internal class SortTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method")
+    @Disabled("Some properties were not discovered at positions (from 0): [2, 3]")
     fun testMergeSort() {
         checkDiscoveredProperties(
             Sort::mergeSort,
@@ -72,7 +72,7 @@ internal class SortTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1, 3, 4, 5]. Tune path selectors")
+    @Disabled("Some properties were not discovered at positions (from 0): [4, 5]. Tune path selectors")
     fun testMerge() {
         checkDiscoveredPropertiesWithExceptions(
             Sort::merge,
@@ -105,7 +105,7 @@ internal class SortTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1, 2]. Tune path selectors")
+    @Disabled("Some properties were not discovered at positions (from 0): [2]. Tune path selectors")
     fun testDefaultSort() {
         checkDiscoveredPropertiesWithExceptions(
             Sort::defaultSort,

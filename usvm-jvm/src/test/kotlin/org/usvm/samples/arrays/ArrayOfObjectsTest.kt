@@ -95,7 +95,7 @@ internal class ArrayOfObjectsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("List is empty. java.lang.ArrayStoreException: org.usvm.samples.arrays.ObjectWithPrimitivesClass")
+    @Disabled("Expected number of executions in bounds 4..5, but 10 found")
     fun testArrayOfArrays() {
         checkDiscoveredProperties(
             ArrayOfObjects::arrayOfArrays,

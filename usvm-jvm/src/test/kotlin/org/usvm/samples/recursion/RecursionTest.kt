@@ -44,7 +44,7 @@ internal class RecursionTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Native method invocation: java.lang.Float.floatToRawIntBits")
+    @Disabled("Some properties were not discovered at positions (from 0): [1]")
     fun testSum() {
         checkDiscoveredProperties(
             Recursion::sum,
@@ -81,7 +81,6 @@ internal class RecursionTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("java.lang.Integer#valueOf(int). Native calls in IntegerCache#<clinit>")
     fun vertexSumTest() {
         checkDiscoveredProperties(
             Recursion::vertexSum,

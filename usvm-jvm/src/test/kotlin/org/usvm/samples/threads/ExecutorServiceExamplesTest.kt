@@ -11,7 +11,7 @@ import org.usvm.util.isException
 // and should not be used for testing conrete or code generation since they are possibly flaky in the concrete execution
 class ExecutorServiceExamplesTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Index 1 out of bounds for length 1")
+    @Disabled("Can't find method (id:1)java.lang.Thread#getThreadGroup() in type java.lang.Object")
     fun testExceptionInExecute() {
         checkDiscoveredPropertiesWithExceptions(
             ExecutorServiceExamples::throwingInExecute,
@@ -21,7 +21,7 @@ class ExecutorServiceExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Index 1 out of bounds for length 1")
+    @Disabled("Can't find method (id:1)java.lang.Thread#getThreadGroup() in type java.lang.Object")
     fun testChangingCollectionInExecute() {
         checkDiscoveredProperties(
             ExecutorServiceExamples::changingCollectionInExecute,

@@ -21,7 +21,7 @@ internal class ClassForTestClinitSectionsTest : JavaMethodTestRunner() {
 //        }
 
     @Test
-    @Disabled("Expected exactly 2 executions, but 1 found") // todo: treat statics as input values
+    @Disabled("Some properties were not discovered at positions (from 0): [1]") // todo: treat statics as input values
     fun testClinitWithClinitAnalysis() {
         checkDiscoveredProperties(
             ClassForTestClinitSections::resultDependingOnStaticSection,
