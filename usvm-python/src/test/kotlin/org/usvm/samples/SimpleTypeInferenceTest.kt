@@ -3,10 +3,11 @@ package org.usvm.samples
 import org.junit.jupiter.api.Test
 import org.usvm.UMachineOptions
 import org.usvm.language.types.PythonAnyType
+import org.usvm.runner.PythonTestRunnerForPrimitiveProgram
 import org.usvm.test.util.checkers.ge
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
-class SimpleTypeInferenceTest: PythonTestRunner("SimpleTypeInference", UMachineOptions(stepLimit = 30U)) {
+class SimpleTypeInferenceTest: PythonTestRunnerForPrimitiveProgram("SimpleTypeInference", UMachineOptions(stepLimit = 30U)) {
     @Test
     fun testBoolInput() {
         check1WithConcreteRun(

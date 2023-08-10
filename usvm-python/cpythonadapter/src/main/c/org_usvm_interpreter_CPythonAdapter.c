@@ -55,7 +55,8 @@ JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_concreteRun(
     JNIEnv *env,
     jobject cpython_adapter,
     jlong globals,
-    jstring code
+    jstring code,
+    jboolean print_error_message
 ) {
     const char *c_code = (*env)->GetStringUTFChars(env, code, 0);
 
@@ -63,7 +64,10 @@ JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_concreteRun(
     PyObject *v = PyRun_StringFlags(c_code, Py_file_input, dict, dict, 0);
     (*env)->ReleaseStringUTFChars(env, code, c_code);
     if (v == NULL) {
-        PyErr_Print();
+        if (print_error_message)
+            PyErr_Print();
+        else
+            PyErr_Clear();
         return 1;
     }
 
@@ -74,7 +78,8 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_eval(
     JNIEnv *env,
     jobject cpython_adapter,
     jlong globals,
-    jstring code
+    jstring code,
+    jboolean print_error_message
 ) {
     const char *c_code = (*env)->GetStringUTFChars(env, code, 0);
 
@@ -82,10 +87,14 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_eval(
     PyObject *v = PyRun_StringFlags(c_code, Py_eval_input, dict, dict, 0);
     (*env)->ReleaseStringUTFChars(env, code, c_code);
     if (v == NULL) {
-        PyErr_Print();
+        if (print_error_message)
+            PyErr_Print();
+        else
+            PyErr_Clear();
         return 0;
     }
 
+    Py_INCREF(v);
     return (jlong) v;
 }
 
@@ -280,6 +289,21 @@ JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasTpRichcmp
 JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasTpIter(JNIEnv *env, jobject _, jlong type_ref) {
     QUERY_TYPE_HAS_PREFIX
     return type->tp_iter != 0;
+}
+
+JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasStandardNew(JNIEnv *env, jobject _, jlong type_ref) {
+    QUERY_TYPE_HAS_PREFIX
+    return type->tp_new == PyBaseObject_Type.tp_new;
+}
+
+JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_callStandardNew(JNIEnv *env, jobject _, jlong type_ref) {
+    assert(Py_TYPE(type_ref) == &PyType_Type);
+    PyTypeObject *type = (PyTypeObject *) type_ref;
+    assert(type->tp_new == PyBaseObject_Type.tp_new);
+    PyObject *arg_tuple = PyTuple_Pack(0);
+    PyObject *result = PyBaseObject_Type.tp_new(type, arg_tuple, 0);
+    Py_DECREF(arg_tuple);
+    return (jlong) result;
 }
 
 JNIEXPORT jthrowable JNICALL Java_org_usvm_interpreter_CPythonAdapter_extractException(JNIEnv *env, jobject _, jlong exception) {
