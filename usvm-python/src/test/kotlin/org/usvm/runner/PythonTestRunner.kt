@@ -1,33 +1,31 @@
-package org.usvm.samples
+package org.usvm.runner
 
 import org.usvm.UMachineOptions
 import org.usvm.machine.*
 import org.usvm.language.*
-import org.usvm.language.types.PythonType
-import org.usvm.language.types.PythonTypeSystem
-import org.usvm.language.types.pythonInt
+import org.usvm.language.types.*
 import org.usvm.machine.interpreters.CPythonExecutionException
 import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.PythonObject
 import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.AnalysisResultsNumberMatcher
-import org.usvm.utils.withAdditionalPaths
-import java.io.File
 
-open class PythonTestRunner(
-    private val module: String,
+sealed class PythonTestRunner(
+    protected val module: String,
     override var options: UMachineOptions = UMachineOptions(),
-    var allowPathDiversions: Boolean = false
+    protected var allowPathDiversions: Boolean = false
 ): TestRunner<PythonTest, PythonUnpinnedCallable, PythonType, PythonCoverage>() {
-    private val typeSystem = PythonTypeSystem()
-    private val program = SamplesBuild.program.getPrimitiveProgram(module)
-    private val machine = PythonMachine(program, typeSystem) { pythonObject ->
-        val typeName = ConcretePythonInterpreter.getPythonObjectTypeName(pythonObject)
-        PythonObjectInfo(
-            ConcretePythonInterpreter.getPythonObjectRepr(pythonObject),
-            typeName,
-            if (typeName == "type") ConcretePythonInterpreter.getNameOfPythonType(pythonObject) else null
-        )
+    protected abstract val typeSystem: PythonTypeSystem
+    protected abstract val program: PythonProgram
+    private val machine by lazy {
+        PythonMachine(program, typeSystem) { pythonObject ->
+            val typeName = ConcretePythonInterpreter.getPythonObjectTypeName(pythonObject)
+            PythonObjectInfo(
+                ConcretePythonInterpreter.getPythonObjectRepr(pythonObject),
+                typeName,
+                if (typeName == "type") ConcretePythonInterpreter.getNameOfPythonType(pythonObject) else null
+            )
+        }
     }
     override val typeTransformer: (Any?) -> PythonType
         get() = { _ -> pythonInt }
@@ -51,23 +49,20 @@ open class PythonTestRunner(
         target: PythonUnpinnedCallable,
         test: PythonTest,
         check: (PythonObject) -> String?
-    ): String? {
-        val cleanProgram = SamplesBuild.program.getPrimitiveProgram(module)
-        val pinnedCallable = cleanProgram.pinCallable(target)
-        val converter = test.inputValueConverter
-        converter.restart()
-        val args = test.inputValues.map { converter.convert(it.asUExpr) }
-        return try {
-            val concreteResult =
-                withAdditionalPaths(cleanProgram.additionalPaths) {
+    ): String? =
+        program.withPinnedCallable(target) { pinnedCallable ->
+            val converter = test.inputValueConverter
+            converter.restart()
+            val args = test.inputValues.map { converter.convert(it.asUExpr) }
+            try {
+                val concreteResult =
                     ConcretePythonInterpreter.concreteRunOnFunctionRef(pinnedCallable.asPythonObject, args)
-                }
-            check(concreteResult)
-        } catch (exception: CPythonExecutionException) {
-            require(exception.pythonExceptionType != null)
-            check(exception.pythonExceptionType!!)
+                check(concreteResult)
+            } catch (exception: CPythonExecutionException) {
+                require(exception.pythonExceptionType != null)
+                check(exception.pythonExceptionType!!)
+            }
         }
-    }
 
     private inline fun <reified FUNCTION_TYPE : Function<Boolean>> createCheckWithConcreteRun(concreteRun: Boolean = true):
                 (PythonUnpinnedCallable, AnalysisResultsNumberMatcher, (PythonTest, PythonObject) -> String?, List<FUNCTION_TYPE>, List<FUNCTION_TYPE>) -> Unit =
@@ -175,8 +170,28 @@ open class PythonTestRunner(
         compareConcolicAndConcreteTypesIfFail(testFromConcolic, concreteResult)
     }
 
-    protected fun constructFunction(name: String, signature: List<PythonType>): PythonUnpinnedCallable =
+    protected open fun constructFunction(name: String, signature: List<PythonType>): PythonUnpinnedCallable =
         PythonUnpinnedCallable.constructCallableFromName(signature, name)
+}
+
+open class PythonTestRunnerForPrimitiveProgram(
+    module: String,
+    options: UMachineOptions = UMachineOptions(),
+    allowPathDiversions: Boolean = false
+): PythonTestRunner(module, options, allowPathDiversions) {
+    override val program = SamplesBuild.program.getPrimitiveProgram(module)
+    override val typeSystem = BasicPythonTypeSystem()
+}
+
+open class PythonTestRunnerForStructuredProgram(
+    module: String,
+    options: UMachineOptions = UMachineOptions(),
+    allowPathDiversions: Boolean = false
+): PythonTestRunner(module, options, allowPathDiversions) {
+    override val program = SamplesBuild.program
+    override val typeSystem = PythonTypeSystemWithMypyInfo(SamplesBuild.mypyBuild, program)
+    override fun constructFunction(name: String, signature: List<PythonType>): PythonUnpinnedCallable =
+        PythonUnpinnedCallable.constructCallableFromName(signature, name, module)
 }
 
 class PythonObjectInfo(

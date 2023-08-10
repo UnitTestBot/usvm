@@ -4,9 +4,10 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.usvm.machine.interpreters.operations.tracing.PathDiversionException
 import org.usvm.language.types.pythonInt
+import org.usvm.runner.PythonTestRunnerForPrimitiveProgram
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
-class AllowPathDiversionTest : PythonTestRunner("TrickyExample", allowPathDiversions = true) {
+class AllowPathDiversionTest : PythonTestRunnerForPrimitiveProgram("TrickyExample", allowPathDiversions = true) {
     private val function = constructFunction("pickle_path_diversion", listOf(pythonInt))
     @Test
     fun testAllowPathDiversion() {
@@ -23,7 +24,7 @@ class AllowPathDiversionTest : PythonTestRunner("TrickyExample", allowPathDivers
     }
 }
 
-class ForbidPathDiversionTest : PythonTestRunner("TrickyExample", allowPathDiversions = false) {
+class ForbidPathDiversionTest : PythonTestRunnerForPrimitiveProgram("TrickyExample", allowPathDiversions = false) {
     private val function = constructFunction("pickle_path_diversion", listOf(pythonInt))
     @Test
     fun testForbidPathDiversion() {

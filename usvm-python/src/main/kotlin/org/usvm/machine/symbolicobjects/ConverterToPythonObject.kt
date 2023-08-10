@@ -42,18 +42,25 @@ class ConverterToPythonObject(
         val cached = constructedObjects[obj.address]
         if (cached != null)
             return cached
-        val result = when (obj.getFirstType()) {
-            null -> error("Type stream for interpreted object is empty")
+        val result = when (val type = obj.getFirstType() ?: error("Type stream for interpreted object is empty")) {
             TypeOfVirtualObject -> constructVirtualObject(obj)
             pythonInt -> convertInt(obj)
             pythonBool -> convertBool(obj)
-            pythonObjectType -> ConcretePythonInterpreter.eval(emptyNamespace, "object()")
             pythonNoneType -> ConcretePythonInterpreter.eval(emptyNamespace, "None")
             pythonList -> convertList(obj)
-            else -> TODO()
+            else -> {
+                if ((type as? ConcretePythonType)?.let { ConcretePythonInterpreter.typeHasStandardNew(it.asObject) } == true)
+                    constructFromDefaultConstructor(type)
+                else
+                    error("Could not construct instance of type $type")
+            }
         }
         constructedObjects[obj.address] = result
         return result
+    }
+
+    private fun constructFromDefaultConstructor(type: ConcretePythonType): PythonObject {
+        return ConcretePythonInterpreter.callStandardNew(type.asObject)
     }
 
     private fun constructVirtualObject(obj: InterpretedInputSymbolicPythonObject): PythonObject {

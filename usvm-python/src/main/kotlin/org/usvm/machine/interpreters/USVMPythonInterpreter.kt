@@ -3,6 +3,7 @@ package org.usvm.machine.interpreters
 import mu.KLogging
 import org.usvm.*
 import org.usvm.interpreter.ConcolicRunContext
+import org.usvm.language.PythonPinnedCallable
 import org.usvm.language.PythonProgram
 import org.usvm.machine.interpreters.operations.BadModelException
 import org.usvm.machine.interpreters.operations.UnregisteredVirtualOperation
@@ -18,16 +19,14 @@ import org.usvm.utils.withAdditionalPaths
 class USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION>(
     private val ctx: UPythonContext,
     private val typeSystem: PythonTypeSystem,
-    private val program: PythonProgram,
-    private val callable: PythonUnpinnedCallable,
+    private val unpinnedCallable: PythonUnpinnedCallable,
+    private val pinnedCallable: PythonPinnedCallable,
     private val iterationCounter: IterationCounter,
     private val printErrorMsg: Boolean,
     private val allowPathDiversion: Boolean = true,
     private val pythonObjectSerialization: (PythonObject) -> PYTHON_OBJECT_REPRESENTATION,
     private val saveRunResult: (PythonAnalysisResult<PYTHON_OBJECT_REPRESENTATION>) -> Unit
 ) : UInterpreter<PythonExecutionState>() {
-    private val pinnedCallable = program.pinCallable(callable)
-
     private fun getSeeds(
         concolicRunContext: ConcolicRunContext,
         symbols: List<SymbolForCPython>
@@ -48,7 +47,7 @@ class USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION>(
     ): List<InputObject<PYTHON_OBJECT_REPRESENTATION>>? =
         if (converter.numberOfVirtualObjectUsages() == 0) {
             val serializedInputs = concrete.map { it!! }.map(pythonObjectSerialization)
-            (seeds zip callable.signature zip serializedInputs).map { (p, z) ->
+            (seeds zip unpinnedCallable.signature zip serializedInputs).map { (p, z) ->
                 val (x, y) = p
                 InputObject(x, y, z)
             }
@@ -86,16 +85,14 @@ class USVMPythonInterpreter<PYTHON_OBJECT_REPRESENTATION>(
             }
 
             try {
-                val result = withAdditionalPaths(program.additionalPaths) {  // for the case of inner imports (but they would probably lead to path diversions)
-                    ConcretePythonInterpreter.concolicRun(
-                        pinnedCallable.asPythonObject,
-                        concrete,
-                        virtualObjects,
-                        symbols,
-                        concolicRunContext,
-                        printErrorMsg
-                    )
-                }
+                val result = ConcretePythonInterpreter.concolicRun(
+                    pinnedCallable.asPythonObject,
+                    concrete,
+                    virtualObjects,
+                    symbols,
+                    concolicRunContext,
+                    printErrorMsg
+                )
                 if (inputs != null) {
                     val serializedResult = pythonObjectSerialization(result)
                     saveRunResult(PythonAnalysisResult(converter, inputs, Success(serializedResult)))
