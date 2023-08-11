@@ -114,7 +114,6 @@ internal class ExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Wait for instanceof support")
     fun testSymbolicExceptions() {
         checkDiscoveredProperties(
             ExceptionExamples::symbolicExceptionCheck,
