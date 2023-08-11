@@ -1,12 +1,12 @@
 package org.usvm.samples.invokes
 
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ge
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
+import org.usvm.util.disableTest
 import kotlin.math.ln
 import kotlin.math.sqrt
 
@@ -30,8 +30,7 @@ internal class NativeExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]")
-    fun testSubstitution() {
+    fun testSubstitution() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredProperties(
             NativeExample::substitution,
             ignoreNumberOfAnalysisResults,

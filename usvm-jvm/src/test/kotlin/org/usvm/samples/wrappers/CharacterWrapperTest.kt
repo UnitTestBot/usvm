@@ -1,16 +1,15 @@
 package org.usvm.samples.wrappers
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
+import org.usvm.util.disableTest
 
 
 // TODO failed Kotlin compilation
 internal class CharacterWrapperTest : JavaMethodTestRunner() {
     @Test
-    @Disabled(" Expected exactly 2 executions, but 1 found")
-    fun primitiveToWrapperTest() {
+    fun primitiveToWrapperTest() = disableTest("Expected exactly 2 executions, but 1 found") {
         checkDiscoveredProperties(
             CharacterWrapper::primitiveToWrapper,
             eq(2),
@@ -30,9 +29,8 @@ internal class CharacterWrapperTest : JavaMethodTestRunner() {
         )
     }
 
-    @Disabled("Caching char values between -128 and 127 isn't supported JIRA:1481")
     @Test
-    fun equalityTest() {
+    fun equalityTest() = disableTest("Some properties were not discovered at positions (from 0): [0, 1, 2]") {
         checkDiscoveredProperties(
             CharacterWrapper::equality,
             eq(3),

@@ -1,9 +1,9 @@
 package org.usvm.samples.arrays
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.ge
+import org.usvm.util.disableTest
 
 class TestMultiDimensional : JavaMethodTestRunner() {
     @Test
@@ -16,8 +16,7 @@ class TestMultiDimensional : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]")
-    fun `Test sumOfMultiNewArray`() {
+    fun `Test sumOfMultiNewArray`() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredProperties(
             MultiDimensional::sumOfMultiNewArray,
             ge(1),

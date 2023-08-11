@@ -1,9 +1,9 @@
 package org.usvm.samples.threads
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
+import org.usvm.util.disableTest
 import org.usvm.util.isException
 import java.util.concurrent.ExecutionException
 
@@ -11,8 +11,7 @@ import java.util.concurrent.ExecutionException
 // and should not be used for testing conrete or code generation since they are possibly flaky in the concrete execution
 class FutureExamplesTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Support invokedynamic")
-    fun testThrowingRunnable() {
+    fun testThrowingRunnable() = disableTest("Support invokedynamic") {
         checkDiscoveredPropertiesWithExceptions(
             FutureExamples::throwingRunnableExample,
             eq(1),
@@ -21,8 +20,7 @@ class FutureExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]")
-    fun testResultFromGet() {
+    fun testResultFromGet() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredProperties(
             FutureExamples::resultFromGet,
             eq(1),
@@ -31,8 +29,7 @@ class FutureExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]")
-    fun testChangingCollectionInFuture() {
+    fun testChangingCollectionInFuture() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredProperties(
             FutureExamples::changingCollectionInFuture,
             eq(1),
@@ -41,8 +38,7 @@ class FutureExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]")
-    fun testChangingCollectionInFutureWithoutGet() {
+    fun testChangingCollectionInFutureWithoutGet() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredProperties(
             FutureExamples::changingCollectionInFutureWithoutGet,
             eq(1),

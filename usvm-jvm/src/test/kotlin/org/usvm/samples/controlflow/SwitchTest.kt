@@ -1,11 +1,10 @@
 package org.usvm.samples.controlflow
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ge
-
+import org.usvm.util.disableTest
 import java.math.RoundingMode.CEILING
 import java.math.RoundingMode.DOWN
 import java.math.RoundingMode.HALF_DOWN
@@ -50,8 +49,7 @@ internal class SwitchTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1, 2, 3, 4, 5]")
-    fun testEnumSwitch() {
+    fun testEnumSwitch() = disableTest("Some properties were not discovered at positions (from 0): [1, 2, 3, 4, 5]") {
         checkDiscoveredProperties(
             Switch::enumSwitch,
             eq(7),
@@ -82,7 +80,6 @@ internal class SwitchTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("A fatal error has been detected by the Java Runtime Environment")
     fun testStringSwitch() {
         checkDiscoveredProperties(
             Switch::stringSwitch,

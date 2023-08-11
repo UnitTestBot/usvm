@@ -1,20 +1,19 @@
 package org.usvm.samples.strings
 
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.between
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ge
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
+import org.usvm.util.disableTest
 import org.usvm.util.isException
-import java.util.Locale
+import java.util.*
 
 internal class StringExamplesTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Expected exactly 2 executions, but 5 found")
-    fun testByteToString() {
+    fun testByteToString() = disableTest("Expected exactly 2 executions, but 5 found") {
         checkDiscoveredProperties(
             StringExamples::byteToString,
             eq(2),
@@ -43,8 +42,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected number of executions in bounds 3..4, but 102 found")
-    fun testReplace() {
+    fun testReplace() = disableTest("Expected number of executions in bounds 3..4, but 102 found") {
         checkDiscoveredProperties(
             StringExamples::replace,
             between(3..4),
@@ -84,8 +82,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("slow on CI")
-    fun testIntToString() {
+    fun testIntToString() = disableTest("slow on CI") {
         checkDiscoveredProperties(
             StringExamples::intToString,
             ignoreNumberOfAnalysisResults,
@@ -143,8 +140,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1]")
-    fun testStartsWithLiteral() {
+    fun testStartsWithLiteral() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
         checkDiscoveredProperties(
             StringExamples::startsWithLiteral,
             ge(4),
@@ -167,8 +163,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
 
 
     @Test
-    @Disabled("Expected exactly 2 executions, but 4 found")
-    fun testCharToString() {
+    fun testCharToString() = disableTest("Expected exactly 2 executions, but 4 found") {
         checkDiscoveredProperties(
             StringExamples::charToString,
             eq(2),
@@ -179,8 +174,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
 
 
     @Test
-    @Disabled("Expected exactly -1 executions, but 16 found")
-    fun testStringToByte() {
+    fun testStringToByte() = disableTest("Expected exactly -1 executions, but 16 found") {
         checkDiscoveredProperties(
             StringExamples::stringToByte,
             eq(-1),
@@ -188,8 +182,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly -1 executions, but 16 found")
-    fun testStringToShort() {
+    fun testStringToShort() = disableTest("Expected exactly -1 executions, but 16 found") {
         checkDiscoveredProperties(
             StringExamples::stringToShort,
             eq(-1),
@@ -197,8 +190,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled(" Expected exactly -1 executions, but 16 found")
-    fun testStringToInt() {
+    fun testStringToInt() = disableTest("Expected exactly -1 executions, but 16 found") {
         checkDiscoveredProperties(
             StringExamples::stringToInt,
             eq(-1),
@@ -206,8 +198,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly -1 executions, but 16 found")
-    fun testStringToLong() {
+    fun testStringToLong() = disableTest("Expected exactly -1 executions, but 16 found") {
         checkDiscoveredProperties(
             StringExamples::stringToLong,
             eq(-1),
@@ -215,8 +206,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1]")
-    fun testStringToBoolean() {
+    fun testStringToBoolean() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
         checkDiscoveredProperties(
             StringExamples::stringToBoolean,
             ge(2),
@@ -226,8 +216,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]")
-    fun testConcat() {
+    fun testConcat() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredProperties(
             StringExamples::concat,
             between(1..2),
@@ -237,8 +226,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0, 1]")
-    fun testConcatWithObject() {
+    fun testConcatWithObject() = disableTest("Some properties were not discovered at positions (from 0): [0, 1]") {
         checkDiscoveredProperties(
             StringExamples::concatWithObject,
             between(2..3),
@@ -248,8 +236,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]")
-    fun testStringConstants() {
+    fun testStringConstants() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredProperties(
             StringExamples::stringConstants,
             between(1..2),
@@ -266,8 +253,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1, 2]")
-    fun testConcatWithInt() {
+    fun testConcatWithInt() = disableTest("Some properties were not discovered at positions (from 0): [1, 2]") {
         checkDiscoveredProperties(
             StringExamples::concatWithInts,
             eq(3),
@@ -278,8 +264,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]")
-    fun testUseStringBuffer() {
+    fun testUseStringBuffer() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredProperties(
             StringExamples::useStringBuffer,
             between(1..2),
@@ -288,8 +273,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 1 executions, but 2 found")
-    fun testStringBuilderAsParameterExample() {
+    fun testStringBuilderAsParameterExample() = disableTest("Expected exactly 1 executions, but 2 found") {
         checkDiscoveredProperties(
             StringExamples::stringBuilderAsParameterExample,
             eq(1),
@@ -297,8 +281,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [2, 3]")
-    fun testNullableStringBuffer() {
+    fun testNullableStringBuffer() = disableTest("Some properties were not discovered at positions (from 0): [2, 3]") {
         checkDiscoveredPropertiesWithExceptions(
             StringExamples::nullableStringBuffer,
             eq(4),
@@ -310,8 +293,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 2 executions, but 24 found")
-    fun testIsStringBuilderEmpty() {
+    fun testIsStringBuilderEmpty() = disableTest("Expected exactly 2 executions, but 24 found") {
         checkDiscoveredProperties(
             StringExamples::isStringBuilderEmpty,
             eq(2),
@@ -320,8 +302,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1, 2, 3, 4]")
-    fun testIsValidUuid() {
+    fun testIsValidUuid() = disableTest("Some properties were not discovered at positions (from 0): [1, 2, 3, 4]") {
         val pattern = Regex("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
         checkDiscoveredProperties(
             StringExamples::isValidUuid,
@@ -335,8 +316,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1, 2]")
-    fun testIsValidUuidShortVersion() {
+    fun testIsValidUuidShortVersion() = disableTest("Some properties were not discovered at positions (from 0): [1, 2]") {
         val pattern = Regex("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
         checkDiscoveredProperties(
             StringExamples::isValidUuidShortVersion,
@@ -348,8 +328,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0, 1, 2, 3, 4]")
-    fun testSplitExample() {
+    fun testSplitExample() = disableTest("Some properties were not discovered at positions (from 0): [0, 1, 2, 3, 4]") {
         checkDiscoveredProperties(
             StringExamples::splitExample,
             ignoreNumberOfAnalysisResults,
@@ -362,7 +341,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testIsBlank() {
+    fun testIsBlank() = disableTest("Some properties were not discovered at positions (from 0): [1, 2, 3]") {
         checkDiscoveredProperties(
             StringExamples::isBlank,
             ge(4),
@@ -374,8 +353,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 2 executions, but 6 found")
-    fun testLength() {
+    fun testLength() = disableTest("Expected exactly 2 executions, but 6 found") {
         checkDiscoveredProperties(
             StringExamples::length, // TODO: that strange, why we haven't 3rd option?
             eq(2),
@@ -385,8 +363,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [2]")
-    fun testLonger() {
+    fun testLonger() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
         checkDiscoveredPropertiesWithExceptions(
             StringExamples::longer,
             ignoreNumberOfAnalysisResults,
@@ -397,8 +374,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1]")
-    fun testEqualChar() {
+    fun testEqualChar() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
         checkDiscoveredPropertiesWithExceptions(
             StringExamples::equalChar,
             eq(4),
@@ -410,8 +386,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [4]")
-    fun testSubstring() {
+    fun testSubstring() = disableTest("Some properties were not discovered at positions (from 0): [4]") {
         checkDiscoveredPropertiesWithExceptions(
             StringExamples::substring,
             between(5..8),
@@ -424,8 +399,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [4, 5]")
-    fun testSubstringWithEndIndex() {
+    fun testSubstringWithEndIndex() = disableTest("Some properties were not discovered at positions (from 0): [4, 5]") {
         checkDiscoveredPropertiesWithExceptions(
             StringExamples::substringWithEndIndex,
             ignoreNumberOfAnalysisResults,
@@ -454,8 +428,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 2 executions, but 3 found")
-    fun testFullSubstringEquality() {
+    fun testFullSubstringEquality() = disableTest("Expected exactly 2 executions, but 3 found") {
         checkDiscoveredPropertiesWithExceptions(
             StringExamples::fullSubstringEquality,
             eq(2),
@@ -465,8 +438,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled(" Expected exactly 3 executions, but 8 found")
-    fun testUseIntern() {
+    fun testUseIntern() = disableTest("Expected exactly 3 executions, but 8 found") {
         checkDiscoveredPropertiesWithExceptions(
             StringExamples::useIntern,
             eq(3),
@@ -477,8 +449,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [3, 4, 5]")
-    fun testPrefixAndSuffix() {
+    fun testPrefixAndSuffix() = disableTest("Some properties were not discovered at positions (from 0): [3, 4, 5]") {
         checkDiscoveredProperties(
             StringExamples::prefixAndSuffix,
             eq(6),
@@ -492,8 +463,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1]")
-    fun testPrefixWithTwoArgs() {
+    fun testPrefixWithTwoArgs() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
         checkDiscoveredPropertiesWithExceptions(
             StringExamples::prefixWithTwoArgs,
             between(3..4),
@@ -504,8 +474,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [3]")
-    fun testPrefixWithOffset() {
+    fun testPrefixWithOffset() = disableTest("Some properties were not discovered at positions (from 0): [3]") {
         checkDiscoveredProperties(
             StringExamples::prefixWithOffset,
             eq(4), // should be 4, but path selector eliminates several results with false
@@ -517,8 +486,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [3]")
-    fun testStartsWith() {
+    fun testStartsWith() = disableTest("Some properties were not discovered at positions (from 0): [3]") {
         checkDiscoveredProperties(
             StringExamples::startsWith,
             between(5..6),
@@ -532,8 +500,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [3, 4]")
-    fun testStartsWithOffset() {
+    fun testStartsWithOffset() = disableTest("Some properties were not discovered at positions (from 0): [3, 4]") {
         checkDiscoveredProperties(
             StringExamples::startsWithOffset,
             between(6..10),
@@ -553,8 +520,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [3]")
-    fun testEndsWith() {
+    fun testEndsWith() = disableTest("Some properties were not discovered at positions (from 0): [3]") {
         checkDiscoveredProperties(
             StringExamples::endsWith,
             between(5..6),
@@ -567,8 +533,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Index 2 out of bounds for length 2")
-    fun testReplaceAll() {
+    fun testReplaceAll() = disableTest("Index 2 out of bounds for length 2") {
         checkDiscoveredPropertiesWithExceptions(
             StringExamples::replaceAll,
             eq(4),
@@ -582,8 +547,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected number of executions in bounds 5..7, but 87 found")
-    fun testLastIndexOf() {
+    fun testLastIndexOf() = disableTest("Expected number of executions in bounds 5..7, but 87 found") {
         checkDiscoveredProperties(
             StringExamples::lastIndexOf,
             between(5..7),
@@ -596,8 +560,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [2]")
-    fun testIndexOfWithOffset() {
+    fun testIndexOfWithOffset() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
         checkDiscoveredProperties(
             StringExamples::indexOfWithOffset,
             between(5..9),
@@ -611,8 +574,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
 
 
     @Test
-    @Disabled("Expected number of executions in bounds 5..9, but 78 found")
-    fun testLastIndexOfWithOffset() {
+    fun testLastIndexOfWithOffset() = disableTest("Expected number of executions in bounds 5..9, but 78 found") {
         checkDiscoveredProperties(
             StringExamples::lastIndexOfWithOffset,
             between(5..9),
@@ -625,8 +587,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected number of executions in bounds 8..10, but 79 found")
-    fun testCompareCodePoints() {
+    fun testCompareCodePoints() = disableTest("Expected number of executions in bounds 8..10, but 79 found") {
         checkDiscoveredPropertiesWithExceptions(
             StringExamples::compareCodePoints,
             between(8..10),
@@ -642,8 +603,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 2 executions, but 440 found")
-    fun testToCharArray() {
+    fun testToCharArray() = disableTest("Expected exactly 2 executions, but 440 found") {
         checkDiscoveredProperties(
             StringExamples::toCharArray,
             eq(2),
@@ -653,7 +613,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("A fatal error has been detected by the Java Runtime Environment: EXCEPTION_ACCESS_VIOLATION")
     fun testGetObj() {
         checkDiscoveredProperties(
             StringExamples::getObj,
@@ -663,8 +622,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected number of executions in bounds 3..4, but 7 found")
-    fun testGetObjWithCondition() {
+    fun testGetObjWithCondition() = disableTest("Expected number of executions in bounds 3..4, but 7 found") {
         checkDiscoveredProperties(
             StringExamples::getObjWithCondition,
             between(3..4),
@@ -675,8 +633,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]")
-    fun testEqualsIgnoreCase() {
+    fun testEqualsIgnoreCase() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredProperties(
             StringExamples::equalsIgnoreCase,
             ignoreNumberOfAnalysisResults,
@@ -686,8 +643,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]")
-    fun testListToString() {
+    fun testListToString() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredProperties(
             StringExamples::listToString,
             eq(1),

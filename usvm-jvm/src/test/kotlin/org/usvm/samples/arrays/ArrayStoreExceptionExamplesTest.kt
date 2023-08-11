@@ -1,9 +1,9 @@
 package org.usvm.samples.arrays
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
+import org.usvm.util.disableTest
 import org.usvm.util.isException
 
 class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
@@ -19,8 +19,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]")
-    fun testCorrectAssignmentIntToIntegerArray() {
+    fun testCorrectAssignmentIntToIntegerArray() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::correctAssignmentIntToIntegerArray,
             eq(3),
@@ -29,8 +28,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]")
-    fun testCorrectAssignmentSubtype() {
+    fun testCorrectAssignmentSubtype() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::correctAssignmentSubtype,
             eq(3),
@@ -39,8 +37,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]")
-    fun testCorrectAssignmentToObjectArray() {
+    fun testCorrectAssignmentToObjectArray() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::correctAssignmentToObjectArray,
             eq(3),
@@ -49,8 +46,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [2]")
-    fun testWrongAssignmentUnrelatedType() {
+    fun testWrongAssignmentUnrelatedType() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::wrongAssignmentUnrelatedType,
             eq(3),
@@ -61,8 +57,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]")
-    fun testCheckGenericAssignmentWithCorrectCast() {
+    fun testCheckGenericAssignmentWithCorrectCast() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkGenericAssignmentWithCorrectCast,
             eq(1),
@@ -71,8 +66,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]")
-    fun testCheckGenericAssignmentWithWrongCast() {
+    fun testCheckGenericAssignmentWithWrongCast() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkGenericAssignmentWithWrongCast,
             eq(1),
@@ -81,8 +75,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]")
-    fun testCheckGenericAssignmentWithExtendsSubtype() {
+    fun testCheckGenericAssignmentWithExtendsSubtype() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkGenericAssignmentWithExtendsSubtype,
             eq(1),
@@ -91,8 +84,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]")
-    fun testCheckGenericAssignmentWithExtendsUnrelated() {
+    fun testCheckGenericAssignmentWithExtendsUnrelated() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkGenericAssignmentWithExtendsUnrelated,
             eq(1),
@@ -109,9 +101,8 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
         )
     }
 
-    @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]. Support generics")
-    fun testCheckWrongAssignmentOfItself() {
+    @Test // todo: Support generics
+    fun testCheckWrongAssignmentOfItself() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkWrongAssignmentOfItself,
             eq(1),
@@ -129,8 +120,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]")
-    fun testCheckAssignmentToObjectArray() {
+    fun testCheckAssignmentToObjectArray() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkAssignmentToObjectArray,
             eq(1),
@@ -139,8 +129,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [2]")
-    fun testArrayCopyForIncompatiblePrimitiveTypes() {
+    fun testArrayCopyForIncompatiblePrimitiveTypes() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::arrayCopyForIncompatiblePrimitiveTypes,
             eq(3),
@@ -151,8 +140,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some executions violated invariants. Support multidimensional arrays initialization")
-    fun testFill2DPrimitiveArray() {
+    fun testFill2DPrimitiveArray() = disableTest("Some executions violated invariants. Support multidimensional arrays initialization") {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::fill2DPrimitiveArray,
             eq(1),

@@ -1,6 +1,5 @@
 package org.usvm.samples.invokes
 
-import org.junit.jupiter.api.Test
 import org.usvm.CoverageZone
 import org.usvm.PathSelectionStrategy
 import org.usvm.UMachineOptions

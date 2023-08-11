@@ -1,15 +1,14 @@
 package org.usvm.samples.wrappers
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
+import org.usvm.util.disableTest
 
 
 internal class ShortWrapperTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]")
-    fun primitiveToWrapperTest() {
+    fun primitiveToWrapperTest() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredProperties(
             ShortWrapper::primitiveToWrapper,
             eq(2),
@@ -30,8 +29,7 @@ internal class ShortWrapperTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0, 1, 2]")
-    fun equalityTest() {
+    fun equalityTest() = disableTest("Some properties were not discovered at positions (from 0): [0, 1, 2]") {
         checkDiscoveredProperties(
             ShortWrapper::equality,
             eq(3),

@@ -1,16 +1,15 @@
 package org.usvm.samples.wrappers
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
+import org.usvm.util.disableTest
 
 
 internal class IntegerWrapperTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]")
-    fun primitiveToWrapperTest() {
+    fun primitiveToWrapperTest() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredProperties(
             IntegerWrapper::primitiveToWrapper,
             eq(2),
@@ -31,8 +30,7 @@ internal class IntegerWrapperTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [2]")
-    fun numberOfZerosTest() {
+    fun numberOfZerosTest() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
         checkDiscoveredProperties(
             IntegerWrapper::numberOfZeros,
             ignoreNumberOfAnalysisResults,
@@ -55,8 +53,7 @@ internal class IntegerWrapperTest : JavaMethodTestRunner() {
 
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]")
-    fun equalityTest() {
+    fun equalityTest() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredProperties(
             IntegerWrapper::equality,
             eq(3),

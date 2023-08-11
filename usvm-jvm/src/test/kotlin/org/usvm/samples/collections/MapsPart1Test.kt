@@ -1,18 +1,17 @@
 package org.usvm.samples.collections
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.between
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ge
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
+import org.usvm.util.disableTest
 
 
 internal class MapsPart1Test : JavaMethodTestRunner() {
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1, 2]")
-    fun testPutElementIfAbsent() {
+    fun testPutElementIfAbsent() = disableTest("Some properties were not discovered at positions (from 0): [1, 2]") {
         checkDiscoveredProperties(
             Maps::putElementIfAbsent,
             ignoreNumberOfAnalysisResults,
@@ -27,8 +26,7 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1, 2]")
-    fun testReplaceEntry() {
+    fun testReplaceEntry() = disableTest("Some properties were not discovered at positions (from 0): [1, 2]") {
         checkDiscoveredProperties(
             Maps::replaceEntry,
             between(3..6),
@@ -43,8 +41,7 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 5 executions, but 357 found")
-    fun createTest() {
+    fun createTest() = disableTest("Expected exactly 5 executions, but 357 found") {
         checkDiscoveredProperties(
             Maps::create,
             eq(5),
@@ -60,8 +57,7 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]")
-    fun testToString() {
+    fun testToString() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredProperties(
             Maps::mapToString,
             eq(1),
@@ -70,8 +66,7 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]")
-    fun testMapPutAndGet() {
+    fun testMapPutAndGet() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredProperties(
             Maps::mapPutAndGet,
             eq(1),
@@ -80,8 +75,7 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No analysis results received")
-    fun testPutInMapFromParameters() {
+    fun testPutInMapFromParameters() = disableTest("Some properties were not discovered at positions (from 0): [0, 1, 2]") {
         checkDiscoveredProperties(
             Maps::putInMapFromParameters,
             ignoreNumberOfAnalysisResults,
@@ -94,8 +88,7 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
     // This test doesn't check anything specific, but the code from MUT
     // caused errors with NPE as results while debugging `testPutInMapFromParameters`.
     @Test
-    @Disabled("No analysis results received")
-    fun testContainsKeyAndPuts() {
+    fun testContainsKeyAndPuts() = disableTest("Some properties were not discovered at positions (from 0): [0, 1]") {
         checkDiscoveredProperties(
             Maps::containsKeyAndPuts,
             ignoreNumberOfAnalysisResults,
@@ -105,8 +98,7 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No result found")
-    fun testFindAllChars() {
+    fun testFindAllChars() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
         checkDiscoveredProperties(
             Maps::countChars,
             eq(3),
@@ -117,8 +109,7 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [2, 3, 4]")
-    fun putElementsTest() {
+    fun putElementsTest() = disableTest("Some properties were not discovered at positions (from 0): [2, 3, 4]") {
         checkDiscoveredProperties(
             Maps::putElements,
             ge(5),
@@ -134,8 +125,7 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1, 2, 3, 4, 5]")
-    fun removeEntries() {
+    fun removeEntries() = disableTest("Some properties were not discovered at positions (from 0): [1, 2, 3, 4, 5]") {
         checkDiscoveredProperties(
             Maps::removeElements,
             ge(6),
@@ -159,8 +149,7 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1, 2]")
-    fun removeCustomObjectTest() {
+    fun removeCustomObjectTest() = disableTest("Some properties were not discovered at positions (from 0): [1, 2]") {
         checkDiscoveredProperties(
             Maps::removeCustomObject,
             ge(3),
@@ -171,8 +160,7 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Out of memory")
-    fun testMapOperator() {
+    fun testMapOperator() = disableTest("JcTestResolver: Unsafe.allocateInstance java.lang.Class") {
         checkDiscoveredProperties(
             Maps::mapOperator,
             ignoreNumberOfAnalysisResults
@@ -180,8 +168,7 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Index 6 out of bounds for length 6")
-    fun testComputeValue() {
+    fun testComputeValue() = disableTest("Index 6 out of bounds for length 6 | URegistersStack.writeRegister") {
         checkDiscoveredProperties(
             Maps::computeValue,
             between(3..5),
@@ -222,8 +209,7 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
 //    }
 
     @Test
-    @Disabled("Index 3 out of bounds for length 3")
-    fun testComputeValueIfAbsent() {
+    fun testComputeValueIfAbsent() = disableTest("Index 3 out of bounds for length 3 | URegistersStack.writeRegister") {
         checkDiscoveredProperties(
             Maps::computeValueIfAbsent,
             between(3..5),
@@ -238,8 +224,7 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No result found")
-    fun testComputeValueIfPresent() {
+    fun testComputeValueIfPresent() = disableTest("Some properties were not discovered at positions (from 0): [1, 2]") {
         checkDiscoveredProperties(
             Maps::computeValueIfPresent,
             between(3..5),
@@ -254,8 +239,7 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [2]")
-    fun testClearEntries() {
+    fun testClearEntries() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
         checkDiscoveredProperties(
             Maps::clearEntries,
             between(3..4),
@@ -266,8 +250,7 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [2]")
-    fun testContainsKey() {
+    fun testContainsKey() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
         checkDiscoveredProperties(
             Maps::containsKey,
             between(3..5),
@@ -278,8 +261,7 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1, 2]")
-    fun testContainsValue() {
+    fun testContainsValue() = disableTest("Some properties were not discovered at positions (from 0): [1, 2]") {
         checkDiscoveredProperties(
             Maps::containsValue,
             between(3..6),
@@ -290,8 +272,7 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1, 2, 3]")
-    fun testGetOrDefaultElement() {
+    fun testGetOrDefaultElement() = disableTest("Some properties were not discovered at positions (from 0): [1, 2, 3]") {
         checkDiscoveredProperties(
             Maps::getOrDefaultElement,
             between(4..6),
@@ -303,8 +284,7 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1, 2, 3, 4, 5]")
-    fun testRemoveKeyWithValue() {
+    fun testRemoveKeyWithValue() = disableTest("Some properties were not discovered at positions (from 0): [1, 2, 3, 4, 5]") {
         checkDiscoveredProperties(
             Maps::removeKeyWithValue,
             ge(6),
@@ -318,8 +298,7 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No result found")
-    fun testReplaceAllEntries() {
+    fun testReplaceAllEntries() = disableTest("Some properties were not discovered at positions (from 0): [2, 3, 4]") {
         checkDiscoveredProperties(
             Maps::replaceAllEntries,
             between(5..6),
@@ -344,8 +323,7 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]")
-    fun testCreateMapWithString() {
+    fun testCreateMapWithString() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredProperties(
             Maps::createMapWithString,
             eq(1),
@@ -354,8 +332,7 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]")
-    fun testCreateMapWithEnum() {
+    fun testCreateMapWithEnum() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredProperties(
             Maps::createMapWithEnum,
             eq(1),

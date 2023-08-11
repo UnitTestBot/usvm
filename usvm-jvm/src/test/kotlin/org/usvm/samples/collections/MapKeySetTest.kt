@@ -1,18 +1,17 @@
 package org.usvm.samples.collections
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.between
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ge
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
+import org.usvm.util.disableTest
 import org.usvm.util.isException
 
 class MapKeySetTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1, 2]")
-    fun testRemoveFromKeySet() {
+    fun testRemoveFromKeySet() = disableTest("Some properties were not discovered at positions (from 0): [1, 2]") {
         checkDiscoveredPropertiesWithExceptions(
             MapKeySet::removeFromKeySet,
             ignoreNumberOfAnalysisResults,
@@ -29,8 +28,7 @@ class MapKeySetTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1]")
-    fun testAddToKeySet() {
+    fun testAddToKeySet() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
         checkDiscoveredPropertiesWithExceptions(
             MapKeySet::addToKeySet,
             between(2..4),
@@ -40,8 +38,7 @@ class MapKeySetTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1, 2]")
-    fun testGetFromKeySet() {
+    fun testGetFromKeySet() = disableTest("Some properties were not discovered at positions (from 0): [1, 2]") {
         checkDiscoveredProperties(
             MapKeySet::getFromKeySet, // branches with null keys may appear
             eq(3),
@@ -52,8 +49,7 @@ class MapKeySetTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [2]")
-    fun testIteratorHasNext() {
+    fun testIteratorHasNext() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
         checkDiscoveredProperties(
             MapKeySet::iteratorHasNext,
             between(3..4),
@@ -64,8 +60,7 @@ class MapKeySetTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1, 2]")
-    fun testIteratorNext() {
+    fun testIteratorNext() = disableTest("Some properties were not discovered at positions (from 0): [1, 2]") {
         checkDiscoveredPropertiesWithExceptions(
             MapKeySet::iteratorNext,
             between(3..4),
@@ -77,8 +72,7 @@ class MapKeySetTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1, 2]")
-    fun testIteratorRemove() {
+    fun testIteratorRemove() = disableTest("Some properties were not discovered at positions (from 0): [1, 2]") {
         checkDiscoveredPropertiesWithExceptions(
             MapKeySet::iteratorRemove,
             between(3..4),
@@ -96,8 +90,7 @@ class MapKeySetTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [2, 3, 4]")
-    fun testIteratorRemoveOnIndex() {
+    fun testIteratorRemoveOnIndex() = disableTest("Some properties were not discovered at positions (from 0): [2, 3, 4]") {
         checkDiscoveredPropertiesWithExceptions(
             MapKeySet::iteratorRemoveOnIndex,
             ge(5),
@@ -117,8 +110,7 @@ class MapKeySetTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1, 2]")
-    fun testIterateForEach() {
+    fun testIterateForEach() = disableTest("Some properties were not discovered at positions (from 0): [1, 2]") {
         checkDiscoveredProperties(
             MapKeySet::iterateForEach,
             ignoreNumberOfAnalysisResults,
@@ -129,8 +121,7 @@ class MapKeySetTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1, 2]")
-    fun testIterateWithIterator() {
+    fun testIterateWithIterator() = disableTest("Some properties were not discovered at positions (from 0): [1, 2]") {
         checkDiscoveredProperties(
             MapKeySet::iterateWithIterator,
             ignoreNumberOfAnalysisResults,
@@ -141,8 +132,7 @@ class MapKeySetTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1, 2]")
-    fun testNullKey() {
+    fun testNullKey() = disableTest("Some properties were not discovered at positions (from 0): [1, 2]") {
         checkDiscoveredProperties(
             MapKeySet::nullKey,
             eq(3),

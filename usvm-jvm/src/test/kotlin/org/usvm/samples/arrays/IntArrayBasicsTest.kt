@@ -1,11 +1,11 @@
 package org.usvm.samples.arrays
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ge
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
+import org.usvm.util.disableTest
 import org.usvm.util.isException
 
 internal class IntArrayBasicsTest : JavaMethodTestRunner() {
@@ -121,9 +121,8 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
         )
     }
 
-    @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [4, 5]. Tune path selectors")
-    fun testMergeArrays() {
+    @Test // todo: Tune path selectors
+    fun testMergeArrays() = disableTest("Some properties were not discovered at positions (from 0): [4, 5]") {
         checkDiscoveredProperties(
             IntArrayBasics::mergeArrays,
             ignoreNumberOfAnalysisResults,
@@ -191,8 +190,7 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [2]")
-    fun testUpdateCloned() {
+    fun testUpdateCloned() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
         checkDiscoveredProperties(
             IntArrayBasics::updateCloned,
             eq(3),
@@ -203,8 +201,7 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]")
-    fun testArraysEqualsExample() {
+    fun testArraysEqualsExample() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredProperties(
             IntArrayBasics::arrayEqualsExample,
             eq(2),

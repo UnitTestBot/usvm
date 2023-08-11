@@ -1,15 +1,14 @@
 package org.usvm.samples.collections
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
+import org.usvm.util.disableTest
 import org.usvm.util.isException
 
 internal class ListWrapperReturnsVoidTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Sort mismatch at io.ksmt.utils.ContextUtilsKt.asExpr")
-    fun testRunForEach() {
+    fun testRunForEach() = disableTest("Unexpected expr of type void: JcLambdaExpr") {
         checkDiscoveredPropertiesWithExceptions(
             ListWrapperReturnsVoidExample::runForEach,
             eq(4),
@@ -21,8 +20,7 @@ internal class ListWrapperReturnsVoidTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No result found")
-    fun testSumPositiveForEach() {
+    fun testSumPositiveForEach() = disableTest("No result found | lambda") {
         checkDiscoveredPropertiesWithExceptions(
             ListWrapperReturnsVoidExample::sumPositiveForEach,
             eq(5),

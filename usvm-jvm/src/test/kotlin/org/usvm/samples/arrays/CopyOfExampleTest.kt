@@ -1,16 +1,15 @@
 package org.usvm.samples.arrays
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
+import org.usvm.util.disableTest
 import org.usvm.util.isException
 
 
 class CopyOfExampleTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("class org.jacodb.impl.types.JcArrayTypeImpl cannot be cast to class org.jacodb.api.JcClassType")
-    fun testCopyOf() {
+    fun testCopyOf() = disableTest("Some properties were not discovered at positions (from 0): [0, 1]") {
         checkDiscoveredPropertiesWithExceptions(
             CopyOfExample::copyOfExample,
             ignoreNumberOfAnalysisResults,
@@ -20,8 +19,7 @@ class CopyOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("class org.jacodb.impl.types.JcArrayTypeImpl cannot be cast to class org.jacodb.api.JcClassType")
-    fun testCopyOfRange() {
+    fun testCopyOfRange() = disableTest("Some properties were not discovered at positions (from 0): [0, 1, 3]") {
         checkDiscoveredPropertiesWithExceptions(
             CopyOfExample::copyOfRangeExample,
             ignoreNumberOfAnalysisResults,

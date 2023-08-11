@@ -1,15 +1,14 @@
 package org.usvm.samples.lambda
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
+import org.usvm.util.disableTest
 
 
 class ThrowingWithLambdaExampleTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Support assumptions")
-    fun testAnyExample() {
+    fun testAnyExample() = disableTest("Support assumptions") {
         checkDiscoveredProperties(
             ThrowingWithLambdaExample::anyExample,
             eq(4),

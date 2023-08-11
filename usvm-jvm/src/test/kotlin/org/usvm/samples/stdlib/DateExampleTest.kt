@@ -1,19 +1,18 @@
 package org.usvm.samples.stdlib
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
+import org.usvm.util.disableTest
 import org.usvm.util.isException
-import java.util.Date
+import java.util.*
 
 class DateExampleTest : JavaMethodTestRunner() {
-    @Disabled("Some properties were not discovered at positions (from 0): [4]")
     @Suppress("SpellCheckingInspection")
     @Tag("slow")
     @Test
-    fun testGetTimeWithNpeChecksForNonPublicFields() {
+    fun testGetTimeWithNpeChecksForNonPublicFields() = disableTest("Some properties were not discovered at positions (from 0): [4]"){
         checkDiscoveredPropertiesWithExceptions(
             DateExample::getTime,
             eq(5),
@@ -39,8 +38,7 @@ class DateExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 3 executions, but 20 found")
-    fun testGetTimeWithoutReflection() {
+    fun testGetTimeWithoutReflection() = disableTest("Expected exactly 3 executions, but 20 found") {
         checkDiscoveredPropertiesWithExceptions(
             DateExample::getTime,
             eq(3),

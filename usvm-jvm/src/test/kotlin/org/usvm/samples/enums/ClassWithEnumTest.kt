@@ -1,6 +1,5 @@
 package org.usvm.samples.enums
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.samples.enums.ClassWithEnum.StatusEnum
@@ -9,6 +8,7 @@ import org.usvm.samples.enums.ClassWithEnum.StatusEnum.READY
 import org.usvm.test.util.checkers.between
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
+import org.usvm.util.disableTest
 import org.usvm.util.isException
 
 
@@ -33,8 +33,7 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]")
-    fun testDifficultIfBranch() {
+    fun testDifficultIfBranch() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredProperties(
             ClassWithEnum::useEnumInDifficultIf,
             ignoreNumberOfAnalysisResults,
@@ -44,8 +43,7 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1]. Support enums")
-    fun testNullParameter() {
+    fun testNullParameter() = disableTest("Some properties were not discovered at positions (from 0): [1]. Support enums") {
         checkDiscoveredProperties(
             ClassWithEnum::nullEnumAsParameter,
             between(2..3),
@@ -55,8 +53,7 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1, 2]")
-    fun testNullField() {
+    fun testNullField() = disableTest("Some properties were not discovered at positions (from 0): [1, 2]") {
         checkDiscoveredPropertiesWithExceptions(
             ClassWithEnum::nullField,
             eq(3),
@@ -67,8 +64,7 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0, 1]")
-    fun testChangeEnum() {
+    fun testChangeEnum() = disableTest("Some properties were not discovered at positions (from 0): [0, 1]") {
         checkDiscoveredPropertiesWithExceptions(
             ClassWithEnum::changeEnum,
             eq(2),
@@ -78,8 +74,7 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0, 1]")
-    fun testChangeMutableField() {
+    fun testChangeMutableField() = disableTest("Some properties were not discovered at positions (from 0): [0, 1]") {
         checkDiscoveredPropertiesWithExceptions(
             ClassWithEnum::changeMutableField,
             eq(2),
@@ -89,8 +84,7 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 3 executions, but 7 found")
-    fun testCheckName() {
+    fun testCheckName() = disableTest("Expected exactly 3 executions, but 7 found") {
         checkDiscoveredProperties(
             ClassWithEnum::checkName,
             eq(3),
@@ -126,8 +120,7 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
 */
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1, 2]")
-    fun testVirtualFunction() {
+    fun testVirtualFunction() = disableTest("Some properties were not discovered at positions (from 0): [1, 2]") {
         checkDiscoveredProperties(
             ClassWithEnum::virtualFunction,
             eq(3),
@@ -148,8 +141,7 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
 //    }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0, 1]")
-    fun testFromCode() {
+    fun testFromCode() = disableTest("Some properties were not discovered at positions (from 0): [0, 1]") {
         checkDiscoveredProperties(
             StatusEnum::fromCode,
             eq(3),
@@ -160,8 +152,7 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0, 1]")
-    fun testFromIsReady() {
+    fun testFromIsReady() = disableTest("Some properties were not discovered at positions (from 0): [0, 1]") {
         checkDiscoveredProperties(
             StatusEnum::fromIsReady,
             eq(2),
@@ -171,8 +162,7 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]")
-    fun testPublicGetCodeMethod() {
+    fun testPublicGetCodeMethod() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkThisAndParamsMutations(
             StatusEnum::publicGetCode,
             between(1..2),
@@ -182,8 +172,7 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]")
-    fun testImplementingInterfaceEnumInDifficultBranch() {
+    fun testImplementingInterfaceEnumInDifficultBranch() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredProperties(
             ClassWithEnum::implementingInterfaceEnumInDifficultBranch,
             ignoreNumberOfAnalysisResults,

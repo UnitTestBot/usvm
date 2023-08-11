@@ -1,22 +1,19 @@
 package org.usvm.samples.stream
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
+import org.usvm.util.disableTest
 import org.usvm.util.isException
-
-
-import java.util.OptionalDouble
+import java.util.*
 import java.util.stream.DoubleStream
 import kotlin.streams.toList
 
-@Disabled("Still too complex")
 class DoubleStreamExampleTest : JavaMethodTestRunner() {
     @Test
-    fun testReturningStreamAsParameterExample() {
+    fun testReturningStreamAsParameterExample() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredProperties(
             DoubleStreamExample::returningStreamAsParameterExample,
             eq(1),
@@ -25,7 +22,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testUseParameterStream() {
+    fun testUseParameterStream() = disableTest("Index 1 out of bounds for length 1 | URegistersStack.writeRegister") {
         checkDiscoveredProperties(
             DoubleStreamExample::useParameterStream,
             eq(2),
@@ -39,7 +36,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testFilterExample() {
+    fun testFilterExample() = disableTest("Some properties were not discovered at positions (from 0): [0, 1]") {
         checkDiscoveredProperties(
             DoubleStreamExample::filterExample,
             ignoreNumberOfAnalysisResults,
@@ -49,7 +46,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testMapExample() {
+    fun testMapExample() = disableTest("Index 1 out of bounds for length 1 | URegistersStack.writeRegister") {
         checkDiscoveredProperties(
             DoubleStreamExample::mapExample,
             ignoreNumberOfAnalysisResults,
@@ -59,7 +56,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testMapToObjExample() {
+    fun testMapToObjExample() = disableTest("Index 1 out of bounds for length 1 | URegistersStack.writeRegister") {
         checkDiscoveredProperties(
             DoubleStreamExample::mapToObjExample,
             ignoreNumberOfAnalysisResults,
@@ -79,7 +76,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testMapToIntExample() {
+    fun testMapToIntExample() = disableTest("Index 1 out of bounds for length 1 | URegistersStack.writeRegister") {
         checkDiscoveredProperties(
             DoubleStreamExample::mapToIntExample,
             ignoreNumberOfAnalysisResults,
@@ -97,7 +94,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testMapToLongExample() {
+    fun testMapToLongExample() = disableTest("Index 1 out of bounds for length 1 | URegistersStack.writeRegister") {
         checkDiscoveredProperties(
             DoubleStreamExample::mapToLongExample,
             ignoreNumberOfAnalysisResults,
@@ -115,7 +112,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testFlatMapExample() {
+    fun testFlatMapExample() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredProperties(
             DoubleStreamExample::flatMapExample,
             ignoreNumberOfAnalysisResults,
@@ -130,7 +127,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testDistinctExample() {
+    fun testDistinctExample() = disableTest("Some properties were not discovered at positions (from 0): [0, 1]") {
         checkDiscoveredProperties(
             DoubleStreamExample::distinctExample,
             ignoreNumberOfAnalysisResults,
@@ -149,8 +146,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
 
     @Test
     @Tag("slow")
-    @Disabled("Not implemented: virtual calls with abstract methods")
-    fun testSortedExample() {
+    fun testSortedExample() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredProperties(
             DoubleStreamExample::sortedExample,
             ignoreNumberOfAnalysisResults,
@@ -161,7 +157,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     // TODO unsupported
     /*
         @Test
-        fun testPeekExample() {
+        fun testPeekExample() = disableTest("") {
             checkThisAndStaticsAfter(
                 DoubleStreamExample::peekExample,
                 ignoreNumberOfAnalysisResults,
@@ -171,7 +167,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     */
 
     @Test
-    fun testLimitExample() {
+    fun testLimitExample() = disableTest("Some properties were not discovered at positions (from 0): [0, 1]") {
         checkDiscoveredProperties(
             DoubleStreamExample::limitExample,
             ignoreNumberOfAnalysisResults,
@@ -181,7 +177,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testSkipExample() {
+    fun testSkipExample() = disableTest("Some properties were not discovered at positions (from 0): [0, 1]") {
         checkDiscoveredProperties(
             DoubleStreamExample::skipExample,
             ignoreNumberOfAnalysisResults,
@@ -201,7 +197,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
 //    }
 
     @Test
-    fun testToArrayExample() {
+    fun testToArrayExample() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredProperties(
             DoubleStreamExample::toArrayExample,
             ignoreNumberOfAnalysisResults,
@@ -210,7 +206,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testReduceExample() {
+    fun testReduceExample() = disableTest("Some properties were not discovered at positions (from 0): [0, 1]") {
         checkDiscoveredProperties(
             DoubleStreamExample::reduceExample,
             ignoreNumberOfAnalysisResults,
@@ -220,7 +216,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testOptionalReduceExample() {
+    fun testOptionalReduceExample() = disableTest("Some properties were not discovered at positions (from 0): [0, 1]") {
         checkDiscoveredPropertiesWithExceptions(
             DoubleStreamExample::optionalReduceExample,
             ignoreNumberOfAnalysisResults,
@@ -234,7 +230,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testSumExample() {
+    fun testSumExample() = disableTest("Some properties were not discovered at positions (from 0): [0, 1]") {
         checkDiscoveredProperties(
             DoubleStreamExample::sumExample,
             ignoreNumberOfAnalysisResults,
@@ -244,7 +240,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testMinExample() {
+    fun testMinExample() = disableTest("Some properties were not discovered at positions (from 0): [0, 1]") {
         checkDiscoveredPropertiesWithExceptions(
             DoubleStreamExample::minExample,
             ignoreNumberOfAnalysisResults,
@@ -256,7 +252,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testMaxExample() {
+    fun testMaxExample() = disableTest("Some properties were not discovered at positions (from 0): [0, 1]") {
         checkDiscoveredPropertiesWithExceptions(
             DoubleStreamExample::maxExample,
             ignoreNumberOfAnalysisResults,
@@ -268,7 +264,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testCountExample() {
+    fun testCountExample() = disableTest("Some properties were not discovered at positions (from 0): [0, 1]") {
         checkDiscoveredProperties(
             DoubleStreamExample::countExample,
             ignoreNumberOfAnalysisResults,
@@ -278,7 +274,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testAverageExample() {
+    fun testAverageExample() = disableTest("Some properties were not discovered at positions (from 0): [0, 1]") {
         checkDiscoveredProperties(
             DoubleStreamExample::averageExample,
             ignoreNumberOfAnalysisResults,
@@ -288,7 +284,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testSummaryStatisticsExample() {
+    fun testSummaryStatisticsExample() = disableTest("Some properties were not discovered at positions (from 0): [0, 1]") {
         checkDiscoveredProperties(
             DoubleStreamExample::summaryStatisticsExample,
             ignoreNumberOfAnalysisResults,
@@ -324,7 +320,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testAnyMatchExample() {
+    fun testAnyMatchExample() = disableTest("Index 1 out of bounds for length 1 | URegistersStack.writeRegister") {
         // TODO exceeds even default step limit 3500 => too slow
         checkDiscoveredProperties(
             DoubleStreamExample::anyMatchExample,
@@ -350,7 +346,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testAllMatchExample() {
+    fun testAllMatchExample() = disableTest("Index 1 out of bounds for length 1 | URegistersStack.writeRegister") {
         checkDiscoveredProperties(
             DoubleStreamExample::allMatchExample,
             ignoreNumberOfAnalysisResults,
@@ -375,7 +371,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testNoneMatchExample() {
+    fun testNoneMatchExample() = disableTest("Index 1 out of bounds for length 1 | URegistersStack.writeRegister") {
         checkDiscoveredProperties(
             DoubleStreamExample::noneMatchExample,
             ignoreNumberOfAnalysisResults,
@@ -400,7 +396,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testFindFirstExample() {
+    fun testFindFirstExample() = disableTest("Some properties were not discovered at positions (from 0): [0, 1]") {
         checkDiscoveredProperties(
             DoubleStreamExample::findFirstExample,
             eq(3),
@@ -410,7 +406,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testBoxedExample() {
+    fun testBoxedExample() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredProperties(
             DoubleStreamExample::boxedExample,
             ignoreNumberOfAnalysisResults,
@@ -419,7 +415,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testIteratorExample() {
+    fun testIteratorExample() = disableTest("Some properties were not discovered at positions (from 0): [0, 1]") {
         checkDiscoveredProperties(
             DoubleStreamExample::iteratorSumExample,
             ignoreNumberOfAnalysisResults,
@@ -429,7 +425,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testStreamOfExample() {
+    fun testStreamOfExample() = disableTest("Some properties were not discovered at positions (from 0): [0, 1]") {
         checkDiscoveredProperties(
             DoubleStreamExample::streamOfExample,
             ignoreNumberOfAnalysisResults,
@@ -440,7 +436,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testClosedStreamExample() {
+    fun testClosedStreamExample() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredPropertiesWithExceptions(
             DoubleStreamExample::closedStreamExample,
             ignoreNumberOfAnalysisResults,
@@ -449,7 +445,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testGenerateExample() {
+    fun testGenerateExample() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredProperties(
             DoubleStreamExample::generateExample,
             ignoreNumberOfAnalysisResults,
@@ -458,7 +454,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testIterateExample() {
+    fun testIterateExample() = disableTest("Index 1 out of bounds for length 1 | URegistersStack.writeRegister") {
         checkDiscoveredProperties(
             DoubleStreamExample::iterateExample,
             ignoreNumberOfAnalysisResults,
@@ -467,7 +463,7 @@ class DoubleStreamExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testConcatExample() {
+    fun testConcatExample() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredProperties(
             DoubleStreamExample::concatExample,
             ignoreNumberOfAnalysisResults,

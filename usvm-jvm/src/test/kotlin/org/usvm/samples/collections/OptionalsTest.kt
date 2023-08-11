@@ -1,11 +1,11 @@
 package org.usvm.samples.collections
 
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.between
 import org.usvm.test.util.checkers.eq
+import org.usvm.util.disableTest
 import org.usvm.util.isException
 
 class OptionalsTest : JavaMethodTestRunner() {
@@ -390,8 +390,7 @@ class OptionalsTest : JavaMethodTestRunner() {
 //    }
 
     @Test
-    @Disabled("No result found")
-    fun testEqualOptionals() {
+    fun testEqualOptionals() = disableTest("No result found") {
         checkDiscoveredProperties(
             Optionals::equalOptionals,
             between(4..7),
@@ -403,8 +402,7 @@ class OptionalsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected number of executions in bounds 4..8, but 9 found")
-    fun testEqualOptionalsInt() {
+    fun testEqualOptionalsInt() = disableTest("Expected number of executions in bounds 4..8, but 9 found") {
         checkDiscoveredProperties(
             Optionals::equalOptionalsInt,
             between(4..8),
@@ -416,8 +414,7 @@ class OptionalsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected number of executions in bounds 4..8, but 9 found")
-    fun testEqualOptionalsLong() {
+    fun testEqualOptionalsLong() = disableTest("Expected number of executions in bounds 4..8, but 9 found") {
         checkDiscoveredProperties(
             Optionals::equalOptionalsLong,
             between(4..8),
@@ -429,8 +426,7 @@ class OptionalsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected number of executions in bounds 4..8, but 12 found")
-    fun testEqualOptionalsDouble() {
+    fun testEqualOptionalsDouble() = disableTest("Expected number of executions in bounds 4..8, but 12 found") {
         checkDiscoveredProperties(
             Optionals::equalOptionalsDouble,
             between(4..8),
@@ -442,8 +438,7 @@ class OptionalsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]")
-    fun testOptionalOfPositive() {
+    fun testOptionalOfPositive() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredProperties(
             Optionals::optionalOfPositive,
             eq(2),

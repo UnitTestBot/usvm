@@ -1,15 +1,14 @@
 package org.usvm.samples.wrappers
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
+import org.usvm.util.disableTest
 
 
 internal class LongWrapperTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]")
-    fun primitiveToWrapperTest() {
+    fun primitiveToWrapperTest() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredProperties(
             LongWrapper::primitiveToWrapper,
             eq(2),
@@ -30,8 +29,7 @@ internal class LongWrapperTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0, 1, 2]")
-    fun equalityTest() {
+    fun equalityTest() = disableTest("Some properties were not discovered at positions (from 0): [0, 1, 2]") {
         checkDiscoveredProperties(
             LongWrapper::equality,
             eq(3),
@@ -42,8 +40,7 @@ internal class LongWrapperTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("A fatal error has been detected by the Java Runtime Environment: EXCEPTION_ACCESS_VIOLATION")
-    fun parseLong() {
+    fun parseLong() = disableTest("Some properties were not discovered at positions (from 0): [3]") {
         checkDiscoveredProperties(
             LongWrapper::parseLong,
             eq(6),

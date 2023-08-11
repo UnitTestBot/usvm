@@ -1,9 +1,9 @@
 package org.usvm.samples.threads
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
+import org.usvm.util.disableTest
 import org.usvm.util.isException
 
 
@@ -11,8 +11,7 @@ import org.usvm.util.isException
 // and should not be used for testing conrete or code generation since they are possibly flaky in the concrete execution
 class ExecutorServiceExamplesTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]")
-    fun testExceptionInExecute() {
+    fun testExceptionInExecute() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredPropertiesWithExceptions(
             ExecutorServiceExamples::throwingInExecute,
             ignoreNumberOfAnalysisResults,
@@ -21,8 +20,7 @@ class ExecutorServiceExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]")
-    fun testChangingCollectionInExecute() {
+    fun testChangingCollectionInExecute() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredProperties(
             ExecutorServiceExamples::changingCollectionInExecute,
             ignoreNumberOfAnalysisResults,

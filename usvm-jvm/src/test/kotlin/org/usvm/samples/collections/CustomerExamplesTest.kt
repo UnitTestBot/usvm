@@ -1,7 +1,6 @@
 package org.usvm.samples.collections
 
 
-import org.junit.jupiter.api.Disabled
 import org.usvm.samples.JavaMethodTestRunner
 
 

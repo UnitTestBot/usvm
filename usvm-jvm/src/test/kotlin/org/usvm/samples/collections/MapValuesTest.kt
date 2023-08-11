@@ -1,17 +1,16 @@
 package org.usvm.samples.collections
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.between
 import org.usvm.test.util.checkers.ge
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
+import org.usvm.util.disableTest
 import org.usvm.util.isException
 
 class MapValuesTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1, 2]")
-    fun testRemoveFromValues() {
+    fun testRemoveFromValues() = disableTest("Some properties were not discovered at positions (from 0): [1, 2]") {
         checkDiscoveredPropertiesWithExceptions(
             MapValues::removeFromValues,
             ignoreNumberOfAnalysisResults,
@@ -38,8 +37,7 @@ class MapValuesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1]")
-    fun testAddToValues() {
+    fun testAddToValues() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
         checkDiscoveredPropertiesWithExceptions(
             MapValues::addToValues,
             between(2..4),
@@ -49,8 +47,7 @@ class MapValuesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1, 2]")
-    fun testGetFromValues() {
+    fun testGetFromValues() = disableTest("Some properties were not discovered at positions (from 0): [1, 2]") {
         checkDiscoveredProperties(
             MapValues::getFromValues,
             ignoreNumberOfAnalysisResults,
@@ -61,8 +58,7 @@ class MapValuesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1, 2]")
-    fun testIteratorHasNext() {
+    fun testIteratorHasNext() = disableTest("Some properties were not discovered at positions (from 0): [1, 2]") {
         checkDiscoveredProperties(
             MapValues::iteratorHasNext,
             between(3..4),
@@ -73,8 +69,7 @@ class MapValuesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1, 2]")
-    fun testIteratorNext() {
+    fun testIteratorNext() = disableTest("Some properties were not discovered at positions (from 0): [1, 2]") {
         checkDiscoveredPropertiesWithExceptions(
             MapValues::iteratorNext,
             between(3..4),
@@ -89,8 +84,7 @@ class MapValuesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1, 2]")
-    fun testIteratorRemove() {
+    fun testIteratorRemove() = disableTest("Some properties were not discovered at positions (from 0): [1, 2]") {
         checkDiscoveredPropertiesWithExceptions(
             MapValues::iteratorRemove,
             between(3..4),
@@ -118,8 +112,7 @@ class MapValuesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [2, 3, 4]")
-    fun testIteratorRemoveOnIndex() {
+    fun testIteratorRemoveOnIndex() = disableTest("Some properties were not discovered at positions (from 0): [2, 3, 4]") {
         checkDiscoveredPropertiesWithExceptions(
             MapValues::iteratorRemoveOnIndex,
             ge(5),
@@ -147,8 +140,7 @@ class MapValuesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1, 2]")
-    fun testIterateForEach() {
+    fun testIterateForEach() = disableTest("Some properties were not discovered at positions (from 0): [1, 2]") {
         checkDiscoveredProperties(
             MapValues::iterateForEach,
             between(3..5),
@@ -159,8 +151,7 @@ class MapValuesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1, 2]")
-    fun testIterateWithIterator() {
+    fun testIterateWithIterator() = disableTest("Some properties were not discovered at positions (from 0): [1, 2]") {
         checkDiscoveredProperties(
             MapValues::iterateWithIterator,
             between(3..5),

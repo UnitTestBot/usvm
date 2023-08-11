@@ -1,16 +1,15 @@
 package org.usvm.samples.types
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
+import org.usvm.util.disableTest
 
 
 internal class GenericsTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("No result found")
-    fun mapAsParameterTest() {
+    fun mapAsParameterTest() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
         checkDiscoveredProperties(
             Generics<*>::mapAsParameter,
             eq(2),
@@ -20,8 +19,7 @@ internal class GenericsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No result found")
-    fun genericAsFieldTest() {
+    fun genericAsFieldTest() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
         checkDiscoveredProperties(
             Generics<*>::genericAsField,
             ignoreNumberOfAnalysisResults,
@@ -41,8 +39,7 @@ internal class GenericsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No result found")
-    fun mapAsNonStaticFieldTest() {
+    fun mapAsNonStaticFieldTest() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
         checkDiscoveredProperties(
             Generics<*>::mapAsNonStaticField,
             ignoreNumberOfAnalysisResults,
@@ -52,8 +49,7 @@ internal class GenericsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No result found")
-    fun methodWithRawTypeTest() {
+    fun methodWithRawTypeTest() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
         checkDiscoveredProperties(
             Generics<*>::methodWithRawType,
             eq(2),

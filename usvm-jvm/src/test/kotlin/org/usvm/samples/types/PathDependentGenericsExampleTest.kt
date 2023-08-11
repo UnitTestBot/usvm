@@ -1,9 +1,9 @@
 package org.usvm.samples.types
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
+import org.usvm.util.disableTest
 
 
 internal class PathDependentGenericsExampleTest : JavaMethodTestRunner() {
@@ -19,8 +19,7 @@ internal class PathDependentGenericsExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 2 executions, but 23 found")
-    fun testFunctionWithSeveralTypeConstraintsForTheSameObject() {
+    fun testFunctionWithSeveralTypeConstraintsForTheSameObject() = disableTest("Expected exactly 2 executions, but 23 found") {
         checkDiscoveredProperties(
             PathDependentGenericsExample::functionWithSeveralTypeConstraintsForTheSameObject,
             eq(2),
