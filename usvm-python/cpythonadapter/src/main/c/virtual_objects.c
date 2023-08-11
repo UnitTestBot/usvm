@@ -90,6 +90,12 @@ nb_multiply(PyObject *first, PyObject *second) {
     BINARY_FUNCTION
 }
 
+static PyObject *
+nb_matrix_multiply(PyObject *first, PyObject *second) {
+    assert(is_virtual_object(first));
+    MAKE_USVM_VIRUAL_CALL((VirtualPythonObject *) first, 0)
+}
+
 static Py_ssize_t
 sq_length(PyObject *self) {
     VirtualPythonObject *obj = (VirtualPythonObject *) self;
@@ -149,6 +155,8 @@ static PyNumberMethods virtual_as_number = {
     0,                          /* nb_inplace_floor_divide */
     0,                          /* nb_inplace_true_divide */
     0,                          /* nb_index */
+    nb_matrix_multiply,         /* nb_matrix_multiply */
+    0,                          /* nb_inplace_matrix_multiply */
 };
 
 static PySequenceMethods virtual_as_sequence = {
@@ -251,5 +259,6 @@ void register_virtual_methods(SymbolicAdapter *adapter) {
     adapter->virtual_tp_iter = tp_iter;
     adapter->virtual_nb_add = nb_add;
     adapter->virtual_nb_multiply = nb_multiply;
+    adapter->virtual_nb_matrix_multiply = nb_matrix_multiply;
     adapter->virtual_mp_subscript = mp_subscript;
 }

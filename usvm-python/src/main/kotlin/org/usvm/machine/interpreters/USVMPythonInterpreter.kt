@@ -4,7 +4,6 @@ import mu.KLogging
 import org.usvm.*
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.PythonPinnedCallable
-import org.usvm.language.PythonProgram
 import org.usvm.machine.interpreters.operations.BadModelException
 import org.usvm.machine.interpreters.operations.UnregisteredVirtualOperation
 import org.usvm.machine.symbolicobjects.*
@@ -14,7 +13,7 @@ import org.usvm.language.types.PythonTypeSystem
 import org.usvm.machine.*
 import org.usvm.machine.interpreters.operations.myAssertOnState
 import org.usvm.machine.utils.PyModelHolder
-import org.usvm.utils.withAdditionalPaths
+import org.usvm.utils.PythonObjectSerializer
 
 class USVMPythonInterpreter<PythonObjectRepresentation>(
     private val ctx: UPythonContext,
@@ -75,7 +74,15 @@ class USVMPythonInterpreter<PythonObjectRepresentation>(
             val converter = concolicRunContext.converter
             val concrete = getConcrete(converter, seeds, symbols)
             val virtualObjects = converter.getPythonVirtualObjects()
-            val inputs = getInputs(converter, concrete, seeds)
+            val inputs = runCatching {
+                getInputs(converter, concrete, seeds)
+            }.getOrElse {
+                logger.debug(
+                    "Error while serializing inputs. Types: {}. Omitting step...",
+                    seeds.map { it.getConcreteType() }
+                )
+                return StepResult(emptySequence(), false)
+            }
 
             if (logger.isDebugEnabled) {  // getting __repr__ might be slow
                 logger.debug(

@@ -5,24 +5,15 @@ import org.usvm.language.PythonUnpinnedCallable
 import org.usvm.language.types.*
 import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.runner.SamplesBuild
+import org.usvm.utils.ReprObjectSerializer
 
 fun main() {
     val (program, typeSystem) = constructStructuredProgram()
     val function = PythonUnpinnedCallable.constructCallableFromName(
         listOf(PythonAnyType),
-        "simple_class_isinstance",
-        "sample_submodule.SimpleUsageOfModules"
+        "matmul_and_add",
+        "SimpleCustomClasses"
     )
-    println("sys.path before analysis:")
-    System.out.flush()
-    val namespace = ConcretePythonInterpreter.getNewNamespace()
-    ConcretePythonInterpreter.concreteRun(namespace, "import sys")
-    ConcretePythonInterpreter.printPythonObject(ConcretePythonInterpreter.eval(namespace, "sys.path"))
-    ConcretePythonInterpreter.decref(namespace)
-
-    println("Initial sys.path:")
-    System.out.flush()
-    ConcretePythonInterpreter.printPythonObject(ConcretePythonInterpreter.initialSysPath)
 
     val machine = PythonMachine(program, typeSystem, ReprObjectSerializer, printErrorMsg = true)
     val start = System.currentTimeMillis()

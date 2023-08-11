@@ -74,6 +74,14 @@ class PythonExecutionState(
         what.methodOwner?.let { mockedObjects.add(it) }
         return MockResult(UninterpretedSymbolicPythonObject(result, typeSystem), true, result)
     }
+
+    fun getMocksForSymbol(symbol: SymbolForCPython): List<Pair<MockHeader, SymbolForCPython>> =
+        mocks.mapNotNull { (mockHeader, mockResult) ->
+            if (mockHeader.methodOwner == symbol)
+                mockHeader to SymbolForCPython(UninterpretedSymbolicPythonObject(mockResult, typeSystem))
+            else
+                null
+        }
 }
 
 class DelayedFork(
