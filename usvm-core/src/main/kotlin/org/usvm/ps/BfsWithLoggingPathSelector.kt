@@ -58,6 +58,7 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
     private val visitedStatements = HashSet<Statement>()
 
     protected val path = mutableListOf<ActionData>()
+    protected val probabilities = mutableListOf<List<Float>>()
 
     private val filepath = Path(MainConfig.dataPath, "jsons").toString()
     protected val method: Method
@@ -94,7 +95,8 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
 
     protected class BlockGraph<Method, Statement>(
         private val applicationGraph: ApplicationGraph<Method, Statement>,
-        initialStatement: Statement
+        initialStatement: Statement,
+        private val pathSelector: BfsWithLoggingPathSelector<*, Statement, Method>
     ) {
         val root: Block<Statement>
         private val successorsMap = mutableMapOf<Block<Statement>, List<Statement>>().withDefault { listOf() }
@@ -181,12 +183,18 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
         }
 
         private fun getBlockFeatures(block: Block<Statement>): BlockFeatures {
+            val firstStatement = block.path.first()
+
             val length = block.path.size
             val successorsCount = successors(block).size
+            val forkCountToExit = pathSelector.forkCountsToExit.getValue(firstStatement)
+            val minForkCountToExit = pathSelector.minForkCountsToExit.getValue(firstStatement)
 
             return BlockFeatures(
                 length.log(),
-                successorsCount.log()
+                successorsCount.log(),
+                forkCountToExit.log(),
+                minForkCountToExit.log(),
             )
         }
 
@@ -225,7 +233,9 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
     @Serializable
     protected data class BlockFeatures(
         val logLength: Float = 0.0f,
-        val logSuccessorsCount: Float = 0.0f
+        val logSuccessorsCount: Float = 0.0f,
+        val logForkCountToExit: Float = 0.0f,
+        val logMinForkCountToExit: Float = 0.0f,
     )
 
     protected data class Block<Statement>(
@@ -336,13 +346,13 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
         allStatements = coverageStatistics.getUncoveredStatements().map { it.second }
         method = applicationGraph.methodOf(allStatements.first())
         filename = method.toString()
-        blockGraph = BlockGraph(applicationGraph, applicationGraph.entryPoints(method).first())
-        graphFeaturesList.add(blockGraph.getGraphFeatures())
-        blockGraph.saveGraph(Path(blockGraphsPath, filename, "graph.dot"))
         val (tmpDistancesToExit, tmpForkCountsToExit) = getDistancesToExit()
         distancesToExit = tmpDistancesToExit
         forkCountsToExit = tmpForkCountsToExit
         minForkCountsToExit = getMinForkCountsToExit()
+        blockGraph = BlockGraph(applicationGraph, applicationGraph.entryPoints(method).first(), this)
+        graphFeaturesList.add(blockGraph.getGraphFeatures())
+        blockGraph.saveGraph(Path(blockGraphsPath, filename, "graph.dot"))
     }
 
     private fun getDistancesToExit(): Array<Map<Statement, UInt>> {
@@ -550,6 +560,15 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
                     addJsonArray {
                         nodeList.forEach {
                             add(it)
+                        }
+                    }
+                }
+            }
+            putJsonArray("probabilities") {
+                probabilities.forEach {  queueProbabilities ->
+                    addJsonArray {
+                        queueProbabilities.forEach { probability ->
+                            add(probability)
                         }
                     }
                 }

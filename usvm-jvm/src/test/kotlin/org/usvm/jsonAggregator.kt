@@ -115,6 +115,7 @@ fun aggregate() {
                     add(it.jsonObject.getValue("json").jsonObject.getValue("statementsCount"))
                     add(it.jsonObject.getValue("json").jsonObject.getValue("graphFeatures"))
                     add(it.jsonObject.getValue("json").jsonObject.getValue("graphEdges"))
+                    add(it.jsonObject.getValue("json").jsonObject.getValue("probabilities"))
                 }
             }
         }

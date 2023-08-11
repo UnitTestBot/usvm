@@ -112,6 +112,8 @@ internal open class InferencePathSelector<State : UState<*, *, Method, Statement
         return listOf(
             blockFeatures.logLength,
             blockFeatures.logSuccessorsCount,
+            blockFeatures.logForkCountToExit,
+            blockFeatures.logMinForkCountToExit,
         )
     }
 
@@ -184,9 +186,12 @@ internal open class InferencePathSelector<State : UState<*, *, Method, Statement
             Postprocessing.Softmax -> {
                 val exponents = output.map { exp(it) }
                 val exponentsSum = exponents.sum()
-                chooseRandomId(exponents.map { it / exponentsSum })
+                val softmaxProbabilities = exponents.map { it /exponentsSum }
+                probabilities.add(softmaxProbabilities)
+                chooseRandomId(softmaxProbabilities)
             }
             else -> {
+                probabilities.add(output)
                 chooseRandomId(output)
             }
         }
