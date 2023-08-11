@@ -85,3 +85,13 @@ inline val JcMethod.parametersWithThisCount get() = localIdx(parameters.size)
 
 // TODO: cache it with JacoDB cache
 inline val JcMethod.localsCount get() = instList.locals.filter { it !is JcArgument }.size
+
+fun JcState.exitWithValue(method: JcMethod, value: UExpr<out USort>) {
+    methodResult = JcMethodResult.Success(method, value)
+    newStmt(lastStmt)
+}
+
+fun JcState.skipMethodInvocation(applicationGraph: JcApplicationGraph) {
+    val nextStmt = applicationGraph.successors(lastStmt).single()
+    newStmt(nextStmt)
+}
