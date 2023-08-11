@@ -50,6 +50,7 @@ class JcContext(
         cp.double -> doubleSort
         else -> error("Unknown type: $type")
     }
+
     fun arrayDescriptorOf(type: JcArrayType): JcType =
         if (PredefinedPrimitives.matches(type.elementType.typeName)) {
             type.elementType

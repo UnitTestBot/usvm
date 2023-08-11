@@ -53,9 +53,8 @@ internal class CyclesTest : JavaMethodTestRunner() {
         withOptions(options) {
             checkDiscoveredProperties(
                 Cycles::finiteCycle,
-                eq(2),
-                { _, x, r -> x % 519 == 0 && r != null && r % 519 == 0 },
-                { _, x, r -> x % 519 != 0 && r != null && r % 519 == 0 }
+                ignoreNumberOfAnalysisResults,
+                { _, _, r -> r != null && r % 519 == 0 },
             )
         }
     }

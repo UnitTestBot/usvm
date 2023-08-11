@@ -24,7 +24,7 @@ open class SoftConstraintsTest<Field, Method> {
     private lateinit var softConstraintsProvider: USoftConstraintsProvider<Field, Type>
     private lateinit var translator: UExprTranslator<Field, Type>
     private lateinit var decoder: ULazyModelDecoder<Field, Type, Method>
-    private lateinit var solver: USolverBase<Field, Type, Method>
+    private lateinit var solver: USolverBase<Field, Type, Method, UContext>
 
     @BeforeEach
     fun initialize() {
@@ -48,7 +48,7 @@ open class SoftConstraintsTest<Field, Method> {
         val sndRegister = mkRegisterReading(idx = 1, bv32Sort)
         val expr = mkBvSignedLessOrEqualExpr(fstRegister, sndRegister)
 
-        val pc = UPathConstraints<Type>(ctx)
+        val pc = UPathConstraints<Type, UContext>(ctx)
         pc += expr
 
         val result = solver.checkWithSoftConstraints(pc) as USatResult
@@ -75,7 +75,7 @@ open class SoftConstraintsTest<Field, Method> {
 
         every { softConstraintsProvider.provide(any()) } answers { callOriginal() }
 
-        val pc = UPathConstraints<Type>(ctx)
+        val pc = UPathConstraints<Type, UContext>(ctx)
         pc += fstExpr
         pc += sndExpr
         pc += sameAsFirstExpr
@@ -121,7 +121,7 @@ open class SoftConstraintsTest<Field, Method> {
 
         val reading = region.read(secondInputRef)
 
-        val pc = UPathConstraints<Type>(ctx)
+        val pc = UPathConstraints<Type, UContext>(ctx)
         pc += reading eq size.toBv()
         pc += inputRef eq secondInputRef
         pc += (inputRef eq nullRef).not()
@@ -141,7 +141,7 @@ open class SoftConstraintsTest<Field, Method> {
         val region = emptyInputArrayLengthRegion(arrayType, sizeSort)
             .write(inputRef, mkRegisterReading(3, sizeSort), guard = trueExpr)
 
-        val pc = UPathConstraints<Type>(ctx)
+        val pc = UPathConstraints<Type, UContext>(ctx)
         pc += (inputRef eq nullRef).not()
         val result = (solver.checkWithSoftConstraints(pc)) as USatResult
 
@@ -157,7 +157,7 @@ open class SoftConstraintsTest<Field, Method> {
         val bvValue = 0.toBv()
         val expression = mkBvSignedLessOrEqualExpr(bvValue, inputRef).not()
 
-        val pc = UPathConstraints<Type>(ctx)
+        val pc = UPathConstraints<Type, UContext>(ctx)
         pc += expression
         val result = (solver.checkWithSoftConstraints(pc)) as USatResult
 

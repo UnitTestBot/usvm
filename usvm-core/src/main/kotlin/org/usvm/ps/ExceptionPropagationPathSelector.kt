@@ -7,7 +7,7 @@ import java.util.IdentityHashMap
 /**
  * A class designed to give the highest priority to the states containing exceptions.
  */
-class ExceptionPropagationPathSelector<State : UState<*, *, *, *>>(
+class ExceptionPropagationPathSelector<State : UState<*, *, *, *, *, State>>(
     private val selector: UPathSelector<State>,
 ) : UPathSelector<State> {
     // An internal queue for states containing exceptions.
@@ -99,6 +99,7 @@ class ExceptionPropagationPathSelector<State : UState<*, *, *, *>>(
 
         if (state in statesInSelector) {
             selector.remove(state)
+            statesInSelector -= state
         }
     }
 }
