@@ -8,7 +8,7 @@ import org.usvm.test.util.checkers.eq
 
 internal class UnsafeOperationsTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Can't find method (id:1)java.lang.Thread#getThreadGroup() in type java.lang.Object")
+    @Disabled("Some properties were not discovered at positions (from 0): [0]")
     fun checkGetAddressSizeOrZero() {
             checkDiscoveredProperties(
                 UnsafeOperations::getAddressSizeOrZero,

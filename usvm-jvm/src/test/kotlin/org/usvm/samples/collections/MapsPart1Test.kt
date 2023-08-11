@@ -105,7 +105,7 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Can't find method (id:1)java.lang.Integer#intValue() in type java.lang.String")
+    @Disabled("No result found")
     fun testFindAllChars() {
         checkDiscoveredProperties(
             Maps::countChars,
@@ -180,7 +180,7 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Can't find method (id:1)java.lang.Integer#intValue() in type java.lang.Object")
+    @Disabled("Index 6 out of bounds for length 6")
     fun testComputeValue() {
         checkDiscoveredProperties(
             Maps::computeValue,
@@ -238,7 +238,7 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Can't find method (id:1)java.lang.Integer#intValue()")
+    @Disabled("No result found")
     fun testComputeValueIfPresent() {
         checkDiscoveredProperties(
             Maps::computeValueIfPresent,
@@ -318,7 +318,7 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Can't find method (id:1)java.lang.Integer#intValue()")
+    @Disabled("No result found")
     fun testReplaceAllEntries() {
         checkDiscoveredProperties(
             Maps::replaceAllEntries,

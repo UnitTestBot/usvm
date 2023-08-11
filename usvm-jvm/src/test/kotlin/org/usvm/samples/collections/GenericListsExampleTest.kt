@@ -7,7 +7,7 @@ import org.usvm.test.util.checkers.eq
 
 internal class GenericListsExampleTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Can't find method (id:26)com.sun.tools.javac.code.Symbol#flags()")
+    @Disabled("Expected exactly -1 executions, but 41 found")
     fun testListOfListsOfT() {
         checkDiscoveredProperties(
             GenericListsExample<Long>::listOfListsOfT,

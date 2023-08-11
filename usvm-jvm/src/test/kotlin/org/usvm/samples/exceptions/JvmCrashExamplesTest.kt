@@ -17,7 +17,7 @@ internal class JvmCrashExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Can't find method (id:1)java.lang.Thread#getThreadGroup() in type java.lang.Object")
+    @Disabled("Expected exactly 1 executions, but 417 found")
     fun testCrash() {
         checkDiscoveredProperties(
             JvmCrashExamples::crash, // we expect only one execution after minimization

@@ -13,7 +13,7 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Can't find method (id:26)com.sun.tools.javac.code.Symbol#flags()")
+    @Disabled("Some properties were not discovered at positions (from 0): [1, 2]")
     fun testEnumToEnumMapCountValues() {
         checkDiscoveredProperties(
             ComplexEnumExamples::enumToEnumMapCountValues,
@@ -25,7 +25,7 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Can't find method (id:26)com.sun.tools.javac.code.Symbol#flags()")
+    @Disabled("java.lang.OutOfMemoryError: Java heap space")
     fun testEnumToEnumMapCountKeys() {
         checkDiscoveredProperties(
             ComplexEnumExamples::enumToEnumMapCountKeys,
@@ -40,7 +40,7 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Can't find method (id:26)com.sun.tools.javac.code.Symbol#flags()")
+    @Disabled("Some properties were not discovered at positions (from 0): [0, 1]")
     fun testEnumToEnumMapCountMatches() {
         checkDiscoveredProperties(
             ComplexEnumExamples::enumToEnumMapCountMatches,

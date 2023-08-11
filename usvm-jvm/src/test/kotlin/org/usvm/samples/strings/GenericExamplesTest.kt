@@ -8,7 +8,7 @@ import org.usvm.util.isException
 
 internal class GenericExamplesTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Can't find method (id:1)java.lang.String#length() in type java.lang.Object")
+    @Disabled("JcTestResolver: ClassNotFoundException: com.sun.java.swing.action.AboutAction")
     fun testContainsOkWithIntegerType() {
         checkDiscoveredPropertiesWithExceptions(
             GenericExamples<Int>::containsOk,

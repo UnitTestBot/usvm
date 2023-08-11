@@ -362,7 +362,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Can't find method (id:1)java.lang.Thread#getThreadGroup() in type java.lang.Object")
     fun testIsBlank() {
         checkDiscoveredProperties(
             StringExamples::isBlank,
@@ -398,7 +397,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Can't find method (id:1)java.lang.Thread#getThreadGroup() in type java.lang.Object")
+    @Disabled("Some properties were not discovered at positions (from 0): [1]")
     fun testEqualChar() {
         checkDiscoveredPropertiesWithExceptions(
             StringExamples::equalChar,

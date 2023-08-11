@@ -11,7 +11,7 @@ import org.usvm.util.isException
 // and should not be used for testing conrete or code generation since they are possibly flaky in the concrete execution
 class ExecutorServiceExamplesTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Can't find method (id:1)java.lang.Thread#getThreadGroup() in type java.lang.Object")
+    @Disabled("Some properties were not discovered at positions (from 0): [0]")
     fun testExceptionInExecute() {
         checkDiscoveredPropertiesWithExceptions(
             ExecutorServiceExamples::throwingInExecute,
@@ -21,7 +21,7 @@ class ExecutorServiceExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Can't find method (id:1)java.lang.Thread#getThreadGroup() in type java.lang.Object")
+    @Disabled("Some properties were not discovered at positions (from 0): [0]")
     fun testChangingCollectionInExecute() {
         checkDiscoveredProperties(
             ExecutorServiceExamples::changingCollectionInExecute,

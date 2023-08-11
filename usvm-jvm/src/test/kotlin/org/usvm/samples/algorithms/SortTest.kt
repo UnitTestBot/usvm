@@ -9,7 +9,6 @@ import org.usvm.util.isException
 
 internal class SortTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Can't find method (id:1)java.lang.Thread#getThreadGroup() in type java.lang.Object")
     fun testQuickSort() {
         checkDiscoveredProperties(
             Sort::quickSort,

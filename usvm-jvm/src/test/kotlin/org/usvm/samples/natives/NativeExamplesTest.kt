@@ -19,7 +19,7 @@ internal class NativeExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Can't find method (id:1)java.lang.Thread#getThreadGroup() in type java.lang.Object")
+    @Disabled("Expected exactly 1 executions, but 301 found")
     fun testFindSumWithMathRandom() {
         checkDiscoveredProperties(
             NativeExamples::findSumWithMathRandom,

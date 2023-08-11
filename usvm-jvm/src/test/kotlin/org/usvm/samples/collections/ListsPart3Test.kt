@@ -178,7 +178,7 @@ internal class ListsPart3Test : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Can't find method (id:1)java.lang.Class#getComponentType() in type java.lang.Object")
+    @Disabled("Some properties were not discovered at positions (from 0): [2]")
     fun testAddAll() {
         checkDiscoveredProperties(
             Lists::addAll,
