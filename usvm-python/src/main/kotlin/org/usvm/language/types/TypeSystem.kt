@@ -117,9 +117,6 @@ class PythonTypeSystemWithMypyInfo(
     init {
         withAdditionalPaths(program.additionalPaths) {
             allConcreteTypes = basicTypes + typeHintsStorage.simpleTypes.mapNotNull { utType ->
-                if (utType.pythonTypeRepresentation().startsWith("sample")) {
-                    println("Here!")
-                }
                 val refGetter = {
                     val namespace = program.getNamespaceOfModule(utType.pythonModuleName())
                     ConcretePythonInterpreter.eval(namespace, utType.pythonName())
@@ -134,7 +131,6 @@ class PythonTypeSystemWithMypyInfo(
 
                 addType(refGetter)
             }
-            println("Initialized!")
         }
     }
 }

@@ -189,8 +189,16 @@ JNIEXPORT jlongArray JNICALL Java_org_usvm_interpreter_CPythonAdapter_getIterabl
 
 JNIEXPORT jstring JNICALL Java_org_usvm_interpreter_CPythonAdapter_getPythonObjectRepr(JNIEnv *env, jobject _, jlong object_ref) {
     PyObject *repr = PyObject_Repr((PyObject *) object_ref);
+    if (!repr) {
+        PyErr_Clear();
+        return 0;
+    }
     const char *repr_as_string = PyUnicode_AsUTF8AndSize(repr, 0);
     return (*env)->NewStringUTF(env, repr_as_string);
+}
+
+JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_getAddressOfReprFunction(JNIEnv *env, jobject _, jlong object_ref) {
+    return (jlong) ((PyTypeObject *) object_ref)->tp_repr;
 }
 
 JNIEXPORT jstring JNICALL Java_org_usvm_interpreter_CPythonAdapter_getPythonObjectTypeName(JNIEnv *env, jobject _, jlong object_ref) {
@@ -259,6 +267,11 @@ JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasNbAdd(JNI
 JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasNbMultiply(JNIEnv *env, jobject _, jlong type_ref) {
     QUERY_TYPE_HAS_PREFIX
     return type->tp_as_number && type->tp_as_number->nb_multiply;
+}
+
+JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasNbMatrixMultiply(JNIEnv *env, jobject _, jlong type_ref) {
+    QUERY_TYPE_HAS_PREFIX
+    return type->tp_as_number && type->tp_as_number->nb_matrix_multiply;
 }
 
 JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasSqLength(JNIEnv *env, jobject _, jlong type_ref) {

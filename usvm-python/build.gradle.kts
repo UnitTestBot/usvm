@@ -33,6 +33,8 @@ val installMypyRunner = tasks.register<Exec>("installUtbotMypyRunner") {
 
 val buildSamples = tasks.register<JavaExec>("buildSamples") {
     dependsOn(installMypyRunner)
+    inputs.dir(samplesSourceDir)
+    outputs.dir(samplesBuildDir)
     group = "samples"
     classpath = sourceSets.test.get().runtimeClasspath
     args = listOf(samplesSourceDir.canonicalPath, samplesBuildDir.canonicalPath, "$cpythonBuildPath/bin/python3")

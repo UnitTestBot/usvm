@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.concurrent.Callable;
 
+import static org.usvm.machine.interpreters.operations.MethodNotificationsKt.*;
 import static org.usvm.machine.interpreters.operations.tracing.PathTracingKt.handlerForkResultKt;
 import static org.usvm.machine.interpreters.operations.tracing.PathTracingKt.withTracing;
 
@@ -32,6 +33,7 @@ public class CPythonAdapter {
     public native void printPythonObject(long object);
     public native long[] getIterableElements(long iterable);
     public native String getPythonObjectRepr(long object);
+    public native long getAddressOfReprFunction(long object);
     public native String getPythonObjectTypeName(long object);
     public native long getPythonObjectType(long object);
     public native String getNameOfPythonType(long type);
@@ -43,6 +45,7 @@ public class CPythonAdapter {
     public native int typeHasNbInt(long type);
     public native int typeHasNbAdd(long type);
     public native int typeHasNbMultiply(long type);
+    public native int typeHasNbMatrixMultiply(long type);
     public native int typeHasSqLength(long type);
     public native int typeHasMpLength(long type);
     public native int typeHasMpSubscript(long type);
@@ -223,47 +226,52 @@ public class CPythonAdapter {
 
     public static void notifyNbBool(@NotNull ConcolicRunContext context, SymbolForCPython symbol) {
         context.curOperation = new MockHeader(NbBoolMethod.INSTANCE, Collections.singletonList(symbol), symbol);
-        org.usvm.machine.interpreters.operations.MethodNotificationsKt.nbBoolKt(context, symbol.obj);
+        nbBoolKt(context, symbol.obj);
     }
 
     public static void notifyNbInt(@NotNull ConcolicRunContext context, SymbolForCPython symbol) {
         context.curOperation = new MockHeader(NbIntMethod.INSTANCE, Collections.singletonList(symbol), symbol);
-        org.usvm.machine.interpreters.operations.MethodNotificationsKt.nbIntKt(context, symbol.obj);
+        nbIntKt(context, symbol.obj);
     }
 
     public static void notifyNbAdd(@NotNull ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
         context.curOperation = new MockHeader(NbAddMethod.INSTANCE, Arrays.asList(left, right), null);
-        org.usvm.machine.interpreters.operations.MethodNotificationsKt.nbAddKt(context, left.obj, right.obj);
+        nbAddKt(context, left.obj, right.obj);
     }
 
     public static void notifyNbMultiply(@NotNull ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
         context.curOperation = new MockHeader(NbMultiplyMethod.INSTANCE, Arrays.asList(left, right), null);
-        org.usvm.machine.interpreters.operations.MethodNotificationsKt.nbMultiplyKt(context, left.obj, right.obj);
+        nbMultiplyKt(context, left.obj, right.obj);
+    }
+
+    public static void notifyNbMatrixMultiply(@NotNull ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
+        context.curOperation = new MockHeader(NbMatrixMultiplyMethod.INSTANCE, Arrays.asList(left, right), left);
+        nbMatrixMultiplyKt(context, left.obj);
     }
 
     public static void notifySqLength(@NotNull ConcolicRunContext context, SymbolForCPython on) {
         context.curOperation = new MockHeader(SqLengthMethod.INSTANCE, Collections.singletonList(on), on);
-        org.usvm.machine.interpreters.operations.MethodNotificationsKt.sqLengthKt(context, on.obj);
+        sqLengthKt(context, on.obj);
     }
 
     public static void notifyMpSubscript(@NotNull ConcolicRunContext context, SymbolForCPython storage, SymbolForCPython item) {
         context.curOperation = new MockHeader(MpSubscriptMethod.INSTANCE, Arrays.asList(storage, item), storage);
-        org.usvm.machine.interpreters.operations.MethodNotificationsKt.mpSubscriptKt(context, storage.obj);
+        mpSubscriptKt(context, storage.obj);
     }
 
     public static void notifyMpAssSubscript(@NotNull ConcolicRunContext context, SymbolForCPython storage, SymbolForCPython item, SymbolForCPython value) {
         context.curOperation = new MockHeader(MpAssSubscriptMethod.INSTANCE, Arrays.asList(storage, item, value), storage);
-        org.usvm.machine.interpreters.operations.MethodNotificationsKt.mpAssSubscriptKt(context, storage.obj);
+        mpAssSubscriptKt(context, storage.obj);
     }
 
     public static void notifyTpRichcmp(@NotNull ConcolicRunContext context, int op, SymbolForCPython left, SymbolForCPython right) {
         context.curOperation = new MockHeader(new TpRichcmpMethod(op), Arrays.asList(left, right), left);
-        org.usvm.machine.interpreters.operations.MethodNotificationsKt.tpRichcmpKt(context, left.obj);
+        tpRichcmpKt(context, left.obj);
     }
 
     public static void notifyTpIter(@NotNull ConcolicRunContext context, SymbolForCPython on) {
         context.curOperation = new MockHeader(TpIterMethod.INSTANCE, Collections.singletonList(on), on);
-        org.usvm.machine.interpreters.operations.MethodNotificationsKt.tpIterKt(context, on.obj);
+        tpIterKt(context, on.obj);
     }
 
     public static boolean virtualNbBool(ConcolicRunContext context, VirtualPythonObject obj) {

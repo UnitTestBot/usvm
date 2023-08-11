@@ -24,6 +24,11 @@ fun nbMultiplyKt(context: ConcolicRunContext, left: UninterpretedSymbolicPythonO
     myAssert(context, left.evalIs(context, HasNbMultiply) or right.evalIs(context, HasNbMultiply))
 }
 
+fun nbMatrixMultiplyKt(context: ConcolicRunContext, left: UninterpretedSymbolicPythonObject) = with(context.ctx) {
+    context.curState ?: return
+    myAssert(context, left.evalIs(context, HasNbMatrixMultiply))
+}
+
 fun sqLengthKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObject) {
     context.curState ?: return
     on.addSupertype(context, HasSqLength)
