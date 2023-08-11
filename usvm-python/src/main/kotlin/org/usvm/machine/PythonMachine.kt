@@ -8,7 +8,6 @@ import org.usvm.machine.symbolicobjects.constructInputObject
 import org.usvm.language.*
 import org.usvm.language.types.PythonType
 import org.usvm.language.types.PythonTypeSystem
-import org.usvm.machine.interpreters.PythonObject
 import org.usvm.machine.interpreters.USVMPythonInterpreter
 import org.usvm.memory.UMemoryBase
 import org.usvm.ps.DfsPathSelector
@@ -53,7 +52,7 @@ class PythonMachine<PythonObjectRepresentation>(
             stack.push(target.numberOfArguments)
         }
         val symbols = target.signature.mapIndexed { index, type ->
-            SymbolForCPython(constructInputObject(index, type, ctx, memory, pathConstraints))
+            SymbolForCPython(constructInputObject(index, type, ctx, memory, pathConstraints, typeSystem))
         }
         val solverRes = solver.check(pathConstraints)
         if (solverRes !is USatResult)
@@ -64,7 +63,8 @@ class PythonMachine<PythonObjectRepresentation>(
             symbols,
             pathConstraints,
             memory,
-            solverRes.model
+            solverRes.model,
+            typeSystem
         ).also {
             it.meta.generatedFrom = "Initial state"
         }

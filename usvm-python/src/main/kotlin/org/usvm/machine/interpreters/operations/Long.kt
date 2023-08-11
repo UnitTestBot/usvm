@@ -9,8 +9,6 @@ import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.constructBool
 import org.usvm.machine.symbolicobjects.constructInt
-import org.usvm.language.types.pythonBool
-import org.usvm.language.types.pythonInt
 
 fun <RES_SORT: KSort> createBinaryIntOp(
     op: (UContext, UExpr<KIntSort>, UExpr<KIntSort>) -> UExpr<RES_SORT>?
@@ -18,8 +16,9 @@ fun <RES_SORT: KSort> createBinaryIntOp(
     if (concolicContext.curState == null)
         null
     else with (concolicContext.ctx) {
-        myAssert(concolicContext, left.evalIs(concolicContext, pythonInt) or left.evalIs(concolicContext, pythonBool))
-        myAssert(concolicContext, right.evalIs(concolicContext, pythonInt) or right.evalIs(concolicContext, pythonBool))
+        val typeSystem = concolicContext.typeSystem
+        myAssert(concolicContext, left.evalIs(concolicContext, typeSystem.pythonInt) or left.evalIs(concolicContext, typeSystem.pythonBool))
+        myAssert(concolicContext, right.evalIs(concolicContext, typeSystem.pythonInt) or right.evalIs(concolicContext, typeSystem.pythonBool))
         op(
             concolicContext.ctx,
             left.getToIntContent(concolicContext) ?: return@with null,

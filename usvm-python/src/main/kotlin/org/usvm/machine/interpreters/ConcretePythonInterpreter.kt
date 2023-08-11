@@ -158,15 +158,19 @@ object ConcretePythonInterpreter {
     }
 
     val initialSysPath: PythonObject
-    val initialSysModules: PythonObject
+    val initialSysModulesKeys: PythonObject
 
     init {
         pythonAdapter.initializePython()
         val namespace = pythonAdapter.newNamespace
         val initialModules = listOf("sys", "copy", "builtins", "ctypes", "array")
-        pythonAdapter.concreteRun(namespace, "import " + initialModules.joinToString(", "), false)
-        initialSysPath = PythonObject(pythonAdapter.eval(namespace, "copy.copy(sys.path)", false))
-        initialSysModules = PythonObject(pythonAdapter.eval(namespace, "copy.copy(sys.modules)", false))
+        pythonAdapter.concreteRun(namespace, "import " + initialModules.joinToString(", "), true)
+        initialSysPath = PythonObject(pythonAdapter.eval(namespace, "copy.copy(sys.path)", true))
+        if (initialSysPath.address == 0L)
+            throw CPythonExecutionException()
+        initialSysModulesKeys = PythonObject(pythonAdapter.eval(namespace, "sys.modules.keys()", true))
+        if (initialSysModulesKeys.address == 0L)
+            throw CPythonExecutionException()
         pythonAdapter.decref(namespace)
     }
 }

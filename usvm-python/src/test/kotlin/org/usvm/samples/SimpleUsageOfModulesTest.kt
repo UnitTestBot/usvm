@@ -2,7 +2,6 @@ package org.usvm.samples
 
 import org.junit.jupiter.api.Test
 import org.usvm.language.types.PythonAnyType
-import org.usvm.language.types.pythonInt
 import org.usvm.runner.PythonTestRunnerForStructuredProgram
 import org.usvm.test.util.checkers.eq
 
@@ -10,7 +9,7 @@ class SimpleUsageOfModulesTest: PythonTestRunnerForStructuredProgram("sample_sub
     @Test
     fun testConstructClassInstance() {
         check1WithConcreteRun(
-            constructFunction("construct_class_instance", List(1) { pythonInt }),
+            constructFunction("construct_class_instance", List(1) { typeSystem.pythonInt }),
             eq(2),
             compareConcolicAndConcreteTypes,
             /* invariants = */ listOf { x, res -> x.typeName == "int" && res.typeName == "SimpleClass" },
@@ -25,7 +24,7 @@ class SimpleUsageOfModulesTest: PythonTestRunnerForStructuredProgram("sample_sub
     fun testInnerImport() {
         allowPathDiversions = true
         check1WithConcreteRun(
-            constructFunction("inner_import", List(1) { pythonInt }),
+            constructFunction("inner_import", List(1) { typeSystem.pythonInt }),
             eq(2),
             standardConcolicAndConcreteChecks,
             /* invariants = */ listOf { x, res -> x.typeName == "int" && res.typeName == "int" },

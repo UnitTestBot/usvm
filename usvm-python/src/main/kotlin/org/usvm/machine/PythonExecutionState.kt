@@ -9,6 +9,7 @@ import org.usvm.machine.symbolicobjects.ConverterToPythonObject
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.language.*
 import org.usvm.language.types.PythonType
+import org.usvm.language.types.PythonTypeSystem
 import org.usvm.language.types.TypeOfVirtualObject
 import org.usvm.machine.utils.PyModel
 import org.usvm.memory.UMemoryBase
@@ -24,6 +25,7 @@ class PythonExecutionState(
     pathConstraints: UPathConstraints<PythonType>,
     memory: UMemoryBase<PropertyOfPythonObject, PythonType, PythonCallable>,
     uModel: UModelBase<PropertyOfPythonObject, PythonType>,
+    val typeSystem: PythonTypeSystem,
     callStack: UCallStack<PythonCallable, SymbolicHandlerEvent<Any>> = UCallStack(),
     path: PersistentList<SymbolicHandlerEvent<Any>> = persistentListOf(),
     var delayedForks: PersistentList<DelayedFork> = persistentListOf(),
@@ -40,6 +42,7 @@ class PythonExecutionState(
             newPathConstraints,
             newMemory,
             pyModel.uModel,
+            typeSystem,
             callStack,
             path,
             delayedForks,
@@ -64,12 +67,12 @@ class PythonExecutionState(
     fun mock(what: MockHeader): MockResult {
         val cached = mocks[what]
         if (cached != null)
-            return MockResult(UninterpretedSymbolicPythonObject(cached), false, cached)
+            return MockResult(UninterpretedSymbolicPythonObject(cached, typeSystem), false, cached)
         val (result, newMocker) = memory.mocker.call(what.method, what.args.map { it.obj.address }.asSequence(), ctx.addressSort)
         memory.mocker = newMocker
         mocks[what] = result
         what.methodOwner?.let { mockedObjects.add(it) }
-        return MockResult(UninterpretedSymbolicPythonObject(result), true, result)
+        return MockResult(UninterpretedSymbolicPythonObject(result, typeSystem), true, result)
     }
 }
 

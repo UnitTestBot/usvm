@@ -7,8 +7,6 @@ import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.interpretSymbolicPythonObject
 import org.usvm.isTrue
 import org.usvm.language.*
-import org.usvm.language.types.pythonBool
-import org.usvm.language.types.pythonInt
 import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.PythonObject
 import org.usvm.machine.interpreters.emptyNamespace
@@ -16,10 +14,11 @@ import org.usvm.machine.utils.substituteModel
 
 fun virtualNbBoolKt(context: ConcolicRunContext, on: VirtualPythonObject): Boolean {
     context.curOperation ?: throw UnregisteredVirtualOperation
+    val typeSystem = context.typeSystem
     val interpretedArg = interpretSymbolicPythonObject(context.curOperation!!.args.first().obj, context.modelHolder)
     require(context.curOperation?.method == NbBoolMethod && interpretedArg == on.interpretedObj)
     val (interpretedObj, symbolic) = internalVirtualCallKt(context)
-    symbolic.addSupertype(context, pythonBool)
+    symbolic.addSupertype(context, typeSystem.pythonBool)
     val boolValue = interpretedObj.getBoolContent(context)
     myFork(context, boolValue)
     return boolValue.isTrue
@@ -27,21 +26,22 @@ fun virtualNbBoolKt(context: ConcolicRunContext, on: VirtualPythonObject): Boole
 
 fun virtualNbIntKt(context: ConcolicRunContext, on: VirtualPythonObject): PythonObject {
     context.curOperation ?: throw UnregisteredVirtualOperation
+    val typeSystem = context.typeSystem
     val interpretedArg = interpretSymbolicPythonObject(context.curOperation!!.args.first().obj, context.modelHolder)
     require(context.curOperation?.method == NbIntMethod && interpretedArg == on.interpretedObj)
     val (interpretedObj, symbolic) = internalVirtualCallKt(context)
-    symbolic.addSupertype(context, pythonInt)
+    symbolic.addSupertype(context, typeSystem.pythonInt)
     val intValue = interpretedObj.getIntContent(context)
     return ConcretePythonInterpreter.eval(emptyNamespace, intValue.toString())
 }
 
 fun virtualSqLengthKt(context: ConcolicRunContext, on: VirtualPythonObject): Int = with(context.ctx) {
-    context.curOperation ?:
-        throw UnregisteredVirtualOperation
+    context.curOperation ?: throw UnregisteredVirtualOperation
+    val typeSystem = context.typeSystem
     val interpretedArg = interpretSymbolicPythonObject(context.curOperation!!.args.first().obj, context.modelHolder)
     require(context.curOperation?.method == SqLengthMethod && interpretedArg == on.interpretedObj)
     val (interpretedObj, symbolic) = internalVirtualCallKt(context)
-    symbolic.addSupertype(context, pythonInt)
+    symbolic.addSupertype(context, typeSystem.pythonInt)
     val intValue = interpretedObj.getIntContent(context)
     myAssert(context, intValue le mkIntNum(Int.MAX_VALUE))
     return intValue.toString().toInt()

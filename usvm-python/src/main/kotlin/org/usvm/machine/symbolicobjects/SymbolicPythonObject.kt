@@ -13,7 +13,10 @@ import org.usvm.language.types.*
 import org.usvm.types.UTypeStream
 import org.usvm.types.first
 
-sealed class SymbolicPythonObject(open val address: UHeapRef) {
+sealed class SymbolicPythonObject(
+    open val address: UHeapRef,
+    val typeSystem: PythonTypeSystem
+) {
     override fun equals(other: Any?): Boolean {
         if (other !is SymbolicPythonObject)
             return false
@@ -25,7 +28,10 @@ sealed class SymbolicPythonObject(open val address: UHeapRef) {
     }
 }
 
-class UninterpretedSymbolicPythonObject(address: UHeapRef): SymbolicPythonObject(address) {
+class UninterpretedSymbolicPythonObject(
+    address: UHeapRef,
+    typeSystem: PythonTypeSystem
+): SymbolicPythonObject(address, typeSystem) {
     fun addSupertype(ctx: ConcolicRunContext, type: PythonType) {
         require(ctx.curState != null)
         myAssert(ctx, evalIs(ctx, type))
@@ -52,21 +58,21 @@ class UninterpretedSymbolicPythonObject(address: UHeapRef): SymbolicPythonObject
 
     fun setIntContent(ctx: ConcolicRunContext, expr: UExpr<KIntSort>) {
         require(ctx.curState != null)
-        addSupertype(ctx, pythonInt)
+        addSupertype(ctx, typeSystem.pythonInt)
         val lvalue = UFieldLValue(expr.sort, address, IntContent)
         ctx.curState!!.memory.write(lvalue, expr)
     }
 
     fun setBoolContent(ctx: ConcolicRunContext, expr: UBoolExpr) {
         require(ctx.curState != null)
-        addSupertype(ctx, pythonBool)
+        addSupertype(ctx, typeSystem.pythonBool)
         val lvalue = UFieldLValue(expr.sort, address, BoolContent)
         ctx.curState!!.memory.write(lvalue, expr)
     }
 
     fun setListIteratorContent(ctx: ConcolicRunContext, list: UninterpretedSymbolicPythonObject) = with(ctx.ctx) {
         require(ctx.curState != null)
-        addSupertype(ctx, pythonListIteratorType)
+        addSupertype(ctx, typeSystem.pythonListIteratorType)
         val listLValue = UFieldLValue(addressSort, address, ListOfListIterator)
         ctx.curState!!.memory.write(listLValue, list.address)
         val indexLValue = UFieldLValue(intSort, address, IndexOfListIterator)
@@ -75,7 +81,7 @@ class UninterpretedSymbolicPythonObject(address: UHeapRef): SymbolicPythonObject
 
     fun increaseListIteratorCounter(ctx: ConcolicRunContext) = with(ctx.ctx) {
         require(ctx.curState != null)
-        addSupertype(ctx, pythonListIteratorType)
+        addSupertype(ctx, typeSystem.pythonListIteratorType)
         val indexLValue = UFieldLValue(intSort, address, IndexOfListIterator)
         @Suppress("unchecked_cast")
         val oldIndexValue = ctx.curState!!.memory.read(indexLValue) as UExpr<KIntSort>
@@ -84,7 +90,7 @@ class UninterpretedSymbolicPythonObject(address: UHeapRef): SymbolicPythonObject
 
     fun getListIteratorContent(ctx: ConcolicRunContext): Pair<UHeapRef, UExpr<KIntSort>> = with(ctx.ctx) {
         require(ctx.curState != null)
-        addSupertype(ctx, pythonListIteratorType)
+        addSupertype(ctx, typeSystem.pythonListIteratorType)
         val listLValue = UFieldLValue(addressSort, address, ListOfListIterator)
         val indexLValue = UFieldLValue(intSort, address, IndexOfListIterator)
         @Suppress("unchecked_cast")
@@ -96,22 +102,22 @@ class UninterpretedSymbolicPythonObject(address: UHeapRef): SymbolicPythonObject
 
     fun getIntContent(ctx: ConcolicRunContext): UExpr<KIntSort> {
         require(ctx.curState != null)
-        addSupertype(ctx, pythonInt)
+        addSupertype(ctx, typeSystem.pythonInt)
         @Suppress("unchecked_cast")
         return ctx.curState!!.memory.heap.readField(address, IntContent, ctx.ctx.intSort) as UExpr<KIntSort>
     }
 
     fun getToIntContent(ctx: ConcolicRunContext): UExpr<KIntSort>? = with(ctx.ctx) {
         return when (getTypeIfDefined(ctx)) {
-            pythonInt -> getIntContent(ctx)
-            pythonBool -> mkIte(getBoolContent(ctx), mkIntNum(1), mkIntNum(0))
+            typeSystem.pythonInt -> getIntContent(ctx)
+            typeSystem.pythonBool -> mkIte(getBoolContent(ctx), mkIntNum(1), mkIntNum(0))
             else -> null
         }
     }
 
     fun getBoolContent(ctx: ConcolicRunContext): UExpr<KBoolSort> {
         require(ctx.curState != null)
-        addSupertype(ctx, pythonBool)
+        addSupertype(ctx, typeSystem.pythonBool)
         @Suppress("unchecked_cast")
         return ctx.curState!!.memory.heap.readField(address, BoolContent, ctx.ctx.boolSort) as UExpr<KBoolSort>
     }
@@ -119,9 +125,9 @@ class UninterpretedSymbolicPythonObject(address: UHeapRef): SymbolicPythonObject
     fun getToBoolValue(ctx: ConcolicRunContext): UBoolExpr? = with (ctx.ctx) {
         require(ctx.curState != null)
         return when (getTypeIfDefined(ctx)) {
-            pythonBool -> getBoolContent(ctx)
-            pythonInt -> getIntContent(ctx) neq mkIntNum(0)
-            pythonList -> ctx.curState!!.memory.heap.readArrayLength(address, pythonList) gt mkIntNum(0)
+            typeSystem.pythonBool -> getBoolContent(ctx)
+            typeSystem.pythonInt -> getIntContent(ctx) neq mkIntNum(0)
+            typeSystem.pythonList -> ctx.curState!!.memory.heap.readArrayLength(address, typeSystem.pythonList) gt mkIntNum(0)
             else -> null
         }
     }
@@ -133,8 +139,9 @@ class UninterpretedSymbolicPythonObject(address: UHeapRef): SymbolicPythonObject
 }
 
 sealed class InterpretedSymbolicPythonObject(
-    override val address: UConcreteHeapRef
-): SymbolicPythonObject(address) {
+    override val address: UConcreteHeapRef,
+    typeSystem: PythonTypeSystem
+): SymbolicPythonObject(address, typeSystem) {
     abstract fun getConcreteType(ctx: ConcolicRunContext): ConcretePythonType?
     abstract fun getBoolContent(ctx: ConcolicRunContext): KInterpretedValue<KBoolSort>
     abstract fun getIntContent(ctx: ConcolicRunContext): KInterpretedValue<KIntSort>
@@ -142,8 +149,9 @@ sealed class InterpretedSymbolicPythonObject(
 
 class InterpretedInputSymbolicPythonObject(
     address: UConcreteHeapRef,
-    val modelHolder: PyModelHolder
-): InterpretedSymbolicPythonObject(address) {
+    val modelHolder: PyModelHolder,
+    typeSystem: PythonTypeSystem
+): InterpretedSymbolicPythonObject(address, typeSystem) {
     init {
         require(address.address <= 0)
     }
@@ -172,19 +180,20 @@ class InterpretedInputSymbolicPythonObject(
     }
 
     fun getIntContent(ctx: UContext): KInterpretedValue<KIntSort> {
-        require(getConcreteType() == pythonInt)
+        require(getConcreteType() == typeSystem.pythonInt)
         return modelHolder.model.readField(address, IntContent, ctx.intSort)
     }
 
     fun getBoolContent(ctx: UContext): KInterpretedValue<KBoolSort> {
-        require(getConcreteType() == pythonBool)
+        require(getConcreteType() == typeSystem.pythonBool)
         return modelHolder.model.readField(address, BoolContent, ctx.boolSort)
     }
 }
 
 class InterpretedAllocatedSymbolicPythonObject(
-    override val address: UConcreteHeapRef
-): InterpretedSymbolicPythonObject(address) {
+    override val address: UConcreteHeapRef,
+    typeSystem: PythonTypeSystem
+): InterpretedSymbolicPythonObject(address, typeSystem) {
     init {
         require(address.address > 0)
     }
@@ -215,6 +224,6 @@ fun interpretSymbolicPythonObject(
 ): InterpretedSymbolicPythonObject {
     val evaluated = modelHolder.model.eval(obj.address) as UConcreteHeapRef
     if (evaluated.address > 0)
-        return InterpretedAllocatedSymbolicPythonObject(evaluated)
-    return InterpretedInputSymbolicPythonObject(evaluated, modelHolder)
+        return InterpretedAllocatedSymbolicPythonObject(evaluated, obj.typeSystem)
+    return InterpretedInputSymbolicPythonObject(evaluated, modelHolder, obj.typeSystem)
 }

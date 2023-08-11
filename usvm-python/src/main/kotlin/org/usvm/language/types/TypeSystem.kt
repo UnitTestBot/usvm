@@ -4,18 +4,18 @@ import org.usvm.language.StructuredPythonProgram
 import org.usvm.machine.interpreters.CPythonExecutionException
 import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.PythonObject
+import org.usvm.machine.interpreters.emptyNamespace
 import org.usvm.types.USupportTypeStream
 import org.usvm.types.UTypeStream
 import org.usvm.types.UTypeSystem
+import org.usvm.utils.withAdditionalPaths
 import org.utbot.python.newtyping.PythonTypeHintsBuild
 import org.utbot.python.newtyping.mypy.MypyInfoBuild
 import org.utbot.python.newtyping.pythonModuleName
 import org.utbot.python.newtyping.pythonName
+import org.utbot.python.newtyping.pythonTypeRepresentation
 
 abstract class PythonTypeSystem: UTypeSystem<PythonType> {
-    protected var allConcreteTypes: List<ConcretePythonType> = emptyList()
-
-    open fun restart() {}
 
     override fun isSupertype(supertype: PythonType, type: PythonType): Boolean {
         if (supertype is VirtualPythonType)
@@ -35,9 +35,25 @@ abstract class PythonTypeSystem: UTypeSystem<PythonType> {
         return type is ConcretePythonType || type is TypeOfVirtualObject
     }
 
-    // TODO: will not work for several analyzes
-    val addressToConcreteType: Map<PythonObject, ConcretePythonType> by lazy {
-        allConcreteTypes.associateBy { it.asObject }
+    protected var allConcreteTypes: List<ConcretePythonType> = emptyList()
+    protected val addressToConcreteType = mutableMapOf<PythonObject, ConcretePythonType>()
+    private val concreteTypeToAddress = mutableMapOf<ConcretePythonType, PythonObject>()
+    protected fun addType(getter: () -> PythonObject): ConcretePythonType {
+        val address = getter()
+        require(ConcretePythonInterpreter.getPythonObjectTypeName(address) == "type")
+        val type = ConcretePythonType(this, ConcretePythonInterpreter.getNameOfPythonType(address), getter)
+        addressToConcreteType[address] = type
+        concreteTypeToAddress[type] = address
+        return type
+    }
+
+    fun addressOfConcreteType(type: ConcretePythonType): PythonObject {
+        require(type.owner == this)
+        return concreteTypeToAddress[type]!!
+    }
+
+    fun concreteTypeOnAddress(address: PythonObject): ConcretePythonType? {
+        return addressToConcreteType[address]
     }
 
     override fun findSubtypes(type: PythonType): Sequence<PythonType> {
@@ -50,13 +66,33 @@ abstract class PythonTypeSystem: UTypeSystem<PythonType> {
         return USupportTypeStream.from(this, PythonAnyType)
     }
 
-    protected val basicTypes = listOf(
+    private fun createConcreteTypeByName(name: String): ConcretePythonType =
+        addType { ConcretePythonInterpreter.eval(emptyNamespace, name) }
+
+    val pythonInt = createConcreteTypeByName("int")
+    val pythonBool = createConcreteTypeByName("bool")
+    val pythonObjectType = createConcreteTypeByName("object")
+    val pythonNoneType = createConcreteTypeByName("type(None)")
+    val pythonList = createConcreteTypeByName("list")
+    val pythonTuple = createConcreteTypeByName("tuple")
+    val pythonListIteratorType = createConcreteTypeByName("type(iter([]))")
+
+    protected val basicTypes: List<ConcretePythonType> = listOf(
         pythonInt,
         pythonBool,
         pythonObjectType,
         pythonNoneType,
         pythonList
     )
+    protected val basicTypeRefs: List<PythonObject> = basicTypes.map(::addressOfConcreteType)
+
+    fun restart() {
+        concreteTypeToAddress.keys.forEach { type ->
+            val newAddress = type.addressGetter()
+            concreteTypeToAddress[type] = newAddress
+            addressToConcreteType[newAddress] = type
+        }
+    }
 }
 
 class BasicPythonTypeSystem: PythonTypeSystem() {
@@ -71,25 +107,34 @@ class PythonTypeSystemWithMypyInfo(
 ): PythonTypeSystem() {
     private val typeHintsStorage = PythonTypeHintsBuild.get(mypyBuild)
 
-    private fun isWorkingType(type: ConcretePythonType): Boolean {
-        return ConcretePythonInterpreter.getPythonObjectTypeName(type.asObject) == "type" &&
-                (ConcretePythonInterpreter.typeHasStandardNew(type.asObject) || basicTypes.contains(type))
+    private fun typeAlreadyInStorage(typeRef: PythonObject): Boolean = addressToConcreteType.keys.contains(typeRef)
+
+    private fun isWorkableType(typeRef: PythonObject): Boolean {
+        return ConcretePythonInterpreter.getPythonObjectTypeName(typeRef) == "type" &&
+                (ConcretePythonInterpreter.typeHasStandardNew(typeRef) || basicTypeRefs.contains(typeRef))
     }
 
-    override fun restart() {
-        allConcreteTypes = typeHintsStorage.simpleTypes.mapNotNull { utType ->
-            val pin = {
-                val namespace = program.getNamespaceOfModule(utType.pythonModuleName())
-                ConcretePythonInterpreter.eval(namespace, utType.pythonName())
+    init {
+        withAdditionalPaths(program.additionalPaths) {
+            allConcreteTypes = basicTypes + typeHintsStorage.simpleTypes.mapNotNull { utType ->
+                if (utType.pythonTypeRepresentation().startsWith("sample")) {
+                    println("Here!")
+                }
+                val refGetter = {
+                    val namespace = program.getNamespaceOfModule(utType.pythonModuleName())
+                    ConcretePythonInterpreter.eval(namespace, utType.pythonName())
+                }
+                val ref = try {
+                    refGetter()
+                } catch (_: CPythonExecutionException) {
+                    return@mapNotNull null
+                }
+                if (!isWorkableType(ref) || typeAlreadyInStorage(ref))
+                    return@mapNotNull null
+
+                addType(refGetter)
             }
-            val ref = try {
-                pin()
-            } catch (_: CPythonExecutionException) {
-                return@mapNotNull null
-            }
-            val result = ConcretePythonType(ConcretePythonInterpreter.getNameOfPythonType(ref), ref, pin)
-            if (isWorkingType(result)) result else null
+            println("Initialized!")
         }
-        println("Restarted!")
     }
 }
