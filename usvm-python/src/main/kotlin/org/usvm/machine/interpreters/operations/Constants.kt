@@ -6,7 +6,6 @@ import org.usvm.machine.interpreters.PythonObject
 import org.usvm.machine.symbolicobjects.SymbolicPythonObject
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.constructInt
-import org.usvm.language.types.pythonTuple
 
 fun handlerLoadConstKt(context: ConcolicRunContext, value: PythonObject): UninterpretedSymbolicPythonObject? =
     when (ConcretePythonInterpreter.getPythonObjectTypeName(value)) {
@@ -30,11 +29,12 @@ fun handlerLoadConstLongKt(context: ConcolicRunContext, value: String): Uninterp
 fun handlerLoadConstTupleKt(context: ConcolicRunContext, elements: List<SymbolicPythonObject>): UninterpretedSymbolicPythonObject? {
     if (context.curState == null)
         return null
+    val typeSystem = context.typeSystem
     val addresses = elements.map { it.address }.asSequence()
     with (context.ctx) {
-        val tupleAddress = context.curState!!.memory.malloc(pythonTuple, addressSort, addresses)
-        val result = UninterpretedSymbolicPythonObject(tupleAddress)
-        result.addSupertype(context, pythonTuple)
+        val tupleAddress = context.curState!!.memory.malloc(typeSystem.pythonTuple, addressSort, addresses)
+        val result = UninterpretedSymbolicPythonObject(tupleAddress, typeSystem)
+        result.addSupertype(context, typeSystem.pythonTuple)
         return result
     }
 }

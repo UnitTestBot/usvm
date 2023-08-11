@@ -2,8 +2,6 @@ package org.usvm.samples
 
 import org.junit.jupiter.api.Test
 import org.usvm.language.PythonUnpinnedCallable
-import org.usvm.language.types.pythonInt
-import org.usvm.language.types.pythonBool
 import org.usvm.runner.PythonTestRunnerForPrimitiveProgram
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
@@ -13,7 +11,7 @@ class SimpleExampleTest : PythonTestRunnerForPrimitiveProgram("SimpleExample") {
     @Test
     fun testManyBranches() {
         check3WithConcreteRun(
-            constructFunction("many_branches", List(3) { pythonInt }),
+            constructFunction("many_branches", List(3) { typeSystem.pythonInt }),
             ignoreNumberOfAnalysisResults,
             standardConcolicAndConcreteChecks,
             /* invariants = */ listOf { x, y, z, res ->
@@ -28,7 +26,7 @@ class SimpleExampleTest : PythonTestRunnerForPrimitiveProgram("SimpleExample") {
     @Test
     fun testMyAbs() {
         check1WithConcreteRun(
-            constructFunction("my_abs", List(1) { pythonInt }),
+            constructFunction("my_abs", List(1) { typeSystem.pythonInt }),
             eq(3),
             compareConcolicAndConcreteReprsIfSuccess,
             /* invariants = */ listOf { x, _ -> x.typeName == "int" },
@@ -43,7 +41,7 @@ class SimpleExampleTest : PythonTestRunnerForPrimitiveProgram("SimpleExample") {
     @Test
     fun testSamplePickle() {
         check1WithConcreteRun(
-            constructFunction("pickle_sample", List(1) { pythonInt }),
+            constructFunction("pickle_sample", List(1) { typeSystem.pythonInt }),
             eq(1),
             compareConcolicAndConcreteReprsIfSuccess,
             /* invariants = */ listOf { _, res -> res.typeName == "bytes" },
@@ -54,7 +52,7 @@ class SimpleExampleTest : PythonTestRunnerForPrimitiveProgram("SimpleExample") {
     @Test
     fun testCall() {
         check1WithConcreteRun(
-            constructFunction("call", List(1) { pythonInt }),
+            constructFunction("call", List(1) { typeSystem.pythonInt }),
             eq(3),
             compareConcolicAndConcreteReprsIfSuccess,
             /* invariants = */ listOf { x, _ -> x.typeName == "int" },
@@ -69,7 +67,7 @@ class SimpleExampleTest : PythonTestRunnerForPrimitiveProgram("SimpleExample") {
     @Test
     fun testZeroDivision() {
         check1WithConcreteRun(
-            constructFunction("zero_division", List(1) { pythonInt }),
+            constructFunction("zero_division", List(1) { typeSystem.pythonInt }),
             eq(1),
             standardConcolicAndConcreteChecks,
             /* invariants = */ listOf { x, res -> x.typeName == "int" && res.selfTypeName == "ZeroDivisionError" },
@@ -80,7 +78,7 @@ class SimpleExampleTest : PythonTestRunnerForPrimitiveProgram("SimpleExample") {
     @Test
     fun testZeroDivisionInBranch() {
         check1WithConcreteRun(
-            constructFunction("zero_division_in_branch", List(1) { pythonInt }),
+            constructFunction("zero_division_in_branch", List(1) { typeSystem.pythonInt }),
             eq(2),
             standardConcolicAndConcreteChecks,
             /* invariants = */ listOf(),
@@ -94,7 +92,7 @@ class SimpleExampleTest : PythonTestRunnerForPrimitiveProgram("SimpleExample") {
     @Test
     fun testBoolInput() {
         check1WithConcreteRun(
-            constructFunction("bool_input", List(1) { pythonBool }),
+            constructFunction("bool_input", List(1) { typeSystem.pythonBool }),
             eq(2),
             compareConcolicAndConcreteReprsIfSuccess,
             /* invariants = */ listOf { x, _ -> x.typeName == "bool" },
@@ -107,7 +105,7 @@ class SimpleExampleTest : PythonTestRunnerForPrimitiveProgram("SimpleExample") {
     @Test
     fun testMixedInputTypes() {
         check2WithConcreteRun(
-            constructFunction("mixed_input_types", listOf(pythonBool, pythonInt)),
+            constructFunction("mixed_input_types", listOf(typeSystem.pythonBool, typeSystem.pythonInt)),
             eq(3),
             compareConcolicAndConcreteReprsIfSuccess,
             /* invariants = */ listOf { x, y, _ -> x.typeName == "bool" && y.typeName == "int" },
@@ -120,7 +118,7 @@ class SimpleExampleTest : PythonTestRunnerForPrimitiveProgram("SimpleExample") {
     @Test
     fun testSymbolicCall() {
         check1WithConcreteRun(
-            constructFunction("symbolic_call", List(1) { pythonInt }),
+            constructFunction("symbolic_call", List(1) { typeSystem.pythonInt }),
             eq(2),
             compareConcolicAndConcreteReprsIfSuccess,
             /* invariants = */ listOf { x, _ -> x.typeName == "int" },
@@ -134,7 +132,7 @@ class SimpleExampleTest : PythonTestRunnerForPrimitiveProgram("SimpleExample") {
     @Test
     fun testSimpleLambda() {
         check1WithConcreteRun(
-            PythonUnpinnedCallable.constructLambdaFunction(listOf(pythonInt), "lambda x: 1 if x == 157 else 0"),
+            PythonUnpinnedCallable.constructLambdaFunction(listOf(typeSystem.pythonInt), "lambda x: 1 if x == 157 else 0"),
             eq(2),
             standardConcolicAndConcreteChecks,
             /* invariants = */ listOf { x, res -> x.typeName == "int" && res.typeName == "int" },
