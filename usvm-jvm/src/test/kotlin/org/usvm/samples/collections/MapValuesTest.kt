@@ -8,9 +8,9 @@ import org.usvm.test.util.checkers.ge
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import org.usvm.util.isException
 
-@Disabled("Unsupported")
 class MapValuesTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [1, 2]")
     fun testRemoveFromValues() {
         checkDiscoveredPropertiesWithExceptions(
             MapValues::removeFromValues,
@@ -38,6 +38,7 @@ class MapValuesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [1]")
     fun testAddToValues() {
         checkDiscoveredPropertiesWithExceptions(
             MapValues::addToValues,
@@ -48,6 +49,7 @@ class MapValuesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [1, 2]")
     fun testGetFromValues() {
         checkDiscoveredProperties(
             MapValues::getFromValues,
@@ -59,6 +61,7 @@ class MapValuesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [1, 2]")
     fun testIteratorHasNext() {
         checkDiscoveredProperties(
             MapValues::iteratorHasNext,
@@ -70,6 +73,7 @@ class MapValuesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [1, 2]")
     fun testIteratorNext() {
         checkDiscoveredPropertiesWithExceptions(
             MapValues::iteratorNext,
@@ -85,6 +89,7 @@ class MapValuesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [1, 2]")
     fun testIteratorRemove() {
         checkDiscoveredPropertiesWithExceptions(
             MapValues::iteratorRemove,
@@ -113,6 +118,7 @@ class MapValuesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [2, 3, 4]")
     fun testIteratorRemoveOnIndex() {
         checkDiscoveredPropertiesWithExceptions(
             MapValues::iteratorRemoveOnIndex,
@@ -141,6 +147,7 @@ class MapValuesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [1, 2]")
     fun testIterateForEach() {
         checkDiscoveredProperties(
             MapValues::iterateForEach,
@@ -152,6 +159,7 @@ class MapValuesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [1, 2]")
     fun testIterateWithIterator() {
         checkDiscoveredProperties(
             MapValues::iterateWithIterator,

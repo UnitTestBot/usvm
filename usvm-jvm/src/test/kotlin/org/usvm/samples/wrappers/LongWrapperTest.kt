@@ -8,7 +8,7 @@ import org.usvm.test.util.checkers.eq
 
 internal class LongWrapperTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("Some properties were not discovered at positions (from 0): [0]")
     fun primitiveToWrapperTest() {
         checkDiscoveredProperties(
             LongWrapper::primitiveToWrapper,
@@ -19,7 +19,6 @@ internal class LongWrapperTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun wrapperToPrimitiveTest() {
         checkDiscoveredProperties(
             LongWrapper::wrapperToPrimitive,
@@ -30,8 +29,8 @@ internal class LongWrapperTest : JavaMethodTestRunner() {
         )
     }
 
-    @Disabled("Caching long values between -128 and 127 doesn't work JIRA:1481")
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [0, 1, 2]")
     fun equalityTest() {
         checkDiscoveredProperties(
             LongWrapper::equality,
@@ -43,7 +42,7 @@ internal class LongWrapperTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("A fatal error has been detected by the Java Runtime Environment: EXCEPTION_ACCESS_VIOLATION")
     fun parseLong() {
         checkDiscoveredProperties(
             LongWrapper::parseLong,

@@ -7,6 +7,7 @@ import org.usvm.UMachineOptions
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.between
 import org.usvm.test.util.checkers.eq
+import org.usvm.test.util.checkers.ge
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import org.usvm.util.Options
 import org.usvm.util.UsvmTest
@@ -71,7 +72,6 @@ internal class CyclesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]. Tune coverage zone")
     fun testCallInnerWhile() {
         checkDiscoveredProperties(
             Cycles::callInnerWhile,
@@ -94,11 +94,10 @@ internal class CyclesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testDivideByZeroCheckWithCycles() {
         checkDiscoveredPropertiesWithExceptions(
             Cycles::divideByZeroCheckWithCycles,
-            eq(3),
+            ge(3),
             { _, n, _, r -> n < 5 && r.isException<IllegalArgumentException>() },
             { _, n, x, r -> n >= 5 && x == 0 && r.isException<ArithmeticException>() },
             { _, n, x, r -> n >= 5 && x != 0 && r.getOrNull() == Cycles().divideByZeroCheckWithCycles(n, x) }

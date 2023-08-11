@@ -9,7 +9,7 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 internal class GenericsTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("No result found")
     fun mapAsParameterTest() {
         checkDiscoveredProperties(
             Generics<*>::mapAsParameter,
@@ -20,7 +20,7 @@ internal class GenericsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("No result found")
     fun genericAsFieldTest() {
         checkDiscoveredProperties(
             Generics<*>::genericAsField,
@@ -32,7 +32,6 @@ internal class GenericsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun mapAsStaticFieldTest() {
         checkDiscoveredProperties(
             Generics<*>::mapAsStaticField,
@@ -42,7 +41,7 @@ internal class GenericsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("No result found")
     fun mapAsNonStaticFieldTest() {
         checkDiscoveredProperties(
             Generics<*>::mapAsNonStaticField,
@@ -53,7 +52,7 @@ internal class GenericsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("No result found")
     fun methodWithRawTypeTest() {
         checkDiscoveredProperties(
             Generics<*>::methodWithRawType,

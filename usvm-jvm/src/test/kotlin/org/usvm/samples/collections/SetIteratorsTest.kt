@@ -8,9 +8,9 @@ import org.usvm.test.util.checkers.ge
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import org.usvm.util.isException
 
-@Disabled("Unsupported")
 class SetIteratorsTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [1]")
     fun testReturnIterator() {
         checkDiscoveredProperties(
             SetIterators::returnIterator,
@@ -21,6 +21,7 @@ class SetIteratorsTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Expected number of executions in bounds 3..4, but 139 found")
     fun testIteratorHasNext() {
         checkDiscoveredProperties(
             SetIterators::iteratorHasNext,
@@ -32,6 +33,7 @@ class SetIteratorsTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Expected number of executions in bounds 3..4, but 55 found")
     fun testIteratorNext() {
         checkDiscoveredPropertiesWithExceptions(
             SetIterators::iteratorNext,
@@ -44,6 +46,7 @@ class SetIteratorsTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Expected number of executions in bounds 3..4, but 277 found")
     fun testIteratorRemove() {
         checkDiscoveredPropertiesWithExceptions(
             SetIterators::iteratorRemove,
@@ -61,6 +64,7 @@ class SetIteratorsTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [3, 4]")
     fun testIteratorRemoveOnIndex() {
         checkDiscoveredPropertiesWithExceptions(
             SetIterators::iteratorRemoveOnIndex,
@@ -81,6 +85,7 @@ class SetIteratorsTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [1]")
     fun testIterateForEach() {
         checkDiscoveredProperties(
             SetIterators::iterateForEach,
@@ -93,6 +98,7 @@ class SetIteratorsTest : JavaMethodTestRunner() {
 
 
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [1]")
     fun testIterateWithIterator() {
         checkDiscoveredProperties(
             SetIterators::iterateWithIterator,

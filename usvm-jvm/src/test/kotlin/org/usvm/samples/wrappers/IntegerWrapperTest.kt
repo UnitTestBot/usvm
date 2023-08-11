@@ -9,7 +9,7 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 internal class IntegerWrapperTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("Some properties were not discovered at positions (from 0): [0]")
     fun primitiveToWrapperTest() {
         checkDiscoveredProperties(
             IntegerWrapper::primitiveToWrapper,
@@ -20,7 +20,6 @@ internal class IntegerWrapperTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun wrapperToPrimitiveTest() {
         checkDiscoveredProperties(
             IntegerWrapper::wrapperToPrimitive,
@@ -32,7 +31,7 @@ internal class IntegerWrapperTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("Some properties were not discovered at positions (from 0): [2]")
     fun numberOfZerosTest() {
         checkDiscoveredProperties(
             IntegerWrapper::numberOfZeros,
@@ -44,7 +43,6 @@ internal class IntegerWrapperTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun bitCountTest() {
         checkDiscoveredProperties(
             IntegerWrapper::bitCount,
@@ -56,8 +54,8 @@ internal class IntegerWrapperTest : JavaMethodTestRunner() {
     }
 
 
-    @Disabled("Caching integer values between -128 and 127 isn't supported JIRA:1481")
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [0]")
     fun equalityTest() {
         checkDiscoveredProperties(
             IntegerWrapper::equality,

@@ -8,7 +8,6 @@ import org.usvm.test.util.checkers.eq
 
 class DeepEqualsTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("An operation is not implemented: Class constant")
     fun testReturnList() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::returnList,
@@ -17,7 +16,7 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method: (id:1)java.lang.Object#hashCode()")
+    @Disabled("Expected exactly 1 executions, but 3 found")
     fun testReturnSet() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::returnSet,
@@ -26,7 +25,6 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testReturnMap() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::returnMap,
@@ -50,7 +48,6 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Class constant")
     fun testReturn2DList() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::return2DList,
@@ -59,7 +56,7 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method: (id:1)java.lang.Object#hashCode()")
+    @Disabled("Expected exactly 1 executions, but 0 found")
     fun testReturn2DSet() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::return2DSet,
@@ -68,7 +65,6 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testReturn2DMap() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::return2DMap,
@@ -77,7 +73,6 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testIntegers2DList() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::returnIntegers2DList,
@@ -133,7 +128,7 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: virtual calls with abstract methods")
+    @Disabled("Expected exactly 1 executions, but 274 found")
     fun testQuadrilateral() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::returnQuadrilateralFromNode,
@@ -163,7 +158,6 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Support multidimensional arrays initialization")
     fun testDoubleMultiArray() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::fillDoubleMultiArrayWithConstValue,
@@ -172,7 +166,6 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Support multidimensional arrays initialization")
     fun testIntegerWrapperMultiArray() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::fillIntegerWrapperMultiArrayWithConstValue,
@@ -181,7 +174,6 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Support multidimensional arrays initialization")
     fun testDoubleWrapperMultiArray() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::fillDoubleWrapperMultiArrayWithConstValue,

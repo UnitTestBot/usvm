@@ -8,7 +8,7 @@ import org.usvm.test.util.checkers.eq
 
 internal class GenericCastExampleTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Expected exactly 5 executions, but 1 found. Support generics")
+    @Disabled("java.lang.OutOfMemoryError: Java heap space")
     fun testCompareTwoNumbers() {
         checkDiscoveredProperties(
             GenericCastExample::compareTwoNumbers,
@@ -22,7 +22,7 @@ internal class GenericCastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 3 executions, but 2 found. Support generics")
+    @Disabled("org.jacodb.impl.fs.ByteCodeConverterKt: java.lang.OutOfMemoryError: Java heap space")
     fun testGetGenericFieldValue() {
         checkDiscoveredProperties(
             GenericCastExample::getGenericFieldValue,
@@ -47,7 +47,7 @@ internal class GenericCastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("Some properties were not discovered at positions (from 0): [0]")
     fun testCreateNewGenericObject() {
         checkDiscoveredProperties(
             GenericCastExample::createNewGenericObject,

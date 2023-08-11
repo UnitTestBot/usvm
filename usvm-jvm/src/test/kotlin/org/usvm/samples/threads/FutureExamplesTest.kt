@@ -21,7 +21,7 @@ class FutureExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("class org.jacodb.api.PredefinedPrimitive cannot be cast to class org.jacodb.api.JcRefType")
+    @Disabled("Some properties were not discovered at positions (from 0): [0]")
     fun testResultFromGet() {
         checkDiscoveredProperties(
             FutureExamples::resultFromGet,
@@ -31,7 +31,7 @@ class FutureExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("class org.jacodb.api.PredefinedPrimitive cannot be cast to class org.jacodb.api.JcRefType")
+    @Disabled("Some properties were not discovered at positions (from 0): [0]")
     fun testChangingCollectionInFuture() {
         checkDiscoveredProperties(
             FutureExamples::changingCollectionInFuture,
@@ -41,7 +41,7 @@ class FutureExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("class org.jacodb.api.PredefinedPrimitive cannot be cast to class org.jacodb.api.JcRefType")
+    @Disabled("Some properties were not discovered at positions (from 0): [0]")
     fun testChangingCollectionInFutureWithoutGet() {
         checkDiscoveredProperties(
             FutureExamples::changingCollectionInFutureWithoutGet,

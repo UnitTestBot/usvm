@@ -2,15 +2,21 @@ package org.usvm.machine.interpreter
 
 import io.ksmt.utils.asExpr
 import mu.KLogging
+import org.jacodb.api.JcArrayType
+import org.jacodb.api.JcClassOrInterface
+import org.jacodb.api.JcClassType
 import org.jacodb.api.JcField
 import org.jacodb.api.JcMethod
+import org.jacodb.api.JcPrimitiveType
 import org.jacodb.api.JcRefType
 import org.jacodb.api.JcType
 import org.jacodb.api.cfg.JcArgument
 import org.jacodb.api.cfg.JcAssignInst
 import org.jacodb.api.cfg.JcCallInst
 import org.jacodb.api.cfg.JcCatchInst
+import org.jacodb.api.cfg.JcEnterMonitorInst
 import org.jacodb.api.cfg.JcEqExpr
+import org.jacodb.api.cfg.JcExitMonitorInst
 import org.jacodb.api.cfg.JcGotoInst
 import org.jacodb.api.cfg.JcIfInst
 import org.jacodb.api.cfg.JcInst
@@ -26,7 +32,7 @@ import org.jacodb.api.ext.boolean
 import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UBoolExpr
-import org.usvm.UHeapRef
+import org.usvm.UConcreteHeapRef
 import org.usvm.UInterpreter
 import org.usvm.URegisterLValue
 import org.usvm.machine.JcApplicationGraph
@@ -114,6 +120,8 @@ class JcInterpreter(
             is JcSwitchInst -> visitSwitchStmt(scope, stmt)
             is JcThrowInst -> visitThrowStmt(scope, stmt)
             is JcCallInst -> visitCallStmt(scope, stmt)
+            is JcEnterMonitorInst -> visitMonitorEnterStmt(scope, stmt)
+            is JcExitMonitorInst -> visitMonitorExitStmt(scope, stmt)
             else -> error("Unknown stmt: $stmt")
         }
         return scope.stepResult()
@@ -264,6 +272,28 @@ class JcInterpreter(
         }
     }
 
+    private fun visitMonitorEnterStmt(scope: JcStepScope, stmt: JcEnterMonitorInst) {
+        val exprResolver = exprResolverWithScope(scope)
+        exprResolver.resolveJcNotNullRefExpr(stmt.monitor, stmt.monitor.type) ?: return
+
+        // Monitor enter makes sense only in multithreaded environment
+
+        scope.doWithState {
+            newStmt(stmt.nextStmt)
+        }
+    }
+
+    private fun visitMonitorExitStmt(scope: JcStepScope, stmt: JcExitMonitorInst) {
+        val exprResolver = exprResolverWithScope(scope)
+        exprResolver.resolveJcNotNullRefExpr(stmt.monitor, stmt.monitor.type) ?: return
+
+        // Monitor exit makes sense only in multithreaded environment
+
+        scope.doWithState {
+            newStmt(stmt.nextStmt)
+        }
+    }
+
     private val invokeResolver = JcVirtualInvokeResolver(ctx, applicationGraph, JcFixedInheritorsNumberTypeSelector())
 
     private fun exprResolverWithScope(scope: JcStepScope) =
@@ -271,7 +301,8 @@ class JcInterpreter(
             ctx,
             scope,
             ::mapLocalToIdxMapper,
-            ::classInstanceAllocator,
+            ::typeInstanceAllocator,
+            ::stringConstantAllocator,
             invokeResolver
         )
 
@@ -294,14 +325,40 @@ class JcInterpreter(
     private val JcInst.nextStmt get() = location.method.instList[location.index + 1]
     private operator fun JcInstList<JcInst>.get(instRef: JcInstRef): JcInst = this[instRef.index]
 
-    private val classInstanceAllocatedRefs = mutableMapOf<String, UHeapRef>()
+    private val stringConstantAllocatedRefs = mutableMapOf<String, UConcreteHeapRef>()
 
-    private fun classInstanceAllocator(type: JcRefType, state: JcState): UHeapRef {
-        // Don't use type.typeName here, because it contains generic parameters
-        val className = type.jcClass.name
-        return classInstanceAllocatedRefs.getOrPut(className) {
+    // Equal string constants must have equal references
+    private fun stringConstantAllocator(value: String, state: JcState): UConcreteHeapRef =
+        stringConstantAllocatedRefs.getOrPut(value) {
+            // Allocate globally unique ref
+            state.memory.heap.allocate()
+        }
+
+    private val typeInstanceAllocatedRefs = mutableMapOf<JcTypeInfo, UConcreteHeapRef>()
+
+    private fun typeInstanceAllocator(type: JcType, state: JcState): UConcreteHeapRef {
+        val typeInfo = resolveTypeInfo(type)
+        return typeInstanceAllocatedRefs.getOrPut(typeInfo) {
             // Allocate globally unique ref
             state.memory.heap.allocate()
         }
     }
+
+    private fun resolveTypeInfo(type: JcType): JcTypeInfo = when (type) {
+        is JcClassType -> JcClassTypeInfo(type.jcClass)
+        is JcPrimitiveType -> JcPrimitiveTypeInfo(type)
+        is JcArrayType -> JcArrayTypeInfo(resolveTypeInfo(type.elementType))
+        else -> error("Unexpected type: $type")
+    }
+
+    private sealed interface JcTypeInfo
+
+    private data class JcClassTypeInfo(val className: String) : JcTypeInfo {
+        // Don't use type.typeName here, because it contains generic parameters
+        constructor(cls: JcClassOrInterface) : this(cls.name)
+    }
+
+    private data class JcPrimitiveTypeInfo(val type: JcPrimitiveType) : JcTypeInfo
+
+    private data class JcArrayTypeInfo(val element: JcTypeInfo) : JcTypeInfo
 }

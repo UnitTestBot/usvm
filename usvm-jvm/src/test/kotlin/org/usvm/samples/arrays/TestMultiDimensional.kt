@@ -16,7 +16,7 @@ class TestMultiDimensional : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Cannot load from byte/boolean array because \"java.lang.Integer.DigitOnes\" is null")
+    @Disabled("Some properties were not discovered at positions (from 0): [0]")
     fun `Test sumOfMultiNewArray`() {
         checkDiscoveredProperties(
             MultiDimensional::sumOfMultiNewArray,

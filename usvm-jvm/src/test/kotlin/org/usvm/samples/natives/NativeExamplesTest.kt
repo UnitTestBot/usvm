@@ -10,7 +10,7 @@ import org.usvm.test.util.checkers.ge
 internal class NativeExamplesTest : JavaMethodTestRunner() {
 
     @Test
-    @Disabled("No entrypoint found for method")
+    @Disabled("slow on CI")
     fun testFindAndPrintSum() {
         checkDiscoveredProperties(
             NativeExamples::findAndPrintSum,
@@ -19,7 +19,7 @@ internal class NativeExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: class constant")
+    @Disabled("Can't find method (id:1)java.lang.Thread#getThreadGroup() in type java.lang.Object")
     fun testFindSumWithMathRandom() {
         checkDiscoveredProperties(
             NativeExamples::findSumWithMathRandom,

@@ -21,7 +21,7 @@ class ThreadExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("class org.jacodb.api.PredefinedPrimitive cannot be cast to class org.jacodb.api.JcRefType")
+    @Disabled("Some properties were not discovered at positions (from 0): [0]")
     fun testChangingCollectionInThread() {
         checkDiscoveredProperties(
             ThreadExamples::changingCollectionInThread,
@@ -31,7 +31,7 @@ class ThreadExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("class org.jacodb.api.PredefinedPrimitive cannot be cast to class org.jacodb.api.JcRefType")
+    @Disabled("Some properties were not discovered at positions (from 0): [0]")
     fun testChangingCollectionInThreadWithoutStart() {
         checkDiscoveredPropertiesWithExceptions(
             ThreadExamples::changingCollectionInThreadWithoutStart,

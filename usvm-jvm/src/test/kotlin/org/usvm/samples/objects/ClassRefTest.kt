@@ -13,7 +13,6 @@ import kotlin.arrayOf
 
 internal class ClassRefTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Not implemented: string constant")
     fun testTakeBooleanClassRef() {
         checkDiscoveredProperties(
             ClassRef::takeBooleanClassRef,
@@ -23,7 +22,6 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testTakeClassRef() {
         checkDiscoveredProperties(
             ClassRef::takeClassRef,
@@ -33,7 +31,7 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sequence is empty.")
+    @Disabled("Some properties were not discovered at positions (from 0): [1]")
     fun testTakeClassRefFromParam() {
         checkDiscoveredProperties(
             ClassRef::takeClassRefFromParam,
@@ -45,7 +43,6 @@ internal class ClassRefTest : JavaMethodTestRunner() {
 
 
     @Test
-    @Disabled("Not implemented: class constant")
     fun testTakeArrayClassRef() {
         checkDiscoveredProperties(
             ClassRef::takeArrayClassRef,
@@ -55,7 +52,6 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: class constant")
     fun testTwoDimArrayClassRef() {
         checkDiscoveredProperties(
             ClassRef::twoDimArrayClassRef,
@@ -65,7 +61,7 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sequence is empty.")
+    @Disabled("Some properties were not discovered at positions (from 0): [1]")
     fun testTwoDimArrayClassRefFromParam() {
         checkDiscoveredProperties(
             ClassRef::twoDimArrayClassRefFromParam,
@@ -76,7 +72,6 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: class constant")
     fun testTakeConstantClassRef() {
         checkDiscoveredProperties(
             ClassRef::takeConstantClassRef,
@@ -86,7 +81,6 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sequence is empty.")
     fun testEqualityOnClassRef() {
         checkDiscoveredProperties(
             ClassRef::equalityOnClassRef,
@@ -96,7 +90,6 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testEqualityOnStringClassRef() {
         checkDiscoveredProperties(
             ClassRef::equalityOnStringClassRef,
@@ -106,7 +99,6 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sequence is empty.")
     fun testEqualityOnArrayClassRef() {
         checkDiscoveredProperties(
             ClassRef::equalityOnArrayClassRef,
@@ -116,7 +108,6 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sequence is empty.")
     fun testTwoDimensionalArrayClassRef() {
         checkDiscoveredProperties(
             ClassRef::twoDimensionalArrayClassRef,
@@ -126,7 +117,6 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method")
     fun testEqualityOnGenericClassRef() {
         checkDiscoveredProperties(
             ClassRef::equalityOnGenericClassRef,

@@ -9,7 +9,6 @@ import org.usvm.test.util.checkers.eq
 internal class SerializableExampleTest : JavaMethodTestRunner() {
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testExample() {
         checkDiscoveredProperties(
             SerializableExample::example,

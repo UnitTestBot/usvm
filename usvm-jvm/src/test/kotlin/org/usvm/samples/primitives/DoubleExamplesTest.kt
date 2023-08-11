@@ -29,7 +29,6 @@ internal class DoubleExamplesTest : JavaMethodTestRunner() {
         )
     }
 
-    @Disabled("Timeout Expected exactly 2 executions, but 0 found")
     fun testCompareWithDiv() {
         checkDiscoveredProperties(
             DoubleExamples::compareWithDiv,
@@ -40,7 +39,6 @@ internal class DoubleExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testSimpleSum() {
         checkDiscoveredProperties(
             DoubleExamples::simpleSum,
@@ -52,7 +50,6 @@ internal class DoubleExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testSum() {
         checkDiscoveredProperties(
             DoubleExamples::sum,

@@ -63,7 +63,7 @@ internal class ExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Native methods support")
+    @Disabled("Some properties were not discovered at positions (from 0): [1]")
     fun testThrowException() {
         checkDiscoveredPropertiesWithExceptions(
             ExceptionExamples::throwException,

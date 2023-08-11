@@ -10,7 +10,7 @@ import org.usvm.test.util.checkers.eq
 internal class UnsafeWithFieldTest: JavaMethodTestRunner() {
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("Expected exactly 1 executions, but 0 found")
     fun checkSetField() {
         checkDiscoveredProperties(
             UnsafeWithField::setField,

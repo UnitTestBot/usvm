@@ -235,7 +235,7 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented. Support strings/collections")
+    @Disabled("Expected at least 3 executions, but only 1 found")
     fun testInstanceOfAsInternalExpressionsMap() {
         checkDiscoveredProperties(
             InstanceOfExample::instanceOfAsInternalExpressionsMap,
@@ -258,7 +258,6 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [4]. Support connection between array and element type")
     fun testComplicatedInstanceOf() {
         checkDiscoveredProperties(
             InstanceOfExample::complicatedInstanceOf,

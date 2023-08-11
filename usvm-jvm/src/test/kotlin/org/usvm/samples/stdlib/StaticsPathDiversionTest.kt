@@ -9,7 +9,7 @@ import java.io.File
 
 internal class StaticsPathDiversionTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Unexpected lvalue org.usvm.machine.JcStaticFieldRef@3f95a1b3")
+    @Disabled("Some properties were not discovered at positions (from 0): [0, 1]")
     fun testJavaIOFile() {
         checkDiscoveredProperties(
             StaticsPathDiversion::separatorEquality,

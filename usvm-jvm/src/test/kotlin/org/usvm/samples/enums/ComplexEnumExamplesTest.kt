@@ -13,7 +13,7 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Sequence is empty.")
+    @Disabled("Can't find method (id:26)com.sun.tools.javac.code.Symbol#flags()")
     fun testEnumToEnumMapCountValues() {
         checkDiscoveredProperties(
             ComplexEnumExamples::enumToEnumMapCountValues,
@@ -25,7 +25,7 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sequence is empty.")
+    @Disabled("Can't find method (id:26)com.sun.tools.javac.code.Symbol#flags()")
     fun testEnumToEnumMapCountKeys() {
         checkDiscoveredProperties(
             ComplexEnumExamples::enumToEnumMapCountKeys,
@@ -40,7 +40,7 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sequence is empty.")
+    @Disabled("Can't find method (id:26)com.sun.tools.javac.code.Symbol#flags()")
     fun testEnumToEnumMapCountMatches() {
         checkDiscoveredProperties(
             ComplexEnumExamples::enumToEnumMapCountMatches,
@@ -51,7 +51,7 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]")
+    @Disabled("Some properties were not discovered at positions (from 0): [2]")
     fun testCountEqualColors() {
         checkDiscoveredProperties(
             ComplexEnumExamples::countEqualColors,
@@ -75,7 +75,6 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testFindState() {
         checkDiscoveredProperties(
             ComplexEnumExamples::findState,
@@ -85,7 +84,7 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("slow on CI")
     fun testCountValuesInArray() {
         fun Color.isCorrectlyCounted(inputs: Array<Color>, counts: Map<Color, Int>): Boolean =
             inputs.count { it == this } == (counts[this] ?: 0)
@@ -100,7 +99,6 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled(" Index 0 out of bounds for length 0")
     fun testCountRedInArray() {
         checkDiscoveredProperties(
             ComplexEnumExamples::countRedInArray,

@@ -8,7 +8,7 @@ import org.usvm.test.util.checkers.eq
 
 internal class ByteWrapperTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("Some properties were not discovered at positions (from 0): [0, 1]")
     fun primitiveToWrapperTest() {
         checkDiscoveredProperties(
             ByteWrapper::primitiveToWrapper,
@@ -19,7 +19,6 @@ internal class ByteWrapperTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun wrapperToPrimitiveTest() {
         checkDiscoveredProperties(
             ByteWrapper::wrapperToPrimitive,
@@ -31,7 +30,7 @@ internal class ByteWrapperTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("Some properties were not discovered at positions (from 0): [0, 1]")
     fun equalityTest() {
         checkDiscoveredProperties(
             ByteWrapper::equality,

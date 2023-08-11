@@ -6,9 +6,9 @@ import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 import org.usvm.util.isException
 
-@Disabled("Unsupported")
 internal class ListWrapperReturnsVoidTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Sort mismatch at io.ksmt.utils.ContextUtilsKt.asExpr")
     fun testRunForEach() {
         checkDiscoveredPropertiesWithExceptions(
             ListWrapperReturnsVoidExample::runForEach,
@@ -21,6 +21,7 @@ internal class ListWrapperReturnsVoidTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Can't find method (id:1)java.lang.Integer#intValue()")
     fun testSumPositiveForEach() {
         checkDiscoveredPropertiesWithExceptions(
             ListWrapperReturnsVoidExample::sumPositiveForEach,

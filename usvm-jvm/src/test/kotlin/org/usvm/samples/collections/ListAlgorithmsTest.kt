@@ -6,10 +6,10 @@ import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 
 
-@Disabled("Unsupported")
 class ListAlgorithmsTest : JavaMethodTestRunner() {
 
     @Test
+    @Disabled("java.lang.OutOfMemoryError")
     fun testMergeLists() {
         checkDiscoveredProperties(
             ListAlgorithms::mergeListsInplace,

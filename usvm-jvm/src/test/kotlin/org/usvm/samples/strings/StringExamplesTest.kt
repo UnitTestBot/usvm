@@ -13,7 +13,7 @@ import java.util.Locale
 
 internal class StringExamplesTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("Expected exactly 2 executions, but 5 found")
     fun testByteToString() {
         checkDiscoveredProperties(
             StringExamples::byteToString,
@@ -24,7 +24,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testByteToStringWithConstants() {
         val values: Array<Byte> = arrayOf(
             Byte.MIN_VALUE,
@@ -44,7 +43,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("Expected number of executions in bounds 3..4, but 102 found")
     fun testReplace() {
         checkDiscoveredProperties(
             StringExamples::replace,
@@ -56,7 +55,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testShortToString() {
         checkDiscoveredProperties(
             StringExamples::shortToString,
@@ -67,7 +65,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testShortToStringWithConstants() {
         val values: Array<Short> = arrayOf(
             Short.MIN_VALUE,
@@ -87,7 +84,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("slow on CI")
     fun testIntToString() {
         checkDiscoveredProperties(
             StringExamples::intToString,
@@ -98,7 +95,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testIntToStringWithConstants() {
         val values: Array<Int> = arrayOf(
             Integer.MIN_VALUE,
@@ -118,7 +114,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testLongToString() {
         checkDiscoveredProperties(
             StringExamples::longToString,
@@ -129,7 +124,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testLongToStringWithConstants() {
         val values: Array<Long> = arrayOf(
             Long.MIN_VALUE,
@@ -149,7 +143,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("Some properties were not discovered at positions (from 0): [1]")
     fun testStartsWithLiteral() {
         checkDiscoveredProperties(
             StringExamples::startsWithLiteral,
@@ -162,7 +156,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testBooleanToString() {
         checkDiscoveredProperties(
             StringExamples::booleanToString,
@@ -174,7 +167,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
 
 
     @Test
-    @Disabled("Not implemented: class constant")
+    @Disabled("Expected exactly 2 executions, but 4 found")
     fun testCharToString() {
         checkDiscoveredProperties(
             StringExamples::charToString,
@@ -186,7 +179,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
 
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("Expected exactly -1 executions, but 16 found")
     fun testStringToByte() {
         checkDiscoveredProperties(
             StringExamples::stringToByte,
@@ -195,7 +188,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("Expected exactly -1 executions, but 16 found")
     fun testStringToShort() {
         checkDiscoveredProperties(
             StringExamples::stringToShort,
@@ -204,7 +197,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled(" Expected exactly -1 executions, but 16 found")
     fun testStringToInt() {
         checkDiscoveredProperties(
             StringExamples::stringToInt,
@@ -213,7 +206,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("Expected exactly -1 executions, but 16 found")
     fun testStringToLong() {
         checkDiscoveredProperties(
             StringExamples::stringToLong,
@@ -222,7 +215,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("Some properties were not discovered at positions (from 0): [1]")
     fun testStringToBoolean() {
         checkDiscoveredProperties(
             StringExamples::stringToBoolean,
@@ -233,7 +226,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: class constant")
+    @Disabled("Some properties were not discovered at positions (from 0): [0]")
     fun testConcat() {
         checkDiscoveredProperties(
             StringExamples::concat,
@@ -244,7 +237,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("Some properties were not discovered at positions (from 0): [0, 1]")
     fun testConcatWithObject() {
         checkDiscoveredProperties(
             StringExamples::concatWithObject,
@@ -255,7 +248,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("Some properties were not discovered at positions (from 0): [0]")
     fun testStringConstants() {
         checkDiscoveredProperties(
             StringExamples::stringConstants,
@@ -265,7 +258,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testContainsOnLiterals() {
         checkDiscoveredProperties(
             StringExamples::containsOnLiterals,
@@ -274,7 +266,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("Some properties were not discovered at positions (from 0): [1, 2]")
     fun testConcatWithInt() {
         checkDiscoveredProperties(
             StringExamples::concatWithInts,
@@ -286,7 +278,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: class constant")
+    @Disabled("Some properties were not discovered at positions (from 0): [0]")
     fun testUseStringBuffer() {
         checkDiscoveredProperties(
             StringExamples::useStringBuffer,
@@ -305,7 +297,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: class constant")
+    @Disabled("Some properties were not discovered at positions (from 0): [2, 3]")
     fun testNullableStringBuffer() {
         checkDiscoveredPropertiesWithExceptions(
             StringExamples::nullableStringBuffer,
@@ -318,7 +310,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: class constant")
+    @Disabled("Expected exactly 2 executions, but 24 found")
     fun testIsStringBuilderEmpty() {
         checkDiscoveredProperties(
             StringExamples::isStringBuilderEmpty,
@@ -328,7 +320,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sequence is empty.")
+    @Disabled("Some properties were not discovered at positions (from 0): [1, 2, 3, 4]")
     fun testIsValidUuid() {
         val pattern = Regex("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
         checkDiscoveredProperties(
@@ -343,7 +335,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("Some properties were not discovered at positions (from 0): [1, 2]")
     fun testIsValidUuidShortVersion() {
         val pattern = Regex("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
         checkDiscoveredProperties(
@@ -356,7 +348,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: class constant")
+    @Disabled("Some properties were not discovered at positions (from 0): [0, 1, 2, 3, 4]")
     fun testSplitExample() {
         checkDiscoveredProperties(
             StringExamples::splitExample,
@@ -370,7 +362,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sequence is empty.")
+    @Disabled("Can't find method (id:1)java.lang.Thread#getThreadGroup() in type java.lang.Object")
     fun testIsBlank() {
         checkDiscoveredProperties(
             StringExamples::isBlank,
@@ -383,7 +375,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sequence is empty.")
+    @Disabled("Expected exactly 2 executions, but 6 found")
     fun testLength() {
         checkDiscoveredProperties(
             StringExamples::length, // TODO: that strange, why we haven't 3rd option?
@@ -394,7 +386,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sequence is empty.")
+    @Disabled("Some properties were not discovered at positions (from 0): [2]")
     fun testLonger() {
         checkDiscoveredPropertiesWithExceptions(
             StringExamples::longer,
@@ -406,7 +398,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sequence is empty.")
+    @Disabled("Can't find method (id:1)java.lang.Thread#getThreadGroup() in type java.lang.Object")
     fun testEqualChar() {
         checkDiscoveredPropertiesWithExceptions(
             StringExamples::equalChar,
@@ -419,7 +411,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Index 0 out of bounds for length 0")
+    @Disabled("Some properties were not discovered at positions (from 0): [4]")
     fun testSubstring() {
         checkDiscoveredPropertiesWithExceptions(
             StringExamples::substring,
@@ -433,7 +425,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Index 0 out of bounds for length 0")
+    @Disabled("Some properties were not discovered at positions (from 0): [4, 5]")
     fun testSubstringWithEndIndex() {
         checkDiscoveredPropertiesWithExceptions(
             StringExamples::substringWithEndIndex,
@@ -452,7 +444,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Index 0 out of bounds for length 0")
     fun testSubstringWithEndIndexNotEqual() {
         checkDiscoveredPropertiesWithExceptions(
             StringExamples::substringWithEndIndexNotEqual,
@@ -464,7 +455,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Index 0 out of bounds for length 0")
+    @Disabled("Expected exactly 2 executions, but 3 found")
     fun testFullSubstringEquality() {
         checkDiscoveredPropertiesWithExceptions(
             StringExamples::fullSubstringEquality,
@@ -475,7 +466,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled(" Expected exactly 3 executions, but 8 found")
     fun testUseIntern() {
         checkDiscoveredPropertiesWithExceptions(
             StringExamples::useIntern,
@@ -487,7 +478,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("Some properties were not discovered at positions (from 0): [3, 4, 5]")
     fun testPrefixAndSuffix() {
         checkDiscoveredProperties(
             StringExamples::prefixAndSuffix,
@@ -502,7 +493,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("Some properties were not discovered at positions (from 0): [1]")
     fun testPrefixWithTwoArgs() {
         checkDiscoveredPropertiesWithExceptions(
             StringExamples::prefixWithTwoArgs,
@@ -514,7 +505,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("Some properties were not discovered at positions (from 0): [3]")
     fun testPrefixWithOffset() {
         checkDiscoveredProperties(
             StringExamples::prefixWithOffset,
@@ -527,7 +518,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: class constant")
+    @Disabled("Some properties were not discovered at positions (from 0): [3]")
     fun testStartsWith() {
         checkDiscoveredProperties(
             StringExamples::startsWith,
@@ -542,7 +533,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: class constant")
+    @Disabled("Some properties were not discovered at positions (from 0): [3, 4]")
     fun testStartsWithOffset() {
         checkDiscoveredProperties(
             StringExamples::startsWithOffset,
@@ -563,7 +554,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: class constant")
+    @Disabled("Some properties were not discovered at positions (from 0): [3]")
     fun testEndsWith() {
         checkDiscoveredProperties(
             StringExamples::endsWith,
@@ -577,7 +568,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: class constant")
+    @Disabled("Index 2 out of bounds for length 2")
     fun testReplaceAll() {
         checkDiscoveredPropertiesWithExceptions(
             StringExamples::replaceAll,
@@ -592,7 +583,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: class constant")
+    @Disabled("Expected number of executions in bounds 5..7, but 87 found")
     fun testLastIndexOf() {
         checkDiscoveredProperties(
             StringExamples::lastIndexOf,
@@ -606,7 +597,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: class constant")
+    @Disabled("Some properties were not discovered at positions (from 0): [2]")
     fun testIndexOfWithOffset() {
         checkDiscoveredProperties(
             StringExamples::indexOfWithOffset,
@@ -621,7 +612,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
 
 
     @Test
-    @Disabled("Not implemented: class constant")
+    @Disabled("Expected number of executions in bounds 5..9, but 78 found")
     fun testLastIndexOfWithOffset() {
         checkDiscoveredProperties(
             StringExamples::lastIndexOfWithOffset,
@@ -635,7 +626,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Index 0 out of bounds for length 0")
+    @Disabled("Expected number of executions in bounds 8..10, but 79 found")
     fun testCompareCodePoints() {
         checkDiscoveredPropertiesWithExceptions(
             StringExamples::compareCodePoints,
@@ -652,7 +643,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: class constant")
+    @Disabled("Expected exactly 2 executions, but 440 found")
     fun testToCharArray() {
         checkDiscoveredProperties(
             StringExamples::toCharArray,
@@ -663,7 +654,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented")
+    @Disabled("A fatal error has been detected by the Java Runtime Environment: EXCEPTION_ACCESS_VIOLATION")
     fun testGetObj() {
         checkDiscoveredProperties(
             StringExamples::getObj,
@@ -673,7 +664,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("Expected number of executions in bounds 3..4, but 7 found")
     fun testGetObjWithCondition() {
         checkDiscoveredProperties(
             StringExamples::getObjWithCondition,
@@ -685,7 +676,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("Some properties were not discovered at positions (from 0): [0]")
     fun testEqualsIgnoreCase() {
         checkDiscoveredProperties(
             StringExamples::equalsIgnoreCase,
@@ -696,7 +687,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("Some properties were not discovered at positions (from 0): [0]")
     fun testListToString() {
         checkDiscoveredProperties(
             StringExamples::listToString,

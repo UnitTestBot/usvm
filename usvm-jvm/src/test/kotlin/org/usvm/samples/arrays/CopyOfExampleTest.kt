@@ -9,7 +9,7 @@ import org.usvm.util.isException
 
 class CopyOfExampleTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Sequence is empty.")
+    @Disabled("class org.jacodb.impl.types.JcArrayTypeImpl cannot be cast to class org.jacodb.api.JcClassType")
     fun testCopyOf() {
         checkDiscoveredPropertiesWithExceptions(
             CopyOfExample::copyOfExample,
@@ -20,7 +20,7 @@ class CopyOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sequence is empty.")
+    @Disabled("class org.jacodb.impl.types.JcArrayTypeImpl cannot be cast to class org.jacodb.api.JcClassType")
     fun testCopyOfRange() {
         checkDiscoveredPropertiesWithExceptions(
             CopyOfExample::copyOfRangeExample,

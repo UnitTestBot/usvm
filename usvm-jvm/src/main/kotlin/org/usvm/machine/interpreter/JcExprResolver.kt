@@ -82,6 +82,7 @@ import org.jacodb.impl.types.FieldInfo
 import org.usvm.UArrayIndexLValue
 import org.usvm.UArrayLengthLValue
 import org.usvm.UBvSort
+import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UFieldLValue
 import org.usvm.UHeapRef
@@ -107,10 +108,11 @@ import org.usvm.util.extractJcRefType
  * the original state is dead, as stated in [JcStepScope].
  */
 class JcExprResolver(
-    private val ctx: JcContext,
-    private val scope: JcStepScope,
-    private val localToIdx: (JcMethod, JcLocal) -> Int,
-    private val mkClassRef: (JcRefType, JcState) -> UHeapRef,
+    val ctx: JcContext,
+    val scope: JcStepScope,
+    val localToIdx: (JcMethod, JcLocal) -> Int,
+    val mkTypeRef: (JcType, JcState) -> UConcreteHeapRef,
+    val mkStringConstRef: (String, JcState) -> UConcreteHeapRef,
     private val invokeResolver: JcInvokeResolver,
     private val hardMaxArrayLength: Int = 1_500, // TODO: move to options
 ) : JcExprVisitor<UExpr<out USort>?> {
@@ -125,6 +127,14 @@ class JcExprResolver(
         } else {
             expr.accept(this)
         }
+
+    fun resolveJcNotNullRefExpr(expr: JcExpr, type: JcType): UHeapRef? {
+        check(type is JcRefType) { "Non ref type: $expr" }
+
+        val refExpr = resolveJcExpr(expr, type)?.asExpr(ctx.addressSort) ?: return null
+        checkNullPointer(refExpr) ?: return null
+        return refExpr
+    }
 
     /**
      * Builds a [ULValue] from a [value].
@@ -271,8 +281,32 @@ class JcExprResolver(
         nullRef
     }
 
-    override fun visitJcStringConstant(value: JcStringConstant): UExpr<out USort> {
-        TODO("String constant")
+    override fun visitJcStringConstant(value: JcStringConstant): UExpr<out USort> = with(ctx) {
+        scope.calcOnState {
+            // String.value type depends on the JVM version
+            val charValues = when (stringValueField.fieldType.ifArrayGetElementType) {
+                cp.char -> value.value.asSequence().map { mkBv(it.code, charSort) }
+                cp.byte -> value.value.encodeToByteArray().asSequence().map { mkBv(it, byteSort) }
+                else -> error("Unexpected string values type: ${stringValueField.fieldType}")
+            }
+
+            val valuesArrayDescriptor = arrayDescriptorOf(stringValueField.fieldType as JcArrayType)
+            val elementType = requireNotNull(stringValueField.fieldType.ifArrayGetElementType)
+            val charArrayRef = memory.malloc(valuesArrayDescriptor, typeToSort(elementType), charValues)
+
+            // overwrite array type because descriptor is element type
+            memory.types.allocate(charArrayRef.address, stringValueField.fieldType)
+
+            // Equal string constants always have equal references
+            val ref = mkStringConstRef(value.value, this)
+
+            // String constants are immutable. Therefore, it is correct to overwrite value and type.
+            val stringValueLValue = UFieldLValue(addressSort, ref, stringValueField.field)
+            memory.write(stringValueLValue, charArrayRef)
+            memory.types.allocate(ref.address, stringType)
+
+            ref
+        }
     }
 
     override fun visitJcMethodConstant(value: JcMethodConstant): UExpr<out USort> {
@@ -283,9 +317,24 @@ class JcExprResolver(
         TODO("Method type")
     }
 
-    override fun visitJcClassConstant(value: JcClassConstant): UExpr<out USort> {
-        TODO("Class constant")
+    fun JcState.resolveClassRef(type: JcType): UConcreteHeapRef {
+        val ref = mkTypeRef(type, this)
+
+        // Ref type is java.lang.Class
+        memory.types.allocate(ref.address, ctx.classType)
+
+        // Save ref original class type
+        val classRefType = memory.alloc(type)
+        val classRefTypeLValue = UFieldLValue(ctx.addressSort, ref, ctx.classTypeSyntheticField)
+        memory.write(classRefTypeLValue, classRefType)
+
+        return ref
     }
+
+    override fun visitJcClassConstant(value: JcClassConstant): UExpr<out USort> =
+        scope.calcOnState {
+            resolveClassRef(value.klass)
+        }
 
     // endregion
 
@@ -388,7 +437,7 @@ class JcExprResolver(
         instanceExpr: JcValue?,
         argumentExprs: () -> List<JcValue>,
         argumentTypes: () -> List<JcType>,
-        onNoCallPresent: JcStepScope.(List<UExpr<out USort>>) -> Unit,
+        onNoCallPresent: (List<UExpr<out USort>>) -> Unit,
     ): UExpr<out USort>? = ensureStaticFieldsInitialized(method.enclosingType) {
         val arguments = mutableListOf<UExpr<out USort>>()
 
@@ -406,7 +455,7 @@ class JcExprResolver(
     }
 
     private inline fun resolveInvokeNoStaticInitializationCheck(
-        onNoCallPresent: JcStepScope.() -> Unit,
+        onNoCallPresent: () -> Unit,
     ): UExpr<out USort>? {
         val result = scope.calcOnState { methodResult }
         return when (result) {
@@ -416,7 +465,7 @@ class JcExprResolver(
             }
 
             is JcMethodResult.NoCall -> {
-                scope.onNoCallPresent()
+                onNoCallPresent()
                 null
             }
 
@@ -490,7 +539,7 @@ class JcExprResolver(
                 } else {
                     val sort = ctx.typeToSort(field.fieldType)
                     val classRef = scope.calcOnState {
-                        mkClassRef(field.enclosingType, this)
+                        resolveClassRef(field.enclosingType)
                     }
                     UFieldLValue(sort, classRef, field.field)
                 }
@@ -514,7 +563,7 @@ class JcExprResolver(
             return body()
         }
 
-        val classRef = scope.calcOnState { mkClassRef(type, this) }
+        val classRef = scope.calcOnState { resolveClassRef(type) }
 
         val initializedFlag = staticFieldsInitializedFlag(type, classRef)
 
@@ -539,7 +588,7 @@ class JcExprResolver(
         scope.doWithState {
             memory.write(initializedFlag, ctx.trueExpr)
         }
-        with(invokeResolver) { scope.resolveStaticInvoke(initializer, emptyList()) }
+        with(invokeResolver) { resolveStaticInvoke(initializer, emptyList()) }
         return null
     }
 
