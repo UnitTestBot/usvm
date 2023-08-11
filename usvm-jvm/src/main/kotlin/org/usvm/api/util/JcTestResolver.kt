@@ -49,6 +49,7 @@ import org.usvm.machine.state.JcState
 import org.usvm.machine.state.localIdx
 import org.usvm.memory.UReadOnlySymbolicMemory
 import org.usvm.model.UModelBase
+import org.usvm.test.util.logger
 import org.usvm.types.first
 import org.usvm.types.firstOrNull
 
@@ -65,7 +66,14 @@ class JcTestResolver(
     /**
      * Resolves a [JcTest] from a [method] from a [state].
      */
-    fun resolve(method: JcTypedMethod, state: JcState): JcTest {
+    fun resolve(method: JcTypedMethod, state: JcState): JcTest? = try {
+        resolveTest(method, state)
+    } catch (ex: Throwable) {
+        logger.error(ex) { "Resolve failed" }
+        null
+    }
+
+    private fun resolveTest(method: JcTypedMethod, state: JcState): JcTest? {
         val model = state.models.first()
         val memory = state.memory
 
@@ -78,7 +86,10 @@ class JcTestResolver(
         val after = with(afterScope) { resolveState() }
 
         val result = when (val res = state.methodResult) {
-            is JcMethodResult.NoCall -> error("No result found")
+            is JcMethodResult.NoCall -> {
+                logger.error { "State terminated without a result" }
+                return null
+            }
             is JcMethodResult.Success -> with(afterScope) { Result.success(resolveExpr(res.value, method.returnType)) }
             is JcMethodResult.JcException -> Result.failure(resolveException(res, afterScope))
         }
@@ -247,8 +258,8 @@ class JcTestResolver(
                 return resolveAllocatedClass(ref)
             }
 
-            if (type.jcClass == ctx.stringType.jcClass && ref.address >= INITIAL_CONCRETE_ADDRESS) {
-                return resolveAllocatedString(ref)
+            if (type.jcClass == ctx.stringType.jcClass) {
+                return resolveString(ref)
             }
 
             val clazz = resolveType(type)
@@ -298,7 +309,7 @@ class JcTestResolver(
             }
         }
 
-        private fun resolveAllocatedString(ref: UConcreteHeapRef): String {
+        private fun resolveString(ref: UConcreteHeapRef): String {
             val valueField = ctx.stringValueField
             val strValueLValue = UFieldLValue(ctx.typeToSort(valueField.fieldType), ref, valueField.field)
             val strValue = resolveLValue(strValueLValue, valueField.fieldType)

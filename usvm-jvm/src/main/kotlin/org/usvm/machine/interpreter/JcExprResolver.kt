@@ -77,6 +77,7 @@ import org.jacodb.api.ext.isAssignable
 import org.jacodb.api.ext.long
 import org.jacodb.api.ext.objectType
 import org.jacodb.api.ext.short
+import org.jacodb.api.ext.void
 import org.jacodb.impl.bytecode.JcFieldImpl
 import org.jacodb.impl.types.FieldInfo
 import org.usvm.UArrayIndexLValue
@@ -741,6 +742,7 @@ class JcExprResolver(
         operand: JcExpr,
         type: JcType,
     ) = resolveAfterResolved(operand) { expr ->
+        check(operand.type != ctx.cp.void) { "Unexpected expr of type void: $operand" }
         when (type) {
             is JcRefType -> resolveReferenceCast(expr.asExpr(ctx.addressSort), operand.type as JcRefType, type)
             is JcPrimitiveType -> resolvePrimitiveCast(expr, operand.type as JcPrimitiveType, type)
