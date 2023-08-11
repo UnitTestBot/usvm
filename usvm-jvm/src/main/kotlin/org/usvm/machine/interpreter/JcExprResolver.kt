@@ -444,6 +444,10 @@ class JcExprResolver(
         if (instanceExpr != null) {
             val instance = resolveJcExpr(instanceExpr)?.asExpr(ctx.addressSort) ?: return null
             checkNullPointer(instance) ?: return null
+
+            // Ensure instance is subtype of method class
+            if (!assertIsSubtype(instance, method.enclosingType)) return null
+
             arguments += instance
         }
 
@@ -534,6 +538,10 @@ class JcExprResolver(
                 if (instance != null) {
                     val instanceRef = resolveJcExpr(instance)?.asExpr(addressSort) ?: return null
                     checkNullPointer(instanceRef) ?: return null
+
+                    // Ensure instance is subtype of field class
+                    if (!assertIsSubtype(instanceRef, field.enclosingType)) return null
+
                     val sort = ctx.typeToSort(field.fieldType)
                     UFieldLValue(sort, instanceRef, field.field)
                 } else {

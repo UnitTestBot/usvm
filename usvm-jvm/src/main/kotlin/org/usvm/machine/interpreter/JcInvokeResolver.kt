@@ -214,6 +214,10 @@ class JcVirtualInvokeResolver(
 
         val mockValue = memory.mock { call(method, arguments.asSequence(), mockSort) }
 
+        if (mockSort == addressSort) {
+            pathConstraints += memory.types.evalIsSubtype(mockValue.asExpr(addressSort), returnType)
+        }
+
         exitWithValue(method, mockValue)
     }
 
@@ -263,6 +267,10 @@ class JcVirtualInvokeResolver(
             val instance = arguments.first().asExpr(ctx.addressSort)
             val possibleTypes = memory.typeStreamOf(instance).take(2)
 
+            /**
+             * Since getClass is a virtual method, typeStream has been constrained
+             * to a single concrete type by the [resolveVirtualInvoke]
+             * */
             val type = possibleTypes.singleOrNull() ?: return false
 
             val concreteTypeRef = with(exprResolver) {
