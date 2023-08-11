@@ -15,13 +15,13 @@ sealed class PythonTestRunner(
     override var options: UMachineOptions = UMachineOptions(),
     protected var allowPathDiversions: Boolean = false
 ): TestRunner<PythonAnalysisResult<PythonObjectInfo>, PythonUnpinnedCallable, PythonType, PythonCoverage>() {
-    protected abstract val typeSystem: PythonTypeSystem
+    abstract val typeSystem: PythonTypeSystem
     protected abstract val program: PythonProgram
     private val machine by lazy {
         PythonMachine(program, typeSystem, StandardPythonObjectSerializer)
     }
     override val typeTransformer: (Any?) -> PythonType
-        get() = { _ -> pythonInt }
+        get() = { _ -> PythonAnyType }
     override val checkType: (PythonType, PythonType) -> Boolean
         get() = { _, _ -> true }
     override val runner: (PythonUnpinnedCallable, UMachineOptions) -> List<PythonAnalysisResult<PythonObjectInfo>>
@@ -88,7 +88,7 @@ sealed class PythonTestRunner(
                 propertiesToDiscover.toTypedArray(),
                 invariants.toTypedArray(),
                 onAnalysisResult,
-                (target.signature.map { pythonInt } + pythonInt).toTypedArray(),
+                (target.signature.map { PythonAnyType } + PythonAnyType).toTypedArray(),
                 CheckMode.MATCH_PROPERTIES,
                 coverageChecker = { true }
             )
