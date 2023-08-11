@@ -9,6 +9,8 @@ import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.PythonObject
 import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.AnalysisResultsNumberMatcher
+import org.usvm.utils.PythonObjectInfo
+import org.usvm.utils.StandardPythonObjectSerializer
 
 sealed class PythonTestRunner(
     protected val module: String,
