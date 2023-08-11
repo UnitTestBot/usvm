@@ -160,6 +160,11 @@
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)V"
     },
     {
+        "c_name": "nb_matrix_multiply",
+        "java_name": "notifyNbMatrixMultiply",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)V"
+    },
+    {
         "c_name": "sq_length",
         "java_name": "notifySqLength",
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;)V"

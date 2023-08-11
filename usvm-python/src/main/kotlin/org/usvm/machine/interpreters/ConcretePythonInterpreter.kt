@@ -5,6 +5,7 @@ import org.usvm.language.VirtualPythonObject
 import org.usvm.interpreter.CPythonAdapter
 import org.usvm.interpreter.ConcolicRunContext
 
+@Suppress("unused")
 object ConcretePythonInterpreter {
     private val pythonAdapter = CPythonAdapter()
 
@@ -82,7 +83,11 @@ object ConcretePythonInterpreter {
     }
 
     fun getPythonObjectRepr(pythonObject: PythonObject): String {
-        return pythonAdapter.getPythonObjectRepr(pythonObject.address)
+        return pythonAdapter.getPythonObjectRepr(pythonObject.address) ?: throw CPythonExecutionException()
+    }
+
+    fun getAddressOfReprFunction(pythonObject: PythonObject): Long {
+        return pythonAdapter.getAddressOfReprFunction(pythonObject.address)
     }
 
     fun getPythonObjectTypeName(pythonObject: PythonObject): String {
@@ -141,6 +146,7 @@ object ConcretePythonInterpreter {
     val typeHasNbInt = createTypeQuery { pythonAdapter.typeHasNbInt(it) }
     val typeHasNbAdd = createTypeQuery { pythonAdapter.typeHasNbAdd(it) }
     val typeHasNbMultiply = createTypeQuery { pythonAdapter.typeHasNbMultiply(it) }
+    val typeHasNbMatrixMultiply = createTypeQuery { pythonAdapter.typeHasNbMatrixMultiply(it) }
     val typeHasSqLength = createTypeQuery { pythonAdapter.typeHasSqLength(it) }
     val typeHasMpLength = createTypeQuery { pythonAdapter.typeHasMpLength(it) }
     val typeHasMpSubscript = createTypeQuery { pythonAdapter.typeHasMpSubscript(it) }

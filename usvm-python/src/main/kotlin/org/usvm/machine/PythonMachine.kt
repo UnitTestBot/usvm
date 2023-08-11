@@ -13,6 +13,7 @@ import org.usvm.memory.UMemoryBase
 import org.usvm.ps.DfsPathSelector
 import org.usvm.solver.USatResult
 import org.usvm.statistics.UMachineObserver
+import org.usvm.utils.PythonObjectSerializer
 
 class PythonMachine<PythonObjectRepresentation>(
     private val program: PythonProgram,
