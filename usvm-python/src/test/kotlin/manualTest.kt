@@ -7,13 +7,11 @@ import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.runner.SamplesBuild
 
 fun main() {
-    println("Initial sys.path:")
-    System.out.flush()
-    ConcretePythonInterpreter.printPythonObject(ConcretePythonInterpreter.initialSysPath)
-    val (program, function, typeSystem) = constructStructuredProgram(
-        "sample_submodule.SimpleUsageOfModules",
+    val (program, typeSystem) = constructStructuredProgram()
+    val function = PythonUnpinnedCallable.constructCallableFromName(
         listOf(PythonAnyType),
-        "simple_class_isinstance"
+        "simple_class_isinstance",
+        "sample_submodule.SimpleUsageOfModules"
     )
     println("sys.path before analysis:")
     System.out.flush()
@@ -48,42 +46,26 @@ fun main() {
 
 private data class RunConfig(
     val program: PythonProgram,
-    val target: PythonUnpinnedCallable,
     val typeSystem: PythonTypeSystem
 )
 
 @Suppress("SameParameterValue")
-private fun constructPrimitiveProgram(
-    asString: String,
-    signature: List<PythonType>,
-    functionName: String
-): RunConfig {
+private fun constructPrimitiveProgram(asString: String): RunConfig {
     val program = PrimitivePythonProgram.fromString(asString)
-    val function = PythonUnpinnedCallable.constructCallableFromName(signature, functionName)
     val typeSystem = BasicPythonTypeSystem()
-    return RunConfig(program, function, typeSystem)
+    return RunConfig(program, typeSystem)
 }
 
 @Suppress("SameParameterValue")
-private fun constructPrimitiveProgramFromStructured(
-    module: String,
-    signature: List<PythonType>,
-    functionName: String
-): RunConfig {
+private fun constructPrimitiveProgramFromStructured(module: String): RunConfig {
     val program = SamplesBuild.program.getPrimitiveProgram(module)
-    val function = PythonUnpinnedCallable.constructCallableFromName(signature, functionName)
     val typeSystem = BasicPythonTypeSystem()
-    return RunConfig(program, function, typeSystem)
+    return RunConfig(program, typeSystem)
 }
 
 @Suppress("SameParameterValue")
-private fun constructStructuredProgram(
-    module: String,
-    signature: List<PythonType>,
-    functionName: String
-): RunConfig {
+private fun constructStructuredProgram(): RunConfig {
     val program = SamplesBuild.program
-    val function = PythonUnpinnedCallable.constructCallableFromName(signature, functionName, module)
     val typeSystem = PythonTypeSystemWithMypyInfo(SamplesBuild.mypyBuild, program)
-    return RunConfig(program, function, typeSystem)
+    return RunConfig(program, typeSystem)
 }

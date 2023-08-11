@@ -10,11 +10,11 @@ class DefaultValueProvider(private val typeSystem: PythonTypeSystem) {
         require(typeSystem.isInstantiable(type))
 
         return when (type) {
-            pythonInt -> ConcretePythonInterpreter.eval(emptyNamespace, "0")
-            pythonBool -> ConcretePythonInterpreter.eval(emptyNamespace, "False")
-            pythonList -> ConcretePythonInterpreter.eval(emptyNamespace, "[]")
-            pythonObjectType -> ConcretePythonInterpreter.eval(emptyNamespace, "object()")
-            pythonNoneType -> ConcretePythonInterpreter.eval(emptyNamespace, "None")
+            typeSystem.pythonInt -> ConcretePythonInterpreter.eval(emptyNamespace, "0")
+            typeSystem.pythonBool -> ConcretePythonInterpreter.eval(emptyNamespace, "False")
+            typeSystem.pythonList -> ConcretePythonInterpreter.eval(emptyNamespace, "[]")
+            typeSystem.pythonObjectType -> ConcretePythonInterpreter.eval(emptyNamespace, "object()")
+            typeSystem.pythonNoneType -> ConcretePythonInterpreter.eval(emptyNamespace, "None")
             else -> TODO()
         }
     }

@@ -3,8 +3,6 @@ package org.usvm.samples
 import org.junit.jupiter.api.Test
 import org.usvm.UMachineOptions
 import org.usvm.language.PythonUnpinnedCallable
-import org.usvm.language.types.pythonInt
-import org.usvm.language.types.pythonList
 import org.usvm.runner.PythonTestRunnerForPrimitiveProgram
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
@@ -13,7 +11,7 @@ class SimpleListsTest : PythonTestRunnerForPrimitiveProgram("SimpleLists", UMach
     @Test
     fun testSimpleListSample() {
         check2WithConcreteRun(
-            constructFunction("simple_list_sample", listOf(pythonList, pythonInt)),
+            constructFunction("simple_list_sample", listOf(typeSystem.pythonList, typeSystem.pythonInt)),
             ignoreNumberOfAnalysisResults,
             standardConcolicAndConcreteChecks,
             /* invariants = */ listOf { list, index, _ ->
@@ -31,7 +29,7 @@ class SimpleListsTest : PythonTestRunnerForPrimitiveProgram("SimpleLists", UMach
     @Test
     fun testAllocatedList() {
         check1WithConcreteRun(
-            constructFunction("allocated_list_sample", listOf(pythonInt)),
+            constructFunction("allocated_list_sample", listOf(typeSystem.pythonInt)),
             ignoreNumberOfAnalysisResults,
             standardConcolicAndConcreteChecks,
             /* invariants = */ listOf { index, _ ->
@@ -50,7 +48,7 @@ class SimpleListsTest : PythonTestRunnerForPrimitiveProgram("SimpleLists", UMach
     @Test
     fun testMixedAllocation() {
         check2WithConcreteRun(
-            constructFunction("mixed_allocation", listOf(pythonInt, pythonInt)),
+            constructFunction("mixed_allocation", listOf(typeSystem.pythonInt, typeSystem.pythonInt)),
             ignoreNumberOfAnalysisResults,
             standardConcolicAndConcreteChecks,
             /* invariants = */ listOf { x, i, _ ->
@@ -70,7 +68,7 @@ class SimpleListsTest : PythonTestRunnerForPrimitiveProgram("SimpleLists", UMach
     @Test
     fun testNegativeIndex() {
         check1WithConcreteRun(
-            constructFunction("negative_index", listOf(pythonInt)),
+            constructFunction("negative_index", listOf(typeSystem.pythonInt)),
             eq(2),
             compareConcolicAndConcreteReprsIfSuccess,
             /* invariants = */ listOf { i, _ -> i.typeName == "int" },
@@ -81,7 +79,7 @@ class SimpleListsTest : PythonTestRunnerForPrimitiveProgram("SimpleLists", UMach
         )
     }
 
-    private val functionLongList = constructFunction("long_list", listOf(pythonInt))
+    private val functionLongList = constructFunction("long_list", listOf(typeSystem.pythonInt))
     @Test
     fun testLongList() {
         check1WithConcreteRun(
@@ -99,7 +97,7 @@ class SimpleListsTest : PythonTestRunnerForPrimitiveProgram("SimpleLists", UMach
     @Test
     fun testSetItem() {
         check2WithConcreteRun(
-            constructFunction("set_item", listOf(pythonList, pythonInt)),
+            constructFunction("set_item", listOf(typeSystem.pythonList, typeSystem.pythonInt)),
             ignoreNumberOfAnalysisResults,
             standardConcolicAndConcreteChecks,
             /* invariants = */ listOf { arr, x, _ -> arr.typeName == "list" && x.typeName == "int" },
@@ -115,7 +113,7 @@ class SimpleListsTest : PythonTestRunnerForPrimitiveProgram("SimpleLists", UMach
     @Test
     fun testMemoryModel() {
         check2WithConcreteRun(
-            constructFunction("memory_model", listOf(pythonList, pythonList)),
+            constructFunction("memory_model", listOf(typeSystem.pythonList, typeSystem.pythonList)),
             ignoreNumberOfAnalysisResults,
             standardConcolicAndConcreteChecks,
             /* invariants = */ listOf { i, j, _ -> i.typeName == "list" && j.typeName == "list" },
@@ -130,7 +128,7 @@ class SimpleListsTest : PythonTestRunnerForPrimitiveProgram("SimpleLists", UMach
     @Test
     fun testPositiveAndNegativeIndex() {
         check2WithConcreteRun(
-            constructFunction("positive_and_negative_index", listOf(pythonList, pythonInt)),
+            constructFunction("positive_and_negative_index", listOf(typeSystem.pythonList, typeSystem.pythonInt)),
             ignoreNumberOfAnalysisResults,
             standardConcolicAndConcreteChecks,
             /* invariants = */ listOf { i, j, _ -> i.typeName == "list" && j.typeName == "int" },
@@ -143,7 +141,7 @@ class SimpleListsTest : PythonTestRunnerForPrimitiveProgram("SimpleLists", UMach
     @Test
     fun testLenUsage() {
         check1WithConcreteRun(
-            constructFunction("len_usage", listOf(pythonList)),
+            constructFunction("len_usage", listOf(typeSystem.pythonList)),
             eq(2),
             standardConcolicAndConcreteChecks,
             /* invariants = */ listOf { x, res -> x.typeName == "list" && res.typeName == "int" },
@@ -156,7 +154,7 @@ class SimpleListsTest : PythonTestRunnerForPrimitiveProgram("SimpleLists", UMach
     @Test
     fun testSumOfElements() {
         check1WithConcreteRun(
-            constructFunction("sum_of_elements", listOf(pythonList)),
+            constructFunction("sum_of_elements", listOf(typeSystem.pythonList)),
             ignoreNumberOfAnalysisResults,
             standardConcolicAndConcreteChecks,
             /* invariants = */ listOf { x, res -> x.typeName == "list" && res.typeName == "int" },
@@ -169,7 +167,7 @@ class SimpleListsTest : PythonTestRunnerForPrimitiveProgram("SimpleLists", UMach
     @Test
     fun testForLoop() {
         check1WithConcreteRun(
-            constructFunction("for_loop", listOf(pythonList)),
+            constructFunction("for_loop", listOf(typeSystem.pythonList)),
             ignoreNumberOfAnalysisResults,
             standardConcolicAndConcreteChecks,
             /* invariants = */ listOf { x, res -> x.typeName == "list" && res.typeName == "int" },
@@ -182,7 +180,7 @@ class SimpleListsTest : PythonTestRunnerForPrimitiveProgram("SimpleLists", UMach
     @Test
     fun testSimpleAssertion() {
         check1WithConcreteRun(
-            constructFunction("simple_assertion", listOf(pythonList)),
+            constructFunction("simple_assertion", listOf(typeSystem.pythonList)),
             eq(2),
             standardConcolicAndConcreteChecks,
             /* invariants = */ listOf { x, _ -> x.typeName == "list" },
@@ -211,33 +209,33 @@ class SimpleListsTest : PythonTestRunnerForPrimitiveProgram("SimpleLists", UMach
 
     @Test
     fun testLt() {
-        richcompareCheck(constructFunction("lt", listOf(pythonList, pythonList)))
+        richcompareCheck(constructFunction("lt", listOf(typeSystem.pythonList, typeSystem.pythonList)))
     }
     @Test
     fun testGt() {
-        richcompareCheck(constructFunction("gt", listOf(pythonList, pythonList)))
+        richcompareCheck(constructFunction("gt", listOf(typeSystem.pythonList, typeSystem.pythonList)))
     }
     @Test
     fun testEq() {
-        richcompareCheck(constructFunction("eq", listOf(pythonList, pythonList)))
+        richcompareCheck(constructFunction("eq", listOf(typeSystem.pythonList, typeSystem.pythonList)))
     }
     @Test
     fun testNe() {
-        richcompareCheck(constructFunction("ne", listOf(pythonList, pythonList)))
+        richcompareCheck(constructFunction("ne", listOf(typeSystem.pythonList, typeSystem.pythonList)))
     }
     @Test
     fun testLe() {
-        richcompareCheck(constructFunction("le", listOf(pythonList, pythonList)))
+        richcompareCheck(constructFunction("le", listOf(typeSystem.pythonList, typeSystem.pythonList)))
     }
     @Test
     fun testGe() {
-        richcompareCheck(constructFunction("ge", listOf(pythonList, pythonList)))
+        richcompareCheck(constructFunction("ge", listOf(typeSystem.pythonList, typeSystem.pythonList)))
     }
 
     @Test
     fun testAddAndCompare() {
         check2WithConcreteRun(
-            constructFunction("add_and_compare", listOf(pythonList, pythonList)),
+            constructFunction("add_and_compare", listOf(typeSystem.pythonList, typeSystem.pythonList)),
             ignoreNumberOfAnalysisResults,
             standardConcolicAndConcreteChecks,
             /* invariants = */ listOf { x, y, _ -> x.typeName == "list" && y.typeName == "list" },
@@ -254,7 +252,7 @@ class SimpleListsTest : PythonTestRunnerForPrimitiveProgram("SimpleLists", UMach
         val oldOptions = options
         options = UMachineOptions(stepLimit = 15U)
         check2WithConcreteRun(
-            constructFunction("double_subscript_and_compare", listOf(pythonList, pythonList)),
+            constructFunction("double_subscript_and_compare", listOf(typeSystem.pythonList, typeSystem.pythonList)),
             ignoreNumberOfAnalysisResults,
             standardConcolicAndConcreteChecks,
             /* invariants = */ listOf { x, y, _ -> x.typeName == "list" && y.typeName == "list" },

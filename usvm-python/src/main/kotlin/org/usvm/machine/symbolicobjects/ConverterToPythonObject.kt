@@ -29,7 +29,7 @@ class ConverterToPythonObject(
         constructedObjects.clear()
         virtualObjects.clear()
         val nullRef = modelHolder.model.eval(ctx.nullRef) as UConcreteHeapRef
-        val defaultObject = constructVirtualObject(InterpretedInputSymbolicPythonObject(nullRef, modelHolder))
+        val defaultObject = constructVirtualObject(InterpretedInputSymbolicPythonObject(nullRef, modelHolder, typeSystem))
         constructedObjects[ctx.nullRef] = defaultObject
         numberOfGeneratedVirtualObjects = 0
     }
@@ -44,10 +44,10 @@ class ConverterToPythonObject(
             return cached
         val result = when (val type = obj.getFirstType() ?: error("Type stream for interpreted object is empty")) {
             TypeOfVirtualObject -> constructVirtualObject(obj)
-            pythonInt -> convertInt(obj)
-            pythonBool -> convertBool(obj)
-            pythonNoneType -> ConcretePythonInterpreter.eval(emptyNamespace, "None")
-            pythonList -> convertList(obj)
+            typeSystem.pythonInt -> convertInt(obj)
+            typeSystem.pythonBool -> convertBool(obj)
+            typeSystem.pythonNoneType -> ConcretePythonInterpreter.eval(emptyNamespace, "None")
+            typeSystem.pythonList -> convertList(obj)
             else -> {
                 if ((type as? ConcretePythonType)?.let { ConcretePythonInterpreter.typeHasStandardNew(it.asObject) } == true)
                     constructFromDefaultConstructor(type)
@@ -60,8 +60,8 @@ class ConverterToPythonObject(
     }
 
     private fun constructFromDefaultConstructor(type: ConcretePythonType): PythonObject {
-        val refreshed = type.refresh()
-        return ConcretePythonInterpreter.callStandardNew(refreshed.asObject)
+        require(type.owner == typeSystem)
+        return ConcretePythonInterpreter.callStandardNew(type.asObject)
     }
 
     private fun constructVirtualObject(obj: InterpretedInputSymbolicPythonObject): PythonObject {
@@ -87,13 +87,13 @@ class ConverterToPythonObject(
         }
 
     private fun convertList(obj: InterpretedInputSymbolicPythonObject): PythonObject = with(ctx) {
-        val size = obj.modelHolder.model.uModel.heap.readArrayLength(obj.address, pythonList) as KInt32NumExpr
+        val size = obj.modelHolder.model.uModel.heap.readArrayLength(obj.address, typeSystem.pythonList) as KInt32NumExpr
         val resultList = ConcretePythonInterpreter.makeList(emptyList())
         constructedObjects[obj.address] = resultList
         val listOfPythonObjects = List(size.value) { index ->
             val indexExpr = mkSizeExpr(index)
-            val element = obj.modelHolder.model.uModel.heap.readArrayIndex(obj.address, indexExpr, pythonList, addressSort) as UConcreteHeapRef
-            val elemInterpretedObject = InterpretedInputSymbolicPythonObject(element, obj.modelHolder)
+            val element = obj.modelHolder.model.uModel.heap.readArrayIndex(obj.address, indexExpr, typeSystem.pythonList, addressSort) as UConcreteHeapRef
+            val elemInterpretedObject = InterpretedInputSymbolicPythonObject(element, obj.modelHolder, typeSystem)
             convert(elemInterpretedObject)
         }
         val namespace = ConcretePythonInterpreter.getNewNamespace()

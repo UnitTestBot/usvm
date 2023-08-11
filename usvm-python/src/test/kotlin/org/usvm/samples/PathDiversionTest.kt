@@ -3,12 +3,11 @@ package org.usvm.samples
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.usvm.machine.interpreters.operations.tracing.PathDiversionException
-import org.usvm.language.types.pythonInt
 import org.usvm.runner.PythonTestRunnerForPrimitiveProgram
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 class AllowPathDiversionTest : PythonTestRunnerForPrimitiveProgram("TrickyExample", allowPathDiversions = true) {
-    private val function = constructFunction("pickle_path_diversion", listOf(pythonInt))
+    private val function = constructFunction("pickle_path_diversion", listOf(typeSystem.pythonInt))
     @Test
     fun testAllowPathDiversion() {
         check1WithConcreteRun(
@@ -25,7 +24,7 @@ class AllowPathDiversionTest : PythonTestRunnerForPrimitiveProgram("TrickyExampl
 }
 
 class ForbidPathDiversionTest : PythonTestRunnerForPrimitiveProgram("TrickyExample", allowPathDiversions = false) {
-    private val function = constructFunction("pickle_path_diversion", listOf(pythonInt))
+    private val function = constructFunction("pickle_path_diversion", listOf(typeSystem.pythonInt))
     @Test
     fun testForbidPathDiversion() {
         assertThrows<PathDiversionException> {
