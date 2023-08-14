@@ -120,7 +120,7 @@ const val MAX_RECURSION_DEPTH = 100
 class PythonSubtypeChecker(
     val left: UtType,
     val right: UtType,
-    private val pythonTypeStorage: PythonTypeHintsBuild,
+    private val pythonTypeStorage: PythonTypeHintsStorage,
     private val typeParameterCorrespondence: List<Pair<UtType, UtType>>,
     private val assumingSubtypePairs: List<Pair<PythonTypeWrapperForEqualityCheck, PythonTypeWrapperForEqualityCheck>>,
     private val recursionDepth: Int,
@@ -165,6 +165,7 @@ class PythonSubtypeChecker(
 
         // just in case
         if (recursionDepth >= MAX_RECURSION_DEPTH) {
+            // logger.warn("Recursion depth limit exceeded")
             return false
         }
 
@@ -465,7 +466,7 @@ class PythonSubtypeChecker(
             }
 
     companion object {
-        fun checkIfRightIsSubtypeOfLeft(left: UtType, right: UtType, pythonTypeStorage: PythonTypeHintsBuild): Boolean =
+        fun checkIfRightIsSubtypeOfLeft(left: UtType, right: UtType, pythonTypeStorage: PythonTypeHintsStorage): Boolean =
             PythonSubtypeChecker(
                 left = left,
                 right = right,

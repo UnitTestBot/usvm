@@ -24,7 +24,11 @@ interface CompositeType: UtType {
 }
 
 open class TypeMetaData
-open class TypeMetaDataWithName(val name: Name): TypeMetaData()
+open class TypeMetaDataWithName(val name: Name): TypeMetaData() {
+    override fun toString(): String {
+        return name.toString()
+    }
+}
 
 class TypeParameter(val definedAt: UtType): UtType {
     // tricky case with cyclic dependency; constraints may be changed after substitution
