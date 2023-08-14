@@ -1,7 +1,6 @@
 package org.usvm.solver
 
 import io.ksmt.expr.KApp
-import io.ksmt.expr.KBvSignedLessOrEqualExpr
 import io.ksmt.expr.KExpr
 import io.ksmt.expr.KFpRoundingMode
 import io.ksmt.sort.KArray2Sort
@@ -64,14 +63,10 @@ class USoftConstraintsProvider<Field, Type>(override val ctx: UContext) : UTrans
 
     override fun <T : KSort, A : KSort> transformApp(expr: KApp<T, A>): KExpr<T> =
         computeSideEffect(expr) {
-            val nestedConstraints = expr.args.flatMapTo(mutableSetOf(), ::provide)
-            val selfConstraint = expr.sort.accept(sortPreferredValuesProvider)(expr)
-
-            caches[expr] = nestedConstraints + selfConstraint
+            if (expr !in caches) {
+                caches[expr] = expr.args.flatMapTo(mutableSetOf(), ::provide)
+            }
         }
-
-    private fun <Sort : USort> transformAppIfPossible(expr: UExpr<Sort>): UExpr<Sort> =
-        if (expr is KApp<Sort, *>) transformApp(expr) else transformExpr(expr)
 
     // endregion
 
@@ -92,7 +87,10 @@ class USoftConstraintsProvider<Field, Type>(override val ctx: UContext) : UTrans
 
     override fun <Method, Sort : USort> transform(
         expr: UIndexedMethodReturnValue<Method, Sort>,
-    ): UExpr<Sort> = transformAppIfPossible(expr)
+    ): UExpr<Sort> = computeSideEffect(expr) {
+        val selfConstraint = expr.sort.accept(sortPreferredValuesProvider)(expr)
+        caches[expr] = setOf(selfConstraint)
+    }
 
     override fun transform(
         expr: UConcreteHeapRef,
@@ -145,12 +143,12 @@ class USoftConstraintsProvider<Field, Type>(override val ctx: UContext) : UTrans
 
     // region KExpressions
 
-    override fun <T : KBvSort> transform(expr: KBvSignedLessOrEqualExpr<T>): KExpr<KBoolSort> = with(expr.ctx) {
-        computeSideEffect(expr) {
-            val selfConstraint = mkEq(expr.arg0, expr.arg1)
-            caches[expr] = mutableSetOf(selfConstraint) + provide(expr.arg0) + provide(expr.arg1)
-        }
-    }
+//    override fun <T : KBvSort> transform(expr: KBvSignedLessOrEqualExpr<T>): KExpr<KBoolSort> = with(expr.ctx) {
+//        computeSideEffect(expr) {
+//            val selfConstraint = mkEq(expr.arg0, expr.arg1)
+//            caches[expr] = mutableSetOf(selfConstraint) + provide(expr.arg0) + provide(expr.arg1)
+//        }
+//    }
 
     // endregion
 

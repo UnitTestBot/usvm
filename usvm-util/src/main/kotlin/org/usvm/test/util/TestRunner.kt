@@ -5,6 +5,7 @@ import org.usvm.UMachineOptions
 import org.usvm.test.util.TestRunner.CheckMode.MATCH_EXECUTIONS
 import org.usvm.test.util.TestRunner.CheckMode.MATCH_PROPERTIES
 import org.usvm.test.util.checkers.AnalysisResultsNumberMatcher
+import kotlin.time.Duration.Companion.seconds
 
 val logger = object : KLogging() {}.logger
 
@@ -73,24 +74,35 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
             buildString {
                 appendLine("${analysisResults.size} executions were found:")
                 analysisResults.forEach { appendLine("\t$it") }
-                appendLine("Extracted values:")
-                analysisResults.forEach { appendLine("\t${extractValuesToCheck(it)}") }
             }
         }
 
-        val valuesToCheck = analysisResults.map { extractValuesToCheck(it) }
+        val valuesToCheck = runWithTimout(10.seconds) {
+            analysisResults.map { extractValuesToCheck(it) }
+        }
 
-        checkTypes(expectedTypesForExtractedValues, valuesToCheck)
+        logger.info {
+            buildString {
+                appendLine("Extracted values:")
+                valuesToCheck.forEach { appendLine("\t${it}") }
+            }
+        }
 
-        checkInvariant(invariants, valuesToCheck)
+        runWithTimout(10.seconds) {
+            checkTypes(expectedTypesForExtractedValues, valuesToCheck)
+            checkInvariant(invariants, valuesToCheck)
+        }
 
         // TODO should I add a comparison between real run and symbolic one?
 
         when (checkMode) {
-            MATCH_EXECUTIONS -> matchExecutions(valuesToCheck, analysisResultsMatchers)
+            MATCH_EXECUTIONS -> runWithTimout(10.seconds) {
+                matchExecutions(valuesToCheck, analysisResultsMatchers)
+            }
             MATCH_PROPERTIES -> {
-                checkDiscoveredProperties(valuesToCheck, analysisResultsMatchers)
-
+                runWithTimout(10.seconds) {
+                    checkDiscoveredProperties(valuesToCheck, analysisResultsMatchers)
+                }
                 require(analysisResultsNumberMatcher(analysisResults.size)) {
                     analysisResultsNumberMatcher.matcherFailedMessage(analysisResults.size)
                 }
@@ -240,34 +252,36 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
         MATCH_PROPERTIES, MATCH_EXECUTIONS
     }
 
+    private fun invokeFunction(matcher: Function<Boolean>, params: List<Any?>): Boolean = runCatching {
+        matcher.call(params)
+    }.getOrDefault(false) // exceptions leads to a failed matcher
+
     @Suppress("UNCHECKED_CAST")
     // TODO please use matcher.reflect().call(...) when it will be ready,
     //      currently (Kotlin 1.8.22) call isn't fully supported in kotlin reflect
-    private fun invokeFunction(matcher: Function<Boolean>, params: List<Any?>): Boolean = runCatching {
-        when (matcher) {
-            is Function1<*, *> -> (matcher as Function1<Any?, Boolean>).invoke(params[0])
-            is Function2<*, *, *> -> (matcher as Function2<Any?, Any?, Boolean>).invoke(params[0], params[1])
-            is Function3<*, *, *, *> -> (matcher as Function3<Any?, Any?, Any?, Boolean>).invoke(
-                params[0], params[1], params[2]
-            )
+    private fun <T> Function<T>.call(params: List<Any?>): T = when (this) {
+        is Function1<*, *> -> (this as Function1<Any?, T>).invoke(params[0])
+        is Function2<*, *, *> -> (this as Function2<Any?, Any?, T>).invoke(params[0], params[1])
+        is Function3<*, *, *, *> -> (this as Function3<Any?, Any?, Any?, T>).invoke(
+            params[0], params[1], params[2]
+        )
 
-            is Function4<*, *, *, *, *> -> (matcher as Function4<Any?, Any?, Any?, Any?, Boolean>).invoke(
-                params[0], params[1], params[2], params[3]
-            )
+        is Function4<*, *, *, *, *> -> (this as Function4<Any?, Any?, Any?, Any?, T>).invoke(
+            params[0], params[1], params[2], params[3]
+        )
 
-            is Function5<*, *, *, *, *, *> -> (matcher as Function5<Any?, Any?, Any?, Any?, Any?, Boolean>).invoke(
-                params[0], params[1], params[2], params[3], params[4],
-            )
+        is Function5<*, *, *, *, *, *> -> (this as Function5<Any?, Any?, Any?, Any?, Any?, T>).invoke(
+            params[0], params[1], params[2], params[3], params[4],
+        )
 
-            is Function6<*, *, *, *, *, *, *> -> (matcher as Function6<Any?, Any?, Any?, Any?, Any?, Any?, Boolean>).invoke(
-                params[0], params[1], params[2], params[3], params[4], params[5],
-            )
+        is Function6<*, *, *, *, *, *, *> -> (this as Function6<Any?, Any?, Any?, Any?, Any?, Any?, T>).invoke(
+            params[0], params[1], params[2], params[3], params[4], params[5],
+        )
 
-            is Function7<*, *, *, *, *, *, *, *> -> (matcher as Function7<Any?, Any?, Any?, Any?, Any?, Any?, Any?, Boolean>).invoke(
-                params[0], params[1], params[2], params[3], params[4], params[5], params[6],
-            )
+        is Function7<*, *, *, *, *, *, *, *> -> (this as Function7<Any?, Any?, Any?, Any?, Any?, Any?, Any?, T>).invoke(
+            params[0], params[1], params[2], params[3], params[4], params[5], params[6],
+        )
 
-            else -> error("Functions with arity > 7 are not supported")
-        }
-    }.getOrDefault(false) // exceptions leads to a failed matcher
+        else -> error("Functions with arity > 7 are not supported")
+    }
 }

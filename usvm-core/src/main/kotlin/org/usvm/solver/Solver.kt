@@ -14,6 +14,7 @@ import org.usvm.isTrue
 import org.usvm.memory.UMemoryBase
 import org.usvm.model.UModelBase
 import org.usvm.model.UModelDecoder
+import kotlin.time.Duration.Companion.seconds
 
 sealed interface USolverResult<out T>
 
@@ -192,16 +193,16 @@ open class USolverBase<Field, Type, Method, Context : UContext>(
     ): KSolverStatus {
         var status: KSolverStatus
         if (softConstraints.isNotEmpty()) {
-            status = smtSolver.checkWithAssumptions(softConstraints)
+            status = smtSolver.checkWithAssumptions(softConstraints, timeout = 1.seconds)
 
             while (status == KSolverStatus.UNSAT) {
                 val unsatCore = smtSolver.unsatCore().toHashSet()
                 if (unsatCore.isEmpty()) break
                 softConstraints.removeAll { it in unsatCore }
-                status = smtSolver.checkWithAssumptions(softConstraints)
+                status = smtSolver.checkWithAssumptions(softConstraints, timeout = 1.seconds)
             }
         } else {
-            status = smtSolver.check()
+            status = smtSolver.check(timeout = 1.seconds)
         }
         return status
     }
