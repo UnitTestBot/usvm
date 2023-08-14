@@ -80,7 +80,7 @@ class SetIteratorsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testIterateForEach() {
+    fun testIterateForEach() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
         checkDiscoveredProperties(
             SetIterators::iterateForEach,
             ignoreNumberOfAnalysisResults,

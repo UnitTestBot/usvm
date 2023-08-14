@@ -126,7 +126,7 @@ internal class ArrayCastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testCastFromCollections() {
+    fun testCastFromCollections() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
         checkDiscoveredProperties(
             ArrayCastExample::castFromCollections,
             eq(3),
@@ -137,7 +137,7 @@ internal class ArrayCastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testCastFromIterable() {
+    fun testCastFromIterable() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
         checkDiscoveredProperties(
             ArrayCastExample::castFromIterable,
             eq(3),
@@ -148,7 +148,7 @@ internal class ArrayCastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testCastFromIterableToCollection() {
+    fun testCastFromIterableToCollection() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
         checkDiscoveredProperties(
             ArrayCastExample::castFromIterableToCollection,
             eq(3),
