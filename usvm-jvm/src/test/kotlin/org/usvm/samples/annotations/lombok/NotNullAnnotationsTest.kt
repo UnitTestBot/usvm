@@ -15,7 +15,6 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
  */
 internal class NotNullAnnotationsTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Not implemented: string constant")
     fun testNonNullAnnotations() {
         checkDiscoveredProperties(
             NotNullAnnotations::lombokNonNull,

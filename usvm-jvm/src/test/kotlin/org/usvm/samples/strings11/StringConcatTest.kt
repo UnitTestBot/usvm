@@ -9,7 +9,7 @@ import org.usvm.util.isException
 
 class StringConcatTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Not implemented: class constant")
+    @Disabled("String builder has native calls")
     fun testConcatArguments() {
         checkDiscoveredProperties(
             StringConcat::concatArguments,
@@ -42,7 +42,7 @@ class StringConcatTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("No entrypoint found for method: java.lang.Object#getClass()")
     fun testExceptionInToString() {
         checkDiscoveredPropertiesWithExceptions(
             StringConcat::exceptionInToString,
@@ -63,7 +63,7 @@ class StringConcatTest : JavaMethodTestRunner() {
 //    }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("No entrypoint found for method: java.lang.Object#getClass()")
     fun testConcatWithPrimitiveWrappers() {
         checkDiscoveredProperties(
             StringConcat::concatWithPrimitiveWrappers,
@@ -74,7 +74,7 @@ class StringConcatTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: class constant")
+    @Disabled("A fatal error has been detected by the Java Runtime Environment: EXCEPTION_ACCESS_VIOLATION")
     fun testSameConcat() {
         checkDiscoveredProperties(
             StringConcat::sameConcat,
@@ -85,7 +85,6 @@ class StringConcatTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testConcatStrangeSymbols() {
         checkDiscoveredProperties(
             StringConcat::concatStrangeSymbols,

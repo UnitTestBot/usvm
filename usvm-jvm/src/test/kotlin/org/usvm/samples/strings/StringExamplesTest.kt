@@ -13,7 +13,7 @@ import java.util.Locale
 
 internal class StringExamplesTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("Expected exactly 2 executions, but 4 found")
     fun testByteToString() {
         checkDiscoveredProperties(
             StringExamples::byteToString,
@@ -24,7 +24,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testByteToStringWithConstants() {
         val values: Array<Byte> = arrayOf(
             Byte.MIN_VALUE,
@@ -44,7 +43,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("No entrypoint found for method: java.lang.CharSequence#toString()")
     fun testReplace() {
         checkDiscoveredProperties(
             StringExamples::replace,
@@ -56,7 +55,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testShortToString() {
         checkDiscoveredProperties(
             StringExamples::shortToString,
@@ -67,7 +65,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testShortToStringWithConstants() {
         val values: Array<Short> = arrayOf(
             Short.MIN_VALUE,
@@ -87,7 +84,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testIntToString() {
         checkDiscoveredProperties(
             StringExamples::intToString,
@@ -98,7 +94,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testIntToStringWithConstants() {
         val values: Array<Int> = arrayOf(
             Integer.MIN_VALUE,
@@ -118,7 +113,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("No analysis results received")
     fun testLongToString() {
         checkDiscoveredProperties(
             StringExamples::longToString,
@@ -129,7 +124,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testLongToStringWithConstants() {
         val values: Array<Long> = arrayOf(
             Long.MIN_VALUE,
@@ -149,7 +143,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("No entrypoint found for method: java.lang.StringUTF16#isBigEndian()")
     fun testStartsWithLiteral() {
         checkDiscoveredProperties(
             StringExamples::startsWithLiteral,
@@ -162,7 +156,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testBooleanToString() {
         checkDiscoveredProperties(
             StringExamples::booleanToString,
@@ -174,7 +167,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
 
 
     @Test
-    @Disabled("Not implemented: class constant")
+    @Disabled("No entrypoint found for method: java.lang.StringUTF16#isBigEndian()")
     fun testCharToString() {
         checkDiscoveredProperties(
             StringExamples::charToString,
@@ -186,7 +179,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
 
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("No entrypoint found for method: java.lang.StringUTF16#isBigEndian()")
     fun testStringToByte() {
         checkDiscoveredProperties(
             StringExamples::stringToByte,
@@ -195,7 +188,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("No entrypoint found for method: java.lang.StringUTF16#isBigEndian()")
     fun testStringToShort() {
         checkDiscoveredProperties(
             StringExamples::stringToShort,
@@ -204,7 +197,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("No entrypoint found for method: java.lang.StringUTF16#isBigEndian()")
     fun testStringToInt() {
         checkDiscoveredProperties(
             StringExamples::stringToInt,
@@ -213,7 +206,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("No entrypoint found for method: java.lang.StringUTF16#isBigEndian()")
     fun testStringToLong() {
         checkDiscoveredProperties(
             StringExamples::stringToLong,
@@ -222,7 +215,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("No entrypoint found for method: java.lang.StringUTF16#isBigEndian()")
     fun testStringToBoolean() {
         checkDiscoveredProperties(
             StringExamples::stringToBoolean,
@@ -233,7 +226,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: class constant")
+    @Disabled("String builder has native calls")
     fun testConcat() {
         checkDiscoveredProperties(
             StringExamples::concat,
@@ -244,7 +237,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("No entrypoint found for method: java.lang.Object#getClass()")
     fun testConcatWithObject() {
         checkDiscoveredProperties(
             StringExamples::concatWithObject,
@@ -255,7 +248,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("String builder has native calls")
     fun testStringConstants() {
         checkDiscoveredProperties(
             StringExamples::stringConstants,
@@ -265,7 +258,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("No entrypoint found for method: java.lang.CharSequence#toString()")
     fun testContainsOnLiterals() {
         checkDiscoveredProperties(
             StringExamples::containsOnLiterals,
@@ -274,7 +267,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("Expected exactly 3 executions, but 60 found")
     fun testConcatWithInt() {
         checkDiscoveredProperties(
             StringExamples::concatWithInts,
@@ -286,7 +279,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: class constant")
+    @Disabled("org.jacodb.api.PredefinedPrimitive cannot be cast to class org.jacodb.api.JcRefType")
     fun testUseStringBuffer() {
         checkDiscoveredProperties(
             StringExamples::useStringBuffer,
@@ -305,7 +298,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: class constant")
+    @Disabled("No entrypoint found for method: java.lang.StringUTF16#isBigEndian()")
     fun testNullableStringBuffer() {
         checkDiscoveredPropertiesWithExceptions(
             StringExamples::nullableStringBuffer,
@@ -318,7 +311,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: class constant")
+    @Disabled("No entrypoint found for method: java.lang.StringUTF16#isBigEndian()")
     fun testIsStringBuilderEmpty() {
         checkDiscoveredProperties(
             StringExamples::isStringBuilderEmpty,
@@ -343,7 +336,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+     @Disabled("Expected exactly 3 executions, but 2 found")
     fun testIsValidUuidShortVersion() {
         val pattern = Regex("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
         checkDiscoveredProperties(
@@ -356,7 +349,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: class constant")
+    @Disabled("No entrypoint found for method: java.lang.StringUTF16#isBigEndian()")
     fun testSplitExample() {
         checkDiscoveredProperties(
             StringExamples::splitExample,
@@ -475,7 +468,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("JcTypedMethodImpl.getParameters: Index 0 out of bounds for length 0")
     fun testUseIntern() {
         checkDiscoveredPropertiesWithExceptions(
             StringExamples::useIntern,
@@ -487,7 +480,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("No entrypoint found for method: java.lang.StringUTF16#isBigEndian()")
     fun testPrefixAndSuffix() {
         checkDiscoveredProperties(
             StringExamples::prefixAndSuffix,
@@ -502,7 +495,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("No entrypoint found for method: java.lang.StringUTF16#isBigEndian()")
     fun testPrefixWithTwoArgs() {
         checkDiscoveredPropertiesWithExceptions(
             StringExamples::prefixWithTwoArgs,
@@ -514,7 +507,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("Some properties were not discovered at positions (from 0): [3]")
     fun testPrefixWithOffset() {
         checkDiscoveredProperties(
             StringExamples::prefixWithOffset,
@@ -527,7 +520,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: class constant")
+    @Disabled("No entrypoint found for method: java.lang.StringUTF16#isBigEndian()")
     fun testStartsWith() {
         checkDiscoveredProperties(
             StringExamples::startsWith,
@@ -542,7 +535,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: class constant")
+    @Disabled("No entrypoint found for method: java.lang.StringUTF16#isBigEndian()")
     fun testStartsWithOffset() {
         checkDiscoveredProperties(
             StringExamples::startsWithOffset,
@@ -563,7 +556,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: class constant")
+    @Disabled("No entrypoint found for method: java.lang.StringUTF16#isBigEndian()")
     fun testEndsWith() {
         checkDiscoveredProperties(
             StringExamples::endsWith,
@@ -577,7 +570,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: class constant")
+    @Disabled("Unknown stmt: enter monitor this")
     fun testReplaceAll() {
         checkDiscoveredPropertiesWithExceptions(
             StringExamples::replaceAll,
@@ -592,7 +585,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: class constant")
+    @Disabled("No entrypoint found for method: java.lang.StringUTF16#isBigEndian()")
     fun testLastIndexOf() {
         checkDiscoveredProperties(
             StringExamples::lastIndexOf,
@@ -606,7 +599,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: class constant")
+    @Disabled("No entrypoint found for method: java.lang.StringUTF16#isBigEndian()")
     fun testIndexOfWithOffset() {
         checkDiscoveredProperties(
             StringExamples::indexOfWithOffset,
@@ -621,7 +614,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
 
 
     @Test
-    @Disabled("Not implemented: class constant")
+    @Disabled("No entrypoint found for method: java.lang.StringUTF16#isBigEndian()")
     fun testLastIndexOfWithOffset() {
         checkDiscoveredProperties(
             StringExamples::lastIndexOfWithOffset,
@@ -652,7 +645,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: class constant")
+    @Disabled("No entrypoint found for method: java.lang.StringUTF16#isBigEndian()")
     fun testToCharArray() {
         checkDiscoveredProperties(
             StringExamples::toCharArray,
@@ -673,7 +666,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("Expected number of executions in bounds 3..4, but 5 found")
     fun testGetObjWithCondition() {
         checkDiscoveredProperties(
             StringExamples::getObjWithCondition,
@@ -685,7 +678,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("No entrypoint found for method: java.lang.StringUTF16#isBigEndian()")
     fun testEqualsIgnoreCase() {
         checkDiscoveredProperties(
             StringExamples::equalsIgnoreCase,
@@ -696,7 +689,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("Some properties were not discovered at positions (from 0): [0]")
     fun testListToString() {
         checkDiscoveredProperties(
             StringExamples::listToString,

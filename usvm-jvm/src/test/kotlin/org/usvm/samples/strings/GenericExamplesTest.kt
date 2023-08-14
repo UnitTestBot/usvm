@@ -8,7 +8,7 @@ import org.usvm.util.isException
 
 internal class GenericExamplesTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Expected exactly 2 executions, but 1 found. Support strings")
+    @Disabled("org.jooq.exception.DataAccessException: SQLException: Out of memory")
     fun testContainsOkWithIntegerType() {
         checkDiscoveredPropertiesWithExceptions(
             GenericExamples<Int>::containsOk,
