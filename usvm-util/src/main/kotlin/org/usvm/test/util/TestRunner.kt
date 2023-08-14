@@ -5,6 +5,7 @@ import org.usvm.UMachineOptions
 import org.usvm.test.util.TestRunner.CheckMode.MATCH_EXECUTIONS
 import org.usvm.test.util.TestRunner.CheckMode.MATCH_PROPERTIES
 import org.usvm.test.util.checkers.AnalysisResultsNumberMatcher
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
 val logger = object : KLogging() {}.logger
@@ -66,7 +67,9 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
         checkMode: CheckMode,
         coverageChecker: (Coverage) -> Boolean,
     ) {
-        val analysisResults = runner(target, options)
+        val analysisResults = runWithTimout(2.minutes) {
+            runner(target, options)
+        }
 
         logger.debug { options }
 
