@@ -50,6 +50,19 @@ abstract class UState<Type, Field, Method, Statement, Context : UContext, State 
      */
     abstract fun clone(newConstraints: UPathConstraints<Type, Context>? = null): State
 
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as UState<*, *, *, *, *, *>
+
+        return id == other.id
+    }
+
+    override fun hashCode(): Int {
+        return id.hashCode()
+    }
+
     val lastEnteredMethod: Method
         get() = callStack.lastMethod()
 

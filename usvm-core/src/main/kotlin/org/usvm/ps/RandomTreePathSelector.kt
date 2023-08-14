@@ -1,8 +1,8 @@
 package org.usvm.ps
 
+import org.usvm.PathsTrieNode
 import org.usvm.UPathSelector
 import org.usvm.UState
-import org.usvm.PathsTrieNode
 import java.util.IdentityHashMap
 
 /**
@@ -52,7 +52,7 @@ internal class RandomTreePathSelector<State : UState<*, *, *, Statement, *, Stat
         // Trying to select a state by descending to tree leaves
         while (true) {
             // All nodes of the tree contain our ignore token, so peeked state is null
-            if (currentNode.ignoreTokens.contains(ignoreToken)) {
+            if (currentNode.labels.contains(ignoreToken)) {
                 break
             }
 
@@ -67,11 +67,10 @@ internal class RandomTreePathSelector<State : UState<*, *, *, Statement, *, Stat
             val children = currentNode
                 .children
                 .values
-                .filter { !it.ignoreTokens.contains(ignoreToken) && it in visitedNodes }
+                .filter { !it.labels.contains(ignoreToken) && it in visitedNodes }
 
             if (children.isEmpty()) {
-                currentNode.addIgnoreToken(ignoreToken)
-//                states -= currentNode.states
+                ignoreSubtree(currentNode)
 
                 // We don't have to remove any states from this state since all of them
                 // do not belong to the current path selector.
@@ -98,12 +97,16 @@ internal class RandomTreePathSelector<State : UState<*, *, *, Statement, *, Stat
             return peekedState
         }
 
-        // Peeked a state from tree, but it's not in our states. Exclude the node from further search
-        // and try again
-        currentNode.addIgnoreToken(ignoreToken)
-//        states -= currentNode.states // TODO do we need to remove all the states?
+        // Peeked a state from the tree, but it's not in our states.
+        // Exclude the node from further search and try again.
+        ignoreSubtree(currentNode)
 
         return peekRec()
+    }
+
+    private fun ignoreSubtree(currentNode: PathsTrieNode<State, Statement>) {
+        currentNode.addLabel(ignoreToken)
+        states -= currentNode.states
     }
 
     override fun peek(): State {

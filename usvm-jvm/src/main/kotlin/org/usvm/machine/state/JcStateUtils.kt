@@ -12,7 +12,7 @@ import org.usvm.machine.JcApplicationGraph
 
 val JcState.lastStmt get() = pathLocation.statement
 fun JcState.newStmt(stmt: JcInst) {
-    pathLocation = pathLocation.propagateState(stmt, this)
+    pathLocation = pathLocation.pathLocationFor(stmt, this)
 }
 
 fun JcState.returnValue(valueToReturn: UExpr<out USort>) {

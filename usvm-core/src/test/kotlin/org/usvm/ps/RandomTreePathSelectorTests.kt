@@ -36,7 +36,7 @@ internal class RandomTreePathSelectorTests {
             val stmt = nextStatement()
 
             with(state) {
-                pathLocation = node.propagateState(stmt, this)
+                pathLocation = node.pathLocationFor(stmt, this)
             }
         }
 

@@ -54,7 +54,7 @@ class SampleState(
 
 val SampleState.lastStmt: Stmt get() = pathLocation.statement
 fun SampleState.newStmt(stmt: Stmt) {
-    pathLocation = pathLocation.propagateState(stmt, this)
+    pathLocation = pathLocation.pathLocationFor(stmt, this)
 }
 
 fun SampleState.popMethodCall(valueToReturn: UExpr<out USort>?) {

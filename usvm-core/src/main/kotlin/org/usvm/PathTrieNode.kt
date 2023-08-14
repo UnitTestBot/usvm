@@ -10,9 +10,9 @@ sealed class PathsTrieNode<State : UState<*, *, *, Statement, *, State>, Stateme
     abstract val children: MutableMap<Statement, PathsTrieNodeImpl<State, Statement>>
 
     /**
-     * States which are located in this node. Empty for non-leaf nodes.
+     * States which are located in this node.
      */
-    abstract var states: MutableSet<State>
+    abstract val states: MutableSet<State>
 
     /**
      * Statement of the current node in the execution tree.
@@ -27,7 +27,7 @@ sealed class PathsTrieNode<State : UState<*, *, *, Statement, *, State>, Stateme
     /**
      * Labels which can be used to exclude some tree branches from traversal.
      */
-    abstract val ignoreTokens: Set<Long>
+    abstract val labels: Set<Any>
 
     /**
      * Node's depth in the tree. 0 for root node, 1 for its children etc.
@@ -35,9 +35,9 @@ sealed class PathsTrieNode<State : UState<*, *, *, Statement, *, State>, Stateme
     abstract val depth: Int
 
     /**
-     * Adds a new token to [ignoreTokens] collection.
+     * Adds a new label to [labels] collection.
      */
-    abstract fun addIgnoreToken(token: Long)
+    abstract fun addLabel(label: Any)
 
     /**
      * Propagates the [state] from the current node to a child using [statement].
@@ -47,7 +47,7 @@ sealed class PathsTrieNode<State : UState<*, *, *, Statement, *, State>, Stateme
      * Note that [state] will be removed from the [states] in the current node. All correct links between
      * the child node and the current one are added automatically.
      */
-    fun propagateState(statement: Statement, state: State): PathsTrieNodeImpl<State, Statement> {
+    fun pathLocationFor(statement: Statement, state: State): PathsTrieNodeImpl<State, Statement> {
         val child = children[statement]
 
         if (child != null) {
@@ -63,12 +63,11 @@ sealed class PathsTrieNode<State : UState<*, *, *, Statement, *, State>, Stateme
 
         return node
     }
-
 }
 
 class PathsTrieNodeImpl<State : UState<*, *, *, Statement, *, State>, Statement> private constructor(
     override val depth: Int,
-    override var states: MutableSet<State>,
+    override val states: MutableSet<State>,
     // Note: order is important for tests
     override val children: MutableMap<Statement, PathsTrieNodeImpl<State, Statement>> = mutableMapOf(),
     override val parent: PathsTrieNode<State, Statement>?,
@@ -93,10 +92,10 @@ class PathsTrieNodeImpl<State : UState<*, *, *, Statement, *, State>, Statement>
         parentNode.states -= state
     }
 
-    override val ignoreTokens: MutableSet<Long> = hashSetOf()
+    override val labels: MutableSet<Any> = hashSetOf()
 
-    override fun addIgnoreToken(token: Long) {
-        ignoreTokens.add(token)
+    override fun addLabel(label: Any) {
+        labels.add(label)
     }
 
     override fun toString(): String = "Depth: $depth, statement: $statement"
@@ -105,7 +104,7 @@ class PathsTrieNodeImpl<State : UState<*, *, *, Statement, *, State>, Statement>
 class RootNode<State : UState<*, *, *, Statement, *, State>, Statement> : PathsTrieNode<State, Statement>() {
     override val children: MutableMap<Statement, PathsTrieNodeImpl<State, Statement>> = mutableMapOf()
 
-    override var states: MutableSet<State> = hashSetOf()
+    override val states: MutableSet<State> = hashSetOf()
 
     override val statement: Statement
         get() {
@@ -114,11 +113,11 @@ class RootNode<State : UState<*, *, *, Statement, *, State>, Statement> : PathsT
 
     override val parent: PathsTrieNode<State, Statement>? = null
 
-    override val ignoreTokens: MutableSet<Long> = hashSetOf()
+    override val labels: MutableSet<Any> = hashSetOf()
 
     override val depth: Int = 0
 
-    override fun addIgnoreToken(token: Long) {
-        ignoreTokens += token
+    override fun addLabel(label: Any) {
+        labels += label
     }
 }
