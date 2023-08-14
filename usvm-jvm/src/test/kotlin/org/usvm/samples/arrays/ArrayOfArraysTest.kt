@@ -1,11 +1,16 @@
 package org.usvm.samples.arrays
 
 import org.junit.jupiter.api.Test
+import org.usvm.PathSelectionStrategy
+import org.usvm.SolverType
+import org.usvm.UMachineOptions
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.samples.casts.ColoredPoint
 import org.usvm.samples.casts.Point
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
+import org.usvm.util.Options
+import org.usvm.util.UsvmTest
 import org.usvm.util.disableTest
 
 
@@ -171,8 +176,8 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
         )
     }
 
-    @Test
-    fun testReallyMultiDimensionalArray() {
+    @UsvmTest([Options(solverType = SolverType.Z3, strategies = [PathSelectionStrategy.FORK_DEPTH])])
+    fun testReallyMultiDimensionalArray(options: UMachineOptions) = withOptions(options) {
         checkDiscoveredProperties(
             ArrayOfArrays::reallyMultiDimensionalArray,
             eq(8),
@@ -197,8 +202,8 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
         )
     }
 
-    @Test
-    fun testReallyMultiDimensionalArrayMutation() {
+    @UsvmTest([Options(solverType = SolverType.Z3, strategies = [PathSelectionStrategy.FORK_DEPTH])])
+    fun testReallyMultiDimensionalArrayMutation(options: UMachineOptions) = withOptions(options) {
         checkThisAndParamsMutations(
             ArrayOfArrays::reallyMultiDimensionalArray,
             ignoreNumberOfAnalysisResults,

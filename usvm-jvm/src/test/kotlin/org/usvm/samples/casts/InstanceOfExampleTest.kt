@@ -1,10 +1,15 @@
 package org.usvm.samples.casts
 
 import org.junit.jupiter.api.Test
+import org.usvm.PathSelectionStrategy
+import org.usvm.SolverType
+import org.usvm.UMachineOptions
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ge
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
+import org.usvm.util.Options
+import org.usvm.util.UsvmTest
 import org.usvm.util.disableTest
 
 internal class InstanceOfExampleTest : JavaMethodTestRunner() {
@@ -159,8 +164,8 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
         )
     }
 
-    @Test
-    fun testInstanceOfAsPartOfInternalExpressionsXor() {
+    @UsvmTest([Options(solverType = SolverType.Z3, strategies = [PathSelectionStrategy.FORK_DEPTH])])
+    fun testInstanceOfAsPartOfInternalExpressionsXor(options: UMachineOptions) = withOptions(options) {
         checkDiscoveredProperties(
             InstanceOfExample::instanceOfAsPartOfInternalExpressionsXor,
             ge(5),

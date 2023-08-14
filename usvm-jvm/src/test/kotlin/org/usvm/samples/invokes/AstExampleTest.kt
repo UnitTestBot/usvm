@@ -1,14 +1,18 @@
 package org.usvm.samples.invokes
 
-import org.junit.jupiter.api.Test
+import org.usvm.PathSelectionStrategy
+import org.usvm.SolverType
+import org.usvm.UMachineOptions
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.samples.ast.AstExample
 import org.usvm.samples.ast.Constant
 import org.usvm.test.util.checkers.ge
+import org.usvm.util.Options
+import org.usvm.util.UsvmTest
 
 class AstExampleTest : JavaMethodTestRunner() {
-    @Test
-    fun testSubstituteAndEvaluate() {
+    @UsvmTest([Options(solverType = SolverType.Z3, strategies = [PathSelectionStrategy.FORK_DEPTH])])
+    fun testSubstituteAndEvaluate(options: UMachineOptions) = withOptions(options) {
         checkDiscoveredPropertiesWithExceptions(
             AstExample::replaceLeafAndCheck,
             ge(4),

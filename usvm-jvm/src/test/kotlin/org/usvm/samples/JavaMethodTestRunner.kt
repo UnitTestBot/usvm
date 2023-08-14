@@ -722,7 +722,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
     override var options: UMachineOptions = UMachineOptions(
         pathSelectionStrategies = listOf(PathSelectionStrategy.FORK_DEPTH),
         coverageZone = CoverageZone.TRANSITIVE,
-        solverType = SolverType.Z3,
+        solverType = SolverType.YICES,
         exceptionsPropagation = true,
         timeoutMs = 60_000,
         stepsFromLastCovered = 3500L,
