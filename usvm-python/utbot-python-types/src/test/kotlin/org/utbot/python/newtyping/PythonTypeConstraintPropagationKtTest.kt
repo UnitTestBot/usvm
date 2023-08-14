@@ -12,12 +12,12 @@ import org.utbot.python.newtyping.mypy.readMypyInfoBuildWithoutRoot
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 internal class PythonTypeConstraintPropagationKtTest {
     lateinit var storage: MypyInfoBuild
-    lateinit var pythonTypeStorage: PythonTypeHintsBuild
+    lateinit var pythonTypeStorage: PythonTypeHintsStorage
     @BeforeAll
     fun setup() {
-        val sample = MypyBuildKtTest::class.java.getResource("/annotation_sample.json")!!.readText()
+        val sample = this::class.java.getResource("/annotation_sample.json")!!.readText()
         storage = readMypyInfoBuildWithoutRoot(sample)
-        pythonTypeStorage = PythonTypeHintsBuild.get(storage)
+        pythonTypeStorage = PythonTypeHintsStorage.get(storage)
     }
 
     @Test

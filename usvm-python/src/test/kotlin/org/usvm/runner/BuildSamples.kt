@@ -1,7 +1,7 @@
 package org.usvm.runner
 
 import org.utbot.python.newtyping.mypy.MypyBuildDirectory
-import org.utbot.python.newtyping.mypy.readMypyAnnotationStorageAndInitialErrors
+import org.utbot.python.newtyping.mypy.buildMypyInfo
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Paths
@@ -26,5 +26,5 @@ fun main(args: Array<String>) {
             .replace("/", ".")
             .replace("\\", ",")
     }
-    readMypyAnnotationStorageAndInitialErrors(pythonPath, files.map { it.canonicalPath }, modules, mypyBuildDir, isolated = true)
+    buildMypyInfo(pythonPath, files.map { it.canonicalPath }, modules, mypyBuildDir)
 }

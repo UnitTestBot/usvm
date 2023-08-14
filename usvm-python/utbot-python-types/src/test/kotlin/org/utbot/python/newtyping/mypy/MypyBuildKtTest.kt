@@ -10,14 +10,14 @@ import org.utbot.python.newtyping.general.*
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 internal class MypyBuildKtTest {
     lateinit var storage: MypyInfoBuild
-    lateinit var typeStorage: PythonTypeHintsBuild
+    lateinit var typeStorage: PythonTypeHintsStorage
     lateinit var storageBoruvka: MypyInfoBuild
     @BeforeAll
     fun setup() {
-        val sample = MypyBuildKtTest::class.java.getResource("/annotation_sample.json")!!.readText()
+        val sample = this::class.java.getResource("/annotation_sample.json")!!.readText()
         storage = readMypyInfoBuildWithoutRoot(sample)
-        typeStorage = PythonTypeHintsBuild.get(storage)
-        val sample1 = MypyBuildKtTest::class.java.getResource("/boruvka.json")!!.readText()
+        typeStorage = PythonTypeHintsStorage.get(storage)
+        val sample1 = this::class.java.getResource("/boruvka.json")!!.readText()
         storageBoruvka = readMypyInfoBuildWithoutRoot(sample1)
     }
 
