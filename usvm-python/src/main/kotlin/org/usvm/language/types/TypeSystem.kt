@@ -9,11 +9,10 @@ import org.usvm.types.USupportTypeStream
 import org.usvm.types.UTypeStream
 import org.usvm.types.UTypeSystem
 import org.usvm.utils.withAdditionalPaths
-import org.utbot.python.newtyping.PythonTypeHintsBuild
+import org.utbot.python.newtyping.PythonTypeHintsStorage
 import org.utbot.python.newtyping.mypy.MypyInfoBuild
 import org.utbot.python.newtyping.pythonModuleName
 import org.utbot.python.newtyping.pythonName
-import org.utbot.python.newtyping.pythonTypeRepresentation
 
 abstract class PythonTypeSystem: UTypeSystem<PythonType> {
 
@@ -105,7 +104,7 @@ class PythonTypeSystemWithMypyInfo(
     mypyBuild: MypyInfoBuild,
     private val program: StructuredPythonProgram
 ): PythonTypeSystem() {
-    private val typeHintsStorage = PythonTypeHintsBuild.get(mypyBuild)
+    private val typeHintsStorage = PythonTypeHintsStorage.get(mypyBuild)
 
     private fun typeAlreadyInStorage(typeRef: PythonObject): Boolean = addressToConcreteType.keys.contains(typeRef)
 
