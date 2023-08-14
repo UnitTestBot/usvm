@@ -11,11 +11,14 @@ class PythonMockEvaluator(
 ): UMockEvaluator {
     private val evaluatedMockSymbol = ctx.provideRawConcreteHeapRef()
     override fun <Sort : USort> eval(symbol: UMockSymbol<Sort>): UExpr<Sort> {
-        if (symbol == mockSymbol) {
+        val evaluatedValue = baseMockEvaluator.eval(symbol)
+
+        if (symbol == mockSymbol && evaluatedValue is UConcreteHeapRef && evaluatedValue.address == 0) {
             @Suppress("unchecked_cast")
             return evaluatedMockSymbol as UExpr<Sort>
         }
-        return baseMockEvaluator.eval(symbol)
+
+        return evaluatedValue
     }
 }
 

@@ -145,6 +145,7 @@ object ConcretePythonInterpreter {
     val typeHasNbBool = createTypeQuery { pythonAdapter.typeHasNbBool(it) }
     val typeHasNbInt = createTypeQuery { pythonAdapter.typeHasNbInt(it) }
     val typeHasNbAdd = createTypeQuery { pythonAdapter.typeHasNbAdd(it) }
+    val typeHasNbSubtract = createTypeQuery { pythonAdapter.typeHasNbSubtract(it) }
     val typeHasNbMultiply = createTypeQuery { pythonAdapter.typeHasNbMultiply(it) }
     val typeHasNbMatrixMultiply = createTypeQuery { pythonAdapter.typeHasNbMatrixMultiply(it) }
     val typeHasSqLength = createTypeQuery { pythonAdapter.typeHasSqLength(it) }
@@ -165,9 +166,21 @@ object ConcretePythonInterpreter {
 
     val initialSysPath: PythonObject
     val initialSysModulesKeys: PythonObject
+    val pyEQ: Int
+    val pyNE: Int
+    val pyLT: Int
+    val pyLE: Int
+    val pyGT: Int
+    val pyGE: Int
 
     init {
         pythonAdapter.initializePython()
+        pyEQ = pythonAdapter.pyEQ
+        pyNE = pythonAdapter.pyNE
+        pyLT = pythonAdapter.pyLT
+        pyLE = pythonAdapter.pyLE
+        pyGT = pythonAdapter.pyGT
+        pyGE = pythonAdapter.pyGE
         val namespace = pythonAdapter.newNamespace
         val initialModules = listOf("sys", "copy", "builtins", "ctypes", "array")
         pythonAdapter.concreteRun(namespace, "import " + initialModules.joinToString(", "), true)

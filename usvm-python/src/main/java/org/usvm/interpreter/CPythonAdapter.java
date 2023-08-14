@@ -13,6 +13,7 @@ import java.util.Collections;
 import java.util.concurrent.Callable;
 
 import static org.usvm.machine.interpreters.operations.MethodNotificationsKt.*;
+import static org.usvm.machine.interpreters.operations.VirtualKt.*;
 import static org.usvm.machine.interpreters.operations.tracing.PathTracingKt.handlerForkResultKt;
 import static org.usvm.machine.interpreters.operations.tracing.PathTracingKt.withTracing;
 
@@ -22,6 +23,12 @@ public class CPythonAdapter {
     public long thrownException = 0L;
     public long thrownExceptionType = 0L;
     public long javaExceptionType = 0L;
+    public int pyEQ;
+    public int pyNE;
+    public int pyLE;
+    public int pyLT;
+    public int pyGE;
+    public int pyGT;
     public native void initializePython();
     public native void finalizePython();
     public native long getNewNamespace();  // returns reference to a new dict
@@ -44,6 +51,7 @@ public class CPythonAdapter {
     public native int typeHasNbBool(long type);
     public native int typeHasNbInt(long type);
     public native int typeHasNbAdd(long type);
+    public native int typeHasNbSubtract(long type);
     public native int typeHasNbMultiply(long type);
     public native int typeHasNbMatrixMultiply(long type);
     public native int typeHasSqLength(long type);
@@ -239,6 +247,11 @@ public class CPythonAdapter {
         nbAddKt(context, left.obj, right.obj);
     }
 
+    public static void notifyNbSubtract(@NotNull ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
+        context.curOperation = new MockHeader(NbSubtractMethod.INSTANCE, Arrays.asList(left, right), left);
+        nbSubtractKt(context, left.obj);
+    }
+
     public static void notifyNbMultiply(@NotNull ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
         context.curOperation = new MockHeader(NbMultiplyMethod.INSTANCE, Arrays.asList(left, right), null);
         nbMultiplyKt(context, left.obj, right.obj);
@@ -275,21 +288,21 @@ public class CPythonAdapter {
     }
 
     public static boolean virtualNbBool(ConcolicRunContext context, VirtualPythonObject obj) {
-        return org.usvm.machine.interpreters.operations.VirtualKt.virtualNbBoolKt(context, obj);
+        return virtualNbBoolKt(context, obj);
     }
 
     public static long virtualNbInt(ConcolicRunContext context, VirtualPythonObject obj) {
-        return org.usvm.machine.interpreters.operations.VirtualKt.virtualNbIntKt(context, obj).getAddress();
+        return virtualNbIntKt(context, obj).getAddress();
     }
 
     public static int virtualSqLength(ConcolicRunContext context, VirtualPythonObject obj) {
-        return org.usvm.machine.interpreters.operations.VirtualKt.virtualSqLengthKt(context, obj);
+        return virtualSqLengthKt(context, obj);
     }
 
     public static long virtualCall(ConcolicRunContext context, int owner) {
         if (context.curOperation != null && owner != -1) {
             context.curOperation.setMethodOwner(context.curOperation.getArgs().get(owner));
         }
-        return org.usvm.machine.interpreters.operations.VirtualKt.virtualCallKt(context).getAddress();
+        return virtualCallKt(context).getAddress();
     }
 }

@@ -86,6 +86,12 @@ nb_add(PyObject *first, PyObject *second) {
 }
 
 static PyObject *
+nb_subtract(PyObject *first, PyObject *second) {
+    assert(is_virtual_object(first));
+    MAKE_USVM_VIRUAL_CALL((VirtualPythonObject *) first, 0)
+}
+
+static PyObject *
 nb_multiply(PyObject *first, PyObject *second) {
     BINARY_FUNCTION
 }
@@ -122,7 +128,7 @@ mp_ass_subscript(PyObject *self, PyObject *item, PyObject *value) {
 
 static PyNumberMethods virtual_as_number = {
     nb_add,                     /*nb_add*/
-    0,                          /*nb_subtract*/
+    nb_subtract,                /*nb_subtract*/
     nb_multiply,                /*nb_multiply*/
     0,                          /*nb_remainder*/
     0,                          /*nb_divmod*/
@@ -258,6 +264,7 @@ void register_virtual_methods(SymbolicAdapter *adapter) {
     adapter->virtual_tp_richcompare = tp_richcompare;
     adapter->virtual_tp_iter = tp_iter;
     adapter->virtual_nb_add = nb_add;
+    adapter->virtual_nb_subtract = nb_subtract;
     adapter->virtual_nb_multiply = nb_multiply;
     adapter->virtual_nb_matrix_multiply = nb_matrix_multiply;
     adapter->virtual_mp_subscript = mp_subscript;

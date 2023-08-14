@@ -83,7 +83,7 @@ class PythonMachine<PythonObjectRepresentation>(
         results: MutableList<PythonAnalysisResult<PythonObjectRepresentation>>,
         maxIterations: Int = 300,
         allowPathDiversion: Boolean = true
-    ): Int = program.withPinnedCallable(pythonCallable) { pinnedCallable ->
+    ): Int = program.withPinnedCallable(pythonCallable, typeSystem) { pinnedCallable ->
         typeSystem.restart()
         val observer = PythonMachineObserver()
         val interpreter = getInterpreter(pythonCallable, pinnedCallable, results, allowPathDiversion)
