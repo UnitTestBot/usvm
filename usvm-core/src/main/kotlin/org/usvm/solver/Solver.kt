@@ -95,6 +95,7 @@ open class USolverBase<Field, Type, Method, Context : UContext>(
 
     protected fun translateToSmt(pc: UPathConstraints<Type, Context>) {
         translateEqualityConstraints(pc.equalityConstraints)
+        translateLogicalConstraints(pc.numericConstraints.constraints().asIterable())
         translateLogicalConstraints(pc.logicalConstraints)
     }
 
@@ -119,7 +120,8 @@ open class USolverBase<Field, Type, Method, Context : UContext>(
 
             val softConstraints = mutableListOf<UBoolExpr>()
             if (useSoftConstraints) {
-                pc.logicalConstraints.flatMapTo(softConstraints) {
+                val softConstraintSources = pc.logicalConstraints.asSequence() + pc.numericConstraints.constraints()
+                softConstraintSources.flatMapTo(softConstraints) {
                     softConstraintsProvider
                         .provide(it)
                         .map(translator::translate)
