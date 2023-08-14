@@ -7,8 +7,7 @@
 
 #include "symbolicadapter.h"
 #include "virtual_objects.h"
-
-#include "internal/pycore_frame.h"
+#include "approximations.h"
 
 #define SET_BOOLEAN_FIELD(field_name, value) \
     f = (*env)->GetFieldID(env, cls, field_name, "Z"); \
@@ -45,6 +44,8 @@ JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_initializePython
     SET_INTEGER_FIELD("pyLE", Py_LE)
     SET_INTEGER_FIELD("pyGT", Py_GT)
     SET_INTEGER_FIELD("pyGE", Py_GE)
+
+    INITIALIZE_PYTHON_APPROXIMATIONS
 }
 
 JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_finalizePython(JNIEnv *env, jobject cpython_adapter) {
