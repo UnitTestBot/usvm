@@ -7,4 +7,16 @@ public class SymbolForCPython {
     public SymbolForCPython(UninterpretedSymbolicPythonObject obj) {
         this.obj = obj;
     }
+
+    @Override
+    public boolean equals(Object other) {
+        if (!(other instanceof SymbolForCPython))
+            return false;
+        return ((SymbolForCPython) other).obj.equals(this.obj);
+    }
+
+    @Override
+    public int hashCode() {
+        return obj.hashCode();
+    }
 }

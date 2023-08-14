@@ -31,7 +31,7 @@ class PythonVirtualPathSelector(
     ): PythonExecutionState? = with(ctx) {
         if (delayedForkStorage.isEmpty())
             return null
-        val delayedFork = delayedForkStorage.random()  // TODO: add weights (the less unresolved types, the more probable choice)
+        val delayedFork = delayedForkStorage.random()
         val state = delayedFork.delayedFork.state
         val symbol = delayedFork.delayedFork.symbol
         val typeRating = delayedFork.typeRating
@@ -78,7 +78,6 @@ class PythonVirtualPathSelector(
         return state
     }
 
-    private val threshold: Double = 0.5
     private var peekCache: PythonExecutionState? = null
 
     private fun nullablePeek(): PythonExecutionState? {
@@ -104,12 +103,12 @@ class PythonVirtualPathSelector(
 
         val firstCoin = random.nextDouble()
         val secondCoin = random.nextDouble()
-        if (unservedDelayedForks.isNotEmpty() && (firstCoin < threshold || pathSelectorForStatesWithDelayedForks.isEmpty())) {
+        if (unservedDelayedForks.isNotEmpty() && (firstCoin < 0.5 || pathSelectorForStatesWithDelayedForks.isEmpty())) {
             val newState = generateStateWithConcretizedTypeFromDelayedFork(unservedDelayedForks)
             newState?.let { add(listOf(it)) }
             return nullablePeek()
 
-        } else if (!pathSelectorForStatesWithDelayedForks.isEmpty()  && (secondCoin < threshold || servedDelayedForks.isEmpty())) {
+        } else if (!pathSelectorForStatesWithDelayedForks.isEmpty()  && (secondCoin < 0.7 || servedDelayedForks.isEmpty())) {
             val result = pathSelectorForStatesWithDelayedForks.peek()
             result.meta.extractedFrom = pathSelectorForStatesWithDelayedForks
             peekCache = result

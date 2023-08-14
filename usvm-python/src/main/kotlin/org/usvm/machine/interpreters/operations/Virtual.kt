@@ -19,9 +19,8 @@ fun virtualNbBoolKt(context: ConcolicRunContext, on: VirtualPythonObject): Boole
     require(context.curOperation?.method == NbBoolMethod && interpretedArg == on.interpretedObj)
     val (interpretedObj, symbolic) = internalVirtualCallKt(context)
     symbolic.addSupertype(context, typeSystem.pythonBool)
-    val boolValue = interpretedObj.getBoolContent(context)
-    myFork(context, boolValue)
-    return boolValue.isTrue
+    myFork(context, symbolic.getBoolContent(context))
+    return interpretedObj.getBoolContent(context).isTrue
 }
 
 fun virtualNbIntKt(context: ConcolicRunContext, on: VirtualPythonObject): PythonObject {

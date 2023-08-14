@@ -45,7 +45,7 @@ sealed class PythonTestRunner(
         test: PythonAnalysisResult<PythonObjectInfo>,
         check: (PythonObject) -> String?
     ): String? =
-        program.withPinnedCallable(target) { pinnedCallable ->
+        program.withPinnedCallable(target, typeSystem) { pinnedCallable ->
             val converter = test.inputValueConverter
             converter.restart()
             val args = test.inputValues.map { converter.convert(it.asUExpr) }

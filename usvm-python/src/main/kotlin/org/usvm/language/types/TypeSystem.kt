@@ -10,6 +10,7 @@ import org.usvm.types.UTypeStream
 import org.usvm.types.UTypeSystem
 import org.usvm.utils.withAdditionalPaths
 import org.utbot.python.newtyping.PythonTypeHintsStorage
+import org.utbot.python.newtyping.general.UtType
 import org.utbot.python.newtyping.mypy.MypyInfoBuild
 import org.utbot.python.newtyping.pythonModuleName
 import org.utbot.python.newtyping.pythonName
@@ -104,7 +105,7 @@ class PythonTypeSystemWithMypyInfo(
     mypyBuild: MypyInfoBuild,
     private val program: StructuredPythonProgram
 ): PythonTypeSystem() {
-    private val typeHintsStorage = PythonTypeHintsStorage.get(mypyBuild)
+    val typeHintsStorage = PythonTypeHintsStorage.get(mypyBuild)
 
     private fun typeAlreadyInStorage(typeRef: PythonObject): Boolean = addressToConcreteType.keys.contains(typeRef)
 
@@ -113,8 +114,12 @@ class PythonTypeSystemWithMypyInfo(
                 (ConcretePythonInterpreter.typeHasStandardNew(typeRef) || basicTypeRefs.contains(typeRef))
     }
 
+    private val utTypeOfConcretePythonType = mutableMapOf<ConcretePythonType, UtType>()
+
+    fun typeHintOfConcreteType(type: ConcretePythonType): UtType? = utTypeOfConcretePythonType[type]
+
     init {
-        withAdditionalPaths(program.additionalPaths) {
+        withAdditionalPaths(program.additionalPaths, null) {
             allConcreteTypes = basicTypes + typeHintsStorage.simpleTypes.mapNotNull { utType ->
                 val refGetter = {
                     val namespace = program.getNamespaceOfModule(utType.pythonModuleName())
@@ -125,10 +130,17 @@ class PythonTypeSystemWithMypyInfo(
                 } catch (_: CPythonExecutionException) {
                     return@mapNotNull null
                 }
-                if (!isWorkableType(ref) || typeAlreadyInStorage(ref))
+                if (!isWorkableType(ref))
                     return@mapNotNull null
 
-                addType(refGetter)
+                if (typeAlreadyInStorage(ref)) {
+                    utTypeOfConcretePythonType[concreteTypeOnAddress(ref)!!] = utType
+                    return@mapNotNull null
+                }
+
+                addType(refGetter).also { concreteType ->
+                    utTypeOfConcretePythonType[concreteType] = utType
+                }
             }
         }
     }
