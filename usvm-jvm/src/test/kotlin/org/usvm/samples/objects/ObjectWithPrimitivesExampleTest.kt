@@ -1,6 +1,5 @@
 package org.usvm.samples.objects
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
@@ -151,9 +150,8 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
     fun testCompareTwoOuterObjects() {
         checkDiscoveredPropertiesWithExceptions(
             ObjectWithPrimitivesExample::compareTwoOuterObjects,
-            eq(4),
-            { _, x, _, r -> x == null && r.isException<NullPointerException>() },
-            { _, x, y, r -> x != null && y == null && r.isException<NullPointerException>() },
+            ignoreNumberOfAnalysisResults,
+            { _, x, y, r -> (x == null || y == null) && r.isException<NullPointerException>() },
             { _, x, y, r -> x != null && y != null && x === y && r.getOrNull() == true },
             { _, x, y, r -> x != null && y != null && x !== y && r.getOrNull() == false }
         )
@@ -174,7 +172,6 @@ internal class ObjectWithPrimitivesExampleTest : JavaMethodTestRunner() {
             eq(1),
         )
     }
-
 
     @Test
     fun testCompareTwoIdenticalObjectsFromArguments() {

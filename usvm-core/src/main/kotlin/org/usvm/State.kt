@@ -1,7 +1,6 @@
 package org.usvm
 
 import io.ksmt.expr.KInterpretedValue
-import kotlinx.collections.immutable.PersistentList
 import org.usvm.constraints.UPathConstraints
 import org.usvm.memory.UMemoryBase
 import org.usvm.model.UModelBase
@@ -11,14 +10,14 @@ import org.usvm.solver.UUnsatResult
 
 typealias StateId = UInt
 
-abstract class UState<Type, Field, Method, Statement>(
+abstract class UState<Type, Field, Method, Statement, Context : UContext, State : UState<Type, Field, Method, Statement, Context, State>>(
     // TODO: add interpreter-specific information
     ctx: UContext,
     open val callStack: UCallStack<Method, Statement>,
-    open val pathConstraints: UPathConstraints<Type>,
+    open val pathConstraints: UPathConstraints<Type, Context>,
     open val memory: UMemoryBase<Field, Type, Method>,
     open var models: List<UModelBase<Field, Type>>,
-    open var path: PersistentList<Statement>,
+    open var pathLocation: PathsTrieNode<State, Statement>,
 ) {
     /**
      * Deterministic state id.
@@ -26,18 +25,49 @@ abstract class UState<Type, Field, Method, Statement>(
      */
     val id: StateId = ctx.getNextStateId()
 
+    val reversedPath: Iterator<Statement>
+        get() = object : Iterator<Statement> {
+            var currentLocation: PathsTrieNode<State, Statement>? = pathLocation
+
+            override fun hasNext(): Boolean = currentLocation !is RootNode
+
+            override fun next(): Statement {
+                if (!hasNext()) throw NoSuchElementException()
+
+                val current = requireNotNull(currentLocation)
+                val nextStmt = current.statement
+
+                currentLocation = current.parent
+
+                return nextStmt
+            }
+
+        }
+
     /**
      * Creates new state structurally identical to this.
      * If [newConstraints] is null, clones [pathConstraints]. Otherwise, uses [newConstraints] in cloned state.
      */
-    abstract fun clone(newConstraints: UPathConstraints<Type>? = null): UState<Type, Field, Method, Statement>
+    abstract fun clone(newConstraints: UPathConstraints<Type, Context>? = null): State
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as UState<*, *, *, *, *, *>
+
+        return id == other.id
+    }
+
+    override fun hashCode(): Int {
+        return id.hashCode()
+    }
 
     val lastEnteredMethod: Method
         get() = callStack.lastMethod()
 
-    // TODO or last? Do we add a current stmt into the path immediately?
-    val currentStatement: Statement?
-        get() = path.lastOrNull()
+    val currentStatement: Statement
+        get() = pathLocation.statement
 
     /**
      * A property containing information about whether the state is exceptional or not.
@@ -66,7 +96,7 @@ private const val OriginalState = false
  * forked state.
  *
  */
-private fun <T : UState<Type, Field, *, *>, Type, Field> forkIfSat(
+private fun <T : UState<Type, Field, *, *, Context, T>, Type, Field, Context : UContext> forkIfSat(
     state: T,
     newConstraintToOriginalState: UBoolExpr,
     newConstraintToForkedState: UBoolExpr,
@@ -80,7 +110,7 @@ private fun <T : UState<Type, Field, *, *>, Type, Field> forkIfSat(
     } else {
         newConstraintToOriginalState
     }
-    val solver = newConstraintToForkedState.uctx.solver<Field, Type, Any?>()
+    val solver = newConstraintToForkedState.uctx.solver<Field, Type, Any?, Context>()
     val satResult = solver.checkWithSoftConstraints(constraintsToCheck)
 
     return when (satResult) {
@@ -91,14 +121,12 @@ private fun <T : UState<Type, Field, *, *>, Type, Field> forkIfSat(
             // heavy plusAssign operator in path constraints.
             // Therefore, it is better to reuse already constructed [constraintToCheck].
             if (stateToCheck) {
-                @Suppress("UNCHECKED_CAST")
-                val forkedState = state.clone(constraintsToCheck) as T
+                val forkedState = state.clone(constraintsToCheck)
                 state.pathConstraints += newConstraintToOriginalState
                 forkedState.models = listOf(satResult.model)
                 forkedState
             } else {
-                @Suppress("UNCHECKED_CAST")
-                val forkedState = state.clone() as T
+                val forkedState = state.clone()
                 state.pathConstraints += newConstraintToOriginalState
                 state.models = listOf(satResult.model)
                 // TODO: implement path condition setter (don't forget to reset UMemoryBase:types!)
@@ -128,7 +156,7 @@ private fun <T : UState<Type, Field, *, *>, Type, Field> forkIfSat(
  * 2. makes not more than one query to USolver;
  * 3. if both [condition] and ![condition] are satisfiable, then [ForkResult.positiveState] === [state].
  */
-fun <T : UState<Type, Field, *, *>, Type, Field> fork(
+fun <T : UState<Type, Field, *, *, Context, T>, Type, Field, Context : UContext> fork(
     state: T,
     condition: UBoolExpr,
 ): ForkResult<T> {
@@ -180,8 +208,7 @@ fun <T : UState<Type, Field, *, *>, Type, Field> fork(
         else -> error("[trueModels] and [falseModels] are both empty, that has to be impossible by construction!")
     }
 
-    @Suppress("UNCHECKED_CAST")
-    return ForkResult(posState, negState as T?)
+    return ForkResult(posState, negState)
 }
 
 /**
@@ -190,7 +217,7 @@ fun <T : UState<Type, Field, *, *>, Type, Field> fork(
  * @return a list of states for each condition - `null` state
  * means [UUnknownResult] or [UUnsatResult] of checking condition.
  */
-fun <T : UState<Type, Field, *, *>, Type, Field> forkMulti(
+fun <T : UState<Type, Field, *, *, Context, T>, Type, Field, Context : UContext> forkMulti(
     state: T,
     conditions: Iterable<UBoolExpr>,
 ): List<T?> {
@@ -206,9 +233,7 @@ fun <T : UState<Type, Field, *, *>, Type, Field> forkMulti(
         }
 
         val nextRoot = if (trueModels.isNotEmpty()) {
-            @Suppress("UNCHECKED_CAST")
-            val root = curState.clone() as T
-
+            val root = curState.clone()
             curState.models = trueModels
             curState.pathConstraints += condition
 

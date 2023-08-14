@@ -14,7 +14,7 @@ import org.usvm.language.SampleType
 import org.usvm.language.SetLabel
 import org.usvm.language.SetValue
 
-typealias SampleStepScope = StepScope<SampleState, SampleType, Field<*>>
+typealias SampleStepScope = StepScope<SampleState, SampleType, Field<*>, UContext>
 
 
 val logger = object : KLogging() {}.logger

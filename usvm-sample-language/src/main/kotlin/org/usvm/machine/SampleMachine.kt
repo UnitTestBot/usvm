@@ -1,10 +1,9 @@
 package org.usvm.machine
 
 import kotlinx.collections.immutable.persistentListOf
-import org.usvm.UMachineOptions
-import org.usvm.PathSelectorCombinationStrategy
 import org.usvm.UContext
 import org.usvm.UMachine
+import org.usvm.UMachineOptions
 import org.usvm.language.Field
 import org.usvm.language.Method
 import org.usvm.language.Program
@@ -15,7 +14,7 @@ import org.usvm.statistics.CompositeUMachineObserver
 import org.usvm.statistics.CoverageStatistics
 import org.usvm.statistics.CoveredNewStatesCollector
 import org.usvm.statistics.DistanceStatistics
-import org.usvm.statistics.PathsTreeStatistics
+import org.usvm.statistics.TerminatedStateRemover
 import org.usvm.statistics.UMachineObserver
 import org.usvm.stopstrategies.createStopStrategy
 
@@ -30,7 +29,7 @@ class SampleMachine(
     private val typeSystem = SampleTypeSystem()
     private val components = SampleLanguageComponents(typeSystem, options.solverType)
     private val ctx = UContext(components)
-    private val solver = ctx.solver<Field<*>, SampleType, Method<*>>()
+    private val solver = ctx.solver<Field<*>, SampleType, Method<*>, UContext>()
 
     private val interpreter = SampleInterpreter(ctx, applicationGraph)
     private val resultModelConverter = ResultModelConverter(ctx)
@@ -42,16 +41,11 @@ class SampleMachine(
     ): Collection<ProgramExecutionResult> {
         val initialState = getInitialState(method)
 
-        // TODO: now paths tree doesn't support parallel execution processes. It should be replaced with forest
-        val disablePathsTreeStatistics = options.pathSelectorCombinationStrategy == PathSelectorCombinationStrategy.PARALLEL
-
         val coverageStatistics: CoverageStatistics<Method<*>, Stmt, SampleState> = CoverageStatistics(setOf(method), applicationGraph)
-        val pathsTreeStatistics = PathsTreeStatistics(initialState)
 
         val pathSelector = createPathSelector(
             initialState,
             options,
-            { if (disablePathsTreeStatistics) null else pathsTreeStatistics },
             { coverageStatistics },
             { distanceStatistics }
         )
@@ -60,9 +54,8 @@ class SampleMachine(
         val stopStrategy = createStopStrategy(options, { coverageStatistics }, { statesCollector.collectedStates.size })
 
         val observers = mutableListOf<UMachineObserver<SampleState>>(coverageStatistics)
-        if (!disablePathsTreeStatistics) {
-            observers.add(pathsTreeStatistics)
-        }
+
+        observers.add(TerminatedStateRemover())
         observers.add(statesCollector)
 
         run(

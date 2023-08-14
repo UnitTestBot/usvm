@@ -13,7 +13,7 @@ import java.util.concurrent.ConcurrentHashMap
  * @param methods methods to track coverage of.
  * @param applicationGraph [ApplicationGraph] used to retrieve statements by method.
  */
-class CoverageStatistics<Method, Statement, State : UState<*, *, Method, Statement>>(
+class CoverageStatistics<Method, Statement, State : UState<*, *, Method, Statement, *, State>>(
     methods: Set<Method>,
     private val applicationGraph: ApplicationGraph<Method, Statement>
 ) : UMachineObserver<State> {
@@ -50,7 +50,7 @@ class CoverageStatistics<Method, Statement, State : UState<*, *, Method, Stateme
 
         uncoveredStatements[method] = methodStatements
         totalUncoveredStatements += methodStatements.size
-        coveredStatements[method] = HashSet()
+        coveredStatements[method] = hashSetOf()
     }
 
     private fun computeCoverage(covered: Int, uncovered: Int): Float {
@@ -93,7 +93,7 @@ class CoverageStatistics<Method, Statement, State : UState<*, *, Method, Stateme
 
     // TODO: don't consider coverage of runtime exceptions states
     override fun onStateTerminated(state: State) {
-        for (statement in state.path) {
+        for (statement in state.reversedPath) {
             val method = applicationGraph.methodOf(statement)
 
             if (uncoveredStatements[method]?.remove(statement) != true) {

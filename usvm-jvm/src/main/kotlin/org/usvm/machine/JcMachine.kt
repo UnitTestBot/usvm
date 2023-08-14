@@ -6,7 +6,6 @@ import org.jacodb.api.JcMethod
 import org.jacodb.api.cfg.JcInst
 import org.jacodb.api.ext.methods
 import org.usvm.CoverageZone
-import org.usvm.PathSelectorCombinationStrategy
 import org.usvm.UMachine
 import org.usvm.UMachineOptions
 import org.usvm.machine.interpreter.JcInterpreter
@@ -18,7 +17,7 @@ import org.usvm.statistics.CompositeUMachineObserver
 import org.usvm.statistics.CoverageStatistics
 import org.usvm.statistics.CoveredNewStatesCollector
 import org.usvm.statistics.DistanceStatistics
-import org.usvm.statistics.PathsTreeStatistics
+import org.usvm.statistics.TerminatedStateRemover
 import org.usvm.statistics.TransitiveCoverageZoneObserver
 import org.usvm.statistics.UMachineObserver
 import org.usvm.stopstrategies.createStopStrategy
@@ -45,9 +44,6 @@ class JcMachine(
         logger.debug("$this.analyze($method)")
         val initialState = interpreter.getInitialState(method)
 
-        // TODO: now paths tree doesn't support parallel execution processes. It should be replaced with forest
-        val disablePathsTreeStatistics = options.pathSelectorCombinationStrategy == PathSelectorCombinationStrategy.PARALLEL
-
         val methodsToTrackCoverage =
             when (options.coverageZone) {
                 CoverageZone.METHOD -> setOf(method)
@@ -62,12 +58,10 @@ class JcMachine(
             methodsToTrackCoverage,
             applicationGraph
         )
-        val pathsTreeStatistics = PathsTreeStatistics(initialState)
 
         val pathSelector = createPathSelector(
             initialState,
             options,
-            { if (disablePathsTreeStatistics) null else pathsTreeStatistics },
             { coverageStatistics },
             { distanceStatistics }
         )
@@ -83,9 +77,7 @@ class JcMachine(
 
         val observers = mutableListOf<UMachineObserver<JcState>>(coverageStatistics)
 
-        if (!disablePathsTreeStatistics) {
-            observers.add(pathsTreeStatistics)
-        }
+        observers.add(TerminatedStateRemover())
 
         if (options.coverageZone == CoverageZone.TRANSITIVE) {
             observers.add(
