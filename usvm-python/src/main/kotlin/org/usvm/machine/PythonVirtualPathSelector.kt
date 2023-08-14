@@ -4,6 +4,7 @@ import mu.KLogging
 import org.usvm.UContext
 import org.usvm.UPathSelector
 import org.usvm.fork
+import org.usvm.language.types.ConcretePythonType
 import org.usvm.language.types.PythonType
 import org.usvm.language.types.PythonTypeSystem
 import org.usvm.language.types.TypeOfVirtualObject
@@ -20,6 +21,7 @@ class PythonVirtualPathSelector(
     private val unservedDelayedForks = mutableSetOf<DelayedForkWithTypeRating>()
     private val servedDelayedForks = mutableSetOf<DelayedForkWithTypeRating>()
     private val executionsWithVirtualObjectAndWithoutDelayedForks = mutableSetOf<PythonExecutionState>()
+    private val triedTypesForDelayedForks = mutableSetOf<Pair<DelayedFork, ConcretePythonType>>()
     private val random = Random(0)
 
     override fun isEmpty(): Boolean {
@@ -40,21 +42,26 @@ class PythonVirtualPathSelector(
             return generateStateWithConcretizedTypeFromDelayedFork(delayedForkStorage)
         }
         val concreteType = typeRating.first()
-        require(concreteType != TypeOfVirtualObject)
+        require(concreteType is ConcretePythonType)
+        typeRating.removeFirst()
+        if (triedTypesForDelayedForks.contains(delayedFork.delayedFork to concreteType))
+            return generateStateWithConcretizedTypeFromDelayedFork(delayedForkStorage)
+        triedTypesForDelayedForks.add(delayedFork.delayedFork to concreteType)
+
         val forkResult = fork(state, symbol.evalIs(ctx, state.pathConstraints.typeConstraints, concreteType, null).not())
         if (forkResult.positiveState != state) {
+            require(typeRating.isEmpty() && forkResult.positiveState == null)
             unservedDelayedForks.removeIf { it.delayedFork.state == state }
             servedDelayedForks.removeIf { it.delayedFork.state == state }
-        } else {
-            typeRating.removeFirst()
         }
-        if (forkResult.negativeState != null && unservedDelayedForks.remove(delayedFork))
+        require(forkResult.negativeState != null)
+        val stateWithConcreteType = forkResult.negativeState!!
+        if (unservedDelayedForks.remove(delayedFork))
             servedDelayedForks.add(delayedFork)
 
-        return forkResult.negativeState?.let {
+        return stateWithConcreteType.also {
             it.delayedForks = delayedFork.delayedFork.delayedForkPrefix
             it.meta.generatedFrom = "From delayed fork"
-            it
         }
     }
 
