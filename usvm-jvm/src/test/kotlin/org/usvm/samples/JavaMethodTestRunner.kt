@@ -731,10 +731,10 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
         val jcClass = cp.findClass(declaringClassName).toType()
         val jcMethod = jcClass.declaredMethods.first { it.name == method.name }
 
-        val machine = JcMachine(cp, options)
-        val states = machine.analyze(jcMethod.method)
-
-        states.map { testResolver.resolve(jcMethod, it) }
+        JcMachine(cp, options).use { machine ->
+            val states = machine.analyze(jcMethod.method)
+            states.map { testResolver.resolve(jcMethod, it) }
+        }
     }
 
     override val coverageRunner: (List<JcTest>) -> JcClassCoverage = { _ ->

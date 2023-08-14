@@ -1,9 +1,13 @@
 package org.usvm.machine.interpreter
 
 import io.ksmt.utils.asExpr
+import org.jacodb.api.JcArrayType
 import org.jacodb.api.JcClassType
 import org.jacodb.api.JcMethod
+import org.jacodb.api.JcType
+import org.jacodb.api.JcTypedMethod
 import org.jacodb.api.ext.findMethodOrNull
+import org.jacodb.api.ext.toType
 import org.usvm.INITIAL_INPUT_ADDRESS
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
@@ -64,7 +68,10 @@ class JcVirtualInvokeResolver(
             val inheritors = typeSelector.choose(method, typeStream)
             val typeConstraints = inheritors.map { type ->
                 calcOnState {
-                    ctx.mkAnd(memory.types.evalIsSubtype(instance, type), memory.types.evalIsSupertype(instance, type))
+                    ctx.mkAnd(
+                        memory.types.evalIsSubtype(instance, type),
+                        memory.types.evalIsSupertype(instance, type)
+                    )
                 }
             }
 
@@ -72,10 +79,11 @@ class JcVirtualInvokeResolver(
 
             inheritors.mapIndexedTo(typeConstraintsWithBlockOnStates) { idx, type ->
                 val isExpr = typeConstraints[idx]
-                val concreteMethod = (type as JcClassType).findMethodOrNull(method.name, method.description)
-                    ?: error("Can't find method $method in type $type")
 
                 val block = { state: JcState ->
+                    val concreteMethod = type.findMethod(method.name, method.description)
+                        ?: error("Can't find method $method in type ${type.typeName}")
+
                     state.addNewMethodCall(applicationGraph, concreteMethod.method, arguments)
                 }
 
@@ -91,11 +99,34 @@ class JcVirtualInvokeResolver(
         } else {
             val type = calcOnState { memory.typeStreamOf(concreteRef) }.first() as JcClassType
 
-            val concreteMethod = type.findMethodOrNull(method.name, method.description)
-                ?: error("Can't find method $method in type $type")
+            val concreteMethod = type.findMethod(method.name, method.description)
+                ?: error("Can't find method $method in type ${type.typeName}")
 
             doWithState { addNewMethodCall(applicationGraph, concreteMethod.method, arguments) }
         }
+    }
+
+    private fun JcType.findMethod(name: String, desc: String): JcTypedMethod? = when (this) {
+        is JcClassType -> findClassMethod(name, desc)
+        // Array types are objects and have methods of java.lang.Object
+        is JcArrayType -> jcClass.toType().findClassMethod(name, desc)
+        else -> error("Unexpected type: $this")
+    }
+
+    private fun JcClassType.findClassMethod(name: String, desc: String): JcTypedMethod? {
+        val method = findMethodOrNull { it.name == name && it.method.description == desc }
+        if (method != null) return method
+
+        /**
+         * Method implementation was not found in current class but class is instantiatable.
+         * Therefore, method implementation is provided by the super class.
+         * */
+        val superClass = superType
+        if (superClass != null) {
+            return superClass.findClassMethod(name, desc)
+        }
+
+        return null
     }
 
     override fun JcStepScope.resolveSpecialInvoke(

@@ -19,6 +19,7 @@ import org.jacodb.api.ext.long
 import org.jacodb.api.ext.short
 import org.jacodb.api.ext.toType
 import org.jacodb.api.ext.void
+import org.usvm.INITIAL_CONCRETE_ADDRESS
 import org.usvm.INITIAL_INPUT_ADDRESS
 import org.usvm.NULL_ADDRESS
 import org.usvm.UArrayIndexLValue
@@ -48,6 +49,7 @@ import org.usvm.machine.state.JcState
 import org.usvm.machine.state.localIdx
 import org.usvm.memory.UReadOnlySymbolicMemory
 import org.usvm.model.UModelBase
+import org.usvm.types.first
 import org.usvm.types.firstOrNull
 
 /**
@@ -241,6 +243,14 @@ class JcTestResolver(
         }
 
         private fun resolveObject(ref: UConcreteHeapRef, heapRef: UHeapRef, type: JcRefType): Any {
+            if (type.jcClass == ctx.classType.jcClass && ref.address >= INITIAL_CONCRETE_ADDRESS) {
+                return resolveAllocatedClass(ref)
+            }
+
+            if (type.jcClass == ctx.stringType.jcClass && ref.address >= INITIAL_CONCRETE_ADDRESS) {
+                return resolveAllocatedString(ref)
+            }
+
             val clazz = resolveType(type)
             val instance = Reflection.allocateInstance(clazz)
             resolvedCache[ref.address] = instance
@@ -263,6 +273,41 @@ class JcTestResolver(
                 Reflection.setField(instance, javaField, fieldValue)
             }
             return instance
+        }
+
+        private fun resolveAllocatedClass(ref: UConcreteHeapRef): Class<*> {
+            val classTypeField = ctx.classTypeSyntheticField
+            val classTypeLValue = UFieldLValue(ctx.addressSort, ref, classTypeField)
+
+            val classTypeRef = memory.read(classTypeLValue) as? UConcreteHeapRef
+                ?: error("No type for allocated class")
+
+            val classType = memory.typeStreamOf(classTypeRef).first()
+
+            return when (classType) {
+                ctx.cp.boolean -> Boolean::class.javaPrimitiveType!!
+                ctx.cp.short -> Short::class.javaPrimitiveType!!
+                ctx.cp.int -> Int::class.javaPrimitiveType!!
+                ctx.cp.long -> Long::class.javaPrimitiveType!!
+                ctx.cp.float -> Float::class.javaPrimitiveType!!
+                ctx.cp.double -> Double::class.javaPrimitiveType!!
+                ctx.cp.byte -> Byte::class.javaPrimitiveType!!
+                ctx.cp.char -> Char::class.javaPrimitiveType!!
+                is JcRefType -> resolveType(classType)
+                else -> error("Unexpected type: $classType")
+            }
+        }
+
+        private fun resolveAllocatedString(ref: UConcreteHeapRef): String {
+            val valueField = ctx.stringValueField
+            val strValueLValue = UFieldLValue(ctx.typeToSort(valueField.fieldType), ref, valueField.field)
+            val strValue = resolveLValue(strValueLValue, valueField.fieldType)
+
+            return when (strValue) {
+                is CharArray -> String(strValue)
+                is ByteArray -> String(strValue)
+                else -> String()
+            }
         }
 
         private fun resolveType(type: JcRefType): Class<*> =

@@ -8,7 +8,6 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 internal class NotNullAnnotationTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Not implemented: string constant")
     fun testDoesNotThrowNPE() {
         checkDiscoveredProperties(
             NotNullAnnotation::doesNotThrowNPE,
@@ -22,7 +21,6 @@ internal class NotNullAnnotationTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testThrowsNPE() {
         checkDiscoveredProperties(
             NotNullAnnotation::throwsNPE,
@@ -33,7 +31,6 @@ internal class NotNullAnnotationTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testSeveralParameters() {
         checkDiscoveredProperties(
             NotNullAnnotation::severalParameters,
@@ -48,7 +45,6 @@ internal class NotNullAnnotationTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testUseNotNullableValue() {
         checkDiscoveredProperties(
             NotNullAnnotation::useNotNullableValue,
@@ -62,7 +58,7 @@ internal class NotNullAnnotationTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("java.lang.Integer#valueOf(int). Native calls in IntegerCache#<clinit>")
     fun testNotNullableVariable() {
         checkDiscoveredProperties(
             NotNullAnnotation::notNullableVariable,
@@ -77,7 +73,7 @@ internal class NotNullAnnotationTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("java.lang.Integer#valueOf(int). Native calls in IntegerCache#<clinit>")
     fun testNotNullField() {
         checkDiscoveredProperties(
             NotNullAnnotation::notNullField,
@@ -97,7 +93,6 @@ internal class NotNullAnnotationTest : JavaMethodTestRunner() {
 //    }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testJavaxValidationNotNull() {
         checkDiscoveredProperties(
             NotNullAnnotation::javaxValidationNotNull,

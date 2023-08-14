@@ -8,7 +8,7 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 internal class FinalStaticFieldArrayTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("No entrypoint found for method: jdk.internal.misc.Unsafe#registerNatives()")
     fun testFactorial() {
         checkDiscoveredProperties(
             FinalStaticFieldArray::factorial,
