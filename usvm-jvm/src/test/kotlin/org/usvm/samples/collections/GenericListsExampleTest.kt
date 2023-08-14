@@ -83,7 +83,7 @@ internal class GenericListsExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun createWildcardWithOnlyQuestionMark() = disableTest("Some properties were not discovered at positions (from 0): [1, 2]") {
+    fun createWildcardWithOnlyQuestionMark() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
         checkDiscoveredProperties(
             GenericListsExample<*>::wildcardWithOnlyQuestionMark,
             eq(3),

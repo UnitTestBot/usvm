@@ -21,7 +21,7 @@ internal class SetsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testSetContainsInteger() = disableTest("Some properties were not discovered at positions (from 0): [1, 2, 3]") {
+    fun testSetContainsInteger() = disableTest("Some properties were not discovered at positions (from 0): [1, 3]") {
         checkDiscoveredProperties(
             Sets::setContainsInteger,
             ignoreNumberOfAnalysisResults,
@@ -130,7 +130,7 @@ internal class SetsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun removeCustomObjectTest() = disableTest("Some properties were not discovered at positions (from 0): [2, 3]") {
+    fun removeCustomObjectTest() = disableTest("Some properties were not discovered at positions (from 0): [3]") {
         checkDiscoveredProperties(
             Sets::removeCustomObject,
             ge(4),
@@ -156,7 +156,7 @@ internal class SetsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testRemoveAllElements() = disableTest("Some properties were not discovered at positions (from 0): [1, 2, 3]") {
+    fun testRemoveAllElements() = disableTest("Some properties were not discovered at positions (from 0): [3]") {
         checkDiscoveredProperties(
             Sets::removeAllElements,
             eq(4),
@@ -209,7 +209,7 @@ internal class SetsTest : JavaMethodTestRunner() {
 
 
     @Test
-    fun testContainsElement() = disableTest("Some properties were not discovered at positions (from 0): [1, 2]") {
+    fun testContainsElement() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
         checkDiscoveredProperties(
             Sets::containsElement,
             between(3..5),

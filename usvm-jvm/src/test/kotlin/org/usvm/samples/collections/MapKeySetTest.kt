@@ -11,7 +11,7 @@ import org.usvm.util.isException
 
 class MapKeySetTest : JavaMethodTestRunner() {
     @Test
-    fun testRemoveFromKeySet() = disableTest("Some properties were not discovered at positions (from 0): [1, 2]") {
+    fun testRemoveFromKeySet() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
         checkDiscoveredPropertiesWithExceptions(
             MapKeySet::removeFromKeySet,
             ignoreNumberOfAnalysisResults,
@@ -72,7 +72,7 @@ class MapKeySetTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testIteratorRemove() = disableTest("Some properties were not discovered at positions (from 0): [1, 2]") {
+    fun testIteratorRemove() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
         checkDiscoveredPropertiesWithExceptions(
             MapKeySet::iteratorRemove,
             between(3..4),
@@ -90,7 +90,7 @@ class MapKeySetTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testIteratorRemoveOnIndex() = disableTest("Some properties were not discovered at positions (from 0): [2, 3, 4]") {
+    fun testIteratorRemoveOnIndex() = disableTest("Some properties were not discovered at positions (from 0): [4]") {
         checkDiscoveredPropertiesWithExceptions(
             MapKeySet::iteratorRemoveOnIndex,
             ge(5),
@@ -110,7 +110,7 @@ class MapKeySetTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testIterateForEach() = disableTest("Some properties were not discovered at positions (from 0): [1, 2]") {
+    fun testIterateForEach() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
         checkDiscoveredProperties(
             MapKeySet::iterateForEach,
             ignoreNumberOfAnalysisResults,
@@ -121,7 +121,7 @@ class MapKeySetTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testIterateWithIterator() = disableTest("Some properties were not discovered at positions (from 0): [1, 2]") {
+    fun testIterateWithIterator() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
         checkDiscoveredProperties(
             MapKeySet::iterateWithIterator,
             ignoreNumberOfAnalysisResults,

@@ -40,7 +40,7 @@ internal class CorrectBracketSequencesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testIsCbs() = disableTest("Some properties were not discovered at positions (from 0): [3, 4, 5, 6, 7]") {
+    fun testIsCbs() = disableTest("Some properties were not discovered at positions (from 0): [3, 4, 7]") {
         val method = CorrectBracketSequences::isCbs
         checkDiscoveredPropertiesWithExceptions(
             method,

@@ -38,7 +38,7 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testEnumToEnumMapCountMatches() = disableTest("Some properties were not discovered at positions (from 0): [0, 1]") {
+    fun testEnumToEnumMapCountMatches() {
         checkDiscoveredProperties(
             ComplexEnumExamples::enumToEnumMapCountMatches,
             ignoreNumberOfAnalysisResults,

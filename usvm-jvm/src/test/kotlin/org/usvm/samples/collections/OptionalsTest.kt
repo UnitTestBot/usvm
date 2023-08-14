@@ -402,7 +402,7 @@ class OptionalsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testEqualOptionalsInt() = disableTest("Expected number of executions in bounds 4..8, but 9 found") {
+    fun testEqualOptionalsInt() = disableTest("Some properties were not discovered: Depends on PS") {
         checkDiscoveredProperties(
             Optionals::equalOptionalsInt,
             between(4..8),
@@ -414,7 +414,7 @@ class OptionalsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testEqualOptionalsLong() = disableTest("Expected number of executions in bounds 4..8, but 9 found") {
+    fun testEqualOptionalsLong() = disableTest("Some properties were not discovered: Depends on PS") {
         checkDiscoveredProperties(
             Optionals::equalOptionalsLong,
             between(4..8),
@@ -426,7 +426,7 @@ class OptionalsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testEqualOptionalsDouble() = disableTest("Expected number of executions in bounds 4..8, but 12 found") {
+    fun testEqualOptionalsDouble() = disableTest("Some properties were not discovered: Depends on ???") {
         checkDiscoveredProperties(
             Optionals::equalOptionalsDouble,
             between(4..8),

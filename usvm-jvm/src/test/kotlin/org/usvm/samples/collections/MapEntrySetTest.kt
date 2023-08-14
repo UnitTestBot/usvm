@@ -28,7 +28,7 @@ class MapEntrySetTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testAddToEntrySet() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
+    fun testAddToEntrySet() = disableTest("Expected number of executions in bounds 2..4, but 21 found") {
         checkDiscoveredPropertiesWithExceptions(
             MapEntrySet::addToEntrySet,
             between(2..4),
@@ -60,7 +60,7 @@ class MapEntrySetTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testIteratorNext() = disableTest("Some properties were not discovered at positions (from 0): [1, 2]") {
+    fun testIteratorNext() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
         checkDiscoveredPropertiesWithExceptions(
             MapEntrySet::iteratorNext,
             between(3..5),
@@ -77,7 +77,7 @@ class MapEntrySetTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testIteratorRemove() = disableTest("Some properties were not discovered at positions (from 0): [1, 2]") {
+    fun testIteratorRemove() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
         checkDiscoveredPropertiesWithExceptions(
             MapEntrySet::iteratorRemove,
             between(3..4),
@@ -95,7 +95,7 @@ class MapEntrySetTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testIteratorRemoveOnIndex() = disableTest("Some properties were not discovered at positions (from 0): [2, 3, 4]") {
+    fun testIteratorRemoveOnIndex() = disableTest("Some properties were not discovered at positions (from 0): [4]") {
         checkDiscoveredPropertiesWithExceptions(
             MapEntrySet::iteratorRemoveOnIndex,
             ge(5),
@@ -127,7 +127,7 @@ class MapEntrySetTest : JavaMethodTestRunner() {
 
 
     @Test
-    fun testIterateWithIterator() = disableTest("Some properties were not discovered at positions (from 0): [1, 2, 3, 4, 5]") {
+    fun testIterateWithIterator() = disableTest("Some properties were not discovered at positions (from 0): [2, 3, 4, 5]") {
         checkDiscoveredPropertiesWithExceptions(
             MapEntrySet::iterateWithIterator,
             ignoreNumberOfAnalysisResults,

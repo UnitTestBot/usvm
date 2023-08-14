@@ -68,8 +68,8 @@ internal class RecursionTest : JavaMethodTestRunner() {
         }
     }
 
-    @Test
-    fun infiniteRecursionTest() = disableTest("Expected exactly 2 executions, but 54 found. Fix minimization") {
+    @Test // todo: Fix minimization
+    fun infiniteRecursionTest() = disableTest("Expected exactly 2 executions, but 54 found") {
         checkDiscoveredPropertiesWithExceptions(
             Recursion::infiniteRecursion,
             eq(2),

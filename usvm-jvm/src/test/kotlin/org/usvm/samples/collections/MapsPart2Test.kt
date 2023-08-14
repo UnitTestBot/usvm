@@ -8,7 +8,7 @@ import org.usvm.util.isException
 
 internal class MapsPart2Test : JavaMethodTestRunner() {
     @Test
-    fun testReplaceEntryWithValue() = disableTest("Some properties were not discovered at positions (from 0): [1, 2, 3, 4, 5]") {
+    fun testReplaceEntryWithValue() = disableTest("Some properties were not discovered at positions (from 0): [2, 3, 4, 5]") {
         checkDiscoveredProperties(
             Maps::replaceEntryWithValue,
             ge(6),

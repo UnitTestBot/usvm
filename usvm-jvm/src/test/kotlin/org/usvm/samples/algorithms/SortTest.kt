@@ -30,7 +30,7 @@ internal class SortTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testArrayCopy() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
+    fun testArrayCopy() {
         checkDiscoveredProperties(
             Sort::arrayCopy,
             ignoreNumberOfAnalysisResults,

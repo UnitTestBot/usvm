@@ -43,7 +43,7 @@ class SetIteratorsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testIteratorRemove() = disableTest("Expected number of executions in bounds 3..4, but 277 found") {
+    fun testIteratorRemove() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
         checkDiscoveredPropertiesWithExceptions(
             SetIterators::iteratorRemove,
             between(3..4),
@@ -60,7 +60,7 @@ class SetIteratorsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testIteratorRemoveOnIndex() = disableTest("Some properties were not discovered at positions (from 0): [3, 4]") {
+    fun testIteratorRemoveOnIndex() = disableTest("Some properties were not discovered at positions (from 0): [4]") {
         checkDiscoveredPropertiesWithExceptions(
             SetIterators::iteratorRemoveOnIndex,
             ge(5),
@@ -80,7 +80,7 @@ class SetIteratorsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testIterateForEach() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
+    fun testIterateForEach() {
         checkDiscoveredProperties(
             SetIterators::iterateForEach,
             ignoreNumberOfAnalysisResults,

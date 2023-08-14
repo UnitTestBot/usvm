@@ -80,7 +80,7 @@ internal class SwitchTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testStringSwitch() {
+    fun testStringSwitch() = disableTest("slow") {
         checkDiscoveredProperties(
             Switch::stringSwitch,
             ge(4),

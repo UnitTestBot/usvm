@@ -52,7 +52,7 @@ class QueueUsagesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testAddQueue() = disableTest("Expected exactly 3 executions, but 11 found") {
+    fun testAddQueue() = disableTest("Some properties were not discovered: OutOfMemory") {
         checkDiscoveredPropertiesWithExceptions(
             QueueUsages::addQueue,
             eq(3),

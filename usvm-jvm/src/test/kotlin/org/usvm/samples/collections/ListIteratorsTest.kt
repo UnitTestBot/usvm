@@ -1,12 +1,12 @@
 package org.usvm.samples.collections
 
 
-import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import org.usvm.util.disableTest
 import kotlin.math.min
+import kotlin.test.Test
 
 internal class ListIteratorsTest : JavaMethodTestRunner() {
     @Test
@@ -30,7 +30,7 @@ internal class ListIteratorsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testIterate() = disableTest("Expected exactly 3 executions, but 240 found") {
+    fun testIterate() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
         checkDiscoveredProperties(
             ListIterators::iterate,
             eq(3),
@@ -64,7 +64,7 @@ internal class ListIteratorsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testAddElements() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
+    fun testAddElements() = disableTest("Some properties were not discovered: OutOfMemory") {
         checkDiscoveredProperties(
             ListIterators::addElements,
             eq(5),

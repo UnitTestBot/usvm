@@ -1,14 +1,14 @@
 package org.usvm.samples.collections
 
-import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import org.usvm.util.disableTest
+import kotlin.test.Test
 
 
 internal class ListsPart1Test : JavaMethodTestRunner() {
     @Test
-    fun testIterableContains() = disableTest("Some properties were not discovered at positions (from 0): [1, 2]") {
+    fun testIterableContains() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
         checkDiscoveredProperties(
             Lists::iterableContains,
             ignoreNumberOfAnalysisResults,

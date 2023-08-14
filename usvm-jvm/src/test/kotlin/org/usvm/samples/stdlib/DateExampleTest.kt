@@ -38,7 +38,7 @@ class DateExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testGetTimeWithoutReflection() = disableTest("Expected exactly 3 executions, but 20 found") {
+    fun testGetTimeWithoutReflection() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
         checkDiscoveredPropertiesWithExceptions(
             DateExample::getTime,
             eq(3),

@@ -75,7 +75,7 @@ internal class ListsPart3Test : JavaMethodTestRunner() {
     }
 
     @Test
-    fun removeElementsTest() = disableTest("Some properties were not discovered at positions (from 0): [1, 2, 3, 4, 5, 6]") {
+    fun removeElementsTest() = disableTest("Some properties were not discovered at positions (from 0): [3, 4, 5, 6]") {
         checkDiscoveredPropertiesWithExceptions(
             Lists::removeElements,
             between(7..8),

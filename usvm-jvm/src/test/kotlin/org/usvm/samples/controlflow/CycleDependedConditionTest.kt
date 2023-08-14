@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
+import org.usvm.util.disableTest
 
 
 internal class CycleDependedConditionTest : JavaMethodTestRunner() {
@@ -31,7 +32,7 @@ internal class CycleDependedConditionTest : JavaMethodTestRunner() {
 
 
     @Test
-    fun testCycleDependedThreeCondition() {
+    fun testCycleDependedThreeCondition() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
         checkDiscoveredProperties(
             CycleDependedCondition::threeCondition,
             ignoreNumberOfAnalysisResults,

@@ -5,6 +5,7 @@ import org.jacodb.api.ext.toType
 import org.junit.jupiter.api.TestInstance
 import org.usvm.CoverageZone
 import org.usvm.PathSelectionStrategy
+import org.usvm.SolverType
 import org.usvm.UMachineOptions
 import org.usvm.api.JcClassCoverage
 import org.usvm.api.JcParametersState
@@ -721,6 +722,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
     override var options: UMachineOptions = UMachineOptions(
         pathSelectionStrategies = listOf(PathSelectionStrategy.FORK_DEPTH),
         coverageZone = CoverageZone.TRANSITIVE,
+        solverType = SolverType.Z3,
         exceptionsPropagation = true,
         timeoutMs = 60_000,
         stepsFromLastCovered = 3500L,

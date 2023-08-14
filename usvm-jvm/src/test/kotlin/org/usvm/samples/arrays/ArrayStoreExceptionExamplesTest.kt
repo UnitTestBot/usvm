@@ -129,7 +129,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testArrayCopyForIncompatiblePrimitiveTypes() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
+    fun testArrayCopyForIncompatiblePrimitiveTypes() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::arrayCopyForIncompatiblePrimitiveTypes,
             eq(3),

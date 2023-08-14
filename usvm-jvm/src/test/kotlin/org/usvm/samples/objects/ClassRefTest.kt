@@ -31,7 +31,7 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testTakeClassRefFromParam() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
+    fun testTakeClassRefFromParam() {
         checkDiscoveredProperties(
             ClassRef::takeClassRefFromParam,
             eq(2),
@@ -60,7 +60,7 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testTwoDimArrayClassRefFromParam() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
+    fun testTwoDimArrayClassRefFromParam() {
         checkDiscoveredProperties(
             ClassRef::twoDimArrayClassRefFromParam,
             eq(2),

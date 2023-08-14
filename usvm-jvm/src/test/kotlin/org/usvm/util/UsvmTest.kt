@@ -7,9 +7,13 @@ import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.ArgumentsProvider
 import org.junit.jupiter.params.provider.ArgumentsSource
 import org.junit.jupiter.params.support.AnnotationConsumer
-import org.usvm.*
+import org.usvm.CoverageZone
+import org.usvm.PathSelectionStrategy
+import org.usvm.PathSelectorCombinationStrategy
+import org.usvm.SolverType
+import org.usvm.UMachineOptions
 import java.util.stream.Stream
-import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 annotation class Options(
     val strategies: Array<PathSelectionStrategy>,
@@ -49,19 +53,23 @@ class MachineOptionsArgumentsProvider : ArgumentsProvider, AnnotationConsumer<Us
 
 inline fun disableTest(message: String, body: () -> Unit) =
     checkErrorNotChanged(message, body) {
-        it.isEmpty() // || it.startsWith("Some properties were not discovered")
+        it.isEmpty()
+//                || it.startsWith("Some properties were not discovered")
+//                || it.startsWith("Expected")
     }
 
 inline fun checkErrorNotChanged(message: String, body: () -> Unit, predicate: (String) -> Boolean) {
     val needCheck = predicate(message)
     Assumptions.assumeTrue(needCheck, message)
 
-    val actualError = try {
+    try {
         body()
-        null
+        error("Passed but was disabled: $message")
     } catch (ex: Throwable) {
-        ex.message
-    }
+        if (message.trim() != ex.message?.trim()) {
+            throw IllegalStateException(message, ex)
+        }
 
-    assertEquals(message.trim(), actualError?.trim())
+        assertTrue(false, message)
+    }
 }

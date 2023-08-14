@@ -9,7 +9,7 @@ import org.usvm.util.isException
 
 class CopyOfExampleTest : JavaMethodTestRunner() {
     @Test
-    fun testCopyOf() = disableTest("Some properties were not discovered at positions (from 0): [0, 1]") {
+    fun testCopyOf() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredPropertiesWithExceptions(
             CopyOfExample::copyOfExample,
             ignoreNumberOfAnalysisResults,

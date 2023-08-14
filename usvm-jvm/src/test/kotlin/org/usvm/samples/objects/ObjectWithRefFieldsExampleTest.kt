@@ -19,8 +19,8 @@ internal class ObjectWithRefFieldsExampleTest : JavaMethodTestRunner() {
         )
     }
 
-    @Test
-    fun testWriteToRefTypeField() = disableTest("Some properties were not discovered at positions (from 0): [2]. Fix branch coverage") {
+    @Test // todo: Fix branch coverage
+    fun testWriteToRefTypeField() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
         checkDiscoveredProperties(
             ObjectWithRefFieldExample::writeToRefTypeField,
             ignoreNumberOfAnalysisResults,

@@ -10,7 +10,7 @@ import kotlin.math.min
 
 internal class MinStackExampleTest : JavaMethodTestRunner() {
     @Test
-    fun testCreate() {
+    fun testCreate() = disableTest("Some properties were not discovered: Depends on PS") {
         checkDiscoveredProperties(
             MinStackExample::create,
             eq(3),

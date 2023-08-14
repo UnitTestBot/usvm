@@ -341,7 +341,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testIsBlank() = disableTest("Some properties were not discovered at positions (from 0): [1, 2, 3]") {
+    fun testIsBlank() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
         checkDiscoveredProperties(
             StringExamples::isBlank,
             ge(4),
@@ -547,7 +547,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testLastIndexOf() = disableTest("Expected number of executions in bounds 5..7, but 87 found") {
+    fun testLastIndexOf() = disableTest("Some properties were not discovered at positions (from 0): [2, 3]") {
         checkDiscoveredProperties(
             StringExamples::lastIndexOf,
             between(5..7),
@@ -574,7 +574,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
 
 
     @Test
-    fun testLastIndexOfWithOffset() = disableTest("Expected number of executions in bounds 5..9, but 78 found") {
+    fun testLastIndexOfWithOffset() = disableTest("Some properties were not discovered at positions (from 0): [2, 3]") {
         checkDiscoveredProperties(
             StringExamples::lastIndexOfWithOffset,
             between(5..9),
@@ -587,7 +587,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testCompareCodePoints() = disableTest("Expected number of executions in bounds 8..10, but 79 found") {
+    fun testCompareCodePoints() = disableTest("Some properties were not discovered at positions (from 0): [1, 3, 5]") {
         checkDiscoveredPropertiesWithExceptions(
             StringExamples::compareCodePoints,
             between(8..10),

@@ -42,8 +42,8 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
         )
     }
 
-    @Test
-    fun testNullParameter() = disableTest("Some properties were not discovered at positions (from 0): [1]. Support enums") {
+    @Test // todo: Support enums
+    fun testNullParameter() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
         checkDiscoveredProperties(
             ClassWithEnum::nullEnumAsParameter,
             between(2..3),

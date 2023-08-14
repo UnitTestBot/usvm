@@ -26,7 +26,7 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testReplaceEntry() = disableTest("Some properties were not discovered at positions (from 0): [1, 2]") {
+    fun testReplaceEntry() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
         checkDiscoveredProperties(
             Maps::replaceEntry,
             between(3..6),
@@ -109,7 +109,7 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
     }
 
     @Test
-    fun putElementsTest() = disableTest("Some properties were not discovered at positions (from 0): [2, 3, 4]") {
+    fun putElementsTest() = disableTest("Some properties were not discovered at positions (from 0): [3, 4]") {
         checkDiscoveredProperties(
             Maps::putElements,
             ge(5),
@@ -149,7 +149,7 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
     }
 
     @Test
-    fun removeCustomObjectTest() = disableTest("Some properties were not discovered at positions (from 0): [1, 2]") {
+    fun removeCustomObjectTest() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
         checkDiscoveredProperties(
             Maps::removeCustomObject,
             ge(3),
@@ -261,7 +261,7 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testContainsValue() = disableTest("Some properties were not discovered at positions (from 0): [1, 2]") {
+    fun testContainsValue() = disableTest("Some properties were not discovered: Execution depends on PS") {
         checkDiscoveredProperties(
             Maps::containsValue,
             between(3..6),
@@ -272,7 +272,7 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testGetOrDefaultElement() = disableTest("Some properties were not discovered at positions (from 0): [1, 2, 3]") {
+    fun testGetOrDefaultElement() = disableTest("Some properties were not discovered at positions (from 0): [2, 3]") {
         checkDiscoveredProperties(
             Maps::getOrDefaultElement,
             between(4..6),
@@ -284,7 +284,7 @@ internal class MapsPart1Test : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testRemoveKeyWithValue() = disableTest("Some properties were not discovered at positions (from 0): [1, 2, 3, 4, 5]") {
+    fun testRemoveKeyWithValue() = disableTest("Some properties were not discovered at positions (from 0): [2, 3, 4, 5]") {
         checkDiscoveredProperties(
             Maps::removeKeyWithValue,
             ge(6),
