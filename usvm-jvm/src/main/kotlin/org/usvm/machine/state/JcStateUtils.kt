@@ -10,9 +10,9 @@ import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.machine.JcApplicationGraph
 
-val JcState.lastStmt get() = path.last()
+val JcState.lastStmt get() = pathLocation.statement
 fun JcState.newStmt(stmt: JcInst) {
-    path = path.add(stmt)
+    pathLocation = pathLocation.pathLocationFor(stmt, this)
 }
 
 fun JcState.returnValue(valueToReturn: UExpr<out USort>) {

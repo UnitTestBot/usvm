@@ -1,35 +1,34 @@
 package org.usvm.machine.state
 
-import kotlinx.collections.immutable.PersistentList
-import kotlinx.collections.immutable.persistentListOf
 import org.jacodb.api.JcField
 import org.jacodb.api.JcMethod
 import org.jacodb.api.JcType
 import org.jacodb.api.cfg.JcInst
 import org.usvm.UCallStack
-import org.usvm.UContext
 import org.usvm.UState
 import org.usvm.constraints.UPathConstraints
+import org.usvm.machine.JcContext
 import org.usvm.memory.UMemoryBase
 import org.usvm.model.UModelBase
+import org.usvm.PathsTrieNode
 
 class JcState(
-    ctx: UContext,
+    ctx: JcContext,
     callStack: UCallStack<JcMethod, JcInst> = UCallStack(),
-    pathConstraints: UPathConstraints<JcType> = UPathConstraints(ctx),
+    pathConstraints: UPathConstraints<JcType, JcContext> = UPathConstraints(ctx),
     memory: UMemoryBase<JcField, JcType, JcMethod> = UMemoryBase(ctx, pathConstraints.typeConstraints),
     models: List<UModelBase<JcField, JcType>> = listOf(),
-    path: PersistentList<JcInst> = persistentListOf(),
+    override var pathLocation: PathsTrieNode<JcState, JcInst> = ctx.mkInitialLocation(),
     var methodResult: JcMethodResult = JcMethodResult.NoCall,
-) : UState<JcType, JcField, JcMethod, JcInst>(
+) : UState<JcType, JcField, JcMethod, JcInst, JcContext, JcState>(
     ctx,
     callStack,
     pathConstraints,
     memory,
     models,
-    path
+    pathLocation
 ) {
-    override fun clone(newConstraints: UPathConstraints<JcType>?): JcState {
+    override fun clone(newConstraints: UPathConstraints<JcType, JcContext>?): JcState {
         val clonedConstraints = newConstraints ?: pathConstraints.clone()
         return JcState(
             pathConstraints.ctx,
@@ -37,7 +36,7 @@ class JcState(
             clonedConstraints,
             memory.clone(clonedConstraints.typeConstraints),
             models,
-            path,
+            pathLocation,
             methodResult,
         )
     }

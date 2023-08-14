@@ -54,7 +54,7 @@ class TypeSolverTest {
     private val typeSystem = testTypeSystem
     private val components = mockk<UComponents<Field, TestType, Method>>()
     private val ctx = UContext(components)
-    private val solver: USolverBase<Field, TestType, Method>
+    private val solver: USolverBase<Field, TestType, Method, UContext>
     private val typeSolver: UTypeSolver<TestType>
 
     init {
@@ -68,7 +68,7 @@ class TypeSolverTest {
         every { components.mkTypeSystem(ctx) } returns typeSystem
     }
 
-    private val pc = UPathConstraints<TestType>(ctx)
+    private val pc = UPathConstraints<TestType, UContext>(ctx)
     private val memory = UMemoryBase<Field, TestType, Method>(ctx, pc.typeConstraints)
 
     @Test

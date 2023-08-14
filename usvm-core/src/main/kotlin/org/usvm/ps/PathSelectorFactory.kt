@@ -7,16 +7,14 @@ import org.usvm.UPathSelector
 import org.usvm.UState
 import org.usvm.statistics.CoverageStatistics
 import org.usvm.statistics.DistanceStatistics
-import org.usvm.statistics.PathsTreeStatistics
 import org.usvm.util.DeterministicPriorityCollection
 import org.usvm.util.RandomizedPriorityCollection
 import kotlin.math.max
 import kotlin.random.Random
 
-fun <Method, Statement, State : UState<*, *, Method, Statement>> createPathSelector(
+fun <Method, Statement, State : UState<*, *, Method, Statement, *, State>> createPathSelector(
     initialState: State,
     options: UMachineOptions,
-    pathsTreeStatistics: () -> PathsTreeStatistics<Method, Statement, State>? = { null },
     coverageStatistics: () -> CoverageStatistics<Method, Statement, State>? = { null },
     distanceStatistics: () -> DistanceStatistics<Method, Statement>? = { null },
 ): UPathSelector<State> {
@@ -30,21 +28,15 @@ fun <Method, Statement, State : UState<*, *, Method, Statement>> createPathSelec
             PathSelectionStrategy.BFS -> BfsPathSelector()
             PathSelectionStrategy.DFS -> DfsPathSelector()
             PathSelectionStrategy.RANDOM_PATH -> RandomTreePathSelector(
-                pathsTreeStatistics = requireNotNull(pathsTreeStatistics()) { "Paths tree statistics is required for random tree path selector" },
+                // Initial state is the first `real` node, not the root.
+                root = requireNotNull(initialState.pathLocation.parent),
                 randomNonNegativeInt = { random.nextInt(0, Int.MAX_VALUE) }
             )
 
             PathSelectionStrategy.DEPTH -> createDepthPathSelector()
             PathSelectionStrategy.DEPTH_RANDOM -> createDepthPathSelector(random)
-            PathSelectionStrategy.FORK_DEPTH -> createForkDepthPathSelector(
-                requireNotNull(pathsTreeStatistics()) { "Paths tree statistics is required for fork depth path selector" }
-            )
-
-            PathSelectionStrategy.FORK_DEPTH_RANDOM -> createForkDepthPathSelector(
-                requireNotNull(pathsTreeStatistics()) { "Paths tree statistics is required for fork depth path selector" },
-                random
-            )
-
+            PathSelectionStrategy.FORK_DEPTH -> createForkDepthPathSelector()
+            PathSelectionStrategy.FORK_DEPTH_RANDOM -> createForkDepthPathSelector(random)
             PathSelectionStrategy.CLOSEST_TO_UNCOVERED -> createClosestToUncoveredPathSelector(
                 requireNotNull(coverageStatistics()) { "Coverage statistics is required for closest to uncovered path selector" },
                 requireNotNull(distanceStatistics()) { "Distance statistics is required for closest to uncovered path selector" }
@@ -82,8 +74,7 @@ fun <Method, Statement, State : UState<*, *, Method, Statement>> createPathSelec
 
             wrappedSelectors.first().add(listOf(initialState))
             wrappedSelectors.drop(1).forEach {
-                @Suppress("UNCHECKED_CAST")
-                it.add(listOf(initialState.clone() as State))
+                it.add(listOf(initialState.clone()))
             }
 
             ParallelPathSelector(wrappedSelectors)
@@ -96,36 +87,36 @@ fun <Method, Statement, State : UState<*, *, Method, Statement>> createPathSelec
 /**
  * Wraps the selector into an [ExceptionPropagationPathSelector] if [propagateExceptions] is true.
  */
-private fun <State : UState<*, *, *, *>> UPathSelector<State>.wrapIfRequired(propagateExceptions: Boolean) =
+private fun <State : UState<*, *, *, *, *, State>> UPathSelector<State>.wrapIfRequired(propagateExceptions: Boolean) =
     if (propagateExceptions && this !is ExceptionPropagationPathSelector<State>) {
         ExceptionPropagationPathSelector(this)
     } else {
         this
     }
 
-private fun <State : UState<*, *, *, *>> compareById(): Comparator<State> = compareBy { it.id }
+private fun <State : UState<*, *, *, *, *, State>> compareById(): Comparator<State> = compareBy { it.id }
 
-private fun <State : UState<*, *, *, *>> createDepthPathSelector(random: Random? = null): UPathSelector<State> {
+private fun <State : UState<*, *, *, *, *, State>> createDepthPathSelector(random: Random? = null): UPathSelector<State> {
     if (random == null) {
         return WeightedPathSelector(
             priorityCollectionFactory = { DeterministicPriorityCollection(Comparator.naturalOrder()) },
-            weighter = { it.path.size }
+            weighter = { it.pathLocation.depth }
         )
     }
 
     // Notice: random never returns 1.0
     return WeightedPathSelector(
         priorityCollectionFactory = { RandomizedPriorityCollection(compareById()) { random.nextDouble() } },
-        weighter = { 1.0 / max(it.path.size, 1) }
+        weighter = { 1.0 / max(it.pathLocation.depth, 1) }
     )
 }
 
-private fun <Method, Statement, State : UState<*, *, Method, Statement>> createClosestToUncoveredPathSelector(
+private fun <Method, Statement, State : UState<*, *, Method, Statement, *, State>> createClosestToUncoveredPathSelector(
     coverageStatistics: CoverageStatistics<Method, Statement, State>,
     distanceStatistics: DistanceStatistics<Method, Statement>,
     random: Random? = null,
 ): UPathSelector<State> {
-    val weighter = ShortestDistanceToTargetsStateWeighter(
+    val weighter = ShortestDistanceToTargetsStateWeighter<_, _, State>(
         targets = coverageStatistics.getUncoveredStatements(),
         getCfgDistance = distanceStatistics::getShortestCfgDistance,
         getCfgDistanceToExitPoint = distanceStatistics::getShortestCfgDistanceToExitPoint
@@ -146,19 +137,18 @@ private fun <Method, Statement, State : UState<*, *, Method, Statement>> createC
     )
 }
 
-private fun <Method, Statement, State : UState<*, *, Method, Statement>> createForkDepthPathSelector(
-    pathsTreeStatistics: PathsTreeStatistics<Method, Statement, State>,
+private fun <Method, Statement, State : UState<*, *, Method, Statement, *, State>> createForkDepthPathSelector(
     random: Random? = null,
 ): UPathSelector<State> {
     if (random == null) {
         return WeightedPathSelector(
             priorityCollectionFactory = { DeterministicPriorityCollection(Comparator.naturalOrder()) },
-            weighter = { pathsTreeStatistics.getStateDepth(it) }
+            weighter = { it.pathLocation.depth }
         )
     }
 
     return WeightedPathSelector(
         priorityCollectionFactory = { RandomizedPriorityCollection(compareById()) { random.nextDouble() } },
-        weighter = { 1.0 / max(pathsTreeStatistics.getStateDepth(it).toDouble(), 1.0) }
+        weighter = { 1.0 / max(it.pathLocation.depth.toDouble(), 1.0) }
     )
 }

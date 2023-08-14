@@ -13,6 +13,7 @@ annotation class Options(
     val strategies: Array<PathSelectionStrategy>,
     val combinationStrategy: PathSelectorCombinationStrategy = PathSelectorCombinationStrategy.INTERLEAVED,
     val stopOnCoverage: Int = 100,
+    val timeout: Long = 20_000,
     val coverageZone: CoverageZone = CoverageZone.METHOD,
     val solverType: SolverType = SolverType.YICES
 )
@@ -36,6 +37,7 @@ class MachineOptionsArgumentsProvider : ArgumentsProvider, AnnotationConsumer<Us
                 pathSelectionStrategies = it.strategies.toList(),
                 pathSelectorCombinationStrategy = it.combinationStrategy,
                 stopOnCoverage = it.stopOnCoverage,
+                timeoutMs = it.timeout,
                 coverageZone = it.coverageZone,
                 solverType = it.solverType
             )
