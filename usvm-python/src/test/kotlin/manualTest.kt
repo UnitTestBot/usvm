@@ -3,23 +3,22 @@ import org.usvm.language.PythonProgram
 import org.usvm.machine.*
 import org.usvm.language.PythonUnpinnedCallable
 import org.usvm.language.types.*
-import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.runner.SamplesBuild
 import org.usvm.utils.ReprObjectSerializer
 
 fun main() {
-    val (program, typeSystem) = constructStructuredProgram()
+    val (program, typeSystem) = constructStructuredProgram() //constructPrimitiveProgramFromStructured("SimpleTypeInference")
     val function = PythonUnpinnedCallable.constructCallableFromName(
         listOf(PythonAnyType),
-        "matmul_and_add",
+        "matmul_add_and_sub",
         "SimpleCustomClasses"
     )
 
-    val machine = PythonMachine(program, typeSystem, ReprObjectSerializer, printErrorMsg = true)
+    val machine = PythonMachine(program, typeSystem, ReprObjectSerializer, printErrorMsg = false)
     val start = System.currentTimeMillis()
     val iterations = machine.use { activeMachine ->
         val results: MutableList<PythonAnalysisResult<String>> = mutableListOf()
-        val returnValue = activeMachine.analyze(function, results, maxIterations = 15, allowPathDiversion = true)
+        val returnValue = activeMachine.analyze(function, results, maxIterations = 20, allowPathDiversion = true)
         results.forEach { (_, inputs, result) ->
             println("INPUT:")
             inputs.map { it.reprFromPythonObject }.forEach { println(it) }

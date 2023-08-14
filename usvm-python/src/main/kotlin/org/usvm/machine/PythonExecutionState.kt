@@ -8,9 +8,9 @@ import org.usvm.machine.interpreters.operations.tracing.SymbolicHandlerEvent
 import org.usvm.machine.symbolicobjects.ConverterToPythonObject
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.language.*
-import org.usvm.language.types.PythonType
-import org.usvm.language.types.PythonTypeSystem
-import org.usvm.language.types.TypeOfVirtualObject
+import org.usvm.language.types.*
+import org.usvm.machine.types.prioritization.SymbolTypeTree
+import org.usvm.machine.types.prioritization.prioritizeTypes
 import org.usvm.machine.utils.PyModel
 import org.usvm.memory.UMemoryBase
 import org.usvm.model.UModelBase
@@ -59,9 +59,12 @@ class PythonExecutionState(
 
     // TODO: here we will use Python type hints to prioritize concrete types
     fun makeTypeRating(delayedFork: DelayedFork): List<PythonType> {
-        val res = delayedFork.possibleTypes.take(MAX_CONCRETE_TYPES_TO_CONSIDER).toList()
-        require(res.first() == TypeOfVirtualObject)
-        return res.drop(1)
+        val candidates = delayedFork.possibleTypes.take(MAX_CONCRETE_TYPES_TO_CONSIDER).mapNotNull { it as? ConcretePythonType }
+        if (typeSystem is PythonTypeSystemWithMypyInfo) {
+            val typeGraph = SymbolTypeTree(this, typeSystem.typeHintsStorage, SymbolForCPython(delayedFork.symbol))
+            return prioritizeTypes(candidates, typeGraph, typeSystem)
+        }
+        return candidates
     }
 
     fun mock(what: MockHeader): MockResult {
