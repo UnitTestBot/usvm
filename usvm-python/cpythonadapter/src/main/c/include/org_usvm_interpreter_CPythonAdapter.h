@@ -97,7 +97,7 @@ JNIEXPORT jstring JNICALL Java_org_usvm_interpreter_CPythonAdapter_getPythonObje
 
 /*
  * Class:     org_usvm_interpreter_CPythonAdapter
- * Method:    getAddresOfReprFunction
+ * Method:    getAddressOfReprFunction
  * Signature: (J)J
  */
 JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_getAddressOfReprFunction
@@ -181,6 +181,14 @@ JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasNbInt
  * Signature: (J)I
  */
 JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasNbAdd
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_usvm_interpreter_CPythonAdapter
+ * Method:    typeHasNbSubtract
+ * Signature: (J)I
+ */
+JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasNbSubtract
   (JNIEnv *, jobject, jlong);
 
 /*

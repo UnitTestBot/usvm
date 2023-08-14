@@ -10,10 +10,13 @@
 
 #include "internal/pycore_frame.h"
 
-#define SET_IS_INITIALIZED(value) \
-    jclass cls = (*env)->GetObjectClass(env, cpython_adapter); \
-    jfieldID f = (*env)->GetFieldID(env, cls, "isInitialized", "Z"); \
+#define SET_BOOLEAN_FIELD(field_name, value) \
+    f = (*env)->GetFieldID(env, cls, field_name, "Z"); \
     (*env)->SetBooleanField(env, cpython_adapter, f, value);
+
+#define SET_INTEGER_FIELD(field_name, value) \
+    f = (*env)->GetFieldID(env, cls, field_name, "I"); \
+    (*env)->SetIntField(env, cpython_adapter, f, value);
 
 #define SET_EXCEPTION_IN_CPYTHONADAPTER \
     PyObject *type, *value, *traceback; \
@@ -32,12 +35,23 @@ JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_initializePython
 
     Py_InitializeFromConfig(&config);
     PyConfig_Clear(&config);
-    SET_IS_INITIALIZED(JNI_TRUE);
+
+    jclass cls = (*env)->GetObjectClass(env, cpython_adapter);
+    jfieldID f;
+    SET_BOOLEAN_FIELD("isInitialized", JNI_TRUE)
+    SET_INTEGER_FIELD("pyEQ", Py_EQ)
+    SET_INTEGER_FIELD("pyNE", Py_NE)
+    SET_INTEGER_FIELD("pyLT", Py_LT)
+    SET_INTEGER_FIELD("pyLE", Py_LE)
+    SET_INTEGER_FIELD("pyGT", Py_GT)
+    SET_INTEGER_FIELD("pyGE", Py_GE)
 }
 
 JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_finalizePython(JNIEnv *env, jobject cpython_adapter) {
     Py_FinalizeEx();
-    SET_IS_INITIALIZED(JNI_FALSE);
+    jclass cls = (*env)->GetObjectClass(env, cpython_adapter);
+    jfieldID f;
+    SET_BOOLEAN_FIELD("isInitialized", JNI_FALSE)
 }
 
 JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_getNewNamespace(JNIEnv *env, jobject cpython_adapter) {
@@ -262,6 +276,11 @@ JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasNbInt(JNI
 JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasNbAdd(JNIEnv *env, jobject _, jlong type_ref) {
     QUERY_TYPE_HAS_PREFIX
     return type->tp_as_number && type->tp_as_number->nb_add;
+}
+
+JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasNbSubtract(JNIEnv *env, jobject _, jlong type_ref) {
+    QUERY_TYPE_HAS_PREFIX
+    return type->tp_as_number && type->tp_as_number->nb_subtract;
 }
 
 JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasNbMultiply(JNIEnv *env, jobject _, jlong type_ref) {

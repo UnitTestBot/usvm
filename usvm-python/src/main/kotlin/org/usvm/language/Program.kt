@@ -1,5 +1,7 @@
 package org.usvm.language
 
+import org.usvm.language.types.PythonType
+import org.usvm.language.types.PythonTypeSystem
 import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.PythonNamespace
 import org.usvm.machine.interpreters.emptyNamespace
@@ -9,6 +11,7 @@ import java.io.File
 sealed class PythonProgram(val additionalPaths: Set<File>) {
     abstract fun <T> withPinnedCallable(
         callable: PythonUnpinnedCallable,
+        typeSystem: PythonTypeSystem,
         block: (PythonPinnedCallable) -> T
     ): T
 }
@@ -19,6 +22,7 @@ class PrimitivePythonProgram internal constructor(
 ): PythonProgram(additionalPaths) {
     override fun <T> withPinnedCallable(
         callable: PythonUnpinnedCallable,
+        typeSystem: PythonTypeSystem,
         block: (PythonPinnedCallable) -> T
     ): T {
         require(callable.module == null)
@@ -38,8 +42,9 @@ class PrimitivePythonProgram internal constructor(
 class StructuredPythonProgram(private val roots: Set<File>): PythonProgram(roots) {
     override fun <T> withPinnedCallable(
         callable: PythonUnpinnedCallable,
+        typeSystem: PythonTypeSystem,
         block: (PythonPinnedCallable) -> T
-    ): T = withAdditionalPaths(roots) {
+    ): T = withAdditionalPaths(roots, typeSystem) {
         if (callable.module == null) {
             val pinned = PythonPinnedCallable(callable.reference(emptyNamespace))  // for lambdas
             block(pinned)
@@ -63,7 +68,7 @@ class StructuredPythonProgram(private val roots: Set<File>): PythonProgram(roots
         return PythonNamespace(resultAsObj.address)
     }
 
-    fun getPrimitiveProgram(module: String): PrimitivePythonProgram = withAdditionalPaths(roots) {
+    fun getPrimitiveProgram(module: String): PrimitivePythonProgram = withAdditionalPaths(roots, null) {
         val namespace = getNamespaceOfModule(module)
         PrimitivePythonProgram(namespace, roots)
     }

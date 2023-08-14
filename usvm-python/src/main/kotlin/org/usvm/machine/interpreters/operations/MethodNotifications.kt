@@ -19,6 +19,11 @@ fun nbAddKt(context: ConcolicRunContext, left: UninterpretedSymbolicPythonObject
     myAssert(context, left.evalIs(context, HasNbAdd) or right.evalIs(context, HasNbAdd))
 }
 
+fun nbSubtractKt(context: ConcolicRunContext, left: UninterpretedSymbolicPythonObject) = with(context.ctx) {
+    context.curState ?: return
+    myAssert(context, left.evalIs(context, HasNbSubtract))
+}
+
 fun nbMultiplyKt(context: ConcolicRunContext, left: UninterpretedSymbolicPythonObject, right: UninterpretedSymbolicPythonObject) = with(context.ctx) {
     context.curState ?: return
     myAssert(context, left.evalIs(context, HasNbMultiply) or right.evalIs(context, HasNbMultiply))

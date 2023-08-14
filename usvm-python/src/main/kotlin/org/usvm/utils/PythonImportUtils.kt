@@ -1,9 +1,10 @@
 package org.usvm.utils
 
+import org.usvm.language.types.PythonTypeSystem
 import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import java.io.File
 
-fun <T> withAdditionalPaths(additionalPaths: Collection<File>, block: () -> T): T {
+fun <T> withAdditionalPaths(additionalPaths: Collection<File>, typeSystem: PythonTypeSystem?, block: () -> T): T {
     val namespace = ConcretePythonInterpreter.getNewNamespace()
     ConcretePythonInterpreter.addObjectToNamespace(
         namespace,
@@ -23,6 +24,7 @@ fun <T> withAdditionalPaths(additionalPaths: Collection<File>, block: () -> T): 
         """.trimIndent()
     )
 
+    typeSystem?.run { restart() }
     val result = block()
 
     // returning paths back to initial state
