@@ -22,7 +22,7 @@ class PythonMachine<PythonObjectRepresentation>(
     private val printErrorMsg: Boolean = false
 ): UMachine<PythonExecutionState>() {
     private val ctx = UPythonContext(typeSystem)
-    private val solver = ctx.solver<PropertyOfPythonObject, PythonType, PythonCallable>()
+    private val solver = ctx.solver<PropertyOfPythonObject, PythonType, PythonCallable, UPythonContext>()
     private val iterationCounter = IterationCounter()
 
     private fun getInterpreter(
@@ -45,7 +45,7 @@ class PythonMachine<PythonObjectRepresentation>(
         }
 
     private fun getInitialState(target: PythonUnpinnedCallable): PythonExecutionState {
-        val pathConstraints = UPathConstraints<PythonType>(ctx)
+        val pathConstraints = UPathConstraints<PythonType, UPythonContext>(ctx)
         val memory = UMemoryBase<PropertyOfPythonObject, PythonType, PythonCallable>(
             ctx,
             pathConstraints.typeConstraints

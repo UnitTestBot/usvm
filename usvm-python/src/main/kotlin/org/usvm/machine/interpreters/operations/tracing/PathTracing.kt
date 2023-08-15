@@ -16,16 +16,16 @@ fun <T : Any> withTracing(
 ): T? {
     if (context.curState == null)
         return null
-    context.instructionCounter++
-    if (context.instructionCounter > context.curState!!.path.size) {
+    if (context.pathPrefix.isEmpty()) {
         val result = runCatching { resultSupplier.call() }.onFailure { System.err.println(it) }.getOrThrow()
         if (context.curState == null)
             return null
         val eventRecord = SymbolicHandlerEvent(newEventParameters, result)
-        context.curState!!.path = context.curState!!.path.add(eventRecord)
+        context.curState!!.pathLocation = context.curState!!.pathLocation.pathLocationFor(eventRecord, context.curState!!)
         return result
     }
-    val event = context.curState!!.path[context.instructionCounter - 1]
+    val event = context.pathPrefix.first()
+    context.pathPrefix = context.pathPrefix.drop(1)
     if (event.parameters != newEventParameters) {
         logger.debug("Path diversion!")
         logger.debug("Expected: {}", event.parameters)

@@ -8,6 +8,7 @@ import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.*
 import org.usvm.language.types.PythonType
 import org.usvm.language.types.PythonTypeSystem
+import org.usvm.machine.UPythonContext
 import org.usvm.memory.UMemoryBase
 
 fun constructInputObject(
@@ -15,7 +16,7 @@ fun constructInputObject(
     type: PythonType,
     ctx: UContext,
     memory: UMemoryBase<PropertyOfPythonObject, PythonType, PythonCallable>,
-    pathConstraints: UPathConstraints<PythonType>,
+    pathConstraints: UPathConstraints<PythonType, UPythonContext>,
     typeSystem: PythonTypeSystem
 ): UninterpretedSymbolicPythonObject {
     @Suppress("unchecked_cast")
