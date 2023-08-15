@@ -1045,6 +1045,16 @@ class JcExprResolver(
             val possibleElementTypes = ctx.primitiveTypes + ctx.cp.objectType
             val possibleArrayTypes = possibleElementTypes.map { ctx.cp.arrayTypeOf(it) }
 
+            val arrayTypeConstraintsWithBlockOnStates = mutableListOf<Pair<UBoolExpr, (JcState) -> Unit>>()
+            possibleArrayTypes.forEach { type ->
+                addArrayCopyForType(
+                    method, arrayTypeConstraintsWithBlockOnStates, type,
+                    srcRef.asExpr(ctx.addressSort), srcPos.asExpr(ctx.sizeSort),
+                    dstRef.asExpr(ctx.addressSort), dstPos.asExpr(ctx.sizeSort),
+                    length.asExpr(ctx.sizeSort)
+                )
+            }
+
             val arrayTypeConstraints = possibleArrayTypes.map { type ->
                 scope.calcOnState {
                     ctx.mkAnd(
@@ -1053,34 +1063,6 @@ class JcExprResolver(
                     )
                 }
             }
-
-            val arrayTypeConstraintsWithBlockOnStates = mutableListOf<Pair<UBoolExpr, (JcState) -> Unit>>()
-            possibleArrayTypes.mapIndexedTo(arrayTypeConstraintsWithBlockOnStates) { idx, type ->
-                val constraint = arrayTypeConstraints[idx]
-
-                val block = { state: JcState ->
-                    // todo: check index out of bounds
-                    val arrayDescriptor = ctx.arrayDescriptorOf(type)
-
-                    val elementType = requireNotNull(type.ifArrayGetElementType)
-                    val cellSort = ctx.typeToSort(elementType)
-
-                    state.memory.memcpy(
-                        srcRef.asExpr(ctx.addressSort),
-                        dstRef.asExpr(ctx.addressSort),
-                        arrayDescriptor,
-                        cellSort,
-                        srcPos.asExpr(ctx.sizeSort),
-                        dstPos.asExpr(ctx.sizeSort),
-                        length.asExpr(ctx.sizeSort)
-                    )
-
-                    state.exitWithValue(method, ctx.voidValue)
-                }
-
-                constraint to block
-            }
-
             val unknownArrayType = ctx.mkAnd(arrayTypeConstraints.map { ctx.mkNot(it) })
             arrayTypeConstraintsWithBlockOnStates += unknownArrayType to allocateException(arrayStoreExceptionType)
 
@@ -1089,6 +1071,62 @@ class JcExprResolver(
         }
 
         return false
+    }
+
+    private fun addArrayCopyForType(
+        method: JcMethod,
+        branches: MutableList<Pair<UBoolExpr, (JcState) -> Unit>>,
+        type: JcArrayType,
+        srcRef: UHeapRef,
+        srcPos: USizeExpr,
+        dstRef: UHeapRef,
+        dstPos: USizeExpr,
+        length: USizeExpr
+    ) = with(ctx) {
+        val arrayDescriptor = arrayDescriptorOf(type)
+        val elementType = requireNotNull(type.ifArrayGetElementType)
+        val cellSort = typeToSort(elementType)
+
+        val arrayTypeConstraint = scope.calcOnState {
+            mkAnd(
+                memory.types.evalIsSubtype(srcRef.asExpr(addressSort), type),
+                memory.types.evalIsSubtype(dstRef.asExpr(addressSort), type)
+            )
+        }
+
+        val srcLengthRef = UArrayLengthLValue(srcRef, arrayDescriptor)
+        val srcLength = scope.calcOnState { memory.read(srcLengthRef).asExpr(sizeSort) }
+
+        val dstLengthRef = UArrayLengthLValue(dstRef, arrayDescriptor)
+        val dstLength = scope.calcOnState { memory.read(dstLengthRef).asExpr(sizeSort) }
+
+        val indexBoundsCheck = mkAnd(
+            mkBvSignedLessOrEqualExpr(mkBv(0), srcPos),
+            mkBvSignedLessOrEqualExpr(mkBv(0), dstPos),
+            mkBvSignedLessOrEqualExpr(mkBv(0), length),
+            mkBvSignedLessOrEqualExpr(mkBvAddExpr(srcPos, length), srcLength),
+            mkBvSignedLessOrEqualExpr(mkBvAddExpr(dstPos, length), dstLength),
+        )
+
+        val indexOutOfBoundsConstraint = arrayTypeConstraint and indexBoundsCheck.not()
+        branches += indexOutOfBoundsConstraint to allocateException(arrayIndexOutOfBoundsExceptionType)
+
+        val arrayCopySuccessConstraint = arrayTypeConstraint and indexBoundsCheck
+        val arrayCopyBlock = { state: JcState ->
+            state.memory.memcpy(
+                srcRef.asExpr(ctx.addressSort),
+                dstRef.asExpr(ctx.addressSort),
+                arrayDescriptor,
+                cellSort,
+                srcPos.asExpr(ctx.sizeSort),
+                dstPos.asExpr(ctx.sizeSort),
+                length.asExpr(ctx.sizeSort)
+            )
+
+            state.exitWithValue(method, ctx.voidValue)
+        }
+
+        branches += arrayCopySuccessConstraint to arrayCopyBlock
     }
 
     private fun approximateStringUtf16StaticMethod(method: JcMethod): Boolean {

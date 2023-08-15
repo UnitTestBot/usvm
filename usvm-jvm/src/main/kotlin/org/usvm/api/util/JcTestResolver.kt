@@ -82,13 +82,24 @@ class JcTestResolver(
         val initialScope = MemoryScope(ctx, model, model, method, classLoader)
         val afterScope = MemoryScope(ctx, model, memory, method, classLoader)
 
-        val before = with(initialScope) { resolveState() }
-        val after = with(afterScope) { resolveState() }
+        val before = try {
+            with(initialScope) { resolveState() }
+        } catch (ex: Throwable) {
+            logger.error(ex) { "Resolve state before failed" }
+            null
+        }
+
+        val after = try {
+            with(afterScope) { resolveState() }
+        } catch (ex: Throwable) {
+            logger.error(ex) { "Resolve state after failed" }
+            null
+        }
 
         val result = when (val res = state.methodResult) {
             is JcMethodResult.NoCall -> {
                 logger.error { "State terminated without a result" }
-                return null
+                null
             }
             is JcMethodResult.Success -> with(afterScope) { Result.success(resolveExpr(res.value, method.returnType)) }
             is JcMethodResult.JcException -> Result.failure(resolveException(res, afterScope))

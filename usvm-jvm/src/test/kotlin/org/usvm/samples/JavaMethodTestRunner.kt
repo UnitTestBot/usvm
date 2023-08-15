@@ -662,35 +662,35 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
     // endregion
 
     protected fun JcTest.takeAllParametersBefore(method: KFunction<*>): MutableList<Any?> =
-        before.takeAllParameters(method)
+        before?.takeAllParameters(method) ?: mutableListOf()
 
     protected fun JcTest.takeAllParametersBeforeWithResult(method: KFunction<*>): MutableList<Any?> {
-        val values = before.takeAllParameters(method)
-        result.let { values += it.getOrNull() }
+        val values = takeAllParametersBefore(method)
+        result?.let { values += it.getOrNull() }
 
         return values
     }
 
     protected fun JcTest.takeAllParametersAfter(method: KFunction<*>): MutableList<Any?> =
-        after.takeAllParameters(method)
+        after?.takeAllParameters(method) ?: mutableListOf()
 
     protected fun JcTest.takeAllParametersAfterWithResult(method: KFunction<*>): MutableList<Any?> {
-        val values = after.takeAllParameters(method)
-        result.let { values += it.getOrNull() }
+        val values = takeAllParametersAfter(method)
+        result?.let { values += it.getOrNull() }
 
         return values
     }
 
     private fun JcTest.takeAllParametersBeforeAndAfter(method: KFunction<*>): MutableList<Any?> {
-        val parameters = before.takeAllParameters(method)
-        parameters.addAll(after.takeAllParameters(method))
+        val parameters = takeAllParametersBefore(method)
+        parameters.addAll(takeAllParametersAfter(method))
 
         return parameters
     }
 
     protected fun JcTest.takeAllParametersBeforeAndAfterWithResult(method: KFunction<*>): MutableList<Any?> {
         val values = takeAllParametersBeforeAndAfter(method)
-        result.let { values += it.getOrNull() }
+        result?.let { values += it.getOrNull() }
 
         return values
     }
