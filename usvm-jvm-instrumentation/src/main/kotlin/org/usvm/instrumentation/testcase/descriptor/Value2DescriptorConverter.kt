@@ -1,6 +1,6 @@
 package org.usvm.instrumentation.testcase.descriptor
 
-import getFieldValue
+import org.usvm.instrumentation.util.getFieldValue
 import org.jacodb.api.JcClassOrInterface
 import org.jacodb.api.JcField
 import org.jacodb.api.JcType
@@ -11,6 +11,7 @@ import org.usvm.instrumentation.util.toJavaField
 import org.usvm.instrumentation.testcase.executor.UTestExpressionExecutor
 import org.usvm.instrumentation.testcase.api.UTestExpression
 import org.usvm.instrumentation.util.allDeclaredFields
+import org.usvm.instrumentation.util.toJcType
 import java.util.*
 
 open class Value2DescriptorConverter(
@@ -147,8 +148,9 @@ open class Value2DescriptorConverter(
             objectToDescriptor.remove(value)
         }
 
-    private fun `class`(value: Any): UTestValueDescriptor {
-        return UTestClassDescriptor(value::class.java.name, jcClasspath.findTypeOrNull<Class<*>>() ?: jcClasspath.objectType)
+    private fun `class`(value: Class<*>): UTestValueDescriptor {
+        val jcType = value.toJcType(jcClasspath) ?: jcClasspath.objectType
+        return UTestClassDescriptor(jcType, jcClasspath.findTypeOrNull<Class<*>>()!!)
     }
 
     private fun `object`(value: Any, depth: Int): UTestValueDescriptor {

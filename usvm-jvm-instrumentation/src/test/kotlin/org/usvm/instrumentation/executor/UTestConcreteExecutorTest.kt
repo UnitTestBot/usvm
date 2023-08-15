@@ -29,7 +29,7 @@ abstract class UTestConcreteExecutorTest {
             uTestConcreteExecutor = createUTestConcreteExecutor()
         }
 
-        fun createUTestConcreteExecutor(): UTestConcreteExecutor {
+        private fun createUTestConcreteExecutor(): UTestConcreteExecutor {
             return UTestConcreteExecutor(
                 JcRuntimeTraceInstrumenterFactory::class,
                 testJarPath,

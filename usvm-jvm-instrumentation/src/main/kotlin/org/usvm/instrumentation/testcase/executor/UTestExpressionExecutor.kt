@@ -1,10 +1,6 @@
 @file:Suppress("UNCHECKED_CAST")
 package org.usvm.instrumentation.testcase.executor
 
-import ReflectionUtils
-import getFieldValue
-import invokeWithAccessibility
-import newInstanceWithAccessibility
 import org.jacodb.api.JcField
 import org.jacodb.api.ext.*
 import org.usvm.instrumentation.classloader.WorkerClassLoader
@@ -14,7 +10,6 @@ import org.usvm.instrumentation.testcase.api.*
 import org.usvm.instrumentation.collector.trace.MockCollector
 import org.usvm.instrumentation.collector.trace.MockCollector.MockValueArrayWrapper
 import org.usvm.instrumentation.util.*
-import setFieldValue
 import java.lang.ClassCastException
 import java.lang.IllegalArgumentException
 
@@ -72,6 +67,7 @@ class UTestExpressionExecutor(
             is UTestSetFieldStatement -> executeUTestSetFieldStatement(uTestExpression)
             is UTestSetStaticFieldStatement -> executeUTestSetStaticFieldStatement(uTestExpression)
             is UTestArithmeticExpression -> executeUTestArithmeticExpression(uTestExpression)
+            is UTestClassExpression -> executeUTestClassExpression(uTestExpression)
         }
     }
 
@@ -277,6 +273,9 @@ class UTestExpressionExecutor(
             throw TestExecutorException("Cant cast object of type ${uTestCastExpression.expr.type} to ${uTestCastExpression.type}")
         }
     }
+
+    private fun executeUTestClassExpression(uTestClassExpression: UTestClassExpression): Any =
+        uTestClassExpression.type.toJavaClass(workerClassLoader)
 
     private fun executeConstructorCall(uConstructorCall: UTestConstructorCall): Any {
         val jConstructor = uConstructorCall.method.toJavaConstructor(workerClassLoader)

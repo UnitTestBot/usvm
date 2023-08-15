@@ -5,7 +5,7 @@ import org.junit.jupiter.api.extension.ExtensionContext
 import org.junit.jupiter.api.extension.ExtensionContext.Namespace.GLOBAL
 
 
-class UTestRunnerController: BeforeAllCallback, ExtensionContext.Store.CloseableResource {
+class UTestRunnerController : BeforeAllCallback, ExtensionContext.Store.CloseableResource {
 
     companion object {
         var started = false
@@ -20,6 +20,8 @@ class UTestRunnerController: BeforeAllCallback, ExtensionContext.Store.Closeable
     }
 
     override fun close() {
-        UTestRunner.runner.close()
+        if (UTestRunner.isInitialized()) {
+            UTestRunner.runner.close()
+        }
     }
 }

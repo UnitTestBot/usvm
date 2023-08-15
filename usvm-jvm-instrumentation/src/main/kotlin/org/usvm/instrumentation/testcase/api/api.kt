@@ -216,6 +216,10 @@ class UTestCastExpression(
     override val type: JcType
 ) : UTestExpression()
 
+class UTestClassExpression(
+    override val type: JcType
+): UTestExpression()
+
 
 enum class ConditionType {
     EQ, NEQ, GEQ, GT

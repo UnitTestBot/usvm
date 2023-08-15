@@ -1,10 +1,10 @@
 package org.usvm.instrumentation.testcase.descriptor
 
-import ReflectionUtils
 import org.jacodb.api.ext.*
+import org.usvm.instrumentation.util.ReflectionUtils
+import org.usvm.instrumentation.util.setFieldValue
 import org.usvm.instrumentation.util.toJavaClass
 import org.usvm.instrumentation.util.toJavaField
-import setFieldValue
 import java.util.*
 
 class Descriptor2ValueConverter(private val workerClassLoader: ClassLoader) {
@@ -46,7 +46,7 @@ class Descriptor2ValueConverter(private val workerClassLoader: ClassLoader) {
             }
             is UTestObjectDescriptor -> `object`(descriptor)
             is UTestEnumValueDescriptor -> `enum`(descriptor)
-            is UTestClassDescriptor -> workerClassLoader.loadClass(descriptor.className)
+            is UTestClassDescriptor -> descriptor.classType.toJavaClass(workerClassLoader)
         }
 
     private fun array(descriptor: UTestArrayDescriptor.Array): Any {

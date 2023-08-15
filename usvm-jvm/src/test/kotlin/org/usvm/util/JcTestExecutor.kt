@@ -4,18 +4,7 @@ import io.ksmt.utils.asExpr
 import kotlinx.coroutines.runBlocking
 import org.jacodb.api.*
 import org.jacodb.api.ext.*
-import org.usvm.INITIAL_INPUT_ADDRESS
-import org.usvm.NULL_ADDRESS
-import org.usvm.UArrayIndexLValue
-import org.usvm.UArrayLengthLValue
-import org.usvm.UConcreteHeapAddress
-import org.usvm.UConcreteHeapRef
-import org.usvm.UExpr
-import org.usvm.UFieldLValue
-import org.usvm.UHeapRef
-import org.usvm.ULValue
-import org.usvm.URegisterLValue
-import org.usvm.USort
+import org.usvm.*
 import org.usvm.api.JcCoverage
 import org.usvm.api.JcParametersState
 import org.usvm.api.JcTest
@@ -37,7 +26,7 @@ import org.usvm.machine.state.JcState
 import org.usvm.machine.state.localIdx
 import org.usvm.memory.UReadOnlySymbolicMemory
 import org.usvm.model.UModelBase
-import org.usvm.types.takeFirst
+import org.usvm.types.first
 
 /**
  * A class, responsible for resolving a single [JcTest] for a specific method from a symbolic state.
@@ -219,10 +208,10 @@ class JcTestExecutor(
                 val evaluatedType = if (ref.address <= INITIAL_INPUT_ADDRESS) {
                     // input object
                     val typeStream = model.typeStreamOf(ref).filterBySupertype(type)
-                    typeStream.takeFirst() as JcRefType
+                    typeStream.first() as JcRefType
                 } else {
                     // allocated object
-                    memory.typeStreamOf(ref).takeFirst()
+                    memory.typeStreamOf(ref).first()
                 }
                 when (evaluatedType) {
                     is JcArrayType -> resolveArray(ref, heapRef, evaluatedType)
@@ -265,6 +254,16 @@ class JcTestExecutor(
         private fun resolveObject(
             ref: UConcreteHeapRef, heapRef: UHeapRef, type: JcRefType
         ): Pair<UTestExpression, List<UTestExpression>> {
+
+            if (type.jcClass == ctx.classType.jcClass && ref.address >= INITIAL_CONCRETE_ADDRESS) {
+                return resolveAllocatedClass(ref)
+            }
+
+            if (type.jcClass == ctx.stringType.jcClass && ref.address >= INITIAL_CONCRETE_ADDRESS) {
+                return resolveAllocatedString(ref)
+            }
+
+
             val exprs = mutableListOf<UTestExpression>()
             val instance = UTestAllocateMemoryCall(type.jcClass)
 
@@ -274,7 +273,9 @@ class JcTestExecutor(
             exprs.add(instance)
 
             val fields =
-                generateSequence(type.jcClass) { it.superClass }.map { it.toType() }.flatMap { it.declaredFields }
+                generateSequence(type.jcClass) { it.superClass }
+                    .map { it.toType() }
+                    .flatMap { it.declaredFields }
                     .filter { !it.isStatic }
 
             for (field in fields) {
@@ -285,6 +286,22 @@ class JcTestExecutor(
                 fieldSetters.add(uTestSetFieldStmt)
             }
             return instance to fieldSetters
+        }
+
+        private fun resolveAllocatedClass(ref: UConcreteHeapRef): Pair<UTestExpression, List<UTestExpression>> {
+            val classTypeField = ctx.classTypeSyntheticField
+            val classTypeLValue = UFieldLValue(ctx.addressSort, ref, classTypeField)
+            val classTypeRef = memory.read(classTypeLValue) as? UConcreteHeapRef
+                ?: error("No type for allocated class")
+
+            val classType = memory.typeStreamOf(classTypeRef).first()
+            return UTestClassExpression(classType) to listOf()
+        }
+
+        private fun resolveAllocatedString(ref: UConcreteHeapRef): Pair<UTestExpression, List<UTestExpression>> {
+            val valueField = ctx.stringValueField
+            val strValueLValue = UFieldLValue(ctx.typeToSort(valueField.fieldType), ref, valueField.field)
+            return resolveLValue(strValueLValue, valueField.fieldType)
         }
 
         /**

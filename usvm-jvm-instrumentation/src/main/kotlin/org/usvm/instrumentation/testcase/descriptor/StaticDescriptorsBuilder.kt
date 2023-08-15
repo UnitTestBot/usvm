@@ -1,6 +1,5 @@
 package org.usvm.instrumentation.testcase.descriptor
 
-import getFieldValue
 import org.jacodb.api.JcClassOrInterface
 import org.jacodb.api.JcField
 import org.jacodb.api.ext.enumValues
@@ -8,8 +7,9 @@ import org.jacodb.api.ext.isEnum
 import org.usvm.instrumentation.classloader.WorkerClassLoader
 import org.usvm.instrumentation.instrumentation.JcInstructionTracer.StaticFieldAccessType
 import org.usvm.instrumentation.util.allDeclaredFields
+import org.usvm.instrumentation.util.getFieldValue
+import org.usvm.instrumentation.util.setFieldValue
 import org.usvm.instrumentation.util.toJavaField
-import setFieldValue
 
 class StaticDescriptorsBuilder(
     private var workerClassLoader: WorkerClassLoader,

@@ -435,11 +435,11 @@ class UTestValueDescriptorSerializer(private val ctx: SerializationContext) {
             uTestValueDescriptor = uTestObjectDescriptor,
             kind = UTestValueDescriptorKind.CLASS,
             serializeInternals = {},
-            serialize = { writeString(className) }
+            serialize = { writeJcType(classType) }
         )
 
     private fun AbstractBuffer.deserializeClass(): UTestClassDescriptor {
-        return UTestClassDescriptor(readString(), jcClasspath.findTypeOrNull<Class<*>>() ?: jcClasspath.objectType)
+        return UTestClassDescriptor(readJcType(jcClasspath)!!, jcClasspath.findTypeOrNull<Class<*>>() ?: jcClasspath.objectType)
     }
 
     private fun AbstractBuffer.serialize(uTestValueDescriptor: UTestEnumValueDescriptor) =

@@ -1,16 +1,12 @@
 package org.usvm.instrumentation.classloader
 
-import isFinal
-import isStatic
 import org.jacodb.api.JcClassOrInterface
 import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcField
 import org.jacodb.api.ext.findClass
 import org.objectweb.asm.tree.ClassNode
 import org.usvm.instrumentation.testcase.descriptor.StaticDescriptorsBuilder
-import org.usvm.instrumentation.util.URLClassPathLoader
-import org.usvm.instrumentation.util.toByteArray
-import setFieldValue
+import org.usvm.instrumentation.util.*
 import java.lang.instrument.ClassDefinition
 import java.lang.instrument.Instrumentation
 import java.security.CodeSource

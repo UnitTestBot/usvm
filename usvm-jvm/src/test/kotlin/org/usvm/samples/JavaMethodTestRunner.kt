@@ -765,6 +765,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
         }
     }
 
+
     override val coverageRunner: (List<JcTest>) -> JcClassCoverage = { _ ->
         JcClassCoverage(visitedStmts = emptySet())
     }
@@ -776,3 +777,6 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
         }
     }
 }
+
+private val KFunction<*>.declaringClass: Class<*>?
+    get() = (javaMethod ?: javaConstructor)?.declaringClass

@@ -19,6 +19,7 @@ import org.jacodb.api.ext.long
 import org.jacodb.api.ext.short
 import org.jacodb.api.ext.toType
 import org.jacodb.api.ext.void
+import org.usvm.INITIAL_CONCRETE_ADDRESS
 import org.usvm.INITIAL_INPUT_ADDRESS
 import org.usvm.NULL_ADDRESS
 import org.usvm.UArrayIndexLValue
@@ -45,11 +46,11 @@ import org.usvm.machine.extractLong
 import org.usvm.machine.extractShort
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
-import org.usvm.machine.state.WrappedException
 import org.usvm.machine.state.localIdx
 import org.usvm.memory.UReadOnlySymbolicMemory
 import org.usvm.model.UModelBase
-import org.usvm.types.takeFirst
+import org.usvm.types.first
+import org.usvm.types.firstOrNull
 
 /**
  * A class, responsible for resolving a single [JcTest] for a specific method from a symbolic state.
@@ -68,7 +69,7 @@ class JcTestInterpreter(
         val model = state.models.first()
         val memory = state.memory
 
-        val ctx = state.pathConstraints.ctx as JcContext
+        val ctx = state.pathConstraints.ctx
 
         val initialScope = MemoryScope(ctx, model, model, method, classLoader)
         val afterScope = MemoryScope(ctx, model, memory, method, classLoader)
@@ -79,7 +80,7 @@ class JcTestInterpreter(
         val result = when (val res = state.methodResult) {
             is JcMethodResult.NoCall -> error("No result found")
             is JcMethodResult.Success -> with(afterScope) { Result.success(resolveExpr(res.value, method.returnType)) }
-            is JcMethodResult.Exception -> Result.failure(resolveException(res.exception))
+            is JcMethodResult.JcException -> Result.failure(resolveException(res, afterScope))
         }
         val coverage = resolveCoverage(method, state)
 
@@ -92,11 +93,12 @@ class JcTestInterpreter(
         )
     }
 
-    private fun resolveException(exception: Exception): Throwable =
-        when (exception) {
-            is WrappedException -> Reflection.allocateInstance(classLoader.loadClass(exception.name)) as Throwable
-            else -> exception
-        }
+    private fun resolveException(
+        exception: JcMethodResult.JcException,
+        afterMemory: MemoryScope
+    ): Throwable = with(afterMemory) {
+        resolveExpr(exception.address, exception.type) as Throwable
+    }
 
     @Suppress("UNUSED_PARAMETER")
     private fun resolveCoverage(method: JcTypedMethod, state: JcState): JcCoverage {
@@ -172,16 +174,27 @@ class JcTestInterpreter(
             if (ref.address == NULL_ADDRESS) {
                 return null
             }
+            // to find a type, we need to understand the source of the object
+            val typeStream = if (ref.address <= INITIAL_INPUT_ADDRESS) {
+                // input object
+                model.typeStreamOf(ref)
+            } else {
+                // allocated object
+                memory.typeStreamOf(ref)
+            }.filterBySupertype(type)
+
+            // We filter allocated object type stream, because it could be stored in the input array,
+            // which resolved to a wrong type, since we do not build connections between element types
+            // and array types right now.
+            // In such cases, we need to resolve this element to null.
+
+            val evaluatedType = typeStream.firstOrNull() ?: return null
+
+            // We check for the type stream emptiness firsly and only then for the resolved cache,
+            // because even if the object is already resolved, it could be incompatible with the [type], if it
+            // is an element of an array of the wrong type.
+
             return resolvedCache.getOrElse(ref.address) {
-                // to find a type, we need to understand the source of the object
-                val evaluatedType = if (ref.address <= INITIAL_INPUT_ADDRESS) {
-                    // input object
-                    val typeStream = model.typeStreamOf(ref).filterBySupertype(type)
-                    typeStream.takeFirst() as JcRefType
-                } else {
-                    // allocated object
-                    memory.typeStreamOf(ref).takeFirst()
-                }
                 when (evaluatedType) {
                     is JcArrayType -> resolveArray(ref, heapRef, evaluatedType)
                     is JcClassType -> resolveObject(ref, heapRef, evaluatedType)
@@ -216,26 +229,41 @@ class JcTestInterpreter(
                     // TODO: works incorrectly for inner array
                     val clazz = resolveType(type.elementType as JcRefType)
                     val instance = Reflection.allocateArray(clazz, length)
+                    resolvedCache[ref.address] = instance
                     for (i in 0 until length) {
                         instance[i] = resolveElement(i)
                     }
                     instance
                 }
             }
-            resolvedCache[ref.address] = instance
+            if (type.elementType is JcPrimitiveType) {
+                resolvedCache[ref.address] = instance
+            }
             return instance
         }
 
         private fun resolveObject(ref: UConcreteHeapRef, heapRef: UHeapRef, type: JcRefType): Any {
+            if (type.jcClass == ctx.classType.jcClass && ref.address >= INITIAL_CONCRETE_ADDRESS) {
+                return resolveAllocatedClass(ref)
+            }
+
+            if (type.jcClass == ctx.stringType.jcClass && ref.address >= INITIAL_CONCRETE_ADDRESS) {
+                return resolveAllocatedString(ref)
+            }
+
             val clazz = resolveType(type)
             val instance = Reflection.allocateInstance(clazz)
             resolvedCache[ref.address] = instance
+
+            // TODO skips throwable construction for now
+            if (instance is Throwable) {
+                return instance
+            }
 
             val fields = generateSequence(type.jcClass) { it.superClass }
                 .map { it.toType() }
                 .flatMap { it.declaredFields }
                 .filter { !it.isStatic }
-
             for (field in fields) {
                 val lvalue = UFieldLValue(ctx.typeToSort(field.fieldType), heapRef, field.field)
                 val fieldValue = resolveLValue(lvalue, field.fieldType)
@@ -245,6 +273,41 @@ class JcTestInterpreter(
                 Reflection.setField(instance, javaField, fieldValue)
             }
             return instance
+        }
+
+        private fun resolveAllocatedClass(ref: UConcreteHeapRef): Class<*> {
+            val classTypeField = ctx.classTypeSyntheticField
+            val classTypeLValue = UFieldLValue(ctx.addressSort, ref, classTypeField)
+
+            val classTypeRef = memory.read(classTypeLValue) as? UConcreteHeapRef
+                ?: error("No type for allocated class")
+
+            val classType = memory.typeStreamOf(classTypeRef).first()
+
+            return when (classType) {
+                ctx.cp.boolean -> Boolean::class.javaPrimitiveType!!
+                ctx.cp.short -> Short::class.javaPrimitiveType!!
+                ctx.cp.int -> Int::class.javaPrimitiveType!!
+                ctx.cp.long -> Long::class.javaPrimitiveType!!
+                ctx.cp.float -> Float::class.javaPrimitiveType!!
+                ctx.cp.double -> Double::class.javaPrimitiveType!!
+                ctx.cp.byte -> Byte::class.javaPrimitiveType!!
+                ctx.cp.char -> Char::class.javaPrimitiveType!!
+                is JcRefType -> resolveType(classType)
+                else -> error("Unexpected type: $classType")
+            }
+        }
+
+        private fun resolveAllocatedString(ref: UConcreteHeapRef): String {
+            val valueField = ctx.stringValueField
+            val strValueLValue = UFieldLValue(ctx.typeToSort(valueField.fieldType), ref, valueField.field)
+            val strValue = resolveLValue(strValueLValue, valueField.fieldType)
+
+            return when (strValue) {
+                is CharArray -> String(strValue)
+                is ByteArray -> String(strValue)
+                else -> String()
+            }
         }
 
         private fun resolveType(type: JcRefType): Class<*> =

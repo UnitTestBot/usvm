@@ -142,6 +142,10 @@ public class A {
         return -1;
     }
 
+    public int getNumberOfClassConstructors(Class<?> clazz) {
+        return clazz.getDeclaredConstructors().length;
+    }
+
     public static List<Integer> staticJavaStdLibCall() {
         List<Integer> l = Arrays.asList(543, 432, 1, -23);
         l.sort(new Comparator<Integer>() {

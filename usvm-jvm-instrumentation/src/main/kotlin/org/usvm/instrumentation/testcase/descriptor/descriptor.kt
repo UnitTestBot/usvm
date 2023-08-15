@@ -186,13 +186,13 @@ class UTestEnumValueDescriptor(
 }
 
 class UTestClassDescriptor(
-    val className: String, override val type: JcType
+    val classType: JcType, override val type: JcType
 ): UTestValueDescriptor() {
     override fun structurallyEqual(other: UTestValueDescriptor): Boolean =
-        other is UTestClassDescriptor && className == other.className
+        other is UTestClassDescriptor && classType == other.classType
 
     override fun toString(): String =
-        "UTestClassDescriptor(className = $className)"
+        "UTestClassDescriptor(classType = ${classType.typeName})"
 }
 
 //TODO: Avoid recursion via DescriptorPrinter
