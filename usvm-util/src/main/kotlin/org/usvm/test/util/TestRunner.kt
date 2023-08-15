@@ -76,7 +76,7 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
         logger.info {
             buildString {
                 appendLine("${analysisResults.size} executions were found:")
-                analysisResults.forEach { appendLine("\t$it") }
+                analysisResults.forEach { appendLine("\t${it.safeToString()}") }
             }
         }
 
@@ -87,7 +87,7 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
         logger.info {
             buildString {
                 appendLine("Extracted values:")
-                valuesToCheck.forEach { appendLine("\t${it}") }
+                valuesToCheck.forEach { appendLine("\t${it.safeToString()}") }
             }
         }
 
@@ -287,4 +287,10 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
 
         else -> error("Functions with arity > 7 are not supported")
     }
+}
+
+fun Any?.safeToString(): String = try {
+    toString()
+} catch (ex: Throwable) {
+    "(ERROR: ${ex.message})"
 }
