@@ -1,15 +1,12 @@
 package org.usvm.instrumentation.util
 
-import getFieldByName
 import org.jacodb.api.*
 import org.jacodb.api.cfg.JcInst
 import org.jacodb.api.ext.*
-import org.jacodb.impl.bytecode.JcMethodImpl
 import org.jacodb.impl.cfg.util.isArray
 import org.jacodb.impl.cfg.util.isPrimitive
 import org.jacodb.impl.types.TypeNameImpl
 import org.usvm.instrumentation.testcase.executor.TestExecutorException
-import setFieldValue
 import java.io.File
 import java.lang.reflect.Constructor
 import java.lang.reflect.Field
@@ -61,10 +58,29 @@ val JcInst.enclosingMethod
 //TODO!! Test with arrays
 fun JcType.toJavaClass(classLoader: ClassLoader): Class<*> =
     when (this) {
+        is JcPrimitiveType -> toJavaClass()
         is JcArrayType -> findClassInLoader(toJvmType(), classLoader) ?: throw TestExecutorException("Can't find class in classpath")
         is JcClassType -> this.jcClass.toJavaClass(classLoader)
         else -> findClassInLoader(typeName, classLoader) ?: throw TestExecutorException("Can't find class in classpath")
     }
+private fun JcPrimitiveType.toJavaClass(): Class<*> {
+    val cp = this.classpath
+    return when (this) {
+        cp.boolean -> Boolean::class.java
+        cp.byte -> Byte::class.java
+        cp.short -> Short::class.java
+        cp.int -> Int::class.java
+        cp.long -> Long::class.java
+        cp.float -> Float::class.java
+        cp.double -> Double::class.java
+        cp.char -> Char::class.java
+        else -> error("Not primitive type")
+
+    }
+}
+fun Class<*>.toJcType(jcClasspath: JcClasspath): JcType? {
+    return jcClasspath.findTypeOrNull(this.typeName)
+}
 
 fun JcArrayType.toJvmType(strBuilder: StringBuilder = StringBuilder()): String {
     strBuilder.append('[')

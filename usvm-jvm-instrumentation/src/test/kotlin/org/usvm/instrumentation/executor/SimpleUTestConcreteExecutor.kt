@@ -48,6 +48,17 @@ class SimpleUTestConcreteExecutor: UTestConcreteExecutorTest() {
     }
 
     @Test
+    fun `java reflection test`() = executeTest {
+        val uTest = UTestCreator.A.getNumberOfClassConstructors(jcClasspath)
+        val res = uTestConcreteExecutor.executeAsync(uTest)
+        assert(res is UTestExecutionSuccessResult)
+        res as UTestExecutionSuccessResult
+        val result = res.result
+        assert(result != null)
+        assert(result is UTestConstantDescriptor.Int && result.value == 2)
+    }
+
+    @Test
     fun `static fields test`() = executeTest {
         val uTest = UTestCreator.A.isA(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
