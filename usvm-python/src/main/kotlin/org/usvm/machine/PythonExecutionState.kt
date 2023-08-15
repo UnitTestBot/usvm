@@ -22,17 +22,17 @@ class PythonExecutionState(
     private val ctx: UPythonContext,
     private val pythonCallable: PythonUnpinnedCallable,
     val inputSymbols: List<SymbolForCPython>,
-    pathConstraints: UPathConstraints<PythonType>,
+    pathConstraints: UPathConstraints<PythonType, UPythonContext>,
     memory: UMemoryBase<PropertyOfPythonObject, PythonType, PythonCallable>,
     uModel: UModelBase<PropertyOfPythonObject, PythonType>,
     val typeSystem: PythonTypeSystem,
     callStack: UCallStack<PythonCallable, SymbolicHandlerEvent<Any>> = UCallStack(),
-    path: PersistentList<SymbolicHandlerEvent<Any>> = persistentListOf(),
+    pathLocation: PathsTrieNode<PythonExecutionState, SymbolicHandlerEvent<Any>> = ctx.mkInitialLocation(),
     var delayedForks: PersistentList<DelayedFork> = persistentListOf(),
     private val mocks: MutableMap<MockHeader, UMockSymbol<UAddressSort>> = mutableMapOf(),
     val mockedObjects: MutableSet<SymbolForCPython> = mutableSetOf()
-): UState<PythonType, PropertyOfPythonObject, PythonCallable, SymbolicHandlerEvent<Any>>(ctx, callStack, pathConstraints, memory, listOf(uModel), path) {
-    override fun clone(newConstraints: UPathConstraints<PythonType>?): PythonExecutionState {
+): UState<PythonType, PropertyOfPythonObject, PythonCallable, SymbolicHandlerEvent<Any>, UPythonContext, PythonExecutionState>(ctx, callStack, pathConstraints, memory, listOf(uModel), pathLocation) {
+    override fun clone(newConstraints: UPathConstraints<PythonType, UPythonContext>?): PythonExecutionState {
         val newPathConstraints = newConstraints ?: pathConstraints.clone()
         val newMemory = memory.clone(newPathConstraints.typeConstraints)
         return PythonExecutionState(
@@ -44,7 +44,7 @@ class PythonExecutionState(
             pyModel.uModel,
             typeSystem,
             callStack,
-            path,
+            pathLocation,
             delayedForks,
             mocks.toMutableMap(),  // copy
             mockedObjects.toMutableSet()  // copy
@@ -54,10 +54,12 @@ class PythonExecutionState(
     val meta = PythonExecutionStateMeta()
     val pyModel: PyModel
         get() = PyModel(models.first())
-    val lastHandlerEvent: SymbolicHandlerEvent<Any>?
-        get() = if (path.isEmpty()) null else path.last()
+    //val lastHandlerEvent: SymbolicHandlerEvent<Any>?
+    //    get() = if (path.isEmpty()) null else path.last()
 
-    // TODO: here we will use Python type hints to prioritize concrete types
+    fun buildPathAsList(): List<SymbolicHandlerEvent<Any>> =
+        reversedPath.asSequence().toList().reversed()
+
     fun makeTypeRating(delayedFork: DelayedFork): List<PythonType> {
         val candidates = delayedFork.possibleTypes.take(MAX_CONCRETE_TYPES_TO_CONSIDER).mapNotNull { it as? ConcretePythonType }
         if (typeSystem is PythonTypeSystemWithMypyInfo) {
