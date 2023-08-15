@@ -68,7 +68,7 @@ class JcTestResolver(
      */
     fun resolve(method: JcTypedMethod, state: JcState): JcTest? = try {
         resolveTest(method, state)
-    } catch (ex: Throwable) {
+    } catch (ex: Exception) {
         logger.error(ex) { "Resolve failed" }
         null
     }
@@ -84,14 +84,14 @@ class JcTestResolver(
 
         val before = try {
             with(initialScope) { resolveState() }
-        } catch (ex: Throwable) {
+        } catch (ex: Exception) {
             logger.error(ex) { "Resolve state before failed" }
             null
         }
 
         val after = try {
             with(afterScope) { resolveState() }
-        } catch (ex: Throwable) {
+        } catch (ex: Exception) {
             logger.error(ex) { "Resolve state after failed" }
             null
         }

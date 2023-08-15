@@ -5,6 +5,7 @@ import org.usvm.UMachineOptions
 import org.usvm.test.util.TestRunner.CheckMode.MATCH_EXECUTIONS
 import org.usvm.test.util.TestRunner.CheckMode.MATCH_PROPERTIES
 import org.usvm.test.util.checkers.AnalysisResultsNumberMatcher
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
@@ -76,7 +77,9 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
         logger.info {
             buildString {
                 appendLine("${analysisResults.size} executions were found:")
-                analysisResults.forEach { appendLine("\t${it.safeToString()}") }
+                analysisResults.forEachWithTimeout(1.seconds) {
+                    appendLine("\t${it.toString()}")
+                }
             }
         }
 
@@ -87,7 +90,9 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
         logger.info {
             buildString {
                 appendLine("Extracted values:")
-                valuesToCheck.forEach { appendLine("\t${it.safeToString()}") }
+                valuesToCheck.forEachWithTimeout(1.seconds) {
+                    appendLine("\t${it.toString()}")
+                }
             }
         }
 
@@ -289,8 +294,8 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
     }
 }
 
-fun Any?.safeToString(): String = try {
-    toString()
-} catch (ex: Throwable) {
-    "(ERROR: ${ex.message})"
+fun <T> Iterable<T>.forEachWithTimeout(timeout: Duration, onElement: (T) -> Unit) {
+    runWithTimout(timeout) {
+        forEach { onElement(it) }
+    }
 }
