@@ -20,8 +20,11 @@ inline fun <T> runWithTimout(timeout: Duration, crossinline body: () -> T): T {
         runner.start()
         return resultFuture.get(timeout.inWholeMilliseconds, TimeUnit.MILLISECONDS)
     } catch (ex: TimeoutException) {
-        @Suppress("DEPRECATION")
-        runner.stop()
+        while (runner.isAlive) {
+            @Suppress("DEPRECATION")
+            runner.stop()
+            Thread.yield()
+        }
         throw ex
     } catch (ex: ExecutionException) {
         throw ex.cause!!
