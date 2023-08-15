@@ -2,8 +2,10 @@ package org.usvm.interpreter;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.usvm.PathsTrieNode;
 import org.usvm.language.types.PythonTypeSystem;
 import org.usvm.machine.MockHeader;
+import org.usvm.machine.interpreters.operations.tracing.SymbolicHandlerEvent;
 import org.usvm.machine.utils.PyModelHolder;
 import org.usvm.machine.PythonExecutionState;
 import org.usvm.machine.UPythonContext;
@@ -13,6 +15,7 @@ import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 public class ConcolicRunContext {
@@ -20,7 +23,7 @@ public class ConcolicRunContext {
     public PythonExecutionState curState;
     public UPythonContext ctx;
     public ArrayList<PythonExecutionState> forkedStates = new ArrayList<>();
-    public int instructionCounter = 0;
+    public List<SymbolicHandlerEvent<Object>> pathPrefix;
     public MockHeader curOperation = null;
     public PyModelHolder modelHolder;
     public boolean allowPathDiversion;
@@ -40,6 +43,7 @@ public class ConcolicRunContext {
         this.modelHolder = modelHolder;
         this.allowPathDiversion = allowPathDiversion;
         this.typeSystem = typeSystem;
+        this.pathPrefix = curState.buildPathAsList();
         if (curState.getMeta().getLastConverter() != null) {
             this.converter = curState.getMeta().getLastConverter();
         } else {
