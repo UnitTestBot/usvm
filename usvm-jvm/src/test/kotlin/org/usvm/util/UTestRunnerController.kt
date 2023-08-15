@@ -20,6 +20,8 @@ class UTestRunnerController : BeforeAllCallback, ExtensionContext.Store.Closeabl
     }
 
     override fun close() {
-        UTestRunner.runner.close()
+        if (UTestRunner.isInitialized()) {
+            UTestRunner.runner.close()
+        }
     }
 }
