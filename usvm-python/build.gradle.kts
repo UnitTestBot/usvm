@@ -2,10 +2,24 @@ plugins {
     id("usvm.kotlin-conventions")
 }
 
+// from GRADLE_USER_HOME/gradle.properties
+val githubUser: String by project
+val githubToken: String by project  // with permission to read packages
+
+repositories {
+    maven {
+        url = uri("https://maven.pkg.github.com/tochilinak/UTBotJava")
+        credentials {
+            username = githubUser
+            password = githubToken
+        }
+    }
+}
+
 
 dependencies {
     implementation(project(":usvm-core"))
-    implementation(project(":usvm-python:utbot-python-types"))
+    implementation("org.utbot:utbot-python-types:2023.08-SNAPSHOT")
 
     implementation("io.ksmt:ksmt-yices:${Versions.ksmt}")
     implementation("io.ksmt:ksmt-cvc5:${Versions.ksmt}")
