@@ -105,7 +105,7 @@ internal class CyclesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("CancellationException. Probably test executor issue. Investigate")
+    @Disabled("CancellationException. Passing with increased timeout")
     fun moveToExceptionTest() {
         checkDiscoveredPropertiesWithExceptions(
             Cycles::moveToException,
