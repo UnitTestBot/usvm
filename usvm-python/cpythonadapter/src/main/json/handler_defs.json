@@ -120,9 +120,9 @@
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;J)Lorg/usvm/language/SymbolForCPython;"
     },
     {
-        "c_name": "add_concrete_supertype",
-        "java_name": "addConcreteSupertype",
-        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;J)V"
+        "c_name": "fixate_type",
+        "java_name": "fixateType",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;)V"
     },
     {
         "c_name": "function_call",

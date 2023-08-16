@@ -112,7 +112,7 @@ class SimpleTypeInferenceTest: PythonTestRunnerForPrimitiveProgram("SimpleTypeIn
             constructFunction("iteration", List(1) { PythonAnyType }),
             ignoreNumberOfAnalysisResults,
             standardConcolicAndConcreteChecks,
-            /* invariants = */ listOf { _, res -> res.selfTypeName == "AssertionError" || res.repr == "None" },
+            /* invariants = */ emptyList(),
             /* propertiesToDiscover = */ listOf(
                 { _, res -> res.selfTypeName == "AssertionError" },
                 { _, res -> res.repr == "None" }

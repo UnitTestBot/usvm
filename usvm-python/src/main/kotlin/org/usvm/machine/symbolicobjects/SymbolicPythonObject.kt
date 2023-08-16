@@ -143,6 +143,7 @@ sealed class InterpretedSymbolicPythonObject(
     typeSystem: PythonTypeSystem
 ): SymbolicPythonObject(address, typeSystem) {
     abstract fun getConcreteType(ctx: ConcolicRunContext): ConcretePythonType?
+    abstract fun getFirstType(ctx: ConcolicRunContext): PythonType?
     abstract fun getBoolContent(ctx: ConcolicRunContext): KInterpretedValue<KBoolSort>
     abstract fun getIntContent(ctx: ConcolicRunContext): KInterpretedValue<KIntSort>
 }
@@ -157,6 +158,7 @@ class InterpretedInputSymbolicPythonObject(
     }
 
     override fun getConcreteType(ctx: ConcolicRunContext): ConcretePythonType? = getConcreteType()
+    override fun getFirstType(ctx: ConcolicRunContext): PythonType? = getFirstType()
 
     override fun getBoolContent(ctx: ConcolicRunContext): KInterpretedValue<KBoolSort> = getBoolContent(ctx.ctx)
 
@@ -199,6 +201,8 @@ class InterpretedAllocatedSymbolicPythonObject(
     }
     override fun getConcreteType(ctx: ConcolicRunContext): ConcretePythonType? =
         getTypeStream(ctx).first() as? ConcretePythonType
+
+    override fun getFirstType(ctx: ConcolicRunContext): PythonType? = getConcreteType(ctx)
 
     override fun getBoolContent(ctx: ConcolicRunContext): KInterpretedValue<KBoolSort> {
         require(ctx.curState != null)

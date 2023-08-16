@@ -10,15 +10,15 @@ fun main() {
     val (program, typeSystem) = constructStructuredProgram() //constructPrimitiveProgramFromStructured("SimpleTypeInference")
     val function = PythonUnpinnedCallable.constructCallableFromName(
         listOf(PythonAnyType),
-        "pickle_path_diversion",
-        "TrickyExample"
+        "iterable_of_matmul",
+        "SimpleCustomClasses"
     )
 
     val machine = PythonMachine(program, typeSystem, ReprObjectSerializer, printErrorMsg = false)
     val start = System.currentTimeMillis()
     val iterations = machine.use { activeMachine ->
         val results: MutableList<PythonAnalysisResult<String>> = mutableListOf()
-        val returnValue = activeMachine.analyze(function, results, maxIterations = 20, allowPathDiversion = true)
+        val returnValue = activeMachine.analyze(function, results, maxIterations = 25, allowPathDiversion = true)
         results.forEach { (_, inputs, result) ->
             println("INPUT:")
             inputs.map { it.reprFromPythonObject }.forEach { println(it) }

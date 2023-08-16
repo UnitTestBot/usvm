@@ -7,7 +7,10 @@ import org.usvm.runner.PythonTestRunnerForStructuredProgram
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
-class SimpleCustomClassesTest: PythonTestRunnerForStructuredProgram("SimpleCustomClasses") {
+class SimpleCustomClassesTest: PythonTestRunnerForStructuredProgram(
+    "SimpleCustomClasses",
+    UMachineOptions(stepLimit = 20U)
+) {
     @Test
     fun testMatmulUsage() {
         check1WithConcreteRun(
@@ -53,5 +56,19 @@ class SimpleCustomClassesTest: PythonTestRunnerForStructuredProgram("SimpleCusto
             )
         )
         options = oldOptions
+    }
+
+    @Test
+    fun testIterableOfMatmul() {
+        check1WithConcreteRun(
+            constructFunction("iterable_of_matmul", List(1) { PythonAnyType }),
+            ignoreNumberOfAnalysisResults,
+            compareConcolicAndConcreteTypes,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, res -> res.selfTypeName == "AssertionError" },
+                { _, res -> res.repr == "None" }
+            )
+        )
     }
 }

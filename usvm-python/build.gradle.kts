@@ -31,9 +31,10 @@ dependencies {
 
 val samplesSourceDir = File(projectDir, "src/test/resources/samples")
 val samplesBuildDir = File(project.buildDir, "samples_build")
-val samplesJVMArgs = listOf(
+val commonJVMArgs = listOf(
     "-Dsamples.build.path=${samplesBuildDir.canonicalPath}",
-    "-Dsamples.sources.path=${samplesSourceDir.canonicalPath}"
+    "-Dsamples.sources.path=${samplesSourceDir.canonicalPath}",
+    "-Xss100m"
 )
 
 // temporary
@@ -73,7 +74,7 @@ tasks.register<JavaExec>("manualTestDebug") {
     group = "run"
     registerCpython(this, debug = true)
     dependsOn(buildSamples)
-    jvmArgs = samplesJVMArgs + listOf("-Dlogback.configurationFile=logging/logback-debug.xml") //, "-Xcheck:jni")
+    jvmArgs = commonJVMArgs + listOf("-Dlogback.configurationFile=logging/logback-debug.xml") //, "-Xcheck:jni")
     classpath = sourceSets.test.get().runtimeClasspath
     mainClass.set("ManualTestKt")
 }
@@ -82,7 +83,7 @@ tasks.register<JavaExec>("manualTestDebugNoLogs") {
     group = "run"
     registerCpython(this, debug = true)
     dependsOn(buildSamples)
-    jvmArgs = samplesJVMArgs + "-Dlogback.configurationFile=logging/logback-info.xml"
+    jvmArgs = commonJVMArgs + "-Dlogback.configurationFile=logging/logback-info.xml"
     classpath = sourceSets.test.get().runtimeClasspath
     mainClass.set("ManualTestKt")
 }
@@ -91,13 +92,13 @@ tasks.register<JavaExec>("manualTestRelease") {
     group = "run"
     registerCpython(this, debug = false)
     dependsOn(buildSamples)
-    jvmArgs = samplesJVMArgs + "-Dlogback.configurationFile=logging/logback-info.xml"
+    jvmArgs = commonJVMArgs + "-Dlogback.configurationFile=logging/logback-info.xml"
     classpath = sourceSets.test.get().runtimeClasspath
     mainClass.set("ManualTestKt")
 }
 
 tasks.test {
-    jvmArgs = samplesJVMArgs + "-Dlogback.configurationFile=logging/logback-info.xml"
+    jvmArgs = commonJVMArgs + "-Dlogback.configurationFile=logging/logback-info.xml"
     dependsOn(":usvm-python:cpythonadapter:linkDebug")
     dependsOn(buildSamples)
     environment("LD_LIBRARY_PATH" to "$cpythonBuildPath/lib:$cpythonAdapterBuildPath")
