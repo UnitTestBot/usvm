@@ -33,7 +33,7 @@ class PythonVirtualPathSelector(
     ): PythonExecutionState? = with(ctx) {
         if (delayedForkStorage.isEmpty())
             return null
-        val delayedFork = delayedForkStorage.random()
+        val delayedFork = delayedForkStorage.random(random)
         val state = delayedFork.delayedFork.state
         val symbol = delayedFork.delayedFork.symbol
         val typeRating = delayedFork.typeRating
@@ -68,7 +68,7 @@ class PythonVirtualPathSelector(
     private fun generateStateWithConcretizedTypeWithoutDelayedForks(): PythonExecutionState? {
         if (executionsWithVirtualObjectAndWithoutDelayedForks.isEmpty())
             return null
-        val state = executionsWithVirtualObjectAndWithoutDelayedForks.random()
+        val state = executionsWithVirtualObjectAndWithoutDelayedForks.random(random)
         executionsWithVirtualObjectAndWithoutDelayedForks.remove(state)
         val objects = state.meta.objectsWithoutConcreteTypes!!.map { it.interpretedObj }
         val typeStreams = objects.map { it.getTypeStream() ?: typeSystem.topTypeStream() }
@@ -101,16 +101,18 @@ class PythonVirtualPathSelector(
             pathSelectorForStatesWithConcretizedTypes.add(listOf(stateWithConcreteType))
             return nullablePeek()
         }
-        if (!basePathSelector.isEmpty()) {
+
+        val zeroCoin = random.nextDouble()
+        val firstCoin = random.nextDouble()
+        val secondCoin = random.nextDouble()
+        if (!basePathSelector.isEmpty() && (zeroCoin < 0.9 || unservedDelayedForks.isEmpty() && pathSelectorForStatesWithDelayedForks.isEmpty())) {
             val result = basePathSelector.peek()
             result.meta.extractedFrom = basePathSelector
             peekCache = result
             return result
-        }
 
-        val firstCoin = random.nextDouble()
-        val secondCoin = random.nextDouble()
-        if (unservedDelayedForks.isNotEmpty() && (firstCoin < 0.5 || pathSelectorForStatesWithDelayedForks.isEmpty())) {
+        } else if (unservedDelayedForks.isNotEmpty() && (firstCoin < 0.7 || pathSelectorForStatesWithDelayedForks.isEmpty())) {
+            logger.debug("Trying to make delayed fork")
             val newState = generateStateWithConcretizedTypeFromDelayedFork(unservedDelayedForks)
             newState?.let { add(listOf(it)) }
             return nullablePeek()

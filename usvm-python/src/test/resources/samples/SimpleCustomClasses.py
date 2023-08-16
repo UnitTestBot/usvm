@@ -40,3 +40,10 @@ def matmul_add_and_sub(x):
         return (x + 10) @ x
     else:
         return (x - 10) @ x
+
+
+def iterable_of_matmul(x):
+    y = ClassWithMatmulAndAdd()
+    for elem in x:
+        y += elem @ 1
+    assert len(x) >= 3

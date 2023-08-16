@@ -11,7 +11,10 @@ import org.usvm.types.UTypeSystem
 import org.usvm.utils.withAdditionalPaths
 import org.utbot.python.newtyping.PythonTypeHintsStorage
 import org.utbot.python.newtyping.general.UtType
+import org.utbot.python.newtyping.general.DefaultSubstitutionProvider
+import org.utbot.python.newtyping.general.getBoundedParameters
 import org.utbot.python.newtyping.mypy.MypyInfoBuild
+import org.utbot.python.newtyping.pythonAnyType
 import org.utbot.python.newtyping.pythonModuleName
 import org.utbot.python.newtyping.pythonName
 
@@ -120,7 +123,11 @@ class PythonTypeSystemWithMypyInfo(
 
     init {
         withAdditionalPaths(program.additionalPaths, null) {
-            allConcreteTypes = basicTypes + typeHintsStorage.simpleTypes.mapNotNull { utType ->
+            allConcreteTypes = basicTypes + typeHintsStorage.simpleTypes.mapNotNull { utTypeRaw ->
+                val utType = DefaultSubstitutionProvider.substituteAll(
+                    utTypeRaw,
+                    utTypeRaw.getBoundedParameters().map { pythonAnyType }
+                )
                 val refGetter = {
                     val namespace = program.getNamespaceOfModule(utType.pythonModuleName())
                     ConcretePythonInterpreter.eval(namespace, utType.pythonName())

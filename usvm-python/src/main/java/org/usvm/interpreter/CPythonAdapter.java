@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.concurrent.Callable;
 
+import static org.usvm.machine.interpreters.operations.CommonKt.fixateTypeKt;
 import static org.usvm.machine.interpreters.operations.MethodNotificationsKt.*;
 import static org.usvm.machine.interpreters.operations.VirtualKt.*;
 import static org.usvm.machine.interpreters.operations.tracing.PathTracingKt.handlerForkResultKt;
@@ -227,9 +228,8 @@ public class CPythonAdapter {
         return methodWrapper(context, new IsinstanceCheck(obj, type), () -> org.usvm.machine.interpreters.operations.CommonKt.handlerIsinstanceKt(context, obj.obj, type));
     }
 
-    public static void addConcreteSupertype(ConcolicRunContext context, SymbolForCPython obj, long typeRef) {
-        PythonObject type = new PythonObject(typeRef);
-        org.usvm.machine.interpreters.operations.CommonKt.addConcreteSupertypeKt(context, obj.obj, type);
+    public static void fixateType(ConcolicRunContext context, SymbolForCPython obj) {
+        fixateTypeKt(context, obj.obj);
     }
 
     public static void notifyNbBool(@NotNull ConcolicRunContext context, SymbolForCPython symbol) {

@@ -300,13 +300,13 @@
     "default_value": "Py_None"
   },
   {
-    "c_name": "add_concrete_supertype",
-    "nargs": 2,
-    "c_arg_types": ["PyObject *", "PyObject *"],
+    "c_name": "fixate_type",
+    "nargs": 1,
+    "c_arg_types": ["PyObject *"],
     "c_return_type": "int",
-    "java_arg_types": ["jobject", "jlong"],
+    "java_arg_types": ["jobject"],
     "java_return_type": "void",
-    "argument_converters": ["object_converter", "ref_converter"],
+    "argument_converters": ["object_converter"],
     "result_converter": "",
     "fail_value": "-1",
     "default_value": "0"
