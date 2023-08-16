@@ -6,6 +6,7 @@ import org.jacodb.api.JcField
 import org.jacodb.api.JcMethod
 import org.jacodb.api.cfg.JcInst
 import org.jacodb.api.cfg.JcRawFieldRef
+import org.jacodb.api.ext.methods
 import org.usvm.instrumentation.collector.trace.TraceCollector
 import org.usvm.instrumentation.instrumentation.JcInstructionTracer.StaticFieldAccessType
 import org.usvm.instrumentation.util.enclosingClass
@@ -28,16 +29,20 @@ object JcInstructionTracer : Tracer<Trace> {
         return Trace(trace, statics)
     }
 
+    fun coveredInstructionsIds(): List<Long> =
+        List(TraceCollector.trace.size) { idx -> TraceCollector.trace.arr[idx] }
+
+    fun getEncodedClasses() =
+        encodedClasses.entries.associate { it.key to it.value.id }
+
     class EncodedClass(val id: Long) {
         val encodedMethods = hashMapOf<JcMethod, EncodedMethod>()
         val encodedFields = hashMapOf<JcField, EncodedField>()
-        var currentMethodIndex = 0L
         var currentFieldIndex = 0L
     }
 
     class EncodedMethod(val id: Long) {
         val encodedInstructions = hashMapOf<JcInst, EncodedInst>()
-        var currentInstIndex = 0L
     }
 
     class EncodedField(val id: Long)
@@ -58,10 +63,16 @@ object JcInstructionTracer : Tracer<Trace> {
         return (classId shl Byte.SIZE_BITS * 5) or (methodId shl Byte.SIZE_BITS * 3) or instId
     }
 
-    private fun encodeClass(jcClass: JcClassOrInterface) = encodedClasses.getOrPut(jcClass) { EncodedClass(currentClassIndex++) }
+    private fun encodeClass(jcClass: JcClassOrInterface) =
+        encodedClasses.getOrPut(jcClass) { EncodedClass(currentClassIndex++) }
+
     private fun encodeMethod(jcClass: JcClassOrInterface, jcMethod: JcMethod): EncodedMethod {
         val encodedClass = encodeClass(jcClass)
-        return encodedClass.encodedMethods.getOrPut(jcMethod) { EncodedMethod(encodedClass.currentMethodIndex++) }
+        val methodIndex = jcClass.methods
+            .sortedBy { it.description }
+            .indexOf(jcMethod)
+            .also { if (it == -1) error("Encoding error") }
+        return encodedClass.encodedMethods.getOrPut(jcMethod) { EncodedMethod(methodIndex.toLong()) }
     }
 
     fun encodeField(jcClass: JcClassOrInterface, jcField: JcField): EncodedField {
@@ -75,7 +86,9 @@ object JcInstructionTracer : Tracer<Trace> {
         val encodedClass = encodeClass(jcClass)
         val encodedMethod = encodeMethod(jcClass, jcMethod)
         val encodedInst =
-            encodedMethod.encodedInstructions.getOrPut(jcInst) { EncodedInst(encodedMethod.currentInstIndex++) }
+            encodedMethod.encodedInstructions.getOrPut(jcInst) {
+                EncodedInst(jcInst.location.index.toLong())
+            }
         val instId = encodeTraceId(encodedClass.id, encodedMethod.id, encodedInst.id)
         encodedJcInstructions[instId] = jcInst
         return instId

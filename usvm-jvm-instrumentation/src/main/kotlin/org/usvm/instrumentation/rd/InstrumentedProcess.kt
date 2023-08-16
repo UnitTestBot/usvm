@@ -17,10 +17,10 @@ import kotlinx.coroutines.withTimeoutOrNull
 import org.apache.commons.cli.DefaultParser
 import org.apache.commons.cli.Options
 import org.jacodb.api.JcClasspath
-import org.jacodb.api.cfg.JcInst
 import org.jacodb.impl.features.InMemoryHierarchy
 import org.jacodb.impl.jacodb
 import org.usvm.instrumentation.generated.models.*
+import org.usvm.instrumentation.instrumentation.JcInstructionTracer
 import org.usvm.instrumentation.serializer.SerializationContext
 import org.usvm.instrumentation.serializer.UTestExpressionSerializer.Companion.registerUTestExpressionSerializer
 import org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.Companion.registerUTestValueDescriptorSerializer
@@ -34,6 +34,7 @@ import java.io.File
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
+
 
 //Main class for worker process
 class InstrumentedProcess private constructor() {
@@ -144,21 +145,14 @@ class InstrumentedProcess private constructor() {
         }
     }
 
-    private fun serializeTrace(trace: List<JcInst>): List<SerializedTracedJcInst> = trace.map {
-        SerializedTracedJcInst(
-            className = it.enclosingClass.name,
-            methodName = it.enclosingMethod.name,
-            methodDescription = it.enclosingMethod.description,
-            index = it.location.index
-        )
-    }
-
-    private fun serializeExecutionResult(uTestExecutionResult: UTestExecutionResult): ExecutionResult =
-        when (uTestExecutionResult) {
+    private fun serializeExecutionResult(uTestExecutionResult: UTestExecutionResult): ExecutionResult {
+        val classesToId = JcInstructionTracer.getEncodedClasses().entries.map { ClassToId(it.key.name, it.value) }
+        return when (uTestExecutionResult) {
             is UTestExecutionExceptionResult -> ExecutionResult(
                 type = ExecutionResultType.UTestExecutionExceptionResult,
+                classes = classesToId,
                 cause = uTestExecutionResult.cause,
-                trace = uTestExecutionResult.trace?.let { serializeTrace(it) },
+                trace = JcInstructionTracer.coveredInstructionsIds(),
                 initialState = serializeExecutionState(uTestExecutionResult.initialState),
                 result = null,
                 resultState = serializeExecutionState(uTestExecutionResult.resultState),
@@ -166,6 +160,7 @@ class InstrumentedProcess private constructor() {
 
             is UTestExecutionFailedResult -> ExecutionResult(
                 type = ExecutionResultType.UTestExecutionFailedResult,
+                classes = classesToId,
                 cause = uTestExecutionResult.cause,
                 trace = null,
                 initialState = null,
@@ -175,8 +170,9 @@ class InstrumentedProcess private constructor() {
 
             is UTestExecutionInitFailedResult -> ExecutionResult(
                 type = ExecutionResultType.UTestExecutionInitFailedResult,
+                classes = classesToId,
                 cause = uTestExecutionResult.cause,
-                trace = uTestExecutionResult.trace?.let { serializeTrace(it) },
+                trace = JcInstructionTracer.coveredInstructionsIds(),
                 initialState = null,
                 result = null,
                 resultState = null
@@ -184,7 +180,8 @@ class InstrumentedProcess private constructor() {
 
             is UTestExecutionSuccessResult -> ExecutionResult(
                 type = ExecutionResultType.UTestExecutionSuccessResult,
-                trace = uTestExecutionResult.trace?.let { serializeTrace(it) },
+                classes = classesToId,
+                trace = JcInstructionTracer.coveredInstructionsIds(),
                 initialState = serializeExecutionState(uTestExecutionResult.initialState),
                 result = uTestExecutionResult.result,
                 resultState = serializeExecutionState(uTestExecutionResult.resultState),
@@ -193,6 +190,7 @@ class InstrumentedProcess private constructor() {
 
             is UTestExecutionTimedOutResult -> ExecutionResult(
                 type = ExecutionResultType.UTestExecutionTimedOutResult,
+                classes = classesToId,
                 cause = uTestExecutionResult.cause,
                 trace = null,
                 initialState = null,
@@ -200,6 +198,7 @@ class InstrumentedProcess private constructor() {
                 resultState = null
             )
         }
+    }
 
     private fun serializeExecutionState(executionState: UTestExecutionState): ExecutionStateSerialized {
         val statics = executionState.statics.entries.map { (jcField, descriptor) ->

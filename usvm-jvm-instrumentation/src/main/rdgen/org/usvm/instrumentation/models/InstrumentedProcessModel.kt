@@ -55,11 +55,9 @@ object InstrumentedProcessModel : Ext(InstrumentedProcessRoot) {
         field("fieldDescriptor", UTestValueDescriptor)
     }
 
-    private val serializedTracedJcInst = structdef {
+    private val classToId = structdef {
         field("className", PredefinedType.string)
-        field("methodName", PredefinedType.string)
-        field("methodDescription", PredefinedType.string)
-        field("index", PredefinedType.int)
+        field("classId", PredefinedType.long)
     }
 
     private val executionResult = structdef {
@@ -70,7 +68,8 @@ object InstrumentedProcessModel : Ext(InstrumentedProcessRoot) {
             +"UTestExecutionFailedResult"
             +"UTestExecutionTimedOutResult"
         })
-        field("trace", immutableList(serializedTracedJcInst).nullable)
+        field("classes", immutableList(classToId).nullable)
+        field("trace", immutableList(PredefinedType.long).nullable)
         field("cause", PredefinedType.string.nullable)
         field("result", UTestValueDescriptor.nullable)
         field("initialState", executionStateSerialized.nullable)

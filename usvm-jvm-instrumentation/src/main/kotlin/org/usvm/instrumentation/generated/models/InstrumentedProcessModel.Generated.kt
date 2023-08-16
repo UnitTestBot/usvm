@@ -30,7 +30,7 @@ class InstrumentedProcessModel private constructor(
             serializers.register(SerializedUTest)
             serializers.register(ExecutionStateSerialized)
             serializers.register(SerializedStaticField)
-            serializers.register(SerializedTracedJcInst)
+            serializers.register(ClassToId)
             serializers.register(ExecutionResult)
             serializers.register(ExecutionResultType.marshaller)
         }
@@ -53,7 +53,7 @@ class InstrumentedProcessModel private constructor(
         }
         
         
-        const val serializationHash = 2341180415100698488L
+        const val serializationHash = -4608969030939949224L
         
     }
     override val serializersOwner: ISerializersOwner get() = InstrumentedProcessModel
@@ -97,6 +97,69 @@ class InstrumentedProcessModel private constructor(
 }
 val IProtocol.instrumentedProcessModel get() = getOrCreateExtension(InstrumentedProcessModel::class) { @Suppress("DEPRECATION") InstrumentedProcessModel.create(lifetime, this) }
 
+
+
+/**
+ * #### Generated from [InstrumentedProcessModel.kt:58]
+ */
+data class ClassToId (
+    val className: String,
+    val classId: Long
+) : IPrintable {
+    //companion
+    
+    companion object : IMarshaller<ClassToId> {
+        override val _type: KClass<ClassToId> = ClassToId::class
+        
+        @Suppress("UNCHECKED_CAST")
+        override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): ClassToId  {
+            val className = buffer.readString()
+            val classId = buffer.readLong()
+            return ClassToId(className, classId)
+        }
+        
+        override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: ClassToId)  {
+            buffer.writeString(value.className)
+            buffer.writeLong(value.classId)
+        }
+        
+        
+    }
+    //fields
+    //methods
+    //initializer
+    //secondary constructor
+    //equals trait
+    override fun equals(other: Any?): Boolean  {
+        if (this === other) return true
+        if (other == null || other::class != this::class) return false
+        
+        other as ClassToId
+        
+        if (className != other.className) return false
+        if (classId != other.classId) return false
+        
+        return true
+    }
+    //hash code trait
+    override fun hashCode(): Int  {
+        var __r = 0
+        __r = __r*31 + className.hashCode()
+        __r = __r*31 + classId.hashCode()
+        return __r
+    }
+    //pretty print
+    override fun print(printer: PrettyPrinter)  {
+        printer.println("ClassToId (")
+        printer.indent {
+            print("className = "); className.print(printer); println()
+            print("classId = "); classId.print(printer); println()
+        }
+        printer.print(")")
+    }
+    //deepClone
+    //contexts
+}
 
 
 /**
@@ -169,11 +232,12 @@ data class ExecuteParams (
 
 
 /**
- * #### Generated from [InstrumentedProcessModel.kt:65]
+ * #### Generated from [InstrumentedProcessModel.kt:63]
  */
 data class ExecutionResult (
     val type: ExecutionResultType,
-    val trace: List<SerializedTracedJcInst>?,
+    val classes: List<ClassToId>?,
+    val trace: List<Long>?,
     val cause: String?,
     val result: org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor?,
     val initialState: ExecutionStateSerialized?,
@@ -187,17 +251,19 @@ data class ExecutionResult (
         @Suppress("UNCHECKED_CAST")
         override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): ExecutionResult  {
             val type = buffer.readEnum<ExecutionResultType>()
-            val trace = buffer.readNullable { buffer.readList { SerializedTracedJcInst.read(ctx, buffer) } }
+            val classes = buffer.readNullable { buffer.readList { ClassToId.read(ctx, buffer) } }
+            val trace = buffer.readNullable { buffer.readList { buffer.readLong() } }
             val cause = buffer.readNullable { buffer.readString() }
             val result = buffer.readNullable { (ctx.serializers.get(org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.marshallerId)!! as IMarshaller<org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor>).read(ctx, buffer) }
             val initialState = buffer.readNullable { ExecutionStateSerialized.read(ctx, buffer) }
             val resultState = buffer.readNullable { ExecutionStateSerialized.read(ctx, buffer) }
-            return ExecutionResult(type, trace, cause, result, initialState, resultState)
+            return ExecutionResult(type, classes, trace, cause, result, initialState, resultState)
         }
         
         override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: ExecutionResult)  {
             buffer.writeEnum(value.type)
-            buffer.writeNullable(value.trace) { buffer.writeList(it) { v -> SerializedTracedJcInst.write(ctx, buffer, v) } }
+            buffer.writeNullable(value.classes) { buffer.writeList(it) { v -> ClassToId.write(ctx, buffer, v) } }
+            buffer.writeNullable(value.trace) { buffer.writeList(it) { v -> buffer.writeLong(v) } }
             buffer.writeNullable(value.cause) { buffer.writeString(it) }
             buffer.writeNullable(value.result) { (ctx.serializers.get(org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.marshallerId)!! as IMarshaller<org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor>).write(ctx,buffer, it) }
             buffer.writeNullable(value.initialState) { ExecutionStateSerialized.write(ctx, buffer, it) }
@@ -218,6 +284,7 @@ data class ExecutionResult (
         other as ExecutionResult
         
         if (type != other.type) return false
+        if (classes != other.classes) return false
         if (trace != other.trace) return false
         if (cause != other.cause) return false
         if (result != other.result) return false
@@ -230,6 +297,7 @@ data class ExecutionResult (
     override fun hashCode(): Int  {
         var __r = 0
         __r = __r*31 + type.hashCode()
+        __r = __r*31 + if (classes != null) classes.hashCode() else 0
         __r = __r*31 + if (trace != null) trace.hashCode() else 0
         __r = __r*31 + if (cause != null) cause.hashCode() else 0
         __r = __r*31 + if (result != null) result.hashCode() else 0
@@ -242,6 +310,7 @@ data class ExecutionResult (
         printer.println("ExecutionResult (")
         printer.indent {
             print("type = "); type.print(printer); println()
+            print("classes = "); classes.print(printer); println()
             print("trace = "); trace.print(printer); println()
             print("cause = "); cause.print(printer); println()
             print("result = "); result.print(printer); println()
@@ -256,7 +325,7 @@ data class ExecutionResult (
 
 
 /**
- * #### Generated from [InstrumentedProcessModel.kt:66]
+ * #### Generated from [InstrumentedProcessModel.kt:64]
  */
 enum class ExecutionResultType {
     UTestExecutionInitFailedResult, 
@@ -396,81 +465,6 @@ data class SerializedStaticField (
         printer.indent {
             print("fieldName = "); fieldName.print(printer); println()
             print("fieldDescriptor = "); fieldDescriptor.print(printer); println()
-        }
-        printer.print(")")
-    }
-    //deepClone
-    //contexts
-}
-
-
-/**
- * #### Generated from [InstrumentedProcessModel.kt:58]
- */
-data class SerializedTracedJcInst (
-    val className: String,
-    val methodName: String,
-    val methodDescription: String,
-    val index: Int
-) : IPrintable {
-    //companion
-    
-    companion object : IMarshaller<SerializedTracedJcInst> {
-        override val _type: KClass<SerializedTracedJcInst> = SerializedTracedJcInst::class
-        
-        @Suppress("UNCHECKED_CAST")
-        override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): SerializedTracedJcInst  {
-            val className = buffer.readString()
-            val methodName = buffer.readString()
-            val methodDescription = buffer.readString()
-            val index = buffer.readInt()
-            return SerializedTracedJcInst(className, methodName, methodDescription, index)
-        }
-        
-        override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: SerializedTracedJcInst)  {
-            buffer.writeString(value.className)
-            buffer.writeString(value.methodName)
-            buffer.writeString(value.methodDescription)
-            buffer.writeInt(value.index)
-        }
-        
-        
-    }
-    //fields
-    //methods
-    //initializer
-    //secondary constructor
-    //equals trait
-    override fun equals(other: Any?): Boolean  {
-        if (this === other) return true
-        if (other == null || other::class != this::class) return false
-        
-        other as SerializedTracedJcInst
-        
-        if (className != other.className) return false
-        if (methodName != other.methodName) return false
-        if (methodDescription != other.methodDescription) return false
-        if (index != other.index) return false
-        
-        return true
-    }
-    //hash code trait
-    override fun hashCode(): Int  {
-        var __r = 0
-        __r = __r*31 + className.hashCode()
-        __r = __r*31 + methodName.hashCode()
-        __r = __r*31 + methodDescription.hashCode()
-        __r = __r*31 + index.hashCode()
-        return __r
-    }
-    //pretty print
-    override fun print(printer: PrettyPrinter)  {
-        printer.println("SerializedTracedJcInst (")
-        printer.indent {
-            print("className = "); className.print(printer); println()
-            print("methodName = "); methodName.print(printer); println()
-            print("methodDescription = "); methodDescription.print(printer); println()
-            print("index = "); index.print(printer); println()
         }
         printer.print(")")
     }
