@@ -8,6 +8,6 @@ import org.usvm.types.UTypeSystem
  * Instatiated once per [UContext].
  */
 interface UComponents<Field, Type, Method> {
-    fun mkSolver(ctx: UContext): USolverBase<Field, Type, Method>
+    fun <Context : UContext> mkSolver(ctx: Context): USolverBase<Field, Type, Method, Context>
     fun mkTypeSystem(ctx: UContext): UTypeSystem<Type>
 }

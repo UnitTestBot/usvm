@@ -11,6 +11,7 @@ import io.ksmt.sort.KUninterpretedSort
 import io.ksmt.utils.DefaultValueSampler
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
+import io.ksmt.utils.uncheckedCast
 import org.usvm.memory.UAllocatedArrayRegion
 import org.usvm.memory.UInputArrayLengthRegion
 import org.usvm.memory.UInputArrayRegion
@@ -40,8 +41,8 @@ open class UContext(
     }
 
     @Suppress("UNCHECKED_CAST")
-    fun <Field, Type, Method> solver(): USolverBase<Field, Type, Method> =
-        this.solver as USolverBase<Field, Type, Method>
+    fun <Field, Type, Method, Context : UContext> solver(): USolverBase<Field, Type, Method, Context> =
+        this.solver as USolverBase<Field, Type, Method, Context>
 
     @Suppress("UNCHECKED_CAST")
     fun <Type> typeSystem(): UTypeSystem<Type> =
@@ -195,6 +196,12 @@ open class UContext(
     override fun boolSortDefaultValue(): KExpr<KBoolSort> = falseExpr
 
     override fun <S : KBvSort> bvSortDefaultValue(sort: S): KExpr<S> = mkBv(0, sort)
+
+    // Type hack to be able to intern the initial location for inheritors.
+    private val initialLocation = RootNode<Nothing, Nothing>()
+
+    fun <State : UState<*, *, *, Statement, *, State>, Statement> mkInitialLocation()
+        : PathsTrieNode<State, Statement> = initialLocation.uncheckedCast()
 
     fun mkUValueSampler(): KSortVisitor<KExpr<*>> {
         return UValueSampler(this)

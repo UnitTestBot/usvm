@@ -49,7 +49,7 @@ import org.usvm.machine.state.throwExceptionAndDropStackFrame
 import org.usvm.machine.state.throwExceptionWithoutStackFrameDrop
 import org.usvm.solver.USatResult
 
-typealias JcStepScope = StepScope<JcState, JcType, JcField>
+typealias JcStepScope = StepScope<JcState, JcType, JcField, JcContext>
 
 /**
  * A JacoDB interpreter.
@@ -89,7 +89,7 @@ class JcInterpreter(
             }
         }
 
-        val solver = ctx.solver<JcField, JcType, JcMethod>()
+        val solver = ctx.solver<JcField, JcType, JcMethod, JcContext>()
 
         val model = (solver.checkWithSoftConstraints(state.pathConstraints) as USatResult).model
         state.models = listOf(model)

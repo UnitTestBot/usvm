@@ -25,14 +25,14 @@ abstract class USolver<in Query, out Model> {
     abstract fun check(query: Query): USolverResult<Model>
 }
 
-open class USolverBase<Field, Type, Method>(
-    protected val ctx: UContext,
+open class USolverBase<Field, Type, Method, Context : UContext>(
+    protected val ctx: Context,
     protected val smtSolver: KSolver<*>,
     protected val typeSolver: UTypeSolver<Type>,
     protected val translator: UExprTranslator<Field, Type>,
     protected val decoder: UModelDecoder<UMemoryBase<Field, Type, Method>, UModelBase<Field, Type>>,
     protected val softConstraintsProvider: USoftConstraintsProvider<Field, Type>,
-) : USolver<UPathConstraints<Type>, UModelBase<Field, Type>>(), AutoCloseable {
+) : USolver<UPathConstraints<Type, Context>, UModelBase<Field, Type>>(), AutoCloseable {
 
     protected fun translateLogicalConstraints(constraints: Iterable<UBoolExpr>) {
         for (constraint in constraints) {
@@ -89,22 +89,22 @@ open class USolverBase<Field, Type, Method>(
         }
     }
 
-    protected fun translateToSmt(pc: UPathConstraints<Type>) {
+    protected fun translateToSmt(pc: UPathConstraints<Type, Context>) {
         translateEqualityConstraints(pc.equalityConstraints)
         translateLogicalConstraints(pc.numericConstraints.constraints().asIterable())
         translateLogicalConstraints(pc.logicalConstraints)
     }
 
-    override fun check(query: UPathConstraints<Type>): USolverResult<UModelBase<Field, Type>> =
+    override fun check(query: UPathConstraints<Type, Context>): USolverResult<UModelBase<Field, Type>> =
         internalCheck(query, useSoftConstraints = false)
 
     fun checkWithSoftConstraints(
-        pc: UPathConstraints<Type>,
+        pc: UPathConstraints<Type, Context>,
     ) = internalCheck(pc, useSoftConstraints = true)
 
 
     private fun internalCheck(
-        pc: UPathConstraints<Type>,
+        pc: UPathConstraints<Type, Context>,
         useSoftConstraints: Boolean,
     ): USolverResult<UModelBase<Field, Type>> {
         if (pc.isFalse) {

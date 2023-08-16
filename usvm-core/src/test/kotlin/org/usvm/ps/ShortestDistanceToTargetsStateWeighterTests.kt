@@ -3,8 +3,8 @@ package org.usvm.ps
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.Test
+import org.usvm.TestState
 import org.usvm.UCallStack
-import org.usvm.UState
 import kotlin.test.assertEquals
 
 @OptIn(ExperimentalUnsignedTypes::class)
@@ -56,12 +56,12 @@ internal class ShortestDistanceToTargetsStateWeighterTests {
             }
         }
 
-        val weighter = ShortestDistanceToTargetsStateWeighter(
+        val weighter = ShortestDistanceToTargetsStateWeighter<_, _, TestState>(
             setOf("A" to 2, "A" to 3, "A" to 4, "A" to 5, "A" to 6),
             ::getCfgDistance
         ) { _, _ -> 1u }
 
-        val mockState = mockk<UState<*, *, String, Int>>()
+        val mockState = mockk<TestState>()
         every { mockState.currentStatement } returns 1
         val callStack = UCallStack<String, Int>("A")
         every { mockState.callStack } returns callStack
@@ -89,14 +89,15 @@ internal class ShortestDistanceToTargetsStateWeighterTests {
             return shortestDistances.getValue(method)[from][0]
         }
 
-        val mockState = mockk<UState<*, *, String, Int>>()
+        val mockState = mockk<TestState>()
         val callStack = UCallStack<String, Int>("A")
         callStack.push("B", 3)
         callStack.push("C", 2)
         every { mockState.currentStatement } returns 3
         every { mockState.callStack } returns callStack
 
-        val weighter = ShortestDistanceToTargetsStateWeighter(setOf("C" to 4), ::getCfgDistance, ::getCfgDistanceToExitPoint)
+        val weighter =
+            ShortestDistanceToTargetsStateWeighter<_, _, TestState>(setOf("C" to 4), ::getCfgDistance, ::getCfgDistanceToExitPoint)
         assertEquals(10u, weighter.weight(mockState))
 
         weighter.removeTarget("C", 4)
@@ -128,4 +129,5 @@ internal class ShortestDistanceToTargetsStateWeighterTests {
         every { mockState.currentStatement } returns 2
         assertEquals(2u, weighter.weight(mockState))
     }
+
 }
