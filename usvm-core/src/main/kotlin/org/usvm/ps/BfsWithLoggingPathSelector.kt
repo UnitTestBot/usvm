@@ -46,6 +46,7 @@ private fun <T> List<T>.getLast(count: Int): List<T> {
     return this.subList(this.size - count, this.size)
 }
 
+@Suppress("LeakingThis")
 internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Statement>, Statement, Method>(
     private val pathsTreeStatistics: PathsTreeStatistics<Method, Statement, State>,
     private val coverageStatistics: CoverageStatistics<Method, Statement, State>,
@@ -100,6 +101,8 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
     ) {
         val root: Block<Statement>
         private val successorsMap = mutableMapOf<Block<Statement>, List<Statement>>().withDefault { listOf() }
+        private val predecessorsMap = mutableMapOf<Block<Statement>, MutableList<Statement>>()
+            .withDefault { mutableListOf() }
         private val coveredStatements = mutableMapOf<Statement, Block<Statement>>()
         var currentBlockId = 0
         val blockList = mutableListOf<Block<Statement>>()
@@ -118,6 +121,15 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
 
         private fun addSuccessor(block: Block<Statement>, statement: Statement) {
             successorsMap[block] = successorsMap.getValue(block) + statement
+        }
+
+        private fun getPredecessors() {
+            blockList.forEach { previousBlock ->
+                val lastStatement = previousBlock.path.last()
+                successors(previousBlock).forEach { nextBlock ->
+                    predecessorsMap.getValue(nextBlock).add(lastStatement)
+                }
+            }
         }
 
         private fun buildBlocks(statement: Statement): Block<Statement> {
@@ -165,7 +177,12 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
                     currentStatement = successors.first()
                 }
             }
+            getPredecessors()
             return rootBlock
+        }
+
+        private fun predecessors(block: Block<Statement>): List<Block<Statement>> {
+            return predecessorsMap.getValue(block).map { coveredStatements[it]!! }
         }
 
         fun successors(block: Block<Statement>): List<Block<Statement>> {
@@ -174,7 +191,7 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
 
         fun getEdges(): Pair<List<Int>, List<Int>> {
             return blockList.flatMap { block ->
-                successors(block).map { Pair(block.id, it.id) }
+                predecessors(block).map { Pair(block.id, it.id) }
             }.unzip()
         }
 
@@ -186,15 +203,22 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
             val firstStatement = block.path.first()
 
             val length = block.path.size
+            val predecessorsCount = predecessors(block).size
             val successorsCount = successors(block).size
+            val totalCalleesCount = block.path.sumOf { pathSelector.applicationGraph.callees(it).count() }
             val forkCountToExit = pathSelector.forkCountsToExit.getValue(firstStatement)
             val minForkCountToExit = pathSelector.minForkCountsToExit.getValue(firstStatement)
+            val isCovered = firstStatement !in pathSelector.coverageStatistics
+                .getUncoveredStatements().map { it.second }
 
             return BlockFeatures(
                 length.log(),
+                predecessorsCount.log(),
                 successorsCount.log(),
+                totalCalleesCount.log(),
                 forkCountToExit.log(),
                 minForkCountToExit.log(),
+                if (isCovered) 1.0f else 0.0f,
             )
         }
 
@@ -233,9 +257,12 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
     @Serializable
     protected data class BlockFeatures(
         val logLength: Float = 0.0f,
+        val logPredecessorsCount: Float = 0.0f,
         val logSuccessorsCount: Float = 0.0f,
+        val logTotalCalleesCount: Float = 0.0f,
         val logForkCountToExit: Float = 0.0f,
         val logMinForkCountToExit: Float = 0.0f,
+        val isCovered: Float = 0.0f,
     )
 
     protected data class Block<Statement>(
@@ -274,7 +301,9 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
 
     @Serializable
     protected data class StateFeatures(
+        val logPredecessorsCount: Float = 0.0f,
         val logSuccessorsCount: Float = 0.0f,
+        val logCalleesCount: Float = 0.0f,
         val logLogicalConstraintsLength: Float = 0.0f,
         val logStateTreeDepth: Float = 0.0f,
         val logStatementRepetitionLocal: Float = 0.0f,
@@ -345,7 +374,7 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
         }
         allStatements = coverageStatistics.getUncoveredStatements().map { it.second }
         method = applicationGraph.methodOf(allStatements.first())
-        filename = method.toString()
+        filename = method.toString().dropWhile { it != ')' }.drop(1)
         val (tmpDistancesToExit, tmpForkCountsToExit) = getDistancesToExit()
         distancesToExit = tmpDistancesToExit
         forkCountsToExit = tmpForkCountsToExit
@@ -412,7 +441,9 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
         val currentStatement = state.currentStatement!!
         val currentBlock = blockGraph.getBlock(currentStatement)
 
+        val predecessorsCount = applicationGraph.predecessors(currentStatement).count()
         val successorsCount = applicationGraph.successors(currentStatement).count()
+        val calleesCount = applicationGraph.callees(currentStatement).count()
         val logicalConstraintsLength = state.pathConstraints.logicalConstraints.size
         val stateTreeDepth = pathsTreeStatistics.getStateDepth(state)
         val statementRepetitionLocal = state.path.filter { statement ->
@@ -440,7 +471,9 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
         val reward = getReward(state)
 
         return StateFeatures (
+            predecessorsCount.log(),
             successorsCount.log(),
+            calleesCount.log(),
             logicalConstraintsLength.log(),
             stateTreeDepth.log(),
             statementRepetitionLocal.log(),
@@ -504,7 +537,7 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
             globalStateFeatures,
             stateId,
             getReward(queue[stateId]),
-            0,
+            graphFeaturesList.lastIndex,
             queue.map { it.currentStatement!! }.map { blockGraph.getBlock(it)?.id ?: -1 }
         )
     }
@@ -643,7 +676,11 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
     protected fun afterPeek(state: State,
                           stateFeatureQueue: List<StateFeatures>,
                           globalStateFeatures: GlobalStateFeatures) {
-        path.add(getActionData(stateFeatureQueue, globalStateFeatures, state))
+        val actionData = getActionData(stateFeatureQueue, globalStateFeatures, state)
+        path.add(actionData)
+        if (actionData.reward > 0.5f) {
+            graphFeaturesList.add(blockGraph.getGraphFeatures())
+        }
 //        savePath()
         updateCoverage(state)
         if (stepCount < 100) {
@@ -668,7 +705,7 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
             return
         }
         queue.addAll(states)
-        allStatesCount += 1u
+        allStatesCount += states.size.toUInt()
     }
 
     override fun remove(state: State) {

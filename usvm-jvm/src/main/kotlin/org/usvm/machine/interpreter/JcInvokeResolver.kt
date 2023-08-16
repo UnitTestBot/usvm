@@ -187,7 +187,7 @@ class JcVirtualInvokeResolver(
 
     private fun JcState.mockNativeMethod(method: JcMethod, arguments: List<UExpr<out USort>>) = with(ctx) {
 
-        logger.warn { "Mocked: ${method.enclosingClass.name}::${method.name}" }
+//        logger.warn { "Mocked: ${method.enclosingClass.name}::${method.name}" }
 
         val returnType = with(applicationGraph) { method.typed }.returnType
 

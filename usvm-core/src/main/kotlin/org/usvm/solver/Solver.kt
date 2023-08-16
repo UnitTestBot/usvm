@@ -3,17 +3,13 @@ package org.usvm.solver
 import io.ksmt.solver.KSolver
 import io.ksmt.solver.KSolverStatus
 import io.ksmt.utils.asExpr
-import org.usvm.UBoolExpr
-import org.usvm.UConcreteHeapRef
-import org.usvm.UContext
-import org.usvm.UHeapRef
+import org.usvm.*
 import org.usvm.constraints.UEqualityConstraints
 import org.usvm.constraints.UPathConstraints
-import org.usvm.isFalse
-import org.usvm.isTrue
 import org.usvm.memory.UMemoryBase
 import org.usvm.model.UModelBase
 import org.usvm.model.UModelDecoder
+import kotlin.time.Duration.Companion.milliseconds
 
 sealed interface USolverResult<out T>
 
@@ -192,16 +188,17 @@ open class USolverBase<Field, Type, Method>(
     ): KSolverStatus {
         var status: KSolverStatus
         if (softConstraints.isNotEmpty()) {
-            status = smtSolver.checkWithAssumptions(softConstraints)
+            status = smtSolver.checkWithAssumptions(softConstraints, timeout = MainConfig.solverTimeLimit.milliseconds)
 
             while (status == KSolverStatus.UNSAT) {
                 val unsatCore = smtSolver.unsatCore().toHashSet()
                 if (unsatCore.isEmpty()) break
                 softConstraints.removeAll { it in unsatCore }
-                status = smtSolver.checkWithAssumptions(softConstraints)
+                status = smtSolver.checkWithAssumptions(softConstraints,
+                    timeout = MainConfig.solverTimeLimit.milliseconds)
             }
         } else {
-            status = smtSolver.check()
+            status = smtSolver.check(timeout = MainConfig.solverTimeLimit.milliseconds)
         }
         return status
     }

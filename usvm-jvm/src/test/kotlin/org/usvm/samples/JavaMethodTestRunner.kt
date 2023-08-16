@@ -737,6 +737,16 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
         }
     }
 
+    val runnerAlternative: (KFunction<*>, UMachineOptions) -> Unit = { method, options ->
+        val declaringClassName = requireNotNull(method.declaringClass?.name)
+        val jcClass = cp.findClass(declaringClassName).toType()
+        val jcMethod = jcClass.declaredMethods.first { it.name == method.name }
+
+        JcMachine(cp, options).use { machine ->
+            machine.analyze(jcMethod.method)
+        }
+    }
+
     override val coverageRunner: (List<JcTest>) -> JcClassCoverage = { _ ->
         JcClassCoverage(visitedStmts = emptySet())
     }

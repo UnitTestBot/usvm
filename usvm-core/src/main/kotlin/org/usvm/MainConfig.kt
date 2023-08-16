@@ -12,10 +12,16 @@ enum class Mode {
     Both,
 }
 
+enum class Algorithm {
+    BFS,
+    ForkDepthRandom
+}
+
 object MainConfig {
     var samplesPath: String = "../Game_env/usvm-jvm/src/samples/java"
     var gameEnvPath: String = "../Game_env"
     var dataPath: String = "../Data"
+    var defaultAlgorithm: Algorithm = Algorithm.BFS
     var postprocessing = Postprocessing.Argmax
     var mode = Mode.Both
     var inputShape = listOf<Long>(1, -1, 34)
@@ -23,4 +29,6 @@ object MainConfig {
     var useGnn = true
     var dataConsumption = 100.0f
     var hardTimeLimit = 30000 // in ms
+    var solverTimeLimit = 10000 // in ms
+    var maxConcurrency = 64
 }

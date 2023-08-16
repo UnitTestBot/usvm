@@ -3,16 +3,19 @@ package org.usvm.ps
 import ai.onnxruntime.OnnxTensor
 import ai.onnxruntime.OrtEnvironment
 import ai.onnxruntime.OrtSession
+import org.usvm.Algorithm
 import org.usvm.Postprocessing
 import org.usvm.MainConfig
 import org.usvm.UState
 import org.usvm.statistics.*
+import org.usvm.util.RandomizedPriorityCollection
 import java.io.File
 import java.nio.FloatBuffer
 import java.nio.LongBuffer
 import java.text.DecimalFormat
 import kotlin.io.path.Path
 import kotlin.math.exp
+import kotlin.math.max
 import kotlin.random.Random
 
 internal open class InferencePathSelector<State : UState<*, *, Method, Statement>, Statement, Method> (
@@ -29,6 +32,12 @@ internal open class InferencePathSelector<State : UState<*, *, Method, Statement
     private var outputValues = listOf<Float>()
     private var chosenStateId = 0
     private val random = Random(java.time.LocalDateTime.now().nano)
+
+    private fun <State : UState<*, *, *, *>> compareById(): Comparator<State> = compareBy { it.id }
+    private val forkDepthRandomPathSelector = WeightedPathSelector<State, Double>(
+        { RandomizedPriorityCollection(compareById()) { random.nextDouble() } },
+        { 1.0 / max(pathsTreeStatistics.getStateDepth(it).toDouble(), 1.0) }
+    )
 
     companion object {
         private val actorModelPath = Path(MainConfig.gameEnvPath, "actor_model.onnx").toString()
@@ -66,7 +75,9 @@ internal open class InferencePathSelector<State : UState<*, *, Method, Statement
 
     private fun stateFeaturesToFloatList(stateFeatures: StateFeatures): List<Float> {
         return listOf(
+            stateFeatures.logPredecessorsCount,
             stateFeatures.logSuccessorsCount,
+            stateFeatures.logCalleesCount,
             stateFeatures.logLogicalConstraintsLength,
             stateFeatures.logStateTreeDepth,
             stateFeatures.logStatementRepetitionLocal,
@@ -111,9 +122,12 @@ internal open class InferencePathSelector<State : UState<*, *, Method, Statement
     private fun blockFeaturesToList(blockFeatures: BlockFeatures): List<Float> {
         return listOf(
             blockFeatures.logLength,
+            blockFeatures.logPredecessorsCount,
             blockFeatures.logSuccessorsCount,
+            blockFeatures.logTotalCalleesCount,
             blockFeatures.logForkCountToExit,
             blockFeatures.logMinForkCountToExit,
+            blockFeatures.isCovered,
         )
     }
 
@@ -224,10 +238,33 @@ internal open class InferencePathSelector<State : UState<*, *, Method, Statement
         val globalStateFeatures = getGlobalStateFeatures(stateFeatureQueue)
         val state = if (File(actorModelPath).isFile) {
             peekWithOnnxRuntime(stateFeatureQueue, globalStateFeatures)
-        } else {
+        } else if (MainConfig.defaultAlgorithm == Algorithm.BFS) {
             queue.first()
+        } else {
+            forkDepthRandomPathSelector.peek()
         }
         afterPeek(state, stateFeatureQueue, globalStateFeatures)
         return state
+    }
+
+    override fun remove(state: State) {
+        super.remove(state)
+        if (MainConfig.defaultAlgorithm == Algorithm.ForkDepthRandom) {
+            forkDepthRandomPathSelector.remove(state)
+        }
+    }
+
+    override fun add(states: Collection<State>) {
+        super.add(states)
+        if (MainConfig.defaultAlgorithm == Algorithm.ForkDepthRandom) {
+            forkDepthRandomPathSelector.add(states)
+        }
+    }
+
+    override fun update(state: State) {
+        super.update(state)
+        if (MainConfig.defaultAlgorithm == Algorithm.ForkDepthRandom) {
+            forkDepthRandomPathSelector.update(state)
+        }
     }
 }

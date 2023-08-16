@@ -3,6 +3,11 @@ package org.usvm
 import kotlinx.coroutines.*
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.*
+import org.jacodb.api.JcClassOrInterface
+import org.jacodb.api.JcMethod
+import org.jacodb.api.ext.packageName
+import org.usvm.machine.JcMachine
+import org.usvm.samples.JacoDBContainer
 import java.io.File
 import java.net.URLClassLoader
 import kotlin.io.path.Path
@@ -27,6 +32,20 @@ fun recursiveLoad(currentDir: File, classes: MutableList<Class<*>>, classLoader:
     }
 }
 
+fun jarLoad(jars: List<File>, classes: MutableMap<String, MutableList<JcClassOrInterface>>) {
+    jars.forEach { file ->
+        val key = file.nameWithoutExtension
+        val container = JacoDBContainer(key = key, classpath = jars)
+        val classNames = container.db.locations.flatMap { it.jcLocation?.classNames ?: listOf() }
+        classes[key] = mutableListOf()
+        classNames.forEach { className ->
+            container.cp.findClassOrNull(className)?.let {
+                classes[key]?.add(it)
+            }
+        }
+    }
+}
+
 private class MainTestRunner : JavaMethodTestRunner() {
     override var options = UMachineOptions().copy(
         exceptionsPropagation = false,
@@ -37,7 +56,13 @@ private class MainTestRunner : JavaMethodTestRunner() {
     )
 
     fun runTest(method: KFunction<*>) {
-        runner(method, options)
+        runnerAlternative(method, options)
+    }
+
+    fun runTest(method: JcMethod, jarKey: String) {
+        JcMachine(JacoDBContainer(jarKey).cp, options).use { jcMachine ->
+            jcMachine.analyze(method)
+        }
     }
 }
 
@@ -45,18 +70,31 @@ fun getName(method: Method): String {
     return "${method.declaringClass.name}#${method.name}(${method.parameters.joinToString { it.type.typeName }})"
 }
 
+fun getName(method: JcMethod): String {
+    return method.toString().dropWhile { it != ')' }.drop(1)
+}
+
+@OptIn(ExperimentalCoroutinesApi::class)
 fun calculate() {
     val testRunner = MainTestRunner()
     val samplesDir = File(MainConfig.samplesPath)
     val classLoader = URLClassLoader(arrayOf(samplesDir.toURI().toURL()))
     val classes = mutableListOf<Class<*>>()
+//    val jarClasses = mutableMapOf<String, MutableList<JcClassOrInterface>>()
     recursiveLoad(samplesDir, classes, classLoader, "")
+//    jarLoad(listOf(Path(MainConfig.gameEnvPath, "test.jar").toFile()), jarClasses)
     println("\nLOADING COMPLETE\n")
 
+    val blacklist = Path(MainConfig.gameEnvPath, "blacklist.txt").toFile().let {
+        it.createNewFile()
+        it.readLines()
+    }
+
     val tests = mutableListOf<Job>()
-    val allMethods = classes.flatMap { cls -> cls.methods.filter { it.declaringClass == cls } }
-        .sortedBy { getName(it).hashCode() }
-    runBlocking(Dispatchers.IO) {
+    val allMethods = classes.flatMap { cls -> cls.methods.filter { method ->
+        method.declaringClass == cls && getName(method) !in blacklist
+    } }.shuffled()
+    runBlocking(Dispatchers.IO.limitedParallelism(MainConfig.maxConcurrency)) {
         allMethods.take((allMethods.size * MainConfig.dataConsumption / 100).toInt()).forEach { method ->
             val test = launch {
                 try {
@@ -76,6 +114,34 @@ fun calculate() {
         }
         tests.joinAll()
     }
+
+//    jarClasses.forEach { (key, classesList) ->
+//        val allJarMethods = classesList.filter {
+//            !it.isAnnotation && !it.isInterface && it.packageName.contains("antlr")
+//        }.flatMap { cls -> cls.declaredMethods.filter { method ->
+//            method.enclosingClass == cls && getName(method) !in blacklist &&
+//                    !method.isClassInitializer && !method.isConstructor
+//        } }.shuffled()
+//        runBlocking(Dispatchers.IO) {
+//            allJarMethods.take((allJarMethods.size * MainConfig.dataConsumption / 100).toInt()).forEach { method ->
+//                val test = launch {
+//                        try {
+//                            println("Running test ${method.name}")
+//                            val time = measureTimeMillis {
+//                                testRunner.runTest(method, key)
+//                            }
+//                            println("Test ${method.name} finished after ${time}ms")
+//                        } catch (e: Exception) {
+//                            println(e)
+//                        } catch (e: NotImplementedError) {
+//                            println(e)
+//                        }
+//                }
+//                tests.add(test)
+//            }
+//            tests.joinAll()
+//        }
+//    }
 
     println("\nALL TESTS FINISHED\n")
 }
@@ -136,6 +202,8 @@ fun updateConfig(options: JsonObject) {
         (options.getOrDefault("gameEnvPath", JsonPrimitive(MainConfig.gameEnvPath)) as JsonPrimitive).content
     MainConfig.dataPath = (options.getOrDefault("dataPath",
         JsonPrimitive(MainConfig.dataPath)) as JsonPrimitive).content
+    MainConfig.defaultAlgorithm = Algorithm.valueOf((options.getOrDefault("defaultAlgorithm",
+        JsonPrimitive(MainConfig.defaultAlgorithm.name)) as JsonPrimitive).content)
     MainConfig.postprocessing = Postprocessing.valueOf((options.getOrDefault("postprocessing",
         JsonPrimitive(MainConfig.postprocessing.name)) as JsonPrimitive).content)
     MainConfig.mode = Mode.valueOf((options.getOrDefault("mode",
@@ -144,30 +212,42 @@ fun updateConfig(options: JsonObject) {
         .map { JsonPrimitive(it) })) as JsonArray).map { (it as JsonPrimitive).content.toLong() }
     MainConfig.maxAttentionLength = (options.getOrDefault("maxAttentionLength",
         JsonPrimitive(MainConfig.maxAttentionLength)) as JsonPrimitive).content.toInt()
+    MainConfig.useGnn = (options.getOrDefault("useGnn",
+        JsonPrimitive(MainConfig.useGnn)) as JsonPrimitive).content.toBoolean()
     MainConfig.dataConsumption = (options.getOrDefault("dataConsumption",
         JsonPrimitive(MainConfig.dataConsumption)) as JsonPrimitive).content.toFloat()
     MainConfig.hardTimeLimit = (options.getOrDefault("hardTimeLimit",
         JsonPrimitive(MainConfig.hardTimeLimit)) as JsonPrimitive).content.toInt()
-    MainConfig.useGnn = (options.getOrDefault("useGnn",
-        JsonPrimitive(MainConfig.useGnn)) as JsonPrimitive).content.toBoolean()
+    MainConfig.solverTimeLimit = (options.getOrDefault("solverTimeLimit",
+        JsonPrimitive(MainConfig.solverTimeLimit)) as JsonPrimitive).content.toInt()
+    MainConfig.maxConcurrency = (options.getOrDefault("maxConcurrency",
+        JsonPrimitive(MainConfig.maxConcurrency)) as JsonPrimitive).content.toInt()
+
+    println("OPTIONS:")
+    println("  SAMPLES PATH: ${MainConfig.samplesPath}")
+    println("  GAME ENV PATH: ${MainConfig.gameEnvPath}")
+    println("  DATA PATH: ${MainConfig.dataPath}")
+    println("  DEFAULT ALGORITHM: ${MainConfig.defaultAlgorithm}")
+    println("  POSTPROCESSING: ${MainConfig.postprocessing}")
+    println("  MODE: ${MainConfig.mode}")
+    println("  INPUT SHAPE: ${MainConfig.inputShape}")
+    println("  MAX ATTENTION LENGTH: ${MainConfig.maxAttentionLength}")
+    println("  USE GNN: ${MainConfig.useGnn}")
+    println("  DATA CONSUMPTION: ${MainConfig.dataConsumption}%")
+    println("  HARD TIME LIMIT: ${MainConfig.hardTimeLimit}ms")
+    println("  SOLVER TIME LIMIT: ${MainConfig.solverTimeLimit}ms")
+    println("  MAX CONCURRENCY: ${MainConfig.maxConcurrency}")
+    println()
 }
 
 fun main(args: Array<String>) {
+//    val cls = classLoader.loadClass("${path}.${file.nameWithoutExtension}"
     val options = args.getOrNull(0)?.let { File(it) }?.readText()?.let {
         Json.decodeFromString<JsonObject>(it)
     }
     if (options != null) {
         updateConfig(options)
     }
-
-    println("OPTIONS:")
-    println("  POSTPROCESSING: ${MainConfig.postprocessing}")
-    println("  INPUT SHAPE: ${MainConfig.inputShape}")
-    println("  MAX ATTENTION LENGTH: ${MainConfig.maxAttentionLength}")
-    println("  DATA CONSUMPTION: ${MainConfig.dataConsumption}%")
-    println("  HARD TIME LIMIT: ${MainConfig.hardTimeLimit}ms")
-    println("  USE GNN: ${MainConfig.useGnn}")
-    println()
 
     if (MainConfig.mode == Mode.Calculation || MainConfig.mode == Mode.Both) {
         try {
