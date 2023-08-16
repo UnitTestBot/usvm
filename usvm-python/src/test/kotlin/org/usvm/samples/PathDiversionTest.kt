@@ -6,10 +6,11 @@ import org.usvm.machine.interpreters.operations.tracing.PathDiversionException
 import org.usvm.runner.PythonTestRunnerForPrimitiveProgram
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
-class AllowPathDiversionTest : PythonTestRunnerForPrimitiveProgram("TrickyExample", allowPathDiversions = true) {
+class PathDiversionTest : PythonTestRunnerForPrimitiveProgram("TrickyExample") {
     private val function = constructFunction("pickle_path_diversion", listOf(typeSystem.pythonInt))
     @Test
     fun testAllowPathDiversion() {
+        allowPathDiversions = true
         check1WithConcreteRun(
             function,
             ignoreNumberOfAnalysisResults,
@@ -21,12 +22,9 @@ class AllowPathDiversionTest : PythonTestRunnerForPrimitiveProgram("TrickyExampl
             )
         )
     }
-}
-
-class ForbidPathDiversionTest : PythonTestRunnerForPrimitiveProgram("TrickyExample", allowPathDiversions = false) {
-    private val function = constructFunction("pickle_path_diversion", listOf(typeSystem.pythonInt))
     @Test
     fun testForbidPathDiversion() {
+        allowPathDiversions = false
         assertThrows<PathDiversionException> {
             check1(
                 function,
