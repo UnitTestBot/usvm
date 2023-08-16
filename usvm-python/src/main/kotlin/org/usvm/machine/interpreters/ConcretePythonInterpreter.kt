@@ -184,6 +184,13 @@ object ConcretePythonInterpreter {
         val namespace = pythonAdapter.newNamespace
         val initialModules = listOf("sys", "copy", "builtins", "ctypes", "array")
         pythonAdapter.concreteRun(namespace, "import " + initialModules.joinToString(", "), true)
+        pythonAdapter.concreteRun(
+            namespace,
+            """
+                sys.setrecursionlimit(1000)
+            """.trimIndent(),
+            true
+        )
         initialSysPath = PythonObject(pythonAdapter.eval(namespace, "copy.copy(sys.path)", true))
         if (initialSysPath.address == 0L)
             throw CPythonExecutionException()

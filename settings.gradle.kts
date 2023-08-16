@@ -10,7 +10,6 @@ include("usvm-jvm-dataflow")
 include("usvm-python")
 include("usvm-python:cpythonadapter")
 findProject(":usvm-python:cpythonadapter")?.name = "cpythonadapter"
-include("usvm-python:utbot-python-types")
 
 pluginManagement {
     resolutionStrategy {
