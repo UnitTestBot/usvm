@@ -90,7 +90,6 @@ internal class RecursionTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("CancellationException. Probably test executor issue. Investigate")
     fun recursionWithExceptionTest() {
         checkDiscoveredPropertiesWithExceptions(
             Recursion::recursionWithException,
