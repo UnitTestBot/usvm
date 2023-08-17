@@ -1,7 +1,8 @@
+#include <limits.h>
+
 #include "utils.h"
 #include "virtual_objects.h"
 #include "approximations.h"
-#include "limits.h"
 
 static void
 java_python_object_dealloc(PyObject *op) {

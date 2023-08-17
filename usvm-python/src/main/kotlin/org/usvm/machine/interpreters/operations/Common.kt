@@ -6,6 +6,7 @@ import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.constructBool
 import org.usvm.machine.symbolicobjects.interpretSymbolicPythonObject
 import org.usvm.language.types.ConcreteTypeNegation
+import org.usvm.machine.utils.MethodDescription
 
 fun handlerIsinstanceKt(ctx: ConcolicRunContext, obj: UninterpretedSymbolicPythonObject, typeRef: PythonObject): UninterpretedSymbolicPythonObject? = with(ctx.ctx) {
     ctx.curState ?: return null
@@ -51,4 +52,8 @@ fun handlerAndKt(ctx: ConcolicRunContext, left: UninterpretedSymbolicPythonObjec
     val leftValue = left.getBoolContent(ctx)
     val rightValue = right.getBoolContent(ctx)
     return constructBool(ctx, mkAnd(leftValue, rightValue))
+}
+
+fun lostSymbolicValueKt(ctx: ConcolicRunContext, description: String) {
+    ctx.statistics.lostSymbolicValues.add(MethodDescription(description))
 }

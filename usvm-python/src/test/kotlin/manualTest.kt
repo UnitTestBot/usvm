@@ -9,9 +9,9 @@ import org.usvm.utils.ReprObjectSerializer
 fun main() {
     val (program, typeSystem) = constructStructuredProgram() //constructPrimitiveProgramFromStructured("SimpleTypeInference")
     val function = PythonUnpinnedCallable.constructCallableFromName(
-        listOf(PythonAnyType),
-        "iterable_of_matmul",
-        "SimpleCustomClasses"
+        listOf(typeSystem.pythonInt),
+        "pickle_path_diversion",
+        "TrickyExample"
     )
 
     val machine = PythonMachine(program, typeSystem, ReprObjectSerializer, printErrorMsg = false)

@@ -13,6 +13,7 @@ import org.usvm.language.types.PythonTypeSystem
 import org.usvm.machine.*
 import org.usvm.machine.interpreters.operations.myAssertOnState
 import org.usvm.machine.utils.PyModelHolder
+import org.usvm.machine.utils.PythonMachineStatistics
 import org.usvm.utils.PythonObjectSerializer
 
 class USVMPythonInterpreter<PythonObjectRepresentation>(
@@ -22,6 +23,7 @@ class USVMPythonInterpreter<PythonObjectRepresentation>(
     private val pinnedCallable: PythonPinnedCallable,
     private val iterationCounter: IterationCounter,
     private val printErrorMsg: Boolean,
+    private val statistics: PythonMachineStatistics,
     private val allowPathDiversion: Boolean = true,
     private val serializer: PythonObjectSerializer<PythonObjectRepresentation>,
     private val saveRunResult: (PythonAnalysisResult<PythonObjectRepresentation>) -> Unit
@@ -61,7 +63,7 @@ class USVMPythonInterpreter<PythonObjectRepresentation>(
             else
                 PyModelHolder(state.pyModel)
         val concolicRunContext =
-            ConcolicRunContext(state, ctx, modelHolder, typeSystem, allowPathDiversion)
+            ConcolicRunContext(state, ctx, modelHolder, typeSystem, allowPathDiversion, statistics)
         state.meta.objectsWithoutConcreteTypes = null
         state.meta.lastConverter?.restart()
         try {
