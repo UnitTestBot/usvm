@@ -57,7 +57,10 @@ internal class RandomTreePathSelector<State : UState<*, *, *, Statement, *, Stat
             }
 
             // Leaf if reached
-            val nodeFromThisSelector = currentNode.states.singleOrNull { it in states }
+            // Note that we may have several nodes satisfying the predicate here since
+            // they might be created because of type forks or approximation forks.
+            // In such case, they have the same path but different path constraints.
+            val nodeFromThisSelector = currentNode.states.firstOrNull { it in states }
             if (nodeFromThisSelector != null) {
                 peekedState = nodeFromThisSelector
                 break
