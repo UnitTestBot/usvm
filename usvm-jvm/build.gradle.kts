@@ -43,3 +43,13 @@ dependencies {
     samplesImplementation("com.github.stephenc.findbugs:findbugs-annotations:${Versions.samplesFindBugs}")
     samplesImplementation("org.jetbrains:annotations:${Versions.samplesJetbrainsAnnotations}")
 }
+
+tasks.named<Test>("test") {
+    testLogging {
+        events("started")
+    }
+
+    jvmArgs("-XX:+HeapDumpOnOutOfMemoryError")
+
+    maxHeapSize = "4G"
+}

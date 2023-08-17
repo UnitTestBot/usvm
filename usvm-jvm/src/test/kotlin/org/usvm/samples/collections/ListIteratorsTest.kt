@@ -64,7 +64,7 @@ internal class ListIteratorsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testAddElements() = disableTest("Some properties were not discovered: OutOfMemory") {
+    fun testAddElements() = disableTest("Some properties were not discovered") {
         checkDiscoveredProperties(
             ListIterators::addElements,
             eq(5),

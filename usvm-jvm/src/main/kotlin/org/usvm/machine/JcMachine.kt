@@ -40,7 +40,7 @@ class JcMachine(
 
     fun analyze(
         method: JcMethod
-    ): List<JcState> {
+    ): Pair<List<JcState>, CoverageStatistics<JcMethod, JcInst, JcState>> {
         logger.debug("$this.analyze($method)")
         val initialState = interpreter.getInitialState(method)
 
@@ -99,7 +99,7 @@ class JcMachine(
             stopStrategy = stopStrategy,
         )
 
-        return statesCollector.collectedStates
+        return statesCollector.collectedStates to coverageStatistics
     }
 
     private fun isStateTerminated(state: JcState): Boolean {

@@ -21,7 +21,7 @@ annotation class Options(
     val stopOnCoverage: Int = 100,
     val timeout: Long = 20_000,
     val coverageZone: CoverageZone = CoverageZone.METHOD,
-    val solverType: SolverType = SolverType.YICES
+    val solverType: SolverType = SolverType.YICES,
 )
 
 @ParameterizedTest
@@ -54,7 +54,7 @@ class MachineOptionsArgumentsProvider : ArgumentsProvider, AnnotationConsumer<Us
 inline fun disableTest(message: String, body: () -> Unit) =
     checkErrorNotChanged(message, body) {
         it.isEmpty()
-//                || it.startsWith("Some properties were not discovered")
+                || it.startsWith("Some properties were not discovered")
 //                || it.startsWith("Expected")
     }
 
@@ -62,14 +62,16 @@ inline fun checkErrorNotChanged(message: String, body: () -> Unit, predicate: (S
     val needCheck = predicate(message)
     Assumptions.assumeTrue(needCheck, message)
 
-    try {
-        body()
-        error("Passed but was disabled: $message")
-    } catch (ex: Throwable) {
-        if (message.trim() != ex.message?.trim()) {
-            throw IllegalStateException(message, ex)
-        }
+    body()
 
-        assertTrue(false, message)
-    }
+//    try {
+//        body()
+//        error("Passed but was disabled: $message")
+//    } catch (ex: Throwable) {
+//        if (message.trim() != ex.message?.trim()) {
+//            throw IllegalStateException(message, ex)
+//        }
+//
+//        assertTrue(false, message)
+//    }
 }
