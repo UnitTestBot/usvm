@@ -9,6 +9,7 @@ import org.usvm.language.*
 import org.usvm.language.types.PythonType
 import org.usvm.language.types.PythonTypeSystem
 import org.usvm.machine.interpreters.USVMPythonInterpreter
+import org.usvm.machine.utils.PythonMachineStatistics
 import org.usvm.memory.UMemoryBase
 import org.usvm.ps.DfsPathSelector
 import org.usvm.solver.USatResult
@@ -24,6 +25,7 @@ class PythonMachine<PythonObjectRepresentation>(
     private val ctx = UPythonContext(typeSystem)
     private val solver = ctx.solver<PropertyOfPythonObject, PythonType, PythonCallable, UPythonContext>()
     private val iterationCounter = IterationCounter()
+    val statistics = PythonMachineStatistics()
 
     private fun getInterpreter(
         target: PythonUnpinnedCallable,
@@ -38,6 +40,7 @@ class PythonMachine<PythonObjectRepresentation>(
             pinnedTarget,
             iterationCounter,
             printErrorMsg,
+            statistics,
             allowPathDiversion,
             serializer
         ) {

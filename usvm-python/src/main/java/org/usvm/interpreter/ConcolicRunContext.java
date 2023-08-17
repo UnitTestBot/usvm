@@ -12,6 +12,7 @@ import org.usvm.machine.UPythonContext;
 import org.usvm.machine.interpreters.operations.tracing.PathDiversionException;
 import org.usvm.machine.symbolicobjects.ConverterToPythonObject;
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject;
+import org.usvm.machine.utils.PythonMachineStatistics;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -30,13 +31,15 @@ public class ConcolicRunContext {
     public ConverterToPythonObject converter;
     public Set<UninterpretedSymbolicPythonObject> delayedNonNullObjects = new HashSet<>();
     public PythonTypeSystem typeSystem;
+    public PythonMachineStatistics statistics;
 
     public ConcolicRunContext(
             @NotNull PythonExecutionState curState,
             UPythonContext ctx,
             PyModelHolder modelHolder,
             PythonTypeSystem typeSystem,
-            boolean allowPathDiversion
+            boolean allowPathDiversion,
+            PythonMachineStatistics statistics
     ) {
         this.curState = curState;
         this.ctx = ctx;
@@ -44,6 +47,7 @@ public class ConcolicRunContext {
         this.allowPathDiversion = allowPathDiversion;
         this.typeSystem = typeSystem;
         this.pathPrefix = curState.buildPathAsList();
+        this.statistics = statistics;
         if (curState.getMeta().getLastConverter() != null) {
             this.converter = curState.getMeta().getLastConverter();
         } else {

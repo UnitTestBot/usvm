@@ -491,4 +491,17 @@
     "fail_value": "0",
     "default_value": "Py_None"
   }
+,
+  {
+    "c_name": "lost_symbolic_value",
+    "nargs": 1,
+    "c_arg_types": ["const char *"],
+    "c_return_type": "int",
+    "java_arg_types": ["jstring"],
+    "java_return_type": "void",
+    "argument_converters": ["string_converter"],
+    "result_converter": "",
+    "fail_value": "-1",
+    "default_value": "0"
+  }
 ]
