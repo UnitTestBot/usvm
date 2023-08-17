@@ -1,7 +1,5 @@
 package org.usvm.machine
 
-import kotlinx.collections.immutable.PersistentList
-import kotlinx.collections.immutable.persistentListOf
 import org.usvm.UCallStack
 import org.usvm.UContext
 import org.usvm.UExpr
@@ -17,25 +15,26 @@ import org.usvm.language.argumentCount
 import org.usvm.language.localsCount
 import org.usvm.memory.UMemoryBase
 import org.usvm.model.UModelBase
+import org.usvm.PathsTrieNode
 
 class SampleState(
     ctx: UContext,
     callStack: UCallStack<Method<*>, Stmt> = UCallStack(),
-    pathConstraints: UPathConstraints<SampleType> = UPathConstraints(ctx),
+    pathConstraints: UPathConstraints<SampleType, UContext> = UPathConstraints(ctx),
     memory: UMemoryBase<Field<*>, SampleType, Method<*>> = UMemoryBase(ctx, pathConstraints.typeConstraints),
     models: List<UModelBase<Field<*>, SampleType>> = listOf(),
-    path: PersistentList<Stmt> = persistentListOf(),
+    pathLocation: PathsTrieNode<SampleState, Stmt> = ctx.mkInitialLocation(),
     var returnRegister: UExpr<out USort>? = null,
     var exceptionRegister: ProgramException? = null,
-) : UState<SampleType, Field<*>, Method<*>, Stmt>(
+) : UState<SampleType, Field<*>, Method<*>, Stmt, UContext, SampleState>(
     ctx,
     callStack,
     pathConstraints,
     memory,
     models,
-    path
+    pathLocation
 ) {
-    override fun clone(newConstraints: UPathConstraints<SampleType>?): SampleState {
+    override fun clone(newConstraints: UPathConstraints<SampleType, UContext>?): SampleState {
         val clonedConstraints = newConstraints ?: pathConstraints.clone()
         return SampleState(
             pathConstraints.ctx,
@@ -43,7 +42,7 @@ class SampleState(
             clonedConstraints,
             memory.clone(clonedConstraints.typeConstraints),
             models,
-            path,
+            pathLocation,
             returnRegister,
             exceptionRegister
         )
@@ -53,9 +52,9 @@ class SampleState(
         get() = exceptionRegister != null
 }
 
-val SampleState.lastStmt get() = path.last()
+val SampleState.lastStmt: Stmt get() = pathLocation.statement
 fun SampleState.newStmt(stmt: Stmt) {
-    path = path.add(stmt)
+    pathLocation = pathLocation.pathLocationFor(stmt, this)
 }
 
 fun SampleState.popMethodCall(valueToReturn: UExpr<out USort>?) {

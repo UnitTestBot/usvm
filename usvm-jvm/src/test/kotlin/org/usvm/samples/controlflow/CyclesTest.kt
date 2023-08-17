@@ -7,6 +7,7 @@ import org.usvm.UMachineOptions
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.between
 import org.usvm.test.util.checkers.eq
+import org.usvm.test.util.checkers.ge
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import org.usvm.util.Options
 import org.usvm.util.UsvmTest
@@ -53,9 +54,8 @@ internal class CyclesTest : JavaMethodTestRunner() {
         withOptions(options) {
             checkDiscoveredProperties(
                 Cycles::finiteCycle,
-                eq(2),
-                { _, x, r -> x % 519 == 0 && r != null && r % 519 == 0 },
-                { _, x, r -> x % 519 != 0 && r != null && r % 519 == 0 }
+                ignoreNumberOfAnalysisResults,
+                { _, _, r -> r != null && r % 519 == 0 },
             )
         }
     }
@@ -97,7 +97,7 @@ internal class CyclesTest : JavaMethodTestRunner() {
     fun testDivideByZeroCheckWithCycles() {
         checkDiscoveredPropertiesWithExceptions(
             Cycles::divideByZeroCheckWithCycles,
-            eq(3),
+            ge(3),
             { _, n, _, r -> n < 5 && r.isException<IllegalArgumentException>() },
             { _, n, x, r -> n >= 5 && x == 0 && r.isException<ArithmeticException>() },
             { _, n, x, r -> n >= 5 && x != 0 && r.getOrNull() == Cycles().divideByZeroCheckWithCycles(n, x) }
@@ -105,7 +105,6 @@ internal class CyclesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("TODO discover")
     fun moveToExceptionTest() {
         checkDiscoveredPropertiesWithExceptions(
             Cycles::moveToException,

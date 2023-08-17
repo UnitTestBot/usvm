@@ -79,12 +79,10 @@ class USupportTypeStream<Type> private constructor(
         )
 
     override fun take(n: Int): Set<Type> {
-        val set = cacheFromQueries.toMutableSet()
-        for (it in cachingSequence) {
-            if (set.size == n) {
-                break
-            }
-            set += it
+        val set = cacheFromQueries.take(n).toMutableSet()
+        val iterator = cachingSequence.iterator()
+        while (set.size < n && iterator.hasNext()) {
+            set += iterator.next()
         }
         return set
     }

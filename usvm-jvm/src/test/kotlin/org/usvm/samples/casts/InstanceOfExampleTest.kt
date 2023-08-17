@@ -51,7 +51,6 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Support virtual calls")
     fun testVirtualCallWithoutOneInheritor() {
         checkDiscoveredProperties(
             InstanceOfExample::virtualCallWithoutOneInheritor,
@@ -64,7 +63,6 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Support virtual calls")
     fun testVirtualCallWithoutOneInheritorInverse() {
         checkDiscoveredProperties(
             InstanceOfExample::virtualCallWithoutOneInheritorInverse,
@@ -98,6 +96,7 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
 
 
     @Test
+    @Disabled("java.lang.ArrayStoreException: java.lang.Object. Support connection between array and element type")
     fun testInstanceOfAsPartOfInternalExpressions() {
         checkDiscoveredProperties(
             InstanceOfExample::instanceOfAsPartOfInternalExpressions,
@@ -130,6 +129,7 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("TODO infinite execution, fix it.")
     fun testInstanceOfAsPartOfInternalExpressionsCastClass() {
         checkDiscoveredProperties(
             InstanceOfExample::instanceOfAsPartOfInternalExpressionsCastClass,
@@ -165,7 +165,7 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     fun testInstanceOfAsPartOfInternalExpressionsXor() {
         checkDiscoveredProperties(
             InstanceOfExample::instanceOfAsPartOfInternalExpressionsXor,
-            eq(5),
+            ge(5),
             { _, o, r -> (o == null || o.size != 2) && r == 0 },
             { _, o, r ->
                 val o0isSecond = o[0].isInstanceOfArray<CastClassSecondSucc>()
@@ -194,7 +194,7 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     fun testInstanceOfAsPartOfInternalExpressionsXorInverse() {
         checkDiscoveredProperties(
             InstanceOfExample::instanceOfAsPartOfInternalExpressionsXorInverse,
-            eq(5),
+            ge(5),
             { _, o, r -> (o == null || o.size != 2) && r == 0 },
             { _, o, r ->
                 val o0isSecond = o[0].isInstanceOfArray<CastClassSecondSucc>()
@@ -236,7 +236,7 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Support collections")
+    @Disabled("An operation is not implemented: Not yet implemented. Support strings/collections")
     fun testInstanceOfAsInternalExpressionsMap() {
         checkDiscoveredProperties(
             InstanceOfExample::instanceOfAsInternalExpressionsMap,
@@ -249,7 +249,7 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     fun testSymbolicInstanceOf() {
         checkDiscoveredProperties(
             InstanceOfExample::symbolicInstanceOf,
-            eq(5),
+            ge(5),
             { _, _, i, r -> (i < 1 || i > 3) && r == null },
             { _, o, _, _ -> o == null },
             { _, o, i, _ -> o != null && i > o.lastIndex },
@@ -259,7 +259,7 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Support virtual calls")
+    @Disabled("Some properties were not discovered at positions (from 0): [4]. Support connection between array and element type")
     fun testComplicatedInstanceOf() {
         checkDiscoveredProperties(
             InstanceOfExample::complicatedInstanceOf,

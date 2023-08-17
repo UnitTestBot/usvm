@@ -1,6 +1,5 @@
 package org.usvm.samples.invokes
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
@@ -8,7 +7,6 @@ import org.usvm.test.util.checkers.eq
 
 internal class SimpleInterfaceExampleTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Expected exactly 3 executions, but 2 found. Virtual invokes are not supported yet")
     fun testOverrideMethod() {
         checkDiscoveredProperties(
             SimpleInterfaceExample::overrideMethod,
@@ -30,7 +28,6 @@ internal class SimpleInterfaceExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sequence is empty.")
     fun testInvokeMethodFromImplementor() {
         checkDiscoveredProperties(
             SimpleInterfaceExample::invokeMethodFromImplementor,

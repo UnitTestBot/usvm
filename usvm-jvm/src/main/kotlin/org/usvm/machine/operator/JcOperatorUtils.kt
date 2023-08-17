@@ -1,11 +1,9 @@
 package org.usvm.machine.operator
 
-import io.ksmt.expr.KExpr
 import io.ksmt.sort.KBoolSort
 import io.ksmt.sort.KBvSort
 import io.ksmt.utils.BvUtils.bvMaxValueSigned
 import io.ksmt.utils.BvUtils.bvMinValueSigned
-import io.ksmt.utils.cast
 import org.usvm.UBvSort
 import org.usvm.UExpr
 import org.usvm.UFpSort
@@ -76,8 +74,8 @@ internal fun UExpr<*>.ensureBvExpr(): UExpr<UBvSort> {
  */
 internal fun UExpr<UFpSort>.castToBv(sizeBits: Int): UExpr<UBvSort> =
     with(ctx) {
-        val bvMaxValue: KExpr<KBvSort> = bvMaxValueSigned(sizeBits.toUInt()).cast()
-        val bvMinValue: KExpr<KBvSort> = bvMinValueSigned(sizeBits.toUInt()).cast()
+        val bvMaxValue = bvMaxValueSigned<KBvSort>(sizeBits.toUInt())
+        val bvMinValue = bvMinValueSigned<KBvSort>(sizeBits.toUInt())
         val fpBvMaxValue = mkBvToFpExpr(sort, fpRoundingModeSortDefaultValue(), bvMaxValue, signed = true)
         val fpBvMinValue = mkBvToFpExpr(sort, fpRoundingModeSortDefaultValue(), bvMinValue, signed = true)
 

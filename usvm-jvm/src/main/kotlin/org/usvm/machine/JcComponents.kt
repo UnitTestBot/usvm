@@ -2,6 +2,7 @@ package org.usvm.machine
 
 import io.ksmt.solver.yices.KYicesSolver
 import io.ksmt.solver.z3.KZ3Solver
+import io.ksmt.symfpu.solver.SymFpuSolver
 import org.jacodb.api.JcField
 import org.jacodb.api.JcMethod
 import org.jacodb.api.JcType
@@ -18,13 +19,14 @@ class JcComponents(
     private val solverType: SolverType
 ) : UComponents<JcField, JcType, JcMethod> {
     private val closeableResources = mutableListOf<AutoCloseable>()
-    override fun mkSolver(ctx: UContext): USolverBase<JcField, JcType, JcMethod> {
+    override fun <Context : UContext> mkSolver(ctx: Context): USolverBase<JcField, JcType, JcMethod, Context> {
         val (translator, decoder) = buildTranslatorAndLazyDecoder<JcField, JcType, JcMethod>(ctx)
         val softConstraintsProvider = USoftConstraintsProvider<JcField, JcType>(ctx)
 
         val smtSolver =
             when (solverType) {
-                SolverType.YICES -> KYicesSolver(ctx)
+                // Yices with Fp support via SymFpu
+                SolverType.YICES -> SymFpuSolver(KYicesSolver(ctx), ctx)
                 SolverType.Z3 -> KZ3Solver(ctx)
             }
         val typeSolver = UTypeSolver(typeSystem)

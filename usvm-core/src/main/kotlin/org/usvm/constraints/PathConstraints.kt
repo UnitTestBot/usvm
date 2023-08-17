@@ -13,6 +13,7 @@ import org.usvm.UIsSubtypeExpr
 import org.usvm.UIsSupertypeExpr
 import org.usvm.UNotExpr
 import org.usvm.UOrExpr
+import org.usvm.USizeSort
 import org.usvm.isStaticInitializedConcreteHeapRef
 import org.usvm.isSymbolicHeapRef
 import org.usvm.uctx
@@ -20,8 +21,8 @@ import org.usvm.uctx
 /**
  * Mutable representation of path constraints.
  */
-open class UPathConstraints<Type> private constructor(
-    val ctx: UContext,
+open class UPathConstraints<Type, Context : UContext> private constructor(
+    val ctx: Context,
     logicalConstraints: PersistentSet<UBoolExpr> = persistentSetOf(),
     /**
      * Specially represented equalities and disequalities between objects, used in various part of constraints management.
@@ -34,6 +35,10 @@ open class UPathConstraints<Type> private constructor(
         ctx.typeSystem(),
         equalityConstraints
     ),
+    /**
+     * Specially represented numeric constraints (e.g. >, <, >=, ...).
+     */
+    val numericConstraints: UNumericConstraints<USizeSort> = UNumericConstraints(ctx, sort = ctx.sizeSort)
 ) {
     init {
         equalityConstraints.setTypesCheck(typeConstraints::isStaticRefAssignableToSymbolic)
@@ -44,11 +49,12 @@ open class UPathConstraints<Type> private constructor(
     var logicalConstraints: PersistentSet<UBoolExpr> = logicalConstraints
         private set
 
-    constructor(ctx: UContext) : this(ctx, persistentSetOf())
+    constructor(ctx: Context) : this(ctx, persistentSetOf())
 
     open val isFalse: Boolean
         get() = equalityConstraints.isContradicting ||
                 typeConstraints.isContradicting ||
+                numericConstraints.isContradicting ||
                 logicalConstraints.singleOrNull() is UFalse
 
     @Suppress("UNCHECKED_CAST")
@@ -58,6 +64,9 @@ open class UPathConstraints<Type> private constructor(
                 constraint == falseExpr -> contradiction(this)
 
                 constraint == trueExpr || constraint in logicalConstraints -> {}
+
+                numericConstraints.isNumericConstraint(constraint) ->
+                    numericConstraints.addNumericConstraint(constraint)
 
                 constraint is UEqExpr<*> && arePossiblyEqualReferences(constraint.lhs, constraint.rhs) ->
                     equalityConstraints.makeEqual(constraint.lhs as UHeapRef, constraint.rhs as UHeapRef)
@@ -93,6 +102,9 @@ open class UPathConstraints<Type> private constructor(
                             notConstraint.subtype as Type
                         )
 
+                        numericConstraints.isNumericConstraint(notConstraint) ->
+                            numericConstraints.addNegatedNumericConstraint(notConstraint)
+
                         notConstraint in logicalConstraints -> contradiction(ctx)
 
                         notConstraint is UOrExpr -> notConstraint.args.forEach { plusAssign(ctx.mkNot(it)) }
@@ -107,10 +119,17 @@ open class UPathConstraints<Type> private constructor(
             }
         }
 
-    open fun clone(): UPathConstraints<Type> {
+    open fun clone(): UPathConstraints<Type, Context> {
         val clonedEqualityConstraints = equalityConstraints.clone()
         val clonedTypeConstraints = typeConstraints.clone(clonedEqualityConstraints)
-        return UPathConstraints(ctx, logicalConstraints, clonedEqualityConstraints, clonedTypeConstraints)
+        val clonedNumericConstraints = numericConstraints.clone()
+        return UPathConstraints(
+            ctx = ctx,
+            logicalConstraints = logicalConstraints,
+            equalityConstraints = clonedEqualityConstraints,
+            typeConstraints = clonedTypeConstraints,
+            numericConstraints = clonedNumericConstraints
+        )
     }
 
     protected fun contradiction(ctx: UContext) {

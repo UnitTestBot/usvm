@@ -1,6 +1,6 @@
 package org.usvm.samples.controlflow;
 
-import java.math.RoundingMode;
+//import java.math.RoundingMode;
 
 public class Switch {
 
@@ -113,48 +113,19 @@ public class Switch {
         return customEnum.name();
     }
 
-    static class ClassWithStaticInstance {
-
-        final int x;
-
-        static int z = 42;
-
-        public static ClassWithStaticInstance instance1 = new ClassWithStaticInstance(A.a.x);
-
-        ClassWithStaticInstance(int x) {
-            this.x = x;
-        }
-    }
-
-    static class A {
-        static A a = new A();
-
-        final int x = -42;
-
-        public A() {
-            if (ClassWithStaticInstance.z != 42) {
-                throw new IllegalStateException();
-            }
-        }
-    }
-
-    public int returnInstanceX() {
-        return ClassWithStaticInstance.instance1.x;
-    }
-
-    public int roundingModeSwitch(RoundingMode m) {
-        switch (m) {
-            case HALF_DOWN: // fall-through
-            case HALF_EVEN: // fall-through
-            case HALF_UP: // fall-through
-                return 1;
-            case DOWN:
-                return 2;
-            case CEILING:
-                return 3;
-        }
-        return -1;
-    }
+//    public int roundingModeSwitch(RoundingMode m) {
+//        switch (m) {
+//            case HALF_DOWN: // fall-through
+//            case HALF_EVEN: // fall-through
+//            case HALF_UP: // fall-through
+//                return 1;
+//            case DOWN:
+//                return 2;
+//            case CEILING:
+//                return 3;
+//        }
+//        return -1;
+//    }
 
     public int charToIntSwitch(char c) {
         switch (c) {

@@ -2,9 +2,14 @@ package org.usvm.samples.primitives
 
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.usvm.PathSelectionStrategy
+import org.usvm.PathSelectorCombinationStrategy
+import org.usvm.UMachineOptions
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
+import org.usvm.util.Options
+import org.usvm.util.UsvmTest
 
 
 @Suppress("ConvertTwoComparisonsToRangeCheck")
@@ -72,16 +77,23 @@ internal class IntExamplesTest : JavaMethodTestRunner() {
     }
 
 
-    @Test
-    fun testCompare() {
-        checkDiscoveredProperties(
-            IntExamples::complexCompare,
-            ignoreNumberOfAnalysisResults,
-            { _, a, b, r -> a < b && b < 11 && r == 0 },
-            { _, a, b, r -> a < b && b > 11 && r == 1 },
-            { _, a, b, r -> a == b && b == 11 && r == 3 },
-            { _, a, b, r -> ((a == b && b != 11) || (a < b && b == 11) || (a > b)) && r == 6 },
-        )
+    @UsvmTest(
+        [Options(
+            [PathSelectionStrategy.BFS, PathSelectionStrategy.DFS],
+            PathSelectorCombinationStrategy.PARALLEL
+        )]
+    )
+    fun testCompare(options: UMachineOptions) {
+        withOptions(options) {
+            checkDiscoveredProperties(
+                IntExamples::complexCompare,
+                ignoreNumberOfAnalysisResults,
+                { _, a, b, r -> a < b && b < 11 && r == 0 },
+                { _, a, b, r -> a < b && b > 11 && r == 1 },
+                { _, a, b, r -> a == b && b == 11 && r == 3 },
+                { _, a, b, r -> ((a == b && b != 11) || (a < b && b == 11) || (a > b)) && r == 6 },
+            )
+        }
     }
 
     @Test

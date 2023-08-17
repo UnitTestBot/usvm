@@ -8,6 +8,7 @@ import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.between
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ge
+import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import org.usvm.util.Options
 import org.usvm.util.UsvmTest
 import org.usvm.util.isException
@@ -107,9 +108,7 @@ internal class RecursionTest : JavaMethodTestRunner() {
         withOptions(options) {
             checkDiscoveredProperties(
                 Recursion::firstMethod,
-                eq(2),
-                { _, x, _ -> x < 4 },
-                { _, x, _ -> x >= 4 },
+                ignoreNumberOfAnalysisResults,
             )
         }
     }

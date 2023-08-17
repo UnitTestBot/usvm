@@ -1,4 +1,4 @@
-package org.usvm.machine
+package org.usvm.machine.interpreter
 
 import io.ksmt.utils.asExpr
 import mu.KLogging
@@ -33,6 +33,8 @@ import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UInterpreter
 import org.usvm.URegisterLValue
+import org.usvm.machine.JcApplicationGraph
+import org.usvm.machine.JcContext
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.addEntryMethodCall
@@ -45,7 +47,7 @@ import org.usvm.machine.state.throwExceptionAndDropStackFrame
 import org.usvm.machine.state.throwExceptionWithoutStackFrameDrop
 import org.usvm.solver.USatResult
 
-typealias JcStepScope = StepScope<JcState, JcType, JcField>
+typealias JcStepScope = StepScope<JcState, JcType, JcField, JcContext>
 
 /**
  * A JacoDB interpreter.
@@ -85,7 +87,7 @@ class JcInterpreter(
             }
         }
 
-        val solver = ctx.solver<JcField, JcType, JcMethod>()
+        val solver = ctx.solver<JcField, JcType, JcMethod, JcContext>()
 
         val model = (solver.checkWithSoftConstraints(state.pathConstraints) as USatResult).model
         state.models = listOf(model)
@@ -153,14 +155,14 @@ class JcInterpreter(
                 typeConstraintsNegations += currentTypeConstraints.map { ctx.mkNot(it) }
 
                 result
-            } ?: return@forEach
+            }
 
             catchForks += typeConstraint to blockToFork(catchInst)
         }
 
         val typeConditionToMiss = ctx.mkAnd(typeConstraintsNegations)
         val functionBlockOnMiss = block@{ _: JcState ->
-            scope.calcOnState { throwExceptionAndDropStackFrame() } ?: return@block
+            scope.calcOnState { throwExceptionAndDropStackFrame() }
         }
 
         val catchSectionMiss = typeConditionToMiss to functionBlockOnMiss
@@ -271,12 +273,16 @@ class JcInterpreter(
         }
     }
 
+    private val invokeResolver = JcVirtualInvokeResolver(ctx, applicationGraph, JcFixedInheritorsNumberTypeSelector())
+
     private fun exprResolverWithScope(scope: JcStepScope) =
         JcExprResolver(
-            ctx, scope, applicationGraph,
+            ctx,
+            scope,
             ::mapLocalToIdxMapper,
             ::typeInstanceAllocator,
-            ::stringConstantAllocator
+            ::stringConstantAllocator,
+            invokeResolver
         )
 
     private val localVarToIdx = mutableMapOf<JcMethod, MutableMap<String, Int>>() // (method, localName) -> idx

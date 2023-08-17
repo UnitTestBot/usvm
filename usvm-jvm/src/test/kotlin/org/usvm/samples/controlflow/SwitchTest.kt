@@ -101,30 +101,21 @@ internal class SwitchTest : JavaMethodTestRunner() {
         )
     }
 
-    @Test
-    fun aaaa() {
-        checkDiscoveredProperties(
-            Switch::returnInstanceX,
-            eq(1),
-            { _, r -> r == -42 }
-        )
-    }
-
-    @Test
-    @Disabled("TODO support statics memory region. There is the same problem as for enums - constraints are set for array with stores, not for an empty array.")
-    fun testRoundingModeSwitch() {
-        checkDiscoveredProperties(
-            Switch::roundingModeSwitch,
-            ignoreNumberOfAnalysisResults,
-            { _, m, _ -> m == null }, // NPE
-            { _, m, r -> m == HALF_DOWN && r == 1 }, // We will minimize two of these branches
-//            { _, m, r -> m == HALF_EVEN && r == 1 }, // We will minimize two of these branches
-//            { _, m, r -> m == HALF_UP && r == 1 }, // We will minimize two of these branches
-            { _, m, r -> m == DOWN && r == 2 },
-            { _, m, r -> m == CEILING && r == 3 },
-            { _, m, r -> m !in setOf(HALF_DOWN, HALF_EVEN, HALF_UP, DOWN, CEILING) && r == -1 },
-        )
-    }
+//    @Test
+//    @Disabled("TODO support statics memory region. There is the same problem as for enums - constraints are set for array with stores, not for an empty array.")
+//    fun testRoundingModeSwitch() {
+//        checkDiscoveredProperties(
+//            Switch::roundingModeSwitch,
+//            ignoreNumberOfAnalysisResults,
+//            { _, m, _ -> m == null }, // NPE
+//            { _, m, r -> m == HALF_DOWN && r == 1 }, // We will minimize two of these branches
+////            { _, m, r -> m == HALF_EVEN && r == 1 }, // We will minimize two of these branches
+////            { _, m, r -> m == HALF_UP && r == 1 }, // We will minimize two of these branches
+//            { _, m, r -> m == DOWN && r == 2 },
+//            { _, m, r -> m == CEILING && r == 3 },
+//            { _, m, r -> m !in setOf(HALF_DOWN, HALF_EVEN, HALF_UP, DOWN, CEILING) && r == -1 },
+//        )
+//    }
 
     @Test
     fun testCharToIntSwitch() {

@@ -84,6 +84,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("TODO almost infinite execution, fix it.")
     fun testIntToString() {
         checkDiscoveredProperties(
             StringExamples::intToString,

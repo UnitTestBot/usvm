@@ -16,7 +16,7 @@ import kotlin.math.min
  * @param getCfgDistanceToExitPoint function with the following signature:
  * (method, stmt) -> shortest CFG distance from stmt to any of method's exit points.
  */
-class ShortestDistanceToTargetsStateWeighter<Method, Statement, State : UState<*, *, Method, Statement>>(
+class ShortestDistanceToTargetsStateWeighter<Method, Statement, State : UState<*, *, Method, Statement, *, State>>(
     targets: Collection<Pair<Method, Statement>>,
     private val getCfgDistance: (Method, Statement, Statement) -> UInt,
     private val getCfgDistanceToExitPoint: (Method, Statement) -> UInt
@@ -27,7 +27,7 @@ class ShortestDistanceToTargetsStateWeighter<Method, Statement, State : UState<*
 
     init {
         for ((method, stmt) in targets) {
-            val statements = targetsByMethod.computeIfAbsent(method) { HashSet() }
+            val statements = targetsByMethod.computeIfAbsent(method) { hashSetOf() }
             statements.add(stmt)
         }
     }
@@ -38,7 +38,7 @@ class ShortestDistanceToTargetsStateWeighter<Method, Statement, State : UState<*
     }
 
     fun addTarget(method: Method, statement: Statement): Boolean {
-        val statements = targetsByMethod.computeIfAbsent(method) { HashSet() }
+        val statements = targetsByMethod.computeIfAbsent(method) { hashSetOf() }
         val wasAdded = statements.add(statement)
         if (wasAdded) {
             minLocalDistanceToTargetCache.remove(method)
@@ -56,7 +56,7 @@ class ShortestDistanceToTargetsStateWeighter<Method, Statement, State : UState<*
     }
 
     override fun weight(state: State): UInt {
-        val currentStatement = state.currentStatement ?: return 0u
+        val currentStatement = state.currentStatement
 
         var currentMinDistanceToTarget = UInt.MAX_VALUE
 

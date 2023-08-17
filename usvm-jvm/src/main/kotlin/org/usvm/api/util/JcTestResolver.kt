@@ -22,7 +22,9 @@ import org.jacodb.api.ext.long
 import org.jacodb.api.ext.short
 import org.jacodb.api.ext.toType
 import org.jacodb.api.ext.void
+import org.usvm.INITIAL_CONCRETE_ADDRESS
 import org.usvm.INITIAL_INPUT_ADDRESS
+import org.usvm.INITIAL_STATIC_ADDRESS
 import org.usvm.NULL_ADDRESS
 import org.usvm.UArrayIndexLValue
 import org.usvm.UArrayLengthLValue
@@ -48,11 +50,7 @@ import org.usvm.machine.extractLong
 import org.usvm.machine.extractShort
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
-import org.usvm.machine.state.classType
-import org.usvm.machine.state.classTypeSyntheticField
 import org.usvm.machine.state.localIdx
-import org.usvm.machine.state.stringType
-import org.usvm.machine.state.stringValueField
 import org.usvm.memory.UReadOnlySymbolicMemory
 import org.usvm.model.UModelBase
 import org.usvm.types.first
@@ -75,7 +73,7 @@ class JcTestResolver(
         val model = state.models.first()
         val memory = state.memory
 
-        val ctx = state.pathConstraints.ctx as JcContext
+        val ctx = state.pathConstraints.ctx
 
         val initialScope = MemoryScope(ctx, model, model, method, classLoader)
         val afterScope = MemoryScope(ctx, model, memory, method, classLoader)
@@ -179,7 +177,6 @@ class JcTestResolver(
         fun resolveReference(heapRef: UHeapRef, type: JcRefType): Any? {
             val ref = evaluateInModel(heapRef) as UConcreteHeapRef
             if (ref.address == NULL_ADDRESS) {
-
                 return null
             }
             // to find a type, we need to understand the source of the object
@@ -253,12 +250,12 @@ class JcTestResolver(
         private fun resolveObject(ref: UConcreteHeapRef, heapRef: UHeapRef, type: JcRefType): Any {
             // It is important to compare exactly jcClasses because java.lang.Class is parametrized type so we need to
             // drop current type argument.
-            if (type.jcClass == ctx.classType().jcClass && ref.address <= INITIAL_INPUT_ADDRESS) {
+            if (type.jcClass == ctx.classType.jcClass && ref.address <= INITIAL_STATIC_ADDRESS) {
                 // Note that non-negative addresses are possible only for the result value.
                 return resolveAllocatedClass(ref)
             }
 
-            if (type == ctx.stringType() && ref.address <= INITIAL_INPUT_ADDRESS) {
+            if (type.jcClass == ctx.stringType.jcClass && ref.address <= INITIAL_STATIC_ADDRESS) {
                 // Note that non-negative addresses are possible only for the result value.
                 return resolveAllocatedString(ref)
             }
@@ -304,7 +301,7 @@ class JcTestResolver(
         }
 
         private fun resolveAllocatedClass(ref: UConcreteHeapRef): Class<*> {
-            val classTypeField = ctx.classTypeSyntheticField()
+            val classTypeField = ctx.classTypeSyntheticField
             val classTypeLValue = UFieldLValue(ctx.addressSort, ref, classTypeField)
 
             val classTypeRef = memory.read(classTypeLValue) as? UConcreteHeapRef
@@ -327,7 +324,7 @@ class JcTestResolver(
         }
 
         private fun resolveAllocatedString(ref: UConcreteHeapRef): String {
-            val valueField = ctx.stringValueField()
+            val valueField = ctx.stringValueField
             val strValueLValue = UFieldLValue(ctx.typeToSort(valueField.fieldType), ref, valueField.field)
             val strValue = resolveLValue(strValueLValue, valueField.fieldType)
 

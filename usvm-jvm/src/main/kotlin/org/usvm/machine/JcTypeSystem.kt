@@ -6,6 +6,7 @@ import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcPrimitiveType
 import org.jacodb.api.JcRefType
 import org.jacodb.api.JcType
+import org.jacodb.api.JcTypeVariable
 import org.jacodb.api.ext.isAssignable
 import org.jacodb.api.ext.objectType
 import org.jacodb.api.ext.toType
@@ -20,7 +21,9 @@ class JcTypeSystem(
     private val hierarchy = HierarchyExtensionImpl(cp)
 
     override fun isSupertype(supertype: JcType, type: JcType): Boolean =
-        type.isAssignable(supertype)
+        type.isAssignable(supertype) ||
+                // It is possible when, for example, the returning type of a method is a type variable
+                (supertype is JcTypeVariable && type.isAssignable(supertype.jcClass.toType()))
 
     override fun isMultipleInheritanceAllowedFor(type: JcType): Boolean =
         (type as? JcClassType)?.jcClass?.isInterface ?: false

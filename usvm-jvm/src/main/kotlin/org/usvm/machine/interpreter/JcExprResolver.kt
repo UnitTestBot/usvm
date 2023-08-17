@@ -1,5 +1,6 @@
-package org.usvm.machine
+package org.usvm.machine.interpreter
 
+import io.ksmt.expr.KExpr
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
 import io.ksmt.utils.mkFreshConst
@@ -11,7 +12,6 @@ import org.jacodb.api.JcMethod
 import org.jacodb.api.JcPrimitiveType
 import org.jacodb.api.JcRefType
 import org.jacodb.api.JcType
-import org.jacodb.api.JcTypeVariable
 import org.jacodb.api.JcTypedField
 import org.jacodb.api.JcTypedMethod
 import org.jacodb.api.PredefinedPrimitives
@@ -97,9 +97,7 @@ import org.usvm.UBvSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UFieldLValue
-import org.usvm.UHeapReading
 import org.usvm.UHeapRef
-import org.usvm.UInputArrayReading
 import org.usvm.UInputFieldReading
 import org.usvm.ULValue
 import org.usvm.URegisterLValue
@@ -107,9 +105,8 @@ import org.usvm.USizeExpr
 import org.usvm.USizeSort
 import org.usvm.USort
 import org.usvm.USymbolicHeapRef
-import org.usvm.isStaticInitializedConcreteHeapRef
-import org.usvm.isSymbolicHeapRef
 import org.usvm.isTrue
+import org.usvm.machine.JcContext
 import org.usvm.machine.operator.JcBinaryOperator
 import org.usvm.machine.operator.JcUnaryOperator
 import org.usvm.machine.operator.ensureBvExpr
@@ -117,14 +114,8 @@ import org.usvm.machine.operator.mkNarrow
 import org.usvm.machine.operator.wideTo32BitsIfNeeded
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
-import org.usvm.machine.state.addNewMethodCall
-import org.usvm.machine.state.classType
-import org.usvm.machine.state.classTypeSyntheticField
-import org.usvm.machine.state.stringType
-import org.usvm.machine.state.stringValueField
 import org.usvm.machine.state.throwExceptionWithoutStackFrameDrop
 import org.usvm.memory.URegionHeap
-import org.usvm.memory.USymbolicArrayIndex
 import org.usvm.util.extractJcRefType
 
 /**
@@ -134,10 +125,10 @@ import org.usvm.util.extractJcRefType
 class JcExprResolver(
     private val ctx: JcContext,
     private val scope: JcStepScope,
-    private val applicationGraph: JcApplicationGraph,
     private val localToIdx: (JcMethod, JcLocal) -> Int,
     private val mkTypeRef: (JcType, JcState) -> UConcreteHeapRef,
     private val mkStringConstRef: (String, JcState) -> UConcreteHeapRef,
+    private val invokeResolver: JcInvokeResolver,
     private val hardMaxArrayLength: Int = 1_500, // TODO: move to options
 ) : JcExprVisitor<UExpr<out USort>?> {
     /**
@@ -177,7 +168,7 @@ class JcExprResolver(
             else -> error("Unexpected value: $value")
         }
 
-    override fun visitExternalJcExpr(expr: JcExpr): UExpr<out USort> = with(ctx) {
+    override fun visitExternalJcExpr(expr: JcExpr): UExpr<out USort> {
         error("Unexpected expression: $expr")
     }
 
@@ -307,10 +298,8 @@ class JcExprResolver(
         nullRef
     }
 
-    override fun visitJcStringConstant(value: JcStringConstant): UExpr<out USort>? = with(ctx) {
+    override fun visitJcStringConstant(value: JcStringConstant): UExpr<out USort> = with(ctx) {
         scope.calcOnState {
-            val stringValueField = stringValueField()
-
             // String.value type depends on the JVM version
             val charValues = when (stringValueField.fieldType.ifArrayGetElementType) {
                 cp.char -> value.value.asSequence().map { mkBv(it.code, charSort) }
@@ -331,40 +320,38 @@ class JcExprResolver(
             // String constants are immutable. Therefore, it is correct to overwrite value and type.
             val stringValueLValue = UFieldLValue(addressSort, ref, stringValueField.field)
             memory.write(stringValueLValue, charArrayRef)
-            memory.types.allocate(ref, stringType())
+            memory.types.allocate(ref, stringType)
 
             ref
         }
     }
 
-    override fun visitJcMethodConstant(value: JcMethodConstant): UExpr<out USort> = with(ctx) {
-        TODO("Not yet implemented")
+    override fun visitJcMethodConstant(value: JcMethodConstant): UExpr<out USort> {
+        TODO("Method constant")
     }
 
-    override fun visitJcMethodType(value: JcMethodType): UExpr<out USort>? {
-        TODO("Not yet implemented")
+    override fun visitJcMethodType(value: JcMethodType): UExpr<out USort> {
+        TODO("Method type")
     }
 
     private fun JcState.resolveClassRef(type: JcType): UConcreteHeapRef {
         val ref = mkTypeRef(type, this)
 
         // Ref type is java.lang.Class
-        val classType = ctx.classType()
-        memory.types.allocate(ref, classType)
+        memory.types.allocate(ref, ctx.classType)
 
         // Save ref original class type
         val classRefType = memory.alloc(type)
-        val classRefTypeLValue = UFieldLValue(ctx.addressSort, ref, ctx.classTypeSyntheticField())
+        val classRefTypeLValue = UFieldLValue(ctx.addressSort, ref, ctx.classTypeSyntheticField)
         memory.write(classRefTypeLValue, classRefType)
 
         return ref
     }
 
-    override fun visitJcClassConstant(value: JcClassConstant): UExpr<out USort>? = with(ctx) {
+    override fun visitJcClassConstant(value: JcClassConstant): UExpr<out USort> =
         scope.calcOnState {
             resolveClassRef(value.klass)
         }
-    }
 
     // endregion
 
@@ -384,7 +371,7 @@ class JcExprResolver(
         checkNullPointer(ref) ?: return null
         val arrayDescriptor = arrayDescriptorOf(expr.array.type as JcArrayType)
         val lengthRef = UArrayLengthLValue(ref, arrayDescriptor)
-        val length = scope.calcOnState { memory.read(lengthRef).asExpr(sizeSort) } ?: return null
+        val length = scope.calcOnState { memory.read(lengthRef).asExpr(sizeSort) }
         assertHardMaxArrayLength(length) ?: return null
         scope.assert(mkBvSignedLessOrEqualExpr(mkBv(0), length)) ?: return null
         length
@@ -396,9 +383,10 @@ class JcExprResolver(
         checkNewArrayLength(size) ?: return null
         val ref = scope.calcOnState {
             val r = memory.malloc(arrayDescriptorOf(expr.type as JcArrayType), size, callStack.none { it.method.name == "<clinit>" })
+            // TODO extreme hack for array types, see the same in resolving string constants
             memory.types.allocate(r, expr.type)
             r
-        } ?: return null
+        }
         ref
     }
 
@@ -415,80 +403,112 @@ class JcExprResolver(
     // region invokes
 
     override fun visitJcSpecialCallExpr(expr: JcSpecialCallExpr): UExpr<out USort>? =
-        resolveInstanceCallExpr(expr)
+        approximateClassNativeCalls(expr) {
+            val instance = expr.instance.let { resolveJcExpr(it)?.asExpr(ctx.addressSort) }
 
-    override fun visitJcVirtualCallExpr(expr: JcVirtualCallExpr): UExpr<out USort>? =
-        resolveInstanceCallExpr(expr) // TODO resolve actual method for interface invokes
-
-    private fun resolveInstanceCallExpr(expr: JcInstanceCallExpr): UExpr<out USort>? {
-        val instance = resolveJcExpr(expr.instance)?.asExpr(ctx.addressSort)
-
-        return approximateClassNativeCalls(expr) {
-            resolveInvoke(expr.method, instance, expr.instance.type as? JcRefType) {
-                instance ?: return@resolveInvoke null
-                checkNullPointer(instance) ?: return@resolveInvoke null
-                val arguments = mutableListOf<UExpr<out USort>>(instance)
-
-                val argsWithTypes = expr.args.zip(expr.method.parameters.map { it.type })
-
-                argsWithTypes.mapTo(arguments) { (expr, type) ->
-                    resolveJcExpr(expr, type) ?: return@resolveInvoke null
-                }
-                arguments
+            resolveInvoke(
+                expr.method,
+                instance = instance,
+                instanceExpr = expr.instance,
+                argumentExprs = expr::args,
+                argumentTypes = { expr.method.parameters.map { it.type } }
+            ) { arguments ->
+                with(invokeResolver) { resolveSpecialInvoke(expr.method.method, arguments) }
             }
         }
-    }
+
+    override fun visitJcVirtualCallExpr(expr: JcVirtualCallExpr): UExpr<out USort>? =
+        approximateClassNativeCalls(expr) {
+            val instance = expr.instance.let { resolveJcExpr(it)?.asExpr(ctx.addressSort) }
+
+            resolveInvoke(
+                expr.method,
+                instance = instance,
+                instanceExpr = expr.instance,
+                argumentExprs = expr::args,
+                argumentTypes = { expr.method.parameters.map { it.type } }
+            ) { arguments ->
+                with(invokeResolver) { resolveVirtualInvoke(expr.method.method, arguments) }
+            }
+        }
 
     override fun visitJcStaticCallExpr(expr: JcStaticCallExpr): UExpr<out USort>? =
         approximateClassNativeCalls(expr) {
-            resolveInvoke(expr.method) {
-                val argsWithTypes = expr.args.zip(expr.method.parameters.map { it.type })
-
-                argsWithTypes.map { (expr, type) ->
-                    resolveJcExpr(expr, type) ?: return@resolveInvoke null
+            resolveInvoke(
+                expr.method,
+                instance = null,
+                instanceExpr = null,
+                argumentExprs = expr::args,
+                argumentTypes = { expr.method.parameters.map { it.type } }
+            ) { arguments ->
+                with(invokeResolver) {
+                    resolveStaticInvoke(expr.method.method, arguments)
                 }
             }
         }
 
-    override fun visitJcDynamicCallExpr(expr: JcDynamicCallExpr): UExpr<out USort> = with(ctx) {
-        TODO("Not yet implemented")
-    }
+    override fun visitJcDynamicCallExpr(expr: JcDynamicCallExpr): UExpr<out USort>? =
+        resolveInvoke(
+            expr.method,
+            instance = null,
+            instanceExpr = null,
+            argumentExprs = expr::args,
+            argumentTypes = expr::callSiteArgTypes
+        ) { arguments ->
+            with(invokeResolver) {
+                resolveDynamicInvoke(expr.method.method, arguments)
+            }
+        }
 
     override fun visitJcLambdaExpr(expr: JcLambdaExpr): UExpr<out USort>? =
-        resolveInvoke(expr.method) {
-            val argsWithTypes = expr.args.zip(expr.method.parameters.map { it.type })
-
-            argsWithTypes.map { (expr, type) ->
-                resolveJcExpr(expr, type) ?: return@resolveInvoke null
+        resolveInvoke(
+            expr.method,
+            instance = null,
+            instanceExpr = null,
+            argumentExprs = expr::args,
+            argumentTypes = { expr.method.parameters.map { it.type } }
+        ) { arguments ->
+            with(invokeResolver) {
+                resolveLambdaInvoke(expr.method.method, arguments)
             }
         }
 
-    private fun resolveInvoke(
+    private inline fun resolveInvoke(
         method: JcTypedMethod,
         instance: UHeapRef? = null,
-        instanceType: JcRefType? = null,
-        resolveArguments: () -> List<UExpr<out USort>>?,
-    ): UExpr<out USort>? = ensureStaticFieldsInitialized(instanceType ?: method.enclosingType, instance) {
-        resolveInvokeNoStaticInitializationCheck(method, resolveArguments)
+//        instanceType: JcRefType? = null,
+        instanceExpr: JcValue?,
+        argumentExprs: () -> List<JcValue>,
+        argumentTypes: () -> List<JcType>,
+        onNoCallPresent: JcStepScope.(List<UExpr<out USort>>) -> Unit,
+    ): UExpr<out USort>? = ensureStaticFieldsInitialized(method.enclosingType, instance) {
+        val arguments = mutableListOf<UExpr<out USort>>()
+
+        if (instanceExpr != null) {
+            instance ?: return null
+            checkNullPointer(instance) ?: return null
+            arguments += instance
+        }
+
+        argumentExprs().zip(argumentTypes()) { expr, type ->
+            arguments += resolveJcExpr(expr, type) ?: return null
+        }
+
+        resolveInvokeNoStaticInitializationCheck { onNoCallPresent(arguments) }
     }
 
-    private fun resolveInvokeNoStaticInitializationCheck(
-        method: JcTypedMethod,
-        resolveArguments: () -> List<UExpr<out USort>>?,
+    private inline fun resolveInvokeNoStaticInitializationCheck(
+        onNoCallPresent: JcStepScope.() -> Unit,
     ): UExpr<out USort>? {
-        val result = scope.calcOnState { methodResult } ?: return null
+        val result = scope.calcOnState { methodResult }
         return when (result) {
             is JcMethodResult.Success -> {
-                check(result.method == method.method) {
-                    "Expected result from ${method.method} but actual is ${result.method}"
-                }
                 scope.doWithState { methodResult = JcMethodResult.NoCall }
                 result.value
             }
 
             is JcMethodResult.NoCall -> {
-                val arguments = resolveArguments() ?: return null
-                scope.doWithState { addNewMethodCall(applicationGraph, method.method, arguments) }
+                scope.onNoCallPresent()
                 null
             }
 
@@ -500,17 +520,17 @@ class JcExprResolver(
 
     // region jc locals
 
-    override fun visitJcLocalVar(value: JcLocalVar): UExpr<out USort>? = with(ctx) {
+    override fun visitJcLocalVar(value: JcLocalVar): UExpr<out USort> = with(ctx) {
         val ref = resolveLocal(value)
         scope.calcOnState { memory.read(ref) }
     }
 
-    override fun visitJcThis(value: JcThis): UExpr<out USort>? = with(ctx) {
+    override fun visitJcThis(value: JcThis): UExpr<out USort> = with(ctx) {
         val ref = resolveLocal(value)
         scope.calcOnState { memory.read(ref) }
     }
 
-    override fun visitJcArgument(value: JcArgument): UExpr<out USort>? = with(ctx) {
+    override fun visitJcArgument(value: JcArgument): UExpr<out USort> = with(ctx) {
         val ref = resolveLocal(value)
         scope.calcOnState { memory.read(ref) }
     }
@@ -520,14 +540,31 @@ class JcExprResolver(
     // region jc complex values
 
     override fun visitJcFieldRef(value: JcFieldRef): UExpr<out USort>? {
-        val ref = resolveFieldRef(value.instance, value.field) ?: return null
-        return scope.calcOnState { memory.read(ref) }
+        val lValue = resolveFieldRef(value.instance, value.field) ?: return null
+        val expr = scope.calcOnState { memory.read(lValue) }
+
+        if (assertIsSubtype(expr, value.type)) return expr
+
+        return null
     }
 
-
     override fun visitJcArrayAccess(value: JcArrayAccess): UExpr<out USort>? {
-        val ref = resolveArrayAccess(value.array, value.index) ?: return null
-        return scope.calcOnState { memory.read(ref) }
+        val lValue = resolveArrayAccess(value.array, value.index) ?: return null
+        val expr = scope.calcOnState { memory.read(lValue) }
+
+        if (assertIsSubtype(expr, value.type)) return expr
+
+        return null
+    }
+
+    private fun assertIsSubtype(expr: KExpr<out USort>, type: JcType): Boolean {
+        if (type is JcRefType) {
+            val heapRef = expr.asExpr(ctx.addressSort)
+            val isExpr = scope.calcOnState { memory.types.evalIsSubtype(heapRef, type) }
+            scope.assert(isExpr) ?: return false
+        }
+
+        return true
     }
 
     // endregion
@@ -551,7 +588,7 @@ class JcExprResolver(
                     val sort = ctx.typeToSort(field.fieldType)
                     val classRef = scope.calcOnState {
                         resolveClassRef(field.enclosingType)
-                    } ?: return null
+                    }
                     UFieldLValue(sort, classRef, field.field)
                 }
             }
@@ -571,27 +608,6 @@ class JcExprResolver(
             return
         }
 
-
-
-        /*if (callStack.any {
-            val method = it.method
-
-                method.enclosingClass == type && method.name == "<clinit>"
-        }) {
-            return@calcOnState
-        }
-
-        // TODO try to extract it using jacodb
-        val enumInstanceNames = Class.forName(type.name).enumConstants.map { "${type.name}#${(it as Enum<*>).name}" }
-        val enumInstanceConcreteRefs = (memory.heap as URegionHeap<*, *>).allocatedFields().filter {
-            enumInstanceNames.any { name -> name in it.key.second.toString() }
-        }.values
-
-        with(ctx) {
-            val oneOfInstance = enumInstanceConcreteRefs.map { mkHeapRefEq(enumInstance, it as UConcreteHeapRef) }
-
-            mkOr(oneOfInstance)
-        }*/
         scope.calcOnState {
             if (callStack.any {
                     val method = it.method
@@ -672,13 +688,13 @@ class JcExprResolver(
             return body()
         }
 
-        val classRef = scope.calcOnState { resolveClassRef(type) } ?: return null
+        val classRef = scope.calcOnState { resolveClassRef(type) }
 
         val initializedFlag = staticFieldsInitializedFlag(type, classRef)
 
         val staticFieldsInitialized = scope.calcOnState {
             memory.read(initializedFlag).asExpr(ctx.booleanSort)
-        } ?: return null
+        }
 
 
         if (staticFieldsInitialized.isTrue) {
@@ -698,8 +714,8 @@ class JcExprResolver(
         // Run static initializer before the current statement
         scope.doWithState {
             memory.write(initializedFlag, ctx.trueExpr)
-            addNewMethodCall(applicationGraph, initializer, emptyList())
         }
+        with(invokeResolver) { scope.resolveStaticInvoke(initializer, emptyList()) }
         return null
     }
 
@@ -718,7 +734,7 @@ class JcExprResolver(
 
         val idx = resolveCast(index, ctx.cp.int)?.asExpr(bv32Sort) ?: return null
         val lengthRef = UArrayLengthLValue(arrayRef, arrayDescriptor)
-        val length = scope.calcOnState { memory.read(lengthRef).asExpr(sizeSort) } ?: return null
+        val length = scope.calcOnState { memory.read(lengthRef).asExpr(sizeSort) }
 
         assertHardMaxArrayLength(length) ?: return null
 
@@ -792,8 +808,7 @@ class JcExprResolver(
 
     private fun assertHardMaxArrayLength(length: USizeExpr): Unit? = with(ctx) {
         val lengthLeThanMaxLength = mkBvSignedLessOrEqualExpr(length, mkBv(hardMaxArrayLength))
-        scope.assert(lengthLeThanMaxLength) ?: return null
-        return Unit
+        scope.assert(lengthLeThanMaxLength)
     }
 
     // endregion
@@ -846,22 +861,20 @@ class JcExprResolver(
         type: JcType,
     ) = resolveAfterResolved(operand) { expr ->
         when (type) {
-            is JcRefType -> resolveReferenceCast(expr, operand.type as JcRefType, type)
+            is JcRefType -> resolveReferenceCast(expr.asExpr(ctx.addressSort), operand.type as JcRefType, type)
             is JcPrimitiveType -> resolvePrimitiveCast(expr, operand.type as JcPrimitiveType, type)
             else -> error("Unexpected type: $type")
         }
     }
 
     private fun resolveReferenceCast(
-        expr: UExpr<out USort>,
+        expr: UHeapRef,
         typeBefore: JcRefType,
         type: JcRefType,
-    ): UExpr<out USort>? {
-        @Suppress("NAME_SHADOWING") val type = if (type is JcTypeVariable) typeBefore else type
-
+    ): UHeapRef? {
+//        @Suppress("NAME_SHADOWING") val type = if (type is JcTypeVariable) typeBefore else type
         return if (!typeBefore.isAssignable(type)) {
-            val isExpr = scope.calcOnState { memory.types.evalIsSubtype(expr.asExpr(ctx.addressSort), type) }
-                ?: return null
+            val isExpr = scope.calcOnState { memory.types.evalIsSubtype(expr, type) }
             scope.fork(
                 isExpr,
                 blockOnFalseState = allocateException(classCastExceptionType)
@@ -967,7 +980,7 @@ class JcExprResolver(
                     val elementType = requireNotNull(arrayType.ifArrayGetElementType)
 
                     val lengthRef = UArrayLengthLValue(instance, arrayDescriptor)
-                    val length = scope.calcOnState { memory.read(lengthRef).asExpr(sizeSort) } ?: return@calcOnState null
+                    val length = scope.calcOnState { memory.read(lengthRef).asExpr(sizeSort) }
 
                     val arrayRef = memory.malloc(arrayDescriptor, length, callStack.none { it.method.name == "<clinit>" })
 
@@ -987,7 +1000,7 @@ class JcExprResolver(
             }
         }
 
-        if (method.enclosingClass.name != "java.lang.Class") {
+        if (method.enclosingClass != ctx.classType.jcClass) {
             return body()
         }
 

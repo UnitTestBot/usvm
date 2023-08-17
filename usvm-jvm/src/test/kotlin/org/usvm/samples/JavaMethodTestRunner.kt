@@ -4,6 +4,7 @@ import org.jacodb.api.ext.findClass
 import org.jacodb.api.ext.toType
 import org.junit.jupiter.api.TestInstance
 import org.usvm.CoverageZone
+import org.usvm.PathSelectionStrategy
 import org.usvm.UMachineOptions
 import org.usvm.api.JcClassCoverage
 import org.usvm.api.JcParametersState
@@ -717,10 +718,11 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
     override val checkType: (KClass<*>?, KClass<*>?) -> Boolean =
         { expected, actual -> actual == null || expected != null && expected.java.isAssignableFrom(actual.java) }
 
-    override var options: UMachineOptions = UMachineOptions().copy(
+    override var options: UMachineOptions = UMachineOptions(
+        pathSelectionStrategies = listOf(PathSelectionStrategy.FORK_DEPTH),
         coverageZone = CoverageZone.TRANSITIVE,
         exceptionsPropagation = true,
-        timeoutMs = 60_000/*_000_000*/,
+        timeoutMs = 60_000,
         stepsFromLastCovered = 3500L,
     )
 
@@ -729,10 +731,10 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
         val jcClass = cp.findClass(declaringClassName).toType()
         val jcMethod = jcClass.declaredMethods.first { it.name == method.name }
 
-        val machine = JcMachine(cp, options)
-        val states = machine.analyze(jcMethod.method)
-
-        states.map { testResolver.resolve(jcMethod, it) }
+        JcMachine(cp, options).use { machine ->
+            val states = machine.analyze(jcMethod.method)
+            states.map { testResolver.resolve(jcMethod, it) }
+        }
     }
 
     override val coverageRunner: (List<JcTest>) -> JcClassCoverage = { _ ->

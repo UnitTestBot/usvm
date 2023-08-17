@@ -9,12 +9,12 @@ interface UMerger<Entity> {
     fun merge(left: Entity, right: Entity): Entity?
 }
 
-class URegionHeapMerger<FieldDescr, ArrayType>: UMerger<URegionHeap<FieldDescr, ArrayType>> {
-    override fun merge(left: URegionHeap<FieldDescr, ArrayType>, right: URegionHeap<FieldDescr, ArrayType>) =
-        null // Never merge for now
+class URegionHeapMerger<FieldDescr, ArrayType> : UMerger<URegionHeap<FieldDescr, ArrayType>> {
+    // Never merge for now
+    override fun merge(left: URegionHeap<FieldDescr, ArrayType>, right: URegionHeap<FieldDescr, ArrayType>) = null
 }
 
-open class UStateMerger<Type, Field, Method, Statement>: UMerger<UState<Type, Field, Method, Statement>> {
-    override fun merge(left: UState<Type, Field, Method, Statement>, right: UState<Type, Field, Method, Statement>) =
-        null // Never merge for now
+open class UStateMerger<State : UState<*, *, *, *, *, State>> : UMerger<State> {
+    // Never merge for now
+    override fun merge(left: State, right: State) = null
 }
