@@ -228,5 +228,10 @@
         "c_name": "list_get_size",
         "java_name": "handlerListGetSize",
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
+    },
+    {
+        "c_name": "lost_symbolic_value",
+        "java_name": "lostSymbolicValue",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Ljava/lang/String;)V"
     }
 ]

@@ -47,3 +47,7 @@ jobjectArray array_converter(ConcolicContext *ctx, PyObject **elems, int *fail) 
 
     return symbol_array;
 }
+
+jstring string_converter(ConcolicContext *ctx, const char *str, int *fail) {
+    return (*ctx->env)->NewStringUTF(ctx->env, str);
+}

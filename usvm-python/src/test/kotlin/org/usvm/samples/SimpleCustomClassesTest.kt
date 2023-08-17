@@ -7,10 +7,7 @@ import org.usvm.runner.PythonTestRunnerForStructuredProgram
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
-class SimpleCustomClassesTest: PythonTestRunnerForStructuredProgram(
-    "SimpleCustomClasses",
-    UMachineOptions(stepLimit = 20U)
-) {
+class SimpleCustomClassesTest: PythonTestRunnerForStructuredProgram("SimpleCustomClasses", UMachineOptions(stepLimit = 20U)) {
     @Test
     fun testMatmulUsage() {
         check1WithConcreteRun(
