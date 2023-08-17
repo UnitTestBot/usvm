@@ -13,6 +13,7 @@ import java.util.Collections;
 import java.util.concurrent.Callable;
 
 import static org.usvm.machine.interpreters.operations.CommonKt.fixateTypeKt;
+import static org.usvm.machine.interpreters.operations.CommonKt.lostSymbolicValueKt;
 import static org.usvm.machine.interpreters.operations.MethodNotificationsKt.*;
 import static org.usvm.machine.interpreters.operations.VirtualKt.*;
 import static org.usvm.machine.interpreters.operations.tracing.PathTracingKt.handlerForkResultKt;
@@ -304,5 +305,9 @@ public class CPythonAdapter {
             context.curOperation.setMethodOwner(context.curOperation.getArgs().get(owner));
         }
         return virtualCallKt(context).getAddress();
+    }
+
+    public static void lostSymbolicValue(ConcolicRunContext context, String description) {
+        lostSymbolicValueKt(context, description);
     }
 }

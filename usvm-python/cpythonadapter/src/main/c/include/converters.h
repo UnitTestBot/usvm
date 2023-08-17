@@ -14,6 +14,7 @@ jint int_converter(ConcolicContext *ctx, int value, int *fail);
 jlong ref_converter(ConcolicContext *ctx, PyObject *ref, int *fail);
 PyObject *object_wrapper(ConcolicContext *ctx, jobject value);
 jobjectArray array_converter(ConcolicContext *ctx, PyObject **elems, int *fail);
+jstring string_converter(ConcolicContext *ctx, const char *str, int *fail);
 
 #ifdef __cplusplus
 }
