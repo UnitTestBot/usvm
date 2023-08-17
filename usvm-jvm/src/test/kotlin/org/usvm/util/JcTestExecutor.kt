@@ -57,7 +57,7 @@ class JcTestExecutor(
     override fun resolve(method: JcTypedMethod, state: JcState): JcTest {
         val model = state.models.first()
 
-        val ctx = state.pathConstraints.ctx as JcContext
+        val ctx = state.pathConstraints.ctx
 
         val memoryScope = MemoryScope(ctx, model, model, method)
 
@@ -112,7 +112,6 @@ class JcTestExecutor(
                 }
 
                 else -> {
-                    println("RES = $execResult")
                     error("No result")
                 }
             }
