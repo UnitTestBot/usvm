@@ -74,6 +74,8 @@ public class CPythonAdapter {
     public static void handlerInstruction(@NotNull ConcolicRunContext context, long frameRef) {
         context.curOperation = null;
         int instruction = getInstructionFromFrame(frameRef);
+        // System.out.println("Instruction " + instruction);
+        // System.out.flush();
         long functionRef = getFunctionFromFrame(frameRef);
         PythonPinnedCallable function = new PythonPinnedCallable(new PythonObject(functionRef));
         withTracing(context, new NextInstruction(new PythonInstruction(instruction), function), () -> Unit.INSTANCE);

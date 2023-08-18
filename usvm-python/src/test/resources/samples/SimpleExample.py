@@ -1,4 +1,5 @@
 import pickle
+import codecs
 
 
 def many_branches(x: int, y: int, z: int):
@@ -73,3 +74,8 @@ def simple_condition(x):
 
 def symbolic_call(x):
     assert simple_condition(x)
+
+
+def infinite_recursion():
+    x = object.__new__(codecs.StreamReader)
+    next(x)
