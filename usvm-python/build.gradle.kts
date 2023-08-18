@@ -34,7 +34,7 @@ val samplesBuildDir = File(project.buildDir, "samples_build")
 val commonJVMArgs = listOf(
     "-Dsamples.build.path=${samplesBuildDir.canonicalPath}",
     "-Dsamples.sources.path=${samplesSourceDir.canonicalPath}",
-    "-Xss100m"
+    "-Xss10m"
 )
 
 // temporary

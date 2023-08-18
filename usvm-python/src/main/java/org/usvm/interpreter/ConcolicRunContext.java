@@ -2,7 +2,6 @@ package org.usvm.interpreter;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.usvm.PathsTrieNode;
 import org.usvm.language.types.PythonTypeSystem;
 import org.usvm.machine.MockHeader;
 import org.usvm.machine.interpreters.operations.tracing.SymbolicHandlerEvent;
@@ -12,7 +11,7 @@ import org.usvm.machine.UPythonContext;
 import org.usvm.machine.interpreters.operations.tracing.PathDiversionException;
 import org.usvm.machine.symbolicobjects.ConverterToPythonObject;
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject;
-import org.usvm.machine.utils.PythonMachineStatistics;
+import org.usvm.machine.utils.PythonMachineStatisticsOnFunction;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -31,7 +30,9 @@ public class ConcolicRunContext {
     public ConverterToPythonObject converter;
     public Set<UninterpretedSymbolicPythonObject> delayedNonNullObjects = new HashSet<>();
     public PythonTypeSystem typeSystem;
-    public PythonMachineStatistics statistics;
+    public PythonMachineStatisticsOnFunction statistics;
+    public int maxInstructions;
+    public int instructionCounter = 0;
 
     public ConcolicRunContext(
             @NotNull PythonExecutionState curState,
@@ -39,7 +40,8 @@ public class ConcolicRunContext {
             PyModelHolder modelHolder,
             PythonTypeSystem typeSystem,
             boolean allowPathDiversion,
-            PythonMachineStatistics statistics
+            PythonMachineStatisticsOnFunction statistics,
+            int maxInstructions
     ) {
         this.curState = curState;
         this.ctx = ctx;
@@ -53,6 +55,7 @@ public class ConcolicRunContext {
         } else {
             this.converter = new ConverterToPythonObject(ctx, typeSystem, modelHolder);
         }
+        this.maxInstructions = maxInstructions;
     }
 
     public void pathDiversion() throws PathDiversionException {
