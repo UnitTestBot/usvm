@@ -27,6 +27,13 @@ fun constructInputObject(
     return result
 }
 
+fun constructNone(
+    memory: UMemoryBase<PropertyOfPythonObject, PythonType, PythonCallable>,
+    typeSystem: PythonTypeSystem
+): UninterpretedSymbolicPythonObject {
+    val address = memory.alloc(typeSystem.pythonNoneType)
+    return UninterpretedSymbolicPythonObject(address, typeSystem)
+}
 
 fun constructInt(context: ConcolicRunContext, expr: UExpr<KIntSort>): UninterpretedSymbolicPythonObject {
     require(context.curState != null)

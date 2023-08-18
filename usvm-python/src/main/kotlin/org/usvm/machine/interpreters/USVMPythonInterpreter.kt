@@ -12,8 +12,9 @@ import org.usvm.language.SymbolForCPython
 import org.usvm.language.types.PythonTypeSystem
 import org.usvm.machine.*
 import org.usvm.machine.interpreters.operations.myAssertOnState
+import org.usvm.machine.interpreters.operations.tracing.InstructionLimitExceededException
 import org.usvm.machine.utils.PyModelHolder
-import org.usvm.machine.utils.PythonMachineStatistics
+import org.usvm.machine.utils.PythonMachineStatisticsOnFunction
 import org.usvm.utils.PythonObjectSerializer
 
 class USVMPythonInterpreter<PythonObjectRepresentation>(
@@ -23,7 +24,8 @@ class USVMPythonInterpreter<PythonObjectRepresentation>(
     private val pinnedCallable: PythonPinnedCallable,
     private val iterationCounter: IterationCounter,
     private val printErrorMsg: Boolean,
-    private val statistics: PythonMachineStatistics,
+    private val statistics: PythonMachineStatisticsOnFunction,
+    private val maxInstructions: Int,
     private val allowPathDiversion: Boolean = true,
     private val serializer: PythonObjectSerializer<PythonObjectRepresentation>,
     private val saveRunResult: (PythonAnalysisResult<PythonObjectRepresentation>) -> Unit
@@ -63,7 +65,7 @@ class USVMPythonInterpreter<PythonObjectRepresentation>(
             else
                 PyModelHolder(state.pyModel)
         val concolicRunContext =
-            ConcolicRunContext(state, ctx, modelHolder, typeSystem, allowPathDiversion, statistics)
+            ConcolicRunContext(state, ctx, modelHolder, typeSystem, allowPathDiversion, statistics, maxInstructions)
         state.meta.objectsWithoutConcreteTypes = null
         state.meta.lastConverter?.restart()
         try {
@@ -164,6 +166,12 @@ class USVMPythonInterpreter<PythonObjectRepresentation>(
 
             iterationCounter.iterations += 1
             logger.debug("Step result: Unregistrered virtual operation")
+            return StepResult(emptySequence(), false)
+
+        } catch (_: InstructionLimitExceededException) {
+
+            iterationCounter.iterations += 1
+            logger.debug("Step result: InstructionLimitExceededException")
             return StepResult(emptySequence(), false)
 
         }

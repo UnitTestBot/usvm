@@ -111,6 +111,10 @@ sealed class PythonTestRunner(
             )
         }
 
+    protected val check0 = createCheck<(PythonObjectInfo) -> Boolean>()
+    protected val check0WithConcreteRun =
+        createCheckWithConcreteRun<(PythonObjectInfo) -> Boolean>()
+
     protected val check1 = createCheck<(PythonObjectInfo, PythonObjectInfo) -> Boolean>()
     protected val check1WithConcreteRun =
         createCheckWithConcreteRun<(PythonObjectInfo, PythonObjectInfo) -> Boolean>()

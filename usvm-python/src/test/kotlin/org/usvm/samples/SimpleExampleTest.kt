@@ -142,4 +142,15 @@ class SimpleExampleTest : PythonTestRunnerForPrimitiveProgram("SimpleExample") {
             )
         )
     }
+
+    @Test
+    fun testInfiniteRecursion() {
+        check0WithConcreteRun(
+            constructFunction("infinite_recursion", emptyList()),
+            eq(1),
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf { res -> res.selfTypeName == "RecursionError" }
+        )
+    }
 }
