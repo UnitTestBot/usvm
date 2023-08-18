@@ -1,5 +1,7 @@
 package org.usvm.machine
 
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.usvm.*
 import org.usvm.constraints.UPathConstraints
 import org.usvm.machine.symbolicobjects.ConverterToPythonObject
@@ -9,7 +11,9 @@ import org.usvm.language.*
 import org.usvm.language.types.PythonType
 import org.usvm.language.types.PythonTypeSystem
 import org.usvm.machine.interpreters.USVMPythonInterpreter
+import org.usvm.machine.symbolicobjects.constructNone
 import org.usvm.machine.utils.PythonMachineStatistics
+import org.usvm.machine.utils.PythonMachineStatisticsOnFunction
 import org.usvm.memory.UMemoryBase
 import org.usvm.ps.DfsPathSelector
 import org.usvm.solver.USatResult
@@ -24,14 +28,15 @@ class PythonMachine<PythonObjectRepresentation>(
 ): UMachine<PythonExecutionState>() {
     private val ctx = UPythonContext(typeSystem)
     private val solver = ctx.solver<PropertyOfPythonObject, PythonType, PythonCallable, UPythonContext>()
-    private val iterationCounter = IterationCounter()
     val statistics = PythonMachineStatistics()
 
     private fun getInterpreter(
         target: PythonUnpinnedCallable,
         pinnedTarget: PythonPinnedCallable,
         results: MutableList<PythonAnalysisResult<PythonObjectRepresentation>>,
-        allowPathDiversion: Boolean
+        allowPathDiversion: Boolean,
+        iterationCounter: IterationCounter,
+        maxInstructions: Int
     ): USVMPythonInterpreter<PythonObjectRepresentation> =
         USVMPythonInterpreter(
             ctx,
@@ -40,7 +45,8 @@ class PythonMachine<PythonObjectRepresentation>(
             pinnedTarget,
             iterationCounter,
             printErrorMsg,
-            statistics,
+            PythonMachineStatisticsOnFunction().also { statistics.functionStatistics.add(it) },
+            maxInstructions,
             allowPathDiversion,
             serializer
         ) {
@@ -68,7 +74,8 @@ class PythonMachine<PythonObjectRepresentation>(
             pathConstraints,
             memory,
             solverRes.model,
-            typeSystem
+            typeSystem,
+            constructNone(memory, typeSystem)
         ).also {
             it.meta.generatedFrom = "Initial state"
         }
@@ -85,11 +92,20 @@ class PythonMachine<PythonObjectRepresentation>(
         pythonCallable: PythonUnpinnedCallable,
         results: MutableList<PythonAnalysisResult<PythonObjectRepresentation>>,
         maxIterations: Int = 300,
-        allowPathDiversion: Boolean = true
+        allowPathDiversion: Boolean = true,
+        maxInstructions: Int = 50000
     ): Int = program.withPinnedCallable(pythonCallable, typeSystem) { pinnedCallable ->
         typeSystem.restart()
         val observer = PythonMachineObserver()
-        val interpreter = getInterpreter(pythonCallable, pinnedCallable, results, allowPathDiversion)
+        val iterationCounter = IterationCounter()
+        val interpreter = getInterpreter(
+            pythonCallable,
+            pinnedCallable,
+            results,
+            allowPathDiversion,
+            iterationCounter,
+            maxInstructions
+        )
         val pathSelector = getPathSelector(pythonCallable)
         run(
             interpreter,

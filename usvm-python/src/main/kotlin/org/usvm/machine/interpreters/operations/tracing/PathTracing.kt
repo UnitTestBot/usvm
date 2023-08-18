@@ -14,6 +14,9 @@ fun <T : Any> withTracing(
     newEventParameters: SymbolicHandlerEventParameters<T>,
     resultSupplier: Callable<T?>
 ): T? {
+    context.instructionCounter += 1;
+    if (context.instructionCounter > context.maxInstructions)
+        throw InstructionLimitExceededException
     if (context.curState == null)
         return null
     if (context.pathPrefix.isEmpty()) {
@@ -57,3 +60,5 @@ fun handlerForkResultKt(context: ConcolicRunContext, cond: SymbolForCPython, res
         context.pathDiversion()
     }
 }
+
+object InstructionLimitExceededException: Exception()

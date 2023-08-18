@@ -130,6 +130,7 @@ class PythonTypeSystemWithMypyInfo(
                 )
                 val refGetter = {
                     val namespace = program.getNamespaceOfModule(utType.pythonModuleName())
+                        ?: throw CPythonExecutionException()
                     ConcretePythonInterpreter.eval(namespace, utType.pythonName())
                 }
                 val ref = try {

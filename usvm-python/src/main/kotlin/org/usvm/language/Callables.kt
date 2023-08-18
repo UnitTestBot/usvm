@@ -12,15 +12,16 @@ data class PythonPinnedCallable(val asPythonObject: PythonObject): PythonCallabl
 class PythonUnpinnedCallable(
     val signature: List<PythonType>,
     val module: String?,
+    val tag: String,
     val reference: (PythonNamespace) -> /* function reference */ PythonObject
 ): PythonCallable() {
     val numberOfArguments: Int = signature.size
     companion object {
         fun constructCallableFromName(signature: List<PythonType>, name: String, module: String? = null) =
-            PythonUnpinnedCallable(signature, module) { globals -> ConcretePythonInterpreter.eval(globals, name) }
+            PythonUnpinnedCallable(signature, module, "$module.$name") { globals -> ConcretePythonInterpreter.eval(globals, name) }
 
         fun constructLambdaFunction(signature: List<PythonType>, expr: String) =
-            PythonUnpinnedCallable(signature, null) { globals -> ConcretePythonInterpreter.eval(globals, expr) }
+            PythonUnpinnedCallable(signature, null, "lambda \"$expr\"") { globals -> ConcretePythonInterpreter.eval(globals, expr) }
     }
 }
 

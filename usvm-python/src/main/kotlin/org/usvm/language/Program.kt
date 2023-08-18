@@ -39,7 +39,7 @@ class PrimitivePythonProgram internal constructor(
     }
 }
 
-class StructuredPythonProgram(private val roots: Set<File>): PythonProgram(roots) {
+class StructuredPythonProgram(val roots: Set<File>): PythonProgram(roots) {
     override fun <T> withPinnedCallable(
         callable: PythonUnpinnedCallable,
         typeSystem: PythonTypeSystem,
@@ -49,13 +49,13 @@ class StructuredPythonProgram(private val roots: Set<File>): PythonProgram(roots
             val pinned = PythonPinnedCallable(callable.reference(emptyNamespace))  // for lambdas
             block(pinned)
         } else {
-            val namespace = getNamespaceOfModule(callable.module)
+            val namespace = getNamespaceOfModule(callable.module) ?: error("Couldn't get namespace of function module")
             val pinned = PythonPinnedCallable(callable.reference(namespace))
             block(pinned)
         }
     }
 
-    fun getNamespaceOfModule(module: String): PythonNamespace {
+    fun getNamespaceOfModule(module: String): PythonNamespace? {
         val namespace = ConcretePythonInterpreter.getNewNamespace()
         ConcretePythonInterpreter.concreteRun(namespace, "import sys")
         module.split(".").fold("") { acc, name ->
@@ -64,12 +64,14 @@ class StructuredPythonProgram(private val roots: Set<File>): PythonProgram(roots
             "$acc$name."
         }
         val resultAsObj = ConcretePythonInterpreter.eval(namespace, "$module.__dict__")
-        require(ConcretePythonInterpreter.getPythonObjectTypeName(resultAsObj) == "dict")
+        //println(module)
+        if (ConcretePythonInterpreter.getPythonObjectTypeName(resultAsObj) != "dict")
+            return null
         return PythonNamespace(resultAsObj.address)
     }
 
     fun getPrimitiveProgram(module: String): PrimitivePythonProgram = withAdditionalPaths(roots, null) {
-        val namespace = getNamespaceOfModule(module)
+        val namespace = getNamespaceOfModule(module) ?: error("Couldn't get namespace of module")
         PrimitivePythonProgram(namespace, roots)
     }
 }
