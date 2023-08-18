@@ -42,7 +42,7 @@ class UTestExpressionSerializer(private val ctx: SerializationContext) {
             is UTestGetStaticFieldExpression -> serialize(uTestExpression)
             is UTestMockObject -> serialize(uTestExpression)
             is UTestGlobalMock -> serialize(uTestExpression)
-            is UTestConditionExpression -> serialize(uTestExpression)
+            is UTestBinaryConditionExpression -> serialize(uTestExpression)
             is UTestSetFieldStatement -> serialize(uTestExpression)
             is UTestSetStaticFieldStatement -> serialize(uTestExpression)
             is UTestArraySetStatement -> serialize(uTestExpression)
@@ -76,7 +76,7 @@ class UTestExpressionSerializer(private val ctx: SerializationContext) {
                     UTestExpressionKind.ARRAY_SET -> deserializeUTestArraySetStatement()
                     UTestExpressionKind.SET_STATIC_FIELD -> deserializeUTestSetStaticFieldStatement()
                     UTestExpressionKind.SET_FIELD -> deserializeUTestSetFieldStatement()
-                    UTestExpressionKind.CONDITION -> deserializeUTestConditionExpression()
+                    UTestExpressionKind.BINARY_CONDITION -> deserializeUTestBinaryConditionExpression()
                     UTestExpressionKind.MOCK_OBJECT -> deserializeUTestMockObject()
                     UTestExpressionKind.GLOBAL_MOCK -> deserializeUTestGlobalMock()
                     UTestExpressionKind.GET_STATIC_FIELD -> deserializeUTestGetStaticFieldExpression()
@@ -441,15 +441,15 @@ class UTestExpressionSerializer(private val ctx: SerializationContext) {
         return UTestGlobalMock(type, fieldsToExpr, methodsToExpr)
     }
 
-    private fun AbstractBuffer.serialize(uTestConditionExpression: UTestConditionExpression) =
+    private fun AbstractBuffer.serialize(uTestBinaryConditionExpression: UTestBinaryConditionExpression) =
         serialize(
-            uTestExpression = uTestConditionExpression,
-            kind = UTestExpressionKind.CONDITION,
+            uTestExpression = uTestBinaryConditionExpression,
+            kind = UTestExpressionKind.BINARY_CONDITION,
             serializeInternals = {
                 serializeUTestExpression(lhv)
                 serializeUTestExpression(rhv)
-                serializeUTestExpressionList(uTestConditionExpression.trueBranch)
-                serializeUTestExpressionList(uTestConditionExpression.elseBranch)
+                serializeUTestExpressionList(uTestBinaryConditionExpression.trueBranch)
+                serializeUTestExpressionList(uTestBinaryConditionExpression.elseBranch)
             },
             serialize = {
                 writeUTestExpression(lhv)
@@ -460,13 +460,13 @@ class UTestExpressionSerializer(private val ctx: SerializationContext) {
             }
         )
 
-    private fun AbstractBuffer.deserializeUTestConditionExpression(): UTestConditionExpression {
+    private fun AbstractBuffer.deserializeUTestBinaryConditionExpression(): UTestBinaryConditionExpression {
         val lhv = readUTestExpression()
         val rhv = readUTestExpression()
         val trueBranch = readUTestStatementList()
         val elseBranch = readUTestStatementList()
         val conditionType = readEnum<ConditionType>()
-        return UTestConditionExpression(conditionType, lhv, rhv, trueBranch, elseBranch)
+        return UTestBinaryConditionExpression(conditionType, lhv, rhv, trueBranch, elseBranch)
     }
 
     private fun AbstractBuffer.serialize(uTestArithmeticExpression: UTestArithmeticExpression) =
@@ -669,7 +669,7 @@ class UTestExpressionSerializer(private val ctx: SerializationContext) {
         BYTE,
         CAST,
         CHAR,
-        CONDITION,
+        BINARY_CONDITION,
         CONSTRUCTOR_CALL,
         CREATE_ARRAY,
         DOUBLE,

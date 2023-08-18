@@ -53,7 +53,7 @@ class InstrumentedProcessModel private constructor(
         }
         
         
-        const val serializationHash = -4608969030939949224L
+        const val serializationHash = 6309547925889624776L
         
     }
     override val serializersOwner: ISerializersOwner get() = InstrumentedProcessModel
@@ -238,7 +238,7 @@ data class ExecutionResult (
     val type: ExecutionResultType,
     val classes: List<ClassToId>?,
     val trace: List<Long>?,
-    val cause: String?,
+    val cause: org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor?,
     val result: org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor?,
     val initialState: ExecutionStateSerialized?,
     val resultState: ExecutionStateSerialized?
@@ -253,7 +253,7 @@ data class ExecutionResult (
             val type = buffer.readEnum<ExecutionResultType>()
             val classes = buffer.readNullable { buffer.readList { ClassToId.read(ctx, buffer) } }
             val trace = buffer.readNullable { buffer.readList { buffer.readLong() } }
-            val cause = buffer.readNullable { buffer.readString() }
+            val cause = buffer.readNullable { (ctx.serializers.get(org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.marshallerId)!! as IMarshaller<org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor>).read(ctx, buffer) }
             val result = buffer.readNullable { (ctx.serializers.get(org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.marshallerId)!! as IMarshaller<org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor>).read(ctx, buffer) }
             val initialState = buffer.readNullable { ExecutionStateSerialized.read(ctx, buffer) }
             val resultState = buffer.readNullable { ExecutionStateSerialized.read(ctx, buffer) }
@@ -264,7 +264,7 @@ data class ExecutionResult (
             buffer.writeEnum(value.type)
             buffer.writeNullable(value.classes) { buffer.writeList(it) { v -> ClassToId.write(ctx, buffer, v) } }
             buffer.writeNullable(value.trace) { buffer.writeList(it) { v -> buffer.writeLong(v) } }
-            buffer.writeNullable(value.cause) { buffer.writeString(it) }
+            buffer.writeNullable(value.cause) { (ctx.serializers.get(org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.marshallerId)!! as IMarshaller<org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor>).write(ctx,buffer, it) }
             buffer.writeNullable(value.result) { (ctx.serializers.get(org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.marshallerId)!! as IMarshaller<org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor>).write(ctx,buffer, it) }
             buffer.writeNullable(value.initialState) { ExecutionStateSerialized.write(ctx, buffer, it) }
             buffer.writeNullable(value.resultState) { ExecutionStateSerialized.write(ctx, buffer, it) }

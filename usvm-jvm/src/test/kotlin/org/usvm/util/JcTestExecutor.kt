@@ -93,11 +93,9 @@ class JcTestExecutor(
                 }
 
                 is UTestExecutionExceptionResult -> {
-                    val exceptionName = execResult.cause.split("\n").first()
-                    val exceptionInstance = Class.forName(exceptionName.substringBefore(":"))
-                        .constructors
-                        .first { it.parameterCount == 0 }
-                        .newInstance() as Throwable
+                    val exceptionInstance =
+                        descriptor2ValueConverter.buildObjectFromDescriptor(execResult.cause) as? Throwable
+                            ?: error("Exception building error")
                     val thisBeforeDescr = execResult.initialState.instanceDescriptor
                     val thisBefore = thisBeforeDescr?.let { descriptor2ValueConverter.buildObjectFromDescriptor(it) }
                     val beforeArgsDescr = execResult.initialState.argsDescriptors
@@ -108,7 +106,11 @@ class JcTestExecutor(
                     } ?: listOf()
                     before = JcParametersState(thisBefore, argsBefore)
                     after = before
-                    Result.failure(exceptionInstance)
+                    if (execResult.cause.raisedByUserCode) {
+                        Result.success(exceptionInstance)
+                    } else {
+                        Result.failure(exceptionInstance)
+                    }
                 }
 
                 else -> {

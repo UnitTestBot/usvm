@@ -37,15 +37,13 @@ class StaticDescriptorsBuilder(
         fields: Set<Pair<JcField, StaticFieldAccessType>>,
         resultValue2DescriptorConverter: Value2DescriptorConverter
     ): Result<Map<JcField, UTestValueDescriptor>> =
-        try {
+        runCatching {
             val descriptorMap = fields
                 .map { it.first }
                 .filter { it.needToBuildDescriptor() }
                 .associateWith { buildDescriptor(it, resultValue2DescriptorConverter) }
             stateAfterStaticsDescriptors.putAll(descriptorMap)
-            Result.success(filterNullDescriptors(descriptorMap))
-        } catch (e: Exception) {
-            Result.failure(e)
+            filterNullDescriptors(descriptorMap)
         }
 
     private fun filterNullDescriptors(statics: Map<JcField, UTestValueDescriptor?>): Map<JcField, UTestValueDescriptor> =

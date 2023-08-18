@@ -60,6 +60,10 @@ public class A {
         return field;
     }
 
+    public IllegalArgumentException exception() {
+        return new IllegalArgumentException();
+    }
+
     public int mockAbstractClass(MockAbstractClass mc) {
         if (mc.getStr().equals("a")) {
             if (mc.stringField.equals("a")) {

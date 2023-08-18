@@ -217,3 +217,25 @@ class UTestObjectDescriptor(
     }
 
 }
+
+class UTestExceptionDescriptor(
+    override val type: JcType,
+    val message: String,
+    val stackTrace: List<UTestValueDescriptor>,
+    var raisedByUserCode: Boolean
+) : UTestValueDescriptor() {
+
+    override fun structurallyEqual(other: UTestValueDescriptor): Boolean {
+        if (other !is UTestExceptionDescriptor) return false
+        if (type != other.type) return false
+        if (stackTrace.size != other.stackTrace.size) return false
+        if (message != other.message) return false
+        for (i in stackTrace.indices) {
+            if (!descriptorsAreEqual(stackTrace[i], other.stackTrace[i])) {
+                return false
+            }
+        }
+        return true
+    }
+
+}

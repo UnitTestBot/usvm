@@ -1,3 +1,5 @@
+package org.usvm.instrumentation.rd
+
 import com.jetbrains.rd.framework.util.synchronizeWith
 import com.jetbrains.rd.util.lifetime.Lifetime
 import com.jetbrains.rd.util.lifetime.LifetimeDefinition

@@ -1,10 +1,7 @@
 package org.usvm.instrumentation.testcase.descriptor
 
 import org.jacodb.api.ext.*
-import org.usvm.instrumentation.util.ReflectionUtils
-import org.usvm.instrumentation.util.setFieldValue
-import org.usvm.instrumentation.util.toJavaClass
-import org.usvm.instrumentation.util.toJavaField
+import org.usvm.instrumentation.util.*
 import java.util.*
 
 class Descriptor2ValueConverter(private val workerClassLoader: ClassLoader) {
@@ -47,6 +44,7 @@ class Descriptor2ValueConverter(private val workerClassLoader: ClassLoader) {
             is UTestObjectDescriptor -> `object`(descriptor)
             is UTestEnumValueDescriptor -> `enum`(descriptor)
             is UTestClassDescriptor -> descriptor.classType.toJavaClass(workerClassLoader)
+            is UTestExceptionDescriptor -> `exception`(descriptor)
         }
 
     private fun array(descriptor: UTestArrayDescriptor.Array): Any {
@@ -83,6 +81,21 @@ class Descriptor2ValueConverter(private val workerClassLoader: ClassLoader) {
             jField.setFieldValue(classInstance, jFieldValue)
         }
         return classInstance
+    }
+
+    private fun `exception`(descriptor: UTestExceptionDescriptor): Any {
+        val unsafe = ReflectionUtils.UNSAFE
+        val jClass = descriptor.type.toJavaClass(workerClassLoader)
+        val exceptionInstance = unsafe.allocateInstance(jClass) as Throwable
+        val stackTrace = descriptor.stackTrace
+            .map { (buildObjectFromDescriptor(it) as? StackTraceElement) ?: error("Exception instantiation error") }
+            .toTypedArray()
+        val exceptionFields = exceptionInstance::class.java.allFields
+        val msgField = exceptionFields.find { it.name == "detailMessage" } ?: error("Exception instantiation error")
+        val stackTraceField = exceptionFields.find { it.name == "stackTrace" } ?: error("Exception instantiation error")
+        msgField.setFieldValue(exceptionInstance, descriptor.message)
+        stackTraceField.setFieldValue(exceptionInstance, stackTrace)
+        return exceptionInstance
     }
 
     private fun `enum`(descriptor: UTestEnumValueDescriptor): Any {

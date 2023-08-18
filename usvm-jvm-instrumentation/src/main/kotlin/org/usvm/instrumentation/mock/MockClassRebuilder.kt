@@ -41,7 +41,7 @@ class MockClassRebuilder(
             jcMethod.returnType,
             jcMethod.parameters.map { JcVirtualParameter(it.index, it.type) },
             jcMethod.description
-        ).also { it.enclosingClass = mockedJcVirtualClass }
+        ).apply { bind(mockedJcVirtualClass) }
 
 
     fun rebuildInstructions(jcMethod: JcMethod, makeNotAbstract: Boolean): Pair<JcMethod, JcMutableInstList<JcRawInst>> {

@@ -70,7 +70,7 @@ object InstrumentedProcessModel : Ext(InstrumentedProcessRoot) {
         })
         field("classes", immutableList(classToId).nullable)
         field("trace", immutableList(PredefinedType.long).nullable)
-        field("cause", PredefinedType.string.nullable)
+        field("cause", UTestValueDescriptor.nullable)
         field("result", UTestValueDescriptor.nullable)
         field("initialState", executionStateSerialized.nullable)
         field("resultState", executionStateSerialized.nullable)

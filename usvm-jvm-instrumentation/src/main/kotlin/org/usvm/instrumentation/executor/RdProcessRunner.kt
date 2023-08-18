@@ -1,8 +1,5 @@
 package org.usvm.instrumentation.executor
 
-import CHILD_PROCESS_NAME
-import MAIN_PROCESS_NAME
-import adviseForConditionAsync
 import com.jetbrains.rd.framework.*
 import com.jetbrains.rd.framework.impl.RdCall
 import com.jetbrains.rd.util.lifetime.Lifetime
@@ -14,15 +11,16 @@ import org.jacodb.api.JcClassOrInterface
 import org.jacodb.api.JcClasspath
 import org.jacodb.api.cfg.JcInst
 import org.jacodb.api.ext.methods
+import org.jacodb.api.ext.objectType
 import org.usvm.instrumentation.generated.models.*
+import org.usvm.instrumentation.rd.*
 import org.usvm.instrumentation.util.findFieldByFullNameOrNull
-import org.usvm.instrumentation.rd.RdServerProcess
 import org.usvm.instrumentation.serializer.SerializationContext
 import org.usvm.instrumentation.serializer.UTestExpressionSerializer.Companion.registerUTestExpressionSerializer
 import org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.Companion.registerUTestValueDescriptorSerializer
 import org.usvm.instrumentation.testcase.UTest
 import org.usvm.instrumentation.testcase.api.*
-import pumpAsync
+import org.usvm.instrumentation.testcase.descriptor.UTestExceptionDescriptor
 import java.io.File
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
@@ -145,7 +143,7 @@ class RdProcessRunner(
         val coveredClasses = executionResult.classes ?: listOf()
         return when (executionResult.type) {
             ExecutionResultType.UTestExecutionInitFailedResult -> UTestExecutionInitFailedResult(
-                cause = executionResult.cause ?: error("deserialization failed"),
+                cause = executionResult.cause as? UTestExceptionDescriptor ?: error("deserialization failed"),
                 trace = executionResult.trace?.let { deserializeTrace(it, coveredClasses) }
             )
 
@@ -159,7 +157,7 @@ class RdProcessRunner(
             )
 
             ExecutionResultType.UTestExecutionExceptionResult -> UTestExecutionExceptionResult(
-                cause = executionResult.cause ?: error("deserialization failed"),
+                cause = executionResult.cause as? UTestExceptionDescriptor ?: error("deserialization failed"),
                 trace = executionResult.trace?.let {
                     deserializeTrace(it, coveredClasses)
                 },
@@ -170,11 +168,11 @@ class RdProcessRunner(
             )
 
             ExecutionResultType.UTestExecutionFailedResult -> UTestExecutionFailedResult(
-                cause = executionResult.cause ?: error("deserialization failed")
+                cause = executionResult.cause as? UTestExceptionDescriptor ?: error("deserialization failed")
             )
 
             ExecutionResultType.UTestExecutionTimedOutResult -> UTestExecutionTimedOutResult(
-                cause = executionResult.cause ?: error("deserialization failed")
+                cause = executionResult.cause as? UTestExceptionDescriptor ?: error("deserialization failed")
             )
         }
     }

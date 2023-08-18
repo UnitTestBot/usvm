@@ -63,7 +63,7 @@ class UTestExpressionExecutor(
             is UTestGetFieldExpression -> executeUTestGetFieldExpression(uTestExpression)
             is UTestGetStaticFieldExpression -> executeUTestGetStaticFieldExpression(uTestExpression)
             is UTestMock -> executeUTestMock(uTestExpression)
-            is UTestConditionExpression -> executeUTestConditionExpression(uTestExpression)
+            is UTestBinaryConditionExpression -> executeUTestBinaryConditionExpression(uTestExpression)
             is UTestSetFieldStatement -> executeUTestSetFieldStatement(uTestExpression)
             is UTestSetStaticFieldStatement -> executeUTestSetStaticFieldStatement(uTestExpression)
             is UTestArithmeticExpression -> executeUTestArithmeticExpression(uTestExpression)
@@ -149,8 +149,8 @@ class UTestExpressionExecutor(
     }
 
     private fun executeUTestArithmeticExpression(uTestArithmeticExpression: UTestArithmeticExpression): Any? {
-        val lhv = exec(uTestArithmeticExpression.lhv) ?: return null
-        val rhv = exec(uTestArithmeticExpression.rhv) ?: return null
+        val lhv = exec(uTestArithmeticExpression.lhv)?.let { if (it is Char) it.code else it } ?: return null
+        val rhv = exec(uTestArithmeticExpression.rhv)?.let { if (it is Char) it.code else it } ?: return null
         if (lhv::class.java != rhv::class.java || lhv !is Number || rhv !is Number) {
             throw IllegalArgumentException("Wrong argument types for arithmetic operation")
         }
@@ -174,7 +174,7 @@ class UTestExpressionExecutor(
             ArithmeticOperationType.GT -> lhvAsDouble?.compareTo(rhvAsDouble!!) ?: (lhvAsLong.compareTo(rhvAsLong))
             ArithmeticOperationType.GEQ -> lhvAsDouble?.compareTo(rhvAsDouble!!) ?: (lhvAsLong.compareTo(rhvAsLong))
             ArithmeticOperationType.LT -> lhvAsDouble?.compareTo(rhvAsDouble!!) ?: (lhvAsLong.compareTo(rhvAsLong))
-            ArithmeticOperationType.LTQ -> lhvAsDouble?.compareTo(rhvAsDouble!!) ?: (lhvAsLong.compareTo(rhvAsLong))
+            ArithmeticOperationType.LEQ -> lhvAsDouble?.compareTo(rhvAsDouble!!) ?: (lhvAsLong.compareTo(rhvAsLong))
             ArithmeticOperationType.OR -> lhvAsDouble?.let { error("Bit operation on double impossible") } ?: (lhvAsLong or rhvAsLong)
             ArithmeticOperationType.AND -> lhvAsDouble?.let { error("Bit operation on double impossible") } ?: (lhvAsLong and rhvAsLong)
             ArithmeticOperationType.XOR -> lhvAsDouble?.let { error("Bit operation on double impossible") } ?: (lhvAsLong xor rhvAsLong)
@@ -186,6 +186,7 @@ class UTestExpressionExecutor(
             Long::class -> res
             Float::class -> res.toFloat()
             Double::class -> res.toDouble()
+            Char::class -> res.toChar()
             else -> error("Wrong type for bit operation")
         }
     }
@@ -229,20 +230,20 @@ class UTestExpressionExecutor(
         field?.setFieldValue(null, fieldValue)
     }
 
-    private fun executeUTestConditionExpression(uTestConditionExpression: UTestConditionExpression): Any? {
-        val lCond = exec(uTestConditionExpression.lhv)
-        val rCond = exec(uTestConditionExpression.rhv)
+    private fun executeUTestBinaryConditionExpression(uTestBinaryConditionExpression: UTestBinaryConditionExpression): Any? {
+        val lCond = exec(uTestBinaryConditionExpression.lhv)
+        val rCond = exec(uTestBinaryConditionExpression.rhv)
         val res =
-            when (uTestConditionExpression.conditionType) {
+            when (uTestBinaryConditionExpression.conditionType) {
                 ConditionType.EQ -> lCond == rCond
                 ConditionType.NEQ -> lCond != rCond
                 ConditionType.GEQ -> (lCond as Comparable<Any?>) >= rCond
                 ConditionType.GT -> (lCond as Comparable<Any?>) > rCond
             }
         return if (res) {
-            executeUTestExpressions(uTestConditionExpression.trueBranch)
+            executeUTestExpressions(uTestBinaryConditionExpression.trueBranch)
         } else {
-            executeUTestExpressions(uTestConditionExpression.elseBranch)
+            executeUTestExpressions(uTestBinaryConditionExpression.elseBranch)
         }
     }
 

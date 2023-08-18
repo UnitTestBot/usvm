@@ -221,22 +221,3 @@ fun JcMethod.isSameSignatures(constructor: Constructor<*>) =
 
 fun Method.isSameSignatures(jcMethod: JcMethod) =
     toJcdbSignature() == jcMethod.jcdbSignature
-
-//data class Flags(val value: Int) : Comparable<Flags> {
-//    companion object {
-//        val readAll = Flags(0)
-//        val readSkipDebug = Flags(ClassReader.SKIP_DEBUG)
-//        val readSkipFrames = Flags(ClassReader.SKIP_FRAMES)
-//        val readCodeOnly = readSkipDebug + readSkipFrames
-//
-//        val writeComputeNone = Flags(0)
-//        val writeComputeFrames = Flags(ClassWriter.COMPUTE_FRAMES)
-//        val writeComputeMaxs = Flags(ClassWriter.COMPUTE_MAXS)
-//        val writeComputeAll = writeComputeFrames
-//    }
-//
-//    fun merge(other: Flags) = Flags(this.value or other.value)
-//    operator fun plus(other: Flags) = this.merge(other)
-//
-//    override fun compareTo(other: Flags) = value.compareTo(other.value)
-//}

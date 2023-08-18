@@ -1,9 +1,5 @@
 package org.usvm.instrumentation.rd
 
-import CHILD_PROCESS_NAME
-import MAIN_PROCESS_NAME
-import adviseForConditionAsync
-import awaitTermination
 import com.jetbrains.rd.framework.*
 import com.jetbrains.rd.framework.impl.RdCall
 import com.jetbrains.rd.framework.util.launch
@@ -26,10 +22,7 @@ import org.usvm.instrumentation.serializer.UTestExpressionSerializer.Companion.r
 import org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.Companion.registerUTestValueDescriptorSerializer
 import org.usvm.instrumentation.testcase.UTest
 import org.usvm.instrumentation.testcase.api.*
-import org.usvm.instrumentation.org.usvm.instrumentation.rd.UTestExecutor
 import org.usvm.instrumentation.util.*
-import pumpAsync
-import terminateOnException
 import java.io.File
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
