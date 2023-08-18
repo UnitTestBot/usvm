@@ -2,6 +2,7 @@ package org.usvm.instrumentation.testcase.api
 
 import org.jacodb.api.JcField
 import org.jacodb.api.cfg.JcInst
+import org.usvm.instrumentation.testcase.descriptor.UTestExceptionDescriptor
 import org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor
 
 /**
@@ -14,7 +15,7 @@ sealed class UTestExecutionResult
  * @param cause --- cause of RD failure
  */
 data class UTestExecutionFailedResult(
-    val cause: String
+    val cause: UTestExceptionDescriptor
 ): UTestExecutionResult()
 
 /**
@@ -22,7 +23,7 @@ data class UTestExecutionFailedResult(
  * @param cause --- if exception thrown
  */
 data class UTestExecutionTimedOutResult(
-    val cause: String
+    val cause: UTestExceptionDescriptor
 ): UTestExecutionResult()
 
 /**
@@ -31,7 +32,7 @@ data class UTestExecutionTimedOutResult(
  * @param trace --- trace before failure happened
  */
 data class UTestExecutionInitFailedResult(
-    val cause: String,
+    val cause: UTestExceptionDescriptor,
     val trace: List<JcInst>?
 ): UTestExecutionResult()
 
@@ -55,7 +56,7 @@ data class UTestExecutionSuccessResult(
  * @property trace --- trace in jacodb instructions before exception thrown
  */
 data class UTestExecutionExceptionResult(
-    val cause: String,
+    val cause: UTestExceptionDescriptor,
     val trace: List<JcInst>?,
     val initialState: UTestExecutionState,
     val resultState: UTestExecutionState

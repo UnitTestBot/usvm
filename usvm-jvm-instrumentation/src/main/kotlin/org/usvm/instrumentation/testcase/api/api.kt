@@ -1,10 +1,7 @@
 package org.usvm.instrumentation.testcase.api
 
 import org.jacodb.api.*
-import org.jacodb.api.ext.findTypeOrNull
-import org.jacodb.api.ext.int
-import org.jacodb.api.ext.toType
-import org.jacodb.api.ext.void
+import org.jacodb.api.ext.*
 import org.jacodb.impl.types.JcArrayTypeImpl
 
 /**
@@ -97,13 +94,15 @@ class UTestSetStaticFieldStatement(
 }
 
 
-class UTestConditionExpression(
+class UTestBinaryConditionExpression(
     val conditionType: ConditionType,
     val lhv: UTestExpression,
     val rhv: UTestExpression,
     val trueBranch: List<UTestStatement>,
     val elseBranch: List<UTestStatement>
 ) : UTestStatement() {
+    //TODO!! What if trueBranch and elseBranch have different types of the last instruction? Shouldn't we find their LCA?
+    //Probably add functionality in jacodb?
     override val type: JcType? =
         trueBranch.lastOrNull()?.type?.takeIf { elseBranch.isNotEmpty() } ?: lhv.type?.classpath?.void
 }
@@ -230,9 +229,8 @@ enum class ArithmeticOperationType {
     //Arithmetic
     PLUS, SUB, MUL, DIV, REM,
 
-    //UNARY
     //Relational
-    EQ, NEQ, GT, GEQ, LT, LTQ,
+    EQ, NEQ, GT, GEQ, LT, LEQ,
 
     //Bitwise
     OR, AND, XOR

@@ -1,5 +1,6 @@
 package org.usvm.instrumentation.executor
 
+import org.jacodb.api.ext.findTypeOrNull
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Disabled
@@ -8,6 +9,9 @@ import org.usvm.instrumentation.testcase.api.UTestExecutionExceptionResult
 import org.usvm.instrumentation.testcase.api.UTestExecutionSuccessResult
 import org.usvm.instrumentation.testcase.descriptor.UTestConstantDescriptor
 import org.usvm.instrumentation.util.UTestCreator
+import kotlin.test.assertEquals
+import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 
 class SimpleUTestConcreteExecutor: UTestConcreteExecutorTest() {
 
@@ -32,139 +36,146 @@ class SimpleUTestConcreteExecutor: UTestConcreteExecutorTest() {
     fun `simple test`() = executeTest {
         val uTest = UTestCreator.C.lol(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
-        assert(res is UTestExecutionSuccessResult)
-        res as UTestExecutionSuccessResult
+        check(res is UTestExecutionSuccessResult)
     }
 
     @Test
     fun `arithmetic operation`() = executeTest {
         val uTest = UTestCreator.A.arithmeticOperation(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
-        assert(res is UTestExecutionSuccessResult)
-        res as UTestExecutionSuccessResult
+        check(res is UTestExecutionSuccessResult)
         val result = res.result
-        assert(result != null)
-        assert(result is UTestConstantDescriptor.Int && result.value == 239)
+        assertIs<UTestConstantDescriptor.Int>(result)
+        assertEquals(239, result.value)
+    }
+
+    @Test
+    fun `exception`() = executeTest {
+        val uTest = UTestCreator.A.exception(jcClasspath)
+        val res = uTestConcreteExecutor.executeAsync(uTest)
+        assert(res is UTestExecutionExceptionResult)
+        res as UTestExecutionExceptionResult
+        check(res.cause.stackTrace.isNotEmpty())
+        assertEquals(res.cause.type, jcClasspath.findTypeOrNull<IllegalArgumentException>())
     }
 
     @Test
     fun `java reflection test`() = executeTest {
         val uTest = UTestCreator.A.getNumberOfClassConstructors(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
-        assert(res is UTestExecutionSuccessResult)
-        res as UTestExecutionSuccessResult
+        check(res is UTestExecutionSuccessResult)
         val result = res.result
-        assert(result != null)
-        assert(result is UTestConstantDescriptor.Int && result.value == 2)
+        assertNotNull(result)
+        assertIs<UTestConstantDescriptor.Int>(result)
+        assertEquals(2, result.value)
     }
 
     @Test
     fun `static fields test`() = executeTest {
         val uTest = UTestCreator.A.isA(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
-        assert(res is UTestExecutionSuccessResult)
-        res as UTestExecutionSuccessResult
+        assertIs<UTestExecutionSuccessResult>(res)
     }
 
     @Test
     fun `static method test`() = executeTest {
         val uTest = UTestCreator.A.javaStdLibCall(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
-        assert(res is UTestExecutionSuccessResult)
-        res as UTestExecutionSuccessResult
-        assert(res.result != null)
+        assertIs<UTestExecutionSuccessResult>(res)
+        assertNotNull(res.result)
     }
 
     @Test
     fun `method with uTestCondition test`() = executeTest {
         val uTest = UTestCreator.A.indexOfWithIf(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
-        assert(res is UTestExecutionSuccessResult)
-        res as UTestExecutionSuccessResult
-        assert(res.result != null)
+        assertIs<UTestExecutionSuccessResult>(res)
+        assertNotNull(res.result)
     }
 
     @Test
     fun `method with inner class usage test`() = executeTest {
         val uTest = UTestCreator.Arrays.checkAllSamePoints(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
-        assert(res is UTestExecutionSuccessResult)
-        res as UTestExecutionSuccessResult
-        assert(res.result != null)
+        assertIs<UTestExecutionSuccessResult>(res)
+        assertNotNull(res.result)
     }
 
     @Test
     fun `singleton test`() = executeTest {
         val uTest = UTestCreator.Singleton.addToArray(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
-        assert(res is UTestExecutionSuccessResult)
-        res as UTestExecutionSuccessResult
-        assert(res.result != null)
+        assertIs<UTestExecutionSuccessResult>(res)
+        assertNotNull(res.result)
     }
 
     @Test
     fun `nested class test`() = executeTest {
         val uTest = UTestCreator.NestedClass.getB(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
-        assert(res is UTestExecutionSuccessResult)
-        res as UTestExecutionSuccessResult
-        assert(res.result != null)
+        assertIs<UTestExecutionSuccessResult>(res)
+        assertNotNull(res.result)
     }
 
     @Test
     fun `simple class mock test`() = executeTest {
         val uTest = UTestCreator.A.mock(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
-        assert(res is UTestExecutionSuccessResult)
-        res as UTestExecutionSuccessResult
+        assertIs<UTestExecutionSuccessResult>(res)
+        assertNotNull(res.result)
         val result = res.result
-        assert(result != null)
-        assert(result is UTestConstantDescriptor.Int && result.value == 239)
+        assertNotNull(result)
+        assertIs<UTestConstantDescriptor.Int>(result)
+        assertEquals(239, result.value)
     }
 
     @Test
     fun `mock static method test`() = executeTest {
         val uTest = UTestCreator.A.mockStaticMethod(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
-        assert(res is UTestExecutionSuccessResult)
-        res as UTestExecutionSuccessResult
+        assertIs<UTestExecutionSuccessResult>(res)
+        assertNotNull(res.result)
         val result = res.result
-        assert(result != null)
-        assert(result is UTestConstantDescriptor.Int && result.value == 239)
+        assertNotNull(result)
+        assertIs<UTestConstantDescriptor.Int>(result)
+        assertEquals(239, result.value)
     }
 
     @Test
     fun `simple abstract class mock test`() = executeTest {
         val uTest = UTestCreator.A.mockAbstractClass(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
-        assert(res is UTestExecutionSuccessResult)
-        res as UTestExecutionSuccessResult
+        assertIs<UTestExecutionSuccessResult>(res)
+        assertNotNull(res.result)
         val result = res.result
-        assert(result != null)
-        assert(result is UTestConstantDescriptor.Int && result.value == 240)
+        assertNotNull(result)
+        assertIs<UTestConstantDescriptor.Int>(result)
+        assertEquals(240, result.value)
     }
 
     @Test
     fun `mock java random`() = executeTest {
         val uTest = UTestCreator.A.mockRandom(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
-        assert(res is UTestExecutionSuccessResult)
-        res as UTestExecutionSuccessResult
+        assertIs<UTestExecutionSuccessResult>(res)
+        assertNotNull(res.result)
         val result = res.result
-        assert(result != null)
-        assert(result is UTestConstantDescriptor.Int && result.value == 239)
+        assertNotNull(result)
+        assertIs<UTestConstantDescriptor.Int>(result)
+        assertEquals(239, result.value)
     }
 
     @Test
     fun `simple abstract class partially mocked test`() = executeTest {
         val uTest = UTestCreator.A.mockAbstractClass1(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
-        assert(res is UTestExecutionSuccessResult)
-        res as UTestExecutionSuccessResult
+        assertIs<UTestExecutionSuccessResult>(res)
+        assertNotNull(res.result)
         val result = res.result
-        assert(result != null)
-        //Expected behavior!!
-        assert(result is UTestConstantDescriptor.Int && result.value == 1)
+        assertNotNull(result)
+        assertIs<UTestConstantDescriptor.Int>(result)
+        //Expected behavior
+        assertEquals(1, result.value)
     }
 
     @Test
@@ -172,40 +183,44 @@ class SimpleUTestConcreteExecutor: UTestConcreteExecutorTest() {
     fun `multiple mock`() = executeTest {
         val uTest = UTestCreator.A.mockMultiple(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
-        assert(res is UTestExecutionSuccessResult)
-        res as UTestExecutionSuccessResult
+        assertIs<UTestExecutionSuccessResult>(res)
+        assertNotNull(res.result)
         val result = res.result
-        assert(result != null)
-        assert(result is UTestConstantDescriptor.Int && result.value == 239)
+        assertNotNull(result)
+        assertIs<UTestConstantDescriptor.Int>(result)
+        assertEquals(239, result.value)
     }
 
     @Test
     fun `simple interface mock test`() = executeTest {
         val uTest = UTestCreator.A.mockInterface(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
-        assert(res is UTestExecutionSuccessResult)
-        res as UTestExecutionSuccessResult
+        assertIs<UTestExecutionSuccessResult>(res)
+        assertNotNull(res.result)
         val result = res.result
-        assert(result != null)
-        assert(result is UTestConstantDescriptor.Int && result.value == 239)
+        assertNotNull(result)
+        assertIs<UTestConstantDescriptor.Int>(result)
+        assertEquals(239, result.value)
     }
 
     @Test
     fun `simple interface with default method mock test`() = executeTest {
         val uTest = UTestCreator.A.mockInterfaceWithDefaultMock(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
-        assert(res is UTestExecutionSuccessResult)
-        res as UTestExecutionSuccessResult
+        assertIs<UTestExecutionSuccessResult>(res)
+        assertNotNull(res.result)
         val result = res.result
-        assert(result != null)
-        assert(result is UTestConstantDescriptor.Int && result.value == 239)
+        assertNotNull(result)
+        assertIs<UTestConstantDescriptor.Int>(result)
+        assertEquals(239, result.value)
     }
 
     @Test
     fun `method with bug`() = executeTest {
         val uTest = UTestCreator.A.methodWithBug(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
-        assert(res is UTestExecutionExceptionResult)
+        assertIs<UTestExecutionExceptionResult>(res)
+        assertEquals(false, res.cause.raisedByUserCode)
     }
 
 }
