@@ -56,20 +56,23 @@ class UTestExecutor(
         executor.executeUTestExpressions(uTest.initStatements)
             ?.onFailure {
                 return UTestExecutionInitFailedResult(
-                    buildExceptionDescriptor(initStateDescriptorBuilder, it, false) as UTestExceptionDescriptor,
-                    JcInstructionTracer.getTrace().trace
+                    cause = buildExceptionDescriptor(initStateDescriptorBuilder, it, false),
+                    trace = JcInstructionTracer.getTrace().trace
                 )
             }
 
         val initExecutionState = buildExecutionState(
-            callMethodExpr, executor, initStateDescriptorBuilder, hashSetOf()
+            callMethodExpr = callMethodExpr,
+            executor = executor,
+            descriptorBuilder = initStateDescriptorBuilder,
+            accessedStatics = hashSetOf()
         )
 
         executor.executeUTestExpressions(uTest.initStatements)
             ?.onFailure {
                 return UTestExecutionInitFailedResult(
-                    buildExceptionDescriptor(initStateDescriptorBuilder, it, false) as UTestExceptionDescriptor,
-                    JcInstructionTracer.getTrace().trace
+                    cause = buildExceptionDescriptor(initStateDescriptorBuilder, it, false),
+                    trace = JcInstructionTracer.getTrace().trace
                 )
             }
 
@@ -84,15 +87,15 @@ class UTestExecutor(
             }
         if (unpackedInvocationResult is Throwable) {
             return UTestExecutionExceptionResult(
-                buildExceptionDescriptor(
-                    resultStateDescriptorBuilder,
-                    unpackedInvocationResult,
-                    methodInvocationResult.isSuccess
-                ) as UTestExceptionDescriptor,
-                JcInstructionTracer.getTrace().trace,
-                initExecutionState,
+                cause = buildExceptionDescriptor(
+                    builder = resultStateDescriptorBuilder,
+                    exception = unpackedInvocationResult,
+                    raisedByUserCode = methodInvocationResult.isSuccess
+                ),
+                trace = JcInstructionTracer.getTrace().trace,
+                initialState = initExecutionState,
                 //TODO!!! decide if should we build resulting state
-                initExecutionState
+                resultState = initExecutionState
             )
         }
         val methodInvocationResultDescriptor =

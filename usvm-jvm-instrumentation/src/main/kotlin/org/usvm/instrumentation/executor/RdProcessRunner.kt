@@ -11,7 +11,6 @@ import org.jacodb.api.JcClassOrInterface
 import org.jacodb.api.JcClasspath
 import org.jacodb.api.cfg.JcInst
 import org.jacodb.api.ext.methods
-import org.jacodb.api.ext.objectType
 import org.usvm.instrumentation.generated.models.*
 import org.usvm.instrumentation.rd.*
 import org.usvm.instrumentation.util.findFieldByFullNameOrNull
@@ -21,7 +20,6 @@ import org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.Compan
 import org.usvm.instrumentation.testcase.UTest
 import org.usvm.instrumentation.testcase.api.*
 import org.usvm.instrumentation.testcase.descriptor.UTestExceptionDescriptor
-import java.io.File
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import kotlin.math.pow
