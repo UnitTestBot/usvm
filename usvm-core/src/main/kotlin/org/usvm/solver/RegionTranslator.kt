@@ -1,11 +1,27 @@
 package org.usvm.solver
 
 import io.ksmt.expr.KExpr
+import io.ksmt.solver.KModel
 import io.ksmt.sort.KArray2Sort
 import io.ksmt.sort.KArraySort
+import io.ksmt.utils.cast
+import io.ksmt.utils.mkConst
+import org.usvm.UAddressSort
+import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
+import org.usvm.UHeapRef
+import org.usvm.USizeSort
 import org.usvm.USort
 import org.usvm.memory.*
+import org.usvm.memory.collections.UAllocatedArrayId
+import org.usvm.memory.collections.UInputArrayId
+import org.usvm.memory.collections.UMemoryUpdatesVisitor
+import org.usvm.memory.collections.USymbolicArrayId
+import org.usvm.memory.collections.USymbolicArrayIndex
+import org.usvm.memory.collections.USymbolicCollection
+import org.usvm.memory.collections.USymbolicCollectionId
+import org.usvm.model.UMemory2DArray
+import org.usvm.sampleUValue
 import org.usvm.uctx
 import java.util.IdentityHashMap
 
@@ -13,18 +29,58 @@ import java.util.IdentityHashMap
  * [URegionTranslator] defines a template method that translates a region reading to a specific [KExpr] with a sort
  * [Sort].
  */
-class URegionTranslator<CollectionId : USymbolicCollectionId<Key, Sort, CollectionId>, Key, Sort : USort, Result>(
-    private val updateTranslator: UMemoryUpdatesVisitor<Key, Sort, Result>,
-) {
-    fun translateReading(region: USymbolicCollection<CollectionId, Key, Sort>, key: Key): KExpr<Sort> {
-        val translated = translate(region)
-        return updateTranslator.visitSelect(translated, key)
+//class URegionTranslator<CollectionId : USymbolicCollectionId<Key, Sort, CollectionId>, Key, Sort : USort, Result>(
+//    private val updateTranslator: UMemoryUpdatesVisitor<Key, Sort, Result>,
+//) {
+//    fun translateReading(region: USymbolicCollection<CollectionId, Key, Sort>, key: Key): KExpr<Sort> {
+//        val translated = translate(region)
+//        return updateTranslator.visitSelect(translated, key)
+//    }
+//
+//    private val visitorCache = IdentityHashMap<Any?, Result>()
+//
+//    private fun translate(region: USymbolicCollection<CollectionId, Key, Sort>): Result =
+//        region.updates.accept(updateTranslator, visitorCache)
+//}
+
+interface URegionTranslator<CollectionId : USymbolicCollectionId<Key, Sort, CollectionId>, Key, Sort : USort> {
+
+    fun translateReading(region: USymbolicCollection<CollectionId, Key, Sort>, key: Key): KExpr<Sort>
+
+    fun decodeCollection(model: KModel, mapping: Map<UHeapRef, UConcreteHeapRef>): USymbolicCollection<CollectionId, Key, Sort>
+}
+
+class UInputArrayRegionTranslator<ArrayType, Sort : USort>(
+    private val collectionId: UInputArrayId<ArrayType, Sort>,
+    private val exprTranslator: UExprTranslator<*>
+) : URegionTranslator<UInputArrayId<ArrayType, Sort>, USymbolicArrayIndex, Sort> {
+    val initialValue = with(collectionId.sort.uctx) {
+        mkArraySort(addressSort, sizeSort, collectionId.sort).mkConst(collectionId.toString())
     }
 
-    private val visitorCache = IdentityHashMap<Any?, Result>()
+    private val visitorCache = IdentityHashMap<Any?, KExpr<KArray2Sort<UAddressSort, USizeSort, Sort>>>()
+    private val updatesTranslator = U2DArrayUpdateVisitor(exprTranslator, initialValue)
 
-    private fun translate(region: USymbolicCollection<CollectionId, Key, Sort>): Result =
-        region.updates.accept(updateTranslator, visitorCache)
+    override fun translateReading(
+        region: USymbolicCollection<UInputArrayId<ArrayType, Sort>, USymbolicArrayIndex, Sort>,
+        key: USymbolicArrayIndex
+    ): KExpr<Sort> {
+        val translatedCollection = region.updates.accept(updatesTranslator, visitorCache)
+        return updatesTranslator.visitSelect(translatedCollection, key)
+    }
+
+    override fun decodeCollection(
+        model: KModel,
+        mapping: Map<UHeapRef, UConcreteHeapRef>
+    ): USymbolicCollection<UInputArrayId<ArrayType, Sort>, USymbolicArrayIndex, Sort> {
+        val modelArray = UMemory2DArray<UAddressSort, USizeSort, Sort>(initialValue, model, mapping)
+        var region: UMemoryRegion<UArrayIndexRef<ArrayType, Sort>, Sort> = UArrayRegion<ArrayType, Sort>(defaultValue = modelArray.constValue)
+        modelArray.values.forEach { key, value ->
+            region = region.write(UArrayIndexRef(collectionId.sort, key.first, key.second, collectionId.arrayType), value, guard = value.uctx.trueExpr)
+        }
+        return region
+    }
+
 }
 
 /**
@@ -34,7 +90,7 @@ class URegionTranslator<CollectionId : USymbolicCollectionId<Key, Sort, Collecti
  * @param initialValue defines an initial value for a translated array.
  */
 internal class U1DArrayUpdateTranslate<KeySort : USort, Sort : USort>(
-    private val exprTranslator: UExprTranslator<*, *>,
+    private val exprTranslator: UExprTranslator<*>,
     private val initialValue: KExpr<KArraySort<KeySort, Sort>>,
 ) : UMemoryUpdatesVisitor<UExpr<KeySort>, Sort, KExpr<KArraySort<KeySort, Sort>>> {
 
@@ -68,7 +124,7 @@ internal class U1DArrayUpdateTranslate<KeySort : USort, Sort : USort>(
                     falseExpr -> previous
                     else -> {
                         @Suppress("UNCHECKED_CAST")
-                        (update as URangedUpdateNode<UArrayId<Any?, Sort, *>, Any?, UExpr<KeySort>, Sort>)
+                        (update as URangedUpdateNode<USymbolicArrayId<Any?, Sort, *>, Any?, UExpr<KeySort>, Sort>)
                         val key = mkFreshConst("k", previous.sort.domain)
 
                         val from = update.sourceCollection
@@ -153,7 +209,7 @@ internal class U2DArrayUpdateVisitor<
                     falseExpr -> previous
                     else -> {
                         @Suppress("UNCHECKED_CAST")
-                        (update as URangedUpdateNode<UArrayId<Any?, Sort, *>, Any?, Pair<UExpr<Key1Sort>, UExpr<Key2Sort>>, Sort>)
+                        (update as URangedUpdateNode<USymbolicArrayId<Any?, Sort, *>, Any?, Pair<UExpr<Key1Sort>, UExpr<Key2Sort>>, Sort>)
                         val key1 = mkFreshConst("k1", previous.sort.domain0)
                         val key2 = mkFreshConst("k2", previous.sort.domain1)
 

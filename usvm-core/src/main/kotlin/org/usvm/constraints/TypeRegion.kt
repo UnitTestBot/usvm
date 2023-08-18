@@ -150,6 +150,8 @@ open class UTypeRegion<Type>(
     }
 
     override val isEmpty: Boolean = isContradicting
+    override fun union(other: UTypeRegion<Type>): UTypeRegion<Type> =
+        error("This should not be called")
 
     override fun intersect(other: UTypeRegion<Type>): UTypeRegion<Type> {
         // TODO: optimize things up by not re-allocating type regions after each operation

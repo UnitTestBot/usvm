@@ -1,6 +1,12 @@
-package org.usvm.memory
+package org.usvm.memory.collections
 
+import io.ksmt.utils.uncheckedCast
 import org.usvm.*
+import org.usvm.memory.GuardedExpr
+import org.usvm.memory.UPinpointUpdateNode
+import org.usvm.memory.URangedUpdateNode
+import org.usvm.memory.USymbolicCollectionAdapter
+import org.usvm.memory.UUpdateNode
 import org.usvm.util.Region
 import org.usvm.util.RegionTree
 import org.usvm.util.emptyRegionTree
@@ -47,10 +53,10 @@ interface USymbolicCollectionUpdates<Key, Sort : USort> : Sequence<UUpdateNode<K
      * It is used in [UComposer] during memory composition.
      * Throws away all updates for which [keyMapper] returns null.
      */
-    fun <Field, Type, MappedKey> filterMap(
+    fun <Type, MappedKey> filterMap(
         keyMapper: KeyMapper<Key, MappedKey>,
-        composer: UComposer<Field, Type>,
-        mappedKeyInfo: USymbolicCollectionKeyInfo<MappedKey>
+        composer: UComposer<Type>,
+        mappedKeyInfo: USymbolicCollectionKeyInfo<MappedKey, *>
     ): USymbolicCollectionUpdates<MappedKey, Sort>
 
     /**
@@ -110,9 +116,9 @@ interface UMemoryUpdatesVisitor<Key, Sort : USort, Result> {
 
 class UFlatUpdates<Key, Sort : USort> private constructor(
     internal val node: UFlatUpdatesNode<Key, Sort>?,
-    private val keyInfo: USymbolicCollectionKeyInfo<Key>,
+    private val keyInfo: USymbolicCollectionKeyInfo<Key, *>,
 ) : USymbolicCollectionUpdates<Key, Sort> {
-    constructor(keyInfo: USymbolicCollectionKeyInfo<Key>) : this(node = null, keyInfo)
+    constructor(keyInfo: USymbolicCollectionKeyInfo<Key, *>) : this(node = null, keyInfo)
 
     internal data class UFlatUpdatesNode<Key, Sort : USort>(
         val update: UUpdateNode<Key, Sort>,
@@ -165,10 +171,10 @@ class UFlatUpdates<Key, Sort : USort> private constructor(
         return UFlatUpdates(UFlatUpdatesNode(splitNode, splitNext), keyInfo)
     }
 
-    override fun <Field, Type, MappedKey> filterMap(
+    override fun <Type, MappedKey> filterMap(
         keyMapper: KeyMapper<Key, MappedKey>,
-        composer: UComposer<Field, Type>,
-        mappedKeyInfo: USymbolicCollectionKeyInfo<MappedKey>
+        composer: UComposer<Type>,
+        mappedKeyInfo: USymbolicCollectionKeyInfo<MappedKey, *>
     ): UFlatUpdates<MappedKey, Sort> {
         @Suppress("UNCHECKED_CAST")
         node ?: return (this as UFlatUpdates<MappedKey, Sort>)
@@ -249,13 +255,13 @@ class UFlatUpdates<Key, Sort : USort> private constructor(
 
 data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
     private val updates: RegionTree<UUpdateNode<Key, Sort>, Reg>,
-    private val keyInfo: USymbolicCollectionKeyInfo<Key>
+    private val keyInfo: USymbolicCollectionKeyInfo<Key, Reg>
 //    private val keyToRegion: (Key) -> Reg,
 //    private val keyRangeToRegion: (Key, Key) -> Reg,
 //    private val fullRangeRegion: () -> Reg,
 ) : USymbolicCollectionUpdates<Key, Sort> {
     override fun read(key: Key): UTreeUpdates<Key, Reg, Sort> {
-        val reg = keyInfo.keyToRegion<Reg>(key)
+        val reg = keyInfo.keyToRegion(key)
         val updates = updates.localize(reg)
         if (updates === this.updates) {
             return this
@@ -309,7 +315,7 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
         // add an update to result tree
         fun applyUpdate(update: UUpdateNode<Key, Sort>) {
             val region = when (update) {
-                is UPinpointUpdateNode<Key, Sort> -> keyInfo.keyToRegion<Reg>(update.key)
+                is UPinpointUpdateNode<Key, Sort> -> keyInfo.keyToRegion(update.key)
                 is URangedUpdateNode<*, *, Key, Sort> -> update.adapter.region()
 //                is UMergeUpdateNode<*, *, Key, *, *, Sort> -> fullRangeRegion()
             }
@@ -358,10 +364,10 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
     }
 
 
-    override fun <Field, Type, MappedKey> filterMap(
+    override fun <Type, MappedKey> filterMap(
         keyMapper: KeyMapper<Key, MappedKey>,
-        composer: UComposer<Field, Type>,
-        mappedKeyInfo: USymbolicCollectionKeyInfo<MappedKey>
+        composer: UComposer<Type>,
+        mappedKeyInfo: USymbolicCollectionKeyInfo<MappedKey, *>
     ): UTreeUpdates<MappedKey, Reg, Sort> {
         var mappedNodeFound = false
 
@@ -390,8 +396,8 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
             val newRegion = when (updateNode) {
                 is UPinpointUpdateNode -> {
                     mappedUpdateNode as UPinpointUpdateNode
-                    val currentRegion = mappedKeyInfo.keyToRegion<Reg>(mappedUpdateNode.key)
-                    oldRegion.intersect(currentRegion)
+                    val currentRegion = mappedKeyInfo.keyToRegion(mappedUpdateNode.key)
+                    oldRegion.intersect(currentRegion.uncheckedCast())
                 }
 
                 is URangedUpdateNode<*, *, Key, Sort> -> {
@@ -419,7 +425,7 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
         // If at least one node was changed, return a new updates, otherwise return this
         @Suppress("UNCHECKED_CAST")
         return if (mappedNodeFound)
-            UTreeUpdates(updates = mappedUpdates, mappedKeyInfo)
+            UTreeUpdates(updates = mappedUpdates, mappedKeyInfo.uncheckedCast())
         else this as UTreeUpdates<MappedKey, Reg, Sort>
     }
 
@@ -484,7 +490,7 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
         // we have to check if an initial region (by USVM estimation) is equal
         // to the one stored in the current node.
         val initialRegion = when (update) {
-            is UPinpointUpdateNode<Key, Sort> -> keyInfo.keyToRegion<Reg>(update.key)
+            is UPinpointUpdateNode<Key, Sort> -> keyInfo.keyToRegion(update.key)
             is URangedUpdateNode<*, *, Key, Sort> -> update.adapter.region()
 //            is UMergeUpdateNode<*, *, Key, *, *, Sort> -> fullRangeRegion()
         }

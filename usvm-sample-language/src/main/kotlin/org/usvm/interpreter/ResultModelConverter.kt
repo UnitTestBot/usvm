@@ -67,7 +67,7 @@ class ResultModelConverter(
                 is StructType -> convertStructExpr(expr.asExpr(ctx.addressSort), type)
             }
 
-        fun convertBoolExpr(expr: UExpr<UBoolSort>) =
+        fun convertBoolExpr(expr: UBoolExpr) =
             BooleanConst(with(ctx) { model.eval(expr).asExpr(boolSort).isTrue })
 
         fun resolveIntExpr(expr: UExpr<UBv32Sort>) =

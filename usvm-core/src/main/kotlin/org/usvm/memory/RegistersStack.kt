@@ -7,27 +7,22 @@ import org.usvm.UExpr
 import org.usvm.USort
 import java.util.Stack
 
-class StackId<Sort: USort>(override val sort: Sort): UMemoryRegionId<Sort> {
-    override fun equals(other: Any?): Boolean =
-        this === other || this.javaClass == other?.javaClass
+//class StackId<Sort: USort>(override val sort: Sort): UMemoryRegionId<Sort> {
+//    override fun equals(other: Any?): Boolean =
+//        this === other || this.javaClass == other?.javaClass
+//
+//    override fun hashCode(): Int =
+//        javaClass.hashCode()
+//}
 
-    override fun hashCode(): Int =
-        javaClass.hashCode()
-}
+//class URegisterRef<Sort: USort>(sort: Sort, val idx: Int) : ULValue<Sort>(sort) {
+////    override val memoryRegionId: UMemoryRegionId<Sort> = StackId(sort)
+//
+//}
 
-class URegisterRef<Sort: USort>(sort: Sort, val idx: Int) : ULValue<Sort>(sort) {
-    override val memoryRegionId: UMemoryRegionId<Sort> = StackId(sort)
-
-    override fun <Field, Type, Method> read(memory: UMemoryBase<Field, Type, Method>): UExpr<Sort> =
-        memory.stack.readRegister(idx, sort)
-
-    override fun <Field, Type, Method> write(memory: UMemoryBase<Field, Type, Method>, value: UExpr<Sort>) =
-        memory.stack.writeRegister(idx, value)
-}
-
-interface URegistersStackEvaluator {
-    fun <Sort : USort> eval(registerIndex: Int, sort: Sort): UExpr<Sort>
-}
+//interface URegistersStackEvaluator {
+//    fun <Sort : USort> eval(registerIndex: Int, sort: Sort): UExpr<Sort>
+//}
 
 class URegistersStackFrame(registers: Array<UExpr<out USort>?>) {
     constructor(registersCount: Int) :
@@ -46,10 +41,14 @@ class URegistersStackFrame(registers: Array<UExpr<out USort>?>) {
     fun clone() = URegistersStackFrame(registers.clone())
 }
 
+interface UReadOnlyRegistersStack {
+    fun <Sort : USort> readRegister(index: Int, sort: Sort): KExpr<Sort>
+}
+
 class URegistersStack(
     private val ctx: UContext,
     private val stack: Stack<URegistersStackFrame> = Stack<URegistersStackFrame>(),
-) : Sequence<URegistersStackFrame>, URegistersStackEvaluator {
+) : Sequence<URegistersStackFrame>, UReadOnlyRegistersStack {
     override fun iterator() = stack.iterator()
 
     fun push(registersCount: Int) = stack.push(URegistersStackFrame(registersCount))
@@ -58,7 +57,7 @@ class URegistersStack(
 
     fun peek() = stack.peek()
 
-    fun <Sort : USort> readRegister(index: Int, sort: Sort): KExpr<Sort> =
+    override fun <Sort : USort> readRegister(index: Int, sort: Sort): KExpr<Sort> =
         peek()[index]?.asExpr(sort) ?: ctx.mkRegisterReading(index, sort)
 
     fun writeRegister(index: Int, value: UExpr<out USort>) {
@@ -73,9 +72,4 @@ class URegistersStack(
         stack.forEach { newStack.push(it.clone()) }
         return URegistersStack(ctx, newStack)
     }
-
-    override fun <Sort : USort> eval(
-        registerIndex: Int,
-        sort: Sort,
-    ): UExpr<Sort> = readRegister(registerIndex, sort).asExpr(sort)
 }

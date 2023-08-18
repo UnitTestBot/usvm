@@ -47,7 +47,7 @@ import org.usvm.USymbol
 import org.usvm.uctx
 import org.usvm.util.Region
 
-class USoftConstraintsProvider<Field, Type>(ctx: UContext) : UExprTransformer<Field, Type>(ctx) {
+class USoftConstraintsProvider<Type>(ctx: UContext) : UExprTransformer<Type>(ctx) {
     // We have a list here since sometimes we want to add several soft constraints
     // to make it possible to drop only a part of them, not the whole soft constraint
     private val caches = hashMapOf<UExpr<*>, Set<UBoolExpr>>().withDefault { emptySet() }
@@ -107,6 +107,20 @@ class USoftConstraintsProvider<Field, Type>(ctx: UContext) : UExprTransformer<Fi
     override fun transform(expr: UIsExpr<Type>): UBoolExpr =
         error("Illegal operation since UIsExpr should not be translated into a SMT solver")
 
+    override fun <Field, Sort : USort> transform(expr: UInputFieldReading<Field, Sort>): UExpr<Sort> =
+        readingWithSingleArgumentTransform(expr, expr.address)
+
+    override fun <Sort : USort> transform(expr: UAllocatedArrayReading<Type, Sort>): UExpr<Sort> =
+        readingWithSingleArgumentTransform(expr, expr.index)
+
+    override fun <Sort : USort> transform(
+        expr: UInputArrayReading<Type, Sort>,
+    ): UExpr<Sort> = readingWithTwoArgumentsTransform(expr, expr.index, expr.address)
+
+    override fun <KeySort : USort, Sort : USort, Reg : Region<Reg>> transform(
+        expr: UInputSymbolicMapReading<Type, KeySort, Sort, Reg>
+    ): UExpr<Sort> = readingWithTwoArgumentsTransform(expr, expr.key, expr.address)
+
     override fun transform(
         expr: UInputArrayLengthReading<Type>,
     ): USizeExpr = transformExprAfterTransformed(expr, expr.address) {
@@ -120,26 +134,12 @@ class USoftConstraintsProvider<Field, Type>(ctx: UContext) : UExprTransformer<Fi
         }
     }
 
-    override fun <Sort : USort> transform(
-        expr: UInputArrayReading<Type, Sort>,
-    ): UExpr<Sort> = readingWithTwoArgumentsTransform(expr, expr.index, expr.address)
-
-    override fun <KeySort : USort, Reg : Region<Reg>, Sort : USort> transform(
-        expr: UInputSymbolicMapReading<KeySort, Reg, Sort>
-    ): UExpr<Sort> = readingWithTwoArgumentsTransform(expr, expr.key, expr.address)
-
-    override fun <Sort : USort> transform(expr: UAllocatedArrayReading<Type, Sort>): UExpr<Sort> =
-        readingWithSingleArgumentTransform(expr, expr.index)
-
-    override fun <Sort : USort> transform(expr: UInputFieldReading<Field, Sort>): UExpr<Sort> =
-        readingWithSingleArgumentTransform(expr, expr.address)
-
-    override fun <KeySort : USort, Reg : Region<Reg>, Sort : USort> transform(
-        expr: UAllocatedSymbolicMapReading<KeySort, Reg, Sort>
+    override fun <KeySort : USort, Sort : USort, Reg : Region<Reg>> transform(
+        expr: UAllocatedSymbolicMapReading<Type, KeySort, Sort, Reg>
     ): UExpr<Sort> = readingWithSingleArgumentTransform(expr, expr.key)
 
     override fun transform(
-        expr: UInputSymbolicMapLengthReading
+        expr: UInputSymbolicMapLengthReading<Type>
     ): USizeExpr = transformExprAfterTransformed(expr, expr.address) {
         computeSideEffect(expr) {
             with(expr.ctx) {

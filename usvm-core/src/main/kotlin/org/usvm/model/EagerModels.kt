@@ -6,10 +6,10 @@ import org.usvm.*
 import org.usvm.memory.UAddressCounter
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.memory.URegistersStackEvaluator
-import org.usvm.memory.USymbolicArrayIndex
+import org.usvm.memory.collections.USymbolicArrayIndex
 import org.usvm.memory.USymbolicHeap
 import org.usvm.memory.USymbolicMapDescriptor
-import org.usvm.memory.USymbolicMapKey
+import org.usvm.memory.collections.USymbolicMapKey
 import org.usvm.util.Region
 
 /**

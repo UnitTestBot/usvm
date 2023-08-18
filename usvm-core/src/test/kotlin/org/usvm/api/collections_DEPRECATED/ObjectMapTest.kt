@@ -1,15 +1,15 @@
-package org.usvm.intrinsics.collections
+package org.usvm.api.collections_DEPRECATED
 
 import io.ksmt.solver.KSolver
 import io.ksmt.utils.uncheckedCast
 import org.usvm.*
-import org.usvm.intrinsics.collections.SymbolicObjectMapIntrinsics.mkSymbolicObjectMap
-import org.usvm.intrinsics.collections.SymbolicObjectMapIntrinsics.symbolicObjectMapContains
-import org.usvm.intrinsics.collections.SymbolicObjectMapIntrinsics.symbolicObjectMapGet
-import org.usvm.intrinsics.collections.SymbolicObjectMapIntrinsics.symbolicObjectMapMergeInto
-import org.usvm.intrinsics.collections.SymbolicObjectMapIntrinsics.symbolicObjectMapPut
-import org.usvm.intrinsics.collections.SymbolicObjectMapIntrinsics.symbolicObjectMapRemove
-import org.usvm.intrinsics.collections.SymbolicObjectMapIntrinsics.symbolicObjectMapSize
+import org.usvm.api.collections_DEPRECATED.SymbolicObjectMapIntrinsics.mkSymbolicObjectMap
+import org.usvm.api.collections_DEPRECATED.SymbolicObjectMapIntrinsics.symbolicObjectMapContains
+import org.usvm.api.collections_DEPRECATED.SymbolicObjectMapIntrinsics.symbolicObjectMapGet
+import org.usvm.api.collections_DEPRECATED.SymbolicObjectMapIntrinsics.symbolicObjectMapMergeInto
+import org.usvm.api.collections_DEPRECATED.SymbolicObjectMapIntrinsics.symbolicObjectMapPut
+import org.usvm.api.collections_DEPRECATED.SymbolicObjectMapIntrinsics.symbolicObjectMapRemove
+import org.usvm.api.collections_DEPRECATED.SymbolicObjectMapIntrinsics.symbolicObjectMapSize
 import org.usvm.model.UModelBase
 import org.usvm.solver.USatResult
 import kotlin.test.Test

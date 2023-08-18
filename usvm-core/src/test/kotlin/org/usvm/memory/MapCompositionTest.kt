@@ -16,6 +16,10 @@ import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USizeExpr
 import org.usvm.USizeSort
+import org.usvm.memory.collections.UAllocatedArrayId
+import org.usvm.memory.collections.UFlatUpdates
+import org.usvm.memory.collections.USymbolicCollection
+import org.usvm.memory.collections.UTreeUpdates
 import org.usvm.shouldNotBeCalled
 import org.usvm.util.SetRegion
 import org.usvm.util.emptyRegionTree

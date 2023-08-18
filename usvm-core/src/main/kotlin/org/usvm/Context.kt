@@ -11,11 +11,12 @@ import io.ksmt.sort.KUninterpretedSort
 import io.ksmt.utils.DefaultValueSampler
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
-import org.usvm.memory.UAllocatedArrayCollection
+import io.ksmt.utils.uncheckedCast
+import org.usvm.memory.UAllocatedArray
 import org.usvm.memory.UAllocatedSymbolicMap
-import org.usvm.memory.UInputArrayLengthCollection
-import org.usvm.memory.UInputArrayCollection
-import org.usvm.memory.UInputFieldCollection
+import org.usvm.memory.UInputArrayLengths
+import org.usvm.memory.UInputArray
+import org.usvm.memory.UInputFields
 import org.usvm.memory.UInputSymbolicMapLengthCollection
 import org.usvm.memory.UInputSymbolicMap
 import org.usvm.memory.splitUHeapRef
@@ -24,7 +25,7 @@ import org.usvm.util.Region
 
 @Suppress("LeakingThis")
 open class UContext(
-    components: UComponents<*, *, *>,
+    components: UComponents<*, *>,
     operationMode: OperationMode = OperationMode.CONCURRENT,
     astManagementMode: AstManagementMode = AstManagementMode.GC,
     simplificationMode: SimplificationMode = SimplificationMode.SIMPLIFY
@@ -33,9 +34,8 @@ open class UContext(
     private val solver by lazy { components.mkSolver(this) }
     private val typeSystem = components.mkTypeSystem(this)
 
-    @Suppress("UNCHECKED_CAST")
-    fun <Field, Type, Method> solver(): USolverBase<Field, Type, Method> =
-        this.solver as USolverBase<Field, Type, Method>
+    fun <Type, Method> solver(): USolverBase<Type, Method> =
+        this.solver.uncheckedCast()
 
     @Suppress("UNCHECKED_CAST")
     fun <Type> typeSystem(): UTypeSystem<Type> =
@@ -125,7 +125,7 @@ open class UContext(
     private val inputFieldReadingCache = mkAstInterner<UInputFieldReading<*, out USort>>()
 
     fun <Field, Sort : USort> mkInputFieldReading(
-        region: UInputFieldCollection<Field, Sort>,
+        region: UInputFields<Field, Sort>,
         address: UHeapRef,
     ): UInputFieldReading<Field, Sort> = inputFieldReadingCache.createIfContextActive {
         UInputFieldReading(this, region, address)
@@ -134,7 +134,7 @@ open class UContext(
     private val allocatedArrayReadingCache = mkAstInterner<UAllocatedArrayReading<*, out USort>>()
 
     fun <ArrayType, Sort : USort> mkAllocatedArrayReading(
-        region: UAllocatedArrayCollection<ArrayType, Sort>,
+        region: UAllocatedArray<ArrayType, Sort>,
         index: USizeExpr,
     ): UAllocatedArrayReading<ArrayType, Sort> = allocatedArrayReadingCache.createIfContextActive {
         UAllocatedArrayReading(this, region, index)
@@ -143,7 +143,7 @@ open class UContext(
     private val inputArrayReadingCache = mkAstInterner<UInputArrayReading<*, out USort>>()
 
     fun <ArrayType, Sort : USort> mkInputArrayReading(
-        region: UInputArrayCollection<ArrayType, Sort>,
+        region: UInputArray<ArrayType, Sort>,
         address: UHeapRef,
         index: USizeExpr,
     ): UInputArrayReading<ArrayType, Sort> = inputArrayReadingCache.createIfContextActive {
@@ -153,42 +153,42 @@ open class UContext(
     private val inputArrayLengthReadingCache = mkAstInterner<UInputArrayLengthReading<*>>()
 
     fun <ArrayType> mkInputArrayLengthReading(
-        region: UInputArrayLengthCollection<ArrayType>,
+        region: UInputArrayLengths<ArrayType>,
         address: UHeapRef,
     ): UInputArrayLengthReading<ArrayType> = inputArrayLengthReadingCache.createIfContextActive {
         UInputArrayLengthReading(this, region, address)
     }.cast()
 
-    private val allocatedSymbolicMapReadingCache = mkAstInterner<UAllocatedSymbolicMapReading<*, *, *>>()
+    private val allocatedSymbolicMapReadingCache = mkAstInterner<UAllocatedSymbolicMapReading<*, *, *, *>>()
 
-    fun <KeySort : USort, Reg : Region<Reg>, Sort : USort> mkAllocatedSymbolicMapReading(
-        region: UAllocatedSymbolicMap<KeySort, Reg, Sort>,
+    fun <MapType, KeySort : USort, Sort : USort, Reg: Region<Reg>> mkAllocatedSymbolicMapReading(
+        region: UAllocatedSymbolicMap<MapType, KeySort, Sort, Reg>,
         key: UExpr<KeySort>
-    ): UAllocatedSymbolicMapReading<KeySort, Reg, Sort> =
+    ): UAllocatedSymbolicMapReading<MapType, KeySort, Sort, Reg> =
         allocatedSymbolicMapReadingCache.createIfContextActive {
             UAllocatedSymbolicMapReading(this, region, key)
         }.cast()
 
-    private val inputSymbolicMapReadingCache = mkAstInterner<UInputSymbolicMapReading<*, *, *>>()
+    private val inputSymbolicMapReadingCache = mkAstInterner<UInputSymbolicMapReading<*, *, *, *>>()
 
-    fun <KeySort : USort, Reg : Region<Reg>, Sort : USort> mkInputSymbolicMapReading(
-        region: UInputSymbolicMap<KeySort, Reg, Sort>,
+    fun <MapType, KeySort : USort, Reg : Region<Reg>, Sort : USort> mkInputSymbolicMapReading(
+        region: UInputSymbolicMap<MapType, KeySort, Sort, Reg>,
         address: UHeapRef,
         key: UExpr<KeySort>
-    ): UInputSymbolicMapReading<KeySort, Reg, Sort> =
+    ): UInputSymbolicMapReading<MapType, KeySort, Sort, Reg> =
         inputSymbolicMapReadingCache.createIfContextActive {
             UInputSymbolicMapReading(this, region, address, key)
         }.cast()
 
-    private val inputSymbolicMapLengthReadingCache = mkAstInterner<UInputSymbolicMapLengthReading>()
+    private val inputSymbolicMapLengthReadingCache = mkAstInterner<UInputSymbolicMapLengthReading<*>>()
 
-    fun mkInputSymbolicMapLengthReading(
-        region: UInputSymbolicMapLengthCollection,
+    fun <MapType> mkInputSymbolicMapLengthReading(
+        region: UInputSymbolicMapLengthCollection<MapType>,
         address: UHeapRef
-    ): UInputSymbolicMapLengthReading =
+    ): UInputSymbolicMapLengthReading<MapType> =
         inputSymbolicMapLengthReadingCache.createIfContextActive {
-            UInputSymbolicMapLengthReading(this, region, address)
-        }
+            UInputSymbolicMapLengthReading<MapType>(this, region, address)
+        }.cast()
 
     private val indexedMethodReturnValueCache = mkAstInterner<UIndexedMethodReturnValue<Any, out USort>>()
 
@@ -225,6 +225,17 @@ open class UContext(
                 super.visit(sort)
             }
     }
+
+    inline fun <T : KSort> mkIte(
+        condition: KExpr<KBoolSort>,
+        trueBranch: () -> KExpr<T>,
+        falseBranch: () -> KExpr<T>
+    ): KExpr<T> =
+        when (condition) {
+            is UTrue -> trueBranch()
+            is UFalse -> falseBranch()
+            else -> mkIte(condition, trueBranch(), falseBranch())
+        }
 }
 
 

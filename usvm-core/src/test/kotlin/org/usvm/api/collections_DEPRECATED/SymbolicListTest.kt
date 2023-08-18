@@ -1,17 +1,17 @@
-package org.usvm.intrinsics.collections
+package org.usvm.api.collections_DEPRECATED
 
 import io.ksmt.solver.KSolver
 import io.ksmt.utils.uncheckedCast
 import org.usvm.UContext
 import org.usvm.UHeapRef
 import org.usvm.USizeExpr
-import org.usvm.intrinsics.collections.SymbolicListIntrinsics.mkSymbolicList
-import org.usvm.intrinsics.collections.SymbolicListIntrinsics.symbolicListAdd
-import org.usvm.intrinsics.collections.SymbolicListIntrinsics.symbolicListGet
-import org.usvm.intrinsics.collections.SymbolicListIntrinsics.symbolicListInsert
-import org.usvm.intrinsics.collections.SymbolicListIntrinsics.symbolicListRemove
-import org.usvm.intrinsics.collections.SymbolicListIntrinsics.symbolicListSet
-import org.usvm.intrinsics.collections.SymbolicListIntrinsics.symbolicListSize
+import org.usvm.api.collections_DEPRECATED.SymbolicListIntrinsics.mkSymbolicList
+import org.usvm.api.collections_DEPRECATED.SymbolicListIntrinsics.symbolicListAdd
+import org.usvm.api.collections_DEPRECATED.SymbolicListIntrinsics.symbolicListGet
+import org.usvm.api.collections_DEPRECATED.SymbolicListIntrinsics.symbolicListInsert
+import org.usvm.api.collections_DEPRECATED.SymbolicListIntrinsics.symbolicListRemove
+import org.usvm.api.collections_DEPRECATED.SymbolicListIntrinsics.symbolicListSet
+import org.usvm.api.collections_DEPRECATED.SymbolicListIntrinsics.symbolicListSize
 import kotlin.test.Test
 
 class SymbolicListTest : SymbolicCollectionTestBase() {

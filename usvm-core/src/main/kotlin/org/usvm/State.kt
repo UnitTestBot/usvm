@@ -3,26 +3,26 @@ package org.usvm
 import io.ksmt.expr.KInterpretedValue
 import kotlinx.collections.immutable.PersistentList
 import org.usvm.constraints.UPathConstraints
-import org.usvm.memory.UMemoryBase
+import org.usvm.memory.UMemory
 import org.usvm.model.UModel
 import org.usvm.solver.USatResult
 import org.usvm.solver.UUnknownResult
 import org.usvm.solver.UUnsatResult
 
-abstract class UState<Type, Field, Method, Statement>(
+abstract class UState<Type, Method, Statement>(
     // TODO: add interpreter-specific information
-    val ctx: UContext,
-    val callStack: UCallStack<Method, Statement>,
-    val pathConstraints: UPathConstraints<Type>,
-    val memory: UMemoryBase<Field, Type, Method>,
-    var models: List<UModel>,
-    var path: PersistentList<Statement>,
+    internal val ctx: UContext,
+    internal val callStack: UCallStack<Method, Statement>,
+    internal val pathConstraints: UPathConstraints<Type>,
+    val memory: UMemory<Type, Method>,
+    internal var models: List<UModel>,
+    internal var path: PersistentList<Statement>,
 ) {
     /**
      * Creates new state structurally identical to this.
      * If [newConstraints] is null, clones [pathConstraints]. Otherwise, uses [newConstraints] in cloned state.
      */
-    abstract fun clone(newConstraints: UPathConstraints<Type>? = null): UState<Type, Field, Method, Statement>
+    protected abstract fun clone(newConstraints: UPathConstraints<Type>? = null): UState<Type, Method, Statement>
 
     val lastEnteredMethod: Method
         get() = callStack.lastMethod()
@@ -51,7 +51,7 @@ class ForkResult<T>(
  * - if [forkToSatisfied], then c = [conditionToCheck]
  * - if ![forkToSatisfied], then c = [satisfiedCondition]
  */
-private fun <T : UState<Type, *, *, *>, Type> forkIfSat(
+private fun <T : UState<Type, *, *>, Type> forkIfSat(
     state: T,
     satisfiedCondition: UBoolExpr,
     conditionToCheck: UBoolExpr,
@@ -111,7 +111,7 @@ private fun <T : UState<Type, *, *, *>, Type> forkIfSat(
  * 2. makes not more than one query to USolver;
  * 3. if both [condition] and ![condition] are satisfiable, then [ForkResult.positiveState] === [state].
  */
-fun <T : UState<Type, *, *, *>, Type> fork(
+fun <T : UState<Type, *, *>, Type> fork(
     state: T,
     condition: UBoolExpr,
 ): ForkResult<T> {

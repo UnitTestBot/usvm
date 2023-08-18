@@ -27,17 +27,18 @@ import org.usvm.USizeExpr
 import org.usvm.USizeSort
 import org.usvm.USort
 import org.usvm.USymbol
-import org.usvm.memory.UAllocatedArrayId
-import org.usvm.memory.UAllocatedSymbolicMapId
-import org.usvm.memory.UInputArrayId
-import org.usvm.memory.UInputArrayLengthId
-import org.usvm.memory.UInputFieldId
-import org.usvm.memory.UInputSymbolicMapId
-import org.usvm.memory.UInputSymbolicMapLengthId
-import org.usvm.memory.USymbolicCollectionId
-import org.usvm.memory.UCollectionIdVisitor
-import org.usvm.memory.USymbolicArrayIndex
-import org.usvm.memory.USymbolicCollection
+import org.usvm.memory.collections.UAllocatedArrayId
+import org.usvm.memory.collections.UAllocatedFieldId
+import org.usvm.memory.collections.UAllocatedSymbolicMapId
+import org.usvm.memory.collections.UInputArrayId
+import org.usvm.memory.collections.UInputArrayLengthId
+import org.usvm.memory.collections.UInputFieldId
+import org.usvm.memory.collections.UInputSymbolicMapId
+import org.usvm.memory.collections.UInputSymbolicMapLengthId
+import org.usvm.memory.collections.USymbolicCollectionId
+import org.usvm.memory.collections.UCollectionIdVisitor
+import org.usvm.memory.collections.USymbolicArrayIndex
+import org.usvm.memory.collections.USymbolicCollection
 import org.usvm.uctx
 import org.usvm.util.Region
 
@@ -48,9 +49,9 @@ import org.usvm.util.Region
  *
  * To show semantics of the translator, we use [KExpr] as return values, though [UExpr] is a typealias for it.
  */
-open class UExprTranslator<Field, Type>(
+open class UExprTranslator<Type>(
     override val ctx: UContext,
-) : UExprTransformer<Field, Type>(ctx), UCollectionIdVisitor<URegionTranslator<*, *, *, *>> {
+) : UExprTransformer<Type>(ctx), UCollectionIdVisitor<URegionTranslator<*, *, *>> {
 
     open fun <Sort : USort> translate(expr: UExpr<Sort>): KExpr<Sort> = apply(expr)
 
@@ -99,24 +100,28 @@ open class UExprTranslator<Field, Type>(
             translateRegionReading(expr.collection, index)
         }
 
-    override fun <Sort : USort> transform(expr: UInputFieldReading<Field, Sort>): KExpr<Sort> =
+    override fun <Field, Sort : USort> visit(collectionId: UAllocatedFieldId<Field, Sort>): URegionTranslator<*, *, *, *> {
+        TODO("Not yet implemented")
+    }
+
+    override fun <Field, Sort : USort> transform(expr: UInputFieldReading<Field, Sort>): KExpr<Sort> =
         transformExprAfterTransformed(expr, expr.address) { address ->
             translateRegionReading(expr.collection, address)
         }
 
-    override fun <KeySort : USort, Reg : Region<Reg>, Sort : USort> transform(
-        expr: UAllocatedSymbolicMapReading<KeySort, Reg, Sort>
+    override fun <KeySort : USort, Sort : USort, Reg : Region<Reg>> transform(
+        expr: UAllocatedSymbolicMapReading<Type, KeySort, Sort, Reg>
     ): KExpr<Sort> = transformExprAfterTransformed(expr, expr.key) { key ->
         translateRegionReading(expr.collection, key)
     }
 
-    override fun <KeySort : USort, Reg : Region<Reg>, Sort : USort> transform(
-        expr: UInputSymbolicMapReading<KeySort, Reg, Sort>
+    override fun <KeySort : USort, Sort : USort, Reg : Region<Reg>> transform(
+        expr: UInputSymbolicMapReading<Type, KeySort, Sort, Reg>
     ): KExpr<Sort> = transformExprAfterTransformed(expr, expr.address, expr.key) { address, key ->
         translateRegionReading(expr.collection, address to key)
     }
 
-    override fun transform(expr: UInputSymbolicMapLengthReading): KExpr<USizeSort> =
+    override fun transform(expr: UInputSymbolicMapLengthReading<Type>): KExpr<USizeSort> =
         transformExprAfterTransformed(expr, expr.address) { address ->
             translateRegionReading(expr.collection, address)
         }
@@ -136,6 +141,11 @@ open class UExprTranslator<Field, Type>(
         regionId: USymbolicCollectionId<*, *, *>,
         defaultValue: () -> V
     ): V = regionIdToInitialValue_.getOrPut(regionId, defaultValue) as V
+
+    private inline fun <reified V> getOrPutRegionTranslator(
+        regionId: USymbolicCollectionId<*, *, *>,
+        defaultValue: () -> V
+    ): V = TODO()
 
     private val regionIdConstantNames = mutableMapOf<USymbolicCollectionId<*, *, *>, String>()
     private fun regionConstantName(regionId: USymbolicCollectionId<*, *, *>): String =
@@ -173,15 +183,18 @@ open class UExprTranslator<Field, Type>(
 
     override fun <ArrayType, Sort : USort> visit(
         collectionId: UInputArrayId<ArrayType, Sort>,
-    ): URegionTranslator<UInputArrayId<ArrayType, Sort>, USymbolicArrayIndex, Sort, *> {
+    ): URegionTranslator<UInputArrayId<ArrayType, Sort>, USymbolicArrayIndex, Sort> {
         require(collectionId.defaultValue == null)
-        val initialValue = getOrPutInitialValue(collectionId) {
-            with(collectionId.sort.uctx) {
-                mkArraySort(addressSort, sizeSort, collectionId.sort).mkConst(collectionId.toString()) // TODO: replace toString
-            }
+        return getOrPutRegionTranslator(collectionId) {
+            UInputArrayRegionTranslator(collectionId, this)
         }
-        val updateTranslator = U2DArrayUpdateVisitor(this, initialValue)
-        return URegionTranslator(updateTranslator)
+//        val initialValue = getOrPutInitialValue(collectionId) {
+//            with(collectionId.sort.uctx) {
+//                mkArraySort(addressSort, sizeSort, collectionId.sort).mkConst(collectionId.toString()) // TODO: replace toString
+//            }
+//        }
+//        val updateTranslator = U2DArrayUpdateVisitor(this, initialValue)
+//        return URegionTranslator(updateTranslator)
     }
 
     override fun <ArrayType> visit(
@@ -197,9 +210,9 @@ open class UExprTranslator<Field, Type>(
         return URegionTranslator(updateTranslator)
     }
 
-    override fun <KeySort : USort, Reg : Region<Reg>, Sort : USort> visit(
-        collectionId: UAllocatedSymbolicMapId<KeySort, Reg, Sort>
-    ): URegionTranslator<UAllocatedSymbolicMapId<KeySort, Reg, Sort>, *, *, *> {
+    override fun <MapType, KeySort : USort, Sort : USort, Reg : Region<Reg>> visit(
+        collectionId: UAllocatedSymbolicMapId<MapType, KeySort, Sort, Reg>
+    ): URegionTranslator<UAllocatedSymbolicMapId<MapType, KeySort, Sort, Reg>, *, *, *> {
         requireNotNull(collectionId.defaultValue)
         val initialValue = getOrPutInitialValue(collectionId) {
             with(collectionId.sort.uctx) {
@@ -212,9 +225,9 @@ open class UExprTranslator<Field, Type>(
         return URegionTranslator(updateTranslator)
     }
 
-    override fun <KeySort : USort, Reg : Region<Reg>, Sort : USort> visit(
-        collectionId: UInputSymbolicMapId<KeySort, Reg, Sort>
-    ): URegionTranslator<UInputSymbolicMapId<KeySort, Reg, Sort>, *, *, *> {
+    override fun <MapType, KeySort : USort, Sort : USort, Reg : Region<Reg>> visit(
+        collectionId: UInputSymbolicMapId<MapType, KeySort, Sort, Reg>
+    ): URegionTranslator<UInputSymbolicMapId<MapType, KeySort, Sort, Reg>, *, *, *> {
         require(collectionId.defaultValue == null)
         val initialValue = getOrPutInitialValue(collectionId) {
             with(collectionId.sort.uctx) {
@@ -226,7 +239,7 @@ open class UExprTranslator<Field, Type>(
         return URegionTranslator(updateTranslator)
     }
 
-    override fun visit(collectionId: UInputSymbolicMapLengthId): URegionTranslator<UInputSymbolicMapLengthId, *, *, *> {
+    override fun <MapType> visit(collectionId: UInputSymbolicMapLengthId<MapType>): URegionTranslator<UInputSymbolicMapLengthId<MapType>, *, *, *> {
         require(collectionId.defaultValue == null)
         val initialValue = getOrPutInitialValue(collectionId) {
             with(collectionId.sort.uctx) {
@@ -238,20 +251,22 @@ open class UExprTranslator<Field, Type>(
         return URegionTranslator(updateTranslator)
     }
 
+
+
     open fun <Key, Sort : USort> buildTranslator(
         regionId: USymbolicCollectionId<Key, Sort, *>,
-    ): URegionTranslator<USymbolicCollectionId<Key, Sort, *>, Key, Sort, *> {
+    ): URegionTranslator<USymbolicCollectionId<Key, Sort, *>, Key, Sort> {
         @Suppress("UNCHECKED_CAST")
-        return regionId.accept(this) as URegionTranslator<USymbolicCollectionId<Key, Sort, *>, Key, Sort, *>
+        return regionId.accept(this) as URegionTranslator<USymbolicCollectionId<Key, Sort, *>, Key, Sort>
     }
 }
 
 /**
  * Tracks translated symbols. This information used in [ULazyModelDecoder].
  */
-open class UTrackingExprTranslator<Field, Type>(
+open class UTrackingExprTranslator<Type>(
     ctx: UContext,
-) : UExprTranslator<Field, Type>(ctx) {
+) : UExprTranslator<Type>(ctx) {
 
     val registerIdxToTranslated = mutableMapOf<Int, UExpr<*>>()
 

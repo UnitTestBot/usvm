@@ -1,5 +1,6 @@
 package org.usvm.memory
 
+import io.ksmt.utils.uncheckedCast
 import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
 import org.usvm.UComposer
@@ -8,7 +9,19 @@ import org.usvm.UHeapRef
 import org.usvm.USizeExpr
 import org.usvm.USort
 import org.usvm.isTrue
+import org.usvm.memory.collections.GuardBuilder
+import org.usvm.memory.collections.KeyMapper
+import org.usvm.memory.collections.UAllocatedArrayId
+import org.usvm.memory.collections.USymbolicArrayId
+import org.usvm.memory.collections.USymbolicArrayIndex
+import org.usvm.memory.collections.USymbolicCollection
+import org.usvm.memory.collections.USymbolicCollectionId
+import org.usvm.memory.collections.USymbolicCollectionKeyInfo
+import org.usvm.memory.collections.USymbolicMapId
+import org.usvm.memory.collections.USymbolicSetId
+import org.usvm.uctx
 import org.usvm.util.Region
+import java.util.*
 
 
 /**
@@ -70,10 +83,10 @@ sealed interface UUpdateNode<Key, Sort : USort> {
      * It is used in [UComposer] for composition.
      * For some key, [keyMapper] might return null. Then, this function returns null as well.
      */
-    fun <Field, Type, MappedKey> map(
+    fun <Type, MappedKey> map(
         keyMapper: KeyMapper<Key, MappedKey>,
-        composer: UComposer<Field, Type>,
-        mappedKeyInfo: USymbolicCollectionKeyInfo<MappedKey>
+        composer: UComposer<Type>,
+        mappedKeyInfo: USymbolicCollectionKeyInfo<MappedKey, *>
     ): UUpdateNode<MappedKey, Sort>?
 }
 
@@ -82,7 +95,7 @@ sealed interface UUpdateNode<Key, Sort : USort> {
  */
 class UPinpointUpdateNode<Key, Sort : USort>(
     val key: Key,
-    val keyInfo: USymbolicCollectionKeyInfo<Key>,
+    val keyInfo: USymbolicCollectionKeyInfo<Key, *>,
     internal val value: UExpr<Sort>,
     override val guard: UBoolExpr,
 ) : UUpdateNode<Key, Sort> {
@@ -123,10 +136,10 @@ class UPinpointUpdateNode<Key, Sort : USort>(
         return res
     }
 
-    override fun <Field, Type, MappedKey> map(
+    override fun <Type, MappedKey> map(
         keyMapper: KeyMapper<Key, MappedKey>,
-        composer: UComposer<Field, Type>,
-        mappedKeyInfo: USymbolicCollectionKeyInfo<MappedKey>
+        composer: UComposer<Type>,
+        mappedKeyInfo: USymbolicCollectionKeyInfo<MappedKey, *>
     ): UPinpointUpdateNode<MappedKey, Sort>? {
         val mappedKey = keyMapper(key) ?: return null
         val mappedValue = composer.compose(value)
@@ -165,9 +178,9 @@ sealed interface USymbolicCollectionAdapter<SrcKey, DstKey> {
     val srcKey: SrcKey
 
     /**
-     * Returns region covered by the adapted colletion.
+     * Returns region covered by the adapted collection.
      */
-    fun <Reg: Region<Reg>> region(): Reg
+    fun <Reg : Region<Reg>> region(): Reg
 
     fun includesConcretely(key: DstKey): Boolean
 
@@ -188,19 +201,18 @@ sealed interface USymbolicCollectionAdapter<SrcKey, DstKey> {
      *  - Pair(adapter, targetId), where adapter is a mapped version of this one, targetId is a
      *    new collection id for the mapped source collection we adapt.
      */
-    fun <Field, Type, MappedDstKey, Sort : USort> map(
+    fun <Type, MappedDstKey, Sort : USort> map(
         dstKeyMapper: KeyMapper<DstKey, MappedDstKey>,
-        composer: UComposer<Field, Type>,
+        composer: UComposer<Type>,
         collectionId: USymbolicCollectionId<SrcKey, Sort, *>,
-        mappedKeyInfo: USymbolicCollectionKeyInfo<MappedDstKey>
+        mappedKeyInfo: USymbolicCollectionKeyInfo<MappedDstKey, *>
     ): Pair<USymbolicCollectionAdapter<*, MappedDstKey>, USymbolicCollectionId<*, Sort, *>>? {
         val mappedSrcKey = collectionId.keyMapper(composer)(srcKey)
         val decomposedSrcKey = collectionId.rebindKey(mappedSrcKey)
         if (decomposedSrcKey != null) {
-            // In this case, source collection id has been changed. Heuristically, it can change
-            // only to allocated array id, validating it explicitly...
-            require(collectionId is UAllocatedArrayId<*, Sort>)
-            val mappedAdapter = mapDstKeys(decomposedSrcKey.key, decomposedSrcKey.collectionId, dstKeyMapper, composer, mappedKeyInfo) ?: return null
+            val mappedAdapter =
+                mapDstKeys(decomposedSrcKey.key, decomposedSrcKey.collectionId, dstKeyMapper, composer, mappedKeyInfo)
+                    ?: return null
             return mappedAdapter to decomposedSrcKey.collectionId
         }
 
@@ -212,13 +224,20 @@ sealed interface USymbolicCollectionAdapter<SrcKey, DstKey> {
      * Returns new adapter with destination keys were successfully mapped by [dstKeyMapper].
      * If [dstKeyMapper] returns null for at least one key, returns null.
      */
-    fun <Field, Type, MappedSrcKey, MappedDstKey> mapDstKeys(
+    fun <Type, MappedSrcKey, MappedDstKey> mapDstKeys(
         mappedSrcKey: MappedSrcKey,
         srcCollectionId: USymbolicCollectionId<*, *, *>,
         dstKeyMapper: KeyMapper<DstKey, MappedDstKey>,
-        composer: UComposer<Field, Type>,
-        mappedKeyInfo: USymbolicCollectionKeyInfo<MappedDstKey>
+        composer: UComposer<Type>,
+        mappedKeyInfo: USymbolicCollectionKeyInfo<MappedDstKey, *>
     ): USymbolicCollectionAdapter<MappedSrcKey, MappedDstKey>?
+
+    fun <Type> applyTo(
+        memory: UWritableMemory<Type>,
+        srcCollectionId: USymbolicCollectionId<SrcKey, *, *>,
+        dstCollectionId: USymbolicCollectionId<DstKey, *, *>,
+        guard: UBoolExpr
+    )
 
     fun toString(collection: USymbolicCollection<*, SrcKey, *>): String
 }
@@ -305,7 +324,8 @@ class URangedUpdateNode<CollectionId : USymbolicCollectionId<SrcKey, Sort, Colle
          * Due to the [GuardBuilder] mutability, we have to create a new guard to pass into the [sourceCollection.split] function,
          * it's a [nextGuardBuilder].
          */
-        val splitCollection = sourceCollection.split(adapter.convert(key), predicate, matchingWrites, nextGuardBuilder) // ???
+        val splitCollection =
+            sourceCollection.split(adapter.convert(key), predicate, matchingWrites, nextGuardBuilder) // ???
 
         val resultUpdateNode = if (splitCollection === sourceCollection) {
             this
@@ -320,13 +340,14 @@ class URangedUpdateNode<CollectionId : USymbolicCollectionId<SrcKey, Sort, Colle
 
 
     @Suppress("UNCHECKED_CAST")
-    override fun <Field, Type, MappedDstKey> map(
+    override fun <Type, MappedDstKey> map(
         keyMapper: KeyMapper<DstKey, MappedDstKey>,
-        composer: UComposer<Field, Type>,
-        mappedKeyInfo: USymbolicCollectionKeyInfo<MappedDstKey>
+        composer: UComposer<Type>,
+        mappedKeyInfo: USymbolicCollectionKeyInfo<MappedDstKey, *>
     ): URangedUpdateNode<*, *, MappedDstKey, Sort>? {
         val mappedCollectionId = sourceCollection.collectionId.map(composer)
-        val (mappedAdapter, targetCollectionId) = adapter.map(keyMapper, composer, mappedCollectionId, mappedKeyInfo) ?: return null
+        val (mappedAdapter, targetCollectionId) = adapter.map(keyMapper, composer, mappedCollectionId, mappedKeyInfo)
+            ?: return null
         val mappedGuard = composer.compose(guard)
 
         val mappedCollection = sourceCollection.mapTo(composer, targetCollectionId)
@@ -360,6 +381,11 @@ class URangedUpdateNode<CollectionId : USymbolicCollectionId<SrcKey, Sort, Colle
 
     // Ignores update
     override fun hashCode(): Int = adapter.hashCode() * 31 + guard.hashCode()
+
+    fun applyTo(memory: UWritableMemory<*>, dstCollectionId: USymbolicCollectionId<DstKey, *, *>) {
+        sourceCollection.applyTo(memory)
+        adapter.applyTo(memory, sourceCollection.collectionId, dstCollectionId, guard)
+    }
 
     override fun toString(): String =
         "{${adapter.toString(sourceCollection)}${if (guard.isTrue) "" else " | $guard"}}"
@@ -434,16 +460,16 @@ class USymbolicArrayAdapter<SrcKey, DstKey>(
     private val srcFrom: SrcKey,
     val dstFrom: DstKey,
     val dstTo: DstKey,
-    private val keyInfo: USymbolicCollectionKeyInfo<DstKey>
+    private val keyInfo: USymbolicCollectionKeyInfo<DstKey, *>
 ) : USymbolicCollectionAdapter<SrcKey, DstKey> {
 
     override val srcKey = srcFrom
 
-    override fun <Reg: Region<Reg>> region(): Reg =
-        keyInfo.keyRangeRegion(dstFrom, dstTo)
+    override fun <Reg : Region<Reg>> region(): Reg =
+        keyInfo.keyRangeRegion(dstFrom, dstTo).uncheckedCast()
 
     @Suppress("UNCHECKED_CAST")
-    private fun <Key> extractArrayIndex(value: Key): USizeExpr = when(value) {
+    private fun <Key> extractArrayIndex(value: Key): USizeExpr = when (value) {
         is Pair<*, *> -> value.second as USizeExpr  // we deal with symbolic array index here
         is UExpr<*> -> value as USizeExpr           // we deal with size expression here
         else -> error("Unexpected value passed as array index")
@@ -487,12 +513,12 @@ class USymbolicArrayAdapter<SrcKey, DstKey>(
     ): Boolean =
         update.includesConcretely(dstFrom, guard) && update.includesConcretely(dstTo, guard)
 
-    override fun <Field, Type, MappedSrcKey, MappedDstKey> mapDstKeys(
+    override fun <Type, MappedSrcKey, MappedDstKey> mapDstKeys(
         mappedSrcKey: MappedSrcKey,
         srcCollectionId: USymbolicCollectionId<*, *, *>,
         dstKeyMapper: KeyMapper<DstKey, MappedDstKey>,
-        composer: UComposer<Field, Type>,
-        mappedKeyInfo: USymbolicCollectionKeyInfo<MappedDstKey>
+        composer: UComposer<Type>,
+        mappedKeyInfo: USymbolicCollectionKeyInfo<MappedDstKey, *>
     ): USymbolicCollectionAdapter<MappedSrcKey, MappedDstKey>? {
         val mappedDstFrom = dstKeyMapper(dstFrom) ?: return null
         val mappedDstTo = dstKeyMapper(dstTo) ?: return null
@@ -507,7 +533,30 @@ class USymbolicArrayAdapter<SrcKey, DstKey>(
         return USymbolicArrayAdapter(mappedSrcKey, mappedDstFrom, mappedDstTo, mappedKeyInfo)
     }
 
-//    override fun <Field, Type> map(composer: UComposer<Field, Type>): USymbolicArrayAdapter<SrcKey, DstKey> {
+    @Suppress("UNCHECKED_CAST")
+    override fun <Type> applyTo(
+        memory: UWritableMemory<Type>,
+        srcCollectionId: USymbolicCollectionId<SrcKey, *, *>,
+        dstCollectionId: USymbolicCollectionId<DstKey, *, *>,
+        guard: UBoolExpr
+    ) {
+        require(dstCollectionId is USymbolicArrayId<*, *, *, *>)
+        val (srcRef: UHeapRef, srcIdx: USizeExpr) =
+            when (srcFrom) {
+                is Pair<*, *> -> srcFrom as USymbolicArrayIndex
+                is UExpr<*> -> srcFrom.uctx.mkConcreteHeapRef((srcCollectionId as UAllocatedArrayId<*, *>).address) to (srcFrom as USizeExpr)
+                else -> error("Unexpected value passed as array index")
+            }
+        val (dstRef: UHeapRef, dstFromIdx: USizeExpr, dstToIdx: USizeExpr) =
+            when (dstFrom) {
+                is Pair<*, *> -> Triple(dstFrom.first as UHeapRef, dstFrom.second as USizeExpr, (dstTo as Pair<*, *>).second as USizeExpr)
+                is UExpr<*> -> Triple(dstFrom.uctx.mkConcreteHeapRef((dstCollectionId as UAllocatedArrayId<*, *>).address), dstFrom as USizeExpr, dstTo as USizeExpr)
+                else -> error("Unexpected value passed as array index")
+            }
+        memory.memcpy(srcRef, dstRef, dstCollectionId.arrayType, dstCollectionId.sort, srcIdx, dstFromIdx, dstToIdx, guard)
+    }
+
+    //    override fun <Field, Type> map(composer: UComposer<Field, Type>): USymbolicArrayAdapter<SrcKey, DstKey> {
 //        val (srcRef, srcIdx) = srcSymbolicArrayIndex
 //        val (dstRef, dstIdx) = dstFromSymbolicArrayIndex
 //
@@ -773,65 +822,78 @@ class USymbolicArrayAdapter<SrcKey, DstKey>(
 class USymbolicMapMergeAdapter<SrcKey, DstKey>(
     val dstKey: DstKey,
     override val srcKey: SrcKey,
-    val converter: USymbolicMapMergeAdapter<SrcKey, DstKey>.(DstKey) -> SrcKey,
-    val setOfKeys: USymbolicCollection<*, SrcKey, UBoolSort>,
+    val setOfKeys: USymbolicCollection<USymbolicSetId<SrcKey, *>, SrcKey, UBoolSort>,
 ) : USymbolicCollectionAdapter<SrcKey, DstKey> {
-    override fun convert(key: DstKey): SrcKey = converter(key)
-    override fun includesConcretely(key: DstKey, keyInfo: USymbolicCollectionKeyInfo<DstKey, *>) =
-        includesSymbolically(key, keyInfo).isTrue
 
-    override fun includesSymbolically(key: DstKey, keyInfo: USymbolicCollectionKeyInfo<DstKey, *>): UBoolExpr {
+    @Suppress("UNCHECKED_CAST")
+    override fun convert(key: DstKey): SrcKey =
+        when (srcKey) {
+            is UExpr<*> ->
+                when (dstKey) {
+                    is UExpr<*> -> key as SrcKey
+                    is Pair<*, *> -> (key as Pair<*, *>).second as SrcKey
+                    else -> error("Unexpected symbolic map key $dstKey")
+                }
+
+            is Pair<*, *> ->
+                when (dstKey) {
+                    is UExpr<*> -> (srcKey.first to key) as SrcKey
+                    is Pair<*, *> -> (srcKey.first to (key as Pair<*, *>).second) as SrcKey
+                    else -> error("Unexpected symbolic map key $dstKey")
+                }
+
+            else -> error("Unexpected symbolic map key $srcKey")
+        }
+
+    override fun includesConcretely(key: DstKey) =
+        includesSymbolically(key).isTrue
+
+    override fun includesSymbolically(key: DstKey): UBoolExpr {
         val srcKey = convert(key)
-        return setOfKeys.read(srcKey, keyInfo) // ???
+        return setOfKeys.read(srcKey) // ???
     }
 
     override fun isIncludedByUpdateConcretely(
         update: UUpdateNode<DstKey, *>,
         guard: UBoolExpr,
-        keyInfo: USymbolicCollectionKeyInfo<DstKey, *>
     ) =
         false
 
-    override fun <Field, Type, MappedSrcKey, MappedDstKey> mapDstKeys(
+    @Suppress("UNCHECKED_CAST")
+    override fun <Type, MappedSrcKey, MappedDstKey> mapDstKeys(
         mappedSrcKey: MappedSrcKey,
         srcCollectionId: USymbolicCollectionId<*, *, *>,
         dstKeyMapper: KeyMapper<DstKey, MappedDstKey>,
-        composer: UComposer<Field, Type>,
+        composer: UComposer<Type>,
+        mappedKeyInfo: USymbolicCollectionKeyInfo<MappedDstKey, *>
     ): USymbolicCollectionAdapter<MappedSrcKey, MappedDstKey>? {
-        val mappedDst = dstKeyMapper(dstKey)
-        val mappedKeys = setOfKeys.mapTo(composer, srcCollectionId.keySetId)
-        if (mappedSrc === srcRef && mappedDst == dstRef) {
-            return this
+        val mappedDstKey = dstKeyMapper(dstKey) ?: return null
+
+        @Suppress("NAME_SHADOWING")
+        val srcCollectionId = srcCollectionId as USymbolicMapId<MappedSrcKey, *, USymbolicSetId<MappedSrcKey, *>, *>
+        val mappedKeys = setOfKeys.mapTo(composer, srcCollectionId.keysSetId)
+        if (mappedSrcKey === srcKey && mappedDstKey == dstKey) {
+            return this as USymbolicCollectionAdapter<MappedSrcKey, MappedDstKey>
         }
-        return USymbolicMapMergeAdapter(mappedSrc, mappedDst, converter)
+        return USymbolicMapMergeAdapter(mappedDstKey, mappedSrcKey, mappedKeys.uncheckedCast())
     }
 
     override fun toString(collection: USymbolicCollection<*, SrcKey, *>): String =
         "(merge $collection)"
-}
 
-private inner class KeyRegionBuilder: UMemoryUpdatesVisitor<SrcKey, UBoolSort, Reg>{
-    override fun visitSelect(result: Reg, key: SrcKey): UExpr<UBoolSort> {
-        error("Unexpected reading")
+    override fun <Type> applyTo(
+        memory: UWritableMemory<Type>,
+        srcCollectionId: USymbolicCollectionId<SrcKey, *, *>,
+        dstCollectionId: USymbolicCollectionId<DstKey, *, *>,
+        guard: UBoolExpr
+    ) {
+
+        TODO("Not yet implemented")
     }
 
-    override fun visitInitialValue(): Reg = initialKeyRegion()
+    override fun <Reg : Region<Reg>> region(): Reg =
+        convertRegion(setOfKeys.collectionId.region(setOfKeys.updates))
 
-    override fun visitUpdate(previous: Reg, update: UUpdateNode<SrcKey, UBoolSort>): Reg = when (update) {
-        is UMergeUpdateNode<*, *, *, *, *, UBoolSort> -> {
-            val updatedKeys: Reg = update.keyIncludesCheck.keyRegion().uncheckedCast()
-            previous.union(updatedKeys)
-        }
-
-        is UPinpointUpdateNode -> {
-            // todo: removed keys
-            val keyReg = mkKeyRegion(update.key)
-            previous.union(keyReg)
-        }
-
-        is URangedUpdateNode<*, *, *, *> -> error("Unexpected range update")
-    }
+    private fun <Reg : Region<Reg>> convertRegion(srcReg: Reg): Reg =
+        srcReg // TODO: implement valid region conversion logic
 }
-
-fun keyRegion(): Reg =
-    region.updates.accept(keyRegionBuilder, keyRegionCache)

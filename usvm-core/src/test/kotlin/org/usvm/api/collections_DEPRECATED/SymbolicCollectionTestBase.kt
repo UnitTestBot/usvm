@@ -1,4 +1,4 @@
-package org.usvm.intrinsics.collections
+package org.usvm.api.collections_DEPRECATED
 
 import io.ksmt.solver.KSolver
 import io.ksmt.solver.KSolverStatus

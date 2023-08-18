@@ -12,7 +12,7 @@ package org.usvm
  *
  * @param originalState an initial state.
  */
-class StepScope<T : UState<Type, *, *, *>, Type>(
+class StepScope<T : UState<Type, *, *>, Type>(
     val uctx: UContext,
     originalState: T,
 ) {

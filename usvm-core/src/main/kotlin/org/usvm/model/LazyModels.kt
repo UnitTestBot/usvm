@@ -8,6 +8,14 @@ import io.ksmt.utils.sampleValue
 import io.ksmt.utils.uncheckedCast
 import org.usvm.*
 import org.usvm.memory.*
+import org.usvm.memory.collections.UInputArrayId
+import org.usvm.memory.collections.UInputArrayLengthId
+import org.usvm.memory.collections.UInputFieldId
+import org.usvm.memory.collections.UInputSymbolicMapId
+import org.usvm.memory.collections.UInputSymbolicMapLengthId
+import org.usvm.memory.collections.USymbolicArrayIndex
+import org.usvm.memory.collections.USymbolicCollectionId
+import org.usvm.memory.collections.USymbolicMapKey
 import org.usvm.util.Region
 
 
@@ -36,11 +44,9 @@ class ULazyRegistersStackModel(
     private val model: KModel,
     private val addressesMapping: AddressesMapping,
     private val registerIdxToTranslated: Map<Int, UExpr<out USort>>
-) : URegistersStackEvaluator {
-    override fun <Sort : USort> eval(
-        registerIndex: Int,
-        sort: Sort,
-    ): UExpr<Sort> = registerIdxToTranslated.evalAndReplace(key = registerIndex, model, addressesMapping, sort)
+) : UReadOnlyRegistersStack {
+    override fun <Sort : USort> readRegister(index: Int, sort: Sort): UExpr<Sort> =
+        registerIdxToTranslated.evalAndReplace(key = index, model, addressesMapping, sort)
 }
 
 /**
@@ -84,7 +90,6 @@ class ULazyIndexedMockModel<Method>(
  */
 class ULazyHeapModel<Field, ArrayType>(
     private val model: KModel,
-    private val nullRef: UConcreteHeapRef,
     private val addressesMapping: AddressesMapping,
     private val regionIdToInitialValue: Map<USymbolicCollectionId<*, *, *>, KExpr<*>>,
 ) : USymbolicHeap<Field, ArrayType> {

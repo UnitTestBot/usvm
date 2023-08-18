@@ -9,6 +9,7 @@ import org.usvm.UBv32Sort
 import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.UHeapRef
+import org.usvm.memory.collections.UTreeUpdates
 import org.usvm.shouldNotBeCalled
 import org.usvm.util.SetRegion
 import org.usvm.util.emptyRegionTree

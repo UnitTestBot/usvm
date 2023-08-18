@@ -7,6 +7,7 @@ import org.usvm.UContext
 import org.usvm.UHeapRef
 import org.usvm.constraints.UEqualityConstraints
 import org.usvm.constraints.UPathConstraints
+import org.usvm.memory.UMemory
 import org.usvm.memory.UMemoryBase
 import org.usvm.model.UModelBase
 import org.usvm.model.UModelDecoder
@@ -25,13 +26,13 @@ abstract class USolver<in PathCondition, out Model> : AutoCloseable {
     abstract fun check(pc: PathCondition, useSoftConstraints: Boolean): USolverResult<Model>
 }
 
-open class USolverBase<Field, Type, Method>(
+open class USolverBase<Type, Method>(
     protected val ctx: UContext,
     protected val smtSolver: KSolver<*>,
-    protected val translator: UExprTranslator<Field, Type>,
-    protected val decoder: UModelDecoder<UMemoryBase<Field, Type, Method>, UModelBase<Field, Type>>,
-    protected val softConstraintsProvider: USoftConstraintsProvider<Field, Type>,
-) : USolver<UPathConstraints<Type>, UModelBase<Field, Type>>() {
+    protected val translator: UExprTranslator<Type>,
+    protected val decoder: UModelDecoder<UModelBase<Type>>,
+    protected val softConstraintsProvider: USoftConstraintsProvider<Type>,
+) : USolver<UPathConstraints<Type>, UModelBase<Type>>() {
 
     protected fun translateLogicalConstraints(constraints: Iterable<UBoolExpr>) {
         for (constraint in constraints) {
@@ -100,7 +101,7 @@ open class USolverBase<Field, Type, Method>(
     override fun check(
         pc: UPathConstraints<Type>,
         useSoftConstraints: Boolean,
-    ): USolverResult<UModelBase<Field, Type>> {
+    ): USolverResult<UModelBase<Type>> {
         if (pc.isFalse) {
             return UUnsatResult()
         }
@@ -150,8 +151,8 @@ open class USolverBase<Field, Type, Method>(
         return USatResult(uModel)
     }
 
-    fun emptyModel(): UModelBase<Field, Type> =
-        (checkWithSoftConstraints(UPathConstraints(ctx)) as USatResult<UModelBase<Field, Type>>).model
+    fun emptyModel(): UModelBase<Type> =
+        (checkWithSoftConstraints(UPathConstraints(ctx)) as USatResult<UModelBase<Type>>).model
 
     override fun close() {
         smtSolver.close()

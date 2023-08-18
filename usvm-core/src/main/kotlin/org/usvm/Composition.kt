@@ -1,20 +1,19 @@
 package org.usvm
 
-import org.usvm.constraints.UTypeEvaluator
-import org.usvm.memory.UReadOnlyHeap
-import org.usvm.memory.USymbolicCollectionId
-import org.usvm.memory.URegistersStackEvaluator
-import org.usvm.memory.USymbolicCollection
+import org.usvm.memory.UReadOnlyMemory
+import org.usvm.memory.collections.USymbolicCollectionId
+import org.usvm.memory.collections.USymbolicCollection
 import org.usvm.util.Region
 
 @Suppress("MemberVisibilityCanBePrivate")
-open class UComposer<Field, Type>(
+open class UComposer<Type>(
     ctx: UContext,
-    internal val stackEvaluator: URegistersStackEvaluator,
-    internal val heapEvaluator: UReadOnlyHeap<Field, Type>,
-    internal val typeEvaluator: UTypeEvaluator<Type>,
-    internal val mockEvaluator: UMockEvaluator,
-) : UExprTransformer<Field, Type>(ctx) {
+    internal val memory: UReadOnlyMemory<Type>
+//    internal val stackEvaluator: URegistersStackEvaluator,
+//    internal val heapEvaluator: UReadOnlyHeap<Field, Type>,
+//    internal val typeEvaluator: UTypeEvaluator<Type>,
+//    internal val mockEvaluator: UMockEvaluator,
+) : UExprTransformer<Type>(ctx) {
     open fun <Sort : USort> compose(expr: UExpr<Sort>): UExpr<Sort> = apply(expr)
 
     override fun <Sort : USort> transform(expr: USymbol<Sort>): UExpr<Sort> =
@@ -22,7 +21,7 @@ open class UComposer<Field, Type>(
 
     override fun <Sort : USort> transform(
         expr: URegisterReading<Sort>,
-    ): UExpr<Sort> = with(expr) { stackEvaluator.eval(idx, sort) }
+    ): UExpr<Sort> = with(expr) { memory.stack.readRegister(idx, sort) }
 
     override fun <Sort : USort> transform(expr: UCollectionReading<*, *, *>): UExpr<Sort> =
         error("You must override `transform` function in org.usvm.UComposer for ${expr::class}")
@@ -32,11 +31,11 @@ open class UComposer<Field, Type>(
 
     override fun <Method, Sort : USort> transform(
         expr: UIndexedMethodReturnValue<Method, Sort>,
-    ): UExpr<Sort> = mockEvaluator.eval(expr)
+    ): UExpr<Sort> = memory.mocker.eval(expr)
     
     override fun transform(expr: UIsExpr<Type>): UBoolExpr = with(expr) {
         val composedAddress = compose(ref)
-        typeEvaluator.evalIs(composedAddress, type)
+        memory.types.evalIs(composedAddress, type)
     }
 
     fun <CollectionId : USymbolicCollectionId<Key, Sort, CollectionId>, Key, Sort : USort> transformCollectionReading(
@@ -64,21 +63,21 @@ open class UComposer<Field, Type>(
     override fun <Sort : USort> transform(expr: UAllocatedArrayReading<Type, Sort>): UExpr<Sort> =
         transformCollectionReading(expr, expr.index)
 
-    override fun <Sort : USort> transform(expr: UInputFieldReading<Field, Sort>): UExpr<Sort> =
+    override fun <Field, Sort : USort> transform(expr: UInputFieldReading<Field,Sort>): UExpr<Sort> =
         transformCollectionReading(expr, expr.address)
 
-    override fun <KeySort : USort, Reg : Region<Reg>, Sort : USort> transform(
-        expr: UAllocatedSymbolicMapReading<KeySort, Reg, Sort>
+    override fun <KeySort : USort, Sort : USort, Reg : Region<Reg>> transform(
+        expr: UAllocatedSymbolicMapReading<Type, KeySort, Sort, Reg>
     ): UExpr<Sort> = transformCollectionReading(expr, expr.key)
 
-    override fun <KeySort : USort, Reg : Region<Reg>, Sort : USort> transform(
-        expr: UInputSymbolicMapReading<KeySort, Reg, Sort>
+    override fun <KeySort : USort, Sort : USort, Reg : Region<Reg>> transform(
+        expr: UInputSymbolicMapReading<Type, KeySort, Sort, Reg>
     ): UExpr<Sort> = transformCollectionReading(expr, expr.address to expr.key)
 
-    override fun transform(expr: UInputSymbolicMapLengthReading): USizeExpr =
+    override fun transform(expr: UInputSymbolicMapLengthReading<Type>): USizeExpr =
         transformCollectionReading(expr, expr.address)
 
     override fun transform(expr: UConcreteHeapRef): UExpr<UAddressSort> = expr
 
-    override fun transform(expr: UNullRef): UExpr<UAddressSort> = heapEvaluator.nullRef()
+    override fun transform(expr: UNullRef): UExpr<UAddressSort> = memory.nullRef()
 }

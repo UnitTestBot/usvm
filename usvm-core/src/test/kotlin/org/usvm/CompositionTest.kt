@@ -283,7 +283,7 @@ internal class CompositionTest {
         val arrayType: KClass<Array<*>> = Array::class
 
         val region = UInputArrayCollection(
-            UInputArrayId(arrayType, bv32Sort, contextHeap = null),
+            UInputArrayId(arrayType, bv32Sort, contextMemory = null),
             updates,
         )
 
