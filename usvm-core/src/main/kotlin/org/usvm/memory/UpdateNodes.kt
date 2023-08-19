@@ -3,9 +3,14 @@ package org.usvm.memory
 import org.usvm.UBoolExpr
 import org.usvm.UComposer
 import org.usvm.UExpr
-import org.usvm.USizeExpr
 import org.usvm.USort
 import org.usvm.isTrue
+import org.usvm.memory.collection.GuardBuilder
+import org.usvm.memory.collection.id.KeyMapper
+import org.usvm.memory.collection.USymbolicCollection
+import org.usvm.memory.collection.adapter.USymbolicCollectionAdapter
+import org.usvm.memory.collection.id.USymbolicCollectionId
+import org.usvm.memory.collection.key.USymbolicCollectionKeyInfo
 import java.util.*
 
 /**
@@ -65,11 +70,13 @@ sealed interface UUpdateNode<Key, Sort : USort> {
     /**
      * Returns a mapped update node using [keyMapper] and [composer].
      * It is used in [UComposer] for composition.
+     * For some key, [keyMapper] might return null. Then, this function returns null as well.
      */
-    fun <Field, Type> map(
-        keyMapper: KeyMapper<Key>,
-        composer: UComposer<Field, Type>
-    ): UUpdateNode<Key, Sort>
+    fun <Type, MappedKey> map(
+        keyMapper: KeyMapper<Key, MappedKey>,
+        composer: UComposer<Type>,
+        mappedKeyInfo: USymbolicCollectionKeyInfo<MappedKey, *>
+    ): UUpdateNode<MappedKey, Sort>?
 }
 
 /**
@@ -77,8 +84,8 @@ sealed interface UUpdateNode<Key, Sort : USort> {
  */
 class UPinpointUpdateNode<Key, Sort : USort>(
     val key: Key,
+    val keyInfo: USymbolicCollectionKeyInfo<Key, *>,
     internal val value: UExpr<Sort>,
-    private val keyEqualityComparer: (Key, Key) -> UBoolExpr,
     override val guard: UBoolExpr,
 ) : UUpdateNode<Key, Sort> {
     override fun includesConcretely(key: Key, precondition: UBoolExpr) =
@@ -86,9 +93,11 @@ class UPinpointUpdateNode<Key, Sort : USort>(
     // in fact, we can check less strict formulae: `precondition -> guard`, but it is too complex to compute.
 
     override fun includesSymbolically(key: Key): UBoolExpr =
-        guard.ctx.mkAnd(keyEqualityComparer(this.key, key), guard)
+        guard.ctx.mkAnd(keyInfo.eqSymbolic(this.key, key), guard)
 
-    override fun isIncludedByUpdateConcretely(update: UUpdateNode<Key, Sort>): Boolean =
+    override fun isIncludedByUpdateConcretely(
+        update: UUpdateNode<Key, Sort>,
+    ): Boolean =
         update.includesConcretely(key, guard)
 
     override fun value(key: Key): UExpr<Sort> = this.value
@@ -116,25 +125,27 @@ class UPinpointUpdateNode<Key, Sort : USort>(
         return res
     }
 
-    override fun <Field, Type> map(
-        keyMapper: KeyMapper<Key>,
-        composer: UComposer<Field, Type>
-    ): UPinpointUpdateNode<Key, Sort> {
-        val mappedKey = keyMapper(key)
+    override fun <Type, MappedKey> map(
+        keyMapper: KeyMapper<Key, MappedKey>,
+        composer: UComposer<Type>,
+        mappedKeyInfo: USymbolicCollectionKeyInfo<MappedKey, *>
+    ): UPinpointUpdateNode<MappedKey, Sort>? {
+        val mappedKey = keyMapper(key) ?: return null
         val mappedValue = composer.compose(value)
         val mappedGuard = composer.compose(guard)
 
         // If nothing changed, return this value
         if (mappedKey === key && mappedValue === value && mappedGuard === guard) {
-            return this
+            @Suppress("UNCHECKED_CAST")
+            return this as UPinpointUpdateNode<MappedKey, Sort>
         }
 
         // Otherwise, construct a new one update node
-        return UPinpointUpdateNode(mappedKey, mappedValue, keyEqualityComparer, mappedGuard)
+        return UPinpointUpdateNode(mappedKey, mappedKeyInfo, mappedValue, mappedGuard)
     }
 
     override fun equals(other: Any?): Boolean =
-        other is UPinpointUpdateNode<*, *> && this.key == other.key  && this.guard == other.guard
+        other is UPinpointUpdateNode<*, *> && this.key == other.key && this.guard == other.guard
 
     override fun hashCode(): Int = key.hashCode() * 31 + guard.hashCode() // Ignores value
 
@@ -142,125 +153,34 @@ class UPinpointUpdateNode<Key, Sort : USort>(
 }
 
 /**
- * Composable converter of memory region keys. Helps to transparently copy content of various regions
- * each into other without eager address conversion.
- * For instance, when we copy array slice [i : i + len] to destination memory slice [j : j + len],
- * we emulate it by memorizing the source memory updates as-is, but read the destination memory by
- * 'redirecting' the index k to k + j - i of the source memory.
- * This conversion is done by [convert].
- * Do not be confused: it converts [DstKey] to [SrcKey] (not vice-versa), as we use it when we
- * read from destination buffer index to source memory.
- */
-sealed class UMemoryKeyConverter<SrcKey, DstKey>(
-    val srcSymbolicArrayIndex: USymbolicArrayIndex,
-    val dstFromSymbolicArrayIndex: USymbolicArrayIndex,
-    val dstToIndex: USizeExpr
-) {
-    /**
-     * Converts source memory key into destination memory key
-     */
-    abstract fun convert(key: DstKey): SrcKey
-
-    protected fun convertIndex(idx: USizeExpr): USizeExpr = with(srcSymbolicArrayIndex.first.ctx) {
-        mkBvSubExpr(mkBvAddExpr(idx, dstFromSymbolicArrayIndex.second), srcSymbolicArrayIndex.second)
-    }
-
-    abstract fun clone(
-        srcSymbolicArrayIndex: USymbolicArrayIndex,
-        dstFromSymbolicArrayIndex: USymbolicArrayIndex,
-        dstToIndex: USizeExpr
-    ): UMemoryKeyConverter<SrcKey, DstKey>
-
-    fun <Field, Type> map(composer: UComposer<Field, Type>): UMemoryKeyConverter<SrcKey, DstKey> {
-        val (srcRef, srcIdx) = srcSymbolicArrayIndex
-        val (dstRef, dstIdx) = dstFromSymbolicArrayIndex
-
-        val newSrcHeapAddr = composer.compose(srcRef)
-        val newSrcArrayIndex = composer.compose(srcIdx)
-        val newDstHeapAddress = composer.compose(dstRef)
-        val newDstFromIndex = composer.compose(dstIdx)
-        val newDstToIndex = composer.compose(dstToIndex)
-
-        if (newSrcHeapAddr === srcRef &&
-            newSrcArrayIndex === srcIdx &&
-            newDstHeapAddress === dstRef &&
-            newDstFromIndex === dstIdx &&
-            newDstToIndex === dstToIndex
-        ) {
-            return this
-        }
-
-        return clone(
-            srcSymbolicArrayIndex = newSrcHeapAddr to newSrcArrayIndex,
-            dstFromSymbolicArrayIndex = newDstHeapAddress to newDstFromIndex,
-            dstToIndex = newDstToIndex
-        )
-    }
-}
-
-/**
  * Represents a synchronous overwriting the range of addresses [[fromKey] : [toKey]]
- * with values from memory region [region] read from range
- * of addresses [[keyConverter].convert([fromKey]) : [keyConverter].convert([toKey])]
+ * with values from symbolic collection [sourceCollection] read from range
+ * of addresses [[adapter].convert([fromKey]) : [adapter].convert([toKey])]
  */
-class URangedUpdateNode<RegionId : UArrayId<*, SrcKey, Sort, RegionId>, SrcKey, DstKey, Sort : USort>(
-    val fromKey: DstKey,
-    val toKey: DstKey,
-    val region: USymbolicMemoryRegion<RegionId, SrcKey, Sort>,
-    private val concreteComparer: (DstKey, DstKey) -> Boolean,
-    private val symbolicComparer: (DstKey, DstKey) -> UBoolExpr,
-    val keyConverter: UMemoryKeyConverter<SrcKey, DstKey>,
-    override val guard: UBoolExpr
+class URangedUpdateNode<CollectionId : USymbolicCollectionId<SrcKey, Sort, CollectionId>, SrcKey, DstKey, Sort : USort>(
+    val sourceCollection: USymbolicCollection<CollectionId, SrcKey, Sort>,
+    val adapter: USymbolicCollectionAdapter<SrcKey, DstKey>,
+    override val guard: UBoolExpr,
 ) : UUpdateNode<DstKey, Sort> {
-    override fun includesConcretely(key: DstKey, precondition: UBoolExpr): Boolean =
-        concreteComparer(fromKey, key) && concreteComparer(key, toKey) &&
-            (guard == guard.ctx.trueExpr || precondition == guard) // TODO: some optimizations here?
+
+    override fun includesConcretely(
+        key: DstKey,
+        precondition: UBoolExpr,
+    ): Boolean =
+        adapter.includesConcretely(key) &&
+                (guard == guard.ctx.trueExpr || precondition == guard) // TODO: some optimizations here?
     // in fact, we can check less strict formulae: precondition _implies_ guard, but this is too complex to compute.
 
-    override fun includesSymbolically(key: DstKey): UBoolExpr {
-        val leftIsLefter = symbolicComparer(fromKey, key)
-        val rightIsRighter = symbolicComparer(key, toKey)
-        val ctx = leftIsLefter.ctx
 
-        return ctx.mkAnd(leftIsLefter, rightIsRighter, guard)
-    }
+    override fun includesSymbolically(key: DstKey): UBoolExpr =
+        guard.ctx.mkAnd(adapter.includesSymbolically(key), guard)
 
-    override fun isIncludedByUpdateConcretely(update: UUpdateNode<DstKey, Sort>): Boolean =
-        update.includesConcretely(fromKey, guard) && update.includesConcretely(toKey, guard)
+    override fun isIncludedByUpdateConcretely(
+        update: UUpdateNode<DstKey, Sort>,
+    ): Boolean =
+        adapter.isIncludedByUpdateConcretely(update, guard)
 
-    override fun value(key: DstKey): UExpr<Sort> = region.read(keyConverter.convert(key))
-
-    override fun <Field, Type> map(
-        keyMapper: KeyMapper<DstKey>,
-        composer: UComposer<Field, Type>
-    ): URangedUpdateNode<RegionId, SrcKey, DstKey, Sort> {
-        val mappedFromKey = keyMapper(fromKey)
-        val mappedToKey = keyMapper(toKey)
-        val mappedRegion = region.map(composer)
-        val mappedKeyConverter = keyConverter.map(composer)
-        val mappedGuard = composer.compose(guard)
-
-        // If nothing changed, return this
-        if (mappedFromKey === fromKey
-            && mappedToKey === toKey
-            && mappedRegion === region
-            && mappedKeyConverter === keyConverter
-            && mappedGuard === guard
-        ) {
-            return this
-        }
-
-        // Otherwise, construct a new one updated node
-        return URangedUpdateNode(
-            mappedFromKey,
-            mappedToKey,
-            mappedRegion,
-            concreteComparer,
-            symbolicComparer,
-            mappedKeyConverter,
-            mappedGuard
-        )
-    }
+    override fun value(key: DstKey): UExpr<Sort> = sourceCollection.read(adapter.convert(key))
 
     override fun split(
         key: DstKey,
@@ -275,7 +195,7 @@ class URangedUpdateNode<RegionId : UArrayId<*, SrcKey, Sort, RegionId>, SrcKey, 
         val nextGuardBuilder = GuardBuilder(nextGuard)
 
         /**
-         * Here's the explanation of the [split] function. Consider these memory regions and memory updates:
+         * Here's the explanation of the [split] function. Consider these symbolic collections and updates:
          *
          * ```
          *                  [this]   [UPinpointUpdateNode]
@@ -295,15 +215,16 @@ class URangedUpdateNode<RegionId : UArrayId<*, SrcKey, Sort, RegionId>, SrcKey, 
          * Also, the result [matchingWrites] must contain { 0x1 }, but this must be guarded: [key] !in { 1..5 } which
          * is implied from [nodeExcludesKey].
          *
-         * Due to the [GuardBuilder] mutability, we have to create a new guard to pass into the [region.split] function,
+         * Due to the [GuardBuilder] mutability, we have to create a new guard to pass into the [sourceCollection.split] function,
          * it's a [nextGuardBuilder].
          */
-        val splitRegion = region.split(keyConverter.convert(key), predicate, matchingWrites, nextGuardBuilder)
+        val splitCollection =
+            sourceCollection.split(adapter.convert(key), predicate, matchingWrites, nextGuardBuilder) // ???
 
-        val resultUpdateNode = if (splitRegion === region) {
+        val resultUpdateNode = if (splitCollection === sourceCollection) {
             this
         } else {
-            URangedUpdateNode(fromKey, toKey, splitRegion, concreteComparer, symbolicComparer, keyConverter, guard)
+            changeCollection(splitCollection)
         }
 
         guardBuilder += nodeExcludesKey
@@ -311,91 +232,55 @@ class URangedUpdateNode<RegionId : UArrayId<*, SrcKey, Sort, RegionId>, SrcKey, 
         return resultUpdateNode
     }
 
+
+    @Suppress("UNCHECKED_CAST")
+    override fun <Type, MappedDstKey> map(
+        keyMapper: KeyMapper<DstKey, MappedDstKey>,
+        composer: UComposer<Type>,
+        mappedKeyInfo: USymbolicCollectionKeyInfo<MappedDstKey, *>
+    ): URangedUpdateNode<*, *, MappedDstKey, Sort>? {
+        val mappedCollectionId = sourceCollection.collectionId.map(composer)
+        val (mappedAdapter, targetCollectionId) = adapter.map(keyMapper, composer, mappedCollectionId, mappedKeyInfo)
+            ?: return null
+        val mappedGuard = composer.compose(guard)
+
+        val mappedCollection = sourceCollection.mapTo(composer, targetCollectionId)
+
+        // If nothing changed, return this
+        if (mappedCollection === sourceCollection
+            && mappedAdapter === adapter
+            && mappedGuard === guard
+        ) {
+            return this as URangedUpdateNode<*, *, MappedDstKey, Sort>
+        }
+
+        // Otherwise, construct a new one updated node
+        return URangedUpdateNode(
+            // Type variables in this cast are incorrect, but who cares...
+            mappedCollection as USymbolicCollection<CollectionId, SrcKey, Sort>,
+            mappedAdapter as USymbolicCollectionAdapter<SrcKey, MappedDstKey>,
+            mappedGuard
+        )
+    }
+
+    fun changeCollection(newCollection: USymbolicCollection<CollectionId, SrcKey, Sort>) =
+        URangedUpdateNode(newCollection, adapter, guard)
+
+
     // Ignores update
     override fun equals(other: Any?): Boolean =
         other is URangedUpdateNode<*, *, *, *> &&
-                this.fromKey == other.fromKey &&
-                this.toKey == other.toKey &&
+                this.adapter == other.adapter &&
                 this.guard == other.guard
 
     // Ignores update
-    override fun hashCode(): Int = (17 * fromKey.hashCode() + toKey.hashCode()) * 31 + guard.hashCode()
+    override fun hashCode(): Int = adapter.hashCode() * 31 + guard.hashCode()
 
-    override fun toString(): String {
-        return "{[$fromKey..$toKey] <- $region[keyConv($fromKey)..keyConv($toKey)]" +
-            ("}".takeIf { guard.isTrue } ?: " | $guard}")
+    fun applyTo(memory: UWritableMemory<*>, dstCollectionId: USymbolicCollectionId<DstKey, *, *>) {
+        sourceCollection.applyTo(memory)
+        adapter.applyTo(memory, sourceCollection.collectionId, dstCollectionId, guard)
     }
-}
 
-/**
- * Used when copying data from allocated array to another allocated array.
- */
-class UAllocatedToAllocatedKeyConverter(
-    srcSymbolicArrayIndex: USymbolicArrayIndex,
-    dstFromSymbolicArrayIndex: USymbolicArrayIndex,
-    dstToIndex: USizeExpr
-) : UMemoryKeyConverter<USizeExpr, USizeExpr>(srcSymbolicArrayIndex, dstFromSymbolicArrayIndex, dstToIndex) {
-    override fun convert(key: USizeExpr): USizeExpr = convertIndex(key)
-
-    override fun clone(
-        srcSymbolicArrayIndex: USymbolicArrayIndex,
-        dstFromSymbolicArrayIndex: USymbolicArrayIndex,
-        dstToIndex: USizeExpr
-    ) = UAllocatedToAllocatedKeyConverter(srcSymbolicArrayIndex, dstFromSymbolicArrayIndex, dstToIndex)
-}
-
-/**
- * Used when copying data from allocated array to input one.
- */
-class UAllocatedToInputKeyConverter(
-    srcSymbolicArrayIndex: USymbolicArrayIndex,
-    dstFromSymbolicArrayIndex: USymbolicArrayIndex,
-    dstToIndex: USizeExpr
-) : UMemoryKeyConverter<USizeExpr, USymbolicArrayIndex>(srcSymbolicArrayIndex, dstFromSymbolicArrayIndex, dstToIndex) {
-    override fun convert(key: USymbolicArrayIndex): USizeExpr = convertIndex(key.second)
-
-    override fun clone(
-        srcSymbolicArrayIndex: USymbolicArrayIndex,
-        dstFromSymbolicArrayIndex: USymbolicArrayIndex,
-        dstToIndex: USizeExpr
-    ) = UAllocatedToInputKeyConverter(srcSymbolicArrayIndex, dstFromSymbolicArrayIndex, dstToIndex)
-}
-
-/**
- * Used when copying data from input array to allocated one.
- */
-class UInputToAllocatedKeyConverter(
-    srcSymbolicArrayIndex: USymbolicArrayIndex,
-    dstFromSymbolicArrayIndex: USymbolicArrayIndex,
-    dstToIndex: USizeExpr
-) : UMemoryKeyConverter<USymbolicArrayIndex, USizeExpr>(srcSymbolicArrayIndex, dstFromSymbolicArrayIndex, dstToIndex) {
-    override fun convert(key: USizeExpr): USymbolicArrayIndex = srcSymbolicArrayIndex.first to convertIndex(key)
-
-    override fun clone(
-        srcSymbolicArrayIndex: USymbolicArrayIndex,
-        dstFromSymbolicArrayIndex: USymbolicArrayIndex,
-        dstToIndex: USizeExpr
-    ) = UInputToAllocatedKeyConverter(srcSymbolicArrayIndex, dstFromSymbolicArrayIndex, dstToIndex)
-}
-
-/**
- * Used when copying data from input array to another input array.
- */
-class UInputToInputKeyConverter(
-    srcFromSymbolicArrayIndex: USymbolicArrayIndex,
-    dstFromSymbolicArrayIndex: USymbolicArrayIndex,
-    dstToIndex: USizeExpr
-) : UMemoryKeyConverter<USymbolicArrayIndex, USymbolicArrayIndex>(
-    srcFromSymbolicArrayIndex,
-    dstFromSymbolicArrayIndex,
-    dstToIndex
-) {
-    override fun convert(key: USymbolicArrayIndex): USymbolicArrayIndex =
-        srcSymbolicArrayIndex.first to convertIndex(key.second)
-
-    override fun clone(
-        srcSymbolicArrayIndex: USymbolicArrayIndex,
-        dstFromSymbolicArrayIndex: USymbolicArrayIndex,
-        dstToIndex: USizeExpr
-    ) = UInputToInputKeyConverter(srcSymbolicArrayIndex, dstFromSymbolicArrayIndex, dstToIndex)
+    override fun toString(): String =
+        "{${adapter.toString(sourceCollection)}${if (guard.isTrue) "" else " | $guard"}}"
 }

@@ -4,6 +4,8 @@ import io.ksmt.expr.KInterpretedValue
 import org.usvm.constraints.UPathConstraints
 import org.usvm.memory.UMemoryBase
 import org.usvm.model.UModelBase
+import org.usvm.memory.UMemory
+import org.usvm.model.UModel
 import org.usvm.solver.USatResult
 import org.usvm.solver.UUnknownResult
 import org.usvm.solver.UUnsatResult

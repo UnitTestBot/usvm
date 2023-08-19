@@ -54,11 +54,11 @@ class TypeSolverTest {
     private val typeSystem = testTypeSystem
     private val components = mockk<UComponents<Field, TestType, Method>>()
     private val ctx = UContext(components)
-    private val solver: USolverBase<Field, TestType, Method, UContext>
+    private val solver: USolverBase<TestType, UContext>
     private val typeSolver: UTypeSolver<TestType>
 
     init {
-        val (translator, decoder) = buildTranslatorAndLazyDecoder<Field, TestType, Method>(ctx)
+        val (translator, decoder) = buildTranslatorAndLazyDecoder<Field, TestType>(ctx)
         val softConstraintsProvider = USoftConstraintsProvider<Field, TestType>(ctx)
 
         typeSolver = UTypeSolver(typeSystem)

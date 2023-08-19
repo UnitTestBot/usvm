@@ -1,12 +1,13 @@
 package org.usvm.memory
 
+import io.ksmt.expr.KExpr
+import io.ksmt.utils.mkConst
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import io.ksmt.expr.KExpr
-import io.ksmt.utils.mkConst
 import org.usvm.UAddressSort
+import org.usvm.UBoolExpr
 import org.usvm.UBv32Sort
 import org.usvm.UComponents
 import org.usvm.UComposer
@@ -16,7 +17,14 @@ import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USizeExpr
 import org.usvm.USizeSort
+import org.usvm.memory.collection.UFlatUpdates
+import org.usvm.memory.collection.USymbolicCollection
+import org.usvm.memory.collection.UTreeUpdates
+import org.usvm.memory.collection.adapter.USymbolicArrayCopyAdapter
+import org.usvm.memory.collection.id.UAllocatedArrayId
+import org.usvm.memory.collection.key.USymbolicCollectionKeyInfo
 import org.usvm.shouldNotBeCalled
+import org.usvm.util.Region
 import org.usvm.util.SetRegion
 import org.usvm.util.emptyRegionTree
 import kotlin.test.assertFalse
@@ -27,7 +35,7 @@ import kotlin.test.assertSame
 
 class MapCompositionTest<Field, Type> {
     private lateinit var ctx: UContext
-    private lateinit var composer: UComposer<Field, Type>
+    private lateinit var composer: UComposer<Type>
 
     @BeforeEach
     fun initializeContext() {
@@ -43,32 +51,42 @@ class MapCompositionTest<Field, Type> {
         val symbolicAddr = addressSort.mkConst("addr")
         val value = bv32Sort.mkConst("value")
 
-        val updatesToCompose = UTreeUpdates<UHeapRef, SetRegion<UHeapRef>, UBv32Sort>(
-            updates = emptyRegionTree(),
-            keyToRegion = {
+        val keyInfo = object : USymbolicCollectionKeyInfo<UHeapRef, SetRegion<UHeapRef>> {
+            override fun keyToRegion(key: UHeapRef): SetRegion<UHeapRef> {
                 val singleRegion: SetRegion<KExpr<UAddressSort>> = SetRegion.singleton(concreteAddr)
-
-                if (it == symbolicAddr) {
+                return if (key == symbolicAddr) {
                     // Z \ {1}
                     SetRegion.universe<UHeapRef>().subtract(singleRegion)
                 } else {
                     // {1}
                     singleRegion
                 }
-            },
-            keyRangeToRegion = { _, _ -> error("Should not be called") },
-            symbolicEq = { _, _ -> error("Should not be called") },
-            concreteCmp = { _, _ -> error("Should not be called") },
-            symbolicCmp = { _, _ -> error("Should not be called") }
+            }
+
+            override fun topRegion(): SetRegion<UHeapRef> = SetRegion.universe()
+
+            override fun eqSymbolic(key1: UHeapRef, key2: UHeapRef): UBoolExpr = error("Should not be called")
+            override fun eqConcrete(key1: UHeapRef, key2: UHeapRef): Boolean = error("Should not be called")
+            override fun cmpSymbolic(key1: UHeapRef, key2: UHeapRef): UBoolExpr = error("Should not be called")
+            override fun cmpConcrete(key1: UHeapRef, key2: UHeapRef): Boolean = error("Should not be called")
+            override fun keyRangeRegion(from: UHeapRef, to: UHeapRef): SetRegion<UHeapRef> =
+                error("Should not be called")
+
+            override fun bottomRegion(): SetRegion<UHeapRef> = error("Should not be called")
+        }
+
+        val updatesToCompose = UTreeUpdates<UHeapRef, SetRegion<UHeapRef>, UBv32Sort>(
+            updates = emptyRegionTree(),
+            keyInfo = keyInfo
         ).write(symbolicAddr, value, guard = trueExpr)
 
-        val composer = mockk<UComposer<Field, Type>>()
+        val composer = mockk<UComposer<Type>>()
 
         every { composer.compose(symbolicAddr) } returns concreteAddr
         every { composer.compose(value) } returns 1.toBv()
         every { composer.compose(mkTrue()) } returns mkTrue()
 
-        val composedUpdates = updatesToCompose.map(keyMapper = { composer.compose(it) }, composer)
+        val composedUpdates = updatesToCompose.filterMap(keyMapper = { composer.compose(it) }, composer, keyInfo)
 
         assert(composedUpdates.isEmpty())
     }
@@ -84,41 +102,46 @@ class MapCompositionTest<Field, Type> {
 
             val value = bv32Sort.mkConst("value")
 
-            val updatesToCompose = UTreeUpdates<UHeapRef, SetRegion<UHeapRef>, UBv32Sort>(
-                updates = emptyRegionTree(),
-                keyToRegion = {
-                    when (it) {
+            val keyInfo = object : TestKeyInfo<UHeapRef, SetRegion<UHeapRef>> {
+                override fun keyToRegion(key: UHeapRef): SetRegion<UHeapRef> {
+                    return when (key) {
                         // Z \ {1, 2}
                         symbolicAddr -> {
                             SetRegion.universe<UHeapRef>().subtract(SetRegion.ofSet(fstConcreteAddr, sndConcreteAddr))
                         }
                         // {1, 2, 3}
                         thirdConcreteAddr -> SetRegion.ofSet(fstConcreteAddr, sndConcreteAddr, thirdConcreteAddr)
-                        else -> SetRegion.singleton(it)
+                        else -> SetRegion.singleton(key)
                     }
-                },
-                keyRangeToRegion = { _, _ -> shouldNotBeCalled() },
-                symbolicEq = { _, _ -> shouldNotBeCalled() },
-                concreteCmp = { _, _ -> shouldNotBeCalled() },
-                symbolicCmp = { _, _ -> shouldNotBeCalled() }
+                }
+            }
+
+            val updatesToCompose = UTreeUpdates<UHeapRef, SetRegion<UHeapRef>, UBv32Sort>(
+                updates = emptyRegionTree(),
+                keyInfo
             ).write(symbolicAddr, value, guard = trueExpr)
 
-            val composer = mockk<UComposer<Field, Type>>()
+            val composer = mockk<UComposer<Type>>()
 
             every { composer.compose(symbolicAddr) } returns thirdConcreteAddr
             every { composer.compose(value) } returns 1.toBv()
             every { composer.compose(mkTrue()) } returns mkTrue()
 
             // ComposedUpdates contains only one update in a region {3}
-            val composedUpdates = updatesToCompose.map(keyMapper = { composer.compose(it) }, composer)
+            val composedUpdates = updatesToCompose.filterMap(keyMapper = { composer.compose(it) }, composer, keyInfo)
 
             assertFalse(composedUpdates.isEmpty())
 
             // Write in the composedUpdates by a key with estimated region {3}
             // If we'd have an initial region for the third address, it'd contain an update by region {1, 2, 3}
             // Therefore, such writings cause updates splitting. Otherwise, it contains only one update.
+            val updatedKeyInfo = object : TestKeyInfo<UHeapRef, SetRegion<UHeapRef>> {
+                override fun keyToRegion(key: UHeapRef): SetRegion<UHeapRef> =
+                    SetRegion.singleton(thirdConcreteAddr)
+            }
+
             val updatedByTheSameRegion = composedUpdates
-                .copy(keyToRegion = { SetRegion.singleton(thirdConcreteAddr) })
+                .copy(keyInfo = updatedKeyInfo)
                 .write(thirdConcreteAddr, 42.toBv(), guard = trueExpr)
 
             assertNotNull(updatedByTheSameRegion.singleOrNull())
@@ -131,13 +154,17 @@ class MapCompositionTest<Field, Type> {
         val value = bv32Sort.mkConst("value")
         val guard = boolSort.mkConst("guard")
 
-        val updateNode = UPinpointUpdateNode(key, value, { k1, k2 -> k1 eq k2 }, guard)
+        val keyInfo = object : TestKeyInfo<UHeapRef, SetRegion<UHeapRef>> {
+            override fun eqSymbolic(key1: UHeapRef, key2: UHeapRef): UBoolExpr = key1 eq key2
+        }
+
+        val updateNode = UPinpointUpdateNode(key, keyInfo, value, guard)
 
         every { composer.compose(key) } returns key
         every { composer.compose(value) } returns value
         every { composer.compose(guard) } returns guard
 
-        val mappedNode = updateNode.map({ k -> composer.compose(k) }, composer)
+        val mappedNode = updateNode.map({ k -> composer.compose(k) }, composer, keyInfo)
 
         assertSame(expected = updateNode, actual = mappedNode)
     }
@@ -148,7 +175,11 @@ class MapCompositionTest<Field, Type> {
         val value = bv32Sort.mkConst("value")
         val guard = boolSort.mkConst("guard")
 
-        val updateNode = UPinpointUpdateNode(key, value, { k1, k2 -> k1 eq k2 }, guard)
+        val keyInfo = object : TestKeyInfo<UHeapRef, SetRegion<UHeapRef>> {
+            override fun eqSymbolic(key1: UHeapRef, key2: UHeapRef): UBoolExpr = key1 eq key2
+        }
+
+        val updateNode = UPinpointUpdateNode(key, keyInfo, value, guard)
 
         val composedKey = addressSort.mkConst("interpretedKey")
 
@@ -156,12 +187,12 @@ class MapCompositionTest<Field, Type> {
         every { composer.compose(value) } returns 1.toBv()
         every { composer.compose(guard) } returns mkTrue()
 
-        val mappedNode = updateNode.map({ k -> composer.compose(k) }, composer)
+        val mappedNode = updateNode.map({ k -> composer.compose(k) }, composer, keyInfo)
 
         assertNotSame(illegal = updateNode, actual = mappedNode)
-        assertSame(expected = composedKey, actual = mappedNode.key)
-        assertSame(expected = 1.toBv(), actual = mappedNode.value)
-        assertSame(expected = mkTrue(), actual = mappedNode.guard)
+        assertSame(expected = composedKey, actual = mappedNode?.key)
+        assertSame(expected = 1.toBv(), actual = mappedNode?.value)
+        assertSame(expected = mkTrue(), actual = mappedNode?.guard)
     }
 
     @Test
@@ -169,30 +200,26 @@ class MapCompositionTest<Field, Type> {
         val addr = addressSort.mkConst("addr")
         val fromKey = sizeSort.mkConst("fromKey") as UExpr<USizeSort>
         val toKey = sizeSort.mkConst("toKey") as UExpr<USizeSort>
-        val region = mockk<USymbolicMemoryRegion<UAllocatedArrayId<Int, UBv32Sort>, UExpr<USizeSort>, UBv32Sort>>()
+        val region = mockk<USymbolicCollection<UAllocatedArrayId<Int, UBv32Sort>, UExpr<USizeSort>, UBv32Sort>>()
         val guard = boolSort.mkConst("guard")
 
+        val keyInfo = object : TestKeyInfo<USizeExpr, SetRegion<USizeExpr>> {
+
+        }
+
         val updateNode = URangedUpdateNode(
-            fromKey,
-            toKey,
-            region = region,
-            concreteComparer = { _, _ -> shouldNotBeCalled() },
-            symbolicComparer = { _, _ -> shouldNotBeCalled() },
-            keyConverter = UAllocatedToAllocatedKeyConverter(
-                srcSymbolicArrayIndex = addr to fromKey,
-                dstFromSymbolicArrayIndex = addr to fromKey,
-                dstToIndex = toKey
-            ),
+            region,
+            USymbolicArrayCopyAdapter(fromKey, fromKey, toKey, keyInfo),
             guard
         )
 
         every { composer.compose(addr) } returns addr
         every { composer.compose(fromKey) } returns fromKey
         every { composer.compose(toKey) } returns toKey
-        every { region.map(composer) } returns region
+        every { region.mapTo(composer, region.collectionId) } returns region
         every { composer.compose(guard) } returns guard
 
-        val mappedUpdateNode = updateNode.map({ k -> composer.compose((k)) }, composer)
+        val mappedUpdateNode = updateNode.map({ k -> composer.compose((k)) }, composer, keyInfo)
 
         assertSame(expected = updateNode, actual = mappedUpdateNode)
     }
@@ -202,52 +229,54 @@ class MapCompositionTest<Field, Type> {
         val addr = mkConcreteHeapRef(0)
         val fromKey = sizeSort.mkConst("fromKey")
         val toKey = sizeSort.mkConst("toKey")
-        val region = mockk<USymbolicMemoryRegion<UAllocatedArrayId<Int, UBv32Sort>, USizeExpr, UBv32Sort>>()
+        val region = mockk<USymbolicCollection<UAllocatedArrayId<Int, UBv32Sort>, USizeExpr, UBv32Sort>>()
         val guard = boolSort.mkConst("guard")
 
+        val keyInfo = object : TestKeyInfo<USizeExpr, SetRegion<USizeExpr>> {
+
+        }
+
         val updateNode = URangedUpdateNode(
-            fromKey,
-            toKey,
-            region = region,
-            concreteComparer = { _, _ -> shouldNotBeCalled() },
-            symbolicComparer = { _, _ -> shouldNotBeCalled() },
-            keyConverter = UAllocatedToAllocatedKeyConverter(
-                srcSymbolicArrayIndex = addr to fromKey,
-                dstFromSymbolicArrayIndex = addr to fromKey,
-                dstToIndex = toKey
-            ),
+            region,
+            USymbolicArrayCopyAdapter(fromKey, fromKey, toKey, keyInfo),
             guard
         )
 
         val composedFromKey = sizeSort.mkConst("composedFromKey")
         val composedToKey = sizeSort.mkConst("composedToKey")
-        val composedRegion = mockk<USymbolicMemoryRegion<UAllocatedArrayId<Int, UBv32Sort>, UExpr<USizeSort>, UBv32Sort>>()
+        val composedRegion =
+            mockk<USymbolicCollection<UAllocatedArrayId<Int, UBv32Sort>, UExpr<USizeSort>, UBv32Sort>>()
         val composedGuard = mkTrue()
 
         every { composer.compose(addr) } returns addr
         every { composer.compose(fromKey) } returns composedFromKey
         every { composer.compose(toKey) } returns composedToKey
-        every { region.map(composer) } returns composedRegion
+        every { region.mapTo(composer, region.collectionId) } returns composedRegion
         every { composer.compose(guard) } returns composedGuard
 
-        val mappedUpdateNode = updateNode.map({ k -> composer.compose((k)) }, composer)
+        val mappedUpdateNode = updateNode.map({ k -> composer.compose((k)) }, composer, keyInfo)
 
         assertNotSame(illegal = updateNode, actual = mappedUpdateNode)
-        assertSame(expected = composedFromKey, actual = mappedUpdateNode.fromKey)
-        assertSame(expected = composedToKey, actual = mappedUpdateNode.toKey)
-        assertSame(expected = composedRegion, actual = mappedUpdateNode.region)
-        assertSame(expected = composedGuard, actual = mappedUpdateNode.guard)
+        assertSame(
+            expected = composedFromKey,
+            actual = (mappedUpdateNode?.adapter as? USymbolicArrayCopyAdapter<*, *>)?.dstFrom
+        )
+        assertSame(
+            expected = composedToKey,
+            actual = (mappedUpdateNode?.adapter as? USymbolicArrayCopyAdapter<*, *>)?.dstTo
+        )
+        assertSame(expected = composedRegion, actual = mappedUpdateNode?.sourceCollection)
+        assertSame(expected = composedGuard, actual = mappedUpdateNode?.guard)
     }
 
     @Test
     fun testEmptyUpdatesMapOperation() {
-        val emptyUpdates = UFlatUpdates<UExpr<UAddressSort>, UBv32Sort>(
-            { _, _ -> shouldNotBeCalled() },
-            { _, _ -> shouldNotBeCalled() },
-            { _, _ -> shouldNotBeCalled() }
-        )
+        val keyInfo = object : TestKeyInfo<UHeapRef, SetRegion<UHeapRef>> {
+        }
 
-        val mappedUpdates = emptyUpdates.map({ k -> composer.compose(k) }, composer)
+        val emptyUpdates = UFlatUpdates<UExpr<UAddressSort>, UBv32Sort>(keyInfo)
+
+        val mappedUpdates = emptyUpdates.filterMap({ k -> composer.compose(k) }, composer, keyInfo)
 
         assertSame(expected = emptyUpdates, actual = mappedUpdates)
     }
@@ -259,11 +288,11 @@ class MapCompositionTest<Field, Type> {
         val sndKey = addressSort.mkConst("sndKey")
         val sndValue = bv32Sort.mkConst("sndValue")
 
-        val flatUpdates = UFlatUpdates<UExpr<UAddressSort>, UBv32Sort>(
-            { _, _ -> shouldNotBeCalled() },
-            { _, _ -> shouldNotBeCalled() },
-            { _, _ -> shouldNotBeCalled() }
-        ).write(fstKey, fstValue, guard = trueExpr)
+        val keyInfo = object : TestKeyInfo<UHeapRef, SetRegion<UHeapRef>> {
+        }
+
+        val flatUpdates = UFlatUpdates<UExpr<UAddressSort>, UBv32Sort>(keyInfo)
+            .write(fstKey, fstValue, guard = trueExpr)
             .write(sndKey, sndValue, guard = trueExpr)
 
         every { composer.compose(fstKey) } returns fstKey
@@ -272,7 +301,7 @@ class MapCompositionTest<Field, Type> {
         every { composer.compose(sndValue) } returns sndValue
         every { composer.compose(mkTrue()) } returns mkTrue()
 
-        val mappedUpdates = flatUpdates.map({ k -> composer.compose(k) }, composer)
+        val mappedUpdates = flatUpdates.filterMap({ k -> composer.compose(k) }, composer, keyInfo)
 
         assertSame(expected = flatUpdates, actual = mappedUpdates)
     }
@@ -284,11 +313,11 @@ class MapCompositionTest<Field, Type> {
         val sndKey = addressSort.mkConst("sndKey")
         val sndValue = bv32Sort.mkConst("sndValue")
 
-        val flatUpdates = UFlatUpdates<UExpr<UAddressSort>, UBv32Sort>(
-            { _, _ -> shouldNotBeCalled() },
-            { _, _ -> shouldNotBeCalled() },
-            { _, _ -> shouldNotBeCalled() }
-        ).write(fstKey, fstValue, guard = trueExpr)
+        val keyInfo = object : TestKeyInfo<UHeapRef, SetRegion<UHeapRef>> {
+        }
+
+        val flatUpdates = UFlatUpdates<UExpr<UAddressSort>, UBv32Sort>(keyInfo)
+            .write(fstKey, fstValue, guard = trueExpr)
             .write(sndKey, sndValue, guard = trueExpr)
 
         val composedFstKey = addressSort.mkConst("composedFstKey")
@@ -302,7 +331,7 @@ class MapCompositionTest<Field, Type> {
         every { composer.compose(sndValue) } returns composedSndValue
         every { composer.compose(mkTrue()) } returns mkTrue()
 
-        val mappedUpdates = flatUpdates.map({ k -> composer.compose(k) }, composer)
+        val mappedUpdates = flatUpdates.filterMap({ k -> composer.compose(k) }, composer, keyInfo)
 
         assertNotSame(illegal = flatUpdates, actual = mappedUpdates)
 
@@ -324,13 +353,15 @@ class MapCompositionTest<Field, Type> {
         val sndKey = addressSort.mkConst("sndKey")
         val sndValue = bv32Sort.mkConst("sndValue")
 
+        val keyInfo = object : TestKeyInfo<UHeapRef, SetRegion<UHeapRef>> {
+            override fun keyToRegion(key: UHeapRef): SetRegion<UHeapRef> = SetRegion.singleton(key)
+            override fun keyRangeRegion(from: UHeapRef, to: UHeapRef): SetRegion<UHeapRef> =
+                SetRegion.ofSet(from, to)
+        }
+
         val treeUpdates = UTreeUpdates<UExpr<UAddressSort>, SetRegion<UExpr<UAddressSort>>, UBv32Sort>(
             emptyRegionTree(),
-            { k -> SetRegion.singleton(k) },
-            { k1, k2 -> SetRegion.ofSet(k1, k2) },
-            { _, _ -> shouldNotBeCalled() },
-            { _, _ -> shouldNotBeCalled() },
-            { _, _ -> shouldNotBeCalled() }
+           keyInfo
         ).write(fstKey, fstValue, guard = trueExpr)
             .write(sndKey, sndValue, guard = trueExpr)
 
@@ -340,7 +371,7 @@ class MapCompositionTest<Field, Type> {
         every { composer.compose(sndValue) } returns sndValue
         every { composer.compose(mkTrue()) } returns mkTrue()
 
-        val mappedUpdates = treeUpdates.map({ k -> composer.compose(k) }, composer)
+        val mappedUpdates = treeUpdates.filterMap({ k -> composer.compose(k) }, composer, keyInfo)
 
         assertSame(expected = treeUpdates, actual = mappedUpdates)
     }
@@ -352,13 +383,14 @@ class MapCompositionTest<Field, Type> {
         val sndKey = addressSort.mkConst("sndKey")
         val sndValue = bv32Sort.mkConst("sndValue")
 
+        val keyInfo = object : TestKeyInfo<UHeapRef, SetRegion<UHeapRef>> {
+            override fun keyToRegion(key: UHeapRef): SetRegion<UHeapRef> = SetRegion.universe()
+            override fun keyRangeRegion(from: UHeapRef, to: UHeapRef): SetRegion<UHeapRef> = SetRegion.universe()
+        }
+
         val treeUpdates = UTreeUpdates<UExpr<UAddressSort>, SetRegion<UExpr<UAddressSort>>, UBv32Sort>(
             emptyRegionTree(),
-            { SetRegion.universe() },
-            { _, _ -> SetRegion.universe() },
-            { _, _ -> shouldNotBeCalled() },
-            { _, _ -> shouldNotBeCalled() },
-            { _, _ -> shouldNotBeCalled() }
+            keyInfo
         ).write(fstKey, fstValue, guard = trueExpr)
             .write(sndKey, sndValue, guard = trueExpr)
 
@@ -373,7 +405,7 @@ class MapCompositionTest<Field, Type> {
         every { composer.compose(sndValue) } returns composedSndValue
         every { composer.compose(mkTrue()) } returns mkTrue()
 
-        val mappedUpdates = treeUpdates.map({ k -> composer.compose(k) }, composer)
+        val mappedUpdates = treeUpdates.filterMap({ k -> composer.compose(k) }, composer, keyInfo)
 
         assertNotSame(illegal = treeUpdates, actual = mappedUpdates)
 
@@ -388,5 +420,16 @@ class MapCompositionTest<Field, Type> {
         assertSame(expected = composedFstValue, actual = fstElement.value)
         assertSame(expected = composedSndKey, actual = sndElement.key)
         assertSame(expected = composedSndValue, actual = sndElement.value)
+    }
+
+    interface TestKeyInfo<T, Reg : Region<Reg>> : USymbolicCollectionKeyInfo<T, Reg> {
+        override fun keyToRegion(key: T): Reg = error("Should not be called")
+        override fun eqSymbolic(key1: T, key2: T): UBoolExpr = error("Should not be called")
+        override fun eqConcrete(key1: T, key2: T): Boolean = error("Should not be called")
+        override fun cmpSymbolic(key1: T, key2: T): UBoolExpr = error("Should not be called")
+        override fun cmpConcrete(key1: T, key2: T): Boolean = error("Should not be called")
+        override fun keyRangeRegion(from: T, to: T): Reg = error("Should not be called")
+        override fun topRegion(): Reg = error("Should not be called")
+        override fun bottomRegion(): Reg = error("Should not be called")
     }
 }

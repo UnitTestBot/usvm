@@ -30,7 +30,7 @@ private typealias Type = SingleTypeSystem.SingleType
 
 class ModelDecodingTest {
     private lateinit var ctx: UContext
-    private lateinit var solver: USolverBase<Field, Type, Method, UContext>
+    private lateinit var solver: USolverBase<Type, UContext>
 
     private lateinit var pc: UPathConstraints<Type, UContext>
     private lateinit var stack: URegistersStack
@@ -44,7 +44,7 @@ class ModelDecodingTest {
 
         ctx = UContext(components)
         val softConstraintsProvider = USoftConstraintsProvider<Field, Type>(ctx)
-        val (translator, decoder) = buildTranslatorAndLazyDecoder<Field, Type, Method>(ctx)
+        val (translator, decoder) = buildTranslatorAndLazyDecoder<Field, Type>(ctx)
         val typeSolver = UTypeSolver(SingleTypeSystem)
         solver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder, softConstraintsProvider)
 

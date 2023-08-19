@@ -9,10 +9,10 @@ import org.usvm.UAddressSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UExpr
-import org.usvm.memory.UMemoryBase
 import org.usvm.solver.UExprTranslator
+import org.usvm.UMockEvaluator
 
-interface UModelDecoder<Memory, Model> {
+interface UModelDecoder<Model> {
     fun decode(model: KModel): Model
 }
 
@@ -20,11 +20,11 @@ interface UModelDecoder<Memory, Model> {
  * Initializes [UExprTranslator] and [UModelDecoder] and returns them. We can safely reuse them while [UContext] is
  * alive.
  */
-fun <Field, Type, Method> buildTranslatorAndLazyDecoder(
+fun <Field, Type> buildTranslatorAndLazyDecoder(
     ctx: UContext,
-): Pair<UExprTranslator<Field, Type>, ULazyModelDecoder<Field, Type, Method>> {
-    val translator = UExprTranslator<Field, Type>(ctx)
-    val decoder = ULazyModelDecoder<Field, Type, Method>(translator)
+): Pair<UExprTranslator<Type>, ULazyModelDecoder<Type>> {
+    val translator = UExprTranslator<Type>(ctx)
+    val decoder = ULazyModelDecoder<Type>(translator)
 
     return translator to decoder
 }
@@ -37,9 +37,9 @@ typealias AddressesMapping = Map<UExpr<UAddressSort>, UConcreteHeapRef>
  *
  * @param translator an expression translator used for encoding constraints.
  */
-open class ULazyModelDecoder<Field, Type, Method>(
-    protected val translator: UExprTranslator<Field, Type>,
-) : UModelDecoder<UMemoryBase<Field, Type, Method>, UModelBase<Field, Type>> {
+open class ULazyModelDecoder<Type>(
+    protected val translator: UExprTranslator<Type>,
+) : UModelDecoder<UModelBase<Type>> {
     private val ctx: UContext = translator.ctx
 
     private val translatedNullRef = translator.translate(ctx.nullRef)
@@ -77,15 +77,29 @@ open class ULazyModelDecoder<Field, Type, Method>(
      */
     override fun decode(
         model: KModel,
-    ): UModelBase<Field, Type> {
+    ): UModelBase<Type> {
         val addressesMapping = buildMapping(model)
 
         val stack = decodeStack(model, addressesMapping)
-        val heap = decodeHeap(model, addressesMapping)
+        val regions = decodeHeap(model, addressesMapping)
         val types = UTypeModel<Type>(ctx.typeSystem(), typeStreamByAddr = emptyMap())
         val mocks = decodeMocker(model, addressesMapping)
 
-        return UModelBase(ctx, stack, heap, types, mocks)
+        /**
+         * To resolve nullRef, we need to:
+         * * translate it
+         * * evaluate the translated value in the [model]
+         * * map the evaluated value with the [addressesMapping]
+         *
+         * Actually, its address should always be equal 0.
+         */
+        val nullRef = model
+            .eval(translator.translate(translator.ctx.nullRef))
+            .mapAddress(addressesMapping) as UConcreteHeapRef
+
+        check(nullRef.address == NULL_ADDRESS) { "Incorrect null ref: $nullRef" }
+
+        return UModelBase(ctx, stack, types, mocks, regions, nullRef)
     }
 
     private fun decodeStack(
@@ -103,16 +117,14 @@ open class ULazyModelDecoder<Field, Type, Method>(
     private fun decodeHeap(
         model: KModel,
         addressesMapping: AddressesMapping,
-    ): ULazyHeapModel<Field, Type> = ULazyHeapModel(
-        model,
-        addressesMapping,
-        translator,
-    )
+    ) = translator.regionIdToDecoder.mapValues { (_, decoder) ->
+        decoder.decodeLazyRegion(model, addressesMapping)
+    }
 
     private fun decodeMocker(
         model: KModel,
         addressesMapping: AddressesMapping,
-    ): ULazyIndexedMockModel = ULazyIndexedMockModel(
+    ): UMockEvaluator = ULazyIndexedMockModel(
         model,
         addressesMapping,
         translator

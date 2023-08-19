@@ -24,17 +24,25 @@ import io.ksmt.sort.KBvSort
 import io.ksmt.sort.KFpSort
 import io.ksmt.sort.KSort
 import io.ksmt.sort.KUninterpretedSort
-import org.usvm.memory.UAllocatedArrayId
-import org.usvm.memory.UAllocatedArrayRegion
-import org.usvm.memory.UInputArrayId
-import org.usvm.memory.UInputArrayLengthId
-import org.usvm.memory.UInputArrayLengthRegion
-import org.usvm.memory.UInputArrayRegion
-import org.usvm.memory.UInputFieldId
-import org.usvm.memory.UInputFieldRegion
-import org.usvm.memory.URegionId
-import org.usvm.memory.USymbolicArrayIndex
-import org.usvm.memory.USymbolicMemoryRegion
+import org.usvm.memory.collection.region.UAllocatedArray
+import org.usvm.memory.collection.id.UAllocatedArrayId
+import org.usvm.memory.collection.id.UAllocatedSymbolicMapId
+import org.usvm.memory.collection.region.UAllocatedSymbolicMap
+import org.usvm.memory.collection.region.UInputArray
+import org.usvm.memory.collection.id.UInputArrayId
+import org.usvm.memory.collection.id.UInputArrayLengthId
+import org.usvm.memory.collection.region.UInputArrayLengths
+import org.usvm.memory.collection.id.UInputFieldId
+import org.usvm.memory.collection.region.UInputFields
+import org.usvm.memory.collection.id.UInputSymbolicMapId
+import org.usvm.memory.collection.id.UInputSymbolicMapLengthId
+import org.usvm.memory.collection.region.UInputSymbolicMapLengthCollection
+import org.usvm.memory.collection.region.UInputSymbolicMap
+import org.usvm.memory.collection.id.USymbolicCollectionId
+import org.usvm.memory.collection.key.USymbolicArrayIndex
+import org.usvm.memory.collection.key.USymbolicMapKey
+import org.usvm.memory.collection.USymbolicCollection
+import org.usvm.util.Region
 
 //region KSMT aliases
 
@@ -63,7 +71,7 @@ typealias UConcreteSize = KBitVec32Value
 
 typealias UAddressSort = KUninterpretedSort
 
-typealias UIndexType = Int
+typealias USizeType = Int
 
 //endregion
 
@@ -105,7 +113,7 @@ class UConcreteHeapRef internal constructor(
     override val sort: UAddressSort = ctx.addressSort
 
     override fun accept(transformer: KTransformerBase): KExpr<UAddressSort> {
-        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
+        require(transformer is UTransformer<*>) { "Expected a UTransformer, but got: $transformer" }
         return transformer.transform(this)
     }
 
@@ -125,7 +133,7 @@ class UNullRef internal constructor(
         get() = uctx.addressSort
 
     override fun accept(transformer: KTransformerBase): KExpr<UAddressSort> {
-        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
+        require(transformer is UTransformer<*>) { "Expected a UTransformer, but got: $transformer" }
         return transformer.transform(this)
     }
 
@@ -163,27 +171,6 @@ const val INITIAL_CONCRETE_ADDRESS = NULL_ADDRESS + 1
 
 //endregion
 
-//region LValues
-open class ULValue(val sort: USort)
-
-class URegisterLValue(sort: USort, val idx: Int) : ULValue(sort)
-
-class UFieldLValue<Field>(fieldSort: USort, val ref: UHeapRef, val field: Field) : ULValue(fieldSort)
-
-class UArrayIndexLValue<ArrayType>(
-    cellSort: USort,
-    val ref: UHeapRef,
-    val index: USizeExpr,
-    val arrayType: ArrayType,
-) : ULValue(cellSort)
-
-class UArrayLengthLValue<ArrayType>(
-    val ref: UHeapRef,
-    val arrayType: ArrayType,
-) : ULValue(ref.uctx.sizeSort)
-
-//endregion
-
 //region Read Expressions
 
 class URegisterReading<Sort : USort> internal constructor(
@@ -192,7 +179,7 @@ class URegisterReading<Sort : USort> internal constructor(
     override val sort: Sort,
 ) : USymbol<Sort>(ctx) {
     override fun accept(transformer: KTransformerBase): KExpr<Sort> {
-        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
+        require(transformer is UTransformer<*>) { "Expected a UTransformer, but got: $transformer" }
         return transformer.transform(this)
     }
 
@@ -205,35 +192,34 @@ class URegisterReading<Sort : USort> internal constructor(
     }
 }
 
-abstract class UHeapReading<RegionId : URegionId<Key, Sort, RegionId>, Key, Sort : USort>(
+abstract class UCollectionReading<CollectionId : USymbolicCollectionId<Key, Sort, CollectionId>, Key, Sort : USort>(
     ctx: UContext,
-    val region: USymbolicMemoryRegion<RegionId, Key, Sort>,
+    val collection: USymbolicCollection<CollectionId, Key, Sort>
 ) : USymbol<Sort>(ctx) {
-    override val sort: Sort get() = region.sort
+    override val sort: Sort get() = collection.sort
 }
 
 class UInputFieldReading<Field, Sort : USort> internal constructor(
     ctx: UContext,
-    region: UInputFieldRegion<Field, Sort>,
+    collection: UInputFields<Field, Sort>,
     val address: UHeapRef,
-) : UHeapReading<UInputFieldId<Field, Sort>, UHeapRef, Sort>(ctx, region) {
+) : UCollectionReading<UInputFieldId<Field, Sort>, UHeapRef, Sort>(ctx, collection) {
     init {
         require(address !is UNullRef)
     }
 
-    @Suppress("UNCHECKED_CAST")
     override fun accept(transformer: KTransformerBase): KExpr<Sort> {
-        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
-        // An unchecked cast here it to be able to choose the right overload from UTransformer
-        return (transformer as UTransformer<Field, *>).transform(this)
+        require(transformer is UTransformer<*>) { "Expected a UTransformer, but got: $transformer" }
+        // An unchecked cast here it to be able to choose the right overload from UExprTransformer
+        return transformer.transform(this)
     }
 
-    override fun internEquals(other: Any): Boolean = structurallyEqual(other, { region }, { address })
+    override fun internEquals(other: Any): Boolean = structurallyEqual(other, { collection }, { address })
 
-    override fun internHashCode(): Int = hash(region, address)
+    override fun internHashCode(): Int = hash(collection, address)
 
     override fun print(printer: ExpressionPrinter) {
-        printer.append(region.toString())
+        printer.append(collection.toString())
         printer.append("[")
         printer.append(address)
         printer.append("]")
@@ -242,27 +228,25 @@ class UInputFieldReading<Field, Sort : USort> internal constructor(
 
 class UAllocatedArrayReading<ArrayType, Sort : USort> internal constructor(
     ctx: UContext,
-    region: UAllocatedArrayRegion<ArrayType, Sort>,
+    collection: UAllocatedArray<ArrayType, Sort>,
     val index: USizeExpr,
-) : UHeapReading<UAllocatedArrayId<ArrayType, Sort>, USizeExpr, Sort>(ctx, region) {
-    @Suppress("UNCHECKED_CAST")
+) : UCollectionReading<UAllocatedArrayId<ArrayType, Sort>, USizeExpr, Sort>(ctx, collection) {
     override fun accept(transformer: KTransformerBase): KExpr<Sort> {
-        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
-        // An unchecked cast here it to be able to choose the right overload from UTransformer
-        return (transformer as UTransformer<*, ArrayType>).transform(this)
+        require(transformer is UTransformer<*>) { "Expected a UTransformer, but got: $transformer" }
+        return transformer.transform(this)
     }
 
     override fun internEquals(other: Any): Boolean =
         structurallyEqual(
             other,
-            { region },
+            { collection },
             { index },
         )
 
-    override fun internHashCode(): Int = hash(region, index)
+    override fun internHashCode(): Int = hash(collection, index)
 
     override fun print(printer: ExpressionPrinter) {
-        printer.append(region.toString())
+        printer.append(collection.toString())
         printer.append("[")
         printer.append(index)
         printer.append("]")
@@ -271,33 +255,31 @@ class UAllocatedArrayReading<ArrayType, Sort : USort> internal constructor(
 
 class UInputArrayReading<ArrayType, Sort : USort> internal constructor(
     ctx: UContext,
-    region: UInputArrayRegion<ArrayType, Sort>,
+    collection: UInputArray<ArrayType, Sort>,
     val address: UHeapRef,
-    val index: USizeExpr,
-) : UHeapReading<UInputArrayId<ArrayType, Sort>, USymbolicArrayIndex, Sort>(ctx, region) {
+    val index: USizeExpr
+) : UCollectionReading<UInputArrayId<ArrayType, Sort>, USymbolicArrayIndex, Sort>(ctx, collection) {
     init {
         require(address !is UNullRef)
     }
 
-    @Suppress("UNCHECKED_CAST")
     override fun accept(transformer: KTransformerBase): KExpr<Sort> {
-        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
-        // An unchecked cast here it to be able to choose the right overload from UTransformer
-        return (transformer as UTransformer<*, ArrayType>).transform(this)
+        require(transformer is UTransformer<*>) { "Expected a UTransformer, but got: $transformer" }
+        return transformer.transform(this)
     }
 
     override fun internEquals(other: Any): Boolean =
         structurallyEqual(
             other,
-            { region },
+            { collection },
             { address },
             { index },
         )
 
-    override fun internHashCode(): Int = hash(region, address, index)
+    override fun internHashCode(): Int = hash(collection, address, index)
 
     override fun print(printer: ExpressionPrinter) {
-        printer.append(region.toString())
+        printer.append(collection.toString())
         printer.append("[")
         printer.append(address)
         printer.append(", ")
@@ -308,26 +290,24 @@ class UInputArrayReading<ArrayType, Sort : USort> internal constructor(
 
 class UInputArrayLengthReading<ArrayType> internal constructor(
     ctx: UContext,
-    region: UInputArrayLengthRegion<ArrayType>,
+    collection: UInputArrayLengths<ArrayType>,
     val address: UHeapRef,
-) : UHeapReading<UInputArrayLengthId<ArrayType>, UHeapRef, USizeSort>(ctx, region) {
+) : UCollectionReading<UInputArrayLengthId<ArrayType>, UHeapRef, USizeSort>(ctx, collection) {
     init {
         require(address !is UNullRef)
     }
 
-    @Suppress("UNCHECKED_CAST")
     override fun accept(transformer: KTransformerBase): USizeExpr {
-        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
-        // An unchecked cast here it to be able to choose the right overload from UTransformer
-        return (transformer as UTransformer<*, ArrayType>).transform(this)
+        require(transformer is UTransformer<*>) { "Expected a UTransformer, but got: $transformer" }
+        return transformer.transform(this)
     }
 
-    override fun internEquals(other: Any): Boolean = structurallyEqual(other, { region }, { address })
+    override fun internEquals(other: Any): Boolean = structurallyEqual(other, { collection }, { address })
 
-    override fun internHashCode(): Int = hash(region, address)
+    override fun internHashCode(): Int = hash(collection, address)
 
     override fun print(printer: ExpressionPrinter) {
-        printer.append(region.toString())
+        printer.append(collection.toString())
         printer.append("[")
         printer.append(address)
         printer.append("]")
@@ -348,7 +328,7 @@ class UIndexedMethodReturnValue<Method, Sort : USort> internal constructor(
     override val sort: Sort,
 ) : UMockSymbol<Sort>(ctx, sort) {
     override fun accept(transformer: KTransformerBase): KExpr<Sort> {
-        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
+        require(transformer is UTransformer<*>) { "Expected a UTransformer, but got: $transformer" }
         return transformer.transform(this)
     }
 
@@ -381,11 +361,9 @@ class UIsSubtypeExpr<Type> internal constructor(
     ref: UHeapRef,
     val supertype: Type,
 ) : UIsExpr<Type>(ctx, ref) {
-    @Suppress("UNCHECKED_CAST")
     override fun accept(transformer: KTransformerBase): UBoolExpr {
-        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
-        // An unchecked cast here it to be able to choose the right overload from UTransformer
-        return (transformer as UTransformer<*, Type>).transform(this)
+        require(transformer is UTransformer<*>) { "Expected a UTransformer, but got: $transformer" }
+        return transformer.transform(this)
     }
 
     override fun print(printer: ExpressionPrinter) {
@@ -406,11 +384,9 @@ class UIsSupertypeExpr<Type> internal constructor(
     ref: UHeapRef,
     val subtype: Type,
 ) : UIsExpr<Type>(ctx, ref) {
-    @Suppress("UNCHECKED_CAST")
     override fun accept(transformer: KTransformerBase): UBoolExpr {
-        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
-        // An unchecked cast here it to be able to choose the right overload from UTransformer
-        return (transformer as UTransformer<*, Type>).transform(this)
+        require(transformer is UTransformer<*>) { "Expected a UTransformer, but got: $transformer" }
+        return transformer.transform(this)
     }
 
     override fun print(printer: ExpressionPrinter) {
@@ -420,6 +396,99 @@ class UIsSupertypeExpr<Type> internal constructor(
     override fun internEquals(other: Any): Boolean = structurallyEqual(other, { ref }, { subtype })
 
     override fun internHashCode(): Int = hash(ref, subtype)
+}
+
+//endregion
+
+// region symbolic collection expressions
+
+class UAllocatedSymbolicMapReading<MapType, KeySort : USort, Sort : USort, Reg: Region<Reg>> internal constructor(
+    ctx: UContext,
+    collection: UAllocatedSymbolicMap<MapType, KeySort, Sort, Reg>,
+    val key: UExpr<KeySort>,
+) : UCollectionReading<UAllocatedSymbolicMapId<MapType, KeySort, Sort, Reg>, UExpr<KeySort>, Sort>(ctx, collection) {
+
+    override fun accept(transformer: KTransformerBase): KExpr<Sort> {
+        require(transformer is UTransformer<*>) { "Expected a UTransformer, but got: $transformer" }
+        return transformer.transform(this)
+    }
+
+    override fun internEquals(other: Any): Boolean =
+        structurallyEqual(
+            other,
+            { collection },
+            { key },
+        )
+
+    override fun internHashCode(): Int = hash(collection, key)
+
+    override fun print(printer: ExpressionPrinter) {
+        printer.append(collection.toString())
+        printer.append("[")
+        printer.append(key)
+        printer.append("]")
+    }
+}
+
+class UInputSymbolicMapReading<MapType, KeySort : USort, Sort : USort, Reg: Region<Reg>> internal constructor(
+    ctx: UContext,
+    collection: UInputSymbolicMap<MapType, KeySort, Sort, Reg>,
+    val address: UHeapRef,
+    val key: UExpr<KeySort>
+) : UCollectionReading<UInputSymbolicMapId<MapType, KeySort, Sort, Reg>, USymbolicMapKey<KeySort>, Sort>(ctx, collection) {
+    init {
+        require(address !is UNullRef)
+    }
+
+    override fun accept(transformer: KTransformerBase): KExpr<Sort> {
+        require(transformer is UTransformer<*>) { "Expected a UTransformer, but got: $transformer" }
+        return transformer.transform(this)
+    }
+
+    override fun internEquals(other: Any): Boolean =
+        structurallyEqual(
+            other,
+            { collection },
+            { address },
+            { key },
+        )
+
+    override fun internHashCode(): Int = hash(collection, address, key)
+
+    override fun print(printer: ExpressionPrinter) {
+        printer.append(collection.toString())
+        printer.append("[")
+        printer.append(address)
+        printer.append(", ")
+        printer.append(key)
+        printer.append("]")
+    }
+}
+
+class UInputSymbolicMapLengthReading<MapType> internal constructor(
+    ctx: UContext,
+    collection: UInputSymbolicMapLengthCollection<MapType>,
+    val address: UHeapRef,
+) : UCollectionReading<UInputSymbolicMapLengthId<MapType>, UHeapRef, USizeSort>(ctx, collection) {
+    init {
+        require(address !is UNullRef)
+    }
+
+    override fun accept(transformer: KTransformerBase): USizeExpr {
+        require(transformer is UTransformer<*>) { "Expected a UTransformer, but got: $transformer" }
+        return transformer.transform(this)
+    }
+
+    override fun internEquals(other: Any): Boolean = structurallyEqual(other, { collection }, { address })
+
+    override fun internHashCode(): Int = hash(collection, address)
+
+    override fun print(printer: ExpressionPrinter) {
+        printer.append(collection.toString())
+        printer.append("[")
+        printer.append(address)
+        printer.append("]")
+    }
 }
 
 //endregion

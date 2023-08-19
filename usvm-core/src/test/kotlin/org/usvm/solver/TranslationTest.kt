@@ -6,6 +6,9 @@ import io.ksmt.solver.z3.KZ3Solver
 import io.ksmt.sort.KArraySort
 import io.ksmt.sort.KSort
 import io.ksmt.utils.mkConst
+import io.ksmt.solver.KSolverStatus
+import io.ksmt.solver.z3.KZ3Solver
+import io.ksmt.utils.mkConst
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
@@ -17,6 +20,8 @@ import org.usvm.UBv32Sort
 import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.memory.UAllocatedToAllocatedKeyConverter
+import org.usvm.UExpr
+import org.usvm.UHeapRef
 import org.usvm.memory.UInputToAllocatedKeyConverter
 import org.usvm.memory.UInputToInputKeyConverter
 import org.usvm.memory.URegionHeap
@@ -25,6 +30,11 @@ import org.usvm.memory.emptyInputArrayLengthRegion
 import org.usvm.memory.emptyInputArrayRegion
 import org.usvm.memory.emptyInputFieldRegion
 import kotlin.test.assertEquals
+import org.usvm.memory.USymbolicObjectReferenceMapDescriptor
+import org.usvm.memory.emptyAllocatedArrayCollection
+import org.usvm.memory.emptyInputArrayLengthCollection
+import org.usvm.memory.emptyInputArrayCollection
+import org.usvm.memory.emptyInputFieldCollection
 import kotlin.test.assertSame
 
 class TranslationTest {
@@ -128,7 +138,7 @@ class TranslationTest {
         val val2 = mkBv(2)
 
 
-        val region = emptyInputArrayRegion(valueArrayDescr, bv32Sort)
+        val region = emptyInputArrayCollection(valueArrayDescr, bv32Sort)
             .write(ref1 to idx1, val1, trueExpr)
             .write(ref2 to idx2, val2, trueExpr)
 
@@ -140,7 +150,7 @@ class TranslationTest {
         val translated = translator.translate(reading)
 
         val expected = mkArraySort(addressSort, sizeSort, bv32Sort)
-            .mkConst(region.regionId.toString())
+            .mkConst(region.collectionId.toString())
             .store(translator.translate(ref1), translator.translate(idx1), val1)
             .store(translator.translate(ref2), translator.translate(idx2), val2)
             .select(translator.translate(ref3), translator.translate(idx3))
@@ -158,7 +168,7 @@ class TranslationTest {
         val idx2 = mkRegisterReading(3, sizeSort)
         val val2 = mkBv(2)
 
-        val region = emptyInputArrayRegion(valueArrayDescr, bv32Sort)
+        val region = emptyInputArrayCollection(valueArrayDescr, bv32Sort)
             .write(ref1 to idx1, val1, trueExpr)
             .write(ref2 to idx2, val2, trueExpr)
 
@@ -166,14 +176,14 @@ class TranslationTest {
 
 
         val keyConverter = UInputToAllocatedKeyConverter(ref1 to mkBv(0), concreteRef to mkBv(0), mkBv(5))
-        val concreteRegion = emptyAllocatedArrayRegion(valueArrayDescr, concreteRef.address, bv32Sort)
+        val concreteRegion = emptyAllocatedArrayCollection(valueArrayDescr, concreteRef.address, bv32Sort)
             .copyRange(region, mkBv(0), mkBv(5), keyConverter, trueExpr)
 
         val idx = mkRegisterReading(4, sizeSort)
         val reading = concreteRegion.read(idx)
 
 
-        val key = region.regionId.keyMapper(translator)(keyConverter.convert(translator.translate(idx)))
+        val key = region.collectionId.keyMapper(translator)(keyConverter.convert(translator.translate(idx)))
         val innerReading =
             translator.translate(region.read(key))
         val guard =
@@ -200,7 +210,7 @@ class TranslationTest {
         val g2 = mkRegisterReading(-2, boolSort)
         val g3 = mkRegisterReading(-3, boolSort)
 
-        val region = emptyInputFieldRegion(mockk<Field>(), bv32Sort)
+        val region = emptyInputFieldCollection(mockk<Field>(), bv32Sort)
             .write(ref1, mkBv(1), g1)
             .write(ref2, mkBv(2), g2)
             .write(ref3, mkBv(3), g3)
@@ -225,7 +235,7 @@ class TranslationTest {
         val ref2 = mkRegisterReading(2, addressSort)
         val ref3 = mkRegisterReading(3, addressSort)
 
-        val region = emptyInputArrayLengthRegion(mockk<Field>(), bv32Sort)
+        val region = emptyInputArrayLengthCollection(mockk<Field>(), bv32Sort)
             .write(ref1, mkBv(1), trueExpr)
             .write(ref2, mkBv(2), trueExpr)
             .write(ref3, mkBv(3), trueExpr)
@@ -254,13 +264,13 @@ class TranslationTest {
         val idx2 = mkRegisterReading(3, sizeSort)
         val val2 = mkBv(2)
 
-        val inputRegion1 = emptyInputArrayRegion(valueArrayDescr, bv32Sort)
+        val inputRegion1 = emptyInputArrayCollection(valueArrayDescr, bv32Sort)
             .write(ref1 to idx1, val1, trueExpr)
             .write(ref2 to idx2, val2, trueExpr)
 
 
         val keyConverter = UInputToInputKeyConverter(ref1 to mkBv(0), ref1 to mkBv(0), mkBv(5))
-        var inputRegion2 = emptyInputArrayRegion(mockk<Type>(), bv32Sort)
+        var inputRegion2 = emptyInputArrayCollection(mockk<Type>(), bv32Sort)
 
         val idx = mkRegisterReading(4, sizeSort)
         val reading1 = inputRegion2.read(ref2 to idx)
@@ -278,6 +288,56 @@ class TranslationTest {
         val status = solver.check()
 
         assertSame(KSolverStatus.UNSAT, status)
+    }
+
+    @Test
+    fun testSymbolicMapRefKeyRead() = with(ctx) {
+        val concreteMapRef = heap.allocate()
+        val symbolicMapRef = mkRegisterReading(20, addressSort)
+
+        runSymbolicMapRefKeyReadChecks(concreteMapRef)
+        runSymbolicMapRefKeyReadChecks(symbolicMapRef)
+    }
+
+    private fun runSymbolicMapRefKeyReadChecks(mapRef: UHeapRef) = with(ctx) {
+        val descriptor = USymbolicObjectReferenceMapDescriptor(
+            valueSort = valueFieldDescr.second,
+            defaultValue = mkBv(0)
+        )
+
+        val otherConcreteMapRef = heap.allocate()
+        val otherSymbolicMapRef = mkRegisterReading(10, addressSort)
+
+        val concreteRef0 = heap.allocate()
+        val concreteRef1 = heap.allocate()
+        val concreteRefMissed = heap.allocate()
+
+        val symbolicRef0 = mkRegisterReading(0, addressSort)
+        val symbolicRef1 = mkRegisterReading(1, addressSort)
+        val symbolicRefMissed = mkRegisterReading(2, addressSort)
+
+        var storedValue = 1
+        for (ref in listOf(mapRef, otherConcreteMapRef, otherSymbolicMapRef)) {
+            for (keyRef in listOf(concreteRef0, concreteRef1, symbolicRef0, symbolicRef1)) {
+                heap.writeSymbolicMap(descriptor, ref, keyRef, mkBv(storedValue++), trueExpr)
+            }
+        }
+
+        val concreteValue = heap.readSymbolicMap(descriptor, mapRef, concreteRef0)
+        val concreteMissed = heap.readSymbolicMap(descriptor, mapRef, concreteRefMissed)
+
+        val symbolicValue = heap.readSymbolicMap(descriptor, mapRef, symbolicRef0)
+        val symbolicMissed = heap.readSymbolicMap(descriptor, mapRef, symbolicRefMissed)
+
+        checkNoConcreteHeapRefs(concreteValue)
+        checkNoConcreteHeapRefs(concreteMissed)
+        checkNoConcreteHeapRefs(symbolicValue)
+        checkNoConcreteHeapRefs(symbolicMissed)
+    }
+
+    private fun checkNoConcreteHeapRefs(expr: UExpr<*>) {
+        // Translator throws exception if concrete ref occurs
+        translator.translate(expr)
     }
 
     @Test

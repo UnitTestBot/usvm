@@ -9,6 +9,8 @@ import org.usvm.UBv32Sort
 import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.USort
+import org.usvm.memory.collection.UFlatUpdates
+import org.usvm.memory.collection.UTreeUpdates
 import org.usvm.util.SetRegion
 import org.usvm.util.emptyRegionTree
 import kotlin.test.assertTrue
@@ -35,6 +37,7 @@ class UpdatesIteratorTest {
                     }
                 },
                 { _, _ -> throw UnsupportedOperationException() },
+                { SetRegion.universe() },
                 { k1, k2 -> mkEq(k1.toBv(), k2.toBv()) },
                 { k1, k2 -> k1 == k2 },
                 { _, _ -> throw UnsupportedOperationException() }

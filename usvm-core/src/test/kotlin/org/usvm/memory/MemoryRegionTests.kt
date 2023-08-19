@@ -11,6 +11,7 @@ import org.usvm.UBv32Sort
 import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.UHeapRef
+import org.usvm.memory.collection.UTreeUpdates
 import org.usvm.shouldNotBeCalled
 import org.usvm.util.SetRegion
 import org.usvm.util.emptyRegionTree
@@ -42,9 +43,7 @@ class MemoryRegionTests {
                 updates = emptyRegionTree(),
                 keyToRegion = { SetRegion.universe() },
                 keyRangeToRegion = { _, _ -> shouldNotBeCalled() },
-                symbolicEq = { _, _ -> shouldNotBeCalled() },
-                concreteCmp = { _, _ -> shouldNotBeCalled() },
-                symbolicCmp = { _, _ -> shouldNotBeCalled() }
+                fullRangeRegion = { SetRegion.universe() },
             ).write(address, 1.toBv(), mkTrue())
                 .write(address, 2.toBv(), mkTrue())
                 .write(address, 3.toBv(), mkTrue())
@@ -67,9 +66,7 @@ class MemoryRegionTests {
                 updates = emptyRegionTree(),
                 keyToRegion = { SetRegion.universe() },
                 keyRangeToRegion = { _, _ -> shouldNotBeCalled() },
-                symbolicEq = { _, _ -> shouldNotBeCalled() },
-                concreteCmp = { _, _ -> shouldNotBeCalled() },
-                symbolicCmp = { _, _ -> shouldNotBeCalled() }
+                fullRangeRegion = { SetRegion.universe() },
             ).write(address, 1.toBv(), guard)
                 .write(address, 2.toBv(), anotherGuard)
 

@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test
 import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.constraints.UPathConstraints
-import org.usvm.memory.emptyInputArrayLengthRegion
+import org.usvm.memory.emptyInputArrayLengthCollection
 import org.usvm.model.ULazyModelDecoder
 import org.usvm.model.buildTranslatorAndLazyDecoder
 import org.usvm.types.single.SingleTypeSystem
@@ -23,8 +23,8 @@ open class SoftConstraintsTest<Field, Method> {
     private lateinit var ctx: UContext
     private lateinit var softConstraintsProvider: USoftConstraintsProvider<Field, Type>
     private lateinit var translator: UExprTranslator<Field, Type>
-    private lateinit var decoder: ULazyModelDecoder<Field, Type, Method>
-    private lateinit var solver: USolverBase<Field, Type, Method, UContext>
+    private lateinit var decoder: ULazyModelDecoder<Type>
+    private lateinit var solver: USolverBase<Type, UContext>
 
     @BeforeEach
     fun initialize() {
@@ -34,7 +34,7 @@ open class SoftConstraintsTest<Field, Method> {
         ctx = UContext(components)
         softConstraintsProvider = USoftConstraintsProvider(ctx)
 
-        val translatorWithDecoder = buildTranslatorAndLazyDecoder<Field, Type, Method>(ctx)
+        val translatorWithDecoder = buildTranslatorAndLazyDecoder<Field, Type>(ctx)
 
         translator = translatorWithDecoder.first
         decoder = translatorWithDecoder.second
@@ -114,7 +114,7 @@ open class SoftConstraintsTest<Field, Method> {
         val arrayType = IntArray::class
         val inputRef = mkRegisterReading(0, addressSort)
         val secondInputRef = mkRegisterReading(1, addressSort)
-        val region = emptyInputArrayLengthRegion(arrayType, sizeSort)
+        val region = emptyInputArrayLengthCollection(arrayType, sizeSort)
             .write(inputRef, mkRegisterReading(3, sizeSort), guard = trueExpr)
 
         val size = 25
@@ -138,7 +138,7 @@ open class SoftConstraintsTest<Field, Method> {
     fun testUnsatCore() = with(ctx) {
         val arrayType = IntArray::class
         val inputRef = mkRegisterReading(0, addressSort)
-        val region = emptyInputArrayLengthRegion(arrayType, sizeSort)
+        val region = emptyInputArrayLengthCollection(arrayType, sizeSort)
             .write(inputRef, mkRegisterReading(3, sizeSort), guard = trueExpr)
 
         val pc = UPathConstraints<Type, UContext>(ctx)

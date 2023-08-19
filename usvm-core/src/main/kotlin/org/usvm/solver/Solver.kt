@@ -11,7 +11,6 @@ import org.usvm.constraints.UEqualityConstraints
 import org.usvm.constraints.UPathConstraints
 import org.usvm.isFalse
 import org.usvm.isTrue
-import org.usvm.memory.UMemoryBase
 import org.usvm.model.UModelBase
 import org.usvm.model.UModelDecoder
 
@@ -29,14 +28,14 @@ abstract class USolver<in Query, out Model> {
     abstract fun check(query: Query): USolverResult<Model>
 }
 
-open class USolverBase<Field, Type, Method, Context : UContext>(
+open class USolverBase<Type, Context : UContext>(
     protected val ctx: Context,
     protected val smtSolver: KSolver<*>,
     protected val typeSolver: UTypeSolver<Type>,
-    protected val translator: UExprTranslator<Field, Type>,
-    protected val decoder: UModelDecoder<UMemoryBase<Field, Type, Method>, UModelBase<Field, Type>>,
-    protected val softConstraintsProvider: USoftConstraintsProvider<Field, Type>,
-) : USolver<UPathConstraints<Type, Context>, UModelBase<Field, Type>>(), AutoCloseable {
+    protected val translator: UExprTranslator<Type>,
+    protected val decoder: UModelDecoder<UModelBase<Type>>,
+    protected val softConstraintsProvider: USoftConstraintsProvider<Type>,
+) : USolver<UPathConstraints<Type, Context>, UModelBase<Type>>(), AutoCloseable {
 
     protected fun translateLogicalConstraints(constraints: Iterable<UBoolExpr>) {
         for (constraint in constraints) {
@@ -99,7 +98,7 @@ open class USolverBase<Field, Type, Method, Context : UContext>(
         translateLogicalConstraints(pc.logicalConstraints)
     }
 
-    override fun check(query: UPathConstraints<Type, Context>): USolverResult<UModelBase<Field, Type>> =
+    override fun check(query: UPathConstraints<Type, Context>): USolverResult<UModelBase<Type>> =
         internalCheck(query, useSoftConstraints = false)
 
     fun checkWithSoftConstraints(
@@ -110,7 +109,7 @@ open class USolverBase<Field, Type, Method, Context : UContext>(
     private fun internalCheck(
         pc: UPathConstraints<Type, Context>,
         useSoftConstraints: Boolean,
-    ): USolverResult<UModelBase<Field, Type>> {
+    ): USolverResult<UModelBase<Type>> {
         if (pc.isFalse) {
             return UUnsatResult()
         }
@@ -167,9 +166,10 @@ open class USolverBase<Field, Type, Method, Context : UContext>(
                         UModelBase(
                             ctx,
                             uModel.stack,
-                            uModel.heap,
                             typeResult.model,
-                            uModel.mocks
+                            uModel.mocker,
+                            uModel.regions,
+                            uModel.nullRef
                         )
                     )
 
@@ -213,8 +213,8 @@ open class USolverBase<Field, Type, Method, Context : UContext>(
         pop()
     }
 
-    fun emptyModel(): UModelBase<Field, Type> =
-        (checkWithSoftConstraints(UPathConstraints(ctx)) as USatResult<UModelBase<Field, Type>>).model
+    fun emptyModel(): UModelBase<Type> =
+        (checkWithSoftConstraints(UPathConstraints(ctx)) as USatResult<UModelBase<Type>>).model
 
     override fun close() {
         smtSolver.close()

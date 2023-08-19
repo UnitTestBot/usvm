@@ -12,12 +12,16 @@ import io.ksmt.utils.DefaultValueSampler
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
 import io.ksmt.utils.uncheckedCast
-import org.usvm.memory.UAllocatedArrayRegion
-import org.usvm.memory.UInputArrayLengthRegion
-import org.usvm.memory.UInputArrayRegion
-import org.usvm.memory.UInputFieldRegion
+import org.usvm.memory.collection.region.UAllocatedArray
+import org.usvm.memory.collection.region.UAllocatedSymbolicMap
+import org.usvm.memory.collection.region.UInputArrayLengths
+import org.usvm.memory.collection.region.UInputArray
+import org.usvm.memory.collection.region.UInputFields
+import org.usvm.memory.collection.region.UInputSymbolicMapLengthCollection
+import org.usvm.memory.collection.region.UInputSymbolicMap
 import org.usvm.memory.splitUHeapRef
 import org.usvm.solver.USolverBase
+import org.usvm.util.Region
 import org.usvm.types.UTypeSystem
 
 @Suppress("LeakingThis")
@@ -41,8 +45,8 @@ open class UContext(
     }
 
     @Suppress("UNCHECKED_CAST")
-    fun <Field, Type, Method, Context : UContext> solver(): USolverBase<Field, Type, Method, Context> =
-        this.solver as USolverBase<Field, Type, Method, Context>
+    fun <Field, Type, Method, Context : UContext> solver(): USolverBase<Type, Context> =
+        this.solver as USolverBase<Type, Context>
 
     @Suppress("UNCHECKED_CAST")
     fun <Type> typeSystem(): UTypeSystem<Type> =
@@ -102,14 +106,14 @@ open class UContext(
 
                 concreteRefsRhs.forEach { (concreteRefRhs, guardRhs) ->
                     val guardLhs = concreteRefLhsToGuard.getOrDefault(concreteRefRhs.address, falseExpr)
-                    // mkAnd instead of mkAndNoFlat here is OK
+                    // mkAnd instead of mkAnd with flat=false here is OK
                     val conjunct = mkAnd(guardLhs, guardRhs)
                     conjuncts += conjunct
                 }
 
                 if (symbolicRefLhs != null && symbolicRefRhs != null) {
                     val refsEq = super.mkEq(symbolicRefLhs.expr, symbolicRefRhs.expr, order = true)
-                    // mkAnd instead of mkAndNoFlat here is OK
+                    // mkAnd instead of mkAnd with flat=false here is OK
                     val conjunct = mkAnd(symbolicRefLhs.guard, symbolicRefRhs.guard, refsEq)
                     conjuncts += conjunct
                 }
@@ -132,7 +136,7 @@ open class UContext(
     private val inputFieldReadingCache = mkAstInterner<UInputFieldReading<*, out USort>>()
 
     fun <Field, Sort : USort> mkInputFieldReading(
-        region: UInputFieldRegion<Field, Sort>,
+        region: UInputFields<Field, Sort>,
         address: UHeapRef,
     ): UInputFieldReading<Field, Sort> = inputFieldReadingCache.createIfContextActive {
         UInputFieldReading(this, region, address)
@@ -141,7 +145,7 @@ open class UContext(
     private val allocatedArrayReadingCache = mkAstInterner<UAllocatedArrayReading<*, out USort>>()
 
     fun <ArrayType, Sort : USort> mkAllocatedArrayReading(
-        region: UAllocatedArrayRegion<ArrayType, Sort>,
+        region: UAllocatedArray<ArrayType, Sort>,
         index: USizeExpr,
     ): UAllocatedArrayReading<ArrayType, Sort> = allocatedArrayReadingCache.createIfContextActive {
         UAllocatedArrayReading(this, region, index)
@@ -150,7 +154,7 @@ open class UContext(
     private val inputArrayReadingCache = mkAstInterner<UInputArrayReading<*, out USort>>()
 
     fun <ArrayType, Sort : USort> mkInputArrayReading(
-        region: UInputArrayRegion<ArrayType, Sort>,
+        region: UInputArray<ArrayType, Sort>,
         address: UHeapRef,
         index: USizeExpr,
     ): UInputArrayReading<ArrayType, Sort> = inputArrayReadingCache.createIfContextActive {
@@ -160,11 +164,42 @@ open class UContext(
     private val inputArrayLengthReadingCache = mkAstInterner<UInputArrayLengthReading<*>>()
 
     fun <ArrayType> mkInputArrayLengthReading(
-        region: UInputArrayLengthRegion<ArrayType>,
+        region: UInputArrayLengths<ArrayType>,
         address: UHeapRef,
     ): UInputArrayLengthReading<ArrayType> = inputArrayLengthReadingCache.createIfContextActive {
         UInputArrayLengthReading(this, region, address)
     }.cast()
+
+    private val allocatedSymbolicMapReadingCache = mkAstInterner<UAllocatedSymbolicMapReading<*, *, *, *>>()
+
+    fun <MapType, KeySort : USort, Sort : USort, Reg: Region<Reg>> mkAllocatedSymbolicMapReading(
+        region: UAllocatedSymbolicMap<MapType, KeySort, Sort, Reg>,
+        key: UExpr<KeySort>
+    ): UAllocatedSymbolicMapReading<MapType, KeySort, Sort, Reg> =
+        allocatedSymbolicMapReadingCache.createIfContextActive {
+            UAllocatedSymbolicMapReading(this, region, key)
+        }.cast()
+
+    private val inputSymbolicMapReadingCache = mkAstInterner<UInputSymbolicMapReading<*, *, *, *>>()
+
+    fun <MapType, KeySort : USort, Reg : Region<Reg>, Sort : USort> mkInputSymbolicMapReading(
+        region: UInputSymbolicMap<MapType, KeySort, Sort, Reg>,
+        address: UHeapRef,
+        key: UExpr<KeySort>
+    ): UInputSymbolicMapReading<MapType, KeySort, Sort, Reg> =
+        inputSymbolicMapReadingCache.createIfContextActive {
+            UInputSymbolicMapReading(this, region, address, key)
+        }.cast()
+
+    private val inputSymbolicMapLengthReadingCache = mkAstInterner<UInputSymbolicMapLengthReading<*>>()
+
+    fun <MapType> mkInputSymbolicMapLengthReading(
+        region: UInputSymbolicMapLengthCollection<MapType>,
+        address: UHeapRef
+    ): UInputSymbolicMapLengthReading<MapType> =
+        inputSymbolicMapLengthReadingCache.createIfContextActive {
+            UInputSymbolicMapLengthReading<MapType>(this, region, address)
+        }.cast()
 
     private val indexedMethodReturnValueCache = mkAstInterner<UIndexedMethodReturnValue<Any, out USort>>()
 
@@ -217,6 +252,17 @@ open class UContext(
                 super.visit(sort)
             }
     }
+
+    inline fun <T : KSort> mkIte(
+        condition: KExpr<KBoolSort>,
+        trueBranch: () -> KExpr<T>,
+        falseBranch: () -> KExpr<T>
+    ): KExpr<T> =
+        when (condition) {
+            is UTrue -> trueBranch()
+            is UFalse -> falseBranch()
+            else -> mkIte(condition, trueBranch(), falseBranch())
+        }
 }
 
 

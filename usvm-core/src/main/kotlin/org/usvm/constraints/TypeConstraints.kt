@@ -16,6 +16,7 @@ import org.usvm.uctx
 interface UTypeEvaluator<Type> {
     fun evalIsSubtype(ref: UHeapRef, supertype: Type): UBoolExpr
     fun evalIsSupertype(ref: UHeapRef, subtype: Type): UBoolExpr
+    fun getTypeStream(ref: UHeapRef): UTypeStream<Type>
 }
 
 /**
@@ -200,7 +201,7 @@ class UTypeConstraints<Type>(
     /**
      * @return a type stream corresponding to the [ref].
      */
-    internal fun getTypeStream(ref: UHeapRef): UTypeStream<Type> =
+    override fun getTypeStream(ref: UHeapRef): UTypeStream<Type> =
         when (ref) {
             is UConcreteHeapRef -> {
                 val concreteType = concreteRefToType[ref.address]

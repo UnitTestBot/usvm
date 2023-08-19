@@ -14,6 +14,11 @@ import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.UInputFieldReading
 import org.usvm.UIteExpr
+import org.usvm.api.allocate
+import org.usvm.api.readArrayIndex
+import org.usvm.api.readField
+import org.usvm.api.writeArrayIndex
+import org.usvm.api.writeField
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
@@ -21,7 +26,7 @@ import kotlin.test.assertSame
 
 class HeapRefSplittingTest {
     private lateinit var ctx: UContext
-    private lateinit var heap: URegionHeap<Field, Type>
+    private lateinit var heap: UMemory<Type, Any>
 
     private lateinit var valueFieldDescr: Pair<Field, UBv32Sort>
     private lateinit var addressFieldDescr: Pair<Field, UAddressSort>
@@ -32,7 +37,7 @@ class HeapRefSplittingTest {
         val components: UComponents<*, *, *> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
         ctx = UContext(components)
-        heap = URegionHeap(ctx)
+        heap = UMemory(ctx, mockk())
 
         valueFieldDescr = mockk<Field>() to ctx.bv32Sort
         addressFieldDescr = mockk<Field>() to ctx.addressSort
@@ -76,7 +81,7 @@ class HeapRefSplittingTest {
         assertEquals(cond, res.condition)
         assertSame(value, res.trueBranch)
         val reading = assertIs<UInputFieldReading<Field, UBv32Sort>>(res.falseBranch)
-        assertEquals(!cond, reading.region.updates.single().guard)
+        assertEquals(!cond, reading.collection.updates.single().guard)
     }
 
     @Test
@@ -155,7 +160,7 @@ class HeapRefSplittingTest {
         assertEquals(2, concreteRefs.size)
         assertSame(val2, concreteRefs[0].expr)
         assertSame(cond1 and !cond2, concreteRefs[0].guard)
-        // we need expr simplifier here, because mkAndNoFlatten produces too complicated expression
+        // we need expr simplifier here, because mkAnd with flat=false produces too complicated expression
         assertSame(val1, concreteRefs[1].expr)
         assertSame(!(cond1 and !cond2) and cond1 and cond2, KExprSimplifier(this).apply(concreteRefs[1].guard))
     }
@@ -209,7 +214,7 @@ class HeapRefSplittingTest {
         val res2 = heap.readField(ref2, valueFieldDescr.first, valueFieldDescr.second)
         assertIs<UInputFieldReading<Field, UBv32Sort>>(res2)
 
-        assertEquals(res1.region, res2.region)
+        assertEquals(res1.collection, res2.collection)
     }
 
     @Test
@@ -232,7 +237,7 @@ class HeapRefSplittingTest {
         val res2 = heap.readField(ref2, addressFieldDescr.first, addressFieldDescr.second)
         assertIs<UInputFieldReading<Field, UBv32Sort>>(res2)
 
-        assertEquals(res1.region, res2.region)
+        assertEquals(res1.collection, res2.collection)
 
         val res3 = heap.readField(ref3, addressFieldDescr.first, addressFieldDescr.second)
         assertSame(val3, res3)
