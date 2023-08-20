@@ -4,10 +4,10 @@ import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.usvm.memory.UAllocatedArrayCollection
-import org.usvm.memory.UInputArrayLengthCollection
-import org.usvm.memory.UInputArrayCollection
-import org.usvm.memory.UInputFieldCollection
+import org.usvm.memory.collection.region.UAllocatedArray
+import org.usvm.memory.collection.region.UInputArray
+import org.usvm.memory.collection.region.UInputArrayLengths
+import org.usvm.memory.collection.region.UInputFields
 import kotlin.test.assertTrue
 
 class UContextInterningTest {
@@ -61,8 +61,8 @@ class UContextInterningTest {
 
     @Test
     fun testFieldReadingInterning() = with(context) {
-        val fstRegion = mockk<UInputFieldCollection<Field, UBv32Sort>>()
-        val sndRegion = mockk<UInputFieldCollection<Field, UBoolSort>>()
+        val fstRegion = mockk<UInputFields<Field, UBv32Sort>>()
+        val sndRegion = mockk<UInputFields<Field, UBoolSort>>()
 
         every { fstRegion.sort } returns bv32Sort
         every { sndRegion.sort } returns boolSort
@@ -86,8 +86,8 @@ class UContextInterningTest {
 
     @Test
     fun testAllocatedArrayReadingInterning() = with(context) {
-        val fstRegion = mockk<UAllocatedArrayCollection<Type, UBv32Sort>>()
-        val sndRegion = mockk<UAllocatedArrayCollection<Type, UBoolSort>>()
+        val fstRegion = mockk<UAllocatedArray<Type, UBv32Sort>>()
+        val sndRegion = mockk<UAllocatedArray<Type, UBoolSort>>()
 
         every { fstRegion.sort } returns bv32Sort
         every { sndRegion.sort } returns boolSort
@@ -112,8 +112,8 @@ class UContextInterningTest {
 
     @Test
     fun testInputArrayReadingInterning() = with(context) {
-        val fstRegion = mockk<UInputArrayCollection<Type, UBv32Sort>>()
-        val sndRegion = mockk<UInputArrayCollection<Type, UBoolSort>>()
+        val fstRegion = mockk<UInputArray<Type, UBv32Sort>>()
+        val sndRegion = mockk<UInputArray<Type, UBoolSort>>()
 
         every { fstRegion.sort } returns bv32Sort
         every { sndRegion.sort } returns boolSort
@@ -143,8 +143,8 @@ class UContextInterningTest {
 
     @Test
     fun testArrayLengthInterning() = with(context) {
-        val fstRegion = mockk<UInputArrayLengthCollection<Type>>()
-        val sndRegion = mockk<UInputArrayLengthCollection<Type>>()
+        val fstRegion = mockk<UInputArrayLengths<Type>>()
+        val sndRegion = mockk<UInputArrayLengths<Type>>()
 
         every { fstRegion.sort } returns sizeSort
         every { sndRegion.sort } returns sizeSort

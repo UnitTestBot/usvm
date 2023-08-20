@@ -79,11 +79,11 @@ internal class UArrayMemoryRegion<ArrayType, Sort : USort>(
         sort: Sort,
         address: UConcreteHeapAddress
     ): UAllocatedArray<ArrayType, Sort> = allocatedArrays[address]
-        ?: UAllocatedArrayId(arrayType, sort, sort.sampleUValue(), address, contextMemory = null).emptyArray()
+        ?: UAllocatedArrayId(arrayType, sort, sort.sampleUValue(), address).emptyArray()
 
     private fun getInputArray(arrayType: ArrayType, sort: Sort): UInputArray<ArrayType, Sort> {
         if (inputArray == null)
-            inputArray = UInputArrayId(arrayType, sort, null).emptyRegion()
+            inputArray = UInputArrayId(arrayType, sort).emptyRegion()
         return inputArray!!
     }
 
@@ -199,7 +199,7 @@ internal class UArrayMemoryRegion<ArrayType, Sort : USort>(
         content: Map<USizeExpr, UExpr<Sort>>,
         guard: UBoolExpr
     ): UArrayMemoryRegion<ArrayType, Sort> {
-        val arrayId = UAllocatedArrayId(arrayType, sort, sort.sampleUValue(), address, contextMemory = null)
+        val arrayId = UAllocatedArrayId(arrayType, sort, sort.sampleUValue(), address)
         val newCollection = arrayId.initializedArray(content, guard)
         return UArrayMemoryRegion(allocatedArrays.put(address, newCollection), inputArray)
     }
@@ -246,7 +246,7 @@ internal fun <ArrayType> UWritableMemory<ArrayType>.allocateArray(
     type: ArrayType,
     length: USizeExpr
 ): UConcreteHeapRef {
-    val address = freshAddress(type)
+    val address = alloc(type)
 
     val lengthRegionRef = UArrayLengthRef(length.sort, address, type)
     write(lengthRegionRef, length, guard = length.uctx.trueExpr)

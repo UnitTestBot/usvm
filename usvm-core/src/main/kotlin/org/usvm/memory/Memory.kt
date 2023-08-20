@@ -71,7 +71,7 @@ interface UWritableMemory<Type> : UReadOnlyMemory<Type> {
 
     fun <Key, Sort : USort> write(lvalue: ULValue<Key, Sort>, rvalue: UExpr<Sort>, guard: UBoolExpr)
 
-    fun freshAddress(type: Type): UConcreteHeapRef
+    fun alloc(type: Type): UConcreteHeapRef
 }
 
 @Suppress("MemberVisibilityCanBePrivate")
@@ -115,7 +115,7 @@ class UMemory<Type, Method>(
         setRegion(regionId, newRegion)
     }
 
-    override fun freshAddress(type: Type): UConcreteHeapRef {
+    override fun alloc(type: Type): UConcreteHeapRef {
         val concreteHeapRef = ctx.mkConcreteHeapRef(addressCounter.freshAddress())
         types.allocate(concreteHeapRef.address, type)
         return concreteHeapRef

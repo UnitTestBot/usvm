@@ -47,7 +47,7 @@ class UAllocatedSymbolicMapId<MapType, KeySort : USort, ValueSort : USort, Reg :
     override val mapType: MapType,
     val keyInfo: USymbolicCollectionKeyInfo<UExpr<KeySort>, Reg>,
     val address: UConcreteHeapAddress,
-    contextMemory: UWritableMemory<*>?,
+    contextMemory: UWritableMemory<*>? = null,
 ) : USymbolicCollectionIdWithContextMemory<UExpr<KeySort>, ValueSort, UAllocatedSymbolicMapId<MapType, KeySort, ValueSort, Reg>>(contextMemory),
     USymbolicMapId<MapType, UExpr<KeySort>, ValueSort, UAllocatedSymbolicSetId<UExpr<KeySort>, Reg>, UAllocatedSymbolicMapId<MapType, KeySort, ValueSort, Reg>> {
 
@@ -131,7 +131,7 @@ class UInputSymbolicMapId<MapType, KeySort : USort, ValueSort : USort, Reg : Reg
     val valueSort: ValueSort,
     override val mapType: MapType,
     val keyInfo: USymbolicCollectionKeyInfo<UExpr<KeySort>, Reg>,
-    contextMemory: UWritableMemory<*>?,
+    contextMemory: UWritableMemory<*>? = null,
 ) : USymbolicCollectionIdWithContextMemory<USymbolicMapKey<KeySort>, ValueSort, UInputSymbolicMapId<MapType, KeySort, ValueSort, Reg>>(contextMemory),
     USymbolicMapId<MapType, USymbolicMapKey<KeySort>, ValueSort, UInputSymbolicSetId<USymbolicMapKey<KeySort>,  USymbolicMapKeyRegion<Reg>>, UInputSymbolicMapId<MapType, KeySort, ValueSort, Reg>> {
     override val keysSetId: UInputSymbolicSetId<USymbolicMapKey<KeySort>, USymbolicMapKeyRegion<Reg>>
@@ -214,7 +214,7 @@ class UInputSymbolicMapId<MapType, KeySort : USort, ValueSort : USort, Reg : Reg
 class UInputSymbolicMapLengthId<MapType> internal constructor(
     val mapType: MapType,
     override val sort: USizeSort,
-    contextMemory: UWritableMemory<*>?,
+    contextMemory: UWritableMemory<*>? = null,
 ) : USymbolicCollectionIdWithContextMemory<UHeapRef, USizeSort, UInputSymbolicMapLengthId<MapType>>(contextMemory) {
     override val defaultValue: UExpr<USizeSort>? get() = null
 

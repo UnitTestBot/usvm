@@ -6,12 +6,14 @@ import io.mockk.mockk
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.usvm.TestKeyInfo
 import org.usvm.Type
 import org.usvm.UBv32Sort
 import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.UHeapRef
 import org.usvm.memory.collection.UTreeUpdates
+import org.usvm.memory.collection.id.UAllocatedArrayId
 import org.usvm.shouldNotBeCalled
 import org.usvm.util.SetRegion
 import org.usvm.util.emptyRegionTree
@@ -39,11 +41,13 @@ class MemoryRegionTests {
         with(ctx) {
             val address = mkConcreteHeapRef(address = 1)
 
+            val keyInfo = object : TestKeyInfo<UHeapRef, SetRegion<UHeapRef>> {
+                override fun keyToRegion(key: UHeapRef): SetRegion<UHeapRef> = SetRegion.universe()
+            }
+
             val treeUpdates = UTreeUpdates<UHeapRef, SetRegion<UHeapRef>, UBv32Sort>(
                 updates = emptyRegionTree(),
-                keyToRegion = { SetRegion.universe() },
-                keyRangeToRegion = { _, _ -> shouldNotBeCalled() },
-                fullRangeRegion = { SetRegion.universe() },
+                keyInfo
             ).write(address, 1.toBv(), mkTrue())
                 .write(address, 2.toBv(), mkTrue())
                 .write(address, 3.toBv(), mkTrue())
@@ -62,11 +66,13 @@ class MemoryRegionTests {
             val guard = boolSort.mkConst("boolConst")
             val anotherGuard = boolSort.mkConst("anotherBoolConst")
 
+            val keyInfo = object : TestKeyInfo<UHeapRef, SetRegion<UHeapRef>> {
+                override fun keyToRegion(key: UHeapRef): SetRegion<UHeapRef> = SetRegion.universe()
+            }
+
             val treeUpdates = UTreeUpdates<UHeapRef, SetRegion<UHeapRef>, UBv32Sort>(
                 updates = emptyRegionTree(),
-                keyToRegion = { SetRegion.universe() },
-                keyRangeToRegion = { _, _ -> shouldNotBeCalled() },
-                fullRangeRegion = { SetRegion.universe() },
+                keyInfo
             ).write(address, 1.toBv(), guard)
                 .write(address, 2.toBv(), anotherGuard)
 
@@ -85,7 +91,8 @@ class MemoryRegionTests {
         val idx1 = mkRegisterReading(0, sizeSort)
         val idx2 = mkRegisterReading(1, sizeSort)
 
-        val memoryRegion = emptyAllocatedArrayRegion(mockk<Type>(), 0, sizeSort)
+        val memoryRegion = UAllocatedArrayId(mockk<Type>(), sizeSort, mkSizeExpr(0), 0)
+            .emptyArray()
             .write(idx1, mkBv(0), trueExpr)
             .write(idx2, mkBv(1), trueExpr)
 

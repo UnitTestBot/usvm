@@ -44,7 +44,7 @@ class ModelDecodingTest {
 
         ctx = UContext(components)
         val softConstraintsProvider = USoftConstraintsProvider<Field, Type>(ctx)
-        val (translator, decoder) = buildTranslatorAndLazyDecoder<Field, Type>(ctx)
+        val (translator, decoder) = buildTranslatorAndLazyDecoder<Type>(ctx)
         val typeSolver = UTypeSolver(SingleTypeSystem)
         solver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder, softConstraintsProvider)
 

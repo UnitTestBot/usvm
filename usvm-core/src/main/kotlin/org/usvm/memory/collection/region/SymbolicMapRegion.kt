@@ -98,8 +98,7 @@ internal class USymbolicMapMemoryRegion<MapType, KeySort : USort, ValueSort : US
             valueSort,
             mapType,
             UHeapRefKeyInfo,
-            keyAddress,
-            null
+            keyAddress
         ).emptyMap()
 
     private fun getInputMapWithAllocatedKeys(keyAddress: UConcreteHeapAddress) =
@@ -126,8 +125,7 @@ internal class USymbolicMapMemoryRegion<MapType, KeySort : USort, ValueSort : US
             valueSort,
             mapType,
             keyInfo,
-            mapAddress,
-            null
+            mapAddress
         ).emptyMap()
 
     private fun getAllocatedMapWithInputKeys(mapAddress: UConcreteHeapAddress) =
@@ -153,8 +151,7 @@ internal class USymbolicMapMemoryRegion<MapType, KeySort : USort, ValueSort : US
                 keySort,
                 valueSort,
                 mapType,
-                keyInfo,
-                null
+                keyInfo
             ).emptyMap()
         return inputMapWithInputKeys!!
     }

@@ -48,7 +48,7 @@ internal class UFieldsMemoryRegion<Field, Sort : USort>(
 
     private fun getInputFields(ref: UFieldRef<Field, Sort>): UInputFields<Field, Sort> {
         if (inputFields == null)
-            inputFields = UInputFieldId(ref.field, ref.sort, null).emptyRegion()
+            inputFields = UInputFieldId(ref.field, ref.sort).emptyRegion()
         return inputFields!!
     }
 

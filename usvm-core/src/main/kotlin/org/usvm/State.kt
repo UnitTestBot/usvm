@@ -2,10 +2,8 @@ package org.usvm
 
 import io.ksmt.expr.KInterpretedValue
 import org.usvm.constraints.UPathConstraints
-import org.usvm.memory.UMemoryBase
-import org.usvm.model.UModelBase
 import org.usvm.memory.UMemory
-import org.usvm.model.UModel
+import org.usvm.model.UModelBase
 import org.usvm.solver.USatResult
 import org.usvm.solver.UUnknownResult
 import org.usvm.solver.UUnsatResult
@@ -17,8 +15,8 @@ abstract class UState<Type, Field, Method, Statement, Context : UContext, State 
     ctx: UContext,
     open val callStack: UCallStack<Method, Statement>,
     open val pathConstraints: UPathConstraints<Type, Context>,
-    open val memory: UMemoryBase<Field, Type, Method>,
-    open var models: List<UModelBase<Field, Type>>,
+    open val memory: UMemory<Type, Method>,
+    open var models: List<UModelBase<Type>>,
     open var pathLocation: PathsTrieNode<State, Statement>,
 ) {
     /**

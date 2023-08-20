@@ -19,7 +19,7 @@ class SampleLanguageComponents(
     private val solverType: SolverType
 ) : UComponents<Field<*>, SampleType, Method<*>> {
     override fun <Context : UContext> mkSolver(ctx: Context): USolverBase<SampleType, Context> {
-        val (translator, decoder) = buildTranslatorAndLazyDecoder<Field<*>, SampleType>(ctx)
+        val (translator, decoder) = buildTranslatorAndLazyDecoder<SampleType>(ctx)
         val softConstraintsProvider = USoftConstraintsProvider<Field<*>, SampleType>(ctx)
 
         val solver =

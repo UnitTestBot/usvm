@@ -74,7 +74,7 @@ data class UAllocatedFieldId<Field, Sort : USort> internal constructor(
 class UInputFieldId<Field, Sort : USort> internal constructor(
     override val field: Field,
     override val sort: Sort,
-    contextMemory: UWritableMemory<*>?,
+    contextMemory: UWritableMemory<*>? = null,
 ) : USymbolicCollectionIdWithContextMemory<UHeapRef, Sort, UInputFieldId<Field, Sort>>(contextMemory),
     USymbolicFieldId<Field, UHeapRef, Sort, UInputFieldId<Field, Sort>> {
 

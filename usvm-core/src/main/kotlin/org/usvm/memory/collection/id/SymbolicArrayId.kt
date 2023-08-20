@@ -50,7 +50,7 @@ class UAllocatedArrayId<ArrayType, Sort : USort> internal constructor(
     override val sort: Sort,
     override val defaultValue: UExpr<Sort>,
     val address: UConcreteHeapAddress,
-    contextMemory: UWritableMemory<*>?,
+    contextMemory: UWritableMemory<*>? = null,
 ) : USymbolicCollectionIdWithContextMemory<USizeExpr, Sort, UAllocatedArrayId<ArrayType, Sort>>(contextMemory),
     USymbolicArrayId<ArrayType, USizeExpr, Sort, UAllocatedArrayId<ArrayType, Sort>> {
 
@@ -144,7 +144,7 @@ class UAllocatedArrayId<ArrayType, Sort : USort> internal constructor(
 class UInputArrayId<ArrayType, Sort : USort> internal constructor(
     override val arrayType: ArrayType,
     override val sort: Sort,
-    contextMemory: UWritableMemory<*>?,
+    contextMemory: UWritableMemory<*>? = null,
 ) : USymbolicCollectionIdWithContextMemory<USymbolicArrayIndex, Sort, UInputArrayId<ArrayType, Sort>>(contextMemory),
     USymbolicArrayId<ArrayType, USymbolicArrayIndex, Sort, UInputArrayId<ArrayType, Sort>> {
     override val defaultValue: UExpr<Sort>? get() = null
@@ -233,7 +233,7 @@ class UInputArrayId<ArrayType, Sort : USort> internal constructor(
 class UInputArrayLengthId<ArrayType> internal constructor(
     val arrayType: ArrayType,
     override val sort: USizeSort,
-    contextMemory: UWritableMemory<*>?,
+    contextMemory: UWritableMemory<*>? = null,
 ) : USymbolicCollectionIdWithContextMemory<UHeapRef, USizeSort, UInputArrayLengthId<ArrayType>>(contextMemory) {
     override val defaultValue: UExpr<USizeSort>? get() = null
 

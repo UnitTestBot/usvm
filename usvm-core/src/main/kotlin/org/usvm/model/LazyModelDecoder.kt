@@ -20,7 +20,7 @@ interface UModelDecoder<Model> {
  * Initializes [UExprTranslator] and [UModelDecoder] and returns them. We can safely reuse them while [UContext] is
  * alive.
  */
-fun <Field, Type> buildTranslatorAndLazyDecoder(
+fun <Type> buildTranslatorAndLazyDecoder(
     ctx: UContext,
 ): Pair<UExprTranslator<Type>, ULazyModelDecoder<Type>> {
     val translator = UExprTranslator<Type>(ctx)

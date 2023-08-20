@@ -6,6 +6,7 @@ import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.usvm.TestKeyInfo
 import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
 import org.usvm.UBv32Sort
@@ -420,16 +421,5 @@ class MapCompositionTest<Field, Type> {
         assertSame(expected = composedFstValue, actual = fstElement.value)
         assertSame(expected = composedSndKey, actual = sndElement.key)
         assertSame(expected = composedSndValue, actual = sndElement.value)
-    }
-
-    interface TestKeyInfo<T, Reg : Region<Reg>> : USymbolicCollectionKeyInfo<T, Reg> {
-        override fun keyToRegion(key: T): Reg = error("Should not be called")
-        override fun eqSymbolic(key1: T, key2: T): UBoolExpr = error("Should not be called")
-        override fun eqConcrete(key1: T, key2: T): Boolean = error("Should not be called")
-        override fun cmpSymbolic(key1: T, key2: T): UBoolExpr = error("Should not be called")
-        override fun cmpConcrete(key1: T, key2: T): Boolean = error("Should not be called")
-        override fun keyRangeRegion(from: T, to: T): Reg = error("Should not be called")
-        override fun topRegion(): Reg = error("Should not be called")
-        override fun bottomRegion(): Reg = error("Should not be called")
     }
 }

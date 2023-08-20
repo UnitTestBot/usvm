@@ -5,6 +5,8 @@ import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.usvm.TestKeyInfo
+import org.usvm.UBoolExpr
 import org.usvm.UBv32Sort
 import org.usvm.UComponents
 import org.usvm.UContext
@@ -27,20 +29,22 @@ class UpdatesIteratorTest {
     @Test
     fun testTreeRegionUpdates() {
         with(ctx) {
-            val treeUpdates = UTreeUpdates<Int, SetRegion<Int>, UBv32Sort>(
-                emptyRegionTree(),
-                { key ->
+
+            val keyInfo = object : TestKeyInfo<Int, SetRegion<Int>> {
+                override fun keyToRegion(key: Int): SetRegion<Int> =
                     if (key != 10) {
                         SetRegion.singleton(key)
                     } else {
                         SetRegion.ofSet(1, 2, 3)
                     }
-                },
-                { _, _ -> throw UnsupportedOperationException() },
-                { SetRegion.universe() },
-                { k1, k2 -> mkEq(k1.toBv(), k2.toBv()) },
-                { k1, k2 -> k1 == k2 },
-                { _, _ -> throw UnsupportedOperationException() }
+
+                override fun eqConcrete(key1: Int, key2: Int): Boolean = key1 == key2
+                override fun eqSymbolic(key1: Int, key2: Int): UBoolExpr = mkEq(key1.toBv(), key2.toBv())
+            }
+
+            val treeUpdates = UTreeUpdates<Int, SetRegion<Int>, UBv32Sort>(
+                emptyRegionTree(),
+                keyInfo
             ).write(10, 10.toBv(), guard = mkTrue())
                 .write(1, 1.toBv(), guard = mkTrue())
                 .write(2, 2.toBv(), guard = mkTrue())
@@ -53,11 +57,9 @@ class UpdatesIteratorTest {
 
     @Test
     fun testFlatUpdatesIterator() = with(ctx) {
-        val flatUpdates = UFlatUpdates<Int, UBv32Sort>(
-            { _, _ -> throw NotImplementedError() },
-            { _, _ -> throw NotImplementedError() },
-            { _, _ -> throw NotImplementedError() }
-        ).write(key = 10, value = 10.toBv(), guard = mkTrue())
+        val keyInfo = object : TestKeyInfo<Int, SetRegion<Int>> {}
+        val flatUpdates = UFlatUpdates<Int, UBv32Sort>(keyInfo)
+            .write(key = 10, value = 10.toBv(), guard = mkTrue())
             .write(key = 1, value = 1.toBv(), guard = mkTrue())
             .write(key = 2, value = 2.toBv(), guard = mkTrue())
             .write(key = 3, value = 3.toBv(), guard = mkTrue())

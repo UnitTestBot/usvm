@@ -54,7 +54,7 @@ internal class USymbolicMapLengthMemoryRegion<MapType>(
 
     private fun getInputLength(ref: USymbolicMapLengthRef<MapType>): UInputMapLengths<MapType> {
         if (inputLengths == null)
-            inputLengths = UInputSymbolicMapLengthId(ref.mapType, ref.sort, null).emptyRegion()
+            inputLengths = UInputSymbolicMapLengthId(ref.mapType, ref.sort).emptyRegion()
         return inputLengths!!
     }
 
