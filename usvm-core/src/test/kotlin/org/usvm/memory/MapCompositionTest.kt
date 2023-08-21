@@ -21,6 +21,7 @@ import org.usvm.USizeSort
 import org.usvm.memory.collection.UFlatUpdates
 import org.usvm.memory.collection.USymbolicCollection
 import org.usvm.memory.collection.UTreeUpdates
+import org.usvm.memory.collection.adapter.USymbolicArrayAllocatedToAllocatedCopyAdapter
 import org.usvm.memory.collection.adapter.USymbolicArrayCopyAdapter
 import org.usvm.memory.collection.id.UAllocatedArrayId
 import org.usvm.memory.collection.key.USymbolicCollectionKeyInfo
@@ -210,7 +211,7 @@ class MapCompositionTest<Field, Type> {
 
         val updateNode = URangedUpdateNode(
             region,
-            USymbolicArrayCopyAdapter(fromKey, fromKey, toKey, keyInfo),
+            USymbolicArrayAllocatedToAllocatedCopyAdapter(fromKey, fromKey, toKey, keyInfo),
             guard
         )
 
@@ -239,7 +240,7 @@ class MapCompositionTest<Field, Type> {
 
         val updateNode = URangedUpdateNode(
             region,
-            USymbolicArrayCopyAdapter(fromKey, fromKey, toKey, keyInfo),
+            USymbolicArrayAllocatedToAllocatedCopyAdapter(fromKey, fromKey, toKey, keyInfo),
             guard
         )
 

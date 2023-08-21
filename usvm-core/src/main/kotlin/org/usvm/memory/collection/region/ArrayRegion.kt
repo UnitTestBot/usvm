@@ -14,7 +14,10 @@ import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UMemoryRegionId
 import org.usvm.memory.UWritableMemory
 import org.usvm.memory.collection.USymbolicCollection
-import org.usvm.memory.collection.adapter.USymbolicArrayCopyAdapter
+import org.usvm.memory.collection.adapter.USymbolicArrayAllocatedToAllocatedCopyAdapter
+import org.usvm.memory.collection.adapter.USymbolicArrayAllocatedToInputCopyAdapter
+import org.usvm.memory.collection.adapter.USymbolicArrayInputToAllocatedCopyAdapter
+import org.usvm.memory.collection.adapter.USymbolicArrayInputToInputCopyAdapter
 import org.usvm.memory.collection.id.UAllocatedArrayId
 import org.usvm.memory.collection.id.UInputArrayId
 import org.usvm.memory.collection.key.USizeExprKeyInfo
@@ -142,14 +145,16 @@ internal class UArrayMemoryRegion<ArrayType, Sort : USort>(
                     blockOnConcrete = { region, (dstRef, deepGuard) ->
                         val srcCollection = region.getAllocatedArray(type, elementSort, srcRef.address)
                         val dstCollection = region.getAllocatedArray(type, elementSort, dstRef.address)
-                        val adapter = USymbolicArrayCopyAdapter(fromSrcIdx, fromDstIdx, toDstIdx, USizeExprKeyInfo)
+                        val adapter = USymbolicArrayAllocatedToAllocatedCopyAdapter(
+                            fromSrcIdx, fromDstIdx, toDstIdx, USizeExprKeyInfo
+                        )
                         val newDstCollection = dstCollection.copyRange(srcCollection, adapter, deepGuard)
                         region.updateAllocatedArray(dstRef.address, newDstCollection)
                     },
                     blockOnSymbolic = { region, (dstRef, deepGuard) ->
                         val srcCollection = region.getAllocatedArray(type, elementSort, srcRef.address)
                         val dstCollection = region.getInputArray(type, elementSort)
-                        val adapter = USymbolicArrayCopyAdapter(
+                        val adapter = USymbolicArrayAllocatedToInputCopyAdapter(
                             fromSrcIdx,
                             dstRef to fromDstIdx,
                             dstRef to toDstIdx,
@@ -168,7 +173,7 @@ internal class UArrayMemoryRegion<ArrayType, Sort : USort>(
                     blockOnConcrete = { region, (dstRef, deepGuard) ->
                         val srcCollection = region.getInputArray(type, elementSort)
                         val dstCollection = region.getAllocatedArray(type, elementSort, dstRef.address)
-                        val adapter = USymbolicArrayCopyAdapter(
+                        val adapter = USymbolicArrayInputToAllocatedCopyAdapter(
                             srcRef to fromSrcIdx,
                             fromDstIdx,
                             toDstIdx,
@@ -180,7 +185,7 @@ internal class UArrayMemoryRegion<ArrayType, Sort : USort>(
                     blockOnSymbolic = { region, (dstRef, deepGuard) ->
                         val srcCollection = region.getInputArray(type, elementSort)
                         val dstCollection = region.getInputArray(type, elementSort)
-                        val adapter = USymbolicArrayCopyAdapter(
+                        val adapter = USymbolicArrayInputToInputCopyAdapter(
                             srcRef to fromSrcIdx,
                             dstRef to fromDstIdx,
                             dstRef to toDstIdx,

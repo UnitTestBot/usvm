@@ -22,7 +22,10 @@ import org.usvm.api.allocate
 import org.usvm.api.readArrayIndex
 import org.usvm.api.writeArrayIndex
 import org.usvm.memory.UMemory
+import org.usvm.memory.collection.adapter.USymbolicArrayAllocatedToAllocatedCopyAdapter
 import org.usvm.memory.collection.adapter.USymbolicArrayCopyAdapter
+import org.usvm.memory.collection.adapter.USymbolicArrayInputToAllocatedCopyAdapter
+import org.usvm.memory.collection.adapter.USymbolicArrayInputToInputCopyAdapter
 import org.usvm.memory.collection.id.UAllocatedArrayId
 import org.usvm.memory.collection.id.UInputArrayId
 import org.usvm.memory.collection.id.UInputArrayLengthId
@@ -172,7 +175,7 @@ class TranslationTest {
         val concreteRef = heap.allocate()
 
 
-        val adapter = USymbolicArrayCopyAdapter(
+        val adapter = USymbolicArrayInputToAllocatedCopyAdapter(
             ref1 to mkSizeExpr(0),
             mkSizeExpr(0),
             mkSizeExpr(5),
@@ -277,7 +280,7 @@ class TranslationTest {
             .write(ref2 to idx2, val2, trueExpr)
 
 
-        val adapter = USymbolicArrayCopyAdapter(
+        val adapter = USymbolicArrayInputToInputCopyAdapter(
             ref1 to mkSizeExpr(0),
             ref1 to mkSizeExpr(0),
             ref1 to mkSizeExpr(5),
@@ -370,7 +373,7 @@ class TranslationTest {
             .write(ref1 to idx1, val1, trueExpr)
             .write(ref2 to idx2, val2, trueExpr)
 
-        val adapter = USymbolicArrayCopyAdapter(
+        val adapter = USymbolicArrayInputToInputCopyAdapter(
             ref1 to mkSizeExpr(0),
             ref1 to mkSizeExpr(0),
             ref1 to mkSizeExpr(5),
@@ -411,7 +414,7 @@ class TranslationTest {
             .write(idx1, val1, trueExpr)
             .write(idx2, val2, trueExpr)
 
-        val adapter = USymbolicArrayCopyAdapter(
+        val adapter = USymbolicArrayAllocatedToAllocatedCopyAdapter(
             mkSizeExpr(0), mkSizeExpr(0), mkSizeExpr(5), USizeExprKeyInfo
         )
 

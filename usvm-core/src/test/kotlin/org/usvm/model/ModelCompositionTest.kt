@@ -15,6 +15,7 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UHeapRef
 import org.usvm.memory.collection.adapter.USymbolicArrayCopyAdapter
+import org.usvm.memory.collection.adapter.USymbolicArrayInputToAllocatedCopyAdapter
 import org.usvm.memory.collection.id.UAllocatedArrayId
 import org.usvm.memory.collection.id.UInputArrayId
 import org.usvm.memory.collection.id.UInputArrayLengthId
@@ -89,7 +90,7 @@ class ModelCompositionTest {
 
         val concreteRef = mkConcreteHeapRef(1)
 
-        val adapter = USymbolicArrayCopyAdapter(
+        val adapter = USymbolicArrayInputToAllocatedCopyAdapter(
             symbolicRef to mkSizeExpr(0),
             mkSizeExpr(0),
             mkSizeExpr(5),

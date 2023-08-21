@@ -319,7 +319,6 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
             val region = when (update) {
                 is UPinpointUpdateNode<Key, Sort> -> keyInfo.keyToRegion(update.key)
                 is URangedUpdateNode<*, *, Key, Sort> -> update.adapter.region()
-//                is UMergeUpdateNode<*, *, Key, *, *, Sort> -> fullRangeRegion()
             }
             splitRegionTree =
                 splitRegionTree.write(region, update, valueFilter = { it.isIncludedByUpdateConcretely(update) })

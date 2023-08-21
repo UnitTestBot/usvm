@@ -23,11 +23,11 @@ import org.usvm.memory.URangedUpdateNode
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.UReadOnlyRegistersStack
 import org.usvm.memory.UUpdateNode
-import org.usvm.memory.UWritableMemory
 import org.usvm.memory.collection.UFlatUpdates
 import org.usvm.memory.collection.USymbolicCollection
 import org.usvm.memory.collection.USymbolicCollectionUpdates
 import org.usvm.memory.collection.adapter.USymbolicArrayCopyAdapter
+import org.usvm.memory.collection.adapter.USymbolicArrayInputToInputCopyAdapter
 import org.usvm.memory.collection.id.UAllocatedArrayId
 import org.usvm.memory.collection.id.UInputArrayId
 import org.usvm.memory.collection.id.UInputArrayLengthId
@@ -562,7 +562,7 @@ internal class CompositionTest {
             .emptyRegion()
             .write(symbolicRef0 to mkBv(0), mkBv(42), trueExpr)
 
-        val adapter1 = USymbolicArrayCopyAdapter(
+        val adapter1 = USymbolicArrayInputToInputCopyAdapter(
             symbolicRef0 to mkSizeExpr(0),
             symbolicRef1 to mkSizeExpr(0),
             symbolicRef1 to mkSizeExpr(5),
@@ -572,7 +572,7 @@ internal class CompositionTest {
         val fromRegion1 = fromRegion0
             .copyRange(fromRegion0, adapter1, trueExpr)
 
-        val adapter2 = USymbolicArrayCopyAdapter(
+        val adapter2 = USymbolicArrayInputToInputCopyAdapter(
             symbolicRef1 to mkSizeExpr(0),
             symbolicRef2 to mkSizeExpr(0),
             symbolicRef2 to mkSizeExpr(5),

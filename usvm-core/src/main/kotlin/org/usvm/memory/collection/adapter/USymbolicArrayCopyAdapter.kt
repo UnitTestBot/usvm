@@ -4,7 +4,6 @@ import io.ksmt.utils.uncheckedCast
 import org.usvm.UBoolExpr
 import org.usvm.UComposer
 import org.usvm.UExpr
-import org.usvm.UHeapRef
 import org.usvm.USizeExpr
 import org.usvm.memory.UUpdateNode
 import org.usvm.memory.UWritableMemory
@@ -29,8 +28,8 @@ import org.usvm.util.Region
  * Do not be confused: it converts [DstKey] to [SrcKey] (not vice-versa), as we use it when we
  * read from destination buffer index to source memory.
  */
-class USymbolicArrayCopyAdapter<SrcKey, DstKey>(
-    private val srcFrom: SrcKey,
+abstract class USymbolicArrayCopyAdapter<SrcKey, DstKey>(
+    val srcFrom: SrcKey,
     val dstFrom: DstKey,
     val dstTo: DstKey,
     private val keyInfo: USymbolicCollectionKeyInfo<DstKey, *>
@@ -41,21 +40,17 @@ class USymbolicArrayCopyAdapter<SrcKey, DstKey>(
     override fun <Reg : Region<Reg>> region(): Reg =
         keyInfo.keyRangeRegion(dstFrom, dstTo).uncheckedCast()
 
-    private fun <Key> extractArrayIndex(value: Key): USizeExpr =
-        mapKeyType(value, index = { it }, symbolic = { it.second })
-
     /**
      * Converts source memory key into destination memory key
      */
-    override fun convert(key: DstKey): SrcKey =
-        mapKeyType(
-            key,
-            index = { convertIndex(it) },
-            symbolic = { it.first to convertIndex(it.second) }
-        ).uncheckedCast()
+    abstract override fun convert(key: DstKey): SrcKey
 
-    private fun convertIndex(idx: USizeExpr): USizeExpr = with(idx.ctx) {
-        mkBvSubExpr(mkBvAddExpr(idx, extractArrayIndex(dstFrom)), extractArrayIndex(srcFrom))
+    protected fun convertIndex(
+        idx: USizeExpr,
+        dstFromIdx: USizeExpr,
+        srcFromIdx: USizeExpr
+    ): USizeExpr = with(idx.ctx) {
+        mkBvSubExpr(mkBvAddExpr(idx, dstFromIdx), srcFromIdx)
     }
 
     override fun includesConcretely(key: DstKey): Boolean =
@@ -92,45 +87,59 @@ class USymbolicArrayCopyAdapter<SrcKey, DstKey>(
             return this as USymbolicCollectionAdapter<MappedSrcKey, MappedDstKey>
         }
 
-        return USymbolicArrayCopyAdapter(mappedSrcKey, mappedDstFrom, mappedDstTo, mappedKeyInfo)
+        return mapKeyType(
+            mappedSrcKey,
+            index = { allocatedSrcKey ->
+                mapKeyType(
+                    mappedDstFrom,
+                    index = { allocatedDstFrom ->
+                        USymbolicArrayAllocatedToAllocatedCopyAdapter(
+                            allocatedSrcKey,
+                            allocatedDstFrom,
+                            ensureIndexKey(dstTo),
+                            mappedKeyInfo.uncheckedCast()
+                        )
+                    },
+                    symbolic = { symbolicDstFrom ->
+                        USymbolicArrayAllocatedToInputCopyAdapter(
+                            allocatedSrcKey,
+                            symbolicDstFrom,
+                            ensureSymbolicKey(dstTo),
+                            mappedKeyInfo.uncheckedCast()
+                        )
+                    }
+                )
+            },
+            symbolic = { symbolicSrcKey ->
+                mapKeyType(
+                    mappedDstFrom,
+                    index = { allocatedDstFrom ->
+                        USymbolicArrayInputToAllocatedCopyAdapter(
+                            symbolicSrcKey,
+                            allocatedDstFrom,
+                            ensureIndexKey(dstTo),
+                            mappedKeyInfo.uncheckedCast()
+                        )
+                    },
+                    symbolic = { symbolicDstFrom ->
+                        USymbolicArrayInputToInputCopyAdapter(
+                            symbolicSrcKey,
+                            symbolicDstFrom,
+                            ensureSymbolicKey(dstTo),
+                            mappedKeyInfo.uncheckedCast()
+                        )
+                    }
+                )
+            }
+        ).uncheckedCast()
     }
 
-    override fun <Type> applyTo(
+    abstract override fun <Type> applyTo(
         memory: UWritableMemory<Type>,
         srcCollectionId: USymbolicCollectionId<SrcKey, *, *>,
         dstCollectionId: USymbolicCollectionId<DstKey, *, *>,
         guard: UBoolExpr
-    ) = with(guard.uctx) {
-        require(dstCollectionId is USymbolicArrayId<*, *, *, *>) { "Unexpected collection: $dstCollectionId" }
-
-        val (srcRef: UHeapRef, srcIdx: USizeExpr) = mapKeyType(
-            srcFrom,
-            index = {
-                check(srcCollectionId is UAllocatedArrayId<*, *>) {
-                    "Key $srcFrom is concrete by $srcCollectionId is not allocated"
-                }
-                mkConcreteHeapRef(srcCollectionId.address) to it
-            },
-            symbolic = { it }
-        )
-
-        val (dstRef: UHeapRef, dstFromIdx: USizeExpr, dstToIdx: USizeExpr) = mapKeyType(
-            dstFrom,
-            index = {
-                check(dstCollectionId is UAllocatedArrayId<*, *>) {
-                    "Key $dstFrom is concrete by $dstCollectionId is not allocated"
-                }
-                Triple(mkConcreteHeapRef(dstCollectionId.address), it, ensureIndexKey(dstTo))
-            },
-            symbolic = {
-                Triple(it.first, it.second, ensureSymbolicKey(dstTo).second)
-            }
-        )
-
-        memory.memcpy(
-            srcRef, dstRef, dstCollectionId.arrayType, dstCollectionId.sort, srcIdx, dstFromIdx, dstToIdx, guard
-        )
-    }
+    )
 
     private fun <Key> keyToString(key: Key) =
         mapKeyType(
@@ -159,5 +168,131 @@ class USymbolicArrayCopyAdapter<SrcKey, DstKey>(
 
         private fun <Key> ensureIndexKey(key: Key): USizeExpr =
             mapKeyType(key, index = { it }, symbolic = { error("Key type mismatch: $key") })
+    }
+}
+
+class USymbolicArrayAllocatedToAllocatedCopyAdapter(
+    srcFrom: USizeExpr, dstFrom: USizeExpr, dstTo: USizeExpr,
+    keyInfo: USymbolicCollectionKeyInfo<USizeExpr, *>
+) : USymbolicArrayCopyAdapter<USizeExpr, USizeExpr>(
+    srcFrom, dstFrom, dstTo, keyInfo
+) {
+    override fun convert(key: USizeExpr): USizeExpr =
+        convertIndex(key, dstFrom, srcFrom)
+
+    override fun <Type> applyTo(
+        memory: UWritableMemory<Type>,
+        srcCollectionId: USymbolicCollectionId<USizeExpr, *, *>,
+        dstCollectionId: USymbolicCollectionId<USizeExpr, *, *>,
+        guard: UBoolExpr
+    ) = with(guard.uctx) {
+        check(dstCollectionId is UAllocatedArrayId<*, *>) { "Unexpected collection: $dstCollectionId" }
+        check(srcCollectionId is UAllocatedArrayId<*, *>) { "Unexpected collection: $srcCollectionId" }
+
+        memory.memcpy(
+            srcRef = mkConcreteHeapRef(srcCollectionId.address),
+            dstRef = mkConcreteHeapRef(dstCollectionId.address),
+            type = dstCollectionId.arrayType,
+            elementSort = dstCollectionId.sort,
+            fromSrcIdx = srcFrom,
+            fromDstIdx = dstFrom,
+            toDstIdx = dstTo,
+            guard = guard
+        )
+    }
+}
+
+class USymbolicArrayAllocatedToInputCopyAdapter(
+    srcFrom: USizeExpr,
+    dstFrom: USymbolicArrayIndex, dstTo: USymbolicArrayIndex,
+    keyInfo: USymbolicCollectionKeyInfo<USymbolicArrayIndex, *>
+) : USymbolicArrayCopyAdapter<USizeExpr, USymbolicArrayIndex>(
+    srcFrom, dstFrom, dstTo, keyInfo
+) {
+    override fun convert(key: USymbolicArrayIndex): USizeExpr =
+        convertIndex(key.second, dstFrom.second, srcFrom)
+
+    override fun <Type> applyTo(
+        memory: UWritableMemory<Type>,
+        srcCollectionId: USymbolicCollectionId<USizeExpr, *, *>,
+        dstCollectionId: USymbolicCollectionId<USymbolicArrayIndex, *, *>,
+        guard: UBoolExpr
+    ) = with(guard.uctx) {
+        check(dstCollectionId is USymbolicArrayId<*, *, *, *>) { "Unexpected collection: $dstCollectionId" }
+        check(srcCollectionId is UAllocatedArrayId<*, *>) { "Unexpected collection: $srcCollectionId" }
+
+        memory.memcpy(
+            srcRef = mkConcreteHeapRef(srcCollectionId.address),
+            dstRef = dstFrom.first,
+            type = dstCollectionId.arrayType,
+            elementSort = dstCollectionId.sort,
+            fromSrcIdx = srcFrom,
+            fromDstIdx = dstFrom.second,
+            toDstIdx = dstTo.second,
+            guard = guard
+        )
+    }
+}
+
+class USymbolicArrayInputToAllocatedCopyAdapter(
+    srcFrom: USymbolicArrayIndex, dstFrom: USizeExpr, dstTo: USizeExpr,
+    keyInfo: USymbolicCollectionKeyInfo<USizeExpr, *>
+) : USymbolicArrayCopyAdapter<USymbolicArrayIndex, USizeExpr>(
+    srcFrom, dstFrom, dstTo, keyInfo
+) {
+    override fun convert(key: USizeExpr): USymbolicArrayIndex =
+        srcFrom.first to convertIndex(key, dstFrom, srcFrom.second)
+
+    override fun <Type> applyTo(
+        memory: UWritableMemory<Type>,
+        srcCollectionId: USymbolicCollectionId<USymbolicArrayIndex, *, *>,
+        dstCollectionId: USymbolicCollectionId<USizeExpr, *, *>,
+        guard: UBoolExpr
+    ) = with(guard.uctx) {
+        check(dstCollectionId is UAllocatedArrayId<*, *>) { "Unexpected collection: $dstCollectionId" }
+        check(srcCollectionId is USymbolicArrayId<*, *, *, *>) { "Unexpected collection: $srcCollectionId" }
+
+        memory.memcpy(
+            srcRef = srcFrom.first,
+            dstRef = mkConcreteHeapRef(dstCollectionId.address),
+            type = dstCollectionId.arrayType,
+            elementSort = dstCollectionId.sort,
+            fromSrcIdx = srcFrom.second,
+            fromDstIdx = dstFrom,
+            toDstIdx = dstTo,
+            guard = guard
+        )
+    }
+}
+
+class USymbolicArrayInputToInputCopyAdapter(
+    srcFrom: USymbolicArrayIndex,
+    dstFrom: USymbolicArrayIndex, dstTo: USymbolicArrayIndex,
+    keyInfo: USymbolicCollectionKeyInfo<USymbolicArrayIndex, *>
+) : USymbolicArrayCopyAdapter<USymbolicArrayIndex, USymbolicArrayIndex>(
+    srcFrom, dstFrom, dstTo, keyInfo
+) {
+    override fun convert(key: USymbolicArrayIndex): USymbolicArrayIndex =
+        srcFrom.first to convertIndex(key.second, dstFrom.second, srcFrom.second)
+
+    override fun <Type> applyTo(
+        memory: UWritableMemory<Type>,
+        srcCollectionId: USymbolicCollectionId<USymbolicArrayIndex, *, *>,
+        dstCollectionId: USymbolicCollectionId<USymbolicArrayIndex, *, *>,
+        guard: UBoolExpr
+    ) = with(guard.uctx) {
+        check(dstCollectionId is USymbolicArrayId<*, *, *, *>) { "Unexpected collection: $dstCollectionId" }
+        check(srcCollectionId is USymbolicArrayId<*, *, *, *>) { "Unexpected collection: $srcCollectionId" }
+
+        memory.memcpy(
+            srcRef = srcFrom.first,
+            dstRef = dstFrom.first,
+            type = dstCollectionId.arrayType,
+            elementSort = dstCollectionId.sort,
+            fromSrcIdx = srcFrom.second,
+            fromDstIdx = dstFrom.second,
+            toDstIdx = dstTo.second,
+            guard = guard
+        )
     }
 }
