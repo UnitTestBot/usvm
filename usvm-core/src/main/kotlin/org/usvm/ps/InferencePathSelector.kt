@@ -3,13 +3,11 @@ package org.usvm.ps
 import ai.onnxruntime.OnnxTensor
 import ai.onnxruntime.OrtEnvironment
 import ai.onnxruntime.OrtSession
-import org.usvm.Algorithm
-import org.usvm.Postprocessing
-import org.usvm.MainConfig
-import org.usvm.UState
+import org.usvm.*
 import org.usvm.statistics.*
 import org.usvm.util.RandomizedPriorityCollection
 import java.io.File
+import java.lang.UnsupportedOperationException
 import java.nio.FloatBuffer
 import java.nio.LongBuffer
 import java.text.DecimalFormat
@@ -18,13 +16,13 @@ import kotlin.math.exp
 import kotlin.math.max
 import kotlin.random.Random
 
-internal open class InferencePathSelector<State : UState<*, *, Method, Statement>, Statement, Method> (
-    pathsTreeStatistics: PathsTreeStatistics<Method, Statement, State>,
+internal open class InferencePathSelector<State : UState<*, *, Method, Statement, *, State>, Statement, Method> (
+    pathsTreeRoot: PathsTrieNode<State, Statement>,
     private val coverageStatistics: CoverageStatistics<Method, Statement, State>,
     distanceStatistics: DistanceStatistics<Method, Statement>,
     private val applicationGraph: ApplicationGraph<Method, Statement>
 ) : BfsWithLoggingPathSelector<State, Statement, Method>(
-    pathsTreeStatistics,
+    pathsTreeRoot,
     coverageStatistics,
     distanceStatistics,
     applicationGraph
@@ -32,17 +30,18 @@ internal open class InferencePathSelector<State : UState<*, *, Method, Statement
     private var outputValues = listOf<Float>()
     private var chosenStateId = 0
     private val random = Random(java.time.LocalDateTime.now().nano)
+    private val gnnFeaturesList = mutableListOf<List<List<Float>>>()
 
-    private fun <State : UState<*, *, *, *>> compareById(): Comparator<State> = compareBy { it.id }
+    private fun <State : UState<*, *, *, *, *, State>> compareById(): Comparator<State> = compareBy { it.id }
     private val forkDepthRandomPathSelector = WeightedPathSelector<State, Double>(
         { RandomizedPriorityCollection(compareById()) { random.nextDouble() } },
-        { 1.0 / max(pathsTreeStatistics.getStateDepth(it).toDouble(), 1.0) }
+        { 1.0 / max(it.pathLocation.depth.toDouble(), 1.0) }
     )
 
     companion object {
         private val actorModelPath = Path(MainConfig.gameEnvPath, "actor_model.onnx").toString()
         private val gnnModelPath = Path(MainConfig.gameEnvPath, "gnn_model.onnx").toString()
-        private var env: OrtEnvironment? = null
+        private var env: OrtEnvironment = OrtEnvironment.getEnvironment()
         private var actorSession: OrtSession? = null
         private var gnnSession: OrtSession? = null
     }
@@ -57,78 +56,21 @@ internal open class InferencePathSelector<State : UState<*, *, Method, Statement
             return 0.0f
         }
         return coverageStatistics.getUncoveredStatements().map { it.second }.toSet()
-            .intersect(state.path.toSet()).size.toFloat()
+            .intersect(state.reversedPath.asSequence().toSet()).size.toFloat()
     }
 
-    override fun getNodeName(node: PathsTreeNode<State>, id: Int): String {
-        val state = node.state
-        if (state === null) {
-            return super.getNodeName(node, id)
+    override fun getNodeName(node: PathsTrieNode<State, Statement>, id: Int): String {
+        val statement = try {
+            node.statement
+        } catch (e: UnsupportedOperationException) {
+            "No Statement"
         }
-        val stateId = queue.indexOf(state)
-        if (stateId == -1) {
-            return super.getNodeName(node, id)
+        var name = "\"$id: $statement"
+        node.states.forEach { state ->
+            name += ", ${DecimalFormat("0.00E0").format(outputValues.getOrElse(queue.indexOf(state)) { -1.0f })}"
         }
-        return "\"$id: ${DecimalFormat("0.00E0").format(outputValues.getOrElse(stateId) { -1.0f })}, " +
-                "${state.currentStatement}\""
-    }
-
-    private fun stateFeaturesToFloatList(stateFeatures: StateFeatures): List<Float> {
-        return listOf(
-            stateFeatures.logPredecessorsCount,
-            stateFeatures.logSuccessorsCount,
-            stateFeatures.logCalleesCount,
-            stateFeatures.logLogicalConstraintsLength,
-            stateFeatures.logStateTreeDepth,
-            stateFeatures.logStatementRepetitionLocal,
-            stateFeatures.logStatementRepetitionGlobal,
-            stateFeatures.logDistanceToUncovered,
-            stateFeatures.logLastNewDistance,
-            stateFeatures.logPathCoverage,
-            stateFeatures.logDistanceToBlockEnd,
-            stateFeatures.logDistanceToExit,
-            stateFeatures.logForkCount,
-            stateFeatures.logStatementFinishCount,
-            stateFeatures.logForkCountToExit,
-            stateFeatures.logMinForkCountToExit,
-            stateFeatures.logSubpathCount2,
-            stateFeatures.logSubpathCount4,
-            stateFeatures.logSubpathCount8,
-            stateFeatures.logReward,
-        )
-    }
-
-    private fun globalStateFeaturesToFloatList(globalStateFeatures: GlobalStateFeatures): List<Float> {
-        return listOf(
-            globalStateFeatures.averageLogLogicalConstraintsLength,
-            globalStateFeatures.averageLogStateTreeDepth,
-            globalStateFeatures.averageLogStatementRepetitionLocal,
-            globalStateFeatures.averageLogStatementRepetitionGlobal,
-            globalStateFeatures.averageLogDistanceToUncovered,
-            globalStateFeatures.averageLogLastNewDistance,
-            globalStateFeatures.averageLogPathCoverage,
-            globalStateFeatures.averageLogDistanceToBlockEnd,
-            globalStateFeatures.averageLogSubpathCount2,
-            globalStateFeatures.averageLogSubpathCount4,
-            globalStateFeatures.averageLogSubpathCount8,
-            globalStateFeatures.averageLogReward,
-            globalStateFeatures.logFinishedStatesCount,
-            globalStateFeatures.finishedStatesFraction,
-            globalStateFeatures.visitedStatesFraction,
-            globalStateFeatures.totalCoverage,
-        )
-    }
-
-    private fun blockFeaturesToList(blockFeatures: BlockFeatures): List<Float> {
-        return listOf(
-            blockFeatures.logLength,
-            blockFeatures.logPredecessorsCount,
-            blockFeatures.logSuccessorsCount,
-            blockFeatures.logTotalCalleesCount,
-            blockFeatures.logForkCountToExit,
-            blockFeatures.logMinForkCountToExit,
-            blockFeatures.isCovered,
-        )
+        name += "\""
+        return name
     }
 
     private fun chooseRandomId(probabilities: Collection<Float>): Int {
@@ -144,8 +86,11 @@ internal open class InferencePathSelector<State : UState<*, *, Method, Statement
     }
 
     private fun runGnn(): List<List<Float>> {
+        if (gnnFeaturesList.size == graphFeaturesList.size) {
+            return gnnFeaturesList.last()
+        }
         if (gnnSession === null) {
-            gnnSession = env!!.createSession(gnnModelPath, OrtSession.SessionOptions())
+            gnnSession = env.createSession(gnnModelPath, OrtSession.SessionOptions())
         }
         val graphFeatures = graphFeaturesList.last().map { blockFeaturesToList(it) }
         val graphEdges = blockGraph.getEdges().toList()
@@ -173,6 +118,7 @@ internal open class InferencePathSelector<State : UState<*, *, Method, Statement
         val output = (result.get("output").get().value as Array<*>).map {
             (it as FloatArray).toList()
         }
+        gnnFeaturesList.add(output)
         return output
     }
 
@@ -213,19 +159,17 @@ internal open class InferencePathSelector<State : UState<*, *, Method, Statement
     }
 
     private fun peekWithOnnxRuntime(stateFeatureQueue: List<StateFeatures>?,
-                                    globalStateFeatures: GlobalStateFeatures?): State {
+                                    globalStateFeatures: GlobalStateFeatures?,
+                                    graphFeatures: List<List<Float>>): State {
         if (stateFeatureQueue == null || globalStateFeatures == null) {
             throw IllegalArgumentException("No features")
         }
-        if (env === null || actorSession === null) {
-            env = OrtEnvironment.getEnvironment()
-            actorSession = env!!.createSession(actorModelPath, OrtSession.SessionOptions())
+        if (actorSession === null) {
+            actorSession = env.createSession(actorModelPath, OrtSession.SessionOptions())
         }
-        val globalFeaturesList = globalStateFeaturesToFloatList(globalStateFeatures)
-        val graphFeatures = if (MainConfig.useGnn) runGnn() else listOf()
         val blockFeaturesCount = graphFeatures.firstOrNull()?.size ?: 0
         val allFeaturesListFull = stateFeatureQueue.zip(queue).map { (stateFeatures, state) ->
-            stateFeaturesToFloatList(stateFeatures) + globalFeaturesList +
+            stateFeaturesToFloatList(stateFeatures) + globalStateFeaturesToFloatList(globalStateFeatures) +
             (blockGraph.getBlock(state.currentStatement!!)?.id?.let { graphFeatures.getOrNull(it) }
                 ?: List(blockFeaturesCount) { 0.0f })
         }
@@ -233,11 +177,18 @@ internal open class InferencePathSelector<State : UState<*, *, Method, Statement
         return queue[chosenStateId]
     }
 
+    override fun getAllFeatures(stateFeatures: StateFeatures, actionData: ActionData, blockId: Int): List<Float> {
+        val gnnFeaturesCount = gnnFeaturesList.firstOrNull()?.first()?.size ?: 0
+        val gnnFeatures = gnnFeaturesList.getOrNull(actionData.graphId)?.getOrNull(blockId)
+            ?: List(gnnFeaturesCount) { 0.0f }
+        return super.getAllFeatures(stateFeatures, actionData, blockId) + gnnFeatures
+    }
+
     override fun peek(): State {
-        val stateFeatureQueue = getStateFeatureQueue()
-        val globalStateFeatures = getGlobalStateFeatures(stateFeatureQueue)
+        val (stateFeatureQueue, globalStateFeatures) = beforePeek()
+        val graphFeatures = if (MainConfig.useGnn) runGnn() else listOf()
         val state = if (File(actorModelPath).isFile) {
-            peekWithOnnxRuntime(stateFeatureQueue, globalStateFeatures)
+            peekWithOnnxRuntime(stateFeatureQueue, globalStateFeatures, graphFeatures)
         } else if (MainConfig.defaultAlgorithm == Algorithm.BFS) {
             queue.first()
         } else {

@@ -171,7 +171,10 @@ fun aggregate() {
         return
     }
     val bigJson = buildJsonObject {
-        put("scheme", jsons.first().jsonObject.getValue("json").jsonObject.getValue("scheme"))
+        put("stateScheme", jsons.first().jsonObject
+            .getValue("json").jsonObject.getValue("stateScheme"))
+        put("trajectoryScheme", jsons.first().jsonObject
+            .getValue("json").jsonObject.getValue("trajectoryScheme"))
         putJsonArray("paths") {
             jsons.forEach {
                 addJsonArray {
@@ -179,8 +182,10 @@ fun aggregate() {
                     add(it.jsonObject.getValue("json").jsonObject.getValue("path"))
                     add(it.jsonObject.getValue("methodName"))
                     add(it.jsonObject.getValue("json").jsonObject.getValue("statementsCount"))
-                    add(it.jsonObject.getValue("json").jsonObject.getValue("graphFeatures"))
-                    add(it.jsonObject.getValue("json").jsonObject.getValue("graphEdges"))
+                    if (MainConfig.logGraphFeatures) {
+                        add(it.jsonObject.getValue("json").jsonObject.getValue("graphFeatures"))
+                        add(it.jsonObject.getValue("json").jsonObject.getValue("graphEdges"))
+                    }
                     add(it.jsonObject.getValue("json").jsonObject.getValue("probabilities"))
                 }
             }
@@ -222,6 +227,12 @@ fun updateConfig(options: JsonObject) {
         JsonPrimitive(MainConfig.solverTimeLimit)) as JsonPrimitive).content.toInt()
     MainConfig.maxConcurrency = (options.getOrDefault("maxConcurrency",
         JsonPrimitive(MainConfig.maxConcurrency)) as JsonPrimitive).content.toInt()
+    MainConfig.graphUpdate = GraphUpdate.valueOf((options.getOrDefault("graphUpdate",
+        JsonPrimitive(MainConfig.graphUpdate.name)) as JsonPrimitive).content)
+    MainConfig.logGraphFeatures = (options.getOrDefault("logGraphFeatures",
+        JsonPrimitive(MainConfig.logGraphFeatures)) as JsonPrimitive).content.toBoolean()
+    MainConfig.gnnFeaturesCount = (options.getOrDefault("gnnFeaturesCount",
+        JsonPrimitive(MainConfig.gnnFeaturesCount)) as JsonPrimitive).content.toInt()
 
     println("OPTIONS:")
     println("  SAMPLES PATH: ${MainConfig.samplesPath}")
@@ -237,11 +248,13 @@ fun updateConfig(options: JsonObject) {
     println("  HARD TIME LIMIT: ${MainConfig.hardTimeLimit}ms")
     println("  SOLVER TIME LIMIT: ${MainConfig.solverTimeLimit}ms")
     println("  MAX CONCURRENCY: ${MainConfig.maxConcurrency}")
+    println("  GRAPH UPDATE: ${MainConfig.graphUpdate}")
+    println("  LOG GRAPH FEATURES: ${MainConfig.logGraphFeatures}")
+    println("  GNN FEATURES COUNT: ${MainConfig.gnnFeaturesCount}")
     println()
 }
 
 fun main(args: Array<String>) {
-//    val cls = classLoader.loadClass("${path}.${file.nameWithoutExtension}"
     val options = args.getOrNull(0)?.let { File(it) }?.readText()?.let {
         Json.decodeFromString<JsonObject>(it)
     }

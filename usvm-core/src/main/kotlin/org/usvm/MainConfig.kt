@@ -3,7 +3,7 @@ package org.usvm
 enum class Postprocessing {
     Argmax,
     Softmax,
-    None
+    None,
 }
 
 enum class Mode {
@@ -14,14 +14,19 @@ enum class Mode {
 
 enum class Algorithm {
     BFS,
-    ForkDepthRandom
+    ForkDepthRandom,
+}
+
+enum class GraphUpdate {
+    Once,
+    TestGeneration,
 }
 
 object MainConfig {
-    var samplesPath: String = "../Game_env/usvm-jvm/src/samples/java"
-    var gameEnvPath: String = "../Game_env"
-    var dataPath: String = "../Data"
-    var defaultAlgorithm: Algorithm = Algorithm.BFS
+    var samplesPath = "../Game_env/usvm-jvm/src/samples/java"
+    var gameEnvPath = "../Game_env"
+    var dataPath = "../Data"
+    var defaultAlgorithm = Algorithm.BFS
     var postprocessing = Postprocessing.Argmax
     var mode = Mode.Both
     var inputShape = listOf<Long>(1, -1, 34)
@@ -31,4 +36,7 @@ object MainConfig {
     var hardTimeLimit = 30000 // in ms
     var solverTimeLimit = 10000 // in ms
     var maxConcurrency = 64
+    var graphUpdate = GraphUpdate.Once
+    var logGraphFeatures = false
+    var gnnFeaturesCount = 8
 }
