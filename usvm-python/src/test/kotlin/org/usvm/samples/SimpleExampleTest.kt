@@ -195,4 +195,9 @@ class SimpleExampleTest : PythonTestRunnerForPrimitiveProgram("SimpleExample") {
     fun testRange5() {
         testRange("range_5")
     }
+
+    @Test
+    fun testRange6() {
+        testRange("range_6")
+    }
 }

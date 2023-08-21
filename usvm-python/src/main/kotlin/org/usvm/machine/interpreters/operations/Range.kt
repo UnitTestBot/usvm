@@ -15,6 +15,7 @@ fun handlerCreateRangeKt(
 ): UninterpretedSymbolicPythonObject? {
     if (ctx.curState == null)
         return null
+    myFork(ctx, ctx.ctx.mkEq(step.getIntContent(ctx), ctx.ctx.mkIntNum(0)))
     return constructRange(ctx, start.getIntContent(ctx), stop.getIntContent(ctx), step.getIntContent(ctx))
 }
 

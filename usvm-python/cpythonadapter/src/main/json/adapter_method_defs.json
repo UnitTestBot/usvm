@@ -60,6 +60,18 @@
     "default_value": "Py_None"
   },
   {
+    "c_name": "create_tuple",
+    "nargs": 1,
+    "c_arg_types": ["PyObject **"],
+    "c_return_type": "PyObject *",
+    "java_arg_types": ["jobjectArray"],
+    "java_return_type": "jobject",
+    "argument_converters": ["array_converter"],
+    "result_converter": "object_wrapper",
+    "fail_value": "0",
+    "default_value": "Py_None"
+  },
+  {
     "c_name": "gt_long",
     "nargs": 2,
     "c_arg_types": ["PyObject *", "PyObject *"],
@@ -277,6 +289,30 @@
   },
   {
     "c_name": "list_iterator_next",
+    "nargs": 1,
+    "c_arg_types": ["PyObject *"],
+    "c_return_type": "PyObject *",
+    "java_arg_types": ["jobject"],
+    "java_return_type": "jobject",
+    "argument_converters": ["object_converter"],
+    "result_converter": "object_wrapper",
+    "fail_value": "0",
+    "default_value": "Py_None"
+  },
+  {
+    "c_name": "tuple_iter",
+    "nargs": 1,
+    "c_arg_types": ["PyObject *"],
+    "c_return_type": "PyObject *",
+    "java_arg_types": ["jobject"],
+    "java_return_type": "jobject",
+    "argument_converters": ["object_converter"],
+    "result_converter": "object_wrapper",
+    "fail_value": "0",
+    "default_value": "Py_None"
+  },
+  {
+    "c_name": "tuple_iterator_next",
     "nargs": 1,
     "c_arg_types": ["PyObject *"],
     "c_return_type": "PyObject *",

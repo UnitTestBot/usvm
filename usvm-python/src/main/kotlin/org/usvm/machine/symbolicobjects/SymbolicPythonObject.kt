@@ -159,6 +159,34 @@ class UninterpretedSymbolicPythonObject(
         return listRef to index
     }
 
+    fun setTupleIteratorContent(ctx: ConcolicRunContext, tuple: UninterpretedSymbolicPythonObject) = with(ctx.ctx) {
+        require(ctx.curState != null)
+        addSupertype(ctx, typeSystem.pythonTupleIteratorType)
+        val tupleLValue = UFieldLValue(addressSort, address, TupleIteratorContents.tuple)
+        ctx.curState!!.memory.write(tupleLValue, tuple.address)
+        val indexLValue = UFieldLValue(intSort, address, TupleIteratorContents.index)
+        ctx.curState!!.memory.write(indexLValue, mkIntNum(0))
+    }
+
+    fun getTupleIteratorContent(ctx: ConcolicRunContext): Pair<UHeapRef, UExpr<KIntSort>> = with(ctx.ctx) {
+        require(ctx.curState != null)
+        addSupertype(ctx, typeSystem.pythonTupleIteratorType)
+        @Suppress("unchecked_cast")
+        val tupleRef = ctx.curState!!.memory.read(UFieldLValue(addressSort, address, TupleIteratorContents.tuple)) as UHeapRef
+        @Suppress("unchecked_cast")
+        val index = ctx.curState!!.memory.read(UFieldLValue(intSort, address, TupleIteratorContents.index)) as UExpr<KIntSort>
+        return tupleRef to index
+    }
+
+    fun increaseTupleIteratorCounter(ctx: ConcolicRunContext) = with(ctx.ctx) {
+        require(ctx.curState != null)
+        addSupertype(ctx, typeSystem.pythonTupleIteratorType)
+        val indexLValue = UFieldLValue(intSort, address, TupleIteratorContents.index)
+        @Suppress("unchecked_cast")
+        val oldIndexValue = ctx.curState!!.memory.read(indexLValue) as UExpr<KIntSort>
+        ctx.curState!!.memory.write(indexLValue, mkArithAdd(oldIndexValue, mkIntNum(1)))
+    }
+
     fun setRangeContent(
         ctx: ConcolicRunContext,
         start: UExpr<KIntSort>,

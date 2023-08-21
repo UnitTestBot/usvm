@@ -17,8 +17,8 @@ fun <RES_SORT: KSort> createBinaryIntOp(
         null
     else with (concolicContext.ctx) {
         val typeSystem = concolicContext.typeSystem
-        myAssert(concolicContext, left.evalIs(concolicContext, typeSystem.pythonInt) or left.evalIs(concolicContext, typeSystem.pythonBool))
-        myAssert(concolicContext, right.evalIs(concolicContext, typeSystem.pythonInt) or right.evalIs(concolicContext, typeSystem.pythonBool))
+        myAssert(concolicContext, left.evalIsSoft(concolicContext, typeSystem.pythonInt) or left.evalIsSoft(concolicContext, typeSystem.pythonBool))
+        myAssert(concolicContext, right.evalIsSoft(concolicContext, typeSystem.pythonInt) or right.evalIsSoft(concolicContext, typeSystem.pythonBool))
         op(
             concolicContext.ctx,
             left.getToIntContent(concolicContext) ?: return@with null,
