@@ -10,18 +10,8 @@ import org.usvm.language.types.PythonType
 import java.util.stream.Stream
 import kotlin.streams.asSequence
 
-fun handlerCreateListKt(context: ConcolicRunContext, elements: Stream<UninterpretedSymbolicPythonObject>): UninterpretedSymbolicPythonObject? {
-    if (context.curState == null)
-        return null
-    val addresses = elements.map { it!!.address }.asSequence()
-    val typeSystem = context.typeSystem
-    with (context.ctx) {
-        val listAddress = context.curState!!.memory.malloc(typeSystem.pythonList, addressSort, addresses)
-        val result = UninterpretedSymbolicPythonObject(listAddress, typeSystem)
-        myAssert(context, context.curState!!.pathConstraints.typeConstraints.evalIsSubtype(listAddress, typeSystem.pythonList))
-        return result
-    }
-}
+fun handlerCreateListKt(context: ConcolicRunContext, elements: Stream<UninterpretedSymbolicPythonObject>): UninterpretedSymbolicPythonObject? =
+    createIterable(context, elements.asSequence().toList(), context.typeSystem.pythonList)
 
 fun handlerListGetSizeKt(context: ConcolicRunContext, list: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
     if (context.curState == null)

@@ -22,10 +22,9 @@ private fun buildSampleRunConfig(): RunConfig {
     val (program, typeSystem) = constructPrimitiveProgram(
         """ 
         def f(x):
-            cnt = 0
-            for _ in range(0, x, 5):
-               cnt += 1
-            assert cnt == 3
+            t = 1, x
+            a, b = t
+            assert a == b
 
         """.trimIndent()
     )
@@ -38,7 +37,7 @@ private fun buildSampleRunConfig(): RunConfig {
 }
 
 private fun buildProjectRunConfig(): RunConfig {
-    val projectPath = "/home/tochilinak/Documents/projects/utbot/Python/dynamic_programming"
+    val projectPath = "/home/tochilinak/Documents/projects/utbot/Python/divide_and_conquer"
     val mypyRoot = "/home/tochilinak/Documents/projects/utbot/mypy_tmp"
     val files = getPythonFilesFromRoot(projectPath)
     val modules = getModulesFromFiles(projectPath, files)
@@ -47,7 +46,7 @@ private fun buildProjectRunConfig(): RunConfig {
     val mypyBuild = readMypyInfoBuild(mypyDir)
     val program = StructuredPythonProgram(setOf(File(projectPath)))
     val typeSystem = PythonTypeSystemWithMypyInfo(mypyBuild, program)
-    val ignoreFunctions = emptyList<String>() // listOf("minimum_cost_path")
+    val ignoreFunctions = emptyList<String>()
     val functions = modules.flatMap { module ->
         runCatching {
             withAdditionalPaths(program.roots, typeSystem) {

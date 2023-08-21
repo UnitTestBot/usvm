@@ -27,3 +27,8 @@ object RangeIteratorContents {
     val step = ContentOfType("step_of_range_iterator")
     val length = ContentOfType("length_of_range_iterator")
 }
+
+object TupleIteratorContents {
+    val tuple = ContentOfType("tuple_of_tuple_iterator")
+    val index = ContentOfType("index_of_tuple_iterator")
+}

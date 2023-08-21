@@ -114,3 +114,10 @@ def range_5(x: int):
     for _ in range(0, x, 5):
         cnt += 1
     assert cnt == 3
+
+
+def range_6(x: int):
+    cnt = 0
+    for _ in range(0, 5, x):
+        cnt += 1
+    assert cnt == 0
