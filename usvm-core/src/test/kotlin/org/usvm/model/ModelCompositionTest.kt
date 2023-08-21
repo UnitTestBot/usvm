@@ -36,7 +36,7 @@ class ModelCompositionTest {
 
     @BeforeEach
     fun initializeContext() {
-        val components: UComponents<*, *, *> = mockk()
+        val components: UComponents<*> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
         ctx = UContext(components)
         concreteNull = ctx.mkConcreteHeapRef(NULL_ADDRESS)

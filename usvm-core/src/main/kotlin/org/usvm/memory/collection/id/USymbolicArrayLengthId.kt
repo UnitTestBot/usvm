@@ -16,7 +16,7 @@ import org.usvm.memory.UWritableMemory
 import org.usvm.memory.collection.UFlatUpdates
 import org.usvm.memory.collection.USymbolicCollection
 import org.usvm.memory.collection.key.UHeapRefKeyInfo
-import org.usvm.memory.collection.key.UNoKeyInfo
+import org.usvm.memory.collection.key.USingleKeyInfo
 import org.usvm.memory.collection.key.USymbolicCollectionKeyInfo
 import org.usvm.memory.collection.region.UArrayLengthRef
 
@@ -54,7 +54,7 @@ data class UAllocatedArrayLengthId<ArrayType> internal constructor(
     override fun <Type> map(composer: UComposer<Type>): UAllocatedArrayLengthId<ArrayType> =
         error("This should not be called")
 
-    override fun keyInfo(): USymbolicCollectionKeyInfo<Unit, *> = UNoKeyInfo
+    override fun keyInfo(): USymbolicCollectionKeyInfo<Unit, *> = USingleKeyInfo
 
     override fun instantiate(
         collection: USymbolicCollection<UAllocatedArrayLengthId<ArrayType>, Unit, USizeSort>,

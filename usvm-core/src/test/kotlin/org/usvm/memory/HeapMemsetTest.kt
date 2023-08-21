@@ -13,6 +13,8 @@ import org.usvm.api.allocateArrayInitialized
 import org.usvm.api.memset
 import org.usvm.api.readArrayIndex
 import org.usvm.api.readArrayLength
+import org.usvm.constraints.UEqualityConstraints
+import org.usvm.constraints.UTypeConstraints
 import org.usvm.sampleUValue
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -26,10 +28,12 @@ class HeapMemsetTest {
 
     @BeforeEach
     fun initializeContext() {
-        val components: UComponents<*, *, *> = mockk()
+        val components: UComponents<Type> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
         ctx = UContext(components)
-        heap = UMemory(ctx, mockk())
+        val eqConstraints = UEqualityConstraints(ctx)
+        val typeConstraints = UTypeConstraints(components.mkTypeSystem(ctx), eqConstraints)
+        heap = UMemory(ctx, typeConstraints)
         arrayType = mockk<Type>()
         arrayValueSort = ctx.addressSort
     }

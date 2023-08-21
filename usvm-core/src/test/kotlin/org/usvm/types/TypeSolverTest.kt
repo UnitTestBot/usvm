@@ -53,7 +53,7 @@ import kotlin.test.assertTrue
 
 class TypeSolverTest {
     private val typeSystem = testTypeSystem
-    private val components = mockk<UComponents<Field, TestType, Method>>()
+    private val components = mockk<UComponents<TestType>>()
     private val ctx = UContext(components)
     private val solver: USolverBase<TestType, UContext>
     private val typeSolver: UTypeSolver<TestType>

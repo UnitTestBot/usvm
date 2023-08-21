@@ -6,7 +6,7 @@ import org.usvm.USizeExpr
 import org.usvm.USort
 import org.usvm.UState
 
-class MockApi<Type, State : UState<Type, *, *, *, *, State>>(private val state: State) {
+class MockApi<Type, State : UState<Type, *, *, *, State>>(private val state: State) {
 
     fun <T : USort> makeSymbolicPrimitive(sort: T): UExpr<T> {
 //        check(sort != state.ctx.addressSort) { "$sort is not primitive" }

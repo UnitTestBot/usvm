@@ -17,7 +17,7 @@ import org.usvm.solver.UTypeSolver
 class JcComponents(
     private val typeSystem: JcTypeSystem,
     private val solverType: SolverType
-) : UComponents<JcField, JcType, JcMethod> {
+) : UComponents<JcType> {
     private val closeableResources = mutableListOf<AutoCloseable>()
     override fun <Context : UContext> mkSolver(ctx: Context): USolverBase<JcType, Context> {
         val (translator, decoder) = buildTranslatorAndLazyDecoder<JcType>(ctx)

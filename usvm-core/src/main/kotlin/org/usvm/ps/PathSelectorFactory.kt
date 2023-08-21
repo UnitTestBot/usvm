@@ -12,7 +12,7 @@ import org.usvm.util.RandomizedPriorityCollection
 import kotlin.math.max
 import kotlin.random.Random
 
-fun <Method, Statement, State : UState<*, *, Method, Statement, *, State>> createPathSelector(
+fun <Method, Statement, State : UState<*, Method, Statement, *, State>> createPathSelector(
     initialState: State,
     options: UMachineOptions,
     coverageStatistics: () -> CoverageStatistics<Method, Statement, State>? = { null },
@@ -87,16 +87,16 @@ fun <Method, Statement, State : UState<*, *, Method, Statement, *, State>> creat
 /**
  * Wraps the selector into an [ExceptionPropagationPathSelector] if [propagateExceptions] is true.
  */
-private fun <State : UState<*, *, *, *, *, State>> UPathSelector<State>.wrapIfRequired(propagateExceptions: Boolean) =
+private fun <State : UState<*, *, *, *, State>> UPathSelector<State>.wrapIfRequired(propagateExceptions: Boolean) =
     if (propagateExceptions && this !is ExceptionPropagationPathSelector<State>) {
         ExceptionPropagationPathSelector(this)
     } else {
         this
     }
 
-private fun <State : UState<*, *, *, *, *, State>> compareById(): Comparator<State> = compareBy { it.id }
+private fun <State : UState<*, *, *, *, State>> compareById(): Comparator<State> = compareBy { it.id }
 
-private fun <State : UState<*, *, *, *, *, State>> createDepthPathSelector(random: Random? = null): UPathSelector<State> {
+private fun <State : UState<*, *, *, *, State>> createDepthPathSelector(random: Random? = null): UPathSelector<State> {
     if (random == null) {
         return WeightedPathSelector(
             priorityCollectionFactory = { DeterministicPriorityCollection(Comparator.naturalOrder()) },
@@ -111,7 +111,7 @@ private fun <State : UState<*, *, *, *, *, State>> createDepthPathSelector(rando
     )
 }
 
-private fun <Method, Statement, State : UState<*, *, Method, Statement, *, State>> createClosestToUncoveredPathSelector(
+private fun <Method, Statement, State : UState<*, Method, Statement, *, State>> createClosestToUncoveredPathSelector(
     coverageStatistics: CoverageStatistics<Method, Statement, State>,
     distanceStatistics: DistanceStatistics<Method, Statement>,
     random: Random? = null,
@@ -137,7 +137,7 @@ private fun <Method, Statement, State : UState<*, *, Method, Statement, *, State
     )
 }
 
-private fun <Method, Statement, State : UState<*, *, Method, Statement, *, State>> createForkDepthPathSelector(
+private fun <Method, Statement, State : UState<*, Method, Statement, *, State>> createForkDepthPathSelector(
     random: Random? = null,
 ): UPathSelector<State> {
     if (random == null) {

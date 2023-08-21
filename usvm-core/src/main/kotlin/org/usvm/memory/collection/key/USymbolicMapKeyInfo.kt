@@ -1,6 +1,7 @@
 package org.usvm.memory.collection.key
 
 import org.usvm.UBoolExpr
+import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
@@ -16,17 +17,19 @@ typealias USymbolicMapKeyRegion<KeyReg> = ProductRegion<UHeapRefRegion, KeyReg>
 class USymbolicMapKeyInfo<KeySort: USort, KeyReg: Region<KeyReg>>(
     val keyInfo: USymbolicCollectionKeyInfo<UExpr<KeySort>, KeyReg>
 ): USymbolicCollectionKeyInfo<USymbolicMapKey<KeySort>, USymbolicMapKeyRegion<KeyReg>> {
-    override fun eqSymbolic(key1: USymbolicMapKey<KeySort>, key2: USymbolicMapKey<KeySort>): UBoolExpr =
-        with(key1.first.ctx) {
-            UHeapRefKeyInfo.eqSymbolic(key1.first, key2.first) and keyInfo.eqSymbolic(key1.second, key2.second)
+    override fun eqSymbolic(ctx: UContext, key1: USymbolicMapKey<KeySort>, key2: USymbolicMapKey<KeySort>): UBoolExpr =
+        with(ctx) {
+            UHeapRefKeyInfo.eqSymbolic(ctx, key1.first, key2.first) and
+                    keyInfo.eqSymbolic(ctx, key1.second, key2.second)
         }
 
     override fun eqConcrete(key1: USymbolicMapKey<KeySort>, key2: USymbolicMapKey<KeySort>): Boolean =
         UHeapRefKeyInfo.eqConcrete(key1.first, key2.first) && keyInfo.eqConcrete(key1.second, key2.second)
 
-    override fun cmpSymbolic(key1: USymbolicMapKey<KeySort>, key2: USymbolicMapKey<KeySort>): UBoolExpr =
-        with(key1.first.ctx) {
-            UHeapRefKeyInfo.eqSymbolic(key1.first, key2.first) and keyInfo.cmpSymbolic(key1.second, key2.second)
+    override fun cmpSymbolic(ctx: UContext, key1: USymbolicMapKey<KeySort>, key2: USymbolicMapKey<KeySort>): UBoolExpr =
+        with(ctx) {
+            UHeapRefKeyInfo.eqSymbolic(ctx, key1.first, key2.first) and
+                    keyInfo.cmpSymbolic(ctx, key1.second, key2.second)
         }
 
     override fun cmpConcrete(key1: USymbolicMapKey<KeySort>, key2: USymbolicMapKey<KeySort>): Boolean =

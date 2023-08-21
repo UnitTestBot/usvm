@@ -173,7 +173,7 @@ internal class RandomTreePathSelectorTests {
     }
 
     companion object {
-        private fun <State : UState<*, *, *, Statement, *, State>, Statement> registerLocationsInTree(
+        private fun <State : UState<*, *, Statement, *, State>, Statement> registerLocationsInTree(
             root: PathsTrieNode<State, Statement>,
             selector: RandomTreePathSelector<State, Statement>,
         ) {

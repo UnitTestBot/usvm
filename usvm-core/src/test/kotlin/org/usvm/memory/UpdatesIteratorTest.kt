@@ -21,7 +21,7 @@ class UpdatesIteratorTest {
     private lateinit var ctx: UContext
     @BeforeEach
     fun initializeContext() {
-        val components: UComponents<*, *, *> = mockk()
+        val components: UComponents<*> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
         ctx = UContext(components)
     }
@@ -39,7 +39,8 @@ class UpdatesIteratorTest {
                     }
 
                 override fun eqConcrete(key1: Int, key2: Int): Boolean = key1 == key2
-                override fun eqSymbolic(key1: Int, key2: Int): UBoolExpr = mkEq(key1.toBv(), key2.toBv())
+                override fun eqSymbolic(ctx: UContext, key1: Int, key2: Int): UBoolExpr =
+                    ctx.mkEq(key1.toBv(), key2.toBv())
             }
 
             val treeUpdates = UTreeUpdates<Int, SetRegion<Int>, UBv32Sort>(

@@ -11,6 +11,7 @@ import org.usvm.memory.collection.USymbolicCollection
 import org.usvm.memory.collection.adapter.USymbolicCollectionAdapter
 import org.usvm.memory.collection.id.USymbolicCollectionId
 import org.usvm.memory.collection.key.USymbolicCollectionKeyInfo
+import org.usvm.uctx
 import java.util.*
 
 /**
@@ -93,7 +94,7 @@ class UPinpointUpdateNode<Key, Sort : USort>(
     // in fact, we can check less strict formulae: `precondition -> guard`, but it is too complex to compute.
 
     override fun includesSymbolically(key: Key): UBoolExpr =
-        guard.ctx.mkAnd(keyInfo.eqSymbolic(this.key, key), guard)
+        guard.ctx.mkAnd(keyInfo.eqSymbolic(guard.uctx, this.key, key), guard)
 
     override fun isIncludedByUpdateConcretely(
         update: UUpdateNode<Key, Sort>,

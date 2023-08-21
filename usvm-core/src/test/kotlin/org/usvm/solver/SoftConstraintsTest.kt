@@ -28,7 +28,7 @@ open class SoftConstraintsTest<Field> {
 
     @BeforeEach
     fun initialize() {
-        val components: UComponents<*, *, *> = mockk()
+        val components: UComponents<Type> = mockk()
         every { components.mkTypeSystem(any()) } returns SingleTypeSystem
 
         ctx = UContext(components)

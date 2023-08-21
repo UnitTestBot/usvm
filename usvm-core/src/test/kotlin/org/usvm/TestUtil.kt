@@ -31,7 +31,7 @@ internal class TestState(
     callStack: UCallStack<String, Int>, pathConstraints: UPathConstraints<Any, UContext>,
     memory: UMemory<Any, String>, models: List<UModelBase<Any>>,
     pathLocation: PathsTrieNode<TestState, Int>,
-) : UState<Any, Any, String, Int, UContext, TestState>(ctx, callStack, pathConstraints, memory, models, pathLocation) {
+) : UState<Any, String, Int, UContext, TestState>(ctx, callStack, pathConstraints, memory, models, pathLocation) {
     override fun clone(newConstraints: UPathConstraints<Any, UContext>?): TestState = this
 
     override val isExceptional = false
@@ -39,9 +39,9 @@ internal class TestState(
 
 interface TestKeyInfo<T, Reg : Region<Reg>> : USymbolicCollectionKeyInfo<T, Reg> {
     override fun keyToRegion(key: T): Reg = shouldNotBeCalled()
-    override fun eqSymbolic(key1: T, key2: T): UBoolExpr = shouldNotBeCalled()
+    override fun eqSymbolic(ctx: UContext, key1: T, key2: T): UBoolExpr = shouldNotBeCalled()
     override fun eqConcrete(key1: T, key2: T): Boolean = shouldNotBeCalled()
-    override fun cmpSymbolic(key1: T, key2: T): UBoolExpr = shouldNotBeCalled()
+    override fun cmpSymbolic(ctx: UContext, key1: T, key2: T): UBoolExpr = shouldNotBeCalled()
     override fun cmpConcrete(key1: T, key2: T): Boolean = shouldNotBeCalled()
     override fun keyRangeRegion(from: T, to: T): Reg = shouldNotBeCalled()
     override fun topRegion(): Reg = shouldNotBeCalled()

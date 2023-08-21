@@ -7,7 +7,7 @@ interface UMerger<Entity> {
     fun merge(left: Entity, right: Entity): Entity?
 }
 
-open class UStateMerger<State : UState<*, *, *, *, *, State>> : UMerger<State> {
+open class UStateMerger<State : UState<*, *, *, *, State>> : UMerger<State> {
     // Never merge for now
     override fun merge(left: State, right: State) = null
 }

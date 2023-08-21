@@ -20,7 +20,7 @@ import java.util.IdentityHashMap
  * @param randomNonNegativeInt function returning non negative random integer used to select the next child in tree.
  * @param ignoreToken token to visit only the subtree of not removed states. Should be different for different consumers.
  */
-internal class RandomTreePathSelector<State : UState<*, *, *, Statement, *, State>, Statement>(
+internal class RandomTreePathSelector<State : UState<*, *, Statement, *, State>, Statement>(
     private val root: PathsTrieNode<State, Statement>,
     private val randomNonNegativeInt: () -> Int,
     private val ignoreToken: Long = 0,

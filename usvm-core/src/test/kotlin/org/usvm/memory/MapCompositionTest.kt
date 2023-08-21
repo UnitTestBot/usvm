@@ -24,9 +24,6 @@ import org.usvm.memory.collection.UTreeUpdates
 import org.usvm.memory.collection.adapter.USymbolicArrayAllocatedToAllocatedCopyAdapter
 import org.usvm.memory.collection.adapter.USymbolicArrayCopyAdapter
 import org.usvm.memory.collection.id.UAllocatedArrayId
-import org.usvm.memory.collection.key.USymbolicCollectionKeyInfo
-import org.usvm.shouldNotBeCalled
-import org.usvm.util.Region
 import org.usvm.util.SetRegion
 import org.usvm.util.emptyRegionTree
 import kotlin.test.assertFalse
@@ -35,13 +32,13 @@ import kotlin.test.assertNotSame
 import kotlin.test.assertNull
 import kotlin.test.assertSame
 
-class MapCompositionTest<Field, Type> {
+class MapCompositionTest<Type> {
     private lateinit var ctx: UContext
     private lateinit var composer: UComposer<Type>
 
     @BeforeEach
     fun initializeContext() {
-        val components: UComponents<*, *, *> = mockk()
+        val components: UComponents<Type> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
         ctx = UContext(components)
         composer = mockk()
@@ -53,7 +50,7 @@ class MapCompositionTest<Field, Type> {
         val symbolicAddr = addressSort.mkConst("addr")
         val value = bv32Sort.mkConst("value")
 
-        val keyInfo = object : USymbolicCollectionKeyInfo<UHeapRef, SetRegion<UHeapRef>> {
+        val keyInfo = object : TestKeyInfo<UHeapRef, SetRegion<UHeapRef>> {
             override fun keyToRegion(key: UHeapRef): SetRegion<UHeapRef> {
                 val singleRegion: SetRegion<KExpr<UAddressSort>> = SetRegion.singleton(concreteAddr)
                 return if (key == symbolicAddr) {
@@ -64,17 +61,6 @@ class MapCompositionTest<Field, Type> {
                     singleRegion
                 }
             }
-
-            override fun topRegion(): SetRegion<UHeapRef> = SetRegion.universe()
-
-            override fun eqSymbolic(key1: UHeapRef, key2: UHeapRef): UBoolExpr = error("Should not be called")
-            override fun eqConcrete(key1: UHeapRef, key2: UHeapRef): Boolean = error("Should not be called")
-            override fun cmpSymbolic(key1: UHeapRef, key2: UHeapRef): UBoolExpr = error("Should not be called")
-            override fun cmpConcrete(key1: UHeapRef, key2: UHeapRef): Boolean = error("Should not be called")
-            override fun keyRangeRegion(from: UHeapRef, to: UHeapRef): SetRegion<UHeapRef> =
-                error("Should not be called")
-
-            override fun bottomRegion(): SetRegion<UHeapRef> = error("Should not be called")
         }
 
         val updatesToCompose = UTreeUpdates<UHeapRef, SetRegion<UHeapRef>, UBv32Sort>(
@@ -157,7 +143,7 @@ class MapCompositionTest<Field, Type> {
         val guard = boolSort.mkConst("guard")
 
         val keyInfo = object : TestKeyInfo<UHeapRef, SetRegion<UHeapRef>> {
-            override fun eqSymbolic(key1: UHeapRef, key2: UHeapRef): UBoolExpr = key1 eq key2
+            override fun eqSymbolic(ctx: UContext, key1: UHeapRef, key2: UHeapRef): UBoolExpr = key1 eq key2
         }
 
         val updateNode = UPinpointUpdateNode(key, keyInfo, value, guard)
@@ -178,7 +164,7 @@ class MapCompositionTest<Field, Type> {
         val guard = boolSort.mkConst("guard")
 
         val keyInfo = object : TestKeyInfo<UHeapRef, SetRegion<UHeapRef>> {
-            override fun eqSymbolic(key1: UHeapRef, key2: UHeapRef): UBoolExpr = key1 eq key2
+            override fun eqSymbolic(ctx: UContext, key1: UHeapRef, key2: UHeapRef): UBoolExpr = key1 eq key2
         }
 
         val updateNode = UPinpointUpdateNode(key, keyInfo, value, guard)

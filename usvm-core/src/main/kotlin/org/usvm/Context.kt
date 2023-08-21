@@ -26,7 +26,7 @@ import org.usvm.types.UTypeSystem
 
 @Suppress("LeakingThis")
 open class UContext(
-    components: UComponents<*, *, *>,
+    components: UComponents<*>,
     operationMode: OperationMode = OperationMode.CONCURRENT,
     astManagementMode: AstManagementMode = AstManagementMode.GC,
     simplificationMode: SimplificationMode = SimplificationMode.SIMPLIFY,
@@ -45,7 +45,7 @@ open class UContext(
     }
 
     @Suppress("UNCHECKED_CAST")
-    fun <Field, Type, Method, Context : UContext> solver(): USolverBase<Type, Context> =
+    fun <Type, Context : UContext> solver(): USolverBase<Type, Context> =
         this.solver as USolverBase<Type, Context>
 
     @Suppress("UNCHECKED_CAST")
@@ -235,7 +235,7 @@ open class UContext(
     // Type hack to be able to intern the initial location for inheritors.
     private val initialLocation = RootNode<Nothing, Nothing>()
 
-    fun <State : UState<*, *, *, Statement, *, State>, Statement> mkInitialLocation()
+    fun <State : UState<*, *, Statement, *, State>, Statement> mkInitialLocation()
         : PathsTrieNode<State, Statement> = initialLocation.uncheckedCast()
 
     fun mkUValueSampler(): KSortVisitor<KExpr<*>> {

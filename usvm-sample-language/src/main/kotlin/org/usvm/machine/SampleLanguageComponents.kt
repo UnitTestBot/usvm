@@ -17,7 +17,7 @@ import org.usvm.solver.UTypeSolver
 class SampleLanguageComponents(
     private val typeSystem: SampleTypeSystem,
     private val solverType: SolverType
-) : UComponents<Field<*>, SampleType, Method<*>> {
+) : UComponents<SampleType> {
     override fun <Context : UContext> mkSolver(ctx: Context): USolverBase<SampleType, Context> {
         val (translator, decoder) = buildTranslatorAndLazyDecoder<SampleType>(ctx)
         val softConstraintsProvider = USoftConstraintsProvider<Field<*>, SampleType>(ctx)

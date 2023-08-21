@@ -3,6 +3,7 @@ package org.usvm.memory.collection.adapter
 import io.ksmt.utils.uncheckedCast
 import org.usvm.UBoolExpr
 import org.usvm.UComposer
+import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.USizeExpr
 import org.usvm.memory.UUpdateNode
@@ -37,6 +38,8 @@ abstract class USymbolicArrayCopyAdapter<SrcKey, DstKey>(
 
     override val srcKey = srcFrom
 
+    abstract val ctx: UContext
+
     override fun <Reg : Region<Reg>> region(): Reg =
         keyInfo.keyRangeRegion(dstFrom, dstTo).uncheckedCast()
 
@@ -49,7 +52,7 @@ abstract class USymbolicArrayCopyAdapter<SrcKey, DstKey>(
         idx: USizeExpr,
         dstFromIdx: USizeExpr,
         srcFromIdx: USizeExpr
-    ): USizeExpr = with(idx.ctx) {
+    ): USizeExpr = with(ctx) {
         mkBvSubExpr(mkBvAddExpr(idx, dstFromIdx), srcFromIdx)
     }
 
@@ -57,8 +60,8 @@ abstract class USymbolicArrayCopyAdapter<SrcKey, DstKey>(
         keyInfo.cmpConcrete(dstFrom, key) && keyInfo.cmpConcrete(key, dstTo)
 
     override fun includesSymbolically(key: DstKey): UBoolExpr {
-        val leftIsLefter = keyInfo.cmpSymbolic(dstFrom, key)
-        val rightIsRighter = keyInfo.cmpSymbolic(key, dstTo)
+        val leftIsLefter = keyInfo.cmpSymbolic(ctx, dstFrom, key)
+        val rightIsRighter = keyInfo.cmpSymbolic(ctx, key, dstTo)
         val ctx = leftIsLefter.ctx
 
         return ctx.mkAnd(leftIsLefter, rightIsRighter)
@@ -177,6 +180,9 @@ class USymbolicArrayAllocatedToAllocatedCopyAdapter(
 ) : USymbolicArrayCopyAdapter<USizeExpr, USizeExpr>(
     srcFrom, dstFrom, dstTo, keyInfo
 ) {
+    override val ctx: UContext
+        get() = srcFrom.uctx
+
     override fun convert(key: USizeExpr): USizeExpr =
         convertIndex(key, dstFrom, srcFrom)
 
@@ -185,7 +191,7 @@ class USymbolicArrayAllocatedToAllocatedCopyAdapter(
         srcCollectionId: USymbolicCollectionId<USizeExpr, *, *>,
         dstCollectionId: USymbolicCollectionId<USizeExpr, *, *>,
         guard: UBoolExpr
-    ) = with(guard.uctx) {
+    ) = with(ctx) {
         check(dstCollectionId is UAllocatedArrayId<*, *>) { "Unexpected collection: $dstCollectionId" }
         check(srcCollectionId is UAllocatedArrayId<*, *>) { "Unexpected collection: $srcCollectionId" }
 
@@ -209,6 +215,9 @@ class USymbolicArrayAllocatedToInputCopyAdapter(
 ) : USymbolicArrayCopyAdapter<USizeExpr, USymbolicArrayIndex>(
     srcFrom, dstFrom, dstTo, keyInfo
 ) {
+    override val ctx: UContext
+        get() = srcFrom.uctx
+
     override fun convert(key: USymbolicArrayIndex): USizeExpr =
         convertIndex(key.second, dstFrom.second, srcFrom)
 
@@ -217,7 +226,7 @@ class USymbolicArrayAllocatedToInputCopyAdapter(
         srcCollectionId: USymbolicCollectionId<USizeExpr, *, *>,
         dstCollectionId: USymbolicCollectionId<USymbolicArrayIndex, *, *>,
         guard: UBoolExpr
-    ) = with(guard.uctx) {
+    ) = with(ctx) {
         check(dstCollectionId is USymbolicArrayId<*, *, *, *>) { "Unexpected collection: $dstCollectionId" }
         check(srcCollectionId is UAllocatedArrayId<*, *>) { "Unexpected collection: $srcCollectionId" }
 
@@ -240,6 +249,9 @@ class USymbolicArrayInputToAllocatedCopyAdapter(
 ) : USymbolicArrayCopyAdapter<USymbolicArrayIndex, USizeExpr>(
     srcFrom, dstFrom, dstTo, keyInfo
 ) {
+    override val ctx: UContext
+        get() = dstFrom.uctx
+
     override fun convert(key: USizeExpr): USymbolicArrayIndex =
         srcFrom.first to convertIndex(key, dstFrom, srcFrom.second)
 
@@ -248,7 +260,7 @@ class USymbolicArrayInputToAllocatedCopyAdapter(
         srcCollectionId: USymbolicCollectionId<USymbolicArrayIndex, *, *>,
         dstCollectionId: USymbolicCollectionId<USizeExpr, *, *>,
         guard: UBoolExpr
-    ) = with(guard.uctx) {
+    ) = with(ctx) {
         check(dstCollectionId is UAllocatedArrayId<*, *>) { "Unexpected collection: $dstCollectionId" }
         check(srcCollectionId is USymbolicArrayId<*, *, *, *>) { "Unexpected collection: $srcCollectionId" }
 
@@ -272,6 +284,9 @@ class USymbolicArrayInputToInputCopyAdapter(
 ) : USymbolicArrayCopyAdapter<USymbolicArrayIndex, USymbolicArrayIndex>(
     srcFrom, dstFrom, dstTo, keyInfo
 ) {
+    override val ctx: UContext
+        get() = srcFrom.second.uctx
+
     override fun convert(key: USymbolicArrayIndex): USymbolicArrayIndex =
         srcFrom.first to convertIndex(key.second, dstFrom.second, srcFrom.second)
 
@@ -280,7 +295,7 @@ class USymbolicArrayInputToInputCopyAdapter(
         srcCollectionId: USymbolicCollectionId<USymbolicArrayIndex, *, *>,
         dstCollectionId: USymbolicCollectionId<USymbolicArrayIndex, *, *>,
         guard: UBoolExpr
-    ) = with(guard.uctx) {
+    ) = with(ctx) {
         check(dstCollectionId is USymbolicArrayId<*, *, *, *>) { "Unexpected collection: $dstCollectionId" }
         check(srcCollectionId is USymbolicArrayId<*, *, *, *>) { "Unexpected collection: $srcCollectionId" }
 

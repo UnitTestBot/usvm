@@ -10,7 +10,7 @@ import org.usvm.solver.UUnsatResult
 
 typealias StateId = UInt
 
-abstract class UState<Type, Field, Method, Statement, Context : UContext, State : UState<Type, Field, Method, Statement, Context, State>>(
+abstract class UState<Type, Method, Statement, Context : UContext, State : UState<Type, Method, Statement, Context, State>>(
     // TODO: add interpreter-specific information
     ctx: UContext,
     open val callStack: UCallStack<Method, Statement>,
@@ -54,7 +54,7 @@ abstract class UState<Type, Field, Method, Statement, Context : UContext, State 
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
 
-        other as UState<*, *, *, *, *, *>
+        other as UState<*, *, *, *, *>
 
         return id == other.id
     }
@@ -96,7 +96,7 @@ private const val OriginalState = false
  * forked state.
  *
  */
-private fun <T : UState<Type, Field, *, *, Context, T>, Type, Field, Context : UContext> forkIfSat(
+private fun <T : UState<Type, *, *, Context, T>, Type, Context : UContext> forkIfSat(
     state: T,
     newConstraintToOriginalState: UBoolExpr,
     newConstraintToForkedState: UBoolExpr,
@@ -110,7 +110,7 @@ private fun <T : UState<Type, Field, *, *, Context, T>, Type, Field, Context : U
     } else {
         newConstraintToOriginalState
     }
-    val solver = newConstraintToForkedState.uctx.solver<Field, Type, Any?, Context>()
+    val solver = newConstraintToForkedState.uctx.solver<Type, Context>()
     val satResult = solver.checkWithSoftConstraints(constraintsToCheck)
 
     return when (satResult) {
@@ -156,7 +156,7 @@ private fun <T : UState<Type, Field, *, *, Context, T>, Type, Field, Context : U
  * 2. makes not more than one query to USolver;
  * 3. if both [condition] and ![condition] are satisfiable, then [ForkResult.positiveState] === [state].
  */
-fun <T : UState<Type, Field, *, *, Context, T>, Type, Field, Context : UContext> fork(
+fun <T : UState<Type, *, *, Context, T>, Type, Context : UContext> fork(
     state: T,
     condition: UBoolExpr,
 ): ForkResult<T> {
@@ -217,7 +217,7 @@ fun <T : UState<Type, Field, *, *, Context, T>, Type, Field, Context : UContext>
  * @return a list of states for each condition - `null` state
  * means [UUnknownResult] or [UUnsatResult] of checking condition.
  */
-fun <T : UState<Type, Field, *, *, Context, T>, Type, Field, Context : UContext> forkMulti(
+fun <T : UState<Type, *, *, Context, T>, Type, Context : UContext> forkMulti(
     state: T,
     conditions: Iterable<UBoolExpr>,
 ): List<T?> {

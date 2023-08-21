@@ -47,7 +47,7 @@ import org.usvm.machine.state.throwExceptionAndDropStackFrame
 import org.usvm.machine.state.throwExceptionWithoutStackFrameDrop
 import org.usvm.solver.USatResult
 
-typealias JcStepScope = StepScope<JcState, JcType, JcField, JcContext>
+typealias JcStepScope = StepScope<JcState, JcType, JcContext>
 
 /**
  * A JacoDB interpreter.

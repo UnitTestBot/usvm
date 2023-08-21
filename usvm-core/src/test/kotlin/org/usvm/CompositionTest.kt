@@ -55,7 +55,7 @@ internal class CompositionTest {
 
     @BeforeEach
     fun initializeContext() {
-        val components: UComponents<*, *, *> = mockk()
+        val components: UComponents<*> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
 
         ctx = UContext(components)
@@ -226,7 +226,7 @@ internal class CompositionTest {
         val sndResultValue = 2.toBv()
 
         val keyInfo = object : TestKeyInfo<UHeapRef, SetRegion<UHeapRef>> {
-            override fun eqSymbolic(key1: UHeapRef, key2: UHeapRef): UBoolExpr = key1 eq key2
+            override fun eqSymbolic(ctx: UContext, key1: UHeapRef, key2: UHeapRef): UBoolExpr = key1 eq key2
         }
 
         val updates = UFlatUpdates<UHeapRef, USizeSort>(keyInfo)
@@ -275,7 +275,7 @@ internal class CompositionTest {
 
         val keyInfo = object : TestKeyInfo<USymbolicArrayIndex, SetRegion<USymbolicArrayIndex>> {
             override fun cmpConcrete(key1: USymbolicArrayIndex, key2: USymbolicArrayIndex): Boolean = key1 == key2
-            override fun eqSymbolic(key1: USymbolicArrayIndex, key2: USymbolicArrayIndex): UBoolExpr =
+            override fun eqSymbolic(ctx: UContext, key1: USymbolicArrayIndex, key2: USymbolicArrayIndex): UBoolExpr =
                 keyEqualityComparer(key1, key2)
         }
 
@@ -327,13 +327,13 @@ internal class CompositionTest {
         // create a reading from the region
         val fstArrayIndexReading = mkInputArrayReading(region, fstAddress, fstIndex)
 
-        val sndMemory = UMemory<KClass<*>, Any>(ctx, mockk())
+        val sndMemory = UMemory<KClass<*>, Any>(ctx, mockk(), mockk())
         // create a heap with a record: (sndAddress, sndIndex) = 2
         sndMemory.writeArrayIndex(sndAddress, sndIndex, arrayType, mkBv32Sort(), 2.toBv(), mkTrue())
 
         val sndComposer = UComposer(ctx, sndMemory)
 
-        val fstMemory = UMemory<KClass<*>, Any>(ctx, mockk())
+        val fstMemory = UMemory<KClass<*>, Any>(ctx, mockk(), mockk())
         // create a heap with a record: (fstAddress, fstIndex) = 1
         fstMemory.writeArrayIndex(fstAddress, fstIndex, arrayType, mkBv32Sort(), 1.toBv(), mkTrue())
 
@@ -373,7 +373,7 @@ internal class CompositionTest {
         val sndSymbolicIndex = mockk<USizeExpr>()
 
         val keyInfo = object : TestKeyInfo<USizeExpr, SetRegion<USizeExpr>> {
-            override fun eqSymbolic(key1: USizeExpr, key2: USizeExpr): UBoolExpr = key1 eq key2
+            override fun eqSymbolic(ctx: UContext, key1: USizeExpr, key2: USizeExpr): UBoolExpr = key1 eq key2
         }
 
         val updates = UFlatUpdates<USizeExpr, UBv32Sort>(keyInfo)
@@ -455,7 +455,7 @@ internal class CompositionTest {
         val bAddress = mockk<USymbolicHeapRef>()
 
         val keyInfo = object : TestKeyInfo<UHeapRef, SetRegion<UHeapRef>> {
-            override fun eqSymbolic(key1: UHeapRef, key2: UHeapRef): UBoolExpr =
+            override fun eqSymbolic(ctx: UContext, key1: UHeapRef, key2: UHeapRef): UBoolExpr =
                 (key1 == key2).expr
         }
 
@@ -535,7 +535,7 @@ internal class CompositionTest {
         val symbolicRef2 = mkRegisterReading(2, addressSort) as UHeapRef
         val composedSymbolicHeapRef = ctx.mkConcreteHeapRef(1)
 
-        val baseMemory = UMemory<Type, Any>(ctx, mockk())
+        val baseMemory = UMemory<Type, Any>(ctx, mockk(), mockk())
 
         baseMemory.writeArrayIndex(composedSymbolicHeapRef, mkBv(3), arrayType, bv32Sort, mkBv(1337), trueExpr)
 

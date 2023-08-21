@@ -23,7 +23,6 @@ import org.usvm.api.readArrayIndex
 import org.usvm.api.writeArrayIndex
 import org.usvm.memory.UMemory
 import org.usvm.memory.collection.adapter.USymbolicArrayAllocatedToAllocatedCopyAdapter
-import org.usvm.memory.collection.adapter.USymbolicArrayCopyAdapter
 import org.usvm.memory.collection.adapter.USymbolicArrayInputToAllocatedCopyAdapter
 import org.usvm.memory.collection.adapter.USymbolicArrayInputToInputCopyAdapter
 import org.usvm.memory.collection.id.UAllocatedArrayId
@@ -45,9 +44,10 @@ class TranslationTest {
     private lateinit var valueArrayDescr: Type
     private lateinit var addressArrayDescr: Type
 
-    class RecordingCtx(components: UComponents<*, *, *>) : UContext(components) {
+    class RecordingCtx(components: UComponents<Type>) : UContext(components) {
         var storeCallCounter = 0
             private set
+
         override fun <D : KSort, R : KSort> mkArrayStore(
             array: KExpr<KArraySort<D, R>>,
             index: KExpr<D>,
@@ -60,7 +60,7 @@ class TranslationTest {
 
     @BeforeEach
     fun initializeContext() {
-        val components: UComponents<*, *, *> = mockk()
+        val components: UComponents<Type> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
 
         ctx = RecordingCtx(components)
