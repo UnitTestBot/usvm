@@ -1,17 +1,16 @@
 package org.usvm.samples.invokes
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
+import org.usvm.util.disableTest
 import org.usvm.util.isException
 
 
 internal class InvokeExampleTest : JavaMethodTestRunner() {
-    @Test
-    @Disabled("Expected exactly 3 executions, but 2 found: Disjunction in if statement covered by only one execution")
-    fun testSimpleFormula() {
+    @Test // todo: Disjunction in if statement covered by only one execution
+    fun testSimpleFormula() = disableTest("Expected exactly 3 executions, but 2 found") {
         checkDiscoveredProperties(
             InvokeExample::simpleFormula,
             eq(3),

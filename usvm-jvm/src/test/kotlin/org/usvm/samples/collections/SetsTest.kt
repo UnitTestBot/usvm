@@ -1,17 +1,16 @@
 package org.usvm.samples.collections
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.between
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ge
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
+import org.usvm.util.disableTest
 
 internal class SetsTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [2]")
-    fun createTest() {
+    fun createTest() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
         checkDiscoveredProperties(
             Sets::create,
             eq(3),
@@ -22,8 +21,7 @@ internal class SetsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sort mismatch at io.ksmt.utils.ContextUtilsKt.asExpr")
-    fun testSetContainsInteger() {
+    fun testSetContainsInteger() = disableTest("Some properties were not discovered at positions (from 0): [1, 3]") {
         checkDiscoveredProperties(
             Sets::setContainsInteger,
             ignoreNumberOfAnalysisResults,
@@ -35,8 +33,7 @@ internal class SetsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sort mismatch at io.ksmt.utils.ContextUtilsKt.asExpr")
-    fun testSetContains() {
+    fun testSetContains() = disableTest("Expected exactly -1 executions, but 1666 found") {
         checkDiscoveredProperties(
             Sets::setContains,
             eq(-1),
@@ -44,8 +41,7 @@ internal class SetsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sort mismatch at io.ksmt.utils.ContextUtilsKt.asExpr")
-    fun testSimpleContains() {
+    fun testSimpleContains() = disableTest("Solver timeout") {
         checkDiscoveredProperties(
             Sets::simpleContains,
             ignoreNumberOfAnalysisResults,
@@ -56,8 +52,7 @@ internal class SetsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly -1 executions, but 93 found")
-    fun testMoreComplicatedContains() {
+    fun testMoreComplicatedContains() = disableTest("Expected exactly -1 executions, but 93 found") {
         checkDiscoveredProperties(
             Sets::moreComplicatedContains, // TODO how many branches do we have?
             eq(-1),
@@ -66,8 +61,7 @@ internal class SetsTest : JavaMethodTestRunner() {
 
 
     @Test
-    @Disabled("Solver timeout")
-    fun testFindAllChars() {
+    fun testFindAllChars() = disableTest("Solver timeout") {
         checkDiscoveredProperties(
             Sets::findAllChars,
             eq(3),
@@ -78,8 +72,7 @@ internal class SetsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1, 2, 3, 4]")
-    fun testRemoveSpace() {
+    fun testRemoveSpace() = disableTest("Some properties were not discovered at positions (from 0): [1, 2, 3, 4]") {
         val resultFun = { set: Set<Char> -> listOf(' ', '\t', '\r', '\n').intersect(set).size }
         checkDiscoveredProperties(
             Sets::removeSpace,
@@ -97,8 +90,7 @@ internal class SetsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [3, 4]")
-    fun addElementsTest() {
+    fun addElementsTest() = disableTest("Some properties were not discovered at positions (from 0): [3, 4]") {
         checkDiscoveredProperties(
             Sets::addElements,
             ge(5),
@@ -113,8 +105,7 @@ internal class SetsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [2, 3, 4, 5]")
-    fun removeElementsTest() {
+    fun removeElementsTest() = disableTest("Some properties were not discovered at positions (from 0): [2, 3, 4, 5]") {
         checkDiscoveredProperties(
             Sets::removeElements,
             between(6..8),
@@ -139,8 +130,7 @@ internal class SetsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [2, 3]")
-    fun removeCustomObjectTest() {
+    fun removeCustomObjectTest() = disableTest("Some properties were not discovered at positions (from 0): [3]") {
         checkDiscoveredProperties(
             Sets::removeCustomObject,
             ge(4),
@@ -152,8 +142,7 @@ internal class SetsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [3, 4]")
-    fun testAddAllElements() {
+    fun testAddAllElements() = disableTest("Some properties were not discovered at positions (from 0): [3, 4]") {
         checkDiscoveredProperties(
             Sets::addAllElements,
             ignoreNumberOfAnalysisResults,
@@ -167,8 +156,7 @@ internal class SetsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Slow")
-    fun testRemoveAllElements() {
+    fun testRemoveAllElements() = disableTest("Some properties were not discovered at positions (from 0): [3]") {
         checkDiscoveredProperties(
             Sets::removeAllElements,
             eq(4),
@@ -183,8 +171,7 @@ internal class SetsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [3]")
-    fun testRetainAllElements() {
+    fun testRetainAllElements() = disableTest("Some properties were not discovered at positions (from 0): [3]") {
         checkDiscoveredProperties(
             Sets::retainAllElements,
             ge(4),
@@ -196,8 +183,7 @@ internal class SetsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [3, 4]")
-    fun testContainsAllElements() {
+    fun testContainsAllElements() = disableTest("Some properties were not discovered at positions (from 0): [3, 4]") {
         checkDiscoveredProperties(
             Sets::containsAllElements,
             ge(5),
@@ -211,8 +197,7 @@ internal class SetsTest : JavaMethodTestRunner() {
 
 
     @Test
-    @Disabled("Expected exactly 3 executions, but 13 found")
-    fun testClearElements() {
+    fun testClearElements() = disableTest("Expected exactly 3 executions, but 13 found") {
         checkDiscoveredProperties(
             Sets::clearElements,
             eq(3),
@@ -224,8 +209,7 @@ internal class SetsTest : JavaMethodTestRunner() {
 
 
     @Test
-    @Disabled("java.lang.IllegalAccessException: java.lang.Class at org.usvm.api.util.Reflection.allocateInstance")
-    fun testContainsElement() {
+    fun testContainsElement() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
         checkDiscoveredProperties(
             Sets::containsElement,
             between(3..5),

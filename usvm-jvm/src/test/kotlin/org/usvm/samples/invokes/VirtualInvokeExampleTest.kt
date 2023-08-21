@@ -2,10 +2,10 @@
 
 package org.usvm.samples.invokes
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
+import org.usvm.util.disableTest
 import org.usvm.util.isException
 import java.lang.Boolean
 
@@ -22,8 +22,7 @@ internal class VirtualInvokeExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]")
-    fun testVirtualNative() {
+    fun testVirtualNative() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredProperties(
             VirtualInvokeExample::virtualNative,
             eq(1),
@@ -118,8 +117,7 @@ internal class VirtualInvokeExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [2]")
-    fun testNullValueInReturnValue() {
+    fun testNullValueInReturnValue() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
         checkDiscoveredProperties(
             VirtualInvokeExample::nullValueInReturnValue,
             eq(3),

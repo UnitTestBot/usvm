@@ -1,18 +1,16 @@
 package org.usvm.samples.collections
 
-import org.junit.jupiter.api.Disabled
-import org.junit.jupiter.api.Test
+
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
-
-
+import org.usvm.util.disableTest
 import kotlin.math.min
+import kotlin.test.Test
 
 internal class ListIteratorsTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1]")
-    fun testReturnIterator() {
+    fun testReturnIterator() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
         checkDiscoveredProperties(
             ListIterators::returnIterator,
             ignoreNumberOfAnalysisResults,
@@ -22,8 +20,7 @@ internal class ListIteratorsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1]")
-    fun testReturnListIterator() {
+    fun testReturnListIterator() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
         checkDiscoveredProperties(
             ListIterators::returnListIterator,
             ignoreNumberOfAnalysisResults,
@@ -33,8 +30,7 @@ internal class ListIteratorsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 3 executions, but 240 found")
-    fun testIterate() {
+    fun testIterate() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
         checkDiscoveredProperties(
             ListIterators::iterate,
             eq(3),
@@ -45,8 +41,7 @@ internal class ListIteratorsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 3 executions, but 152 found")
-    fun testIterateReversed() {
+    fun testIterateReversed() = disableTest("Expected exactly 3 executions, but 152 found") {
         checkDiscoveredProperties(
             ListIterators::iterateReversed,
             eq(3),
@@ -57,8 +52,7 @@ internal class ListIteratorsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 4 executions, but 328 found")
-    fun testIterateForEach() {
+    fun testIterateForEach() = disableTest("Expected exactly 4 executions, but 328 found") {
         checkDiscoveredProperties(
             ListIterators::iterateForEach,
             eq(4),
@@ -70,8 +64,7 @@ internal class ListIteratorsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [2]")
-    fun testAddElements() {
+    fun testAddElements() = disableTest("Some properties were not discovered") {
         checkDiscoveredProperties(
             ListIterators::addElements,
             eq(5),
@@ -84,8 +77,7 @@ internal class ListIteratorsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 5 executions, but 203 found")
-    fun testSetElements() {
+    fun testSetElements() = disableTest("Expected exactly 5 executions, but 203 found") {
         checkDiscoveredProperties(
             ListIterators::setElements,
             eq(5),
@@ -100,8 +92,7 @@ internal class ListIteratorsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [6]")
-    fun testRemoveElements() {
+    fun testRemoveElements() = disableTest("Some properties were not discovered at positions (from 0): [6]") {
         checkDiscoveredProperties(
             ListIterators::removeElements, // the exact number of the executions depends on the decisions made by PathSelector
             // so we can have either six results or seven, depending on the [pathSelectorType]

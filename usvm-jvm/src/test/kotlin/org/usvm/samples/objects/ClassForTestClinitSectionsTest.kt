@@ -1,9 +1,9 @@
 package org.usvm.samples.objects
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
+import org.usvm.util.disableTest
 
 
 internal class ClassForTestClinitSectionsTest : JavaMethodTestRunner() {
@@ -21,8 +21,8 @@ internal class ClassForTestClinitSectionsTest : JavaMethodTestRunner() {
 //        }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1]") // todo: treat statics as input values
-    fun testClinitWithClinitAnalysis() {
+    // todo: treat statics as input values
+    fun testClinitWithClinitAnalysis() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
         checkDiscoveredProperties(
             ClassForTestClinitSections::resultDependingOnStaticSection,
             eq(2),

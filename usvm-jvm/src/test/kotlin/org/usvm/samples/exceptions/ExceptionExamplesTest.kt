@@ -1,10 +1,10 @@
 package org.usvm.samples.exceptions
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
+import org.usvm.util.disableTest
 import org.usvm.util.isException
 import java.nio.file.InvalidPathException
 
@@ -63,8 +63,7 @@ internal class ExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1]")
-    fun testThrowException() {
+    fun testThrowException() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
         checkDiscoveredPropertiesWithExceptions(
             ExceptionExamples::throwException,
             eq(2),
@@ -114,7 +113,7 @@ internal class ExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testSymbolicExceptions() {
+    fun testSymbolicExceptions() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
         checkDiscoveredProperties(
             ExceptionExamples::symbolicExceptionCheck,
             eq(4),

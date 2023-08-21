@@ -1,15 +1,14 @@
 package org.usvm.samples.lambda
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
+import org.usvm.util.disableTest
 
 
 class PredicateNotExampleTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0, 1]")
-    fun testPredicateNotExample() {
+    fun testPredicateNotExample() = disableTest("Some properties were not discovered at positions (from 0): [0, 1]") {
         checkDiscoveredProperties(
             PredicateNotExample::predicateNotExample,
             eq(2),

@@ -1,11 +1,11 @@
 package org.usvm.samples.objects
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ge
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
+import org.usvm.util.disableTest
 import org.usvm.util.isException
 
 
@@ -19,9 +19,8 @@ internal class ObjectWithRefFieldsExampleTest : JavaMethodTestRunner() {
         )
     }
 
-    @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [2]. Fix branch coverage")
-    fun testWriteToRefTypeField() {
+    @Test // todo: Fix branch coverage
+    fun testWriteToRefTypeField() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
         checkDiscoveredProperties(
             ObjectWithRefFieldExample::writeToRefTypeField,
             ignoreNumberOfAnalysisResults,

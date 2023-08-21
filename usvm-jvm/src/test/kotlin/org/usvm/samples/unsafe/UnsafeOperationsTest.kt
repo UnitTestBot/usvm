@@ -1,15 +1,14 @@
 package org.usvm.samples.unsafe
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
+import org.usvm.util.disableTest
 
 
 internal class UnsafeOperationsTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Can't find method (id:1)java.lang.Thread#getThreadGroup() in type java.lang.Object")
-    fun checkGetAddressSizeOrZero() {
+    fun checkGetAddressSizeOrZero() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
             checkDiscoveredProperties(
                 UnsafeOperations::getAddressSizeOrZero,
                 eq(1),

@@ -1,12 +1,17 @@
 package org.usvm.samples.arrays
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.usvm.PathSelectionStrategy
+import org.usvm.SolverType
+import org.usvm.UMachineOptions
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.samples.casts.ColoredPoint
 import org.usvm.samples.casts.Point
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
+import org.usvm.util.Options
+import org.usvm.util.UsvmTest
+import org.usvm.util.disableTest
 
 
 @Suppress("NestedLambdaShadowedImplicitParameter")
@@ -21,8 +26,7 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]")
-    fun testExample() {
+    fun testExample() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredProperties(
             ArrayOfArrays::sizesWithoutTouchingTheElements,
             eq(1),
@@ -30,9 +34,8 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
         )
     }
 
-    @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]. Multidimensional array")
-    fun testDefaultValuesWithoutLastDimension() {
+    @Test // todo: Multidimensional array
+    fun testDefaultValuesWithoutLastDimension() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredProperties(
             ArrayOfArrays::defaultValuesWithoutLastDimension,
             eq(1),
@@ -41,8 +44,7 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0, 1, 2, 3]")
-    fun testCreateNewMultiDimensionalArray() {
+    fun testCreateNewMultiDimensionalArray() = disableTest("Some properties were not discovered at positions (from 0): [0, 1, 2, 3]") {
         checkDiscoveredProperties(
             ArrayOfArrays::createNewMultiDimensionalArray,
             eq(4),
@@ -73,8 +75,7 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1]")
-    fun testDefaultValuesWithoutTwoDimensions() {
+    fun testDefaultValuesWithoutTwoDimensions() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
         checkDiscoveredProperties(
             ArrayOfArrays::defaultValuesWithoutTwoDimensions,
             eq(2),
@@ -84,8 +85,7 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]")
-    fun testDefaultValuesNewMultiArray() {
+    fun testDefaultValuesNewMultiArray() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredProperties(
             ArrayOfArrays::defaultValuesNewMultiArray,
             eq(1),
@@ -94,8 +94,7 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 7 executions, but 12 found")
-    fun testSimpleExample() {
+    fun testSimpleExample() = disableTest("Expected exactly 7 executions, but 12 found") {
         checkDiscoveredProperties(
             ArrayOfArrays::simpleExample,
             eq(7),
@@ -110,8 +109,7 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 7 executions, but 12 found")
-    fun testSimpleExampleMutation() {
+    fun testSimpleExampleMutation() = disableTest("Expected exactly 7 executions, but 12 found") {
         checkThisAndParamsMutations(
             ArrayOfArrays::simpleExample,
             eq(7),
@@ -126,8 +124,7 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [6, 7]")
-    fun testIsIdentityMatrix() {
+    fun testIsIdentityMatrix() = disableTest("Some properties were not discovered at positions (from 0): [6, 7]") {
         checkDiscoveredProperties(
             ArrayOfArrays::isIdentityMatrix,
             eq(9),
@@ -160,8 +157,7 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1]")
-    fun testCreateNewThreeDimensionalArray() {
+    fun testCreateNewThreeDimensionalArray() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
         checkDiscoveredProperties(
             ArrayOfArrays::createNewThreeDimensionalArray,
             eq(2),
@@ -180,8 +176,8 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
         )
     }
 
-    @Test
-    fun testReallyMultiDimensionalArray() {
+    @UsvmTest([Options(solverType = SolverType.Z3, strategies = [PathSelectionStrategy.FORK_DEPTH])])
+    fun testReallyMultiDimensionalArray(options: UMachineOptions) = withOptions(options) {
         checkDiscoveredProperties(
             ArrayOfArrays::reallyMultiDimensionalArray,
             eq(8),
@@ -206,8 +202,8 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
         )
     }
 
-    @Test
-    fun testReallyMultiDimensionalArrayMutation() {
+    @UsvmTest([Options(solverType = SolverType.Z3, strategies = [PathSelectionStrategy.FORK_DEPTH])])
+    fun testReallyMultiDimensionalArrayMutation(options: UMachineOptions) = withOptions(options) {
         checkThisAndParamsMutations(
             ArrayOfArrays::reallyMultiDimensionalArray,
             ignoreNumberOfAnalysisResults,
@@ -257,8 +253,7 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 3 executions, but 4 found")
-    fun testFillMultiArrayWithArray() {
+    fun testFillMultiArrayWithArray() = disableTest("Expected exactly 3 executions, but 4 found") {
         checkDiscoveredProperties(
             ArrayOfArrays::fillMultiArrayWithArray,
             eq(3),
@@ -293,8 +288,7 @@ internal class ArrayOfArraysTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1]")
-    fun testArrayWithItselfAnAsElement() {
+    fun testArrayWithItselfAnAsElement() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
         checkDiscoveredProperties(
             ArrayOfArrays::arrayWithItselfAnAsElement,
             eq(2),

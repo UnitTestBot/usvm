@@ -1,17 +1,16 @@
 package org.usvm.samples.collections
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
+import org.usvm.util.disableTest
 import org.usvm.util.isException
-import java.util.Deque
-import java.util.LinkedList
+import java.util.*
+import kotlin.collections.ArrayDeque
 
 class QueueUsagesTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Sort mismatch at io.ksmt.utils.ContextUtilsKt.asExpr")
-    fun testCreateArrayDeque() {
+    fun testCreateArrayDeque() = disableTest("Unexpected expr of type void: JcLambdaExpr") {
         checkDiscoveredPropertiesWithExceptions(
             QueueUsages::createArrayDeque,
             eq(3),
@@ -31,8 +30,7 @@ class QueueUsagesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0, 2]")
-    fun testCreateLinkedBlockingDeque() {
+    fun testCreateLinkedBlockingDeque() = disableTest("Some properties were not discovered at positions (from 0): [0, 2]") {
         checkDiscoveredPropertiesWithExceptions(
             QueueUsages::createLinkedBlockingDeque,
             eq(3),
@@ -43,8 +41,7 @@ class QueueUsagesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1]")
-    fun testContainsQueue() {
+    fun testContainsQueue() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
         checkDiscoveredPropertiesWithExceptions(
             QueueUsages::containsQueue,
             eq(3),
@@ -55,8 +52,7 @@ class QueueUsagesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 3 executions, but 11 found")
-    fun testAddQueue() {
+    fun testAddQueue() = disableTest("Some properties were not discovered: OutOfMemory") {
         checkDiscoveredPropertiesWithExceptions(
             QueueUsages::addQueue,
             eq(3),
@@ -66,8 +62,7 @@ class QueueUsagesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [2]")
-    fun testAddAllQueue() {
+    fun testAddAllQueue() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
         checkDiscoveredPropertiesWithExceptions(
             QueueUsages::addAllQueue,
             eq(3),
@@ -88,8 +83,7 @@ class QueueUsagesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [2]")
-    fun testCheckSubtypesOfQueue() {
+    fun testCheckSubtypesOfQueue() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
         checkDiscoveredProperties(
             QueueUsages::checkSubtypesOfQueue,
             eq(4),
@@ -101,8 +95,7 @@ class QueueUsagesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1, 2, 3]")
-    fun testCheckSubtypesOfQueueWithUsage() {
+    fun testCheckSubtypesOfQueueWithUsage() = disableTest("Some properties were not discovered at positions (from 0): [1, 2, 3]") {
         checkDiscoveredProperties(
             QueueUsages::checkSubtypesOfQueueWithUsage,
             eq(4),
@@ -114,8 +107,7 @@ class QueueUsagesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0, 1, 2]")
-    fun testAddConcurrentLinkedQueue() {
+    fun testAddConcurrentLinkedQueue() = disableTest("Some properties were not discovered at positions (from 0): [0, 1, 2]") {
         checkDiscoveredPropertiesWithExceptions(
             QueueUsages::addConcurrentLinkedQueue,
             eq(3),

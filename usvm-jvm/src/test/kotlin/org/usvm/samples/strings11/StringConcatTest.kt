@@ -5,12 +5,12 @@ import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
+import org.usvm.util.disableTest
 import org.usvm.util.isException
 
 class StringConcatTest : JavaMethodTestRunner() {
     @Test
-    @Disabled(" Some properties were not discovered at positions (from 0): [0]")
-    fun testConcatArguments() {
+    fun testConcatArguments() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredProperties(
             StringConcat::concatArguments,
             eq(1),
@@ -19,8 +19,7 @@ class StringConcatTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("A fatal error has been detected by the Java Runtime Environment: EXCEPTION_ACCESS_VIOLATION")
-    fun testConcatWithConstants() {
+    fun testConcatWithConstants() = disableTest("Some properties were not discovered at positions (from 0): [0, 1]") {
         checkDiscoveredProperties(
             StringConcat::concatWithConstants,
             eq(4),
@@ -42,8 +41,7 @@ class StringConcatTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1]")
-    fun testExceptionInToString() {
+    fun testExceptionInToString() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
         checkDiscoveredPropertiesWithExceptions(
             StringConcat::exceptionInToString,
             ignoreNumberOfAnalysisResults,
@@ -63,8 +61,7 @@ class StringConcatTest : JavaMethodTestRunner() {
 //    }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]")
-    fun testConcatWithPrimitiveWrappers() {
+    fun testConcatWithPrimitiveWrappers() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredProperties(
             StringConcat::concatWithPrimitiveWrappers,
             ignoreNumberOfAnalysisResults,
@@ -74,8 +71,7 @@ class StringConcatTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("A fatal error has been detected by the Java Runtime Environment: EXCEPTION_ACCESS_VIOLATION")
-    fun testSameConcat() {
+    fun testSameConcat() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredProperties(
             StringConcat::sameConcat,
             ignoreNumberOfAnalysisResults,

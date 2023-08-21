@@ -1,9 +1,9 @@
 package org.usvm.samples.casts
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
+import org.usvm.util.disableTest
 
 
 internal class ArrayCastExampleTest : JavaMethodTestRunner() {
@@ -100,8 +100,7 @@ internal class ArrayCastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Support assumptions")
-    fun testCastFromObjectToPrimitivesArray() {
+    fun testCastFromObjectToPrimitivesArray() = disableTest("Support assumptions") {
         checkDiscoveredProperties(
             ArrayCastExample::castFromObjectToPrimitivesArray,
             eq(2),

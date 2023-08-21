@@ -2,10 +2,10 @@
 
 package org.usvm.samples.objects
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
+import org.usvm.util.disableTest
 import java.lang.Boolean
 import kotlin.Array
 import kotlin.Suppress
@@ -31,7 +31,6 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1]")
     fun testTakeClassRefFromParam() {
         checkDiscoveredProperties(
             ClassRef::takeClassRefFromParam,
@@ -61,7 +60,6 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1]")
     fun testTwoDimArrayClassRefFromParam() {
         checkDiscoveredProperties(
             ClassRef::twoDimArrayClassRefFromParam,

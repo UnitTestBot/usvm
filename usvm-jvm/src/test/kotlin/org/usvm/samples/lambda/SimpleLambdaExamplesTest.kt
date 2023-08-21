@@ -1,15 +1,14 @@
 package org.usvm.samples.lambda
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
+import org.usvm.util.disableTest
 import org.usvm.util.isException
 
 class SimpleLambdaExamplesTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Can't find method (id:1)java.lang.Integer#intValue()")
-    fun testBiFunctionLambdaExample() {
+    fun testBiFunctionLambdaExample() = disableTest("Some properties were not discovered at positions (from 0): [0, 1]") {
         checkDiscoveredPropertiesWithExceptions(
             SimpleLambdaExamples::biFunctionLambdaExample,
             eq(2),
@@ -19,8 +18,7 @@ class SimpleLambdaExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Index 1 out of bounds for length 1")
-    fun testChoosePredicate() {
+    fun testChoosePredicate() = disableTest("Index 1 out of bounds for length 1 | URegistersStack.writeRegister") {
         checkDiscoveredProperties(
             SimpleLambdaExamples::choosePredicate,
             eq(2),

@@ -1,15 +1,14 @@
 package org.usvm.samples.casts
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.between
 import org.usvm.test.util.checkers.eq
+import org.usvm.util.disableTest
 
 internal class GenericCastExampleTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("java.lang.OutOfMemoryError: Java heap space")
-    fun testCompareTwoNumbers() {
+    fun testCompareTwoNumbers() = disableTest("java.lang.OutOfMemoryError: Java heap space | USupportTypeStream") {
         checkDiscoveredProperties(
             GenericCastExample::compareTwoNumbers,
             eq(5),
@@ -22,8 +21,7 @@ internal class GenericCastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("org.jacodb.impl.fs.ByteCodeConverterKt: java.lang.OutOfMemoryError: Java heap space")
-    fun testGetGenericFieldValue() {
+    fun testGetGenericFieldValue() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
         checkDiscoveredProperties(
             GenericCastExample::getGenericFieldValue,
             eq(3),
@@ -34,8 +32,7 @@ internal class GenericCastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("List is empty. Support generics")
-    fun testCompareGenericField() {
+    fun testCompareGenericField() = disableTest("java.lang.OutOfMemoryError: Java heap space | USupportTypeStream") {
         checkDiscoveredProperties(
             GenericCastExample::compareGenericField,
             between(4..5),
@@ -47,8 +44,7 @@ internal class GenericCastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]")
-    fun testCreateNewGenericObject() {
+    fun testCreateNewGenericObject() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredProperties(
             GenericCastExample::createNewGenericObject,
             eq(1),
@@ -57,8 +53,7 @@ internal class GenericCastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("List is empty. Support generics")
-    fun testSumFromArrayOfGenerics() {
+    fun testSumFromArrayOfGenerics() = disableTest("Expected exactly 7 executions, but 14 found") {
         checkDiscoveredProperties(
             GenericCastExample::sumFromArrayOfGenerics,
             eq(7),

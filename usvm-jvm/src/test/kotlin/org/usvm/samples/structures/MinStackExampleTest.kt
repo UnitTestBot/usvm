@@ -1,17 +1,16 @@
 package org.usvm.samples.structures
 
-import org.junit.jupiter.api.Disabled
+
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.between
 import org.usvm.test.util.checkers.eq
-
-
+import org.usvm.util.disableTest
 import kotlin.math.min
 
 internal class MinStackExampleTest : JavaMethodTestRunner() {
     @Test
-    fun testCreate() {
+    fun testCreate() = disableTest("Some properties were not discovered: Depends on PS") {
         checkDiscoveredProperties(
             MinStackExample::create,
             eq(3),
@@ -65,8 +64,7 @@ internal class MinStackExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 4 executions, but 5 found")
-    fun testRemoveValue() {
+    fun testRemoveValue() = disableTest("Expected exactly 4 executions, but 5 found") {
         checkDiscoveredProperties(
             MinStackExample::removeValue,
             eq(4),

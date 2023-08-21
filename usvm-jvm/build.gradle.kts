@@ -81,3 +81,13 @@ tasks {
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     }
 }
+
+tasks.named<Test>("test") {
+    testLogging {
+        events("started")
+    }
+
+    jvmArgs("-XX:+HeapDumpOnOutOfMemoryError")
+
+    maxHeapSize = "4G"
+}

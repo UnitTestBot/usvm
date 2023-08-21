@@ -1,17 +1,16 @@
 package org.usvm.samples.primitives
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
+import org.usvm.util.disableTest
 
 
 @Suppress("ConvertTwoComparisonsToRangeCheck")
 internal class IntExamplesTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]")
-    fun testIsInteger() {
+    fun testIsInteger() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         val method = IntExamples::isInteger
         checkDiscoveredProperties(
             method,

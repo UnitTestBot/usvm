@@ -1,15 +1,14 @@
 package org.usvm.samples.mixed
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
+import org.usvm.util.disableTest
 
 
 internal class SimplifierTest: JavaMethodTestRunner() {
     @Test
-    @Disabled("Support assumptions")
-    fun testSimplifyAdditionWithZero() {
+    fun testSimplifyAdditionWithZero() = disableTest("Support assumptions") {
         checkDiscoveredProperties(
             Simplifier::simplifyAdditionWithZero,
             eq(1),

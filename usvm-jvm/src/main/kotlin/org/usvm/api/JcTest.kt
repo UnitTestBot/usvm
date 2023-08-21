@@ -12,9 +12,9 @@ data class JcTestSuite(
 
 data class JcTest(
     val method: JcTypedMethod,
-    val before: JcParametersState,
-    val after: JcParametersState,
-    val result: Result<Any?>,
+    val before: JcParametersState?,
+    val after: JcParametersState?,
+    val result: Result<Any?>?,
     val coverage: JcCoverage,
 )
 

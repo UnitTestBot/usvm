@@ -1,7 +1,7 @@
 package org.usvm.samples.algorithms
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.usvm.SolverType
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.samples.algorithms.CorrectBracketSequences.isBracket
 import org.usvm.samples.algorithms.CorrectBracketSequences.isOpen
@@ -40,8 +40,9 @@ internal class CorrectBracketSequencesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [3, 4, 5, 6, 7]")
-    fun testIsCbs() {
+    fun testIsCbs() = withOptions(
+        options.copy(solverType = SolverType.Z3, timeoutMs = 100_000, stepsFromLastCovered = null)
+    ) {
         val method = CorrectBracketSequences::isCbs
         checkDiscoveredPropertiesWithExceptions(
             method,

@@ -1,15 +1,14 @@
 package org.usvm.samples.collections
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.ge
+import org.usvm.util.disableTest
 import org.usvm.util.isException
 
 internal class MapsPart2Test : JavaMethodTestRunner() {
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1, 2, 3, 4, 5]")
-    fun testReplaceEntryWithValue() {
+    fun testReplaceEntryWithValue() = disableTest("Some properties were not discovered at positions (from 0): [2, 3, 4, 5]") {
         checkDiscoveredProperties(
             Maps::replaceEntryWithValue,
             ge(6),
@@ -23,8 +22,7 @@ internal class MapsPart2Test : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Index 1 out of bounds for length 1")
-    fun testMerge() {
+    fun testMerge() = disableTest("Index 1 out of bounds for length 1 | URegistersStack.readRegister") {
         checkDiscoveredPropertiesWithExceptions(
             Maps::merge,
             ge(5),

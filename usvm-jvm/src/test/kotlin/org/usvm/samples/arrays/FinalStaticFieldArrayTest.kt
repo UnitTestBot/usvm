@@ -1,15 +1,14 @@
 package org.usvm.samples.arrays
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
+import org.usvm.util.disableTest
 
 
 internal class FinalStaticFieldArrayTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("slow on CI")
-    fun testFactorial() {
+    fun testFactorial() = disableTest("slow on CI") {
         checkDiscoveredProperties(
             FinalStaticFieldArray::factorial,
             ignoreNumberOfAnalysisResults,

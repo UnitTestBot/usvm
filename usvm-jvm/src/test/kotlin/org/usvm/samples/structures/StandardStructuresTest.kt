@@ -1,11 +1,12 @@
 package org.usvm.samples.structures
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
-import java.util.LinkedList
-import java.util.TreeMap
+import org.usvm.util.disableTest
+import java.util.*
+import kotlin.collections.ArrayDeque
+import kotlin.collections.ArrayList
 
 internal class StandardStructuresTest : JavaMethodTestRunner() {
     @Test
@@ -34,8 +35,7 @@ internal class StandardStructuresTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]")
-    fun testGetDeque() {
+    fun testGetDeque() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredProperties(
             StandardStructures::getDeque,
             eq(4),

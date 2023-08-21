@@ -1,15 +1,14 @@
 package org.usvm.samples.lambda
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
+import org.usvm.util.disableTest
 import org.usvm.util.isException
 
 class CustomPredicateExampleTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0, 1]")
-    fun testNoCapturedValuesPredicateCheck() {
+    fun testNoCapturedValuesPredicateCheck() = disableTest("Some properties were not discovered at positions (from 0): [0, 1]") {
         checkDiscoveredPropertiesWithExceptions(
             CustomPredicateExample::noCapturedValuesPredicateCheck,
             eq(3),
@@ -20,8 +19,7 @@ class CustomPredicateExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0, 1]")
-    fun testCapturedLocalVariablePredicateCheck() {
+    fun testCapturedLocalVariablePredicateCheck() = disableTest("Some properties were not discovered at positions (from 0): [0, 1]") {
         checkDiscoveredPropertiesWithExceptions(
             CustomPredicateExample::capturedLocalVariablePredicateCheck,
             eq(3),
@@ -32,8 +30,7 @@ class CustomPredicateExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0, 1]")
-    fun testCapturedParameterPredicateCheck() {
+    fun testCapturedParameterPredicateCheck() = disableTest("Some properties were not discovered at positions (from 0): [0, 1]") {
         checkDiscoveredPropertiesWithExceptions(
             CustomPredicateExample::capturedParameterPredicateCheck,
             eq(3),
@@ -44,8 +41,7 @@ class CustomPredicateExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0, 1]")
-    fun testCapturedStaticFieldPredicateCheck() {
+    fun testCapturedStaticFieldPredicateCheck() = disableTest("Some properties were not discovered at positions (from 0): [0, 1]") {
         checkDiscoveredPropertiesWithExceptions(
             CustomPredicateExample::capturedStaticFieldPredicateCheck,
             eq(3),
@@ -56,8 +52,7 @@ class CustomPredicateExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0, 1]")
-    fun testCapturedNonStaticFieldPredicateCheck() {
+    fun testCapturedNonStaticFieldPredicateCheck() = disableTest("Some properties were not discovered at positions (from 0): [0, 1]") {
         checkDiscoveredPropertiesWithExceptions(
             CustomPredicateExample::capturedNonStaticFieldPredicateCheck,
             eq(3),

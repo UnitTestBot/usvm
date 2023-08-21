@@ -1,10 +1,10 @@
 package org.usvm.samples.codegen.deepequals
 
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
+import org.usvm.util.disableTest
 
 class DeepEqualsTest : JavaMethodTestRunner() {
     @Test
@@ -16,8 +16,7 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 1 executions, but 3 found")
-    fun testReturnSet() {
+    fun testReturnSet() = disableTest("Expected exactly 1 executions, but 3 found") {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::returnSet,
             eq(1),
@@ -33,8 +32,7 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Wrong type resolving")
-    fun testReturnArray() {
+    fun testReturnArray() = disableTest("Wrong type resolving") {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::returnArray,
             eq(1),
@@ -56,8 +54,7 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 1 executions, but 0 found")
-    fun testReturn2DSet() {
+    fun testReturn2DSet() = disableTest("Expected exactly 1 executions, but 0 found") {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::return2DSet,
             eq(1),
@@ -81,8 +78,7 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Wrong type resolving")
-    fun testReturn2DArray() {
+    fun testReturn2DArray() = disableTest("Wrong type resolving") {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::return2DArray,
             eq(1),
@@ -128,8 +124,7 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 1 executions, but 274 found")
-    fun testQuadrilateral() {
+    fun testQuadrilateral() = disableTest("Expected exactly 1 executions, but 274 found") {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::returnQuadrilateralFromNode,
             eq(1),
@@ -137,8 +132,7 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Support multidimensional arrays initialization")
-    fun testIntMultiArray() {
+    fun testIntMultiArray() = disableTest("Support multidimensional arrays initialization") {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::fillIntMultiArrayWithConstValue,
             eq(3),

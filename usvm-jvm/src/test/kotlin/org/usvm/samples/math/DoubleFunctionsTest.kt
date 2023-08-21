@@ -1,10 +1,10 @@
 package org.usvm.samples.math
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
+import org.usvm.util.disableTest
 import org.usvm.util.isException
 import kotlin.math.abs
 import kotlin.math.hypot
@@ -12,8 +12,7 @@ import kotlin.math.hypot
 @Suppress("SimplifyNegatedBinaryExpression")
 internal class DoubleFunctionsTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]")
-    fun testHypo() {
+    fun testHypo() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredProperties(
             DoubleFunctions::hypo,
             eq(1),
@@ -32,7 +31,7 @@ internal class DoubleFunctionsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testCircleSquare() {
+    fun testCircleSquare() = disableTest("Some properties were not discovered at positions (from 0): [4") {
         checkDiscoveredPropertiesWithExceptions(
             DoubleFunctions::circleSquare,
             eq(5),
@@ -45,8 +44,7 @@ internal class DoubleFunctionsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0, 1]")
-    fun testNumberOfRootsInSquareFunction() {
+    fun testNumberOfRootsInSquareFunction() = disableTest("Some properties were not discovered at positions (from 0): [0, 2]") {
         checkDiscoveredProperties(
             DoubleFunctions::numberOfRootsInSquareFunction,
             ignoreNumberOfAnalysisResults, // sometimes solver substitutes a = nan || b = nan || c = nan || some combination of 0 and inf

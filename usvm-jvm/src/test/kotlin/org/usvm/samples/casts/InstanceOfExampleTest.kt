@@ -1,11 +1,16 @@
 package org.usvm.samples.casts
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.usvm.PathSelectionStrategy
+import org.usvm.SolverType
+import org.usvm.UMachineOptions
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ge
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
+import org.usvm.util.Options
+import org.usvm.util.UsvmTest
+import org.usvm.util.disableTest
 
 internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     @Test
@@ -96,8 +101,7 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
 
 
     @Test
-    @Disabled("java.lang.ArrayStoreException: java.lang.Object. Support connection between array and element type")
-    fun testInstanceOfAsPartOfInternalExpressions() {
+    fun testInstanceOfAsPartOfInternalExpressions() = disableTest("java.lang.ArrayStoreException: java.lang.Object. Support connection between array and element type") {
         checkDiscoveredProperties(
             InstanceOfExample::instanceOfAsPartOfInternalExpressions,
             ignoreNumberOfAnalysisResults,
@@ -160,8 +164,8 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
         )
     }
 
-    @Test
-    fun testInstanceOfAsPartOfInternalExpressionsXor() {
+    @UsvmTest([Options(solverType = SolverType.Z3, strategies = [PathSelectionStrategy.FORK_DEPTH])])
+    fun testInstanceOfAsPartOfInternalExpressionsXor(options: UMachineOptions) = withOptions(options) {
         checkDiscoveredProperties(
             InstanceOfExample::instanceOfAsPartOfInternalExpressionsXor,
             ge(5),
@@ -235,8 +239,7 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected at least 3 executions, but only 1 found")
-    fun testInstanceOfAsInternalExpressionsMap() {
+    fun testInstanceOfAsInternalExpressionsMap() = disableTest("Expected at least 3 executions, but only 1 found") {
         checkDiscoveredProperties(
             InstanceOfExample::instanceOfAsInternalExpressionsMap,
             ge(3),

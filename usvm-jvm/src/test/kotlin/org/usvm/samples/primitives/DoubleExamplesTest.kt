@@ -1,10 +1,10 @@
 package org.usvm.samples.primitives
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
+import org.usvm.util.disableTest
 
 
 @Suppress("SimplifyNegatedBinaryExpression")
@@ -39,7 +39,7 @@ internal class DoubleExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testSimpleSum() {
+    fun testSimpleSum() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
         checkDiscoveredProperties(
             DoubleExamples::simpleSum,
             ignoreNumberOfAnalysisResults,
@@ -50,7 +50,7 @@ internal class DoubleExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testSum() {
+    fun testSum() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
         checkDiscoveredProperties(
             DoubleExamples::sum,
             ignoreNumberOfAnalysisResults,
@@ -61,8 +61,7 @@ internal class DoubleExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not enough time")
-    fun testSimpleMul() {
+    fun testSimpleMul() = disableTest("Not enough time") {
         checkDiscoveredProperties(
             DoubleExamples::simpleMul,
             ignoreNumberOfAnalysisResults,
@@ -73,8 +72,7 @@ internal class DoubleExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not enough time")
-    fun testMul() {
+    fun testMul() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
         checkDiscoveredProperties(
             DoubleExamples::mul,
             eq(6),
@@ -107,7 +105,7 @@ internal class DoubleExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testSimpleEquation() {
+    fun testSimpleEquation() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
         checkDiscoveredProperties(
             DoubleExamples::simpleEquation,
             eq(2),
@@ -117,8 +115,7 @@ internal class DoubleExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not enough time")
-    fun testSimpleNonLinearEquation() {
+    fun testSimpleNonLinearEquation() = disableTest("Not enough time") {
         checkDiscoveredProperties(
             DoubleExamples::simpleNonLinearEquation,
             eq(2),

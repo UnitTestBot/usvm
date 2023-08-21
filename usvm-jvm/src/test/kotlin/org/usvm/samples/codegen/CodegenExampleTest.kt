@@ -1,6 +1,5 @@
 package org.usvm.samples.codegen
 
-import org.usvm.test.util.checkers.eq
 import org.usvm.samples.JavaMethodTestRunner
 
 

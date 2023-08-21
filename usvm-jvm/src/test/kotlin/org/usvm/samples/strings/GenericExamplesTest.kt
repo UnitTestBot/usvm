@@ -1,15 +1,14 @@
 package org.usvm.samples.strings
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
+import org.usvm.util.disableTest
 import org.usvm.util.isException
 
 internal class GenericExamplesTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Can't find method (id:1)java.lang.String#length() in type java.lang.Object")
-    fun testContainsOkWithIntegerType() {
+    fun testContainsOkWithIntegerType() = disableTest("JcTestResolver: ClassNotFoundException: com.sun.java.swing.action.AboutAction") {
         checkDiscoveredPropertiesWithExceptions(
             GenericExamples<Int>::containsOk,
             eq(2),
