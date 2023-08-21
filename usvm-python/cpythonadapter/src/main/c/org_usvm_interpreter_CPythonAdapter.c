@@ -26,6 +26,7 @@
     (*env)->SetLongField(env, cpython_adapter, f, (jlong) value); \
     (*env)->SetLongField(env, cpython_adapter, f_type, (jlong) type); \
     Py_INCREF(value); \
+    Py_INCREF(type); \
     PyErr_Restore(type, value, traceback); \
 
 JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_initializePython(JNIEnv *env, jobject cpython_adapter) {

@@ -10,12 +10,13 @@ sealed class SymbolicHandlerEventParameters<out T>
 data class LoadConstParameters(val constToLoad: Any): SymbolicHandlerEventParameters<SymbolForCPython>()
 data class NextInstruction(
     val pythonInstruction: PythonInstruction,
-    val function: PythonPinnedCallable
+    val code: PythonObject
 ): SymbolicHandlerEventParameters<Unit>()
-data class PythonFunctionCall(val function: PythonPinnedCallable): SymbolicHandlerEventParameters<Unit>()
-data class PythonReturn(val function: PythonPinnedCallable): SymbolicHandlerEventParameters<Unit>()
+data class PythonFunctionCall(val code: PythonObject): SymbolicHandlerEventParameters<Unit>()
+data class PythonReturn(val code: PythonObject): SymbolicHandlerEventParameters<Unit>()
 data class Fork(val condition: SymbolForCPython): SymbolicHandlerEventParameters<Unit>()
 data class ListCreation(val elements: List<SymbolForCPython>): SymbolicHandlerEventParameters<SymbolForCPython>()
+data class RangeCreation(val start: SymbolForCPython, val stop: SymbolForCPython, val step: SymbolForCPython): SymbolicHandlerEventParameters<SymbolForCPython>()
 data class IsinstanceCheck(val on: SymbolForCPython, val type: PythonObject): SymbolicHandlerEventParameters<SymbolForCPython>()
 data class MethodParameters(
     val name: String,

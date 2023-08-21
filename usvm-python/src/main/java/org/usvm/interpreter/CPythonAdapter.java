@@ -14,7 +14,9 @@ import java.util.concurrent.Callable;
 
 import static org.usvm.machine.interpreters.operations.CommonKt.fixateTypeKt;
 import static org.usvm.machine.interpreters.operations.CommonKt.lostSymbolicValueKt;
+import static org.usvm.machine.interpreters.operations.ListKt.*;
 import static org.usvm.machine.interpreters.operations.MethodNotificationsKt.*;
+import static org.usvm.machine.interpreters.operations.RangeKt.*;
 import static org.usvm.machine.interpreters.operations.VirtualKt.*;
 import static org.usvm.machine.interpreters.operations.tracing.PathTracingKt.handlerForkResultKt;
 import static org.usvm.machine.interpreters.operations.tracing.PathTracingKt.withTracing;
@@ -74,10 +76,8 @@ public class CPythonAdapter {
     public static void handlerInstruction(@NotNull ConcolicRunContext context, long frameRef) {
         context.curOperation = null;
         int instruction = getInstructionFromFrame(frameRef);
-        // System.out.println("Instruction " + instruction);
-        // System.out.flush();
         long functionRef = getFunctionFromFrame(frameRef);
-        PythonPinnedCallable function = new PythonPinnedCallable(new PythonObject(functionRef));
+        PythonObject function = new PythonObject(functionRef);
         withTracing(context, new NextInstruction(new PythonInstruction(instruction), function), () -> Unit.INSTANCE);
     }
 
@@ -177,19 +177,32 @@ public class CPythonAdapter {
 
     public static SymbolForCPython handlerCreateList(ConcolicRunContext context, SymbolForCPython[] elements) {
         ListCreation event = new ListCreation(Arrays.asList(elements));
-        return withTracing(context, event, () -> wrap(org.usvm.machine.interpreters.operations.ListKt.handlerCreateListKt(context, Arrays.stream(elements).map(s -> s.obj))));
+        return withTracing(context, event, () -> wrap(handlerCreateListKt(context, Arrays.stream(elements).map(s -> s.obj))));
+    }
+
+    public static SymbolForCPython handlerCreateRange(ConcolicRunContext context, SymbolForCPython start, SymbolForCPython stop, SymbolForCPython step) {
+        RangeCreation event = new RangeCreation(start, stop, step);
+        return withTracing(context, event, () -> wrap(handlerCreateRangeKt(context, start.obj, stop.obj, step.obj)));
+    }
+
+    public static SymbolForCPython handlerRangeIter(ConcolicRunContext context, SymbolForCPython range) {
+        return methodWrapper(context, new MethodParameters("range_iter", Collections.singletonList(range)), () -> handlerRangeIterKt(context, range.obj));
+    }
+
+    public static SymbolForCPython handlerRangeIteratorNext(ConcolicRunContext context, SymbolForCPython rangeIterator) {
+        return methodWrapper(context, new MethodParameters("range_iterator_next", Collections.singletonList(rangeIterator)), () -> handlerRangeIteratorNextKt(context, rangeIterator.obj));
     }
 
     public static SymbolForCPython handlerListGetItem(ConcolicRunContext context, SymbolForCPython list, SymbolForCPython index) {
-        return methodWrapper(context, new MethodParameters("list_get_item", Arrays.asList(list, index)), () -> org.usvm.machine.interpreters.operations.ListKt.handlerListGetItemKt(context, list.obj, index.obj));
+        return methodWrapper(context, new MethodParameters("list_get_item", Arrays.asList(list, index)), () -> handlerListGetItemKt(context, list.obj, index.obj));
     }
 
     public static SymbolForCPython handlerListExtend(ConcolicRunContext context, SymbolForCPython list, SymbolForCPython tuple) {
-        return methodWrapper(context, new MethodParameters("list_extend", Arrays.asList(list, tuple)), () -> org.usvm.machine.interpreters.operations.ListKt.handlerListExtendKt(context, list.obj, tuple.obj));
+        return methodWrapper(context, new MethodParameters("list_extend", Arrays.asList(list, tuple)), () -> handlerListExtendKt(context, list.obj, tuple.obj));
     }
 
     public static SymbolForCPython handlerListAppend(ConcolicRunContext context, SymbolForCPython list, SymbolForCPython elem) {
-        return methodWrapper(context, new MethodParameters("list_append", Arrays.asList(list, elem)), () -> org.usvm.machine.interpreters.operations.ListKt.handlerListAppendKt(context, list.obj, elem.obj));
+        return methodWrapper(context, new MethodParameters("list_append", Arrays.asList(list, elem)), () -> handlerListAppendKt(context, list.obj, elem.obj));
     }
 
     public static void handlerListSetItem(ConcolicRunContext context, SymbolForCPython list, SymbolForCPython index, SymbolForCPython value) {
@@ -209,13 +222,12 @@ public class CPythonAdapter {
     }
 
     public static void handlerFunctionCall(ConcolicRunContext context, long codeRef) {
-        PythonPinnedCallable callable = new PythonPinnedCallable(new PythonObject(codeRef));
-        withTracing(context, new PythonFunctionCall(callable), unit(() -> org.usvm.machine.interpreters.operations.ControlKt.handlerFunctionCallKt(context, callable)));
+        PythonObject code = new PythonObject(codeRef);
+        withTracing(context, new PythonFunctionCall(code), () -> Unit.INSTANCE);
     }
 
     public static void handlerReturn(ConcolicRunContext context, long codeRef) {
-        PythonPinnedCallable callable = new PythonPinnedCallable(new PythonObject(codeRef));
-        withTracing(context, new PythonReturn(callable), unit(() -> org.usvm.machine.interpreters.operations.ControlKt.handlerReturnKt(context)));
+        withTracing(context, new PythonReturn(new PythonObject(codeRef)), () -> Unit.INSTANCE);
     }
 
     public static SymbolForCPython handlerVirtualUnaryFun(ConcolicRunContext context, SymbolForCPython obj) {

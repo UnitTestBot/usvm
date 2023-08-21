@@ -14,7 +14,9 @@ fun <T : Any> withTracing(
     newEventParameters: SymbolicHandlerEventParameters<T>,
     resultSupplier: Callable<T?>
 ): T? {
-    context.instructionCounter += 1;
+    context.instructionCounter += 1
+    if (newEventParameters is NextInstruction)
+        context.statistics.updateCoverage(newEventParameters, context.usesVirtualInputs)
     if (context.instructionCounter > context.maxInstructions)
         throw InstructionLimitExceededException
     if (context.curState == null)

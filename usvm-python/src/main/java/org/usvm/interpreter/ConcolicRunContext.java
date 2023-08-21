@@ -33,6 +33,7 @@ public class ConcolicRunContext {
     public PythonMachineStatisticsOnFunction statistics;
     public int maxInstructions;
     public int instructionCounter = 0;
+    public boolean usesVirtualInputs = false;
 
     public ConcolicRunContext(
             @NotNull PythonExecutionState curState,

@@ -87,8 +87,7 @@ nb_add(PyObject *first, PyObject *second) {
 
 static PyObject *
 nb_subtract(PyObject *first, PyObject *second) {
-    assert(is_virtual_object(first));
-    MAKE_USVM_VIRUAL_CALL((VirtualPythonObject *) first, 0)
+    BINARY_FUNCTION
 }
 
 static PyObject *
@@ -98,8 +97,7 @@ nb_multiply(PyObject *first, PyObject *second) {
 
 static PyObject *
 nb_matrix_multiply(PyObject *first, PyObject *second) {
-    assert(is_virtual_object(first));
-    MAKE_USVM_VIRUAL_CALL((VirtualPythonObject *) first, 0)
+    BINARY_FUNCTION
 }
 
 static Py_ssize_t
