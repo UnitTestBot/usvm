@@ -37,9 +37,14 @@ val commonJVMArgs = listOf(
     "-Xss10m"
 )
 
-// temporary
+
+val cpythonBuildPath = "${childProjects["cpythonadapter"]!!.buildDir}/cpython_build"
+val cpythonAdapterBuildPath = "${childProjects["cpythonadapter"]!!.buildDir}/lib/main/debug"  // TODO: and release?
+
+
 val installMypyRunner = tasks.register<Exec>("installUtbotMypyRunner") {
     group = "samples"
+    inputs.dir(cpythonBuildPath)
     environment("LD_LIBRARY_PATH" to "$cpythonBuildPath/lib:$cpythonAdapterBuildPath")
     environment("PYTHONHOME" to cpythonBuildPath)
     commandLine("$cpythonBuildPath/bin/python3", "-m", "ensurepip")
@@ -57,9 +62,6 @@ val buildSamples = tasks.register<JavaExec>("buildSamples") {
     environment("PYTHONHOME" to cpythonBuildPath)
     mainClass.set("org.usvm.runner.BuildSamplesKt")
 }
-
-val cpythonBuildPath = "${childProjects["cpythonadapter"]!!.buildDir}/cpython_build"
-val cpythonAdapterBuildPath = "${childProjects["cpythonadapter"]!!.buildDir}/lib/main/debug"  // TODO: and release?
 
 fun registerCpython(task: JavaExec, debug: Boolean) = task.apply {
     if (debug)

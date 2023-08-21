@@ -80,11 +80,10 @@ class SimpleListsTest : PythonTestRunnerForPrimitiveProgram("SimpleLists", UMach
         )
     }
 
-    private val functionLongList = constructFunction("long_list", listOf(typeSystem.pythonInt))
     @Test
     fun testLongList() {
         check1WithConcreteRun(
-            functionLongList,
+            constructFunction("long_list", listOf(typeSystem.pythonInt)),
             eq(2),
             compareConcolicAndConcreteReprsIfSuccess,
             /* invariants = */ listOf { i, _ -> i.typeName == "int" },

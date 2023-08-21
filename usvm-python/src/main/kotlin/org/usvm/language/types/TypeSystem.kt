@@ -77,8 +77,9 @@ abstract class PythonTypeSystem: UTypeSystem<PythonType> {
     val pythonObjectType = createConcreteTypeByName("object")
     val pythonNoneType = createConcreteTypeByName("type(None)")
     val pythonList = createConcreteTypeByName("list")
-    val pythonTuple = createConcreteTypeByName("tuple")
     val pythonListIteratorType = createConcreteTypeByName("type(iter([]))")
+    val pythonTuple = createConcreteTypeByName("tuple")
+    val pythonTupleIteratorType = createConcreteTypeByName("type(iter(tuple()))")
     val pythonRange = createConcreteTypeByName("range")
     val pythonRangeIterator = createConcreteTypeByName("type(range(1).__iter__())")
 

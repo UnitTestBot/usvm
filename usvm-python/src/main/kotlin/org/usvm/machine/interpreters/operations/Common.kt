@@ -1,6 +1,8 @@
 package org.usvm.machine.interpreters.operations
 
+import org.usvm.UArrayLengthLValue
 import org.usvm.interpreter.ConcolicRunContext
+import org.usvm.language.types.ConcretePythonType
 import org.usvm.machine.interpreters.PythonObject
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.constructBool
@@ -56,4 +58,23 @@ fun handlerAndKt(ctx: ConcolicRunContext, left: UninterpretedSymbolicPythonObjec
 
 fun lostSymbolicValueKt(ctx: ConcolicRunContext, description: String) {
     ctx.statistics.addLostSymbolicValue(MethodDescription(description))
+}
+
+fun createIterable(
+    context: ConcolicRunContext,
+    elements: List<UninterpretedSymbolicPythonObject>,
+    type: ConcretePythonType
+): UninterpretedSymbolicPythonObject? {
+    if (context.curState == null)
+        return null
+    val addresses = elements.map { it.address }.asSequence()
+    val typeSystem = context.typeSystem
+    val size = elements.size
+    with (context.ctx) {
+        val iterableAddress = context.curState!!.memory.malloc(type, addressSort, addresses)
+        context.curState!!.memory.write(UArrayLengthLValue(iterableAddress, type), mkIntNum(size))
+        val result = UninterpretedSymbolicPythonObject(iterableAddress, typeSystem)
+        result.addSupertype(context, type)
+        return result
+    }
 }

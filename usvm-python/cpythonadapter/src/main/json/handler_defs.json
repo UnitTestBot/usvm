@@ -85,6 +85,11 @@
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;[Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
     },
     {
+        "c_name": "create_tuple",
+        "java_name": "handlerCreateTuple",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;[Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
+    },
+    {
         "c_name": "list_get_item",
         "java_name": "handlerListGetItem",
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
@@ -112,6 +117,16 @@
     {
         "c_name": "list_iterator_next",
         "java_name": "handlerListIteratorNext",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
+    },
+    {
+        "c_name": "tuple_iter",
+        "java_name": "handlerTupleIter",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
+    },
+    {
+        "c_name": "tuple_iterator_next",
+        "java_name": "handlerTupleIteratorNext",
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
     },
     {

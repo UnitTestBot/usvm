@@ -3,10 +3,11 @@ package org.usvm.machine.interpreters.operations
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.PythonObject
-import org.usvm.machine.symbolicobjects.SymbolicPythonObject
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.constructBool
 import org.usvm.machine.symbolicobjects.constructInt
+import java.util.stream.Stream
+import kotlin.streams.asSequence
 
 fun handlerLoadConstKt(context: ConcolicRunContext, value: PythonObject): UninterpretedSymbolicPythonObject? =
     when (ConcretePythonInterpreter.getPythonObjectTypeName(value)) {
@@ -40,15 +41,5 @@ fun handlerLoadConstBoolKt(context: ConcolicRunContext, value: String): Uninterp
     }
 }
 
-fun handlerLoadConstTupleKt(context: ConcolicRunContext, elements: List<SymbolicPythonObject>): UninterpretedSymbolicPythonObject? {
-    if (context.curState == null)
-        return null
-    val typeSystem = context.typeSystem
-    val addresses = elements.map { it.address }.asSequence()
-    with (context.ctx) {
-        val tupleAddress = context.curState!!.memory.malloc(typeSystem.pythonTuple, addressSort, addresses)
-        val result = UninterpretedSymbolicPythonObject(tupleAddress, typeSystem)
-        result.addSupertype(context, typeSystem.pythonTuple)
-        return result
-    }
-}
+fun handlerLoadConstTupleKt(context: ConcolicRunContext, elements: List<UninterpretedSymbolicPythonObject>): UninterpretedSymbolicPythonObject? =
+    createIterable(context, elements, context.typeSystem.pythonTuple)
