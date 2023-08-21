@@ -4,7 +4,7 @@ import org.jacodb.api.JcArrayType
 import org.jacodb.api.JcClassType
 import org.jacodb.api.JcMethod
 import org.jacodb.api.JcType
-import org.usvm.machine.logger
+//import org.usvm.machine.logger
 import org.usvm.types.UTypeStream
 
 interface JcTypeSelector {
@@ -20,9 +20,9 @@ class JcFixedInheritorsNumberTypeSelector(
             .take(DEFAULT_INHERITORS_NUMBER_TO_SCORE)
             .sortedByDescending { type -> typeScore(method, type) }
             .take(inheritorsNumberToChoose)
-            .also {
-                logger.info { "Select types for ${method.enclosingClass.name} : ${it.map { it.typeName }}" }
-            }
+//            .also {
+//                logger.info { "Select types for ${method.enclosingClass.name} : ${it.map { it.typeName }}" }
+//            }
     }
 
     private fun typeScore(method: JcMethod, type: JcType): Double {
