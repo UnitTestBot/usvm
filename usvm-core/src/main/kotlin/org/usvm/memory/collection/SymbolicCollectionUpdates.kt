@@ -1,6 +1,5 @@
 package org.usvm.memory.collection
 
-import io.ksmt.utils.uncheckedCast
 import org.usvm.*
 import org.usvm.memory.GuardedExpr
 import org.usvm.memory.UPinpointUpdateNode
@@ -56,10 +55,10 @@ interface USymbolicCollectionUpdates<Key, Sort : USort> : Sequence<UUpdateNode<K
      * It is used in [UComposer] during memory composition.
      * Throws away all updates for which [keyMapper] returns null.
      */
-    fun <Type, MappedKey> filterMap(
+    fun <Type, MappedKey, MappedReg : Region<MappedReg>> filterMap(
         keyMapper: KeyMapper<Key, MappedKey>,
         composer: UComposer<Type>,
-        mappedKeyInfo: USymbolicCollectionKeyInfo<MappedKey, *>
+        mappedKeyInfo: USymbolicCollectionKeyInfo<MappedKey, MappedReg>
     ): USymbolicCollectionUpdates<MappedKey, Sort>
 
     /**
@@ -174,10 +173,10 @@ class UFlatUpdates<Key, Sort : USort> private constructor(
         return UFlatUpdates(UFlatUpdatesNode(splitNode, splitNext), keyInfo)
     }
 
-    override fun <Type, MappedKey> filterMap(
+    override fun <Type, MappedKey, MappedReg: Region<MappedReg>> filterMap(
         keyMapper: KeyMapper<Key, MappedKey>,
         composer: UComposer<Type>,
-        mappedKeyInfo: USymbolicCollectionKeyInfo<MappedKey, *>
+        mappedKeyInfo: USymbolicCollectionKeyInfo<MappedKey, MappedReg>
     ): UFlatUpdates<MappedKey, Sort> {
         @Suppress("UNCHECKED_CAST")
         node ?: return (this as UFlatUpdates<MappedKey, Sort>)
@@ -352,17 +351,17 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
     }
 
 
-    override fun <Type, MappedKey> filterMap(
+    override fun <Type, MappedKey, MappedReg : Region<MappedReg>> filterMap(
         keyMapper: KeyMapper<Key, MappedKey>,
         composer: UComposer<Type>,
-        mappedKeyInfo: USymbolicCollectionKeyInfo<MappedKey, *>
-    ): UTreeUpdates<MappedKey, Reg, Sort> {
+        mappedKeyInfo: USymbolicCollectionKeyInfo<MappedKey, MappedReg>
+    ): UTreeUpdates<MappedKey, MappedReg, Sort> {
         var mappedNodeFound = false
 
         // Traverse [updates] using its iterator and fold them into a new updates tree with new mapped nodes
-        val initialEmptyTree = emptyRegionTree<Reg, UUpdateNode<MappedKey, Sort>>()
+        val initialEmptyTree = emptyRegionTree<MappedReg, UUpdateNode<MappedKey, Sort>>()
         val mappedUpdates = updates.fold(initialEmptyTree) { mappedUpdatesTree, updateNodeWithRegion ->
-            val (updateNode, oldRegion) = updateNodeWithRegion
+            val (updateNode, _) = updateNodeWithRegion
             // Map current node
             val mappedUpdateNode = updateNode.map(keyMapper, composer, mappedKeyInfo)
 
@@ -384,14 +383,12 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
             // Extract a new region by the mapped node
             val newRegion = when (mappedUpdateNode) {
                 is UPinpointUpdateNode -> {
-                    val currentRegion = mappedKeyInfo.keyToRegion(mappedUpdateNode.key)
-                    oldRegion.intersect(currentRegion.uncheckedCast())
+                    mappedKeyInfo.keyToRegion(mappedUpdateNode.key)
                 }
 
                 is URangedUpdateNode<*, *, *, Sort> -> {
                     mappedUpdateNode as URangedUpdateNode<*, *, MappedKey, Sort>
-                    val currentRegion = mappedUpdateNode.adapter.region<Reg>()
-                    oldRegion.intersect(currentRegion)
+                    mappedUpdateNode.adapter.region()
                 }
             }
 
@@ -406,10 +403,12 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
         }
 
         // If at least one node was changed, return a new updates, otherwise return this
-        @Suppress("UNCHECKED_CAST")
-        return if (mappedNodeFound)
-            UTreeUpdates(updates = mappedUpdates, mappedKeyInfo.uncheckedCast())
-        else this as UTreeUpdates<MappedKey, Reg, Sort>
+        return if (mappedNodeFound || mappedKeyInfo != keyInfo) {
+            UTreeUpdates(updates = mappedUpdates, mappedKeyInfo)
+        } else {
+            @Suppress("UNCHECKED_CAST")
+            this as UTreeUpdates<MappedKey, MappedReg, Sort>
+        }
     }
 
     /**
@@ -475,7 +474,6 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
         val initialRegion = when (update) {
             is UPinpointUpdateNode<Key, Sort> -> keyInfo.keyToRegion(update.key)
             is URangedUpdateNode<*, *, Key, Sort> -> update.adapter.region()
-//            is UMergeUpdateNode<*, *, Key, *, *, Sort> -> fullRangeRegion()
         }
         val wasCloned = initialRegion != region
         return wasCloned
