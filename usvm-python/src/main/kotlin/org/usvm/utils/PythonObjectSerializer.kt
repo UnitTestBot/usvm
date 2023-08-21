@@ -9,7 +9,7 @@ abstract class PythonObjectSerializer<PythonObjectRepresentation> {
 
 object StandardPythonObjectSerializer: PythonObjectSerializer<PythonObjectInfo>() {
     override fun serialize(obj: PythonObject): PythonObjectInfo {
-        val repr = ConcretePythonInterpreter.getPythonObjectRepr(obj)
+        val repr = ReprObjectSerializer.serialize(obj)
         val typeName = ConcretePythonInterpreter.getPythonObjectTypeName(obj)
         val selfTypeName = if (typeName == "type") ConcretePythonInterpreter.getNameOfPythonType(obj) else null
         return PythonObjectInfo(repr, typeName, selfTypeName)
@@ -18,7 +18,9 @@ object StandardPythonObjectSerializer: PythonObjectSerializer<PythonObjectInfo>(
 
 object ReprObjectSerializer: PythonObjectSerializer<String>() {
     override fun serialize(obj: PythonObject): String {
-        return ConcretePythonInterpreter.getPythonObjectRepr(obj)
+        return runCatching {
+            ConcretePythonInterpreter.getPythonObjectRepr(obj)
+        }.getOrDefault("<Error repr for object of type ${ConcretePythonInterpreter.getPythonObjectTypeName(obj)} at ${obj.address}>")
     }
 }
 

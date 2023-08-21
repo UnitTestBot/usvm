@@ -1,18 +1,48 @@
 package org.usvm.machine.utils
 
+import org.usvm.language.PythonPinnedCallable
 import org.usvm.machine.interpreters.ConcretePythonInterpreter
+import org.usvm.machine.interpreters.PythonObject
+import org.usvm.machine.interpreters.operations.tracing.NextInstruction
+
+fun writeLostSymbolicValuesReport(lostValues: Map<MethodDescription, Int>): String {
+    val result = StringBuilder()
+    lostValues.toList().sortedBy { -it.second }.forEach { (description, count) ->
+        val intValue = description.description.toIntOrNull()
+        val msg = if (intValue != null) {
+            val namespace = ConcretePythonInterpreter.getNewNamespace()
+            ConcretePythonInterpreter.concreteRun(namespace, "import dis")
+            val ref = ConcretePythonInterpreter.eval(namespace, "dis.opname[$intValue]")
+            ConcretePythonInterpreter.decref(namespace)
+            ConcretePythonInterpreter.getPythonObjectRepr(ref)
+        } else {
+            description.description
+        }
+        result.append("$msg: $count\n")
+    }
+    return result.toString()
+}
+
+private fun addWithDefault(map: MutableMap<MethodDescription, Int>, descr: MethodDescription, value: Int = 1) {
+    if (map[descr] == null)
+        map[descr] = 0
+    map[descr] = map[descr]!! + value
+}
 
 class PythonMachineStatistics {
     val functionStatistics = mutableListOf<PythonMachineStatisticsOnFunction>()
+    val meanCoverage: Double
+        get() = functionStatistics.sumOf { it.coverage } / functionStatistics.size
+
+    val meanCoverageNoVirtual: Double
+        get() = functionStatistics.sumOf { it.coverageNoVirtual } / functionStatistics.size
 
     private val lostSymbolicValues: Map<MethodDescription, Int>
         get() {
             val map = mutableMapOf<MethodDescription, Int>()
             functionStatistics.forEach { functionStatistics ->
                 functionStatistics.lostSymbolicValues.forEach {
-                    if (map[it] == null)
-                        map[it] = 0
-                    map[it] = map[it]!! + 1
+                    addWithDefault(map, it.key, it.value)
                 }
             }
             return map
@@ -20,26 +50,62 @@ class PythonMachineStatistics {
 
     fun writeReport(): String {
         val result = StringBuilder()
+        result.append("Mean coverage: $meanCoverage\n")
+        result.append("Mean coverage without virtual objects: $meanCoverageNoVirtual\n")
         result.append("Lost symbolic values:\n")
-        lostSymbolicValues.toList().sortedBy { -it.second }.forEach { (description, count) ->
-            val intValue = description.description.toIntOrNull()
-            val msg = if (intValue != null) {
-                val namespace = ConcretePythonInterpreter.getNewNamespace()
-                ConcretePythonInterpreter.concreteRun(namespace, "import dis")
-                val ref = ConcretePythonInterpreter.eval(namespace, "dis.opname[$intValue]")
-                ConcretePythonInterpreter.decref(namespace)
-                ConcretePythonInterpreter.getPythonObjectRepr(ref)
-            } else {
-                description.description
-            }
-            result.append("$msg: $count\n")
-        }
+        result.append(writeLostSymbolicValuesReport(lostSymbolicValues))
         return result.toString()
     }
 }
 
-class PythonMachineStatisticsOnFunction {
-    val lostSymbolicValues = mutableListOf<MethodDescription>()
+class PythonMachineStatisticsOnFunction(private val function: PythonPinnedCallable) {
+    val lostSymbolicValues = mutableMapOf<MethodDescription, Int>()
+    fun addLostSymbolicValue(descr: MethodDescription) {
+        addWithDefault(lostSymbolicValues, descr)
+    }
+
+    private val instructionOffsets: List<Int> by lazy {
+        val namespace = ConcretePythonInterpreter.getNewNamespace()
+        ConcretePythonInterpreter.addObjectToNamespace(namespace, function.asPythonObject, "f")
+        ConcretePythonInterpreter.concreteRun(namespace, "import dis")
+        val raw = ConcretePythonInterpreter.eval(
+            namespace,
+            "[x.offset for x in dis.Bytecode(f) if x.opname != 'RESUME']"
+        )
+        val rawStr = ConcretePythonInterpreter.getPythonObjectRepr(raw)
+        rawStr.removePrefix("[").removeSuffix("]").split(", ").map { it.toInt() }.also {
+            ConcretePythonInterpreter.decref(namespace)
+        }
+    }
+    var coverage: Double = 0.0
+    var coverageNoVirtual: Double = 0.0
+    private val coveredInstructions = mutableSetOf<Int>()
+    private val coveredInstructionsNoVirtual = mutableSetOf<Int>()
+    private val functionCode: PythonObject by lazy {
+        val namespace = ConcretePythonInterpreter.getNewNamespace()
+        ConcretePythonInterpreter.addObjectToNamespace(namespace, function.asPythonObject, "f")
+        ConcretePythonInterpreter.eval(namespace, "f.__code__").also {
+            ConcretePythonInterpreter.decref(namespace)
+        }
+    }
+    fun updateCoverage(cmd: NextInstruction, usesVirtual: Boolean) {
+        if (cmd.code != functionCode)
+            return
+        coveredInstructions += cmd.pythonInstruction.numberInBytecode
+        if (!usesVirtual)
+            coveredInstructionsNoVirtual += cmd.pythonInstruction.numberInBytecode
+        coverage = coveredInstructions.size.toDouble() / instructionOffsets.size
+        coverageNoVirtual = coveredInstructionsNoVirtual.size.toDouble() / instructionOffsets.size
+    }
+
+    fun writeReport(): String {
+        val result = StringBuilder()
+        result.append("Coverage: $coverage\n")
+        result.append("Coverage without virtual objects: $coverageNoVirtual\n")
+        result.append("Lost symbolic values:\n")
+        result.append(writeLostSymbolicValuesReport(lostSymbolicValues))
+        return result.toString()
+    }
 }
 
 data class MethodDescription(

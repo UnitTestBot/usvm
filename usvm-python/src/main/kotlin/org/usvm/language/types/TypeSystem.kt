@@ -35,7 +35,7 @@ abstract class PythonTypeSystem: UTypeSystem<PythonType> {
     }
 
     override fun isInstantiable(type: PythonType): Boolean {
-        return type is ConcretePythonType || type is TypeOfVirtualObject
+        return type is ConcretePythonType || type is MockType
     }
 
     protected var allConcreteTypes: List<ConcretePythonType> = emptyList()
@@ -62,7 +62,7 @@ abstract class PythonTypeSystem: UTypeSystem<PythonType> {
     override fun findSubtypes(type: PythonType): Sequence<PythonType> {
         if (isFinal(type))
             return emptySequence()
-        return (listOf(TypeOfVirtualObject) + allConcreteTypes.filter { isSupertype(type, it) }).asSequence()
+        return (listOf(MockType) + allConcreteTypes.filter { isSupertype(type, it) }).asSequence()
     }
 
     override fun topTypeStream(): UTypeStream<PythonType> {
@@ -79,6 +79,8 @@ abstract class PythonTypeSystem: UTypeSystem<PythonType> {
     val pythonList = createConcreteTypeByName("list")
     val pythonTuple = createConcreteTypeByName("tuple")
     val pythonListIteratorType = createConcreteTypeByName("type(iter([]))")
+    val pythonRange = createConcreteTypeByName("range")
+    val pythonRangeIterator = createConcreteTypeByName("type(range(1).__iter__())")
 
     protected val basicTypes: List<ConcretePythonType> = listOf(
         pythonInt,

@@ -4,6 +4,7 @@ import org.usvm.machine.*
 import org.usvm.language.PythonUnpinnedCallable
 import org.usvm.language.StructuredPythonProgram
 import org.usvm.language.types.*
+import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.runner.SamplesBuild
 import org.usvm.utils.ReprObjectSerializer
 import org.usvm.utils.getModulesFromFiles
@@ -19,36 +20,18 @@ import java.io.File
 
 private fun buildSampleRunConfig(): RunConfig {
     val (program, typeSystem) = constructPrimitiveProgram(
-        """
-            def longest_subsequence(array: list[int]) -> list[int]:  # This function is recursive
-                array_length = len(array)
-                if array_length <= 1:
-                    return array
-                pivot = array[0]
-                isFound = False
-                i = 1
-                longest_subseq = []
-                while not isFound and i < array_length:
-                    if array[i] < pivot:
-                        isFound = True
-                        temp_array = [element for element in array[i:] if element >= array[i]]
-                        temp_array = longest_subsequence(temp_array)
-                        if len(temp_array) > len(longest_subseq):
-                            longest_subseq = temp_array
-                    else:
-                        i += 1
-                temp_array = [element for element in array[1:] if element >= pivot]
-                temp_array = [pivot] + longest_subsequence(temp_array)
-                if len(temp_array) > len(longest_subseq):
-                    return temp_array
-                else:
-                    return longest_subseq
+        """ 
+        def f(x):
+            cnt = 0
+            for _ in range(0, x, 5):
+               cnt += 1
+            assert cnt == 3
 
         """.trimIndent()
     )
     val function = PythonUnpinnedCallable.constructCallableFromName(
-        listOf(typeSystem.pythonList),
-        "longest_subsequence"
+        listOf(typeSystem.pythonInt),
+        "f"
     )
     val functions = listOf(function)
     return RunConfig(program, typeSystem, functions)
@@ -64,15 +47,7 @@ private fun buildProjectRunConfig(): RunConfig {
     val mypyBuild = readMypyInfoBuild(mypyDir)
     val program = StructuredPythonProgram(setOf(File(projectPath)))
     val typeSystem = PythonTypeSystemWithMypyInfo(mypyBuild, program)
-    val ignoreFunctions = listOf(
-        "minimum_cost_path",
-        "all_construct",
-        "min_distance_bottom_up",
-        "_enforce_args",
-        "abbr",
-        "longest_common_subsequence",
-        "bottom_up_cut_rod"
-    )
+    val ignoreFunctions = emptyList<String>() // listOf("minimum_cost_path")
     val functions = modules.flatMap { module ->
         runCatching {
             withAdditionalPaths(program.roots, typeSystem) {
@@ -98,8 +73,8 @@ private fun buildProjectRunConfig(): RunConfig {
 }
 
 fun main() {
-    val config = buildProjectRunConfig()
-    //val config = buildSampleRunConfig()
+    // val config = buildProjectRunConfig()
+    val config = buildSampleRunConfig()
     analyze(config)
 }
 
@@ -111,7 +86,7 @@ private fun analyze(runConfig: RunConfig) {
             println("Started analysing function ${f.tag}")
             val start = System.currentTimeMillis()
             val results: MutableList<PythonAnalysisResult<String>> = mutableListOf()
-            val iterations = activeMachine.analyze(f, results, maxIterations = 10, allowPathDiversion = true, maxInstructions = 1000)
+            val iterations = activeMachine.analyze(f, results, maxIterations = 30, allowPathDiversion = true, maxInstructions = 1000)
             results.forEach { (_, inputs, result) ->
                 println("INPUT:")
                 inputs.map { it.reprFromPythonObject }.forEach { println(it) }
@@ -124,7 +99,7 @@ private fun analyze(runConfig: RunConfig) {
             }
             println("Finished analysing ${f.tag} in ${System.currentTimeMillis() - start} milliseconds. Made $iterations iterations.")
             println("FUNCTION STATISTICS")
-            println(machine.statistics.functionStatistics.last().lostSymbolicValues.joinToString("\n"))
+            println(machine.statistics.functionStatistics.last().writeReport())
             println()
         }
         println("GENERAL STATISTICS")

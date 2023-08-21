@@ -169,4 +169,18 @@ class SimpleTypeInferenceTest: PythonTestRunnerForPrimitiveProgram("SimpleTypeIn
             )
         )
     }
+
+    @Test
+    fun testRangeLoop() {
+        check1WithConcreteRun(
+            constructFunction("range_loop", List(1) { PythonAnyType }),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, res -> res.repr == "1" },
+                { _, res -> res.repr == "2" }
+            )
+        )
+    }
 }

@@ -45,7 +45,7 @@ class PythonMachine<PythonObjectRepresentation>(
             pinnedTarget,
             iterationCounter,
             printErrorMsg,
-            PythonMachineStatisticsOnFunction().also { statistics.functionStatistics.add(it) },
+            PythonMachineStatisticsOnFunction(pinnedTarget).also { statistics.functionStatistics.add(it) },
             maxInstructions,
             allowPathDiversion,
             serializer
