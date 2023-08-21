@@ -6,7 +6,7 @@ import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.PropertyOfPythonObject
 import org.usvm.language.types.ConcretePythonType
 import org.usvm.language.types.PythonType
-import org.usvm.language.types.TypeOfVirtualObject
+import org.usvm.language.types.MockType
 import org.usvm.machine.PythonExecutionState
 import org.usvm.model.UModelBase
 
@@ -35,7 +35,7 @@ class PyModel(val uModel: UModelBase<PropertyOfPythonObject, PythonType>) {
         val first = typeStream.take(1).first()
         val concrete = getConcreteType(ref)
         if (concrete == null)
-            require(first is TypeOfVirtualObject)
+            require(first is MockType)
         return first
     }
 

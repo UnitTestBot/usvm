@@ -43,7 +43,7 @@ class ConverterToPythonObject(
         if (cached != null)
             return cached
         val result = when (val type = obj.getFirstType() ?: error("Type stream for interpreted object is empty")) {
-            TypeOfVirtualObject -> constructVirtualObject(obj)
+            MockType -> constructVirtualObject(obj)
             typeSystem.pythonInt -> convertInt(obj)
             typeSystem.pythonBool -> convertBool(obj)
             typeSystem.pythonNoneType -> ConcretePythonInterpreter.eval(emptyNamespace, "None")

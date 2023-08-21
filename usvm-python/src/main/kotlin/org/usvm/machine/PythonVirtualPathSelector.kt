@@ -7,7 +7,7 @@ import org.usvm.fork
 import org.usvm.language.types.ConcretePythonType
 import org.usvm.language.types.PythonType
 import org.usvm.language.types.PythonTypeSystem
-import org.usvm.language.types.TypeOfVirtualObject
+import org.usvm.language.types.MockType
 import org.usvm.types.first
 import kotlin.random.Random
 
@@ -75,7 +75,7 @@ class PythonVirtualPathSelector(
         if (typeStreams.any { it.take(2).size < 2 }) {
             return generateStateWithConcretizedTypeWithoutDelayedForks()
         }
-        require(typeStreams.all { it.first() == TypeOfVirtualObject })
+        require(typeStreams.all { it.first() == MockType })
         val types = typeStreams.map {it.take(2).last()}
         (objects zip types).forEach { (obj, type) ->
             state.meta.lastConverter!!.forcedConcreteTypes[obj.address] = type

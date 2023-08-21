@@ -233,5 +233,20 @@
         "c_name": "lost_symbolic_value",
         "java_name": "lostSymbolicValue",
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Ljava/lang/String;)V"
+    },
+    {
+        "c_name": "create_range",
+        "java_name": "handlerCreateRange",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
+    },
+    {
+        "c_name": "range_iter",
+        "java_name": "handlerRangeIter",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
+    },
+    {
+        "c_name": "range_iterator_next",
+        "java_name": "handlerRangeIteratorNext",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
     }
 ]

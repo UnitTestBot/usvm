@@ -1,6 +1,7 @@
 package org.usvm.samples
 
 import org.junit.jupiter.api.Test
+import org.usvm.UMachineOptions
 import org.usvm.language.PythonUnpinnedCallable
 import org.usvm.runner.PythonTestRunnerForPrimitiveProgram
 import org.usvm.test.util.checkers.eq
@@ -152,5 +153,46 @@ class SimpleExampleTest : PythonTestRunnerForPrimitiveProgram("SimpleExample") {
             /* invariants = */ emptyList(),
             /* propertiesToDiscover = */ listOf { res -> res.selfTypeName == "RecursionError" }
         )
+    }
+
+    private fun testRange(functionName: String) {
+        val oldOption = options
+        options = UMachineOptions(stepLimit = 5U)
+        check1WithConcreteRun(
+            constructFunction(functionName, listOf(typeSystem.pythonInt)),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ listOf { x, _ -> x.typeName == "int" },
+            /* propertiesToDiscover = */ listOf(
+                { _, res -> res.repr == "None" },
+                { _, res -> res.selfTypeName == "AssertionError" }
+            )
+        )
+        options = oldOption
+    }
+
+    @Test
+    fun testRange1() {
+        testRange("range_1")
+    }
+
+    @Test
+    fun testRange2() {
+        testRange("range_2")
+    }
+
+    @Test
+    fun testRange3() {
+        testRange("range_3")
+    }
+
+    @Test
+    fun testRange4() {
+        testRange("range_4")
+    }
+
+    @Test
+    fun testRange5() {
+        testRange("range_5")
     }
 }

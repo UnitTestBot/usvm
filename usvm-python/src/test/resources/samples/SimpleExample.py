@@ -79,3 +79,38 @@ def symbolic_call(x):
 def infinite_recursion():
     x = object.__new__(codecs.StreamReader)
     next(x)
+
+
+def range_1(x: int):
+    cnt = 0
+    for _ in range(x):
+        cnt += 1
+    assert cnt == 3
+
+
+def range_2(x: int):
+    cnt = 0
+    for _ in range(0, x):
+        cnt += 1
+    assert cnt == 3
+
+
+def range_3(x: int):
+    cnt = 0
+    for _ in range(5, x, -1):
+        cnt += 1
+    assert cnt == 3
+
+
+def range_4(x: int):
+    cnt = 0
+    for _ in range(0, x, -1):
+        cnt += 1
+    assert cnt == 3
+
+
+def range_5(x: int):
+    cnt = 0
+    for _ in range(0, x, 5):
+        cnt += 1
+    assert cnt == 3

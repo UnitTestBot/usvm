@@ -4,7 +4,7 @@ import org.usvm.machine.interpreters.PythonObject
 
 sealed class PythonType
 
-object TypeOfVirtualObject: PythonType()
+object MockType: PythonType()
 
 abstract class VirtualPythonType: PythonType() {
     abstract fun accepts(type: PythonType): Boolean

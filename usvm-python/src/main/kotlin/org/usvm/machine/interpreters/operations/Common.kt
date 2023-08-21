@@ -55,5 +55,5 @@ fun handlerAndKt(ctx: ConcolicRunContext, left: UninterpretedSymbolicPythonObjec
 }
 
 fun lostSymbolicValueKt(ctx: ConcolicRunContext, description: String) {
-    ctx.statistics.lostSymbolicValues.add(MethodDescription(description))
+    ctx.statistics.addLostSymbolicValue(MethodDescription(description))
 }
