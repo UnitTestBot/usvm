@@ -23,7 +23,7 @@ fun constructInputObject(
     val address = memory.read(URegisterLValue(ctx.addressSort, stackIndex)) as UExpr<UAddressSort>
     pathConstraints += ctx.mkNot(ctx.mkHeapRefEq(address, ctx.nullRef))
     val result = UninterpretedSymbolicPythonObject(address, typeSystem)
-    pathConstraints += result.evalIs(ctx, pathConstraints.typeConstraints, type, null)
+    pathConstraints += result.evalIsSoft(ctx, pathConstraints.typeConstraints, type, null)
     return result
 }
 
@@ -60,6 +60,13 @@ fun constructListIterator(context: ConcolicRunContext, list: UninterpretedSymbol
     val result = UninterpretedSymbolicPythonObject(address, typeSystem)
     result.setListIteratorContent(context, list)
     return result
+}
+
+fun constructTupleIterator(context: ConcolicRunContext, tuple: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject {
+    require(context.curState != null)
+    val typeSystem = context.typeSystem
+    val address = context.curState!!.memory.alloc(typeSystem.pythonTupleIteratorType)
+    return UninterpretedSymbolicPythonObject(address, typeSystem).also { it.setTupleIteratorContent(context, tuple) }
 }
 
 fun constructRange(context: ConcolicRunContext, start: UExpr<KIntSort>, stop: UExpr<KIntSort>, step: UExpr<KIntSort>): UninterpretedSymbolicPythonObject {
