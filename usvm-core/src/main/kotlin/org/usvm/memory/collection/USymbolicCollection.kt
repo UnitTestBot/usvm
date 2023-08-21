@@ -1,6 +1,7 @@
 package org.usvm.memory.collection
 
 import io.ksmt.utils.asExpr
+import kotlinx.collections.immutable.PersistentMap
 import org.usvm.*
 import org.usvm.memory.GuardedExpr
 import org.usvm.memory.UMemoryRegion
@@ -304,4 +305,18 @@ class GuardBuilder(nonMatchingUpdates: UBoolExpr) {
      * [nonMatchingUpdatesGuard] and otherwise it would take quadratic time.
      */
     fun guarded(expr: UBoolExpr): UBoolExpr = expr.ctx.mkAnd(nonMatchingUpdatesGuard, expr, flat = false)
+}
+
+inline fun <K, VSort : USort> PersistentMap<K, UExpr<VSort>>.guardedWrite(
+    key: K,
+    value: UExpr<VSort>,
+    guard: UBoolExpr,
+    defaultValue: () -> UExpr<VSort>
+): PersistentMap<K, UExpr<VSort>> {
+    val guardedValue = guard.uctx.mkIte(
+        guard,
+        { value },
+        { get(key) ?: defaultValue() }
+    )
+    return put(key, guardedValue)
 }

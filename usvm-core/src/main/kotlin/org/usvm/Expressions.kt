@@ -233,7 +233,7 @@ class UAllocatedArrayReading<ArrayType, Sort : USort> internal constructor(
 ) : UCollectionReading<UAllocatedArrayId<ArrayType, Sort>, USizeExpr, Sort>(ctx, collection) {
     override fun accept(transformer: KTransformerBase): KExpr<Sort> {
         require(transformer is UTransformer<*>) { "Expected a UTransformer, but got: $transformer" }
-        return transformer.transform(this)
+        return transformer.asTypedTransformer<ArrayType>().transform(this)
     }
 
     override fun internEquals(other: Any): Boolean =
@@ -265,7 +265,7 @@ class UInputArrayReading<ArrayType, Sort : USort> internal constructor(
 
     override fun accept(transformer: KTransformerBase): KExpr<Sort> {
         require(transformer is UTransformer<*>) { "Expected a UTransformer, but got: $transformer" }
-        return transformer.transform(this)
+        return transformer.asTypedTransformer<ArrayType>().transform(this)
     }
 
     override fun internEquals(other: Any): Boolean =
@@ -299,7 +299,7 @@ class UInputArrayLengthReading<ArrayType> internal constructor(
 
     override fun accept(transformer: KTransformerBase): USizeExpr {
         require(transformer is UTransformer<*>) { "Expected a UTransformer, but got: $transformer" }
-        return transformer.transform(this)
+        return transformer.asTypedTransformer<ArrayType>().transform(this)
     }
 
     override fun internEquals(other: Any): Boolean = structurallyEqual(other, { collection }, { address })
@@ -363,7 +363,7 @@ class UIsSubtypeExpr<Type> internal constructor(
 ) : UIsExpr<Type>(ctx, ref) {
     override fun accept(transformer: KTransformerBase): UBoolExpr {
         require(transformer is UTransformer<*>) { "Expected a UTransformer, but got: $transformer" }
-        return transformer.transform(this)
+        return transformer.asTypedTransformer<Type>().transform(this)
     }
 
     override fun print(printer: ExpressionPrinter) {
@@ -386,7 +386,7 @@ class UIsSupertypeExpr<Type> internal constructor(
 ) : UIsExpr<Type>(ctx, ref) {
     override fun accept(transformer: KTransformerBase): UBoolExpr {
         require(transformer is UTransformer<*>) { "Expected a UTransformer, but got: $transformer" }
-        return transformer.transform(this)
+        return transformer.asTypedTransformer<Type>().transform(this)
     }
 
     override fun print(printer: ExpressionPrinter) {
@@ -410,7 +410,7 @@ class UAllocatedSymbolicMapReading<MapType, KeySort : USort, Sort : USort, Reg: 
 
     override fun accept(transformer: KTransformerBase): KExpr<Sort> {
         require(transformer is UTransformer<*>) { "Expected a UTransformer, but got: $transformer" }
-        return transformer.transform(this)
+        return transformer.asTypedTransformer<MapType>().transform(this)
     }
 
     override fun internEquals(other: Any): Boolean =
@@ -442,7 +442,7 @@ class UInputSymbolicMapReading<MapType, KeySort : USort, Sort : USort, Reg: Regi
 
     override fun accept(transformer: KTransformerBase): KExpr<Sort> {
         require(transformer is UTransformer<*>) { "Expected a UTransformer, but got: $transformer" }
-        return transformer.transform(this)
+        return transformer.asTypedTransformer<MapType>().transform(this)
     }
 
     override fun internEquals(other: Any): Boolean =
@@ -476,7 +476,7 @@ class UInputSymbolicMapLengthReading<MapType> internal constructor(
 
     override fun accept(transformer: KTransformerBase): USizeExpr {
         require(transformer is UTransformer<*>) { "Expected a UTransformer, but got: $transformer" }
-        return transformer.transform(this)
+        return transformer.asTypedTransformer<MapType>().transform(this)
     }
 
     override fun internEquals(other: Any): Boolean = structurallyEqual(other, { collection }, { address })

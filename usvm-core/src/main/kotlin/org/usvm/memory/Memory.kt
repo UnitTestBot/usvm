@@ -42,7 +42,7 @@ interface ULValue<Key, Sort : USort> {
  * This would help to avoid overlapping addresses in merged states.
  * Copying is prohibited.
  */
-class UAddressCounter {
+object UAddressCounter {
     private var lastAddress = INITIAL_CONCRETE_ADDRESS
     fun freshAddress(): UConcreteHeapAddress = lastAddress++
 }
@@ -81,7 +81,7 @@ class UMemory<Type, Method>(
     override val stack: URegistersStack = URegistersStack(),
     override val mocker: UMocker<Method> = UIndexedMocker(ctx),
     private var regions: PersistentMap<UMemoryRegionId<*, *>, UMemoryRegion<*, *>> = persistentMapOf(),
-    internal val addressCounter: UAddressCounter = UAddressCounter(),
+    internal val addressCounter: UAddressCounter = UAddressCounter,
 ) : UWritableMemory<Type> {
 
     @Suppress("UNCHECKED_CAST")

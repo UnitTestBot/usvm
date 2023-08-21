@@ -17,17 +17,18 @@ import org.usvm.UBv32Sort
 import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.UExpr
+import org.usvm.UHeapRef
 import org.usvm.api.allocate
 import org.usvm.api.readArrayIndex
 import org.usvm.api.writeArrayIndex
-import org.usvm.memory.UAllocatedToAllocatedKeyConverter
-import org.usvm.memory.UInputToAllocatedKeyConverter
-import org.usvm.memory.UInputToInputKeyConverter
 import org.usvm.memory.UMemory
+import org.usvm.memory.collection.adapter.USymbolicArrayCopyAdapter
 import org.usvm.memory.collection.id.UAllocatedArrayId
 import org.usvm.memory.collection.id.UInputArrayId
 import org.usvm.memory.collection.id.UInputArrayLengthId
 import org.usvm.memory.collection.id.UInputFieldId
+import org.usvm.memory.collection.key.USizeExprKeyInfo
+import org.usvm.memory.collection.key.USymbolicArrayIndexKeyInfo
 import kotlin.test.assertEquals
 import kotlin.test.assertSame
 
@@ -155,7 +156,7 @@ class TranslationTest {
 
     @Test
     fun testTranslateInputToAllocatedArrayCopy() = with(ctx) {
-        val ref1 = mkRegisterReading(0, addressSort)
+        val ref1 = mkRegisterReading(0, addressSort) as UHeapRef
         val idx1 = mkRegisterReading(1, sizeSort)
         val val1 = mkBv(1)
 
@@ -171,16 +172,22 @@ class TranslationTest {
         val concreteRef = heap.allocate()
 
 
-        val keyConverter = UInputToAllocatedKeyConverter(ref1 to mkBv(0), concreteRef to mkBv(0), mkBv(5))
+        val adapter = USymbolicArrayCopyAdapter(
+            ref1 to mkSizeExpr(0),
+            mkSizeExpr(0),
+            mkSizeExpr(5),
+            USizeExprKeyInfo
+        )
+
         val concreteRegion = UAllocatedArrayId(valueArrayDescr, bv32Sort, mkBv(0), concreteRef.address)
-            .emptyArray()
-            .copyRange(region, mkBv(0), mkBv(5), keyConverter, trueExpr)
+            .emptyRegion()
+            .copyRange(region, adapter, trueExpr)
 
         val idx = mkRegisterReading(4, sizeSort)
         val reading = concreteRegion.read(idx)
 
 
-        val key = region.collectionId.keyMapper(translator)(keyConverter.convert(translator.translate(idx)))
+        val key = region.collectionId.keyMapper(translator)(adapter.convert(translator.translate(idx)))
         val innerReading =
             translator.translate(region.read(key))
         val guard =
@@ -190,11 +197,12 @@ class TranslationTest {
         val translated = translator.translate(reading)
 
         // due to KSMT non-deterministic with reorderings, we have to check it with solver
-        val solver = KZ3Solver(this)
-        solver.assert(expected neq translated)
-        val status = solver.check()
+        KZ3Solver(this).use { solver ->
+            solver.assert(expected neq translated)
+            val status = solver.check()
 
-        assertSame(KSolverStatus.UNSAT, status)
+            assertSame(KSolverStatus.UNSAT, status)
+        }
     }
 
     @Test
@@ -255,7 +263,7 @@ class TranslationTest {
 
     @Test
     fun testTranslateInputToInputArrayCopy() = with(ctx) {
-        val ref1 = mkRegisterReading(0, addressSort)
+        val ref1 = mkRegisterReading(0, addressSort) as UHeapRef
         val idx1 = mkRegisterReading(1, sizeSort)
         val val1 = mkBv(1)
 
@@ -269,25 +277,32 @@ class TranslationTest {
             .write(ref2 to idx2, val2, trueExpr)
 
 
-        val keyConverter = UInputToInputKeyConverter(ref1 to mkBv(0), ref1 to mkBv(0), mkBv(5))
+        val adapter = USymbolicArrayCopyAdapter(
+            ref1 to mkSizeExpr(0),
+            ref1 to mkSizeExpr(0),
+            ref1 to mkSizeExpr(5),
+            USymbolicArrayIndexKeyInfo
+        )
+
         var inputRegion2 = UInputArrayId(valueArrayDescr, bv32Sort).emptyRegion()
 
         val idx = mkRegisterReading(4, sizeSort)
         val reading1 = inputRegion2.read(ref2 to idx)
 
         inputRegion2 = inputRegion2
-            .copyRange(inputRegion1, ref1 to mkBv(0), ref1 to mkBv(5), keyConverter, trueExpr)
+            .copyRange(inputRegion1, adapter, trueExpr)
 
         val reading2 = inputRegion2.read(ref2 to idx)
 
         val expr = (reading1 neq reading2) and (ref1 neq ref2)
         val translated = translator.translate(expr)
 
-        val solver = KZ3Solver(this)
-        solver.assert(translated)
-        val status = solver.check()
+        KZ3Solver(this).use { solver ->
+            solver.assert(translated)
+            val status = solver.check()
 
-        assertSame(KSolverStatus.UNSAT, status)
+            assertSame(KSolverStatus.UNSAT, status)
+        }
     }
 
 //    @Test
@@ -342,7 +357,7 @@ class TranslationTest {
 
     @Test
     fun testTranslateInputToInputArrayCopyAddressSort() = with(ctx) {
-        val ref1 = mkRegisterReading(0, addressSort)
+        val ref1 = mkRegisterReading(0, addressSort) as UHeapRef
         val idx1 = mkRegisterReading(1, sizeSort)
         val val1 = mkConcreteHeapRef(1)
 
@@ -355,26 +370,32 @@ class TranslationTest {
             .write(ref1 to idx1, val1, trueExpr)
             .write(ref2 to idx2, val2, trueExpr)
 
+        val adapter = USymbolicArrayCopyAdapter(
+            ref1 to mkSizeExpr(0),
+            ref1 to mkSizeExpr(0),
+            ref1 to mkSizeExpr(5),
+            USymbolicArrayIndexKeyInfo
+        )
 
-        val keyConverter = UInputToInputKeyConverter(ref1 to mkBv(0), ref1 to mkBv(0), mkBv(5))
         var inputRegion2 = UInputArrayId(valueArrayDescr, addressSort).emptyRegion()
 
         val idx = mkRegisterReading(4, sizeSort)
         val reading1 = inputRegion2.read(ref2 to idx)
 
         inputRegion2 = inputRegion2
-            .copyRange(inputRegion1, ref1 to mkBv(0), ref1 to mkBv(5), keyConverter, trueExpr)
+            .copyRange(inputRegion1, adapter, trueExpr)
 
         val reading2 = inputRegion2.read(ref2 to idx)
 
         val expr = (reading1 neq reading2) and (ref1 neq ref2)
         val translated = translator.translate(expr)
 
-        val solver = KZ3Solver(this)
-        solver.assert(translated)
-        val status = solver.check()
+        KZ3Solver(this).use { solver ->
+            solver.assert(translated)
+            val status = solver.check()
 
-        assertSame(KSolverStatus.UNSAT, status)
+            assertSame(KSolverStatus.UNSAT, status)
+        }
     }
 
     @Test
@@ -386,19 +407,22 @@ class TranslationTest {
         val val2 = mkRegisterReading(5, addressSort)
 
         val allocatedRegion1 = UAllocatedArrayId(valueArrayDescr, addressSort, nullRef, 1)
-            .emptyArray()
+            .emptyRegion()
             .write(idx1, val1, trueExpr)
             .write(idx2, val2, trueExpr)
 
-        val keyConverter = UAllocatedToAllocatedKeyConverter(mkConcreteHeapRef(1) to mkBv(0), mkConcreteHeapRef(1) to mkBv(0), mkBv(5))
+        val adapter = USymbolicArrayCopyAdapter(
+            mkSizeExpr(0), mkSizeExpr(0), mkSizeExpr(5), USizeExprKeyInfo
+        )
+
         var allocatedRegion2 = UAllocatedArrayId(valueArrayDescr, addressSort, nullRef, 2)
-            .emptyArray()
+            .emptyRegion()
 
         val idx = mkRegisterReading(4, sizeSort)
         val readingBeforeCopy = allocatedRegion2.read(idx)
 
         allocatedRegion2 = allocatedRegion2
-            .copyRange(allocatedRegion1, mkBv(0), mkBv(5), keyConverter, trueExpr)
+            .copyRange(allocatedRegion1, adapter, trueExpr)
 
         val readingAfterCopy = allocatedRegion2.read(idx)
 
@@ -406,17 +430,18 @@ class TranslationTest {
         val expr = (readingBeforeCopy neq readingAfterCopy) and outsideOfCopy
         val translated = translator.translate(expr)
 
-        val solver = KZ3Solver(this)
-        solver.assert(translated)
-        val status = solver.check()
+        KZ3Solver(this).use { solver ->
+            solver.assert(translated)
+            val status = solver.check()
 
-        assertSame(KSolverStatus.UNSAT, status)
+            assertSame(KSolverStatus.UNSAT, status)
+        }
     }
 
     @Test
     fun testCachingOfTranslatedMemoryUpdates() = with(ctx) {
         val allocatedRegion = UAllocatedArrayId(valueArrayDescr, sizeSort, mkBv(0), 0)
-            .emptyArray()
+            .emptyRegion()
             .write(mkRegisterReading(0, sizeSort), mkBv(0), trueExpr)
             .write(mkRegisterReading(1, sizeSort), mkBv(1), trueExpr)
 

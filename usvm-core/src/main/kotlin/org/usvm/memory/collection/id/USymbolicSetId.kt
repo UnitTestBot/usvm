@@ -6,57 +6,60 @@ import org.usvm.UBoolSort
 import org.usvm.UComposer
 import org.usvm.UContext
 import org.usvm.UExpr
-import org.usvm.UExprTransformer
 import org.usvm.UTransformer
 import org.usvm.memory.ULValue
-import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UPinpointUpdateNode
 import org.usvm.memory.URangedUpdateNode
 import org.usvm.memory.UUpdateNode
 import org.usvm.memory.UWritableMemory
 import org.usvm.memory.collection.UMemoryUpdatesVisitor
 import org.usvm.memory.collection.USymbolicCollection
-import org.usvm.memory.collection.key.USymbolicCollectionKeyInfo
 import org.usvm.memory.collection.USymbolicCollectionUpdates
+import org.usvm.memory.collection.key.USymbolicCollectionKeyInfo
 import org.usvm.util.Region
-import org.usvm.util.SetRegion
-import java.util.IdentityHashMap
+import java.util.*
 
 
-abstract class USymbolicSetId<Element, out SetId : USymbolicSetId<Element, SetId>>(
+abstract class USymbolicSetId<Element, Reg : Region<Reg>, out SetId : USymbolicSetId<Element, Reg, SetId>>(
     contextMemory: UWritableMemory<*>?
 ) : USymbolicCollectionIdWithContextMemory<Element, UBoolSort, SetId>(contextMemory) {
 
-    fun <Reg : Region<Reg>> defaultRegion(): Reg {
+    fun defaultRegion(): Reg {
         if (contextMemory == null) {
-            return SetRegion.empty<Int>() as Reg
+            return baseRegion()
         }
         // TODO: get corresponding collection from contextMemory, recursively eval its region
         TODO()
     }
+
+    abstract fun baseRegion(): Reg
 
     private val regionCache = IdentityHashMap<Any?, Region<*>>()
 
     /**
      * Returns over-approximation of keys collection set.
      */
-    fun <Reg : Region<Reg>> region(updates: USymbolicCollectionUpdates<Element, UBoolSort>): Reg {
+    @Suppress("UNCHECKED_CAST")
+    fun <ResultReg : Region<ResultReg>> region(updates: USymbolicCollectionUpdates<Element, UBoolSort>): ResultReg {
         val regionBuilder = SymbolicSetRegionBuilder<Element, Reg>(this)
-        @Suppress("UNCHECKED_CAST")
-        return updates.accept(regionBuilder, regionCache as MutableMap<Any?, Reg>)
+        val result = updates.accept(regionBuilder, regionCache as MutableMap<Any?, Reg>)
+        return result as ResultReg
     }
 }
 
-class UAllocatedSymbolicSetId<Element, Reg: Region<Reg>>(
+class UAllocatedSymbolicSetId<Element, Reg : Region<Reg>>(
     val elementInfo: USymbolicCollectionKeyInfo<Element, Reg>,
     contextMemory: UWritableMemory<*>?
-) : USymbolicSetId<Element, UAllocatedSymbolicSetId<Element, Reg>>(contextMemory) {
+) : USymbolicSetId<Element, Reg, UAllocatedSymbolicSetId<Element, Reg>>(contextMemory) {
 
     override val sort: UBoolSort
         get() = TODO("Not yet implemented")
 
     override val defaultValue: UBoolExpr?
         get() = TODO("Not yet implemented")
+
+    override fun baseRegion(): Reg =
+        elementInfo.bottomRegion()
 
     override fun UContext.mkReading(
         collection: USymbolicCollection<UAllocatedSymbolicSetId<Element, Reg>, Element, UBoolSort>,
@@ -88,11 +91,7 @@ class UAllocatedSymbolicSetId<Element, Reg: Region<Reg>>(
         TODO("Not yet implemented")
     }
 
-    override fun <R> accept(visitor: UCollectionIdVisitor<R>): R {
-        TODO("Not yet implemented")
-    }
-
-    fun emptyRegion(): UMemoryRegion<Element, UBoolSort> {
+    override fun emptyRegion(): USymbolicCollection<UAllocatedSymbolicSetId<Element, Reg>, Element, UBoolSort> {
         TODO("Not yet implemented")
     }
 
@@ -101,16 +100,19 @@ class UAllocatedSymbolicSetId<Element, Reg: Region<Reg>>(
     }
 }
 
-class UInputSymbolicSetId<Element, Reg: Region<Reg>>(
+class UInputSymbolicSetId<Element, Reg : Region<Reg>>(
     val elementInfo: USymbolicCollectionKeyInfo<Element, Reg>,
     contextMemory: UWritableMemory<*>?
-) : USymbolicSetId<Element, UInputSymbolicSetId<Element, Reg>>(contextMemory) {
+) : USymbolicSetId<Element, Reg, UInputSymbolicSetId<Element, Reg>>(contextMemory) {
 
     override val sort: UBoolSort
         get() = TODO("Not yet implemented")
 
     override val defaultValue: UBoolExpr?
         get() = TODO("Not yet implemented")
+
+    override fun baseRegion(): Reg =
+        elementInfo.topRegion()
 
     override fun UContext.mkReading(
         collection: USymbolicCollection<UInputSymbolicSetId<Element, Reg>, Element, UBoolSort>,
@@ -142,17 +144,17 @@ class UInputSymbolicSetId<Element, Reg: Region<Reg>>(
         TODO("Not yet implemented")
     }
 
-    override fun <R> accept(visitor: UCollectionIdVisitor<R>): R {
+    override fun rebindKey(key: Element): DecomposedKey<*, UBoolSort>? {
         TODO("Not yet implemented")
     }
 
-    override fun rebindKey(key: Element): DecomposedKey<*, UBoolSort>? {
+    override fun emptyRegion(): USymbolicCollection<UInputSymbolicSetId<Element, Reg>, Element, UBoolSort> {
         TODO("Not yet implemented")
     }
 }
 
 private class SymbolicSetRegionBuilder<Key, Reg : Region<Reg>>(
-    private val collectionId: USymbolicSetId<Key, *>
+    private val collectionId: USymbolicSetId<Key, Reg, *>
 ) : UMemoryUpdatesVisitor<Key, UBoolSort, Reg> {
 
     private val keyInfo = collectionId.keyInfo()

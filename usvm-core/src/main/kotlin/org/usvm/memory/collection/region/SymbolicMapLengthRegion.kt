@@ -12,11 +12,11 @@ import org.usvm.memory.ULValue
 import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UMemoryRegionId
 import org.usvm.memory.collection.USymbolicCollection
+import org.usvm.memory.collection.guardedWrite
 import org.usvm.memory.collection.id.UInputSymbolicMapLengthId
 import org.usvm.memory.foldHeapRef
 import org.usvm.memory.map
 import org.usvm.sampleUValue
-import org.usvm.uctx
 
 typealias UInputSymbolicMapLengthCollection<MapType> = USymbolicCollection<UInputSymbolicMapLengthId<MapType>, UHeapRef, USizeSort>
 
@@ -49,8 +49,8 @@ internal class USymbolicMapLengthMemoryRegion<MapType>(
     private fun readAllocated(address: UConcreteHeapAddress, sort: USizeSort) =
         allocatedLengths[address] ?: sort.sampleUValue() // sampleUValue is important
 
-    private fun updateAllocatedLength(address: UConcreteHeapAddress, guardedLength: USizeExpr) =
-        USymbolicMapLengthMemoryRegion(allocatedLengths.put(address, guardedLength), inputLengths)
+    private fun updateAllocated(updated: UAllocatedMapLengths) =
+        USymbolicMapLengthMemoryRegion(updated, inputLengths)
 
     private fun getInputLength(ref: USymbolicMapLengthRef<MapType>): UInputMapLengths<MapType> {
         if (inputLengths == null)
@@ -58,8 +58,8 @@ internal class USymbolicMapLengthMemoryRegion<MapType>(
         return inputLengths!!
     }
 
-    private fun updateInputLength(inputLengths: UInputMapLengths<MapType>) =
-        USymbolicMapLengthMemoryRegion(allocatedLengths, inputLengths)
+    private fun updateInput(updated: UInputMapLengths<MapType>) =
+        USymbolicMapLengthMemoryRegion(allocatedLengths, updated)
 
     override fun read(key: USymbolicMapLengthRef<MapType>): USizeExpr =
         key.ref.map(
@@ -76,17 +76,15 @@ internal class USymbolicMapLengthMemoryRegion<MapType>(
         initial = this,
         initialGuard = guard,
         blockOnConcrete = { region, (concreteRef, innerGuard) ->
-            val guardedLength = guard.uctx.mkIte(
-                innerGuard,
-                { value },
-                { region.readAllocated(concreteRef.address, key.sort) }
-            )
-            region.updateAllocatedLength(concreteRef.address, guardedLength)
+            val newRegion = region.allocatedLengths.guardedWrite(concreteRef.address, value, innerGuard) {
+                key.sort.sampleUValue()
+            }
+            region.updateAllocated(newRegion)
         },
         blockOnSymbolic = { region, (symbolicRef, innerGuard) ->
             val oldRegion = region.getInputLength(key)
             val newRegion = oldRegion.write(symbolicRef, value, innerGuard)
-            region.updateInputLength(newRegion)
+            region.updateInput(newRegion)
         }
     )
 }

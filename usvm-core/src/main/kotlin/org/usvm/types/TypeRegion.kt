@@ -263,6 +263,10 @@ class UTypeRegion<Type>(
         )
     }
 
+    override fun union(other: UTypeRegion<Type>): UTypeRegion<Type> {
+        TODO("Not yet implemented")
+    }
+
     private fun clone(
         typeStream: UTypeStream<Type>,
         supertypes: PersistentSet<Type> = this.supertypes,

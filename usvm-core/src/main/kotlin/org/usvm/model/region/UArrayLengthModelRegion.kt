@@ -7,7 +7,6 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USizeSort
-import org.usvm.memory.UAddressCounter
 import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.memory.collection.region.UArrayLengthRef

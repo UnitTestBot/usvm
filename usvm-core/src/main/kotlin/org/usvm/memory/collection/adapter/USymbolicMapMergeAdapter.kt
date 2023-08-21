@@ -19,7 +19,7 @@ import org.usvm.util.Region
 class USymbolicMapMergeAdapter<SrcKey, DstKey>(
     val dstKey: DstKey,
     override val srcKey: SrcKey,
-    val setOfKeys: USymbolicCollection<USymbolicSetId<SrcKey, *>, SrcKey, UBoolSort>,
+    val setOfKeys: USymbolicCollection<USymbolicSetId<SrcKey, *, *>, SrcKey, UBoolSort>,
 ) : USymbolicCollectionAdapter<SrcKey, DstKey> {
 
     @Suppress("UNCHECKED_CAST")
@@ -67,7 +67,7 @@ class USymbolicMapMergeAdapter<SrcKey, DstKey>(
         val mappedDstKey = dstKeyMapper(dstKey) ?: return null
 
         @Suppress("NAME_SHADOWING")
-        val srcCollectionId = srcCollectionId as USymbolicMapId<*, MappedSrcKey, *, USymbolicSetId<MappedSrcKey, *>, *>
+        val srcCollectionId = srcCollectionId as USymbolicMapId<*, MappedSrcKey, *, USymbolicSetId<MappedSrcKey, *, *>, *>
         val mappedKeys = setOfKeys.mapTo(composer, srcCollectionId.keysSetId)
         if (mappedSrcKey === srcKey && mappedDstKey == dstKey) {
             return this as USymbolicCollectionAdapter<MappedSrcKey, MappedDstKey>

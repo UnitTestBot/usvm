@@ -61,7 +61,7 @@ open class UComposer<Type>(
             val mappedCollection = collection.mapTo(this@UComposer, decomposedKey.collectionId) as USymbolicCollection<*, Any?, Sort>
             return mappedCollection.read(decomposedKey.key)
         }
-        return collection.mapTo(this@UComposer, mappedCollectionId).read(key)
+        return collection.mapTo(this@UComposer, mappedCollectionId).read(mappedKey)
     }
 
     override fun transform(expr: UInputArrayLengthReading<Type>): USizeExpr =

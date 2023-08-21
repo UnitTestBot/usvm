@@ -9,21 +9,14 @@ import org.usvm.UConcreteHeapAddress
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UExpr
-import org.usvm.UExprTransformer
-import org.usvm.UHeapRef
 import org.usvm.USizeExpr
-import org.usvm.USizeSort
 import org.usvm.USort
 import org.usvm.UTransformer
-import org.usvm.isTrue
 import org.usvm.memory.collection.region.UArrayIndexRef
-import org.usvm.memory.collection.region.UArrayLengthRef
 import org.usvm.memory.ULValue
 import org.usvm.memory.UPinpointUpdateNode
 import org.usvm.memory.UUpdateNode
 import org.usvm.memory.UWritableMemory
-import org.usvm.memory.collection.UFlatUpdates
-import org.usvm.memory.collection.key.UHeapRefKeyInfo
 import org.usvm.memory.collection.key.USizeExprKeyInfo
 import org.usvm.memory.collection.key.USizeRegion
 import org.usvm.memory.collection.key.USymbolicArrayIndex
@@ -89,10 +82,7 @@ class UAllocatedArrayId<ArrayType, Sort : USort> internal constructor(
     override fun rebindKey(key: USizeExpr): DecomposedKey<*, Sort>? =
         null
 
-    override fun <R> accept(visitor: UCollectionIdVisitor<R>): R =
-        visitor.visit(this)
-
-    fun emptyArray(): USymbolicCollection<UAllocatedArrayId<ArrayType, Sort>, USizeExpr, Sort> {
+    override fun emptyRegion(): USymbolicCollection<UAllocatedArrayId<ArrayType, Sort>, USizeExpr, Sort> {
         val updates = UTreeUpdates<USizeExpr, USizeRegion, Sort>(
             updates = emptyRegionTree(),
             keyInfo()
@@ -174,10 +164,7 @@ class UInputArrayId<ArrayType, Sort : USort> internal constructor(
         if (ref === it.first && idx === it.second) it else ref to idx
     }
 
-    override fun <R> accept(visitor: UCollectionIdVisitor<R>): R =
-        visitor.visit(this)
-
-    fun emptyRegion(): USymbolicCollection<UInputArrayId<ArrayType, Sort>, USymbolicArrayIndex, Sort> {
+    override fun emptyRegion(): USymbolicCollection<UInputArrayId<ArrayType, Sort>, USymbolicArrayIndex, Sort> {
         val updates = UTreeUpdates<USymbolicArrayIndex, USymbolicArrayIndexRegion, Sort>(
             updates = emptyRegionTree(),
             keyInfo()
@@ -225,70 +212,4 @@ class UInputArrayId<ArrayType, Sort : USort> internal constructor(
     }
 
     override fun hashCode(): Int = hash(arrayType, sort)
-}
-
-/**
- * A collection id for a collection storing array lengths for arrays of a specific [arrayType].
- */
-class UInputArrayLengthId<ArrayType> internal constructor(
-    val arrayType: ArrayType,
-    override val sort: USizeSort,
-    contextMemory: UWritableMemory<*>? = null,
-) : USymbolicCollectionIdWithContextMemory<UHeapRef, USizeSort, UInputArrayLengthId<ArrayType>>(contextMemory) {
-    override val defaultValue: UExpr<USizeSort>? get() = null
-
-    override fun UContext.mkReading(
-        collection: USymbolicCollection<UInputArrayLengthId<ArrayType>, UHeapRef, USizeSort>,
-        key: UHeapRef
-    ): UExpr<USizeSort> = mkInputArrayLengthReading(collection, key)
-
-    override fun UContext.mkLValue(
-        collection: USymbolicCollection<UInputArrayLengthId<ArrayType>, UHeapRef, USizeSort>,
-        key: UHeapRef
-    ): ULValue<*, USizeSort> = UArrayLengthRef(sort, key, arrayType)
-
-    override fun <Type> write(
-        memory: UWritableMemory<Type>,
-        key: UHeapRef,
-        value: UExpr<USizeSort>,
-        guard: UBoolExpr,
-    ) {
-        assert(guard.isTrue)
-        memory.write(UArrayLengthRef(sort, key, arrayType), value, guard)
-    }
-
-    override fun <Type> keyMapper(
-        transformer: UTransformer<Type>,
-    ): KeyTransformer<UHeapRef> = { transformer.apply(it) }
-
-    override fun <Type> map(composer: UComposer<Type>): UInputArrayLengthId<ArrayType> {
-        check(contextMemory == null) { "contextMemory is not null in composition" }
-        return UInputArrayLengthId(arrayType, sort, composer.memory.toWritableMemory())
-    }
-
-    override fun keyInfo() = UHeapRefKeyInfo
-
-    override fun rebindKey(key: UHeapRef): DecomposedKey<*, USizeSort>? {
-        TODO("Not yet implemented")
-    }
-
-    override fun <R> accept(visitor: UCollectionIdVisitor<R>): R =
-        visitor.visit(this)
-
-    fun emptyRegion(): USymbolicCollection<UInputArrayLengthId<ArrayType>, UHeapRef, USizeSort> =
-        USymbolicCollection(this, UFlatUpdates(keyInfo()))
-
-
-    override fun toString(): String = "length<$arrayType>()"
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-
-        other as UInputArrayLengthId<*>
-
-        return arrayType == other.arrayType
-    }
-
-    override fun hashCode(): Int = arrayType.hashCode()
 }

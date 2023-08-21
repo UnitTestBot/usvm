@@ -8,7 +8,6 @@ import org.usvm.UConcreteHeapAddress
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.USort
-import org.usvm.memory.UAddressCounter
 import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.memory.collection.key.USymbolicMapKey

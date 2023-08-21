@@ -4,7 +4,6 @@ import org.usvm.UBoolExpr
 import org.usvm.UComposer
 import org.usvm.UContext
 import org.usvm.UExpr
-import org.usvm.UExprTransformer
 import org.usvm.USort
 import org.usvm.UTransformer
 import org.usvm.memory.ULValue
@@ -48,8 +47,16 @@ interface USymbolicCollectionId<Key, Sort : USort, out CollectionId : USymbolicC
         return filter@{
             val transformedKey = mapper(it)
             val decomposedKey = rebindKey(transformedKey)
-            if (decomposedKey == null || decomposedKey.collectionId != expectedId)
+
+            // transformedKey belongs to symbolic collection with expectedId.
+            if (decomposedKey == null) {
+                @Suppress("UNCHECKED_CAST")
+                return@filter transformedKey as MappedKey
+            }
+
+            if (decomposedKey.collectionId != expectedId)
                 return@filter null
+
             @Suppress("UNCHECKED_CAST")
             return@filter decomposedKey.key as MappedKey
         }
@@ -70,29 +77,7 @@ interface USymbolicCollectionId<Key, Sort : USort, out CollectionId : USymbolicC
      */
     fun keyInfo(): USymbolicCollectionKeyInfo<Key, *>
 
-    fun <R> accept(visitor: UCollectionIdVisitor<R>): R
-}
-
-interface UCollectionIdVisitor<R> {
-    fun <Key, Sort : USort, CollectionId : USymbolicCollectionId<Key, Sort, CollectionId>> visit(
-        collectionId: USymbolicCollectionId<Key, Sort, CollectionId>
-    ): Any? = error("You must provide visit implementation for ${collectionId::class} in ${this::class}")
-
-    fun <Field, Sort : USort> visit(collectionId: UInputFieldId<Field, Sort>): R
-
-    fun <Field, Sort : USort> visit(collectionId: UAllocatedFieldId<Field, Sort>): R
-
-    fun <ArrayType, Sort : USort> visit(collectionId: UAllocatedArrayId<ArrayType, Sort>): R
-
-    fun <ArrayType, Sort : USort> visit(collectionId: UInputArrayId<ArrayType, Sort>): R
-
-    fun <ArrayType> visit(collectionId: UInputArrayLengthId<ArrayType>): R
-
-    fun <MapType, KeySort : USort, ValueSort : USort, Reg : Region<Reg>> visit(collectionId: UAllocatedSymbolicMapId<MapType, KeySort, ValueSort, Reg>): R
-
-    fun <MapType, KeySort : USort, ValueSort : USort, Reg : Region<Reg>> visit(collectionId: UInputSymbolicMapId<MapType, KeySort, ValueSort, Reg>): R
-
-    fun <MapType> visit(collectionId: UInputSymbolicMapLengthId<MapType>): R
+    fun emptyRegion(): USymbolicCollection<CollectionId, Key, Sort>
 }
 
 abstract class USymbolicCollectionIdWithContextMemory<

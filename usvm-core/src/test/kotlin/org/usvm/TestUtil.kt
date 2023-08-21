@@ -29,7 +29,7 @@ internal fun pseudoRandom(i: Int): Int {
 internal class TestState(
     ctx: UContext,
     callStack: UCallStack<String, Int>, pathConstraints: UPathConstraints<Any, UContext>,
-    memory: UMemory<Any, Any>, models: List<UModelBase<Any>>,
+    memory: UMemory<Any, String>, models: List<UModelBase<Any>>,
     pathLocation: PathsTrieNode<TestState, Int>,
 ) : UState<Any, Any, String, Int, UContext, TestState>(ctx, callStack, pathConstraints, memory, models, pathLocation) {
     override fun clone(newConstraints: UPathConstraints<Any, UContext>?): TestState = this

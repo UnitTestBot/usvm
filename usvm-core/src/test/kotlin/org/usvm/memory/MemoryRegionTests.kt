@@ -14,7 +14,6 @@ import org.usvm.UContext
 import org.usvm.UHeapRef
 import org.usvm.memory.collection.UTreeUpdates
 import org.usvm.memory.collection.id.UAllocatedArrayId
-import org.usvm.shouldNotBeCalled
 import org.usvm.util.SetRegion
 import org.usvm.util.emptyRegionTree
 import kotlin.test.assertNotNull
@@ -92,7 +91,7 @@ class MemoryRegionTests {
         val idx2 = mkRegisterReading(1, sizeSort)
 
         val memoryRegion = UAllocatedArrayId(mockk<Type>(), sizeSort, mkSizeExpr(0), 0)
-            .emptyArray()
+            .emptyRegion()
             .write(idx1, mkBv(0), trueExpr)
             .write(idx2, mkBv(1), trueExpr)
 

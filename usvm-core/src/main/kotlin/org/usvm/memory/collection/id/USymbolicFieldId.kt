@@ -8,17 +8,17 @@ import org.usvm.UConcreteHeapAddress
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UExpr
-import org.usvm.UExprTransformer
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.UTransformer
-import org.usvm.memory.collection.region.UFieldRef
 import org.usvm.memory.ULValue
 import org.usvm.memory.UWritableMemory
 import org.usvm.memory.collection.UFlatUpdates
-import org.usvm.memory.collection.key.UHeapRefKeyInfo
 import org.usvm.memory.collection.USymbolicCollection
+import org.usvm.memory.collection.key.UHeapRefKeyInfo
+import org.usvm.memory.collection.key.UNoKeyInfo
 import org.usvm.memory.collection.key.USymbolicCollectionKeyInfo
+import org.usvm.memory.collection.region.UFieldRef
 
 interface USymbolicFieldId<Field, Key, Sort : USort, out FieldId : USymbolicFieldId<Field, Key, Sort, FieldId>> :
     USymbolicCollectionId<Key, Sort, FieldId> {
@@ -34,9 +34,6 @@ data class UAllocatedFieldId<Field, Sort : USort> internal constructor(
     override val sort: Sort
 ) : USymbolicFieldId<Field, Unit, Sort, UAllocatedFieldId<Field, Sort>> {
     override val defaultValue: UExpr<Sort> = sort.sampleValue()
-
-    override fun <R> accept(visitor: UCollectionIdVisitor<R>) =
-        visitor.visit(this)
 
     override fun rebindKey(key: Unit): DecomposedKey<*, Sort>? = null
 
@@ -58,14 +55,15 @@ data class UAllocatedFieldId<Field, Sort : USort> internal constructor(
         error("This should not be called")
 
     override fun keyInfo(): USymbolicCollectionKeyInfo<Unit, *> =
-        error("This should not be called")
+        UNoKeyInfo
 
     override fun instantiate(
         collection: USymbolicCollection<UAllocatedFieldId<Field, Sort>, Unit, Sort>,
         key: Unit
-    ): UExpr<Sort> {
+    ): UExpr<Sort> = error("This should not be called")
+
+    override fun emptyRegion(): USymbolicCollection<UAllocatedFieldId<Field, Sort>, Unit, Sort> =
         error("This should not be called")
-    }
 }
 
 /**
@@ -114,10 +112,7 @@ class UInputFieldId<Field, Sort : USort> internal constructor(
             else -> null
         }
 
-    override fun <R> accept(visitor: UCollectionIdVisitor<R>): R =
-        visitor.visit(this)
-
-    fun emptyRegion(): USymbolicCollection<UInputFieldId<Field, Sort>, UHeapRef, Sort> =
+    override fun emptyRegion(): USymbolicCollection<UInputFieldId<Field, Sort>, UHeapRef, Sort> =
         USymbolicCollection(this, UFlatUpdates(keyInfo()))
 
     override fun equals(other: Any?): Boolean {

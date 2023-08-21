@@ -11,11 +11,12 @@ import org.usvm.memory.ULValue
 import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UMemoryRegionId
 import org.usvm.memory.collection.USymbolicCollection
+import org.usvm.memory.collection.guardedWrite
+import org.usvm.memory.collection.id.UAllocatedArrayLengthId
 import org.usvm.memory.collection.id.UInputArrayLengthId
 import org.usvm.memory.foldHeapRef
 import org.usvm.memory.map
 import org.usvm.sampleUValue
-import org.usvm.uctx
 
 data class UArrayLengthRef<ArrayType>(override val sort: USizeSort, val ref: UHeapRef, val arrayType: ArrayType) :
     ULValue<UArrayLengthRef<ArrayType>, USizeSort> {
@@ -33,18 +34,24 @@ data class UArrayLengthsRegionId<ArrayType>(override val sort: USizeSort, val ar
         UArrayLengthsMemoryRegion()
 }
 
-typealias UAllocatedArrayLengths = PersistentMap<UConcreteHeapAddress, USizeExpr>
+typealias UAllocatedArrayLengths<ArrayType> = PersistentMap<UAllocatedArrayLengthId<ArrayType>, USizeExpr>
 typealias UInputArrayLengths<ArrayType> = USymbolicCollection<UInputArrayLengthId<ArrayType>, UHeapRef, USizeSort>
 
 interface UArrayLengthsRegion<ArrayType> : UMemoryRegion<UArrayLengthRef<ArrayType>, USizeSort>
 
 internal class UArrayLengthsMemoryRegion<ArrayType>(
-    private val allocatedLengths: UAllocatedArrayLengths = persistentMapOf(),
+    private val allocatedLengths: UAllocatedArrayLengths<ArrayType> = persistentMapOf(),
     private var inputLengths: UInputArrayLengths<ArrayType>? = null
 ) : UArrayLengthsRegion<ArrayType> {
 
-    private fun readAllocated(address: UConcreteHeapAddress, sort: USizeSort) =
-        allocatedLengths[address] ?: sort.sampleUValue() // sampleUValue is important
+    private fun readAllocated(address: UConcreteHeapAddress, sort: USizeSort, type: ArrayType) =
+        readAllocated(UAllocatedArrayLengthId(type, address, sort))
+
+    private fun readAllocated(id: UAllocatedArrayLengthId<ArrayType>) =
+        allocatedLengths[id] ?: id.sort.sampleUValue() // sampleUValue is important
+
+    private fun updateAllocated(updated: UAllocatedArrayLengths<ArrayType>) =
+        UArrayLengthsMemoryRegion(updated, inputLengths)
 
     private fun getInputLength(ref: UArrayLengthRef<ArrayType>): UInputArrayLengths<ArrayType> {
         if (inputLengths == null)
@@ -52,9 +59,12 @@ internal class UArrayLengthsMemoryRegion<ArrayType>(
         return inputLengths!!
     }
 
+    private fun updatedInput(updated: UInputArrayLengths<ArrayType>) =
+        UArrayLengthsMemoryRegion(allocatedLengths, updated)
+
     override fun read(key: UArrayLengthRef<ArrayType>): USizeExpr =
         key.ref.map(
-            { concreteRef -> readAllocated(concreteRef.address, key.sort) },
+            { concreteRef -> readAllocated(concreteRef.address, key.sort, key.arrayType) },
             { symbolicRef -> getInputLength(key).read(symbolicRef) }
         )
 
@@ -67,20 +77,16 @@ internal class UArrayLengthsMemoryRegion<ArrayType>(
         initial = this,
         initialGuard = guard,
         blockOnConcrete = { region, (concreteRef, innerGuard) ->
-            val newValue = guard.uctx.mkIte(
-                innerGuard,
-                { value },
-                { region.readAllocated(concreteRef.address, key.sort) }
-            )
-            UArrayLengthsMemoryRegion(
-                allocatedLengths = region.allocatedLengths.put(concreteRef.address, newValue),
-                region.inputLengths
-            )
+            val id = UAllocatedArrayLengthId(key.arrayType, concreteRef.address, key.sort)
+            val newRegion = region.allocatedLengths.guardedWrite(id, value, innerGuard) {
+                id.sort.sampleUValue()
+            }
+            region.updateAllocated(newRegion)
         },
         blockOnSymbolic = { region, (symbolicRef, innerGuard) ->
             val oldRegion = region.getInputLength(key)
             val newRegion = oldRegion.write(symbolicRef, value, innerGuard)
-            UArrayLengthsMemoryRegion(region.allocatedLengths, inputLengths = newRegion)
+            region.updatedInput(newRegion)
         }
     )
 }

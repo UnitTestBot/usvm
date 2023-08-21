@@ -13,6 +13,7 @@ import org.usvm.memory.ULValue
 import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UMemoryRegionId
 import org.usvm.memory.UReadOnlyMemoryRegion
+import org.usvm.memory.UReadOnlyRegistersStack
 import org.usvm.memory.URegisterStackId
 import org.usvm.memory.UWritableMemory
 import org.usvm.sampleUValue
@@ -31,7 +32,7 @@ interface UModel {
  */
 open class UModelBase<Type>(
     ctx: UContext,
-    override val stack: ULazyRegistersStackModel,
+    override val stack: UReadOnlyRegistersStack,
     override val types: UTypeModel<Type>,
     override val mocker: UMockEvaluator,
     internal val regions: Map<UMemoryRegionId<*, *>, UMemoryRegion<*, *>>,

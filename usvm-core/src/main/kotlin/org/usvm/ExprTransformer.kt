@@ -10,9 +10,13 @@ interface UTransformer<Type> : KTransformer {
     fun <Sort : USort> transform(expr: URegisterReading<Sort>): UExpr<Sort>
 
     fun <Sort : USort> transform(expr: UCollectionReading<*, *, *>): UExpr<Sort>
+
     fun <Field, Sort : USort> transform(expr: UInputFieldReading<Field, Sort>): UExpr<Sort>
+
     fun <Sort : USort> transform(expr: UAllocatedArrayReading<Type, Sort>): UExpr<Sort>
+
     fun <Sort : USort> transform(expr: UInputArrayReading<Type, Sort>): UExpr<Sort>
+
     fun transform(expr: UInputArrayLengthReading<Type>): USizeExpr
 
     fun <KeySort : USort, Sort : USort, Reg : Region<Reg>> transform(
@@ -42,3 +46,6 @@ interface UTransformer<Type> : KTransformer {
 abstract class UExprTransformer<Type>(
     ctx: UContext
 ) : KNonRecursiveTransformer(ctx), UTransformer<Type>
+
+@Suppress("UNCHECKED_CAST")
+fun <Type> UTransformer<*>.asTypedTransformer() = this as UTransformer<Type>

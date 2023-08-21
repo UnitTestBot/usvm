@@ -13,7 +13,7 @@ import org.usvm.memory.ULValue
 import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UMemoryRegionId
 import org.usvm.memory.collection.USymbolicCollection
-import org.usvm.memory.collection.adapter.USymbolicMapMergeAdapter
+import org.usvm.memory.collection.guardedWrite
 import org.usvm.memory.collection.id.UAllocatedSymbolicMapId
 import org.usvm.memory.collection.id.UInputSymbolicMapId
 import org.usvm.memory.collection.key.UHeapRefKeyInfo
@@ -77,15 +77,13 @@ internal class USymbolicMapMemoryRegion<MapType, KeySort : USort, ValueSort : US
 ) : USymbolicMapRegion<MapType, KeySort, ValueSort, Reg> {
 
     private fun updateAllocatedMapWithAllocatedKeys(
-        mapRef: UConcreteHeapAddress,
-        keyRef: UConcreteHeapAddress,
-        guardedValue: UExpr<ValueSort>
+        updated: PersistentMap<Pair<UConcreteHeapAddress, UConcreteHeapAddress>, UExpr<ValueSort>>
     ) = USymbolicMapMemoryRegion(
         keySort,
         valueSort,
         mapType,
         keyInfo,
-        allocatedMapWithAllocatedKeys.put(mapRef to keyRef, guardedValue),
+        updated,
         inputMapWithAllocatedKeys,
         allocatedMapWithInputKeys,
         inputMapWithInputKeys
@@ -99,7 +97,7 @@ internal class USymbolicMapMemoryRegion<MapType, KeySort : USort, ValueSort : US
             mapType,
             UHeapRefKeyInfo,
             keyAddress
-        ).emptyMap()
+        ).emptyRegion()
 
     private fun getInputMapWithAllocatedKeys(keyAddress: UConcreteHeapAddress) =
         inputMapWithAllocatedKeys[keyAddress] ?: emptyInputMapWithAllocatedKeys(keyAddress)
@@ -126,7 +124,7 @@ internal class USymbolicMapMemoryRegion<MapType, KeySort : USort, ValueSort : US
             mapType,
             keyInfo,
             mapAddress
-        ).emptyMap()
+        ).emptyRegion()
 
     private fun getAllocatedMapWithInputKeys(mapAddress: UConcreteHeapAddress) =
         allocatedMapWithInputKeys[mapAddress] ?: emptyAllocatedMapWithInputKeys(mapAddress)
@@ -152,7 +150,7 @@ internal class USymbolicMapMemoryRegion<MapType, KeySort : USort, ValueSort : US
                 valueSort,
                 mapType,
                 keyInfo
-            ).emptyMap()
+            ).emptyRegion()
         return inputMapWithInputKeys!!
     }
 
@@ -254,17 +252,12 @@ internal class USymbolicMapMemoryRegion<MapType, KeySort : USort, ValueSort : US
                 initial = mapRegion,
                 initialGuard = mapGuard,
                 blockOnConcrete = { region, (concreteKeyRef, guard) ->
-                    val guardedValue = guard.uctx.mkIte(
-                        guard,
-                        { value },
-                        {
-                            region.allocatedMapWithAllocatedKeys[concreteMapRef.address to concreteKeyRef.address]
-                                ?: valueSort.sampleUValue()
-                        }
-                    )
-                    region.updateAllocatedMapWithAllocatedKeys(
-                        concreteMapRef.address, concreteKeyRef.address, guardedValue
-                    )
+                    val newMap = region.allocatedMapWithAllocatedKeys.guardedWrite(
+                        concreteMapRef.address to concreteKeyRef.address,
+                        value,
+                        guard
+                    ) { valueSort.sampleUValue() }
+                    region.updateAllocatedMapWithAllocatedKeys(newMap)
                 },
                 blockOnSymbolic = { region, (symbolicKeyRef, guard) ->
                     val map = region.getAllocatedMapWithInputKeys(concreteMapRef.address)
