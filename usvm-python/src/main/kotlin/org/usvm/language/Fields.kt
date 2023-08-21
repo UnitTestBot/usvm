@@ -1,8 +1,29 @@
 package org.usvm.language
 
 sealed class PropertyOfPythonObject
-sealed class ContentOfPrimitiveType: PropertyOfPythonObject()
-object IntContent: ContentOfPrimitiveType()
-object BoolContent: ContentOfPrimitiveType()
-object ListOfListIterator: ContentOfPrimitiveType()
-object IndexOfListIterator: ContentOfPrimitiveType()
+data class ContentOfType(val id: String): PropertyOfPythonObject()
+
+object IntContents {
+    val content = ContentOfType("int")
+}
+object BoolContents {
+    val content = ContentOfType("bool")
+}
+object ListIteratorContents {
+    val list = ContentOfType("list_of_list_iterator")
+    val index = ContentOfType("index_of_list_iterator")
+}
+
+object RangeContents {
+    val start = ContentOfType("start_of_range")
+    val stop = ContentOfType("stop_of_range")
+    val step = ContentOfType("step_of_range")
+    val length = ContentOfType("length_of_range")
+}
+
+object RangeIteratorContents {
+    val index = ContentOfType("index_of_range_iterator")
+    val start = ContentOfType("start_of_range_iterator")
+    val step = ContentOfType("step_of_range_iterator")
+    val length = ContentOfType("length_of_range_iterator")
+}

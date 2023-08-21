@@ -3,6 +3,7 @@ package org.usvm.samples
 import org.junit.jupiter.api.Test
 import org.usvm.UMachineOptions
 import org.usvm.language.PythonUnpinnedCallable
+import org.usvm.language.types.PythonAnyType
 import org.usvm.runner.PythonTestRunnerForPrimitiveProgram
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
@@ -263,5 +264,19 @@ class SimpleListsTest : PythonTestRunnerForPrimitiveProgram("SimpleLists", UMach
             )
         )
         options = oldOptions
+    }
+
+    @Test
+    fun testListAppend() {
+        check1WithConcreteRun(
+            constructFunction("list_append", listOf(PythonAnyType)),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, res -> res.selfTypeName == "AssertionError" },
+                { x, res -> x.repr == "127" && res.repr == "None" }
+            )
+        )
     }
 }

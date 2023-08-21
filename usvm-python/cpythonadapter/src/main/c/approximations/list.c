@@ -92,3 +92,22 @@ Approximation_list_richcompare(PyObject *v, PyObject *w, int op) {
     assert(wrapped);
     return Py_TYPE(wrapped)->tp_call(wrapped, PyTuple_Pack(2, v, w), 0);
 }
+
+PyObject *
+Approximation_list_append(PyObject *append_method, PyObject *symbolic_list, PyObject *wrapped_elem) {
+    assert(PyCFunction_Check(append_method) && symbolic_list && is_wrapped(wrapped_elem));
+    SymbolicAdapter *adapter = get_adapter(wrapped_elem);
+    PyObject *concrete_elem = unwrap(wrapped_elem);
+    PyObject *symbolic_elem = get_symbolic_or_none(wrapped_elem);
+    PyObject *concrete_args = PyTuple_Pack(1, concrete_elem);
+    PyObject *concrete_result = Py_TYPE(append_method)->tp_call(append_method, concrete_args, 0);
+    Py_DECREF(concrete_args);
+    if (!concrete_result) {
+        return 0;
+    }
+    PyObject *self = adapter->list_append(adapter->handler_param, symbolic_list, symbolic_elem);
+    if (!self)
+        return 0;
+
+    return wrap(concrete_result, Py_None, adapter);
+}

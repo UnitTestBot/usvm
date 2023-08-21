@@ -16,6 +16,7 @@ import org.usvm.machine.interpreters.operations.tracing.InstructionLimitExceeded
 import org.usvm.machine.utils.PyModelHolder
 import org.usvm.machine.utils.PythonMachineStatisticsOnFunction
 import org.usvm.utils.PythonObjectSerializer
+import org.usvm.utils.ReprObjectSerializer
 
 class USVMPythonInterpreter<PythonObjectRepresentation>(
     private val ctx: UPythonContext,
@@ -87,11 +88,14 @@ class USVMPythonInterpreter<PythonObjectRepresentation>(
                 )
                 return StepResult(emptySequence(), false)
             }
+            concolicRunContext.usesVirtualInputs = inputs == null
 
             if (logger.isDebugEnabled) {  // getting __repr__ might be slow
                 logger.debug(
                     "Generated inputs: {}",
-                    concrete.joinToString(", ") { ConcretePythonInterpreter.getPythonObjectRepr(it) }
+                    concrete.joinToString(", ") {
+                        ReprObjectSerializer.serialize(it)
+                    }
                 )
             }
 
@@ -108,10 +112,11 @@ class USVMPythonInterpreter<PythonObjectRepresentation>(
                     val serializedResult = serializer.serialize(result)
                     saveRunResult(PythonAnalysisResult(converter, inputs, Success(serializedResult)))
                 }
-                logger.debug("Step result: Successful run. Returned ${ConcretePythonInterpreter.getPythonObjectRepr(result)}")
+                logger.debug("Step result: Successful run. Returned ${ReprObjectSerializer.serialize(result)}")
 
             } catch (exception: CPythonExecutionException) {
-                require(exception.pythonExceptionValue != null && exception.pythonExceptionType != null)
+                require(exception.pythonExceptionType != null)
+                require(exception.pythonExceptionValue != null)
                 if (ConcretePythonInterpreter.isJavaException(exception.pythonExceptionValue)) {
                     throw ConcretePythonInterpreter.extractException(exception.pythonExceptionValue)
                 }

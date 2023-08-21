@@ -82,3 +82,14 @@ def subscript_and_isinstance(x):
     elif isinstance(x[3], type(None)):
         return 3
     return 4
+
+
+def range_loop(x):
+    sum_ = 0
+    for i in range(x):
+        sum_ += i
+
+    if sum_ > 15:
+        return 1
+
+    return 2

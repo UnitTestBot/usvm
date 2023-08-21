@@ -151,3 +151,9 @@ def add_and_compare(x: list, y: list):
 def double_subscript_and_compare(x: list, y: list):
     x[0][0] += 1
     assert x < y
+
+
+def list_append(x):
+    res = []
+    res.append(x)
+    assert res[-1] == 127

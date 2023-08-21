@@ -9,6 +9,7 @@ import org.usvm.machine.DelayedFork
 import org.usvm.machine.PythonExecutionState
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.language.PythonPinnedCallable
+import org.usvm.machine.interpreters.PythonObject
 
 fun myFork(ctx: ConcolicRunContext, cond: UExpr<KBoolSort>) {
     if (ctx.curState == null)
@@ -70,16 +71,6 @@ fun handlerForkKt(ctx: ConcolicRunContext, cond: UninterpretedSymbolicPythonObje
     }
     val expr = cond.getToBoolValue(ctx) ?: return
     myFork(ctx, expr)
-}
-
-@Suppress("unused_parameter")
-fun handlerFunctionCallKt(ctx: ConcolicRunContext, function: PythonPinnedCallable) {
-    // (ctx.curState ?: return).callStack.push(function, (ctx.curState ?: return).lastHandlerEvent)
-}
-
-@Suppress("unused_parameter")
-fun handlerReturnKt(ctx: ConcolicRunContext) {
-    // (ctx.curState ?: return).callStack.pop()
 }
 
 object BadModelException: Exception()

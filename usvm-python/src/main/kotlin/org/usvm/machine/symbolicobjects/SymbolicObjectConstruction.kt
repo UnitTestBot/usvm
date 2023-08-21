@@ -61,3 +61,21 @@ fun constructListIterator(context: ConcolicRunContext, list: UninterpretedSymbol
     result.setListIteratorContent(context, list)
     return result
 }
+
+fun constructRange(context: ConcolicRunContext, start: UExpr<KIntSort>, stop: UExpr<KIntSort>, step: UExpr<KIntSort>): UninterpretedSymbolicPythonObject {
+    require(context.curState != null)
+    val typeSystem = context.typeSystem
+    val address = context.curState!!.memory.alloc(typeSystem.pythonRange)
+    return UninterpretedSymbolicPythonObject(address, typeSystem).also {
+        it.setRangeContent(context, start, stop, step)
+    }
+}
+
+fun constructRangeIterator(context: ConcolicRunContext, range: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject {
+    require(context.curState != null)
+    val typeSystem = context.typeSystem
+    val address = context.curState!!.memory.alloc(typeSystem.pythonRangeIterator)
+    return UninterpretedSymbolicPythonObject(address, typeSystem).also {
+        it.setRangeIteratorContent(context, range)
+    }
+}

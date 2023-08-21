@@ -8,7 +8,7 @@ object PythonAnyType: VirtualPythonType() {
 
 class ConcreteTypeNegation(private val concreteType: ConcretePythonType): VirtualPythonType() {
     override fun accepts(type: PythonType): Boolean {
-        if (type is TypeOfVirtualObject)
+        if (type is MockType)
             return true
         if (type !is ConcretePythonType)
             return false
@@ -19,7 +19,7 @@ class ConcreteTypeNegation(private val concreteType: ConcretePythonType): Virtua
 sealed class TypeProtocol: VirtualPythonType() {
     abstract fun acceptsConcrete(type: ConcretePythonType): Boolean
     override fun accepts(type: PythonType): Boolean {
-        if (type == this || type is TypeOfVirtualObject)
+        if (type == this || type is MockType)
             return true
         if (type !is ConcretePythonType)
             return false
