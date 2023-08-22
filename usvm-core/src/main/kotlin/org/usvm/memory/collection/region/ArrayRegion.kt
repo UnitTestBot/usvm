@@ -25,7 +25,6 @@ import org.usvm.memory.collection.key.USymbolicArrayIndex
 import org.usvm.memory.collection.key.USymbolicArrayIndexKeyInfo
 import org.usvm.memory.foldHeapRef
 import org.usvm.memory.map
-import org.usvm.sampleUValue
 import org.usvm.uctx
 
 data class UArrayIndexRef<ArrayType, Sort : USort>(
@@ -82,7 +81,7 @@ internal class UArrayMemoryRegion<ArrayType, Sort : USort>(
         sort: Sort,
         address: UConcreteHeapAddress
     ): UAllocatedArray<ArrayType, Sort> = allocatedArrays[address]
-        ?: UAllocatedArrayId(arrayType, sort, sort.sampleUValue(), address).emptyRegion()
+        ?: UAllocatedArrayId(arrayType, sort, address).emptyRegion()
 
     private fun updateAllocatedArray(ref: UConcreteHeapAddress, updated: UAllocatedArray<ArrayType, Sort>) =
         UArrayMemoryRegion(allocatedArrays.put(ref, updated), inputArray)
@@ -205,7 +204,7 @@ internal class UArrayMemoryRegion<ArrayType, Sort : USort>(
         content: Map<USizeExpr, UExpr<Sort>>,
         guard: UBoolExpr
     ): UArrayMemoryRegion<ArrayType, Sort> {
-        val arrayId = UAllocatedArrayId(arrayType, sort, sort.sampleUValue(), address)
+        val arrayId = UAllocatedArrayId(arrayType, sort, address)
         val newCollection = arrayId.initializedArray(content, guard)
         return UArrayMemoryRegion(allocatedArrays.put(address, newCollection), inputArray)
     }

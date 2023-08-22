@@ -19,9 +19,6 @@ import kotlin.collections.ArrayList
  *
  * @property collectionId describes the source of the collection. Symbolic collections with the same [collectionId] represent the same
  * memory area, but in different states.
- *
- * @property defaultValue describes the initial values for the collections. If [defaultValue] equals `null` then this collection
- * is filled with symbolics.
  */
 data class USymbolicCollection<out CollectionId : USymbolicCollectionId<Key, Sort, CollectionId>, Key, Sort : USort>(
     val collectionId: CollectionId,
@@ -30,8 +27,8 @@ data class USymbolicCollection<out CollectionId : USymbolicCollectionId<Key, Sor
     // to save memory usage
     val sort: Sort get() = collectionId.sort
 
-    // If we replace it with get(), we have to check for nullability in read function.
-    val defaultValue = collectionId.defaultValue
+//    // If we replace it with get(), we have to check for nullability in read function.
+//    val defaultValue = collectionId.defaultValue
 
     private fun read(
         key: Key,
@@ -39,10 +36,10 @@ data class USymbolicCollection<out CollectionId : USymbolicCollectionId<Key, Sor
     ): UExpr<Sort> {
         val lastUpdatedElement = updates.lastUpdatedElementOrNull()
 
-        if (lastUpdatedElement == null && defaultValue != null) {
-            // Reading from an untouched array filled with defaultValue
-            return defaultValue
-        }
+//        if (lastUpdatedElement == null && defaultValue != null) {
+//            // Reading from an untouched array filled with defaultValue
+//            return defaultValue
+//        }
 
         if (lastUpdatedElement != null) {
             if (lastUpdatedElement.includesConcretely(key, precondition = sort.ctx.trueExpr)) {
@@ -153,7 +150,7 @@ data class USymbolicCollection<out CollectionId : USymbolicCollectionId<Key, Sor
     ): USymbolicCollection<CollectionId, Key, Sort> {
         // TODO: either check in USymbolicCollection constructor that we do not construct a symbolic collection with
         //       non-null reference as default value, or implement splitting by default value.
-        assert(defaultValue == null || !predicate(defaultValue))
+//        assert(defaultValue == null || !predicate(defaultValue))
 
         val splitUpdates = updates.read(key).split(key, predicate, matchingWrites, guardBuilder)
 
@@ -282,7 +279,7 @@ data class USymbolicCollection<out CollectionId : USymbolicCollectionId<Key, Sor
     override fun toString(): String =
         buildString {
             append('<')
-            append(defaultValue)
+//            append(defaultValue)
             updates.forEach {
                 append(it.toString())
             }

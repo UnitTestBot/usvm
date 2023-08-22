@@ -53,7 +53,8 @@ open class UModelBase<Type>(
         if (regionId is URegisterStackId) {
             return stack.uncheckedCast()
         }
-        return regions[regionId]?.uncheckedCast() ?: DefaultRegion(regionId)
+        return regions[regionId]?.uncheckedCast()
+            ?: DefaultRegion(regionId, eval(regionId.sort.sampleUValue()))
     }
 
     override fun nullRef(): UHeapRef = nullRef
@@ -76,10 +77,9 @@ open class UModelBase<Type>(
     }
 
     private class DefaultRegion<Key, Sort : USort>(
-        private val regionId: UMemoryRegionId<Key, Sort>
+        private val regionId: UMemoryRegionId<Key, Sort>,
+        private val value: UExpr<Sort>
     ) : UReadOnlyMemoryRegion<Key, Sort> {
-        override fun read(key: Key): UExpr<Sort> {
-            return regionId.sort.sampleUValue()
-        }
+        override fun read(key: Key): UExpr<Sort> = value
     }
 }

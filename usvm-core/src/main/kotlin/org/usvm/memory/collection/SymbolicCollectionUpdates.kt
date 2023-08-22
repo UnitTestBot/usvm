@@ -178,8 +178,13 @@ class UFlatUpdates<Key, Sort : USort> private constructor(
         composer: UComposer<Type>,
         mappedKeyInfo: USymbolicCollectionKeyInfo<MappedKey, MappedReg>
     ): UFlatUpdates<MappedKey, Sort> {
-        @Suppress("UNCHECKED_CAST")
-        node ?: return (this as UFlatUpdates<MappedKey, Sort>)
+        node ?: return if (keyInfo == mappedKeyInfo) {
+            @Suppress("UNCHECKED_CAST")
+            this as UFlatUpdates<MappedKey, Sort>
+        } else {
+            UFlatUpdates(null, mappedKeyInfo)
+        }
+
         // Map the current node and the next values recursively
         val mappedNode = node.update.map(keyMapper, composer, mappedKeyInfo)
         val mappedNext = node.next.filterMap(keyMapper, composer, mappedKeyInfo)
@@ -193,7 +198,7 @@ class UFlatUpdates<Key, Sort : USort> private constructor(
         }
 
         // If nothing changed, return this updates
-        if (mappedNode === node.update && mappedNext === node.next) {
+        if (mappedNode === node.update && mappedNext === node.next && keyInfo == mappedKeyInfo) {
             // In this case Key = MappedKey is guaranteed, but type system can't express this
             @Suppress("UNCHECKED_CAST")
             return (this as UFlatUpdates<MappedKey, Sort>)

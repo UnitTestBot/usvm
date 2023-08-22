@@ -18,6 +18,7 @@ import org.usvm.memory.collection.key.USymbolicMapKey
 import org.usvm.memory.collection.key.USymbolicMapKeyInfo
 import org.usvm.memory.collection.key.USymbolicMapKeyRegion
 import org.usvm.memory.collection.region.USymbolicMapEntryRef
+import org.usvm.sampleUValue
 import org.usvm.uctx
 import org.usvm.util.Region
 import org.usvm.util.emptyRegionTree
@@ -34,12 +35,12 @@ interface USymbolicMapId<
 }
 
 class UAllocatedSymbolicMapId<MapType, KeySort : USort, ValueSort : USort, Reg : Region<Reg>> internal constructor(
-    override val defaultValue: UExpr<ValueSort>,
     val keySort: KeySort,
     val valueSort: ValueSort,
     override val mapType: MapType,
     val keyInfo: USymbolicCollectionKeyInfo<UExpr<KeySort>, Reg>,
     val address: UConcreteHeapAddress,
+    val defaultValue: UExpr<ValueSort> = valueSort.sampleUValue(),
     contextMemory: UWritableMemory<*>? = null,
 ) : USymbolicCollectionIdWithContextMemory<UExpr<KeySort>, ValueSort, UAllocatedSymbolicMapId<MapType, KeySort, ValueSort, Reg>>(
     contextMemory
@@ -54,7 +55,13 @@ class UAllocatedSymbolicMapId<MapType, KeySort : USort, ValueSort : USort, Reg :
     override fun UContext.mkReading(
         collection: USymbolicCollection<UAllocatedSymbolicMapId<MapType, KeySort, ValueSort, Reg>, UExpr<KeySort>, ValueSort>,
         key: UExpr<KeySort>
-    ): UExpr<ValueSort> = mkAllocatedSymbolicMapReading(collection, key)
+    ): UExpr<ValueSort> {
+        if (collection.updates.isEmpty()) {
+            return defaultValue
+        }
+
+        return mkAllocatedSymbolicMapReading(collection, key)
+    }
 
     override fun UContext.mkLValue(
         collection: USymbolicCollection<UAllocatedSymbolicMapId<MapType, KeySort, ValueSort, Reg>, UExpr<KeySort>, ValueSort>,
@@ -81,7 +88,7 @@ class UAllocatedSymbolicMapId<MapType, KeySort : USort, ValueSort : USort, Reg :
         check(contextMemory == null) { "contextMemory is not null in composition" }
         val composedDefaultValue = composer.compose(defaultValue)
         return UAllocatedSymbolicMapId(
-            composedDefaultValue, keySort, valueSort, mapType, keyInfo, address, composer.memory.toWritableMemory()
+            keySort, valueSort, mapType, keyInfo, address, composedDefaultValue, composer.memory.toWritableMemory()
         )
     }
 
@@ -123,16 +130,14 @@ class UInputSymbolicMapId<MapType, KeySort : USort, ValueSort : USort, Reg : Reg
     val valueSort: ValueSort,
     override val mapType: MapType,
     val keyInfo: USymbolicCollectionKeyInfo<UExpr<KeySort>, Reg>,
+    private val defaultValue: UExpr<ValueSort>? = null,
     contextMemory: UWritableMemory<*>? = null,
-) : USymbolicCollectionIdWithContextMemory<USymbolicMapKey<KeySort>, ValueSort, UInputSymbolicMapId<MapType, KeySort, ValueSort, Reg>>(
-    contextMemory
-),
+) : USymbolicCollectionIdWithContextMemory<USymbolicMapKey<KeySort>, ValueSort, UInputSymbolicMapId<MapType, KeySort, ValueSort, Reg>>(contextMemory),
     USymbolicMapId<MapType, USymbolicMapKey<KeySort>, ValueSort, UInputSymbolicSetId<USymbolicMapKey<KeySort>, USymbolicMapKeyRegion<Reg>>, UInputSymbolicMapId<MapType, KeySort, ValueSort, Reg>> {
     override val keysSetId: UInputSymbolicSetId<USymbolicMapKey<KeySort>, USymbolicMapKeyRegion<Reg>>
         get() = UInputSymbolicSetId(keyInfo(), contextMemory)
 
     override val sort: ValueSort get() = valueSort
-    override val defaultValue: UExpr<ValueSort>? get() = null
 
     override fun UContext.mkReading(
         collection: USymbolicCollection<UInputSymbolicMapId<MapType, KeySort, ValueSort, Reg>, USymbolicMapKey<KeySort>, ValueSort>,
@@ -174,7 +179,10 @@ class UInputSymbolicMapId<MapType, KeySort : USort, ValueSort : USort, Reg : Reg
         composer: UComposer<Type>
     ): UInputSymbolicMapId<MapType, KeySort, ValueSort, Reg> {
         check(contextMemory == null) { "contextMemory is not null in composition" }
-        return UInputSymbolicMapId(keySort, valueSort, mapType, keyInfo, composer.memory.toWritableMemory())
+        val composedDefaultValue = composer.compose(sort.sampleUValue())
+        return UInputSymbolicMapId(
+            keySort, valueSort, mapType, keyInfo, composedDefaultValue, composer.memory.toWritableMemory()
+        )
     }
 
     override fun keyInfo(): USymbolicMapKeyInfo<KeySort, Reg> = USymbolicMapKeyInfo(keyInfo)

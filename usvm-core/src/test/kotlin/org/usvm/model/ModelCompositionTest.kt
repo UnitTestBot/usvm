@@ -14,7 +14,6 @@ import org.usvm.UComposer
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UHeapRef
-import org.usvm.memory.collection.adapter.USymbolicArrayCopyAdapter
 import org.usvm.memory.collection.adapter.USymbolicArrayInputToAllocatedCopyAdapter
 import org.usvm.memory.collection.id.UAllocatedArrayId
 import org.usvm.memory.collection.id.UInputArrayId
@@ -52,7 +51,7 @@ class ModelCompositionTest {
         val model = UModelBase<Type>(ctx, stackModel, mockk(), mockk(), emptyMap(), concreteNull)
         val composer = UComposer(this, model)
 
-        val region = UAllocatedArrayId(mockk<Type>(), bv32Sort, mkBv(0), 1)
+        val region = UAllocatedArrayId(mockk<Type>(), bv32Sort, 1)
             .emptyRegion()
             .write(0.toBv(), 0.toBv(), trueExpr)
             .write(1.toBv(), 1.toBv(), trueExpr)
@@ -97,7 +96,7 @@ class ModelCompositionTest {
             USizeExprKeyInfo
         )
 
-        val concreteRegion = UAllocatedArrayId(arrayType, bv32Sort, mkBv(0), concreteRef.address)
+        val concreteRegion = UAllocatedArrayId(arrayType, bv32Sort, concreteRef.address)
             .emptyRegion()
             .copyRange(fromRegion, adapter, trueExpr)
 
@@ -218,7 +217,7 @@ class ModelCompositionTest {
 
         val composer = UComposer(this, model)
 
-        val emptyRegion = UAllocatedArrayId(mockk<Type>(), bv32Sort, mkBv(0), 1).emptyRegion()
+        val emptyRegion = UAllocatedArrayId(mockk<Type>(), bv32Sort, 1).emptyRegion()
 
         run {
             val region = emptyRegion

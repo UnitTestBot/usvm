@@ -11,7 +11,6 @@ import org.usvm.memory.UWritableMemory
 import org.usvm.memory.collection.USymbolicCollection
 import org.usvm.memory.collection.key.USymbolicCollectionKeyInfo
 import org.usvm.uctx
-import org.usvm.util.Region
 
 typealias KeyTransformer<Key> = (Key) -> Key
 typealias KeyMapper<Key, MappedKey> = (Key) -> MappedKey?
@@ -23,7 +22,7 @@ data class DecomposedKey<Key, Sort : USort>(val collectionId: USymbolicCollectio
  */
 interface USymbolicCollectionId<Key, Sort : USort, out CollectionId : USymbolicCollectionId<Key, Sort, CollectionId>> {
     val sort: Sort
-    val defaultValue: UExpr<Sort>?
+//    val defaultValue: UExpr<Sort>?
 
     /**
      * Performs a reading from a [collection] by a [key]. Inheritors use context heap in symbolic collection composition.

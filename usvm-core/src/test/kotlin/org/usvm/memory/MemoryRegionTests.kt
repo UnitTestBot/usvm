@@ -90,7 +90,7 @@ class MemoryRegionTests {
         val idx1 = mkRegisterReading(0, sizeSort)
         val idx2 = mkRegisterReading(1, sizeSort)
 
-        val memoryRegion = UAllocatedArrayId(mockk<Type>(), sizeSort, mkSizeExpr(0), 0)
+        val memoryRegion = UAllocatedArrayId(mockk<Type>(), sizeSort, 0)
             .emptyRegion()
             .write(idx1, mkBv(0), trueExpr)
             .write(idx2, mkBv(1), trueExpr)

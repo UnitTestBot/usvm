@@ -182,7 +182,7 @@ class TranslationTest {
             USizeExprKeyInfo
         )
 
-        val concreteRegion = UAllocatedArrayId(valueArrayDescr, bv32Sort, mkBv(0), concreteRef.address)
+        val concreteRegion = UAllocatedArrayId(valueArrayDescr, bv32Sort, concreteRef.address)
             .emptyRegion()
             .copyRange(region, adapter, trueExpr)
 
@@ -409,7 +409,7 @@ class TranslationTest {
         val idx2 = mkRegisterReading(3, sizeSort)
         val val2 = mkRegisterReading(5, addressSort)
 
-        val allocatedRegion1 = UAllocatedArrayId(valueArrayDescr, addressSort, nullRef, 1)
+        val allocatedRegion1 = UAllocatedArrayId(valueArrayDescr, addressSort, 1)
             .emptyRegion()
             .write(idx1, val1, trueExpr)
             .write(idx2, val2, trueExpr)
@@ -418,7 +418,7 @@ class TranslationTest {
             mkSizeExpr(0), mkSizeExpr(0), mkSizeExpr(5), USizeExprKeyInfo
         )
 
-        var allocatedRegion2 = UAllocatedArrayId(valueArrayDescr, addressSort, nullRef, 2)
+        var allocatedRegion2 = UAllocatedArrayId(valueArrayDescr, addressSort, 2)
             .emptyRegion()
 
         val idx = mkRegisterReading(4, sizeSort)
@@ -443,7 +443,7 @@ class TranslationTest {
 
     @Test
     fun testCachingOfTranslatedMemoryUpdates() = with(ctx) {
-        val allocatedRegion = UAllocatedArrayId(valueArrayDescr, sizeSort, mkBv(0), 0)
+        val allocatedRegion = UAllocatedArrayId(valueArrayDescr, sizeSort, 0)
             .emptyRegion()
             .write(mkRegisterReading(0, sizeSort), mkBv(0), trueExpr)
             .write(mkRegisterReading(1, sizeSort), mkBv(1), trueExpr)

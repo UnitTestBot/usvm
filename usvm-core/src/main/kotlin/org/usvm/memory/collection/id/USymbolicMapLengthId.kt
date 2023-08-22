@@ -19,8 +19,6 @@ class UInputSymbolicMapLengthId<MapType> internal constructor(
     override val sort: USizeSort,
     contextMemory: UWritableMemory<*>? = null,
 ) : USymbolicCollectionIdWithContextMemory<UHeapRef, USizeSort, UInputSymbolicMapLengthId<MapType>>(contextMemory) {
-    override val defaultValue: UExpr<USizeSort>? get() = null
-
     override fun UContext.mkReading(
         collection: USymbolicCollection<UInputSymbolicMapLengthId<MapType>, UHeapRef, USizeSort>,
         key: UHeapRef

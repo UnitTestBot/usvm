@@ -26,7 +26,6 @@ import org.usvm.memory.UUpdateNode
 import org.usvm.memory.collection.UFlatUpdates
 import org.usvm.memory.collection.USymbolicCollection
 import org.usvm.memory.collection.USymbolicCollectionUpdates
-import org.usvm.memory.collection.adapter.USymbolicArrayCopyAdapter
 import org.usvm.memory.collection.adapter.USymbolicArrayInputToInputCopyAdapter
 import org.usvm.memory.collection.id.UAllocatedArrayId
 import org.usvm.memory.collection.id.UInputArrayId
@@ -380,7 +379,7 @@ internal class CompositionTest {
             .write(fstIndex, 1.toBv(), guard = trueExpr)
             .write(sndIndex, 2.toBv(), guard = trueExpr)
 
-        val collectionId = UAllocatedArrayId(arrayType, bv32Sort, mkBv(0), address)
+        val collectionId = UAllocatedArrayId(arrayType, bv32Sort, address)
         val regionArray = USymbolicCollection(
             collectionId,
             updates,
@@ -426,7 +425,7 @@ internal class CompositionTest {
         val symbolicIndex = mockk<USizeExpr>()
         val symbolicAddress = mkRegisterReading(0, addressSort)
 
-        val regionArray = UAllocatedArrayId(arrayType, addressSort, nullRef, 0)
+        val regionArray = UAllocatedArrayId(arrayType, addressSort, 0)
             .emptyRegion()
             .write(mkBv(0), symbolicAddress, trueExpr)
             .write(mkBv(1), mkConcreteHeapRef(1), trueExpr)
@@ -616,7 +615,7 @@ internal class CompositionTest {
 
         val composer = UComposer(this, composedMemory)
 
-        val region = UAllocatedArrayId(mockk<Type>(), addressSort, nullRef, 1).emptyRegion()
+        val region = UAllocatedArrayId(mockk<Type>(), addressSort, 1).emptyRegion()
         val reading = region.read(mkRegisterReading(0, sizeSort))
 
         val expr = composer.compose(reading)

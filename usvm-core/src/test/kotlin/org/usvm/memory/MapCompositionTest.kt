@@ -31,6 +31,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNotSame
 import kotlin.test.assertNull
 import kotlin.test.assertSame
+import kotlin.test.assertTrue
 
 class MapCompositionTest<Type> {
     private lateinit var ctx: UContext
@@ -76,7 +77,7 @@ class MapCompositionTest<Type> {
 
         val composedUpdates = updatesToCompose.filterMap(keyMapper = { composer.compose(it) }, composer, keyInfo)
 
-        assert(composedUpdates.isEmpty())
+        assertTrue(composedUpdates.isEmpty())
     }
 
     @Test

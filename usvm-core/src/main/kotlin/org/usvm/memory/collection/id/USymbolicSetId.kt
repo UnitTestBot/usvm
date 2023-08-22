@@ -55,9 +55,6 @@ class UAllocatedSymbolicSetId<Element, Reg : Region<Reg>>(
     override val sort: UBoolSort
         get() = TODO("Not yet implemented")
 
-    override val defaultValue: UBoolExpr?
-        get() = TODO("Not yet implemented")
-
     override fun baseRegion(): Reg =
         elementInfo.bottomRegion()
 
@@ -106,9 +103,6 @@ class UInputSymbolicSetId<Element, Reg : Region<Reg>>(
 ) : USymbolicSetId<Element, Reg, UInputSymbolicSetId<Element, Reg>>(contextMemory) {
 
     override val sort: UBoolSort
-        get() = TODO("Not yet implemented")
-
-    override val defaultValue: UBoolExpr?
         get() = TODO("Not yet implemented")
 
     override fun baseRegion(): Reg =
