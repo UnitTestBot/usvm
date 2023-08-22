@@ -90,6 +90,7 @@ import org.usvm.USizeSort
 import org.usvm.USort
 import org.usvm.api.allocateArray
 import org.usvm.api.allocateArrayInitialized
+import org.usvm.api.memset
 import org.usvm.isTrue
 import org.usvm.machine.JcContext
 import org.usvm.machine.operator.JcBinaryOperator
@@ -365,8 +366,15 @@ class JcExprResolver(
         val size = resolveCast(expr.dimensions[0], ctx.cp.int)?.asExpr(bv32Sort) ?: return null
         // TODO: other dimensions ( > 1)
         checkNewArrayLength(size) ?: return null
-        val ref = scope.calcOnState { memory.allocateArray(expr.type, size) }
-        ref
+
+        scope.calcOnState {
+            val ref = memory.alloc(expr.type)
+
+            val arrayDescriptor = arrayDescriptorOf(expr.type as JcArrayType)
+            memory.write(UArrayLengthRef(ref, arrayDescriptor), size)
+
+            ref
+        }
     }
 
     override fun visitJcNewExpr(expr: JcNewExpr): UExpr<out USort> =
