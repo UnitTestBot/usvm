@@ -87,7 +87,13 @@ class UMemory<Type, Method>(
     @Suppress("UNCHECKED_CAST")
     override fun <Key, Sort : USort> getRegion(regionId: UMemoryRegionId<Key, Sort>): UMemoryRegion<Key, Sort> {
         if (regionId is URegisterStackId) return stack as UMemoryRegion<Key, Sort>
-        return regions.getOrElse(regionId) { regionId.emptyRegion() } as UMemoryRegion<Key, Sort>
+
+        val region = regions[regionId]
+        if (region != null) return region as UMemoryRegion<Key, Sort>
+
+        val newRegion = regionId.emptyRegion()
+        regions = regions.put(regionId, newRegion)
+        return newRegion
     }
 
     override fun <Key, Sort : USort> setRegion(
