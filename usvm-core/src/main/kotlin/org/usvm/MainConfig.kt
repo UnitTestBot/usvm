@@ -29,7 +29,7 @@ object MainConfig {
     var defaultAlgorithm = Algorithm.BFS
     var postprocessing = Postprocessing.Argmax
     var mode = Mode.Both
-    var inputShape = listOf<Long>(1, -1, 34)
+    var inputShape = listOf<Long>(1, -1, 77)
     var maxAttentionLength = -1
     var useGnn = true
     var dataConsumption = 100.0f
@@ -39,4 +39,7 @@ object MainConfig {
     var graphUpdate = GraphUpdate.Once
     var logGraphFeatures = false
     var gnnFeaturesCount = 8
+    var useRnn = true
+    var rnnStateShape = listOf<Long>(4, 1, 512)
+    var rnnFeaturesCount = 33
 }

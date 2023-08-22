@@ -150,6 +150,7 @@ fun calculate() {
 fun aggregate() {
     val resultDirname = MainConfig.dataPath
     val resultFilename = "current_dataset.json"
+    val schemesFilename = "schemes.json"
     val jsons = mutableListOf<JsonElement>()
 
     Path(resultDirname, "jsons").toFile().listFiles()?.forEach { file ->
@@ -191,11 +192,19 @@ fun aggregate() {
             }
         }
     }
+    val schemesJson = buildJsonObject {
+        put("stateScheme", jsons.first().jsonObject
+            .getValue("json").jsonObject.getValue("stateScheme"))
+        put("trajectoryScheme", jsons.first().jsonObject
+            .getValue("json").jsonObject.getValue("trajectoryScheme"))
+    }
 
     val resultFile = Path(resultDirname, resultFilename).toFile()
+    val schemesFile = Path(resultDirname, schemesFilename).toFile()
     resultFile.parentFile.mkdirs()
+    schemesFile.parentFile.mkdirs()
     Json.encodeToStream(bigJson, resultFile.outputStream())
-    resultFile.appendText(" ")
+    Json.encodeToStream(schemesJson, schemesFile.outputStream())
 
     println("\nAGGREGATION FINISHED IN DIRECTORY $resultDirname\n")
 }
@@ -233,6 +242,12 @@ fun updateConfig(options: JsonObject) {
         JsonPrimitive(MainConfig.logGraphFeatures)) as JsonPrimitive).content.toBoolean()
     MainConfig.gnnFeaturesCount = (options.getOrDefault("gnnFeaturesCount",
         JsonPrimitive(MainConfig.gnnFeaturesCount)) as JsonPrimitive).content.toInt()
+    MainConfig.useRnn = (options.getOrDefault("useRnn",
+        JsonPrimitive(MainConfig.useRnn)) as JsonPrimitive).content.toBoolean()
+    MainConfig.rnnStateShape = (options.getOrDefault("rnnStateShape", JsonArray(MainConfig.rnnStateShape
+        .map { JsonPrimitive(it) })) as JsonArray).map { (it as JsonPrimitive).content.toLong() }
+    MainConfig.rnnFeaturesCount = (options.getOrDefault("rnnFeaturesCount",
+        JsonPrimitive(MainConfig.rnnFeaturesCount)) as JsonPrimitive).content.toInt()
 
     println("OPTIONS:")
     println("  SAMPLES PATH: ${MainConfig.samplesPath}")
@@ -251,6 +266,9 @@ fun updateConfig(options: JsonObject) {
     println("  GRAPH UPDATE: ${MainConfig.graphUpdate}")
     println("  LOG GRAPH FEATURES: ${MainConfig.logGraphFeatures}")
     println("  GNN FEATURES COUNT: ${MainConfig.gnnFeaturesCount}")
+    println("  USE RNN: ${MainConfig.useRnn}")
+    println("  RNN STATE SHAPE: ${MainConfig.rnnStateShape}")
+    println("  RNN FEATURES COUNT: ${MainConfig.rnnFeaturesCount}")
     println()
 }
 

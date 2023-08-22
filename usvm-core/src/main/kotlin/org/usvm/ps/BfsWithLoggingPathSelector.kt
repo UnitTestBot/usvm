@@ -351,6 +351,7 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
         val reward: Float,
         val graphId: Int = 0,
         val blockIds: List<Int>,
+        val extraFeatures: List<Float>,
     )
 
     init {
@@ -369,6 +370,11 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
                 if (MainConfig.useGnn) {
                     (0 until MainConfig.gnnFeaturesCount).forEach {
                         add("gnnFeature$it")
+                    }
+                }
+                if (MainConfig.useRnn) {
+                    (0 until MainConfig.rnnFeaturesCount).forEach {
+                        add("rnnFeature$it")
                     }
                 }
             }
@@ -547,6 +553,10 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
         )
     }
 
+    open protected fun getExtraFeatures(): List<Float> {
+        return listOf()
+    }
+
     private fun getActionData(stateFeatureQueue: List<StateFeatures>,
                                 globalStateFeatures: GlobalStateFeatures,
                                 chosenState: State): ActionData {
@@ -557,7 +567,8 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
             stateId,
             getReward(queue[stateId]),
             graphFeaturesList.lastIndex,
-            queue.map { it.currentStatement!! }.map { blockGraph.getBlock(it)?.id ?: -1 }
+            queue.map { it.currentStatement!! }.map { blockGraph.getBlock(it)?.id ?: -1 },
+            getExtraFeatures()
         )
     }
 
