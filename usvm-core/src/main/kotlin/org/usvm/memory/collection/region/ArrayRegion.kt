@@ -253,7 +253,7 @@ internal fun <ArrayType> UWritableMemory<ArrayType>.allocateArray(
 ): UConcreteHeapRef {
     val address = alloc(type)
 
-    val lengthRegionRef = UArrayLengthRef(length.sort, address, type)
+    val lengthRegionRef = UArrayLengthRef(address, type)
     write(lengthRegionRef, length, guard = length.uctx.trueExpr)
 
     return address
@@ -266,7 +266,7 @@ internal fun <ArrayType, Sort : USort> UWritableMemory<ArrayType>.memset(
     contents: Sequence<UExpr<Sort>>,
 ) = with(sort.uctx) {
     val tmpArrayRef = allocateArrayInitialized(type, sort, contents)
-    val contentLength = read(UArrayLengthRef(sizeSort, tmpArrayRef, type))
+    val contentLength = read(UArrayLengthRef(tmpArrayRef, type))
 
     memcpy(
         srcRef = tmpArrayRef,
@@ -279,5 +279,5 @@ internal fun <ArrayType, Sort : USort> UWritableMemory<ArrayType>.memset(
         guard = trueExpr
     )
 
-    write(UArrayLengthRef(sizeSort, ref, type), contentLength, guard = trueExpr)
+    write(UArrayLengthRef(ref, type), contentLength, guard = trueExpr)
 }

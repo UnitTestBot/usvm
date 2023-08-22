@@ -3,6 +3,7 @@ package org.usvm.machine.interpreter
 import io.ksmt.expr.KExpr
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
+import io.ksmt.utils.uncheckedCast
 import org.jacodb.api.JcArrayType
 import org.jacodb.api.JcMethod
 import org.jacodb.api.JcPrimitiveType
@@ -80,18 +81,15 @@ import org.jacodb.api.ext.objectType
 import org.jacodb.api.ext.short
 import org.jacodb.impl.bytecode.JcFieldImpl
 import org.jacodb.impl.types.FieldInfo
-import org.usvm.UArrayIndexLValue
-import org.usvm.UArrayLengthLValue
 import org.usvm.UBvSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
-import org.usvm.UFieldLValue
 import org.usvm.UHeapRef
-import org.usvm.ULValue
-import org.usvm.URegisterLValue
 import org.usvm.USizeExpr
 import org.usvm.USizeSort
 import org.usvm.USort
+import org.usvm.api.allocateArray
+import org.usvm.api.allocateArrayInitialized
 import org.usvm.isTrue
 import org.usvm.machine.JcContext
 import org.usvm.machine.operator.JcBinaryOperator
@@ -102,7 +100,13 @@ import org.usvm.machine.operator.wideTo32BitsIfNeeded
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.throwExceptionWithoutStackFrameDrop
+import org.usvm.memory.ULValue
+import org.usvm.memory.URegisterStackRef
+import org.usvm.memory.collection.region.UArrayIndexRef
+import org.usvm.memory.collection.region.UArrayLengthRef
+import org.usvm.memory.collection.region.UFieldRef
 import org.usvm.util.extractJcRefType
+import org.usvm.util.write
 
 /**
  * An expression resolver based on JacoDb 3-address code. A result of resolving is `null`, iff
@@ -136,7 +140,7 @@ class JcExprResolver(
      *
      * @see JcStepScope
      */
-    fun resolveLValue(value: JcValue): ULValue? =
+    fun resolveLValue(value: JcValue): ULValue<*, *>? =
         when (value) {
             is JcFieldRef -> resolveFieldRef(value.instance, value.field)
             is JcArrayAccess -> resolveArrayAccess(value.array, value.index)
@@ -285,7 +289,11 @@ class JcExprResolver(
 
             val valuesArrayDescriptor = arrayDescriptorOf(stringValueField.fieldType as JcArrayType)
             val elementType = requireNotNull(stringValueField.fieldType.ifArrayGetElementType)
-            val charArrayRef = memory.malloc(valuesArrayDescriptor, typeToSort(elementType), charValues)
+            val charArrayRef = memory.allocateArrayInitialized(
+                valuesArrayDescriptor,
+                typeToSort(elementType),
+                charValues.uncheckedCast()
+            )
 
             // overwrite array type because descriptor is element type
             memory.types.allocate(charArrayRef.address, stringValueField.fieldType)
@@ -294,7 +302,7 @@ class JcExprResolver(
             val ref = mkStringConstRef(value.value, this)
 
             // String constants are immutable. Therefore, it is correct to overwrite value and type.
-            val stringValueLValue = UFieldLValue(addressSort, ref, stringValueField.field)
+            val stringValueLValue = UFieldRef(addressSort, ref, stringValueField.field)
             memory.write(stringValueLValue, charArrayRef)
             memory.types.allocate(ref.address, stringType)
 
@@ -318,7 +326,7 @@ class JcExprResolver(
 
         // Save ref original class type
         val classRefType = memory.alloc(type)
-        val classRefTypeLValue = UFieldLValue(ctx.addressSort, ref, ctx.classTypeSyntheticField)
+        val classRefTypeLValue = UFieldRef(ctx.addressSort, ref, ctx.classTypeSyntheticField)
         memory.write(classRefTypeLValue, classRefType)
 
         return ref
@@ -336,7 +344,7 @@ class JcExprResolver(
     override fun visitJcInstanceOfExpr(expr: JcInstanceOfExpr): UExpr<out USort>? = with(ctx) {
         val ref = resolveJcExpr(expr.operand)?.asExpr(addressSort) ?: return null
         scope.calcOnState {
-            val notEqualsNull = mkHeapRefEq(ref, memory.heap.nullRef()).not()
+            val notEqualsNull = mkHeapRefEq(ref, memory.nullRef()).not()
             val isExpr = memory.types.evalIsSubtype(ref, expr.targetType)
             mkAnd(notEqualsNull, isExpr)
         }
@@ -346,7 +354,7 @@ class JcExprResolver(
         val ref = resolveJcExpr(expr.array)?.asExpr(addressSort) ?: return null
         checkNullPointer(ref) ?: return null
         val arrayDescriptor = arrayDescriptorOf(expr.array.type as JcArrayType)
-        val lengthRef = UArrayLengthLValue(ref, arrayDescriptor)
+        val lengthRef = UArrayLengthRef(ref, arrayDescriptor)
         val length = scope.calcOnState { memory.read(lengthRef).asExpr(sizeSort) }
         assertHardMaxArrayLength(length) ?: return null
         scope.assert(mkBvSignedLessOrEqualExpr(mkBv(0), length)) ?: return null
@@ -357,7 +365,7 @@ class JcExprResolver(
         val size = resolveCast(expr.dimensions[0], ctx.cp.int)?.asExpr(bv32Sort) ?: return null
         // TODO: other dimensions ( > 1)
         checkNewArrayLength(size) ?: return null
-        val ref = scope.calcOnState { memory.malloc(expr.type, size) }
+        val ref = scope.calcOnState { memory.allocateArray(expr.type, size) }
         ref
     }
 
@@ -525,20 +533,20 @@ class JcExprResolver(
 
     // region lvalue resolving
 
-    private fun resolveFieldRef(instance: JcValue?, field: JcTypedField): ULValue? =
+    private fun resolveFieldRef(instance: JcValue?, field: JcTypedField): ULValue<*, *>? =
         ensureStaticFieldsInitialized(field.enclosingType) {
             with(ctx) {
                 if (instance != null) {
                     val instanceRef = resolveJcExpr(instance)?.asExpr(addressSort) ?: return null
                     checkNullPointer(instanceRef) ?: return null
                     val sort = ctx.typeToSort(field.fieldType)
-                    UFieldLValue(sort, instanceRef, field.field)
+                    UFieldRef(sort, instanceRef, field.field)
                 } else {
                     val sort = ctx.typeToSort(field.fieldType)
                     val classRef = scope.calcOnState {
                         resolveClassRef(field.enclosingType)
                     }
-                    UFieldLValue(sort, classRef, field.field)
+                    UFieldRef(sort, classRef, field.field)
                 }
             }
         }
@@ -590,20 +598,20 @@ class JcExprResolver(
     }
 
     private fun staticFieldsInitializedFlag(type: JcRefType, classRef: UHeapRef) =
-        UFieldLValue(
-            fieldSort = ctx.booleanSort,
+        UFieldRef(
+            sort = ctx.booleanSort,
             field = JcFieldImpl(type.jcClass, staticFieldsInitializedFlagField),
             ref = classRef
         )
 
-    private fun resolveArrayAccess(array: JcValue, index: JcValue): UArrayIndexLValue<JcType>? = with(ctx) {
+    private fun resolveArrayAccess(array: JcValue, index: JcValue): UArrayIndexRef<JcType, *>? = with(ctx) {
         val arrayRef = resolveJcExpr(array)?.asExpr(addressSort) ?: return null
         checkNullPointer(arrayRef) ?: return null
 
         val arrayDescriptor = arrayDescriptorOf(array.type as JcArrayType)
 
         val idx = resolveCast(index, ctx.cp.int)?.asExpr(bv32Sort) ?: return null
-        val lengthRef = UArrayLengthLValue(arrayRef, arrayDescriptor)
+        val lengthRef = UArrayLengthRef(arrayRef, arrayDescriptor)
         val length = scope.calcOnState { memory.read(lengthRef).asExpr(sizeSort) }
 
         assertHardMaxArrayLength(length) ?: return null
@@ -613,14 +621,14 @@ class JcExprResolver(
         val elementType = requireNotNull(array.type.ifArrayGetElementType)
         val cellSort = typeToSort(elementType)
 
-        return UArrayIndexLValue(cellSort, arrayRef, idx, arrayDescriptor)
+        return UArrayIndexRef(cellSort, arrayRef, idx, arrayDescriptor)
     }
 
-    private fun resolveLocal(local: JcLocal): URegisterLValue {
+    private fun resolveLocal(local: JcLocal): URegisterStackRef<*> {
         val method = requireNotNull(scope.calcOnState { lastEnteredMethod })
         val localIdx = localToIdx(method, local)
         val sort = ctx.typeToSort(local.type)
-        return URegisterLValue(sort, localIdx)
+        return URegisterStackRef(sort, localIdx)
     }
 
     // endregion

@@ -1,26 +1,25 @@
 package org.usvm.machine.state
 
-import org.jacodb.api.JcField
 import org.jacodb.api.JcMethod
 import org.jacodb.api.JcType
 import org.jacodb.api.cfg.JcInst
+import org.usvm.PathsTrieNode
 import org.usvm.UCallStack
 import org.usvm.UState
 import org.usvm.constraints.UPathConstraints
 import org.usvm.machine.JcContext
-import org.usvm.memory.UMemoryBase
+import org.usvm.memory.UMemory
 import org.usvm.model.UModelBase
-import org.usvm.PathsTrieNode
 
 class JcState(
     ctx: JcContext,
     callStack: UCallStack<JcMethod, JcInst> = UCallStack(),
     pathConstraints: UPathConstraints<JcType, JcContext> = UPathConstraints(ctx),
-    memory: UMemoryBase<JcField, JcType, JcMethod> = UMemoryBase(ctx, pathConstraints.typeConstraints),
-    models: List<UModelBase<JcField, JcType>> = listOf(),
+    memory: UMemory<JcType, JcMethod> = UMemory(ctx, pathConstraints.typeConstraints),
+    models: List<UModelBase<JcType>> = listOf(),
     override var pathLocation: PathsTrieNode<JcState, JcInst> = ctx.mkInitialLocation(),
     var methodResult: JcMethodResult = JcMethodResult.NoCall,
-) : UState<JcType, JcField, JcMethod, JcInst, JcContext, JcState>(
+) : UState<JcType, JcMethod, JcInst, JcContext, JcState>(
     ctx,
     callStack,
     pathConstraints,

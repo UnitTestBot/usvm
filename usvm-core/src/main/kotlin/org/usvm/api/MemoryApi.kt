@@ -34,7 +34,7 @@ fun <ArrayType, Sort : USort> UReadOnlyMemory<*>.readArrayIndex(
 
 fun <ArrayType> UReadOnlyMemory<*>.readArrayLength(
     ref: UHeapRef, arrayType: ArrayType
-): USizeExpr = read(UArrayLengthRef(ref.uctx.sizeSort, ref, arrayType))
+): USizeExpr = read(UArrayLengthRef(ref, arrayType))
 
 fun <Field, Sort : USort> UWritableMemory<*>.writeField(
     ref: UHeapRef, field: Field, sort: Sort, value: UExpr<Sort>, guard: UBoolExpr
@@ -46,7 +46,7 @@ fun <ArrayType, Sort : USort> UWritableMemory<*>.writeArrayIndex(
 
 fun <ArrayType> UWritableMemory<*>.writeArrayLength(
     ref: UHeapRef, size: USizeExpr, arrayType: ArrayType
-) = write(UArrayLengthRef(ref.uctx.sizeSort, ref, arrayType), size, ref.uctx.trueExpr)
+) = write(UArrayLengthRef(ref, arrayType), size, ref.uctx.trueExpr)
 
 
 fun <ArrayType, Sort : USort> UWritableMemory<*>.memcpy(

@@ -55,7 +55,7 @@ class UAllocatedArrayLengthId<ArrayType> internal constructor(
     override fun UContext.mkLValue(
         collection: USymbolicCollection<UAllocatedArrayLengthId<ArrayType>, Unit, USizeSort>,
         key: Unit
-    ): ULValue<*, USizeSort> = UArrayLengthRef(sort, mkConcreteHeapRef(address), arrayType)
+    ): ULValue<*, USizeSort> = UArrayLengthRef(mkConcreteHeapRef(address), arrayType)
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -110,7 +110,7 @@ class UInputArrayLengthId<ArrayType> internal constructor(
     override fun UContext.mkLValue(
         collection: USymbolicCollection<UInputArrayLengthId<ArrayType>, UHeapRef, USizeSort>,
         key: UHeapRef
-    ): ULValue<*, USizeSort> = UArrayLengthRef(sort, key, arrayType)
+    ): ULValue<*, USizeSort> = UArrayLengthRef(key, arrayType)
 
     override fun <Type> write(
         memory: UWritableMemory<Type>,
@@ -119,7 +119,7 @@ class UInputArrayLengthId<ArrayType> internal constructor(
         guard: UBoolExpr,
     ) {
         assert(guard.isTrue)
-        memory.write(UArrayLengthRef(sort, key, arrayType), value, guard)
+        memory.write(UArrayLengthRef(key, arrayType), value, guard)
     }
 
     override fun <Type> keyMapper(

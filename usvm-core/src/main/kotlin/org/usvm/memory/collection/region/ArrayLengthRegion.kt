@@ -17,9 +17,13 @@ import org.usvm.memory.collection.id.UInputArrayLengthId
 import org.usvm.memory.foldHeapRef
 import org.usvm.memory.map
 import org.usvm.sampleUValue
+import org.usvm.uctx
 
-data class UArrayLengthRef<ArrayType>(override val sort: USizeSort, val ref: UHeapRef, val arrayType: ArrayType) :
+data class UArrayLengthRef<ArrayType>(val ref: UHeapRef, val arrayType: ArrayType) :
     ULValue<UArrayLengthRef<ArrayType>, USizeSort> {
+
+    override val sort: USizeSort
+        get() = ref.uctx.sizeSort
 
     override val memoryRegionId: UMemoryRegionId<UArrayLengthRef<ArrayType>, USizeSort> =
         UArrayLengthsRegionId(sort, arrayType)

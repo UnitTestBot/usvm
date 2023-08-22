@@ -5,14 +5,12 @@ import io.ksmt.solver.z3.KZ3Solver
 import org.usvm.SolverType
 import org.usvm.UComponents
 import org.usvm.UContext
-import org.usvm.types.UTypeSystem
-import org.usvm.language.Field
-import org.usvm.language.Method
 import org.usvm.language.SampleType
 import org.usvm.model.buildTranslatorAndLazyDecoder
 import org.usvm.solver.USoftConstraintsProvider
 import org.usvm.solver.USolverBase
 import org.usvm.solver.UTypeSolver
+import org.usvm.types.UTypeSystem
 
 class SampleLanguageComponents(
     private val typeSystem: SampleTypeSystem,
@@ -20,7 +18,7 @@ class SampleLanguageComponents(
 ) : UComponents<SampleType> {
     override fun <Context : UContext> mkSolver(ctx: Context): USolverBase<SampleType, Context> {
         val (translator, decoder) = buildTranslatorAndLazyDecoder<SampleType>(ctx)
-        val softConstraintsProvider = USoftConstraintsProvider<Field<*>, SampleType>(ctx)
+        val softConstraintsProvider = USoftConstraintsProvider<SampleType>(ctx)
 
         val solver =
             when (solverType) {

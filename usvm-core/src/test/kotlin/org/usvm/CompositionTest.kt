@@ -534,7 +534,7 @@ internal class CompositionTest {
         val symbolicRef2 = mkRegisterReading(2, addressSort) as UHeapRef
         val composedSymbolicHeapRef = ctx.mkConcreteHeapRef(1)
 
-        val baseMemory = UMemory<Type, Any>(ctx, mockk(), mockk())
+        val baseMemory = UMemory<Type, Any>(ctx, mockk())
 
         baseMemory.writeArrayIndex(composedSymbolicHeapRef, mkBv(3), arrayType, bv32Sort, mkBv(1337), trueExpr)
 

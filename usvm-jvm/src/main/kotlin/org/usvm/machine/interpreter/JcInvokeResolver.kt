@@ -13,6 +13,7 @@ import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.USort
+import org.usvm.api.typeStreamOf
 import org.usvm.machine.JcApplicationGraph
 import org.usvm.machine.JcContext
 import org.usvm.machine.state.JcState
