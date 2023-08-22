@@ -4,7 +4,7 @@ import io.ksmt.expr.KBitVec32Value
 import io.ksmt.utils.asExpr
 import org.usvm.NULL_ADDRESS
 import org.usvm.UAddressSort
-import org.usvm.UBoolExpr
+import org.usvm.UBoolSort
 import org.usvm.UBv32Sort
 import org.usvm.UContext
 import org.usvm.UExpr
@@ -68,7 +68,7 @@ class ResultModelConverter(
                 is StructType -> convertStructExpr(expr.asExpr(ctx.addressSort), type)
             }
 
-        fun convertBoolExpr(expr: UBoolExpr) =
+        fun convertBoolExpr(expr: UExpr<UBoolSort>) =
             BooleanConst(with(ctx) { model.eval(expr).asExpr(boolSort).isTrue })
 
         fun resolveIntExpr(expr: UExpr<UBv32Sort>) =
