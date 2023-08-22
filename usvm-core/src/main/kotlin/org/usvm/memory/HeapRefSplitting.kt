@@ -108,22 +108,6 @@ internal inline fun <R> foldHeapRef(
     }
 }
 
-/**
- * Traverses the [ref], accumulating guards and applying the [blockOnConcrete] on [UConcreteHeapRef]s and
- * [blockOnSymbolic] on [USymbolicHeapRef]. An argument for the [blockOnSymbolic] is obtained by removing all concrete
- * heap refs from the [ref] if it's ite.
- *
- * @param initialGuard the initial value fot the guard to be passed to [blockOnConcrete] and [blockOnSymbolic].
- * @param ignoreNullRefs if true, then null references will be ignored. It means that all leafs with nulls
- * considered unsatisfiable, so we assume their guards equal to false.
- */
-internal inline fun withHeapRef(
-    ref: UHeapRef,
-    initialGuard: UBoolExpr,
-    crossinline blockOnConcrete: (GuardedExpr<UConcreteHeapRef>) -> Unit,
-    crossinline blockOnSymbolic: (GuardedExpr<UHeapRef>) -> Unit,
-    ignoreNullRefs: Boolean = true,
-) = foldHeapRef(ref, Unit, initialGuard, ignoreNullRefs, { _, g -> blockOnConcrete(g) }, { _, g -> blockOnSymbolic(g) })
 
 private const val LEFT_CHILD = 0
 private const val RIGHT_CHILD = 1

@@ -10,7 +10,7 @@ import org.usvm.memory.URangedUpdateNode
 import org.usvm.memory.UWritableMemory
 import org.usvm.memory.collection.adapter.USymbolicCollectionAdapter
 import org.usvm.memory.collection.id.USymbolicCollectionId
-import org.usvm.memory.withHeapRef
+import org.usvm.memory.foldHeapRef
 import java.util.*
 import kotlin.collections.ArrayList
 
@@ -108,20 +108,18 @@ data class USymbolicCollection<out CollectionId : USymbolicCollectionId<Key, Sor
         val newUpdates = if (sort == sort.uctx.addressSort) {
             // we must split symbolic and concrete heap refs here,
             // because later in [splittingRead] we check value is UConcreteHeapRef
-            var newUpdates = updates
-
-            withHeapRef(
-                value.asExpr(sort.uctx.addressSort),
+            foldHeapRef(
+                ref = value.asExpr(value.uctx.addressSort),
+                initial = updates,
                 initialGuard = guard,
-                blockOnConcrete = { (ref, guard) ->
-                    newUpdates = newUpdates.write(key, ref.asExpr(sort), guard)
+                ignoreNullRefs = false,
+                blockOnConcrete = { newUpdates, (valueRef, valueGuard) ->
+                    newUpdates.write(key, valueRef.asExpr(sort), valueGuard)
                 },
-                blockOnSymbolic = { (ref, guard) ->
-                    newUpdates = newUpdates.write(key, ref.asExpr(sort), guard)
+                blockOnSymbolic = { newUpdates, (valueRef, valueGuard) ->
+                    newUpdates.write(key, valueRef.asExpr(sort), valueGuard)
                 }
             )
-
-            newUpdates
         } else {
             updates.write(key, value, guard)
         }
