@@ -58,7 +58,7 @@ class URegistersStack(
         stack.add(URegistersStackFrame(arguments, localsCount))
 
     override fun <Sort : USort> readRegister(index: Int, sort: Sort): KExpr<Sort> =
-        stack.last()[index]?.asExpr(sort) ?: sort.uctx.mkRegisterReading(index, sort)
+        stack.lastOrNull()?.get(index)?.asExpr(sort) ?: sort.uctx.mkRegisterReading(index, sort)
 
     override fun write(
         key: URegisterStackRef<*>,

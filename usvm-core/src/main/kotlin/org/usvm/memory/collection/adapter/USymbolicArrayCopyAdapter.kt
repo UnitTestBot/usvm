@@ -99,7 +99,7 @@ abstract class USymbolicArrayCopyAdapter<SrcKey, DstKey>(
                         USymbolicArrayAllocatedToAllocatedCopyAdapter(
                             allocatedSrcKey,
                             allocatedDstFrom,
-                            ensureIndexKey(dstTo),
+                            ensureIndexKey(mappedDstTo),
                             mappedKeyInfo.uncheckedCast()
                         )
                     },
@@ -107,7 +107,7 @@ abstract class USymbolicArrayCopyAdapter<SrcKey, DstKey>(
                         USymbolicArrayAllocatedToInputCopyAdapter(
                             allocatedSrcKey,
                             symbolicDstFrom,
-                            ensureSymbolicKey(dstTo),
+                            ensureSymbolicKey(mappedDstTo),
                             mappedKeyInfo.uncheckedCast()
                         )
                     }
@@ -120,7 +120,7 @@ abstract class USymbolicArrayCopyAdapter<SrcKey, DstKey>(
                         USymbolicArrayInputToAllocatedCopyAdapter(
                             symbolicSrcKey,
                             allocatedDstFrom,
-                            ensureIndexKey(dstTo),
+                            ensureIndexKey(mappedDstTo),
                             mappedKeyInfo.uncheckedCast()
                         )
                     },
@@ -128,7 +128,7 @@ abstract class USymbolicArrayCopyAdapter<SrcKey, DstKey>(
                         USymbolicArrayInputToInputCopyAdapter(
                             symbolicSrcKey,
                             symbolicDstFrom,
-                            ensureSymbolicKey(dstTo),
+                            ensureSymbolicKey(mappedDstTo),
                             mappedKeyInfo.uncheckedCast()
                         )
                     }

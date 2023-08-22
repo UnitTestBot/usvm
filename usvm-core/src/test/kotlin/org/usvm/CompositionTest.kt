@@ -532,30 +532,19 @@ internal class CompositionTest {
         val symbolicRef0 = mkRegisterReading(0, addressSort) as UHeapRef
         val symbolicRef1 = mkRegisterReading(1, addressSort) as UHeapRef
         val symbolicRef2 = mkRegisterReading(2, addressSort) as UHeapRef
-        val composedSymbolicHeapRef = ctx.mkConcreteHeapRef(1)
+        val composedSymbolicHeapRef = mkConcreteHeapRef(1)
 
-        val baseMemory = UMemory<Type, Any>(ctx, mockk())
+        val composeMemory = UMemory<Type, Any>(ctx, mockk())
 
-        baseMemory.writeArrayIndex(composedSymbolicHeapRef, mkBv(3), arrayType, bv32Sort, mkBv(1337), trueExpr)
+        composeMemory.writeArrayIndex(composedSymbolicHeapRef, mkBv(3), arrayType, bv32Sort, mkBv(1337), trueExpr)
 
-        val stackModel = URegistersStackEagerModel(
-            concreteNull, mapOf(
-                0 to composedSymbolicHeapRef,
-                1 to composedSymbolicHeapRef,
-                2 to composedSymbolicHeapRef,
-                3 to ctx.mkRegisterReading(3, bv32Sort),
-            )
-        )
+        composeMemory.stack.push(4)
+        composeMemory.stack.writeRegister(0, composedSymbolicHeapRef)
+        composeMemory.stack.writeRegister(1, composedSymbolicHeapRef)
+        composeMemory.stack.writeRegister(2, composedSymbolicHeapRef)
+        composeMemory.stack.writeRegister(3, mkRegisterReading(3, bv32Sort))
 
-        val modelMemory = UModelBase<Type>(ctx, stackModel, mockk(), mockk(), emptyMap(), concreteNull)
-
-        val baseComposer = UComposer(ctx, baseMemory)
-        val modelComposer = UComposer(ctx, modelMemory)
-
-        fun <Sort : USort> compose(expr: UExpr<Sort>): UExpr<Sort> {
-            val baseExpr = baseComposer.compose(expr)
-            return modelComposer.compose(baseExpr)
-        }
+        val composer = UComposer(ctx, composeMemory)
 
         val fromRegion0 = UInputArrayId(arrayType, bv32Sort)
             .emptyRegion()
@@ -585,7 +574,7 @@ internal class CompositionTest {
 
         val reading0 = fromRegion2.read(symbolicRef2 to idx0)
 
-        val composedExpr0 = compose(reading0)
+        val composedExpr0 = composer.compose(reading0)
         val composedReading0 = assertIs<UAllocatedArrayReading<Type, UBv32Sort>>(composedExpr0)
 
         fun USymbolicCollectionUpdates<*, *>.allUpdates(): Collection<UUpdateNode<*, *>> =
