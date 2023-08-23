@@ -12,12 +12,12 @@ import org.usvm.USizeSort
 import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.URangedUpdateNode
 import org.usvm.memory.UReadOnlyMemoryRegion
-import org.usvm.memory.collection.USymbolicCollection
-import org.usvm.memory.collection.id.UInputSymbolicMapLengthId
-import org.usvm.memory.collection.region.USymbolicMapLengthRef
-import org.usvm.memory.collection.region.USymbolicMapLengthsRegionId
+import org.usvm.memory.USymbolicCollection
+import org.usvm.collection.map.length.UInputSymbolicMapLengthId
+import org.usvm.collection.map.length.USymbolicMapLengthRef
+import org.usvm.collection.map.length.USymbolicMapLengthsRegionId
 import org.usvm.model.UMemory1DArray
-import org.usvm.model.region.USymbolicMapLengthLazyModelRegion
+import org.usvm.collection.map.length.USymbolicMapLengthLazyModelRegion
 import org.usvm.solver.U1DUpdatesTranslator
 import org.usvm.solver.UCollectionDecoder
 import org.usvm.solver.UExprTranslator

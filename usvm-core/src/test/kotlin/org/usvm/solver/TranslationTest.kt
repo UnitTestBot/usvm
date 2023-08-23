@@ -22,15 +22,15 @@ import org.usvm.api.allocate
 import org.usvm.api.readArrayIndex
 import org.usvm.api.writeArrayIndex
 import org.usvm.memory.UMemory
-import org.usvm.memory.collection.adapter.USymbolicArrayAllocatedToAllocatedCopyAdapter
-import org.usvm.memory.collection.adapter.USymbolicArrayInputToAllocatedCopyAdapter
-import org.usvm.memory.collection.adapter.USymbolicArrayInputToInputCopyAdapter
-import org.usvm.memory.collection.id.UAllocatedArrayId
-import org.usvm.memory.collection.id.UInputArrayId
-import org.usvm.memory.collection.id.UInputArrayLengthId
-import org.usvm.memory.collection.id.UInputFieldId
-import org.usvm.memory.collection.key.USizeExprKeyInfo
-import org.usvm.memory.collection.key.USymbolicArrayIndexKeyInfo
+import org.usvm.collection.array.USymbolicArrayAllocatedToAllocatedCopyAdapter
+import org.usvm.collection.array.USymbolicArrayInputToAllocatedCopyAdapter
+import org.usvm.collection.array.USymbolicArrayInputToInputCopyAdapter
+import org.usvm.collection.array.UAllocatedArrayId
+import org.usvm.collection.array.UInputArrayId
+import org.usvm.collection.array.length.UInputArrayLengthId
+import org.usvm.collection.field.UInputFieldId
+import org.usvm.memory.key.USizeExprKeyInfo
+import org.usvm.collection.array.USymbolicArrayIndexKeyInfo
 import kotlin.test.assertEquals
 import kotlin.test.assertSame
 

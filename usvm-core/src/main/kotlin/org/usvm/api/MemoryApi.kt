@@ -9,15 +9,15 @@ import org.usvm.USort
 import org.usvm.memory.UMemory
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.UWritableMemory
-import org.usvm.memory.collection.region.UArrayIndexRef
-import org.usvm.memory.collection.region.UArrayLengthRef
-import org.usvm.memory.collection.region.UFieldRef
+import org.usvm.collection.array.UArrayIndexRef
+import org.usvm.collection.array.length.UArrayLengthRef
+import org.usvm.collection.field.UFieldRef
 import org.usvm.types.UTypeStream
 import org.usvm.uctx
-import org.usvm.memory.collection.region.memcpy as memcpyInternal
-import org.usvm.memory.collection.region.memset as memsetInternal
-import org.usvm.memory.collection.region.allocateArray as allocateArrayInternal
-import org.usvm.memory.collection.region.allocateArrayInitialized as allocateArrayInitializedInternal
+import org.usvm.collection.array.memcpy as memcpyInternal
+import org.usvm.collection.array.memset as memsetInternal
+import org.usvm.collection.array.allocateArray as allocateArrayInternal
+import org.usvm.collection.array.allocateArrayInitialized as allocateArrayInitializedInternal
 
 fun <Type> UReadOnlyMemory<Type>.typeStreamOf(ref: UHeapRef): UTypeStream<Type> =
     types.getTypeStream(ref)

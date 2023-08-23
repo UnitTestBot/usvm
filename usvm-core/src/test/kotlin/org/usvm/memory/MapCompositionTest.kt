@@ -19,11 +19,9 @@ import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USizeExpr
 import org.usvm.USizeSort
-import org.usvm.memory.collection.UFlatUpdates
-import org.usvm.memory.collection.UTreeUpdates
-import org.usvm.memory.collection.adapter.USymbolicArrayAllocatedToAllocatedCopyAdapter
-import org.usvm.memory.collection.adapter.USymbolicArrayCopyAdapter
-import org.usvm.memory.collection.id.UAllocatedArrayId
+import org.usvm.collection.array.USymbolicArrayAllocatedToAllocatedCopyAdapter
+import org.usvm.collection.array.USymbolicArrayCopyAdapter
+import org.usvm.collection.array.UAllocatedArrayId
 import org.usvm.util.SetRegion
 import org.usvm.util.emptyRegionTree
 import kotlin.test.assertEquals

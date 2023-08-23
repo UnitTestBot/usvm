@@ -1,8 +1,8 @@
 package org.usvm
 
 import org.usvm.memory.UReadOnlyMemory
-import org.usvm.memory.collection.id.USymbolicCollectionId
-import org.usvm.memory.collection.USymbolicCollection
+import org.usvm.memory.USymbolicCollectionId
+import org.usvm.memory.USymbolicCollection
 import org.usvm.util.Region
 
 @Suppress("MemberVisibilityCanBePrivate")

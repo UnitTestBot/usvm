@@ -4,10 +4,10 @@ import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.usvm.memory.collection.region.UAllocatedArray
-import org.usvm.memory.collection.region.UInputArray
-import org.usvm.memory.collection.region.UInputArrayLengths
-import org.usvm.memory.collection.region.UInputFields
+import org.usvm.collection.array.UAllocatedArray
+import org.usvm.collection.array.UInputArray
+import org.usvm.collection.array.length.UInputArrayLengths
+import org.usvm.collection.field.UInputFields
 import kotlin.test.assertTrue
 
 class UContextInterningTest {

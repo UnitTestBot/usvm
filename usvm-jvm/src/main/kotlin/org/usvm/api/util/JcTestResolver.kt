@@ -45,9 +45,9 @@ import org.usvm.machine.state.localIdx
 import org.usvm.memory.ULValue
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.URegisterStackRef
-import org.usvm.memory.collection.region.UArrayIndexRef
-import org.usvm.memory.collection.region.UArrayLengthRef
-import org.usvm.memory.collection.region.UFieldRef
+import org.usvm.collection.array.UArrayIndexRef
+import org.usvm.collection.array.length.UArrayLengthRef
+import org.usvm.collection.field.UFieldRef
 import org.usvm.model.UModelBase
 import org.usvm.types.first
 import org.usvm.types.firstOrNull

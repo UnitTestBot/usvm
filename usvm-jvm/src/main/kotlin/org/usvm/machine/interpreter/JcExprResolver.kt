@@ -88,9 +88,7 @@ import org.usvm.UHeapRef
 import org.usvm.USizeExpr
 import org.usvm.USizeSort
 import org.usvm.USort
-import org.usvm.api.allocateArray
 import org.usvm.api.allocateArrayInitialized
-import org.usvm.api.memset
 import org.usvm.isTrue
 import org.usvm.machine.JcContext
 import org.usvm.machine.operator.JcBinaryOperator
@@ -103,9 +101,9 @@ import org.usvm.machine.state.JcState
 import org.usvm.machine.state.throwExceptionWithoutStackFrameDrop
 import org.usvm.memory.ULValue
 import org.usvm.memory.URegisterStackRef
-import org.usvm.memory.collection.region.UArrayIndexRef
-import org.usvm.memory.collection.region.UArrayLengthRef
-import org.usvm.memory.collection.region.UFieldRef
+import org.usvm.collection.array.UArrayIndexRef
+import org.usvm.collection.array.length.UArrayLengthRef
+import org.usvm.collection.field.UFieldRef
 import org.usvm.util.extractJcRefType
 import org.usvm.util.write
 

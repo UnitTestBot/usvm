@@ -22,7 +22,7 @@ import org.usvm.constraints.UPathConstraints
 import org.usvm.memory.UMemory
 import org.usvm.memory.URegisterStackRef
 import org.usvm.memory.URegistersStack
-import org.usvm.memory.collection.region.UArrayIndexRef
+import org.usvm.collection.array.UArrayIndexRef
 import org.usvm.solver.USatResult
 import org.usvm.solver.USoftConstraintsProvider
 import org.usvm.solver.USolverBase

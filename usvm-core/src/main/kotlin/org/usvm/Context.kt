@@ -12,17 +12,17 @@ import io.ksmt.utils.DefaultValueSampler
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
 import io.ksmt.utils.uncheckedCast
-import org.usvm.memory.collection.region.UAllocatedArray
-import org.usvm.memory.collection.region.UAllocatedSymbolicMap
-import org.usvm.memory.collection.region.UInputArrayLengths
-import org.usvm.memory.collection.region.UInputArray
-import org.usvm.memory.collection.region.UInputFields
-import org.usvm.memory.collection.region.UInputSymbolicMapLengthCollection
-import org.usvm.memory.collection.region.UInputSymbolicMap
+import org.usvm.collection.array.UAllocatedArray
+import org.usvm.collection.map.primitive.UAllocatedSymbolicMap
+import org.usvm.collection.array.UInputArray
+import org.usvm.collection.array.length.UInputArrayLengths
+import org.usvm.collection.field.UInputFields
+import org.usvm.collection.map.primitive.UInputSymbolicMap
+import org.usvm.collection.map.length.UInputSymbolicMapLengthCollection
 import org.usvm.memory.splitUHeapRef
 import org.usvm.solver.USolverBase
-import org.usvm.util.Region
 import org.usvm.types.UTypeSystem
+import org.usvm.util.Region
 
 @Suppress("LeakingThis")
 open class UContext(

@@ -5,14 +5,7 @@ import org.usvm.UComposer
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.isTrue
-import org.usvm.memory.collection.GuardBuilder
-import org.usvm.memory.collection.id.KeyMapper
-import org.usvm.memory.collection.USymbolicCollection
-import org.usvm.memory.collection.adapter.USymbolicCollectionAdapter
-import org.usvm.memory.collection.id.USymbolicCollectionId
-import org.usvm.memory.collection.key.USymbolicCollectionKeyInfo
 import org.usvm.uctx
-import java.util.*
 
 /**
  * Represents the result of memory write operation.

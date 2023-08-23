@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test
 import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.constraints.UPathConstraints
-import org.usvm.memory.collection.id.UInputArrayLengthId
+import org.usvm.collection.array.length.UInputArrayLengthId
 import org.usvm.model.ULazyModelDecoder
 import org.usvm.model.buildTranslatorAndLazyDecoder
 import org.usvm.types.single.SingleTypeSystem

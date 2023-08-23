@@ -18,7 +18,7 @@ import org.usvm.constraints.UPathConstraints
 import org.usvm.isFalse
 import org.usvm.isTrue
 import org.usvm.memory.UMemory
-import org.usvm.memory.collection.id.UInputArrayId
+import org.usvm.collection.array.UInputArrayId
 import org.usvm.model.UModelBase
 import org.usvm.model.buildTranslatorAndLazyDecoder
 import org.usvm.solver.TypeSolverQuery

@@ -14,9 +14,9 @@ import org.usvm.memory.UPinpointUpdateNode
 import org.usvm.memory.URangedUpdateNode
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.memory.UUpdateNode
-import org.usvm.memory.collection.UMemoryUpdatesVisitor
-import org.usvm.memory.collection.USymbolicCollection
-import org.usvm.memory.collection.id.USymbolicCollectionId
+import org.usvm.memory.UMemoryUpdatesVisitor
+import org.usvm.memory.USymbolicCollection
+import org.usvm.memory.USymbolicCollectionId
 import org.usvm.uctx
 
 /**

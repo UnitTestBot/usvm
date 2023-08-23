@@ -58,9 +58,9 @@ import org.usvm.language.StructType
 import org.usvm.language.UnaryMinus
 import org.usvm.memory.ULValue
 import org.usvm.memory.URegisterStackRef
-import org.usvm.memory.collection.region.UArrayIndexRef
-import org.usvm.memory.collection.region.UArrayLengthRef
-import org.usvm.memory.collection.region.UFieldRef
+import org.usvm.collection.array.UArrayIndexRef
+import org.usvm.collection.array.length.UArrayLengthRef
+import org.usvm.collection.field.UFieldRef
 
 /**
  * Resolves [Expr]s to [UExpr]s, forks in the [scope] respecting unsats. Checks for exceptions.

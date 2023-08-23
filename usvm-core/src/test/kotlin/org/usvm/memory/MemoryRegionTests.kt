@@ -12,8 +12,7 @@ import org.usvm.UBv32Sort
 import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.UHeapRef
-import org.usvm.memory.collection.UTreeUpdates
-import org.usvm.memory.collection.id.UAllocatedArrayId
+import org.usvm.collection.array.UAllocatedArrayId
 import org.usvm.util.SetRegion
 import org.usvm.util.emptyRegionTree
 import kotlin.test.assertNotNull

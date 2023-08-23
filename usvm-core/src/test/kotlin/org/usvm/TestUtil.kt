@@ -2,7 +2,7 @@ package org.usvm
 
 import org.usvm.constraints.UPathConstraints
 import org.usvm.memory.UMemory
-import org.usvm.memory.collection.key.USymbolicCollectionKeyInfo
+import org.usvm.memory.USymbolicCollectionKeyInfo
 import org.usvm.model.UModelBase
 import org.usvm.util.Region
 
