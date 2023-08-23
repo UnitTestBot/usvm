@@ -5,8 +5,12 @@ import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.usvm.collection.array.UAllocatedArray
+import org.usvm.collection.array.UAllocatedArrayReading
 import org.usvm.collection.array.UInputArray
+import org.usvm.collection.array.UInputArrayReading
+import org.usvm.collection.array.length.UInputArrayLengthReading
 import org.usvm.collection.array.length.UInputArrayLengths
+import org.usvm.collection.field.UInputFieldReading
 import org.usvm.collection.field.UInputFields
 import kotlin.test.assertTrue
 

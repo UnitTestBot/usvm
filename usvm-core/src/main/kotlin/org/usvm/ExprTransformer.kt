@@ -2,6 +2,16 @@ package org.usvm
 
 import io.ksmt.expr.transformer.KNonRecursiveTransformer
 import io.ksmt.expr.transformer.KTransformer
+import org.usvm.collection.array.UAllocatedArrayReading
+import org.usvm.collection.array.UInputArrayReading
+import org.usvm.collection.array.length.UInputArrayLengthReading
+import org.usvm.collection.field.UInputFieldReading
+import org.usvm.collection.map.length.UInputSymbolicMapLengthReading
+import org.usvm.collection.map.primitive.UAllocatedSymbolicMapReading
+import org.usvm.collection.map.primitive.UInputSymbolicMapReading
+import org.usvm.collection.map.ref.UAllocatedSymbolicRefMapWithInputKeysReading
+import org.usvm.collection.map.ref.UInputSymbolicRefMapWithAllocatedKeysReading
+import org.usvm.collection.map.ref.UInputSymbolicRefMapWithInputKeysReading
 import org.usvm.util.Region
 
 interface UTransformer<Type> : KTransformer {
@@ -27,8 +37,13 @@ interface UTransformer<Type> : KTransformer {
         expr: UInputSymbolicMapReading<Type, KeySort, Sort, Reg>
     ): UExpr<Sort>
 
-    fun transform(expr: UInputSymbolicMapLengthReading<Type>): USizeExpr
+    fun <Sort : USort> transform(expr: UAllocatedSymbolicRefMapWithInputKeysReading<Type, Sort>): UExpr<Sort>
 
+    fun <Sort : USort> transform(expr: UInputSymbolicRefMapWithAllocatedKeysReading<Type, Sort>): UExpr<Sort>
+
+    fun <Sort : USort> transform(expr: UInputSymbolicRefMapWithInputKeysReading<Type, Sort>): UExpr<Sort>
+
+    fun transform(expr: UInputSymbolicMapLengthReading<Type>): USizeExpr
 
     fun <Sort : USort> transform(expr: UMockSymbol<Sort>): UExpr<Sort>
 

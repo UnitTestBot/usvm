@@ -12,7 +12,7 @@ import org.usvm.UAddressSort
 import org.usvm.UBv32Sort
 import org.usvm.UComponents
 import org.usvm.UContext
-import org.usvm.UInputFieldReading
+import org.usvm.collection.field.UInputFieldReading
 import org.usvm.UIteExpr
 import org.usvm.api.allocate
 import org.usvm.api.readArrayIndex

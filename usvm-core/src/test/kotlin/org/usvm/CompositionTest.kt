@@ -28,7 +28,9 @@ import org.usvm.memory.USymbolicCollection
 import org.usvm.memory.USymbolicCollectionUpdates
 import org.usvm.collection.array.USymbolicArrayInputToInputCopyAdapter
 import org.usvm.collection.array.UAllocatedArrayId
+import org.usvm.collection.array.UAllocatedArrayReading
 import org.usvm.collection.array.UInputArrayId
+import org.usvm.collection.array.UInputArrayReading
 import org.usvm.collection.array.length.UInputArrayLengthId
 import org.usvm.collection.field.UInputFieldId
 import org.usvm.collection.array.USymbolicArrayIndex

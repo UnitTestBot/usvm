@@ -6,8 +6,6 @@ import io.ksmt.sort.KBoolSort
 import io.ksmt.utils.mkConst
 import io.ksmt.utils.uncheckedCast
 import org.usvm.UAddressSort
-import org.usvm.UAllocatedArrayReading
-import org.usvm.UAllocatedSymbolicMapReading
 import org.usvm.UBoolSort
 import org.usvm.UCollectionReading
 import org.usvm.UConcreteHeapRef
@@ -15,11 +13,6 @@ import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UExprTransformer
 import org.usvm.UIndexedMethodReturnValue
-import org.usvm.UInputArrayLengthReading
-import org.usvm.UInputArrayReading
-import org.usvm.UInputFieldReading
-import org.usvm.UInputSymbolicMapLengthReading
-import org.usvm.UInputSymbolicMapReading
 import org.usvm.UIsExpr
 import org.usvm.UIsSubtypeExpr
 import org.usvm.UIsSupertypeExpr
@@ -30,19 +23,31 @@ import org.usvm.USizeSort
 import org.usvm.USort
 import org.usvm.USymbol
 import org.usvm.USymbolicHeapRef
-import org.usvm.memory.UMemoryRegionId
-import org.usvm.collection.array.USymbolicArrayId
-import org.usvm.collection.field.USymbolicFieldId
-import org.usvm.collection.array.length.UArrayLengthsRegionId
-import org.usvm.collection.array.UArrayRegionId
-import org.usvm.collection.field.UFieldsRegionId
-import org.usvm.collection.map.length.USymbolicMapLengthsRegionId
-import org.usvm.collection.map.primitive.USymbolicMapRegionId
-import org.usvm.collection.array.length.UArrayLengthRegionDecoder
+import org.usvm.collection.array.UAllocatedArrayReading
 import org.usvm.collection.array.UArrayRegionDecoder
+import org.usvm.collection.array.UArrayRegionId
+import org.usvm.collection.array.UInputArrayReading
+import org.usvm.collection.array.USymbolicArrayId
+import org.usvm.collection.array.length.UArrayLengthRegionDecoder
+import org.usvm.collection.array.length.UArrayLengthsRegionId
+import org.usvm.collection.array.length.UInputArrayLengthReading
 import org.usvm.collection.field.UFieldRegionDecoder
+import org.usvm.collection.field.UFieldsRegionId
+import org.usvm.collection.field.UInputFieldReading
+import org.usvm.collection.field.USymbolicFieldId
+import org.usvm.collection.map.length.UInputSymbolicMapLengthReading
 import org.usvm.collection.map.length.USymbolicMapLengthRegionDecoder
+import org.usvm.collection.map.length.USymbolicMapLengthsRegionId
+import org.usvm.collection.map.primitive.UAllocatedSymbolicMapReading
+import org.usvm.collection.map.primitive.UInputSymbolicMapReading
 import org.usvm.collection.map.primitive.USymbolicMapRegionDecoder
+import org.usvm.collection.map.primitive.USymbolicMapRegionId
+import org.usvm.collection.map.ref.UAllocatedSymbolicRefMapWithInputKeysReading
+import org.usvm.collection.map.ref.UInputSymbolicRefMapWithAllocatedKeysReading
+import org.usvm.collection.map.ref.UInputSymbolicRefMapWithInputKeysReading
+import org.usvm.collection.map.ref.USymbolicRefMapRegionDecoder
+import org.usvm.collection.map.ref.USymbolicRefMapRegionId
+import org.usvm.memory.UMemoryRegionId
 import org.usvm.util.Region
 import java.util.concurrent.ConcurrentHashMap
 
@@ -171,6 +176,48 @@ open class UExprTranslator<Type>(
         translator.translateReading(expr.collection, address to key)
     }
 
+    override fun <Sort : USort> transform(
+        expr: UAllocatedSymbolicRefMapWithInputKeysReading<Type, Sort>
+    ): UExpr<Sort> = transformExprAfterTransformed(expr, expr.keyRef) { keyRef ->
+        val symbolicRefMapRegionId = with(expr.collection.collectionId) {
+            USymbolicRefMapRegionId(sort, mapType)
+        }
+
+        val translator = getOrPutRegionDecoder(symbolicRefMapRegionId) {
+            USymbolicRefMapRegionDecoder(symbolicRefMapRegionId, this)
+        }.allocatedSymbolicRefMapWithInputKeysTranslator(expr.collection.collectionId)
+
+        translator.translateReading(expr.collection, keyRef)
+    }
+
+    override fun <Sort : USort> transform(
+        expr: UInputSymbolicRefMapWithAllocatedKeysReading<Type, Sort>
+    ): UExpr<Sort> = transformExprAfterTransformed(expr, expr.mapRef) { mapRef ->
+        val symbolicRefMapRegionId = with(expr.collection.collectionId) {
+            USymbolicRefMapRegionId(sort, mapType)
+        }
+
+        val translator = getOrPutRegionDecoder(symbolicRefMapRegionId) {
+            USymbolicRefMapRegionDecoder(symbolicRefMapRegionId, this)
+        }.inputSymbolicRefMapWithAllocatedKeysTranslator(expr.collection.collectionId)
+
+        translator.translateReading(expr.collection, mapRef)
+    }
+
+    override fun <Sort : USort> transform(
+        expr: UInputSymbolicRefMapWithInputKeysReading<Type, Sort>
+    ): UExpr<Sort> = transformExprAfterTransformed(expr, expr.mapRef, expr.keyRef) { mapRef, keyRef ->
+        val symbolicRefMapRegionId = with(expr.collection.collectionId) {
+            USymbolicRefMapRegionId(sort, mapType)
+        }
+
+        val translator = getOrPutRegionDecoder(symbolicRefMapRegionId) {
+            USymbolicRefMapRegionDecoder(symbolicRefMapRegionId, this)
+        }.inputSymbolicRefMapTranslator(expr.collection.collectionId)
+
+        translator.translateReading(expr.collection, mapRef to keyRef)
+    }
+
     override fun transform(expr: UInputSymbolicMapLengthReading<Type>): KExpr<USizeSort> =
         transformExprAfterTransformed(expr, expr.address) { address ->
             val symbolicMapLengthRegionId = with(expr.collection.collectionId) {
@@ -202,13 +249,12 @@ open class UExprTranslator<Type>(
         }
     }
 
-    private val regionIdToDecoder_ = ConcurrentHashMap<UMemoryRegionId<*, *>, URegionDecoder<*, *>>()
-    val regionIdToDecoder: Map<UMemoryRegionId<*, *>, URegionDecoder<*, *>> get() = regionIdToDecoder_
+    val regionIdToDecoder: MutableMap<UMemoryRegionId<*, *>, URegionDecoder<*, *>> = ConcurrentHashMap()
 
-    private inline fun <reified D : URegionDecoder<*, *>> getOrPutRegionDecoder(
+    inline fun <reified D : URegionDecoder<*, *>> getOrPutRegionDecoder(
         regionId: UMemoryRegionId<*, *>,
         buildDecoder: () -> D
-    ): D = regionIdToDecoder_.getOrPut(regionId) {
+    ): D = regionIdToDecoder.getOrPut(regionId) {
         buildDecoder()
     }.uncheckedCast()
 }

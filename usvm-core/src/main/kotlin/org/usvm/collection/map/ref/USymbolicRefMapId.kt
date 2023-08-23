@@ -10,25 +10,24 @@ import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.UTransformer
-import org.usvm.collection.set.UAllocatedSymbolicSetId
-import org.usvm.collection.set.UInputSymbolicSetId
-import org.usvm.collection.set.USymbolicSetId
-import org.usvm.memory.USymbolicCollection
-import org.usvm.memory.DecomposedKey
-import org.usvm.memory.KeyTransformer
-import org.usvm.memory.ULValue
-import org.usvm.memory.USymbolicCollectionId
-import org.usvm.memory.USymbolicCollectionIdWithContextMemory
-import org.usvm.memory.UWritableMemory
-import org.usvm.memory.UTreeUpdates
-import org.usvm.memory.key.UHeapRefKeyInfo
-import org.usvm.memory.key.UHeapRefRegion
-import org.usvm.memory.key.USingleKeyInfo
 import org.usvm.collection.map.USymbolicMapKey
 import org.usvm.collection.map.USymbolicMapKeyInfo
 import org.usvm.collection.map.USymbolicMapKeyRegion
-import org.usvm.collection.map.primitive.USymbolicMapEntryRef
+import org.usvm.collection.set.UAllocatedSymbolicSetId
+import org.usvm.collection.set.UInputSymbolicSetId
+import org.usvm.collection.set.USymbolicSetId
+import org.usvm.memory.DecomposedKey
+import org.usvm.memory.KeyTransformer
+import org.usvm.memory.ULValue
+import org.usvm.memory.USymbolicCollection
+import org.usvm.memory.USymbolicCollectionId
+import org.usvm.memory.USymbolicCollectionIdWithContextMemory
 import org.usvm.memory.USymbolicCollectionKeyInfo
+import org.usvm.memory.UTreeUpdates
+import org.usvm.memory.UWritableMemory
+import org.usvm.memory.key.UHeapRefKeyInfo
+import org.usvm.memory.key.UHeapRefRegion
+import org.usvm.memory.key.USingleKeyInfo
 import org.usvm.sampleUValue
 import org.usvm.util.emptyRegionTree
 
@@ -72,8 +71,8 @@ class UAllocatedSymbolicRefMapWithAllocatedKeysId<MapType, ValueSort : USort>(
 
     override fun UContext.mkLValue(
         key: Unit
-    ): ULValue<*, ValueSort> = USymbolicMapEntryRef(
-        addressSort, sort, mkConcreteHeapRef(mapAddress), mkConcreteHeapRef(keyAddress), mapType, UHeapRefKeyInfo
+    ): ULValue<*, ValueSort> = USymbolicRefMapEntryRef(
+        sort, mkConcreteHeapRef(mapAddress), mkConcreteHeapRef(keyAddress), mapType
     )
 
     override fun equals(other: Any?): Boolean {
@@ -145,12 +144,11 @@ class UAllocatedSymbolicRefMapWithInputKeysId<MapType, ValueSort : USort>(
             return defaultValue
         }
 
-        TODO("Not yet implemented")
+        return mkAllocatedSymbolicRefMapWithInputKeysReading(collection, key)
     }
 
-    override fun UContext.mkLValue(key: UHeapRef): ULValue<*, ValueSort> {
-        TODO("Not yet implemented")
-    }
+    override fun UContext.mkLValue(key: UHeapRef): ULValue<*, ValueSort> =
+        USymbolicRefMapEntryRef(sort, mkConcreteHeapRef(mapAddress), key, mapType)
 
     override val keysSetId: UAllocatedSymbolicSetId<UHeapRef, UHeapRefRegion>
         get() = UAllocatedSymbolicSetId(UHeapRefKeyInfo, contextMemory)
@@ -236,12 +234,11 @@ class UInputSymbolicRefMapWithAllocatedKeysId<MapType, ValueSort : USort>(
             return defaultValue
         }
 
-        TODO("Not yet implemented")
+        return mkInputSymbolicRefMapWithAllocatedKeysReading(collection, key)
     }
 
-    override fun UContext.mkLValue(key: UHeapRef): ULValue<*, ValueSort> {
-        TODO("Not yet implemented")
-    }
+    override fun UContext.mkLValue(key: UHeapRef): ULValue<*, ValueSort> =
+        USymbolicRefMapEntryRef(sort, key, mkConcreteHeapRef(keyAddress), mapType)
 
     override val keysSetId: UAllocatedSymbolicSetId<UHeapRef, UHeapRefRegion>
         get() = UAllocatedSymbolicSetId(UHeapRefKeyInfo, contextMemory)
@@ -350,12 +347,11 @@ class UInputSymbolicRefMapWithInputKeysId<MapType, ValueSort : USort>(
         collection: USymbolicCollection<UInputSymbolicRefMapWithInputKeysId<MapType, ValueSort>, USymbolicMapKey<UAddressSort>, ValueSort>,
         key: USymbolicMapKey<UAddressSort>
     ): UExpr<ValueSort> {
-        TODO("Not yet implemented")
+        return mkInputSymbolicRefMapWithInputKeysReading(collection, key.first, key.second)
     }
 
-    override fun UContext.mkLValue(key: USymbolicMapKey<UAddressSort>): ULValue<*, ValueSort> {
-        TODO("Not yet implemented")
-    }
+    override fun UContext.mkLValue(key: USymbolicMapKey<UAddressSort>): ULValue<*, ValueSort> =
+        USymbolicRefMapEntryRef(sort, key.first, key.second, mapType)
 
     override val keysSetId: UInputSymbolicSetId<USymbolicMapKey<UAddressSort>, *>
         get() = UInputSymbolicSetId(keyInfo(), contextMemory)

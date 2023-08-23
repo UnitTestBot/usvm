@@ -1,8 +1,18 @@
 package org.usvm
 
+import org.usvm.collection.array.UAllocatedArrayReading
+import org.usvm.collection.array.UInputArrayReading
+import org.usvm.collection.array.length.UInputArrayLengthReading
+import org.usvm.collection.field.UInputFieldReading
+import org.usvm.collection.map.length.UInputSymbolicMapLengthReading
+import org.usvm.collection.map.primitive.UAllocatedSymbolicMapReading
+import org.usvm.collection.map.primitive.UInputSymbolicMapReading
+import org.usvm.collection.map.ref.UAllocatedSymbolicRefMapWithInputKeysReading
+import org.usvm.collection.map.ref.UInputSymbolicRefMapWithAllocatedKeysReading
+import org.usvm.collection.map.ref.UInputSymbolicRefMapWithInputKeysReading
 import org.usvm.memory.UReadOnlyMemory
-import org.usvm.memory.USymbolicCollectionId
 import org.usvm.memory.USymbolicCollection
+import org.usvm.memory.USymbolicCollectionId
 import org.usvm.util.Region
 
 @Suppress("MemberVisibilityCanBePrivate")
@@ -58,7 +68,8 @@ open class UComposer<Type>(
         if (decomposedKey != null) {
             @Suppress("UNCHECKED_CAST")
             // I'm terribly sorry to do this cast, but it's impossible to do it type safe way :(
-            val mappedCollection = collection.mapTo(this@UComposer, decomposedKey.collectionId) as USymbolicCollection<*, Any?, Sort>
+            val mappedCollection =
+                collection.mapTo(this@UComposer, decomposedKey.collectionId) as USymbolicCollection<*, Any?, Sort>
             return mappedCollection.read(decomposedKey.key)
         }
         val mappedCollection = collection.mapTo(this@UComposer, mappedCollectionId)
@@ -74,7 +85,7 @@ open class UComposer<Type>(
     override fun <Sort : USort> transform(expr: UAllocatedArrayReading<Type, Sort>): UExpr<Sort> =
         transformCollectionReading(expr, expr.index)
 
-    override fun <Field, Sort : USort> transform(expr: UInputFieldReading<Field,Sort>): UExpr<Sort> =
+    override fun <Field, Sort : USort> transform(expr: UInputFieldReading<Field, Sort>): UExpr<Sort> =
         transformCollectionReading(expr, expr.address)
 
     override fun <KeySort : USort, Sort : USort, Reg : Region<Reg>> transform(
@@ -84,6 +95,18 @@ open class UComposer<Type>(
     override fun <KeySort : USort, Sort : USort, Reg : Region<Reg>> transform(
         expr: UInputSymbolicMapReading<Type, KeySort, Sort, Reg>
     ): UExpr<Sort> = transformCollectionReading(expr, expr.address to expr.key)
+
+    override fun <Sort : USort> transform(
+        expr: UAllocatedSymbolicRefMapWithInputKeysReading<Type, Sort>
+    ): UExpr<Sort> = transformCollectionReading(expr, expr.keyRef)
+
+    override fun <Sort : USort> transform(
+        expr: UInputSymbolicRefMapWithAllocatedKeysReading<Type, Sort>
+    ): UExpr<Sort> = transformCollectionReading(expr, expr.mapRef)
+
+    override fun <Sort : USort> transform(
+        expr: UInputSymbolicRefMapWithInputKeysReading<Type, Sort>
+    ): UExpr<Sort> = transformCollectionReading(expr, expr.mapRef to expr.keyRef)
 
     override fun transform(expr: UInputSymbolicMapLengthReading<Type>): USizeExpr =
         transformCollectionReading(expr, expr.address)
