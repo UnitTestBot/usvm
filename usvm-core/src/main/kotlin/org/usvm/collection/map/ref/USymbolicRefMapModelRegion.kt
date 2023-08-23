@@ -16,13 +16,13 @@ import org.usvm.solver.UCollectionDecoder
 abstract class USymbolicRefMapModelRegion<MapType, ValueSort : USort>(
     private val regionId: USymbolicRefMapRegionId<MapType, ValueSort>
 ) : USymbolicRefMapRegion<MapType, ValueSort> {
+    val defaultValue by lazy { regionId.sort.sampleUValue() }
+
     abstract val inputMap: UReadOnlyMemoryRegion<USymbolicMapKey<UAddressSort>, ValueSort>?
 
     override fun read(key: USymbolicRefMapEntryRef<MapType, ValueSort>): UExpr<ValueSort> {
-        val mapRef = modelEnsureConcreteInputRef(key.mapRef)
-        return inputMap
-            ?.read(mapRef to key.mapKey)
-            ?: regionId.sort.sampleUValue()
+        val mapRef = modelEnsureConcreteInputRef(key.mapRef) ?: return defaultValue
+        return inputMap?.read(mapRef to key.mapKey) ?: defaultValue
     }
 
     override fun write(

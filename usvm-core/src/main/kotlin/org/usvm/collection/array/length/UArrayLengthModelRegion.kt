@@ -15,13 +15,13 @@ import org.usvm.solver.UCollectionDecoder
 abstract class UArrayLengthModelRegion<ArrayType>(
     private val regionId: UArrayLengthsRegionId<ArrayType>,
 ) : UArrayLengthsRegion<ArrayType> {
+    val defaultValue by lazy { regionId.sort.sampleUValue() }
+
     abstract val inputArrayLength: UReadOnlyMemoryRegion<UHeapRef, USizeSort>?
 
     override fun read(key: UArrayLengthRef<ArrayType>): UExpr<USizeSort> {
-        val ref = modelEnsureConcreteInputRef(key.ref)
-        return inputArrayLength
-            ?.read(ref)
-            ?: regionId.sort.sampleUValue()
+        val ref = modelEnsureConcreteInputRef(key.ref) ?: return defaultValue
+        return inputArrayLength?.read(ref) ?: defaultValue
     }
 
     override fun write(

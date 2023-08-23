@@ -15,13 +15,13 @@ import org.usvm.solver.UCollectionDecoder
 abstract class USymbolicMapLengthModelRegion<MapType>(
     private val regionId: USymbolicMapLengthsRegionId<MapType>,
 ) : USymbolicMapLengthRegion<MapType> {
+    val defaultValue by lazy { regionId.sort.sampleUValue() }
+
     abstract val inputSymbolicMapLength: UReadOnlyMemoryRegion<UHeapRef, USizeSort>?
 
     override fun read(key: USymbolicMapLengthRef<MapType>): UExpr<USizeSort> {
-        val ref = modelEnsureConcreteInputRef(key.ref)
-        return inputSymbolicMapLength
-            ?.read(ref)
-            ?: regionId.sort.sampleUValue()
+        val ref = modelEnsureConcreteInputRef(key.ref) ?: return defaultValue
+        return inputSymbolicMapLength?.read(ref) ?: defaultValue
     }
 
     override fun write(

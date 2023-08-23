@@ -15,13 +15,13 @@ import org.usvm.solver.UCollectionDecoder
 abstract class UFieldsModelRegion<Field, Sort : USort>(
     private val regionId: UFieldsRegionId<Field, Sort>,
 ) : UFieldsRegion<Field, Sort> {
+    val defaultValue by lazy { regionId.sort.sampleUValue() }
+
     abstract val inputFields: UReadOnlyMemoryRegion<UHeapRef, Sort>?
 
     override fun read(key: UFieldRef<Field, Sort>): UExpr<Sort> {
-        val ref = modelEnsureConcreteInputRef(key.ref)
-        return inputFields
-            ?.read(ref)
-            ?: regionId.sort.sampleUValue()
+        val ref = modelEnsureConcreteInputRef(key.ref) ?: return defaultValue
+        return inputFields?.read(ref) ?: defaultValue
     }
 
     override fun write(

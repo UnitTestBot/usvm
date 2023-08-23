@@ -18,13 +18,13 @@ abstract class UArrayModelRegion<ArrayType, Sort : USort>(
     private val regionId: UArrayRegionId<ArrayType, Sort>,
 ) : UArrayRegion<ArrayType, Sort> {
 
+    val defaultValue by lazy { regionId.sort.sampleUValue() }
+
     abstract val inputArray: UReadOnlyMemoryRegion<USymbolicArrayIndex, Sort>?
 
     override fun read(key: UArrayIndexRef<ArrayType, Sort>): UExpr<Sort> {
-        val ref = modelEnsureConcreteInputRef(key.ref)
-        return inputArray
-            ?.read(ref to key.index)
-            ?: regionId.sort.sampleUValue()
+        val ref = modelEnsureConcreteInputRef(key.ref) ?: return defaultValue
+        return inputArray?.read(ref to key.index) ?: defaultValue
     }
 
     override fun write(

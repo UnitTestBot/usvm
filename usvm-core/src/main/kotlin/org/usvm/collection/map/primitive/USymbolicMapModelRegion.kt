@@ -16,13 +16,13 @@ import org.usvm.util.Region
 abstract class USymbolicMapModelRegion<MapType, KeySort : USort, ValueSort : USort, Reg : Region<Reg>>(
     private val regionId: USymbolicMapRegionId<MapType, KeySort, ValueSort, Reg>
 ) : USymbolicMapRegion<MapType, KeySort, ValueSort, Reg> {
+    val defaultValue by lazy { regionId.sort.sampleUValue() }
+
     abstract val inputMap: UReadOnlyMemoryRegion<USymbolicMapKey<KeySort>, ValueSort>?
 
     override fun read(key: USymbolicMapEntryRef<MapType, KeySort, ValueSort, Reg>): UExpr<ValueSort> {
-        val mapRef = modelEnsureConcreteInputRef(key.mapRef)
-        return inputMap
-            ?.read(mapRef to key.mapKey)
-            ?: regionId.sort.sampleUValue()
+        val mapRef = modelEnsureConcreteInputRef(key.mapRef) ?: return defaultValue
+        return inputMap?.read(mapRef to key.mapKey) ?: defaultValue
     }
 
     override fun write(
