@@ -71,7 +71,7 @@ abstract class UMachine<State> : AutoCloseable {
             }
         }
 
-        if (pathSelector is BfsWithLoggingPathSelector<*, *, *>) { // TODO REMOVE
+        if (pathSelector is BfsWithLoggingPathSelector<*, *, *> && MainConfig.logFeatures) {
             pathSelector.savePath()
         }
     }

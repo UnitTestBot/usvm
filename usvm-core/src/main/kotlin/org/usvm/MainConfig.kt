@@ -29,6 +29,8 @@ object MainConfig {
     var defaultAlgorithm = Algorithm.BFS
     var postprocessing = Postprocessing.Argmax
     var mode = Mode.Both
+    var logFeatures = true
+    var shuffleTests = true
     var inputShape = listOf<Long>(1, -1, 77)
     var maxAttentionLength = -1
     var useGnn = true
@@ -42,5 +44,7 @@ object MainConfig {
     var useRnn = true
     var rnnStateShape = listOf<Long>(4, 1, 512)
     var rnnFeaturesCount = 33
-    var inputJars = mapOf<String, List<String>>() // jar file -> package name
+    var inputJars = mapOf(
+        Pair("../Game_env/jars/usvm-jvm-new.jar", listOf("org.usvm.samples", "com.thealgorithms"))
+    ) // jar file -> package name
 }

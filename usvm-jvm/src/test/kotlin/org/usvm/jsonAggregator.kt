@@ -85,15 +85,17 @@ fun calculate() {
     var finishedTestsCount = 0
 
     jarClasses.forEach { (key, classesList) ->
-        val allJarMethods = classesList.filter { cls ->
+        val allMethods = classesList.filter { cls ->
             !cls.isAnnotation && !cls.isInterface &&
                     MainConfig.inputJars.getValue(key).any { cls.packageName.contains(it) } &&
                     !cls.name.contains("Test")
         }.flatMap { cls -> cls.declaredMethods.filter { method ->
             method.enclosingClass == cls && getName(method) !in blacklist && !method.isConstructor
-        } }.shuffled()
+        } }
+        val orderedMethods = if (MainConfig.shuffleTests) allMethods.shuffled() else
+            allMethods.sortedBy { getName(it).hashCode() }
         runBlocking(Dispatchers.IO) {
-            allJarMethods.take((allJarMethods.size * MainConfig.dataConsumption / 100).toInt()).forEach { method ->
+            orderedMethods.take((orderedMethods.size * MainConfig.dataConsumption / 100).toInt()).forEach { method ->
                 val test = launch {
                         try {
                             println("Running test ${method.name}")
@@ -193,6 +195,10 @@ fun updateConfig(options: JsonObject) {
         JsonPrimitive(MainConfig.postprocessing.name)) as JsonPrimitive).content)
     MainConfig.mode = Mode.valueOf((options.getOrDefault("mode",
         JsonPrimitive(MainConfig.mode.name)) as JsonPrimitive).content)
+    MainConfig.logFeatures = (options.getOrDefault("logFeatures",
+        JsonPrimitive(MainConfig.logFeatures)) as JsonPrimitive).content.toBoolean()
+    MainConfig.shuffleTests = (options.getOrDefault("shuffleTests",
+        JsonPrimitive(MainConfig.shuffleTests)) as JsonPrimitive).content.toBoolean()
     MainConfig.inputShape = (options.getOrDefault("inputShape", JsonArray(MainConfig.inputShape
         .map { JsonPrimitive(it) })) as JsonArray).map { (it as JsonPrimitive).content.toLong() }
     MainConfig.maxAttentionLength = (options.getOrDefault("maxAttentionLength",
@@ -233,6 +239,8 @@ fun updateConfig(options: JsonObject) {
     println("  DEFAULT ALGORITHM: ${MainConfig.defaultAlgorithm}")
     println("  POSTPROCESSING: ${MainConfig.postprocessing}")
     println("  MODE: ${MainConfig.mode}")
+    println("  LOG FEATURES: ${MainConfig.logFeatures}")
+    println("  SHUFFLE TESTS: ${MainConfig.shuffleTests}")
     println("  INPUT SHAPE: ${MainConfig.inputShape}")
     println("  MAX ATTENTION LENGTH: ${MainConfig.maxAttentionLength}")
     println("  USE GNN: ${MainConfig.useGnn}")
@@ -250,6 +258,12 @@ fun updateConfig(options: JsonObject) {
     println()
 }
 
+fun clear() {
+    Path(MainConfig.dataPath, "jsons").toFile().listFiles()?.forEach { file ->
+        file.delete()
+    }
+}
+
 fun main(args: Array<String>) {
     val options = args.getOrNull(0)?.let { File(it) }?.readText()?.let {
         Json.decodeFromString<JsonObject>(it)
@@ -258,14 +272,14 @@ fun main(args: Array<String>) {
         updateConfig(options)
     }
 
+    clear()
+
     if (MainConfig.mode == Mode.Calculation || MainConfig.mode == Mode.Both) {
         try {
             calculate()
         } catch (e: Throwable) {
             println(e)
-            Path(MainConfig.dataPath, "jsons").toFile().listFiles()?.forEach { file ->
-                file.delete()
-            }
+            clear()
         }
     }
 
@@ -274,9 +288,7 @@ fun main(args: Array<String>) {
             aggregate()
         } catch (e: Throwable) {
             println(e)
-            Path(MainConfig.dataPath, "jsons").toFile().listFiles()?.forEach { file ->
-                file.delete()
-            }
+            clear()
         }
     }
 }

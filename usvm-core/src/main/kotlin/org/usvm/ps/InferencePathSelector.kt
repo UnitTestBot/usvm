@@ -44,9 +44,12 @@ internal open class InferencePathSelector<State : UState<*, *, Method, Statement
         private val actorModelPath = Path(MainConfig.gameEnvPath, "actor_model.onnx").toString()
         private val gnnModelPath = Path(MainConfig.gameEnvPath, "gnn_model.onnx").toString()
         private val rnnModelPath = Path(MainConfig.gameEnvPath, "rnn_cell.onnx").toString()
-        private var actorSession: OrtSession? = null
-        private var gnnSession: OrtSession? = null
-        private var rnnSession: OrtSession? = null
+        private var actorSession: OrtSession? = if (File(actorModelPath).isFile)
+            env.createSession(actorModelPath) else null
+        private var gnnSession: OrtSession? = if (MainConfig.useGnn)
+            env.createSession(gnnModelPath) else null
+        private var rnnSession: OrtSession? = if (MainConfig.useRnn)
+            env.createSession(rnnModelPath) else null
     }
 
     override fun getReward(state: State): Float {
@@ -205,19 +208,13 @@ internal open class InferencePathSelector<State : UState<*, *, Method, Statement
         if (stateFeatureQueue == null || globalStateFeatures == null) {
             throw IllegalArgumentException("No features")
         }
-        if (actorSession === null) {
-            actorSession = env.createSession(actorModelPath, OrtSession.SessionOptions())
-        }
-        if (MainConfig.useRnn) {
-            runRnn()
-        }
-        val graphFeatures = if (MainConfig.useGnn) runGnn() else listOf()
         if (queue.size == 1) {
             if (MainConfig.postprocessing != Postprocessing.Argmax) {
                 probabilities.add(listOf(1.0f))
             }
             return queue[0]
         }
+        val graphFeatures = gnnFeaturesList.lastOrNull() ?: listOf()
         val blockFeaturesCount = graphFeatures.firstOrNull()?.size ?: 0
         val allFeaturesListFull = stateFeatureQueue.zip(queue).map { (stateFeatures, state) ->
             stateFeaturesToFloatList(stateFeatures) + globalStateFeaturesToFloatList(globalStateFeatures) +
@@ -241,7 +238,13 @@ internal open class InferencePathSelector<State : UState<*, *, Method, Statement
 
     override fun peek(): State {
         val (stateFeatureQueue, globalStateFeatures) = beforePeek()
-        val state = if (File(actorModelPath).isFile) {
+        if (MainConfig.useRnn) {
+            runRnn()
+        }
+        if (MainConfig.useGnn) {
+            runGnn()
+        }
+        val state = if (actorSession !== null) {
             peekWithOnnxRuntime(stateFeatureQueue, globalStateFeatures)
         } else if (MainConfig.defaultAlgorithm == Algorithm.BFS) {
             queue.first()
