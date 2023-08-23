@@ -77,27 +77,6 @@ abstract class U1DUpdatesTranslator<KeySort : USort, Sort : USort>(
                     else -> translateRangedUpdate(previous, update)
                 }
             }
-
-//            is UMergeUpdateNode<*, *, *, *, *, *> -> {
-//                when(update.guard){
-//                    falseExpr -> previous
-//                    else -> {
-//                        @Suppress("UNCHECKED_CAST")
-//                        update as UMergeUpdateNode<USymbolicMapId<Any?, KeySort, *, Sort, *>, Any?, Any?, KeySort, *, Sort>
-//
-//                        val key = mkFreshConst("k", previous.sort.domain)
-//
-//                        val from = update.sourceCollection
-//
-//                        val keyMapper = from.collectionId.keyMapper(exprTranslator)
-//                        val convertedKey = keyMapper(update.keyConverter.convert(key))
-//                        val isInside = update.includesSymbolically(key).translated // already includes guard
-//                        val result = exprTranslator.translateRegionReading(from, convertedKey)
-//                        val ite = mkIte(isInside, result, previous.select(key))
-//                        mkArrayLambda(key.decl, ite)
-//                    }
-//                }
-//            }
         }
     }
 
@@ -150,27 +129,6 @@ abstract class U2DUpdatesTranslator<Key1Sort : USort, Key2Sort : USort, Sort : U
                     else -> translateRangedUpdate(previous, update)
                 }
             }
-
-//            is UMergeUpdateNode<*, *, *, *, *, *> -> {
-//                when(update.guard){
-//                    falseExpr -> previous
-//                    else -> {
-//                        @Suppress("UNCHECKED_CAST")
-//                        update as UMergeUpdateNode<USymbolicMapId<Any?, *, *, Sort, *>, Any?, Any?, *, *, Sort>
-//
-//                        val key1 = mkFreshConst("k1", previous.sort.domain0)
-//                        val key2 = mkFreshConst("k2", previous.sort.domain1)
-//
-//                        val region = update.sourceCollection
-//                        val keyMapper = region.collectionId.keyMapper(exprTranslator)
-//                        val convertedKey = keyMapper(update.keyConverter.convert(key1 to key2))
-//                        val isInside = update.includesSymbolically(key1 to key2).translated // already includes guard
-//                        val result = exprTranslator.translateRegionReading(region, convertedKey)
-//                        val ite = mkIte(isInside, result, previous.select(key1, key2))
-//                        mkArrayLambda(key1.decl, key2.decl, ite)
-//                    }
-//                }
-//            }
         }
     }
 

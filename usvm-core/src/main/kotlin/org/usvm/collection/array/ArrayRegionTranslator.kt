@@ -1,4 +1,4 @@
-package org.usvm.solver.translator
+package org.usvm.collection.array
 
 import io.ksmt.KContext
 import io.ksmt.expr.KExpr
@@ -17,16 +17,8 @@ import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.URangedUpdateNode
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.memory.USymbolicCollection
-import org.usvm.collection.array.USymbolicArrayCopyAdapter
-import org.usvm.collection.array.UAllocatedArrayId
-import org.usvm.collection.array.UInputArrayId
 import org.usvm.memory.USymbolicCollectionId
-import org.usvm.collection.array.USymbolicArrayIndex
-import org.usvm.collection.array.UArrayIndexRef
-import org.usvm.collection.array.UArrayRegionId
-import org.usvm.model.UMemory1DArray
 import org.usvm.model.UMemory2DArray
-import org.usvm.collection.array.UArrayLazyModelRegion
 import org.usvm.solver.U1DUpdatesTranslator
 import org.usvm.solver.U2DUpdatesTranslator
 import org.usvm.solver.UCollectionDecoder
@@ -34,7 +26,7 @@ import org.usvm.solver.UExprTranslator
 import org.usvm.solver.URegionDecoder
 import org.usvm.solver.URegionTranslator
 import org.usvm.uctx
-import java.util.*
+import java.util.IdentityHashMap
 
 class UArrayRegionDecoder<ArrayType, Sort : USort>(
     private val regionId: UArrayRegionId<ArrayType, Sort>,
@@ -73,14 +65,14 @@ class UArrayRegionDecoder<ArrayType, Sort : USort>(
         model: KModel,
         mapping: Map<UHeapRef, UConcreteHeapRef>
     ): UMemoryRegion<UArrayIndexRef<ArrayType, Sort>, Sort> {
-        return UArrayLazyModelRegion(regionId, model, mapping, allocatedRegions, inputRegion)
+        return UArrayLazyModelRegion(regionId, model, mapping, inputRegion)
     }
 }
 
 private class UAllocatedArrayRegionTranslator<ArrayType, Sort : USort>(
     private val collectionId: UAllocatedArrayId<ArrayType, Sort>,
     private val exprTranslator: UExprTranslator<*>
-) : URegionTranslator<UAllocatedArrayId<ArrayType, Sort>, USizeExpr, Sort>, UCollectionDecoder<USizeExpr, Sort> {
+) : URegionTranslator<UAllocatedArrayId<ArrayType, Sort>, USizeExpr, Sort> {
     private val initialValue = with(collectionId.sort.uctx) {
         val sort = mkArraySort(sizeSort, collectionId.sort)
         val translatedDefaultValue = exprTranslator.translate(collectionId.defaultValue)
@@ -96,13 +88,6 @@ private class UAllocatedArrayRegionTranslator<ArrayType, Sort : USort>(
     ): KExpr<Sort> {
         val translatedCollection = region.updates.accept(updatesTranslator, visitorCache)
         return updatesTranslator.visitSelect(translatedCollection, key)
-    }
-
-    override fun decodeCollection(
-        model: KModel,
-        mapping: Map<UHeapRef, UConcreteHeapRef>
-    ): UReadOnlyMemoryRegion<USizeExpr, Sort> {
-        return UMemory1DArray(initialValue, model, mapping)
     }
 }
 

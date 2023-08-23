@@ -1,4 +1,4 @@
-package org.usvm.solver.translator
+package org.usvm.collection.map.primitive
 
 import io.ksmt.KContext
 import io.ksmt.expr.KExpr
@@ -12,18 +12,12 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
+import org.usvm.collection.map.USymbolicMapKey
 import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.URangedUpdateNode
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.memory.USymbolicCollection
-import org.usvm.collection.map.primitive.UAllocatedSymbolicMapId
-import org.usvm.collection.map.primitive.UInputSymbolicMapId
-import org.usvm.collection.map.USymbolicMapKey
-import org.usvm.collection.map.primitive.USymbolicMapEntryRef
-import org.usvm.collection.map.primitive.USymbolicMapRegionId
-import org.usvm.model.UMemory1DArray
 import org.usvm.model.UMemory2DArray
-import org.usvm.collection.map.primitive.USymbolicMapLazyModelRegion
 import org.usvm.solver.U1DUpdatesTranslator
 import org.usvm.solver.U2DUpdatesTranslator
 import org.usvm.solver.UCollectionDecoder
@@ -32,7 +26,7 @@ import org.usvm.solver.URegionDecoder
 import org.usvm.solver.URegionTranslator
 import org.usvm.uctx
 import org.usvm.util.Region
-import java.util.*
+import java.util.IdentityHashMap
 
 class USymbolicMapRegionDecoder<MapType, KeySort : USort, ValueSort : USort, Reg : Region<Reg>>(
     private val regionId: USymbolicMapRegionId<MapType, KeySort, ValueSort, Reg>,
@@ -79,15 +73,14 @@ class USymbolicMapRegionDecoder<MapType, KeySort : USort, ValueSort : USort, Reg
         model: KModel,
         mapping: Map<UHeapRef, UConcreteHeapRef>
     ): UMemoryRegion<USymbolicMapEntryRef<MapType, KeySort, ValueSort, Reg>, ValueSort> {
-        return USymbolicMapLazyModelRegion(regionId, model, mapping, allocatedRegions, inputRegion)
+        return USymbolicMapLazyModelRegion(regionId, model, mapping, inputRegion)
     }
 }
 
 private class UAllocatedSymbolicMapTranslator<MapType, KeySort : USort, ValueSort : USort, Reg : Region<Reg>>(
     private val collectionId: UAllocatedSymbolicMapId<MapType, KeySort, ValueSort, Reg>,
     private val exprTranslator: UExprTranslator<*>
-) : URegionTranslator<UAllocatedSymbolicMapId<MapType, KeySort, ValueSort, Reg>, UExpr<KeySort>, ValueSort>,
-    UCollectionDecoder<UExpr<KeySort>, ValueSort> {
+) : URegionTranslator<UAllocatedSymbolicMapId<MapType, KeySort, ValueSort, Reg>, UExpr<KeySort>, ValueSort> {
     private val initialValue = with(collectionId.sort.uctx) {
         val sort = mkArraySort(collectionId.keySort, collectionId.sort)
         val translatedDefaultValue = exprTranslator.translate(collectionId.defaultValue)
@@ -103,13 +96,6 @@ private class UAllocatedSymbolicMapTranslator<MapType, KeySort : USort, ValueSor
     ): KExpr<ValueSort> {
         val translatedCollection = region.updates.accept(updatesTranslator, visitorCache)
         return updatesTranslator.visitSelect(translatedCollection, key)
-    }
-
-    override fun decodeCollection(
-        model: KModel,
-        mapping: Map<UHeapRef, UConcreteHeapRef>
-    ): UReadOnlyMemoryRegion<UExpr<KeySort>, ValueSort> {
-        return UMemory1DArray(initialValue, model, mapping)
     }
 }
 
@@ -149,6 +135,27 @@ private class UAllocatedSymbolicMapUpdatesTranslator<KeySort : USort, ValueSort 
         previous: KExpr<KArraySort<KeySort, ValueSort>>,
         update: URangedUpdateNode<*, *, UExpr<KeySort>, ValueSort>
     ): KExpr<KArraySort<KeySort, ValueSort>> {
+
+//            is UMergeUpdateNode<*, *, *, *, *, *> -> {
+//                when(update.guard){
+//                    falseExpr -> previous
+//                    else -> {
+//                        @Suppress("UNCHECKED_CAST")
+//                        update as UMergeUpdateNode<USymbolicMapId<Any?, KeySort, *, Sort, *>, Any?, Any?, KeySort, *, Sort>
+//
+//                        val key = mkFreshConst("k", previous.sort.domain)
+//
+//                        val from = update.sourceCollection
+//
+//                        val keyMapper = from.collectionId.keyMapper(exprTranslator)
+//                        val convertedKey = keyMapper(update.keyConverter.convert(key))
+//                        val isInside = update.includesSymbolically(key).translated // already includes guard
+//                        val result = exprTranslator.translateRegionReading(from, convertedKey)
+//                        val ite = mkIte(isInside, result, previous.select(key))
+//                        mkArrayLambda(key.decl, ite)
+//                    }
+//                }
+//            }
         TODO("Not yet implemented")
     }
 }
@@ -161,6 +168,26 @@ private class UInputSymbolicMapUpdatesTranslator<KeySort : USort, ValueSort : US
         previous: KExpr<KArray2Sort<UAddressSort, KeySort, ValueSort>>,
         update: URangedUpdateNode<*, *, Pair<UExpr<UAddressSort>, UExpr<KeySort>>, ValueSort>
     ): KExpr<KArray2Sort<UAddressSort, KeySort, ValueSort>> {
+        //            is UMergeUpdateNode<*, *, *, *, *, *> -> {
+//                when(update.guard){
+//                    falseExpr -> previous
+//                    else -> {
+//                        @Suppress("UNCHECKED_CAST")
+//                        update as UMergeUpdateNode<USymbolicMapId<Any?, *, *, Sort, *>, Any?, Any?, *, *, Sort>
+//
+//                        val key1 = mkFreshConst("k1", previous.sort.domain0)
+//                        val key2 = mkFreshConst("k2", previous.sort.domain1)
+//
+//                        val region = update.sourceCollection
+//                        val keyMapper = region.collectionId.keyMapper(exprTranslator)
+//                        val convertedKey = keyMapper(update.keyConverter.convert(key1 to key2))
+//                        val isInside = update.includesSymbolically(key1 to key2).translated // already includes guard
+//                        val result = exprTranslator.translateRegionReading(region, convertedKey)
+//                        val ite = mkIte(isInside, result, previous.select(key1, key2))
+//                        mkArrayLambda(key1.decl, key2.decl, ite)
+//                    }
+//                }
+//            }
         TODO("Not yet implemented")
     }
 }

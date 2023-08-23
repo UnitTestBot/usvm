@@ -38,11 +38,11 @@ import org.usvm.collection.array.UArrayRegionId
 import org.usvm.collection.field.UFieldsRegionId
 import org.usvm.collection.map.length.USymbolicMapLengthsRegionId
 import org.usvm.collection.map.primitive.USymbolicMapRegionId
-import org.usvm.solver.translator.UArrayLengthRegionDecoder
-import org.usvm.solver.translator.UArrayRegionDecoder
-import org.usvm.solver.translator.UFieldRegionDecoder
-import org.usvm.solver.translator.USymbolicMapLengthRegionDecoder
-import org.usvm.solver.translator.USymbolicMapRegionDecoder
+import org.usvm.collection.array.length.UArrayLengthRegionDecoder
+import org.usvm.collection.array.UArrayRegionDecoder
+import org.usvm.collection.field.UFieldRegionDecoder
+import org.usvm.collection.map.length.USymbolicMapLengthRegionDecoder
+import org.usvm.collection.map.primitive.USymbolicMapRegionDecoder
 import org.usvm.util.Region
 import java.util.concurrent.ConcurrentHashMap
 

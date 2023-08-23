@@ -1,4 +1,4 @@
-package org.usvm.solver.translator
+package org.usvm.collection.array.length
 
 import io.ksmt.KContext
 import io.ksmt.expr.KExpr
@@ -13,11 +13,7 @@ import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.URangedUpdateNode
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.memory.USymbolicCollection
-import org.usvm.collection.map.length.UInputSymbolicMapLengthId
-import org.usvm.collection.map.length.USymbolicMapLengthRef
-import org.usvm.collection.map.length.USymbolicMapLengthsRegionId
 import org.usvm.model.UMemory1DArray
-import org.usvm.collection.map.length.USymbolicMapLengthLazyModelRegion
 import org.usvm.solver.U1DUpdatesTranslator
 import org.usvm.solver.UCollectionDecoder
 import org.usvm.solver.UExprTranslator
@@ -26,47 +22,47 @@ import org.usvm.solver.URegionTranslator
 import org.usvm.uctx
 import java.util.*
 
-class USymbolicMapLengthRegionDecoder<MapType>(
-    private val regionId: USymbolicMapLengthsRegionId<MapType>,
+class UArrayLengthRegionDecoder<ArrayType>(
+    private val regionId: UArrayLengthsRegionId<ArrayType>,
     private val exprTranslator: UExprTranslator<*>
-) : URegionDecoder<USymbolicMapLengthRef<MapType>, USizeSort> {
+) : URegionDecoder<UArrayLengthRef<ArrayType>, USizeSort> {
 
-    private var inputTranslator: UInputSymbolicMapLengthRegionTranslator<MapType>? = null
+    private var inputArrayLengthTranslator: UInputArrayLengthRegionTranslator<ArrayType>? = null
 
-    fun inputSymbolicMapLengthRegionTranslator(
-        collectionId: UInputSymbolicMapLengthId<MapType>
-    ): URegionTranslator<UInputSymbolicMapLengthId<MapType>, UHeapRef, USizeSort> {
-        if (inputTranslator == null) {
-            check(collectionId.mapType == regionId.mapType && collectionId.sort == regionId.sort) {
+    fun inputArrayLengthRegionTranslator(
+        collectionId: UInputArrayLengthId<ArrayType>
+    ): URegionTranslator<UInputArrayLengthId<ArrayType>, UHeapRef, USizeSort> {
+        if (inputArrayLengthTranslator == null) {
+            check(collectionId.arrayType == regionId.arrayType && collectionId.sort == regionId.sort) {
                 "Unexpected collection: $collectionId"
             }
-            inputTranslator = UInputSymbolicMapLengthRegionTranslator(collectionId, exprTranslator)
+            inputArrayLengthTranslator = UInputArrayLengthRegionTranslator(collectionId, exprTranslator)
         }
-        return inputTranslator!!
+        return inputArrayLengthTranslator!!
     }
 
     override fun decodeLazyRegion(
         model: KModel,
         mapping: Map<UHeapRef, UConcreteHeapRef>
-    ): UMemoryRegion<USymbolicMapLengthRef<MapType>, USizeSort> {
-        return USymbolicMapLengthLazyModelRegion(regionId, model, mapping, inputTranslator)
+    ): UMemoryRegion<UArrayLengthRef<ArrayType>, USizeSort> {
+        return UArrayLengthLazyModelRegion(regionId, model, mapping, inputArrayLengthTranslator)
     }
 }
 
-private class UInputSymbolicMapLengthRegionTranslator<MapType>(
-    private val collectionId: UInputSymbolicMapLengthId<MapType>,
+private class UInputArrayLengthRegionTranslator<ArrayType>(
+    private val collectionId: UInputArrayLengthId<ArrayType>,
     private val exprTranslator: UExprTranslator<*>
-) : URegionTranslator<UInputSymbolicMapLengthId<MapType>, UHeapRef, USizeSort>,
+) : URegionTranslator<UInputArrayLengthId<ArrayType>, UHeapRef, USizeSort>,
     UCollectionDecoder<UHeapRef, USizeSort> {
     private val initialValue = with(collectionId.sort.uctx) {
         mkArraySort(addressSort, sizeSort).mkConst(collectionId.toString())
     }
 
     private val visitorCache = IdentityHashMap<Any?, KExpr<KArraySort<UAddressSort, USizeSort>>>()
-    private val updatesTranslator = UInputSymbolicMapLengthUpdateTranslator(exprTranslator, initialValue)
+    private val updatesTranslator = UInputArrayLengthUpdateTranslator(exprTranslator, initialValue)
 
     override fun translateReading(
-        region: USymbolicCollection<UInputSymbolicMapLengthId<MapType>, UHeapRef, USizeSort>,
+        region: USymbolicCollection<UInputArrayLengthId<ArrayType>, UHeapRef, USizeSort>,
         key: UHeapRef
     ): KExpr<USizeSort> {
         val translatedCollection = region.updates.accept(updatesTranslator, visitorCache)
@@ -81,7 +77,7 @@ private class UInputSymbolicMapLengthRegionTranslator<MapType>(
     }
 }
 
-private class UInputSymbolicMapLengthUpdateTranslator(
+private class UInputArrayLengthUpdateTranslator(
     exprTranslator: UExprTranslator<*>,
     initialValue: KExpr<KArraySort<UAddressSort, USizeSort>>
 ) : U1DUpdatesTranslator<UAddressSort, USizeSort>(exprTranslator, initialValue) {
@@ -89,6 +85,6 @@ private class UInputSymbolicMapLengthUpdateTranslator(
         previous: KExpr<KArraySort<UAddressSort, USizeSort>>,
         update: URangedUpdateNode<*, *, UHeapRef, USizeSort>
     ): KExpr<KArraySort<UAddressSort, USizeSort>> {
-        error("Symbolic map length has no ranged updates")
+        error("Array length has no ranged updates")
     }
 }

@@ -72,7 +72,7 @@ class ModelCompositionTest {
         val inputArray = UMemory2DArray(
             persistentMapOf((composedSymbolicHeapRef to mkBv(0)) to mkBv(1)), mkBv(0)
         )
-        val arrayModel = UArrayEagerModelRegion(arrayMemoryId, emptyMap(), inputArray)
+        val arrayModel = UArrayEagerModelRegion(arrayMemoryId, inputArray)
 
         val stackModel = URegistersStackEagerModel(
             concreteNull, mapOf(0 to composedSymbolicHeapRef, 1 to mkBv(0))

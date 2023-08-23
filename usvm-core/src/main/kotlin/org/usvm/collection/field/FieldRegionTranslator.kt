@@ -1,4 +1,4 @@
-package org.usvm.solver.translator
+package org.usvm.collection.field
 
 import io.ksmt.KContext
 import io.ksmt.expr.KExpr
@@ -13,18 +13,14 @@ import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.URangedUpdateNode
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.memory.USymbolicCollection
-import org.usvm.collection.field.UInputFieldId
-import org.usvm.collection.field.UFieldRef
-import org.usvm.collection.field.UFieldsRegionId
 import org.usvm.model.UMemory1DArray
-import org.usvm.collection.field.UFieldsLazyModelRegion
 import org.usvm.solver.U1DUpdatesTranslator
 import org.usvm.solver.UCollectionDecoder
 import org.usvm.solver.UExprTranslator
 import org.usvm.solver.URegionDecoder
 import org.usvm.solver.URegionTranslator
 import org.usvm.uctx
-import java.util.*
+import java.util.IdentityHashMap
 
 class UFieldRegionDecoder<Field, Sort : USort>(
     private val regionId: UFieldsRegionId<Field, Sort>,
