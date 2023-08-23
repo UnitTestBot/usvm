@@ -86,7 +86,7 @@ object UTestCreator {
                 index = UTestIntExpression(5, jcClasspath.int)
             )
             val arg2 = UTestIntExpression(1, jcClasspath.int)
-            val ifExpr = UTestBinaryConditionExpression(
+            val ifExpr = UTestBinaryConditionStatement(
                 ConditionType.EQ,
                 getArrEl,
                 UTestIntExpression(7, jcClasspath.int),

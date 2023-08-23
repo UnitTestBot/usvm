@@ -5,10 +5,6 @@ import org.jacodb.api.JcField
 import org.jacodb.api.ext.*
 import org.usvm.instrumentation.util.stringType
 import org.usvm.instrumentation.testcase.descriptor.*
-import readJcField
-import readJcType
-import writeJcField
-import writeJcType
 
 class UTestValueDescriptorSerializer(private val ctx: SerializationContext) {
 

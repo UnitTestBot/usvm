@@ -52,14 +52,16 @@ class InstrumentationProcessRunner(
                 listOf(instrumentedProcessClassName)
     }
 
-    private fun createWorkerProcessArgs(rdPort: Int, timeout: Int): List<String> =
-        listOf("-cp", testingProjectClasspath) + listOf("-t", "$timeout") + listOf("-p", "$rdPort")
+    private fun createWorkerProcessArgs(rdPort: Int): List<String> =
+        listOf("-cp", testingProjectClasspath) +
+        listOf("-t", "${InstrumentationModuleConstants.concreteExecutorProcessTimeout}") +
+        listOf("-p", "$rdPort")
 
     suspend fun init(parentLifetime: Lifetime) {
         val processLifetime = LifetimeDefinition(parentLifetime)
         lifetime = processLifetime
         val rdPort = NetUtils.findFreePort(0)
-        val workerCommand = jvmArgs + createWorkerProcessArgs(rdPort, 120)
+        val workerCommand = jvmArgs + createWorkerProcessArgs(rdPort)
         val pb = ProcessBuilder(workerCommand).inheritIO()
         val process = pb.start()
         rdProcessRunner =

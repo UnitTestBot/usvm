@@ -37,7 +37,7 @@ open class Value2DescriptorConverter(
         uTestExpression: UTestExpression,
         testExecutor: UTestExpressionExecutor,
     ): Result<UTestValueDescriptor>? {
-        testExecutor.executeUTestExpression(uTestExpression)
+        testExecutor.executeUTestInst(uTestExpression)
             .onSuccess { return buildDescriptorResultFromAny(it) }
             .onFailure { return Result.failure(it) }
         return null
@@ -83,6 +83,7 @@ open class Value2DescriptorConverter(
                 is DoubleArray -> array(any, depth + 1)
                 is Array<*> -> array(any, depth + 1)
                 is Class<*> -> `class`(any)
+                is Throwable -> `exception`(any, depth + 1)
                 else -> `object`(any, depth + 1)
             }
         }
@@ -162,7 +163,7 @@ open class Value2DescriptorConverter(
         return createCyclicRef(uTestObjectDescriptor, value) {
             jcClass.allDeclaredFields
                 //TODO! Decide for which fields descriptors should be build
-                //.filterNot { it.isFinal }
+                .filterNot { it.isFinal || it.isTransient }
                 .forEach { jcField ->
                     val jField = jcField.toJavaField(classLoader) ?: return@forEach
                     val fieldValue = jField.getFieldValue(value)
@@ -170,6 +171,18 @@ open class Value2DescriptorConverter(
                     fields[jcField] = fieldDescriptor
                 }
         }
+    }
+
+    private fun `exception`(exception: Throwable, depth: Int): UTestExceptionDescriptor {
+        val jcClass = jcClasspath.findClass(exception::class.java.name)
+        val jcType = jcClass.toType()
+        val stackTraceElementDescriptors = exception.stackTrace.map { buildDescriptorFromAny(it, depth) }
+        return UTestExceptionDescriptor(
+            jcType,
+            exception.message ?: "",
+            stackTraceElementDescriptors,
+            false
+        )
     }
 
     private fun `enum`(jcClass: JcClassOrInterface, value: Any, depth: Int): UTestEnumValueDescriptor {

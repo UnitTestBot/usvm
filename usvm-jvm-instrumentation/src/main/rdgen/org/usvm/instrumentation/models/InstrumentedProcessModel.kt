@@ -9,20 +9,20 @@ object InstrumentedProcessRoot : Root()
 
 object InstrumentedProcessModel : Ext(InstrumentedProcessRoot) {
 
-    const val uTestExpressionPackage = "org.usvm.instrumentation.testcase.api"
-    const val uTestExpressionClassName = "$uTestExpressionPackage.UTestExpression"
+    const val uTestInstPackage = "org.usvm.instrumentation.testcase.api"
+    const val uTestInstClassName = "$uTestInstPackage.UTestInst"
     const val serializersPackage = "org.usvm.instrumentation.serializer"
-    const val uTestExpressionSerializerMarshaller = "$serializersPackage.UTestExpressionSerializer"
+    const val uTestInstSerializerMarshaller = "$serializersPackage.UTestInstSerializer"
 
     const val uTestValueDescriptorPackage = "org.usvm.instrumentation.testcase.descriptor"
     const val uTestValueDescriptorSimpleClassName = "UTestValueDescriptor"
     const val uTestValueDescriptorClassName = "$uTestValueDescriptorPackage.$uTestValueDescriptorSimpleClassName"
     const val uTestValueDescriptorSerializerMarshaller = "$serializersPackage.UTestValueDescriptorSerializer"
 
-    private val UTestExpression = Struct.Open("UTestExpression", this, null).apply {
-        settings[Namespace] = uTestExpressionPackage
+    private val UTestInst = Struct.Open("UTestInst", this, null).apply {
+        settings[Namespace] = uTestInstPackage
         settings[Intrinsic] = KotlinIntrinsicMarshaller(
-            "(ctx.serializers.get($uTestExpressionSerializerMarshaller.marshallerId)!! as IMarshaller<${uTestExpressionClassName}>)"
+            "(ctx.serializers.get($uTestInstSerializerMarshaller.marshallerId)!! as IMarshaller<${uTestInstClassName}>)"
         )
     }
 
@@ -40,8 +40,8 @@ object InstrumentedProcessModel : Ext(InstrumentedProcessRoot) {
     }
 
     private val serializedUTest = structdef {
-        field("initStatements", immutableList(UTestExpression))
-        field("callMethodExpression", UTestExpression)
+        field("initStatements", immutableList(UTestInst))
+        field("callMethodExpression", UTestInst)
     }
 
     private val executionStateSerialized = structdef {

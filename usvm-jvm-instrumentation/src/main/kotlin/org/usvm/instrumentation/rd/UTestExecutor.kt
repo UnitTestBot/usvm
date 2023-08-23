@@ -53,7 +53,7 @@ class UTestExecutor(
         val accessedStatics = mutableSetOf<Pair<JcField, JcInstructionTracer.StaticFieldAccessType>>()
         val callMethodExpr = uTest.callMethodExpression
         val executor = UTestExpressionExecutor(workerClassLoader, accessedStatics, mockHelper)
-        executor.executeUTestExpressions(uTest.initStatements)
+        executor.executeUTestInsts(uTest.initStatements)
             ?.onFailure {
                 return UTestExecutionInitFailedResult(
                     cause = buildExceptionDescriptor(initStateDescriptorBuilder, it, false),
@@ -68,7 +68,7 @@ class UTestExecutor(
             accessedStatics = hashSetOf()
         )
 
-        executor.executeUTestExpressions(uTest.initStatements)
+        executor.executeUTestInsts(uTest.initStatements)
             ?.onFailure {
                 return UTestExecutionInitFailedResult(
                     cause = buildExceptionDescriptor(initStateDescriptorBuilder, it, false),
@@ -77,7 +77,7 @@ class UTestExecutor(
             }
 
         val methodInvocationResult =
-            executor.executeUTestExpression(callMethodExpr)
+            executor.executeUTestInst(callMethodExpr)
         val resultStateDescriptorBuilder =
             Value2DescriptorConverter(workerClassLoader, initStateDescriptorBuilder)
         val unpackedInvocationResult =

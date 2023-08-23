@@ -144,7 +144,7 @@ class JcTestExecutor(
         private val method: JcTypedMethod
     ) {
 
-        private val resolvedCache = mutableMapOf<UConcreteHeapAddress, Pair<UTestExpression, List<UTestExpression>>>()
+        private val resolvedCache = mutableMapOf<UConcreteHeapAddress, Pair<UTestExpression, List<UTestInst>>>()
 
         fun createUTest(): UTest {
             val thisInstance = if (!method.isStatic) {
@@ -170,11 +170,11 @@ class JcTestExecutor(
         }
 
 
-        fun resolveLValue(lvalue: ULValue, type: JcType): Pair<UTestExpression, List<UTestExpression>> =
+        fun resolveLValue(lvalue: ULValue, type: JcType): Pair<UTestExpression, List<UTestInst>> =
             resolveExpr(memory.read(lvalue), type)
 
 
-        fun resolveExpr(expr: UExpr<out USort>, type: JcType): Pair<UTestExpression, List<UTestExpression>> =
+        fun resolveExpr(expr: UExpr<out USort>, type: JcType): Pair<UTestExpression, List<UTestInst>> =
             when (type) {
                 is JcPrimitiveType -> resolvePrimitive(expr, type)
                 is JcRefType -> resolveReference(expr.asExpr(ctx.addressSort), type)
@@ -183,7 +183,7 @@ class JcTestExecutor(
 
         fun resolvePrimitive(
             expr: UExpr<out USort>, type: JcPrimitiveType
-        ): Pair<UTestExpression, List<UTestExpression>> {
+        ): Pair<UTestExpression, List<UTestInst>> {
             val exprInModel = evaluateInModel(expr)
             return when (type) {
                 ctx.cp.boolean -> UTestBooleanExpression(extractBool(exprInModel) ?: false, ctx.cp.boolean)
@@ -199,7 +199,7 @@ class JcTestExecutor(
             }.let { it to listOf() }
         }
 
-        fun resolveReference(heapRef: UHeapRef, type: JcRefType): Pair<UTestExpression, List<UTestExpression>> {
+        fun resolveReference(heapRef: UHeapRef, type: JcRefType): Pair<UTestExpression, List<UTestInst>> {
             val ref = evaluateInModel(heapRef) as UConcreteHeapRef
             if (ref.address == NULL_ADDRESS) {
                 return UTestNullExpression(type) to listOf()
@@ -224,14 +224,14 @@ class JcTestExecutor(
 
         private fun resolveArray(
             ref: UConcreteHeapRef, heapRef: UHeapRef, type: JcArrayType
-        ): Pair<UTestExpression, List<UTestExpression>> {
+        ): Pair<UTestExpression, List<UTestInst>> {
             val lengthRef = UArrayLengthLValue(heapRef, ctx.arrayDescriptorOf(type))
             val arrLength = resolveLValue(lengthRef, ctx.cp.int).first as UTestIntExpression
             val length = if (arrLength.value in 0..10_000) arrLength else UTestIntExpression(0, ctx.cp.int) // TODO hack
 
             val cellSort = ctx.typeToSort(type.elementType)
 
-            fun resolveElement(idx: Int): Pair<UTestExpression, List<UTestExpression>> {
+            fun resolveElement(idx: Int): Pair<UTestExpression, List<UTestInst>> {
                 val elemRef = UArrayIndexLValue(cellSort, heapRef, ctx.mkBv(idx), ctx.arrayDescriptorOf(type))
                 return resolveLValue(elemRef, type.elementType)
             }
@@ -254,7 +254,7 @@ class JcTestExecutor(
 
         private fun resolveObject(
             ref: UConcreteHeapRef, heapRef: UHeapRef, type: JcRefType
-        ): Pair<UTestExpression, List<UTestExpression>> {
+        ): Pair<UTestExpression, List<UTestInst>> {
 
             if (type.jcClass == ctx.classType.jcClass && ref.address >= INITIAL_CONCRETE_ADDRESS) {
                 return resolveAllocatedClass(ref)
@@ -268,7 +268,7 @@ class JcTestExecutor(
             val exprs = mutableListOf<UTestExpression>()
             val instance = UTestAllocateMemoryCall(type.jcClass)
 
-            val fieldSetters = mutableListOf<UTestExpression>()
+            val fieldSetters = mutableListOf<UTestInst>()
             resolvedCache[ref.address] = instance to fieldSetters
 
             exprs.add(instance)
@@ -289,7 +289,7 @@ class JcTestExecutor(
             return instance to fieldSetters
         }
 
-        private fun resolveAllocatedClass(ref: UConcreteHeapRef): Pair<UTestExpression, List<UTestExpression>> {
+        private fun resolveAllocatedClass(ref: UConcreteHeapRef): Pair<UTestExpression, List<UTestInst>> {
             val classTypeField = ctx.classTypeSyntheticField
             val classTypeLValue = UFieldLValue(ctx.addressSort, ref, classTypeField)
             val classTypeRef = memory.read(classTypeLValue) as? UConcreteHeapRef
@@ -299,7 +299,7 @@ class JcTestExecutor(
             return UTestClassExpression(classType) to listOf()
         }
 
-        private fun resolveAllocatedString(ref: UConcreteHeapRef): Pair<UTestExpression, List<UTestExpression>> {
+        private fun resolveAllocatedString(ref: UConcreteHeapRef): Pair<UTestExpression, List<UTestInst>> {
             val valueField = ctx.stringValueField
             val strValueLValue = UFieldLValue(ctx.typeToSort(valueField.fieldType), ref, valueField.field)
             return resolveLValue(strValueLValue, valueField.fieldType)

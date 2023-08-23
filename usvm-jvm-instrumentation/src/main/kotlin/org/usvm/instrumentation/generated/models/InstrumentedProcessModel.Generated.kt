@@ -1,4 +1,4 @@
-@file:Suppress("EXPERIMENTAL_API_USAGE","EXPERIMENTAL_UNSIGNED_LITERALS","PackageDirectoryMismatch","UnusedImport","unused","LocalVariableName","CanBeVal","PropertyName","EnumEntryName","ClassName","ObjectPropertyName","UnnecessaryVariable","SpellCheckingInspection", "UNUSED_PARAMETER", "UNCHECKED_CAST")
+@file:Suppress("EXPERIMENTAL_API_USAGE","EXPERIMENTAL_UNSIGNED_LITERALS","PackageDirectoryMismatch","UnusedImport","unused","LocalVariableName","CanBeVal","PropertyName","EnumEntryName","ClassName","ObjectPropertyName","UnnecessaryVariable","SpellCheckingInspection")
 package org.usvm.instrumentation.generated.models
 
 import com.jetbrains.rd.framework.*
@@ -53,7 +53,7 @@ class InstrumentedProcessModel private constructor(
         }
         
         
-        const val serializationHash = 6309547925889624776L
+        const val serializationHash = 7810505090720773366L
         
     }
     override val serializersOwner: ISerializersOwner get() = InstrumentedProcessModel
@@ -477,8 +477,8 @@ data class SerializedStaticField (
  * #### Generated from [InstrumentedProcessModel.kt:42]
  */
 data class SerializedUTest (
-    val initStatements: List<org.usvm.instrumentation.testcase.api.UTestExpression>,
-    val callMethodExpression: org.usvm.instrumentation.testcase.api.UTestExpression
+    val initStatements: List<org.usvm.instrumentation.testcase.api.UTestInst>,
+    val callMethodExpression: org.usvm.instrumentation.testcase.api.UTestInst
 ) : IPrintable {
     //companion
     
@@ -487,14 +487,14 @@ data class SerializedUTest (
         
         @Suppress("UNCHECKED_CAST")
         override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): SerializedUTest  {
-            val initStatements = buffer.readList { (ctx.serializers.get(org.usvm.instrumentation.serializer.UTestExpressionSerializer.marshallerId)!! as IMarshaller<org.usvm.instrumentation.testcase.api.UTestExpression>).read(ctx, buffer) }
-            val callMethodExpression = (ctx.serializers.get(org.usvm.instrumentation.serializer.UTestExpressionSerializer.marshallerId)!! as IMarshaller<org.usvm.instrumentation.testcase.api.UTestExpression>).read(ctx, buffer)
+            val initStatements = buffer.readList { (ctx.serializers.get(org.usvm.instrumentation.serializer.UTestInstSerializer.marshallerId)!! as IMarshaller<org.usvm.instrumentation.testcase.api.UTestInst>).read(ctx, buffer) }
+            val callMethodExpression = (ctx.serializers.get(org.usvm.instrumentation.serializer.UTestInstSerializer.marshallerId)!! as IMarshaller<org.usvm.instrumentation.testcase.api.UTestInst>).read(ctx, buffer)
             return SerializedUTest(initStatements, callMethodExpression)
         }
         
         override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: SerializedUTest)  {
-            buffer.writeList(value.initStatements) { v -> (ctx.serializers.get(org.usvm.instrumentation.serializer.UTestExpressionSerializer.marshallerId)!! as IMarshaller<org.usvm.instrumentation.testcase.api.UTestExpression>).write(ctx,buffer, v) }
-            (ctx.serializers.get(org.usvm.instrumentation.serializer.UTestExpressionSerializer.marshallerId)!! as IMarshaller<org.usvm.instrumentation.testcase.api.UTestExpression>).write(ctx,buffer, value.callMethodExpression)
+            buffer.writeList(value.initStatements) { v -> (ctx.serializers.get(org.usvm.instrumentation.serializer.UTestInstSerializer.marshallerId)!! as IMarshaller<org.usvm.instrumentation.testcase.api.UTestInst>).write(ctx,buffer, v) }
+            (ctx.serializers.get(org.usvm.instrumentation.serializer.UTestInstSerializer.marshallerId)!! as IMarshaller<org.usvm.instrumentation.testcase.api.UTestInst>).write(ctx,buffer, value.callMethodExpression)
         }
         
         

@@ -1,6 +1,7 @@
 @file:Suppress("UNCHECKED_CAST")
 package org.usvm.instrumentation.testcase.executor
 
+import org.jacodb.api.JcArrayType
 import org.jacodb.api.JcField
 import org.jacodb.api.ext.*
 import org.usvm.instrumentation.classloader.WorkerClassLoader
@@ -22,33 +23,33 @@ class UTestExpressionExecutor(
     private val jcClasspath = workerClassLoader.jcClasspath
 
 
-    private val executedUTestExpressions: MutableMap<UTestExpression, Any?> = hashMapOf()
+    private val executedUTestInstructions: MutableMap<UTestInst, Any?> = hashMapOf()
 
-    fun removeFromCache(uTestExpression: UTestExpression) = executedUTestExpressions.remove(uTestExpression)
+    fun removeFromCache(uTestInst: UTestInst) = executedUTestInstructions.remove(uTestInst)
 
-    fun clearCache() = executedUTestExpressions.clear()
+    fun clearCache() = executedUTestInstructions.clear()
 
-    fun executeUTestExpression(uTestExpression: UTestExpression): Result<Any?> =
+    fun executeUTestInst(uTestInst: UTestInst): Result<Any?> =
         try {
             MockCollector.inExecution = true
-            Result.success(exec(uTestExpression))
+            Result.success(exec(uTestInst))
         } catch (e: Throwable) {
             Result.failure(e)
         } finally {
             MockCollector.inExecution = false
         }
 
-    fun executeUTestExpressions(uTestExpressions: List<UTestExpression>): Result<Any?>? {
+    fun executeUTestInsts(uTestExpressions: List<UTestInst>): Result<Any?>? {
         var lastResult: Result<Any?>? = null
         for (uTestExpression in uTestExpressions) {
-            lastResult = executeUTestExpression(uTestExpression)
+            lastResult = executeUTestInst(uTestExpression)
             if (lastResult.isFailure) return lastResult
         }
         return lastResult
     }
 
 
-    private fun exec(uTestExpression: UTestExpression) = executedUTestExpressions.getOrPut(uTestExpression) {
+    private fun exec(uTestExpression: UTestInst) = executedUTestInstructions.getOrPut(uTestExpression) {
         when (uTestExpression) {
             is UTestConstExpression<*> -> executeUTestConstant(uTestExpression)
             is UTestArrayLengthExpression -> executeUTestArrayLengthExpression(uTestExpression)
@@ -64,6 +65,7 @@ class UTestExpressionExecutor(
             is UTestGetStaticFieldExpression -> executeUTestGetStaticFieldExpression(uTestExpression)
             is UTestMock -> executeUTestMock(uTestExpression)
             is UTestBinaryConditionExpression -> executeUTestBinaryConditionExpression(uTestExpression)
+            is UTestBinaryConditionStatement -> executeUTestBinaryConditionStatement(uTestExpression)
             is UTestSetFieldStatement -> executeUTestSetFieldStatement(uTestExpression)
             is UTestSetStaticFieldStatement -> executeUTestSetStaticFieldStatement(uTestExpression)
             is UTestArithmeticExpression -> executeUTestArithmeticExpression(uTestExpression)
@@ -109,8 +111,8 @@ class UTestExpressionExecutor(
         val arrayInstance = exec(uTestArraySetStatement.arrayInstance)
         val index = exec(uTestArraySetStatement.index) as Int
         val setValue = exec(uTestArraySetStatement.setValueExpression)
-
-        when (uTestArraySetStatement.type) {
+        val arrayElementType = (uTestArraySetStatement.arrayInstance.type as? JcArrayType)?.elementType
+        when (arrayElementType) {
             jcClasspath.boolean -> (arrayInstance as BooleanArray).set(index, setValue as Boolean)
             jcClasspath.byte -> (arrayInstance as ByteArray).set(index, setValue as Byte)
             jcClasspath.short -> (arrayInstance as ShortArray).set(index, setValue as Short)
@@ -241,9 +243,26 @@ class UTestExpressionExecutor(
                 ConditionType.GT -> (lCond as Comparable<Any?>) > rCond
             }
         return if (res) {
-            executeUTestExpressions(uTestBinaryConditionExpression.trueBranch)
+            executeUTestInst(uTestBinaryConditionExpression.trueBranch)
         } else {
-            executeUTestExpressions(uTestBinaryConditionExpression.elseBranch)
+            executeUTestInst(uTestBinaryConditionExpression.elseBranch)
+        }
+    }
+
+    private fun executeUTestBinaryConditionStatement(uTestBinaryConditionStatement: UTestBinaryConditionStatement): Any? {
+        val lCond = exec(uTestBinaryConditionStatement.lhv)
+        val rCond = exec(uTestBinaryConditionStatement.rhv)
+        val res =
+            when (uTestBinaryConditionStatement.conditionType) {
+                ConditionType.EQ -> lCond == rCond
+                ConditionType.NEQ -> lCond != rCond
+                ConditionType.GEQ -> (lCond as Comparable<Any?>) >= rCond
+                ConditionType.GT -> (lCond as Comparable<Any?>) > rCond
+            }
+        return if (res) {
+            executeUTestInsts(uTestBinaryConditionStatement.trueBranch)
+        } else {
+            executeUTestInsts(uTestBinaryConditionStatement.elseBranch)
         }
     }
 

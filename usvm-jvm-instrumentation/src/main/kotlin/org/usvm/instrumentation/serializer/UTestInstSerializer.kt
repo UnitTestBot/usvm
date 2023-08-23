@@ -5,70 +5,63 @@ import org.jacodb.api.*
 import org.jacodb.api.ext.*
 import org.usvm.instrumentation.util.stringType
 import org.usvm.instrumentation.testcase.api.*
-import readJcClass
-import readJcField
-import readJcMethod
-import readJcType
-import writeJcClass
-import writeJcField
-import writeJcMethod
-import writeJcType
 
-class UTestExpressionSerializer(private val ctx: SerializationContext) {
+class UTestInstSerializer(private val ctx: SerializationContext) {
 
     private val jcClasspath = ctx.jcClasspath
-    fun serialize(buffer: AbstractBuffer, uTestExpression: UTestExpression) {
-        buffer.serializeUTestExpression(uTestExpression)
+    fun serialize(buffer: AbstractBuffer, uTestInst: UTestInst) {
+        buffer.serializeUTestInst(uTestInst)
         buffer.writeEnum(UTestExpressionKind.SERIALIZED)
-        buffer.writeInt(uTestExpression.id)
+        buffer.writeInt(uTestInst.id)
     }
 
-    private fun AbstractBuffer.serializeUTestExpressionList(uTestExpressions: List<UTestExpression>) =
-        uTestExpressions.forEach { serializeUTestExpression(it) }
+    private fun AbstractBuffer.serializeUTestInstList(uTestInstructions: List<UTestInst>) =
+        uTestInstructions.forEach { serializeUTestInst(it) }
 
-    private fun AbstractBuffer.serializeUTestExpression(uTestExpression: UTestExpression) {
-        if (ctx.serializedUTestExpressions.contains(uTestExpression)) return
-        when (uTestExpression) {
-            is UTestArrayLengthExpression -> serialize(uTestExpression)
-            is UTestArrayGetExpression -> serialize(uTestExpression)
-            is UTestAllocateMemoryCall -> serialize(uTestExpression)
-            is UTestConstructorCall -> serialize(uTestExpression)
-            is UTestMethodCall -> serialize(uTestExpression)
-            is UTestStaticMethodCall -> serialize(uTestExpression)
-            is UTestCastExpression -> serialize(uTestExpression)
-            is UTestNullExpression -> serialize(uTestExpression)
-            is UTestStringExpression -> serialize(uTestExpression)
-            is UTestGetFieldExpression -> serialize(uTestExpression)
-            is UTestGetStaticFieldExpression -> serialize(uTestExpression)
-            is UTestMockObject -> serialize(uTestExpression)
-            is UTestGlobalMock -> serialize(uTestExpression)
-            is UTestBinaryConditionExpression -> serialize(uTestExpression)
-            is UTestSetFieldStatement -> serialize(uTestExpression)
-            is UTestSetStaticFieldStatement -> serialize(uTestExpression)
-            is UTestArraySetStatement -> serialize(uTestExpression)
-            is UTestCreateArrayExpression -> serialize(uTestExpression)
-            is UTestBooleanExpression -> serialize(uTestExpression)
-            is UTestByteExpression -> serialize(uTestExpression)
-            is UTestCharExpression -> serialize(uTestExpression)
-            is UTestDoubleExpression -> serialize(uTestExpression)
-            is UTestFloatExpression -> serialize(uTestExpression)
-            is UTestIntExpression -> serialize(uTestExpression)
-            is UTestLongExpression -> serialize(uTestExpression)
-            is UTestShortExpression -> serialize(uTestExpression)
-            is UTestArithmeticExpression -> serialize(uTestExpression)
-            is UTestClassExpression -> serialize(uTestExpression)
+    private fun AbstractBuffer.serializeUTestInst(uTestInst: UTestInst) {
+        if (ctx.serializedUTestInstructions.contains(uTestInst)) return
+        when (uTestInst) {
+            is UTestArrayLengthExpression -> serialize(uTestInst)
+            is UTestArrayGetExpression -> serialize(uTestInst)
+            is UTestAllocateMemoryCall -> serialize(uTestInst)
+            is UTestConstructorCall -> serialize(uTestInst)
+            is UTestMethodCall -> serialize(uTestInst)
+            is UTestStaticMethodCall -> serialize(uTestInst)
+            is UTestCastExpression -> serialize(uTestInst)
+            is UTestNullExpression -> serialize(uTestInst)
+            is UTestStringExpression -> serialize(uTestInst)
+            is UTestGetFieldExpression -> serialize(uTestInst)
+            is UTestGetStaticFieldExpression -> serialize(uTestInst)
+            is UTestMockObject -> serialize(uTestInst)
+            is UTestGlobalMock -> serialize(uTestInst)
+            is UTestBinaryConditionExpression -> serialize(uTestInst)
+            is UTestBinaryConditionStatement -> serialize(uTestInst)
+            is UTestSetFieldStatement -> serialize(uTestInst)
+            is UTestSetStaticFieldStatement -> serialize(uTestInst)
+            is UTestArraySetStatement -> serialize(uTestInst)
+            is UTestCreateArrayExpression -> serialize(uTestInst)
+            is UTestBooleanExpression -> serialize(uTestInst)
+            is UTestByteExpression -> serialize(uTestInst)
+            is UTestCharExpression -> serialize(uTestInst)
+            is UTestDoubleExpression -> serialize(uTestInst)
+            is UTestFloatExpression -> serialize(uTestInst)
+            is UTestIntExpression -> serialize(uTestInst)
+            is UTestLongExpression -> serialize(uTestInst)
+            is UTestShortExpression -> serialize(uTestInst)
+            is UTestArithmeticExpression -> serialize(uTestInst)
+            is UTestClassExpression -> serialize(uTestInst)
         }
 
     }
 
-    private fun AbstractBuffer.deserializeUTestExpressionFromBuffer(): UTestExpression {
+    private fun AbstractBuffer.deserializeUTestInstFromBuffer(): UTestInst {
         while (true) {
             val kind = readEnum<UTestExpressionKind>()
             val id = readInt()
             val deserializedExpression =
                 when (kind) {
                     UTestExpressionKind.SERIALIZED -> {
-                        return getUTestExpression(id)
+                        return getUTestInst(id)
                     }
                     UTestExpressionKind.METHOD_CALL -> deserializeMethodCall()
                     UTestExpressionKind.CONSTRUCTOR_CALL -> deserializeConstructorCall()
@@ -76,7 +69,8 @@ class UTestExpressionSerializer(private val ctx: SerializationContext) {
                     UTestExpressionKind.ARRAY_SET -> deserializeUTestArraySetStatement()
                     UTestExpressionKind.SET_STATIC_FIELD -> deserializeUTestSetStaticFieldStatement()
                     UTestExpressionKind.SET_FIELD -> deserializeUTestSetFieldStatement()
-                    UTestExpressionKind.BINARY_CONDITION -> deserializeUTestBinaryConditionExpression()
+                    UTestExpressionKind.BINARY_CONDITION_EXPR -> deserializeUTestBinaryConditionExpression()
+                    UTestExpressionKind.BINARY_CONDITION_STATEMENT -> deserializeUTestBinaryConditionStatement()
                     UTestExpressionKind.MOCK_OBJECT -> deserializeUTestMockObject()
                     UTestExpressionKind.GLOBAL_MOCK -> deserializeUTestGlobalMock()
                     UTestExpressionKind.GET_STATIC_FIELD -> deserializeUTestGetStaticFieldExpression()
@@ -104,8 +98,8 @@ class UTestExpressionSerializer(private val ctx: SerializationContext) {
         }
     }
 
-    fun deserializeUTestExpression(buffer: AbstractBuffer): UTestExpression =
-        buffer.deserializeUTestExpressionFromBuffer()
+    fun deserializeUTestInst(buffer: AbstractBuffer): UTestInst =
+        buffer.deserializeUTestInstFromBuffer()
 
     private fun AbstractBuffer.serialize(uTestBooleanExpression: UTestBooleanExpression) =
         serialize(
@@ -217,8 +211,8 @@ class UTestExpressionSerializer(private val ctx: SerializationContext) {
         serialize(
             uTestExpression = uTestArrayLengthExpression,
             kind = UTestExpressionKind.ARRAY_LENGTH,
-            serializeInternals = { serializeUTestExpression(arrayInstance) },
-            serialize = { writeUTestExpression(arrayInstance) }
+            serializeInternals = { serializeUTestInst(arrayInstance) },
+            serialize = { writeUTestInst(arrayInstance) }
         )
 
 
@@ -232,12 +226,12 @@ class UTestExpressionSerializer(private val ctx: SerializationContext) {
             uTestExpression = uTestArrayGetExpression,
             kind = UTestExpressionKind.ARRAY_GET,
             serializeInternals = {
-                serializeUTestExpression(arrayInstance)
-                serializeUTestExpression(index)
+                serializeUTestInst(arrayInstance)
+                serializeUTestInst(index)
             },
             serialize = {
-                writeUTestExpression(arrayInstance)
-                writeUTestExpression(index)
+                writeUTestInst(arrayInstance)
+                writeUTestInst(index)
             }
         )
 
@@ -267,7 +261,7 @@ class UTestExpressionSerializer(private val ctx: SerializationContext) {
             uTestExpression = uTestStaticMethodCall,
             kind = UTestExpressionKind.STATIC_METHOD_CALL,
             serializeInternals = {
-                serializeUTestExpressionList(args)
+                serializeUTestInstList(args)
             },
             serialize = {
                 writeUTestExpressionList(args)
@@ -287,10 +281,10 @@ class UTestExpressionSerializer(private val ctx: SerializationContext) {
             uTestExpression = uTestCastExpression,
             kind = UTestExpressionKind.CAST,
             serializeInternals = {
-                serializeUTestExpression(expr)
+                serializeUTestInst(expr)
             },
             serialize = {
-                writeUTestExpression(expr)
+                writeUTestInst(expr)
                 writeJcType(type)
             }
         )
@@ -343,10 +337,10 @@ class UTestExpressionSerializer(private val ctx: SerializationContext) {
         serialize(
             uTestExpression = uTestGetFieldExpression,
             kind = UTestExpressionKind.GET_FIELD,
-            serializeInternals = { serializeUTestExpression(instance) },
+            serializeInternals = { serializeUTestInst(instance) },
             serialize = {
                 writeJcField(field)
-                writeUTestExpression(instance)
+                writeUTestInst(instance)
             }
         )
 
@@ -374,19 +368,19 @@ class UTestExpressionSerializer(private val ctx: SerializationContext) {
             uTestExpression = uTestMockObject,
             kind = UTestExpressionKind.MOCK_OBJECT,
             serializeInternals = {
-                fields.entries.map { serializeUTestExpression(it.value) }
-                methods.entries.map { it.value.map { serializeUTestExpression(it) } }
+                fields.entries.map { serializeUTestInst(it.value) }
+                methods.entries.map { it.value.map { serializeUTestInst(it) } }
             },
             serialize = {
                 writeInt(fields.entries.size)
                 fields.entries.map {
                     writeJcField(it.key)
-                    writeUTestExpression(it.value)
+                    writeUTestInst(it.value)
                 }
                 writeInt(methods.entries.size)
                 methods.entries.map {
                     writeJcMethod(it.key)
-                    writeList(it.value) { writeUTestExpression(it) }
+                    writeList(it.value) { writeUTestInst(it) }
                 }
                 writeJcType(type)
             }
@@ -410,19 +404,19 @@ class UTestExpressionSerializer(private val ctx: SerializationContext) {
             uTestExpression = uTestMockObject,
             kind = UTestExpressionKind.GLOBAL_MOCK,
             serializeInternals = {
-                fields.entries.map { serializeUTestExpression(it.value) }
-                methods.entries.map { it.value.map { serializeUTestExpression(it) } }
+                fields.entries.map { serializeUTestInst(it.value) }
+                methods.entries.map { it.value.map { serializeUTestInst(it) } }
             },
             serialize = {
                 writeInt(fields.entries.size)
                 fields.entries.map {
                     writeJcField(it.key)
-                    writeUTestExpression(it.value)
+                    writeUTestInst(it.value)
                 }
                 writeInt(methods.entries.size)
                 methods.entries.map {
                     writeJcMethod(it.key)
-                    writeList(it.value) { writeUTestExpression(it) }
+                    writeList(it.value) { writeUTestInst(it) }
                 }
                 writeJcType(type)
             }
@@ -444,18 +438,18 @@ class UTestExpressionSerializer(private val ctx: SerializationContext) {
     private fun AbstractBuffer.serialize(uTestBinaryConditionExpression: UTestBinaryConditionExpression) =
         serialize(
             uTestExpression = uTestBinaryConditionExpression,
-            kind = UTestExpressionKind.BINARY_CONDITION,
+            kind = UTestExpressionKind.BINARY_CONDITION_EXPR,
             serializeInternals = {
-                serializeUTestExpression(lhv)
-                serializeUTestExpression(rhv)
-                serializeUTestExpressionList(uTestBinaryConditionExpression.trueBranch)
-                serializeUTestExpressionList(uTestBinaryConditionExpression.elseBranch)
+                serializeUTestInst(lhv)
+                serializeUTestInst(rhv)
+                serializeUTestInst(uTestBinaryConditionExpression.trueBranch)
+                serializeUTestInst(uTestBinaryConditionExpression.elseBranch)
             },
             serialize = {
-                writeUTestExpression(lhv)
-                writeUTestExpression(rhv)
-                writeUTestStatementList(trueBranch)
-                writeUTestStatementList(elseBranch)
+                writeUTestInst(lhv)
+                writeUTestInst(rhv)
+                writeUTestInst(trueBranch)
+                writeUTestInst(elseBranch)
                 writeEnum(conditionType)
             }
         )
@@ -463,10 +457,38 @@ class UTestExpressionSerializer(private val ctx: SerializationContext) {
     private fun AbstractBuffer.deserializeUTestBinaryConditionExpression(): UTestBinaryConditionExpression {
         val lhv = readUTestExpression()
         val rhv = readUTestExpression()
+        val trueBranch = readUTestExpression()
+        val elseBranch = readUTestExpression()
+        val conditionType = readEnum<ConditionType>()
+        return UTestBinaryConditionExpression(conditionType, lhv, rhv, trueBranch, elseBranch)
+    }
+
+    private fun AbstractBuffer.serialize(uTestBinaryConditionStatement: UTestBinaryConditionStatement) =
+        serialize(
+            uTestExpression = uTestBinaryConditionStatement,
+            kind = UTestExpressionKind.BINARY_CONDITION_STATEMENT,
+            serializeInternals = {
+                serializeUTestInst(lhv)
+                serializeUTestInst(rhv)
+                serializeUTestInstList(uTestBinaryConditionStatement.trueBranch)
+                serializeUTestInstList(uTestBinaryConditionStatement.elseBranch)
+            },
+            serialize = {
+                writeUTestInst(lhv)
+                writeUTestInst(rhv)
+                writeUTestStatementList(trueBranch)
+                writeUTestStatementList(elseBranch)
+                writeEnum(conditionType)
+            }
+        )
+
+    private fun AbstractBuffer.deserializeUTestBinaryConditionStatement(): UTestBinaryConditionStatement {
+        val lhv = readUTestExpression()
+        val rhv = readUTestExpression()
         val trueBranch = readUTestStatementList()
         val elseBranch = readUTestStatementList()
         val conditionType = readEnum<ConditionType>()
-        return UTestBinaryConditionExpression(conditionType, lhv, rhv, trueBranch, elseBranch)
+        return UTestBinaryConditionStatement(conditionType, lhv, rhv, trueBranch, elseBranch)
     }
 
     private fun AbstractBuffer.serialize(uTestArithmeticExpression: UTestArithmeticExpression) =
@@ -474,13 +496,13 @@ class UTestExpressionSerializer(private val ctx: SerializationContext) {
             uTestExpression = uTestArithmeticExpression,
             kind = UTestExpressionKind.ARITHMETIC,
             serializeInternals = {
-                serializeUTestExpression(lhv)
-                serializeUTestExpression(rhv)
+                serializeUTestInst(lhv)
+                serializeUTestInst(rhv)
             },
             serialize = {
                 writeEnum(operationType)
-                writeUTestExpression(lhv)
-                writeUTestExpression(rhv)
+                writeUTestInst(lhv)
+                writeUTestInst(rhv)
                 writeJcType(type)
             }
         )
@@ -498,13 +520,13 @@ class UTestExpressionSerializer(private val ctx: SerializationContext) {
             uTestExpression = uTestSetFieldStatement,
             kind = UTestExpressionKind.SET_FIELD,
             serializeInternals = {
-                serializeUTestExpression(instance)
-                serializeUTestExpression(value)
+                serializeUTestInst(instance)
+                serializeUTestInst(value)
             },
             serialize = {
                 writeJcField(field)
-                writeUTestExpression(instance)
-                writeUTestExpression(value)
+                writeUTestInst(instance)
+                writeUTestInst(value)
             }
         )
 
@@ -520,11 +542,11 @@ class UTestExpressionSerializer(private val ctx: SerializationContext) {
             uTestExpression = uTestSetStaticFieldStatement,
             kind = UTestExpressionKind.SET_FIELD,
             serializeInternals = {
-                serializeUTestExpression(value)
+                serializeUTestInst(value)
             },
             serialize = {
                 writeJcField(field)
-                writeUTestExpression(value)
+                writeUTestInst(value)
             }
         )
 
@@ -539,14 +561,14 @@ class UTestExpressionSerializer(private val ctx: SerializationContext) {
             uTestExpression = uTestArraySetStatement,
             kind = UTestExpressionKind.ARRAY_SET,
             serializeInternals = {
-                serializeUTestExpression(arrayInstance)
-                serializeUTestExpression(setValueExpression)
-                serializeUTestExpression(index)
+                serializeUTestInst(arrayInstance)
+                serializeUTestInst(setValueExpression)
+                serializeUTestInst(index)
             },
             serialize = {
-                writeUTestExpression(arrayInstance)
-                writeUTestExpression(setValueExpression)
-                writeUTestExpression(index)
+                writeUTestInst(arrayInstance)
+                writeUTestInst(setValueExpression)
+                writeUTestInst(index)
             }
         )
 
@@ -562,11 +584,11 @@ class UTestExpressionSerializer(private val ctx: SerializationContext) {
             uTestExpression = uTestCreateArrayExpression,
             kind = UTestExpressionKind.CREATE_ARRAY,
             serializeInternals = {
-                serializeUTestExpression(size)
+                serializeUTestInst(size)
             },
             serialize = {
                 writeJcType(elementType)
-                writeUTestExpression(size)
+                writeUTestInst(size)
             }
         )
 
@@ -582,7 +604,7 @@ class UTestExpressionSerializer(private val ctx: SerializationContext) {
             uTestExpression = uConstructorCall,
             kind = UTestExpressionKind.CONSTRUCTOR_CALL,
             serializeInternals = {
-                serializeUTestExpressionList(args)
+                serializeUTestInstList(args)
             },
             serialize = {
                 writeJcMethod(method)
@@ -600,12 +622,12 @@ class UTestExpressionSerializer(private val ctx: SerializationContext) {
         uTestExpression = uMethodCall,
         kind = UTestExpressionKind.METHOD_CALL,
         serializeInternals = {
-            serializeUTestExpression(instance)
-            args.forEach { serializeUTestExpression(it) }
+            serializeUTestInst(instance)
+            args.forEach { serializeUTestInst(it) }
         },
         serialize = {
             writeJcMethod(method)
-            writeUTestExpression(instance)
+            writeUTestInst(instance)
             writeUTestExpressionList(args)
         }
     )
@@ -618,23 +640,23 @@ class UTestExpressionSerializer(private val ctx: SerializationContext) {
     }
 
 
-    private inline fun <T : UTestExpression> AbstractBuffer.serialize(
+    private inline fun <T : UTestInst> AbstractBuffer.serialize(
         uTestExpression: T,
         kind: UTestExpressionKind,
         serializeInternals: T.() -> Unit,
         serialize: T.() -> Unit
     ) {
-        val id = ctx.serializedUTestExpressions.size + 1
-        if (ctx.serializedUTestExpressions.putIfAbsent(uTestExpression, -id) != null) return
+        val id = ctx.serializedUTestInstructions.size + 1
+        if (ctx.serializedUTestInstructions.putIfAbsent(uTestExpression, -id) != null) return
         uTestExpression.serializeInternals()
-        ctx.serializedUTestExpressions[uTestExpression] = id
+        ctx.serializedUTestInstructions[uTestExpression] = id
         writeEnum(kind)
         writeInt(id)
         uTestExpression.serialize()
     }
 
-    private fun AbstractBuffer.writeUTestExpression(uTestExpression: UTestExpression) {
-        writeInt(uTestExpression.id)
+    private fun AbstractBuffer.writeUTestInst(uTestInst: UTestInst) {
+        writeInt(uTestInst.id)
     }
 
     private fun AbstractBuffer.writeUTestExpressionList(uTestExpressions: List<UTestExpression>) {
@@ -645,18 +667,18 @@ class UTestExpressionSerializer(private val ctx: SerializationContext) {
         writeIntArray(uTestStatement.map { it.id }.toIntArray())
     }
 
-    private fun AbstractBuffer.readUTestExpression() = getUTestExpression(readInt())
+    private fun AbstractBuffer.readUTestExpression() = getUTestInst(readInt()) as UTestExpression
 
-    private fun AbstractBuffer.readUTestExpressionList() = readIntArray().map { getUTestExpression(it) }
+    private fun AbstractBuffer.readUTestExpressionList() = readIntArray().map { getUTestInst(it) as UTestExpression }
 
     private fun AbstractBuffer.readUTestStatementList() =
-        readIntArray().map { getUTestExpression(it) as UTestStatement }
+        readIntArray().map { getUTestInst(it) as UTestStatement }
 
-    private fun getUTestExpression(id: Int): UTestExpression =
+    private fun getUTestInst(id: Int): UTestInst =
         ctx.deserializerCache[id] ?: error("deserialization failed")
 
-    private val UTestExpression.id
-        get() = ctx.serializedUTestExpressions[this]
+    private val UTestInst.id
+        get() = ctx.serializedUTestInstructions[this]
             ?.also { check(it > 0) { "Unexpected cyclic reference?" } }
             ?: error("serialization failed")
 
@@ -669,7 +691,8 @@ class UTestExpressionSerializer(private val ctx: SerializationContext) {
         BYTE,
         CAST,
         CHAR,
-        BINARY_CONDITION,
+        BINARY_CONDITION_EXPR,
+        BINARY_CONDITION_STATEMENT,
         CONSTRUCTOR_CALL,
         CREATE_ARRAY,
         DOUBLE,
@@ -696,7 +719,7 @@ class UTestExpressionSerializer(private val ctx: SerializationContext) {
 
         private val marshallerIdHash: Int by lazy {
             // convert to Int here since [FrameworkMarshallers.create] accepts an Int for id
-            UTestExpression::class.simpleName.getPlatformIndependentHash().toInt()
+            UTestInst::class.simpleName.getPlatformIndependentHash().toInt()
         }
 
         val marshallerId: RdId by lazy {
@@ -704,20 +727,20 @@ class UTestExpressionSerializer(private val ctx: SerializationContext) {
         }
 
 
-        private fun marshaller(ctx: SerializationContext): UniversalMarshaller<UTestExpression> {
-            val serializer = UTestExpressionSerializer(ctx)
-            return FrameworkMarshallers.create<UTestExpression>(
-                writer = { buffer, uTestExpression ->
-                    serializer.serialize(buffer, uTestExpression)
+        private fun marshaller(ctx: SerializationContext): UniversalMarshaller<UTestInst> {
+            val serializer = UTestInstSerializer(ctx)
+            return FrameworkMarshallers.create<UTestInst>(
+                writer = { buffer, uTestInst ->
+                    serializer.serialize(buffer, uTestInst)
                 },
                 reader = { buffer ->
-                    serializer.deserializeUTestExpression(buffer)
+                    serializer.deserializeUTestInst(buffer)
                 },
                 predefinedId = marshallerIdHash
             )
         }
 
-        fun Serializers.registerUTestExpressionSerializer(ctx: SerializationContext) {
+        fun Serializers.registerUTestInstSerializer(ctx: SerializationContext) {
             register(marshaller(ctx))
         }
     }

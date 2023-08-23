@@ -18,7 +18,7 @@ import org.jacodb.impl.jacodb
 import org.usvm.instrumentation.generated.models.*
 import org.usvm.instrumentation.instrumentation.JcInstructionTracer
 import org.usvm.instrumentation.serializer.SerializationContext
-import org.usvm.instrumentation.serializer.UTestExpressionSerializer.Companion.registerUTestExpressionSerializer
+import org.usvm.instrumentation.serializer.UTestInstSerializer.Companion.registerUTestInstSerializer
 import org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.Companion.registerUTestValueDescriptorSerializer
 import org.usvm.instrumentation.testcase.UTest
 import org.usvm.instrumentation.testcase.api.*
@@ -97,7 +97,7 @@ class InstrumentedProcess private constructor() {
     private suspend fun initiate(lifetime: Lifetime, port: Int) {
         val scheduler = SingleThreadScheduler(lifetime, "usvm-executor-worker-scheduler")
         val serializers = Serializers()
-        serializers.registerUTestExpressionSerializer(serializationCtx)
+        serializers.registerUTestInstSerializer(serializationCtx)
         serializers.registerUTestValueDescriptorSerializer(serializationCtx)
         val protocol = Protocol(
             "usvm-executor-worker",

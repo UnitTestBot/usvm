@@ -15,7 +15,7 @@ import org.usvm.instrumentation.generated.models.*
 import org.usvm.instrumentation.rd.*
 import org.usvm.instrumentation.util.findFieldByFullNameOrNull
 import org.usvm.instrumentation.serializer.SerializationContext
-import org.usvm.instrumentation.serializer.UTestExpressionSerializer.Companion.registerUTestExpressionSerializer
+import org.usvm.instrumentation.serializer.UTestInstSerializer.Companion.registerUTestInstSerializer
 import org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.Companion.registerUTestValueDescriptorSerializer
 import org.usvm.instrumentation.testcase.UTest
 import org.usvm.instrumentation.testcase.api.*
@@ -53,7 +53,7 @@ class RdProcessRunner(
 
     private suspend fun initRdProcess(): RdServerProcess {
         val serializers = Serializers()
-        serializers.registerUTestExpressionSerializer(serializationContext)
+        serializers.registerUTestInstSerializer(serializationContext)
         serializers.registerUTestValueDescriptorSerializer(serializationContext)
         val protocol = Protocol(
             "usvm-executor",
