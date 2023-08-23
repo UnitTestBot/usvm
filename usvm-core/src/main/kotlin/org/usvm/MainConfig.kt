@@ -42,4 +42,5 @@ object MainConfig {
     var useRnn = true
     var rnnStateShape = listOf<Long>(4, 1, 512)
     var rnnFeaturesCount = 33
+    var inputJars = mapOf<String, List<String>>() // jar file -> package name
 }

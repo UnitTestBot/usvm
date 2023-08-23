@@ -9,38 +9,34 @@ import org.jacodb.api.ext.packageName
 import org.usvm.machine.JcMachine
 import org.usvm.samples.JacoDBContainer
 import java.io.File
-import java.net.URLClassLoader
 import kotlin.io.path.Path
 import org.usvm.samples.JavaMethodTestRunner
-import java.lang.reflect.Method
-import kotlin.reflect.KFunction
-import kotlin.reflect.jvm.kotlinFunction
 import kotlin.system.measureTimeMillis
 
-fun recursiveLoad(currentDir: File, classes: MutableList<Class<*>>, classLoader: ClassLoader, path: String) {
-    currentDir.listFiles()?.forEach { file ->
-        if (file.isDirectory) {
-            recursiveLoad(file, classes, classLoader, "${path}${if (path == "") "" else "."}${file.name}")
-        }
-        if (file.isFile && file.extension == "java") {
-            try {
-                classes.add(classLoader.loadClass("${path}.${file.nameWithoutExtension}"))
-            } catch (e: Exception) {
-                println(e)
-            }
-        }
-    }
-}
+//fun recursiveLoad(currentDir: File, classes: MutableList<Class<*>>, classLoader: ClassLoader, path: String) {
+//    currentDir.listFiles()?.forEach { file ->
+//        if (file.isDirectory) {
+//            recursiveLoad(file, classes, classLoader, "${path}${if (path == "") "" else "."}${file.name}")
+//        }
+//        if (file.isFile && file.extension == "java") {
+//            try {
+//                classes.add(classLoader.loadClass("${path}.${file.nameWithoutExtension}"))
+//            } catch (e: Exception) {
+//                println(e)
+//            }
+//        }
+//    }
+//}
 
-fun jarLoad(jars: List<File>, classes: MutableMap<String, MutableList<JcClassOrInterface>>) {
-    jars.forEach { file ->
-        val key = file.nameWithoutExtension
-        val container = JacoDBContainer(key = key, classpath = jars)
+fun jarLoad(jars: Set<String>, classes: MutableMap<String, MutableList<JcClassOrInterface>>) {
+    jars.forEach { filePath ->
+        val file = Path(filePath).toFile()
+        val container = JacoDBContainer(key = filePath, classpath = listOf(file))
         val classNames = container.db.locations.flatMap { it.jcLocation?.classNames ?: listOf() }
-        classes[key] = mutableListOf()
+        classes[filePath] = mutableListOf()
         classNames.forEach { className ->
             container.cp.findClassOrNull(className)?.let {
-                classes[key]?.add(it)
+                classes[filePath]?.add(it)
             }
         }
     }
@@ -55,9 +51,9 @@ private class MainTestRunner : JavaMethodTestRunner() {
         solverType = SolverType.Z3
     )
 
-    fun runTest(method: KFunction<*>) {
-        runnerAlternative(method, options)
-    }
+//    fun runTest(method: KFunction<*>) {
+//        runnerAlternative(method, options)
+//    }
 
     fun runTest(method: JcMethod, jarKey: String) {
         JcMachine(JacoDBContainer(jarKey).cp, options).use { jcMachine ->
@@ -66,23 +62,18 @@ private class MainTestRunner : JavaMethodTestRunner() {
     }
 }
 
-fun getName(method: Method): String {
-    return "${method.declaringClass.name}#${method.name}(${method.parameters.joinToString { it.type.typeName }})"
-}
+//fun getName(method: Method): String {
+//    return "${method.declaringClass.name}#${method.name}(${method.parameters.joinToString { it.type.typeName }})"
+//}
 
 fun getName(method: JcMethod): String {
     return method.toString().dropWhile { it != ')' }.drop(1)
 }
 
-@OptIn(ExperimentalCoroutinesApi::class)
 fun calculate() {
     val testRunner = MainTestRunner()
-    val samplesDir = File(MainConfig.samplesPath)
-    val classLoader = URLClassLoader(arrayOf(samplesDir.toURI().toURL()))
-    val classes = mutableListOf<Class<*>>()
-//    val jarClasses = mutableMapOf<String, MutableList<JcClassOrInterface>>()
-    recursiveLoad(samplesDir, classes, classLoader, "")
-//    jarLoad(listOf(Path(MainConfig.gameEnvPath, "test.jar").toFile()), jarClasses)
+    val jarClasses = mutableMapOf<String, MutableList<JcClassOrInterface>>()
+    jarLoad(MainConfig.inputJars.keys, jarClasses)
     println("\nLOADING COMPLETE\n")
 
     val blacklist = Path(MainConfig.gameEnvPath, "blacklist.txt").toFile().let {
@@ -91,59 +82,39 @@ fun calculate() {
     }
 
     val tests = mutableListOf<Job>()
-    val allMethods = classes.flatMap { cls -> cls.methods.filter { method ->
-        method.declaringClass == cls && getName(method) !in blacklist
-    } }.shuffled()
-    runBlocking(Dispatchers.IO.limitedParallelism(MainConfig.maxConcurrency)) {
-        allMethods.take((allMethods.size * MainConfig.dataConsumption / 100).toInt()).forEach { method ->
-            val test = launch {
-                try {
-                    println("Running test ${method.name}")
-                    val time = measureTimeMillis {
-                        method.kotlinFunction?.let { testRunner.runTest(it) }
-                    }
-                    println("Test ${method.name} finished after ${time}ms")
-                } catch (e: Exception) {
-                    println(e)
+    var finishedTestsCount = 0
+
+    jarClasses.forEach { (key, classesList) ->
+        val allJarMethods = classesList.filter { cls ->
+            !cls.isAnnotation && !cls.isInterface &&
+                    MainConfig.inputJars.getValue(key).any { cls.packageName.contains(it) } &&
+                    !cls.name.contains("Test")
+        }.flatMap { cls -> cls.declaredMethods.filter { method ->
+            method.enclosingClass == cls && getName(method) !in blacklist && !method.isConstructor
+        } }.shuffled()
+        runBlocking(Dispatchers.IO) {
+            allJarMethods.take((allJarMethods.size * MainConfig.dataConsumption / 100).toInt()).forEach { method ->
+                val test = launch {
+                        try {
+                            println("Running test ${method.name}")
+                            val time = measureTimeMillis {
+                                testRunner.runTest(method, key)
+                            }
+                            println("Test ${method.name} finished after ${time}ms")
+                            finishedTestsCount += 1
+                        } catch (e: Exception) {
+                            println(e)
+                        } catch (e: NotImplementedError) {
+                            println(e)
+                        }
                 }
-                catch (e: NotImplementedError) {
-                    println(e)
-                }
+                tests.add(test)
             }
-            tests.add(test)
+            tests.joinAll()
         }
-        tests.joinAll()
     }
 
-//    jarClasses.forEach { (key, classesList) ->
-//        val allJarMethods = classesList.filter {
-//            !it.isAnnotation && !it.isInterface && it.packageName.contains("antlr")
-//        }.flatMap { cls -> cls.declaredMethods.filter { method ->
-//            method.enclosingClass == cls && getName(method) !in blacklist &&
-//                    !method.isClassInitializer && !method.isConstructor
-//        } }.shuffled()
-//        runBlocking(Dispatchers.IO) {
-//            allJarMethods.take((allJarMethods.size * MainConfig.dataConsumption / 100).toInt()).forEach { method ->
-//                val test = launch {
-//                        try {
-//                            println("Running test ${method.name}")
-//                            val time = measureTimeMillis {
-//                                testRunner.runTest(method, key)
-//                            }
-//                            println("Test ${method.name} finished after ${time}ms")
-//                        } catch (e: Exception) {
-//                            println(e)
-//                        } catch (e: NotImplementedError) {
-//                            println(e)
-//                        }
-//                }
-//                tests.add(test)
-//            }
-//            tests.joinAll()
-//        }
-//    }
-
-    println("\nALL TESTS FINISHED\n")
+    println("\nALL $finishedTestsCount TESTS FINISHED\n")
 }
 
 @OptIn(ExperimentalSerializationApi::class)
@@ -248,6 +219,12 @@ fun updateConfig(options: JsonObject) {
         .map { JsonPrimitive(it) })) as JsonArray).map { (it as JsonPrimitive).content.toLong() }
     MainConfig.rnnFeaturesCount = (options.getOrDefault("rnnFeaturesCount",
         JsonPrimitive(MainConfig.rnnFeaturesCount)) as JsonPrimitive).content.toInt()
+    MainConfig.inputJars = (options.getOrDefault("inputJars",
+        JsonObject(MainConfig.inputJars.mapValues {
+            (_, value) -> JsonArray(value.map { JsonPrimitive(it) })
+        })) as JsonObject).mapValues {
+            (_, value) -> (value as JsonArray).toList().map { (it as JsonPrimitive).content }
+        }
 
     println("OPTIONS:")
     println("  SAMPLES PATH: ${MainConfig.samplesPath}")
@@ -269,6 +246,7 @@ fun updateConfig(options: JsonObject) {
     println("  USE RNN: ${MainConfig.useRnn}")
     println("  RNN STATE SHAPE: ${MainConfig.rnnStateShape}")
     println("  RNN FEATURES COUNT: ${MainConfig.rnnFeaturesCount}")
+    println("  INPUT JARS: ${MainConfig.inputJars}")
     println()
 }
 
