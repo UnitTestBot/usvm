@@ -7,7 +7,9 @@ import kotlin.time.Duration.Companion.seconds
 object InstrumentationModuleConstants {
 
     //Timeout for method execution
-    val testExecutionTimeout = 30.seconds
+    val testExecutionTimeout = 10.seconds
+    //Timeout for executor process waiting (should be in seconds)
+    const val concreteExecutorProcessTimeout = 120
     //If something gone wrong with RD
     const val triesToRecreateExecutorRdProcess = 3
     //Rollback strategy

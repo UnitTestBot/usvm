@@ -8,8 +8,11 @@ import org.jacodb.impl.types.JcArrayTypeImpl
  * Api for UTestExpression
  * Used for specifying scenario of target method execution
  */
-sealed class UTestExpression {
-    abstract val type: JcType?
+
+sealed interface UTestInst
+
+sealed interface UTestExpression: UTestInst {
+    val type: JcType?
 }
 
 
@@ -17,7 +20,7 @@ sealed class UTestMock(
     override val type: JcType,
     open val fields: Map<JcField, UTestExpression>,
     open val methods: Map<JcMethod, List<UTestExpression>>
-): UTestExpression()
+): UTestExpression
 /**
  * Mock for specific object
  */
@@ -37,24 +40,24 @@ class UTestGlobalMock(
 ) : UTestMock(type, fields, methods)
 
 
-sealed class UTestCall : UTestExpression() {
-    abstract val instance: UTestExpression?
-    abstract val method: JcMethod?
-    abstract val args: List<UTestExpression>
+sealed interface UTestCall : UTestExpression {
+    val instance: UTestExpression?
+    val method: JcMethod?
+    val args: List<UTestExpression>
 }
 
 class UTestMethodCall(
     override val instance: UTestExpression,
     override val method: JcMethod,
     override val args: List<UTestExpression>
-) : UTestCall() {
+) : UTestCall {
     override val type: JcType? = method.enclosingClass.classpath.findTypeOrNull(method.returnType)
 }
 
 class UTestStaticMethodCall(
     override val method: JcMethod,
     override val args: List<UTestExpression>
-) : UTestCall() {
+) : UTestCall {
     override val instance: UTestExpression? = null
     override val type: JcType? = method.enclosingClass.classpath.findTypeOrNull(method.returnType)
 }
@@ -62,65 +65,73 @@ class UTestStaticMethodCall(
 class UTestConstructorCall(
     override val method: JcMethod,
     override val args: List<UTestExpression>
-) : UTestCall() {
+) : UTestCall {
     override val instance: UTestExpression? = null
     override val type: JcType = method.enclosingClass.toType()
 }
 
 class UTestAllocateMemoryCall(
     val clazz: JcClassOrInterface
-) : UTestCall() {
+) : UTestCall {
     override val instance: UTestExpression? = null
     override val method: JcMethod? = null
     override val args: List<UTestExpression> = listOf()
     override val type: JcType = clazz.toType()
 }
 
-sealed class UTestStatement : UTestExpression()
+sealed interface UTestStatement : UTestInst
 
 class UTestSetFieldStatement(
     val instance: UTestExpression,
     val field: JcField,
     val value: UTestExpression
-) : UTestStatement() {
-    override val type: JcType = field.enclosingClass.classpath.void
-}
+) : UTestStatement
 
 class UTestSetStaticFieldStatement(
     val field: JcField,
     val value: UTestExpression
-) : UTestStatement() {
-    override val type: JcType = field.enclosingClass.classpath.void
-}
+) : UTestStatement
 
 
 class UTestBinaryConditionExpression(
     val conditionType: ConditionType,
     val lhv: UTestExpression,
     val rhv: UTestExpression,
+    val trueBranch: UTestExpression,
+    val elseBranch: UTestExpression
+) : UTestExpression {
+    //TODO!! What if trueBranch and elseBranch have different types of the last instruction? Shouldn't we find their LCA?
+
+    init {
+        check(trueBranch.type == elseBranch.type){ "True and else branches should be equal" }
+    }
+
+    //Probably add functionality in jacodb?
+    override val type: JcType? = trueBranch.type
+}
+
+class UTestBinaryConditionStatement(
+    val conditionType: ConditionType,
+    val lhv: UTestExpression,
+    val rhv: UTestExpression,
     val trueBranch: List<UTestStatement>,
     val elseBranch: List<UTestStatement>
-) : UTestStatement() {
-    //TODO!! What if trueBranch and elseBranch have different types of the last instruction? Shouldn't we find their LCA?
-    //Probably add functionality in jacodb?
-    override val type: JcType? =
-        trueBranch.lastOrNull()?.type?.takeIf { elseBranch.isNotEmpty() } ?: lhv.type?.classpath?.void
-}
+) : UTestStatement
 
 class UTestArithmeticExpression(
     val operationType: ArithmeticOperationType,
     val lhv: UTestExpression,
     val rhv: UTestExpression,
     override val type: JcType
-) : UTestExpression()
+) : UTestExpression
 
 class UTestGetStaticFieldExpression(
     val field: JcField
-) : UTestExpression() {
+) : UTestExpression {
     override val type: JcType? = field.enclosingClass.classpath.findTypeOrNull(field.type)
 }
 
-sealed class UTestConstExpression<T> : UTestExpression() {
+sealed class UTestConstExpression<T> : UTestExpression {
     abstract val value: T
 }
 
@@ -178,20 +189,20 @@ class UTestNullExpression(
 class UTestGetFieldExpression(
     val instance: UTestExpression,
     val field: JcField
-) : UTestExpression() {
+) : UTestExpression {
     override val type: JcType? = field.enclosingClass.classpath.findTypeOrNull(field.type)
 }
 
 class UTestArrayLengthExpression(
     val arrayInstance: UTestExpression
-) : UTestExpression() {
+) : UTestExpression {
     override val type: JcType? = arrayInstance.type?.classpath?.int
 }
 
 class UTestArrayGetExpression(
     val arrayInstance: UTestExpression,
     val index: UTestExpression
-) : UTestExpression() {
+) : UTestExpression {
     override val type: JcType? = (arrayInstance.type as? JcArrayType)?.elementType
 }
 
@@ -199,25 +210,23 @@ class UTestArraySetStatement(
     val arrayInstance: UTestExpression,
     val index: UTestExpression,
     val setValueExpression: UTestExpression
-) : UTestStatement() {
-    override val type: JcType? = (arrayInstance.type as? JcArrayType)?.elementType
-}
+) : UTestStatement
 
 class UTestCreateArrayExpression(
     val elementType: JcType,
     val size: UTestExpression
-) : UTestExpression() {
+) : UTestExpression {
     override val type: JcType = JcArrayTypeImpl(elementType)
 }
 
 class UTestCastExpression(
     val expr: UTestExpression,
     override val type: JcType
-) : UTestExpression()
+) : UTestExpression
 
 class UTestClassExpression(
     override val type: JcType
-): UTestExpression()
+): UTestExpression
 
 
 enum class ConditionType {
