@@ -167,6 +167,17 @@ char *white_list[] = {
     NULL
 };
 
+static int
+is_pycache_file(PyObject *filename) {
+    assert(PyUnicode_Check(filename));
+    PyObject *substr = PyUnicode_FromString("__pycache__");
+    int r = PyUnicode_Find(filename, substr, 0, PyObject_Size(filename), 1);
+    assert(r != -2);
+    if (r >= 0)
+        return 1;
+    return 0;
+}
+
 int
 audit_hook(const char *event, PyObject *args, void *data) {
     char const **illegal_event_holder = (char const **) data;
@@ -195,19 +206,14 @@ audit_hook(const char *event, PyObject *args, void *data) {
             return 0;
     }
 
-    if (strcmp(event, "os.rename") == 0) {
-        PyObject *filename = PyTuple_GetItem(args, 0);
-        assert(PyUnicode_Check(filename));
-        PyObject *substr = PyUnicode_FromString("__pycache__");
-        int r = PyUnicode_Find(filename, substr, 0, PyObject_Size(filename), 1);
-        assert(r != -2);
-        if (r >= 0)
+    if (strcmp(event, "os.rename") == 0 || strcmp(event, "os.mkdir") == 0) {
+        if (is_pycache_file(PyTuple_GetItem(args, 0)))
             return 0;
     }
 
-    //printf("EVENT: %s\n", event);
-    //PyObject_Print(args, stdout, 0);
-    //fflush(stdout);
+    // printf("EVENT: %s\n", event);
+    // PyObject_Print(args, stdout, 0);
+    // fflush(stdout);
 
     *illegal_event_holder = event;
     PyErr_SetString(PyExc_RuntimeError, "Illegal operation");
