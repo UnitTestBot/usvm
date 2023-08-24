@@ -1,4 +1,4 @@
-package org.usvm.instrumentation.org.usvm.instrumentation.mock
+package org.usvm.instrumentation.mock
 
 import org.jacodb.api.*
 import org.jacodb.api.cfg.*
@@ -9,7 +9,7 @@ import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.MethodNode
 import org.usvm.instrumentation.classloader.WorkerClassLoader
 import org.usvm.instrumentation.instrumentation.JcInstructionTracer
-import org.usvm.instrumentation.org.usvm.instrumentation.instrumentation.TraceHelper
+import org.usvm.instrumentation.instrumentation.TraceHelper
 import org.usvm.instrumentation.collector.trace.MockCollector
 import org.jacodb.impl.cfg.*
 import org.usvm.instrumentation.util.*

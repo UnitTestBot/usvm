@@ -36,14 +36,14 @@ class SimpleUTestConcreteExecutor: UTestConcreteExecutorTest() {
     fun `simple test`() = executeTest {
         val uTest = UTestCreator.C.lol(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
-        check(res is UTestExecutionSuccessResult)
+        assertIs<UTestExecutionSuccessResult>(res)
     }
 
     @Test
     fun `arithmetic operation`() = executeTest {
         val uTest = UTestCreator.A.arithmeticOperation(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
-        check(res is UTestExecutionSuccessResult)
+        assertIs<UTestExecutionSuccessResult>(res)
         val result = res.result
         assertIs<UTestConstantDescriptor.Int>(result)
         assertEquals(239, result.value)
@@ -53,8 +53,7 @@ class SimpleUTestConcreteExecutor: UTestConcreteExecutorTest() {
     fun `exception`() = executeTest {
         val uTest = UTestCreator.A.exception(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
-        assert(res is UTestExecutionExceptionResult)
-        res as UTestExecutionExceptionResult
+        assertIs<UTestExecutionExceptionResult>(res)
         check(res.cause.stackTrace.isNotEmpty())
         assertEquals(res.cause.type, jcClasspath.findTypeOrNull<IllegalArgumentException>())
     }
@@ -63,7 +62,7 @@ class SimpleUTestConcreteExecutor: UTestConcreteExecutorTest() {
     fun `java reflection test`() = executeTest {
         val uTest = UTestCreator.A.getNumberOfClassConstructors(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
-        check(res is UTestExecutionSuccessResult)
+        assertIs<UTestExecutionSuccessResult>(res)
         val result = res.result
         assertNotNull(result)
         assertIs<UTestConstantDescriptor.Int>(result)

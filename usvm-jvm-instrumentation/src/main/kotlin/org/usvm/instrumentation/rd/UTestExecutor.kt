@@ -8,7 +8,7 @@ import org.usvm.instrumentation.classloader.WorkerClassLoader
 import org.usvm.instrumentation.collector.trace.MockCollector
 import org.usvm.instrumentation.collector.trace.TraceCollector
 import org.usvm.instrumentation.instrumentation.JcInstructionTracer
-import org.usvm.instrumentation.org.usvm.instrumentation.mock.MockHelper
+import org.usvm.instrumentation.mock.MockHelper
 import org.usvm.instrumentation.testcase.UTest
 import org.usvm.instrumentation.testcase.api.*
 import org.usvm.instrumentation.testcase.descriptor.StaticDescriptorsBuilder

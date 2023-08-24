@@ -1,4 +1,4 @@
-package org.usvm.instrumentation.org.usvm.instrumentation.instrumentation
+package org.usvm.instrumentation.instrumentation
 
 import org.jacodb.api.JcClasspath
 import org.jacodb.api.cfg.JcRawCallInst

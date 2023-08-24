@@ -1,4 +1,4 @@
-package org.usvm.instrumentation.org.usvm.instrumentation.mock
+package org.usvm.instrumentation.mock
 
 import org.jacodb.api.JcClassOrInterface
 import org.jacodb.api.JcMethod

@@ -6,7 +6,7 @@ import org.jacodb.api.JcField
 import org.jacodb.api.ext.*
 import org.usvm.instrumentation.classloader.WorkerClassLoader
 import org.usvm.instrumentation.instrumentation.JcInstructionTracer.StaticFieldAccessType
-import org.usvm.instrumentation.org.usvm.instrumentation.mock.MockHelper
+import org.usvm.instrumentation.mock.MockHelper
 import org.usvm.instrumentation.testcase.api.*
 import org.usvm.instrumentation.collector.trace.MockCollector
 import org.usvm.instrumentation.collector.trace.MockCollector.MockValueArrayWrapper

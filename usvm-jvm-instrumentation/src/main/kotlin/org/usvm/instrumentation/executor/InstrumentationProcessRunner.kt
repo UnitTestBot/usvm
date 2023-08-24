@@ -11,7 +11,8 @@ import org.usvm.instrumentation.rd.InstrumentedProcess
 import org.usvm.instrumentation.testcase.UTest
 import org.usvm.instrumentation.testcase.api.UTestExecutionResult
 import org.usvm.instrumentation.util.InstrumentationModuleConstants
-import osSpecificJavaExecutable
+import org.usvm.instrumentation.util.OpenModulesContainer
+import org.usvm.instrumentation.util.osSpecificJavaExecutable
 import java.io.File
 import java.nio.file.Paths
 import kotlin.reflect.KClass
