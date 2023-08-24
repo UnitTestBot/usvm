@@ -232,7 +232,7 @@ class UTestExpressionExecutor(
         field?.setFieldValue(null, fieldValue)
     }
 
-    private fun executeUTestBinaryConditionExpression(uTestBinaryConditionExpression: UTestBinaryConditionExpression): Any? {
+    private fun executeUTestBinaryConditionExpression(uTestBinaryConditionExpression: UTestBinaryConditionExpression): Any {
         val lCond = exec(uTestBinaryConditionExpression.lhv)
         val rCond = exec(uTestBinaryConditionExpression.rhv)
         val res =

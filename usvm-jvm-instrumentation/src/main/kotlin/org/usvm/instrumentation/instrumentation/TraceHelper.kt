@@ -40,7 +40,7 @@ class TraceHelper(
     /**
      * This method create instrumenting method call to insert it in instruction list
      * @param jcInstId --- Encoded instruction (see JcInstructionTracer.encode)
-     * @param jcTraceMethod --- virtual jacodb method for instrumenting
+     * @param traceMethodName --- jacodb method name for instrumenting
      */
     fun createTraceMethodCall(jcInstId: Long, traceMethodName: String): JcRawCallInst {
         val jcTraceMethod = jcVirtualGlobalObjectClass.declaredMethods.find { it.name == traceMethodName }!!
