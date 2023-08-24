@@ -46,10 +46,31 @@ fun constructInt(context: ConcolicRunContext, expr: UExpr<KIntSort>): Uninterpre
 
 fun constructBool(context: ConcolicRunContext, expr: UExpr<KBoolSort>): UninterpretedSymbolicPythonObject {
     require(context.curState != null)
+
+    if (expr is UTrue)
+        return context.curState!!.preAllocatedObjects.trueObject
+    if (expr is UFalse)
+        return context.curState!!.preAllocatedObjects.falseObject
+
     val typeSystem = context.typeSystem
     val address = context.curState!!.memory.alloc(typeSystem.pythonBool)
     val result = UninterpretedSymbolicPythonObject(address, typeSystem)
     result.setBoolContent(context, expr)
+    return result
+}
+
+fun constructInitialBool(
+    ctx: UContext,
+    memory: UMemoryBase<PropertyOfPythonObject, PythonType, PythonCallable>,
+    pathConstraints: UPathConstraints<PythonType, UPythonContext>,
+    typeSystem: PythonTypeSystem,
+    expr: UExpr<KBoolSort>
+): UninterpretedSymbolicPythonObject {
+    val address = memory.alloc(typeSystem.pythonBool)
+    val result = UninterpretedSymbolicPythonObject(address, typeSystem)
+    pathConstraints += result.evalIsSoft(ctx, pathConstraints.typeConstraints, typeSystem.pythonBool, null)
+    val lvalue = UFieldLValue(expr.sort, address, BoolContents.content)
+    memory.write(lvalue, expr)
     return result
 }
 

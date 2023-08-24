@@ -22,16 +22,21 @@ import java.io.File
 private fun buildSampleRunConfig(): RunConfig {
     val (program, typeSystem) = constructPrimitiveProgram(
         """ 
-        def f(x):
-            t = 1, x
-            a, b = t
-            assert a == b
+        def count(nodes, i, j):
+            if i > j or i < 0 or j >= len(nodes):
+                return 0
+            
+            node = nodes[i][j]
+            left_depth = count(nodes, i, node - 1)
+            right_depth = count(nodes, node + 1, j)
+            result = max(left_depth, right_depth) + 1
+            return result
 
         """.trimIndent()
     )
     val function = PythonUnpinnedCallable.constructCallableFromName(
-        listOf(typeSystem.pythonInt),
-        "f"
+        listOf(typeSystem.pythonList, typeSystem.pythonInt, typeSystem.pythonInt),
+        "count"
     )
     val functions = listOf(function)
     return RunConfig(program, typeSystem, functions)
@@ -73,8 +78,8 @@ private fun buildProjectRunConfig(): RunConfig {
 }
 
 fun main() {
-    // val config = buildProjectRunConfig()
-    val config = buildSampleRunConfig()
+    val config = buildProjectRunConfig()
+    // val config = buildSampleRunConfig()
     analyze(config)
 }
 
@@ -83,15 +88,16 @@ private fun analyze(runConfig: RunConfig) {
     val machine = PythonMachine(program, typeSystem, ReprObjectSerializer, printErrorMsg = false)
     machine.use { activeMachine ->
         functions.forEach { f ->
+            println("Started analysing function ${f.tag}")
             try {
                 val start = System.currentTimeMillis()
                 val results: MutableList<PythonAnalysisResult<String>> = mutableListOf()
                 val iterations = activeMachine.analyze(
                     f,
                     results,
-                    maxIterations = 30,
+                    maxIterations = 100,
                     allowPathDiversion = true,
-                    maxInstructions = 10_000
+                    maxInstructions = 50_000
                 )
                 results.forEach { (_, inputs, result) ->
                     println("INPUT:")

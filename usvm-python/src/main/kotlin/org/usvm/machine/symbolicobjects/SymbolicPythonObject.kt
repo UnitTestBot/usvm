@@ -10,6 +10,7 @@ import org.usvm.machine.utils.PyModelHolder
 import org.usvm.machine.interpreters.operations.myAssert
 import org.usvm.language.*
 import org.usvm.language.types.*
+import org.usvm.memory.UMemoryBase
 import org.usvm.types.UTypeStream
 import org.usvm.types.first
 
@@ -33,11 +34,15 @@ class UninterpretedSymbolicPythonObject(
     typeSystem: PythonTypeSystem
 ): SymbolicPythonObject(address, typeSystem) {
     fun addSupertype(ctx: ConcolicRunContext, type: PythonType) {
+        if (address is UConcreteHeapRef)
+            return
         require(ctx.curState != null)
         myAssert(ctx, evalIs(ctx, type))
     }
 
     fun addSupertypeSoft(ctx: ConcolicRunContext, type: PythonType) {
+        if (address is UConcreteHeapRef)
+            return
         require(ctx.curState != null)
         myAssert(ctx, evalIsSoft(ctx, type))
     }
