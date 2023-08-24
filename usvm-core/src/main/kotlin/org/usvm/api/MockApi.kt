@@ -5,27 +5,35 @@ import org.usvm.UHeapRef
 import org.usvm.USizeExpr
 import org.usvm.USort
 import org.usvm.UState
+import org.usvm.uctx
 
-class MockApi<Type, State : UState<Type, *, *, *, State>>(private val state: State) {
+// TODO: special mock api for variables
 
-    fun <T : USort> makeSymbolicPrimitive(sort: T): UExpr<T> {
-//        check(sort != state.ctx.addressSort) { "$sort is not primitive" }
-//        return state.ctx.mkFreshConst("symbolic", sort)
-        TODO("$sort")
-    }
-
-    fun <Type> makeSymbolicRef(type: Type): UHeapRef {
-        // todo: make input symbolic refs via state.memory.Mocker
-//        return memory.alloc(type)
-        TODO("$type")
-    }
-
-    fun <Type> makeSymbolicArray(arrayType: Type, size: USizeExpr): UHeapRef {
-        // todo: make input symbolic array via state.memory.Mocker
-//        return memory.malloc(arrayType, size)
-        TODO("$arrayType $size")
-    }
-
-    // TODO: add method call mocking
-
+fun <Method, T : USort> UState<*, Method, *, *, *>.makeSymbolicPrimitive(
+    sort: T
+): UExpr<T> {
+    check(sort != sort.uctx.addressSort) { "$sort is not primitive" }
+    return memory.mock { call(lastEnteredMethod, emptySequence(), sort) }
 }
+
+fun <Type, Method> UState<Type, Method, *, *, *>.makeSymbolicRef(type: Type): UHeapRef {
+    val ref = memory.mock { call(lastEnteredMethod, emptySequence(), memory.ctx.addressSort) }
+
+    memory.types.addSubtype(ref, type)
+    memory.types.addSupertype(ref, type)
+
+    return ref
+}
+
+fun <Type, Method> UState<Type, Method, *, *, *>.makeSymbolicArray(arrayType: Type, size: USizeExpr): UHeapRef {
+    val ref = memory.mock { call(lastEnteredMethod, emptySequence(), memory.ctx.addressSort) }
+
+    memory.types.addSubtype(ref, arrayType)
+    memory.types.addSupertype(ref, arrayType)
+
+    memory.writeArrayLength(ref, size, arrayType)
+
+    return ref
+}
+
+// TODO: add method call mocking

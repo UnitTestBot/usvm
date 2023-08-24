@@ -4,8 +4,10 @@ import io.ksmt.solver.KModel
 import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
 import org.usvm.UExpr
+import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.collection.map.USymbolicMapKey
+import org.usvm.collection.set.USymbolicSetRegionId
 import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.model.AddressesMapping
@@ -30,6 +32,17 @@ abstract class USymbolicRefMapModelRegion<MapType, ValueSort : USort>(
         value: UExpr<ValueSort>,
         guard: UBoolExpr
     ): UMemoryRegion<USymbolicRefMapEntryRef<MapType, ValueSort>, ValueSort> {
+        error("Illegal operation for a model")
+    }
+
+    override fun merge(
+        srcRef: UHeapRef,
+        dstRef: UHeapRef,
+        mapType: MapType,
+        sort: ValueSort,
+        keySet: USymbolicSetRegionId<MapType, UAddressSort, *>,
+        guard: UBoolExpr
+    ): USymbolicRefMapRegion<MapType, ValueSort> {
         error("Illegal operation for a model")
     }
 }

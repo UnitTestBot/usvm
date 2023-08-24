@@ -20,7 +20,8 @@ data class UFieldRef<Field, Sort : USort>(override val sort: Sort, val ref: UHea
     override val memoryRegionId: UMemoryRegionId<UFieldRef<Field, Sort>, Sort> =
         UFieldsRegionId(field, sort)
 
-    override val key: UFieldRef<Field, Sort> = this
+    override val key: UFieldRef<Field, Sort>
+        get() = this
 }
 
 data class UFieldsRegionId<Field, Sort : USort>(val field: Field, override val sort: Sort) :

@@ -24,7 +24,8 @@ data class UArrayLengthRef<ArrayType>(val ref: UHeapRef, val arrayType: ArrayTyp
     override val memoryRegionId: UMemoryRegionId<UArrayLengthRef<ArrayType>, USizeSort> =
         UArrayLengthsRegionId(sort, arrayType)
 
-    override val key: UArrayLengthRef<ArrayType> = this
+    override val key: UArrayLengthRef<ArrayType>
+        get() = this
 }
 
 data class UArrayLengthsRegionId<ArrayType>(override val sort: USizeSort, val arrayType: ArrayType) :

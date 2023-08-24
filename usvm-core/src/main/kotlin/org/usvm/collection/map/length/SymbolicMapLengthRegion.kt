@@ -27,7 +27,8 @@ data class USymbolicMapLengthRef<MapType>(val ref: UHeapRef, val mapType: MapTyp
     override val memoryRegionId: UMemoryRegionId<USymbolicMapLengthRef<MapType>, USizeSort> =
         USymbolicMapLengthsRegionId(sort, mapType)
 
-    override val key: USymbolicMapLengthRef<MapType> = this
+    override val key: USymbolicMapLengthRef<MapType>
+        get() = this
 }
 
 data class USymbolicMapLengthsRegionId<MapType>(override val sort: USizeSort, val mapType: MapType) :

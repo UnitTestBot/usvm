@@ -21,16 +21,17 @@ import org.usvm.UHeapRef
 import org.usvm.api.allocate
 import org.usvm.api.readArrayIndex
 import org.usvm.api.writeArrayIndex
-import org.usvm.memory.UMemory
-import org.usvm.collection.array.USymbolicArrayAllocatedToAllocatedCopyAdapter
-import org.usvm.collection.array.USymbolicArrayInputToAllocatedCopyAdapter
-import org.usvm.collection.array.USymbolicArrayInputToInputCopyAdapter
 import org.usvm.collection.array.UAllocatedArrayId
 import org.usvm.collection.array.UInputArrayId
+import org.usvm.collection.array.USymbolicArrayAllocatedToAllocatedCopyAdapter
+import org.usvm.collection.array.USymbolicArrayIndexKeyInfo
+import org.usvm.collection.array.USymbolicArrayInputToAllocatedCopyAdapter
+import org.usvm.collection.array.USymbolicArrayInputToInputCopyAdapter
 import org.usvm.collection.array.length.UInputArrayLengthId
 import org.usvm.collection.field.UInputFieldId
+import org.usvm.collection.map.ref.USymbolicRefMapEntryRef
+import org.usvm.memory.UMemory
 import org.usvm.memory.key.USizeExprKeyInfo
-import org.usvm.collection.array.USymbolicArrayIndexKeyInfo
 import kotlin.test.assertEquals
 import kotlin.test.assertSame
 
@@ -308,50 +309,56 @@ class TranslationTest {
         }
     }
 
-//    @Test
-//    fun testSymbolicMapRefKeyRead() = with(ctx) {
-//        val concreteMapRef = heap.allocate()
-//        val symbolicMapRef = mkRegisterReading(20, addressSort)
-//
-//        runSymbolicMapRefKeyReadChecks(concreteMapRef)
-//        runSymbolicMapRefKeyReadChecks(symbolicMapRef)
-//    }
-//
-//    private fun runSymbolicMapRefKeyReadChecks(mapRef: UHeapRef) = with(ctx) {
-//        val descriptor = USymbolicObjectReferenceMapDescriptor(
-//            valueSort = valueFieldDescr.second,
-//            defaultValue = mkBv(0)
-//        )
-//
-//        val otherConcreteMapRef = heap.allocate()
-//        val otherSymbolicMapRef = mkRegisterReading(10, addressSort)
-//
-//        val concreteRef0 = heap.allocate()
-//        val concreteRef1 = heap.allocate()
-//        val concreteRefMissed = heap.allocate()
-//
-//        val symbolicRef0 = mkRegisterReading(0, addressSort)
-//        val symbolicRef1 = mkRegisterReading(1, addressSort)
-//        val symbolicRefMissed = mkRegisterReading(2, addressSort)
-//
-//        var storedValue = 1
-//        for (ref in listOf(mapRef, otherConcreteMapRef, otherSymbolicMapRef)) {
-//            for (keyRef in listOf(concreteRef0, concreteRef1, symbolicRef0, symbolicRef1)) {
-//                heap.writeSymbolicMap(descriptor, ref, keyRef, mkBv(storedValue++), trueExpr)
-//            }
-//        }
-//
-//        val concreteValue = heap.readSymbolicMap(descriptor, mapRef, concreteRef0)
-//        val concreteMissed = heap.readSymbolicMap(descriptor, mapRef, concreteRefMissed)
-//
-//        val symbolicValue = heap.readSymbolicMap(descriptor, mapRef, symbolicRef0)
-//        val symbolicMissed = heap.readSymbolicMap(descriptor, mapRef, symbolicRefMissed)
-//
-//        checkNoConcreteHeapRefs(concreteValue)
-//        checkNoConcreteHeapRefs(concreteMissed)
-//        checkNoConcreteHeapRefs(symbolicValue)
-//        checkNoConcreteHeapRefs(symbolicMissed)
-//    }
+    @Test
+    fun testSymbolicMapRefKeyRead() = with(ctx) {
+        val concreteMapRef = heap.allocate()
+        val symbolicMapRef = mkRegisterReading(20, addressSort)
+
+        runSymbolicMapRefKeyReadChecks(concreteMapRef)
+        runSymbolicMapRefKeyReadChecks(symbolicMapRef)
+    }
+
+    private fun runSymbolicMapRefKeyReadChecks(mapRef: UHeapRef) = with(ctx) {
+        val otherConcreteMapRef = heap.allocate()
+        val otherSymbolicMapRef = mkRegisterReading(10, addressSort)
+
+        val concreteRef0 = heap.allocate()
+        val concreteRef1 = heap.allocate()
+        val concreteRefMissed = heap.allocate()
+
+        val symbolicRef0 = mkRegisterReading(0, addressSort)
+        val symbolicRef1 = mkRegisterReading(1, addressSort)
+        val symbolicRefMissed = mkRegisterReading(2, addressSort)
+
+        var storedValue = 1
+        for (ref in listOf(mapRef, otherConcreteMapRef, otherSymbolicMapRef)) {
+            for (keyRef in listOf(concreteRef0, concreteRef1, symbolicRef0, symbolicRef1)) {
+                val lValue = USymbolicRefMapEntryRef(valueFieldDescr.second, ref, keyRef, valueArrayDescr)
+                heap.write(lValue, mkBv(storedValue++), trueExpr)
+            }
+        }
+
+        val concreteValue = heap.read(
+            USymbolicRefMapEntryRef(valueFieldDescr.second, mapRef, concreteRef0, valueArrayDescr)
+        )
+
+        val concreteMissed = heap.read(
+            USymbolicRefMapEntryRef(valueFieldDescr.second, mapRef, concreteRefMissed, valueArrayDescr)
+        )
+
+        val symbolicValue = heap.read(
+            USymbolicRefMapEntryRef(valueFieldDescr.second, mapRef, symbolicRef0, valueArrayDescr)
+        )
+
+        val symbolicMissed = heap.read(
+            USymbolicRefMapEntryRef(valueFieldDescr.second, mapRef, symbolicRefMissed, valueArrayDescr)
+        )
+
+        checkNoConcreteHeapRefs(concreteValue)
+        checkNoConcreteHeapRefs(concreteMissed)
+        checkNoConcreteHeapRefs(symbolicValue)
+        checkNoConcreteHeapRefs(symbolicMissed)
+    }
 
     private fun checkNoConcreteHeapRefs(expr: UExpr<*>) {
         // Translator throws exception if concrete ref occurs

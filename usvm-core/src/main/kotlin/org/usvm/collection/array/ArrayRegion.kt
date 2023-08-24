@@ -30,7 +30,8 @@ data class UArrayIndexRef<ArrayType, Sort : USort>(
     override val memoryRegionId: UMemoryRegionId<UArrayIndexRef<ArrayType, Sort>, Sort> =
         UArrayRegionId(arrayType, sort)
 
-    override val key: UArrayIndexRef<ArrayType, Sort> = this
+    override val key: UArrayIndexRef<ArrayType, Sort>
+        get() = this
 }
 
 data class UArrayRegionId<ArrayType, Sort : USort>(val arrayType: ArrayType, override val sort: Sort) :

@@ -11,6 +11,7 @@ import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.UIndexedMocker
 import org.usvm.UMockEvaluator
+import org.usvm.UMockSymbol
 import org.usvm.UMocker
 import org.usvm.USort
 import org.usvm.constraints.UTypeConstraints
@@ -79,10 +80,13 @@ class UMemory<Type, Method>(
     internal val ctx: UContext,
     override val types: UTypeConstraints<Type>,
     override val stack: URegistersStack = URegistersStack(),
-    override val mocker: UMocker<Method> = UIndexedMocker(ctx),
+    private var mocks: UMocker<Method> = UIndexedMocker(ctx),
     private var regions: PersistentMap<UMemoryRegionId<*, *>, UMemoryRegion<*, *>> = persistentMapOf(),
     internal val addressCounter: UAddressCounter = UAddressCounter,
 ) : UWritableMemory<Type> {
+
+    override val mocker: UMockEvaluator
+        get() = mocks
 
     @Suppress("UNCHECKED_CAST")
     override fun <Key, Sort : USort> getRegion(regionId: UMemoryRegionId<Key, Sort>): UMemoryRegion<Key, Sort> {
@@ -129,11 +133,17 @@ class UMemory<Type, Method>(
 
     override fun nullRef(): UHeapRef = ctx.nullRef
 
+    fun <Sort : USort> mock(body: UMocker<Method>.() -> Pair<UMockSymbol<Sort>, UMocker<Method>>): UMockSymbol<Sort> {
+        val (result, updatedMocker) = mocks.body()
+        mocks = updatedMocker
+        return result
+    }
+
     fun clone(typeConstraints: UTypeConstraints<Type>): UMemory<Type, Method> =
-        UMemory(ctx, typeConstraints, stack.clone(), mocker, regions, addressCounter)
+        UMemory(ctx, typeConstraints, stack.clone(), mocks, regions, addressCounter)
 
     override fun toWritableMemory() =
     // To be perfectly rigorous, we should clone stack and types here.
         // But in fact they should not be used, so to optimize things up, we don't touch them.
-        UMemory(ctx, types, stack, mocker, regions, addressCounter)
+        UMemory(ctx, types, stack, mocks, regions, addressCounter)
 }

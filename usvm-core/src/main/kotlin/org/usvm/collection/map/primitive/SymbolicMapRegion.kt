@@ -29,7 +29,8 @@ data class USymbolicMapEntryRef<MapType, KeySort : USort, ValueSort : USort, Reg
     override val memoryRegionId: UMemoryRegionId<USymbolicMapEntryRef<MapType, KeySort, ValueSort, Reg>, ValueSort> =
         USymbolicMapRegionId(keySort, sort, mapType, keyInfo)
 
-    override val key: USymbolicMapEntryRef<MapType, KeySort, ValueSort, Reg> = this
+    override val key: USymbolicMapEntryRef<MapType, KeySort, ValueSort, Reg>
+        get() = this
 }
 
 data class USymbolicMapRegionId<MapType, KeySort : USort, ValueSort : USort, Reg : Region<Reg>>(
