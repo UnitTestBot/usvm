@@ -29,6 +29,19 @@
     Py_INCREF(type); \
     PyErr_Restore(type, value, traceback); \
 
+const char *illegal_operation = 0;
+
+static void
+turn_on_audit_hook() {
+    illegal_operation = "active";
+}
+
+static void
+turn_off_audit_hook() {
+    if (strcmp(illegal_operation, "active") == 0)
+        illegal_operation = 0;
+}
+
 JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_initializePython(JNIEnv *env, jobject cpython_adapter) {
     PyConfig config;
     PyConfig_InitIsolatedConfig(&config);
@@ -47,6 +60,7 @@ JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_initializePython
     SET_INTEGER_FIELD("pyGE", Py_GE)
 
     INITIALIZE_PYTHON_APPROXIMATIONS
+    PySys_AddAuditHook(audit_hook, &illegal_operation);
 }
 
 JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_finalizePython(JNIEnv *env, jobject cpython_adapter) {
@@ -72,12 +86,17 @@ JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_concreteRun(
     jobject cpython_adapter,
     jlong globals,
     jstring code,
-    jboolean print_error_message
+    jboolean print_error_message,
+    jboolean set_hook
 ) {
     const char *c_code = (*env)->GetStringUTFChars(env, code, 0);
 
     PyObject *dict = (PyObject *) globals;
+    if (set_hook)
+        turn_on_audit_hook();
     PyObject *v = PyRun_StringFlags(c_code, Py_file_input, dict, dict, 0);
+    if (set_hook)
+        turn_off_audit_hook();
     (*env)->ReleaseStringUTFChars(env, code, c_code);
     if (v == NULL) {
         if (print_error_message)
@@ -95,12 +114,17 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_eval(
     jobject cpython_adapter,
     jlong globals,
     jstring code,
-    jboolean print_error_message
+    jboolean print_error_message,
+    jboolean set_hook
 ) {
     const char *c_code = (*env)->GetStringUTFChars(env, code, 0);
 
     PyObject *dict = (PyObject *) globals;
+    if (set_hook)
+        turn_on_audit_hook();
     PyObject *v = PyRun_StringFlags(c_code, Py_eval_input, dict, dict, 0);
+    if (set_hook)
+        turn_off_audit_hook();
     (*env)->ReleaseStringUTFChars(env, code, c_code);
     if (v == NULL) {
         if (print_error_message)
@@ -118,7 +142,8 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_concreteRunOnFu
     JNIEnv *env,
     jobject cpython_adapter,
     jlong function_ref,
-    jlongArray concrete_args
+    jlongArray concrete_args,
+    jboolean set_hook
 ) {
     int n = (*env)->GetArrayLength(env, concrete_args);
     jlong *addresses = (*env)->GetLongArrayElements(env, concrete_args, 0);
@@ -127,7 +152,11 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_concreteRunOnFu
     for (int i = 0; i < n; i++) {
         PyTuple_SetItem(args, i, (PyObject *) addresses[i]);
     }
+    if (set_hook)
+        turn_on_audit_hook();
     PyObject *result = Py_TYPE(function_ref)->tp_call((PyObject *) function_ref, args, 0);
+    if (set_hook)
+        turn_off_audit_hook();
 
     if (result == NULL) {
         SET_EXCEPTION_IN_CPYTHONADAPTER
@@ -165,7 +194,7 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_concolicRun(
 
     construct_args_for_symbolic_adapter(adapter, &ctx, &concrete_args, &virtual_args, &symbolic_args, &args);
 
-    PyObject *result = SymbolicAdapter_run((PyObject *) adapter, function, args.size, args.ptr);
+    PyObject *result = SymbolicAdapter_run((PyObject *) adapter, function, args.size, args.ptr, turn_on_audit_hook, turn_off_audit_hook);
     free(args.ptr);
 
     if (result == NULL) {
@@ -348,4 +377,10 @@ JNIEXPORT jthrowable JNICALL Java_org_usvm_interpreter_CPythonAdapter_extractExc
 
 JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_decref(JNIEnv *env, jobject _, jlong obj_ref) {
     Py_XDECREF((PyObject *) obj_ref);
+}
+
+JNIEXPORT jstring JNICALL Java_org_usvm_interpreter_CPythonAdapter_checkForIllegalOperation(JNIEnv *env, jobject _) {
+    if (!illegal_operation)
+        return 0;
+    return (*env)->NewStringUTF(env, illegal_operation);
 }
