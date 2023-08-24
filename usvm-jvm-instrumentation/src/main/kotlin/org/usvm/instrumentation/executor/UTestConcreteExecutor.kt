@@ -1,6 +1,5 @@
 package org.usvm.instrumentation.executor
 
-import UTestExecutorInitException
 import com.jetbrains.rd.util.lifetime.LifetimeDefinition
 import com.jetbrains.rd.util.lifetime.isAlive
 import com.jetbrains.rd.util.reactive.RdFault
@@ -16,6 +15,7 @@ import org.usvm.instrumentation.testcase.api.UTestExecutionResult
 import org.usvm.instrumentation.testcase.api.UTestExecutionTimedOutResult
 import org.usvm.instrumentation.testcase.descriptor.UTestExceptionDescriptor
 import org.usvm.instrumentation.util.InstrumentationModuleConstants
+import org.usvm.instrumentation.util.UTestExecutorInitException
 import java.util.concurrent.TimeoutException
 import kotlin.reflect.KClass
 import kotlin.time.Duration
