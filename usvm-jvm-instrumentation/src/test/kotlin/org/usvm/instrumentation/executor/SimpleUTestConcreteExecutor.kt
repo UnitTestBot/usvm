@@ -12,6 +12,7 @@ import org.usvm.instrumentation.util.UTestCreator
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 class SimpleUTestConcreteExecutor: UTestConcreteExecutorTest() {
 
@@ -54,7 +55,7 @@ class SimpleUTestConcreteExecutor: UTestConcreteExecutorTest() {
         val uTest = UTestCreator.A.exception(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
         assertIs<UTestExecutionExceptionResult>(res)
-        check(res.cause.stackTrace.isNotEmpty())
+        assertTrue(res.cause.stackTrace.isNotEmpty())
         assertEquals(res.cause.type, jcClasspath.findTypeOrNull<IllegalArgumentException>())
     }
 

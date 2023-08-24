@@ -2,6 +2,7 @@ import com.jetbrains.rd.generator.gradle.RdGenExtension
 import com.jetbrains.rd.generator.gradle.RdGenTask
 import org.gradle.api.tasks.testing.Test
 import org.gradle.kotlin.dsl.sourceSets
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     id("usvm.kotlin-conventions")
@@ -49,6 +50,14 @@ dependencies {
     implementation("commons-cli:commons-cli:1.5.0")
     implementation("com.jetbrains.rd:rd-gen:${Versions.rd}")
     implementation(files(buildDir.resolve("libs").resolve("usvm-jvm-instrumentation-collectors.jar").absolutePath))
+}
+
+tasks {
+    withType<KotlinCompile> {
+        kotlinOptions {
+            allWarningsAsErrors = false
+        }
+    }
 }
 
 val sourcesBaseDir = projectDir.resolve("src/main/kotlin")

@@ -8,7 +8,6 @@ import org.objectweb.asm.tree.*
 import org.objectweb.asm.util.CheckClassAdapter
 import java.io.*
 import java.nio.file.Path
-import java.nio.file.Paths
 import java.util.jar.JarEntry
 import java.util.jar.JarFile
 import java.util.jar.JarOutputStream
