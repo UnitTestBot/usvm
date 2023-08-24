@@ -164,6 +164,7 @@ char *white_list[] = {
     "marshal.load",
     "marshal.dumps",
     "sys._getframe",
+    "code.__new__",
     NULL
 };
 

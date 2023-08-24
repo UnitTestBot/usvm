@@ -6,7 +6,7 @@ import org.usvm.machine.interpreters.operations.tracing.PathDiversionException
 import org.usvm.runner.PythonTestRunnerForPrimitiveProgram
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
-class PathDiversionTest : PythonTestRunnerForPrimitiveProgram("TrickyExample") {
+class PathDiversionTest : PythonTestRunnerForPrimitiveProgram("PathDiversionExample") {
     private val function = constructFunction("pickle_path_diversion", listOf(typeSystem.pythonInt))
     @Test
     fun testAllowPathDiversion() {

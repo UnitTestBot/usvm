@@ -50,7 +50,8 @@ class PyModel(val uModel: UModelBase<PropertyOfPythonObject, PythonType>) {
 
 class PyModelHolder(var model: PyModel)
 
-fun substituteModel(state: PythonExecutionState, newModel: PyModel, ctx: ConcolicRunContext) {
+fun substituteModel(state: PythonExecutionState, newModel: PyModel, constraint: UBoolExpr, ctx: ConcolicRunContext) {
     state.models = listOf(newModel.uModel)
+    state.pathConstraints += constraint
     ctx.modelHolder.model = newModel
 }

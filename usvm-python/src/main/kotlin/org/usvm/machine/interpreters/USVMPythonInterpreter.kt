@@ -177,7 +177,8 @@ class USVMPythonInterpreter<PythonObjectRepresentation>(
 
             iterationCounter.iterations += 1
             logger.debug("Step result: InstructionLimitExceededException")
-            return StepResult(emptySequence(), false)
+            concolicRunContext.curState?.meta?.modelDied = true
+            return StepResult(concolicRunContext.forkedStates.reversed().asSequence(), !state.meta.modelDied)
 
         }
     }
