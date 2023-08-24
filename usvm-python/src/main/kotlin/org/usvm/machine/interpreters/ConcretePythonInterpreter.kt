@@ -20,16 +20,26 @@ object ConcretePythonInterpreter {
         pythonAdapter.addName(namespace.address, pythonObject.address, name)
     }
 
-    fun concreteRun(globals: PythonNamespace, code: String, printErrorMsg: Boolean = false) {
-        val result = pythonAdapter.concreteRun(globals.address, code, printErrorMsg)
-        if (result != 0)
-            throw CPythonExecutionException()
+    fun concreteRun(globals: PythonNamespace, code: String, printErrorMsg: Boolean = false, setHook: Boolean = false) {
+        val result = pythonAdapter.concreteRun(globals.address, code, printErrorMsg, setHook)
+        if (result != 0) {
+            val op = if (setHook) pythonAdapter.checkForIllegalOperation() else null
+            if (op != null)
+                throw IllegalOperationException(op)
+            else
+                throw CPythonExecutionException()
+        }
     }
 
-    fun eval(globals: PythonNamespace, expr: String, printErrorMsg: Boolean = false): PythonObject {
-        val result = pythonAdapter.eval(globals.address, expr, printErrorMsg)
-        if (result == 0L)
-            throw CPythonExecutionException()
+    fun eval(globals: PythonNamespace, expr: String, printErrorMsg: Boolean = false, setHook: Boolean = false): PythonObject {
+        val result = pythonAdapter.eval(globals.address, expr, printErrorMsg, setHook)
+        if (result == 0L) {
+            val op = if (setHook) pythonAdapter.checkForIllegalOperation() else null
+            if (op != null)
+                throw IllegalOperationException(op)
+            else
+                throw CPythonExecutionException()
+        }
         return PythonObject(result)
     }
 
@@ -41,17 +51,27 @@ object ConcretePythonInterpreter {
 
     fun concreteRunOnFunctionRef(
         functionRef: PythonObject,
-        concreteArgs: Collection<PythonObject>
+        concreteArgs: Collection<PythonObject>,
+        setHook: Boolean = false
     ): PythonObject {
         pythonAdapter.thrownException = 0L
         pythonAdapter.thrownExceptionType = 0L
         val result = pythonAdapter.concreteRunOnFunctionRef(
             functionRef.address,
-            concreteArgs.map { it.address }.toLongArray()
+            concreteArgs.map { it.address }.toLongArray(),
+            setHook
         )
-        if (result == 0L)
-            throw CPythonExecutionException(wrap(pythonAdapter.thrownException), wrap(pythonAdapter.thrownExceptionType))
-        return PythonObject(result)
+        if (result != 0L)
+            return PythonObject(result)
+
+        val op = if (setHook) pythonAdapter.checkForIllegalOperation() else null
+        if (op != null)
+            throw IllegalOperationException(op)
+        else
+            throw CPythonExecutionException(
+                wrap(pythonAdapter.thrownException),
+                wrap(pythonAdapter.thrownExceptionType)
+            )
     }
 
     fun concolicRun(
@@ -72,9 +92,14 @@ object ConcretePythonInterpreter {
             ctx,
             printErrorMsg
         )
-        if (result == 0L)
-            throw CPythonExecutionException(wrap(pythonAdapter.thrownException), wrap(pythonAdapter.thrownExceptionType))
-        return PythonObject(result)
+        if (result != 0L)
+            return PythonObject(result)
+
+        val op = pythonAdapter.checkForIllegalOperation()
+        if (op != null)
+            throw IllegalOperationException(op)
+
+        throw CPythonExecutionException(wrap(pythonAdapter.thrownException), wrap(pythonAdapter.thrownExceptionType))
     }
 
 
@@ -83,7 +108,11 @@ object ConcretePythonInterpreter {
     }
 
     fun getPythonObjectRepr(pythonObject: PythonObject): String {
-        return pythonAdapter.getPythonObjectRepr(pythonObject.address) ?: throw CPythonExecutionException()
+        val result = pythonAdapter.getPythonObjectRepr(pythonObject.address)
+        if (result != null)
+            return result
+
+        throw CPythonExecutionException()
     }
 
     fun getAddressOfReprFunction(pythonObject: PythonObject): Long {
@@ -183,18 +212,19 @@ object ConcretePythonInterpreter {
         pyGE = pythonAdapter.pyGE
         val namespace = pythonAdapter.newNamespace
         val initialModules = listOf("sys", "copy", "builtins", "ctypes", "array")
-        pythonAdapter.concreteRun(namespace, "import " + initialModules.joinToString(", "), true)
+        pythonAdapter.concreteRun(namespace, "import " + initialModules.joinToString(", "), true, false)
         pythonAdapter.concreteRun(
             namespace,
             """
                 sys.setrecursionlimit(1000)
             """.trimIndent(),
-            true
+            true,
+            false
         )
-        initialSysPath = PythonObject(pythonAdapter.eval(namespace, "copy.copy(sys.path)", true))
+        initialSysPath = PythonObject(pythonAdapter.eval(namespace, "copy.copy(sys.path)", true, false))
         if (initialSysPath.address == 0L)
             throw CPythonExecutionException()
-        initialSysModulesKeys = PythonObject(pythonAdapter.eval(namespace, "sys.modules.keys()", true))
+        initialSysModulesKeys = PythonObject(pythonAdapter.eval(namespace, "sys.modules.keys()", true, false))
         if (initialSysModulesKeys.address == 0L)
             throw CPythonExecutionException()
         pythonAdapter.decref(namespace)
@@ -209,3 +239,5 @@ data class PythonObject(val address: Long)
 data class PythonNamespace(val address: Long)
 
 val emptyNamespace = ConcretePythonInterpreter.getNewNamespace()
+
+data class IllegalOperationException(val operation: String): Exception()

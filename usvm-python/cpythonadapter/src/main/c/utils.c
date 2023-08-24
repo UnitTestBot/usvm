@@ -146,6 +146,70 @@ extract_int_value(PyObject *int_object) {
     return (int) value_as_long;
 }
 
-int take_instruction_from_frame(PyFrameObject *frame) {
+int
+take_instruction_from_frame(PyFrameObject *frame) {
     return extract_int_value(PyObject_GetAttrString((PyObject *) frame, "f_lasti"));
+}
+
+char *white_list[] = {
+    "builtins.id",
+    "import",
+    "object.__delattr__",
+    "object.__getattr__",
+    "object.__setattr__",
+    "compile",
+    "exec",
+    "os.listdir",
+    "marshal.loads",
+    "marshal.load",
+    "marshal.dumps",
+    "sys._getframe",
+    NULL
+};
+
+int
+audit_hook(const char *event, PyObject *args, void *data) {
+    char const **illegal_event_holder = (char const **) data;
+
+    // printf("EVENT: %s %s\n", event, *illegal_event_holder);
+    // fflush(stdout);
+
+    if ((*illegal_event_holder) == 0 || strcmp(*illegal_event_holder, "active") != 0) {
+        return 0;
+    }
+
+    int i = -1;
+    while (white_list[++i]) {
+        if (strcmp(white_list[i], event) == 0)
+            return 0;
+    }
+
+    if (strcmp(event, "open") == 0) {
+        PyObject *mode = PyTuple_GetItem(args, 1);
+        if (mode == Py_None)
+            return 0;
+        assert(PyUnicode_Check(mode));
+        if (PyUnicode_CompareWithASCIIString(mode, "r"))
+            return 0;
+        if (PyUnicode_CompareWithASCIIString(mode, "rb"))
+            return 0;
+    }
+
+    if (strcmp(event, "os.rename") == 0) {
+        PyObject *filename = PyTuple_GetItem(args, 0);
+        assert(PyUnicode_Check(filename));
+        PyObject *substr = PyUnicode_FromString("__pycache__");
+        int r = PyUnicode_Find(filename, substr, 0, PyObject_Size(filename), 1);
+        assert(r != -2);
+        if (r >= 0)
+            return 0;
+    }
+
+    //printf("EVENT: %s\n", event);
+    //PyObject_Print(args, stdout, 0);
+    //fflush(stdout);
+
+    *illegal_event_holder = event;
+    PyErr_SetString(PyExc_RuntimeError, "Illegal operation");
+    return -1;
 }
