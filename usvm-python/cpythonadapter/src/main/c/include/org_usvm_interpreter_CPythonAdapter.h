@@ -42,26 +42,26 @@ JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_addName
 /*
  * Class:     org_usvm_interpreter_CPythonAdapter
  * Method:    concreteRun
- * Signature: (JLjava/lang/String;Z)I
+ * Signature: (JLjava/lang/String;ZZ)I
  */
 JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_concreteRun
-  (JNIEnv *, jobject, jlong, jstring, jboolean);
+  (JNIEnv *, jobject, jlong, jstring, jboolean, jboolean);
 
 /*
  * Class:     org_usvm_interpreter_CPythonAdapter
  * Method:    eval
- * Signature: (JLjava/lang/String;Z)J
+ * Signature: (JLjava/lang/String;ZZ)J
  */
 JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_eval
-  (JNIEnv *, jobject, jlong, jstring, jboolean);
+  (JNIEnv *, jobject, jlong, jstring, jboolean, jboolean);
 
 /*
  * Class:     org_usvm_interpreter_CPythonAdapter
  * Method:    concreteRunOnFunctionRef
- * Signature: (J[J)J
+ * Signature: (J[JZ)J
  */
 JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_concreteRunOnFunctionRef
-  (JNIEnv *, jobject, jlong, jlongArray);
+  (JNIEnv *, jobject, jlong, jlongArray, jboolean);
 
 /*
  * Class:     org_usvm_interpreter_CPythonAdapter
@@ -286,6 +286,14 @@ JNIEXPORT jthrowable JNICALL Java_org_usvm_interpreter_CPythonAdapter_extractExc
  */
 JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_decref
   (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_usvm_interpreter_CPythonAdapter
+ * Method:    checkForIllegalOperation
+ * Signature: ()Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_org_usvm_interpreter_CPythonAdapter_checkForIllegalOperation
+  (JNIEnv *, jobject);
 
 #ifdef __cplusplus
 }

@@ -33,7 +33,7 @@ class PrimitivePythonProgram internal constructor(
     companion object {
         fun fromString(asString: String): PrimitivePythonProgram {
             val namespace = ConcretePythonInterpreter.getNewNamespace()
-            ConcretePythonInterpreter.concreteRun(namespace, asString)
+            ConcretePythonInterpreter.concreteRun(namespace, asString, setHook = true)
             return PrimitivePythonProgram(namespace, emptySet())
         }
     }
@@ -60,7 +60,7 @@ class StructuredPythonProgram(val roots: Set<File>): PythonProgram(roots) {
         ConcretePythonInterpreter.concreteRun(namespace, "import sys")
         module.split(".").fold("") { acc, name ->
             val curModule = acc + name
-            ConcretePythonInterpreter.concreteRun(namespace, "import $curModule")
+            ConcretePythonInterpreter.concreteRun(namespace, "import $curModule", setHook = true)
             "$acc$name."
         }
         val resultAsObj = ConcretePythonInterpreter.eval(namespace, "$module.__dict__")

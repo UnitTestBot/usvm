@@ -50,6 +50,7 @@ class PythonMachineStatistics {
 
     fun writeReport(): String {
         val result = StringBuilder()
+        result.append("Functions analyzed: ${functionStatistics.size}\n")
         result.append("Mean coverage: $meanCoverage\n")
         result.append("Mean coverage without virtual objects: $meanCoverageNoVirtual\n")
         result.append("Lost symbolic values:\n")

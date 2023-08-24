@@ -5,6 +5,7 @@ import org.usvm.language.PythonUnpinnedCallable
 import org.usvm.language.StructuredPythonProgram
 import org.usvm.language.types.*
 import org.usvm.machine.interpreters.ConcretePythonInterpreter
+import org.usvm.machine.interpreters.IllegalOperationException
 import org.usvm.runner.SamplesBuild
 import org.usvm.utils.ReprObjectSerializer
 import org.usvm.utils.getModulesFromFiles
@@ -82,24 +83,33 @@ private fun analyze(runConfig: RunConfig) {
     val machine = PythonMachine(program, typeSystem, ReprObjectSerializer, printErrorMsg = false)
     machine.use { activeMachine ->
         functions.forEach { f ->
-            println("Started analysing function ${f.tag}")
-            val start = System.currentTimeMillis()
-            val results: MutableList<PythonAnalysisResult<String>> = mutableListOf()
-            val iterations = activeMachine.analyze(f, results, maxIterations = 30, allowPathDiversion = true, maxInstructions = 1000)
-            results.forEach { (_, inputs, result) ->
-                println("INPUT:")
-                inputs.map { it.reprFromPythonObject }.forEach { println(it) }
-                println("RESULT:")
-                when (result) {
-                    is Success -> println(result.output)
-                    is Fail -> println(result.exception)
+            try {
+                val start = System.currentTimeMillis()
+                val results: MutableList<PythonAnalysisResult<String>> = mutableListOf()
+                val iterations = activeMachine.analyze(
+                    f,
+                    results,
+                    maxIterations = 30,
+                    allowPathDiversion = true,
+                    maxInstructions = 10_000
+                )
+                results.forEach { (_, inputs, result) ->
+                    println("INPUT:")
+                    inputs.map { it.reprFromPythonObject }.forEach { println(it) }
+                    println("RESULT:")
+                    when (result) {
+                        is Success -> println(result.output)
+                        is Fail -> println(result.exception)
+                    }
+                    println()
                 }
+                println("Finished analysing ${f.tag} in ${System.currentTimeMillis() - start} milliseconds. Made $iterations iterations.")
+                println("FUNCTION STATISTICS")
+                println(machine.statistics.functionStatistics.last().writeReport())
                 println()
+            } catch (e: IllegalOperationException) {
+                println("Illegal operation while analyzing: ${e.operation}\n")
             }
-            println("Finished analysing ${f.tag} in ${System.currentTimeMillis() - start} milliseconds. Made $iterations iterations.")
-            println("FUNCTION STATISTICS")
-            println(machine.statistics.functionStatistics.last().writeReport())
-            println()
         }
         println("GENERAL STATISTICS")
         println(machine.statistics.writeReport())
