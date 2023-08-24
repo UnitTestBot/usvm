@@ -63,6 +63,8 @@ int extract_int_value(PyObject *int_object);
     result = (*ctx->env)->CallStaticObjectMethod(ctx->env, ctx->cpython_adapter_cls, ctx->handle_##func, args); \
     CHECK_FOR_EXCEPTION(ctx, fail_value)
 
+int audit_hook(const char *event, PyObject *args, void *data);
+
 #ifdef __cplusplus
 }
 #endif

@@ -1,5 +1,6 @@
 import pickle
 import codecs
+import sys
 
 
 def many_branches(x: int, y: int, z: int):
@@ -121,3 +122,15 @@ def range_6(x: int):
     for _ in range(0, 5, x):
         cnt += 1
     assert cnt == 0
+
+
+def illegal_operation():
+    input("Reading from stdin")
+
+
+def settrace_usage():
+    sys.settrace(lambda *args: None)
+
+
+def remove_tracing():
+    sys.settrace(None)
