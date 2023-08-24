@@ -13,7 +13,7 @@ fun handlerLoadConstKt(context: ConcolicRunContext, value: PythonObject): Uninte
     when (ConcretePythonInterpreter.getPythonObjectTypeName(value)) {
         "int" -> handlerLoadConstLongKt(context, ConcretePythonInterpreter.getPythonObjectRepr(value))
         "bool" -> handlerLoadConstBoolKt(context, ConcretePythonInterpreter.getPythonObjectRepr(value))
-        "NoneType" -> context.curState?.noneObj
+        "NoneType" -> context.curState?.preAllocatedObjects?.noneObject
         "tuple" -> {
             val elements = ConcretePythonInterpreter.getIterableElements(value)
             val symbolicElements = elements.map {

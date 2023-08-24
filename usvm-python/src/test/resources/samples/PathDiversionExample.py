@@ -12,12 +12,3 @@ def pickle_path_diversion(x: int):
         if x >= 0:
             return 3  # unreachable
         return 4
-
-
-"""
-def pickle_unregistered_virtual_call(x):
-    y = pickle.loads(pickle.dumps(x))
-    if y:
-        return 1
-    return 2
-"""

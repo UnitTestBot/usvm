@@ -9,6 +9,7 @@ import org.usvm.machine.symbolicobjects.ConverterToPythonObject
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.language.*
 import org.usvm.language.types.*
+import org.usvm.machine.symbolicobjects.PreAllocatedObjects
 import org.usvm.machine.types.prioritization.SymbolTypeTree
 import org.usvm.machine.types.prioritization.prioritizeTypes
 import org.usvm.machine.utils.PyModel
@@ -26,7 +27,7 @@ class PythonExecutionState(
     memory: UMemoryBase<PropertyOfPythonObject, PythonType, PythonCallable>,
     uModel: UModelBase<PropertyOfPythonObject, PythonType>,
     val typeSystem: PythonTypeSystem,
-    val noneObj: UninterpretedSymbolicPythonObject,
+    val preAllocatedObjects: PreAllocatedObjects,
     callStack: UCallStack<PythonCallable, SymbolicHandlerEvent<Any>> = UCallStack(),
     pathLocation: PathsTrieNode<PythonExecutionState, SymbolicHandlerEvent<Any>> = ctx.mkInitialLocation(),
     var delayedForks: PersistentList<DelayedFork> = persistentListOf(),
@@ -44,7 +45,7 @@ class PythonExecutionState(
             newMemory,
             pyModel.uModel,
             typeSystem,
-            noneObj,
+            preAllocatedObjects,
             callStack,
             pathLocation,
             delayedForks,

@@ -7,9 +7,10 @@ import org.usvm.model.UModelBase
 class PythonMockEvaluator(
     ctx: UPythonContext,
     private val baseMockEvaluator: UMockEvaluator,
-    private val mockSymbol: UMockSymbol<UAddressSort>
+    val mockSymbol: UMockSymbol<UAddressSort>,
+    suggestedEvaluatedMockSymbol: UConcreteHeapRef? = null
 ): UMockEvaluator {
-    private val evaluatedMockSymbol = ctx.provideRawConcreteHeapRef()
+    val evaluatedMockSymbol = suggestedEvaluatedMockSymbol ?: ctx.provideRawConcreteHeapRef()
     override fun <Sort : USort> eval(symbol: UMockSymbol<Sort>): UExpr<Sort> {
         val evaluatedValue = baseMockEvaluator.eval(symbol)
 
@@ -22,8 +23,13 @@ class PythonMockEvaluator(
     }
 }
 
-fun constructModelWithNewMockEvaluator(ctx: UPythonContext, oldModel: PyModel, mockSymbol: UMockSymbol<UAddressSort>): PyModel {
-    val newMockEvaluator = PythonMockEvaluator(ctx, oldModel.uModel.mocks, mockSymbol)
+fun constructModelWithNewMockEvaluator(
+    ctx: UPythonContext,
+    oldModel: PyModel,
+    mockSymbol: UMockSymbol<UAddressSort>,
+    suggestedEvaluatedMockSymbol: UConcreteHeapRef? = null
+): Pair<PyModel, UBoolExpr> {
+    val newMockEvaluator = PythonMockEvaluator(ctx, oldModel.uModel.mocks, mockSymbol, suggestedEvaluatedMockSymbol)
     val newModel = UModelBase(
         ctx,
         oldModel.uModel.stack,
@@ -31,5 +37,6 @@ fun constructModelWithNewMockEvaluator(ctx: UPythonContext, oldModel: PyModel, m
         oldModel.uModel.types,
         newMockEvaluator
     )
-    return PyModel(newModel)
+    val constraint = ctx.mkHeapRefEq(newMockEvaluator.mockSymbol, newMockEvaluator.evaluatedMockSymbol)
+    return PyModel(newModel) to constraint
 }

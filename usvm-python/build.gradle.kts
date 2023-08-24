@@ -38,13 +38,15 @@ val commonJVMArgs = listOf(
 )
 
 
+val cpythonPath = "${childProjects["cpythonadapter"]!!.projectDir}/cpython"
 val cpythonBuildPath = "${childProjects["cpythonadapter"]!!.buildDir}/cpython_build"
 val cpythonAdapterBuildPath = "${childProjects["cpythonadapter"]!!.buildDir}/lib/main/debug"  // TODO: and release?
 
 
 val installMypyRunner = tasks.register<Exec>("installUtbotMypyRunner") {
     group = "samples"
-    inputs.dir(cpythonBuildPath)
+    dependsOn(":usvm-python:cpythonadapter:linkDebug")
+    inputs.dir(cpythonPath)
     environment("LD_LIBRARY_PATH" to "$cpythonBuildPath/lib:$cpythonAdapterBuildPath")
     environment("PYTHONHOME" to cpythonBuildPath)
     commandLine("$cpythonBuildPath/bin/python3", "-m", "ensurepip")

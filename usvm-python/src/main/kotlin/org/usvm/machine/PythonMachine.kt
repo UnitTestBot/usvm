@@ -4,14 +4,11 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.usvm.*
 import org.usvm.constraints.UPathConstraints
-import org.usvm.machine.symbolicobjects.ConverterToPythonObject
-import org.usvm.machine.symbolicobjects.InterpretedInputSymbolicPythonObject
-import org.usvm.machine.symbolicobjects.constructInputObject
 import org.usvm.language.*
 import org.usvm.language.types.PythonType
 import org.usvm.language.types.PythonTypeSystem
 import org.usvm.machine.interpreters.USVMPythonInterpreter
-import org.usvm.machine.symbolicobjects.constructNone
+import org.usvm.machine.symbolicobjects.*
 import org.usvm.machine.utils.PythonMachineStatistics
 import org.usvm.machine.utils.PythonMachineStatisticsOnFunction
 import org.usvm.memory.UMemoryBase
@@ -64,6 +61,7 @@ class PythonMachine<PythonObjectRepresentation>(
         val symbols = target.signature.mapIndexed { index, type ->
             SymbolForCPython(constructInputObject(index, type, ctx, memory, pathConstraints, typeSystem))
         }
+        val preAllocatedObjects = PreAllocatedObjects(ctx, memory, pathConstraints, typeSystem)
         val solverRes = solver.check(pathConstraints)
         if (solverRes !is USatResult)
             error("Failed to construct initial model")
@@ -75,7 +73,7 @@ class PythonMachine<PythonObjectRepresentation>(
             memory,
             solverRes.model,
             typeSystem,
-            constructNone(memory, typeSystem)
+            preAllocatedObjects
         ).also {
             it.meta.generatedFrom = "Initial state"
         }
