@@ -1,7 +1,5 @@
 package org.usvm.machine
 
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeout
 import org.usvm.*
 import org.usvm.constraints.UPathConstraints
 import org.usvm.language.*
@@ -61,7 +59,7 @@ class PythonMachine<PythonObjectRepresentation>(
         val symbols = target.signature.mapIndexed { index, type ->
             SymbolForCPython(constructInputObject(index, type, ctx, memory, pathConstraints, typeSystem))
         }
-        val preAllocatedObjects = PreAllocatedObjects(ctx, memory, pathConstraints, typeSystem)
+        val preAllocatedObjects = PreallocatedObjects(ctx, memory, pathConstraints, typeSystem)
         val solverRes = solver.check(pathConstraints)
         if (solverRes !is USatResult)
             error("Failed to construct initial model")
@@ -80,7 +78,7 @@ class PythonMachine<PythonObjectRepresentation>(
     }
 
      private fun getPathSelector(target: PythonUnpinnedCallable): UPathSelector<PythonExecutionState> {
-         val ps = PythonVirtualPathSelector(ctx, typeSystem, DfsPathSelector(), DfsPathSelector(), DfsPathSelector())
+         val ps = PythonVirtualPathSelector(ctx, DfsPathSelector(), DfsPathSelector(), DfsPathSelector())
          val initialState = getInitialState(target)
          ps.add(listOf(initialState))
          return ps

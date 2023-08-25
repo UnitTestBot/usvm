@@ -6,55 +6,55 @@ import org.usvm.language.types.*
 
 fun nbBoolKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObject) {
     context.curState ?: return
-    on.addSupertype(context, HasNbBool)
+    on.addSupertypeSoft(context, HasNbBool)
 }
 
 fun nbIntKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObject) {
     context.curState ?: return
-    on.addSupertype(context, HasNbInt)
+    on.addSupertypeSoft(context, HasNbInt)
 }
 
 fun nbAddKt(context: ConcolicRunContext, left: UninterpretedSymbolicPythonObject, right: UninterpretedSymbolicPythonObject) = with(context.ctx) {
     context.curState ?: return
-    myAssert(context, left.evalIs(context, HasNbAdd) or right.evalIs(context, HasNbAdd))
+    myAssert(context, left.evalIsSoft(context, HasNbAdd) or right.evalIsSoft(context, HasNbAdd))
 }
 
 fun nbSubtractKt(context: ConcolicRunContext, left: UninterpretedSymbolicPythonObject) = with(context.ctx) {
     context.curState ?: return
-    myAssert(context, left.evalIs(context, HasNbSubtract))
+    myAssert(context, left.evalIsSoft(context, HasNbSubtract))
 }
 
 fun nbMultiplyKt(context: ConcolicRunContext, left: UninterpretedSymbolicPythonObject, right: UninterpretedSymbolicPythonObject) = with(context.ctx) {
     context.curState ?: return
-    myAssert(context, left.evalIs(context, HasNbMultiply) or right.evalIs(context, HasNbMultiply))
+    myAssert(context, left.evalIsSoft(context, HasNbMultiply) or right.evalIsSoft(context, HasNbMultiply))
 }
 
 fun nbMatrixMultiplyKt(context: ConcolicRunContext, left: UninterpretedSymbolicPythonObject) = with(context.ctx) {
     context.curState ?: return
-    myAssert(context, left.evalIs(context, HasNbMatrixMultiply))
+    myAssert(context, left.evalIsSoft(context, HasNbMatrixMultiply))
 }
 
 fun sqLengthKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObject) {
     context.curState ?: return
-    on.addSupertype(context, HasSqLength)
+    on.addSupertypeSoft(context, HasSqLength)
 }
 
 fun mpSubscriptKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObject) {
     context.curState ?: return
-    on.addSupertype(context, HasMpSubscript)
+    on.addSupertypeSoft(context, HasMpSubscript)
 }
 
 fun mpAssSubscriptKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObject) {
     context.curState ?: return
-    on.addSupertype(context, HasMpAssSubscript)
+    on.addSupertypeSoft(context, HasMpAssSubscript)
 }
 
 fun tpRichcmpKt(context: ConcolicRunContext, left: UninterpretedSymbolicPythonObject) {
     context.curState ?: return
-    myAssert(context, left.evalIs(context, HasTpRichcmp))
+    myAssert(context, left.evalIsSoft(context, HasTpRichcmp))
 }
 
 fun tpIterKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObject) {
     context.curState ?: return
-    myAssert(context, on.evalIs(context, HasTpIter))
+    myAssert(context, on.evalIsSoft(context, HasTpIter))
 }
