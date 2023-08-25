@@ -137,20 +137,8 @@ class USVMPythonInterpreter<PythonObjectRepresentation>(
                 resultState.meta.wasExecuted = true
 
                 if (resultState.delayedForks.isEmpty() && inputs == null) {
-                    var newResultState = resultState
-                    concolicRunContext.delayedNonNullObjects.forEach { obj ->
-                        newResultState = newResultState?.let {
-                            myAssertOnState(it, ctx.mkNot(ctx.mkHeapRefEq(obj.address, ctx.nullRef)))
-                        }
-                    }
-                    if (newResultState == null) {
-                        logger.debug("Error in concretization of virtual objects")
-                        return StepResult(emptySequence(), false)
-                    }
-                    require(newResultState == resultState)
                     resultState.meta.objectsWithoutConcreteTypes = converter.getUSVMVirtualObjects()
                     resultState.meta.lastConverter = converter
-                    converter.modelHolder.model = resultState.pyModel
                 }
                 logger.debug("Finished step on state: {}", concolicRunContext.curState)
 

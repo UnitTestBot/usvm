@@ -25,7 +25,7 @@ fun handlerIsinstanceKt(ctx: ConcolicRunContext, obj: UninterpretedSymbolicPytho
                 obj.evalIs(ctx, ConcreteTypeNegation(typeSystem.pythonInt)) and obj.evalIs(ctx, ConcreteTypeNegation(typeSystem.pythonBool))
             myFork(ctx, cond)
         } else {
-            myFork(ctx, obj.evalIs(ctx, ConcreteTypeNegation(type)))
+            myFork(ctx, obj.evalIs(ctx, type))
         }
         require(interpreted.getConcreteType(ctx) == null)
         constructBool(ctx, falseExpr)

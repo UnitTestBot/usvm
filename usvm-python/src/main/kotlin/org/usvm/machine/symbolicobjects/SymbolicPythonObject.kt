@@ -10,7 +10,7 @@ import org.usvm.machine.utils.PyModelHolder
 import org.usvm.machine.interpreters.operations.myAssert
 import org.usvm.language.*
 import org.usvm.language.types.*
-import org.usvm.memory.UMemoryBase
+import org.usvm.machine.utils.getLeafHeapRef
 import org.usvm.types.UTypeStream
 import org.usvm.types.first
 
@@ -49,42 +49,39 @@ class UninterpretedSymbolicPythonObject(
 
     fun evalIs(ctx: ConcolicRunContext, type: PythonType): UBoolExpr {
         require(ctx.curState != null)
-        return evalIs(ctx.ctx, ctx.curState!!.pathConstraints.typeConstraints, type, ctx)
+        val result = evalIs(ctx.ctx, ctx.curState!!.pathConstraints.typeConstraints, type)
+        if (resolvesToNullInCurrentModel(ctx) && ctx.curState!!.pyModel.eval(result).isTrue) {
+            ctx.curState!!.possibleTypesForNull = ctx.curState!!.possibleTypesForNull.filterBySupertype(type)
+        }
+        return result
     }
 
     fun evalIs(
         ctx: UContext,
         typeConstraints: UTypeConstraints<PythonType>,
-        type: PythonType,
-        concolicContext: ConcolicRunContext?
+        type: PythonType
     ): UBoolExpr {
         if (type is ConcretePythonType) {
             return with(ctx) {
                 typeConstraints.evalIsSubtype(address, ConcreteTypeNegation(type)).not()
             }
         }
-        val result: UBoolExpr = typeConstraints.evalIsSubtype(address, type)
-        if (type !is PythonAnyType && concolicContext != null)
-            concolicContext.delayedNonNullObjects.add(this)
-        return result
+        return typeConstraints.evalIsSubtype(address, type)
     }
 
     fun evalIsSoft(ctx: ConcolicRunContext, type: PythonType): UBoolExpr {
         require(ctx.curState != null)
-        return evalIsSoft(ctx.ctx, ctx.curState!!.pathConstraints.typeConstraints, type, ctx)
+        return evalIsSoft(ctx.ctx, ctx.curState!!.pathConstraints.typeConstraints, type)
     }
 
     fun evalIsSoft(
         ctx: UContext,
         typeConstraints: UTypeConstraints<PythonType>,
-        type: PythonType,
-        concolicContext: ConcolicRunContext?
+        type: PythonType
     ): UBoolExpr {
         var result: UBoolExpr = typeConstraints.evalIsSubtype(address, type)
         if (type is ConcretePythonType)
             result = with(ctx) { result and mkHeapRefEq(address, nullRef).not() }
-        else if (type !is PythonAnyType && concolicContext != null)
-            concolicContext.delayedNonNullObjects.add(this)
         return result
     }
 
@@ -270,6 +267,11 @@ class UninterpretedSymbolicPythonObject(
         val interpreted = interpretSymbolicPythonObject(this, ctx.modelHolder)
         return interpreted.getConcreteType(ctx)
     }
+
+    private fun resolvesToNullInCurrentModel(ctx: ConcolicRunContext): Boolean {
+        val interpreted = interpretSymbolicPythonObject(this, ctx.modelHolder)
+        return interpreted.address.address == 0
+    }
 }
 
 sealed class InterpretedSymbolicPythonObject(
@@ -280,6 +282,7 @@ sealed class InterpretedSymbolicPythonObject(
     abstract fun getFirstType(ctx: ConcolicRunContext): PythonType?
     abstract fun getBoolContent(ctx: ConcolicRunContext): KInterpretedValue<KBoolSort>
     abstract fun getIntContent(ctx: ConcolicRunContext): KInterpretedValue<KIntSort>
+    abstract fun getTypeStream(ctx: ConcolicRunContext): UTypeStream<PythonType>?
 }
 
 class InterpretedInputSymbolicPythonObject(
@@ -297,6 +300,7 @@ class InterpretedInputSymbolicPythonObject(
     override fun getBoolContent(ctx: ConcolicRunContext): KInterpretedValue<KBoolSort> = getBoolContent(ctx.ctx)
 
     override fun getIntContent(ctx: ConcolicRunContext): KInterpretedValue<KIntSort> = getIntContent(ctx.ctx)
+    override fun getTypeStream(ctx: ConcolicRunContext): UTypeStream<PythonType>? = getTypeStream()
 
     fun getFirstType(): PythonType? {
         if (address.address == 0)
@@ -350,7 +354,7 @@ class InterpretedAllocatedSymbolicPythonObject(
         return ctx.curState!!.memory.heap.readField(address, IntContents.content, ctx.ctx.intSort) as KInterpretedValue<KIntSort>
     }
 
-    fun getTypeStream(ctx: ConcolicRunContext): UTypeStream<PythonType> {
+    override fun getTypeStream(ctx: ConcolicRunContext): UTypeStream<PythonType> {
         require(ctx.curState != null)
         return ctx.curState!!.memory.typeStreamOf(address)
     }

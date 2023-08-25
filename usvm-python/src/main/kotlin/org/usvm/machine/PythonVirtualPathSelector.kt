@@ -13,7 +13,6 @@ import kotlin.random.Random
 
 class PythonVirtualPathSelector(
     private val ctx: UContext,
-    private val typeSystem: PythonTypeSystem,
     private val basePathSelector: UPathSelector<PythonExecutionState>,
     private val pathSelectorForStatesWithDelayedForks: UPathSelector<PythonExecutionState>,
     private val pathSelectorForStatesWithConcretizedTypes: UPathSelector<PythonExecutionState>
@@ -48,13 +47,14 @@ class PythonVirtualPathSelector(
             return generateStateWithConcretizedTypeFromDelayedFork(delayedForkStorage)
         triedTypesForDelayedForks.add(delayedFork.delayedFork to concreteType)
 
-        val forkResult = fork(state, symbol.evalIs(ctx, state.pathConstraints.typeConstraints, concreteType, null).not())
+        val forkResult = fork(state, symbol.evalIs(ctx, state.pathConstraints.typeConstraints, concreteType).not())
         if (forkResult.positiveState != state) {
             require(typeRating.isEmpty() && forkResult.positiveState == null)
             unservedDelayedForks.removeIf { it.delayedFork.state == state }
             servedDelayedForks.removeIf { it.delayedFork.state == state }
         }
-        require(forkResult.negativeState != null)
+        if (forkResult.negativeState == null)
+            return null
         val stateWithConcreteType = forkResult.negativeState!!
         if (unservedDelayedForks.remove(delayedFork))
             servedDelayedForks.add(delayedFork)
@@ -71,7 +71,7 @@ class PythonVirtualPathSelector(
         val state = executionsWithVirtualObjectAndWithoutDelayedForks.random(random)
         executionsWithVirtualObjectAndWithoutDelayedForks.remove(state)
         val objects = state.meta.objectsWithoutConcreteTypes!!.map { it.interpretedObj }
-        val typeStreams = objects.map { it.getTypeStream() ?: typeSystem.topTypeStream() }
+        val typeStreams = objects.map { it.getTypeStream() ?: state.possibleTypesForNull }
         if (typeStreams.any { it.take(2).size < 2 }) {
             return generateStateWithConcretizedTypeWithoutDelayedForks()
         }

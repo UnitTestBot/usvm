@@ -9,15 +9,14 @@ import org.usvm.machine.symbolicobjects.ConverterToPythonObject
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.language.*
 import org.usvm.language.types.*
-import org.usvm.machine.symbolicobjects.PreAllocatedObjects
+import org.usvm.machine.symbolicobjects.PreallocatedObjects
 import org.usvm.machine.types.prioritization.SymbolTypeTree
 import org.usvm.machine.types.prioritization.prioritizeTypes
 import org.usvm.machine.utils.PyModel
 import org.usvm.memory.UMemoryBase
 import org.usvm.model.UModelBase
 import org.usvm.types.UTypeStream
-
-private const val MAX_CONCRETE_TYPES_TO_CONSIDER = 1000
+import org.usvm.utils.MAX_CONCRETE_TYPES_TO_CONSIDER
 
 class PythonExecutionState(
     private val ctx: UPythonContext,
@@ -27,7 +26,8 @@ class PythonExecutionState(
     memory: UMemoryBase<PropertyOfPythonObject, PythonType, PythonCallable>,
     uModel: UModelBase<PropertyOfPythonObject, PythonType>,
     val typeSystem: PythonTypeSystem,
-    val preAllocatedObjects: PreAllocatedObjects,
+    val preAllocatedObjects: PreallocatedObjects,
+    var possibleTypesForNull: UTypeStream<PythonType> = typeSystem.topTypeStream(),
     callStack: UCallStack<PythonCallable, SymbolicHandlerEvent<Any>> = UCallStack(),
     pathLocation: PathsTrieNode<PythonExecutionState, SymbolicHandlerEvent<Any>> = ctx.mkInitialLocation(),
     var delayedForks: PersistentList<DelayedFork> = persistentListOf(),
@@ -46,6 +46,7 @@ class PythonExecutionState(
             pyModel.uModel,
             typeSystem,
             preAllocatedObjects,
+            possibleTypesForNull,
             callStack,
             pathLocation,
             delayedForks,
@@ -57,8 +58,6 @@ class PythonExecutionState(
     val meta = PythonExecutionStateMeta()
     val pyModel: PyModel
         get() = PyModel(models.first())
-    //val lastHandlerEvent: SymbolicHandlerEvent<Any>?
-    //    get() = if (path.isEmpty()) null else path.last()
 
     fun buildPathAsList(): List<SymbolicHandlerEvent<Any>> =
         reversedPath.asSequence().toList().reversed()
@@ -118,4 +117,5 @@ class PythonExecutionStateMeta {
     var objectsWithoutConcreteTypes: Set<VirtualPythonObject>? = null
     var lastConverter: ConverterToPythonObject? = null
     var generatedFrom: String = ""  // for debugging only
+    var typeStreamForNull: UTypeStream<PythonType>? = null
 }
