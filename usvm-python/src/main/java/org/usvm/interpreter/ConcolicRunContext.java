@@ -2,6 +2,7 @@ package org.usvm.interpreter;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.usvm.language.types.PythonType;
 import org.usvm.language.types.PythonTypeSystem;
 import org.usvm.machine.MockHeader;
 import org.usvm.machine.interpreters.operations.tracing.SymbolicHandlerEvent;
@@ -10,13 +11,11 @@ import org.usvm.machine.PythonExecutionState;
 import org.usvm.machine.UPythonContext;
 import org.usvm.machine.interpreters.operations.tracing.PathDiversionException;
 import org.usvm.machine.symbolicobjects.ConverterToPythonObject;
-import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject;
 import org.usvm.machine.utils.PythonMachineStatisticsOnFunction;
+import org.usvm.types.UTypeStream;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+
 
 public class ConcolicRunContext {
     @Nullable
@@ -28,7 +27,6 @@ public class ConcolicRunContext {
     public PyModelHolder modelHolder;
     public boolean allowPathDiversion;
     public ConverterToPythonObject converter;
-    public Set<UninterpretedSymbolicPythonObject> delayedNonNullObjects = new HashSet<>();
     public PythonTypeSystem typeSystem;
     public PythonMachineStatisticsOnFunction statistics;
     public int maxInstructions;
