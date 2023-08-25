@@ -8,7 +8,7 @@ import org.usvm.language.types.PythonTypeSystem
 import org.usvm.machine.UPythonContext
 import org.usvm.memory.UMemoryBase
 
-class PreAllocatedObjects(
+class PreallocatedObjects(
     ctx: UPythonContext,
     initialMemory: UMemoryBase<PropertyOfPythonObject, PythonType, PythonCallable>,
     initialPathConstraints: UPathConstraints<PythonType, UPythonContext>,

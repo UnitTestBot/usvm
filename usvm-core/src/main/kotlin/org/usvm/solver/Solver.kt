@@ -13,7 +13,6 @@ import org.usvm.isTrue
 import org.usvm.model.UModelBase
 import org.usvm.model.UModelDecoder
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.milliseconds
 
 sealed interface USolverResult<out T>
 

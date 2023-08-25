@@ -23,7 +23,7 @@ fun constructInputObject(
     val address = memory.read(URegisterLValue(ctx.addressSort, stackIndex)) as UExpr<UAddressSort>
     pathConstraints += ctx.mkNot(ctx.mkHeapRefEq(address, ctx.nullRef))
     val result = UninterpretedSymbolicPythonObject(address, typeSystem)
-    pathConstraints += result.evalIsSoft(ctx, pathConstraints.typeConstraints, type, null)
+    pathConstraints += result.evalIsSoft(ctx, pathConstraints.typeConstraints, type)
     return result
 }
 
@@ -68,7 +68,7 @@ fun constructInitialBool(
 ): UninterpretedSymbolicPythonObject {
     val address = memory.alloc(typeSystem.pythonBool)
     val result = UninterpretedSymbolicPythonObject(address, typeSystem)
-    pathConstraints += result.evalIsSoft(ctx, pathConstraints.typeConstraints, typeSystem.pythonBool, null)
+    pathConstraints += result.evalIsSoft(ctx, pathConstraints.typeConstraints, typeSystem.pythonBool)
     val lvalue = UFieldLValue(expr.sort, address, BoolContents.content)
     memory.write(lvalue, expr)
     return result

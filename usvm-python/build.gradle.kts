@@ -103,6 +103,7 @@ tasks.register<JavaExec>("manualTestRelease") {
 
 tasks.test {
     jvmArgs = commonJVMArgs + "-Dlogback.configurationFile=logging/logback-info.xml"
+    // jvmArgs = commonJVMArgs + "-Dlogback.configurationFile=logging/logback-debug.xml"
     dependsOn(":usvm-python:cpythonadapter:linkDebug")
     dependsOn(buildSamples)
     environment("LD_LIBRARY_PATH" to "$cpythonBuildPath/lib:$cpythonAdapterBuildPath")

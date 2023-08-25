@@ -43,7 +43,7 @@ private fun buildSampleRunConfig(): RunConfig {
 }
 
 private fun buildProjectRunConfig(): RunConfig {
-    val projectPath = "/home/tochilinak/Documents/projects/utbot/Python/divide_and_conquer"
+    val projectPath = "/home/tochilinak/Documents/projects/utbot/Python/dynamic_programming"
     val mypyRoot = "/home/tochilinak/Documents/projects/utbot/mypy_tmp"
     val files = getPythonFilesFromRoot(projectPath)
     val modules = getModulesFromFiles(projectPath, files)
@@ -95,9 +95,9 @@ private fun analyze(runConfig: RunConfig) {
                 val iterations = activeMachine.analyze(
                     f,
                     results,
-                    maxIterations = 100,
+                    maxIterations = 30,
                     allowPathDiversion = true,
-                    maxInstructions = 50_000
+                    maxInstructions = 1_000
                 )
                 results.forEach { (_, inputs, result) ->
                     println("INPUT:")

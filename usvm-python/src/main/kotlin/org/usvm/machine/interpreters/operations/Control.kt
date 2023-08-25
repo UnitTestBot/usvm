@@ -8,8 +8,7 @@ import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.machine.DelayedFork
 import org.usvm.machine.PythonExecutionState
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
-import org.usvm.language.PythonPinnedCallable
-import org.usvm.machine.interpreters.PythonObject
+import org.usvm.machine.utils.getTypeStreamForDelayedFork
 
 fun myFork(ctx: ConcolicRunContext, cond: UExpr<KBoolSort>) {
     if (ctx.curState == null)
@@ -50,15 +49,15 @@ fun myAssert(ctx: ConcolicRunContext, cond: UExpr<KBoolSort>) {
         throw BadModelException
 }
 
-fun addDelayedFork(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObject, clonedState: PythonExecutionState) {
-    if (context.curState == null)
+fun addDelayedFork(ctx: ConcolicRunContext, on: UninterpretedSymbolicPythonObject, clonedState: PythonExecutionState) {
+    if (ctx.curState == null)
         return
-    context.curState!!.delayedForks = context.curState!!.delayedForks.add(
+    ctx.curState!!.delayedForks = ctx.curState!!.delayedForks.add(
         DelayedFork(
             clonedState,
             on,
-            clonedState.pyModel.uModel.typeStreamOf(clonedState.pyModel.eval(on.address)),
-            context.curState!!.delayedForks
+            getTypeStreamForDelayedFork(on, ctx),
+            ctx.curState!!.delayedForks
         )
     )
 }
