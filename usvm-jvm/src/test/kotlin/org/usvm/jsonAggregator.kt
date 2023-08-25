@@ -42,12 +42,16 @@ fun jarLoad(jars: Set<String>, classes: MutableMap<String, MutableList<JcClassOr
     }
 }
 
-private class MainTestRunner : JavaMethodTestRunner() {
+private class MainTestRunner(
+    pathSelectionStrategies: List<PathSelectionStrategy> = listOf(PathSelectionStrategy.INFERENCE_WITH_LOGGING),
+    timeoutMs: Long? = 20000
+) : JavaMethodTestRunner(
+) {
     override var options = UMachineOptions().copy(
         exceptionsPropagation = false,
-        timeoutMs = 20000,
+        timeoutMs = timeoutMs,
         stepLimit = 1500u,
-        pathSelectionStrategies = listOf(PathSelectionStrategy.INFERENCE_WITH_LOGGING),
+        pathSelectionStrategies = pathSelectionStrategies,
         solverType = SolverType.Z3
     )
 
@@ -70,8 +74,23 @@ fun getName(method: JcMethod): String {
     return method.toString().dropWhile { it != ')' }.drop(1)
 }
 
+@OptIn(ExperimentalCoroutinesApi::class)
 fun calculate() {
-    val testRunner = MainTestRunner()
+    val pathSelectorSets = if (MainConfig.mode == Mode.Test)
+        listOf(
+            listOf(PathSelectionStrategy.INFERENCE_WITH_LOGGING),
+            listOf(PathSelectionStrategy.BFS),
+            listOf(PathSelectionStrategy.FORK_DEPTH_RANDOM),
+        )
+    else listOf(listOf(PathSelectionStrategy.INFERENCE_WITH_LOGGING))
+    val timeLimits = if (MainConfig.mode == Mode.Test)
+        listOf<Long?>(
+            5000,
+            10000,
+            20000,
+        )
+    else listOf<Long?>(20000)
+
     val jarClasses = mutableMapOf<String, MutableList<JcClassOrInterface>>()
     jarLoad(MainConfig.inputJars.keys, jarClasses)
     println("\nLOADING COMPLETE\n")
@@ -90,29 +109,50 @@ fun calculate() {
                     MainConfig.inputJars.getValue(key).any { cls.packageName.contains(it) } &&
                     !cls.name.contains("Test")
         }.flatMap { cls -> cls.declaredMethods.filter { method ->
-            method.enclosingClass == cls && getName(method) !in blacklist && !method.isConstructor
-        } }
-        val orderedMethods = if (MainConfig.shuffleTests) allMethods.shuffled() else
-            allMethods.sortedBy { getName(it).hashCode() }
-        runBlocking(Dispatchers.IO) {
-            orderedMethods.take((orderedMethods.size * MainConfig.dataConsumption / 100).toInt()).forEach { method ->
-                val test = launch {
-                        try {
-                            println("Running test ${method.name}")
-                            val time = measureTimeMillis {
-                                testRunner.runTest(method, key)
+            method.enclosingClass == cls && getName(method) !in blacklist && !method.isConstructor }
+        }.sortedBy { getName(it) }.distinctBy { getName(it) }
+        val orderedMethods = if (MainConfig.shuffleTests) allMethods.shuffled() else allMethods
+
+        timeLimits.forEach { timeLimit ->
+            pathSelectorSets.forEach { pathSelectors ->
+                val statisticsFile = Path(MainConfig.dataPath, "statistics", "${timeLimit}ms",
+                    "${pathSelectors.joinToString(separator = "|") { it.toString() }}.txt").toFile()
+                statisticsFile.parentFile.mkdirs()
+                statisticsFile.createNewFile()
+                statisticsFile.writeText("")
+
+                val testRunner = MainTestRunner(pathSelectors, timeLimit)
+                runBlocking(Dispatchers.IO.limitedParallelism(MainConfig.maxConcurrency)) {
+                    orderedMethods.take((orderedMethods.size * MainConfig.dataConsumption / 100).toInt())
+                        .forEach { method ->
+                            val test = launch {
+                                try {
+                                    println("Running test ${method.name}")
+                                    val time = measureTimeMillis {
+                                        testRunner.runTest(method, key)
+                                    }
+                                    println("Test ${method.name} finished after ${time}ms")
+                                    finishedTestsCount += 1
+                                } catch (e: StringIndexOutOfBoundsException) {
+                                    e.printStackTrace()
+                                } catch (e: Exception) {
+                                    println(e)
+                                } catch (e: NotImplementedError) {
+                                    println(e)
+                                }
                             }
-                            println("Test ${method.name} finished after ${time}ms")
-                            finishedTestsCount += 1
-                        } catch (e: Exception) {
-                            println(e)
-                        } catch (e: NotImplementedError) {
-                            println(e)
+                            tests.add(test)
                         }
+                    tests.joinAll()
                 }
-                tests.add(test)
+
+                CoverageCounter.getTestCoverages().forEach { (testName, testCoverages) ->
+                    statisticsFile.appendText("$testName: ${testCoverages.zip(MainConfig.discounts)}\n")
+                }
+                statisticsFile.appendText("\nTOTAL COVERAGES: ${
+                    CoverageCounter.getTotalCoverages().zip(MainConfig.discounts)}\n")
+                CoverageCounter.reset()
             }
-            tests.joinAll()
         }
     }
 
@@ -199,6 +239,8 @@ fun updateConfig(options: JsonObject) {
         JsonPrimitive(MainConfig.logFeatures)) as JsonPrimitive).content.toBoolean()
     MainConfig.shuffleTests = (options.getOrDefault("shuffleTests",
         JsonPrimitive(MainConfig.shuffleTests)) as JsonPrimitive).content.toBoolean()
+    MainConfig.discounts = (options.getOrDefault("discounts", JsonArray(MainConfig.discounts
+        .map { JsonPrimitive(it) })) as JsonArray).map { (it as JsonPrimitive).content.toFloat() }
     MainConfig.inputShape = (options.getOrDefault("inputShape", JsonArray(MainConfig.inputShape
         .map { JsonPrimitive(it) })) as JsonArray).map { (it as JsonPrimitive).content.toLong() }
     MainConfig.maxAttentionLength = (options.getOrDefault("maxAttentionLength",
@@ -272,9 +314,11 @@ fun main(args: Array<String>) {
         updateConfig(options)
     }
 
-    clear()
+    if (MainConfig.mode != Mode.Aggregation) {
+        clear()
+    }
 
-    if (MainConfig.mode == Mode.Calculation || MainConfig.mode == Mode.Both) {
+    if (MainConfig.mode in listOf(Mode.Calculation, Mode.Both, Mode.Test)) {
         try {
             calculate()
         } catch (e: Throwable) {
@@ -283,7 +327,7 @@ fun main(args: Array<String>) {
         }
     }
 
-    if (MainConfig.mode == Mode.Aggregation || MainConfig.mode == Mode.Both) {
+    if (MainConfig.mode in listOf(Mode.Aggregation, Mode.Both)) {
         try {
             aggregate()
         } catch (e: Throwable) {

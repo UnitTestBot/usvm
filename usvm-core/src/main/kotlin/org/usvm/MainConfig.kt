@@ -10,6 +10,7 @@ enum class Mode {
     Calculation,
     Aggregation,
     Both,
+    Test,
 }
 
 enum class Algorithm {
@@ -31,6 +32,7 @@ object MainConfig {
     var mode = Mode.Both
     var logFeatures = true
     var shuffleTests = true
+    var discounts = listOf(1.0f, 0.998f, 0.99f)
     var inputShape = listOf<Long>(1, -1, 77)
     var maxAttentionLength = -1
     var useGnn = true

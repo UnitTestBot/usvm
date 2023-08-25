@@ -21,6 +21,7 @@ fun <Method, Statement, State : UState<*, *, Method, Statement, *, State>> creat
     applicationGraph: () -> ApplicationGraph<Method, Statement>? = { null }
 ) : UPathSelector<State> {
     val strategies = options.pathSelectionStrategies
+    val method = applicationGraph()?.methodOf(initialState.currentStatement)
     require(strategies.isNotEmpty()) { "At least one path selector strategy should be specified" }
 
     val random by lazy { Random(options.randomSeed) }
@@ -71,7 +72,7 @@ fun <Method, Statement, State : UState<*, *, Method, Statement, *, State>> creat
     selectors.singleOrNull()?.let { selector ->
         val resultSelector = selector.wrapIfRequired(propagateExceptions)
         resultSelector.add(listOf(initialState))
-        return resultSelector
+        return resultSelector.wrapCoverageCounter(requireNotNull(coverageStatistics()), requireNotNull(method))
     }
 
     require(selectors.size >= 2) { "Cannot create collaborative path selector from less than 2 selectors" }
@@ -97,8 +98,13 @@ fun <Method, Statement, State : UState<*, *, Method, Statement, *, State>> creat
         }
     }
 
-    return selector
+    return selector.wrapCoverageCounter(requireNotNull(coverageStatistics()), requireNotNull(method))
 }
+
+private fun <Method, State : UState<*, *, Method, *, *, State>> UPathSelector<State>.wrapCoverageCounter(
+    coverageStatistics: CoverageStatistics<Method, *, State>,
+    method: Method
+) = CoverageCounterPathSelector(this, coverageStatistics, method)
 
 /**
  * Wraps the selector into an [ExceptionPropagationPathSelector] if [propagateExceptions] is true.
