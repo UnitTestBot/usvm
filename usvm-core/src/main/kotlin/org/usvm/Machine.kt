@@ -1,7 +1,7 @@
 package org.usvm
 
-import org.usvm.ps.BfsWithLoggingPathSelector
 import mu.KLogging
+import org.usvm.ps.CoverageCounterPathSelector
 import org.usvm.statistics.UMachineObserver
 import org.usvm.stopstrategies.StopStrategy
 import org.usvm.util.bracket
@@ -71,7 +71,8 @@ abstract class UMachine<State> : AutoCloseable {
             }
         }
 
-        if (pathSelector is BfsWithLoggingPathSelector<*, *, *> && MainConfig.logFeatures) {
+        if (pathSelector is CoverageCounterPathSelector<*, *> &&
+            MainConfig.logFeatures && MainConfig.mode != Mode.Test) {
             pathSelector.savePath()
         }
     }

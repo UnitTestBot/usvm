@@ -53,6 +53,7 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
     private val applicationGraph: ApplicationGraph<Method, Statement>
 ) : UPathSelector<State> {
     protected val queue = ArrayDeque<State>()
+    protected val lru = mutableListOf<State>()
 
     private val allStatements: List<Statement>
     private val visitedStatements = HashSet<Statement>()
@@ -520,7 +521,7 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
     }
 
     private fun getStateFeatureQueue(): List<StateFeatures> {
-        return queue.map { state ->
+        return lru.map { state ->
             getStateFeatures(state)
         }
     }
@@ -553,21 +554,21 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
         )
     }
 
-    open protected fun getExtraFeatures(): List<Float> {
+    protected open fun getExtraFeatures(): List<Float> {
         return listOf()
     }
 
     private fun getActionData(stateFeatureQueue: List<StateFeatures>,
                                 globalStateFeatures: GlobalStateFeatures,
                                 chosenState: State): ActionData {
-        val stateId = queue.indexOfFirst { it.id == chosenState.id }
+        val stateId = lru.indexOfFirst { it.id == chosenState.id }
         return ActionData (
             stateFeatureQueue,
             globalStateFeatures,
             stateId,
-            getReward(queue[stateId]),
+            getReward(lru[stateId]),
             graphFeaturesList.lastIndex,
-            queue.map { it.currentStatement!! }.map { blockGraph.getBlock(it)?.id ?: -1 },
+            lru.map { it.currentStatement!! }.map { blockGraph.getBlock(it)?.id ?: -1 },
             getExtraFeatures()
         )
     }
@@ -790,9 +791,11 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
         if (stepCount < 100) {
             saveGraph()
         }
+        lru.remove(state)
+        lru.add(state)
     }
 
-    override fun isEmpty() = queue.isEmpty()
+    override fun isEmpty() = lru.isEmpty()
 
     override fun peek(): State {
         val (stateFeatureQueue, globalStateFeatures) = beforePeek()
@@ -808,6 +811,7 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
             return
         }
         queue.addAll(states)
+        lru.addAll(states)
         allStatesCount += states.size.toUInt()
     }
 
@@ -817,6 +821,7 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
             queue.first() -> queue.removeFirst() // fast remove from the head
             else -> queue.remove(state)
         }
+        lru.remove(state)
         finishedStatesCount += 1u
         state.reversedPath.asSequence().toSet().forEach {  statement ->
             statementFinishCounts[statement] = statementFinishCounts.getValue(statement) + 1u

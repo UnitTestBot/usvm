@@ -73,7 +73,7 @@ internal open class InferencePathSelector<State : UState<*, *, Method, Statement
         }
         var name = "\"$id: $statement"
         node.states.forEach { state ->
-            name += ", ${DecimalFormat("0.00E0").format(outputValues.getOrElse(queue.indexOf(state)) { -1.0f })}"
+            name += ", ${DecimalFormat("0.00E0").format(outputValues.getOrElse(lru.indexOf(state)) { -1.0f })}"
         }
         name += "\""
         return name
@@ -169,8 +169,8 @@ internal open class InferencePathSelector<State : UState<*, *, Method, Statement
 
     private fun runActor(allFeaturesListFull: List<List<Float>>): Int {
         val firstIndex = if (MainConfig.maxAttentionLength == -1) 0 else
-            maxOf(0, queue.size - MainConfig.maxAttentionLength)
-        val allFeaturesList = allFeaturesListFull.subList(firstIndex, queue.size)
+            maxOf(0, lru.size - MainConfig.maxAttentionLength)
+        val allFeaturesList = allFeaturesListFull.subList(firstIndex, lru.size)
         val totalSize = allFeaturesList.size * allFeaturesList.first().size
         val totalKnownSize = MainConfig.inputShape.reduce { acc, l -> acc * l }
         val shape = MainConfig.inputShape.map { if (it != -1L) it else -totalSize / totalKnownSize }.toLongArray()
@@ -208,21 +208,21 @@ internal open class InferencePathSelector<State : UState<*, *, Method, Statement
         if (stateFeatureQueue == null || globalStateFeatures == null) {
             throw IllegalArgumentException("No features")
         }
-        if (queue.size == 1) {
+        if (lru.size == 1) {
             if (MainConfig.postprocessing != Postprocessing.Argmax) {
                 probabilities.add(listOf(1.0f))
             }
-            return queue[0]
+            return lru[0]
         }
         val graphFeatures = gnnFeaturesList.lastOrNull() ?: listOf()
         val blockFeaturesCount = graphFeatures.firstOrNull()?.size ?: 0
-        val allFeaturesListFull = stateFeatureQueue.zip(queue).map { (stateFeatures, state) ->
+        val allFeaturesListFull = stateFeatureQueue.zip(lru).map { (stateFeatures, state) ->
             stateFeaturesToFloatList(stateFeatures) + globalStateFeaturesToFloatList(globalStateFeatures) +
             (blockGraph.getBlock(state.currentStatement!!)?.id?.let { graphFeatures.getOrNull(it) }
                 ?: List(blockFeaturesCount) { 0.0f }) +
             rnnFeatures
         }
-        return queue[runActor(allFeaturesListFull)]
+        return lru[runActor(allFeaturesListFull)]
     }
 
     override fun getExtraFeatures(): List<Float> {

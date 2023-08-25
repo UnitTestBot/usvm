@@ -11,6 +11,7 @@ import org.usvm.samples.JacoDBContainer
 import java.io.File
 import kotlin.io.path.Path
 import org.usvm.samples.JavaMethodTestRunner
+import kotlin.io.path.nameWithoutExtension
 import kotlin.system.measureTimeMillis
 
 //fun recursiveLoad(currentDir: File, classes: MutableList<Class<*>>, classLoader: ClassLoader, path: String) {
@@ -115,7 +116,10 @@ fun calculate() {
 
         timeLimits.forEach { timeLimit ->
             pathSelectorSets.forEach { pathSelectors ->
-                val statisticsFile = Path(MainConfig.dataPath, "statistics", "${timeLimit}ms",
+                val statisticsFile = Path(MainConfig.dataPath,
+                    "statistics",
+                    Path(key).nameWithoutExtension,
+                    "${timeLimit}ms",
                     "${pathSelectors.joinToString(separator = "|") { it.toString() }}.txt").toFile()
                 statisticsFile.parentFile.mkdirs()
                 statisticsFile.createNewFile()
