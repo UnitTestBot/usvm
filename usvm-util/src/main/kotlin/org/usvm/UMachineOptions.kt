@@ -55,6 +55,11 @@ enum class PathSelectionStrategy {
     CLOSEST_TO_UNCOVERED_RANDOM
 }
 
+enum class TargetReproductionPathSelectionStrategy {
+    DETERMINISTIC,
+    RANDOMIZED
+}
+
 enum class PathSelectorCombinationStrategy {
     /**
      * Multiple path selectors have the common state set and are interleaved.
@@ -135,4 +140,20 @@ data class UMachineOptions(
      * SMT solver type used for path constraint solving.
      */
     val solverType: SolverType = SolverType.Z3
+)
+
+data class TargetReproductionOptions(
+    val pathSelectionStrategy: TargetReproductionPathSelectionStrategy = TargetReproductionPathSelectionStrategy.RANDOMIZED,
+    /**
+     * Seed used for random operations.
+     */
+    val randomSeed: Long = 0,
+    /**
+     * Optional limit of symbolic execution steps to stop execution on.
+     */
+    val stepLimit: ULong? = null,
+    /**
+     * Optional timeout in milliseconds to stop execution on.
+     */
+    val timeoutMs: Long? = 20_000,
 )

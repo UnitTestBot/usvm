@@ -1,11 +1,14 @@
 package org.usvm.ps
 
-import org.usvm.UState
+import org.usvm.UCallStackFrame
 import kotlin.math.min
 
+fun interface StaticTargetsDistanceCalculator<Method, Statement, out Distance> {
+    fun calculateDistance(currentStatement: Statement, callStack: Collection<UCallStackFrame<Method, Statement>>): Distance
+}
+
 /**
- * [StateWeighter] implementation which weights states by their application graph
- * distance to specified targets.
+ * Calculates shortest distances from location (represented as statement and call stack) to the set of targets.
  *
  * Distances in graph remain the same, only the targets can change, so the local CFG distances are
  * cached while the targets of the method remain the same.
@@ -16,12 +19,13 @@ import kotlin.math.min
  * @param getCfgDistanceToExitPoint function with the following signature:
  * (method, stmt) -> shortest CFG distance from stmt to any of method's exit points.
  */
-class ShortestDistanceToTargetsStateWeighter<Method, Statement, State : UState<*, Method, Statement, *, State>>(
+class RoughIterprocShortestDistanceCalculator<Method, Statement>(
     targets: Collection<Pair<Method, Statement>>,
     private val getCfgDistance: (Method, Statement, Statement) -> UInt,
     private val getCfgDistanceToExitPoint: (Method, Statement) -> UInt
-) : StateWeighter<State, UInt> {
+) : StaticTargetsDistanceCalculator<Method, Statement, UInt> {
 
+    // TODO: optimize for single target case
     private val targetsByMethod = HashMap<Method, HashSet<Statement>>()
     private val minLocalDistanceToTargetCache = HashMap<Method, HashMap<Statement, UInt>>()
 
@@ -55,12 +59,9 @@ class ShortestDistanceToTargetsStateWeighter<Method, Statement, State : UState<*
         return wasRemoved
     }
 
-    override fun weight(state: State): UInt {
-        val currentStatement = state.currentStatement
-
+    override fun calculateDistance(currentStatement: Statement, callStack: Collection<UCallStackFrame<Method, Statement>>): UInt {
         var currentMinDistanceToTarget = UInt.MAX_VALUE
-
-        val callStackArray = state.callStack.toTypedArray()
+        val callStackArray = callStack.toTypedArray()
 
         // minDistanceToTarget(F) =
         //  min(
@@ -89,4 +90,31 @@ class ShortestDistanceToTargetsStateWeighter<Method, Statement, State : UState<*
 
         return currentMinDistanceToTarget
     }
+}
+
+class DynamicTargetsShortestDistanceCalculator<Method, Statement, Distance>(
+    private val getDistanceCalculator: (Method, Statement) -> StaticTargetsDistanceCalculator<Method, Statement, Distance>
+) {
+    private val calculatorsByTarget = HashMap<Pair<Method, Statement>, StaticTargetsDistanceCalculator<Method, Statement, Distance>>()
+
+    fun removeTargetFromCache(target: Pair<Method, Statement>): Boolean {
+        return calculatorsByTarget.remove(target) != null
+    }
+
+    fun calculateDistance(
+        currentStatement: Statement,
+        callStack: Collection<UCallStackFrame<Method, Statement>>,
+        target: Pair<Method, Statement>
+    ): Distance {
+        val calculator = calculatorsByTarget.computeIfAbsent(target) { getDistanceCalculator(it.first, it.second) }
+        return calculator.calculateDistance(currentStatement, callStack)
+    }
+
+    fun calculateDistance(
+        currentStatement: Statement,
+        callStack: Collection<UCallStackFrame<Method, Statement>>,
+        targets: Collection<Pair<Method, Statement>>,
+        folder: (Collection<Distance>) -> Distance
+    ): Distance =
+        folder(targets.map { calculateDistance(currentStatement, callStack, it) })
 }

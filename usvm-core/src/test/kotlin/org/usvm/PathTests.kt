@@ -11,12 +11,12 @@ class PathTests {
         val initialState = mockk<TestState>()
         val fork = mockk<TestState>()
 
-        val root = RootNode<TestState, Int>()
+        val root = RootNode<TestState, TestInstruction>()
 
-        val firstRealNode = root.pathLocationFor(1, initialState)
+        val firstRealNode = root.pathLocationFor(TestInstruction(1), initialState)
 
-        val updatedInitialState = firstRealNode.pathLocationFor(statement = 2, initialState)
-        val forkedState = firstRealNode.pathLocationFor(statement = 3, fork)
+        val updatedInitialState = firstRealNode.pathLocationFor(statement = TestInstruction(2), initialState)
+        val forkedState = firstRealNode.pathLocationFor(statement = TestInstruction(3), fork)
 
         assertTrue { root.children.size == 1 }
         assertTrue { root.children.values.single() == firstRealNode }
@@ -36,12 +36,12 @@ class PathTests {
         val firstState = mockk<TestState>()
         val secondState = mockk<TestState>()
 
-        val root = RootNode<TestState, Int>()
+        val root = RootNode<TestState, TestInstruction>()
 
-        val firstRealNode = root.pathLocationFor(1, firstState)
+        val firstRealNode = root.pathLocationFor(TestInstruction(1), firstState)
 
-        val updatedFirstState = firstRealNode.pathLocationFor(statement = 2, firstState)
-        val updatedSecondState = firstRealNode.pathLocationFor(statement = 2, secondState)
+        val updatedFirstState = firstRealNode.pathLocationFor(statement = TestInstruction(2), firstState)
+        val updatedSecondState = firstRealNode.pathLocationFor(statement = TestInstruction(2), secondState)
 
         assertSame(updatedFirstState, updatedSecondState)
 

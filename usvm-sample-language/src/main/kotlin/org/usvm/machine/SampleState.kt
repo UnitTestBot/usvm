@@ -25,13 +25,15 @@ class SampleState(
     pathLocation: PathsTrieNode<SampleState, Stmt> = ctx.mkInitialLocation(),
     var returnRegister: UExpr<out USort>? = null,
     var exceptionRegister: ProgramException? = null,
-) : UState<SampleType, Method<*>, Stmt, UContext, SampleState>(
+    targets: List<SampleTarget> = emptyList()
+) : UState<SampleType, Method<*>, Stmt, UContext, SampleTarget, SampleState>(
     ctx,
     callStack,
     pathConstraints,
     memory,
     models,
-    pathLocation
+    pathLocation,
+    targets
 ) {
     override fun clone(newConstraints: UPathConstraints<SampleType, UContext>?): SampleState {
         val clonedConstraints = newConstraints ?: pathConstraints.clone()
@@ -43,7 +45,8 @@ class SampleState(
             models,
             pathLocation,
             returnRegister,
-            exceptionRegister
+            exceptionRegister,
+            targets.toList()
         )
     }
 

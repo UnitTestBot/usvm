@@ -1,10 +1,6 @@
 package org.usvm.ps
 
-import org.usvm.PathSelectionStrategy
-import org.usvm.PathSelectorCombinationStrategy
-import org.usvm.UMachineOptions
-import org.usvm.UPathSelector
-import org.usvm.UState
+import org.usvm.*
 import org.usvm.statistics.CoverageStatistics
 import org.usvm.statistics.DistanceStatistics
 import org.usvm.algorithms.DeterministicPriorityCollection
@@ -12,7 +8,7 @@ import org.usvm.algorithms.RandomizedPriorityCollection
 import kotlin.math.max
 import kotlin.random.Random
 
-fun <Method, Statement, State : UState<*, Method, Statement, *, State>> createPathSelector(
+fun <Method, Statement, State : UState<*, Method, Statement, *, *, State>> createPathSelector(
     initialState: State,
     options: UMachineOptions,
     coverageStatistics: () -> CoverageStatistics<Method, Statement, State>? = { null },
@@ -84,19 +80,34 @@ fun <Method, Statement, State : UState<*, Method, Statement, *, State>> createPa
     return selector
 }
 
+fun <Method, Statement, Target : UTarget<Method, Statement, Target, State>, State : UState<*, *, Method, Statement, *, Target, State>> createTargetReproductionPathSelector(
+    initialState: State,
+    options: TargetReproductionOptions,
+    distanceStatistics: DistanceStatistics<Method, Statement>
+): UPathSelector<State> {
+    val random =
+        when(options.pathSelectionStrategy) {
+            TargetReproductionPathSelectionStrategy.RANDOMIZED -> Random(options.randomSeed)
+            TargetReproductionPathSelectionStrategy.DETERMINISTIC -> null
+        }
+    val selector = createClosestToTargetsPathSelector<Method, Statement, Target, State>(distanceStatistics, random)
+    selector.add(listOf(initialState))
+    return selector
+}
+
 /**
  * Wraps the selector into an [ExceptionPropagationPathSelector] if [propagateExceptions] is true.
  */
-private fun <State : UState<*, *, *, *, State>> UPathSelector<State>.wrapIfRequired(propagateExceptions: Boolean) =
+private fun <State : UState<*, *, *, *, *, State>> UPathSelector<State>.wrapIfRequired(propagateExceptions: Boolean) =
     if (propagateExceptions && this !is ExceptionPropagationPathSelector<State>) {
         ExceptionPropagationPathSelector(this)
     } else {
         this
     }
 
-private fun <State : UState<*, *, *, *, State>> compareById(): Comparator<State> = compareBy { it.id }
+private fun <State : UState<*, *, *, *, *, *, State>> compareById(): Comparator<State> = compareBy { it.id }
 
-private fun <State : UState<*, *, *, *, State>> createDepthPathSelector(random: Random? = null): UPathSelector<State> {
+private fun <State : UState<*, *, *, *, *, *, State>> createDepthPathSelector(random: Random? = null): UPathSelector<State> {
     if (random == null) {
         return WeightedPathSelector(
             priorityCollectionFactory = { DeterministicPriorityCollection(Comparator.naturalOrder()) },
@@ -111,33 +122,33 @@ private fun <State : UState<*, *, *, *, State>> createDepthPathSelector(random: 
     )
 }
 
-private fun <Method, Statement, State : UState<*, Method, Statement, *, State>> createClosestToUncoveredPathSelector(
+private fun <Method, Statement, State : UState<*, Method, Statement, *, *, State>> createClosestToUncoveredPathSelector(
     coverageStatistics: CoverageStatistics<Method, Statement, State>,
     distanceStatistics: DistanceStatistics<Method, Statement>,
     random: Random? = null,
 ): UPathSelector<State> {
-    val weighter = ShortestDistanceToTargetsStateWeighter<_, _, State>(
+    val distanceCalculator = RoughIterprocShortestDistanceCalculator(
         targets = coverageStatistics.getUncoveredStatements(),
         getCfgDistance = distanceStatistics::getShortestCfgDistance,
         getCfgDistanceToExitPoint = distanceStatistics::getShortestCfgDistanceToExitPoint
     )
 
-    coverageStatistics.addOnCoveredObserver { _, method, statement -> weighter.removeTarget(method, statement) }
+    coverageStatistics.addOnCoveredObserver { _, method, statement -> distanceCalculator.removeTarget(method, statement) }
 
     if (random == null) {
         return WeightedPathSelector(
             priorityCollectionFactory = { DeterministicPriorityCollection(Comparator.naturalOrder()) },
-            weighter = weighter
+            weighter = { distanceCalculator.calculateDistance(it.currentStatement, it.callStack) }
         )
     }
 
     return WeightedPathSelector(
         priorityCollectionFactory = { RandomizedPriorityCollection(compareById()) { random.nextDouble() } },
-        weighter = { 1.0 / max(weighter.weight(it).toDouble(), 1.0) }
+        weighter = { 1.0 / max(distanceCalculator.calculateDistance(it.currentStatement, it.callStack).toDouble(), 1.0) }
     )
 }
 
-private fun <Method, Statement, State : UState<*, Method, Statement, *, State>> createForkDepthPathSelector(
+private fun <Method, Statement, State : UState<*, Method, Statement, *, *, State>> createForkDepthPathSelector(
     random: Random? = null,
 ): UPathSelector<State> {
     if (random == null) {
@@ -150,5 +161,37 @@ private fun <Method, Statement, State : UState<*, Method, Statement, *, State>> 
     return WeightedPathSelector(
         priorityCollectionFactory = { RandomizedPriorityCollection(compareById()) { random.nextDouble() } },
         weighter = { 1.0 / max(it.pathLocation.depth.toDouble(), 1.0) }
+    )
+}
+
+internal fun <Method, Statement, Target : UTarget<Method, Statement, Target, State>, State : UState<*, *, Method, Statement, *, Target, State>> createClosestToTargetsPathSelector(
+    distanceStatistics: DistanceStatistics<Method, Statement>,
+    random: Random? = null,
+): UPathSelector<State> {
+    val distanceCalculator = DynamicTargetsShortestDistanceCalculator<Method, Statement, UInt> { m, s ->
+        RoughIterprocShortestDistanceCalculator(
+            targets = listOf(m to s),
+            getCfgDistance = distanceStatistics::getShortestCfgDistance,
+            getCfgDistanceToExitPoint = distanceStatistics::getShortestCfgDistanceToExitPoint
+        )
+    }
+
+    fun calculateDistanceToTargets(state: State) = distanceCalculator.calculateDistance(
+        state.currentStatement,
+        state.callStack,
+        state.targets.map { it.location }.toList(),
+        folder = { if (it.isNotEmpty()) it.min() else UInt.MAX_VALUE }
+    )
+
+    if (random == null) {
+        return WeightedPathSelector(
+            priorityCollectionFactory = { DeterministicPriorityCollection(Comparator.naturalOrder()) },
+            weighter = ::calculateDistanceToTargets
+        )
+    }
+
+    return WeightedPathSelector(
+        priorityCollectionFactory = { RandomizedPriorityCollection(compareById()) { random.nextDouble() } },
+        weighter = { 1.0 / max(calculateDistanceToTargets(it).toDouble(), 1.0) }
     )
 }

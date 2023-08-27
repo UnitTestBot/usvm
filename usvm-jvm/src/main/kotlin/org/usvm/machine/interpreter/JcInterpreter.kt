@@ -39,6 +39,7 @@ import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UInterpreter
 import org.usvm.api.allocate
+import org.usvm.api.targets.JcTarget
 import org.usvm.api.typeStreamOf
 import org.usvm.machine.JcApplicationGraph
 import org.usvm.machine.JcContext
@@ -79,8 +80,8 @@ class JcInterpreter(
         val logger = object : KLogging() {}.logger
     }
 
-    fun getInitialState(method: JcMethod): JcState {
-        val state = JcState(ctx)
+    fun getInitialState(method: JcMethod, targets: List<JcTarget> = emptyList()): JcState {
+        val state = JcState(ctx, targets = targets)
         state.newStmt(JcMethodEntrypointInst(method))
 
         val typedMethod = with(applicationGraph) { method.typed }

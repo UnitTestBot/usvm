@@ -1,14 +1,12 @@
 package org.usvm.ps
 
 import io.mockk.every
-import io.mockk.mockk
 import org.junit.jupiter.api.Test
-import org.usvm.TestState
 import org.usvm.UCallStack
 import kotlin.test.assertEquals
 
 @OptIn(ExperimentalUnsignedTypes::class)
-internal class ShortestDistanceToTargetsStateWeighterTests {
+internal class RoughIterprocShortestDistanceCalculatorTests {
 
     private val methodAShortestDistanceMatrix = arrayOf(
         uintArrayOf(),
@@ -56,27 +54,25 @@ internal class ShortestDistanceToTargetsStateWeighterTests {
             }
         }
 
-        val weighter = ShortestDistanceToTargetsStateWeighter<_, _, TestState>(
+        val calculator = RoughIterprocShortestDistanceCalculator(
             setOf("A" to 2, "A" to 3, "A" to 4, "A" to 5, "A" to 6),
             ::getCfgDistance
         ) { _, _ -> 1u }
 
-        val mockState = mockk<TestState>()
-        every { mockState.currentStatement } returns 1
+        val currentStatement = 1
         val callStack = UCallStack<String, Int>("A")
-        every { mockState.callStack } returns callStack
 
-        assertEquals(1u, weighter.weight(mockState))
-        weighter.removeTarget("A", 2)
-        assertEquals(1u, weighter.weight(mockState))
-        weighter.removeTarget("A", 4)
-        assertEquals(2u, weighter.weight(mockState))
-        weighter.removeTarget("A", 3)
-        assertEquals(3u, weighter.weight(mockState))
-        weighter.removeTarget("A", 5)
-        assertEquals(7u, weighter.weight(mockState))
-        weighter.removeTarget("A", 6)
-        assertEquals(UInt.MAX_VALUE, weighter.weight(mockState))
+        assertEquals(1u, calculator.calculateDistance(currentStatement, callStack))
+        calculator.removeTarget("A", 2)
+        assertEquals(1u, calculator.calculateDistance(currentStatement, callStack))
+        calculator.removeTarget("A", 4)
+        assertEquals(2u, calculator.calculateDistance(currentStatement, callStack))
+        calculator.removeTarget("A", 3)
+        assertEquals(3u, calculator.calculateDistance(currentStatement, callStack))
+        calculator.removeTarget("A", 5)
+        assertEquals(7u, calculator.calculateDistance(currentStatement, callStack))
+        calculator.removeTarget("A", 6)
+        assertEquals(UInt.MAX_VALUE, calculator.calculateDistance(currentStatement, callStack))
     }
 
     @Test
@@ -89,45 +85,43 @@ internal class ShortestDistanceToTargetsStateWeighterTests {
             return shortestDistances.getValue(method)[from][0]
         }
 
-        val mockState = mockk<TestState>()
+        var currentStatment = 3
         val callStack = UCallStack<String, Int>("A")
         callStack.push("B", 3)
         callStack.push("C", 2)
-        every { mockState.currentStatement } returns 3
-        every { mockState.callStack } returns callStack
 
-        val weighter =
-            ShortestDistanceToTargetsStateWeighter<_, _, TestState>(setOf("C" to 4), ::getCfgDistance, ::getCfgDistanceToExitPoint)
-        assertEquals(10u, weighter.weight(mockState))
+        val calculator =
+            RoughIterprocShortestDistanceCalculator(setOf("C" to 4), ::getCfgDistance, ::getCfgDistanceToExitPoint)
+        assertEquals(10u, calculator.calculateDistance(currentStatment, callStack))
 
-        weighter.removeTarget("C", 4)
-        weighter.addTarget("A", 2)
-        assertEquals(7u, weighter.weight(mockState))
+        calculator.removeTarget("C", 4)
+        calculator.addTarget("A", 2)
+        assertEquals(7u, calculator.calculateDistance(currentStatment, callStack))
 
-        weighter.addTarget("C", 4)
-        assertEquals(7u, weighter.weight(mockState))
+        calculator.addTarget("C", 4)
+        assertEquals(7u, calculator.calculateDistance(currentStatment, callStack))
 
-        weighter.addTarget("B", 3)
-        assertEquals(5u, weighter.weight(mockState))
+        calculator.addTarget("B", 3)
+        assertEquals(5u, calculator.calculateDistance(currentStatment, callStack))
 
-        weighter.addTarget("C", 1)
-        assertEquals(3u, weighter.weight(mockState))
+        calculator.addTarget("C", 1)
+        assertEquals(3u, calculator.calculateDistance(currentStatment, callStack))
 
         callStack.pop()
-        every { mockState.currentStatement } returns 5
-        assertEquals(UInt.MAX_VALUE, weighter.weight(mockState))
+        currentStatment = 5
+        assertEquals(UInt.MAX_VALUE, calculator.calculateDistance(currentStatment, callStack))
 
         callStack.pop()
-        every { mockState.currentStatement } returns 2
-        assertEquals(0u, weighter.weight(mockState))
+        currentStatment = 2
+        assertEquals(0u, calculator.calculateDistance(currentStatment, callStack))
 
-        weighter.removeTarget("A", 2)
-        assertEquals(UInt.MAX_VALUE, weighter.weight(mockState))
+        calculator.removeTarget("A", 2)
+        assertEquals(UInt.MAX_VALUE, calculator.calculateDistance(currentStatment, callStack))
 
         callStack.push("C", 1)
         callStack.push("C", 1)
-        every { mockState.currentStatement } returns 2
-        assertEquals(2u, weighter.weight(mockState))
+        currentStatment = 2
+        assertEquals(2u, calculator.calculateDistance(currentStatment, callStack))
     }
 
 }

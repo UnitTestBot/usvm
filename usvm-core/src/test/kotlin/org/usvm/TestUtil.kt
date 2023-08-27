@@ -1,5 +1,8 @@
 package org.usvm
 
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.spyk
 import org.usvm.constraints.UPathConstraints
 import org.usvm.memory.UMemory
 import org.usvm.memory.USymbolicCollectionKeyInfo
@@ -26,12 +29,20 @@ internal fun pseudoRandom(i: Int): Int {
     return res
 }
 
+internal class TestTarget(method: String, offset: Int) : UTarget<String, TestInstruction, TestTarget, TestState>(method, TestInstruction(method, offset)) {
+    fun reach(state: TestState) {
+        visit(state)
+    }
+}
+
 internal class TestState(
     ctx: UContext,
-    callStack: UCallStack<String, Int>, pathConstraints: UPathConstraints<Any, UContext>,
-    memory: UMemory<Any, String>, models: List<UModelBase<Any>>,
-    pathLocation: PathsTrieNode<TestState, Int>,
-) : UState<Any, String, Int, UContext, TestState>(ctx, callStack, pathConstraints, memory, models, pathLocation) {
+    callStack: UCallStack<String, TestInstruction>, pathConstraints: UPathConstraints<Any, UContext>,
+    memory: UMemoryBase<Any, Any, String>, models: List<UModelBase<Any, Any>>,
+    pathLocation: PathsTrieNode<TestState, TestInstruction>,
+    targetTrees: List<TestTarget> = emptyList()
+) : UState<Any, String, TestInstruction, UContext, TestTarget, TestState>(ctx, callStack, pathConstraints, memory, models, pathLocation, targetTrees) {
+
     override fun clone(newConstraints: UPathConstraints<Any, UContext>?): TestState = this
 
     override val isExceptional = false
@@ -51,4 +62,12 @@ interface TestKeyInfo<T, Reg : Region<Reg>> : USymbolicCollectionKeyInfo<T, Reg>
     override fun keyRangeRegion(from: T, to: T): Reg = shouldNotBeCalled()
     override fun topRegion(): Reg = shouldNotBeCalled()
     override fun bottomRegion(): Reg = shouldNotBeCalled()
+}
+
+internal fun mockState(id: StateId, currentLocation: TestInstruction, callStack: UCallStack<String, TestInstruction>, targets: List<TestTarget>): TestState {
+    val ctxMock = mockk<UContext>()
+    every { ctxMock.getNextStateId() } returns id
+    val spyk = spyk(TestState(ctxMock, callStack, mockk(), mockk(), emptyList(), mockk(), targets))
+    every { spyk.currentStatement } returns currentLocation
+    return spyk
 }

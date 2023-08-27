@@ -5,21 +5,15 @@ import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcMethod
 import org.jacodb.api.cfg.JcInst
 import org.jacodb.api.ext.methods
-import org.usvm.CoverageZone
-import org.usvm.UMachine
-import org.usvm.UMachineOptions
+import org.usvm.*
+import org.usvm.api.targets.JcTarget
 import org.usvm.machine.interpreter.JcInterpreter
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.lastStmt
 import org.usvm.ps.createPathSelector
-import org.usvm.statistics.CompositeUMachineObserver
-import org.usvm.statistics.CoverageStatistics
-import org.usvm.statistics.CoveredNewStatesCollector
-import org.usvm.statistics.DistanceStatistics
-import org.usvm.statistics.TerminatedStateRemover
-import org.usvm.statistics.TransitiveCoverageZoneObserver
-import org.usvm.statistics.UMachineObserver
+import org.usvm.ps.createTargetReproductionPathSelector
+import org.usvm.statistics.*
 import org.usvm.stopstrategies.createStopStrategy
 
 val logger = object : KLogging() {}.logger
@@ -38,9 +32,7 @@ class JcMachine(
 
     private val distanceStatistics = DistanceStatistics(applicationGraph)
 
-    fun analyze(
-        method: JcMethod
-    ): List<JcState> {
+    fun analyze(method: JcMethod): List<JcState> {
         logger.debug("$this.analyze($method)")
         val initialState = interpreter.getInitialState(method)
 
@@ -97,6 +89,37 @@ class JcMachine(
             observer = CompositeUMachineObserver(observers),
             isStateTerminated = ::isStateTerminated,
             stopStrategy = stopStrategy,
+        )
+
+        return statesCollector.collectedStates
+    }
+
+    fun reproduceTargets(
+        method: JcMethod,
+        targets: List<JcTarget>,
+        options: TargetReproductionOptions = TargetReproductionOptions()
+    ): List<JcState> {
+        logger.debug("$this.reproduceTargets($method)")
+        val initialState = interpreter.getInitialState(method, targets)
+        val pathSelector = createTargetReproductionPathSelector(initialState, options, distanceStatistics)
+
+        // TODO: gracefully remove
+        targets.forEach { ctx.jcInterpreterObservers += it }
+
+        val statesCollector = TargetsReachedStatesCollector<JcState>()
+        val observers = mutableListOf(
+            statesCollector,
+            TerminatedStateRemover()
+        )
+        observers.addAll(targets)
+
+        run(
+            interpreter,
+            pathSelector,
+            observer = CompositeUMachineObserver(observers),
+            isStateTerminated = ::isStateTerminated,
+            // TODO: configure
+            stopStrategy = { false },
         )
 
         return statesCollector.collectedStates
