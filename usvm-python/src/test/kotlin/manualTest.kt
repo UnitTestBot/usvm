@@ -22,9 +22,8 @@ import java.io.File
 private fun buildSampleRunConfig(): RunConfig {
     val (program, typeSystem) = constructPrimitiveProgram(
         """ 
-        def f(x: list):
-            s = sum(x)
-            assert s == 10
+        def f(x):
+            return [10] * x
 
         """.trimIndent()
     )
