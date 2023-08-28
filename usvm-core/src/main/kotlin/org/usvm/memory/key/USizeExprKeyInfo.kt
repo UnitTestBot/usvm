@@ -21,10 +21,10 @@ object USizeExprKeyInfo : USymbolicCollectionKeyInfo<USizeExpr, USizeRegion> {
     override fun eqConcrete(key1: USizeExpr, key2: USizeExpr): Boolean =
         key1 === key2
 
-    override fun cmpSymbolic(ctx: UContext, key1: USizeExpr, key2: USizeExpr): UBoolExpr =
+    override fun cmpSymbolicLe(ctx: UContext, key1: USizeExpr, key2: USizeExpr): UBoolExpr =
         ctx.mkBvSignedLessOrEqualExpr(key1, key2)
 
-    override fun cmpConcrete(key1: USizeExpr, key2: USizeExpr): Boolean =
+    override fun cmpConcreteLe(key1: USizeExpr, key2: USizeExpr): Boolean =
         key1 == key2 || (key1 is UConcreteSize && key2 is UConcreteSize && key1.numberValue <= key2.numberValue)
 
     override fun keyToRegion(key: USizeExpr) =

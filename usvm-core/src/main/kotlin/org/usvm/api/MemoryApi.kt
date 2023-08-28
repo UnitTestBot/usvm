@@ -71,7 +71,7 @@ fun <ArrayType, Sort : USort> UWritableMemory<*>.memcpy(
     fromDst: USizeExpr,
     length: USizeExpr,
 ) {
-    val toDst = srcRef.ctx.mkBvAddExpr(fromDst, length)
+    val toDst = with(srcRef.uctx) { mkBvAddExpr(fromDst, mkBvSubExpr(length, mkSizeExpr(1))) }
     memcpy(srcRef, dstRef, type, elementSort, fromSrc, fromDst, toDst, guard = srcRef.ctx.trueExpr)
 }
 

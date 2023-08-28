@@ -50,15 +50,15 @@ abstract class USymbolicArrayCopyAdapter<SrcKey, DstKey>(
         dstFromIdx: USizeExpr,
         srcFromIdx: USizeExpr
     ): USizeExpr = with(ctx) {
-        mkBvSubExpr(mkBvAddExpr(idx, dstFromIdx), srcFromIdx)
+        mkBvAddExpr(mkBvSubExpr(idx, dstFromIdx), srcFromIdx)
     }
 
     override fun includesConcretely(key: DstKey): Boolean =
-        keyInfo.cmpConcrete(dstFrom, key) && keyInfo.cmpConcrete(key, dstTo)
+        keyInfo.cmpConcreteLe(dstFrom, key) && keyInfo.cmpConcreteLe(key, dstTo)
 
     override fun includesSymbolically(key: DstKey): UBoolExpr {
-        val leftIsLefter = keyInfo.cmpSymbolic(ctx, dstFrom, key)
-        val rightIsRighter = keyInfo.cmpSymbolic(ctx, key, dstTo)
+        val leftIsLefter = keyInfo.cmpSymbolicLe(ctx, dstFrom, key)
+        val rightIsRighter = keyInfo.cmpSymbolicLe(ctx, key, dstTo)
         val ctx = leftIsLefter.ctx
 
         return ctx.mkAnd(leftIsLefter, rightIsRighter)

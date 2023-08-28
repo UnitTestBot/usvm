@@ -30,14 +30,14 @@ object USymbolicArrayIndexKeyInfo: USymbolicCollectionKeyInfo<USymbolicArrayInde
     override fun eqConcrete(key1: USymbolicArrayIndex, key2: USymbolicArrayIndex): Boolean =
         UHeapRefKeyInfo.eqConcrete(key1.first, key2.first) && USizeExprKeyInfo.eqConcrete(key1.second, key2.second)
 
-    override fun cmpSymbolic(ctx: UContext, key1: USymbolicArrayIndex, key2: USymbolicArrayIndex): UBoolExpr =
+    override fun cmpSymbolicLe(ctx: UContext, key1: USymbolicArrayIndex, key2: USymbolicArrayIndex): UBoolExpr =
         with(ctx) {
             UHeapRefKeyInfo.eqSymbolic(ctx, key1.first, key2.first) and
-                    USizeExprKeyInfo.cmpSymbolic(ctx, key1.second, key2.second)
+                    USizeExprKeyInfo.cmpSymbolicLe(ctx, key1.second, key2.second)
         }
 
-    override fun cmpConcrete(key1: USymbolicArrayIndex, key2: USymbolicArrayIndex): Boolean =
-        UHeapRefKeyInfo.eqConcrete(key1.first, key2.first) && USizeExprKeyInfo.cmpConcrete(key1.second, key2.second)
+    override fun cmpConcreteLe(key1: USymbolicArrayIndex, key2: USymbolicArrayIndex): Boolean =
+        UHeapRefKeyInfo.eqConcrete(key1.first, key2.first) && USizeExprKeyInfo.cmpConcreteLe(key1.second, key2.second)
 
     override fun keyToRegion(key: USymbolicArrayIndex) =
         ProductRegion(

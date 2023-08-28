@@ -29,14 +29,14 @@ data class USymbolicMapKeyInfo<KeySort: USort, KeyReg: Region<KeyReg>>(
     override fun eqConcrete(key1: USymbolicMapKey<KeySort>, key2: USymbolicMapKey<KeySort>): Boolean =
         UHeapRefKeyInfo.eqConcrete(key1.first, key2.first) && keyInfo.eqConcrete(key1.second, key2.second)
 
-    override fun cmpSymbolic(ctx: UContext, key1: USymbolicMapKey<KeySort>, key2: USymbolicMapKey<KeySort>): UBoolExpr =
+    override fun cmpSymbolicLe(ctx: UContext, key1: USymbolicMapKey<KeySort>, key2: USymbolicMapKey<KeySort>): UBoolExpr =
         with(ctx) {
             UHeapRefKeyInfo.eqSymbolic(ctx, key1.first, key2.first) and
-                    keyInfo.cmpSymbolic(ctx, key1.second, key2.second)
+                    keyInfo.cmpSymbolicLe(ctx, key1.second, key2.second)
         }
 
-    override fun cmpConcrete(key1: USymbolicMapKey<KeySort>, key2: USymbolicMapKey<KeySort>): Boolean =
-        UHeapRefKeyInfo.eqConcrete(key1.first, key2.first) && keyInfo.cmpConcrete(key1.second, key2.second)
+    override fun cmpConcreteLe(key1: USymbolicMapKey<KeySort>, key2: USymbolicMapKey<KeySort>): Boolean =
+        UHeapRefKeyInfo.eqConcrete(key1.first, key2.first) && keyInfo.cmpConcreteLe(key1.second, key2.second)
 
     override fun keyToRegion(key: USymbolicMapKey<KeySort>) =
         ProductRegion(

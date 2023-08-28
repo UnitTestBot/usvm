@@ -22,13 +22,13 @@ interface USymbolicCollectionKeyInfo<Key, Reg: Region<Reg>> {
      * Returns symbolic expression guaranteeing that [key1] is less or equal to [key2].
      * Assumes that [Key] domain is linearly ordered.
      */
-    fun cmpSymbolic(ctx: UContext, key1: Key, key2: Key): UBoolExpr
+    fun cmpSymbolicLe(ctx: UContext, key1: Key, key2: Key): UBoolExpr
 
     /**
      * Returns if [key1] is less or equal to [key2] in all possible models.
      * Assumes that [Key] domain is linearly ordered.
      */
-    fun cmpConcrete(key1: Key, key2: Key): Boolean
+    fun cmpConcreteLe(key1: Key, key2: Key): Boolean
 
     /**
      * Returns region that over-approximates the possible values of [key].

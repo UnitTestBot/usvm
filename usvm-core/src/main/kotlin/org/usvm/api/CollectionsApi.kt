@@ -35,7 +35,7 @@ object ListCollectionApi {
                 memory.readArrayLength(concreteListRef, listType)
             },
             symbolicMapper = { symbolicListRef ->
-                ensureAtLeasZero(memory.readArrayLength(symbolicListRef, listType))
+                ensureAtLeastZero(memory.readArrayLength(symbolicListRef, listType))
             }
         )
     }
@@ -82,9 +82,9 @@ object ListCollectionApi {
     ): Unit = with(memory.ctx) {
         val currentSize = symbolicListSize(listRef, listType)
 
-        val srcIndex = mkBvAddExpr(index, mkSizeExpr(2))
+        val srcIndex = index
         val indexAfterInsert = mkBvAddExpr(index, mkSizeExpr(1))
-        val lastIndexAfterInsert = mkBvSubExpr(currentSize, mkSizeExpr(1))
+        val lastIndexAfterInsert = currentSize
 
         memory.memcpy(
             srcRef = listRef,
@@ -111,7 +111,7 @@ object ListCollectionApi {
     ): Unit = with(memory.ctx) {
         val currentSize = symbolicListSize(listRef, listType)
 
-        val firstIndexAfterRemove = mkBvSubExpr(index, mkSizeExpr(1))
+        val firstIndexAfterRemove = mkBvAddExpr(index, mkSizeExpr(1))
         val lastIndexAfterRemove = mkBvSubExpr(currentSize, mkSizeExpr(2))
 
         memory.memcpy(
@@ -170,7 +170,7 @@ object ObjectMapCollectionApi {
                 memory.read(USymbolicMapLengthRef(concreteMapRef, mapType))
             },
             symbolicMapper = { symbolicMapRef ->
-                ensureAtLeasZero(memory.read(USymbolicMapLengthRef(symbolicMapRef, mapType)))
+                ensureAtLeastZero(memory.read(USymbolicMapLengthRef(symbolicMapRef, mapType)))
             }
         )
     }
@@ -253,5 +253,5 @@ object ObjectMapCollectionApi {
     }
 }
 
-private fun UContext.ensureAtLeasZero(expr: USizeExpr): USizeExpr =
+private fun UContext.ensureAtLeastZero(expr: USizeExpr): USizeExpr =
     mkIte(mkBvSignedGreaterOrEqualExpr(expr, mkSizeExpr(0)), expr, mkSizeExpr(0))

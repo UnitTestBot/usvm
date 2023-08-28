@@ -38,7 +38,7 @@ class HeapMemCpyTest {
         val srcFrom = 4
         val dstFrom = 3
         val srcTo = array.size
-        val dstTo = srcTo
+        val dstTo = dstFrom + (srcTo - srcFrom)
         array.copyInto(
             destination = array,
             destinationOffset = dstFrom,
@@ -51,9 +51,9 @@ class HeapMemCpyTest {
             dstRef = ref,
             type = arrayType,
             elementSort = arrayValueSort,
-            fromSrcIdx = ctx.mkSizeExpr(srcFrom - 2),
+            fromSrcIdx = ctx.mkSizeExpr(srcFrom),
             fromDstIdx = ctx.mkSizeExpr(dstFrom),
-            toDstIdx = ctx.mkSizeExpr(dstTo - 2),
+            toDstIdx = ctx.mkSizeExpr(dstTo - 1),
             guard = ctx.trueExpr
         )
 
@@ -67,7 +67,7 @@ class HeapMemCpyTest {
         val srcFrom = 3
         val dstFrom = 4
         val srcTo = array.size - 1
-        val dstTo = srcTo
+        val dstTo = dstFrom + (srcTo - srcFrom)
         array.copyInto(
             destination = array,
             destinationOffset = dstFrom,
@@ -80,9 +80,9 @@ class HeapMemCpyTest {
             dstRef = ref,
             type = arrayType,
             elementSort = arrayValueSort,
-            fromSrcIdx = ctx.mkSizeExpr(srcFrom + 2),
+            fromSrcIdx = ctx.mkSizeExpr(srcFrom),
             fromDstIdx = ctx.mkSizeExpr(dstFrom),
-            toDstIdx = ctx.mkSizeExpr(dstTo),
+            toDstIdx = ctx.mkSizeExpr(dstTo - 1),
             guard = ctx.trueExpr
         )
 

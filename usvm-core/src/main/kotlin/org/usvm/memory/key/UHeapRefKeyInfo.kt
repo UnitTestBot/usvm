@@ -20,10 +20,10 @@ object UHeapRefKeyInfo : USymbolicCollectionKeyInfo<UHeapRef, UHeapRefRegion> {
     override fun eqConcrete(key1: UHeapRef, key2: UHeapRef): Boolean =
         key1 == key2
 
-    override fun cmpSymbolic(ctx: UContext, key1: UHeapRef, key2: UHeapRef): UBoolExpr =
+    override fun cmpSymbolicLe(ctx: UContext, key1: UHeapRef, key2: UHeapRef): UBoolExpr =
         error("Heap references should not be compared!")
 
-    override fun cmpConcrete(key1: UHeapRef, key2: UHeapRef): Boolean =
+    override fun cmpConcreteLe(key1: UHeapRef, key2: UHeapRef): Boolean =
         error("Heap references should not be compared!")
 
     override fun keyToRegion(key: UHeapRef) =
