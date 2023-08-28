@@ -9,7 +9,6 @@ import org.usvm.memory.ULValue
 import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UMemoryRegionId
 import org.usvm.memory.USymbolicCollectionKeyInfo
-import org.usvm.memory.UWritableMemory
 import org.usvm.uctx
 import org.usvm.util.Region
 
@@ -54,18 +53,4 @@ interface USetRegion<SetType, KeySort : USort, Reg : Region<Reg>> :
         keyInfo: USymbolicCollectionKeyInfo<UExpr<KeySort>, Reg>,
         guard: UBoolExpr,
     ): USetRegion<SetType, KeySort, Reg>
-}
-
-internal fun <SetType, KeySort : USort, Reg : Region<Reg>> UWritableMemory<*>.setUnion(
-    srcRef: UHeapRef,
-    dstRef: UHeapRef,
-    type: SetType,
-    keySort: KeySort,
-    keyInfo: USymbolicCollectionKeyInfo<UExpr<KeySort>, Reg>,
-    guard: UBoolExpr,
-) {
-    val regionId = USetRegionId(keySort, type, keyInfo)
-    val region = getRegion(regionId) as USetRegion<SetType, KeySort, Reg>
-    val newRegion = region.union(srcRef, dstRef, type, keySort, keyInfo, guard)
-    setRegion(regionId, newRegion)
 }

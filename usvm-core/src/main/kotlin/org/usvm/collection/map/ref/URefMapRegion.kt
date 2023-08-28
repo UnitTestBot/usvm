@@ -13,7 +13,6 @@ import org.usvm.memory.ULValue
 import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UMemoryRegionId
 import org.usvm.memory.USymbolicCollection
-import org.usvm.memory.UWritableMemory
 import org.usvm.memory.foldHeapRef
 import org.usvm.memory.guardedWrite
 import org.usvm.memory.map
@@ -479,18 +478,4 @@ internal class URefMapMemoryRegion<MapType, ValueSort : USort>(
 //        val srcValue = readSymbolicRefMap(descriptor, srcRef, keyRef)
 //        writeSymbolicRefMap(descriptor, dstRef, keyRef, srcValue, keyMergeGuard)
 //    }
-}
-
-fun <MapType, ValueSort : USort> UWritableMemory<*>.refMapMerge(
-    srcRef: UHeapRef,
-    dstRef: UHeapRef,
-    mapType: MapType,
-    sort: ValueSort,
-    keySet: USetRegionId<MapType, UAddressSort, *>,
-    guard: UBoolExpr
-) {
-    val regionId = URefMapRegionId(sort, mapType)
-    val region = getRegion(regionId) as URefMapRegion<MapType, ValueSort>
-    val newRegion = region.merge(srcRef, dstRef, mapType, sort, keySet, guard)
-    setRegion(regionId, newRegion)
 }
