@@ -1,58 +1,240 @@
 # API between patched CPython and USVM
 
-All constants are defined in header `SYMBOLIC_API.h`.
-
 Current CPython patch: https://github.com/tochilinak/cpython/pull/3/files.
 
-## Handler signature
+## SymbolicAdapter
+
+All interaction between CPython and USVM is done through structure `SymbolicAdapter`.
+
+Header: `symbolicadapter.h`.
+
+Creation of symbolic adapter:
+```c
+SymbolicAdapter *create_new_adapter(void *param);
+```
+
+`param` is a parameter that will be accessible in all symbolic handlers.
+
+Run function with symbolic tracing:
+```c
+PyObject *SymbolicAdapter_run(PyObject *self, PyObject *function, Py_ssize_t n, PyObject *const *args, runnable before_call, runnable after_call);
+```
+
+- `self`: pointer to SymbolicAdapter.
+- `function`: function to run (only `PyFunction` is supported).
+- `n`: number of arguments.
+- `args` must be an array of tuples of size 2 (concrete and symbolic value for each argument).
+- `before_call`: function to call right before execution.
+- `after_call`: function to call right after execution.
+
+## Handlers of SymbolicAdapter
+
+Each of the following functions has a default implementation that does nothing, so any of them can be omitted.
+
+All handlers accept `param` from `create_new_adapter` function as their first argument.
+
+### Expected return value of handlers
+
+If return value of handler is `int`:
+
+- 0 on success
+
+- Anything else if an error has happened (exception must be set).
+
+If return value of handler is `PyObject *`:
+
+- Symbolic object on success (or `Py_None` if it is absent).
+
+- 0 if an error has happened (exception must be set).
+
+### instruction
+
+```c
+int (*instruction)(void *, PyFrameObject *frame);
+```
+
+Notifies that a new byte code instruction is about to be executed.
+
+### fork_notify
+
+```c
+int (*fork_notify)(void *, PyObject *on);
+```
+
+Notifies that execution is about to fork on symbolic object `on`.
+
+### fork_result
+
+```c
+int (*fork_result)(void *, PyObject *on, int result);
+```
+
+Notifies that the result of the fork on `on` is `result`.
+
+### function_call
 
 ```
-PyObject *handler(int event_type, int event_id, int nargs, PyObject *const *args, void *param)
+int (*function_call)(void *, PyObject *code);
 ```
 
-Handler might always return `Py_None`.
+Notifies that `code` is about to be executed.
 
-## Event types
+### function_return
 
-| event type              | Description                                                           |         Expected return type         |
-|-------------------------|-----------------------------------------------------------------------|:------------------------------------:|
-| `SYM_EVENT_TYPE_STACK`  | Asks for symbolic values that should be put on the interpreter stack. |               `tuple`                |
-| `SYM_EVENT_TYPE_NOTIFY` | Notifies about some action.                                           | Must return `0` or `None` on success |
-| `SYM_EVENT_TYPE_METHOD` | Asks for result of some standard operation.                           |             `PyObject *`             |
+```
+int (*function_return)(void *, PyObject *code);
+```
 
-## `SYM_EVENT_TYPE_STACK` events list
+Notifies that execution is about to return from `code`.
 
-For all events empty list may be given as a return value.
+### unpack
 
-|          event id          | Arguments                                      |   Expected return tuple   |
-|:--------------------------:|:-----------------------------------------------|:-------------------------:|
-| `SYM_EVENT_ID_CREATE_LIST` | Symbolic contents of the list (as Python list) |    `(symbolic_list,)`     |
-|    `SYM_EVENT_ID_CONST`    | Python constant                                |  `(constant_as_symbol,)`  |
+```
+int (*unpack)(void *, PyObject *iterable, int count);
+```
 
-## `SYM_EVENT_TYPE_NOTIFY` events list
+Notifies that `iterable` is about to be unpacked into `count` elements on the interpreter stack.
 
-|              event id               | Arguments                                                                                        |
-|:-----------------------------------:|:-------------------------------------------------------------------------------------------------|
-|     `SYM_EVENT_ID_INSTRUCTION`      | One argument: `PyFrameObject*`, frame that is about to execute next instruction.                 |
-|         `SYM_EVENT_ID_FORK`         | One argument: `PyObject*` inside `if` condition.                                                 |
-|     `SYM_EVENT_ID_FORK_RESULT`      | One argument: `Py_True` or `Py_False`. Result of concrete condition. Closes `SYM_EVENT_ID_FORK`. |
-| `SYM_EVENT_ID_PYTHON_FUNCTION_CALL` | One argument: `PyFunctionObject*` to be called.                                                  |
-|        `SYM_EVENT_ID_RETURN`        | No arguments.                                                                                    |
+### load_const
 
-## `SYM_EVENT_TYPE_METHOD` events list
+```
+PyObject *(*load_const)(void *, PyObject *obj);
+```
 
-|          event id           | Arguments                                  |  Operation  |
-|:---------------------------:|:-------------------------------------------|:-----------:|
-|    `SYM_EVENT_ID_INT_GT`    | 2 arguments: integer operands              |     `>`     |
-|    `SYM_EVENT_ID_INT_LT`    | 2 arguments: integer operands              |     `<`     |
-|    `SYM_EVENT_ID_INT_EQ`    | 2 arguments: integer operands              |    `==`     |
-|    `SYM_EVENT_ID_INT_NE`    | 2 arguments: integer operands              |    `!=`     |
-|    `SYM_EVENT_ID_INT_GE`    | 2 arguments: integer operands              |    `>=`     |
-|    `SYM_EVENT_ID_INT_LE`    | 2 arguments: integer operands              |    `<=`     |
-|   `SYM_EVENT_ID_INT_ADD`    | 2 arguments: integer operands              |     `+`     |
-|   `SYM_EVENT_ID_INT_SUB`    | 2 arguments: integer operands              |     `-`     |
-|   `SYM_EVENT_ID_INT_NEG`    | 1 argument: integer operand                | `-` (unary) |
-|   `SYM_EVENT_ID_INT_MULT`   | 2 arguments: integer operands              |     `*`     |
-|   `SYM_EVENT_ID_INT_REM`    | 2 arguments: integer operands              |     `%`     |
-| `SYM_EVENT_ID_INT_FLOORDIV` | 2 arguments: integer operands              |    `//`     |
-|   `SYM_EVENT_ID_INT_POW`    | %0: `int`, %1: `int`, %2: `None` (for now) |    `**`     |
+Asks for symbolic representation of constant `obj`.
+
+### create_list
+
+```
+PyObject *(*create_list)(void *, PyObject **elems);
+```
+
+Asks for symbolic representation of list.
+
+`elems`: symbolic representation of contents. The array ends with `NULL`.
+
+### create_tuple
+
+```c
+PyObject *(*create_tuple)(void *, PyObject **elems);
+```
+
+Like `create_list` but for `tuple`.
+
+### create_range
+
+```c
+PyObject *(*create_range)(void *, PyObject *start, PyObject *stop, PyObject *step);
+```
+
+Asks for symbolic representation of `range` object.
+
+`start`, `stop` and `step` are symbolic representations of range parameters.
+
+### gt_long
+
+```c
+PyObject *(*gt_long)(void *, PyObject *left, PyObject *right);
+```
+
+`>` operation on symbolic integers `left` and `right`.
+
+### lt_long
+
+```c
+PyObject *(*lt_long)(void *, PyObject *left, PyObject *right);
+```
+
+`<` operation on symbolic integers `left` and `right`.
+
+### eq_long
+
+```c
+PyObject *(*eq_long)(void *, PyObject *left, PyObject *right);
+```
+
+`==` operation on symbolic integers `left` and `right`.
+
+### ne_long
+
+```c
+PyObject *(*ne_long)(void *, PyObject *left, PyObject *right);
+```
+
+`!=` operation on symbolic integers `left` and `right`.
+
+### le_long
+
+```c
+PyObject *(*le_long)(void *, PyObject *left, PyObject *right);
+```
+
+`<=` operation on symbolic integers `left` and `right`.
+
+### ge_long
+
+```c
+PyObject *(*ge_long)(void *, PyObject *left, PyObject *right);
+```
+
+`>=` operation on symbolic integers `left` and `right`.
+
+### add_long
+
+```c
+PyObject *(*add_long)(void *, PyObject *left, PyObject *right);
+```
+
+`+` operation on symbolic integers `left` and `right`.
+
+### sub_long
+
+```c
+PyObject *(*sub_long)(void *, PyObject *left, PyObject *right);
+```
+
+`-` operation on symbolic integers `left` and `right`.
+
+### mul_long
+
+```c
+PyObject *(*mul_long)(void *, PyObject *left, PyObject *right);
+```
+
+`*` operation on symbolic integers `left` and `right`.
+
+### div_long
+
+```c
+PyObject *(*div_long)(void *, PyObject *left, PyObject *right);
+```
+
+`//` operation on symbolic integers `left` and `right`.
+
+### rem_long
+
+```c
+PyObject *(*rem_long)(void *, PyObject *left, PyObject *right);
+```
+
+`%` operation on symbolic integers `left` and `right`.
+
+### (skip)
+
+TODO: `pow_long`, `bool_and`.
+
+### list_get_item
+
+```c
+PyObject *(*list_get_item)(void *, PyObject *storage, PyObject *index);
+```
+
+Operation `storage[index]` (when concrete implementation is `PyList_Type.tp_as_mapping->mp_subscript`).
+
+### list_set_item
+
+```c
+int (*list_set_item)(void *, PyObject *storage, PyObject *index, PyObject *value);
+```
+
+Notifies about `PyList_Type.tp_as_mapping->mp_ass_subscript`. All arguments are symbolic representations.
