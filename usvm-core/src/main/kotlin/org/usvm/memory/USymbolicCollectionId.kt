@@ -31,35 +31,57 @@ interface USymbolicCollectionId<Key, Sort : USort, out CollectionId : USymbolicC
         guard: UBoolExpr,
     )
 
+    /**
+     * Maps keys that belong to this collection using [transformer].
+     * */
     fun <Type> keyMapper(transformer: UTransformer<Type>): KeyTransformer<Key>
 
+    /**
+     * Maps keys that belong to this collection to the collection with [expectedId]
+     * using [transformer].
+     * Filters out keys that don't belong to the collection with [expectedId] after mapping.
+     * */
     fun <Type, MappedKey> keyFilterMapper(
         transformer: UTransformer<Type>,
         expectedId: USymbolicCollectionId<MappedKey, Sort, *>
     ): KeyMapper<Key, MappedKey> {
         val mapper = keyMapper(transformer)
-        return filter@{
-            val transformedKey = mapper(it)
+        return filter@{ currentKey ->
+            val transformedKey = mapper(currentKey)
             val decomposedKey = rebindKey(transformedKey)
 
-            // transformedKey belongs to symbolic collection with expectedId.
-            if (decomposedKey == null) {
-                @Suppress("UNCHECKED_CAST")
-                return@filter transformedKey as MappedKey
-            }
-
-            if (decomposedKey.collectionId != expectedId)
-                return@filter null
-
             @Suppress("UNCHECKED_CAST")
-            return@filter decomposedKey.key as MappedKey
+            return@filter when {
+                // transformedKey belongs to the symbolic collection with expectedId.
+                decomposedKey == null -> transformedKey
+
+                /**
+                 * Transformed key has been rebound to the collection with expectedId.
+                 * For example, the expectedId is UAllocatedFieldId with address 0x1
+                 * and transformedKey has been rebound to the collection with the same id.
+                 * */
+                decomposedKey.collectionId == expectedId -> decomposedKey.key
+
+                /**
+                 * Transformed key has been rebound to the collection with id different from expectedId.
+                 * For example, the expectedId is UAllocatedFieldId with address 0x1
+                 * and transformedKey has been rebound to the UAllocatedFieldId with address 0x2.
+                 * Therefore, the key definitely doesn't belong to the
+                 * collection with expectedId and can be filtered out.
+                 * */
+                else -> null
+            } as MappedKey?
         }
     }
 
+    /**
+     * Maps the collection using [composer].
+     * It is used in [UComposer] for composition operation.
+     */
     fun <Type> map(composer: UComposer<Type>): CollectionId
 
     /**
-     * Checks that [key] still belongs to symbolic collection with this id. If yes, then returns null.
+     * Checks that [key] still belongs to the symbolic collection with this id. If yes, then returns null.
      * If [key] belongs to some new memory region, returns lvalue for this new region.
      * The implementation might assume that [key] is obtained by [keyMapper] from some key of symbolic collection with this id.
      */

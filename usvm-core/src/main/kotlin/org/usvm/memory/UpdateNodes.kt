@@ -218,7 +218,7 @@ class URangedUpdateNode<CollectionId : USymbolicCollectionId<SrcKey, Sort, Colle
         val resultUpdateNode = if (splitCollection === sourceCollection) {
             this
         } else {
-            changeCollection(splitCollection)
+            URangedUpdateNode(splitCollection, adapter, guard)
         }
 
         guardBuilder += nodeExcludesKey
@@ -256,10 +256,6 @@ class URangedUpdateNode<CollectionId : USymbolicCollectionId<SrcKey, Sort, Colle
             mappedGuard
         )
     }
-
-    fun changeCollection(newCollection: USymbolicCollection<CollectionId, SrcKey, Sort>) =
-        URangedUpdateNode(newCollection, adapter, guard)
-
 
     // Ignores update
     override fun equals(other: Any?): Boolean =
