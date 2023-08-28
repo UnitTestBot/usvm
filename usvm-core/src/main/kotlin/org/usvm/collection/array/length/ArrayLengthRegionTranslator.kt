@@ -44,9 +44,8 @@ class UArrayLengthRegionDecoder<ArrayType>(
     override fun decodeLazyRegion(
         model: KModel,
         mapping: Map<UHeapRef, UConcreteHeapRef>
-    ): UMemoryRegion<UArrayLengthLValue<ArrayType>, USizeSort> {
-        return UArrayLengthLazyModelRegion(regionId, model, mapping, inputArrayLengthTranslator)
-    }
+    ): UMemoryRegion<UArrayLengthLValue<ArrayType>, USizeSort> =
+        UArrayLengthLazyModelRegion(regionId, model, mapping, inputArrayLengthTranslator)
 }
 
 private class UInputArrayLengthRegionTranslator<ArrayType>(
@@ -72,9 +71,8 @@ private class UInputArrayLengthRegionTranslator<ArrayType>(
     override fun decodeCollection(
         model: KModel,
         mapping: Map<UHeapRef, UConcreteHeapRef>
-    ): UReadOnlyMemoryRegion<UHeapRef, USizeSort> {
-        return UMemory1DArray(initialValue, model, mapping)
-    }
+    ): UReadOnlyMemoryRegion<UHeapRef, USizeSort> =
+        UMemory1DArray(initialValue, model, mapping)
 }
 
 private class UInputArrayLengthUpdateTranslator(

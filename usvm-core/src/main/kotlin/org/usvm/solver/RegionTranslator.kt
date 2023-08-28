@@ -9,14 +9,13 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
-import org.usvm.memory.UMemoryRegion
+import org.usvm.memory.UMemoryUpdatesVisitor
 import org.usvm.memory.UPinpointUpdateNode
 import org.usvm.memory.URangedUpdateNode
 import org.usvm.memory.UReadOnlyMemoryRegion
-import org.usvm.memory.UUpdateNode
-import org.usvm.memory.UMemoryUpdatesVisitor
 import org.usvm.memory.USymbolicCollection
 import org.usvm.memory.USymbolicCollectionId
+import org.usvm.memory.UUpdateNode
 import org.usvm.uctx
 
 /**
@@ -28,7 +27,7 @@ interface URegionTranslator<CollectionId : USymbolicCollectionId<Key, Sort, Coll
 }
 
 interface URegionDecoder<Key, Sort : USort> {
-    fun decodeLazyRegion(model: KModel, mapping: Map<UHeapRef, UConcreteHeapRef>): UMemoryRegion<Key, Sort>
+    fun decodeLazyRegion(model: KModel, mapping: Map<UHeapRef, UConcreteHeapRef>): UReadOnlyMemoryRegion<Key, Sort>
 }
 
 interface UCollectionDecoder<Key, Sort : USort> {

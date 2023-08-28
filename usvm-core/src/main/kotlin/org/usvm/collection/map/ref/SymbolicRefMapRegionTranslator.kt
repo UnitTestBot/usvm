@@ -76,9 +76,8 @@ class URefMapRegionDecoder<MapType, ValueSort : USort>(
     override fun decodeLazyRegion(
         model: KModel,
         mapping: Map<UHeapRef, UConcreteHeapRef>
-    ): UMemoryRegion<URefMapEntryLValue<MapType, ValueSort>, ValueSort> {
-        return URefMapLazyModelRegion(regionId, model, mapping, inputRegion)
-    }
+    ): UMemoryRegion<URefMapEntryLValue<MapType, ValueSort>, ValueSort> =
+        URefMapLazyModelRegion(regionId, model, mapping, inputRegion)
 }
 
 private class UAllocatedRefMapWithInputKeysTranslator<MapType, ValueSort : USort>(
@@ -148,9 +147,8 @@ private class UInputRefMapTranslator<MapType, ValueSort : USort>(
     override fun decodeCollection(
         model: KModel,
         mapping: Map<UHeapRef, UConcreteHeapRef>
-    ): UReadOnlyMemoryRegion<USymbolicMapKey<UAddressSort>, ValueSort> {
-        return UMemory2DArray(initialValue, model, mapping)
-    }
+    ): UReadOnlyMemoryRegion<USymbolicMapKey<UAddressSort>, ValueSort> =
+        UMemory2DArray(initialValue, model, mapping)
 }
 
 private class UAllocatedRefMapUpdatesTranslator<ValueSort : USort>(

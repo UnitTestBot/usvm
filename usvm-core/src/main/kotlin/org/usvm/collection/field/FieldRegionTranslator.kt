@@ -44,9 +44,8 @@ class UFieldRegionDecoder<Field, Sort : USort>(
     override fun decodeLazyRegion(
         model: KModel,
         mapping: Map<UHeapRef, UConcreteHeapRef>
-    ): UMemoryRegion<UFieldLValue<Field, Sort>, Sort> {
-        return UFieldsLazyModelRegion(regionId, model, mapping, inputRegionTranslator)
-    }
+    ): UMemoryRegion<UFieldLValue<Field, Sort>, Sort> =
+        UFieldsLazyModelRegion(regionId, model, mapping, inputRegionTranslator)
 }
 
 private class UInputFieldRegionTranslator<Field, Sort : USort>(
@@ -71,9 +70,8 @@ private class UInputFieldRegionTranslator<Field, Sort : USort>(
     override fun decodeCollection(
         model: KModel,
         mapping: Map<UHeapRef, UConcreteHeapRef>
-    ): UReadOnlyMemoryRegion<UHeapRef, Sort> {
-        return UMemory1DArray(initialValue, model, mapping)
-    }
+    ): UReadOnlyMemoryRegion<UHeapRef, Sort> =
+        UMemory1DArray(initialValue, model, mapping)
 }
 
 private class UInputFieldUpdateTranslator<Sort : USort>(

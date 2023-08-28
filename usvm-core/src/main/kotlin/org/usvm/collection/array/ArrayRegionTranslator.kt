@@ -64,9 +64,8 @@ class UArrayRegionDecoder<ArrayType, Sort : USort>(
     override fun decodeLazyRegion(
         model: KModel,
         mapping: Map<UHeapRef, UConcreteHeapRef>
-    ): UMemoryRegion<UArrayIndexLValue<ArrayType, Sort>, Sort> {
-        return UArrayLazyModelRegion(regionId, model, mapping, inputRegion)
-    }
+    ): UMemoryRegion<UArrayIndexLValue<ArrayType, Sort>, Sort> =
+        UArrayLazyModelRegion(regionId, model, mapping, inputRegion)
 }
 
 private class UAllocatedArrayRegionTranslator<ArrayType, Sort : USort>(
@@ -114,9 +113,8 @@ private class UInputArrayRegionTranslator<ArrayType, Sort : USort>(
     override fun decodeCollection(
         model: KModel,
         mapping: Map<UHeapRef, UConcreteHeapRef>
-    ): UReadOnlyMemoryRegion<USymbolicArrayIndex, Sort> {
-        return UMemory2DArray(initialValue, model, mapping)
-    }
+    ): UReadOnlyMemoryRegion<USymbolicArrayIndex, Sort> =
+        UMemory2DArray(initialValue, model, mapping)
 }
 
 private class UAllocatedArrayUpdatesTranslator<Sort : USort>(
