@@ -93,3 +93,8 @@ def range_loop(x):
         return 1
 
     return 2
+
+
+def sum_usage(x):
+    s = sum(x)
+    assert s == 10

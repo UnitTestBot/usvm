@@ -183,4 +183,18 @@ class SimpleTypeInferenceTest: PythonTestRunnerForPrimitiveProgram("SimpleTypeIn
             )
         )
     }
+
+    @Test
+    fun testSumUsage() {
+        check1WithConcreteRun(
+            constructFunction("sum_usage", listOf(PythonAnyType)),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { x, res -> x.typeName == "list" && res.selfTypeName == "AssertionError" },
+                { x, res -> x.typeName == "list" && res.repr == "None" }
+            )
+        )
+    }
 }

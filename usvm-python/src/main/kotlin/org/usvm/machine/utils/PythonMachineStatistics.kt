@@ -37,7 +37,7 @@ class PythonMachineStatistics {
     val meanCoverageNoVirtual: Double
         get() = functionStatistics.sumOf { it.coverageNoVirtual } / functionStatistics.size
 
-    private val lostSymbolicValues: Map<MethodDescription, Int>
+    private val lostSymbolicValuesByOverallUsages: Map<MethodDescription, Int>
         get() {
             val map = mutableMapOf<MethodDescription, Int>()
             functionStatistics.forEach { functionStatistics ->
@@ -48,13 +48,26 @@ class PythonMachineStatistics {
             return map
         }
 
+    private val lostSymbolicValuesByNumberOfFunctions: Map<MethodDescription, Int>
+        get() {
+            val map = mutableMapOf<MethodDescription, Int>()
+            functionStatistics.forEach { functionStatistics ->
+                functionStatistics.lostSymbolicValues.forEach {
+                    addWithDefault(map, it.key)
+                }
+            }
+            return map
+        }
+
     fun writeReport(): String {
         val result = StringBuilder()
         result.append("Functions analyzed: ${functionStatistics.size}\n")
         result.append("Mean coverage: $meanCoverage\n")
         result.append("Mean coverage without virtual objects: $meanCoverageNoVirtual\n")
-        result.append("Lost symbolic values:\n")
-        result.append(writeLostSymbolicValuesReport(lostSymbolicValues))
+        result.append("Lost symbolic values (by number of functions):\n")
+        result.append(writeLostSymbolicValuesReport(lostSymbolicValuesByNumberOfFunctions))
+        result.append("Lost symbolic values (by overall usages):\n")
+        result.append(writeLostSymbolicValuesReport(lostSymbolicValuesByOverallUsages))
         return result.toString()
     }
 }
