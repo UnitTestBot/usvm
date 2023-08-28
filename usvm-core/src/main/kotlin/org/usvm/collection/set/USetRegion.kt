@@ -13,38 +13,38 @@ import org.usvm.memory.UWritableMemory
 import org.usvm.uctx
 import org.usvm.util.Region
 
-data class USymbolicSetEntryRef<SetType, KeySort : USort, Reg : Region<Reg>>(
+data class USetEntryLValue<SetType, KeySort : USort, Reg : Region<Reg>>(
     val keySort: KeySort,
     val setRef: UHeapRef,
     val setKey: UExpr<KeySort>,
     val setType: SetType,
     val keyInfo: USymbolicCollectionKeyInfo<UExpr<KeySort>, Reg>
-) : ULValue<USymbolicSetEntryRef<SetType, KeySort, Reg>, UBoolSort> {
+) : ULValue<USetEntryLValue<SetType, KeySort, Reg>, UBoolSort> {
     override val sort: UBoolSort
         get() = keySort.uctx.boolSort
 
-    override val memoryRegionId: UMemoryRegionId<USymbolicSetEntryRef<SetType, KeySort, Reg>, UBoolSort>
-        get() = USymbolicSetRegionId(keySort, setType, keyInfo)
+    override val memoryRegionId: UMemoryRegionId<USetEntryLValue<SetType, KeySort, Reg>, UBoolSort>
+        get() = USetRegionId(keySort, setType, keyInfo)
 
-    override val key: USymbolicSetEntryRef<SetType, KeySort, Reg>
+    override val key: USetEntryLValue<SetType, KeySort, Reg>
         get() = this
 }
 
-data class USymbolicSetRegionId<SetType, KeySort : USort, Reg : Region<Reg>>(
+data class USetRegionId<SetType, KeySort : USort, Reg : Region<Reg>>(
     val keySort: KeySort,
     val setType: SetType,
     val keyInfo: USymbolicCollectionKeyInfo<UExpr<KeySort>, Reg>
-) : UMemoryRegionId<USymbolicSetEntryRef<SetType, KeySort, Reg>, UBoolSort> {
+) : UMemoryRegionId<USetEntryLValue<SetType, KeySort, Reg>, UBoolSort> {
     override val sort: UBoolSort
         get() = keySort.uctx.boolSort
 
-    override fun emptyRegion(): UMemoryRegion<USymbolicSetEntryRef<SetType, KeySort, Reg>, UBoolSort> {
+    override fun emptyRegion(): UMemoryRegion<USetEntryLValue<SetType, KeySort, Reg>, UBoolSort> {
         TODO("Not yet implemented")
     }
 }
 
-interface USymbolicSetRegion<SetType, KeySort : USort, Reg : Region<Reg>> :
-    UMemoryRegion<USymbolicSetEntryRef<SetType, KeySort, Reg>, UBoolSort> {
+interface USetRegion<SetType, KeySort : USort, Reg : Region<Reg>> :
+    UMemoryRegion<USetEntryLValue<SetType, KeySort, Reg>, UBoolSort> {
 
     fun union(
         srcRef: UHeapRef,
@@ -53,10 +53,10 @@ interface USymbolicSetRegion<SetType, KeySort : USort, Reg : Region<Reg>> :
         keySort: KeySort,
         keyInfo: USymbolicCollectionKeyInfo<UExpr<KeySort>, Reg>,
         guard: UBoolExpr,
-    ): USymbolicSetRegion<SetType, KeySort, Reg>
+    ): USetRegion<SetType, KeySort, Reg>
 }
 
-internal fun <SetType, KeySort : USort, Reg : Region<Reg>> UWritableMemory<*>.symbolicSetUnion(
+internal fun <SetType, KeySort : USort, Reg : Region<Reg>> UWritableMemory<*>.setUnion(
     srcRef: UHeapRef,
     dstRef: UHeapRef,
     type: SetType,
@@ -64,8 +64,8 @@ internal fun <SetType, KeySort : USort, Reg : Region<Reg>> UWritableMemory<*>.sy
     keyInfo: USymbolicCollectionKeyInfo<UExpr<KeySort>, Reg>,
     guard: UBoolExpr,
 ) {
-    val regionId = USymbolicSetRegionId(keySort, type, keyInfo)
-    val region = getRegion(regionId) as USymbolicSetRegion<SetType, KeySort, Reg>
+    val regionId = USetRegionId(keySort, type, keyInfo)
+    val region = getRegion(regionId) as USetRegion<SetType, KeySort, Reg>
     val newRegion = region.union(srcRef, dstRef, type, keySort, keyInfo, guard)
     setRegion(regionId, newRegion)
 }

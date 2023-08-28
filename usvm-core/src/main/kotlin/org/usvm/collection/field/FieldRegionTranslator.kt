@@ -25,7 +25,7 @@ import java.util.IdentityHashMap
 class UFieldRegionDecoder<Field, Sort : USort>(
     private val regionId: UFieldsRegionId<Field, Sort>,
     private val exprTranslator: UExprTranslator<*>
-) : URegionDecoder<UFieldRef<Field, Sort>, Sort> {
+) : URegionDecoder<UFieldLValue<Field, Sort>, Sort> {
     private var inputRegionTranslator: UInputFieldRegionTranslator<Field, Sort>? = null
 
     fun inputFieldRegionTranslator(
@@ -44,7 +44,7 @@ class UFieldRegionDecoder<Field, Sort : USort>(
     override fun decodeLazyRegion(
         model: KModel,
         mapping: Map<UHeapRef, UConcreteHeapRef>
-    ): UMemoryRegion<UFieldRef<Field, Sort>, Sort> {
+    ): UMemoryRegion<UFieldLValue<Field, Sort>, Sort> {
         return UFieldsLazyModelRegion(regionId, model, mapping, inputRegionTranslator)
     }
 }

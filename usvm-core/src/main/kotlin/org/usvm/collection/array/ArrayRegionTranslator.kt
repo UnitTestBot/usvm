@@ -31,7 +31,7 @@ import java.util.IdentityHashMap
 class UArrayRegionDecoder<ArrayType, Sort : USort>(
     private val regionId: UArrayRegionId<ArrayType, Sort>,
     private val exprTranslator: UExprTranslator<*>
-) : URegionDecoder<UArrayIndexRef<ArrayType, Sort>, Sort> {
+) : URegionDecoder<UArrayIndexLValue<ArrayType, Sort>, Sort> {
 
     private val allocatedRegions =
         mutableMapOf<UConcreteHeapAddress, UAllocatedArrayRegionTranslator<ArrayType, Sort>>()
@@ -64,7 +64,7 @@ class UArrayRegionDecoder<ArrayType, Sort : USort>(
     override fun decodeLazyRegion(
         model: KModel,
         mapping: Map<UHeapRef, UConcreteHeapRef>
-    ): UMemoryRegion<UArrayIndexRef<ArrayType, Sort>, Sort> {
+    ): UMemoryRegion<UArrayIndexLValue<ArrayType, Sort>, Sort> {
         return UArrayLazyModelRegion(regionId, model, mapping, inputRegion)
     }
 }

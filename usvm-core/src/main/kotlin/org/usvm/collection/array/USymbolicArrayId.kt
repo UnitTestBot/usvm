@@ -61,7 +61,7 @@ class UAllocatedArrayId<ArrayType, Sort : USort> internal constructor(
 
     override fun UContext.mkLValue(
         key: USizeExpr
-    ): ULValue<*, Sort> = UArrayIndexRef(sort, mkConcreteHeapRef(address), key, arrayType)
+    ): ULValue<*, Sort> = UArrayIndexLValue(sort, mkConcreteHeapRef(address), key, arrayType)
 
     override fun <Type> keyMapper(
         transformer: UTransformer<Type>,
@@ -142,7 +142,7 @@ class UInputArrayId<ArrayType, Sort : USort> internal constructor(
 
     override fun UContext.mkLValue(
         key: USymbolicArrayIndex
-    ): ULValue<*, Sort> = UArrayIndexRef(sort, key.first, key.second, arrayType)
+    ): ULValue<*, Sort> = UArrayIndexLValue(sort, key.first, key.second, arrayType)
 
     override fun <Type> keyMapper(
         transformer: UTransformer<Type>,

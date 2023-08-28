@@ -13,39 +13,39 @@ import org.usvm.sampleUValue
 import org.usvm.solver.UCollectionDecoder
 import org.usvm.util.Region
 
-abstract class USymbolicMapModelRegion<MapType, KeySort : USort, ValueSort : USort, Reg : Region<Reg>>(
-    private val regionId: USymbolicMapRegionId<MapType, KeySort, ValueSort, Reg>
-) : USymbolicMapRegion<MapType, KeySort, ValueSort, Reg> {
+abstract class UMapModelRegion<MapType, KeySort : USort, ValueSort : USort, Reg : Region<Reg>>(
+    private val regionId: UMapRegionId<MapType, KeySort, ValueSort, Reg>
+) : UMapRegion<MapType, KeySort, ValueSort, Reg> {
     val defaultValue by lazy { regionId.sort.sampleUValue() }
 
     abstract val inputMap: UReadOnlyMemoryRegion<USymbolicMapKey<KeySort>, ValueSort>?
 
-    override fun read(key: USymbolicMapEntryRef<MapType, KeySort, ValueSort, Reg>): UExpr<ValueSort> {
+    override fun read(key: UMapEntryLValue<MapType, KeySort, ValueSort, Reg>): UExpr<ValueSort> {
         val mapRef = modelEnsureConcreteInputRef(key.mapRef) ?: return defaultValue
         return inputMap?.read(mapRef to key.mapKey) ?: defaultValue
     }
 
     override fun write(
-        key: USymbolicMapEntryRef<MapType, KeySort, ValueSort, Reg>,
+        key: UMapEntryLValue<MapType, KeySort, ValueSort, Reg>,
         value: UExpr<ValueSort>,
         guard: UBoolExpr
-    ): UMemoryRegion<USymbolicMapEntryRef<MapType, KeySort, ValueSort, Reg>, ValueSort> {
+    ): UMemoryRegion<UMapEntryLValue<MapType, KeySort, ValueSort, Reg>, ValueSort> {
         error("Illegal operation for a model")
     }
 }
 
-class USymbolicMapLazyModelRegion<MapType, KeySort : USort, ValueSort : USort, Reg : Region<Reg>>(
-    regionId: USymbolicMapRegionId<MapType, KeySort, ValueSort, Reg>,
+class UMapLazyModelRegion<MapType, KeySort : USort, ValueSort : USort, Reg : Region<Reg>>(
+    regionId: UMapRegionId<MapType, KeySort, ValueSort, Reg>,
     private val model: KModel,
     private val addressesMapping: AddressesMapping,
     private val inputMapDecoder: UCollectionDecoder<USymbolicMapKey<KeySort>, ValueSort>?
-) : USymbolicMapModelRegion<MapType, KeySort, ValueSort, Reg>(regionId) {
+) : UMapModelRegion<MapType, KeySort, ValueSort, Reg>(regionId) {
     override val inputMap: UReadOnlyMemoryRegion<USymbolicMapKey<KeySort>, ValueSort>? by lazy {
         inputMapDecoder?.decodeCollection(model, addressesMapping)
     }
 }
 
-class USymbolicMapEagerModelRegion<MapType, KeySort : USort, ValueSort : USort, Reg : Region<Reg>>(
-    regionId: USymbolicMapRegionId<MapType, KeySort, ValueSort, Reg>,
+class UMapEagerModelRegion<MapType, KeySort : USort, ValueSort : USort, Reg : Region<Reg>>(
+    regionId: UMapRegionId<MapType, KeySort, ValueSort, Reg>,
     override val inputMap: UReadOnlyMemoryRegion<USymbolicMapKey<KeySort>, ValueSort>?
-) : USymbolicMapModelRegion<MapType, KeySort, ValueSort, Reg>(regionId)
+) : UMapModelRegion<MapType, KeySort, ValueSort, Reg>(regionId)

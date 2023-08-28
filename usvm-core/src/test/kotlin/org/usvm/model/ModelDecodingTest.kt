@@ -20,9 +20,9 @@ import org.usvm.api.writeArrayIndex
 import org.usvm.api.writeField
 import org.usvm.constraints.UPathConstraints
 import org.usvm.memory.UMemory
-import org.usvm.memory.URegisterStackRef
+import org.usvm.memory.URegisterStackLValue
 import org.usvm.memory.URegistersStack
-import org.usvm.collection.array.UArrayIndexRef
+import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.solver.USatResult
 import org.usvm.solver.USoftConstraintsProvider
 import org.usvm.solver.USolverBase
@@ -224,8 +224,8 @@ class ModelDecodingTest {
         val status = solver.checkWithSoftConstraints(pc)
         val model = assertIs<USatResult<UModelBase<Type>>>(status).model
 
-        val ref = assertIs<UConcreteHeapRef>(model.read(URegisterStackRef(addressSort, 0)))
-        val expr = model.read(UArrayIndexRef(bv32Sort, ref, concreteIdx, array))
+        val ref = assertIs<UConcreteHeapRef>(model.read(URegisterStackLValue(addressSort, 0)))
+        val expr = model.read(UArrayIndexLValue(bv32Sort, ref, concreteIdx, array))
         assertEquals(mkBv(42), expr)
     }
 }

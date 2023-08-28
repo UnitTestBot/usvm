@@ -9,9 +9,9 @@ import org.usvm.USort
 import org.usvm.memory.UMemory
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.UWritableMemory
-import org.usvm.collection.array.UArrayIndexRef
-import org.usvm.collection.array.length.UArrayLengthRef
-import org.usvm.collection.field.UFieldRef
+import org.usvm.collection.array.UArrayIndexLValue
+import org.usvm.collection.array.length.UArrayLengthLValue
+import org.usvm.collection.field.UFieldLValue
 import org.usvm.types.UTypeStream
 import org.usvm.uctx
 import org.usvm.collection.array.memcpy as memcpyInternal
@@ -26,27 +26,27 @@ fun UMemory<*, *>.allocate() = ctx.mkConcreteHeapRef(addressCounter.freshAddress
 
 fun <Field, Sort : USort> UReadOnlyMemory<*>.readField(
     ref: UHeapRef, field: Field, sort: Sort
-): UExpr<Sort> = read(UFieldRef(sort, ref, field))
+): UExpr<Sort> = read(UFieldLValue(sort, ref, field))
 
 fun <ArrayType, Sort : USort> UReadOnlyMemory<*>.readArrayIndex(
     ref: UHeapRef, index: USizeExpr, arrayType: ArrayType, sort: Sort
-): UExpr<Sort> = read(UArrayIndexRef(sort, ref, index, arrayType))
+): UExpr<Sort> = read(UArrayIndexLValue(sort, ref, index, arrayType))
 
 fun <ArrayType> UReadOnlyMemory<*>.readArrayLength(
     ref: UHeapRef, arrayType: ArrayType
-): USizeExpr = read(UArrayLengthRef(ref, arrayType))
+): USizeExpr = read(UArrayLengthLValue(ref, arrayType))
 
 fun <Field, Sort : USort> UWritableMemory<*>.writeField(
     ref: UHeapRef, field: Field, sort: Sort, value: UExpr<Sort>, guard: UBoolExpr
-) = write(UFieldRef(sort, ref, field), value, guard)
+) = write(UFieldLValue(sort, ref, field), value, guard)
 
 fun <ArrayType, Sort : USort> UWritableMemory<*>.writeArrayIndex(
     ref: UHeapRef, index: USizeExpr, type: ArrayType, sort: Sort, value: UExpr<Sort>, guard: UBoolExpr
-) = write(UArrayIndexRef(sort, ref, index, type), value, guard)
+) = write(UArrayIndexLValue(sort, ref, index, type), value, guard)
 
 fun <ArrayType> UWritableMemory<*>.writeArrayLength(
     ref: UHeapRef, size: USizeExpr, arrayType: ArrayType
-) = write(UArrayLengthRef(ref, arrayType), size, ref.uctx.trueExpr)
+) = write(UArrayLengthLValue(ref, arrayType), size, ref.uctx.trueExpr)
 
 
 fun <ArrayType, Sort : USort> UWritableMemory<*>.memcpy(

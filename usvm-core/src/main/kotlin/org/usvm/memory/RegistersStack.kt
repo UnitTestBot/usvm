@@ -8,21 +8,21 @@ import org.usvm.USort
 import org.usvm.isTrue
 import org.usvm.uctx
 
-object URegisterStackId : UMemoryRegionId<URegisterStackRef<*>, USort> {
+object URegisterStackId : UMemoryRegionId<URegisterStackLValue<*>, USort> {
     override val sort: USort
         get() = error("Register stack has not sort")
 
-    override fun emptyRegion(): UMemoryRegion<URegisterStackRef<*>, USort> = URegistersStack()
+    override fun emptyRegion(): UMemoryRegion<URegisterStackLValue<*>, USort> = URegistersStack()
 }
 
-class URegisterStackRef<Sort: USort>(
+class URegisterStackLValue<Sort: USort>(
     override val sort: Sort,
     val idx: Int
-) : ULValue<URegisterStackRef<*>, USort> {
-    override val memoryRegionId: UMemoryRegionId<URegisterStackRef<*>, USort>
+) : ULValue<URegisterStackLValue<*>, USort> {
+    override val memoryRegionId: UMemoryRegionId<URegisterStackLValue<*>, USort>
         get() = URegisterStackId
 
-    override val key: URegisterStackRef<Sort> = this
+    override val key: URegisterStackLValue<Sort> = this
 }
 
 class URegistersStackFrame(
@@ -40,15 +40,15 @@ class URegistersStackFrame(
     fun clone() = URegistersStackFrame(registers.clone())
 }
 
-interface UReadOnlyRegistersStack: UReadOnlyMemoryRegion<URegisterStackRef<*>, USort> {
+interface UReadOnlyRegistersStack: UReadOnlyMemoryRegion<URegisterStackLValue<*>, USort> {
     fun <Sort : USort> readRegister(index: Int, sort: Sort): KExpr<Sort>
 
-    override fun read(key: URegisterStackRef<*>): UExpr<USort> = readRegister(key.idx, key.sort)
+    override fun read(key: URegisterStackLValue<*>): UExpr<USort> = readRegister(key.idx, key.sort)
 }
 
 class URegistersStack(
     private val stack: MutableList<URegistersStackFrame> = mutableListOf(),
-) : UReadOnlyRegistersStack, UMemoryRegion<URegisterStackRef<*>, USort> {
+) : UReadOnlyRegistersStack, UMemoryRegion<URegisterStackLValue<*>, USort> {
     fun push(registersCount: Int) = stack.add(URegistersStackFrame(registersCount))
 
     fun push(argumentsCount: Int, localsCount: Int) =
@@ -61,10 +61,10 @@ class URegistersStack(
         stack.lastOrNull()?.get(index)?.asExpr(sort) ?: sort.uctx.mkRegisterReading(index, sort)
 
     override fun write(
-        key: URegisterStackRef<*>,
+        key: URegisterStackLValue<*>,
         value: UExpr<USort>,
         guard: UBoolExpr
-    ): UMemoryRegion<URegisterStackRef<*>, USort> {
+    ): UMemoryRegion<URegisterStackLValue<*>, USort> {
         check(guard.isTrue) { "Guarded writes are not supported for register" }
         writeRegister(key.idx, value)
         return this

@@ -35,18 +35,18 @@ import org.usvm.collection.field.UFieldRegionDecoder
 import org.usvm.collection.field.UFieldsRegionId
 import org.usvm.collection.field.UInputFieldReading
 import org.usvm.collection.field.USymbolicFieldId
-import org.usvm.collection.map.length.UInputSymbolicMapLengthReading
-import org.usvm.collection.map.length.USymbolicMapLengthRegionDecoder
-import org.usvm.collection.map.length.USymbolicMapLengthsRegionId
-import org.usvm.collection.map.primitive.UAllocatedSymbolicMapReading
-import org.usvm.collection.map.primitive.UInputSymbolicMapReading
-import org.usvm.collection.map.primitive.USymbolicMapRegionDecoder
-import org.usvm.collection.map.primitive.USymbolicMapRegionId
-import org.usvm.collection.map.ref.UAllocatedSymbolicRefMapWithInputKeysReading
-import org.usvm.collection.map.ref.UInputSymbolicRefMapWithAllocatedKeysReading
-import org.usvm.collection.map.ref.UInputSymbolicRefMapWithInputKeysReading
-import org.usvm.collection.map.ref.USymbolicRefMapRegionDecoder
-import org.usvm.collection.map.ref.USymbolicRefMapRegionId
+import org.usvm.collection.map.length.UInputMapLengthReading
+import org.usvm.collection.map.length.UMapLengthRegionDecoder
+import org.usvm.collection.map.length.UMapLengthRegionId
+import org.usvm.collection.map.primitive.UAllocatedMapReading
+import org.usvm.collection.map.primitive.UInputMapReading
+import org.usvm.collection.map.primitive.UMapRegionDecoder
+import org.usvm.collection.map.primitive.UMapRegionId
+import org.usvm.collection.map.ref.UAllocatedRefMapWithInputKeysReading
+import org.usvm.collection.map.ref.UInputRefMapWithAllocatedKeysReading
+import org.usvm.collection.map.ref.UInputRefMapWithInputKeysReading
+import org.usvm.collection.map.ref.URefMapRegionDecoder
+import org.usvm.collection.map.ref.URefMapRegionId
 import org.usvm.memory.UMemoryRegionId
 import org.usvm.util.Region
 import java.util.concurrent.ConcurrentHashMap
@@ -149,84 +149,84 @@ open class UExprTranslator<Type>(
         }
 
     override fun <KeySort : USort, Sort : USort, Reg : Region<Reg>> transform(
-        expr: UAllocatedSymbolicMapReading<Type, KeySort, Sort, Reg>
+        expr: UAllocatedMapReading<Type, KeySort, Sort, Reg>
     ): KExpr<Sort> = transformExprAfterTransformed(expr, expr.key) { key ->
         val symbolicMapRegionId = with(expr.collection.collectionId) {
-            USymbolicMapRegionId(keySort, valueSort, mapType, keyInfo)
+            UMapRegionId(keySort, valueSort, mapType, keyInfo)
         }
 
         val translator = getOrPutRegionDecoder(symbolicMapRegionId) {
-            USymbolicMapRegionDecoder(symbolicMapRegionId, this)
-        }.allocatedSymbolicMapTranslator(expr.collection.collectionId)
+            UMapRegionDecoder(symbolicMapRegionId, this)
+        }.allocatedMapTranslator(expr.collection.collectionId)
 
         translator.translateReading(expr.collection, key)
     }
 
     override fun <KeySort : USort, Sort : USort, Reg : Region<Reg>> transform(
-        expr: UInputSymbolicMapReading<Type, KeySort, Sort, Reg>
+        expr: UInputMapReading<Type, KeySort, Sort, Reg>
     ): KExpr<Sort> = transformExprAfterTransformed(expr, expr.address, expr.key) { address, key ->
         val symbolicMapRegionId = with(expr.collection.collectionId) {
-            USymbolicMapRegionId(keySort, valueSort, mapType, keyInfo)
+            UMapRegionId(keySort, valueSort, mapType, keyInfo)
         }
 
         val translator = getOrPutRegionDecoder(symbolicMapRegionId) {
-            USymbolicMapRegionDecoder(symbolicMapRegionId, this)
-        }.inputSymbolicMapTranslator(expr.collection.collectionId)
+            UMapRegionDecoder(symbolicMapRegionId, this)
+        }.inputMapTranslator(expr.collection.collectionId)
 
         translator.translateReading(expr.collection, address to key)
     }
 
     override fun <Sort : USort> transform(
-        expr: UAllocatedSymbolicRefMapWithInputKeysReading<Type, Sort>
+        expr: UAllocatedRefMapWithInputKeysReading<Type, Sort>
     ): UExpr<Sort> = transformExprAfterTransformed(expr, expr.keyRef) { keyRef ->
         val symbolicRefMapRegionId = with(expr.collection.collectionId) {
-            USymbolicRefMapRegionId(sort, mapType)
+            URefMapRegionId(sort, mapType)
         }
 
         val translator = getOrPutRegionDecoder(symbolicRefMapRegionId) {
-            USymbolicRefMapRegionDecoder(symbolicRefMapRegionId, this)
-        }.allocatedSymbolicRefMapWithInputKeysTranslator(expr.collection.collectionId)
+            URefMapRegionDecoder(symbolicRefMapRegionId, this)
+        }.allocatedRefMapWithInputKeysTranslator(expr.collection.collectionId)
 
         translator.translateReading(expr.collection, keyRef)
     }
 
     override fun <Sort : USort> transform(
-        expr: UInputSymbolicRefMapWithAllocatedKeysReading<Type, Sort>
+        expr: UInputRefMapWithAllocatedKeysReading<Type, Sort>
     ): UExpr<Sort> = transformExprAfterTransformed(expr, expr.mapRef) { mapRef ->
         val symbolicRefMapRegionId = with(expr.collection.collectionId) {
-            USymbolicRefMapRegionId(sort, mapType)
+            URefMapRegionId(sort, mapType)
         }
 
         val translator = getOrPutRegionDecoder(symbolicRefMapRegionId) {
-            USymbolicRefMapRegionDecoder(symbolicRefMapRegionId, this)
-        }.inputSymbolicRefMapWithAllocatedKeysTranslator(expr.collection.collectionId)
+            URefMapRegionDecoder(symbolicRefMapRegionId, this)
+        }.inputRefMapWithAllocatedKeysTranslator(expr.collection.collectionId)
 
         translator.translateReading(expr.collection, mapRef)
     }
 
     override fun <Sort : USort> transform(
-        expr: UInputSymbolicRefMapWithInputKeysReading<Type, Sort>
+        expr: UInputRefMapWithInputKeysReading<Type, Sort>
     ): UExpr<Sort> = transformExprAfterTransformed(expr, expr.mapRef, expr.keyRef) { mapRef, keyRef ->
         val symbolicRefMapRegionId = with(expr.collection.collectionId) {
-            USymbolicRefMapRegionId(sort, mapType)
+            URefMapRegionId(sort, mapType)
         }
 
         val translator = getOrPutRegionDecoder(symbolicRefMapRegionId) {
-            USymbolicRefMapRegionDecoder(symbolicRefMapRegionId, this)
-        }.inputSymbolicRefMapTranslator(expr.collection.collectionId)
+            URefMapRegionDecoder(symbolicRefMapRegionId, this)
+        }.inputRefMapTranslator(expr.collection.collectionId)
 
         translator.translateReading(expr.collection, mapRef to keyRef)
     }
 
-    override fun transform(expr: UInputSymbolicMapLengthReading<Type>): KExpr<USizeSort> =
+    override fun transform(expr: UInputMapLengthReading<Type>): KExpr<USizeSort> =
         transformExprAfterTransformed(expr, expr.address) { address ->
             val symbolicMapLengthRegionId = with(expr.collection.collectionId) {
-                USymbolicMapLengthsRegionId(sort, mapType)
+                UMapLengthRegionId(sort, mapType)
             }
 
             val translator = getOrPutRegionDecoder(symbolicMapLengthRegionId) {
-                USymbolicMapLengthRegionDecoder(symbolicMapLengthRegionId, this)
-            }.inputSymbolicMapLengthRegionTranslator(expr.collection.collectionId)
+                UMapLengthRegionDecoder(symbolicMapLengthRegionId, this)
+            }.inputMapLengthRegionTranslator(expr.collection.collectionId)
 
             translator.translateReading(expr.collection, address)
         }

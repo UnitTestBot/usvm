@@ -10,7 +10,7 @@ import org.usvm.UHeapRef
 import org.usvm.USizeExpr
 import org.usvm.USort
 import org.usvm.memory.key.USizeExprKeyInfo
-import org.usvm.collection.array.length.UArrayLengthRef
+import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.memory.ULValue
 import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UMemoryRegionId
@@ -20,31 +20,31 @@ import org.usvm.memory.foldHeapRef
 import org.usvm.memory.map
 import org.usvm.uctx
 
-data class UArrayIndexRef<ArrayType, Sort : USort>(
+data class UArrayIndexLValue<ArrayType, Sort : USort>(
     override val sort: Sort,
     val ref: UHeapRef,
     val index: USizeExpr,
     val arrayType: ArrayType,
-) : ULValue<UArrayIndexRef<ArrayType, Sort>, Sort> {
+) : ULValue<UArrayIndexLValue<ArrayType, Sort>, Sort> {
 
-    override val memoryRegionId: UMemoryRegionId<UArrayIndexRef<ArrayType, Sort>, Sort> =
+    override val memoryRegionId: UMemoryRegionId<UArrayIndexLValue<ArrayType, Sort>, Sort> =
         UArrayRegionId(arrayType, sort)
 
-    override val key: UArrayIndexRef<ArrayType, Sort>
+    override val key: UArrayIndexLValue<ArrayType, Sort>
         get() = this
 }
 
 data class UArrayRegionId<ArrayType, Sort : USort>(val arrayType: ArrayType, override val sort: Sort) :
-    UMemoryRegionId<UArrayIndexRef<ArrayType, Sort>, Sort> {
+    UMemoryRegionId<UArrayIndexLValue<ArrayType, Sort>, Sort> {
 
-    override fun emptyRegion(): UMemoryRegion<UArrayIndexRef<ArrayType, Sort>, Sort> =
+    override fun emptyRegion(): UMemoryRegion<UArrayIndexLValue<ArrayType, Sort>, Sort> =
         UArrayMemoryRegion()
 }
 
 typealias UAllocatedArray<ArrayType, Sort> = USymbolicCollection<UAllocatedArrayId<ArrayType, Sort>, USizeExpr, Sort>
 typealias UInputArray<ArrayType, Sort> = USymbolicCollection<UInputArrayId<ArrayType, Sort>, USymbolicArrayIndex, Sort>
 
-interface UArrayRegion<ArrayType, Sort : USort> : UMemoryRegion<UArrayIndexRef<ArrayType, Sort>, Sort> {
+interface UArrayRegion<ArrayType, Sort : USort> : UMemoryRegion<UArrayIndexLValue<ArrayType, Sort>, Sort> {
     fun memcpy(
         srcRef: UHeapRef,
         dstRef: UHeapRef,
@@ -89,17 +89,17 @@ internal class UArrayMemoryRegion<ArrayType, Sort : USort>(
     private fun updateInput(updated: UInputArray<ArrayType, Sort>) =
         UArrayMemoryRegion(allocatedArrays, updated)
 
-    override fun read(key: UArrayIndexRef<ArrayType, Sort>): UExpr<Sort> =
+    override fun read(key: UArrayIndexLValue<ArrayType, Sort>): UExpr<Sort> =
         key.ref.map(
             { concreteRef -> getAllocatedArray(key.arrayType, key.sort, concreteRef.address).read(key.index) },
             { symbolicRef -> getInputArray(key.arrayType, key.sort).read(symbolicRef to key.index) }
         )
 
     override fun write(
-        key: UArrayIndexRef<ArrayType, Sort>,
+        key: UArrayIndexLValue<ArrayType, Sort>,
         value: UExpr<Sort>,
         guard: UBoolExpr
-    ): UMemoryRegion<UArrayIndexRef<ArrayType, Sort>, Sort> =
+    ): UMemoryRegion<UArrayIndexLValue<ArrayType, Sort>, Sort> =
         foldHeapRef(
             key.ref,
             initial = this,
@@ -247,7 +247,7 @@ internal fun <ArrayType> UWritableMemory<ArrayType>.allocateArray(
 ): UConcreteHeapRef {
     val address = alloc(type)
 
-    val lengthRegionRef = UArrayLengthRef(address, type)
+    val lengthRegionRef = UArrayLengthLValue(address, type)
     write(lengthRegionRef, length, guard = length.uctx.trueExpr)
 
     return address
@@ -260,7 +260,7 @@ internal fun <ArrayType, Sort : USort> UWritableMemory<ArrayType>.memset(
     contents: Sequence<UExpr<Sort>>,
 ) = with(sort.uctx) {
     val tmpArrayRef = allocateArrayInitialized(type, sort, contents)
-    val contentLength = read(UArrayLengthRef(tmpArrayRef, type))
+    val contentLength = read(UArrayLengthLValue(tmpArrayRef, type))
 
     memcpy(
         srcRef = tmpArrayRef,
@@ -273,5 +273,5 @@ internal fun <ArrayType, Sort : USort> UWritableMemory<ArrayType>.memset(
         guard = trueExpr
     )
 
-    write(UArrayLengthRef(ref, type), contentLength, guard = trueExpr)
+    write(UArrayLengthLValue(ref, type), contentLength, guard = trueExpr)
 }

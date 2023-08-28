@@ -20,18 +20,18 @@ import org.usvm.collection.array.length.UInputArrayLengthReading
 import org.usvm.collection.array.length.UInputArrayLengths
 import org.usvm.collection.field.UInputFieldReading
 import org.usvm.collection.field.UInputFields
-import org.usvm.collection.map.length.UInputSymbolicMapLengthCollection
-import org.usvm.collection.map.length.UInputSymbolicMapLengthReading
-import org.usvm.collection.map.primitive.UAllocatedSymbolicMap
-import org.usvm.collection.map.primitive.UAllocatedSymbolicMapReading
-import org.usvm.collection.map.primitive.UInputSymbolicMap
-import org.usvm.collection.map.primitive.UInputSymbolicMapReading
+import org.usvm.collection.map.length.UInputMapLengthCollection
+import org.usvm.collection.map.length.UInputMapLengthReading
+import org.usvm.collection.map.primitive.UAllocatedMap
+import org.usvm.collection.map.primitive.UAllocatedMapReading
+import org.usvm.collection.map.primitive.UInputMap
+import org.usvm.collection.map.primitive.UInputMapReading
 import org.usvm.collection.map.ref.UAllocatedRefMapWithInputKeys
-import org.usvm.collection.map.ref.UAllocatedSymbolicRefMapWithInputKeysReading
+import org.usvm.collection.map.ref.UAllocatedRefMapWithInputKeysReading
 import org.usvm.collection.map.ref.UInputRefMap
 import org.usvm.collection.map.ref.UInputRefMapWithAllocatedKeys
-import org.usvm.collection.map.ref.UInputSymbolicRefMapWithAllocatedKeysReading
-import org.usvm.collection.map.ref.UInputSymbolicRefMapWithInputKeysReading
+import org.usvm.collection.map.ref.UInputRefMapWithAllocatedKeysReading
+import org.usvm.collection.map.ref.UInputRefMapWithInputKeysReading
 import org.usvm.memory.splitUHeapRef
 import org.usvm.solver.USolverBase
 import org.usvm.types.UTypeSystem
@@ -183,69 +183,69 @@ open class UContext(
         UInputArrayLengthReading(this, region, address)
     }.cast()
 
-    private val allocatedSymbolicMapReadingCache = mkAstInterner<UAllocatedSymbolicMapReading<*, *, *, *>>()
+    private val allocatedSymbolicMapReadingCache = mkAstInterner<UAllocatedMapReading<*, *, *, *>>()
 
-    fun <MapType, KeySort : USort, Sort : USort, Reg : Region<Reg>> mkAllocatedSymbolicMapReading(
-        region: UAllocatedSymbolicMap<MapType, KeySort, Sort, Reg>,
+    fun <MapType, KeySort : USort, Sort : USort, Reg : Region<Reg>> mkAllocatedMapReading(
+        region: UAllocatedMap<MapType, KeySort, Sort, Reg>,
         key: UExpr<KeySort>
-    ): UAllocatedSymbolicMapReading<MapType, KeySort, Sort, Reg> =
+    ): UAllocatedMapReading<MapType, KeySort, Sort, Reg> =
         allocatedSymbolicMapReadingCache.createIfContextActive {
-            UAllocatedSymbolicMapReading(this, region, key)
+            UAllocatedMapReading(this, region, key)
         }.cast()
 
-    private val inputSymbolicMapReadingCache = mkAstInterner<UInputSymbolicMapReading<*, *, *, *>>()
+    private val inputSymbolicMapReadingCache = mkAstInterner<UInputMapReading<*, *, *, *>>()
 
-    fun <MapType, KeySort : USort, Reg : Region<Reg>, Sort : USort> mkInputSymbolicMapReading(
-        region: UInputSymbolicMap<MapType, KeySort, Sort, Reg>,
+    fun <MapType, KeySort : USort, Reg : Region<Reg>, Sort : USort> mkInputMapReading(
+        region: UInputMap<MapType, KeySort, Sort, Reg>,
         address: UHeapRef,
         key: UExpr<KeySort>
-    ): UInputSymbolicMapReading<MapType, KeySort, Sort, Reg> =
+    ): UInputMapReading<MapType, KeySort, Sort, Reg> =
         inputSymbolicMapReadingCache.createIfContextActive {
-            UInputSymbolicMapReading(this, region, address, key)
+            UInputMapReading(this, region, address, key)
         }.cast()
 
     private val allocatedSymbolicRefMapWithInputKeysReadingCache =
-        mkAstInterner<UAllocatedSymbolicRefMapWithInputKeysReading<*, *>>()
+        mkAstInterner<UAllocatedRefMapWithInputKeysReading<*, *>>()
 
-    fun <MapType, Sort : USort> mkAllocatedSymbolicRefMapWithInputKeysReading(
+    fun <MapType, Sort : USort> mkAllocatedRefMapWithInputKeysReading(
         region: UAllocatedRefMapWithInputKeys<MapType, Sort>,
         keyRef: UHeapRef
-    ): UAllocatedSymbolicRefMapWithInputKeysReading<MapType, Sort> =
+    ): UAllocatedRefMapWithInputKeysReading<MapType, Sort> =
         allocatedSymbolicRefMapWithInputKeysReadingCache.createIfContextActive {
-            UAllocatedSymbolicRefMapWithInputKeysReading(this, region, keyRef)
+            UAllocatedRefMapWithInputKeysReading(this, region, keyRef)
         }.cast()
 
     private val inputSymbolicRefMapWithAllocatedKeysReadingCache =
-        mkAstInterner<UInputSymbolicRefMapWithAllocatedKeysReading<*, *>>()
+        mkAstInterner<UInputRefMapWithAllocatedKeysReading<*, *>>()
 
-    fun <MapType, Sort : USort> mkInputSymbolicRefMapWithAllocatedKeysReading(
+    fun <MapType, Sort : USort> mkInputRefMapWithAllocatedKeysReading(
         region: UInputRefMapWithAllocatedKeys<MapType, Sort>,
         mapRef: UHeapRef
-    ): UInputSymbolicRefMapWithAllocatedKeysReading<MapType, Sort> =
+    ): UInputRefMapWithAllocatedKeysReading<MapType, Sort> =
         inputSymbolicRefMapWithAllocatedKeysReadingCache.createIfContextActive {
-            UInputSymbolicRefMapWithAllocatedKeysReading(this, region, mapRef)
+            UInputRefMapWithAllocatedKeysReading(this, region, mapRef)
         }.cast()
 
     private val inputSymbolicRefMapWithInputKeysReadingCache =
-        mkAstInterner<UInputSymbolicRefMapWithInputKeysReading<*, *>>()
+        mkAstInterner<UInputRefMapWithInputKeysReading<*, *>>()
 
-    fun <MapType, Sort : USort> mkInputSymbolicRefMapWithInputKeysReading(
+    fun <MapType, Sort : USort> mkInputRefMapWithInputKeysReading(
         region: UInputRefMap<MapType, Sort>,
         mapRef: UHeapRef,
         keyRef: UHeapRef
-    ): UInputSymbolicRefMapWithInputKeysReading<MapType, Sort> =
+    ): UInputRefMapWithInputKeysReading<MapType, Sort> =
         inputSymbolicRefMapWithInputKeysReadingCache.createIfContextActive {
-            UInputSymbolicRefMapWithInputKeysReading(this, region, mapRef, keyRef)
+            UInputRefMapWithInputKeysReading(this, region, mapRef, keyRef)
         }.cast()
 
-    private val inputSymbolicMapLengthReadingCache = mkAstInterner<UInputSymbolicMapLengthReading<*>>()
+    private val inputSymbolicMapLengthReadingCache = mkAstInterner<UInputMapLengthReading<*>>()
 
-    fun <MapType> mkInputSymbolicMapLengthReading(
-        region: UInputSymbolicMapLengthCollection<MapType>,
+    fun <MapType> mkInputMapLengthReading(
+        region: UInputMapLengthCollection<MapType>,
         address: UHeapRef
-    ): UInputSymbolicMapLengthReading<MapType> =
+    ): UInputMapLengthReading<MapType> =
         inputSymbolicMapLengthReadingCache.createIfContextActive {
-            UInputSymbolicMapLengthReading<MapType>(this, region, address)
+            UInputMapLengthReading<MapType>(this, region, address)
         }.cast()
 
     private val indexedMethodReturnValueCache = mkAstInterner<UIndexedMethodReturnValue<Any, out USort>>()

@@ -56,7 +56,7 @@ class UAllocatedFieldId<Field, Sort : USort> internal constructor(
 
     override fun UContext.mkLValue(
         key: Unit
-    ): ULValue<*, Sort> = UFieldRef(sort, mkConcreteHeapRef(address), field)
+    ): ULValue<*, Sort> = UFieldLValue(sort, mkConcreteHeapRef(address), field)
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -101,7 +101,7 @@ class UInputFieldId<Field, Sort : USort> internal constructor(
 
     override fun UContext.mkLValue(
         key: UHeapRef
-    ): ULValue<*, Sort> = UFieldRef(sort, key, field)
+    ): ULValue<*, Sort> = UFieldLValue(sort, key, field)
 
     override fun <Type> keyMapper(
         transformer: UTransformer<Type>,

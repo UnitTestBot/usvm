@@ -22,16 +22,16 @@ abstract class UArrayModelRegion<ArrayType, Sort : USort>(
 
     abstract val inputArray: UReadOnlyMemoryRegion<USymbolicArrayIndex, Sort>?
 
-    override fun read(key: UArrayIndexRef<ArrayType, Sort>): UExpr<Sort> {
+    override fun read(key: UArrayIndexLValue<ArrayType, Sort>): UExpr<Sort> {
         val ref = modelEnsureConcreteInputRef(key.ref) ?: return defaultValue
         return inputArray?.read(ref to key.index) ?: defaultValue
     }
 
     override fun write(
-        key: UArrayIndexRef<ArrayType, Sort>,
+        key: UArrayIndexLValue<ArrayType, Sort>,
         value: UExpr<Sort>,
         guard: UBoolExpr
-    ): UMemoryRegion<UArrayIndexRef<ArrayType, Sort>, Sort> {
+    ): UMemoryRegion<UArrayIndexLValue<ArrayType, Sort>, Sort> {
         error("Illegal operation for a model")
     }
 

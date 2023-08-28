@@ -44,7 +44,7 @@ import org.usvm.machine.state.parametersWithThisCount
 import org.usvm.machine.state.returnValue
 import org.usvm.machine.state.throwExceptionAndDropStackFrame
 import org.usvm.machine.state.throwExceptionWithoutStackFrameDrop
-import org.usvm.memory.URegisterStackRef
+import org.usvm.memory.URegisterStackLValue
 import org.usvm.solver.USatResult
 import org.usvm.util.write
 
@@ -70,7 +70,7 @@ class JcInterpreter(
 
         if (!method.isStatic) {
             with(ctx) {
-                val thisLValue = URegisterStackRef(addressSort, 0)
+                val thisLValue = URegisterStackLValue(addressSort, 0)
                 val ref = state.memory.read(thisLValue).asExpr(addressSort)
                 state.pathConstraints += mkEq(ref, nullRef).not()
                 state.pathConstraints += mkIsSubtypeExpr(ref, typedMethod.enclosingType)
@@ -81,7 +81,7 @@ class JcInterpreter(
             with(ctx) {
                 val type = typedParameter.type
                 if (type is JcRefType) {
-                    val argumentLValue = URegisterStackRef(typeToSort(type), method.localIdx(idx))
+                    val argumentLValue = URegisterStackLValue(typeToSort(type), method.localIdx(idx))
                     val ref = state.memory.read(argumentLValue).asExpr(addressSort)
                     state.pathConstraints += mkIsSubtypeExpr(ref, type)
                 }

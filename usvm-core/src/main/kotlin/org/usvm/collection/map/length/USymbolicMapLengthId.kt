@@ -28,14 +28,14 @@ interface USymbolicMapLengthId<Key, MapType, Id : USymbolicMapLengthId<Key, MapT
     val mapType: MapType
 }
 
-class UAllocatedSymbolicMapLengthId<MapType> internal constructor(
+class UAllocatedMapLengthId<MapType> internal constructor(
     override val mapType: MapType,
     val address: UConcreteHeapAddress,
     override val sort: USizeSort,
     val idDefaultValue: UExpr<USizeSort>? = null,
     contextMemory: UWritableMemory<*>? = null,
-) : USymbolicCollectionIdWithContextMemory<Unit, USizeSort, UAllocatedSymbolicMapLengthId<MapType>>(contextMemory),
-    USymbolicMapLengthId<Unit, MapType, UAllocatedSymbolicMapLengthId<MapType>> {
+) : USymbolicCollectionIdWithContextMemory<Unit, USizeSort, UAllocatedMapLengthId<MapType>>(contextMemory),
+    USymbolicMapLengthId<Unit, MapType, UAllocatedMapLengthId<MapType>> {
 
     val defaultValue: USizeExpr by lazy { idDefaultValue ?: sort.sampleUValue() }
 
@@ -46,7 +46,7 @@ class UAllocatedSymbolicMapLengthId<MapType> internal constructor(
     override fun toString(): String = "allocatedLength<$mapType>($address)"
 
     override fun UContext.mkReading(
-        collection: USymbolicCollection<UAllocatedSymbolicMapLengthId<MapType>, Unit, USizeSort>,
+        collection: USymbolicCollection<UAllocatedMapLengthId<MapType>, Unit, USizeSort>,
         key: Unit
     ): UExpr<USizeSort> {
         check(collection.updates.isEmpty()) { "Can't instantiate length reading from non-empty collection" }
@@ -55,13 +55,13 @@ class UAllocatedSymbolicMapLengthId<MapType> internal constructor(
 
     override fun UContext.mkLValue(
         key: Unit
-    ): ULValue<*, USizeSort> = USymbolicMapLengthRef(mkConcreteHeapRef(address), mapType)
+    ): ULValue<*, USizeSort> = UMapLengthLValue(mkConcreteHeapRef(address), mapType)
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
 
-        other as UAllocatedSymbolicMapLengthId<*>
+        other as UAllocatedMapLengthId<*>
 
         if (mapType != other.mapType) return false
         if (address != other.address) return false
@@ -71,47 +71,47 @@ class UAllocatedSymbolicMapLengthId<MapType> internal constructor(
 
     override fun hashCode(): Int = hash(mapType, address)
 
-    override fun emptyRegion(): USymbolicCollection<UAllocatedSymbolicMapLengthId<MapType>, Unit, USizeSort> =
+    override fun emptyRegion(): USymbolicCollection<UAllocatedMapLengthId<MapType>, Unit, USizeSort> =
         error("This should not be called")
 
     override fun <Type> keyMapper(transformer: UTransformer<Type>): KeyTransformer<Unit> =
         error("This should not be called")
 
-    override fun <Type> map(composer: UComposer<Type>): UAllocatedSymbolicMapLengthId<MapType> =
+    override fun <Type> map(composer: UComposer<Type>): UAllocatedMapLengthId<MapType> =
         error("This should not be called")
 }
 
-class UInputSymbolicMapLengthId<MapType> internal constructor(
+class UInputMapLengthId<MapType> internal constructor(
     override val mapType: MapType,
     override val sort: USizeSort,
     private val defaultValue: UExpr<USizeSort>? = null,
     contextMemory: UWritableMemory<*>? = null,
-) : USymbolicCollectionIdWithContextMemory<UHeapRef, USizeSort, UInputSymbolicMapLengthId<MapType>>(contextMemory),
-    USymbolicMapLengthId<UHeapRef, MapType, UInputSymbolicMapLengthId<MapType>> {
+) : USymbolicCollectionIdWithContextMemory<UHeapRef, USizeSort, UInputMapLengthId<MapType>>(contextMemory),
+    USymbolicMapLengthId<UHeapRef, MapType, UInputMapLengthId<MapType>> {
     override fun UContext.mkReading(
-        collection: USymbolicCollection<UInputSymbolicMapLengthId<MapType>, UHeapRef, USizeSort>,
+        collection: USymbolicCollection<UInputMapLengthId<MapType>, UHeapRef, USizeSort>,
         key: UHeapRef
-    ): UExpr<USizeSort> = mkInputSymbolicMapLengthReading(collection, key)
+    ): UExpr<USizeSort> = mkInputMapLengthReading(collection, key)
 
     override fun UContext.mkLValue(
         key: UHeapRef
-    ): ULValue<*, USizeSort> = USymbolicMapLengthRef(key, mapType)
+    ): ULValue<*, USizeSort> = UMapLengthLValue(key, mapType)
 
     override fun <Type> keyMapper(
         transformer: UTransformer<Type>,
     ): KeyTransformer<UHeapRef> = { transformer.apply(it) }
 
-    override fun <Type> map(composer: UComposer<Type>): UInputSymbolicMapLengthId<MapType> {
+    override fun <Type> map(composer: UComposer<Type>): UInputMapLengthId<MapType> {
         check(contextMemory == null) { "contextMemory is not null in composition" }
         val composedDefaultValue = composer.compose(sort.sampleUValue())
-        return UInputSymbolicMapLengthId(mapType, sort, composedDefaultValue, composer.memory.toWritableMemory())
+        return UInputMapLengthId(mapType, sort, composedDefaultValue, composer.memory.toWritableMemory())
     }
 
     override fun keyInfo() = UHeapRefKeyInfo
 
     override fun rebindKey(key: UHeapRef): DecomposedKey<*, USizeSort>? = when (key) {
         is UConcreteHeapRef -> DecomposedKey(
-            UAllocatedSymbolicMapLengthId(
+            UAllocatedMapLengthId(
                 mapType,
                 key.address,
                 sort,
@@ -124,7 +124,7 @@ class UInputSymbolicMapLengthId<MapType> internal constructor(
         else -> null
     }
 
-    override fun emptyRegion(): USymbolicCollection<UInputSymbolicMapLengthId<MapType>, UHeapRef, USizeSort> =
+    override fun emptyRegion(): USymbolicCollection<UInputMapLengthId<MapType>, UHeapRef, USizeSort> =
         USymbolicCollection(this, UFlatUpdates(keyInfo()))
 
     override fun toString(): String = "length<$mapType>()"
@@ -133,7 +133,7 @@ class UInputSymbolicMapLengthId<MapType> internal constructor(
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
 
-        other as UInputSymbolicMapLengthId<*>
+        other as UInputMapLengthId<*>
 
         return mapType == other.mapType
     }

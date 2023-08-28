@@ -19,16 +19,16 @@ abstract class UArrayLengthModelRegion<ArrayType>(
 
     abstract val inputArrayLength: UReadOnlyMemoryRegion<UHeapRef, USizeSort>?
 
-    override fun read(key: UArrayLengthRef<ArrayType>): UExpr<USizeSort> {
+    override fun read(key: UArrayLengthLValue<ArrayType>): UExpr<USizeSort> {
         val ref = modelEnsureConcreteInputRef(key.ref) ?: return defaultValue
         return inputArrayLength?.read(ref) ?: defaultValue
     }
 
     override fun write(
-        key: UArrayLengthRef<ArrayType>,
+        key: UArrayLengthLValue<ArrayType>,
         value: UExpr<USizeSort>,
         guard: UBoolExpr
-    ): UMemoryRegion<UArrayLengthRef<ArrayType>, USizeSort> {
+    ): UMemoryRegion<UArrayLengthLValue<ArrayType>, USizeSort> {
         error("Illegal operation for a model")
     }
 }

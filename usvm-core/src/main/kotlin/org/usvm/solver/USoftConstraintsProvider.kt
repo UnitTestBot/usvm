@@ -23,7 +23,7 @@ import io.ksmt.sort.KUninterpretedSort
 import io.ksmt.utils.asExpr
 import org.usvm.UAddressSort
 import org.usvm.collection.array.UAllocatedArrayReading
-import org.usvm.collection.map.primitive.UAllocatedSymbolicMapReading
+import org.usvm.collection.map.primitive.UAllocatedMapReading
 import org.usvm.UBoolExpr
 import org.usvm.UBvSort
 import org.usvm.UCollectionReading
@@ -34,8 +34,8 @@ import org.usvm.UIndexedMethodReturnValue
 import org.usvm.collection.array.length.UInputArrayLengthReading
 import org.usvm.collection.array.UInputArrayReading
 import org.usvm.collection.field.UInputFieldReading
-import org.usvm.collection.map.length.UInputSymbolicMapLengthReading
-import org.usvm.collection.map.primitive.UInputSymbolicMapReading
+import org.usvm.collection.map.length.UInputMapLengthReading
+import org.usvm.collection.map.primitive.UInputMapReading
 import org.usvm.UIsSubtypeExpr
 import org.usvm.UIsSupertypeExpr
 import org.usvm.UMockSymbol
@@ -45,9 +45,9 @@ import org.usvm.USizeExpr
 import org.usvm.USort
 import org.usvm.USymbol
 import org.usvm.UTransformer
-import org.usvm.collection.map.ref.UAllocatedSymbolicRefMapWithInputKeysReading
-import org.usvm.collection.map.ref.UInputSymbolicRefMapWithAllocatedKeysReading
-import org.usvm.collection.map.ref.UInputSymbolicRefMapWithInputKeysReading
+import org.usvm.collection.map.ref.UAllocatedRefMapWithInputKeysReading
+import org.usvm.collection.map.ref.UInputRefMapWithAllocatedKeysReading
+import org.usvm.collection.map.ref.UInputRefMapWithInputKeysReading
 import org.usvm.uctx
 import org.usvm.util.Region
 
@@ -133,27 +133,27 @@ class USoftConstraintsProvider<Type>(override val ctx: UContext) : UTransformer<
     }
 
     override fun <KeySort : USort, Sort : USort, Reg : Region<Reg>> transform(
-        expr: UAllocatedSymbolicMapReading<Type, KeySort, Sort, Reg>
+        expr: UAllocatedMapReading<Type, KeySort, Sort, Reg>
     ): UExpr<Sort> = readingWithSingleArgumentTransform(expr, expr.key)
 
     override fun <KeySort : USort, Sort : USort, Reg : Region<Reg>> transform(
-        expr: UInputSymbolicMapReading<Type, KeySort, Sort, Reg>
+        expr: UInputMapReading<Type, KeySort, Sort, Reg>
     ): UExpr<Sort> = readingWithTwoArgumentsTransform(expr, expr.key, expr.address)
 
     override fun <Sort : USort> transform(
-        expr: UAllocatedSymbolicRefMapWithInputKeysReading<Type, Sort>
+        expr: UAllocatedRefMapWithInputKeysReading<Type, Sort>
     ): UExpr<Sort> = readingWithSingleArgumentTransform(expr, expr.keyRef)
 
     override fun <Sort : USort> transform(
-        expr: UInputSymbolicRefMapWithAllocatedKeysReading<Type, Sort>
+        expr: UInputRefMapWithAllocatedKeysReading<Type, Sort>
     ): UExpr<Sort> = readingWithSingleArgumentTransform(expr, expr.mapRef)
 
     override fun <Sort : USort> transform(
-        expr: UInputSymbolicRefMapWithInputKeysReading<Type, Sort>
+        expr: UInputRefMapWithInputKeysReading<Type, Sort>
     ): UExpr<Sort> = readingWithTwoArgumentsTransform(expr, expr.mapRef, expr.keyRef)
 
     override fun transform(
-        expr: UInputSymbolicMapLengthReading<Type>
+        expr: UInputMapLengthReading<Type>
     ): USizeExpr = computeSideEffect(expr) {
         with(expr.ctx) {
             val addressConstraints = provide(expr.address)

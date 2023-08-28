@@ -15,11 +15,11 @@ import org.usvm.UTransformer
 import org.usvm.asTypedTransformer
 import org.usvm.collection.map.USymbolicMapKey
 
-class UAllocatedSymbolicRefMapWithInputKeysReading<MapType, Sort : USort> internal constructor(
+class UAllocatedRefMapWithInputKeysReading<MapType, Sort : USort> internal constructor(
     ctx: UContext,
     collection: UAllocatedRefMapWithInputKeys<MapType, Sort>,
     val keyRef: UHeapRef,
-) : UCollectionReading<UAllocatedSymbolicRefMapWithInputKeysId<MapType, Sort>, UHeapRef, Sort>(ctx, collection) {
+) : UCollectionReading<UAllocatedRefMapWithInputKeysId<MapType, Sort>, UHeapRef, Sort>(ctx, collection) {
 
     override fun accept(transformer: KTransformerBase): KExpr<Sort> {
         require(transformer is UTransformer<*>) { "Expected a UTransformer, but got: $transformer" }
@@ -43,11 +43,11 @@ class UAllocatedSymbolicRefMapWithInputKeysReading<MapType, Sort : USort> intern
     }
 }
 
-class UInputSymbolicRefMapWithAllocatedKeysReading<MapType, Sort : USort> internal constructor(
+class UInputRefMapWithAllocatedKeysReading<MapType, Sort : USort> internal constructor(
     ctx: UContext,
     collection: UInputRefMapWithAllocatedKeys<MapType, Sort>,
     val mapRef: UHeapRef,
-) : UCollectionReading<UInputSymbolicRefMapWithAllocatedKeysId<MapType, Sort>, UHeapRef, Sort>(ctx, collection) {
+) : UCollectionReading<UInputRefMapWithAllocatedKeysId<MapType, Sort>, UHeapRef, Sort>(ctx, collection) {
 
     override fun accept(transformer: KTransformerBase): KExpr<Sort> {
         require(transformer is UTransformer<*>) { "Expected a UTransformer, but got: $transformer" }
@@ -71,12 +71,12 @@ class UInputSymbolicRefMapWithAllocatedKeysReading<MapType, Sort : USort> intern
     }
 }
 
-class UInputSymbolicRefMapWithInputKeysReading<MapType, Sort : USort> internal constructor(
+class UInputRefMapWithInputKeysReading<MapType, Sort : USort> internal constructor(
     ctx: UContext,
     collection: UInputRefMap<MapType, Sort>,
     val mapRef: UHeapRef,
     val keyRef: UHeapRef
-) : UCollectionReading<UInputSymbolicRefMapWithInputKeysId<MapType, Sort>,
+) : UCollectionReading<UInputRefMapWithInputKeysId<MapType, Sort>,
         USymbolicMapKey<UAddressSort>, Sort>(ctx, collection) {
     init {
         require(mapRef !is UNullRef)

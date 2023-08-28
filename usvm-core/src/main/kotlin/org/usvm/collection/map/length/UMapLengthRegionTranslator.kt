@@ -20,23 +20,23 @@ import org.usvm.solver.UExprTranslator
 import org.usvm.solver.URegionDecoder
 import org.usvm.solver.URegionTranslator
 import org.usvm.uctx
-import java.util.*
+import java.util.IdentityHashMap
 
-class USymbolicMapLengthRegionDecoder<MapType>(
-    private val regionId: USymbolicMapLengthsRegionId<MapType>,
+class UMapLengthRegionDecoder<MapType>(
+    private val regionId: UMapLengthRegionId<MapType>,
     private val exprTranslator: UExprTranslator<*>
-) : URegionDecoder<USymbolicMapLengthRef<MapType>, USizeSort> {
+) : URegionDecoder<UMapLengthLValue<MapType>, USizeSort> {
 
-    private var inputTranslator: UInputSymbolicMapLengthRegionTranslator<MapType>? = null
+    private var inputTranslator: UInputMapLengthRegionTranslator<MapType>? = null
 
-    fun inputSymbolicMapLengthRegionTranslator(
-        collectionId: UInputSymbolicMapLengthId<MapType>
-    ): URegionTranslator<UInputSymbolicMapLengthId<MapType>, UHeapRef, USizeSort> {
+    fun inputMapLengthRegionTranslator(
+        collectionId: UInputMapLengthId<MapType>
+    ): URegionTranslator<UInputMapLengthId<MapType>, UHeapRef, USizeSort> {
         if (inputTranslator == null) {
             check(collectionId.mapType == regionId.mapType && collectionId.sort == regionId.sort) {
                 "Unexpected collection: $collectionId"
             }
-            inputTranslator = UInputSymbolicMapLengthRegionTranslator(collectionId, exprTranslator)
+            inputTranslator = UInputMapLengthRegionTranslator(collectionId, exprTranslator)
         }
         return inputTranslator!!
     }
@@ -44,25 +44,25 @@ class USymbolicMapLengthRegionDecoder<MapType>(
     override fun decodeLazyRegion(
         model: KModel,
         mapping: Map<UHeapRef, UConcreteHeapRef>
-    ): UMemoryRegion<USymbolicMapLengthRef<MapType>, USizeSort> {
-        return USymbolicMapLengthLazyModelRegion(regionId, model, mapping, inputTranslator)
+    ): UMemoryRegion<UMapLengthLValue<MapType>, USizeSort> {
+        return UMapLengthLazyModelRegion(regionId, model, mapping, inputTranslator)
     }
 }
 
-private class UInputSymbolicMapLengthRegionTranslator<MapType>(
-    private val collectionId: UInputSymbolicMapLengthId<MapType>,
+private class UInputMapLengthRegionTranslator<MapType>(
+    private val collectionId: UInputMapLengthId<MapType>,
     private val exprTranslator: UExprTranslator<*>
-) : URegionTranslator<UInputSymbolicMapLengthId<MapType>, UHeapRef, USizeSort>,
+) : URegionTranslator<UInputMapLengthId<MapType>, UHeapRef, USizeSort>,
     UCollectionDecoder<UHeapRef, USizeSort> {
     private val initialValue = with(collectionId.sort.uctx) {
         mkArraySort(addressSort, sizeSort).mkConst(collectionId.toString())
     }
 
     private val visitorCache = IdentityHashMap<Any?, KExpr<KArraySort<UAddressSort, USizeSort>>>()
-    private val updatesTranslator = UInputSymbolicMapLengthUpdateTranslator(exprTranslator, initialValue)
+    private val updatesTranslator = UInputMapLengthUpdateTranslator(exprTranslator, initialValue)
 
     override fun translateReading(
-        region: USymbolicCollection<UInputSymbolicMapLengthId<MapType>, UHeapRef, USizeSort>,
+        region: USymbolicCollection<UInputMapLengthId<MapType>, UHeapRef, USizeSort>,
         key: UHeapRef
     ): KExpr<USizeSort> {
         val translatedCollection = region.updates.accept(updatesTranslator, visitorCache)
@@ -77,7 +77,7 @@ private class UInputSymbolicMapLengthRegionTranslator<MapType>(
     }
 }
 
-private class UInputSymbolicMapLengthUpdateTranslator(
+private class UInputMapLengthUpdateTranslator(
     exprTranslator: UExprTranslator<*>,
     initialValue: KExpr<KArraySort<UAddressSort, USizeSort>>
 ) : U1DUpdatesTranslator<UAddressSort, USizeSort>(exprTranslator, initialValue) {
@@ -85,6 +85,6 @@ private class UInputSymbolicMapLengthUpdateTranslator(
         previous: KExpr<KArraySort<UAddressSort, USizeSort>>,
         update: URangedUpdateNode<*, *, UHeapRef, USizeSort>
     ): KExpr<KArraySort<UAddressSort, USizeSort>> {
-        error("Symbolic map length has no ranged updates")
+        error("Map length has no ranged updates")
     }
 }

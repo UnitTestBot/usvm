@@ -44,10 +44,10 @@ import org.usvm.machine.state.JcState
 import org.usvm.machine.state.localIdx
 import org.usvm.memory.ULValue
 import org.usvm.memory.UReadOnlyMemory
-import org.usvm.memory.URegisterStackRef
-import org.usvm.collection.array.UArrayIndexRef
-import org.usvm.collection.array.length.UArrayLengthRef
-import org.usvm.collection.field.UFieldRef
+import org.usvm.memory.URegisterStackLValue
+import org.usvm.collection.array.UArrayIndexLValue
+import org.usvm.collection.array.length.UArrayLengthLValue
+import org.usvm.collection.field.UFieldLValue
 import org.usvm.model.UModelBase
 import org.usvm.types.first
 import org.usvm.types.firstOrNull
@@ -125,7 +125,7 @@ class JcTestResolver(
         fun resolveState(): JcParametersState {
             // TODO: now we need to explicitly evaluate indices of registers, because we don't have specific ULValues
             val thisInstance = if (!method.isStatic) {
-                val ref = URegisterStackRef(ctx.addressSort, idx = 0)
+                val ref = URegisterStackLValue(ctx.addressSort, idx = 0)
                 resolveLValue(ref, method.enclosingType)
             } else {
                 null
@@ -133,7 +133,7 @@ class JcTestResolver(
 
             val parameters = method.parameters.mapIndexed { idx, param ->
                 val registerIdx = method.method.localIdx(idx)
-                val ref = URegisterStackRef(ctx.typeToSort(param.type), registerIdx)
+                val ref = URegisterStackLValue(ctx.typeToSort(param.type), registerIdx)
                 resolveLValue(ref, param.type)
             }
 
@@ -204,14 +204,14 @@ class JcTestResolver(
         }
 
         private fun resolveArray(ref: UConcreteHeapRef, heapRef: UHeapRef, type: JcArrayType): Any {
-            val lengthRef = UArrayLengthRef(heapRef, ctx.arrayDescriptorOf(type))
+            val lengthRef = UArrayLengthLValue(heapRef, ctx.arrayDescriptorOf(type))
             val resolvedLength = resolveLValue(lengthRef, ctx.cp.int) as Int
             val length = if (resolvedLength in 0..10_000) resolvedLength else 0 // TODO hack
 
             val cellSort = ctx.typeToSort(type.elementType)
 
             fun <T> resolveElement(idx: Int): T {
-                val elemRef = UArrayIndexRef(cellSort, heapRef, ctx.mkBv(idx), ctx.arrayDescriptorOf(type))
+                val elemRef = UArrayIndexLValue(cellSort, heapRef, ctx.mkBv(idx), ctx.arrayDescriptorOf(type))
                 @Suppress("UNCHECKED_CAST")
                 return resolveLValue(elemRef, type.elementType) as T
             }
@@ -265,7 +265,7 @@ class JcTestResolver(
                 .flatMap { it.declaredFields }
                 .filter { !it.isStatic }
             for (field in fields) {
-                val lvalue = UFieldRef(ctx.typeToSort(field.fieldType), heapRef, field.field)
+                val lvalue = UFieldLValue(ctx.typeToSort(field.fieldType), heapRef, field.field)
                 val fieldValue = resolveLValue(lvalue, field.fieldType)
 
                 val fieldClazz = resolveType(field.enclosingType)
@@ -277,7 +277,7 @@ class JcTestResolver(
 
         private fun resolveAllocatedClass(ref: UConcreteHeapRef): Class<*> {
             val classTypeField = ctx.classTypeSyntheticField
-            val classTypeLValue = UFieldRef(ctx.addressSort, ref, classTypeField)
+            val classTypeLValue = UFieldLValue(ctx.addressSort, ref, classTypeField)
 
             val classTypeRef = memory.read(classTypeLValue) as? UConcreteHeapRef
                 ?: error("No type for allocated class")
@@ -300,7 +300,7 @@ class JcTestResolver(
 
         private fun resolveAllocatedString(ref: UConcreteHeapRef): String {
             val valueField = ctx.stringValueField
-            val strValueLValue = UFieldRef(ctx.typeToSort(valueField.fieldType), ref, valueField.field)
+            val strValueLValue = UFieldLValue(ctx.typeToSort(valueField.fieldType), ref, valueField.field)
             val strValue = resolveLValue(strValueLValue, valueField.fieldType)
 
             return when (strValue) {

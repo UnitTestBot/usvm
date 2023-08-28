@@ -20,7 +20,7 @@ import org.usvm.memory.USymbolicCollectionUpdates
 import org.usvm.memory.UUpdateNode
 import org.usvm.memory.UWritableMemory
 import org.usvm.util.Region
-import java.util.*
+import java.util.IdentityHashMap
 
 
 abstract class USymbolicSetId<Element, Reg : Region<Reg>, out SetId : USymbolicSetId<Element, Reg, SetId>>(
@@ -44,16 +44,16 @@ abstract class USymbolicSetId<Element, Reg : Region<Reg>, out SetId : USymbolicS
      */
     @Suppress("UNCHECKED_CAST")
     fun <ResultReg : Region<ResultReg>> region(updates: USymbolicCollectionUpdates<Element, UBoolSort>): ResultReg {
-        val regionBuilder = SymbolicSetRegionBuilder<Element, Reg>(this)
+        val regionBuilder = USetRegionBuilder<Element, Reg>(this)
         val result = updates.accept(regionBuilder, regionCache as MutableMap<Any?, Reg>)
         return result as ResultReg
     }
 }
 
-class UAllocatedSymbolicSetId<Element, Reg : Region<Reg>>(
+class UAllocatedSetId<Element, Reg : Region<Reg>>(
     val elementInfo: USymbolicCollectionKeyInfo<Element, Reg>,
     contextMemory: UWritableMemory<*>?
-) : USymbolicSetId<Element, Reg, UAllocatedSymbolicSetId<Element, Reg>>(contextMemory) {
+) : USymbolicSetId<Element, Reg, UAllocatedSetId<Element, Reg>>(contextMemory) {
 
     override val sort: UBoolSort
         get() = TODO("Not yet implemented")
@@ -62,7 +62,7 @@ class UAllocatedSymbolicSetId<Element, Reg : Region<Reg>>(
         elementInfo.bottomRegion()
 
     override fun UContext.mkReading(
-        collection: USymbolicCollection<UAllocatedSymbolicSetId<Element, Reg>, Element, UBoolSort>,
+        collection: USymbolicCollection<UAllocatedSetId<Element, Reg>, Element, UBoolSort>,
         key: Element
     ): UExpr<UBoolSort> {
         TODO("Not yet implemented")
@@ -82,7 +82,7 @@ class UAllocatedSymbolicSetId<Element, Reg : Region<Reg>>(
         TODO("Not yet implemented")
     }
 
-    override fun <Type> map(composer: UComposer<Type>): UAllocatedSymbolicSetId<Element, Reg> {
+    override fun <Type> map(composer: UComposer<Type>): UAllocatedSetId<Element, Reg> {
         TODO("Not yet implemented")
     }
 
@@ -90,7 +90,7 @@ class UAllocatedSymbolicSetId<Element, Reg : Region<Reg>>(
         TODO("Not yet implemented")
     }
 
-    override fun emptyRegion(): USymbolicCollection<UAllocatedSymbolicSetId<Element, Reg>, Element, UBoolSort> {
+    override fun emptyRegion(): USymbolicCollection<UAllocatedSetId<Element, Reg>, Element, UBoolSort> {
         TODO("Not yet implemented")
     }
 
@@ -99,10 +99,10 @@ class UAllocatedSymbolicSetId<Element, Reg : Region<Reg>>(
     }
 }
 
-class UInputSymbolicSetId<Element, Reg : Region<Reg>>(
+class UInputSetId<Element, Reg : Region<Reg>>(
     val elementInfo: USymbolicCollectionKeyInfo<Element, Reg>,
     contextMemory: UWritableMemory<*>?
-) : USymbolicSetId<Element, Reg, UInputSymbolicSetId<Element, Reg>>(contextMemory) {
+) : USymbolicSetId<Element, Reg, UInputSetId<Element, Reg>>(contextMemory) {
 
     override val sort: UBoolSort
         get() = TODO("Not yet implemented")
@@ -111,7 +111,7 @@ class UInputSymbolicSetId<Element, Reg : Region<Reg>>(
         elementInfo.topRegion()
 
     override fun UContext.mkReading(
-        collection: USymbolicCollection<UInputSymbolicSetId<Element, Reg>, Element, UBoolSort>,
+        collection: USymbolicCollection<UInputSetId<Element, Reg>, Element, UBoolSort>,
         key: Element
     ): UExpr<UBoolSort> {
         TODO("Not yet implemented")
@@ -131,7 +131,7 @@ class UInputSymbolicSetId<Element, Reg : Region<Reg>>(
         TODO("Not yet implemented")
     }
 
-    override fun <Type> map(composer: UComposer<Type>): UInputSymbolicSetId<Element, Reg> {
+    override fun <Type> map(composer: UComposer<Type>): UInputSetId<Element, Reg> {
         TODO("Not yet implemented")
     }
 
@@ -143,12 +143,12 @@ class UInputSymbolicSetId<Element, Reg : Region<Reg>>(
         TODO("Not yet implemented")
     }
 
-    override fun emptyRegion(): USymbolicCollection<UInputSymbolicSetId<Element, Reg>, Element, UBoolSort> {
+    override fun emptyRegion(): USymbolicCollection<UInputSetId<Element, Reg>, Element, UBoolSort> {
         TODO("Not yet implemented")
     }
 }
 
-private class SymbolicSetRegionBuilder<Key, Reg : Region<Reg>>(
+private class USetRegionBuilder<Key, Reg : Region<Reg>>(
     private val collectionId: USymbolicSetId<Key, Reg, *>
 ) : UMemoryUpdatesVisitor<Key, UBoolSort, Reg> {
 

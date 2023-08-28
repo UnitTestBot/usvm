@@ -20,12 +20,12 @@ import org.usvm.solver.UExprTranslator
 import org.usvm.solver.URegionDecoder
 import org.usvm.solver.URegionTranslator
 import org.usvm.uctx
-import java.util.*
+import java.util.IdentityHashMap
 
 class UArrayLengthRegionDecoder<ArrayType>(
     private val regionId: UArrayLengthsRegionId<ArrayType>,
     private val exprTranslator: UExprTranslator<*>
-) : URegionDecoder<UArrayLengthRef<ArrayType>, USizeSort> {
+) : URegionDecoder<UArrayLengthLValue<ArrayType>, USizeSort> {
 
     private var inputArrayLengthTranslator: UInputArrayLengthRegionTranslator<ArrayType>? = null
 
@@ -44,7 +44,7 @@ class UArrayLengthRegionDecoder<ArrayType>(
     override fun decodeLazyRegion(
         model: KModel,
         mapping: Map<UHeapRef, UConcreteHeapRef>
-    ): UMemoryRegion<UArrayLengthRef<ArrayType>, USizeSort> {
+    ): UMemoryRegion<UArrayLengthLValue<ArrayType>, USizeSort> {
         return UArrayLengthLazyModelRegion(regionId, model, mapping, inputArrayLengthTranslator)
     }
 }

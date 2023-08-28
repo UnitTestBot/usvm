@@ -19,16 +19,16 @@ abstract class UFieldsModelRegion<Field, Sort : USort>(
 
     abstract val inputFields: UReadOnlyMemoryRegion<UHeapRef, Sort>?
 
-    override fun read(key: UFieldRef<Field, Sort>): UExpr<Sort> {
+    override fun read(key: UFieldLValue<Field, Sort>): UExpr<Sort> {
         val ref = modelEnsureConcreteInputRef(key.ref) ?: return defaultValue
         return inputFields?.read(ref) ?: defaultValue
     }
 
     override fun write(
-        key: UFieldRef<Field, Sort>,
+        key: UFieldLValue<Field, Sort>,
         value: UExpr<Sort>,
         guard: UBoolExpr
-    ): UMemoryRegion<UFieldRef<Field, Sort>, Sort> {
+    ): UMemoryRegion<UFieldLValue<Field, Sort>, Sort> {
         error("Illegal operation for a model")
     }
 }

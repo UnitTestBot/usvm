@@ -13,11 +13,11 @@ import org.usvm.USizeSort
 import org.usvm.UTransformer
 import org.usvm.asTypedTransformer
 
-class UInputSymbolicMapLengthReading<MapType> internal constructor(
+class UInputMapLengthReading<MapType> internal constructor(
     ctx: UContext,
-    collection: UInputSymbolicMapLengthCollection<MapType>,
+    collection: UInputMapLengthCollection<MapType>,
     val address: UHeapRef,
-) : UCollectionReading<UInputSymbolicMapLengthId<MapType>, UHeapRef, USizeSort>(ctx, collection) {
+) : UCollectionReading<UInputMapLengthId<MapType>, UHeapRef, USizeSort>(ctx, collection) {
     init {
         require(address !is UNullRef)
     }

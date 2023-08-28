@@ -100,10 +100,10 @@ import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.throwExceptionWithoutStackFrameDrop
 import org.usvm.memory.ULValue
-import org.usvm.memory.URegisterStackRef
-import org.usvm.collection.array.UArrayIndexRef
-import org.usvm.collection.array.length.UArrayLengthRef
-import org.usvm.collection.field.UFieldRef
+import org.usvm.memory.URegisterStackLValue
+import org.usvm.collection.array.UArrayIndexLValue
+import org.usvm.collection.array.length.UArrayLengthLValue
+import org.usvm.collection.field.UFieldLValue
 import org.usvm.util.extractJcRefType
 import org.usvm.util.write
 
@@ -301,7 +301,7 @@ class JcExprResolver(
             val ref = mkStringConstRef(value.value, this)
 
             // String constants are immutable. Therefore, it is correct to overwrite value and type.
-            val stringValueLValue = UFieldRef(addressSort, ref, stringValueField.field)
+            val stringValueLValue = UFieldLValue(addressSort, ref, stringValueField.field)
             memory.write(stringValueLValue, charArrayRef)
             memory.types.allocate(ref.address, stringType)
 
@@ -325,7 +325,7 @@ class JcExprResolver(
 
         // Save ref original class type
         val classRefType = memory.alloc(type)
-        val classRefTypeLValue = UFieldRef(ctx.addressSort, ref, ctx.classTypeSyntheticField)
+        val classRefTypeLValue = UFieldLValue(ctx.addressSort, ref, ctx.classTypeSyntheticField)
         memory.write(classRefTypeLValue, classRefType)
 
         return ref
@@ -353,7 +353,7 @@ class JcExprResolver(
         val ref = resolveJcExpr(expr.array)?.asExpr(addressSort) ?: return null
         checkNullPointer(ref) ?: return null
         val arrayDescriptor = arrayDescriptorOf(expr.array.type as JcArrayType)
-        val lengthRef = UArrayLengthRef(ref, arrayDescriptor)
+        val lengthRef = UArrayLengthLValue(ref, arrayDescriptor)
         val length = scope.calcOnState { memory.read(lengthRef).asExpr(sizeSort) }
         assertHardMaxArrayLength(length) ?: return null
         scope.assert(mkBvSignedLessOrEqualExpr(mkBv(0), length)) ?: return null
@@ -369,7 +369,7 @@ class JcExprResolver(
             val ref = memory.alloc(expr.type)
 
             val arrayDescriptor = arrayDescriptorOf(expr.type as JcArrayType)
-            memory.write(UArrayLengthRef(ref, arrayDescriptor), size)
+            memory.write(UArrayLengthLValue(ref, arrayDescriptor), size)
 
             ref
         }
@@ -546,13 +546,13 @@ class JcExprResolver(
                     val instanceRef = resolveJcExpr(instance)?.asExpr(addressSort) ?: return null
                     checkNullPointer(instanceRef) ?: return null
                     val sort = ctx.typeToSort(field.fieldType)
-                    UFieldRef(sort, instanceRef, field.field)
+                    UFieldLValue(sort, instanceRef, field.field)
                 } else {
                     val sort = ctx.typeToSort(field.fieldType)
                     val classRef = scope.calcOnState {
                         resolveClassRef(field.enclosingType)
                     }
-                    UFieldRef(sort, classRef, field.field)
+                    UFieldLValue(sort, classRef, field.field)
                 }
             }
         }
@@ -604,20 +604,20 @@ class JcExprResolver(
     }
 
     private fun staticFieldsInitializedFlag(type: JcRefType, classRef: UHeapRef) =
-        UFieldRef(
+        UFieldLValue(
             sort = ctx.booleanSort,
             field = JcFieldImpl(type.jcClass, staticFieldsInitializedFlagField),
             ref = classRef
         )
 
-    private fun resolveArrayAccess(array: JcValue, index: JcValue): UArrayIndexRef<JcType, *>? = with(ctx) {
+    private fun resolveArrayAccess(array: JcValue, index: JcValue): UArrayIndexLValue<JcType, *>? = with(ctx) {
         val arrayRef = resolveJcExpr(array)?.asExpr(addressSort) ?: return null
         checkNullPointer(arrayRef) ?: return null
 
         val arrayDescriptor = arrayDescriptorOf(array.type as JcArrayType)
 
         val idx = resolveCast(index, ctx.cp.int)?.asExpr(bv32Sort) ?: return null
-        val lengthRef = UArrayLengthRef(arrayRef, arrayDescriptor)
+        val lengthRef = UArrayLengthLValue(arrayRef, arrayDescriptor)
         val length = scope.calcOnState { memory.read(lengthRef).asExpr(sizeSort) }
 
         assertHardMaxArrayLength(length) ?: return null
@@ -627,14 +627,14 @@ class JcExprResolver(
         val elementType = requireNotNull(array.type.ifArrayGetElementType)
         val cellSort = typeToSort(elementType)
 
-        return UArrayIndexRef(cellSort, arrayRef, idx, arrayDescriptor)
+        return UArrayIndexLValue(cellSort, arrayRef, idx, arrayDescriptor)
     }
 
-    private fun resolveLocal(local: JcLocal): URegisterStackRef<*> {
+    private fun resolveLocal(local: JcLocal): URegisterStackLValue<*> {
         val method = requireNotNull(scope.calcOnState { lastEnteredMethod })
         val localIdx = localToIdx(method, local)
         val sort = ctx.typeToSort(local.type)
-        return URegisterStackRef(sort, localIdx)
+        return URegisterStackLValue(sort, localIdx)
     }
 
     // endregion

@@ -4,12 +4,12 @@ import org.usvm.collection.array.UAllocatedArrayReading
 import org.usvm.collection.array.UInputArrayReading
 import org.usvm.collection.array.length.UInputArrayLengthReading
 import org.usvm.collection.field.UInputFieldReading
-import org.usvm.collection.map.length.UInputSymbolicMapLengthReading
-import org.usvm.collection.map.primitive.UAllocatedSymbolicMapReading
-import org.usvm.collection.map.primitive.UInputSymbolicMapReading
-import org.usvm.collection.map.ref.UAllocatedSymbolicRefMapWithInputKeysReading
-import org.usvm.collection.map.ref.UInputSymbolicRefMapWithAllocatedKeysReading
-import org.usvm.collection.map.ref.UInputSymbolicRefMapWithInputKeysReading
+import org.usvm.collection.map.length.UInputMapLengthReading
+import org.usvm.collection.map.primitive.UAllocatedMapReading
+import org.usvm.collection.map.primitive.UInputMapReading
+import org.usvm.collection.map.ref.UAllocatedRefMapWithInputKeysReading
+import org.usvm.collection.map.ref.UInputRefMapWithAllocatedKeysReading
+import org.usvm.collection.map.ref.UInputRefMapWithInputKeysReading
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.USymbolicCollection
 import org.usvm.memory.USymbolicCollectionId
@@ -89,26 +89,26 @@ open class UComposer<Type>(
         transformCollectionReading(expr, expr.address)
 
     override fun <KeySort : USort, Sort : USort, Reg : Region<Reg>> transform(
-        expr: UAllocatedSymbolicMapReading<Type, KeySort, Sort, Reg>
+        expr: UAllocatedMapReading<Type, KeySort, Sort, Reg>
     ): UExpr<Sort> = transformCollectionReading(expr, expr.key)
 
     override fun <KeySort : USort, Sort : USort, Reg : Region<Reg>> transform(
-        expr: UInputSymbolicMapReading<Type, KeySort, Sort, Reg>
+        expr: UInputMapReading<Type, KeySort, Sort, Reg>
     ): UExpr<Sort> = transformCollectionReading(expr, expr.address to expr.key)
 
     override fun <Sort : USort> transform(
-        expr: UAllocatedSymbolicRefMapWithInputKeysReading<Type, Sort>
+        expr: UAllocatedRefMapWithInputKeysReading<Type, Sort>
     ): UExpr<Sort> = transformCollectionReading(expr, expr.keyRef)
 
     override fun <Sort : USort> transform(
-        expr: UInputSymbolicRefMapWithAllocatedKeysReading<Type, Sort>
+        expr: UInputRefMapWithAllocatedKeysReading<Type, Sort>
     ): UExpr<Sort> = transformCollectionReading(expr, expr.mapRef)
 
     override fun <Sort : USort> transform(
-        expr: UInputSymbolicRefMapWithInputKeysReading<Type, Sort>
+        expr: UInputRefMapWithInputKeysReading<Type, Sort>
     ): UExpr<Sort> = transformCollectionReading(expr, expr.mapRef to expr.keyRef)
 
-    override fun transform(expr: UInputSymbolicMapLengthReading<Type>): USizeExpr =
+    override fun transform(expr: UInputMapLengthReading<Type>): USizeExpr =
         transformCollectionReading(expr, expr.address)
 
     override fun transform(expr: UConcreteHeapRef): UExpr<UAddressSort> = expr

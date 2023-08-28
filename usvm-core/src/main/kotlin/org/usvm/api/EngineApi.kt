@@ -1,6 +1,9 @@
 package org.usvm.api
 
-import org.usvm.*
+import org.usvm.UBoolExpr
+import org.usvm.UHeapRef
+import org.usvm.UState
+
 
 fun UState<*, *, *, *, *>.assume(expr: UBoolExpr) {
     pathConstraints += expr

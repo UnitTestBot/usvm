@@ -15,30 +15,30 @@ import org.usvm.memory.guardedWrite
 import org.usvm.memory.map
 import org.usvm.uctx
 
-data class UArrayLengthRef<ArrayType>(val ref: UHeapRef, val arrayType: ArrayType) :
-    ULValue<UArrayLengthRef<ArrayType>, USizeSort> {
+data class UArrayLengthLValue<ArrayType>(val ref: UHeapRef, val arrayType: ArrayType) :
+    ULValue<UArrayLengthLValue<ArrayType>, USizeSort> {
 
     override val sort: USizeSort
         get() = ref.uctx.sizeSort
 
-    override val memoryRegionId: UMemoryRegionId<UArrayLengthRef<ArrayType>, USizeSort> =
+    override val memoryRegionId: UMemoryRegionId<UArrayLengthLValue<ArrayType>, USizeSort> =
         UArrayLengthsRegionId(sort, arrayType)
 
-    override val key: UArrayLengthRef<ArrayType>
+    override val key: UArrayLengthLValue<ArrayType>
         get() = this
 }
 
 data class UArrayLengthsRegionId<ArrayType>(override val sort: USizeSort, val arrayType: ArrayType) :
-    UMemoryRegionId<UArrayLengthRef<ArrayType>, USizeSort> {
+    UMemoryRegionId<UArrayLengthLValue<ArrayType>, USizeSort> {
 
-    override fun emptyRegion(): UMemoryRegion<UArrayLengthRef<ArrayType>, USizeSort> =
+    override fun emptyRegion(): UMemoryRegion<UArrayLengthLValue<ArrayType>, USizeSort> =
         UArrayLengthsMemoryRegion()
 }
 
 typealias UAllocatedArrayLengths<ArrayType> = PersistentMap<UAllocatedArrayLengthId<ArrayType>, USizeExpr>
 typealias UInputArrayLengths<ArrayType> = USymbolicCollection<UInputArrayLengthId<ArrayType>, UHeapRef, USizeSort>
 
-interface UArrayLengthsRegion<ArrayType> : UMemoryRegion<UArrayLengthRef<ArrayType>, USizeSort>
+interface UArrayLengthsRegion<ArrayType> : UMemoryRegion<UArrayLengthLValue<ArrayType>, USizeSort>
 
 internal class UArrayLengthsMemoryRegion<ArrayType>(
     private val allocatedLengths: UAllocatedArrayLengths<ArrayType> = persistentMapOf(),
@@ -51,7 +51,7 @@ internal class UArrayLengthsMemoryRegion<ArrayType>(
     private fun updateAllocated(updated: UAllocatedArrayLengths<ArrayType>) =
         UArrayLengthsMemoryRegion(updated, inputLengths)
 
-    private fun getInputLength(ref: UArrayLengthRef<ArrayType>): UInputArrayLengths<ArrayType> {
+    private fun getInputLength(ref: UArrayLengthLValue<ArrayType>): UInputArrayLengths<ArrayType> {
         if (inputLengths == null)
             inputLengths = UInputArrayLengthId(ref.arrayType, ref.sort).emptyRegion()
         return inputLengths!!
@@ -60,14 +60,14 @@ internal class UArrayLengthsMemoryRegion<ArrayType>(
     private fun updatedInput(updated: UInputArrayLengths<ArrayType>) =
         UArrayLengthsMemoryRegion(allocatedLengths, updated)
 
-    override fun read(key: UArrayLengthRef<ArrayType>): USizeExpr =
+    override fun read(key: UArrayLengthLValue<ArrayType>): USizeExpr =
         key.ref.map(
             { concreteRef -> readAllocated(UAllocatedArrayLengthId(key.arrayType, concreteRef.address, key.sort)) },
             { symbolicRef -> getInputLength(key).read(symbolicRef) }
         )
 
     override fun write(
-        key: UArrayLengthRef<ArrayType>,
+        key: UArrayLengthLValue<ArrayType>,
         value: USizeExpr,
         guard: UBoolExpr
     ) = foldHeapRef(

@@ -60,7 +60,7 @@ class UAllocatedArrayLengthId<ArrayType> internal constructor(
 
     override fun UContext.mkLValue(
         key: Unit
-    ): ULValue<*, USizeSort> = UArrayLengthRef(mkConcreteHeapRef(address), arrayType)
+    ): ULValue<*, USizeSort> = UArrayLengthLValue(mkConcreteHeapRef(address), arrayType)
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -105,7 +105,7 @@ class UInputArrayLengthId<ArrayType> internal constructor(
 
     override fun UContext.mkLValue(
         key: UHeapRef
-    ): ULValue<*, USizeSort> = UArrayLengthRef(key, arrayType)
+    ): ULValue<*, USizeSort> = UArrayLengthLValue(key, arrayType)
 
     override fun <Type> keyMapper(
         transformer: UTransformer<Type>,

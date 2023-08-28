@@ -16,11 +16,11 @@ import org.usvm.asTypedTransformer
 import org.usvm.collection.map.USymbolicMapKey
 import org.usvm.util.Region
 
-class UAllocatedSymbolicMapReading<MapType, KeySort : USort, Sort : USort, Reg: Region<Reg>> internal constructor(
+class UAllocatedMapReading<MapType, KeySort : USort, Sort : USort, Reg: Region<Reg>> internal constructor(
     ctx: UContext,
-    collection: UAllocatedSymbolicMap<MapType, KeySort, Sort, Reg>,
+    collection: UAllocatedMap<MapType, KeySort, Sort, Reg>,
     val key: UExpr<KeySort>,
-) : UCollectionReading<UAllocatedSymbolicMapId<MapType, KeySort, Sort, Reg>, UExpr<KeySort>, Sort>(ctx, collection) {
+) : UCollectionReading<UAllocatedMapId<MapType, KeySort, Sort, Reg>, UExpr<KeySort>, Sort>(ctx, collection) {
 
     override fun accept(transformer: KTransformerBase): KExpr<Sort> {
         require(transformer is UTransformer<*>) { "Expected a UTransformer, but got: $transformer" }
@@ -44,12 +44,12 @@ class UAllocatedSymbolicMapReading<MapType, KeySort : USort, Sort : USort, Reg: 
     }
 }
 
-class UInputSymbolicMapReading<MapType, KeySort : USort, Sort : USort, Reg: Region<Reg>> internal constructor(
+class UInputMapReading<MapType, KeySort : USort, Sort : USort, Reg: Region<Reg>> internal constructor(
     ctx: UContext,
-    collection: UInputSymbolicMap<MapType, KeySort, Sort, Reg>,
+    collection: UInputMap<MapType, KeySort, Sort, Reg>,
     val address: UHeapRef,
     val key: UExpr<KeySort>
-) : UCollectionReading<UInputSymbolicMapId<MapType, KeySort, Sort, Reg>, USymbolicMapKey<KeySort>, Sort>(ctx, collection) {
+) : UCollectionReading<UInputMapId<MapType, KeySort, Sort, Reg>, USymbolicMapKey<KeySort>, Sort>(ctx, collection) {
     init {
         require(address !is UNullRef)
     }

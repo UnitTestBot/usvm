@@ -29,7 +29,7 @@ import org.usvm.collection.array.USymbolicArrayInputToAllocatedCopyAdapter
 import org.usvm.collection.array.USymbolicArrayInputToInputCopyAdapter
 import org.usvm.collection.array.length.UInputArrayLengthId
 import org.usvm.collection.field.UInputFieldId
-import org.usvm.collection.map.ref.USymbolicRefMapEntryRef
+import org.usvm.collection.map.ref.URefMapEntryLValue
 import org.usvm.memory.UMemory
 import org.usvm.memory.key.USizeExprKeyInfo
 import kotlin.test.assertEquals
@@ -333,25 +333,25 @@ class TranslationTest {
         var storedValue = 1
         for (ref in listOf(mapRef, otherConcreteMapRef, otherSymbolicMapRef)) {
             for (keyRef in listOf(concreteRef0, concreteRef1, symbolicRef0, symbolicRef1)) {
-                val lValue = USymbolicRefMapEntryRef(valueFieldDescr.second, ref, keyRef, valueArrayDescr)
+                val lValue = URefMapEntryLValue(valueFieldDescr.second, ref, keyRef, valueArrayDescr)
                 heap.write(lValue, mkBv(storedValue++), trueExpr)
             }
         }
 
         val concreteValue = heap.read(
-            USymbolicRefMapEntryRef(valueFieldDescr.second, mapRef, concreteRef0, valueArrayDescr)
+            URefMapEntryLValue(valueFieldDescr.second, mapRef, concreteRef0, valueArrayDescr)
         )
 
         val concreteMissed = heap.read(
-            USymbolicRefMapEntryRef(valueFieldDescr.second, mapRef, concreteRefMissed, valueArrayDescr)
+            URefMapEntryLValue(valueFieldDescr.second, mapRef, concreteRefMissed, valueArrayDescr)
         )
 
         val symbolicValue = heap.read(
-            USymbolicRefMapEntryRef(valueFieldDescr.second, mapRef, symbolicRef0, valueArrayDescr)
+            URefMapEntryLValue(valueFieldDescr.second, mapRef, symbolicRef0, valueArrayDescr)
         )
 
         val symbolicMissed = heap.read(
-            USymbolicRefMapEntryRef(valueFieldDescr.second, mapRef, symbolicRefMissed, valueArrayDescr)
+            URefMapEntryLValue(valueFieldDescr.second, mapRef, symbolicRefMissed, valueArrayDescr)
         )
 
         checkNoConcreteHeapRefs(concreteValue)
