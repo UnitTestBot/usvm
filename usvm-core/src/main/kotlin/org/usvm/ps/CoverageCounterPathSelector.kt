@@ -42,6 +42,10 @@ class CoverageCounterPathSelector <Method, State : UState<*, *, Method, *, *, St
         selector.remove(state)
     }
 
+    fun finishTest() {
+        CoverageCounter.finishTest(methodName)
+    }
+
     fun savePath() {
         if (selector is BfsWithLoggingPathSelector<*, *, *>) {
             selector.savePath()

@@ -7,6 +7,7 @@ import org.jacodb.api.JcClassOrInterface
 import org.jacodb.api.JcMethod
 import org.jacodb.api.ext.packageName
 import org.usvm.machine.JcMachine
+import org.usvm.ps.BfsWithLoggingPathSelector
 import org.usvm.samples.JacoDBContainer
 import java.io.File
 import kotlin.io.path.Path
@@ -75,19 +76,22 @@ fun getName(method: JcMethod): String {
     return method.toString().dropWhile { it != ')' }.drop(1)
 }
 
-@OptIn(ExperimentalCoroutinesApi::class)
+private val prettyJson = Json { prettyPrint = true }
+
+@OptIn(ExperimentalCoroutinesApi::class, ExperimentalSerializationApi::class)
 fun calculate() {
     val pathSelectorSets = if (MainConfig.mode == Mode.Test)
         listOf(
             listOf(PathSelectionStrategy.INFERENCE_WITH_LOGGING),
-            listOf(PathSelectionStrategy.BFS),
             listOf(PathSelectionStrategy.FORK_DEPTH_RANDOM),
+            listOf(PathSelectionStrategy.BFS_WITH_LOGGING),
+            listOf(PathSelectionStrategy.BFS),
         )
     else listOf(listOf(PathSelectionStrategy.INFERENCE_WITH_LOGGING))
     val timeLimits = if (MainConfig.mode == Mode.Test)
         listOf<Long?>(
+            1000,
             5000,
-            10000,
             20000,
         )
     else listOf<Long?>(20000)
@@ -105,22 +109,25 @@ fun calculate() {
     var finishedTestsCount = 0
 
     jarClasses.forEach { (key, classesList) ->
+        println("RUNNING TESTS FOR $key")
         val allMethods = classesList.filter { cls ->
             !cls.isAnnotation && !cls.isInterface &&
                     MainConfig.inputJars.getValue(key).any { cls.packageName.contains(it) } &&
                     !cls.name.contains("Test")
         }.flatMap { cls -> cls.declaredMethods.filter { method ->
             method.enclosingClass == cls && getName(method) !in blacklist && !method.isConstructor }
-        }.sortedBy { getName(it) }.distinctBy { getName(it) }
+        }.sortedBy { getName(it).hashCode() }.distinctBy { getName(it) }
         val orderedMethods = if (MainConfig.shuffleTests) allMethods.shuffled() else allMethods
 
         timeLimits.forEach { timeLimit ->
+            println("  RUNNING TESTS WITH ${timeLimit}ms TIME LIMIT")
             pathSelectorSets.forEach { pathSelectors ->
+                println("    RUNNING TESTS WITH ${pathSelectors.joinToString("|")} PATH SELECTOR")
                 val statisticsFile = Path(MainConfig.dataPath,
                     "statistics",
                     Path(key).nameWithoutExtension,
                     "${timeLimit}ms",
-                    "${pathSelectors.joinToString(separator = "|") { it.toString() }}.txt").toFile()
+                    "${pathSelectors.joinToString(separator = "|") { it.toString() }}.json").toFile()
                 statisticsFile.parentFile.mkdirs()
                 statisticsFile.createNewFile()
                 statisticsFile.writeText("")
@@ -131,18 +138,16 @@ fun calculate() {
                         .forEach { method ->
                             val test = launch {
                                 try {
-                                    println("Running test ${method.name}")
+                                    println("      Running test ${method.name}")
                                     val time = measureTimeMillis {
                                         testRunner.runTest(method, key)
                                     }
-                                    println("Test ${method.name} finished after ${time}ms")
+                                    println("      Test ${method.name} finished after ${time}ms")
                                     finishedTestsCount += 1
-                                } catch (e: StringIndexOutOfBoundsException) {
-                                    e.printStackTrace()
                                 } catch (e: Exception) {
-                                    println(e)
+                                    println("      $e")
                                 } catch (e: NotImplementedError) {
-                                    println(e)
+                                    println("      $e")
                                 }
                             }
                             tests.add(test)
@@ -150,11 +155,7 @@ fun calculate() {
                     tests.joinAll()
                 }
 
-                CoverageCounter.getTestCoverages().forEach { (testName, testCoverages) ->
-                    statisticsFile.appendText("$testName: ${testCoverages.zip(MainConfig.discounts)}\n")
-                }
-                statisticsFile.appendText("\nTOTAL COVERAGES: ${
-                    CoverageCounter.getTotalCoverages().zip(MainConfig.discounts)}\n")
+                prettyJson.encodeToStream(CoverageCounter.getStatistics(), statisticsFile.outputStream())
                 CoverageCounter.reset()
             }
         }
@@ -169,6 +170,14 @@ fun aggregate() {
     val resultFilename = "current_dataset.json"
     val schemesFilename = "schemes.json"
     val jsons = mutableListOf<JsonElement>()
+
+    val schemesJson = buildJsonObject {
+        put("stateScheme", BfsWithLoggingPathSelector.jsonStateScheme)
+        put("trajectoryScheme", BfsWithLoggingPathSelector.jsonTrajectoryScheme)
+    }
+    val schemesFile = Path(resultDirname, schemesFilename).toFile()
+    schemesFile.parentFile.mkdirs()
+    prettyJson.encodeToStream(schemesJson, schemesFile.outputStream())
 
     Path(resultDirname, "jsons").toFile().listFiles()?.forEach { file ->
         if (!file.isFile || file.extension != "json") {
@@ -188,6 +197,7 @@ fun aggregate() {
         println("NO JSONS FOUND")
         return
     }
+
     val bigJson = buildJsonObject {
         put("stateScheme", jsons.first().jsonObject
             .getValue("json").jsonObject.getValue("stateScheme"))
@@ -209,19 +219,10 @@ fun aggregate() {
             }
         }
     }
-    val schemesJson = buildJsonObject {
-        put("stateScheme", jsons.first().jsonObject
-            .getValue("json").jsonObject.getValue("stateScheme"))
-        put("trajectoryScheme", jsons.first().jsonObject
-            .getValue("json").jsonObject.getValue("trajectoryScheme"))
-    }
 
     val resultFile = Path(resultDirname, resultFilename).toFile()
-    val schemesFile = Path(resultDirname, schemesFilename).toFile()
     resultFile.parentFile.mkdirs()
-    schemesFile.parentFile.mkdirs()
     Json.encodeToStream(bigJson, resultFile.outputStream())
-    Json.encodeToStream(schemesJson, schemesFile.outputStream())
 
     println("\nAGGREGATION FINISHED IN DIRECTORY $resultDirname\n")
 }
@@ -326,7 +327,7 @@ fun main(args: Array<String>) {
         try {
             calculate()
         } catch (e: Throwable) {
-            println(e)
+            e.printStackTrace()
             clear()
         }
     }
@@ -335,7 +336,7 @@ fun main(args: Array<String>) {
         try {
             aggregate()
         } catch (e: Throwable) {
-            println(e)
+            e.printStackTrace()
             clear()
         }
     }

@@ -57,8 +57,8 @@ abstract class UMachine<State> : AutoCloseable {
                 if (originalStateAlive) {
                     pathSelector.update(state)
                 } else {
-                    pathSelector.remove(state)
                     observer.onStateTerminated(state)
+                    pathSelector.remove(state)
                 }
 
                 if (aliveForkedStates.isNotEmpty()) {
@@ -71,9 +71,11 @@ abstract class UMachine<State> : AutoCloseable {
             }
         }
 
-        if (pathSelector is CoverageCounterPathSelector<*, *> &&
-            MainConfig.logFeatures && MainConfig.mode != Mode.Test) {
-            pathSelector.savePath()
+        if (pathSelector is CoverageCounterPathSelector<*, *>) {
+            pathSelector.finishTest()
+            if (MainConfig.logFeatures && MainConfig.mode != Mode.Test) {
+                pathSelector.savePath()
+            }
         }
     }
 

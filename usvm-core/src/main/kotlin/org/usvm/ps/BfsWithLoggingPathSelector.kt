@@ -46,7 +46,7 @@ private fun <T> List<T>.getLast(count: Int): List<T> {
 }
 
 @Suppress("LeakingThis")
-internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Statement, *, State>, Statement, Method>(
+open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Statement, *, State>, Statement, Method>(
     private val pathsTreeRoot: PathsTrieNode<State, Statement>,
     private val coverageStatistics: CoverageStatistics<Method, Statement, State>,
     private val distanceStatistics: DistanceStatistics<Method, Statement>,
@@ -57,6 +57,7 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
 
     private val allStatements: List<Statement>
     private val visitedStatements = HashSet<Statement>()
+    private var coveredStatementsCount = 0
 
     protected val path = mutableListOf<ActionData>()
     protected val probabilities = mutableListOf<List<Float>>()
@@ -64,11 +65,6 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
     private val filepath = Path(MainConfig.dataPath, "jsons").toString()
     protected val method: Method
     private val filename: String
-    private val jsonStateScheme: JsonArray
-    private val jsonTrajectoryScheme: JsonArray
-    private var jsonFormat = Json {
-        encodeDefaults = true
-    }
 
     private var stepCount = 0
     private val graphsPath = Path(MainConfig.gameEnvPath, "graphs").toString()
@@ -349,18 +345,17 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
         val queue: List<StateFeatures>,
         val globalStateFeatures: GlobalStateFeatures,
         val chosenStateId: Int,
-        val reward: Float,
+        var reward: Float,
         val graphId: Int = 0,
         val blockIds: List<Int>,
         val extraFeatures: List<Float>,
     )
 
-    init {
-        File(filepath).mkdirs()
-        coverageStatistics.addOnCoveredObserver { _, method, statement ->
-            weighter.removeTarget(method, statement)
+    companion object {
+        private val jsonFormat = Json {
+            encodeDefaults = true
         }
-        jsonStateScheme = buildJsonArray {
+        val jsonStateScheme: JsonArray = buildJsonArray {
             addJsonArray {
                 jsonFormat.encodeToJsonElement(StateFeatures()).jsonObject.forEach { t, _ ->
                     add(t)
@@ -386,7 +381,7 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
                 add("blockIds")
             }
         }
-        jsonTrajectoryScheme = buildJsonArray {
+        val jsonTrajectoryScheme = buildJsonArray {
             add("hash")
             add("trajectory")
             add("name")
@@ -396,6 +391,13 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
                 add("graphEdges")
             }
             add("probabilities")
+        }
+    }
+
+    init {
+        File(filepath).mkdirs()
+        coverageStatistics.addOnCoveredObserver { _, method, statement ->
+            weighter.removeTarget(method, statement)
         }
         allStatements = coverageStatistics.getUncoveredStatements().map { it.second }
         method = applicationGraph.methodOf(allStatements.first())
@@ -566,7 +568,7 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
             stateFeatureQueue,
             globalStateFeatures,
             stateId,
-            getReward(lru[stateId]),
+            0.0f,
             graphFeaturesList.lastIndex,
             lru.map { it.currentStatement!! }.map { blockGraph.getBlock(it)?.id ?: -1 },
             getExtraFeatures()
@@ -804,7 +806,12 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
         return state
     }
 
-    override fun update(state: State) {}
+    override fun update(state: State) {
+        if (state === queue.first()) {
+            queue.removeFirst()
+            queue.addLast(state)
+        }
+    }
 
     override fun add(states: Collection<State>) {
         if (states.isEmpty()) {
@@ -826,5 +833,9 @@ internal open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Stat
         state.reversedPath.asSequence().toSet().forEach {  statement ->
             statementFinishCounts[statement] = statementFinishCounts.getValue(statement) + 1u
         }
+
+        val newCoveredStatementsCount = (allStatements.size - coverageStatistics.getUncoveredStatements().size)
+        path.last().reward = (newCoveredStatementsCount - coveredStatementsCount).toFloat()
+        coveredStatementsCount = newCoveredStatementsCount
     }
 }
