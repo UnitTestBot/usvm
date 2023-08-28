@@ -157,3 +157,15 @@ def list_append(x):
     res = []
     res.append(x)
     assert res[-1] == 127
+
+
+def repeat_1(n: int):
+    lst = [10] * n
+    assert lst[n - 1] == 10
+
+
+def repeat_2(x: int):
+    lst = [1, 2] * 10
+    if lst[x] == 1:
+        return 1
+    return 2

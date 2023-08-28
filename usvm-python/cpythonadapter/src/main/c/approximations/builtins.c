@@ -108,3 +108,35 @@ Approximation_range(void *adapter_raw, PyObject *args) {
 
     return wrap(concrete, symbolic, adapter);
 }
+
+#define builtin_sum_impl \
+    "def builtin_sum_impl(x): \n" \
+    "    result = 0           \n" \
+    "    for elem in x:       \n" \
+    "        result += elem   \n" \
+    "    return result        \n" \
+
+PyObject *builtin_sum = 0;
+
+void
+initialize_builtin_python_impls() {
+    PyObject *globals = PyDict_New();
+    if (!builtin_sum) {
+        PyRun_StringFlags(builtin_sum_impl, Py_file_input, globals, globals, 0);
+        builtin_sum = PyRun_StringFlags("builtin_sum_impl", Py_eval_input, globals, globals, 0);
+        Py_INCREF(builtin_sum);
+    }
+    Py_DECREF(globals);
+}
+
+PyObject *
+Approximation_sum(PyObject *iterable) {
+    assert(is_wrapped(iterable));
+    SymbolicAdapter *adapter = get_adapter(iterable);
+    PyObject *wrapped_func = wrap(builtin_sum, Py_None, adapter);
+    assert(wrapped_func);
+    PyObject *args = PyTuple_Pack(1, iterable);
+    PyObject *res = Py_TYPE(wrapped_func)->tp_call(wrapped_func, args, 0);
+    Py_DECREF(args);
+    return res;
+}

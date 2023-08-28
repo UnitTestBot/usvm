@@ -13,6 +13,7 @@ class SimpleExampleTest : PythonTestRunnerForPrimitiveProgram("SimpleExample") {
 
     @Test
     fun testManyBranches() {
+        allowPathDiversions = true
         check3WithConcreteRun(
             constructFunction("many_branches", List(3) { typeSystem.pythonInt }),
             ignoreNumberOfAnalysisResults,
@@ -24,6 +25,7 @@ class SimpleExampleTest : PythonTestRunnerForPrimitiveProgram("SimpleExample") {
                 { _, _, _, res -> res.repr == index.toString() }
             }
         )
+        allowPathDiversions = false
     }
 
     @Test

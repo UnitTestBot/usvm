@@ -26,39 +26,47 @@ PyObject *list_richcompare_ne = 0;
 PyObject *list_richcompare_le = 0;
 PyObject *list_richcompare_ge = 0;
 
+#define list_multiply_impl \
+    "def list_multiply_impl(x, y): \n" \
+    "    result = []               \n" \
+    "    for _ in range(y):        \n" \
+    "        result += x           \n" \
+    "    return result             \n" \
+
+PyObject *list_multiply = 0;
+
 void
 initialize_list_python_impls() {
     PyObject *globals = PyDict_New();
-    if (!list_richcompare_lt) {
-        PyRun_StringFlags(list_richcmp_impl("<"), Py_file_input, globals, globals, 0);
-        list_richcompare_lt = PyRun_StringFlags("list_richcompare_impl", Py_eval_input, globals, globals, 0);
-        Py_INCREF(list_richcompare_lt);
-    }
-    if (!list_richcompare_gt) {
-        PyRun_StringFlags(list_richcmp_impl(">"), Py_file_input, globals, globals, 0);
-        list_richcompare_gt = PyRun_StringFlags("list_richcompare_impl", Py_eval_input, globals, globals, 0);
-        Py_INCREF(list_richcompare_gt);
-    }
-    if (!list_richcompare_eq) {
-        PyRun_StringFlags(list_richcmp_impl("=="), Py_file_input, globals, globals, 0);
-        list_richcompare_eq = PyRun_StringFlags("list_richcompare_impl", Py_eval_input, globals, globals, 0);
-        Py_INCREF(list_richcompare_eq);
-    }
-    if (!list_richcompare_ne) {
-        PyRun_StringFlags(list_richcmp_impl("!="), Py_file_input, globals, globals, 0);
-        list_richcompare_ne = PyRun_StringFlags("list_richcompare_impl", Py_eval_input, globals, globals, 0);
-        Py_INCREF(list_richcompare_ne);
-    }
-    if (!list_richcompare_le) {
-        PyRun_StringFlags(list_richcmp_impl("<="), Py_file_input, globals, globals, 0);
-        list_richcompare_le = PyRun_StringFlags("list_richcompare_impl", Py_eval_input, globals, globals, 0);
-        Py_INCREF(list_richcompare_le);
-    }
-    if (!list_richcompare_ge) {
-        PyRun_StringFlags(list_richcmp_impl(">="), Py_file_input, globals, globals, 0);
-        list_richcompare_ge = PyRun_StringFlags("list_richcompare_impl", Py_eval_input, globals, globals, 0);
-        Py_INCREF(list_richcompare_ge);
-    }
+
+    PyRun_StringFlags(list_richcmp_impl("<"), Py_file_input, globals, globals, 0);
+    list_richcompare_lt = PyRun_StringFlags("list_richcompare_impl", Py_eval_input, globals, globals, 0);
+    Py_INCREF(list_richcompare_lt);
+
+    PyRun_StringFlags(list_richcmp_impl(">"), Py_file_input, globals, globals, 0);
+    list_richcompare_gt = PyRun_StringFlags("list_richcompare_impl", Py_eval_input, globals, globals, 0);
+    Py_INCREF(list_richcompare_gt);
+
+    PyRun_StringFlags(list_richcmp_impl("=="), Py_file_input, globals, globals, 0);
+    list_richcompare_eq = PyRun_StringFlags("list_richcompare_impl", Py_eval_input, globals, globals, 0);
+    Py_INCREF(list_richcompare_eq);
+
+    PyRun_StringFlags(list_richcmp_impl("!="), Py_file_input, globals, globals, 0);
+    list_richcompare_ne = PyRun_StringFlags("list_richcompare_impl", Py_eval_input, globals, globals, 0);
+    Py_INCREF(list_richcompare_ne);
+
+    PyRun_StringFlags(list_richcmp_impl("<="), Py_file_input, globals, globals, 0);
+    list_richcompare_le = PyRun_StringFlags("list_richcompare_impl", Py_eval_input, globals, globals, 0);
+    Py_INCREF(list_richcompare_le);
+
+    PyRun_StringFlags(list_richcmp_impl(">="), Py_file_input, globals, globals, 0);
+    list_richcompare_ge = PyRun_StringFlags("list_richcompare_impl", Py_eval_input, globals, globals, 0);
+    Py_INCREF(list_richcompare_ge);
+
+    PyRun_StringFlags(list_multiply_impl, Py_file_input, globals, globals, 0);
+    list_multiply = PyRun_StringFlags("list_multiply_impl", Py_eval_input, globals, globals, 0);
+    Py_INCREF(list_multiply);
+
     Py_DECREF(globals);
 }
 
@@ -90,7 +98,10 @@ Approximation_list_richcompare(PyObject *v, PyObject *w, int op) {
         wrapped = wrap(list_richcompare_ge, Py_None, adapter);
     }
     assert(wrapped);
-    return Py_TYPE(wrapped)->tp_call(wrapped, PyTuple_Pack(2, v, w), 0);
+    PyObject *args = PyTuple_Pack(2, v, w);
+    PyObject *result = Py_TYPE(wrapped)->tp_call(wrapped, args, 0);
+    Py_DECREF(args);
+    return result;
 }
 
 PyObject *
@@ -110,4 +121,19 @@ Approximation_list_append(PyObject *append_method, PyObject *symbolic_list, PyOb
         return 0;
 
     return wrap(concrete_result, Py_None, adapter);
+}
+
+PyObject *
+Approximation_list_repeat(PyObject *self, PyObject *n) {
+    assert(is_wrapped(self) && is_wrapped(n));
+    SymbolicAdapter *adapter = get_adapter(self);
+    if (adapter->fixate_type(adapter->handler_param, get_symbolic_or_none(self)))
+        return 0;
+    if (adapter->fixate_type(adapter->handler_param, get_symbolic_or_none(n)))
+        return 0;
+    PyObject *wrapped = wrap(list_multiply, Py_None, adapter);
+    PyObject *args = PyTuple_Pack(2, self, n);
+    PyObject *result = Py_TYPE(wrapped)->tp_call(wrapped, args, 0);
+    Py_DECREF(args);
+    return result;
 }
