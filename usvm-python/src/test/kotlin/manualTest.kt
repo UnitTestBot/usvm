@@ -22,28 +22,22 @@ import java.io.File
 private fun buildSampleRunConfig(): RunConfig {
     val (program, typeSystem) = constructPrimitiveProgram(
         """ 
-        def count(nodes, i, j):
-            if i > j or i < 0 or j >= len(nodes):
-                return 0
-            
-            node = nodes[i][j]
-            left_depth = count(nodes, i, node - 1)
-            right_depth = count(nodes, node + 1, j)
-            result = max(left_depth, right_depth) + 1
-            return result
+        def f(x: list):
+            s = sum(x)
+            assert s == 10
 
         """.trimIndent()
     )
     val function = PythonUnpinnedCallable.constructCallableFromName(
-        listOf(typeSystem.pythonList, typeSystem.pythonInt, typeSystem.pythonInt),
-        "count"
+        listOf(PythonAnyType),
+        "f"
     )
     val functions = listOf(function)
     return RunConfig(program, typeSystem, functions)
 }
 
 private fun buildProjectRunConfig(): RunConfig {
-    val projectPath = "/home/tochilinak/Documents/projects/utbot/Python/dynamic_programming"
+    val projectPath = "/home/tochilinak/Documents/projects/utbot/Python/sorts"
     val mypyRoot = "/home/tochilinak/Documents/projects/utbot/mypy_tmp"
     val files = getPythonFilesFromRoot(projectPath)
     val modules = getModulesFromFiles(projectPath, files)
@@ -52,8 +46,21 @@ private fun buildProjectRunConfig(): RunConfig {
     val mypyBuild = readMypyInfoBuild(mypyDir)
     val program = StructuredPythonProgram(setOf(File(projectPath)))
     val typeSystem = PythonTypeSystemWithMypyInfo(mypyBuild, program)
-    val ignoreFunctions = emptyList<String>()
+    val ignoreFunctions = listOf<String>(
+        "circle_sort",  // NoSuchElement
+        "cocktail_shaker_sort",  // slow (why?)
+        "quick_sort_lomuto_partition",  // NoSuchElement
+        "oe_process",  // blocks
+        "merge_insertion_sort",  // slow (why?)
+        "msd_radix_sort_inplace"  // NoSuchElement
+    )
+    val ignoreModules = listOf<String>(
+        "intro_sort",  // NoSuchElement
+        "heap_sort"  // NoSuchElement
+    )
     val functions = modules.flatMap { module ->
+        if (module in ignoreModules)
+            return@flatMap emptyList()
         runCatching {
             withAdditionalPaths(program.roots, typeSystem) {
                 program.getNamespaceOfModule(module)
@@ -64,8 +71,10 @@ private fun buildProjectRunConfig(): RunConfig {
             val description = type.pythonDescription()
             if (description !is PythonCallableTypeDescription)
                 return@mapNotNull null
-            if (ignoreFunctions.contains(functionName))  // for now
+            if (ignoreFunctions.contains(functionName))
                 return@mapNotNull null
+            //if (functionName != "cocktail_shaker_sort")
+            //    return@mapNotNull null
             println("$module.$functionName: ${type.pythonTypeRepresentation()}")
             PythonUnpinnedCallable.constructCallableFromName(
                 List(description.numberOfArguments) { PythonAnyType },
@@ -97,7 +106,7 @@ private fun analyze(runConfig: RunConfig) {
                     results,
                     maxIterations = 30,
                     allowPathDiversion = true,
-                    maxInstructions = 1_000
+                    maxInstructions = 5_000
                 )
                 results.forEach { (_, inputs, result) ->
                     println("INPUT:")

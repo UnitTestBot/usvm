@@ -278,4 +278,33 @@ class SimpleListsTest : PythonTestRunnerForPrimitiveProgram("SimpleLists", UMach
             )
         )
     }
+
+    @Test
+    fun testRepeat1() {
+        check1WithConcreteRun(
+            constructFunction("repeat_1", listOf(typeSystem.pythonInt)),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { x, res -> res.selfTypeName == "IndexError" && x.repr == "0" },
+                { _, res -> res.repr == "None" }
+            )
+        )
+    }
+
+    @Test
+    fun testRepeat2() {
+        check1WithConcreteRun(
+            constructFunction("repeat_2", listOf(typeSystem.pythonInt)),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, res -> res.selfTypeName == "IndexError" },
+                { _, res -> res.repr == "1" },
+                { _, res -> res.repr == "2" }
+            )
+        )
+    }
 }
