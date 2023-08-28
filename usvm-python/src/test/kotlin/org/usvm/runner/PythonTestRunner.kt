@@ -77,7 +77,7 @@ sealed class PythonTestRunner(
                         compareConcolicAndConcrete(pythonTest, it)
                     }
                     require(comparisonResult == null) {
-                        "Error in CPython patch: concrete and concolic results differ. " +
+                        "Error in CPython patch or approximation: concrete and concolic results differ. " +
                                 "Checker msg: $comparisonResult. " +
                                 "Inputs: ${pythonTest.inputValues.map { it.reprFromPythonObject }.joinToString(", ")}"
                     }
