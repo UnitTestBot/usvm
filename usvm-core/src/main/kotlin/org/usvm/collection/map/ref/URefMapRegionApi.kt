@@ -16,7 +16,12 @@ fun <MapType, ValueSort : USort> UWritableMemory<*>.refMapMerge(
     guard: UBoolExpr
 ) {
     val regionId = URefMapRegionId(sort, mapType)
-    val region = getRegion(regionId) as URefMapRegion<MapType, ValueSort>
+    val region = getRegion(regionId)
+
+    check(region is URefMapRegion<MapType, ValueSort>) {
+        "refMapMerge is not applicable to $region"
+    }
+
     val newRegion = region.merge(srcRef, dstRef, mapType, sort, keySet, guard)
     setRegion(regionId, newRegion)
 }

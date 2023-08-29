@@ -12,7 +12,6 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.collection.map.USymbolicMapKey
-import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.URangedUpdateNode
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.memory.USymbolicCollection
@@ -76,13 +75,12 @@ class URefMapRegionDecoder<MapType, ValueSort : USort>(
     override fun decodeLazyRegion(
         model: KModel,
         mapping: Map<UHeapRef, UConcreteHeapRef>
-    ): UMemoryRegion<URefMapEntryLValue<MapType, ValueSort>, ValueSort> =
-        URefMapLazyModelRegion(regionId, model, mapping, inputRegion)
+    ) = URefMapLazyModelRegion(regionId, model, mapping, inputRegion)
 }
 
 private class UAllocatedRefMapWithInputKeysTranslator<MapType, ValueSort : USort>(
     private val collectionId: UAllocatedRefMapWithInputKeysId<MapType, ValueSort>,
-    private val exprTranslator: UExprTranslator<*>
+    exprTranslator: UExprTranslator<*>
 ) : URegionTranslator<UAllocatedRefMapWithInputKeysId<MapType, ValueSort>, UHeapRef, ValueSort> {
     private val initialValue = with(collectionId.sort.uctx) {
         val sort = mkArraySort(addressSort, collectionId.sort)
@@ -104,7 +102,7 @@ private class UAllocatedRefMapWithInputKeysTranslator<MapType, ValueSort : USort
 
 private class UInputRefMapWithAllocatedKeysTranslator<MapType, ValueSort : USort>(
     private val collectionId: UInputRefMapWithAllocatedKeysId<MapType, ValueSort>,
-    private val exprTranslator: UExprTranslator<*>
+    exprTranslator: UExprTranslator<*>
 ) : URegionTranslator<UInputRefMapWithAllocatedKeysId<MapType, ValueSort>, UHeapRef, ValueSort> {
     private val initialValue = with(collectionId.sort.uctx) {
         val sort = mkArraySort(addressSort, collectionId.sort)
@@ -126,7 +124,7 @@ private class UInputRefMapWithAllocatedKeysTranslator<MapType, ValueSort : USort
 
 private class UInputRefMapTranslator<MapType, ValueSort : USort>(
     private val collectionId: UInputRefMapWithInputKeysId<MapType, ValueSort>,
-    private val exprTranslator: UExprTranslator<*>
+    exprTranslator: UExprTranslator<*>
 ) : URegionTranslator<UInputRefMapWithInputKeysId<MapType, ValueSort>, USymbolicMapKey<UAddressSort>, ValueSort>,
     UCollectionDecoder<USymbolicMapKey<UAddressSort>, ValueSort> {
     private val initialValue = with(collectionId.sort.uctx) {

@@ -4,13 +4,13 @@ import io.ksmt.solver.KSolver
 import org.usvm.UContext
 import org.usvm.UHeapRef
 import org.usvm.USizeExpr
-import org.usvm.api.ListCollectionApi.mkSymbolicList
-import org.usvm.api.ListCollectionApi.symbolicListAdd
-import org.usvm.api.ListCollectionApi.symbolicListGet
-import org.usvm.api.ListCollectionApi.symbolicListInsert
-import org.usvm.api.ListCollectionApi.symbolicListRemove
-import org.usvm.api.ListCollectionApi.symbolicListSet
-import org.usvm.api.ListCollectionApi.symbolicListSize
+import org.usvm.api.collection.ListCollectionApi.mkSymbolicList
+import org.usvm.api.collection.ListCollectionApi.symbolicListAdd
+import org.usvm.api.collection.ListCollectionApi.symbolicListGet
+import org.usvm.api.collection.ListCollectionApi.symbolicListInsert
+import org.usvm.api.collection.ListCollectionApi.symbolicListRemove
+import org.usvm.api.collection.ListCollectionApi.symbolicListSet
+import org.usvm.api.collection.ListCollectionApi.symbolicListSize
 import org.usvm.types.single.SingleTypeSystem
 import kotlin.test.Test
 

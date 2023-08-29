@@ -9,7 +9,6 @@ import org.usvm.UAddressSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UHeapRef
 import org.usvm.USizeSort
-import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.URangedUpdateNode
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.memory.USymbolicCollection
@@ -44,13 +43,12 @@ class UMapLengthRegionDecoder<MapType>(
     override fun decodeLazyRegion(
         model: KModel,
         mapping: Map<UHeapRef, UConcreteHeapRef>
-    ): UMemoryRegion<UMapLengthLValue<MapType>, USizeSort> =
-        UMapLengthLazyModelRegion(regionId, model, mapping, inputTranslator)
+    ) = UMapLengthLazyModelRegion(regionId, model, mapping, inputTranslator)
 }
 
 private class UInputMapLengthRegionTranslator<MapType>(
     private val collectionId: UInputMapLengthId<MapType>,
-    private val exprTranslator: UExprTranslator<*>
+    exprTranslator: UExprTranslator<*>
 ) : URegionTranslator<UInputMapLengthId<MapType>, UHeapRef, USizeSort>,
     UCollectionDecoder<UHeapRef, USizeSort> {
     private val initialValue = with(collectionId.sort.uctx) {

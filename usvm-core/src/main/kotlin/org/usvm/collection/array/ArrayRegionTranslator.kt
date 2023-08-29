@@ -13,7 +13,6 @@ import org.usvm.UHeapRef
 import org.usvm.USizeExpr
 import org.usvm.USizeSort
 import org.usvm.USort
-import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.URangedUpdateNode
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.memory.USymbolicCollection
@@ -64,13 +63,12 @@ class UArrayRegionDecoder<ArrayType, Sort : USort>(
     override fun decodeLazyRegion(
         model: KModel,
         mapping: Map<UHeapRef, UConcreteHeapRef>
-    ): UMemoryRegion<UArrayIndexLValue<ArrayType, Sort>, Sort> =
-        UArrayLazyModelRegion(regionId, model, mapping, inputRegion)
+    ) = UArrayLazyModelRegion(regionId, model, mapping, inputRegion)
 }
 
 private class UAllocatedArrayRegionTranslator<ArrayType, Sort : USort>(
     private val collectionId: UAllocatedArrayId<ArrayType, Sort>,
-    private val exprTranslator: UExprTranslator<*>
+    exprTranslator: UExprTranslator<*>
 ) : URegionTranslator<UAllocatedArrayId<ArrayType, Sort>, USizeExpr, Sort> {
     private val initialValue = with(collectionId.sort.uctx) {
         val sort = mkArraySort(sizeSort, collectionId.sort)
@@ -92,7 +90,7 @@ private class UAllocatedArrayRegionTranslator<ArrayType, Sort : USort>(
 
 private class UInputArrayRegionTranslator<ArrayType, Sort : USort>(
     private val collectionId: UInputArrayId<ArrayType, Sort>,
-    private val exprTranslator: UExprTranslator<*>
+    exprTranslator: UExprTranslator<*>
 ) : URegionTranslator<UInputArrayId<ArrayType, Sort>, USymbolicArrayIndex, Sort>,
     UCollectionDecoder<USymbolicArrayIndex, Sort> {
     private val initialValue = with(collectionId.sort.uctx) {

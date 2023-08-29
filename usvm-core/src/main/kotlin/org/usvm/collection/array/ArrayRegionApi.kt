@@ -21,7 +21,12 @@ internal fun <ArrayType, Sort : USort> UWritableMemory<*>.memcpy(
     guard: UBoolExpr,
 ) {
     val regionId = UArrayRegionId(type, elementSort)
-    val region = getRegion(regionId) as UArrayRegion<ArrayType, Sort>
+    val region = getRegion(regionId)
+
+    check(region is UArrayRegion<ArrayType, Sort>) {
+        "memcpy is not applicable to $region"
+    }
+
     val newRegion = region.memcpy(srcRef, dstRef, type, elementSort, fromSrcIdx, fromDstIdx, toDstIdx, guard)
     setRegion(regionId, newRegion)
 }
@@ -38,7 +43,11 @@ internal fun <ArrayType, Sort : USort> UWritableMemory<ArrayType>.allocateArrayI
     val address = allocateArray(type, arrayLength)
 
     val regionId = UArrayRegionId(type, elementSort)
-    val region = getRegion(regionId) as UArrayRegion<ArrayType, Sort>
+    val region = getRegion(regionId)
+
+    check(region is UArrayRegion<ArrayType, Sort>) {
+        "allocateArrayInitialized is not applicable to $region"
+    }
 
     val newRegion = region.initializeAllocatedArray(address.address, type, elementSort, arrayValues, guard = trueExpr)
 

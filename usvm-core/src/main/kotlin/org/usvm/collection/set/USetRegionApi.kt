@@ -17,7 +17,12 @@ internal fun <SetType, KeySort : USort, Reg : Region<Reg>> UWritableMemory<*>.se
     guard: UBoolExpr,
 ) {
     val regionId = USetRegionId(keySort, type, keyInfo)
-    val region = getRegion(regionId) as USetRegion<SetType, KeySort, Reg>
+    val region = getRegion(regionId)
+
+    check(region is USetRegion<SetType, KeySort, Reg>) {
+        "setUnion is not applicable to $region"
+    }
+
     val newRegion = region.union(srcRef, dstRef, type, keySort, keyInfo, guard)
     setRegion(regionId, newRegion)
 }

@@ -1,11 +1,9 @@
 package org.usvm.collection.field
 
 import io.ksmt.solver.KModel
-import org.usvm.UBoolExpr
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
-import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.model.AddressesMapping
 import org.usvm.model.modelEnsureConcreteInputRef
@@ -14,7 +12,7 @@ import org.usvm.solver.UCollectionDecoder
 
 abstract class UFieldsModelRegion<Field, Sort : USort>(
     private val regionId: UFieldsRegionId<Field, Sort>,
-) : UFieldsRegion<Field, Sort> {
+) : UReadOnlyMemoryRegion<UFieldLValue<Field, Sort>, Sort> {
     val defaultValue by lazy { regionId.sort.sampleUValue() }
 
     abstract val inputFields: UReadOnlyMemoryRegion<UHeapRef, Sort>?
@@ -22,14 +20,6 @@ abstract class UFieldsModelRegion<Field, Sort : USort>(
     override fun read(key: UFieldLValue<Field, Sort>): UExpr<Sort> {
         val ref = modelEnsureConcreteInputRef(key.ref) ?: return defaultValue
         return inputFields?.read(ref) ?: defaultValue
-    }
-
-    override fun write(
-        key: UFieldLValue<Field, Sort>,
-        value: UExpr<Sort>,
-        guard: UBoolExpr
-    ): UMemoryRegion<UFieldLValue<Field, Sort>, Sort> {
-        error("Illegal operation for a model")
     }
 }
 
