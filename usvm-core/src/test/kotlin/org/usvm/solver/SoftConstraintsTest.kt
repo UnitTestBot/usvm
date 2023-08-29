@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test
 import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.constraints.UPathConstraints
-import org.usvm.memory.emptyInputArrayLengthRegion
+import org.usvm.collection.array.length.UInputArrayLengthId
 import org.usvm.model.ULazyModelDecoder
 import org.usvm.model.buildTranslatorAndLazyDecoder
 import org.usvm.types.single.SingleTypeSystem
@@ -19,22 +19,22 @@ import kotlin.test.assertSame
 
 private typealias Type = SingleTypeSystem.SingleType
 
-open class SoftConstraintsTest<Field, Method> {
+open class SoftConstraintsTest<Field> {
     private lateinit var ctx: UContext
-    private lateinit var softConstraintsProvider: USoftConstraintsProvider<Field, Type>
-    private lateinit var translator: UExprTranslator<Field, Type>
-    private lateinit var decoder: ULazyModelDecoder<Field, Type, Method>
-    private lateinit var solver: USolverBase<Field, Type, Method, UContext>
+    private lateinit var softConstraintsProvider: USoftConstraintsProvider<Type>
+    private lateinit var translator: UExprTranslator<Type>
+    private lateinit var decoder: ULazyModelDecoder<Type>
+    private lateinit var solver: USolverBase<Type, UContext>
 
     @BeforeEach
     fun initialize() {
-        val components: UComponents<*, *, *> = mockk()
+        val components: UComponents<Type> = mockk()
         every { components.mkTypeSystem(any()) } returns SingleTypeSystem
 
         ctx = UContext(components)
         softConstraintsProvider = USoftConstraintsProvider(ctx)
 
-        val translatorWithDecoder = buildTranslatorAndLazyDecoder<Field, Type, Method>(ctx)
+        val translatorWithDecoder = buildTranslatorAndLazyDecoder<Type>(ctx)
 
         translator = translatorWithDecoder.first
         decoder = translatorWithDecoder.second
@@ -71,7 +71,7 @@ open class SoftConstraintsTest<Field, Method> {
         val sndExpr = mkBvSignedLessOrEqualExpr(sndRegister, thirdRegister)
         val sameAsFirstExpr = mkBvSignedLessOrEqualExpr(fstRegister, sndRegister)
 
-        val softConstraintsProvider = mockk<USoftConstraintsProvider<Field, Type>>()
+        val softConstraintsProvider = mockk<USoftConstraintsProvider<Type>>()
 
         every { softConstraintsProvider.provide(any()) } answers { callOriginal() }
 
@@ -114,7 +114,8 @@ open class SoftConstraintsTest<Field, Method> {
         val arrayType = IntArray::class
         val inputRef = mkRegisterReading(0, addressSort)
         val secondInputRef = mkRegisterReading(1, addressSort)
-        val region = emptyInputArrayLengthRegion(arrayType, sizeSort)
+        val region = UInputArrayLengthId(arrayType, sizeSort)
+            .emptyRegion()
             .write(inputRef, mkRegisterReading(3, sizeSort), guard = trueExpr)
 
         val size = 25
@@ -138,7 +139,8 @@ open class SoftConstraintsTest<Field, Method> {
     fun testUnsatCore() = with(ctx) {
         val arrayType = IntArray::class
         val inputRef = mkRegisterReading(0, addressSort)
-        val region = emptyInputArrayLengthRegion(arrayType, sizeSort)
+        val region = UInputArrayLengthId(arrayType, sizeSort)
+            .emptyRegion()
             .write(inputRef, mkRegisterReading(3, sizeSort), guard = trueExpr)
 
         val pc = UPathConstraints<Type, UContext>(ctx)

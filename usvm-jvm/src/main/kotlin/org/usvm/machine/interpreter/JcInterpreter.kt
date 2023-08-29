@@ -5,7 +5,6 @@ import mu.KLogging
 import org.jacodb.api.JcArrayType
 import org.jacodb.api.JcClassOrInterface
 import org.jacodb.api.JcClassType
-import org.jacodb.api.JcField
 import org.jacodb.api.JcMethod
 import org.jacodb.api.JcPrimitiveType
 import org.jacodb.api.JcRefType
@@ -32,7 +31,7 @@ import org.usvm.StepScope
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UInterpreter
-import org.usvm.URegisterLValue
+import org.usvm.api.allocate
 import org.usvm.machine.JcApplicationGraph
 import org.usvm.machine.JcContext
 import org.usvm.machine.state.JcMethodResult
@@ -45,9 +44,11 @@ import org.usvm.machine.state.parametersWithThisCount
 import org.usvm.machine.state.returnValue
 import org.usvm.machine.state.throwExceptionAndDropStackFrame
 import org.usvm.machine.state.throwExceptionWithoutStackFrameDrop
+import org.usvm.memory.URegisterStackLValue
 import org.usvm.solver.USatResult
+import org.usvm.util.write
 
-typealias JcStepScope = StepScope<JcState, JcType, JcField, JcContext>
+typealias JcStepScope = StepScope<JcState, JcType, JcContext>
 
 /**
  * A JacoDB interpreter.
@@ -69,7 +70,7 @@ class JcInterpreter(
 
         if (!method.isStatic) {
             with(ctx) {
-                val thisLValue = URegisterLValue(addressSort, 0)
+                val thisLValue = URegisterStackLValue(addressSort, 0)
                 val ref = state.memory.read(thisLValue).asExpr(addressSort)
                 state.pathConstraints += mkEq(ref, nullRef).not()
                 state.pathConstraints += mkIsSubtypeExpr(ref, typedMethod.enclosingType)
@@ -80,14 +81,14 @@ class JcInterpreter(
             with(ctx) {
                 val type = typedParameter.type
                 if (type is JcRefType) {
-                    val argumentLValue = URegisterLValue(typeToSort(type), method.localIdx(idx))
+                    val argumentLValue = URegisterStackLValue(typeToSort(type), method.localIdx(idx))
                     val ref = state.memory.read(argumentLValue).asExpr(addressSort)
                     state.pathConstraints += mkIsSubtypeExpr(ref, type)
                 }
             }
         }
 
-        val solver = ctx.solver<JcField, JcType, JcMethod, JcContext>()
+        val solver = ctx.solver<JcType, JcContext>()
 
         val model = (solver.checkWithSoftConstraints(state.pathConstraints) as USatResult).model
         state.models = listOf(model)
@@ -305,7 +306,7 @@ class JcInterpreter(
     private fun stringConstantAllocator(value: String, state: JcState): UConcreteHeapRef =
         stringConstantAllocatedRefs.getOrPut(value) {
             // Allocate globally unique ref
-            state.memory.heap.allocate()
+            state.memory.allocate()
         }
 
     private val typeInstanceAllocatedRefs = mutableMapOf<JcTypeInfo, UConcreteHeapRef>()
@@ -314,7 +315,7 @@ class JcInterpreter(
         val typeInfo = resolveTypeInfo(type)
         return typeInstanceAllocatedRefs.getOrPut(typeInfo) {
             // Allocate globally unique ref
-            state.memory.heap.allocate()
+            state.memory.allocate()
         }
     }
 

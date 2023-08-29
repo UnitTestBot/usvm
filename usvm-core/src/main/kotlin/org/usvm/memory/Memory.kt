@@ -1,166 +1,149 @@
 package org.usvm.memory
 
-import io.ksmt.utils.asExpr
-import org.usvm.UArrayIndexLValue
-import org.usvm.UArrayLengthLValue
-import org.usvm.UComposer
+import kotlinx.collections.immutable.PersistentMap
+import kotlinx.collections.immutable.persistentMapOf
+import org.usvm.INITIAL_CONCRETE_ADDRESS
+import org.usvm.UBoolExpr
+import org.usvm.UConcreteHeapAddress
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UExpr
-import org.usvm.UFieldLValue
 import org.usvm.UHeapRef
 import org.usvm.UIndexedMocker
-import org.usvm.ULValue
+import org.usvm.UMockEvaluator
+import org.usvm.UMockSymbol
 import org.usvm.UMocker
-import org.usvm.URegisterLValue
-import org.usvm.USizeExpr
 import org.usvm.USort
 import org.usvm.constraints.UTypeConstraints
-import org.usvm.types.UTypeStream
+import org.usvm.constraints.UTypeEvaluator
 
-interface UReadOnlyMemory<LValue, RValue> {
-    /**
-     * Reads value referenced by [lvalue]. Might lazily initialize symbolic values.
-     */
-    fun read(lvalue: LValue): RValue
+interface UMemoryRegionId<Key, Sort : USort> {
+    val sort: Sort
+
+    fun emptyRegion(): UMemoryRegion<Key, Sort>
 }
 
-interface UReadOnlyTypedMemory<LValue, RValue, HeapRef, Type> : UReadOnlyMemory<LValue, RValue> {
-    /**
-     * @return a type stream corresponding to the [ref].
-     */
-    fun typeStreamOf(ref: HeapRef): UTypeStream<Type>
+interface UReadOnlyMemoryRegion<Key, Sort : USort> {
+    fun read(key: Key): UExpr<Sort>
 }
 
-interface UMemory<LValue, RValue, SizeT, HeapRef, Type> : UReadOnlyTypedMemory<LValue, RValue, HeapRef, Type> {
-    /**
-     * Writes [rvalue] into memory cell referenced by [lvalue].
-     */
-    fun write(lvalue: LValue, rvalue: RValue)
-
-    /**
-     * Allocates dictionary-based structure in heap.
-     * @return Concrete heap address of an allocated object.
-     */
-    fun alloc(type: Type): HeapRef
-
-    /**
-     * Allocates array in heap.
-     * @return Concrete heap address of an allocated array.
-     */
-    fun malloc(arrayType: Type, count: SizeT): HeapRef
-
-    /**
-     * Allocates array in heap.
-     * @param contents Sequence of initial array value.
-     *                 First element will be written to index 0, second -- to index 1, etc.
-     * @return Concrete heap address of an allocated array.
-     */
-    fun malloc(arrayType: Type, elementSort: USort, contents: Sequence<RValue>): HeapRef
-
-    /**
-     * Optimized writing of many concretely-indexed entries at a time.
-     * @param contents Sequence of elements to be written.
-     *                 First element will be written to index 0, second -- to index 1, etc.
-     * Updates the length of the array to the length of [contents].
-     */
-    fun memset(ref: HeapRef, arrayType: Type, elementSort: USort, contents: Sequence<RValue>)
-
-    /**
-     * Copies range of elements [[fromSrc]:[fromSrc] + [length] - 1] from an array with address [src]
-     * to range of elements [[fromDst]:[fromDst] + [length] - 1] of array with address [dst].
-     * Both arrays must have type [arrayType].
-     */
-    fun memcpy(
-        src: HeapRef,
-        dst: HeapRef,
-        arrayType: Type,
-        elementSort: USort,
-        fromSrc: SizeT,
-        fromDst: SizeT,
-        length: SizeT,
-    )
+interface UMemoryRegion<Key, Sort : USort> : UReadOnlyMemoryRegion<Key, Sort> {
+    fun write(key: Key, value: UExpr<Sort>, guard: UBoolExpr): UMemoryRegion<Key, Sort>
 }
 
-typealias UReadOnlySymbolicMemory<Type> = UReadOnlyTypedMemory<ULValue, UExpr<out USort>, UHeapRef, Type>
-typealias USymbolicMemory<Type> = UMemory<ULValue, UExpr<out USort>, USizeExpr, UHeapRef, Type>
+interface ULValue<Key, Sort : USort> {
+    val sort: Sort
+    val memoryRegionId: UMemoryRegionId<Key, Sort>
+    val key: Key
+}
 
-@Suppress("MemberVisibilityCanBePrivate")
-open class UMemoryBase<Field, Type, Method>(
-    protected val ctx: UContext,
-    val types: UTypeConstraints<Type>,
-    val stack: URegistersStack = URegistersStack(),
-    val heap: USymbolicHeap<Field, Type> = URegionHeap(ctx),
-    val mocker: UMocker<Method> = UIndexedMocker(ctx),
-    // TODO: we can eliminate mocker by moving compose to UState?
-) : USymbolicMemory<Type> {
-    @Suppress("UNCHECKED_CAST")
-    override fun read(lvalue: ULValue): UExpr<out USort> = with(lvalue) {
-        when (this) {
-            is URegisterLValue -> stack.readRegister(idx, sort)
-            is UFieldLValue<*> -> heap.readField(ref, field as Field, sort).asExpr(sort)
-            is UArrayIndexLValue<*> -> heap.readArrayIndex(ref, index, arrayType as Type, sort).asExpr(sort)
-            is UArrayLengthLValue<*> -> heap.readArrayLength(ref, arrayType as Type)
-            else -> error("Unexpected lvalue $this")
-        }
+/**
+ * Current heap address holder. Calling [freshAddress] advances counter globally.
+ * That is, allocation of an object in one state advances counter in all states.
+ * This would help to avoid overlapping addresses in merged states.
+ * Copying is prohibited.
+ */
+object UAddressCounter {
+    private var lastAddress = INITIAL_CONCRETE_ADDRESS
+    fun freshAddress(): UConcreteHeapAddress = lastAddress++
+}
+
+interface UReadOnlyMemory<Type> {
+    val stack: UReadOnlyRegistersStack
+    val mocker: UMockEvaluator
+    val types: UTypeEvaluator<Type>
+
+    private fun <Key, Sort : USort> read(regionId: UMemoryRegionId<Key, Sort>, key: Key): UExpr<Sort> {
+        val region = getRegion(regionId)
+        return region.read(key)
     }
 
-    @Suppress("UNCHECKED_CAST")
-    override fun write(lvalue: ULValue, rvalue: UExpr<out USort>) = with(lvalue) {
-        when (this) {
-            is URegisterLValue -> stack.writeRegister(idx, rvalue)
-            is UFieldLValue<*> -> heap.writeField(ref, field as Field, sort, rvalue, guard = ctx.trueExpr)
-            is UArrayIndexLValue<*> -> heap.writeArrayIndex(
-                ref,
-                index,
-                arrayType as Type,
-                sort,
-                rvalue,
-                guard = ctx.trueExpr
-            )
+    fun <Key, Sort : USort> read(lvalue: ULValue<Key, Sort>) = read(lvalue.memoryRegionId, lvalue.key)
 
-            is UArrayLengthLValue<*> -> heap.writeArrayLength(ref, rvalue as USizeExpr, arrayType as Type)
-            else -> error("Unexpected lvalue $this")
+    fun <Key, Sort : USort> getRegion(regionId: UMemoryRegionId<Key, Sort>): UReadOnlyMemoryRegion<Key, Sort>
+
+    fun nullRef(): UHeapRef
+
+    fun toWritableMemory(): UWritableMemory<Type>
+}
+
+interface UWritableMemory<Type> : UReadOnlyMemory<Type> {
+    fun <Key, Sort : USort> setRegion(regionId: UMemoryRegionId<Key, Sort>, newRegion: UMemoryRegion<Key, Sort>)
+
+    fun <Key, Sort : USort> write(lvalue: ULValue<Key, Sort>, rvalue: UExpr<Sort>, guard: UBoolExpr)
+
+    fun alloc(type: Type): UConcreteHeapRef
+}
+
+@Suppress("MemberVisibilityCanBePrivate")
+class UMemory<Type, Method>(
+    internal val ctx: UContext,
+    override val types: UTypeConstraints<Type>,
+    override val stack: URegistersStack = URegistersStack(),
+    private var mocks: UMocker<Method> = UIndexedMocker(ctx),
+    private var regions: PersistentMap<UMemoryRegionId<*, *>, UMemoryRegion<*, *>> = persistentMapOf(),
+    internal val addressCounter: UAddressCounter = UAddressCounter,
+) : UWritableMemory<Type> {
+
+    override val mocker: UMockEvaluator
+        get() = mocks
+
+    @Suppress("UNCHECKED_CAST")
+    override fun <Key, Sort : USort> getRegion(regionId: UMemoryRegionId<Key, Sort>): UMemoryRegion<Key, Sort> {
+        if (regionId is URegisterStackId) return stack as UMemoryRegion<Key, Sort>
+
+        val region = regions[regionId]
+        if (region != null) return region as UMemoryRegion<Key, Sort>
+
+        val newRegion = regionId.emptyRegion()
+        regions = regions.put(regionId, newRegion)
+        return newRegion
+    }
+
+    override fun <Key, Sort : USort> setRegion(
+        regionId: UMemoryRegionId<Key, Sort>,
+        newRegion: UMemoryRegion<Key, Sort>
+    ) {
+        if (regionId is URegisterStackId) {
+            check(newRegion === stack) { "Stack is mutable" }
+            return
         }
+        regions = regions.put(regionId, newRegion)
+    }
+
+    override fun <Key, Sort : USort> write(lvalue: ULValue<Key, Sort>, rvalue: UExpr<Sort>, guard: UBoolExpr) =
+        write(lvalue.memoryRegionId, lvalue.key, rvalue, guard)
+
+    private fun <Key, Sort : USort> write(
+        regionId: UMemoryRegionId<Key, Sort>,
+        key: Key,
+        value: UExpr<Sort>,
+        guard: UBoolExpr
+    ) {
+        val region = getRegion(regionId)
+        val newRegion = region.write(key, value, guard)
+        setRegion(regionId, newRegion)
     }
 
     override fun alloc(type: Type): UConcreteHeapRef {
-        val concreteHeapRef = heap.allocate()
+        val concreteHeapRef = ctx.mkConcreteHeapRef(addressCounter.freshAddress())
         types.allocate(concreteHeapRef.address, type)
         return concreteHeapRef
     }
 
-    override fun malloc(arrayType: Type, count: USizeExpr): UConcreteHeapRef {
-        val concreteHeapRef = heap.allocateArray(count)
-        types.allocate(concreteHeapRef.address, arrayType)
-        return concreteHeapRef
+    override fun nullRef(): UHeapRef = ctx.nullRef
+
+    fun <Sort : USort> mock(body: UMocker<Method>.() -> Pair<UMockSymbol<Sort>, UMocker<Method>>): UMockSymbol<Sort> {
+        val (result, updatedMocker) = mocks.body()
+        mocks = updatedMocker
+        return result
     }
 
-    override fun malloc(arrayType: Type, elementSort: USort, contents: Sequence<UExpr<out USort>>): UConcreteHeapRef {
-        val concreteHeapRef = heap.allocateArrayInitialized(arrayType, elementSort, contents)
-        types.allocate(concreteHeapRef.address, arrayType)
-        return concreteHeapRef
-    }
+    fun clone(typeConstraints: UTypeConstraints<Type>): UMemory<Type, Method> =
+        UMemory(ctx, typeConstraints, stack.clone(), mocks, regions, addressCounter)
 
-    override fun memset(ref: UHeapRef, arrayType: Type, elementSort: USort, contents: Sequence<UExpr<out USort>>) =
-        heap.memset(ref, arrayType, elementSort, contents)
-
-    override fun memcpy(
-        src: UHeapRef, dst: UHeapRef, arrayType: Type, elementSort: USort,
-        fromSrc: USizeExpr, fromDst: USizeExpr, length: USizeExpr,
-    ) = with(src.ctx) {
-        val toDst = mkBvAddExpr(fromDst, length)
-        heap.memcpy(src, dst, arrayType, elementSort, fromSrc, fromDst, toDst, guard = trueExpr)
-    }
-
-    fun <Sort : USort> compose(expr: UExpr<Sort>): UExpr<Sort> {
-        val composer = UComposer(ctx, stack, heap, types, mocker)
-        return composer.compose(expr)
-    }
-
-    fun clone(typeConstraints: UTypeConstraints<Type>): UMemoryBase<Field, Type, Method> =
-        UMemoryBase(ctx, typeConstraints, stack.clone(), heap.toMutableHeap(), mocker)
-
-    override fun typeStreamOf(ref: UHeapRef): UTypeStream<Type> =
-        types.getTypeStream(ref)
+    override fun toWritableMemory() =
+    // To be perfectly rigorous, we should clone stack and types here.
+        // But in fact they should not be used, so to optimize things up, we don't touch them.
+        UMemory(ctx, types, stack, mocks, regions, addressCounter)
 }

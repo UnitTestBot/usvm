@@ -8,6 +8,13 @@ import org.usvm.Type
 import org.usvm.UAddressSort
 import org.usvm.UComponents
 import org.usvm.UContext
+import org.usvm.api.allocateArray
+import org.usvm.api.allocateArrayInitialized
+import org.usvm.api.memset
+import org.usvm.api.readArrayIndex
+import org.usvm.api.readArrayLength
+import org.usvm.constraints.UEqualityConstraints
+import org.usvm.constraints.UTypeConstraints
 import org.usvm.sampleUValue
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -15,16 +22,18 @@ import kotlin.test.assertTrue
 
 class HeapMemsetTest {
     private lateinit var ctx: UContext
-    private lateinit var heap: URegionHeap<Field, Type>
+    private lateinit var heap: UMemory<Type, Any>
     private lateinit var arrayType: Type
     private lateinit var arrayValueSort: UAddressSort
 
     @BeforeEach
     fun initializeContext() {
-        val components: UComponents<*, *, *> = mockk()
+        val components: UComponents<Type> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
         ctx = UContext(components)
-        heap = URegionHeap(ctx)
+        val eqConstraints = UEqualityConstraints(ctx)
+        val typeConstraints = UTypeConstraints(components.mkTypeSystem(ctx), eqConstraints)
+        heap = UMemory(ctx, typeConstraints)
         arrayType = mockk<Type>()
         arrayValueSort = ctx.addressSort
     }
@@ -34,7 +43,7 @@ class HeapMemsetTest {
         val concreteAddresses = (17..30).toList()
         val values = concreteAddresses.map { mkConcreteHeapRef(it) }
 
-        val ref = heap.allocateArray(mkSizeExpr(concreteAddresses.size))
+        val ref = heap.allocateArray(arrayType, mkSizeExpr(concreteAddresses.size))
         val initiallyStoredValues = concreteAddresses.indices.map { idx ->
             heap.readArrayIndex(ref, mkSizeExpr(idx), arrayType, arrayValueSort)
         }
@@ -55,7 +64,7 @@ class HeapMemsetTest {
         val values = concreteAddresses.map { mkConcreteHeapRef(it) }
 
         val initialSize = concreteAddresses.size * 2
-        val ref = heap.allocateArray(mkSizeExpr(initialSize))
+        val ref = heap.allocateArray(arrayType, mkSizeExpr(initialSize))
         val actualInitialSize = heap.readArrayLength(ref, arrayType)
 
         heap.memset(ref, arrayType, arrayValueSort, values.asSequence())

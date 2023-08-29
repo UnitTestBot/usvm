@@ -1,32 +1,31 @@
 package org.usvm.machine
 
+import org.usvm.PathsTrieNode
 import org.usvm.UCallStack
 import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.UState
 import org.usvm.constraints.UPathConstraints
-import org.usvm.language.Field
 import org.usvm.language.Method
 import org.usvm.language.ProgramException
 import org.usvm.language.SampleType
 import org.usvm.language.Stmt
 import org.usvm.language.argumentCount
 import org.usvm.language.localsCount
-import org.usvm.memory.UMemoryBase
+import org.usvm.memory.UMemory
 import org.usvm.model.UModelBase
-import org.usvm.PathsTrieNode
 
 class SampleState(
     ctx: UContext,
     callStack: UCallStack<Method<*>, Stmt> = UCallStack(),
     pathConstraints: UPathConstraints<SampleType, UContext> = UPathConstraints(ctx),
-    memory: UMemoryBase<Field<*>, SampleType, Method<*>> = UMemoryBase(ctx, pathConstraints.typeConstraints),
-    models: List<UModelBase<Field<*>, SampleType>> = listOf(),
+    memory: UMemory<SampleType, Method<*>> = UMemory(ctx, pathConstraints.typeConstraints),
+    models: List<UModelBase<SampleType>> = listOf(),
     pathLocation: PathsTrieNode<SampleState, Stmt> = ctx.mkInitialLocation(),
     var returnRegister: UExpr<out USort>? = null,
     var exceptionRegister: ProgramException? = null,
-) : UState<SampleType, Field<*>, Method<*>, Stmt, UContext, SampleState>(
+) : UState<SampleType, Method<*>, Stmt, UContext, SampleState>(
     ctx,
     callStack,
     pathConstraints,

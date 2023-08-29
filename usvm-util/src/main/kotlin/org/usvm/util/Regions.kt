@@ -9,12 +9,15 @@ enum class RegionComparisonResult  {
 interface Region<T> {
     val isEmpty: Boolean
     fun compare(other: T): RegionComparisonResult
+    fun union(other: T): T
     fun subtract(other: T): T
     fun intersect(other: T): T
 }
 
 class TrivialRegion: Region<TrivialRegion> {
     override val isEmpty = false
+    override fun union(other: TrivialRegion): TrivialRegion = this
+
     override fun intersect(other: TrivialRegion): TrivialRegion = this
     override fun subtract(other: TrivialRegion): TrivialRegion =
         throw UnsupportedOperationException("TrivialRegion.subtract should not be called")
@@ -159,7 +162,7 @@ data class Intervals<Point: Comparable<Point>>(private val points: List<Endpoint
         return combineWith(other, ::visit1, ::visit1, ::visit2, ::visit2, ::visit2, ::visit2)
     }
 
-    fun union(other: Intervals<Point>): Intervals<Point> {
+    override fun union(other: Intervals<Point>): Intervals<Point> {
         fun visit(x: Endpoint<Point>, inside1: Boolean, inside2: Boolean) = if (inside1 || inside2) null else x
         return combineWith(other, ::visit, ::visit, ::visit, ::visit, ::visit, ::visit)
     }
@@ -232,6 +235,9 @@ data class SetRegion<Point>(private val points: Set<Point>, private val thrown: 
     }
 
     override val isEmpty: Boolean = points.isEmpty() && !thrown
+    override fun union(other: SetRegion<Point>): SetRegion<Point> {
+        TODO("Not yet implemented")
+    }
 
     override fun compare(other: SetRegion<Point>): RegionComparisonResult =
         when {
@@ -263,6 +269,12 @@ data class SetRegion<Point>(private val points: Set<Point>, private val thrown: 
             this.thrown && other.thrown -> SetRegion(other.points.union(this.points), true)
             else -> throw Exception("Unreachable")
         }
+
+    fun <OtherPoint> map(mapper: (Point) -> OtherPoint): SetRegion<OtherPoint> {
+        val otherPoints = mutableSetOf<OtherPoint>()
+        points.mapTo(otherPoints, mapper)
+        return SetRegion(otherPoints, thrown)
+    }
 
     override fun toString(): String =
         "${if (thrown) "Z \\ " else ""}{${points.joinToString(", ") }}"
@@ -312,6 +324,10 @@ data class ProductRegion<X: Region<X>, Y: Region<Y>>(val products: List<Pair<X, 
 
     override val isEmpty: Boolean =
         products.all { it.first.isEmpty || it.second.isEmpty }
+
+    override fun union(other: ProductRegion<X, Y>): ProductRegion<X, Y> {
+        TODO("Union this.products with other.products. Remove subsumed rectangles, merge mergeable.")
+    }
 
     override fun compare(other: ProductRegion<X, Y>): RegionComparisonResult {
         // TODO: comparison actually computes difference. Reuse it somehow (for example, return difference together with verdict).

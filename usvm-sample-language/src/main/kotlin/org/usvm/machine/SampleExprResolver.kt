@@ -3,18 +3,14 @@ package org.usvm.machine
 import io.ksmt.expr.KBitVec32Value
 import io.ksmt.expr.KExpr
 import io.ksmt.utils.asExpr
-import org.usvm.UArrayIndexLValue
-import org.usvm.UArrayLengthLValue
 import org.usvm.UBoolExpr
 import org.usvm.UBv32Sort
 import org.usvm.UContext
 import org.usvm.UExpr
-import org.usvm.UFieldLValue
 import org.usvm.UHeapRef
-import org.usvm.ULValue
-import org.usvm.URegisterLValue
 import org.usvm.USizeExpr
 import org.usvm.USort
+import org.usvm.api.allocateArray
 import org.usvm.language.And
 import org.usvm.language.ArrayCreation
 import org.usvm.language.ArrayEq
@@ -60,6 +56,11 @@ import org.usvm.language.StructExpr
 import org.usvm.language.StructIsNull
 import org.usvm.language.StructType
 import org.usvm.language.UnaryMinus
+import org.usvm.memory.ULValue
+import org.usvm.memory.URegisterStackLValue
+import org.usvm.collection.array.UArrayIndexLValue
+import org.usvm.collection.array.length.UArrayLengthLValue
+import org.usvm.collection.field.UFieldLValue
 
 /**
  * Resolves [Expr]s to [UExpr]s, forks in the [scope] respecting unsats. Checks for exceptions.
@@ -110,7 +111,7 @@ class SampleExprResolver(
                 val size = resolveInt(expr.size) ?: return null
                 checkArrayLength(size, expr.values.size) ?: return null
 
-                val ref = scope.calcOnState { memory.malloc(expr.type, size) }
+                val ref = scope.calcOnState { memory.allocateArray(expr.type, size) }
 
                 val cellSort = typeToSort(expr.type.elementType)
 
@@ -271,7 +272,7 @@ class SampleExprResolver(
         }
     }
 
-    fun resolveLValue(value: LValue): ULValue? =
+    fun resolveLValue(value: LValue): ULValue<*, *>? =
         when (value) {
             is ArrayIdxSetLValue -> resolveArraySelectRef(value.array, value.index)
             is FieldSetLValue -> resolveFieldSelectRef(value.instance, value.field)
@@ -294,7 +295,7 @@ class SampleExprResolver(
         return scope.calcOnState { memory.read(fieldRef) }
     }
 
-    private fun resolveArraySelectRef(array: ArrayExpr<*>, index: IntExpr): ULValue? {
+    private fun resolveArraySelectRef(array: ArrayExpr<*>, index: IntExpr): ULValue<*, *>? {
         val arrayRef = resolveArray(array) ?: return null
         checkNullPointer(arrayRef) ?: return null
 
@@ -311,7 +312,7 @@ class SampleExprResolver(
         return UArrayIndexLValue(cellSort, arrayRef, idx, array.type)
     }
 
-    private fun resolveFieldSelectRef(instance: StructExpr, field: Field<*>): ULValue? {
+    private fun resolveFieldSelectRef(instance: StructExpr, field: Field<*>): ULValue<*, *>? {
         val instanceRef = resolveStruct(instance) ?: return null
 
         checkNullPointer(instanceRef) ?: return null
@@ -319,11 +320,11 @@ class SampleExprResolver(
         return UFieldLValue(sort, instanceRef, field)
     }
 
-    private fun resolveRegisterRef(register: Register<*>): ULValue {
+    private fun resolveRegisterRef(register: Register<*>): ULValue<*, *> {
         val localIdx = register.idx
         val type = register.type
         val sort = ctx.typeToSort(type)
-        return URegisterLValue(sort, localIdx)
+        return URegisterStackLValue(sort, localIdx)
     }
 
     private fun checkArrayIndex(idx: USizeExpr, length: USizeExpr) = with(ctx) {

@@ -5,22 +5,22 @@ import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.usvm.Field
 import org.usvm.Type
 import org.usvm.UComponents
 import org.usvm.UContext
+import org.usvm.api.allocate
 import kotlin.test.assertSame
 
 class HeapRefEqTest {
     private lateinit var ctx: UContext
-    private lateinit var heap: URegionHeap<Field, Type>
+    private lateinit var heap: UMemory<Type, Any>
 
     @BeforeEach
     fun initializeContext() {
-        val components: UComponents<*, *, *> = mockk()
+        val components: UComponents<Type> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
         ctx = UContext(components)
-        heap = URegionHeap(ctx)
+        heap = UMemory(ctx, mockk())
     }
 
     @Test

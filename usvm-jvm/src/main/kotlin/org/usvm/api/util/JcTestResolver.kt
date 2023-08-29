@@ -3,7 +3,6 @@ package org.usvm.api.util
 import io.ksmt.utils.asExpr
 import org.jacodb.api.JcArrayType
 import org.jacodb.api.JcClassType
-import org.jacodb.api.JcField
 import org.jacodb.api.JcPrimitiveType
 import org.jacodb.api.JcRefType
 import org.jacodb.api.JcType
@@ -22,19 +21,15 @@ import org.jacodb.api.ext.void
 import org.usvm.INITIAL_CONCRETE_ADDRESS
 import org.usvm.INITIAL_INPUT_ADDRESS
 import org.usvm.NULL_ADDRESS
-import org.usvm.UArrayIndexLValue
-import org.usvm.UArrayLengthLValue
 import org.usvm.UConcreteHeapAddress
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
-import org.usvm.UFieldLValue
 import org.usvm.UHeapRef
-import org.usvm.ULValue
-import org.usvm.URegisterLValue
 import org.usvm.USort
 import org.usvm.api.JcCoverage
 import org.usvm.api.JcParametersState
 import org.usvm.api.JcTest
+import org.usvm.api.typeStreamOf
 import org.usvm.machine.JcContext
 import org.usvm.machine.extractBool
 import org.usvm.machine.extractByte
@@ -47,7 +42,12 @@ import org.usvm.machine.extractShort
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.localIdx
-import org.usvm.memory.UReadOnlySymbolicMemory
+import org.usvm.memory.ULValue
+import org.usvm.memory.UReadOnlyMemory
+import org.usvm.memory.URegisterStackLValue
+import org.usvm.collection.array.UArrayIndexLValue
+import org.usvm.collection.array.length.UArrayLengthLValue
+import org.usvm.collection.field.UFieldLValue
 import org.usvm.model.UModelBase
 import org.usvm.types.first
 import org.usvm.types.firstOrNull
@@ -115,8 +115,8 @@ class JcTestResolver(
      */
     private class MemoryScope(
         private val ctx: JcContext,
-        private val model: UModelBase<JcField, JcType>,
-        private val memory: UReadOnlySymbolicMemory<JcType>,
+        private val model: UModelBase<JcType>,
+        private val memory: UReadOnlyMemory<JcType>,
         private val method: JcTypedMethod,
         private val classLoader: ClassLoader = ClassLoader.getSystemClassLoader(),
     ) {
@@ -125,7 +125,7 @@ class JcTestResolver(
         fun resolveState(): JcParametersState {
             // TODO: now we need to explicitly evaluate indices of registers, because we don't have specific ULValues
             val thisInstance = if (!method.isStatic) {
-                val ref = URegisterLValue(ctx.addressSort, idx = 0)
+                val ref = URegisterStackLValue(ctx.addressSort, idx = 0)
                 resolveLValue(ref, method.enclosingType)
             } else {
                 null
@@ -133,14 +133,14 @@ class JcTestResolver(
 
             val parameters = method.parameters.mapIndexed { idx, param ->
                 val registerIdx = method.method.localIdx(idx)
-                val ref = URegisterLValue(ctx.typeToSort(param.type), registerIdx)
+                val ref = URegisterStackLValue(ctx.typeToSort(param.type), registerIdx)
                 resolveLValue(ref, param.type)
             }
 
             return JcParametersState(thisInstance, parameters)
         }
 
-        fun resolveLValue(lvalue: ULValue, type: JcType): Any? {
+        fun resolveLValue(lvalue: ULValue<*, *>, type: JcType): Any? {
             val expr = memory.read(lvalue)
 
             return resolveExpr(expr, type)

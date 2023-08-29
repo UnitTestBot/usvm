@@ -6,7 +6,6 @@ import org.usvm.StepScope
 import org.usvm.UContext
 import org.usvm.UInterpreter
 import org.usvm.language.Call
-import org.usvm.language.Field
 import org.usvm.language.Goto
 import org.usvm.language.If
 import org.usvm.language.Return
@@ -14,7 +13,7 @@ import org.usvm.language.SampleType
 import org.usvm.language.SetLabel
 import org.usvm.language.SetValue
 
-typealias SampleStepScope = StepScope<SampleState, SampleType, Field<*>, UContext>
+typealias SampleStepScope = StepScope<SampleState, SampleType, UContext>
 
 
 val logger = object : KLogging() {}.logger
