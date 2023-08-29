@@ -10,7 +10,7 @@ import org.usvm.UState
  * it won't remove terminated states from the path trie.
  * It costs additional memory, but might be useful for debug purposes.
  */
-class TerminatedStateRemover<State : UState<*, *, *, *, *, State>> : UMachineObserver<State> {
+class TerminatedStateRemover<State : UState<*, *, *, *, State>> : UMachineObserver<State> {
     override fun onStateTerminated(state: State) {
         state.pathLocation.states.remove(state)
     }

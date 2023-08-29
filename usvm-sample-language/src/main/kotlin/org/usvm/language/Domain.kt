@@ -22,14 +22,14 @@ class Body(
     val stmts: List<Stmt>
 )
 
-class Struct(
+data class Struct(
     val name: String,
     val fields: Set<Field<SampleType>>
 ) {
     override fun toString() = name
 }
 
-class Field<out T : SampleType>(
+data class Field<out T : SampleType>(
     val name: String,
     val type: T,
 ) {

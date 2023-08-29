@@ -1,8 +1,10 @@
 package org.usvm
 
 import org.usvm.constraints.UPathConstraints
-import org.usvm.memory.UMemoryBase
+import org.usvm.memory.UMemory
+import org.usvm.memory.USymbolicCollectionKeyInfo
 import org.usvm.model.UModelBase
+import org.usvm.util.Region
 
 typealias Field = java.lang.reflect.Field
 typealias Type = kotlin.reflect.KClass<*>
@@ -27,10 +29,21 @@ internal fun pseudoRandom(i: Int): Int {
 internal class TestState(
     ctx: UContext,
     callStack: UCallStack<String, Int>, pathConstraints: UPathConstraints<Any, UContext>,
-    memory: UMemoryBase<Any, Any, String>, models: List<UModelBase<Any, Any>>,
+    memory: UMemory<Any, String>, models: List<UModelBase<Any>>,
     pathLocation: PathsTrieNode<TestState, Int>,
-) : UState<Any, Any, String, Int, UContext, TestState>(ctx, callStack, pathConstraints, memory, models, pathLocation) {
+) : UState<Any, String, Int, UContext, TestState>(ctx, callStack, pathConstraints, memory, models, pathLocation) {
     override fun clone(newConstraints: UPathConstraints<Any, UContext>?): TestState = this
 
     override val isExceptional = false
+}
+
+interface TestKeyInfo<T, Reg : Region<Reg>> : USymbolicCollectionKeyInfo<T, Reg> {
+    override fun keyToRegion(key: T): Reg = shouldNotBeCalled()
+    override fun eqSymbolic(ctx: UContext, key1: T, key2: T): UBoolExpr = shouldNotBeCalled()
+    override fun eqConcrete(key1: T, key2: T): Boolean = shouldNotBeCalled()
+    override fun cmpSymbolicLe(ctx: UContext, key1: T, key2: T): UBoolExpr = shouldNotBeCalled()
+    override fun cmpConcreteLe(key1: T, key2: T): Boolean = shouldNotBeCalled()
+    override fun keyRangeRegion(from: T, to: T): Reg = shouldNotBeCalled()
+    override fun topRegion(): Reg = shouldNotBeCalled()
+    override fun bottomRegion(): Reg = shouldNotBeCalled()
 }

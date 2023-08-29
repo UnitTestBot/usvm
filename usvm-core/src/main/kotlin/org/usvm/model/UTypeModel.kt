@@ -64,4 +64,9 @@ class UTypeModel<Type>(
 
             else -> error("Expecting concrete ref, but got $ref")
         }
+
+    override fun getTypeStream(ref: UHeapRef): UTypeStream<Type> {
+        check(ref is UConcreteHeapRef) { "Unexpected ref: $ref" }
+        return typeStream(ref)
+    }
 }

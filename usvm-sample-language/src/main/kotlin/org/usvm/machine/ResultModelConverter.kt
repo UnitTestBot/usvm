@@ -9,13 +9,15 @@ import org.usvm.UBv32Sort
 import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.USort
+import org.usvm.api.readArrayIndex
+import org.usvm.api.readArrayLength
+import org.usvm.api.readField
 import org.usvm.isTrue
 import org.usvm.language.ArrayCreation
 import org.usvm.language.ArrayType
 import org.usvm.language.BooleanConst
 import org.usvm.language.BooleanType
 import org.usvm.language.Expr
-import org.usvm.language.Field
 import org.usvm.language.IntConst
 import org.usvm.language.IntType
 import org.usvm.language.Method
@@ -56,7 +58,7 @@ class ResultModelConverter(
 
     private class InputScope(
         private val ctx: UContext,
-        private val model: UModelBase<Field<*>, SampleType>,
+        private val model: UModelBase<SampleType>,
     ) {
         fun convertExpr(expr: UExpr<out USort>, type: SampleType): Expr<SampleType> =
             when (type) {
@@ -81,7 +83,7 @@ class ResultModelConverter(
             }
             val fieldValues = type.struct.fields.associateWith { field ->
                 val sort = ctx.typeToSort(field.type)
-                val fieldUExpr = model.heap.readField(ref, field, sort)
+                val fieldUExpr = model.readField(ref, field, sort)
                 convertExpr(fieldUExpr, field.type)
             }
             return StructCreation(type.struct, fieldValues.toList())
@@ -94,10 +96,10 @@ class ResultModelConverter(
             if (ref == ctx.mkConcreteHeapRef(NULL_ADDRESS)) {
                 return ArrayCreation(StructType(Null), IntConst(0), emptyList())
             }
-            val lengthUExpr = model.heap.readArrayLength(ref, type)
+            val lengthUExpr = model.readArrayLength(ref, type)
             val length = (convertExpr(lengthUExpr, IntType) as IntConst).const
             val resolved = (0 until length).map { idx ->
-                val indexUExpr = model.heap.readArrayIndex(ref, ctx.mkBv(idx), type, ctx.typeToSort(type.elementType))
+                val indexUExpr = model.readArrayIndex(ref, ctx.mkBv(idx), type, ctx.typeToSort(type.elementType))
                 convertExpr(indexUExpr, type.elementType)
             }
             return ArrayCreation(type.elementType, IntConst(length), resolved)
