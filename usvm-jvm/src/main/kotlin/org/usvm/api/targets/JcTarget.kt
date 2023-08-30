@@ -7,7 +7,10 @@ import org.usvm.UTarget
 import org.usvm.machine.interpreter.JcInterpreterObserver
 import org.usvm.machine.state.JcState
 
-open class JcTarget(location: Pair<JcMethod, JcInst>? = null
+/**
+ * Base class for JcMachine targets.
+ */
+abstract class JcTarget(location: Pair<JcMethod, JcInst>? = null
 ) : UTarget<JcMethod, JcInst, JcTarget, JcState>(location), JcInterpreterObserver {
 
     override fun onNullPointerDereference(state: JcState, ref: UHeapRef) {

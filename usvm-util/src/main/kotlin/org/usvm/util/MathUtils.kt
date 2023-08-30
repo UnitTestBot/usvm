@@ -1,5 +1,8 @@
 package org.usvm.util
 
+/**
+ * Unsigned integer logarithm base 2. Zero evaluates to zero.
+ */
 fun log2(n: UInt): UInt {
     if (n == UInt.MAX_VALUE) {
         return 32u

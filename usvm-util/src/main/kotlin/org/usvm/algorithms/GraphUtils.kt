@@ -74,7 +74,7 @@ inline fun <V> findMinDistancesInUnweightedGraph(
  * Returns the sequence of vertices in breadth-first order.
  *
  * @param startVertices vertices to start traversal from.
- * @param adjacentVertices function which maps a vertex to the sequence of vertices adjacent to
+ * @param adjacentVertices function which maps a vertex to the sequence of vertices adjacent to.
  * it.
  */
 inline fun <V> bfsTraversal(startVertices: Collection<V>, crossinline adjacentVertices: (V) -> Sequence<V>): Sequence<V> {
@@ -91,6 +91,14 @@ inline fun <V> bfsTraversal(startVertices: Collection<V>, crossinline adjacentVe
     }
 }
 
+/**
+ * Returns the sequence of vertices with depth <= [depthLimit] in breadth-first order.
+ *
+ * @param depthLimit vertices which are reachable via paths longer than this value are
+ * not considered (i.e. 1 means only the vertices adjacent to start).
+ * @param startVertices vertices to start traversal from.
+ * @param adjacentVertices function which maps a vertex to the sequence of vertices adjacent to.
+ */
 fun <V> limitedBfsTraversal(depthLimit: UInt, startVertices: Collection<V>, adjacentVertices: (V) -> Sequence<V>): Sequence<V> {
     var currentDepth = 0u
     var numberOfVerticesOfCurrentLevel = startVertices.size

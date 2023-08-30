@@ -3,21 +3,49 @@ package org.usvm.statistics.distances
 import org.usvm.UCallStack
 import org.usvm.statistics.ApplicationGraph
 
+/**
+ * Kind of target reachability in application graph.
+ */
 enum class ReachabilityKind {
+    /**
+     * Target is located in the same method and is locally reachable.
+     */
     LOCAL,
+
+    /**
+     * Target is reachable from some method which can be called later.
+     */
     UP_STACK,
+    /**
+     * Target is reachable from some method on the call stack after returning to it.
+     */
     DOWN_STACK,
+    /**
+     * Target is unreachable.
+     */
     NONE
 }
 
-// TODO: add more information about the path
-// TODO: add new targets according to the path?
 data class InterprocDistance(val distance: UInt, val reachabilityKind: ReachabilityKind) {
     val isUnreachable = reachabilityKind == ReachabilityKind.NONE
 }
 
+/**
+ * Calculates shortest distances from location (represented as statement and call stack) to the set of targets
+ * considering call graph reachability.
+ *
+ * @param targetLocation target to calculate distance to.
+ * @param applicationGraph application graph to calculate distances on.
+ * @param getCfgDistance function with the following signature:
+ * (method, stmtFrom, stmtTo) -> shortest CFG distance from stmtFrom to stmtTo.
+ * @param getCfgDistanceToExitPoint function with the following signature:
+ * (method, stmt) -> shortest CFG distance from stmt to any of method's exit points.
+ * @param checkReachabilityInCallGraph function with the following signature:
+ * (method1, method2) -> true if method2 is reachable from method1, false otherwise.
+ */
 // TODO: calculate distance in blocks??
 // TODO: give priority to paths without calls
+// TODO: add new targets according to the path?
 internal class InterprocDistanceCalculator<Method, Statement>(
     private val targetLocation: Pair<Method, Statement>,
     private val applicationGraph: ApplicationGraph<Method, Statement>,

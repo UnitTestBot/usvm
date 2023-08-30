@@ -3,8 +3,15 @@ package org.usvm.statistics
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
-import org.usvm.*
-import org.usvm.statistics.distances.*
+import org.usvm.TestInstruction
+import org.usvm.UCallStack
+import org.usvm.appGraph
+import org.usvm.callStackOf
+import org.usvm.statistics.distances.CallGraphReachabilityStatistics
+import org.usvm.statistics.distances.DistanceStatistics
+import org.usvm.statistics.distances.InterprocDistance
+import org.usvm.statistics.distances.InterprocDistanceCalculator
+import org.usvm.statistics.distances.ReachabilityKind
 import kotlin.test.assertEquals
 
 class InterprocDistanceCalculatorTests {

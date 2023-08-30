@@ -2,10 +2,22 @@ package org.usvm.statistics.distances
 
 import org.usvm.UCallStack
 
+/**
+ * @see calculateDistance
+ */
 fun interface StaticTargetsDistanceCalculator<Method, Statement, out Distance> {
+
+    /**
+     * Calculate distance from location represented by [currentStatement] and [callStack] to
+     * some predefined targets.
+     */
     fun calculateDistance(currentStatement: Statement, callStack: UCallStack<Method, Statement>): Distance
 }
 
+/**
+ * Dynamically accumulates multiple [StaticTargetsDistanceCalculator] by their targets allowing
+ * to calculate distances to arbitrary targets.
+ */
 class DynamicTargetsShortestDistanceCalculator<Method, Statement, Distance>(
     private val getDistanceCalculator: (Method, Statement) -> StaticTargetsDistanceCalculator<Method, Statement, Distance>
 ) {
@@ -16,6 +28,9 @@ class DynamicTargetsShortestDistanceCalculator<Method, Statement, Distance>(
         return calculatorsByTarget.remove(target) != null
     }
 
+    /**
+     * Calculate distance from location represented by [currentStatement] and [callStack] to the [target].
+     */
     fun calculateDistance(
         currentStatement: Statement,
         callStack: UCallStack<Method, Statement>,

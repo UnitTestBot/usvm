@@ -53,9 +53,30 @@ enum class PathSelectionStrategy {
      * States are selected randomly with distribution based on distance to uncovered instructions.
      */
     CLOSEST_TO_UNCOVERED_RANDOM,
+
+    /**
+     * Gives priority to the states which are closer to their targets considering interprocedural
+     * reachability.
+     * The closest to targets state is always selected.
+     */
     TARGETED,
+    /**
+     * Gives priority to the states which are closer to their targets considering interprocedural
+     * reachability.
+     * States are selected randomly with distribution based on distance to targets.
+     */
     TARGETED_RANDOM,
+    /**
+     * Gives priority to the states which are closer to their targets considering only current call stack
+     * reachability.
+     * The closest to targets state is always selected.
+     */
     TARGETED_CALL_STACK_LOCAL,
+    /**
+     * Gives priority to the states which are closer to their targets considering only current call stack
+     * reachability.
+     * States are selected randomly with distribution based on distance to targets.
+     */
     TARGETED_CALL_STACK_LOCAL_RANDOM
 }
 
@@ -88,7 +109,13 @@ enum class CoverageZone {
 }
 
 enum class StateCollectionStrategy {
+    /**
+     * Collect only those terminated states which have covered new locations.
+     */
     COVERED_NEW,
+    /**
+     * Collect only those states which have reached sink targets.
+     */
     REACHED_TARGET
 }
 
@@ -106,6 +133,11 @@ data class UMachineOptions(
      * @see PathSelectorCombinationStrategy
      */
     val pathSelectorCombinationStrategy: PathSelectorCombinationStrategy = PathSelectorCombinationStrategy.INTERLEAVED,
+    /**
+     * Strategy to collect terminated states.
+     *
+     * @see StateCollectionStrategy
+     */
     val stateCollectionStrategy: StateCollectionStrategy = StateCollectionStrategy.COVERED_NEW,
     /**
      * Seed used for random operations.
@@ -145,7 +177,12 @@ data class UMachineOptions(
      * SMT solver type used for path constraint solving.
      */
     val solverType: SolverType = SolverType.Z3,
-
+    /**
+     * Should machine stop when all sink targets are reached.
+     */
     val stopOnTargetsReached: Boolean = false,
+    /**
+     * Depth of the interprocedural reachability search used in distance-based path selectors.
+     */
     val targetSearchDepth: UInt = 0u
 )

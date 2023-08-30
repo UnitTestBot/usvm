@@ -78,10 +78,23 @@ abstract class UState<Type, Method, Statement, Context : UContext, Target : UTar
     private val currentTargets = targets.toMutableList()
     private val reachedSinksImpl = mutableSetOf<Target>()
 
-    // TODO: clean removed targets sometimes
+    /**
+     * Collection of state's current targets.
+     * TODO: clean removed targets sometimes
+     */
     val targets: Collection<Target> get() = currentTargets.filterNot { it.isRemoved }
+
+    /**
+     * Reached targets with no children.
+     */
     val reachedSinks: Set<Target> = reachedSinksImpl
 
+    /**
+     * Tries to remove the [target] from current targets collection and
+     * add its children there.
+     *
+     * @return true if the [target] was successfully removed.
+     */
     internal fun visitTarget(target: Target): Boolean {
         if (currentTargets.remove(target) && !target.isRemoved) {
             if (target.isSink) {

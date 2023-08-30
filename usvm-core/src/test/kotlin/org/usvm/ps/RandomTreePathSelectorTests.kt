@@ -8,7 +8,13 @@ import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
-import org.usvm.*
+import org.usvm.TestState
+import org.usvm.UState
+import org.usvm.pseudoRandom
+import org.usvm.PathsTrieNode
+import org.usvm.PathsTrieNodeImpl
+import org.usvm.RootNode
+import org.usvm.TestInstruction
 import kotlin.test.assertEquals
 
 internal class RandomTreePathSelectorTests {

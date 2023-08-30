@@ -4,6 +4,9 @@ import org.jacodb.api.JcMethod
 import org.jacodb.api.cfg.JcInst
 import org.usvm.machine.state.JcState
 
+/**
+ * [JcTarget] which is reached when location ([method], [inst]) is reached.
+ */
 class JcLocationTarget(private val method: JcMethod, private val inst: JcInst) : JcTarget(method to inst) {
 
     private fun hasReached(state: JcState): Boolean {

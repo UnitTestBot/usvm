@@ -2,9 +2,15 @@ package org.usvm.machine.interpreter
 
 import org.usvm.UHeapRef
 import org.usvm.machine.state.JcState
-import org.usvm.statistics.UMachineObserver
 
+/**
+ * JcInterpreter events observer.
+ */
 interface JcInterpreterObserver {
+
+    /**
+     * Called when [state] dereferences null pointer in [ref].
+     */
     fun onNullPointerDereference(state: JcState, ref: UHeapRef) { }
 }
 

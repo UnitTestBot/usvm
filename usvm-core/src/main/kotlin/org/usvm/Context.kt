@@ -349,7 +349,7 @@ open class UContext(
     private val initialLocation = RootNode<Nothing, Nothing>()
 
     fun <State : UState<*, *, Statement, *, *, State>, Statement> mkInitialLocation()
-        : PathsTrieNode<State, Statement> = initialLocation.uncheckedCast()
+            : PathsTrieNode<State, Statement> = initialLocation.uncheckedCast()
 
     fun mkUValueSampler(): KSortVisitor<KExpr<*>> {
         return UValueSampler(this)

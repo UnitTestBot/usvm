@@ -15,7 +15,11 @@ import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.lastStmt
 import org.usvm.ps.createPathSelector
-import org.usvm.statistics.*
+import org.usvm.statistics.CompositeUMachineObserver
+import org.usvm.statistics.CoverageStatistics
+import org.usvm.statistics.TerminatedStateRemover
+import org.usvm.statistics.TransitiveCoverageZoneObserver
+import org.usvm.statistics.UMachineObserver
 import org.usvm.statistics.collectors.CoveredNewStatesCollector
 import org.usvm.statistics.collectors.TargetsReachedStatesCollector
 import org.usvm.statistics.distances.DistanceStatistics
@@ -38,7 +42,7 @@ class JcMachine(
     private val distanceStatistics = DistanceStatistics(applicationGraph)
 
     fun analyze(method: JcMethod, targets: List<JcTarget> = emptyList()): List<JcState> {
-        logger.debug("$this.analyze($method, $targets)")
+        logger.debug("{}.analyze({}, {})", this, method, targets)
         val initialState = interpreter.getInitialState(method, targets)
 
         val methodsToTrackCoverage =

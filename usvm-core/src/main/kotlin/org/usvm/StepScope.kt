@@ -1,6 +1,8 @@
 package org.usvm
 
-import org.usvm.StepScope.StepScopeState.*
+import org.usvm.StepScope.StepScopeState.CANNOT_BE_PROCESSED
+import org.usvm.StepScope.StepScopeState.CAN_BE_PROCESSED
+import org.usvm.StepScope.StepScopeState.DEAD
 
 /**
  * An auxiliary class, which carefully maintains forks and asserts via [fork] and [assert].
