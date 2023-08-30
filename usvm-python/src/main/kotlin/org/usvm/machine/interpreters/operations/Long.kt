@@ -9,6 +9,7 @@ import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.constructBool
 import org.usvm.machine.symbolicobjects.constructInt
+import org.usvm.machine.symbolicobjects.getToIntContent
 
 fun <RES_SORT: KSort> createBinaryIntOp(
     op: (UContext, UExpr<KIntSort>, UExpr<KIntSort>) -> UExpr<RES_SORT>?

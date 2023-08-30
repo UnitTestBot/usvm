@@ -4,10 +4,8 @@ import org.usvm.*
 import org.usvm.api.*
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.interpreter.ConcolicRunContext
-import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
-import org.usvm.machine.symbolicobjects.constructInt
-import org.usvm.machine.symbolicobjects.constructListIterator
 import org.usvm.language.types.PythonType
+import org.usvm.machine.symbolicobjects.*
 import java.util.stream.Stream
 import kotlin.streams.asSequence
 
