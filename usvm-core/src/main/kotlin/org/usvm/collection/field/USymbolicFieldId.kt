@@ -3,77 +3,21 @@ package org.usvm.collection.field
 import io.ksmt.cache.hash
 import org.usvm.UBoolExpr
 import org.usvm.UComposer
-import org.usvm.UConcreteHeapAddress
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.UTransformer
-import org.usvm.compose
 import org.usvm.memory.KeyTransformer
 import org.usvm.memory.UFlatUpdates
 import org.usvm.memory.USymbolicCollection
 import org.usvm.memory.USymbolicCollectionId
-import org.usvm.memory.USymbolicCollectionKeyInfo
 import org.usvm.memory.UWritableMemory
 import org.usvm.memory.key.UHeapRefKeyInfo
-import org.usvm.memory.key.USingleKeyInfo
-import org.usvm.sampleUValue
 import org.usvm.uctx
 
 interface USymbolicFieldId<Field, Key, Sort : USort, out FieldId : USymbolicFieldId<Field, Key, Sort, FieldId>> :
     USymbolicCollectionId<Key, Sort, FieldId> {
     val field: Field
-}
-
-/**
- * An id for a collection storing the concretely allocated [field] at heap address [address].
- */
-class UAllocatedFieldId<Field, Sort : USort> internal constructor(
-    override val field: Field,
-    val address: UConcreteHeapAddress,
-    override val sort: Sort,
-) : USymbolicFieldId<Field, Unit, Sort, UAllocatedFieldId<Field, Sort>> {
-    val defaultValue: UExpr<Sort> by lazy { sort.sampleUValue() }
-
-    override fun instantiate(
-        collection: USymbolicCollection<UAllocatedFieldId<Field, Sort>, Unit, Sort>,
-        key: Unit,
-        composer: UComposer<*>?
-    ): UExpr<Sort> {
-        check(collection.updates.isEmpty()) { "Can't instantiate allocated field reading from non-empty collection" }
-        return composer.compose(defaultValue)
-    }
-
-    override fun <Type> write(memory: UWritableMemory<Type>, key: Unit, value: UExpr<Sort>, guard: UBoolExpr) {
-        val lvalue = UFieldLValue(sort, value.uctx.mkConcreteHeapRef(address), field)
-        memory.write(lvalue, value, guard)
-    }
-
-    override fun toString(): String = "allocatedField<$field>($address)"
-
-    override fun keyInfo(): USymbolicCollectionKeyInfo<Unit, *> = USingleKeyInfo
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-
-        other as UAllocatedFieldId<*, *>
-
-        if (field != other.field) return false
-        if (address != other.address) return false
-        if (sort != other.sort) return false
-
-        return true
-    }
-
-    override fun hashCode(): Int = hash(field, address, sort)
-
-
-    override fun <Type> keyMapper(transformer: UTransformer<Type>): KeyTransformer<Unit> =
-        error("This should not be called")
-
-    override fun emptyRegion(): USymbolicCollection<UAllocatedFieldId<Field, Sort>, Unit, Sort> =
-        error("This should not be called")
 }
 
 /**

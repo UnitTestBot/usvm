@@ -8,12 +8,12 @@ import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USizeExpr
 import org.usvm.USort
-import org.usvm.memory.key.USizeExprKeyInfo
 import org.usvm.memory.ULValue
 import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UMemoryRegionId
 import org.usvm.memory.USymbolicCollection
 import org.usvm.memory.foldHeapRef
+import org.usvm.memory.key.USizeExprKeyInfo
 import org.usvm.memory.map
 
 data class UArrayIndexLValue<ArrayType, Sort : USort>(
@@ -70,8 +70,14 @@ internal class UArrayMemoryRegion<ArrayType, Sort : USort>(
         arrayType: ArrayType,
         sort: Sort,
         address: UConcreteHeapAddress
-    ): UAllocatedArray<ArrayType, Sort> = allocatedArrays[address]
-        ?: UAllocatedArrayId(arrayType, sort, address).emptyRegion()
+    ): UAllocatedArray<ArrayType, Sort> {
+        var collection = allocatedArrays[address]
+        if (collection == null) {
+            collection = UAllocatedArrayId(arrayType, sort, address).emptyRegion()
+            allocatedArrays = allocatedArrays.put(address, collection)
+        }
+        return collection
+    }
 
     private fun updateAllocatedArray(ref: UConcreteHeapAddress, updated: UAllocatedArray<ArrayType, Sort>) =
         UArrayMemoryRegion(allocatedArrays.put(ref, updated), inputArray)

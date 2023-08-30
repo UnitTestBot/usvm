@@ -3,6 +3,7 @@ package org.usvm.collection.map.length
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentMapOf
 import org.usvm.UBoolExpr
+import org.usvm.UConcreteHeapAddress
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USizeExpr
@@ -11,9 +12,10 @@ import org.usvm.memory.ULValue
 import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UMemoryRegionId
 import org.usvm.memory.USymbolicCollection
-import org.usvm.memory.guardedWrite
 import org.usvm.memory.foldHeapRef
+import org.usvm.memory.guardedWrite
 import org.usvm.memory.map
+import org.usvm.sampleUValue
 import org.usvm.uctx
 
 typealias UInputMapLengthCollection<MapType> = USymbolicCollection<UInputMapLengthId<MapType>, UHeapRef, USizeSort>
@@ -35,24 +37,22 @@ data class UMapLengthRegionId<MapType>(override val sort: USizeSort, val mapType
     UMemoryRegionId<UMapLengthLValue<MapType>, USizeSort> {
 
     override fun emptyRegion(): UMemoryRegion<UMapLengthLValue<MapType>, USizeSort> =
-        UMapLengthMemoryRegion()
+        UMapLengthMemoryRegion(sort, mapType)
 }
 
-typealias UAllocatedMapLength<MapType> = PersistentMap<UAllocatedMapLengthId<MapType>, USizeExpr>
 typealias UInputMapLength<MapType> = USymbolicCollection<UInputMapLengthId<MapType>, UHeapRef, USizeSort>
 
 interface UMapLengthRegion<MapType> : UMemoryRegion<UMapLengthLValue<MapType>, USizeSort>
 
 internal class UMapLengthMemoryRegion<MapType>(
-    private val allocatedLengths: UAllocatedMapLength<MapType> = persistentMapOf(),
+    private val sort: USizeSort,
+    private val mapType: MapType,
+    private val allocatedLengths: PersistentMap<UConcreteHeapAddress, USizeExpr> = persistentMapOf(),
     private var inputLengths: UInputMapLength<MapType>? = null
 ) : UMapLengthRegion<MapType> {
 
-    private fun readAllocated(id: UAllocatedMapLengthId<MapType>) =
-        allocatedLengths[id] ?: id.defaultValue
-
-    private fun updateAllocated(updated: UAllocatedMapLength<MapType>) =
-        UMapLengthMemoryRegion(updated, inputLengths)
+    private fun updateAllocated(updated: PersistentMap<UConcreteHeapAddress, USizeExpr>) =
+        UMapLengthMemoryRegion(sort, mapType, updated, inputLengths)
 
     private fun getInputLength(ref: UMapLengthLValue<MapType>): UInputMapLength<MapType> {
         if (inputLengths == null)
@@ -61,11 +61,11 @@ internal class UMapLengthMemoryRegion<MapType>(
     }
 
     private fun updateInput(updated: UInputMapLength<MapType>) =
-        UMapLengthMemoryRegion(allocatedLengths, updated)
+        UMapLengthMemoryRegion(sort, mapType, allocatedLengths, updated)
 
     override fun read(key: UMapLengthLValue<MapType>): USizeExpr =
         key.ref.map(
-            { concreteRef -> readAllocated(UAllocatedMapLengthId(key.mapType, concreteRef.address, key.sort)) },
+            { concreteRef -> allocatedLengths[concreteRef.address] ?: sort.sampleUValue() },
             { symbolicRef -> getInputLength(key).read(symbolicRef) }
         )
 
@@ -78,9 +78,8 @@ internal class UMapLengthMemoryRegion<MapType>(
         initial = this,
         initialGuard = guard,
         blockOnConcrete = { region, (concreteRef, innerGuard) ->
-            val id = UAllocatedMapLengthId(key.mapType, concreteRef.address, key.sort)
-            val newRegion = region.allocatedLengths.guardedWrite(id, value, innerGuard) {
-                id.defaultValue
+            val newRegion = region.allocatedLengths.guardedWrite(concreteRef.address, value, innerGuard) {
+                sort.sampleUValue()
             }
             region.updateAllocated(newRegion)
         },

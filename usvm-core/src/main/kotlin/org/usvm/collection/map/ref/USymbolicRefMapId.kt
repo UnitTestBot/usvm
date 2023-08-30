@@ -24,7 +24,6 @@ import org.usvm.memory.UTreeUpdates
 import org.usvm.memory.UWritableMemory
 import org.usvm.memory.key.UHeapRefKeyInfo
 import org.usvm.memory.key.UHeapRefRegion
-import org.usvm.memory.key.USingleKeyInfo
 import org.usvm.sampleUValue
 import org.usvm.uctx
 import org.usvm.util.emptyRegionTree
@@ -39,63 +38,6 @@ interface USymbolicRefMapId<
     : USymbolicCollectionId<Key, ValueSort, MapId> {
     val keysSetId: KeysSetId
     val mapType: MapType
-}
-
-class UAllocatedRefMapWithAllocatedKeysId<MapType, ValueSort : USort>(
-    override val sort: ValueSort,
-    override val mapType: MapType,
-    val mapAddress: UConcreteHeapAddress,
-    val keyAddress: UConcreteHeapAddress,
-) : USymbolicRefMapId<MapType, Unit, ValueSort, Nothing, UAllocatedRefMapWithAllocatedKeysId<MapType, ValueSort>> {
-    val defaultValue: UExpr<ValueSort> by lazy { sort.sampleUValue() }
-
-    override fun instantiate(
-        collection: USymbolicCollection<UAllocatedRefMapWithAllocatedKeysId<MapType, ValueSort>, Unit, ValueSort>,
-        key: Unit,
-        composer: UComposer<*>?
-    ): UExpr<ValueSort> {
-        check(collection.updates.isEmpty()) { "Can't instantiate allocated map reading from non-empty collection" }
-        return composer.compose(defaultValue)
-    }
-
-    override fun <Type> write(memory: UWritableMemory<Type>, key: Unit, value: UExpr<ValueSort>, guard: UBoolExpr) {
-        val lvalue = URefMapEntryLValue(
-            sort,
-            value.uctx.mkConcreteHeapRef(mapAddress),
-            value.uctx.mkConcreteHeapRef(keyAddress),
-            mapType
-        )
-        memory.write(lvalue, value, guard)
-    }
-
-    override fun toString(): String = "allocatedMap<$mapType>($mapAddress)[$keyAddress]"
-
-    override fun keyInfo(): USymbolicCollectionKeyInfo<Unit, *> = USingleKeyInfo
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-
-        other as UAllocatedRefMapWithAllocatedKeysId<*, *>
-
-        if (sort != other.sort) return false
-        if (mapType != other.mapType) return false
-        if (mapAddress != other.mapAddress) return false
-        if (keyAddress != other.keyAddress) return false
-
-        return true
-    }
-
-    override fun hashCode(): Int = hash(mapAddress, keyAddress, mapType, sort)
-
-    override val keysSetId: Nothing
-        get() = TODO()
-
-    override fun emptyRegion() =
-        error("This should not be called")
-
-    override fun <Type> keyMapper(transformer: UTransformer<Type>): KeyTransformer<Unit> =
-        error("This should not be called")
 }
 
 class UAllocatedRefMapWithInputKeysId<MapType, ValueSort : USort>(
