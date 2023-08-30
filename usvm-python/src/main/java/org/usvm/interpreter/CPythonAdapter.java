@@ -13,6 +13,8 @@ import java.util.Collections;
 import java.util.concurrent.Callable;
 
 import static org.usvm.machine.interpreters.operations.CommonKt.*;
+import static org.usvm.machine.interpreters.operations.ConstantsKt.handlerLoadConstKt;
+import static org.usvm.machine.interpreters.operations.ControlKt.handlerForkKt;
 import static org.usvm.machine.interpreters.operations.ListKt.*;
 import static org.usvm.machine.interpreters.operations.LongKt.*;
 import static org.usvm.machine.interpreters.operations.MethodNotificationsKt.*;
@@ -45,6 +47,7 @@ public class CPythonAdapter {
     public native void printPythonObject(long object);
     public native long[] getIterableElements(long iterable);
     public native String getPythonObjectRepr(long object);
+    public native String getPythonObjectStr(long object);
     public native long getAddressOfReprFunction(long object);
     public native String getPythonObjectTypeName(long object);
     public native long getPythonObjectType(long object);
@@ -114,15 +117,19 @@ public class CPythonAdapter {
 
     public static SymbolForCPython handlerLoadConst(ConcolicRunContext context, long ref) {
         PythonObject obj = new PythonObject(ref);
-        return withTracing(context, new LoadConstParameters(obj), () -> wrap(org.usvm.machine.interpreters.operations.ConstantsKt.handlerLoadConstKt(context, obj)));
+        return withTracing(context, new LoadConstParameters(obj), () -> wrap(handlerLoadConstKt(context, obj)));
     }
 
     public static void handlerFork(ConcolicRunContext context, SymbolForCPython cond) {
-        withTracing(context, new Fork(cond), unit(() -> org.usvm.machine.interpreters.operations.ControlKt.handlerForkKt(context, cond.obj)));
+        withTracing(context, new Fork(cond), unit(() -> handlerForkKt(context, cond.obj)));
     }
 
     public static void handlerForkResult(ConcolicRunContext context, SymbolForCPython cond, boolean result) {
         handlerForkResultKt(context, cond, result);
+    }
+
+    public static void handlerIsOp(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
+        withTracing(context, new MethodParametersNoReturn("is_op", Arrays.asList(left, right)), unit(() -> handlerIsOpKt(context, left.obj, right.obj)));
     }
 
     public static SymbolForCPython handlerGTLong(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {

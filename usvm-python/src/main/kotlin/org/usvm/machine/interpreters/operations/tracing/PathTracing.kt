@@ -15,6 +15,8 @@ fun <T : Any> withTracing(
     newEventParameters: SymbolicHandlerEventParameters<T>,
     resultSupplier: Callable<T?>
 ): T? {
+    if (context.isCancelled.call())
+        throw CancelledExecutionException
     context.instructionCounter += 1
     if (newEventParameters is NextInstruction)
         context.statistics.updateCoverage(newEventParameters, context.usesVirtualInputs)
@@ -65,3 +67,4 @@ fun handlerForkResultKt(context: ConcolicRunContext, cond: SymbolForCPython, res
 }
 
 object InstructionLimitExceededException: Exception()
+object CancelledExecutionException: Exception()

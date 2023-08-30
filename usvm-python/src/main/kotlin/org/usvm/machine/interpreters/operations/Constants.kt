@@ -21,9 +21,16 @@ fun handlerLoadConstKt(context: ConcolicRunContext, value: PythonObject): Uninte
             }
             handlerLoadConstTupleKt(context, symbolicElements)
         }
+        "str" -> handlerLoadConstStrKt(context, value)
         else -> null
     }
 
+fun handlerLoadConstStrKt(context: ConcolicRunContext, value: PythonObject): UninterpretedSymbolicPythonObject? {
+    if (context.curState == null)
+        return null
+    val str = ConcretePythonInterpreter.getPythonObjectStr(value)
+    return context.curState!!.preAllocatedObjects.allocateStr(context, str)
+}
 
 fun handlerLoadConstLongKt(context: ConcolicRunContext, value: String): UninterpretedSymbolicPythonObject? {
     if (context.curState == null)

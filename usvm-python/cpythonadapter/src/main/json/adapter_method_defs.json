@@ -36,6 +36,18 @@
     "default_value": "0"
   },
   {
+    "c_name": "is_op",
+    "nargs": 2,
+    "c_arg_types": ["PyObject *", "PyObject *"],
+    "c_return_type": "int",
+    "java_arg_types": ["jobject", "jobject"],
+    "java_return_type": "void",
+    "argument_converters": ["object_converter", "object_converter"],
+    "result_converter": "",
+    "fail_value": "-1",
+    "default_value": "0"
+  },
+  {
     "c_name": "load_const",
     "nargs": 1,
     "c_arg_types": ["PyObject *"],

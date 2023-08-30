@@ -15,6 +15,7 @@ import org.usvm.machine.utils.PythonMachineStatisticsOnFunction;
 import org.usvm.types.UTypeStream;
 
 import java.util.*;
+import java.util.concurrent.Callable;
 
 
 public class ConcolicRunContext {
@@ -32,6 +33,7 @@ public class ConcolicRunContext {
     public int maxInstructions;
     public int instructionCounter = 0;
     public boolean usesVirtualInputs = false;
+    public Callable<Boolean> isCancelled;
 
     public ConcolicRunContext(
             @NotNull PythonExecutionState curState,
@@ -40,7 +42,8 @@ public class ConcolicRunContext {
             PythonTypeSystem typeSystem,
             boolean allowPathDiversion,
             PythonMachineStatisticsOnFunction statistics,
-            int maxInstructions
+            int maxInstructions,
+            Callable<Boolean> isCancelled
     ) {
         this.curState = curState;
         this.ctx = ctx;
@@ -55,6 +58,7 @@ public class ConcolicRunContext {
             this.converter = new ConverterToPythonObject(ctx, typeSystem, modelHolder);
         }
         this.maxInstructions = maxInstructions;
+        this.isCancelled = isCancelled;
     }
 
     public void pathDiversion() throws PathDiversionException {

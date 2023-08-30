@@ -1,3 +1,4 @@
+import org.usvm.UMachineOptions
 import org.usvm.language.PrimitivePythonProgram
 import org.usvm.language.PythonProgram
 import org.usvm.machine.*
@@ -6,6 +7,7 @@ import org.usvm.language.StructuredPythonProgram
 import org.usvm.language.types.*
 import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.IllegalOperationException
+import org.usvm.runner.CustomPythonTestRunner
 import org.usvm.runner.SamplesBuild
 import org.usvm.utils.ReprObjectSerializer
 import org.usvm.utils.getModulesFromFiles
@@ -19,11 +21,18 @@ import org.utbot.python.newtyping.pythonDescription
 import org.utbot.python.newtyping.pythonTypeRepresentation
 import java.io.File
 
+fun main() {
+    val config = buildProjectRunConfig()
+    // val config = buildSampleRunConfig()
+    // analyze(config)
+    checkConcolicAndConcrete(config)
+}
+
 private fun buildSampleRunConfig(): RunConfig {
     val (program, typeSystem) = constructPrimitiveProgram(
         """ 
         def f(x):
-            return [10] * x
+            return "abcde"
 
         """.trimIndent()
     )
@@ -85,10 +94,24 @@ private fun buildProjectRunConfig(): RunConfig {
     return RunConfig(program, typeSystem, functions)
 }
 
-fun main() {
-    val config = buildProjectRunConfig()
-    // val config = buildSampleRunConfig()
-    analyze(config)
+private fun checkConcolicAndConcrete(runConfig: RunConfig) {
+    val (program, typeSystem, functions) = runConfig
+    val runner = CustomPythonTestRunner(
+        program,
+        typeSystem,
+        UMachineOptions(stepLimit = 30U, timeoutMs = 60_000),
+        allowPathDiversions = true
+    )
+    runner.timeoutPerRunMs = 10_000
+    functions.forEach { function ->
+        println("Running ${function.tag}...")
+        when (val argsNum = function.numberOfArguments) {
+            0 -> runner.check0NoPredicates(function)
+            1 -> runner.check1NoPredicates(function)
+            2 -> runner.check2NoPredicates(function)
+            else -> println("${function.tag} ignored because it has $argsNum arguments")
+        }
+    }
 }
 
 private fun analyze(runConfig: RunConfig) {

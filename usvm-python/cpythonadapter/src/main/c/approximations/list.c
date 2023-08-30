@@ -8,9 +8,9 @@
     "    while i < len(x) and i < len(y):         \n" \
     "        xitem = x[i]                         \n" \
     "        yitem = y[i]                         \n" \
-    "        #if xitem is yitem:                  \n" \
-    "        #    i += 1                          \n" \
-    "        #    continue                        \n" \
+    "        if xitem is yitem:                   \n" \
+    "            i += 1                           \n" \
+    "            continue                         \n" \
     "        if xitem != yitem:                   \n" \
     "            break                            \n" \
     "        i += 1                               \n" \

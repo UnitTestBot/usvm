@@ -7,6 +7,7 @@ import org.usvm.collection.field.UFieldLValue
 import org.usvm.constraints.UPathConstraints
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.*
+import org.usvm.language.types.ConcretePythonType
 import org.usvm.language.types.PythonType
 import org.usvm.language.types.PythonTypeSystem
 import org.usvm.machine.UPythonContext
@@ -29,11 +30,12 @@ fun constructInputObject(
     return result
 }
 
-fun constructNone(
+fun constructEmptyObject(
     memory: UMemory<PythonType, PythonCallable>,
-    typeSystem: PythonTypeSystem
+    typeSystem: PythonTypeSystem,
+    type: ConcretePythonType
 ): UninterpretedSymbolicPythonObject {
-    val address = memory.alloc(typeSystem.pythonNoneType)
+    val address = memory.alloc(type)
     return UninterpretedSymbolicPythonObject(address, typeSystem)
 }
 

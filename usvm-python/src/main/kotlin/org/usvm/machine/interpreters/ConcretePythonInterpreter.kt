@@ -108,11 +108,11 @@ object ConcretePythonInterpreter {
     }
 
     fun getPythonObjectRepr(pythonObject: PythonObject): String {
-        val result = pythonAdapter.getPythonObjectRepr(pythonObject.address)
-        if (result != null)
-            return result
+        return pythonAdapter.getPythonObjectRepr(pythonObject.address) ?: throw CPythonExecutionException()
+    }
 
-        throw CPythonExecutionException()
+    fun getPythonObjectStr(pythonObject: PythonObject): String {
+        return pythonAdapter.getPythonObjectStr(pythonObject.address) ?: throw CPythonExecutionException()
     }
 
     fun getAddressOfReprFunction(pythonObject: PythonObject): Long {
