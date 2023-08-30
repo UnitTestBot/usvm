@@ -4,7 +4,6 @@ import org.usvm.UBoolExpr
 import org.usvm.UComposer
 import org.usvm.UExpr
 import org.usvm.USort
-import org.usvm.UTransformer
 import org.usvm.isFalse
 import org.usvm.util.Region
 import org.usvm.util.RegionTree
@@ -47,17 +46,6 @@ interface USymbolicCollectionUpdates<Key, Sort : USort> : Sequence<UUpdateNode<K
         guardBuilder: GuardBuilder,
         composer: UComposer<*>?,
     ): USymbolicCollectionUpdates<Key, Sort>
-
-    /**
-     * Returns a mapped [USymbolicCollection] using [keyMapper] and [composer].
-     * It is used in [UComposer] during memory composition.
-     * Throws away all updates for which [keyMapper] returns null.
-     */
-//    fun <Type, MappedKey, MappedReg : Region<MappedReg>> filterMap(
-//        keyMapper: KeyMapper<Key, MappedKey>,
-//        composer: UComposer<Type>,
-//        mappedKeyInfo: USymbolicCollectionKeyInfo<MappedKey, MappedReg>
-//    ): USymbolicCollectionUpdates<MappedKey, Sort>
 
     /**
      * @return Updates which express copying the slice of [fromCollection] guarded with
@@ -184,46 +172,6 @@ class UFlatUpdates<Key, Sort : USort> private constructor(
         )
     }
 
-//    override fun <Type, MappedKey, MappedReg: Region<MappedReg>> filterMap(
-//        keyMapper: KeyMapper<Key, MappedKey>,
-//        composer: UComposer<Type>,
-//        mappedKeyInfo: USymbolicCollectionKeyInfo<MappedKey, MappedReg>
-//    ): UFlatUpdates<MappedKey, Sort> {
-//        node ?: return if (keyInfo == mappedKeyInfo) {
-//            @Suppress("UNCHECKED_CAST")
-//            this as UFlatUpdates<MappedKey, Sort>
-//        } else {
-//            UFlatUpdates(null, mappedKeyInfo)
-//        }
-//
-//        // Map the current node and the next values recursively
-//        val mappedNode = node.update.map(keyMapper, composer, mappedKeyInfo)
-//        val mappedNext = node.next.filterMap(keyMapper, composer, mappedKeyInfo)
-//        if (mappedNode == null) {
-//            return mappedNext
-//        }
-//
-//        // Doesn't apply the node, if its guard maps to `false`
-//        if (mappedNode.guard.isFalse) {
-//            return mappedNext
-//        }
-//
-//        // If nothing changed, return this updates
-//        if (mappedNode === node.update && mappedNext === node.next && keyInfo == mappedKeyInfo) {
-//            // In this case Key = MappedKey is guaranteed, but type system can't express this
-//            @Suppress("UNCHECKED_CAST")
-//            return (this as UFlatUpdates<MappedKey, Sort>)
-//        }
-//
-//        // Otherwise, construct a new one using the mapped values
-//        return UFlatUpdates(
-//            UFlatUpdatesNode(
-//                mappedNode,
-//                mappedNext
-//            ), mappedKeyInfo
-//        )
-//    }
-
     /**
      * Returns updates in the FIFO order: the iterator emits updates from the oldest updates to the most recent one.
      * It means that the `initialNode` from the [UFlatUpdatesIterator] will be returned as the last element.
@@ -302,8 +250,9 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
         guard: UBoolExpr
     ): UTreeUpdates<Key, Reg, Sort> {
         val update = UPinpointUpdateNode(key, keyInfo, value, guard)
+        val reg = keyInfo.keyToRegion(key)
         val newUpdates = updates.write(
-            keyInfo.keyToRegion(key),
+            reg,
             update,
             valueFilter = { it.isIncludedByUpdateConcretely(update) }
         )
@@ -372,67 +321,6 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
 
         return this.copy(updates = splitRegionTree)
     }
-
-
-//    override fun <Type, MappedKey, MappedReg : Region<MappedReg>> filterMap(
-//        keyMapper: KeyMapper<Key, MappedKey>,
-//        composer: UComposer<Type>,
-//        mappedKeyInfo: USymbolicCollectionKeyInfo<MappedKey, MappedReg>
-//    ): UTreeUpdates<MappedKey, MappedReg, Sort> {
-//        var mappedNodeFound = false
-//
-//        // Traverse [updates] using its iterator and fold them into a new updates tree with new mapped nodes
-//        val initialEmptyTree = emptyRegionTree<MappedReg, UUpdateNode<MappedKey, Sort>>()
-//        val mappedUpdates = updates.fold(initialEmptyTree) { mappedUpdatesTree, updateNodeWithRegion ->
-//            val (updateNode, _) = updateNodeWithRegion
-//            // Map current node
-//            val mappedUpdateNode = updateNode.map(keyMapper, composer, mappedKeyInfo)
-//
-//
-//            // Save information about whether something changed in the current node or not
-//            if (mappedUpdateNode !== updateNode) {
-//                mappedNodeFound = true
-//            }
-//
-//            // Ignore nodes which don't go into [targetCollectionId] after mapping
-//            if (mappedUpdateNode == null) {
-//                return@fold mappedUpdatesTree
-//            }
-//
-//            // Note that following code should be executed after checking for reference equality of a mapped node.
-//            // Otherwise, it is possible that for a tree with several impossible writes
-//            // it will be returned as a result, instead of an empty one.
-//
-//            // Extract a new region by the mapped node
-//            val newRegion = when (mappedUpdateNode) {
-//                is UPinpointUpdateNode -> {
-//                    mappedKeyInfo.keyToRegion(mappedUpdateNode.key)
-//                }
-//
-//                is URangedUpdateNode<*, *, *, Sort> -> {
-//                    mappedUpdateNode as URangedUpdateNode<*, *, MappedKey, Sort>
-//                    mappedUpdateNode.adapter.region()
-//                }
-//            }
-//
-//            // Ignore nodes estimated with an empty region
-//            if (newRegion.isEmpty) {
-//                return@fold mappedUpdatesTree
-//            }
-//
-//            // Otherwise, write the mapped node by a new region with a corresponding
-//            // key filter for deduplication
-//            mappedUpdatesTree.write(newRegion, mappedUpdateNode) { it == mappedUpdateNode }
-//        }
-
-        // If at least one node was changed, return a new updates, otherwise return this
-//        return if (mappedNodeFound || mappedKeyInfo != keyInfo) {
-//            UTreeUpdates(updates = mappedUpdates, mappedKeyInfo)
-//        } else {
-//            @Suppress("UNCHECKED_CAST")
-//            this as UTreeUpdates<MappedKey, MappedReg, Sort>
-//        }
-//    }
 
     /**
      * Returns updates in the FIFO order: the iterator emits updates from the oldest updates to the most recent one.

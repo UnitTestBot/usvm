@@ -4,24 +4,20 @@ import io.ksmt.cache.hash
 import org.usvm.UBoolExpr
 import org.usvm.UComposer
 import org.usvm.UConcreteHeapAddress
-import org.usvm.UConcreteHeapRef
-import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USizeExpr
 import org.usvm.USizeSort
 import org.usvm.UTransformer
-import org.usvm.memory.USymbolicCollection
-import org.usvm.memory.key.UHeapRefKeyInfo
-import org.usvm.memory.key.USingleKeyInfo
-import org.usvm.memory.DecomposedKey
+import org.usvm.compose
 import org.usvm.memory.KeyTransformer
 import org.usvm.memory.UFlatUpdates
-import org.usvm.memory.ULValue
+import org.usvm.memory.USymbolicCollection
 import org.usvm.memory.USymbolicCollectionId
-import org.usvm.memory.USymbolicCollectionIdWithContextMemory
 import org.usvm.memory.USymbolicCollectionKeyInfo
 import org.usvm.memory.UWritableMemory
+import org.usvm.memory.key.UHeapRefKeyInfo
+import org.usvm.memory.key.USingleKeyInfo
 import org.usvm.sampleUValue
 import org.usvm.uctx
 
@@ -37,22 +33,17 @@ class UAllocatedArrayLengthId<ArrayType> internal constructor(
     override val arrayType: ArrayType,
     val address: UConcreteHeapAddress,
     override val sort: USizeSort,
-    val idDefaultValue: UExpr<USizeSort>? = null,
 ) : USymbolicArrayLengthId<Unit, ArrayType, UAllocatedArrayLengthId<ArrayType>> {
 
-    val defaultValue: USizeExpr by lazy {
-        idDefaultValue ?: sort.sampleUValue()
-    }
-
-
-    override fun rebindKey(key: Unit): DecomposedKey<*, USizeSort>? = null
+    val defaultValue: USizeExpr by lazy { sort.sampleUValue() }
 
     override fun instantiate(
         collection: USymbolicCollection<UAllocatedArrayLengthId<ArrayType>, Unit, USizeSort>,
-        key: Unit
+        key: Unit,
+        composer: UComposer<*>?
     ): UExpr<USizeSort> {
         check(collection.updates.isEmpty()) { "Can't instantiate length reading from non-empty collection" }
-        return defaultValue
+        return composer.compose(defaultValue)
     }
 
     override fun <Type> write(memory: UWritableMemory<Type>, key: Unit, value: UExpr<USizeSort>, guard: UBoolExpr) {
@@ -82,9 +73,6 @@ class UAllocatedArrayLengthId<ArrayType> internal constructor(
     override fun <Type> keyMapper(transformer: UTransformer<Type>): KeyTransformer<Unit> =
         error("This should not be called")
 
-    override fun <Type> map(composer: UComposer<Type>): UAllocatedArrayLengthId<ArrayType> =
-        error("This should not be called")
-
     override fun emptyRegion(): USymbolicCollection<UAllocatedArrayLengthId<ArrayType>, Unit, USizeSort> =
         error("This should not be called")
 }
@@ -95,45 +83,32 @@ class UAllocatedArrayLengthId<ArrayType> internal constructor(
 class UInputArrayLengthId<ArrayType> internal constructor(
     override val arrayType: ArrayType,
     override val sort: USizeSort,
-    private val defaultValue: UExpr<USizeSort>? = null,
-    contextMemory: UWritableMemory<*>? = null,
-) : USymbolicCollectionIdWithContextMemory<UHeapRef, USizeSort, UInputArrayLengthId<ArrayType>>(contextMemory),
-    USymbolicArrayLengthId<UHeapRef, ArrayType, UInputArrayLengthId<ArrayType>> {
+) : USymbolicArrayLengthId<UHeapRef, ArrayType, UInputArrayLengthId<ArrayType>> {
 
-    override fun UContext.mkReading(
+    override fun instantiate(
         collection: USymbolicCollection<UInputArrayLengthId<ArrayType>, UHeapRef, USizeSort>,
-        key: UHeapRef
-    ): UExpr<USizeSort> = mkInputArrayLengthReading(collection, key)
+        key: UHeapRef,
+        composer: UComposer<*>?
+    ): UExpr<USizeSort> {
+        if (composer == null) {
+            return key.uctx.mkInputArrayLengthReading(collection, key)
+        }
 
-    override fun UContext.mkLValue(
-        key: UHeapRef
-    ): ULValue<*, USizeSort> = UArrayLengthLValue(key, arrayType)
+        val memory = composer.memory.toWritableMemory()
+        collection.applyTo(memory, composer)
+        return memory.read(UArrayLengthLValue(key, arrayType))
+    }
+
+    override fun <Type> write(memory: UWritableMemory<Type>, key: UHeapRef, value: UExpr<USizeSort>, guard: UBoolExpr) {
+        val lvalue = UArrayLengthLValue(key, arrayType)
+        memory.write(lvalue, value, guard)
+    }
 
     override fun <Type> keyMapper(
         transformer: UTransformer<Type>,
     ): KeyTransformer<UHeapRef> = { transformer.apply(it) }
 
-    override fun <Type> map(composer: UComposer<Type>): UInputArrayLengthId<ArrayType> {
-        check(contextMemory == null) { "contextMemory is not null in composition" }
-        val composedDefaultValue = composer.compose(sort.sampleUValue())
-        return UInputArrayLengthId(arrayType, sort, composedDefaultValue, composer.memory.toWritableMemory())
-    }
-
     override fun keyInfo() = UHeapRefKeyInfo
-
-    override fun rebindKey(key: UHeapRef): DecomposedKey<*, USizeSort>? = when (key) {
-        is UConcreteHeapRef -> DecomposedKey(
-            UAllocatedArrayLengthId(
-                arrayType,
-                key.address,
-                sort,
-                defaultValue,
-            ),
-            Unit
-        )
-
-        else -> null
-    }
 
     override fun emptyRegion(): USymbolicCollection<UInputArrayLengthId<ArrayType>, UHeapRef, USizeSort> =
         USymbolicCollection(this, UFlatUpdates(keyInfo()))

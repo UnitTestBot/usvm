@@ -4,23 +4,19 @@ import io.ksmt.cache.hash
 import org.usvm.UBoolExpr
 import org.usvm.UComposer
 import org.usvm.UConcreteHeapAddress
-import org.usvm.UConcreteHeapRef
-import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.UTransformer
-import org.usvm.memory.DecomposedKey
+import org.usvm.compose
 import org.usvm.memory.KeyTransformer
-import org.usvm.memory.ULValue
-import org.usvm.memory.USymbolicCollectionId
-import org.usvm.memory.USymbolicCollectionIdWithContextMemory
-import org.usvm.memory.UWritableMemory
 import org.usvm.memory.UFlatUpdates
 import org.usvm.memory.USymbolicCollection
+import org.usvm.memory.USymbolicCollectionId
+import org.usvm.memory.USymbolicCollectionKeyInfo
+import org.usvm.memory.UWritableMemory
 import org.usvm.memory.key.UHeapRefKeyInfo
 import org.usvm.memory.key.USingleKeyInfo
-import org.usvm.memory.USymbolicCollectionKeyInfo
 import org.usvm.sampleUValue
 import org.usvm.uctx
 
@@ -36,19 +32,16 @@ class UAllocatedFieldId<Field, Sort : USort> internal constructor(
     override val field: Field,
     val address: UConcreteHeapAddress,
     override val sort: Sort,
-    val idDefaultValue: UExpr<Sort>? = null,
 ) : USymbolicFieldId<Field, Unit, Sort, UAllocatedFieldId<Field, Sort>> {
-    val defaultValue: UExpr<Sort> by lazy { idDefaultValue ?: sort.sampleUValue() }
-
-//    override fun rebindKey(key: Unit): DecomposedKey<*, Sort>? = null
+    val defaultValue: UExpr<Sort> by lazy { sort.sampleUValue() }
 
     override fun instantiate(
         collection: USymbolicCollection<UAllocatedFieldId<Field, Sort>, Unit, Sort>,
         key: Unit,
-        transformer: UComposer<*>?
+        composer: UComposer<*>?
     ): UExpr<Sort> {
         check(collection.updates.isEmpty()) { "Can't instantiate allocated field reading from non-empty collection" }
-        return transformer?.let { defaultValue.accept(it) } ?: defaultValue
+        return composer.compose(defaultValue)
     }
 
     override fun <Type> write(memory: UWritableMemory<Type>, key: Unit, value: UExpr<Sort>, guard: UBoolExpr) {
@@ -79,9 +72,6 @@ class UAllocatedFieldId<Field, Sort : USort> internal constructor(
     override fun <Type> keyMapper(transformer: UTransformer<Type>): KeyTransformer<Unit> =
         error("This should not be called")
 
-//    override fun <Type> map(composer: UComposer<Type>): UAllocatedFieldId<Field, Sort> =
-//        error("This should not be called")
-
     override fun emptyRegion(): USymbolicCollection<UAllocatedFieldId<Field, Sort>, Unit, Sort> =
         error("This should not be called")
 }
@@ -97,41 +87,27 @@ class UInputFieldId<Field, Sort : USort> internal constructor(
     override fun instantiate(
         collection: USymbolicCollection<UInputFieldId<Field, Sort>, UHeapRef, Sort>,
         key: UHeapRef,
-        transformer: UComposer<*>?,
+        composer: UComposer<*>?,
     ): UExpr<Sort> {
-        if (transformer == null) {
+        if (composer == null) {
             return key.uctx.mkInputFieldReading(collection, key)
         }
-        val memory = transformer.memory.toWritableMemory()
+
+        val memory = composer.memory.toWritableMemory()
         collection.applyTo(memory, composer)
         return memory.read(UFieldLValue(sort, key, field))
     }
 
     override fun <Type> write(memory: UWritableMemory<Type>, key: UHeapRef, value: UExpr<Sort>, guard: UBoolExpr) {
-        UFieldLValue(sort, key, field)
+        val lvalue = UFieldLValue(sort, key, field)
+        memory.write(lvalue, value, guard)
     }
 
     override fun <Type> keyMapper(
         transformer: UTransformer<Type>,
     ): KeyTransformer<UHeapRef> = { transformer.apply(it) }
 
-//    override fun <Type> map(composer: UComposer<Type>): UInputFieldId<Field, Sort> {
-//        check(contextMemory == null) { "contextMemory is not null in composition" }
-//        val composedDefaultValue = composer.compose(sort.sampleUValue())
-//        return UInputFieldId(field, sort, composedDefaultValue, composer.memory.toWritableMemory())
-//    }
-
     override fun keyInfo() = UHeapRefKeyInfo
-
-//    override fun rebindKey(key: UHeapRef): DecomposedKey<*, Sort>? =
-//        when (key) {
-//            is UConcreteHeapRef -> DecomposedKey(
-//                UAllocatedFieldId(field, key.address, sort, defaultValue),
-//                Unit
-//            )
-//
-//            else -> null
-//        }
 
     override fun emptyRegion(): USymbolicCollection<UInputFieldId<Field, Sort>, UHeapRef, Sort> =
         USymbolicCollection(this, UFlatUpdates(keyInfo()))

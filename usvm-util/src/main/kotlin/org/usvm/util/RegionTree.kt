@@ -59,7 +59,7 @@ class RegionTree<Reg, Value>(
                     RegionTree(inside)
                 }
             } else {
-                entry.second
+                entry.second.splitRecursively(region, valueFilter).completelyCoveredRegionTree
             }
             val outside = entries.remove(region)
             val disjointRegionTree = RegionTree(outside)

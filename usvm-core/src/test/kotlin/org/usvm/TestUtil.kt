@@ -38,6 +38,11 @@ internal class TestState(
 }
 
 interface TestKeyInfo<T, Reg : Region<Reg>> : USymbolicCollectionKeyInfo<T, Reg> {
+    override fun mapKey(key: T, composer: UComposer<*>?): T {
+        if (composer == null) return key
+        return shouldNotBeCalled()
+    }
+
     override fun keyToRegion(key: T): Reg = shouldNotBeCalled()
     override fun eqSymbolic(ctx: UContext, key1: T, key2: T): UBoolExpr = shouldNotBeCalled()
     override fun eqConcrete(key1: T, key2: T): Boolean = shouldNotBeCalled()

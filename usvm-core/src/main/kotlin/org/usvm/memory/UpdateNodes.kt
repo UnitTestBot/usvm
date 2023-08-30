@@ -62,17 +62,6 @@ sealed interface UUpdateNode<Key, Sort : USort> {
      * Guard is a symbolic condition for this update. That is, this update is done only in states satisfying this guard.
      */
     val guard: UBoolExpr
-
-    /**
-     * Returns a mapped update node using [keyMapper] and [composer].
-     * It is used in [UComposer] for composition.
-     * For some key, [keyMapper] might return null. Then, this function returns null as well.
-     */
-//    fun <Type, MappedKey> map(
-//        keyMapper: KeyMapper<Key, MappedKey>,
-//        composer: UComposer<Type>,
-//        mappedKeyInfo: USymbolicCollectionKeyInfo<MappedKey, *>
-//    ): UUpdateNode<MappedKey, Sort>?
 }
 
 /**
@@ -90,7 +79,7 @@ class UPinpointUpdateNode<Key, Sort : USort>(
 
     override fun includesSymbolically(key: Key, composer: UComposer<*>?): UBoolExpr =
         guard.ctx.mkAnd(
-            keyInfo.eqSymbolic(guard.uctx, keyInfo.mapKey(key, composer), key),
+            keyInfo.eqSymbolic(guard.uctx, keyInfo.mapKey(this.key, composer), key),
             composer.compose(guard)
         )
 
@@ -125,25 +114,6 @@ class UPinpointUpdateNode<Key, Sort : USort>(
 
         return res
     }
-
-//    override fun <Type, MappedKey> map(
-//        keyMapper: KeyMapper<Key, MappedKey>,
-//        composer: UComposer<Type>,
-//        mappedKeyInfo: USymbolicCollectionKeyInfo<MappedKey, *>
-//    ): UPinpointUpdateNode<MappedKey, Sort>? {
-//        val mappedKey = keyMapper(key) ?: return null
-//        val mappedValue = composer.compose(value)
-//        val mappedGuard = composer.compose(guard)
-//
-//        // If nothing changed, return this value
-//        if (mappedKey === key && mappedValue === value && mappedGuard === guard) {
-//            @Suppress("UNCHECKED_CAST")
-//            return this as UPinpointUpdateNode<MappedKey, Sort>
-//        }
-//
-//        // Otherwise, construct a new one update node
-//        return UPinpointUpdateNode(mappedKey, mappedKeyInfo, mappedValue, mappedGuard)
-//    }
 
     override fun equals(other: Any?): Boolean =
         other is UPinpointUpdateNode<*, *> && this.key == other.key && this.guard == other.guard
@@ -233,37 +203,6 @@ class URangedUpdateNode<CollectionId : USymbolicCollectionId<SrcKey, Sort, Colle
 
         return resultUpdateNode
     }
-
-
-//    @Suppress("UNCHECKED_CAST")
-//    override fun <Type, MappedDstKey> map(
-//        keyMapper: KeyMapper<DstKey, MappedDstKey>,
-//        composer: UComposer<Type>,
-//        mappedKeyInfo: USymbolicCollectionKeyInfo<MappedDstKey, *>
-//    ): URangedUpdateNode<*, *, MappedDstKey, Sort>? {
-//        val mappedCollectionId = sourceCollection.collectionId.map(composer)
-//        val (mappedAdapter, targetCollectionId) = adapter.map(keyMapper, composer, mappedCollectionId, mappedKeyInfo)
-//            ?: return null
-//        val mappedGuard = composer.compose(guard)
-//
-//        val mappedCollection = sourceCollection.mapTo(composer, targetCollectionId)
-//
-//        // If nothing changed, return this
-//        if (mappedCollection === sourceCollection
-//            && mappedAdapter === adapter
-//            && mappedGuard === guard
-//        ) {
-//            return this as URangedUpdateNode<*, *, MappedDstKey, Sort>
-//        }
-//
-//        // Otherwise, construct a new one updated node
-//        return URangedUpdateNode(
-//            // Type variables in this cast are incorrect, but who cares...
-//            mappedCollection as USymbolicCollection<CollectionId, SrcKey, Sort>,
-//            mappedAdapter as USymbolicCollectionAdapter<SrcKey, MappedDstKey>,
-//            mappedGuard
-//        )
-//    }
 
     // Ignores update
     override fun equals(other: Any?): Boolean =

@@ -7,10 +7,10 @@ import org.usvm.UComposer
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.USort
-import org.usvm.UTransformer
+import org.usvm.compose
+import org.usvm.isFalse
 import org.usvm.isTrue
 import org.usvm.uctx
-import kotlin.collections.ArrayList
 
 /**
  * A uniform unbounded slice of memory. Indexed by [Key], stores symbolic values.
@@ -148,41 +148,24 @@ data class USymbolicCollection<out CollectionId : USymbolicCollectionId<Key, Sor
         }
     }
 
-    /**
-     * Maps the collection using [composer].
-     * It is used in [UComposer] for composition operation.
-     * All updates which after mapping do not touch [targetCollectionId] will be thrown out.
-     *
-     * Note: after this operation a collection returned as a result might be in `broken` state:
-     * it might [UIteExpr] with both symbolic and concrete references as keys in it.
-     */
-//    fun <Type, MappedKey> mapTo(
-//        composer: UComposer<Type>,
-//        targetCollectionId: USymbolicCollectionId<MappedKey, Sort, *>
-//    ): USymbolicCollection<USymbolicCollectionId<MappedKey, Sort, *>, MappedKey, Sort> {
-//        val mapper = collectionId.keyFilterMapper(composer, targetCollectionId)
-//        // Map the updates and the collectionId
-//        val mappedUpdates = updates.filterMap(mapper, composer, targetCollectionId.keyInfo())
-//
-//        if (mappedUpdates === updates && targetCollectionId === collectionId) {
-//            @Suppress("UNCHECKED_CAST")
-//            return this as USymbolicCollection<USymbolicCollectionId<MappedKey, Sort, *>, MappedKey, Sort>
-//        }
-//
-//        return USymbolicCollection(targetCollectionId, mappedUpdates)
-//    }
-
     fun <Type> applyTo(memory: UWritableMemory<Type>, composer: UComposer<*>) {
         // Apply each update on the copy
-        updates.forEach {
-            when (it) {
+        for (update in updates) {
+            val guard = composer.compose(update.guard)
+
+            if (guard.isFalse) {
+                continue
+            }
+
+            when (update) {
                 is UPinpointUpdateNode<Key, Sort> -> collectionId.write(
                     memory,
-                    it.keyInfo.mapKey(it.key, composer),
-                    composer.compose(it.value),
-                    composer.compose(it.guard)
+                    update.keyInfo.mapKey(update.key, composer),
+                    composer.compose(update.value),
+                    guard
                 )
-                is URangedUpdateNode<*, *, Key, Sort> -> it.applyTo(memory, collectionId, composer)
+
+                is URangedUpdateNode<*, *, Key, Sort> -> update.applyTo(memory, collectionId, composer)
             }
         }
     }

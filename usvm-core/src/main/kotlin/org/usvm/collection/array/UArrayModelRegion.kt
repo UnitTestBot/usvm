@@ -12,7 +12,6 @@ import org.usvm.solver.UCollectionDecoder
 abstract class UArrayModelRegion<ArrayType, Sort : USort>(
     private val regionId: UArrayRegionId<ArrayType, Sort>,
 ) : UReadOnlyMemoryRegion<UArrayIndexLValue<ArrayType, Sort>, Sort> {
-
     abstract val inputArray: UReadOnlyMemoryRegion<USymbolicArrayIndex, Sort>
 
     override fun read(key: UArrayIndexLValue<ArrayType, Sort>): UExpr<Sort> {
