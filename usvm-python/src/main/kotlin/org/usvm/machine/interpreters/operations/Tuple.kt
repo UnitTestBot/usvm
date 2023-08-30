@@ -6,6 +6,8 @@ import org.usvm.api.readArrayLength
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.constructTupleIterator
+import org.usvm.machine.symbolicobjects.getTupleIteratorContent
+import org.usvm.machine.symbolicobjects.increaseTupleIteratorCounter
 import java.util.stream.Stream
 import kotlin.streams.asSequence
 

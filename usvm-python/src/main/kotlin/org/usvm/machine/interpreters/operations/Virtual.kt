@@ -3,14 +3,11 @@ package org.usvm.machine.interpreters.operations
 import org.usvm.*
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.machine.*
-import org.usvm.machine.symbolicobjects.InterpretedInputSymbolicPythonObject
-import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
-import org.usvm.machine.symbolicobjects.interpretSymbolicPythonObject
 import org.usvm.language.*
 import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.PythonObject
 import org.usvm.machine.interpreters.emptyNamespace
-import org.usvm.machine.symbolicobjects.InterpretedSymbolicPythonObject
+import org.usvm.machine.symbolicobjects.*
 import org.usvm.machine.utils.PyModel
 import org.usvm.machine.utils.substituteModel
 
