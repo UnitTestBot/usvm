@@ -52,12 +52,11 @@ enum class PathSelectionStrategy {
      * graph.
      * States are selected randomly with distribution based on distance to uncovered instructions.
      */
-    CLOSEST_TO_UNCOVERED_RANDOM
-}
-
-enum class TargetReproductionPathSelectionStrategy {
-    DETERMINISTIC,
-    RANDOMIZED
+    CLOSEST_TO_UNCOVERED_RANDOM,
+    TARGETED,
+    TARGETED_RANDOM,
+    TARGETED_CALL_STACK_LOCAL,
+    TARGETED_CALL_STACK_LOCAL_RANDOM
 }
 
 enum class PathSelectorCombinationStrategy {
@@ -88,6 +87,11 @@ enum class CoverageZone {
     TRANSITIVE
 }
 
+enum class StateCollectionStrategy {
+    COVERED_NEW,
+    REACHED_TARGET
+}
+
 data class UMachineOptions(
     /**
      * State selection heuristics.
@@ -102,6 +106,7 @@ data class UMachineOptions(
      * @see PathSelectorCombinationStrategy
      */
     val pathSelectorCombinationStrategy: PathSelectorCombinationStrategy = PathSelectorCombinationStrategy.INTERLEAVED,
+    val stateCollectionStrategy: StateCollectionStrategy = StateCollectionStrategy.COVERED_NEW,
     /**
      * Seed used for random operations.
      */
@@ -139,21 +144,8 @@ data class UMachineOptions(
     /**
      * SMT solver type used for path constraint solving.
      */
-    val solverType: SolverType = SolverType.Z3
-)
+    val solverType: SolverType = SolverType.Z3,
 
-data class TargetReproductionOptions(
-    val pathSelectionStrategy: TargetReproductionPathSelectionStrategy = TargetReproductionPathSelectionStrategy.RANDOMIZED,
-    /**
-     * Seed used for random operations.
-     */
-    val randomSeed: Long = 0,
-    /**
-     * Optional limit of symbolic execution steps to stop execution on.
-     */
-    val stepLimit: ULong? = null,
-    /**
-     * Optional timeout in milliseconds to stop execution on.
-     */
-    val timeoutMs: Long? = 20_000,
+    val stopOnTargetsReached: Boolean = false,
+    val targetSearchDepth: UInt = 0u
 )

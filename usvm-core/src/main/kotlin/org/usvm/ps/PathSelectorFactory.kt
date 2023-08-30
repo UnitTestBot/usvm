@@ -8,21 +8,28 @@ import org.usvm.util.log2
 import kotlin.math.max
 import kotlin.random.Random
 
-fun <Method, Statement, State : UState<*, Method, Statement, *, *, State>> createPathSelector(
+fun <Method, Statement, Target : UTarget<Method, Statement, Target, State>, State : UState<*, Method, Statement, *, Target, State>> createPathSelector(
     initialState: State,
     options: UMachineOptions,
+    applicationGraph: ApplicationGraph<Method, Statement>,
     coverageStatistics: () -> CoverageStatistics<Method, Statement, State>? = { null },
-    distanceStatistics: () -> DistanceStatistics<Method, Statement>? = { null },
+    distanceStatistics: () -> DistanceStatistics<Method, Statement>? = { null }
 ): UPathSelector<State> {
     val strategies = options.pathSelectionStrategies
     require(strategies.isNotEmpty()) { "At least one path selector strategy should be specified" }
 
     val random by lazy { Random(options.randomSeed) }
 
+    val callGraphReachabilityStatistics =
+        if (options.targetSearchDepth > 0u) {
+            CallGraphReachabilityStatistics(options.targetSearchDepth, applicationGraph)
+        } else null
+
     val selectors = strategies.map { strategy ->
         when (strategy) {
             PathSelectionStrategy.BFS -> BfsPathSelector()
             PathSelectionStrategy.DFS -> DfsPathSelector()
+
             PathSelectionStrategy.RANDOM_PATH -> RandomTreePathSelector(
                 // Initial state is the first `real` node, not the root.
                 root = requireNotNull(initialState.pathLocation.parent),
@@ -31,16 +38,37 @@ fun <Method, Statement, State : UState<*, Method, Statement, *, *, State>> creat
 
             PathSelectionStrategy.DEPTH -> createDepthPathSelector()
             PathSelectionStrategy.DEPTH_RANDOM -> createDepthPathSelector(random)
+
             PathSelectionStrategy.FORK_DEPTH -> createForkDepthPathSelector()
             PathSelectionStrategy.FORK_DEPTH_RANDOM -> createForkDepthPathSelector(random)
+
             PathSelectionStrategy.CLOSEST_TO_UNCOVERED -> createClosestToUncoveredPathSelector(
                 requireNotNull(coverageStatistics()) { "Coverage statistics is required for closest to uncovered path selector" },
                 requireNotNull(distanceStatistics()) { "Distance statistics is required for closest to uncovered path selector" }
             )
-
             PathSelectionStrategy.CLOSEST_TO_UNCOVERED_RANDOM -> createClosestToUncoveredPathSelector(
                 requireNotNull(coverageStatistics()) { "Coverage statistics is required for closest to uncovered path selector" },
                 requireNotNull(distanceStatistics()) { "Distance statistics is required for closest to uncovered path selector" },
+                random
+            )
+
+            PathSelectionStrategy.TARGETED -> createTargetedPathSelector<Method, Statement, Target, State>(
+                requireNotNull(distanceStatistics()) { "Distance statistics is required for targeted path selector" },
+                applicationGraph,
+                callGraphReachabilityStatistics
+            )
+            PathSelectionStrategy.TARGETED_RANDOM -> createTargetedPathSelector<Method, Statement, Target, State>(
+                requireNotNull(distanceStatistics()) { "Distance statistics is required for targeted path selector" },
+                applicationGraph,
+                callGraphReachabilityStatistics,
+                random
+            )
+
+            PathSelectionStrategy.TARGETED_CALL_STACK_LOCAL -> createTargetedPathSelector<Method, Statement, Target, State>(
+                requireNotNull(distanceStatistics()) { "Distance statistics is required for targeted call stack local path selector" }
+            )
+            PathSelectionStrategy.TARGETED_CALL_STACK_LOCAL_RANDOM -> createTargetedPathSelector<Method, Statement, Target, State>(
+                requireNotNull(distanceStatistics()) { "Distance statistics is required for targeted call stack local path selector" },
                 random
             )
         }
@@ -77,21 +105,6 @@ fun <Method, Statement, State : UState<*, Method, Statement, *, *, State>> creat
         }
     }
 
-    return selector
-}
-
-fun <Method, Statement, Target : UTarget<Method, Statement, Target, State>, State : UState<*, *, Method, Statement, *, Target, State>> createTargetReproductionPathSelector(
-    initialState: State,
-    options: TargetReproductionOptions,
-    distanceStatistics: DistanceStatistics<Method, Statement>
-): UPathSelector<State> {
-    val random =
-        when(options.pathSelectionStrategy) {
-            TargetReproductionPathSelectionStrategy.RANDOMIZED -> Random(options.randomSeed)
-            TargetReproductionPathSelectionStrategy.DETERMINISTIC -> null
-        }
-    val selector = createTargetedPathSelector<Method, Statement, Target, State>(distanceStatistics, random)
-    selector.add(listOf(initialState))
     return selector
 }
 
@@ -178,11 +191,15 @@ internal fun <Method, Statement, Target : UTarget<Method, Statement, Target, Sta
 
     fun calculateDistanceToTargets(state: State) =
         state.targets.minOfOrNull { target ->
-            distanceCalculator.calculateDistance(
-                state.currentStatement,
-                state.callStack,
-                target.location
-            )
+            if (target.location == null) {
+                0u // i. e. ExitTarget case
+            } else {
+                distanceCalculator.calculateDistance(
+                    state.currentStatement,
+                    state.callStack,
+                    target.location
+                )
+            }
         } ?: UInt.MAX_VALUE
 
     if (random == null) {
@@ -225,11 +242,15 @@ internal fun <Method, Statement, Target : UTarget<Method, Statement, Target, Sta
 
     fun calculateWeight(state: State) =
         state.targets.minOfOrNull { target ->
-            distanceCalculator.calculateDistance(
-                state.currentStatement,
-                state.callStack,
-                target.location
-            ).logWeight()
+            if (target.location == null) {
+                0u // i. e. ExitTarget case
+            } else {
+                distanceCalculator.calculateDistance(
+                    state.currentStatement,
+                    state.callStack,
+                    target.location
+                ).logWeight()
+            }
         } ?: UInt.MAX_VALUE
 
     if (random == null) {

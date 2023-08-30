@@ -3,13 +3,10 @@ package org.usvm
 import org.usvm.statistics.UMachineObserver
 
 abstract class UTarget<Method, Statement, Target : UTarget<Method, Statement, Target, State>, State : UState<*, *, Method, Statement, *, Target, State>>(
-    val method: Method,
-    val statement: Statement
+    val location: Pair<Method, Statement>? = null
 ) : UMachineObserver<State> {
     private val childrenImpl = mutableListOf<Target>()
     private var parent: Target? = null
-
-    val location = method to statement
 
     val children: List<Target> = childrenImpl
 
@@ -58,5 +55,12 @@ abstract class UTarget<Method, Statement, Target : UTarget<Method, Statement, Ta
 
     override fun onStateTerminated(state: State) {
         forEachChild { onStateTerminated(state) }
+    }
+}
+
+class ExitTarget<Method, Statement, Target : UTarget<Method, Statement, Target, State>, State : UState<*, *, Method, Statement, *, Target, State>> : UTarget<Method, Statement, Target, State>(null) {
+    override fun onStateTerminated(state: State) {
+        visit(state)
+        super.onStateTerminated(state)
     }
 }

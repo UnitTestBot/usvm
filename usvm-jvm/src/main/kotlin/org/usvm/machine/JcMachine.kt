@@ -6,7 +6,7 @@ import org.jacodb.api.JcMethod
 import org.jacodb.api.cfg.JcInst
 import org.jacodb.api.ext.methods
 import org.usvm.CoverageZone
-import org.usvm.TargetReproductionOptions
+import org.usvm.StateCollectionStrategy
 import org.usvm.UMachine
 import org.usvm.UMachineOptions
 import org.usvm.api.targets.JcTarget
@@ -15,8 +15,9 @@ import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.lastStmt
 import org.usvm.ps.createPathSelector
-import org.usvm.ps.createTargetReproductionPathSelector
 import org.usvm.statistics.*
+import org.usvm.statistics.collectors.CoveredNewStatesCollector
+import org.usvm.statistics.collectors.TargetsReachedStatesCollector
 import org.usvm.statistics.distances.DistanceStatistics
 import org.usvm.stopstrategies.createStopStrategy
 
@@ -36,9 +37,9 @@ class JcMachine(
 
     private val distanceStatistics = DistanceStatistics(applicationGraph)
 
-    fun analyze(method: JcMethod): List<JcState> {
-        logger.debug("$this.analyze($method)")
-        val initialState = interpreter.getInitialState(method)
+    fun analyze(method: JcMethod, targets: List<JcTarget> = emptyList()): List<JcState> {
+        logger.debug("$this.analyze($method, $targets)")
+        val initialState = interpreter.getInitialState(method, targets)
 
         val methodsToTrackCoverage =
             when (options.coverageZone) {
@@ -58,22 +59,29 @@ class JcMachine(
         val pathSelector = createPathSelector(
             initialState,
             options,
+            applicationGraph,
             { coverageStatistics },
             { distanceStatistics }
         )
 
-        val statesCollector = CoveredNewStatesCollector<JcState>(coverageStatistics) {
-            it.methodResult is JcMethodResult.JcException
-        }
+        val statesCollector =
+            when (options.stateCollectionStrategy) {
+                StateCollectionStrategy.COVERED_NEW -> CoveredNewStatesCollector<JcState>(coverageStatistics) {
+                    it.methodResult is JcMethodResult.JcException
+                }
+                StateCollectionStrategy.REACHED_TARGET -> TargetsReachedStatesCollector()
+            }
+
         val stopStrategy = createStopStrategy(
             options,
+            targets,
             coverageStatistics = { coverageStatistics },
             getCollectedStatesCount = { statesCollector.collectedStates.size }
         )
 
         val observers = mutableListOf<UMachineObserver<JcState>>(coverageStatistics)
-
         observers.add(TerminatedStateRemover())
+        observers.addAll(targets)
 
         if (options.coverageZone == CoverageZone.TRANSITIVE) {
             observers.add(
@@ -87,47 +95,23 @@ class JcMachine(
         }
         observers.add(statesCollector)
 
-        run(
-            interpreter,
-            pathSelector,
-            observer = CompositeUMachineObserver(observers),
-            isStateTerminated = ::isStateTerminated,
-            stopStrategy = stopStrategy,
-        )
-
-        return statesCollector.collectedStates
-    }
-
-    fun reproduceTargets(
-        method: JcMethod,
-        targets: List<JcTarget>,
-        options: TargetReproductionOptions = TargetReproductionOptions()
-    ): List<JcState> {
-        logger.debug("$this.reproduceTargets($method)")
-        val initialState = interpreter.getInitialState(method, targets)
-        val pathSelector = createTargetReproductionPathSelector(initialState, options, distanceStatistics)
-
-        // TODO: gracefully remove
         targets.forEach { ctx.jcInterpreterObservers += it }
+        try {
+            run(
+                interpreter,
+                pathSelector,
+                observer = CompositeUMachineObserver(observers),
+                isStateTerminated = ::isStateTerminated,
+                stopStrategy = stopStrategy,
+            )
+        } finally {
+            targets.forEach { ctx.jcInterpreterObservers -= it }
+        }
 
-        val statesCollector = TargetsReachedStatesCollector<JcState>()
-        val observers = mutableListOf(
-            statesCollector,
-            TerminatedStateRemover()
-        )
-        observers.addAll(targets)
-
-        run(
-            interpreter,
-            pathSelector,
-            observer = CompositeUMachineObserver(observers),
-            isStateTerminated = ::isStateTerminated,
-            // TODO: configure
-            stopStrategy = { false },
-        )
 
         return statesCollector.collectedStates
     }
+
 
     private fun isStateTerminated(state: JcState): Boolean {
         return state.callStack.isEmpty()

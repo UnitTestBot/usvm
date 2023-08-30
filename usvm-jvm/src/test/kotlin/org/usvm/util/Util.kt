@@ -1,6 +1,12 @@
 package org.usvm.util
 
+import org.jacodb.api.JcClasspath
+import org.jacodb.api.JcMethod
+import org.jacodb.api.ext.findClass
+import org.jacodb.api.ext.toType
 import java.io.File
+import kotlin.reflect.KFunction
+import kotlin.reflect.jvm.javaMethod
 
 val allClasspath: List<File>
     get() {
@@ -13,5 +19,11 @@ private val classpath: List<String>
         return classpath.split(File.pathSeparatorChar)
             .toList()
     }
+
+fun JcClasspath.getJcMethod(func: KFunction<*>): JcMethod {
+    val declaringClassName = requireNotNull(func.javaMethod?.declaringClass?.name)
+    val jcClass = findClass(declaringClassName).toType()
+    return jcClass.declaredMethods.first { it.name == func.name }.method
+}
 
 inline fun <reified T> Result<*>.isException(): Boolean = exceptionOrNull() is T

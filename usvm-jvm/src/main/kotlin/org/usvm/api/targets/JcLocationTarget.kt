@@ -4,10 +4,10 @@ import org.jacodb.api.JcMethod
 import org.jacodb.api.cfg.JcInst
 import org.usvm.machine.state.JcState
 
-class JcLocationTarget(method: JcMethod, inst: JcInst) : JcTarget(method, inst) {
+class JcLocationTarget(private val method: JcMethod, private val inst: JcInst) : JcTarget(method to inst) {
 
     private fun hasReached(state: JcState): Boolean {
-        return state.callStack.isNotEmpty() && method == state.callStack.lastMethod() && statement == state.currentStatement
+        return state.callStack.isNotEmpty() && method == state.callStack.lastMethod() && inst == state.currentStatement
     }
 
     override fun onState(parent: JcState, forks: Sequence<JcState>) {

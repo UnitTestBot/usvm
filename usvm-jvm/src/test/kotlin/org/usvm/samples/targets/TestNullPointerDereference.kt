@@ -1,38 +1,41 @@
 package org.usvm.samples.targets
 
-import io.mockk.internalSubstitute
-import org.jacodb.api.ext.findClass
-import org.jacodb.api.ext.toType
 import org.junit.jupiter.api.Test
+import org.usvm.PathSelectionStrategy
 import org.usvm.UMachineOptions
+import org.usvm.api.targets.JcExitTarget
 import org.usvm.api.targets.JcLocationTarget
 import org.usvm.api.targets.JcNullPointerDereferenceTarget
-import org.usvm.machine.JcMachine
-import org.usvm.samples.JacoDBContainer
-import org.usvm.samples.samplesKey
-import kotlin.reflect.jvm.javaMethod
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
+import org.usvm.samples.JavaMethodTestRunner
+import org.usvm.test.util.checkers.eq
+import org.usvm.util.getJcMethod
 
-class TestNullPointerDereference {
+class TestNullPointerDereference : JavaMethodTestRunner() {
 
     @Test
     fun `Null Pointer Dereference with intermediate target`() {
-        val cp = JacoDBContainer(samplesKey).cp
-        val declaringClassName = requireNotNull(NullPointerDereference::twoPathsToNPE.javaMethod?.declaringClass?.name)
-        val jcClass = cp.findClass(declaringClassName).toType()
-        val jcMethod = jcClass.declaredMethods.first { it.name == NullPointerDereference::twoPathsToNPE.name }.method
+        val jcMethod = cp.getJcMethod(NullPointerDereference::twoPathsToNPE)
 
         val target = JcLocationTarget(jcMethod, jcMethod.instList[5]).apply {
-            addChild(JcNullPointerDereferenceTarget(jcMethod, jcMethod.instList[8]))
+            addChild(JcNullPointerDereferenceTarget(jcMethod, jcMethod.instList[8])).apply {
+                addChild(JcExitTarget())
+            }
         }
 
-        val states = JcMachine(cp, UMachineOptions()).use { machine ->
-            machine.reproduceTargets(jcMethod, listOf(target))
+        withOptions(
+            UMachineOptions(
+                pathSelectionStrategies = listOf(PathSelectionStrategy.TARGETED),
+                stopOnTargetsReached = true
+            )
+        ) {
+            withTargets(listOf(target)) {
+                // In fact, checking that the first state which was reported has reached the target
+                checkDiscoveredPropertiesWithExceptions(
+                    NullPointerDereference::twoPathsToNPE,
+                    eq(1),
+                    { _, n, r -> n <= 100 && r.exceptionOrNull() is NullPointerException }
+                )
+            }
         }
-        assertEquals(1, states.size)
-        assertNotNull(states.single().reversedPath.asSequence().singleOrNull { it ==  jcMethod.instList[8] })
-        assertNotNull(states.single().reversedPath.asSequence().singleOrNull { it ==  jcMethod.instList[5] })
     }
 }

@@ -9,17 +9,13 @@ import org.usvm.UMachineOptions
 import org.usvm.api.JcClassCoverage
 import org.usvm.api.JcParametersState
 import org.usvm.api.JcTest
+import org.usvm.api.targets.JcTarget
 import org.usvm.api.util.JcTestResolver
 import org.usvm.machine.JcMachine
 import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.AnalysisResultsNumberMatcher
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
-import kotlin.reflect.KClass
-import kotlin.reflect.KFunction
-import kotlin.reflect.KFunction1
-import kotlin.reflect.KFunction2
-import kotlin.reflect.KFunction3
-import kotlin.reflect.KFunction4
+import kotlin.reflect.*
 import kotlin.reflect.full.instanceParameter
 import kotlin.reflect.jvm.javaConstructor
 import kotlin.reflect.jvm.javaMethod
@@ -27,6 +23,22 @@ import kotlin.reflect.jvm.javaMethod
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, JcClassCoverage>() {
+
+    private var targets: List<JcTarget> = emptyList()
+
+    /**
+     * Sets JcTargets to run JcMachine with in the scope of [action].
+     */
+    protected fun <T> withTargets(targets: List<JcTarget>, action: () -> T): T {
+        val prevTargets = this.targets
+        try {
+            this.targets = targets
+            return action()
+        } finally {
+            this.targets = prevTargets
+        }
+    }
+
     // region Default checkers
 
     protected inline fun <reified T, reified R> checkExecutionBranches(
@@ -709,7 +721,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
         return values
     }
 
-    private val cp = JacoDBContainer(samplesKey).cp
+    protected val cp = JacoDBContainer(samplesKey).cp
 
     private val testResolver = JcTestResolver()
 
@@ -732,7 +744,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
         val jcMethod = jcClass.declaredMethods.first { it.name == method.name }
 
         JcMachine(cp, options).use { machine ->
-            val states = machine.analyze(jcMethod.method)
+            val states = machine.analyze(jcMethod.method, targets)
             states.map { testResolver.resolve(jcMethod, it) }
         }
     }
