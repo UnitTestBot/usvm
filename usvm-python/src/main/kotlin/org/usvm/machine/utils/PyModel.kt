@@ -2,6 +2,7 @@ package org.usvm.machine.utils
 
 import io.ksmt.expr.KInterpretedValue
 import org.usvm.*
+import org.usvm.api.readField
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.PropertyOfPythonObject
 import org.usvm.language.types.ConcretePythonType
@@ -10,13 +11,12 @@ import org.usvm.language.types.MockType
 import org.usvm.machine.PythonExecutionState
 import org.usvm.model.UModelBase
 
-@Suppress("unchecked_cast")
-class PyModel(val uModel: UModelBase<PropertyOfPythonObject, PythonType>) {
+class PyModel(val uModel: UModelBase<PythonType>) {
     fun <Sort : USort> eval(expr: UExpr<Sort>): KInterpretedValue<Sort> =
         uModel.eval(expr) as KInterpretedValue<Sort>
 
     fun <Sort : USort> readField(ref: UConcreteHeapRef, field: PropertyOfPythonObject, sort: Sort): KInterpretedValue<Sort> =
-        uModel.heap.readField(ref, field, sort) as KInterpretedValue<Sort>
+        uModel.readField(ref, field, sort) as KInterpretedValue<Sort>
 
     override fun equals(other: Any?): Boolean {
         if (other !is PyModel)

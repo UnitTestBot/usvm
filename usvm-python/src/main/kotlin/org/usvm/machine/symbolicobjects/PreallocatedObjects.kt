@@ -1,16 +1,15 @@
 package org.usvm.machine.symbolicobjects
 
 import org.usvm.constraints.UPathConstraints
-import org.usvm.language.PropertyOfPythonObject
 import org.usvm.language.PythonCallable
 import org.usvm.language.types.PythonType
 import org.usvm.language.types.PythonTypeSystem
 import org.usvm.machine.UPythonContext
-import org.usvm.memory.UMemoryBase
+import org.usvm.memory.UMemory
 
 class PreallocatedObjects(
     ctx: UPythonContext,
-    initialMemory: UMemoryBase<PropertyOfPythonObject, PythonType, PythonCallable>,
+    initialMemory: UMemory<PythonType, PythonCallable>,
     initialPathConstraints: UPathConstraints<PythonType, UPythonContext>,
     typeSystem: PythonTypeSystem
 ) {

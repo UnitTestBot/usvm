@@ -37,8 +37,8 @@ open class UModelBase<Type>(
     override val stack: UReadOnlyRegistersStack,
     override val types: UTypeModel<Type>,
     override val mocker: UMockEvaluator,
-    internal val regions: Map<UMemoryRegionId<*, *>, UReadOnlyMemoryRegion<*, *>>,
-    internal val nullRef: UConcreteHeapRef,
+    val regions: Map<UMemoryRegionId<*, *>, UReadOnlyMemoryRegion<*, *>>,
+    val nullRef: UConcreteHeapRef,
 ) : UModel, UWritableMemory<Type> {
     private val composer = UComposer(ctx, this)
 
