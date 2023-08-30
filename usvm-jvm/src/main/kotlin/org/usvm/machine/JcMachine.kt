@@ -5,7 +5,10 @@ import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcMethod
 import org.jacodb.api.cfg.JcInst
 import org.jacodb.api.ext.methods
-import org.usvm.*
+import org.usvm.CoverageZone
+import org.usvm.TargetReproductionOptions
+import org.usvm.UMachine
+import org.usvm.UMachineOptions
 import org.usvm.api.targets.JcTarget
 import org.usvm.machine.interpreter.JcInterpreter
 import org.usvm.machine.state.JcMethodResult
@@ -14,6 +17,7 @@ import org.usvm.machine.state.lastStmt
 import org.usvm.ps.createPathSelector
 import org.usvm.ps.createTargetReproductionPathSelector
 import org.usvm.statistics.*
+import org.usvm.statistics.distances.DistanceStatistics
 import org.usvm.stopstrategies.createStopStrategy
 
 val logger = object : KLogging() {}.logger

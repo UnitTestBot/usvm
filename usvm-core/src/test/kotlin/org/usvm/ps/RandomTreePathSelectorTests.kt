@@ -9,8 +9,6 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
 import org.usvm.*
-import org.usvm.TestState
-import org.usvm.pseudoRandom
 import kotlin.test.assertEquals
 
 internal class RandomTreePathSelectorTests {
@@ -19,8 +17,8 @@ internal class RandomTreePathSelectorTests {
         statement: Int,
     ) {
         val node = when (prevNode) {
-            is RootNode -> PathsTrieNodeImpl(prevNode, TestInstruction(statement), staticState)
-            is PathsTrieNodeImpl -> PathsTrieNodeImpl(prevNode, TestInstruction(statement), staticState)
+            is RootNode -> PathsTrieNodeImpl(prevNode, TestInstruction("", statement), staticState)
+            is PathsTrieNodeImpl -> PathsTrieNodeImpl(prevNode, TestInstruction("", statement), staticState)
         }
 
         fun child(init: TreeBuilder.() -> Unit) {
@@ -33,7 +31,7 @@ internal class RandomTreePathSelectorTests {
             val stmt = nextStatement()
 
             with(state) {
-                pathLocation = node.pathLocationFor(TestInstruction(stmt), this)
+                pathLocation = node.pathLocationFor(TestInstruction("", stmt), this)
             }
         }
 
@@ -51,7 +49,7 @@ internal class RandomTreePathSelectorTests {
         val rootNode = RootNode<TestState, TestInstruction>()
         val state1 = mockk<TestState>()
 
-        every { state1.pathLocation } returns PathsTrieNodeImpl(rootNode, statement = TestInstruction(1), state1)
+        every { state1.pathLocation } returns PathsTrieNodeImpl(rootNode, statement = TestInstruction("", 1), state1)
 
         val selector = RandomTreePathSelector(rootNode, { 0 }, 0L)
 
@@ -64,7 +62,7 @@ internal class RandomTreePathSelectorTests {
         val rootNode = RootNode<TestState, TestInstruction>()
         val state1 = mockk<TestState>()
 
-        every { state1.pathLocation } returns PathsTrieNodeImpl(rootNode, statement = TestInstruction(1), state1)
+        every { state1.pathLocation } returns PathsTrieNodeImpl(rootNode, statement = TestInstruction("", 1), state1)
 
         val selector = RandomTreePathSelector(rootNode, { 0 }, 0L)
 

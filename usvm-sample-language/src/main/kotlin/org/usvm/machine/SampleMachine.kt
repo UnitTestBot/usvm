@@ -9,12 +9,8 @@ import org.usvm.language.Program
 import org.usvm.language.SampleType
 import org.usvm.language.Stmt
 import org.usvm.ps.createPathSelector
-import org.usvm.statistics.CompositeUMachineObserver
-import org.usvm.statistics.CoverageStatistics
-import org.usvm.statistics.CoveredNewStatesCollector
-import org.usvm.statistics.DistanceStatistics
-import org.usvm.statistics.TerminatedStateRemover
-import org.usvm.statistics.UMachineObserver
+import org.usvm.statistics.*
+import org.usvm.statistics.distances.DistanceStatistics
 import org.usvm.stopstrategies.createStopStrategy
 
 /**

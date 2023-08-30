@@ -1,14 +1,11 @@
-package org.usvm.ps
+package org.usvm.statistics.distances
 
-import org.usvm.UCallStackFrame
+import org.usvm.UCallStack
 import kotlin.math.min
 
-fun interface StaticTargetsDistanceCalculator<Method, Statement, out Distance> {
-    fun calculateDistance(currentStatement: Statement, callStack: Collection<UCallStackFrame<Method, Statement>>): Distance
-}
-
 /**
- * Calculates shortest distances from location (represented as statement and call stack) to the set of targets.
+ * Calculates shortest distances from location (represented as statement and call stack) to the set of targets
+ * considering only CFGs of methods on the call stack.
  *
  * Distances in graph remain the same, only the targets can change, so the local CFG distances are
  * cached while the targets of the method remain the same.
@@ -19,7 +16,7 @@ fun interface StaticTargetsDistanceCalculator<Method, Statement, out Distance> {
  * @param getCfgDistanceToExitPoint function with the following signature:
  * (method, stmt) -> shortest CFG distance from stmt to any of method's exit points.
  */
-class RoughIterprocShortestDistanceCalculator<Method, Statement>(
+class CallStackDistanceCalculator<Method, Statement>(
     targets: Collection<Pair<Method, Statement>>,
     private val getCfgDistance: (Method, Statement, Statement) -> UInt,
     private val getCfgDistanceToExitPoint: (Method, Statement) -> UInt
@@ -59,7 +56,7 @@ class RoughIterprocShortestDistanceCalculator<Method, Statement>(
         return wasRemoved
     }
 
-    override fun calculateDistance(currentStatement: Statement, callStack: Collection<UCallStackFrame<Method, Statement>>): UInt {
+    override fun calculateDistance(currentStatement: Statement, callStack: UCallStack<Method, Statement>): UInt {
         var currentMinDistanceToTarget = UInt.MAX_VALUE
         val callStackArray = callStack.toTypedArray()
 
@@ -90,31 +87,4 @@ class RoughIterprocShortestDistanceCalculator<Method, Statement>(
 
         return currentMinDistanceToTarget
     }
-}
-
-class DynamicTargetsShortestDistanceCalculator<Method, Statement, Distance>(
-    private val getDistanceCalculator: (Method, Statement) -> StaticTargetsDistanceCalculator<Method, Statement, Distance>
-) {
-    private val calculatorsByTarget = HashMap<Pair<Method, Statement>, StaticTargetsDistanceCalculator<Method, Statement, Distance>>()
-
-    fun removeTargetFromCache(target: Pair<Method, Statement>): Boolean {
-        return calculatorsByTarget.remove(target) != null
-    }
-
-    fun calculateDistance(
-        currentStatement: Statement,
-        callStack: Collection<UCallStackFrame<Method, Statement>>,
-        target: Pair<Method, Statement>
-    ): Distance {
-        val calculator = calculatorsByTarget.computeIfAbsent(target) { getDistanceCalculator(it.first, it.second) }
-        return calculator.calculateDistance(currentStatement, callStack)
-    }
-
-    fun calculateDistance(
-        currentStatement: Statement,
-        callStack: Collection<UCallStackFrame<Method, Statement>>,
-        targets: Collection<Pair<Method, Statement>>,
-        folder: (Collection<Distance>) -> Distance
-    ): Distance =
-        folder(targets.map { calculateDistance(currentStatement, callStack, it) })
 }

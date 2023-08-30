@@ -18,7 +18,7 @@ abstract class UState<Type, Method, Statement, Context : UContext, Target : UTar
     open val memory: UMemory<Type, Method>,
     open var models: List<UModelBase<Type>>,
     open var pathLocation: PathsTrieNode<State, Statement>,
-    targets: List<Target> = emptyList()
+    targets: Collection<Target> = emptyList()
 ) {
     /**
      * Deterministic state id.

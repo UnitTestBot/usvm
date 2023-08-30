@@ -1,12 +1,12 @@
-package org.usvm.ps
+package org.usvm.statistics
 
-import io.mockk.every
 import org.junit.jupiter.api.Test
 import org.usvm.UCallStack
+import org.usvm.statistics.distances.CallStackDistanceCalculator
 import kotlin.test.assertEquals
 
 @OptIn(ExperimentalUnsignedTypes::class)
-internal class RoughIterprocShortestDistanceCalculatorTests {
+internal class CallStackDistanceCalculatorTests {
 
     private val methodAShortestDistanceMatrix = arrayOf(
         uintArrayOf(),
@@ -54,7 +54,7 @@ internal class RoughIterprocShortestDistanceCalculatorTests {
             }
         }
 
-        val calculator = RoughIterprocShortestDistanceCalculator(
+        val calculator = CallStackDistanceCalculator(
             setOf("A" to 2, "A" to 3, "A" to 4, "A" to 5, "A" to 6),
             ::getCfgDistance
         ) { _, _ -> 1u }
@@ -91,7 +91,7 @@ internal class RoughIterprocShortestDistanceCalculatorTests {
         callStack.push("C", 2)
 
         val calculator =
-            RoughIterprocShortestDistanceCalculator(setOf("C" to 4), ::getCfgDistance, ::getCfgDistanceToExitPoint)
+            CallStackDistanceCalculator(setOf("C" to 4), ::getCfgDistance, ::getCfgDistanceToExitPoint)
         assertEquals(10u, calculator.calculateDistance(currentStatment, callStack))
 
         calculator.removeTarget("C", 4)

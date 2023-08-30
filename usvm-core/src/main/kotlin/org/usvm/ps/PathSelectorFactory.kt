@@ -1,10 +1,10 @@
 package org.usvm.ps
 
-import org.usvm.*
+import org.usvm.statistics.ApplicationGraph
 import org.usvm.statistics.CoverageStatistics
-import org.usvm.statistics.DistanceStatistics
 import org.usvm.algorithms.DeterministicPriorityCollection
 import org.usvm.algorithms.RandomizedPriorityCollection
+import org.usvm.util.log2
 import kotlin.math.max
 import kotlin.random.Random
 
@@ -90,7 +90,7 @@ fun <Method, Statement, Target : UTarget<Method, Statement, Target, State>, Stat
             TargetReproductionPathSelectionStrategy.RANDOMIZED -> Random(options.randomSeed)
             TargetReproductionPathSelectionStrategy.DETERMINISTIC -> null
         }
-    val selector = createClosestToTargetsPathSelector<Method, Statement, Target, State>(distanceStatistics, random)
+    val selector = createTargetedPathSelector<Method, Statement, Target, State>(distanceStatistics, random)
     selector.add(listOf(initialState))
     return selector
 }
@@ -127,7 +127,7 @@ private fun <Method, Statement, State : UState<*, Method, Statement, *, *, State
     distanceStatistics: DistanceStatistics<Method, Statement>,
     random: Random? = null,
 ): UPathSelector<State> {
-    val distanceCalculator = RoughIterprocShortestDistanceCalculator(
+    val distanceCalculator = CallStackDistanceCalculator(
         targets = coverageStatistics.getUncoveredStatements(),
         getCfgDistance = distanceStatistics::getShortestCfgDistance,
         getCfgDistanceToExitPoint = distanceStatistics::getShortestCfgDistanceToExitPoint
@@ -164,24 +164,26 @@ private fun <Method, Statement, State : UState<*, Method, Statement, *, *, State
     )
 }
 
-internal fun <Method, Statement, Target : UTarget<Method, Statement, Target, State>, State : UState<*, *, Method, Statement, *, Target, State>> createClosestToTargetsPathSelector(
+internal fun <Method, Statement, Target : UTarget<Method, Statement, Target, State>, State : UState<*, *, Method, Statement, *, Target, State>> createTargetedPathSelector(
     distanceStatistics: DistanceStatistics<Method, Statement>,
     random: Random? = null,
 ): UPathSelector<State> {
     val distanceCalculator = DynamicTargetsShortestDistanceCalculator<Method, Statement, UInt> { m, s ->
-        RoughIterprocShortestDistanceCalculator(
+        CallStackDistanceCalculator(
             targets = listOf(m to s),
             getCfgDistance = distanceStatistics::getShortestCfgDistance,
             getCfgDistanceToExitPoint = distanceStatistics::getShortestCfgDistanceToExitPoint
         )
     }
 
-    fun calculateDistanceToTargets(state: State) = distanceCalculator.calculateDistance(
-        state.currentStatement,
-        state.callStack,
-        state.targets.map { it.location }.toList(),
-        folder = { if (it.isNotEmpty()) it.min() else UInt.MAX_VALUE }
-    )
+    fun calculateDistanceToTargets(state: State) =
+        state.targets.minOfOrNull { target ->
+            distanceCalculator.calculateDistance(
+                state.currentStatement,
+                state.callStack,
+                target.location
+            )
+        } ?: UInt.MAX_VALUE
 
     if (random == null) {
         return WeightedPathSelector(
@@ -193,5 +195,52 @@ internal fun <Method, Statement, Target : UTarget<Method, Statement, Target, Sta
     return WeightedPathSelector(
         priorityCollectionFactory = { RandomizedPriorityCollection(compareById()) { random.nextDouble() } },
         weighter = { 1.0 / max(calculateDistanceToTargets(it).toDouble(), 1.0) }
+    )
+}
+
+internal fun InterprocDistance.logWeight(): UInt {
+    var weight = log2(distance) // In KLEE, the number of stepped memory instructions is also added to distance
+    assert(weight <= 32u)
+    if (reachabilityKind != ReachabilityKind.LOCAL) {
+        weight += 32u
+    }
+    return distance
+}
+
+internal fun <Method, Statement, Target : UTarget<Method, Statement, Target, State>, State : UState<*, *, Method, Statement, *, Target, State>> createTargetedPathSelector(
+    distanceStatistics: DistanceStatistics<Method, Statement>,
+    applicationGraph: ApplicationGraph<Method, Statement>,
+    callGraphReachabilityStatistics: CallGraphReachabilityStatistics<Method, Statement>? = null,
+    random: Random? = null,
+): UPathSelector<State> {
+    val distanceCalculator = DynamicTargetsShortestDistanceCalculator<Method, Statement, InterprocDistance> { m, s ->
+        InterprocDistanceCalculator(
+            targetLocation = m to s,
+            applicationGraph = applicationGraph,
+            getCfgDistance = distanceStatistics::getShortestCfgDistance,
+            getCfgDistanceToExitPoint = distanceStatistics::getShortestCfgDistanceToExitPoint,
+            checkReachabilityInCallGraph = if (callGraphReachabilityStatistics != null) (callGraphReachabilityStatistics::checkReachability) else { m1, m2 -> m1 == m2 }
+        )
+    }
+
+    fun calculateWeight(state: State) =
+        state.targets.minOfOrNull { target ->
+            distanceCalculator.calculateDistance(
+                state.currentStatement,
+                state.callStack,
+                target.location
+            ).logWeight()
+        } ?: UInt.MAX_VALUE
+
+    if (random == null) {
+        return WeightedPathSelector(
+            priorityCollectionFactory = { DeterministicPriorityCollection(Comparator.naturalOrder()) },
+            weighter = ::calculateWeight
+        )
+    }
+
+    return WeightedPathSelector(
+        priorityCollectionFactory = { RandomizedPriorityCollection(compareById()) { random.nextDouble() } },
+        weighter = { 1.0 / max(calculateWeight(it).toDouble(), 1.0) }
     )
 }

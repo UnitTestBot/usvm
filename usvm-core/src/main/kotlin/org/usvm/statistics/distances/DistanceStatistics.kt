@@ -1,7 +1,8 @@
-package org.usvm.statistics
+package org.usvm.statistics.distances
 
 import kotlinx.collections.immutable.ImmutableMap
 import kotlinx.collections.immutable.toImmutableMap
+import org.usvm.statistics.ApplicationGraph
 import org.usvm.algorithms.findMinDistancesInUnweightedGraph
 import java.util.concurrent.ConcurrentHashMap
 

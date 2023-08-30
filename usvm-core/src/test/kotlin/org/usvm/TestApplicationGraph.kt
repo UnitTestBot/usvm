@@ -2,9 +2,7 @@ package org.usvm
 
 import org.usvm.statistics.ApplicationGraph
 
-internal data class TestInstruction(val method: String, val offset: Int) {
-    constructor(offset: Int) : this("", offset)
-}
+data class TestInstruction(val method: String, val offset: Int)
 
 internal interface TestMethodGraphBuilder {
     fun entryPoint(offset: Int)
@@ -19,7 +17,7 @@ internal interface TestApplicationGraphBuilder {
 }
 
 private class TestMethodGraphBuilderImpl(val name: String, instructionsCount: Int) : TestMethodGraphBuilder {
-    val adjacencyLists = Array(instructionsCount) { mutableSetOf(it) }
+    val adjacencyLists = Array(instructionsCount) { mutableSetOf<Int>() }
     val calleesByOffset = mutableMapOf<Int, String>()
     val offsetsByCallee = mutableMapOf<String, MutableList<Int>>()
     val entryPoints = mutableSetOf<Int>()

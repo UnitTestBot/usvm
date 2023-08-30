@@ -90,3 +90,29 @@ inline fun <V> bfsTraversal(startVertices: Collection<V>, crossinline adjacentVe
         }
     }
 }
+
+fun <V> limitedBfsTraversal(depthLimit: UInt, startVertices: Collection<V>, adjacentVertices: (V) -> Sequence<V>): Sequence<V> {
+    var currentDepth = 0u
+    var numberOfVerticesOfCurrentLevel = startVertices.size
+    var numberOfVerticesOfNextLevel = 0
+
+    val queue: Queue<V> = LinkedList(startVertices)
+    val visited = HashSet<V>()
+
+    return sequence {
+        while (currentDepth <= depthLimit && queue.isNotEmpty()) {
+            val currentVertex = queue.remove()
+            visited.add(currentVertex)
+            yield(currentVertex)
+            adjacentVertices(currentVertex).filterNot(visited::contains).forEach {
+                numberOfVerticesOfNextLevel++
+                queue.add(it)
+            }
+            if (--numberOfVerticesOfCurrentLevel == 0) {
+                currentDepth++
+                numberOfVerticesOfCurrentLevel = numberOfVerticesOfNextLevel
+                numberOfVerticesOfNextLevel = 0
+            }
+        }
+    }
+}

@@ -6,12 +6,11 @@ import org.jacodb.api.cfg.JcInst
 import org.usvm.PathsTrieNode
 import org.usvm.UCallStack
 import org.usvm.UState
+import org.usvm.api.targets.JcTarget
 import org.usvm.constraints.UPathConstraints
 import org.usvm.machine.JcContext
 import org.usvm.memory.UMemory
 import org.usvm.model.UModelBase
-import org.usvm.PathsTrieNode
-import org.usvm.api.targets.JcTarget
 
 class JcState(
     ctx: JcContext,
@@ -20,6 +19,7 @@ class JcState(
     memory: UMemory<JcType, JcMethod> = UMemory(ctx, pathConstraints.typeConstraints),
     models: List<UModelBase<JcType>> = listOf(),
     override var pathLocation: PathsTrieNode<JcState, JcInst> = ctx.mkInitialLocation(),
+    // TODO: should set be public?
     var methodResult: JcMethodResult = JcMethodResult.NoCall,
     targets: List<JcTarget> = emptyList()
 ) : UState<JcType, JcMethod, JcInst, JcContext, JcTarget, JcState>(

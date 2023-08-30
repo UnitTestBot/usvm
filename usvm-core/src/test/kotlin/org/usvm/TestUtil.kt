@@ -40,7 +40,7 @@ internal class TestState(
     callStack: UCallStack<String, TestInstruction>, pathConstraints: UPathConstraints<Any, UContext>,
     memory: UMemoryBase<Any, Any, String>, models: List<UModelBase<Any, Any>>,
     pathLocation: PathsTrieNode<TestState, TestInstruction>,
-    targetTrees: List<TestTarget> = emptyList()
+    targetTrees: Collection<TestTarget> = emptyList()
 ) : UState<Any, String, TestInstruction, UContext, TestTarget, TestState>(ctx, callStack, pathConstraints, memory, models, pathLocation, targetTrees) {
 
     override fun clone(newConstraints: UPathConstraints<Any, UContext>?): TestState = this
@@ -64,10 +64,21 @@ interface TestKeyInfo<T, Reg : Region<Reg>> : USymbolicCollectionKeyInfo<T, Reg>
     override fun bottomRegion(): Reg = shouldNotBeCalled()
 }
 
-internal fun mockState(id: StateId, currentLocation: TestInstruction, callStack: UCallStack<String, TestInstruction>, targets: List<TestTarget>): TestState {
+internal fun mockState(id: StateId, startMethod: String, startInstruction: Int = 0, targets: List<TestTarget> = emptyList()): TestState {
     val ctxMock = mockk<UContext>()
     every { ctxMock.getNextStateId() } returns id
+    val callStack = UCallStack<String, TestInstruction>(startMethod)
     val spyk = spyk(TestState(ctxMock, callStack, mockk(), mockk(), emptyList(), mockk(), targets))
-    every { spyk.currentStatement } returns currentLocation
+    every { spyk.currentStatement } returns TestInstruction(startMethod, startInstruction)
     return spyk
+}
+
+internal fun callStackOf(startMethod: String, vararg elements: Pair<String, Int>): UCallStack<String, TestInstruction> {
+    val callStack = UCallStack<String, TestInstruction>(startMethod)
+    var currentMethod = startMethod
+    for ((method, instr) in elements) {
+        callStack.push(method, TestInstruction(currentMethod, instr))
+        currentMethod = method
+    }
+    return callStack
 }
