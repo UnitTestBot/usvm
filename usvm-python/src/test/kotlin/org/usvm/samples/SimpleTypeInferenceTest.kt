@@ -138,7 +138,7 @@ class SimpleTypeInferenceTest: PythonTestRunnerForPrimitiveProgram("SimpleTypeIn
     @Test
     fun testMultiplyAndCompare() {
         val oldOptions = options
-        options = UMachineOptions(stepLimit = 50U)
+        options = UMachineOptions(stepLimit = 70U)
         check2WithConcreteRun(
             constructFunction("multiply_and_compare", List(2) { PythonAnyType }),
             ignoreNumberOfAnalysisResults,

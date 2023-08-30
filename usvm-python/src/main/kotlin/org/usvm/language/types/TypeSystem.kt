@@ -82,6 +82,7 @@ abstract class PythonTypeSystem: UTypeSystem<PythonType> {
     val pythonTupleIteratorType = createConcreteTypeByName("type(iter(tuple()))")
     val pythonRange = createConcreteTypeByName("range")
     val pythonRangeIterator = createConcreteTypeByName("type(range(1).__iter__())")
+    val pythonStr = createConcreteTypeByName("str")
 
     protected val basicTypes: List<ConcretePythonType> = listOf(
         pythonInt,

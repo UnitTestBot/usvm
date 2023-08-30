@@ -31,7 +31,8 @@ class PythonMachine<PythonObjectRepresentation>(
         results: MutableList<PythonAnalysisResult<PythonObjectRepresentation>>,
         allowPathDiversion: Boolean,
         iterationCounter: IterationCounter,
-        maxInstructions: Int
+        maxInstructions: Int,
+        isCancelled: (Long) -> Boolean
     ): USVMPythonInterpreter<PythonObjectRepresentation> =
         USVMPythonInterpreter(
             ctx,
@@ -42,6 +43,7 @@ class PythonMachine<PythonObjectRepresentation>(
             printErrorMsg,
             PythonMachineStatisticsOnFunction(pinnedTarget).also { statistics.functionStatistics.add(it) },
             maxInstructions,
+            isCancelled,
             allowPathDiversion,
             serializer
         ) {
@@ -89,11 +91,15 @@ class PythonMachine<PythonObjectRepresentation>(
         results: MutableList<PythonAnalysisResult<PythonObjectRepresentation>>,
         maxIterations: Int = 300,
         allowPathDiversion: Boolean = true,
-        maxInstructions: Int = 1_000_000_000
+        maxInstructions: Int = 1_000_000_000,
+        timeoutMs: Long? = null,
+        timeoutPerRunMs: Long? = null
     ): Int = program.withPinnedCallable(pythonCallable, typeSystem) { pinnedCallable ->
         typeSystem.restart()
         val observer = PythonMachineObserver()
         val iterationCounter = IterationCounter()
+        val startTime = System.currentTimeMillis()
+        val stopTime = timeoutMs?.let { startTime + it }
         val interpreter = getInterpreter(
             pythonCallable,
             pinnedCallable,
@@ -101,14 +107,20 @@ class PythonMachine<PythonObjectRepresentation>(
             allowPathDiversion,
             iterationCounter,
             maxInstructions
-        )
+        ) { startIterationTime ->
+            (timeoutPerRunMs?.let {(System.currentTimeMillis() - startIterationTime) >= it} ?: false) ||
+                    (stopTime != null && System.currentTimeMillis() >= stopTime)
+        }
         val pathSelector = getPathSelector(pythonCallable)
         run(
             interpreter,
             pathSelector,
             observer = observer,
             isStateTerminated = { it.meta.modelDied },
-            stopStrategy = { observer.stateCounter >= 1000 || iterationCounter.iterations >= maxIterations }
+            stopStrategy = {
+                observer.stateCounter >= 1000 || iterationCounter.iterations >= maxIterations ||
+                        (stopTime != null && System.currentTimeMillis() >= stopTime)
+            }
         )
         iterationCounter.iterations
     }

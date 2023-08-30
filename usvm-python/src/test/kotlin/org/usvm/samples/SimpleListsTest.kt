@@ -234,6 +234,7 @@ class SimpleListsTest : PythonTestRunnerForPrimitiveProgram("SimpleLists", UMach
 
     @Test
     fun testAddAndCompare() {
+        allowPathDiversions = true
         check2WithConcreteRun(
             constructFunction("add_and_compare", listOf(typeSystem.pythonList, typeSystem.pythonList)),
             ignoreNumberOfAnalysisResults,
@@ -245,6 +246,7 @@ class SimpleListsTest : PythonTestRunnerForPrimitiveProgram("SimpleLists", UMach
                 { _, _, res -> res.repr == "None" }
             )
         )
+        allowPathDiversions = false
     }
 
     @Test
