@@ -88,10 +88,8 @@ def range_loop(x):
     sum_ = 0
     for i in range(x):
         sum_ += i
-
     if sum_ > 15:
         return 1
-
     return 2
 
 

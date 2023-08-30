@@ -9,14 +9,15 @@ import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.PythonObject
 import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.AnalysisResultsNumberMatcher
+import org.usvm.test.util.checkers.ge
 import org.usvm.utils.PythonObjectInfo
 import org.usvm.utils.StandardPythonObjectSerializer
 
 sealed class PythonTestRunner(
-    protected val module: String,
     override var options: UMachineOptions = UMachineOptions(),
     protected var allowPathDiversions: Boolean = false
 ): TestRunner<PythonAnalysisResult<PythonObjectInfo>, PythonUnpinnedCallable, PythonType, PythonCoverage>() {
+    var timeoutPerRunMs: Long? = null
     abstract val typeSystem: PythonTypeSystem
     protected abstract val program: PythonProgram
     private val machine by lazy {
@@ -33,7 +34,9 @@ sealed class PythonTestRunner(
                 callable,
                 results,
                 options.stepLimit?.toInt() ?: 300,
-                allowPathDiversion = allowPathDiversions
+                allowPathDiversion = allowPathDiversions,
+                timeoutMs = options.timeoutMs,
+                timeoutPerRunMs = timeoutPerRunMs
             )
             results
         }
@@ -96,6 +99,18 @@ sealed class PythonTestRunner(
             )
         }
 
+    private inline fun <reified FUNCTION_TYPE : Function<Boolean>> createCheckWithConcreteRunAndNoPredicates():
+                (PythonUnpinnedCallable) -> Unit =
+        { target: PythonUnpinnedCallable ->
+            createCheckWithConcreteRun<FUNCTION_TYPE>(concreteRun = true)(
+                target,
+                ge(0),
+                compareConcolicAndConcreteTypes,
+                emptyList(),
+                emptyList()
+            )
+        }
+
     private inline fun <reified FUNCTION_TYPE : Function<Boolean>> createCheck():
                 (PythonUnpinnedCallable, AnalysisResultsNumberMatcher, List<FUNCTION_TYPE>, List<FUNCTION_TYPE>) -> Unit =
         { target: PythonUnpinnedCallable,
@@ -111,19 +126,22 @@ sealed class PythonTestRunner(
             )
         }
 
-    protected val check0 = createCheck<(PythonObjectInfo) -> Boolean>()
-    protected val check0WithConcreteRun =
-        createCheckWithConcreteRun<(PythonObjectInfo) -> Boolean>()
+    val check0 = createCheck<(PythonObjectInfo) -> Boolean>()
+    val check0WithConcreteRun = createCheckWithConcreteRun<(PythonObjectInfo) -> Boolean>()
+    val check0NoPredicates = createCheckWithConcreteRunAndNoPredicates<(PythonObjectInfo) -> Boolean>()
 
-    protected val check1 = createCheck<(PythonObjectInfo, PythonObjectInfo) -> Boolean>()
-    protected val check1WithConcreteRun =
-        createCheckWithConcreteRun<(PythonObjectInfo, PythonObjectInfo) -> Boolean>()
+    val check1 = createCheck<(PythonObjectInfo, PythonObjectInfo) -> Boolean>()
+    val check1WithConcreteRun = createCheckWithConcreteRun<(PythonObjectInfo, PythonObjectInfo) -> Boolean>()
+    val check1NoPredicates =
+        createCheckWithConcreteRunAndNoPredicates<(PythonObjectInfo, PythonObjectInfo) -> Boolean>()
 
-    protected val check2 = createCheck<(PythonObjectInfo, PythonObjectInfo, PythonObjectInfo) -> Boolean>()
-    protected val check2WithConcreteRun =
+    val check2 = createCheck<(PythonObjectInfo, PythonObjectInfo, PythonObjectInfo) -> Boolean>()
+    val check2WithConcreteRun =
         createCheckWithConcreteRun<(PythonObjectInfo, PythonObjectInfo, PythonObjectInfo) -> Boolean>()
+    val check2NoPredicates =
+        createCheckWithConcreteRunAndNoPredicates<(PythonObjectInfo, PythonObjectInfo, PythonObjectInfo) -> Boolean>()
 
-    protected val check3WithConcreteRun =
+    val check3WithConcreteRun =
         createCheckWithConcreteRun<(PythonObjectInfo, PythonObjectInfo, PythonObjectInfo, PythonObjectInfo) -> Boolean>()
 
     protected val compareConcolicAndConcreteReprsIfSuccess:
@@ -177,20 +195,27 @@ open class PythonTestRunnerForPrimitiveProgram(
     module: String,
     options: UMachineOptions = UMachineOptions(),
     allowPathDiversions: Boolean = false
-): PythonTestRunner(module, options, allowPathDiversions) {
+): PythonTestRunner(options, allowPathDiversions) {
     override val program = SamplesBuild.program.getPrimitiveProgram(module)
     override val typeSystem = BasicPythonTypeSystem()
 }
 
 open class PythonTestRunnerForStructuredProgram(
-    module: String,
+    private val module: String,
     options: UMachineOptions = UMachineOptions(),
     allowPathDiversions: Boolean = false
-): PythonTestRunner(module, options, allowPathDiversions) {
+): PythonTestRunner(options, allowPathDiversions) {
     override val program = SamplesBuild.program
     override val typeSystem = PythonTypeSystemWithMypyInfo(SamplesBuild.mypyBuild, SamplesBuild.program)
     override fun constructFunction(name: String, signature: List<PythonType>): PythonUnpinnedCallable =
         PythonUnpinnedCallable.constructCallableFromName(signature, name, module)
 }
+
+class CustomPythonTestRunner(
+    override val program: PythonProgram,
+    override val typeSystem: PythonTypeSystem,
+    options: UMachineOptions = UMachineOptions(),
+    allowPathDiversions: Boolean = false
+): PythonTestRunner(options, allowPathDiversions)
 
 data class PythonCoverage(val int: Int)

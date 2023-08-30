@@ -242,6 +242,16 @@ JNIEXPORT jstring JNICALL Java_org_usvm_interpreter_CPythonAdapter_getPythonObje
     return (*env)->NewStringUTF(env, repr_as_string);
 }
 
+JNIEXPORT jstring JNICALL Java_org_usvm_interpreter_CPythonAdapter_getPythonObjectStr(JNIEnv *env, jobject _, jlong object_ref) {
+    PyObject *repr = PyObject_Str((PyObject *) object_ref);
+    if (!repr) {
+        PyErr_Clear();
+        return 0;
+    }
+    const char *repr_as_string = PyUnicode_AsUTF8AndSize(repr, 0);
+    return (*env)->NewStringUTF(env, repr_as_string);
+}
+
 JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_getAddressOfReprFunction(JNIEnv *env, jobject _, jlong object_ref) {
     return (jlong) ((PyTypeObject *) object_ref)->tp_repr;
 }
