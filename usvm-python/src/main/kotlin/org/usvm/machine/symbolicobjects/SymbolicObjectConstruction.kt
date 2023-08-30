@@ -3,24 +3,26 @@ package org.usvm.machine.symbolicobjects
 import io.ksmt.sort.KBoolSort
 import io.ksmt.sort.KIntSort
 import org.usvm.*
+import org.usvm.collection.field.UFieldLValue
 import org.usvm.constraints.UPathConstraints
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.*
 import org.usvm.language.types.PythonType
 import org.usvm.language.types.PythonTypeSystem
 import org.usvm.machine.UPythonContext
-import org.usvm.memory.UMemoryBase
+import org.usvm.memory.UMemory
+import org.usvm.memory.URegisterStackLValue
 
 fun constructInputObject(
     stackIndex: Int,
     type: PythonType,
     ctx: UContext,
-    memory: UMemoryBase<PropertyOfPythonObject, PythonType, PythonCallable>,
+    memory: UMemory<PythonType, PythonCallable>,
     pathConstraints: UPathConstraints<PythonType, UPythonContext>,
     typeSystem: PythonTypeSystem
 ): UninterpretedSymbolicPythonObject {
     @Suppress("unchecked_cast")
-    val address = memory.read(URegisterLValue(ctx.addressSort, stackIndex)) as UExpr<UAddressSort>
+    val address = memory.read(URegisterStackLValue(ctx.addressSort, stackIndex)) as UExpr<UAddressSort>
     pathConstraints += ctx.mkNot(ctx.mkHeapRefEq(address, ctx.nullRef))
     val result = UninterpretedSymbolicPythonObject(address, typeSystem)
     pathConstraints += result.evalIsSoft(ctx, pathConstraints.typeConstraints, type)
@@ -28,7 +30,7 @@ fun constructInputObject(
 }
 
 fun constructNone(
-    memory: UMemoryBase<PropertyOfPythonObject, PythonType, PythonCallable>,
+    memory: UMemory<PythonType, PythonCallable>,
     typeSystem: PythonTypeSystem
 ): UninterpretedSymbolicPythonObject {
     val address = memory.alloc(typeSystem.pythonNoneType)
@@ -44,24 +46,18 @@ fun constructInt(context: ConcolicRunContext, expr: UExpr<KIntSort>): Uninterpre
     return result
 }
 
-fun constructBool(context: ConcolicRunContext, expr: UExpr<KBoolSort>): UninterpretedSymbolicPythonObject {
+fun constructBool(context: ConcolicRunContext, expr: UBoolExpr): UninterpretedSymbolicPythonObject {
     require(context.curState != null)
 
-    if (expr is UTrue)
-        return context.curState!!.preAllocatedObjects.trueObject
-    if (expr is UFalse)
-        return context.curState!!.preAllocatedObjects.falseObject
-
-    val typeSystem = context.typeSystem
-    val address = context.curState!!.memory.alloc(typeSystem.pythonBool)
-    val result = UninterpretedSymbolicPythonObject(address, typeSystem)
-    result.setBoolContent(context, expr)
-    return result
+    val trueObj = context.curState!!.preAllocatedObjects.trueObject
+    val falseObj = context.curState!!.preAllocatedObjects.falseObject
+    val address = context.ctx.mkIte(expr, trueObj.address, falseObj.address)
+    return UninterpretedSymbolicPythonObject(address, context.typeSystem)
 }
 
 fun constructInitialBool(
     ctx: UContext,
-    memory: UMemoryBase<PropertyOfPythonObject, PythonType, PythonCallable>,
+    memory: UMemory<PythonType, PythonCallable>,
     pathConstraints: UPathConstraints<PythonType, UPythonContext>,
     typeSystem: PythonTypeSystem,
     expr: UExpr<KBoolSort>
@@ -70,7 +66,7 @@ fun constructInitialBool(
     val result = UninterpretedSymbolicPythonObject(address, typeSystem)
     pathConstraints += result.evalIsSoft(ctx, pathConstraints.typeConstraints, typeSystem.pythonBool)
     val lvalue = UFieldLValue(expr.sort, address, BoolContents.content)
-    memory.write(lvalue, expr)
+    memory.write(lvalue, expr, ctx.trueExpr)
     return result
 }
 
