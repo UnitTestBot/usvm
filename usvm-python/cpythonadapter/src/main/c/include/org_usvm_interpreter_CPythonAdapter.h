@@ -97,6 +97,14 @@ JNIEXPORT jstring JNICALL Java_org_usvm_interpreter_CPythonAdapter_getPythonObje
 
 /*
  * Class:     org_usvm_interpreter_CPythonAdapter
+ * Method:    getPythonObjectStr
+ * Signature: (J)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_org_usvm_interpreter_CPythonAdapter_getPythonObjectStr
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_usvm_interpreter_CPythonAdapter
  * Method:    getAddressOfReprFunction
  * Signature: (J)J
  */

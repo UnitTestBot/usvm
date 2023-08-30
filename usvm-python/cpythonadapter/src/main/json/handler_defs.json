@@ -165,6 +165,11 @@
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;Z)V"
     },
     {
+        "c_name": "is_op",
+        "java_name": "handlerIsOp",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)V"
+    },
+    {
         "c_name": "nb_bool",
         "java_name": "notifyNbBool",
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;)V"

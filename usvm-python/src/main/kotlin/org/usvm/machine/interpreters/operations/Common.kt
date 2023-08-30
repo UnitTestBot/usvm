@@ -5,11 +5,8 @@ import org.usvm.api.writeArrayLength
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.types.ConcretePythonType
 import org.usvm.machine.interpreters.PythonObject
-import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
-import org.usvm.machine.symbolicobjects.constructBool
-import org.usvm.machine.symbolicobjects.interpretSymbolicPythonObject
 import org.usvm.language.types.ConcreteTypeNegation
-import org.usvm.machine.symbolicobjects.getBoolContent
+import org.usvm.machine.symbolicobjects.*
 import org.usvm.machine.utils.MethodDescription
 
 fun handlerIsinstanceKt(ctx: ConcolicRunContext, obj: UninterpretedSymbolicPythonObject, typeRef: PythonObject): UninterpretedSymbolicPythonObject? = with(ctx.ctx) {
@@ -63,20 +60,42 @@ fun lostSymbolicValueKt(ctx: ConcolicRunContext, description: String) {
 }
 
 fun createIterable(
-    context: ConcolicRunContext,
+    ctx: ConcolicRunContext,
     elements: List<UninterpretedSymbolicPythonObject>,
     type: ConcretePythonType
 ): UninterpretedSymbolicPythonObject? {
-    if (context.curState == null)
+    if (ctx.curState == null)
         return null
     val addresses = elements.map { it.address }.asSequence()
-    val typeSystem = context.typeSystem
+    val typeSystem = ctx.typeSystem
     val size = elements.size
-    with (context.ctx) {
-        val iterableAddress = context.curState!!.memory.allocateArrayInitialized(type, addressSort, addresses)
-        context.curState!!.memory.writeArrayLength(iterableAddress, mkIntNum(size), type)
+    with (ctx.ctx) {
+        val iterableAddress = ctx.curState!!.memory.allocateArrayInitialized(type, addressSort, addresses)
+        ctx.curState!!.memory.writeArrayLength(iterableAddress, mkIntNum(size), type)
         val result = UninterpretedSymbolicPythonObject(iterableAddress, typeSystem)
-        result.addSupertype(context, type)
+        result.addSupertype(ctx, type)
         return result
+    }
+}
+
+fun handlerIsOpKt(
+    ctx: ConcolicRunContext,
+    left: UninterpretedSymbolicPythonObject,
+    right: UninterpretedSymbolicPythonObject
+) = with(ctx.ctx) {
+    val leftType = left.getTypeIfDefined(ctx)
+    val rightType = right.getTypeIfDefined(ctx)
+    if (leftType == null || rightType == null) {
+        myFork(ctx, mkHeapRefEq(left.address, right.address))
+    }
+    if (leftType != rightType)
+        return
+    when (leftType) {
+        ctx.typeSystem.pythonBool ->
+            myFork(ctx, left.getBoolContent(ctx) xor right.getBoolContent(ctx))
+        ctx.typeSystem.pythonInt ->
+            myFork(ctx, left.getIntContent(ctx) eq right.getIntContent(ctx))
+        else ->
+            myFork(ctx, mkHeapRefEq(left.address, right.address))
     }
 }

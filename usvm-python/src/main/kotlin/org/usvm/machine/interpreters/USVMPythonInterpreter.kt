@@ -12,6 +12,7 @@ import org.usvm.language.SymbolForCPython
 import org.usvm.language.types.PythonTypeSystem
 import org.usvm.machine.*
 import org.usvm.machine.interpreters.operations.myAssertOnState
+import org.usvm.machine.interpreters.operations.tracing.CancelledExecutionException
 import org.usvm.machine.interpreters.operations.tracing.InstructionLimitExceededException
 import org.usvm.machine.utils.PyModelHolder
 import org.usvm.machine.utils.PythonMachineStatisticsOnFunction
@@ -27,6 +28,7 @@ class USVMPythonInterpreter<PythonObjectRepresentation>(
     private val printErrorMsg: Boolean,
     private val statistics: PythonMachineStatisticsOnFunction,
     private val maxInstructions: Int,
+    private val isCancelled: (Long) -> Boolean,
     private val allowPathDiversion: Boolean = true,
     private val serializer: PythonObjectSerializer<PythonObjectRepresentation>,
     private val saveRunResult: (PythonAnalysisResult<PythonObjectRepresentation>) -> Unit
@@ -65,8 +67,12 @@ class USVMPythonInterpreter<PythonObjectRepresentation>(
                 state.meta.lastConverter!!.modelHolder
             else
                 PyModelHolder(state.pyModel)
+        val start = System.currentTimeMillis()
         val concolicRunContext =
-            ConcolicRunContext(state, ctx, modelHolder, typeSystem, allowPathDiversion, statistics, maxInstructions)
+            ConcolicRunContext(state, ctx, modelHolder, typeSystem, allowPathDiversion, statistics, maxInstructions) {
+                isCancelled(start)
+                // timeoutPerRunMs?.let { System.currentTimeMillis() - start > timeoutPerRunMs } ?: false
+            }
         state.meta.objectsWithoutConcreteTypes = null
         state.meta.lastConverter?.restart()
         try {
@@ -167,6 +173,11 @@ class USVMPythonInterpreter<PythonObjectRepresentation>(
             logger.debug("Step result: InstructionLimitExceededException")
             concolicRunContext.curState?.meta?.modelDied = true
             return StepResult(concolicRunContext.forkedStates.reversed().asSequence(), !state.meta.modelDied)
+
+        } catch (_: CancelledExecutionException) {
+
+            logger.debug("Step result: execution cancelled")
+            return StepResult(emptySequence(), false)
 
         }
     }

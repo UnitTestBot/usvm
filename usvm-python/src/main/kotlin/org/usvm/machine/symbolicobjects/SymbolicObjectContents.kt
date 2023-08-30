@@ -169,7 +169,7 @@ fun UninterpretedSymbolicPythonObject.setRangeContent(
     addSupertypeSoft(ctx, typeSystem.pythonRange)
     ctx.curState!!.memory.writeField(address, RangeContents.start, intSort, start, trueExpr)
     ctx.curState!!.memory.writeField(address, RangeContents.stop, intSort, stop, trueExpr)
-    ctx.curState!!.memory.writeField(address, RangeContents, intSort, step, trueExpr)
+    ctx.curState!!.memory.writeField(address, RangeContents.step, intSort, step, trueExpr)
     val lengthRValue = mkIte(
         step gt mkIntNum(0),
         mkIte(
