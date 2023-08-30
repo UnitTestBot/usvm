@@ -1,7 +1,8 @@
 package org.usvm.machine.interpreters.operations
 
-import io.ksmt.sort.KIntSort
 import org.usvm.*
+import org.usvm.api.readArrayIndex
+import org.usvm.api.readArrayLength
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.constructTupleIterator
@@ -27,13 +28,11 @@ fun handlerTupleIteratorNextKt(
         return null
     val typeSystem = ctx.typeSystem
     val (tuple, index) = iterator.getTupleIteratorContent(ctx)
-    @Suppress("unchecked_cast")
-    val tupleSize = ctx.curState!!.memory.read(UArrayLengthLValue(tuple, typeSystem.pythonTuple)) as UExpr<KIntSort>
+    val tupleSize = ctx.curState!!.memory.readArrayLength(tuple, typeSystem.pythonTuple)
     val indexCond = index lt tupleSize
     if (ctx.curState!!.pyModel.eval(indexCond).isFalse)
         return null
     iterator.increaseTupleIteratorCounter(ctx)
-    @Suppress("unchecked_cast")
-    val address = ctx.curState!!.memory.read(UArrayIndexLValue(addressSort, tuple, index, typeSystem.pythonTuple)) as UHeapRef
+    val address = ctx.curState!!.memory.readArrayIndex(tuple, index, typeSystem.pythonTuple, addressSort)
     return UninterpretedSymbolicPythonObject(address, typeSystem)
 }

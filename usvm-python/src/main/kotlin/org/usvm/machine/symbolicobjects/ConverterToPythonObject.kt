@@ -4,6 +4,8 @@ import io.ksmt.expr.KInt32NumExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UHeapRef
+import org.usvm.api.readArrayIndex
+import org.usvm.api.readArrayLength
 import org.usvm.language.VirtualPythonObject
 import org.usvm.language.types.*
 import org.usvm.machine.interpreters.ConcretePythonInterpreter
@@ -87,12 +89,12 @@ class ConverterToPythonObject(
         }
 
     private fun convertList(obj: InterpretedInputSymbolicPythonObject): PythonObject = with(ctx) {
-        val size = obj.modelHolder.model.uModel.heap.readArrayLength(obj.address, typeSystem.pythonList) as KInt32NumExpr
+        val size = obj.modelHolder.model.uModel.readArrayLength(obj.address, typeSystem.pythonList) as KInt32NumExpr
         val resultList = ConcretePythonInterpreter.makeList(emptyList())
         constructedObjects[obj.address] = resultList
         val listOfPythonObjects = List(size.value) { index ->
             val indexExpr = mkSizeExpr(index)
-            val element = obj.modelHolder.model.uModel.heap.readArrayIndex(obj.address, indexExpr, typeSystem.pythonList, addressSort) as UConcreteHeapRef
+            val element = obj.modelHolder.model.uModel.readArrayIndex(obj.address, indexExpr, typeSystem.pythonList, addressSort) as UConcreteHeapRef
             val elemInterpretedObject = InterpretedInputSymbolicPythonObject(element, obj.modelHolder, typeSystem)
             convert(elemInterpretedObject)
         }

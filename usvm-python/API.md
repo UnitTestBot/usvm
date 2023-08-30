@@ -238,3 +238,387 @@ int (*list_set_item)(void *, PyObject *storage, PyObject *index, PyObject *value
 ```
 
 Notifies about `PyList_Type.tp_as_mapping->mp_ass_subscript`. All arguments are symbolic representations.
+
+### list_extend
+
+```c
+PyObject *(*list_extend)(void *, PyObject *list, PyObject *iterable);
+```
+
+Operation https://docs.python.org/3.11/library/dis.html#opcode-LIST_EXTEND.
+
+Expects resulting list as a return value.
+
+### list_append
+
+```c
+PyObject *(*list_append)(void *, PyObject *list, PyObject *elem);
+```
+
+Operation https://docs.python.org/3.11/library/dis.html#opcode-LIST_APPEND.
+
+Expects resulting list as a return value.
+
+### list_get_size
+
+```c
+PyObject *(*list_get_size)(void *, PyObject *list);
+```
+
+Asks for symbolic length of symbolic list.
+
+### list_iter
+
+```c
+PyObject *(*list_iter)(void *, PyObject *list);
+```
+
+Operation `iter()` on a symbolic list.
+
+### list_iterator_next
+
+```c
+PyObject *(*list_iterator_next)(void *, PyObject *iterator);
+```
+
+Operation `next()` on a symbolic list iterator (list iterator is a result of operation `iter()` on list).
+
+### list_concat
+
+```c
+PyObject *(*list_concat)(void *, PyObject *, PyObject *);
+```
+
+`+` operation on symbolic lists.
+
+### list_inplace_concat
+
+```c
+PyObject *(*list_inplace_concat)(void *, PyObject *, PyObject *);
+```
+
+Inplace version of `list_concat`.
+
+### tuple_iter
+
+```c
+PyObject *(*tuple_iter)(void *, PyObject *tuple);
+```
+
+Operation `iter()` on a symbolic tuple.
+
+### tuple_iterator_next
+
+```c
+PyObject *(*tuple_iterator_next)(void *, PyObject *iterator);
+```
+
+Operation `next()` on a symbolic tuple iterator (tuple iterator is a result of operation `iter()` on tuple).
+
+### range_iter
+
+```c
+PyObject *(*range_iter)(void *, PyObject *range);
+```
+
+Operation `iter()` on a symbolic representation of range object.
+
+### range_iterator_next
+
+```c
+PyObject *(*range_iterator_next)(void *, PyObject *iterator);
+```
+
+Operation `next()` on a symbolic range iterator (range iterator is a result of operation `iter()` on range object).
+
+### symbolic_isinstance
+
+```c
+PyObject *(*symbolic_isinstance)(void *, PyObject *on, PyObject *type);
+```
+
+Asks for a symbolic result of operation `isinstance`.
+
+`on`: symbolic object on which the operation is performed.
+
+`type`: reference to concrete `PyTypeObject`.
+
+### nb_add
+
+```c
+int (*nb_add)(void *, PyObject *left, PyObject *right);
+```
+
+Notifies that `nb_add` is about to be performed on symbolic objects `left` and `right`.
+
+### nb_subtract
+
+```c
+int (*nb_subtract)(void *, PyObject *left, PyObject *right);
+```
+
+Notifies that `nb_subtract` is about to be performed on symbolic objects `left` and `right`.
+
+### nb_multiply
+
+```c
+int (*nb_multiply)(void *, PyObject *left, PyObject *right);
+```
+
+Notifies that `nb_multiply` is about to be performed on symbolic objects `left` and `right`.
+
+### nb_remainder
+
+```c
+int (*nb_remainder)(void *, PyObject *left, PyObject *right);
+```
+
+Notifies that `nb_remainder` is about to be performed on symbolic objects `left` and `right`.
+
+### nb_divmod
+
+```c
+int (*nb_divmod)(void *, PyObject *left, PyObject *right);
+```
+
+Notifies that `nb_divmod` is about to be performed on symbolic objects `left` and `right`.
+
+### nb_bool
+
+```c
+int (*nb_bool)(void *, PyObject *on);
+```
+
+Notifies that `nb_bool` is about to be performed on symbolic object `on`.
+
+### nb_int
+
+```c
+int (*nb_int)(void *, PyObject *on);
+```
+
+Notifies that `nb_int` is about to be performed on symbolic object `on`.
+
+### nb_lshift
+
+```c
+int (*nb_lshift)(void *, PyObject *left, PyObject *right);
+```
+
+Notifies that `nb_lshift` is about to be performed on symbolic objects `left` and `right`.
+
+### nb_rshift
+
+```c
+int (*nb_rshift)(void *, PyObject *left, PyObject *right);
+```
+
+Notifies that `nb_rshift` is about to be performed on symbolic objects `left` and `right`.
+
+### nb_and
+
+```c
+int (*nb_and)(void *, PyObject *left, PyObject *right);
+```
+
+Notifies that `nb_and` is about to be performed on symbolic objects `left` and `right`.
+
+### nb_xor
+
+```c
+int (*nb_xor)(void *, PyObject *left, PyObject *right);
+```
+
+Notifies that `nb_xor` is about to be performed on symbolic objects `left` and `right`.
+
+### nb_or
+
+```c
+int (*nb_or)(void *, PyObject *left, PyObject *right);
+```
+
+Notifies that `nb_or` is about to be performed on symbolic objects `left` and `right`.
+
+### nb_inplace_add
+
+```c
+int (*nb_inplace_add)(void *, PyObject *left, PyObject *right);
+```
+
+Notifies that `nb_inplace_add` is about to be performed on symbolic objects `left` and `right`.
+
+### nb_inplace_subtract
+
+```c
+int (*nb_inplace_subtract)(void *, PyObject *left, PyObject *right);
+```
+
+Notifies that `nb_inplace_subtract` is about to be performed on symbolic objects `left` and `right`.
+
+### nb_inplace_multiply
+
+```c
+int (*nb_inplace_multiply)(void *, PyObject *left, PyObject *right);
+```
+
+Notifies that `nb_inplace_multiply` is about to be performed on symbolic objects `left` and `right`.
+
+### nb_inplace_remainder
+
+```c
+int (*nb_inplace_remainder)(void *, PyObject *left, PyObject *right);
+```
+
+Notifies that `nb_inplace_remainder` is about to be performed on symbolic objects `left` and `right`.
+
+### nb_inplace_lshift
+
+```c
+int (*nb_inplace_lshift)(void *, PyObject *left, PyObject *right);
+```
+
+Notifies that `nb_inplace_lshift` is about to be performed on symbolic objects `left` and `right`.
+
+### nb_inplace_rshift
+
+```c
+int (*nb_inplace_rshift)(void *, PyObject *left, PyObject *right);
+```
+
+Notifies that `nb_inplace_rshift` is about to be performed on symbolic objects `left` and `right`.
+
+### nb_inplace_and
+
+```c
+int (*nb_inplace_and)(void *, PyObject *left, PyObject *right);
+```
+
+Notifies that `nb_inplace_and` is about to be performed on symbolic objects `left` and `right`.
+
+### nb_inplace_xor
+
+```c
+int (*nb_inplace_xor)(void *, PyObject *left, PyObject *right);
+```
+
+Notifies that `nb_inplace_xor` is about to be performed on symbolic objects `left` and `right`.
+
+### nb_inplace_or
+
+```c
+int (*nb_inplace_or)(void *, PyObject *left, PyObject *right);
+```
+
+Notifies that `nb_inplace_or` is about to be performed on symbolic objects `left` and `right`.
+
+### nb_floor_divide
+
+```c
+int (*nb_floor_divide)(void *, PyObject *left, PyObject *right);
+```
+
+Notifies that `nb_floor_divide` is about to be performed on symbolic objects `left` and `right`.
+
+### nb_true_divide
+
+```c
+int (*nb_true_divide)(void *, PyObject *left, PyObject *right);
+```
+
+Notifies that `nb_true_divide` is about to be performed on symbolic objects `left` and `right`.
+
+### nb_inplace_floor_divide
+
+```c
+int (*nb_inplace_floor_divide)(void *, PyObject *left, PyObject *right);
+```
+
+Notifies that `nb_inplace_floor_divide` is about to be performed on symbolic objects `left` and `right`.
+
+### nb_inplace_true_divide
+
+```c
+int (*nb_inplace_true_divide)(void *, PyObject *left, PyObject *right);
+```
+
+Notifies that `nb_inplace_true_divide` is about to be performed on symbolic objects `left` and `right`.
+
+### nb_matrix_multiply
+
+```c
+int (*nb_matrix_multiply)(void *, PyObject *left, PyObject *right);
+```
+
+Notifies that `nb_matrix_multiply` is about to be performed on symbolic objects `left` and `right`.
+
+### nb_inplace_matrix_multiply
+
+```c
+int (*nb_inplace_matrix_multiply)(void *, PyObject *left, PyObject *right);
+```
+
+Notifies that `nb_inplace_matrix_multiply` is about to be performed on symbolic objects `left` and `right`.
+
+### sq_length
+
+```c
+int (*sq_length)(void *, PyObject *on);
+```
+
+Notifies that `sq_length` is about to be performed on symbolic object `on`.
+
+### sq_concat
+
+```c
+int (*sq_concat)(void *, PyObject *left, PyObject *right);
+```
+
+Notifies that `sq_concat` is about to be performed on symbolic objects `left` and `right`.
+
+### sq_inplace_concat
+
+```c
+int (*sq_inplace_concat)(void *, PyObject *left, PyObject *right);
+```
+
+Notifies that `sq_inplace_concat` is about to be performed on symbolic objects `left` and `right`.
+
+### mp_subscript
+
+```c
+int (*mp_subscript)(void *, PyObject *storage, PyObject *index);
+```
+
+Notifies that `mp_subscript` is about to be performed on symbolic objects `storage` and `index`.
+
+### mp_ass_subscript
+
+```c
+int (*mp_ass_subscript)(void *, PyObject *storage, PyObject *index, PyObject *value);
+```
+
+Notifies that `mp_ass_subscript` is about to be performed on symbolic objects `storage`, `index` and `value`.
+
+### tp_richcompare
+
+```c
+int (*tp_richcompare)(void *, int op, PyObject *left, PyObject *right);
+```
+
+Notifies that `tp_richcompare` with operation `op` is about to be performed on symbolic objects `left` and `right`.
+
+### tp_iter
+
+```c
+int (*tp_iter)(void *, PyObject *on);
+```
+
+Notifies that `tp_iter` is about to be performed on symbolic object `on`.
+
+### tp_iternext
+
+```c
+int (*tp_iternext)(void *, PyObject *on);
+```
+
+Notifies that `tp_iternext` is about to be performed on symbolic object `on`.

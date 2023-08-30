@@ -13,7 +13,7 @@ import org.usvm.machine.symbolicobjects.PreallocatedObjects
 import org.usvm.machine.types.prioritization.SymbolTypeTree
 import org.usvm.machine.types.prioritization.prioritizeTypes
 import org.usvm.machine.utils.PyModel
-import org.usvm.memory.UMemoryBase
+import org.usvm.memory.UMemory
 import org.usvm.model.UModelBase
 import org.usvm.types.UTypeStream
 import org.usvm.utils.MAX_CONCRETE_TYPES_TO_CONSIDER
@@ -23,8 +23,8 @@ class PythonExecutionState(
     private val pythonCallable: PythonUnpinnedCallable,
     val inputSymbols: List<SymbolForCPython>,
     pathConstraints: UPathConstraints<PythonType, UPythonContext>,
-    memory: UMemoryBase<PropertyOfPythonObject, PythonType, PythonCallable>,
-    uModel: UModelBase<PropertyOfPythonObject, PythonType>,
+    memory: UMemory<PythonType, PythonCallable>,
+    uModel: UModelBase<PythonType>,
     val typeSystem: PythonTypeSystem,
     val preAllocatedObjects: PreallocatedObjects,
     var possibleTypesForNull: UTypeStream<PythonType> = typeSystem.topTypeStream(),
@@ -33,7 +33,7 @@ class PythonExecutionState(
     var delayedForks: PersistentList<DelayedFork> = persistentListOf(),
     private val mocks: MutableMap<MockHeader, UMockSymbol<UAddressSort>> = mutableMapOf(),
     val mockedObjects: MutableSet<SymbolForCPython> = mutableSetOf()
-): UState<PythonType, PropertyOfPythonObject, PythonCallable, SymbolicHandlerEvent<Any>, UPythonContext, PythonExecutionState>(ctx, callStack, pathConstraints, memory, listOf(uModel), pathLocation) {
+): UState<PythonType, PythonCallable, SymbolicHandlerEvent<Any>, UPythonContext, PythonExecutionState>(ctx, callStack, pathConstraints, memory, listOf(uModel), pathLocation) {
     override fun clone(newConstraints: UPathConstraints<PythonType, UPythonContext>?): PythonExecutionState {
         val newPathConstraints = newConstraints ?: pathConstraints.clone()
         val newMemory = memory.clone(newPathConstraints.typeConstraints)
@@ -75,8 +75,9 @@ class PythonExecutionState(
         val cached = mocks[what]
         if (cached != null)
             return MockResult(UninterpretedSymbolicPythonObject(cached, typeSystem), false, cached)
-        val (result, newMocker) = memory.mocker.call(what.method, what.args.map { it.obj.address }.asSequence(), ctx.addressSort)
-        memory.mocker = newMocker
+        val result = memory.mock {
+            call(what.method, what.args.map { it.obj.address }.asSequence(), ctx.addressSort)
+        }
         mocks[what] = result
         what.methodOwner?.let { mockedObjects.add(it) }
         return MockResult(UninterpretedSymbolicPythonObject(result, typeSystem), true, result)

@@ -2,6 +2,8 @@ package org.usvm.machine.symbolicobjects
 
 import io.ksmt.expr.KInt32NumExpr
 import org.usvm.*
+import org.usvm.api.readArrayIndex
+import org.usvm.api.readArrayLength
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.machine.utils.PyModelHolder
 import org.usvm.machine.interpreters.operations.myAssert
@@ -20,28 +22,18 @@ class ObjectValidator(private val concolicRunContext: ConcolicRunContext) {
         }
     }
 
-    @Suppress("unchecked_parameter")
     private fun checkList(symbolic: UninterpretedSymbolicPythonObject, modelHolder: PyModelHolder) = with(concolicRunContext.ctx) {
         require(concolicRunContext.curState != null)
-        @Suppress("unchecked_cast")
-        val symbolicSize = concolicRunContext.curState!!.memory.read(
-            UArrayLengthLValue(
-                symbolic.address,
-                typeSystem.pythonList
-            )
-        ) as USizeExpr
+        val symbolicSize = concolicRunContext.curState!!.memory.readArrayLength(symbolic.address, typeSystem.pythonList)
         myAssert(concolicRunContext, symbolicSize ge mkIntNum(0))
         val size = modelHolder.model.eval(symbolicSize) as KInt32NumExpr
         List(size.value) { index ->
-            @Suppress("unchecked_cast")
-            val element = concolicRunContext.curState!!.memory.read(
-                UArrayIndexLValue(
-                    addressSort,
-                    symbolic.address,
-                    mkSizeExpr(index),
-                    typeSystem.pythonList
-                )
-            ) as UHeapRef
+            val element = concolicRunContext.curState!!.memory.readArrayIndex(
+                symbolic.address,
+                mkSizeExpr(index),
+                typeSystem.pythonList,
+                addressSort
+            )
             val elemObj = UninterpretedSymbolicPythonObject(element, typeSystem)
             check(elemObj)
         }
