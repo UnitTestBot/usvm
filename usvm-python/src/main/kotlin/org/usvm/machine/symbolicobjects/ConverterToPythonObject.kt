@@ -2,12 +2,12 @@ package org.usvm.machine.symbolicobjects
 
 import io.ksmt.expr.KInt32NumExpr
 import org.usvm.UConcreteHeapRef
-import org.usvm.UContext
 import org.usvm.UHeapRef
 import org.usvm.api.readArrayIndex
 import org.usvm.api.readArrayLength
 import org.usvm.language.VirtualPythonObject
 import org.usvm.language.types.*
+import org.usvm.machine.UPythonContext
 import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.PythonObject
 import org.usvm.machine.interpreters.emptyNamespace
@@ -15,7 +15,7 @@ import org.usvm.machine.utils.DefaultValueProvider
 import org.usvm.machine.utils.PyModelHolder
 
 class ConverterToPythonObject(
-    private val ctx: UContext,
+    private val ctx: UPythonContext,
     private val typeSystem: PythonTypeSystem,
     val modelHolder: PyModelHolder
 ) {

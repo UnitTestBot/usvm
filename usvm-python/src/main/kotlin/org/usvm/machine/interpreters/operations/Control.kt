@@ -8,6 +8,7 @@ import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.machine.DelayedFork
 import org.usvm.machine.PythonExecutionState
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
+import org.usvm.machine.symbolicobjects.getToBoolValue
 import org.usvm.machine.utils.getTypeStreamForDelayedFork
 
 fun myFork(ctx: ConcolicRunContext, cond: UExpr<KBoolSort>) {
