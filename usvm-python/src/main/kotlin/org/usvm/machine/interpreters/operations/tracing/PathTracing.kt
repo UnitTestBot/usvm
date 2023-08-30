@@ -4,6 +4,7 @@ import mu.KLogging
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.isTrue
 import org.usvm.language.SymbolForCPython
+import org.usvm.machine.symbolicobjects.getToBoolValue
 import java.util.concurrent.Callable
 
 private val logger = object : KLogging() {}.logger

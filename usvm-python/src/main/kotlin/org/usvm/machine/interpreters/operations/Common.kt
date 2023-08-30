@@ -9,6 +9,7 @@ import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.constructBool
 import org.usvm.machine.symbolicobjects.interpretSymbolicPythonObject
 import org.usvm.language.types.ConcreteTypeNegation
+import org.usvm.machine.symbolicobjects.getBoolContent
 import org.usvm.machine.utils.MethodDescription
 
 fun handlerIsinstanceKt(ctx: ConcolicRunContext, obj: UninterpretedSymbolicPythonObject, typeRef: PythonObject): UninterpretedSymbolicPythonObject? = with(ctx.ctx) {

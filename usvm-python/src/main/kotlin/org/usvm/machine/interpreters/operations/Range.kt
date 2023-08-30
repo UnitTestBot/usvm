@@ -2,10 +2,7 @@ package org.usvm.machine.interpreters.operations
 
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.isTrue
-import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
-import org.usvm.machine.symbolicobjects.constructInt
-import org.usvm.machine.symbolicobjects.constructRange
-import org.usvm.machine.symbolicobjects.constructRangeIterator
+import org.usvm.machine.symbolicobjects.*
 
 fun handlerCreateRangeKt(
     ctx: ConcolicRunContext,
