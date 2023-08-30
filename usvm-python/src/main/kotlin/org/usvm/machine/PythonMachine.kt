@@ -9,7 +9,7 @@ import org.usvm.machine.interpreters.USVMPythonInterpreter
 import org.usvm.machine.symbolicobjects.*
 import org.usvm.machine.utils.PythonMachineStatistics
 import org.usvm.machine.utils.PythonMachineStatisticsOnFunction
-import org.usvm.memory.UMemoryBase
+import org.usvm.memory.UMemory
 import org.usvm.ps.DfsPathSelector
 import org.usvm.solver.USatResult
 import org.usvm.statistics.UMachineObserver
@@ -22,7 +22,7 @@ class PythonMachine<PythonObjectRepresentation>(
     private val printErrorMsg: Boolean = false
 ): UMachine<PythonExecutionState>() {
     private val ctx = UPythonContext(typeSystem)
-    private val solver = ctx.solver<PropertyOfPythonObject, PythonType, PythonCallable, UPythonContext>()
+    private val solver = ctx.solver<PythonType, UPythonContext>()
     val statistics = PythonMachineStatistics()
 
     private fun getInterpreter(
@@ -50,7 +50,7 @@ class PythonMachine<PythonObjectRepresentation>(
 
     private fun getInitialState(target: PythonUnpinnedCallable): PythonExecutionState {
         val pathConstraints = UPathConstraints<PythonType, UPythonContext>(ctx)
-        val memory = UMemoryBase<PropertyOfPythonObject, PythonType, PythonCallable>(
+        val memory = UMemory<PythonType, PythonCallable>(
             ctx,
             pathConstraints.typeConstraints
         ).apply {

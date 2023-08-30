@@ -1,6 +1,7 @@
 package org.usvm.machine.interpreters.operations
 
-import org.usvm.UArrayLengthLValue
+import org.usvm.api.allocateArrayInitialized
+import org.usvm.api.writeArrayLength
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.types.ConcretePythonType
 import org.usvm.machine.interpreters.PythonObject
@@ -71,8 +72,8 @@ fun createIterable(
     val typeSystem = context.typeSystem
     val size = elements.size
     with (context.ctx) {
-        val iterableAddress = context.curState!!.memory.malloc(type, addressSort, addresses)
-        context.curState!!.memory.write(UArrayLengthLValue(iterableAddress, type), mkIntNum(size))
+        val iterableAddress = context.curState!!.memory.allocateArrayInitialized(type, addressSort, addresses)
+        context.curState!!.memory.writeArrayLength(iterableAddress, mkIntNum(size), type)
         val result = UninterpretedSymbolicPythonObject(iterableAddress, typeSystem)
         result.addSupertype(context, type)
         return result

@@ -4,6 +4,10 @@ import io.ksmt.expr.KInterpretedValue
 import io.ksmt.sort.KBoolSort
 import io.ksmt.sort.KIntSort
 import org.usvm.*
+import org.usvm.api.readArrayLength
+import org.usvm.api.readField
+import org.usvm.api.typeStreamOf
+import org.usvm.api.writeField
 import org.usvm.constraints.UTypeConstraints
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.machine.utils.PyModelHolder
@@ -87,16 +91,14 @@ class UninterpretedSymbolicPythonObject(
 
     fun setIntContent(ctx: ConcolicRunContext, expr: UExpr<KIntSort>) {
         require(ctx.curState != null)
-        addSupertype(ctx, typeSystem.pythonInt)
-        val lvalue = UFieldLValue(expr.sort, address, IntContents.content)
-        ctx.curState!!.memory.write(lvalue, expr)
+        addSupertypeSoft(ctx, typeSystem.pythonInt)
+        ctx.curState!!.memory.writeField(address, IntContents.content, ctx.ctx.intSort, expr, ctx.ctx.trueExpr)
     }
 
     fun getIntContent(ctx: ConcolicRunContext): UExpr<KIntSort> {
         require(ctx.curState != null)
         addSupertype(ctx, typeSystem.pythonInt)
-        @Suppress("unchecked_cast")
-        return ctx.curState!!.memory.heap.readField(address, IntContents.content, ctx.ctx.intSort) as UExpr<KIntSort>
+        return ctx.curState!!.memory.readField(address, IntContents.content, ctx.ctx.intSort)
     }
 
     fun getToIntContent(ctx: ConcolicRunContext): UExpr<KIntSort>? = with(ctx.ctx) {
@@ -107,18 +109,10 @@ class UninterpretedSymbolicPythonObject(
         }
     }
 
-    fun setBoolContent(ctx: ConcolicRunContext, expr: UBoolExpr) {
-        require(ctx.curState != null)
-        addSupertype(ctx, typeSystem.pythonBool)
-        val lvalue = UFieldLValue(expr.sort, address, BoolContents.content)
-        ctx.curState!!.memory.write(lvalue, expr)
-    }
-
     fun getBoolContent(ctx: ConcolicRunContext): UExpr<KBoolSort> {
         require(ctx.curState != null)
         addSupertype(ctx, typeSystem.pythonBool)
-        @Suppress("unchecked_cast")
-        return ctx.curState!!.memory.heap.readField(address, BoolContents.content, ctx.ctx.boolSort) as UExpr<KBoolSort>
+        return ctx.curState!!.memory.readField(address, BoolContents.content, ctx.ctx.boolSort)
     }
 
     fun getToBoolValue(ctx: ConcolicRunContext): UBoolExpr? = with (ctx.ctx) {
@@ -126,67 +120,65 @@ class UninterpretedSymbolicPythonObject(
         return when (getTypeIfDefined(ctx)) {
             typeSystem.pythonBool -> getBoolContent(ctx)
             typeSystem.pythonInt -> getIntContent(ctx) neq mkIntNum(0)
-            typeSystem.pythonList -> ctx.curState!!.memory.heap.readArrayLength(address, typeSystem.pythonList) gt mkIntNum(0)
+            typeSystem.pythonList -> ctx.curState!!.memory.readArrayLength(address, typeSystem.pythonList) gt mkIntNum(0)
             else -> null
         }
     }
 
     fun setListIteratorContent(ctx: ConcolicRunContext, list: UninterpretedSymbolicPythonObject) = with(ctx.ctx) {
         require(ctx.curState != null)
-        addSupertype(ctx, typeSystem.pythonListIteratorType)
-        val listLValue = UFieldLValue(addressSort, address, ListIteratorContents.list)
-        ctx.curState!!.memory.write(listLValue, list.address)
-        val indexLValue = UFieldLValue(intSort, address, ListIteratorContents.index)
-        ctx.curState!!.memory.write(indexLValue, mkIntNum(0))
+        addSupertypeSoft(ctx, typeSystem.pythonListIteratorType)
+        ctx.curState!!.memory.writeField(address, ListIteratorContents.list, addressSort, list.address, trueExpr)
+        ctx.curState!!.memory.writeField(address, ListIteratorContents.index, intSort, mkIntNum(0), trueExpr)
     }
 
     fun increaseListIteratorCounter(ctx: ConcolicRunContext) = with(ctx.ctx) {
         require(ctx.curState != null)
-        addSupertype(ctx, typeSystem.pythonListIteratorType)
-        val indexLValue = UFieldLValue(intSort, address, ListIteratorContents.index)
-        @Suppress("unchecked_cast")
-        val oldIndexValue = ctx.curState!!.memory.read(indexLValue) as UExpr<KIntSort>
-        ctx.curState!!.memory.write(indexLValue, mkArithAdd(oldIndexValue, mkIntNum(1)))
+        addSupertypeSoft(ctx, typeSystem.pythonListIteratorType)
+        val oldIndexValue = ctx.curState!!.memory.readField(address, ListIteratorContents.index, intSort)
+        ctx.curState!!.memory.writeField(
+            address,
+            ListIteratorContents.index,
+            intSort,
+            mkArithAdd(oldIndexValue, mkIntNum(1)),
+            trueExpr
+        )
     }
 
     fun getListIteratorContent(ctx: ConcolicRunContext): Pair<UHeapRef, UExpr<KIntSort>> = with(ctx.ctx) {
         require(ctx.curState != null)
         addSupertype(ctx, typeSystem.pythonListIteratorType)
-        val listLValue = UFieldLValue(addressSort, address, ListIteratorContents.list)
-        val indexLValue = UFieldLValue(intSort, address, ListIteratorContents.index)
-        @Suppress("unchecked_cast")
-        val listRef = ctx.curState!!.memory.read(listLValue) as UHeapRef
-        @Suppress("unchecked_cast")
-        val index = ctx.curState!!.memory.read(indexLValue) as UExpr<KIntSort>
+        val listRef = ctx.curState!!.memory.readField(address, ListIteratorContents.list, addressSort)
+        val index = ctx.curState!!.memory.readField(address, ListIteratorContents.index, intSort)
         return listRef to index
     }
 
     fun setTupleIteratorContent(ctx: ConcolicRunContext, tuple: UninterpretedSymbolicPythonObject) = with(ctx.ctx) {
         require(ctx.curState != null)
-        addSupertype(ctx, typeSystem.pythonTupleIteratorType)
-        val tupleLValue = UFieldLValue(addressSort, address, TupleIteratorContents.tuple)
-        ctx.curState!!.memory.write(tupleLValue, tuple.address)
-        val indexLValue = UFieldLValue(intSort, address, TupleIteratorContents.index)
-        ctx.curState!!.memory.write(indexLValue, mkIntNum(0))
+        addSupertypeSoft(ctx, typeSystem.pythonTupleIteratorType)
+        ctx.curState!!.memory.writeField(address, TupleIteratorContents.tuple, addressSort, tuple.address, trueExpr)
+        ctx.curState!!.memory.writeField(address, TupleIteratorContents.index, intSort, mkIntNum(0), trueExpr)
     }
 
     fun getTupleIteratorContent(ctx: ConcolicRunContext): Pair<UHeapRef, UExpr<KIntSort>> = with(ctx.ctx) {
         require(ctx.curState != null)
-        addSupertype(ctx, typeSystem.pythonTupleIteratorType)
-        @Suppress("unchecked_cast")
-        val tupleRef = ctx.curState!!.memory.read(UFieldLValue(addressSort, address, TupleIteratorContents.tuple)) as UHeapRef
-        @Suppress("unchecked_cast")
-        val index = ctx.curState!!.memory.read(UFieldLValue(intSort, address, TupleIteratorContents.index)) as UExpr<KIntSort>
+        addSupertypeSoft(ctx, typeSystem.pythonTupleIteratorType)
+        val tupleRef = ctx.curState!!.memory.readField(address, TupleIteratorContents.tuple, addressSort)
+        val index = ctx.curState!!.memory.readField(address, TupleIteratorContents.index, intSort)
         return tupleRef to index
     }
 
     fun increaseTupleIteratorCounter(ctx: ConcolicRunContext) = with(ctx.ctx) {
         require(ctx.curState != null)
-        addSupertype(ctx, typeSystem.pythonTupleIteratorType)
-        val indexLValue = UFieldLValue(intSort, address, TupleIteratorContents.index)
-        @Suppress("unchecked_cast")
-        val oldIndexValue = ctx.curState!!.memory.read(indexLValue) as UExpr<KIntSort>
-        ctx.curState!!.memory.write(indexLValue, mkArithAdd(oldIndexValue, mkIntNum(1)))
+        addSupertypeSoft(ctx, typeSystem.pythonTupleIteratorType)
+        val oldIndexValue = ctx.curState!!.memory.readField(address, TupleIteratorContents.index, intSort)
+        ctx.curState!!.memory.writeField(
+            address,
+            TupleIteratorContents.index,
+            intSort,
+            mkArithAdd(oldIndexValue, mkIntNum(1)),
+            trueExpr
+        )
     }
 
     fun setRangeContent(
@@ -196,14 +188,10 @@ class UninterpretedSymbolicPythonObject(
         step: UExpr<KIntSort>
     ) = with(ctx.ctx) {
         require(ctx.curState != null)
-        addSupertype(ctx, typeSystem.pythonRange)
-        val startLValue = UFieldLValue(intSort, address, RangeContents.start)
-        ctx.curState!!.memory.write(startLValue, start)
-        val stopLValue = UFieldLValue(intSort, address, RangeContents.stop)
-        ctx.curState!!.memory.write(stopLValue, stop)
-        val stepLValue = UFieldLValue(intSort, address, RangeContents.step)
-        ctx.curState!!.memory.write(stepLValue, step)
-        val lengthLValue = UFieldLValue(intSort, address, RangeContents.length)
+        addSupertypeSoft(ctx, typeSystem.pythonRange)
+        ctx.curState!!.memory.writeField(address, RangeContents.start, intSort, start, trueExpr)
+        ctx.curState!!.memory.writeField(address, RangeContents.stop, intSort, stop, trueExpr)
+        ctx.curState!!.memory.writeField(address, RangeContents, intSort, step, trueExpr)
         val lengthRValue = mkIte(
             step gt mkIntNum(0),
             mkIte(
@@ -223,43 +211,38 @@ class UninterpretedSymbolicPythonObject(
                 mkIntNum(0)
             )
         )
-        ctx.curState!!.memory.write(lengthLValue, lengthRValue)
+        ctx.curState!!.memory.writeField(address, RangeContents.length, intSort, lengthRValue, trueExpr)
     }
 
     fun setRangeIteratorContent(ctx: ConcolicRunContext, range: UninterpretedSymbolicPythonObject) = with(ctx.ctx) {
         require(ctx.curState != null)
-        addSupertype(ctx, ctx.typeSystem.pythonRangeIterator)
-        val start = ctx.curState!!.memory.read(UFieldLValue(intSort, range.address, RangeContents.start))
-        ctx.curState!!.memory.write(UFieldLValue(intSort, address, RangeIteratorContents.start), start)
-        val length = ctx.curState!!.memory.read(UFieldLValue(intSort, range.address, RangeContents.length))
-        ctx.curState!!.memory.write(UFieldLValue(intSort, address, RangeIteratorContents.length), length)
-        val step = ctx.curState!!.memory.read(UFieldLValue(intSort, range.address, RangeContents.step))
-        ctx.curState!!.memory.write(UFieldLValue(intSort, address, RangeIteratorContents.step), step)
+        addSupertypeSoft(ctx, ctx.typeSystem.pythonRangeIterator)
+        val start = ctx.curState!!.memory.readField(range.address, RangeContents.start, intSort)
+        ctx.curState!!.memory.writeField(address, RangeIteratorContents.start, intSort, start, trueExpr)
+        val length = ctx.curState!!.memory.readField(range.address, RangeContents.length, intSort)
+        ctx.curState!!.memory.writeField(address, RangeIteratorContents.length, intSort, length, trueExpr)
+        val step = ctx.curState!!.memory.readField(range.address, RangeContents.step, intSort)
+        ctx.curState!!.memory.writeField(address, RangeIteratorContents.step, intSort, step, trueExpr)
         val index = mkIntNum(0)
-        ctx.curState!!.memory.write(UFieldLValue(intSort, address, RangeIteratorContents.index), index)
+        ctx.curState!!.memory.writeField(address, RangeIteratorContents.index, intSort, index, trueExpr)
     }
 
     fun getRangeIteratorState(ctx: ConcolicRunContext): Pair<UExpr<KIntSort>, UExpr<KIntSort>> = with(ctx.ctx) {
         require(ctx.curState != null)
         addSupertype(ctx, ctx.typeSystem.pythonRangeIterator)
-        @Suppress("unchecked_cast")
-        val index = ctx.curState!!.memory.read(UFieldLValue(intSort, address, RangeIteratorContents.index)) as UExpr<KIntSort>
-        @Suppress("unchecked_cast")
-        val length = ctx.curState!!.memory.read(UFieldLValue(intSort, address, RangeIteratorContents.length)) as UExpr<KIntSort>
+        val index = ctx.curState!!.memory.readField(address, RangeIteratorContents.index, intSort)
+        val length = ctx.curState!!.memory.readField(address, RangeIteratorContents.length, intSort)
         return index to length
     }
 
     fun getRangeIteratorNext(ctx: ConcolicRunContext): UExpr<KIntSort> = with(ctx.ctx) {
         require(ctx.curState != null)
         addSupertype(ctx, ctx.typeSystem.pythonRangeIterator)
-        @Suppress("unchecked_cast")
-        val index = ctx.curState!!.memory.read(UFieldLValue(intSort, address, RangeIteratorContents.index)) as UExpr<KIntSort>
+        val index = ctx.curState!!.memory.readField(address, RangeIteratorContents.index, intSort)
         val newIndex = mkArithAdd(index, mkIntNum(1))
-        ctx.curState!!.memory.write(UFieldLValue(intSort, address, RangeIteratorContents.index), newIndex)
-        @Suppress("unchecked_cast")
-        val start = ctx.curState!!.memory.read(UFieldLValue(intSort, address, RangeIteratorContents.start)) as UExpr<KIntSort>
-        @Suppress("unchecked_cast")
-        val step = ctx.curState!!.memory.read(UFieldLValue(intSort, address, RangeIteratorContents.step)) as UExpr<KIntSort>
+        ctx.curState!!.memory.writeField(address, RangeIteratorContents.index, intSort, newIndex, trueExpr)
+        val start = ctx.curState!!.memory.readField(address, RangeIteratorContents.start, intSort)
+        val step = ctx.curState!!.memory.readField(address, RangeIteratorContents.step, intSort)
         return mkArithAdd(start, mkArithMul(index, step))
     }
 
@@ -344,14 +327,12 @@ class InterpretedAllocatedSymbolicPythonObject(
 
     override fun getBoolContent(ctx: ConcolicRunContext): KInterpretedValue<KBoolSort> {
         require(ctx.curState != null)
-        @Suppress("unchecked_cast")
-        return ctx.curState!!.memory.heap.readField(address, BoolContents.content, ctx.ctx.boolSort) as KInterpretedValue<KBoolSort>
+        return ctx.curState!!.memory.readField(address, BoolContents.content, ctx.ctx.boolSort) as KInterpretedValue<KBoolSort>
     }
 
     override fun getIntContent(ctx: ConcolicRunContext): KInterpretedValue<KIntSort> {
         require(ctx.curState != null)
-        @Suppress("unchecked_cast")
-        return ctx.curState!!.memory.heap.readField(address, IntContents.content, ctx.ctx.intSort) as KInterpretedValue<KIntSort>
+        return ctx.curState!!.memory.readField(address, IntContents.content, ctx.ctx.intSort) as KInterpretedValue<KIntSort>
     }
 
     override fun getTypeStream(ctx: ConcolicRunContext): UTypeStream<PythonType> {
