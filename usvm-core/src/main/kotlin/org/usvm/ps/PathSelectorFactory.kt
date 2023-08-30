@@ -118,9 +118,9 @@ private fun <State : UState<*, *, *, *, *, State>> UPathSelector<State>.wrapIfRe
         this
     }
 
-private fun <State : UState<*, *, *, *, *, *, State>> compareById(): Comparator<State> = compareBy { it.id }
+private fun <State : UState<*, *, *, *, *, State>> compareById(): Comparator<State> = compareBy { it.id }
 
-private fun <State : UState<*, *, *, *, *, *, State>> createDepthPathSelector(random: Random? = null): UPathSelector<State> {
+private fun <State : UState<*, *, *, *, *, State>> createDepthPathSelector(random: Random? = null): UPathSelector<State> {
     if (random == null) {
         return WeightedPathSelector(
             priorityCollectionFactory = { DeterministicPriorityCollection(Comparator.naturalOrder()) },
@@ -177,7 +177,7 @@ private fun <Method, Statement, State : UState<*, Method, Statement, *, *, State
     )
 }
 
-internal fun <Method, Statement, Target : UTarget<Method, Statement, Target, State>, State : UState<*, *, Method, Statement, *, Target, State>> createTargetedPathSelector(
+internal fun <Method, Statement, Target : UTarget<Method, Statement, Target, State>, State : UState<*, Method, Statement, *, Target, State>> createTargetedPathSelector(
     distanceStatistics: DistanceStatistics<Method, Statement>,
     random: Random? = null,
 ): UPathSelector<State> {
@@ -224,7 +224,7 @@ internal fun InterprocDistance.logWeight(): UInt {
     return distance
 }
 
-internal fun <Method, Statement, Target : UTarget<Method, Statement, Target, State>, State : UState<*, *, Method, Statement, *, Target, State>> createTargetedPathSelector(
+internal fun <Method, Statement, Target : UTarget<Method, Statement, Target, State>, State : UState<*, Method, Statement, *, Target, State>> createTargetedPathSelector(
     distanceStatistics: DistanceStatistics<Method, Statement>,
     applicationGraph: ApplicationGraph<Method, Statement>,
     callGraphReachabilityStatistics: CallGraphReachabilityStatistics<Method, Statement>? = null,

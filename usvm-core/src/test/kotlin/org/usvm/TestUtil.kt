@@ -38,7 +38,7 @@ internal class TestTarget(method: String, offset: Int) : UTarget<String, TestIns
 internal class TestState(
     ctx: UContext,
     callStack: UCallStack<String, TestInstruction>, pathConstraints: UPathConstraints<Any, UContext>,
-    memory: UMemoryBase<Any, Any, String>, models: List<UModelBase<Any, Any>>,
+    memory: UMemory<Any, String>, models: List<UModelBase<Any>>,
     pathLocation: PathsTrieNode<TestState, TestInstruction>,
     targetTrees: Collection<TestTarget> = emptyList()
 ) : UState<Any, String, TestInstruction, UContext, TestTarget, TestState>(ctx, callStack, pathConstraints, memory, models, pathLocation, targetTrees) {

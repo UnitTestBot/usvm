@@ -2,7 +2,7 @@ package org.usvm.statistics.collectors
 
 import org.usvm.UState
 
-class TargetsReachedStatesCollector<State : UState<*, *, *, *, *, *, State>> : StatesCollector<State> {
+class TargetsReachedStatesCollector<State : UState<*, *, *, *, *, State>> : StatesCollector<State> {
     private val mutableCollectedStates = mutableListOf<State>()
     override val collectedStates: List<State> = mutableCollectedStates
 
