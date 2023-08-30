@@ -20,12 +20,12 @@ import org.usvm.memory.KeyTransformer
 import org.usvm.memory.ULValue
 import org.usvm.memory.UPinpointUpdateNode
 import org.usvm.memory.USymbolicCollectionId
-import org.usvm.memory.USymbolicCollectionIdWithContextMemory
 import org.usvm.memory.UUpdateNode
 import org.usvm.memory.UWritableMemory
 import org.usvm.sampleUValue
 import org.usvm.util.RegionTree
 import org.usvm.util.emptyRegionTree
+import org.usvm.uctx
 
 
 interface USymbolicArrayId<ArrayType, Key, Sort : USort, out ArrayId : USymbolicArrayId<ArrayType, Key, Sort, ArrayId>> :
@@ -42,41 +42,45 @@ class UAllocatedArrayId<ArrayType, Sort : USort> internal constructor(
     override val sort: Sort,
     val address: UConcreteHeapAddress,
     val idDefaultValue: UExpr<Sort>? = null,
-    contextMemory: UWritableMemory<*>? = null,
-) : USymbolicCollectionIdWithContextMemory<USizeExpr, Sort, UAllocatedArrayId<ArrayType, Sort>>(contextMemory),
-    USymbolicArrayId<ArrayType, USizeExpr, Sort, UAllocatedArrayId<ArrayType, Sort>> {
+) : USymbolicArrayId<ArrayType, USizeExpr, Sort, UAllocatedArrayId<ArrayType, Sort>> {
 
     val defaultValue: UExpr<Sort> by lazy { idDefaultValue ?: sort.sampleUValue() }
 
-    override fun UContext.mkReading(
+    override fun instantiate(
         collection: USymbolicCollection<UAllocatedArrayId<ArrayType, Sort>, USizeExpr, Sort>,
-        key: USizeExpr
+        key: USizeExpr,
+        composer: UComposer<*>?
     ): UExpr<Sort> {
         if (collection.updates.isEmpty()) {
-            return defaultValue
+            return composer?.let { defaultValue.accept(it) } ?: defaultValue
         }
 
-        return mkAllocatedArrayReading(collection, key)
+        if (composer == null) {
+            return key.uctx.mkAllocatedArrayReading(collection, key)
+        }
+        val memory = composer.memory.toWritableMemory()
+        collection.applyTo(memory, composer)
+        return memory.read(UArrayIndexLValue(sort, key.uctx.mkConcreteHeapRef(address), key, arrayType))
     }
 
-    override fun UContext.mkLValue(
-        key: USizeExpr
-    ): ULValue<*, Sort> = UArrayIndexLValue(sort, mkConcreteHeapRef(address), key, arrayType)
+    override fun <Type> write(memory: UWritableMemory<Type>, key: USizeExpr, value: UExpr<Sort>, guard: UBoolExpr) {
+        val lvalue = UArrayIndexLValue(sort, key.uctx.mkConcreteHeapRef(address), key, arrayType)
+        memory.write(lvalue, value, guard)
+    }
 
     override fun <Type> keyMapper(
         transformer: UTransformer<Type>,
     ): KeyTransformer<USizeExpr> = { transformer.apply(it) }
 
-    override fun <Type> map(composer: UComposer<Type>): UAllocatedArrayId<ArrayType, Sort> {
-        val composedDefaultValue = composer.compose(defaultValue)
-        check(contextMemory == null) { "contextHeap is not null in composition" }
-        return UAllocatedArrayId(arrayType, sort, address, composedDefaultValue, composer.memory.toWritableMemory())
-    }
+//    override fun <Type> map(composer: UComposer<Type>): UAllocatedArrayId<ArrayType, Sort> {
+//        val composedDefaultValue = composer.compose(defaultValue)
+//        return UAllocatedArrayId(arrayType, sort, address, composedDefaultValue)
+//    }
 
     override fun keyInfo() = USizeExprKeyInfo
 
-    override fun rebindKey(key: USizeExpr): DecomposedKey<*, Sort>? =
-        null
+//    override fun rebindKey(key: USizeExpr): DecomposedKey<*, Sort>? =
+//        null
 
     override fun emptyRegion(): USymbolicCollection<UAllocatedArrayId<ArrayType, Sort>, USizeExpr, Sort> {
         val updates = UTreeUpdates<USizeExpr, USizeRegion, Sort>(
@@ -131,19 +135,7 @@ class UInputArrayId<ArrayType, Sort : USort> internal constructor(
     override val arrayType: ArrayType,
     override val sort: Sort,
     private val defaultValue: UExpr<Sort>? = null,
-    contextMemory: UWritableMemory<*>? = null,
-) : USymbolicCollectionIdWithContextMemory<USymbolicArrayIndex, Sort, UInputArrayId<ArrayType, Sort>>(contextMemory),
-    USymbolicArrayId<ArrayType, USymbolicArrayIndex, Sort, UInputArrayId<ArrayType, Sort>> {
-
-    override fun UContext.mkReading(
-        collection: USymbolicCollection<UInputArrayId<ArrayType, Sort>, USymbolicArrayIndex, Sort>,
-        key: USymbolicArrayIndex
-    ): UExpr<Sort> = mkInputArrayReading(collection, key.first, key.second)
-
-    override fun UContext.mkLValue(
-        key: USymbolicArrayIndex
-    ): ULValue<*, Sort> = UArrayIndexLValue(sort, key.first, key.second, arrayType)
-
+) : USymbolicArrayId<ArrayType, USymbolicArrayIndex, Sort, UInputArrayId<ArrayType, Sort>> {
     override fun <Type> keyMapper(
         transformer: UTransformer<Type>,
     ): KeyTransformer<USymbolicArrayIndex> = {
@@ -160,11 +152,11 @@ class UInputArrayId<ArrayType, Sort : USort> internal constructor(
         return USymbolicCollection(this, updates)
     }
 
-    override fun <Type> map(composer: UComposer<Type>): UInputArrayId<ArrayType, Sort> {
-        check(contextMemory == null) { "contextMemory is not null in composition" }
-        val composedDefault = composer.compose(sort.sampleUValue())
-        return UInputArrayId(arrayType, sort, composedDefault, composer.memory.toWritableMemory())
-    }
+//    override fun <Type> map(composer: UComposer<Type>): UInputArrayId<ArrayType, Sort> {
+//        check(contextMemory == null) { "contextMemory is not null in composition" }
+//        val composedDefault = composer.compose(sort.sampleUValue())
+//        return UInputArrayId(arrayType, sort, composedDefault, composer.memory.toWritableMemory())
+//    }
 
     override fun keyInfo(): USymbolicArrayIndexKeyInfo =
         USymbolicArrayIndexKeyInfo
@@ -176,8 +168,7 @@ class UInputArrayId<ArrayType, Sort : USort> internal constructor(
                     arrayType,
                     sort,
                     heapRef.address,
-                    defaultValue,
-                    contextMemory
+                    defaultValue
                 ), key.second
             )
 

@@ -52,8 +52,7 @@ abstract class USymbolicSetId<Element, Reg : Region<Reg>, out SetId : USymbolicS
 
 class UAllocatedSetId<Element, Reg : Region<Reg>>(
     val elementInfo: USymbolicCollectionKeyInfo<Element, Reg>,
-    contextMemory: UWritableMemory<*>?
-) : USymbolicSetId<Element, Reg, UAllocatedSetId<Element, Reg>>(contextMemory) {
+) : USymbolicSetId<Element, Reg, UAllocatedSetId<Element, Reg>>(TODO()) {
 
     override val sort: UBoolSort
         get() = TODO("Not yet implemented")

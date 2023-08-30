@@ -2,6 +2,7 @@ package org.usvm.collection.map.ref
 
 import io.ksmt.cache.hash
 import org.usvm.UAddressSort
+import org.usvm.UBoolExpr
 import org.usvm.UComposer
 import org.usvm.UConcreteHeapAddress
 import org.usvm.UConcreteHeapRef
@@ -30,13 +31,15 @@ import org.usvm.memory.key.UHeapRefRegion
 import org.usvm.memory.key.USingleKeyInfo
 import org.usvm.sampleUValue
 import org.usvm.util.emptyRegionTree
+import org.usvm.uctx
 
 interface USymbolicRefMapId<
-        MapType,
-        Key,
-        ValueSort : USort,
-        out KeysSetId : USymbolicSetId<Key, *, KeysSetId>,
-        out MapId : USymbolicRefMapId<MapType, Key, ValueSort, KeysSetId, MapId>>
+    MapType,
+    Key,
+    ValueSort : USort,
+    out KeysSetId : USymbolicSetId<Key, *, KeysSetId>,
+    out MapId : USymbolicRefMapId<MapType, Key, ValueSort, KeysSetId, MapId>,
+    >
     : USymbolicCollectionId<Key, ValueSort, MapId> {
     val keysSetId: KeysSetId
     val mapType: MapType
@@ -48,32 +51,33 @@ class UAllocatedRefMapWithAllocatedKeysId<MapType, ValueSort : USort>(
     val mapAddress: UConcreteHeapAddress,
     val keyAddress: UConcreteHeapAddress,
     val idDefaultValue: UExpr<ValueSort>? = null,
-    contextMemory: UWritableMemory<*>? = null
-) : USymbolicCollectionIdWithContextMemory<
-        Unit, ValueSort, UAllocatedRefMapWithAllocatedKeysId<MapType, ValueSort>>(contextMemory),
-    USymbolicRefMapId<MapType, Unit, ValueSort, Nothing, UAllocatedRefMapWithAllocatedKeysId<MapType, ValueSort>> {
+) : USymbolicRefMapId<MapType, Unit, ValueSort, Nothing, UAllocatedRefMapWithAllocatedKeysId<MapType, ValueSort>> {
 
     val defaultValue: UExpr<ValueSort> by lazy { idDefaultValue ?: sort.sampleUValue() }
 
     override fun rebindKey(key: Unit): DecomposedKey<*, ValueSort>? = null
 
-    override fun toString(): String = "allocatedMap<$mapType>($mapAddress)[$keyAddress]"
-
-    override fun keyInfo(): USymbolicCollectionKeyInfo<Unit, *> = USingleKeyInfo
-
-    override fun UContext.mkReading(
+    override fun instantiate(
         collection: USymbolicCollection<UAllocatedRefMapWithAllocatedKeysId<MapType, ValueSort>, Unit, ValueSort>,
-        key: Unit
+        key: Unit,
     ): UExpr<ValueSort> {
         check(collection.updates.isEmpty()) { "Can't instantiate allocated map reading from non-empty collection" }
         return defaultValue
     }
 
-    override fun UContext.mkLValue(
-        key: Unit
-    ): ULValue<*, ValueSort> = URefMapEntryLValue(
-        sort, mkConcreteHeapRef(mapAddress), mkConcreteHeapRef(keyAddress), mapType
-    )
+    override fun <Type> write(memory: UWritableMemory<Type>, key: Unit, value: UExpr<ValueSort>, guard: UBoolExpr) {
+        val lvalue = URefMapEntryLValue(
+            sort,
+            value.uctx.mkConcreteHeapRef(mapAddress),
+            value.uctx.mkConcreteHeapRef(keyAddress),
+            mapType
+        )
+        memory.write(lvalue, value, guard)
+    }
+
+    override fun toString(): String = "allocatedMap<$mapType>($mapAddress)[$keyAddress]"
+
+    override fun keyInfo(): USymbolicCollectionKeyInfo<Unit, *> = USingleKeyInfo
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -101,7 +105,7 @@ class UAllocatedRefMapWithAllocatedKeysId<MapType, ValueSort : USort>(
         error("This should not be called")
 
     override fun <Type> map(
-        composer: UComposer<Type>
+        composer: UComposer<Type>,
     ) = error("This should not be called")
 }
 
@@ -110,12 +114,9 @@ class UAllocatedRefMapWithInputKeysId<MapType, ValueSort : USort>(
     override val mapType: MapType,
     val mapAddress: UConcreteHeapAddress,
     val idDefaultValue: UExpr<ValueSort>? = null,
-    contextMemory: UWritableMemory<*>? = null,
-) : USymbolicCollectionIdWithContextMemory<
-        UHeapRef, ValueSort, UAllocatedRefMapWithInputKeysId<MapType, ValueSort>>(contextMemory),
-    USymbolicRefMapId<MapType, UHeapRef, ValueSort,
-            UAllocatedSetId<UHeapRef, UHeapRefRegion>,
-            UAllocatedRefMapWithInputKeysId<MapType, ValueSort>> {
+) : USymbolicRefMapId<MapType, UHeapRef, ValueSort,
+    UAllocatedSetId<UHeapRef, UHeapRefRegion>,
+    UAllocatedRefMapWithInputKeysId<MapType, ValueSort>> {
 
     val defaultValue: UExpr<ValueSort> by lazy { idDefaultValue ?: sort.sampleUValue() }
 
@@ -127,8 +128,7 @@ class UAllocatedRefMapWithInputKeysId<MapType, ValueSort : USort>(
                     mapType,
                     mapAddress,
                     key.address,
-                    idDefaultValue,
-                    contextMemory
+                    idDefaultValue
                 ),
                 Unit
             )
@@ -136,22 +136,24 @@ class UAllocatedRefMapWithInputKeysId<MapType, ValueSort : USort>(
             else -> null
         }
 
-    override fun UContext.mkReading(
+    override fun instantiate(
         collection: USymbolicCollection<UAllocatedRefMapWithInputKeysId<MapType, ValueSort>, UHeapRef, ValueSort>,
-        key: UHeapRef
+        key: UHeapRef,
     ): UExpr<ValueSort> {
         if (collection.updates.isEmpty()) {
             return defaultValue
         }
 
-        return mkAllocatedRefMapWithInputKeysReading(collection, key)
+        return key.uctx.mkAllocatedRefMapWithInputKeysReading(collection, key)
     }
 
-    override fun UContext.mkLValue(key: UHeapRef): ULValue<*, ValueSort> =
-        URefMapEntryLValue(sort, mkConcreteHeapRef(mapAddress), key, mapType)
+    override fun <Type> write(memory: UWritableMemory<Type>, key: UHeapRef, value: UExpr<ValueSort>, guard: UBoolExpr) {
+        val lvalue = URefMapEntryLValue(sort, value.uctx.mkConcreteHeapRef(mapAddress), key, mapType)
+        memory.write(lvalue, value, guard)
+    }
 
     override val keysSetId: UAllocatedSetId<UHeapRef, UHeapRefRegion>
-        get() = UAllocatedSetId(UHeapRefKeyInfo, contextMemory)
+        get() = UAllocatedSetId(UHeapRefKeyInfo)
 
     override fun keyInfo(): USymbolicCollectionKeyInfo<UHeapRef, *> = UHeapRefKeyInfo
 
@@ -160,12 +162,11 @@ class UAllocatedRefMapWithInputKeysId<MapType, ValueSort : USort>(
     ): KeyTransformer<UHeapRef> = { transformer.apply(it) }
 
     override fun <Type> map(
-        composer: UComposer<Type>
+        composer: UComposer<Type>,
     ): UAllocatedRefMapWithInputKeysId<MapType, ValueSort> {
-        check(contextMemory == null) { "contextMemory is not null in composition" }
         val composedDefaultValue = composer.compose(defaultValue)
         return UAllocatedRefMapWithInputKeysId(
-            sort, mapType, mapAddress, composedDefaultValue, composer.memory.toWritableMemory()
+            sort, mapType, mapAddress, composedDefaultValue
         )
     }
 
@@ -200,12 +201,9 @@ class UInputRefMapWithAllocatedKeysId<MapType, ValueSort : USort>(
     override val mapType: MapType,
     val keyAddress: UConcreteHeapAddress,
     val idDefaultValue: UExpr<ValueSort>? = null,
-    contextMemory: UWritableMemory<*>? = null,
-) : USymbolicCollectionIdWithContextMemory<
-        UHeapRef, ValueSort, UInputRefMapWithAllocatedKeysId<MapType, ValueSort>>(contextMemory),
-    USymbolicRefMapId<MapType, UHeapRef, ValueSort,
-            UAllocatedSetId<UHeapRef, UHeapRefRegion>,
-            UInputRefMapWithAllocatedKeysId<MapType, ValueSort>> {
+) : USymbolicRefMapId<MapType, UHeapRef, ValueSort,
+        UAllocatedSetId<UHeapRef, UHeapRefRegion>,
+        UInputRefMapWithAllocatedKeysId<MapType, ValueSort>> {
 
     val defaultValue: UExpr<ValueSort> by lazy { idDefaultValue ?: sort.sampleUValue() }
 
@@ -217,8 +215,7 @@ class UInputRefMapWithAllocatedKeysId<MapType, ValueSort : USort>(
                     mapType,
                     key.address,
                     keyAddress,
-                    idDefaultValue,
-                    contextMemory
+                    idDefaultValue
                 ),
                 Unit
             )
@@ -226,22 +223,24 @@ class UInputRefMapWithAllocatedKeysId<MapType, ValueSort : USort>(
             else -> null
         }
 
-    override fun UContext.mkReading(
+    override fun instantiate(
         collection: USymbolicCollection<UInputRefMapWithAllocatedKeysId<MapType, ValueSort>, UHeapRef, ValueSort>,
-        key: UHeapRef
+        key: UHeapRef,
     ): UExpr<ValueSort> {
         if (collection.updates.isEmpty()) {
             return defaultValue
         }
 
-        return mkInputRefMapWithAllocatedKeysReading(collection, key)
+        return key.uctx.mkInputRefMapWithAllocatedKeysReading(collection, key)
     }
 
-    override fun UContext.mkLValue(key: UHeapRef): ULValue<*, ValueSort> =
-        URefMapEntryLValue(sort, key, mkConcreteHeapRef(keyAddress), mapType)
+    override fun <Type> write(memory: UWritableMemory<Type>, key: UHeapRef, value: UExpr<ValueSort>, guard: UBoolExpr) {
+        val lvalue = URefMapEntryLValue(sort, key, key.uctx.mkConcreteHeapRef(keyAddress), mapType)
+        memory.write(lvalue, value, guard)
+    }
 
     override val keysSetId: UAllocatedSetId<UHeapRef, UHeapRefRegion>
-        get() = UAllocatedSetId(UHeapRefKeyInfo, contextMemory)
+        get() = UAllocatedSetId(UHeapRefKeyInfo)
 
     override fun keyInfo(): USymbolicCollectionKeyInfo<UHeapRef, *> = UHeapRefKeyInfo
 
@@ -250,12 +249,11 @@ class UInputRefMapWithAllocatedKeysId<MapType, ValueSort : USort>(
     ): KeyTransformer<UHeapRef> = { transformer.apply(it) }
 
     override fun <Type> map(
-        composer: UComposer<Type>
+        composer: UComposer<Type>,
     ): UInputRefMapWithAllocatedKeysId<MapType, ValueSort> {
-        check(contextMemory == null) { "contextMemory is not null in composition" }
         val composedDefaultValue = composer.compose(defaultValue)
         return UInputRefMapWithAllocatedKeysId(
-            sort, mapType, keyAddress, composedDefaultValue, composer.memory.toWritableMemory()
+            sort, mapType, keyAddress, composedDefaultValue
         )
     }
 
@@ -291,10 +289,10 @@ class UInputRefMapWithInputKeysId<MapType, ValueSort : USort>(
     val defaultValue: UExpr<ValueSort>? = null,
     contextMemory: UWritableMemory<*>? = null,
 ) : USymbolicCollectionIdWithContextMemory<
-        USymbolicMapKey<UAddressSort>, ValueSort, UInputRefMapWithInputKeysId<MapType, ValueSort>>(contextMemory),
+    USymbolicMapKey<UAddressSort>, ValueSort, UInputRefMapWithInputKeysId<MapType, ValueSort>>(contextMemory),
     USymbolicRefMapId<MapType, USymbolicMapKey<UAddressSort>, ValueSort,
-            UInputSetId<USymbolicMapKey<UAddressSort>, *>,
-            UInputRefMapWithInputKeysId<MapType, ValueSort>> {
+        UInputSetId<USymbolicMapKey<UAddressSort>, *>,
+        UInputRefMapWithInputKeysId<MapType, ValueSort>> {
 
     override fun rebindKey(key: USymbolicMapKey<UAddressSort>): DecomposedKey<*, ValueSort>? {
         val mapRef = key.first
@@ -308,8 +306,7 @@ class UInputRefMapWithInputKeysId<MapType, ValueSort : USort>(
                         mapType,
                         mapRef.address,
                         keyRef.address,
-                        defaultValue,
-                        contextMemory
+                        defaultValue
                     ),
                     Unit
                 )
@@ -319,8 +316,7 @@ class UInputRefMapWithInputKeysId<MapType, ValueSort : USort>(
                         sort,
                         mapType,
                         mapRef.address,
-                        defaultValue,
-                        contextMemory
+                        defaultValue
                     ),
                     keyRef
                 )
@@ -332,8 +328,7 @@ class UInputRefMapWithInputKeysId<MapType, ValueSort : USort>(
                         sort,
                         mapType,
                         keyRef.address,
-                        defaultValue,
-                        contextMemory
+                        defaultValue
                     ),
                     mapRef
                 )
@@ -345,7 +340,7 @@ class UInputRefMapWithInputKeysId<MapType, ValueSort : USort>(
 
     override fun UContext.mkReading(
         collection: USymbolicCollection<UInputRefMapWithInputKeysId<MapType, ValueSort>, USymbolicMapKey<UAddressSort>, ValueSort>,
-        key: USymbolicMapKey<UAddressSort>
+        key: USymbolicMapKey<UAddressSort>,
     ): UExpr<ValueSort> {
         return mkInputRefMapWithInputKeysReading(collection, key.first, key.second)
     }
@@ -368,7 +363,7 @@ class UInputRefMapWithInputKeysId<MapType, ValueSort : USort>(
     }
 
     override fun <Type> map(
-        composer: UComposer<Type>
+        composer: UComposer<Type>,
     ): UInputRefMapWithInputKeysId<MapType, ValueSort> {
         check(contextMemory == null) { "contextMemory is not null in composition" }
         val composedDefaultValue = composer.compose(sort.sampleUValue())

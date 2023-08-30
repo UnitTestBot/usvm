@@ -43,7 +43,7 @@ class UArrayLengthRegionDecoder<ArrayType>(
     override fun decodeLazyRegion(
         model: KModel,
         mapping: Map<UHeapRef, UConcreteHeapRef>
-    ) = UArrayLengthLazyModelRegion(regionId, model, mapping, inputArrayLengthTranslator)
+    ) = inputArrayLengthTranslator?.let { UArrayLengthLazyModelRegion(regionId, model, mapping, it) }
 }
 
 private class UInputArrayLengthRegionTranslator<ArrayType>(

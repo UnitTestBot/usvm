@@ -1,6 +1,7 @@
 package org.usvm.collection.map.length
 
 import io.ksmt.cache.hash
+import org.usvm.UBoolExpr
 import org.usvm.UComposer
 import org.usvm.UConcreteHeapAddress
 import org.usvm.UConcreteHeapRef
@@ -22,6 +23,7 @@ import org.usvm.memory.key.UHeapRefKeyInfo
 import org.usvm.memory.key.USingleKeyInfo
 import org.usvm.memory.USymbolicCollectionKeyInfo
 import org.usvm.sampleUValue
+import org.usvm.uctx
 
 interface USymbolicMapLengthId<Key, MapType, Id : USymbolicMapLengthId<Key, MapType, Id>> :
     USymbolicCollectionId<Key, USizeSort, Id> {
@@ -33,29 +35,28 @@ class UAllocatedMapLengthId<MapType> internal constructor(
     val address: UConcreteHeapAddress,
     override val sort: USizeSort,
     val idDefaultValue: UExpr<USizeSort>? = null,
-    contextMemory: UWritableMemory<*>? = null,
-) : USymbolicCollectionIdWithContextMemory<Unit, USizeSort, UAllocatedMapLengthId<MapType>>(contextMemory),
-    USymbolicMapLengthId<Unit, MapType, UAllocatedMapLengthId<MapType>> {
+) : USymbolicMapLengthId<Unit, MapType, UAllocatedMapLengthId<MapType>> {
 
     val defaultValue: USizeExpr by lazy { idDefaultValue ?: sort.sampleUValue() }
 
     override fun rebindKey(key: Unit): DecomposedKey<*, USizeSort>? = null
 
-    override fun keyInfo(): USymbolicCollectionKeyInfo<Unit, *> = USingleKeyInfo
-
-    override fun toString(): String = "allocatedLength<$mapType>($address)"
-
-    override fun UContext.mkReading(
+    override fun instantiate(
         collection: USymbolicCollection<UAllocatedMapLengthId<MapType>, Unit, USizeSort>,
-        key: Unit
+        key: Unit,
     ): UExpr<USizeSort> {
         check(collection.updates.isEmpty()) { "Can't instantiate length reading from non-empty collection" }
         return defaultValue
     }
 
-    override fun UContext.mkLValue(
-        key: Unit
-    ): ULValue<*, USizeSort> = UMapLengthLValue(mkConcreteHeapRef(address), mapType)
+    override fun <Type> write(memory: UWritableMemory<Type>, key: Unit, value: UExpr<USizeSort>, guard: UBoolExpr) {
+        val lvalue = UMapLengthLValue(value.uctx.mkConcreteHeapRef(address), mapType)
+        memory.write(lvalue, value, guard)
+    }
+
+    override fun keyInfo(): USymbolicCollectionKeyInfo<Unit, *> = USingleKeyInfo
+
+    override fun toString(): String = "allocatedLength<$mapType>($address)"
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -90,11 +91,11 @@ class UInputMapLengthId<MapType> internal constructor(
     USymbolicMapLengthId<UHeapRef, MapType, UInputMapLengthId<MapType>> {
     override fun UContext.mkReading(
         collection: USymbolicCollection<UInputMapLengthId<MapType>, UHeapRef, USizeSort>,
-        key: UHeapRef
+        key: UHeapRef,
     ): UExpr<USizeSort> = mkInputMapLengthReading(collection, key)
 
     override fun UContext.mkLValue(
-        key: UHeapRef
+        key: UHeapRef,
     ): ULValue<*, USizeSort> = UMapLengthLValue(key, mapType)
 
     override fun <Type> keyMapper(
@@ -115,8 +116,7 @@ class UInputMapLengthId<MapType> internal constructor(
                 mapType,
                 key.address,
                 sort,
-                defaultValue,
-                contextMemory
+                defaultValue
             ),
             Unit
         )

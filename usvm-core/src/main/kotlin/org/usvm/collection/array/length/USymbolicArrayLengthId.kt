@@ -1,6 +1,7 @@
 package org.usvm.collection.array.length
 
 import io.ksmt.cache.hash
+import org.usvm.UBoolExpr
 import org.usvm.UComposer
 import org.usvm.UConcreteHeapAddress
 import org.usvm.UConcreteHeapRef
@@ -22,6 +23,7 @@ import org.usvm.memory.USymbolicCollectionIdWithContextMemory
 import org.usvm.memory.USymbolicCollectionKeyInfo
 import org.usvm.memory.UWritableMemory
 import org.usvm.sampleUValue
+import org.usvm.uctx
 
 interface USymbolicArrayLengthId<Key, ArrayType, Id : USymbolicArrayLengthId<Key, ArrayType, Id>> :
     USymbolicCollectionId<Key, USizeSort, Id> {
@@ -36,21 +38,16 @@ class UAllocatedArrayLengthId<ArrayType> internal constructor(
     val address: UConcreteHeapAddress,
     override val sort: USizeSort,
     val idDefaultValue: UExpr<USizeSort>? = null,
-    contextMemory: UWritableMemory<*>? = null
-) : USymbolicCollectionIdWithContextMemory<Unit, USizeSort, UAllocatedArrayLengthId<ArrayType>>(contextMemory),
-    USymbolicArrayLengthId<Unit, ArrayType, UAllocatedArrayLengthId<ArrayType>> {
+) : USymbolicArrayLengthId<Unit, ArrayType, UAllocatedArrayLengthId<ArrayType>> {
 
     val defaultValue: USizeExpr by lazy {
         idDefaultValue ?: sort.sampleUValue()
     }
 
+
     override fun rebindKey(key: Unit): DecomposedKey<*, USizeSort>? = null
 
-    override fun keyInfo(): USymbolicCollectionKeyInfo<Unit, *> = USingleKeyInfo
-
-    override fun toString(): String = "allocatedLength<$arrayType>($address)"
-
-    override fun UContext.mkReading(
+    override fun instantiate(
         collection: USymbolicCollection<UAllocatedArrayLengthId<ArrayType>, Unit, USizeSort>,
         key: Unit
     ): UExpr<USizeSort> {
@@ -58,9 +55,14 @@ class UAllocatedArrayLengthId<ArrayType> internal constructor(
         return defaultValue
     }
 
-    override fun UContext.mkLValue(
-        key: Unit
-    ): ULValue<*, USizeSort> = UArrayLengthLValue(mkConcreteHeapRef(address), arrayType)
+    override fun <Type> write(memory: UWritableMemory<Type>, key: Unit, value: UExpr<USizeSort>, guard: UBoolExpr) {
+        val lvalue = UArrayLengthLValue(value.uctx.mkConcreteHeapRef(address), arrayType)
+        memory.write(lvalue, value, guard)
+    }
+
+    override fun keyInfo(): USymbolicCollectionKeyInfo<Unit, *> = USingleKeyInfo
+
+    override fun toString(): String = "allocatedLength<$arrayType>($address)"
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -126,7 +128,6 @@ class UInputArrayLengthId<ArrayType> internal constructor(
                 key.address,
                 sort,
                 defaultValue,
-                contextMemory
             ),
             Unit
         )

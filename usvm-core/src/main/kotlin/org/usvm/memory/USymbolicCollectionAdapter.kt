@@ -3,6 +3,7 @@ package org.usvm.memory
 import org.usvm.UBoolExpr
 import org.usvm.UComposer
 import org.usvm.USort
+import org.usvm.UTransformer
 import org.usvm.util.Region
 
 /**
@@ -12,7 +13,7 @@ interface USymbolicCollectionAdapter<SrcKey, DstKey> {
     /**
      * Converts destination memory key into source memory key
      */
-    fun convert(key: DstKey): SrcKey
+    fun convert(key: DstKey, composer: UComposer<*>?): SrcKey
 
     /**
      * Key that defines adapted collection id (used to find  id after mapping).
@@ -26,7 +27,7 @@ interface USymbolicCollectionAdapter<SrcKey, DstKey> {
 
     fun includesConcretely(key: DstKey): Boolean
 
-    fun includesSymbolically(key: DstKey): UBoolExpr
+    fun includesSymbolically(key: DstKey, composer: UComposer<*>?): UBoolExpr
 
     fun isIncludedByUpdateConcretely(
         update: UUpdateNode<DstKey, *>,
@@ -43,42 +44,43 @@ interface USymbolicCollectionAdapter<SrcKey, DstKey> {
      *  - Pair(adapter, targetId), where adapter is a mapped version of this one, targetId is a
      *    new collection id for the mapped source collection we adapt.
      */
-    fun <Type, MappedDstKey, Sort : USort> map(
-        dstKeyMapper: KeyMapper<DstKey, MappedDstKey>,
-        composer: UComposer<Type>,
-        collectionId: USymbolicCollectionId<SrcKey, Sort, *>,
-        mappedKeyInfo: USymbolicCollectionKeyInfo<MappedDstKey, *>
-    ): Pair<USymbolicCollectionAdapter<*, MappedDstKey>, USymbolicCollectionId<*, Sort, *>>? {
-        val mappedSrcKey = collectionId.keyMapper(composer)(srcKey)
-        val decomposedSrcKey = collectionId.rebindKey(mappedSrcKey)
-        if (decomposedSrcKey != null) {
-            val mappedAdapter =
-                mapDstKeys(decomposedSrcKey.key, decomposedSrcKey.collectionId, dstKeyMapper, composer, mappedKeyInfo)
-                    ?: return null
-            return mappedAdapter to decomposedSrcKey.collectionId
-        }
-
-        val mappedAdapter = mapDstKeys(mappedSrcKey, collectionId, dstKeyMapper, composer, mappedKeyInfo) ?: return null
-        return mappedAdapter to collectionId
-    }
+//    fun <Type, MappedDstKey, Sort : USort> map(
+//        dstKeyMapper: KeyMapper<DstKey, MappedDstKey>,
+//        composer: UComposer<Type>,
+//        collectionId: USymbolicCollectionId<SrcKey, Sort, *>,
+//        mappedKeyInfo: USymbolicCollectionKeyInfo<MappedDstKey, *>
+//    ): Pair<USymbolicCollectionAdapter<*, MappedDstKey>, USymbolicCollectionId<*, Sort, *>>? {
+//        val mappedSrcKey = collectionId.keyMapper(composer)(srcKey)
+//        val decomposedSrcKey = collectionId.rebindKey(mappedSrcKey)
+//        if (decomposedSrcKey != null) {
+//            val mappedAdapter =
+//                mapDstKeys(decomposedSrcKey.key, decomposedSrcKey.collectionId, dstKeyMapper, composer, mappedKeyInfo)
+//                    ?: return null
+//            return mappedAdapter to decomposedSrcKey.collectionId
+//        }
+//
+//        val mappedAdapter = mapDstKeys(mappedSrcKey, collectionId, dstKeyMapper, composer, mappedKeyInfo) ?: return null
+//        return mappedAdapter to collectionId
+//    }
 
     /**
      * Returns new adapter with destination keys were successfully mapped by [dstKeyMapper].
      * If [dstKeyMapper] returns null for at least one key, returns null.
      */
-    fun <Type, MappedSrcKey, MappedDstKey> mapDstKeys(
-        mappedSrcKey: MappedSrcKey,
-        srcCollectionId: USymbolicCollectionId<*, *, *>,
-        dstKeyMapper: KeyMapper<DstKey, MappedDstKey>,
-        composer: UComposer<Type>,
-        mappedKeyInfo: USymbolicCollectionKeyInfo<MappedDstKey, *>
-    ): USymbolicCollectionAdapter<MappedSrcKey, MappedDstKey>?
+//    fun <Type, MappedSrcKey, MappedDstKey> mapDstKeys(
+//        mappedSrcKey: MappedSrcKey,
+//        srcCollectionId: USymbolicCollectionId<*, *, *>,
+//        dstKeyMapper: KeyMapper<DstKey, MappedDstKey>,
+//        composer: UComposer<Type>,
+//        mappedKeyInfo: USymbolicCollectionKeyInfo<MappedDstKey, *>
+//    ): USymbolicCollectionAdapter<MappedSrcKey, MappedDstKey>?
 
     fun <Type> applyTo(
         memory: UWritableMemory<Type>,
         srcCollectionId: USymbolicCollectionId<SrcKey, *, *>,
         dstCollectionId: USymbolicCollectionId<DstKey, *, *>,
-        guard: UBoolExpr
+        guard: UBoolExpr,
+        composer: UComposer<*>
     )
 
     fun toString(collection: USymbolicCollection<*, SrcKey, *>): String

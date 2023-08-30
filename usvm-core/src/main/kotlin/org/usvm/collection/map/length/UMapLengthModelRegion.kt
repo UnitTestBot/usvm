@@ -13,13 +13,11 @@ import org.usvm.solver.UCollectionDecoder
 abstract class UMapLengthModelRegion<MapType>(
     private val regionId: UMapLengthRegionId<MapType>,
 ) : UReadOnlyMemoryRegion<UMapLengthLValue<MapType>, USizeSort> {
-    val defaultValue by lazy { regionId.sort.sampleUValue() }
-
-    abstract val inputMapLength: UReadOnlyMemoryRegion<UHeapRef, USizeSort>?
+    abstract val inputMapLength: UReadOnlyMemoryRegion<UHeapRef, USizeSort>
 
     override fun read(key: UMapLengthLValue<MapType>): UExpr<USizeSort> {
-        val ref = modelEnsureConcreteInputRef(key.ref) ?: return defaultValue
-        return inputMapLength?.read(ref) ?: defaultValue
+        val ref = modelEnsureConcreteInputRef(key.ref)
+        return inputMapLength.read(ref)
     }
 }
 
@@ -27,14 +25,14 @@ class UMapLengthLazyModelRegion<MapType>(
     regionId: UMapLengthRegionId<MapType>,
     private val model: KModel,
     private val addressesMapping: AddressesMapping,
-    private val inputLengthDecoder: UCollectionDecoder<UHeapRef, USizeSort>?
+    private val inputLengthDecoder: UCollectionDecoder<UHeapRef, USizeSort>
 ) : UMapLengthModelRegion<MapType>(regionId) {
-    override val inputMapLength: UReadOnlyMemoryRegion<UHeapRef, USizeSort>? by lazy {
-        inputLengthDecoder?.decodeCollection(model, addressesMapping)
+    override val inputMapLength: UReadOnlyMemoryRegion<UHeapRef, USizeSort> by lazy {
+        inputLengthDecoder.decodeCollection(model, addressesMapping)
     }
 }
 
 class UMapLengthEagerModelRegion<MapType>(
     regionId: UMapLengthRegionId<MapType>,
-    override val inputMapLength: UReadOnlyMemoryRegion<UHeapRef, USizeSort>?
+    override val inputMapLength: UReadOnlyMemoryRegion<UHeapRef, USizeSort>
 ) : UMapLengthModelRegion<MapType>(regionId)
