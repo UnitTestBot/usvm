@@ -55,8 +55,8 @@ abstract class USymbolicArrayCopyAdapter<SrcKey, DstKey>(
         keyInfo.cmpConcreteLe(dstFrom, key) && keyInfo.cmpConcreteLe(key, dstTo)
 
     override fun includesSymbolically(key: DstKey, composer: UComposer<*>?): UBoolExpr {
-        val leftIsLefter = keyInfo.cmpSymbolicLe(ctx, dstFrom, key)
-        val rightIsRighter = keyInfo.cmpSymbolicLe(ctx, key, dstTo)
+        val leftIsLefter = keyInfo.cmpSymbolicLe(ctx, keyInfo.mapKey(dstFrom, composer), key)
+        val rightIsRighter = keyInfo.cmpSymbolicLe(ctx, key, keyInfo.mapKey(dstTo, composer))
         val ctx = leftIsLefter.ctx
 
         return ctx.mkAnd(leftIsLefter, rightIsRighter)
