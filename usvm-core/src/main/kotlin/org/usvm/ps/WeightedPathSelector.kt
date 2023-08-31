@@ -1,7 +1,7 @@
 package org.usvm.ps
 
 import org.usvm.UPathSelector
-import org.usvm.util.UPriorityCollection
+import org.usvm.algorithms.UPriorityCollection
 
 /**
  * [UPathSelector] implementation which selects high-priority states from [UPriorityCollection] prioritized with

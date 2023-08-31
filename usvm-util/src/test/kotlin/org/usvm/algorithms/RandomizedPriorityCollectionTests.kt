@@ -1,7 +1,6 @@
-package org.usvm.test
+package org.usvm.algorithms
 
 import org.junit.jupiter.api.Test
-import org.usvm.util.RandomizedPriorityCollection
 import kotlin.test.assertEquals
 
 internal class RandomizedPriorityCollectionTests {

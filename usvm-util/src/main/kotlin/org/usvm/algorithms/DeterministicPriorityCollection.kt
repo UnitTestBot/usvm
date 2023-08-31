@@ -1,4 +1,4 @@
-package org.usvm.util
+package org.usvm.algorithms
 
 import java.util.PriorityQueue
 import kotlin.Comparator
@@ -8,7 +8,8 @@ import kotlin.NoSuchElementException
  * [UPriorityCollection] implementation based on [java.util.PriorityQueue].
  */
 // TODO: what to do if elements have same priority?
-class DeterministicPriorityCollection<T, Priority>(comparator: Comparator<Priority>) : UPriorityCollection<T, Priority> {
+class DeterministicPriorityCollection<T, Priority>(comparator: Comparator<Priority>) :
+    UPriorityCollection<T, Priority> {
 
     private val priorityQueue = PriorityQueue<Pair<T, Priority>> { (_, p1), (_, p2) -> comparator.compare(p1, p2) }
 

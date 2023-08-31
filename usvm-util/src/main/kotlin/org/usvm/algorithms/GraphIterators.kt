@@ -1,4 +1,4 @@
-package org.usvm.util
+package org.usvm.algorithms
 
 abstract class GraphIterator<T> : Iterator<T> {
     protected sealed class IteratorState {

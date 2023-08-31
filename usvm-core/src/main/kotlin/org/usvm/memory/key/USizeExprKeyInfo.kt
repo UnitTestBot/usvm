@@ -8,7 +8,7 @@ import org.usvm.USizeExpr
 import org.usvm.USizeType
 import org.usvm.compose
 import org.usvm.memory.USymbolicCollectionKeyInfo
-import org.usvm.util.SetRegion
+import org.usvm.regions.SetRegion
 
 // TODO: change it to intervals region
 typealias USizeRegion = SetRegion<USizeType>

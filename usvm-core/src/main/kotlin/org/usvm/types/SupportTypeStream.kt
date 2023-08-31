@@ -1,7 +1,7 @@
 package org.usvm.types
 
-import org.usvm.util.CachingSequence
-import org.usvm.util.DfsIterator
+import org.usvm.algorithms.CachingSequence
+import org.usvm.algorithms.DfsIterator
 
 /**
  * A persistent type stream based on the [supportType]. Takes inheritors of the [supportType] and

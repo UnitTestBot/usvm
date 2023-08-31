@@ -1,8 +1,6 @@
-package org.usvm.test
+package org.usvm.algorithms
 
 import org.junit.jupiter.api.Test
-import org.usvm.util.AaTreeNode
-import org.usvm.util.WeightedAaTree
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue

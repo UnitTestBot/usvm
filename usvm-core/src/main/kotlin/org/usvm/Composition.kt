@@ -12,7 +12,7 @@ import org.usvm.collection.map.ref.UInputRefMapWithAllocatedKeysReading
 import org.usvm.collection.map.ref.UInputRefMapWithInputKeysReading
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.USymbolicCollectionId
-import org.usvm.util.Region
+import org.usvm.regions.Region
 
 @Suppress("MemberVisibilityCanBePrivate")
 open class UComposer<Type>(

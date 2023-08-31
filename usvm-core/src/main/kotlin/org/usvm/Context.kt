@@ -35,7 +35,7 @@ import org.usvm.collection.map.ref.UInputRefMapWithInputKeysReading
 import org.usvm.memory.splitUHeapRef
 import org.usvm.solver.USolverBase
 import org.usvm.types.UTypeSystem
-import org.usvm.util.Region
+import org.usvm.regions.Region
 
 @Suppress("LeakingThis")
 open class UContext(

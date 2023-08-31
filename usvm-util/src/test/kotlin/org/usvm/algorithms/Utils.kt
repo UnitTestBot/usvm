@@ -1,4 +1,4 @@
-package org.usvm.test
+package org.usvm.algorithms
 
 /**
  * Pseudo random function for tests.

@@ -1,11 +1,7 @@
-package org.usvm.test
+package org.usvm.regions
 
 import org.junit.jupiter.api.Test
-import org.usvm.util.Intervals
-import org.usvm.util.ProductRegion
-import org.usvm.util.RegionComparisonResult
-import org.usvm.util.SetRegion
-import org.usvm.util.emptyRegionTree
+import org.usvm.regions.Intervals
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 

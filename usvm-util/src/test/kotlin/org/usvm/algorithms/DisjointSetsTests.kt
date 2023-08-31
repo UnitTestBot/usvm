@@ -1,10 +1,10 @@
-package org.usvm.test
+package org.usvm.algorithms
 
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import org.junit.jupiter.api.Test
-import org.usvm.util.DisjointSets
+import org.usvm.algorithms.DisjointSets
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 

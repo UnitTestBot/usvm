@@ -2,8 +2,8 @@ package org.usvm.types
 
 import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.persistentSetOf
-import org.usvm.util.Region
-import org.usvm.util.RegionComparisonResult
+import org.usvm.regions.Region
+import org.usvm.regions.RegionComparisonResult
 
 /**
  * Class representing possible types which certain objects can have.

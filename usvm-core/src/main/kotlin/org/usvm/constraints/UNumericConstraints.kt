@@ -32,7 +32,7 @@ import org.usvm.UBoolExpr
 import org.usvm.UBvSort
 import org.usvm.UContext
 import org.usvm.UExpr
-import org.usvm.util.Intervals
+import org.usvm.regions.IntervalsRegion
 
 private typealias ConstraintTerms<Sort> = UExpr<Sort>
 
@@ -222,11 +222,11 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
     /**
      * Retrieve lower and upper bounds for the [expr].
      * */
-    fun evalInterval(expr: UExpr<Sort>): Intervals<UBvIntervalPoint<Sort>> {
+    fun evalInterval(expr: UExpr<Sort>): IntervalsRegion<UBvIntervalPoint<Sort>> {
         val (terms, const) = collectLinearTerms(expr)
 
         if (terms == null) {
-            return Intervals.singleton(UBvIntervalPoint(const ?: zero))
+            return IntervalsRegion.singleton(UBvIntervalPoint(const ?: zero))
         }
 
         return withConstraint(
@@ -239,10 +239,10 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
                 val lowerBound = actualConstraints.lowerBound(bias)?.value ?: minValue
                 val upperBound = actualConstraints.upperBound(bias)?.value ?: maxValue
 
-                var interval = Intervals.closed(UBvIntervalPoint(lowerBound), UBvIntervalPoint(upperBound))
+                var interval = IntervalsRegion.closed(UBvIntervalPoint(lowerBound), UBvIntervalPoint(upperBound))
 
                 actualConstraints.excludedPoints(bias).forEach { value ->
-                    val point = Intervals.singleton(UBvIntervalPoint(value))
+                    val point = IntervalsRegion.singleton(UBvIntervalPoint(value))
                     interval = interval.subtract(point)
                 }
 
@@ -250,12 +250,12 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
             },
             value = { value ->
                 val biasedValue = add(value, const)
-                Intervals.singleton(UBvIntervalPoint(biasedValue))
+                IntervalsRegion.singleton(UBvIntervalPoint(biasedValue))
             },
             noConstraint = {
                 val lowerBound = UBvIntervalPoint(minValue)
                 val upperBound = UBvIntervalPoint(maxValue)
-                Intervals.closed(lowerBound, upperBound)
+                IntervalsRegion.closed(lowerBound, upperBound)
             }
         )
     }

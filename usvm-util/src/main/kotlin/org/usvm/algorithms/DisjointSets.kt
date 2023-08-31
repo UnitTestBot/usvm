@@ -1,4 +1,4 @@
-package org.usvm.util
+package org.usvm.algorithms
 
 /**
  * Mutable union-find data structure. Represents a collection of disjoint sets of elements of type [T].

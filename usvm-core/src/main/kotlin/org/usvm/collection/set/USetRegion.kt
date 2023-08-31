@@ -10,7 +10,7 @@ import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UMemoryRegionId
 import org.usvm.memory.USymbolicCollectionKeyInfo
 import org.usvm.uctx
-import org.usvm.util.Region
+import org.usvm.regions.Region
 
 data class USetEntryLValue<SetType, KeySort : USort, Reg : Region<Reg>>(
     val keySort: KeySort,

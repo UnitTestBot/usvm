@@ -14,7 +14,7 @@ import org.usvm.USort
 import org.usvm.UTransformer
 import org.usvm.asTypedTransformer
 import org.usvm.collection.map.USymbolicMapKey
-import org.usvm.util.Region
+import org.usvm.regions.Region
 
 class UAllocatedMapReading<MapType, KeySort : USort, Sort : USort, Reg: Region<Reg>> internal constructor(
     ctx: UContext,
