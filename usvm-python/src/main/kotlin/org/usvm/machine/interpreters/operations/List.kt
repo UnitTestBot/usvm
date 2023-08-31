@@ -4,6 +4,7 @@ import org.usvm.*
 import org.usvm.api.*
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.interpreter.ConcolicRunContext
+import org.usvm.language.types.ArrayType
 import org.usvm.language.types.PythonType
 import org.usvm.machine.symbolicobjects.*
 import java.util.stream.Stream
@@ -16,9 +17,10 @@ fun handlerListGetSizeKt(context: ConcolicRunContext, list: UninterpretedSymboli
     if (context.curState == null)
         return null
     val typeSystem = context.typeSystem
+    val arrayType = ArrayType(typeSystem)
     if (list.getTypeIfDefined(context) != typeSystem.pythonList)
         return null
-    val listSize = context.curState!!.memory.readArrayLength(list.address, typeSystem.pythonList)
+    val listSize = context.curState!!.memory.readArrayLength(list.address, arrayType)
     return constructInt(context, listSize)
 }
 
@@ -27,10 +29,11 @@ private fun resolveIndex(ctx: ConcolicRunContext, list: UninterpretedSymbolicPyt
         return null
     with (ctx.ctx) {
         val typeSystem = ctx.typeSystem
+        val arrayType = ArrayType(typeSystem)
         index.addSupertypeSoft(ctx, typeSystem.pythonInt)
         list.addSupertypeSoft(ctx, typeSystem.pythonList)
 
-        val listSize = ctx.curState!!.memory.readArrayLength(list.address, typeSystem.pythonList)
+        val listSize = ctx.curState!!.memory.readArrayLength(list.address, arrayType)
         val indexValue = index.getIntContent(ctx)
 
         val indexCond = mkAnd(indexValue lt listSize, mkArithUnaryMinus(listSize) le indexValue)
@@ -43,11 +46,11 @@ private fun resolveIndex(ctx: ConcolicRunContext, list: UninterpretedSymbolicPyt
         myFork(ctx, positiveIndex)
 
         return if (ctx.curState!!.pyModel.eval(positiveIndex).isTrue) {
-            UArrayIndexLValue(addressSort, list.address, indexValue, typeSystem.pythonList)
+            UArrayIndexLValue(addressSort, list.address, indexValue, arrayType)
         } else {
             val negativeIndex = mkAnd(indexValue lt mkIntNum(0), mkArithUnaryMinus(listSize) le indexValue)
             require(ctx.curState!!.pyModel.eval(negativeIndex).isTrue)
-            UArrayIndexLValue(addressSort, list.address, mkArithAdd(indexValue, listSize), typeSystem.pythonList)
+            UArrayIndexLValue(addressSort, list.address, mkArithAdd(indexValue, listSize), arrayType)
         }
     }
 }
@@ -71,25 +74,20 @@ fun handlerListSetItemKt(ctx: ConcolicRunContext, list: UninterpretedSymbolicPyt
 }
 
 
-/*
-context.curState!!.memory.read(UArrayIndexLValue(addressSort, result, mkIntNum(1), typeSystem.pythonList))
- */
-
 private fun listConcat(
     ctx: ConcolicRunContext,
     left: UHeapRef,
-    leftType: PythonType,
     right: UHeapRef,
-    rightType: PythonType,
     dst: UHeapRef
 ) {
     val typeSystem = ctx.typeSystem
+    val arrayType = ArrayType(typeSystem)
     with (ctx.ctx) {
-        val leftSize = ctx.curState!!.memory.readArrayLength(left, leftType)
-        val rightSize = ctx.curState!!.memory.readArrayLength(right, rightType)
-        ctx.curState!!.memory.writeArrayLength(dst, mkArithAdd(leftSize, rightSize), typeSystem.pythonList)
-        ctx.curState!!.memory.memcpy(left, dst, typeSystem.pythonList, addressSort, mkIntNum(0), mkIntNum(0), leftSize)
-        ctx.curState!!.memory.memcpy(right, dst, typeSystem.pythonList, addressSort, mkIntNum(0), leftSize, rightSize)
+        val leftSize = ctx.curState!!.memory.readArrayLength(left, arrayType)
+        val rightSize = ctx.curState!!.memory.readArrayLength(right, arrayType)
+        ctx.curState!!.memory.writeArrayLength(dst, mkArithAdd(leftSize, rightSize), arrayType)
+        ctx.curState!!.memory.memcpy(left, dst, arrayType, addressSort, mkIntNum(0), mkIntNum(0), leftSize)
+        ctx.curState!!.memory.memcpy(right, dst, arrayType, addressSort, mkIntNum(0), leftSize, rightSize)
     }
 }
 
@@ -98,7 +96,7 @@ fun handlerListExtendKt(ctx: ConcolicRunContext, list: UninterpretedSymbolicPyth
     val typeSystem = ctx.typeSystem
     list.addSupertypeSoft(ctx, typeSystem.pythonList)
     tuple.addSupertypeSoft(ctx, typeSystem.pythonTuple)
-    listConcat(ctx, list.address, typeSystem.pythonList, tuple.address, typeSystem.pythonTuple, list.address)
+    listConcat(ctx, list.address, tuple.address, list.address)
     return list
 }
 
@@ -106,11 +104,12 @@ fun handlerListConcatKt(ctx: ConcolicRunContext, left: UninterpretedSymbolicPyth
     if (ctx.curState == null)
         return null
     val typeSystem = ctx.typeSystem
+    val arrayType = ArrayType(typeSystem)
+    if (right.getTypeIfDefined(ctx) != typeSystem.pythonList || left.getTypeIfDefined(ctx) != typeSystem.pythonList)
+        return null
     with (ctx.ctx) {
-        left.addSupertypeSoft(ctx, typeSystem.pythonList)
-        right.addSupertypeSoft(ctx, typeSystem.pythonList)
-        val result = ctx.curState!!.memory.allocateArray(typeSystem.pythonList, mkIntNum(0))
-        listConcat(ctx, left.address, typeSystem.pythonList, right.address, typeSystem.pythonList, result)
+        val result = ctx.curState!!.memory.allocateArray(arrayType, mkIntNum(0))
+        listConcat(ctx, left.address, right.address, result)
         return UninterpretedSymbolicPythonObject(result, typeSystem)
     }
 }
@@ -121,7 +120,7 @@ fun handlerListInplaceConcatKt(ctx: ConcolicRunContext, left: UninterpretedSymbo
     val typeSystem = ctx.typeSystem
     if (right.getTypeIfDefined(ctx) != typeSystem.pythonList || left.getTypeIfDefined(ctx) != typeSystem.pythonList)
         return null
-    listConcat(ctx, left.address, typeSystem.pythonList, right.address, typeSystem.pythonList, left.address)
+    listConcat(ctx, left.address, right.address, left.address)
     return left
 }
 
@@ -129,12 +128,13 @@ fun handlerListAppendKt(ctx: ConcolicRunContext, list: UninterpretedSymbolicPyth
     if (ctx.curState == null)
         return null
     val typeSystem = ctx.typeSystem
+    val arrayType = ArrayType(typeSystem)
     if (list.getTypeIfDefined(ctx) != typeSystem.pythonList)
         return null
     with (ctx.ctx) {
-        val currentSize = ctx.curState!!.memory.readArrayLength(list.address, typeSystem.pythonList)
-        ctx.curState!!.memory.writeArrayIndex(list.address, currentSize, typeSystem.pythonList, addressSort, elem.address, trueExpr)
-        ctx.curState!!.memory.writeArrayLength(list.address, mkArithAdd(currentSize, mkIntNum(1)), typeSystem.pythonList)
+        val currentSize = ctx.curState!!.memory.readArrayLength(list.address, arrayType)
+        ctx.curState!!.memory.writeArrayIndex(list.address, currentSize, arrayType, addressSort, elem.address, trueExpr)
+        ctx.curState!!.memory.writeArrayLength(list.address, mkArithAdd(currentSize, mkIntNum(1)), arrayType)
         return list
     }
 }
@@ -152,14 +152,15 @@ fun handlerListIteratorNextKt(ctx: ConcolicRunContext, iterator: UninterpretedSy
         return null
 
     val typeSystem = ctx.typeSystem
+    val arrayType = ArrayType(typeSystem)
     val (listAddress, index) = iterator.getListIteratorContent(ctx)
-    val listSize = ctx.curState!!.memory.readArrayLength(listAddress, typeSystem.pythonList)
+    val listSize = ctx.curState!!.memory.readArrayLength(listAddress, arrayType)
     val indexCond = index lt listSize
     myFork(ctx, indexCond)
     if (ctx.curState!!.pyModel.eval(indexCond).isFalse)
         return null
 
     iterator.increaseListIteratorCounter(ctx)
-    val elemAddr = ctx.curState!!.memory.readArrayIndex(listAddress, index, typeSystem.pythonList, addressSort)
+    val elemAddr = ctx.curState!!.memory.readArrayIndex(listAddress, index, arrayType, addressSort)
     return UninterpretedSymbolicPythonObject(elemAddr, typeSystem)
 }

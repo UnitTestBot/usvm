@@ -6,6 +6,12 @@ object PythonAnyType: VirtualPythonType() {
     override fun accepts(type: PythonType): Boolean = true
 }
 
+data class ArrayType(val typeSystem: PythonTypeSystem): VirtualPythonType() {
+    override fun accepts(type: PythonType): Boolean {
+        return type == this || type == typeSystem.pythonList || type == typeSystem.pythonTuple
+    }
+}
+
 class ConcreteTypeNegation(private val concreteType: ConcretePythonType): VirtualPythonType() {
     override fun accepts(type: PythonType): Boolean {
         if (type is MockType)

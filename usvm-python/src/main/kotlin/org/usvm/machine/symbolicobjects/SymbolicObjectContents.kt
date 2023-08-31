@@ -11,6 +11,7 @@ import org.usvm.api.readField
 import org.usvm.api.writeField
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.*
+import org.usvm.language.types.ArrayType
 import org.usvm.machine.UPythonContext
 
 
@@ -67,7 +68,7 @@ fun UninterpretedSymbolicPythonObject.getToBoolValue(ctx: ConcolicRunContext): U
     return when (getTypeIfDefined(ctx)) {
         typeSystem.pythonBool -> getBoolContent(ctx)
         typeSystem.pythonInt -> getIntContent(ctx) neq mkIntNum(0)
-        typeSystem.pythonList -> ctx.curState!!.memory.readArrayLength(address, typeSystem.pythonList) gt mkIntNum(0)
+        typeSystem.pythonList -> ctx.curState!!.memory.readArrayLength(address, ArrayType(typeSystem)) gt mkIntNum(0)
         else -> null
     }
 }
