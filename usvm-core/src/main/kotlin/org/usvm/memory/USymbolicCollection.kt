@@ -47,6 +47,9 @@ data class USymbolicCollection<out CollectionId : USymbolicCollectionId<Key, Sor
         return collectionId.instantiate(localizedRegion, key, composer)
     }
 
+    /**
+     * Reads a [key] from this collection with on-the-fly composition, if the [composer] provided.
+     */
     fun read(key: Key, composer: UComposer<*>?): UExpr<Sort> {
         if (sort == sort.uctx.addressSort) {
             // Here we split concrete heap addresses from symbolic ones to optimize further memory operations.
@@ -147,6 +150,10 @@ data class USymbolicCollection<out CollectionId : USymbolicCollectionId<Key, Sor
         }
     }
 
+    /**
+     * Applies this collection to the [memory], with applying composition via [composer] to the updates. May filter out
+     * updates, which are irrelevant for the [key] reading.
+     */
     fun <Type> applyTo(memory: UWritableMemory<Type>, key: Key, composer: UComposer<*>) {
         // Apply each update on the copy
         for (update in updates) {

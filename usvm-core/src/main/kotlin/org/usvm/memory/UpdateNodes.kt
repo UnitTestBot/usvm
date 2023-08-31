@@ -213,6 +213,9 @@ class URangedUpdateNode<CollectionId : USymbolicCollectionId<SrcKey, Sort, Colle
     // Ignores update
     override fun hashCode(): Int = adapter.hashCode() * 31 + guard.hashCode()
 
+    /**
+     * Applies this update node to the [memory] with applying composition via [composer].
+     */
     fun applyTo(
         memory: UWritableMemory<*>,
         dstCollectionId: USymbolicCollectionId<DstKey, *, *>,

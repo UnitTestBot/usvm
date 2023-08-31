@@ -14,6 +14,8 @@ import org.usvm.util.emptyRegionTree
  */
 interface USymbolicCollectionUpdates<Key, Sort : USort> : Sequence<UUpdateNode<Key, Sort>> {
     /**
+     * Reads from collection updates and composes relevant ones. May filter out irrelevant updates for the [key].
+     *
      * @return Relevant updates for a given key.
      */
     fun read(key: Key, composer: UComposer<*>?): USymbolicCollectionUpdates<Key, Sort>
@@ -236,7 +238,7 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
 ) : USymbolicCollectionUpdates<Key, Sort> {
     override fun read(key: Key, composer: UComposer<*>?): USymbolicCollectionUpdates<Key, Sort> {
         val reg = keyInfo.keyToRegion(key)
-        val updates = updates.localize(reg) { it.includesSymbolically(key, composer).isFalse }
+        val updates = updates.localize(reg) { !it.includesSymbolically(key, composer).isFalse }
         if (updates === this.updates) {
             return this
         }
@@ -253,9 +255,8 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
         val reg = keyInfo.keyToRegion(key)
         val newUpdates = updates.write(
             reg,
-            update,
-            valueFilter = { it.isIncludedByUpdateConcretely(update) }
-        )
+            update
+        ) { !it.isIncludedByUpdateConcretely(update) }
 
         return this.copy(updates = newUpdates)
     }
@@ -268,9 +269,8 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
         val update = URangedUpdateNode(fromCollection, adapter, guard)
         val newUpdates = updates.write(
             adapter.region(),
-            update,
-            valueFilter = { it.isIncludedByUpdateConcretely(update) }
-        )
+            update
+        ) { !it.isIncludedByUpdateConcretely(update) }
 
         return this.copy(updates = newUpdates)
     }
@@ -291,8 +291,8 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
                 is UPinpointUpdateNode<Key, Sort> -> keyInfo.keyToRegion(update.key)
                 is URangedUpdateNode<*, *, Key, Sort> -> update.adapter.region()
             }
-            splitRegionTree =
-                splitRegionTree.write(region, update, valueFilter = { it.isIncludedByUpdateConcretely(update) })
+            splitRegionTree = splitRegionTree
+                .write(region, update) { !it.isIncludedByUpdateConcretely(update) }
         }
 
 

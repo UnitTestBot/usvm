@@ -25,19 +25,15 @@ class RegionTree<Reg, Value>(
     /**
      * Splits the region tree into two trees: completely covered by the [region] and disjoint with it.
      *
-     * [valueFilter] is an arbitrary predicate suitable to filter out values from the results of the function.
+     * [filterPredicate] is a predicate suitable to filter out particular nodes if their `value` don't satisfy it.
      * Examples:
-     * * `{ it != 10 }` removes nodes with `value` equal to 10
-     * * `{ false }` doesn't remove anything
-     *
-     * **NB**: it doesn't filter out all the values satisfying [valueFilter], only those, that were touched during
-     * recursive split.
-     *
+     * * `{ true }` doesn't filter anything
+     * * `{ it != value }` writes into a tree and restrict for it to contain non-unique values.
      * @see localize
      */
     private fun splitRecursively(
         region: Reg,
-        valueFilter: (Value) -> Boolean,
+        filterPredicate: (Value) -> Boolean,
     ): RecursiveSplitResult {
         if (isEmpty) {
             return RecursiveSplitResult(completelyCoveredRegionTree = this, disjointRegionTree = this)
@@ -51,7 +47,7 @@ class RegionTree<Reg, Value>(
             val value = entry.first
             // IMPORTANT: usage of linked versions of maps is mandatory here, since
             // it is required for correct order of values returned by `iterator.next()` method
-            val completelyCoveredRegionTree = if (!valueFilter(value)) {
+            val completelyCoveredRegionTree = if (filterPredicate(value)) {
                 val inside = persistentMapOf(region to entry)
                 if (entries.size == 1) {
                     this
@@ -59,7 +55,8 @@ class RegionTree<Reg, Value>(
                     RegionTree(inside)
                 }
             } else {
-                entry.second.splitRecursively(region, valueFilter).completelyCoveredRegionTree
+                // fixme: here we might have a deep recursion, maybe we should rewrite it
+                entry.second.splitRecursively(region, filterPredicate).completelyCoveredRegionTree
             }
             val outside = entries.remove(region)
             val disjointRegionTree = RegionTree(outside)
@@ -86,31 +83,31 @@ class RegionTree<Reg, Value>(
         fun MutableMap<Reg, Pair<Value, RegionTree<Reg, Value>>>.addWithFilter(
             nodeRegion: Reg,
             valueWithRegionTree: Pair<Value, RegionTree<Reg, Value>>,
-            valueFilter: (Value) -> Boolean,
+            filterPredicate: (Value) -> Boolean,
         ) {
             val (value, childRegionTree) = valueWithRegionTree
-            if (valueFilter(value)) {
-                putAll(childRegionTree.entries)
-            } else {
+            if (filterPredicate(value)) {
                 put(nodeRegion, valueWithRegionTree)
+            } else {
+                putAll(childRegionTree.entries)
             }
         }
 
         entries.entries.forEach { (nodeRegion, valueWithRegionTree) ->
             when (region.compare(nodeRegion)) {
-                RegionComparisonResult.INCLUDES -> included.addWithFilter(nodeRegion, valueWithRegionTree, valueFilter)
+                RegionComparisonResult.INCLUDES -> included.addWithFilter(nodeRegion, valueWithRegionTree, filterPredicate)
 
-                RegionComparisonResult.DISJOINT -> disjoint.addWithFilter(nodeRegion, valueWithRegionTree, valueFilter)
+                RegionComparisonResult.DISJOINT -> disjoint.addWithFilter(nodeRegion, valueWithRegionTree, filterPredicate)
                 // For nodes with intersection, repeat process recursively.
                 RegionComparisonResult.INTERSECTS -> {
                     val (value, childRegionTree) = valueWithRegionTree
-                    val (splitIncluded, splitDisjoint) = childRegionTree.splitRecursively(region, valueFilter)
+                    val (splitIncluded, splitDisjoint) = childRegionTree.splitRecursively(region, filterPredicate)
 
                     val includedReg = nodeRegion.intersect(region)
                     val disjointReg = nodeRegion.subtract(region)
 
-                    included.addWithFilter(includedReg, value to splitIncluded, valueFilter)
-                    disjoint.addWithFilter(disjointReg, value to splitDisjoint, valueFilter)
+                    included.addWithFilter(includedReg, value to splitIncluded, filterPredicate)
+                    disjoint.addWithFilter(disjointReg, value to splitDisjoint, filterPredicate)
                 }
             }
         }
@@ -126,15 +123,12 @@ class RegionTree<Reg, Value>(
     /**
      * Returns a subtree completely included into the [region].
      *
-     * [valueFilter] is a predicate suitable to filter out particular nodes if their `value` satisfies it.
+     * [filterPredicate] is a predicate suitable to filter out particular nodes if their `value` don't satisfy it.
      * Examples:
-     * * `{ false }` doesn't filter anything
+     * * `{ true }` doesn't filter anything
      * * `{ it != value }` writes into a tree and restrict for it to contain non-unique values.
      *   Suitable for deduplication.
      *
-     * **NB**: it doesn't filter out all the values satisfying [valueFilter], only those, that were touched during
-     * recursive split. Consider this example:
-     * ```
      * r := some region
      * tree := {r -> 1}
      *             {r -> 2}
@@ -142,29 +136,25 @@ class RegionTree<Reg, Value>(
      * tree.localize(r) { it % 2 == 1) =
      *     // first will be filtered out
      *         {r -> 2}
-     *             {r -> 3} // this one won't be filtered out, though it satisfies `valueFilter`
+     *            // third will be filtered out
      *
      * ```
      */
-    fun localize(region: Reg, valueFilter: (Value) -> Boolean = { false }): RegionTree<Reg, Value> =
-        splitRecursively(region, valueFilter).completelyCoveredRegionTree
+    fun localize(region: Reg, filterPredicate: (Value) -> Boolean = { true }): RegionTree<Reg, Value> =
+        splitRecursively(region, filterPredicate).completelyCoveredRegionTree
 
     /**
      * Places a Pair([region], [value]) into the tree, preserving its invariants.
      *
-     * [valueFilter] is a predicate suitable to filter out particular nodes if their `value` satisfies it.
+     * [filterPredicate] is a predicate suitable to filter out particular nodes if their `value` don't satisfy it.
      * Examples:
-     * * `{ false }` doesn't filter anything
+     * * `{ true }` doesn't filter anything
      * * `{ it != value }` writes into a tree and restrict for it to contain non-unique values.
      *   Suitable for deduplication.
-     *
-     * **NB**: it doesn't filter out all the values satisfying [valueFilter], only those, that were touched during
-     * recursive split.
-     *
      * @see localize
      */
-    fun write(region: Reg, value: Value, valueFilter: (Value) -> Boolean = { false }): RegionTree<Reg, Value> {
-        val (included, disjoint) = splitRecursively(region, valueFilter)
+    fun write(region: Reg, value: Value, filterPredicate: (Value) -> Boolean = { true }): RegionTree<Reg, Value> {
+        val (included, disjoint) = splitRecursively(region, filterPredicate)
         // A new node for a tree we construct accordingly to the (2) invariant.
         val node = value to included
 
