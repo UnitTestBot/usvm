@@ -27,7 +27,7 @@ interface URegionTranslator<CollectionId : USymbolicCollectionId<Key, Sort, Coll
 }
 
 interface URegionDecoder<Key, Sort : USort> {
-    fun decodeLazyRegion(model: KModel, mapping: Map<UHeapRef, UConcreteHeapRef>): UReadOnlyMemoryRegion<Key, Sort>
+    fun decodeLazyRegion(model: KModel, mapping: Map<UHeapRef, UConcreteHeapRef>): UReadOnlyMemoryRegion<Key, Sort>?
 }
 
 interface UCollectionDecoder<Key, Sort : USort> {

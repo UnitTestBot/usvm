@@ -11,7 +11,6 @@ import org.usvm.collection.map.ref.UAllocatedRefMapWithInputKeysReading
 import org.usvm.collection.map.ref.UInputRefMapWithAllocatedKeysReading
 import org.usvm.collection.map.ref.UInputRefMapWithInputKeysReading
 import org.usvm.memory.UReadOnlyMemory
-import org.usvm.memory.USymbolicCollection
 import org.usvm.memory.USymbolicCollectionId
 import org.usvm.util.Region
 
@@ -62,18 +61,8 @@ open class UComposer<Type>(
         expr: UCollectionReading<CollectionId, Key, Sort>,
         key: Key,
     ): UExpr<Sort> = with(expr) {
-        val mappedCollectionId = collection.collectionId.map(this@UComposer)
-        val mappedKey = mappedCollectionId.keyMapper(this@UComposer)(key)
-        val decomposedKey = mappedCollectionId.rebindKey(mappedKey)
-        if (decomposedKey != null) {
-            @Suppress("UNCHECKED_CAST")
-            // I'm terribly sorry to do this cast, but it's impossible to do it type safe way :(
-            val mappedCollection =
-                collection.mapTo(this@UComposer, decomposedKey.collectionId) as USymbolicCollection<*, Any?, Sort>
-            return mappedCollection.read(decomposedKey.key)
-        }
-        val mappedCollection = collection.mapTo(this@UComposer, mappedCollectionId)
-        return mappedCollection.read(mappedKey)
+        val mappedKey = collection.collectionId.keyMapper(this@UComposer)(key)
+        return collection.read(mappedKey, this@UComposer)
     }
 
     override fun transform(expr: UInputArrayLengthReading<Type>): USizeExpr =
@@ -115,3 +104,6 @@ open class UComposer<Type>(
 
     override fun transform(expr: UNullRef): UExpr<UAddressSort> = memory.nullRef()
 }
+
+@Suppress("NOTHING_TO_INLINE")
+inline fun <T : USort> UComposer<*>?.compose(expr: UExpr<T>) = this?.apply(expr) ?: expr

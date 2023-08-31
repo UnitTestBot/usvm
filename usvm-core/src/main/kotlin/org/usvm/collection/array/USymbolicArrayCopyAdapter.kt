@@ -6,8 +6,8 @@ import org.usvm.UComposer
 import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.USizeExpr
+import org.usvm.compose
 import org.usvm.memory.USymbolicCollection
-import org.usvm.memory.KeyMapper
 import org.usvm.memory.USymbolicCollectionAdapter
 import org.usvm.memory.USymbolicCollectionId
 import org.usvm.memory.USymbolicCollectionKeyInfo
@@ -33,8 +33,6 @@ abstract class USymbolicArrayCopyAdapter<SrcKey, DstKey>(
     private val keyInfo: USymbolicCollectionKeyInfo<DstKey, *>
 ) : USymbolicCollectionAdapter<SrcKey, DstKey> {
 
-    override val srcKey = srcFrom
-
     abstract val ctx: UContext
 
     override fun <Reg : Region<Reg>> region(): Reg =
@@ -43,7 +41,7 @@ abstract class USymbolicArrayCopyAdapter<SrcKey, DstKey>(
     /**
      * Converts source memory key into destination memory key
      */
-    abstract override fun convert(key: DstKey): SrcKey
+    abstract override fun convert(key: DstKey, composer: UComposer<*>?): SrcKey
 
     protected fun convertIndex(
         idx: USizeExpr,
@@ -56,7 +54,7 @@ abstract class USymbolicArrayCopyAdapter<SrcKey, DstKey>(
     override fun includesConcretely(key: DstKey): Boolean =
         keyInfo.cmpConcreteLe(dstFrom, key) && keyInfo.cmpConcreteLe(key, dstTo)
 
-    override fun includesSymbolically(key: DstKey): UBoolExpr {
+    override fun includesSymbolically(key: DstKey, composer: UComposer<*>?): UBoolExpr {
         val leftIsLefter = keyInfo.cmpSymbolicLe(ctx, dstFrom, key)
         val rightIsRighter = keyInfo.cmpSymbolicLe(ctx, key, dstTo)
         val ctx = leftIsLefter.ctx
@@ -70,75 +68,13 @@ abstract class USymbolicArrayCopyAdapter<SrcKey, DstKey>(
     ): Boolean =
         update.includesConcretely(dstFrom, guard) && update.includesConcretely(dstTo, guard)
 
-    override fun <Type, MappedSrcKey, MappedDstKey> mapDstKeys(
-        mappedSrcKey: MappedSrcKey,
-        srcCollectionId: USymbolicCollectionId<*, *, *>,
-        dstKeyMapper: KeyMapper<DstKey, MappedDstKey>,
-        composer: UComposer<Type>,
-        mappedKeyInfo: USymbolicCollectionKeyInfo<MappedDstKey, *>
-    ): USymbolicCollectionAdapter<MappedSrcKey, MappedDstKey>? {
-        val mappedDstFrom = dstKeyMapper(dstFrom) ?: return null
-        val mappedDstTo = dstKeyMapper(dstTo) ?: return null
-
-        if (srcKey === mappedSrcKey && dstFrom === mappedDstFrom && dstTo === mappedDstTo) {
-            @Suppress("UNCHECKED_CAST")
-            // In this case [MappedSrcKey] == [SrcKey] and [MappedDstKey] == [DstKey],
-            // but type system cannot type check that.
-            return this as USymbolicCollectionAdapter<MappedSrcKey, MappedDstKey>
-        }
-
-        return mapKeyType(
-            mappedSrcKey,
-            concrete = { allocatedSrcKey ->
-                mapKeyType(
-                    mappedDstFrom,
-                    concrete = { allocatedDstFrom ->
-                        USymbolicArrayAllocatedToAllocatedCopyAdapter(
-                            allocatedSrcKey,
-                            allocatedDstFrom,
-                            ensureConcreteKey(mappedDstTo),
-                            mappedKeyInfo.uncheckedCast()
-                        )
-                    },
-                    symbolic = { symbolicDstFrom ->
-                        USymbolicArrayAllocatedToInputCopyAdapter(
-                            allocatedSrcKey,
-                            symbolicDstFrom,
-                            ensureSymbolicKey(mappedDstTo),
-                            mappedKeyInfo.uncheckedCast()
-                        )
-                    }
-                )
-            },
-            symbolic = { symbolicSrcKey ->
-                mapKeyType(
-                    mappedDstFrom,
-                    concrete = { allocatedDstFrom ->
-                        USymbolicArrayInputToAllocatedCopyAdapter(
-                            symbolicSrcKey,
-                            allocatedDstFrom,
-                            ensureConcreteKey(mappedDstTo),
-                            mappedKeyInfo.uncheckedCast()
-                        )
-                    },
-                    symbolic = { symbolicDstFrom ->
-                        USymbolicArrayInputToInputCopyAdapter(
-                            symbolicSrcKey,
-                            symbolicDstFrom,
-                            ensureSymbolicKey(mappedDstTo),
-                            mappedKeyInfo.uncheckedCast()
-                        )
-                    }
-                )
-            }
-        ).uncheckedCast()
-    }
-
     abstract override fun <Type> applyTo(
         memory: UWritableMemory<Type>,
         srcCollectionId: USymbolicCollectionId<SrcKey, *, *>,
         dstCollectionId: USymbolicCollectionId<DstKey, *, *>,
-        guard: UBoolExpr
+        guard: UBoolExpr,
+        srcKey: SrcKey,
+        composer: UComposer<*>
     )
 
     private fun <Key> keyToString(key: Key) =
@@ -148,8 +84,18 @@ abstract class USymbolicArrayCopyAdapter<SrcKey, DstKey>(
             symbolic = { "${it.first}.${it.second}" }
         )
 
-    override fun toString(collection: USymbolicCollection<*, SrcKey, *>): String {
-        return "[${keyToString(dstFrom)}..${keyToString(dstTo)}] <- $collection[${convert(dstFrom)}..${convert(dstTo)}]"
+    override fun toString(collection: USymbolicCollection<*, SrcKey, *>): String = buildString {
+        append("[")
+        append(keyToString(dstFrom))
+        append("..")
+        append(keyToString(dstTo))
+        append("] <- ")
+        append(collection)
+        append("[")
+        append(convert(dstFrom, composer = null))
+        append("..")
+        append(convert(dstTo, composer = null))
+        append("]")
     }
 
     companion object {
@@ -162,12 +108,6 @@ abstract class USymbolicArrayCopyAdapter<SrcKey, DstKey>(
             is Pair<*, *> -> symbolic(key.uncheckedCast())
             else -> error("Unexpected key: $key")
         }
-
-        private fun <Key> ensureSymbolicKey(key: Key): USymbolicArrayIndex =
-            mapKeyType(key, symbolic = { it }, concrete = { error("Key type mismatch: $key") })
-
-        private fun <Key> ensureConcreteKey(key: Key): USizeExpr =
-            mapKeyType(key, concrete = { it }, symbolic = { error("Key type mismatch: $key") })
     }
 }
 
@@ -180,14 +120,16 @@ class USymbolicArrayAllocatedToAllocatedCopyAdapter(
     override val ctx: UContext
         get() = srcFrom.uctx
 
-    override fun convert(key: USizeExpr): USizeExpr =
-        convertIndex(key, dstFrom, srcFrom)
+    override fun convert(key: USizeExpr, composer: UComposer<*>?): USizeExpr =
+        convertIndex(key, composer.compose(dstFrom), composer.compose(srcFrom))
 
     override fun <Type> applyTo(
         memory: UWritableMemory<Type>,
         srcCollectionId: USymbolicCollectionId<USizeExpr, *, *>,
         dstCollectionId: USymbolicCollectionId<USizeExpr, *, *>,
-        guard: UBoolExpr
+        guard: UBoolExpr,
+        srcKey: USizeExpr,
+        composer: UComposer<*>
     ) = with(ctx) {
         check(dstCollectionId is UAllocatedArrayId<*, *>) { "Unexpected collection: $dstCollectionId" }
         check(srcCollectionId is UAllocatedArrayId<*, *>) { "Unexpected collection: $srcCollectionId" }
@@ -197,9 +139,9 @@ class USymbolicArrayAllocatedToAllocatedCopyAdapter(
             dstRef = mkConcreteHeapRef(dstCollectionId.address),
             type = dstCollectionId.arrayType,
             elementSort = dstCollectionId.sort,
-            fromSrcIdx = srcFrom,
-            fromDstIdx = dstFrom,
-            toDstIdx = dstTo,
+            fromSrcIdx = composer.compose(srcFrom),
+            fromDstIdx = composer.compose(dstFrom),
+            toDstIdx = composer.compose(dstTo),
             guard = guard
         )
     }
@@ -215,26 +157,28 @@ class USymbolicArrayAllocatedToInputCopyAdapter(
     override val ctx: UContext
         get() = srcFrom.uctx
 
-    override fun convert(key: USymbolicArrayIndex): USizeExpr =
-        convertIndex(key.second, dstFrom.second, srcFrom)
+    override fun convert(key: USymbolicArrayIndex, composer: UComposer<*>?): USizeExpr =
+        convertIndex(key.second, composer.compose(dstFrom.second), composer.compose(srcFrom))
 
     override fun <Type> applyTo(
         memory: UWritableMemory<Type>,
         srcCollectionId: USymbolicCollectionId<USizeExpr, *, *>,
         dstCollectionId: USymbolicCollectionId<USymbolicArrayIndex, *, *>,
-        guard: UBoolExpr
+        guard: UBoolExpr,
+        srcKey: USizeExpr,
+        composer: UComposer<*>
     ) = with(ctx) {
         check(dstCollectionId is USymbolicArrayId<*, *, *, *>) { "Unexpected collection: $dstCollectionId" }
         check(srcCollectionId is UAllocatedArrayId<*, *>) { "Unexpected collection: $srcCollectionId" }
 
         memory.memcpy(
             srcRef = mkConcreteHeapRef(srcCollectionId.address),
-            dstRef = dstFrom.first,
+            dstRef = composer.compose(dstFrom.first),
             type = dstCollectionId.arrayType,
             elementSort = dstCollectionId.sort,
-            fromSrcIdx = srcFrom,
-            fromDstIdx = dstFrom.second,
-            toDstIdx = dstTo.second,
+            fromSrcIdx = composer.compose(srcFrom),
+            fromDstIdx = composer.compose(dstFrom.second),
+            toDstIdx = composer.compose(dstTo.second),
             guard = guard
         )
     }
@@ -249,26 +193,29 @@ class USymbolicArrayInputToAllocatedCopyAdapter(
     override val ctx: UContext
         get() = dstFrom.uctx
 
-    override fun convert(key: USizeExpr): USymbolicArrayIndex =
-        srcFrom.first to convertIndex(key, dstFrom, srcFrom.second)
+    override fun convert(key: USizeExpr, composer: UComposer<*>?): USymbolicArrayIndex =
+        composer.compose(srcFrom.first) to
+                convertIndex(key, composer.compose(dstFrom), composer.compose(srcFrom.second))
 
     override fun <Type> applyTo(
         memory: UWritableMemory<Type>,
         srcCollectionId: USymbolicCollectionId<USymbolicArrayIndex, *, *>,
         dstCollectionId: USymbolicCollectionId<USizeExpr, *, *>,
-        guard: UBoolExpr
+        guard: UBoolExpr,
+        srcKey: USymbolicArrayIndex,
+        composer: UComposer<*>
     ) = with(ctx) {
         check(dstCollectionId is UAllocatedArrayId<*, *>) { "Unexpected collection: $dstCollectionId" }
         check(srcCollectionId is USymbolicArrayId<*, *, *, *>) { "Unexpected collection: $srcCollectionId" }
 
         memory.memcpy(
-            srcRef = srcFrom.first,
+            srcRef = composer.compose(srcFrom.first),
             dstRef = mkConcreteHeapRef(dstCollectionId.address),
             type = dstCollectionId.arrayType,
             elementSort = dstCollectionId.sort,
-            fromSrcIdx = srcFrom.second,
-            fromDstIdx = dstFrom,
-            toDstIdx = dstTo,
+            fromSrcIdx = composer.compose(srcFrom.second),
+            fromDstIdx = composer.compose(dstFrom),
+            toDstIdx = composer.compose(dstTo),
             guard = guard
         )
     }
@@ -284,26 +231,29 @@ class USymbolicArrayInputToInputCopyAdapter(
     override val ctx: UContext
         get() = srcFrom.second.uctx
 
-    override fun convert(key: USymbolicArrayIndex): USymbolicArrayIndex =
-        srcFrom.first to convertIndex(key.second, dstFrom.second, srcFrom.second)
+    override fun convert(key: USymbolicArrayIndex, composer: UComposer<*>?): USymbolicArrayIndex =
+        composer.compose(srcFrom.first) to
+                convertIndex(key.second, composer.compose(dstFrom.second), composer.compose(srcFrom.second))
 
     override fun <Type> applyTo(
         memory: UWritableMemory<Type>,
         srcCollectionId: USymbolicCollectionId<USymbolicArrayIndex, *, *>,
         dstCollectionId: USymbolicCollectionId<USymbolicArrayIndex, *, *>,
-        guard: UBoolExpr
+        guard: UBoolExpr,
+        srcKey: USymbolicArrayIndex,
+        composer: UComposer<*>
     ) = with(ctx) {
         check(dstCollectionId is USymbolicArrayId<*, *, *, *>) { "Unexpected collection: $dstCollectionId" }
         check(srcCollectionId is USymbolicArrayId<*, *, *, *>) { "Unexpected collection: $srcCollectionId" }
 
         memory.memcpy(
-            srcRef = srcFrom.first,
-            dstRef = dstFrom.first,
+            srcRef = composer.compose(srcFrom.first),
+            dstRef = composer.compose(dstFrom.first),
             type = dstCollectionId.arrayType,
             elementSort = dstCollectionId.sort,
-            fromSrcIdx = srcFrom.second,
-            fromDstIdx = dstFrom.second,
-            toDstIdx = dstTo.second,
+            fromSrcIdx = composer.compose(srcFrom.second),
+            fromDstIdx = composer.compose(dstFrom.second),
+            toDstIdx = composer.compose(dstTo.second),
             guard = guard
         )
     }

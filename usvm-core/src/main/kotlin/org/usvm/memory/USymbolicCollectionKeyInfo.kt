@@ -1,13 +1,18 @@
 package org.usvm.memory
 
 import org.usvm.UBoolExpr
+import org.usvm.UComposer
 import org.usvm.UContext
+import org.usvm.UTransformer
 import org.usvm.util.Region
 
 /**
  * Provides information about entities used as keys of symbolic collections.
  */
-interface USymbolicCollectionKeyInfo<Key, Reg: Region<Reg>> {
+interface USymbolicCollectionKeyInfo<Key, Reg : Region<Reg>> {
+
+    fun mapKey(key: Key, composer: UComposer<*>?): Key
+
     /**
      * Returns symbolic expression guaranteeing that [key1] is same as [key2].
      */

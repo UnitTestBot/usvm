@@ -14,13 +14,11 @@ import org.usvm.solver.UCollectionDecoder
 abstract class URefMapModelRegion<MapType, ValueSort : USort>(
     private val regionId: URefMapRegionId<MapType, ValueSort>
 ) : UReadOnlyMemoryRegion<URefMapEntryLValue<MapType, ValueSort>, ValueSort> {
-    val defaultValue by lazy { regionId.sort.sampleUValue() }
-
-    abstract val inputMap: UReadOnlyMemoryRegion<USymbolicMapKey<UAddressSort>, ValueSort>?
+    abstract val inputMap: UReadOnlyMemoryRegion<USymbolicMapKey<UAddressSort>, ValueSort>
 
     override fun read(key: URefMapEntryLValue<MapType, ValueSort>): UExpr<ValueSort> {
-        val mapRef = modelEnsureConcreteInputRef(key.mapRef) ?: return defaultValue
-        return inputMap?.read(mapRef to key.mapKey) ?: defaultValue
+        val mapRef = modelEnsureConcreteInputRef(key.mapRef)
+        return inputMap.read(mapRef to key.mapKey)
     }
 }
 
@@ -28,14 +26,14 @@ class URefMapLazyModelRegion<MapType, ValueSort : USort>(
     regionId: URefMapRegionId<MapType, ValueSort>,
     private val model: KModel,
     private val addressesMapping: AddressesMapping,
-    private val inputMapDecoder: UCollectionDecoder<USymbolicMapKey<UAddressSort>, ValueSort>?
+    private val inputMapDecoder: UCollectionDecoder<USymbolicMapKey<UAddressSort>, ValueSort>
 ) : URefMapModelRegion<MapType, ValueSort>(regionId) {
-    override val inputMap: UReadOnlyMemoryRegion<USymbolicMapKey<UAddressSort>, ValueSort>? by lazy {
-        inputMapDecoder?.decodeCollection(model, addressesMapping)
+    override val inputMap: UReadOnlyMemoryRegion<USymbolicMapKey<UAddressSort>, ValueSort> by lazy {
+        inputMapDecoder.decodeCollection(model, addressesMapping)
     }
 }
 
 class URefMapEagerModelRegion<MapType, ValueSort : USort>(
     regionId: URefMapRegionId<MapType, ValueSort>,
-    override val inputMap: UReadOnlyMemoryRegion<USymbolicMapKey<UAddressSort>, ValueSort>?
+    override val inputMap: UReadOnlyMemoryRegion<USymbolicMapKey<UAddressSort>, ValueSort>
 ) : URefMapModelRegion<MapType, ValueSort>(regionId)

@@ -35,7 +35,7 @@ class URefMapRegionDecoder<MapType, ValueSort : USort>(
     private val inputWithAllocatedKeysRegions =
         mutableMapOf<UConcreteHeapAddress, UInputRefMapWithAllocatedKeysTranslator<MapType, ValueSort>>()
 
-    private var inputRegion: UInputRefMapTranslator<MapType, ValueSort>? = null
+    private var inputRegionTranslator: UInputRefMapTranslator<MapType, ValueSort>? = null
 
     fun allocatedRefMapWithInputKeysTranslator(
         collectionId: UAllocatedRefMapWithInputKeysId<MapType, ValueSort>
@@ -62,20 +62,20 @@ class URefMapRegionDecoder<MapType, ValueSort : USort>(
     fun inputRefMapTranslator(
         collectionId: UInputRefMapWithInputKeysId<MapType, ValueSort>
     ): URegionTranslator<UInputRefMapWithInputKeysId<MapType, ValueSort>, USymbolicMapKey<UAddressSort>, ValueSort> {
-        if (inputRegion == null) {
+        if (inputRegionTranslator == null) {
             check(collectionId.mapType == regionId.mapType && collectionId.sort == regionId.sort) {
                 "Unexpected collection: $collectionId"
             }
 
-            inputRegion = UInputRefMapTranslator(collectionId, exprTranslator)
+            inputRegionTranslator = UInputRefMapTranslator(collectionId, exprTranslator)
         }
-        return inputRegion!!
+        return inputRegionTranslator!!
     }
 
     override fun decodeLazyRegion(
         model: KModel,
         mapping: Map<UHeapRef, UConcreteHeapRef>
-    ) = URefMapLazyModelRegion(regionId, model, mapping, inputRegion)
+    ) = inputRegionTranslator?.let { URefMapLazyModelRegion(regionId, model, mapping, it) }
 }
 
 private class UAllocatedRefMapWithInputKeysTranslator<MapType, ValueSort : USort>(

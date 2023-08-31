@@ -7,8 +7,9 @@ import org.usvm.UComposer
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.USort
+import org.usvm.isFalse
+import org.usvm.isTrue
 import org.usvm.uctx
-import kotlin.collections.ArrayList
 
 /**
  * A uniform unbounded slice of memory. Indexed by [Key], stores symbolic values.
@@ -25,14 +26,15 @@ data class USymbolicCollection<out CollectionId : USymbolicCollectionId<Key, Sor
 
     private fun read(
         key: Key,
-        updates: USymbolicCollectionUpdates<Key, Sort>
+        updates: USymbolicCollectionUpdates<Key, Sort>,
+        composer: UComposer<*>?
     ): UExpr<Sort> {
         val lastUpdatedElement = updates.lastUpdatedElementOrNull()
 
         if (lastUpdatedElement != null) {
-            if (lastUpdatedElement.includesConcretely(key, precondition = sort.ctx.trueExpr)) {
+            if (lastUpdatedElement.includesSymbolically(key, composer).isTrue) {
                 // The last write has overwritten the key
-                return lastUpdatedElement.value(key)
+                return lastUpdatedElement.value(key, composer)
             }
         }
 
@@ -42,17 +44,20 @@ data class USymbolicCollection<out CollectionId : USymbolicCollectionId<Key, Sor
             this.copy(updates = updates)
         }
 
-        return collectionId.instantiate(localizedRegion, key)
+        return collectionId.instantiate(localizedRegion, key, composer)
     }
 
-    override fun read(key: Key): UExpr<Sort> {
+    /**
+     * Reads a [key] from this collection with on-the-fly composition, if the [composer] provided.
+     */
+    fun read(key: Key, composer: UComposer<*>?): UExpr<Sort> {
         if (sort == sort.uctx.addressSort) {
             // Here we split concrete heap addresses from symbolic ones to optimize further memory operations.
-            return splittingRead(key) { it is UConcreteHeapRef }
+            return splittingRead(key, composer) { it is UConcreteHeapRef }
         }
 
-        val updates = updates.read(key)
-        return read(key, updates)
+        val updates = updates.read(key, composer)
+        return read(key, updates, composer)
     }
 
     /**
@@ -67,14 +72,15 @@ data class USymbolicCollection<out CollectionId : USymbolicCollectionId<Key, Sor
      */
     private fun splittingRead(
         key: Key,
+        composer: UComposer<*>?,
         predicate: (UExpr<Sort>) -> Boolean
     ): UExpr<Sort> {
         val ctx = sort.ctx
         val guardBuilder = GuardBuilder(ctx.trueExpr)
         val matchingWrites = ArrayList<GuardedExpr<UExpr<Sort>>>() // works faster than linked list
-        val splittingUpdates = split(key, predicate, matchingWrites, guardBuilder).updates
+        val splittingUpdates = split(key, predicate, matchingWrites, guardBuilder, composer).updates
 
-        val reading = read(key, splittingUpdates)
+        val reading = read(key, splittingUpdates, composer)
 
         // TODO: maybe introduce special expression for such operations?
         val readingWithBubbledWrites = matchingWrites.foldRight(reading) { (expr, guard), acc ->
@@ -133,8 +139,9 @@ data class USymbolicCollection<out CollectionId : USymbolicCollectionId<Key, Sor
         predicate: (UExpr<Sort>) -> Boolean,
         matchingWrites: MutableList<GuardedExpr<UExpr<Sort>>>,
         guardBuilder: GuardBuilder,
+        composer: UComposer<*>?,
     ): USymbolicCollection<CollectionId, Key, Sort> {
-        val splitUpdates = updates.read(key).split(key, predicate, matchingWrites, guardBuilder)
+        val splitUpdates = updates.read(key, composer).split(key, predicate, matchingWrites, guardBuilder, composer)
 
         return if (splitUpdates === updates) {
             this
@@ -144,35 +151,29 @@ data class USymbolicCollection<out CollectionId : USymbolicCollectionId<Key, Sor
     }
 
     /**
-     * Maps the collection using [composer].
-     * It is used in [UComposer] for composition operation.
-     * All updates which after mapping do not touch [targetCollectionId] will be thrown out.
-     *
-     * Note: after this operation a collection returned as a result might be in `broken` state:
-     * it might [UIteExpr] with both symbolic and concrete references as keys in it.
+     * Applies this collection to the [memory], with applying composition via [composer] to the updates. May filter out
+     * updates, which are irrelevant for the [key] reading.
      */
-    fun <Type, MappedKey> mapTo(
-        composer: UComposer<Type>,
-        targetCollectionId: USymbolicCollectionId<MappedKey, Sort, *>
-    ): USymbolicCollection<USymbolicCollectionId<MappedKey, Sort, *>, MappedKey, Sort> {
-        val mapper = collectionId.keyFilterMapper(composer, targetCollectionId)
-        // Map the updates and the collectionId
-        val mappedUpdates = updates.filterMap(mapper, composer, targetCollectionId.keyInfo())
-
-        if (mappedUpdates === updates && targetCollectionId === collectionId) {
-            @Suppress("UNCHECKED_CAST")
-            return this as USymbolicCollection<USymbolicCollectionId<MappedKey, Sort, *>, MappedKey, Sort>
-        }
-
-        return USymbolicCollection(targetCollectionId, mappedUpdates)
-    }
-
-    fun <Type> applyTo(memory: UWritableMemory<Type>) {
+    fun <Type> applyTo(memory: UWritableMemory<Type>, key: Key, composer: UComposer<*>) {
         // Apply each update on the copy
-        updates.forEach {
-            when (it) {
-                is UPinpointUpdateNode<Key, Sort> -> collectionId.write(memory, it.key, it.value, it.guard)
-                is URangedUpdateNode<*, *, Key, Sort> -> it.applyTo(memory, collectionId)
+        for (update in updates) {
+            val guard = composer.compose(update.guard)
+
+            if (guard.isFalse || update.includesSymbolically(key, composer).isFalse) {
+                continue
+            }
+
+            when (update) {
+                is UPinpointUpdateNode<Key, Sort> -> collectionId.write(
+                    memory,
+                    update.keyInfo.mapKey(update.key, composer),
+                    composer.compose(update.value),
+                    guard
+                )
+
+                is URangedUpdateNode<*, *, Key, Sort> -> {
+                    update.applyTo(memory, collectionId, key, composer)
+                }
             }
         }
     }
@@ -190,6 +191,8 @@ data class USymbolicCollection<out CollectionId : USymbolicCollectionId<Key, Sor
         val updatesCopy = updates.copyRange(fromCollection, adapter, guard)
         return this.copy(updates = updatesCopy)
     }
+
+    override fun read(key: Key): UExpr<Sort> = read(key, composer = null)
 
     override fun toString(): String =
         buildString {
