@@ -6,11 +6,11 @@ import org.usvm.UBoolExpr
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
-import org.usvm.memory.USymbolicCollection
 import org.usvm.collection.map.USymbolicMapKey
 import org.usvm.memory.ULValue
 import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UMemoryRegionId
+import org.usvm.memory.USymbolicCollection
 import org.usvm.memory.USymbolicCollectionKeyInfo
 import org.usvm.memory.foldHeapRef
 import org.usvm.memory.map
@@ -66,8 +66,16 @@ internal class UMapMemoryRegion<MapType, KeySort : USort, ValueSort : USort, Reg
         }
     }
 
-    private fun getAllocatedMap(id: UAllocatedMapId<MapType, KeySort, ValueSort, Reg>) =
-        allocatedMaps[id] ?: id.emptyRegion()
+    private fun getAllocatedMap(
+        id: UAllocatedMapId<MapType, KeySort, ValueSort, Reg>
+    ): UAllocatedMap<MapType, KeySort, ValueSort, Reg> {
+        var collection = allocatedMaps[id]
+        if (collection == null) {
+            collection = id.emptyRegion()
+            allocatedMaps = allocatedMaps.put(id, collection)
+        }
+        return collection
+    }
 
     private fun updateAllocatedMap(
         id: UAllocatedMapId<MapType, KeySort, ValueSort, Reg>,

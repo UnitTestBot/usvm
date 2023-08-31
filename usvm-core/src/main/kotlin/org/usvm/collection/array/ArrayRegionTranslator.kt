@@ -35,7 +35,7 @@ class UArrayRegionDecoder<ArrayType, Sort : USort>(
     private val allocatedRegions =
         mutableMapOf<UConcreteHeapAddress, UAllocatedArrayRegionTranslator<ArrayType, Sort>>()
 
-    private var inputRegion: UInputArrayRegionTranslator<ArrayType, Sort>? = null
+    private var inputRegionTranslator: UInputArrayRegionTranslator<ArrayType, Sort>? = null
 
     fun allocatedArrayRegionTranslator(
         collectionId: UAllocatedArrayId<ArrayType, Sort>
@@ -51,19 +51,19 @@ class UArrayRegionDecoder<ArrayType, Sort : USort>(
     fun inputArrayRegionTranslator(
         collectionId: UInputArrayId<ArrayType, Sort>
     ): URegionTranslator<UInputArrayId<ArrayType, Sort>, USymbolicArrayIndex, Sort> {
-        if (inputRegion == null) {
+        if (inputRegionTranslator == null) {
             check(collectionId.arrayType == regionId.arrayType && collectionId.sort == regionId.sort) {
                 "Unexpected collection: $collectionId"
             }
-            inputRegion = UInputArrayRegionTranslator(collectionId, exprTranslator)
+            inputRegionTranslator = UInputArrayRegionTranslator(collectionId, exprTranslator)
         }
-        return inputRegion!!
+        return inputRegionTranslator!!
     }
 
     override fun decodeLazyRegion(
         model: KModel,
         mapping: Map<UHeapRef, UConcreteHeapRef>
-    ) = UArrayLazyModelRegion(regionId, model, mapping, inputRegion)
+    ) = inputRegionTranslator?.let { UArrayLazyModelRegion(regionId, model, mapping, it) }
 }
 
 private class UAllocatedArrayRegionTranslator<ArrayType, Sort : USort>(
@@ -145,11 +145,13 @@ private class UAllocatedArrayUpdatesTranslator<Sort : USort>(
         val key = mkFreshConst("k", previous.sort.domain)
 
         val keyMapper = sourceCollection.collectionId.keyMapper(exprTranslator)
-        val convertedKey = keyMapper(adapter.convert(key))
+        val convertedKey = keyMapper(adapter.convert(key, composer = null))
 
-        val isInside = update.includesSymbolically(key).translated // already includes guard
+        val isInside = update.includesSymbolically(key, composer = null).translated // already includes guard
 
-        val result = sourceCollection.collectionId.instantiate(sourceCollection, convertedKey).translated
+        val result = sourceCollection.collectionId.instantiate(
+            sourceCollection, convertedKey, composer = null
+        ).translated
 
         val ite = mkIte(isInside, result, previous.select(key))
         return mkArrayLambda(key.decl, ite)
@@ -187,11 +189,13 @@ private class UInputArrayUpdatesTranslator<Sort : USort>(
         val key2 = mkFreshConst("k2", previous.sort.domain1)
 
         val keyMapper = sourceCollection.collectionId.keyMapper(exprTranslator)
-        val convertedKey = keyMapper(adapter.convert(key1 to key2))
+        val convertedKey = keyMapper(adapter.convert(key1 to key2, composer = null))
 
-        val isInside = update.includesSymbolically(key1 to key2).translated // already includes guard
+        val isInside = update.includesSymbolically(key1 to key2, composer = null).translated // already includes guard
 
-        val result = sourceCollection.collectionId.instantiate(sourceCollection, convertedKey).translated
+        val result = sourceCollection.collectionId.instantiate(
+            sourceCollection, convertedKey, composer = null
+        ).translated
 
         val ite = mkIte(isInside, result, previous.select(key1, key2))
         return mkArrayLambda(key1.decl, key2.decl, ite)

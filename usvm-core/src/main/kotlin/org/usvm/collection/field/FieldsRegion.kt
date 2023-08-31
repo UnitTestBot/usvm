@@ -14,6 +14,7 @@ import org.usvm.memory.USymbolicCollection
 import org.usvm.memory.foldHeapRef
 import org.usvm.memory.guardedWrite
 import org.usvm.memory.map
+import org.usvm.sampleUValue
 
 data class UFieldLValue<Field, Sort : USort>(override val sort: Sort, val ref: UHeapRef, val field: Field) :
     ULValue<UFieldLValue<Field, Sort>, Sort> {
@@ -28,26 +29,22 @@ data class UFieldsRegionId<Field, Sort : USort>(val field: Field, override val s
     UMemoryRegionId<UFieldLValue<Field, Sort>, Sort> {
 
     override fun emptyRegion(): UMemoryRegion<UFieldLValue<Field, Sort>, Sort> =
-        UFieldsMemoryRegion()
+        UFieldsMemoryRegion(sort, field)
 }
 
-typealias UAllocatedFields<Field, Sort> = PersistentMap<UAllocatedFieldId<Field, Sort>, UExpr<Sort>>
 typealias UInputFields<Field, Sort> = USymbolicCollection<UInputFieldId<Field, Sort>, UHeapRef, Sort>
 
 interface UFieldsRegion<Field, Sort : USort> : UMemoryRegion<UFieldLValue<Field, Sort>, Sort>
 
 internal class UFieldsMemoryRegion<Field, Sort : USort>(
-    private val allocatedFields: UAllocatedFields<Field, Sort> = persistentMapOf(),
+    private val sort: Sort,
+    private val field: Field,
+    private val allocatedFields: PersistentMap<UConcreteHeapAddress, UExpr<Sort>> = persistentMapOf(),
     private var inputFields: UInputFields<Field, Sort>? = null
 ) : UFieldsRegion<Field, Sort> {
 
-    private fun readAllocated(address: UConcreteHeapAddress, field: Field, sort: Sort): UExpr<Sort> {
-        val id = UAllocatedFieldId(field, address, sort)
-        return allocatedFields[id] ?: id.defaultValue
-    }
-
-    private fun updateAllocated(updated: UAllocatedFields<Field, Sort>) =
-        UFieldsMemoryRegion(updated, inputFields)
+    private fun updateAllocated(updated: PersistentMap<UConcreteHeapAddress, UExpr<Sort>>) =
+        UFieldsMemoryRegion(sort, field, updated, inputFields)
 
     private fun getInputFields(ref: UFieldLValue<Field, Sort>): UInputFields<Field, Sort> {
         if (inputFields == null)
@@ -56,11 +53,11 @@ internal class UFieldsMemoryRegion<Field, Sort : USort>(
     }
 
     private fun updateInput(updated: UInputFields<Field, Sort>) =
-        UFieldsMemoryRegion(allocatedFields, updated)
+        UFieldsMemoryRegion(sort, field, allocatedFields, updated)
 
     override fun read(key: UFieldLValue<Field, Sort>): UExpr<Sort> =
         key.ref.map(
-            { concreteRef -> readAllocated(concreteRef.address, key.field, key.sort) },
+            { concreteRef -> allocatedFields[concreteRef.address] ?: sort.sampleUValue() },
             { symbolicRef -> getInputFields(key).read(symbolicRef) }
         )
 
@@ -74,9 +71,8 @@ internal class UFieldsMemoryRegion<Field, Sort : USort>(
             initial = this,
             initialGuard = guard,
             blockOnConcrete = { region, (concreteRef, innerGuard) ->
-                val concreteKey = UAllocatedFieldId(key.field, concreteRef.address, key.sort)
-                val newRegion = region.allocatedFields.guardedWrite(concreteKey, value, innerGuard) {
-                    concreteKey.defaultValue
+                val newRegion = region.allocatedFields.guardedWrite(concreteRef.address, value, innerGuard) {
+                    sort.sampleUValue()
                 }
                 region.updateAllocated(newRegion)
             },
