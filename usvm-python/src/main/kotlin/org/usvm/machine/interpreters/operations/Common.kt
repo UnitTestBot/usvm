@@ -3,6 +3,7 @@ package org.usvm.machine.interpreters.operations
 import org.usvm.api.allocateArrayInitialized
 import org.usvm.api.writeArrayLength
 import org.usvm.interpreter.ConcolicRunContext
+import org.usvm.language.types.ArrayType
 import org.usvm.language.types.ConcretePythonType
 import org.usvm.machine.interpreters.PythonObject
 import org.usvm.language.types.ConcreteTypeNegation
@@ -68,12 +69,14 @@ fun createIterable(
         return null
     val addresses = elements.map { it.address }.asSequence()
     val typeSystem = ctx.typeSystem
+    val arrayType = ArrayType(typeSystem)
     val size = elements.size
     with (ctx.ctx) {
-        val iterableAddress = ctx.curState!!.memory.allocateArrayInitialized(type, addressSort, addresses)
-        ctx.curState!!.memory.writeArrayLength(iterableAddress, mkIntNum(size), type)
+        val iterableAddress = ctx.curState!!.memory.allocateArrayInitialized(arrayType, addressSort, addresses)
+        ctx.curState!!.memory.writeArrayLength(iterableAddress, mkIntNum(size), arrayType)
+        ctx.curState!!.memory.types.allocate(iterableAddress.address, type)
         val result = UninterpretedSymbolicPythonObject(iterableAddress, typeSystem)
-        result.addSupertype(ctx, type)
+        result.addSupertypeSoft(ctx, type)
         return result
     }
 }

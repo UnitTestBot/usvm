@@ -4,6 +4,7 @@ import org.usvm.*
 import org.usvm.api.readArrayIndex
 import org.usvm.api.readArrayLength
 import org.usvm.interpreter.ConcolicRunContext
+import org.usvm.language.types.ArrayType
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.constructTupleIterator
 import org.usvm.machine.symbolicobjects.getTupleIteratorContent
@@ -29,12 +30,13 @@ fun handlerTupleIteratorNextKt(
     if (ctx.curState == null)
         return null
     val typeSystem = ctx.typeSystem
+    val arrayType = ArrayType(typeSystem)
     val (tuple, index) = iterator.getTupleIteratorContent(ctx)
-    val tupleSize = ctx.curState!!.memory.readArrayLength(tuple, typeSystem.pythonTuple)
+    val tupleSize = ctx.curState!!.memory.readArrayLength(tuple, arrayType)
     val indexCond = index lt tupleSize
     if (ctx.curState!!.pyModel.eval(indexCond).isFalse)
         return null
     iterator.increaseTupleIteratorCounter(ctx)
-    val address = ctx.curState!!.memory.readArrayIndex(tuple, index, typeSystem.pythonTuple, addressSort)
+    val address = ctx.curState!!.memory.readArrayIndex(tuple, index, arrayType, addressSort)
     return UninterpretedSymbolicPythonObject(address, typeSystem)
 }
