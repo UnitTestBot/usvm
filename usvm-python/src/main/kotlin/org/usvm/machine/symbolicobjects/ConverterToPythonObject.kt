@@ -19,6 +19,7 @@ class ConverterToPythonObject(
     private val typeSystem: PythonTypeSystem,
     val modelHolder: PyModelHolder
 ) {
+    private val arrayType = ArrayType(typeSystem)
     private val defaultValueProvider = DefaultValueProvider(typeSystem)
     val forcedConcreteTypes = mutableMapOf<UHeapRef, PythonType>()
     private val constructedObjects = mutableMapOf<UHeapRef, PythonObject>()
@@ -89,12 +90,12 @@ class ConverterToPythonObject(
         }
 
     private fun convertList(obj: InterpretedInputSymbolicPythonObject): PythonObject = with(ctx) {
-        val size = obj.modelHolder.model.uModel.readArrayLength(obj.address, typeSystem.pythonList) as KInt32NumExpr
+        val size = obj.modelHolder.model.uModel.readArrayLength(obj.address, arrayType) as KInt32NumExpr
         val resultList = ConcretePythonInterpreter.makeList(emptyList())
         constructedObjects[obj.address] = resultList
         val listOfPythonObjects = List(size.value) { index ->
             val indexExpr = mkSizeExpr(index)
-            val element = obj.modelHolder.model.uModel.readArrayIndex(obj.address, indexExpr, typeSystem.pythonList, addressSort) as UConcreteHeapRef
+            val element = obj.modelHolder.model.uModel.readArrayIndex(obj.address, indexExpr, arrayType, addressSort) as UConcreteHeapRef
             val elemInterpretedObject = InterpretedInputSymbolicPythonObject(element, obj.modelHolder, typeSystem)
             convert(elemInterpretedObject)
         }
