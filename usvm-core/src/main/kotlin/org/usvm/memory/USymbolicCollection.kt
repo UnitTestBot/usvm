@@ -7,7 +7,6 @@ import org.usvm.UComposer
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.USort
-import org.usvm.compose
 import org.usvm.isFalse
 import org.usvm.isTrue
 import org.usvm.uctx
@@ -148,12 +147,12 @@ data class USymbolicCollection<out CollectionId : USymbolicCollectionId<Key, Sor
         }
     }
 
-    fun <Type> applyTo(memory: UWritableMemory<Type>, composer: UComposer<*>) {
+    fun <Type> applyTo(memory: UWritableMemory<Type>, key: Key, composer: UComposer<*>) {
         // Apply each update on the copy
         for (update in updates) {
             val guard = composer.compose(update.guard)
 
-            if (guard.isFalse) {
+            if (guard.isFalse || update.includesSymbolically(key, composer).isFalse) {
                 continue
             }
 
@@ -165,7 +164,9 @@ data class USymbolicCollection<out CollectionId : USymbolicCollectionId<Key, Sor
                     guard
                 )
 
-                is URangedUpdateNode<*, *, Key, Sort> -> update.applyTo(memory, collectionId, composer)
+                is URangedUpdateNode<*, *, Key, Sort> -> {
+                    update.applyTo(memory, collectionId, key, composer)
+                }
             }
         }
     }

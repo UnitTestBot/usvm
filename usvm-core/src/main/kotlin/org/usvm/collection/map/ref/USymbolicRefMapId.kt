@@ -63,7 +63,7 @@ class UAllocatedRefMapWithInputKeysId<MapType, ValueSort : USort>(
         }
 
         val memory = composer.memory.toWritableMemory()
-        collection.applyTo(memory, composer)
+        collection.applyTo(memory, key, composer)
         return memory.read(URefMapEntryLValue(sort, key.uctx.mkConcreteHeapRef(mapAddress), key, mapType))
     }
 
@@ -130,7 +130,7 @@ class UInputRefMapWithAllocatedKeysId<MapType, ValueSort : USort>(
         }
 
         val memory = composer.memory.toWritableMemory()
-        collection.applyTo(memory, composer)
+        collection.applyTo(memory, key, composer)
         return memory.read(URefMapEntryLValue(sort, key, key.uctx.mkConcreteHeapRef(keyAddress), mapType))
     }
 
@@ -191,7 +191,7 @@ class UInputRefMapWithInputKeysId<MapType, ValueSort : USort>(
         }
 
         val memory = composer.memory.toWritableMemory()
-        collection.applyTo(memory, composer)
+        collection.applyTo(memory, key, composer)
         return memory.read(URefMapEntryLValue(sort, key.first, key.second, mapType))
     }
 

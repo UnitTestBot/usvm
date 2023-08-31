@@ -1,6 +1,5 @@
 package org.usvm.collection.map
 
-import io.ksmt.utils.uncheckedCast
 import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
 import org.usvm.UComposer
@@ -40,14 +39,16 @@ abstract class USymbolicMapMergeAdapter<SrcKey, DstKey>(
     override fun toString(collection: USymbolicCollection<*, SrcKey, *>): String =
         "(merge $collection)"
 
+
     override fun <Type> applyTo(
         memory: UWritableMemory<Type>,
         srcCollectionId: USymbolicCollectionId<SrcKey, *, *>,
         dstCollectionId: USymbolicCollectionId<DstKey, *, *>,
         guard: UBoolExpr,
+        srcKey: SrcKey,
         composer: UComposer<*>
     ) {
-        setOfKeys.applyTo(memory, composer)
+        setOfKeys.applyTo(memory, srcKey,  composer)
         TODO()
     }
 
@@ -56,18 +57,6 @@ abstract class USymbolicMapMergeAdapter<SrcKey, DstKey>(
 
     private fun <Reg : Region<Reg>> convertRegion(srcReg: Reg): Reg =
         srcReg // TODO: implement valid region conversion logic
-
-    companion object {
-        private inline fun <KeySort : USort, Key, T> mapKeyType(
-            key: Key,
-            concrete: (UExpr<KeySort>) -> T,
-            symbolic: (USymbolicMapKey<KeySort>) -> T
-        ): T = when (key) {
-            is UExpr<*> -> concrete(key.uncheckedCast())
-            is Pair<*, *> -> symbolic(key.uncheckedCast())
-            else -> error("Unexpected key: $key")
-        }
-    }
 }
 
 class USymbolicMapAllocatedToAllocatedMergeAdapter<KeySort : USort>(

@@ -105,4 +105,5 @@ open class UComposer<Type>(
     override fun transform(expr: UNullRef): UExpr<UAddressSort> = memory.nullRef()
 }
 
-fun <T : USort> UComposer<*>?.compose(expr: UExpr<T>) = this?.apply(expr) ?: expr
+@Suppress("NOTHING_TO_INLINE")
+inline fun <T : USort> UComposer<*>?.compose(expr: UExpr<T>) = this?.apply(expr) ?: expr

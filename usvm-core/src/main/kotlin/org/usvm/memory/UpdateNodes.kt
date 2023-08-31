@@ -216,10 +216,19 @@ class URangedUpdateNode<CollectionId : USymbolicCollectionId<SrcKey, Sort, Colle
     fun applyTo(
         memory: UWritableMemory<*>,
         dstCollectionId: USymbolicCollectionId<DstKey, *, *>,
+        key: DstKey,
         composer: UComposer<*>,
     ) {
-        sourceCollection.applyTo(memory, composer)
-        adapter.applyTo(memory, sourceCollection.collectionId, dstCollectionId, composer.compose(guard), composer)
+        val convertedKey = adapter.convert(key, composer)
+        sourceCollection.applyTo(memory, convertedKey, composer)
+        adapter.applyTo(
+            memory,
+            sourceCollection.collectionId,
+            dstCollectionId,
+            composer.compose(guard),
+            convertedKey,
+            composer
+        )
     }
 
     override fun toString(): String =

@@ -38,7 +38,7 @@ class UInputFieldId<Field, Sort : USort> internal constructor(
         }
 
         val memory = composer.memory.toWritableMemory()
-        collection.applyTo(memory, composer)
+        collection.applyTo(memory, key, composer)
         return memory.read(UFieldLValue(sort, key, field))
     }
 

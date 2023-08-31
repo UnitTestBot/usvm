@@ -10,31 +10,34 @@ import io.ksmt.sort.KBv32Sort
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.spyk
+import io.mockk.verify
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.usvm.api.writeArrayIndex
 import org.usvm.api.writeArrayLength
 import org.usvm.api.writeField
+import org.usvm.collection.array.UAllocatedArrayId
+import org.usvm.collection.array.UAllocatedArrayReading
+import org.usvm.collection.array.UInputArrayId
+import org.usvm.collection.array.UInputArrayReading
+import org.usvm.collection.array.USymbolicArrayIndex
+import org.usvm.collection.array.USymbolicArrayIndexKeyInfo
+import org.usvm.collection.array.USymbolicArrayInputToInputCopyAdapter
+import org.usvm.collection.array.length.UInputArrayLengthId
+import org.usvm.collection.field.UFieldLValue
+import org.usvm.collection.field.UInputFieldId
 import org.usvm.constraints.UTypeEvaluator
+import org.usvm.memory.UFlatUpdates
 import org.usvm.memory.UMemory
 import org.usvm.memory.UPinpointUpdateNode
 import org.usvm.memory.URangedUpdateNode
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.UReadOnlyRegistersStack
-import org.usvm.memory.UUpdateNode
-import org.usvm.memory.UFlatUpdates
 import org.usvm.memory.USymbolicCollection
 import org.usvm.memory.USymbolicCollectionUpdates
-import org.usvm.collection.array.USymbolicArrayInputToInputCopyAdapter
-import org.usvm.collection.array.UAllocatedArrayId
-import org.usvm.collection.array.UAllocatedArrayReading
-import org.usvm.collection.array.UInputArrayId
-import org.usvm.collection.array.UInputArrayReading
-import org.usvm.collection.array.length.UInputArrayLengthId
-import org.usvm.collection.field.UInputFieldId
-import org.usvm.collection.array.USymbolicArrayIndex
-import org.usvm.collection.array.USymbolicArrayIndexKeyInfo
+import org.usvm.memory.UUpdateNode
+import org.usvm.memory.UWritableMemory
 import org.usvm.model.UModelBase
 import org.usvm.model.URegistersStackEagerModel
 import org.usvm.util.SetRegion
@@ -619,5 +622,46 @@ internal class CompositionTest {
 
         val expr = composer.compose(reading)
         assertSame(concreteNull, expr)
+    }
+
+    @Test
+    fun testUpdatesSimplification() = with(ctx) {
+        val composedMemory: UReadOnlyMemory<Type> = mockk()
+
+        val field = mockk<Field>()
+
+        val ref0 = mkRegisterReading(0, addressSort)
+        val ref1 = mkRegisterReading(1, addressSort)
+        val ref2 = mkRegisterReading(2, addressSort)
+
+        val region = UInputFieldId(field, bv32Sort)
+            .emptyRegion()
+            .write(ref0, mkBv(0), trueExpr)
+            .write(ref1, mkBv(1), trueExpr)
+
+        val reading = region.read(ref2)
+
+        val composer = spyk(UComposer(this, composedMemory))
+
+        val writableMemory: UWritableMemory<Type> = mockk()
+
+        every { composer.transform(ref0) } returns mkConcreteHeapRef(-1)
+        every { composer.transform(ref1) } returns ref1
+        every { composer.transform(ref2) } returns ref2
+
+        every { composedMemory.toWritableMemory() } returns writableMemory
+
+        every {
+            val lvalue = UFieldLValue(bv32Sort, ref1, field)
+            writableMemory.write(lvalue, mkBv(1), trueExpr)
+        } returns Unit
+        every {
+            val lvalue = UFieldLValue(bv32Sort, ref2, field)
+            writableMemory.read(lvalue)
+        } returns mkBv(42)
+
+        val composedReading = composer.compose(reading)
+        assertEquals(mkBv(42), composedReading)
+        verify(exactly = 1) { writableMemory.write(any<UFieldLValue<Field, UBv32Sort>>(), any(), any())}
     }
 }

@@ -55,7 +55,7 @@ class UAllocatedArrayId<ArrayType, Sort : USort> internal constructor(
         }
 
         val memory = composer.memory.toWritableMemory()
-        collection.applyTo(memory, composer)
+        collection.applyTo(memory, key, composer)
         return memory.read(UArrayIndexLValue(sort, key.uctx.mkConcreteHeapRef(address), key, arrayType))
     }
 
@@ -134,7 +134,7 @@ class UInputArrayId<ArrayType, Sort : USort> internal constructor(
         }
 
         val memory = composer.memory.toWritableMemory()
-        collection.applyTo(memory, composer)
+        collection.applyTo(memory, key, composer)
         return memory.read(UArrayIndexLValue(sort, key.first, key.second, arrayType))
     }
 

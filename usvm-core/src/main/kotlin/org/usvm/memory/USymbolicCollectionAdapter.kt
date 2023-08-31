@@ -32,6 +32,7 @@ interface USymbolicCollectionAdapter<SrcKey, DstKey> {
         srcCollectionId: USymbolicCollectionId<SrcKey, *, *>,
         dstCollectionId: USymbolicCollectionId<DstKey, *, *>,
         guard: UBoolExpr,
+        srcKey: SrcKey,
         composer: UComposer<*>
     )
 

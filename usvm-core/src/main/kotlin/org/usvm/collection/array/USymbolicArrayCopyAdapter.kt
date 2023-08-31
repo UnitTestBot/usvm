@@ -73,6 +73,7 @@ abstract class USymbolicArrayCopyAdapter<SrcKey, DstKey>(
         srcCollectionId: USymbolicCollectionId<SrcKey, *, *>,
         dstCollectionId: USymbolicCollectionId<DstKey, *, *>,
         guard: UBoolExpr,
+        srcKey: SrcKey,
         composer: UComposer<*>
     )
 
@@ -127,6 +128,7 @@ class USymbolicArrayAllocatedToAllocatedCopyAdapter(
         srcCollectionId: USymbolicCollectionId<USizeExpr, *, *>,
         dstCollectionId: USymbolicCollectionId<USizeExpr, *, *>,
         guard: UBoolExpr,
+        srcKey: USizeExpr,
         composer: UComposer<*>
     ) = with(ctx) {
         check(dstCollectionId is UAllocatedArrayId<*, *>) { "Unexpected collection: $dstCollectionId" }
@@ -163,6 +165,7 @@ class USymbolicArrayAllocatedToInputCopyAdapter(
         srcCollectionId: USymbolicCollectionId<USizeExpr, *, *>,
         dstCollectionId: USymbolicCollectionId<USymbolicArrayIndex, *, *>,
         guard: UBoolExpr,
+        srcKey: USizeExpr,
         composer: UComposer<*>
     ) = with(ctx) {
         check(dstCollectionId is USymbolicArrayId<*, *, *, *>) { "Unexpected collection: $dstCollectionId" }
@@ -199,6 +202,7 @@ class USymbolicArrayInputToAllocatedCopyAdapter(
         srcCollectionId: USymbolicCollectionId<USymbolicArrayIndex, *, *>,
         dstCollectionId: USymbolicCollectionId<USizeExpr, *, *>,
         guard: UBoolExpr,
+        srcKey: USymbolicArrayIndex,
         composer: UComposer<*>
     ) = with(ctx) {
         check(dstCollectionId is UAllocatedArrayId<*, *>) { "Unexpected collection: $dstCollectionId" }
@@ -236,6 +240,7 @@ class USymbolicArrayInputToInputCopyAdapter(
         srcCollectionId: USymbolicCollectionId<USymbolicArrayIndex, *, *>,
         dstCollectionId: USymbolicCollectionId<USymbolicArrayIndex, *, *>,
         guard: UBoolExpr,
+        srcKey: USymbolicArrayIndex,
         composer: UComposer<*>
     ) = with(ctx) {
         check(dstCollectionId is USymbolicArrayId<*, *, *, *>) { "Unexpected collection: $dstCollectionId" }

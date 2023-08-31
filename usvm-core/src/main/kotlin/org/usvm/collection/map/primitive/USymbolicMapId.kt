@@ -69,7 +69,7 @@ class UAllocatedMapId<MapType, KeySort : USort, ValueSort : USort, Reg : Region<
         }
 
         val memory = composer.memory.toWritableMemory()
-        collection.applyTo(memory, composer)
+        collection.applyTo(memory, key, composer)
         return memory.read(UMapEntryLValue(keySort, sort, key.uctx.mkConcreteHeapRef(address), key, mapType, keyInfo))
     }
 
@@ -139,7 +139,7 @@ class UInputMapId<MapType, KeySort : USort, ValueSort : USort, Reg : Region<Reg>
         }
 
         val memory = composer.memory.toWritableMemory()
-        collection.applyTo(memory, composer)
+        collection.applyTo(memory, key, composer)
         return memory.read(UMapEntryLValue(keySort, sort, key.first, key.second, mapType, keyInfo))
     }
 
