@@ -67,42 +67,47 @@ internal fun splitUHeapRef(
 }
 
 /**
- * Traverses the [ref], accumulating guards and applying the [blockOnConcrete] on [UConcreteHeapRef]s and
- * [blockOnSymbolic] on [USymbolicHeapRef]. An argument for the [blockOnSymbolic] is obtained by removing all concrete
- * heap refs from the [ref] if it's ite.
+ * Accumulates value starting with [initial], traversing [ref], accumulating guards and applying the [blockOnConcrete]
+ * on [UConcreteHeapRef]s and [blockOnSymbolic] on [USymbolicHeapRef]. An argument for the [blockOnSymbolic] is
+ * obtained by removing all concrete heap refs from the [ref] if it's ite.
  *
  * @param initialGuard the initial value fot the guard to be passed to [blockOnConcrete] and [blockOnSymbolic].
  * @param ignoreNullRefs if true, then null references will be ignored. It means that all leafs with nulls
  * considered unsatisfiable, so we assume their guards equal to false.
  */
-internal inline fun withHeapRef(
+internal inline fun <R> foldHeapRef(
     ref: UHeapRef,
+    initial: R,
     initialGuard: UBoolExpr,
-    crossinline blockOnConcrete: (GuardedExpr<UConcreteHeapRef>) -> Unit,
-    crossinline blockOnSymbolic: (GuardedExpr<UHeapRef>) -> Unit,
     ignoreNullRefs: Boolean = true,
-) {
+    crossinline blockOnConcrete: (R, GuardedExpr<UConcreteHeapRef>) -> R,
+    crossinline blockOnSymbolic: (R, GuardedExpr<UHeapRef>) -> R,
+): R {
     if (initialGuard.isFalse) {
-        return
+        return initial
     }
 
-    when (ref) {
-        is UConcreteHeapRef -> blockOnConcrete(ref with initialGuard)
+    return when (ref) {
+        is UConcreteHeapRef -> blockOnConcrete(initial, ref with initialGuard)
         is UNullRef -> if (!ignoreNullRefs) {
-            blockOnSymbolic(ref with initialGuard)
+            blockOnSymbolic(initial, ref with initialGuard)
+        } else {
+            initial
         }
-
-        is USymbolicHeapRef -> blockOnSymbolic(ref with initialGuard)
+        is USymbolicHeapRef ->  blockOnSymbolic(initial, ref with initialGuard)
         is UIteExpr<UAddressSort> -> {
-            val (concreteHeapRefs, symbolicHeapRef) = splitUHeapRef(ref, initialGuard, ignoreNullRefs)
+            val (concreteHeapRefs, symbolicHeapRef) = splitUHeapRef(ref, initialGuard)
 
-            symbolicHeapRef?.let { (ref, guard) -> blockOnSymbolic(ref with guard) }
-            concreteHeapRefs.onEach { (ref, guard) -> blockOnConcrete(ref with guard) }
+            var acc = initial
+            symbolicHeapRef?.let { (ref, guard) -> acc = blockOnSymbolic(acc, ref with guard) }
+            concreteHeapRefs.onEach { (ref, guard) -> acc = blockOnConcrete(acc, ref with guard) }
+            acc
         }
 
         else -> error("Unexpected ref: $ref")
     }
 }
+
 
 private const val LEFT_CHILD = 0
 private const val RIGHT_CHILD = 1

@@ -16,7 +16,7 @@ import kotlin.math.min
  * @param getCfgDistanceToExitPoint function with the following signature:
  * (method, stmt) -> shortest CFG distance from stmt to any of method's exit points.
  */
-class ShortestDistanceToTargetsStateWeighter<Method, Statement, State : UState<*, *, Method, Statement, *, State>>(
+class ShortestDistanceToTargetsStateWeighter<Method, Statement, State : UState<*, Method, Statement, *, State>>(
     targets: Collection<Pair<Method, Statement>>,
     private val getCfgDistance: (Method, Statement, Statement) -> UInt,
     private val getCfgDistanceToExitPoint: (Method, Statement) -> UInt

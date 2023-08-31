@@ -19,6 +19,7 @@ import org.jacodb.api.cfg.JcArrayAccess
 import org.jacodb.api.cfg.JcBinaryExpr
 import org.jacodb.api.cfg.JcBool
 import org.jacodb.api.cfg.JcByte
+import org.jacodb.api.cfg.JcCallExpr
 import org.jacodb.api.cfg.JcCastExpr
 import org.jacodb.api.cfg.JcChar
 import org.jacodb.api.cfg.JcClassConstant
@@ -76,27 +77,18 @@ import org.jacodb.api.ext.ifArrayGetElementType
 import org.jacodb.api.ext.int
 import org.jacodb.api.ext.isAssignable
 import org.jacodb.api.ext.long
-import org.jacodb.api.ext.objectClass
 import org.jacodb.api.ext.objectType
 import org.jacodb.api.ext.short
-import org.jacodb.api.ext.void
 import org.jacodb.impl.bytecode.JcFieldImpl
 import org.jacodb.impl.types.FieldInfo
-import org.usvm.UArrayIndexLValue
-import org.usvm.UArrayLengthLValue
-import org.usvm.UBoolExpr
-import org.usvm.UBv32Sort
 import org.usvm.UBvSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
-import org.usvm.UFieldLValue
-import org.usvm.UFpSort
 import org.usvm.UHeapRef
-import org.usvm.ULValue
-import org.usvm.URegisterLValue
 import org.usvm.USizeExpr
 import org.usvm.USizeSort
 import org.usvm.USort
+import org.usvm.api.allocateArrayInitialized
 import org.usvm.isTrue
 import org.usvm.machine.JcContext
 import org.usvm.machine.operator.JcBinaryOperator
@@ -106,9 +98,14 @@ import org.usvm.machine.operator.mkNarrow
 import org.usvm.machine.operator.wideTo32BitsIfNeeded
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
-import org.usvm.machine.state.exitWithValue
 import org.usvm.machine.state.throwExceptionWithoutStackFrameDrop
+import org.usvm.memory.ULValue
+import org.usvm.memory.URegisterStackLValue
+import org.usvm.collection.array.UArrayIndexLValue
+import org.usvm.collection.array.length.UArrayLengthLValue
+import org.usvm.collection.field.UFieldLValue
 import org.usvm.util.extractJcRefType
+import org.usvm.util.write
 
 /**
  * An expression resolver based on JacoDb 3-address code. A result of resolving is `null`, iff
@@ -135,14 +132,6 @@ class JcExprResolver(
             expr.accept(this)
         }
 
-    fun resolveJcNotNullRefExpr(expr: JcExpr, type: JcType): UHeapRef? {
-        check(type is JcRefType) { "Non ref type: $expr" }
-
-        val refExpr = resolveJcExpr(expr, type)?.asExpr(ctx.addressSort) ?: return null
-        checkNullPointer(refExpr) ?: return null
-        return refExpr
-    }
-
     /**
      * Builds a [ULValue] from a [value].
      *
@@ -150,7 +139,7 @@ class JcExprResolver(
      *
      * @see JcStepScope
      */
-    fun resolveLValue(value: JcValue): ULValue? =
+    fun resolveLValue(value: JcValue): ULValue<*, *>? =
         when (value) {
             is JcFieldRef -> resolveFieldRef(value.instance, value.field)
             is JcArrayAccess -> resolveArrayAccess(value.array, value.index)
@@ -299,7 +288,11 @@ class JcExprResolver(
 
             val valuesArrayDescriptor = arrayDescriptorOf(stringValueField.fieldType as JcArrayType)
             val elementType = requireNotNull(stringValueField.fieldType.ifArrayGetElementType)
-            val charArrayRef = memory.malloc(valuesArrayDescriptor, typeToSort(elementType), charValues)
+            val charArrayRef = memory.allocateArrayInitialized(
+                valuesArrayDescriptor,
+                typeToSort(elementType),
+                charValues.uncheckedCast()
+            )
 
             // overwrite array type because descriptor is element type
             memory.types.allocate(charArrayRef.address, stringValueField.fieldType)
@@ -350,7 +343,7 @@ class JcExprResolver(
     override fun visitJcInstanceOfExpr(expr: JcInstanceOfExpr): UExpr<out USort>? = with(ctx) {
         val ref = resolveJcExpr(expr.operand)?.asExpr(addressSort) ?: return null
         scope.calcOnState {
-            val notEqualsNull = mkHeapRefEq(ref, memory.heap.nullRef()).not()
+            val notEqualsNull = mkHeapRefEq(ref, memory.nullRef()).not()
             val isExpr = memory.types.evalIsSubtype(ref, expr.targetType)
             mkAnd(notEqualsNull, isExpr)
         }
@@ -371,8 +364,15 @@ class JcExprResolver(
         val size = resolveCast(expr.dimensions[0], ctx.cp.int)?.asExpr(bv32Sort) ?: return null
         // TODO: other dimensions ( > 1)
         checkNewArrayLength(size) ?: return null
-        val ref = scope.calcOnState { memory.malloc(expr.type, size) }
-        ref
+
+        scope.calcOnState {
+            val ref = memory.alloc(expr.type)
+
+            val arrayDescriptor = arrayDescriptorOf(expr.type as JcArrayType)
+            memory.write(UArrayLengthLValue(ref, arrayDescriptor), size)
+
+            ref
+        }
     }
 
     override fun visitJcNewExpr(expr: JcNewExpr): UExpr<out USort> =
@@ -394,32 +394,26 @@ class JcExprResolver(
         }
 
     override fun visitJcVirtualCallExpr(expr: JcVirtualCallExpr): UExpr<out USort>? =
-        resolveInvoke(
-            expr.method,
-            instanceExpr = expr.instance,
-            argumentExprs = expr::args,
-            argumentTypes = { expr.method.parameters.map { it.type } }
-        ) { arguments ->
-            with(invokeResolver) {
-                resolveVirtualInvoke(
-                    method = expr.method.method,
-                    arguments = arguments,
-                    approximate = { state, method, args ->
-                        approximateVirtualMethod(state, method, args)
-                    }
-                )
+        approximateClassNativeCalls(expr) {
+            resolveInvoke(
+                expr.method,
+                instanceExpr = expr.instance,
+                argumentExprs = expr::args,
+                argumentTypes = { expr.method.parameters.map { it.type } }
+            ) { arguments ->
+                with(invokeResolver) { resolveVirtualInvoke(expr.method.method, arguments) }
             }
         }
 
     override fun visitJcStaticCallExpr(expr: JcStaticCallExpr): UExpr<out USort>? =
-        resolveInvoke(
-            expr.method,
-            instanceExpr = null,
-            argumentExprs = expr::args,
-            argumentTypes = { expr.method.parameters.map { it.type } }
-        ) { arguments ->
-            with(invokeResolver) {
-                approximateStaticMethod(expr.method.method, arguments) {
+        approximateClassNativeCalls(expr) {
+            resolveInvoke(
+                expr.method,
+                instanceExpr = null,
+                argumentExprs = expr::args,
+                argumentTypes = { expr.method.parameters.map { it.type } }
+            ) { arguments ->
+                with(invokeResolver) {
                     resolveStaticInvoke(expr.method.method, arguments)
                 }
             }
@@ -461,10 +455,6 @@ class JcExprResolver(
         if (instanceExpr != null) {
             val instance = resolveJcExpr(instanceExpr)?.asExpr(ctx.addressSort) ?: return null
             checkNullPointer(instance) ?: return null
-
-            // Ensure instance is subtype of method class
-            if (!assertIsSubtype(instance, method.enclosingType)) return null
-
             arguments += instance
         }
 
@@ -549,16 +539,12 @@ class JcExprResolver(
 
     // region lvalue resolving
 
-    private fun resolveFieldRef(instance: JcValue?, field: JcTypedField): ULValue? =
+    private fun resolveFieldRef(instance: JcValue?, field: JcTypedField): ULValue<*, *>? =
         ensureStaticFieldsInitialized(field.enclosingType) {
             with(ctx) {
                 if (instance != null) {
                     val instanceRef = resolveJcExpr(instance)?.asExpr(addressSort) ?: return null
                     checkNullPointer(instanceRef) ?: return null
-
-                    // Ensure instance is subtype of field class
-                    if (!assertIsSubtype(instanceRef, field.enclosingType)) return null
-
                     val sort = ctx.typeToSort(field.fieldType)
                     UFieldLValue(sort, instanceRef, field.field)
                 } else {
@@ -613,22 +599,18 @@ class JcExprResolver(
         scope.doWithState {
             memory.write(initializedFlag, ctx.trueExpr)
         }
-        with(invokeResolver) {
-            approximateStaticMethod(initializer, emptyList()) {
-                scope.resolveStaticInvoke(initializer, emptyList())
-            }
-        }
+        with(invokeResolver) { scope.resolveStaticInvoke(initializer, emptyList()) }
         return null
     }
 
     private fun staticFieldsInitializedFlag(type: JcRefType, classRef: UHeapRef) =
         UFieldLValue(
-            fieldSort = ctx.booleanSort,
+            sort = ctx.booleanSort,
             field = JcFieldImpl(type.jcClass, staticFieldsInitializedFlagField),
             ref = classRef
         )
 
-    private fun resolveArrayAccess(array: JcValue, index: JcValue): UArrayIndexLValue<JcType>? = with(ctx) {
+    private fun resolveArrayAccess(array: JcValue, index: JcValue): UArrayIndexLValue<JcType, *>? = with(ctx) {
         val arrayRef = resolveJcExpr(array)?.asExpr(addressSort) ?: return null
         checkNullPointer(arrayRef) ?: return null
 
@@ -648,11 +630,11 @@ class JcExprResolver(
         return UArrayIndexLValue(cellSort, arrayRef, idx, arrayDescriptor)
     }
 
-    private fun resolveLocal(local: JcLocal): URegisterLValue {
+    private fun resolveLocal(local: JcLocal): URegisterStackLValue<*> {
         val method = requireNotNull(scope.calcOnState { lastEnteredMethod })
         val localIdx = localToIdx(method, local)
         val sort = ctx.typeToSort(local.type)
-        return URegisterLValue(sort, localIdx)
+        return URegisterStackLValue(sort, localIdx)
     }
 
     // endregion
@@ -762,7 +744,6 @@ class JcExprResolver(
         operand: JcExpr,
         type: JcType,
     ) = resolveAfterResolved(operand) { expr ->
-        check(operand.type != ctx.cp.void) { "Unexpected expr of type void: $operand" }
         when (type) {
             is JcRefType -> resolveReferenceCast(expr.asExpr(ctx.addressSort), operand.type as JcRefType, type)
             is JcPrimitiveType -> resolvePrimitiveCast(expr, operand.type as JcPrimitiveType, type)
@@ -860,343 +841,42 @@ class JcExprResolver(
         ctx.extractJcRefType(ClassCastException::class)
     }
 
-    private val arrayStoreExceptionType by lazy {
-        ctx.extractJcRefType(ArrayStoreException::class)
-    }
-
-    private fun approximateVirtualMethod(
-        state: JcState,
-        method: JcMethod,
-        arguments: List<UExpr<out USort>>
+    /**
+     * TODO: use approximations.
+     *
+     * Approximate java.lang.Class methods that usually appears in static initializers.
+     * */
+    private inline fun approximateClassNativeCalls(
+        expr: JcCallExpr,
+        body: () -> UExpr<out USort>?
     ): UExpr<out USort>? {
-        if (method.enclosingClass == ctx.cp.objectClass) {
-            state.approximateObjectVirtualMethod(method, arguments)?.let { return it }
+        if (expr.method.method.enclosingClass != ctx.classType.jcClass) {
+            return body()
         }
 
-        if (method.enclosingClass == ctx.classType.jcClass) {
-            approximateClassVirtualMethod(method)?.let { return it }
-        }
-
-        if (method.enclosingClass.name == "jdk.internal.misc.Unsafe") {
-            state.approximateUnsafeVirtualMethod(method, arguments)?.let { return it }
-        }
-
-        return approximateEmptyNativeMethod(method)
-    }
-
-    private inline fun approximateStaticMethod(
-        method: JcMethod,
-        arguments: List<UExpr<out USort>>,
-        noApproximation: () -> Unit
-    ) {
-        if (method.enclosingClass == ctx.classType.jcClass) {
-            if (approximateClassStaticMethod(method, arguments)) return
-        }
-
-        if (method.enclosingClass.name == "java.lang.System") {
-            if (approximateSystemStaticMethod(method, arguments)) return
-        }
-
-        if (method.enclosingClass.name == "java.lang.StringUTF16") {
-            if (approximateStringUtf16StaticMethod(method)) return
-        }
-
-        if (method.enclosingClass.name == "java.lang.Float") {
-            if (approximateFloatStaticMethod(method, arguments)) return
-        }
-
-        if (method.enclosingClass.name == "java.lang.Double") {
-            if (approximateDoubleStaticMethod(method, arguments)) return
-        }
-
-        val emptyNativeApprox = approximateEmptyNativeMethod(method)
-        if (emptyNativeApprox != null) {
-            scope.doWithState {
-                exitWithValue(method, emptyNativeApprox)
+        return when (expr.method.method.name) {
+            /**
+             * Approximate assertions enabled check.
+             * It is correct to enable assertions during analysis.
+             * */
+            "desiredAssertionStatus" -> {
+                ctx.trueExpr
             }
-            return
-        }
-
-        return noApproximation()
-    }
-
-    private fun approximateEmptyNativeMethod(method: JcMethod): UExpr<out USort>? {
-        if (method.isNative && method.hasVoidReturnType() && method.parameters.isEmpty()) {
-            if (method.enclosingClass.declaration.location.isRuntime) {
-                /**
-                 * Native methods in the standard library with no return value and no
-                 * arguments have no visible effect and can be skipped
-                 * */
-                return ctx.voidValue
-            }
-        }
-
-        return null
-    }
-
-    private fun approximateClassStaticMethod(
-        method: JcMethod,
-        arguments: List<UExpr<out USort>>
-    ): Boolean {
-        /**
-         * Approximate retrieval of class instance for primitives.
-         * */
-        if (method.name == "getPrimitiveClass") {
-            val classNameRef = arguments.single()
-            val predefinedTypeNames = scope.calcOnState {
-                ctx.primitiveTypes.associateBy {
-                    mkStringConstRef(it.typeName, this)
-                }
-            }
-
-            val primitive = predefinedTypeNames[classNameRef] ?: return false
-
-            scope.doWithState {
-                val classRef = resolveClassRef(primitive)
-                exitWithValue(method, classRef)
-            }
-            return true
-        }
-
-        return false
-    }
-
-    private fun approximateClassVirtualMethod(
-        method: JcMethod
-    ): UExpr<out USort>? {
-        /**
-         * Approximate assertions enabled check.
-         * It is correct to enable assertions during analysis.
-         * */
-        if (method.name == "desiredAssertionStatus") {
-            return ctx.trueExpr
-        }
-
-        return null
-    }
-
-    private fun JcState.approximateObjectVirtualMethod(
-        method: JcMethod,
-        arguments: List<UExpr<out USort>>
-    ): UExpr<out USort>? {
-        if (method.name == "getClass") {
-            val instance = arguments.first().asExpr(ctx.addressSort)
-            val possibleTypes = memory.typeStreamOf(instance).take(2)
 
             /**
-             * Since getClass is a virtual method, typeStream has been constrained
-             * to a single concrete type by the [JcInvokeResolver.resolveVirtualInvoke]
+             * Approximate retrieval of class instance for primitives.
              * */
-            val type = possibleTypes.singleOrNull() ?: return null
-            return resolveClassRef(type)
-        }
-
-        return null
-    }
-
-    private fun JcState.approximateUnsafeVirtualMethod(
-        method: JcMethod,
-        arguments: List<UExpr<out USort>>
-    ): UExpr<out USort>? {
-        // Array offset is usually the same on various JVM
-        if (method.name == "arrayBaseOffset0") {
-            return ctx.mkBv(16, ctx.integerSort)
-        }
-
-        if (method.name == "arrayIndexScale0") {
-            val primitiveArrayScale = mapOf(
-                ctx.cp.boolean to 1,
-                ctx.cp.byte to Byte.SIZE_BYTES,
-                ctx.cp.short to Short.SIZE_BYTES,
-                ctx.cp.int to Int.SIZE_BYTES,
-                ctx.cp.long to Long.SIZE_BYTES,
-                ctx.cp.char to Char.SIZE_BYTES,
-                ctx.cp.float to Float.SIZE_BYTES,
-                ctx.cp.double to Double.SIZE_BYTES,
-            )
-            val primitiveArrayRefScale = primitiveArrayScale.mapKeys { (type, _) ->
-                resolveClassRef(ctx.cp.arrayTypeOf(type))
-            }
-
-            val arrayTypeRef = arguments.last().asExpr(ctx.addressSort)
-
-            return primitiveArrayRefScale.entries.fold(
-                // All non-primitive (object) arrays usually have 4 bytes scale on various JVM
-                ctx.mkBv(4, ctx.integerSort) as UExpr<UBv32Sort>
-            ) { res, (typeRef, scale) ->
-                ctx.mkIte(ctx.mkHeapRefEq(arrayTypeRef, typeRef), ctx.mkBv(scale, ctx.integerSort), res)
-            }
-        }
-
-        return null
-    }
-
-    private fun approximateSystemStaticMethod(
-        method: JcMethod,
-        arguments: List<UExpr<out USort>>
-    ): Boolean {
-        if (method.name == "arraycopy") {
-            // Object src, int srcPos, Object dest, int destPos, int length
-            val (srcRef, srcPos, dstRef, dstPos, length) = arguments
-
-            checkNullPointer(srcRef.asExpr(ctx.addressSort)) ?: return true
-            checkNullPointer(dstRef.asExpr(ctx.addressSort)) ?: return true
-
-            val possibleElementTypes = ctx.primitiveTypes + ctx.cp.objectType
-            val possibleArrayTypes = possibleElementTypes.map { ctx.cp.arrayTypeOf(it) }
-
-            val arrayTypeConstraintsWithBlockOnStates = mutableListOf<Pair<UBoolExpr, (JcState) -> Unit>>()
-            possibleArrayTypes.forEach { type ->
-                addArrayCopyForType(
-                    method, arrayTypeConstraintsWithBlockOnStates, type,
-                    srcRef.asExpr(ctx.addressSort), srcPos.asExpr(ctx.sizeSort),
-                    dstRef.asExpr(ctx.addressSort), dstPos.asExpr(ctx.sizeSort),
-                    length.asExpr(ctx.sizeSort)
-                )
-            }
-
-            val arrayTypeConstraints = possibleArrayTypes.map { type ->
+            "getPrimitiveClass" -> {
+                val primitiveNameConst = expr.operands.singleOrNull() as? JcStringConstant ?: return body()
+                val primitive = PredefinedPrimitives.of(primitiveNameConst.value, ctx.cp) ?: return body()
                 scope.calcOnState {
-                    ctx.mkAnd(
-                        memory.types.evalIsSubtype(srcRef.asExpr(ctx.addressSort), type),
-                        memory.types.evalIsSubtype(dstRef.asExpr(ctx.addressSort), type)
-                    )
+                    resolveClassRef(primitive)
                 }
             }
-            val unknownArrayType = ctx.mkAnd(arrayTypeConstraints.map { ctx.mkNot(it) })
-            arrayTypeConstraintsWithBlockOnStates += unknownArrayType to allocateException(arrayStoreExceptionType)
 
-            scope.forkMulti(arrayTypeConstraintsWithBlockOnStates)
-            return true
+            else -> body()
         }
-
-        return false
     }
-
-    private fun addArrayCopyForType(
-        method: JcMethod,
-        branches: MutableList<Pair<UBoolExpr, (JcState) -> Unit>>,
-        type: JcArrayType,
-        srcRef: UHeapRef,
-        srcPos: USizeExpr,
-        dstRef: UHeapRef,
-        dstPos: USizeExpr,
-        length: USizeExpr
-    ) = with(ctx) {
-        val arrayDescriptor = arrayDescriptorOf(type)
-        val elementType = requireNotNull(type.ifArrayGetElementType)
-        val cellSort = typeToSort(elementType)
-
-        val arrayTypeConstraint = scope.calcOnState {
-            mkAnd(
-                memory.types.evalIsSubtype(srcRef.asExpr(addressSort), type),
-                memory.types.evalIsSubtype(dstRef.asExpr(addressSort), type)
-            )
-        }
-
-        val srcLengthRef = UArrayLengthLValue(srcRef, arrayDescriptor)
-        val srcLength = scope.calcOnState { memory.read(srcLengthRef).asExpr(sizeSort) }
-
-        val dstLengthRef = UArrayLengthLValue(dstRef, arrayDescriptor)
-        val dstLength = scope.calcOnState { memory.read(dstLengthRef).asExpr(sizeSort) }
-
-        val indexBoundsCheck = mkAnd(
-            mkBvSignedLessOrEqualExpr(mkBv(0), srcPos),
-            mkBvSignedLessOrEqualExpr(mkBv(0), dstPos),
-            mkBvSignedLessOrEqualExpr(mkBv(0), length),
-            mkBvSignedLessOrEqualExpr(mkBvAddExpr(srcPos, length), srcLength),
-            mkBvSignedLessOrEqualExpr(mkBvAddExpr(dstPos, length), dstLength),
-        )
-
-        val indexOutOfBoundsConstraint = arrayTypeConstraint and indexBoundsCheck.not()
-        branches += indexOutOfBoundsConstraint to allocateException(arrayIndexOutOfBoundsExceptionType)
-
-        val arrayCopySuccessConstraint = arrayTypeConstraint and indexBoundsCheck
-        val arrayCopyBlock = { state: JcState ->
-            state.memory.memcpy(
-                srcRef.asExpr(ctx.addressSort),
-                dstRef.asExpr(ctx.addressSort),
-                arrayDescriptor,
-                cellSort,
-                srcPos.asExpr(ctx.sizeSort),
-                dstPos.asExpr(ctx.sizeSort),
-                length.asExpr(ctx.sizeSort)
-            )
-
-            state.exitWithValue(method, ctx.voidValue)
-        }
-
-        branches += arrayCopySuccessConstraint to arrayCopyBlock
-    }
-
-    private fun approximateStringUtf16StaticMethod(method: JcMethod): Boolean {
-        // Use common property value as approximation
-        if (method.name == "isBigEndian") {
-            scope.doWithState {
-                exitWithValue(method, ctx.falseExpr)
-            }
-            return true
-        }
-        return false
-    }
-
-    private fun approximateFloatStaticMethod(method: JcMethod, arguments: List<UExpr<out USort>>): Boolean {
-        if (method.name == "floatToRawIntBits") {
-            val value = arguments.single().asExpr(ctx.floatSort)
-            val result = ctx.mkFpToIEEEBvExpr(value).asExpr(ctx.integerSort)
-            scope.doWithState {
-                exitWithValue(method, result)
-            }
-            return true
-        }
-
-        if (method.name == "intBitsToFloat") {
-            val value = arguments.single().asExpr(ctx.integerSort)
-            val result = mkFpFromBits(ctx.floatSort, value)
-            scope.doWithState {
-                exitWithValue(method, result)
-            }
-            return true
-        }
-
-        return false
-    }
-
-    private fun approximateDoubleStaticMethod(method: JcMethod, arguments: List<UExpr<out USort>>): Boolean {
-        if (method.name == "doubleToRawLongBits") {
-            val value = arguments.single().asExpr(ctx.doubleSort)
-            val result = ctx.mkFpToIEEEBvExpr(value).asExpr(ctx.longSort)
-            scope.doWithState {
-                exitWithValue(method, result)
-            }
-            return true
-        }
-
-        if (method.name == "longBitsToDouble") {
-            val value = arguments.single().asExpr(ctx.longSort)
-            val result = mkFpFromBits(ctx.doubleSort, value)
-            scope.doWithState {
-                exitWithValue(method, result)
-            }
-            return true
-        }
-
-        return false
-    }
-
-    private fun <Fp : UFpSort> mkFpFromBits(sort: Fp, bits: UExpr<out UBvSort>): UExpr<Fp> = with(ctx) {
-        val exponentBits = sort.exponentBits.toInt()
-        val size = bits.sort.sizeBits.toInt()
-
-        val sign = mkBvExtractExpr(size - 1, size - 1, bits)
-        val exponent = mkBvExtractExpr(size - 2, size - exponentBits - 1, bits)
-        val significand = mkBvExtractExpr(size - exponentBits - 2, 0, bits)
-
-        mkFpFromBvExpr(sign.uncheckedCast(), exponent, significand)
-    }
-
-    private fun JcMethod.hasVoidReturnType(): Boolean =
-        returnType.typeName == ctx.cp.void.typeName
 
     companion object {
         /**

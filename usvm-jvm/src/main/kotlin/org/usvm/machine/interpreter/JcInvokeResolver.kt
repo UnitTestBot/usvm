@@ -8,29 +8,24 @@ import org.jacodb.api.JcType
 import org.jacodb.api.JcTypedMethod
 import org.jacodb.api.ext.findMethodOrNull
 import org.jacodb.api.ext.toType
-import org.jacodb.api.ext.void
 import org.usvm.INITIAL_INPUT_ADDRESS
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.USort
-import org.usvm.logger
+import org.usvm.api.typeStreamOf
 import org.usvm.machine.JcApplicationGraph
 import org.usvm.machine.JcContext
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.addNewMethodCall
-import org.usvm.machine.state.exitWithValue
-import org.usvm.machine.state.skipMethodInvocation
+import org.usvm.machine.state.lastStmt
+import org.usvm.machine.state.newStmt
 import org.usvm.types.first
 
 interface JcInvokeResolver {
     fun JcStepScope.resolveStaticInvoke(method: JcMethod, arguments: List<UExpr<out USort>>)
     fun JcStepScope.resolveLambdaInvoke(method: JcMethod, arguments: List<UExpr<out USort>>)
-    fun JcStepScope.resolveVirtualInvoke(
-        method: JcMethod,
-        arguments: List<UExpr<out USort>>,
-        approximate: (JcState, JcMethod, List<UExpr<out USort>>) -> UExpr<out USort>?
-    )
+    fun JcStepScope.resolveVirtualInvoke(method: JcMethod, arguments: List<UExpr<out USort>>)
     fun JcStepScope.resolveSpecialInvoke(method: JcMethod, arguments: List<UExpr<out USort>>)
     fun JcStepScope.resolveDynamicInvoke(method: JcMethod, arguments: List<UExpr<out USort>>)
 }
@@ -46,15 +41,7 @@ class JcVirtualInvokeResolver(
             return
         }
 
-        doWithState { callMethod(method, arguments) }
-    }
-
-    override fun JcStepScope.resolveSpecialInvoke(method: JcMethod, arguments: List<UExpr<out USort>>) {
-        if (skip(method)) {
-            return
-        }
-
-        doWithState { callMethod(method, arguments) }
+        doWithState { addNewMethodCall(applicationGraph, method, arguments) }
     }
 
     override fun JcStepScope.resolveLambdaInvoke(method: JcMethod, arguments: List<UExpr<out USort>>) {
@@ -62,13 +49,12 @@ class JcVirtualInvokeResolver(
             return
         }
 
-        doWithState { callMethod(method, arguments) }
+        doWithState { addNewMethodCall(applicationGraph, method, arguments) }
     }
 
     override fun JcStepScope.resolveVirtualInvoke(
         method: JcMethod,
         arguments: List<UExpr<out USort>>,
-        approximate: (JcState, JcMethod, List<UExpr<out USort>>) -> UExpr<out USort>?
     ) {
         if (skip(method)) {
             return
@@ -99,7 +85,7 @@ class JcVirtualInvokeResolver(
                     val concreteMethod = type.findMethod(method.name, method.description)
                         ?: error("Can't find method $method in type ${type.typeName}")
 
-                    state.callVirtualMethod(concreteMethod.method, arguments, approximate)
+                    state.addNewMethodCall(applicationGraph, concreteMethod.method, arguments)
                 }
 
                 isExpr to block
@@ -112,14 +98,12 @@ class JcVirtualInvokeResolver(
 
             forkMulti(typeConstraintsWithBlockOnStates)
         } else {
-            val type = calcOnState { memory.typeStreamOf(concreteRef) }.first()
+            val type = calcOnState { memory.typeStreamOf(concreteRef) }.first() as JcClassType
 
             val concreteMethod = type.findMethod(method.name, method.description)
                 ?: error("Can't find method $method in type ${type.typeName}")
 
-            doWithState {
-                callVirtualMethod(concreteMethod.method, arguments, approximate)
-            }
+            doWithState { addNewMethodCall(applicationGraph, concreteMethod.method, arguments) }
         }
     }
 
@@ -146,60 +130,32 @@ class JcVirtualInvokeResolver(
         return null
     }
 
+    override fun JcStepScope.resolveSpecialInvoke(
+        method: JcMethod,
+        arguments: List<UExpr<out USort>>,
+    ) {
+        if (skip(method)) {
+            return
+        }
+
+        doWithState { addNewMethodCall(applicationGraph, method, arguments) }
+    }
+
     override fun JcStepScope.resolveDynamicInvoke(method: JcMethod, arguments: List<UExpr<out USort>>) {
         TODO("Dynamic invoke")
     }
 
     private fun JcStepScope.skip(method: JcMethod): Boolean {
-        if (method.enclosingClass.name == "java.lang.Throwable") {
+        // Skip native method in static initializer
+        if ((method.name == "registerNatives" && method.enclosingClass.name == "java.lang.Class")
+            || (method.enclosingClass.name == "java.lang.Throwable")
+        ) {
             doWithState {
-                skipMethodInvocation(applicationGraph)
+                val nextStmt = applicationGraph.successors(lastStmt).single()
+                newStmt(nextStmt)
             }
             return true
         }
         return false
-    }
-
-    private fun JcState.callVirtualMethod(
-        method: JcMethod,
-        arguments: List<UExpr<out USort>>,
-        approximate: (JcState, JcMethod, List<UExpr<out USort>>) -> UExpr<out USort>?
-    ) {
-        val approximation = approximate(this, method, arguments)
-        if (approximation != null) {
-            exitWithValue(method, approximation)
-            return
-        }
-
-        callMethod(method, arguments)
-    }
-
-    private fun JcState.callMethod(method: JcMethod, arguments: List<UExpr<out USort>>) {
-        if (method.isNative) {
-            mockNativeMethod(method, arguments)
-            return
-        }
-
-        addNewMethodCall(applicationGraph, method, arguments)
-    }
-
-    private fun JcState.mockNativeMethod(method: JcMethod, arguments: List<UExpr<out USort>>) = with(ctx) {
-//        logger.warn { "Mocked: ${method.enclosingClass.name}::${method.name}" }
-
-        val returnType = with(applicationGraph) { method.typed }.returnType
-
-        if (returnType == cp.void) {
-            skipMethodInvocation(applicationGraph)
-            return@with
-        }
-
-        val mockSort = ctx.typeToSort(returnType)
-        val mockValue = memory.mock { call(method, arguments.asSequence(), mockSort) }
-
-        if (mockSort == addressSort) {
-            pathConstraints += memory.types.evalIsSubtype(mockValue.asExpr(addressSort), returnType)
-        }
-
-        exitWithValue(method, mockValue)
     }
 }

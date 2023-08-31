@@ -1,21 +1,23 @@
 package org.usvm.model
 
-import io.ksmt.utils.asExpr
-import org.usvm.UArrayIndexLValue
-import org.usvm.UArrayLengthLValue
+import io.ksmt.utils.uncheckedCast
+import org.usvm.INITIAL_INPUT_ADDRESS
+import org.usvm.UBoolExpr
 import org.usvm.UComposer
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UExpr
-import org.usvm.UFieldLValue
 import org.usvm.UHeapRef
-import org.usvm.ULValue
 import org.usvm.UMockEvaluator
-import org.usvm.URegisterLValue
 import org.usvm.USort
-import org.usvm.memory.UReadOnlySymbolicHeap
-import org.usvm.memory.UReadOnlySymbolicMemory
-import org.usvm.types.UTypeStream
+import org.usvm.memory.ULValue
+import org.usvm.memory.UMemoryRegion
+import org.usvm.memory.UMemoryRegionId
+import org.usvm.memory.UReadOnlyMemoryRegion
+import org.usvm.memory.UReadOnlyRegistersStack
+import org.usvm.memory.URegisterStackId
+import org.usvm.memory.UWritableMemory
+import org.usvm.sampleUValue
 
 interface UModel {
     fun <Sort : USort> eval(expr: UExpr<Sort>): UExpr<Sort>
@@ -29,14 +31,15 @@ interface UModel {
  * If a symbol from an expression not found inside the model, components return the default value
  * of the correct sort.
  */
-open class UModelBase<Field, Type>(
+open class UModelBase<Type>(
     ctx: UContext,
-    val stack: ULazyRegistersStackModel,
-    val heap: UReadOnlySymbolicHeap<Field, Type>,
-    val types: UTypeModel<Type>,
-    val mocks: UMockEvaluator,
-) : UModel, UReadOnlySymbolicMemory<Type> {
-    private val composer = UComposer(ctx, stack, heap, types, mocks)
+    override val stack: UReadOnlyRegistersStack,
+    override val types: UTypeModel<Type>,
+    override val mocker: UMockEvaluator,
+    internal val regions: Map<UMemoryRegionId<*, *>, UReadOnlyMemoryRegion<*, *>>,
+    internal val nullRef: UConcreteHeapRef,
+) : UModel, UWritableMemory<Type> {
+    private val composer = UComposer(ctx, this)
 
     /**
      * The evaluator supports only expressions with symbols inheriting [org.usvm.USymbol].
@@ -47,20 +50,48 @@ open class UModelBase<Field, Type>(
     override fun <Sort : USort> eval(expr: UExpr<Sort>): UExpr<Sort> =
         composer.compose(expr)
 
-    @Suppress("UNCHECKED_CAST")
-    override fun read(lvalue: ULValue): UExpr<out USort> = with(lvalue) {
-        when (this) {
-            is URegisterLValue -> stack.readRegister(idx, sort)
-            is UFieldLValue<*> -> heap.readField(ref, field as Field, sort).asExpr(sort)
-            is UArrayIndexLValue<*> -> heap.readArrayIndex(ref, index, arrayType as Type, sort).asExpr(sort)
-            is UArrayLengthLValue<*> -> heap.readArrayLength(ref, arrayType as Type)
-
-            else -> throw IllegalArgumentException("Unexpected lvalue $this")
+    override fun <Key, Sort : USort> getRegion(regionId: UMemoryRegionId<Key, Sort>): UReadOnlyMemoryRegion<Key, Sort> {
+        if (regionId is URegisterStackId) {
+            return stack.uncheckedCast()
         }
+        return regions[regionId]?.uncheckedCast()
+            ?: DefaultRegion(regionId, eval(regionId.sort.sampleUValue()))
     }
 
-    override fun typeStreamOf(ref: UHeapRef): UTypeStream<Type> {
-        require(ref is UConcreteHeapRef)
-        return types.typeStream(ref)
+    override fun nullRef(): UHeapRef = nullRef
+
+    override fun toWritableMemory(): UWritableMemory<Type> = this
+
+    override fun <Key, Sort : USort> setRegion(
+        regionId: UMemoryRegionId<Key, Sort>,
+        newRegion: UMemoryRegion<Key, Sort>
+    ) {
+        error("Illegal operation for a model")
     }
+
+    override fun <Key, Sort : USort> write(lvalue: ULValue<Key, Sort>, rvalue: UExpr<Sort>, guard: UBoolExpr) {
+        error("Illegal operation for a model")
+    }
+
+    override fun alloc(type: Type): UConcreteHeapRef {
+        error("Illegal operation for a model")
+    }
+
+    private class DefaultRegion<Key, Sort : USort>(
+        private val regionId: UMemoryRegionId<Key, Sort>,
+        private val value: UExpr<Sort>
+    ) : UReadOnlyMemoryRegion<Key, Sort> {
+        override fun read(key: Key): UExpr<Sort> = value
+    }
+}
+
+fun modelEnsureConcreteInputRef(ref: UHeapRef): UConcreteHeapRef? {
+    // All the expressions in the model are interpreted, therefore, they must
+    // have concrete addresses. Moreover, the model knows only about input values
+    // which have addresses less or equal than INITIAL_INPUT_ADDRESS
+    if (ref is UConcreteHeapRef && ref.address <= INITIAL_INPUT_ADDRESS) {
+        return ref
+    }
+
+    return null
 }

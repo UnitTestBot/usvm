@@ -11,13 +11,14 @@ import org.usvm.NULL_ADDRESS
 import org.usvm.UComponents
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
+import org.usvm.api.readField
+import org.usvm.api.typeStreamOf
+import org.usvm.api.writeField
 import org.usvm.constraints.UPathConstraints
 import org.usvm.isFalse
 import org.usvm.isTrue
-import org.usvm.memory.UMemoryBase
-import org.usvm.memory.URegionHeap
-import org.usvm.memory.emptyInputArrayRegion
-import org.usvm.memory.heapRefEq
+import org.usvm.memory.UMemory
+import org.usvm.collection.array.UInputArrayId
 import org.usvm.model.UModelBase
 import org.usvm.model.buildTranslatorAndLazyDecoder
 import org.usvm.solver.TypeSolverQuery
@@ -52,14 +53,14 @@ import kotlin.test.assertTrue
 
 class TypeSolverTest {
     private val typeSystem = testTypeSystem
-    private val components = mockk<UComponents<Field, TestType, Method>>()
+    private val components = mockk<UComponents<TestType>>()
     private val ctx = UContext(components)
-    private val solver: USolverBase<Field, TestType, Method, UContext>
+    private val solver: USolverBase<TestType, UContext>
     private val typeSolver: UTypeSolver<TestType>
 
     init {
-        val (translator, decoder) = buildTranslatorAndLazyDecoder<Field, TestType, Method>(ctx)
-        val softConstraintsProvider = USoftConstraintsProvider<Field, TestType>(ctx)
+        val (translator, decoder) = buildTranslatorAndLazyDecoder<TestType>(ctx)
+        val softConstraintsProvider = USoftConstraintsProvider<TestType>(ctx)
 
         typeSolver = UTypeSolver(typeSystem)
         solver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder, softConstraintsProvider)
@@ -69,7 +70,7 @@ class TypeSolverTest {
     }
 
     private val pc = UPathConstraints<TestType, UContext>(ctx)
-    private val memory = UMemoryBase<Field, TestType, Method>(ctx, pc.typeConstraints)
+    private val memory = UMemory<TestType, Method>(ctx, pc.typeConstraints)
 
     @Test
     fun `Test concrete ref -- open type inheritance`() {
@@ -83,7 +84,7 @@ class TypeSolverTest {
         val ref = mkRegisterReading(0, addressSort)
         pc += mkIsSubtypeExpr(ref, base1)
         pc += mkHeapRefEq(ref, nullRef).not()
-        val model = (solver.check(pc) as USatResult<UModelBase<Field, TestType>>).model
+        val model = (solver.check(pc) as USatResult<UModelBase<TestType>>).model
         val concreteRef = assertIs<UConcreteHeapRef>(model.eval(ref))
         val types = model.typeStreamOf(concreteRef)
         types.take100AndAssertEqualsToSetOf(base1, derived1A, derived1B)
@@ -94,7 +95,7 @@ class TypeSolverTest {
         val ref = mkRegisterReading(0, addressSort)
         pc += mkIsSubtypeExpr(ref, interface1)
         pc += mkHeapRefEq(ref, nullRef).not()
-        val model = (solver.check(pc) as USatResult<UModelBase<Field, TestType>>).model
+        val model = (solver.check(pc) as USatResult<UModelBase<TestType>>).model
         val concreteRef = assertIs<UConcreteHeapRef>(model.eval(ref))
         val types = model.typeStreamOf(concreteRef)
         types.take100AndAssertEqualsToSetOf(derived1A, derivedMulti, derivedMultiInterfaces)
@@ -123,12 +124,12 @@ class TypeSolverTest {
         pc += mkIsSubtypeExpr(ref, base2)
 
         val resultWithoutNullConstraint = solver.check(pc)
-        assertIs<USatResult<UModelBase<Field, TestType>>>(resultWithoutNullConstraint)
+        assertIs<USatResult<UModelBase<TestType>>>(resultWithoutNullConstraint)
 
         pc += mkHeapRefEq(ref, nullRef).not()
 
         val resultWithNullConstraint = solver.check(pc)
-        assertIs<UUnsatResult<UModelBase<Field, TestType>>>(resultWithNullConstraint)
+        assertIs<UUnsatResult<UModelBase<TestType>>>(resultWithNullConstraint)
     }
 
     @Test
@@ -142,13 +143,13 @@ class TypeSolverTest {
         pc += mkHeapRefEq(ref1, nullRef).not()
 
         val resultWithoutEqConstraint = solver.check(pc)
-        val model = assertIs<USatResult<UModelBase<Field, TestType>>>(resultWithoutEqConstraint).model
+        val model = assertIs<USatResult<UModelBase<TestType>>>(resultWithoutEqConstraint).model
         assertNotEquals(model.eval(ref0), model.eval(ref1))
 
         pc += mkHeapRefEq(ref0, ref1)
 
         val resultWithEqConstraint = solver.check(pc)
-        assertIs<UUnsatResult<UModelBase<Field, TestType>>>(resultWithEqConstraint)
+        assertIs<UUnsatResult<UModelBase<TestType>>>(resultWithEqConstraint)
     }
 
     @Test
@@ -165,7 +166,7 @@ class TypeSolverTest {
         pc += mkHeapRefEq(ref2, nullRef).not()
 
         val resultWithoutEqConstraint = solver.check(pc)
-        val model = assertIs<USatResult<UModelBase<Field, TestType>>>(resultWithoutEqConstraint).model
+        val model = assertIs<USatResult<UModelBase<TestType>>>(resultWithoutEqConstraint).model
         assertNotEquals(model.eval(ref0), model.eval(ref1))
 
         pc += mkHeapRefEq(ref0, ref1)
@@ -186,7 +187,7 @@ class TypeSolverTest {
 
         val resultWithoutEqConstraint = solver.check(pc)
         val modelWithoutEqConstraint =
-            assertIs<USatResult<UModelBase<Field, TestType>>>(resultWithoutEqConstraint).model
+            assertIs<USatResult<UModelBase<TestType>>>(resultWithoutEqConstraint).model
 
         val concreteAddress0 = assertIs<UConcreteHeapRef>(modelWithoutEqConstraint.eval(ref0)).address
         val concreteAddress1 = assertIs<UConcreteHeapRef>(modelWithoutEqConstraint.eval(ref1)).address
@@ -197,7 +198,7 @@ class TypeSolverTest {
         pc += mkHeapRefEq(ref0, ref1)
 
         val resultWithEqConstraint = solver.check(pc)
-        val modelWithEqConstraint = assertIs<USatResult<UModelBase<Field, TestType>>>(resultWithEqConstraint).model
+        val modelWithEqConstraint = assertIs<USatResult<UModelBase<TestType>>>(resultWithEqConstraint).model
 
         assertEquals(mkConcreteHeapRef(NULL_ADDRESS), modelWithEqConstraint.eval(ref0))
         assertEquals(mkConcreteHeapRef(NULL_ADDRESS), modelWithEqConstraint.eval(ref1))
@@ -205,7 +206,7 @@ class TypeSolverTest {
         pc += mkHeapRefEq(nullRef, ref0).not()
 
         val resultWithEqAndNotNullConstraint = solver.check(pc)
-        assertIs<UUnsatResult<UModelBase<Field, TestType>>>(resultWithEqAndNotNullConstraint)
+        assertIs<UUnsatResult<UModelBase<TestType>>>(resultWithEqAndNotNullConstraint)
     }
 
     @Test
@@ -229,7 +230,7 @@ class TypeSolverTest {
 
         with(pc.clone()) {
             val result = solver.check(this)
-            assertIs<USatResult<UModelBase<Field, TestType>>>(result)
+            assertIs<USatResult<UModelBase<TestType>>>(result)
 
             val concreteA = result.model.eval(a)
             val concreteB1 = result.model.eval(b1)
@@ -241,7 +242,7 @@ class TypeSolverTest {
         }
 
         with(pc.clone()) {
-            val model = mockk<UModelBase<Field, TestType>> {
+            val model = mockk<UModelBase<TestType>> {
                 every { eval(a) } returns mkConcreteHeapRef(INITIAL_INPUT_ADDRESS)
                 every { eval(b1) } returns mkConcreteHeapRef(INITIAL_INPUT_ADDRESS)
                 every { eval(b2) } returns mkConcreteHeapRef(INITIAL_INPUT_ADDRESS)
@@ -262,7 +263,7 @@ class TypeSolverTest {
         with(pc.clone()) {
             this += mkHeapRefEq(a, c) and mkHeapRefEq(b1, c)
             val result = solver.check(this)
-            assertIs<UUnsatResult<UModelBase<Field, TestType>>>(result)
+            assertIs<UUnsatResult<UModelBase<TestType>>>(result)
         }
     }
 
@@ -280,9 +281,9 @@ class TypeSolverTest {
         pc += (mkHeapRefEq(a, c) or mkHeapRefEq(b, c)) and (!mkHeapRefEq(a, c) or !mkHeapRefEq(b, c)).not()
 
         val resultBeforeNotNullConstraints = solver.check(pc)
-        val model = assertIs<USatResult<UModelBase<Field, TestType>>>(resultBeforeNotNullConstraints).model
+        val model = assertIs<USatResult<UModelBase<TestType>>>(resultBeforeNotNullConstraints).model
 
-        assertIs<USatResult<UModelBase<Field, TestType>>>(resultBeforeNotNullConstraints)
+        assertIs<USatResult<UModelBase<TestType>>>(resultBeforeNotNullConstraints)
 
         val concreteA = assertIs<UConcreteHeapRef>(model.eval(a)).address
         val concreteB = assertIs<UConcreteHeapRef>(model.eval(b)).address
@@ -293,7 +294,7 @@ class TypeSolverTest {
         pc += mkOrNoSimplify(mkHeapRefEq(a, nullRef).not(), falseExpr)
 
         val resultWithNotNullConstraints = solver.check(pc)
-        assertIs<UUnsatResult<UModelBase<Field, TestType>>>(resultWithNotNullConstraints)
+        assertIs<UUnsatResult<UModelBase<TestType>>>(resultWithNotNullConstraints)
     }
 
     @Test
@@ -312,7 +313,7 @@ class TypeSolverTest {
         pc += mkOrNoSimplify(mkHeapRefEq(a, nullRef).not(), falseExpr)
 
         val result = solver.check(pc)
-        val model = assertIs<USatResult<UModelBase<Field, TestType>>>(result).model
+        val model = assertIs<USatResult<UModelBase<TestType>>>(result).model
 
         val concreteA = assertIs<UConcreteHeapRef>(model.eval(a)).address
         val concreteB = assertIs<UConcreteHeapRef>(model.eval(b)).address
@@ -336,12 +337,13 @@ class TypeSolverTest {
         val idx2 = 0.toBv()
 
         val field = mockk<Field>()
-        val heap = URegionHeap<Field, TestType>(ctx)
+        val heap = UMemory<TestType, Any>(ctx, mockk())
 
         heap.writeField(val1, field, bv32Sort, 1.toBv(), trueExpr)
         heap.writeField(val2, field, bv32Sort, 2.toBv(), trueExpr)
 
-        val inputRegion = emptyInputArrayRegion(mockk<TestType>(), addressSort)
+        val inputRegion = UInputArrayId(mockk<TestType>(), addressSort)
+            .emptyRegion()
             .write(arr1 to idx1, val1, trueExpr)
             .write(arr2 to idx2, val2, trueExpr)
 
@@ -372,9 +374,9 @@ class TypeSolverTest {
         val ref = mkRegisterReading(0, addressSort)
 
         pc += mkHeapRefEq(ref, nullRef) or mkIsSubtypeExpr(ref, interfaceAB).not()
-        assertIs<USatResult<UModelBase<Field, TestType>>>(solver.check(pc))
+        assertIs<USatResult<UModelBase<TestType>>>(solver.check(pc))
 
-        pc += heapRefEq(ref, nullRef).not() and (mkIsSubtypeExpr(ref, a) or mkIsSubtypeExpr(ref, b))
+        pc += mkHeapRefEq(ref, nullRef).not() and (mkIsSubtypeExpr(ref, a) or mkIsSubtypeExpr(ref, b))
         assertIs<UUnsatResult<*>>(solver.check(pc))
     }
 
@@ -385,10 +387,10 @@ class TypeSolverTest {
         pc += mkIsSubtypeExpr(ref, a) or mkIsSubtypeExpr(ref, b) or mkIsSubtypeExpr(ref, c)
         pc += mkIsSubtypeExpr(ref, interfaceAB) xor unboundedBoolean
         val result1 = solver.check(pc)
-        assertIs<USatResult<UModelBase<Field, TestType>>>(result1)
+        assertIs<USatResult<UModelBase<TestType>>>(result1)
         pc += unboundedBoolean
         val result2 = solver.check(pc)
-        val model = assertIs<USatResult<UModelBase<Field, TestType>>>(result2).model
+        val model = assertIs<USatResult<UModelBase<TestType>>>(result2).model
         val concreteA = model.eval(ref) as UConcreteHeapRef
         val types = model.typeStreamOf(concreteA)
         types.take100AndAssertEqualsToSetOf(c)
@@ -413,7 +415,7 @@ class TypeSolverTest {
         pc += ref1 neq ref2
 
         val result = solver.check(pc)
-        val model = assertIs<USatResult<UModelBase<Field, TestType>>>(result).model
+        val model = assertIs<USatResult<UModelBase<TestType>>>(result).model
 
         val concreteA = model.eval(ref1)
         val concreteB = model.eval(ref2)
@@ -432,7 +434,7 @@ class TypeSolverTest {
 
         pc += mkIsSupertypeExpr(ref, derived1B)
         pc += mkIsSupertypeExpr(ref, derived1A)
-        val model = assertIs<USatResult<UModelBase<Field, TestType>>>(solver.check(pc)).model
+        val model = assertIs<USatResult<UModelBase<TestType>>>(solver.check(pc)).model
 
         val concreteRef = model.eval(ref) as UConcreteHeapRef
 
@@ -453,7 +455,7 @@ class TypeSolverTest {
 
         pc += mkIte(cond, mkIsSupertypeExpr(ref, derived1B), mkIsSupertypeExpr(ref, derived1A))
         with(pc) {
-            val model = assertIs<USatResult<UModelBase<Field, TestType>>>(solver.check(this)).model
+            val model = assertIs<USatResult<UModelBase<TestType>>>(solver.check(this)).model
 
             val concreteRef = model.eval(ref) as UConcreteHeapRef
             val typeStream = model.typeStreamOf(concreteRef)
@@ -468,7 +470,7 @@ class TypeSolverTest {
         pc += mkIsSupertypeExpr(ref, derived1B).not()
 
         with(pc) {
-            val model = assertIs<USatResult<UModelBase<Field, TestType>>>(solver.check(this)).model
+            val model = assertIs<USatResult<UModelBase<TestType>>>(solver.check(this)).model
 
             val concreteRef = model.eval(ref) as UConcreteHeapRef
             val typeStream = model.typeStreamOf(concreteRef)

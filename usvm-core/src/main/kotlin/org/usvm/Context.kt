@@ -12,17 +12,34 @@ import io.ksmt.utils.DefaultValueSampler
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
 import io.ksmt.utils.uncheckedCast
-import org.usvm.memory.UAllocatedArrayRegion
-import org.usvm.memory.UInputArrayLengthRegion
-import org.usvm.memory.UInputArrayRegion
-import org.usvm.memory.UInputFieldRegion
+import org.usvm.collection.array.UAllocatedArray
+import org.usvm.collection.array.UAllocatedArrayReading
+import org.usvm.collection.array.UInputArray
+import org.usvm.collection.array.UInputArrayReading
+import org.usvm.collection.array.length.UInputArrayLengthReading
+import org.usvm.collection.array.length.UInputArrayLengths
+import org.usvm.collection.field.UInputFieldReading
+import org.usvm.collection.field.UInputFields
+import org.usvm.collection.map.length.UInputMapLengthCollection
+import org.usvm.collection.map.length.UInputMapLengthReading
+import org.usvm.collection.map.primitive.UAllocatedMap
+import org.usvm.collection.map.primitive.UAllocatedMapReading
+import org.usvm.collection.map.primitive.UInputMap
+import org.usvm.collection.map.primitive.UInputMapReading
+import org.usvm.collection.map.ref.UAllocatedRefMapWithInputKeys
+import org.usvm.collection.map.ref.UAllocatedRefMapWithInputKeysReading
+import org.usvm.collection.map.ref.UInputRefMap
+import org.usvm.collection.map.ref.UInputRefMapWithAllocatedKeys
+import org.usvm.collection.map.ref.UInputRefMapWithAllocatedKeysReading
+import org.usvm.collection.map.ref.UInputRefMapWithInputKeysReading
 import org.usvm.memory.splitUHeapRef
 import org.usvm.solver.USolverBase
 import org.usvm.types.UTypeSystem
+import org.usvm.util.Region
 
 @Suppress("LeakingThis")
 open class UContext(
-    components: UComponents<*, *, *>,
+    components: UComponents<*>,
     operationMode: OperationMode = OperationMode.CONCURRENT,
     astManagementMode: AstManagementMode = AstManagementMode.GC,
     simplificationMode: SimplificationMode = SimplificationMode.SIMPLIFY,
@@ -41,8 +58,8 @@ open class UContext(
     }
 
     @Suppress("UNCHECKED_CAST")
-    fun <Field, Type, Method, Context : UContext> solver(): USolverBase<Field, Type, Method, Context> =
-        this.solver as USolverBase<Field, Type, Method, Context>
+    fun <Type, Context : UContext> solver(): USolverBase<Type, Context> =
+        this.solver as USolverBase<Type, Context>
 
     @Suppress("UNCHECKED_CAST")
     fun <Type> typeSystem(): UTypeSystem<Type> =
@@ -102,14 +119,14 @@ open class UContext(
 
                 concreteRefsRhs.forEach { (concreteRefRhs, guardRhs) ->
                     val guardLhs = concreteRefLhsToGuard.getOrDefault(concreteRefRhs.address, falseExpr)
-                    // mkAnd instead of mkAndNoFlat here is OK
+                    // mkAnd instead of mkAnd with flat=false here is OK
                     val conjunct = mkAnd(guardLhs, guardRhs)
                     conjuncts += conjunct
                 }
 
                 if (symbolicRefLhs != null && symbolicRefRhs != null) {
                     val refsEq = super.mkEq(symbolicRefLhs.expr, symbolicRefRhs.expr, order = true)
-                    // mkAnd instead of mkAndNoFlat here is OK
+                    // mkAnd instead of mkAnd with flat=false here is OK
                     val conjunct = mkAnd(symbolicRefLhs.guard, symbolicRefRhs.guard, refsEq)
                     conjuncts += conjunct
                 }
@@ -132,7 +149,7 @@ open class UContext(
     private val inputFieldReadingCache = mkAstInterner<UInputFieldReading<*, out USort>>()
 
     fun <Field, Sort : USort> mkInputFieldReading(
-        region: UInputFieldRegion<Field, Sort>,
+        region: UInputFields<Field, Sort>,
         address: UHeapRef,
     ): UInputFieldReading<Field, Sort> = inputFieldReadingCache.createIfContextActive {
         UInputFieldReading(this, region, address)
@@ -141,7 +158,7 @@ open class UContext(
     private val allocatedArrayReadingCache = mkAstInterner<UAllocatedArrayReading<*, out USort>>()
 
     fun <ArrayType, Sort : USort> mkAllocatedArrayReading(
-        region: UAllocatedArrayRegion<ArrayType, Sort>,
+        region: UAllocatedArray<ArrayType, Sort>,
         index: USizeExpr,
     ): UAllocatedArrayReading<ArrayType, Sort> = allocatedArrayReadingCache.createIfContextActive {
         UAllocatedArrayReading(this, region, index)
@@ -150,7 +167,7 @@ open class UContext(
     private val inputArrayReadingCache = mkAstInterner<UInputArrayReading<*, out USort>>()
 
     fun <ArrayType, Sort : USort> mkInputArrayReading(
-        region: UInputArrayRegion<ArrayType, Sort>,
+        region: UInputArray<ArrayType, Sort>,
         address: UHeapRef,
         index: USizeExpr,
     ): UInputArrayReading<ArrayType, Sort> = inputArrayReadingCache.createIfContextActive {
@@ -160,11 +177,76 @@ open class UContext(
     private val inputArrayLengthReadingCache = mkAstInterner<UInputArrayLengthReading<*>>()
 
     fun <ArrayType> mkInputArrayLengthReading(
-        region: UInputArrayLengthRegion<ArrayType>,
+        region: UInputArrayLengths<ArrayType>,
         address: UHeapRef,
     ): UInputArrayLengthReading<ArrayType> = inputArrayLengthReadingCache.createIfContextActive {
         UInputArrayLengthReading(this, region, address)
     }.cast()
+
+    private val allocatedSymbolicMapReadingCache = mkAstInterner<UAllocatedMapReading<*, *, *, *>>()
+
+    fun <MapType, KeySort : USort, Sort : USort, Reg : Region<Reg>> mkAllocatedMapReading(
+        region: UAllocatedMap<MapType, KeySort, Sort, Reg>,
+        key: UExpr<KeySort>
+    ): UAllocatedMapReading<MapType, KeySort, Sort, Reg> =
+        allocatedSymbolicMapReadingCache.createIfContextActive {
+            UAllocatedMapReading(this, region, key)
+        }.cast()
+
+    private val inputSymbolicMapReadingCache = mkAstInterner<UInputMapReading<*, *, *, *>>()
+
+    fun <MapType, KeySort : USort, Reg : Region<Reg>, Sort : USort> mkInputMapReading(
+        region: UInputMap<MapType, KeySort, Sort, Reg>,
+        address: UHeapRef,
+        key: UExpr<KeySort>
+    ): UInputMapReading<MapType, KeySort, Sort, Reg> =
+        inputSymbolicMapReadingCache.createIfContextActive {
+            UInputMapReading(this, region, address, key)
+        }.cast()
+
+    private val allocatedSymbolicRefMapWithInputKeysReadingCache =
+        mkAstInterner<UAllocatedRefMapWithInputKeysReading<*, *>>()
+
+    fun <MapType, Sort : USort> mkAllocatedRefMapWithInputKeysReading(
+        region: UAllocatedRefMapWithInputKeys<MapType, Sort>,
+        keyRef: UHeapRef
+    ): UAllocatedRefMapWithInputKeysReading<MapType, Sort> =
+        allocatedSymbolicRefMapWithInputKeysReadingCache.createIfContextActive {
+            UAllocatedRefMapWithInputKeysReading(this, region, keyRef)
+        }.cast()
+
+    private val inputSymbolicRefMapWithAllocatedKeysReadingCache =
+        mkAstInterner<UInputRefMapWithAllocatedKeysReading<*, *>>()
+
+    fun <MapType, Sort : USort> mkInputRefMapWithAllocatedKeysReading(
+        region: UInputRefMapWithAllocatedKeys<MapType, Sort>,
+        mapRef: UHeapRef
+    ): UInputRefMapWithAllocatedKeysReading<MapType, Sort> =
+        inputSymbolicRefMapWithAllocatedKeysReadingCache.createIfContextActive {
+            UInputRefMapWithAllocatedKeysReading(this, region, mapRef)
+        }.cast()
+
+    private val inputSymbolicRefMapWithInputKeysReadingCache =
+        mkAstInterner<UInputRefMapWithInputKeysReading<*, *>>()
+
+    fun <MapType, Sort : USort> mkInputRefMapWithInputKeysReading(
+        region: UInputRefMap<MapType, Sort>,
+        mapRef: UHeapRef,
+        keyRef: UHeapRef
+    ): UInputRefMapWithInputKeysReading<MapType, Sort> =
+        inputSymbolicRefMapWithInputKeysReadingCache.createIfContextActive {
+            UInputRefMapWithInputKeysReading(this, region, mapRef, keyRef)
+        }.cast()
+
+    private val inputSymbolicMapLengthReadingCache = mkAstInterner<UInputMapLengthReading<*>>()
+
+    fun <MapType> mkInputMapLengthReading(
+        region: UInputMapLengthCollection<MapType>,
+        address: UHeapRef
+    ): UInputMapLengthReading<MapType> =
+        inputSymbolicMapLengthReadingCache.createIfContextActive {
+            UInputMapLengthReading<MapType>(this, region, address)
+        }.cast()
 
     private val indexedMethodReturnValueCache = mkAstInterner<UIndexedMethodReturnValue<Any, out USort>>()
 
@@ -200,8 +282,8 @@ open class UContext(
     // Type hack to be able to intern the initial location for inheritors.
     private val initialLocation = RootNode<Nothing, Nothing>()
 
-    fun <State : UState<*, *, *, Statement, *, State>, Statement> mkInitialLocation()
-        : PathsTrieNode<State, Statement> = initialLocation.uncheckedCast()
+    fun <State : UState<*, *, Statement, *, State>, Statement> mkInitialLocation()
+            : PathsTrieNode<State, Statement> = initialLocation.uncheckedCast()
 
     fun mkUValueSampler(): KSortVisitor<KExpr<*>> {
         return UValueSampler(this)
@@ -217,6 +299,17 @@ open class UContext(
                 super.visit(sort)
             }
     }
+
+    inline fun <T : KSort> mkIte(
+        condition: KExpr<KBoolSort>,
+        trueBranch: () -> KExpr<T>,
+        falseBranch: () -> KExpr<T>
+    ): KExpr<T> =
+        when (condition) {
+            is UTrue -> trueBranch()
+            is UFalse -> falseBranch()
+            else -> mkIte(condition, trueBranch(), falseBranch())
+        }
 }
 
 

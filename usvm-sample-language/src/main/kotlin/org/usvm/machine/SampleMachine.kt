@@ -4,7 +4,6 @@ import kotlinx.collections.immutable.persistentListOf
 import org.usvm.UContext
 import org.usvm.UMachine
 import org.usvm.UMachineOptions
-import org.usvm.language.Field
 import org.usvm.language.Method
 import org.usvm.language.Program
 import org.usvm.language.SampleType
@@ -29,7 +28,7 @@ class SampleMachine(
     private val typeSystem = SampleTypeSystem()
     private val components = SampleLanguageComponents(typeSystem, options.solverType)
     private val ctx = UContext(components)
-    private val solver = ctx.solver<Field<*>, SampleType, Method<*>, UContext>()
+    private val solver = ctx.solver<SampleType, UContext>()
 
     private val interpreter = SampleInterpreter(ctx, applicationGraph)
     private val resultModelConverter = ResultModelConverter(ctx)

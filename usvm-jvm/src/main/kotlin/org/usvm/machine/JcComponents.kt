@@ -2,9 +2,7 @@ package org.usvm.machine
 
 import io.ksmt.solver.yices.KYicesSolver
 import io.ksmt.solver.z3.KZ3Solver
-import io.ksmt.symfpu.solver.KSymFpuSolver
-import org.jacodb.api.JcField
-import org.jacodb.api.JcMethod
+import io.ksmt.symfpu.solver.SymFpuSolver
 import org.jacodb.api.JcType
 import org.usvm.SolverType
 import org.usvm.UComponents
@@ -17,16 +15,16 @@ import org.usvm.solver.UTypeSolver
 class JcComponents(
     private val typeSystem: JcTypeSystem,
     private val solverType: SolverType
-) : UComponents<JcField, JcType, JcMethod> {
+) : UComponents<JcType> {
     private val closeableResources = mutableListOf<AutoCloseable>()
-    override fun <Context : UContext> mkSolver(ctx: Context): USolverBase<JcField, JcType, JcMethod, Context> {
-        val (translator, decoder) = buildTranslatorAndLazyDecoder<JcField, JcType, JcMethod>(ctx)
-        val softConstraintsProvider = USoftConstraintsProvider<JcField, JcType>(ctx)
+    override fun <Context : UContext> mkSolver(ctx: Context): USolverBase<JcType, Context> {
+        val (translator, decoder) = buildTranslatorAndLazyDecoder<JcType>(ctx)
+        val softConstraintsProvider = USoftConstraintsProvider<JcType>(ctx)
 
         val smtSolver =
             when (solverType) {
                 // Yices with Fp support via SymFpu
-                SolverType.YICES -> KSymFpuSolver(KYicesSolver(ctx), ctx)
+                SolverType.YICES -> SymFpuSolver(KYicesSolver(ctx), ctx)
                 SolverType.Z3 -> KZ3Solver(ctx)
             }
         val typeSolver = UTypeSolver(typeSystem)

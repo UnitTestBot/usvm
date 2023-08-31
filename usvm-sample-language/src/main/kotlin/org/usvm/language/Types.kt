@@ -14,7 +14,7 @@ object BooleanType : PrimitiveType {
 
 sealed interface RefType : SampleType
 
-class StructType(
+data class StructType(
     val struct: Struct
 ) : RefType {
     override fun toString(): String = struct.name
@@ -22,7 +22,7 @@ class StructType(
 
 val Null = Struct("null", emptySet())
 
-class ArrayType<T : SampleType>(
+data class ArrayType<T : SampleType>(
     val elementType: T
 ) : RefType {
     override fun toString(): String = "[]$elementType"
