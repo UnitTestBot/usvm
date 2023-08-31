@@ -1,10 +1,12 @@
 package org.usvm.memory.key
 
 import org.usvm.UBoolExpr
+import org.usvm.UComposer
 import org.usvm.UConcreteSize
 import org.usvm.UContext
 import org.usvm.USizeExpr
 import org.usvm.USizeType
+import org.usvm.compose
 import org.usvm.memory.USymbolicCollectionKeyInfo
 import org.usvm.util.SetRegion
 
@@ -15,6 +17,8 @@ typealias USizeRegion = SetRegion<USizeType>
  * Provides information about numeric values used as symbolic collection keys.
  */
 object USizeExprKeyInfo : USymbolicCollectionKeyInfo<USizeExpr, USizeRegion> {
+    override fun mapKey(key: USizeExpr, composer: UComposer<*>?): USizeExpr = composer.compose(key)
+
     override fun eqSymbolic(ctx: UContext, key1: USizeExpr, key2: USizeExpr): UBoolExpr =
         ctx.mkEq(key1, key2)
 

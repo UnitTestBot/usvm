@@ -4,6 +4,7 @@ import org.usvm.UBoolExpr
 import org.usvm.UComposer
 import org.usvm.UExpr
 import org.usvm.USort
+import org.usvm.compose
 import org.usvm.isTrue
 import org.usvm.uctx
 
@@ -31,7 +32,7 @@ sealed interface UUpdateNode<Key, Sort : USort> {
      * If [includesConcretely] returns true, then this method is obligated to return [UTrue].
      * Returned condition must imply [guard].
      */
-    fun includesSymbolically(key: Key): UBoolExpr
+    fun includesSymbolically(key: Key, composer: UComposer<*>?): UBoolExpr
 
     /**
      * Checks if the value in this [UUpdateNode] indexed by the [key] satisfies the [predicate]. If it does,
@@ -49,28 +50,18 @@ sealed interface UUpdateNode<Key, Sort : USort> {
         predicate: (UExpr<Sort>) -> Boolean,
         matchingWrites: MutableList<GuardedExpr<UExpr<Sort>>>,
         guardBuilder: GuardBuilder,
+        composer: UComposer<*>?,
     ): UUpdateNode<Key, Sort>?
 
     /**
      * @return Value which has been written into the address [key] during this memory write operation.
      */
-    fun value(key: Key): UExpr<Sort>
+    fun value(key: Key, composer: UComposer<*>?): UExpr<Sort>
 
     /**
      * Guard is a symbolic condition for this update. That is, this update is done only in states satisfying this guard.
      */
     val guard: UBoolExpr
-
-    /**
-     * Returns a mapped update node using [keyMapper] and [composer].
-     * It is used in [UComposer] for composition.
-     * For some key, [keyMapper] might return null. Then, this function returns null as well.
-     */
-    fun <Type, MappedKey> map(
-        keyMapper: KeyMapper<Key, MappedKey>,
-        composer: UComposer<Type>,
-        mappedKeyInfo: USymbolicCollectionKeyInfo<MappedKey, *>
-    ): UUpdateNode<MappedKey, Sort>?
 }
 
 /**
@@ -86,29 +77,34 @@ class UPinpointUpdateNode<Key, Sort : USort>(
         this.key == key && (guard == guard.ctx.trueExpr || guard == precondition)
     // in fact, we can check less strict formulae: `precondition -> guard`, but it is too complex to compute.
 
-    override fun includesSymbolically(key: Key): UBoolExpr =
-        guard.ctx.mkAnd(keyInfo.eqSymbolic(guard.uctx, this.key, key), guard)
+    override fun includesSymbolically(key: Key, composer: UComposer<*>?): UBoolExpr =
+        guard.ctx.mkAnd(
+            keyInfo.eqSymbolic(guard.uctx, keyInfo.mapKey(this.key, composer), key),
+            composer.compose(guard)
+        )
 
     override fun isIncludedByUpdateConcretely(
         update: UUpdateNode<Key, Sort>,
     ): Boolean =
         update.includesConcretely(key, guard)
 
-    override fun value(key: Key): UExpr<Sort> = this.value
+    override fun value(key: Key, composer: UComposer<*>?): UExpr<Sort> = composer.compose(value)
 
     override fun split(
         key: Key,
         predicate: (UExpr<Sort>) -> Boolean,
         matchingWrites: MutableList<GuardedExpr<UExpr<Sort>>>,
         guardBuilder: GuardBuilder,
+        composer: UComposer<*>?,
     ): UUpdateNode<Key, Sort>? {
         val ctx = value.ctx
-        val nodeIncludesKey = includesSymbolically(key) // includes guard
+        val nodeIncludesKey = includesSymbolically(key, composer) // includes guard
         val nodeExcludesKey = ctx.mkNot(nodeIncludesKey)
         val guard = guardBuilder.guarded(nodeIncludesKey)
 
-        val res = if (predicate(value)) {
-            matchingWrites += value with guard
+        val transformedValue = composer.compose(value)
+        val res = if (predicate(transformedValue)) {
+            matchingWrites += transformedValue with guard
             null
         } else {
             this
@@ -117,25 +113,6 @@ class UPinpointUpdateNode<Key, Sort : USort>(
         guardBuilder += nodeExcludesKey
 
         return res
-    }
-
-    override fun <Type, MappedKey> map(
-        keyMapper: KeyMapper<Key, MappedKey>,
-        composer: UComposer<Type>,
-        mappedKeyInfo: USymbolicCollectionKeyInfo<MappedKey, *>
-    ): UPinpointUpdateNode<MappedKey, Sort>? {
-        val mappedKey = keyMapper(key) ?: return null
-        val mappedValue = composer.compose(value)
-        val mappedGuard = composer.compose(guard)
-
-        // If nothing changed, return this value
-        if (mappedKey === key && mappedValue === value && mappedGuard === guard) {
-            @Suppress("UNCHECKED_CAST")
-            return this as UPinpointUpdateNode<MappedKey, Sort>
-        }
-
-        // Otherwise, construct a new one update node
-        return UPinpointUpdateNode(mappedKey, mappedKeyInfo, mappedValue, mappedGuard)
     }
 
     override fun equals(other: Any?): Boolean =
@@ -162,28 +139,29 @@ class URangedUpdateNode<CollectionId : USymbolicCollectionId<SrcKey, Sort, Colle
         precondition: UBoolExpr,
     ): Boolean =
         adapter.includesConcretely(key) &&
-                (guard == guard.ctx.trueExpr || precondition == guard) // TODO: some optimizations here?
+            (guard == guard.ctx.trueExpr || precondition == guard) // TODO: some optimizations here?
     // in fact, we can check less strict formulae: precondition _implies_ guard, but this is too complex to compute.
 
 
-    override fun includesSymbolically(key: DstKey): UBoolExpr =
-        guard.ctx.mkAnd(adapter.includesSymbolically(key), guard)
+    override fun includesSymbolically(key: DstKey, composer: UComposer<*>?): UBoolExpr =
+        guard.ctx.mkAnd(adapter.includesSymbolically(key, composer), composer.compose(guard))
 
     override fun isIncludedByUpdateConcretely(
         update: UUpdateNode<DstKey, Sort>,
-    ): Boolean =
-        adapter.isIncludedByUpdateConcretely(update, guard)
+    ): Boolean = adapter.isIncludedByUpdateConcretely(update, guard)
 
-    override fun value(key: DstKey): UExpr<Sort> = sourceCollection.read(adapter.convert(key))
+    override fun value(key: DstKey, composer: UComposer<*>?): UExpr<Sort> =
+        sourceCollection.read(adapter.convert(key, composer), composer)
 
     override fun split(
         key: DstKey,
         predicate: (UExpr<Sort>) -> Boolean,
         matchingWrites: MutableList<GuardedExpr<UExpr<Sort>>>,
         guardBuilder: GuardBuilder,
+        composer: UComposer<*>?,
     ): UUpdateNode<DstKey, Sort> {
         val ctx = guardBuilder.nonMatchingUpdatesGuard.ctx
-        val nodeIncludesKey = includesSymbolically(key) // contains guard
+        val nodeIncludesKey = includesSymbolically(key, composer) // contains guard
         val nodeExcludesKey = ctx.mkNot(nodeIncludesKey)
         val nextGuard = guardBuilder.guarded(nodeIncludesKey)
         val nextGuardBuilder = GuardBuilder(nextGuard)
@@ -199,7 +177,7 @@ class URangedUpdateNode<CollectionId : USymbolicCollectionId<SrcKey, Sort, Colle
          * reg0:           { 1..5 } -> { k1, 0x1 } -> mkArrayConst(nullRef)
          *                     |
          *                     | copy from [this.region]{ 1..5 }
-         *                     | [this.keyConverter] = id
+         *                     | [this.adapter.convert] = id
          *                     |
          * [this.region]: { k2, 0x3 } -> mkArrayConst(nullRef)
          * ```
@@ -213,12 +191,12 @@ class URangedUpdateNode<CollectionId : USymbolicCollectionId<SrcKey, Sort, Colle
          * it's a [nextGuardBuilder].
          */
         val splitCollection =
-            sourceCollection.split(adapter.convert(key), predicate, matchingWrites, nextGuardBuilder) // ???
+            sourceCollection.split(adapter.convert(key, composer), predicate, matchingWrites, nextGuardBuilder, composer) // ???
 
         val resultUpdateNode = if (splitCollection === sourceCollection) {
             this
         } else {
-            URangedUpdateNode(splitCollection, adapter, guard)
+            URangedUpdateNode(splitCollection, adapter, composer.compose(guard))
         }
 
         guardBuilder += nodeExcludesKey
@@ -226,49 +204,34 @@ class URangedUpdateNode<CollectionId : USymbolicCollectionId<SrcKey, Sort, Colle
         return resultUpdateNode
     }
 
-
-    @Suppress("UNCHECKED_CAST")
-    override fun <Type, MappedDstKey> map(
-        keyMapper: KeyMapper<DstKey, MappedDstKey>,
-        composer: UComposer<Type>,
-        mappedKeyInfo: USymbolicCollectionKeyInfo<MappedDstKey, *>
-    ): URangedUpdateNode<*, *, MappedDstKey, Sort>? {
-        val mappedCollectionId = sourceCollection.collectionId.map(composer)
-        val (mappedAdapter, targetCollectionId) = adapter.map(keyMapper, composer, mappedCollectionId, mappedKeyInfo)
-            ?: return null
-        val mappedGuard = composer.compose(guard)
-
-        val mappedCollection = sourceCollection.mapTo(composer, targetCollectionId)
-
-        // If nothing changed, return this
-        if (mappedCollection === sourceCollection
-            && mappedAdapter === adapter
-            && mappedGuard === guard
-        ) {
-            return this as URangedUpdateNode<*, *, MappedDstKey, Sort>
-        }
-
-        // Otherwise, construct a new one updated node
-        return URangedUpdateNode(
-            // Type variables in this cast are incorrect, but who cares...
-            mappedCollection as USymbolicCollection<CollectionId, SrcKey, Sort>,
-            mappedAdapter as USymbolicCollectionAdapter<SrcKey, MappedDstKey>,
-            mappedGuard
-        )
-    }
-
     // Ignores update
     override fun equals(other: Any?): Boolean =
         other is URangedUpdateNode<*, *, *, *> &&
-                this.adapter == other.adapter &&
-                this.guard == other.guard
+            this.adapter == other.adapter &&
+            this.guard == other.guard
 
     // Ignores update
     override fun hashCode(): Int = adapter.hashCode() * 31 + guard.hashCode()
 
-    fun applyTo(memory: UWritableMemory<*>, dstCollectionId: USymbolicCollectionId<DstKey, *, *>) {
-        sourceCollection.applyTo(memory)
-        adapter.applyTo(memory, sourceCollection.collectionId, dstCollectionId, guard)
+    /**
+     * Applies this update node to the [memory] with applying composition via [composer].
+     */
+    fun applyTo(
+        memory: UWritableMemory<*>,
+        dstCollectionId: USymbolicCollectionId<DstKey, *, *>,
+        key: DstKey,
+        composer: UComposer<*>,
+    ) {
+        val convertedKey = adapter.convert(key, composer)
+        sourceCollection.applyTo(memory, convertedKey, composer)
+        adapter.applyTo(
+            memory,
+            sourceCollection.collectionId,
+            dstCollectionId,
+            composer.compose(guard),
+            convertedKey,
+            composer
+        )
     }
 
     override fun toString(): String =

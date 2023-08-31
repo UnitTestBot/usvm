@@ -1,6 +1,7 @@
 package org.usvm.collection.array
 
 import org.usvm.UBoolExpr
+import org.usvm.UComposer
 import org.usvm.UContext
 import org.usvm.UHeapRef
 import org.usvm.USizeExpr
@@ -21,6 +22,9 @@ typealias USymbolicArrayIndexRegion = ProductRegion<UHeapRefRegion, USizeRegion>
  * Provides information about keys of input arrays.
  */
 object USymbolicArrayIndexKeyInfo: USymbolicCollectionKeyInfo<USymbolicArrayIndex, USymbolicArrayIndexRegion> {
+    override fun mapKey(key: USymbolicArrayIndex, composer: UComposer<*>?): USymbolicArrayIndex =
+        UHeapRefKeyInfo.mapKey(key.first, composer) to USizeExprKeyInfo.mapKey(key.second, composer)
+
     override fun eqSymbolic(ctx: UContext, key1: USymbolicArrayIndex, key2: USymbolicArrayIndex): UBoolExpr =
         with(ctx) {
             UHeapRefKeyInfo.eqSymbolic(ctx, key1.first, key2.first) and

@@ -89,7 +89,7 @@ class UpdatesIteratorTest {
 
         elements.zip(expectedValues).forEach { (pinpointUpdate, expectedKeyWithValue) ->
             val key = (pinpointUpdate as UPinpointUpdateNode<Key, ValueSort>).key
-            val value = pinpointUpdate.value(key)
+            val value = pinpointUpdate.value(key, composer = null)
 
             assertTrue { key == expectedKeyWithValue.first && value == expectedKeyWithValue.second }
         }

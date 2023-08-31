@@ -26,24 +26,24 @@ class UMapLengthRegionDecoder<MapType>(
     private val exprTranslator: UExprTranslator<*>
 ) : URegionDecoder<UMapLengthLValue<MapType>, USizeSort> {
 
-    private var inputTranslator: UInputMapLengthRegionTranslator<MapType>? = null
+    private var inputRegionTranslator: UInputMapLengthRegionTranslator<MapType>? = null
 
     fun inputMapLengthRegionTranslator(
         collectionId: UInputMapLengthId<MapType>
     ): URegionTranslator<UInputMapLengthId<MapType>, UHeapRef, USizeSort> {
-        if (inputTranslator == null) {
+        if (inputRegionTranslator == null) {
             check(collectionId.mapType == regionId.mapType && collectionId.sort == regionId.sort) {
                 "Unexpected collection: $collectionId"
             }
-            inputTranslator = UInputMapLengthRegionTranslator(collectionId, exprTranslator)
+            inputRegionTranslator = UInputMapLengthRegionTranslator(collectionId, exprTranslator)
         }
-        return inputTranslator!!
+        return inputRegionTranslator!!
     }
 
     override fun decodeLazyRegion(
         model: KModel,
         mapping: Map<UHeapRef, UConcreteHeapRef>
-    ) = UMapLengthLazyModelRegion(regionId, model, mapping, inputTranslator)
+    ) = inputRegionTranslator?.let { UMapLengthLazyModelRegion(regionId, model, mapping, it) }
 }
 
 private class UInputMapLengthRegionTranslator<MapType>(

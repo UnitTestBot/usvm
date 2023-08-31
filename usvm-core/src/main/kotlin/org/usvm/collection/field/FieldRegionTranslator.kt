@@ -43,7 +43,7 @@ class UFieldRegionDecoder<Field, Sort : USort>(
     override fun decodeLazyRegion(
         model: KModel,
         mapping: Map<UHeapRef, UConcreteHeapRef>
-    ) = UFieldsLazyModelRegion(regionId, model, mapping, inputRegionTranslator)
+    ) = inputRegionTranslator?.let { UFieldsLazyModelRegion(regionId, model, mapping, it) }
 }
 
 private class UInputFieldRegionTranslator<Field, Sort : USort>(

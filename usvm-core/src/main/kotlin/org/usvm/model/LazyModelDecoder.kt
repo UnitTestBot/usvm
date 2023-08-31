@@ -11,6 +11,8 @@ import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.solver.UExprTranslator
 import org.usvm.UMockEvaluator
+import org.usvm.memory.UMemoryRegionId
+import org.usvm.memory.UReadOnlyMemoryRegion
 
 interface UModelDecoder<Model> {
     fun decode(model: KModel): Model
@@ -117,8 +119,13 @@ open class ULazyModelDecoder<Type>(
     private fun decodeHeap(
         model: KModel,
         addressesMapping: AddressesMapping,
-    ) = translator.regionIdToDecoder.mapValues { (_, decoder) ->
-        decoder.decodeLazyRegion(model, addressesMapping)
+    ): Map<UMemoryRegionId<*, *>, UReadOnlyMemoryRegion<*, *>> {
+        val result = mutableMapOf<UMemoryRegionId<*, *>, UReadOnlyMemoryRegion<*, *>>()
+        for ((regionId, decoder) in translator.regionIdToDecoder) {
+            val modelRegion = decoder.decodeLazyRegion(model, addressesMapping) ?: continue
+            result[regionId] = modelRegion
+        }
+        return result
     }
 
     private fun decodeMocker(
