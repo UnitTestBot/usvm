@@ -5,6 +5,7 @@ import org.usvm.*
 import org.usvm.api.readArrayIndex
 import org.usvm.api.readArrayLength
 import org.usvm.interpreter.ConcolicRunContext
+import org.usvm.language.types.ArrayType
 import org.usvm.machine.utils.PyModelHolder
 import org.usvm.machine.interpreters.operations.myAssert
 
@@ -24,14 +25,15 @@ class ObjectValidator(private val concolicRunContext: ConcolicRunContext) {
 
     private fun checkList(symbolic: UninterpretedSymbolicPythonObject, modelHolder: PyModelHolder) = with(concolicRunContext.ctx) {
         require(concolicRunContext.curState != null)
-        val symbolicSize = concolicRunContext.curState!!.memory.readArrayLength(symbolic.address, typeSystem.pythonList)
+        val arrayType = ArrayType(concolicRunContext.typeSystem)
+        val symbolicSize = concolicRunContext.curState!!.memory.readArrayLength(symbolic.address, arrayType)
         myAssert(concolicRunContext, symbolicSize ge mkIntNum(0))
         val size = modelHolder.model.eval(symbolicSize) as KInt32NumExpr
         List(size.value) { index ->
             val element = concolicRunContext.curState!!.memory.readArrayIndex(
                 symbolic.address,
                 mkSizeExpr(index),
-                typeSystem.pythonList,
+                arrayType,
                 addressSort
             )
             val elemObj = UninterpretedSymbolicPythonObject(element, typeSystem)
