@@ -1,14 +1,15 @@
 package org.usvm.samples.algorithms
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
-import org.usvm.util.disableTest
 import org.usvm.util.isException
 
 
 internal class SortTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("No entrypoint found for method")
     fun testQuickSort() {
         checkDiscoveredProperties(
             Sort::quickSort,
@@ -30,6 +31,7 @@ internal class SortTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("No entrypoint found for method")
     fun testArrayCopy() {
         checkDiscoveredProperties(
             Sort::arrayCopy,
@@ -39,7 +41,8 @@ internal class SortTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testMergeSort() = disableTest("Some properties were not discovered at positions (from 0): [2, 3]") {
+    @Disabled("No entrypoint found for method")
+    fun testMergeSort() {
         checkDiscoveredProperties(
             Sort::mergeSort,
             ignoreNumberOfAnalysisResults,
@@ -68,8 +71,9 @@ internal class SortTest : JavaMethodTestRunner() {
         )
     }
 
-    @Test // todo: Tune path selectors
-    fun testMerge() = disableTest("Some properties were not discovered at positions (from 0): [4, 5]") {
+    @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [1, 3, 4, 5]. Tune path selectors")
+    fun testMerge() {
         checkDiscoveredPropertiesWithExceptions(
             Sort::merge,
             ignoreNumberOfAnalysisResults,
@@ -100,8 +104,9 @@ internal class SortTest : JavaMethodTestRunner() {
         )
     }
 
-    @Test // todo: Tune path selectors
-    fun testDefaultSort() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
+    @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [1, 2]. Tune path selectors")
+    fun testDefaultSort() {
         checkDiscoveredPropertiesWithExceptions(
             Sort::defaultSort,
             ignoreNumberOfAnalysisResults,

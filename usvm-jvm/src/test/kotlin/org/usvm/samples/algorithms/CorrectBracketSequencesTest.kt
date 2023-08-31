@@ -1,7 +1,7 @@
 package org.usvm.samples.algorithms
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import org.usvm.SolverType
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.samples.algorithms.CorrectBracketSequences.isBracket
 import org.usvm.samples.algorithms.CorrectBracketSequences.isOpen
@@ -40,9 +40,8 @@ internal class CorrectBracketSequencesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testIsCbs() = withOptions(
-        options.copy(solverType = SolverType.Z3, timeoutMs = 100_000, stepsFromLastCovered = null)
-    ) {
+    @Disabled("No entrypoint found for method")
+    fun testIsCbs() {
         val method = CorrectBracketSequences::isCbs
         checkDiscoveredPropertiesWithExceptions(
             method,

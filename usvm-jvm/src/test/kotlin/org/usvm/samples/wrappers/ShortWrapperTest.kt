@@ -1,14 +1,15 @@
 package org.usvm.samples.wrappers
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
-import org.usvm.util.disableTest
 
 
 internal class ShortWrapperTest : JavaMethodTestRunner() {
     @Test
-    fun primitiveToWrapperTest() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
+    @Disabled("java.lang.ShortCache has native calls")
+    fun primitiveToWrapperTest() {
         checkDiscoveredProperties(
             ShortWrapper::primitiveToWrapper,
             eq(2),
@@ -28,8 +29,9 @@ internal class ShortWrapperTest : JavaMethodTestRunner() {
         )
     }
 
+    @Disabled("Caching short values between -128 and 127 isn't supported JIRA:1481")
     @Test
-    fun equalityTest() = disableTest("Some properties were not discovered at positions (from 0): [0, 1, 2]") {
+    fun equalityTest() {
         checkDiscoveredProperties(
             ShortWrapper::equality,
             eq(3),

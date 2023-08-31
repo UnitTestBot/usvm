@@ -1,14 +1,15 @@
 package org.usvm.samples.wrappers
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
-import org.usvm.util.disableTest
 
 
 internal class ByteWrapperTest : JavaMethodTestRunner() {
     @Test
-    fun primitiveToWrapperTest() = disableTest("Some properties were not discovered at positions (from 0): [0, 1]") {
+    @Disabled("java.lang.ByteCache has native calls")
+    fun primitiveToWrapperTest() {
         checkDiscoveredProperties(
             ByteWrapper::primitiveToWrapper,
             eq(2),
@@ -29,7 +30,8 @@ internal class ByteWrapperTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun equalityTest() = disableTest("Some properties were not discovered at positions (from 0): [0, 1]") {
+    @Disabled("java.lang.ByteCache has native calls")
+    fun equalityTest() {
         checkDiscoveredProperties(
             ByteWrapper::equality,
             eq(2),

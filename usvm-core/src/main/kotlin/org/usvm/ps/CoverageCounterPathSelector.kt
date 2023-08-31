@@ -5,7 +5,7 @@ import org.usvm.UPathSelector
 import org.usvm.UState
 import org.usvm.statistics.CoverageStatistics
 
-class CoverageCounterPathSelector <Method, State : UState<*, *, Method, *, *, State>>(
+class CoverageCounterPathSelector <Method, State : UState<*, Method, *, *, State>>(
     private val selector: UPathSelector<State>,
     private val coverageStatistics: CoverageStatistics<Method, *, State>,
     method: Method

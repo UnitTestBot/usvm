@@ -1,9 +1,9 @@
 package org.usvm.samples.threads
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
-import org.usvm.util.disableTest
 import org.usvm.util.isException
 
 
@@ -11,7 +11,8 @@ import org.usvm.util.isException
 // and should not be used for testing conrete or code generation since they are possibly flaky in the concrete execution
 class ThreadExamplesTest : JavaMethodTestRunner() {
     @Test
-    fun testExceptionInStart() = disableTest("Support invokedynamic") {
+    @Disabled("Support invokedynamic")
+    fun testExceptionInStart() {
         checkDiscoveredPropertiesWithExceptions(
             ThreadExamples::explicitExceptionInStart,
             ignoreNumberOfAnalysisResults,
@@ -20,7 +21,8 @@ class ThreadExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testChangingCollectionInThread() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
+    @Disabled("class org.jacodb.api.PredefinedPrimitive cannot be cast to class org.jacodb.api.JcRefType")
+    fun testChangingCollectionInThread() {
         checkDiscoveredProperties(
             ThreadExamples::changingCollectionInThread,
             ignoreNumberOfAnalysisResults,
@@ -29,7 +31,8 @@ class ThreadExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testChangingCollectionInThreadWithoutStart() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
+    @Disabled("class org.jacodb.api.PredefinedPrimitive cannot be cast to class org.jacodb.api.JcRefType")
+    fun testChangingCollectionInThreadWithoutStart() {
         checkDiscoveredPropertiesWithExceptions(
             ThreadExamples::changingCollectionInThreadWithoutStart,
             ignoreNumberOfAnalysisResults,

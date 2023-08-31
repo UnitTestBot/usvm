@@ -1,14 +1,15 @@
 package org.usvm.samples.lambda
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
-import org.usvm.util.disableTest
 import org.usvm.util.isException
 
 class SimpleLambdaExamplesTest : JavaMethodTestRunner() {
     @Test
-    fun testBiFunctionLambdaExample() = disableTest("Some properties were not discovered at positions (from 0): [0, 1]") {
+    @Disabled("class org.jacodb.api.PredefinedPrimitive cannot be cast to class org.jacodb.api.JcRefType")
+    fun testBiFunctionLambdaExample() {
         checkDiscoveredPropertiesWithExceptions(
             SimpleLambdaExamples::biFunctionLambdaExample,
             eq(2),
@@ -18,7 +19,8 @@ class SimpleLambdaExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testChoosePredicate() = disableTest("Index 1 out of bounds for length 1 | URegistersStack.writeRegister") {
+    @Disabled("class org.jacodb.api.PredefinedPrimitive cannot be cast to class org.jacodb.api.JcRefType")
+    fun testChoosePredicate() {
         checkDiscoveredProperties(
             SimpleLambdaExamples::choosePredicate,
             eq(2),

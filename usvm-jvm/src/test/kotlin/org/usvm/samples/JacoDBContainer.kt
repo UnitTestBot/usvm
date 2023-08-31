@@ -38,9 +38,7 @@ class JacoDBContainer(
         ): JacoDBContainer =
             keyToJacoDBContainer.getOrPut(key) { JacoDBContainer(classpath, builder) }
 
-        private val samplesClasspath = allClasspath.filter { it.name.contains("samples") }.ifEmpty {
-            listOf(File("../Game_env/usvm-jvm/build/classes/java/samples"), File("../Game_env/usvm-jvm/build/classes/kotlin/samples"))
-        }
+        private val samplesClasspath = allClasspath.filter { it.name.contains("samples") }
 
         private val defaultBuilder: JcSettings.() -> Unit = {
             useProcessJavaRuntime()

@@ -2,13 +2,14 @@
 
 package org.usvm.samples.invokes
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
-import org.usvm.util.disableTest
 import org.usvm.util.isException
 import java.lang.Boolean
 
+@Disabled("An operation is not implemented: Not yet implemented")
 internal class VirtualInvokeExampleTest : JavaMethodTestRunner() {
     @Test
     fun testSimpleVirtualInvoke() {
@@ -22,7 +23,8 @@ internal class VirtualInvokeExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testVirtualNative() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
+    @Disabled("An operation is not implemented: Not yet implemented. Support class constants")
+    fun testVirtualNative() {
         checkDiscoveredProperties(
             VirtualInvokeExample::virtualNative,
             eq(1),
@@ -31,6 +33,7 @@ internal class VirtualInvokeExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented: Not yet implemented. Support class constants")
     fun testGetSigners() {
         checkDiscoveredProperties(
             VirtualInvokeExample::virtualNativeArray,
@@ -117,7 +120,8 @@ internal class VirtualInvokeExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testNullValueInReturnValue() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
+    @Disabled("An operation is not implemented: Not yet implemented. Support strings/integer approximations")
+    fun testNullValueInReturnValue() {
         checkDiscoveredProperties(
             VirtualInvokeExample::nullValueInReturnValue,
             eq(3),

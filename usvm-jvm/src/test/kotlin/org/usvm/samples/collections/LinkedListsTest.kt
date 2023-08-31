@@ -1,15 +1,17 @@
 package org.usvm.samples.collections
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
+
 import org.usvm.test.util.checkers.eq
-import org.usvm.util.disableTest
 import org.usvm.util.isException
 
+@Disabled("Unsupported")
 internal class LinkedListsTest : JavaMethodTestRunner() {
 
     @Test
-    fun testSet() = disableTest("Some properties were not discovered at positions (from 0): [0, 2]") {
+    fun testSet() {
         checkDiscoveredProperties(
             LinkedLists::set,
             eq(3),
@@ -20,7 +22,7 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testOffer() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
+    fun testOffer() {
         checkDiscoveredProperties(
             LinkedLists::offer,
             eq(3),
@@ -31,7 +33,7 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testOfferLast() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
+    fun testOfferLast() {
         checkDiscoveredProperties(
             LinkedLists::offerLast,
             eq(3),
@@ -43,7 +45,7 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
 
 
     @Test
-    fun testAddLast() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
+    fun testAddLast() {
         checkDiscoveredProperties(
             LinkedLists::addLast,
             eq(3),
@@ -54,7 +56,7 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testPush() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
+    fun testPush() {
         checkDiscoveredProperties(
             LinkedLists::push,
             eq(3),
@@ -65,7 +67,7 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testOfferFirst() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
+    fun testOfferFirst() {
         checkDiscoveredProperties(
             LinkedLists::offerFirst,
             eq(3),
@@ -76,7 +78,7 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testAddFirst() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
+    fun testAddFirst() {
         checkDiscoveredProperties(
             LinkedLists::addFirst,
             eq(3),
@@ -87,7 +89,7 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testPeek() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
+    fun testPeek() {
         checkDiscoveredPropertiesWithExceptions(
             LinkedLists::peek,
             eq(3),
@@ -98,7 +100,7 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testPeekFirst() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
+    fun testPeekFirst() {
         checkDiscoveredPropertiesWithExceptions(
             LinkedLists::peekFirst,
             eq(3),
@@ -109,7 +111,7 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testPeekLast() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
+    fun testPeekLast() {
         checkDiscoveredPropertiesWithExceptions(
             LinkedLists::peekLast,
             eq(3),
@@ -120,7 +122,7 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testElement() = disableTest("Some properties were not discovered at positions (from 0): [2, 3]") {
+    fun testElement() {
         checkDiscoveredPropertiesWithExceptions(
             LinkedLists::element,
             eq(4),
@@ -132,7 +134,7 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testGetFirst() = disableTest("Some properties were not discovered at positions (from 0): [2, 3]") {
+    fun testGetFirst() {
         checkDiscoveredPropertiesWithExceptions(
             LinkedLists::getFirst,
             eq(4),
@@ -144,7 +146,7 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testGetLast() = disableTest("Some properties were not discovered at positions (from 0): [2, 3]") {
+    fun testGetLast() {
         checkDiscoveredPropertiesWithExceptions(
             LinkedLists::getLast,
             eq(4),
@@ -156,7 +158,7 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testPoll() = disableTest("Some properties were not discovered at positions (from 0): [2, 4]") {
+    fun testPoll() {
         checkDiscoveredPropertiesWithExceptions(
             LinkedLists::poll,
             eq(5),
@@ -169,7 +171,7 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testPollFirst() = disableTest("Some properties were not discovered at positions (from 0): [2, 4]") {
+    fun testPollFirst() {
         checkDiscoveredPropertiesWithExceptions(
             LinkedLists::pollFirst,
             eq(5),
@@ -182,7 +184,7 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testPollLast() = disableTest("Some properties were not discovered at positions (from 0): [2, 4]") {
+    fun testPollLast() {
         checkDiscoveredPropertiesWithExceptions(
             LinkedLists::pollLast,
             eq(5),
@@ -195,7 +197,7 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testRemove() = disableTest("Some properties were not discovered at positions (from 0): [2, 4]") {
+    fun testRemove() {
         checkDiscoveredPropertiesWithExceptions(
             LinkedLists::removeFirst,
             eq(5),
@@ -208,7 +210,7 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testRemoveFirst() = disableTest("Some properties were not discovered at positions (from 0): [2, 4]") {
+    fun testRemoveFirst() {
         checkDiscoveredPropertiesWithExceptions(
             LinkedLists::removeFirst,
             eq(5),
@@ -221,7 +223,7 @@ internal class LinkedListsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testRemoveLast() = disableTest("Some properties were not discovered at positions (from 0): [2, 4]") {
+    fun testRemoveLast() {
         checkDiscoveredPropertiesWithExceptions(
             LinkedLists::removeLast,
             eq(5),

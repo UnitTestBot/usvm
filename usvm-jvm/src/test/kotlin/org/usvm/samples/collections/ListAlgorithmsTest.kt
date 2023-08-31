@@ -1,15 +1,16 @@
 package org.usvm.samples.collections
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
-import org.usvm.util.disableTest
 
 
+@Disabled("Unsupported")
 class ListAlgorithmsTest : JavaMethodTestRunner() {
 
     @Test
-    fun testMergeLists() = disableTest("java.lang.OutOfMemoryError: Java heap space | USupportTypeStream") {
+    fun testMergeLists() {
         checkDiscoveredProperties(
             ListAlgorithms::mergeListsInplace,
             eq(4),

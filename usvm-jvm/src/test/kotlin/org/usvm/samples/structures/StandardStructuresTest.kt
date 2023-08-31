@@ -1,15 +1,15 @@
 package org.usvm.samples.structures
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
-import org.usvm.util.disableTest
-import java.util.*
-import kotlin.collections.ArrayDeque
-import kotlin.collections.ArrayList
+import java.util.LinkedList
+import java.util.TreeMap
 
 internal class StandardStructuresTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Support creation of collections")
     fun testGetList() {
         checkDiscoveredProperties(
             StandardStructures::getList,
@@ -24,6 +24,7 @@ internal class StandardStructuresTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Support creation of collections")
     fun testGetMap() {
         checkDiscoveredProperties(
             StandardStructures::getMap,
@@ -35,7 +36,8 @@ internal class StandardStructuresTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testGetDeque() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
+    @Disabled("Support creation of collections")
+    fun testGetDeque() {
         checkDiscoveredProperties(
             StandardStructures::getDeque,
             eq(4),

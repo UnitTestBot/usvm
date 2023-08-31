@@ -101,7 +101,7 @@ fun <Method, Statement, State : UState<*, Method, Statement, *, State>> createPa
     return selector.wrapCoverageCounter(requireNotNull(coverageStatistics()), requireNotNull(method))
 }
 
-private fun <Method, State : UState<*, *, Method, *, *, State>> UPathSelector<State>.wrapCoverageCounter(
+private fun <Method, State : UState<*, Method, *, *, State>> UPathSelector<State>.wrapCoverageCounter(
     coverageStatistics: CoverageStatistics<Method, *, State>,
     method: Method
 ) = CoverageCounterPathSelector(this, coverageStatistics, method)

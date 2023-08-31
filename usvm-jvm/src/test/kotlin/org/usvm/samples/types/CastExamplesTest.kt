@@ -3,7 +3,6 @@ package org.usvm.samples.types
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
-import org.usvm.util.disableTest
 
 
 @Suppress("SimplifyNegatedBinaryExpression")
@@ -31,7 +30,7 @@ internal class CastExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testFloatToDouble() = disableTest("Some properties were not discovered at positions (from 0): [0, 1, 3]") {
+    fun testFloatToDouble() {
         checkDiscoveredProperties(
             CastExamples::floatToDouble,
             eq(4),

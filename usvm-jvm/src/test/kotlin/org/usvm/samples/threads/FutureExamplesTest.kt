@@ -1,9 +1,9 @@
 package org.usvm.samples.threads
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
-import org.usvm.util.disableTest
 import org.usvm.util.isException
 import java.util.concurrent.ExecutionException
 
@@ -11,7 +11,8 @@ import java.util.concurrent.ExecutionException
 // and should not be used for testing conrete or code generation since they are possibly flaky in the concrete execution
 class FutureExamplesTest : JavaMethodTestRunner() {
     @Test
-    fun testThrowingRunnable() = disableTest("Support invokedynamic") {
+    @Disabled("Support invokedynamic")
+    fun testThrowingRunnable() {
         checkDiscoveredPropertiesWithExceptions(
             FutureExamples::throwingRunnableExample,
             eq(1),
@@ -20,7 +21,8 @@ class FutureExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testResultFromGet() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
+    @Disabled("class org.jacodb.api.PredefinedPrimitive cannot be cast to class org.jacodb.api.JcRefType")
+    fun testResultFromGet() {
         checkDiscoveredProperties(
             FutureExamples::resultFromGet,
             eq(1),
@@ -29,7 +31,8 @@ class FutureExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testChangingCollectionInFuture() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
+    @Disabled("class org.jacodb.api.PredefinedPrimitive cannot be cast to class org.jacodb.api.JcRefType")
+    fun testChangingCollectionInFuture() {
         checkDiscoveredProperties(
             FutureExamples::changingCollectionInFuture,
             eq(1),
@@ -38,7 +41,8 @@ class FutureExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testChangingCollectionInFutureWithoutGet() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
+    @Disabled("class org.jacodb.api.PredefinedPrimitive cannot be cast to class org.jacodb.api.JcRefType")
+    fun testChangingCollectionInFutureWithoutGet() {
         checkDiscoveredProperties(
             FutureExamples::changingCollectionInFutureWithoutGet,
             eq(1),

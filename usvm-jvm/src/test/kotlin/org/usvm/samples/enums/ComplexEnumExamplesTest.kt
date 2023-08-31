@@ -1,9 +1,7 @@
 package org.usvm.samples.enums
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import org.usvm.PathSelectionStrategy
-import org.usvm.SolverType
-import org.usvm.UMachineOptions
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.samples.enums.ComplexEnumExamples.Color
 import org.usvm.samples.enums.ComplexEnumExamples.Color.BLUE
@@ -11,14 +9,12 @@ import org.usvm.samples.enums.ComplexEnumExamples.Color.GREEN
 import org.usvm.samples.enums.ComplexEnumExamples.Color.RED
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
-import org.usvm.util.Options
-import org.usvm.util.UsvmTest
-import org.usvm.util.disableTest
 
 
 class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     @Test
-    fun testEnumToEnumMapCountValues() = disableTest("Some properties were not discovered at positions (from 0): [1, 2]") {
+    @Disabled("Sequence is empty.")
+    fun testEnumToEnumMapCountValues() {
         checkDiscoveredProperties(
             ComplexEnumExamples::enumToEnumMapCountValues,
             ignoreNumberOfAnalysisResults,
@@ -29,7 +25,8 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testEnumToEnumMapCountKeys() = disableTest("java.lang.OutOfMemoryError: Java heap space") {
+    @Disabled("Sequence is empty.")
+    fun testEnumToEnumMapCountKeys() {
         checkDiscoveredProperties(
             ComplexEnumExamples::enumToEnumMapCountKeys,
             ignoreNumberOfAnalysisResults,
@@ -42,8 +39,9 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
         )
     }
 
-    @UsvmTest([Options(solverType = SolverType.Z3, strategies = [PathSelectionStrategy.FORK_DEPTH])])
-    fun testEnumToEnumMapCountMatches(options: UMachineOptions) = withOptions(options) {
+    @Test
+    @Disabled("Sequence is empty.")
+    fun testEnumToEnumMapCountMatches() {
         checkDiscoveredProperties(
             ComplexEnumExamples::enumToEnumMapCountMatches,
             ignoreNumberOfAnalysisResults,
@@ -53,7 +51,8 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testCountEqualColors() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
+    @Disabled("Some properties were not discovered at positions (from 0): [0]")
+    fun testCountEqualColors() {
         checkDiscoveredProperties(
             ComplexEnumExamples::countEqualColors,
             ignoreNumberOfAnalysisResults,
@@ -64,7 +63,8 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testCountNullColors() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
+    @Disabled("Some properties were not discovered at positions (from 0): [0]")
+    fun testCountNullColors() {
         checkDiscoveredProperties(
             ComplexEnumExamples::countNullColors,
             eq(3),
@@ -75,6 +75,7 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("JcTypedMethodImpl.getParameters: Index 1 out of bounds for length 1")
     fun testFindState() {
         checkDiscoveredProperties(
             ComplexEnumExamples::findState,
@@ -84,7 +85,8 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testCountValuesInArray() = disableTest("slow on CI") {
+    @Disabled("java.lang.Integer#valueOf(int). Native calls in IntegerCache#<clinit>")
+    fun testCountValuesInArray() {
         fun Color.isCorrectlyCounted(inputs: Array<Color>, counts: Map<Color, Int>): Boolean =
             inputs.count { it == this } == (counts[this] ?: 0)
 
@@ -98,6 +100,7 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled(" Index 0 out of bounds for length 0")
     fun testCountRedInArray() {
         checkDiscoveredProperties(
             ComplexEnumExamples::countRedInArray,

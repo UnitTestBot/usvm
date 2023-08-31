@@ -1,13 +1,14 @@
 package org.usvm.samples.collections
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
-import org.usvm.util.disableTest
 
+@Disabled("Unsupported")
 internal class GenericListsExampleTest : JavaMethodTestRunner() {
     @Test
-    fun testListOfListsOfT() = disableTest("Expected exactly -1 executions, but 41 found") {
+    fun testListOfListsOfT() {
         checkDiscoveredProperties(
             GenericListsExample<Long>::listOfListsOfT,
             eq(-1)
@@ -15,7 +16,7 @@ internal class GenericListsExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testListOfComparable() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
+    fun testListOfComparable() {
         checkDiscoveredProperties(
             GenericListsExample<Long>::listOfComparable,
             eq(1),
@@ -24,7 +25,7 @@ internal class GenericListsExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testListOfT() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
+    fun testListOfT() {
         checkDiscoveredProperties(
             GenericListsExample<Long>::listOfT,
             eq(1),
@@ -33,7 +34,7 @@ internal class GenericListsExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testListOfTArray() = disableTest("Expected exactly 1 executions, but 29 found") {
+    fun testListOfTArray() {
         checkDiscoveredProperties(
             GenericListsExample<Long>::listOfTArray,
             eq(1)
@@ -41,7 +42,7 @@ internal class GenericListsExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testListOfExtendsTArray() = disableTest("Expected exactly -1 executions, but 29 found") {
+    fun testListOfExtendsTArray() {
         checkDiscoveredProperties(
             GenericListsExample<Long>::listOfExtendsTArray,
             eq(-1)
@@ -49,7 +50,7 @@ internal class GenericListsExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testListOfPrimitiveArrayInheritors() = disableTest("Expected exactly -1 executions, but 29 found") {
+    fun testListOfPrimitiveArrayInheritors() {
         checkDiscoveredProperties(
             GenericListsExample<Long>::listOfPrimitiveArrayInheritors,
             eq(-1)
@@ -57,7 +58,7 @@ internal class GenericListsExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun createWildcard() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
+    fun createWildcard() {
         checkDiscoveredProperties(
             GenericListsExample<*>::wildcard,
             eq(4),
@@ -69,7 +70,7 @@ internal class GenericListsExampleTest : JavaMethodTestRunner() {
 
     @Suppress("NestedLambdaShadowedImplicitParameter")
     @Test
-    fun createListOfLists() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
+    fun createListOfLists() {
         checkDiscoveredProperties(
             GenericListsExample<*>::listOfLists,
             eq(1),
@@ -83,7 +84,7 @@ internal class GenericListsExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun createWildcardWithOnlyQuestionMark() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
+    fun createWildcardWithOnlyQuestionMark() {
         checkDiscoveredProperties(
             GenericListsExample<*>::wildcardWithOnlyQuestionMark,
             eq(3),
@@ -95,7 +96,7 @@ internal class GenericListsExampleTest : JavaMethodTestRunner() {
 
 
     @Test
-    fun testGenericWithArrayOfPrimitives() = disableTest("Expected exactly 1 executions, but 32 found") {
+    fun testGenericWithArrayOfPrimitives() {
         checkDiscoveredProperties(
             GenericListsExample<*>::genericWithArrayOfPrimitives,
             eq(1),
@@ -110,7 +111,7 @@ internal class GenericListsExampleTest : JavaMethodTestRunner() {
 
 
     @Test
-    fun testGenericWithObject() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
+    fun testGenericWithObject() {
         checkDiscoveredProperties(
             GenericListsExample<*>::genericWithObject,
             eq(1),
@@ -120,7 +121,7 @@ internal class GenericListsExampleTest : JavaMethodTestRunner() {
 
 
     @Test
-    fun testGenericWithArrayOfArrays() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
+    fun testGenericWithArrayOfArrays() {
         checkDiscoveredProperties(
             GenericListsExample<*>::genericWithArrayOfArrays,
             eq(1),

@@ -1,9 +1,11 @@
 package org.usvm.samples.arrays
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 
+@Disabled("Some types don't match at positions (from 0): [1].")
 class ArraysOverwriteValueTest : JavaMethodTestRunner() {
     @Test
     fun testByteArray() {

@@ -3,7 +3,6 @@ package org.usvm.machine
 import org.jacodb.api.JcArrayType
 import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcField
-import org.jacodb.api.JcPrimitiveType
 import org.jacodb.api.JcRefType
 import org.jacodb.api.JcType
 import org.jacodb.api.JcTypedField
@@ -90,18 +89,5 @@ class JcContext(
 
     val stringValueField: JcTypedField by lazy {
         stringType.jcClass.toType().declaredFields.first { it.name == "value" }
-    }
-
-    val primitiveTypes: Set<JcPrimitiveType> by lazy {
-        setOf(
-            cp.boolean,
-            cp.byte,
-            cp.short,
-            cp.int,
-            cp.long,
-            cp.char,
-            cp.float,
-            cp.double,
-        )
     }
 }

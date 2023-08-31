@@ -1,14 +1,15 @@
 package org.usvm.samples.threads
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
-import org.usvm.util.disableTest
 
 
 class CountDownLatchExamplesTest : JavaMethodTestRunner() {
     @Test
-    fun testGetAndDown() = disableTest("Some properties were not discovered at positions (from 0): [0, 1]") {
+    @Disabled("No entrypoint found for method")
+    fun testGetAndDown() {
         checkDiscoveredProperties(
             CountDownLatchExamples::getAndDown,
             eq(2),

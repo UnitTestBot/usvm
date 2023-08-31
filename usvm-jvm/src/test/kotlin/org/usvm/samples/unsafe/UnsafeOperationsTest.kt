@@ -1,14 +1,15 @@
 package org.usvm.samples.unsafe
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
-import org.usvm.util.disableTest
 
 
 internal class UnsafeOperationsTest : JavaMethodTestRunner() {
     @Test
-    fun checkGetAddressSizeOrZero() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
+    @Disabled("Not implemented: class constant")
+    fun checkGetAddressSizeOrZero() {
             checkDiscoveredProperties(
                 UnsafeOperations::getAddressSizeOrZero,
                 eq(1),

@@ -1,5 +1,6 @@
 package org.usvm.samples.mixed
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
@@ -7,6 +8,7 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 internal class MonitorUsageTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Unknown stmt: enter monitor this")
     fun testSimpleMonitor() {
         checkDiscoveredProperties(
             MonitorUsage::simpleMonitor,

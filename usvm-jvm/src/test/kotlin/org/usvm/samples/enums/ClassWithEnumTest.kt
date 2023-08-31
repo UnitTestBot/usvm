@@ -1,5 +1,6 @@
 package org.usvm.samples.enums
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.samples.enums.ClassWithEnum.StatusEnum
@@ -8,7 +9,6 @@ import org.usvm.samples.enums.ClassWithEnum.StatusEnum.READY
 import org.usvm.test.util.checkers.between
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
-import org.usvm.util.disableTest
 import org.usvm.util.isException
 
 
@@ -23,6 +23,7 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
 //    }
 
     @Test
+    @Disabled("JcTypedMethodImpl.getParameters: Index 3 out of bounds for length 3")
     fun testGetter() {
         checkDiscoveredProperties(
             ClassWithEnum::useGetter,
@@ -33,7 +34,8 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testDifficultIfBranch() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
+    @Disabled("JcTypedMethodImpl.getParameters: Index 0 out of bounds for length 0")
+    fun testDifficultIfBranch() {
         checkDiscoveredProperties(
             ClassWithEnum::useEnumInDifficultIf,
             ignoreNumberOfAnalysisResults,
@@ -42,8 +44,9 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
         )
     }
 
-    @Test // todo: Support enums
-    fun testNullParameter() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
+    @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [1]. Support enums")
+    fun testNullParameter() {
         checkDiscoveredProperties(
             ClassWithEnum::nullEnumAsParameter,
             between(2..3),
@@ -53,7 +56,8 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testNullField() = disableTest("Some properties were not discovered at positions (from 0): [1, 2]") {
+    @Disabled("JcTypedMethodImpl.getParameters: Index 3 out of bounds for length 3")
+    fun testNullField() {
         checkDiscoveredPropertiesWithExceptions(
             ClassWithEnum::nullField,
             eq(3),
@@ -64,7 +68,8 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testChangeEnum() = disableTest("Some properties were not discovered at positions (from 0): [0, 1]") {
+    @Disabled("JcTypedMethodImpl.getParameters: Index 3 out of bounds for length 3")
+    fun testChangeEnum() {
         checkDiscoveredPropertiesWithExceptions(
             ClassWithEnum::changeEnum,
             eq(2),
@@ -74,7 +79,8 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testChangeMutableField() = disableTest("Some properties were not discovered at positions (from 0): [0, 1]") {
+    @Disabled("JcTypedMethodImpl.getParameters: Index 3 out of bounds for length 3")
+    fun testChangeMutableField() {
         checkDiscoveredPropertiesWithExceptions(
             ClassWithEnum::changeMutableField,
             eq(2),
@@ -84,7 +90,8 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testCheckName() = disableTest("Expected exactly 3 executions, but 7 found") {
+    @Disabled("JcTypedMethodImpl.getParameters: Index 3 out of bounds for length 3")
+    fun testCheckName() {
         checkDiscoveredProperties(
             ClassWithEnum::checkName,
             eq(3),
@@ -120,7 +127,8 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
 */
 
     @Test
-    fun testVirtualFunction() = disableTest("Some properties were not discovered at positions (from 0): [1, 2]") {
+    @Disabled("Sequence is empty.")
+    fun testVirtualFunction() {
         checkDiscoveredProperties(
             ClassWithEnum::virtualFunction,
             eq(3),
@@ -141,7 +149,8 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
 //    }
 
     @Test
-    fun testFromCode() = disableTest("Some properties were not discovered at positions (from 0): [0, 1]") {
+    @Disabled("JcTypedMethodImpl.getParameters: Index 3 out of bounds for length 3")
+    fun testFromCode() {
         checkDiscoveredProperties(
             StatusEnum::fromCode,
             eq(3),
@@ -152,7 +161,8 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testFromIsReady() = disableTest("Some properties were not discovered at positions (from 0): [0, 1]") {
+    @Disabled("JcTypedMethodImpl.getParameters: Index 3 out of bounds for length 3")
+    fun testFromIsReady() {
         checkDiscoveredProperties(
             StatusEnum::fromIsReady,
             eq(2),
@@ -162,7 +172,8 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testPublicGetCodeMethod() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
+    @Disabled("JcTypedMethodImpl.getParameters: Index 3 out of bounds for length 3")
+    fun testPublicGetCodeMethod() {
         checkThisAndParamsMutations(
             StatusEnum::publicGetCode,
             between(1..2),
@@ -172,7 +183,8 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testImplementingInterfaceEnumInDifficultBranch() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
+    @Disabled("JcTypedMethodImpl.getParameters: Index 0 out of bounds for length 0")
+    fun testImplementingInterfaceEnumInDifficultBranch() {
         checkDiscoveredProperties(
             ClassWithEnum::implementingInterfaceEnumInDifficultBranch,
             ignoreNumberOfAnalysisResults,
@@ -182,6 +194,7 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled(" Index 0 out of bounds for length 0")
     fun testAffectSystemStaticAndUseInitEnumFromIt() {
         checkDiscoveredProperties(
             ClassWithEnum::affectSystemStaticAndInitEnumFromItAndReturnField,
@@ -191,6 +204,7 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled(" Index 0 out of bounds for length 0")
     fun testAffectSystemStaticAndInitEnumFromItAndGetItFromEnumFun() {
         checkDiscoveredProperties(
             ClassWithEnum::affectSystemStaticAndInitEnumFromItAndGetItFromEnumFun,

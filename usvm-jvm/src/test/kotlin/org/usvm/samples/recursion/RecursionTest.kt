@@ -1,6 +1,6 @@
 package org.usvm.samples.recursion
 
-
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.PathSelectionStrategy
 import org.usvm.UMachineOptions
@@ -11,8 +11,9 @@ import org.usvm.test.util.checkers.ge
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import org.usvm.util.Options
 import org.usvm.util.UsvmTest
-import org.usvm.util.disableTest
 import org.usvm.util.isException
+
+
 import kotlin.math.pow
 
 internal class RecursionTest : JavaMethodTestRunner() {
@@ -44,7 +45,8 @@ internal class RecursionTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testSum() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
+    @Disabled("Native method invocation: java.lang.Float.floatToRawIntBits")
+    fun testSum() {
         checkDiscoveredProperties(
             Recursion::sum,
             eq(2),
@@ -68,8 +70,9 @@ internal class RecursionTest : JavaMethodTestRunner() {
         }
     }
 
-    @Test // todo: Fix minimization
-    fun infiniteRecursionTest() = disableTest("Expected exactly 2 executions, but 54 found") {
+    @Test
+    @Disabled("Expected exactly 2 executions, but 54 found. Fix minimization")
+    fun infiniteRecursionTest() {
         checkDiscoveredPropertiesWithExceptions(
             Recursion::infiniteRecursion,
             eq(2),
@@ -79,6 +82,7 @@ internal class RecursionTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("java.lang.Integer#valueOf(int). Native calls in IntegerCache#<clinit>")
     fun vertexSumTest() {
         checkDiscoveredProperties(
             Recursion::vertexSum,

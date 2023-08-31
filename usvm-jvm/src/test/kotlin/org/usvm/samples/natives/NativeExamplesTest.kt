@@ -1,16 +1,17 @@
 package org.usvm.samples.natives
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ge
-import org.usvm.util.disableTest
 
 
 internal class NativeExamplesTest : JavaMethodTestRunner() {
 
     @Test
-    fun testFindAndPrintSum() = disableTest("slow on CI") {
+    @Disabled("No entrypoint found for method")
+    fun testFindAndPrintSum() {
         checkDiscoveredProperties(
             NativeExamples::findAndPrintSum,
             ge(1),
@@ -18,7 +19,8 @@ internal class NativeExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testFindSumWithMathRandom() = disableTest("Expected exactly 1 executions, but 301 found") {
+    @Disabled("java.lang.Math#<clinit> has native calls")
+    fun testFindSumWithMathRandom() {
         checkDiscoveredProperties(
             NativeExamples::findSumWithMathRandom,
             eq(1),

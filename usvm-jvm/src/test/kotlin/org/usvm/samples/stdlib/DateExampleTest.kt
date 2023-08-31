@@ -1,18 +1,19 @@
 package org.usvm.samples.stdlib
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
-import org.usvm.util.disableTest
 import org.usvm.util.isException
-import java.util.*
+import java.util.Date
 
 class DateExampleTest : JavaMethodTestRunner() {
+    @Disabled("Virtual call: sun.util.calendar.BaseCalendar.Date.getNormalizedYear")
     @Suppress("SpellCheckingInspection")
     @Tag("slow")
     @Test
-    fun testGetTimeWithNpeChecksForNonPublicFields() = disableTest("Some properties were not discovered at positions (from 0): [4]"){
+    fun testGetTimeWithNpeChecksForNonPublicFields() {
         checkDiscoveredPropertiesWithExceptions(
             DateExample::getTime,
             eq(5),
@@ -38,7 +39,8 @@ class DateExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testGetTimeWithoutReflection() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
+    @Disabled("Sequence is empty.")
+    fun testGetTimeWithoutReflection() {
         checkDiscoveredPropertiesWithExceptions(
             DateExample::getTime,
             eq(3),

@@ -43,7 +43,6 @@ open class SoftConstraintsTest<Field> {
     }
 
     @Test
-    @Disabled("todo: actualize test")
     fun testItWorks() = with(ctx) {
         val fstRegister = mkRegisterReading(idx = 0, bv32Sort)
         val sndRegister = mkRegisterReading(idx = 1, bv32Sort)

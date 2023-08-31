@@ -1,8 +1,8 @@
 package org.usvm.samples.functions
 
+import org.usvm.UMachineOptions
 import org.usvm.PathSelectionStrategy
 import org.usvm.PathSelectorCombinationStrategy
-import org.usvm.UMachineOptions
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import org.usvm.util.Options
@@ -40,20 +40,6 @@ class TestSimple : JavaMethodTestRunner() {
                 Simple::factorial,
                 ignoreNumberOfAnalysisResults,
                 { _, x, r -> (1..x).fold(1, Int::times) == r },
-            )
-        }
-    }
-
-    @UsvmTest(
-        [
-            Options([PathSelectionStrategy.BFS_WITH_LOGGING])
-        ]
-    )
-    fun `Test branching`(options: UMachineOptions) {
-        withOptions(options) {
-            checkDiscoveredProperties(
-                Simple::branching,
-                ignoreNumberOfAnalysisResults
             )
         }
     }

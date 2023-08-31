@@ -1,15 +1,16 @@
 package org.usvm.samples.algorithms
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
-import org.usvm.util.disableTest
 import org.usvm.util.isException
 
 
 internal class GraphTest : JavaMethodTestRunner() {
-    @Test // todo: Tune coverage zone
-    fun testRunFindCycle() = disableTest("Some properties were not discovered at positions (from 0): [0, 1, 2, 3, 4]") {
+    @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [0, 1, 2, 3, 4]. Tune coverage zone")
+    fun testRunFindCycle() {
         checkDiscoveredPropertiesWithExceptions(
             GraphExample::runFindCycle,
             ignoreNumberOfAnalysisResults,
@@ -34,8 +35,9 @@ internal class GraphTest : JavaMethodTestRunner() {
     /**
      * TODO: fix Dijkstra algorithm.
      */
-    @Test // todo: Tune coverage zone
-    fun testRunDijkstraWithParameter() = disableTest("Some properties were not discovered at positions (from 0): [3]") {
+    @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [3, 4]. Tune coverage zone")
+    fun testRunDijkstraWithParameter() {
         checkDiscoveredPropertiesWithExceptions(
             GraphExample::runDijkstraWithParameter,
             ignoreNumberOfAnalysisResults,

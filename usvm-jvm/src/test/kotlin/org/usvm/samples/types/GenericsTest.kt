@@ -1,15 +1,16 @@
 package org.usvm.samples.types
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
-import org.usvm.util.disableTest
 
 
 internal class GenericsTest : JavaMethodTestRunner() {
     @Test
-    fun mapAsParameterTest() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
+    @Disabled("Not implemented: string constant")
+    fun mapAsParameterTest() {
         checkDiscoveredProperties(
             Generics<*>::mapAsParameter,
             eq(2),
@@ -19,7 +20,8 @@ internal class GenericsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun genericAsFieldTest() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
+    @Disabled("org.jacodb.impl.fs.ByteCodeConverterKt: java.lang.OutOfMemoryError: Java heap space")
+    fun genericAsFieldTest() {
         checkDiscoveredProperties(
             Generics<*>::genericAsField,
             ignoreNumberOfAnalysisResults,
@@ -30,6 +32,7 @@ internal class GenericsTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Not implemented: string constant")
     fun mapAsStaticFieldTest() {
         checkDiscoveredProperties(
             Generics<*>::mapAsStaticField,
@@ -39,7 +42,8 @@ internal class GenericsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun mapAsNonStaticFieldTest() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
+    @Disabled("Not implemented: string constant")
+    fun mapAsNonStaticFieldTest() {
         checkDiscoveredProperties(
             Generics<*>::mapAsNonStaticField,
             ignoreNumberOfAnalysisResults,
@@ -49,7 +53,8 @@ internal class GenericsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun methodWithRawTypeTest() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
+    @Disabled("Not implemented: string constant")
+    fun methodWithRawTypeTest() {
         checkDiscoveredProperties(
             Generics<*>::methodWithRawType,
             eq(2),

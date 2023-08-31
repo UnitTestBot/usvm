@@ -16,7 +16,7 @@ import kotlin.math.exp
 import kotlin.math.max
 import kotlin.random.Random
 
-internal open class InferencePathSelector<State : UState<*, *, Method, Statement, *, State>, Statement, Method> (
+internal open class InferencePathSelector<State : UState<*, Method, Statement, *, State>, Statement, Method> (
     pathsTreeRoot: PathsTrieNode<State, Statement>,
     private val coverageStatistics: CoverageStatistics<Method, Statement, State>,
     distanceStatistics: DistanceStatistics<Method, Statement>,
@@ -33,7 +33,7 @@ internal open class InferencePathSelector<State : UState<*, *, Method, Statement
     private var lastStateFeatures = List(MainConfig.rnnStateShape.reduce { acc, l -> acc * l}.toInt()) { 0.0f }
     private var rnnFeatures = if (MainConfig.useRnn) List(MainConfig.rnnFeaturesCount) { 0.0f } else emptyList()
 
-    private fun <State : UState<*, *, *, *, *, State>> compareById(): Comparator<State> = compareBy { it.id }
+    private fun <State : UState<*, *, *, *, State>> compareById(): Comparator<State> = compareBy { it.id }
     private val forkDepthRandomPathSelector = WeightedPathSelector<State, Double>(
         { RandomizedPriorityCollection(compareById()) { random.nextDouble() } },
         { 1.0 / max(it.pathLocation.depth.toDouble(), 1.0) }

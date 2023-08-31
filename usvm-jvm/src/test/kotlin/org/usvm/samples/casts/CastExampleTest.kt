@@ -1,10 +1,10 @@
 package org.usvm.samples.casts
 
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
-import org.usvm.util.disableTest
 import org.usvm.util.isException
 
 internal class CastExampleTest : JavaMethodTestRunner() {
@@ -58,7 +58,8 @@ internal class CastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testCastFromObjectToInterface() = disableTest("Support assumptions") {
+    @Disabled("Support assumptions")
+    fun testCastFromObjectToInterface() {
         checkDiscoveredProperties(
             CastExample::castFromObjectToInterface,
             eq(2),
@@ -68,7 +69,8 @@ internal class CastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testComplicatedCast() = disableTest("Support assumptions") {
+    @Disabled("Support assumptions")
+    fun testComplicatedCast() {
         checkDiscoveredProperties(
             CastExample::complicatedCast,
             eq(2),

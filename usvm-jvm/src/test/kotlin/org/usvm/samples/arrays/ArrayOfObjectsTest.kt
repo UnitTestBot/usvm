@@ -1,12 +1,12 @@
 package org.usvm.samples.arrays
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.between
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ge
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
-import org.usvm.util.disableTest
 import org.usvm.util.isException
 
 internal class ArrayOfObjectsTest : JavaMethodTestRunner() {
@@ -80,9 +80,9 @@ internal class ArrayOfObjectsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testObjectArray() = disableTest(
-        "java.lang.ArrayStoreException: org.usvm.samples.arrays.ObjectWithPrimitivesClass. Connect element type and array type"
-    ) {
+    @Disabled("java.lang.ArrayStoreException: org.usvm.samples.arrays.ObjectWithPrimitivesClass." +
+        "Connect element type and array type")
+    fun testObjectArray() {
         checkDiscoveredProperties(
             ArrayOfObjects::objectArray,
             ignoreNumberOfAnalysisResults,
@@ -95,7 +95,8 @@ internal class ArrayOfObjectsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testArrayOfArrays() = disableTest("Expected number of executions in bounds 4..5, but 10 found") {
+    @Disabled("List is empty. java.lang.ArrayStoreException: org.usvm.samples.arrays.ObjectWithPrimitivesClass")
+    fun testArrayOfArrays() {
         checkDiscoveredProperties(
             ArrayOfObjects::arrayOfArrays,
             between(4..5), // might be two ClassCastExceptions

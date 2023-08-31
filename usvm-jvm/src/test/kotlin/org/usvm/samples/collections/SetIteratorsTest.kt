@@ -1,16 +1,17 @@
 package org.usvm.samples.collections
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.between
 import org.usvm.test.util.checkers.ge
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
-import org.usvm.util.disableTest
 import org.usvm.util.isException
 
+@Disabled("Unsupported")
 class SetIteratorsTest : JavaMethodTestRunner() {
     @Test
-    fun testReturnIterator() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
+    fun testReturnIterator() {
         checkDiscoveredProperties(
             SetIterators::returnIterator,
             ignoreNumberOfAnalysisResults,
@@ -20,7 +21,7 @@ class SetIteratorsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testIteratorHasNext() = disableTest("Expected number of executions in bounds 3..4, but 139 found") {
+    fun testIteratorHasNext() {
         checkDiscoveredProperties(
             SetIterators::iteratorHasNext,
             between(3..4),
@@ -31,7 +32,7 @@ class SetIteratorsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testIteratorNext() = disableTest("Expected number of executions in bounds 3..4, but 55 found") {
+    fun testIteratorNext() {
         checkDiscoveredPropertiesWithExceptions(
             SetIterators::iteratorNext,
             between(3..4),
@@ -43,7 +44,7 @@ class SetIteratorsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testIteratorRemove() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
+    fun testIteratorRemove() {
         checkDiscoveredPropertiesWithExceptions(
             SetIterators::iteratorRemove,
             between(3..4),
@@ -60,7 +61,7 @@ class SetIteratorsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testIteratorRemoveOnIndex() = disableTest("Some properties were not discovered at positions (from 0): [4]") {
+    fun testIteratorRemoveOnIndex() {
         checkDiscoveredPropertiesWithExceptions(
             SetIterators::iteratorRemoveOnIndex,
             ge(5),
@@ -80,7 +81,7 @@ class SetIteratorsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testIterateForEach() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
+    fun testIterateForEach() {
         checkDiscoveredProperties(
             SetIterators::iterateForEach,
             ignoreNumberOfAnalysisResults,
@@ -92,7 +93,7 @@ class SetIteratorsTest : JavaMethodTestRunner() {
 
 
     @Test
-    fun testIterateWithIterator() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
+    fun testIterateWithIterator() {
         checkDiscoveredProperties(
             SetIterators::iterateWithIterator,
             ignoreNumberOfAnalysisResults,

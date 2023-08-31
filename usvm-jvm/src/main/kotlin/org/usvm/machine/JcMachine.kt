@@ -22,7 +22,7 @@ import org.usvm.statistics.TransitiveCoverageZoneObserver
 import org.usvm.statistics.UMachineObserver
 import org.usvm.stopstrategies.createStopStrategy
 
-//val logger = object : KLogging() {}.logger
+val logger = object : KLogging() {}.logger
 
 class JcMachine(
     cp: JcClasspath,
@@ -40,8 +40,8 @@ class JcMachine(
 
     fun analyze(
         method: JcMethod
-    ): Pair<List<JcState>, CoverageStatistics<JcMethod, JcInst, JcState>> {
-//        logger.debug("$this.analyze($method)")
+    ): List<JcState> {
+        logger.debug("$this.analyze($method)")
         val initialState = interpreter.getInitialState(method)
 
         val methodsToTrackCoverage =
@@ -100,7 +100,7 @@ class JcMachine(
             stopStrategy = stopStrategy,
         )
 
-        return statesCollector.collectedStates to coverageStatistics
+        return statesCollector.collectedStates
     }
 
     private fun isStateTerminated(state: JcState): Boolean {

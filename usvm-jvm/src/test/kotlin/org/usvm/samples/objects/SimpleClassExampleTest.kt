@@ -1,9 +1,11 @@
 package org.usvm.samples.objects
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import org.usvm.util.isException
+import kotlin.test.Ignore
 
 
 internal class SimpleClassExampleTest : JavaMethodTestRunner() {

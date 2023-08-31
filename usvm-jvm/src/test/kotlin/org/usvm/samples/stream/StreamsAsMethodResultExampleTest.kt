@@ -1,13 +1,14 @@
 package org.usvm.samples.stream
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
-import org.usvm.util.disableTest
 
+@Disabled("Still too complex")
 class StreamsAsMethodResultExampleTest : JavaMethodTestRunner() {
     @Test
-    fun testReturningStreamExample() = disableTest("Some properties were not discovered at positions (from 0): [0, 1]") {
+    fun testReturningStreamExample() {
         checkDiscoveredProperties(
             StreamsAsMethodResultExample::returningStreamExample,
             eq(2),

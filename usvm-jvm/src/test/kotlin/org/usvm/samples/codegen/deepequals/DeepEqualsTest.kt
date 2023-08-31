@@ -1,13 +1,14 @@
 package org.usvm.samples.codegen.deepequals
 
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
-import org.usvm.util.disableTest
 
 class DeepEqualsTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("An operation is not implemented: Class constant")
     fun testReturnList() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::returnList,
@@ -16,7 +17,8 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testReturnSet() = disableTest("Expected exactly 1 executions, but 3 found") {
+    @Disabled("No entrypoint found for method: (id:1)java.lang.Object#hashCode()")
+    fun testReturnSet() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::returnSet,
             eq(1),
@@ -24,6 +26,7 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("java.lang.Integer#valueOf(int). Native calls in IntegerCache#<clinit>")
     fun testReturnMap() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::returnMap,
@@ -32,7 +35,8 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testReturnArray() = disableTest("Wrong type resolving") {
+    @Disabled("Wrong type resolving")
+    fun testReturnArray() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::returnArray,
             eq(1),
@@ -46,6 +50,7 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("An operation is not implemented: Class constant")
     fun testReturn2DList() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::return2DList,
@@ -54,7 +59,8 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testReturn2DSet() = disableTest("Expected exactly 1 executions, but 0 found") {
+    @Disabled("No entrypoint found for method: (id:1)java.lang.Object#hashCode()")
+    fun testReturn2DSet() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::return2DSet,
             eq(1),
@@ -62,6 +68,7 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("java.lang.Integer#valueOf(int). Native calls in IntegerCache#<clinit>")
     fun testReturn2DMap() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::return2DMap,
@@ -70,6 +77,7 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("java.lang.Integer#valueOf(int). Native calls in IntegerCache#<clinit>")
     fun testIntegers2DList() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::returnIntegers2DList,
@@ -78,7 +86,8 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testReturn2DArray() = disableTest("Wrong type resolving") {
+    @Disabled("Wrong type resolving")
+    fun testReturn2DArray() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::return2DArray,
             eq(1),
@@ -124,7 +133,8 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testQuadrilateral() = disableTest("Expected exactly 1 executions, but 274 found") {
+    @Disabled("Not implemented: virtual calls with abstract methods")
+    fun testQuadrilateral() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::returnQuadrilateralFromNode,
             eq(1),
@@ -132,7 +142,8 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testIntMultiArray() = disableTest("Support multidimensional arrays initialization") {
+    @Disabled("Support multidimensional arrays initialization")
+    fun testIntMultiArray() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::fillIntMultiArrayWithConstValue,
             eq(3),
@@ -152,6 +163,7 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Support multidimensional arrays initialization")
     fun testDoubleMultiArray() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::fillDoubleMultiArrayWithConstValue,
@@ -160,6 +172,7 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Support multidimensional arrays initialization")
     fun testIntegerWrapperMultiArray() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::fillIntegerWrapperMultiArrayWithConstValue,
@@ -168,6 +181,7 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Support multidimensional arrays initialization")
     fun testDoubleWrapperMultiArray() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::fillDoubleWrapperMultiArrayWithConstValue,

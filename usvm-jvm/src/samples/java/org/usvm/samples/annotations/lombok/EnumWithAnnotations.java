@@ -1,4 +1,4 @@
-//package org.usvm.samples.annotations.lombok;
+package org.usvm.samples.annotations.lombok;//package org.usvm.samples.annotations.lombok;
 //
 //import lombok.AllArgsConstructor;
 //import lombok.Getter;

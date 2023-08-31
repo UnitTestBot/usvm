@@ -46,7 +46,7 @@ private fun <T> List<T>.getLast(count: Int): List<T> {
 }
 
 @Suppress("LeakingThis")
-open class BfsWithLoggingPathSelector<State : UState<*, *, Method, Statement, *, State>, Statement, Method>(
+open class BfsWithLoggingPathSelector<State : UState<*, Method, Statement, *, State>, Statement, Method>(
     private val pathsTreeRoot: PathsTrieNode<State, Statement>,
     private val coverageStatistics: CoverageStatistics<Method, Statement, State>,
     private val distanceStatistics: DistanceStatistics<Method, Statement>,

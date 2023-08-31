@@ -1,9 +1,9 @@
 package org.usvm.samples.objects
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
-import org.usvm.util.disableTest
 import kotlin.reflect.KFunction3
 
 internal class ObjectWithPrimitivesClassTest : JavaMethodTestRunner() {
@@ -20,7 +20,8 @@ internal class ObjectWithPrimitivesClassTest : JavaMethodTestRunner() {
 //    }
 
     @Test
-    fun testConstructorWithParams() = disableTest("Support constructors in matchers") {
+    @Disabled("Support constructors in matchers")
+    fun testConstructorWithParams() {
         val method: KFunction3<Int, Int, Double, ObjectWithPrimitivesClass> = ::ObjectWithPrimitivesClass
         checkDiscoveredProperties(
             method,

@@ -1,16 +1,17 @@
 package org.usvm.samples.thirdparty.numbers
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.samples.numbers.ArithmeticUtils
 import org.usvm.test.util.checkers.eq
-import org.usvm.util.disableTest
 
 
 // example from Apache common-numbers
 internal class ArithmeticUtilsTest : JavaMethodTestRunner() {
     @Test
-    fun testPow() = disableTest("Expected exactly 11 executions, but 122 found") {
+    @Disabled("java.lang.Math#<clinit>() has native calls")
+    fun testPow() {
         checkDiscoveredProperties(
             ArithmeticUtils::pow,
             eq(11),

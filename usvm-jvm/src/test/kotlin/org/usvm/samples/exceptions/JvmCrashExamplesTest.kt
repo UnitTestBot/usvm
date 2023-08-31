@@ -1,14 +1,15 @@
 package org.usvm.samples.exceptions
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
-import org.usvm.util.disableTest
 
 
 internal class JvmCrashExamplesTest : JavaMethodTestRunner() {
     @Test
-    fun testExit() = disableTest("skipMethodInvocation: Sequence has more than one element") {
+    @Disabled("No entrypoint found for method")
+    fun testExit() {
         checkDiscoveredProperties(
             JvmCrashExamples::exit,
             eq(2)
@@ -16,7 +17,8 @@ internal class JvmCrashExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testCrash() = disableTest("Expected exactly 1 executions, but 417 found") {
+    @Disabled("An operation is not implemented: Not yet implemented")
+    fun testCrash() {
         checkDiscoveredProperties(
             JvmCrashExamples::crash, // we expect only one execution after minimization
             eq(1)

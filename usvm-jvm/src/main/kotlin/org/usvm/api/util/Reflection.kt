@@ -15,13 +15,8 @@ object Reflection {
         unsafe = f.get(null) as Unsafe
     }
 
-    fun allocateInstance(cls: Class<*>): Any = try {
-        // Try to allocate with default constructor, because it's more stable than unsafe
-        val defaultCtor = cls.getDeclaredConstructor()
-        defaultCtor.newInstance()
-    } catch (ex: Throwable) {
+    fun allocateInstance(cls: Class<*>): Any =
         unsafe.allocateInstance(cls)
-    }
 
     @Suppress("UNCHECKED_CAST")
     fun allocateArray(cls: Class<*>, length: Int): Array<Any?> =

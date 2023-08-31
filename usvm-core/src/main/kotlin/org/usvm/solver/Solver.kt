@@ -7,14 +7,12 @@ import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UHeapRef
-import org.usvm.MainConfig
 import org.usvm.constraints.UEqualityConstraints
 import org.usvm.constraints.UPathConstraints
 import org.usvm.isFalse
 import org.usvm.isTrue
 import org.usvm.model.UModelBase
 import org.usvm.model.UModelDecoder
-import kotlin.time.Duration.Companion.milliseconds
 
 sealed interface USolverResult<out T>
 
@@ -194,17 +192,16 @@ open class USolverBase<Type, Context : UContext>(
     ): KSolverStatus {
         var status: KSolverStatus
         if (softConstraints.isNotEmpty()) {
-            status = smtSolver.checkWithAssumptions(softConstraints, timeout = MainConfig.solverTimeLimit.milliseconds)
+            status = smtSolver.checkWithAssumptions(softConstraints)
 
             while (status == KSolverStatus.UNSAT) {
                 val unsatCore = smtSolver.unsatCore().toHashSet()
                 if (unsatCore.isEmpty()) break
                 softConstraints.removeAll { it in unsatCore }
-                status = smtSolver.checkWithAssumptions(softConstraints,
-                    timeout = MainConfig.solverTimeLimit.milliseconds)
+                status = smtSolver.checkWithAssumptions(softConstraints)
             }
         } else {
-            status = smtSolver.check(timeout = MainConfig.solverTimeLimit.milliseconds)
+            status = smtSolver.check()
         }
         return status
     }

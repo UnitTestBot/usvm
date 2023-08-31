@@ -5,12 +5,12 @@ import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
-import org.usvm.util.disableTest
 import org.usvm.util.isException
 
 class StringConcatTest : JavaMethodTestRunner() {
     @Test
-    fun testConcatArguments() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
+    @Disabled("String builder has native calls")
+    fun testConcatArguments() {
         checkDiscoveredProperties(
             StringConcat::concatArguments,
             eq(1),
@@ -19,7 +19,8 @@ class StringConcatTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testConcatWithConstants() = disableTest("Some properties were not discovered at positions (from 0): [0, 1]") {
+    @Disabled("Not implemented: class constant")
+    fun testConcatWithConstants() {
         checkDiscoveredProperties(
             StringConcat::concatWithConstants,
             eq(4),
@@ -41,7 +42,8 @@ class StringConcatTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testExceptionInToString() = disableTest("Some properties were not discovered at positions (from 0): [1]") {
+    @Disabled("No entrypoint found for method: java.lang.Object#getClass()")
+    fun testExceptionInToString() {
         checkDiscoveredPropertiesWithExceptions(
             StringConcat::exceptionInToString,
             ignoreNumberOfAnalysisResults,
@@ -61,7 +63,8 @@ class StringConcatTest : JavaMethodTestRunner() {
 //    }
 
     @Test
-    fun testConcatWithPrimitiveWrappers() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
+    @Disabled("No entrypoint found for method: java.lang.Object#getClass()")
+    fun testConcatWithPrimitiveWrappers() {
         checkDiscoveredProperties(
             StringConcat::concatWithPrimitiveWrappers,
             ignoreNumberOfAnalysisResults,
@@ -71,7 +74,8 @@ class StringConcatTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testSameConcat() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
+    @Disabled("A fatal error has been detected by the Java Runtime Environment: EXCEPTION_ACCESS_VIOLATION")
+    fun testSameConcat() {
         checkDiscoveredProperties(
             StringConcat::sameConcat,
             ignoreNumberOfAnalysisResults,

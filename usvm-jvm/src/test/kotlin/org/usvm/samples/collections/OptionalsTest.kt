@@ -1,13 +1,14 @@
 package org.usvm.samples.collections
 
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.between
 import org.usvm.test.util.checkers.eq
-import org.usvm.util.disableTest
 import org.usvm.util.isException
 
+@Disabled("Unsupported")
 class OptionalsTest : JavaMethodTestRunner() {
     @Test
     fun testCreate() {
@@ -390,7 +391,7 @@ class OptionalsTest : JavaMethodTestRunner() {
 //    }
 
     @Test
-    fun testEqualOptionals() = disableTest("No result found") {
+    fun testEqualOptionals() {
         checkDiscoveredProperties(
             Optionals::equalOptionals,
             between(4..7),
@@ -402,7 +403,7 @@ class OptionalsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testEqualOptionalsInt() = disableTest("Some properties were not discovered: Depends on PS") {
+    fun testEqualOptionalsInt() {
         checkDiscoveredProperties(
             Optionals::equalOptionalsInt,
             between(4..8),
@@ -414,7 +415,7 @@ class OptionalsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testEqualOptionalsLong() = disableTest("Some properties were not discovered: Depends on PS") {
+    fun testEqualOptionalsLong() {
         checkDiscoveredProperties(
             Optionals::equalOptionalsLong,
             between(4..8),
@@ -426,7 +427,7 @@ class OptionalsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testEqualOptionalsDouble() = disableTest("Some properties were not discovered: Depends on ???") {
+    fun testEqualOptionalsDouble() {
         checkDiscoveredProperties(
             Optionals::equalOptionalsDouble,
             between(4..8),
@@ -438,7 +439,7 @@ class OptionalsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testOptionalOfPositive() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
+    fun testOptionalOfPositive() {
         checkDiscoveredProperties(
             Optionals::optionalOfPositive,
             eq(2),

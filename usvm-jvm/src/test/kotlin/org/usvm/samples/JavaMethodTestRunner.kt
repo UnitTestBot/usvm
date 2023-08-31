@@ -1,22 +1,16 @@
 package org.usvm.samples
 
-import org.jacodb.api.JcMethod
-import org.jacodb.api.cfg.JcInst
 import org.jacodb.api.ext.findClass
 import org.jacodb.api.ext.toType
-import org.junit.jupiter.api.Assumptions
 import org.junit.jupiter.api.TestInstance
 import org.usvm.CoverageZone
 import org.usvm.PathSelectionStrategy
-import org.usvm.SolverType
 import org.usvm.UMachineOptions
 import org.usvm.api.JcClassCoverage
 import org.usvm.api.JcParametersState
 import org.usvm.api.JcTest
 import org.usvm.api.util.JcTestResolver
 import org.usvm.machine.JcMachine
-import org.usvm.machine.state.JcState
-import org.usvm.statistics.CoverageStatistics
 import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.AnalysisResultsNumberMatcher
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
@@ -29,7 +23,6 @@ import kotlin.reflect.KFunction4
 import kotlin.reflect.full.instanceParameter
 import kotlin.reflect.jvm.javaConstructor
 import kotlin.reflect.jvm.javaMethod
-import kotlin.test.assertEquals
 
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -668,35 +661,35 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
     // endregion
 
     protected fun JcTest.takeAllParametersBefore(method: KFunction<*>): MutableList<Any?> =
-        before?.takeAllParameters(method) ?: mutableListOf()
+        before.takeAllParameters(method)
 
     protected fun JcTest.takeAllParametersBeforeWithResult(method: KFunction<*>): MutableList<Any?> {
-        val values = takeAllParametersBefore(method)
-        result?.let { values += it.getOrNull() }
+        val values = before.takeAllParameters(method)
+        result.let { values += it.getOrNull() }
 
         return values
     }
 
     protected fun JcTest.takeAllParametersAfter(method: KFunction<*>): MutableList<Any?> =
-        after?.takeAllParameters(method) ?: mutableListOf()
+        after.takeAllParameters(method)
 
     protected fun JcTest.takeAllParametersAfterWithResult(method: KFunction<*>): MutableList<Any?> {
-        val values = takeAllParametersAfter(method)
-        result?.let { values += it.getOrNull() }
+        val values = after.takeAllParameters(method)
+        result.let { values += it.getOrNull() }
 
         return values
     }
 
     private fun JcTest.takeAllParametersBeforeAndAfter(method: KFunction<*>): MutableList<Any?> {
-        val parameters = takeAllParametersBefore(method)
-        parameters.addAll(takeAllParametersAfter(method))
+        val parameters = before.takeAllParameters(method)
+        parameters.addAll(after.takeAllParameters(method))
 
         return parameters
     }
 
     protected fun JcTest.takeAllParametersBeforeAndAfterWithResult(method: KFunction<*>): MutableList<Any?> {
         val values = takeAllParametersBeforeAndAfter(method)
-        result?.let { values += it.getOrNull() }
+        result.let { values += it.getOrNull() }
 
         return values
     }
@@ -726,12 +719,11 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
         { expected, actual -> actual == null || expected != null && expected.java.isAssignableFrom(actual.java) }
 
     override var options: UMachineOptions = UMachineOptions(
-        pathSelectionStrategies = listOf(PathSelectionStrategy.RANDOM_PATH),
+        pathSelectionStrategies = listOf(PathSelectionStrategy.FORK_DEPTH),
         coverageZone = CoverageZone.TRANSITIVE,
-        solverType = SolverType.Z3,
         exceptionsPropagation = true,
-        timeoutMs = 100_000,
-        stepsFromLastCovered = null,
+        timeoutMs = 60_000,
+        stepsFromLastCovered = 3500L,
     )
 
     override val runner: (KFunction<*>, UMachineOptions) -> List<JcTest> = { method, options ->
@@ -740,35 +732,8 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
         val jcMethod = jcClass.declaredMethods.first { it.name == method.name }
 
         JcMachine(cp, options).use { machine ->
-            val (states, coverage) = machine.analyze(jcMethod.method)
-
-            checkCoverage(jcMethod.method, coverage)
-
-            states.mapNotNull { testResolver.resolve(jcMethod, it) }
-        }
-    }
-
-    // todo: remove, tmp hack to analyze coverage
-    private fun checkCoverage(method: JcMethod, coverage: CoverageStatistics<JcMethod, JcInst, JcState>) {
-        val coveragePercent = coverage.getMethodCoverage(method)
-        val uncoveredStatements = coverage.getUncoveredStatements()
-            .filter { it.first == method }
-            .map { it.second }
-
-        if (uncoveredStatements.isNotEmpty()) {
-            assertEquals(100.0f, coveragePercent)
-        }
-
-        Assumptions.assumeTrue(false)
-    }
-
-    val runnerAlternative: (KFunction<*>, UMachineOptions) -> Unit = { method, options ->
-        val declaringClassName = requireNotNull(method.declaringClass?.name)
-        val jcClass = cp.findClass(declaringClassName).toType()
-        val jcMethod = jcClass.declaredMethods.first { it.name == method.name }
-
-        JcMachine(cp, options).use { machine ->
-            machine.analyze(jcMethod.method)
+            val states = machine.analyze(jcMethod.method)
+            states.map { testResolver.resolve(jcMethod, it) }
         }
     }
 

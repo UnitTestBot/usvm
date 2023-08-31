@@ -1,9 +1,9 @@
 package org.usvm.samples.casts
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
-import org.usvm.util.disableTest
 
 
 internal class ArrayCastExampleTest : JavaMethodTestRunner() {
@@ -100,7 +100,8 @@ internal class ArrayCastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testCastFromObjectToPrimitivesArray() = disableTest("Support assumptions") {
+    @Disabled("Support assumptions")
+    fun testCastFromObjectToPrimitivesArray() {
         checkDiscoveredProperties(
             ArrayCastExample::castFromObjectToPrimitivesArray,
             eq(2),
@@ -126,6 +127,7 @@ internal class ArrayCastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("java.lang.ClassNotFoundException: sun.rmi.rmic.BatchEnvironment\$Path. Fix types priority")
     fun testCastFromCollections() {
         checkDiscoveredProperties(
             ArrayCastExample::castFromCollections,
@@ -137,6 +139,7 @@ internal class ArrayCastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("java.lang.ClassNotFoundException: sun.rmi.rmic.BatchEnvironment\$Path. Fix types priority")
     fun testCastFromIterable() {
         checkDiscoveredProperties(
             ArrayCastExample::castFromIterable,
@@ -148,6 +151,7 @@ internal class ArrayCastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("java.lang.ClassNotFoundException: sun.rmi.rmic.BatchEnvironment\$Path. Fix types priority")
     fun testCastFromIterableToCollection() {
         checkDiscoveredProperties(
             ArrayCastExample::castFromIterableToCollection,

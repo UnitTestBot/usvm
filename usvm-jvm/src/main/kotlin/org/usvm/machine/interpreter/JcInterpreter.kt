@@ -13,9 +13,7 @@ import org.jacodb.api.cfg.JcArgument
 import org.jacodb.api.cfg.JcAssignInst
 import org.jacodb.api.cfg.JcCallInst
 import org.jacodb.api.cfg.JcCatchInst
-import org.jacodb.api.cfg.JcEnterMonitorInst
 import org.jacodb.api.cfg.JcEqExpr
-import org.jacodb.api.cfg.JcExitMonitorInst
 import org.jacodb.api.cfg.JcGotoInst
 import org.jacodb.api.cfg.JcIfInst
 import org.jacodb.api.cfg.JcInst
@@ -121,8 +119,6 @@ class JcInterpreter(
             is JcSwitchInst -> visitSwitchStmt(scope, stmt)
             is JcThrowInst -> visitThrowStmt(scope, stmt)
             is JcCallInst -> visitCallStmt(scope, stmt)
-            is JcEnterMonitorInst -> visitMonitorEnterStmt(scope, stmt)
-            is JcExitMonitorInst -> visitMonitorExitStmt(scope, stmt)
             else -> error("Unknown stmt: $stmt")
         }
         return scope.stepResult()
@@ -270,28 +266,6 @@ class JcInterpreter(
         scope.doWithState {
             val nextStmt = stmt.nextStmt
             newStmt(nextStmt)
-        }
-    }
-
-    private fun visitMonitorEnterStmt(scope: JcStepScope, stmt: JcEnterMonitorInst) {
-        val exprResolver = exprResolverWithScope(scope)
-        exprResolver.resolveJcNotNullRefExpr(stmt.monitor, stmt.monitor.type) ?: return
-
-        // Monitor enter makes sense only in multithreaded environment
-
-        scope.doWithState {
-            newStmt(stmt.nextStmt)
-        }
-    }
-
-    private fun visitMonitorExitStmt(scope: JcStepScope, stmt: JcExitMonitorInst) {
-        val exprResolver = exprResolverWithScope(scope)
-        exprResolver.resolveJcNotNullRefExpr(stmt.monitor, stmt.monitor.type) ?: return
-
-        // Monitor exit makes sense only in multithreaded environment
-
-        scope.doWithState {
-            newStmt(stmt.nextStmt)
         }
     }
 

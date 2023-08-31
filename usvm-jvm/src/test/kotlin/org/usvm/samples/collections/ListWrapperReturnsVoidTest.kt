@@ -1,14 +1,15 @@
 package org.usvm.samples.collections
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
-import org.usvm.util.disableTest
 import org.usvm.util.isException
 
+@Disabled("Unsupported")
 internal class ListWrapperReturnsVoidTest : JavaMethodTestRunner() {
     @Test
-    fun testRunForEach() = disableTest("Unexpected expr of type void: JcLambdaExpr") {
+    fun testRunForEach() {
         checkDiscoveredPropertiesWithExceptions(
             ListWrapperReturnsVoidExample::runForEach,
             eq(4),
@@ -20,7 +21,7 @@ internal class ListWrapperReturnsVoidTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testSumPositiveForEach() = disableTest("No result found | lambda") {
+    fun testSumPositiveForEach() {
         checkDiscoveredPropertiesWithExceptions(
             ListWrapperReturnsVoidExample::sumPositiveForEach,
             eq(5),

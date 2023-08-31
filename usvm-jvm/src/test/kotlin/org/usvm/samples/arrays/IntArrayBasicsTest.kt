@@ -1,11 +1,11 @@
 package org.usvm.samples.arrays
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ge
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
-import org.usvm.util.disableTest
 import org.usvm.util.isException
 
 internal class IntArrayBasicsTest : JavaMethodTestRunner() {
@@ -97,6 +97,7 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Disjunction in if statement covered by only one execution")
     fun testEquality() {
         checkDiscoveredProperties(
             IntArrayBasics::equality,
@@ -121,8 +122,9 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
         )
     }
 
-    @Test // todo: Tune path selectors
-    fun testMergeArrays() = disableTest("Some properties were not discovered at positions (from 0): [4, 5]") {
+    @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [3, 4, 5]. Tune path selectors")
+    fun testMergeArrays() {
         checkDiscoveredProperties(
             IntArrayBasics::mergeArrays,
             ignoreNumberOfAnalysisResults,
@@ -177,6 +179,7 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Some properties were not discovered at positions (from 0): [3]. Fix branch coverage")
     fun testReversed() {
         checkDiscoveredProperties(
             IntArrayBasics::reversed,
@@ -190,7 +193,8 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testUpdateCloned() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
+    @Disabled("No entrypoint found for method")
+    fun testUpdateCloned() {
         checkDiscoveredProperties(
             IntArrayBasics::updateCloned,
             eq(3),
@@ -201,7 +205,8 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testArraysEqualsExample() = disableTest("Some properties were not discovered at positions (from 0): [0]") {
+    @Disabled("Not implemented: class constant")
+    fun testArraysEqualsExample() {
         checkDiscoveredProperties(
             IntArrayBasics::arrayEqualsExample,
             eq(2),

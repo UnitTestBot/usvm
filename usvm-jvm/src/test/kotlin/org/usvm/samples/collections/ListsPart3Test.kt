@@ -1,18 +1,19 @@
 package org.usvm.samples.collections
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.between
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ge
-import org.usvm.util.disableTest
 import org.usvm.util.isException
-import java.util.*
+import java.util.LinkedList
 
 
+@Disabled("Unsupported")
 internal class ListsPart3Test : JavaMethodTestRunner() {
     @Test
-    fun createTest() = disableTest("Expected exactly 3 executions, but 116 found") {
+    fun createTest() {
         checkDiscoveredProperties(
             Lists::create,
             eq(3),
@@ -23,7 +24,7 @@ internal class ListsPart3Test : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testBigListFromParameters() = disableTest("Expected exactly 1 executions, but 2 found") {
+    fun testBigListFromParameters() {
         checkDiscoveredProperties(
             Lists::bigListFromParameters,
             eq(1),
@@ -32,7 +33,7 @@ internal class ListsPart3Test : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testGetNonEmptyCollection() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
+    fun testGetNonEmptyCollection() {
         checkDiscoveredProperties(
             Lists::getNonEmptyCollection,
             eq(3),
@@ -43,7 +44,7 @@ internal class ListsPart3Test : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testGetFromAnotherListToArray() = disableTest("Expected exactly 4 executions, but 227 found") {
+    fun testGetFromAnotherListToArray() {
         checkDiscoveredProperties(
             Lists::getFromAnotherListToArray,
             eq(4),
@@ -55,7 +56,7 @@ internal class ListsPart3Test : JavaMethodTestRunner() {
     }
 
     @Test
-    fun addElementsTest() = disableTest("Some properties were not discovered at positions (from 0): [2, 3, 4]") {
+    fun addElementsTest() {
         checkDiscoveredProperties(
             Lists::addElements,
             eq(5),
@@ -75,7 +76,7 @@ internal class ListsPart3Test : JavaMethodTestRunner() {
     }
 
     @Test
-    fun removeElementsTest() = disableTest("Some properties were not discovered at positions (from 0): [3, 4, 5, 6]") {
+    fun removeElementsTest() {
         checkDiscoveredPropertiesWithExceptions(
             Lists::removeElements,
             between(7..8),
@@ -124,7 +125,7 @@ internal class ListsPart3Test : JavaMethodTestRunner() {
     }
 
     @Test
-    fun createArrayWithDifferentTypeTest() = disableTest("Some properties were not discovered at positions (from 0): [0, 1]") {
+    fun createArrayWithDifferentTypeTest() {
         checkDiscoveredProperties(
             Lists::createWithDifferentType,
             eq(2),
@@ -134,7 +135,7 @@ internal class ListsPart3Test : JavaMethodTestRunner() {
     }
 
     @Test
-    fun getElementsTest() = disableTest("Expected exactly 4 executions, but 767 found") {
+    fun getElementsTest() {
         checkDiscoveredProperties(
             Lists::getElements,
             eq(4),
@@ -146,7 +147,7 @@ internal class ListsPart3Test : JavaMethodTestRunner() {
     }
 
     @Test
-    fun setElementsTest() = disableTest("Expected exactly 3 executions, but 100 found") {
+    fun setElementsTest() {
         checkDiscoveredProperties(
             Lists::setElements,
             eq(3),
@@ -157,7 +158,7 @@ internal class ListsPart3Test : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testClear() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
+    fun testClear() {
         checkDiscoveredProperties(
             Lists::clear,
             eq(3),
@@ -168,7 +169,7 @@ internal class ListsPart3Test : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testAddAll() = disableTest("Some properties were not discovered at positions (from 0): [2]") {
+    fun testAddAll() {
         checkDiscoveredProperties(
             Lists::addAll,
             eq(3),
@@ -183,7 +184,7 @@ internal class ListsPart3Test : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testAddAllInIndex() = disableTest("Some properties were not discovered at positions (from 0): [0, 1, 2, 3]") {
+    fun testAddAllInIndex() {
         checkDiscoveredProperties(
             Lists::addAllByIndex,
             eq(4),
@@ -197,7 +198,7 @@ internal class ListsPart3Test : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testAsListExample() = disableTest("Expected exactly 2 executions, but 3 found") {
+    fun testAsListExample() {
         checkDiscoveredProperties(
             Lists::asListExample,
             eq(2),
@@ -207,7 +208,7 @@ internal class ListsPart3Test : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testRemoveFromList() = disableTest("Some properties were not discovered at positions (from 0): [0, 1, 2, 3]") {
+    fun testRemoveFromList() {
         checkDiscoveredPropertiesWithExceptions(
             Lists::removeFromList,
             ge(4),

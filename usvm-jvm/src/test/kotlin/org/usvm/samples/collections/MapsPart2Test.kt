@@ -1,14 +1,15 @@
 package org.usvm.samples.collections
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.ge
-import org.usvm.util.disableTest
 import org.usvm.util.isException
 
+@Disabled("Unsupported")
 internal class MapsPart2Test : JavaMethodTestRunner() {
     @Test
-    fun testReplaceEntryWithValue() = disableTest("Some properties were not discovered at positions (from 0): [2, 3, 4, 5]") {
+    fun testReplaceEntryWithValue() {
         checkDiscoveredProperties(
             Maps::replaceEntryWithValue,
             ge(6),
@@ -22,7 +23,7 @@ internal class MapsPart2Test : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testMerge() = disableTest("Index 1 out of bounds for length 1 | URegistersStack.readRegister") {
+    fun testMerge() {
         checkDiscoveredPropertiesWithExceptions(
             Maps::merge,
             ge(5),
