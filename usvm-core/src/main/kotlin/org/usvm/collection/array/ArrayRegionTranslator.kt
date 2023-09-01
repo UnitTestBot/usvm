@@ -41,10 +41,6 @@ class UArrayRegionDecoder<ArrayType, Sort : USort>(
         collectionId: UAllocatedArrayId<ArrayType, Sort>
     ): URegionTranslator<UAllocatedArrayId<ArrayType, Sort>, USizeExpr, Sort> =
         allocatedRegions.getOrPut(collectionId.address) {
-            check(collectionId.arrayType == regionId.arrayType && collectionId.sort == regionId.sort) {
-                "Unexpected collection: $collectionId"
-            }
-
             UAllocatedArrayRegionTranslator(collectionId, exprTranslator)
         }
 
@@ -52,9 +48,6 @@ class UArrayRegionDecoder<ArrayType, Sort : USort>(
         collectionId: UInputArrayId<ArrayType, Sort>
     ): URegionTranslator<UInputArrayId<ArrayType, Sort>, USymbolicArrayIndex, Sort> {
         if (inputRegionTranslator == null) {
-            check(collectionId.arrayType == regionId.arrayType && collectionId.sort == regionId.sort) {
-                "Unexpected collection: $collectionId"
-            }
             inputRegionTranslator = UInputArrayRegionTranslator(collectionId, exprTranslator)
         }
         return inputRegionTranslator!!
@@ -144,8 +137,8 @@ private class UAllocatedArrayUpdatesTranslator<Sort : USort>(
     ): KExpr<KArraySort<USizeSort, Sort>> {
         val key = mkFreshConst("k", previous.sort.domain)
 
-        val keyMapper = sourceCollection.collectionId.keyMapper(exprTranslator)
-        val convertedKey = keyMapper(adapter.convert(key, composer = null))
+        val keyInfo = sourceCollection.collectionId.keyInfo()
+        val convertedKey = keyInfo.mapKey(adapter.convert(key, composer = null), exprTranslator)
 
         val isInside = update.includesSymbolically(key, composer = null).translated // already includes guard
 
@@ -188,8 +181,8 @@ private class UInputArrayUpdatesTranslator<Sort : USort>(
         val key1 = mkFreshConst("k1", previous.sort.domain0)
         val key2 = mkFreshConst("k2", previous.sort.domain1)
 
-        val keyMapper = sourceCollection.collectionId.keyMapper(exprTranslator)
-        val convertedKey = keyMapper(adapter.convert(key1 to key2, composer = null))
+        val keyInfo = sourceCollection.collectionId.keyInfo()
+        val convertedKey = keyInfo.mapKey(adapter.convert(key1 to key2, composer = null), exprTranslator)
 
         val isInside = update.includesSymbolically(key1 to key2, composer = null).translated // already includes guard
 

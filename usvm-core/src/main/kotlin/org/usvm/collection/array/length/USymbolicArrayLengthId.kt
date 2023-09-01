@@ -5,8 +5,6 @@ import org.usvm.UComposer
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USizeSort
-import org.usvm.UTransformer
-import org.usvm.memory.KeyTransformer
 import org.usvm.memory.UFlatUpdates
 import org.usvm.memory.USymbolicCollection
 import org.usvm.memory.USymbolicCollectionId
@@ -38,17 +36,14 @@ class UInputArrayLengthId<ArrayType> internal constructor(
 
         val memory = composer.memory.toWritableMemory()
         collection.applyTo(memory, key, composer)
-        return memory.read(UArrayLengthLValue(key, arrayType))
+        return memory.read(mkLValue(key))
     }
 
     override fun <Type> write(memory: UWritableMemory<Type>, key: UHeapRef, value: UExpr<USizeSort>, guard: UBoolExpr) {
-        val lvalue = UArrayLengthLValue(key, arrayType)
-        memory.write(lvalue, value, guard)
+        memory.write(mkLValue(key), value, guard)
     }
 
-    override fun <Type> keyMapper(
-        transformer: UTransformer<Type>,
-    ): KeyTransformer<UHeapRef> = { transformer.apply(it) }
+    private fun mkLValue(key: UHeapRef) = UArrayLengthLValue(key, arrayType)
 
     override fun keyInfo() = UHeapRefKeyInfo
 

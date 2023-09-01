@@ -32,9 +32,6 @@ class UMapLengthRegionDecoder<MapType>(
         collectionId: UInputMapLengthId<MapType>
     ): URegionTranslator<UInputMapLengthId<MapType>, UHeapRef, USizeSort> {
         if (inputRegionTranslator == null) {
-            check(collectionId.mapType == regionId.mapType && collectionId.sort == regionId.sort) {
-                "Unexpected collection: $collectionId"
-            }
             inputRegionTranslator = UInputMapLengthRegionTranslator(collectionId, exprTranslator)
         }
         return inputRegionTranslator!!

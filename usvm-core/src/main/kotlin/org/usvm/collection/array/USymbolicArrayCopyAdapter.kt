@@ -35,8 +35,9 @@ abstract class USymbolicArrayCopyAdapter<SrcKey, DstKey>(
 
     abstract val ctx: UContext
 
-    override fun <Reg : Region<Reg>> region(): Reg =
-        keyInfo.keyRangeRegion(dstFrom, dstTo).uncheckedCast()
+    @Suppress("UNCHECKED_CAST")
+    override fun <DstReg : Region<DstReg>> region(): DstReg =
+        keyInfo.keyRangeRegion(dstFrom, dstTo) as DstReg
 
     /**
      * Converts source memory key into destination memory key

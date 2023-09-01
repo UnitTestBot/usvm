@@ -1,7 +1,6 @@
 package org.usvm.memory
 
 import org.usvm.UBoolExpr
-import org.usvm.UComposer
 import org.usvm.UContext
 import org.usvm.regions.Region
 
@@ -10,7 +9,7 @@ import org.usvm.regions.Region
  */
 interface USymbolicCollectionKeyInfo<Key, Reg : Region<Reg>> {
 
-    fun mapKey(key: Key, composer: UComposer<*>?): Key
+    fun mapKey(key: Key, transformer: UTransformer<*>?): Key
 
     /**
      * Returns symbolic expression guaranteeing that [key1] is same as [key2].

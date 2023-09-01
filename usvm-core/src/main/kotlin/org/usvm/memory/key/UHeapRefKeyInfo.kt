@@ -1,12 +1,12 @@
 package org.usvm.memory.key
 
 import org.usvm.UBoolExpr
-import org.usvm.UComposer
 import org.usvm.UConcreteHeapAddress
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UHeapRef
-import org.usvm.compose
+import org.usvm.UTransformer
+import org.usvm.apply
 import org.usvm.memory.USymbolicCollectionKeyInfo
 import org.usvm.regions.SetRegion
 
@@ -16,7 +16,7 @@ typealias UHeapRefRegion = SetRegion<UConcreteHeapAddress>
  * Provides information about heap references used as symbolic collection keys.
  */
 object UHeapRefKeyInfo : USymbolicCollectionKeyInfo<UHeapRef, UHeapRefRegion> {
-    override fun mapKey(key: UHeapRef, composer: UComposer<*>?): UHeapRef = composer.compose(key)
+    override fun mapKey(key: UHeapRef, transformer: UTransformer<*>?): UHeapRef = transformer.apply(key)
 
     override fun eqSymbolic(ctx: UContext, key1: UHeapRef, key2: UHeapRef): UBoolExpr =
         ctx.mkHeapRefEq(key1, key2)

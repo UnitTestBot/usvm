@@ -32,9 +32,6 @@ class UArrayLengthRegionDecoder<ArrayType>(
         collectionId: UInputArrayLengthId<ArrayType>
     ): URegionTranslator<UInputArrayLengthId<ArrayType>, UHeapRef, USizeSort> {
         if (inputArrayLengthTranslator == null) {
-            check(collectionId.arrayType == regionId.arrayType && collectionId.sort == regionId.sort) {
-                "Unexpected collection: $collectionId"
-            }
             inputArrayLengthTranslator = UInputArrayLengthRegionTranslator(collectionId, exprTranslator)
         }
         return inputArrayLengthTranslator!!

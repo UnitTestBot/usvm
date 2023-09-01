@@ -15,6 +15,7 @@ import org.usvm.collection.map.USymbolicMapKey
 import org.usvm.memory.URangedUpdateNode
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.memory.USymbolicCollection
+import org.usvm.memory.USymbolicCollectionId
 import org.usvm.model.UMemory2DArray
 import org.usvm.solver.U1DUpdatesTranslator
 import org.usvm.solver.U2DUpdatesTranslator
@@ -41,10 +42,6 @@ class URefMapRegionDecoder<MapType, ValueSort : USort>(
         collectionId: UAllocatedRefMapWithInputKeysId<MapType, ValueSort>
     ): URegionTranslator<UAllocatedRefMapWithInputKeysId<MapType, ValueSort>, UHeapRef, ValueSort> =
         allocatedWithInputKeysRegions.getOrPut(collectionId.mapAddress) {
-            check(collectionId.mapType == regionId.mapType && collectionId.sort == regionId.sort) {
-                "Unexpected collection: $collectionId"
-            }
-
             UAllocatedRefMapWithInputKeysTranslator(collectionId, exprTranslator)
         }
 
@@ -52,10 +49,6 @@ class URefMapRegionDecoder<MapType, ValueSort : USort>(
         collectionId: UInputRefMapWithAllocatedKeysId<MapType, ValueSort>
     ): URegionTranslator<UInputRefMapWithAllocatedKeysId<MapType, ValueSort>, UHeapRef, ValueSort> =
         inputWithAllocatedKeysRegions.getOrPut(collectionId.keyAddress) {
-            check(collectionId.mapType == regionId.mapType && collectionId.sort == regionId.sort) {
-                "Unexpected collection: $collectionId"
-            }
-
             UInputRefMapWithAllocatedKeysTranslator(collectionId, exprTranslator)
         }
 
@@ -63,10 +56,6 @@ class URefMapRegionDecoder<MapType, ValueSort : USort>(
         collectionId: UInputRefMapWithInputKeysId<MapType, ValueSort>
     ): URegionTranslator<UInputRefMapWithInputKeysId<MapType, ValueSort>, USymbolicMapKey<UAddressSort>, ValueSort> {
         if (inputRegionTranslator == null) {
-            check(collectionId.mapType == regionId.mapType && collectionId.sort == regionId.sort) {
-                "Unexpected collection: $collectionId"
-            }
-
             inputRegionTranslator = UInputRefMapTranslator(collectionId, exprTranslator)
         }
         return inputRegionTranslator!!
@@ -79,7 +68,7 @@ class URefMapRegionDecoder<MapType, ValueSort : USort>(
 }
 
 private class UAllocatedRefMapWithInputKeysTranslator<MapType, ValueSort : USort>(
-    private val collectionId: UAllocatedRefMapWithInputKeysId<MapType, ValueSort>,
+    collectionId: UAllocatedRefMapWithInputKeysId<MapType, ValueSort>,
     exprTranslator: UExprTranslator<*>
 ) : URegionTranslator<UAllocatedRefMapWithInputKeysId<MapType, ValueSort>, UHeapRef, ValueSort> {
     private val initialValue = with(collectionId.sort.uctx) {
@@ -101,7 +90,7 @@ private class UAllocatedRefMapWithInputKeysTranslator<MapType, ValueSort : USort
 }
 
 private class UInputRefMapWithAllocatedKeysTranslator<MapType, ValueSort : USort>(
-    private val collectionId: UInputRefMapWithAllocatedKeysId<MapType, ValueSort>,
+    collectionId: UInputRefMapWithAllocatedKeysId<MapType, ValueSort>,
     exprTranslator: UExprTranslator<*>
 ) : URegionTranslator<UInputRefMapWithAllocatedKeysId<MapType, ValueSort>, UHeapRef, ValueSort> {
     private val initialValue = with(collectionId.sort.uctx) {
@@ -123,7 +112,7 @@ private class UInputRefMapWithAllocatedKeysTranslator<MapType, ValueSort : USort
 }
 
 private class UInputRefMapTranslator<MapType, ValueSort : USort>(
-    private val collectionId: UInputRefMapWithInputKeysId<MapType, ValueSort>,
+    collectionId: UInputRefMapWithInputKeysId<MapType, ValueSort>,
     exprTranslator: UExprTranslator<*>
 ) : URegionTranslator<UInputRefMapWithInputKeysId<MapType, ValueSort>, USymbolicMapKey<UAddressSort>, ValueSort>,
     UCollectionDecoder<USymbolicMapKey<UAddressSort>, ValueSort> {
@@ -157,28 +146,38 @@ private class UAllocatedRefMapUpdatesTranslator<ValueSort : USort>(
         previous: KExpr<KArraySort<UAddressSort, ValueSort>>,
         update: URangedUpdateNode<*, *, UHeapRef, ValueSort>
     ): KExpr<KArraySort<UAddressSort, ValueSort>> {
+        check(update.adapter is USymbolicRefMapMergeAdapter<*, *, UHeapRef, *>) {
+            "Unexpected adapter: ${update.adapter}"
+        }
 
-//            is UMergeUpdateNode<*, *, *, *, *, *> -> {
-//                when(update.guard){
-//                    falseExpr -> previous
-//                    else -> {
-//                        @Suppress("UNCHECKED_CAST")
-//                        update as UMergeUpdateNode<USymbolicMapId<Any?, KeySort, *, Sort, *>, Any?, Any?, KeySort, *, Sort>
-//
-//                        val key = mkFreshConst("k", previous.sort.domain)
-//
-//                        val from = update.sourceCollection
-//
-//                        val keyMapper = from.collectionId.keyMapper(exprTranslator)
-//                        val convertedKey = keyMapper(update.keyConverter.convert(key))
-//                        val isInside = update.includesSymbolically(key).translated // already includes guard
-//                        val result = exprTranslator.translateRegionReading(from, convertedKey)
-//                        val ite = mkIte(isInside, result, previous.select(key))
-//                        mkArrayLambda(key.decl, ite)
-//                    }
-//                }
-//            }
-        TODO("Not yet implemented")
+        @Suppress("UNCHECKED_CAST")
+        return translateRefMapMerge(
+            previous,
+            update,
+            update.sourceCollection as USymbolicCollection<USymbolicCollectionId<Any, ValueSort, *>, Any, ValueSort>,
+            update.adapter as USymbolicRefMapMergeAdapter<*, Any, UHeapRef, *>
+        )
+    }
+
+    private fun <CollectionId : USymbolicCollectionId<SrcKey, ValueSort, CollectionId>, SrcKey> KContext.translateRefMapMerge(
+        previous: KExpr<KArraySort<UAddressSort, ValueSort>>,
+        update: URangedUpdateNode<*, *, UHeapRef, ValueSort>,
+        sourceCollection: USymbolicCollection<CollectionId, SrcKey, ValueSort>,
+        adapter: USymbolicRefMapMergeAdapter<*, SrcKey, UHeapRef, *>
+    ): KExpr<KArraySort<UAddressSort, ValueSort>> {
+        val key = mkFreshConst("k", previous.sort.domain)
+
+        val srcKeyInfo = sourceCollection.collectionId.keyInfo()
+        val convertedKey = srcKeyInfo.mapKey(adapter.convert(key, composer = null), exprTranslator)
+
+        val isInside = update.includesSymbolically(key, composer = null).translated // already includes guard
+
+        val result = sourceCollection.collectionId.instantiate(
+            sourceCollection, convertedKey, composer = null
+        ).translated
+
+        val ite = mkIte(isInside, result, previous.select(key))
+        return mkArrayLambda(key.decl, ite)
     }
 }
 
@@ -188,28 +187,40 @@ private class UInputRefMapUpdatesTranslator<ValueSort : USort>(
 ) : U2DUpdatesTranslator<UAddressSort, UAddressSort, ValueSort>(exprTranslator, initialValue) {
     override fun KContext.translateRangedUpdate(
         previous: KExpr<KArray2Sort<UAddressSort, UAddressSort, ValueSort>>,
-        update: URangedUpdateNode<*, *, Pair<UHeapRef, UHeapRef>, ValueSort>
+        update: URangedUpdateNode<*, *, USymbolicMapKey<UAddressSort>, ValueSort>
     ): KExpr<KArray2Sort<UAddressSort, UAddressSort, ValueSort>> {
-        //            is UMergeUpdateNode<*, *, *, *, *, *> -> {
-//                when(update.guard){
-//                    falseExpr -> previous
-//                    else -> {
-//                        @Suppress("UNCHECKED_CAST")
-//                        update as UMergeUpdateNode<USymbolicMapId<Any?, *, *, Sort, *>, Any?, Any?, *, *, Sort>
-//
-//                        val key1 = mkFreshConst("k1", previous.sort.domain0)
-//                        val key2 = mkFreshConst("k2", previous.sort.domain1)
-//
-//                        val region = update.sourceCollection
-//                        val keyMapper = region.collectionId.keyMapper(exprTranslator)
-//                        val convertedKey = keyMapper(update.keyConverter.convert(key1 to key2))
-//                        val isInside = update.includesSymbolically(key1 to key2).translated // already includes guard
-//                        val result = exprTranslator.translateRegionReading(region, convertedKey)
-//                        val ite = mkIte(isInside, result, previous.select(key1, key2))
-//                        mkArrayLambda(key1.decl, key2.decl, ite)
-//                    }
-//                }
-//            }
-        TODO("Not yet implemented")
+        check(update.adapter is USymbolicRefMapMergeAdapter<*, *, USymbolicMapKey<UAddressSort>, *>) {
+            "Unexpected adapter: ${update.adapter}"
+        }
+
+        @Suppress("UNCHECKED_CAST")
+        return translateRefMapMerge(
+            previous,
+            update,
+            update.sourceCollection as USymbolicCollection<USymbolicCollectionId<Any, ValueSort, *>, Any, ValueSort>,
+            update.adapter as USymbolicRefMapMergeAdapter<*, Any, USymbolicMapKey<UAddressSort>, *>
+        )
+    }
+
+    private fun <CollectionId : USymbolicCollectionId<SrcKey, ValueSort, CollectionId>, SrcKey> KContext.translateRefMapMerge(
+        previous: KExpr<KArray2Sort<UAddressSort, UAddressSort, ValueSort>>,
+        update: URangedUpdateNode<*, *, USymbolicMapKey<UAddressSort>, ValueSort>,
+        sourceCollection: USymbolicCollection<CollectionId, SrcKey, ValueSort>,
+        adapter: USymbolicRefMapMergeAdapter<*, SrcKey, USymbolicMapKey<UAddressSort>, *>
+    ): KExpr<KArray2Sort<UAddressSort, UAddressSort, ValueSort>> {
+        val key1 = mkFreshConst("k1", previous.sort.domain0)
+        val key2 = mkFreshConst("k2", previous.sort.domain1)
+
+        val srcKeyInfo = sourceCollection.collectionId.keyInfo()
+        val convertedKey = srcKeyInfo.mapKey(adapter.convert(key1 to key2, composer = null), exprTranslator)
+
+        val isInside = update.includesSymbolically(key1 to key2, composer = null).translated // already includes guard
+
+        val result = sourceCollection.collectionId.instantiate(
+            sourceCollection, convertedKey, composer = null
+        ).translated
+
+        val ite = mkIte(isInside, result, previous.select(key1, key2))
+        return mkArrayLambda(key1.decl, key2.decl, ite)
     }
 }

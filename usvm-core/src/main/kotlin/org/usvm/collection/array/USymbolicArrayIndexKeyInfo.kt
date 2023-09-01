@@ -1,10 +1,10 @@
 package org.usvm.collection.array
 
 import org.usvm.UBoolExpr
-import org.usvm.UComposer
 import org.usvm.UContext
 import org.usvm.UHeapRef
 import org.usvm.USizeExpr
+import org.usvm.UTransformer
 import org.usvm.memory.USymbolicCollectionKeyInfo
 import org.usvm.memory.key.UHeapRefKeyInfo
 import org.usvm.memory.key.UHeapRefRegion
@@ -21,9 +21,12 @@ typealias USymbolicArrayIndexRegion = ProductRegion<UHeapRefRegion, USizeRegion>
 /**
  * Provides information about keys of input arrays.
  */
-object USymbolicArrayIndexKeyInfo: USymbolicCollectionKeyInfo<USymbolicArrayIndex, USymbolicArrayIndexRegion> {
-    override fun mapKey(key: USymbolicArrayIndex, composer: UComposer<*>?): USymbolicArrayIndex =
-        UHeapRefKeyInfo.mapKey(key.first, composer) to USizeExprKeyInfo.mapKey(key.second, composer)
+object USymbolicArrayIndexKeyInfo : USymbolicCollectionKeyInfo<USymbolicArrayIndex, USymbolicArrayIndexRegion> {
+    override fun mapKey(key: USymbolicArrayIndex, transformer: UTransformer<*>?): USymbolicArrayIndex {
+        val ref = UHeapRefKeyInfo.mapKey(key.first, transformer)
+        val index = USizeExprKeyInfo.mapKey(key.second, transformer)
+        return if (ref === key.first && index === key.second) key else ref to index
+    }
 
     override fun eqSymbolic(ctx: UContext, key1: USymbolicArrayIndex, key2: USymbolicArrayIndex): UBoolExpr =
         with(ctx) {

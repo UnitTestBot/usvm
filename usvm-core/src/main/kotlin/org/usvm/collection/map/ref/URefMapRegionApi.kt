@@ -1,10 +1,10 @@
 package org.usvm.collection.map.ref
 
-import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
-import org.usvm.collection.set.USetRegionId
+import org.usvm.collection.set.ref.URefSetRegion
+import org.usvm.collection.set.ref.URefSetRegionId
 import org.usvm.memory.UWritableMemory
 
 fun <MapType, ValueSort : USort> UWritableMemory<*>.refMapMerge(
@@ -12,7 +12,7 @@ fun <MapType, ValueSort : USort> UWritableMemory<*>.refMapMerge(
     dstRef: UHeapRef,
     mapType: MapType,
     sort: ValueSort,
-    keySet: USetRegionId<MapType, UAddressSort, *>,
+    keySetId: URefSetRegionId<MapType>,
     guard: UBoolExpr
 ) {
     val regionId = URefMapRegionId(sort, mapType)
@@ -20,6 +20,11 @@ fun <MapType, ValueSort : USort> UWritableMemory<*>.refMapMerge(
 
     check(region is URefMapRegion<MapType, ValueSort>) {
         "refMapMerge is not applicable to $region"
+    }
+
+    val keySet = getRegion(keySetId)
+    check(keySet is URefSetRegion<MapType>) {
+        "refMapMerge is not applicable to set $region"
     }
 
     val newRegion = region.merge(srcRef, dstRef, mapType, sort, keySet, guard)

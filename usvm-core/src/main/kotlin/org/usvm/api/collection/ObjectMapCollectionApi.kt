@@ -10,11 +10,11 @@ import org.usvm.UState
 import org.usvm.collection.map.length.UMapLengthLValue
 import org.usvm.collection.map.ref.URefMapEntryLValue
 import org.usvm.collection.map.ref.refMapMerge
-import org.usvm.collection.set.USetEntryLValue
-import org.usvm.collection.set.USetRegionId
-import org.usvm.collection.set.setUnion
-import org.usvm.memory.key.UHeapRefKeyInfo
+import org.usvm.collection.set.ref.URefSetEntryLValue
+import org.usvm.collection.set.ref.URefSetRegionId
+import org.usvm.collection.set.ref.refSetUnion
 import org.usvm.memory.map
+import org.usvm.uctx
 
 object ObjectMapCollectionApi {
     fun <MapType> UState<MapType, *, *, *, *>.mkSymbolicObjectMap(
@@ -57,7 +57,7 @@ object ObjectMapCollectionApi {
         key: UHeapRef,
         mapType: MapType
     ): UBoolExpr = with(memory.ctx) {
-        memory.read(USetEntryLValue(addressSort, mapRef, key, mapType, UHeapRefKeyInfo))
+        memory.read(URefSetEntryLValue(mapRef, key, mapType))
     }
 
     fun <MapType, Sort : USort> UState<MapType, *, *, *, *>.symbolicObjectMapPut(
@@ -67,7 +67,7 @@ object ObjectMapCollectionApi {
         mapType: MapType,
         sort: Sort
     ): Unit = with(memory.ctx) {
-        val mapContainsLValue = USetEntryLValue(addressSort, mapRef, key, mapType, UHeapRefKeyInfo)
+        val mapContainsLValue = URefSetEntryLValue(mapRef, key, mapType)
 
         val keyIsInMap = memory.read(mapContainsLValue)
         val keyIsNew = mkNot(keyIsInMap)
@@ -85,7 +85,7 @@ object ObjectMapCollectionApi {
         key: UHeapRef,
         mapType: MapType
     ): Unit = with(memory.ctx) {
-        val mapContainsLValue = USetEntryLValue(addressSort, mapRef, key, mapType, UHeapRefKeyInfo)
+        val mapContainsLValue = URefSetEntryLValue(mapRef, key, mapType)
 
         val keyIsInMap = memory.read(mapContainsLValue)
 
@@ -103,11 +103,11 @@ object ObjectMapCollectionApi {
         mapType: MapType,
         sort: Sort
     ): Unit = with(memory.ctx) {
-        val containsSetId = USetRegionId(addressSort, mapType, UHeapRefKeyInfo)
+        val containsSetId = URefSetRegionId(mapType, sort.uctx.boolSort)
 
         memory.refMapMerge(srcRef, dstRef, mapType, sort, containsSetId, guard = trueExpr)
 
-        memory.setUnion(srcRef, dstRef, mapType, addressSort, UHeapRefKeyInfo, guard = trueExpr)
+        memory.refSetUnion(srcRef, dstRef, mapType, guard = trueExpr)
 
         // todo: precise map size approximation?
         val mergedMapSize = sizeSort.mkFreshConst("mergedMapSize")
@@ -116,7 +116,7 @@ object ObjectMapCollectionApi {
         val sizeLowerBound = mkIte(mkBvSignedGreaterExpr(srcMapSize, dstMapSize), srcMapSize, dstMapSize)
         val sizeUpperBound = mkBvAddExpr(srcMapSize, dstMapSize)
         pathConstraints += mkBvSignedGreaterOrEqualExpr(mergedMapSize, sizeLowerBound)
-        pathConstraints += mkBvSignedGreaterOrEqualExpr(mergedMapSize, sizeUpperBound)
+        pathConstraints += mkBvSignedLessOrEqualExpr(mergedMapSize, sizeUpperBound)
         memory.write(UMapLengthLValue(dstRef, mapType), mergedMapSize, guard = trueExpr)
     }
 }

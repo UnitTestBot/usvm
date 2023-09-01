@@ -1,7 +1,6 @@
 package org.usvm.api.collections
 
 import io.ksmt.solver.KSolver
-import org.junit.jupiter.api.Disabled
 import org.usvm.UHeapRef
 import org.usvm.USizeExpr
 import org.usvm.api.collection.ObjectMapCollectionApi.mkSymbolicObjectMap
@@ -18,7 +17,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 
-@Disabled("Set collection implementation required")
 class ObjectMapTest : SymbolicCollectionTestBase() {
 
     private val mapType = SingleTypeSystem.SingleType
