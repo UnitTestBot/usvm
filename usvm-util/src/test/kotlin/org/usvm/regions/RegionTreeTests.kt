@@ -1,9 +1,7 @@
 package org.usvm.regions
 
 import org.junit.jupiter.api.Test
-import org.usvm.regions.IntervalsRegion
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 internal class RegionsTest {
     @Test
