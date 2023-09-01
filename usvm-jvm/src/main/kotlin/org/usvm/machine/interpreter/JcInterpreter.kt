@@ -13,7 +13,9 @@ import org.jacodb.api.cfg.JcArgument
 import org.jacodb.api.cfg.JcAssignInst
 import org.jacodb.api.cfg.JcCallInst
 import org.jacodb.api.cfg.JcCatchInst
+import org.jacodb.api.cfg.JcEnterMonitorInst
 import org.jacodb.api.cfg.JcEqExpr
+import org.jacodb.api.cfg.JcExitMonitorInst
 import org.jacodb.api.cfg.JcGotoInst
 import org.jacodb.api.cfg.JcIfInst
 import org.jacodb.api.cfg.JcInst
@@ -26,6 +28,7 @@ import org.jacodb.api.cfg.JcSwitchInst
 import org.jacodb.api.cfg.JcThis
 import org.jacodb.api.cfg.JcThrowInst
 import org.jacodb.api.ext.boolean
+import org.jacodb.api.ext.void
 import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UBoolExpr
@@ -34,14 +37,20 @@ import org.usvm.UInterpreter
 import org.usvm.api.allocate
 import org.usvm.machine.JcApplicationGraph
 import org.usvm.machine.JcContext
+import org.usvm.machine.JcMethodApproximationResolver
+import org.usvm.machine.UMethodCallBaseJcInst
+import org.usvm.machine.UMethodCallJcInst
+import org.usvm.machine.UMethodEntrypointJcInst
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.addEntryMethodCall
+import org.usvm.machine.state.addNewMethodCall
 import org.usvm.machine.state.lastStmt
 import org.usvm.machine.state.localIdx
 import org.usvm.machine.state.newStmt
 import org.usvm.machine.state.parametersWithThisCount
 import org.usvm.machine.state.returnValue
+import org.usvm.machine.state.skipMethodInvocationWithValue
 import org.usvm.machine.state.throwExceptionAndDropStackFrame
 import org.usvm.machine.state.throwExceptionWithoutStackFrameDrop
 import org.usvm.memory.URegisterStackLValue
@@ -64,7 +73,7 @@ class JcInterpreter(
 
     fun getInitialState(method: JcMethod): JcState {
         val state = JcState(ctx)
-        state.addEntryMethodCall(applicationGraph, method)
+        state.newStmt(UMethodEntrypointJcInst(method))
 
         val typedMethod = with(applicationGraph) { method.typed }
 
@@ -111,6 +120,7 @@ class JcInterpreter(
         }
 
         when (stmt) {
+            is UMethodCallBaseJcInst -> visitMethodCall(scope, stmt)
             is JcAssignInst -> visitAssignInst(scope, stmt)
             is JcIfInst -> visitIfStmt(scope, stmt)
             is JcReturnInst -> visitReturnStmt(scope, stmt)
@@ -119,6 +129,8 @@ class JcInterpreter(
             is JcSwitchInst -> visitSwitchStmt(scope, stmt)
             is JcThrowInst -> visitThrowStmt(scope, stmt)
             is JcCallInst -> visitCallStmt(scope, stmt)
+            is JcEnterMonitorInst -> visitMonitorEnterStmt(scope, stmt)
+            is JcExitMonitorInst -> visitMonitorExitStmt(scope, stmt)
             else -> error("Unknown stmt: $stmt")
         }
         return scope.stepResult()
@@ -169,6 +181,37 @@ class JcInterpreter(
         val catchSectionMiss = typeConditionToMiss to functionBlockOnMiss
 
         scope.forkMulti(catchForks + catchSectionMiss)
+    }
+
+    private fun visitMethodCall(scope: JcStepScope, stmt: UMethodCallBaseJcInst) {
+        when (stmt) {
+            is UMethodEntrypointJcInst -> {
+                scope.doWithState {
+                    addEntryMethodCall(applicationGraph, stmt)
+                }
+                return
+            }
+
+            is UMethodCallJcInst -> {
+                val exprResolver = exprResolverWithScope(scope)
+                val methodApproximationResolver = JcMethodApproximationResolver(ctx, scope, exprResolver)
+                if (methodApproximationResolver.approximate(stmt)) {
+                    return
+                }
+
+                if (stmt.method.isNative) {
+                    scope.doWithState {
+                        mockNativeMethod(stmt)
+                    }
+                    return
+                }
+
+                scope.doWithState {
+                    addNewMethodCall(applicationGraph, stmt)
+                }
+                return
+            }
+        }
     }
 
     private fun visitAssignInst(scope: JcStepScope, stmt: JcAssignInst) {
@@ -269,6 +312,28 @@ class JcInterpreter(
         }
     }
 
+    private fun visitMonitorEnterStmt(scope: JcStepScope, stmt: JcEnterMonitorInst) {
+        val exprResolver = exprResolverWithScope(scope)
+        exprResolver.resolveJcNotNullRefExpr(stmt.monitor, stmt.monitor.type) ?: return
+
+        // Monitor enter makes sense only in multithreaded environment
+
+        scope.doWithState {
+            newStmt(stmt.nextStmt)
+        }
+    }
+
+    private fun visitMonitorExitStmt(scope: JcStepScope, stmt: JcExitMonitorInst) {
+        val exprResolver = exprResolverWithScope(scope)
+        exprResolver.resolveJcNotNullRefExpr(stmt.monitor, stmt.monitor.type) ?: return
+
+        // Monitor exit makes sense only in multithreaded environment
+
+        scope.doWithState {
+            newStmt(stmt.nextStmt)
+        }
+    }
+
     private val invokeResolver = JcVirtualInvokeResolver(ctx, applicationGraph, JcFixedInheritorsNumberTypeSelector())
 
     private fun exprResolverWithScope(scope: JcStepScope) =
@@ -336,4 +401,26 @@ class JcInterpreter(
     private data class JcPrimitiveTypeInfo(val type: JcPrimitiveType) : JcTypeInfo
 
     private data class JcArrayTypeInfo(val element: JcTypeInfo) : JcTypeInfo
+
+    private fun JcState.mockNativeMethod(
+        methodCall: UMethodCallJcInst
+    ) = with(methodCall) {
+        logger.warn { "Mocked: ${method.enclosingClass.name}::${method.name}" }
+
+        val returnType = with(applicationGraph) { method.typed }.returnType
+
+        if (returnType == ctx.cp.void) {
+            skipMethodInvocationWithValue(methodCall, ctx.voidValue)
+            return@with
+        }
+
+        val mockSort = ctx.typeToSort(returnType)
+        val mockValue = memory.mock { call(method, arguments.asSequence(), mockSort) }
+
+        if (mockSort == ctx.addressSort) {
+            pathConstraints += memory.types.evalIsSubtype(mockValue.asExpr(ctx.addressSort), returnType)
+        }
+
+        skipMethodInvocationWithValue(methodCall, mockValue)
+    }
 }

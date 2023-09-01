@@ -9,6 +9,8 @@ import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.machine.JcApplicationGraph
+import org.usvm.machine.UMethodCallJcInst
+import org.usvm.machine.UMethodEntrypointJcInst
 
 val JcState.lastStmt get() = pathLocation.statement
 fun JcState.newStmt(stmt: JcInst) {
@@ -53,11 +55,11 @@ fun JcState.throwExceptionAndDropStackFrame() {
     }
 }
 
-
 fun JcState.addEntryMethodCall(
     applicationGraph: JcApplicationGraph,
-    method: JcMethod,
+    methodCall: UMethodEntrypointJcInst,
 ) {
+    val method = methodCall.method
     val entryPoint = applicationGraph.entryPoints(method).single()
     callStack.push(method, returnSite = null)
     memory.stack.push(method.parametersWithThisCount, method.localsCount)
@@ -66,16 +68,19 @@ fun JcState.addEntryMethodCall(
 
 fun JcState.addNewMethodCall(
     applicationGraph: JcApplicationGraph,
-    method: JcMethod,
-    arguments: List<UExpr<out USort>>,
+    methodCall: UMethodCallJcInst
 ) {
     // TODO: find concrete implementation (I guess, the method should be already concrete)
+    val method = methodCall.method
     val entryPoint = applicationGraph.entryPoints(method).singleOrNull()
         ?: error("No entrypoint found for method: $method")
-    val returnSite = lastStmt
-    callStack.push(method, returnSite)
-    memory.stack.push(arguments.toTypedArray(), method.localsCount)
+    callStack.push(method, methodCall.returnSite)
+    memory.stack.push(methodCall.arguments.toTypedArray(), method.localsCount)
     newStmt(entryPoint)
+}
+
+fun JcState.addMethodCall(method: JcMethod, arguments: List<UExpr<out USort>>) {
+    newStmt(UMethodCallJcInst(lastStmt.location, method, arguments, lastStmt))
 }
 
 fun JcMethod.localIdx(idx: Int) = if (isStatic) idx else idx + 1
@@ -85,3 +90,8 @@ inline val JcMethod.parametersWithThisCount get() = localIdx(parameters.size)
 
 // TODO: cache it with JacoDB cache
 inline val JcMethod.localsCount get() = instList.locals.filter { it !is JcArgument }.size
+
+fun JcState.skipMethodInvocationWithValue(methodCall: UMethodCallJcInst, value: UExpr<out USort>) {
+    methodResult = JcMethodResult.Success(methodCall.method, value)
+    newStmt(methodCall.returnSite)
+}

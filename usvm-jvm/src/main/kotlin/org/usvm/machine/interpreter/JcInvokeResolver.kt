@@ -17,7 +17,7 @@ import org.usvm.api.typeStreamOf
 import org.usvm.machine.JcApplicationGraph
 import org.usvm.machine.JcContext
 import org.usvm.machine.state.JcState
-import org.usvm.machine.state.addNewMethodCall
+import org.usvm.machine.state.addMethodCall
 import org.usvm.machine.state.lastStmt
 import org.usvm.machine.state.newStmt
 import org.usvm.types.first
@@ -41,7 +41,7 @@ class JcVirtualInvokeResolver(
             return
         }
 
-        doWithState { addNewMethodCall(applicationGraph, method, arguments) }
+        doWithState { addMethodCall(method, arguments) }
     }
 
     override fun JcStepScope.resolveLambdaInvoke(method: JcMethod, arguments: List<UExpr<out USort>>) {
@@ -49,7 +49,7 @@ class JcVirtualInvokeResolver(
             return
         }
 
-        doWithState { addNewMethodCall(applicationGraph, method, arguments) }
+        doWithState { addMethodCall(method, arguments) }
     }
 
     override fun JcStepScope.resolveVirtualInvoke(
@@ -85,7 +85,7 @@ class JcVirtualInvokeResolver(
                     val concreteMethod = type.findMethod(method.name, method.description)
                         ?: error("Can't find method $method in type ${type.typeName}")
 
-                    state.addNewMethodCall(applicationGraph, concreteMethod.method, arguments)
+                    state.addMethodCall(concreteMethod.method, arguments)
                 }
 
                 isExpr to block
@@ -98,12 +98,12 @@ class JcVirtualInvokeResolver(
 
             forkMulti(typeConstraintsWithBlockOnStates)
         } else {
-            val type = calcOnState { memory.typeStreamOf(concreteRef) }.first() as JcClassType
+            val type = calcOnState { memory.typeStreamOf(concreteRef) }.first()
 
             val concreteMethod = type.findMethod(method.name, method.description)
                 ?: error("Can't find method $method in type ${type.typeName}")
 
-            doWithState { addNewMethodCall(applicationGraph, concreteMethod.method, arguments) }
+            doWithState { addMethodCall(concreteMethod.method, arguments) }
         }
     }
 
@@ -138,7 +138,7 @@ class JcVirtualInvokeResolver(
             return
         }
 
-        doWithState { addNewMethodCall(applicationGraph, method, arguments) }
+        doWithState { addMethodCall(method, arguments) }
     }
 
     override fun JcStepScope.resolveDynamicInvoke(method: JcMethod, arguments: List<UExpr<out USort>>) {
@@ -146,10 +146,7 @@ class JcVirtualInvokeResolver(
     }
 
     private fun JcStepScope.skip(method: JcMethod): Boolean {
-        // Skip native method in static initializer
-        if ((method.name == "registerNatives" && method.enclosingClass.name == "java.lang.Class")
-            || (method.enclosingClass.name == "java.lang.Throwable")
-        ) {
+        if (method.enclosingClass.name == "java.lang.Throwable") {
             doWithState {
                 val nextStmt = applicationGraph.successors(lastStmt).single()
                 newStmt(nextStmt)
