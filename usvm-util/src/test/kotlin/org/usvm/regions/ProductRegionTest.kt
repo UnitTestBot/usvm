@@ -1,11 +1,12 @@
 package org.usvm.regions
 
 import org.junit.jupiter.api.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class ProductRegionTest {
     @Test
-    fun productRegionTest() {
+    fun testSimple() {
         val r1 = SetRegion.ofSet(1, 2, 3)
         val r2 = SetRegion.ofSet(2, 3, 4)
         val r3 = SetRegion.singleton(1)
@@ -19,5 +20,22 @@ class ProductRegionTest {
         assertTrue(diff2.products.size == 1)
         val diff3 = diff2.subtract(p4)
         assertTrue(diff3.isEmpty)
+    }
+
+    @Test
+    fun testUnion() {
+        val x1 = SetRegion.ofSet(1, 2)
+        val x2 = SetRegion.ofSet(4, 5)
+
+        val y1 = SetRegion.ofSet(-1, -2)
+        val y2 = SetRegion.ofSet(-4, -5)
+
+        val p1 = ProductRegion(listOf(x1 to y2, x2 to y1))
+        val p2 = ProductRegion(listOf(x1 to y1, x2 to y2))
+
+        val union = p1.union(p2)
+        assertEquals(1, union.products.size)
+        assertEquals(setOf(1, 2, 4, 5), union.products.first().first.toSet())
+        assertEquals(setOf(-1, -2, -4, -5), union.products.first().second.toSet())
     }
 }

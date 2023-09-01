@@ -61,7 +61,7 @@ open class UComposer<Type>(
         expr: UCollectionReading<CollectionId, Key, Sort>,
         key: Key,
     ): UExpr<Sort> = with(expr) {
-        val mappedKey = collection.collectionId.keyMapper(this@UComposer)(key)
+        val mappedKey = collection.collectionId.keyInfo().mapKey(key, this@UComposer)
         return collection.read(mappedKey, this@UComposer)
     }
 

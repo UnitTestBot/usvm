@@ -1,5 +1,6 @@
 package org.usvm.constraints
 
+import io.ksmt.expr.KBitVec32Value
 import io.ksmt.expr.KBitVecValue
 import io.ksmt.expr.KBvAddExpr
 import io.ksmt.expr.KBvNegationExpr
@@ -32,7 +33,7 @@ import org.usvm.UBoolExpr
 import org.usvm.UBvSort
 import org.usvm.UContext
 import org.usvm.UExpr
-import org.usvm.regions.IntervalsRegion
+import org.usvm.regions.IntIntervalsRegion
 
 private typealias ConstraintTerms<Sort> = UExpr<Sort>
 
@@ -222,11 +223,13 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
     /**
      * Retrieve lower and upper bounds for the [expr].
      * */
-    fun evalInterval(expr: UExpr<Sort>): IntervalsRegion<UBvIntervalPoint<Sort>> {
+    fun evalInterval(expr: UExpr<Sort>): IntIntervalsRegion {
+        require(sort == ctx.bv32Sort) { "Unsupported sort: $sort"}
+
         val (terms, const) = collectLinearTerms(expr)
 
         if (terms == null) {
-            return IntervalsRegion.singleton(UBvIntervalPoint(const ?: zero))
+            return IntIntervalsRegion.point(const?.intValue ?: 0)
         }
 
         return withConstraint(
@@ -236,13 +239,13 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
 
                 val actualConstraints = bounds.actualizeConstraint(bias)
 
-                val lowerBound = actualConstraints.lowerBound(bias)?.value ?: minValue
-                val upperBound = actualConstraints.upperBound(bias)?.value ?: maxValue
+                val lowerBound = actualConstraints.lowerBound(bias)?.value?.intValue ?: Int.MIN_VALUE
+                val upperBound = actualConstraints.upperBound(bias)?.value?.intValue ?: Int.MAX_VALUE
 
-                var interval = IntervalsRegion.closed(UBvIntervalPoint(lowerBound), UBvIntervalPoint(upperBound))
+                var interval = IntIntervalsRegion.ofClosed(lowerBound, upperBound)
 
                 actualConstraints.excludedPoints(bias).forEach { value ->
-                    val point = IntervalsRegion.singleton(UBvIntervalPoint(value))
+                    val point = IntIntervalsRegion.point(value.intValue)
                     interval = interval.subtract(point)
                 }
 
@@ -250,15 +253,15 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
             },
             value = { value ->
                 val biasedValue = add(value, const)
-                IntervalsRegion.singleton(UBvIntervalPoint(biasedValue))
+                IntIntervalsRegion.point(biasedValue.intValue)
             },
             noConstraint = {
-                val lowerBound = UBvIntervalPoint(minValue)
-                val upperBound = UBvIntervalPoint(maxValue)
-                IntervalsRegion.closed(lowerBound, upperBound)
+                IntIntervalsRegion.universe()
             }
         )
     }
+
+    private val KBitVecValue<Sort>.intValue: Int get() = (this as KBitVec32Value).intValue
 
     fun clone(): UNumericConstraints<Sort> {
         if (this.isContradicting) {
@@ -288,7 +291,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         terms: ConstraintTerms<Sort>,
         bounds: (BoundsConstraint<Sort>, KBitVecValue<Sort>) -> T,
         value: (KBitVecValue<Sort>) -> T,
-        noConstraint: () -> T
+        noConstraint: () -> T,
     ): T {
         var constraint = numericConstraints[terms] ?: return noConstraint()
         while (true) {
@@ -453,7 +456,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         rhsTerms: ConstraintTerms<Sort>?,
         rhsConst: KBitVecValue<Sort>?,
         isStrict: Boolean,
-        isInternalConstraint: Boolean
+        isInternalConstraint: Boolean,
     ) {
         if (lhsTerms == null && rhsTerms == null) {
             check(lhsConst != null && rhsConst != null) {
@@ -484,7 +487,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         lhsConst: KBitVecValue<Sort>?,
         rhsConst: KBitVecValue<Sort>?,
         isStrict: Boolean,
-        isInternalConstraint: Boolean
+        isInternalConstraint: Boolean,
     ) {
         if (lhsTerms == null) {
             check(lhsConst != null && rhsConst != null) {
@@ -509,7 +512,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         lhsTerms: ConstraintTerms<Sort>,
         lhsConst: KBitVecValue<Sort>?,
         rhsTerms: ConstraintTerms<Sort>?,
-        rhsConst: KBitVecValue<Sort>?
+        rhsConst: KBitVecValue<Sort>?,
     ) = withConstraint(
         terms = lhsTerms,
         bounds = { lhsConstraints, lhsBias ->
@@ -529,7 +532,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         lhsTerms: ConstraintTerms<Sort>,
         lhsConst: KBitVecValue<Sort>?,
         rhsTerms: ConstraintTerms<Sort>?,
-        rhsConst: KBitVecValue<Sort>?
+        rhsConst: KBitVecValue<Sort>?,
     ) = withConstraint(
         terms = lhsTerms,
         bounds = { lhsConstraints, lhsBias ->
@@ -555,7 +558,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         lhsConst: KBitVecValue<Sort>?,
         rhsConst: KBitVecValue<Sort>?,
         isStrict: Boolean,
-        isInternalConstraint: Boolean
+        isInternalConstraint: Boolean,
     ) = withConstraint(
         terms = lhsTerms,
         bounds = { lhsConstraint, lhsBias ->
@@ -582,7 +585,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         rhsTerms: ConstraintTerms<Sort>?,
         rhsConst: KBitVecValue<Sort>?,
         isStrict: Boolean,
-        isInternalConstraint: Boolean
+        isInternalConstraint: Boolean,
     ) = withConstraint(
         terms = lhsTerms,
         bounds = { lhsConstraint, lhsBias ->
@@ -621,7 +624,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         lhsConstraint: BoundsConstraint<Sort>,
         lhsBias: KBitVecValue<Sort>,
         rhsTerms: ConstraintTerms<Sort>,
-        rhsConst: KBitVecValue<Sort>?
+        rhsConst: KBitVecValue<Sort>?,
     ) = withConstraint(
         terms = rhsTerms,
         bounds = { rhsConstraint, rhsBias ->
@@ -654,7 +657,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         lhsConstraint: BoundsConstraint<Sort>,
         lhsBias: KBitVecValue<Sort>,
         rhsTerms: ConstraintTerms<Sort>,
-        rhsConst: KBitVecValue<Sort>?
+        rhsConst: KBitVecValue<Sort>?,
     ): BoundsConstraint<Sort> = withConstraint(
         terms = rhsTerms,
         bounds = { rhsConstraint, rhsBias ->
@@ -688,7 +691,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         rhsTerms: ConstraintTerms<Sort>,
         rhsConst: KBitVecValue<Sort>?,
         isStrict: Boolean,
-        isInternalConstraint: Boolean
+        isInternalConstraint: Boolean,
     ): BoundsConstraint<Sort> = withConstraint(
         terms = rhsTerms,
         bounds = { rhsConstraint, rhsBias ->
@@ -740,7 +743,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         destination: BoundsConstraint<Sort>,
         destinationBias: KBitVecValue<Sort>,
         source: BoundsConstraint<Sort>,
-        sourceBias: KBitVecValue<Sort>
+        sourceBias: KBitVecValue<Sort>,
     ) {
         val bias = sub(sourceBias, destinationBias)
 
@@ -761,7 +764,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
     private fun addBoundConcreteEqualityConstraint(
         lhsConstraint: BoundsConstraint<Sort>,
         lhsBias: KBitVecValue<Sort>,
-        rhsConst: KBitVecValue<Sort>
+        rhsConst: KBitVecValue<Sort>,
     ) {
         val value = sub(rhsConst, lhsBias)
 
@@ -775,7 +778,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         bias: KBitVecValue<Sort>,
         value: KBitVecValue<Sort>,
         isStrict: Boolean,
-        isPrimary: Boolean
+        isPrimary: Boolean,
     ): BoundsConstraint<Sort> {
         val normalizedValue: KBitVecValue<Sort> = if (isStrict) {
             if (value.isBvMinValueSigned()) {
@@ -795,7 +798,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         bias: KBitVecValue<Sort>,
         value: KBitVecValue<Sort>,
         isStrict: Boolean,
-        isPrimary: Boolean
+        isPrimary: Boolean,
     ): BoundsConstraint<Sort> {
         val normalizedValue: KBitVecValue<Sort> = if (isStrict) {
             if (value.isBvMaxValueSigned()) {
@@ -814,21 +817,21 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
     private fun BoundsConstraint<Sort>.addConcreteUpperBound(
         bias: KBitVecValue<Sort>,
         value: KBitVecValue<Sort>,
-        isPrimary: Boolean
+        isPrimary: Boolean,
     ): BoundsConstraint<Sort> =
         refineFromGround(bias).updateConcreteUpperBound(bias, value, isPrimary)
 
     private fun BoundsConstraint<Sort>.addConcreteLowerBound(
         bias: KBitVecValue<Sort>,
         value: KBitVecValue<Sort>,
-        isPrimary: Boolean
+        isPrimary: Boolean,
     ): BoundsConstraint<Sort> =
         refineFromGround(bias).updateConcreteLowerBound(bias, value, isPrimary)
 
     private fun BoundsConstraint<Sort>.addConcreteDisequality(
         bias: KBitVecValue<Sort>,
         value: KBitVecValue<Sort>,
-        isPrimary: Boolean
+        isPrimary: Boolean,
     ): BoundsConstraint<Sort> =
         refineFromGround(bias).updateConcreteDisequality(bias, value, isPrimary)
 
@@ -836,7 +839,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         bias: KBitVecValue<Sort>,
         rhs: BoundsConstraint<Sort>,
         rhsBias: KBitVecValue<Sort>,
-        isStrict: Boolean
+        isStrict: Boolean,
     ): BoundsConstraint<Sort> = refineFromGround(bias)
         .updateTermsUpperBound(bias, rhs.actualizeConstraint(rhsBias), rhsBias, isStrict)
 
@@ -844,19 +847,19 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         bias: KBitVecValue<Sort>,
         rhs: BoundsConstraint<Sort>,
         rhsBias: KBitVecValue<Sort>,
-        isStrict: Boolean
+        isStrict: Boolean,
     ): BoundsConstraint<Sort> = refineFromGround(bias)
         .updateTermsInferredLowerBound(bias, rhs.actualizeConstraint(rhsBias), rhsBias, isStrict)
 
     private fun BoundsConstraint<Sort>.addTermsDisequality(
         bias: KBitVecValue<Sort>,
         rhs: BoundsConstraint<Sort>,
-        rhsBias: KBitVecValue<Sort>
+        rhsBias: KBitVecValue<Sort>,
     ): BoundsConstraint<Sort> = refineFromGround(bias)
         .updateTermsDisequality(bias, rhs.actualizeConstraint(rhsBias), rhsBias)
 
     private fun BoundsConstraint<Sort>.actualizeConstraint(
-        bias: KBitVecValue<Sort>
+        bias: KBitVecValue<Sort>,
     ): BoundsConstraint<Sort> {
         val actualized = refineFromGround(bias)
         if (this !== actualized) {
@@ -866,19 +869,19 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
     }
 
     private fun BoundsConstraint<Sort>.refineGroundConstraint(
-        bias: KBitVecValue<Sort>
+        bias: KBitVecValue<Sort>,
     ): BoundsConstraint<Sort> =
         refineBounds(bias, zero) { subNoOverflow(it, bias) }
 
     private fun BoundsConstraint<Sort>.refineFromGround(
-        bias: KBitVecValue<Sort>
+        bias: KBitVecValue<Sort>,
     ): BoundsConstraint<Sort> =
         refineBounds(zero, bias) { addNoOverflow(it, bias) }
 
     private inline fun BoundsConstraint<Sort>.refineBounds(
         sourceBias: KBitVecValue<Sort>,
         targetBias: KBitVecValue<Sort>,
-        shiftBound: (KBitVecValue<Sort>) -> KBitVecValue<Sort>?
+        shiftBound: (KBitVecValue<Sort>) -> KBitVecValue<Sort>?,
     ): BoundsConstraint<Sort> {
         if (sourceBias == targetBias) {
             return this
@@ -920,7 +923,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
 
     private fun BoundsConstraint<Sort>.refineLowerBound(
         bias: KBitVecValue<Sort>,
-        bound: KBitVecValue<Sort>
+        bound: KBitVecValue<Sort>,
     ): BoundsConstraint<Sort> {
         val currentValue = concreteLowerBounds[bias]?.value
         if (currentValue != null && currentValue.signedGreaterOrEqual(bound)) return this
@@ -929,7 +932,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
 
     private fun BoundsConstraint<Sort>.refineUpperBound(
         bias: KBitVecValue<Sort>,
-        bound: KBitVecValue<Sort>
+        bound: KBitVecValue<Sort>,
     ): BoundsConstraint<Sort> {
         val currentValue = concreteUpperBounds[bias]?.value
         if (currentValue != null && currentValue.signedLessOrEqual(bound)) return this
@@ -939,7 +942,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
     private fun BoundsConstraint<Sort>.updateConcreteLowerBound(
         bias: KBitVecValue<Sort>,
         value: KBitVecValue<Sort>,
-        isPrimary: Boolean
+        isPrimary: Boolean,
     ): BoundsConstraint<Sort> {
         upperBound(bias)?.let {
             if (it.value.signedLess(value)) {
@@ -969,7 +972,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
     private fun BoundsConstraint<Sort>.updateConcreteUpperBound(
         bias: KBitVecValue<Sort>,
         value: KBitVecValue<Sort>,
-        isPrimary: Boolean
+        isPrimary: Boolean,
     ): BoundsConstraint<Sort> {
         lowerBound(bias)?.let {
             if (it.value.signedGreater(value)) {
@@ -999,7 +1002,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
     private fun BoundsConstraint<Sort>.updateConcreteDisequality(
         bias: KBitVecValue<Sort>,
         value: KBitVecValue<Sort>,
-        isPrimary: Boolean
+        isPrimary: Boolean,
     ): BoundsConstraint<Sort> {
         upperBound(bias)?.let {
             if (it.value.signedLess(value)) {
@@ -1028,7 +1031,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
     }
 
     private fun BoundsConstraint<Sort>.excludedPoints(
-        bias: KBitVecValue<Sort>
+        bias: KBitVecValue<Sort>,
     ): Sequence<KBitVecValue<Sort>> =
         concreteDisequalitites.asSequence().map { (constraintBias, _) ->
             // x + constraintBias != 0 <=> x + bias != bias - constraintBias
@@ -1039,7 +1042,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         lhsBias: KBitVecValue<Sort>,
         rhs: BoundsConstraint<Sort>,
         rhsBias: KBitVecValue<Sort>,
-        isStrict: Boolean
+        isStrict: Boolean,
     ): BoundsConstraint<Sort> {
         val rhsLB = rhs.lowerBound(rhsBias)
         val rhsUB = rhs.upperBound(rhsBias)
@@ -1077,7 +1080,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         lhsBias: KBitVecValue<Sort>,
         rhs: BoundsConstraint<Sort>,
         rhsBias: KBitVecValue<Sort>,
-        isStrict: Boolean
+        isStrict: Boolean,
     ): BoundsConstraint<Sort> {
         val rhsLB = rhs.lowerBound(rhsBias)
         val rhsUB = rhs.upperBound(rhsBias)
@@ -1114,7 +1117,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
     private fun BoundsConstraint<Sort>.updateTermsDisequality(
         lhsBias: KBitVecValue<Sort>,
         rhs: BoundsConstraint<Sort>,
-        rhsBias: KBitVecValue<Sort>
+        rhsBias: KBitVecValue<Sort>,
     ): BoundsConstraint<Sort> {
         val rhsLB = rhs.lowerBound(rhsBias)
         val lhsUB = upperBound(lhsBias)
@@ -1144,7 +1147,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
     // this + replacementBias = replacement
     private fun BoundsConstraint<Sort>.propagateTermEquality(
         replacementBias: KBitVecValue<Sort>,
-        replacement: BoundsConstraint<Sort>
+        replacement: BoundsConstraint<Sort>,
     ) {
         var updatedReplacement = replacement
 
@@ -1281,7 +1284,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
     private fun substituteValue(
         initialConstraint: BoundsConstraint<Sort>,
         terms: ConstraintTerms<Sort>,
-        value: KBitVecValue<Sort>
+        value: KBitVecValue<Sort>,
     ): BoundsConstraint<Sort> {
         var result = initialConstraint
 
@@ -1373,8 +1376,8 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
             BoundsConstraint<Sort>,
             KBitVecValue<Sort>,
             KBitVecValue<Sort>,
-            Boolean
-        ) -> BoundsConstraint<Sort>
+            Boolean,
+        ) -> BoundsConstraint<Sort>,
     ): BoundsConstraint<Sort> {
         var result = updateBounds(initialConstraint, bounds.dropTermsConstraints(terms))
 
@@ -1404,8 +1407,8 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
             KBitVecValue<Sort>,
             BoundsConstraint<Sort>,
             KBitVecValue<Sort>,
-            Boolean
-        ) -> BoundsConstraint<Sort>
+            Boolean,
+        ) -> BoundsConstraint<Sort>,
     ): BoundsConstraint<Sort> {
         var result = updateBounds(initialConstraint, bounds.dropTermsConstraints(terms))
 
@@ -1435,7 +1438,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
             KBitVecValue<Sort>,
             ConstraintTerms<Sort>,
             KBitVecValue<Sort>,
-            Boolean
+            Boolean,
         ) -> BoundsConstraint<Sort>,
     ): BoundsConstraint<Sort> {
         var result = target
@@ -1457,8 +1460,8 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         bounds: TermConstraintSet<Sort>,
         hasContradiction: (KBitVecValue<Sort>, KBitVecValue<Sort>) -> Boolean,
         update: (
-            BoundsConstraint<Sort>, KBitVecValue<Sort>, KBitVecValue<Sort>, Boolean
-        ) -> BoundsConstraint<Sort>
+            BoundsConstraint<Sort>, KBitVecValue<Sort>, KBitVecValue<Sort>, Boolean,
+        ) -> BoundsConstraint<Sort>,
     ) {
         for ((constraint, biases) in bounds.termConstraints) {
             withConstraint(
@@ -1537,7 +1540,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         rhs: BoundsConstraint<Sort>,
         constraint: TermsConstraint<Sort>,
         rhsLB: KBitVecValue<Sort>?,
-        cont: (BoundsConstraint<Sort>) -> BoundsConstraint<Sort>
+        cont: (BoundsConstraint<Sort>) -> BoundsConstraint<Sort>,
     ): BoundsConstraint<Sort> = eliminateBoundConstraints(
         boundsConstraint, bias, rhsLB, rhsConstraint = rhs,
         findRelevantBiases = {
@@ -1592,7 +1595,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         rhs: BoundsConstraint<Sort>,
         constraint: TermsConstraint<Sort>,
         rhsUB: KBitVecValue<Sort>?,
-        cont: (BoundsConstraint<Sort>) -> BoundsConstraint<Sort>
+        cont: (BoundsConstraint<Sort>) -> BoundsConstraint<Sort>,
     ): BoundsConstraint<Sort> = eliminateBoundConstraints(
         boundsConstraint, bias, rhsUB, rhsConstraint = rhs,
         findRelevantBiases = {
@@ -1621,7 +1624,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         bias: KBitVecValue<Sort>,
         constraint: ValueConstraint<Sort>,
         rhsUB: KBitVecValue<Sort>?,
-        cont: (BoundsConstraint<Sort>) -> BoundsConstraint<Sort>
+        cont: (BoundsConstraint<Sort>) -> BoundsConstraint<Sort>,
     ): BoundsConstraint<Sort> = eliminateBoundConstraints(
         boundsConstraint, bias, rhsUB, rhsConstraint = null,
         findRelevantBiases = {
@@ -1643,7 +1646,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         bias: KBitVecValue<Sort>,
         constraint: ValueConstraint<Sort>,
         rhsLB: KBitVecValue<Sort>?,
-        cont: (BoundsConstraint<Sort>) -> BoundsConstraint<Sort>
+        cont: (BoundsConstraint<Sort>) -> BoundsConstraint<Sort>,
     ): BoundsConstraint<Sort> = eliminateBoundConstraints(
         boundsConstraint, bias, rhsLB, rhsConstraint = null,
         findRelevantBiases = {
@@ -1665,7 +1668,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         findRelevantBiases: () -> Sequence<KBitVecValue<Sort>>,
         removeConstraintForBias: (BoundsConstraint<Sort>, KBitVecValue<Sort>) -> BoundsConstraint<Sort>,
         removeOppositeConstraintForBias: (BoundsConstraint<Sort>, KBitVecValue<Sort>) -> BoundsConstraint<Sort>,
-        cont: (BoundsConstraint<Sort>) -> BoundsConstraint<Sort>
+        cont: (BoundsConstraint<Sort>) -> BoundsConstraint<Sort>,
     ): BoundsConstraint<Sort> {
         if (rhsBound == null) {
             return cont(boundsConstraint)
@@ -1742,7 +1745,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         rhs: BoundsConstraint<Sort>,
         constraint: TermsConstraint<Sort>,
         rhsLB: KBitVecValue<Sort>?,
-        postProcessConstraint: (BoundsConstraint<Sort>) -> BoundsConstraint<Sort> = { it }
+        postProcessConstraint: (BoundsConstraint<Sort>) -> BoundsConstraint<Sort> = { it },
     ): BoundsConstraint<Sort> =
         eliminateTermLowerBound(this, bias, rhs, constraint, rhsLB) { boundsConstraint ->
             constraintAddDependency(boundsConstraint.constrainedTerms, constraint.terms)
@@ -1756,7 +1759,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         rhs: BoundsConstraint<Sort>,
         constraint: TermsConstraint<Sort>,
         rhsUB: KBitVecValue<Sort>?,
-        postProcessConstraint: (BoundsConstraint<Sort>) -> BoundsConstraint<Sort> = { it }
+        postProcessConstraint: (BoundsConstraint<Sort>) -> BoundsConstraint<Sort> = { it },
     ): BoundsConstraint<Sort> =
         eliminateTermUpperBound(this, bias, rhs, constraint, rhsUB) { boundsConstraint ->
             constraintAddDependency(boundsConstraint.constrainedTerms, constraint.terms)
@@ -1767,7 +1770,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
 
     private fun BoundsConstraint<Sort>.addRefinedConcreteUpperBound(
         bias: KBitVecValue<Sort>,
-        constraint: ValueConstraint<Sort>
+        constraint: ValueConstraint<Sort>,
     ): BoundsConstraint<Sort> = eliminateConcreteUpperBound(
         this, bias, constraint, rhsUB = constraint.value
     ) { boundsConstraint ->
@@ -1779,7 +1782,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
 
     private fun BoundsConstraint<Sort>.addRefinedConcreteLowerBound(
         bias: KBitVecValue<Sort>,
-        constraint: ValueConstraint<Sort>
+        constraint: ValueConstraint<Sort>,
     ): BoundsConstraint<Sort> = eliminateConcreteLowerBound(
         this, bias, constraint, rhsLB = constraint.value
     ) { boundsConstraint ->
@@ -1793,7 +1796,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         constraint: BoundsConstraint<Sort>,
         updatedConstraint: BoundsConstraint<Sort>,
         updatedBias: KBitVecValue<Sort>,
-        kind: BoundsUpdateKind
+        kind: BoundsUpdateKind,
     ): BoundsConstraint<Sort> {
         var propagationResult = constraint.propagateUnitTermConstraint(updatedConstraint.constrainedTerms)
 
@@ -1817,7 +1820,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
     }
 
     private fun BoundsConstraint<Sort>.propagateUnitTermConstraint(
-        updatedTerm: ConstraintTerms<Sort>
+        updatedTerm: ConstraintTerms<Sort>,
     ): BoundsConstraint<Sort> {
         if (updatedTerm.hasMultipleTerms() || !constrainedTerms.hasMultipleTerms()) return this
         val constraintUnitTerms = constrainedTerms.unitTerms()
@@ -1851,8 +1854,8 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         rhsBias: KBitVecValue<Sort>,
         bounds: TermConstraintSet<Sort>,
         propagateConstraint: (
-            BoundsConstraint<Sort>, KBitVecValue<Sort>, Boolean
-        ) -> BoundsConstraint<Sort>
+            BoundsConstraint<Sort>, KBitVecValue<Sort>, Boolean,
+        ) -> BoundsConstraint<Sort>,
     ): BoundsConstraint<Sort> {
         val propagatedStrict = propagateTermConstraint(
             constraint, rhs, rhsBias, bounds, propagateConstraint, isStrict = true
@@ -1868,7 +1871,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         rhsBias: KBitVecValue<Sort>,
         bounds: TermConstraintSet<Sort>,
         propagateConstraint: (BoundsConstraint<Sort>, KBitVecValue<Sort>, Boolean) -> BoundsConstraint<Sort>,
-        isStrict: Boolean
+        isStrict: Boolean,
     ): BoundsConstraint<Sort> {
         val rhsConstraint = TermsConstraint(rhs.constrainedTerms, rhsBias, isStrict)
         val biases = bounds.termConstraints[rhsConstraint] ?: return constraint
@@ -1879,7 +1882,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
 
     private inline fun boundsSumNoOverflow(
         terms: List<ConstraintTerms<Sort>>,
-        getBound: (BoundsConstraint<Sort>, KBitVecValue<Sort>) -> KBitVecValue<Sort>?
+        getBound: (BoundsConstraint<Sort>, KBitVecValue<Sort>) -> KBitVecValue<Sort>?,
     ): KBitVecValue<Sort>? = terms.fold(zero) { acc, term ->
         withConstraint(
             terms = term,
@@ -1934,7 +1937,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         val concreteDisequalitites: PersistentMap<KBitVecValue<Sort>, ValueConstraint<Sort>>,
         val inferredTermLowerBounds: TermConstraintSet<Sort>,
         val termUpperBounds: TermConstraintSet<Sort>,
-        val termDisequalities: TermConstraintSet<Sort>
+        val termDisequalities: TermConstraintSet<Sort>,
     ) : Constraint<Sort>(constrainedTerms) {
         constructor(constrainedTerms: ConstraintTerms<Sort>) : this(
             constrainedTerms = constrainedTerms,
@@ -1948,8 +1951,8 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
 
         fun size(): Int =
             inferredTermLowerBounds.termConstraints.size +
-                    termUpperBounds.termConstraints.size +
-                    termDisequalities.termConstraints.size
+                termUpperBounds.termConstraints.size +
+                termDisequalities.termConstraints.size
 
         fun lowerBound(bias: KBitVecValue<Sort>): ValueConstraint<Sort>? =
             concreteLowerBounds[bias]
@@ -1959,7 +1962,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
 
         fun modifyConcreteLowerBounds(
             bias: KBitVecValue<Sort>,
-            bound: ValueConstraint<Sort>
+            bound: ValueConstraint<Sort>,
         ): BoundsConstraint<Sort> {
             val modified = concreteLowerBounds.put(bias, bound)
             if (modified === this.concreteLowerBounds) {
@@ -1974,7 +1977,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
 
         fun modifyConcreteUpperBounds(
             bias: KBitVecValue<Sort>,
-            bound: ValueConstraint<Sort>
+            bound: ValueConstraint<Sort>,
         ): BoundsConstraint<Sort> {
             val modified = concreteUpperBounds.put(bias, bound)
             if (modified === this.concreteUpperBounds) {
@@ -2013,7 +2016,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
 
         fun modifyConcreteDisequalitites(
             bias: KBitVecValue<Sort>,
-            bound: ValueConstraint<Sort>
+            bound: ValueConstraint<Sort>,
         ): BoundsConstraint<Sort> {
             val modified = concreteDisequalitites.put(bias, bound)
             if (modified === this.concreteDisequalitites) {
@@ -2107,7 +2110,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
 
         private inline fun <T> mapPrimaryConcrete(
             concrete: PersistentMap<KBitVecValue<Sort>, ValueConstraint<Sort>>,
-            crossinline body: (KBitVecValue<Sort>, UExpr<Sort>) -> T
+            crossinline body: (KBitVecValue<Sort>, UExpr<Sort>) -> T,
         ): Sequence<T> =
             concrete.asSequence().mapNotNull { (bias, constraint) ->
                 constraint.value.takeIf { constraint.isPrimary }?.let {
@@ -2117,7 +2120,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
 
         private inline fun <T> mapTerms(
             constraintSet: TermConstraintSet<Sort>,
-            crossinline body: (KBitVecValue<Sort>, UExpr<Sort>, Boolean) -> T
+            crossinline body: (KBitVecValue<Sort>, UExpr<Sort>, Boolean) -> T,
         ): Sequence<T> =
             constraintSet.termConstraints.asSequence()
                 .flatMap { (constraint, biases) ->
@@ -2130,7 +2133,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
 
     class ConcreteEqualityConstraint<Sort : UBvSort>(
         constrainedTerms: ConstraintTerms<Sort>,
-        val value: KBitVecValue<Sort>
+        val value: KBitVecValue<Sort>,
     ) : Constraint<Sort>(constrainedTerms) {
         private val expr by lazy {
             value.ctx.mkEq(constrainedTerms, value)
@@ -2142,7 +2145,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
     class TermsEqualityConstraint<Sort : UBvSort>(
         constrainedTerms: ConstraintTerms<Sort>,
         val bias: KBitVecValue<Sort>,
-        val equalTerms: ConstraintTerms<Sort>
+        val equalTerms: ConstraintTerms<Sort>,
     ) : Constraint<Sort>(constrainedTerms) {
         private val expr by lazy {
             bias.ctx.mkEq(bias.ctx.mkBvAddExpr(constrainedTerms, bias), equalTerms)
@@ -2153,7 +2156,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
 
     class TermConstraintSet<Sort : UBvSort>(
         val termConstraints: PersistentMap<TermsConstraint<Sort>, PersistentSet<KBitVecValue<Sort>>>,
-        val termDependency: PersistentMap<ConstraintTerms<Sort>, PersistentSet<TermsConstraint<Sort>>>
+        val termDependency: PersistentMap<ConstraintTerms<Sort>, PersistentSet<TermsConstraint<Sort>>>,
     ) {
         constructor() : this(persistentHashMapOf(), persistentHashMapOf())
 
@@ -2231,18 +2234,18 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
     data class ConstraintUpdateEvent<Sort : UBvSort>(
         val terms: ConstraintTerms<Sort>,
         val bias: KBitVecValue<Sort>,
-        val kind: BoundsUpdateKind
+        val kind: BoundsUpdateKind,
     )
 
     data class ValueConstraint<Sort : UBvSort>(
         val value: KBitVecValue<Sort>,
-        val isPrimary: Boolean
+        val isPrimary: Boolean,
     )
 
     data class TermsConstraint<Sort : UBvSort>(
         val terms: ConstraintTerms<Sort>,
         val bias: KBitVecValue<Sort>,
-        val isStrict: Boolean
+        val isStrict: Boolean,
     ) {
         val expr: UExpr<Sort> by lazy {
             bias.ctx.mkBvAddExpr(terms, bias)
@@ -2371,7 +2374,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         eqConstraint: (UExpr<Sort>, UExpr<Sort>) -> T,
         lessConstraint: (UExpr<Sort>, UExpr<Sort>) -> T,
         lessOrEqualConstraint: (UExpr<Sort>, UExpr<Sort>) -> T,
-        unknownConstraint: (UBoolExpr) -> T
+        unknownConstraint: (UBoolExpr) -> T,
     ): T = when {
         expr is KEqExpr<*> && expr.lhs.sort == sort -> {
             eqConstraint(expr.lhs.asExpr(sort), expr.rhs.asExpr(sort))
@@ -2396,8 +2399,4 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         else -> unknownConstraint(expr)
     }
 
-    data class UBvIntervalPoint<Sort : UBvSort>(val value: KBitVecValue<Sort>) : Comparable<UBvIntervalPoint<Sort>> {
-        override fun compareTo(other: UBvIntervalPoint<Sort>): Int =
-            BvValueComparator.compare(value, other.value)
-    }
 }

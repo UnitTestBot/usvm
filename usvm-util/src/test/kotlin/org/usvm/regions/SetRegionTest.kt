@@ -19,11 +19,11 @@ class SetRegionTest {
         assertEquals(empty, universe.subtract(universe))        // Z \ Z = empty
         assertEquals(two, no01.subtract(no012))                 // (Z\{0,1}) \ (Z\{0,1,2}) = {2}
         assertEquals(no012, no01.intersect(no2))                // (Z\{0,1}) /\ (Z\{2}) = Z\{0,1,2}
-        assertEquals(RegionComparisonResult.DISJOINT, no01.compare(zero))
-        assertEquals(RegionComparisonResult.DISJOINT, one.compare(zero))
-        assertEquals(RegionComparisonResult.INCLUDES, no0.compare(two))
-        assertEquals(RegionComparisonResult.INTERSECTS, two.compare(no01))
-        assertEquals(RegionComparisonResult.INTERSECTS, no0.compare(no2))
-        assertEquals(RegionComparisonResult.INCLUDES, zero.compare(zero))
+        assertEquals(Region.ComparisonResult.DISJOINT, no01.compare(zero))
+        assertEquals(Region.ComparisonResult.DISJOINT, one.compare(zero))
+        assertEquals(Region.ComparisonResult.INCLUDES, no0.compare(two))
+        assertEquals(Region.ComparisonResult.INTERSECTS, two.compare(no01))
+        assertEquals(Region.ComparisonResult.INTERSECTS, no0.compare(no2))
+        assertEquals(Region.ComparisonResult.INCLUDES, zero.compare(zero))
     }
 }

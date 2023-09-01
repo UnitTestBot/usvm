@@ -10,16 +10,16 @@ private fun <X : Region<X>, Y : Region<Y>> subtractRect(rects: List<Pair<X, Y>>,
         val (a, b) = rect1
         val ca = c.compare(a)
         val db = d.compare(b)
-        if (ca == RegionComparisonResult.DISJOINT || db == RegionComparisonResult.DISJOINT) {
+        if (ca == Region.ComparisonResult.DISJOINT || db == Region.ComparisonResult.DISJOINT) {
             result.add(rect1)
         } else {
             unchanged = false
-            if (ca != RegionComparisonResult.INCLUDES) {
+            if (ca != Region.ComparisonResult.INCLUDES) {
                 val ac = a.subtract(c)
                 if (!ac.isEmpty)
                     result.add(ac to b)
             }
-            if (db != RegionComparisonResult.INCLUDES) {
+            if (db != Region.ComparisonResult.INCLUDES) {
                 val bd = b.subtract(d)
                 if (!bd.isEmpty)
                     result.add(a to bd)
@@ -48,48 +48,50 @@ data class ProductRegion<X : Region<X>, Y : Region<Y>>(val products: List<Pair<X
     override fun union(other: ProductRegion<X, Y>): ProductRegion<X, Y> {
         class UnionState(products: List<Pair<X, Y>>) {
             val xToY = products.toMap(mutableMapOf())
-            val yToX = products.associateByTo(mutableMapOf(), keySelector = { it.second }, valueTransform = { it.first })
+            val yToX =
+                products.associateByTo(mutableMapOf(), keySelector = { it.second }, valueTransform = { it.first })
 
-            fun uniteByX(x: X, y: Y) {
-                val oldY = xToY[x] ?: return
+            fun <X : Region<X>, Y : Region<Y>> uniteBy(
+                direct: MutableMap<X, Y>,
+                reverse: MutableMap<Y, X>,
+                x: X,
+                y: Y,
+            ): Pair<X, Y> {
+                val oldY = direct[x] ?: return x to y
                 val unionY = oldY.union(y)
                 if (unionY == oldY) {
-                    return
+                    return x to y
                 }
-                xToY[x] = unionY
-                yToX.remove(oldY)
-                uniteByY(x, unionY)
+                direct.remove(x)
+                reverse.remove(oldY)
+                return uniteBy(reverse, direct, unionY, x).run { second to first }
             }
 
-            fun uniteByY(x: X, y: Y) {
-                val oldX = yToX[y] ?: return
-                val unionX = oldX.union(x)
-                yToX[y] = unionX
-                xToY.remove(oldX)
-                uniteByX(unionX, y)
+            fun add(product: Pair<X, Y>) {
+                val result =
+                    uniteBy(xToY, yToX, product.first, product.second)
+                        .run { uniteBy(yToX, xToY, second, first) }
+                        .run { second to first }
+                xToY[result.first] = result.second
+                yToX[result.second] = result.first
             }
         }
+
         val state = UnionState(products)
 
-        for (product in other.products) {
-            if (product.first in state.xToY) {
-                state.uniteByX(product.first, product.second)
-            } else {
-                state.uniteByY(product.first, product.second)
-            }
-        }
+        other.products.forEach(state::add)
 
         return ProductRegion(state.xToY.toList())
     }
 
-    override fun compare(other: ProductRegion<X, Y>): RegionComparisonResult {
+    override fun compare(other: ProductRegion<X, Y>): Region.ComparisonResult {
         // TODO: comparison actually computes difference. Reuse it somehow (for example, return difference together with verdict).
         val diff = other.subtract(this)
         if (diff === other)
-            return RegionComparisonResult.DISJOINT
+            return Region.ComparisonResult.DISJOINT
         if (diff.isEmpty)
-            return RegionComparisonResult.INCLUDES
-        return RegionComparisonResult.INTERSECTS
+            return Region.ComparisonResult.INCLUDES
+        return Region.ComparisonResult.INTERSECTS
     }
 
     override fun subtract(other: ProductRegion<X, Y>): ProductRegion<X, Y> {
@@ -105,15 +107,15 @@ data class ProductRegion<X : Region<X>, Y : Region<Y>>(val products: List<Pair<X
             for ((c, d) in other.products) {
                 val ac: X? =
                     when (a.compare(c)) {
-                        RegionComparisonResult.DISJOINT -> null
-                        RegionComparisonResult.INCLUDES -> c
-                        RegionComparisonResult.INTERSECTS -> a.intersect(c)
+                        Region.ComparisonResult.DISJOINT -> null
+                        Region.ComparisonResult.INCLUDES -> c
+                        Region.ComparisonResult.INTERSECTS -> a.intersect(c)
                     }
                 if (ac != null) {
                     when (a.compare(c)) {
-                        RegionComparisonResult.DISJOINT -> {}
-                        RegionComparisonResult.INCLUDES -> newProducts.add(ac to d)
-                        RegionComparisonResult.INTERSECTS -> newProducts.add(ac to b.intersect(d))
+                        Region.ComparisonResult.DISJOINT -> {}
+                        Region.ComparisonResult.INCLUDES -> newProducts.add(ac to d)
+                        Region.ComparisonResult.INTERSECTS -> newProducts.add(ac to b.intersect(d))
                     }
                 }
             }

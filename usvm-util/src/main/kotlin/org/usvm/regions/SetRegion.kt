@@ -12,18 +12,18 @@ private fun <Point> compareSets(s1: Set<Point>, s2: Set<Point>): Pair<Boolean, B
     return Pair(includes, disjoint)
 }
 
-private fun flip(result: RegionComparisonResult) =
+private fun flip(result: Region.ComparisonResult) =
     when(result) {
-        RegionComparisonResult.DISJOINT -> RegionComparisonResult.INCLUDES
-        RegionComparisonResult.INCLUDES -> RegionComparisonResult.DISJOINT
-        RegionComparisonResult.INTERSECTS -> RegionComparisonResult.INTERSECTS
+        Region.ComparisonResult.DISJOINT -> Region.ComparisonResult.INCLUDES
+        Region.ComparisonResult.INCLUDES -> Region.ComparisonResult.DISJOINT
+        Region.ComparisonResult.INTERSECTS -> Region.ComparisonResult.INTERSECTS
     }
 
-private fun setsComparisonToResult(pair: Pair<Boolean, Boolean>): RegionComparisonResult =
+private fun setsComparisonToResult(pair: Pair<Boolean, Boolean>): Region.ComparisonResult =
     when {
-        pair.first -> RegionComparisonResult.INCLUDES
-        pair.second -> RegionComparisonResult.DISJOINT
-        else -> RegionComparisonResult.INTERSECTS
+        pair.first -> Region.ComparisonResult.INCLUDES
+        pair.second -> Region.ComparisonResult.DISJOINT
+        else -> Region.ComparisonResult.INTERSECTS
     }
 
 /**
@@ -44,16 +44,16 @@ data class SetRegion<Point>(
 
     override val isEmpty: Boolean = points.isEmpty() && !thrown
 
-    override fun compare(other: SetRegion<Point>): RegionComparisonResult =
+    override fun compare(other: SetRegion<Point>): Region.ComparisonResult =
         when {
             !this.thrown && !other.thrown -> setsComparisonToResult(compareSets(this.points, other.points))
             this.thrown && !other.thrown -> flip(setsComparisonToResult(compareSets(this.points, other.points)))
             !this.thrown && other.thrown ->
-                if (compareSets(other.points, this.points).first) RegionComparisonResult.DISJOINT
-                else RegionComparisonResult.INTERSECTS
+                if (compareSets(other.points, this.points).first) Region.ComparisonResult.DISJOINT
+                else Region.ComparisonResult.INTERSECTS
             this.thrown && other.thrown ->
-                if (compareSets(other.points, this.points).first) RegionComparisonResult.INCLUDES
-                else RegionComparisonResult.INTERSECTS
+                if (compareSets(other.points, this.points).first) Region.ComparisonResult.INCLUDES
+                else Region.ComparisonResult.INTERSECTS
             else -> throw Exception("Unreachable")
         }
 

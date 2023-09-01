@@ -8,10 +8,10 @@ import org.usvm.USizeExpr
 import org.usvm.USizeType
 import org.usvm.compose
 import org.usvm.memory.USymbolicCollectionKeyInfo
+import org.usvm.regions.IntIntervalsRegion
 import org.usvm.regions.SetRegion
 
-// TODO: change it to intervals region
-typealias USizeRegion = SetRegion<USizeType>
+typealias USizeRegion = IntIntervalsRegion
 
 /**
  * Provides information about numeric values used as symbolic collection keys.
@@ -33,24 +33,24 @@ object USizeExprKeyInfo : USymbolicCollectionKeyInfo<USizeExpr, USizeRegion> {
 
     override fun keyToRegion(key: USizeExpr) =
         when (key) {
-            is UConcreteSize -> SetRegion.singleton(key.numberValue)
-            else -> SetRegion.universe()
+            is UConcreteSize -> IntIntervalsRegion.point(key.numberValue)
+            else -> topRegion()
         }
 
     override fun keyRangeRegion(from: USizeExpr, to: USizeExpr) =
         when (from) {
             is UConcreteSize ->
                 when (to) {
-                    is UConcreteSize -> SetRegion.ofSequence((from.numberValue..to.numberValue).asSequence())
-                    else -> SetRegion.universe()
+                    is UConcreteSize -> IntIntervalsRegion.ofClosed(from.numberValue, to.numberValue)
+                    else -> topRegion()
                 }
 
-            else -> SetRegion.universe()
+            else -> topRegion()
         }
 
     override fun topRegion() =
-        SetRegion.universe<USizeType>()
+        IntIntervalsRegion.universe()
 
     override fun bottomRegion() =
-        SetRegion.empty<USizeType>()
+        IntIntervalsRegion.empty()
 }

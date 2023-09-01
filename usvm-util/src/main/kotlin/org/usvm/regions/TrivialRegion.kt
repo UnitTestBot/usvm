@@ -8,5 +8,5 @@ class TrivialRegion : Region<TrivialRegion> {
     override fun subtract(other: TrivialRegion): TrivialRegion =
         throw UnsupportedOperationException("TrivialRegion.subtract should not be called")
 
-    override fun compare(other: TrivialRegion): RegionComparisonResult = RegionComparisonResult.INCLUDES
+    override fun compare(other: TrivialRegion): Region.ComparisonResult = Region.ComparisonResult.INCLUDES
 }
