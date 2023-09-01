@@ -11,7 +11,7 @@ import kotlin.math.min
 
 internal class MinStackExampleTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("java.lang.Math#<clinit>() has native calls")
+    @Disabled("Expected exactly 3 executions, but 4 found")
     fun testCreate() {
         checkDiscoveredProperties(
             MinStackExample::create,
@@ -68,7 +68,7 @@ internal class MinStackExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("java.lang.Math#<clinit>() has native calls")
+    @Disabled("Expected exactly 4 executions, but 5 found")
     fun testRemoveValue() {
         checkDiscoveredProperties(
             MinStackExample::removeValue,
@@ -85,7 +85,6 @@ internal class MinStackExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not yet implemented visitJcClassConstant(JcExprResolver.kt:287)")
     fun testConstruct() {
         checkDiscoveredProperties(
             MinStackExample::construct,

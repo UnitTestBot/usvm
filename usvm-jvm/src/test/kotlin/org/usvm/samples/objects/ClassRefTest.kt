@@ -31,7 +31,6 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method: java.lang.Object#getClass()")
     fun testTakeClassRefFromParam() {
         checkDiscoveredProperties(
             ClassRef::takeClassRefFromParam,
@@ -61,7 +60,6 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method: java.lang.Object#getClass()")
     fun testTwoDimArrayClassRefFromParam() {
         checkDiscoveredProperties(
             ClassRef::twoDimArrayClassRefFromParam,
@@ -81,7 +79,6 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method: java.lang.Object#getClass()")
     fun testEqualityOnClassRef() {
         checkDiscoveredProperties(
             ClassRef::equalityOnClassRef,
@@ -91,7 +88,6 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method: java.lang.Object#getClass()")
     fun testEqualityOnStringClassRef() {
         checkDiscoveredProperties(
             ClassRef::equalityOnStringClassRef,
@@ -101,7 +97,6 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method: java.lang.Object#getClass()")
     fun testEqualityOnArrayClassRef() {
         checkDiscoveredProperties(
             ClassRef::equalityOnArrayClassRef,
@@ -111,7 +106,6 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method: java.lang.Object#getClass()")
     fun testTwoDimensionalArrayClassRef() {
         checkDiscoveredProperties(
             ClassRef::twoDimensionalArrayClassRef,
@@ -121,7 +115,6 @@ internal class ClassRefTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method: java.lang.Object#getClass()")
     fun testEqualityOnGenericClassRef() {
         checkDiscoveredProperties(
             ClassRef::equalityOnGenericClassRef,

@@ -9,7 +9,7 @@ import org.usvm.test.util.checkers.eq
 // TODO failed Kotlin compilation
 internal class CharacterWrapperTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("java.lang.CharacterCache has native calls")
+    @Disabled("Expected exactly 2 executions, but 1 found")
     fun primitiveToWrapperTest() {
         checkDiscoveredProperties(
             CharacterWrapper::primitiveToWrapper,
@@ -20,7 +20,6 @@ internal class CharacterWrapperTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("java.lang.CharacterCache has native calls")
     fun wrapperToPrimitiveTest() {
         checkDiscoveredProperties(
             CharacterWrapper::wrapperToPrimitive,
