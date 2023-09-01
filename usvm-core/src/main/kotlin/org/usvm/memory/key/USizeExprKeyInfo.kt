@@ -5,11 +5,9 @@ import org.usvm.UComposer
 import org.usvm.UConcreteSize
 import org.usvm.UContext
 import org.usvm.USizeExpr
-import org.usvm.USizeType
 import org.usvm.compose
 import org.usvm.memory.USymbolicCollectionKeyInfo
 import org.usvm.regions.IntIntervalsRegion
-import org.usvm.regions.SetRegion
 
 typealias USizeRegion = IntIntervalsRegion
 
