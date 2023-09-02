@@ -55,12 +55,12 @@ int extract_int_value(PyObject *int_object);
         return fail_value; \
     }
 
-#define CALL_JAVA_METHOD(result, ctx, func, args...) \
-    result = (*ctx->env)->CallStaticObjectMethod(ctx->env, ctx->cpython_adapter_cls, ctx->handle_##func, args); \
+#define CALL_JAVA_METHOD(result, ctx, func, ...) \
+    result = (*ctx->env)->CallStaticObjectMethod(ctx->env, ctx->cpython_adapter_cls, ctx->handle_##func, __VA_ARGS__); \
     CHECK_FOR_EXCEPTION(ctx, Py_None)
 
-#define CALL_JAVA_METHOD_CUSTOM_FAIL(fail_value, result, ctx, func, args...) \
-    result = (*ctx->env)->CallStaticObjectMethod(ctx->env, ctx->cpython_adapter_cls, ctx->handle_##func, args); \
+#define CALL_JAVA_METHOD_CUSTOM_FAIL(fail_value, result, ctx, func, ...) \
+    result = (*ctx->env)->CallStaticObjectMethod(ctx->env, ctx->cpython_adapter_cls, ctx->handle_##func, __VA_ARGS__); \
     CHECK_FOR_EXCEPTION(ctx, fail_value)
 
 int audit_hook(const char *event, PyObject *args, void *data);
