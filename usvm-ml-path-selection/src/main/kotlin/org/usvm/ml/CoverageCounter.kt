@@ -1,4 +1,4 @@
-package org.usvm
+package org.usvm.ml
 
 import kotlinx.serialization.json.*
 import kotlinx.serialization.json.putJsonObject

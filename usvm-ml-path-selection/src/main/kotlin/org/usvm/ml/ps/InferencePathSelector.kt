@@ -1,9 +1,13 @@
-package org.usvm.ps
+package org.usvm.ml.ps
 
 import ai.onnxruntime.OnnxTensor
 import ai.onnxruntime.OrtEnvironment
 import ai.onnxruntime.OrtSession
 import org.usvm.*
+import org.usvm.ml.Algorithm
+import org.usvm.ml.MainConfig
+import org.usvm.ml.Postprocessing
+import org.usvm.ps.WeightedPathSelector
 import org.usvm.statistics.*
 import org.usvm.util.RandomizedPriorityCollection
 import java.io.File
@@ -16,7 +20,7 @@ import kotlin.math.exp
 import kotlin.math.max
 import kotlin.random.Random
 
-internal open class InferencePathSelector<State : UState<*, Method, Statement, *, State>, Statement, Method> (
+open class InferencePathSelector<State : UState<*, Method, Statement, *, State>, Statement, Method> (
     pathsTreeRoot: PathsTrieNode<State, Statement>,
     private val coverageStatistics: CoverageStatistics<Method, Statement, State>,
     distanceStatistics: DistanceStatistics<Method, Statement>,
@@ -116,9 +120,11 @@ internal open class InferencePathSelector<State : UState<*, Method, Statement, *
             }
         }
         edgesDataBuffer.rewind()
-        val featuresData = OnnxTensor.createTensor(env, featuresDataBuffer,
+        val featuresData = OnnxTensor.createTensor(
+            env, featuresDataBuffer,
             featuresShape.map { it.toLong() }.toLongArray())
-        val edgesData = OnnxTensor.createTensor(env, edgesDataBuffer,
+        val edgesData = OnnxTensor.createTensor(
+            env, edgesDataBuffer,
             edgesShape.map { it.toLong() }.toLongArray())
         val result = gnnSession!!.run(mapOf(Pair("x", featuresData), Pair("edge_index", edgesData)))
         val output = (result.get("output").get().value as Array<*>).map {

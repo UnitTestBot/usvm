@@ -1,4 +1,4 @@
-package org.usvm.machine
+package org.usvm.ml.machine
 
 import mu.KLogging
 import org.jacodb.api.JcClasspath
@@ -6,29 +6,23 @@ import org.jacodb.api.JcMethod
 import org.jacodb.api.cfg.JcInst
 import org.jacodb.api.ext.methods
 import org.usvm.CoverageZone
+import org.usvm.ml.OtherUMachineOptions
 import org.usvm.UMachine
-import org.usvm.UMachineOptions
-import org.usvm.machine.interpreter.JcInterpreter
-import org.usvm.machine.state.JcMethodResult
-import org.usvm.machine.state.JcState
-import org.usvm.machine.state.lastStmt
-import org.usvm.ps.createPathSelector
-import org.usvm.statistics.CompositeUMachineObserver
-import org.usvm.statistics.CoverageStatistics
-import org.usvm.statistics.CoveredNewStatesCollector
-import org.usvm.statistics.DistanceStatistics
-import org.usvm.statistics.TerminatedStateRemover
-import org.usvm.statistics.TransitiveCoverageZoneObserver
-import org.usvm.statistics.UMachineObserver
-import org.usvm.stopstrategies.createStopStrategy
+import org.usvm.machine.*
+import org.usvm.machine.interpreter.*
+import org.usvm.machine.operator.*
+import org.usvm.machine.state.*
+import org.usvm.ml.ps.otherCreatePathSelector
+import org.usvm.statistics.*
+import org.usvm.ml.stopstrategies.otherCreateStopStrategy
 
 val logger = object : KLogging() {}.logger
 
-class JcMachine(
+class OtherJcMachine(
     cp: JcClasspath,
-    private val options: UMachineOptions
+    private val options: OtherUMachineOptions
 ) : UMachine<JcState>() {
-    private val applicationGraph = JcApplicationGraph(cp)
+        private val applicationGraph = JcApplicationGraph(cp)
 
     private val typeSystem = JcTypeSystem(cp)
     private val components = JcComponents(typeSystem, options.solverType)
@@ -59,17 +53,18 @@ class JcMachine(
             applicationGraph
         )
 
-        val pathSelector = createPathSelector(
+        val pathSelector = otherCreatePathSelector(
             initialState,
             options,
             { coverageStatistics },
-            { distanceStatistics }
+            { distanceStatistics },
+            { applicationGraph }
         )
 
         val statesCollector = CoveredNewStatesCollector<JcState>(coverageStatistics) {
             it.methodResult is JcMethodResult.JcException
         }
-        val stopStrategy = createStopStrategy(
+        val stopStrategy = otherCreateStopStrategy(
             options,
             coverageStatistics = { coverageStatistics },
             getCollectedStatesCount = { statesCollector.collectedStates.size }

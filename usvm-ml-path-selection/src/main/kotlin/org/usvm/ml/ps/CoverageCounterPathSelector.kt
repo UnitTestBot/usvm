@@ -1,6 +1,6 @@
-package org.usvm.ps
+package org.usvm.ml.ps
 
-import org.usvm.CoverageCounter
+import org.usvm.ml.CoverageCounter
 import org.usvm.UPathSelector
 import org.usvm.UState
 import org.usvm.statistics.CoverageStatistics

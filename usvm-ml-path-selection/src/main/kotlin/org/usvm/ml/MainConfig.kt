@@ -1,4 +1,4 @@
-package org.usvm
+package org.usvm.ml
 
 enum class Postprocessing {
     Argmax,

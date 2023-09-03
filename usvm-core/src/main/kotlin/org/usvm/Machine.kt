@@ -1,7 +1,7 @@
 package org.usvm
 
 import mu.KLogging
-import org.usvm.ps.CoverageCounterPathSelector
+//import org.usvm.ps.CoverageCounterPathSelector
 import org.usvm.statistics.UMachineObserver
 import org.usvm.stopstrategies.StopStrategy
 import org.usvm.util.bracket
@@ -71,12 +71,12 @@ abstract class UMachine<State> : AutoCloseable {
             }
         }
 
-        if (pathSelector is CoverageCounterPathSelector<*, *>) {
-            pathSelector.finishTest()
-            if (MainConfig.logFeatures && MainConfig.mode != Mode.Test) {
-                pathSelector.savePath()
-            }
-        }
+//        if (pathSelector is CoverageCounterPathSelector<*, *>) {
+//            pathSelector.finishTest()
+//            if (MainConfig.logFeatures && MainConfig.mode != Mode.Test) {
+//                pathSelector.savePath()
+//            }
+//        }
     }
 
     override fun toString(): String = this::class.simpleName?:"<empty>"

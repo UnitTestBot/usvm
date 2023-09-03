@@ -52,9 +52,7 @@ enum class PathSelectionStrategy {
      * graph.
      * States are selected randomly with distribution based on distance to uncovered instructions.
      */
-    CLOSEST_TO_UNCOVERED_RANDOM,
-    BFS_WITH_LOGGING,
-    INFERENCE_WITH_LOGGING
+    CLOSEST_TO_UNCOVERED_RANDOM
 }
 
 enum class PathSelectorCombinationStrategy {
@@ -92,7 +90,7 @@ data class UMachineOptions(
      *
      * @see PathSelectionStrategy
      */
-    val pathSelectionStrategies: List<PathSelectionStrategy> = listOf(PathSelectionStrategy.INFERENCE_WITH_LOGGING),
+    val pathSelectionStrategies: List<PathSelectionStrategy> = listOf(PathSelectionStrategy.BFS),
     /**
      * Strategy to combine multiple [pathSelectionStrategies].
      *

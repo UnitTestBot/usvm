@@ -1,4 +1,4 @@
-package org.usvm
+package org.usvm.ml
 
 import kotlinx.coroutines.*
 import kotlinx.serialization.ExperimentalSerializationApi
@@ -6,34 +6,19 @@ import kotlinx.serialization.json.*
 import org.jacodb.api.JcClassOrInterface
 import org.jacodb.api.JcMethod
 import org.jacodb.api.ext.packageName
-import org.usvm.machine.JcMachine
-import org.usvm.ps.BfsWithLoggingPathSelector
-import org.usvm.samples.JacoDBContainer
+import org.usvm.SolverType
+import org.usvm.ml.machine.OtherJcMachine
+import org.usvm.ml.ps.BfsWithLoggingPathSelector
+import org.usvm.ml.samples.OtherJacoDBContainer
 import java.io.File
 import kotlin.io.path.Path
-import org.usvm.samples.JavaMethodTestRunner
 import kotlin.io.path.nameWithoutExtension
 import kotlin.system.measureTimeMillis
-
-//fun recursiveLoad(currentDir: File, classes: MutableList<Class<*>>, classLoader: ClassLoader, path: String) {
-//    currentDir.listFiles()?.forEach { file ->
-//        if (file.isDirectory) {
-//            recursiveLoad(file, classes, classLoader, "${path}${if (path == "") "" else "."}${file.name}")
-//        }
-//        if (file.isFile && file.extension == "java") {
-//            try {
-//                classes.add(classLoader.loadClass("${path}.${file.nameWithoutExtension}"))
-//            } catch (e: Exception) {
-//                println(e)
-//            }
-//        }
-//    }
-//}
 
 fun jarLoad(jars: Set<String>, classes: MutableMap<String, MutableList<JcClassOrInterface>>) {
     jars.forEach { filePath ->
         val file = Path(filePath).toFile()
-        val container = JacoDBContainer(key = filePath, classpath = listOf(file))
+        val container = OtherJacoDBContainer(key = filePath, classpath = listOf(file))
         val classNames = container.db.locations.flatMap { it.jcLocation?.classNames ?: listOf() }
         classes[filePath] = mutableListOf()
         classNames.forEach { className ->
@@ -45,11 +30,10 @@ fun jarLoad(jars: Set<String>, classes: MutableMap<String, MutableList<JcClassOr
 }
 
 private class MainTestRunner(
-    pathSelectionStrategies: List<PathSelectionStrategy> = listOf(PathSelectionStrategy.INFERENCE_WITH_LOGGING),
+    pathSelectionStrategies: List<OtherPathSelectionStrategy> = listOf(OtherPathSelectionStrategy.INFERENCE_WITH_LOGGING),
     timeoutMs: Long? = 20000
-) : JavaMethodTestRunner(
 ) {
-    override var options = UMachineOptions().copy(
+    var options = OtherUMachineOptions().copy(
         exceptionsPropagation = false,
         timeoutMs = timeoutMs,
         stepLimit = 1500u,
@@ -57,20 +41,12 @@ private class MainTestRunner(
         solverType = SolverType.Z3
     )
 
-//    fun runTest(method: KFunction<*>) {
-//        runnerAlternative(method, options)
-//    }
-
     fun runTest(method: JcMethod, jarKey: String) {
-        JcMachine(JacoDBContainer(jarKey).cp, options).use { jcMachine ->
+        OtherJcMachine(OtherJacoDBContainer(jarKey).cp, options).use { jcMachine ->
             jcMachine.analyze(method)
         }
     }
 }
-
-//fun getName(method: Method): String {
-//    return "${method.declaringClass.name}#${method.name}(${method.parameters.joinToString { it.type.typeName }})"
-//}
 
 fun getName(method: JcMethod): String {
     return method.toString().dropWhile { it != ')' }.drop(1)
@@ -82,12 +58,12 @@ private val prettyJson = Json { prettyPrint = true }
 fun calculate() {
     val pathSelectorSets = if (MainConfig.mode == Mode.Test)
         listOf(
-            listOf(PathSelectionStrategy.INFERENCE_WITH_LOGGING),
-            listOf(PathSelectionStrategy.FORK_DEPTH_RANDOM),
-            listOf(PathSelectionStrategy.BFS_WITH_LOGGING),
-            listOf(PathSelectionStrategy.BFS),
+            listOf(OtherPathSelectionStrategy.INFERENCE_WITH_LOGGING),
+//            listOf(OtherPathSelectionStrategy.FORK_DEPTH_RANDOM),
+            listOf(OtherPathSelectionStrategy.BFS_WITH_LOGGING),
+//            listOf(PathSelectionStrategy.BFS),
         )
-    else listOf(listOf(PathSelectionStrategy.INFERENCE_WITH_LOGGING))
+    else listOf(listOf(OtherPathSelectionStrategy.INFERENCE_WITH_LOGGING))
     val timeLimits = if (MainConfig.mode == Mode.Test)
         listOf<Long?>(
             1000,
@@ -123,7 +99,8 @@ fun calculate() {
             println("  RUNNING TESTS WITH ${timeLimit}ms TIME LIMIT")
             pathSelectorSets.forEach { pathSelectors ->
                 println("    RUNNING TESTS WITH ${pathSelectors.joinToString("|")} PATH SELECTOR")
-                val statisticsFile = Path(MainConfig.dataPath,
+                val statisticsFile = Path(
+                    MainConfig.dataPath,
                     "statistics",
                     Path(key).nameWithoutExtension,
                     "${timeLimit}ms",
@@ -244,9 +221,11 @@ fun updateConfig(options: JsonObject) {
         JsonPrimitive(MainConfig.logFeatures)) as JsonPrimitive).content.toBoolean()
     MainConfig.shuffleTests = (options.getOrDefault("shuffleTests",
         JsonPrimitive(MainConfig.shuffleTests)) as JsonPrimitive).content.toBoolean()
-    MainConfig.discounts = (options.getOrDefault("discounts", JsonArray(MainConfig.discounts
+    MainConfig.discounts = (options.getOrDefault("discounts", JsonArray(
+        MainConfig.discounts
         .map { JsonPrimitive(it) })) as JsonArray).map { (it as JsonPrimitive).content.toFloat() }
-    MainConfig.inputShape = (options.getOrDefault("inputShape", JsonArray(MainConfig.inputShape
+    MainConfig.inputShape = (options.getOrDefault("inputShape", JsonArray(
+        MainConfig.inputShape
         .map { JsonPrimitive(it) })) as JsonArray).map { (it as JsonPrimitive).content.toLong() }
     MainConfig.maxAttentionLength = (options.getOrDefault("maxAttentionLength",
         JsonPrimitive(MainConfig.maxAttentionLength)) as JsonPrimitive).content.toInt()
@@ -268,16 +247,17 @@ fun updateConfig(options: JsonObject) {
         JsonPrimitive(MainConfig.gnnFeaturesCount)) as JsonPrimitive).content.toInt()
     MainConfig.useRnn = (options.getOrDefault("useRnn",
         JsonPrimitive(MainConfig.useRnn)) as JsonPrimitive).content.toBoolean()
-    MainConfig.rnnStateShape = (options.getOrDefault("rnnStateShape", JsonArray(MainConfig.rnnStateShape
+    MainConfig.rnnStateShape = (options.getOrDefault("rnnStateShape", JsonArray(
+        MainConfig.rnnStateShape
         .map { JsonPrimitive(it) })) as JsonArray).map { (it as JsonPrimitive).content.toLong() }
     MainConfig.rnnFeaturesCount = (options.getOrDefault("rnnFeaturesCount",
         JsonPrimitive(MainConfig.rnnFeaturesCount)) as JsonPrimitive).content.toInt()
     MainConfig.inputJars = (options.getOrDefault("inputJars",
         JsonObject(MainConfig.inputJars.mapValues {
-            (_, value) -> JsonArray(value.map { JsonPrimitive(it) })
+                (_, value) -> JsonArray(value.map { JsonPrimitive(it) })
         })) as JsonObject).mapValues {
             (_, value) -> (value as JsonArray).toList().map { (it as JsonPrimitive).content }
-        }
+    }
 
     println("OPTIONS:")
     println("  SAMPLES PATH: ${MainConfig.samplesPath}")

@@ -1,16 +1,20 @@
-package org.usvm.ps
+package org.usvm.ml.ps
 
 import io.github.rchowell.dotlin.digraph
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.*
-import org.usvm.*
-import org.usvm.statistics.*
+import org.usvm.PathsTrieNode
+import org.usvm.UPathSelector
+import org.usvm.UState
+import org.usvm.ml.GraphUpdate
+import org.usvm.ml.MainConfig
+import org.usvm.ps.ShortestDistanceToTargetsStateWeighter
+import org.usvm.statistics.ApplicationGraph
+import org.usvm.statistics.CoverageStatistics
+import org.usvm.statistics.DistanceStatistics
 import java.io.File
-import java.lang.UnsupportedOperationException
 import java.nio.file.Path
-import kotlin.collections.ArrayDeque
-import kotlin.collections.HashSet
 import kotlin.io.path.Path
 import kotlin.io.path.writeText
 import kotlin.math.log
@@ -44,7 +48,6 @@ private fun UInt.log(): Float {
 private fun <T> List<T>.getLast(count: Int): List<T> {
     return this.subList(this.size - count, this.size)
 }
-
 @Suppress("LeakingThis")
 open class BfsWithLoggingPathSelector<State : UState<*, Method, Statement, *, State>, Statement, Method>(
     private val pathsTreeRoot: PathsTrieNode<State, Statement>,
@@ -561,8 +564,8 @@ open class BfsWithLoggingPathSelector<State : UState<*, Method, Statement, *, St
     }
 
     private fun getActionData(stateFeatureQueue: List<StateFeatures>,
-                                globalStateFeatures: GlobalStateFeatures,
-                                chosenState: State): ActionData {
+                              globalStateFeatures: GlobalStateFeatures,
+                              chosenState: State): ActionData {
         val stateId = lru.indexOfFirst { it.id == chosenState.id }
         return ActionData (
             stateFeatureQueue,
@@ -785,7 +788,8 @@ open class BfsWithLoggingPathSelector<State : UState<*, Method, Statement, *, St
 
     protected fun afterPeek(state: State,
                             stateFeatureQueue: List<StateFeatures>,
-                            globalStateFeatures: GlobalStateFeatures) {
+                            globalStateFeatures: GlobalStateFeatures
+    ) {
         val actionData = getActionData(stateFeatureQueue, globalStateFeatures, state)
         path.add(actionData)
 //        savePath()

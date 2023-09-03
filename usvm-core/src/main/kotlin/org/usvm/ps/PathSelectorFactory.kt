@@ -18,10 +18,8 @@ fun <Method, Statement, State : UState<*, Method, Statement, *, State>> createPa
     options: UMachineOptions,
     coverageStatistics: () -> CoverageStatistics<Method, Statement, State>? = { null },
     distanceStatistics: () -> DistanceStatistics<Method, Statement>? = { null },
-    applicationGraph: () -> ApplicationGraph<Method, Statement>? = { null }
 ) : UPathSelector<State> {
     val strategies = options.pathSelectionStrategies
-    val method = applicationGraph()?.methodOf(initialState.currentStatement)
     require(strategies.isNotEmpty()) { "At least one path selector strategy should be specified" }
 
     val random by lazy { Random(options.randomSeed) }
@@ -50,20 +48,6 @@ fun <Method, Statement, State : UState<*, Method, Statement, *, State>> createPa
                 requireNotNull(distanceStatistics()) { "Distance statistics is required for closest to uncovered path selector" },
                 random
             )
-
-            PathSelectionStrategy.BFS_WITH_LOGGING -> BfsWithLoggingPathSelector(
-                requireNotNull(initialState.pathLocation.parent) { "Paths tree root is required for BFS with logging path selector" },
-                requireNotNull(coverageStatistics()) { "Coverage statistics is required for BFS with logging path selector" },
-                requireNotNull(distanceStatistics()) { "Distance statistics is required for BFS with logging path selector" },
-                requireNotNull(applicationGraph()) { "Application graph is required for BFS with logging path selector" }
-            )
-
-            PathSelectionStrategy.INFERENCE_WITH_LOGGING -> InferencePathSelector(
-                requireNotNull(initialState.pathLocation.parent) { "Paths tree root is required for Inference with logging path selector" },
-                requireNotNull(coverageStatistics()) { "Coverage statistics is required for Inference with logging path selector" },
-                requireNotNull(distanceStatistics()) { "Distance statistics is required for Inference with logging path selector" },
-                requireNotNull(applicationGraph()) { "Application graph is required for Inference with logging path selector" }
-            )
         }
     }
 
@@ -72,7 +56,7 @@ fun <Method, Statement, State : UState<*, Method, Statement, *, State>> createPa
     selectors.singleOrNull()?.let { selector ->
         val resultSelector = selector.wrapIfRequired(propagateExceptions)
         resultSelector.add(listOf(initialState))
-        return resultSelector.wrapCoverageCounter(requireNotNull(coverageStatistics()), requireNotNull(method))
+        return resultSelector
     }
 
     require(selectors.size >= 2) { "Cannot create collaborative path selector from less than 2 selectors" }
@@ -98,13 +82,8 @@ fun <Method, Statement, State : UState<*, Method, Statement, *, State>> createPa
         }
     }
 
-    return selector.wrapCoverageCounter(requireNotNull(coverageStatistics()), requireNotNull(method))
+    return selector
 }
-
-private fun <Method, State : UState<*, Method, *, *, State>> UPathSelector<State>.wrapCoverageCounter(
-    coverageStatistics: CoverageStatistics<Method, *, State>,
-    method: Method
-) = CoverageCounterPathSelector(this, coverageStatistics, method)
 
 /**
  * Wraps the selector into an [ExceptionPropagationPathSelector] if [propagateExceptions] is true.
