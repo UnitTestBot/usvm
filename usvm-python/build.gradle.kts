@@ -72,6 +72,7 @@ fun registerCpython(task: JavaExec, debug: Boolean) = task.apply {
         dependsOn(":usvm-python:cpythonadapter:linkRelease")
     environment("LD_LIBRARY_PATH" to "$cpythonBuildPath/lib:$cpythonAdapterBuildPath")
     environment("LD_PRELOAD" to "$cpythonBuildPath/lib/libpython3.so")
+    environment("PYTHONHOME" to cpythonBuildPath)
 }
 
 tasks.register<JavaExec>("manualTestDebug") {
@@ -108,4 +109,5 @@ tasks.test {
     dependsOn(buildSamples)
     environment("LD_LIBRARY_PATH" to "$cpythonBuildPath/lib:$cpythonAdapterBuildPath")
     environment("LD_PRELOAD" to "$cpythonBuildPath/lib/libpython3.so")
+    environment("PYTHONHOME" to cpythonBuildPath)
 }
