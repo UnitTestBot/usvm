@@ -9,8 +9,8 @@ import org.usvm.USort
 import org.usvm.memory.USymbolicCollectionKeyInfo
 import org.usvm.memory.key.UHeapRefKeyInfo
 import org.usvm.memory.key.UHeapRefRegion
-import org.usvm.util.ProductRegion
-import org.usvm.util.Region
+import org.usvm.regions.ProductRegion
+import org.usvm.regions.Region
 
 typealias USymbolicMapKey<KeySort> = Pair<UHeapRef, UExpr<KeySort>>
 typealias USymbolicMapKeyRegion<KeyReg> = ProductRegion<UHeapRefRegion, KeyReg>

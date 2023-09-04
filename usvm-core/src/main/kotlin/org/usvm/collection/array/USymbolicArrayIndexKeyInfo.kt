@@ -10,7 +10,7 @@ import org.usvm.memory.key.UHeapRefKeyInfo
 import org.usvm.memory.key.UHeapRefRegion
 import org.usvm.memory.key.USizeExprKeyInfo
 import org.usvm.memory.key.USizeRegion
-import org.usvm.util.ProductRegion
+import org.usvm.regions.ProductRegion
 
 /**
  * A composite key for symbolic arrays: every entry is determined by heap address of target buffer and its numeric index.

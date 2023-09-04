@@ -18,7 +18,7 @@ import org.usvm.UExpr
 import org.usvm.UNotExpr
 import org.usvm.isFalse
 import org.usvm.logger
-import org.usvm.util.Intervals
+import org.usvm.regions.IntIntervalsRegion
 import kotlin.random.Random
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -99,6 +99,8 @@ class NumericConstraintsTests {
 
     @Test
     fun testEvalInterval(): Unit = with(ctx) {
+        bvSort = ctx.mkBvSort(sizeBits = 32u)
+        constraints = UNumericConstraints(ctx, bvSort)
         val x by bvSort
 
         // x in [-5, -1] U [1, 5]
@@ -109,11 +111,11 @@ class NumericConstraintsTests {
         val expr = mkBvAddExpr(x, mkBv(3, bvSort))
 
         // expr in [-2, 2] U [4, 8]
-        val expectedInterval = Intervals.closed(
-            UNumericConstraints.UBvIntervalPoint(mkBv(-2, bvSort)),
-            UNumericConstraints.UBvIntervalPoint(mkBv(8, bvSort))
+        val expectedInterval = IntIntervalsRegion.ofClosed(
+            -2,
+            8
         ).subtract(
-            Intervals.singleton(UNumericConstraints.UBvIntervalPoint(mkBv(3, bvSort)))
+            IntIntervalsRegion.point(3)
         )
 
         val actualInterval = constraints.evalInterval(expr)

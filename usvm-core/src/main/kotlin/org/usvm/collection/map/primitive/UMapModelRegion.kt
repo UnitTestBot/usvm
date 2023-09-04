@@ -7,9 +7,8 @@ import org.usvm.collection.map.USymbolicMapKey
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.model.AddressesMapping
 import org.usvm.model.modelEnsureConcreteInputRef
-import org.usvm.sampleUValue
 import org.usvm.solver.UCollectionDecoder
-import org.usvm.util.Region
+import org.usvm.regions.Region
 
 abstract class UMapModelRegion<MapType, KeySort : USort, ValueSort : USort, Reg : Region<Reg>>(
     private val regionId: UMapRegionId<MapType, KeySort, ValueSort, Reg>

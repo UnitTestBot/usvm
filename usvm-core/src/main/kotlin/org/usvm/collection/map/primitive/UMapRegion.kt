@@ -15,7 +15,7 @@ import org.usvm.memory.USymbolicCollectionKeyInfo
 import org.usvm.memory.foldHeapRef
 import org.usvm.memory.map
 import org.usvm.uctx
-import org.usvm.util.Region
+import org.usvm.regions.Region
 
 data class UMapEntryLValue<MapType, KeySort : USort, ValueSort : USort, Reg : Region<Reg>>(
     val keySort: KeySort,

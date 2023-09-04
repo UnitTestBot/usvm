@@ -1,4 +1,4 @@
-package org.usvm.util
+package org.usvm.regions
 
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentMapOf
@@ -95,11 +95,11 @@ class RegionTree<Reg, Value>(
 
         entries.entries.forEach { (nodeRegion, valueWithRegionTree) ->
             when (region.compare(nodeRegion)) {
-                RegionComparisonResult.INCLUDES -> included.addWithFilter(nodeRegion, valueWithRegionTree, filterPredicate)
+                Region.ComparisonResult.INCLUDES -> included.addWithFilter(nodeRegion, valueWithRegionTree, filterPredicate)
 
-                RegionComparisonResult.DISJOINT -> disjoint.addWithFilter(nodeRegion, valueWithRegionTree, filterPredicate)
+                Region.ComparisonResult.DISJOINT -> disjoint.addWithFilter(nodeRegion, valueWithRegionTree, filterPredicate)
                 // For nodes with intersection, repeat process recursively.
-                RegionComparisonResult.INTERSECTS -> {
+                Region.ComparisonResult.INTERSECTS -> {
                     val (value, childRegionTree) = valueWithRegionTree
                     val (splitIncluded, splitDisjoint) = childRegionTree.splitRecursively(region, filterPredicate)
 
@@ -167,7 +167,7 @@ class RegionTree<Reg, Value>(
     private fun checkInvariantRecursively(parentRegion: Reg?): Boolean {
         // Invariant (2): all child regions are included into parent region
         val secondInvariant = parentRegion == null || entries.entries.all { (reg, _) ->
-            parentRegion.compare(reg) == RegionComparisonResult.INCLUDES
+            parentRegion.compare(reg) == Region.ComparisonResult.INCLUDES
         }
 
         val checkInvariantRecursively = {
@@ -175,7 +175,7 @@ class RegionTree<Reg, Value>(
                 // Invariant (1): all sibling regions are pairwise disjoint
                 val firstInvariant = entries.entries.all { other ->
                     val otherReg = other.key
-                    otherReg === entryKey || entryKey.compare(otherReg) == RegionComparisonResult.DISJOINT
+                    otherReg === entryKey || entryKey.compare(otherReg) == Region.ComparisonResult.DISJOINT
                 }
 
                 firstInvariant && value.second.checkInvariantRecursively(entryKey)

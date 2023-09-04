@@ -2,7 +2,7 @@ package org.usvm.constraints
 
 import org.usvm.UContext
 import org.usvm.USymbolicHeapRef
-import org.usvm.util.DisjointSets
+import org.usvm.algorithms.DisjointSets
 
 /**
  * Represents equality constraints between symbolic heap references. There are three kinds of constraints:

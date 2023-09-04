@@ -21,8 +21,8 @@ import org.usvm.memory.key.USizeExprKeyInfo
 import org.usvm.memory.key.USizeRegion
 import org.usvm.sampleUValue
 import org.usvm.uctx
-import org.usvm.util.RegionTree
-import org.usvm.util.emptyRegionTree
+import org.usvm.regions.RegionTree
+import org.usvm.regions.emptyRegionTree
 
 
 interface USymbolicArrayId<ArrayType, Key, Sort : USort, out ArrayId : USymbolicArrayId<ArrayType, Key, Sort, ArrayId>> :

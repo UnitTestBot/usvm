@@ -2,7 +2,7 @@ package org.usvm.memory
 
 import org.usvm.UBoolExpr
 import org.usvm.UComposer
-import org.usvm.util.Region
+import org.usvm.regions.Region
 
 /**
  * Redirects reads from one collection into another. Used in [URangedUpdateNode].

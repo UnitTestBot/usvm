@@ -1,10 +1,7 @@
-package org.usvm.test
+package org.usvm.regions
 
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.usvm.util.RegionTree
-import org.usvm.util.SetRegion
-import org.usvm.util.emptyRegionTree
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 

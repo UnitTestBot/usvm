@@ -5,9 +5,9 @@ import org.usvm.UComposer
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.isFalse
-import org.usvm.util.Region
-import org.usvm.util.RegionTree
-import org.usvm.util.emptyRegionTree
+import org.usvm.regions.Region
+import org.usvm.regions.RegionTree
+import org.usvm.regions.emptyRegionTree
 
 /**
  * Represents a sequence of memory writes.

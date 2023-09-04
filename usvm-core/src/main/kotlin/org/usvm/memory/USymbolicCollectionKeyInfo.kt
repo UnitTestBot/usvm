@@ -3,8 +3,7 @@ package org.usvm.memory
 import org.usvm.UBoolExpr
 import org.usvm.UComposer
 import org.usvm.UContext
-import org.usvm.UTransformer
-import org.usvm.util.Region
+import org.usvm.regions.Region
 
 /**
  * Provides information about entities used as keys of symbolic collections.

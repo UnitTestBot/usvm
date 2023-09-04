@@ -49,7 +49,7 @@ import org.usvm.collection.map.ref.UAllocatedRefMapWithInputKeysReading
 import org.usvm.collection.map.ref.UInputRefMapWithAllocatedKeysReading
 import org.usvm.collection.map.ref.UInputRefMapWithInputKeysReading
 import org.usvm.uctx
-import org.usvm.util.Region
+import org.usvm.regions.Region
 
 class USoftConstraintsProvider<Type>(override val ctx: UContext) : UTransformer<Type> {
     // We have a list here since sometimes we want to add several soft constraints

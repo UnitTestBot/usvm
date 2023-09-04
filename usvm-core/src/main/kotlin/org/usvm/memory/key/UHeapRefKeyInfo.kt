@@ -8,7 +8,7 @@ import org.usvm.UContext
 import org.usvm.UHeapRef
 import org.usvm.compose
 import org.usvm.memory.USymbolicCollectionKeyInfo
-import org.usvm.util.SetRegion
+import org.usvm.regions.SetRegion
 
 typealias UHeapRefRegion = SetRegion<UConcreteHeapAddress>
 

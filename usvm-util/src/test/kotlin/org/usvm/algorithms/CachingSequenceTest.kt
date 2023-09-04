@@ -1,7 +1,6 @@
-package org.usvm.test
+package org.usvm.algorithms
 
 import org.junit.jupiter.api.Test
-import org.usvm.util.cached
 import kotlin.test.assertEquals
 
 class CachingSequenceTest {

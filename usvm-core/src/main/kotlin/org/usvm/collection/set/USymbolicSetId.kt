@@ -16,7 +16,7 @@ import org.usvm.memory.USymbolicCollectionKeyInfo
 import org.usvm.memory.USymbolicCollectionUpdates
 import org.usvm.memory.UUpdateNode
 import org.usvm.memory.UWritableMemory
-import org.usvm.util.Region
+import org.usvm.regions.Region
 import java.util.IdentityHashMap
 
 
