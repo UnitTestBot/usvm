@@ -36,7 +36,7 @@ public class CPythonAdapter {
     public int pyLT;
     public int pyGE;
     public int pyGT;
-    public native void initializePython();
+    public native void initializePython(String pythonHome);
     public native void finalizePython();
     public native long getNewNamespace();  // returns reference to a new dict
     public native void addName(long dict, long object, String name);

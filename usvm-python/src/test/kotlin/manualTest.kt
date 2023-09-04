@@ -7,6 +7,7 @@ import org.usvm.language.StructuredPythonProgram
 import org.usvm.language.types.*
 import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.IllegalOperationException
+import org.usvm.machine.interpreters.emptyNamespace
 import org.usvm.runner.CustomPythonTestRunner
 import org.usvm.runner.SamplesBuild
 import org.usvm.utils.ReprObjectSerializer
@@ -22,10 +23,18 @@ import org.utbot.python.newtyping.pythonTypeRepresentation
 import java.io.File
 
 fun main() {
-    val config = buildProjectRunConfig()
+    // val config = buildProjectRunConfig()
     // val config = buildSampleRunConfig()
     // analyze(config)
-    checkConcolicAndConcrete(config)
+    // checkConcolicAndConcrete(config)
+
+    ConcretePythonInterpreter.concreteRun(
+        emptyNamespace,
+        """
+            import sys
+            print("sys.path:", sys.path, flush=True)
+        """.trimIndent()
+    )
 }
 
 private fun buildSampleRunConfig(): RunConfig {
