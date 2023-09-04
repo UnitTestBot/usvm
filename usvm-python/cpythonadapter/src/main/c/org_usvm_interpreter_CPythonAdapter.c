@@ -42,9 +42,16 @@ turn_off_audit_hook() {
         illegal_operation = 0;
 }
 
-JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_initializePython(JNIEnv *env, jobject cpython_adapter) {
+JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_initializePython(JNIEnv *env, jobject cpython_adapter, jstring python_home) {
+    PyPreConfig pre_config;
+    PyPreConfig_InitIsolatedConfig(&pre_config);
+    Py_PreInitialize(&pre_config);
+
     PyConfig config;
     PyConfig_InitIsolatedConfig(&config);
+    const char *python_home_str = (*env)->GetStringUTFChars(env, python_home, 0);
+    PyConfig_SetBytesString(&config, &config.home, python_home_str);
+    (*env)->ReleaseStringUTFChars(env, python_home, python_home_str);
 
     Py_InitializeFromConfig(&config);
     PyConfig_Clear(&config);
