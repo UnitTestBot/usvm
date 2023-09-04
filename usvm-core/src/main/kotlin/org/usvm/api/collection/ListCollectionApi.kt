@@ -15,137 +15,134 @@ import org.usvm.memory.map
 import org.usvm.uctx
 
 object ListCollectionApi {
-    fun <ListType, State : UState<ListType, *, *, *, State>> StepScope<State, ListType, *>.mkSymbolicList(
+    fun <ListType> UState<ListType, *, *, *, *>.mkSymbolicList(
         listType: ListType,
-    ): UHeapRef = calcOnState {
-        with(memory.ctx) {
-            val ref = memory.alloc(listType)
-            memory.writeArrayLength(ref, mkSizeExpr(0), listType)
-            ref
-        }
+    ): UHeapRef = with(memory.ctx) {
+        val ref = memory.alloc(listType)
+        memory.writeArrayLength(ref, mkSizeExpr(0), listType)
+        ref
     }
 
-    fun <ListType, State : UState<ListType, *, *, *, State>> StepScope<State, ListType, *>.symbolicListSize(
+    /**
+     * List size may be incorrect for input lists.
+     * Use [ensureListSizeCorrect] to guarantee that list size is correct.
+     * */
+    fun <ListType> UState<ListType, *, *, *, *>.symbolicListSize(
         listRef: UHeapRef,
         listType: ListType,
-    ): USizeExpr? =
+    ): USizeExpr = memory.readArrayLength(listRef, listType)
+
+    fun <ListType, State : UState<ListType, *, *, *, State>> StepScope<State, ListType, *>.ensureListSizeCorrect(
+        listRef: UHeapRef,
+        listType: ListType,
+    ): Unit? {
         listRef.map(
-            concreteMapper = { concreteListRef ->
-                calcOnState { memory.readArrayLength(concreteListRef, listType) }
+            concreteMapper = {
+                // Concrete list size is always correct
+                it
             },
             symbolicMapper = { symbolicListRef ->
                 val length = calcOnState { memory.readArrayLength(symbolicListRef, listType) }
                 with(length.uctx) {
                     val boundConstraint = mkBvSignedGreaterOrEqualExpr(length, mkSizeExpr(0))
-                    assert(boundConstraint)
+                    // List size must be correct regardless of guard
+                    assert(boundConstraint) ?: return null
                 }
-                    ?: return null
-                length
+                symbolicListRef
             }
         )
+        return Unit
+    }
 
-    fun <ListType, Sort : USort, State : UState<ListType, *, *, *, State>> StepScope<State, ListType, *>.symbolicListGet(
+    fun <ListType, Sort : USort> UState<ListType, *, *, *, *>.symbolicListGet(
         listRef: UHeapRef,
         index: USizeExpr,
         listType: ListType,
         sort: Sort,
-    ): UExpr<Sort> = calcOnState {
-        memory.readArrayIndex(listRef, index, listType, sort)
-    }
+    ): UExpr<Sort> = memory.readArrayIndex(listRef, index, listType, sort)
 
-    fun <ListType, Sort : USort, State : UState<ListType, *, *, *, State>> StepScope<State, ListType, *>.symbolicListAdd(
+    fun <ListType, Sort : USort> UState<ListType, *, *, *, *>.symbolicListAdd(
         listRef: UHeapRef,
         listType: ListType,
         sort: Sort,
         value: UExpr<Sort>,
-    ): Unit? {
-        val size = symbolicListSize(listRef, listType) ?: return null
+    ) {
+        val size = symbolicListSize(listRef, listType)
 
-        return calcOnState {
-            with(memory.ctx) {
-                memory.writeArrayIndex(listRef, size, listType, sort, value, guard = trueExpr)
-                val updatedSize = mkBvAddExpr(size, mkSizeExpr(1))
-                memory.writeArrayLength(listRef, updatedSize, listType)
-            }
+        with(memory.ctx) {
+            memory.writeArrayIndex(listRef, size, listType, sort, value, guard = trueExpr)
+            val updatedSize = mkBvAddExpr(size, mkSizeExpr(1))
+            memory.writeArrayLength(listRef, updatedSize, listType)
         }
     }
 
-    fun <ListType, Sort : USort, State : UState<ListType, *, *, *, State>> StepScope<State, ListType, *>.symbolicListSet(
+    fun <ListType, Sort : USort> UState<ListType, *, *, *, *>.symbolicListSet(
         listRef: UHeapRef,
         listType: ListType,
         sort: Sort,
         index: USizeExpr,
         value: UExpr<Sort>,
-    ) = calcOnState {
+    ) {
         memory.writeArrayIndex(listRef, index, listType, sort, value, guard = memory.ctx.trueExpr)
     }
 
-    fun <ListType, Sort : USort, State : UState<ListType, *, *, *, State>> StepScope<State, ListType, *>.symbolicListInsert(
+    fun <ListType, Sort : USort> UState<ListType, *, *, *, *>.symbolicListInsert(
         listRef: UHeapRef,
         listType: ListType,
         sort: Sort,
         index: USizeExpr,
         value: UExpr<Sort>,
-    ): Unit? {
-        val currentSize = symbolicListSize(listRef, listType) ?: return null
+    ) = with(memory.ctx) {
+        val currentSize = symbolicListSize(listRef, listType)
 
-        return calcOnState {
-            with(memory.ctx) {
+        val srcIndex = index
+        val indexAfterInsert = mkBvAddExpr(index, mkSizeExpr(1))
+        val lastIndexAfterInsert = currentSize
 
-                val srcIndex = index
-                val indexAfterInsert = mkBvAddExpr(index, mkSizeExpr(1))
-                val lastIndexAfterInsert = currentSize
+        memory.memcpy(
+            srcRef = listRef,
+            dstRef = listRef,
+            type = listType,
+            elementSort = sort,
+            fromSrcIdx = srcIndex,
+            fromDstIdx = indexAfterInsert,
+            toDstIdx = lastIndexAfterInsert,
+            guard = trueExpr
+        )
 
-                memory.memcpy(
-                    srcRef = listRef,
-                    dstRef = listRef,
-                    type = listType,
-                    elementSort = sort,
-                    fromSrcIdx = srcIndex,
-                    fromDstIdx = indexAfterInsert,
-                    toDstIdx = lastIndexAfterInsert,
-                    guard = trueExpr
-                )
+        memory.writeArrayIndex(listRef, index, listType, sort, value, guard = trueExpr)
 
-                memory.writeArrayIndex(listRef, index, listType, sort, value, guard = trueExpr)
-
-                val updatedSize = mkBvAddExpr(currentSize, mkSizeExpr(1))
-                memory.writeArrayLength(listRef, updatedSize, listType)
-            }
-        }
+        val updatedSize = mkBvAddExpr(currentSize, mkSizeExpr(1))
+        memory.writeArrayLength(listRef, updatedSize, listType)
     }
 
-    fun <ListType, Sort : USort, State : UState<ListType, *, *, *, State>> StepScope<State, ListType, *>.symbolicListRemove(
+    fun <ListType, Sort : USort> UState<ListType, *, *, *, *>.symbolicListRemove(
         listRef: UHeapRef,
         listType: ListType,
         sort: Sort,
         index: USizeExpr,
-    ): Unit? {
-        val currentSize = symbolicListSize(listRef, listType) ?: return null
+    ) = with(memory.ctx) {
+        val currentSize = symbolicListSize(listRef, listType)
 
-        return calcOnState {
-            with(memory.ctx) {
-                val firstIndexAfterRemove = mkBvAddExpr(index, mkSizeExpr(1))
-                val lastIndexAfterRemove = mkBvSubExpr(currentSize, mkSizeExpr(2))
+        val firstIndexAfterRemove = mkBvAddExpr(index, mkSizeExpr(1))
+        val lastIndexAfterRemove = mkBvSubExpr(currentSize, mkSizeExpr(2))
 
-                memory.memcpy(
-                    srcRef = listRef,
-                    dstRef = listRef,
-                    type = listType,
-                    elementSort = sort,
-                    fromSrcIdx = firstIndexAfterRemove,
-                    fromDstIdx = index,
-                    toDstIdx = lastIndexAfterRemove,
-                    guard = trueExpr
-                )
+        memory.memcpy(
+            srcRef = listRef,
+            dstRef = listRef,
+            type = listType,
+            elementSort = sort,
+            fromSrcIdx = firstIndexAfterRemove,
+            fromDstIdx = index,
+            toDstIdx = lastIndexAfterRemove,
+            guard = trueExpr
+        )
 
-                val updatedSize = mkBvSubExpr(currentSize, mkSizeExpr(1))
-                memory.writeArrayLength(listRef, updatedSize, listType)
-            }
-        }
+        val updatedSize = mkBvSubExpr(currentSize, mkSizeExpr(1))
+        memory.writeArrayLength(listRef, updatedSize, listType)
     }
 
-    fun <ListType, Sort : USort, State : UState<ListType, *, *, *, State>> StepScope<State, ListType, *>.symbolicListCopyRange(
+    fun <ListType, Sort : USort> UState<ListType, *, *, *, *>.symbolicListCopyRange(
         srcRef: UHeapRef,
         dstRef: UHeapRef,
         listType: ListType,
@@ -153,7 +150,7 @@ object ListCollectionApi {
         srcFrom: USizeExpr,
         dstFrom: USizeExpr,
         length: USizeExpr,
-    ): Unit = calcOnState {
+    ) {
         memory.memcpy(
             srcRef = srcRef,
             dstRef = dstRef,

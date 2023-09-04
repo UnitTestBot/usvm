@@ -4,6 +4,8 @@ import io.ksmt.solver.KSolver
 import org.usvm.UContext
 import org.usvm.UHeapRef
 import org.usvm.USizeExpr
+import org.usvm.UState
+import org.usvm.api.collection.ListCollectionApi.ensureListSizeCorrect
 import org.usvm.api.collection.ListCollectionApi.mkSymbolicList
 import org.usvm.api.collection.ListCollectionApi.symbolicListAdd
 import org.usvm.api.collection.ListCollectionApi.symbolicListGet
@@ -21,23 +23,26 @@ class SymbolicListTest : SymbolicCollectionTestBase() {
 
     @Test
     fun testConcreteListValues() {
-        val concreteList = scope.mkSymbolicList(listType)
+        val concreteList = scope.calcOnState { mkSymbolicList(listType) }
         testListValues(concreteList)
     }
 
     @Test
     fun testSymbolicListValues() = with(ctx) {
         val symbolicList = mkRegisterReading(99, addressSort)
-        scope.assert(mkHeapRefEq(symbolicList, nullRef).not())
+
+        assertNotNull(scope.assert(mkHeapRefEq(symbolicList, nullRef).not()))
+        assertNotNull(scope.ensureListSizeCorrect(symbolicList, listType))
+
         testListValues(symbolicList)
     }
 
-    private fun testListValues(listRef: UHeapRef) {
-        val initialSize = assertNotNull(scope.symbolicListSize(listRef, listType))
+    private fun testListValues(listRef: UHeapRef) = scope.doWithState {
+        val initialSize = symbolicListSize(listRef, listType)
 
         val listValues = (1..5).mapTo(mutableListOf()) { ctx.mkSizeExpr(it) }
         listValues.forEach {
-            scope.symbolicListAdd(listRef, listType, ctx.sizeSort, it)
+            symbolicListAdd(listRef, listType, ctx.sizeSort, it)
         }
 
         checkValues(listRef, listValues, initialSize)
@@ -46,14 +51,14 @@ class SymbolicListTest : SymbolicCollectionTestBase() {
         val modifiedValue = ctx.mkSizeExpr(42)
         listValues[modifiedIdx] = modifiedValue
         val modifiedListIdx = ctx.mkBvAddExpr(initialSize, ctx.mkSizeExpr(modifiedIdx))
-        scope.symbolicListSet(listRef, listType, ctx.sizeSort, modifiedListIdx, modifiedValue)
+        symbolicListSet(listRef, listType, ctx.sizeSort, modifiedListIdx, modifiedValue)
 
         checkValues(listRef, listValues, initialSize)
 
         val removeIdx = listValues.size / 2
         listValues.removeAt(removeIdx)
         val removeListIdx = ctx.mkBvAddExpr(initialSize, ctx.mkSizeExpr(removeIdx))
-        scope.symbolicListRemove(listRef, listType, ctx.sizeSort, removeListIdx)
+        symbolicListRemove(listRef, listType, ctx.sizeSort, removeListIdx)
 
         checkValues(listRef, listValues, initialSize)
 
@@ -61,52 +66,55 @@ class SymbolicListTest : SymbolicCollectionTestBase() {
         val insertValue = ctx.mkSizeExpr(17)
         listValues.add(insertIdx, insertValue)
         val insertListIdx = ctx.mkBvAddExpr(initialSize, ctx.mkSizeExpr(removeIdx))
-        scope.symbolicListInsert(listRef, listType, ctx.sizeSort, insertListIdx, insertValue)
+        symbolicListInsert(listRef, listType, ctx.sizeSort, insertListIdx, insertValue)
 
         checkValues(listRef, listValues, initialSize)
     }
 
     @Test
     fun testConcreteListBoundModification() {
-        val concreteList = scope.mkSymbolicList(listType)
+        val concreteList = scope.calcOnState { mkSymbolicList(listType) }
         testListBoundModification(concreteList)
     }
 
     @Test
     fun testSymbolicListBoundModification() = with(ctx) {
         val symbolicList = mkRegisterReading(99, addressSort)
-        scope.assert(mkHeapRefEq(symbolicList, nullRef).not())
+
+        assertNotNull(scope.assert(mkHeapRefEq(symbolicList, nullRef).not()))
+        assertNotNull(scope.ensureListSizeCorrect(symbolicList, listType))
+
         testListBoundModification(symbolicList)
     }
 
-    private fun testListBoundModification(listRef: UHeapRef) {
-        val initialSize = assertNotNull(scope.symbolicListSize(listRef, listType))
+    private fun testListBoundModification(listRef: UHeapRef) = scope.doWithState {
+        val initialSize = symbolicListSize(listRef, listType)
 
         val listValues = (1..5).mapTo(mutableListOf()) { ctx.mkSizeExpr(it) }
         listValues.forEach {
-            scope.symbolicListAdd(listRef, listType, ctx.sizeSort, it)
+            symbolicListAdd(listRef, listType, ctx.sizeSort, it)
         }
 
         checkValues(listRef, listValues, initialSize)
 
         // remove first
         listValues.removeAt(0)
-        scope.symbolicListRemove(listRef, listType, ctx.sizeSort, initialSize)
+        symbolicListRemove(listRef, listType, ctx.sizeSort, initialSize)
 
         checkValues(listRef, listValues, initialSize)
 
         // insert first
         val insertHeadValue = ctx.mkSizeExpr(17)
         listValues.add(0, insertHeadValue)
-        scope.symbolicListInsert(listRef, listType, ctx.sizeSort, initialSize, insertHeadValue)
+        symbolicListInsert(listRef, listType, ctx.sizeSort, initialSize, insertHeadValue)
 
         checkValues(listRef, listValues, initialSize)
 
         // remove last
         listValues.removeAt(listValues.lastIndex)
         run {
-            val listSize = assertNotNull(scope.symbolicListSize(listRef, listType))
-            scope.symbolicListRemove(listRef, listType, ctx.sizeSort, ctx.mkBvSubExpr(listSize, ctx.mkSizeExpr(1)))
+            val listSize = symbolicListSize(listRef, listType)
+            symbolicListRemove(listRef, listType, ctx.sizeSort, ctx.mkBvSubExpr(listSize, ctx.mkSizeExpr(1)))
         }
 
         checkValues(listRef, listValues, initialSize)
@@ -115,17 +123,21 @@ class SymbolicListTest : SymbolicCollectionTestBase() {
         val insertTailValue = ctx.mkSizeExpr(17)
         listValues.add(listValues.size, insertTailValue)
         run {
-            val listSize = assertNotNull(scope.symbolicListSize(listRef, listType))
-            scope.symbolicListInsert(listRef, listType, ctx.sizeSort, listSize, insertTailValue)
+            val listSize = symbolicListSize(listRef, listType)
+            symbolicListInsert(listRef, listType, ctx.sizeSort, listSize, insertTailValue)
         }
 
         checkValues(listRef, listValues, initialSize)
     }
 
-    private fun checkValues(listRef: UHeapRef, values: List<USizeExpr>, initialSize: USizeExpr) {
+    private fun UState<SingleTypeSystem.SingleType, *, *, *, *>.checkValues(
+        listRef: UHeapRef,
+        values: List<USizeExpr>,
+        initialSize: USizeExpr
+    ) {
         val listValues = values.indices.map { idx ->
             val listIndex = ctx.mkBvAddExpr(initialSize, ctx.mkSizeExpr(idx))
-            scope.symbolicListGet(listRef, listIndex, listType, ctx.sizeSort)
+            symbolicListGet(listRef, listIndex, listType, ctx.sizeSort)
         }
         checkWithSolver {
             values.zip(listValues) { expectedValue, actualValue ->
@@ -141,7 +153,7 @@ class SymbolicListTest : SymbolicCollectionTestBase() {
 
     @Test
     fun testConcreteListSize() {
-        val concreteList = scope.mkSymbolicList(listType)
+        val concreteList = scope.calcOnState { mkSymbolicList(listType) }
         testListSize(concreteList) { actualSize, expectedSize ->
             assertImpossible { actualSize neq expectedSize }
         }
@@ -150,8 +162,11 @@ class SymbolicListTest : SymbolicCollectionTestBase() {
     @Test
     fun testSymbolicListSize() = with(ctx) {
         val symbolicList = mkRegisterReading(99, ctx.addressSort)
-        scope.assert(mkHeapRefEq(symbolicList, nullRef).not())
-        val initialSize = assertNotNull(scope.symbolicListSize(symbolicList, listType))
+
+        assertNotNull(scope.assert(mkHeapRefEq(symbolicList, nullRef).not()))
+        assertNotNull(scope.ensureListSizeCorrect(symbolicList, listType))
+
+        val initialSize = scope.calcOnState { symbolicListSize(symbolicList, listType) }
 
         testListSize(symbolicList) { actualSize, expectedSize ->
             assertImpossible {
@@ -163,18 +178,21 @@ class SymbolicListTest : SymbolicCollectionTestBase() {
         }
     }
 
-    private fun testListSize(listRef: UHeapRef, checkSize: KSolver<*>.(USizeExpr, USizeExpr) -> Unit) {
+    private fun testListSize(
+        listRef: UHeapRef,
+        checkSize: KSolver<*>.(USizeExpr, USizeExpr) -> Unit
+    ) = scope.doWithState {
         val numValues = 5
         repeat(numValues) {
-            scope.symbolicListAdd(listRef, listType, ctx.sizeSort, ctx.mkSizeExpr(it))
+            symbolicListAdd(listRef, listType, ctx.sizeSort, ctx.mkSizeExpr(it))
         }
 
         checkWithSolver {
-            val actualSize = assertNotNull(scope.symbolicListSize(listRef, listType))
+            val actualSize = symbolicListSize(listRef, listType)
             checkSize(actualSize, ctx.mkSizeExpr(numValues))
         }
 
-        scope.symbolicListInsert(
+        symbolicListInsert(
             listRef = listRef,
             listType = listType,
             sort = ctx.sizeSort,
@@ -183,11 +201,11 @@ class SymbolicListTest : SymbolicCollectionTestBase() {
         )
 
         checkWithSolver {
-            val actualSize = assertNotNull(scope.symbolicListSize(listRef, listType))
+            val actualSize = symbolicListSize(listRef, listType)
             checkSize(actualSize, ctx.mkSizeExpr(numValues + 1))
         }
 
-        scope.symbolicListRemove(
+        symbolicListRemove(
             listRef = listRef,
             listType = listType,
             sort = ctx.sizeSort,
@@ -195,7 +213,7 @@ class SymbolicListTest : SymbolicCollectionTestBase() {
         )
 
         checkWithSolver {
-            val actualSize = assertNotNull(scope.symbolicListSize(listRef, listType))
+            val actualSize = symbolicListSize(listRef, listType)
             checkSize(actualSize, ctx.mkSizeExpr(numValues))
         }
     }

@@ -17,120 +17,113 @@ import org.usvm.memory.map
 import org.usvm.uctx
 
 object ObjectMapCollectionApi {
-    fun <MapType, State : UState<MapType, *, *, *, State>> StepScope<State, MapType, *>.mkSymbolicObjectMap(
+    fun <MapType> UState<MapType, *, *, *, *>.mkSymbolicObjectMap(
         mapType: MapType,
-    ): UHeapRef = calcOnState {
-        with(memory.ctx) {
-            val ref = memory.alloc(mapType)
-            val length = UMapLengthLValue(ref, mapType)
-            memory.write(length, mkSizeExpr(0), trueExpr)
-            ref
-        }
+    ): UHeapRef = with(memory.ctx) {
+        val ref = memory.alloc(mapType)
+        val length = UMapLengthLValue(ref, mapType)
+        memory.write(length, mkSizeExpr(0), trueExpr)
+        ref
     }
 
-    // todo: input map size can be inconsistent with contains
-    fun <MapType, State : UState<MapType, *, *, *, State>> StepScope<State, MapType, *>.symbolicObjectMapSize(
+    /**
+     * Map size may be incorrect for input maps.
+     * Use [ensureObjectMapSizeCorrect] to guarantee that map size is correct.
+     * todo: input map size can be inconsistent with contains
+     * */
+    fun <MapType> UState<MapType, *, *, *, *>.symbolicObjectMapSize(
         mapRef: UHeapRef,
         mapType: MapType,
-    ): USizeExpr? = mapRef.map(
-        concreteMapper = { concreteMapRef ->
-            calcOnState { memory.read(UMapLengthLValue(concreteMapRef, mapType)) }
-        },
-        symbolicMapper = { symbolicMapRef ->
-            val length = calcOnState { memory.read(UMapLengthLValue(symbolicMapRef, mapType)) }
-            val boundConstraint = with(length.uctx) { mkBvSignedGreaterOrEqualExpr(length, mkSizeExpr(0)) }
-            assert(boundConstraint) ?: return null
-            length
-        }
-    )
+    ): USizeExpr = memory.read(UMapLengthLValue(mapRef, mapType))
 
-    fun <MapType, Sort : USort, State : UState<MapType, *, *, *, State>> StepScope<State, MapType, *>.symbolicObjectMapGet(
+    fun <MapType, State : UState<MapType, *, *, *, State>> StepScope<State, MapType, *>.ensureObjectMapSizeCorrect(
+        mapRef: UHeapRef,
+        mapType: MapType,
+    ): Unit? {
+        mapRef.map(
+            concreteMapper = {
+                // Concrete map size is always correct
+                it
+            },
+            symbolicMapper = { symbolicMapRef ->
+                val length = calcOnState { memory.read(UMapLengthLValue(symbolicMapRef, mapType)) }
+                with(length.uctx) {
+                    val boundConstraint = mkBvSignedGreaterOrEqualExpr(length, mkSizeExpr(0))
+                    // Map size must be correct regardless of guard
+                    assert(boundConstraint) ?: return null
+                }
+                symbolicMapRef
+            }
+        )
+        return Unit
+    }
+
+    fun <MapType, Sort : USort> UState<MapType, *, *, *, *>.symbolicObjectMapGet(
         mapRef: UHeapRef,
         key: UHeapRef,
         mapType: MapType,
         sort: Sort,
-    ): UExpr<Sort> = calcOnState {
-        memory.read(URefMapEntryLValue(sort, mapRef, key, mapType))
-    }
+    ): UExpr<Sort> = memory.read(URefMapEntryLValue(sort, mapRef, key, mapType))
 
-    fun <MapType, State : UState<MapType, *, *, *, State>> StepScope<State, MapType, *>.symbolicObjectMapContains(
+    fun <MapType> UState<MapType, *, *, *, *>.symbolicObjectMapContains(
         mapRef: UHeapRef,
         key: UHeapRef,
         mapType: MapType,
-    ): UBoolExpr = calcOnState {
-        memory.read(URefSetEntryLValue(mapRef, key, mapType))
-    }
+    ): UBoolExpr = memory.read(URefSetEntryLValue(mapRef, key, mapType))
 
-    fun <MapType, Sort : USort, State : UState<MapType, *, *, *, State>> StepScope<State, MapType, *>.symbolicObjectMapPut(
+    fun <MapType, Sort : USort> UState<MapType, *, *, *, *>.symbolicObjectMapPut(
         mapRef: UHeapRef,
         key: UHeapRef,
         value: UExpr<Sort>,
         mapType: MapType,
         sort: Sort,
-    ): Unit? {
+    ) = with(memory.ctx) {
         val mapContainsLValue = URefSetEntryLValue(mapRef, key, mapType)
-        val currentSize = symbolicObjectMapSize(mapRef, mapType) ?: return null
+        val currentSize = symbolicObjectMapSize(mapRef, mapType)
 
-        return calcOnState {
-            with(memory.ctx) {
-                val keyIsInMap = memory.read(mapContainsLValue)
-                val keyIsNew = mkNot(keyIsInMap)
+        val keyIsInMap = memory.read(mapContainsLValue)
+        val keyIsNew = mkNot(keyIsInMap)
 
-                memory.write(URefMapEntryLValue(sort, mapRef, key, mapType), value, guard = trueExpr)
-                memory.write(mapContainsLValue, rvalue = trueExpr, guard = trueExpr)
+        memory.write(URefMapEntryLValue(sort, mapRef, key, mapType), value, guard = trueExpr)
+        memory.write(mapContainsLValue, rvalue = trueExpr, guard = trueExpr)
 
-                val updatedSize = mkBvAddExpr(currentSize, mkSizeExpr(1))
-                memory.write(UMapLengthLValue(mapRef, mapType), updatedSize, keyIsNew)
-            }
-        }
+        val updatedSize = mkBvAddExpr(currentSize, mkSizeExpr(1))
+        memory.write(UMapLengthLValue(mapRef, mapType), updatedSize, keyIsNew)
     }
 
-    fun <MapType, State : UState<MapType, *, *, *, State>> StepScope<State, MapType, *>.symbolicObjectMapRemove(
+    fun <MapType> UState<MapType, *, *, *, *>.symbolicObjectMapRemove(
         mapRef: UHeapRef,
         key: UHeapRef,
         mapType: MapType,
-    ): Unit? {
-        val currentSize = symbolicObjectMapSize(mapRef, mapType) ?: return null
+    ) = with(memory.ctx) {
+        val mapContainsLValue = URefSetEntryLValue(mapRef, key, mapType)
+        val currentSize = symbolicObjectMapSize(mapRef, mapType)
 
-        return calcOnState {
-            with(memory.ctx) {
-                val mapContainsLValue = URefSetEntryLValue(mapRef, key, mapType)
+        val keyIsInMap = memory.read(mapContainsLValue)
 
-                val keyIsInMap = memory.read(mapContainsLValue)
+        // todo: skip values update?
+        memory.write(mapContainsLValue, rvalue = falseExpr, guard = trueExpr)
 
-                // todo: skip values update?
-                memory.write(mapContainsLValue, rvalue = falseExpr, guard = trueExpr)
-
-                val updatedSize = mkBvSubExpr(currentSize, mkSizeExpr(1))
-                memory.write(UMapLengthLValue(mapRef, mapType), updatedSize, keyIsInMap)
-            }
-        }
+        val updatedSize = mkBvSubExpr(currentSize, mkSizeExpr(1))
+        memory.write(UMapLengthLValue(mapRef, mapType), updatedSize, keyIsInMap)
     }
 
-    fun <MapType, Sort : USort, State : UState<MapType, *, *, *, State>> StepScope<State, MapType, *>.symbolicObjectMapMergeInto(
+    fun <MapType, Sort : USort> UState<MapType, *, *, *, *>.symbolicObjectMapMergeInto(
         dstRef: UHeapRef,
         srcRef: UHeapRef,
         mapType: MapType,
         sort: Sort,
-    ): Unit? {
-        val srcMapSize = symbolicObjectMapSize(srcRef, mapType) ?: return null
-        val dstMapSize = symbolicObjectMapSize(dstRef, mapType) ?: return null
+    ) = with(memory.ctx) {
+        val srcMapSize = symbolicObjectMapSize(srcRef, mapType)
+        val dstMapSize = symbolicObjectMapSize(dstRef, mapType)
 
-        calcOnState {
-            with(memory.ctx) {
-                val containsSetId = URefSetRegionId(mapType, sort.uctx.boolSort)
-                memory.refMapMerge(srcRef, dstRef, mapType, sort, containsSetId, guard = trueExpr)
-                memory.refSetUnion(srcRef, dstRef, mapType, guard = trueExpr)
-            }
-        }
-        return with(dstRef.uctx) {
-            // todo: precise map size approximation?
-            // val sizeLowerBound = mkIte(mkBvSignedGreaterExpr(srcMapSize, dstMapSize), srcMapSize, dstMapSize)
-            val sizeUpperBound = mkBvAddExpr(srcMapSize, dstMapSize)
+        val containsSetId = URefSetRegionId(mapType, sort.uctx.boolSort)
+        memory.refMapMerge(srcRef, dstRef, mapType, sort, containsSetId, guard = trueExpr)
+        memory.refSetUnion(srcRef, dstRef, mapType, guard = trueExpr)
 
-            calcOnState {
-                memory.write(UMapLengthLValue(dstRef, mapType), sizeUpperBound, guard = trueExpr)
-            }
-        }
+        // todo: precise map size approximation?
+        // val sizeLowerBound = mkIte(mkBvSignedGreaterExpr(srcMapSize, dstMapSize), srcMapSize, dstMapSize)
+        val sizeUpperBound = mkBvAddExpr(srcMapSize, dstMapSize)
+        memory.write(UMapLengthLValue(dstRef, mapType), sizeUpperBound, guard = trueExpr)
     }
 }
