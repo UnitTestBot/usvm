@@ -1,6 +1,5 @@
 package org.usvm.regions
 
-import org.junit.jupiter.api.RepeatedTest
 import org.junit.jupiter.api.Test
 import kotlin.random.Random
 import kotlin.test.assertEquals
@@ -33,32 +32,38 @@ class IntIntervalsRegionTest {
         assertEquals(listOf(1, 4, 5, 6, 7, 8, 9, 10), result)
     }
 
-    @RepeatedTest(50)
+    @Test
     fun testIntersection() {
-        val sequence = List(100) {
-            @Suppress("UNCHECKED_CAST")
-            Region<Region<*>>::intersect as (Region<*>, Region<*>) -> Region<*>
+        repeat(50) {
+            val sequence = List(100) {
+                @Suppress("UNCHECKED_CAST")
+                Region<Region<*>>::intersect as (Region<*>, Region<*>) -> Region<*>
+            }
+            testOnSequentialOperations(sequence)
         }
-        testOnSequentialOperations(sequence)
     }
 
-    @RepeatedTest(50)
+    @Test
     fun testSubtract() {
-        val sequence = List(100) {
-            @Suppress("UNCHECKED_CAST")
-            Region<Region<*>>::subtract as (Region<*>, Region<*>) -> Region<*>
+        repeat(50) {
+            val sequence = List(100) {
+                @Suppress("UNCHECKED_CAST")
+                Region<Region<*>>::subtract as (Region<*>, Region<*>) -> Region<*>
+            }
+            testOnSequentialOperations(sequence)
         }
-        testOnSequentialOperations(sequence)
     }
 
-    @RepeatedTest(50)
+    @Test
     fun testAll() {
-        val operations = listOf(Region<Region<*>>::intersect, Region<Region<*>>::subtract, Region<Region<*>>::union)
-        val sequence = List(100) {
-            @Suppress("UNCHECKED_CAST")
-            operations.random() as (Region<*>, Region<*>) -> Region<*>
+        repeat(50) {
+            val operations = listOf(Region<Region<*>>::intersect, Region<Region<*>>::subtract, Region<Region<*>>::union)
+            val sequence = List(100) {
+                @Suppress("UNCHECKED_CAST")
+                operations.random(random) as (Region<*>, Region<*>) -> Region<*>
+            }
+            testOnSequentialOperations(sequence)
         }
-        testOnSequentialOperations(sequence)
     }
 
 

@@ -1,5 +1,16 @@
 package org.usvm.regions
 
+/**
+ * Int intervals region.
+ *
+ * Internally stores both bounds of non-overlapping segments. Invariants:
+ *
+ * - [bounds]`.size % 2 == 0`
+ * - [bounds]`[2 * i]` corresponds to the left inclusive bound of the i-th segment
+ * - [bounds]`[2 * i + 1]` corresponds to the right exclusive bound of the i-th segment
+ * - [bounds]`[j]` < [bounds]`[j + 1]` for all 0 <= j < [bounds]`.size - 1`
+ * - [intMaxIncluded] indicates whether the [Int.MAX_VALUE] included or not
+ */
 class IntIntervalsRegion private constructor(
     private val bounds: IntArray,
     val intMaxIncluded: Boolean,
@@ -9,7 +20,7 @@ class IntIntervalsRegion private constructor(
 
     private inline fun combineWith(
         other: IntIntervalsRegion,
-        combination: (Int, Int, Int, Int) -> Boolean,
+        combination: (Boolean, Boolean, Boolean, Boolean) -> Boolean,
         onIntMax: (Boolean, Boolean) -> Boolean,
         resultIsInteresting: Boolean = true,
     ): IntIntervalsRegion {
@@ -41,7 +52,7 @@ class IntIntervalsRegion private constructor(
                 x = x2!!
             }
 
-            val shouldRemain = combination(wasC1, wasC2, c1, c2)
+            val shouldRemain = combination(wasC1 > 0, wasC2 > 0, c1 > 0, c2 > 0)
             if (resultIsInteresting && shouldRemain) {
                 result[size++] = x
             }
@@ -55,8 +66,8 @@ class IntIntervalsRegion private constructor(
         combineWith(
             other,
             combination = { wasC1, wasC2, c1, c2 ->
-                ((wasC1 == 0 || wasC2 > 0) && c1 > 0 && c2 == 0) || // like intersection, but inversed `c2` and `wasC2`
-                    (wasC1 > 0 && wasC2 == 0 && (c1 == 0 || c2 > 0)) // like intersection, but inversed `c2` and `wasC2`
+                ((!wasC1 || wasC2) && c1 && !c2) || // like intersection, but inversed `c2` and `wasC2`
+                    (wasC1 && !wasC2 && (!c1 || c2)) // like intersection, but inversed `c2` and `wasC2`
             },
             onIntMax = { b1, b2 -> b1 && !b2 }
         )
@@ -65,8 +76,8 @@ class IntIntervalsRegion private constructor(
         combineWith(
             other,
             combination = { wasC1, wasC2, c1, c2 ->
-                (wasC1 == 0 && wasC2 == 0 && (c1 > 0 || c2 > 0)) || // beginning of some segment
-                    (c1 == 0 && c2 == 0 && (wasC1 > 0 || wasC2 > 0)) // end of some segment
+                (!wasC1 && !wasC2 && (c1 || c2)) || // beginning of some segment
+                    (!c1 && !c2 && (wasC1 || wasC2)) // end of some segment
             },
             onIntMax = { b1, b2 -> b1 || b2 }
         )
@@ -75,8 +86,8 @@ class IntIntervalsRegion private constructor(
         combineWith(
             other,
             combination = { wasC1, wasC2, c1, c2 ->
-                ((wasC1 == 0 || wasC2 == 0) && c1 > 0 && c2 > 0) || // we entered both for the first time
-                    (wasC1 > 0 && wasC2 > 0 && (c1 == 0 || c2 == 0)) // we exit something for the first time
+                ((!wasC1 || !wasC2) && c1 && c2) || // we entered both for the first time
+                    (wasC1 && wasC2 && (!c1 || !c2)) // we exit something for the first time
             },
             onIntMax = { b1, b2 -> b1 && b2 }
         )
@@ -88,10 +99,10 @@ class IntIntervalsRegion private constructor(
         combineWith(
             other,
             combination = { _, _, c1, c2 ->
-                if (c1 == 0 && c2 > 0) {
+                if (!c1 && c2) {
                     includes = false
                 }
-                if (c1 > 0 && c2 > 0) {
+                if (c1 && c2) {
                     disjoint = false
                 }
                 false
