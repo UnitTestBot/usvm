@@ -26,13 +26,23 @@ Official instruction: https://devguide.python.org/getting-started/setup-building
 
 ### Unix
 
-Gradle tasks should do everything automatically.
+1. Install optional dependencies.
+    - Official instruction: https://devguide.python.org/getting-started/setup-building/#install-dependencies
+    - __Short version__. Install the following packages with apt:
+      ```
+      build-essential gdb lcov pkg-config \
+      libbz2-dev libffi-dev libgdbm-dev libgdbm-compat-dev liblzma-dev \
+      libncurses5-dev libreadline6-dev libsqlite3-dev libssl-dev \
+      lzma lzma-dev tk-dev uuid-dev zlib1g-dev
+      ```
 
-Tasks for running `src/test/kotlin/manualTest.kt` (name of task group --- `run`): 
+2. Use Gradle tasks to do the rest.
 
-- `:usvm-python:manualTestDebug`: run with debug logging and debug build of CPython
-- `:usvm-python:manualTestDebugNoLogs`: run with info logging and debug build of CPython
-- `:usvm-python:manualTestRelease`: run with info logging and release build of CPython
+    Tasks for running `src/test/kotlin/manualTest.kt` (name of task group --- `run`): 
+    
+    - `:usvm-python:manualTestDebug`: run with debug logging and debug build of CPython
+    - `:usvm-python:manualTestDebugNoLogs`: run with info logging and debug build of CPython
+    - `:usvm-python:manualTestRelease`: run with info logging and release build of CPython
 
 ## Addition of a method in CPythonAdapter
 
