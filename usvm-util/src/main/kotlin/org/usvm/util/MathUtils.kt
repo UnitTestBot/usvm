@@ -1,7 +1,8 @@
 package org.usvm.util
 
 /**
- * Unsigned integer logarithm base 2. Zero evaluates to zero.
+ * Unsigned integer logarithm base 2 (more effective version than floor(log2(n.toDouble()))).
+ * Zero evaluates to zero, UInt.MAX_VALUE evaluates to 32u.
  */
 fun log2(n: UInt): UInt {
     if (n == UInt.MAX_VALUE) {
@@ -12,11 +13,5 @@ fun log2(n: UInt): UInt {
         return 0u
     }
 
-    var ret = 0u
-    var m = n
-    while (m > 1u) {
-        m = m shr 1
-        ret++
-    }
-    return ret
+    return 31u - Integer.numberOfLeadingZeros(n.toInt()).toUInt()
 }

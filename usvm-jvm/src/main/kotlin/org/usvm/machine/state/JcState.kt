@@ -41,7 +41,7 @@ class JcState(
             models,
             pathLocation,
             methodResult,
-            targets.toList()
+            targetsImpl
         )
     }
 

@@ -1,6 +1,7 @@
 package org.usvm
 
 import io.ksmt.expr.KInterpretedValue
+import kotlinx.collections.immutable.toPersistentList
 import org.usvm.constraints.UPathConstraints
 import org.usvm.memory.UMemory
 import org.usvm.model.UModelBase
@@ -18,7 +19,7 @@ abstract class UState<Type, Method, Statement, Context : UContext, Target : UTar
     open val memory: UMemory<Type, Method>,
     open var models: List<UModelBase<Type>>,
     open var pathLocation: PathsTrieNode<State, Statement>,
-    targets: Collection<Target> = emptyList()
+    targets: List<Target> = emptyList()
 ) {
     /**
      * Deterministic state id.
@@ -75,14 +76,16 @@ abstract class UState<Type, Method, Statement, Context : UContext, Target : UTar
      */
     abstract val isExceptional: Boolean
 
-    private val currentTargets = targets.toMutableList()
+    protected var targetsImpl = targets.toPersistentList()
+        private set
+
     private val reachedSinksImpl = mutableSetOf<Target>()
 
     /**
      * Collection of state's current targets.
      * TODO: clean removed targets sometimes
      */
-    val targets: Collection<Target> get() = currentTargets.filterNot { it.isRemoved }
+    val targets: Sequence<Target> get() = targetsImpl.asSequence().filterNot { it.isRemoved }
 
     /**
      * Reached targets with no children.
@@ -96,15 +99,17 @@ abstract class UState<Type, Method, Statement, Context : UContext, Target : UTar
      * @return true if the [target] was successfully removed.
      */
     internal fun visitTarget(target: Target): Boolean {
-        if (currentTargets.remove(target) && !target.isRemoved) {
-            if (target.isSink) {
-                reachedSinksImpl.add(target)
-            } else {
-                currentTargets.addAll(target.children)
-            }
+        val previousTargetCount = targetsImpl.size
+        targetsImpl = targetsImpl.remove(target)
+        if (previousTargetCount == targetsImpl.size || !target.isRemoved) {
+            return false
+        }
+        if (target.isSink) {
+            reachedSinksImpl.add(target)
             return true
         }
-        return false
+        targetsImpl = targetsImpl.addAll(target.children)
+        return true
     }
 }
 

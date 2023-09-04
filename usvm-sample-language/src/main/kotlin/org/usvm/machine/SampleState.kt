@@ -46,7 +46,7 @@ class SampleState(
             pathLocation,
             returnRegister,
             exceptionRegister,
-            targets.toList()
+            targetsImpl
         )
     }
 
