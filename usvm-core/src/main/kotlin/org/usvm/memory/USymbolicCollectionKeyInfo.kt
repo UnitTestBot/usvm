@@ -2,6 +2,7 @@ package org.usvm.memory
 
 import org.usvm.UBoolExpr
 import org.usvm.UContext
+import org.usvm.UTransformer
 import org.usvm.regions.Region
 
 /**

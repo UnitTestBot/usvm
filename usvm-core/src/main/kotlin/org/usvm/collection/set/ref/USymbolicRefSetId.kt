@@ -20,9 +20,9 @@ import org.usvm.memory.UTreeUpdates
 import org.usvm.memory.UWritableMemory
 import org.usvm.memory.key.UHeapRefKeyInfo
 import org.usvm.memory.key.UHeapRefRegion
+import org.usvm.regions.Region
+import org.usvm.regions.emptyRegionTree
 import org.usvm.uctx
-import org.usvm.util.Region
-import org.usvm.util.emptyRegionTree
 import java.util.IdentityHashMap
 
 abstract class USymbolicRefSetId<SetType, Element, Reg : Region<Reg>,

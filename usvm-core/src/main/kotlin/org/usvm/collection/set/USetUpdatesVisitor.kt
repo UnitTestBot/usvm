@@ -8,7 +8,7 @@ import org.usvm.memory.UPinpointUpdateNode
 import org.usvm.memory.URangedUpdateNode
 import org.usvm.memory.USymbolicCollectionKeyInfo
 import org.usvm.memory.UUpdateNode
-import org.usvm.util.Region
+import org.usvm.regions.Region
 
 internal class USetUpdatesVisitor<Element, Reg : Region<Reg>>(
     private val baseRegion: Reg,

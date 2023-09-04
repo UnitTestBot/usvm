@@ -9,8 +9,8 @@ import org.usvm.UTransformer
 import org.usvm.memory.USymbolicCollectionKeyInfo
 import org.usvm.memory.key.UHeapRefKeyInfo
 import org.usvm.memory.key.UHeapRefRegion
-import org.usvm.util.ProductRegion
-import org.usvm.util.Region
+import org.usvm.regions.ProductRegion
+import org.usvm.regions.Region
 
 typealias USymbolicSetElement<ElementSort> = Pair<UHeapRef, UExpr<ElementSort>>
 typealias USymbolicSetElementRegion<ElementReg> = ProductRegion<UHeapRefRegion, ElementReg>

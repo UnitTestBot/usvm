@@ -18,8 +18,8 @@ import org.usvm.memory.USymbolicCollectionKeyInfo
 import org.usvm.memory.UTreeUpdates
 import org.usvm.memory.UWritableMemory
 import org.usvm.uctx
-import org.usvm.util.Region
-import org.usvm.util.emptyRegionTree
+import org.usvm.regions.Region
+import org.usvm.regions.emptyRegionTree
 import java.util.IdentityHashMap
 
 abstract class USymbolicSetId<SetType, ElementSort : USort, Element, ElementReg : Region<ElementReg>, Reg : Region<Reg>,

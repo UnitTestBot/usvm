@@ -22,7 +22,7 @@ import org.usvm.memory.UUpdateNode
 import org.usvm.memory.UWritableMemory
 import org.usvm.memory.key.UHeapRefKeyInfo
 import org.usvm.uctx
-import org.usvm.util.Region
+import org.usvm.regions.Region
 
 sealed class USymbolicMapMergeAdapter<MapType, SrcKey, DstKey, out SetId : USymbolicSetId<MapType, *, SrcKey, *, *, SetId>>(
     val setOfKeys: USymbolicCollection<SetId, SrcKey, UBoolSort>,

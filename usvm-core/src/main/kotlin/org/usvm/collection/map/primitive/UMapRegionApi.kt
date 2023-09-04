@@ -8,7 +8,7 @@ import org.usvm.collection.set.primitive.USetRegion
 import org.usvm.collection.set.primitive.USetRegionId
 import org.usvm.memory.USymbolicCollectionKeyInfo
 import org.usvm.memory.UWritableMemory
-import org.usvm.util.Region
+import org.usvm.regions.Region
 
 fun <MapType, KeySort : USort, ValueSort : USort, Reg : Region<Reg>> UWritableMemory<*>.mapMerge(
     srcRef: UHeapRef,

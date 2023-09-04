@@ -23,7 +23,7 @@ import org.usvm.solver.UExprTranslator
 import org.usvm.solver.URegionDecoder
 import org.usvm.solver.URegionTranslator
 import org.usvm.uctx
-import org.usvm.util.Region
+import org.usvm.regions.Region
 import java.util.IdentityHashMap
 
 class USetRegionDecoder<SetType, ElementSort : USort, Reg : Region<Reg>>(

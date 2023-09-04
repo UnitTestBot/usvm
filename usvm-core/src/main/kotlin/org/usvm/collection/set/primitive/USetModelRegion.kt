@@ -9,7 +9,7 @@ import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.model.AddressesMapping
 import org.usvm.model.modelEnsureConcreteInputRef
 import org.usvm.solver.UCollectionDecoder
-import org.usvm.util.Region
+import org.usvm.regions.Region
 
 abstract class USetModelRegion<SetType, ElementSort : USort, Reg : Region<Reg>>(
     private val regionId: USetRegionId<SetType, ElementSort, Reg>

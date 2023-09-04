@@ -18,7 +18,7 @@ import org.usvm.memory.UUpdateNode
 import org.usvm.memory.UWritableMemory
 import org.usvm.memory.key.UHeapRefKeyInfo
 import org.usvm.uctx
-import org.usvm.util.Region
+import org.usvm.regions.Region
 
 sealed class USymbolicSetUnionAdapter<
     SetType, SrcKey, DstKey,

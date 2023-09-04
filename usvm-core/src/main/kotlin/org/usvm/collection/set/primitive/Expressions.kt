@@ -15,7 +15,7 @@ import org.usvm.USort
 import org.usvm.UTransformer
 import org.usvm.asTypedTransformer
 import org.usvm.collection.set.USymbolicSetElement
-import org.usvm.util.Region
+import org.usvm.regions.Region
 
 class UAllocatedSetReading<SetType, ElementSort : USort, Reg : Region<Reg>> internal constructor(
     ctx: UContext,
