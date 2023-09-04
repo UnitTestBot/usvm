@@ -26,7 +26,7 @@ fun <Type> buildTranslatorAndLazyDecoder(
     ctx: UContext,
 ): Pair<UExprTranslator<Type>, ULazyModelDecoder<Type>> {
     val translator = UExprTranslator<Type>(ctx)
-    val decoder = ULazyModelDecoder<Type>(translator)
+    val decoder = ULazyModelDecoder(translator)
 
     return translator to decoder
 }

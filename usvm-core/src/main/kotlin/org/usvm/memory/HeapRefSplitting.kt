@@ -80,8 +80,8 @@ internal inline fun <R> foldHeapRef(
     initial: R,
     initialGuard: UBoolExpr,
     ignoreNullRefs: Boolean = true,
-    crossinline blockOnConcrete: (R, GuardedExpr<UConcreteHeapRef>) -> R,
-    crossinline blockOnSymbolic: (R, GuardedExpr<UHeapRef>) -> R,
+    blockOnConcrete: (R, GuardedExpr<UConcreteHeapRef>) -> R,
+    blockOnSymbolic: (R, GuardedExpr<UHeapRef>) -> R,
 ): R {
     if (initialGuard.isFalse) {
         return initial
@@ -124,8 +124,8 @@ private const val DONE = 2
  * [UNullRef], throws an [IllegalArgumentException].
  */
 internal inline fun <Sort : USort> UHeapRef.map(
-    crossinline concreteMapper: (UConcreteHeapRef) -> UExpr<Sort>,
-    crossinline symbolicMapper: (USymbolicHeapRef) -> UExpr<Sort>,
+    concreteMapper: (UConcreteHeapRef) -> UExpr<Sort>,
+    symbolicMapper: (USymbolicHeapRef) -> UExpr<Sort>,
     ignoreNullRefs: Boolean = true,
 ): UExpr<Sort> = when (this) {
     is UConcreteHeapRef -> concreteMapper(this)
@@ -207,7 +207,7 @@ internal inline fun filter(
     ref: UHeapRef,
     initialGuard: UBoolExpr,
     ignoreNullRefs: Boolean,
-    crossinline predicate: (GuardedExpr<UHeapRef>) -> Boolean,
+    predicate: (GuardedExpr<UHeapRef>) -> Boolean,
 ): GuardedExpr<UHeapRef>? = with(ref.ctx) {
     when (ref) {
         is UIteExpr<UAddressSort> -> {
