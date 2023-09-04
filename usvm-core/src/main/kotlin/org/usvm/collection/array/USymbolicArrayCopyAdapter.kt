@@ -14,7 +14,7 @@ import org.usvm.memory.USymbolicCollectionKeyInfo
 import org.usvm.memory.UUpdateNode
 import org.usvm.memory.UWritableMemory
 import org.usvm.uctx
-import org.usvm.util.Region
+import org.usvm.regions.Region
 
 /**
  * Composable converter of symbolic collection keys. Helps to transparently copy content of various collections

@@ -2,7 +2,7 @@ package org.usvm.statistics
 
 import kotlinx.collections.immutable.ImmutableMap
 import kotlinx.collections.immutable.toImmutableMap
-import org.usvm.util.findMinDistancesInUnweightedGraph
+import org.usvm.algorithms.findMinDistancesInUnweightedGraph
 import java.util.concurrent.ConcurrentHashMap
 
 /**

@@ -1,4 +1,4 @@
-package org.usvm.util
+package org.usvm.algorithms
 
 /**
  * Interface of a [T] elements collection prioritized with [Priority].

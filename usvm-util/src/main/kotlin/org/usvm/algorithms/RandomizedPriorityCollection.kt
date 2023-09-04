@@ -1,4 +1,4 @@
-package org.usvm.util
+package org.usvm.algorithms
 
 /**
  * [UPriorityCollection] implementation which peeks elements randomly with distribution based on priority.
@@ -11,7 +11,8 @@ package org.usvm.util
  * @param comparator comparator for elements to arrange them in tree. It doesn't affect the priorities.
  * @param unitIntervalRandom function returning a random value in [[0..1]] interval which is used to peek the element.
  */
-class RandomizedPriorityCollection<T>(comparator: Comparator<T>, private val unitIntervalRandom: () -> Double) : UPriorityCollection<T, Double> {
+class RandomizedPriorityCollection<T>(comparator: Comparator<T>, private val unitIntervalRandom: () -> Double) :
+    UPriorityCollection<T, Double> {
 
     private val tree = WeightedAaTree(comparator)
 

@@ -6,7 +6,7 @@ import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.memory.USymbolicCollectionKeyInfo
 import org.usvm.memory.UWritableMemory
-import org.usvm.util.Region
+import org.usvm.regions.Region
 
 internal fun <SetType, KeySort : USort, Reg : Region<Reg>> UWritableMemory<*>.setUnion(
     srcRef: UHeapRef,

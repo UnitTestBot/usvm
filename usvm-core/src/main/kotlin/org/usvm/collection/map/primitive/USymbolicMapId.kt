@@ -23,8 +23,8 @@ import org.usvm.memory.UTreeUpdates
 import org.usvm.memory.UWritableMemory
 import org.usvm.sampleUValue
 import org.usvm.uctx
-import org.usvm.util.Region
-import org.usvm.util.emptyRegionTree
+import org.usvm.regions.Region
+import org.usvm.regions.emptyRegionTree
 
 interface USymbolicMapId<
         MapType,

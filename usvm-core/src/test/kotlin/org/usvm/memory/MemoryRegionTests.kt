@@ -13,8 +13,8 @@ import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.UHeapRef
 import org.usvm.collection.array.UAllocatedArrayId
-import org.usvm.util.SetRegion
-import org.usvm.util.emptyRegionTree
+import org.usvm.regions.SetRegion
+import org.usvm.regions.emptyRegionTree
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 

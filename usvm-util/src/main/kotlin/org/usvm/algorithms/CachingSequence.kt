@@ -1,4 +1,4 @@
-package org.usvm.util
+package org.usvm.algorithms
 
 /**
  * A caching sequence for an [iterator]. Can be iterated multiple times, since every value obtained from the iterator

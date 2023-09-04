@@ -14,7 +14,7 @@ import org.usvm.memory.USymbolicCollectionAdapter
 import org.usvm.memory.USymbolicCollectionId
 import org.usvm.memory.UUpdateNode
 import org.usvm.memory.UWritableMemory
-import org.usvm.util.Region
+import org.usvm.regions.Region
 
 
 abstract class USymbolicMapMergeAdapter<SrcKey, DstKey>(

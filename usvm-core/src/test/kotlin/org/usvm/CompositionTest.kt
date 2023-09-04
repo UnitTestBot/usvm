@@ -40,7 +40,7 @@ import org.usvm.memory.UUpdateNode
 import org.usvm.memory.UWritableMemory
 import org.usvm.model.UModelBase
 import org.usvm.model.URegistersStackEagerModel
-import org.usvm.util.SetRegion
+import org.usvm.regions.SetRegion
 import kotlin.reflect.KClass
 import kotlin.test.assertEquals
 import kotlin.test.assertIs

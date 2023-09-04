@@ -12,7 +12,7 @@ import org.usvm.collection.map.primitive.UInputMapReading
 import org.usvm.collection.map.ref.UAllocatedRefMapWithInputKeysReading
 import org.usvm.collection.map.ref.UInputRefMapWithAllocatedKeysReading
 import org.usvm.collection.map.ref.UInputRefMapWithInputKeysReading
-import org.usvm.util.Region
+import org.usvm.regions.Region
 
 interface UTransformer<Type> : KTransformer {
     fun <Sort : USort> transform(expr: USymbol<Sort>): UExpr<Sort>

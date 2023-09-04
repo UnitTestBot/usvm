@@ -52,7 +52,7 @@ import org.usvm.collection.map.ref.URefMapRegionDecoder
 import org.usvm.collection.map.ref.URefMapRegionId
 import org.usvm.collection.map.ref.USymbolicRefMapId
 import org.usvm.memory.UMemoryRegionId
-import org.usvm.util.Region
+import org.usvm.regions.Region
 import java.util.concurrent.ConcurrentHashMap
 
 /**

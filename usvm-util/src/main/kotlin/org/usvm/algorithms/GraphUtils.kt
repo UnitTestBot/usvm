@@ -1,4 +1,4 @@
-package org.usvm.util
+package org.usvm.algorithms
 
 import java.util.*
 
