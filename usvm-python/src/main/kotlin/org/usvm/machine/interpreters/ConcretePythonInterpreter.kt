@@ -203,7 +203,8 @@ object ConcretePythonInterpreter {
     val pyGE: Int
 
     init {
-        pythonAdapter.initializePython()
+        val pythonHome = System.getenv("PYTHONHOME") ?: error("Variable PYTHONHOME not set")
+        pythonAdapter.initializePython(pythonHome)
         pyEQ = pythonAdapter.pyEQ
         pyNE = pythonAdapter.pyNE
         pyLT = pythonAdapter.pyLT

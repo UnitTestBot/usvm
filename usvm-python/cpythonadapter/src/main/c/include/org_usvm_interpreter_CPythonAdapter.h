@@ -10,10 +10,10 @@ extern "C" {
 /*
  * Class:     org_usvm_interpreter_CPythonAdapter
  * Method:    initializePython
- * Signature: ()V
+ * Signature: (Ljava/lang/String;)V
  */
 JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_initializePython
-  (JNIEnv *, jobject);
+  (JNIEnv *, jobject, jstring);
 
 /*
  * Class:     org_usvm_interpreter_CPythonAdapter
