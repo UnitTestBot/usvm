@@ -82,12 +82,13 @@ class UAllocatedRefSetWithInputElementsId<SetType>(
         collection: USymbolicCollection<UAllocatedRefSetWithInputElementsId<SetType>, UHeapRef, UBoolSort>,
         keyInfo: USymbolicCollectionKeyInfo<UHeapRef, R>
     ): R {
+        val regionBuilder = USetUpdatesVisitor(
+            baseRegion = keyInfo.bottomRegion(),
+            keyInfo = keyInfo,
+            topRegion = keyInfo.topRegion()
+        )
         return collection.updates.accept(
-            USetUpdatesVisitor(
-                baseRegion = keyInfo.bottomRegion(),
-                keyInfo = keyInfo,
-                topRegion = keyInfo.topRegion()
-            ),
+            regionBuilder,
             regionCache.uncheckedCast()
         )
     }
@@ -155,12 +156,13 @@ class UInputRefSetWithAllocatedElementsId<SetType>(
         collection: USymbolicCollection<UInputRefSetWithAllocatedElementsId<SetType>, UHeapRef, UBoolSort>,
         keyInfo: USymbolicCollectionKeyInfo<UHeapRef, R>
     ): R {
+        val regionBuilder = USetUpdatesVisitor(
+            baseRegion = keyInfo.bottomRegion(),
+            keyInfo = keyInfo,
+            topRegion = keyInfo.topRegion()
+        )
         return collection.updates.accept(
-            USetUpdatesVisitor(
-                baseRegion = keyInfo.bottomRegion(),
-                keyInfo = keyInfo,
-                topRegion = keyInfo.topRegion()
-            ),
+            regionBuilder,
             regionCache.uncheckedCast()
         )
     }

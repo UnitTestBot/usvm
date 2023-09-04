@@ -7,7 +7,7 @@ import org.usvm.collection.set.ref.URefSetRegion
 import org.usvm.collection.set.ref.URefSetRegionId
 import org.usvm.memory.UWritableMemory
 
-fun <MapType, ValueSort : USort> UWritableMemory<*>.refMapMerge(
+internal fun <MapType, ValueSort : USort> UWritableMemory<*>.refMapMerge(
     srcRef: UHeapRef,
     dstRef: UHeapRef,
     mapType: MapType,

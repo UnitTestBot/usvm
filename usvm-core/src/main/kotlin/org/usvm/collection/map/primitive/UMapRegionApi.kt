@@ -10,7 +10,7 @@ import org.usvm.memory.USymbolicCollectionKeyInfo
 import org.usvm.memory.UWritableMemory
 import org.usvm.regions.Region
 
-fun <MapType, KeySort : USort, ValueSort : USort, Reg : Region<Reg>> UWritableMemory<*>.mapMerge(
+internal fun <MapType, KeySort : USort, ValueSort : USort, Reg : Region<Reg>> UWritableMemory<*>.mapMerge(
     srcRef: UHeapRef,
     dstRef: UHeapRef,
     mapType: MapType,

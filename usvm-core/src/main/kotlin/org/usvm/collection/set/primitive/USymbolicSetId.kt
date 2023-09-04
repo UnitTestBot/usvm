@@ -89,12 +89,13 @@ class UAllocatedSetId<SetType, ElementSort : USort, Reg : Region<Reg>>(
         collection: USymbolicCollection<UAllocatedSetId<SetType, ElementSort, *>, UExpr<ElementSort>, UBoolSort>,
         keyInfo: USymbolicCollectionKeyInfo<UExpr<ElementSort>, R>,
     ): R {
+        val regionBuilder = USetUpdatesVisitor(
+            baseRegion = keyInfo.bottomRegion(),
+            keyInfo = keyInfo,
+            topRegion = keyInfo.topRegion()
+        )
         return collection.updates.accept(
-            USetUpdatesVisitor(
-                baseRegion = keyInfo.bottomRegion(),
-                keyInfo = keyInfo,
-                topRegion = keyInfo.topRegion()
-            ),
+            regionBuilder,
             regionCache.uncheckedCast()
         )
     }
