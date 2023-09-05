@@ -15,6 +15,7 @@ data class NextInstruction(
 data class PythonFunctionCall(val code: PythonObject): SymbolicHandlerEventParameters<Unit>()
 data class PythonReturn(val code: PythonObject): SymbolicHandlerEventParameters<Unit>()
 data class Fork(val condition: SymbolForCPython): SymbolicHandlerEventParameters<Unit>()
+data class Unpack(val iterable: SymbolForCPython, val count: Int): SymbolicHandlerEventParameters<Unit>()
 data class ListCreation(val elements: List<SymbolForCPython>): SymbolicHandlerEventParameters<SymbolForCPython>()
 data class TupleCreation(val elements: List<SymbolForCPython>): SymbolicHandlerEventParameters<SymbolForCPython>()
 data class RangeCreation(val start: SymbolForCPython, val stop: SymbolForCPython, val step: SymbolForCPython): SymbolicHandlerEventParameters<SymbolForCPython>()

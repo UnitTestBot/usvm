@@ -12,14 +12,14 @@ import org.usvm.language.types.*
 import org.usvm.machine.symbolicobjects.PreallocatedObjects
 import org.usvm.machine.types.prioritization.SymbolTypeTree
 import org.usvm.machine.types.prioritization.prioritizeTypes
-import org.usvm.machine.utils.PyModel
+import org.usvm.machine.utils.PyModelWrapper
 import org.usvm.memory.UMemory
 import org.usvm.model.UModelBase
 import org.usvm.types.UTypeStream
 import org.usvm.utils.MAX_CONCRETE_TYPES_TO_CONSIDER
 
 class PythonExecutionState(
-    private val ctx: UPythonContext,
+    val ctx: UPythonContext,
     private val pythonCallable: PythonUnpinnedCallable,
     val inputSymbols: List<SymbolForCPython>,
     pathConstraints: UPathConstraints<PythonType, UPythonContext>,
@@ -56,8 +56,8 @@ class PythonExecutionState(
     }
     override val isExceptional: Boolean = false  // TODO
     val meta = PythonExecutionStateMeta()
-    val pyModel: PyModel
-        get() = PyModel(models.first())
+    val pyModel: PyModelWrapper
+        get() = PyModelWrapper(models.first())
 
     fun buildPathAsList(): List<SymbolicHandlerEvent<Any>> =
         reversedPath.asSequence().toList().reversed()

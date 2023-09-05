@@ -151,6 +151,14 @@ object ConcretePythonInterpreter {
         return PythonObject(pythonAdapter.makeList(elements.map { it.address }.toLongArray()))
     }
 
+    fun allocateTuple(size: Int): PythonObject {
+        return PythonObject(pythonAdapter.allocateTuple(size))
+    }
+
+    fun setTupleElement(tuple: PythonObject, index: Int, elem: PythonObject) {
+        pythonAdapter.setTupleElement(tuple.address, index, elem.address)
+    }
+
     fun getIterableElements(iterable: PythonObject): List<PythonObject> {
         val addresses = pythonAdapter.getIterableElements(iterable.address)
         return addresses.map { PythonObject(it) }

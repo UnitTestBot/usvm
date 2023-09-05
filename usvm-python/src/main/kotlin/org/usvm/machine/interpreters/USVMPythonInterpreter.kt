@@ -11,9 +11,9 @@ import org.usvm.language.PythonUnpinnedCallable
 import org.usvm.language.SymbolForCPython
 import org.usvm.language.types.PythonTypeSystem
 import org.usvm.machine.*
-import org.usvm.machine.interpreters.operations.myAssertOnState
 import org.usvm.machine.interpreters.operations.tracing.CancelledExecutionException
 import org.usvm.machine.interpreters.operations.tracing.InstructionLimitExceededException
+import org.usvm.machine.model.PyModel
 import org.usvm.machine.utils.PyModelHolder
 import org.usvm.machine.utils.PythonMachineStatisticsOnFunction
 import org.usvm.utils.PythonObjectSerializer
@@ -78,6 +78,9 @@ class USVMPythonInterpreter<PythonObjectRepresentation>(
         try {
             logger.debug("Step on state: {}", state)
             logger.debug("Source of the state: {}", state.meta.generatedFrom)
+            require(state.pyModel.uModel is PyModel) {
+                "Did not call .toPyModel on model from solver"
+            }
             val validator = ObjectValidator(concolicRunContext)
             val symbols = state.inputSymbols
             symbols.forEach { validator.check(it.obj) }

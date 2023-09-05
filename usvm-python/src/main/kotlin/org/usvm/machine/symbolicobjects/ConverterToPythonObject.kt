@@ -19,12 +19,11 @@ class ConverterToPythonObject(
     private val typeSystem: PythonTypeSystem,
     val modelHolder: PyModelHolder
 ) {
-    private val arrayType = ArrayType(typeSystem)
     private val defaultValueProvider = DefaultValueProvider(typeSystem)
     val forcedConcreteTypes = mutableMapOf<UHeapRef, PythonType>()
     private val constructedObjects = mutableMapOf<UHeapRef, PythonObject>()
     private val virtualObjects = mutableSetOf<Pair<VirtualPythonObject, PythonObject>>()
-    private var numberOfGeneratedVirtualObjects: Int = 0
+    private var numberOfUsagesOfVirtualObjects: Int = 0
     init {
         restart()
     }
@@ -34,11 +33,11 @@ class ConverterToPythonObject(
         val nullRef = modelHolder.model.eval(ctx.nullRef) as UConcreteHeapRef
         val defaultObject = constructVirtualObject(InterpretedInputSymbolicPythonObject(nullRef, modelHolder, typeSystem))
         constructedObjects[ctx.nullRef] = defaultObject
-        numberOfGeneratedVirtualObjects = 0
+        numberOfUsagesOfVirtualObjects = 0
     }
     fun getPythonVirtualObjects(): Collection<PythonObject> = virtualObjects.map { it.second }
     fun getUSVMVirtualObjects(): Set<VirtualPythonObject> = virtualObjects.map { it.first }.toSet()
-    fun numberOfVirtualObjectUsages(): Int = numberOfGeneratedVirtualObjects
+    fun numberOfVirtualObjectUsages(): Int = numberOfUsagesOfVirtualObjects
 
     fun convert(obj: InterpretedInputSymbolicPythonObject): PythonObject {
         require(obj.modelHolder == modelHolder)
@@ -51,6 +50,7 @@ class ConverterToPythonObject(
             typeSystem.pythonBool -> convertBool(obj)
             typeSystem.pythonNoneType -> ConcretePythonInterpreter.eval(emptyNamespace, "None")
             typeSystem.pythonList -> convertList(obj)
+            typeSystem.pythonTuple -> convertTuple(obj)
             else -> {
                 if ((type as? ConcretePythonType)?.let { ConcretePythonInterpreter.typeHasStandardNew(it.asObject) } == true)
                     constructFromDefaultConstructor(type)
@@ -60,6 +60,25 @@ class ConverterToPythonObject(
         }
         constructedObjects[obj.address] = result
         return result
+    }
+
+    private fun constructArrayContents(
+        obj: InterpretedInputSymbolicPythonObject,
+    ): List<PythonObject> {
+        val size = obj.modelHolder.model.uModel.readArrayLength(obj.address, ArrayType) as KInt32NumExpr
+        return List(size.value) { index ->
+            val indexExpr = ctx.mkSizeExpr(index)
+            val element = obj.modelHolder.model.uModel.readArrayIndex(
+                obj.address,
+                indexExpr,
+                ArrayType,
+                ctx.addressSort
+            ) as UConcreteHeapRef
+            if (element.address == 0 && forcedConcreteTypes[element] == null)
+                numberOfUsagesOfVirtualObjects += 1
+            val elemInterpretedObject = InterpretedInputSymbolicPythonObject(element, obj.modelHolder, typeSystem)
+            convert(elemInterpretedObject)
+        }
     }
 
     private fun constructFromDefaultConstructor(type: ConcretePythonType): PythonObject {
@@ -72,7 +91,7 @@ class ConverterToPythonObject(
         if (default != null)
             return default
 
-        numberOfGeneratedVirtualObjects += 1
+        numberOfUsagesOfVirtualObjects += 1
         val virtual = VirtualPythonObject(obj)
         val result = ConcretePythonInterpreter.allocateVirtualObject(virtual)
         virtualObjects.add(virtual to result)
@@ -90,15 +109,9 @@ class ConverterToPythonObject(
         }
 
     private fun convertList(obj: InterpretedInputSymbolicPythonObject): PythonObject = with(ctx) {
-        val size = obj.modelHolder.model.uModel.readArrayLength(obj.address, arrayType) as KInt32NumExpr
         val resultList = ConcretePythonInterpreter.makeList(emptyList())
         constructedObjects[obj.address] = resultList
-        val listOfPythonObjects = List(size.value) { index ->
-            val indexExpr = mkSizeExpr(index)
-            val element = obj.modelHolder.model.uModel.readArrayIndex(obj.address, indexExpr, arrayType, addressSort) as UConcreteHeapRef
-            val elemInterpretedObject = InterpretedInputSymbolicPythonObject(element, obj.modelHolder, typeSystem)
-            convert(elemInterpretedObject)
-        }
+        val listOfPythonObjects = constructArrayContents(obj)
         val namespace = ConcretePythonInterpreter.getNewNamespace()
         ConcretePythonInterpreter.addObjectToNamespace(namespace, resultList, "x")
         listOfPythonObjects.forEach {
@@ -107,5 +120,16 @@ class ConverterToPythonObject(
         }
         ConcretePythonInterpreter.decref(namespace)
         return resultList
+    }
+
+    private fun convertTuple(obj: InterpretedInputSymbolicPythonObject): PythonObject = with(ctx) {
+        val size = obj.modelHolder.model.uModel.readArrayLength(obj.address, ArrayType) as KInt32NumExpr
+        val resultTuple = ConcretePythonInterpreter.allocateTuple(size.value)
+        constructedObjects[obj.address] = resultTuple
+        val listOfPythonObjects = constructArrayContents(obj)
+        listOfPythonObjects.forEachIndexed { index, pythonObject ->
+            ConcretePythonInterpreter.setTupleElement(resultTuple, index, pythonObject)
+        }
+        resultTuple
     }
 }

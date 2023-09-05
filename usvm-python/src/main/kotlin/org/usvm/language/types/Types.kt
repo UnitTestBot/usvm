@@ -10,9 +10,10 @@ abstract class VirtualPythonType: PythonType() {
     abstract fun accepts(type: PythonType): Boolean
 }
 
-class ConcretePythonType internal constructor(
+sealed class ConcretePythonType(
     val owner: PythonTypeSystem,
     val typeName: String,
+    val isHidden: Boolean = false,
     val addressGetter: () -> PythonObject
 ): PythonType() {
     val asObject: PythonObject
@@ -22,3 +23,17 @@ class ConcretePythonType internal constructor(
         return "ConcretePythonType(\"$typeName\")"
     }
 }
+
+class PrimitiveConcretePythonType(
+    owner: PythonTypeSystem,
+    typeName: String,
+    isHidden: Boolean = false,
+    addressGetter: () -> PythonObject
+): ConcretePythonType(owner, typeName, isHidden, addressGetter)
+
+class ArrayLikeConcretePythonType(
+    val elementConstraints: Set<ElementConstraint>,
+    owner: PythonTypeSystem,
+    typeName: String,
+    addressGetter: () -> PythonObject
+): ConcretePythonType(owner, typeName, false, addressGetter)
