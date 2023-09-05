@@ -4,7 +4,7 @@ import org.usvm.constraints.UPathConstraints
 import org.usvm.memory.UMemory
 import org.usvm.memory.USymbolicCollectionKeyInfo
 import org.usvm.model.UModelBase
-import org.usvm.util.Region
+import org.usvm.regions.Region
 
 typealias Field = java.lang.reflect.Field
 typealias Type = kotlin.reflect.KClass<*>
@@ -38,8 +38,8 @@ internal class TestState(
 }
 
 interface TestKeyInfo<T, Reg : Region<Reg>> : USymbolicCollectionKeyInfo<T, Reg> {
-    override fun mapKey(key: T, composer: UComposer<*>?): T {
-        if (composer == null) return key
+    override fun mapKey(key: T, transformer: UTransformer<*>?): T {
+        if (transformer == null) return key
         return shouldNotBeCalled()
     }
 

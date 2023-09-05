@@ -1,7 +1,7 @@
 package org.usvm.statistics
 
 import org.usvm.UState
-import org.usvm.util.bfsTraversal
+import org.usvm.algorithms.bfsTraversal
 import java.util.concurrent.ConcurrentHashMap
 
 /**

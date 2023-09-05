@@ -7,15 +7,17 @@ import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.collection.map.USymbolicMapKey
+import org.usvm.collection.set.primitive.USetRegion
 import org.usvm.memory.ULValue
 import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UMemoryRegionId
 import org.usvm.memory.USymbolicCollection
 import org.usvm.memory.USymbolicCollectionKeyInfo
 import org.usvm.memory.foldHeapRef
+import org.usvm.memory.foldHeapRef2
 import org.usvm.memory.map
+import org.usvm.regions.Region
 import org.usvm.uctx
-import org.usvm.util.Region
 
 data class UMapEntryLValue<MapType, KeySort : USort, ValueSort : USort, Reg : Region<Reg>>(
     val keySort: KeySort,
@@ -50,7 +52,15 @@ typealias UInputMap<MapType, KeySort, ValueSort, Reg> =
         USymbolicCollection<UInputMapId<MapType, KeySort, ValueSort, Reg>, USymbolicMapKey<KeySort>, ValueSort>
 
 interface UMapRegion<MapType, KeySort : USort, ValueSort : USort, Reg : Region<Reg>>
-    : UMemoryRegion<UMapEntryLValue<MapType, KeySort, ValueSort, Reg>, ValueSort>
+    : UMemoryRegion<UMapEntryLValue<MapType, KeySort, ValueSort, Reg>, ValueSort> {
+    fun merge(
+        srcRef: UHeapRef,
+        dstRef: UHeapRef,
+        mapType: MapType,
+        srcKeySet: USetRegion<MapType, KeySort, *>,
+        initialGuard: UBoolExpr
+    ): UMapRegion<MapType, KeySort, ValueSort, Reg>
+}
 
 internal class UMapMemoryRegion<MapType, KeySort : USort, ValueSort : USort, Reg : Region<Reg>>(
     private val keySort: KeySort,
@@ -121,16 +131,10 @@ internal class UMapMemoryRegion<MapType, KeySort : USort, ValueSort : USort, Reg
         key: UMapEntryLValue<MapType, KeySort, ValueSort, Reg>,
         value: UExpr<ValueSort>,
         guard: UBoolExpr
-    ) = writeNonRefKeyMap(key, value, guard)
-
-    private fun writeNonRefKeyMap(
-        key: UMapEntryLValue<MapType, KeySort, ValueSort, Reg>,
-        value: UExpr<ValueSort>,
-        initialGuard: UBoolExpr
     ) = foldHeapRef(
         ref = key.mapRef,
         initial = this,
-        initialGuard = initialGuard,
+        initialGuard = guard,
         blockOnConcrete = { region, (concreteRef, guard) ->
             val id = UAllocatedMapId(keySort, valueSort, mapType, keyInfo, concreteRef.address)
             val map = region.getAllocatedMap(id)
@@ -142,5 +146,61 @@ internal class UMapMemoryRegion<MapType, KeySort : USort, ValueSort : USort, Reg
             val newMap = map.write(symbolicRef to key.mapKey, value, guard)
             region.updateInputMap(newMap)
         }
+    )
+
+    override fun merge(
+        srcRef: UHeapRef,
+        dstRef: UHeapRef,
+        mapType: MapType,
+        srcKeySet: USetRegion<MapType, KeySort, *>,
+        initialGuard: UBoolExpr
+    ) = foldHeapRef2(
+        ref0 = srcRef,
+        ref1 = dstRef,
+        initial = this,
+        initialGuard = initialGuard,
+        blockOnConcrete0Concrete1 = { region, srcConcrete, dstConcrete, guard ->
+            val srcId = UAllocatedMapId(keySort, valueSort, mapType, keyInfo, srcConcrete.address)
+            val srcCollection = region.getAllocatedMap(srcId)
+            val srcKeys = srcKeySet.allocatedSetElements(srcConcrete.address)
+
+            val dstId = UAllocatedMapId(keySort, valueSort, mapType, keyInfo, dstConcrete.address)
+            val dstCollection = region.getAllocatedMap(dstId)
+
+            val adapter = UAllocatedToAllocatedSymbolicMapMergeAdapter(srcKeys)
+            val newDstCollection = dstCollection.copyRange(srcCollection, adapter, guard)
+            region.updateAllocatedMap(dstId, newDstCollection)
+        },
+        blockOnConcrete0Symbolic1 = { region, srcConcrete, dstSymbolic, guard ->
+            val srcId = UAllocatedMapId(keySort, valueSort, mapType, keyInfo, srcConcrete.address)
+            val srcCollection = region.getAllocatedMap(srcId)
+            val srcKeys = srcKeySet.allocatedSetElements(srcConcrete.address)
+
+            val dstCollection = getInputMap()
+            val adapter = UAllocatedToInputSymbolicMapMergeAdapter(dstSymbolic, srcKeys)
+            val newDstCollection = dstCollection.copyRange(srcCollection, adapter, guard)
+            region.updateInputMap(newDstCollection)
+        },
+        blockOnSymbolic0Concrete1 = { region, srcSymbolic, dstConcrete, guard ->
+            val srcCollection = region.getInputMap()
+            val srcKeys = srcKeySet.inputSetElements()
+
+            val dstId = UAllocatedMapId(keySort, valueSort, mapType, keyInfo, dstConcrete.address)
+            val dstCollection = region.getAllocatedMap(dstId)
+
+            val adapter = UInputToAllocatedSymbolicMapMergeAdapter(srcSymbolic, srcKeys)
+            val newDstCollection = dstCollection.copyRange(srcCollection, adapter, guard)
+            region.updateAllocatedMap(dstId, newDstCollection)
+        },
+        blockOnSymbolic0Symbolic1 = { region, srcSymbolic, dstSymbolic, guard ->
+            val srcCollection = region.getInputMap()
+            val srcKeys = srcKeySet.inputSetElements()
+
+            val dstCollection = getInputMap()
+
+            val adapter = UInputToInputSymbolicMapMergeAdapter(srcSymbolic, dstSymbolic, srcKeys)
+            val newDstCollection = dstCollection.copyRange(srcCollection, adapter, guard)
+            region.updateInputMap(newDstCollection)
+        },
     )
 }

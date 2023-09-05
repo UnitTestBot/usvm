@@ -2,7 +2,7 @@ package org.usvm.memory
 
 import org.usvm.UBoolExpr
 import org.usvm.UComposer
-import org.usvm.util.Region
+import org.usvm.regions.Region
 
 /**
  * Redirects reads from one collection into another. Used in [URangedUpdateNode].
@@ -14,9 +14,9 @@ interface USymbolicCollectionAdapter<SrcKey, DstKey> {
     fun convert(key: DstKey, composer: UComposer<*>?): SrcKey
 
     /**
-     * Returns region covered by the adapted collection.
+     * @return region in the destination collection covered by the adapted collection.
      */
-    fun <Reg : Region<Reg>> region(): Reg
+    fun <DstReg : Region<DstReg>> region(): DstReg
 
     fun includesConcretely(key: DstKey): Boolean
 

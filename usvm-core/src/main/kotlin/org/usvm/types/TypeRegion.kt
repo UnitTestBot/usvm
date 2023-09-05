@@ -2,8 +2,7 @@ package org.usvm.types
 
 import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.persistentSetOf
-import org.usvm.util.Region
-import org.usvm.util.RegionComparisonResult
+import org.usvm.regions.Region
 
 /**
  * Class representing possible types which certain objects can have.
@@ -219,16 +218,16 @@ class UTypeRegion<Type>(
         return other.subtypes.fold(bannedSupertypes) { acc, t -> acc.excludeSubtype(t) }
     }
 
-    override fun compare(other: UTypeRegion<Type>): RegionComparisonResult {
+    override fun compare(other: UTypeRegion<Type>): Region.ComparisonResult {
         if (intersect(other).isEmpty) {
-            return RegionComparisonResult.DISJOINT
+            return Region.ComparisonResult.DISJOINT
         }
 
         if (other.subtract(this).isEmpty) {
-            return RegionComparisonResult.INCLUDES
+            return Region.ComparisonResult.INCLUDES
         }
 
-        return RegionComparisonResult.INTERSECTS
+        return Region.ComparisonResult.INTERSECTS
     }
 
     private fun checkSingleTypeRegion(type: Type): UTypeRegion<Type> {

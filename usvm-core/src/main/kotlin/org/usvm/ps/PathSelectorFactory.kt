@@ -7,8 +7,8 @@ import org.usvm.UPathSelector
 import org.usvm.UState
 import org.usvm.statistics.CoverageStatistics
 import org.usvm.statistics.DistanceStatistics
-import org.usvm.util.DeterministicPriorityCollection
-import org.usvm.util.RandomizedPriorityCollection
+import org.usvm.algorithms.DeterministicPriorityCollection
+import org.usvm.algorithms.RandomizedPriorityCollection
 import kotlin.math.max
 import kotlin.random.Random
 

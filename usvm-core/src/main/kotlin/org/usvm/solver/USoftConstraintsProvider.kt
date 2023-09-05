@@ -22,8 +22,6 @@ import io.ksmt.sort.KSortVisitor
 import io.ksmt.sort.KUninterpretedSort
 import io.ksmt.utils.asExpr
 import org.usvm.UAddressSort
-import org.usvm.collection.array.UAllocatedArrayReading
-import org.usvm.collection.map.primitive.UAllocatedMapReading
 import org.usvm.UBoolExpr
 import org.usvm.UBvSort
 import org.usvm.UCollectionReading
@@ -31,11 +29,6 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UIndexedMethodReturnValue
-import org.usvm.collection.array.length.UInputArrayLengthReading
-import org.usvm.collection.array.UInputArrayReading
-import org.usvm.collection.field.UInputFieldReading
-import org.usvm.collection.map.length.UInputMapLengthReading
-import org.usvm.collection.map.primitive.UInputMapReading
 import org.usvm.UIsSubtypeExpr
 import org.usvm.UIsSupertypeExpr
 import org.usvm.UMockSymbol
@@ -45,11 +38,23 @@ import org.usvm.USizeExpr
 import org.usvm.USort
 import org.usvm.USymbol
 import org.usvm.UTransformer
+import org.usvm.collection.array.UAllocatedArrayReading
+import org.usvm.collection.array.UInputArrayReading
+import org.usvm.collection.array.length.UInputArrayLengthReading
+import org.usvm.collection.field.UInputFieldReading
+import org.usvm.collection.map.length.UInputMapLengthReading
+import org.usvm.collection.map.primitive.UAllocatedMapReading
+import org.usvm.collection.map.primitive.UInputMapReading
 import org.usvm.collection.map.ref.UAllocatedRefMapWithInputKeysReading
 import org.usvm.collection.map.ref.UInputRefMapWithAllocatedKeysReading
 import org.usvm.collection.map.ref.UInputRefMapWithInputKeysReading
+import org.usvm.collection.set.primitive.UAllocatedSetReading
+import org.usvm.collection.set.primitive.UInputSetReading
+import org.usvm.collection.set.ref.UAllocatedRefSetWithInputElementsReading
+import org.usvm.collection.set.ref.UInputRefSetWithAllocatedElementsReading
+import org.usvm.collection.set.ref.UInputRefSetWithInputElementsReading
 import org.usvm.uctx
-import org.usvm.util.Region
+import org.usvm.regions.Region
 
 class USoftConstraintsProvider<Type>(override val ctx: UContext) : UTransformer<Type> {
     // We have a list here since sometimes we want to add several soft constraints
@@ -162,6 +167,23 @@ class USoftConstraintsProvider<Type>(override val ctx: UContext) : UTransformer<
             caches[expr] = addressConstraints + mapLength
         }
     }
+
+    override fun <ElemSort : USort, Reg : Region<Reg>> transform(
+        expr: UAllocatedSetReading<Type, ElemSort, Reg>
+    ): UBoolExpr = readingWithSingleArgumentTransform(expr, expr.element)
+
+    override fun <ElemSort : USort, Reg : Region<Reg>> transform(
+        expr: UInputSetReading<Type, ElemSort, Reg>
+    ): UBoolExpr = readingWithTwoArgumentsTransform(expr, expr.address, expr.element)
+
+    override fun transform(expr: UAllocatedRefSetWithInputElementsReading<Type>): UBoolExpr =
+        readingWithSingleArgumentTransform(expr, expr.elementRef)
+
+    override fun transform(expr: UInputRefSetWithAllocatedElementsReading<Type>): UBoolExpr =
+        readingWithSingleArgumentTransform(expr, expr.setRef)
+
+    override fun transform(expr: UInputRefSetWithInputElementsReading<Type>): UBoolExpr =
+        readingWithTwoArgumentsTransform(expr, expr.setRef, expr.elementRef)
 
     private fun <Sort : USort> readingWithSingleArgumentTransform(
         expr: UCollectionReading<*, *, Sort>,

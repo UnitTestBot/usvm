@@ -14,7 +14,7 @@ import org.usvm.memory.USymbolicCollectionKeyInfo
 import org.usvm.memory.UUpdateNode
 import org.usvm.memory.UWritableMemory
 import org.usvm.uctx
-import org.usvm.util.Region
+import org.usvm.regions.Region
 
 /**
  * Composable converter of symbolic collection keys. Helps to transparently copy content of various collections
@@ -35,8 +35,9 @@ abstract class USymbolicArrayCopyAdapter<SrcKey, DstKey>(
 
     abstract val ctx: UContext
 
-    override fun <Reg : Region<Reg>> region(): Reg =
-        keyInfo.keyRangeRegion(dstFrom, dstTo).uncheckedCast()
+    @Suppress("UNCHECKED_CAST")
+    override fun <DstReg : Region<DstReg>> region(): DstReg =
+        keyInfo.keyRangeRegion(dstFrom, dstTo) as DstReg
 
     /**
      * Converts source memory key into destination memory key
@@ -55,8 +56,8 @@ abstract class USymbolicArrayCopyAdapter<SrcKey, DstKey>(
         keyInfo.cmpConcreteLe(dstFrom, key) && keyInfo.cmpConcreteLe(key, dstTo)
 
     override fun includesSymbolically(key: DstKey, composer: UComposer<*>?): UBoolExpr {
-        val leftIsLefter = keyInfo.cmpSymbolicLe(ctx, dstFrom, key)
-        val rightIsRighter = keyInfo.cmpSymbolicLe(ctx, key, dstTo)
+        val leftIsLefter = keyInfo.cmpSymbolicLe(ctx, keyInfo.mapKey(dstFrom, composer), key)
+        val rightIsRighter = keyInfo.cmpSymbolicLe(ctx, key, keyInfo.mapKey(dstTo, composer))
         val ctx = leftIsLefter.ctx
 
         return ctx.mkAnd(leftIsLefter, rightIsRighter)

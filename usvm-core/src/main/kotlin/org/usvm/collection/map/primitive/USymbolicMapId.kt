@@ -1,21 +1,18 @@
 package org.usvm.collection.map.primitive
 
 import io.ksmt.cache.hash
-import io.ksmt.expr.KExpr
 import org.usvm.UBoolExpr
 import org.usvm.UComposer
 import org.usvm.UConcreteHeapAddress
 import org.usvm.UExpr
 import org.usvm.USort
-import org.usvm.UTransformer
 import org.usvm.collection.map.USymbolicMapKey
 import org.usvm.collection.map.USymbolicMapKeyInfo
 import org.usvm.collection.map.USymbolicMapKeyRegion
-import org.usvm.collection.set.UAllocatedSetId
-import org.usvm.collection.set.UInputSetId
-import org.usvm.collection.set.USymbolicSetId
+import org.usvm.collection.set.primitive.UAllocatedSetId
+import org.usvm.collection.set.primitive.UInputSetId
+import org.usvm.collection.set.primitive.USymbolicSetId
 import org.usvm.compose
-import org.usvm.memory.KeyTransformer
 import org.usvm.memory.USymbolicCollection
 import org.usvm.memory.USymbolicCollectionId
 import org.usvm.memory.USymbolicCollectionKeyInfo
@@ -23,37 +20,38 @@ import org.usvm.memory.UTreeUpdates
 import org.usvm.memory.UWritableMemory
 import org.usvm.sampleUValue
 import org.usvm.uctx
-import org.usvm.util.Region
-import org.usvm.util.emptyRegionTree
+import org.usvm.regions.Region
+import org.usvm.regions.emptyRegionTree
 
 interface USymbolicMapId<
         MapType,
         Key,
+        KeySort : USort,
         ValueSort : USort,
-        out KeysSetId : USymbolicSetId<Key, *, KeysSetId>,
-        out MapId : USymbolicMapId<MapType, Key, ValueSort, KeysSetId, MapId>,
-        >
+        Reg : Region<Reg>,
+        out KeysSetId : USymbolicSetId<*, *, Key, *, *, KeysSetId>,
+        out MapId : USymbolicMapId<MapType, Key, KeySort, ValueSort, Reg, KeysSetId, MapId>>
     : USymbolicCollectionId<Key, ValueSort, MapId> {
     val keysSetId: KeysSetId
     val mapType: MapType
+    val keySort: KeySort
+    val keyInfo: USymbolicCollectionKeyInfo<UExpr<KeySort>, Reg>
 }
 
 class UAllocatedMapId<MapType, KeySort : USort, ValueSort : USort, Reg : Region<Reg>> internal constructor(
-    val keySort: KeySort,
-    val valueSort: ValueSort,
+    override val keySort: KeySort,
+    override val sort: ValueSort,
     override val mapType: MapType,
-    val keyInfo: USymbolicCollectionKeyInfo<UExpr<KeySort>, Reg>,
+    override val keyInfo: USymbolicCollectionKeyInfo<UExpr<KeySort>, Reg>,
     val address: UConcreteHeapAddress,
-) : USymbolicMapId<MapType, UExpr<KeySort>, ValueSort,
-        UAllocatedSetId<UExpr<KeySort>, Reg>,
+) : USymbolicMapId<MapType, UExpr<KeySort>, KeySort, ValueSort, Reg,
+        UAllocatedSetId<MapType, KeySort, Reg>,
         UAllocatedMapId<MapType, KeySort, ValueSort, Reg>> {
 
-    val defaultValue: UExpr<ValueSort> by lazy { valueSort.sampleUValue() }
+    val defaultValue: UExpr<ValueSort> by lazy { sort.sampleUValue() }
 
-    override val keysSetId: UAllocatedSetId<KExpr<KeySort>, Reg>
-        get() = UAllocatedSetId(keyInfo)
-
-    override val sort: ValueSort get() = valueSort
+    override val keysSetId: UAllocatedSetId<MapType, KeySort, Reg>
+        get() = UAllocatedSetId(address, keySort, mapType, keyInfo)
 
     override fun instantiate(
         collection: USymbolicCollection<UAllocatedMapId<MapType, KeySort, ValueSort, Reg>, UExpr<KeySort>, ValueSort>,
@@ -70,22 +68,20 @@ class UAllocatedMapId<MapType, KeySort : USort, ValueSort : USort, Reg : Region<
 
         val memory = composer.memory.toWritableMemory()
         collection.applyTo(memory, key, composer)
-        return memory.read(UMapEntryLValue(keySort, sort, key.uctx.mkConcreteHeapRef(address), key, mapType, keyInfo))
+        return memory.read(mkLValue(key))
     }
 
     override fun <Type> write(
         memory: UWritableMemory<Type>,
         key: UExpr<KeySort>,
         value: UExpr<ValueSort>,
-        guard: UBoolExpr,
+        guard: UBoolExpr
     ) {
-        val lvalue = UMapEntryLValue(keySort, sort, key.uctx.mkConcreteHeapRef(address), key, mapType, keyInfo)
-        memory.write(lvalue, value, guard)
+        memory.write(mkLValue(key), value, guard)
     }
 
-    override fun <Type> keyMapper(
-        transformer: UTransformer<Type>,
-    ): KeyTransformer<UExpr<KeySort>> = { transformer.apply(it) }
+    private fun mkLValue(key: UExpr<KeySort>) =
+        UMapEntryLValue(keySort, sort, key.uctx.mkConcreteHeapRef(address), key, mapType, keyInfo)
 
     override fun keyInfo(): USymbolicCollectionKeyInfo<UExpr<KeySort>, Reg> = keyInfo
 
@@ -107,27 +103,26 @@ class UAllocatedMapId<MapType, KeySort : USort, ValueSort : USort, Reg : Region<
 
         if (address != other.address) return false
         if (keySort != other.keySort) return false
-        if (valueSort != other.valueSort) return false
+        if (sort != other.sort) return false
         if (mapType != other.mapType) return false
 
         return true
     }
 
-    override fun hashCode(): Int = hash(address, keySort, valueSort, mapType)
+    override fun hashCode(): Int = hash(address, keySort, sort, mapType)
 }
 
 class UInputMapId<MapType, KeySort : USort, ValueSort : USort, Reg : Region<Reg>> internal constructor(
-    val keySort: KeySort,
-    val valueSort: ValueSort,
+    override val keySort: KeySort,
+    override val sort: ValueSort,
     override val mapType: MapType,
-    val keyInfo: USymbolicCollectionKeyInfo<UExpr<KeySort>, Reg>,
-) : USymbolicMapId<MapType, USymbolicMapKey<KeySort>, ValueSort,
-        UInputSetId<USymbolicMapKey<KeySort>, USymbolicMapKeyRegion<Reg>>,
+    override val keyInfo: USymbolicCollectionKeyInfo<UExpr<KeySort>, Reg>,
+) : USymbolicMapId<MapType, USymbolicMapKey<KeySort>, KeySort, ValueSort, Reg,
+        UInputSetId<MapType, KeySort, Reg>,
         UInputMapId<MapType, KeySort, ValueSort, Reg>> {
-    override val keysSetId: UInputSetId<USymbolicMapKey<KeySort>, USymbolicMapKeyRegion<Reg>>
-        get() = UInputSetId(keyInfo())
 
-    override val sort: ValueSort get() = valueSort
+    override val keysSetId: UInputSetId<MapType, KeySort, Reg>
+        get() = UInputSetId(keySort, mapType, keyInfo)
 
     override fun instantiate(
         collection: USymbolicCollection<UInputMapId<MapType, KeySort, ValueSort, Reg>, USymbolicMapKey<KeySort>, ValueSort>,
@@ -140,7 +135,7 @@ class UInputMapId<MapType, KeySort : USort, ValueSort : USort, Reg : Region<Reg>
 
         val memory = composer.memory.toWritableMemory()
         collection.applyTo(memory, key, composer)
-        return memory.read(UMapEntryLValue(keySort, sort, key.first, key.second, mapType, keyInfo))
+        return memory.read(mkLValue(key))
     }
 
     override fun <Type> write(
@@ -149,17 +144,11 @@ class UInputMapId<MapType, KeySort : USort, ValueSort : USort, Reg : Region<Reg>
         value: UExpr<ValueSort>,
         guard: UBoolExpr
     ) {
-        val lvalue = UMapEntryLValue(keySort, sort, key.first, key.second, mapType, keyInfo)
-        memory.write(lvalue, value, guard)
+        memory.write(mkLValue(key), value, guard)
     }
 
-    override fun <Type> keyMapper(
-        transformer: UTransformer<Type>,
-    ): KeyTransformer<USymbolicMapKey<KeySort>> = {
-        val ref = transformer.apply(it.first)
-        val idx = transformer.apply(it.second)
-        if (ref === it.first && idx === it.second) it else ref to idx
-    }
+    private fun mkLValue(key: USymbolicMapKey<KeySort>) =
+        UMapEntryLValue(keySort, sort, key.first, key.second, mapType, keyInfo)
 
     override fun emptyRegion(): USymbolicCollection<UInputMapId<MapType, KeySort, ValueSort, Reg>, USymbolicMapKey<KeySort>, ValueSort> {
         val updates = UTreeUpdates<USymbolicMapKey<KeySort>, USymbolicMapKeyRegion<Reg>, ValueSort>(
@@ -180,12 +169,11 @@ class UInputMapId<MapType, KeySort : USort, ValueSort : USort, Reg : Region<Reg>
         other as UInputMapId<*, *, *, *>
 
         if (keySort != other.keySort) return false
-        if (valueSort != other.valueSort) return false
+        if (sort != other.sort) return false
         if (mapType != other.mapType) return false
 
         return true
     }
 
-    override fun hashCode(): Int =
-        hash(keySort, valueSort, mapType)
+    override fun hashCode(): Int = hash(keySort, sort, mapType)
 }

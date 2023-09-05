@@ -40,7 +40,7 @@ import org.usvm.memory.UUpdateNode
 import org.usvm.memory.UWritableMemory
 import org.usvm.model.UModelBase
 import org.usvm.model.URegistersStackEagerModel
-import org.usvm.util.SetRegion
+import org.usvm.regions.SetRegion
 import kotlin.reflect.KClass
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -230,8 +230,8 @@ internal class CompositionTest {
         val sndResultValue = 2.toBv()
 
         val keyInfo = object : TestKeyInfo<UHeapRef, SetRegion<UHeapRef>> {
-            override fun mapKey(key: UHeapRef, composer: UComposer<*>?): UHeapRef =
-                composer.compose(key)
+            override fun mapKey(key: UHeapRef, transformer: UTransformer<*>?): UHeapRef =
+                transformer.apply(key)
 
             override fun eqSymbolic(ctx: UContext, key1: UHeapRef, key2: UHeapRef): UBoolExpr = key1 eq key2
         }
@@ -281,8 +281,8 @@ internal class CompositionTest {
         }
 
         val keyInfo = object : TestKeyInfo<USymbolicArrayIndex, SetRegion<USymbolicArrayIndex>> {
-            override fun mapKey(key: USymbolicArrayIndex, composer: UComposer<*>?): USymbolicArrayIndex =
-                composer.compose(key.first) to composer.compose(key.second)
+            override fun mapKey(key: USymbolicArrayIndex, transformer: UTransformer<*>?): USymbolicArrayIndex =
+                transformer.apply(key.first) to transformer.apply(key.second)
 
             override fun cmpConcreteLe(key1: USymbolicArrayIndex, key2: USymbolicArrayIndex): Boolean = key1 == key2
             override fun eqSymbolic(ctx: UContext, key1: USymbolicArrayIndex, key2: USymbolicArrayIndex): UBoolExpr =
@@ -383,7 +383,7 @@ internal class CompositionTest {
         val sndSymbolicIndex = mockk<USizeExpr>()
 
         val keyInfo = object : TestKeyInfo<USizeExpr, SetRegion<USizeExpr>> {
-            override fun mapKey(key: USizeExpr, composer: UComposer<*>?): USizeExpr = composer.compose(key)
+            override fun mapKey(key: USizeExpr, transformer: UTransformer<*>?): USizeExpr = transformer.apply(key)
             override fun eqSymbolic(ctx: UContext, key1: USizeExpr, key2: USizeExpr): UBoolExpr = key1 eq key2
         }
 
@@ -466,7 +466,7 @@ internal class CompositionTest {
         val bAddress = mockk<USymbolicHeapRef>()
 
         val keyInfo = object : TestKeyInfo<UHeapRef, SetRegion<UHeapRef>> {
-            override fun mapKey(key: UHeapRef, composer: UComposer<*>?): UHeapRef = composer.compose(key)
+            override fun mapKey(key: UHeapRef, transformer: UTransformer<*>?): UHeapRef = transformer.apply(key)
             override fun eqSymbolic(ctx: UContext, key1: UHeapRef, key2: UHeapRef): UBoolExpr =
                 (key1 == key2).expr
         }

@@ -1,16 +1,16 @@
 package org.usvm.collection.map
 
 import org.usvm.UBoolExpr
-import org.usvm.UComposer
 import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
+import org.usvm.UTransformer
 import org.usvm.memory.USymbolicCollectionKeyInfo
 import org.usvm.memory.key.UHeapRefKeyInfo
 import org.usvm.memory.key.UHeapRefRegion
-import org.usvm.util.ProductRegion
-import org.usvm.util.Region
+import org.usvm.regions.ProductRegion
+import org.usvm.regions.Region
 
 typealias USymbolicMapKey<KeySort> = Pair<UHeapRef, UExpr<KeySort>>
 typealias USymbolicMapKeyRegion<KeyReg> = ProductRegion<UHeapRefRegion, KeyReg>
@@ -21,8 +21,11 @@ typealias USymbolicMapKeyRegion<KeyReg> = ProductRegion<UHeapRefRegion, KeyReg>
 data class USymbolicMapKeyInfo<KeySort : USort, KeyReg : Region<KeyReg>>(
     val keyInfo: USymbolicCollectionKeyInfo<UExpr<KeySort>, KeyReg>
 ) : USymbolicCollectionKeyInfo<USymbolicMapKey<KeySort>, USymbolicMapKeyRegion<KeyReg>> {
-    override fun mapKey(key: USymbolicMapKey<KeySort>, composer: UComposer<*>?): USymbolicMapKey<KeySort> =
-        UHeapRefKeyInfo.mapKey(key.first, composer) to keyInfo.mapKey(key.second, composer)
+    override fun mapKey(key: USymbolicMapKey<KeySort>, transformer: UTransformer<*>?): USymbolicMapKey<KeySort> {
+        val mapRef = UHeapRefKeyInfo.mapKey(key.first, transformer)
+        val mapKey = keyInfo.mapKey(key.second, transformer)
+        return if (mapRef === key.first && mapKey === key.second) key else mapRef to mapKey
+    }
 
     override fun eqSymbolic(
         ctx: UContext,
