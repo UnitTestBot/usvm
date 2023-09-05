@@ -1,8 +1,7 @@
-package org.usvm.ml.stopstrategies
+package org.usvm.stopstrategies
 
-import org.usvm.ml.OtherUMachineOptions
+import org.usvm.OtherUMachineOptions
 import org.usvm.statistics.CoverageStatistics
-import org.usvm.stopstrategies.*
 
 fun otherCreateStopStrategy(
     options: OtherUMachineOptions,

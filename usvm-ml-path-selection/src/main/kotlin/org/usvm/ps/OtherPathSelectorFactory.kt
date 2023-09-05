@@ -1,11 +1,8 @@
-package org.usvm.ml.ps
+package org.usvm.ps
 
 import org.usvm.*
-import org.usvm.ml.OtherPathSelectionStrategy
-import org.usvm.ml.OtherUMachineOptions
-import org.usvm.ps.ExceptionPropagationPathSelector
-import org.usvm.ps.InterleavedPathSelector
-import org.usvm.ps.ParallelPathSelector
+import org.usvm.OtherPathSelectionStrategy
+import org.usvm.OtherUMachineOptions
 import org.usvm.statistics.ApplicationGraph
 import org.usvm.statistics.CoverageStatistics
 import org.usvm.statistics.DistanceStatistics

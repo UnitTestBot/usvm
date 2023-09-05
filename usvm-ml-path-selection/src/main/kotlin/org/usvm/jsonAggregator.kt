@@ -1,4 +1,4 @@
-package org.usvm.ml
+package org.usvm
 
 import kotlinx.coroutines.*
 import kotlinx.serialization.ExperimentalSerializationApi
@@ -6,10 +6,9 @@ import kotlinx.serialization.json.*
 import org.jacodb.api.JcClassOrInterface
 import org.jacodb.api.JcMethod
 import org.jacodb.api.ext.packageName
-import org.usvm.SolverType
-import org.usvm.ml.machine.OtherJcMachine
-import org.usvm.ml.ps.BfsWithLoggingPathSelector
-import org.usvm.ml.samples.OtherJacoDBContainer
+import org.usvm.machine.OtherJcMachine
+import org.usvm.ps.BfsWithLoggingPathSelector
+import org.usvm.samples.OtherJacoDBContainer
 import java.io.File
 import kotlin.io.path.Path
 import kotlin.io.path.nameWithoutExtension

@@ -15,9 +15,4 @@ object Versions {
     const val samplesJavaxValidation = "2.0.0.Final"
     const val samplesFindBugs = "1.3.9-1"
     const val samplesJetbrainsAnnotations = "16.0.2"
-
-    const val serialization = "1.5.1"
-    const val kinference = "0.2.3"
-    const val onnxruntime = "1.15.1"
-    const val graphViz = "1.0.2"
 }

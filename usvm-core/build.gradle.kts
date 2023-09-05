@@ -1,10 +1,5 @@
 plugins {
     id("usvm.kotlin-conventions")
-    kotlin("plugin.serialization") version "1.8.21"
-}
-
-repositories {
-    mavenCentral()
 }
 
 dependencies {
@@ -19,7 +14,4 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-params:${Versions.junitParams}")
 
     testImplementation("io.ksmt:ksmt-yices:${Versions.ksmt}")
-
-    implementation("org.jetbrains.kotlinx", "kotlinx-serialization-json", Versions.serialization)
-    implementation("io.github.rchowell", "dotlin", Versions.graphViz)
 }

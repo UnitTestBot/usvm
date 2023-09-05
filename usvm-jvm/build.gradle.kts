@@ -1,10 +1,5 @@
 plugins {
     id("usvm.kotlin-conventions")
-    kotlin("plugin.serialization") version "1.8.21"
-}
-
-repositories {
-    mavenCentral()
 }
 
 dependencies {
@@ -24,8 +19,6 @@ dependencies {
     // https://mvnrepository.com/artifact/org.burningwave/core
     // Use it to export all modules to all
     testImplementation("org.burningwave:core:12.62.7")
-
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
 }
 
 sourceSets {
@@ -49,45 +42,4 @@ dependencies {
     samplesImplementation("javax.validation:validation-api:${Versions.samplesJavaxValidation}")
     samplesImplementation("com.github.stephenc.findbugs:findbugs-annotations:${Versions.samplesFindBugs}")
     samplesImplementation("org.jetbrains:annotations:${Versions.samplesJetbrainsAnnotations}")
-    samplesImplementation("org.jacodb:jacodb-core:${Versions.jcdb}")
-    samplesImplementation("org.jacodb:jacodb-analysis:${Versions.jcdb}")
-}
-
-tasks {
-    // Create a JAR file for jsonAggregator main function
-    val jarMain by creating(Jar::class) {
-        manifest {
-            attributes["Main-Class"] = "org.usvm.JsonAggregatorKt"
-        }
-
-        from(sourceSets.main.get().output)
-        from(sourceSets.test.get().output)
-        from(java.sourceSets.getByName("samples").output)
-
-        dependsOn.addAll(listOf(configurations.runtimeClasspath,
-            configurations.testRuntimeClasspath,
-            java.sourceSets.getByName("samples").runtimeClasspath))
-
-        from({
-            configurations.runtimeClasspath.get().filter { it.name.endsWith("jar") }.map { zipTree(it) }
-        })
-        from({
-             configurations.testRuntimeClasspath.get().filter { it.name.endsWith("jar") }.map { zipTree(it) }
-        })
-        from({
-            java.sourceSets.getByName("samples").runtimeClasspath.asFileTree.filter { it.name.endsWith("jar") }.map { zipTree(it) }
-        })
-
-        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    }
-}
-
-tasks.named<Test>("test") {
-    testLogging {
-        events("started")
-    }
-
-    jvmArgs("-XX:+HeapDumpOnOutOfMemoryError")
-
-    maxHeapSize = "4G"
 }

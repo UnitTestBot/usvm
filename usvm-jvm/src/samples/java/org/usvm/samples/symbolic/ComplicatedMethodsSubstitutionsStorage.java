@@ -1,4 +1,4 @@
-package org.usvm.samples.symbolic;// TODO unsupported constructions
+// TODO unsupported constructions
 //package org.usvm.examples.symbolic;
 //
 //import org.usvm.api.annotation.UtClassMock;

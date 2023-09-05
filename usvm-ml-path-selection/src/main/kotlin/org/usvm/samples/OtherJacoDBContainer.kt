@@ -1,4 +1,4 @@
-package org.usvm.ml.samples
+package org.usvm.samples
 
 import kotlinx.coroutines.runBlocking
 import org.jacodb.api.JcClasspath
@@ -6,7 +6,7 @@ import org.jacodb.api.JcDatabase
 import org.jacodb.impl.JcSettings
 import org.jacodb.impl.features.InMemoryHierarchy
 import org.jacodb.impl.jacodb
-import org.usvm.ml.util.otherAllClasspath
+import org.usvm.util.otherAllClasspath
 import java.io.File
 
 class OtherJacoDBContainer(
@@ -47,5 +47,3 @@ class OtherJacoDBContainer(
         }
     }
 }
-
-const val samplesKey = "tests"

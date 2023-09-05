@@ -1,13 +1,12 @@
-package org.usvm.ml.ps
+package org.usvm.ps
 
 import ai.onnxruntime.OnnxTensor
 import ai.onnxruntime.OrtEnvironment
 import ai.onnxruntime.OrtSession
 import org.usvm.*
-import org.usvm.ml.Algorithm
-import org.usvm.ml.MainConfig
-import org.usvm.ml.Postprocessing
-import org.usvm.ps.WeightedPathSelector
+import org.usvm.Algorithm
+import org.usvm.MainConfig
+import org.usvm.Postprocessing
 import org.usvm.statistics.*
 import org.usvm.util.RandomizedPriorityCollection
 import java.io.File

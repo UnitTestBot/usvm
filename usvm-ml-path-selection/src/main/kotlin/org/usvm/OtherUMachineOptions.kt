@@ -1,8 +1,4 @@
-package org.usvm.ml
-
-import org.usvm.CoverageZone
-import org.usvm.PathSelectorCombinationStrategy
-import org.usvm.SolverType
+package org.usvm
 
 enum class OtherPathSelectionStrategy {
     BFS_WITH_LOGGING,

@@ -1,4 +1,4 @@
-package org.usvm.ml.machine
+package org.usvm.machine
 
 import mu.KLogging
 import org.jacodb.api.JcClasspath
@@ -6,22 +6,22 @@ import org.jacodb.api.JcMethod
 import org.jacodb.api.cfg.JcInst
 import org.jacodb.api.ext.methods
 import org.usvm.CoverageZone
-import org.usvm.ml.OtherUMachineOptions
-import org.usvm.UMachine
-import org.usvm.machine.*
-import org.usvm.machine.interpreter.*
-import org.usvm.machine.operator.*
-import org.usvm.machine.state.*
-import org.usvm.ml.ps.otherCreatePathSelector
+import org.usvm.OtherUMachine
+import org.usvm.OtherUMachineOptions
+import org.usvm.machine.interpreter.JcInterpreter
+import org.usvm.machine.state.JcMethodResult
+import org.usvm.machine.state.JcState
+import org.usvm.machine.state.lastStmt
+import org.usvm.ps.otherCreatePathSelector
+import org.usvm.stopstrategies.otherCreateStopStrategy
 import org.usvm.statistics.*
-import org.usvm.ml.stopstrategies.otherCreateStopStrategy
 
-val logger = object : KLogging() {}.logger
+//val logger = object : KLogging() {}.logger
 
 class OtherJcMachine(
     cp: JcClasspath,
     private val options: OtherUMachineOptions
-) : UMachine<JcState>() {
+) : OtherUMachine<JcState>() {
         private val applicationGraph = JcApplicationGraph(cp)
 
     private val typeSystem = JcTypeSystem(cp)
@@ -35,7 +35,7 @@ class OtherJcMachine(
     fun analyze(
         method: JcMethod
     ): List<JcState> {
-        logger.debug("$this.analyze($method)")
+//        logger.debug("$this.analyze($method)")
         val initialState = interpreter.getInitialState(method)
 
         val methodsToTrackCoverage =

@@ -108,7 +108,7 @@ data class UMachineOptions(
     /**
      * Optional limit of symbolic execution steps to stop execution on.
      */
-    val stepLimit: ULong? = 1500u,
+    val stepLimit: ULong? = null,
     /**
      * Optional limit of collected states to stop execution on.
      */

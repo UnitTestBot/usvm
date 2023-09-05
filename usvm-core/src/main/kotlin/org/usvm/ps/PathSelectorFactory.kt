@@ -5,7 +5,6 @@ import org.usvm.PathSelectorCombinationStrategy
 import org.usvm.UMachineOptions
 import org.usvm.UPathSelector
 import org.usvm.UState
-import org.usvm.statistics.ApplicationGraph
 import org.usvm.statistics.CoverageStatistics
 import org.usvm.statistics.DistanceStatistics
 import org.usvm.util.DeterministicPriorityCollection
@@ -18,7 +17,7 @@ fun <Method, Statement, State : UState<*, Method, Statement, *, State>> createPa
     options: UMachineOptions,
     coverageStatistics: () -> CoverageStatistics<Method, Statement, State>? = { null },
     distanceStatistics: () -> DistanceStatistics<Method, Statement>? = { null },
-) : UPathSelector<State> {
+): UPathSelector<State> {
     val strategies = options.pathSelectionStrategies
     require(strategies.isNotEmpty()) { "At least one path selector strategy should be specified" }
 

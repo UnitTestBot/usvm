@@ -1,4 +1,4 @@
-package org.usvm.ml.util
+package org.usvm.util
 
 import java.io.File
 

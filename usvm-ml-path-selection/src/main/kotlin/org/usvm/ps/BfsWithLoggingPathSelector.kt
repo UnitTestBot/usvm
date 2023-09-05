@@ -1,4 +1,4 @@
-package org.usvm.ml.ps
+package org.usvm.ps
 
 import io.github.rchowell.dotlin.digraph
 import kotlinx.serialization.Serializable
@@ -7,9 +7,8 @@ import kotlinx.serialization.json.*
 import org.usvm.PathsTrieNode
 import org.usvm.UPathSelector
 import org.usvm.UState
-import org.usvm.ml.GraphUpdate
-import org.usvm.ml.MainConfig
-import org.usvm.ps.ShortestDistanceToTargetsStateWeighter
+import org.usvm.GraphUpdate
+import org.usvm.MainConfig
 import org.usvm.statistics.ApplicationGraph
 import org.usvm.statistics.CoverageStatistics
 import org.usvm.statistics.DistanceStatistics
@@ -18,23 +17,11 @@ import java.nio.file.Path
 import kotlin.io.path.Path
 import kotlin.io.path.writeText
 import kotlin.math.log
-import kotlin.math.pow
-import kotlin.math.sqrt
 
 private const val LOG_BASE = 1.42
 
 private fun Collection<Float>.average(): Float {
     return this.sumOf { it.toDouble() }.toFloat() / this.size
-}
-
-private fun Collection<Float>.std(): Float {
-    if (this.size <= 1) {
-        return 0.0f
-    }
-    val average = this.average().toDouble()
-    return sqrt(this.map { it.toDouble() }.fold(0.0) { a, b ->
-        a + (b - average).pow(2)
-    } / (this.size - 1)).toFloat()
 }
 
 private fun Number.log(): Float {
