@@ -8,9 +8,7 @@ import org.usvm.UConcreteHeapAddress
 import org.usvm.UExpr
 import org.usvm.USizeExpr
 import org.usvm.USort
-import org.usvm.UTransformer
 import org.usvm.compose
-import org.usvm.memory.KeyTransformer
 import org.usvm.memory.UPinpointUpdateNode
 import org.usvm.memory.USymbolicCollection
 import org.usvm.memory.USymbolicCollectionId
@@ -56,17 +54,15 @@ class UAllocatedArrayId<ArrayType, Sort : USort> internal constructor(
 
         val memory = composer.memory.toWritableMemory()
         collection.applyTo(memory, key, composer)
-        return memory.read(UArrayIndexLValue(sort, key.uctx.mkConcreteHeapRef(address), key, arrayType))
+        return memory.read(mkLValue(key))
     }
 
     override fun <Type> write(memory: UWritableMemory<Type>, key: USizeExpr, value: UExpr<Sort>, guard: UBoolExpr) {
-        val lvalue = UArrayIndexLValue(sort, key.uctx.mkConcreteHeapRef(address), key, arrayType)
-        memory.write(lvalue, value, guard)
+        memory.write(mkLValue(key), value, guard)
     }
 
-    override fun <Type> keyMapper(
-        transformer: UTransformer<Type>,
-    ): KeyTransformer<USizeExpr> = { transformer.apply(it) }
+    private fun mkLValue(key: USizeExpr) =
+        UArrayIndexLValue(sort, key.uctx.mkConcreteHeapRef(address), key, arrayType)
 
     override fun keyInfo() = USizeExprKeyInfo
 
@@ -135,7 +131,7 @@ class UInputArrayId<ArrayType, Sort : USort> internal constructor(
 
         val memory = composer.memory.toWritableMemory()
         collection.applyTo(memory, key, composer)
-        return memory.read(UArrayIndexLValue(sort, key.first, key.second, arrayType))
+        return memory.read(mkLValue(key))
     }
 
     override fun <Type> write(
@@ -144,17 +140,11 @@ class UInputArrayId<ArrayType, Sort : USort> internal constructor(
         value: UExpr<Sort>,
         guard: UBoolExpr
     ) {
-        val lvalue = UArrayIndexLValue(sort, key.first, key.second, arrayType)
-        memory.write(lvalue, value, guard)
+        memory.write(mkLValue(key), value, guard)
     }
 
-    override fun <Type> keyMapper(
-        transformer: UTransformer<Type>,
-    ): KeyTransformer<USymbolicArrayIndex> = {
-        val ref = transformer.apply(it.first)
-        val idx = transformer.apply(it.second)
-        if (ref === it.first && idx === it.second) it else ref to idx
-    }
+    private fun mkLValue(key: USymbolicArrayIndex) =
+        UArrayIndexLValue(sort, key.first, key.second, arrayType)
 
     override fun emptyRegion(): USymbolicCollection<UInputArrayId<ArrayType, Sort>, USymbolicArrayIndex, Sort> {
         val updates = UTreeUpdates<USymbolicArrayIndex, USymbolicArrayIndexRegion, Sort>(

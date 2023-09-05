@@ -32,6 +32,16 @@ import org.usvm.collection.map.ref.UInputRefMap
 import org.usvm.collection.map.ref.UInputRefMapWithAllocatedKeys
 import org.usvm.collection.map.ref.UInputRefMapWithAllocatedKeysReading
 import org.usvm.collection.map.ref.UInputRefMapWithInputKeysReading
+import org.usvm.collection.set.primitive.UAllocatedSet
+import org.usvm.collection.set.primitive.UAllocatedSetReading
+import org.usvm.collection.set.primitive.UInputSet
+import org.usvm.collection.set.primitive.UInputSetReading
+import org.usvm.collection.set.ref.UAllocatedRefSetWithInputElements
+import org.usvm.collection.set.ref.UAllocatedRefSetWithInputElementsReading
+import org.usvm.collection.set.ref.UInputRefSetWithAllocatedElements
+import org.usvm.collection.set.ref.UInputRefSetWithAllocatedElementsReading
+import org.usvm.collection.set.ref.UInputRefSetWithInputElements
+import org.usvm.collection.set.ref.UInputRefSetWithInputElementsReading
 import org.usvm.memory.splitUHeapRef
 import org.usvm.solver.USolverBase
 import org.usvm.types.UTypeSystem
@@ -246,6 +256,62 @@ open class UContext(
     ): UInputMapLengthReading<MapType> =
         inputSymbolicMapLengthReadingCache.createIfContextActive {
             UInputMapLengthReading<MapType>(this, region, address)
+        }.cast()
+
+
+    private val allocatedSymbolicSetReadingCache = mkAstInterner<UAllocatedSetReading<*, *, *>>()
+
+    fun <SetType, ElementSort : USort, Reg : Region<Reg>> mkAllocatedSetReading(
+        region: UAllocatedSet<SetType, ElementSort, Reg>,
+        element: UExpr<ElementSort>
+    ): UAllocatedSetReading<SetType, ElementSort, Reg> =
+        allocatedSymbolicSetReadingCache.createIfContextActive {
+            UAllocatedSetReading(this, region, element)
+        }.cast()
+
+    private val inputSymbolicSetReadingCache = mkAstInterner<UInputSetReading<*, *, *>>()
+
+    fun <SetType, ElementSort : USort, Reg : Region<Reg>> mkInputSetReading(
+        region: UInputSet<SetType, ElementSort, Reg>,
+        address: UHeapRef,
+        element: UExpr<ElementSort>
+    ): UInputSetReading<SetType, ElementSort, Reg> =
+        inputSymbolicSetReadingCache.createIfContextActive {
+            UInputSetReading(this, region, address, element)
+        }.cast()
+
+    private val allocatedSymbolicRefSetWithInputElementsReadingCache =
+        mkAstInterner<UAllocatedRefSetWithInputElementsReading<*>>()
+
+    fun <SetType> mkAllocatedRefSetWithInputElementsReading(
+        region: UAllocatedRefSetWithInputElements<SetType>,
+        elementRef: UHeapRef
+    ): UAllocatedRefSetWithInputElementsReading<SetType> =
+        allocatedSymbolicRefSetWithInputElementsReadingCache.createIfContextActive {
+            UAllocatedRefSetWithInputElementsReading(this, region, elementRef)
+        }.cast()
+
+    private val inputSymbolicRefSetWithAllocatedElementsReadingCache =
+        mkAstInterner<UInputRefSetWithAllocatedElementsReading<*>>()
+
+    fun <SetType> mkInputRefSetWithAllocatedElementsReading(
+        region: UInputRefSetWithAllocatedElements<SetType>,
+        setRef: UHeapRef
+    ): UInputRefSetWithAllocatedElementsReading<SetType> =
+        inputSymbolicRefSetWithAllocatedElementsReadingCache.createIfContextActive {
+            UInputRefSetWithAllocatedElementsReading(this, region, setRef)
+        }.cast()
+
+    private val inputSymbolicRefSetWithInputElementsReadingCache =
+        mkAstInterner<UInputRefSetWithInputElementsReading<*>>()
+
+    fun <SetType> mkInputRefSetWithInputElementsReading(
+        region: UInputRefSetWithInputElements<SetType>,
+        setRef: UHeapRef,
+        elementRef: UHeapRef
+    ): UInputRefSetWithInputElementsReading<SetType> =
+        inputSymbolicRefSetWithInputElementsReadingCache.createIfContextActive {
+            UInputRefSetWithInputElementsReading(this, region, setRef, elementRef)
         }.cast()
 
     private val indexedMethodReturnValueCache = mkAstInterner<UIndexedMethodReturnValue<Any, out USort>>()

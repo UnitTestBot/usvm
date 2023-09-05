@@ -30,10 +30,6 @@ class UFieldRegionDecoder<Field, Sort : USort>(
     fun inputFieldRegionTranslator(
         collectionId: UInputFieldId<Field, Sort>
     ): URegionTranslator<UInputFieldId<Field, Sort>, UHeapRef, Sort> {
-        check(collectionId.field == regionId.field && collectionId.sort == regionId.sort) {
-            "Unexpected collection: $collectionId"
-        }
-
         if (inputRegionTranslator == null) {
             inputRegionTranslator = UInputFieldRegionTranslator(collectionId, exprTranslator)
         }

@@ -40,14 +40,6 @@ class UMapRegionDecoder<MapType, KeySort : USort, ValueSort : USort, Reg : Regio
         collectionId: UAllocatedMapId<MapType, KeySort, ValueSort, Reg>
     ): URegionTranslator<UAllocatedMapId<MapType, KeySort, ValueSort, Reg>, UExpr<KeySort>, ValueSort> =
         allocatedRegions.getOrPut(collectionId.address) {
-            check(
-                collectionId.mapType == regionId.mapType
-                        && collectionId.keySort == regionId.keySort
-                        && collectionId.sort == regionId.sort
-            ) {
-                "Unexpected collection: $collectionId"
-            }
-
             UAllocatedMapTranslator(collectionId, exprTranslator)
         }
 
@@ -55,14 +47,6 @@ class UMapRegionDecoder<MapType, KeySort : USort, ValueSort : USort, Reg : Regio
         collectionId: UInputMapId<MapType, KeySort, ValueSort, Reg>
     ): URegionTranslator<UInputMapId<MapType, KeySort, ValueSort, Reg>, USymbolicMapKey<KeySort>, ValueSort> {
         if (inputRegionTranslator == null) {
-            check(
-                collectionId.mapType == regionId.mapType
-                        && collectionId.keySort == regionId.keySort
-                        && collectionId.sort == regionId.sort
-            ) {
-                "Unexpected collection: $collectionId"
-            }
-
             inputRegionTranslator = UInputMapTranslator(collectionId, exprTranslator)
         }
         return inputRegionTranslator!!
@@ -75,7 +59,7 @@ class UMapRegionDecoder<MapType, KeySort : USort, ValueSort : USort, Reg : Regio
 }
 
 private class UAllocatedMapTranslator<MapType, KeySort : USort, ValueSort : USort, Reg : Region<Reg>>(
-    private val collectionId: UAllocatedMapId<MapType, KeySort, ValueSort, Reg>,
+    collectionId: UAllocatedMapId<MapType, KeySort, ValueSort, Reg>,
     exprTranslator: UExprTranslator<*>
 ) : URegionTranslator<UAllocatedMapId<MapType, KeySort, ValueSort, Reg>, UExpr<KeySort>, ValueSort> {
     private val initialValue = with(collectionId.sort.uctx) {
@@ -97,7 +81,7 @@ private class UAllocatedMapTranslator<MapType, KeySort : USort, ValueSort : USor
 }
 
 private class UInputMapTranslator<MapType, KeySort : USort, ValueSort : USort, Reg : Region<Reg>>(
-    private val collectionId: UInputMapId<MapType, KeySort, ValueSort, Reg>,
+    collectionId: UInputMapId<MapType, KeySort, ValueSort, Reg>,
     exprTranslator: UExprTranslator<*>
 ) : URegionTranslator<UInputMapId<MapType, KeySort, ValueSort, Reg>, USymbolicMapKey<KeySort>, ValueSort>,
     UCollectionDecoder<USymbolicMapKey<KeySort>, ValueSort> {

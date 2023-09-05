@@ -10,6 +10,11 @@ import org.usvm.collection.map.primitive.UInputMapReading
 import org.usvm.collection.map.ref.UAllocatedRefMapWithInputKeysReading
 import org.usvm.collection.map.ref.UInputRefMapWithAllocatedKeysReading
 import org.usvm.collection.map.ref.UInputRefMapWithInputKeysReading
+import org.usvm.collection.set.primitive.UAllocatedSetReading
+import org.usvm.collection.set.primitive.UInputSetReading
+import org.usvm.collection.set.ref.UAllocatedRefSetWithInputElementsReading
+import org.usvm.collection.set.ref.UInputRefSetWithAllocatedElementsReading
+import org.usvm.collection.set.ref.UInputRefSetWithInputElementsReading
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.USymbolicCollectionId
 import org.usvm.regions.Region
@@ -99,6 +104,23 @@ open class UComposer<Type>(
 
     override fun transform(expr: UInputMapLengthReading<Type>): USizeExpr =
         transformCollectionReading(expr, expr.address)
+
+    override fun <ElemSort : USort, Reg : Region<Reg>> transform(
+        expr: UAllocatedSetReading<Type, ElemSort, Reg>
+    ): UBoolExpr = transformCollectionReading(expr, expr.element)
+
+    override fun <ElemSort : USort, Reg : Region<Reg>> transform(
+        expr: UInputSetReading<Type, ElemSort, Reg>
+    ): UBoolExpr = transformCollectionReading(expr, expr.address to expr.element)
+
+    override fun transform(expr: UAllocatedRefSetWithInputElementsReading<Type>): UBoolExpr =
+        transformCollectionReading(expr, expr.elementRef)
+
+    override fun transform(expr: UInputRefSetWithAllocatedElementsReading<Type>): UBoolExpr =
+        transformCollectionReading(expr, expr.setRef)
+
+    override fun transform(expr: UInputRefSetWithInputElementsReading<Type>): UBoolExpr =
+        transformCollectionReading(expr, expr.setRef to expr.elementRef)
 
     override fun transform(expr: UConcreteHeapRef): UExpr<UAddressSort> = expr
 
