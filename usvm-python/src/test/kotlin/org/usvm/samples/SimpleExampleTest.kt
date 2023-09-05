@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.usvm.UMachineOptions
 import org.usvm.language.PythonUnpinnedCallable
+import org.usvm.language.types.PythonAnyType
 import org.usvm.machine.interpreters.IllegalOperationException
 import org.usvm.runner.PythonTestRunnerForPrimitiveProgram
 import org.usvm.test.util.checkers.eq
@@ -203,5 +204,19 @@ class SimpleExampleTest : PythonTestRunnerForPrimitiveProgram("SimpleExample") {
     @Test
     fun testRange6() {
         testRange("range_6")
+    }
+
+    @Test
+    fun testSimpleString() {
+        check1WithConcreteRun(
+            constructFunction("simple_str", listOf(PythonAnyType)),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, res -> res.repr == "1" },
+                { _, res -> res.repr == "2" }
+            )
+        )
     }
 }

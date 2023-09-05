@@ -134,3 +134,9 @@ def settrace_usage():
 
 def remove_tracing():
     sys.settrace(None)
+
+
+def simple_str(x):
+    if isinstance(x, str):
+        return 1
+    return 2
