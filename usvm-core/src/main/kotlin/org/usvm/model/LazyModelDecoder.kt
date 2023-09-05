@@ -9,10 +9,10 @@ import org.usvm.UAddressSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UExpr
-import org.usvm.solver.UExprTranslator
 import org.usvm.UMockEvaluator
 import org.usvm.memory.UMemoryRegionId
 import org.usvm.memory.UReadOnlyMemoryRegion
+import org.usvm.solver.UExprTranslator
 
 interface UModelDecoder<Model> {
     fun decode(model: KModel): Model
@@ -51,12 +51,12 @@ open class ULazyModelDecoder<Type>(
      * to [UConcreteHeapRef] with integer addresses. It allows us to enumerate
      * equivalence classes of addresses and work with their number in the future.
      */
-    private fun buildMapping(model: KModel): AddressesMapping {
+    private fun buildMapping(model: KModel, nullRef: UConcreteHeapRef): AddressesMapping {
         val interpreterdNullRef = model.eval(translatedNullRef, isComplete = true)
 
         val result = mutableMapOf<KExpr<KUninterpretedSort>, UConcreteHeapRef>()
         // The null value has the NULL_ADDRESS
-        result[interpreterdNullRef] = ctx.mkConcreteHeapRef(NULL_ADDRESS)
+        result[interpreterdNullRef] = nullRef
 
         val universe = model.uninterpretedSortUniverse(ctx.addressSort) ?: return result
         // All the numbers are enumerated from the INITIAL_INPUT_ADDRESS to the Int.MIN_VALUE
@@ -80,26 +80,13 @@ open class ULazyModelDecoder<Type>(
     override fun decode(
         model: KModel,
     ): UModelBase<Type> {
-        val addressesMapping = buildMapping(model)
+        val nullRef = ctx.mkConcreteHeapRef(NULL_ADDRESS)
+        val addressesMapping = buildMapping(model, nullRef)
 
         val stack = decodeStack(model, addressesMapping)
         val regions = decodeHeap(model, addressesMapping)
         val types = UTypeModel<Type>(ctx.typeSystem(), typeStreamByAddr = emptyMap())
         val mocks = decodeMocker(model, addressesMapping)
-
-        /**
-         * To resolve nullRef, we need to:
-         * * translate it
-         * * evaluate the translated value in the [model]
-         * * map the evaluated value with the [addressesMapping]
-         *
-         * Actually, its address should always be equal 0.
-         */
-        val nullRef = model
-            .eval(translator.translate(translator.ctx.nullRef))
-            .mapAddress(addressesMapping) as UConcreteHeapRef
-
-        check(nullRef.address == NULL_ADDRESS) { "Incorrect null ref: $nullRef" }
 
         return UModelBase(ctx, stack, types, mocks, regions, nullRef)
     }
