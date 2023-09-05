@@ -1,4 +1,4 @@
-package org.usvm.collection.set
+package org.usvm.collection.set.primitive
 
 import org.usvm.UBoolExpr
 import org.usvm.UExpr
@@ -23,6 +23,6 @@ internal fun <SetType, KeySort : USort, Reg : Region<Reg>> UWritableMemory<*>.se
         "setUnion is not applicable to $region"
     }
 
-    val newRegion = region.union(srcRef, dstRef, type, keySort, keyInfo, guard)
+    val newRegion = region.union(srcRef, dstRef, guard)
     setRegion(regionId, newRegion)
 }

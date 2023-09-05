@@ -38,8 +38,8 @@ internal class TestState(
 }
 
 interface TestKeyInfo<T, Reg : Region<Reg>> : USymbolicCollectionKeyInfo<T, Reg> {
-    override fun mapKey(key: T, composer: UComposer<*>?): T {
-        if (composer == null) return key
+    override fun mapKey(key: T, transformer: UTransformer<*>?): T {
+        if (transformer == null) return key
         return shouldNotBeCalled()
     }
 

@@ -12,6 +12,11 @@ import org.usvm.collection.map.primitive.UInputMapReading
 import org.usvm.collection.map.ref.UAllocatedRefMapWithInputKeysReading
 import org.usvm.collection.map.ref.UInputRefMapWithAllocatedKeysReading
 import org.usvm.collection.map.ref.UInputRefMapWithInputKeysReading
+import org.usvm.collection.set.primitive.UAllocatedSetReading
+import org.usvm.collection.set.primitive.UInputSetReading
+import org.usvm.collection.set.ref.UAllocatedRefSetWithInputElementsReading
+import org.usvm.collection.set.ref.UInputRefSetWithAllocatedElementsReading
+import org.usvm.collection.set.ref.UInputRefSetWithInputElementsReading
 import org.usvm.regions.Region
 
 interface UTransformer<Type> : KTransformer {
@@ -45,6 +50,16 @@ interface UTransformer<Type> : KTransformer {
 
     fun transform(expr: UInputMapLengthReading<Type>): USizeExpr
 
+    fun <ElemSort : USort, Reg : Region<Reg>> transform(expr: UAllocatedSetReading<Type, ElemSort, Reg>): UBoolExpr
+
+    fun <ElemSort : USort, Reg : Region<Reg>> transform(expr: UInputSetReading<Type, ElemSort, Reg>): UBoolExpr
+
+    fun transform(expr: UAllocatedRefSetWithInputElementsReading<Type>): UBoolExpr
+
+    fun transform(expr: UInputRefSetWithAllocatedElementsReading<Type>): UBoolExpr
+
+    fun transform(expr: UInputRefSetWithInputElementsReading<Type>): UBoolExpr
+
     fun <Sort : USort> transform(expr: UMockSymbol<Sort>): UExpr<Sort>
 
     fun <Method, Sort : USort> transform(expr: UIndexedMethodReturnValue<Method, Sort>): UExpr<Sort>
@@ -64,3 +79,6 @@ abstract class UExprTransformer<Type>(
 
 @Suppress("UNCHECKED_CAST")
 fun <Type> UTransformer<*>.asTypedTransformer() = this as UTransformer<Type>
+
+@Suppress("NOTHING_TO_INLINE")
+inline fun <T : USort> UTransformer<*>?.apply(expr: UExpr<T>) = this?.apply(expr) ?: expr
