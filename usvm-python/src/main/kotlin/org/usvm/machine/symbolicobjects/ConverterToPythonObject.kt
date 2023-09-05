@@ -24,6 +24,7 @@ class ConverterToPythonObject(
     private val constructedObjects = mutableMapOf<UHeapRef, PythonObject>()
     private val virtualObjects = mutableSetOf<Pair<VirtualPythonObject, PythonObject>>()
     private var numberOfUsagesOfVirtualObjects: Int = 0
+    private var strNumber = 0
     init {
         restart()
     }
@@ -34,6 +35,7 @@ class ConverterToPythonObject(
         val defaultObject = constructVirtualObject(InterpretedInputSymbolicPythonObject(nullRef, modelHolder, typeSystem))
         constructedObjects[ctx.nullRef] = defaultObject
         numberOfUsagesOfVirtualObjects = 0
+        strNumber = 0
     }
     fun getPythonVirtualObjects(): Collection<PythonObject> = virtualObjects.map { it.second }
     fun getUSVMVirtualObjects(): Set<VirtualPythonObject> = virtualObjects.map { it.first }.toSet()
@@ -51,6 +53,7 @@ class ConverterToPythonObject(
             typeSystem.pythonNoneType -> ConcretePythonInterpreter.eval(emptyNamespace, "None")
             typeSystem.pythonList -> convertList(obj)
             typeSystem.pythonTuple -> convertTuple(obj)
+            typeSystem.pythonStr -> convertString()
             else -> {
                 if ((type as? ConcretePythonType)?.let { ConcretePythonInterpreter.typeHasStandardNew(it.asObject) } == true)
                     constructFromDefaultConstructor(type)
@@ -60,6 +63,10 @@ class ConverterToPythonObject(
         }
         constructedObjects[obj.address] = result
         return result
+    }
+
+    private fun convertString(): PythonObject {
+        return ConcretePythonInterpreter.eval(emptyNamespace, "'${strNumber++}'")
     }
 
     private fun constructArrayContents(

@@ -62,7 +62,7 @@ class PythonMachine<PythonObjectRepresentation>(
         val symbols = target.signature.mapIndexed { index, type ->
             SymbolForCPython(constructInputObject(index, type, ctx, memory, pathConstraints, typeSystem))
         }
-        val preAllocatedObjects = PreallocatedObjects(ctx, memory, pathConstraints, typeSystem)
+        val preAllocatedObjects = PreallocatedObjects.initialize(ctx, memory, pathConstraints, typeSystem)
         val solverRes = solver.check(pathConstraints)
         if (solverRes !is USatResult)
             error("Failed to construct initial model")

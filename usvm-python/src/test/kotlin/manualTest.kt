@@ -33,11 +33,9 @@ private fun buildSampleRunConfig(): RunConfig {
     val (program, typeSystem) = constructPrimitiveProgram(
         """ 
         def f(x):
-            t = 1, 2, 3, x
-            res = 0
-            for y in t:
-                res += y
-            assert res == 10
+            if isinstance(x, str):
+                return 1
+            return 2
 
         """.trimIndent()
     )
@@ -50,7 +48,7 @@ private fun buildSampleRunConfig(): RunConfig {
 }
 
 private fun buildProjectRunConfig(): RunConfig {
-    val projectPath = "/home/tochilinak/Documents/projects/utbot/Python/sorts"
+    val projectPath = "/home/tochilinak/Documents/projects/utbot/Python/divide_and_conquer"
     val mypyRoot = "/home/tochilinak/Documents/projects/utbot/mypy_tmp"
     val files = getPythonFilesFromRoot(projectPath)
     val modules = getModulesFromFiles(projectPath, files)
@@ -140,9 +138,10 @@ private fun analyze(runConfig: RunConfig) {
                 val iterations = activeMachine.analyze(
                     f,
                     results,
-                    maxIterations = 30,
+                    maxIterations = 60,
                     allowPathDiversion = true,
-                    maxInstructions = 5_000
+                    maxInstructions = 10_000,
+                    timeoutMs = 10_000
                 )
                 results.forEach { (_, inputs, result) ->
                     println("INPUT:")

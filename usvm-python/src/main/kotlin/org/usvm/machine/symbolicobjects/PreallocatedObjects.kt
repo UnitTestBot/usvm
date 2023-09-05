@@ -9,15 +9,11 @@ import org.usvm.machine.UPythonContext
 import org.usvm.memory.UMemory
 
 class PreallocatedObjects(
-    ctx: UPythonContext,
-    initialMemory: UMemory<PythonType, PythonCallable>,
-    initialPathConstraints: UPathConstraints<PythonType, UPythonContext>,
-    typeSystem: PythonTypeSystem
+    val noneObject: UninterpretedSymbolicPythonObject,
+    val trueObject: UninterpretedSymbolicPythonObject,
+    val falseObject: UninterpretedSymbolicPythonObject,
+    private val concreteStrToSymbol: MutableMap<String, UninterpretedSymbolicPythonObject>
 ) {
-    val noneObject = constructEmptyObject(initialMemory, typeSystem, typeSystem.pythonNoneType)
-    val trueObject = constructInitialBool(ctx, initialMemory, initialPathConstraints, typeSystem, ctx.trueExpr)
-    val falseObject = constructInitialBool(ctx, initialMemory, initialPathConstraints, typeSystem, ctx.falseExpr)
-    private val concreteStrToSymbol = mutableMapOf<String, UninterpretedSymbolicPythonObject>()
 
     fun allocateStr(ctx: ConcolicRunContext, string: String): UninterpretedSymbolicPythonObject {
         require(ctx.curState != null)
@@ -27,5 +23,28 @@ class PreallocatedObjects(
         val result = constructEmptyObject(ctx.curState!!.memory, ctx.typeSystem, ctx.typeSystem.pythonStr)
         concreteStrToSymbol[string] = result
         return result
+    }
+
+    fun clone(): PreallocatedObjects =
+        PreallocatedObjects(
+            noneObject,
+            trueObject,
+            falseObject,
+            concreteStrToSymbol.toMutableMap()
+        )
+
+    companion object {
+        fun initialize(
+            ctx: UPythonContext,
+            initialMemory: UMemory<PythonType, PythonCallable>,
+            initialPathConstraints: UPathConstraints<PythonType, UPythonContext>,
+            typeSystem: PythonTypeSystem
+        ): PreallocatedObjects =
+            PreallocatedObjects(
+                noneObject = constructEmptyObject(initialMemory, typeSystem, typeSystem.pythonNoneType),
+                trueObject = constructInitialBool(ctx, initialMemory, initialPathConstraints, typeSystem, ctx.trueExpr),
+                falseObject = constructInitialBool(ctx, initialMemory, initialPathConstraints, typeSystem, ctx.falseExpr),
+                concreteStrToSymbol = mutableMapOf()
+            )
     }
 }
