@@ -1,7 +1,6 @@
 package org.usvm.machine.interpreters.operations
 
 import org.usvm.*
-import org.usvm.api.readArrayIndex
 import org.usvm.api.readArrayLength
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.types.ArrayType
@@ -30,13 +29,24 @@ fun handlerTupleIteratorNextKt(
     if (ctx.curState == null)
         return null
     val typeSystem = ctx.typeSystem
-    val arrayType = ArrayType(typeSystem)
     val (tuple, index) = iterator.getTupleIteratorContent(ctx)
-    val tupleSize = ctx.curState!!.memory.readArrayLength(tuple, arrayType)
+    val tupleSize = ctx.curState!!.memory.readArrayLength(tuple, ArrayType)
     val indexCond = index lt tupleSize
     if (ctx.curState!!.pyModel.eval(indexCond).isFalse)
         return null
     iterator.increaseTupleIteratorCounter(ctx)
-    val address = ctx.curState!!.memory.readArrayIndex(tuple, index, arrayType, addressSort)
-    return UninterpretedSymbolicPythonObject(address, typeSystem)
+    val tupleObject = UninterpretedSymbolicPythonObject(tuple, typeSystem)
+    return tupleObject.readElement(ctx, index)
+}
+
+fun handlerUnpackKt(ctx: ConcolicRunContext, iterable: UninterpretedSymbolicPythonObject, count: Int) = with(ctx.ctx) {
+    if (ctx.curState == null)
+        return
+    val typeSystem = ctx.typeSystem
+    if (iterable.getTypeIfDefined(ctx) != typeSystem.pythonTuple) {
+        myFork(ctx, iterable.evalIs(ctx, typeSystem.pythonTuple))
+        return
+    }
+    val tupleSize = ctx.curState!!.memory.readArrayLength(iterable.address, ArrayType)
+    myFork(ctx, tupleSize eq mkIntNum(count))
 }

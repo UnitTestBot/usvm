@@ -41,12 +41,28 @@ abstract class PythonTypeSystem: UTypeSystem<PythonType> {
     protected var allConcreteTypes: List<ConcretePythonType> = emptyList()
     protected val addressToConcreteType = mutableMapOf<PythonObject, ConcretePythonType>()
     private val concreteTypeToAddress = mutableMapOf<ConcretePythonType, PythonObject>()
-    protected fun addType(getter: () -> PythonObject): ConcretePythonType {
-        val address = getter()
-        require(ConcretePythonInterpreter.getPythonObjectTypeName(address) == "type")
-        val type = ConcretePythonType(this, ConcretePythonInterpreter.getNameOfPythonType(address), getter)
+    private fun addType(type: ConcretePythonType, address: PythonObject) {
         addressToConcreteType[address] = type
         concreteTypeToAddress[type] = address
+    }
+    protected fun addPrimitiveType(isHidden: Boolean, getter: () -> PythonObject): ConcretePythonType {
+        val address = getter()
+        require(ConcretePythonInterpreter.getPythonObjectTypeName(address) == "type")
+        val type = PrimitiveConcretePythonType(this, ConcretePythonInterpreter.getNameOfPythonType(address), isHidden, getter)
+        addType(type, address)
+        return type
+    }
+
+    private fun addArrayLikeType(constraints: Set<ElementConstraint>, getter: () -> PythonObject): ArrayLikeConcretePythonType {
+        val address = getter()
+        require(ConcretePythonInterpreter.getPythonObjectTypeName(address) == "type")
+        val type = ArrayLikeConcretePythonType(
+            constraints,
+            this,
+            ConcretePythonInterpreter.getNameOfPythonType(address),
+            getter
+        )
+        addType(type, address)
         return type
     }
 
@@ -69,28 +85,25 @@ abstract class PythonTypeSystem: UTypeSystem<PythonType> {
         return USupportTypeStream.from(this, PythonAnyType)
     }
 
-    private fun createConcreteTypeByName(name: String): ConcretePythonType =
-        addType { ConcretePythonInterpreter.eval(emptyNamespace, name) }
+    private fun createConcreteTypeByName(name: String, isHidden: Boolean = false): ConcretePythonType =
+        addPrimitiveType(isHidden) { ConcretePythonInterpreter.eval(emptyNamespace, name) }
+
+    private fun createArrayLikeTypeByName(name: String, constraints: Set<ElementConstraint>): ArrayLikeConcretePythonType =
+        addArrayLikeType(constraints) { ConcretePythonInterpreter.eval(emptyNamespace, name) }
 
     val pythonInt = createConcreteTypeByName("int")
     val pythonBool = createConcreteTypeByName("bool")
     val pythonObjectType = createConcreteTypeByName("object")
     val pythonNoneType = createConcreteTypeByName("type(None)")
-    val pythonList = createConcreteTypeByName("list")
-    val pythonListIteratorType = createConcreteTypeByName("type(iter([]))")
-    val pythonTuple = createConcreteTypeByName("tuple")
-    val pythonTupleIteratorType = createConcreteTypeByName("type(iter(tuple()))")
-    val pythonRange = createConcreteTypeByName("range")
-    val pythonRangeIterator = createConcreteTypeByName("type(range(1).__iter__())")
-    val pythonStr = createConcreteTypeByName("str")
+    val pythonList = createArrayLikeTypeByName("list", emptySet())
+    val pythonListIteratorType = createConcreteTypeByName("type(iter([]))", isHidden = true)
+    val pythonTuple = createArrayLikeTypeByName("tuple", setOf(NonRecursiveConstraint))
+    val pythonTupleIteratorType = createConcreteTypeByName("type(iter(tuple()))", isHidden = true)
+    val pythonRange = createConcreteTypeByName("range", isHidden = true)
+    val pythonRangeIterator = createConcreteTypeByName("type(range(1).__iter__())", isHidden = true)
+    val pythonStr = createConcreteTypeByName("str", isHidden = true)
 
-    protected val basicTypes: List<ConcretePythonType> = listOf(
-        pythonInt,
-        pythonBool,
-        pythonObjectType,
-        pythonNoneType,
-        pythonList
-    )
+    protected val basicTypes: List<ConcretePythonType> = concreteTypeToAddress.keys.filter { !it.isHidden }
     protected val basicTypeRefs: List<PythonObject> = basicTypes.map(::addressOfConcreteType)
 
     fun restart() {
@@ -150,7 +163,7 @@ class PythonTypeSystemWithMypyInfo(
                     return@mapNotNull null
                 }
 
-                addType(refGetter).also { concreteType ->
+                addPrimitiveType(isHidden = false, refGetter).also { concreteType ->
                     utTypeOfConcretePythonType[concreteType] = utType
                 }
             }

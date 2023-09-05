@@ -11,7 +11,7 @@ import org.usvm.language.types.MockType
 import org.usvm.machine.PythonExecutionState
 import org.usvm.model.UModelBase
 
-class PyModel(val uModel: UModelBase<PythonType>) {
+class PyModelWrapper(val uModel: UModelBase<PythonType>) {
     fun <Sort : USort> eval(expr: UExpr<Sort>): KInterpretedValue<Sort> =
         uModel.eval(expr) as KInterpretedValue<Sort>
 
@@ -19,7 +19,7 @@ class PyModel(val uModel: UModelBase<PythonType>) {
         uModel.readField(ref, field, sort) as KInterpretedValue<Sort>
 
     override fun equals(other: Any?): Boolean {
-        if (other !is PyModel)
+        if (other !is PyModelWrapper)
             return false
         return uModel == other.uModel
     }
@@ -48,9 +48,9 @@ class PyModel(val uModel: UModelBase<PythonType>) {
     }
 }
 
-class PyModelHolder(var model: PyModel)
+class PyModelHolder(var model: PyModelWrapper)
 
-fun substituteModel(state: PythonExecutionState, newModel: PyModel, constraint: UBoolExpr, ctx: ConcolicRunContext) {
+fun substituteModel(state: PythonExecutionState, newModel: PyModelWrapper, constraint: UBoolExpr, ctx: ConcolicRunContext) {
     state.models = listOf(newModel.uModel)
     state.pathConstraints += constraint
     ctx.modelHolder.model = newModel

@@ -8,7 +8,7 @@ import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.interpretSymbolicPythonObject
 import org.usvm.types.UTypeStream
 
-fun getLeafHeapRef(ref: UHeapRef, model: PyModel): UHeapRef =
+fun getLeafHeapRef(ref: UHeapRef, model: PyModelWrapper): UHeapRef =
     when (ref) {
         is UConcreteHeapRef -> ref
         is UNullRef -> ref

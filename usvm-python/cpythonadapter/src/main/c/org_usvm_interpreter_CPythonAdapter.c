@@ -305,6 +305,14 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_makeList(JNIEnv
     return (jlong) result;
 }
 
+JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_allocateTuple(JNIEnv *env, jobject _, jint size) {
+    return (jlong) PyTuple_New(size);
+}
+
+JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_setTupleElement(JNIEnv *env, jobject _, jlong tuple_ref, jint index, jlong elem_ref) {
+    PyTuple_SetItem((PyObject *) tuple_ref, index, (PyObject *) elem_ref);
+}
+
 #define QUERY_TYPE_HAS_PREFIX \
     if (Py_TYPE(type_ref) != &PyType_Type) \
             return -1; \

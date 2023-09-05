@@ -2,13 +2,13 @@ package org.usvm.machine.interpreters.operations
 
 import org.usvm.*
 import org.usvm.interpreter.ConcolicRunContext
-import org.usvm.machine.*
 import org.usvm.language.*
 import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.PythonObject
 import org.usvm.machine.interpreters.emptyNamespace
+import org.usvm.machine.model.constructModelWithNewMockEvaluator
 import org.usvm.machine.symbolicobjects.*
-import org.usvm.machine.utils.PyModel
+import org.usvm.machine.utils.PyModelWrapper
 import org.usvm.machine.utils.substituteModel
 
 fun virtualNbBoolKt(context: ConcolicRunContext, on: VirtualPythonObject): Boolean {
@@ -25,12 +25,14 @@ fun virtualNbBoolKt(context: ConcolicRunContext, on: VirtualPythonObject): Boole
                 context.ctx,
                 oldModel,
                 mockSymbol,
+                context.typeSystem,
                 falseObject as UConcreteHeapRef
             ),
             constructModelWithNewMockEvaluator(
                 context.ctx,
                 oldModel,
                 mockSymbol,
+                context.typeSystem,
                 trueObject as UConcreteHeapRef
             )
         )
@@ -65,7 +67,7 @@ fun virtualSqLengthKt(context: ConcolicRunContext, on: VirtualPythonObject): Int
 
 private fun internalVirtualCallKt(
     context: ConcolicRunContext,
-    customNewModelsCreation: (UMockSymbol<UAddressSort>) -> List<Pair<PyModel, UBoolExpr>> = { emptyList() }
+    customNewModelsCreation: (UMockSymbol<UAddressSort>) -> List<Pair<PyModelWrapper, UBoolExpr>> = { emptyList() }
 ): Pair<InterpretedSymbolicPythonObject, UninterpretedSymbolicPythonObject> = with(context.ctx) {
     context.curOperation ?: throw UnregisteredVirtualOperation
     context.curState ?: throw UnregisteredVirtualOperation
@@ -83,7 +85,7 @@ private fun internalVirtualCallKt(
         val customNewModels = customNewModelsCreation(mockSymbol)
         val (newModel, constraint) =
             if (customNewModels.isEmpty())
-                constructModelWithNewMockEvaluator(context.ctx, context.modelHolder.model, mockSymbol)
+                constructModelWithNewMockEvaluator(context.ctx, context.modelHolder.model, mockSymbol, context.typeSystem)
             else
                 customNewModels.first()
 

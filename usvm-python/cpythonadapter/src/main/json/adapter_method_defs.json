@@ -36,6 +36,18 @@
     "default_value": "0"
   },
   {
+    "c_name": "unpack",
+    "nargs": 2,
+    "c_arg_types": ["PyObject *", "int"],
+    "c_return_type": "int",
+    "java_arg_types": ["jobject", "jint"],
+    "java_return_type": "void",
+    "argument_converters": ["object_converter", "int_converter"],
+    "result_converter": "",
+    "fail_value": "-1",
+    "default_value": "0"
+  },
+  {
     "c_name": "is_op",
     "nargs": 2,
     "c_arg_types": ["PyObject *", "PyObject *"],
