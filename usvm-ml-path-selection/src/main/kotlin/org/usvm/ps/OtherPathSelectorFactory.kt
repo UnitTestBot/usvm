@@ -20,18 +20,26 @@ fun <Method, Statement, State : UState<*, Method, Statement, *, State>> otherCre
 
     val selectors = strategies.map { strategy ->
         when (strategy) {
-            OtherPathSelectionStrategy.BFS_WITH_LOGGING -> BfsWithLoggingPathSelector(
+            OtherPathSelectionStrategy.FEATURE_LOGGING -> FeatureLoggingPathSelector(
                 requireNotNull(initialState.pathLocation.parent) { "Paths tree root is required for BFS with logging path selector" },
                 requireNotNull(coverageStatistics()) { "Coverage statistics is required for BFS with logging path selector" },
                 requireNotNull(distanceStatistics()) { "Distance statistics is required for BFS with logging path selector" },
-                requireNotNull(applicationGraph()) { "Application graph is required for BFS with logging path selector" }
+                requireNotNull(applicationGraph()) { "Application graph is required for BFS with logging path selector" },
+                when(MLConfig.defaultAlgorithm) {
+                    Algorithm.BFS -> BfsPathSelector()
+                    Algorithm.ForkDepthRandom -> BfsPathSelector()
+                },
             )
 
-            OtherPathSelectionStrategy.INFERENCE_WITH_LOGGING -> InferencePathSelector(
+            OtherPathSelectionStrategy.MACHINE_LEARNING -> MachineLearningPathSelector(
                 requireNotNull(initialState.pathLocation.parent) { "Paths tree root is required for Inference with logging path selector" },
                 requireNotNull(coverageStatistics()) { "Coverage statistics is required for Inference with logging path selector" },
                 requireNotNull(distanceStatistics()) { "Distance statistics is required for Inference with logging path selector" },
-                requireNotNull(applicationGraph()) { "Application graph is required for Inference with logging path selector" }
+                requireNotNull(applicationGraph()) { "Application graph is required for Inference with logging path selector" },
+                when(MLConfig.defaultAlgorithm) {
+                    Algorithm.BFS -> BfsPathSelector()
+                    Algorithm.ForkDepthRandom -> BfsPathSelector()
+                },
             )
         }
     }

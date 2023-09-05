@@ -1,8 +1,15 @@
 package org.usvm
 
 enum class OtherPathSelectionStrategy {
-    BFS_WITH_LOGGING,
-    INFERENCE_WITH_LOGGING,
+    /**
+     * Collects features according to states selected by any other path selector.
+     */
+    FEATURE_LOGGING,
+    /**
+     * Collects features and feeds them to the ML model to select states.
+     * Extends FEATURE_LOGGING path selector.
+     */
+    MACHINE_LEARNING,
 }
 
 data class OtherUMachineOptions(
@@ -12,7 +19,7 @@ data class OtherUMachineOptions(
      *
      * @see PathSelectionStrategy
      */
-    val pathSelectionStrategies: List<OtherPathSelectionStrategy> = listOf(OtherPathSelectionStrategy.INFERENCE_WITH_LOGGING),
+    val pathSelectionStrategies: List<OtherPathSelectionStrategy> = listOf(OtherPathSelectionStrategy.MACHINE_LEARNING),
     /**
      * Strategy to combine multiple [pathSelectionStrategies].
      *

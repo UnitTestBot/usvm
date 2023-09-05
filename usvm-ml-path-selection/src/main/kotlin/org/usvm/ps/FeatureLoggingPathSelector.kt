@@ -4,45 +4,24 @@ import io.github.rchowell.dotlin.digraph
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.*
-import org.usvm.PathsTrieNode
-import org.usvm.UPathSelector
-import org.usvm.UState
-import org.usvm.GraphUpdate
-import org.usvm.MainConfig
+import org.usvm.*
 import org.usvm.statistics.ApplicationGraph
 import org.usvm.statistics.CoverageStatistics
 import org.usvm.statistics.DistanceStatistics
+import org.usvm.util.*
 import java.io.File
 import java.nio.file.Path
 import kotlin.io.path.Path
 import kotlin.io.path.writeText
-import kotlin.math.log
 
-private const val LOG_BASE = 1.42
-
-private fun Collection<Float>.average(): Float {
-    return this.sumOf { it.toDouble() }.toFloat() / this.size
-}
-
-private fun Number.log(): Float {
-    return log(this.toDouble() + 1, LOG_BASE).toFloat()
-}
-
-private fun UInt.log(): Float {
-    return this.toDouble().log()
-}
-
-private fun <T> List<T>.getLast(count: Int): List<T> {
-    return this.subList(this.size - count, this.size)
-}
 @Suppress("LeakingThis")
-open class BfsWithLoggingPathSelector<State : UState<*, Method, Statement, *, State>, Statement, Method>(
+open class FeatureLoggingPathSelector<State : UState<*, Method, Statement, *, State>, Statement, Method>(
     private val pathsTreeRoot: PathsTrieNode<State, Statement>,
     private val coverageStatistics: CoverageStatistics<Method, Statement, State>,
     private val distanceStatistics: DistanceStatistics<Method, Statement>,
-    private val applicationGraph: ApplicationGraph<Method, Statement>
+    private val applicationGraph: ApplicationGraph<Method, Statement>,
+    private val pathSelector: UPathSelector<State>
 ) : UPathSelector<State> {
-    protected val queue = ArrayDeque<State>()
     protected val lru = mutableListOf<State>()
 
     private val allStatements: List<Statement>
@@ -52,13 +31,13 @@ open class BfsWithLoggingPathSelector<State : UState<*, Method, Statement, *, St
     protected val path = mutableListOf<ActionData>()
     protected val probabilities = mutableListOf<List<Float>>()
 
-    private val filepath = Path(MainConfig.dataPath, "jsons").toString()
+    private val filepath = Path(MLConfig.dataPath, "jsons").toString()
     protected val method: Method
     private val filename: String
 
     private var stepCount = 0
-    private val graphsPath = Path(MainConfig.gameEnvPath, "graphs").toString()
-    private val blockGraphsPath = Path(MainConfig.gameEnvPath, "block_graphs").toString()
+    private val graphsPath = Path(MLConfig.gameEnvPath, "graphs").toString()
+    private val blockGraphsPath = Path(MLConfig.gameEnvPath, "block_graphs").toString()
 
     private val penalty = 0.0f
     private var finishedStatesCount = 0u
@@ -84,9 +63,9 @@ open class BfsWithLoggingPathSelector<State : UState<*, Method, Statement, *, St
     protected class BlockGraph<Method, Statement>(
         private val applicationGraph: ApplicationGraph<Method, Statement>,
         initialStatement: Statement,
-        private val pathSelector: BfsWithLoggingPathSelector<*, Statement, Method>
+        private val pathSelector: FeatureLoggingPathSelector<*, Statement, Method>
     ) {
-        val root: Block<Statement>
+        private val root: Block<Statement>
         private val successorsMap = mutableMapOf<Block<Statement>, List<Statement>>().withDefault { listOf() }
         private val predecessorsMap = mutableMapOf<Block<Statement>, MutableList<Statement>>()
             .withDefault { mutableListOf() }
@@ -172,7 +151,7 @@ open class BfsWithLoggingPathSelector<State : UState<*, Method, Statement, *, St
             return predecessorsMap.getValue(block).map { coveredStatements[it]!! }
         }
 
-        fun successors(block: Block<Statement>): List<Block<Statement>> {
+        private fun successors(block: Block<Statement>): List<Block<Statement>> {
             return successorsMap.getValue(block).map { coveredStatements[it]!! }
         }
 
@@ -226,7 +205,7 @@ open class BfsWithLoggingPathSelector<State : UState<*, Method, Statement, *, St
                 treeQueue.addAll(successors.filter { !visitedBlocks.contains(it) })
                 visitedBlocks.addAll(successors)
             }
-            val graph = digraph ("BlockGraph") {
+            val graph = digraph("BlockGraph") {
                 nodes.forEach { node ->
                     val nodeName = node.toString()
                     +nodeName
@@ -263,26 +242,8 @@ open class BfsWithLoggingPathSelector<State : UState<*, Method, Statement, *, St
             blockGraph.blockList.add(this)
         }
 
-        private fun escape(input: String): String {
-            val result = StringBuilder(input.length)
-            input.forEach { ch ->
-                result.append(when (ch) {
-                    '\n' -> "\\n"
-                    '\t' -> "\\t"
-                    '\b' -> "\\b"
-                    '\r' -> "\\r"
-                    '\"' -> "\\\""
-                    '\'' -> "\\\'"
-                    '\\' -> "\\\\"
-                    '$' -> "\\$"
-                    else -> ch
-                })
-            }
-            return result.toString()
-        }
-
         override fun toString(): String {
-            return "\"${id}: ${path.map { escape(it.toString()) }}\""
+            return "\"${id}: ${path.map { it.toString().escape() }}\""
         }
     }
 
@@ -311,7 +272,7 @@ open class BfsWithLoggingPathSelector<State : UState<*, Method, Statement, *, St
     )
 
     @Serializable
-    protected data class GlobalStateFeatures( // TODO std
+    protected data class GlobalStateFeatures(
         val averageLogLogicalConstraintsLength: Float = 0.0f,
         val averageLogStateTreeDepth: Float = 0.0f,
         val averageLogStatementRepetitionLocal: Float = 0.0f,
@@ -353,20 +314,20 @@ open class BfsWithLoggingPathSelector<State : UState<*, Method, Statement, *, St
                 jsonFormat.encodeToJsonElement(GlobalStateFeatures()).jsonObject.forEach { t, _ ->
                     add(t)
                 }
-                if (MainConfig.useGnn) {
-                    (0 until MainConfig.gnnFeaturesCount).forEach {
+                if (MLConfig.useGnn) {
+                    (0 until MLConfig.gnnFeaturesCount).forEach {
                         add("gnnFeature$it")
                     }
                 }
-                if (MainConfig.useRnn) {
-                    (0 until MainConfig.rnnFeaturesCount).forEach {
+                if (MLConfig.useRnn) {
+                    (0 until MLConfig.rnnFeaturesCount).forEach {
                         add("rnnFeature$it")
                     }
                 }
             }
             add("chosenStateId")
             add("reward")
-            if (MainConfig.logGraphFeatures) {
+            if (MLConfig.logGraphFeatures) {
                 add("graphId")
                 add("blockIds")
             }
@@ -376,7 +337,7 @@ open class BfsWithLoggingPathSelector<State : UState<*, Method, Statement, *, St
             add("trajectory")
             add("name")
             add("statementsCount")
-            if (MainConfig.logGraphFeatures) {
+            if (MLConfig.logGraphFeatures) {
                 add("graphFeatures")
                 add("graphEdges")
             }
@@ -451,7 +412,8 @@ open class BfsWithLoggingPathSelector<State : UState<*, Method, Statement, *, St
 
     protected open fun getReward(state: State): Float {
         return if (!visitedStatements.contains(state.currentStatement) &&
-            allStatements.contains(state.currentStatement)) 1.0f else -penalty
+            allStatements.contains(state.currentStatement)
+        ) 1.0f else -penalty
     }
 
     private fun getStateFeatures(state: State): StateFeatures {
@@ -488,7 +450,7 @@ open class BfsWithLoggingPathSelector<State : UState<*, Method, Statement, *, St
 
         val reward = getReward(state)
 
-        return StateFeatures (
+        return StateFeatures(
             predecessorsCount.log(),
             successorsCount.log(),
             calleesCount.log(),
@@ -550,11 +512,13 @@ open class BfsWithLoggingPathSelector<State : UState<*, Method, Statement, *, St
         return listOf()
     }
 
-    private fun getActionData(stateFeatureQueue: List<StateFeatures>,
-                              globalStateFeatures: GlobalStateFeatures,
-                              chosenState: State): ActionData {
+    private fun getActionData(
+        stateFeatureQueue: List<StateFeatures>,
+        globalStateFeatures: GlobalStateFeatures,
+        chosenState: State
+    ): ActionData {
         val stateId = lru.indexOfFirst { it.id == chosenState.id }
-        return ActionData (
+        return ActionData(
             stateFeatureQueue,
             globalStateFeatures,
             stateId,
@@ -648,7 +612,7 @@ open class BfsWithLoggingPathSelector<State : UState<*, Method, Statement, *, St
                         }
                         add(actionData.chosenStateId)
                         add(actionData.reward)
-                        if (MainConfig.logGraphFeatures) {
+                        if (MLConfig.logGraphFeatures) {
                             add(actionData.graphId)
                             addJsonArray {
                                 actionData.blockIds.forEach {
@@ -660,11 +624,11 @@ open class BfsWithLoggingPathSelector<State : UState<*, Method, Statement, *, St
                 }
             }
             put("statementsCount", allStatements.size)
-            if (MainConfig.logGraphFeatures) {
+            if (MLConfig.logGraphFeatures) {
                 putJsonArray("graphFeatures") {
-                    graphFeaturesList.forEach {  graphFeatures ->
+                    graphFeaturesList.forEach { graphFeatures ->
                         addJsonArray {
-                            graphFeatures.forEach {nodeFeatures ->
+                            graphFeatures.forEach { nodeFeatures ->
                                 addJsonArray {
                                     jsonFormat.encodeToJsonElement(nodeFeatures).jsonObject.forEach { _, u ->
                                         add(u)
@@ -729,7 +693,7 @@ open class BfsWithLoggingPathSelector<State : UState<*, Method, Statement, *, St
         } catch (e: UnsupportedOperationException) {
             "No Statement"
         }
-        var name = "\"$id: $statement"
+        var name = "\"$id: ${statement.toString().escape()}"
         node.states.forEach { state ->
             name += ", ${state.id}"
         }
@@ -749,7 +713,7 @@ open class BfsWithLoggingPathSelector<State : UState<*, Method, Statement, *, St
         val nodeNames = nodes.zip(nodes.indices).associate { (node, id) ->
             Pair(node, getNodeName(node, id))
         }.withDefault { "" }
-        val graph = digraph ("step$stepCount") {
+        val graph = digraph("step$stepCount") {
             nodes.forEach { node ->
                 val nodeName = nodeNames.getValue(node)
                 +nodeName
@@ -766,20 +730,20 @@ open class BfsWithLoggingPathSelector<State : UState<*, Method, Statement, *, St
     }
 
     protected fun beforePeek(): Pair<List<StateFeatures>, GlobalStateFeatures> {
-        if (MainConfig.graphUpdate == GraphUpdate.TestGeneration && (path.lastOrNull()?.reward ?: 0.0f) > 0.5f) {
+        if (MLConfig.graphUpdate == GraphUpdate.TestGeneration && (path.lastOrNull()?.reward ?: 0.0f) > 0.5f) {
             graphFeaturesList.add(blockGraph.getGraphFeatures())
         }
         val stateFeatureQueue = getStateFeatureQueue()
         return Pair(stateFeatureQueue, getGlobalStateFeatures(stateFeatureQueue))
     }
 
-    protected fun afterPeek(state: State,
-                            stateFeatureQueue: List<StateFeatures>,
-                            globalStateFeatures: GlobalStateFeatures
+    protected fun afterPeek(
+        state: State,
+        stateFeatureQueue: List<StateFeatures>,
+        globalStateFeatures: GlobalStateFeatures
     ) {
         val actionData = getActionData(stateFeatureQueue, globalStateFeatures, state)
         path.add(actionData)
-//        savePath()
         updateCoverage(state)
         if (stepCount < 100) {
             saveGraph()
@@ -788,40 +752,33 @@ open class BfsWithLoggingPathSelector<State : UState<*, Method, Statement, *, St
         lru.add(state)
     }
 
-    override fun isEmpty() = lru.isEmpty()
+    override fun isEmpty(): Boolean {
+        pathSelector.isEmpty()
+        return lru.isEmpty()
+    }
 
     override fun peek(): State {
         val (stateFeatureQueue, globalStateFeatures) = beforePeek()
-        val state = queue.first()
+        val state = pathSelector.peek()
         afterPeek(state, stateFeatureQueue, globalStateFeatures)
         return state
     }
 
     override fun update(state: State) {
-        if (state === queue.first()) {
-            queue.removeFirst()
-            queue.addLast(state)
-        }
+        pathSelector.update(state)
     }
 
     override fun add(states: Collection<State>) {
-        if (states.isEmpty()) {
-            return
-        }
-        queue.addAll(states)
+        pathSelector.add(states)
         lru.addAll(states)
         allStatesCount += states.size.toUInt()
     }
 
     override fun remove(state: State) {
-        when (state) {
-            queue.last() -> queue.removeLast() // fast remove from the tail
-            queue.first() -> queue.removeFirst() // fast remove from the head
-            else -> queue.remove(state)
-        }
+        pathSelector.remove(state)
         lru.remove(state)
         finishedStatesCount += 1u
-        state.reversedPath.asSequence().toSet().forEach {  statement ->
+        state.reversedPath.asSequence().toSet().forEach { statement ->
             statementFinishCounts[statement] = statementFinishCounts.getValue(statement) + 1u
         }
 

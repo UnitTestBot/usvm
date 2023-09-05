@@ -73,7 +73,7 @@ abstract class OtherUMachine<State> : AutoCloseable {
 
         if (pathSelector is CoverageCounterPathSelector<*, *>) {
             pathSelector.finishTest()
-            if (MainConfig.logFeatures && MainConfig.mode != Mode.Test) {
+            if (MLConfig.logFeatures && MLConfig.mode != Mode.Test) {
                 pathSelector.savePath()
             }
         }

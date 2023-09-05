@@ -23,8 +23,7 @@ enum class GraphUpdate {
     TestGeneration,
 }
 
-object MainConfig {
-    var samplesPath = "../Game_env/usvm-jvm/src/samples/java"
+object MLConfig {
     var gameEnvPath = "../Game_env"
     var dataPath = "../Data"
     var defaultAlgorithm = Algorithm.BFS
@@ -48,5 +47,5 @@ object MainConfig {
     var rnnFeaturesCount = 33
     var inputJars = mapOf(
         Pair("../Game_env/jars/usvm-jvm-new.jar", listOf("org.usvm.samples", "com.thealgorithms"))
-    ) // jar file -> package name
+    ) // path to jar file -> list of package names
 }

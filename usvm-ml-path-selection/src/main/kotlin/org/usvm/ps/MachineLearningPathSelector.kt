@@ -4,54 +4,47 @@ import ai.onnxruntime.OnnxTensor
 import ai.onnxruntime.OrtEnvironment
 import ai.onnxruntime.OrtSession
 import org.usvm.*
-import org.usvm.Algorithm
-import org.usvm.MainConfig
-import org.usvm.Postprocessing
-import org.usvm.statistics.*
-import org.usvm.util.RandomizedPriorityCollection
+import org.usvm.statistics.ApplicationGraph
+import org.usvm.statistics.CoverageStatistics
+import org.usvm.statistics.DistanceStatistics
+import org.usvm.util.escape
 import java.io.File
-import java.lang.UnsupportedOperationException
 import java.nio.FloatBuffer
 import java.nio.LongBuffer
 import java.text.DecimalFormat
 import kotlin.io.path.Path
 import kotlin.math.exp
-import kotlin.math.max
 import kotlin.random.Random
 
-open class InferencePathSelector<State : UState<*, Method, Statement, *, State>, Statement, Method> (
+open class MachineLearningPathSelector<State : UState<*, Method, Statement, *, State>, Statement, Method>(
     pathsTreeRoot: PathsTrieNode<State, Statement>,
     private val coverageStatistics: CoverageStatistics<Method, Statement, State>,
     distanceStatistics: DistanceStatistics<Method, Statement>,
-    private val applicationGraph: ApplicationGraph<Method, Statement>
-) : BfsWithLoggingPathSelector<State, Statement, Method>(
+    private val applicationGraph: ApplicationGraph<Method, Statement>,
+    private val defaultPathSelector: UPathSelector<State>
+) : FeatureLoggingPathSelector<State, Statement, Method>(
     pathsTreeRoot,
     coverageStatistics,
     distanceStatistics,
-    applicationGraph
+    applicationGraph,
+    defaultPathSelector,
 ) {
     private var outputValues = listOf<Float>()
     private val random = Random(java.time.LocalDateTime.now().nano)
     private val gnnFeaturesList = mutableListOf<List<List<Float>>>()
-    private var lastStateFeatures = List(MainConfig.rnnStateShape.reduce { acc, l -> acc * l}.toInt()) { 0.0f }
-    private var rnnFeatures = if (MainConfig.useRnn) List(MainConfig.rnnFeaturesCount) { 0.0f } else emptyList()
-
-    private fun <State : UState<*, *, *, *, State>> compareById(): Comparator<State> = compareBy { it.id }
-    private val forkDepthRandomPathSelector = WeightedPathSelector<State, Double>(
-        { RandomizedPriorityCollection(compareById()) { random.nextDouble() } },
-        { 1.0 / max(it.pathLocation.depth.toDouble(), 1.0) }
-    )
+    private var lastStateFeatures = List(MLConfig.rnnStateShape.reduce { acc, l -> acc * l }.toInt()) { 0.0f }
+    private var rnnFeatures = if (MLConfig.useRnn) List(MLConfig.rnnFeaturesCount) { 0.0f } else emptyList()
 
     companion object {
         private val env: OrtEnvironment = OrtEnvironment.getEnvironment()
-        private val actorModelPath = Path(MainConfig.gameEnvPath, "actor_model.onnx").toString()
-        private val gnnModelPath = Path(MainConfig.gameEnvPath, "gnn_model.onnx").toString()
-        private val rnnModelPath = Path(MainConfig.gameEnvPath, "rnn_cell.onnx").toString()
+        private val actorModelPath = Path(MLConfig.gameEnvPath, "actor_model.onnx").toString()
+        private val gnnModelPath = Path(MLConfig.gameEnvPath, "gnn_model.onnx").toString()
+        private val rnnModelPath = Path(MLConfig.gameEnvPath, "rnn_cell.onnx").toString()
         private var actorSession: OrtSession? = if (File(actorModelPath).isFile)
             env.createSession(actorModelPath) else null
-        private var gnnSession: OrtSession? = if (MainConfig.useGnn)
+        private var gnnSession: OrtSession? = if (MLConfig.useGnn)
             env.createSession(gnnModelPath) else null
-        private var rnnSession: OrtSession? = if (MainConfig.useRnn)
+        private var rnnSession: OrtSession? = if (MLConfig.useRnn)
             env.createSession(rnnModelPath) else null
     }
 
@@ -59,9 +52,10 @@ open class InferencePathSelector<State : UState<*, Method, Statement, *, State>,
         val statement = state.currentStatement
         if (statement === null ||
             (applicationGraph.successors(statement).toList().size +
-             applicationGraph.callees(statement).toList().size != 0) ||
+                    applicationGraph.callees(statement).toList().size != 0) ||
             applicationGraph.methodOf(statement) != method ||
-            state.callStack.size != 1) {
+            state.callStack.size != 1
+        ) {
             return 0.0f
         }
         return coverageStatistics.getUncoveredStatements().map { it.second }.toSet()
@@ -74,7 +68,7 @@ open class InferencePathSelector<State : UState<*, Method, Statement, *, State>,
         } catch (e: UnsupportedOperationException) {
             "No Statement"
         }
-        var name = "\"$id: $statement"
+        var name = "\"$id: ${statement.toString().escape()}"
         node.states.forEach { state ->
             name += ", ${DecimalFormat("0.00E0").format(outputValues.getOrElse(lru.indexOf(state)) { -1.0f })}"
         }
@@ -112,7 +106,7 @@ open class InferencePathSelector<State : UState<*, Method, Statement, *, State>,
             }
         }
         featuresDataBuffer.rewind()
-        val edgesDataBuffer = LongBuffer.allocate(edgesShape.reduce { acc, i -> acc * i})
+        val edgesDataBuffer = LongBuffer.allocate(edgesShape.reduce { acc, i -> acc * i })
         graphEdges.forEach { nodes ->
             nodes.forEach { node ->
                 edgesDataBuffer.put(node.toLong())
@@ -121,10 +115,12 @@ open class InferencePathSelector<State : UState<*, Method, Statement, *, State>,
         edgesDataBuffer.rewind()
         val featuresData = OnnxTensor.createTensor(
             env, featuresDataBuffer,
-            featuresShape.map { it.toLong() }.toLongArray())
+            featuresShape.map { it.toLong() }.toLongArray()
+        )
         val edgesData = OnnxTensor.createTensor(
             env, edgesDataBuffer,
-            edgesShape.map { it.toLong() }.toLongArray())
+            edgesShape.map { it.toLong() }.toLongArray()
+        )
         val result = gnnSession!!.run(mapOf(Pair("x", featuresData), Pair("edge_index", edgesData)))
         val output = (result.get("output").get().value as Array<*>).map {
             (it as FloatArray).toList()
@@ -144,12 +140,15 @@ open class InferencePathSelector<State : UState<*, Method, Statement, *, State>,
         val lastChosenAction = lastActionData.chosenStateId
         val gnnFeaturesCount = gnnFeaturesList.firstOrNull()?.first()?.size ?: 0
         val gnnFeatures = gnnFeaturesList.getOrNull(lastActionData.graphId)?.getOrNull(
-            lastActionData.blockIds[lastChosenAction])
+            lastActionData.blockIds[lastChosenAction]
+        )
             ?: List(gnnFeaturesCount) { 0.0f }
-        val lastActionFeatures = super.getAllFeatures(lastActionData.queue[lastChosenAction], lastActionData,
-            lastActionData.blockIds[lastChosenAction]) + gnnFeatures
+        val lastActionFeatures = super.getAllFeatures(
+            lastActionData.queue[lastChosenAction], lastActionData,
+            lastActionData.blockIds[lastChosenAction]
+        ) + gnnFeatures
         val lastActionShape = listOf(1, lastActionFeatures.size.toLong())
-        val lastStateShape = MainConfig.rnnStateShape
+        val lastStateShape = MLConfig.rnnStateShape
         val actionFeaturesDataBuffer = FloatBuffer.allocate(lastActionShape.reduce { acc, l -> acc * l }.toInt())
         val stateFeaturesDataBuffer = FloatBuffer.allocate(lastStateShape.reduce { acc, l -> acc * l }.toInt())
         lastActionFeatures.forEach {
@@ -173,12 +172,12 @@ open class InferencePathSelector<State : UState<*, Method, Statement, *, State>,
     }
 
     private fun runActor(allFeaturesListFull: List<List<Float>>): Int {
-        val firstIndex = if (MainConfig.maxAttentionLength == -1) 0 else
-            maxOf(0, lru.size - MainConfig.maxAttentionLength)
+        val firstIndex = if (MLConfig.maxAttentionLength == -1) 0 else
+            maxOf(0, lru.size - MLConfig.maxAttentionLength)
         val allFeaturesList = allFeaturesListFull.subList(firstIndex, lru.size)
         val totalSize = allFeaturesList.size * allFeaturesList.first().size
-        val totalKnownSize = MainConfig.inputShape.reduce { acc, l -> acc * l }
-        val shape = MainConfig.inputShape.map { if (it != -1L) it else -totalSize / totalKnownSize }.toLongArray()
+        val totalKnownSize = MLConfig.inputShape.reduce { acc, l -> acc * l }
+        val shape = MLConfig.inputShape.map { if (it != -1L) it else -totalSize / totalKnownSize }.toLongArray()
         val dataBuffer = FloatBuffer.allocate(totalSize)
         allFeaturesList.forEach { stateFeatures ->
             stateFeatures.forEach { feature ->
@@ -190,17 +189,19 @@ open class InferencePathSelector<State : UState<*, Method, Statement, *, State>,
         val result = actorSession!!.run(mapOf(Pair("input", data)))
         val output = (result.get("output").get().value as Array<*>).flatMap { (it as FloatArray).toList() }
         outputValues = List(firstIndex) { -1.0f } + output
-        return firstIndex + when (MainConfig.postprocessing) {
+        return firstIndex + when (MLConfig.postprocessing) {
             Postprocessing.Argmax -> {
                 output.indices.maxBy { output[it] }
             }
+
             Postprocessing.Softmax -> {
                 val exponents = output.map { exp(it) }
                 val exponentsSum = exponents.sum()
-                val softmaxProbabilities = exponents.map { it /exponentsSum }
+                val softmaxProbabilities = exponents.map { it / exponentsSum }
                 probabilities.add(softmaxProbabilities)
                 chooseRandomId(softmaxProbabilities)
             }
+
             else -> {
                 probabilities.add(output)
                 chooseRandomId(output)
@@ -208,13 +209,15 @@ open class InferencePathSelector<State : UState<*, Method, Statement, *, State>,
         }
     }
 
-    private fun peekWithOnnxRuntime(stateFeatureQueue: List<StateFeatures>?,
-                                    globalStateFeatures: GlobalStateFeatures?): State {
+    private fun peekWithOnnxRuntime(
+        stateFeatureQueue: List<StateFeatures>?,
+        globalStateFeatures: GlobalStateFeatures?
+    ): State {
         if (stateFeatureQueue == null || globalStateFeatures == null) {
             throw IllegalArgumentException("No features")
         }
         if (lru.size == 1) {
-            if (MainConfig.postprocessing != Postprocessing.Argmax) {
+            if (MLConfig.postprocessing != Postprocessing.Argmax) {
                 probabilities.add(listOf(1.0f))
             }
             return lru[0]
@@ -223,9 +226,9 @@ open class InferencePathSelector<State : UState<*, Method, Statement, *, State>,
         val blockFeaturesCount = graphFeatures.firstOrNull()?.size ?: 0
         val allFeaturesListFull = stateFeatureQueue.zip(lru).map { (stateFeatures, state) ->
             stateFeaturesToFloatList(stateFeatures) + globalStateFeaturesToFloatList(globalStateFeatures) +
-            (blockGraph.getBlock(state.currentStatement!!)?.id?.let { graphFeatures.getOrNull(it) }
-                ?: List(blockFeaturesCount) { 0.0f }) +
-            rnnFeatures
+                    (blockGraph.getBlock(state.currentStatement!!)?.id?.let { graphFeatures.getOrNull(it) }
+                        ?: List(blockFeaturesCount) { 0.0f }) +
+                    rnnFeatures
         }
         return lru[runActor(allFeaturesListFull)]
     }
@@ -243,41 +246,18 @@ open class InferencePathSelector<State : UState<*, Method, Statement, *, State>,
 
     override fun peek(): State {
         val (stateFeatureQueue, globalStateFeatures) = beforePeek()
-        if (MainConfig.useRnn) {
+        if (MLConfig.useRnn) {
             runRnn()
         }
-        if (MainConfig.useGnn) {
+        if (MLConfig.useGnn) {
             runGnn()
         }
         val state = if (actorSession !== null) {
             peekWithOnnxRuntime(stateFeatureQueue, globalStateFeatures)
-        } else if (MainConfig.defaultAlgorithm == Algorithm.BFS) {
-            queue.first()
         } else {
-            forkDepthRandomPathSelector.peek()
+            defaultPathSelector.peek()
         }
         afterPeek(state, stateFeatureQueue, globalStateFeatures)
         return state
-    }
-
-    override fun remove(state: State) {
-        super.remove(state)
-        if (MainConfig.defaultAlgorithm == Algorithm.ForkDepthRandom) {
-            forkDepthRandomPathSelector.remove(state)
-        }
-    }
-
-    override fun add(states: Collection<State>) {
-        super.add(states)
-        if (MainConfig.defaultAlgorithm == Algorithm.ForkDepthRandom) {
-            forkDepthRandomPathSelector.add(states)
-        }
-    }
-
-    override fun update(state: State) {
-        super.update(state)
-        if (MainConfig.defaultAlgorithm == Algorithm.ForkDepthRandom) {
-            forkDepthRandomPathSelector.update(state)
-        }
     }
 }

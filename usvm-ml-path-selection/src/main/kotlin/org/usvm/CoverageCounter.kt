@@ -1,6 +1,8 @@
 package org.usvm
 
-import kotlinx.serialization.json.*
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
 import java.util.concurrent.ConcurrentHashMap
 
@@ -11,15 +13,15 @@ object CoverageCounter {
     private val testFinished = ConcurrentHashMap<String, Boolean>()
 
     fun addTest(testName: String, statementsCount: Float) {
-        testCoverages[testName] = List(MainConfig.discounts.size) { 0.0f }
+        testCoverages[testName] = List(MLConfig.discounts.size) { 0.0f }
         testStatementsCounts[testName] = statementsCount
-        testDiscounts[testName] = List(MainConfig.discounts.size) { 1.0f }
+        testDiscounts[testName] = List(MLConfig.discounts.size) { 1.0f }
         testFinished[testName] = false
     }
 
     fun updateDiscounts(testName: String) {
         testDiscounts[testName] = testDiscounts.getValue(testName)
-            .mapIndexed { id, currentDiscount -> MainConfig.discounts[id] * currentDiscount }
+            .mapIndexed { id, currentDiscount -> MLConfig.discounts[id] * currentDiscount }
     }
 
     fun updateResults(testName: String, newCoverage: Float) {
@@ -51,7 +53,7 @@ object CoverageCounter {
                 testCoverages.forEach { (test, coverages) ->
                     putJsonObject(test) {
                         putJsonObject("discounts") {
-                            MainConfig.discounts.zip(coverages).forEach { (discount, coverage) ->
+                            MLConfig.discounts.zip(coverages).forEach { (discount, coverage) ->
                                 put(discount.toString(), coverage)
                             }
                         }
@@ -61,7 +63,7 @@ object CoverageCounter {
                 }
             }
             putJsonObject("totalDiscounts") {
-                MainConfig.discounts.zip(getTotalCoverages()).forEach { (discount, coverage) ->
+                MLConfig.discounts.zip(getTotalCoverages()).forEach { (discount, coverage) ->
                     put(discount.toString(), coverage)
                 }
             }
