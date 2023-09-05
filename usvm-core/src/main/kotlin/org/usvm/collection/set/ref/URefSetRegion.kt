@@ -13,6 +13,7 @@ import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UMemoryRegionId
 import org.usvm.memory.USymbolicCollection
 import org.usvm.memory.foldHeapRef
+import org.usvm.memory.foldHeapRef2
 import org.usvm.memory.guardedWrite
 import org.usvm.memory.map
 import org.usvm.uctx
@@ -62,7 +63,7 @@ interface URefSetRegion<SetType> :
     fun union(
         srcRef: UHeapRef,
         dstRef: UHeapRef,
-        guard: UBoolExpr,
+        operationGuard: UBoolExpr,
     ): URefSetRegion<SetType>
 }
 
@@ -230,159 +231,142 @@ internal class URefSetMemoryRegion<SetType>(
     override fun union(
         srcRef: UHeapRef,
         dstRef: UHeapRef,
-        guard: UBoolExpr
-    ) = foldHeapRef(
-        ref = srcRef,
+        operationGuard: UBoolExpr
+    ) = foldHeapRef2(
+        ref0 = srcRef,
+        ref1 = dstRef,
         initial = this,
-        initialGuard = guard,
-        blockOnConcrete = { srcReg, (srcConcrete, srcGuard) ->
-            foldHeapRef(
-                ref = dstRef,
-                initial = srcReg,
-                initialGuard = srcGuard,
-                blockOnConcrete = { region, (dstConcrete, guard) ->
-                    val initialAllocatedSetState = region.allocatedSetWithAllocatedElements
-                    val updatedAllocatedSet = region.unionAllocatedSetConcreteElements(
-                        initial = initialAllocatedSetState,
-                        srcAddress = srcConcrete.address,
-                        guard = guard,
-                        read = { initialAllocatedSetState[it] ?: sort.uctx.falseExpr },
-                        mkDstKeyId = { UAllocatedRefSetWithAllocatedElementId(dstConcrete.address, it) },
-                        write = { result, dstKeyId, value, g ->
-                            result.guardedWrite(dstKeyId, value, g) { sort.uctx.falseExpr }
-                        }
-                    )
-                    val updatedRegion = region.updateAllocatedSetWithAllocatedElements(updatedAllocatedSet)
-
-                    val srcId = allocatedSetWithInputElementsId(srcConcrete.address)
-                    val srcCollection = updatedRegion.getAllocatedSetWithInputElements(srcId)
-
-                    val dstId = allocatedSetWithInputElementsId(dstConcrete.address)
-                    val dstCollection = updatedRegion.getAllocatedSetWithInputElements(dstId)
-
-                    val adapter = UAllocatedToAllocatedSymbolicRefSetUnionAdapter(srcCollection)
-                    val updated = dstCollection.copyRange(srcCollection, adapter, guard)
-                    updatedRegion.updateAllocatedSetWithInputElements(dstId, updated)
-                },
-                blockOnSymbolic = { region, (dstSymbolic, guard) ->
-                    val initialAllocatedSetState = region.allocatedSetWithAllocatedElements
-                    val updatedRegion = region.unionAllocatedSetConcreteElements(
-                        initial = region, srcAddress = srcConcrete.address, guard = guard,
-                        read = { initialAllocatedSetState[it] ?: sort.uctx.falseExpr },
-                        mkDstKeyId = { inputSetWithAllocatedElementsId(it) },
-                        write = { result, dstKeyId, value, g ->
-                            val newMap = result.getInputSetWithAllocatedElements(dstKeyId)
-                                .write(dstSymbolic, value, g)
-                            result.updateInputSetWithAllocatedElements(dstKeyId, newMap)
-                        }
-                    )
-
-                    val srcId = allocatedSetWithInputElementsId(srcConcrete.address)
-                    val srcCollection = updatedRegion.getAllocatedSetWithInputElements(srcId)
-
-                    val dstCollection = updatedRegion.inputSetWithInputElements()
-
-                    val adapter = UAllocatedToInputSymbolicRefSetUnionAdapter(dstSymbolic, srcCollection)
-                    val updated = dstCollection.copyRange(srcCollection, adapter, guard)
-                    updatedRegion.updateInputSetWithInputElements(updated)
-                },
+        initialGuard = operationGuard,
+        blockOnConcrete0Concrete1 = { region, srcConcrete, dstConcrete, guard ->
+            val initialAllocatedSetState = region.allocatedSetWithAllocatedElements
+            val updatedAllocatedSet = region.unionAllocatedSetAllocatedElements(
+                initial = initialAllocatedSetState,
+                srcAddress = srcConcrete.address,
+                guard = guard,
+                read = { initialAllocatedSetState[it] ?: sort.uctx.falseExpr },
+                mkDstKeyId = { UAllocatedRefSetWithAllocatedElementId(dstConcrete.address, it) },
+                write = { result, dstKeyId, value, g ->
+                    result.guardedWrite(dstKeyId, value, g) { sort.uctx.falseExpr }
+                }
             )
+            val updatedRegion = region.updateAllocatedSetWithAllocatedElements(updatedAllocatedSet)
+
+            val srcId = allocatedSetWithInputElementsId(srcConcrete.address)
+            val srcCollection = updatedRegion.getAllocatedSetWithInputElements(srcId)
+
+            val dstId = allocatedSetWithInputElementsId(dstConcrete.address)
+            val dstCollection = updatedRegion.getAllocatedSetWithInputElements(dstId)
+
+            val adapter = UAllocatedToAllocatedSymbolicRefSetUnionAdapter(srcCollection)
+            val updated = dstCollection.copyRange(srcCollection, adapter, guard)
+            updatedRegion.updateAllocatedSetWithInputElements(dstId, updated)
         },
-        blockOnSymbolic = { srcReg, (srcSymbolic, srcGuard) ->
-            foldHeapRef(
-                ref = dstRef,
-                initial = srcReg,
-                initialGuard = srcGuard,
-                blockOnConcrete = { region, (dstConcrete, guard) ->
-                    val updatedAllocatedSet = region.unionInputSetConcreteElements(
-                        initial = region.allocatedSetWithAllocatedElements,
-                        guard = guard,
-                        read = { region.getInputSetWithAllocatedElements(it).read(srcSymbolic) },
-                        mkDstKeyId = { UAllocatedRefSetWithAllocatedElementId(dstConcrete.address, it) },
-                        write = { result, dstKeyId, value, g ->
-                            result.guardedWrite(dstKeyId, value, g) { sort.uctx.falseExpr }
-                        }
-                    )
-                    val updatedRegion = region.updateAllocatedSetWithAllocatedElements(updatedAllocatedSet)
-
-                    val srcCollection = updatedRegion.inputSetWithInputElements()
-
-                    val dstId = allocatedSetWithInputElementsId(dstConcrete.address)
-                    val dstCollection = updatedRegion.getAllocatedSetWithInputElements(dstId)
-
-                    val adapter = UInputToAllocatedSymbolicRefSetUnionAdapter(srcSymbolic, srcCollection)
-                    val updated = dstCollection.copyRange(srcCollection, adapter, guard)
-                    updatedRegion.updateAllocatedSetWithInputElements(dstId, updated)
-                },
-                blockOnSymbolic = { region, (dstSymbolic, guard) ->
-                    val updatedRegion = region.unionInputSetConcreteElements(
-                        initial = region, guard = guard,
-                        read = { region.getInputSetWithAllocatedElements(it).read(srcSymbolic) },
-                        mkDstKeyId = { inputSetWithAllocatedElementsId(it) },
-                        write = { result, dstKeyId, value, g ->
-                            val newMap = result.getInputSetWithAllocatedElements(dstKeyId)
-                                .write(dstSymbolic, value, g)
-                            result.updateInputSetWithAllocatedElements(dstKeyId, newMap)
-                        }
-                    )
-                    val srcCollection = updatedRegion.inputSetWithInputElements()
-                    val dstCollection = updatedRegion.inputSetWithInputElements()
-
-                    val adapter = UInputToInputSymbolicRefSetUnionAdapter(srcSymbolic, dstSymbolic, srcCollection)
-                    val updated = dstCollection.copyRange(srcCollection, adapter, guard)
-                    updatedRegion.updateInputSetWithInputElements(updated)
-                },
+        blockOnConcrete0Symbolic1 = { region, srcConcrete, dstSymbolic, guard ->
+            val initialAllocatedSetState = region.allocatedSetWithAllocatedElements
+            val updatedRegion = region.unionAllocatedSetAllocatedElements(
+                initial = region, srcAddress = srcConcrete.address, guard = guard,
+                read = { initialAllocatedSetState[it] ?: sort.uctx.falseExpr },
+                mkDstKeyId = { inputSetWithAllocatedElementsId(it) },
+                write = { result, dstKeyId, value, g ->
+                    val newMap = result.getInputSetWithAllocatedElements(dstKeyId)
+                        .write(dstSymbolic, value, g)
+                    result.updateInputSetWithAllocatedElements(dstKeyId, newMap)
+                }
             )
+
+            val srcId = allocatedSetWithInputElementsId(srcConcrete.address)
+            val srcCollection = updatedRegion.getAllocatedSetWithInputElements(srcId)
+
+            val dstCollection = updatedRegion.inputSetWithInputElements()
+
+            val adapter = UAllocatedToInputSymbolicRefSetUnionAdapter(dstSymbolic, srcCollection)
+            val updated = dstCollection.copyRange(srcCollection, adapter, guard)
+            updatedRegion.updateInputSetWithInputElements(updated)
+        },
+        blockOnSymbolic0Concrete1 = { region, srcSymbolic, dstConcrete, guard ->
+            val updatedAllocatedSet = region.unionInputSetAllocatedElements(
+                initial = region.allocatedSetWithAllocatedElements,
+                guard = guard,
+                read = { region.getInputSetWithAllocatedElements(it).read(srcSymbolic) },
+                mkDstKeyId = { UAllocatedRefSetWithAllocatedElementId(dstConcrete.address, it) },
+                write = { result, dstKeyId, value, g ->
+                    result.guardedWrite(dstKeyId, value, g) { sort.uctx.falseExpr }
+                }
+            )
+            val updatedRegion = region.updateAllocatedSetWithAllocatedElements(updatedAllocatedSet)
+
+            val srcCollection = updatedRegion.inputSetWithInputElements()
+
+            val dstId = allocatedSetWithInputElementsId(dstConcrete.address)
+            val dstCollection = updatedRegion.getAllocatedSetWithInputElements(dstId)
+
+            val adapter = UInputToAllocatedSymbolicRefSetUnionAdapter(srcSymbolic, srcCollection)
+            val updated = dstCollection.copyRange(srcCollection, adapter, guard)
+            updatedRegion.updateAllocatedSetWithInputElements(dstId, updated)
+        },
+        blockOnSymbolic0Symbolic1 = { region, srcSymbolic, dstSymbolic, guard ->
+            val updatedRegion = region.unionInputSetAllocatedElements(
+                initial = region, guard = guard,
+                read = { region.getInputSetWithAllocatedElements(it).read(srcSymbolic) },
+                mkDstKeyId = { inputSetWithAllocatedElementsId(it) },
+                write = { result, dstKeyId, value, g ->
+                    val newMap = result.getInputSetWithAllocatedElements(dstKeyId)
+                        .write(dstSymbolic, value, g)
+                    result.updateInputSetWithAllocatedElements(dstKeyId, newMap)
+                }
+            )
+            val srcCollection = updatedRegion.inputSetWithInputElements()
+            val dstCollection = updatedRegion.inputSetWithInputElements()
+
+            val adapter = UInputToInputSymbolicRefSetUnionAdapter(srcSymbolic, dstSymbolic, srcCollection)
+            val updated = dstCollection.copyRange(srcCollection, adapter, guard)
+            updatedRegion.updateInputSetWithInputElements(updated)
         },
     )
 
-    private inline fun <R, DstKeyId> unionInputSetConcreteElements(
+    private inline fun <R, DstKeyId> unionInputSetAllocatedElements(
         initial: R,
         guard: UBoolExpr,
         read: (UInputRefSetWithAllocatedElementsId<SetType>) -> UBoolExpr,
         mkDstKeyId: (UConcreteHeapAddress) -> DstKeyId,
         write: (R, DstKeyId, UBoolExpr, UBoolExpr) -> R
-    ) = unionConcreteElements(
+    ) = unionAllocatedElements(
         initial,
         inputSetWithAllocatedElements.keys,
         guard,
-        { it.elementAddress },
         read,
-        mkDstKeyId,
+        { mkDstKeyId(it.elementAddress) },
         write
     )
 
-    private inline fun <R, DstKeyId> unionAllocatedSetConcreteElements(
+    private inline fun <R, DstKeyId> unionAllocatedSetAllocatedElements(
         initial: R,
         srcAddress: UConcreteHeapAddress,
         guard: UBoolExpr,
         read: (UAllocatedRefSetWithAllocatedElementId) -> UBoolExpr,
         mkDstKeyId: (UConcreteHeapAddress) -> DstKeyId,
         write: (R, DstKeyId, UBoolExpr, UBoolExpr) -> R
-    ) = unionConcreteElements(
+    ) = unionAllocatedElements(
         initial,
         allocatedSetWithAllocatedElements.keys.filter { it.setAddress == srcAddress },
         guard,
-        { it.elementAddress },
         read,
-        mkDstKeyId,
+        { mkDstKeyId(it.elementAddress) },
         write
     )
 
-    private inline fun <R, SrcKeyId, DstKeyId> unionConcreteElements(
+    private inline fun <R, SrcKeyId, DstKeyId> unionAllocatedElements(
         initial: R,
         keys: Iterable<SrcKeyId>,
         guard: UBoolExpr,
-        srcKeyConcreteAddress: (SrcKeyId) -> UConcreteHeapAddress,
         read: (SrcKeyId) -> UBoolExpr,
-        mkDstKeyId: (UConcreteHeapAddress) -> DstKeyId,
+        mkDstKeyId: (SrcKeyId) -> DstKeyId,
         write: (R, DstKeyId, UBoolExpr, UBoolExpr) -> R
     ): R = keys.fold(initial) { result, srcKeyId ->
-        val srcKeyAddress = srcKeyConcreteAddress(srcKeyId)
         val srcContains = read(srcKeyId)
 
         val mergedGuard = guard.uctx.mkAnd(srcContains, guard)
 
-        write(result, mkDstKeyId(srcKeyAddress), guard.uctx.trueExpr, mergedGuard)
+        write(result, mkDstKeyId(srcKeyId), guard.uctx.trueExpr, mergedGuard)
     }
 }

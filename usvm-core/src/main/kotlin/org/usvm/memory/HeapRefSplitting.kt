@@ -108,6 +108,50 @@ internal inline fun <R> foldHeapRef(
     }
 }
 
+internal inline fun <R> foldHeapRef2(
+    ref0: UHeapRef,
+    ref1: UHeapRef,
+    initial: R,
+    initialGuard: UBoolExpr,
+    ignoreNullRefs: Boolean = true,
+    blockOnConcrete0Concrete1: (R, UConcreteHeapRef, UConcreteHeapRef, UBoolExpr) -> R,
+    blockOnConcrete0Symbolic1: (R, UConcreteHeapRef, UHeapRef, UBoolExpr) -> R,
+    blockOnSymbolic0Concrete1: (R, UHeapRef, UConcreteHeapRef, UBoolExpr) -> R,
+    blockOnSymbolic0Symbolic1: (R, UHeapRef, UHeapRef, UBoolExpr) -> R,
+): R = foldHeapRef(
+    ref = ref0,
+    initial = initial,
+    initialGuard = initialGuard,
+    ignoreNullRefs = ignoreNullRefs,
+    blockOnConcrete = { r0, (concrete0, guard0) ->
+        foldHeapRef(
+            ref = ref1,
+            initial = r0,
+            initialGuard = guard0,
+            ignoreNullRefs = ignoreNullRefs,
+            blockOnConcrete = { r1, (concrete1, guard1) ->
+                blockOnConcrete0Concrete1(r1, concrete0, concrete1, guard1)
+            },
+            blockOnSymbolic = { r1, (symbolic1, guard1) ->
+                blockOnConcrete0Symbolic1(r1, concrete0, symbolic1, guard1)
+            }
+        )
+    },
+    blockOnSymbolic = { r0, (symbolic0, guard0) ->
+        foldHeapRef(
+            ref = ref1,
+            initial = r0,
+            initialGuard = guard0,
+            ignoreNullRefs = ignoreNullRefs,
+            blockOnConcrete = { r1, (concrete1, guard1) ->
+                blockOnSymbolic0Concrete1(r1, symbolic0, concrete1, guard1)
+            },
+            blockOnSymbolic = { r1, (symbolic1, guard1) ->
+                blockOnSymbolic0Symbolic1(r1, symbolic0, symbolic1, guard1)
+            }
+        )
+    },
+)
 
 private const val LEFT_CHILD = 0
 private const val RIGHT_CHILD = 1

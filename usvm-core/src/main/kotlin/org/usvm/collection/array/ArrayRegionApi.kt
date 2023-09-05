@@ -49,7 +49,7 @@ internal fun <ArrayType, Sort : USort> UWritableMemory<ArrayType>.allocateArrayI
         "allocateArrayInitialized is not applicable to $region"
     }
 
-    val newRegion = region.initializeAllocatedArray(address.address, type, elementSort, arrayValues, guard = trueExpr)
+    val newRegion = region.initializeAllocatedArray(address.address, type, elementSort, arrayValues, operationGuard = trueExpr)
 
     setRegion(regionId, newRegion)
 

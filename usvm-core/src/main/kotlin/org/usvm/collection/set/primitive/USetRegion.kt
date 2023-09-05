@@ -15,9 +15,10 @@ import org.usvm.memory.UMemoryRegionId
 import org.usvm.memory.USymbolicCollection
 import org.usvm.memory.USymbolicCollectionKeyInfo
 import org.usvm.memory.foldHeapRef
+import org.usvm.memory.foldHeapRef2
 import org.usvm.memory.map
-import org.usvm.uctx
 import org.usvm.regions.Region
+import org.usvm.uctx
 
 data class USetEntryLValue<SetType, ElementSort : USort, Reg : Region<Reg>>(
     val elementSort: ElementSort,
@@ -64,7 +65,7 @@ interface USetRegion<SetType, ElementSort : USort, Reg : Region<Reg>> :
     fun union(
         srcRef: UHeapRef,
         dstRef: UHeapRef,
-        guard: UBoolExpr,
+        operationGuard: UBoolExpr,
     ): USetRegion<SetType, ElementSort, Reg>
 }
 
@@ -140,63 +141,50 @@ internal class USetMemoryRegion<SetType, ElementSort : USort, Reg : Region<Reg>>
     override fun union(
         srcRef: UHeapRef,
         dstRef: UHeapRef,
-        guard: UBoolExpr
-    ) = foldHeapRef(
-        ref = srcRef,
+        operationGuard: UBoolExpr
+    ) = foldHeapRef2(
+        ref0 = srcRef,
+        ref1 = dstRef,
         initial = this,
-        initialGuard = guard,
-        blockOnConcrete = { srcReg, (srcConcrete, srcGuard) ->
-            foldHeapRef(
-                ref = dstRef,
-                initial = srcReg,
-                initialGuard = srcGuard,
-                blockOnConcrete = { region, (dstConcrete, guard) ->
-                    val srcId = UAllocatedSetId(srcConcrete.address, elementSort, setType, elementInfo)
-                    val srcCollection = region.getAllocatedSet(srcId)
+        initialGuard = operationGuard,
+        blockOnConcrete0Concrete1 = { region, srcConcrete, dstConcrete, guard ->
+            val srcId = UAllocatedSetId(srcConcrete.address, elementSort, setType, elementInfo)
+            val srcCollection = region.getAllocatedSet(srcId)
 
-                    val dstId = UAllocatedSetId(dstConcrete.address, elementSort, setType, elementInfo)
-                    val dstCollection = region.getAllocatedSet(dstId)
+            val dstId = UAllocatedSetId(dstConcrete.address, elementSort, setType, elementInfo)
+            val dstCollection = region.getAllocatedSet(dstId)
 
-                    val adapter = UAllocatedToAllocatedSymbolicSetUnionAdapter(srcCollection)
-                    val updated = dstCollection.copyRange(srcCollection, adapter, guard)
-                    region.updateAllocatedSet(dstId, updated)
-                },
-                blockOnSymbolic = { region, (dstSymbolic, guard) ->
-                    val srcId = UAllocatedSetId(srcConcrete.address, elementSort, setType, elementInfo)
-                    val srcCollection = region.getAllocatedSet(srcId)
-
-                    val dstCollection = region.inputSetElements()
-
-                    val adapter = UAllocatedToInputSymbolicSetUnionAdapter(dstSymbolic, srcCollection)
-                    val updated = dstCollection.copyRange(srcCollection, adapter, guard)
-                    region.updateInputSet(updated)
-                },
-            )
+            val adapter = UAllocatedToAllocatedSymbolicSetUnionAdapter(srcCollection)
+            val updated = dstCollection.copyRange(srcCollection, adapter, guard)
+            region.updateAllocatedSet(dstId, updated)
         },
-        blockOnSymbolic = { srcReg, (srcSymbolic, srcGuard) ->
-            foldHeapRef(
-                ref = dstRef,
-                initial = srcReg,
-                initialGuard = srcGuard,
-                blockOnConcrete = { region, (dstConcrete, guard) ->
-                    val srcCollection = region.inputSetElements()
+        blockOnConcrete0Symbolic1 = { region, srcConcrete, dstSymbolic, guard ->
+            val srcId = UAllocatedSetId(srcConcrete.address, elementSort, setType, elementInfo)
+            val srcCollection = region.getAllocatedSet(srcId)
 
-                    val dstId = UAllocatedSetId(dstConcrete.address, elementSort, setType, elementInfo)
-                    val dstCollection = region.getAllocatedSet(dstId)
+            val dstCollection = region.inputSetElements()
 
-                    val adapter = UInputToAllocatedSymbolicSetUnionAdapter(srcSymbolic, srcCollection)
-                    val updated = dstCollection.copyRange(srcCollection, adapter, guard)
-                    region.updateAllocatedSet(dstId, updated)
-                },
-                blockOnSymbolic = { region, (dstSymbolic, guard) ->
-                    val srcCollection = region.inputSetElements()
-                    val dstCollection = region.inputSetElements()
+            val adapter = UAllocatedToInputSymbolicSetUnionAdapter(dstSymbolic, srcCollection)
+            val updated = dstCollection.copyRange(srcCollection, adapter, guard)
+            region.updateInputSet(updated)
+        },
+        blockOnSymbolic0Concrete1 = { region, srcSymbolic, dstConcrete, guard ->
+            val srcCollection = region.inputSetElements()
 
-                    val adapter = UInputToInputSymbolicSetUnionAdapter(srcSymbolic, dstSymbolic, srcCollection)
-                    val updated = dstCollection.copyRange(srcCollection, adapter, guard)
-                    region.updateInputSet(updated)
-                },
-            )
+            val dstId = UAllocatedSetId(dstConcrete.address, elementSort, setType, elementInfo)
+            val dstCollection = region.getAllocatedSet(dstId)
+
+            val adapter = UInputToAllocatedSymbolicSetUnionAdapter(srcSymbolic, srcCollection)
+            val updated = dstCollection.copyRange(srcCollection, adapter, guard)
+            region.updateAllocatedSet(dstId, updated)
+        },
+        blockOnSymbolic0Symbolic1 = { region, srcSymbolic, dstSymbolic, guard ->
+            val srcCollection = region.inputSetElements()
+            val dstCollection = region.inputSetElements()
+
+            val adapter = UInputToInputSymbolicSetUnionAdapter(srcSymbolic, dstSymbolic, srcCollection)
+            val updated = dstCollection.copyRange(srcCollection, adapter, guard)
+            region.updateInputSet(updated)
         },
     )
 }
