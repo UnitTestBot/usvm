@@ -101,10 +101,14 @@ abstract class PythonTypeSystem: UTypeSystem<PythonType> {
     val pythonTupleIteratorType = createConcreteTypeByName("type(iter(tuple()))", isHidden = true)
     val pythonRange = createConcreteTypeByName("range", isHidden = true)
     val pythonRangeIterator = createConcreteTypeByName("type(range(1).__iter__())", isHidden = true)
-    val pythonStr = createConcreteTypeByName("str", isHidden = true)
+    val pythonStr = createConcreteTypeByName("str")
 
-    protected val basicTypes: List<ConcretePythonType> = concreteTypeToAddress.keys.filter { !it.isHidden }
-    protected val basicTypeRefs: List<PythonObject> = basicTypes.map(::addressOfConcreteType)
+    protected val basicTypes: List<ConcretePythonType> by lazy {
+        concreteTypeToAddress.keys.filter { !it.isHidden }
+    }
+    protected val basicTypeRefs: List<PythonObject> by lazy {
+        basicTypes.map(::addressOfConcreteType)
+    }
 
     fun restart() {
         concreteTypeToAddress.keys.forEach { type ->
