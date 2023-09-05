@@ -23,25 +23,21 @@ import org.utbot.python.newtyping.pythonTypeRepresentation
 import java.io.File
 
 fun main() {
-    // val config = buildProjectRunConfig()
+    val config = buildProjectRunConfig()
     // val config = buildSampleRunConfig()
-    // analyze(config)
+    analyze(config)
     // checkConcolicAndConcrete(config)
-
-    ConcretePythonInterpreter.concreteRun(
-        emptyNamespace,
-        """
-            import sys
-            print("sys.path:", sys.path, flush=True)
-        """.trimIndent()
-    )
 }
 
 private fun buildSampleRunConfig(): RunConfig {
     val (program, typeSystem) = constructPrimitiveProgram(
         """ 
         def f(x):
-            return "abcde"
+            t = 1, 2, 3, x
+            res = 0
+            for y in t:
+                res += y
+            assert res == 10
 
         """.trimIndent()
     )
@@ -59,21 +55,26 @@ private fun buildProjectRunConfig(): RunConfig {
     val files = getPythonFilesFromRoot(projectPath)
     val modules = getModulesFromFiles(projectPath, files)
     val mypyDir = MypyBuildDirectory(File(mypyRoot), setOf(projectPath))
-    buildMypyInfo("python3.10", files.map { it.canonicalPath }, modules, mypyDir)
+    buildMypyInfo(
+        "/home/tochilinak/Documents/projects/utbot/usvm/usvm-python/cpythonadapter/build/cpython_build/bin/python3",
+        files.map { it.canonicalPath },
+        modules,
+        mypyDir
+    )
     val mypyBuild = readMypyInfoBuild(mypyDir)
     val program = StructuredPythonProgram(setOf(File(projectPath)))
     val typeSystem = PythonTypeSystemWithMypyInfo(mypyBuild, program)
     val ignoreFunctions = listOf<String>(
-        "circle_sort",  // NoSuchElement
+        /*"circle_sort",  // NoSuchElement
         "cocktail_shaker_sort",  // slow (why?)
         "quick_sort_lomuto_partition",  // NoSuchElement
         "oe_process",  // blocks
         "merge_insertion_sort",  // slow (why?)
-        "msd_radix_sort_inplace"  // NoSuchElement
+        "msd_radix_sort_inplace"  // NoSuchElement*/
     )
     val ignoreModules = listOf<String>(
-        "intro_sort",  // NoSuchElement
-        "heap_sort"  // NoSuchElement
+        /*"intro_sort",  // NoSuchElement
+        "heap_sort"  // NoSuchElement*/
     )
     val functions = modules.flatMap { module ->
         if (module in ignoreModules)
@@ -114,11 +115,15 @@ private fun checkConcolicAndConcrete(runConfig: RunConfig) {
     runner.timeoutPerRunMs = 10_000
     functions.forEach { function ->
         println("Running ${function.tag}...")
-        when (val argsNum = function.numberOfArguments) {
-            0 -> runner.check0NoPredicates(function)
-            1 -> runner.check1NoPredicates(function)
-            2 -> runner.check2NoPredicates(function)
-            else -> println("${function.tag} ignored because it has $argsNum arguments")
+        try {
+            when (val argsNum = function.numberOfArguments) {
+                0 -> runner.check0NoPredicates(function)
+                1 -> runner.check1NoPredicates(function)
+                2 -> runner.check2NoPredicates(function)
+                else -> println("${function.tag} ignored because it has $argsNum arguments")
+            }
+        } catch (e: IllegalOperationException) {
+            println("Illegal operation while analyzing: ${e.operation}\n")
         }
     }
 }

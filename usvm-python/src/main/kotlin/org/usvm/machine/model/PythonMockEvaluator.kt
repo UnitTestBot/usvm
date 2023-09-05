@@ -1,9 +1,9 @@
-package org.usvm.machine
+package org.usvm.machine.model
 
 import org.usvm.*
-import org.usvm.language.types.PythonType
-import org.usvm.machine.utils.PyModel
-import org.usvm.model.UModel
+import org.usvm.language.types.PythonTypeSystem
+import org.usvm.machine.UPythonContext
+import org.usvm.machine.utils.PyModelWrapper
 import org.usvm.model.UModelBase
 
 class PythonMockEvaluator(
@@ -27,10 +27,11 @@ class PythonMockEvaluator(
 
 fun constructModelWithNewMockEvaluator(
     ctx: UPythonContext,
-    oldModel: PyModel,
+    oldModel: PyModelWrapper,
     mockSymbol: UMockSymbol<UAddressSort>,
+    typeSystem: PythonTypeSystem,
     suggestedEvaluatedMockSymbol: UConcreteHeapRef? = null
-): Pair<PyModel, UBoolExpr> {
+): Pair<PyModelWrapper, UBoolExpr> {
     val newMockEvaluator = PythonMockEvaluator(ctx, oldModel.uModel.mocker, mockSymbol, suggestedEvaluatedMockSymbol)
     val newModel = UModelBase(
         ctx,
@@ -39,7 +40,7 @@ fun constructModelWithNewMockEvaluator(
         newMockEvaluator,
         oldModel.uModel.regions,
         oldModel.uModel.nullRef
-    )
+    ).toPyModel(ctx, typeSystem)
     val constraint = ctx.mkHeapRefEq(newMockEvaluator.mockSymbol, newMockEvaluator.evaluatedMockSymbol)
-    return PyModel(newModel) to constraint
+    return PyModelWrapper(newModel) to constraint
 }

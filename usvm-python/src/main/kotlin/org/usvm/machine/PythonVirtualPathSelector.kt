@@ -1,18 +1,19 @@
 package org.usvm.machine
 
 import mu.KLogging
-import org.usvm.UContext
 import org.usvm.UPathSelector
 import org.usvm.fork
 import org.usvm.language.types.ConcretePythonType
 import org.usvm.language.types.PythonType
-import org.usvm.language.types.PythonTypeSystem
 import org.usvm.language.types.MockType
+import org.usvm.language.types.PythonTypeSystem
+import org.usvm.machine.model.toPyModel
 import org.usvm.types.first
 import kotlin.random.Random
 
 class PythonVirtualPathSelector(
-    private val ctx: UContext,
+    private val ctx: UPythonContext,
+    private val typeSystem: PythonTypeSystem,
     private val basePathSelector: UPathSelector<PythonExecutionState>,
     private val pathSelectorForStatesWithDelayedForks: UPathSelector<PythonExecutionState>,
     private val pathSelectorForStatesWithConcretizedTypes: UPathSelector<PythonExecutionState>
@@ -56,6 +57,7 @@ class PythonVirtualPathSelector(
         if (forkResult.negativeState == null)
             return null
         val stateWithConcreteType = forkResult.negativeState!!
+        stateWithConcreteType.models = listOf(stateWithConcreteType.pyModel.uModel.toPyModel(ctx, typeSystem))
         if (unservedDelayedForks.remove(delayedFork))
             servedDelayedForks.add(delayedFork)
 

@@ -56,6 +56,8 @@ public class CPythonAdapter {
     public static native long getFunctionFromFrame(long frameRef);
     public native long allocateVirtualObject(VirtualPythonObject object);
     public native long makeList(long[] elements);
+    public native long allocateTuple(int size);
+    public native void setTupleElement(long tuple, int index, long element);
     public native int typeHasNbBool(long type);
     public native int typeHasNbInt(long type);
     public native int typeHasNbAdd(long type);
@@ -126,6 +128,10 @@ public class CPythonAdapter {
 
     public static void handlerForkResult(ConcolicRunContext context, SymbolForCPython cond, boolean result) {
         handlerForkResultKt(context, cond, result);
+    }
+
+    public static void handlerUnpack(ConcolicRunContext context, SymbolForCPython iterable, int count) {
+        withTracing(context, new Unpack(iterable, count), unit(() -> handlerUnpackKt(context, iterable.obj, count)));
     }
 
     public static void handlerIsOp(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {

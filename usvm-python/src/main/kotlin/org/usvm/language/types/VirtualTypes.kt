@@ -6,9 +6,9 @@ object PythonAnyType: VirtualPythonType() {
     override fun accepts(type: PythonType): Boolean = true
 }
 
-data class ArrayType(val typeSystem: PythonTypeSystem): VirtualPythonType() {
+object ArrayType: VirtualPythonType() {
     override fun accepts(type: PythonType): Boolean {
-        return type == this || type == typeSystem.pythonList || type == typeSystem.pythonTuple
+        return type == this || type is ArrayLikeConcretePythonType
     }
 }
 

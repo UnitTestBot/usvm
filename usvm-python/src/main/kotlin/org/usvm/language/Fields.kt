@@ -32,3 +32,5 @@ object TupleIteratorContents {
     val tuple = ContentOfType("tuple_of_tuple_iterator")
     val index = ContentOfType("index_of_tuple_iterator")
 }
+
+object TimeOfCreation: PropertyOfPythonObject()

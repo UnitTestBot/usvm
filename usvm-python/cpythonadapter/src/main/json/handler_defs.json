@@ -165,6 +165,11 @@
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;Z)V"
     },
     {
+        "c_name": "unpack",
+        "java_name": "handlerUnpack",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;I)V"
+    },
+    {
         "c_name": "is_op",
         "java_name": "handlerIsOp",
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)V"
