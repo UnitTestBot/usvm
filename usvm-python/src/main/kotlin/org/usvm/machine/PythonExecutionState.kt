@@ -45,7 +45,7 @@ class PythonExecutionState(
             newMemory,
             pyModel.uModel,
             typeSystem,
-            preAllocatedObjects,
+            preAllocatedObjects.clone(),
             possibleTypesForNull,
             callStack,
             pathLocation,

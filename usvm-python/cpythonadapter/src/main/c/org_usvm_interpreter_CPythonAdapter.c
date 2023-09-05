@@ -242,7 +242,8 @@ JNIEXPORT jlongArray JNICALL Java_org_usvm_interpreter_CPythonAdapter_getIterabl
 JNIEXPORT jstring JNICALL Java_org_usvm_interpreter_CPythonAdapter_getPythonObjectRepr(JNIEnv *env, jobject _, jlong object_ref) {
     PyObject *repr = PyObject_Repr((PyObject *) object_ref);
     if (!repr) {
-        PyErr_Clear();
+        PyErr_Print();
+        // PyErr_Clear();
         return 0;
     }
     const char *repr_as_string = PyUnicode_AsUTF8AndSize(repr, 0);
