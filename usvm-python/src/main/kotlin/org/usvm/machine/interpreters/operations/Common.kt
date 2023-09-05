@@ -69,11 +69,10 @@ fun createIterable(
         return null
     val addresses = elements.map { it.address }.asSequence()
     val typeSystem = ctx.typeSystem
-    val arrayType = ArrayType(typeSystem)
     val size = elements.size
     with (ctx.ctx) {
-        val iterableAddress = ctx.curState!!.memory.allocateArrayInitialized(arrayType, addressSort, addresses)
-        ctx.curState!!.memory.writeArrayLength(iterableAddress, mkIntNum(size), arrayType)
+        val iterableAddress = ctx.curState!!.memory.allocateArrayInitialized(ArrayType, addressSort, addresses)
+        ctx.curState!!.memory.writeArrayLength(iterableAddress, mkIntNum(size), ArrayType)
         ctx.curState!!.memory.types.allocate(iterableAddress.address, type)
         val result = UninterpretedSymbolicPythonObject(iterableAddress, typeSystem)
         result.addSupertypeSoft(ctx, type)

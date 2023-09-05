@@ -169,6 +169,22 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_makeList
 
 /*
  * Class:     org_usvm_interpreter_CPythonAdapter
+ * Method:    allocateTuple
+ * Signature: (I)J
+ */
+JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_allocateTuple
+  (JNIEnv *, jobject, jint);
+
+/*
+ * Class:     org_usvm_interpreter_CPythonAdapter
+ * Method:    setTupleElement
+ * Signature: (JIJ)V
+ */
+JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_setTupleElement
+  (JNIEnv *, jobject, jlong, jint, jlong);
+
+/*
+ * Class:     org_usvm_interpreter_CPythonAdapter
  * Method:    typeHasNbBool
  * Signature: (J)I
  */

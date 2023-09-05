@@ -1,9 +1,13 @@
 package org.usvm.machine.symbolicobjects
 
+import io.ksmt.sort.KIntSort
 import org.usvm.*
+import org.usvm.api.readArrayIndex
+import org.usvm.api.readField
 import org.usvm.api.typeStreamOf
 import org.usvm.constraints.UTypeConstraints
 import org.usvm.interpreter.ConcolicRunContext
+import org.usvm.language.TimeOfCreation
 import org.usvm.machine.utils.PyModelHolder
 import org.usvm.machine.interpreters.operations.myAssert
 import org.usvm.language.types.*
@@ -89,6 +93,31 @@ class UninterpretedSymbolicPythonObject(
     private fun resolvesToNullInCurrentModel(ctx: ConcolicRunContext): Boolean {
         val interpreted = interpretSymbolicPythonObject(this, ctx.modelHolder)
         return interpreted.address.address == 0
+    }
+
+    fun getTimeOfCreation(ctx: ConcolicRunContext): UExpr<KIntSort> {  // must not be called on nullref
+        require(ctx.curState != null)
+        return ctx.curState!!.memory.readField(address, TimeOfCreation, ctx.ctx.intSort)
+    }
+
+    fun readElement(ctx: ConcolicRunContext, index: UExpr<KIntSort>): UninterpretedSymbolicPythonObject {
+        require(ctx.curState != null)
+        val type = getTypeIfDefined(ctx)
+        require(type != null && type is ArrayLikeConcretePythonType)
+        val elemAddress = ctx.curState!!.memory.readArrayIndex(address, index, ArrayType, ctx.ctx.addressSort)
+        val elem = UninterpretedSymbolicPythonObject(elemAddress, typeSystem)
+        if (isAllocatedObject(ctx))
+            return elem
+        val cond = type.elementConstraints.fold(ctx.ctx.trueExpr as UBoolExpr) { acc, constraint ->
+            ctx.ctx.mkAnd(acc, constraint.applyUninterpreted(this, elem, ctx))
+        }
+        myAssert(ctx, cond)
+        return elem
+    }
+
+    private fun isAllocatedObject(ctx: ConcolicRunContext): Boolean {
+        val evaluated = ctx.modelHolder.model.eval(address) as UConcreteHeapRef
+        return evaluated.address > 0
     }
 }
 

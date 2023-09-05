@@ -34,4 +34,18 @@ class SimpleTupleTest: PythonTestRunnerForPrimitiveProgram("SimpleTuple", UMachi
             )
         )
     }
+
+    @Test
+    fun testInputListOfPairs() {
+        check1WithConcreteRun(
+            constructFunction("input_list_of_pairs", listOf(PythonAnyType)),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, res -> res.repr == "None" },
+                { _, res -> res.selfTypeName == "AssertionError" }
+            )
+        )
+    }
 }
