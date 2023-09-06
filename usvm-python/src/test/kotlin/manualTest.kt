@@ -33,10 +33,7 @@ private fun buildSampleRunConfig(): RunConfig {
     val (program, typeSystem) = constructPrimitiveProgram(
         """ 
         def f(x):
-            if isinstance(x, str):
-                return 1
-            return 2
-
+            assert x is None
         """.trimIndent()
     )
     val function = PythonUnpinnedCallable.constructCallableFromName(
@@ -48,7 +45,7 @@ private fun buildSampleRunConfig(): RunConfig {
 }
 
 private fun buildProjectRunConfig(): RunConfig {
-    val projectPath = "/home/tochilinak/Documents/projects/utbot/Python/divide_and_conquer"
+    val projectPath = "/home/tochilinak/Documents/projects/utbot/Python/dynamic_programming"
     val mypyRoot = "/home/tochilinak/Documents/projects/utbot/mypy_tmp"
     val files = getPythonFilesFromRoot(projectPath)
     val modules = getModulesFromFiles(projectPath, files)
