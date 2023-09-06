@@ -81,11 +81,11 @@ fun JcState.addNewMethodCall(
     newStmt(entryPoint)
 }
 
-fun JcState.addMethodCall(method: JcMethod, arguments: List<UExpr<out USort>>) {
+fun JcState.addConcreteMethodCallStmt(method: JcMethod, arguments: List<UExpr<out USort>>) {
     newStmt(UConcreteMethodCallJcInst(lastStmt.location, method, arguments, lastStmt))
 }
 
-fun JcState.addVirtualMethodCall(method: JcMethod, arguments: List<UExpr<out USort>>) {
+fun JcState.addVirtualMethodCallStmt(method: JcMethod, arguments: List<UExpr<out USort>>) {
     newStmt(UVirtualMethodCallJcInst(lastStmt.location, method, arguments, lastStmt))
 }
 

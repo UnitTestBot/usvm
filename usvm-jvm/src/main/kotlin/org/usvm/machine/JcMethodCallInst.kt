@@ -9,6 +9,9 @@ import org.jacodb.impl.cfg.JcInstLocationImpl
 import org.usvm.UExpr
 import org.usvm.USort
 
+/**
+ * Auxiliary instruction to handle method calls.
+ * */
 sealed interface UMethodCallBaseJcInst : JcInst {
     val method: JcMethod
 
@@ -20,9 +23,14 @@ sealed interface UMethodCallBaseJcInst : JcInst {
     }
 }
 
+/**
+ * Entrypoint method call instruction.
+ * Can be used as initial instruction to start an analysis process.
+ * */
 data class UMethodEntrypointJcInst(
     override val method: JcMethod
 ) : UMethodCallBaseJcInst {
+    // We don't care about the location of the entrypoint
     override val location: JcInstLocation
         get() = JcInstLocationImpl(method, 0, 0)
 }
@@ -34,6 +42,11 @@ sealed interface UJcMethodCall {
     val returnSite: JcInst
 }
 
+/**
+ * Concrete method call instruction.
+ * The [method] is invoked with [arguments] and after method execution
+ * the next instruction should be [returnSite].
+ * */
 data class UConcreteMethodCallJcInst(
     override val location: JcInstLocation,
     override val method: JcMethod,
@@ -41,9 +54,18 @@ data class UConcreteMethodCallJcInst(
     override val returnSite: JcInst
 ) : UMethodCallBaseJcInst, UJcMethodCall
 
+/**
+ * Virtual method call instruction.
+ * The [method] is virtual and depends on the actual instance type.
+ * The machine shouldn't invoke this method directly but should first
+ * resolve it to the [UConcreteMethodCallJcInst].
+ * */
 data class UVirtualMethodCallJcInst(
     override val location: JcInstLocation,
     override val method: JcMethod,
     override val arguments: List<UExpr<out USort>>,
     override val returnSite: JcInst
-) : UMethodCallBaseJcInst, UJcMethodCall
+) : UMethodCallBaseJcInst, UJcMethodCall {
+    fun toConcreteMethodCall(concreteMethod: JcMethod): UConcreteMethodCallJcInst =
+        UConcreteMethodCallJcInst(location, concreteMethod, arguments, returnSite)
+}

@@ -414,7 +414,7 @@ class JcInterpreter(
     private data class JcArrayTypeInfo(val element: JcTypeInfo) : JcTypeInfo
 
     private fun resolveVirtualInvoke(
-        methodCall: UJcMethodCall,
+        methodCall: UVirtualMethodCallJcInst,
         scope: JcStepScope,
         typeSelector: JcTypeSelector,
         forkOnRemainingTypes: Boolean,
@@ -444,9 +444,7 @@ class JcInterpreter(
                     val concreteMethod = type.findMethod(method.name, method.description)
                         ?: error("Can't find method $method in type ${type.typeName}")
 
-                    val concreteCall = UConcreteMethodCallJcInst(
-                        methodCall.location, concreteMethod.method, arguments, methodCall.returnSite
-                    )
+                    val concreteCall = methodCall.toConcreteMethodCall(concreteMethod.method)
                     state.newStmt(concreteCall)
                 }
 
@@ -466,9 +464,7 @@ class JcInterpreter(
                 ?: error("Can't find method $method in type ${type.typeName}")
 
             scope.doWithState {
-                val concreteCall = UConcreteMethodCallJcInst(
-                    methodCall.location, concreteMethod.method, arguments, methodCall.returnSite
-                )
+                val concreteCall = methodCall.toConcreteMethodCall(concreteMethod.method)
                 newStmt(concreteCall)
             }
         }

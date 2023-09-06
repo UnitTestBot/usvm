@@ -96,7 +96,6 @@ import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.isTrue
 import org.usvm.machine.JcContext
-import org.usvm.machine.UConcreteMethodCallJcInst
 import org.usvm.machine.UJcMethodCall
 import org.usvm.machine.operator.JcBinaryOperator
 import org.usvm.machine.operator.JcUnaryOperator
@@ -105,8 +104,8 @@ import org.usvm.machine.operator.mkNarrow
 import org.usvm.machine.operator.wideTo32BitsIfNeeded
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
-import org.usvm.machine.state.addMethodCall
-import org.usvm.machine.state.addVirtualMethodCall
+import org.usvm.machine.state.addConcreteMethodCallStmt
+import org.usvm.machine.state.addVirtualMethodCallStmt
 import org.usvm.machine.state.skipMethodInvocationWithValue
 import org.usvm.machine.state.throwExceptionWithoutStackFrameDrop
 import org.usvm.memory.ULValue
@@ -406,7 +405,7 @@ class JcExprResolver(
             argumentExprs = expr::args,
             argumentTypes = { expr.method.parameters.map { it.type } }
         ) { arguments ->
-            scope.doWithState { addMethodCall(expr.method.method, arguments) }
+            scope.doWithState { addConcreteMethodCallStmt(expr.method.method, arguments) }
         }
 
     override fun visitJcVirtualCallExpr(expr: JcVirtualCallExpr): UExpr<out USort>? =
@@ -416,7 +415,7 @@ class JcExprResolver(
             argumentExprs = expr::args,
             argumentTypes = { expr.method.parameters.map { it.type } }
         ) { arguments ->
-            scope.doWithState { addVirtualMethodCall(expr.method.method, arguments) }
+            scope.doWithState { addVirtualMethodCallStmt(expr.method.method, arguments) }
         }
 
 
@@ -427,7 +426,7 @@ class JcExprResolver(
             argumentExprs = expr::args,
             argumentTypes = { expr.method.parameters.map { it.type } }
         ) { arguments ->
-            scope.doWithState { addMethodCall(expr.method.method, arguments) }
+            scope.doWithState { addConcreteMethodCallStmt(expr.method.method, arguments) }
         }
 
     override fun visitJcDynamicCallExpr(expr: JcDynamicCallExpr): UExpr<out USort>? =
@@ -447,7 +446,7 @@ class JcExprResolver(
             argumentExprs = expr::args,
             argumentTypes = { expr.method.parameters.map { it.type } }
         ) { arguments ->
-            scope.doWithState { addMethodCall(expr.method.method, arguments) }
+            scope.doWithState { addConcreteMethodCallStmt(expr.method.method, arguments) }
         }
 
     private inline fun resolveInvoke(
@@ -612,7 +611,7 @@ class JcExprResolver(
         scope.doWithState {
             memory.write(initializedFlag, ctx.trueExpr)
         }
-        scope.doWithState { addMethodCall(initializer, emptyList()) }
+        scope.doWithState { addConcreteMethodCallStmt(initializer, emptyList()) }
         return null
     }
 
