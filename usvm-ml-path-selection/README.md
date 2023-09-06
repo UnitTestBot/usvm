@@ -2,43 +2,43 @@
 
 ### Entry point
 
-To run tests with this path selector and gather statistics, use `jarRunner.kt`. It takes a json with options as an input.
+To run tests with this path selector use `jarRunner.kt`. You can pass a path to a configuration json as the first argument. Gathered statistics will be put in a folder according to your configuration.
 
 ### Config
 
-The config object is declared inside the `MLConfig.kt` file, here is a detailed description of all the options:
+A config object is declared inside `MLConfig.kt`. A detailed description of all the options is listed below:
 
-- `gameEnvPath` - path to the folder which contains trained models (`rnn_cell.onnx`, `gnn_model.onnx`, `actor_model.onnx`) and a blacklist of tests that should be skipped (`blacklist.txt`), also some logs are saved here
-- `dataPath` - path to the folder into which all statistics are saved
-- `defaultAlgorithm` - algorithm to use if no trained model is found, must be `BFS` or `ForkDepthRandom`
-- `postprocessing` - how an actor model's outputs should be processed, must be `Argmax` (for PI), `Softmax` (for PPO) or `None` (if the model returns probabilities)
-- `mode` - mode in which to run `jarRunner.kt`, must be `Calculation` (to calculate statistics used for training models), `Aggregation` (to aggregate statistics from different tests into one file), `Both` (to both calculate statistics and aggregate them) or `Test` (to test this path selector with different time limits and compare it to other path selectors)
-- `logFeatures` - whether to save statistics used for training models
-- `shuffleTests` - whether to run tests in a random order
-- `discounts` - discounts used when testing path selectors
-- `inputShape` - input shape of an actor model
-- `maxAttentionLength` - maximum attention length of a PPO actor model
+- `gameEnvPath` - a path to a folder that contains trained models (`rnn_cell.onnx`, `gnn_model.onnx`, `actor_model.onnx`) and a blacklist of tests to be skipped (`blacklist.txt`), also some logs are saved to this folder
+- `dataPath` - a path to a folder to save all statistics into
+- `defaultAlgorithm` - an algorithm to use if a trained model is not found, must be one of: `BFS`, `ForkDepthRandom`
+- `postprocessing` - how actor model's outputs should be processed, must be one of: `Argmax` (choose an id with the maximum value), `Softmax` (choose randomly using the softmax of the outputs as probabilities), `None` (choose randomly using the outputs as probabilities)
+- `mode` - a mode for `jarRunner.kt`, must be one of: `Calculation` (to calculate statistics used to train models), `Aggregation` (to aggregate statistics for different tests into one file), `Both` (to both calculate statistics and aggregate them), `Test` (to test this path selector with different time limits and compare it to other path selectors)
+- `logFeatures` - whether to save statistics used to train models
+- `shuffleTests` - whether to shuffle tests before running (affects the tests being run if the `dataConsumption` option is less than 100)
+- `discounts` - time discounts used when testing path selectors
+- `inputShape` - an input shape of an actor model
+- `maxAttentionLength` - a maximum attention length of a PPO actor model
 - `useGnn` - whether to use a GNN model
-- `dataConsumption` - percentage of tests to run
-- `hardTimeLimit` - time limit for one test
-- `solverTimeLimit` - time limit for one solver call
-- `maxConcurrency` - maximum number of threads running different tests concurrently
-- `graphUpdate` - when to update block graph data, must be `Once` (at the beginning of a test) or `TestGeneration` (every time a new test was generated)
-- `logGraphFeatuers` - whether to save graph statistics used for training a GNN model
-- `gnnFeaturesCount` - number of features that a GNN model returns
+- `dataConsumption` - a percentage of tests to run
+- `hardTimeLimit` - a time limit for one test
+- `solverTimeLimit` - a time limit for one solver call
+- `maxConcurrency` - a maximum number of threads running different tests concurrently
+- `graphUpdate` - when to update block graph data, must be one of: `Once` (at the beginning of a test), `TestGeneration` (every time a new test is generated)
+- `logGraphFeatuers` - whether to save graph statistics used to train a GNN model
+- `gnnFeaturesCount` - a number of features that a GNN model returns
 - `useRnn` - whether to use an RNN model
-- `rnnStateShape` - shape of an RNN state
-- `rnnFeaturesCount` - number of features that an RNN model returns
-- `inputJars` - jars and their packages for which to run tests
+- `rnnStateShape` - a shape of an RNN state
+- `rnnFeaturesCount` - a number of features that an RNN model returns
+- `inputJars` - jars and their packages to run tests on
 
-### Metrics modification
+### How to modify metrics
 
-To change metrics you can change the values of the `reward` property of `ActionData` objects in the property `path` in `FeaturesLoggingPathSelector`. Right now it is calculated in the `remove` method.
+To change metrics you can change values of the `reward` property of the `ActionData` objects in the property `path` of the `FeaturesLoggingPathSelector`. Currently, metrics are calculated in the `remove` method.
 
 ### Training environment
 
-The training environment and its description is inside of `environment.zip`.
+The training environment and its description are inside `environment.zip`.
 
 ### "Other" files
 
-Source files which names start with "Other" are copies of files from other modules that were modified to support this path selector.
+Source files which names start with "Other" are modified copies of files from other modules. They were modified to support this path selector.
