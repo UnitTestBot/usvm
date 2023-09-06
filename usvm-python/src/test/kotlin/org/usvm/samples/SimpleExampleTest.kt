@@ -219,4 +219,32 @@ class SimpleExampleTest : PythonTestRunnerForPrimitiveProgram("SimpleExample") {
             )
         )
     }
+
+    @Test
+    fun testIsNone() {
+        check1WithConcreteRun(
+            constructFunction("is_none", listOf(PythonAnyType)),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, res -> res.repr == "None" },
+                { _, res -> res.selfTypeName == "AssertionError" }
+            )
+        )
+    }
+
+    @Test
+    fun testIsNotNone() {
+        check1WithConcreteRun(
+            constructFunction("is_not_none", listOf(PythonAnyType)),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, res -> res.repr == "None" },
+                { _, res -> res.selfTypeName == "AssertionError" }
+            )
+        )
+    }
 }
