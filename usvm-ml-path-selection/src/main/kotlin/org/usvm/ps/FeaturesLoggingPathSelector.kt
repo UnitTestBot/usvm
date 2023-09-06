@@ -118,10 +118,19 @@ open class FeaturesLoggingPathSelector<State : UState<*, Method, Statement, *, S
         return forkCountsToExit
     }
 
-    protected open fun getReward(state: State): Float {
-        return if (!visitedStatements.contains(state.currentStatement) &&
-            allStatements.contains(state.currentStatement)
-        ) 1.0f else -penalty
+    // Reward feature calculation, not actual reward
+    private fun getReward(state: State): Float {
+        val statement = state.currentStatement
+        if (statement === null ||
+            (applicationGraph.successors(statement).toList().size +
+                    applicationGraph.callees(statement).toList().size != 0) ||
+            applicationGraph.methodOf(statement) != method ||
+            state.callStack.size != 1
+        ) {
+            return 0.0f
+        }
+        return coverageStatistics.getUncoveredStatements().map { it.second }.toSet()
+            .intersect(state.reversedPath.asSequence().toSet()).size.toFloat()
     }
 
     private fun getStateFeatures(state: State): StateFeatures {
@@ -336,6 +345,7 @@ open class FeaturesLoggingPathSelector<State : UState<*, Method, Statement, *, S
             statementFinishCounts[statement] = statementFinishCounts.getValue(statement) + 1u
         }
 
+        // Actual reward calculation, change it in accordance to metrics
         val newCoveredStatementsCount = (allStatements.size - coverageStatistics.getUncoveredStatements().size)
         path.last().reward = (newCoveredStatementsCount - coveredStatementsCount).toFloat()
         coveredStatementsCount = newCoveredStatementsCount

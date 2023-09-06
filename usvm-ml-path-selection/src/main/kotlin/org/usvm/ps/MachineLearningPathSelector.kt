@@ -17,9 +17,9 @@ import kotlin.random.Random
 
 open class MachineLearningPathSelector<State : UState<*, Method, Statement, *, State>, Statement, Method>(
     pathsTreeRoot: PathsTrieNode<State, Statement>,
-    private val coverageStatistics: CoverageStatistics<Method, Statement, State>,
+    coverageStatistics: CoverageStatistics<Method, Statement, State>,
     distanceStatistics: DistanceStatistics<Method, Statement>,
-    private val applicationGraph: ApplicationGraph<Method, Statement>,
+    applicationGraph: ApplicationGraph<Method, Statement>,
     private val defaultPathSelector: UPathSelector<State>
 ) : FeaturesLoggingPathSelector<State, Statement, Method>(
     pathsTreeRoot,
@@ -45,20 +45,6 @@ open class MachineLearningPathSelector<State : UState<*, Method, Statement, *, S
             env.createSession(gnnModelPath) else null
         private var rnnSession: OrtSession? = if (MLConfig.useRnn)
             env.createSession(rnnModelPath) else null
-    }
-
-    override fun getReward(state: State): Float {
-        val statement = state.currentStatement
-        if (statement === null ||
-            (applicationGraph.successors(statement).toList().size +
-                    applicationGraph.callees(statement).toList().size != 0) ||
-            applicationGraph.methodOf(statement) != method ||
-            state.callStack.size != 1
-        ) {
-            return 0.0f
-        }
-        return coverageStatistics.getUncoveredStatements().map { it.second }.toSet()
-            .intersect(state.reversedPath.asSequence().toSet()).size.toFloat()
     }
 
     override fun getExtraNodeInfo(node: PathsTrieNode<State, Statement>) =

@@ -15,7 +15,7 @@ dependencies {
 
     implementation("org.jacodb:jacodb-analysis:${Versions.jcdb}")
 
-    implementation("org.jetbrains.kotlinx", "kotlinx-serialization-json", MLVersions.serialization)
-    implementation("io.github.rchowell", "dotlin", MLVersions.dotlin)
-    implementation("com.microsoft.onnxruntime", "onnxruntime", MLVersions.onnxruntime)
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:${MLVersions.serialization}")
+    implementation("io.github.rchowell:dotlin:{MLVersions.dotlin}")
+    implementation("com.microsoft.onnxruntime:onnxruntime:${MLVersions.onnxruntime}")
 }
