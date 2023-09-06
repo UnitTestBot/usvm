@@ -1,26 +1,25 @@
 package org.usvm.ps
 
-import org.usvm.Location
-import kotlin.math.max
-import kotlin.random.Random
 import org.usvm.PathSelectionStrategy
 import org.usvm.PathSelectorCombinationStrategy
 import org.usvm.UMachineOptions
 import org.usvm.UPathSelector
 import org.usvm.UState
 import org.usvm.UTarget
+import org.usvm.algorithms.DeterministicPriorityCollection
+import org.usvm.algorithms.RandomizedPriorityCollection
 import org.usvm.statistics.ApplicationGraph
 import org.usvm.statistics.CoverageStatistics
 import org.usvm.statistics.distances.CallGraphStatistics
 import org.usvm.statistics.distances.CallStackDistanceCalculator
 import org.usvm.statistics.distances.CfgStatistics
-import org.usvm.statistics.distances.MultiTargetDistanceCalculator
 import org.usvm.statistics.distances.InterprocDistance
 import org.usvm.statistics.distances.InterprocDistanceCalculator
+import org.usvm.statistics.distances.MultiTargetDistanceCalculator
 import org.usvm.statistics.distances.ReachabilityKind
-import org.usvm.util.DeterministicPriorityCollection
-import org.usvm.util.RandomizedPriorityCollection
 import org.usvm.util.log2
+import kotlin.math.max
+import kotlin.random.Random
 
 fun <Method, Statement, Target : UTarget<Method, Statement, Target, State>, State : UState<*, Method, Statement, *, Target, State>> createPathSelector(
     initialState: State,

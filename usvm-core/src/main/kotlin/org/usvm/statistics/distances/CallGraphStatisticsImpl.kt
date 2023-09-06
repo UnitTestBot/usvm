@@ -1,8 +1,8 @@
 package org.usvm.statistics.distances
 
-import java.util.concurrent.ConcurrentHashMap
+import org.usvm.algorithms.limitedBfsTraversal
 import org.usvm.statistics.ApplicationGraph
-import org.usvm.util.limitedBfsTraversal
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * [CallGraphStatistics] common implementation with thread-safe results caching. As it is language-agnostic,

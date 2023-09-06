@@ -335,7 +335,7 @@ class ObjectMapTest : SymbolicCollectionTestBase() {
         }
     }
 
-    private fun UState<SingleTypeSystem.SingleType, *, *, *, *>.fillMap(
+    private fun UState<SingleTypeSystem.SingleType, *, *, *, *, *>.fillMap(
         mapRef: UHeapRef,
         keys: List<UHeapRef>,
         startValueIdx: Int

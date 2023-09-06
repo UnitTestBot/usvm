@@ -5,10 +5,10 @@ import org.jacodb.api.JcMethod
 import org.jacodb.api.JcType
 import org.jacodb.api.ext.findMethodOrNull
 import org.jacodb.api.ext.toType
+import org.usvm.algorithms.limitedBfsTraversal
 import org.usvm.statistics.distances.CallGraphStatistics
 import org.usvm.types.UTypeStream
 import org.usvm.util.isDefinition
-import org.usvm.util.limitedBfsTraversal
 import java.util.concurrent.ConcurrentHashMap
 
 /**
