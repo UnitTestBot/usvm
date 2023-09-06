@@ -16,7 +16,7 @@ import org.usvm.UCallStack
 class CallStackDistanceCalculator<Method, Statement>(
     targets: Collection<Pair<Method, Statement>>,
     private val cfgStatistics: CfgStatistics<Method, Statement>
-) : StaticTargetsDistanceCalculator<Method, Statement, UInt> {
+) : DistanceCalculator<Method, Statement, UInt> {
 
     // TODO: optimize for single target case
     private val targetsByMethod = HashMap<Method, HashSet<Statement>>()

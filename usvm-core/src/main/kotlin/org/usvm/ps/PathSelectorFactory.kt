@@ -13,7 +13,7 @@ import org.usvm.statistics.CoverageStatistics
 import org.usvm.statistics.distances.CallGraphStatistics
 import org.usvm.statistics.distances.CallStackDistanceCalculator
 import org.usvm.statistics.distances.CfgStatistics
-import org.usvm.statistics.distances.DynamicTargetsShortestDistanceCalculator
+import org.usvm.statistics.distances.MultiTargetDistanceCalculator
 import org.usvm.statistics.distances.InterprocDistance
 import org.usvm.statistics.distances.InterprocDistanceCalculator
 import org.usvm.statistics.distances.ReachabilityKind
@@ -189,7 +189,7 @@ internal fun <Method, Statement, Target : UTarget<Method, Statement, Target, Sta
     cfgStatistics: CfgStatistics<Method, Statement>,
     random: Random? = null,
 ): UPathSelector<State> {
-    val distanceCalculator = DynamicTargetsShortestDistanceCalculator<Method, Statement, UInt> { m, s ->
+    val distanceCalculator = MultiTargetDistanceCalculator<Method, Statement, UInt> { m, s ->
         CallStackDistanceCalculator(
             targets = listOf(m to s),
             cfgStatistics = cfgStatistics
@@ -199,7 +199,7 @@ internal fun <Method, Statement, Target : UTarget<Method, Statement, Target, Sta
     fun calculateDistanceToTargets(state: State) =
         state.targets.minOfOrNull { target ->
             if (target.location == null) {
-                0u // i. e. ExitTarget case
+                0u
             } else {
                 distanceCalculator.calculateDistance(
                     state.currentStatement,
@@ -222,13 +222,16 @@ internal fun <Method, Statement, Target : UTarget<Method, Statement, Target, Sta
     )
 }
 
+/**
+ *
+ */
 internal fun InterprocDistance.logWeight(): UInt {
-    var weight = log2(distance) // In KLEE, the number of stepped memory instructions is also added to distance
+    var weight = log2(distance) // In KLEE, the number of stepped memory instructions is also added
     assert(weight <= 32u)
     if (reachabilityKind != ReachabilityKind.LOCAL) {
         weight += 32u
     }
-    return distance
+    return weight
 }
 
 internal fun <Method, Statement, Target : UTarget<Method, Statement, Target, State>, State : UState<*, Method, Statement, *, Target, State>> createTargetedPathSelector(
@@ -237,7 +240,7 @@ internal fun <Method, Statement, Target : UTarget<Method, Statement, Target, Sta
     applicationGraph: ApplicationGraph<Method, Statement>,
     random: Random? = null,
 ): UPathSelector<State> {
-    val distanceCalculator = DynamicTargetsShortestDistanceCalculator<Method, Statement, InterprocDistance> { m, s ->
+    val distanceCalculator = MultiTargetDistanceCalculator<Method, Statement, InterprocDistance> { m, s ->
         InterprocDistanceCalculator(
             targetLocation = m to s,
             applicationGraph = applicationGraph,
@@ -249,7 +252,7 @@ internal fun <Method, Statement, Target : UTarget<Method, Statement, Target, Sta
     fun calculateWeight(state: State) =
         state.targets.minOfOrNull { target ->
             if (target.location == null) {
-                0u // i. e. ExitTarget case
+                0u
             } else {
                 distanceCalculator.calculateDistance(
                     state.currentStatement,

@@ -47,7 +47,7 @@ internal class InterprocDistanceCalculator<Method, Statement>(
     private val applicationGraph: ApplicationGraph<Method, Statement>,
     private val cfgStatistics: CfgStatistics<Method, Statement>,
     private val callGraphStatistics: CallGraphStatistics<Method>
-) : StaticTargetsDistanceCalculator<Method, Statement, InterprocDistance> {
+) : DistanceCalculator<Method, Statement, InterprocDistance> {
 
     private val frameDistanceCache = HashMap<Method, HashMap<Statement, UInt>>()
 

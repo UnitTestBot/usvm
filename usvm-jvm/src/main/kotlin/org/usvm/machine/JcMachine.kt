@@ -98,7 +98,6 @@ class JcMachine(
 
         val observers = mutableListOf<UMachineObserver<JcState>>(coverageStatistics)
         observers.add(TerminatedStateRemover())
-        observers.addAll(targets)
 
         if (options.coverageZone == CoverageZone.TRANSITIVE) {
             observers.add(
@@ -112,19 +111,13 @@ class JcMachine(
         }
         observers.add(statesCollector)
 
-        targets.forEach { ctx.jcInterpreterObservers += it }
-        try {
-            run(
-                interpreter,
-                pathSelector,
-                observer = CompositeUMachineObserver(observers),
-                isStateTerminated = ::isStateTerminated,
-                stopStrategy = stopStrategy,
-            )
-        } finally {
-            targets.forEach { ctx.jcInterpreterObservers -= it }
-        }
-
+        run(
+            interpreter,
+            pathSelector,
+            observer = CompositeUMachineObserver(observers),
+            isStateTerminated = ::isStateTerminated,
+            stopStrategy = stopStrategy,
+        )
 
         return statesCollector.collectedStates
     }

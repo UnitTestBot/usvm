@@ -19,7 +19,7 @@ abstract class UTarget<Method, Statement, Target : UTarget<Method, Statement, Ta
      * Optional location of the target.
      */
     val location: Pair<Method, Statement>? = null
-) : UMachineObserver<State> {
+) {
     private val childrenImpl = mutableListOf<Target>()
     private var parent: Target? = null
 
@@ -54,10 +54,6 @@ abstract class UTarget<Method, Statement, Target : UTarget<Method, Statement, Ta
         return child
     }
 
-    protected inline fun forEachChild(action: Target.() -> Unit) {
-        children.forEach { if (!it.isRemoved) it.action() }
-    }
-
     /**
      * This method should be called by concrete targets to signal that [byState]
      * should try to visit the target. If the target without children has been
@@ -82,13 +78,5 @@ abstract class UTarget<Method, Statement, Target : UTarget<Method, Statement, Ta
         if (parent != null && parent.childrenImpl.all { it.isRemoved }) {
             parent.remove()
         }
-    }
-
-    override fun onState(parent: State, forks: Sequence<State>) {
-        forEachChild { onState(parent, forks) }
-    }
-
-    override fun onStateTerminated(state: State) {
-        forEachChild { onStateTerminated(state) }
     }
 }

@@ -5,7 +5,7 @@ import org.usvm.UCallStack
 /**
  * @see calculateDistance
  */
-fun interface StaticTargetsDistanceCalculator<Method, Statement, out Distance> {
+fun interface DistanceCalculator<Method, Statement, out Distance> {
 
     /**
      * Calculate distance from location represented by [currentStatement] and [callStack] to
@@ -15,13 +15,13 @@ fun interface StaticTargetsDistanceCalculator<Method, Statement, out Distance> {
 }
 
 /**
- * Dynamically accumulates multiple [StaticTargetsDistanceCalculator] by their targets allowing
+ * Dynamically accumulates multiple [DistanceCalculator] by their targets allowing
  * to calculate distances to arbitrary targets.
  */
-class DynamicTargetsShortestDistanceCalculator<Method, Statement, Distance>(
-    private val getDistanceCalculator: (Method, Statement) -> StaticTargetsDistanceCalculator<Method, Statement, Distance>
+class MultiTargetDistanceCalculator<Method, Statement, Distance>(
+    private val getDistanceCalculator: (Method, Statement) -> DistanceCalculator<Method, Statement, Distance>
 ) {
-    private val calculatorsByTarget = HashMap<Pair<Method, Statement>, StaticTargetsDistanceCalculator<Method, Statement, Distance>>()
+    private val calculatorsByTarget = HashMap<Pair<Method, Statement>, DistanceCalculator<Method, Statement, Distance>>()
 
     // TODO: use
     fun removeTargetFromCache(target: Pair<Method, Statement>): Boolean {

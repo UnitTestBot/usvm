@@ -29,8 +29,6 @@ class JcContext(
     val cp: JcClasspath,
     components: JcComponents,
 ) : UContext(components) {
-    val jcInterpreterObservers = CompositeJcInterpreterObserver()
-
     val voidSort by lazy { JcVoidSort(this) }
 
     val longSort get() = bv64Sort

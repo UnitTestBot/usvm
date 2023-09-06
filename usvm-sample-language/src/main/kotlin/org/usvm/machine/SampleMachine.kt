@@ -79,7 +79,6 @@ class SampleMachine(
 
         val observers = mutableListOf<UMachineObserver<SampleState>>(coverageStatistics)
         observers.add(TerminatedStateRemover())
-        observers.addAll(targets)
         observers.add(statesCollector)
 
         run(

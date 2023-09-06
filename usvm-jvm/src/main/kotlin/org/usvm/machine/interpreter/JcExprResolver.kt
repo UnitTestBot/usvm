@@ -689,10 +689,7 @@ class JcExprResolver(
         val neqNull = mkHeapRefEq(ref, nullRef).not()
         scope.fork(
             neqNull,
-            blockOnFalseState = {
-                ctx.jcInterpreterObservers.onNullPointerDereference(this, ref)
-                allocateException(nullPointerExceptionType)(this)
-            }
+            blockOnFalseState = allocateException(nullPointerExceptionType)
         )
     }
 
