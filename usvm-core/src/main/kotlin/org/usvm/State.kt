@@ -79,7 +79,7 @@ abstract class UState<Type, Method, Statement, Context : UContext, Target : UTar
     protected var targetsImpl = targets.toPersistentList()
         private set
 
-    private val reachedSinksImpl = mutableSetOf<Target>()
+    private val reachedTerminalTargetsImpl = mutableSetOf<Target>()
 
     /**
      * Collection of state's current targets.
@@ -90,22 +90,22 @@ abstract class UState<Type, Method, Statement, Context : UContext, Target : UTar
     /**
      * Reached targets with no children.
      */
-    val reachedSinks: Set<Target> = reachedSinksImpl
+    val reachedTerminalTargets: Set<Target> = reachedTerminalTargetsImpl
 
     /**
-     * Tries to remove the [target] from current targets collection and
-     * add its children there.
+     * If the [target] is not removed and is contained in this state's target collection,
+     * removes it from there and adds there all its children.
      *
      * @return true if the [target] was successfully removed.
      */
-    internal fun visitTarget(target: Target): Boolean {
+    internal fun tryPropagateTarget(target: Target): Boolean {
         val previousTargetCount = targetsImpl.size
         targetsImpl = targetsImpl.remove(target)
         if (previousTargetCount == targetsImpl.size || !target.isRemoved) {
             return false
         }
-        if (target.isSink) {
-            reachedSinksImpl.add(target)
+        if (target.isTerminal) {
+            reachedTerminalTargetsImpl.add(target)
             return true
         }
         targetsImpl = targetsImpl.addAll(target.children)

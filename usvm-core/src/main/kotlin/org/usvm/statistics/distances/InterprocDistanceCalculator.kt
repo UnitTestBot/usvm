@@ -1,5 +1,6 @@
 package org.usvm.statistics.distances
 
+import org.usvm.Location
 import org.usvm.UCallStack
 import org.usvm.statistics.ApplicationGraph
 
@@ -11,7 +12,6 @@ enum class ReachabilityKind {
      * Target is located in the same method and is locally reachable.
      */
     LOCAL,
-
     /**
      * Target is reachable from some method which can be called later.
      */
@@ -26,8 +26,19 @@ enum class ReachabilityKind {
     NONE
 }
 
-data class InterprocDistance(val distance: UInt, val reachabilityKind: ReachabilityKind) {
-    val isUnreachable = reachabilityKind == ReachabilityKind.NONE
+class InterprocDistance(val distance: UInt, reachabilityKind: ReachabilityKind) {
+
+    val isInfinite = distance == UInt.MAX_VALUE
+    val reachabilityKind = if (distance != UInt.MAX_VALUE) reachabilityKind else ReachabilityKind.NONE
+
+    override fun equals(other: Any?): Boolean {
+        if (other !is InterprocDistance) {
+            return false
+        }
+        return other.distance == distance && other.reachabilityKind == reachabilityKind
+    }
+
+    override fun hashCode(): Int = (23 * 31 + distance.toInt()) * 31 + reachabilityKind.hashCode()
 }
 
 /**
@@ -43,7 +54,7 @@ data class InterprocDistance(val distance: UInt, val reachabilityKind: Reachabil
 // TODO: give priority to paths without calls
 // TODO: add new targets according to the path?
 internal class InterprocDistanceCalculator<Method, Statement>(
-    private val targetLocation: Pair<Method, Statement>,
+    private val targetLocation: Location<Method, Statement>,
     private val applicationGraph: ApplicationGraph<Method, Statement>,
     private val cfgStatistics: CfgStatistics<Method, Statement>,
     private val callGraphStatistics: CallGraphStatistics<Method>
@@ -51,17 +62,17 @@ internal class InterprocDistanceCalculator<Method, Statement>(
 
     private val frameDistanceCache = HashMap<Method, HashMap<Statement, UInt>>()
 
-    private fun calculateFrameDistance(method: Method, statement: Statement): Pair<UInt, Boolean> {
-        if (method == targetLocation.first) {
-            val localDistance = cfgStatistics.getShortestDistance(method, statement, targetLocation.second)
+    private fun calculateFrameDistance(method: Method, statement: Statement): InterprocDistance {
+        if (method == targetLocation.method) {
+            val localDistance = cfgStatistics.getShortestDistance(method, statement, targetLocation.statement)
             if (localDistance != UInt.MAX_VALUE) {
-                return localDistance to true
+                return InterprocDistance(localDistance, ReachabilityKind.LOCAL)
             }
         }
 
         val cached = frameDistanceCache[method]?.get(statement)
         if (cached != null) {
-            return cached to false
+            return InterprocDistance(cached, ReachabilityKind.UP_STACK)
         }
 
         var minDistanceToCall = UInt.MAX_VALUE
@@ -75,15 +86,17 @@ internal class InterprocDistanceCalculator<Method, Statement>(
                 continue
             }
 
-            if (applicationGraph.callees(statementOfMethod).any { callGraphStatistics.checkReachability(it, targetLocation.first) }) {
+            if (applicationGraph.callees(statementOfMethod).any {
+                callGraphStatistics.checkReachability(it, targetLocation.method)
+            }) {
                 minDistanceToCall = distanceToCall
             }
         }
 
         if (minDistanceToCall != UInt.MAX_VALUE) {
-            frameDistanceCache.computeIfAbsent(method) { HashMap() }[statement] = minDistanceToCall
+            frameDistanceCache.computeIfAbsent(method) { hashMapOf() }[statement] = minDistanceToCall
         }
-        return minDistanceToCall to false
+        return InterprocDistance(minDistanceToCall, ReachabilityKind.UP_STACK)
     }
 
     override fun calculateDistance(
@@ -91,17 +104,24 @@ internal class InterprocDistanceCalculator<Method, Statement>(
         callStack: UCallStack<Method, Statement>
     ): InterprocDistance {
         val lastMethod = callStack.lastMethod()
-        val (lastFrameDistance, isLocal) = calculateFrameDistance(lastMethod, currentStatement)
-        if (lastFrameDistance != UInt.MAX_VALUE) {
-            return InterprocDistance(lastFrameDistance, if (isLocal) ReachabilityKind.LOCAL else ReachabilityKind.UP_STACK)
+        val lastFrameDistance = calculateFrameDistance(lastMethod, currentStatement)
+        if (!lastFrameDistance.isInfinite) {
+            return lastFrameDistance
         }
 
+        listOf<Int>().asReversed()
+
         var statementOnCallStack = callStack.last().returnSite
-        for ((methodOnCallStack, returnSite) in callStack.reversed().drop(1)) {
+        for (i in callStack.size - 2 downTo 0) {
+            val (methodOnCallStack, returnSite) = callStack[i]
             checkNotNull(statementOnCallStack) { "Not first call stack frame had null return site" }
 
-            if (applicationGraph.successors(statementOnCallStack).any { calculateFrameDistance(methodOnCallStack, it).first != UInt.MAX_VALUE }) {
-                return InterprocDistance(cfgStatistics.getShortestDistanceToExit(lastMethod, currentStatement), ReachabilityKind.DOWN_STACK)
+            fun isTargetReachableFrom(statement: Statement): Boolean =
+                !calculateFrameDistance(methodOnCallStack, statement).isInfinite
+
+            if (applicationGraph.successors(statementOnCallStack).any(::isTargetReachableFrom)) {
+                val distanceToExit = cfgStatistics.getShortestDistanceToExit(lastMethod, currentStatement)
+                return InterprocDistance(distanceToExit, ReachabilityKind.DOWN_STACK)
             }
 
             statementOnCallStack = returnSite

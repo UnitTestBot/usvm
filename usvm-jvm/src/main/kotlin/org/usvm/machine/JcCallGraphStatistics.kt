@@ -30,28 +30,28 @@ class JcCallGraphStatistics(
 
     private val cache = ConcurrentHashMap<JcMethod, Set<JcMethod>>()
 
-    private fun getCallees(method: JcMethod): Sequence<JcMethod> {
-        val rawCallees = applicationGraph.statementsOf(method).flatMap(applicationGraph::callees).distinct()
+    private fun getCallees(method: JcMethod): Set<JcMethod> {
+        val callees = mutableSetOf<JcMethod>()
+        applicationGraph.statementsOf(method).flatMapTo(callees, applicationGraph::callees)
 
-        if (subclassesToTake <= 0 || !rawCallees.any()) {
-            return rawCallees
+        if (subclassesToTake <= 0 || callees.isEmpty()) {
+            return callees
         }
 
         // TODO: check that the method was actually overridden or base implementation is used
         return typeStream
             .filterBySupertype(method.enclosingClass.toType())
             .take(subclassesToTake)
-            .asSequence()
-            .map {
+            .mapTo(callees) {
                 checkNotNull((it as? JcClassType)?.findMethodOrNull(method.name, method.description)?.method) {
                     "Cannot find overridden method $method in type $it"
                 }
             }
-            .distinct()
     }
 
     override fun checkReachability(methodFrom: JcMethod, methodTo: JcMethod): Boolean =
         cache.computeIfAbsent(methodFrom) {
-            limitedBfsTraversal(depthLimit, listOf(methodFrom), ::getCallees).toSet()
+            // TODO: stop traversal on reaching methodTo and cache remaining elements
+            limitedBfsTraversal(depthLimit, listOf(methodFrom), ::getCallees)
         }.contains(methodTo)
 }

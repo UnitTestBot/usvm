@@ -114,7 +114,7 @@ enum class StateCollectionStrategy {
      */
     COVERED_NEW,
     /**
-     * Collect only those states which have reached sink targets.
+     * Collect only those states which have reached terminal targets.
      */
     REACHED_TARGET
 }
@@ -178,7 +178,7 @@ data class UMachineOptions(
      */
     val solverType: SolverType = SolverType.Z3,
     /**
-     * Should machine stop when all sink targets are reached.
+     * Should machine stop when all terminal targets are reached.
      */
     val stopOnTargetsReached: Boolean = false,
     /**

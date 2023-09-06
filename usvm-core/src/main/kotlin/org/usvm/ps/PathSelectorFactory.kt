@@ -1,5 +1,6 @@
 package org.usvm.ps
 
+import org.usvm.Location
 import kotlin.math.max
 import kotlin.random.Random
 import org.usvm.PathSelectionStrategy
@@ -189,9 +190,9 @@ internal fun <Method, Statement, Target : UTarget<Method, Statement, Target, Sta
     cfgStatistics: CfgStatistics<Method, Statement>,
     random: Random? = null,
 ): UPathSelector<State> {
-    val distanceCalculator = MultiTargetDistanceCalculator<Method, Statement, UInt> { m, s ->
+    val distanceCalculator = MultiTargetDistanceCalculator { loc ->
         CallStackDistanceCalculator(
-            targets = listOf(m to s),
+            targets = listOf(loc),
             cfgStatistics = cfgStatistics
         )
     }
@@ -223,13 +224,20 @@ internal fun <Method, Statement, Target : UTarget<Method, Statement, Target, Sta
 }
 
 /**
- *
+ * Converts [InterprocDistance] to integer weight with the following properties:
+ * - All distances with [ReachabilityKind.LOCAL] have smaller weight than the others.
+ * - For greater distances one-step distance is less significant (logarithmic scale).
+ * - All distances lie in [[0; 64]] interval.
+ * - Only infinite distances map to weight equal to 64.
  */
-internal fun InterprocDistance.logWeight(): UInt {
-    var weight = log2(distance) // In KLEE, the number of stepped memory instructions is also added
-    assert(weight <= 32u)
+private fun InterprocDistance.logWeight(): UInt {
+    if (isInfinite) {
+        return 64u
+    }
+    var weight = log2(distance) // weight is in [0; 32)
+    assert(weight < 32u)
     if (reachabilityKind != ReachabilityKind.LOCAL) {
-        weight += 32u
+        weight += 32u // non-local's weight is in [32, 64)
     }
     return weight
 }
@@ -240,9 +248,9 @@ internal fun <Method, Statement, Target : UTarget<Method, Statement, Target, Sta
     applicationGraph: ApplicationGraph<Method, Statement>,
     random: Random? = null,
 ): UPathSelector<State> {
-    val distanceCalculator = MultiTargetDistanceCalculator<Method, Statement, InterprocDistance> { m, s ->
+    val distanceCalculator = MultiTargetDistanceCalculator { loc ->
         InterprocDistanceCalculator(
-            targetLocation = m to s,
+            targetLocation = loc,
             applicationGraph = applicationGraph,
             cfgStatistics = cfgStatistics,
             callGraphStatistics = callGraphStatistics

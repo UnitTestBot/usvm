@@ -1,7 +1,5 @@
 package org.usvm
 
-import org.usvm.statistics.UMachineObserver
-
 /**
  * Base class for a symbolic execution target. A target can be understood as a 'task' for symbolic machine
  * which it tries to complete. For example, a task can have an attached location which should be visited by a state
@@ -18,7 +16,7 @@ abstract class UTarget<Method, Statement, Target : UTarget<Method, Statement, Ta
     /**
      * Optional location of the target.
      */
-    val location: Pair<Method, Statement>? = null
+    val location: Location<Method, Statement>? = null
 ) {
     private val childrenImpl = mutableListOf<Target>()
     private var parent: Target? = null
@@ -31,7 +29,7 @@ abstract class UTarget<Method, Statement, Target : UTarget<Method, Statement, Ta
     /**
      * True if this target has no children.
      */
-    val isSink get() = childrenImpl.isEmpty()
+    val isTerminal get() = childrenImpl.isEmpty()
 
     /**
      * True if this target is logically removed from the tree.
@@ -56,14 +54,12 @@ abstract class UTarget<Method, Statement, Target : UTarget<Method, Statement, Ta
 
     /**
      * This method should be called by concrete targets to signal that [byState]
-     * should try to visit the target. If the target without children has been
+     * should try to propagate the target. If the target without children has been
      * visited, it is logically removed from tree.
-     *
-     * TODO: think about naming
      */
-    protected fun visit(byState: State) {
+    protected fun propagate(byState: State) {
         @Suppress("UNCHECKED_CAST")
-        if (byState.visitTarget(this as Target) && isSink) {
+        if (byState.tryPropagateTarget(this as Target) && isTerminal) {
             remove()
         }
     }

@@ -92,14 +92,14 @@ inline fun <V> bfsTraversal(startVertices: Collection<V>, crossinline adjacentVe
 }
 
 /**
- * Returns the sequence of vertices with depth <= [depthLimit] in breadth-first order.
+ * Returns the set of vertices with depth <= [depthLimit] in breadth-first order.
  *
  * @param depthLimit vertices which are reachable via paths longer than this value are
  * not considered (i.e. 1 means only the vertices adjacent to start).
  * @param startVertices vertices to start traversal from.
- * @param adjacentVertices function which maps a vertex to the sequence of vertices adjacent to.
+ * @param adjacentVertices function which maps a vertex to the set of vertices adjacent to.
  */
-fun <V> limitedBfsTraversal(depthLimit: UInt, startVertices: Collection<V>, adjacentVertices: (V) -> Sequence<V>): Sequence<V> {
+inline fun <V> limitedBfsTraversal(depthLimit: UInt, startVertices: Collection<V>, crossinline adjacentVertices: (V) -> Set<V>): Set<V> {
     var currentDepth = 0u
     var numberOfVerticesOfCurrentLevel = startVertices.size
     var numberOfVerticesOfNextLevel = 0
@@ -107,20 +107,21 @@ fun <V> limitedBfsTraversal(depthLimit: UInt, startVertices: Collection<V>, adja
     val queue: Queue<V> = LinkedList(startVertices)
     val visited = HashSet<V>()
 
-    return sequence {
-        while (currentDepth <= depthLimit && queue.isNotEmpty()) {
-            val currentVertex = queue.remove()
-            visited.add(currentVertex)
-            yield(currentVertex)
-            adjacentVertices(currentVertex).filterNot(visited::contains).forEach {
+    while (currentDepth <= depthLimit && queue.isNotEmpty()) {
+        val currentVertex = queue.remove()
+        visited.add(currentVertex)
+        adjacentVertices(currentVertex).forEach {
+            if (!visited.contains(it)) {
                 numberOfVerticesOfNextLevel++
                 queue.add(it)
             }
-            if (--numberOfVerticesOfCurrentLevel == 0) {
-                currentDepth++
-                numberOfVerticesOfCurrentLevel = numberOfVerticesOfNextLevel
-                numberOfVerticesOfNextLevel = 0
-            }
+        }
+        if (--numberOfVerticesOfCurrentLevel == 0) {
+            currentDepth++
+            numberOfVerticesOfCurrentLevel = numberOfVerticesOfNextLevel
+            numberOfVerticesOfNextLevel = 0
         }
     }
+
+    return visited
 }

@@ -1,5 +1,6 @@
 package org.usvm.statistics.distances
 
+import org.usvm.Location
 import kotlin.math.min
 import org.usvm.UCallStack
 
@@ -14,7 +15,7 @@ import org.usvm.UCallStack
  * @param cfgStatistics [CfgStatistics] instance used to calculate local distances on each frame.
  */
 class CallStackDistanceCalculator<Method, Statement>(
-    targets: Collection<Pair<Method, Statement>>,
+    targets: Collection<Location<Method, Statement>>,
     private val cfgStatistics: CfgStatistics<Method, Statement>
 ) : DistanceCalculator<Method, Statement, UInt> {
 
@@ -30,7 +31,7 @@ class CallStackDistanceCalculator<Method, Statement>(
     }
 
     private fun getMinDistanceToTargetInCurrentFrame(method: Method, statement: Statement): UInt {
-        return minLocalDistanceToTargetCache.computeIfAbsent(method) { HashMap() }
+        return minLocalDistanceToTargetCache.computeIfAbsent(method) { hashMapOf() }
             .computeIfAbsent(statement) {
                 targetsByMethod[method]?.minOfOrNull { cfgStatistics.getShortestDistance(method, statement, it) } ?: UInt.MAX_VALUE
             }

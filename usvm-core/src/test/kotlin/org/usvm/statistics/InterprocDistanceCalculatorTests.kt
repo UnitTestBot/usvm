@@ -4,6 +4,7 @@ import kotlin.test.assertEquals
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
+import org.usvm.Location
 import org.usvm.TestInstruction
 import org.usvm.UCallStack
 import org.usvm.appGraph
@@ -178,7 +179,7 @@ class InterprocDistanceCalculatorTests {
             }
 
         val calculator = InterprocDistanceCalculator(
-            targetLoc.method to targetLoc,
+            Location(targetLoc.method, targetLoc),
             appGraph1,
             cfgStatistics,
             callGraphStatistics

@@ -29,9 +29,11 @@ internal fun pseudoRandom(i: Int): Int {
     return res
 }
 
-internal class TestTarget(method: String, offset: Int) : UTarget<String, TestInstruction, TestTarget, TestState>(method to TestInstruction(method, offset)) {
+internal class TestTarget(method: String, offset: Int) : UTarget<String, TestInstruction, TestTarget, TestState>(
+    Location(method, TestInstruction(method, offset))
+) {
     fun reach(state: TestState) {
-        visit(state)
+        propagate(state)
     }
 }
 

@@ -1,6 +1,7 @@
 package org.usvm.statistics
 
 import org.junit.jupiter.api.Test
+import org.usvm.Location
 import org.usvm.UCallStack
 import org.usvm.statistics.distances.CallStackDistanceCalculator
 import org.usvm.statistics.distances.CfgStatistics
@@ -60,7 +61,13 @@ internal class CallStackDistanceCalculatorTests {
         }
 
         val calculator = CallStackDistanceCalculator(
-            setOf("A" to 2, "A" to 3, "A" to 4, "A" to 5, "A" to 6),
+            setOf(
+                Location("A", 2),
+                Location("A", 3),
+                Location("A", 4),
+                Location("A", 5),
+                Location("A", 6)
+            ),
             cfgStatistics
         )
 
@@ -98,7 +105,7 @@ internal class CallStackDistanceCalculatorTests {
         callStack.push("C", 2)
 
         val calculator =
-            CallStackDistanceCalculator(setOf("C" to 4), cfgStatistics)
+            CallStackDistanceCalculator(setOf(Location("C", 4)), cfgStatistics)
         assertEquals(10u, calculator.calculateDistance(currentStatment, callStack))
 
         calculator.removeTarget("C", 4)

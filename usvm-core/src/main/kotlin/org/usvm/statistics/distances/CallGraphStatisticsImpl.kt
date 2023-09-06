@@ -19,11 +19,12 @@ class CallGraphStatisticsImpl<Method, Statement>(
 
     private val cache = ConcurrentHashMap<Method, Set<Method>>()
 
-    private fun getCallees(method: Method): Sequence<Method> =
-        applicationGraph.statementsOf(method).flatMap(applicationGraph::callees).distinct()
+    private fun getCallees(method: Method): Set<Method> =
+        applicationGraph.statementsOf(method).flatMapTo(mutableSetOf(), applicationGraph::callees)
 
     override fun checkReachability(methodFrom: Method, methodTo: Method): Boolean =
         cache.computeIfAbsent(methodFrom) {
-            limitedBfsTraversal(depthLimit, listOf(methodFrom), ::getCallees).toSet()
+            // TODO: stop traversal on reaching methodTo and cache remaining elements
+            limitedBfsTraversal(depthLimit, listOf(methodFrom), ::getCallees)
         }.contains(methodTo)
 }
