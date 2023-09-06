@@ -140,3 +140,11 @@ def simple_str(x):
     if isinstance(x, str):
         return 1
     return 2
+
+
+def is_none(x):
+    assert x is None
+
+
+def is_not_none(x):
+    assert x is not None

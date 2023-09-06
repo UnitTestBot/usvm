@@ -138,6 +138,10 @@ public class CPythonAdapter {
         withTracing(context, new MethodParametersNoReturn("is_op", Arrays.asList(left, right)), unit(() -> handlerIsOpKt(context, left.obj, right.obj)));
     }
 
+    public static void handlerNoneCheck(ConcolicRunContext context, SymbolForCPython on) {
+        withTracing(context, new MethodParametersNoReturn("none_check", Collections.singletonList(on)), unit(() -> handlerNoneCheckKt(context, on.obj)));
+    }
+
     public static SymbolForCPython handlerGTLong(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
         return methodWrapper(context, new MethodParameters("gt_long", Arrays.asList(left, right)), () -> handlerGTLongKt(context, left.obj, right.obj));
     }
