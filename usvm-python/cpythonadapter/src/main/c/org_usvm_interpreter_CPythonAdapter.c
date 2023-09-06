@@ -240,10 +240,11 @@ JNIEXPORT jlongArray JNICALL Java_org_usvm_interpreter_CPythonAdapter_getIterabl
 }
 
 JNIEXPORT jstring JNICALL Java_org_usvm_interpreter_CPythonAdapter_getPythonObjectRepr(JNIEnv *env, jobject _, jlong object_ref) {
+    assert(!PyErr_Occurred());
     PyObject *repr = PyObject_Repr((PyObject *) object_ref);
     if (!repr) {
-        PyErr_Print();
-        // PyErr_Clear();
+        // PyErr_Print();
+        PyErr_Clear();
         return 0;
     }
     const char *repr_as_string = PyUnicode_AsUTF8AndSize(repr, 0);
@@ -251,6 +252,7 @@ JNIEXPORT jstring JNICALL Java_org_usvm_interpreter_CPythonAdapter_getPythonObje
 }
 
 JNIEXPORT jstring JNICALL Java_org_usvm_interpreter_CPythonAdapter_getPythonObjectStr(JNIEnv *env, jobject _, jlong object_ref) {
+    assert(!PyErr_Occurred());
     PyObject *repr = PyObject_Str((PyObject *) object_ref);
     if (!repr) {
         PyErr_Clear();

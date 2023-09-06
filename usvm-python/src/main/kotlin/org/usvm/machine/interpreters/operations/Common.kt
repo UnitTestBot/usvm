@@ -101,3 +101,7 @@ fun handlerIsOpKt(
             myFork(ctx, mkHeapRefEq(left.address, right.address))
     }
 }
+
+fun handlerNoneCheckKt(ctx: ConcolicRunContext, on: UninterpretedSymbolicPythonObject) {
+    myFork(ctx, on.evalIs(ctx, ctx.typeSystem.pythonNoneType))
+}
