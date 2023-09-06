@@ -20,7 +20,7 @@ fun <Method, Statement, State : UState<*, Method, Statement, *, State>> otherCre
 
     val selectors = strategies.map { strategy ->
         when (strategy) {
-            OtherPathSelectionStrategy.FEATURE_LOGGING -> FeatureLoggingPathSelector(
+            OtherPathSelectionStrategy.FEATURES_LOGGING -> FeaturesLoggingPathSelector(
                 requireNotNull(initialState.pathLocation.parent) { "Paths tree root is required for BFS with logging path selector" },
                 requireNotNull(coverageStatistics()) { "Coverage statistics is required for BFS with logging path selector" },
                 requireNotNull(distanceStatistics()) { "Distance statistics is required for BFS with logging path selector" },

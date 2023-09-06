@@ -4,7 +4,7 @@ enum class OtherPathSelectionStrategy {
     /**
      * Collects features according to states selected by any other path selector.
      */
-    FEATURE_LOGGING,
+    FEATURES_LOGGING,
     /**
      * Collects features and feeds them to the ML model to select states.
      * Extends FEATURE_LOGGING path selector.

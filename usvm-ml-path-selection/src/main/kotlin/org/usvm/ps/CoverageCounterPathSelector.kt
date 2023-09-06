@@ -47,7 +47,7 @@ class CoverageCounterPathSelector<Method, State : UState<*, Method, *, *, State>
     }
 
     fun savePath() {
-        if (selector is FeatureLoggingPathSelector<*, *, *>) {
+        if (selector is FeaturesLoggingPathSelector<*, *, *>) {
             selector.savePath()
         }
     }

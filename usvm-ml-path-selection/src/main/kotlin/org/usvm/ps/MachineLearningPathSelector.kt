@@ -7,7 +7,6 @@ import org.usvm.*
 import org.usvm.statistics.ApplicationGraph
 import org.usvm.statistics.CoverageStatistics
 import org.usvm.statistics.DistanceStatistics
-import org.usvm.util.escape
 import java.io.File
 import java.nio.FloatBuffer
 import java.nio.LongBuffer
@@ -22,7 +21,7 @@ open class MachineLearningPathSelector<State : UState<*, Method, Statement, *, S
     distanceStatistics: DistanceStatistics<Method, Statement>,
     private val applicationGraph: ApplicationGraph<Method, Statement>,
     private val defaultPathSelector: UPathSelector<State>
-) : FeatureLoggingPathSelector<State, Statement, Method>(
+) : FeaturesLoggingPathSelector<State, Statement, Method>(
     pathsTreeRoot,
     coverageStatistics,
     distanceStatistics,
@@ -62,19 +61,10 @@ open class MachineLearningPathSelector<State : UState<*, Method, Statement, *, S
             .intersect(state.reversedPath.asSequence().toSet()).size.toFloat()
     }
 
-    override fun getNodeName(node: PathsTrieNode<State, Statement>, id: Int): String {
-        val statement = try {
-            node.statement
-        } catch (e: UnsupportedOperationException) {
-            "No Statement"
+    override fun getExtraNodeInfo(node: PathsTrieNode<State, Statement>) =
+        node.states.joinToString(separator = "") { state ->
+            ", ${DecimalFormat("0.00E0").format(outputValues.getOrElse(lru.indexOf(state)) { -1.0f })}"
         }
-        var name = "\"$id: ${statement.toString().escape()}"
-        node.states.forEach { state ->
-            name += ", ${DecimalFormat("0.00E0").format(outputValues.getOrElse(lru.indexOf(state)) { -1.0f })}"
-        }
-        name += "\""
-        return name
-    }
 
     private fun chooseRandomId(probabilities: Collection<Float>): Int {
         val randomNumber = random.nextFloat()

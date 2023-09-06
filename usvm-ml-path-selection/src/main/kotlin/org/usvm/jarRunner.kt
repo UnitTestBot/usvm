@@ -7,7 +7,8 @@ import org.jacodb.api.JcClassOrInterface
 import org.jacodb.api.JcMethod
 import org.jacodb.api.ext.packageName
 import org.usvm.machine.OtherJcMachine
-import org.usvm.ps.FeatureLoggingPathSelector
+import org.usvm.ps.FeaturesLogger.Companion.jsonStateScheme
+import org.usvm.ps.FeaturesLogger.Companion.jsonTrajectoryScheme
 import org.usvm.samples.OtherJacoDBContainer
 import java.io.File
 import kotlin.io.path.Path
@@ -58,7 +59,7 @@ fun calculate() {
     val pathSelectorSets = if (MLConfig.mode == Mode.Test)
         listOf(
             listOf(OtherPathSelectionStrategy.MACHINE_LEARNING),
-            listOf(OtherPathSelectionStrategy.FEATURE_LOGGING),
+            listOf(OtherPathSelectionStrategy.FEATURES_LOGGING),
         )
     else listOf(listOf(OtherPathSelectionStrategy.MACHINE_LEARNING))
     val timeLimits = if (MLConfig.mode == Mode.Test)
@@ -149,8 +150,8 @@ fun aggregate() {
     val jsons = mutableListOf<JsonElement>()
 
     val schemesJson = buildJsonObject {
-        put("stateScheme", FeatureLoggingPathSelector.jsonStateScheme)
-        put("trajectoryScheme", FeatureLoggingPathSelector.jsonTrajectoryScheme)
+        put("stateScheme", jsonStateScheme)
+        put("trajectoryScheme", jsonTrajectoryScheme)
     }
     val schemesFile = Path(resultDirname, schemesFilename).toFile()
     schemesFile.parentFile.mkdirs()
@@ -302,7 +303,8 @@ fun updateConfig(options: JsonObject) {
         "rnnFeaturesCount",
         JsonPrimitive(MLConfig.rnnFeaturesCount)
     ) as JsonPrimitive).content.toInt()
-    MLConfig.inputJars = (options.getOrDefault("inputJars",
+    MLConfig.inputJars = (options.getOrDefault(
+        "inputJars",
         JsonObject(MLConfig.inputJars.mapValues { (_, value) ->
             JsonArray(value.map { JsonPrimitive(it) })
         })
