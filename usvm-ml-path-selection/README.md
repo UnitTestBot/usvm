@@ -31,9 +31,9 @@ A config object is declared inside `MLConfig.kt`. A detailed description of all 
 - `rnnFeaturesCount` - a number of features that an RNN model returns
 - `inputJars` - jars and their packages to run tests on
 
-### How to modify metrics
+### How to modify the metric
 
-To change metrics you can change values of the `reward` property of the `ActionData` objects in the property `path` of the `FeaturesLoggingPathSelector`. Currently, metrics are calculated in the `remove` method.
+To modify the metric you can change values of the `reward` property of the `ActionData` objects in the property `path` of the `FeaturesLoggingPathSelector`. Currently, the metric is calculated in the `remove` method.
 
 ### Training environment
 
