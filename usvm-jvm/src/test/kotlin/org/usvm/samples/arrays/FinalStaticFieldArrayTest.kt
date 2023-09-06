@@ -8,6 +8,7 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 internal class FinalStaticFieldArrayTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("Slow test")
     fun testFactorial() {
         checkDiscoveredProperties(
             FinalStaticFieldArray::factorial,

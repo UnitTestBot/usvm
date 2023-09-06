@@ -13,11 +13,12 @@ interface JcTypeSelector {
 
 class JcFixedInheritorsNumberTypeSelector(
     private val inheritorsNumberToChoose: Int = DEFAULT_INHERITORS_NUMBER_TO_CHOOSE,
+    private val inheritorsNumberToSelectFrom: Int = DEFAULT_INHERITORS_NUMBER_TO_SCORE,
 ) : JcTypeSelector {
 
     override fun choose(method: JcMethod, typeStream: UTypeStream<JcType>): Collection<JcType> {
         return typeStream
-            .take(DEFAULT_INHERITORS_NUMBER_TO_SCORE)
+            .take(inheritorsNumberToSelectFrom)
             .sortedByDescending { type -> typeScore(method, type) }
             .take(inheritorsNumberToChoose)
             .also {

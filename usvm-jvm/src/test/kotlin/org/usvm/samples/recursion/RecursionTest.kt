@@ -2,6 +2,7 @@ package org.usvm.samples.recursion
 
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.usvm.CoverageZone
 import org.usvm.PathSelectionStrategy
 import org.usvm.UMachineOptions
 import org.usvm.samples.JavaMethodTestRunner
@@ -54,7 +55,7 @@ internal class RecursionTest : JavaMethodTestRunner() {
         )
     }
 
-    @UsvmTest([Options([PathSelectionStrategy.CLOSEST_TO_UNCOVERED_RANDOM])])
+    @UsvmTest([Options([PathSelectionStrategy.BFS], coverageZone = CoverageZone.TRANSITIVE)])
     fun testPow(options: UMachineOptions) {
         withOptions(options) {
             checkDiscoveredPropertiesWithExceptions(

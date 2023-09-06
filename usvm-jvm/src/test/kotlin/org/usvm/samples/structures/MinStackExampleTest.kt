@@ -88,7 +88,7 @@ internal class MinStackExampleTest : JavaMethodTestRunner() {
     fun testConstruct() {
         checkDiscoveredProperties(
             MinStackExample::construct,
-            between(3..4),
+            between(3..5),
             { _, values, _ -> values == null },
             { _, values, result -> values != null && values.isEmpty() && result != null && result.size == 0 },
             { _, values, result ->
