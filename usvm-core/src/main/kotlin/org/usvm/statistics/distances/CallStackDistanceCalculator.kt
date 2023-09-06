@@ -1,7 +1,7 @@
 package org.usvm.statistics.distances
 
-import org.usvm.UCallStack
 import kotlin.math.min
+import org.usvm.UCallStack
 
 /**
  * Calculates shortest distances from location (represented as statement and call stack) to the set of targets
@@ -11,15 +11,11 @@ import kotlin.math.min
  * cached while the targets of the method remain the same.
  *
  * @param targets initial collection of targets.
- * @param getCfgDistance function with the following signature:
- * (method, stmtFrom, stmtTo) -> shortest CFG distance from stmtFrom to stmtTo.
- * @param getCfgDistanceToExitPoint function with the following signature:
- * (method, stmt) -> shortest CFG distance from stmt to any of method's exit points.
+ * @param cfgStatistics [CfgStatistics] instance used to calculate local distances on each frame.
  */
 class CallStackDistanceCalculator<Method, Statement>(
     targets: Collection<Pair<Method, Statement>>,
-    private val getCfgDistance: (Method, Statement, Statement) -> UInt,
-    private val getCfgDistanceToExitPoint: (Method, Statement) -> UInt
+    private val cfgStatistics: CfgStatistics<Method, Statement>
 ) : StaticTargetsDistanceCalculator<Method, Statement, UInt> {
 
     // TODO: optimize for single target case
@@ -35,7 +31,9 @@ class CallStackDistanceCalculator<Method, Statement>(
 
     private fun getMinDistanceToTargetInCurrentFrame(method: Method, statement: Statement): UInt {
         return minLocalDistanceToTargetCache.computeIfAbsent(method) { HashMap() }
-            .computeIfAbsent(statement) { targetsByMethod[method]?.minOfOrNull { getCfgDistance(method, statement, it) } ?: UInt.MAX_VALUE }
+            .computeIfAbsent(statement) {
+                targetsByMethod[method]?.minOfOrNull { cfgStatistics.getShortestDistance(method, statement, it) } ?: UInt.MAX_VALUE
+            }
     }
 
     fun addTarget(method: Method, statement: Statement): Boolean {
@@ -73,7 +71,7 @@ class CallStackDistanceCalculator<Method, Statement>(
                     checkNotNull(returnSite) { "Not first call stack frame had null return site" }
                 } else currentStatement
 
-            val minDistanceToReturn = getCfgDistanceToExitPoint(method, locationInMethod)
+            val minDistanceToReturn = cfgStatistics.getShortestDistanceToExit(method, locationInMethod)
             val minDistanceToTargetInCurrentFrame = getMinDistanceToTargetInCurrentFrame(method, locationInMethod)
 
             val minDistanceToTargetInPreviousFrames =

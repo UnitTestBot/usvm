@@ -40,7 +40,7 @@ internal class TestState(
     callStack: UCallStack<String, TestInstruction>, pathConstraints: UPathConstraints<Any, UContext>,
     memory: UMemory<Any, String>, models: List<UModelBase<Any>>,
     pathLocation: PathsTrieNode<TestState, TestInstruction>,
-    targetTrees: Collection<TestTarget> = emptyList()
+    targetTrees: List<TestTarget> = emptyList()
 ) : UState<Any, String, TestInstruction, UContext, TestTarget, TestState>(ctx, callStack, pathConstraints, memory, models, pathLocation, targetTrees) {
 
     override fun clone(newConstraints: UPathConstraints<Any, UContext>?): TestState = this

@@ -1,5 +1,6 @@
 package org.usvm.statistics
 
+import kotlin.test.assertEquals
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
@@ -7,12 +8,12 @@ import org.usvm.TestInstruction
 import org.usvm.UCallStack
 import org.usvm.appGraph
 import org.usvm.callStackOf
-import org.usvm.statistics.distances.CallGraphReachabilityStatistics
-import org.usvm.statistics.distances.DistanceStatistics
+import org.usvm.statistics.distances.CallGraphStatisticsImpl
+import org.usvm.statistics.distances.CfgStatisticsImpl
 import org.usvm.statistics.distances.InterprocDistance
 import org.usvm.statistics.distances.InterprocDistanceCalculator
+import org.usvm.statistics.distances.PlainCallGraphStatistics
 import org.usvm.statistics.distances.ReachabilityKind
-import kotlin.test.assertEquals
 
 class InterprocDistanceCalculatorTests {
 
@@ -169,15 +170,18 @@ class InterprocDistanceCalculatorTests {
         targetLoc: TestInstruction,
         expectedDist: InterprocDistance
     ) {
-        val distanceStatistics = DistanceStatistics(appGraph1)
-        val callGraphReachabilityStatistics = CallGraphReachabilityStatistics(callGraphReachabilityDepth.toUInt(), appGraph1)
+        val cfgStatistics = CfgStatisticsImpl(appGraph1)
+        val callGraphStatistics =
+            when (callGraphReachabilityDepth) {
+                0 -> PlainCallGraphStatistics()
+                else -> CallGraphStatisticsImpl(callGraphReachabilityDepth.toUInt(), appGraph1)
+            }
+
         val calculator = InterprocDistanceCalculator(
             targetLoc.method to targetLoc,
             appGraph1,
-            distanceStatistics::getShortestCfgDistance,
-            distanceStatistics::getShortestCfgDistanceToExitPoint,
-            checkReachabilityInCallGraph =
-                if (callGraphReachabilityDepth == 0) { m1, m2 -> m1 == m2 } else { m1, m2 -> callGraphReachabilityStatistics.checkReachability(m1, m2) }
+            cfgStatistics,
+            callGraphStatistics
         )
         assertEquals(expectedDist, calculator.calculateDistance(fromLoc, callStack))
     }

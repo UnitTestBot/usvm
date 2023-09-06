@@ -36,12 +36,8 @@ data class InterprocDistance(val distance: UInt, val reachabilityKind: Reachabil
  *
  * @param targetLocation target to calculate distance to.
  * @param applicationGraph application graph to calculate distances on.
- * @param getCfgDistance function with the following signature:
- * (method, stmtFrom, stmtTo) -> shortest CFG distance from stmtFrom to stmtTo.
- * @param getCfgDistanceToExitPoint function with the following signature:
- * (method, stmt) -> shortest CFG distance from stmt to any of method's exit points.
- * @param checkReachabilityInCallGraph function with the following signature:
- * (method1, method2) -> true if method2 is reachable from method1, false otherwise.
+ * @param cfgStatistics [CfgStatistics] instance used to calculate local distances.
+ * @param callGraphStatistics [CallGraphStatistics] instance used to check call graph reachability.
  */
 // TODO: calculate distance in blocks??
 // TODO: give priority to paths without calls
@@ -49,16 +45,15 @@ data class InterprocDistance(val distance: UInt, val reachabilityKind: Reachabil
 internal class InterprocDistanceCalculator<Method, Statement>(
     private val targetLocation: Pair<Method, Statement>,
     private val applicationGraph: ApplicationGraph<Method, Statement>,
-    private val getCfgDistance: (Method, Statement, Statement) -> UInt,
-    private val getCfgDistanceToExitPoint: (Method, Statement) -> UInt,
-    private val checkReachabilityInCallGraph: (Method, Method) -> Boolean
+    private val cfgStatistics: CfgStatistics<Method, Statement>,
+    private val callGraphStatistics: CallGraphStatistics<Method>
 ) : StaticTargetsDistanceCalculator<Method, Statement, InterprocDistance> {
 
     private val frameDistanceCache = HashMap<Method, HashMap<Statement, UInt>>()
 
     private fun calculateFrameDistance(method: Method, statement: Statement): Pair<UInt, Boolean> {
         if (method == targetLocation.first) {
-            val localDistance = getCfgDistance(method, statement, targetLocation.second)
+            val localDistance = cfgStatistics.getShortestDistance(method, statement, targetLocation.second)
             if (localDistance != UInt.MAX_VALUE) {
                 return localDistance to true
             }
@@ -75,12 +70,12 @@ internal class InterprocDistanceCalculator<Method, Statement>(
                 continue
             }
 
-            val distanceToCall = getCfgDistance(method, statement, statementOfMethod)
+            val distanceToCall = cfgStatistics.getShortestDistance(method, statement, statementOfMethod)
             if (distanceToCall >= minDistanceToCall) {
                 continue
             }
 
-            if (applicationGraph.callees(statementOfMethod).any { checkReachabilityInCallGraph(it, targetLocation.first) }) {
+            if (applicationGraph.callees(statementOfMethod).any { callGraphStatistics.checkReachability(it, targetLocation.first) }) {
                 minDistanceToCall = distanceToCall
             }
         }
@@ -106,7 +101,7 @@ internal class InterprocDistanceCalculator<Method, Statement>(
             checkNotNull(statementOnCallStack) { "Not first call stack frame had null return site" }
 
             if (applicationGraph.successors(statementOnCallStack).any { calculateFrameDistance(methodOnCallStack, it).first != UInt.MAX_VALUE }) {
-                return InterprocDistance(getCfgDistanceToExitPoint(lastMethod, currentStatement), ReachabilityKind.DOWN_STACK)
+                return InterprocDistance(cfgStatistics.getShortestDistanceToExit(lastMethod, currentStatement), ReachabilityKind.DOWN_STACK)
             }
 
             statementOnCallStack = returnSite

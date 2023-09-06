@@ -1,5 +1,7 @@
 package org.usvm.ps
 
+import kotlin.math.max
+import kotlin.random.Random
 import org.usvm.PathSelectionStrategy
 import org.usvm.PathSelectorCombinationStrategy
 import org.usvm.UMachineOptions
@@ -8,9 +10,9 @@ import org.usvm.UState
 import org.usvm.UTarget
 import org.usvm.statistics.ApplicationGraph
 import org.usvm.statistics.CoverageStatistics
-import org.usvm.statistics.distances.CallGraphReachabilityStatistics
+import org.usvm.statistics.distances.CallGraphStatistics
 import org.usvm.statistics.distances.CallStackDistanceCalculator
-import org.usvm.statistics.distances.DistanceStatistics
+import org.usvm.statistics.distances.CfgStatistics
 import org.usvm.statistics.distances.DynamicTargetsShortestDistanceCalculator
 import org.usvm.statistics.distances.InterprocDistance
 import org.usvm.statistics.distances.InterprocDistanceCalculator
@@ -18,25 +20,19 @@ import org.usvm.statistics.distances.ReachabilityKind
 import org.usvm.util.DeterministicPriorityCollection
 import org.usvm.util.RandomizedPriorityCollection
 import org.usvm.util.log2
-import kotlin.math.max
-import kotlin.random.Random
 
 fun <Method, Statement, Target : UTarget<Method, Statement, Target, State>, State : UState<*, Method, Statement, *, Target, State>> createPathSelector(
     initialState: State,
     options: UMachineOptions,
     applicationGraph: ApplicationGraph<Method, Statement>,
     coverageStatistics: () -> CoverageStatistics<Method, Statement, State>? = { null },
-    distanceStatistics: () -> DistanceStatistics<Method, Statement>? = { null }
+    cfgStatistics: () -> CfgStatistics<Method, Statement>? = { null },
+    callGraphStatistics: () -> CallGraphStatistics<Method>? = { null }
 ): UPathSelector<State> {
     val strategies = options.pathSelectionStrategies
     require(strategies.isNotEmpty()) { "At least one path selector strategy should be specified" }
 
     val random by lazy { Random(options.randomSeed) }
-
-    val callGraphReachabilityStatistics =
-        if (options.targetSearchDepth > 0u) {
-            CallGraphReachabilityStatistics(options.targetSearchDepth, applicationGraph)
-        } else null
 
     val selectors = strategies.map { strategy ->
         when (strategy) {
@@ -57,31 +53,31 @@ fun <Method, Statement, Target : UTarget<Method, Statement, Target, State>, Stat
 
             PathSelectionStrategy.CLOSEST_TO_UNCOVERED -> createClosestToUncoveredPathSelector(
                 requireNotNull(coverageStatistics()) { "Coverage statistics is required for closest to uncovered path selector" },
-                requireNotNull(distanceStatistics()) { "Distance statistics is required for closest to uncovered path selector" }
+                requireNotNull(cfgStatistics()) { "CFG statistics is required for closest to uncovered path selector" }
             )
             PathSelectionStrategy.CLOSEST_TO_UNCOVERED_RANDOM -> createClosestToUncoveredPathSelector(
                 requireNotNull(coverageStatistics()) { "Coverage statistics is required for closest to uncovered path selector" },
-                requireNotNull(distanceStatistics()) { "Distance statistics is required for closest to uncovered path selector" },
+                requireNotNull(cfgStatistics()) { "CFG statistics is required for closest to uncovered path selector" },
                 random
             )
 
             PathSelectionStrategy.TARGETED -> createTargetedPathSelector<Method, Statement, Target, State>(
-                requireNotNull(distanceStatistics()) { "Distance statistics is required for targeted path selector" },
-                applicationGraph,
-                callGraphReachabilityStatistics
+                requireNotNull(cfgStatistics()) { "CFG statistics is required for targeted path selector" },
+                requireNotNull(callGraphStatistics()) { "Call graph statistics is required for targeted path selector" },
+                applicationGraph
             )
             PathSelectionStrategy.TARGETED_RANDOM -> createTargetedPathSelector<Method, Statement, Target, State>(
-                requireNotNull(distanceStatistics()) { "Distance statistics is required for targeted path selector" },
+                requireNotNull(cfgStatistics()) { "CFG statistics is required for targeted path selector" },
+                requireNotNull(callGraphStatistics()) { "Call graph statistics is required for targeted path selector" },
                 applicationGraph,
-                callGraphReachabilityStatistics,
                 random
             )
 
             PathSelectionStrategy.TARGETED_CALL_STACK_LOCAL -> createTargetedPathSelector<Method, Statement, Target, State>(
-                requireNotNull(distanceStatistics()) { "Distance statistics is required for targeted call stack local path selector" }
+                requireNotNull(cfgStatistics()) { "CFG statistics is required for targeted call stack local path selector" }
             )
             PathSelectionStrategy.TARGETED_CALL_STACK_LOCAL_RANDOM -> createTargetedPathSelector<Method, Statement, Target, State>(
-                requireNotNull(distanceStatistics()) { "Distance statistics is required for targeted call stack local path selector" },
+                requireNotNull(cfgStatistics()) { "CFG statistics is required for targeted call stack local path selector" },
                 random
             )
         }
@@ -150,13 +146,12 @@ private fun <State : UState<*, *, *, *, *, State>> createDepthPathSelector(rando
 
 private fun <Method, Statement, State : UState<*, Method, Statement, *, *, State>> createClosestToUncoveredPathSelector(
     coverageStatistics: CoverageStatistics<Method, Statement, State>,
-    distanceStatistics: DistanceStatistics<Method, Statement>,
+    cfgStatistics: CfgStatistics<Method, Statement>,
     random: Random? = null,
 ): UPathSelector<State> {
     val distanceCalculator = CallStackDistanceCalculator(
         targets = coverageStatistics.getUncoveredStatements(),
-        getCfgDistance = distanceStatistics::getShortestCfgDistance,
-        getCfgDistanceToExitPoint = distanceStatistics::getShortestCfgDistanceToExitPoint
+        cfgStatistics = cfgStatistics
     )
 
     coverageStatistics.addOnCoveredObserver { _, method, statement -> distanceCalculator.removeTarget(method, statement) }
@@ -191,14 +186,13 @@ private fun <Method, Statement, State : UState<*, Method, Statement, *, *, State
 }
 
 internal fun <Method, Statement, Target : UTarget<Method, Statement, Target, State>, State : UState<*, Method, Statement, *, Target, State>> createTargetedPathSelector(
-    distanceStatistics: DistanceStatistics<Method, Statement>,
+    cfgStatistics: CfgStatistics<Method, Statement>,
     random: Random? = null,
 ): UPathSelector<State> {
     val distanceCalculator = DynamicTargetsShortestDistanceCalculator<Method, Statement, UInt> { m, s ->
         CallStackDistanceCalculator(
             targets = listOf(m to s),
-            getCfgDistance = distanceStatistics::getShortestCfgDistance,
-            getCfgDistanceToExitPoint = distanceStatistics::getShortestCfgDistanceToExitPoint
+            cfgStatistics = cfgStatistics
         )
     }
 
@@ -238,18 +232,17 @@ internal fun InterprocDistance.logWeight(): UInt {
 }
 
 internal fun <Method, Statement, Target : UTarget<Method, Statement, Target, State>, State : UState<*, Method, Statement, *, Target, State>> createTargetedPathSelector(
-    distanceStatistics: DistanceStatistics<Method, Statement>,
+    cfgStatistics: CfgStatistics<Method, Statement>,
+    callGraphStatistics: CallGraphStatistics<Method>,
     applicationGraph: ApplicationGraph<Method, Statement>,
-    callGraphReachabilityStatistics: CallGraphReachabilityStatistics<Method, Statement>? = null,
     random: Random? = null,
 ): UPathSelector<State> {
     val distanceCalculator = DynamicTargetsShortestDistanceCalculator<Method, Statement, InterprocDistance> { m, s ->
         InterprocDistanceCalculator(
             targetLocation = m to s,
             applicationGraph = applicationGraph,
-            getCfgDistance = distanceStatistics::getShortestCfgDistance,
-            getCfgDistanceToExitPoint = distanceStatistics::getShortestCfgDistanceToExitPoint,
-            checkReachabilityInCallGraph = if (callGraphReachabilityStatistics != null) (callGraphReachabilityStatistics::checkReachability) else { m1, m2 -> m1 == m2 }
+            cfgStatistics = cfgStatistics,
+            callGraphStatistics = callGraphStatistics
         )
     }
 

@@ -3,6 +3,7 @@ package org.usvm.statistics
 import org.junit.jupiter.api.Test
 import org.usvm.UCallStack
 import org.usvm.statistics.distances.CallStackDistanceCalculator
+import org.usvm.statistics.distances.CfgStatistics
 import kotlin.test.assertEquals
 
 @OptIn(ExperimentalUnsignedTypes::class)
@@ -41,23 +42,27 @@ internal class CallStackDistanceCalculatorTests {
 
     @Test
     fun smokeTest() {
-        fun getCfgDistance(method: String, from: Int, to: Int): UInt {
-            require(method == "A")
-            require(from == 1)
-            return when (to) {
-                2 -> 1u
-                3 -> 2u
-                4 -> 1u
-                5 -> 3u
-                6 -> 7u
-                else -> UInt.MAX_VALUE
+        val cfgStatistics = object : CfgStatistics<String, Int> {
+            override fun getShortestDistance(method: String, stmtFrom: Int, stmtTo: Int): UInt {
+                require(method == "A")
+                require(stmtFrom == 1)
+                return when (stmtTo) {
+                    2 -> 1u
+                    3 -> 2u
+                    4 -> 1u
+                    5 -> 3u
+                    6 -> 7u
+                    else -> UInt.MAX_VALUE
+                }
             }
+
+            override fun getShortestDistanceToExit(method: String, stmtFrom: Int): UInt = 1u
         }
 
         val calculator = CallStackDistanceCalculator(
             setOf("A" to 2, "A" to 3, "A" to 4, "A" to 5, "A" to 6),
-            ::getCfgDistance
-        ) { _, _ -> 1u }
+            cfgStatistics
+        )
 
         val currentStatement = 1
         val callStack = UCallStack<String, Int>("A")
@@ -77,12 +82,14 @@ internal class CallStackDistanceCalculatorTests {
 
     @Test
     fun multipleFrameDistanceTest() {
-        fun getCfgDistance(method: String, from: Int, to: Int): UInt {
-            return shortestDistances.getValue(method)[from][to]
-        }
+        val cfgStatistics = object : CfgStatistics<String, Int> {
+            override fun getShortestDistance(method: String, stmtFrom: Int, stmtTo: Int): UInt {
+                return shortestDistances.getValue(method)[stmtFrom][stmtTo]
+            }
 
-        fun getCfgDistanceToExitPoint(method: String, from: Int): UInt {
-            return shortestDistances.getValue(method)[from][0]
+            override fun getShortestDistanceToExit(method: String, stmtFrom: Int): UInt {
+                return shortestDistances.getValue(method)[stmtFrom][0]
+            }
         }
 
         var currentStatment = 3
@@ -91,7 +98,7 @@ internal class CallStackDistanceCalculatorTests {
         callStack.push("C", 2)
 
         val calculator =
-            CallStackDistanceCalculator(setOf("C" to 4), ::getCfgDistance, ::getCfgDistanceToExitPoint)
+            CallStackDistanceCalculator(setOf("C" to 4), cfgStatistics)
         assertEquals(10u, calculator.calculateDistance(currentStatment, callStack))
 
         calculator.removeTarget("C", 4)

@@ -22,7 +22,8 @@ import org.usvm.statistics.TransitiveCoverageZoneObserver
 import org.usvm.statistics.UMachineObserver
 import org.usvm.statistics.collectors.CoveredNewStatesCollector
 import org.usvm.statistics.collectors.TargetsReachedStatesCollector
-import org.usvm.statistics.distances.DistanceStatistics
+import org.usvm.statistics.distances.CfgStatisticsImpl
+import org.usvm.statistics.distances.PlainCallGraphStatistics
 import org.usvm.stopstrategies.createStopStrategy
 
 val logger = object : KLogging() {}.logger
@@ -39,7 +40,7 @@ class JcMachine(
 
     private val interpreter = JcInterpreter(ctx, applicationGraph)
 
-    private val distanceStatistics = DistanceStatistics(applicationGraph)
+    private val cfgStatistics = CfgStatisticsImpl(applicationGraph)
 
     fun analyze(method: JcMethod, targets: List<JcTarget> = emptyList()): List<JcState> {
         logger.debug("{}.analyze({}, {})", this, method, targets)
@@ -60,12 +61,24 @@ class JcMachine(
             applicationGraph
         )
 
+        val callGraphStatistics =
+            when (options.targetSearchDepth) {
+                0u -> PlainCallGraphStatistics()
+                else -> JcCallGraphStatistics(
+                    options.targetSearchDepth,
+                    applicationGraph,
+                    typeSystem.topTypeStream(),
+                    10
+                )
+            }
+
         val pathSelector = createPathSelector(
             initialState,
             options,
             applicationGraph,
             { coverageStatistics },
-            { distanceStatistics }
+            { cfgStatistics },
+            { callGraphStatistics }
         )
 
         val statesCollector =
