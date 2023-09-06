@@ -96,7 +96,8 @@ import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.isTrue
 import org.usvm.machine.JcContext
-import org.usvm.machine.UMethodCallJcInst
+import org.usvm.machine.UConcreteMethodCallJcInst
+import org.usvm.machine.UJcMethodCall
 import org.usvm.machine.operator.JcBinaryOperator
 import org.usvm.machine.operator.JcUnaryOperator
 import org.usvm.machine.operator.ensureBvExpr
@@ -104,6 +105,8 @@ import org.usvm.machine.operator.mkNarrow
 import org.usvm.machine.operator.wideTo32BitsIfNeeded
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
+import org.usvm.machine.state.addMethodCall
+import org.usvm.machine.state.addVirtualMethodCall
 import org.usvm.machine.state.skipMethodInvocationWithValue
 import org.usvm.machine.state.throwExceptionWithoutStackFrameDrop
 import org.usvm.memory.ULValue
@@ -121,7 +124,6 @@ class JcExprResolver(
     private val localToIdx: (JcMethod, JcLocal) -> Int,
     private val mkTypeRef: (JcType, JcState) -> UConcreteHeapRef,
     private val mkStringConstRef: (String, JcState) -> UConcreteHeapRef,
-    private val invokeResolver: JcInvokeResolver,
     private val hardMaxArrayLength: Int = 1_500, // TODO: move to options
 ) : JcExprVisitor<UExpr<out USort>?> {
     /**
@@ -404,7 +406,7 @@ class JcExprResolver(
             argumentExprs = expr::args,
             argumentTypes = { expr.method.parameters.map { it.type } }
         ) { arguments ->
-            with(invokeResolver) { resolveSpecialInvoke(expr.method.method, arguments) }
+            scope.doWithState { addMethodCall(expr.method.method, arguments) }
         }
 
     override fun visitJcVirtualCallExpr(expr: JcVirtualCallExpr): UExpr<out USort>? =
@@ -414,7 +416,7 @@ class JcExprResolver(
             argumentExprs = expr::args,
             argumentTypes = { expr.method.parameters.map { it.type } }
         ) { arguments ->
-            with(invokeResolver) { resolveVirtualInvoke(expr.method.method, arguments) }
+            scope.doWithState { addVirtualMethodCall(expr.method.method, arguments) }
         }
 
 
@@ -425,9 +427,7 @@ class JcExprResolver(
             argumentExprs = expr::args,
             argumentTypes = { expr.method.parameters.map { it.type } }
         ) { arguments ->
-            with(invokeResolver) {
-                resolveStaticInvoke(expr.method.method, arguments)
-            }
+            scope.doWithState { addMethodCall(expr.method.method, arguments) }
         }
 
     override fun visitJcDynamicCallExpr(expr: JcDynamicCallExpr): UExpr<out USort>? =
@@ -437,9 +437,7 @@ class JcExprResolver(
             argumentExprs = expr::args,
             argumentTypes = expr::callSiteArgTypes
         ) { arguments ->
-            with(invokeResolver) {
-                resolveDynamicInvoke(expr.method.method, arguments)
-            }
+            TODO("Dynamic invoke: ${expr.method.method} $arguments")
         }
 
     override fun visitJcLambdaExpr(expr: JcLambdaExpr): UExpr<out USort>? =
@@ -449,9 +447,7 @@ class JcExprResolver(
             argumentExprs = expr::args,
             argumentTypes = { expr.method.parameters.map { it.type } }
         ) { arguments ->
-            with(invokeResolver) {
-                resolveLambdaInvoke(expr.method.method, arguments)
-            }
+            scope.doWithState { addMethodCall(expr.method.method, arguments) }
         }
 
     private inline fun resolveInvoke(
@@ -616,7 +612,7 @@ class JcExprResolver(
         scope.doWithState {
             memory.write(initializedFlag, ctx.trueExpr)
         }
-        with(invokeResolver) { scope.resolveStaticInvoke(initializer, emptyList()) }
+        scope.doWithState { addMethodCall(initializer, emptyList()) }
         return null
     }
 
@@ -864,7 +860,7 @@ class JcExprResolver(
     }
 
     fun resolveArrayCopy(
-        methodCall: UMethodCallJcInst,
+        methodCall: UJcMethodCall,
         srcRef: UHeapRef,
         srcPos: USizeExpr,
         dstRef: UHeapRef,
@@ -902,7 +898,7 @@ class JcExprResolver(
     }
 
     private fun addArrayCopyForType(
-        methodCall: UMethodCallJcInst,
+        methodCall: UJcMethodCall,
         branches: MutableList<Pair<UBoolExpr, (JcState) -> Unit>>,
         type: JcArrayType,
         srcRef: UHeapRef,

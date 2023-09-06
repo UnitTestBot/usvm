@@ -9,8 +9,10 @@ import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.machine.JcApplicationGraph
-import org.usvm.machine.UMethodCallJcInst
+import org.usvm.machine.UConcreteMethodCallJcInst
+import org.usvm.machine.UJcMethodCall
 import org.usvm.machine.UMethodEntrypointJcInst
+import org.usvm.machine.UVirtualMethodCallJcInst
 
 val JcState.lastStmt get() = pathLocation.statement
 fun JcState.newStmt(stmt: JcInst) {
@@ -68,7 +70,7 @@ fun JcState.addEntryMethodCall(
 
 fun JcState.addNewMethodCall(
     applicationGraph: JcApplicationGraph,
-    methodCall: UMethodCallJcInst
+    methodCall: UConcreteMethodCallJcInst
 ) {
     // TODO: find concrete implementation (I guess, the method should be already concrete)
     val method = methodCall.method
@@ -80,7 +82,11 @@ fun JcState.addNewMethodCall(
 }
 
 fun JcState.addMethodCall(method: JcMethod, arguments: List<UExpr<out USort>>) {
-    newStmt(UMethodCallJcInst(lastStmt.location, method, arguments, lastStmt))
+    newStmt(UConcreteMethodCallJcInst(lastStmt.location, method, arguments, lastStmt))
+}
+
+fun JcState.addVirtualMethodCall(method: JcMethod, arguments: List<UExpr<out USort>>) {
+    newStmt(UVirtualMethodCallJcInst(lastStmt.location, method, arguments, lastStmt))
 }
 
 fun JcMethod.localIdx(idx: Int) = if (isStatic) idx else idx + 1
@@ -91,7 +97,7 @@ inline val JcMethod.parametersWithThisCount get() = localIdx(parameters.size)
 // TODO: cache it with JacoDB cache
 inline val JcMethod.localsCount get() = instList.locals.filter { it !is JcArgument }.size
 
-fun JcState.skipMethodInvocationWithValue(methodCall: UMethodCallJcInst, value: UExpr<out USort>) {
+fun JcState.skipMethodInvocationWithValue(methodCall: UJcMethodCall, value: UExpr<out USort>) {
     methodResult = JcMethodResult.Success(methodCall.method, value)
     newStmt(methodCall.returnSite)
 }

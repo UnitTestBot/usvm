@@ -9,6 +9,7 @@ import org.jacodb.api.JcMethod
 import org.jacodb.api.JcPrimitiveType
 import org.jacodb.api.JcRefType
 import org.jacodb.api.JcType
+import org.jacodb.api.JcTypedMethod
 import org.jacodb.api.cfg.JcArgument
 import org.jacodb.api.cfg.JcAssignInst
 import org.jacodb.api.cfg.JcCallInst
@@ -28,19 +29,25 @@ import org.jacodb.api.cfg.JcSwitchInst
 import org.jacodb.api.cfg.JcThis
 import org.jacodb.api.cfg.JcThrowInst
 import org.jacodb.api.ext.boolean
+import org.jacodb.api.ext.findMethodOrNull
+import org.jacodb.api.ext.toType
 import org.jacodb.api.ext.void
+import org.usvm.INITIAL_INPUT_ADDRESS
 import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UInterpreter
 import org.usvm.api.allocate
+import org.usvm.api.typeStreamOf
 import org.usvm.machine.JcApplicationGraph
 import org.usvm.machine.JcContext
 import org.usvm.machine.JcMethodApproximationResolver
+import org.usvm.machine.UConcreteMethodCallJcInst
+import org.usvm.machine.UJcMethodCall
 import org.usvm.machine.UMethodCallBaseJcInst
-import org.usvm.machine.UMethodCallJcInst
 import org.usvm.machine.UMethodEntrypointJcInst
+import org.usvm.machine.UVirtualMethodCallJcInst
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.addEntryMethodCall
@@ -55,6 +62,7 @@ import org.usvm.machine.state.throwExceptionAndDropStackFrame
 import org.usvm.machine.state.throwExceptionWithoutStackFrameDrop
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.solver.USatResult
+import org.usvm.types.first
 import org.usvm.util.write
 
 typealias JcStepScope = StepScope<JcState, JcType, JcContext>
@@ -183,6 +191,8 @@ class JcInterpreter(
         scope.forkMulti(catchForks + catchSectionMiss)
     }
 
+    private val typeSelector = JcFixedInheritorsNumberTypeSelector()
+
     private fun visitMethodCall(scope: JcStepScope, stmt: UMethodCallBaseJcInst) {
         when (stmt) {
             is UMethodEntrypointJcInst -> {
@@ -192,17 +202,13 @@ class JcInterpreter(
                 return
             }
 
-            is UMethodCallJcInst -> {
-                val exprResolver = exprResolverWithScope(scope)
-                val methodApproximationResolver = JcMethodApproximationResolver(ctx, scope, exprResolver)
-                if (methodApproximationResolver.approximate(stmt)) {
+            is UConcreteMethodCallJcInst -> {
+                if (approximateMethod(scope, stmt)) {
                     return
                 }
 
                 if (stmt.method.isNative) {
-                    scope.doWithState {
-                        mockNativeMethod(stmt)
-                    }
+                    mockNativeMethod(scope, stmt)
                     return
                 }
 
@@ -210,6 +216,14 @@ class JcInterpreter(
                     addNewMethodCall(applicationGraph, stmt)
                 }
                 return
+            }
+
+            is UVirtualMethodCallJcInst -> {
+                if (approximateMethod(scope, stmt)) {
+                    return
+                }
+
+                resolveVirtualInvoke(stmt, scope, typeSelector, forkOnRemainingTypes = false)
             }
         }
     }
@@ -334,8 +348,6 @@ class JcInterpreter(
         }
     }
 
-    private val invokeResolver = JcVirtualInvokeResolver(ctx, applicationGraph, JcFixedInheritorsNumberTypeSelector())
-
     private fun exprResolverWithScope(scope: JcStepScope) =
         JcExprResolver(
             ctx,
@@ -343,7 +355,6 @@ class JcInterpreter(
             ::mapLocalToIdxMapper,
             ::typeInstanceAllocator,
             ::stringConstantAllocator,
-            invokeResolver
         )
 
     private val localVarToIdx = mutableMapOf<JcMethod, MutableMap<String, Int>>() // (method, localName) -> idx
@@ -402,25 +413,125 @@ class JcInterpreter(
 
     private data class JcArrayTypeInfo(val element: JcTypeInfo) : JcTypeInfo
 
-    private fun JcState.mockNativeMethod(
-        methodCall: UMethodCallJcInst
+    private fun resolveVirtualInvoke(
+        methodCall: UJcMethodCall,
+        scope: JcStepScope,
+        typeSelector: JcTypeSelector,
+        forkOnRemainingTypes: Boolean,
+    ): Unit = with(methodCall) {
+        val instance = arguments.first().asExpr(ctx.addressSort)
+        val concreteRef = scope.calcOnState { models.first().eval(instance) } as UConcreteHeapRef
+
+        if (concreteRef.address <= INITIAL_INPUT_ADDRESS) {
+            val typeStream = scope.calcOnState { models.first().typeStreamOf(concreteRef) }
+
+            val inheritors = typeSelector.choose(method, typeStream)
+            val typeConstraints = inheritors.map { type ->
+                scope.calcOnState {
+                    ctx.mkAnd(
+                        memory.types.evalIsSubtype(instance, type),
+                        memory.types.evalIsSupertype(instance, type)
+                    )
+                }
+            }
+
+            val typeConstraintsWithBlockOnStates = mutableListOf<Pair<UBoolExpr, (JcState) -> Unit>>()
+
+            inheritors.mapIndexedTo(typeConstraintsWithBlockOnStates) { idx, type ->
+                val isExpr = typeConstraints[idx]
+
+                val block = { state: JcState ->
+                    val concreteMethod = type.findMethod(method.name, method.description)
+                        ?: error("Can't find method $method in type ${type.typeName}")
+
+                    val concreteCall = UConcreteMethodCallJcInst(
+                        methodCall.location, concreteMethod.method, arguments, methodCall.returnSite
+                    )
+                    state.newStmt(concreteCall)
+                }
+
+                isExpr to block
+            }
+
+            if (forkOnRemainingTypes) {
+                val excludeAllTypesConstraint = ctx.mkAnd(typeConstraints.map { ctx.mkNot(it) })
+                typeConstraintsWithBlockOnStates += excludeAllTypesConstraint to { } // do nothing, just exclude types
+            }
+
+            scope.forkMulti(typeConstraintsWithBlockOnStates)
+        } else {
+            val type = scope.calcOnState { memory.typeStreamOf(concreteRef) }.first()
+
+            val concreteMethod = type.findMethod(method.name, method.description)
+                ?: error("Can't find method $method in type ${type.typeName}")
+
+            scope.doWithState {
+                val concreteCall = UConcreteMethodCallJcInst(
+                    methodCall.location, concreteMethod.method, arguments, methodCall.returnSite
+                )
+                newStmt(concreteCall)
+            }
+        }
+    }
+
+    private fun JcType.findMethod(name: String, desc: String): JcTypedMethod? = when (this) {
+        is JcClassType -> findClassMethod(name, desc)
+        // Array types are objects and have methods of java.lang.Object
+        is JcArrayType -> jcClass.toType().findClassMethod(name, desc)
+        else -> error("Unexpected type: $this")
+    }
+
+    private fun JcClassType.findClassMethod(name: String, desc: String): JcTypedMethod? {
+        val method = findMethodOrNull { it.name == name && it.method.description == desc }
+        if (method != null) return method
+
+        /**
+         * Method implementation was not found in current class but class is instantiatable.
+         * Therefore, method implementation is provided by the super class.
+         * */
+        val superClass = superType
+        if (superClass != null) {
+            return superClass.findClassMethod(name, desc)
+        }
+
+        return null
+    }
+
+    private fun approximateMethod(scope: JcStepScope, methodCall: UJcMethodCall): Boolean {
+        val exprResolver = exprResolverWithScope(scope)
+        val methodApproximationResolver = JcMethodApproximationResolver(
+            ctx, scope, applicationGraph, exprResolver
+        )
+        return methodApproximationResolver.approximate(methodCall)
+    }
+
+    private fun mockNativeMethod(
+        scope: JcStepScope,
+        methodCall: UConcreteMethodCallJcInst
     ) = with(methodCall) {
         logger.warn { "Mocked: ${method.enclosingClass.name}::${method.name}" }
 
         val returnType = with(applicationGraph) { method.typed }.returnType
 
         if (returnType == ctx.cp.void) {
-            skipMethodInvocationWithValue(methodCall, ctx.voidValue)
+            scope.doWithState { skipMethodInvocationWithValue(methodCall, ctx.voidValue) }
             return@with
         }
 
         val mockSort = ctx.typeToSort(returnType)
-        val mockValue = memory.mock { call(method, arguments.asSequence(), mockSort) }
-
-        if (mockSort == ctx.addressSort) {
-            pathConstraints += memory.types.evalIsSubtype(mockValue.asExpr(ctx.addressSort), returnType)
+        val mockValue = scope.calcOnState {
+            memory.mock { call(method, arguments.asSequence(), mockSort) }
         }
 
-        skipMethodInvocationWithValue(methodCall, mockValue)
+        if (mockSort == ctx.addressSort) {
+            val constraint = scope.calcOnState {
+                memory.types.evalIsSubtype(mockValue.asExpr(ctx.addressSort), returnType)
+            }
+            scope.assert(constraint) ?: return
+        }
+
+        scope.doWithState {
+            skipMethodInvocationWithValue(methodCall, mockValue)
+        }
     }
 }

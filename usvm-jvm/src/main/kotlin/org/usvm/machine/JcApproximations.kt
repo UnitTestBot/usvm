@@ -21,17 +21,22 @@ import org.usvm.UFpSort
 import org.usvm.USymbolicHeapRef
 import org.usvm.api.typeStreamOf
 import org.usvm.machine.interpreter.JcExprResolver
-import org.usvm.machine.interpreter.JcInvokeResolver
 import org.usvm.machine.interpreter.JcStepScope
+import org.usvm.machine.state.newStmt
 import org.usvm.machine.state.skipMethodInvocationWithValue
 import org.usvm.uctx
 
 class JcMethodApproximationResolver(
     private val ctx: JcContext,
     private val scope: JcStepScope,
+    private val applicationGraph: JcApplicationGraph,
     private val exprResolver: JcExprResolver
 ) {
-    fun approximate(callJcInst: UMethodCallJcInst): Boolean {
+    fun approximate(callJcInst: UJcMethodCall): Boolean {
+        if (skipMethodIfThrowable(callJcInst)) {
+            return true
+        }
+
         if (callJcInst.method.isStatic) {
             return approximateStaticMethod(callJcInst)
         }
@@ -39,7 +44,7 @@ class JcMethodApproximationResolver(
         return approximateRegularMethod(callJcInst)
     }
 
-    private fun approximateRegularMethod(methodCall: UMethodCallJcInst): Boolean = with(methodCall) {
+    private fun approximateRegularMethod(methodCall: UJcMethodCall): Boolean = with(methodCall) {
         if (method.enclosingClass == ctx.cp.objectClass) {
             if (approximateObjectVirtualMethod(methodCall)) return true
         }
@@ -55,7 +60,7 @@ class JcMethodApproximationResolver(
         return approximateEmptyNativeMethod(methodCall)
     }
 
-    private fun approximateStaticMethod(methodCall: UMethodCallJcInst): Boolean = with(methodCall) {
+    private fun approximateStaticMethod(methodCall: UJcMethodCall): Boolean = with(methodCall) {
         if (method.enclosingClass == ctx.classType.jcClass) {
             if (approximateClassStaticMethod(methodCall)) return true
         }
@@ -79,7 +84,7 @@ class JcMethodApproximationResolver(
         return approximateEmptyNativeMethod(methodCall)
     }
 
-    private fun approximateEmptyNativeMethod(methodCall: UMethodCallJcInst): Boolean = with(methodCall) {
+    private fun approximateEmptyNativeMethod(methodCall: UJcMethodCall): Boolean = with(methodCall) {
         if (method.isNative && method.hasVoidReturnType() && method.parameters.isEmpty()) {
             if (method.enclosingClass.declaration.location.isRuntime) {
                 /**
@@ -96,7 +101,7 @@ class JcMethodApproximationResolver(
         return false
     }
 
-    private fun approximateClassStaticMethod(methodCall: UMethodCallJcInst): Boolean = with(methodCall) {
+    private fun approximateClassStaticMethod(methodCall: UJcMethodCall): Boolean = with(methodCall) {
         /**
          * Approximate retrieval of class instance for primitives.
          * */
@@ -120,7 +125,7 @@ class JcMethodApproximationResolver(
         return false
     }
 
-    private fun approximateClassVirtualMethod(methodCall: UMethodCallJcInst): Boolean = with(methodCall) {
+    private fun approximateClassVirtualMethod(methodCall: UJcMethodCall): Boolean = with(methodCall) {
         /**
          * Approximate assertions enabled check.
          * It is correct to enable assertions during analysis.
@@ -135,7 +140,7 @@ class JcMethodApproximationResolver(
         return false
     }
 
-    private fun approximateObjectVirtualMethod(methodCall: UMethodCallJcInst): Boolean = with(methodCall) {
+    private fun approximateObjectVirtualMethod(methodCall: UJcMethodCall): Boolean = with(methodCall) {
         if (method.name == "getClass") {
             val instance = arguments.first().asExpr(ctx.addressSort)
 
@@ -148,7 +153,7 @@ class JcMethodApproximationResolver(
 
             /**
              * Since getClass is a virtual method, typeStream has been constrained
-             * to a single concrete type by the [JcInvokeResolver.resolveVirtualInvoke]
+             * to a single concrete type by the [JcInterpreter.resolveVirtualInvoke]
              * */
             val type = possibleTypes.singleOrNull() ?: return false
 
@@ -162,7 +167,7 @@ class JcMethodApproximationResolver(
         return false
     }
 
-    private fun approximateUnsafeVirtualMethod(methodCall: UMethodCallJcInst): Boolean = with(methodCall) {
+    private fun approximateUnsafeVirtualMethod(methodCall: UJcMethodCall): Boolean = with(methodCall) {
         // Array offset is usually the same on various JVM
         if (method.name == "arrayBaseOffset0") {
             scope.doWithState {
@@ -205,7 +210,7 @@ class JcMethodApproximationResolver(
         return false
     }
 
-    private fun approximateSystemStaticMethod(methodCall: UMethodCallJcInst): Boolean = with(methodCall) {
+    private fun approximateSystemStaticMethod(methodCall: UJcMethodCall): Boolean = with(methodCall) {
         if (method.name == "arraycopy") {
             // Object src, int srcPos, Object dest, int destPos, int length
             val (srcRef, srcPos, dstRef, dstPos, length) = arguments
@@ -225,7 +230,7 @@ class JcMethodApproximationResolver(
         return false
     }
 
-    private fun approximateStringUtf16StaticMethod(methodCall: UMethodCallJcInst): Boolean = with(methodCall) {
+    private fun approximateStringUtf16StaticMethod(methodCall: UJcMethodCall): Boolean = with(methodCall) {
         // Use common property value as approximation
         if (method.name == "isBigEndian") {
             scope.doWithState {
@@ -236,7 +241,7 @@ class JcMethodApproximationResolver(
         return false
     }
 
-    private fun approximateFloatStaticMethod(methodCall: UMethodCallJcInst): Boolean = with(methodCall) {
+    private fun approximateFloatStaticMethod(methodCall: UJcMethodCall): Boolean = with(methodCall) {
         if (method.name == "floatToRawIntBits") {
             val value = arguments.single().asExpr(ctx.floatSort)
             val result = ctx.mkFpToIEEEBvExpr(value).asExpr(ctx.integerSort)
@@ -258,7 +263,7 @@ class JcMethodApproximationResolver(
         return false
     }
 
-    private fun approximateDoubleStaticMethod(methodCall: UMethodCallJcInst): Boolean = with(methodCall) {
+    private fun approximateDoubleStaticMethod(methodCall: UJcMethodCall): Boolean = with(methodCall) {
         if (method.name == "doubleToRawLongBits") {
             val value = arguments.single().asExpr(ctx.doubleSort)
             val result = ctx.mkFpToIEEEBvExpr(value).asExpr(ctx.longSort)
@@ -277,6 +282,17 @@ class JcMethodApproximationResolver(
             return true
         }
 
+        return false
+    }
+
+    private fun skipMethodIfThrowable(methodCall: UJcMethodCall): Boolean = with(methodCall) {
+        if (method.enclosingClass.name == "java.lang.Throwable") {
+            scope.doWithState {
+                val nextStmt = applicationGraph.successors(methodCall.returnSite).single()
+                newStmt(nextStmt)
+            }
+            return true
+        }
         return false
     }
 

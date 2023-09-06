@@ -20,16 +20,30 @@ sealed interface UMethodCallBaseJcInst : JcInst {
     }
 }
 
-data class UMethodCallJcInst(
-    override val location: JcInstLocation,
-    override val method: JcMethod,
-    val arguments: List<UExpr<out USort>>,
-    val returnSite: JcInst
-) : UMethodCallBaseJcInst
-
 data class UMethodEntrypointJcInst(
     override val method: JcMethod
 ) : UMethodCallBaseJcInst {
     override val location: JcInstLocation
         get() = JcInstLocationImpl(method, 0, 0)
 }
+
+sealed interface UJcMethodCall {
+    val location: JcInstLocation
+    val method: JcMethod
+    val arguments: List<UExpr<out USort>>
+    val returnSite: JcInst
+}
+
+data class UConcreteMethodCallJcInst(
+    override val location: JcInstLocation,
+    override val method: JcMethod,
+    override val arguments: List<UExpr<out USort>>,
+    override val returnSite: JcInst
+) : UMethodCallBaseJcInst, UJcMethodCall
+
+data class UVirtualMethodCallJcInst(
+    override val location: JcInstLocation,
+    override val method: JcMethod,
+    override val arguments: List<UExpr<out USort>>,
+    override val returnSite: JcInst
+) : UMethodCallBaseJcInst, UJcMethodCall
