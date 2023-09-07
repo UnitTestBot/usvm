@@ -412,3 +412,14 @@ JNIEXPORT jstring JNICALL Java_org_usvm_interpreter_CPythonAdapter_checkForIlleg
         return 0;
     return (*env)->NewStringUTF(env, illegal_operation);
 }
+
+JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeLookup(JNIEnv *env, jobject _, jlong type_ref, jstring name) {
+    assert(!PyErr_Occurred());
+    assert(PyType_Check((PyObject *) type_ref));
+    const char *c_name = (*env)->GetStringUTFChars(env, name, 0);
+    PyObject *py_name = PyUnicode_FromString(c_name);
+    PyObject *result = _PyType_Lookup((PyTypeObject *) type_ref, py_name);
+    (*env)->ReleaseStringUTFChars(env, name, c_name);
+    Py_DECREF(py_name);
+    return (jlong) result;
+}
