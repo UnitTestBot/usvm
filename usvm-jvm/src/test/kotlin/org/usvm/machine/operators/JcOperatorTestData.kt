@@ -1,4 +1,4 @@
-package org.usvm.operators
+package org.usvm.machine.operators
 
 val byteData = listOf(
     0.toByte(),

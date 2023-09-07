@@ -1,4 +1,4 @@
-package org.usvm.machine.operator
+package org.usvm.machine.operators
 
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
@@ -13,7 +13,7 @@ import org.usvm.machine.jctx
 import org.usvm.uctx
 
 /**
- * An util class for performing binary operations on expressions.
+ * A util class for performing binary operations on expressions.
  */
 sealed class JcBinaryOperator(
     val onBool: JcContext.(UExpr<UBoolSort>, UExpr<UBoolSort>) -> UExpr<out USort> = shouldNotBeCalled,

@@ -1,4 +1,4 @@
-package org.usvm.operators
+package org.usvm.machine.operators
 
 import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
@@ -14,8 +14,6 @@ import org.usvm.machine.extractFloat
 import org.usvm.machine.extractInt
 import org.usvm.machine.extractLong
 import org.usvm.machine.extractShort
-import org.usvm.machine.operator.JcUnaryOperator
-import org.usvm.machine.operator.wideTo32BitsIfNeeded
 import kotlin.test.assertEquals
 
 class JcUnaryOperatorTest {

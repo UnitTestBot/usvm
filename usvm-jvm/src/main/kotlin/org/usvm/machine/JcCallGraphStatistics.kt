@@ -8,6 +8,7 @@ import org.jacodb.api.ext.toType
 import org.usvm.algorithms.limitedBfsTraversal
 import org.usvm.statistics.distances.CallGraphStatistics
 import org.usvm.types.UTypeStream
+import org.usvm.util.canBeOverridden
 import org.usvm.util.isDefinition
 import java.util.concurrent.ConcurrentHashMap
 
@@ -39,16 +40,25 @@ class JcCallGraphStatistics(
             return callees
         }
 
-        return typeStream
-            .filterBySupertype(method.enclosingClass.toType())
-            .take(subclassesToTake)
-            .mapNotNullTo(callees) {
-                val override = checkNotNull((it as? JcClassType)?.findMethodOrNull(method.name, method.description)?.method) {
-                    "Cannot find overridden method $method in type $it"
-                }
-                // Check that the method was actually overridden
-                if (override.isDefinition()) method else null
+        val overrides = mutableSetOf<JcMethod>()
+        for (callee in callees) {
+            if (!callee.canBeOverridden()) {
+                continue
             }
+
+            typeStream
+                .filterBySupertype(callee.enclosingClass.toType())
+                .take(subclassesToTake)
+                .mapNotNullTo(overrides) {
+                    val override = checkNotNull((it as? JcClassType)?.findMethodOrNull(callee.name, callee.description)?.method) {
+                        "Cannot find overridden method $callee in type $it"
+                    }
+                    // Check that the method was actually overridden
+                    if (override.isDefinition()) override else null
+                }
+        }
+
+        return callees + overrides
     }
 
     override fun checkReachability(methodFrom: JcMethod, methodTo: JcMethod): Boolean =
