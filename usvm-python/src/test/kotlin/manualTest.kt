@@ -23,8 +23,8 @@ import org.utbot.python.newtyping.pythonTypeRepresentation
 import java.io.File
 
 fun main() {
-    val config = buildProjectRunConfig()
-    // val config = buildSampleRunConfig()
+    // val config = buildProjectRunConfig()
+    val config = buildSampleRunConfig()
     analyze(config)
     // checkConcolicAndConcrete(config)
 }
@@ -33,7 +33,10 @@ private fun buildSampleRunConfig(): RunConfig {
     val (program, typeSystem) = constructPrimitiveProgram(
         """ 
         def f(x):
-            assert x is None
+            result = 0
+            for a, b in x:
+                result += a - b
+            assert result == 12345
         """.trimIndent()
     )
     val function = PythonUnpinnedCallable.constructCallableFromName(
