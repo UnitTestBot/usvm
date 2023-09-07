@@ -44,7 +44,8 @@ class SimpleTupleTest: PythonTestRunnerForPrimitiveProgram("SimpleTuple", UMachi
             /* invariants = */ emptyList(),
             /* propertiesToDiscover = */ listOf(
                 { _, res -> res.repr == "None" },
-                { _, res -> res.selfTypeName == "AssertionError" }
+                { _, res -> res.selfTypeName == "AssertionError" },
+                { _, res -> res.selfTypeName == "ValueError" }
             )
         )
     }
