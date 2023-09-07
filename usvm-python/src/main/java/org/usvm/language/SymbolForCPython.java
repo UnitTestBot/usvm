@@ -1,10 +1,11 @@
 package org.usvm.language;
 
+import org.jetbrains.annotations.Nullable;
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject;
 
 public class SymbolForCPython {
-    public UninterpretedSymbolicPythonObject obj;
-    public SymbolForCPython(UninterpretedSymbolicPythonObject obj) {
+    @Nullable public UninterpretedSymbolicPythonObject obj;
+    public SymbolForCPython(@Nullable UninterpretedSymbolicPythonObject obj) {
         this.obj = obj;
     }
 
@@ -12,11 +13,15 @@ public class SymbolForCPython {
     public boolean equals(Object other) {
         if (!(other instanceof SymbolForCPython))
             return false;
-        return ((SymbolForCPython) other).obj.equals(this.obj);
+        if (obj == null)
+            return ((SymbolForCPython) other).obj == null;
+        return this.obj.equals(((SymbolForCPython) other).obj);
     }
 
     @Override
     public int hashCode() {
+        if (obj == null)
+            return 0;
         return obj.hashCode();
     }
 }

@@ -21,7 +21,7 @@ import org.usvm.utils.MAX_CONCRETE_TYPES_TO_CONSIDER
 class PythonExecutionState(
     val ctx: UPythonContext,
     private val pythonCallable: PythonUnpinnedCallable,
-    val inputSymbols: List<SymbolForCPython>,
+    val inputSymbols: List<UninterpretedSymbolicPythonObject>,
     pathConstraints: UPathConstraints<PythonType, UPythonContext>,
     memory: UMemory<PythonType, PythonCallable>,
     uModel: UModelBase<PythonType>,
@@ -32,7 +32,7 @@ class PythonExecutionState(
     pathLocation: PathsTrieNode<PythonExecutionState, SymbolicHandlerEvent<Any>> = ctx.mkInitialLocation(),
     var delayedForks: PersistentList<DelayedFork> = persistentListOf(),
     private val mocks: MutableMap<MockHeader, UMockSymbol<UAddressSort>> = mutableMapOf(),
-    val mockedObjects: MutableSet<SymbolForCPython> = mutableSetOf()
+    val mockedObjects: MutableSet<UninterpretedSymbolicPythonObject> = mutableSetOf()
 ): UState<PythonType, PythonCallable, SymbolicHandlerEvent<Any>, UPythonContext, PythonExecutionState>(ctx, callStack, pathConstraints, memory, listOf(uModel), pathLocation) {
     override fun clone(newConstraints: UPathConstraints<PythonType, UPythonContext>?): PythonExecutionState {
         val newPathConstraints = newConstraints ?: pathConstraints.clone()
@@ -65,7 +65,7 @@ class PythonExecutionState(
     fun makeTypeRating(delayedFork: DelayedFork): List<PythonType> {
         val candidates = delayedFork.possibleTypes.take(MAX_CONCRETE_TYPES_TO_CONSIDER).mapNotNull { it as? ConcretePythonType }
         if (typeSystem is PythonTypeSystemWithMypyInfo) {
-            val typeGraph = SymbolTypeTree(this, typeSystem.typeHintsStorage, SymbolForCPython(delayedFork.symbol))
+            val typeGraph = SymbolTypeTree(this, typeSystem.typeHintsStorage, delayedFork.symbol)
             return prioritizeTypes(candidates, typeGraph, typeSystem)
         }
         return candidates
@@ -76,17 +76,17 @@ class PythonExecutionState(
         if (cached != null)
             return MockResult(UninterpretedSymbolicPythonObject(cached, typeSystem), false, cached)
         val result = memory.mock {
-            call(what.method, what.args.map { it.obj.address }.asSequence(), ctx.addressSort)
+            call(what.method, what.args.map { it.address }.asSequence(), ctx.addressSort)
         }
         mocks[what] = result
         what.methodOwner?.let { mockedObjects.add(it) }
         return MockResult(UninterpretedSymbolicPythonObject(result, typeSystem), true, result)
     }
 
-    fun getMocksForSymbol(symbol: SymbolForCPython): List<Pair<MockHeader, SymbolForCPython>> =
+    fun getMocksForSymbol(symbol: UninterpretedSymbolicPythonObject): List<Pair<MockHeader, UninterpretedSymbolicPythonObject>> =
         mocks.mapNotNull { (mockHeader, mockResult) ->
             if (mockHeader.methodOwner == symbol)
-                mockHeader to SymbolForCPython(UninterpretedSymbolicPythonObject(mockResult, typeSystem))
+                mockHeader to UninterpretedSymbolicPythonObject(mockResult, typeSystem)
             else
                 null
         }
@@ -101,8 +101,8 @@ class DelayedFork(
 
 data class MockHeader(
     val method: TypeMethod,
-    val args: List<SymbolForCPython>,
-    var methodOwner: SymbolForCPython?
+    val args: List<UninterpretedSymbolicPythonObject>,
+    var methodOwner: UninterpretedSymbolicPythonObject?
 )
 
 data class MockResult(

@@ -3,6 +3,7 @@ package org.usvm.machine.types.prioritization
 import org.usvm.language.*
 import org.usvm.machine.PythonExecutionState
 import org.usvm.machine.interpreters.ConcretePythonInterpreter
+import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.utbot.python.newtyping.PythonTypeHintsStorage
 import org.utbot.python.newtyping.createBinaryProtocol
 import org.utbot.python.newtyping.createUnaryProtocol
@@ -15,7 +16,7 @@ import org.utbot.python.newtyping.pythonAnyType
 class SymbolTypeTree(
     private val state: PythonExecutionState,
     private val typeHintsStorage: PythonTypeHintsStorage,
-    rootSymbol: SymbolForCPython
+    rootSymbol: UninterpretedSymbolicPythonObject
 ) {
     private val root = SymbolTreeNode(rootSymbol)
     private fun generateSuccessors(node: SymbolTreeNode): List<SymbolTreeNode> =
@@ -99,7 +100,7 @@ class SymbolTypeTree(
     }
 }
 
-class SymbolTreeNode(val symbol: SymbolForCPython): TypeInferenceNode {
+class SymbolTreeNode(val symbol: UninterpretedSymbolicPythonObject): TypeInferenceNode {
     override val partialType: UtType = pythonAnyType
     override val ingoingEdges = mutableListOf<SymbolTreeEdge>()
     override val outgoingEdges = mutableListOf<SymbolTreeEdge>()

@@ -60,7 +60,7 @@ class PythonMachine<PythonObjectRepresentation>(
             stack.push(target.numberOfArguments)
         }
         val symbols = target.signature.mapIndexed { index, type ->
-            SymbolForCPython(constructInputObject(index, type, ctx, memory, pathConstraints, typeSystem))
+            constructInputObject(index, type, ctx, memory, pathConstraints, typeSystem)
         }
         val preAllocatedObjects = PreallocatedObjects.initialize(ctx, memory, pathConstraints, typeSystem)
         val solverRes = solver.check(pathConstraints)

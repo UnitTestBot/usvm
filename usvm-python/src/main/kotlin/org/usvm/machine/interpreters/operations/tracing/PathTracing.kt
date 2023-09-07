@@ -52,14 +52,15 @@ fun <T : Any> withTracing(
 fun handlerForkResultKt(context: ConcolicRunContext, cond: SymbolForCPython, result: Boolean) {
     if (context.curState == null)
         return
+    val obj = cond.obj ?: return
 
-    val expectedResult = cond.obj.getToBoolValue(context)?.let {
+    val expectedResult = obj.getToBoolValue(context)?.let {
         context.curState!!.pyModel.eval(it)
     }?.isTrue ?: return
 
     if (result != expectedResult) {
         logger.debug("Path diversion after fork!")
-        logger.debug("Condition: {}", cond.obj.getToBoolValue(context))
+        logger.debug("Condition: {}", obj.getToBoolValue(context))
         logger.debug("Expected: {}", expectedResult)
         logger.debug("Got: {}", result)
         context.pathDiversion()

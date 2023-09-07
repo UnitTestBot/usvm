@@ -23,9 +23,11 @@ import org.utbot.python.newtyping.pythonTypeRepresentation
 import java.io.File
 
 fun main() {
+    val slice = ConcretePythonInterpreter.eval(emptyNamespace, "slice")
+    println(ConcretePythonInterpreter.typeLookup(slice, "start"))
     // val config = buildProjectRunConfig()
-    val config = buildSampleRunConfig()
-    analyze(config)
+    // val config = buildSampleRunConfig()
+    // analyze(config)
     // checkConcolicAndConcrete(config)
 }
 

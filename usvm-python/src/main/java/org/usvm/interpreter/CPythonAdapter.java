@@ -2,6 +2,7 @@ package org.usvm.interpreter;
 
 import kotlin.Unit;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.usvm.machine.MockHeader;
 import org.usvm.machine.interpreters.PythonObject;
 import org.usvm.machine.interpreters.operations.tracing.*;
@@ -75,6 +76,7 @@ public class CPythonAdapter {
     public native Throwable extractException(long exception);
     public native void decref(long object);
     public native String checkForIllegalOperation();
+    public native long typeLookup(long typeRef, String name);
 
     static {
         System.loadLibrary("cpythonadapter");
@@ -123,6 +125,8 @@ public class CPythonAdapter {
     }
 
     public static void handlerFork(ConcolicRunContext context, SymbolForCPython cond) {
+        if (cond.obj == null)
+            return;
         withTracing(context, new Fork(cond), unit(() -> handlerForkKt(context, cond.obj)));
     }
 
@@ -131,133 +135,197 @@ public class CPythonAdapter {
     }
 
     public static void handlerUnpack(ConcolicRunContext context, SymbolForCPython iterable, int count) {
+        if (iterable.obj == null)
+            return;
         withTracing(context, new Unpack(iterable, count), unit(() -> handlerUnpackKt(context, iterable.obj, count)));
     }
 
     public static void handlerIsOp(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
+        if (left.obj == null || right.obj == null)
+            return;
         withTracing(context, new MethodParametersNoReturn("is_op", Arrays.asList(left, right)), unit(() -> handlerIsOpKt(context, left.obj, right.obj)));
     }
 
     public static void handlerNoneCheck(ConcolicRunContext context, SymbolForCPython on) {
+        if (on.obj == null)
+            return;
         withTracing(context, new MethodParametersNoReturn("none_check", Collections.singletonList(on)), unit(() -> handlerNoneCheckKt(context, on.obj)));
     }
 
     public static SymbolForCPython handlerGTLong(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
+        if (left.obj == null || right.obj == null)
+            return null;
         return methodWrapper(context, new MethodParameters("gt_long", Arrays.asList(left, right)), () -> handlerGTLongKt(context, left.obj, right.obj));
     }
 
     public static SymbolForCPython handlerLTLong(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
+        if (left.obj == null || right.obj == null)
+            return null;
         return methodWrapper(context, new MethodParameters("lt_long", Arrays.asList(left, right)), () -> handlerLTLongKt(context, left.obj, right.obj));
     }
 
     public static SymbolForCPython handlerEQLong(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
+        if (left.obj == null || right.obj == null)
+            return null;
         return methodWrapper(context, new MethodParameters("eq_long", Arrays.asList(left, right)), () -> handlerEQLongKt(context, left.obj, right.obj));
     }
 
     public static SymbolForCPython handlerNELong(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
+        if (left.obj == null || right.obj == null)
+            return null;
         return methodWrapper(context, new MethodParameters("ne_long", Arrays.asList(left, right)), () -> handlerNELongKt(context, left.obj, right.obj));
     }
 
     public static SymbolForCPython handlerGELong(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
+        if (left.obj == null || right.obj == null)
+            return null;
         return methodWrapper(context, new MethodParameters("ge_long", Arrays.asList(left, right)), () -> handlerGELongKt(context, left.obj, right.obj));
     }
 
     public static SymbolForCPython handlerLELong(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
+        if (left.obj == null || right.obj == null)
+            return null;
         return methodWrapper(context, new MethodParameters("le_long", Arrays.asList(left, right)), () -> handlerLELongKt(context, left.obj, right.obj));
     }
 
     public static SymbolForCPython handlerADDLong(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
+        if (left.obj == null || right.obj == null)
+            return null;
         return methodWrapper(context, new MethodParameters("add_long", Arrays.asList(left, right)), () -> handlerADDLongKt(context, left.obj, right.obj));
     }
 
     public static SymbolForCPython handlerSUBLong(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
+        if (left.obj == null || right.obj == null)
+            return null;
         return methodWrapper(context, new MethodParameters("sub_long", Arrays.asList(left, right)), () -> handlerSUBLongKt(context, left.obj, right.obj));
     }
 
     public static SymbolForCPython handlerMULLong(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
+        if (left.obj == null || right.obj == null)
+            return null;
         return methodWrapper(context, new MethodParameters("mul_long", Arrays.asList(left, right)), () -> handlerMULLongKt(context, left.obj, right.obj));
     }
 
     public static SymbolForCPython handlerDIVLong(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
+        if (left.obj == null || right.obj == null)
+            return null;
         return methodWrapper(context, new MethodParameters("div_long", Arrays.asList(left, right)), () -> handlerDIVLongKt(context, left.obj, right.obj));
     }
 
     public static SymbolForCPython handlerREMLong(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
+        if (left.obj == null || right.obj == null)
+            return null;
         return methodWrapper(context, new MethodParameters("rem_long", Arrays.asList(left, right)), () -> handlerREMLongKt(context, left.obj, right.obj));
     }
 
     public static SymbolForCPython handlerPOWLong(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
+        if (left.obj == null || right.obj == null)
+            return null;
         return methodWrapper(context, new MethodParameters("pow_long", Arrays.asList(left, right)), () -> handlerPOWLongKt(context, left.obj, right.obj));
     }
 
     public static SymbolForCPython handlerAND(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
+        if (left.obj == null || right.obj == null)
+            return null;
         return methodWrapper(context, new MethodParameters("bool_and", Arrays.asList(left, right)), () -> handlerAndKt(context, left.obj, right.obj));
     }
 
     public static SymbolForCPython handlerCreateList(ConcolicRunContext context, SymbolForCPython[] elements) {
+        if (Arrays.stream(elements).anyMatch(elem -> elem.obj == null))
+            return null;
         ListCreation event = new ListCreation(Arrays.asList(elements));
         return withTracing(context, event, () -> wrap(handlerCreateListKt(context, Arrays.stream(elements).map(s -> s.obj))));
     }
 
     public static SymbolForCPython handlerCreateTuple(ConcolicRunContext context, SymbolForCPython[] elements) {
+        if (Arrays.stream(elements).anyMatch(elem -> elem.obj == null))
+            return null;
         TupleCreation event = new TupleCreation(Arrays.asList(elements));
         return withTracing(context, event, () -> wrap(handlerCreateTupleKt(context, Arrays.stream(elements).map(s -> s.obj))));
     }
 
     public static SymbolForCPython handlerCreateRange(ConcolicRunContext context, SymbolForCPython start, SymbolForCPython stop, SymbolForCPython step) {
+        if (start.obj == null || stop.obj == null || step.obj == null)
+            return null;
         RangeCreation event = new RangeCreation(start, stop, step);
         return withTracing(context, event, () -> wrap(handlerCreateRangeKt(context, start.obj, stop.obj, step.obj)));
     }
 
     public static SymbolForCPython handlerRangeIter(ConcolicRunContext context, SymbolForCPython range) {
+        if (range.obj == null)
+            return null;
         return methodWrapper(context, new MethodParameters("range_iter", Collections.singletonList(range)), () -> handlerRangeIterKt(context, range.obj));
     }
 
     public static SymbolForCPython handlerRangeIteratorNext(ConcolicRunContext context, SymbolForCPython rangeIterator) {
+        if (rangeIterator.obj == null)
+            return null;
         return methodWrapper(context, new MethodParameters("range_iterator_next", Collections.singletonList(rangeIterator)), () -> handlerRangeIteratorNextKt(context, rangeIterator.obj));
     }
 
     public static SymbolForCPython handlerListGetItem(ConcolicRunContext context, SymbolForCPython list, SymbolForCPython index) {
+        if (list.obj == null || index.obj == null)
+            return null;
         return methodWrapper(context, new MethodParameters("list_get_item", Arrays.asList(list, index)), () -> handlerListGetItemKt(context, list.obj, index.obj));
     }
 
     public static SymbolForCPython handlerListExtend(ConcolicRunContext context, SymbolForCPython list, SymbolForCPython tuple) {
+        if (list.obj == null || tuple.obj == null)
+            return null;
         return methodWrapper(context, new MethodParameters("list_extend", Arrays.asList(list, tuple)), () -> handlerListExtendKt(context, list.obj, tuple.obj));
     }
 
     public static SymbolForCPython handlerListConcat(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
+        if (left.obj == null || right.obj == null)
+            return null;
         return methodWrapper(context, new MethodParameters("list_concat", Arrays.asList(left, right)), () -> handlerListConcatKt(context, left.obj, right.obj));
     }
 
     public static SymbolForCPython handlerListInplaceConcat(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
+        if (left.obj == null || right.obj == null)
+            return null;
         return methodWrapper(context, new MethodParameters("list_inplace_concat", Arrays.asList(left, right)), () -> handlerListInplaceConcatKt(context, left.obj, right.obj));
     }
 
     public static SymbolForCPython handlerListAppend(ConcolicRunContext context, SymbolForCPython list, SymbolForCPython elem) {
+        if (list.obj == null || elem.obj == null)
+            return null;
         return methodWrapper(context, new MethodParameters("list_append", Arrays.asList(list, elem)), () -> handlerListAppendKt(context, list.obj, elem.obj));
     }
 
     public static void handlerListSetItem(ConcolicRunContext context, SymbolForCPython list, SymbolForCPython index, SymbolForCPython value) {
+        if (list.obj == null || index.obj == null || value.obj == null)
+            return;
         withTracing(context, new MethodParametersNoReturn("list_set_item", Arrays.asList(list, index, value)), unit(() -> handlerListSetItemKt(context, list.obj, index.obj, value.obj)));
     }
 
     public static SymbolForCPython handlerListGetSize(ConcolicRunContext context, SymbolForCPython list) {
+        if (list.obj == null)
+            return null;
         return methodWrapper(context, new MethodParameters("list_get_size", Collections.singletonList(list)), () -> handlerListGetSizeKt(context, list.obj));
     }
 
     public static SymbolForCPython handlerListIter(ConcolicRunContext context, SymbolForCPython list) {
+        if (list.obj == null)
+            return null;
         return methodWrapper(context, new MethodParameters("list_iter", Collections.singletonList(list)), () -> handlerListIterKt(context, list.obj));
     }
 
     public static SymbolForCPython handlerListIteratorNext(ConcolicRunContext context, SymbolForCPython iterator) {
+        if (iterator.obj == null)
+            return null;
         return methodWrapper(context, new MethodParameters("list_iterator_next", Collections.singletonList(iterator)), () -> handlerListIteratorNextKt(context, iterator.obj));
     }
 
     public static SymbolForCPython handlerTupleIter(ConcolicRunContext context, SymbolForCPython tuple) {
+        if (tuple.obj == null)
+            return null;
         return methodWrapper(context, new MethodParameters("tuple_iter", Collections.singletonList(tuple)), () -> handlerTupleIterKt(context, tuple.obj));
     }
 
     public static SymbolForCPython handlerTupleIteratorNext(ConcolicRunContext context, SymbolForCPython iterator) {
+        if (iterator.obj == null)
+            return null;
         return methodWrapper(context, new MethodParameters("tuple_iterator_next", Collections.singletonList(iterator)), () -> handlerTupleIteratorNextKt(context, iterator.obj));
     }
 
@@ -271,74 +339,103 @@ public class CPythonAdapter {
     }
 
     public static SymbolForCPython handlerVirtualUnaryFun(ConcolicRunContext context, SymbolForCPython obj) {
-        return methodWrapper(context, new MethodParameters("virtual_unary_fun", Collections.singletonList(obj)), () -> org.usvm.machine.interpreters.operations.VirtualKt.virtualCallSymbolKt(context));
+        if (obj.obj == null)
+            return null;
+        return methodWrapper(context, new MethodParameters("virtual_unary_fun", Collections.singletonList(obj)), () -> virtualCallSymbolKt(context));
     }
 
     public static SymbolForCPython handlerVirtualBinaryFun(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
-        return methodWrapper(context, new MethodParameters("virtual_binary_fun", Arrays.asList(left, right)), () -> org.usvm.machine.interpreters.operations.VirtualKt.virtualCallSymbolKt(context));
+        return methodWrapper(context, new MethodParameters("virtual_binary_fun", Arrays.asList(left, right)), () -> virtualCallSymbolKt(context));
     }
 
-    public static SymbolForCPython handlerIsinstance(ConcolicRunContext context, SymbolForCPython obj, long typeRef) {
+    @Nullable
+    public static SymbolForCPython handlerIsinstance(ConcolicRunContext context, @NotNull SymbolForCPython obj, long typeRef) {
+        if (obj.obj == null)
+            return null;
         PythonObject type = new PythonObject(typeRef);
-        return methodWrapper(context, new IsinstanceCheck(obj, type), () -> org.usvm.machine.interpreters.operations.CommonKt.handlerIsinstanceKt(context, obj.obj, type));
+        return methodWrapper(context, new IsinstanceCheck(obj, type), () -> handlerIsinstanceKt(context, obj.obj, type));
     }
 
-    public static void fixateType(ConcolicRunContext context, SymbolForCPython obj) {
+    public static void fixateType(@NotNull ConcolicRunContext context, @NotNull SymbolForCPython obj) {
+        if (obj.obj == null)
+            return;
         fixateTypeKt(context, obj.obj);
     }
 
-    public static void notifyNbBool(@NotNull ConcolicRunContext context, SymbolForCPython symbol) {
-        context.curOperation = new MockHeader(NbBoolMethod.INSTANCE, Collections.singletonList(symbol), symbol);
+    public static void notifyNbBool(@NotNull ConcolicRunContext context, @NotNull SymbolForCPython symbol) {
+        if (symbol.obj == null)
+            return;
+        context.curOperation = new MockHeader(NbBoolMethod.INSTANCE, Collections.singletonList(symbol.obj), symbol.obj);
         nbBoolKt(context, symbol.obj);
     }
 
-    public static void notifyNbInt(@NotNull ConcolicRunContext context, SymbolForCPython symbol) {
-        context.curOperation = new MockHeader(NbIntMethod.INSTANCE, Collections.singletonList(symbol), symbol);
+    public static void notifyNbInt(@NotNull ConcolicRunContext context, @NotNull SymbolForCPython symbol) {
+        if (symbol.obj == null)
+            return;
+        context.curOperation = new MockHeader(NbIntMethod.INSTANCE, Collections.singletonList(symbol.obj), symbol.obj);
         nbIntKt(context, symbol.obj);
     }
 
-    public static void notifyNbAdd(@NotNull ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
-        context.curOperation = new MockHeader(NbAddMethod.INSTANCE, Arrays.asList(left, right), null);
+    public static void notifyNbAdd(@NotNull ConcolicRunContext context, @NotNull SymbolForCPython left, @NotNull SymbolForCPython right) {
+        if (left.obj == null || right.obj == null)
+            return;
+        context.curOperation = new MockHeader(NbAddMethod.INSTANCE, Arrays.asList(left.obj, right.obj), null);
         nbAddKt(context, left.obj, right.obj);
     }
 
-    public static void notifyNbSubtract(@NotNull ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
-        context.curOperation = new MockHeader(NbSubtractMethod.INSTANCE, Arrays.asList(left, right), left);
+    public static void notifyNbSubtract(@NotNull ConcolicRunContext context, @NotNull SymbolForCPython left, SymbolForCPython right) {
+        if (left.obj == null)
+            return;
+        context.curOperation = new MockHeader(NbSubtractMethod.INSTANCE, Arrays.asList(left.obj, right.obj), left.obj);
         nbSubtractKt(context, left.obj);
     }
 
-    public static void notifyNbMultiply(@NotNull ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
-        context.curOperation = new MockHeader(NbMultiplyMethod.INSTANCE, Arrays.asList(left, right), null);
+    public static void notifyNbMultiply(@NotNull ConcolicRunContext context, @NotNull SymbolForCPython left, @NotNull SymbolForCPython right) {
+        if (left.obj == null || right.obj == null)
+            return;
+        context.curOperation = new MockHeader(NbMultiplyMethod.INSTANCE, Arrays.asList(left.obj, right.obj), null);
         nbMultiplyKt(context, left.obj, right.obj);
     }
 
-    public static void notifyNbMatrixMultiply(@NotNull ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
-        context.curOperation = new MockHeader(NbMatrixMultiplyMethod.INSTANCE, Arrays.asList(left, right), left);
+    public static void notifyNbMatrixMultiply(@NotNull ConcolicRunContext context, @NotNull SymbolForCPython left, SymbolForCPython right) {
+        if (left.obj == null)
+            return;
+        context.curOperation = new MockHeader(NbMatrixMultiplyMethod.INSTANCE, Arrays.asList(left.obj, right.obj), left.obj);
         nbMatrixMultiplyKt(context, left.obj);
     }
 
-    public static void notifySqLength(@NotNull ConcolicRunContext context, SymbolForCPython on) {
-        context.curOperation = new MockHeader(SqLengthMethod.INSTANCE, Collections.singletonList(on), on);
+    public static void notifySqLength(@NotNull ConcolicRunContext context, @NotNull SymbolForCPython on) {
+        if (on.obj == null)
+            return;
+        context.curOperation = new MockHeader(SqLengthMethod.INSTANCE, Collections.singletonList(on.obj), on.obj);
         sqLengthKt(context, on.obj);
     }
 
-    public static void notifyMpSubscript(@NotNull ConcolicRunContext context, SymbolForCPython storage, SymbolForCPython item) {
-        context.curOperation = new MockHeader(MpSubscriptMethod.INSTANCE, Arrays.asList(storage, item), storage);
+    public static void notifyMpSubscript(@NotNull ConcolicRunContext context, @NotNull SymbolForCPython storage, SymbolForCPython item) {
+        if (storage.obj == null)
+            return;
+        context.curOperation = new MockHeader(MpSubscriptMethod.INSTANCE, Arrays.asList(storage.obj, item.obj), storage.obj);
         mpSubscriptKt(context, storage.obj);
     }
 
-    public static void notifyMpAssSubscript(@NotNull ConcolicRunContext context, SymbolForCPython storage, SymbolForCPython item, SymbolForCPython value) {
-        context.curOperation = new MockHeader(MpAssSubscriptMethod.INSTANCE, Arrays.asList(storage, item, value), storage);
+    public static void notifyMpAssSubscript(@NotNull ConcolicRunContext context, @NotNull SymbolForCPython storage, SymbolForCPython item, SymbolForCPython value) {
+        if (storage.obj == null)
+            return;
+        context.curOperation = new MockHeader(MpAssSubscriptMethod.INSTANCE, Arrays.asList(storage.obj, item.obj, value.obj), storage.obj);
         mpAssSubscriptKt(context, storage.obj);
     }
 
-    public static void notifyTpRichcmp(@NotNull ConcolicRunContext context, int op, SymbolForCPython left, SymbolForCPython right) {
-        context.curOperation = new MockHeader(new TpRichcmpMethod(op), Arrays.asList(left, right), left);
+    public static void notifyTpRichcmp(@NotNull ConcolicRunContext context, int op, @NotNull SymbolForCPython left, SymbolForCPython right) {
+        if (left.obj == null)
+            return;
+        context.curOperation = new MockHeader(new TpRichcmpMethod(op), Arrays.asList(left.obj, right.obj), left.obj);
         tpRichcmpKt(context, left.obj);
     }
 
-    public static void notifyTpIter(@NotNull ConcolicRunContext context, SymbolForCPython on) {
-        context.curOperation = new MockHeader(TpIterMethod.INSTANCE, Collections.singletonList(on), on);
+    public static void notifyTpIter(@NotNull ConcolicRunContext context, @NotNull SymbolForCPython on) {
+        if (on.obj == null)
+            return;
+        context.curOperation = new MockHeader(TpIterMethod.INSTANCE, Collections.singletonList(on.obj), on.obj);
         tpIterKt(context, on.obj);
     }
 
