@@ -319,6 +319,14 @@ JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_decref
 JNIEXPORT jstring JNICALL Java_org_usvm_interpreter_CPythonAdapter_checkForIllegalOperation
   (JNIEnv *, jobject);
 
+/*
+ * Class:     org_usvm_interpreter_CPythonAdapter
+ * Method:    typeLookup
+ * Signature: (JLjava/lang/String;)J
+ */
+JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeLookup
+  (JNIEnv *, jobject, jlong, jstring);
+
 #ifdef __cplusplus
 }
 #endif

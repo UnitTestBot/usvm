@@ -13,7 +13,7 @@ import org.usvm.machine.utils.substituteModel
 
 fun virtualNbBoolKt(context: ConcolicRunContext, on: VirtualPythonObject): Boolean {
     context.curOperation ?: throw UnregisteredVirtualOperation
-    val interpretedArg = interpretSymbolicPythonObject(context.curOperation!!.args.first().obj, context.modelHolder)
+    val interpretedArg = interpretSymbolicPythonObject(context.curOperation!!.args.first(), context.modelHolder)
     require(context.curOperation?.method == NbBoolMethod && interpretedArg == on.interpretedObj)
 
     val oldModel = context.modelHolder.model
@@ -44,7 +44,7 @@ fun virtualNbBoolKt(context: ConcolicRunContext, on: VirtualPythonObject): Boole
 fun virtualNbIntKt(context: ConcolicRunContext, on: VirtualPythonObject): PythonObject {
     context.curOperation ?: throw UnregisteredVirtualOperation
     val typeSystem = context.typeSystem
-    val interpretedArg = interpretSymbolicPythonObject(context.curOperation!!.args.first().obj, context.modelHolder)
+    val interpretedArg = interpretSymbolicPythonObject(context.curOperation!!.args.first(), context.modelHolder)
     require(context.curOperation?.method == NbIntMethod && interpretedArg == on.interpretedObj)
     val (interpretedObj, symbolic) = internalVirtualCallKt(context)
     symbolic.addSupertypeSoft(context, typeSystem.pythonInt)
@@ -55,7 +55,7 @@ fun virtualNbIntKt(context: ConcolicRunContext, on: VirtualPythonObject): Python
 fun virtualSqLengthKt(context: ConcolicRunContext, on: VirtualPythonObject): Int = with(context.ctx) {
     context.curOperation ?: throw UnregisteredVirtualOperation
     val typeSystem = context.typeSystem
-    val interpretedArg = interpretSymbolicPythonObject(context.curOperation!!.args.first().obj, context.modelHolder)
+    val interpretedArg = interpretSymbolicPythonObject(context.curOperation!!.args.first(), context.modelHolder)
     require(context.curOperation?.method == SqLengthMethod && interpretedArg == on.interpretedObj)
     val (interpretedObj, symbolic) = internalVirtualCallKt(context)
     symbolic.addSupertypeSoft(context, typeSystem.pythonInt)
@@ -75,11 +75,11 @@ private fun internalVirtualCallKt(
     val ownerIsAlreadyMocked = context.curState!!.mockedObjects.contains(owner)
     var clonedState = if (!ownerIsAlreadyMocked) context.curState!!.clone() else null
     if (clonedState != null) {
-        clonedState = myAssertOnState(clonedState, mkHeapRefEq(owner.obj.address, nullRef).not())
+        clonedState = myAssertOnState(clonedState, mkHeapRefEq(owner.address, nullRef).not())
     }
     val (symbolic, isNew, mockSymbol) = context.curState!!.mock(context.curOperation)
     if (!ownerIsAlreadyMocked && clonedState != null) {
-        addDelayedFork(context, owner.obj, clonedState)
+        addDelayedFork(context, owner, clonedState)
     }
     if (context.curOperation.method.isMethodWithNonVirtualReturn && isNew) {
         val customNewModels = customNewModelsCreation(mockSymbol)
