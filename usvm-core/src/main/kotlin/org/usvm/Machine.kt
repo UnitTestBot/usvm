@@ -49,7 +49,7 @@ abstract class UMachine<State> : AutoCloseable {
                     } else {
                         // TODO: distinguish between states terminated by exception (runtime or user) and
                         //  those which just exited
-                        observer.onStateTerminated(forkedState)
+                        observer.onStateTerminated(forkedState, stateReachable = true)
                     }
                 }
 
@@ -57,7 +57,7 @@ abstract class UMachine<State> : AutoCloseable {
                     pathSelector.update(state)
                 } else {
                     pathSelector.remove(state)
-                    observer.onStateTerminated(state)
+                    observer.onStateTerminated(state, stateReachable = stateAlive)
                 }
 
                 if (aliveForkedStates.isNotEmpty()) {
