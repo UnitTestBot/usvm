@@ -16,7 +16,7 @@ import org.usvm.ps.otherCreatePathSelector
 import org.usvm.stopstrategies.otherCreateStopStrategy
 import org.usvm.statistics.*
 
-//val logger = object : KLogging() {}.logger
+val logger = object : KLogging() {}.logger
 
 class OtherJcMachine(
     cp: JcClasspath,
@@ -35,7 +35,7 @@ class OtherJcMachine(
     fun analyze(
         method: JcMethod
     ): List<JcState> {
-//        logger.debug("$this.analyze($method)")
+        logger.debug("$this.analyze($method)")
         val initialState = interpreter.getInitialState(method)
 
         val methodsToTrackCoverage =

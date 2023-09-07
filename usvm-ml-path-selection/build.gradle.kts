@@ -14,8 +14,9 @@ dependencies {
     implementation(project(":usvm-core"))
 
     implementation("org.jacodb:jacodb-analysis:${Versions.jcdb}")
+    implementation("ch.qos.logback:logback-classic:${Versions.logback}")
 
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:${MLVersions.serialization}")
-    implementation("io.github.rchowell:dotlin:{MLVersions.dotlin}")
+    implementation("io.github.rchowell:dotlin:${MLVersions.dotlin}")
     implementation("com.microsoft.onnxruntime:onnxruntime:${MLVersions.onnxruntime}")
 }

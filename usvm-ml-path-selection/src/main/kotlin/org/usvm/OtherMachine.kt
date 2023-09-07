@@ -13,7 +13,7 @@ import org.usvm.util.debug
  * @see [run]
  */
 
-//val logger = object : KLogging() {}.logger
+val logger = object : KLogging() {}.logger
 
 abstract class OtherUMachine<State> : AutoCloseable {
     /**
@@ -35,7 +35,7 @@ abstract class OtherUMachine<State> : AutoCloseable {
         isStateTerminated: (State) -> Boolean,
         stopStrategy: StopStrategy = StopStrategy { false }
     ) {
-//        logger.debug().bracket("$this.run($interpreter, ${pathSelector::class.simpleName})") {
+        logger.debug().bracket("$this.run($interpreter, ${pathSelector::class.simpleName})") {
         while (!pathSelector.isEmpty() && !stopStrategy.shouldStop()) {
             val state = pathSelector.peek()
             val (forkedStates, stateAlive) = interpreter.step(state)
@@ -66,10 +66,10 @@ abstract class OtherUMachine<State> : AutoCloseable {
             }
         }
 
-//            if (!pathSelector.isEmpty()) {
-//                logger.debug { stopStrategy.stopReason() }
-//            }
-//        }
+            if (!pathSelector.isEmpty()) {
+                logger.debug { stopStrategy.stopReason() }
+            }
+        }
 
         if (pathSelector is CoverageCounterPathSelector<*, *>) {
             pathSelector.finishTest()
