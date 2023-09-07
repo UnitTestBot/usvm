@@ -19,4 +19,14 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:${MLVersions.serialization}")
     implementation("io.github.rchowell:dotlin:${MLVersions.dotlin}")
     implementation("com.microsoft.onnxruntime:onnxruntime:${MLVersions.onnxruntime}")
+
+    testImplementation(project(":usvm-jvm"))
+    testImplementation(project(":usvm-core"))
+
+    testImplementation("org.jacodb:jacodb-analysis:${Versions.jcdb}")
+    testImplementation("ch.qos.logback:logback-classic:${Versions.logback}")
+
+    testImplementation("org.jetbrains.kotlinx:kotlinx-serialization-json:${MLVersions.serialization}")
+    testImplementation("io.github.rchowell:dotlin:${MLVersions.dotlin}")
+    testImplementation("com.microsoft.onnxruntime:onnxruntime:${MLVersions.onnxruntime}")
 }
