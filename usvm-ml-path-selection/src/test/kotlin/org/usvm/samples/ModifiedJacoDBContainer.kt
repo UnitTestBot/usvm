@@ -6,10 +6,10 @@ import org.jacodb.api.JcDatabase
 import org.jacodb.impl.JcSettings
 import org.jacodb.impl.features.InMemoryHierarchy
 import org.jacodb.impl.jacodb
-import org.usvm.util.otherAllClasspath
+import org.usvm.util.modifiedAllClasspath
 import java.io.File
 
-class OtherJacoDBContainer(
+class ModifiedJacoDBContainer(
     classpath: List<File>,
     builder: JcSettings.() -> Unit,
 ) {
@@ -29,16 +29,16 @@ class OtherJacoDBContainer(
     }
 
     companion object {
-        private val keyToJacoDBContainer = HashMap<Any?, OtherJacoDBContainer>()
+        private val keyToJacoDBContainer = HashMap<Any?, ModifiedJacoDBContainer>()
 
         operator fun invoke(
             key: Any?,
             classpath: List<File> = samplesClasspath,
             builder: JcSettings.() -> Unit = defaultBuilder,
-        ): OtherJacoDBContainer =
-            keyToJacoDBContainer.getOrPut(key) { OtherJacoDBContainer(classpath, builder) }
+        ): ModifiedJacoDBContainer =
+            keyToJacoDBContainer.getOrPut(key) { ModifiedJacoDBContainer(classpath, builder) }
 
-        private val samplesClasspath = otherAllClasspath.filter { it.name.contains("samples") }
+        private val samplesClasspath = modifiedAllClasspath.filter { it.name.contains("samples") }
 
         private val defaultBuilder: JcSettings.() -> Unit = {
             useProcessJavaRuntime()

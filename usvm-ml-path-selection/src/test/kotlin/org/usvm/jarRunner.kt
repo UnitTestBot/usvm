@@ -6,10 +6,10 @@ import kotlinx.serialization.json.*
 import org.jacodb.api.JcClassOrInterface
 import org.jacodb.api.JcMethod
 import org.jacodb.api.ext.packageName
-import org.usvm.machine.OtherJcMachine
+import org.usvm.machine.ModifiedJcMachine
 import org.usvm.ps.FeaturesLogger.Companion.jsonStateScheme
 import org.usvm.ps.FeaturesLogger.Companion.jsonTrajectoryScheme
-import org.usvm.samples.OtherJacoDBContainer
+import org.usvm.samples.ModifiedJacoDBContainer
 import java.io.File
 import kotlin.io.path.Path
 import kotlin.io.path.nameWithoutExtension
@@ -18,7 +18,7 @@ import kotlin.system.measureTimeMillis
 fun jarLoad(jars: Set<String>, classes: MutableMap<String, MutableList<JcClassOrInterface>>) {
     jars.forEach { filePath ->
         val file = Path(filePath).toFile()
-        val container = OtherJacoDBContainer(key = filePath, classpath = listOf(file))
+        val container = ModifiedJacoDBContainer(key = filePath, classpath = listOf(file))
         val classNames = container.db.locations.flatMap { it.jcLocation?.classNames ?: listOf() }
         classes[filePath] = mutableListOf()
         classNames.forEach { className ->
@@ -30,10 +30,12 @@ fun jarLoad(jars: Set<String>, classes: MutableMap<String, MutableList<JcClassOr
 }
 
 private class MainTestRunner(
-    pathSelectionStrategies: List<OtherPathSelectionStrategy> = listOf(OtherPathSelectionStrategy.MACHINE_LEARNING),
+    pathSelectionStrategies: List<ModifiedPathSelectionStrategy> = listOf(ModifiedPathSelectionStrategy.MACHINE_LEARNING),
     timeoutMs: Long? = 20000
 ) {
-    var options = OtherUMachineOptions().copy(
+    val coverageCounter = CoverageCounter()
+
+    var options = ModifiedUMachineOptions().copy(
         exceptionsPropagation = false,
         timeoutMs = timeoutMs,
         stepLimit = 1500u,
@@ -42,8 +44,8 @@ private class MainTestRunner(
     )
 
     fun runTest(method: JcMethod, jarKey: String) {
-        OtherJcMachine(OtherJacoDBContainer(jarKey).cp, options).use { jcMachine ->
-            jcMachine.analyze(method)
+        ModifiedJcMachine(ModifiedJacoDBContainer(jarKey).cp, options).use { jcMachine ->
+            jcMachine.analyze(method, coverageCounter)
         }
     }
 }
@@ -58,10 +60,10 @@ private val prettyJson = Json { prettyPrint = true }
 fun calculate() {
     val pathSelectorSets = if (MLConfig.mode == Mode.Test)
         listOf(
-            listOf(OtherPathSelectionStrategy.MACHINE_LEARNING),
-            listOf(OtherPathSelectionStrategy.FEATURES_LOGGING),
+            listOf(ModifiedPathSelectionStrategy.MACHINE_LEARNING),
+            listOf(ModifiedPathSelectionStrategy.FEATURES_LOGGING),
         )
-    else listOf(listOf(OtherPathSelectionStrategy.MACHINE_LEARNING))
+    else listOf(listOf(ModifiedPathSelectionStrategy.MACHINE_LEARNING))
     val timeLimits = if (MLConfig.mode == Mode.Test)
         listOf<Long?>(
             1000,
@@ -133,8 +135,8 @@ fun calculate() {
                     tests.joinAll()
                 }
 
-                prettyJson.encodeToStream(CoverageCounter.getStatistics(), statisticsFile.outputStream())
-                CoverageCounter.reset()
+                prettyJson.encodeToStream(testRunner.coverageCounter.getStatistics(), statisticsFile.outputStream())
+                testRunner.coverageCounter.reset()
             }
         }
     }

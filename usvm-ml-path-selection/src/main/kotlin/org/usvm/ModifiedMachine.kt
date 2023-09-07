@@ -15,7 +15,7 @@ import org.usvm.util.debug
 
 val logger = object : KLogging() {}.logger
 
-abstract class OtherUMachine<State> : AutoCloseable {
+abstract class ModifiedUMachine<State> : AutoCloseable {
     /**
      * Runs symbolic execution loop.
      *

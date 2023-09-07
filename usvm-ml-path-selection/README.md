@@ -39,6 +39,6 @@ To modify the metric you may change values of the `reward` property of the `Acti
 
 The training environment and its description are inside `environment.zip`.
 
-### "Other" files
+### "Modified" files
 
-Source files which names start with "Other" are modified copies of files from other modules. They were modified to support this path selector.
+Source files which names start with "Modified" are modified copies of files from other modules. They were modified to support this path selector.

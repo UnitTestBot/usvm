@@ -8,6 +8,7 @@ import org.usvm.statistics.CoverageStatistics
 class CoverageCounterPathSelector<Method, State : UState<*, Method, *, *, State>>(
     private val selector: UPathSelector<State>,
     private val coverageStatistics: CoverageStatistics<Method, *, State>,
+    private val coverageCounter: CoverageCounter,
     method: Method
 ) : UPathSelector<State> {
     private val methodName = method.toString().dropWhile { it != ')' }.drop(1)
@@ -15,7 +16,7 @@ class CoverageCounterPathSelector<Method, State : UState<*, Method, *, *, State>
     private var totalCoverage = 0
 
     init {
-        CoverageCounter.addTest(methodName, totalStatementsCount.toFloat())
+        coverageCounter.addTest(methodName, totalStatementsCount.toFloat())
     }
 
     override fun isEmpty(): Boolean {
@@ -23,7 +24,7 @@ class CoverageCounterPathSelector<Method, State : UState<*, Method, *, *, State>
     }
 
     override fun peek(): State {
-        CoverageCounter.updateDiscounts(methodName)
+        coverageCounter.updateDiscounts(methodName)
         return selector.peek()
     }
 
@@ -37,13 +38,13 @@ class CoverageCounterPathSelector<Method, State : UState<*, Method, *, *, State>
 
     override fun remove(state: State) {
         val newTotalCoverage = totalStatementsCount - coverageStatistics.getUncoveredStatements().size
-        CoverageCounter.updateResults(methodName, (newTotalCoverage - totalCoverage).toFloat())
+        coverageCounter.updateResults(methodName, (newTotalCoverage - totalCoverage).toFloat())
         totalCoverage = newTotalCoverage
         selector.remove(state)
     }
 
     fun finishTest() {
-        CoverageCounter.finishTest(methodName)
+        coverageCounter.finishTest(methodName)
     }
 
     fun savePath() {

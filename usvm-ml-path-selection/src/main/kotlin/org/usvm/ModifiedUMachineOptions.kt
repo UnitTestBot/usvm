@@ -1,6 +1,6 @@
 package org.usvm
 
-enum class OtherPathSelectionStrategy {
+enum class ModifiedPathSelectionStrategy {
     /**
      * Collects features according to states selected by any other path selector.
      */
@@ -12,14 +12,14 @@ enum class OtherPathSelectionStrategy {
     MACHINE_LEARNING,
 }
 
-data class OtherUMachineOptions(
+data class ModifiedUMachineOptions(
     /**
      * State selection heuristics.
      * If multiple heuristics are specified, they are combined according to [pathSelectorCombinationStrategy].
      *
      * @see PathSelectionStrategy
      */
-    val pathSelectionStrategies: List<OtherPathSelectionStrategy> = listOf(OtherPathSelectionStrategy.MACHINE_LEARNING),
+    val pathSelectionStrategies: List<ModifiedPathSelectionStrategy> = listOf(ModifiedPathSelectionStrategy.MACHINE_LEARNING),
     /**
      * Strategy to combine multiple [pathSelectionStrategies].
      *

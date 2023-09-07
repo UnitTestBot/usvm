@@ -4,17 +4,21 @@ import java.io.File
 
 const val LOG_BASE = 1.42
 
-val otherAllClasspath: List<File>
+val modifiedAllClasspath: List<File>
     get() {
-        return otherClasspath.map { File(it) }
+        return modifiedClasspath.map { File(it) }
     }
 
-private val otherClasspath: List<String>
+private val modifiedClasspath: List<String>
     get() {
         val classpath = System.getProperty("java.class.path")
         return classpath.split(File.pathSeparatorChar)
             .toList()
     }
+
+fun Collection<Number>.prod(): Int {
+    return this.map { it.toInt() }.reduce { acc, l -> acc * l }
+}
 
 fun Collection<Float>.average(): Float {
     return this.sumOf { it.toDouble() }.toFloat() / this.size

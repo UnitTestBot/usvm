@@ -1,18 +1,19 @@
 package org.usvm.ps
 
 import org.usvm.*
-import org.usvm.OtherPathSelectionStrategy
-import org.usvm.OtherUMachineOptions
+import org.usvm.ModifiedPathSelectionStrategy
+import org.usvm.ModifiedUMachineOptions
 import org.usvm.statistics.ApplicationGraph
 import org.usvm.statistics.CoverageStatistics
 import org.usvm.statistics.DistanceStatistics
 
-fun <Method, Statement, State : UState<*, Method, Statement, *, State>> otherCreatePathSelector(
+fun <Method, Statement, State : UState<*, Method, Statement, *, State>> modifiedCreatePathSelector(
     initialState: State,
-    options: OtherUMachineOptions,
+    options: ModifiedUMachineOptions,
     coverageStatistics: () -> CoverageStatistics<Method, Statement, State>? = { null },
     distanceStatistics: () -> DistanceStatistics<Method, Statement>? = { null },
-    applicationGraph: () -> ApplicationGraph<Method, Statement>? = { null }
+    applicationGraph: () -> ApplicationGraph<Method, Statement>? = { null },
+    coverageCounter: () -> CoverageCounter? = { null }
 ) : UPathSelector<State> {
     val strategies = options.pathSelectionStrategies
     val method = applicationGraph()?.methodOf(initialState.currentStatement)
@@ -20,22 +21,22 @@ fun <Method, Statement, State : UState<*, Method, Statement, *, State>> otherCre
 
     val selectors = strategies.map { strategy ->
         when (strategy) {
-            OtherPathSelectionStrategy.FEATURES_LOGGING -> FeaturesLoggingPathSelector(
-                requireNotNull(initialState.pathLocation.parent) { "Paths tree root is required for BFS with logging path selector" },
-                requireNotNull(coverageStatistics()) { "Coverage statistics is required for BFS with logging path selector" },
-                requireNotNull(distanceStatistics()) { "Distance statistics is required for BFS with logging path selector" },
-                requireNotNull(applicationGraph()) { "Application graph is required for BFS with logging path selector" },
+            ModifiedPathSelectionStrategy.FEATURES_LOGGING -> FeaturesLoggingPathSelector(
+                requireNotNull(initialState.pathLocation.parent) { "Paths tree root is required for Features Logging path selector" },
+                requireNotNull(coverageStatistics()) { "Coverage statistics is required for Features Logging path selector" },
+                requireNotNull(distanceStatistics()) { "Distance statistics is required for Features Logging path selector" },
+                requireNotNull(applicationGraph()) { "Application graph is required for Features Logging path selector" },
                 when(MLConfig.defaultAlgorithm) {
                     Algorithm.BFS -> BfsPathSelector()
                     Algorithm.ForkDepthRandom -> BfsPathSelector()
                 },
             )
 
-            OtherPathSelectionStrategy.MACHINE_LEARNING -> MachineLearningPathSelector(
-                requireNotNull(initialState.pathLocation.parent) { "Paths tree root is required for Inference with logging path selector" },
-                requireNotNull(coverageStatistics()) { "Coverage statistics is required for Inference with logging path selector" },
-                requireNotNull(distanceStatistics()) { "Distance statistics is required for Inference with logging path selector" },
-                requireNotNull(applicationGraph()) { "Application graph is required for Inference with logging path selector" },
+            ModifiedPathSelectionStrategy.MACHINE_LEARNING -> MachineLearningPathSelector(
+                requireNotNull(initialState.pathLocation.parent) { "Paths tree root is required for Machine Learning path selector" },
+                requireNotNull(coverageStatistics()) { "Coverage statistics is required for Machine Learning path selector" },
+                requireNotNull(distanceStatistics()) { "Distance statistics is required for Machine Learning path selector" },
+                requireNotNull(applicationGraph()) { "Application graph is required for Machine Learning path selector" },
                 when(MLConfig.defaultAlgorithm) {
                     Algorithm.BFS -> BfsPathSelector()
                     Algorithm.ForkDepthRandom -> BfsPathSelector()
@@ -49,7 +50,11 @@ fun <Method, Statement, State : UState<*, Method, Statement, *, State>> otherCre
     selectors.singleOrNull()?.let { selector ->
         val resultSelector = selector.wrapIfRequired(propagateExceptions)
         resultSelector.add(listOf(initialState))
-        return resultSelector.wrapCoverageCounter(requireNotNull(coverageStatistics()), requireNotNull(method))
+        return resultSelector.wrapCoverageCounter(
+            requireNotNull(coverageStatistics()),
+            requireNotNull(coverageCounter()),
+            requireNotNull(method)
+        )
     }
 
     require(selectors.size >= 2) { "Cannot create collaborative path selector from less than 2 selectors" }
@@ -75,13 +80,18 @@ fun <Method, Statement, State : UState<*, Method, Statement, *, State>> otherCre
         }
     }
 
-    return selector.wrapCoverageCounter(requireNotNull(coverageStatistics()), requireNotNull(method))
+    return selector.wrapCoverageCounter(
+        requireNotNull(coverageStatistics()),
+        requireNotNull(coverageCounter()),
+        requireNotNull(method)
+    )
 }
 
 private fun <Method, State : UState<*, Method, *, *, State>> UPathSelector<State>.wrapCoverageCounter(
     coverageStatistics: CoverageStatistics<Method, *, State>,
+    coverageCounter: CoverageCounter,
     method: Method
-) = CoverageCounterPathSelector(this, coverageStatistics, method)
+) = CoverageCounterPathSelector(this, coverageStatistics, coverageCounter, method)
 
 /**
  * Wraps the selector into an [ExceptionPropagationPathSelector] if [propagateExceptions] is true.

@@ -6,7 +6,7 @@ import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
 import java.util.concurrent.ConcurrentHashMap
 
-object CoverageCounter {
+class CoverageCounter {
     private val testCoverages = ConcurrentHashMap<String, List<Float>>()
     private val testStatementsCounts = ConcurrentHashMap<String, Float>()
     private val testDiscounts = ConcurrentHashMap<String, List<Float>>()

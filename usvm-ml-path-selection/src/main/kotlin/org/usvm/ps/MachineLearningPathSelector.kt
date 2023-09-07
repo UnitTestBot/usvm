@@ -7,6 +7,7 @@ import org.usvm.*
 import org.usvm.statistics.ApplicationGraph
 import org.usvm.statistics.CoverageStatistics
 import org.usvm.statistics.DistanceStatistics
+import org.usvm.util.prod
 import java.io.File
 import java.nio.FloatBuffer
 import java.nio.LongBuffer
@@ -29,9 +30,9 @@ open class MachineLearningPathSelector<State : UState<*, Method, Statement, *, S
     defaultPathSelector,
 ) {
     private var outputValues = listOf<Float>()
-    private val random = Random(java.time.LocalDateTime.now().nano)
+    private val random = Random(System.nanoTime())
     private val gnnFeaturesList = mutableListOf<List<List<Float>>>()
-    private var lastStateFeatures = List(MLConfig.rnnStateShape.reduce { acc, l -> acc * l }.toInt()) { 0.0f }
+    private var lastStateFeatures = List(MLConfig.rnnStateShape.prod()) { 0.0f }
     private var rnnFeatures = if (MLConfig.useRnn) List(MLConfig.rnnFeaturesCount) { 0.0f } else emptyList()
 
     companion object {
@@ -75,14 +76,14 @@ open class MachineLearningPathSelector<State : UState<*, Method, Statement, *, S
         val graphEdges = blockGraph.getEdges().toList()
         val featuresShape = listOf(graphFeatures.size, graphFeatures.first().size)
         val edgesShape = listOf(2, graphEdges.first().size)
-        val featuresDataBuffer = FloatBuffer.allocate(featuresShape.reduce { acc, i -> acc * i })
+        val featuresDataBuffer = FloatBuffer.allocate(featuresShape.prod())
         graphFeatures.forEach { blockFeatures ->
             blockFeatures.forEach { feature ->
                 featuresDataBuffer.put(feature)
             }
         }
         featuresDataBuffer.rewind()
-        val edgesDataBuffer = LongBuffer.allocate(edgesShape.reduce { acc, i -> acc * i })
+        val edgesDataBuffer = LongBuffer.allocate(edgesShape.prod())
         graphEdges.forEach { nodes ->
             nodes.forEach { node ->
                 edgesDataBuffer.put(node.toLong())
@@ -125,8 +126,8 @@ open class MachineLearningPathSelector<State : UState<*, Method, Statement, *, S
         ) + gnnFeatures
         val lastActionShape = listOf(1, lastActionFeatures.size.toLong())
         val lastStateShape = MLConfig.rnnStateShape
-        val actionFeaturesDataBuffer = FloatBuffer.allocate(lastActionShape.reduce { acc, l -> acc * l }.toInt())
-        val stateFeaturesDataBuffer = FloatBuffer.allocate(lastStateShape.reduce { acc, l -> acc * l }.toInt())
+        val actionFeaturesDataBuffer = FloatBuffer.allocate(lastActionShape.prod())
+        val stateFeaturesDataBuffer = FloatBuffer.allocate(lastStateShape.prod())
         lastActionFeatures.forEach {
             actionFeaturesDataBuffer.put(it)
         }
@@ -152,7 +153,7 @@ open class MachineLearningPathSelector<State : UState<*, Method, Statement, *, S
             maxOf(0, lru.size - MLConfig.maxAttentionLength)
         val allFeaturesList = allFeaturesListFull.subList(firstIndex, lru.size)
         val totalSize = allFeaturesList.size * allFeaturesList.first().size
-        val totalKnownSize = MLConfig.inputShape.reduce { acc, l -> acc * l }
+        val totalKnownSize = MLConfig.inputShape.prod().toLong()
         val shape = MLConfig.inputShape.map { if (it != -1L) it else -totalSize / totalKnownSize }.toLongArray()
         val dataBuffer = FloatBuffer.allocate(totalSize)
         allFeaturesList.forEach { stateFeatures ->

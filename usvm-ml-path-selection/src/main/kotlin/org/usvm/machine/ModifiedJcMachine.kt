@@ -5,23 +5,21 @@ import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcMethod
 import org.jacodb.api.cfg.JcInst
 import org.jacodb.api.ext.methods
-import org.usvm.CoverageZone
-import org.usvm.OtherUMachine
-import org.usvm.OtherUMachineOptions
+import org.usvm.*
 import org.usvm.machine.interpreter.JcInterpreter
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.lastStmt
-import org.usvm.ps.otherCreatePathSelector
-import org.usvm.stopstrategies.otherCreateStopStrategy
+import org.usvm.ps.modifiedCreatePathSelector
 import org.usvm.statistics.*
+import org.usvm.stopstrategies.createStopStrategy
 
 val logger = object : KLogging() {}.logger
 
-class OtherJcMachine(
+class ModifiedJcMachine(
     cp: JcClasspath,
-    private val options: OtherUMachineOptions
-) : OtherUMachine<JcState>() {
+    private val options: ModifiedUMachineOptions
+) : ModifiedUMachine<JcState>() {
         private val applicationGraph = JcApplicationGraph(cp)
 
     private val typeSystem = JcTypeSystem(cp)
@@ -33,7 +31,8 @@ class OtherJcMachine(
     private val distanceStatistics = DistanceStatistics(applicationGraph)
 
     fun analyze(
-        method: JcMethod
+        method: JcMethod,
+        coverageCounter: CoverageCounter? = null
     ): List<JcState> {
         logger.debug("$this.analyze($method)")
         val initialState = interpreter.getInitialState(method)
@@ -53,19 +52,31 @@ class OtherJcMachine(
             applicationGraph
         )
 
-        val pathSelector = otherCreatePathSelector(
+        val pathSelector = modifiedCreatePathSelector(
             initialState,
             options,
             { coverageStatistics },
             { distanceStatistics },
-            { applicationGraph }
+            { applicationGraph },
+            { coverageCounter }
         )
 
         val statesCollector = CoveredNewStatesCollector<JcState>(coverageStatistics) {
             it.methodResult is JcMethodResult.JcException
         }
-        val stopStrategy = otherCreateStopStrategy(
-            options,
+        val stopStrategy = createStopStrategy(
+            UMachineOptions(
+                pathSelectorCombinationStrategy = options.pathSelectorCombinationStrategy,
+                randomSeed = options.randomSeed,
+                stopOnCoverage = options.stopOnCoverage,
+                stepLimit = options.stepLimit,
+                collectedStatesLimit = options.collectedStatesLimit,
+                timeoutMs = options.timeoutMs,
+                stepsFromLastCovered = options.stepsFromLastCovered,
+                coverageZone = options.coverageZone,
+                exceptionsPropagation = options.exceptionsPropagation,
+                solverType = options.solverType
+            ),
             coverageStatistics = { coverageStatistics },
             getCollectedStatesCount = { statesCollector.collectedStates.size }
         )
