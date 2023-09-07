@@ -50,14 +50,14 @@ abstract class ModifiedUMachine<State> : AutoCloseable {
                 } else {
                     // TODO: distinguish between states terminated by exception (runtime or user) and
                     //  those which just exited
-                    observer.onStateTerminated(forkedState)
+                    observer.onStateTerminated(forkedState, stateReachable = true)
                 }
             }
 
             if (originalStateAlive) {
                 pathSelector.update(state)
             } else {
-                observer.onStateTerminated(state)
+                observer.onStateTerminated(state, stateReachable = stateAlive)
                 pathSelector.remove(state)
             }
 
