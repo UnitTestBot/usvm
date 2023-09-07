@@ -11,7 +11,7 @@ import org.usvm.UState
  * It costs additional memory, but might be useful for debug purposes.
  */
 class TerminatedStateRemover<State : UState<*, *, *, *, State>> : UMachineObserver<State> {
-    override fun onStateTerminated(state: State) {
+    override fun onStateTerminated(state: State, stateReachable: Boolean) {
         state.pathLocation.states.remove(state)
     }
 }

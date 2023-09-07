@@ -92,7 +92,9 @@ class CoverageStatistics<Method, Statement, State : UState<*, Method, Statement,
     }
 
     // TODO: don't consider coverage of runtime exceptions states
-    override fun onStateTerminated(state: State) {
+    override fun onStateTerminated(state: State, stateReachable: Boolean) {
+        if (!stateReachable) return
+
         for (statement in state.reversedPath) {
             val method = applicationGraph.methodOf(statement)
 

@@ -16,14 +16,14 @@ class CoveredNewStatesCollector<State>(
 
     private var previousCoverage = coverageStatistics.getTotalCoverage()
 
-    override fun onStateTerminated(state: State) {
+    override fun onStateTerminated(state: State, stateReachable: Boolean) {
         val currentCoverage = coverageStatistics.getTotalCoverage()
         if (isException(state)) {
             mutableCollectedStates.add(state)
             return
         }
 
-        if (currentCoverage > previousCoverage) {
+        if (stateReachable && currentCoverage > previousCoverage) {
             previousCoverage = currentCoverage
             mutableCollectedStates.add(state)
         }
