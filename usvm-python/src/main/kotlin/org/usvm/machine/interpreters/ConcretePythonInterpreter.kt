@@ -172,6 +172,11 @@ object ConcretePythonInterpreter {
         pythonAdapter.decref(namespace.address)
     }
 
+    fun typeLookup(type: PythonObject, name: String): PythonObject? {
+        val result = pythonAdapter.typeLookup(type.address, name)
+        return if (result == 0L) null else PythonObject(result)
+    }
+
     private fun createTypeQuery(checkMethod: (Long) -> Int): (PythonObject) -> Boolean = { pythonObject ->
         val result = checkMethod(pythonObject.address)
         if (result < 0)

@@ -35,14 +35,14 @@ class USVMPythonInterpreter<PythonObjectRepresentation>(
 ) : UInterpreter<PythonExecutionState>() {
     private fun getSeeds(
         concolicRunContext: ConcolicRunContext,
-        symbols: List<SymbolForCPython>
+        symbols: List<UninterpretedSymbolicPythonObject>
     ): List<InterpretedInputSymbolicPythonObject> =
-        symbols.map { interpretSymbolicPythonObject(it.obj, concolicRunContext.modelHolder) as InterpretedInputSymbolicPythonObject }
+        symbols.map { interpretSymbolicPythonObject(it, concolicRunContext.modelHolder) as InterpretedInputSymbolicPythonObject }
 
     private fun getConcrete(
         converter: ConverterToPythonObject,
         seeds: List<InterpretedInputSymbolicPythonObject>,
-        symbols: List<SymbolForCPython>
+        symbols: List<UninterpretedSymbolicPythonObject>
     ): List<PythonObject> =
         (seeds zip symbols).map { (seed, _) -> converter.convert(seed) }
 
@@ -83,7 +83,7 @@ class USVMPythonInterpreter<PythonObjectRepresentation>(
             }
             val validator = ObjectValidator(concolicRunContext)
             val symbols = state.inputSymbols
-            symbols.forEach { validator.check(it.obj) }
+            symbols.forEach { validator.check(it) }
             val seeds = getSeeds(concolicRunContext, symbols)
             val converter = concolicRunContext.converter
             val concrete = getConcrete(converter, seeds, symbols)
@@ -113,7 +113,7 @@ class USVMPythonInterpreter<PythonObjectRepresentation>(
                     pinnedCallable.asPythonObject,
                     concrete,
                     virtualObjects,
-                    symbols,
+                    symbols.map { SymbolForCPython(it) },
                     concolicRunContext,
                     printErrorMsg
                 )
