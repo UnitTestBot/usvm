@@ -19,7 +19,4 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:${MLVersions.serialization}")
     implementation("io.github.rchowell:dotlin:${MLVersions.dotlin}")
     implementation("com.microsoft.onnxruntime:onnxruntime:${MLVersions.onnxruntime}")
-
-    testImplementation(project(":usvm-jvm"))
-    testImplementation(project(":usvm-core"))
 }

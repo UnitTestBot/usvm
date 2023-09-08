@@ -10,6 +10,7 @@ import org.usvm.machine.interpreter.JcInterpreter
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.lastStmt
+import org.usvm.ps.FeaturesLoggingPathSelector
 import org.usvm.ps.modifiedCreatePathSelector
 import org.usvm.statistics.*
 import org.usvm.stopstrategies.createStopStrategy
@@ -19,7 +20,7 @@ val logger = object : KLogging() {}.logger
 class ModifiedJcMachine(
     cp: JcClasspath,
     private val options: ModifiedUMachineOptions
-) : ModifiedUMachine<JcState>() {
+) : UMachine<JcState>() {
         private val applicationGraph = JcApplicationGraph(cp)
 
     private val typeSystem = JcTypeSystem(cp)
@@ -57,8 +58,7 @@ class ModifiedJcMachine(
             options,
             { coverageStatistics },
             { distanceStatistics },
-            { applicationGraph },
-            { coverageCounter }
+            { applicationGraph }
         )
 
         val statesCollector = CoveredNewStatesCollector<JcState>(coverageStatistics) {
@@ -97,6 +97,11 @@ class ModifiedJcMachine(
         }
         observers.add(statesCollector)
 
+        val methodName = method.toString().dropWhile { it != ')' }.drop(1)
+        if (coverageCounter != null) {
+            observers.add(CoverageCounterStatistics(coverageStatistics, coverageCounter, methodName))
+        }
+
         run(
             interpreter,
             pathSelector,
@@ -104,6 +109,13 @@ class ModifiedJcMachine(
             isStateTerminated = ::isStateTerminated,
             stopStrategy = stopStrategy,
         )
+
+        coverageCounter?.finishTest(methodName)
+        if (pathSelector is FeaturesLoggingPathSelector<*, *, *>) {
+            if (MLConfig.logFeatures && MLConfig.mode != Mode.Test) {
+                pathSelector.savePath()
+            }
+        }
 
         return statesCollector.collectedStates
     }
