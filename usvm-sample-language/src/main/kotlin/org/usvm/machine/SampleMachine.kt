@@ -20,6 +20,7 @@ import org.usvm.statistics.distances.CallGraphStatisticsImpl
 import org.usvm.statistics.distances.CfgStatisticsImpl
 import org.usvm.statistics.distances.PlainCallGraphStatistics
 import org.usvm.stopstrategies.createStopStrategy
+import org.usvm.targets.UTargetController
 
 /**
  * Entry point for a sample language analyzer.
@@ -41,7 +42,7 @@ class SampleMachine(
 
     fun analyze(
         method: Method<*>,
-        targets: List<SampleTarget> = emptyList()
+        targets: List<SampleTarget<UTargetController>> = emptyList()
     ): Collection<ProgramExecutionResult> {
         val initialState = getInitialState(method, targets)
 
@@ -97,7 +98,7 @@ class SampleMachine(
 
     private fun getInitialState(
         method: Method<*>,
-        targets: List<SampleTarget>
+        targets: List<SampleTarget<UTargetController>>
     ): SampleState =
         SampleState(ctx, targets = targets).apply {
             addEntryMethodCall(applicationGraph, method)

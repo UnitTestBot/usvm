@@ -15,6 +15,7 @@ import org.usvm.language.argumentCount
 import org.usvm.language.localsCount
 import org.usvm.memory.UMemory
 import org.usvm.model.UModelBase
+import org.usvm.targets.UTargetController
 
 class SampleState(
     ctx: UContext,
@@ -25,8 +26,8 @@ class SampleState(
     pathLocation: PathsTrieNode<SampleState, Stmt> = ctx.mkInitialLocation(),
     var returnRegister: UExpr<out USort>? = null,
     var exceptionRegister: ProgramException? = null,
-    targets: List<SampleTarget> = emptyList()
-) : UState<SampleType, Method<*>, Stmt, UContext, SampleTarget, SampleState>(
+    targets: List<SampleTarget<UTargetController>> = emptyList()
+) : UState<SampleType, Method<*>, Stmt, UContext, SampleTarget<UTargetController>, SampleState>(
     ctx,
     callStack,
     pathConstraints,

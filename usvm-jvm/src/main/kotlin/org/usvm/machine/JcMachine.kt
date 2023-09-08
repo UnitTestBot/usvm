@@ -27,6 +27,7 @@ import org.usvm.statistics.distances.CfgStatisticsImpl
 import org.usvm.statistics.distances.PlainCallGraphStatistics
 import org.usvm.stopstrategies.createStopStrategy
 import org.usvm.util.originalInst
+import org.usvm.targets.UTargetController
 
 val logger = object : KLogging() {}.logger
 
@@ -45,7 +46,7 @@ class JcMachine(
 
     private val cfgStatistics = CfgStatisticsImpl(applicationGraph)
 
-    fun analyze(method: JcMethod, targets: List<JcTarget> = emptyList()): List<JcState> {
+    fun analyze(method: JcMethod, targets: List<JcTarget<UTargetController>> = emptyList()): List<JcState> {
         logger.debug("{}.analyze({}, {})", this, method, targets)
         val initialState = interpreter.getInitialState(method, targets)
 

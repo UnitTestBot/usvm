@@ -11,6 +11,7 @@ import org.usvm.constraints.UPathConstraints
 import org.usvm.machine.JcContext
 import org.usvm.memory.UMemory
 import org.usvm.model.UModelBase
+import org.usvm.targets.UTargetController
 
 class JcState(
     ctx: JcContext,
@@ -20,8 +21,8 @@ class JcState(
     models: List<UModelBase<JcType>> = listOf(),
     override var pathLocation: PathsTrieNode<JcState, JcInst> = ctx.mkInitialLocation(),
     var methodResult: JcMethodResult = JcMethodResult.NoCall,
-    targets: List<JcTarget> = emptyList(),
-) : UState<JcType, JcMethod, JcInst, JcContext, JcTarget, JcState>(
+    targets: List<JcTarget<UTargetController>> = emptyList(),
+) : UState<JcType, JcMethod, JcInst, JcContext, JcTarget<UTargetController>, JcState>(
     ctx,
     callStack,
     pathConstraints,
