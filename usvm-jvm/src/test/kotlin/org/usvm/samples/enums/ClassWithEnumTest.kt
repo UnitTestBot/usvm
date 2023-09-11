@@ -127,7 +127,7 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
 */
 
     @Test
-    @Disabled("Sequence is empty.")
+    @Disabled("Expected exactly 3 executions, but 2 found")
     fun testVirtualFunction() {
         checkDiscoveredProperties(
             ClassWithEnum::virtualFunction,

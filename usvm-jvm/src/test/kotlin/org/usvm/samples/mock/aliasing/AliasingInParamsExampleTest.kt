@@ -8,7 +8,7 @@ import org.usvm.test.util.checkers.eq
 
 internal class AliasingInParamsExampleTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Sequence is empty.")
+    @Disabled("Expected exactly 1 executions, but 3 found")
     fun testExamplePackageBased() {
         checkDiscoveredProperties(
             AliasingInParamsExample::example,
@@ -18,7 +18,7 @@ internal class AliasingInParamsExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sequence is empty.")
+    @Disabled("Expected exactly 2 executions, but 3 found")
     fun testExample() {
         checkDiscoveredProperties(
             AliasingInParamsExample::example,

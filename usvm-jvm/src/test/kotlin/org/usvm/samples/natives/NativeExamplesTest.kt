@@ -10,7 +10,7 @@ import org.usvm.test.util.checkers.ge
 internal class NativeExamplesTest : JavaMethodTestRunner() {
 
     @Test
-    @Disabled("No entrypoint found for method")
+    @Disabled("Expected at least 1 executions, but only 0 found")
     fun testFindAndPrintSum() {
         checkDiscoveredProperties(
             NativeExamples::findAndPrintSum,
@@ -19,7 +19,7 @@ internal class NativeExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("java.lang.Math#<clinit> has native calls")
+    @Disabled("Expected exactly 1 executions, but 113 found")
     fun testFindSumWithMathRandom() {
         checkDiscoveredProperties(
             NativeExamples::findSumWithMathRandom,

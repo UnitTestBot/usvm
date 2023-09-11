@@ -2,6 +2,7 @@ package org.usvm.samples.recursion
 
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.usvm.CoverageZone
 import org.usvm.PathSelectionStrategy
 import org.usvm.UMachineOptions
 import org.usvm.samples.JavaMethodTestRunner
@@ -44,19 +45,17 @@ internal class RecursionTest : JavaMethodTestRunner() {
         }
     }
 
-    @Test
-    @Disabled("Native method invocation: java.lang.Float.floatToRawIntBits")
-    fun testSum() {
+    @UsvmTest([Options([PathSelectionStrategy.FORK_DEPTH])])
+    fun testSum(options: UMachineOptions) = withOptions(options) {
         checkDiscoveredProperties(
             Recursion::sum,
             eq(2),
             { _, x, y, r -> y == 0 && r == x },
             { _, x, y, r -> y != 0 && r == x + y }
         )
-
     }
 
-    @UsvmTest([Options([PathSelectionStrategy.CLOSEST_TO_UNCOVERED_RANDOM])])
+    @UsvmTest([Options([PathSelectionStrategy.BFS], coverageZone = CoverageZone.TRANSITIVE)])
     fun testPow(options: UMachineOptions) {
         withOptions(options) {
             checkDiscoveredPropertiesWithExceptions(
@@ -82,7 +81,6 @@ internal class RecursionTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("java.lang.Integer#valueOf(int). Native calls in IntegerCache#<clinit>")
     fun vertexSumTest() {
         checkDiscoveredProperties(
             Recursion::vertexSum,

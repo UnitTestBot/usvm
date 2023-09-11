@@ -3,6 +3,7 @@ package org.usvm.machine
 import org.jacodb.api.JcArrayType
 import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcField
+import org.jacodb.api.JcPrimitiveType
 import org.jacodb.api.JcRefType
 import org.jacodb.api.JcType
 import org.jacodb.api.JcTypedField
@@ -21,6 +22,7 @@ import org.jacodb.api.ext.void
 import org.jacodb.impl.bytecode.JcFieldImpl
 import org.jacodb.impl.types.FieldInfo
 import org.usvm.UContext
+import org.usvm.util.extractJcRefType
 
 class JcContext(
     val cp: JcClasspath,
@@ -89,5 +91,42 @@ class JcContext(
 
     val stringValueField: JcTypedField by lazy {
         stringType.jcClass.toType().declaredFields.first { it.name == "value" }
+    }
+
+    val primitiveTypes: Set<JcPrimitiveType> by lazy {
+        setOf(
+            cp.boolean,
+            cp.byte,
+            cp.short,
+            cp.int,
+            cp.long,
+            cp.char,
+            cp.float,
+            cp.double,
+        )
+    }
+
+    val arrayIndexOutOfBoundsExceptionType by lazy {
+        extractJcRefType(IndexOutOfBoundsException::class)
+    }
+
+    val negativeArraySizeExceptionType by lazy {
+        extractJcRefType(NegativeArraySizeException::class)
+    }
+
+    val arithmeticExceptionType by lazy {
+        extractJcRefType(ArithmeticException::class)
+    }
+
+    val nullPointerExceptionType by lazy {
+        extractJcRefType(NullPointerException::class)
+    }
+
+    val classCastExceptionType by lazy {
+        extractJcRefType(ClassCastException::class)
+    }
+
+    val arrayStoreExceptionType by lazy {
+        extractJcRefType(ArrayStoreException::class)
     }
 }

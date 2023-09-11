@@ -12,7 +12,7 @@ import kotlin.math.hypot
 @Suppress("SimplifyNegatedBinaryExpression")
 internal class DoubleFunctionsTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Sequence is empty.")
+    @Disabled("Expected exactly 1 executions, but 5 found")
     fun testHypo() {
         checkDiscoveredProperties(
             DoubleFunctions::hypo,
