@@ -9,10 +9,10 @@ import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.machine.JcApplicationGraph
-import org.usvm.machine.UConcreteMethodCallJcInst
-import org.usvm.machine.UJcMethodCall
-import org.usvm.machine.UMethodEntrypointJcInst
-import org.usvm.machine.UVirtualMethodCallJcInst
+import org.usvm.machine.JcConcreteMethodCallInst
+import org.usvm.machine.JcMethodCall
+import org.usvm.machine.JcMethodEntrypointInst
+import org.usvm.machine.JcVirtualMethodCallInst
 
 val JcState.lastStmt get() = pathLocation.statement
 fun JcState.newStmt(stmt: JcInst) {
@@ -59,7 +59,7 @@ fun JcState.throwExceptionAndDropStackFrame() {
 
 fun JcState.addEntryMethodCall(
     applicationGraph: JcApplicationGraph,
-    methodCall: UMethodEntrypointJcInst,
+    methodCall: JcMethodEntrypointInst,
 ) {
     val method = methodCall.method
     val entryPoint = applicationGraph.entryPoints(method).single()
@@ -70,9 +70,8 @@ fun JcState.addEntryMethodCall(
 
 fun JcState.addNewMethodCall(
     applicationGraph: JcApplicationGraph,
-    methodCall: UConcreteMethodCallJcInst
+    methodCall: JcConcreteMethodCallInst
 ) {
-    // TODO: find concrete implementation (I guess, the method should be already concrete)
     val method = methodCall.method
     val entryPoint = applicationGraph.entryPoints(method).singleOrNull()
         ?: error("No entrypoint found for method: $method")
@@ -82,11 +81,11 @@ fun JcState.addNewMethodCall(
 }
 
 fun JcState.addConcreteMethodCallStmt(method: JcMethod, arguments: List<UExpr<out USort>>) {
-    newStmt(UConcreteMethodCallJcInst(lastStmt.location, method, arguments, lastStmt))
+    newStmt(JcConcreteMethodCallInst(lastStmt.location, method, arguments, lastStmt))
 }
 
 fun JcState.addVirtualMethodCallStmt(method: JcMethod, arguments: List<UExpr<out USort>>) {
-    newStmt(UVirtualMethodCallJcInst(lastStmt.location, method, arguments, lastStmt))
+    newStmt(JcVirtualMethodCallInst(lastStmt.location, method, arguments, lastStmt))
 }
 
 fun JcMethod.localIdx(idx: Int) = if (isStatic) idx else idx + 1
@@ -97,7 +96,7 @@ inline val JcMethod.parametersWithThisCount get() = localIdx(parameters.size)
 // TODO: cache it with JacoDB cache
 inline val JcMethod.localsCount get() = instList.locals.filter { it !is JcArgument }.size
 
-fun JcState.skipMethodInvocationWithValue(methodCall: UJcMethodCall, value: UExpr<out USort>) {
+fun JcState.skipMethodInvocationWithValue(methodCall: JcMethodCall, value: UExpr<out USort>) {
     methodResult = JcMethodResult.Success(methodCall.method, value)
     newStmt(methodCall.returnSite)
 }

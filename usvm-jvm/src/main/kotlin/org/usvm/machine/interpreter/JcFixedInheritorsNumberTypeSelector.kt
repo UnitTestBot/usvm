@@ -64,6 +64,7 @@ class JcFixedInheritorsNumberTypeSelector(
 
     companion object {
         const val DEFAULT_INHERITORS_NUMBER_TO_CHOOSE: Int = 4
+        // TODO: elaborate on better constant choosing
         const val DEFAULT_INHERITORS_NUMBER_TO_SCORE: Int = 100
     }
 }

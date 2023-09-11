@@ -2,26 +2,35 @@ package org.usvm.machine
 
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.uncheckedCast
+import org.jacodb.api.JcArrayType
 import org.jacodb.api.JcMethod
 import org.jacodb.api.ext.boolean
 import org.jacodb.api.ext.byte
 import org.jacodb.api.ext.char
 import org.jacodb.api.ext.double
 import org.jacodb.api.ext.float
+import org.jacodb.api.ext.ifArrayGetElementType
 import org.jacodb.api.ext.int
 import org.jacodb.api.ext.long
 import org.jacodb.api.ext.objectClass
+import org.jacodb.api.ext.objectType
 import org.jacodb.api.ext.short
 import org.jacodb.api.ext.void
+import org.usvm.UBoolExpr
 import org.usvm.UBv32Sort
 import org.usvm.UBvSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UFpSort
+import org.usvm.UHeapRef
+import org.usvm.USizeExpr
 import org.usvm.USymbolicHeapRef
+import org.usvm.api.memcpy
 import org.usvm.api.typeStreamOf
+import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.machine.interpreter.JcExprResolver
 import org.usvm.machine.interpreter.JcStepScope
+import org.usvm.machine.state.JcState
 import org.usvm.machine.state.newStmt
 import org.usvm.machine.state.skipMethodInvocationWithValue
 import org.usvm.uctx
@@ -32,7 +41,7 @@ class JcMethodApproximationResolver(
     private val applicationGraph: JcApplicationGraph,
     private val exprResolver: JcExprResolver
 ) {
-    fun approximate(callJcInst: UJcMethodCall): Boolean {
+    fun approximate(callJcInst: JcMethodCall): Boolean {
         if (skipMethodIfThrowable(callJcInst)) {
             return true
         }
@@ -44,7 +53,7 @@ class JcMethodApproximationResolver(
         return approximateRegularMethod(callJcInst)
     }
 
-    private fun approximateRegularMethod(methodCall: UJcMethodCall): Boolean = with(methodCall) {
+    private fun approximateRegularMethod(methodCall: JcMethodCall): Boolean = with(methodCall) {
         if (method.enclosingClass == ctx.cp.objectClass) {
             if (approximateObjectVirtualMethod(methodCall)) return true
         }
@@ -60,7 +69,7 @@ class JcMethodApproximationResolver(
         return approximateEmptyNativeMethod(methodCall)
     }
 
-    private fun approximateStaticMethod(methodCall: UJcMethodCall): Boolean = with(methodCall) {
+    private fun approximateStaticMethod(methodCall: JcMethodCall): Boolean = with(methodCall) {
         if (method.enclosingClass == ctx.classType.jcClass) {
             if (approximateClassStaticMethod(methodCall)) return true
         }
@@ -84,7 +93,7 @@ class JcMethodApproximationResolver(
         return approximateEmptyNativeMethod(methodCall)
     }
 
-    private fun approximateEmptyNativeMethod(methodCall: UJcMethodCall): Boolean = with(methodCall) {
+    private fun approximateEmptyNativeMethod(methodCall: JcMethodCall): Boolean = with(methodCall) {
         if (method.isNative && method.hasVoidReturnType() && method.parameters.isEmpty()) {
             if (method.enclosingClass.declaration.location.isRuntime) {
                 /**
@@ -101,7 +110,7 @@ class JcMethodApproximationResolver(
         return false
     }
 
-    private fun approximateClassStaticMethod(methodCall: UJcMethodCall): Boolean = with(methodCall) {
+    private fun approximateClassStaticMethod(methodCall: JcMethodCall): Boolean = with(methodCall) {
         /**
          * Approximate retrieval of class instance for primitives.
          * */
@@ -125,7 +134,7 @@ class JcMethodApproximationResolver(
         return false
     }
 
-    private fun approximateClassVirtualMethod(methodCall: UJcMethodCall): Boolean = with(methodCall) {
+    private fun approximateClassVirtualMethod(methodCall: JcMethodCall): Boolean = with(methodCall) {
         /**
          * Approximate assertions enabled check.
          * It is correct to enable assertions during analysis.
@@ -140,7 +149,7 @@ class JcMethodApproximationResolver(
         return false
     }
 
-    private fun approximateObjectVirtualMethod(methodCall: UJcMethodCall): Boolean = with(methodCall) {
+    private fun approximateObjectVirtualMethod(methodCall: JcMethodCall): Boolean = with(methodCall) {
         if (method.name == "getClass") {
             val instance = arguments.first().asExpr(ctx.addressSort)
 
@@ -167,7 +176,7 @@ class JcMethodApproximationResolver(
         return false
     }
 
-    private fun approximateUnsafeVirtualMethod(methodCall: UJcMethodCall): Boolean = with(methodCall) {
+    private fun approximateUnsafeVirtualMethod(methodCall: JcMethodCall): Boolean = with(methodCall) {
         // Array offset is usually the same on various JVM
         if (method.name == "arrayBaseOffset0") {
             scope.doWithState {
@@ -210,7 +219,7 @@ class JcMethodApproximationResolver(
         return false
     }
 
-    private fun approximateSystemStaticMethod(methodCall: UJcMethodCall): Boolean = with(methodCall) {
+    private fun approximateSystemStaticMethod(methodCall: JcMethodCall): Boolean = with(methodCall) {
         if (method.name == "arraycopy") {
             // Object src, int srcPos, Object dest, int destPos, int length
             val (srcRef, srcPos, dstRef, dstPos, length) = arguments
@@ -230,7 +239,101 @@ class JcMethodApproximationResolver(
         return false
     }
 
-    private fun approximateStringUtf16StaticMethod(methodCall: UJcMethodCall): Boolean = with(methodCall) {
+    private fun JcExprResolver.resolveArrayCopy(
+        methodCall: JcMethodCall,
+        srcRef: UHeapRef,
+        srcPos: USizeExpr,
+        dstRef: UHeapRef,
+        dstPos: USizeExpr,
+        length: USizeExpr
+    ) {
+        checkNullPointer(srcRef) ?: return
+        checkNullPointer(dstRef) ?: return
+
+        val possibleElementTypes = ctx.primitiveTypes + ctx.cp.objectType
+        val possibleArrayTypes = possibleElementTypes.map { ctx.cp.arrayTypeOf(it) }
+
+        val arrayTypeConstraintsWithBlockOnStates = mutableListOf<Pair<UBoolExpr, (JcState) -> Unit>>()
+        possibleArrayTypes.forEach { type ->
+            addArrayCopyForType(
+                methodCall, arrayTypeConstraintsWithBlockOnStates, type,
+                srcRef, srcPos,
+                dstRef, dstPos,
+                length
+            )
+        }
+
+        val arrayTypeConstraints = possibleArrayTypes.map { type ->
+            scope.calcOnState {
+                ctx.mkAnd(
+                    memory.types.evalIsSubtype(srcRef, type),
+                    memory.types.evalIsSubtype(dstRef, type)
+                )
+            }
+        }
+        val unknownArrayType = ctx.mkAnd(arrayTypeConstraints.map { ctx.mkNot(it) })
+        arrayTypeConstraintsWithBlockOnStates += unknownArrayType to allocateException(ctx.arrayStoreExceptionType)
+
+        scope.forkMulti(arrayTypeConstraintsWithBlockOnStates)
+    }
+
+    private fun JcExprResolver.addArrayCopyForType(
+        methodCall: JcMethodCall,
+        branches: MutableList<Pair<UBoolExpr, (JcState) -> Unit>>,
+        type: JcArrayType,
+        srcRef: UHeapRef,
+        srcPos: USizeExpr,
+        dstRef: UHeapRef,
+        dstPos: USizeExpr,
+        length: USizeExpr
+    ) = with(ctx) {
+        val arrayDescriptor = arrayDescriptorOf(type)
+        val elementType = requireNotNull(type.ifArrayGetElementType)
+        val cellSort = typeToSort(elementType)
+
+        val arrayTypeConstraint = scope.calcOnState {
+            mkAnd(
+                memory.types.evalIsSubtype(srcRef, type),
+                memory.types.evalIsSubtype(dstRef, type)
+            )
+        }
+
+        val srcLengthRef = UArrayLengthLValue(srcRef, arrayDescriptor)
+        val srcLength = scope.calcOnState { memory.read(srcLengthRef) }
+
+        val dstLengthRef = UArrayLengthLValue(dstRef, arrayDescriptor)
+        val dstLength = scope.calcOnState { memory.read(dstLengthRef) }
+
+        val indexBoundsCheck = mkAnd(
+            mkBvSignedLessOrEqualExpr(mkBv(0), srcPos),
+            mkBvSignedLessOrEqualExpr(mkBv(0), dstPos),
+            mkBvSignedLessOrEqualExpr(mkBv(0), length),
+            mkBvSignedLessOrEqualExpr(mkBvAddExpr(srcPos, length), srcLength),
+            mkBvSignedLessOrEqualExpr(mkBvAddExpr(dstPos, length), dstLength),
+        )
+
+        val indexOutOfBoundsConstraint = arrayTypeConstraint and indexBoundsCheck.not()
+        branches += indexOutOfBoundsConstraint to allocateException(arrayIndexOutOfBoundsExceptionType)
+
+        val arrayCopySuccessConstraint = arrayTypeConstraint and indexBoundsCheck
+        val arrayCopyBlock = { state: JcState ->
+            state.memory.memcpy(
+                srcRef = srcRef,
+                dstRef = dstRef,
+                type = arrayDescriptor,
+                elementSort = cellSort,
+                fromSrc = srcPos,
+                fromDst = dstPos,
+                length = length
+            )
+
+            state.skipMethodInvocationWithValue(methodCall, ctx.voidValue)
+        }
+
+        branches += arrayCopySuccessConstraint to arrayCopyBlock
+    }
+
+    private fun approximateStringUtf16StaticMethod(methodCall: JcMethodCall): Boolean = with(methodCall) {
         // Use common property value as approximation
         if (method.name == "isBigEndian") {
             scope.doWithState {
@@ -241,7 +344,7 @@ class JcMethodApproximationResolver(
         return false
     }
 
-    private fun approximateFloatStaticMethod(methodCall: UJcMethodCall): Boolean = with(methodCall) {
+    private fun approximateFloatStaticMethod(methodCall: JcMethodCall): Boolean = with(methodCall) {
         if (method.name == "floatToRawIntBits") {
             val value = arguments.single().asExpr(ctx.floatSort)
             val result = ctx.mkFpToIEEEBvExpr(value).asExpr(ctx.integerSort)
@@ -263,7 +366,7 @@ class JcMethodApproximationResolver(
         return false
     }
 
-    private fun approximateDoubleStaticMethod(methodCall: UJcMethodCall): Boolean = with(methodCall) {
+    private fun approximateDoubleStaticMethod(methodCall: JcMethodCall): Boolean = with(methodCall) {
         if (method.name == "doubleToRawLongBits") {
             val value = arguments.single().asExpr(ctx.doubleSort)
             val result = ctx.mkFpToIEEEBvExpr(value).asExpr(ctx.longSort)
@@ -285,7 +388,7 @@ class JcMethodApproximationResolver(
         return false
     }
 
-    private fun skipMethodIfThrowable(methodCall: UJcMethodCall): Boolean = with(methodCall) {
+    private fun skipMethodIfThrowable(methodCall: JcMethodCall): Boolean = with(methodCall) {
         if (method.enclosingClass.name == "java.lang.Throwable") {
             scope.doWithState {
                 val nextStmt = applicationGraph.successors(methodCall.returnSite).single()

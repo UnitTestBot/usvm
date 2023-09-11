@@ -12,7 +12,7 @@ import org.usvm.USort
 /**
  * Auxiliary instruction to handle method calls.
  * */
-sealed interface UMethodCallBaseJcInst : JcInst {
+sealed interface JcMethodCallBaseInst : JcInst {
     val method: JcMethod
 
     override val operands: List<JcExpr>
@@ -27,15 +27,15 @@ sealed interface UMethodCallBaseJcInst : JcInst {
  * Entrypoint method call instruction.
  * Can be used as initial instruction to start an analysis process.
  * */
-data class UMethodEntrypointJcInst(
+data class JcMethodEntrypointInst(
     override val method: JcMethod
-) : UMethodCallBaseJcInst {
+) : JcMethodCallBaseInst {
     // We don't care about the location of the entrypoint
     override val location: JcInstLocation
-        get() = JcInstLocationImpl(method, 0, 0)
+        get() = JcInstLocationImpl(method, -1, -1)
 }
 
-sealed interface UJcMethodCall {
+sealed interface JcMethodCall {
     val location: JcInstLocation
     val method: JcMethod
     val arguments: List<UExpr<out USort>>
@@ -43,29 +43,29 @@ sealed interface UJcMethodCall {
 }
 
 /**
- * Concrete method call instruction.
- * The [method] is invoked with [arguments] and after method execution
+ * Concrete method call instruction. This call may be replaced with approximation.
+ * Otherwise, the [method] is invoked with [arguments] and after method execution
  * the next instruction should be [returnSite].
  * */
-data class UConcreteMethodCallJcInst(
+data class JcConcreteMethodCallInst(
     override val location: JcInstLocation,
     override val method: JcMethod,
     override val arguments: List<UExpr<out USort>>,
     override val returnSite: JcInst
-) : UMethodCallBaseJcInst, UJcMethodCall
+) : JcMethodCallBaseInst, JcMethodCall
 
 /**
  * Virtual method call instruction.
  * The [method] is virtual and depends on the actual instance type.
  * The machine shouldn't invoke this method directly but should first
- * resolve it to the [UConcreteMethodCallJcInst].
+ * resolve it to the [JcConcreteMethodCallInst].
  * */
-data class UVirtualMethodCallJcInst(
+data class JcVirtualMethodCallInst(
     override val location: JcInstLocation,
     override val method: JcMethod,
     override val arguments: List<UExpr<out USort>>,
     override val returnSite: JcInst
-) : UMethodCallBaseJcInst, UJcMethodCall {
-    fun toConcreteMethodCall(concreteMethod: JcMethod): UConcreteMethodCallJcInst =
-        UConcreteMethodCallJcInst(location, concreteMethod, arguments, returnSite)
+) : JcMethodCallBaseInst, JcMethodCall {
+    fun toConcreteMethodCall(concreteMethod: JcMethod): JcConcreteMethodCallInst =
+        JcConcreteMethodCallInst(location, concreteMethod, arguments, returnSite)
 }

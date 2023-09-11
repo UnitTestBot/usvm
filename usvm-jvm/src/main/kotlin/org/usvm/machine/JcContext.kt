@@ -22,6 +22,7 @@ import org.jacodb.api.ext.void
 import org.jacodb.impl.bytecode.JcFieldImpl
 import org.jacodb.impl.types.FieldInfo
 import org.usvm.UContext
+import org.usvm.util.extractJcRefType
 
 class JcContext(
     val cp: JcClasspath,
@@ -103,5 +104,29 @@ class JcContext(
             cp.float,
             cp.double,
         )
+    }
+
+    val arrayIndexOutOfBoundsExceptionType by lazy {
+        extractJcRefType(IndexOutOfBoundsException::class)
+    }
+
+    val negativeArraySizeExceptionType by lazy {
+        extractJcRefType(NegativeArraySizeException::class)
+    }
+
+    val arithmeticExceptionType by lazy {
+        extractJcRefType(ArithmeticException::class)
+    }
+
+    val nullPointerExceptionType by lazy {
+        extractJcRefType(NullPointerException::class)
+    }
+
+    val classCastExceptionType by lazy {
+        extractJcRefType(ClassCastException::class)
+    }
+
+    val arrayStoreExceptionType by lazy {
+        extractJcRefType(ArrayStoreException::class)
     }
 }

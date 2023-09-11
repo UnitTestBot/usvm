@@ -81,7 +81,6 @@ import org.jacodb.api.ext.short
 import org.jacodb.api.ext.void
 import org.jacodb.impl.bytecode.JcFieldImpl
 import org.jacodb.impl.types.FieldInfo
-import org.usvm.UBoolExpr
 import org.usvm.UBvSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
@@ -90,13 +89,11 @@ import org.usvm.USizeExpr
 import org.usvm.USizeSort
 import org.usvm.USort
 import org.usvm.api.allocateArrayInitialized
-import org.usvm.api.memcpy
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.isTrue
 import org.usvm.machine.JcContext
-import org.usvm.machine.UJcMethodCall
 import org.usvm.machine.operator.JcBinaryOperator
 import org.usvm.machine.operator.JcUnaryOperator
 import org.usvm.machine.operator.ensureBvExpr
@@ -106,11 +103,9 @@ import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.addConcreteMethodCallStmt
 import org.usvm.machine.state.addVirtualMethodCallStmt
-import org.usvm.machine.state.skipMethodInvocationWithValue
 import org.usvm.machine.state.throwExceptionWithoutStackFrameDrop
 import org.usvm.memory.ULValue
 import org.usvm.memory.URegisterStackLValue
-import org.usvm.util.extractJcRefType
 import org.usvm.util.write
 
 /**
@@ -653,12 +648,12 @@ class JcExprResolver(
 
     // region implicit exceptions
 
-    private fun allocateException(type: JcRefType): (JcState) -> Unit = { state ->
+    fun allocateException(type: JcRefType): (JcState) -> Unit = { state ->
         val address = state.memory.alloc(type)
         state.throwExceptionWithoutStackFrameDrop(address, type)
     }
 
-    private fun checkArrayIndex(idx: USizeExpr, length: USizeExpr) = with(ctx) {
+    fun checkArrayIndex(idx: USizeExpr, length: USizeExpr) = with(ctx) {
         val inside = (mkBvSignedLessOrEqualExpr(mkBv(0), idx)) and (mkBvSignedLessExpr(idx, length))
 
         scope.fork(
@@ -667,7 +662,7 @@ class JcExprResolver(
         )
     }
 
-    private fun checkNewArrayLength(length: UExpr<USizeSort>) = with(ctx) {
+    fun checkNewArrayLength(length: UExpr<USizeSort>) = with(ctx) {
         assertHardMaxArrayLength(length) ?: return null
 
         val lengthIsNonNegative = mkBvSignedLessOrEqualExpr(mkBv(0), length)
@@ -678,7 +673,7 @@ class JcExprResolver(
         )
     }
 
-    private fun checkDivisionByZero(expr: UExpr<out USort>) = with(ctx) {
+    fun checkDivisionByZero(expr: UExpr<out USort>) = with(ctx) {
         val sort = expr.sort
         if (sort !is UBvSort) {
             return Unit
@@ -690,7 +685,7 @@ class JcExprResolver(
         )
     }
 
-    private fun checkNullPointer(ref: UHeapRef) = with(ctx) {
+    fun checkNullPointer(ref: UHeapRef) = with(ctx) {
         val neqNull = mkHeapRefEq(ref, nullRef).not()
         scope.fork(
             neqNull,
@@ -773,7 +768,7 @@ class JcExprResolver(
             val isExpr = scope.calcOnState { memory.types.evalIsSubtype(expr, type) }
             scope.fork(
                 isExpr,
-                blockOnFalseState = allocateException(classCastExceptionType)
+                blockOnFalseState = allocateException(ctx.classCastExceptionType)
             ) ?: return null
             expr
         } else {
@@ -832,124 +827,6 @@ class JcExprResolver(
         val result0 = resolveJcExpr(dependency0) ?: return null
         val result1 = resolveJcExpr(dependency1) ?: return null
         return block(result0, result1)
-    }
-
-    private val arrayIndexOutOfBoundsExceptionType by lazy {
-        ctx.extractJcRefType(IndexOutOfBoundsException::class)
-    }
-
-    private val negativeArraySizeExceptionType by lazy {
-        ctx.extractJcRefType(NegativeArraySizeException::class)
-    }
-
-    private val arithmeticExceptionType by lazy {
-        ctx.extractJcRefType(ArithmeticException::class)
-    }
-
-    private val nullPointerExceptionType by lazy {
-        ctx.extractJcRefType(NullPointerException::class)
-    }
-
-    private val classCastExceptionType by lazy {
-        ctx.extractJcRefType(ClassCastException::class)
-    }
-
-    private val arrayStoreExceptionType by lazy {
-        ctx.extractJcRefType(ArrayStoreException::class)
-    }
-
-    fun resolveArrayCopy(
-        methodCall: UJcMethodCall,
-        srcRef: UHeapRef,
-        srcPos: USizeExpr,
-        dstRef: UHeapRef,
-        dstPos: USizeExpr,
-        length: USizeExpr
-    ) {
-        checkNullPointer(srcRef) ?: return
-        checkNullPointer(dstRef) ?: return
-
-        val possibleElementTypes = ctx.primitiveTypes + ctx.cp.objectType
-        val possibleArrayTypes = possibleElementTypes.map { ctx.cp.arrayTypeOf(it) }
-
-        val arrayTypeConstraintsWithBlockOnStates = mutableListOf<Pair<UBoolExpr, (JcState) -> Unit>>()
-        possibleArrayTypes.forEach { type ->
-            addArrayCopyForType(
-                methodCall, arrayTypeConstraintsWithBlockOnStates, type,
-                srcRef, srcPos,
-                dstRef, dstPos,
-                length
-            )
-        }
-
-        val arrayTypeConstraints = possibleArrayTypes.map { type ->
-            scope.calcOnState {
-                ctx.mkAnd(
-                    memory.types.evalIsSubtype(srcRef, type),
-                    memory.types.evalIsSubtype(dstRef, type)
-                )
-            }
-        }
-        val unknownArrayType = ctx.mkAnd(arrayTypeConstraints.map { ctx.mkNot(it) })
-        arrayTypeConstraintsWithBlockOnStates += unknownArrayType to allocateException(arrayStoreExceptionType)
-
-        scope.forkMulti(arrayTypeConstraintsWithBlockOnStates)
-    }
-
-    private fun addArrayCopyForType(
-        methodCall: UJcMethodCall,
-        branches: MutableList<Pair<UBoolExpr, (JcState) -> Unit>>,
-        type: JcArrayType,
-        srcRef: UHeapRef,
-        srcPos: USizeExpr,
-        dstRef: UHeapRef,
-        dstPos: USizeExpr,
-        length: USizeExpr
-    ) = with(ctx) {
-        val arrayDescriptor = arrayDescriptorOf(type)
-        val elementType = requireNotNull(type.ifArrayGetElementType)
-        val cellSort = typeToSort(elementType)
-
-        val arrayTypeConstraint = scope.calcOnState {
-            mkAnd(
-                memory.types.evalIsSubtype(srcRef, type),
-                memory.types.evalIsSubtype(dstRef, type)
-            )
-        }
-
-        val srcLengthRef = UArrayLengthLValue(srcRef, arrayDescriptor)
-        val srcLength = scope.calcOnState { memory.read(srcLengthRef) }
-
-        val dstLengthRef = UArrayLengthLValue(dstRef, arrayDescriptor)
-        val dstLength = scope.calcOnState { memory.read(dstLengthRef) }
-
-        val indexBoundsCheck = mkAnd(
-            mkBvSignedLessOrEqualExpr(mkBv(0), srcPos),
-            mkBvSignedLessOrEqualExpr(mkBv(0), dstPos),
-            mkBvSignedLessOrEqualExpr(mkBv(0), length),
-            mkBvSignedLessOrEqualExpr(mkBvAddExpr(srcPos, length), srcLength),
-            mkBvSignedLessOrEqualExpr(mkBvAddExpr(dstPos, length), dstLength),
-        )
-
-        val indexOutOfBoundsConstraint = arrayTypeConstraint and indexBoundsCheck.not()
-        branches += indexOutOfBoundsConstraint to allocateException(arrayIndexOutOfBoundsExceptionType)
-
-        val arrayCopySuccessConstraint = arrayTypeConstraint and indexBoundsCheck
-        val arrayCopyBlock = { state: JcState ->
-            state.memory.memcpy(
-                srcRef = srcRef,
-                dstRef = dstRef,
-                type = arrayDescriptor,
-                elementSort = cellSort,
-                fromSrc = srcPos,
-                fromDst = dstPos,
-                length = length
-            )
-
-            state.skipMethodInvocationWithValue(methodCall, ctx.voidValue)
-        }
-
-        branches += arrayCopySuccessConstraint to arrayCopyBlock
     }
 
     companion object {

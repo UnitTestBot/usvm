@@ -43,11 +43,11 @@ import org.usvm.api.typeStreamOf
 import org.usvm.machine.JcApplicationGraph
 import org.usvm.machine.JcContext
 import org.usvm.machine.JcMethodApproximationResolver
-import org.usvm.machine.UConcreteMethodCallJcInst
-import org.usvm.machine.UJcMethodCall
-import org.usvm.machine.UMethodCallBaseJcInst
-import org.usvm.machine.UMethodEntrypointJcInst
-import org.usvm.machine.UVirtualMethodCallJcInst
+import org.usvm.machine.JcConcreteMethodCallInst
+import org.usvm.machine.JcMethodCall
+import org.usvm.machine.JcMethodCallBaseInst
+import org.usvm.machine.JcMethodEntrypointInst
+import org.usvm.machine.JcVirtualMethodCallInst
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.addEntryMethodCall
@@ -81,7 +81,7 @@ class JcInterpreter(
 
     fun getInitialState(method: JcMethod): JcState {
         val state = JcState(ctx)
-        state.newStmt(UMethodEntrypointJcInst(method))
+        state.newStmt(JcMethodEntrypointInst(method))
 
         val typedMethod = with(applicationGraph) { method.typed }
 
@@ -128,7 +128,7 @@ class JcInterpreter(
         }
 
         when (stmt) {
-            is UMethodCallBaseJcInst -> visitMethodCall(scope, stmt)
+            is JcMethodCallBaseInst -> visitMethodCall(scope, stmt)
             is JcAssignInst -> visitAssignInst(scope, stmt)
             is JcIfInst -> visitIfStmt(scope, stmt)
             is JcReturnInst -> visitReturnStmt(scope, stmt)
@@ -193,16 +193,15 @@ class JcInterpreter(
 
     private val typeSelector = JcFixedInheritorsNumberTypeSelector()
 
-    private fun visitMethodCall(scope: JcStepScope, stmt: UMethodCallBaseJcInst) {
+    private fun visitMethodCall(scope: JcStepScope, stmt: JcMethodCallBaseInst) {
         when (stmt) {
-            is UMethodEntrypointJcInst -> {
+            is JcMethodEntrypointInst -> {
                 scope.doWithState {
                     addEntryMethodCall(applicationGraph, stmt)
                 }
-                return
             }
 
-            is UConcreteMethodCallJcInst -> {
+            is JcConcreteMethodCallInst -> {
                 if (approximateMethod(scope, stmt)) {
                     return
                 }
@@ -215,10 +214,9 @@ class JcInterpreter(
                 scope.doWithState {
                     addNewMethodCall(applicationGraph, stmt)
                 }
-                return
             }
 
-            is UVirtualMethodCallJcInst -> {
+            is JcVirtualMethodCallInst -> {
                 if (approximateMethod(scope, stmt)) {
                     return
                 }
@@ -414,7 +412,7 @@ class JcInterpreter(
     private data class JcArrayTypeInfo(val element: JcTypeInfo) : JcTypeInfo
 
     private fun resolveVirtualInvoke(
-        methodCall: UVirtualMethodCallJcInst,
+        methodCall: JcVirtualMethodCallInst,
         scope: JcStepScope,
         typeSelector: JcTypeSelector,
         forkOnRemainingTypes: Boolean,
@@ -493,7 +491,7 @@ class JcInterpreter(
         return null
     }
 
-    private fun approximateMethod(scope: JcStepScope, methodCall: UJcMethodCall): Boolean {
+    private fun approximateMethod(scope: JcStepScope, methodCall: JcMethodCall): Boolean {
         val exprResolver = exprResolverWithScope(scope)
         val methodApproximationResolver = JcMethodApproximationResolver(
             ctx, scope, applicationGraph, exprResolver
@@ -503,7 +501,7 @@ class JcInterpreter(
 
     private fun mockNativeMethod(
         scope: JcStepScope,
-        methodCall: UConcreteMethodCallJcInst
+        methodCall: JcConcreteMethodCallInst
     ) = with(methodCall) {
         logger.warn { "Mocked: ${method.enclosingClass.name}::${method.name}" }
 
