@@ -2,10 +2,15 @@ package org.usvm.samples.casts
 
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.usvm.CoverageZone
+import org.usvm.PathSelectionStrategy
+import org.usvm.UMachineOptions
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ge
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
+import org.usvm.util.Options
+import org.usvm.util.UsvmTest
 
 internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     @Test
@@ -62,8 +67,8 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
         )
     }
 
-    @Test
-    fun testVirtualCallWithoutOneInheritorInverse() {
+    @UsvmTest([Options([PathSelectionStrategy.BFS], coverageZone = CoverageZone.TRANSITIVE)])
+    fun testVirtualCallWithoutOneInheritorInverse(options: UMachineOptions) = withOptions(options) {
         checkDiscoveredProperties(
             InstanceOfExample::virtualCallWithoutOneInheritorInverse,
             eq(4),

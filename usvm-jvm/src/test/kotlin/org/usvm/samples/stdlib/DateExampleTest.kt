@@ -39,7 +39,7 @@ class DateExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sequence is empty.")
+    @Disabled("Expected exactly 3 executions, but 232 found")
     fun testGetTimeWithoutReflection() {
         checkDiscoveredPropertiesWithExceptions(
             DateExample::getTime,

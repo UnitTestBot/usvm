@@ -8,7 +8,6 @@ import org.usvm.test.util.checkers.eq
 
 internal class ShortWrapperTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("java.lang.ShortCache has native calls")
     fun primitiveToWrapperTest() {
         checkDiscoveredProperties(
             ShortWrapper::primitiveToWrapper,

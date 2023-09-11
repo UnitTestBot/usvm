@@ -68,6 +68,11 @@ class CoverageStatistics<Method, Statement, State : UState<*, Method, Statement,
     }
 
     /**
+     * Returns current number of covered statements of all initial methods.
+     */
+    fun getTotalCoveredStatements(): Int = totalCoveredStatements
+
+    /**
      * Returns current coverage of specified method (in percents).
      *
      * @param method one of the initial methods to get coverage of.

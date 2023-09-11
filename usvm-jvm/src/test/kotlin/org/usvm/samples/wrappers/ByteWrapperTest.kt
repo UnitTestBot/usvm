@@ -8,7 +8,7 @@ import org.usvm.test.util.checkers.eq
 
 internal class ByteWrapperTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("java.lang.ByteCache has native calls")
+    @Disabled("Expected exactly 2 executions, but 0 found")
     fun primitiveToWrapperTest() {
         checkDiscoveredProperties(
             ByteWrapper::primitiveToWrapper,
@@ -30,7 +30,7 @@ internal class ByteWrapperTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("java.lang.ByteCache has native calls")
+    @Disabled("Expected exactly 2 executions, but 0 found")
     fun equalityTest() {
         checkDiscoveredProperties(
             ByteWrapper::equality,

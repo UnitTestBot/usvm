@@ -193,7 +193,7 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method")
+    @Disabled("Expected exactly 3 executions, but 6 found")
     fun testUpdateCloned() {
         checkDiscoveredProperties(
             IntArrayBasics::updateCloned,

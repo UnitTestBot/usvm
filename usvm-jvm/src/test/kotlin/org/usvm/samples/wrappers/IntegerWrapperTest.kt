@@ -9,7 +9,7 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 internal class IntegerWrapperTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("java.lang.IntegerCache has native calls")
+    @Disabled("Some properties were not discovered at positions (from 0): [0]")
     fun primitiveToWrapperTest() {
         checkDiscoveredProperties(
             IntegerWrapper::primitiveToWrapper,

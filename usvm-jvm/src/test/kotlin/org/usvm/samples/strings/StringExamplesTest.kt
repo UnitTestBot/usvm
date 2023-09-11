@@ -43,7 +43,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method: java.lang.CharSequence#toString()")
+    @Disabled("Expected number of executions in bounds 3..4, but 26 found")
     fun testReplace() {
         checkDiscoveredProperties(
             StringExamples::replace,
@@ -143,7 +143,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method: java.lang.StringUTF16#isBigEndian()")
+    @Disabled("Some properties were not discovered at positions (from 0): [1]")
     fun testStartsWithLiteral() {
         checkDiscoveredProperties(
             StringExamples::startsWithLiteral,
@@ -167,7 +167,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
 
 
     @Test
-    @Disabled("No entrypoint found for method: java.lang.StringUTF16#isBigEndian()")
+    @Disabled("Expected exactly 2 executions, but 3 found")
     fun testCharToString() {
         checkDiscoveredProperties(
             StringExamples::charToString,
@@ -179,7 +179,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
 
 
     @Test
-    @Disabled("No entrypoint found for method: java.lang.StringUTF16#isBigEndian()")
+    @Disabled("No result found")
     fun testStringToByte() {
         checkDiscoveredProperties(
             StringExamples::stringToByte,
@@ -188,7 +188,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method: java.lang.StringUTF16#isBigEndian()")
+    @Disabled("No result found")
     fun testStringToShort() {
         checkDiscoveredProperties(
             StringExamples::stringToShort,
@@ -197,7 +197,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method: java.lang.StringUTF16#isBigEndian()")
+    @Disabled("No result found")
     fun testStringToInt() {
         checkDiscoveredProperties(
             StringExamples::stringToInt,
@@ -206,7 +206,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method: java.lang.StringUTF16#isBigEndian()")
+    @Disabled("No result found")
     fun testStringToLong() {
         checkDiscoveredProperties(
             StringExamples::stringToLong,
@@ -215,7 +215,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method: java.lang.StringUTF16#isBigEndian()")
+    @Disabled("Some properties were not discovered at positions (from 0): [1]")
     fun testStringToBoolean() {
         checkDiscoveredProperties(
             StringExamples::stringToBoolean,
@@ -226,7 +226,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("String builder has native calls")
+    @Disabled("Expected number of executions in bounds 1..2, but 153 found")
     fun testConcat() {
         checkDiscoveredProperties(
             StringExamples::concat,
@@ -237,7 +237,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method: java.lang.Object#getClass()")
+    @Disabled("Expected number of executions in bounds 2..3, but 0 found")
     fun testConcatWithObject() {
         checkDiscoveredProperties(
             StringExamples::concatWithObject,
@@ -248,7 +248,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("String builder has native calls")
+    @Disabled("Expected number of executions in bounds 1..2, but 402 found")
     fun testStringConstants() {
         checkDiscoveredProperties(
             StringExamples::stringConstants,
@@ -258,7 +258,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method: java.lang.CharSequence#toString()")
     fun testContainsOnLiterals() {
         checkDiscoveredProperties(
             StringExamples::containsOnLiterals,
@@ -298,7 +297,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method: java.lang.StringUTF16#isBigEndian()")
+    @Disabled("Test resolver: Sort mismatch")
     fun testNullableStringBuffer() {
         checkDiscoveredPropertiesWithExceptions(
             StringExamples::nullableStringBuffer,
@@ -311,7 +310,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method: java.lang.StringUTF16#isBigEndian()")
+    @Disabled("Expected exactly 2 executions, but 9 found")
     fun testIsStringBuilderEmpty() {
         checkDiscoveredProperties(
             StringExamples::isStringBuilderEmpty,
@@ -321,7 +320,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sequence is empty.")
+    @Disabled("Some properties were not discovered at positions (from 0): [2, 3, 4]")
     fun testIsValidUuid() {
         val pattern = Regex("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
         checkDiscoveredProperties(
@@ -349,7 +348,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method: java.lang.StringUTF16#isBigEndian()")
+    @Disabled("No result found")
     fun testSplitExample() {
         checkDiscoveredProperties(
             StringExamples::splitExample,
@@ -363,7 +362,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sequence is empty.")
+    @Disabled("Some properties were not discovered at positions (from 0): [2, 3]")
     fun testIsBlank() {
         checkDiscoveredProperties(
             StringExamples::isBlank,
@@ -376,7 +375,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sequence is empty.")
+    @Disabled("Expected exactly 2 executions, but 5 found")
     fun testLength() {
         checkDiscoveredProperties(
             StringExamples::length, // TODO: that strange, why we haven't 3rd option?
@@ -387,7 +386,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sequence is empty.")
     fun testLonger() {
         checkDiscoveredPropertiesWithExceptions(
             StringExamples::longer,
@@ -399,7 +397,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sequence is empty.")
+    @Disabled("Expected exactly 4 executions, but 999 found")
     fun testEqualChar() {
         checkDiscoveredPropertiesWithExceptions(
             StringExamples::equalChar,
@@ -480,7 +478,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method: java.lang.StringUTF16#isBigEndian()")
+    @Disabled("Expected exactly 6 executions, but 5 found")
     fun testPrefixAndSuffix() {
         checkDiscoveredProperties(
             StringExamples::prefixAndSuffix,
@@ -495,7 +493,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method: java.lang.StringUTF16#isBigEndian()")
+    @Disabled("Expected number of executions in bounds 3..4, but 8 found")
     fun testPrefixWithTwoArgs() {
         checkDiscoveredPropertiesWithExceptions(
             StringExamples::prefixWithTwoArgs,
@@ -520,7 +518,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method: java.lang.StringUTF16#isBigEndian()")
+    @Disabled("Expected number of executions in bounds 5..6, but 469 found")
     fun testStartsWith() {
         checkDiscoveredProperties(
             StringExamples::startsWith,
@@ -535,7 +533,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method: java.lang.StringUTF16#isBigEndian()")
+    @Disabled("Expected number of executions in bounds 6..10, but 288 found")
     fun testStartsWithOffset() {
         checkDiscoveredProperties(
             StringExamples::startsWithOffset,
@@ -556,7 +554,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method: java.lang.StringUTF16#isBigEndian()")
+    @Disabled("Expected number of executions in bounds 5..6, but 125 found")
     fun testEndsWith() {
         checkDiscoveredProperties(
             StringExamples::endsWith,
@@ -570,7 +568,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unknown stmt: enter monitor this")
+    @Disabled("Expected exactly 4 executions, but 3 found")
     fun testReplaceAll() {
         checkDiscoveredPropertiesWithExceptions(
             StringExamples::replaceAll,
@@ -585,7 +583,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method: java.lang.StringUTF16#isBigEndian()")
+    @Disabled("Expected number of executions in bounds 5..7, but 58 found")
     fun testLastIndexOf() {
         checkDiscoveredProperties(
             StringExamples::lastIndexOf,
@@ -599,7 +597,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method: java.lang.StringUTF16#isBigEndian()")
+    @Disabled("Expected number of executions in bounds 5..9, but 15 found")
     fun testIndexOfWithOffset() {
         checkDiscoveredProperties(
             StringExamples::indexOfWithOffset,
@@ -614,7 +612,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
 
 
     @Test
-    @Disabled("No entrypoint found for method: java.lang.StringUTF16#isBigEndian()")
+    @Disabled("Expected number of executions in bounds 5..9, but 70 found")
     fun testLastIndexOfWithOffset() {
         checkDiscoveredProperties(
             StringExamples::lastIndexOfWithOffset,
@@ -645,7 +643,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method: java.lang.StringUTF16#isBigEndian()")
+    @Disabled("Expected exactly 2 executions, but 2255 found")
     fun testToCharArray() {
         checkDiscoveredProperties(
             StringExamples::toCharArray,
@@ -678,7 +676,7 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method: java.lang.StringUTF16#isBigEndian()")
+    @Disabled("Some properties were not discovered at positions (from 0): [0]")
     fun testEqualsIgnoreCase() {
         checkDiscoveredProperties(
             StringExamples::equalsIgnoreCase,

@@ -58,7 +58,6 @@ internal class NotNullAnnotationTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("java.lang.Integer#valueOf(int). Native calls in IntegerCache#<clinit>")
     fun testNotNullableVariable() {
         checkDiscoveredProperties(
             NotNullAnnotation::notNullableVariable,
@@ -73,7 +72,6 @@ internal class NotNullAnnotationTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("java.lang.Integer#valueOf(int). Native calls in IntegerCache#<clinit>")
     fun testNotNullField() {
         checkDiscoveredProperties(
             NotNullAnnotation::notNullField,

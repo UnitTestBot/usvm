@@ -40,7 +40,7 @@ internal class CorrectBracketSequencesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method")
+    @Disabled("Some properties were not discovered at positions (from 0): [5, 6, 7]")
     fun testIsCbs() {
         val method = CorrectBracketSequences::isCbs
         checkDiscoveredPropertiesWithExceptions(

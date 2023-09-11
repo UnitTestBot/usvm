@@ -9,7 +9,6 @@ import org.usvm.util.isException
 
 internal class SortTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("No entrypoint found for method")
     fun testQuickSort() {
         checkDiscoveredProperties(
             Sort::quickSort,
@@ -31,7 +30,6 @@ internal class SortTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method")
     fun testArrayCopy() {
         checkDiscoveredProperties(
             Sort::arrayCopy,
@@ -41,7 +39,7 @@ internal class SortTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method")
+    @Disabled("Some properties were not discovered at positions (from 0): [2, 3]")
     fun testMergeSort() {
         checkDiscoveredProperties(
             Sort::mergeSort,
