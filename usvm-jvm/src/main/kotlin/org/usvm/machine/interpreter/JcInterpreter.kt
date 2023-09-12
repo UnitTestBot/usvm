@@ -28,16 +28,19 @@ import org.jacodb.api.cfg.JcSwitchInst
 import org.jacodb.api.cfg.JcThis
 import org.jacodb.api.cfg.JcThrowInst
 import org.jacodb.api.ext.boolean
+import org.jacodb.api.ext.isEnum
 import org.jacodb.api.ext.void
-import org.usvm.INITIAL_INPUT_ADDRESS
 import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
+import org.usvm.UHeapRef
 import org.usvm.UInterpreter
-import org.usvm.api.allocate
+import org.usvm.api.allocateStaticRef
 import org.usvm.api.targets.JcTarget
 import org.usvm.api.typeStreamOf
+import org.usvm.isAllocatedConcreteHeapRef
+import org.usvm.isStaticHeapRef
 import org.usvm.machine.JcApplicationGraph
 import org.usvm.machine.JcConcreteMethodCallInst
 import org.usvm.machine.JcContext
@@ -48,10 +51,10 @@ import org.usvm.machine.JcMethodEntrypointInst
 import org.usvm.machine.JcVirtualMethodCallInst
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
-import org.usvm.machine.state.addEntryMethodCall
 import org.usvm.machine.state.addNewMethodCall
 import org.usvm.machine.state.lastStmt
 import org.usvm.machine.state.localIdx
+import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
 import org.usvm.machine.state.parametersWithThisCount
 import org.usvm.machine.state.returnValue
@@ -80,16 +83,18 @@ class JcInterpreter(
 
     fun getInitialState(method: JcMethod, targets: List<JcTarget> = emptyList()): JcState {
         val state = JcState(ctx, targets = targets)
-        state.newStmt(JcMethodEntrypointInst(method))
-
         val typedMethod = with(applicationGraph) { method.typed }
 
+        val entrypointArguments = mutableListOf<Pair<JcRefType, UHeapRef>>()
         if (!method.isStatic) {
             with(ctx) {
                 val thisLValue = URegisterStackLValue(addressSort, 0)
                 val ref = state.memory.read(thisLValue).asExpr(addressSort)
                 state.pathConstraints += mkEq(ref, nullRef).not()
-                state.pathConstraints += mkIsSubtypeExpr(ref, typedMethod.enclosingType)
+                val thisType = typedMethod.enclosingType
+                state.pathConstraints += mkIsSubtypeExpr(ref, thisType)
+
+                entrypointArguments += thisType to ref
             }
         }
 
@@ -100,6 +105,8 @@ class JcInterpreter(
                     val argumentLValue = URegisterStackLValue(typeToSort(type), method.localIdx(idx))
                     val ref = state.memory.read(argumentLValue).asExpr(addressSort)
                     state.pathConstraints += mkIsSubtypeExpr(ref, type)
+
+                    entrypointArguments += type to ref
                 }
             }
         }
@@ -109,6 +116,8 @@ class JcInterpreter(
         val model = (solver.checkWithSoftConstraints(state.pathConstraints) as USatResult).model
         state.models = listOf(model)
 
+        val entrypointInst = JcMethodEntrypointInst(method, entrypointArguments)
+        state.newStmt(entrypointInst)
         return state
     }
 
@@ -196,7 +205,27 @@ class JcInterpreter(
         when (stmt) {
             is JcMethodEntrypointInst -> {
                 scope.doWithState {
-                    addEntryMethodCall(applicationGraph, stmt)
+                    if (callStack.isEmpty()) {
+                        val method = stmt.method
+                        callStack.push(method, returnSite = null)
+                        memory.stack.push(method.parametersWithThisCount, method.localsCount)
+                    }
+                }
+
+                val exprResolver = exprResolverWithScope(scope)
+                // Run static initializer for all enum arguments of the entrypoint
+                for ((type, ref) in stmt.entrypointArguments) {
+                    exprResolver.ensureExprCorrectness(ref, type) ?: return
+                }
+
+                val method = stmt.method
+                val entryPoint = applicationGraph.entryPoints(method).single()
+                scope.doWithState {
+                    newStmt(entryPoint)
+
+                    if (method.isClassInitializer) {
+                        staticInitializersInCallStackCount++
+                    }
                 }
             }
 
@@ -265,7 +294,17 @@ class JcInterpreter(
             ?: ctx.mkVoidValue()
 
         scope.doWithState {
+            // It is important to write this value before the next instruction because it drops the last element
+            // from the call stack.
+            val lastMethod = lastEnteredMethod
+            val isReturningFromStaticInitializer = lastMethod.isClassInitializer
+
             returnValue(valueToReturn)
+
+            if (isReturningFromStaticInitializer) {
+                exprResolver.mutatePrimitiveFieldValuesToSymbolic(scope, lastMethod)
+                staticInitializersInCallStackCount--
+            }
         }
     }
 
@@ -352,6 +391,7 @@ class JcInterpreter(
             ::mapLocalToIdxMapper,
             ::typeInstanceAllocator,
             ::stringConstantAllocator,
+            ::classInitializerAlwaysAnalysisRequiredForType
         )
 
     private val localVarToIdx = mutableMapOf<JcMethod, MutableMap<String, Int>>() // (method, localName) -> idx
@@ -378,8 +418,8 @@ class JcInterpreter(
     // Equal string constants must have equal references
     private fun stringConstantAllocator(value: String, state: JcState): UConcreteHeapRef =
         stringConstantAllocatedRefs.getOrPut(value) {
-            // Allocate globally unique ref
-            state.memory.allocate()
+            // Allocate globally unique ref with a negative address
+            state.memory.allocateStaticRef()
         }
 
     private val typeInstanceAllocatedRefs = mutableMapOf<JcTypeInfo, UConcreteHeapRef>()
@@ -387,9 +427,14 @@ class JcInterpreter(
     private fun typeInstanceAllocator(type: JcType, state: JcState): UConcreteHeapRef {
         val typeInfo = resolveTypeInfo(type)
         return typeInstanceAllocatedRefs.getOrPut(typeInfo) {
-            // Allocate globally unique ref
-            state.memory.allocate()
+            // Allocate globally unique ref with a negative address
+            state.memory.allocateStaticRef()
         }
+    }
+
+    private fun classInitializerAlwaysAnalysisRequiredForType(type: JcRefType): Boolean {
+        // Always analyze a static initializer for enums
+        return type.jcClass.isEnum
     }
 
     private fun resolveTypeInfo(type: JcType): JcTypeInfo = when (type) {
@@ -419,42 +464,8 @@ class JcInterpreter(
         val instance = arguments.first().asExpr(ctx.addressSort)
         val concreteRef = scope.calcOnState { models.first().eval(instance) } as UConcreteHeapRef
 
-        if (concreteRef.address <= INITIAL_INPUT_ADDRESS) {
-            val typeStream = scope.calcOnState { models.first().typeStreamOf(concreteRef) }
-
-            val inheritors = typeSelector.choose(method, typeStream)
-            val typeConstraints = inheritors.map { type ->
-                scope.calcOnState {
-                    ctx.mkAnd(
-                        memory.types.evalIsSubtype(instance, type),
-                        memory.types.evalIsSupertype(instance, type)
-                    )
-                }
-            }
-
-            val typeConstraintsWithBlockOnStates = mutableListOf<Pair<UBoolExpr, (JcState) -> Unit>>()
-
-            inheritors.mapIndexedTo(typeConstraintsWithBlockOnStates) { idx, type ->
-                val isExpr = typeConstraints[idx]
-
-                val block = { state: JcState ->
-                    val concreteMethod = type.findMethod(method)
-                        ?: error("Can't find method $method in type ${type.typeName}")
-
-                    val concreteCall = methodCall.toConcreteMethodCall(concreteMethod.method)
-                    state.newStmt(concreteCall)
-                }
-
-                isExpr to block
-            }
-
-            if (forkOnRemainingTypes) {
-                val excludeAllTypesConstraint = ctx.mkAnd(typeConstraints.map { ctx.mkNot(it) })
-                typeConstraintsWithBlockOnStates += excludeAllTypesConstraint to { } // do nothing, just exclude types
-            }
-
-            scope.forkMulti(typeConstraintsWithBlockOnStates)
-        } else {
+        if (isAllocatedConcreteHeapRef(concreteRef) || isStaticHeapRef(concreteRef)) {
+            // We have only one type for allocated and static heap refs
             val type = scope.calcOnState { memory.typeStreamOf(concreteRef) }.first()
 
             val concreteMethod = type.findMethod(method)
@@ -464,7 +475,44 @@ class JcInterpreter(
                 val concreteCall = methodCall.toConcreteMethodCall(concreteMethod.method)
                 newStmt(concreteCall)
             }
+
+            return@with
         }
+
+        val typeStream = scope.calcOnState { models.first().typeStreamOf(concreteRef) }
+
+        val inheritors = typeSelector.choose(method, typeStream)
+        val typeConstraints = inheritors.map { type ->
+            scope.calcOnState {
+                ctx.mkAnd(
+                    memory.types.evalIsSubtype(instance, type),
+                    memory.types.evalIsSupertype(instance, type)
+                )
+            }
+        }
+
+        val typeConstraintsWithBlockOnStates = mutableListOf<Pair<UBoolExpr, (JcState) -> Unit>>()
+
+        inheritors.mapIndexedTo(typeConstraintsWithBlockOnStates) { idx, type ->
+            val isExpr = typeConstraints[idx]
+
+                val block = { state: JcState ->
+                    val concreteMethod = type.findMethod(method)
+                        ?: error("Can't find method $method in type ${type.typeName}")
+
+                val concreteCall = methodCall.toConcreteMethodCall(concreteMethod.method)
+                state.newStmt(concreteCall)
+            }
+
+            isExpr to block
+        }
+
+        if (forkOnRemainingTypes) {
+            val excludeAllTypesConstraint = ctx.mkAnd(typeConstraints.map { ctx.mkNot(it) })
+            typeConstraintsWithBlockOnStates += excludeAllTypesConstraint to { } // do nothing, just exclude types
+        }
+
+        scope.forkMulti(typeConstraintsWithBlockOnStates)
     }
 
     private fun approximateMethod(scope: JcStepScope, methodCall: JcMethodCall): Boolean {

@@ -2,11 +2,13 @@ package org.usvm.api.util
 
 import io.ksmt.utils.asExpr
 import org.jacodb.api.JcArrayType
+import org.jacodb.api.JcClassOrInterface
 import org.jacodb.api.JcClassType
 import org.jacodb.api.JcPrimitiveType
 import org.jacodb.api.JcRefType
 import org.jacodb.api.JcType
 import org.jacodb.api.JcTypedMethod
+import org.jacodb.api.ext.allSuperHierarchySequence
 import org.jacodb.api.ext.boolean
 import org.jacodb.api.ext.byte
 import org.jacodb.api.ext.char
@@ -14,11 +16,12 @@ import org.jacodb.api.ext.double
 import org.jacodb.api.ext.float
 import org.jacodb.api.ext.ifArrayGetElementType
 import org.jacodb.api.ext.int
+import org.jacodb.api.ext.isEnum
 import org.jacodb.api.ext.long
 import org.jacodb.api.ext.short
 import org.jacodb.api.ext.toType
 import org.jacodb.api.ext.void
-import org.usvm.INITIAL_CONCRETE_ADDRESS
+import org.usvm.INITIAL_STATIC_ADDRESS
 import org.usvm.INITIAL_INPUT_ADDRESS
 import org.usvm.NULL_ADDRESS
 import org.usvm.UConcreteHeapAddress
@@ -204,14 +207,15 @@ class JcTestResolver(
         }
 
         private fun resolveArray(ref: UConcreteHeapRef, heapRef: UHeapRef, type: JcArrayType): Any {
-            val lengthRef = UArrayLengthLValue(heapRef, ctx.arrayDescriptorOf(type))
+            val arrayDescriptor = ctx.arrayDescriptorOf(type)
+            val lengthRef = UArrayLengthLValue(heapRef, arrayDescriptor)
             val resolvedLength = resolveLValue(lengthRef, ctx.cp.int) as Int
             val length = if (resolvedLength in 0..10_000) resolvedLength else 0 // TODO hack
 
             val cellSort = ctx.typeToSort(type.elementType)
 
             fun <T> resolveElement(idx: Int): T {
-                val elemRef = UArrayIndexLValue(cellSort, heapRef, ctx.mkBv(idx), ctx.arrayDescriptorOf(type))
+                val elemRef = UArrayIndexLValue(cellSort, heapRef, ctx.mkBv(idx), arrayDescriptor)
                 @Suppress("UNCHECKED_CAST")
                 return resolveLValue(elemRef, type.elementType) as T
             }
@@ -243,12 +247,19 @@ class JcTestResolver(
         }
 
         private fun resolveObject(ref: UConcreteHeapRef, heapRef: UHeapRef, type: JcRefType): Any {
-            if (type.jcClass == ctx.classType.jcClass && ref.address >= INITIAL_CONCRETE_ADDRESS) {
+            if (type.jcClass == ctx.classType.jcClass && ref.address <= INITIAL_STATIC_ADDRESS) {
+                // Note that non-negative addresses are possible only for the result value.
                 return resolveAllocatedClass(ref)
             }
 
-            if (type.jcClass == ctx.stringType.jcClass && ref.address >= INITIAL_CONCRETE_ADDRESS) {
+            if (type.jcClass == ctx.stringType.jcClass && ref.address <= INITIAL_STATIC_ADDRESS) {
+                // Note that non-negative addresses are possible only for the result value.
                 return resolveAllocatedString(ref)
+            }
+
+            val anyEnumAncestor = type.getEnumAncestorOrNull()
+            if (anyEnumAncestor != null) {
+                return resolveEnumValue(heapRef, anyEnumAncestor)
             }
 
             val clazz = resolveType(type)
@@ -273,6 +284,16 @@ class JcTestResolver(
                 Reflection.setField(instance, javaField, fieldValue)
             }
             return instance
+        }
+
+        private fun resolveEnumValue(heapRef: UHeapRef, enumAncestor: JcClassOrInterface): Any {
+            with(ctx) {
+                val ordinalLValue = UFieldLValue(sizeSort, heapRef, enumOrdinalField)
+                val ordinalFieldValue = resolveLValue(ordinalLValue, cp.int)
+                val enumClass = resolveType(enumAncestor.toType())
+
+                return enumClass.enumConstants[ordinalFieldValue as Int]
+            }
         }
 
         private fun resolveAllocatedClass(ref: UConcreteHeapRef): Class<*> {
@@ -338,6 +359,9 @@ class JcTestResolver(
         private fun <T : USort> evaluateInModel(expr: UExpr<T>): UExpr<T> {
             return model.eval(expr)
         }
-    }
 
+        // TODO simple org.jacodb.api.ext.JcClasses.isEnum does not work with enums with abstract methods
+        private fun JcRefType.getEnumAncestorOrNull(): JcClassOrInterface? =
+            (sequenceOf(jcClass) + jcClass.allSuperHierarchySequence).firstOrNull { it.isEnum }
+    }
 }

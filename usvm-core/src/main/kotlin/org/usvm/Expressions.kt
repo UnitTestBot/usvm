@@ -26,6 +26,8 @@ import io.ksmt.sort.KSort
 import io.ksmt.sort.KUninterpretedSort
 import org.usvm.memory.USymbolicCollection
 import org.usvm.memory.USymbolicCollectionId
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.contract
 
 //region KSMT aliases
 
@@ -76,8 +78,35 @@ typealias UHeapRef = UExpr<UAddressSort>
 typealias USymbolicHeapRef = USymbol<UAddressSort>
 typealias UConcreteHeapAddress = Int
 
-fun isSymbolicHeapRef(expr: UExpr<*>) =
-    expr.sort == expr.uctx.addressSort && expr is USymbol<*>
+@OptIn(ExperimentalContracts::class)
+fun isSymbolicHeapRef(expr: UExpr<*>): Boolean {
+    contract {
+        returns(true) implies (expr is USymbol<*>)
+    }
+
+    return expr.sort == expr.uctx.addressSort && expr is USymbol<*>
+}
+
+@OptIn(ExperimentalContracts::class)
+fun isAllocatedConcreteHeapRef(expr: UExpr<*>): Boolean {
+    contract {
+        returns(true) implies (expr is UConcreteHeapRef)
+    }
+
+    return expr is UConcreteHeapRef && expr.isAllocated
+}
+
+@OptIn(ExperimentalContracts::class)
+fun isStaticHeapRef(expr: UExpr<*>): Boolean {
+    contract {
+        returns(true) implies (expr is UConcreteHeapRef)
+    }
+
+    return expr is UConcreteHeapRef && expr.isStatic
+}
+
+val UConcreteHeapRef.isAllocated: Boolean get() = address >= INITIAL_CONCRETE_ADDRESS
+val UConcreteHeapRef.isStatic: Boolean get() = address <= INITIAL_STATIC_ADDRESS
 
 class UConcreteHeapRefDecl internal constructor(
     ctx: UContext,
@@ -129,8 +158,9 @@ class UNullRef internal constructor(
     }
 }
 
-// We split all addresses into three parts:
-//     * input values: [Int.MIN_VALUE..0),
+// We split all addresses into four parts:
+//     * static values (represented as allocated but interpreted as input): [Int.MIN_VALUE..INITIAL_STATIC_ADDRESS]
+//     * input values: (INITIAL_STATIC_ADDRESS..0),
 //     * null value: [0]
 //     * allocated values: (0..[Int.MAX_VALUE]
 
@@ -147,9 +177,15 @@ const val INITIAL_INPUT_ADDRESS = NULL_ADDRESS - 1
 
 /**
  * A constant corresponding to the first allocated address in any symbolic memory.
- * Input addresses takes this semi-interval: (0..[Int.MAX_VALUE])
+ * Allocated addresses takes this semi-interval: (0..[Int.MAX_VALUE])
  */
 const val INITIAL_CONCRETE_ADDRESS = NULL_ADDRESS + 1
+
+/**
+ * A constant corresponding to the first static address in any symbolic memory.
+ * Static addresses takes this semi-interval: (0..[Int.MAX_VALUE])
+ */
+const val INITIAL_STATIC_ADDRESS = -(1 shl 20) // Use value not less than UNINTERPRETED_SORT_MIN_ALLOWED_VALUE in ksmt
 
 
 //endregion

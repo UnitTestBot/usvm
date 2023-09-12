@@ -46,6 +46,11 @@ fun JcState.throwExceptionAndDropStackFrame() {
     // it is created via `throwExceptionWithoutStackFrameDrop` function
     require(methodResult is JcMethodResult.JcException)
 
+    val returnMethod = callStack.lastMethod()
+    if (returnMethod.isClassInitializer) {
+        staticInitializersInCallStackCount--
+    }
+
     // TODO: think about it later
     val returnSite = callStack.pop()
     if (callStack.isNotEmpty()) {
@@ -78,6 +83,10 @@ fun JcState.addNewMethodCall(
     callStack.push(method, methodCall.returnSite)
     memory.stack.push(methodCall.arguments.toTypedArray(), method.localsCount)
     newStmt(entryPoint)
+
+    if (method.isClassInitializer) {
+        staticInitializersInCallStackCount++
+    }
 }
 
 fun JcState.addConcreteMethodCallStmt(method: JcMethod, arguments: List<UExpr<out USort>>) {

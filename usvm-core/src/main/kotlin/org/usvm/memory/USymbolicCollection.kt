@@ -102,7 +102,7 @@ data class USymbolicCollection<out CollectionId : USymbolicCollectionId<Key, Sor
         val newUpdates = if (sort == sort.uctx.addressSort) {
             // we must split symbolic and concrete heap refs here,
             // because later in [splittingRead] we check value is UConcreteHeapRef
-            foldHeapRef(
+            foldHeapRefWithStaticAsSymbolic(
                 ref = value.asExpr(value.uctx.addressSort),
                 initial = updates,
                 initialGuard = guard,

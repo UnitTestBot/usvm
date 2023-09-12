@@ -10,6 +10,7 @@ import org.usvm.UHeapRef
 import org.usvm.constraints.UEqualityConstraints
 import org.usvm.constraints.UPathConstraints
 import org.usvm.isFalse
+import org.usvm.isStaticHeapRef
 import org.usvm.isTrue
 import org.usvm.model.UModelBase
 import org.usvm.model.UModelDecoder
@@ -49,6 +50,11 @@ open class USolverBase<Type, Context : UContext>(
 
         val nullRepr = constraints.equalReferences.find(ctx.nullRef)
         for (ref in constraints.distinctReferences) {
+            // Static refs are already translated as a values of an uninterpreted sort
+            if (isStaticHeapRef(ref)) {
+                continue
+            }
+
             val refIndex = if (ref == nullRepr) 0 else index++
             val translatedRef = translator.translate(ref)
             val preInterpretedValue = ctx.mkUninterpretedSortValue(ctx.addressSort, refIndex)

@@ -3,6 +3,7 @@ package org.usvm.model
 import io.ksmt.expr.KExpr
 import io.ksmt.solver.KModel
 import io.ksmt.sort.KUninterpretedSort
+import org.usvm.INITIAL_STATIC_ADDRESS
 import org.usvm.INITIAL_INPUT_ADDRESS
 import org.usvm.NULL_ADDRESS
 import org.usvm.UAddressSort
@@ -66,6 +67,13 @@ open class ULazyModelDecoder<Type>(
             if (interpretedAddress == interpreterdNullRef) {
                 continue
             }
+
+            // Static refs already have negative addresses, so just reuse them
+            if (interpretedAddress.valueIdx <= INITIAL_STATIC_ADDRESS) {
+                result[interpretedAddress] = ctx.mkConcreteHeapRef(interpretedAddress.valueIdx)
+                continue
+            }
+
             result[interpretedAddress] = ctx.mkConcreteHeapRef(counter--)
         }
 

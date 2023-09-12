@@ -5,6 +5,11 @@ import org.jetbrains.annotations.NotNull;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.usvm.samples.enums.ComplexEnumExamples.Color.BLUE;
+import static org.usvm.samples.enums.ComplexEnumExamples.Color.GREEN;
+import static org.usvm.samples.enums.ComplexEnumExamples.Color.RED;
+import static org.usvm.samples.enums.SimpleEnumExample.SUCCESS;
+
 public class ComplexEnumExamples {
 
     public enum Color {
@@ -32,6 +37,7 @@ public class ComplexEnumExamples {
             equalToB++;
         }
 
+        //noinspection ManualMinMaxCalculation
         if (equalToA > equalToB) {
             return equalToA;
         } else {
@@ -55,7 +61,7 @@ public class ComplexEnumExamples {
     public int enumToEnumMapCountValues(@NotNull Map<Color, Color> map) {
         int count = 0;
         for (Color color: map.values()) {
-            if (color == Color.RED) {
+            if (color == RED) {
                 count++;
             }
         }
@@ -65,7 +71,8 @@ public class ComplexEnumExamples {
     public int enumToEnumMapCountKeys(@NotNull Map<Color, Color> map) {
         int count = 0;
         for (Color key: map.keySet()) {
-            if (key == Color.GREEN || Color.BLUE.equals(key)) {
+            //noinspection StatementWithEmptyBody
+            if (key == GREEN || BLUE.equals(key)) {
                 count++;
             } else {
                 // Do nothing
@@ -102,10 +109,47 @@ public class ComplexEnumExamples {
     public int countRedInArray(@NotNull Color @NotNull [] colors) {
         int count = 0;
         for (Color c : colors) {
-            if (c == Color.RED) {
+            if (c == RED) {
                 count++;
             }
         }
         return count;
+    }
+
+    public String customEnumName(CustomEnum customEnum) {
+        if (customEnum == null) {
+            return "";
+        }
+
+        return customEnum.name();
+    }
+
+    public int enumCustomField(SimpleEnumExample e) {
+        if (e == null) {
+            return 42;
+        }
+
+        return e.x;
+    }
+
+    public String enumName(SimpleEnumExample e) {
+        if (e == null) {
+            return "";
+        }
+
+        if (e == SUCCESS) {
+            return "S";
+        }
+
+        return e.name();
+    }
+
+    @SuppressWarnings("unused")
+    public int unusedEnumParameter(SimpleEnumExample e) {
+        if (e == null) {
+            return 0;
+        }
+
+        return 42;
     }
 }

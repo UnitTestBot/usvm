@@ -114,37 +114,53 @@ open class UContext(
         }
 
     fun mkHeapRefEq(lhs: UHeapRef, rhs: UHeapRef): UBoolExpr =
-        when {
-            // fast checks
-            lhs is USymbolicHeapRef && rhs is USymbolicHeapRef -> super.mkEq(lhs, rhs, order = true)
-            lhs is UConcreteHeapRef && rhs is UConcreteHeapRef -> mkBool(lhs == rhs)
+        mkHeapEqWithFastChecks(lhs, rhs) {
             // unfolding
-            else -> {
-                val (concreteRefsLhs, symbolicRefLhs) = splitUHeapRef(lhs, ignoreNullRefs = false)
-                val (concreteRefsRhs, symbolicRefRhs) = splitUHeapRef(rhs, ignoreNullRefs = false)
+            val (concreteRefsLhs, symbolicRefLhs) = splitUHeapRef(lhs, ignoreNullRefs = false)
+            val (concreteRefsRhs, symbolicRefRhs) = splitUHeapRef(rhs, ignoreNullRefs = false)
 
-                val concreteRefLhsToGuard = concreteRefsLhs.associate { it.expr.address to it.guard }
+            val concreteRefLhsToGuard = concreteRefsLhs.associate { it.expr.address to it.guard }
 
-                val conjuncts = mutableListOf<UBoolExpr>(falseExpr)
+            val conjuncts = mutableListOf<UBoolExpr>(falseExpr)
 
-                concreteRefsRhs.forEach { (concreteRefRhs, guardRhs) ->
-                    val guardLhs = concreteRefLhsToGuard.getOrDefault(concreteRefRhs.address, falseExpr)
-                    // mkAnd instead of mkAnd with flat=false here is OK
-                    val conjunct = mkAnd(guardLhs, guardRhs)
-                    conjuncts += conjunct
-                }
-
-                if (symbolicRefLhs != null && symbolicRefRhs != null) {
-                    val refsEq = super.mkEq(symbolicRefLhs.expr, symbolicRefRhs.expr, order = true)
-                    // mkAnd instead of mkAnd with flat=false here is OK
-                    val conjunct = mkAnd(symbolicRefLhs.guard, symbolicRefRhs.guard, refsEq)
-                    conjuncts += conjunct
-                }
-
-                // it's safe to use mkOr here
-                mkOr(conjuncts)
+            concreteRefsRhs.forEach { (concreteRefRhs, guardRhs) ->
+                val guardLhs = concreteRefLhsToGuard.getOrDefault(concreteRefRhs.address, falseExpr)
+                // mkAnd instead of mkAnd with flat=false here is OK
+                val conjunct = mkAnd(guardLhs, guardRhs)
+                conjuncts += conjunct
             }
+
+            if (symbolicRefLhs != null && symbolicRefRhs != null) {
+                val refsEq = super.mkEq(symbolicRefLhs.expr, symbolicRefRhs.expr, order = true)
+                // mkAnd instead of mkAnd with flat=false here is OK
+                val conjunct = mkAnd(symbolicRefLhs.guard, symbolicRefRhs.guard, refsEq)
+                conjuncts += conjunct
+            }
+
+            // it's safe to use mkOr here
+            mkOr(conjuncts)
         }
+
+    private inline fun mkHeapEqWithFastChecks(
+        lhs: UHeapRef,
+        rhs: UHeapRef,
+        blockOnFailedFastChecks: () -> UBoolExpr,
+    ): UBoolExpr = when {
+        lhs is USymbolicHeapRef && rhs is USymbolicHeapRef -> super.mkEq(lhs, rhs, order = true)
+        isAllocatedConcreteHeapRef(lhs) && isAllocatedConcreteHeapRef(rhs) -> mkBool(lhs == rhs)
+        isStaticHeapRef(lhs) && isStaticHeapRef(rhs) -> mkBool(lhs == rhs)
+
+        isAllocatedConcreteHeapRef(lhs) && isStaticHeapRef(rhs) -> falseExpr
+        isStaticHeapRef(lhs) && isAllocatedConcreteHeapRef(rhs) -> falseExpr
+
+        isStaticHeapRef(lhs) && rhs is UNullRef -> falseExpr
+        lhs is UNullRef && isStaticHeapRef(rhs) -> falseExpr
+
+        lhs is USymbolicHeapRef && isStaticHeapRef(rhs) -> super.mkEq(lhs, rhs, order = true)
+        isStaticHeapRef(lhs) && rhs is USymbolicHeapRef -> super.mkEq(lhs, rhs, order = true)
+
+        else -> blockOnFailedFastChecks()
+    }
 
     private val uConcreteHeapRefCache = mkAstInterner<UConcreteHeapRef>()
     fun mkConcreteHeapRef(address: UConcreteHeapAddress): UConcreteHeapRef =
