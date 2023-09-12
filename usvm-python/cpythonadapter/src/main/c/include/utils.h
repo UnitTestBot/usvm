@@ -17,6 +17,7 @@ typedef struct {
     JNIEnv *env;
 } JavaPythonObject;
 
+void initialize_java_python_type();
 PyObject *wrap_java_object(JNIEnv *env, jobject object);
 int is_wrapped_java_object(PyObject *object);
 
