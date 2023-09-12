@@ -23,11 +23,11 @@ import org.utbot.python.newtyping.pythonTypeRepresentation
 import java.io.File
 
 fun main() {
-    val slice = ConcretePythonInterpreter.eval(emptyNamespace, "slice")
-    println(ConcretePythonInterpreter.typeLookup(slice, "start"))
+    // val slice = ConcretePythonInterpreter.eval(emptyNamespace, "slice")
+    // println(ConcretePythonInterpreter.typeLookup(slice, "start"))
     // val config = buildProjectRunConfig()
-    // val config = buildSampleRunConfig()
-    // analyze(config)
+    val config = buildSampleRunConfig()
+    analyze(config)
     // checkConcolicAndConcrete(config)
 }
 
@@ -35,10 +35,7 @@ private fun buildSampleRunConfig(): RunConfig {
     val (program, typeSystem) = constructPrimitiveProgram(
         """ 
         def f(x):
-            result = 0
-            for a, b in x:
-                result += a - b
-            assert result == 12345
+            return x
         """.trimIndent()
     )
     val function = PythonUnpinnedCallable.constructCallableFromName(

@@ -57,7 +57,9 @@ val configCPythonRelease =
 
 val cpythonBuildDebug = tasks.register<Exec>("CPythonBuildDebug") {
     group = cpythonTaskGroup
-    inputs.dir(cpythonPath)
+    inputs.dir(File(cpythonPath, "Objects"))
+    inputs.dir(File(cpythonPath, "Python"))
+    inputs.dir(File(cpythonPath, "Include"))
     workingDir = File(cpythonPath)
     if (!isWindows) {
         dependsOn(configCPythonDebug!!)
@@ -219,6 +221,14 @@ library {
             compileTask.dependsOn(cpythonBuildDebug)
         } else {
             compileTask.dependsOn(cpythonBuildRelease)
+        }
+    }
+
+    if (isWindows) {
+        binaries.whenElementFinalized {
+            val linkTask = tasks.getByName("linkDebug") as LinkSharedLibrary
+            val pythonLibPath = File(cpythonBuildPath, "libs/")
+            linkTask.linkerArgs.addAll("/LIBPATH:${pythonLibPath.path}")
         }
     }
 }

@@ -11,50 +11,26 @@ java_python_object_dealloc(PyObject *op) {
     Py_TYPE(op)->tp_free(op);
 }
 
-PyTypeObject JavaPythonObject_Type = {
-    PyVarObject_HEAD_INIT(&PyType_Type, 0)
-    JavaPythonObjectTypeName,                   /* tp_name */
-    sizeof(JavaPythonObject),                   /* tp_basicsize */
-    0,                                          /* tp_itemsize */
-    java_python_object_dealloc,                 /* tp_dealloc */
-    0,                                          /* tp_vectorcall_offset */
-    0,                                          /* tp_getattr */
-    0,                                          /* tp_setattr */
-    0,                                          /* tp_as_async */
-    0,                                          /* tp_repr */
-    0,                                          /* tp_as_number */
-    0,                                          /* tp_as_sequence */
-    0,                                          /* tp_as_mapping */
-    0,                                          /* tp_hash */
-    0,                                          /* tp_call */
-    0,                                          /* tp_str */
-    0,                                          /* tp_getattro */
-    0,                                          /* tp_setattro */
-    0,                                          /* tp_as_buffer */
-    Py_TPFLAGS_DEFAULT,                         /* tp_flags */
-    0,                                          /* tp_doc */
-    0,                                          /* tp_traverse */
-    0,                                          /* tp_clear */
-    0,                                          /* tp_richcompare */
-    0,                                          /* tp_weaklistoffset */
-    0,                                          /* tp_iter */
-    0,                                          /* tp_iternext */
-    0,                                          /* tp_methods */
-    0,                                          /* tp_members */
-    0,                                          /* tp_getset */
-    0,                                          /* tp_base */
-    0,                                          /* tp_dict */
-    0,                                          /* tp_descr_get */
-    0,                                          /* tp_descr_set */
-    0,                                          /* tp_dictoffset */
-    0,                                          /* tp_init */
-    0,                                          /* tp_alloc */
-    0,                                          /* tp_new */
-    PyObject_Free,                              /* tp_free */
-};
+PyTypeObject *JavaPythonObject_Type = 0;
 
-PyObject *wrap_java_object(JNIEnv *env, jobject object) {
-    JavaPythonObject *result = PyObject_New(JavaPythonObject, &JavaPythonObject_Type);
+void
+initialize_java_python_type() {
+    PyType_Slot slots[] = {
+        {0, 0}
+    };
+    PyType_Spec spec = {
+        JavaPythonObjectTypeName,
+        sizeof(JavaPythonObject),
+        0,
+        Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HEAPTYPE,
+        slots
+    };
+    JavaPythonObject_Type = (PyTypeObject*) PyType_FromSpec(&spec);
+}
+
+PyObject *
+wrap_java_object(JNIEnv *env, jobject object) {
+    JavaPythonObject *result = PyObject_New(JavaPythonObject, JavaPythonObject_Type);
     result->env = env;
     // result->reference = object;
     result->reference = (*env)->NewGlobalRef(env, object);
@@ -62,7 +38,7 @@ PyObject *wrap_java_object(JNIEnv *env, jobject object) {
 }
 
 int is_wrapped_java_object(PyObject *object) {
-    return Py_TYPE(object) == &JavaPythonObject_Type;
+    return Py_TYPE(object) == JavaPythonObject_Type;
 }
 
 void construct_concolic_context(JNIEnv *env, jobject context, jobject cpython_adapter, ConcolicContext *dist) {

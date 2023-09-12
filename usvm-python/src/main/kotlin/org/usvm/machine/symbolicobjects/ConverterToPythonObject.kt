@@ -115,7 +115,7 @@ class ConverterToPythonObject(
             else -> error("Not reachable")
         }
 
-    private fun convertList(obj: InterpretedInputSymbolicPythonObject): PythonObject = with(ctx) {
+    private fun convertList(obj: InterpretedInputSymbolicPythonObject): PythonObject {
         val resultList = ConcretePythonInterpreter.makeList(emptyList())
         constructedObjects[obj.address] = resultList
         val listOfPythonObjects = constructArrayContents(obj)

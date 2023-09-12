@@ -1,3 +1,5 @@
+import org.apache.tools.ant.taskdefs.condition.Os
+
 plugins {
     id("usvm.kotlin-conventions")
 }
@@ -5,6 +7,7 @@ plugins {
 // from GRADLE_USER_HOME/gradle.properties
 val githubUser: String by project
 val githubToken: String by project  // with permission to read packages
+val isWindows = Os.isFamily(Os.FAMILY_WINDOWS)
 
 repositories {
     maven {
@@ -34,23 +37,32 @@ val samplesBuildDir = File(project.buildDir, "samples_build")
 val commonJVMArgs = listOf(
     "-Dsamples.build.path=${samplesBuildDir.canonicalPath}",
     "-Dsamples.sources.path=${samplesSourceDir.canonicalPath}",
-    "-Xss10m"
+    "-Xss50m"
 )
 
 
-val cpythonPath = "${childProjects["cpythonadapter"]!!.projectDir}/cpython"
-val cpythonBuildPath = "${childProjects["cpythonadapter"]!!.buildDir}/cpython_build"
-val cpythonAdapterBuildPath = "${childProjects["cpythonadapter"]!!.buildDir}/lib/main/debug"  // TODO: and release?
-
+val cpythonPath: String = File(childProjects["cpythonadapter"]!!.projectDir, "cpython").path
+val cpythonBuildPath: String = File(childProjects["cpythonadapter"]!!.buildDir, "cpython_build").path
+val cpythonAdapterBuildPath: String =
+    File(childProjects["cpythonadapter"]!!.buildDir, "/lib/main/debug").path  // TODO: and release?
+val pythonBinaryPath: String =
+    if (!isWindows) {
+        "$cpythonBuildPath/bin/python3"
+    } else {
+        File(cpythonBuildPath, "python_d.exe").canonicalPath
+    }
+val pythonDllsPath: String = File(cpythonBuildPath, "DLLs").path  // for Windows
 
 val installMypyRunner = tasks.register<Exec>("installUtbotMypyRunner") {
     group = "samples"
     dependsOn(":usvm-python:cpythonadapter:linkDebug")
     inputs.dir(cpythonPath)
-    environment("LD_LIBRARY_PATH" to "$cpythonBuildPath/lib:$cpythonAdapterBuildPath")
+    if (!isWindows) {
+        environment("LD_LIBRARY_PATH" to "$cpythonBuildPath/lib:$cpythonAdapterBuildPath")
+    }
     environment("PYTHONHOME" to cpythonBuildPath)
-    commandLine("$cpythonBuildPath/bin/python3", "-m", "ensurepip")
-    commandLine("$cpythonBuildPath/bin/python3", "-m", "pip", "install", "utbot-mypy-runner==0.2.11")
+    commandLine(pythonBinaryPath, "-m", "ensurepip")
+    commandLine(pythonBinaryPath, "-m", "pip", "install", "utbot-mypy-runner==0.2.11")
 }
 
 val buildSamples = tasks.register<JavaExec>("buildSamples") {
@@ -59,7 +71,7 @@ val buildSamples = tasks.register<JavaExec>("buildSamples") {
     outputs.dir(samplesBuildDir)
     group = "samples"
     classpath = sourceSets.test.get().runtimeClasspath
-    args = listOf(samplesSourceDir.canonicalPath, samplesBuildDir.canonicalPath, "$cpythonBuildPath/bin/python3")
+    args = listOf(samplesSourceDir.canonicalPath, samplesBuildDir.canonicalPath, pythonBinaryPath)
     environment("LD_LIBRARY_PATH" to "$cpythonBuildPath/lib:$cpythonAdapterBuildPath")
     environment("PYTHONHOME" to cpythonBuildPath)
     mainClass.set("org.usvm.runner.BuildSamplesKt")
@@ -77,9 +89,16 @@ fun registerCpython(task: JavaExec, debug: Boolean) = task.apply {
 
 tasks.register<JavaExec>("manualTestDebug") {
     group = "run"
-    registerCpython(this, debug = true)
     dependsOn(buildSamples)
-    jvmArgs = commonJVMArgs + listOf("-Dlogback.configurationFile=logging/logback-debug.xml") //, "-Xcheck:jni")
+    if (!isWindows) {
+        registerCpython(this, debug = true)
+        jvmArgs = commonJVMArgs + listOf("-Dlogback.configurationFile=logging/logback-debug.xml") //, "-Xcheck:jni")
+    } else {
+        environment("PYTHONHOME" to cpythonBuildPath)
+        jvmArgs = commonJVMArgs + listOf("-Dlogback.configurationFile=logging/logback-debug.xml", "-Djava.library.path=$cpythonAdapterBuildPath")
+        //val initialPath = environment["PATH"]!!
+        environment("PATH", "$cpythonBuildPath;$pythonDllsPath")
+    }
     classpath = sourceSets.test.get().runtimeClasspath
     mainClass.set("ManualTestKt")
 }
@@ -103,11 +122,17 @@ tasks.register<JavaExec>("manualTestRelease") {
 }
 
 tasks.test {
-    jvmArgs = commonJVMArgs + "-Dlogback.configurationFile=logging/logback-info.xml"
-    // jvmArgs = commonJVMArgs + "-Dlogback.configurationFile=logging/logback-debug.xml"
+    val args = (commonJVMArgs + "-Dlogback.configurationFile=logging/logback-info.xml").toMutableList()
+    // val args = (commonJVMArgs + "-Dlogback.configurationFile=logging/logback-debug.xml").toMutableList()
+    if (!isWindows) {
+        environment("LD_LIBRARY_PATH" to "$cpythonBuildPath/lib:$cpythonAdapterBuildPath")
+        environment("LD_PRELOAD" to "$cpythonBuildPath/lib/libpython3.so")
+    } else {
+        args += "-Djava.library.path=$cpythonAdapterBuildPath"
+        environment("PATH", "$cpythonBuildPath;$pythonDllsPath")
+    }
+    jvmArgs = args
     dependsOn(":usvm-python:cpythonadapter:linkDebug")
     dependsOn(buildSamples)
-    environment("LD_LIBRARY_PATH" to "$cpythonBuildPath/lib:$cpythonAdapterBuildPath")
-    environment("LD_PRELOAD" to "$cpythonBuildPath/lib/libpython3.so")
     environment("PYTHONHOME" to cpythonBuildPath)
 }
