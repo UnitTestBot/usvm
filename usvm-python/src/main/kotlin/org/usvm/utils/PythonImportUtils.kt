@@ -20,7 +20,7 @@ fun <T> withAdditionalPaths(additionalPaths: Collection<File>, typeSystem: Pytho
         namespace,
         """
             import sys, copy
-            sys.path += ${additionalPaths.joinToString(prefix = "[", separator = ", ", postfix = "]") { "\"${it.canonicalPath}\"" }}
+            sys.path += ${additionalPaths.joinToString(prefix = "[", separator = ", ", postfix = "]") { "r\"${it.canonicalPath}\"" }}
         """.trimIndent()
     )
 

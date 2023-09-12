@@ -17,6 +17,7 @@ typedef struct {
     SymbolicAdapter *adapter;
 } VirtualPythonObject;
 
+void initialize_virtual_object_type();
 PyObject *allocate_raw_virtual_object(JNIEnv *env, jobject object);
 void finish_virtual_object_initialization(VirtualPythonObject *object, ConcolicContext *ctx, SymbolicAdapter *adapter);
 PyObject *create_new_virtual_object(ConcolicContext *ctx, jobject object, SymbolicAdapter *adapter);

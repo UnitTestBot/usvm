@@ -36,12 +36,14 @@ tp_richcompare(PyObject *o1, PyObject *o2, int op) {
     assert(is_virtual_object(o1));
     MAKE_USVM_VIRUAL_CALL((VirtualPythonObject *) o1, 0)
 }
+PyType_Slot Virtual_tp_richcompare = {Py_tp_richcompare, tp_richcompare};
 
 static PyObject *
 tp_iter(PyObject *o1) {
     assert(is_virtual_object(o1));
     MAKE_USVM_VIRUAL_CALL((VirtualPythonObject *) o1, 0)
 }
+PyType_Slot Virtual_tp_iter = {Py_tp_iter, tp_iter};
 
 static int
 nb_bool(PyObject *self) {
@@ -54,6 +56,7 @@ nb_bool(PyObject *self) {
     adapter->ignore = 0;
     return (int) result;
 }
+PyType_Slot Virtual_nb_bool = {Py_nb_bool, nb_bool};
 
 static PyObject *
 nb_int(PyObject *self) {
@@ -64,6 +67,7 @@ nb_int(PyObject *self) {
     CHECK_FOR_EXCEPTION(obj->ctx, 0)
     return (PyObject *) result;
 }
+PyType_Slot Virtual_nb_int = {Py_nb_int, nb_int};
 
 #define BINARY_FUNCTION \
     PyObject *owner = 0; \
@@ -84,21 +88,25 @@ static PyObject *
 nb_add(PyObject *first, PyObject *second) {
     BINARY_FUNCTION
 }
+PyType_Slot Virtual_nb_add = {Py_nb_add, nb_add};
 
 static PyObject *
 nb_subtract(PyObject *first, PyObject *second) {
     BINARY_FUNCTION
 }
+PyType_Slot Virtual_nb_subtract = {Py_nb_subtract, nb_subtract};
 
 static PyObject *
 nb_multiply(PyObject *first, PyObject *second) {
     BINARY_FUNCTION
 }
+PyType_Slot Virtual_nb_multiply = {Py_nb_multiply, nb_multiply};
 
 static PyObject *
 nb_matrix_multiply(PyObject *first, PyObject *second) {
     BINARY_FUNCTION
 }
+PyType_Slot Virtual_nb_matrix_multiply = {Py_nb_matrix_multiply, nb_matrix_multiply};
 
 static Py_ssize_t
 sq_length(PyObject *self) {
@@ -111,121 +119,54 @@ sq_length(PyObject *self) {
     adapter->ignore = 0;
     return result;
 }
+PyType_Slot Virtual_sq_length = {Py_sq_length, sq_length};
 
 static PyObject *
 mp_subscript(PyObject *self, PyObject *item) {
     assert(is_virtual_object(self));
     MAKE_USVM_VIRUAL_CALL((VirtualPythonObject *) self, 0)
 }
+PyType_Slot Virtual_mp_subscript = {Py_mp_subscript, mp_subscript};
 
 static int
 mp_ass_subscript(PyObject *self, PyObject *item, PyObject *value) {
     assert(is_virtual_object(self));
     MAKE_USVM_VIRUAL_CALL_NO_RETURN((VirtualPythonObject *) self, 0)
 }
+PyType_Slot Virtual_mp_ass_subscript = {Py_mp_ass_subscript, mp_ass_subscript};
 
-static PyNumberMethods virtual_as_number = {
-    nb_add,                     /*nb_add*/
-    nb_subtract,                /*nb_subtract*/
-    nb_multiply,                /*nb_multiply*/
-    0,                          /*nb_remainder*/
-    0,                          /*nb_divmod*/
-    0,                          /*nb_power*/
-    0,                          /*nb_negative*/
-    0,                          /*nb_positive*/
-    0,                          /*nb_absolute*/
-    nb_bool,                    /*nb_bool*/
-    0,                          /*nb_invert*/
-    0,                          /*nb_lshift*/
-    0,                          /*nb_rshift*/
-    0,                          /*nb_and*/
-    0,                          /*nb_xor*/
-    0,                          /*nb_or*/
-    nb_int,                     /*nb_int*/
-    0,                          /*nb_reserved*/
-    0,                          /*nb_float*/
-    0,                          /* nb_inplace_add */
-    0,                          /* nb_inplace_subtract */
-    0,                          /* nb_inplace_multiply */
-    0,                          /* nb_inplace_remainder */
-    0,                          /* nb_inplace_power */
-    0,                          /* nb_inplace_lshift */
-    0,                          /* nb_inplace_rshift */
-    0,                          /* nb_inplace_and */
-    0,                          /* nb_inplace_xor */
-    0,                          /* nb_inplace_or */
-    0,                          /* nb_floor_divide */
-    0,                          /* nb_true_divide */
-    0,                          /* nb_inplace_floor_divide */
-    0,                          /* nb_inplace_true_divide */
-    0,                          /* nb_index */
-    nb_matrix_multiply,         /* nb_matrix_multiply */
-    0,                          /* nb_inplace_matrix_multiply */
-};
 
-static PySequenceMethods virtual_as_sequence = {
-    sq_length,                  /* sq_length */
-    0,                          /* sq_concat */
-    0,                          /* sq_repeat */
-    0,                          /* sq_item */
-    0,                          /* sq_slice */
-    0,                          /* sq_ass_item */
-    0,                          /* sq_ass_slice */
-    0,                          /* sq_contains */
-    0,                          /* sq_inplace_concat */
-    0,                          /* sq_inplace_repeat */
-};
+PyTypeObject *VirtualPythonObject_Type = 0;
 
-PyMappingMethods virtual_as_mapping = {
-    0,                          /* mp_length */
-    mp_subscript,               /* mp_subscript */
-    mp_ass_subscript            /* mp_ass_subscript */
-};
-
-PyTypeObject VirtualPythonObject_Type = {
-    PyVarObject_HEAD_INIT(&PyType_Type, 0)
-    VirtualObjectTypeName,
-    sizeof(VirtualPythonObject),
-    0,
-    virtual_object_dealloc,                  /*tp_dealloc*/
-    0,                                       /*tp_vectorcall_offset*/
-    0,                                       /*tp_getattr*/
-    0,                                       /*tp_setattr*/
-    0,                                       /*tp_as_async*/
-    0,                                       /*tp_repr*/
-    &virtual_as_number,                      /*tp_as_number*/
-    &virtual_as_sequence,                    /*tp_as_sequence*/
-    &virtual_as_mapping,                     /*tp_as_mapping*/
-    0,                                       /*tp_hash */
-    0,                                       /*tp_call */
-    0,                                       /*tp_str */
-    0,                                       /*tp_getattro */
-    0,                                       /*tp_setattro */
-    0,                                       /*tp_as_buffer */
-    Py_TPFLAGS_DEFAULT,                      /*tp_flags */
-    0,                                       /*tp_doc */
-    0,                                       /*tp_traverse */
-    0,                                       /*tp_clear */
-    tp_richcompare,                          /*tp_richcompare */
-    0,                                       /*tp_weaklistoffset */
-    tp_iter,                                 /*tp_iter */
-    0,                                       /*tp_iternext */
-    0,                                       /*tp_methods */
-    0,                                       /*tp_members */
-    0,                                       /*tp_getset */
-    0,                                       /*tp_base */
-    0,                                       /*tp_dict */
-    0,                                       /*tp_descr_get */
-    0,                                       /*tp_descr_set */
-    0,                                       /*tp_dictoffset */
-    0,                                       /*tp_init */
-    0,                                       /*tp_alloc */
-    0,                                       /*tp_new */
-};
+void
+initialize_virtual_object_type() {
+    PyType_Slot slots[] = {
+        Virtual_tp_richcompare,
+        Virtual_tp_iter,
+        Virtual_nb_bool,
+        Virtual_nb_int,
+        Virtual_nb_add,
+        Virtual_nb_subtract,
+        Virtual_nb_multiply,
+        Virtual_nb_matrix_multiply,
+        Virtual_sq_length,
+        Virtual_mp_subscript,
+        Virtual_mp_ass_subscript,
+        {0, 0}
+    };
+    PyType_Spec spec = {
+        VirtualObjectTypeName,
+        sizeof(VirtualPythonObject),
+        0,
+        Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HEAPTYPE,
+        slots
+    };
+    VirtualPythonObject_Type = (PyTypeObject*) PyType_FromSpec(&spec);
+}
 
 PyObject *
 allocate_raw_virtual_object(JNIEnv *env, jobject object) {
-    VirtualPythonObject *result = PyObject_New(VirtualPythonObject, &VirtualPythonObject_Type);
+    VirtualPythonObject *result = PyObject_New(VirtualPythonObject, VirtualPythonObject_Type);
 
     if (!result)
         return 0;
@@ -255,7 +196,7 @@ int
 is_virtual_object(PyObject *obj) {
     if (!obj)
         return 0;
-    return Py_TYPE(obj) == &VirtualPythonObject_Type;
+    return Py_TYPE(obj) == VirtualPythonObject_Type;
 }
 
 void register_virtual_methods(SymbolicAdapter *adapter) {
