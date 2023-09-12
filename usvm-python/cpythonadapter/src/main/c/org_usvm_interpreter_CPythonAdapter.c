@@ -45,6 +45,7 @@ turn_off_audit_hook() {
 JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_initializePython(JNIEnv *env, jobject cpython_adapter, jstring python_home) {
     PyPreConfig pre_config;
     PyPreConfig_InitIsolatedConfig(&pre_config);
+    // pre_config.allocator = PYMEM_ALLOCATOR_MALLOC_DEBUG;
     Py_PreInitialize(&pre_config);
 
     PyConfig config;
@@ -65,6 +66,9 @@ JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_initializePython
     SET_INTEGER_FIELD("pyLE", Py_LE)
     SET_INTEGER_FIELD("pyGT", Py_GT)
     SET_INTEGER_FIELD("pyGE", Py_GE)
+
+    initialize_java_python_type();
+    initialize_virtual_object_type();
 
     INITIALIZE_PYTHON_APPROXIMATIONS
     PySys_AddAuditHook(audit_hook, &illegal_operation);
@@ -399,6 +403,10 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_callStandardNew
 
 JNIEXPORT jthrowable JNICALL Java_org_usvm_interpreter_CPythonAdapter_extractException(JNIEnv *env, jobject _, jlong exception) {
     PyObject *wrapped = PyObject_GetAttrString((PyObject *) exception, "java_exception");
+    if (!is_wrapped_java_object(wrapped)) {
+        PyObject_Print(wrapped, stdout, 0);
+        fflush(stdout);
+    }
     assert(is_wrapped_java_object(wrapped));
     return ((JavaPythonObject *) wrapped)->reference;
 }
