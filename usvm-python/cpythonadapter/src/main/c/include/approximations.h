@@ -4,6 +4,7 @@
 extern "C" {
 #endif
 
+#include <jni.h>
 #include "Python.h"
 #include "symbolicadapter.h"
 
@@ -23,7 +24,7 @@ PyObject *Approximation_sum(PyObject *iterable);  // builtins.sum
 
 PyObject *Approximation_list_richcompare(PyObject *, PyObject *, int op);  // PyList_Type.tp_richcompare
 PyObject *Approximation_list_repeat(PyObject *self, PyObject *n);  // PyList_Type.tp_as_sequence.sq_repeat
-PyObject *SymbolicMethod_list_append(SymbolicAdapter *adapter, PyObject *self, PyObject *args, PyObject *kwargs); // list.append
+PyObject *SymbolicMethod_list_append(SymbolicAdapter *adapter, jobject self, PyObject *args, PyObject *kwargs); // list.append
 
 #ifdef __cplusplus
 }
