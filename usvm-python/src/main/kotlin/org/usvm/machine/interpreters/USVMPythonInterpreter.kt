@@ -113,7 +113,7 @@ class USVMPythonInterpreter<PythonObjectRepresentation>(
                     pinnedCallable.asPythonObject,
                     concrete,
                     virtualObjects,
-                    symbols.map { SymbolForCPython(it) },
+                    symbols.map { SymbolForCPython(it, 0) },
                     concolicRunContext,
                     printErrorMsg
                 )

@@ -45,6 +45,7 @@ typedef struct {
 void construct_args_for_symbolic_adapter(SymbolicAdapter *adapter, ConcolicContext *ctx, jlongArray *concrete_args, jlongArray *virtual_args, jobjectArray *symbolic_args, PyObjectArray *dist);
 int take_instruction_from_frame(PyFrameObject *frame);
 int extract_int_value(PyObject *int_object);
+long extract_long_value(PyObject *int_object);
 
 #define CHECK_FOR_EXCEPTION(ctx, fail_value) \
     jthrowable cur_exception = (*ctx->env)->ExceptionOccurred(ctx->env); \

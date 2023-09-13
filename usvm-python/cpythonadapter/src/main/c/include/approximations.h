@@ -1,4 +1,11 @@
+#ifndef _Included_CPythonAdapter_approximations
+#define _Included_CPythonAdapter_approximations
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "Python.h"
+#include "symbolicadapter.h"
 
 /* initializations of Python functions */
 void initialize_list_python_impls();
@@ -15,5 +22,10 @@ PyObject *Approximation_range(void *adapter_raw, PyObject *args);  // builtins.r
 PyObject *Approximation_sum(PyObject *iterable);  // builtins.sum
 
 PyObject *Approximation_list_richcompare(PyObject *, PyObject *, int op);  // PyList_Type.tp_richcompare
-PyObject *Approximation_list_append(PyObject *append_method, PyObject *symbolic_list, PyObject *wrapped_elem);  // list.append
 PyObject *Approximation_list_repeat(PyObject *self, PyObject *n);  // PyList_Type.tp_as_sequence.sq_repeat
+PyObject *SymbolicMethod_list_append(SymbolicAdapter *adapter, PyObject *self, PyObject *args, PyObject *kwargs); // list.append
+
+#ifdef __cplusplus
+}
+#endif
+#endif

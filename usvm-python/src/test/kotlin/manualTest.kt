@@ -34,13 +34,15 @@ fun main() {
 private fun buildSampleRunConfig(): RunConfig {
     val (program, typeSystem) = constructPrimitiveProgram(
         """ 
-        def f(x):
-            return x
+        def list_append(x):
+            res = []
+            res.append(x)
+            assert res[-1] == 127
         """.trimIndent()
     )
     val function = PythonUnpinnedCallable.constructCallableFromName(
         listOf(PythonAnyType),
-        "f"
+        "list_append"
     )
     val functions = listOf(function)
     return RunConfig(program, typeSystem, functions)

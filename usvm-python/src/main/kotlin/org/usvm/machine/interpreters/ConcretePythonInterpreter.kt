@@ -4,6 +4,8 @@ import org.usvm.language.SymbolForCPython
 import org.usvm.language.VirtualPythonObject
 import org.usvm.interpreter.CPythonAdapter
 import org.usvm.interpreter.ConcolicRunContext
+import org.usvm.interpreter.MemberDescriptor
+import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 
 @Suppress("unused")
 object ConcretePythonInterpreter {
@@ -177,6 +179,25 @@ object ConcretePythonInterpreter {
         return if (result == 0L) null else PythonObject(result)
     }
 
+    fun getSymbolicDescriptor(concreteDescriptor: PythonObject): MemberDescriptor? {
+        return pythonAdapter.getSymbolicDescriptor(concreteDescriptor.address)
+    }
+
+    fun constructListAppendMethod(ctx: ConcolicRunContext, self: UninterpretedSymbolicPythonObject): SymbolForCPython {
+        val ref = pythonAdapter.constructListAppendMethod(ctx.symbolicAdapterRef, SymbolForCPython(self, 0));
+        require(ref != 0L)
+        return SymbolForCPython(null, ref)
+    }
+
+    fun callSymbolicMethod(symbol: SymbolForCPython, args: Long, kwargs: Long): PythonObject {
+        if (symbol.symbolicTpCall == 0L)
+            return PythonObject(pythonAdapter.pyNoneRef)
+        val result = pythonAdapter.callSymbolicMethod(symbol.symbolicTpCall, args, kwargs)
+        if (result == 0L)
+            throw CPythonExecutionException()
+        return PythonObject(result)
+    }
+
     private fun createTypeQuery(checkMethod: (Long) -> Int): (PythonObject) -> Boolean = { pythonObject ->
         val result = checkMethod(pythonObject.address)
         if (result < 0)
@@ -214,6 +235,7 @@ object ConcretePythonInterpreter {
     val pyLE: Int
     val pyGT: Int
     val pyGE: Int
+    val pyNoneRef: Long
 
     init {
         val pythonHome = System.getenv("PYTHONHOME") ?: error("Variable PYTHONHOME not set")
@@ -224,6 +246,7 @@ object ConcretePythonInterpreter {
         pyLE = pythonAdapter.pyLE
         pyGT = pythonAdapter.pyGT
         pyGE = pythonAdapter.pyGE
+        pyNoneRef = pythonAdapter.pyNoneRef
         val namespace = pythonAdapter.newNamespace
         val initialModules = listOf("sys", "copy", "builtins", "ctypes", "array")
         pythonAdapter.concreteRun(namespace, "import " + initialModules.joinToString(", "), true, false)
@@ -249,8 +272,16 @@ class CPythonExecutionException(
     val pythonExceptionValue: PythonObject? = null,
     val pythonExceptionType: PythonObject? = null
 ): Exception()
-data class PythonObject(val address: Long)
-data class PythonNamespace(val address: Long)
+data class PythonObject(val address: Long) {
+    init {
+        require(address != 0L)
+    }
+}
+data class PythonNamespace(val address: Long) {
+    init {
+        require(address != 0L)
+    }
+}
 
 val emptyNamespace = ConcretePythonInterpreter.getNewNamespace()
 
