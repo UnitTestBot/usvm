@@ -1,40 +1,42 @@
-package org.usvm.ps
+package org.usvm.statistics.distances
 
-import org.usvm.UState
+import org.usvm.UCallStack
+import org.usvm.statistics.ApplicationGraph
 import kotlin.math.min
 
 /**
- * [StateWeighter] implementation which weights states by their application graph
- * distance to specified targets.
+ * Calculates shortest distances from location (represented as statement and call stack) to the set of targets
+ * considering only CFGs of methods on the call stack.
  *
  * Distances in graph remain the same, only the targets can change, so the local CFG distances are
  * cached while the targets of the method remain the same.
  *
  * @param targets initial collection of targets.
- * @param getCfgDistance function with the following signature:
- * (method, stmtFrom, stmtTo) -> shortest CFG distance from stmtFrom to stmtTo.
- * @param getCfgDistanceToExitPoint function with the following signature:
- * (method, stmt) -> shortest CFG distance from stmt to any of method's exit points.
+ * @param cfgStatistics [CfgStatistics] instance used to calculate local distances on each frame.
  */
-class ShortestDistanceToTargetsStateWeighter<Method, Statement, State : UState<*, Method, Statement, *, State>>(
-    targets: Collection<Pair<Method, Statement>>,
-    private val getCfgDistance: (Method, Statement, Statement) -> UInt,
-    private val getCfgDistanceToExitPoint: (Method, Statement) -> UInt
-) : StateWeighter<State, UInt> {
+class CallStackDistanceCalculator<Method, Statement>(
+    targets: Collection<Statement>,
+    private val cfgStatistics: CfgStatistics<Method, Statement>,
+    applicationGraph: ApplicationGraph<Method, Statement>
+) : DistanceCalculator<Method, Statement, UInt> {
 
-    private val targetsByMethod = HashMap<Method, HashSet<Statement>>()
-    private val minLocalDistanceToTargetCache = HashMap<Method, HashMap<Statement, UInt>>()
+    // TODO: optimize for single target case
+    private val targetsByMethod = hashMapOf<Method, HashSet<Statement>>()
+    private val minLocalDistanceToTargetCache = hashMapOf<Method, HashMap<Statement, UInt>>()
 
     init {
-        for ((method, stmt) in targets) {
+        for (target in targets) {
+            val method = applicationGraph.methodOf(target)
             val statements = targetsByMethod.computeIfAbsent(method) { hashSetOf() }
-            statements.add(stmt)
+            statements.add(target)
         }
     }
 
     private fun getMinDistanceToTargetInCurrentFrame(method: Method, statement: Statement): UInt {
-        return minLocalDistanceToTargetCache.computeIfAbsent(method) { HashMap() }
-            .computeIfAbsent(statement) { targetsByMethod[method]?.minOfOrNull { getCfgDistance(method, statement, it) } ?: UInt.MAX_VALUE }
+        return minLocalDistanceToTargetCache.computeIfAbsent(method) { hashMapOf() }
+            .computeIfAbsent(statement) {
+                targetsByMethod[method]?.minOfOrNull { cfgStatistics.getShortestDistance(method, statement, it) } ?: UInt.MAX_VALUE
+            }
     }
 
     fun addTarget(method: Method, statement: Statement): Boolean {
@@ -55,27 +57,23 @@ class ShortestDistanceToTargetsStateWeighter<Method, Statement, State : UState<*
         return wasRemoved
     }
 
-    override fun weight(state: State): UInt {
-        val currentStatement = state.currentStatement
-
+    override fun calculateDistance(currentStatement: Statement, callStack: UCallStack<Method, Statement>): UInt {
         var currentMinDistanceToTarget = UInt.MAX_VALUE
-
-        val callStackArray = state.callStack.toTypedArray()
 
         // minDistanceToTarget(F) =
         //  min(
         //      min distance from F to target in current frame (if there are any),
         //      min distance from F to return point R of current frame + minDistanceToTarget(point in prev frame where R returns)
         //  )
-        for (i in callStackArray.indices) {
-            val method = callStackArray[i].method
+        for (i in callStack.indices) {
+            val method = callStack[i].method
             val locationInMethod =
-                if (i < callStackArray.size - 1) {
-                    val returnSite = callStackArray[i + 1].returnSite
+                if (i < callStack.size - 1) {
+                    val returnSite = callStack[i + 1].returnSite
                     checkNotNull(returnSite) { "Not first call stack frame had null return site" }
                 } else currentStatement
 
-            val minDistanceToReturn = getCfgDistanceToExitPoint(method, locationInMethod)
+            val minDistanceToReturn = cfgStatistics.getShortestDistanceToExit(method, locationInMethod)
             val minDistanceToTargetInCurrentFrame = getMinDistanceToTargetInCurrentFrame(method, locationInMethod)
 
             val minDistanceToTargetInPreviousFrames =

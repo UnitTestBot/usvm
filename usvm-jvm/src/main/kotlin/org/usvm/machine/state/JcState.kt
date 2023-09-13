@@ -6,6 +6,7 @@ import org.jacodb.api.cfg.JcInst
 import org.usvm.PathsTrieNode
 import org.usvm.UCallStack
 import org.usvm.UState
+import org.usvm.api.targets.JcTarget
 import org.usvm.constraints.UPathConstraints
 import org.usvm.machine.JcContext
 import org.usvm.memory.UMemory
@@ -19,13 +20,15 @@ class JcState(
     models: List<UModelBase<JcType>> = listOf(),
     override var pathLocation: PathsTrieNode<JcState, JcInst> = ctx.mkInitialLocation(),
     var methodResult: JcMethodResult = JcMethodResult.NoCall,
-) : UState<JcType, JcMethod, JcInst, JcContext, JcState>(
+    targets: List<JcTarget> = emptyList()
+) : UState<JcType, JcMethod, JcInst, JcContext, JcTarget, JcState>(
     ctx,
     callStack,
     pathConstraints,
     memory,
     models,
-    pathLocation
+    pathLocation,
+    targets
 ) {
     override fun clone(newConstraints: UPathConstraints<JcType, JcContext>?): JcState {
         val clonedConstraints = newConstraints ?: pathConstraints.clone()
@@ -37,6 +40,7 @@ class JcState(
             models,
             pathLocation,
             methodResult,
+            targetsImpl
         )
     }
 

@@ -12,7 +12,7 @@ data class UStackTraceFrame<Method, Statement>(
 
 class UCallStack<Method, Statement> private constructor(
     private val stack: ArrayDeque<UCallStackFrame<Method, Statement>>,
-) : Collection<UCallStackFrame<Method, Statement>> by stack {
+) : List<UCallStackFrame<Method, Statement>> by stack {
     constructor() : this(ArrayDeque())
     constructor(method: Method) : this(
         ArrayDeque<UCallStackFrame<Method, Statement>>().apply {
