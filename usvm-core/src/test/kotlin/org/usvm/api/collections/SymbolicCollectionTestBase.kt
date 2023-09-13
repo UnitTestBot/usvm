@@ -52,7 +52,7 @@ abstract class SymbolicCollectionTestBase {
         scope = StepScope(StateStub(ctx, pathConstraints, memory))
     }
 
-    class TargetStub : UTarget<Any?, Any?, TargetStub, StateStub>()
+    class TargetStub : UTarget<Any?, TargetStub, StateStub>()
 
     class StateStub(
         ctx: UContext,

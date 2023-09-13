@@ -12,12 +12,13 @@ package org.usvm
  * a state which has reached the target which has no children, it is logically removed from the targets tree.
  * The other states ignore such removed targets.
  */
-abstract class UTarget<Method, Statement, Target : UTarget<Method, Statement, Target, State>, State : UState<*, Method, Statement, *, Target, State>>(
+abstract class UTarget<Statement, Target, State>(
     /**
      * Optional location of the target.
      */
-    val location: Statement? = null
-) {
+    val location: Statement? = null,
+) where Target : UTarget<Statement, Target, State>,
+        State : UState<*, *, Statement, *, Target, State> {
     private val childrenImpl = mutableListOf<Target>()
     private var parent: Target? = null
 

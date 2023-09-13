@@ -11,7 +11,7 @@ import org.usvm.solver.UUnsatResult
 
 typealias StateId = UInt
 
-abstract class UState<Type, Method, Statement, Context : UContext, Target : UTarget<Method, Statement, Target, State>, State : UState<Type, Method, Statement, Context, Target, State>>(
+abstract class UState<Type, Method, Statement, Context, Target, State>(
     // TODO: add interpreter-specific information
     ctx: UContext,
     open val callStack: UCallStack<Method, Statement>,
@@ -19,8 +19,10 @@ abstract class UState<Type, Method, Statement, Context : UContext, Target : UTar
     open val memory: UMemory<Type, Method>,
     open var models: List<UModelBase<Type>>,
     open var pathLocation: PathsTrieNode<State, Statement>,
-    targets: List<Target> = emptyList()
-) {
+    targets: List<Target> = emptyList(),
+) where Context : UContext,
+        Target : UTarget<Statement, Target, State>,
+        State : UState<Type, Method, Statement, Context, Target, State> {
     /**
      * Deterministic state id.
      * TODO: Can be replaced with overridden hashCode

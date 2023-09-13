@@ -21,7 +21,7 @@ import org.usvm.util.log2
 import kotlin.math.max
 import kotlin.random.Random
 
-fun <Method, Statement, Target : UTarget<Method, Statement, Target, State>, State : UState<*, Method, Statement, *, Target, State>> createPathSelector(
+fun <Method, Statement, Target : UTarget<Statement, Target, State>, State : UState<*, Method, Statement, *, Target, State>> createPathSelector(
     initialState: State,
     options: UMachineOptions,
     applicationGraph: ApplicationGraph<Method, Statement>,
@@ -191,7 +191,7 @@ private fun <Method, Statement, State : UState<*, Method, Statement, *, *, State
     )
 }
 
-internal fun <Method, Statement, Target : UTarget<Method, Statement, Target, State>, State : UState<*, Method, Statement, *, Target, State>> createTargetedPathSelector(
+internal fun <Method, Statement, Target : UTarget<Statement, Target, State>, State : UState<*, Method, Statement, *, Target, State>> createTargetedPathSelector(
     cfgStatistics: CfgStatistics<Method, Statement>,
     applicationGraph: ApplicationGraph<Method, Statement>,
     random: Random? = null,
@@ -249,7 +249,7 @@ private fun InterprocDistance.logWeight(): UInt {
     return weight
 }
 
-internal fun <Method, Statement, Target : UTarget<Method, Statement, Target, State>, State : UState<*, Method, Statement, *, Target, State>> createTargetedPathSelector(
+internal fun <Method, Statement, Target : UTarget<Statement, Target, State>, State : UState<*, Method, Statement, *, Target, State>> createTargetedPathSelector(
     cfgStatistics: CfgStatistics<Method, Statement>,
     callGraphStatistics: CallGraphStatistics<Method>,
     applicationGraph: ApplicationGraph<Method, Statement>,
