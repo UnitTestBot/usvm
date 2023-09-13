@@ -1,6 +1,5 @@
 package org.usvm.statistics
 
-import org.usvm.Location
 import org.usvm.UState
 import org.usvm.algorithms.bfsTraversal
 import java.util.concurrent.ConcurrentHashMap
@@ -86,8 +85,8 @@ class CoverageStatistics<Method, Statement, State : UState<*, Method, Statement,
     /**
      * Returns statements from initial methods which have not been covered yet.
      */
-    fun getUncoveredStatements(): Collection<Location<Method, Statement>> {
-        return uncoveredStatements.flatMap { kvp -> kvp.value.map { Location(kvp.key, it) } }
+    fun getUncoveredStatements(): Collection<Statement> {
+        return uncoveredStatements.values.flatten()
     }
 
     /**

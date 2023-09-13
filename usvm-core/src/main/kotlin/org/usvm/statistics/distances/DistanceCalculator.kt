@@ -1,6 +1,5 @@
 package org.usvm.statistics.distances
 
-import org.usvm.Location
 import org.usvm.UCallStack
 
 /**
@@ -20,12 +19,12 @@ fun interface DistanceCalculator<Method, Statement, out Distance> {
  * to calculate distances to arbitrary targets.
  */
 class MultiTargetDistanceCalculator<Method, Statement, Distance>(
-    private val getDistanceCalculator: (Location<Method, Statement>) -> DistanceCalculator<Method, Statement, Distance>
+    private val getDistanceCalculator: (Statement) -> DistanceCalculator<Method, Statement, Distance>
 ) {
-    private val calculatorsByTarget = HashMap<Location<Method, Statement>, DistanceCalculator<Method, Statement, Distance>>()
+    private val calculatorsByTarget = hashMapOf<Statement, DistanceCalculator<Method, Statement, Distance>>()
 
-    // TODO: use
-    fun removeTargetFromCache(target: Location<Method, Statement>): Boolean {
+    // TODO: think later about better memory management using this function
+    fun removeTargetFromCache(target: Statement): Boolean {
         return calculatorsByTarget.remove(target) != null
     }
 
@@ -35,7 +34,7 @@ class MultiTargetDistanceCalculator<Method, Statement, Distance>(
     fun calculateDistance(
         currentStatement: Statement,
         callStack: UCallStack<Method, Statement>,
-        target: Location<Method, Statement>
+        target: Statement
     ): Distance {
         val calculator = calculatorsByTarget.computeIfAbsent(target) { getDistanceCalculator(it) }
         return calculator.calculateDistance(currentStatement, callStack)

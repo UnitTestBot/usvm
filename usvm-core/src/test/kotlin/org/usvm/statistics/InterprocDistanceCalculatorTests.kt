@@ -1,10 +1,8 @@
 package org.usvm.statistics
 
-import kotlin.test.assertEquals
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
-import org.usvm.Location
 import org.usvm.TestInstruction
 import org.usvm.UCallStack
 import org.usvm.appGraph
@@ -15,6 +13,7 @@ import org.usvm.statistics.distances.InterprocDistance
 import org.usvm.statistics.distances.InterprocDistanceCalculator
 import org.usvm.statistics.distances.PlainCallGraphStatistics
 import org.usvm.statistics.distances.ReachabilityKind
+import kotlin.test.assertEquals
 
 class InterprocDistanceCalculatorTests {
 
@@ -179,7 +178,7 @@ class InterprocDistanceCalculatorTests {
             }
 
         val calculator = InterprocDistanceCalculator(
-            Location(targetLoc.method, targetLoc),
+            targetLoc,
             appGraph1,
             cfgStatistics,
             callGraphStatistics

@@ -1,6 +1,5 @@
 package org.usvm.statistics.distances
 
-import org.usvm.Location
 import org.usvm.UCallStack
 import org.usvm.statistics.ApplicationGraph
 
@@ -54,7 +53,7 @@ class InterprocDistance(val distance: UInt, reachabilityKind: ReachabilityKind) 
 // TODO: give priority to paths without calls
 // TODO: add new targets according to the path?
 internal class InterprocDistanceCalculator<Method, Statement>(
-    private val targetLocation: Location<Method, Statement>,
+    private val targetLocation: Statement,
     private val applicationGraph: ApplicationGraph<Method, Statement>,
     private val cfgStatistics: CfgStatistics<Method, Statement>,
     private val callGraphStatistics: CallGraphStatistics<Method>
@@ -63,8 +62,9 @@ internal class InterprocDistanceCalculator<Method, Statement>(
     private val frameDistanceCache = HashMap<Method, HashMap<Statement, UInt>>()
 
     private fun calculateFrameDistance(method: Method, statement: Statement): InterprocDistance {
-        if (method == targetLocation.method) {
-            val localDistance = cfgStatistics.getShortestDistance(method, statement, targetLocation.statement)
+        val targetLocationMethod = applicationGraph.methodOf(targetLocation)
+        if (method == targetLocationMethod) {
+            val localDistance = cfgStatistics.getShortestDistance(method, statement, targetLocation)
             if (localDistance != UInt.MAX_VALUE) {
                 return InterprocDistance(localDistance, ReachabilityKind.LOCAL)
             }
@@ -87,7 +87,7 @@ internal class InterprocDistanceCalculator<Method, Statement>(
             }
 
             if (applicationGraph.callees(statementOfMethod).any {
-                callGraphStatistics.checkReachability(it, targetLocation.method)
+                callGraphStatistics.checkReachability(it, targetLocationMethod)
             }) {
                 minDistanceToCall = distanceToCall
             }

@@ -30,7 +30,7 @@ internal fun pseudoRandom(i: Int): Int {
 }
 
 internal class TestTarget(method: String, offset: Int) : UTarget<String, TestInstruction, TestTarget, TestState>(
-    Location(method, TestInstruction(method, offset))
+    TestInstruction(method, offset)
 ) {
     fun reach(state: TestState) {
         propagate(state)

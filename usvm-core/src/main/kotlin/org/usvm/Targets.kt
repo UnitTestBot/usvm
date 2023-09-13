@@ -16,7 +16,7 @@ abstract class UTarget<Method, Statement, Target : UTarget<Method, Statement, Ta
     /**
      * Optional location of the target.
      */
-    val location: Location<Method, Statement>? = null
+    val location: Statement? = null
 ) {
     private val childrenImpl = mutableListOf<Target>()
     private var parent: Target? = null

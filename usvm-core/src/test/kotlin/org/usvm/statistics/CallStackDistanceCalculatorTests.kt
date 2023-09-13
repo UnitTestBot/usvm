@@ -1,7 +1,8 @@
 package org.usvm.statistics
 
+import io.mockk.every
+import io.mockk.mockk
 import org.junit.jupiter.api.Test
-import org.usvm.Location
 import org.usvm.UCallStack
 import org.usvm.statistics.distances.CallStackDistanceCalculator
 import org.usvm.statistics.distances.CfgStatistics
@@ -60,15 +61,13 @@ internal class CallStackDistanceCalculatorTests {
             override fun getShortestDistanceToExit(method: String, stmtFrom: Int): UInt = 1u
         }
 
+        val applicationGraph = mockk<ApplicationGraph<String, Int>>()
+        every { applicationGraph.methodOf(any()) } returns "A"
+
         val calculator = CallStackDistanceCalculator(
-            setOf(
-                Location("A", 2),
-                Location("A", 3),
-                Location("A", 4),
-                Location("A", 5),
-                Location("A", 6)
-            ),
-            cfgStatistics
+            setOf(2, 3, 4, 5, 6),
+            cfgStatistics,
+            applicationGraph
         )
 
         val currentStatement = 1
@@ -104,8 +103,11 @@ internal class CallStackDistanceCalculatorTests {
         callStack.push("B", 3)
         callStack.push("C", 2)
 
+        val applicationGraph = mockk<ApplicationGraph<String, Int>>()
+        every { applicationGraph.methodOf(node = 4) } returns "C"
+
         val calculator =
-            CallStackDistanceCalculator(setOf(Location("C", 4)), cfgStatistics)
+            CallStackDistanceCalculator(setOf(4), cfgStatistics, applicationGraph)
         assertEquals(10u, calculator.calculateDistance(currentStatment, callStack))
 
         calculator.removeTarget("C", 4)

@@ -53,11 +53,13 @@ fun <Method, Statement, Target : UTarget<Method, Statement, Target, State>, Stat
 
             PathSelectionStrategy.CLOSEST_TO_UNCOVERED -> createClosestToUncoveredPathSelector(
                 requireNotNull(coverageStatistics()) { "Coverage statistics is required for closest to uncovered path selector" },
-                requireNotNull(cfgStatistics()) { "CFG statistics is required for closest to uncovered path selector" }
+                requireNotNull(cfgStatistics()) { "CFG statistics is required for closest to uncovered path selector" },
+                applicationGraph
             )
             PathSelectionStrategy.CLOSEST_TO_UNCOVERED_RANDOM -> createClosestToUncoveredPathSelector(
                 requireNotNull(coverageStatistics()) { "Coverage statistics is required for closest to uncovered path selector" },
                 requireNotNull(cfgStatistics()) { "CFG statistics is required for closest to uncovered path selector" },
+                applicationGraph,
                 random
             )
 
@@ -74,10 +76,12 @@ fun <Method, Statement, Target : UTarget<Method, Statement, Target, State>, Stat
             )
 
             PathSelectionStrategy.TARGETED_CALL_STACK_LOCAL -> createTargetedPathSelector<Method, Statement, Target, State>(
-                requireNotNull(cfgStatistics()) { "CFG statistics is required for targeted call stack local path selector" }
+                requireNotNull(cfgStatistics()) { "CFG statistics is required for targeted call stack local path selector" },
+                applicationGraph
             )
             PathSelectionStrategy.TARGETED_CALL_STACK_LOCAL_RANDOM -> createTargetedPathSelector<Method, Statement, Target, State>(
                 requireNotNull(cfgStatistics()) { "CFG statistics is required for targeted call stack local path selector" },
+                applicationGraph,
                 random
             )
         }
@@ -147,11 +151,13 @@ private fun <State : UState<*, *, *, *, *, State>> createDepthPathSelector(rando
 private fun <Method, Statement, State : UState<*, Method, Statement, *, *, State>> createClosestToUncoveredPathSelector(
     coverageStatistics: CoverageStatistics<Method, Statement, State>,
     cfgStatistics: CfgStatistics<Method, Statement>,
+    applicationGraph: ApplicationGraph<Method, Statement>,
     random: Random? = null,
 ): UPathSelector<State> {
     val distanceCalculator = CallStackDistanceCalculator(
         targets = coverageStatistics.getUncoveredStatements(),
-        cfgStatistics = cfgStatistics
+        cfgStatistics = cfgStatistics,
+        applicationGraph
     )
 
     coverageStatistics.addOnCoveredObserver { _, method, statement -> distanceCalculator.removeTarget(method, statement) }
@@ -187,12 +193,14 @@ private fun <Method, Statement, State : UState<*, Method, Statement, *, *, State
 
 internal fun <Method, Statement, Target : UTarget<Method, Statement, Target, State>, State : UState<*, Method, Statement, *, Target, State>> createTargetedPathSelector(
     cfgStatistics: CfgStatistics<Method, Statement>,
+    applicationGraph: ApplicationGraph<Method, Statement>,
     random: Random? = null,
 ): UPathSelector<State> {
-    val distanceCalculator = MultiTargetDistanceCalculator { loc ->
+    val distanceCalculator = MultiTargetDistanceCalculator<Method, Statement, _> { loc ->
         CallStackDistanceCalculator(
             targets = listOf(loc),
-            cfgStatistics = cfgStatistics
+            cfgStatistics = cfgStatistics,
+            applicationGraph = applicationGraph
         )
     }
 
@@ -247,9 +255,9 @@ internal fun <Method, Statement, Target : UTarget<Method, Statement, Target, Sta
     applicationGraph: ApplicationGraph<Method, Statement>,
     random: Random? = null,
 ): UPathSelector<State> {
-    val distanceCalculator = MultiTargetDistanceCalculator { loc ->
+    val distanceCalculator = MultiTargetDistanceCalculator<Method, Statement, _> { stmt ->
         InterprocDistanceCalculator(
-            targetLocation = loc,
+            targetLocation = stmt,
             applicationGraph = applicationGraph,
             cfgStatistics = cfgStatistics,
             callGraphStatistics = callGraphStatistics

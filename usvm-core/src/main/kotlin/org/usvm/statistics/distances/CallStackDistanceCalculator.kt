@@ -1,8 +1,8 @@
 package org.usvm.statistics.distances
 
-import org.usvm.Location
-import kotlin.math.min
 import org.usvm.UCallStack
+import org.usvm.statistics.ApplicationGraph
+import kotlin.math.min
 
 /**
  * Calculates shortest distances from location (represented as statement and call stack) to the set of targets
@@ -15,18 +15,20 @@ import org.usvm.UCallStack
  * @param cfgStatistics [CfgStatistics] instance used to calculate local distances on each frame.
  */
 class CallStackDistanceCalculator<Method, Statement>(
-    targets: Collection<Location<Method, Statement>>,
-    private val cfgStatistics: CfgStatistics<Method, Statement>
+    targets: Collection<Statement>,
+    private val cfgStatistics: CfgStatistics<Method, Statement>,
+    applicationGraph: ApplicationGraph<Method, Statement>
 ) : DistanceCalculator<Method, Statement, UInt> {
 
     // TODO: optimize for single target case
-    private val targetsByMethod = HashMap<Method, HashSet<Statement>>()
-    private val minLocalDistanceToTargetCache = HashMap<Method, HashMap<Statement, UInt>>()
+    private val targetsByMethod = hashMapOf<Method, HashSet<Statement>>()
+    private val minLocalDistanceToTargetCache = hashMapOf<Method, HashMap<Statement, UInt>>()
 
     init {
-        for ((method, stmt) in targets) {
+        for (target in targets) {
+            val method = applicationGraph.methodOf(target)
             val statements = targetsByMethod.computeIfAbsent(method) { hashSetOf() }
-            statements.add(stmt)
+            statements.add(target)
         }
     }
 
