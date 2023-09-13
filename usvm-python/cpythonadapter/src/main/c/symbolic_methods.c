@@ -23,17 +23,16 @@ void clean_methods() {
 */
 
 SymbolicMethod *
-construct_list_append_method(JNIEnv *env, SymbolicAdapter *adapter, jobject symbolic_self) {
+construct_list_append_method(JNIEnv *env, jobject symbolic_self) {
     assert(methods_holder);
     SymbolicMethod *result = malloc(sizeof(SymbolicMethod));
     result->call = SymbolicMethod_list_append;
-    result->self = object_wrapper_env(env, symbolic_self);
-    result->adapter = adapter;
+    result->self_reference = (*env)->NewGlobalRef(env, symbolic_self);
     PyList_Append(methods_holder, PyLong_FromLong((long) result));
     return result;
 }
 
 PyObject *
-call_symbolic_method(SymbolicMethod *method, PyObject *args, PyObject *kwargs) {
-    return method->call(method->adapter, method->self, args, kwargs);
+call_symbolic_method(SymbolicMethod *method, SymbolicAdapter *adapter, PyObject *args, PyObject *kwargs) {
+    return method->call(adapter, method->self_reference, args, kwargs);
 }

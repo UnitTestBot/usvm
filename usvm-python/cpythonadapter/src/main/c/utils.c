@@ -44,6 +44,7 @@ int is_wrapped_java_object(PyObject *object) {
 }
 
 void construct_concolic_context(JNIEnv *env, jobject context, jobject cpython_adapter, ConcolicContext *dist) {
+    dist->adapter = 0;
     dist->env = env;
     dist->context = context;
     dist->cpython_adapter = cpython_adapter;
@@ -53,6 +54,7 @@ void construct_concolic_context(JNIEnv *env, jobject context, jobject cpython_ad
     dist->java_exception = PyErr_NewException("ibmviqhlye.JavaException", 0, 0);
     dist->cpython_thrown_exception_field = (*env)->GetFieldID(env, dist->cpython_adapter_cls, "thrownException", "J");
     dist->cpython_java_exception_field = (*env)->GetFieldID(env, dist->cpython_adapter_cls, "javaExceptionType", "J");
+    dist->symbol_tp_call_ref = (*env)->GetFieldID(env, dist->symbol_cls, "symbolicTpCall", "J");
     DO_REGISTRATIONS(dist, env)
 }
 

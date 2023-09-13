@@ -82,8 +82,7 @@ public class CPythonAdapter {
     public native long typeLookup(long typeRef, String name);
     @Nullable
     public native MemberDescriptor getSymbolicDescriptor(long concreteDescriptorRef);
-    public native long constructListAppendMethod(long symbolicAdapterRef, SymbolForCPython symbolicList);
-    public native long callSymbolicMethod(long methodRef, long argsRef, long kwargsRef);
+    public native long constructListAppendMethod(SymbolForCPython symbolicList);
 
     static {
         System.loadLibrary("cpythonadapter");
@@ -294,7 +293,8 @@ public class CPythonAdapter {
         return methodWrapper(context, new MethodParameters("list_inplace_concat", Arrays.asList(left, right)), () -> handlerListInplaceConcatKt(context, left.obj, right.obj));
     }
 
-    public static SymbolForCPython handlerListAppend(ConcolicRunContext context, SymbolForCPython list, SymbolForCPython elem) {
+    @Nullable
+    public static SymbolForCPython handlerListAppend(ConcolicRunContext context, @NotNull SymbolForCPython list, SymbolForCPython elem) {
         if (list.obj == null || elem.obj == null)
             return null;
         return methodWrapper(context, new MethodParameters("list_append", Arrays.asList(list, elem)), () -> handlerListAppendKt(context, list.obj, elem.obj));
@@ -474,9 +474,5 @@ public class CPythonAdapter {
         if (obj.obj == null || name.obj == null)
             return null;
         return withTracing(context, new MethodParameters("tp_getattro", Arrays.asList(obj, name)), () -> handlerStandardTpGetattroKt(context, obj.obj, name.obj));
-    }
-
-    public static long symbolicTpCall(ConcolicRunContext context, @NotNull SymbolForCPython on, long args, long kwargs) {
-        return symbolicTpCallKt(on, args, kwargs);
     }
 }

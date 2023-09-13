@@ -646,17 +646,5 @@
     "result_converter": "object_wrapper",
     "fail_value": "0",
     "default_value": "Py_None"
-  },
-  {
-    "c_name": "symbolic_tp_call",
-    "nargs": 3,
-    "c_arg_types": ["PyObject *", "PyObject *", "PyObject *"],
-    "c_return_type": "PyObject *",
-    "java_arg_types": ["jobject", "jlong", "jlong"],
-    "java_return_type": "jlong",
-    "argument_converters": ["object_converter", "ref_converter", "ref_converter"],
-    "result_converter": "ref_wrapper",
-    "fail_value": "0",
-    "default_value": "Py_None"
   }
 ]

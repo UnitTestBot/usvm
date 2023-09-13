@@ -119,13 +119,5 @@ fun handlerStandardTpGetattroKt(
     val type = obj.getTypeIfDefined(ctx) as? ConcretePythonType ?: return null
     val concreteDescriptor = ConcretePythonInterpreter.typeLookup(type.asObject, concreteStr) ?: return null
     val memberDescriptor = ConcretePythonInterpreter.getSymbolicDescriptor(concreteDescriptor) ?: return null
-    return memberDescriptor.getMember(ctx, obj)
-}
-
-fun symbolicTpCallKt(
-    on: SymbolForCPython,
-    args: Long,
-    kwargs: Long
-): Long {
-    return ConcretePythonInterpreter.callSymbolicMethod(on, args, kwargs).address
+    return memberDescriptor.getMember(obj)
 }
