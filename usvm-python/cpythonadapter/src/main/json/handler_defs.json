@@ -288,5 +288,15 @@
         "c_name": "range_iterator_next",
         "java_name": "handlerRangeIteratorNext",
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
+    },
+    {
+        "c_name": "standard_tp_getattro",
+        "java_name": "handlerStandardTpGetattro",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
+    },
+    {
+        "c_name": "symbolic_tp_call",
+        "java_name": "symbolicTpCall",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;JJ)J"
     }
 ]

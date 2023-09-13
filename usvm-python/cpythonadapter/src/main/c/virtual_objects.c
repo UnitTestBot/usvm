@@ -9,6 +9,8 @@ virtual_object_dealloc(PyObject *op) {
     Py_TYPE(op)->tp_free(op);
 }
 
+PyType_Slot Virtual_tp_dealloc = {Py_tp_dealloc, virtual_object_dealloc};
+
 #define MAKE_USVM_VIRUAL_CALL(obj, owner_id) \
     SymbolicAdapter *adapter = (obj)->adapter; \
     ConcolicContext *ctx = (obj)->ctx; \
@@ -141,6 +143,7 @@ PyTypeObject *VirtualPythonObject_Type = 0;
 void
 initialize_virtual_object_type() {
     PyType_Slot slots[] = {
+        Virtual_tp_dealloc,
         Virtual_tp_richcompare,
         Virtual_tp_iter,
         Virtual_nb_bool,

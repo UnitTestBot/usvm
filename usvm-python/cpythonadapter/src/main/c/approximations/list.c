@@ -104,23 +104,17 @@ Approximation_list_richcompare(PyObject *v, PyObject *w, int op) {
     return result;
 }
 
-PyObject *
-Approximation_list_append(PyObject *append_method, PyObject *symbolic_list, PyObject *wrapped_elem) {
-    assert(PyCFunction_Check(append_method) && symbolic_list && is_wrapped(wrapped_elem));
-    SymbolicAdapter *adapter = get_adapter(wrapped_elem);
-    PyObject *concrete_elem = unwrap(wrapped_elem);
-    PyObject *symbolic_elem = get_symbolic_or_none(wrapped_elem);
-    PyObject *concrete_args = PyTuple_Pack(1, concrete_elem);
-    PyObject *concrete_result = Py_TYPE(append_method)->tp_call(append_method, concrete_args, 0);
-    Py_DECREF(concrete_args);
-    if (!concrete_result) {
-        return 0;
-    }
+PyObject *SymbolicMethod_list_append(SymbolicAdapter *adapter, PyObject *symbolic_list, PyObject *args, PyObject *kwargs) {
+    if (args == 0 || !PyTuple_Check(args) || PyTuple_GET_SIZE(args) != 1 || kwargs)
+        return Py_None;
+    PyObject *symbolic_elem = PyTuple_GetItem(args, 0);
     PyObject *self = adapter->list_append(adapter->handler_param, symbolic_list, symbolic_elem);
     if (!self)
         return 0;
-
-    return wrap(concrete_result, Py_None, adapter);
+    PyObject *result = adapter->load_const(adapter->handler_param, Py_None);
+    if (!result)
+        return 0;
+    return result;
 }
 
 PyObject *

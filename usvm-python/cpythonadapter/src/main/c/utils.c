@@ -10,12 +10,14 @@ java_python_object_dealloc(PyObject *op) {
     (*(obj->env))->DeleteGlobalRef(obj->env, obj->reference);
     Py_TYPE(op)->tp_free(op);
 }
+PyType_Slot java_python_object_dealloc_slot = {Py_tp_dealloc, java_python_object_dealloc};
 
 PyTypeObject *JavaPythonObject_Type = 0;
 
 void
 initialize_java_python_type() {
     PyType_Slot slots[] = {
+        java_python_object_dealloc_slot,
         {0, 0}
     };
     PyType_Spec spec = {
@@ -60,7 +62,6 @@ void register_approximations(SymbolicAdapter *adapter) {
     adapter->approximation_builtin_sum = Approximation_sum;
     adapter->approximation_list_richcompare = Approximation_list_richcompare;
     adapter->approximation_range = Approximation_range;
-    adapter->approximation_list_append = Approximation_list_append;
     adapter->approximation_list_repeat = Approximation_list_repeat;
 }
 
@@ -114,12 +115,18 @@ construct_args_for_symbolic_adapter(
     dist->ptr = args;
 }
 
-int
-extract_int_value(PyObject *int_object) {
+long
+extract_long_value(PyObject *int_object) {
     assert(PyLong_Check(int_object));
     int overflow;
     long value_as_long = PyLong_AsLongAndOverflow(int_object, &overflow);
     assert(!overflow);
+    return value_as_long;
+}
+
+int
+extract_int_value(PyObject *int_object) {
+    long value_as_long = extract_long_value(int_object);
     assert(value_as_long < INT_MAX);
     return (int) value_as_long;
 }

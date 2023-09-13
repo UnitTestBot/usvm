@@ -118,5 +118,4 @@ class PythonExecutionStateMeta {
     var objectsWithoutConcreteTypes: Set<VirtualPythonObject>? = null
     var lastConverter: ConverterToPythonObject? = null
     var generatedFrom: String = ""  // for debugging only
-    var typeStreamForNull: UTypeStream<PythonType>? = null
 }
