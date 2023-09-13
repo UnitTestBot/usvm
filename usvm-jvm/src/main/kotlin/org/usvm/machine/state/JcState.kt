@@ -19,7 +19,6 @@ class JcState(
     memory: UMemory<JcType, JcMethod> = UMemory(ctx, pathConstraints.typeConstraints),
     models: List<UModelBase<JcType>> = listOf(),
     override var pathLocation: PathsTrieNode<JcState, JcInst> = ctx.mkInitialLocation(),
-    // TODO: should set be public?
     var methodResult: JcMethodResult = JcMethodResult.NoCall,
     targets: List<JcTarget> = emptyList()
 ) : UState<JcType, JcMethod, JcInst, JcContext, JcTarget, JcState>(

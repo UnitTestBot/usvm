@@ -20,7 +20,7 @@ private val classpath: List<String>
             .toList()
     }
 
-fun JcClasspath.getJcMethod(func: KFunction<*>): JcMethod {
+fun JcClasspath.getJcMethodByName(func: KFunction<*>): JcMethod {
     val declaringClassName = requireNotNull(func.javaMethod?.declaringClass?.name)
     val jcClass = findClass(declaringClassName).toType()
     return jcClass.declaredMethods.first { it.name == func.name }.method
