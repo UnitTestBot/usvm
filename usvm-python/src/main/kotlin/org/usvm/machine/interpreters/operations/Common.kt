@@ -3,10 +3,12 @@ package org.usvm.machine.interpreters.operations
 import org.usvm.api.allocateArrayInitialized
 import org.usvm.api.writeArrayLength
 import org.usvm.interpreter.ConcolicRunContext
+import org.usvm.language.SymbolForCPython
 import org.usvm.language.types.ArrayType
 import org.usvm.language.types.ConcretePythonType
 import org.usvm.machine.interpreters.PythonObject
 import org.usvm.language.types.ConcreteTypeNegation
+import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.machine.symbolicobjects.*
 import org.usvm.machine.utils.MethodDescription
 
@@ -104,4 +106,26 @@ fun handlerIsOpKt(
 
 fun handlerNoneCheckKt(ctx: ConcolicRunContext, on: UninterpretedSymbolicPythonObject) {
     myFork(ctx, on.evalIs(ctx, ctx.typeSystem.pythonNoneType))
+}
+
+fun handlerStandardTpGetattroKt(
+    ctx: ConcolicRunContext,
+    obj: UninterpretedSymbolicPythonObject,
+    name: UninterpretedSymbolicPythonObject
+): SymbolForCPython? {
+    if (ctx.curState == null)
+        return null
+    val concreteStr = ctx.curState!!.preAllocatedObjects.concreteString(name) ?: return null
+    val type = obj.getTypeIfDefined(ctx) as? ConcretePythonType ?: return null
+    val concreteDescriptor = ConcretePythonInterpreter.typeLookup(type.asObject, concreteStr) ?: return null
+    val memberDescriptor = ConcretePythonInterpreter.getSymbolicDescriptor(concreteDescriptor) ?: return null
+    return memberDescriptor.getMember(ctx, obj)
+}
+
+fun symbolicTpCallKt(
+    on: SymbolForCPython,
+    args: Long,
+    kwargs: Long
+): Long {
+    return ConcretePythonInterpreter.callSymbolicMethod(on, args, kwargs).address
 }

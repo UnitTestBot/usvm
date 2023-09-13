@@ -22,7 +22,7 @@ repositories {
 
 dependencies {
     implementation(project(":usvm-core"))
-    implementation("org.utbot:utbot-python-types:2023.08-SNAPSHOT")
+    implementation("org.utbot:utbot-python-types:2023.09-SNAPSHOT")
 
     implementation("io.ksmt:ksmt-yices:${Versions.ksmt}")
     implementation("io.ksmt:ksmt-cvc5:${Versions.ksmt}")
@@ -62,7 +62,7 @@ val installMypyRunner = tasks.register<Exec>("installUtbotMypyRunner") {
     }
     environment("PYTHONHOME" to cpythonBuildPath)
     commandLine(pythonBinaryPath, "-m", "ensurepip")
-    commandLine(pythonBinaryPath, "-m", "pip", "install", "utbot-mypy-runner==0.2.11")
+    commandLine(pythonBinaryPath, "-m", "pip", "install", "utbot-mypy-runner==0.2.15")
 }
 
 val buildSamples = tasks.register<JavaExec>("buildSamples") {

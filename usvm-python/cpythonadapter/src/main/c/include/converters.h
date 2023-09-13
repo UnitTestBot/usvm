@@ -12,7 +12,9 @@ jlong frame_converter(ConcolicContext *ctx, PyFrameObject *value, int *fail);
 jobject object_converter(ConcolicContext *ctx, PyObject *value, int *fail);
 jint int_converter(ConcolicContext *ctx, int value, int *fail);
 jlong ref_converter(ConcolicContext *ctx, PyObject *ref, int *fail);
+PyObject *ref_wrapper(ConcolicContext *ctx, jlong value);
 PyObject *object_wrapper(ConcolicContext *ctx, jobject value);
+PyObject *object_wrapper_env(JNIEnv *env, jobject value);
 jobjectArray array_converter(ConcolicContext *ctx, PyObject **elems, int *fail);
 jstring string_converter(ConcolicContext *ctx, const char *str, int *fail);
 

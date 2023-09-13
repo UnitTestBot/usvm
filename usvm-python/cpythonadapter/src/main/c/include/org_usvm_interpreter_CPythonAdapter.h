@@ -327,6 +327,30 @@ JNIEXPORT jstring JNICALL Java_org_usvm_interpreter_CPythonAdapter_checkForIlleg
 JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeLookup
   (JNIEnv *, jobject, jlong, jstring);
 
+/*
+ * Class:     org_usvm_interpreter_CPythonAdapter
+ * Method:    getSymbolicDescriptor
+ * Signature: (J)Lorg/usvm/interpreter/MemberDescriptor;
+ */
+JNIEXPORT jobject JNICALL Java_org_usvm_interpreter_CPythonAdapter_getSymbolicDescriptor
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_usvm_interpreter_CPythonAdapter
+ * Method:    constructListAppendMethod
+ * Signature: (JLorg/usvm/language/SymbolForCPython;)J
+ */
+JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_constructListAppendMethod
+  (JNIEnv *, jobject, jlong, jobject);
+
+/*
+ * Class:     org_usvm_interpreter_CPythonAdapter
+ * Method:    callSymbolicMethod
+ * Signature: (JJJ)J
+ */
+JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_callSymbolicMethod
+  (JNIEnv *, jobject, jlong, jlong, jlong);
+
 #ifdef __cplusplus
 }
 #endif

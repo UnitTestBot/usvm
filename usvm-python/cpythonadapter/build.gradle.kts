@@ -101,6 +101,7 @@ fun generateSymbolicAdapterMethod(description: Map<String, Any>): String {
     val javaReturnType = description["java_return_type"] as String
     val javaReturnDescr: String = when (javaReturnType) {
         "jobject" -> "Object"
+        "jlong" -> "Long"
         "void" -> "Void"
         else -> error("Incorrect handler definition")
     }

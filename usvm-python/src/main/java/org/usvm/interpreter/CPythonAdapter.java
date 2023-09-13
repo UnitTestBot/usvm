@@ -5,6 +5,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.usvm.machine.MockHeader;
 import org.usvm.machine.interpreters.PythonObject;
+import org.usvm.machine.interpreters.operations.descriptors.ListAppendDescriptor;
 import org.usvm.machine.interpreters.operations.tracing.*;
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject;
 import org.usvm.language.*;
@@ -31,12 +32,14 @@ public class CPythonAdapter {
     public long thrownException = 0L;
     public long thrownExceptionType = 0L;
     public long javaExceptionType = 0L;
+    public long pyNoneRef = 0L;
     public int pyEQ;
     public int pyNE;
     public int pyLE;
     public int pyLT;
     public int pyGE;
     public int pyGT;
+    public MemberDescriptor listAppendDescriptor = ListAppendDescriptor.INSTANCE;
     public native void initializePython(String pythonHome);
     public native void finalizePython();
     public native long getNewNamespace();  // returns reference to a new dict
@@ -77,6 +80,10 @@ public class CPythonAdapter {
     public native void decref(long object);
     public native String checkForIllegalOperation();
     public native long typeLookup(long typeRef, String name);
+    @Nullable
+    public native MemberDescriptor getSymbolicDescriptor(long concreteDescriptorRef);
+    public native long constructListAppendMethod(long symbolicAdapterRef, SymbolForCPython symbolicList);
+    public native long callSymbolicMethod(long methodRef, long argsRef, long kwargsRef);
 
     static {
         System.loadLibrary("cpythonadapter");
@@ -93,7 +100,7 @@ public class CPythonAdapter {
     private static SymbolForCPython wrap(UninterpretedSymbolicPythonObject obj) {
         if (obj == null)
             return null;
-        return new SymbolForCPython(obj);
+        return new SymbolForCPython(obj, 0);
     }
 
     private static SymbolForCPython methodWrapper(
@@ -451,7 +458,7 @@ public class CPythonAdapter {
         return virtualSqLengthKt(context, obj);
     }
 
-    public static long virtualCall(ConcolicRunContext context, int owner) {
+    public static long virtualCall(@NotNull ConcolicRunContext context, int owner) {
         if (context.curOperation != null && owner != -1) {
             context.curOperation.setMethodOwner(context.curOperation.getArgs().get(owner));
         }
@@ -460,5 +467,16 @@ public class CPythonAdapter {
 
     public static void lostSymbolicValue(ConcolicRunContext context, String description) {
         lostSymbolicValueKt(context, description);
+    }
+
+    @Nullable
+    public static SymbolForCPython handlerStandardTpGetattro(ConcolicRunContext context, @NotNull SymbolForCPython obj, SymbolForCPython name) {
+        if (obj.obj == null || name.obj == null)
+            return null;
+        return withTracing(context, new MethodParameters("tp_getattro", Arrays.asList(obj, name)), () -> handlerStandardTpGetattroKt(context, obj.obj, name.obj));
+    }
+
+    public static long symbolicTpCall(ConcolicRunContext context, @NotNull SymbolForCPython on, long args, long kwargs) {
+        return symbolicTpCallKt(on, args, kwargs);
     }
 }

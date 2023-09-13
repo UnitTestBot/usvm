@@ -12,7 +12,8 @@ class PreallocatedObjects(
     val noneObject: UninterpretedSymbolicPythonObject,
     val trueObject: UninterpretedSymbolicPythonObject,
     val falseObject: UninterpretedSymbolicPythonObject,
-    private val concreteStrToSymbol: MutableMap<String, UninterpretedSymbolicPythonObject>
+    private val concreteStrToSymbol: MutableMap<String, UninterpretedSymbolicPythonObject>,
+    private val symbolToConcreteStr: MutableMap<UninterpretedSymbolicPythonObject, String>
 ) {
 
     fun allocateStr(ctx: ConcolicRunContext, string: String): UninterpretedSymbolicPythonObject {
@@ -22,15 +23,20 @@ class PreallocatedObjects(
             return cached
         val result = constructEmptyObject(ctx.curState!!.memory, ctx.typeSystem, ctx.typeSystem.pythonStr)
         concreteStrToSymbol[string] = result
+        symbolToConcreteStr[result] = string
         return result
     }
+
+    fun concreteString(symbol: UninterpretedSymbolicPythonObject): String? =
+        symbolToConcreteStr[symbol]
 
     fun clone(): PreallocatedObjects =
         PreallocatedObjects(
             noneObject,
             trueObject,
             falseObject,
-            concreteStrToSymbol.toMutableMap()
+            concreteStrToSymbol.toMutableMap(),
+            symbolToConcreteStr.toMutableMap()
         )
 
     companion object {
@@ -44,7 +50,8 @@ class PreallocatedObjects(
                 noneObject = constructEmptyObject(initialMemory, typeSystem, typeSystem.pythonNoneType),
                 trueObject = constructInitialBool(ctx, initialMemory, initialPathConstraints, typeSystem, ctx.trueExpr),
                 falseObject = constructInitialBool(ctx, initialMemory, initialPathConstraints, typeSystem, ctx.falseExpr),
-                concreteStrToSymbol = mutableMapOf()
+                concreteStrToSymbol = mutableMapOf(),
+                symbolToConcreteStr = mutableMapOf()
             )
     }
 }
