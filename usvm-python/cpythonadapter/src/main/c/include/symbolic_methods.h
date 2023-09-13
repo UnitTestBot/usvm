@@ -8,18 +8,17 @@ extern "C" {
 #include "Python.h"
 #include "symbolicadapter.h"
 
-typedef PyObject *(call_type)(SymbolicAdapter *adapter, PyObject *self, PyObject *args, PyObject *kwargs);
+typedef PyObject *(call_type)(SymbolicAdapter *adapter, jobject self_reference, PyObject *args, PyObject *kwargs);
 
 typedef struct {
     call_type *call;
-    PyObject *self;
-    SymbolicAdapter *adapter;
+    jobject self_reference;
 } SymbolicMethod;
 
 void initialize_symbolic_methods_holder();
 // void clean_methods();
-SymbolicMethod *construct_list_append_method(JNIEnv *env, SymbolicAdapter *adapter, jobject symbolic_self);
-PyObject *call_symbolic_method(SymbolicMethod *method, PyObject *args, PyObject *kwargs);
+SymbolicMethod *construct_list_append_method(JNIEnv *env, jobject symbolic_self);
+PyObject *call_symbolic_method(SymbolicMethod *method, SymbolicAdapter *adapter, PyObject *args, PyObject *kwargs);
 
 #ifdef __cplusplus
 }

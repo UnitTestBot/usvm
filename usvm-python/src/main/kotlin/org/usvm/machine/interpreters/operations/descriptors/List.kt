@@ -7,7 +7,7 @@ import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 
 object ListAppendDescriptor: MemberDescriptor() {
-    override fun getMember(ctx: ConcolicRunContext, owner: UninterpretedSymbolicPythonObject): SymbolForCPython {
-        return ConcretePythonInterpreter.constructListAppendMethod(ctx, owner)
+    override fun getMember(owner: UninterpretedSymbolicPythonObject): SymbolForCPython {
+        return ConcretePythonInterpreter.constructListAppendMethod(owner)
     }
 }

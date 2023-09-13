@@ -30,13 +30,9 @@ PyObject *ref_wrapper(ConcolicContext *ctx, jlong value) {
 }
 
 PyObject *object_wrapper(ConcolicContext *ctx, jobject value) {
-    return object_wrapper_env(ctx->env, value);
-}
-
-PyObject *object_wrapper_env(JNIEnv *env, jobject value) {
     if (!value)
         return Py_None;
-    return wrap_java_object(env, value);
+    return wrap_java_object(ctx->env, value);
 }
 
 jobjectArray array_converter(ConcolicContext *ctx, PyObject **elems, int *fail) {
