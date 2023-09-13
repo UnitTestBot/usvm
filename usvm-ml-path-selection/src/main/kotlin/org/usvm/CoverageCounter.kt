@@ -6,22 +6,24 @@ import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
 import java.util.concurrent.ConcurrentHashMap
 
-class CoverageCounter {
+class CoverageCounter(
+    private val mlConfig: MLConfig
+) {
     private val testCoverages = ConcurrentHashMap<String, List<Float>>()
     private val testStatementsCounts = ConcurrentHashMap<String, Float>()
     private val testDiscounts = ConcurrentHashMap<String, List<Float>>()
     private val testFinished = ConcurrentHashMap<String, Boolean>()
 
     fun addTest(testName: String, statementsCount: Float) {
-        testCoverages[testName] = List(MLConfig.discounts.size) { 0.0f }
+        testCoverages[testName] = List(mlConfig.discounts.size) { 0.0f }
         testStatementsCounts[testName] = statementsCount
-        testDiscounts[testName] = List(MLConfig.discounts.size) { 1.0f }
+        testDiscounts[testName] = List(mlConfig.discounts.size) { 1.0f }
         testFinished[testName] = false
     }
 
     fun updateDiscounts(testName: String) {
         testDiscounts[testName] = testDiscounts.getValue(testName)
-            .mapIndexed { id, currentDiscount -> MLConfig.discounts[id] * currentDiscount }
+            .mapIndexed { id, currentDiscount -> mlConfig.discounts[id] * currentDiscount }
     }
 
     fun updateResults(testName: String, newCoverage: Float) {
@@ -53,7 +55,7 @@ class CoverageCounter {
                 testCoverages.forEach { (test, coverages) ->
                     putJsonObject(test) {
                         putJsonObject("discounts") {
-                            MLConfig.discounts.zip(coverages).forEach { (discount, coverage) ->
+                            mlConfig.discounts.zip(coverages).forEach { (discount, coverage) ->
                                 put(discount.toString(), coverage)
                             }
                         }
@@ -63,7 +65,7 @@ class CoverageCounter {
                 }
             }
             putJsonObject("totalDiscounts") {
-                MLConfig.discounts.zip(getTotalCoverages()).forEach { (discount, coverage) ->
+                 mlConfig.discounts.zip(getTotalCoverages()).forEach { (discount, coverage) ->
                     put(discount.toString(), coverage)
                 }
             }

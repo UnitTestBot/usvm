@@ -7,9 +7,10 @@ import org.jacodb.api.JcClassOrInterface
 import org.jacodb.api.JcMethod
 import org.jacodb.api.ext.packageName
 import org.usvm.machine.ModifiedJcMachine
-import org.usvm.ps.FeaturesLogger.Companion.jsonStateScheme
-import org.usvm.ps.FeaturesLogger.Companion.jsonTrajectoryScheme
-import org.usvm.samples.ModifiedJacoDBContainer
+import org.usvm.ps.GlobalStateFeatures
+import org.usvm.ps.StateFeatures
+import org.usvm.samples.JacoDBContainer
+import org.usvm.util.getMethodFullName
 import java.io.File
 import kotlin.io.path.Path
 import kotlin.io.path.nameWithoutExtension
@@ -18,7 +19,7 @@ import kotlin.system.measureTimeMillis
 fun jarLoad(jars: Set<String>, classes: MutableMap<String, MutableList<JcClassOrInterface>>) {
     jars.forEach { filePath ->
         val file = Path(filePath).toFile()
-        val container = ModifiedJacoDBContainer(key = filePath, classpath = listOf(file))
+        val container = JacoDBContainer(key = filePath, classpath = listOf(file))
         val classNames = container.db.locations.flatMap { it.jcLocation?.classNames ?: listOf() }
         classes[filePath] = mutableListOf()
         classNames.forEach { className ->
@@ -30,41 +31,41 @@ fun jarLoad(jars: Set<String>, classes: MutableMap<String, MutableList<JcClassOr
 }
 
 private class MainTestRunner(
-    pathSelectionStrategies: List<ModifiedPathSelectionStrategy> = listOf(ModifiedPathSelectionStrategy.MACHINE_LEARNING),
+    private val config: MLConfig,
+    pathSelectionStrategies: List<ModifiedPathSelectionStrategy> =
+        listOf(ModifiedPathSelectionStrategy.MACHINE_LEARNING),
     timeoutMs: Long? = 20000
 ) {
-    val coverageCounter = CoverageCounter()
+    val coverageCounter = CoverageCounter(config)
 
-    var options = ModifiedUMachineOptions().copy(
-        exceptionsPropagation = false,
-        timeoutMs = timeoutMs,
-        stepLimit = 1500u,
-        pathSelectionStrategies = pathSelectionStrategies,
-        solverType = SolverType.Z3
+    val options = ModifiedUMachineOptions().copy(
+        UMachineOptions().copy(
+            exceptionsPropagation = false,
+            timeoutMs = timeoutMs,
+            stepLimit = 1500u,
+            solverType = SolverType.Z3
+        ),
+        pathSelectionStrategies
     )
 
     fun runTest(method: JcMethod, jarKey: String) {
-        ModifiedJcMachine(ModifiedJacoDBContainer(jarKey).cp, options).use { jcMachine ->
-            jcMachine.analyze(method, coverageCounter)
+        ModifiedJcMachine(JacoDBContainer(jarKey).cp, options).use { jcMachine ->
+            jcMachine.analyze(method, coverageCounter, config)
         }
     }
-}
-
-fun getName(method: JcMethod): String {
-    return method.toString().dropWhile { it != ')' }.drop(1)
 }
 
 private val prettyJson = Json { prettyPrint = true }
 
 @OptIn(ExperimentalCoroutinesApi::class, ExperimentalSerializationApi::class)
-fun calculate() {
-    val pathSelectorSets = if (MLConfig.mode == Mode.Test)
+fun calculate(config: MLConfig) {
+    val pathSelectorSets = if (config.mode == Mode.Test)
         listOf(
             listOf(ModifiedPathSelectionStrategy.MACHINE_LEARNING),
             listOf(ModifiedPathSelectionStrategy.FEATURES_LOGGING),
         )
     else listOf(listOf(ModifiedPathSelectionStrategy.MACHINE_LEARNING))
-    val timeLimits = if (MLConfig.mode == Mode.Test)
+    val timeLimits = if (config.mode == Mode.Test)
         listOf<Long?>(
             1000,
             5000,
@@ -73,10 +74,10 @@ fun calculate() {
     else listOf<Long?>(20000)
 
     val jarClasses = mutableMapOf<String, MutableList<JcClassOrInterface>>()
-    jarLoad(MLConfig.inputJars.keys, jarClasses)
+    jarLoad(config.inputJars.keys, jarClasses)
     println("\nLOADING COMPLETE\n")
 
-    val blacklist = Path(MLConfig.gameEnvPath, "blacklist.txt").toFile().let {
+    val blacklist = Path(config.gameEnvPath, "blacklist.txt").toFile().let {
         it.createNewFile()
         it.readLines()
     }
@@ -88,21 +89,21 @@ fun calculate() {
         println("RUNNING TESTS FOR $key")
         val allMethods = classesList.filter { cls ->
             !cls.isAnnotation && !cls.isInterface &&
-                    MLConfig.inputJars.getValue(key).any { cls.packageName.contains(it) } &&
+                    config.inputJars.getValue(key).any { cls.packageName.contains(it) } &&
                     !cls.name.contains("Test")
         }.flatMap { cls ->
             cls.declaredMethods.filter { method ->
-                method.enclosingClass == cls && getName(method) !in blacklist && !method.isConstructor
+                method.enclosingClass == cls && getMethodFullName(method) !in blacklist && !method.isConstructor
             }
-        }.sortedBy { getName(it).hashCode() }.distinctBy { getName(it) }
-        val orderedMethods = if (MLConfig.shuffleTests) allMethods.shuffled() else allMethods
+        }.sortedBy { getMethodFullName(it).hashCode() }.distinctBy { getMethodFullName(it) }
+        val orderedMethods = if (config.shuffleTests) allMethods.shuffled() else allMethods
 
         timeLimits.forEach { timeLimit ->
             println("  RUNNING TESTS WITH ${timeLimit}ms TIME LIMIT")
             pathSelectorSets.forEach { pathSelectors ->
                 println("    RUNNING TESTS WITH ${pathSelectors.joinToString("|")} PATH SELECTOR")
                 val statisticsFile = Path(
-                    MLConfig.dataPath,
+                    config.dataPath,
                     "statistics",
                     Path(key).nameWithoutExtension,
                     "${timeLimit}ms",
@@ -112,9 +113,9 @@ fun calculate() {
                 statisticsFile.createNewFile()
                 statisticsFile.writeText("")
 
-                val testRunner = MainTestRunner(pathSelectors, timeLimit)
-                runBlocking(Dispatchers.IO.limitedParallelism(MLConfig.maxConcurrency)) {
-                    orderedMethods.take((orderedMethods.size * MLConfig.dataConsumption / 100).toInt())
+                val testRunner = MainTestRunner(config, pathSelectors, timeLimit)
+                runBlocking(Dispatchers.IO.limitedParallelism(config.maxConcurrency)) {
+                    orderedMethods.take((orderedMethods.size * config.dataConsumption / 100).toInt())
                         .forEach { method ->
                             val test = launch {
                                 try {
@@ -144,13 +145,58 @@ fun calculate() {
     println("\nALL $finishedTestsCount TESTS FINISHED\n")
 }
 
+fun getJsonSchemes(config: MLConfig): Pair<JsonArray, JsonArray> {
+    val jsonFormat = Json {
+        encodeDefaults = true
+    }
+    val jsonStateScheme: JsonArray = buildJsonArray {
+        addJsonArray {
+            jsonFormat.encodeToJsonElement(StateFeatures()).jsonObject.forEach { t, _ ->
+                add(t)
+            }
+            jsonFormat.encodeToJsonElement(GlobalStateFeatures()).jsonObject.forEach { t, _ ->
+                add(t)
+            }
+            if (config.useGnn) {
+                (0 until config.gnnFeaturesCount).forEach {
+                    add("gnnFeature$it")
+                }
+            }
+            if (config.useRnn) {
+                (0 until config.rnnFeaturesCount).forEach {
+                    add("rnnFeature$it")
+                }
+            }
+        }
+        add("chosenStateId")
+        add("reward")
+        if (config.logGraphFeatures) {
+            add("graphId")
+            add("blockIds")
+        }
+    }
+    val jsonTrajectoryScheme = buildJsonArray {
+        add("hash")
+        add("trajectory")
+        add("name")
+        add("statementsCount")
+        if (config.logGraphFeatures) {
+            add("graphFeatures")
+            add("graphEdges")
+        }
+        add("probabilities")
+    }
+    return Pair(jsonStateScheme, jsonTrajectoryScheme)
+}
+
 @OptIn(ExperimentalSerializationApi::class)
-fun aggregate() {
-    val resultDirname = MLConfig.dataPath
+fun aggregate(config: MLConfig) {
+    val resultDirname = config.dataPath
     val resultFilename = "current_dataset.json"
     val schemesFilename = "schemes.json"
     val jsons = mutableListOf<JsonElement>()
 
+    val (jsonStateScheme, jsonTrajectoryScheme) = getJsonSchemes(config)
     val schemesJson = buildJsonObject {
         put("stateScheme", jsonStateScheme)
         put("trajectoryScheme", jsonTrajectoryScheme)
@@ -194,7 +240,7 @@ fun aggregate() {
                     add(it.jsonObject.getValue("json").jsonObject.getValue("path"))
                     add(it.jsonObject.getValue("methodName"))
                     add(it.jsonObject.getValue("json").jsonObject.getValue("statementsCount"))
-                    if (MLConfig.logGraphFeatures) {
+                    if (config.logGraphFeatures) {
                         add(it.jsonObject.getValue("json").jsonObject.getValue("graphFeatures"))
                         add(it.jsonObject.getValue("json").jsonObject.getValue("graphEdges"))
                     }
@@ -211,136 +257,143 @@ fun aggregate() {
     println("\nAGGREGATION FINISHED IN DIRECTORY $resultDirname\n")
 }
 
-fun updateConfig(options: JsonObject) {
-    MLConfig.gameEnvPath =
-        (options.getOrDefault("gameEnvPath", JsonPrimitive(MLConfig.gameEnvPath)) as JsonPrimitive).content
-    MLConfig.dataPath = (options.getOrDefault(
-        "dataPath",
-        JsonPrimitive(MLConfig.dataPath)
-    ) as JsonPrimitive).content
-    MLConfig.defaultAlgorithm = Algorithm.valueOf(
-        (options.getOrDefault(
-            "defaultAlgorithm",
-            JsonPrimitive(MLConfig.defaultAlgorithm.name)
-        ) as JsonPrimitive).content
+fun createConfig(options: JsonObject): MLConfig {
+    val defaultConfig = MLConfig()
+    val config = MLConfig(
+        gameEnvPath = (options.getOrDefault(
+            "gameEnvPath",
+            JsonPrimitive(defaultConfig.gameEnvPath)
+        ) as JsonPrimitive).content,
+        dataPath = (options.getOrDefault(
+            "dataPath",
+            JsonPrimitive(defaultConfig.dataPath)
+        ) as JsonPrimitive).content,
+        defaultAlgorithm = Algorithm.valueOf(
+            (options.getOrDefault(
+                "defaultAlgorithm",
+                JsonPrimitive(defaultConfig.defaultAlgorithm.name)
+            ) as JsonPrimitive).content
+        ),
+        postprocessing = Postprocessing.valueOf(
+            (options.getOrDefault(
+                "postprocessing",
+                JsonPrimitive(defaultConfig.postprocessing.name)
+            ) as JsonPrimitive).content
+        ),
+        mode = Mode.valueOf(
+            (options.getOrDefault(
+                "mode",
+                JsonPrimitive(defaultConfig.mode.name)
+            ) as JsonPrimitive).content
+        ),
+        logFeatures = (options.getOrDefault(
+            "logFeatures",
+            JsonPrimitive(defaultConfig.logFeatures)
+        ) as JsonPrimitive).content.toBoolean(),
+        shuffleTests = (options.getOrDefault(
+            "shuffleTests",
+            JsonPrimitive(defaultConfig.shuffleTests)
+        ) as JsonPrimitive).content.toBoolean(),
+        discounts = (options.getOrDefault(
+            "discounts", JsonArray(
+                defaultConfig.discounts
+                    .map { JsonPrimitive(it) })
+        ) as JsonArray).map { (it as JsonPrimitive).content.toFloat() },
+        inputShape = (options.getOrDefault(
+            "inputShape", JsonArray(
+                defaultConfig.inputShape
+                    .map { JsonPrimitive(it) })
+        ) as JsonArray).map { (it as JsonPrimitive).content.toLong() },
+        maxAttentionLength = (options.getOrDefault(
+            "maxAttentionLength",
+            JsonPrimitive(defaultConfig.maxAttentionLength)
+        ) as JsonPrimitive).content.toInt(),
+        useGnn = (options.getOrDefault(
+            "useGnn",
+            JsonPrimitive(defaultConfig.useGnn)
+        ) as JsonPrimitive).content.toBoolean(),
+        dataConsumption = (options.getOrDefault(
+            "dataConsumption",
+            JsonPrimitive(defaultConfig.dataConsumption)
+        ) as JsonPrimitive).content.toFloat(),
+        hardTimeLimit = (options.getOrDefault(
+            "hardTimeLimit",
+            JsonPrimitive(defaultConfig.hardTimeLimit)
+        ) as JsonPrimitive).content.toInt(),
+        solverTimeLimit = (options.getOrDefault(
+            "solverTimeLimit",
+            JsonPrimitive(defaultConfig.solverTimeLimit)
+        ) as JsonPrimitive).content.toInt(),
+        maxConcurrency = (options.getOrDefault(
+            "maxConcurrency",
+            JsonPrimitive(defaultConfig.maxConcurrency)
+        ) as JsonPrimitive).content.toInt(),
+        graphUpdate = GraphUpdate.valueOf(
+            (options.getOrDefault(
+                "graphUpdate",
+                JsonPrimitive(defaultConfig.graphUpdate.name)
+            ) as JsonPrimitive).content
+        ),
+        logGraphFeatures = (options.getOrDefault(
+            "logGraphFeatures",
+            JsonPrimitive(defaultConfig.logGraphFeatures)
+        ) as JsonPrimitive).content.toBoolean(),
+        gnnFeaturesCount = (options.getOrDefault(
+            "gnnFeaturesCount",
+            JsonPrimitive(defaultConfig.gnnFeaturesCount)
+        ) as JsonPrimitive).content.toInt(),
+        useRnn = (options.getOrDefault(
+            "useRnn",
+            JsonPrimitive(defaultConfig.useRnn)
+        ) as JsonPrimitive).content.toBoolean(),
+        rnnStateShape = (options.getOrDefault(
+            "rnnStateShape", JsonArray(
+                defaultConfig.rnnStateShape
+                    .map { JsonPrimitive(it) })
+        ) as JsonArray).map { (it as JsonPrimitive).content.toLong() },
+        rnnFeaturesCount = (options.getOrDefault(
+            "rnnFeaturesCount",
+            JsonPrimitive(defaultConfig.rnnFeaturesCount)
+        ) as JsonPrimitive).content.toInt(),
+        inputJars = (options.getOrDefault(
+            "inputJars",
+            JsonObject(defaultConfig.inputJars.mapValues { (_, value) ->
+                JsonArray(value.map { JsonPrimitive(it) })
+            })
+        ) as JsonObject).mapValues { (_, value) ->
+            (value as JsonArray).toList().map { (it as JsonPrimitive).content }
+        }
     )
-    MLConfig.postprocessing = Postprocessing.valueOf(
-        (options.getOrDefault(
-            "postprocessing",
-            JsonPrimitive(MLConfig.postprocessing.name)
-        ) as JsonPrimitive).content
-    )
-    MLConfig.mode = Mode.valueOf(
-        (options.getOrDefault(
-            "mode",
-            JsonPrimitive(MLConfig.mode.name)
-        ) as JsonPrimitive).content
-    )
-    MLConfig.logFeatures = (options.getOrDefault(
-        "logFeatures",
-        JsonPrimitive(MLConfig.logFeatures)
-    ) as JsonPrimitive).content.toBoolean()
-    MLConfig.shuffleTests = (options.getOrDefault(
-        "shuffleTests",
-        JsonPrimitive(MLConfig.shuffleTests)
-    ) as JsonPrimitive).content.toBoolean()
-    MLConfig.discounts = (options.getOrDefault(
-        "discounts", JsonArray(
-            MLConfig.discounts
-                .map { JsonPrimitive(it) })
-    ) as JsonArray).map { (it as JsonPrimitive).content.toFloat() }
-    MLConfig.inputShape = (options.getOrDefault(
-        "inputShape", JsonArray(
-            MLConfig.inputShape
-                .map { JsonPrimitive(it) })
-    ) as JsonArray).map { (it as JsonPrimitive).content.toLong() }
-    MLConfig.maxAttentionLength = (options.getOrDefault(
-        "maxAttentionLength",
-        JsonPrimitive(MLConfig.maxAttentionLength)
-    ) as JsonPrimitive).content.toInt()
-    MLConfig.useGnn = (options.getOrDefault(
-        "useGnn",
-        JsonPrimitive(MLConfig.useGnn)
-    ) as JsonPrimitive).content.toBoolean()
-    MLConfig.dataConsumption = (options.getOrDefault(
-        "dataConsumption",
-        JsonPrimitive(MLConfig.dataConsumption)
-    ) as JsonPrimitive).content.toFloat()
-    MLConfig.hardTimeLimit = (options.getOrDefault(
-        "hardTimeLimit",
-        JsonPrimitive(MLConfig.hardTimeLimit)
-    ) as JsonPrimitive).content.toInt()
-    MLConfig.solverTimeLimit = (options.getOrDefault(
-        "solverTimeLimit",
-        JsonPrimitive(MLConfig.solverTimeLimit)
-    ) as JsonPrimitive).content.toInt()
-    MLConfig.maxConcurrency = (options.getOrDefault(
-        "maxConcurrency",
-        JsonPrimitive(MLConfig.maxConcurrency)
-    ) as JsonPrimitive).content.toInt()
-    MLConfig.graphUpdate = GraphUpdate.valueOf(
-        (options.getOrDefault(
-            "graphUpdate",
-            JsonPrimitive(MLConfig.graphUpdate.name)
-        ) as JsonPrimitive).content
-    )
-    MLConfig.logGraphFeatures = (options.getOrDefault(
-        "logGraphFeatures",
-        JsonPrimitive(MLConfig.logGraphFeatures)
-    ) as JsonPrimitive).content.toBoolean()
-    MLConfig.gnnFeaturesCount = (options.getOrDefault(
-        "gnnFeaturesCount",
-        JsonPrimitive(MLConfig.gnnFeaturesCount)
-    ) as JsonPrimitive).content.toInt()
-    MLConfig.useRnn = (options.getOrDefault(
-        "useRnn",
-        JsonPrimitive(MLConfig.useRnn)
-    ) as JsonPrimitive).content.toBoolean()
-    MLConfig.rnnStateShape = (options.getOrDefault(
-        "rnnStateShape", JsonArray(
-            MLConfig.rnnStateShape
-                .map { JsonPrimitive(it) })
-    ) as JsonArray).map { (it as JsonPrimitive).content.toLong() }
-    MLConfig.rnnFeaturesCount = (options.getOrDefault(
-        "rnnFeaturesCount",
-        JsonPrimitive(MLConfig.rnnFeaturesCount)
-    ) as JsonPrimitive).content.toInt()
-    MLConfig.inputJars = (options.getOrDefault(
-        "inputJars",
-        JsonObject(MLConfig.inputJars.mapValues { (_, value) ->
-            JsonArray(value.map { JsonPrimitive(it) })
-        })
-    ) as JsonObject).mapValues { (_, value) ->
-        (value as JsonArray).toList().map { (it as JsonPrimitive).content }
-    }
 
     println("OPTIONS:")
-    println("  GAME ENV PATH: ${MLConfig.gameEnvPath}")
-    println("  DATA PATH: ${MLConfig.dataPath}")
-    println("  DEFAULT ALGORITHM: ${MLConfig.defaultAlgorithm}")
-    println("  POSTPROCESSING: ${MLConfig.postprocessing}")
-    println("  MODE: ${MLConfig.mode}")
-    println("  LOG FEATURES: ${MLConfig.logFeatures}")
-    println("  SHUFFLE TESTS: ${MLConfig.shuffleTests}")
-    println("  INPUT SHAPE: ${MLConfig.inputShape}")
-    println("  MAX ATTENTION LENGTH: ${MLConfig.maxAttentionLength}")
-    println("  USE GNN: ${MLConfig.useGnn}")
-    println("  DATA CONSUMPTION: ${MLConfig.dataConsumption}%")
-    println("  HARD TIME LIMIT: ${MLConfig.hardTimeLimit}ms")
-    println("  SOLVER TIME LIMIT: ${MLConfig.solverTimeLimit}ms")
-    println("  MAX CONCURRENCY: ${MLConfig.maxConcurrency}")
-    println("  GRAPH UPDATE: ${MLConfig.graphUpdate}")
-    println("  LOG GRAPH FEATURES: ${MLConfig.logGraphFeatures}")
-    println("  GNN FEATURES COUNT: ${MLConfig.gnnFeaturesCount}")
-    println("  USE RNN: ${MLConfig.useRnn}")
-    println("  RNN STATE SHAPE: ${MLConfig.rnnStateShape}")
-    println("  RNN FEATURES COUNT: ${MLConfig.rnnFeaturesCount}")
-    println("  INPUT JARS: ${MLConfig.inputJars}")
+    println("  GAME ENV PATH: ${config.gameEnvPath}")
+    println("  DATA PATH: ${config.dataPath}")
+    println("  DEFAULT ALGORITHM: ${config.defaultAlgorithm}")
+    println("  POSTPROCESSING: ${config.postprocessing}")
+    println("  MODE: ${config.mode}")
+    println("  LOG FEATURES: ${config.logFeatures}")
+    println("  SHUFFLE TESTS: ${config.shuffleTests}")
+    println("  INPUT SHAPE: ${config.inputShape}")
+    println("  MAX ATTENTION LENGTH: ${config.maxAttentionLength}")
+    println("  USE GNN: ${config.useGnn}")
+    println("  DATA CONSUMPTION: ${config.dataConsumption}%")
+    println("  HARD TIME LIMIT: ${config.hardTimeLimit}ms")
+    println("  SOLVER TIME LIMIT: ${config.solverTimeLimit}ms")
+    println("  MAX CONCURRENCY: ${config.maxConcurrency}")
+    println("  GRAPH UPDATE: ${config.graphUpdate}")
+    println("  LOG GRAPH FEATURES: ${config.logGraphFeatures}")
+    println("  GNN FEATURES COUNT: ${config.gnnFeaturesCount}")
+    println("  USE RNN: ${config.useRnn}")
+    println("  RNN STATE SHAPE: ${config.rnnStateShape}")
+    println("  RNN FEATURES COUNT: ${config.rnnFeaturesCount}")
+    println("  INPUT JARS: ${config.inputJars}")
     println()
+
+    return config
 }
 
-fun clear() {
-    Path(MLConfig.dataPath, "jsons").toFile().listFiles()?.forEach { file ->
+fun clear(dataPath: String) {
+    Path(dataPath, "jsons").toFile().listFiles()?.forEach { file ->
         file.delete()
     }
 }
@@ -349,29 +402,31 @@ fun main(args: Array<String>) {
     val options = args.getOrNull(0)?.let { File(it) }?.readText()?.let {
         Json.decodeFromString<JsonObject>(it)
     }
-    if (options != null) {
-        updateConfig(options)
+    val config = if (options != null) {
+        createConfig(options)
+    } else {
+        MLConfig()
     }
 
-    if (MLConfig.mode != Mode.Aggregation) {
-        clear()
+    if (config.mode != Mode.Aggregation) {
+        clear(config.dataPath)
     }
 
-    if (MLConfig.mode in listOf(Mode.Calculation, Mode.Both, Mode.Test)) {
+    if (config.mode in listOf(Mode.Calculation, Mode.Both, Mode.Test)) {
         try {
-            calculate()
+            calculate(config)
         } catch (e: Throwable) {
             e.printStackTrace()
-            clear()
+            clear(config.dataPath)
         }
     }
 
-    if (MLConfig.mode in listOf(Mode.Aggregation, Mode.Both)) {
+    if (config.mode in listOf(Mode.Aggregation, Mode.Both)) {
         try {
-            aggregate()
+            aggregate(config)
         } catch (e: Throwable) {
             e.printStackTrace()
-            clear()
+            clear(config.dataPath)
         }
     }
 }

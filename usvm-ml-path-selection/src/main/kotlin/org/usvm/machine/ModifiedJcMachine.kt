@@ -14,6 +14,7 @@ import org.usvm.ps.FeaturesLoggingPathSelector
 import org.usvm.ps.modifiedCreatePathSelector
 import org.usvm.statistics.*
 import org.usvm.stopstrategies.createStopStrategy
+import org.usvm.util.getMethodFullName
 
 val logger = object : KLogging() {}.logger
 
@@ -24,7 +25,7 @@ class ModifiedJcMachine(
         private val applicationGraph = JcApplicationGraph(cp)
 
     private val typeSystem = JcTypeSystem(cp)
-    private val components = JcComponents(typeSystem, options.solverType)
+    private val components = JcComponents(typeSystem, options.basicOptions.solverType)
     private val ctx = JcContext(cp, components)
 
     private val interpreter = JcInterpreter(ctx, applicationGraph)
@@ -33,13 +34,14 @@ class ModifiedJcMachine(
 
     fun analyze(
         method: JcMethod,
-        coverageCounter: CoverageCounter? = null
+        coverageCounter: CoverageCounter? = null,
+        mlConfig: MLConfig? = null
     ): List<JcState> {
         logger.debug("$this.analyze($method)")
         val initialState = interpreter.getInitialState(method)
 
         val methodsToTrackCoverage =
-            when (options.coverageZone) {
+            when (options.basicOptions.coverageZone) {
                 CoverageZone.METHOD -> setOf(method)
                 CoverageZone.TRANSITIVE -> setOf(method)
                 // TODO: more adequate method filtering. !it.isConstructor is used to exclude default constructor which is often not covered
@@ -58,25 +60,15 @@ class ModifiedJcMachine(
             options,
             { coverageStatistics },
             { distanceStatistics },
-            { applicationGraph }
+            { applicationGraph },
+            { mlConfig }
         )
 
         val statesCollector = CoveredNewStatesCollector<JcState>(coverageStatistics) {
             it.methodResult is JcMethodResult.JcException
         }
         val stopStrategy = createStopStrategy(
-            UMachineOptions(
-                pathSelectorCombinationStrategy = options.pathSelectorCombinationStrategy,
-                randomSeed = options.randomSeed,
-                stopOnCoverage = options.stopOnCoverage,
-                stepLimit = options.stepLimit,
-                collectedStatesLimit = options.collectedStatesLimit,
-                timeoutMs = options.timeoutMs,
-                stepsFromLastCovered = options.stepsFromLastCovered,
-                coverageZone = options.coverageZone,
-                exceptionsPropagation = options.exceptionsPropagation,
-                solverType = options.solverType
-            ),
+            options.basicOptions,
             coverageStatistics = { coverageStatistics },
             getCollectedStatesCount = { statesCollector.collectedStates.size }
         )
@@ -85,7 +77,7 @@ class ModifiedJcMachine(
 
         observers.add(TerminatedStateRemover())
 
-        if (options.coverageZone == CoverageZone.TRANSITIVE) {
+        if (options.basicOptions.coverageZone == CoverageZone.TRANSITIVE) {
             observers.add(
                 TransitiveCoverageZoneObserver(
                     initialMethod = method,
@@ -97,9 +89,9 @@ class ModifiedJcMachine(
         }
         observers.add(statesCollector)
 
-        val methodName = method.toString().dropWhile { it != ')' }.drop(1)
+        val methodFullName = getMethodFullName(method)
         if (coverageCounter != null) {
-            observers.add(CoverageCounterStatistics(coverageStatistics, coverageCounter, methodName))
+            observers.add(CoverageCounterStatistics(coverageStatistics, coverageCounter, methodFullName))
         }
 
         run(
@@ -110,9 +102,9 @@ class ModifiedJcMachine(
             stopStrategy = stopStrategy,
         )
 
-        coverageCounter?.finishTest(methodName)
-        if (pathSelector is FeaturesLoggingPathSelector<*, *, *>) {
-            if (MLConfig.logFeatures && MLConfig.mode != Mode.Test) {
+        coverageCounter?.finishTest(methodFullName)
+        if (pathSelector is FeaturesLoggingPathSelector<*, *, *> && mlConfig != null) {
+            if (mlConfig.logFeatures && mlConfig.mode != Mode.Test) {
                 pathSelector.savePath()
             }
         }

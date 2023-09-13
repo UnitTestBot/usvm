@@ -14,6 +14,7 @@ open class FeaturesLoggingPathSelector<State : UState<*, Method, Statement, *, S
     private val coverageStatistics: CoverageStatistics<Method, Statement, State>,
     private val distanceStatistics: DistanceStatistics<Method, Statement>,
     private val applicationGraph: ApplicationGraph<Method, Statement>,
+    private val mlConfig: MLConfig,
     private val pathSelector: UPathSelector<State>
 ) : UPathSelector<State> {
     protected val lru = mutableListOf<State>()
@@ -25,7 +26,7 @@ open class FeaturesLoggingPathSelector<State : UState<*, Method, Statement, *, S
     internal val path = mutableListOf<ActionData>()
     protected val probabilities = mutableListOf<List<Float>>()
 
-    protected val method: Method
+    private val method: Method
 
     private var stepCount = 0
 
@@ -67,7 +68,7 @@ open class FeaturesLoggingPathSelector<State : UState<*, Method, Statement, *, S
             applicationGraph.entryPoints(method).first(), forkCountsToExit, minForkCountsToExit
         )
         graphFeaturesList.add(blockGraph.getGraphFeatures())
-        featuresLogger = FeaturesLogger(method, blockGraph)
+        featuresLogger = FeaturesLogger(method, blockGraph, mlConfig)
     }
 
     private fun getDistancesToExit(): Array<Map<Statement, UInt>> {
@@ -293,7 +294,7 @@ open class FeaturesLoggingPathSelector<State : UState<*, Method, Statement, *, S
     }
 
     internal fun beforePeek(): Pair<List<StateFeatures>, GlobalStateFeatures> {
-        if (MLConfig.graphUpdate == GraphUpdate.TestGeneration && (path.lastOrNull()?.reward ?: 0.0f) > 0.5f) {
+        if (mlConfig.graphUpdate == GraphUpdate.TestGeneration && (path.lastOrNull()?.reward ?: 0.0f) > 0.5f) {
             graphFeaturesList.add(blockGraph.getGraphFeatures())
         }
         val stateFeatureQueue = getStateFeatureQueue()

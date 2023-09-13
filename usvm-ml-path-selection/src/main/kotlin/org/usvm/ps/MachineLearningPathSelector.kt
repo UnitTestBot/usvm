@@ -21,32 +21,32 @@ open class MachineLearningPathSelector<State : UState<*, Method, Statement, *, S
     coverageStatistics: CoverageStatistics<Method, Statement, State>,
     distanceStatistics: DistanceStatistics<Method, Statement>,
     applicationGraph: ApplicationGraph<Method, Statement>,
+    private val mlConfig: MLConfig,
     private val defaultPathSelector: UPathSelector<State>
 ) : FeaturesLoggingPathSelector<State, Statement, Method>(
     pathsTreeRoot,
     coverageStatistics,
     distanceStatistics,
     applicationGraph,
+    mlConfig,
     defaultPathSelector,
 ) {
     private var outputValues = listOf<Float>()
     private val random = Random(System.nanoTime())
     private val gnnFeaturesList = mutableListOf<List<List<Float>>>()
-    private var lastStateFeatures = List(MLConfig.rnnStateShape.prod()) { 0.0f }
-    private var rnnFeatures = if (MLConfig.useRnn) List(MLConfig.rnnFeaturesCount) { 0.0f } else emptyList()
+    private var lastStateFeatures = List(mlConfig.rnnStateShape.prod().toInt()) { 0.0f }
+    private var rnnFeatures = if (mlConfig.useRnn) List(mlConfig.rnnFeaturesCount) { 0.0f } else emptyList()
 
-    companion object {
-        private val env: OrtEnvironment = OrtEnvironment.getEnvironment()
-        private val actorModelPath = Path(MLConfig.gameEnvPath, "actor_model.onnx").toString()
-        private val gnnModelPath = Path(MLConfig.gameEnvPath, "gnn_model.onnx").toString()
-        private val rnnModelPath = Path(MLConfig.gameEnvPath, "rnn_cell.onnx").toString()
-        private var actorSession: OrtSession? = if (File(actorModelPath).isFile)
-            env.createSession(actorModelPath) else null
-        private var gnnSession: OrtSession? = if (MLConfig.useGnn)
-            env.createSession(gnnModelPath) else null
-        private var rnnSession: OrtSession? = if (MLConfig.useRnn)
-            env.createSession(rnnModelPath) else null
-    }
+    private val env: OrtEnvironment = OrtEnvironment.getEnvironment()
+    private val actorModelPath = Path(mlConfig.gameEnvPath, "actor_model.onnx").toString()
+    private val gnnModelPath = Path(mlConfig.gameEnvPath, "gnn_model.onnx").toString()
+    private val rnnModelPath = Path(mlConfig.gameEnvPath, "rnn_cell.onnx").toString()
+    private var actorSession: OrtSession? = if (File(actorModelPath).isFile)
+        env.createSession(actorModelPath) else null
+    private var gnnSession: OrtSession? = if (mlConfig.useGnn)
+        env.createSession(gnnModelPath) else null
+    private var rnnSession: OrtSession? = if (mlConfig.useRnn)
+        env.createSession(rnnModelPath) else null
 
     override fun getExtraNodeInfo(node: PathsTrieNode<State, Statement>) =
         node.states.joinToString(separator = "") { state ->
@@ -125,9 +125,9 @@ open class MachineLearningPathSelector<State : UState<*, Method, Statement, *, S
             lastActionData.blockIds[lastChosenAction]
         ) + gnnFeatures
         val lastActionShape = listOf(1, lastActionFeatures.size.toLong())
-        val lastStateShape = MLConfig.rnnStateShape
-        val actionFeaturesDataBuffer = FloatBuffer.allocate(lastActionShape.prod())
-        val stateFeaturesDataBuffer = FloatBuffer.allocate(lastStateShape.prod())
+        val lastStateShape = mlConfig.rnnStateShape
+        val actionFeaturesDataBuffer = FloatBuffer.allocate(lastActionShape.prod().toInt())
+        val stateFeaturesDataBuffer = FloatBuffer.allocate(lastStateShape.prod().toInt())
         lastActionFeatures.forEach {
             actionFeaturesDataBuffer.put(it)
         }
@@ -149,12 +149,12 @@ open class MachineLearningPathSelector<State : UState<*, Method, Statement, *, S
     }
 
     private fun runActor(allFeaturesListFull: List<List<Float>>): Int {
-        val firstIndex = if (MLConfig.maxAttentionLength == -1) 0 else
-            maxOf(0, lru.size - MLConfig.maxAttentionLength)
+        val firstIndex = if (mlConfig.maxAttentionLength == -1) 0 else
+            maxOf(0, lru.size - mlConfig.maxAttentionLength)
         val allFeaturesList = allFeaturesListFull.subList(firstIndex, lru.size)
         val totalSize = allFeaturesList.size * allFeaturesList.first().size
-        val totalKnownSize = MLConfig.inputShape.prod().toLong()
-        val shape = MLConfig.inputShape.map { if (it != -1L) it else -totalSize / totalKnownSize }.toLongArray()
+        val totalKnownSize = mlConfig.inputShape.prod()
+        val shape = mlConfig.inputShape.map { if (it != -1L) it else -totalSize / totalKnownSize }.toLongArray()
         val dataBuffer = FloatBuffer.allocate(totalSize)
         allFeaturesList.forEach { stateFeatures ->
             stateFeatures.forEach { feature ->
@@ -166,11 +166,10 @@ open class MachineLearningPathSelector<State : UState<*, Method, Statement, *, S
         val result = actorSession!!.run(mapOf(Pair("input", data)))
         val output = (result.get("output").get().value as Array<*>).flatMap { (it as FloatArray).toList() }
         outputValues = List(firstIndex) { -1.0f } + output
-        return firstIndex + when (MLConfig.postprocessing) {
+        return firstIndex + when (mlConfig.postprocessing) {
             Postprocessing.Argmax -> {
                 output.indices.maxBy { output[it] }
             }
-
             Postprocessing.Softmax -> {
                 val exponents = output.map { exp(it) }
                 val exponentsSum = exponents.sum()
@@ -178,7 +177,6 @@ open class MachineLearningPathSelector<State : UState<*, Method, Statement, *, S
                 probabilities.add(softmaxProbabilities)
                 chooseRandomId(softmaxProbabilities)
             }
-
             else -> {
                 probabilities.add(output)
                 chooseRandomId(output)
@@ -194,7 +192,7 @@ open class MachineLearningPathSelector<State : UState<*, Method, Statement, *, S
             throw IllegalArgumentException("No features")
         }
         if (lru.size == 1) {
-            if (MLConfig.postprocessing != Postprocessing.Argmax) {
+            if (mlConfig.postprocessing != Postprocessing.Argmax) {
                 probabilities.add(listOf(1.0f))
             }
             return lru[0]
@@ -223,10 +221,10 @@ open class MachineLearningPathSelector<State : UState<*, Method, Statement, *, S
 
     override fun peek(): State {
         val (stateFeatureQueue, globalStateFeatures) = beforePeek()
-        if (MLConfig.useRnn) {
+        if (mlConfig.useRnn) {
             runRnn()
         }
-        if (MLConfig.useGnn) {
+        if (mlConfig.useGnn) {
             runGnn()
         }
         val state = if (actorSession !== null) {

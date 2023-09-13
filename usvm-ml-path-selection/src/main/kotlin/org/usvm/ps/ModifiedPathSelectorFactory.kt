@@ -12,7 +12,8 @@ fun <Method, Statement, State : UState<*, Method, Statement, *, State>> modified
     options: ModifiedUMachineOptions,
     coverageStatistics: () -> CoverageStatistics<Method, Statement, State>? = { null },
     distanceStatistics: () -> DistanceStatistics<Method, Statement>? = { null },
-    applicationGraph: () -> ApplicationGraph<Method, Statement>? = { null }
+    applicationGraph: () -> ApplicationGraph<Method, Statement>? = { null },
+    mlConfig: () -> MLConfig? = { null }
 ) : UPathSelector<State> {
     val strategies = options.pathSelectionStrategies
     require(strategies.isNotEmpty()) { "At least one path selector strategy should be specified" }
@@ -24,7 +25,8 @@ fun <Method, Statement, State : UState<*, Method, Statement, *, State>> modified
                 requireNotNull(coverageStatistics()) { "Coverage statistics is required for Features Logging path selector" },
                 requireNotNull(distanceStatistics()) { "Distance statistics is required for Features Logging path selector" },
                 requireNotNull(applicationGraph()) { "Application graph is required for Features Logging path selector" },
-                when(MLConfig.defaultAlgorithm) {
+                requireNotNull(mlConfig()) { "ML config is required for Features Logging path selector" },
+                when(requireNotNull(mlConfig()).defaultAlgorithm) {
                     Algorithm.BFS -> BfsPathSelector()
                     Algorithm.ForkDepthRandom -> BfsPathSelector()
                 },
@@ -35,7 +37,8 @@ fun <Method, Statement, State : UState<*, Method, Statement, *, State>> modified
                 requireNotNull(coverageStatistics()) { "Coverage statistics is required for Machine Learning path selector" },
                 requireNotNull(distanceStatistics()) { "Distance statistics is required for Machine Learning path selector" },
                 requireNotNull(applicationGraph()) { "Application graph is required for Machine Learning path selector" },
-                when(MLConfig.defaultAlgorithm) {
+                requireNotNull(mlConfig()) { "ML config is required for Machine Learning path selector" },
+                when(requireNotNull(mlConfig()).defaultAlgorithm) {
                     Algorithm.BFS -> BfsPathSelector()
                     Algorithm.ForkDepthRandom -> BfsPathSelector()
                 },
@@ -43,7 +46,7 @@ fun <Method, Statement, State : UState<*, Method, Statement, *, State>> modified
         }
     }
 
-    val propagateExceptions = options.exceptionsPropagation
+    val propagateExceptions = options.basicOptions.exceptionsPropagation
 
     selectors.singleOrNull()?.let { selector ->
         val resultSelector = selector.wrapIfRequired(propagateExceptions)
@@ -53,7 +56,7 @@ fun <Method, Statement, State : UState<*, Method, Statement, *, State>> modified
 
     require(selectors.size >= 2) { "Cannot create collaborative path selector from less than 2 selectors" }
 
-    val selector = when (options.pathSelectorCombinationStrategy) {
+    val selector = when (options.basicOptions.pathSelectorCombinationStrategy) {
         PathSelectorCombinationStrategy.INTERLEAVED -> {
             // Since all selectors here work as one, we can wrap an interleaved selector only.
             val interleavedPathSelector = InterleavedPathSelector(selectors).wrapIfRequired(propagateExceptions)

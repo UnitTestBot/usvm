@@ -1,23 +1,15 @@
 package org.usvm.util
 
-import java.io.File
+import org.jacodb.api.JcMethod
 
 const val LOG_BASE = 1.42
 
-val modifiedAllClasspath: List<File>
-    get() {
-        return modifiedClasspath.map { File(it) }
-    }
+fun Collection<Long>.prod(): Long {
+    return this.reduce { acc, l -> acc * l }
+}
 
-private val modifiedClasspath: List<String>
-    get() {
-        val classpath = System.getProperty("java.class.path")
-        return classpath.split(File.pathSeparatorChar)
-            .toList()
-    }
-
-fun Collection<Number>.prod(): Int {
-    return this.map { it.toInt() }.reduce { acc, l -> acc * l }
+fun Collection<Int>.prod(): Int {
+    return this.reduce { acc, l -> acc * l }
 }
 
 fun Collection<Float>.average(): Float {
@@ -54,4 +46,12 @@ fun String.escape(): String {
         )
     }
     return result.toString()
+}
+
+fun getMethodFullName(method: Any?): String {
+    return if (method is JcMethod) {
+        "${method.enclosingClass.name}#${method.name}(${method.parameters.joinToString { it.type.typeName }})"
+    } else {
+        method.toString()
+    }
 }

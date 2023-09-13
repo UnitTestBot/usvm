@@ -7,6 +7,7 @@ import org.usvm.MLConfig
 import org.usvm.PathsTrieNode
 import org.usvm.UState
 import org.usvm.util.escape
+import org.usvm.util.getMethodFullName
 import java.io.File
 import kotlin.io.path.Path
 import kotlin.io.path.writeText
@@ -14,54 +15,13 @@ import kotlin.io.path.writeText
 internal class FeaturesLogger<State : UState<*, *, Statement, *, State>, Statement, Method>(
     method: Method,
     blockGraph: BlockGraph<*, Statement>,
+    private val mlConfig: MLConfig
 ) {
-    private val filepath = Path(MLConfig.dataPath, "jsons").toString()
-    private val filename = method.toString().dropWhile { it != ')' }.drop(1)
-    private val graphsPath = Path(MLConfig.gameEnvPath, "graphs").toString()
-    private val blockGraphsPath = Path(MLConfig.gameEnvPath, "block_graphs").toString()
-
-    companion object {
-        private val jsonFormat = Json {
-            encodeDefaults = true
-        }
-        val jsonStateScheme: JsonArray = buildJsonArray {
-            addJsonArray {
-                jsonFormat.encodeToJsonElement(StateFeatures()).jsonObject.forEach { t, _ ->
-                    add(t)
-                }
-                jsonFormat.encodeToJsonElement(GlobalStateFeatures()).jsonObject.forEach { t, _ ->
-                    add(t)
-                }
-                if (MLConfig.useGnn) {
-                    (0 until MLConfig.gnnFeaturesCount).forEach {
-                        add("gnnFeature$it")
-                    }
-                }
-                if (MLConfig.useRnn) {
-                    (0 until MLConfig.rnnFeaturesCount).forEach {
-                        add("rnnFeature$it")
-                    }
-                }
-            }
-            add("chosenStateId")
-            add("reward")
-            if (MLConfig.logGraphFeatures) {
-                add("graphId")
-                add("blockIds")
-            }
-        }
-        val jsonTrajectoryScheme = buildJsonArray {
-            add("hash")
-            add("trajectory")
-            add("name")
-            add("statementsCount")
-            if (MLConfig.logGraphFeatures) {
-                add("graphFeatures")
-                add("graphEdges")
-            }
-            add("probabilities")
-        }
-    }
+    private val filepath = Path(mlConfig.dataPath, "jsons").toString()
+    private val filename = getMethodFullName(method)
+    private val graphsPath = Path(mlConfig.gameEnvPath, "graphs").toString()
+    private val blockGraphsPath = Path(mlConfig.gameEnvPath, "block_graphs").toString()
+    private val jsonFormat = Json { encodeDefaults = true }
 
     init {
         File(filepath).mkdirs()
@@ -127,8 +87,6 @@ internal class FeaturesLogger<State : UState<*, *, Statement, *, State>, Stateme
             return
         }
         val jsonData = buildJsonObject {
-            put("stateScheme", jsonStateScheme)
-            put("trajectoryScheme", jsonTrajectoryScheme)
             putJsonArray("path") {
                 path.forEach { actionData ->
                     addJsonArray {
@@ -143,7 +101,7 @@ internal class FeaturesLogger<State : UState<*, *, Statement, *, State>, Stateme
                         }
                         add(actionData.chosenStateId)
                         add(actionData.reward)
-                        if (MLConfig.logGraphFeatures) {
+                        if (mlConfig.logGraphFeatures) {
                             add(actionData.graphId)
                             addJsonArray {
                                 actionData.blockIds.forEach {
@@ -155,7 +113,7 @@ internal class FeaturesLogger<State : UState<*, *, Statement, *, State>, Stateme
                 }
             }
             put("statementsCount", statementsCount)
-            if (MLConfig.logGraphFeatures) {
+            if (mlConfig.logGraphFeatures) {
                 putJsonArray("graphFeatures") {
                     graphFeaturesList.forEach { graphFeatures ->
                         addJsonArray {
