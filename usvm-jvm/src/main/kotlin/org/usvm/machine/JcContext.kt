@@ -22,7 +22,6 @@ import org.jacodb.api.ext.void
 import org.jacodb.impl.bytecode.JcFieldImpl
 import org.jacodb.impl.types.FieldInfo
 import org.usvm.UContext
-import org.usvm.machine.interpreter.CompositeJcInterpreterObserver
 import org.usvm.util.extractJcRefType
 
 class JcContext(

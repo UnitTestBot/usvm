@@ -10,7 +10,7 @@ class TargetsReachedStatesCollector<State : UState<*, *, *, *, *, State>> : Stat
     private val mutableCollectedStates = mutableListOf<State>()
     override val collectedStates: List<State> = mutableCollectedStates
 
-    override fun onStateTerminated(state: State) {
+    override fun onStateTerminated(state: State, stateReachable: Boolean) {
         if (state.reachedTerminalTargets.isNotEmpty()) {
             mutableCollectedStates.add(state)
         }
