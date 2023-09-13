@@ -34,7 +34,6 @@ public class ConcolicRunContext {
     public int instructionCounter = 0;
     public boolean usesVirtualInputs = false;
     public Callable<Boolean> isCancelled;
-    public long symbolicAdapterRef;
 
     public ConcolicRunContext(
             @NotNull PythonExecutionState curState,

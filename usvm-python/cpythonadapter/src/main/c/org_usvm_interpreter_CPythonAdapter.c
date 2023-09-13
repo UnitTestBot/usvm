@@ -188,6 +188,18 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_concreteRunOnFu
     return (jlong) result;
 }
 
+static PyObject *
+symbolic_tp_call(void *ctx_raw, PyObject *self, PyObject *args, PyObject *kwargs) {
+    ConcolicContext *ctx = (ConcolicContext *) ctx_raw;
+    if (!is_wrapped_java_object(self))
+        return Py_None;
+    jobject symbol = ((JavaPythonObject *) self)->reference;
+    jlong ref = (*ctx->env)->GetLongField(ctx->env, symbol, ctx->symbol_tp_call_ref);
+    if (ref == 0)
+        return Py_None;
+    return call_symbolic_method((SymbolicMethod *) ref, ctx->adapter, args, kwargs);
+}
+
 JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_concolicRun(
     JNIEnv *env,
     jobject cpython_adapter,
@@ -207,12 +219,10 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_concolicRun(
     (*env)->SetLongField(env, cpython_adapter, ctx.cpython_java_exception_field, (jlong) ctx.java_exception);
 
     SymbolicAdapter *adapter = create_new_adapter(&ctx);
-    jclass concolic_context_cls = (*env)->FindClass(env, "org/usvm/interpreter/ConcolicRunContext");
-    jfieldID symbolic_adapter_field = (*env)->GetFieldID(env, concolic_context_cls, "symbolicAdapterRef", "J");
-    (*env)->SetLongField(env, context, symbolic_adapter_field, (jlong) adapter);
-
+    ctx.adapter = adapter;
     register_virtual_methods(adapter);
     REGISTER_ADAPTER_METHODS(adapter);
+    adapter->symbolic_tp_call = symbolic_tp_call;
     register_approximations(adapter);
 
     construct_args_for_symbolic_adapter(adapter, &ctx, &concrete_args, &virtual_args, &symbolic_args, &args);
@@ -448,12 +458,6 @@ JNIEXPORT jobject JNICALL Java_org_usvm_interpreter_CPythonAdapter_getSymbolicDe
     return get_symbolic_descriptor(env, adapter, (PyObject *) descr_ref);
 }
 
-JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_constructListAppendMethod(JNIEnv *env, jobject _, jlong adapter_ref, jobject symbolic_list_ref) {
-    return (jlong) construct_list_append_method(env, (SymbolicAdapter *) adapter_ref, symbolic_list_ref);
-}
-
-JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_callSymbolicMethod(JNIEnv *env, jobject _, jlong method_ref, jlong args_ref, jlong kwargs_ref) {
-    assert(method_ref != 0);
-    PyObject *result = call_symbolic_method((SymbolicMethod *) method_ref, (PyObject *) args_ref, (PyObject *) kwargs_ref);
-    return (jlong) result;
+JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_constructListAppendMethod(JNIEnv *env, jobject _, jobject symbolic_list_ref) {
+    return (jlong) construct_list_append_method(env, symbolic_list_ref);
 }
