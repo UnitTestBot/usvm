@@ -8,7 +8,7 @@ import org.usvm.test.util.checkers.eq
 
 class CountDownLatchExamplesTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("No entrypoint found for method")
+    @Disabled("Expected exactly 2 executions, but 3 found")
     fun testGetAndDown() {
         checkDiscoveredProperties(
             CountDownLatchExamples::getAndDown,

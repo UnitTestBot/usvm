@@ -17,7 +17,7 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method: (id:1)java.lang.Object#hashCode()")
+    @Disabled("Expected exactly 1 executions, but 3 found")
     fun testReturnSet() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::returnSet,
@@ -26,7 +26,6 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("java.lang.Integer#valueOf(int). Native calls in IntegerCache#<clinit>")
     fun testReturnMap() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::returnMap,
@@ -59,7 +58,7 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method: (id:1)java.lang.Object#hashCode()")
+    @Disabled("Expected exactly 1 executions, but 0 found")
     fun testReturn2DSet() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::return2DSet,
@@ -68,7 +67,6 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("java.lang.Integer#valueOf(int). Native calls in IntegerCache#<clinit>")
     fun testReturn2DMap() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::return2DMap,
@@ -77,7 +75,6 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("java.lang.Integer#valueOf(int). Native calls in IntegerCache#<clinit>")
     fun testIntegers2DList() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::returnIntegers2DList,

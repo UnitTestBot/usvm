@@ -142,7 +142,6 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No entrypoint found for method")
     fun testArrayCopyForIncompatiblePrimitiveTypes() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::arrayCopyForIncompatiblePrimitiveTypes,

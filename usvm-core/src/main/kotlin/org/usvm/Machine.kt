@@ -6,14 +6,13 @@ import org.usvm.stopstrategies.StopStrategy
 import org.usvm.util.bracket
 import org.usvm.util.debug
 
+val logger = object : KLogging() {}.logger
+
 /**
  * An abstract symbolic machine.
  *
  * @see [run]
  */
-
-val logger = object : KLogging() {}.logger
-
 abstract class UMachine<State> : AutoCloseable {
     /**
      * Runs symbolic execution loop.

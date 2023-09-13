@@ -9,14 +9,14 @@ import org.usvm.uctx
 
 // TODO: special mock api for variables
 
-fun <Method, T : USort> UState<*, Method, *, *, *>.makeSymbolicPrimitive(
+fun <Method, T : USort> UState<*, Method, *, *, *, *>.makeSymbolicPrimitive(
     sort: T
 ): UExpr<T> {
     check(sort != sort.uctx.addressSort) { "$sort is not primitive" }
     return memory.mock { call(lastEnteredMethod, emptySequence(), sort) }
 }
 
-fun <Type, Method> UState<Type, Method, *, *, *>.makeSymbolicRef(type: Type): UHeapRef {
+fun <Type, Method> UState<Type, Method, *, *, *, *>.makeSymbolicRef(type: Type): UHeapRef {
     val ref = memory.mock { call(lastEnteredMethod, emptySequence(), memory.ctx.addressSort) }
 
     memory.types.addSubtype(ref, type)
@@ -25,7 +25,7 @@ fun <Type, Method> UState<Type, Method, *, *, *>.makeSymbolicRef(type: Type): UH
     return ref
 }
 
-fun <Type, Method> UState<Type, Method, *, *, *>.makeSymbolicArray(arrayType: Type, size: USizeExpr): UHeapRef {
+fun <Type, Method> UState<Type, Method, *, *, *, *>.makeSymbolicArray(arrayType: Type, size: USizeExpr): UHeapRef {
     val ref = memory.mock { call(lastEnteredMethod, emptySequence(), memory.ctx.addressSort) }
 
     memory.types.addSubtype(ref, arrayType)

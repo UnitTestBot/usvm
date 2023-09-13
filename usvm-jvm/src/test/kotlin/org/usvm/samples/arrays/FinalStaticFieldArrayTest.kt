@@ -8,7 +8,7 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 internal class FinalStaticFieldArrayTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("No entrypoint found for method: jdk.internal.misc.Unsafe#registerNatives()")
+    @Disabled("Slow test")
     fun testFactorial() {
         checkDiscoveredProperties(
             FinalStaticFieldArray::factorial,

@@ -1,10 +1,12 @@
 package org.usvm.stopstrategies
 
 import org.usvm.UMachineOptions
+import org.usvm.UTarget
 import org.usvm.statistics.CoverageStatistics
 
 fun createStopStrategy(
     options: UMachineOptions,
+    targets: Collection<UTarget<*, *, *>>,
     coverageStatistics: () -> CoverageStatistics<*, *, *>? = { null },
     getCollectedStatesCount: (() -> Int)? = null,
 ) : StopStrategy {
@@ -41,6 +43,10 @@ fun createStopStrategy(
             getCollectedStatesCount
         )
         stopStrategies.add(stepsFromLastCoveredStopStrategy)
+    }
+
+    if (options.stopOnTargetsReached) {
+        stopStrategies.add(TargetsReachedStopStrategy(targets))
     }
 
     if (stopStrategies.isEmpty()) {

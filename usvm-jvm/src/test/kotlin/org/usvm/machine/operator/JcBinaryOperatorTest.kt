@@ -1,4 +1,4 @@
-package org.usvm.operators
+package org.usvm.machine.operator
 
 import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
@@ -13,8 +13,6 @@ import org.usvm.machine.extractDouble
 import org.usvm.machine.extractFloat
 import org.usvm.machine.extractInt
 import org.usvm.machine.extractLong
-import org.usvm.machine.operator.JcBinaryOperator
-import org.usvm.machine.operator.wideTo32BitsIfNeeded
 import kotlin.test.assertEquals
 
 class JcBinaryOperatorTest {

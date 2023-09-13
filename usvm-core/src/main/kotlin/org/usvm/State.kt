@@ -1,6 +1,8 @@
 package org.usvm
 
 import io.ksmt.expr.KInterpretedValue
+import kotlinx.collections.immutable.PersistentList
+import kotlinx.collections.immutable.toPersistentList
 import org.usvm.constraints.UPathConstraints
 import org.usvm.memory.UMemory
 import org.usvm.model.UModelBase
@@ -10,7 +12,7 @@ import org.usvm.solver.UUnsatResult
 
 typealias StateId = UInt
 
-abstract class UState<Type, Method, Statement, Context : UContext, State : UState<Type, Method, Statement, Context, State>>(
+abstract class UState<Type, Method, Statement, Context, Target, State>(
     // TODO: add interpreter-specific information
     ctx: UContext,
     open val callStack: UCallStack<Method, Statement>,
@@ -18,7 +20,10 @@ abstract class UState<Type, Method, Statement, Context : UContext, State : UStat
     open val memory: UMemory<Type, Method>,
     open var models: List<UModelBase<Type>>,
     open var pathLocation: PathsTrieNode<State, Statement>,
-) {
+    targets: List<Target> = emptyList(),
+) where Context : UContext,
+        Target : UTarget<Statement, Target, State>,
+        State : UState<Type, Method, Statement, Context, Target, State> {
     /**
      * Deterministic state id.
      * TODO: Can be replaced with overridden hashCode
@@ -54,7 +59,7 @@ abstract class UState<Type, Method, Statement, Context : UContext, State : UStat
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
 
-        other as UState<*, *, *, *, *>
+        other as UState<*, *, *, *, *, *>
 
         return id == other.id
     }
@@ -73,6 +78,46 @@ abstract class UState<Type, Method, Statement, Context : UContext, State : UStat
      * A property containing information about whether the state is exceptional or not.
      */
     abstract val isExceptional: Boolean
+
+    protected var targetsImpl: PersistentList<Target> = targets.toPersistentList()
+        private set
+
+    private val reachedTerminalTargetsImpl = mutableSetOf<Target>()
+
+    /**
+     * Collection of state's current targets.
+     * TODO: clean removed targets sometimes
+     */
+    val targets: Sequence<Target> get() = targetsImpl.asSequence().filterNot { it.isRemoved }
+
+    /**
+     * Reached targets with no children.
+     */
+    val reachedTerminalTargets: Set<Target> = reachedTerminalTargetsImpl
+
+    /**
+     * If the [target] is not removed and is contained in this state's target collection,
+     * removes it from there and adds there all its children.
+     *
+     * @return true if the [target] was successfully removed.
+     */
+    internal fun tryPropagateTarget(target: Target): Boolean {
+        val previousTargetCount = targetsImpl.size
+        targetsImpl = targetsImpl.remove(target)
+
+        if (previousTargetCount == targetsImpl.size || !target.isRemoved) {
+            return false
+        }
+
+        if (target.isTerminal) {
+            reachedTerminalTargetsImpl.add(target)
+            return true
+        }
+
+        targetsImpl = targetsImpl.addAll(target.children)
+
+        return true
+    }
 }
 
 data class ForkResult<T>(
@@ -96,7 +141,7 @@ private const val OriginalState = false
  * forked state.
  *
  */
-private fun <T : UState<Type, *, *, Context, T>, Type, Context : UContext> forkIfSat(
+private fun <T : UState<Type, *, *, Context, *, T>, Type, Context : UContext> forkIfSat(
     state: T,
     newConstraintToOriginalState: UBoolExpr,
     newConstraintToForkedState: UBoolExpr,
@@ -156,7 +201,7 @@ private fun <T : UState<Type, *, *, Context, T>, Type, Context : UContext> forkI
  * 2. makes not more than one query to USolver;
  * 3. if both [condition] and ![condition] are satisfiable, then [ForkResult.positiveState] === [state].
  */
-fun <T : UState<Type, *, *, Context, T>, Type, Context : UContext> fork(
+fun <T : UState<Type, *, *, Context, *, T>, Type, Context : UContext> fork(
     state: T,
     condition: UBoolExpr,
 ): ForkResult<T> {
@@ -217,7 +262,7 @@ fun <T : UState<Type, *, *, Context, T>, Type, Context : UContext> fork(
  * @return a list of states for each condition - `null` state
  * means [UUnknownResult] or [UUnsatResult] of checking condition.
  */
-fun <T : UState<Type, *, *, Context, T>, Type, Context : UContext> forkMulti(
+fun <T : UState<Type, *, *, Context, *, T>, Type, Context : UContext> forkMulti(
     state: T,
     conditions: Iterable<UBoolExpr>,
 ): List<T?> {

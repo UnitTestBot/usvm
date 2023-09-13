@@ -12,7 +12,6 @@ import kotlin.math.sqrt
 
 internal class NativeExampleTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Sequence is empty.")
     fun testPartialEx() {
         checkDiscoveredProperties(
             NativeExample::partialExecution,
@@ -31,7 +30,7 @@ internal class NativeExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sequence is empty.")
+    @Disabled("Some properties were not discovered at positions (from 0): [0]")
     fun testSubstitution() {
         checkDiscoveredProperties(
             NativeExample::substitution,
@@ -42,7 +41,6 @@ internal class NativeExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Sequence is empty.")
     fun testUnreachableBranch() {
         checkDiscoveredProperties(
             NativeExample::unreachableBranch,

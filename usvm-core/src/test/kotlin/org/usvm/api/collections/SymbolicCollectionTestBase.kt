@@ -13,6 +13,7 @@ import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UState
+import org.usvm.UTarget
 import org.usvm.constraints.UPathConstraints
 import org.usvm.memory.UMemory
 import org.usvm.model.buildTranslatorAndLazyDecoder
@@ -51,11 +52,13 @@ abstract class SymbolicCollectionTestBase {
         scope = StepScope(StateStub(ctx, pathConstraints, memory))
     }
 
+    class TargetStub : UTarget<Any?, TargetStub, StateStub>()
+
     class StateStub(
         ctx: UContext,
         pathConstraints: UPathConstraints<SingleTypeSystem.SingleType, UContext>,
         memory: UMemory<SingleTypeSystem.SingleType, Any?>,
-    ) : UState<SingleTypeSystem.SingleType, Any?, Any?, UContext, StateStub>(
+    ) : UState<SingleTypeSystem.SingleType, Any?, Any?, UContext, TargetStub, StateStub>(
         ctx, UCallStack(),
         pathConstraints, memory, emptyList(), ctx.mkInitialLocation()
     ) {

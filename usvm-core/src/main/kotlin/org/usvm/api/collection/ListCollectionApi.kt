@@ -15,7 +15,7 @@ import org.usvm.memory.map
 import org.usvm.uctx
 
 object ListCollectionApi {
-    fun <ListType> UState<ListType, *, *, *, *>.mkSymbolicList(
+    fun <ListType> UState<ListType, *, *, *, *, *>.mkSymbolicList(
         listType: ListType,
     ): UHeapRef = with(memory.ctx) {
         val ref = memory.alloc(listType)
@@ -27,12 +27,12 @@ object ListCollectionApi {
      * List size may be incorrect for input lists.
      * Use [ensureListSizeCorrect] to guarantee that list size is correct.
      * */
-    fun <ListType> UState<ListType, *, *, *, *>.symbolicListSize(
+    fun <ListType> UState<ListType, *, *, *, *, *>.symbolicListSize(
         listRef: UHeapRef,
         listType: ListType,
     ): USizeExpr = memory.readArrayLength(listRef, listType)
 
-    fun <ListType, State : UState<ListType, *, *, *, State>> StepScope<State, ListType, *>.ensureListSizeCorrect(
+    fun <ListType, State : UState<ListType, *, *, *, *, State>> StepScope<State, ListType, *>.ensureListSizeCorrect(
         listRef: UHeapRef,
         listType: ListType,
     ): Unit? {
@@ -54,14 +54,14 @@ object ListCollectionApi {
         return Unit
     }
 
-    fun <ListType, Sort : USort> UState<ListType, *, *, *, *>.symbolicListGet(
+    fun <ListType, Sort : USort> UState<ListType, *, *, *, *, *>.symbolicListGet(
         listRef: UHeapRef,
         index: USizeExpr,
         listType: ListType,
         sort: Sort,
     ): UExpr<Sort> = memory.readArrayIndex(listRef, index, listType, sort)
 
-    fun <ListType, Sort : USort> UState<ListType, *, *, *, *>.symbolicListAdd(
+    fun <ListType, Sort : USort> UState<ListType, *, *, *, *, *>.symbolicListAdd(
         listRef: UHeapRef,
         listType: ListType,
         sort: Sort,
@@ -76,7 +76,7 @@ object ListCollectionApi {
         }
     }
 
-    fun <ListType, Sort : USort> UState<ListType, *, *, *, *>.symbolicListSet(
+    fun <ListType, Sort : USort> UState<ListType, *, *, *, *, *>.symbolicListSet(
         listRef: UHeapRef,
         listType: ListType,
         sort: Sort,
@@ -86,7 +86,7 @@ object ListCollectionApi {
         memory.writeArrayIndex(listRef, index, listType, sort, value, guard = memory.ctx.trueExpr)
     }
 
-    fun <ListType, Sort : USort> UState<ListType, *, *, *, *>.symbolicListInsert(
+    fun <ListType, Sort : USort> UState<ListType, *, *, *, *, *>.symbolicListInsert(
         listRef: UHeapRef,
         listType: ListType,
         sort: Sort,
@@ -116,7 +116,7 @@ object ListCollectionApi {
         memory.writeArrayLength(listRef, updatedSize, listType)
     }
 
-    fun <ListType, Sort : USort> UState<ListType, *, *, *, *>.symbolicListRemove(
+    fun <ListType, Sort : USort> UState<ListType, *, *, *, *, *>.symbolicListRemove(
         listRef: UHeapRef,
         listType: ListType,
         sort: Sort,
@@ -142,7 +142,7 @@ object ListCollectionApi {
         memory.writeArrayLength(listRef, updatedSize, listType)
     }
 
-    fun <ListType, Sort : USort> UState<ListType, *, *, *, *>.symbolicListCopyRange(
+    fun <ListType, Sort : USort> UState<ListType, *, *, *, *, *>.symbolicListCopyRange(
         srcRef: UHeapRef,
         dstRef: UHeapRef,
         listType: ListType,

@@ -1,4 +1,7 @@
-package org.usvm.statistics
+package org.usvm.statistics.collectors
+
+import org.usvm.statistics.CoverageStatistics
+import org.usvm.statistics.UMachineObserver
 
 /**
  * [UMachineObserver] which collects states if the coverage increased or if the
@@ -10,21 +13,21 @@ package org.usvm.statistics
 class CoveredNewStatesCollector<State>(
     private val coverageStatistics: CoverageStatistics<*, *, *>,
     private val isException: (State) -> Boolean
-) : UMachineObserver<State> {
+) : StatesCollector<State> {
     private val mutableCollectedStates = mutableListOf<State>()
-    val collectedStates: List<State> = mutableCollectedStates
+    override val collectedStates: List<State> = mutableCollectedStates
 
-    private var previousCoverage = coverageStatistics.getTotalCoverage()
+    private var previousCoveredStatements = coverageStatistics.getTotalCoveredStatements()
 
     override fun onStateTerminated(state: State, stateReachable: Boolean) {
-        val currentCoverage = coverageStatistics.getTotalCoverage()
+        val currentCoveredStatements = coverageStatistics.getTotalCoveredStatements()
         if (isException(state)) {
             mutableCollectedStates.add(state)
             return
         }
 
-        if (stateReachable && currentCoverage > previousCoverage) {
-            previousCoverage = currentCoverage
+        if (stateReachable && currentCoveredStatements > previousCoveredStatements) {
+            previousCoveredStatements = currentCoveredStatements
             mutableCollectedStates.add(state)
         }
     }
