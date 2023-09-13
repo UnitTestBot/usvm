@@ -6,8 +6,10 @@ import org.jacodb.api.JcMethod
 import org.jacodb.api.cfg.JcInst
 import org.jacodb.api.ext.methods
 import org.usvm.CoverageZone
+import org.usvm.StateCollectionStrategy
 import org.usvm.UMachine
 import org.usvm.UMachineOptions
+import org.usvm.api.targets.JcTarget
 import org.usvm.machine.interpreter.JcInterpreter
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
@@ -15,11 +17,13 @@ import org.usvm.machine.state.lastStmt
 import org.usvm.ps.createPathSelector
 import org.usvm.statistics.CompositeUMachineObserver
 import org.usvm.statistics.CoverageStatistics
-import org.usvm.statistics.CoveredNewStatesCollector
-import org.usvm.statistics.DistanceStatistics
 import org.usvm.statistics.TerminatedStateRemover
 import org.usvm.statistics.TransitiveCoverageZoneObserver
 import org.usvm.statistics.UMachineObserver
+import org.usvm.statistics.collectors.CoveredNewStatesCollector
+import org.usvm.statistics.collectors.TargetsReachedStatesCollector
+import org.usvm.statistics.distances.CfgStatisticsImpl
+import org.usvm.statistics.distances.PlainCallGraphStatistics
 import org.usvm.stopstrategies.createStopStrategy
 
 val logger = object : KLogging() {}.logger
@@ -36,13 +40,11 @@ class JcMachine(
 
     private val interpreter = JcInterpreter(ctx, applicationGraph)
 
-    private val distanceStatistics = DistanceStatistics(applicationGraph)
+    private val cfgStatistics = CfgStatisticsImpl(applicationGraph)
 
-    fun analyze(
-        method: JcMethod
-    ): List<JcState> {
-        logger.debug("$this.analyze($method)")
-        val initialState = interpreter.getInitialState(method)
+    fun analyze(method: JcMethod, targets: List<JcTarget> = emptyList()): List<JcState> {
+        logger.debug("{}.analyze({}, {})", this, method, targets)
+        val initialState = interpreter.getInitialState(method, targets)
 
         val methodsToTrackCoverage =
             when (options.coverageZone) {
@@ -59,24 +61,42 @@ class JcMachine(
             applicationGraph
         )
 
+        val callGraphStatistics =
+            when (options.targetSearchDepth) {
+                0u -> PlainCallGraphStatistics()
+                else -> JcCallGraphStatistics(
+                    options.targetSearchDepth,
+                    applicationGraph,
+                    typeSystem.topTypeStream(),
+                    subclassesToTake = 10
+                )
+            }
+
         val pathSelector = createPathSelector(
             initialState,
             options,
+            applicationGraph,
             { coverageStatistics },
-            { distanceStatistics }
+            { cfgStatistics },
+            { callGraphStatistics }
         )
 
-        val statesCollector = CoveredNewStatesCollector<JcState>(coverageStatistics) {
-            it.methodResult is JcMethodResult.JcException
-        }
+        val statesCollector =
+            when (options.stateCollectionStrategy) {
+                StateCollectionStrategy.COVERED_NEW -> CoveredNewStatesCollector<JcState>(coverageStatistics) {
+                    it.methodResult is JcMethodResult.JcException
+                }
+                StateCollectionStrategy.REACHED_TARGET -> TargetsReachedStatesCollector()
+            }
+
         val stopStrategy = createStopStrategy(
             options,
+            targets,
             coverageStatistics = { coverageStatistics },
             getCollectedStatesCount = { statesCollector.collectedStates.size }
         )
 
         val observers = mutableListOf<UMachineObserver<JcState>>(coverageStatistics)
-
         observers.add(TerminatedStateRemover())
 
         if (options.coverageZone == CoverageZone.TRANSITIVE) {

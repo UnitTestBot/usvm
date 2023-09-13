@@ -3,7 +3,7 @@ package org.usvm
 /**
  * Symbolic execution tree node.
  */
-sealed class PathsTrieNode<State : UState<*, *, Statement, *, State>, Statement> {
+sealed class PathsTrieNode<State : UState<*, *, Statement, *, *, State>, Statement> {
     /**
      * Forked states' nodes.
      */
@@ -65,7 +65,7 @@ sealed class PathsTrieNode<State : UState<*, *, Statement, *, State>, Statement>
     }
 }
 
-class PathsTrieNodeImpl<State : UState<*, *, Statement, *, State>, Statement> private constructor(
+class PathsTrieNodeImpl<State : UState<*, *, Statement, *, *, State>, Statement> private constructor(
     override val depth: Int,
     override val states: MutableSet<State>,
     // Note: order is important for tests
@@ -101,7 +101,7 @@ class PathsTrieNodeImpl<State : UState<*, *, Statement, *, State>, Statement> pr
     override fun toString(): String = "Depth: $depth, statement: $statement"
 }
 
-class RootNode<State : UState<*, *, Statement, *, State>, Statement> : PathsTrieNode<State, Statement>() {
+class RootNode<State : UState<*, *, Statement, *, *, State>, Statement> : PathsTrieNode<State, Statement>() {
     override val children: MutableMap<Statement, PathsTrieNodeImpl<State, Statement>> = mutableMapOf()
 
     override val states: MutableSet<State> = hashSetOf()

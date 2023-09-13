@@ -13,7 +13,7 @@ import java.util.concurrent.ConcurrentHashMap
  * @param methods methods to track coverage of.
  * @param applicationGraph [ApplicationGraph] used to retrieve statements by method.
  */
-class CoverageStatistics<Method, Statement, State : UState<*, Method, Statement, *, State>>(
+class CoverageStatistics<Method, Statement, State : UState<*, Method, Statement, *, *, State>>(
     methods: Set<Method>,
     private val applicationGraph: ApplicationGraph<Method, Statement>
 ) : UMachineObserver<State> {
@@ -85,8 +85,8 @@ class CoverageStatistics<Method, Statement, State : UState<*, Method, Statement,
     /**
      * Returns statements from initial methods which have not been covered yet.
      */
-    fun getUncoveredStatements(): Collection<Pair<Method, Statement>> {
-        return uncoveredStatements.flatMap { kvp -> kvp.value.map { kvp.key to it } }
+    fun getUncoveredStatements(): Collection<Statement> {
+        return uncoveredStatements.values.flatten()
     }
 
     /**

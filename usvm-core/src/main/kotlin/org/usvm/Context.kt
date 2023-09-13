@@ -348,7 +348,7 @@ open class UContext(
     // Type hack to be able to intern the initial location for inheritors.
     private val initialLocation = RootNode<Nothing, Nothing>()
 
-    fun <State : UState<*, *, Statement, *, State>, Statement> mkInitialLocation()
+    fun <State : UState<*, *, Statement, *, *, State>, Statement> mkInitialLocation()
             : PathsTrieNode<State, Statement> = initialLocation.uncheckedCast()
 
     fun mkUValueSampler(): KSortVisitor<KExpr<*>> {

@@ -18,7 +18,7 @@ import org.usvm.StepScope.StepScopeState.DEAD
  *
  * @param originalState an initial state.
  */
-class StepScope<T : UState<Type, *, *, Context, T>, Type, Context : UContext>(
+class StepScope<T : UState<Type, *, *, Context, *, T>, Type, Context : UContext>(
     private val originalState: T,
 ) {
     private val forkedStates = mutableListOf<T>()

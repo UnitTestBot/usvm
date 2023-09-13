@@ -130,7 +130,7 @@ class SymbolicListTest : SymbolicCollectionTestBase() {
         checkValues(listRef, listValues, initialSize)
     }
 
-    private fun UState<SingleTypeSystem.SingleType, *, *, *, *>.checkValues(
+    private fun UState<SingleTypeSystem.SingleType, *, *, *, *, *>.checkValues(
         listRef: UHeapRef,
         values: List<USizeExpr>,
         initialSize: USizeExpr

@@ -14,16 +14,17 @@ import org.usvm.pseudoRandom
 import org.usvm.PathsTrieNode
 import org.usvm.PathsTrieNodeImpl
 import org.usvm.RootNode
+import org.usvm.TestInstruction
 import kotlin.test.assertEquals
 
 internal class RandomTreePathSelectorTests {
     private class TreeBuilder(
-        prevNode: PathsTrieNode<TestState, Int>,
+        prevNode: PathsTrieNode<TestState, TestInstruction>,
         statement: Int,
     ) {
         val node = when (prevNode) {
-            is RootNode -> PathsTrieNodeImpl(prevNode, statement, staticState)
-            is PathsTrieNodeImpl -> PathsTrieNodeImpl(prevNode, statement, staticState)
+            is RootNode -> PathsTrieNodeImpl(prevNode, TestInstruction("", statement), staticState)
+            is PathsTrieNodeImpl -> PathsTrieNodeImpl(prevNode, TestInstruction("", statement), staticState)
         }
 
         fun child(init: TreeBuilder.() -> Unit) {
@@ -36,7 +37,7 @@ internal class RandomTreePathSelectorTests {
             val stmt = nextStatement()
 
             with(state) {
-                pathLocation = node.pathLocationFor(stmt, this)
+                pathLocation = node.pathLocationFor(TestInstruction("", stmt), this)
             }
         }
 
@@ -51,10 +52,10 @@ internal class RandomTreePathSelectorTests {
 
     @Test
     fun smokeTest() {
-        val rootNode = RootNode<TestState, Int>()
+        val rootNode = RootNode<TestState, TestInstruction>()
         val state1 = mockk<TestState>()
 
-        every { state1.pathLocation } returns PathsTrieNodeImpl(rootNode, statement = 1, state1)
+        every { state1.pathLocation } returns PathsTrieNodeImpl(rootNode, statement = TestInstruction("", 1), state1)
 
         val selector = RandomTreePathSelector(rootNode, { 0 }, 0L)
 
@@ -64,10 +65,10 @@ internal class RandomTreePathSelectorTests {
 
     @Test
     fun peekFromEmptySelectorAndNonEmptyPathsTreeTest() {
-        val rootNode = RootNode<TestState, Int>()
+        val rootNode = RootNode<TestState, TestInstruction>()
         val state1 = mockk<TestState>()
 
-        every { state1.pathLocation } returns PathsTrieNodeImpl(rootNode, statement = 1, state1)
+        every { state1.pathLocation } returns PathsTrieNodeImpl(rootNode, statement = TestInstruction("", 1), state1)
 
         val selector = RandomTreePathSelector(rootNode, { 0 }, 0L)
 
@@ -77,7 +78,7 @@ internal class RandomTreePathSelectorTests {
     @ParameterizedTest
     @MethodSource("testCases")
     fun regularPeekTest(
-        root: PathsTrieNode<TestState, Int>,
+        root: PathsTrieNode<TestState, TestInstruction>,
         states: List<TestState>,
         randomChoices: List<Int>,
         expectedStates: List<TestState>,
@@ -173,7 +174,7 @@ internal class RandomTreePathSelectorTests {
     }
 
     companion object {
-        private fun <State : UState<*, *, Statement, *, State>, Statement> registerLocationsInTree(
+        private fun <State : UState<*, *, Statement, *, *, State>, Statement> registerLocationsInTree(
             root: PathsTrieNode<State, Statement>,
             selector: RandomTreePathSelector<State, Statement>,
         ) {
@@ -184,8 +185,8 @@ internal class RandomTreePathSelectorTests {
             }
         }
 
-        private fun tree(init: TreeBuilder.() -> Unit): PathsTrieNode<TestState, Int> {
-            val rootNode = RootNode<TestState, Int>()
+        private fun tree(init: TreeBuilder.() -> Unit): PathsTrieNode<TestState, TestInstruction> {
+            val rootNode = RootNode<TestState, TestInstruction>()
             val builder = TreeBuilder(rootNode, statement = TreeBuilder.nextStatement())
             init(builder)
             return rootNode

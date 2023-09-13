@@ -7,6 +7,6 @@ class StepLimitStopStrategy(private val limit: ULong) : StopStrategy {
     private var counter = 0UL
 
     override fun shouldStop(): Boolean {
-        return counter++ > limit
+        return ++counter > limit
     }
 }
