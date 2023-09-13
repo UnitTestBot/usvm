@@ -1,4 +1,7 @@
 #include "approximations.h"
+#include "converters.h"
+#include "utils.h"
+
 #include "wrapper.h"
 
 #define list_richcmp_impl(OP)                      \
@@ -104,11 +107,13 @@ Approximation_list_richcompare(PyObject *v, PyObject *w, int op) {
     return result;
 }
 
-PyObject *SymbolicMethod_list_append(SymbolicAdapter *adapter, PyObject *symbolic_list, PyObject *args, PyObject *kwargs) {
+PyObject *SymbolicMethod_list_append(SymbolicAdapter *adapter, jobject self_reference_list, PyObject *args, PyObject *kwargs) {
     if (args == 0 || !PyTuple_Check(args) || PyTuple_GET_SIZE(args) != 1 || kwargs)
         return Py_None;
     PyObject *symbolic_elem = PyTuple_GetItem(args, 0);
+    PyObject *symbolic_list = object_wrapper((ConcolicContext *) adapter->handler_param, self_reference_list);
     PyObject *self = adapter->list_append(adapter->handler_param, symbolic_list, symbolic_elem);
+    Py_DECREF(symbolic_list);
     if (!self)
         return 0;
     PyObject *result = adapter->load_const(adapter->handler_param, Py_None);

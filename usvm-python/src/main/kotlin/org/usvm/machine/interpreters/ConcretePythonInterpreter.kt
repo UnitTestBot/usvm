@@ -183,19 +183,10 @@ object ConcretePythonInterpreter {
         return pythonAdapter.getSymbolicDescriptor(concreteDescriptor.address)
     }
 
-    fun constructListAppendMethod(ctx: ConcolicRunContext, self: UninterpretedSymbolicPythonObject): SymbolForCPython {
-        val ref = pythonAdapter.constructListAppendMethod(ctx.symbolicAdapterRef, SymbolForCPython(self, 0));
+    fun constructListAppendMethod(self: UninterpretedSymbolicPythonObject): SymbolForCPython {
+        val ref = pythonAdapter.constructListAppendMethod(SymbolForCPython(self, 0));
         require(ref != 0L)
         return SymbolForCPython(null, ref)
-    }
-
-    fun callSymbolicMethod(symbol: SymbolForCPython, args: Long, kwargs: Long): PythonObject {
-        if (symbol.symbolicTpCall == 0L)
-            return PythonObject(pythonAdapter.pyNoneRef)
-        val result = pythonAdapter.callSymbolicMethod(symbol.symbolicTpCall, args, kwargs)
-        if (result == 0L)
-            throw CPythonExecutionException()
-        return PythonObject(result)
     }
 
     private fun createTypeQuery(checkMethod: (Long) -> Int): (PythonObject) -> Boolean = { pythonObject ->

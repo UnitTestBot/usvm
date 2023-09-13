@@ -22,6 +22,7 @@ PyObject *wrap_java_object(JNIEnv *env, jobject object);
 int is_wrapped_java_object(PyObject *object);
 
 typedef struct {
+    SymbolicAdapter *adapter;
     jobject context;
     JNIEnv *env;
     jclass cpython_adapter_cls;
@@ -31,6 +32,7 @@ typedef struct {
     PyObject *java_exception;
     jfieldID cpython_thrown_exception_field;
     jfieldID cpython_java_exception_field;
+    jfieldID symbol_tp_call_ref;
     HANDLERS_DEFS
 } ConcolicContext;
 
