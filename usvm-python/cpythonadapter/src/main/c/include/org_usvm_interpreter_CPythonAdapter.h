@@ -338,7 +338,7 @@ JNIEXPORT jobject JNICALL Java_org_usvm_interpreter_CPythonAdapter_getSymbolicDe
 /*
  * Class:     org_usvm_interpreter_CPythonAdapter
  * Method:    constructListAppendMethod
- * Signature: (JLorg/usvm/language/SymbolForCPython;)J
+ * Signature: (Lorg/usvm/language/SymbolForCPython;)J
  */
 JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_constructListAppendMethod
   (JNIEnv *, jobject, jobject);
