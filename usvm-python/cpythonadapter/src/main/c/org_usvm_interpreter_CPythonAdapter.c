@@ -3,11 +3,13 @@
 #include "org_usvm_interpreter_CPythonAdapter.h"
 #include "utils.h"
 #include "converters.h"
+#include "virtual_objects.h"
+#include "approximations.h"
+#include "descriptors.h"
+#include "symbolic_methods.h"
 #include "SymbolicAdapterMethods.h"  // generated from Gradle script
 
 #include "symbolicadapter.h"
-#include "virtual_objects.h"
-#include "approximations.h"
 
 #define SET_BOOLEAN_FIELD(field_name, value) \
     f = (*env)->GetFieldID(env, cls, field_name, "Z"); \
@@ -16,6 +18,10 @@
 #define SET_INTEGER_FIELD(field_name, value) \
     f = (*env)->GetFieldID(env, cls, field_name, "I"); \
     (*env)->SetIntField(env, cpython_adapter, f, value);
+
+#define SET_LONG_FIELD(field_name, value) \
+    f = (*env)->GetFieldID(env, cls, field_name, "J"); \
+    (*env)->SetLongField(env, cpython_adapter, f, value);
 
 #define SET_EXCEPTION_IN_CPYTHONADAPTER \
     PyObject *type, *value, *traceback; \
@@ -66,12 +72,14 @@ JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_initializePython
     SET_INTEGER_FIELD("pyLE", Py_LE)
     SET_INTEGER_FIELD("pyGT", Py_GT)
     SET_INTEGER_FIELD("pyGE", Py_GE)
+    SET_LONG_FIELD("pyNoneRef", (jlong) Py_None)
 
     initialize_java_python_type();
     initialize_virtual_object_type();
 
     INITIALIZE_PYTHON_APPROXIMATIONS
     PySys_AddAuditHook(audit_hook, &illegal_operation);
+    initialize_symbolic_methods_holder();
 }
 
 JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_finalizePython(JNIEnv *env, jobject cpython_adapter) {
@@ -199,6 +207,10 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_concolicRun(
     (*env)->SetLongField(env, cpython_adapter, ctx.cpython_java_exception_field, (jlong) ctx.java_exception);
 
     SymbolicAdapter *adapter = create_new_adapter(&ctx);
+    jclass concolic_context_cls = (*env)->FindClass(env, "org/usvm/interpreter/ConcolicRunContext");
+    jfieldID symbolic_adapter_field = (*env)->GetFieldID(env, concolic_context_cls, "symbolicAdapterRef", "J");
+    (*env)->SetLongField(env, context, symbolic_adapter_field, (jlong) adapter);
+
     register_virtual_methods(adapter);
     REGISTER_ADAPTER_METHODS(adapter);
     register_approximations(adapter);
@@ -429,5 +441,19 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeLookup(JNIE
     PyObject *result = _PyType_Lookup((PyTypeObject *) type_ref, py_name);
     (*env)->ReleaseStringUTFChars(env, name, c_name);
     Py_DECREF(py_name);
+    return (jlong) result;
+}
+
+JNIEXPORT jobject JNICALL Java_org_usvm_interpreter_CPythonAdapter_getSymbolicDescriptor(JNIEnv *env, jobject adapter, jlong descr_ref) {
+    return get_symbolic_descriptor(env, adapter, (PyObject *) descr_ref);
+}
+
+JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_constructListAppendMethod(JNIEnv *env, jobject _, jlong adapter_ref, jobject symbolic_list_ref) {
+    return (jlong) construct_list_append_method(env, (SymbolicAdapter *) adapter_ref, symbolic_list_ref);
+}
+
+JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_callSymbolicMethod(JNIEnv *env, jobject _, jlong method_ref, jlong args_ref, jlong kwargs_ref) {
+    assert(method_ref != 0);
+    PyObject *result = call_symbolic_method((SymbolicMethod *) method_ref, (PyObject *) args_ref, (PyObject *) kwargs_ref);
     return (jlong) result;
 }
