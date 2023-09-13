@@ -1,4 +1,4 @@
-package org.usvm.machine.operators
+package org.usvm.machine.operator
 
 import io.ksmt.expr.KExpr
 import io.ksmt.utils.cast

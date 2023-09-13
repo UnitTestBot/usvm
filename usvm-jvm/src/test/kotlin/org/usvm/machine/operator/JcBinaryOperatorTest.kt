@@ -1,4 +1,4 @@
-package org.usvm.machine.operators
+package org.usvm.machine.operator
 
 import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach

@@ -68,7 +68,7 @@ class JcMachine(
                     options.targetSearchDepth,
                     applicationGraph,
                     typeSystem.topTypeStream(),
-                    10
+                    subclassesToTake = 10
                 )
             }
 
@@ -121,7 +121,6 @@ class JcMachine(
 
         return statesCollector.collectedStates
     }
-
 
     private fun isStateTerminated(state: JcState): Boolean {
         return state.callStack.isEmpty()

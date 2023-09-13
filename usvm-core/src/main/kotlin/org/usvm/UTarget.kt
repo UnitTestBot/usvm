@@ -46,7 +46,7 @@ abstract class UTarget<Statement, Target, State>(
      */
     fun addChild(child: Target): Target {
         check(!isRemoved) { "Cannot add child to removed target" }
-        require(child.parent == null) { "Cannot add child target with existing parent" }
+        check(child.parent == null) { "Cannot add child target with existing parent" }
         childrenImpl.add(child)
         @Suppress("UNCHECKED_CAST")
         child.parent = this as Target

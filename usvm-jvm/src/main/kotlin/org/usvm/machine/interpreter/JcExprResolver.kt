@@ -94,11 +94,11 @@ import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.isTrue
 import org.usvm.machine.JcContext
-import org.usvm.machine.operators.JcBinaryOperator
-import org.usvm.machine.operators.JcUnaryOperator
-import org.usvm.machine.operators.ensureBvExpr
-import org.usvm.machine.operators.mkNarrow
-import org.usvm.machine.operators.wideTo32BitsIfNeeded
+import org.usvm.machine.operator.JcBinaryOperator
+import org.usvm.machine.operator.JcUnaryOperator
+import org.usvm.machine.operator.ensureBvExpr
+import org.usvm.machine.operator.mkNarrow
+import org.usvm.machine.operator.wideTo32BitsIfNeeded
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.addConcreteMethodCallStmt
@@ -106,7 +106,6 @@ import org.usvm.machine.state.addVirtualMethodCallStmt
 import org.usvm.machine.state.throwExceptionWithoutStackFrameDrop
 import org.usvm.memory.ULValue
 import org.usvm.memory.URegisterStackLValue
-import org.usvm.util.extractJcRefType
 import org.usvm.util.write
 
 /**

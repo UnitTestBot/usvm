@@ -9,7 +9,6 @@ import org.jacodb.api.JcMethod
 import org.jacodb.api.JcPrimitiveType
 import org.jacodb.api.JcRefType
 import org.jacodb.api.JcType
-import org.jacodb.api.JcTypedMethod
 import org.jacodb.api.cfg.JcArgument
 import org.jacodb.api.cfg.JcAssignInst
 import org.jacodb.api.cfg.JcCallInst
@@ -29,8 +28,6 @@ import org.jacodb.api.cfg.JcSwitchInst
 import org.jacodb.api.cfg.JcThis
 import org.jacodb.api.cfg.JcThrowInst
 import org.jacodb.api.ext.boolean
-import org.jacodb.api.ext.findMethodOrNull
-import org.jacodb.api.ext.toType
 import org.jacodb.api.ext.void
 import org.usvm.INITIAL_INPUT_ADDRESS
 import org.usvm.StepResult
@@ -42,9 +39,9 @@ import org.usvm.api.allocate
 import org.usvm.api.targets.JcTarget
 import org.usvm.api.typeStreamOf
 import org.usvm.machine.JcApplicationGraph
+import org.usvm.machine.JcConcreteMethodCallInst
 import org.usvm.machine.JcContext
 import org.usvm.machine.JcMethodApproximationResolver
-import org.usvm.machine.JcConcreteMethodCallInst
 import org.usvm.machine.JcMethodCall
 import org.usvm.machine.JcMethodCallBaseInst
 import org.usvm.machine.JcMethodEntrypointInst
@@ -64,6 +61,7 @@ import org.usvm.machine.state.throwExceptionWithoutStackFrameDrop
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.solver.USatResult
 import org.usvm.types.first
+import org.usvm.util.findMethod
 import org.usvm.util.write
 
 typealias JcStepScope = StepScope<JcState, JcType, JcContext>
@@ -440,7 +438,7 @@ class JcInterpreter(
                 val isExpr = typeConstraints[idx]
 
                 val block = { state: JcState ->
-                    val concreteMethod = type.findMethod(method.name, method.description)
+                    val concreteMethod = type.findMethod(method)
                         ?: error("Can't find method $method in type ${type.typeName}")
 
                     val concreteCall = methodCall.toConcreteMethodCall(concreteMethod.method)
@@ -459,7 +457,7 @@ class JcInterpreter(
         } else {
             val type = scope.calcOnState { memory.typeStreamOf(concreteRef) }.first()
 
-            val concreteMethod = type.findMethod(method.name, method.description)
+            val concreteMethod = type.findMethod(method)
                 ?: error("Can't find method $method in type ${type.typeName}")
 
             scope.doWithState {
@@ -467,29 +465,6 @@ class JcInterpreter(
                 newStmt(concreteCall)
             }
         }
-    }
-
-    private fun JcType.findMethod(name: String, desc: String): JcTypedMethod? = when (this) {
-        is JcClassType -> findClassMethod(name, desc)
-        // Array types are objects and have methods of java.lang.Object
-        is JcArrayType -> jcClass.toType().findClassMethod(name, desc)
-        else -> error("Unexpected type: $this")
-    }
-
-    private fun JcClassType.findClassMethod(name: String, desc: String): JcTypedMethod? {
-        val method = findMethodOrNull { it.name == name && it.method.description == desc }
-        if (method != null) return method
-
-        /**
-         * Method implementation was not found in current class but class is instantiatable.
-         * Therefore, method implementation is provided by the super class.
-         * */
-        val superClass = superType
-        if (superClass != null) {
-            return superClass.findClassMethod(name, desc)
-        }
-
-        return null
     }
 
     private fun approximateMethod(scope: JcStepScope, methodCall: JcMethodCall): Boolean {

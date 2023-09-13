@@ -1,15 +1,13 @@
 package org.usvm.machine
 
-import org.jacodb.api.JcClassType
 import org.jacodb.api.JcMethod
 import org.jacodb.api.JcType
-import org.jacodb.api.ext.findMethodOrNull
 import org.jacodb.api.ext.toType
 import org.usvm.algorithms.limitedBfsTraversal
 import org.usvm.statistics.distances.CallGraphStatistics
 import org.usvm.types.UTypeStream
 import org.usvm.util.canBeOverridden
-import org.usvm.util.isDefinition
+import org.usvm.util.findMethod
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -49,12 +47,11 @@ class JcCallGraphStatistics(
             typeStream
                 .filterBySupertype(callee.enclosingClass.toType())
                 .take(subclassesToTake)
-                .mapNotNullTo(overrides) {
-                    val override = checkNotNull((it as? JcClassType)?.findMethodOrNull(callee.name, callee.description)?.method) {
+                .mapTo(overrides) {
+                    val calleeMethod = it.findMethod(callee)?.method
+                    checkNotNull(calleeMethod) {
                         "Cannot find overridden method $callee in type $it"
                     }
-                    // Check that the method was actually overridden
-                    if (override.isDefinition()) override else null
                 }
         }
 

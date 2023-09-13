@@ -1,6 +1,7 @@
 package org.usvm
 
 import io.ksmt.expr.KInterpretedValue
+import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.toPersistentList
 import org.usvm.constraints.UPathConstraints
 import org.usvm.memory.UMemory
@@ -78,7 +79,7 @@ abstract class UState<Type, Method, Statement, Context, Target, State>(
      */
     abstract val isExceptional: Boolean
 
-    protected var targetsImpl = targets.toPersistentList()
+    protected var targetsImpl: PersistentList<Target> = targets.toPersistentList()
         private set
 
     private val reachedTerminalTargetsImpl = mutableSetOf<Target>()
@@ -103,14 +104,18 @@ abstract class UState<Type, Method, Statement, Context, Target, State>(
     internal fun tryPropagateTarget(target: Target): Boolean {
         val previousTargetCount = targetsImpl.size
         targetsImpl = targetsImpl.remove(target)
+
         if (previousTargetCount == targetsImpl.size || !target.isRemoved) {
             return false
         }
+
         if (target.isTerminal) {
             reachedTerminalTargetsImpl.add(target)
             return true
         }
+
         targetsImpl = targetsImpl.addAll(target.children)
+
         return true
     }
 }

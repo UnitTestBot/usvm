@@ -1,17 +1,12 @@
 package org.usvm.util
 
+import org.jacodb.api.JcArrayType
+import org.jacodb.api.JcClassType
 import org.jacodb.api.JcMethod
-
-/**
- * Checks if the method is the same as its definition (i.e. it is false for
- * subclasses' methods which use base definition).
- */
-fun JcMethod.isDefinition(): Boolean {
-    if (instList.size == 0) {
-        return true
-    }
-    return instList.first().location.method == this
-}
+import org.jacodb.api.JcType
+import org.jacodb.api.JcTypedMethod
+import org.jacodb.api.ext.findMethodOrNull
+import org.jacodb.api.ext.toType
 
 /**
  * Checks if the method can be overridden:
@@ -26,3 +21,27 @@ fun JcMethod.canBeOverridden(): Boolean =
         https://stackoverflow.com/a/30416883
      */
     !isStatic && !isConstructor && !isFinal && !isPrivate && !enclosingClass.isFinal
+
+
+fun JcType.findMethod(method: JcMethod): JcTypedMethod? = when (this) {
+    is JcClassType -> findClassMethod(method.name, method.description)
+    // Array types are objects and have methods of java.lang.Object
+    is JcArrayType -> jcClass.toType().findClassMethod(method.name, method.description)
+    else -> error("Unexpected type: $this")
+}
+
+private fun JcClassType.findClassMethod(name: String, desc: String): JcTypedMethod? {
+    val method = findMethodOrNull { it.name == name && it.method.description == desc }
+    if (method != null) return method
+
+    /**
+     * Method implementation was not found in current class but class is instantiatable.
+     * Therefore, method implementation is provided by the super class.
+     * */
+    val superClass = superType
+    if (superClass != null) {
+        return superClass.findClassMethod(name, desc)
+    }
+
+    return null
+}

@@ -59,18 +59,17 @@ class CallStackDistanceCalculator<Method, Statement>(
 
     override fun calculateDistance(currentStatement: Statement, callStack: UCallStack<Method, Statement>): UInt {
         var currentMinDistanceToTarget = UInt.MAX_VALUE
-        val callStackArray = callStack.toTypedArray()
 
         // minDistanceToTarget(F) =
         //  min(
         //      min distance from F to target in current frame (if there are any),
         //      min distance from F to return point R of current frame + minDistanceToTarget(point in prev frame where R returns)
         //  )
-        for (i in callStackArray.indices) {
-            val method = callStackArray[i].method
+        for (i in callStack.indices) {
+            val method = callStack[i].method
             val locationInMethod =
-                if (i < callStackArray.size - 1) {
-                    val returnSite = callStackArray[i + 1].returnSite
+                if (i < callStack.size - 1) {
+                    val returnSite = callStack[i + 1].returnSite
                     checkNotNull(returnSite) { "Not first call stack frame had null return site" }
                 } else currentStatement
 
