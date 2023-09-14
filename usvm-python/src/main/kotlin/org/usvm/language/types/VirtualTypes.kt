@@ -88,6 +88,11 @@ object HasTpRichcmp: TypeProtocol() {
         ConcretePythonInterpreter.typeHasTpRichcmp(type.asObject)
 }
 
+object HasTpGetattro: TypeProtocol() {
+    override fun acceptsConcrete(type: ConcretePythonType): Boolean =
+        ConcretePythonInterpreter.typeHasTpGetattro(type.asObject)
+}
+
 object HasTpIter: TypeProtocol() {
     override fun acceptsConcrete(type: ConcretePythonType): Boolean =
         ConcretePythonInterpreter.typeHasTpIter(type.asObject)

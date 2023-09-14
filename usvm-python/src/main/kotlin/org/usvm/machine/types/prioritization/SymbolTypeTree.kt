@@ -4,6 +4,7 @@ import org.usvm.language.*
 import org.usvm.machine.PythonExecutionState
 import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
+import org.usvm.machine.symbolicobjects.getConcreteStrIfDefined
 import org.utbot.python.newtyping.PythonTypeHintsStorage
 import org.utbot.python.newtyping.createBinaryProtocol
 import org.utbot.python.newtyping.createUnaryProtocol
@@ -20,30 +21,35 @@ class SymbolTypeTree(
 ) {
     private val root = SymbolTreeNode(rootSymbol)
     private fun generateSuccessors(node: SymbolTreeNode): List<SymbolTreeNode> =
-        state.getMocksForSymbol(node.symbol).map { (mockHeader, resultSymbol) ->
-            val protocol = { returnType: UtType ->
+        state.getMocksForSymbol(node.symbol).mapNotNull { (mockHeader, resultSymbol) ->
+            val protocol =
                 when (mockHeader.method) {
                     MpAssSubscriptMethod ->
-                        createBinaryProtocol("__setitem__", pythonAnyType, returnType)
+                        { returnType: UtType -> createBinaryProtocol("__setitem__", pythonAnyType, returnType) }
                     MpSubscriptMethod ->
-                        createBinaryProtocol("__getitem__", pythonAnyType, returnType)
+                        { returnType: UtType -> createBinaryProtocol("__getitem__", pythonAnyType, returnType) }
                     NbAddMethod ->
-                        createBinaryProtocol("__add__", pythonAnyType, returnType)
+                        { returnType: UtType -> createBinaryProtocol("__add__", pythonAnyType, returnType) }
                     NbSubtractMethod ->
-                        createBinaryProtocol("__sub__", pythonAnyType, returnType)
+                        { returnType: UtType -> createBinaryProtocol("__sub__", pythonAnyType, returnType) }
                     NbBoolMethod ->
-                        createUnaryProtocol("__bool__", typeHintsStorage.pythonBool)
+                        { _: UtType -> createUnaryProtocol("__bool__", typeHintsStorage.pythonBool) }
                     NbIntMethod ->
-                        createUnaryProtocol("__int__", typeHintsStorage.pythonInt)
+                        { _: UtType -> createUnaryProtocol("__int__", typeHintsStorage.pythonInt) }
                     NbMatrixMultiplyMethod ->
-                        createBinaryProtocol("__matmul__", pythonAnyType, returnType)
+                        { returnType: UtType -> createBinaryProtocol("__matmul__", pythonAnyType, returnType) }
                     NbMultiplyMethod ->
-                        createBinaryProtocol("__mul__", pythonAnyType, returnType)
+                        { returnType: UtType -> createBinaryProtocol("__mul__", pythonAnyType, returnType) }
                     SqLengthMethod ->
-                        createUnaryProtocol("__len__", typeHintsStorage.pythonInt)
+                        { _: UtType -> createUnaryProtocol("__len__", typeHintsStorage.pythonInt) }
                     TpIterMethod ->
-                        createUnaryProtocol("__iter__", returnType)
-                    is TpRichcmpMethod -> {
+                        { returnType: UtType -> createUnaryProtocol("__iter__", returnType) }
+                    TpGetattro -> {
+                        val attribute = mockHeader.args[1].getConcreteStrIfDefined(state.preAllocatedObjects)
+                            ?: return@mapNotNull null
+                        { returnType: UtType -> createUnaryProtocol(attribute, returnType) }
+                    }
+                    is TpRichcmpMethod -> { returnType: UtType ->
                         when (mockHeader.method.op) {
                             ConcretePythonInterpreter.pyEQ ->
                                 createBinaryProtocol("__eq__", pythonAnyType, returnType)
@@ -61,7 +67,6 @@ class SymbolTypeTree(
                         }
                     }
                 }
-            }
             node.upperBounds.add(protocol(pythonAnyType))
             val newNode = SymbolTreeNode(resultSymbol)
             val edge = SymbolTreeEdge(newNode, node) { type -> listOf(protocol(type)) }

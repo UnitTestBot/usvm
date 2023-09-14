@@ -1,2 +1,2 @@
 def field_start(x):
-    return x.start
+    assert x.start == 157

@@ -10,9 +10,12 @@ import org.usvm.api.readArrayLength
 import org.usvm.api.readField
 import org.usvm.api.writeField
 import org.usvm.interpreter.ConcolicRunContext
+import org.usvm.isTrue
 import org.usvm.language.*
 import org.usvm.language.types.ArrayType
+import org.usvm.language.types.PythonTypeSystem
 import org.usvm.machine.UPythonContext
+import org.usvm.machine.interpreters.operations.myAssert
 
 
 /** int **/
@@ -234,3 +237,40 @@ fun UninterpretedSymbolicPythonObject.getRangeIteratorNext(
     val step = ctx.curState!!.memory.readField(address, RangeIteratorContents.step, intSort)
     return mkArithAdd(start, mkArithMul(index, step))
 }
+
+/** slice **/
+
+data class SliceInterpretedContent(
+    val start: KInterpretedValue<KIntSort>?,
+    val stop: KInterpretedValue<KIntSort>?,
+    val step: KInterpretedValue<KIntSort>?
+)
+
+fun InterpretedInputSymbolicPythonObject.getSliceContent(ctx: UPythonContext, typeSystem: PythonTypeSystem): SliceInterpretedContent {
+    require(getConcreteType() == typeSystem.pythonSlice)
+    val startIsNone = modelHolder.model.readField(address, SliceContents.startIsNone, ctx.boolSort).isTrue
+    val start = if (startIsNone) null else modelHolder.model.readField(address, SliceContents.start, ctx.intSort)
+    val stopIsNone = modelHolder.model.readField(address, SliceContents.stopIsNone, ctx.boolSort).isTrue
+    val stop = if (stopIsNone) null else modelHolder.model.readField(address, SliceContents.stop, ctx.intSort)
+    val stepIsNone = modelHolder.model.readField(address, SliceContents.stepIsNone, ctx.boolSort).isTrue
+    val step = if (stepIsNone) null else modelHolder.model.readField(address, SliceContents.step, ctx.intSort)
+    return SliceInterpretedContent(start, stop, step)
+}
+
+data class SliceUninterpretedField(
+    val isNone: UBoolExpr,
+    val content: UExpr<KIntSort>
+)
+
+fun UninterpretedSymbolicPythonObject.getSliceStart(ctx: ConcolicRunContext): SliceUninterpretedField {
+    require(ctx.curState != null)
+    addSupertypeSoft(ctx, ctx.typeSystem.pythonSlice)
+    val startIsNone = ctx.curState!!.memory.readField(address, SliceContents.startIsNone, ctx.ctx.boolSort)
+    val start = ctx.curState!!.memory.readField(address, SliceContents.start, ctx.ctx.intSort)
+    return SliceUninterpretedField(startIsNone, start)
+}
+
+/** str **/
+
+fun UninterpretedSymbolicPythonObject.getConcreteStrIfDefined(preallocatedObjects: PreallocatedObjects): String? =
+    preallocatedObjects.concreteString(this)

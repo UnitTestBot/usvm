@@ -33,4 +33,13 @@ object TupleIteratorContents {
     val index = ContentOfType("index_of_tuple_iterator")
 }
 
+object SliceContents {
+    val start = ContentOfType("start_of_slice")
+    val startIsNone = ContentOfType("start_none_of_slice")
+    val stop = ContentOfType("stop_of_slice")
+    val stopIsNone = ContentOfType("stop_none_of_slice")
+    val step = ContentOfType("step_of_slice")
+    val stepIsNone = ContentOfType("step_none_of_slice")
+}
+
 object TimeOfCreation: PropertyOfPythonObject()

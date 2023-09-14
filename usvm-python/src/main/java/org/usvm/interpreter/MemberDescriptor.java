@@ -6,5 +6,5 @@ import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject;
 
 public abstract class MemberDescriptor {
     @Nullable
-    public abstract SymbolForCPython getMember(UninterpretedSymbolicPythonObject owner);
+    public abstract SymbolForCPython getMember(ConcolicRunContext ctx, UninterpretedSymbolicPythonObject owner);
 }

@@ -54,6 +54,7 @@ class ConverterToPythonObject(
             typeSystem.pythonList -> convertList(obj)
             typeSystem.pythonTuple -> convertTuple(obj)
             typeSystem.pythonStr -> convertString()
+            typeSystem.pythonSlice -> convertSlice(obj)
             else -> {
                 if ((type as? ConcretePythonType)?.let { ConcretePythonInterpreter.typeHasStandardNew(it.asObject) } == true)
                     constructFromDefaultConstructor(type)
@@ -129,7 +130,7 @@ class ConverterToPythonObject(
         return resultList
     }
 
-    private fun convertTuple(obj: InterpretedInputSymbolicPythonObject): PythonObject = with(ctx) {
+    private fun convertTuple(obj: InterpretedInputSymbolicPythonObject): PythonObject {
         val size = obj.modelHolder.model.uModel.readArrayLength(obj.address, ArrayType) as KInt32NumExpr
         val resultTuple = ConcretePythonInterpreter.allocateTuple(size.value)
         constructedObjects[obj.address] = resultTuple
@@ -137,6 +138,14 @@ class ConverterToPythonObject(
         listOfPythonObjects.forEachIndexed { index, pythonObject ->
             ConcretePythonInterpreter.setTupleElement(resultTuple, index, pythonObject)
         }
-        resultTuple
+        return resultTuple
+    }
+
+    private fun convertSlice(obj: InterpretedInputSymbolicPythonObject): PythonObject {
+        val (start, stop, step) = obj.getSliceContent(ctx, typeSystem)
+        val startStr = start?.toString() ?: "None"
+        val stopStr = stop?.toString() ?: "None"
+        val stepStr = step?.toString() ?: "None"
+        return ConcretePythonInterpreter.eval(emptyNamespace, "slice($startStr, $stopStr, $stepStr)")
     }
 }
