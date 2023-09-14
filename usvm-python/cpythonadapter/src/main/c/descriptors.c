@@ -14,6 +14,18 @@ get_symbolic_descriptor(JNIEnv *env, jobject cpython_adapter, PyObject *concrete
         PyUnicode_CompareWithASCIIString(((PyMemberDescrObject *) concrete_descriptor)->d_common.d_name, "start") == 0) {
         jfieldID slice_start = (*env)->GetFieldID(env, cpython_adapter_cls, "sliceStartDescriptor", "Lorg/usvm/interpreter/MemberDescriptor;");
         return (*env)->GetObjectField(env, cpython_adapter, slice_start);
+
+    } else if (Py_TYPE(concrete_descriptor) == &PyMemberDescr_Type &&
+        ((PyMemberDescrObject *) concrete_descriptor)->d_common.d_type == &PySlice_Type &&
+        PyUnicode_CompareWithASCIIString(((PyMemberDescrObject *) concrete_descriptor)->d_common.d_name, "stop") == 0) {
+        jfieldID slice_start = (*env)->GetFieldID(env, cpython_adapter_cls, "sliceStopDescriptor", "Lorg/usvm/interpreter/MemberDescriptor;");
+        return (*env)->GetObjectField(env, cpython_adapter, slice_start);
+
+    } else if (Py_TYPE(concrete_descriptor) == &PyMemberDescr_Type &&
+        ((PyMemberDescrObject *) concrete_descriptor)->d_common.d_type == &PySlice_Type &&
+        PyUnicode_CompareWithASCIIString(((PyMemberDescrObject *) concrete_descriptor)->d_common.d_name, "step") == 0) {
+        jfieldID slice_start = (*env)->GetFieldID(env, cpython_adapter_cls, "sliceStepDescriptor", "Lorg/usvm/interpreter/MemberDescriptor;");
+        return (*env)->GetObjectField(env, cpython_adapter, slice_start);
     }
 
     return 0;
