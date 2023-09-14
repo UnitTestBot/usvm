@@ -6,6 +6,7 @@ import org.jetbrains.annotations.Nullable;
 import org.usvm.machine.MockHeader;
 import org.usvm.machine.interpreters.PythonObject;
 import org.usvm.machine.interpreters.operations.descriptors.ListAppendDescriptor;
+import org.usvm.machine.interpreters.operations.descriptors.SliceStartDescriptor;
 import org.usvm.machine.interpreters.operations.tracing.*;
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject;
 import org.usvm.language.*;
@@ -40,6 +41,7 @@ public class CPythonAdapter {
     public int pyGE;
     public int pyGT;
     public MemberDescriptor listAppendDescriptor = ListAppendDescriptor.INSTANCE;
+    public MemberDescriptor sliceStartDescriptor = SliceStartDescriptor.INSTANCE;
     public native void initializePython(String pythonHome);
     public native void finalizePython();
     public native long getNewNamespace();  // returns reference to a new dict
@@ -73,6 +75,7 @@ public class CPythonAdapter {
     public native int typeHasMpSubscript(long type);
     public native int typeHasMpAssSubscript(long type);
     public native int typeHasTpRichcmp(long type);
+    public native int typeHasTpGetattro(long type);
     public native int typeHasTpIter(long type);
     public native int typeHasStandardNew(long type);
     public native long callStandardNew(long type);
@@ -432,11 +435,18 @@ public class CPythonAdapter {
         mpAssSubscriptKt(context, storage.obj);
     }
 
-    public static void notifyTpRichcmp(@NotNull ConcolicRunContext context, int op, @NotNull SymbolForCPython left, SymbolForCPython right) {
+    public static void notifyTpRichcmp(@NotNull ConcolicRunContext context, int op, @NotNull SymbolForCPython left, @NotNull SymbolForCPython right) {
         if (left.obj == null)
             return;
         context.curOperation = new MockHeader(new TpRichcmpMethod(op), Arrays.asList(left.obj, right.obj), left.obj);
         tpRichcmpKt(context, left.obj);
+    }
+
+    public static void notifyTpGetattro(@NotNull ConcolicRunContext context, @NotNull SymbolForCPython on, @NotNull SymbolForCPython name) {
+        if (on.obj == null || name.obj == null)
+            return;
+        context.curOperation = new MockHeader(TpGetattro.INSTANCE, Arrays.asList(on.obj, name.obj), on.obj);
+        tpGetattroKt(context, on.obj, name.obj);
     }
 
     public static void notifyTpIter(@NotNull ConcolicRunContext context, @NotNull SymbolForCPython on) {

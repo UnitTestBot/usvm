@@ -40,6 +40,29 @@ tp_richcompare(PyObject *o1, PyObject *o2, int op) {
 }
 PyType_Slot Virtual_tp_richcompare = {Py_tp_richcompare, tp_richcompare};
 
+static int
+is_special_attribute(PyObject *name) {
+    if (!PyUnicode_Check(name))
+        return 0;
+    return PyUnicode_CompareWithASCIIString(name, "__instancecheck__") == 0 ||
+           PyUnicode_CompareWithASCIIString(name, "__class__") == 0;
+}
+
+static PyObject *
+tp_getattro(PyObject *self, PyObject *name) {
+    assert(is_virtual_object(self));
+    /*printf("tp_getattro on ");
+    PyObject_Print(name, stdout, 0);
+    printf("\n");
+    fflush(stdout);*/
+    if (is_special_attribute(name)) {
+        PyErr_Format(PyExc_AttributeError, "special attribute on virtual object");
+        return 0;
+    }
+    MAKE_USVM_VIRUAL_CALL((VirtualPythonObject *) self, 0)
+}
+PyType_Slot Virtual_tp_getattro = {Py_tp_getattro, tp_getattro};
+
 static PyObject *
 tp_iter(PyObject *o1) {
     assert(is_virtual_object(o1));
@@ -145,6 +168,7 @@ initialize_virtual_object_type() {
     PyType_Slot slots[] = {
         Virtual_tp_dealloc,
         Virtual_tp_richcompare,
+        Virtual_tp_getattro,
         Virtual_tp_iter,
         Virtual_nb_bool,
         Virtual_nb_int,
@@ -204,6 +228,7 @@ is_virtual_object(PyObject *obj) {
 
 void register_virtual_methods(SymbolicAdapter *adapter) {
     adapter->virtual_tp_richcompare = tp_richcompare;
+    adapter->virtual_tp_getattro = tp_getattro;
     adapter->virtual_tp_iter = tp_iter;
     adapter->virtual_nb_add = nb_add;
     adapter->virtual_nb_subtract = nb_subtract;
