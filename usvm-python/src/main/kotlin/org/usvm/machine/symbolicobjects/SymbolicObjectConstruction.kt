@@ -105,3 +105,19 @@ fun constructRangeIterator(context: ConcolicRunContext, range: UninterpretedSymb
         it.setRangeIteratorContent(context, range)
     }
 }
+
+fun constructSlice(
+    ctx: ConcolicRunContext,
+    start: SliceUninterpretedField,
+    stop: SliceUninterpretedField,
+    step: SliceUninterpretedField
+): UninterpretedSymbolicPythonObject {
+    require(ctx.curState != null)
+    val typeSystem = ctx.typeSystem
+    val address = ctx.curState!!.memory.alloc(typeSystem.pythonSlice)
+    return UninterpretedSymbolicPythonObject(address, typeSystem).also {
+        it.setSliceStart(ctx, start)
+        it.setSliceStop(ctx, stop)
+        it.setSliceStep(ctx, step)
+    }
+}

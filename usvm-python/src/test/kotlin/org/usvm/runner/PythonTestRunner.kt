@@ -100,12 +100,13 @@ sealed class PythonTestRunner(
         }
 
     private inline fun <reified FUNCTION_TYPE : Function<Boolean>> createCheckWithConcreteRunAndNoPredicates():
-                (PythonUnpinnedCallable) -> Unit =
-        { target: PythonUnpinnedCallable ->
+                (PythonUnpinnedCallable, (PythonAnalysisResult<PythonObjectInfo>, PythonObject) -> String?) -> Unit =
+        { target: PythonUnpinnedCallable,
+          compareConcolicAndConcrete: (PythonAnalysisResult<PythonObjectInfo>, PythonObject) -> String? ->
             createCheckWithConcreteRun<FUNCTION_TYPE>(concreteRun = true)(
                 target,
                 ge(0),
-                compareConcolicAndConcreteTypes,
+                compareConcolicAndConcrete,
                 emptyList(),
                 emptyList()
             )
@@ -143,6 +144,11 @@ sealed class PythonTestRunner(
 
     val check3WithConcreteRun =
         createCheckWithConcreteRun<(PythonObjectInfo, PythonObjectInfo, PythonObjectInfo, PythonObjectInfo) -> Boolean>()
+    val check3NoPredicates =
+        createCheckWithConcreteRunAndNoPredicates<(PythonObjectInfo, PythonObjectInfo, PythonObjectInfo, PythonObjectInfo) -> Boolean>()
+
+    val check4NoPredicates =
+        createCheckWithConcreteRunAndNoPredicates<(PythonObjectInfo, PythonObjectInfo, PythonObjectInfo, PythonObjectInfo, PythonObjectInfo) -> Boolean>()
 
     protected val compareConcolicAndConcreteReprsIfSuccess:
                 (PythonAnalysisResult<PythonObjectInfo>, PythonObject) -> String? = { testFromConcolic, concreteResult ->
@@ -175,13 +181,13 @@ sealed class PythonTestRunner(
         }
     }
 
-    protected val standardConcolicAndConcreteChecks:
+    val standardConcolicAndConcreteChecks:
                 (PythonAnalysisResult<PythonObjectInfo>, PythonObject) -> String? = { testFromConcolic, concreteResult ->
         compareConcolicAndConcreteReprsIfSuccess(testFromConcolic, concreteResult) ?:
                 compareConcolicAndConcreteTypesIfFail(testFromConcolic, concreteResult)
     }
 
-    protected val compareConcolicAndConcreteTypes:
+    val compareConcolicAndConcreteTypes:
                 (PythonAnalysisResult<PythonObjectInfo>, PythonObject) -> String? = { testFromConcolic, concreteResult ->
         compareConcolicAndConcreteTypesIfSuccess(testFromConcolic, concreteResult) ?:
         compareConcolicAndConcreteTypesIfFail(testFromConcolic, concreteResult)

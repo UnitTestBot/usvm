@@ -24,6 +24,7 @@ import static org.usvm.machine.interpreters.operations.ListKt.*;
 import static org.usvm.machine.interpreters.operations.LongKt.*;
 import static org.usvm.machine.interpreters.operations.MethodNotificationsKt.*;
 import static org.usvm.machine.interpreters.operations.RangeKt.*;
+import static org.usvm.machine.interpreters.operations.SliceKt.handlerCreateSliceKt;
 import static org.usvm.machine.interpreters.operations.TupleKt.*;
 import static org.usvm.machine.interpreters.operations.VirtualKt.*;
 import static org.usvm.machine.interpreters.operations.tracing.PathTracingKt.handlerForkResultKt;
@@ -260,8 +261,16 @@ public class CPythonAdapter {
     public static SymbolForCPython handlerCreateRange(ConcolicRunContext context, SymbolForCPython start, SymbolForCPython stop, SymbolForCPython step) {
         if (start.obj == null || stop.obj == null || step.obj == null)
             return null;
-        RangeCreation event = new RangeCreation(start, stop, step);
+        MethodParameters event = new MethodParameters("create_range", Arrays.asList(start, stop, step));
         return withTracing(context, event, () -> wrap(handlerCreateRangeKt(context, start.obj, stop.obj, step.obj)));
+    }
+
+    @Nullable
+    public static SymbolForCPython handlerCreateSlice(@NotNull ConcolicRunContext context, @NotNull SymbolForCPython start, @NotNull SymbolForCPython stop, @NotNull SymbolForCPython step) {
+        if (start.obj == null || stop.obj == null || step.obj == null)
+            return null;
+        MethodParameters event = new MethodParameters("create_slice", Arrays.asList(start, stop, step));
+        return withTracing(context, event, () -> wrap(handlerCreateSliceKt(context, start.obj, stop.obj, step.obj)));
     }
 
     public static SymbolForCPython handlerRangeIter(ConcolicRunContext context, SymbolForCPython range) {
