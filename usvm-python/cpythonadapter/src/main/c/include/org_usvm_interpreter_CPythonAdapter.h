@@ -273,6 +273,14 @@ JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasTpRichcmp
 
 /*
  * Class:     org_usvm_interpreter_CPythonAdapter
+ * Method:    typeHasTpGetattro
+ * Signature: (J)I
+ */
+JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasTpGetattro
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_usvm_interpreter_CPythonAdapter
  * Method:    typeHasTpIter
  * Signature: (J)I
  */
