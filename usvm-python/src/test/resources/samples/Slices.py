@@ -22,3 +22,26 @@ def none_fields(x):
     elif x.step is None:
         return 5
     return 6
+
+
+def sum_of_sublist(x):
+    lst = [1, 2, 3, 4]
+    sum_ = sum(lst[x:])
+    if sum_ == 0:
+        return 1
+    elif sum_ == 4:
+        return 2
+    elif sum_ == 7:
+        return 3
+    elif sum_ == 9:
+        return 4
+    elif sum_ == 10:
+        return 5
+
+
+def slice_usages(x: int, y: int, z: int):
+    size = 10
+    lst = []
+    for i in range(size):
+        lst.append(i)
+    return lst[x:y:z]

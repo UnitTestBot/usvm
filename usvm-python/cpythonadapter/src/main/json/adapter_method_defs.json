@@ -624,6 +624,18 @@
     "default_value": "Py_None"
   },
   {
+    "c_name": "create_slice",
+    "nargs": 3,
+    "c_arg_types": ["PyObject *", "PyObject *", "PyObject *"],
+    "c_return_type": "PyObject *",
+    "java_arg_types": ["jobject", "jobject", "jobject"],
+    "java_return_type": "jobject",
+    "argument_converters": ["object_converter", "object_converter", "object_converter"],
+    "result_converter": "object_wrapper",
+    "fail_value": "0",
+    "default_value": "Py_None"
+  },
+  {
     "c_name": "range_iter",
     "nargs": 1,
     "c_arg_types": ["PyObject *"],

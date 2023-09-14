@@ -268,20 +268,42 @@ private fun UninterpretedSymbolicPythonObject.getSliceField(
     field: PropertyOfPythonObject
 ): SliceUninterpretedField {
     require(ctx.curState != null)
-    addSupertypeSoft(ctx, ctx.typeSystem.pythonSlice)
+    addSupertype(ctx, ctx.typeSystem.pythonSlice)
     val isNone = ctx.curState!!.memory.readField(address, fieldIsNone, ctx.ctx.boolSort)
     val value = ctx.curState!!.memory.readField(address, field, ctx.ctx.intSort)
     return SliceUninterpretedField(isNone, value)
 }
 
+private fun UninterpretedSymbolicPythonObject.setSliceField(
+    ctx: ConcolicRunContext,
+    fieldIsNone: PropertyOfPythonObject,
+    field: PropertyOfPythonObject,
+    content: SliceUninterpretedField
+) {
+    require(ctx.curState != null)
+    addSupertypeSoft(ctx, ctx.typeSystem.pythonSlice)
+    ctx.curState!!.memory.writeField(address, fieldIsNone, ctx.ctx.boolSort, content.isNone, ctx.ctx.trueExpr)
+    ctx.curState!!.memory.writeField(address, field, ctx.ctx.intSort, content.content, ctx.ctx.trueExpr)
+}
+
 fun UninterpretedSymbolicPythonObject.getSliceStart(ctx: ConcolicRunContext): SliceUninterpretedField =
     getSliceField(ctx, SliceContents.startIsNone, SliceContents.start)
+
+fun UninterpretedSymbolicPythonObject.setSliceStart(ctx: ConcolicRunContext, content: SliceUninterpretedField) =
+    setSliceField(ctx, SliceContents.startIsNone, SliceContents.start, content)
 
 fun UninterpretedSymbolicPythonObject.getSliceStop(ctx: ConcolicRunContext): SliceUninterpretedField =
     getSliceField(ctx, SliceContents.stopIsNone, SliceContents.stop)
 
+fun UninterpretedSymbolicPythonObject.setSliceStop(ctx: ConcolicRunContext, content: SliceUninterpretedField) =
+    setSliceField(ctx, SliceContents.stopIsNone, SliceContents.stop, content)
+
 fun UninterpretedSymbolicPythonObject.getSliceStep(ctx: ConcolicRunContext): SliceUninterpretedField =
     getSliceField(ctx, SliceContents.stepIsNone, SliceContents.step)
+
+fun UninterpretedSymbolicPythonObject.setSliceStep(ctx: ConcolicRunContext, content: SliceUninterpretedField) =
+    setSliceField(ctx, SliceContents.stepIsNone, SliceContents.step, content)
+
 
 /** str **/
 
