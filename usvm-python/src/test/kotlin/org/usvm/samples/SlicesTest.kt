@@ -76,6 +76,7 @@ class SlicesTest: PythonTestRunnerForStructuredProgram("Slices", UMachineOptions
     @Test
     fun testSliceUsages() {
         val oldOptions = options
+        allowPathDiversions = true
         options = UMachineOptions(stepLimit = 30U)
         check3WithConcreteRun(
             constructFunction("slice_usages", List(3) { typeSystem.pythonInt }),
@@ -85,5 +86,6 @@ class SlicesTest: PythonTestRunnerForStructuredProgram("Slices", UMachineOptions
             /* propertiesToDiscover = */ emptyList()
         )
         options = oldOptions
+        allowPathDiversions = false
     }
 }
