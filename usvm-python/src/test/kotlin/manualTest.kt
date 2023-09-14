@@ -43,7 +43,7 @@ private fun buildSampleRunConfig(): RunConfig {
     )*/
     val function = PythonUnpinnedCallable.constructCallableFromName(
         listOf(PythonAnyType),
-        "field_start",
+        "none_fields",
         "Slices"
     )
     val functions = listOf(function)

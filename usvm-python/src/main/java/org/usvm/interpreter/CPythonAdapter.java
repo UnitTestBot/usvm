@@ -7,6 +7,8 @@ import org.usvm.machine.MockHeader;
 import org.usvm.machine.interpreters.PythonObject;
 import org.usvm.machine.interpreters.operations.descriptors.ListAppendDescriptor;
 import org.usvm.machine.interpreters.operations.descriptors.SliceStartDescriptor;
+import org.usvm.machine.interpreters.operations.descriptors.SliceStepDescriptor;
+import org.usvm.machine.interpreters.operations.descriptors.SliceStopDescriptor;
 import org.usvm.machine.interpreters.operations.tracing.*;
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject;
 import org.usvm.language.*;
@@ -42,6 +44,8 @@ public class CPythonAdapter {
     public int pyGT;
     public MemberDescriptor listAppendDescriptor = ListAppendDescriptor.INSTANCE;
     public MemberDescriptor sliceStartDescriptor = SliceStartDescriptor.INSTANCE;
+    public MemberDescriptor sliceStopDescriptor = SliceStopDescriptor.INSTANCE;
+    public MemberDescriptor sliceStepDescriptor = SliceStepDescriptor.INSTANCE;
     public native void initializePython(String pythonHome);
     public native void finalizePython();
     public native long getNewNamespace();  // returns reference to a new dict
