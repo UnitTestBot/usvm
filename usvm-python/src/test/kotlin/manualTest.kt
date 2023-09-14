@@ -27,24 +27,27 @@ fun main() {
     // println(ConcretePythonInterpreter.typeLookup(slice, "start"))
     // val config = buildProjectRunConfig()
     val config = buildSampleRunConfig()
-    analyze(config)
-    // checkConcolicAndConcrete(config)
+    // analyze(config)
+    checkConcolicAndConcrete(config)
 }
 
 private fun buildSampleRunConfig(): RunConfig {
-    val (program, typeSystem) = constructStructuredProgram()
-    /*constructPrimitiveProgram(
+    val (program, typeSystem) = constructPrimitiveProgram(
         """ 
-        def simple_str(x):
-            if isinstance(x, str):
+        def f(x):
+            assert isinstance(x, tuple)
+            cnt = 0
+            for elem in x:
+                assert isinstance(elem, tuple)
+                cnt += sum(elem)
+            if cnt > 1000:
                 return 1
             return 2
         """.trimIndent()
-    )*/
+    )
     val function = PythonUnpinnedCallable.constructCallableFromName(
         listOf(PythonAnyType),
-        "none_fields",
-        "Slices"
+        "f"
     )
     val functions = listOf(function)
     return RunConfig(program, typeSystem, functions)
@@ -110,17 +113,20 @@ private fun checkConcolicAndConcrete(runConfig: RunConfig) {
     val runner = CustomPythonTestRunner(
         program,
         typeSystem,
-        UMachineOptions(stepLimit = 30U, timeoutMs = 60_000),
+        UMachineOptions(stepLimit = 60U, timeoutMs = 60_000),
         allowPathDiversions = true
     )
     runner.timeoutPerRunMs = 10_000
     functions.forEach { function ->
         println("Running ${function.tag}...")
         try {
+            val comparator = runner.standardConcolicAndConcreteChecks
             when (val argsNum = function.numberOfArguments) {
-                0 -> runner.check0NoPredicates(function)
-                1 -> runner.check1NoPredicates(function)
-                2 -> runner.check2NoPredicates(function)
+                0 -> runner.check0NoPredicates(function, comparator)
+                1 -> runner.check1NoPredicates(function, comparator)
+                2 -> runner.check2NoPredicates(function, comparator)
+                3 -> runner.check3NoPredicates(function, comparator)
+                4 -> runner.check4NoPredicates(function, comparator)
                 else -> println("${function.tag} ignored because it has $argsNum arguments")
             }
         } catch (e: IllegalOperationException) {
@@ -141,7 +147,7 @@ private fun analyze(runConfig: RunConfig) {
                 val iterations = activeMachine.analyze(
                     f,
                     results,
-                    maxIterations = 60,
+                    maxIterations = 80,
                     allowPathDiversion = true,
                     maxInstructions = 10_000,
                     timeoutMs = 10_000
