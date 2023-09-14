@@ -230,6 +230,11 @@
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;ILorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)V"
     },
     {
+        "c_name": "tp_getattro",
+        "java_name": "notifyTpGetattro",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)V"
+    },
+    {
         "c_name": "tp_iter",
         "java_name": "notifyTpIter",
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;)V"
