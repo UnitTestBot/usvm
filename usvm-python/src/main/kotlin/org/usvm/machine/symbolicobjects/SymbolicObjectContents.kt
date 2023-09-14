@@ -262,13 +262,26 @@ data class SliceUninterpretedField(
     val content: UExpr<KIntSort>
 )
 
-fun UninterpretedSymbolicPythonObject.getSliceStart(ctx: ConcolicRunContext): SliceUninterpretedField {
+private fun UninterpretedSymbolicPythonObject.getSliceField(
+    ctx: ConcolicRunContext,
+    fieldIsNone: PropertyOfPythonObject,
+    field: PropertyOfPythonObject
+): SliceUninterpretedField {
     require(ctx.curState != null)
     addSupertypeSoft(ctx, ctx.typeSystem.pythonSlice)
-    val startIsNone = ctx.curState!!.memory.readField(address, SliceContents.startIsNone, ctx.ctx.boolSort)
-    val start = ctx.curState!!.memory.readField(address, SliceContents.start, ctx.ctx.intSort)
-    return SliceUninterpretedField(startIsNone, start)
+    val isNone = ctx.curState!!.memory.readField(address, fieldIsNone, ctx.ctx.boolSort)
+    val value = ctx.curState!!.memory.readField(address, field, ctx.ctx.intSort)
+    return SliceUninterpretedField(isNone, value)
 }
+
+fun UninterpretedSymbolicPythonObject.getSliceStart(ctx: ConcolicRunContext): SliceUninterpretedField =
+    getSliceField(ctx, SliceContents.startIsNone, SliceContents.start)
+
+fun UninterpretedSymbolicPythonObject.getSliceStop(ctx: ConcolicRunContext): SliceUninterpretedField =
+    getSliceField(ctx, SliceContents.stopIsNone, SliceContents.stop)
+
+fun UninterpretedSymbolicPythonObject.getSliceStep(ctx: ConcolicRunContext): SliceUninterpretedField =
+    getSliceField(ctx, SliceContents.stepIsNone, SliceContents.step)
 
 /** str **/
 
