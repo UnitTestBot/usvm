@@ -125,8 +125,7 @@ class BlockGraph<Method, Statement>(
         val totalCalleesCount = block.path.sumOf { applicationGraph.callees(it).count() }
         val forkCountToExit = forkCountsToExit.getValue(firstStatement)
         val minForkCountToExit = minForkCountsToExit.getValue(firstStatement)
-        val isCovered = firstStatement !in coverageStatistics
-            .getUncoveredStatements().map { it.second }
+        val isCovered = firstStatement !in coverageStatistics.getUncoveredStatements()
 
         return BlockFeatures(
             length.log(),

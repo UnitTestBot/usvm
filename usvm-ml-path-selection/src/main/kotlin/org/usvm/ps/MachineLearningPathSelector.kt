@@ -6,7 +6,7 @@ import ai.onnxruntime.OrtSession
 import org.usvm.*
 import org.usvm.statistics.ApplicationGraph
 import org.usvm.statistics.CoverageStatistics
-import org.usvm.statistics.DistanceStatistics
+import org.usvm.statistics.distances.CfgStatistics
 import org.usvm.util.prod
 import java.io.File
 import java.nio.FloatBuffer
@@ -16,17 +16,17 @@ import kotlin.io.path.Path
 import kotlin.math.exp
 import kotlin.random.Random
 
-open class MachineLearningPathSelector<State : UState<*, Method, Statement, *, State>, Statement, Method>(
+open class MachineLearningPathSelector<State : UState<*, Method, Statement, *, *, State>, Statement, Method>(
     pathsTreeRoot: PathsTrieNode<State, Statement>,
     coverageStatistics: CoverageStatistics<Method, Statement, State>,
-    distanceStatistics: DistanceStatistics<Method, Statement>,
+    cfgStatistics: CfgStatistics<Method, Statement>,
     applicationGraph: ApplicationGraph<Method, Statement>,
     private val mlConfig: MLConfig,
     private val defaultPathSelector: UPathSelector<State>
 ) : FeaturesLoggingPathSelector<State, Statement, Method>(
     pathsTreeRoot,
     coverageStatistics,
-    distanceStatistics,
+    cfgStatistics,
     applicationGraph,
     mlConfig,
     defaultPathSelector,

@@ -12,7 +12,7 @@ import java.io.File
 import kotlin.io.path.Path
 import kotlin.io.path.writeText
 
-internal class FeaturesLogger<State : UState<*, *, Statement, *, State>, Statement, Method>(
+internal class FeaturesLogger<State : UState<*, *, Statement, *, *, State>, Statement, Method>(
     method: Method,
     blockGraph: BlockGraph<*, Statement>,
     private val mlConfig: MLConfig

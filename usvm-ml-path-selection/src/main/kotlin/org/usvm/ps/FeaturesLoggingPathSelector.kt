@@ -3,16 +3,17 @@ package org.usvm.ps
 import org.usvm.*
 import org.usvm.statistics.ApplicationGraph
 import org.usvm.statistics.CoverageStatistics
-import org.usvm.statistics.DistanceStatistics
+import org.usvm.statistics.distances.CallStackDistanceCalculator
+import org.usvm.statistics.distances.CfgStatistics
 import org.usvm.util.LOG_BASE
 import org.usvm.util.average
 import org.usvm.util.getLast
 import org.usvm.util.log
 
-open class FeaturesLoggingPathSelector<State : UState<*, Method, Statement, *, State>, Statement, Method>(
+open class FeaturesLoggingPathSelector<State : UState<*, Method, Statement, *, *, State>, Statement, Method>(
     private val pathsTreeRoot: PathsTrieNode<State, Statement>,
     private val coverageStatistics: CoverageStatistics<Method, Statement, State>,
-    private val distanceStatistics: DistanceStatistics<Method, Statement>,
+    cfgStatistics: CfgStatistics<Method, Statement>,
     private val applicationGraph: ApplicationGraph<Method, Statement>,
     private val mlConfig: MLConfig,
     private val pathSelector: UPathSelector<State>
@@ -33,10 +34,10 @@ open class FeaturesLoggingPathSelector<State : UState<*, Method, Statement, *, S
     private val penalty = 0.0f
     private var finishedStatesCount = 0u
     private var allStatesCount = 0u
-    private val weighter = ShortestDistanceToTargetsStateWeighter<Method, Statement, State>(
-        coverageStatistics.getUncoveredStatements(),
-        distanceStatistics::getShortestCfgDistance,
-        distanceStatistics::getShortestCfgDistanceToExitPoint
+    private val distanceCalculator = CallStackDistanceCalculator(
+        targets = coverageStatistics.getUncoveredStatements(),
+        cfgStatistics = cfgStatistics,
+        applicationGraph
     )
     private val stateLastNewStatement = mutableMapOf<State, Int>()
     private val statePathCoverage = mutableMapOf<State, UInt>().withDefault { 0u }
@@ -55,9 +56,9 @@ open class FeaturesLoggingPathSelector<State : UState<*, Method, Statement, *, S
 
     init {
         coverageStatistics.addOnCoveredObserver { _, method, statement ->
-            weighter.removeTarget(method, statement)
+            distanceCalculator.removeTarget(method, statement)
         }
-        allStatements = coverageStatistics.getUncoveredStatements().map { it.second }
+        allStatements = coverageStatistics.getUncoveredStatements().toList()
         method = applicationGraph.methodOf(allStatements.first())
         val (tmpDistancesToExit, tmpForkCountsToExit) = getDistancesToExit()
         distancesToExit = tmpDistancesToExit
@@ -130,7 +131,7 @@ open class FeaturesLoggingPathSelector<State : UState<*, Method, Statement, *, S
         ) {
             return 0.0f
         }
-        return coverageStatistics.getUncoveredStatements().map { it.second }.toSet()
+        return coverageStatistics.getUncoveredStatements().toSet()
             .intersect(state.reversedPath.asSequence().toSet()).size.toFloat()
     }
 
@@ -148,7 +149,7 @@ open class FeaturesLoggingPathSelector<State : UState<*, Method, Statement, *, S
             statement == currentStatement
         }.size
         val statementRepetitionGlobal = statementRepetitions.getValue(currentStatement)
-        val distanceToUncovered = weighter.weight(state)
+        val distanceToUncovered = distanceCalculator.calculateDistance(state.currentStatement, state.callStack)
         val lastNewDistance = if (stateLastNewStatement.contains(state)) {
             currentPath.size - stateLastNewStatement.getValue(state)
         } else {
@@ -199,7 +200,7 @@ open class FeaturesLoggingPathSelector<State : UState<*, Method, Statement, *, S
     }
 
     private fun getGlobalStateFeatures(stateFeatureQueue: List<StateFeatures>): GlobalStateFeatures {
-        val uncoveredStatements = coverageStatistics.getUncoveredStatements().map { it.second }.toSet()
+        val uncoveredStatements = coverageStatistics.getUncoveredStatements().toSet()
 
         val logFinishedStatesCount = finishedStatesCount.log()
         val finishedStatesFraction = finishedStatesCount.toFloat() / allStatesCount.toFloat()
@@ -270,7 +271,7 @@ open class FeaturesLoggingPathSelector<State : UState<*, Method, Statement, *, S
             stateForkCount[state] = stateForkCount.getValue(state) + 1u
         }
 
-        if (coverageStatistics.getUncoveredStatements().map { it.second }.contains(statement)) {
+        if (coverageStatistics.getUncoveredStatements().contains(statement)) {
             stateLastNewStatement[state] = statePath.size
             statePathCoverage[state] = statePathCoverage.getValue(state) + 1u
         }

@@ -50,7 +50,7 @@ private class MainTestRunner(
 
     fun runTest(method: JcMethod, jarKey: String) {
         ModifiedJcMachine(JacoDBContainer(jarKey).cp, options).use { jcMachine ->
-            jcMachine.analyze(method, coverageCounter, config)
+            jcMachine.analyze(method, emptyList(), coverageCounter, config)
         }
     }
 }

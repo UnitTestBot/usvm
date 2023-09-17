@@ -3,7 +3,7 @@ package org.usvm.statistics
 import org.usvm.CoverageCounter
 import org.usvm.UState
 
-class CoverageCounterStatistics<State : UState<*, *, *, *, State>>(
+class CoverageCounterStatistics<State : UState<*, *, *, *, *, State>>(
     private val coverageStatistics: CoverageStatistics<*, *, State>,
     private val coverageCounter: CoverageCounter,
     private val methodName: String
