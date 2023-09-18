@@ -20,7 +20,6 @@ class JcState(
     models: List<UModelBase<JcType>> = listOf(),
     override var pathLocation: PathsTrieNode<JcState, JcInst> = ctx.mkInitialLocation(),
     var methodResult: JcMethodResult = JcMethodResult.NoCall,
-    var staticInitializersInCallStackCount: Int = 0,
     targets: List<JcTarget> = emptyList(),
 ) : UState<JcType, JcMethod, JcInst, JcContext, JcTarget, JcState>(
     ctx,
@@ -41,7 +40,6 @@ class JcState(
             models,
             pathLocation,
             methodResult,
-            staticInitializersInCallStackCount,
             targetsImpl,
         )
     }

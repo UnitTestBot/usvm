@@ -1,7 +1,6 @@
 package org.usvm.machine.interpreter
 
 import io.ksmt.utils.cast
-import io.ksmt.utils.mkFreshConst
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentHashMapOf
 import org.jacodb.api.JcRefType
@@ -41,7 +40,7 @@ data class JcStaticFieldRegionId(
 }
 
 internal class JcStaticFieldsMemoryRegion(
-    private val type: JcRefType,
+    private val type: JcRefType, // this property doesn't matter and is useful only for debugging
     private var classFieldValues: PersistentMap<JcField, UExpr<USort>> = persistentHashMapOf(),
 ) : UMemoryRegion<JcStaticFieldLValue<USort>, USort> {
     override fun read(key: JcStaticFieldLValue<USort>): UExpr<USort> = classFieldValues[key.field] ?: key.sort.sampleUValue()
@@ -56,7 +55,7 @@ internal class JcStaticFieldsMemoryRegion(
         return JcStaticFieldsMemoryRegion(type, newFieldValues)
     }
 
-    fun mutatePrimitiveFieldValuesToSymbolic(state: JcState) {
+    fun mutatePrimitiveStaticFieldValuesToSymbolic(state: JcState) {
         val mutablePrimitiveStaticFieldsToSymbolicValues = classFieldValues.entries.filter { (field, _) ->
             field.type.isPrimitive && !field.isFinal
         }.associate { (field, value) ->

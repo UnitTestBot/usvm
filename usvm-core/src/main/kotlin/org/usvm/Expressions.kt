@@ -183,7 +183,7 @@ const val INITIAL_CONCRETE_ADDRESS = NULL_ADDRESS + 1
 
 /**
  * A constant corresponding to the first static address in any symbolic memory.
- * Static addresses takes this semi-interval: (0..[Int.MAX_VALUE])
+ * Static addresses takes this segment: [[Int.MIN_VALUE]..[INITIAL_STATIC_ADDRESS]]
  */
 const val INITIAL_STATIC_ADDRESS = -(1 shl 20) // Use value not less than UNINTERPRETED_SORT_MIN_ALLOWED_VALUE in ksmt
 

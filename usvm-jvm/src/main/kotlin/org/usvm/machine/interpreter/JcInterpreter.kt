@@ -222,10 +222,6 @@ class JcInterpreter(
                 val entryPoint = applicationGraph.entryPoints(method).single()
                 scope.doWithState {
                     newStmt(entryPoint)
-
-                    if (method.isClassInitializer) {
-                        staticInitializersInCallStackCount++
-                    }
                 }
             }
 
@@ -294,17 +290,7 @@ class JcInterpreter(
             ?: ctx.mkVoidValue()
 
         scope.doWithState {
-            // It is important to write this value before the next instruction because it drops the last element
-            // from the call stack.
-            val lastMethod = lastEnteredMethod
-            val isReturningFromStaticInitializer = lastMethod.isClassInitializer
-
             returnValue(valueToReturn)
-
-            if (isReturningFromStaticInitializer) {
-                exprResolver.mutatePrimitiveFieldValuesToSymbolic(scope, lastMethod)
-                staticInitializersInCallStackCount--
-            }
         }
     }
 

@@ -601,6 +601,15 @@ class JcExprResolver(
         }
     }
 
+    /**
+     * This method adds a few constraints for the instance of an enum type to satisfy its invariants in Java:
+     * - Its ordinal takes this semi-interval: [0..$VALUES.size).
+     * - It equals by reference to the one of the enum constant of this enum type or null — this invariant is represented
+     * as a constraint that this instance equals by reference to the array reading from the $VALUES field by its ordinal or null.
+     *
+     * Without such constraints, false positive can appear — for example, forking on the negative ordinal, or incorrect enum
+     * values could be constructed as method parameters.
+     */
     private fun JcState.ensureEnumInstanceCorrectness(
         enumInstance: UHeapRef,
         type: JcClassOrInterface,
@@ -635,12 +644,21 @@ class JcExprResolver(
         val isEnumNull = mkHeapRefEq(enumInstance, nullRef)
         // A dirty hack to make both branches possible - with null enum value and
         // the enum value equal to the one of corresponding enum constants
-        val constraint = mkIteNoSimplify(isEnumNull, trueExpr, oneOfEnumInstances)
+        val invariantsConstraint = mkIteNoSimplify(isEnumNull, trueExpr, oneOfEnumInstances)
 
 
-        scope.assert(constraint)
+        scope.assert(invariantsConstraint)
     }
 
+    /**
+     * This method ensures enum constants are correct in any model. It is provided by adding a few constraints:
+     * - The length of the $VALUES field is always the same as after interpreting the corresponding static initializer.
+     * - The ordinal of each enum constant is always the same as after interpreting the corresponding static initializer.
+     * - Each enum constant always equals by reference to the array reading from the $VALUES array by its ordinal.
+     *
+     * Without such constraints, incorrect enum values could be constructed in case of aliasing method parameters with
+     * the enum constants (represented as static refs), or the $VALUES array.
+     */
     private fun JcState.ensureEnumStaticInitializerInvariants(type: JcClassOrInterface) = with(ctx) {
         val enumValues = type.enumValues ?: error("Expected enum values containing in the enum type $type")
         val enumValuesField = type.enumValuesField
@@ -728,6 +746,7 @@ class JcExprResolver(
                 if (result is JcMethodResult.Success && result.method == initializer) {
                     methodResult = JcMethodResult.NoCall
 
+                    mutatePrimitiveFieldValuesToSymbolic(scope, initializer)
                     if (jcClass.isEnum) {
                         ensureEnumStaticInitializerInvariants(jcClass)
                     }
@@ -975,13 +994,13 @@ class JcExprResolver(
             return true
         }
 
-        return ctx.useNegativeAddressesInStaticInitializer && staticInitializersInCallStackCount > 0
+        return ctx.useNegativeAddressesInStaticInitializer && callStack.any { it.method.isClassInitializer }
     }
 
     /**
      * Consider all mutable primitive fields allocated in the static initializer as symbolic values.
      */
-    fun mutatePrimitiveFieldValuesToSymbolic(
+    private fun mutatePrimitiveFieldValuesToSymbolic(
         scope: JcStepScope,
         staticInitializer: JcMethod
     ) {
@@ -990,7 +1009,7 @@ class JcExprResolver(
                 // We can use any sort here as it is not used
                 val staticFieldsMemoryRegionId = JcStaticFieldRegionId(staticInitializer.enclosingClass.toType(), voidSort)
                 val staticFieldsMemoryRegion = memory.getRegion(staticFieldsMemoryRegionId) as JcStaticFieldsMemoryRegion
-                staticFieldsMemoryRegion.mutatePrimitiveFieldValuesToSymbolic(this@calcOnState)
+                staticFieldsMemoryRegion.mutatePrimitiveStaticFieldValuesToSymbolic(this@calcOnState)
             }
         }
     }
