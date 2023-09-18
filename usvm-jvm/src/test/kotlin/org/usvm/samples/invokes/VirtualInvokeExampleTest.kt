@@ -9,7 +9,6 @@ import org.usvm.test.util.checkers.eq
 import org.usvm.util.isException
 import java.lang.Boolean
 
-@Disabled("An operation is not implemented: Not yet implemented")
 internal class VirtualInvokeExampleTest : JavaMethodTestRunner() {
     @Test
     fun testSimpleVirtualInvoke() {
@@ -23,7 +22,7 @@ internal class VirtualInvokeExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented. Support class constants")
+    @Disabled("Some properties were not discovered at positions (from 0): [0]")
     fun testVirtualNative() {
         checkDiscoveredProperties(
             VirtualInvokeExample::virtualNative,
@@ -33,7 +32,6 @@ internal class VirtualInvokeExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented. Support class constants")
     fun testGetSigners() {
         checkDiscoveredProperties(
             VirtualInvokeExample::virtualNativeArray,

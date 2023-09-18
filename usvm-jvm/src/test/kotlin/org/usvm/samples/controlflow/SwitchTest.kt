@@ -82,7 +82,7 @@ internal class SwitchTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented. Support strings")
+    @Disabled("Exceeds timeout - String#hashCode")
     fun testStringSwitch() {
         checkDiscoveredProperties(
             Switch::stringSwitch,
