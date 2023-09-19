@@ -265,12 +265,15 @@ JNIEXPORT jlongArray JNICALL Java_org_usvm_interpreter_CPythonAdapter_getIterabl
     return result;
 }
 
-JNIEXPORT jstring JNICALL Java_org_usvm_interpreter_CPythonAdapter_getPythonObjectRepr(JNIEnv *env, jobject _, jlong object_ref) {
+JNIEXPORT jstring JNICALL Java_org_usvm_interpreter_CPythonAdapter_getPythonObjectRepr(JNIEnv *env, jobject _, jlong object_ref, jboolean print_error_message) {
     assert(!PyErr_Occurred());
     PyObject *repr = PyObject_Repr((PyObject *) object_ref);
-    if (!repr) {
-        // PyErr_Print();
+    if (!repr && !print_error_message) {
         PyErr_Clear();
+        return 0;
+    }
+    if (!repr && print_error_message) {
+        PyErr_Print();
         return 0;
     }
     const char *repr_as_string = PyUnicode_AsUTF8AndSize(repr, 0);
@@ -339,6 +342,8 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_allocateTuple(J
 }
 
 JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_setTupleElement(JNIEnv *env, jobject _, jlong tuple_ref, jint index, jlong elem_ref) {
+    assert(elem_ref);
+    Py_INCREF(elem_ref);
     PyTuple_SetItem((PyObject *) tuple_ref, index, (PyObject *) elem_ref);
 }
 

@@ -109,8 +109,8 @@ object ConcretePythonInterpreter {
         pythonAdapter.printPythonObject(pythonObject.address)
     }
 
-    fun getPythonObjectRepr(pythonObject: PythonObject): String {
-        return pythonAdapter.getPythonObjectRepr(pythonObject.address) ?: throw CPythonExecutionException()
+    fun getPythonObjectRepr(pythonObject: PythonObject, printErrorMsg: Boolean = false): String {
+        return pythonAdapter.getPythonObjectRepr(pythonObject.address, printErrorMsg) ?: throw CPythonExecutionException()
     }
 
     fun getPythonObjectStr(pythonObject: PythonObject): String {

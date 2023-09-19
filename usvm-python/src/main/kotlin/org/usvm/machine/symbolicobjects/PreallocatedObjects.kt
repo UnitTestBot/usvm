@@ -21,7 +21,7 @@ class PreallocatedObjects(
         val cached = concreteStrToSymbol[string]
         if (cached != null)
             return cached
-        val result = constructEmptyObject(ctx.curState!!.memory, ctx.typeSystem, ctx.typeSystem.pythonStr)
+        val result = constructEmptyObject(ctx.ctx, ctx.curState!!.memory, ctx.typeSystem, ctx.typeSystem.pythonStr)
         concreteStrToSymbol[string] = result
         symbolToConcreteStr[result] = string
         return result
@@ -47,7 +47,7 @@ class PreallocatedObjects(
             typeSystem: PythonTypeSystem
         ): PreallocatedObjects =
             PreallocatedObjects(
-                noneObject = constructEmptyObject(initialMemory, typeSystem, typeSystem.pythonNoneType),
+                noneObject = constructEmptyObject(ctx, initialMemory, typeSystem, typeSystem.pythonNoneType),
                 trueObject = constructInitialBool(ctx, initialMemory, initialPathConstraints, typeSystem, ctx.trueExpr),
                 falseObject = constructInitialBool(ctx, initialMemory, initialPathConstraints, typeSystem, ctx.falseExpr),
                 concreteStrToSymbol = mutableMapOf(),
