@@ -62,6 +62,8 @@ public class ConcolicRunContext {
     }
 
     public void pathDiversion() throws PathDiversionException {
+        if (curState != null)
+            curState.getMeta().setModelDied(true);
         if (allowPathDiversion) {
             curState = null;
         } else {

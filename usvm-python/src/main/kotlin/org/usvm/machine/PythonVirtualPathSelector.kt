@@ -149,7 +149,7 @@ class PythonVirtualPathSelector(
     }
 
     private fun processDelayedForksOfExecutedState(state: PythonExecutionState) {
-        require(state.meta.wasExecuted)
+        require(state.meta.wasExecuted || state.meta.wasInterrupted)
         state.delayedForks.firstOrNull()?.let {
             unservedDelayedForks.add(
                 DelayedForkWithTypeRating(
@@ -162,10 +162,6 @@ class PythonVirtualPathSelector(
 
     override fun update(state: PythonExecutionState) {
         peekCache = null
-        if (state.meta.objectsWithoutConcreteTypes != null) {
-            require(state.meta.wasExecuted)
-            executionsWithVirtualObjectAndWithoutDelayedForks.add(state)
-        }
         state.meta.extractedFrom?.remove(state)
         add(listOf(state))
     }
@@ -173,15 +169,15 @@ class PythonVirtualPathSelector(
     override fun add(states: Collection<PythonExecutionState>) {
         peekCache = null
         states.forEach { state ->
+            if (state.isTerminated()) {
+                if (state.meta.wasExecuted || state.meta.wasInterrupted)
+                    processDelayedForksOfExecutedState(state)
+                return@forEach
+            }
             if (state.meta.objectsWithoutConcreteTypes != null) {
                 require(state.meta.wasExecuted)
                 executionsWithVirtualObjectAndWithoutDelayedForks.add(state)
-            }
-            if (state.meta.wasExecuted) {
-                processDelayedForksOfExecutedState(state)
-                return@forEach
-            }
-            if (state.delayedForks.isEmpty()) {
+            } else if (state.delayedForks.isEmpty()) {
                 basePathSelector.add(listOf(state))
             } else {
                 pathSelectorForStatesWithDelayedForks.add(listOf(state))
@@ -192,6 +188,9 @@ class PythonVirtualPathSelector(
     override fun remove(state: PythonExecutionState) {
         peekCache = null
         state.meta.extractedFrom?.remove(state)
+        if (state.meta.wasExecuted || state.meta.wasInterrupted) {
+            processDelayedForksOfExecutedState(state)
+        }
     }
 
     companion object {

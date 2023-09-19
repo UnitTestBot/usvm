@@ -90,10 +90,10 @@ JNIEXPORT jlongArray JNICALL Java_org_usvm_interpreter_CPythonAdapter_getIterabl
 /*
  * Class:     org_usvm_interpreter_CPythonAdapter
  * Method:    getPythonObjectRepr
- * Signature: (J)Ljava/lang/String;
+ * Signature: (JZ)Ljava/lang/String;
  */
 JNIEXPORT jstring JNICALL Java_org_usvm_interpreter_CPythonAdapter_getPythonObjectRepr
-  (JNIEnv *, jobject, jlong);
+  (JNIEnv *, jobject, jlong, jboolean);
 
 /*
  * Class:     org_usvm_interpreter_CPythonAdapter
