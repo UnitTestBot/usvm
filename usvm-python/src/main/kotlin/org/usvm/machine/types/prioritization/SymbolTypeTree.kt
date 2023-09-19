@@ -17,7 +17,8 @@ import org.utbot.python.newtyping.pythonAnyType
 class SymbolTypeTree(
     private val state: PythonExecutionState,
     private val typeHintsStorage: PythonTypeHintsStorage,
-    rootSymbol: UninterpretedSymbolicPythonObject
+    rootSymbol: UninterpretedSymbolicPythonObject,
+    private val maxDepth: Int = 5
 ) {
     private val root = SymbolTreeNode(rootSymbol)
     private fun generateSuccessors(node: SymbolTreeNode): List<SymbolTreeNode> =
@@ -74,9 +75,11 @@ class SymbolTypeTree(
             newNode
         }
 
-    private fun generateNodes(node: SymbolTreeNode) {
+    private fun generateNodes(node: SymbolTreeNode, depth: Int) {
+        if (depth >= maxDepth)
+            return
         generateSuccessors(node).forEach {
-            generateNodes(it)
+            generateNodes(it, depth + 1)
         }
     }
 
@@ -100,7 +103,7 @@ class SymbolTypeTree(
         get() = root.upperBounds
 
     init {
-        generateNodes(root)
+        generateNodes(root, 0)
         propagateBounds()
     }
 }
