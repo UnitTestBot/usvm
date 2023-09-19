@@ -340,6 +340,19 @@ public class CPythonAdapter {
         return methodWrapper(context, new MethodParameters("list_iterator_next", Collections.singletonList(iterator)), () -> handlerListIteratorNextKt(context, iterator.obj));
     }
 
+    @Nullable
+    public static SymbolForCPython handlerTupleGetSize(ConcolicRunContext context, @NotNull SymbolForCPython tuple) {
+        if (tuple.obj == null)
+            return null;
+        return methodWrapper(context, new MethodParameters("tuple_get_size", Collections.singletonList(tuple)), () -> handlerTupleGetSizeKt(context, tuple.obj));
+    }
+
+    public static SymbolForCPython handlerTupleGetItem(ConcolicRunContext context, SymbolForCPython tuple, SymbolForCPython index) {
+        if (tuple.obj == null || index.obj == null)
+            return null;
+        return methodWrapper(context, new MethodParameters("tuple_get_item", Arrays.asList(tuple, index)), () -> handlerTupleGetItemKt(context, tuple.obj, index.obj));
+    }
+
     public static SymbolForCPython handlerTupleIter(ConcolicRunContext context, SymbolForCPython tuple) {
         if (tuple.obj == null)
             return null;

@@ -1,12 +1,9 @@
 package org.usvm.machine.interpreters.operations
 
-import io.ksmt.sort.KIntSort
 import org.usvm.*
 import org.usvm.api.*
-import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.types.ArrayType
-import org.usvm.language.types.PythonType
 import org.usvm.machine.symbolicobjects.*
 import java.util.stream.Stream
 import kotlin.streams.asSequence
@@ -14,58 +11,20 @@ import kotlin.streams.asSequence
 fun handlerCreateListKt(ctx: ConcolicRunContext, elements: Stream<UninterpretedSymbolicPythonObject>): UninterpretedSymbolicPythonObject? =
     createIterable(ctx, elements.asSequence().toList(), ctx.typeSystem.pythonList)
 
-fun handlerListGetSizeKt(context: ConcolicRunContext, list: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
-    if (context.curState == null)
-        return null
-    val typeSystem = context.typeSystem
-    if (list.getTypeIfDefined(context) != typeSystem.pythonList)
-        return null
-    val listSize = context.curState!!.memory.readArrayLength(list.address, ArrayType)
-    return constructInt(context, listSize)
-}
+fun handlerListGetSizeKt(context: ConcolicRunContext, list: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? =
+    getArraySize(context, list, context.typeSystem.pythonList)
 
-private fun resolveIndex(ctx: ConcolicRunContext, list: UninterpretedSymbolicPythonObject, index: UninterpretedSymbolicPythonObject): UExpr<KIntSort>? {
+fun handlerListGetItemKt(ctx: ConcolicRunContext, list: UninterpretedSymbolicPythonObject, index: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
     if (ctx.curState == null)
         return null
-    with (ctx.ctx) {
-        val typeSystem = ctx.typeSystem
-        index.addSupertypeSoft(ctx, typeSystem.pythonInt)
-        list.addSupertypeSoft(ctx, typeSystem.pythonList)
-
-        val listSize = ctx.curState!!.memory.readArrayLength(list.address, ArrayType)
-        val indexValue = index.getIntContent(ctx)
-
-        val indexCond = mkAnd(indexValue lt listSize, mkArithUnaryMinus(listSize) le indexValue)
-        myFork(ctx, indexCond)
-
-        if (ctx.curState!!.pyModel.eval(indexCond).isFalse)
-            return null
-
-        val positiveIndex = mkAnd(indexValue lt listSize, mkIntNum(0) le indexValue)
-        myFork(ctx, positiveIndex)
-
-        return if (ctx.curState!!.pyModel.eval(positiveIndex).isTrue) {
-            indexValue
-        } else {
-            val negativeIndex = mkAnd(indexValue lt mkIntNum(0), mkArithUnaryMinus(listSize) le indexValue)
-            require(ctx.curState!!.pyModel.eval(negativeIndex).isTrue)
-            mkArithAdd(indexValue, listSize)
-        }
-    }
-}
-
-fun handlerListGetItemKt(ctx: ConcolicRunContext, list: UninterpretedSymbolicPythonObject, index: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? = with(ctx.ctx) {
-    if (ctx.curState == null)
-        return null
-    val indexInt = resolveIndex(ctx, list, index) ?: return null
+    val indexInt = resolveSequenceIndex(ctx, list, index, ctx.typeSystem.pythonList) ?: return null
    return list.readElement(ctx, indexInt)
 }
-
 
 fun handlerListSetItemKt(ctx: ConcolicRunContext, list: UninterpretedSymbolicPythonObject, index: UninterpretedSymbolicPythonObject, value: UninterpretedSymbolicPythonObject) {
     if (ctx.curState == null)
         return
-    val indexInt = resolveIndex(ctx, list, index) ?: return
+    val indexInt = resolveSequenceIndex(ctx, list, index, ctx.typeSystem.pythonList) ?: return
     list.writeElement(ctx, indexInt, value)
 }
 
