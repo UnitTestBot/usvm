@@ -23,20 +23,30 @@ import org.utbot.python.newtyping.pythonTypeRepresentation
 import java.io.File
 
 fun main() {
-    // val slice = ConcretePythonInterpreter.eval(emptyNamespace, "slice")
-    // println(ConcretePythonInterpreter.typeLookup(slice, "start"))
-    val config = buildProjectRunConfig()
-    // val config = buildSampleRunConfig()
-    // analyze(config)
-    checkConcolicAndConcrete(config)
+    // val config = buildProjectRunConfig()
+    val config = buildSampleRunConfig()
+    analyze(config)
+    // checkConcolicAndConcrete(config)
 }
 
 private fun buildSampleRunConfig(): RunConfig {
-    val (program, typeSystem) = constructStructuredProgram()
+    val (program, typeSystem) = constructPrimitiveProgram(
+        """
+            def f(x, t):
+                assert isinstance(t, tuple)
+                if x == t[0]:
+                    return 1
+                elif x == t[-2]:
+                    return 2
+                elif x == t[2]:
+                    return 3
+                else:
+                    return 4
+        """.trimIndent()
+    )
     val function = PythonUnpinnedCallable.constructCallableFromName(
-        listOf(typeSystem.pythonInt, typeSystem.pythonInt, typeSystem.pythonInt),
-        "slice_usages",
-        "Slices"
+        listOf(PythonAnyType, PythonAnyType),
+        "f"
     )
     val functions = listOf(function)
     return RunConfig(program, typeSystem, functions)
