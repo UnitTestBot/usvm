@@ -25,8 +25,8 @@ import java.io.File
 fun main() {
     // val slice = ConcretePythonInterpreter.eval(emptyNamespace, "slice")
     // println(ConcretePythonInterpreter.typeLookup(slice, "start"))
-    // val config = buildProjectRunConfig()
-    val config = buildSampleRunConfig()
+    val config = buildProjectRunConfig()
+    // val config = buildSampleRunConfig()
     analyze(config)
     // checkConcolicAndConcrete(config)
 }
@@ -43,7 +43,7 @@ private fun buildSampleRunConfig(): RunConfig {
 }
 
 private fun buildProjectRunConfig(): RunConfig {
-    val projectPath = "/home/tochilinak/Documents/projects/utbot/Python/sorts"
+    val projectPath = "/home/tochilinak/Documents/projects/utbot/Python/divide_and_conquer"
     val mypyRoot = "/home/tochilinak/Documents/projects/utbot/mypy_tmp"
     val files = getPythonFilesFromRoot(projectPath)
     val modules = getModulesFromFiles(projectPath, files)
@@ -58,17 +58,17 @@ private fun buildProjectRunConfig(): RunConfig {
     val program = StructuredPythonProgram(setOf(File(projectPath)))
     val typeSystem = PythonTypeSystemWithMypyInfo(mypyBuild, program)
     val ignoreFunctions = listOf<String>(
-        "circle_sort",  // NoSuchElement
+        /*"circle_sort",  // NoSuchElement
         "cocktail_shaker_sort",  // slow (why?)
         "quick_sort_lomuto_partition",  // NoSuchElement
         "oe_process",  // blocks
         "merge_insertion_sort",  // slow (why?)
-        "msd_radix_sort_inplace"  // NoSuchElement
+        "msd_radix_sort_inplace"  // NoSuchElement*/
     )
     val ignoreModules = listOf<String>(
         // "heaps_algorithm",
-        "intro_sort",  // NoSuchElement
-        "heap_sort"  // NoSuchElement
+        /*"intro_sort",  // NoSuchElement
+        "heap_sort"  // NoSuchElement*/
     )
     val functions = modules.flatMap { module ->
         if (module in ignoreModules)
@@ -137,11 +137,11 @@ private fun analyze(runConfig: RunConfig) {
                 val iterations = activeMachine.analyze(
                     f,
                     results,
-                    maxIterations = 100,
+                    maxIterations = 50,
                     allowPathDiversion = true,
                     maxInstructions = 15_000,
-                    //timeoutPerRunMs = 5_000,
-                    //timeoutMs = 20_000
+                    timeoutPerRunMs = 5_000,
+                    timeoutMs = 20_000
                 )
                 results.forEach { (_, inputs, result) ->
                     println("INPUT:")
