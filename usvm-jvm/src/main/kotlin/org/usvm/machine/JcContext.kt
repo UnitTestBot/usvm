@@ -52,6 +52,14 @@ class JcContext(
             ?: error("No string type in classpath")
     }
 
+    private val enumType: JcRefType by lazy {
+        cp.findTypeOrNull("java.lang.Enum") as? JcRefType
+            ?: error("No enum type in classpath")
+    }
+
+    // TODO store it in JcComponents? Make it mutable?
+    internal val useNegativeAddressesInStaticInitializer: Boolean = false
+
     fun mkVoidValue(): JcVoidValue = voidValue
 
     fun typeToSort(type: JcType) = when (type) {
@@ -91,6 +99,15 @@ class JcContext(
 
     val stringValueField: JcTypedField by lazy {
         stringType.jcClass.toType().declaredFields.first { it.name == "value" }
+    }
+
+    val stringCoderField: JcTypedField by lazy {
+        stringType.jcClass.toType().declaredFields.first { it.name == "coder" }
+    }
+
+    // Do not use JcTypedField here as its type is not required, however JcTypedField does not have required overridden `equals` method
+    val enumOrdinalField: JcField by lazy {
+        enumType.jcClass.declaredFields.first { it.name == "ordinal" }
     }
 
     val primitiveTypes: Set<JcPrimitiveType> by lazy {

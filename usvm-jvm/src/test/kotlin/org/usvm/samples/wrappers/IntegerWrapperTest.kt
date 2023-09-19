@@ -31,7 +31,6 @@ internal class IntegerWrapperTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [2]")
     fun numberOfZerosTest() {
         checkDiscoveredProperties(
             IntegerWrapper::numberOfZeros,

@@ -62,6 +62,7 @@ import org.usvm.collection.set.ref.UInputRefSetWithAllocatedElementsReading
 import org.usvm.collection.set.ref.UInputRefSetWithInputElementsReading
 import org.usvm.collection.set.ref.URefSetRegionDecoder
 import org.usvm.collection.set.ref.USymbolicRefSetId
+import org.usvm.isStaticHeapRef
 import org.usvm.memory.UMemoryRegionId
 import org.usvm.regions.Region
 import java.util.concurrent.ConcurrentHashMap
@@ -101,8 +102,11 @@ open class UExprTranslator<Type>(
         return const
     }
 
-    override fun transform(expr: UConcreteHeapRef): KExpr<UAddressSort> =
-        error("Unexpected UConcreteHeapRef $expr in UExprTranslator, that has to be impossible by construction!")
+    override fun transform(expr: UConcreteHeapRef): KExpr<UAddressSort> {
+        require(isStaticHeapRef(expr)) { "Unexpected ref: $expr" }
+
+        return ctx.mkUninterpretedSortValue(ctx.addressSort, expr.address)
+    }
 
     private val _declToIsExpr = mutableMapOf<KDecl<UBoolSort>, UIsExpr<Type>>()
     val declToIsExpr: Map<KDecl<UBoolSort>, UIsExpr<Type>> get() = _declToIsExpr

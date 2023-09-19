@@ -1,12 +1,14 @@
 package org.usvm.machine
 
 import org.jacodb.api.JcMethod
+import org.jacodb.api.JcRefType
 import org.jacodb.api.cfg.JcExpr
 import org.jacodb.api.cfg.JcInst
 import org.jacodb.api.cfg.JcInstLocation
 import org.jacodb.api.cfg.JcInstVisitor
 import org.jacodb.impl.cfg.JcInstLocationImpl
 import org.usvm.UExpr
+import org.usvm.UHeapRef
 import org.usvm.USort
 
 /**
@@ -28,7 +30,8 @@ sealed interface JcMethodCallBaseInst : JcInst {
  * Can be used as initial instruction to start an analysis process.
  * */
 data class JcMethodEntrypointInst(
-    override val method: JcMethod
+    override val method: JcMethod,
+    val entrypointArguments: List<Pair<JcRefType, UHeapRef>>
 ) : JcMethodCallBaseInst {
     // We don't care about the location of the entrypoint
     override val location: JcInstLocation

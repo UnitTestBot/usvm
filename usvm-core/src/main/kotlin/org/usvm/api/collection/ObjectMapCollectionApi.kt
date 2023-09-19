@@ -13,14 +13,14 @@ import org.usvm.collection.map.ref.refMapMerge
 import org.usvm.collection.set.ref.URefSetEntryLValue
 import org.usvm.collection.set.ref.URefSetRegionId
 import org.usvm.collection.set.ref.refSetUnion
-import org.usvm.memory.map
+import org.usvm.memory.mapWithStaticAsConcrete
 import org.usvm.uctx
 
 object ObjectMapCollectionApi {
     fun <MapType> UState<MapType, *, *, *, *, *>.mkSymbolicObjectMap(
         mapType: MapType,
     ): UHeapRef = with(memory.ctx) {
-        val ref = memory.alloc(mapType)
+        val ref = memory.allocConcrete(mapType)
         val length = UMapLengthLValue(ref, mapType)
         memory.write(length, mkSizeExpr(0), trueExpr)
         ref
@@ -40,7 +40,7 @@ object ObjectMapCollectionApi {
         mapRef: UHeapRef,
         mapType: MapType,
     ): Unit? {
-        mapRef.map(
+        mapRef.mapWithStaticAsConcrete(
             concreteMapper = {
                 // Concrete map size is always correct
                 it

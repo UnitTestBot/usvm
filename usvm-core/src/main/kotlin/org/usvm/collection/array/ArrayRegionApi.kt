@@ -60,7 +60,7 @@ internal fun <ArrayType> UWritableMemory<ArrayType>.allocateArray(
     type: ArrayType,
     length: USizeExpr
 ): UConcreteHeapRef {
-    val address = alloc(type)
+    val address = allocConcrete(type)
 
     val lengthRegionRef = UArrayLengthLValue(address, type)
     write(lengthRegionRef, length, guard = length.uctx.trueExpr)

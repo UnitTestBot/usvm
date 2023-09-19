@@ -11,9 +11,9 @@ import org.usvm.memory.ULValue
 import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UMemoryRegionId
 import org.usvm.memory.USymbolicCollection
-import org.usvm.memory.foldHeapRef
+import org.usvm.memory.foldHeapRefWithStaticAsSymbolic
 import org.usvm.memory.guardedWrite
-import org.usvm.memory.map
+import org.usvm.memory.mapWithStaticAsSymbolic
 import org.usvm.sampleUValue
 
 data class UFieldLValue<Field, Sort : USort>(override val sort: Sort, val ref: UHeapRef, val field: Field) :
@@ -55,31 +55,29 @@ internal class UFieldsMemoryRegion<Field, Sort : USort>(
     private fun updateInput(updated: UInputFields<Field, Sort>) =
         UFieldsMemoryRegion(sort, field, allocatedFields, updated)
 
-    override fun read(key: UFieldLValue<Field, Sort>): UExpr<Sort> =
-        key.ref.map(
-            { concreteRef -> allocatedFields[concreteRef.address] ?: sort.sampleUValue() },
-            { symbolicRef -> getInputFields(key).read(symbolicRef) }
-        )
+    override fun read(key: UFieldLValue<Field, Sort>): UExpr<Sort> = key.ref.mapWithStaticAsSymbolic(
+        concreteMapper = { concreteRef -> allocatedFields[concreteRef.address] ?: sort.sampleUValue() },
+        symbolicMapper = { symbolicRef -> getInputFields(key).read(symbolicRef) }
+    )
 
     override fun write(
         key: UFieldLValue<Field, Sort>,
         value: UExpr<Sort>,
         guard: UBoolExpr
-    ): UMemoryRegion<UFieldLValue<Field, Sort>, Sort> =
-        foldHeapRef(
-            key.ref,
-            initial = this,
-            initialGuard = guard,
-            blockOnConcrete = { region, (concreteRef, innerGuard) ->
-                val newRegion = region.allocatedFields.guardedWrite(concreteRef.address, value, innerGuard) {
-                    sort.sampleUValue()
-                }
-                region.updateAllocated(newRegion)
-            },
-            blockOnSymbolic = { region, (symbolicRef, innerGuard) ->
-                val oldRegion = region.getInputFields(key)
-                val newRegion = oldRegion.write(symbolicRef, value, innerGuard)
-                region.updateInput(newRegion)
+    ): UMemoryRegion<UFieldLValue<Field, Sort>, Sort> = foldHeapRefWithStaticAsSymbolic(
+        key.ref,
+        initial = this,
+        initialGuard = guard,
+        blockOnConcrete = { region, (concreteRef, innerGuard) ->
+            val newRegion = region.allocatedFields.guardedWrite(concreteRef.address, value, innerGuard) {
+                sort.sampleUValue()
             }
-        )
+            region.updateAllocated(newRegion)
+        },
+        blockOnSymbolic = { region, (symbolicRef, innerGuard) ->
+            val oldRegion = region.getInputFields(key)
+            val newRegion = oldRegion.write(symbolicRef, value, innerGuard)
+            region.updateInput(newRegion)
+        }
+    )
 }

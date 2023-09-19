@@ -22,7 +22,6 @@ public class ClassWithEnum {
         }
     }
 
-    @SuppressWarnings("UnnecessaryLocalVariable")
     public int useEnumInDifficultIf(String s) {
         if ("TRYIF".equalsIgnoreCase(s)) {
             final ManyConstantsEnum[] values = ManyConstantsEnum.values();
@@ -51,7 +50,7 @@ public class ClassWithEnum {
         // catch NPE
         statusEnum.s.length();
 
-        statusEnum.s = "404";
+        statusEnum.s = "-200";
         return statusEnum.s.length();
     }
 
@@ -62,6 +61,8 @@ public class ClassWithEnum {
             statusEnum = StatusEnum.READY;
         }
 
+        // ERROR -> READY -> 0
+        // READY -> ERROR -> 1
         return statusEnum.ordinal();
     }
 
@@ -102,7 +103,8 @@ public class ClassWithEnum {
         return Math.abs(value);
     }
 
-    enum StatusEnum {
+    @SuppressWarnings("LombokGetterMayBeUsed")
+    public enum StatusEnum {
         READY(0, 10, "200") {
             @Override
             public int virtualFunction() {
@@ -141,7 +143,7 @@ public class ClassWithEnum {
                 }
             }
 
-            throw new IllegalArgumentException("No enum corresponding to given code: " + code);
+            throw new IllegalArgumentException("No enum corresponding to given code");
         }
 
         static StatusEnum fromIsReady(boolean isReady) {
@@ -204,6 +206,7 @@ public class ClassWithEnum {
 
     public int implementingInterfaceEnumInDifficultBranch(String s) {
         if ("SUCCESS".equalsIgnoreCase(s)) {
+            //noinspection ConstantValue
             return EnumImplementingInterface.x + EnumImplementingInterface.A_INHERITOR.ordinal();
         } else {
             return EnumImplementingInterface.y + EnumImplementingInterface.B_INHERITOR.ordinal();
@@ -239,7 +242,7 @@ public class ClassWithEnum {
         return OuterStaticUsageEnum.A.getOuterStatic() != prevStaticValue;
     }
 
-    static int staticInt = 0;
+    static int staticInt = 42;
 
     enum OuterStaticUsageEnum {
         A;
@@ -258,6 +261,19 @@ public class ClassWithEnum {
         @Override
         public String toString() {
             return String.format("%s(y = %d)", name(), y);
+        }
+    }
+
+    @SuppressWarnings("unused")
+    int takeTwoEnumParameters(OuterStaticUsageEnum first, StatusEnum second, StatusEnum third) {
+        // For this method we should analyze static initializers for classes of all arguments, even though the first argument is unused
+        if (second == null) return 1;
+        if (third == null) return 2;
+
+        if (second != third) {
+            return 0;
+        } else {
+            return -1;
         }
     }
 }

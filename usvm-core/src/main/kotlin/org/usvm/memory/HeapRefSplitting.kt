@@ -10,6 +10,7 @@ import org.usvm.UNullRef
 import org.usvm.USort
 import org.usvm.USymbolicHeapRef
 import org.usvm.isFalse
+import org.usvm.isStaticHeapRef
 import org.usvm.uctx
 
 data class GuardedExpr<out T>(
@@ -32,9 +33,9 @@ internal data class SplitHeapRefs(
 )
 
 /**
- * Traverses the [ref] non-recursively and collects [UConcreteHeapRef]s and [USymbolicHeapRef] as well as
- * guards for them. If the object is not a [UConcreteHeapRef] nor a [USymbolicHeapRef], e.g. KConst<UAddressSort>,
- * treats such an object as a [USymbolicHeapRef].
+ * Traverses the [ref] non-recursively and collects allocated [UConcreteHeapRef]s and [USymbolicHeapRef] with static
+ * [UConcreteHeapRef] as well as guards for them. If the object is not a [UConcreteHeapRef] nor a [USymbolicHeapRef],
+ * e.g. KConst<UAddressSort>, treats such an object as a [USymbolicHeapRef].
  *
  * The result [SplitHeapRefs.symbolicHeapRef] will be `null` if there are no [USymbolicHeapRef]s as
  * leafs in the [ref] ite. Otherwise, it will contain an ite with the guard protecting from bubbled up concrete refs.
@@ -51,7 +52,10 @@ internal fun splitUHeapRef(
     val concreteHeapRefs = mutableListOf<GuardedExpr<UConcreteHeapRef>>()
 
     val symbolicHeapRef = filter(ref, initialGuard, ignoreNullRefs) { guarded ->
-        if (guarded.expr is UConcreteHeapRef) {
+        val expr = guarded.expr
+
+        // Static refs may alias symbolic refs so they should be not filtered out
+        if (expr is UConcreteHeapRef && !isStaticHeapRef(expr)) {
             @Suppress("UNCHECKED_CAST")
             concreteHeapRefs += (guarded as GuardedExpr<UConcreteHeapRef>)
             false
@@ -68,8 +72,8 @@ internal fun splitUHeapRef(
 
 /**
  * Accumulates value starting with [initial], traversing [ref], accumulating guards and applying the [blockOnConcrete]
- * on [UConcreteHeapRef]s and [blockOnSymbolic] on [USymbolicHeapRef]. An argument for the [blockOnSymbolic] is
- * obtained by removing all concrete heap refs from the [ref] if it's ite.
+ * on allocated [UConcreteHeapRef]s, the [blockOnStatic] on static [UConcreteHeapRef]s, and [blockOnSymbolic] on
+ * [USymbolicHeapRef]. An argument for the [blockOnSymbolic] is obtained by removing all concrete heap refs from the [ref] if it's ite.
  *
  * @param initialGuard the initial value fot the guard to be passed to [blockOnConcrete] and [blockOnSymbolic].
  * @param ignoreNullRefs if true, then null references will be ignored. It means that all leafs with nulls
@@ -81,21 +85,23 @@ internal inline fun <R> foldHeapRef(
     initialGuard: UBoolExpr,
     ignoreNullRefs: Boolean = true,
     blockOnConcrete: (R, GuardedExpr<UConcreteHeapRef>) -> R,
+    blockOnStatic: (R, GuardedExpr<UConcreteHeapRef>) -> R,
     blockOnSymbolic: (R, GuardedExpr<UHeapRef>) -> R,
 ): R {
     if (initialGuard.isFalse) {
         return initial
     }
 
-    return when (ref) {
-        is UConcreteHeapRef -> blockOnConcrete(initial, ref with initialGuard)
-        is UNullRef -> if (!ignoreNullRefs) {
+    return when {
+        isStaticHeapRef(ref) -> blockOnStatic(initial, ref with initialGuard)
+        ref is UConcreteHeapRef -> blockOnConcrete(initial, ref with initialGuard)
+        ref is UNullRef -> if (!ignoreNullRefs) {
             blockOnSymbolic(initial, ref with initialGuard)
         } else {
             initial
         }
-        is USymbolicHeapRef ->  blockOnSymbolic(initial, ref with initialGuard)
-        is UIteExpr<UAddressSort> -> {
+        ref is USymbolicHeapRef ->  blockOnSymbolic(initial, ref with initialGuard)
+        ref is UIteExpr<UAddressSort> -> {
             val (concreteHeapRefs, symbolicHeapRef) = splitUHeapRef(ref, initialGuard)
 
             var acc = initial
@@ -108,6 +114,26 @@ internal inline fun <R> foldHeapRef(
     }
 }
 
+/**
+ * Executes [foldHeapRef] with passed [blockOnSymbolic] as a blockOnStatic.
+ */
+internal inline fun <R> foldHeapRefWithStaticAsSymbolic(
+    ref: UHeapRef,
+    initial: R,
+    initialGuard: UBoolExpr,
+    ignoreNullRefs: Boolean = true,
+    blockOnConcrete: (R, GuardedExpr<UConcreteHeapRef>) -> R,
+    blockOnSymbolic: (R, GuardedExpr<UHeapRef>) -> R,
+): R = foldHeapRef(
+    ref,
+    initial,
+    initialGuard,
+    ignoreNullRefs,
+    blockOnConcrete = blockOnConcrete,
+    blockOnStatic = blockOnSymbolic,
+    blockOnSymbolic = blockOnSymbolic
+)
+
 internal inline fun <R> foldHeapRef2(
     ref0: UHeapRef,
     ref1: UHeapRef,
@@ -118,13 +144,13 @@ internal inline fun <R> foldHeapRef2(
     blockOnConcrete0Symbolic1: (R, UConcreteHeapRef, UHeapRef, UBoolExpr) -> R,
     blockOnSymbolic0Concrete1: (R, UHeapRef, UConcreteHeapRef, UBoolExpr) -> R,
     blockOnSymbolic0Symbolic1: (R, UHeapRef, UHeapRef, UBoolExpr) -> R,
-): R = foldHeapRef(
+): R = foldHeapRefWithStaticAsSymbolic(
     ref = ref0,
     initial = initial,
     initialGuard = initialGuard,
     ignoreNullRefs = ignoreNullRefs,
     blockOnConcrete = { r0, (concrete0, guard0) ->
-        foldHeapRef(
+        foldHeapRefWithStaticAsSymbolic(
             ref = ref1,
             initial = r0,
             initialGuard = guard0,
@@ -132,22 +158,22 @@ internal inline fun <R> foldHeapRef2(
             blockOnConcrete = { r1, (concrete1, guard1) ->
                 blockOnConcrete0Concrete1(r1, concrete0, concrete1, guard1)
             },
-            blockOnSymbolic = { r1, (symbolic1, guard1) ->
-                blockOnConcrete0Symbolic1(r1, concrete0, symbolic1, guard1)
+            blockOnSymbolic = { r1, (inputRef1, guard1) ->
+                blockOnConcrete0Symbolic1(r1, concrete0, inputRef1, guard1)
             }
         )
     },
-    blockOnSymbolic = { r0, (symbolic0, guard0) ->
-        foldHeapRef(
+    blockOnSymbolic = { r0, (inputRef0, guard0) ->
+        foldHeapRefWithStaticAsSymbolic(
             ref = ref1,
             initial = r0,
             initialGuard = guard0,
             ignoreNullRefs = ignoreNullRefs,
             blockOnConcrete = { r1, (concrete1, guard1) ->
-                blockOnSymbolic0Concrete1(r1, symbolic0, concrete1, guard1)
+                blockOnSymbolic0Concrete1(r1, inputRef0, concrete1, guard1)
             },
-            blockOnSymbolic = { r1, (symbolic1, guard1) ->
-                blockOnSymbolic0Symbolic1(r1, symbolic0, symbolic1, guard1)
+            blockOnSymbolic = { r1, (inputRef1, guard1) ->
+                blockOnSymbolic0Symbolic1(r1, inputRef0, inputRef1, guard1)
             }
         )
     },
@@ -159,9 +185,9 @@ private const val DONE = 2
 
 
 /**
- * Reassembles [this] non-recursively with applying [concreteMapper] on [UConcreteHeapRef] and
- * [symbolicMapper] on [USymbolicHeapRef]. Respects [UIteExpr], so the structure of the result expression will be
- * the same as [this] is, but implicit simplifications may occur.
+ * Reassembles [this] non-recursively with applying [concreteMapper] on allocated [UConcreteHeapRef], [staticMapper] on
+ * static [UConcreteHeapRef], and [symbolicMapper] on [USymbolicHeapRef]. Respects [UIteExpr], so the structure of
+ * the result expression will be the same as [this] is, but implicit simplifications may occur.
  *
  * @param ignoreNullRefs if true, then null references will be ignored. It means that all leafs with nulls
  * considered unsatisfiable, so we assume their guards equal to false. If [ignoreNullRefs] is true and [this] is
@@ -169,17 +195,19 @@ private const val DONE = 2
  */
 internal inline fun <Sort : USort> UHeapRef.map(
     concreteMapper: (UConcreteHeapRef) -> UExpr<Sort>,
+    staticMapper: (UConcreteHeapRef) -> UExpr<Sort>,
     symbolicMapper: (USymbolicHeapRef) -> UExpr<Sort>,
     ignoreNullRefs: Boolean = true,
-): UExpr<Sort> = when (this) {
-    is UConcreteHeapRef -> concreteMapper(this)
-    is UNullRef -> {
+): UExpr<Sort> = when {
+    isStaticHeapRef(this) -> staticMapper(this)
+    this is UConcreteHeapRef -> concreteMapper(this)
+    this is UNullRef -> {
         require(!ignoreNullRefs) { "Got nullRef on the top!" }
         symbolicMapper(this)
     }
 
-    is USymbolicHeapRef -> symbolicMapper(this)
-    is UIteExpr<UAddressSort> -> {
+    this is USymbolicHeapRef -> symbolicMapper(this)
+    this is UIteExpr<UAddressSort> -> {
         /**
          * This code simulates DFS on a binary tree without an explicit recursion. Pair.second represents the first
          * unprocessed child of the pair.first (`0` means the left child, `1` means the right child).
@@ -192,10 +220,11 @@ internal inline fun <Sort : USort> UHeapRef.map(
 
         while (nodeToChild.isNotEmpty()) {
             val (ref, state) = nodeToChild.removeLast()
-            when (ref) {
-                is UConcreteHeapRef -> completelyMapped += concreteMapper(ref)
-                is USymbolicHeapRef -> completelyMapped += symbolicMapper(ref)
-                is UIteExpr<UAddressSort> -> {
+            when {
+                isStaticHeapRef(ref) -> completelyMapped += staticMapper(ref)
+                ref is UConcreteHeapRef -> completelyMapped += concreteMapper(ref)
+                ref is USymbolicHeapRef -> completelyMapped += symbolicMapper(ref)
+                ref is UIteExpr<UAddressSort> -> {
 
                     when (state) {
                         LEFT_CHILD -> {
@@ -237,6 +266,34 @@ internal inline fun <Sort : USort> UHeapRef.map(
 
     else -> error("Unexpected ref: $this")
 }
+
+/**
+ * Executes [foldHeapRef] with passed [concreteMapper] as a staticMapper.
+ */
+internal inline fun <Sort : USort> UHeapRef.mapWithStaticAsConcrete(
+    concreteMapper: (UConcreteHeapRef) -> UExpr<Sort>,
+    symbolicMapper: (USymbolicHeapRef) -> UExpr<Sort>,
+    ignoreNullRefs: Boolean = true,
+): UExpr<Sort> = map(
+    concreteMapper,
+    staticMapper = concreteMapper,
+    symbolicMapper,
+    ignoreNullRefs
+)
+
+/**
+ * Executes [foldHeapRef] with passed [symbolicMapper] as a staticMapper.
+ */
+internal inline fun <Sort : USort> UHeapRef.mapWithStaticAsSymbolic(
+    concreteMapper: (UConcreteHeapRef) -> UExpr<Sort>,
+    symbolicMapper: (UHeapRef) -> UExpr<Sort>,
+    ignoreNullRefs: Boolean = true,
+): UExpr<Sort> = map(
+    concreteMapper,
+    staticMapper = symbolicMapper,
+    symbolicMapper,
+    ignoreNullRefs
+)
 
 /**
  * Filters [ref] non-recursively with [predicate] and returns the result. A guard in the argument of the

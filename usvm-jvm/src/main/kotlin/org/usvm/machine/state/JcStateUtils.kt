@@ -57,17 +57,6 @@ fun JcState.throwExceptionAndDropStackFrame() {
     }
 }
 
-fun JcState.addEntryMethodCall(
-    applicationGraph: JcApplicationGraph,
-    methodCall: JcMethodEntrypointInst,
-) {
-    val method = methodCall.method
-    val entryPoint = applicationGraph.entryPoints(method).single()
-    callStack.push(method, returnSite = null)
-    memory.stack.push(method.parametersWithThisCount, method.localsCount)
-    newStmt(entryPoint)
-}
-
 fun JcState.addNewMethodCall(
     applicationGraph: JcApplicationGraph,
     methodCall: JcConcreteMethodCallInst

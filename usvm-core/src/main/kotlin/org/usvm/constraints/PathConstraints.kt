@@ -4,6 +4,7 @@ import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.persistentSetOf
 import org.usvm.UAndExpr
 import org.usvm.UBoolExpr
+import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UEqExpr
 import org.usvm.UFalse
@@ -13,6 +14,7 @@ import org.usvm.UNotExpr
 import org.usvm.UOrExpr
 import org.usvm.USizeSort
 import org.usvm.USymbolicHeapRef
+import org.usvm.isStaticHeapRef
 import org.usvm.isSymbolicHeapRef
 import org.usvm.uctx
 
@@ -38,6 +40,11 @@ open class UPathConstraints<Type, Context : UContext> private constructor(
      */
     val numericConstraints: UNumericConstraints<USizeSort> = UNumericConstraints(ctx, sort = ctx.sizeSort)
 ) {
+    init {
+        // Use the information from the type constraints to check whether any static ref is assignable to any symbolic ref
+        equalityConstraints.setTypesCheck(typeConstraints::canStaticRefBeEqualToSymbolic)
+    }
+
     /**
      * Constraints solved by SMT solver.
      */
@@ -66,6 +73,12 @@ open class UPathConstraints<Type, Context : UContext> private constructor(
                 constraint is UEqExpr<*> && isSymbolicHeapRef(constraint.lhs) && isSymbolicHeapRef(constraint.rhs) ->
                     equalityConstraints.makeEqual(constraint.lhs as USymbolicHeapRef, constraint.rhs as USymbolicHeapRef)
 
+                constraint is UEqExpr<*> && isSymbolicHeapRef(constraint.lhs) && isStaticHeapRef(constraint.rhs) ->
+                    equalityConstraints.makeEqual(constraint.lhs as USymbolicHeapRef, constraint.rhs as UConcreteHeapRef)
+
+                constraint is UEqExpr<*> && isStaticHeapRef(constraint.lhs) && isSymbolicHeapRef(constraint.rhs) ->
+                    equalityConstraints.makeEqual(constraint.rhs as USymbolicHeapRef, constraint.lhs as UConcreteHeapRef)
+
                 constraint is UIsSubtypeExpr<*> -> {
                     typeConstraints.addSupertype(constraint.ref, constraint.supertype as Type)
                 }
@@ -79,15 +92,14 @@ open class UPathConstraints<Type, Context : UContext> private constructor(
                 constraint is UNotExpr -> {
                     val notConstraint = constraint.arg
                     when {
-                        notConstraint is UEqExpr<*> &&
-                                isSymbolicHeapRef(notConstraint.lhs) &&
-                                isSymbolicHeapRef(notConstraint.rhs) -> {
-                            require(notConstraint.rhs.sort == addressSort)
-                            equalityConstraints.makeNonEqual(
-                                notConstraint.lhs as USymbolicHeapRef,
-                                notConstraint.rhs as USymbolicHeapRef
-                            )
-                        }
+                        notConstraint is UEqExpr<*> && isSymbolicHeapRef(notConstraint.lhs) && isSymbolicHeapRef(notConstraint.rhs) ->
+                            equalityConstraints.makeNonEqual(notConstraint.lhs as USymbolicHeapRef, notConstraint.rhs as USymbolicHeapRef)
+
+                        notConstraint is UEqExpr<*> && isSymbolicHeapRef(notConstraint.lhs) && isStaticHeapRef(notConstraint.rhs) ->
+                            equalityConstraints.makeNonEqual(notConstraint.lhs as USymbolicHeapRef, notConstraint.rhs as UConcreteHeapRef)
+
+                        notConstraint is UEqExpr<*> && isStaticHeapRef(notConstraint.lhs) && isSymbolicHeapRef(notConstraint.rhs) ->
+                            equalityConstraints.makeNonEqual(notConstraint.rhs as USymbolicHeapRef, notConstraint.lhs as UConcreteHeapRef)
 
                         notConstraint is UIsSubtypeExpr<*> -> typeConstraints.excludeSupertype(
                             notConstraint.ref,

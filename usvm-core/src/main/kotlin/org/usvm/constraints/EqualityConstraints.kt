@@ -1,8 +1,12 @@
 package org.usvm.constraints
 
+import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
+import org.usvm.UHeapRef
+import org.usvm.UNullRef
 import org.usvm.USymbolicHeapRef
 import org.usvm.algorithms.DisjointSets
+import org.usvm.isStaticHeapRef
 
 /**
  * Represents equality constraints between symbolic heap references. There are three kinds of constraints:
@@ -19,19 +23,30 @@ import org.usvm.algorithms.DisjointSets
  * such that [equalReferences].find(x) == x.
  */
 class UEqualityConstraints private constructor(
-    private val ctx: UContext,
-    val equalReferences: DisjointSets<USymbolicHeapRef>,
-    private val mutableDistinctReferences: MutableSet<USymbolicHeapRef>,
-    private val mutableReferenceDisequalities: MutableMap<USymbolicHeapRef, MutableSet<USymbolicHeapRef>>,
-    private val mutableNullableDisequalities: MutableMap<USymbolicHeapRef, MutableSet<USymbolicHeapRef>>,
+    internal val ctx: UContext,
+    val equalReferences: DisjointSets<UHeapRef>,
+    private val mutableDistinctReferences: MutableSet<UHeapRef>,
+    private val mutableReferenceDisequalities: MutableMap<UHeapRef, MutableSet<UHeapRef>>,
+    private val mutableNullableDisequalities: MutableMap<UHeapRef, MutableSet<UHeapRef>>,
 ) {
-    constructor(ctx: UContext) : this(ctx, DisjointSets(), mutableSetOf(ctx.nullRef), mutableMapOf(), mutableMapOf())
+    constructor(ctx: UContext) : this(
+        ctx,
+        DisjointSets(representativeSelector = RefsRepresentativeSelector),
+        mutableSetOf(ctx.nullRef),
+        mutableMapOf(),
+        mutableMapOf()
+    )
 
-    val distinctReferences: Set<USymbolicHeapRef> = mutableDistinctReferences
+    val distinctReferences: Set<UHeapRef> = mutableDistinctReferences
 
-    val referenceDisequalities: Map<USymbolicHeapRef, Set<USymbolicHeapRef>> = mutableReferenceDisequalities
+    val referenceDisequalities: Map<UHeapRef, Set<UHeapRef>> = mutableReferenceDisequalities
 
-    val nullableDisequalities: Map<USymbolicHeapRef, Set<USymbolicHeapRef>> = mutableNullableDisequalities
+    val nullableDisequalities: Map<UHeapRef, Set<UHeapRef>> = mutableNullableDisequalities
+
+    /**
+     * Determines whether a static ref could be assigned to a symbolic, according to additional information.
+     */
+    private lateinit var isStaticRefAssignableToSymbolic: (UConcreteHeapRef, USymbolicHeapRef) -> Boolean
 
     init {
         equalReferences.subscribe(::rename)
@@ -47,16 +62,16 @@ class UEqualityConstraints private constructor(
         mutableReferenceDisequalities.clear()
     }
 
-    private fun containsReferenceDisequality(ref1: USymbolicHeapRef, ref2: USymbolicHeapRef) =
+    private fun containsReferenceDisequality(ref1: UHeapRef, ref2: UHeapRef): Boolean =
         referenceDisequalities[ref1]?.contains(ref2) ?: false
 
-    private fun containsNullableDisequality(ref1: USymbolicHeapRef, ref2: USymbolicHeapRef) =
+    private fun containsNullableDisequality(ref1: UHeapRef, ref2: UHeapRef) =
         nullableDisequalities[ref1]?.contains(ref2) ?: false
 
     /**
      * Returns if [ref1] is identical to [ref2] in *all* models.
      */
-    internal fun areEqual(ref1: USymbolicHeapRef, ref2: USymbolicHeapRef) =
+    internal fun areEqual(ref1: USymbolicHeapRef, ref2: USymbolicHeapRef): Boolean =
         equalReferences.connected(ref1, ref2)
 
     /**
@@ -64,7 +79,7 @@ class UEqualityConstraints private constructor(
      */
     internal fun isNull(ref: USymbolicHeapRef) = areEqual(ctx.nullRef, ref)
 
-    private fun areDistinctRepresentatives(repr1: USymbolicHeapRef, repr2: USymbolicHeapRef): Boolean {
+    private fun areDistinctRepresentatives(repr1: UHeapRef, repr2: UHeapRef): Boolean {
         if (repr1 == repr2) {
             return false
         }
@@ -79,6 +94,7 @@ class UEqualityConstraints private constructor(
     internal fun areDistinct(ref1: USymbolicHeapRef, ref2: USymbolicHeapRef): Boolean {
         val repr1 = equalReferences.find(ref1)
         val repr2 = equalReferences.find(ref2)
+
         return areDistinctRepresentatives(repr1, repr2)
     }
 
@@ -88,9 +104,22 @@ class UEqualityConstraints private constructor(
     internal fun isNotNull(ref: USymbolicHeapRef) = areDistinct(ctx.nullRef, ref)
 
     /**
-     * Adds an assertion that [ref1] is always equal to [ref2].
+     * Adds an assertion that two symbolic refs are always equal.
      */
-    internal fun makeEqual(ref1: USymbolicHeapRef, ref2: USymbolicHeapRef) {
+    internal fun makeEqual(firstSymbolicRef: USymbolicHeapRef, secondSymbolicRef: USymbolicHeapRef) {
+        makeRefEqual(firstSymbolicRef, secondSymbolicRef)
+    }
+
+    /**
+     * Adds an assertion that the symbolic ref [symbolicRef] always equals to the static ref [staticRef].
+     */
+    internal fun makeEqual(symbolicRef: USymbolicHeapRef, staticRef: UConcreteHeapRef) {
+        requireStaticRef(staticRef)
+
+        makeRefEqual(symbolicRef, staticRef)
+    }
+
+    private fun makeRefEqual(ref1: UHeapRef, ref2: UHeapRef) {
         if (isContradicting) {
             return
         }
@@ -105,7 +134,7 @@ class UEqualityConstraints private constructor(
      * Here we react to merging of equivalence classes of [from] and [to] into one represented by [to], by eliminating
      * [from] and merging its disequality constraints into [to].
      */
-    private fun rename(to: USymbolicHeapRef, from: USymbolicHeapRef) {
+    private fun rename(to: UHeapRef, from: UHeapRef) {
         if (distinctReferences.contains(from)) {
             if (distinctReferences.contains(to)) {
                 contradiction()
@@ -126,7 +155,7 @@ class UEqualityConstraints private constructor(
             mutableReferenceDisequalities.remove(from)
             fromDiseqs.forEach {
                 mutableReferenceDisequalities[it]?.remove(from)
-                makeNonEqual(to, it)
+                makeRefNonEqual(to, it)
             }
         }
 
@@ -143,17 +172,17 @@ class UEqualityConstraints private constructor(
             }
         } else if (containsNullableDisequality(from, to)) {
             // If x === y, nullable disequality can hold only if both references are null
-            makeEqual(to, nullRepr)
+            makeRefEqual(to, nullRepr)
         } else {
             val removedFrom = mutableNullableDisequalities.remove(from)
             removedFrom?.forEach {
                 mutableNullableDisequalities[it]?.remove(from)
-                makeNonEqualOrBothNull(to, it)
+                makeRefNonEqualOrBothNull(to, it)
             }
         }
     }
 
-    private fun addDisequalityUnguarded(repr1: USymbolicHeapRef, repr2: USymbolicHeapRef) {
+    private fun addDisequalityUnguarded(repr1: UHeapRef, repr2: UHeapRef) {
         when (distinctReferences.size) {
             0 -> {
                 require(referenceDisequalities.isEmpty())
@@ -209,10 +238,28 @@ class UEqualityConstraints private constructor(
     }
 
     /**
-     * Adds an assertion that [ref1] is never equal to [ref2].
+     * Adds an assertion that between two [USymbolicHeapRef] refs that they are never equal.
      */
-    internal fun makeNonEqual(ref1: USymbolicHeapRef, ref2: USymbolicHeapRef) {
+    internal fun makeNonEqual(symbolicRef1: USymbolicHeapRef, symbolicRef2: USymbolicHeapRef) {
+        makeRefNonEqual(symbolicRef1, symbolicRef2)
+    }
+
+    /**
+     * Adds an assertion that the symbolic ref [symbolicRef] is never equal to the static ref [staticRef].
+     */
+    internal fun makeNonEqual(symbolicRef: USymbolicHeapRef, staticRef: UConcreteHeapRef) {
+        requireStaticRef(staticRef)
+
+        makeRefNonEqual(symbolicRef, staticRef)
+    }
+
+    private fun makeRefNonEqual(ref1: UHeapRef, ref2: UHeapRef) {
         if (isContradicting) {
+            return
+        }
+
+        if (isStaticHeapRef(ref1) && isStaticHeapRef(ref2) && ref1 != ref2) {
+            // No need to do anything for static refs as they could not be equal
             return
         }
 
@@ -234,7 +281,16 @@ class UEqualityConstraints private constructor(
      * Adds an assertion that [ref1] is never equal to [ref2] or both are null.
      */
     internal fun makeNonEqualOrBothNull(ref1: USymbolicHeapRef, ref2: USymbolicHeapRef) {
+        makeRefNonEqualOrBothNull(ref1, ref2)
+    }
+
+    private fun makeRefNonEqualOrBothNull(ref1: UHeapRef, ref2: UHeapRef) {
         if (isContradicting) {
+            return
+        }
+
+        if (isStaticHeapRef(ref1) && isStaticHeapRef(ref2) && ref1 != ref2) {
+            // No need to do anything for static refs as they could not be equal or null
             return
         }
 
@@ -243,7 +299,7 @@ class UEqualityConstraints private constructor(
 
         if (repr1 == repr2) {
             // In this case, (repr1 != repr2) || (repr1 == null && repr2 == null) is equivalent to (repr1 == null).
-            makeEqual(repr1, ctx.nullRef)
+            makeRefEqual(repr1, ctx.nullRef)
             return
         }
 
@@ -263,7 +319,7 @@ class UEqualityConstraints private constructor(
         (mutableNullableDisequalities.getOrPut(repr2) { mutableSetOf() }).add(repr1)
     }
 
-    private fun removeNullableDisequality(repr1: USymbolicHeapRef, repr2: USymbolicHeapRef) {
+    private fun removeNullableDisequality(repr1: UHeapRef, repr2: UHeapRef) {
         if (containsNullableDisequality(repr1, repr2)) {
             mutableNullableDisequalities[repr1]?.remove(repr2)
             mutableNullableDisequalities[repr2]?.remove(repr1)
@@ -276,8 +332,49 @@ class UEqualityConstraints private constructor(
      * [equalityCallback] (x, y) is called.
      * Note that the order of arguments matters: the first argument is a representative of the new equivalence class.
      */
-    fun subscribe(equalityCallback: (USymbolicHeapRef, USymbolicHeapRef) -> Unit) {
+    fun subscribeEquality(equalityCallback: (UHeapRef, UHeapRef) -> Unit) {
         equalReferences.subscribe(equalityCallback)
+    }
+
+    /**
+     * Sets [isStaticRefAssignableToSymbolic] according to information from [UTypeConstraints].
+     */
+    fun setTypesCheck(isStaticRefAssignableToSymbolic: (UConcreteHeapRef, USymbolicHeapRef) -> Boolean) {
+        this.isStaticRefAssignableToSymbolic = isStaticRefAssignableToSymbolic
+    }
+
+    /**
+     * Given a newly allocated static ref [allocatedStaticRef], updates [distinctReferences] and
+     * [mutableReferenceDisequalities] in the following way - removes all symbolic refs that may be equal to the
+     * [allocatedStaticRef] (according to the [isStaticRefAssignableToSymbolic]) from the [distinctReferences] and
+     * moves the information about disequality for these refs to the [mutableReferenceDisequalities].
+     * After that, adds the [allocatedStaticRef] to the [mutableDistinctReferences].
+     */
+    internal fun updateDisequality(allocatedStaticRef: UConcreteHeapRef) {
+        if (!isStaticHeapRef(allocatedStaticRef)) {
+            return
+        }
+
+        // Move from the clique to the [mutableDistinctReferences]
+        // all symbolic refs that are typely compatible with this static ref
+        val referencesToRemove = distinctReferences.filter {
+            it is USymbolicHeapRef && it !is UNullRef && isStaticRefAssignableToSymbolic(allocatedStaticRef, it)
+        }
+
+        // Here we need to save a copy of distinct refs to use all of them except the single ref from removed references
+        val oldDistinctRefs = distinctReferences.toSet()
+
+        for (ref in referencesToRemove) {
+            val otherDistinctRefs = oldDistinctRefs - ref
+            mutableDistinctReferences.remove(ref)
+
+            mutableReferenceDisequalities.getOrPut(ref) { hashSetOf() }.addAll(otherDistinctRefs)
+            otherDistinctRefs.forEach {
+                mutableReferenceDisequalities.getOrPut(it) { hashSetOf() } += ref
+            }
+        }
+
+        mutableDistinctReferences += allocatedStaticRef
     }
 
     /**
@@ -293,8 +390,8 @@ class UEqualityConstraints private constructor(
 
         val newEqualReferences = equalReferences.clone()
         val newDistinctReferences = distinctReferences.toMutableSet()
-        val newReferenceDisequalities = mutableMapOf<USymbolicHeapRef, MutableSet<USymbolicHeapRef>>()
-        val newNullableDisequalities = mutableMapOf<USymbolicHeapRef, MutableSet<USymbolicHeapRef>>()
+        val newReferenceDisequalities = mutableMapOf<UHeapRef, MutableSet<UHeapRef>>()
+        val newNullableDisequalities = mutableMapOf<UHeapRef, MutableSet<UHeapRef>>()
 
         referenceDisequalities.mapValuesTo(newReferenceDisequalities) { it.value.toMutableSet() }
         nullableDisequalities.mapValuesTo(newNullableDisequalities) { it.value.toMutableSet() }
@@ -306,5 +403,19 @@ class UEqualityConstraints private constructor(
             newReferenceDisequalities,
             newNullableDisequalities
         )
+    }
+
+    private fun requireStaticRef(ref: UHeapRef) {
+        require(isStaticHeapRef(ref)) {
+            "Expected static ref but got $ref"
+        }
+    }
+
+    /**
+     * A representative selector that prefers static refs over all others, and the null ref over other symbolic.
+     */
+    object RefsRepresentativeSelector : DisjointSets.RepresentativeSelector<UHeapRef> {
+        override fun shouldSelectAsRepresentative(value: UHeapRef): Boolean =
+            isStaticHeapRef(value) || value is UNullRef
     }
 }

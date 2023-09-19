@@ -3,10 +3,12 @@ package org.usvm.constraints
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapAddress
 import org.usvm.UConcreteHeapRef
+import org.usvm.UContext
 import org.usvm.UHeapRef
 import org.usvm.UNullRef
 import org.usvm.USymbolicHeapRef
-import org.usvm.memory.map
+import org.usvm.isStaticHeapRef
+import org.usvm.memory.mapWithStaticAsConcrete
 import org.usvm.types.USingleTypeStream
 import org.usvm.types.UTypeRegion
 import org.usvm.types.UTypeStream
@@ -38,8 +40,10 @@ class UTypeConstraints<Type>(
     private val concreteRefToType: MutableMap<UConcreteHeapAddress, Type> = mutableMapOf(),
     symbolicRefToTypeRegion: MutableMap<USymbolicHeapRef, UTypeRegion<Type>> = mutableMapOf(),
 ) : UTypeEvaluator<Type> {
+    private val ctx: UContext get() = equalityConstraints.ctx
+
     init {
-        equalityConstraints.subscribe(::intersectRegions)
+        equalityConstraints.subscribeEquality(::intersectRegions)
     }
 
     val symbolicRefToTypeRegion get(): Map<USymbolicHeapRef, UTypeRegion<Type>> = _symbolicRefToTypeRegion
@@ -68,10 +72,31 @@ class UTypeConstraints<Type>(
      */
     fun allocate(ref: UConcreteHeapAddress, type: Type) {
         concreteRefToType[ref] = type
+
+        equalityConstraints.updateDisequality(ctx.mkConcreteHeapRef(ref))
     }
 
     /**
-     * @param useRepresentative use the representive from the [equalityConstraints] for the [symbolicRef]. The false
+     * Checks that the static ref [staticRef] can be equal by reference to the symbolic ref [symbolicRef]
+     * according to their types, i.e., does a [UTypeStream] for the [symbolicRef] `contain` a concrete type of the [staticRef].
+     */
+    internal fun canStaticRefBeEqualToSymbolic(staticRef: UConcreteHeapRef, symbolicRef: USymbolicHeapRef): Boolean {
+        require(isStaticHeapRef(staticRef)) {
+            "Expected static ref but $staticRef was passed"
+        }
+
+        val symbolicTypes = getTypeStream(symbolicRef)
+        if (symbolicTypes.isEmpty) {
+            // Empty type stream is possible only for the null ref, and static ref could not be equal to it
+            return false
+        }
+        val concreteType = concreteRefToType[staticRef.address] ?: error("Unknown type of the static ref $staticRef")
+
+        return !symbolicTypes.filterBySupertype(concreteType).isEmpty
+    }
+
+    /**
+     * @param useRepresentative use the representative from the [equalityConstraints] for the [symbolicRef]. The false
      * value used, when we intersect regions on their refs union.
      * @see intersectRegions
      */
@@ -81,12 +106,26 @@ class UTypeConstraints<Type>(
         } else {
             symbolicRef
         }
+
+        // The representative can be a static ref, so we need to construct a type region from its concrete type.
+        if (representative is UConcreteHeapRef) {
+            return concreteRefToType[representative.address]?.let {
+                UTypeRegion.fromSingleType(typeSystem, it)
+            } ?: topTypeRegion
+        }
+
         return _symbolicRefToTypeRegion[representative] ?: topTypeRegion
     }
 
 
     private fun setTypeRegion(symbolicRef: USymbolicHeapRef, value: UTypeRegion<Type>) {
-        _symbolicRefToTypeRegion[equalityConstraints.equalReferences.find(symbolicRef)] = value
+        val representative = equalityConstraints.equalReferences.find(symbolicRef)
+        if (representative is UConcreteHeapRef) {
+            // No need to set a type region for static refs as they already have a concrete type.
+            return
+        }
+
+        _symbolicRefToTypeRegion[representative as USymbolicHeapRef] = value
     }
 
     /**
@@ -222,9 +261,47 @@ class UTypeConstraints<Type>(
             else -> error("Unexpected ref: $ref")
         }
 
-    private fun intersectRegions(to: USymbolicHeapRef, from: USymbolicHeapRef) {
-        val region = getTypeRegion(from, useRepresentative = false).intersect(getTypeRegion(to))
-        updateRegionCanBeEqualNull(to, region::intersect)
+    private fun intersectRegions(to: UHeapRef, from: UHeapRef) {
+        when {
+            to is USymbolicHeapRef && from is USymbolicHeapRef -> {
+                // For both symbolic refs we need to intersect both regions
+                val region = getTypeRegion(from, useRepresentative = false).intersect(getTypeRegion(to))
+                updateRegionCanBeEqualNull(to, region::intersect)
+            }
+
+            to is UConcreteHeapRef && from is UConcreteHeapRef -> {
+                // For both concrete refs we need to check types are the same
+                val toType = concreteRefToType.getValue(to.address)
+                val fromType = concreteRefToType.getValue(from.address)
+
+                if (toType != fromType) {
+                    contradiction()
+                }
+            }
+
+            to is UConcreteHeapRef -> {
+                // Here we have a pair of symbolic-concrete refs
+                val concreteToType = concreteRefToType.getValue(to.address)
+                val symbolicFromType = getTypeRegion(from as USymbolicHeapRef, useRepresentative = false)
+
+                if (symbolicFromType.addSupertype(concreteToType).isEmpty) {
+                    contradiction()
+                }
+            }
+
+            from is UConcreteHeapRef -> {
+                // Here to is symbolic and from is concrete
+                val concreteType = concreteRefToType.getValue(from.address)
+                val symbolicType = getTypeRegion(to as USymbolicHeapRef)
+                // We need to set only the concrete type instead of all these symbolic types - make it using both subtype/supertype
+                val regionFromConcreteType = symbolicType.addSubtype(concreteType).addSupertype(concreteType)
+
+                // static could not be equal null
+                updateRegionCannotBeEqualNull(to, regionFromConcreteType::intersect)
+            }
+
+            else -> error("Unexpected refs $to, $from")
+        }
     }
 
     private fun updateRegionCannotBeEqualNull(
@@ -277,7 +354,7 @@ class UTypeConstraints<Type>(
      * Evaluates the [ref] <: [supertype] in the current [UTypeConstraints]. Always returns true on null references.
      */
     override fun evalIsSubtype(ref: UHeapRef, supertype: Type): UBoolExpr =
-        ref.map(
+        ref.mapWithStaticAsConcrete(
             concreteMapper = { concreteRef ->
                 val concreteType = concreteRefToType.getValue(concreteRef.address)
                 if (typeSystem.isSupertype(supertype, concreteType)) {
@@ -303,7 +380,7 @@ class UTypeConstraints<Type>(
         )
 
     override fun evalIsSupertype(ref: UHeapRef, subtype: Type): UBoolExpr =
-        ref.map(
+        ref.mapWithStaticAsConcrete(
             concreteMapper = { concreteRef ->
                 val concreteType = concreteRefToType.getValue(concreteRef.address)
                 if (typeSystem.isSupertype(concreteType, subtype)) {

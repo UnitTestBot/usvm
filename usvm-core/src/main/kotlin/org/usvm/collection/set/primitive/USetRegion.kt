@@ -14,9 +14,9 @@ import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UMemoryRegionId
 import org.usvm.memory.USymbolicCollection
 import org.usvm.memory.USymbolicCollectionKeyInfo
-import org.usvm.memory.foldHeapRef
 import org.usvm.memory.foldHeapRef2
-import org.usvm.memory.map
+import org.usvm.memory.foldHeapRefWithStaticAsSymbolic
+import org.usvm.memory.mapWithStaticAsSymbolic
 import org.usvm.regions.Region
 import org.usvm.uctx
 
@@ -112,7 +112,7 @@ internal class USetMemoryRegion<SetType, ElementSort : USort, Reg : Region<Reg>>
         USetMemoryRegion(setType, elementSort, elementInfo, allocatedSets, updated)
 
     override fun read(key: USetEntryLValue<SetType, ElementSort, Reg>): UExpr<UBoolSort> =
-        key.setRef.map(
+        key.setRef.mapWithStaticAsSymbolic(
             { concreteRef -> allocatedSetElements(concreteRef.address).read(key.setElement) },
             { symbolicRef -> inputSetElements().read(symbolicRef to key.setElement) }
         )
@@ -121,7 +121,7 @@ internal class USetMemoryRegion<SetType, ElementSort : USort, Reg : Region<Reg>>
         key: USetEntryLValue<SetType, ElementSort, Reg>,
         value: UExpr<UBoolSort>,
         guard: UBoolExpr
-    ) = foldHeapRef(
+    ) = foldHeapRefWithStaticAsSymbolic(
         ref = key.setRef,
         initial = this,
         initialGuard = guard,

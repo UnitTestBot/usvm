@@ -273,4 +273,13 @@ class UTypeRegion<Type>(
         subtypes: PersistentSet<Type> = this.subtypes,
         notSubtypes: PersistentSet<Type> = this.notSubtypes,
     ) = UTypeRegion(typeSystem, typeStream, supertypes, notSupertypes, subtypes, notSubtypes)
+
+    companion object {
+        fun <Type> fromSingleType(typeSystem: UTypeSystem<Type>, type: Type): UTypeRegion<Type> = UTypeRegion(
+            typeSystem,
+            USingleTypeStream(typeSystem, type),
+            supertypes = persistentSetOf(type),
+            subtypes = persistentSetOf(type)
+        )
+    }
 }
