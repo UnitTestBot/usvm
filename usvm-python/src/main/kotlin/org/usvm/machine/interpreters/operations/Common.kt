@@ -1,9 +1,15 @@
 package org.usvm.machine.interpreters.operations
 
+import io.ksmt.sort.KIntSort
+import org.usvm.UExpr
 import org.usvm.api.allocateArrayInitialized
+import org.usvm.api.readArrayLength
 import org.usvm.api.writeArrayLength
 import org.usvm.interpreter.ConcolicRunContext
+import org.usvm.isFalse
+import org.usvm.isTrue
 import org.usvm.language.SymbolForCPython
+import org.usvm.language.types.ArrayLikeConcretePythonType
 import org.usvm.language.types.ArrayType
 import org.usvm.language.types.ConcretePythonType
 import org.usvm.machine.interpreters.PythonObject
@@ -120,4 +126,49 @@ fun handlerStandardTpGetattroKt(
     val concreteDescriptor = ConcretePythonInterpreter.typeLookup(type.asObject, concreteStr) ?: return null
     val memberDescriptor = ConcretePythonInterpreter.getSymbolicDescriptor(concreteDescriptor) ?: return null
     return memberDescriptor.getMember(ctx, obj)
+}
+
+fun getArraySize(context: ConcolicRunContext, array: UninterpretedSymbolicPythonObject, type: ArrayLikeConcretePythonType): UninterpretedSymbolicPythonObject? {
+    if (context.curState == null)
+        return null
+    if (array.getTypeIfDefined(context) != type)
+        return null
+    val listSize = context.curState!!.memory.readArrayLength(array.address, ArrayType)
+    return constructInt(context, listSize)
+}
+
+
+fun resolveSequenceIndex(
+    ctx: ConcolicRunContext,
+    seq: UninterpretedSymbolicPythonObject,
+    index: UninterpretedSymbolicPythonObject,
+    type: ArrayLikeConcretePythonType
+): UExpr<KIntSort>? {
+    if (ctx.curState == null)
+        return null
+    with (ctx.ctx) {
+        val typeSystem = ctx.typeSystem
+        index.addSupertypeSoft(ctx, typeSystem.pythonInt)
+        seq.addSupertypeSoft(ctx, type)
+
+        val listSize = ctx.curState!!.memory.readArrayLength(seq.address, ArrayType)
+        val indexValue = index.getIntContent(ctx)
+
+        val indexCond = mkAnd(indexValue lt listSize, mkArithUnaryMinus(listSize) le indexValue)
+        myFork(ctx, indexCond)
+
+        if (ctx.curState!!.pyModel.eval(indexCond).isFalse)
+            return null
+
+        val positiveIndex = mkAnd(indexValue lt listSize, mkIntNum(0) le indexValue)
+        myFork(ctx, positiveIndex)
+
+        return if (ctx.curState!!.pyModel.eval(positiveIndex).isTrue) {
+            indexValue
+        } else {
+            val negativeIndex = mkAnd(indexValue lt mkIntNum(0), mkArithUnaryMinus(listSize) le indexValue)
+            require(ctx.curState!!.pyModel.eval(negativeIndex).isTrue)
+            mkArithAdd(indexValue, listSize)
+        }
+    }
 }

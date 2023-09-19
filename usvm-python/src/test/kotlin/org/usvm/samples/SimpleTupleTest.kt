@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test
 import org.usvm.UMachineOptions
 import org.usvm.language.types.PythonAnyType
 import org.usvm.runner.PythonTestRunnerForPrimitiveProgram
+import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 class SimpleTupleTest: PythonTestRunnerForPrimitiveProgram("SimpleTuple", UMachineOptions(stepLimit = 20U)) {
@@ -37,6 +38,8 @@ class SimpleTupleTest: PythonTestRunnerForPrimitiveProgram("SimpleTuple", UMachi
 
     @Test
     fun testInputListOfPairs() {
+        val oldOptions = options
+        options = UMachineOptions(stepLimit = 40U)
         check1WithConcreteRun(
             constructFunction("input_list_of_pairs", listOf(PythonAnyType)),
             ignoreNumberOfAnalysisResults,
@@ -48,5 +51,70 @@ class SimpleTupleTest: PythonTestRunnerForPrimitiveProgram("SimpleTuple", UMachi
                 { _, res -> res.selfTypeName == "ValueError" }
             )
         )
+        options = oldOptions
+    }
+
+    @Test
+    fun testLength() {
+        check1WithConcreteRun(
+            constructFunction("length", listOf(typeSystem.pythonTuple)),
+            eq(2),
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, res -> res.repr == "None" },
+                { _, res -> res.selfTypeName == "AssertionError" },
+            )
+        )
+    }
+
+    @Test
+    fun testSumOfTuple() {
+        check1WithConcreteRun(
+            constructFunction("sum_of_tuple", listOf(typeSystem.pythonTuple)),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, res -> res.repr == "None" },
+                { _, res -> res.selfTypeName == "AssertionError" },
+            )
+        )
+    }
+
+    @Test
+    fun testGetItemSample() {
+        check1WithConcreteRun(
+            constructFunction("get_item_sample", listOf(PythonAnyType)),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ List(4) {
+                { _, res -> res.repr == (it + 1).toString() }
+            }
+        )
+    }
+
+    @Test
+    fun testGetItemOfInput() {
+        val oldOptions = options
+        options = UMachineOptions(stepLimit = 50U)
+        allowPathDiversions = true
+        check2WithConcreteRun(
+            constructFunction("get_item_of_input", listOf(PythonAnyType, PythonAnyType)),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, _, res -> res.repr == "1" },
+                { _, _, res -> res.repr == "2" },
+                { _, _, res -> res.repr == "3" },
+                { _, _, res -> res.repr == "4" },
+                { _, _, res -> res.selfTypeName == "AssertionError" },
+                { _, _, res -> res.selfTypeName == "IndexError" },
+            )
+        )
+        options = oldOptions
+        allowPathDiversions = false
     }
 }

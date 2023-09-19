@@ -4,10 +4,7 @@ import org.usvm.*
 import org.usvm.api.readArrayLength
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.types.ArrayType
-import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
-import org.usvm.machine.symbolicobjects.constructTupleIterator
-import org.usvm.machine.symbolicobjects.getTupleIteratorContent
-import org.usvm.machine.symbolicobjects.increaseTupleIteratorCounter
+import org.usvm.machine.symbolicobjects.*
 import java.util.stream.Stream
 import kotlin.streams.asSequence
 
@@ -32,6 +29,7 @@ fun handlerTupleIteratorNextKt(
     val (tuple, index) = iterator.getTupleIteratorContent(ctx)
     val tupleSize = ctx.curState!!.memory.readArrayLength(tuple, ArrayType)
     val indexCond = index lt tupleSize
+    myFork(ctx, indexCond)
     if (ctx.curState!!.pyModel.eval(indexCond).isFalse)
         return null
     iterator.increaseTupleIteratorCounter(ctx)
@@ -49,4 +47,18 @@ fun handlerUnpackKt(ctx: ConcolicRunContext, iterable: UninterpretedSymbolicPyth
     }
     val tupleSize = ctx.curState!!.memory.readArrayLength(iterable.address, ArrayType)
     myFork(ctx, tupleSize eq mkIntNum(count))
+}
+
+fun handlerTupleGetSizeKt(context: ConcolicRunContext, tuple: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? =
+    getArraySize(context, tuple, context.typeSystem.pythonTuple)
+
+fun handlerTupleGetItemKt(
+    ctx: ConcolicRunContext,
+    tuple: UninterpretedSymbolicPythonObject,
+    index: UninterpretedSymbolicPythonObject
+): UninterpretedSymbolicPythonObject? {
+    if (ctx.curState == null)
+        return null
+    val indexInt = resolveSequenceIndex(ctx, tuple, index, ctx.typeSystem.pythonTuple) ?: return null
+    return tuple.readElement(ctx, indexInt)
 }
