@@ -13,12 +13,14 @@ import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.UHeapRef
 import org.usvm.collection.array.UAllocatedArrayId
+import org.usvm.collection.array.UInputArrayId
 import org.usvm.regions.SetRegion
 import org.usvm.regions.emptyRegionTree
+import kotlin.random.Random
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-class MemoryRegionTests {
+class MemoryRegionTest {
     private lateinit var ctx: UContext
 
     @BeforeEach
@@ -107,4 +109,40 @@ class MemoryRegionTests {
         assertTrue(updatesAfter.last().includesConcretely(idx2, trueExpr))
     }
 
+    /**
+     * Tests random writes and reads with array region to ensure there are no REs.
+     */
+    @Test
+    fun testSymbolicWrites(): Unit = with(ctx) {
+        val random = Random(42)
+        val range = 3
+
+        val concreteRefs = List(range) { mkConcreteHeapRef(it) }
+        val symbolicRefs = List(range) { mkRegisterReading(it, addressSort) }
+        val refs = concreteRefs + symbolicRefs
+
+        val concreteIndices = List(range) { mkSizeExpr(it) }
+        val symbolicIndices = List(range) { mkRegisterReading(it, sizeSort) }
+        val indices = concreteIndices + symbolicIndices
+
+        val testsCount = 100
+        repeat(testsCount) {
+            var memoryRegion = UInputArrayId(mockk<Type>(), addressSort)
+                .emptyRegion()
+
+            val writesCount = 20
+            repeat(writesCount) {
+                val ref = symbolicRefs.random(random)
+                val idx = indices.random(random)
+                val value = refs.random(random)
+
+                memoryRegion = memoryRegion.write(ref to idx, value, trueExpr)
+            }
+
+            val readRef = symbolicRefs.random(random)
+            val readIdx = indices.random(random)
+
+            memoryRegion.read(readRef to readIdx)
+        }
+    }
 }

@@ -122,4 +122,8 @@ data class ProductRegion<X : Region<X>, Y : Region<Y>>(val products: List<Pair<X
         }
         return ProductRegion(newProducts)
     }
+
+    override fun toString(): String = products.joinToString(prefix = "{", separator = ", ", postfix = "}") { (a , b) ->
+        ("$a X $b").prependIndent("\t")
+    }
 }
