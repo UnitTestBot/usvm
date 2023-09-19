@@ -2,15 +2,16 @@ package org.usvm.machine.symbolicobjects
 
 import io.ksmt.sort.KIntSort
 import org.usvm.*
-import org.usvm.api.readArrayIndex
-import org.usvm.api.readField
-import org.usvm.api.typeStreamOf
+import org.usvm.api.*
 import org.usvm.constraints.UTypeConstraints
 import org.usvm.interpreter.ConcolicRunContext
+import org.usvm.language.PythonCallable
 import org.usvm.language.TimeOfCreation
 import org.usvm.machine.utils.PyModelHolder
 import org.usvm.machine.interpreters.operations.myAssert
 import org.usvm.language.types.*
+import org.usvm.machine.UPythonContext
+import org.usvm.memory.UMemory
 import org.usvm.types.UTypeStream
 import org.usvm.types.first
 
@@ -100,6 +101,10 @@ class UninterpretedSymbolicPythonObject(
         return ctx.curState!!.memory.readField(address, TimeOfCreation, ctx.ctx.intSort)
     }
 
+    fun setMinimalTimeOfCreation(ctx: UPythonContext, memory: UMemory<PythonType, PythonCallable>) {  // must not be called on nullref
+        memory.writeField(address, TimeOfCreation, ctx.intSort, ctx.mkIntNum(-1_000_000_000), ctx.trueExpr)
+    }
+
     fun readElement(ctx: ConcolicRunContext, index: UExpr<KIntSort>): UninterpretedSymbolicPythonObject {
         require(ctx.curState != null)
         val type = getTypeIfDefined(ctx)
@@ -113,6 +118,26 @@ class UninterpretedSymbolicPythonObject(
         }
         myAssert(ctx, cond)
         return elem
+    }
+
+    fun writeElement(ctx: ConcolicRunContext, index: UExpr<KIntSort>, value: UninterpretedSymbolicPythonObject) {
+        require(ctx.curState != null)
+        val type = getTypeIfDefined(ctx)
+        require(type != null && type is ArrayLikeConcretePythonType)
+        val cond = type.elementConstraints.fold(ctx.ctx.trueExpr as UBoolExpr) { acc, constraint ->
+            ctx.ctx.mkAnd(acc, constraint.applyUninterpreted(this, value, ctx))
+        }
+        myAssert(ctx, cond)
+        ctx.curState!!.memory.writeArrayIndex(address, index, ArrayType, ctx.ctx.addressSort, value.address, ctx.ctx.trueExpr)
+    }
+
+    fun extendConstraints(ctx: ConcolicRunContext, on: UninterpretedSymbolicPythonObject) {
+        require(ctx.curState != null)
+        val type = getTypeIfDefined(ctx)
+        require(type != null && type is ArrayLikeConcretePythonType)
+        type.elementConstraints.forEach {  constraint ->
+            on.addSupertypeSoft(ctx, HasElementConstraint(constraint))
+        }
     }
 
     private fun isAllocatedObject(ctx: ConcolicRunContext): Boolean {

@@ -6,12 +6,10 @@ import org.usvm.machine.interpreters.PythonObject
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.constructBool
 import org.usvm.machine.symbolicobjects.constructInt
-import java.util.stream.Stream
-import kotlin.streams.asSequence
 
 fun handlerLoadConstKt(context: ConcolicRunContext, value: PythonObject): UninterpretedSymbolicPythonObject? =
     when (ConcretePythonInterpreter.getPythonObjectTypeName(value)) {
-        "int" -> handlerLoadConstLongKt(context, ConcretePythonInterpreter.getPythonObjectRepr(value))
+        "int" -> handlerLoadConstLongKt(context, value)
         "bool" -> handlerLoadConstBoolKt(context, ConcretePythonInterpreter.getPythonObjectRepr(value))
         "NoneType" -> context.curState?.preAllocatedObjects?.noneObject
         "tuple" -> {
@@ -32,10 +30,18 @@ fun handlerLoadConstStrKt(context: ConcolicRunContext, value: PythonObject): Uni
     return context.curState!!.preAllocatedObjects.allocateStr(context, str)
 }
 
-fun handlerLoadConstLongKt(context: ConcolicRunContext, value: String): UninterpretedSymbolicPythonObject? {
+fun handlerLoadConstLongKt(context: ConcolicRunContext, value: PythonObject): UninterpretedSymbolicPythonObject? {
     if (context.curState == null)
         return null
-    return constructInt(context, context.ctx.mkIntNum(value))
+    val str = runCatching {
+        ConcretePythonInterpreter.getPythonObjectRepr(value)
+    }.onFailure {
+        System.err.println("Failed to get repr of int at ${value.address}")
+        val attempt2 = ConcretePythonInterpreter.getPythonObjectRepr(value, printErrorMsg = true)
+        System.err.println("Attempt 2: $attempt2")
+    }.getOrThrow()
+
+    return constructInt(context, context.ctx.mkIntNum(str))
 }
 
 fun handlerLoadConstBoolKt(context: ConcolicRunContext, value: String): UninterpretedSymbolicPythonObject? {

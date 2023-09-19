@@ -117,7 +117,7 @@ class PythonMachine<PythonObjectRepresentation>(
             interpreter,
             pathSelector,
             observer = observer,
-            isStateTerminated = { it.meta.modelDied },
+            isStateTerminated = { !it.isInterestingForPathSelector() },
             stopStrategy = {
                 observer.stateCounter >= 1000 || iterationCounter.iterations >= maxIterations ||
                         (stopTime != null && System.currentTimeMillis() >= stopTime)

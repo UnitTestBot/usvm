@@ -90,6 +90,14 @@ class PythonExecutionState(
             else
                 null
         }
+
+    fun isTerminated(): Boolean {
+        return meta.modelDied || meta.wasInterrupted || meta.wasExecuted && meta.objectsWithoutConcreteTypes == null
+    }
+
+    fun isInterestingForPathSelector(): Boolean {
+        return !isTerminated() || delayedForks.isNotEmpty()
+    }
 }
 
 class DelayedFork(
@@ -114,6 +122,7 @@ data class MockResult(
 class PythonExecutionStateMeta {
     var extractedFrom: UPathSelector<PythonExecutionState>? = null
     var wasExecuted: Boolean = false
+    var wasInterrupted: Boolean = false
     var modelDied: Boolean = false
     var objectsWithoutConcreteTypes: Set<VirtualPythonObject>? = null
     var lastConverter: ConverterToPythonObject? = null

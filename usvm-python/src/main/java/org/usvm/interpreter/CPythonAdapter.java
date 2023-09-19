@@ -57,7 +57,7 @@ public class CPythonAdapter {
     public native long concolicRun(long functionRef, long[] concreteArgs, long[] virtualArgs, SymbolForCPython[] symbolicArgs, ConcolicRunContext context, boolean print_error_message);
     public native void printPythonObject(long object);
     public native long[] getIterableElements(long iterable);
-    public native String getPythonObjectRepr(long object);
+    public native String getPythonObjectRepr(long object, boolean print_error_message);
     public native String getPythonObjectStr(long object);
     public native long getAddressOfReprFunction(long object);
     public native String getPythonObjectTypeName(long object);

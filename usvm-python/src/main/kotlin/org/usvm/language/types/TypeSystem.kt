@@ -95,7 +95,7 @@ abstract class PythonTypeSystem: UTypeSystem<PythonType> {
     val pythonBool = createConcreteTypeByName("bool")
     val pythonObjectType = createConcreteTypeByName("object")
     val pythonNoneType = createConcreteTypeByName("type(None)")
-    val pythonList = createArrayLikeTypeByName("list", emptySet())
+    val pythonList = createArrayLikeTypeByName("list", setOf(NonRecursiveConstraint))
     val pythonListIteratorType = createConcreteTypeByName("type(iter([]))", isHidden = true)
     val pythonTuple = createArrayLikeTypeByName("tuple", setOf(NonRecursiveConstraint))
     val pythonTupleIteratorType = createConcreteTypeByName("type(iter(tuple()))", isHidden = true)

@@ -150,37 +150,38 @@ class USVMPythonInterpreter<PythonObjectRepresentation>(
                     resultState.meta.lastConverter = converter
                 }
                 logger.debug("Finished step on state: {}", concolicRunContext.curState)
-
-                return StepResult(concolicRunContext.forkedStates.asSequence(), !state.meta.modelDied)
+                return StepResult(concolicRunContext.forkedStates.asSequence(), !state.isTerminated())
 
             } else {
                 logger.debug("Ended step with path diversion")
-                return StepResult(emptySequence(), false)
+                return StepResult(emptySequence(), !state.isTerminated())
             }
 
         } catch (_: BadModelException) {
 
             iterationCounter.iterations += 1
             logger.debug("Step result: Bad model")
-            return StepResult(concolicRunContext.forkedStates.asSequence(), !state.meta.modelDied)
+            return StepResult(concolicRunContext.forkedStates.asSequence(), !state.isTerminated())
 
         } catch (_: UnregisteredVirtualOperation) {
 
             iterationCounter.iterations += 1
             logger.debug("Step result: Unregistrered virtual operation")
-            return StepResult(emptySequence(), false)
+            concolicRunContext.curState?.meta?.modelDied = true
+            return StepResult(concolicRunContext.forkedStates.asSequence(), !state.isTerminated())
 
         } catch (_: InstructionLimitExceededException) {
 
             iterationCounter.iterations += 1
             logger.debug("Step result: InstructionLimitExceededException")
-            concolicRunContext.curState?.meta?.modelDied = true
-            return StepResult(concolicRunContext.forkedStates.reversed().asSequence(), !state.meta.modelDied)
+            concolicRunContext.curState?.meta?.wasInterrupted = true
+            return StepResult(concolicRunContext.forkedStates.reversed().asSequence(), !state.isTerminated())
 
         } catch (_: CancelledExecutionException) {
 
             logger.debug("Step result: execution cancelled")
-            return StepResult(emptySequence(), false)
+            concolicRunContext.curState?.meta?.wasInterrupted = true
+            return StepResult(concolicRunContext.forkedStates.reversed().asSequence(), !state.isTerminated())
 
         }
     }
