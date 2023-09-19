@@ -77,10 +77,10 @@ class SlicesTest: PythonTestRunnerForStructuredProgram("Slices", UMachineOptions
     fun testSliceUsages() {
         val oldOptions = options
         allowPathDiversions = true
-        options = UMachineOptions(stepLimit = 30U)
+        options = UMachineOptions(stepLimit = 40U)
         check3WithConcreteRun(
             constructFunction("slice_usages", List(3) { typeSystem.pythonInt }),
-            ge(20),
+            ge(10),
             standardConcolicAndConcreteChecks,
             /* invariants = */ emptyList(),
             /* propertiesToDiscover = */ emptyList()

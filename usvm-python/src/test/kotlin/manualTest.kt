@@ -27,34 +27,23 @@ fun main() {
     // println(ConcretePythonInterpreter.typeLookup(slice, "start"))
     // val config = buildProjectRunConfig()
     val config = buildSampleRunConfig()
-    // analyze(config)
-    checkConcolicAndConcrete(config)
+    analyze(config)
+    // checkConcolicAndConcrete(config)
 }
 
 private fun buildSampleRunConfig(): RunConfig {
-    val (program, typeSystem) = constructPrimitiveProgram(
-        """ 
-        def f(x):
-            assert isinstance(x, tuple)
-            cnt = 0
-            for elem in x:
-                assert isinstance(elem, tuple)
-                cnt += sum(elem)
-            if cnt > 1000:
-                return 1
-            return 2
-        """.trimIndent()
-    )
+    val (program, typeSystem) = constructStructuredProgram()
     val function = PythonUnpinnedCallable.constructCallableFromName(
-        listOf(PythonAnyType),
-        "f"
+        listOf(typeSystem.pythonInt, typeSystem.pythonInt, typeSystem.pythonInt),
+        "slice_usages",
+        "Slices"
     )
     val functions = listOf(function)
     return RunConfig(program, typeSystem, functions)
 }
 
 private fun buildProjectRunConfig(): RunConfig {
-    val projectPath = "/home/tochilinak/Documents/projects/utbot/Python/dynamic_programming"
+    val projectPath = "/home/tochilinak/Documents/projects/utbot/Python/sorts"
     val mypyRoot = "/home/tochilinak/Documents/projects/utbot/mypy_tmp"
     val files = getPythonFilesFromRoot(projectPath)
     val modules = getModulesFromFiles(projectPath, files)
@@ -69,16 +58,17 @@ private fun buildProjectRunConfig(): RunConfig {
     val program = StructuredPythonProgram(setOf(File(projectPath)))
     val typeSystem = PythonTypeSystemWithMypyInfo(mypyBuild, program)
     val ignoreFunctions = listOf<String>(
-        /*"circle_sort",  // NoSuchElement
+        "circle_sort",  // NoSuchElement
         "cocktail_shaker_sort",  // slow (why?)
         "quick_sort_lomuto_partition",  // NoSuchElement
         "oe_process",  // blocks
         "merge_insertion_sort",  // slow (why?)
-        "msd_radix_sort_inplace"  // NoSuchElement*/
+        "msd_radix_sort_inplace"  // NoSuchElement
     )
     val ignoreModules = listOf<String>(
-        /*"intro_sort",  // NoSuchElement
-        "heap_sort"  // NoSuchElement*/
+        // "heaps_algorithm",
+        "intro_sort",  // NoSuchElement
+        "heap_sort"  // NoSuchElement
     )
     val functions = modules.flatMap { module ->
         if (module in ignoreModules)
@@ -95,8 +85,8 @@ private fun buildProjectRunConfig(): RunConfig {
                 return@mapNotNull null
             if (ignoreFunctions.contains(functionName))
                 return@mapNotNull null
-            //if (functionName != "cocktail_shaker_sort")
-            //    return@mapNotNull null
+            // if (functionName != "peak")
+            //     return@mapNotNull null
             println("$module.$functionName: ${type.pythonTypeRepresentation()}")
             PythonUnpinnedCallable.constructCallableFromName(
                 List(description.numberOfArguments) { PythonAnyType },
@@ -147,10 +137,11 @@ private fun analyze(runConfig: RunConfig) {
                 val iterations = activeMachine.analyze(
                     f,
                     results,
-                    maxIterations = 80,
+                    maxIterations = 100,
                     allowPathDiversion = true,
-                    maxInstructions = 10_000,
-                    timeoutMs = 10_000
+                    maxInstructions = 15_000,
+                    //timeoutPerRunMs = 5_000,
+                    //timeoutMs = 20_000
                 )
                 results.forEach { (_, inputs, result) ->
                     println("INPUT:")

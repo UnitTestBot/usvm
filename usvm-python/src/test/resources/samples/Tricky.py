@@ -7,3 +7,15 @@ def calculate_depth(nodes, i, j):
     right_depth = calculate_depth(nodes, node + 1, j)
     result = max(left_depth, right_depth) + 1
     return result
+
+
+def square_matrix(x, target):
+    n = len(x)
+    assert n >= 5
+    for line in x:
+        assert len(line) == n
+        for elem in line:
+            assert elem == target
+
+    # ... some smart work ...
+    return "Success"
