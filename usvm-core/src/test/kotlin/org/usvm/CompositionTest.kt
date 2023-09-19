@@ -363,12 +363,18 @@ internal class CompositionTest {
         val sndComposedExpr = sndComposer.compose(fstArrayIndexReading)
         val fstComposedExpr = fstComposer.compose(sndComposedExpr)
 
-        val expectedRegion = region
-            .write(USymbolicArrayIndex(fstAddress, fstIndex), 1.toBv(), guard = mkTrue())
-            .write(USymbolicArrayIndex(sndAddress, sndIndex), 2.toBv(), guard = mkTrue())
-
         require(fstComposedExpr is UInputArrayReading<*, *>)
-        assert(fstComposedExpr.collection.updates.toList() == expectedRegion.updates.toList())
+
+        val updates = fstComposedExpr.collection.updates.toList()
+        assertEquals(2, updates.size)
+        val update0 = assertIs<UPinpointUpdateNode<USymbolicArrayIndex, USizeSort>>(updates[0])
+        val update1 = assertIs<UPinpointUpdateNode<USymbolicArrayIndex, USizeSort>>(updates[1])
+
+        assertEquals(update0.key, USymbolicArrayIndex(fstAddress, fstIndex))
+        assertEquals(update0.value, 1.toBv())
+
+        assertEquals(update1.key, USymbolicArrayIndex(sndAddress, sndIndex))
+        assertEquals(update1.value, 2.toBv())
     }
 
     @Test

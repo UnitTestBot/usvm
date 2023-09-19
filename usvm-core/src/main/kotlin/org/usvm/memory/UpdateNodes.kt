@@ -115,11 +115,6 @@ class UPinpointUpdateNode<Key, Sort : USort>(
         return res
     }
 
-    override fun equals(other: Any?): Boolean =
-        other is UPinpointUpdateNode<*, *> && this.key == other.key && this.guard == other.guard
-
-    override fun hashCode(): Int = key.hashCode() * 31 + guard.hashCode() // Ignores value
-
     override fun toString(): String = "{$key <- $value}".takeIf { guard.isTrue } ?: "{$key <- $value | $guard}"
 }
 
@@ -203,15 +198,6 @@ class URangedUpdateNode<CollectionId : USymbolicCollectionId<SrcKey, Sort, Colle
 
         return resultUpdateNode
     }
-
-    // Ignores update
-    override fun equals(other: Any?): Boolean =
-        other is URangedUpdateNode<*, *, *, *> &&
-            this.adapter == other.adapter &&
-            this.guard == other.guard
-
-    // Ignores update
-    override fun hashCode(): Int = adapter.hashCode() * 31 + guard.hashCode()
 
     /**
      * Applies this update node to the [memory] with applying composition via [composer].
