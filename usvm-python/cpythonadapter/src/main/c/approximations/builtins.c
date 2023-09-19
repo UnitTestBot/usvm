@@ -20,21 +20,18 @@ Approximation_len(PyObject *o) {
     PyObject *symbolic = Py_None;
     if (PyList_Check(concrete)) {
         symbolic = adapter->list_get_size(adapter->handler_param, get_symbolic_or_none(o));
-        if (!symbolic) {
-            assert(PyErr_Occurred());
-            return 0;
-        }
+    } else if (PyTuple_Check(concrete)) {
+        symbolic = adapter->tuple_get_size(adapter->handler_param, get_symbolic_or_none(o));
     } else if (is_virtual_object(concrete)) {
         symbolic = adapter->symbolic_virtual_unary_fun(adapter->handler_param, get_symbolic_or_none(o));
-        if (!symbolic) {
-            assert(PyErr_Occurred());
-            return 0;
-        }
     } else {
         sprintf(adapter->msg_buffer, "__len__ of %s", Py_TYPE(concrete)->tp_name);
         if (adapter->lost_symbolic_value(adapter->handler_param, adapter->msg_buffer)) return 0;
     }
-
+    if (!symbolic) {
+        assert(PyErr_Occurred());
+        return 0;
+    }
     return wrap(concrete_result, symbolic, adapter);
 }
 
