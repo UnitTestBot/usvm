@@ -149,7 +149,7 @@ class PythonVirtualPathSelector(
     }
 
     private fun processDelayedForksOfExecutedState(state: PythonExecutionState) {
-        require(state.meta.wasExecuted || state.meta.wasInterrupted)
+        require(state.isTerminated())
         state.delayedForks.firstOrNull()?.let {
             unservedDelayedForks.add(
                 DelayedForkWithTypeRating(
@@ -170,8 +170,7 @@ class PythonVirtualPathSelector(
         peekCache = null
         states.forEach { state ->
             if (state.isTerminated()) {
-                if (state.meta.wasExecuted || state.meta.wasInterrupted)
-                    processDelayedForksOfExecutedState(state)
+                processDelayedForksOfExecutedState(state)
                 return@forEach
             }
             if (state.meta.objectsWithoutConcreteTypes != null) {
@@ -188,9 +187,7 @@ class PythonVirtualPathSelector(
     override fun remove(state: PythonExecutionState) {
         peekCache = null
         state.meta.extractedFrom?.remove(state)
-        if (state.meta.wasExecuted || state.meta.wasInterrupted) {
-            processDelayedForksOfExecutedState(state)
-        }
+        processDelayedForksOfExecutedState(state)
     }
 
     companion object {

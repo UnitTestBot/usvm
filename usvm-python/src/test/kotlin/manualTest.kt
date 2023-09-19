@@ -27,8 +27,8 @@ fun main() {
     // println(ConcretePythonInterpreter.typeLookup(slice, "start"))
     val config = buildProjectRunConfig()
     // val config = buildSampleRunConfig()
-    analyze(config)
-    // checkConcolicAndConcrete(config)
+    // analyze(config)
+    checkConcolicAndConcrete(config)
 }
 
 private fun buildSampleRunConfig(): RunConfig {
@@ -43,7 +43,7 @@ private fun buildSampleRunConfig(): RunConfig {
 }
 
 private fun buildProjectRunConfig(): RunConfig {
-    val projectPath = "/home/tochilinak/Documents/projects/utbot/Python/divide_and_conquer"
+    val projectPath = "/home/tochilinak/Documents/projects/utbot/Python/dynamic_programming"
     val mypyRoot = "/home/tochilinak/Documents/projects/utbot/mypy_tmp"
     val files = getPythonFilesFromRoot(projectPath)
     val modules = getModulesFromFiles(projectPath, files)
@@ -58,6 +58,7 @@ private fun buildProjectRunConfig(): RunConfig {
     val program = StructuredPythonProgram(setOf(File(projectPath)))
     val typeSystem = PythonTypeSystemWithMypyInfo(mypyBuild, program)
     val ignoreFunctions = listOf<String>(
+        "_top_down_cut_rod_recursive"  // NoSuchElement
         /*"circle_sort",  // NoSuchElement
         "cocktail_shaker_sort",  // slow (why?)
         "quick_sort_lomuto_partition",  // NoSuchElement
@@ -85,7 +86,7 @@ private fun buildProjectRunConfig(): RunConfig {
                 return@mapNotNull null
             if (ignoreFunctions.contains(functionName))
                 return@mapNotNull null
-            // if (functionName != "peak")
+            // if (functionName != "heaps")
             //     return@mapNotNull null
             println("$module.$functionName: ${type.pythonTypeRepresentation()}")
             PythonUnpinnedCallable.constructCallableFromName(
@@ -137,11 +138,11 @@ private fun analyze(runConfig: RunConfig) {
                 val iterations = activeMachine.analyze(
                     f,
                     results,
-                    maxIterations = 50,
+                    maxIterations = 100,
                     allowPathDiversion = true,
-                    maxInstructions = 15_000,
-                    timeoutPerRunMs = 5_000,
-                    timeoutMs = 20_000
+                    maxInstructions = 100_000,
+                    timeoutPerRunMs = 10_000,
+                    timeoutMs = 30_000
                 )
                 results.forEach { (_, inputs, result) ->
                     println("INPUT:")
