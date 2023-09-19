@@ -12,10 +12,10 @@ import org.usvm.memory.ULValue
 import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UMemoryRegionId
 import org.usvm.memory.USymbolicCollection
-import org.usvm.memory.foldHeapRef
 import org.usvm.memory.foldHeapRef2
+import org.usvm.memory.foldHeapRefWithStaticAsSymbolic
 import org.usvm.memory.key.USizeExprKeyInfo
-import org.usvm.memory.map
+import org.usvm.memory.mapWithStaticAsSymbolic
 
 data class UArrayIndexLValue<ArrayType, Sort : USort>(
     override val sort: Sort,
@@ -92,32 +92,30 @@ internal class UArrayMemoryRegion<ArrayType, Sort : USort>(
     private fun updateInput(updated: UInputArray<ArrayType, Sort>) =
         UArrayMemoryRegion(allocatedArrays, updated)
 
-    override fun read(key: UArrayIndexLValue<ArrayType, Sort>): UExpr<Sort> =
-        key.ref.map(
-            { concreteRef -> getAllocatedArray(key.arrayType, key.sort, concreteRef.address).read(key.index) },
-            { symbolicRef -> getInputArray(key.arrayType, key.sort).read(symbolicRef to key.index) }
-        )
+    override fun read(key: UArrayIndexLValue<ArrayType, Sort>): UExpr<Sort> = key.ref.mapWithStaticAsSymbolic(
+        concreteMapper = { concreteRef -> getAllocatedArray(key.arrayType, key.sort, concreteRef.address).read(key.index) },
+        symbolicMapper = { symbolicRef -> getInputArray(key.arrayType, key.sort).read(symbolicRef to key.index) }
+    )
 
     override fun write(
         key: UArrayIndexLValue<ArrayType, Sort>,
         value: UExpr<Sort>,
         guard: UBoolExpr
-    ): UMemoryRegion<UArrayIndexLValue<ArrayType, Sort>, Sort> =
-        foldHeapRef(
-            key.ref,
-            initial = this,
-            initialGuard = guard,
-            blockOnConcrete = { region, (concreteRef, innerGuard) ->
-                val oldRegion = region.getAllocatedArray(key.arrayType, key.sort, concreteRef.address)
-                val newRegion = oldRegion.write(key.index, value, innerGuard)
-                region.updateAllocatedArray(concreteRef.address, newRegion)
-            },
-            blockOnSymbolic = { region, (symbolicRef, innerGuard) ->
-                val oldRegion = region.getInputArray(key.arrayType, key.sort)
-                val newRegion = oldRegion.write(symbolicRef to key.index, value, innerGuard)
-                region.updateInput(newRegion)
-            }
-        )
+    ): UMemoryRegion<UArrayIndexLValue<ArrayType, Sort>, Sort> = foldHeapRefWithStaticAsSymbolic(
+        key.ref,
+        initial = this,
+        initialGuard = guard,
+        blockOnConcrete = { region, (concreteRef, innerGuard) ->
+            val oldRegion = region.getAllocatedArray(key.arrayType, key.sort, concreteRef.address)
+            val newRegion = oldRegion.write(key.index, value, innerGuard)
+            region.updateAllocatedArray(concreteRef.address, newRegion)
+        },
+        blockOnSymbolic = { region, (symbolicRef, innerGuard) ->
+            val oldRegion = region.getInputArray(key.arrayType, key.sort)
+            val newRegion = oldRegion.write(symbolicRef to key.index, value, innerGuard)
+            region.updateInput(newRegion)
+        }
+    )
 
     override fun memcpy(
         srcRef: UHeapRef,

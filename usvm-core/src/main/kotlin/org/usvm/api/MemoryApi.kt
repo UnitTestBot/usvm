@@ -22,7 +22,8 @@ import org.usvm.collection.array.allocateArrayInitialized as allocateArrayInitia
 fun <Type> UReadOnlyMemory<Type>.typeStreamOf(ref: UHeapRef): UTypeStream<Type> =
     types.getTypeStream(ref)
 
-fun UMemory<*, *>.allocate() = ctx.mkConcreteHeapRef(addressCounter.freshAddress())
+fun UMemory<*, *>.allocateConcreteRef(): UConcreteHeapRef = ctx.mkConcreteHeapRef(addressCounter.freshAllocatedAddress())
+fun UMemory<*, *>.allocateStaticRef(): UConcreteHeapRef = ctx.mkConcreteHeapRef(addressCounter.freshStaticAddress())
 
 fun <Field, Sort : USort> UReadOnlyMemory<*>.readField(
     ref: UHeapRef, field: Field, sort: Sort

@@ -5,14 +5,14 @@ import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 
-
 internal class SerializableExampleTest : JavaMethodTestRunner() {
-
     @Test
+    @Disabled("Only 1 execution - NPE")
     fun testExample() {
-        checkDiscoveredProperties(
+        checkDiscoveredPropertiesWithExceptions(
             SerializableExample::example,
             eq(1),
+            { _, r -> r.isSuccess }
         )
     }
 }

@@ -34,6 +34,8 @@ import org.usvm.machine.state.JcState
 import org.usvm.machine.state.newStmt
 import org.usvm.machine.state.skipMethodInvocationWithValue
 import org.usvm.uctx
+import org.usvm.util.allocHeapRef
+import org.usvm.util.write
 
 class JcMethodApproximationResolver(
     private val ctx: JcContext,
@@ -64,6 +66,10 @@ class JcMethodApproximationResolver(
 
         if (method.enclosingClass.name == "jdk.internal.misc.Unsafe") {
             if (approximateUnsafeVirtualMethod(methodCall)) return true
+        }
+
+        if (method.name == "clone" && method.enclosingClass == ctx.cp.objectClass) {
+            if (approximateArrayClone(methodCall)) return true
         }
 
         return approximateEmptyNativeMethod(methodCall)
@@ -275,6 +281,56 @@ class JcMethodApproximationResolver(
         arrayTypeConstraintsWithBlockOnStates += unknownArrayType to allocateException(ctx.arrayStoreExceptionType)
 
         scope.forkMulti(arrayTypeConstraintsWithBlockOnStates)
+    }
+
+    private fun approximateArrayClone(methodCall: JcMethodCall): Boolean {
+        val instance = methodCall.arguments.first().asExpr(ctx.addressSort)
+        if (instance !is UConcreteHeapRef) {
+            return false
+        }
+
+        val arrayType = scope.calcOnState {
+            (memory.types.getTypeStream(instance).take(2).single())
+        }
+        if (arrayType !is JcArrayType) {
+            return false
+        }
+
+        exprResolver.resolveArrayClone(methodCall, instance, arrayType)
+        return true
+    }
+
+    private fun JcExprResolver.resolveArrayClone(
+        methodCall: JcMethodCall,
+        instance: UConcreteHeapRef,
+        arrayType: JcArrayType
+    ) = with(ctx) {
+        scope.doWithState {
+            checkNullPointer(instance) ?: return@doWithState
+
+            val arrayDescriptor = arrayDescriptorOf(arrayType)
+            val elementType = requireNotNull(arrayType.ifArrayGetElementType)
+
+            val lengthRef = UArrayLengthLValue(instance, arrayDescriptor)
+            val length = scope.calcOnState { memory.read(lengthRef).asExpr(sizeSort) }
+
+            val arrayRef = memory.allocHeapRef(arrayType, useStaticAddress = useStaticAddressForAllocation())
+            memory.write(UArrayLengthLValue(arrayRef, arrayDescriptor), length)
+
+            // It is very important to use arrayDescriptor here but not elementType correspondingly as in creating
+            // new arrays
+            memory.memcpy(
+                srcRef = instance,
+                dstRef = arrayRef,
+                arrayDescriptor,
+                elementSort = typeToSort(elementType),
+                fromSrc = mkBv(0),
+                fromDst = mkBv(0),
+                length
+            )
+
+            skipMethodInvocationWithValue(methodCall, arrayRef)
+        }
     }
 
     private fun JcExprResolver.addArrayCopyForType(

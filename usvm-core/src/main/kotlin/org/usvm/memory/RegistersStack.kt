@@ -10,7 +10,7 @@ import org.usvm.uctx
 
 object URegisterStackId : UMemoryRegionId<URegisterStackLValue<*>, USort> {
     override val sort: USort
-        get() = error("Register stack has not sort")
+        get() = error("Register stack has no sort")
 
     override fun emptyRegion(): UMemoryRegion<URegisterStackLValue<*>, USort> = URegistersStack()
 }

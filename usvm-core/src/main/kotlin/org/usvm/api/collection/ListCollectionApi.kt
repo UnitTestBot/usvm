@@ -11,14 +11,14 @@ import org.usvm.api.readArrayIndex
 import org.usvm.api.readArrayLength
 import org.usvm.api.writeArrayIndex
 import org.usvm.api.writeArrayLength
-import org.usvm.memory.map
+import org.usvm.memory.mapWithStaticAsConcrete
 import org.usvm.uctx
 
 object ListCollectionApi {
     fun <ListType> UState<ListType, *, *, *, *, *>.mkSymbolicList(
         listType: ListType,
     ): UHeapRef = with(memory.ctx) {
-        val ref = memory.alloc(listType)
+        val ref = memory.allocConcrete(listType)
         memory.writeArrayLength(ref, mkSizeExpr(0), listType)
         ref
     }
@@ -36,7 +36,7 @@ object ListCollectionApi {
         listRef: UHeapRef,
         listType: ListType,
     ): Unit? {
-        listRef.map(
+        listRef.mapWithStaticAsConcrete(
             concreteMapper = {
                 // Concrete list size is always correct
                 it

@@ -3,6 +3,7 @@ package org.usvm.memory
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentMapOf
 import org.usvm.INITIAL_CONCRETE_ADDRESS
+import org.usvm.INITIAL_STATIC_ADDRESS
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapAddress
 import org.usvm.UConcreteHeapRef
@@ -38,14 +39,25 @@ interface ULValue<Key, Sort : USort> {
 }
 
 /**
- * Current heap address holder. Calling [freshAddress] advances counter globally.
- * That is, allocation of an object in one state advances counter in all states.
+ * Current heap address holder. Calling [freshAllocatedAddress] updates [lastAllocatedAddress] or [lastStaticAddress] globally,
+ * depending on was an allocated object created or static.
+ * That is, allocation of an object in one state updates counter in all states.
  * This would help to avoid overlapping addresses in merged states.
  * Copying is prohibited.
  */
 object UAddressCounter {
-    private var lastAddress = INITIAL_CONCRETE_ADDRESS
-    fun freshAddress(): UConcreteHeapAddress = lastAddress++
+    private var lastAllocatedAddress: Int = INITIAL_CONCRETE_ADDRESS
+    private var lastStaticAddress: Int = INITIAL_STATIC_ADDRESS
+
+    /**
+     * Returns the [lastAllocatedAddress] and increments it.
+     */
+    fun freshAllocatedAddress(): UConcreteHeapAddress = lastAllocatedAddress++
+
+    /**
+     * Returns the [lastStaticAddress] and decrements it.
+     */
+    fun freshStaticAddress(): UConcreteHeapAddress = lastStaticAddress--
 }
 
 interface UReadOnlyMemory<Type> {
@@ -72,7 +84,8 @@ interface UWritableMemory<Type> : UReadOnlyMemory<Type> {
 
     fun <Key, Sort : USort> write(lvalue: ULValue<Key, Sort>, rvalue: UExpr<Sort>, guard: UBoolExpr)
 
-    fun alloc(type: Type): UConcreteHeapRef
+    fun allocConcrete(type: Type): UConcreteHeapRef
+    fun allocStatic(type: Type): UConcreteHeapRef
 }
 
 @Suppress("MemberVisibilityCanBePrivate")
@@ -125,10 +138,18 @@ class UMemory<Type, Method>(
         setRegion(regionId, newRegion)
     }
 
-    override fun alloc(type: Type): UConcreteHeapRef {
-        val concreteHeapRef = ctx.mkConcreteHeapRef(addressCounter.freshAddress())
-        types.allocate(concreteHeapRef.address, type)
-        return concreteHeapRef
+    override fun allocConcrete(type: Type): UConcreteHeapRef {
+        val allocatedHeapRef = ctx.mkConcreteHeapRef(addressCounter.freshAllocatedAddress())
+        types.allocate(allocatedHeapRef.address, type)
+
+        return allocatedHeapRef
+    }
+
+    override fun allocStatic(type: Type): UConcreteHeapRef {
+        val staticHeapRef = ctx.mkConcreteHeapRef(addressCounter.freshStaticAddress())
+        types.allocate(staticHeapRef.address, type)
+
+        return staticHeapRef
     }
 
     override fun nullRef(): UHeapRef = ctx.nullRef

@@ -7,13 +7,13 @@ import org.usvm.samples.enums.ComplexEnumExamples.Color
 import org.usvm.samples.enums.ComplexEnumExamples.Color.BLUE
 import org.usvm.samples.enums.ComplexEnumExamples.Color.GREEN
 import org.usvm.samples.enums.ComplexEnumExamples.Color.RED
+import org.usvm.samples.enums.SimpleEnumExample.*
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
-
 class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1, 2]")
+    @Disabled("Hangs")
     fun testEnumToEnumMapCountValues() {
         checkDiscoveredProperties(
             ComplexEnumExamples::enumToEnumMapCountValues,
@@ -25,7 +25,7 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No result found")
+    @Disabled("Exceeds timeout")
     fun testEnumToEnumMapCountKeys() {
         checkDiscoveredProperties(
             ComplexEnumExamples::enumToEnumMapCountKeys,
@@ -40,7 +40,7 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("No result found")
+    @Disabled("Exceeds timeout")
     fun testEnumToEnumMapCountMatches() {
         checkDiscoveredProperties(
             ComplexEnumExamples::enumToEnumMapCountMatches,
@@ -51,7 +51,7 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]")
+    @Disabled("TODO the first matcher does not matches. Discover whether it should or not - perhaps it's an issue with calculating coverage.")
     fun testCountEqualColors() {
         checkDiscoveredProperties(
             ComplexEnumExamples::countEqualColors,
@@ -63,7 +63,7 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]")
+    @Disabled("TODO the first matcher does not matches. Discover whether it should or not - perhaps it's an issue with calculating coverage.")
     fun testCountNullColors() {
         checkDiscoveredProperties(
             ComplexEnumExamples::countNullColors,
@@ -75,7 +75,6 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("JcTypedMethodImpl.getParameters: Index 1 out of bounds for length 1")
     fun testFindState() {
         checkDiscoveredProperties(
             ComplexEnumExamples::findState,
@@ -85,7 +84,7 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [2]")
+    @Disabled("Exceeds timeout")
     fun testCountValuesInArray() {
         fun Color.isCorrectlyCounted(inputs: Array<Color>, counts: Map<Color, Int>): Boolean =
             inputs.count { it == this } == (counts[this] ?: 0)
@@ -100,12 +99,52 @@ class ComplexEnumExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled(" Index 0 out of bounds for length 0")
     fun testCountRedInArray() {
         checkDiscoveredProperties(
             ComplexEnumExamples::countRedInArray,
-            eq(3),
+            ignoreNumberOfAnalysisResults,
             { _, colors, result -> colors.count { it == RED } == result }
+        )
+    }
+
+    @Test
+    @Disabled("TODO this test cannot be supported for now - it uses an `artificial` enum.")
+    fun testCustomEnumName() {
+        checkDiscoveredProperties(
+            ComplexEnumExamples::customEnumName,
+            ignoreNumberOfAnalysisResults,
+            { _, m, s -> m == null && s == "" },
+            { _, m, r -> (m == CustomEnum.VALUE1 || m == CustomEnum.VALUE2) && m.name() == r }
+        )
+    }
+
+    @Test
+    fun testEnumCustomField() {
+        checkDiscoveredProperties(
+            ComplexEnumExamples::enumCustomField,
+            ignoreNumberOfAnalysisResults,
+            { _, m, r -> m == null && r == 42 },
+            { _, m, r -> (m == SUCCESS || m == ERROR) && m.x == r }
+        )
+    }
+
+    @Test
+    fun testEnumName() {
+        checkDiscoveredProperties(
+            ComplexEnumExamples::enumName,
+            ignoreNumberOfAnalysisResults,
+            { _, m, s -> m == null && s == "" },
+            { _, m, r -> (m == SUCCESS || m == ERROR) && m.name == r }
+        )
+    }
+
+    @Test
+    fun testUnusedEnumParameter() {
+        checkDiscoveredProperties(
+            ComplexEnumExamples::unusedEnumParameter,
+            ignoreNumberOfAnalysisResults,
+            { _, m, r -> m == null && r == 0 },
+            { _, m, r -> (m == SUCCESS || m == ERROR) && r == 42 }
         )
     }
 }

@@ -3,11 +3,13 @@ package org.usvm.samples.objects;
 public class ObjectWithStatics {
     static Object refStaticField;
 
-    static int primitiveStaticField;
+    static int mutablePrimitiveStaticField;
+    final static int finalPrimitiveStaticField;
 
     static {
         refStaticField = new Object();
-        primitiveStaticField = 17;
+        mutablePrimitiveStaticField = 17;
+        finalPrimitiveStaticField = 42;
     }
 
     private Object getRefFiled() {
@@ -15,14 +17,14 @@ public class ObjectWithStatics {
     }
 
     private int getPrimitiveFiled() {
-        return primitiveStaticField;
+        return mutablePrimitiveStaticField;
     }
 
     int staticsAreEqual() {
         if (ObjectWithStatics.refStaticField != getRefFiled()) {
             return 1;
         }
-        if (ObjectWithStatics.primitiveStaticField != getPrimitiveFiled()) {
+        if (ObjectWithStatics.mutablePrimitiveStaticField != getPrimitiveFiled()) {
             return 2;
         }
         return 0;
@@ -30,15 +32,26 @@ public class ObjectWithStatics {
 
     int mutateStatics() {
         int initial = getPrimitiveFiled();
-        primitiveStaticField++;
+        mutablePrimitiveStaticField++;
         int mutated = getPrimitiveFiled();
         return mutated - initial;
     }
 
-    int staticsInitialized() {
-        if (ObjectWithStatics.primitiveStaticField != 17) {
+    int useMutablePrimitiveStaticField() {
+        if (ObjectWithStatics.mutablePrimitiveStaticField != 17) {
+            // The static field primitiveStaticField is mutable primitive, so this stmt is reachable
             return 1;
         }
+
+        return 0;
+    }
+
+    int useFinalPrimitiveStaticField() {
+        if (ObjectWithStatics.finalPrimitiveStaticField != 42) {
+            // We consider final primitive static fields as immutable, so this stmt is unreachable
+            return 1;
+        }
+
         return 0;
     }
 }

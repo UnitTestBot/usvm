@@ -24,9 +24,19 @@ class TestStatics : JavaMethodTestRunner() {
     }
 
     @Test
-    fun `Test static initializer`() {
+    fun `Test mutable primitive static field`() {
         checkDiscoveredProperties(
-            ObjectWithStatics::staticsInitialized,
+            ObjectWithStatics::useMutablePrimitiveStaticField,
+            eq(2),
+            { _, r -> r == 0 },
+            { _, r -> r == 1 },
+        )
+    }
+
+    @Test
+    fun `Test final primitive static field`() {
+        checkDiscoveredProperties(
+            ObjectWithStatics::useFinalPrimitiveStaticField,
             eq(1),
             { _, r -> r == 0 },
         )

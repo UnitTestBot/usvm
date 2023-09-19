@@ -5,6 +5,8 @@ import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
 import io.ksmt.utils.uncheckedCast
 import org.jacodb.api.JcArrayType
+import org.jacodb.api.JcClassOrInterface
+import org.jacodb.api.JcClassType
 import org.jacodb.api.JcMethod
 import org.jacodb.api.JcPrimitiveType
 import org.jacodb.api.JcRefType
@@ -71,13 +73,16 @@ import org.jacodb.api.ext.boolean
 import org.jacodb.api.ext.byte
 import org.jacodb.api.ext.char
 import org.jacodb.api.ext.double
+import org.jacodb.api.ext.enumValues
 import org.jacodb.api.ext.float
 import org.jacodb.api.ext.ifArrayGetElementType
 import org.jacodb.api.ext.int
 import org.jacodb.api.ext.isAssignable
+import org.jacodb.api.ext.isEnum
 import org.jacodb.api.ext.long
 import org.jacodb.api.ext.objectType
 import org.jacodb.api.ext.short
+import org.jacodb.api.ext.toType
 import org.jacodb.api.ext.void
 import org.jacodb.impl.bytecode.JcFieldImpl
 import org.jacodb.impl.types.FieldInfo
@@ -106,6 +111,8 @@ import org.usvm.machine.state.addVirtualMethodCallStmt
 import org.usvm.machine.state.throwExceptionWithoutStackFrameDrop
 import org.usvm.memory.ULValue
 import org.usvm.memory.URegisterStackLValue
+import org.usvm.util.allocHeapRef
+import org.usvm.util.enumValuesField
 import org.usvm.util.write
 
 /**
@@ -118,6 +125,7 @@ class JcExprResolver(
     private val localToIdx: (JcMethod, JcLocal) -> Int,
     private val mkTypeRef: (JcType, JcState) -> UConcreteHeapRef,
     private val mkStringConstRef: (String, JcState) -> UConcreteHeapRef,
+    private val classInitializerAnalysisAlwaysRequiredForType: (JcRefType) -> Boolean,
     private val hardMaxArrayLength: Int = 1_500, // TODO: move to options
 ) : JcExprVisitor<UExpr<out USort>?> {
     /**
@@ -125,12 +133,17 @@ class JcExprResolver(
      *
      * @return a symbolic expression, with the sort corresponding to the [type].
      */
-    fun resolveJcExpr(expr: JcExpr, type: JcType = expr.type): UExpr<out USort>? =
-        if (expr.type != type) {
+    fun resolveJcExpr(expr: JcExpr, type: JcType = expr.type): UExpr<out USort>? {
+        val resolvedExpr = if (expr.type != type) {
             resolveCast(expr, type)
         } else {
             expr.accept(this)
-        }
+        } ?: return null
+
+        ensureExprCorrectness(resolvedExpr, type) ?: return null
+
+        return resolvedExpr
+    }
 
     fun resolveJcNotNullRefExpr(expr: JcExpr, type: JcType): UHeapRef? {
         check(type is JcRefType) { "Non ref type: $expr" }
@@ -287,6 +300,11 @@ class JcExprResolver(
 
     override fun visitJcStringConstant(value: JcStringConstant): UExpr<out USort> = with(ctx) {
         scope.calcOnState {
+            // Equal string constants always have equal references
+            val ref = resolveStringConstant(value.value)
+            val stringValueLValue = UFieldLValue(addressSort, ref, stringValueField.field)
+            val stringCoderLValue = UFieldLValue(byteSort, ref, stringCoderField.field)
+
             // String.value type depends on the JVM version
             val charValues = when (stringValueField.fieldType.ifArrayGetElementType) {
                 cp.char -> value.value.asSequence().map { mkBv(it.code, charSort) }
@@ -305,12 +323,9 @@ class JcExprResolver(
             // overwrite array type because descriptor is element type
             memory.types.allocate(charArrayRef.address, stringValueField.fieldType)
 
-            // Equal string constants always have equal references
-            val ref = resolveStringConstant(value.value)
-
-            // String constants are immutable. Therefore, it is correct to overwrite value and type.
-            val stringValueLValue = UFieldLValue(addressSort, ref, stringValueField.field)
+            // String constants are immutable. Therefore, it is correct to overwrite value, coder and type.
             memory.write(stringValueLValue, charArrayRef)
+            memory.write(stringCoderLValue, mkBv(0, byteSort))
             memory.types.allocate(ref.address, stringType)
 
             ref
@@ -331,13 +346,13 @@ class JcExprResolver(
 
     fun resolveClassRef(type: JcType): UConcreteHeapRef = scope.calcOnState {
         val ref = mkTypeRef(type, this)
+        val classRefTypeLValue = UFieldLValue(ctx.addressSort, ref, ctx.classTypeSyntheticField)
 
         // Ref type is java.lang.Class
         memory.types.allocate(ref.address, ctx.classType)
 
-        // Save ref original class type
-        val classRefType = memory.alloc(type)
-        val classRefTypeLValue = UFieldLValue(ctx.addressSort, ref, ctx.classTypeSyntheticField)
+        // Save ref original class type with the negative address
+        val classRefType = memory.allocStatic(type)
         memory.write(classRefTypeLValue, classRefType)
 
         ref
@@ -376,17 +391,19 @@ class JcExprResolver(
         checkNewArrayLength(size) ?: return null
 
         scope.calcOnState {
-            val ref = memory.alloc(expr.type)
+            val ref = memory.allocHeapRef(expr.type, useStaticAddress = useStaticAddressForAllocation())
 
             val arrayDescriptor = arrayDescriptorOf(expr.type as JcArrayType)
             memory.write(UArrayLengthLValue(ref, arrayDescriptor), size)
+            // overwrite array type because descriptor is element type (which is Object for arrays of refs)
+            memory.types.allocate(ref.address, expr.type)
 
             ref
         }
     }
 
     override fun visitJcNewExpr(expr: JcNewExpr): UExpr<out USort> =
-        scope.calcOnState { memory.alloc(expr.type) }
+        scope.calcOnState { memory.allocHeapRef(expr.type, useStaticAddress = useStaticAddressForAllocation()) }
 
     override fun visitJcPhiExpr(expr: JcPhiExpr): UExpr<out USort> =
         error("Unexpected expr: $expr")
@@ -412,7 +429,6 @@ class JcExprResolver(
         ) { arguments ->
             scope.doWithState { addVirtualMethodCallStmt(expr.method.method, arguments) }
         }
-
 
     override fun visitJcStaticCallExpr(expr: JcStaticCallExpr): UExpr<out USort>? =
         resolveInvoke(
@@ -450,24 +466,28 @@ class JcExprResolver(
         argumentExprs: () -> List<JcValue>,
         argumentTypes: () -> List<JcType>,
         onNoCallPresent: JcStepScope.(List<UExpr<out USort>>) -> Unit,
-    ): UExpr<out USort>? = ensureStaticFieldsInitialized(method.enclosingType) {
-        val arguments = mutableListOf<UExpr<out USort>>()
+    ): UExpr<out USort>? {
+        val instanceRef = if (instanceExpr != null) {
+            resolveJcExpr(instanceExpr)?.asExpr(ctx.addressSort) ?: return null
+        } else {
+            null
+        }
 
-        if (instanceExpr != null) {
-            val instance = resolveJcExpr(instanceExpr)?.asExpr(ctx.addressSort) ?: return null
-            checkNullPointer(instance) ?: return null
+        val arguments = mutableListOf<UExpr<out USort>>()
+        if (instanceRef != null) {
+            checkNullPointer(instanceRef) ?: return null
 
             // Ensure instance is subtype of method class
-            if (!assertIsSubtype(instance, method.enclosingType)) return null
+            if (!assertIsSubtype(instanceRef, method.enclosingType)) return null
 
-            arguments += instance
+            arguments += instanceRef
         }
 
         argumentExprs().zip(argumentTypes()) { expr, type ->
             arguments += resolveJcExpr(expr, type) ?: return null
         }
 
-        resolveInvokeNoStaticInitializationCheck { onNoCallPresent(arguments) }
+        return resolveInvokeNoStaticInitializationCheck { onNoCallPresent(arguments) }
     }
 
     private inline fun resolveInvokeNoStaticInitializationCheck(
@@ -544,37 +564,166 @@ class JcExprResolver(
 
     // region lvalue resolving
 
-    private fun resolveFieldRef(instance: JcValue?, field: JcTypedField): ULValue<*, *>? =
-        ensureStaticFieldsInitialized(field.enclosingType) {
-            with(ctx) {
-                if (instance != null) {
-                    val instanceRef = resolveJcExpr(instance)?.asExpr(addressSort) ?: return null
-                    checkNullPointer(instanceRef) ?: return null
+    private fun resolveFieldRef(instance: JcValue?, field: JcTypedField): ULValue<*, *>? {
+        with(ctx) {
+            val instanceRef = if (instance != null) {
+                resolveJcExpr(instance)?.asExpr(addressSort) ?: return null
+            } else {
+                null
+            }
 
-                    // Ensure instance is subtype of field class
-                    if (!assertIsSubtype(instanceRef, field.enclosingType)) return null
+            if (instanceRef != null) {
+                checkNullPointer(instanceRef) ?: return null
 
-                    val sort = ctx.typeToSort(field.fieldType)
-                    UFieldLValue(sort, instanceRef, field.field)
-                } else {
-                    val sort = ctx.typeToSort(field.fieldType)
-                    val classRef = resolveClassRef(field.enclosingType)
-                    UFieldLValue(sort, classRef, field.field)
-                }
+                // Ensure instance is subtype of field class
+                if (!assertIsSubtype(instanceRef, field.enclosingType)) return null
+
+                val sort = ctx.typeToSort(field.fieldType)
+                return UFieldLValue(sort, instanceRef, field.field)
+            }
+
+            return ensureStaticFieldsInitialized(field.enclosingType, classInitializerAnalysisRequired = true) {
+                val sort = ctx.typeToSort(field.fieldType)
+                JcStaticFieldLValue(field.field, ctx, sort)
             }
         }
+    }
+
+    fun ensureExprCorrectness(expr: UExpr<*>, type: JcType): Unit? {
+        if (type !is JcClassType || !type.jcClass.isEnum) {
+            return Unit
+        }
+
+        return ensureStaticFieldsInitialized(type.jcClass.toType(), classInitializerAnalysisRequired = true) {
+            scope.calcOnState {
+                ensureEnumInstanceCorrectness(expr.asExpr(ctx.addressSort), type.jcClass)
+            }
+        }
+    }
+
+    /**
+     * This method adds a few constraints for the instance of an enum type to satisfy its invariants in Java:
+     * - Its ordinal takes this semi-interval: [0..$VALUES.size).
+     * - It equals by reference to the one of the enum constant of this enum type or null — this invariant is represented
+     * as a constraint that this instance equals by reference to the array reading from the $VALUES field by its ordinal or null.
+     *
+     * Without such constraints, false positive can appear — for example, forking on the negative ordinal, or incorrect enum
+     * values could be constructed as method parameters.
+     */
+    private fun JcState.ensureEnumInstanceCorrectness(
+        enumInstance: UHeapRef,
+        type: JcClassOrInterface,
+    ): Unit? = with(ctx) {
+        if (enumInstance is UConcreteHeapRef) {
+            // We do not need to ensure correctness for existing enum constants
+            return Unit
+        }
+
+        val enumValues = type.enumValues
+
+        val maxOrdinalValue = enumValues!!.size.toBv()
+        val ordinalFieldOfEnumInstanceLValue = UFieldLValue(sizeSort, enumInstance, enumOrdinalField)
+        val ordinalFieldValue = memory.read(ordinalFieldOfEnumInstanceLValue)
+
+        val ordinalCorrectnessConstraints =
+            mkBvSignedLessOrEqualExpr(mkBv(0), ordinalFieldValue) and mkBvSignedLessExpr(
+                ordinalFieldValue,
+                maxOrdinalValue
+            )
+
+        val enumValuesField = type.enumValuesField
+        val enumValuesFieldLValue = JcStaticFieldLValue(enumValuesField.field, ctx, addressSort)
+        val enumValuesRef = memory.read(enumValuesFieldLValue)
+
+        val oneOfEnumInstancesLValue =
+            UArrayIndexLValue(addressSort, enumValuesRef, ordinalFieldValue, cp.objectType)
+        val oneOfEnumInstancesRef = memory.read(oneOfEnumInstancesLValue)
+        val oneOfEnumInstancesEqualityConstraint = mkHeapRefEq(enumInstance, oneOfEnumInstancesRef)
+
+        val oneOfEnumInstances = ordinalCorrectnessConstraints and oneOfEnumInstancesEqualityConstraint
+        val isEnumNull = mkHeapRefEq(enumInstance, nullRef)
+        // A dirty hack to make both branches possible - with null enum value and
+        // the enum value equal to the one of corresponding enum constants
+        val invariantsConstraint = mkIteNoSimplify(isEnumNull, trueExpr, oneOfEnumInstances)
+
+
+        scope.assert(invariantsConstraint)
+    }
+
+    /**
+     * This method ensures enum constants are correct in any model. It is provided by adding a few constraints:
+     * - The length of the $VALUES field is always the same as after interpreting the corresponding static initializer.
+     * - The ordinal of each enum constant is always the same as after interpreting the corresponding static initializer.
+     * - Each enum constant always equals by reference to the array reading from the $VALUES array by its ordinal.
+     *
+     * Without such constraints, incorrect enum values could be constructed in case of aliasing method parameters with
+     * the enum constants (represented as static refs), or the $VALUES array.
+     */
+    private fun JcState.ensureEnumStaticInitializerInvariants(type: JcClassOrInterface) = with(ctx) {
+        val enumValues = type.enumValues ?: error("Expected enum values containing in the enum type $type")
+        val enumValuesField = type.enumValuesField
+        val enumValuesFieldLValue = JcStaticFieldLValue(enumValuesField.field, ctx, addressSort)
+        val enumValuesRef = memory.read(enumValuesFieldLValue)
+
+        val enumValuesType = enumValuesField.fieldType as JcArrayType
+        val enumValuesArrayDescriptor = arrayDescriptorOf(enumValuesType)
+
+        val enumValuesFieldLengthLValue = UArrayLengthLValue(enumValuesRef, enumValuesArrayDescriptor)
+        val enumValuesFieldLengthBeforeClinit =
+            enumValuesFieldLengthLValue.memoryRegionId.emptyRegion().read(enumValuesFieldLengthLValue)
+        val enumValuesFieldLengthAfterClinit = memory.read(enumValuesFieldLengthLValue)
+
+        // Ensure that $VALUES in a model has the same length as the $VALUES in the memory
+        scope.assert(mkEq(enumValuesFieldLengthBeforeClinit, enumValuesFieldLengthAfterClinit))
+            ?: error("Cannot assert correctness constraint for the \$VALUES of the enum class ${type.name}")
+
+        enumValues.indices.forEach { ordinal ->
+            // {0x1 <- 1}{0x2 <- 2}ordinal
+            // read(ordinal, 0x1) = 1
+            // read(ordinal, 0x2) = 2
+            val enumConstantLValue =
+                UArrayIndexLValue(addressSort, enumValuesRef, mkSizeExpr(ordinal), cp.objectType)
+            val enumConstantRefAfterClinit = memory.read(enumConstantLValue)
+            val enumConstantRefBeforeClinit =
+                enumConstantLValue.memoryRegionId.emptyRegion().read(enumConstantLValue)
+
+            val ordinalFieldLValue =
+                UFieldLValue(sizeSort, enumConstantRefAfterClinit, enumOrdinalField)
+            val ordinalFieldValueAfterClinit = memory.read(ordinalFieldLValue)
+            val ordinalEmptyRegion = ordinalFieldLValue.memoryRegionId.emptyRegion()
+            val ordinalFieldValueBeforeClinit = ordinalEmptyRegion.read(ordinalFieldLValue)
+
+            // Ensure that the ordinal of each enum constant equals to the real ordinal value
+            scope.assert(mkEq(ordinalFieldValueAfterClinit, ordinalFieldValueBeforeClinit))
+                ?: error("Cannot assert enum correctness constraint for a constant of the enum class ${type.name}")
+
+            // Ensure that each enum constant in a model equals by reference to the corresponding value in the memory
+            scope.assert(mkEq(enumConstantRefBeforeClinit, enumConstantRefAfterClinit))
+                ?: error("Cannot assert enum correctness constraint for a constant of the enum class ${type.name}")
+        }
+    }
+
 
     /**
      * Run a class static initializer for [type] if it didn't run before the current state.
      * The class static initialization state is tracked by the synthetic [staticFieldsInitializedFlagField] field.
      * */
-    private inline fun <T> ensureStaticFieldsInitialized(type: JcRefType, body: () -> T): T? {
+    private inline fun <T> ensureStaticFieldsInitialized(
+        type: JcRefType,
+        classInitializerAnalysisRequired: Boolean,
+        body: () -> T,
+    ): T? {
         // java.lang.Object has no static fields, but has non-trivial initializer
         if (type == ctx.cp.objectType) {
             return body()
         }
 
-        val initializer = type.jcClass.declaredMethods.firstOrNull { it.isClassInitializer }
+        if (!classInitializerAnalysisRequired && !classInitializerAnalysisAlwaysRequiredForType(type)) {
+            return body()
+        }
+
+        val jcClass = type.jcClass
+        val initializer = jcClass.declaredMethods.firstOrNull { it.isClassInitializer }
 
         // Class has no static initializer
         if (initializer == null) {
@@ -596,6 +745,11 @@ class JcExprResolver(
                 val result = methodResult
                 if (result is JcMethodResult.Success && result.method == initializer) {
                     methodResult = JcMethodResult.NoCall
+
+                    mutatePrimitiveFieldValuesToSymbolic(scope, initializer)
+                    if (jcClass.isEnum) {
+                        ensureEnumStaticInitializerInvariants(jcClass)
+                    }
                 }
             }
 
@@ -649,7 +803,8 @@ class JcExprResolver(
     // region implicit exceptions
 
     fun allocateException(type: JcRefType): (JcState) -> Unit = { state ->
-        val address = state.memory.alloc(type)
+        // TODO should we consider exceptions with negative addresses?
+        val address = state.memory.allocConcrete(type)
         state.throwExceptionWithoutStackFrameDrop(address, type)
     }
 
@@ -827,6 +982,36 @@ class JcExprResolver(
         val result0 = resolveJcExpr(dependency0) ?: return null
         val result1 = resolveJcExpr(dependency1) ?: return null
         return block(result0, result1)
+    }
+
+    /**
+     * Always use negative addresses in enum static initializers,
+     * for static initializers of other classes depends on [JcContext.useNegativeAddressesInStaticInitializer].
+     */
+    fun JcState.useStaticAddressForAllocation(): Boolean {
+        val isEnumStaticInitializer = lastEnteredMethod.let { it.isClassInitializer && it.enclosingClass.isEnum }
+        if (isEnumStaticInitializer) {
+            return true
+        }
+
+        return ctx.useNegativeAddressesInStaticInitializer && callStack.any { it.method.isClassInitializer }
+    }
+
+    /**
+     * Consider all mutable primitive fields allocated in the static initializer as symbolic values.
+     */
+    private fun mutatePrimitiveFieldValuesToSymbolic(
+        scope: JcStepScope,
+        staticInitializer: JcMethod
+    ) {
+        scope.calcOnState {
+            with(ctx) {
+                // We can use any sort here as it is not used
+                val staticFieldsMemoryRegionId = JcStaticFieldRegionId(staticInitializer.enclosingClass.toType(), voidSort)
+                val staticFieldsMemoryRegion = memory.getRegion(staticFieldsMemoryRegionId) as JcStaticFieldsMemoryRegion
+                staticFieldsMemoryRegion.mutatePrimitiveStaticFieldValuesToSymbolic(this@calcOnState)
+            }
+        }
     }
 
     companion object {

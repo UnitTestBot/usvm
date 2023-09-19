@@ -11,8 +11,10 @@ class DisjointSets<T> private constructor(
     private val parent: MutableMap<T, T>,
     private val rank: MutableMap<T, Int>,
     private var unionCallback: ((T, T) -> Unit)?,
+    private val representativeSelector: RepresentativeSelector<T>?
 ) : Iterable<Map.Entry<T, T>> by parent.entries {
-    constructor() : this(mutableMapOf(), mutableMapOf(), unionCallback = null)
+    constructor(representativeSelector: RepresentativeSelector<T>? = null) :
+            this(mutableMapOf(), mutableMapOf(), unionCallback = null, representativeSelector)
 
     /**
      * Returns representative of set containing [x].
@@ -46,6 +48,20 @@ class DisjointSets<T> private constructor(
 
         if (u == v) {
             return
+        }
+
+        representativeSelector?.let {
+            if (it.shouldSelectAsRepresentative(u)) {
+                merge(u, v)
+
+                return
+            }
+
+            if (it.shouldSelectAsRepresentative(v)) {
+                merge(v, u)
+
+                return
+            }
         }
 
         val rankU = rank[u] ?: 0
@@ -83,5 +99,12 @@ class DisjointSets<T> private constructor(
      * Creates a copy of this structure.
      * Note that current subscribers get unsubscribed!
      */
-    fun clone() = DisjointSets(parent.toMutableMap(), rank.toMutableMap(), unionCallback = null)
+    fun clone() = DisjointSets(parent.toMutableMap(), rank.toMutableMap(), unionCallback = null, representativeSelector)
+
+    /**
+     * Determines what values should be selected as representative during merging.
+     */
+    fun interface RepresentativeSelector<T> {
+        fun shouldSelectAsRepresentative(value: T): Boolean
+    }
 }
