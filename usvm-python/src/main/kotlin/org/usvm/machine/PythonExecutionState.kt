@@ -18,6 +18,8 @@ import org.usvm.model.UModelBase
 import org.usvm.types.UTypeStream
 import org.usvm.utils.MAX_CONCRETE_TYPES_TO_CONSIDER
 
+object PythonTarget: UTarget<SymbolicHandlerEvent<Any>, PythonTarget, PythonExecutionState>()
+
 class PythonExecutionState(
     val ctx: UPythonContext,
     private val pythonCallable: PythonUnpinnedCallable,
@@ -33,7 +35,7 @@ class PythonExecutionState(
     var delayedForks: PersistentList<DelayedFork> = persistentListOf(),
     private val mocks: MutableMap<MockHeader, UMockSymbol<UAddressSort>> = mutableMapOf(),
     val mockedObjects: MutableSet<UninterpretedSymbolicPythonObject> = mutableSetOf()
-): UState<PythonType, PythonCallable, SymbolicHandlerEvent<Any>, UPythonContext, PythonExecutionState>(ctx, callStack, pathConstraints, memory, listOf(uModel), pathLocation) {
+): UState<PythonType, PythonCallable, SymbolicHandlerEvent<Any>, UPythonContext, PythonTarget, PythonExecutionState>(ctx, callStack, pathConstraints, memory, listOf(uModel), pathLocation) {
     override fun clone(newConstraints: UPathConstraints<PythonType, UPythonContext>?): PythonExecutionState {
         val newPathConstraints = newConstraints ?: pathConstraints.clone()
         val newMemory = memory.clone(newPathConstraints.typeConstraints)
