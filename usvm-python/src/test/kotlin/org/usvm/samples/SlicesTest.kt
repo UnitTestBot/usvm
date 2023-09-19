@@ -78,6 +78,7 @@ class SlicesTest: PythonTestRunnerForStructuredProgram("Slices", UMachineOptions
         val oldOptions = options
         allowPathDiversions = true
         options = UMachineOptions(stepLimit = 40U)
+        timeoutPerRunMs = 2_000
         check3WithConcreteRun(
             constructFunction("slice_usages", List(3) { typeSystem.pythonInt }),
             ge(10),
