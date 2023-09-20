@@ -805,7 +805,7 @@ class JcExprResolver(
     fun allocateException(type: JcRefType): (JcState) -> Unit = { state ->
         // TODO should we consider exceptions with negative addresses?
         val address = state.memory.allocConcrete(type)
-        state.throwExceptionWithoutStackFrameDrop(address, type)
+        state.throwExceptionWithoutStackFrameDrop(address, type, false)
     }
 
     fun checkArrayIndex(idx: USizeExpr, length: USizeExpr) = with(ctx) {

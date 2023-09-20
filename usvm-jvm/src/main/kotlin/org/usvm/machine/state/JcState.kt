@@ -47,6 +47,9 @@ class JcState(
     override val isExceptional: Boolean
         get() = methodResult is JcMethodResult.JcException
 
+    val isExceptionalAndNotExpected: Boolean
+        get() = isExceptional && !(methodResult as JcMethodResult.JcException).expected
+
     override fun toString(): String = buildString {
         appendLine("Instruction: $lastStmt")
         if (isExceptional) appendLine("Exception: $methodResult")

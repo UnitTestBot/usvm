@@ -77,7 +77,12 @@ enum class PathSelectionStrategy {
      * reachability.
      * States are selected randomly with distribution based on distance to targets.
      */
-    TARGETED_CALL_STACK_LOCAL_RANDOM
+    TARGETED_CALL_STACK_LOCAL_RANDOM,
+
+    /**
+     * Selects state with the best score according to GNN
+     */
+    GNN
 }
 
 enum class PathSelectorCombinationStrategy {

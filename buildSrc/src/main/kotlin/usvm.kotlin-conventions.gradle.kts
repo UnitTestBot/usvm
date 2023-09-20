@@ -20,6 +20,7 @@ dependencies {
     implementation(kotlin("stdlib-jdk8"))
     implementation(kotlin("reflect"))
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:${Versions.coroutines}")
+    implementation("com.microsoft.onnxruntime", "onnxruntime", Versions.onnxruntime)
 
     testImplementation(kotlin("test"))
 }

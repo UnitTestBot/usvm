@@ -37,8 +37,8 @@ fun JcState.returnValue(valueToReturn: UExpr<out USort>) {
 /**
  * Create an unprocessed exception with the [address] and the [type] and assign it to the [JcState.methodResult].
  */
-fun JcState.throwExceptionWithoutStackFrameDrop(address: UHeapRef, type: JcType) {
-    methodResult = JcMethodResult.JcException(address, type, callStack.stackTrace(lastStmt))
+fun JcState.throwExceptionWithoutStackFrameDrop(address: UHeapRef, type: JcType, expected: Boolean) {
+    methodResult = JcMethodResult.JcException(address, type, callStack.stackTrace(lastStmt), expected)
 }
 
 fun JcState.throwExceptionAndDropStackFrame() {

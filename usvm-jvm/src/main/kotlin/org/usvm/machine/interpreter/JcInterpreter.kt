@@ -334,7 +334,7 @@ class JcInterpreter(
         val address = resolver.resolveJcExpr(stmt.throwable)?.asExpr(ctx.addressSort) ?: return
 
         scope.calcOnState {
-            throwExceptionWithoutStackFrameDrop(address, stmt.throwable.type)
+            throwExceptionWithoutStackFrameDrop(address, stmt.throwable.type, expected = true)
         }
     }
 

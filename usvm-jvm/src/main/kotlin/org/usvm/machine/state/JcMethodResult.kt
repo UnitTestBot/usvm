@@ -31,8 +31,9 @@ sealed interface JcMethodResult {
     open class JcException(
         val address: UHeapRef,
         val type: JcType,
-        val symbolicStackTrace: List<UStackTraceFrame<JcMethod, JcInst>>
+        val symbolicStackTrace: List<UStackTraceFrame<JcMethod, JcInst>>,
+        val expected: Boolean,
     ) : JcMethodResult {
-        override fun toString(): String = "${this::class.simpleName}: Address: $address, type: ${type.typeName}"
+        override fun toString(): String = "${this::class.simpleName}: Address: $address, type: ${type.typeName}, is expected: $expected"
     }
 }

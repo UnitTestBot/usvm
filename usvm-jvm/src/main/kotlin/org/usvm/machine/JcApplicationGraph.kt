@@ -5,6 +5,7 @@ import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcMethod
 import org.jacodb.api.JcTypedMethod
 import org.jacodb.api.cfg.JcInst
+import org.jacodb.api.cfg.JcThrowInst
 import org.jacodb.api.ext.toType
 import org.jacodb.impl.features.HierarchyExtensionImpl
 import org.jacodb.impl.features.SyncUsagesExtension
@@ -72,5 +73,9 @@ class JcApplicationGraph(
         }
 
         return statements
+    }
+
+    override fun isThrowing(node: JcInst): Boolean {
+        return node is JcThrowInst
     }
 }

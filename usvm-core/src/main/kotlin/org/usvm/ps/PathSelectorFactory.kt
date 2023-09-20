@@ -84,6 +84,11 @@ fun <Method, Statement, Target : UTarget<Statement, Target, State>, State : USta
                 applicationGraph,
                 random
             )
+
+            PathSelectionStrategy.GNN -> GNNPathSelector(
+                applicationGraph,
+                requireNotNull(coverageStatistics()) { "Coverage statistics is required for Hetero GNN path selector" },
+            )
         }
     }
 

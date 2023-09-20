@@ -13,4 +13,6 @@ interface ApplicationGraph<Method, Statement> {
     fun methodOf(node: Statement): Method
 
     fun statementsOf(method: Method): Sequence<Statement>
+
+    fun isThrowing(node: Statement): Boolean
 }
