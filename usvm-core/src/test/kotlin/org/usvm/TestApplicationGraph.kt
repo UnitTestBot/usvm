@@ -104,6 +104,8 @@ private class TestApplicationGraphBuilderImpl : TestApplicationGraphBuilder, App
             .map { TestInstruction(method, it) }
             .asSequence()
     }
+
+    override fun isThrowing(node: TestInstruction) = false
 }
 
 internal fun appGraph(init: TestApplicationGraphBuilder.() -> Unit): ApplicationGraph<String, TestInstruction> {

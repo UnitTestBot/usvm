@@ -137,6 +137,8 @@ class SampleApplicationGraph(
         return info.method
     }
 
+    override fun isThrowing(node: Stmt) = false
+
     private data class StmtInfo(
         val method: Method<*>,
         val predecessors: List<Stmt>,

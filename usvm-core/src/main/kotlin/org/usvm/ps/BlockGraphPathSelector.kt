@@ -2,9 +2,8 @@ package org.usvm.ps
 
 import org.usvm.*
 import org.usvm.constraints.UPathConstraints
-import org.usvm.statistics.*
-import java.io.File
-import kotlin.io.path.Path
+import org.usvm.statistics.ApplicationGraph
+import org.usvm.statistics.CoverageStatistics
 
 data class GameEdgeLabel(
     val token: Int
@@ -91,8 +90,7 @@ open class BlockGraphPathSelector<State : UState<*, Method, Statement, *, *, Sta
                 if (someBlockOpt != null) {
                     blockHistory.add(someBlockOpt)
                     lastBlock = someBlockOpt
-                }
-                else {  // encountered non-explored statements, extend block graph
+                } else {  // encountered non-explored statements, extend block graph
                     val callRoot = blockGraph.buildGraph(statement)
                     val callExitBlocksToConnect = getNonThrowingLeaves(callRoot)
 
@@ -185,7 +183,7 @@ fun <Type> UPathConstraints<Type, *>.size(): Int {
             this.typeConstraints.symbolicRefToTypeRegion.count()  // TODO: maybe throw out?
 }
 
-fun<State : UState<*, *, Statement, *, *, State>, Statement> UState<*, *, Statement, *, *, State>.listPath(): List<Statement> {
+fun <State : UState<*, *, Statement, *, *, State>, Statement> UState<*, *, Statement, *, *, State>.listPath(): List<Statement> {
     val statements = mutableListOf<Statement>()
     var current: PathsTrieNode<State, Statement>? = this.pathLocation
     while (current !is RootNode && current != null) {
