@@ -124,7 +124,7 @@ class SimpleTypeInferenceTest: PythonTestRunnerForPrimitiveProgram("SimpleTypeIn
     fun testAddAndCompare() {
         val oldOptions = options
         allowPathDiversions = true
-        options = UMachineOptions(stepLimit = 50U)
+        options = UMachineOptions(stepLimit = 70U)
         check2WithConcreteRun(
             constructFunction("add_and_compare", List(2) { PythonAnyType }),
             ignoreNumberOfAnalysisResults,
@@ -144,7 +144,8 @@ class SimpleTypeInferenceTest: PythonTestRunnerForPrimitiveProgram("SimpleTypeIn
     fun testMultiplyAndCompare() {
         allowPathDiversions = true
         val oldOptions = options
-        options = UMachineOptions(stepLimit = 120U)
+        options = UMachineOptions(stepLimit = 150U)
+        timeoutPerRunMs = 3000
         check2WithConcreteRun(
             constructFunction("multiply_and_compare", List(2) { PythonAnyType }),
             ignoreNumberOfAnalysisResults,

@@ -1,5 +1,6 @@
 package org.usvm.machine.symbolicobjects
 
+import io.ksmt.expr.KFp64Value
 import io.ksmt.expr.KInt32NumExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UHeapRef
@@ -55,6 +56,7 @@ class ConverterToPythonObject(
             typeSystem.pythonTuple -> convertTuple(obj)
             typeSystem.pythonStr -> convertString()
             typeSystem.pythonSlice -> convertSlice(obj)
+            typeSystem.pythonFloat -> convertFloat(obj)
             else -> {
                 if ((type as? ConcretePythonType)?.let { ConcretePythonInterpreter.typeHasStandardNew(it.asObject) } == true)
                     constructFromDefaultConstructor(type)
@@ -64,6 +66,11 @@ class ConverterToPythonObject(
         }
         constructedObjects[obj.address] = result
         return result
+    }
+
+    private fun convertFloat(obj: InterpretedInputSymbolicPythonObject): PythonObject {
+        val floatValue = obj.getFloatContent(ctx) as KFp64Value
+        return ConcretePythonInterpreter.eval(emptyNamespace, floatValue.value.toString())
     }
 
     private fun convertString(): PythonObject {

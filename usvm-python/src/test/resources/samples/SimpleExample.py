@@ -148,3 +148,7 @@ def is_none(x):
 
 def is_not_none(x):
     assert x is not None
+
+
+def float_input(x):
+    assert isinstance(x, float)
