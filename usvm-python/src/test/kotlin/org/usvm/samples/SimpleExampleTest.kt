@@ -247,4 +247,18 @@ class SimpleExampleTest : PythonTestRunnerForPrimitiveProgram("SimpleExample") {
             )
         )
     }
+
+    @Test
+    fun testFloatInput() {
+        check1WithConcreteRun(
+            constructFunction("float_input", listOf(PythonAnyType)),
+            eq(2),
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, res -> res.repr == "None" },
+                { _, res -> res.selfTypeName == "AssertionError" }
+            )
+        )
+    }
 }

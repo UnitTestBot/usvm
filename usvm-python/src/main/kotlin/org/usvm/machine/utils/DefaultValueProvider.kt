@@ -15,6 +15,7 @@ class DefaultValueProvider(private val typeSystem: PythonTypeSystem) {
             typeSystem.pythonList -> ConcretePythonInterpreter.eval(emptyNamespace, "[]")
             typeSystem.pythonObjectType -> ConcretePythonInterpreter.eval(emptyNamespace, "object()")
             typeSystem.pythonNoneType -> ConcretePythonInterpreter.eval(emptyNamespace, "None")
+            typeSystem.pythonFloat -> ConcretePythonInterpreter.eval(emptyNamespace, "0.0")
             else -> TODO()
         }
     }
