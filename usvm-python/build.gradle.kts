@@ -96,7 +96,6 @@ tasks.register<JavaExec>("manualTestDebug") {
     } else {
         environment("PYTHONHOME" to cpythonBuildPath)
         jvmArgs = commonJVMArgs + listOf("-Dlogback.configurationFile=logging/logback-debug.xml", "-Djava.library.path=$cpythonAdapterBuildPath")
-        //val initialPath = environment["PATH"]!!
         environment("PATH", "$cpythonBuildPath;$pythonDllsPath")
     }
     classpath = sourceSets.test.get().runtimeClasspath
@@ -107,7 +106,14 @@ tasks.register<JavaExec>("manualTestDebugNoLogs") {
     group = "run"
     registerCpython(this, debug = true)
     dependsOn(buildSamples)
-    jvmArgs = commonJVMArgs + "-Dlogback.configurationFile=logging/logback-info.xml"
+    if (!isWindows) {
+        registerCpython(this, debug = true)
+        jvmArgs = commonJVMArgs + listOf("-Dlogback.configurationFile=logging/logback-info.xml") //, "-Xcheck:jni")
+    } else {
+        environment("PYTHONHOME" to cpythonBuildPath)
+        jvmArgs = commonJVMArgs + listOf("-Dlogback.configurationFile=logging/logback-info.xml", "-Djava.library.path=$cpythonAdapterBuildPath")
+        environment("PATH", "$cpythonBuildPath;$pythonDllsPath")
+    }
     classpath = sourceSets.test.get().runtimeClasspath
     mainClass.set("ManualTestKt")
 }

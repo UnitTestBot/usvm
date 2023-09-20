@@ -6,9 +6,15 @@ data class ContentOfType(val id: String): PropertyOfPythonObject()
 object IntContents {
     val content = ContentOfType("int")
 }
+
 object BoolContents {
     val content = ContentOfType("bool")
 }
+
+object FloatContents {
+    val content = ContentOfType("float")
+}
+
 object ListIteratorContents {
     val list = ContentOfType("list_of_list_iterator")
     val index = ContentOfType("index_of_list_iterator")

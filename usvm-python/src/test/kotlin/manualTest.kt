@@ -32,34 +32,32 @@ fun main() {
 private fun buildSampleRunConfig(): RunConfig {
     val (program, typeSystem) = constructPrimitiveProgram(
         """
-            def f(x, t):
-                assert isinstance(t, tuple)
-                if x == t[0]:
-                    return 1
-                elif x == t[-2]:
-                    return 2
-                elif x == t[2]:
-                    return 3
-                else:
-                    return 4
+            def f(x):
+                assert isinstance(x, float)
         """.trimIndent()
     )
     val function = PythonUnpinnedCallable.constructCallableFromName(
-        listOf(PythonAnyType, PythonAnyType),
+        listOf(PythonAnyType),
         "f"
     )
     val functions = listOf(function)
     return RunConfig(program, typeSystem, functions)
 }
 
+/*
+/home/tochilinak/Documents/projects/utbot/Python/dynamic_programming
+/home/tochilinak/Documents/projects/utbot/mypy_tmp
+/home/tochilinak/Documents/projects/utbot/usvm/usvm-python/cpythonadapter/build/cpython_build/bin/python3
+*/
+
 private fun buildProjectRunConfig(): RunConfig {
-    val projectPath = "/home/tochilinak/Documents/projects/utbot/Python/dynamic_programming"
-    val mypyRoot = "/home/tochilinak/Documents/projects/utbot/mypy_tmp"
+    val projectPath = "D:\\projects\\Python\\sorts"
+    val mypyRoot = "D:\\projects\\mypy_tmp"
     val files = getPythonFilesFromRoot(projectPath)
     val modules = getModulesFromFiles(projectPath, files)
     val mypyDir = MypyBuildDirectory(File(mypyRoot), setOf(projectPath))
     buildMypyInfo(
-        "/home/tochilinak/Documents/projects/utbot/usvm/usvm-python/cpythonadapter/build/cpython_build/bin/python3",
+        "D:\\projects\\usvm\\usvm-python\\cpythonadapter\\build\\cpython_build\\python_d.exe",
         files.map { it.canonicalPath },
         modules,
         mypyDir
@@ -67,19 +65,9 @@ private fun buildProjectRunConfig(): RunConfig {
     val mypyBuild = readMypyInfoBuild(mypyDir)
     val program = StructuredPythonProgram(setOf(File(projectPath)))
     val typeSystem = PythonTypeSystemWithMypyInfo(mypyBuild, program)
-    val ignoreFunctions = listOf<String>(
-        "_top_down_cut_rod_recursive"  // NoSuchElement
-        /*"circle_sort",  // NoSuchElement
-        "cocktail_shaker_sort",  // slow (why?)
-        "quick_sort_lomuto_partition",  // NoSuchElement
-        "oe_process",  // blocks
-        "merge_insertion_sort",  // slow (why?)
-        "msd_radix_sort_inplace"  // NoSuchElement*/
-    )
+    val ignoreFunctions = listOf<String>()
     val ignoreModules = listOf<String>(
-        // "heaps_algorithm",
-        /*"intro_sort",  // NoSuchElement
-        "heap_sort"  // NoSuchElement*/
+        "odd_even_transposition_parallel"
     )
     val functions = modules.flatMap { module ->
         if (module in ignoreModules)
@@ -106,7 +94,7 @@ private fun buildProjectRunConfig(): RunConfig {
             )
         }
     }
-    return RunConfig(program, typeSystem, functions)
+    return RunConfig(program, typeSystem, functions.take(100))
 }
 
 private fun checkConcolicAndConcrete(runConfig: RunConfig) {
@@ -148,11 +136,11 @@ private fun analyze(runConfig: RunConfig) {
                 val iterations = activeMachine.analyze(
                     f,
                     results,
-                    maxIterations = 100,
+                    maxIterations = 40,
                     allowPathDiversion = true,
-                    maxInstructions = 100_000,
-                    timeoutPerRunMs = 10_000,
-                    timeoutMs = 30_000
+                    maxInstructions = 30_000,
+                    timeoutPerRunMs = 3_000,
+                    timeoutMs = 20_000
                 )
                 results.forEach { (_, inputs, result) ->
                     println("INPUT:")

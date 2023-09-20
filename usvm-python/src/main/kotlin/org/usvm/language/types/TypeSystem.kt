@@ -93,6 +93,7 @@ abstract class PythonTypeSystem: UTypeSystem<PythonType> {
 
     val pythonInt = createConcreteTypeByName("int")
     val pythonBool = createConcreteTypeByName("bool")
+    val pythonFloat = createConcreteTypeByName("float")
     val pythonObjectType = createConcreteTypeByName("object")
     val pythonNoneType = createConcreteTypeByName("type(None)")
     val pythonList = createArrayLikeTypeByName("list", setOf(NonRecursiveConstraint))
