@@ -85,7 +85,7 @@ class SampleExprResolver(
     fun resolveStruct(expr: StructExpr): UHeapRef? = with(ctx) {
         when (expr) {
             is StructCreation -> {
-                val ref = scope.calcOnState { memory.alloc(expr.type) }
+                val ref = scope.calcOnState { memory.allocConcrete(expr.type) }
 
                 for ((field, fieldExpr) in expr.fields) {
                     val sort = typeToSort(field.type)

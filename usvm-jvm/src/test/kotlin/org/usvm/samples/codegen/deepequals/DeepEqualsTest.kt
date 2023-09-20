@@ -8,11 +8,11 @@ import org.usvm.test.util.checkers.eq
 
 class DeepEqualsTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("An operation is not implemented: Class constant")
     fun testReturnList() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::returnList,
             eq(1),
+            { _, r -> r!!.size == 2 }
         )
     }
 
@@ -26,10 +26,12 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("No successful execution")
     fun testReturnMap() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::returnMap,
             eq(1),
+            { _, r ->  r!!.isCorrectMap() }
         )
     }
 
@@ -49,7 +51,6 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Class constant")
     fun testReturn2DList() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::return2DList,
@@ -67,18 +68,22 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("No successful execution")
     fun testReturn2DMap() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::return2DMap,
             eq(1),
+            { _, r -> r!!.size == 2 && r.keys.toSortedSet() == sortedSetOf(0, 1) && r.values.all { it.isCorrectMap() } }
         )
     }
 
     @Test
+    @Disabled("No successful execution")
     fun testIntegers2DList() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::returnIntegers2DList,
             eq(1),
+            { _, r -> r!!.size == 2 && r.all { it == listOf(1) } }
         )
     }
 
@@ -160,7 +165,6 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Support multidimensional arrays initialization")
     fun testDoubleMultiArray() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::fillDoubleMultiArrayWithConstValue,
@@ -169,7 +173,6 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Support multidimensional arrays initialization")
     fun testIntegerWrapperMultiArray() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::fillIntegerWrapperMultiArrayWithConstValue,
@@ -178,7 +181,6 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Support multidimensional arrays initialization")
     fun testDoubleWrapperMultiArray() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::fillDoubleWrapperMultiArrayWithConstValue,
@@ -189,4 +191,8 @@ class DeepEqualsTest : JavaMethodTestRunner() {
 
 private fun Array<Array<IntArray>>.flatten(): List<Int> = flatMap {
     row -> row.flatMap { it.toList() }
+}
+
+private fun Map<Int, DeepEqualsTestingClass>.isCorrectMap(): Boolean {
+    return size == 2 && keys.toSortedSet() == sortedSetOf(0, 1)
 }

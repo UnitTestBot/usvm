@@ -12,10 +12,10 @@ import org.usvm.memory.ULValue
 import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UMemoryRegionId
 import org.usvm.memory.USymbolicCollection
-import org.usvm.memory.foldHeapRef
 import org.usvm.memory.foldHeapRef2
+import org.usvm.memory.foldHeapRefWithStaticAsSymbolic
 import org.usvm.memory.guardedWrite
-import org.usvm.memory.map
+import org.usvm.memory.mapWithStaticAsSymbolic
 import org.usvm.uctx
 
 data class URefSetEntryLValue<SetType>(
@@ -154,9 +154,9 @@ internal class URefSetMemoryRegion<SetType>(
         )
 
     override fun read(key: URefSetEntryLValue<SetType>): UBoolExpr =
-        key.setRef.map(
+        key.setRef.mapWithStaticAsSymbolic(
             { concreteRef ->
-                key.setElement.map(
+                key.setElement.mapWithStaticAsSymbolic(
                     { concreteElem ->
                         val id = UAllocatedRefSetWithAllocatedElementId(concreteRef.address, concreteElem.address)
                         allocatedSetWithAllocatedElements[id] ?: sort.uctx.falseExpr
@@ -168,7 +168,7 @@ internal class URefSetMemoryRegion<SetType>(
                 )
             },
             { symbolicRef ->
-                key.setElement.map(
+                key.setElement.mapWithStaticAsSymbolic(
                     { concreteElem ->
                         val id = inputSetWithAllocatedElementsId(concreteElem.address)
                         getInputSetWithAllocatedElements(id).read(symbolicRef)
@@ -184,12 +184,12 @@ internal class URefSetMemoryRegion<SetType>(
         key: URefSetEntryLValue<SetType>,
         value: UBoolExpr,
         guard: UBoolExpr
-    ) = foldHeapRef(
+    ) = foldHeapRefWithStaticAsSymbolic(
         ref = key.setRef,
         initial = this,
         initialGuard = guard,
         blockOnConcrete = { setRegion, (concreteSetRef, setGuard) ->
-            foldHeapRef(
+            foldHeapRefWithStaticAsSymbolic(
                 ref = key.setElement,
                 initial = setRegion,
                 initialGuard = setGuard,
@@ -209,7 +209,7 @@ internal class URefSetMemoryRegion<SetType>(
             )
         },
         blockOnSymbolic = { setRegion, (symbolicSetRef, setGuard) ->
-            foldHeapRef(
+            foldHeapRefWithStaticAsSymbolic(
                 ref = key.setElement,
                 initial = setRegion,
                 initialGuard = setGuard,

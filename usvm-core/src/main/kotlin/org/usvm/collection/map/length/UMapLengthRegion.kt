@@ -12,9 +12,9 @@ import org.usvm.memory.ULValue
 import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UMemoryRegionId
 import org.usvm.memory.USymbolicCollection
-import org.usvm.memory.foldHeapRef
+import org.usvm.memory.foldHeapRefWithStaticAsSymbolic
 import org.usvm.memory.guardedWrite
-import org.usvm.memory.map
+import org.usvm.memory.mapWithStaticAsSymbolic
 import org.usvm.sampleUValue
 import org.usvm.uctx
 
@@ -63,17 +63,16 @@ internal class UMapLengthMemoryRegion<MapType>(
     private fun updateInput(updated: UInputMapLength<MapType>) =
         UMapLengthMemoryRegion(sort, mapType, allocatedLengths, updated)
 
-    override fun read(key: UMapLengthLValue<MapType>): USizeExpr =
-        key.ref.map(
-            { concreteRef -> allocatedLengths[concreteRef.address] ?: sort.sampleUValue() },
-            { symbolicRef -> getInputLength(key).read(symbolicRef) }
-        )
+    override fun read(key: UMapLengthLValue<MapType>): USizeExpr = key.ref.mapWithStaticAsSymbolic(
+        concreteMapper = { concreteRef -> allocatedLengths[concreteRef.address] ?: sort.sampleUValue() },
+        symbolicMapper = { symbolicRef -> getInputLength(key).read(symbolicRef) }
+    )
 
     override fun write(
         key: UMapLengthLValue<MapType>,
         value: UExpr<USizeSort>,
         guard: UBoolExpr
-    ) = foldHeapRef(
+    ) = foldHeapRefWithStaticAsSymbolic(
         ref = key.ref,
         initial = this,
         initialGuard = guard,

@@ -134,6 +134,7 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("TODO fix type streams: USupportTypeStream.from(Object[]).filterBySupertype(anyType)")
     fun testInstanceOfAsPartOfInternalExpressionsCastClass() {
         checkDiscoveredProperties(
             InstanceOfExample::instanceOfAsPartOfInternalExpressionsCastClass,

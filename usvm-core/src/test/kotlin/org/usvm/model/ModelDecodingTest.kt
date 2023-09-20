@@ -13,7 +13,7 @@ import org.usvm.UComponents
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UIndexedMocker
-import org.usvm.api.allocate
+import org.usvm.api.allocateConcreteRef
 import org.usvm.api.readArrayIndex
 import org.usvm.api.readField
 import org.usvm.api.writeArrayIndex
@@ -71,7 +71,7 @@ class ModelDecodingTest {
     fun testSimpleWritingToFields() = with(ctx) {
         val field = mockk<Field>()
 
-        val concreteRef = heap.allocate()
+        val concreteRef = heap.allocateConcreteRef()
         val symbolicRef0 = stack.readRegister(0, addressSort)
         val symbolicRef1 = stack.readRegister(1, addressSort)
 
@@ -93,7 +93,7 @@ class ModelDecodingTest {
     fun testSimpleWritingToAddressFields() = with(ctx) {
         val field = mockk<Field>()
 
-        val concreteRef = heap.allocate()
+        val concreteRef = heap.allocateConcreteRef()
         val symbolicRef0 = stack.readRegister(0, addressSort)
         val symbolicRef1 = stack.readRegister(1, addressSort)
 
@@ -119,7 +119,7 @@ class ModelDecodingTest {
 
         val mockedValue = mocker.call(method, emptySequence(), addressSort).first
         val ref1 = heap.readField(mockedValue, field, addressSort)
-        heap.writeField(ref1, field, addressSort, heap.allocate(), trueExpr)
+        heap.writeField(ref1, field, addressSort, heap.allocateConcreteRef(), trueExpr)
         val ref2 = heap.readField(mockedValue, field, addressSort)
 
         pc += ref1 neq ref2
@@ -156,7 +156,7 @@ class ModelDecodingTest {
     fun testSimpleSeveralWritingsToArray() = with(ctx) {
         val array = mockk<Type>()
 
-        val concreteRef = heap.allocate()
+        val concreteRef = heap.allocateConcreteRef()
         val symbolicRef0 = stack.readRegister(0, addressSort)
         val symbolicRef1 = stack.readRegister(1, addressSort)
         val symbolicRef2 = stack.readRegister(2, addressSort)

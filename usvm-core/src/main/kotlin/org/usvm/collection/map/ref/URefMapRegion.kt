@@ -16,10 +16,10 @@ import org.usvm.memory.ULValue
 import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UMemoryRegionId
 import org.usvm.memory.USymbolicCollection
-import org.usvm.memory.foldHeapRef
 import org.usvm.memory.foldHeapRef2
+import org.usvm.memory.foldHeapRefWithStaticAsSymbolic
 import org.usvm.memory.guardedWrite
-import org.usvm.memory.map
+import org.usvm.memory.mapWithStaticAsSymbolic
 import org.usvm.sampleUValue
 import org.usvm.uctx
 
@@ -161,26 +161,26 @@ internal class URefMapMemoryRegion<MapType, ValueSort : USort>(
         )
 
     override fun read(key: URefMapEntryLValue<MapType, ValueSort>): UExpr<ValueSort> =
-        key.mapRef.map(
-            { concreteRef ->
-                key.mapKey.map(
-                    { concreteKey ->
+        key.mapRef.mapWithStaticAsSymbolic(
+            concreteMapper = { concreteRef ->
+                key.mapKey.mapWithStaticAsSymbolic(
+                    concreteMapper = { concreteKey ->
                         val id = UAllocatedRefMapWithAllocatedKeysId(concreteRef.address, concreteKey.address)
                         allocatedMapWithAllocatedKeys[id] ?: valueSort.sampleUValue()
                     },
-                    { symbolicKey ->
+                    symbolicMapper = { symbolicKey ->
                         val id = allocatedMapWithInputKeyId(concreteRef.address)
                         getAllocatedMapWithInputKeys(id).read(symbolicKey)
                     }
                 )
             },
-            { symbolicRef ->
-                key.mapKey.map(
-                    { concreteKey ->
+            symbolicMapper = { symbolicRef ->
+                key.mapKey.mapWithStaticAsSymbolic(
+                    concreteMapper = { concreteKey ->
                         val id = inputMapWithAllocatedKeyId(concreteKey.address)
                         getInputMapWithAllocatedKeys(id).read(symbolicRef)
                     },
-                    { symbolicKey ->
+                    symbolicMapper = { symbolicKey ->
                         getInputMapWithInputKeys().read(symbolicRef to symbolicKey)
                     }
                 )
@@ -191,12 +191,12 @@ internal class URefMapMemoryRegion<MapType, ValueSort : USort>(
         key: URefMapEntryLValue<MapType, ValueSort>,
         value: UExpr<ValueSort>,
         guard: UBoolExpr
-    ) = foldHeapRef(
+    ) = foldHeapRefWithStaticAsSymbolic(
         ref = key.mapRef,
         initial = this,
         initialGuard = guard,
         blockOnConcrete = { mapRegion, (concreteMapRef, mapGuard) ->
-            foldHeapRef(
+            foldHeapRefWithStaticAsSymbolic(
                 ref = key.mapKey,
                 initial = mapRegion,
                 initialGuard = mapGuard,
@@ -216,7 +216,7 @@ internal class URefMapMemoryRegion<MapType, ValueSort : USort>(
             )
         },
         blockOnSymbolic = { mapRegion, (symbolicMapRef, mapGuard) ->
-            foldHeapRef(
+            foldHeapRefWithStaticAsSymbolic(
                 ref = key.mapKey,
                 initial = mapRegion,
                 initialGuard = mapGuard,

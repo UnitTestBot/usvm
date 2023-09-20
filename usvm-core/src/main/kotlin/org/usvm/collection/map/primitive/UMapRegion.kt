@@ -13,9 +13,9 @@ import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UMemoryRegionId
 import org.usvm.memory.USymbolicCollection
 import org.usvm.memory.USymbolicCollectionKeyInfo
-import org.usvm.memory.foldHeapRef
 import org.usvm.memory.foldHeapRef2
-import org.usvm.memory.map
+import org.usvm.memory.foldHeapRefWithStaticAsSymbolic
+import org.usvm.memory.mapWithStaticAsSymbolic
 import org.usvm.regions.Region
 import org.usvm.uctx
 
@@ -117,21 +117,19 @@ internal class UMapMemoryRegion<MapType, KeySort : USort, ValueSort : USort, Reg
     )
 
     override fun read(key: UMapEntryLValue<MapType, KeySort, ValueSort, Reg>): UExpr<ValueSort> =
-        key.mapRef.map(
-            { concreteRef ->
+        key.mapRef.mapWithStaticAsSymbolic(
+            concreteMapper = { concreteRef ->
                 val id = UAllocatedMapId(keySort, valueSort, mapType, keyInfo, concreteRef.address)
                 getAllocatedMap(id).read(key.mapKey)
             },
-            { symbolicRef ->
-                getInputMap().read(symbolicRef to key.mapKey)
-            }
+            symbolicMapper = { symbolicRef -> getInputMap().read(symbolicRef to key.mapKey) }
         )
 
     override fun write(
         key: UMapEntryLValue<MapType, KeySort, ValueSort, Reg>,
         value: UExpr<ValueSort>,
         guard: UBoolExpr
-    ) = foldHeapRef(
+    ) = foldHeapRefWithStaticAsSymbolic(
         ref = key.mapRef,
         initial = this,
         initialGuard = guard,

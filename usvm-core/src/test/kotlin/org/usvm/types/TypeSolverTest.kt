@@ -74,7 +74,7 @@ class TypeSolverTest {
 
     @Test
     fun `Test concrete ref -- open type inheritance`() {
-        val ref = memory.alloc(base1)
+        val ref = memory.allocConcrete(base1)
         val types = memory.typeStreamOf(ref)
         types.take100AndAssertEqualsToSetOf(base1)
     }
@@ -103,7 +103,7 @@ class TypeSolverTest {
 
     @Test
     fun `Test concrete ref -- empty intersection simplification`() = with(ctx) {
-        val ref = memory.alloc(base1)
+        val ref = memory.allocConcrete(base1)
         pc += mkIsSubtypeExpr(ref, base2)
         assertTrue(pc.isFalse)
     }
@@ -327,8 +327,8 @@ class TypeSolverTest {
         val arr1 = mkRegisterReading(0, addressSort)
         val arr2 = mkRegisterReading(1, addressSort)
 
-        val val1 = memory.alloc(base2)
-        val val2 = memory.alloc(base2)
+        val val1 = memory.allocConcrete(base2)
+        val val2 = memory.allocConcrete(base2)
 
         pc += mkHeapRefEq(arr1, nullRef).not()
         pc += mkHeapRefEq(arr2, nullRef).not()

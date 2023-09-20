@@ -337,6 +337,7 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
     ) : Iterator<UUpdateNode<Key, Sort>> {
         // A set of values we already emitted by this iterator.
         // Note that it contains ONLY elements that have duplicates by key in the RegionTree.
+        // Reference equality on UUpdateNodes is very important here.
         private val emittedUpdates = hashSetOf<UUpdateNode<Key, Sort>>()
 
         // We can return just `hasNext` value without checking for duplicates since

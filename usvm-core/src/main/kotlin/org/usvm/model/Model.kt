@@ -73,7 +73,11 @@ open class UModelBase<Type>(
         error("Illegal operation for a model")
     }
 
-    override fun alloc(type: Type): UConcreteHeapRef {
+    override fun allocConcrete(type: Type): UConcreteHeapRef {
+        error("Illegal operation for a model")
+    }
+
+    override fun allocStatic(type: Type): UConcreteHeapRef {
         error("Illegal operation for a model")
     }
 
