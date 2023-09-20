@@ -985,16 +985,25 @@ class JcExprResolver(
     }
 
     /**
-     * Always use negative addresses in enum static initializers,
-     * for static initializers of other classes depends on [JcContext.useNegativeAddressesInStaticInitializer].
+     * Always use negative addresses in enum static initializers and enum methods
+     * that were reached from the corresponding static initializer, for static initializers of other classes
+     * depends on [JcContext.useNegativeAddressesInStaticInitializer].
      */
     fun JcState.useStaticAddressForAllocation(): Boolean {
-        val isEnumStaticInitializer = lastEnteredMethod.let { it.isClassInitializer && it.enclosingClass.isEnum }
-        if (isEnumStaticInitializer) {
+        val staticInitializers = callStack.filter { it.method.isClassInitializer }
+
+        // Enum's static initializer may contain invocations of other methods – from this enum or from other classes.
+        // In case of enum methods, we need to consider all refs allocated in these methods as static too. It is important
+        // because these refs may be assigned to enum's static fields – $VALUES, for example.
+        val currentClass = lastEnteredMethod.enclosingClass
+        val inEnumMethodFromEnumStaticInitializer =
+            currentClass.isEnum && staticInitializers.any { it.method.enclosingClass == currentClass }
+
+        if (inEnumMethodFromEnumStaticInitializer) {
             return true
         }
 
-        return ctx.useNegativeAddressesInStaticInitializer && callStack.any { it.method.isClassInitializer }
+        return ctx.useNegativeAddressesInStaticInitializer && staticInitializers.isNotEmpty()
     }
 
     /**
