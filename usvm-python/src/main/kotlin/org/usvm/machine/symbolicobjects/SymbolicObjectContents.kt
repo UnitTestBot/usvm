@@ -2,6 +2,7 @@ package org.usvm.machine.symbolicobjects
 
 import io.ksmt.expr.KInterpretedValue
 import io.ksmt.sort.KBoolSort
+import io.ksmt.sort.KFp64Sort
 import io.ksmt.sort.KIntSort
 import org.usvm.UBoolExpr
 import org.usvm.UExpr
@@ -15,7 +16,6 @@ import org.usvm.language.*
 import org.usvm.language.types.ArrayType
 import org.usvm.language.types.PythonTypeSystem
 import org.usvm.machine.UPythonContext
-import org.usvm.machine.interpreters.operations.myAssert
 
 
 /** int **/
@@ -55,6 +55,14 @@ fun InterpretedSymbolicPythonObject.getIntContent(ctx: ConcolicRunContext): KInt
             ctx.curState!!.memory.readField(address, IntContents.content, ctx.ctx.intSort) as KInterpretedValue<KIntSort>
         }
     }
+}
+
+
+/** float **/
+
+fun InterpretedInputSymbolicPythonObject.getFloatContent(ctx: UPythonContext): KInterpretedValue<KFp64Sort> {
+    require(getConcreteType() == typeSystem.pythonFloat)
+    return modelHolder.model.readField(address, FloatContents.content, ctx.fp64Sort)
 }
 
 
