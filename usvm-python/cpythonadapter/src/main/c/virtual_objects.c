@@ -83,17 +83,6 @@ nb_bool(PyObject *self) {
 }
 PyType_Slot Virtual_nb_bool = {Py_nb_bool, nb_bool};
 
-static PyObject *
-nb_int(PyObject *self) {
-    VirtualPythonObject *obj = (VirtualPythonObject *) self;
-    obj->adapter->ignore = 1;
-    jlong result = (*obj->ctx->env)->CallStaticLongMethod(obj->ctx->env, obj->ctx->cpython_adapter_cls, obj->ctx->handle_virtual_nb_int, obj->ctx->context, obj->reference);
-    obj->adapter->ignore = 0;
-    CHECK_FOR_EXCEPTION(obj->ctx, 0)
-    return (PyObject *) result;
-}
-PyType_Slot Virtual_nb_int = {Py_nb_int, nb_int};
-
 #define BINARY_FUNCTION \
     PyObject *owner = 0; \
     int owner_id = -1; \
@@ -171,7 +160,6 @@ initialize_virtual_object_type() {
         Virtual_tp_getattro,
         Virtual_tp_iter,
         Virtual_nb_bool,
-        Virtual_nb_int,
         Virtual_nb_add,
         Virtual_nb_subtract,
         Virtual_nb_multiply,

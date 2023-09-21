@@ -69,7 +69,8 @@ class ConverterToPythonObject(
     }
 
     private fun convertFloat(obj: InterpretedInputSymbolicPythonObject): PythonObject {
-        val floatValue = obj.getFloatContent(ctx) as KFp64Value
+        val realValue = obj.getFloatContent(ctx)
+        val floatValue = ctx.mkRealToFpExpr(ctx.fp64Sort, ctx.floatRoundingMode, realValue) as KFp64Value
         return ConcretePythonInterpreter.eval(emptyNamespace, floatValue.value.toString())
     }
 

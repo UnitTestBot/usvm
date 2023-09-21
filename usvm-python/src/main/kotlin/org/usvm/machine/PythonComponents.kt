@@ -1,5 +1,8 @@
 package org.usvm.machine
 
+import com.microsoft.z3.Global
+import io.ksmt.solver.cvc5.KCvc5Solver
+import io.ksmt.solver.yices.KYicesSolver
 import io.ksmt.solver.z3.KZ3Solver
 import org.usvm.UComponents
 import org.usvm.UContext
@@ -20,7 +23,7 @@ class PythonComponents(
         val (translator, decoder) = buildTranslatorAndLazyDecoder<PythonType>(ctx)
         val softConstraintsProvider = USoftConstraintsProvider<PythonType>(ctx)
         val solver = KZ3Solver(ctx)
-        solver.configure { setZ3Option("timeout", 1) }
+//        solver.configure { setZ3Option("timeout", 1) }
         return USolverBase(ctx, solver, UTypeSolver(typeSystem),  translator, decoder, softConstraintsProvider)
     }
 
