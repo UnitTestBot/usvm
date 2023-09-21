@@ -46,4 +46,18 @@ class FloatsTest : PythonTestRunnerForPrimitiveProgram("Floats") {
             }
         )
     }
+
+    @Test
+    fun testRound() {
+        check1WithConcreteRun(
+            constructFunction("round", listOf(typeSystem.pythonFloat)),
+            eq(2),
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, res -> res.repr == "None" },
+                { _, res -> res.selfTypeName == "AssertionError" }
+            )
+        )
+    }
 }

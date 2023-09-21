@@ -208,3 +208,28 @@ audit_hook(const char *event, PyObject *args, void *data) {
     PyErr_SetString(PyExc_RuntimeError, "Illegal operation");
     return -1;
 }
+
+PyObject *
+construct_global_clones_dict(JNIEnv *env, jobjectArray global_clones) {
+    assert(!PyErr_Occurred());
+    jsize n = (*env)->GetArrayLength(env, global_clones);
+    PyObject *result = PyDict_New();
+    jclass cls = (*env)->FindClass(env, "org/usvm/language/NamedSymbolForCPython");
+    jfieldID name_field = (*env)->GetFieldID(env, cls, "name", "Ljava/lang/String;");
+    jfieldID symbol_field = (*env)->GetFieldID(env, cls, "symbol", "Lorg/usvm/language/SymbolForCPython;");
+    for (int i = 0; i < n; i++) {
+        jobject named_symbol = (*env)->GetObjectArrayElement(env, global_clones, i);
+        jstring name = (jstring) (*env)->GetObjectField(env, named_symbol, name_field);
+        jobject symbol = (*env)->GetObjectField(env, named_symbol, symbol_field);
+        const char *c_name = (*env)->GetStringUTFChars(env, name, 0);
+        PyObject *symbol_object = wrap_java_object(env, symbol);
+        PyDict_SetItemString(result, c_name, symbol_object);
+        (*env)->ReleaseStringUTFChars(env, name, c_name);
+    }
+    assert(!PyErr_Occurred());
+    if ((*env)->ExceptionCheck(env)) {
+        (*env)->ExceptionDescribe(env);
+        assert(0);
+    }
+    return result;
+}

@@ -34,7 +34,7 @@ private fun buildSampleRunConfig(): RunConfig {
         """
             def f(x: float):
                 # assert x < float('inf')
-                assert x / 2 == 10
+                assert int(x / 2) == 5
         """.trimIndent()
     )
     val function = PythonUnpinnedCallable.constructCallableFromName(

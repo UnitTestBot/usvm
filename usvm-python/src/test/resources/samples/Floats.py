@@ -31,3 +31,7 @@ def simple_operations(x):
     elif x / 2.5 == 1:
         return 5
     return 6
+
+
+def round(x: float):
+    assert int(x / 2) == 5

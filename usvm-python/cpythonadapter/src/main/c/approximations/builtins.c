@@ -137,3 +137,13 @@ Approximation_sum(PyObject *iterable) {
     Py_DECREF(args);
     return res;
 }
+
+PyObject *
+SymbolicMethod_int(SymbolicAdapter *adapter, jobject self, PyObject *args, PyObject *kwargs) {
+    assert(self == NULL && args && PyTuple_Check(args));
+    if (PyTuple_Size(args) != 1 || kwargs)
+        return Py_None;
+    PyObject *arg = PyTuple_GetItem(args, 0);
+    PyObject *result = adapter->symbolic_int_cast(adapter->handler_param, arg);
+    return result;
+}

@@ -44,6 +44,7 @@ public class CPythonAdapter {
     public int pyLT;
     public int pyGE;
     public int pyGT;
+    public long symbolicIntConstructorRef;
     public MemberDescriptor listAppendDescriptor = ListAppendDescriptor.INSTANCE;
     public MemberDescriptor sliceStartDescriptor = SliceStartDescriptor.INSTANCE;
     public MemberDescriptor sliceStopDescriptor = SliceStopDescriptor.INSTANCE;
@@ -55,7 +56,7 @@ public class CPythonAdapter {
     public native int concreteRun(long globals, String code, boolean printErrorMessage, boolean setHook);  // returns 0 on success
     public native long eval(long globals, String obj, boolean printErrorMessage, boolean setHook);  // returns PyObject *
     public native long concreteRunOnFunctionRef(long functionRef, long[] concreteArgs, boolean setHook);
-    public native long concolicRun(long functionRef, long[] concreteArgs, long[] virtualArgs, SymbolForCPython[] symbolicArgs, ConcolicRunContext context, boolean print_error_message);
+    public native long concolicRun(long functionRef, long[] concreteArgs, long[] virtualArgs, SymbolForCPython[] symbolicArgs, ConcolicRunContext context, NamedSymbolForCPython[] global_clones, boolean print_error_message);
     public native void printPythonObject(long object);
     public native long[] getIterableElements(long iterable);
     public native String getPythonObjectRepr(long object, boolean print_error_message);
@@ -237,6 +238,12 @@ public class CPythonAdapter {
         if (left.obj == null || right.obj == null)
             return null;
         return methodWrapper(context, new MethodParameters("pow_long", Arrays.asList(left, right)), () -> handlerPOWLongKt(context, left.obj, right.obj));
+    }
+
+    public static SymbolForCPython handlerIntCast(ConcolicRunContext context, SymbolForCPython obj) {
+        if (obj.obj == null)
+            return null;
+        return methodWrapper(context, new MethodParameters("int_cast", Collections.singletonList(obj)), () -> handlerIntCastKt(context, obj.obj));
     }
 
     public static SymbolForCPython handlerGTFloat(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
