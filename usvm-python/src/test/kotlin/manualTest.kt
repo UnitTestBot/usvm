@@ -32,12 +32,13 @@ fun main() {
 private fun buildSampleRunConfig(): RunConfig {
     val (program, typeSystem) = constructPrimitiveProgram(
         """
-            def f(x):
-                assert isinstance(x, float)
+            def f(x: float):
+                # assert x < float('inf')
+                assert x / 2 == 10
         """.trimIndent()
     )
     val function = PythonUnpinnedCallable.constructCallableFromName(
-        listOf(PythonAnyType),
+        listOf(typeSystem.pythonFloat),
         "f"
     )
     val functions = listOf(function)
@@ -136,11 +137,11 @@ private fun analyze(runConfig: RunConfig) {
                 val iterations = activeMachine.analyze(
                     f,
                     results,
-                    maxIterations = 40,
+                    maxIterations = 60,
                     allowPathDiversion = true,
                     maxInstructions = 30_000,
-                    timeoutPerRunMs = 3_000,
-                    timeoutMs = 20_000
+                    timeoutPerRunMs = 7_000,
+                    //timeoutMs = 20_000
                 )
                 results.forEach { (_, inputs, result) ->
                     println("INPUT:")

@@ -1,7 +1,9 @@
 package org.usvm.machine.symbolicobjects
 
 import io.ksmt.sort.KBoolSort
+import io.ksmt.sort.KFp64Sort
 import io.ksmt.sort.KIntSort
+import io.ksmt.sort.KRealSort
 import org.usvm.*
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.constraints.UPathConstraints
@@ -51,6 +53,17 @@ fun constructInt(context: ConcolicRunContext, expr: UExpr<KIntSort>): Uninterpre
     result.setMinimalTimeOfCreation(context.ctx, context.curState!!.memory)
     return result
 }
+
+fun constructFloat(context: ConcolicRunContext, expr: UExpr<KRealSort>): UninterpretedSymbolicPythonObject {
+    require(context.curState != null)
+    val typeSystem = context.typeSystem
+    val address = context.curState!!.memory.allocConcrete(typeSystem.pythonFloat)
+    val result = UninterpretedSymbolicPythonObject(address, typeSystem)
+    result.setFloatContent(context, expr)
+    result.setMinimalTimeOfCreation(context.ctx, context.curState!!.memory)
+    return result
+}
+
 
 fun constructBool(context: ConcolicRunContext, expr: UBoolExpr): UninterpretedSymbolicPythonObject {
     require(context.curState != null)

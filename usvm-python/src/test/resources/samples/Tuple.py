@@ -14,9 +14,14 @@ def tuple_unpack(x):
 
 def input_list_of_pairs(x):
     result = 0
-    for a, b in x:
+    assert len(x) <= 4
+    for p in x:
+        assert isinstance(p, tuple)
+        a, b = p
         result += a - b
-    assert result == 12345
+    if result == 12345:
+        return 1
+    return 2
 
 
 def length(x: tuple):

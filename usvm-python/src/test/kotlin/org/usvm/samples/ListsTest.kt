@@ -8,7 +8,7 @@ import org.usvm.runner.PythonTestRunnerForPrimitiveProgram
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
-class SimpleListsTest : PythonTestRunnerForPrimitiveProgram("SimpleLists", UMachineOptions(stepLimit = 20U)) {
+class ListsTest : PythonTestRunnerForPrimitiveProgram("Lists", UMachineOptions(stepLimit = 20U)) {
     @Test
     fun testSimpleListSample() {
         check2WithConcreteRun(
@@ -308,5 +308,25 @@ class SimpleListsTest : PythonTestRunnerForPrimitiveProgram("SimpleLists", UMach
                 { _, res -> res.repr == "2" }
             )
         )
+    }
+
+    @Test
+    fun testListOfFloatPairs() {
+        val oldOptions = options
+        options = UMachineOptions(stepLimit = 60U)
+        timeoutPerRunMs = 3000
+        check1WithConcreteRun(
+            constructFunction("input_list_of_float_pairs", listOf(PythonAnyType)),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, res -> res.selfTypeName == "AssertionError" },
+                { _, res -> res.selfTypeName == "ValueError" },
+                { _, res -> res.repr == "1" },
+                { _, res -> res.repr == "2" }
+            )
+        )
+        options = oldOptions
     }
 }

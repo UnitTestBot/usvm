@@ -2,8 +2,8 @@ package org.usvm.machine.symbolicobjects
 
 import io.ksmt.expr.KInterpretedValue
 import io.ksmt.sort.KBoolSort
-import io.ksmt.sort.KFp64Sort
 import io.ksmt.sort.KIntSort
+import io.ksmt.sort.KRealSort
 import org.usvm.UBoolExpr
 import org.usvm.UExpr
 import org.usvm.UHeapRef
@@ -60,9 +60,36 @@ fun InterpretedSymbolicPythonObject.getIntContent(ctx: ConcolicRunContext): KInt
 
 /** float **/
 
-fun InterpretedInputSymbolicPythonObject.getFloatContent(ctx: UPythonContext): KInterpretedValue<KFp64Sort> {
+sealed class FloatInterpretedContent
+object FloatNan: FloatInterpretedContent()
+object FloatPlusInfinity: FloatInterpretedContent()
+object FloatMinusInfinity: FloatInterpretedContent()
+data class FloatNormalValue(val value: Double): FloatInterpretedContent()
+
+fun InterpretedInputSymbolicPythonObject.getFloatContent(ctx: UPythonContext): KInterpretedValue<KRealSort> {
     require(getConcreteType() == typeSystem.pythonFloat)
-    return modelHolder.model.readField(address, FloatContents.content, ctx.fp64Sort)
+    return modelHolder.model.readField(address, FloatContents.content, ctx.realSort)
+}
+
+fun UninterpretedSymbolicPythonObject.setFloatContent(ctx: ConcolicRunContext, expr: UExpr<KRealSort>) {
+    require(ctx.curState != null)
+    addSupertypeSoft(ctx, typeSystem.pythonFloat)
+    ctx.curState!!.memory.writeField(address, FloatContents.content, ctx.ctx.realSort, expr, ctx.ctx.trueExpr)
+}
+
+fun UninterpretedSymbolicPythonObject.getFloatContent(ctx: ConcolicRunContext): UExpr<KRealSort> {
+    require(ctx.curState != null)
+    addSupertype(ctx, typeSystem.pythonFloat)
+    return ctx.curState!!.memory.readField(address, FloatContents.content, ctx.ctx.realSort)
+}
+
+fun UninterpretedSymbolicPythonObject.getToFloatContent(ctx: ConcolicRunContext): UExpr<KRealSort>? = with(ctx.ctx) {
+    return when (getTypeIfDefined(ctx)) {
+        typeSystem.pythonFloat -> getFloatContent(ctx)
+        typeSystem.pythonInt -> intToFloat(getIntContent(ctx))
+        typeSystem.pythonBool -> intToFloat(getToIntContent(ctx)!!)
+        else -> null
+    }
 }
 
 
