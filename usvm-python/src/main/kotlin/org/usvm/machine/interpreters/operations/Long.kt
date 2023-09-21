@@ -29,7 +29,7 @@ private fun <RES_SORT: KSort> createBinaryIntOp(
             when (it.sort) {
                 intSort -> constructInt(ctx, it as UExpr<KIntSort>)
                 boolSort -> constructBool(ctx, it as UBoolExpr)
-                else -> TODO()
+                else -> error("Bad return sort of int operation: ${it.sort}")
             }
         }
     }
@@ -62,3 +62,19 @@ fun handlerPOWLongKt(x: ConcolicRunContext, y: UninterpretedSymbolicPythonObject
     //createBinaryIntOp { ctx, left, right ->
     //    if (right is KIntNumExpr) ctx.mkArithPower(left, right) else null
     //} (x, y, z)
+
+fun handlerIntCastKt(
+    ctx: ConcolicRunContext,
+    arg: UninterpretedSymbolicPythonObject
+): UninterpretedSymbolicPythonObject? {
+    if (ctx.curState == null)
+        return null
+    val typeSystem = ctx.typeSystem
+    val type = arg.getTypeIfDefined(ctx) ?: return null
+    return when (type) {
+        typeSystem.pythonInt -> arg
+        typeSystem.pythonBool -> constructInt(ctx, arg.getToIntContent(ctx)!!)
+        typeSystem.pythonFloat -> castFloatToInt(ctx, arg)
+        else -> null
+    }
+}

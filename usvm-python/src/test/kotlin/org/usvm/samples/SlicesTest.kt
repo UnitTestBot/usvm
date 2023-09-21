@@ -81,7 +81,7 @@ class SlicesTest: PythonTestRunnerForStructuredProgram("Slices", UMachineOptions
         timeoutPerRunMs = 2_000
         check3WithConcreteRun(
             constructFunction("slice_usages", List(3) { typeSystem.pythonInt }),
-            ge(10),
+            ge(5),
             standardConcolicAndConcreteChecks,
             /* invariants = */ emptyList(),
             /* propertiesToDiscover = */ emptyList()

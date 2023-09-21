@@ -60,3 +60,13 @@ fun handlerMULFloatKt(x: ConcolicRunContext, y: UninterpretedSymbolicPythonObjec
     createBinaryFloatOp { ctx, left, right -> with(ctx) { mkArithMul(left, right) } } (x, y, z)
 fun handlerDIVFloatKt(x: ConcolicRunContext, y: UninterpretedSymbolicPythonObject, z: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? =
     createBinaryFloatOp { ctx, left, right -> with(ctx) { mkArithDiv(left, right) } } (x, y, z)
+
+fun castFloatToInt(
+    ctx: ConcolicRunContext,
+    float: UninterpretedSymbolicPythonObject
+): UninterpretedSymbolicPythonObject {
+    require(float.getTypeIfDefined(ctx) == ctx.typeSystem.pythonFloat)
+    val value = float.getFloatContent(ctx)
+    val intValue = ctx.ctx.mkRealToInt(value)
+    return constructInt(ctx, intValue)
+}

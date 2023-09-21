@@ -79,7 +79,10 @@ JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_initializePython
 
     INITIALIZE_PYTHON_APPROXIMATIONS
     PySys_AddAuditHook(audit_hook, &illegal_operation);
+
     initialize_symbolic_methods_holder();
+    SymbolicMethod *int_constructor = construct_int_constructor_method();
+    SET_LONG_FIELD("symbolicIntConstructorRef", (jlong) int_constructor)
 }
 
 JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_finalizePython(JNIEnv *env, jobject cpython_adapter) {
@@ -208,6 +211,7 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_concolicRun(
     jlongArray virtual_args,
     jobjectArray symbolic_args,
     jobject context,
+    jobjectArray global_clones,
     jboolean print_error_message
 ) {
     PyObjectArray args;
@@ -218,7 +222,8 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_concolicRun(
     construct_concolic_context(env, context, cpython_adapter, &ctx);
     (*env)->SetLongField(env, cpython_adapter, ctx.cpython_java_exception_field, (jlong) ctx.java_exception);
 
-    SymbolicAdapter *adapter = create_new_adapter(&ctx);
+    PyObject *global_clones_dict = construct_global_clones_dict(env, global_clones);
+    SymbolicAdapter *adapter = create_new_adapter(&ctx, global_clones_dict);
     ctx.adapter = adapter;
     register_virtual_methods(adapter);
     REGISTER_ADAPTER_METHODS(adapter);
@@ -227,6 +232,8 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_concolicRun(
 
     construct_args_for_symbolic_adapter(adapter, &ctx, &concrete_args, &virtual_args, &symbolic_args, &args);
 
+    assert(!PyErr_Occurred());
+    assert(!(*env)->ExceptionCheck(env));
     PyObject *result = SymbolicAdapter_run((PyObject *) adapter, function, args.size, args.ptr, turn_on_audit_hook, turn_off_audit_hook);
     free(args.ptr);
 
@@ -238,6 +245,8 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_concolicRun(
         PyErr_Print();
     }
     PyErr_Clear();
+    // Py_DECREF(adapter);  TODO
+    Py_DECREF(global_clones);
     return (jlong) result;
 }
 
