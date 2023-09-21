@@ -11,24 +11,24 @@ import org.usvm.machine.symbolicobjects.constructBool
 import org.usvm.machine.symbolicobjects.constructInt
 import org.usvm.machine.symbolicobjects.getToIntContent
 
-fun <RES_SORT: KSort> createBinaryIntOp(
+private fun <RES_SORT: KSort> createBinaryIntOp(
     op: (UContext, UExpr<KIntSort>, UExpr<KIntSort>) -> UExpr<RES_SORT>?
-): (ConcolicRunContext, UninterpretedSymbolicPythonObject, UninterpretedSymbolicPythonObject) -> UninterpretedSymbolicPythonObject? = { concolicContext, left, right ->
-    if (concolicContext.curState == null)
+): (ConcolicRunContext, UninterpretedSymbolicPythonObject, UninterpretedSymbolicPythonObject) -> UninterpretedSymbolicPythonObject? = { ctx, left, right ->
+    if (ctx.curState == null)
         null
-    else with (concolicContext.ctx) {
-        val typeSystem = concolicContext.typeSystem
-        myAssert(concolicContext, left.evalIsSoft(concolicContext, typeSystem.pythonInt) or left.evalIsSoft(concolicContext, typeSystem.pythonBool))
-        myAssert(concolicContext, right.evalIsSoft(concolicContext, typeSystem.pythonInt) or right.evalIsSoft(concolicContext, typeSystem.pythonBool))
+    else with (ctx.ctx) {
+        val typeSystem = ctx.typeSystem
+        val possibleTypes = listOf(typeSystem.pythonInt, typeSystem.pythonBool)
+        addPossibleSupertypes(ctx, listOf(left, right), possibleTypes)
         op(
-            concolicContext.ctx,
-            left.getToIntContent(concolicContext) ?: return@with null,
-            right.getToIntContent(concolicContext) ?: return@with null
+            ctx.ctx,
+            left.getToIntContent(ctx) ?: return@with null,
+            right.getToIntContent(ctx) ?: return@with null
         )?.let {
             @Suppress("unchecked_cast")
             when (it.sort) {
-                intSort -> constructInt(concolicContext, it as UExpr<KIntSort>)
-                boolSort -> constructBool(concolicContext, it as UBoolExpr)
+                intSort -> constructInt(ctx, it as UExpr<KIntSort>)
+                boolSort -> constructBool(ctx, it as UBoolExpr)
                 else -> TODO()
             }
         }

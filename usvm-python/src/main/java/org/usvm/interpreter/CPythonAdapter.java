@@ -20,6 +20,7 @@ import java.util.concurrent.Callable;
 import static org.usvm.machine.interpreters.operations.CommonKt.*;
 import static org.usvm.machine.interpreters.operations.ConstantsKt.handlerLoadConstKt;
 import static org.usvm.machine.interpreters.operations.ControlKt.handlerForkKt;
+import static org.usvm.machine.interpreters.operations.FloatKt.*;
 import static org.usvm.machine.interpreters.operations.ListKt.*;
 import static org.usvm.machine.interpreters.operations.LongKt.*;
 import static org.usvm.machine.interpreters.operations.MethodNotificationsKt.*;
@@ -236,6 +237,66 @@ public class CPythonAdapter {
         if (left.obj == null || right.obj == null)
             return null;
         return methodWrapper(context, new MethodParameters("pow_long", Arrays.asList(left, right)), () -> handlerPOWLongKt(context, left.obj, right.obj));
+    }
+
+    public static SymbolForCPython handlerGTFloat(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
+        if (left.obj == null || right.obj == null)
+            return null;
+        return methodWrapper(context, new MethodParameters("gt_float", Arrays.asList(left, right)), () -> handlerGTFloatKt(context, left.obj, right.obj));
+    }
+
+    public static SymbolForCPython handlerLTFloat(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
+        if (left.obj == null || right.obj == null)
+            return null;
+        return methodWrapper(context, new MethodParameters("lt_float", Arrays.asList(left, right)), () -> handlerLTFloatKt(context, left.obj, right.obj));
+    }
+
+    public static SymbolForCPython handlerEQFloat(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
+        if (left.obj == null || right.obj == null)
+            return null;
+        return methodWrapper(context, new MethodParameters("eq_float", Arrays.asList(left, right)), () -> handlerEQFloatKt(context, left.obj, right.obj));
+    }
+
+    public static SymbolForCPython handlerNEFloat(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
+        if (left.obj == null || right.obj == null)
+            return null;
+        return methodWrapper(context, new MethodParameters("ne_float", Arrays.asList(left, right)), () -> handlerNEFloatKt(context, left.obj, right.obj));
+    }
+
+    public static SymbolForCPython handlerGEFloat(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
+        if (left.obj == null || right.obj == null)
+            return null;
+        return methodWrapper(context, new MethodParameters("ge_float", Arrays.asList(left, right)), () -> handlerGEFloatKt(context, left.obj, right.obj));
+    }
+
+    public static SymbolForCPython handlerLEFloat(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
+        if (left.obj == null || right.obj == null)
+            return null;
+        return methodWrapper(context, new MethodParameters("le_float", Arrays.asList(left, right)), () -> handlerLEFloatKt(context, left.obj, right.obj));
+    }
+
+    public static SymbolForCPython handlerADDFloat(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
+        if (left.obj == null || right.obj == null)
+            return null;
+        return methodWrapper(context, new MethodParameters("add_float", Arrays.asList(left, right)), () -> handlerADDFloatKt(context, left.obj, right.obj));
+    }
+
+    public static SymbolForCPython handlerSUBFloat(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
+        if (left.obj == null || right.obj == null)
+            return null;
+        return methodWrapper(context, new MethodParameters("sub_float", Arrays.asList(left, right)), () -> handlerSUBFloatKt(context, left.obj, right.obj));
+    }
+
+    public static SymbolForCPython handlerMULFloat(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
+        if (left.obj == null || right.obj == null)
+            return null;
+        return methodWrapper(context, new MethodParameters("mul_float", Arrays.asList(left, right)), () -> handlerMULFloatKt(context, left.obj, right.obj));
+    }
+
+    public static SymbolForCPython handlerDIVFloat(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
+        if (left.obj == null || right.obj == null)
+            return null;
+        return methodWrapper(context, new MethodParameters("div_float", Arrays.asList(left, right)), () -> handlerDIVFloatKt(context, left.obj, right.obj));
     }
 
     public static SymbolForCPython handlerAND(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
@@ -484,10 +545,6 @@ public class CPythonAdapter {
 
     public static boolean virtualNbBool(ConcolicRunContext context, VirtualPythonObject obj) {
         return virtualNbBoolKt(context, obj);
-    }
-
-    public static long virtualNbInt(ConcolicRunContext context, VirtualPythonObject obj) {
-        return virtualNbIntKt(context, obj).getAddress();
     }
 
     public static int virtualSqLength(ConcolicRunContext context, VirtualPythonObject obj) {

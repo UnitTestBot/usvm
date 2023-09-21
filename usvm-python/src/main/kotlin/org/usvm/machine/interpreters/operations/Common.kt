@@ -1,6 +1,7 @@
 package org.usvm.machine.interpreters.operations
 
 import io.ksmt.sort.KIntSort
+import org.usvm.UBoolExpr
 import org.usvm.UExpr
 import org.usvm.api.allocateArrayInitialized
 import org.usvm.api.readArrayLength
@@ -172,4 +173,16 @@ fun resolveSequenceIndex(
             mkArithAdd(indexValue, listSize)
         }
     }
+}
+
+fun addPossibleSupertypes(
+    ctx: ConcolicRunContext,
+    objs: List<UninterpretedSymbolicPythonObject>,
+    possibleTypes: List<ConcretePythonType>
+) = with(ctx.ctx) {
+    val cond = objs.fold(trueExpr as UBoolExpr) { outerAcc, obj ->
+        val curCond = possibleTypes.fold(trueExpr as UBoolExpr) { acc, type -> acc or obj.evalIsSoft(ctx, type) }
+        outerAcc and curCond
+    }
+    myAssert(ctx, cond)
 }

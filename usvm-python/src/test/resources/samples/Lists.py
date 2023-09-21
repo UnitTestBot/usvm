@@ -169,3 +169,13 @@ def repeat_2(x: int):
     if lst[x] == 1:
         return 1
     return 2
+
+
+def input_list_of_float_pairs(x):
+    result = 0
+    assert len(x) <= 4
+    for a, b in x:
+        result += a * 0.5 + b
+    if result == 10000.5:
+        return 1
+    return 2
