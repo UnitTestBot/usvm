@@ -75,6 +75,11 @@
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
     },
     {
+        "c_name": "symbolic_int_cast",
+        "java_name": "handlerIntCast",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
+    },
+    {
         "c_name": "gt_float",
         "java_name": "handlerGTFloat",
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
