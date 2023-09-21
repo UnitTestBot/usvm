@@ -68,6 +68,7 @@ long extract_long_value(PyObject *int_object);
     CHECK_FOR_EXCEPTION(ctx, fail_value)
 
 int audit_hook(const char *event, PyObject *args, void *data);
+PyObject *construct_global_clones_dict(JNIEnv *env, jobjectArray global_clones);
 
 #ifdef __cplusplus
 }
