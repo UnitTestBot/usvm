@@ -41,17 +41,6 @@ fun virtualNbBoolKt(context: ConcolicRunContext, on: VirtualPythonObject): Boole
     return interpretedObj.getBoolContent(context).isTrue
 }
 
-fun virtualNbIntKt(context: ConcolicRunContext, on: VirtualPythonObject): PythonObject {
-    context.curOperation ?: throw UnregisteredVirtualOperation
-    val typeSystem = context.typeSystem
-    val interpretedArg = interpretSymbolicPythonObject(context.curOperation!!.args.first(), context.modelHolder)
-    require(context.curOperation?.method == NbIntMethod && interpretedArg == on.interpretedObj)
-    val (interpretedObj, symbolic) = internalVirtualCallKt(context)
-    symbolic.addSupertypeSoft(context, typeSystem.pythonInt)
-    val intValue = interpretedObj.getIntContent(context)
-    return ConcretePythonInterpreter.eval(emptyNamespace, intValue.toString())
-}
-
 fun virtualSqLengthKt(context: ConcolicRunContext, on: VirtualPythonObject): Int = with(context.ctx) {
     context.curOperation ?: throw UnregisteredVirtualOperation
     val typeSystem = context.typeSystem

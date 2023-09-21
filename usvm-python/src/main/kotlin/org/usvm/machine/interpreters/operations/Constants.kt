@@ -5,6 +5,7 @@ import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.PythonObject
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.constructBool
+import org.usvm.machine.symbolicobjects.constructFloat
 import org.usvm.machine.symbolicobjects.constructInt
 
 fun handlerLoadConstKt(context: ConcolicRunContext, value: PythonObject): UninterpretedSymbolicPythonObject? =
@@ -20,6 +21,7 @@ fun handlerLoadConstKt(context: ConcolicRunContext, value: PythonObject): Uninte
             handlerLoadConstTupleKt(context, symbolicElements)
         }
         "str" -> handlerLoadConstStrKt(context, value)
+        "float" -> handlerLoadConstFloatKt(context, value)
         else -> null
     }
 
@@ -42,6 +44,15 @@ fun handlerLoadConstLongKt(context: ConcolicRunContext, value: PythonObject): Un
     }.getOrThrow()
 
     return constructInt(context, context.ctx.mkIntNum(str))
+}
+
+fun handlerLoadConstFloatKt(context: ConcolicRunContext, value: PythonObject): UninterpretedSymbolicPythonObject? {
+    if (context.curState == null)
+        return null
+    val str = ConcretePythonInterpreter.getPythonObjectRepr(value)
+    val doubleValue = str.toDoubleOrNull() ?: return null
+    val fpValue = context.ctx.mkFp64(doubleValue)
+    return constructFloat(context, context.ctx.mkFpToRealExpr(fpValue))
 }
 
 fun handlerLoadConstBoolKt(context: ConcolicRunContext, value: String): UninterpretedSymbolicPythonObject? {
