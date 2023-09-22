@@ -46,6 +46,7 @@ import org.usvm.memory.splitUHeapRef
 import org.usvm.solver.USolverBase
 import org.usvm.types.UTypeSystem
 import org.usvm.regions.Region
+import kotlin.time.Duration
 
 @Suppress("LeakingThis")
 open class UContext(
@@ -56,6 +57,8 @@ open class UContext(
 ) : KContext(operationMode, astManagementMode, simplificationMode) {
 
     private val solver by lazy { components.mkSolver(this) }
+    val solverTimeout: Duration = components.solverTimeout
+
     private val typeSystem by lazy { components.mkTypeSystem(this) }
 
     private var currentStateId = 0u

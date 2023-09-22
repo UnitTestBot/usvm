@@ -11,10 +11,12 @@ import org.usvm.model.buildTranslatorAndLazyDecoder
 import org.usvm.solver.USoftConstraintsProvider
 import org.usvm.solver.USolverBase
 import org.usvm.solver.UTypeSolver
+import kotlin.time.Duration
 
 class JcComponents(
     private val typeSystem: JcTypeSystem,
-    private val solverType: SolverType
+    private val solverType: SolverType,
+    override val solverTimeout: Duration
 ) : UComponents<JcType> {
     private val closeableResources = mutableListOf<AutoCloseable>()
     override fun <Context : UContext> mkSolver(ctx: Context): USolverBase<JcType, Context> {

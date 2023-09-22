@@ -198,16 +198,16 @@ open class USolverBase<Type, Context : UContext>(
     ): KSolverStatus {
         var status: KSolverStatus
         if (softConstraints.isNotEmpty()) {
-            status = smtSolver.checkWithAssumptions(softConstraints)
+            status = smtSolver.checkWithAssumptions(softConstraints, timeout = ctx.solverTimeout)
 
             while (status == KSolverStatus.UNSAT) {
                 val unsatCore = smtSolver.unsatCore().toHashSet()
                 if (unsatCore.isEmpty()) break
                 softConstraints.removeAll { it in unsatCore }
-                status = smtSolver.checkWithAssumptions(softConstraints)
+                status = smtSolver.checkWithAssumptions(softConstraints, timeout = ctx.solverTimeout)
             }
         } else {
-            status = smtSolver.check()
+            status = smtSolver.check(timeout = ctx.solverTimeout)
         }
         return status
     }

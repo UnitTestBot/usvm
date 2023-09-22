@@ -24,6 +24,7 @@ import kotlin.reflect.KFunction4
 import kotlin.reflect.full.instanceParameter
 import kotlin.reflect.jvm.javaConstructor
 import kotlin.reflect.jvm.javaMethod
+import kotlin.time.Duration
 
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -740,6 +741,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
         coverageZone = CoverageZone.TRANSITIVE,
         exceptionsPropagation = true,
         timeoutMs = 60_000,
+        solverTimeout = Duration.INFINITE,
         stepsFromLastCovered = 3500L,
     )
 

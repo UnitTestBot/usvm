@@ -1,5 +1,8 @@
 package org.usvm
 
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
+
 enum class SolverType {
     YICES,
     Z3
@@ -177,6 +180,10 @@ data class UMachineOptions(
      * SMT solver type used for path constraint solving.
      */
     val solverType: SolverType = SolverType.Z3,
+    /**
+     * A timeout used for the SMT solver.
+     */
+    val solverTimeout: Duration = 1.seconds,
     /**
      * Should machine stop when all terminal targets are reached.
      */
