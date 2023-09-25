@@ -12,9 +12,16 @@ import org.usvm.UHeapRef
 import org.usvm.USort
 
 /**
+ * An interface for instructions that replace or surround some [originalInst].
+ */
+interface JcTransparentInstruction : JcInst {
+    val originalInst: JcInst
+}
+
+/**
  * Auxiliary instruction to handle method calls.
  * */
-sealed interface JcMethodCallBaseInst : JcInst {
+sealed interface JcMethodCallBaseInst : JcTransparentInstruction {
     val method: JcMethod
 
     override val operands: List<JcExpr>
@@ -25,17 +32,20 @@ sealed interface JcMethodCallBaseInst : JcInst {
     }
 }
 
+
 /**
  * Entrypoint method call instruction.
  * Can be used as initial instruction to start an analysis process.
  * */
 data class JcMethodEntrypointInst(
     override val method: JcMethod,
-    val entrypointArguments: List<Pair<JcRefType, UHeapRef>>
+    val entrypointArguments: List<Pair<JcRefType, UHeapRef>>,
 ) : JcMethodCallBaseInst {
     // We don't care about the location of the entrypoint
     override val location: JcInstLocation
         get() = JcInstLocationImpl(method, -1, -1)
+
+    override val originalInst: JcInst = method.instList.first()
 }
 
 sealed interface JcMethodCall {
@@ -54,8 +64,10 @@ data class JcConcreteMethodCallInst(
     override val location: JcInstLocation,
     override val method: JcMethod,
     override val arguments: List<UExpr<out USort>>,
-    override val returnSite: JcInst
-) : JcMethodCallBaseInst, JcMethodCall
+    override val returnSite: JcInst,
+) : JcMethodCallBaseInst, JcMethodCall {
+    override val originalInst: JcInst = returnSite
+}
 
 /**
  * Virtual method call instruction.
@@ -67,8 +79,10 @@ data class JcVirtualMethodCallInst(
     override val location: JcInstLocation,
     override val method: JcMethod,
     override val arguments: List<UExpr<out USort>>,
-    override val returnSite: JcInst
+    override val returnSite: JcInst,
 ) : JcMethodCallBaseInst, JcMethodCall {
     fun toConcreteMethodCall(concreteMethod: JcMethod): JcConcreteMethodCallInst =
         JcConcreteMethodCallInst(location, concreteMethod, arguments, returnSite)
+
+    override val originalInst: JcInst = returnSite
 }
