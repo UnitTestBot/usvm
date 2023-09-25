@@ -79,7 +79,8 @@ class ModifiedJcMachine(
             applicationGraph,
             { coverageStatistics },
             { cfgStatistics },
-            { callGraphStatistics }
+            { callGraphStatistics },
+            { mlConfig }
         )
 
         val statesCollector =

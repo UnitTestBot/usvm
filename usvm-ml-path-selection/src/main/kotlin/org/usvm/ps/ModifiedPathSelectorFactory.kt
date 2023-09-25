@@ -17,7 +17,7 @@ fun <Method, Statement, Target : UTarget<Statement, Target, State>, State : USta
     applicationGraph: ApplicationGraph<Method, Statement>,
     coverageStatistics: () -> CoverageStatistics<Method, Statement, State>? = { null },
     cfgStatistics: () -> CfgStatistics<Method, Statement>? = { null },
-    callGraphStatistics: () -> CallGraphStatistics<Method>? = { null },
+    @Suppress("UNUSED_PARAMETER") callGraphStatistics: () -> CallGraphStatistics<Method>? = { null },
     mlConfig: () -> MLConfig? = { null }
 ) : UPathSelector<State> {
     val strategies = options.pathSelectionStrategies
@@ -34,7 +34,7 @@ fun <Method, Statement, Target : UTarget<Statement, Target, State>, State : USta
                 applicationGraph,
                 requireNotNull(mlConfig()) { "ML config is required for Features Logging path selector" },
                 when(requireNotNull(mlConfig()).defaultAlgorithm) {
-                    Algorithm.BFS -> BfsPathSelector()
+                    Algorithm.BFS -> BfsPathSelector<State>()
                     Algorithm.ForkDepthRandom -> createForkDepthPathSelector(random)
                 },
             )
@@ -46,7 +46,7 @@ fun <Method, Statement, Target : UTarget<Statement, Target, State>, State : USta
                 applicationGraph,
                 requireNotNull(mlConfig()) { "ML config is required for Machine Learning path selector" },
                 when(requireNotNull(mlConfig()).defaultAlgorithm) {
-                    Algorithm.BFS -> BfsPathSelector()
+                    Algorithm.BFS -> BfsPathSelector<State>()
                     Algorithm.ForkDepthRandom -> createForkDepthPathSelector(random)
                 },
             )
