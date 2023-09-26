@@ -1,14 +1,12 @@
 package org.usvm.collection.array.length
 
 import io.ksmt.KContext
-import io.ksmt.expr.KApp
 import io.ksmt.expr.KExpr
 import io.ksmt.solver.KModel
 import io.ksmt.sort.KArraySort
 import io.ksmt.utils.mkConst
 import org.usvm.UAddressSort
 import org.usvm.UConcreteHeapRef
-import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
@@ -22,6 +20,7 @@ import org.usvm.solver.UExprTranslator
 import org.usvm.solver.URegionDecoder
 import org.usvm.solver.URegionTranslator
 import org.usvm.uctx
+import org.usvm.withSizeSort
 import java.util.IdentityHashMap
 
 class UArrayLengthRegionDecoder<ArrayType, USizeSort : USort>(
@@ -51,11 +50,9 @@ private class UInputArrayLengthRegionTranslator<ArrayType, USizeSort : USort>(
     exprTranslator: UExprTranslator<*, *>
 ) : URegionTranslator<UInputArrayLengthId<ArrayType, USizeSort>, UHeapRef, USizeSort>,
     UCollectionDecoder<UHeapRef, USizeSort> {
-    @Suppress("UNCHECKED_CAST")
-    private val initialValue: KApp<KArraySort<UAddressSort, USizeSort>, *> =
-        with(collectionId.sort.uctx as UContext<USizeSort>) {
-            mkArraySort(addressSort, sizeSort).mkConst(collectionId.toString())
-        }
+    private val initialValue = collectionId.sort.uctx.withSizeSort<USizeSort, _> {
+        mkArraySort(addressSort, sizeSort).mkConst(collectionId.toString())
+    }
 
     private val visitorCache = IdentityHashMap<Any?, KExpr<KArraySort<UAddressSort, USizeSort>>>()
     private val updatesTranslator = UInputArrayLengthUpdateTranslator(exprTranslator, initialValue)

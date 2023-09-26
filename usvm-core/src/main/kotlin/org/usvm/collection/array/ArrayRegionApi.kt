@@ -35,7 +35,7 @@ internal fun <ArrayType, Sort : USort, USizeSort : USort> UWritableMemory<ArrayT
     type: ArrayType,
     elementSort: Sort,
     contents: Sequence<UExpr<Sort>>
-): UConcreteHeapRef = with(elementSort.uctx.withSizeSort<USizeSort>()) {
+): UConcreteHeapRef = elementSort.uctx.withSizeSort {
     val arrayValues = hashMapOf<UExpr<USizeSort>, UExpr<Sort>>()
     contents.forEachIndexed { idx, value -> arrayValues[mkSizeExpr(idx)] = value }
 
@@ -73,7 +73,7 @@ internal fun <ArrayType, Sort : USort, USizeSort : USort> UWritableMemory<ArrayT
     type: ArrayType,
     sort: Sort,
     contents: Sequence<UExpr<Sort>>,
-) = with(sort.uctx.withSizeSort<USizeSort>()) {
+) = sort.uctx.withSizeSort {
     val tmpArrayRef = allocateArrayInitialized<_, _, USizeSort>(type, sort, contents)
     val contentLength: UExpr<USizeSort> = read(UArrayLengthLValue(tmpArrayRef, type))
 

@@ -13,8 +13,8 @@ import org.usvm.memory.UWritableMemory
 import org.usvm.memory.key.UHeapRefKeyInfo
 import org.usvm.uctx
 
-interface USymbolicArrayLengthId<Key, ArrayType, Id : USymbolicArrayLengthId<Key, ArrayType, Id, USizeSort>, USizeSort> :
-    USymbolicCollectionId<Key, USizeSort, Id> where USizeSort : USort {
+interface USymbolicArrayLengthId<Key, ArrayType, Id : USymbolicArrayLengthId<Key, ArrayType, Id, USizeSort>, USizeSort : USort> :
+    USymbolicCollectionId<Key, USizeSort, Id> {
     val arrayType: ArrayType
 }
 

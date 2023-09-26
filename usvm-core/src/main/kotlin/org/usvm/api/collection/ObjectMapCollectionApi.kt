@@ -19,9 +19,9 @@ import org.usvm.withSizeSort
 object ObjectMapCollectionApi {
     fun <MapType, USizeSort : USort> UState<MapType, *, *, *, *, *>.mkSymbolicObjectMap(
         mapType: MapType,
-    ): UHeapRef = with(memory.ctx.withSizeSort<USizeSort>()) {
+    ): UHeapRef = memory.ctx.withSizeSort {
         val ref = memory.allocConcrete(mapType)
-        val length = UMapLengthLValue<MapType, USizeSort>(ref, mapType)
+        val length = UMapLengthLValue<_, USizeSort>(ref, mapType)
         memory.write(length, mkSizeExpr(0), trueExpr)
         ref
     }
@@ -46,8 +46,8 @@ object ObjectMapCollectionApi {
                 it
             },
             symbolicMapper = { symbolicMapRef ->
-                val length = calcOnState { memory.read(UMapLengthLValue<MapType, USizeSort>(symbolicMapRef, mapType)) }
-                with(length.uctx.withSizeSort<USizeSort>()) {
+                val length = calcOnState { memory.read(UMapLengthLValue<_, USizeSort>(symbolicMapRef, mapType)) }
+                length.uctx.withSizeSort {
                     val boundConstraint = mkSizeGeExpr(length, mkSizeExpr(0))
                     // Map size must be correct regardless of guard
                     assert(boundConstraint) ?: return null
@@ -77,9 +77,9 @@ object ObjectMapCollectionApi {
         value: UExpr<Sort>,
         mapType: MapType,
         sort: Sort,
-    ) = with(memory.ctx.withSizeSort<USizeSort>()) {
+    ) = memory.ctx.withSizeSort {
         val mapContainsLValue = URefSetEntryLValue(mapRef, key, mapType)
-        val currentSize = symbolicObjectMapSize<MapType, USizeSort>(mapRef, mapType)
+        val currentSize = symbolicObjectMapSize<_, USizeSort>(mapRef, mapType)
 
         val keyIsInMap = memory.read(mapContainsLValue)
         val keyIsNew = mkNot(keyIsInMap)
@@ -95,9 +95,9 @@ object ObjectMapCollectionApi {
         mapRef: UHeapRef,
         key: UHeapRef,
         mapType: MapType,
-    ) = with(memory.ctx.withSizeSort<USizeSort>()) {
+    ) = memory.ctx.withSizeSort {
         val mapContainsLValue = URefSetEntryLValue(mapRef, key, mapType)
-        val currentSize = symbolicObjectMapSize<MapType, USizeSort>(mapRef, mapType)
+        val currentSize = symbolicObjectMapSize<_, USizeSort>(mapRef, mapType)
 
         val keyIsInMap = memory.read(mapContainsLValue)
 
@@ -113,9 +113,9 @@ object ObjectMapCollectionApi {
         srcRef: UHeapRef,
         mapType: MapType,
         sort: Sort,
-    ) = with(memory.ctx.withSizeSort<USizeSort>()) {
-        val srcMapSize = symbolicObjectMapSize<MapType, USizeSort>(srcRef, mapType)
-        val dstMapSize = symbolicObjectMapSize<MapType, USizeSort>(dstRef, mapType)
+    ) = memory.ctx.withSizeSort {
+        val srcMapSize = symbolicObjectMapSize<_, USizeSort>(srcRef, mapType)
+        val dstMapSize = symbolicObjectMapSize<_, USizeSort>(dstRef, mapType)
 
         val containsSetId = URefSetRegionId(mapType, sort.uctx.boolSort)
         memory.refMapMerge(srcRef, dstRef, mapType, sort, containsSetId, guard = trueExpr)

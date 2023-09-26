@@ -310,7 +310,7 @@ class ObjectMapTest : SymbolicCollectionTestBase() {
                 assertPossible { keyContains eq trueExpr }
 
                 val storedValue = tgtValues[key] ?: otherValues[key] ?: error("$key was not stored")
-                val actualValue: UExpr<USizeSort> = symbolicObjectMapGet(mergeTarget, key, mapType, ctx.sizeSort)
+                val actualValue = symbolicObjectMapGet(mergeTarget, key, mapType, ctx.sizeSort)
                 assertPossible { storedValue eq actualValue }
             }
 
@@ -330,7 +330,7 @@ class ObjectMapTest : SymbolicCollectionTestBase() {
 
                 val storedV1 = tgtValues.getValue(key)
                 val storedV2 = otherValues.getValue(key)
-                val actualValue: UExpr<USizeSort> = symbolicObjectMapGet(mergeTarget, key, mapType, ctx.sizeSort)
+                val actualValue = symbolicObjectMapGet(mergeTarget, key, mapType, ctx.sizeSort)
 
                 assertPossible {
                     (actualValue eq storedV1) or (actualValue eq storedV2)

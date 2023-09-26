@@ -56,7 +56,9 @@ import org.usvm.uctx
 import org.usvm.regions.Region
 import org.usvm.withSizeSort
 
-class USoftConstraintsProvider<Type, USizeSort : USort>(override val ctx: UContext<USizeSort>) : UTransformer<Type, USizeSort> {
+class USoftConstraintsProvider<Type, USizeSort : USort>(
+    override val ctx: UContext<USizeSort>
+) : UTransformer<Type, USizeSort> {
     // We have a list here since sometimes we want to add several soft constraints
     // to make it possible to drop only a part of them, not the whole soft constraint
     private val caches = hashMapOf<UExpr<*>, Set<UBoolExpr>>()
@@ -129,9 +131,8 @@ class USoftConstraintsProvider<Type, USizeSort : USort>(override val ctx: UConte
     override fun transform(
         expr: UInputArrayLengthReading<Type, USizeSort>,
     ): UExpr<USizeSort> = computeSideEffect(expr) {
-        with(expr.uctx.withSizeSort<USizeSort>()) {
+        expr.uctx.withSizeSort {
             val addressIsNull = provide(expr.address)
-            // TODO
             val arraySize = mkSizeLeExpr(expr, mkSizeExpr(PREFERRED_MAX_ARRAY_SIZE))
 
             caches[expr] = addressIsNull + arraySize
@@ -161,9 +162,8 @@ class USoftConstraintsProvider<Type, USizeSort : USort>(override val ctx: UConte
     override fun transform(
         expr: UInputMapLengthReading<Type, USizeSort>
     ): UExpr<USizeSort> = computeSideEffect(expr) {
-        with(expr.uctx.withSizeSort<USizeSort>()) {
+        expr.uctx.withSizeSort {
             val addressConstraints = provide(expr.address)
-            // TODO
             val mapLength = mkSizeLeExpr(expr, mkSizeExpr(PREFERRED_MAX_ARRAY_SIZE))
 
             caches[expr] = addressConstraints + mapLength

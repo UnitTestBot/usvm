@@ -1,7 +1,6 @@
 package org.usvm.collection.array
 
 import io.ksmt.cache.hash
-import io.ksmt.utils.cast
 import kotlinx.collections.immutable.toPersistentMap
 import org.usvm.UBoolExpr
 import org.usvm.UComposer
@@ -69,7 +68,7 @@ class UAllocatedArrayId<ArrayType, Sort : USort, USizeSort : USort> internal con
     override fun emptyRegion(): USymbolicCollection<UAllocatedArrayId<ArrayType, Sort, USizeSort>, UExpr<USizeSort>, Sort> {
         val updates = UTreeUpdates<UExpr<USizeSort>, USizeRegion, Sort>(
             updates = emptyRegionTree(),
-            keyInfo().cast()
+            keyInfo()
         )
         return USymbolicCollection(this, updates)
     }
@@ -88,7 +87,7 @@ class UAllocatedArrayId<ArrayType, Sort : USort, USizeSort : USort> internal con
 
         val updates = UTreeUpdates(
             updates = RegionTree(entries.toPersistentMap()),
-            keyInfo().cast()
+            keyInfo()
         )
 
         return USymbolicCollection(this, updates)
@@ -126,7 +125,7 @@ class UInputArrayId<ArrayType, Sort : USort, USizeSort : USort> internal constru
         composer: UComposer<*, *>?
     ): UExpr<Sort> {
         if (composer == null) {
-            return sort.uctx.withSizeSort<USizeSort>().mkInputArrayReading<ArrayType, Sort>(collection, key.first, key.second)
+            return sort.uctx.withSizeSort<USizeSort>().mkInputArrayReading(collection, key.first, key.second)
         }
 
         val memory = composer.memory.toWritableMemory()

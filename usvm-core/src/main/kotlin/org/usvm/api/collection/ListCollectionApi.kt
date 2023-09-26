@@ -43,7 +43,7 @@ object ListCollectionApi {
             },
             symbolicMapper = { symbolicListRef ->
                 val length = calcOnState { memory.readArrayLength<ListType, USizeSort>(symbolicListRef, listType) }
-                with(length.uctx.withSizeSort<USizeSort>()) {
+                length.uctx.withSizeSort {
                     val boundConstraint = mkSizeGeExpr(length, mkSizeExpr(0))
                     // List size must be correct regardless of guard
                     assert(boundConstraint) ?: return null
@@ -69,7 +69,7 @@ object ListCollectionApi {
     ) {
         val size = symbolicListSize<ListType, USizeSort>(listRef, listType)
 
-        with(memory.ctx.withSizeSort<USizeSort>()) {
+        memory.ctx.withSizeSort {
             memory.writeArrayIndex(listRef, size, listType, sort, value, guard = trueExpr)
             val updatedSize = mkSizeAddExpr(size, mkSizeExpr(1))
             memory.writeArrayLength(listRef, updatedSize, listType)
@@ -92,7 +92,7 @@ object ListCollectionApi {
         sort: Sort,
         index: UExpr<USizeSort>,
         value: UExpr<Sort>,
-    ) = with(memory.ctx.withSizeSort<USizeSort>()) {
+    ) = memory.ctx.withSizeSort {
         val currentSize = symbolicListSize<ListType, USizeSort>(listRef, listType)
 
         val srcIndex = index
@@ -121,7 +121,7 @@ object ListCollectionApi {
         listType: ListType,
         sort: Sort,
         index: UExpr<USizeSort>,
-    ) = with(memory.ctx.withSizeSort<USizeSort>()) {
+    ) = memory.ctx.withSizeSort {
         val currentSize = symbolicListSize<ListType, USizeSort>(listRef, listType)
 
         val firstIndexAfterRemove = mkSizeAddExpr(index, mkSizeExpr(1))

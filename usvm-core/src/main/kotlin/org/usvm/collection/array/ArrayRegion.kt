@@ -85,7 +85,7 @@ internal class UArrayMemoryRegion<ArrayType, Sort : USort, USizeSort : USort>(
 
     private fun getInputArray(arrayType: ArrayType, sort: Sort): UInputArray<ArrayType, Sort, USizeSort> {
         if (inputArray == null)
-            inputArray = UInputArrayId<ArrayType, Sort, USizeSort>(arrayType, sort).emptyRegion()
+            inputArray = UInputArrayId<_, _, USizeSort>(arrayType, sort).emptyRegion()
         return inputArray!!
     }
 
@@ -168,7 +168,7 @@ internal class UArrayMemoryRegion<ArrayType, Sort : USort, USizeSort : USort>(
         blockOnSymbolic0Symbolic1 = { region, srcSymbolic, dstSymbolic, guard ->
             val srcCollection = region.getInputArray(type, elementSort)
             val dstCollection = region.getInputArray(type, elementSort)
-            val adapter = USymbolicArrayInputToInputCopyAdapter<USizeSort>(
+            val adapter = USymbolicArrayInputToInputCopyAdapter(
                 srcSymbolic to fromSrcIdx,
                 dstSymbolic to fromDstIdx,
                 dstSymbolic to toDstIdx,

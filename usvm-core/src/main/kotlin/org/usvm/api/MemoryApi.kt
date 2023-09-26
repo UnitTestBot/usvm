@@ -72,8 +72,7 @@ fun <ArrayType, Sort : USort, USizeSort : USort> UWritableMemory<*>.memcpy(
     fromDst: UExpr<USizeSort>,
     length: UExpr<USizeSort>,
 ) {
-    // TODO
-    val toDst = with(srcRef.uctx.withSizeSort<USizeSort>()) { mkSizeAddExpr(fromDst, mkSizeSubExpr(length, mkSizeExpr(1))) }
+    val toDst = srcRef.uctx.withSizeSort { mkSizeAddExpr(fromDst, mkSizeSubExpr(length, mkSizeExpr(1))) }
     memcpy(srcRef, dstRef, type, elementSort, fromSrc, fromDst, toDst, guard = srcRef.ctx.trueExpr)
 }
 
@@ -83,7 +82,7 @@ fun <ArrayType, Sort : USort, USizeSort : USort> UWritableMemory<ArrayType>.mems
     sort: Sort,
     contents: Sequence<UExpr<Sort>>
 ) {
-    memsetInternal<ArrayType, Sort, USizeSort>(ref, type, sort, contents)
+    memsetInternal<_, _, USizeSort>(ref, type, sort, contents)
 }
 
 fun <ArrayType, USizeSort : USort> UWritableMemory<ArrayType>.allocateArray(
@@ -92,4 +91,4 @@ fun <ArrayType, USizeSort : USort> UWritableMemory<ArrayType>.allocateArray(
 
 fun <ArrayType, Sort : USort, USizeSort : USort> UWritableMemory<ArrayType>.allocateArrayInitialized(
     type: ArrayType, sort: Sort, contents: Sequence<UExpr<Sort>>
-): UConcreteHeapRef = allocateArrayInitializedInternal<ArrayType, Sort, USizeSort>(type, sort, contents)
+): UConcreteHeapRef = allocateArrayInitializedInternal<_, _, USizeSort>(type, sort, contents)

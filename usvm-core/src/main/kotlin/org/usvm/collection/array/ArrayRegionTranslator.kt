@@ -63,7 +63,7 @@ private class UAllocatedArrayRegionTranslator<ArrayType, Sort : USort, USizeSort
     private val collectionId: UAllocatedArrayId<ArrayType, Sort, USizeSort>,
     exprTranslator: UExprTranslator<*, *>
 ) : URegionTranslator<UAllocatedArrayId<ArrayType, Sort, USizeSort>, UExpr<USizeSort>, Sort> {
-    private val initialValue = with(collectionId.sort.uctx.withSizeSort<USizeSort>()) {
+    private val initialValue = collectionId.sort.uctx.withSizeSort<USizeSort, _> {
         val sort = mkArraySort(sizeSort, collectionId.sort)
         val translatedDefaultValue = exprTranslator.translate(collectionId.defaultValue)
         mkArrayConst(sort, translatedDefaultValue)
@@ -86,7 +86,7 @@ private class UInputArrayRegionTranslator<ArrayType, Sort : USort, USizeSort : U
     exprTranslator: UExprTranslator<*, *>
 ) : URegionTranslator<UInputArrayId<ArrayType, Sort, USizeSort>, USymbolicArrayIndex<USizeSort>, Sort>,
     UCollectionDecoder<USymbolicArrayIndex<USizeSort>, Sort> {
-    private val initialValue = with(collectionId.sort.uctx.withSizeSort<USizeSort>()) {
+    private val initialValue = collectionId.sort.uctx.withSizeSort<USizeSort, _> {
         mkArraySort(addressSort, sizeSort, collectionId.sort).mkConst(collectionId.toString())
     }
 

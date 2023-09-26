@@ -13,8 +13,8 @@ import org.usvm.memory.key.UHeapRefKeyInfo
 import org.usvm.uctx
 import org.usvm.withSizeSort
 
-interface USymbolicMapLengthId<Key, MapType, Id : USymbolicMapLengthId<Key, MapType, Id, USizeSort>, USizeSort> :
-    USymbolicCollectionId<Key, USizeSort, Id> where USizeSort : USort {
+interface USymbolicMapLengthId<Key, MapType, Id : USymbolicMapLengthId<Key, MapType, Id, USizeSort>, USizeSort : USort> :
+    USymbolicCollectionId<Key, USizeSort, Id> {
     val mapType: MapType
 }
 

@@ -3,7 +3,6 @@ package org.usvm.memory.key
 import io.ksmt.expr.KBitVec32Value
 import io.ksmt.expr.KInt32NumExpr
 import io.ksmt.sort.KIntSort
-import io.ksmt.utils.cast
 import org.usvm.UBoolExpr
 import org.usvm.UBv32Sort
 import org.usvm.UConcreteSize
@@ -34,14 +33,6 @@ abstract class USizeExprKeyInfo<USizeSort : USort> : USymbolicCollectionKeyInfo<
 
     override fun bottomRegion() =
         IntIntervalsRegion.empty()
-
-    companion object {
-        inline fun <reified USizeSort : USort> create(): USizeExprKeyInfo<USizeSort> = when (USizeSort::class) {
-            UBv32Sort::class -> USizeExprBv32KeyInfo.cast()
-            KIntSort::class -> USizeExprInt32KeyInfo.cast()
-            else -> error("Cannot instantiate USizeExprKeyInfo with sort ${USizeSort::class}")
-        }
-    }
 }
 
 object USizeExprBv32KeyInfo : USizeExprKeyInfo<UBv32Sort>() {
@@ -93,4 +84,3 @@ object USizeExprInt32KeyInfo : USizeExprKeyInfo<KIntSort>() {
             else -> topRegion()
         }
 }
-

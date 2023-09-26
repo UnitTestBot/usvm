@@ -49,8 +49,7 @@ abstract class USymbolicArrayCopyAdapter<SrcKey, DstKey, USizeSort : USort>(
         idx: UExpr<USizeSort>,
         dstFromIdx: UExpr<USizeSort>,
         srcFromIdx: UExpr<USizeSort>
-    ): UExpr<USizeSort> = with(ctx.withSizeSort<USizeSort>()) {
-        // TODO
+    ): UExpr<USizeSort> = ctx.withSizeSort {
         mkSizeAddExpr(mkSizeSubExpr(idx, dstFromIdx), srcFromIdx)
     }
 

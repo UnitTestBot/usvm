@@ -95,7 +95,6 @@ abstract class UContext<USizeSort : USort>(
     abstract fun mkSizeLtExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UBoolExpr
     abstract fun mkSizeLeExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UBoolExpr
 
-
     val nullRef: UNullRef = UNullRef(this)
 
     fun mkNullRef(): USymbolicHeapRef {
@@ -213,7 +212,7 @@ abstract class UContext<USizeSort : USort>(
         address: UHeapRef,
         index: UExpr<USizeSort>,
     ): UInputArrayReading<ArrayType, Sort, USizeSort> = inputArrayReadingCache.createIfContextActive {
-        UInputArrayReading<ArrayType, Sort, USizeSort>(this, region, address, index)
+        UInputArrayReading(this, region, address, index)
     }.cast()
 
     private val inputArrayLengthReadingCache = mkAstInterner<UInputArrayLengthReading<*, USizeSort>>()
@@ -287,7 +286,7 @@ abstract class UContext<USizeSort : USort>(
         address: UHeapRef
     ): UInputMapLengthReading<MapType, USizeSort> =
         inputSymbolicMapLengthReadingCache.createIfContextActive {
-            UInputMapLengthReading<MapType, USizeSort>(this, region, address)
+            UInputMapLengthReading(this, region, address)
         }.cast()
 
 
@@ -456,4 +455,4 @@ val KAst.uctx
     get() = ctx as UContext<*>
 
 fun <USizeSort : USort> UContext<*>.withSizeSort(): UContext<USizeSort> = cast()
-fun <USizeSort : USort, R> UContext<*>.withSizeSort(block: UContext<USizeSort>.() -> R): R = block(withSizeSort())
+inline fun <USizeSort : USort, R> UContext<*>.withSizeSort(block: UContext<USizeSort>.() -> R): R = block(withSizeSort())

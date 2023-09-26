@@ -49,7 +49,7 @@ private class UInputMapLengthRegionTranslator<MapType, USizeSort : USort>(
     exprTranslator: UExprTranslator<*, *>
 ) : URegionTranslator<UInputMapLengthId<MapType, USizeSort>, UHeapRef, USizeSort>,
     UCollectionDecoder<UHeapRef, USizeSort> {
-    private val initialValue = with(collectionId.sort.uctx.withSizeSort<USizeSort>()) {
+    private val initialValue = collectionId.sort.uctx.withSizeSort<USizeSort, _> {
         mkArraySort(addressSort, sizeSort).mkConst(collectionId.toString())
     }
 

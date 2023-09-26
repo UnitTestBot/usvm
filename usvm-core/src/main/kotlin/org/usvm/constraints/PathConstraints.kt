@@ -4,6 +4,7 @@ import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.persistentSetOf
 import org.usvm.UAndExpr
 import org.usvm.UBoolExpr
+import org.usvm.UBv32Sort
 import org.usvm.UBvSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
@@ -38,8 +39,7 @@ open class UPathConstraints<Type, Context : UContext<*>> private constructor(
     /**
      * Specially represented numeric constraints (e.g. >, <, >=, ...).
      */
-    // TODO
-    val numericConstraints: UNumericConstraints<UBvSort> = UNumericConstraints(ctx, sort = ctx.bv32Sort)
+    val numericConstraints: UNumericConstraints<UBv32Sort> = UNumericConstraints(ctx, sort = ctx.bv32Sort)
 ) {
     init {
         // Use the information from the type constraints to check whether any static ref is assignable to any symbolic ref
