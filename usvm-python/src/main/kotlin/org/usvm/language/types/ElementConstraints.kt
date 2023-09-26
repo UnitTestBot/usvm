@@ -31,6 +31,8 @@ object NonRecursiveConstraint: ElementConstraint() {
         element: UninterpretedSymbolicPythonObject,
         ctx: ConcolicRunContext
     ): UBoolExpr = with(ctx.ctx) {
+        if (element.address is UConcreteHeapRef)
+            return trueExpr
         mkIteNoSimplify(
             mkHeapRefEq(element.address, nullRef),
             trueExpr,
@@ -44,7 +46,7 @@ object NonRecursiveConstraint: ElementConstraint() {
         model: PyModel,
         ctx: UPythonContext
     ): Boolean = with(ctx) {
-        if (element.address == 0)
+        if (element.address == 0 || element.address > 0)
             return true
         (model.readField(element, TimeOfCreation, intSort) lt model.readField(array, TimeOfCreation, intSort)).isTrue
     }
