@@ -54,7 +54,7 @@ fun constructInt(context: ConcolicRunContext, expr: UExpr<KIntSort>): Uninterpre
     return result
 }
 
-fun constructFloat(context: ConcolicRunContext, expr: UExpr<KRealSort>): UninterpretedSymbolicPythonObject {
+fun constructFloat(context: ConcolicRunContext, expr: FloatUninterpretedContent): UninterpretedSymbolicPythonObject {
     require(context.curState != null)
     val typeSystem = context.typeSystem
     val address = context.curState!!.memory.allocConcrete(typeSystem.pythonFloat)

@@ -45,6 +45,7 @@ public class CPythonAdapter {
     public int pyGE;
     public int pyGT;
     public long symbolicIntConstructorRef;
+    public long symbolicFloatConstructorRef;
     public MemberDescriptor listAppendDescriptor = ListAppendDescriptor.INSTANCE;
     public MemberDescriptor sliceStartDescriptor = SliceStartDescriptor.INSTANCE;
     public MemberDescriptor sliceStopDescriptor = SliceStopDescriptor.INSTANCE;
@@ -304,6 +305,12 @@ public class CPythonAdapter {
         if (left.obj == null || right.obj == null)
             return null;
         return methodWrapper(context, new MethodParameters("div_float", Arrays.asList(left, right)), () -> handlerDIVFloatKt(context, left.obj, right.obj));
+    }
+
+    public static SymbolForCPython handlerFloatCast(ConcolicRunContext context, SymbolForCPython obj) {
+        if (obj.obj == null)
+            return null;
+        return methodWrapper(context, new MethodParameters("float_cast", Collections.singletonList(obj)), () -> handlerFloatCastKt(context, obj.obj));
     }
 
     public static SymbolForCPython handlerAND(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {

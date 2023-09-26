@@ -57,6 +57,9 @@ val installMypyRunner = tasks.register<Exec>("installUtbotMypyRunner") {
     group = "samples"
     dependsOn(":usvm-python:cpythonadapter:linkDebug")
     inputs.dir(cpythonPath)
+    if (isWindows) {
+        outputs.dir(File(cpythonBuildPath, "Lib/site-packages/utbot_mypy_runner"))
+    }
     if (!isWindows) {
         environment("LD_LIBRARY_PATH" to "$cpythonBuildPath/lib:$cpythonAdapterBuildPath")
     }
