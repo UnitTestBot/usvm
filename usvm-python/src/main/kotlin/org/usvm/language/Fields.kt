@@ -13,6 +13,9 @@ object BoolContents {
 
 object FloatContents {
     val content = ContentOfType("float")
+    val isNan = ContentOfType("is_nan")
+    val infSign = ContentOfType("float_inf_sign")
+    val isInf = ContentOfType("is_inf")
 }
 
 object ListIteratorContents {

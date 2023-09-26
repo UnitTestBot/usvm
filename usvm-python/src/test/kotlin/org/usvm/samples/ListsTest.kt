@@ -329,4 +329,18 @@ class ListsTest : PythonTestRunnerForPrimitiveProgram("Lists", UMachineOptions(s
         )
         options = oldOptions
     }
+
+    @Test
+    fun testListConcat() {
+        check2WithConcreteRun(
+            constructFunction("list_concat", listOf(typeSystem.pythonList, typeSystem.pythonList)),
+            eq(2),
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ listOf { x, y, _ -> x.typeName == "list" && y.typeName == "list" },
+            /* propertiesToDiscover = */ listOf(
+                { _, _, res -> res.repr == "None" },
+                { _, _, res -> res.selfTypeName == "AssertionError" }
+            )
+        )
+    }
 }

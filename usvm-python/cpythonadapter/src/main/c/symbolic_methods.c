@@ -42,6 +42,16 @@ construct_int_constructor_method() {
     return result;
 }
 
+SymbolicMethod *
+construct_float_constructor_method() {
+    assert(methods_holder);
+    SymbolicMethod *result = malloc(sizeof(SymbolicMethod));
+    result->call = SymbolicMethod_float;
+    result->self_reference = 0;
+    PyList_Append(methods_holder, PyLong_FromLong((long) result));
+    return result;
+}
+
 PyObject *
 call_symbolic_method(SymbolicMethod *method, SymbolicAdapter *adapter, PyObject *args, PyObject *kwargs) {
     return method->call(adapter, method->self_reference, args, kwargs);

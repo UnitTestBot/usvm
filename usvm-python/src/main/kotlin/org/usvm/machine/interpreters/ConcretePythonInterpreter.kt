@@ -5,7 +5,6 @@ import org.usvm.language.VirtualPythonObject
 import org.usvm.interpreter.CPythonAdapter
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.interpreter.MemberDescriptor
-import org.usvm.language.NamedSymbolForCPython
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 
 @Suppress("unused")
@@ -230,7 +229,8 @@ object ConcretePythonInterpreter {
     val pyGT: Int
     val pyGE: Int
     val pyNoneRef: Long
-    val intConctructorRef: Long
+    val intConstructorRef: Long
+    val floatConstructorRef: Long
 
     init {
         val pythonHome = System.getenv("PYTHONHOME") ?: error("Variable PYTHONHOME not set")
@@ -242,7 +242,8 @@ object ConcretePythonInterpreter {
         pyGT = pythonAdapter.pyGT
         pyGE = pythonAdapter.pyGE
         pyNoneRef = pythonAdapter.pyNoneRef
-        intConctructorRef = pythonAdapter.symbolicIntConstructorRef
+        intConstructorRef = pythonAdapter.symbolicIntConstructorRef
+        floatConstructorRef = pythonAdapter.symbolicFloatConstructorRef
         val namespace = pythonAdapter.newNamespace
         val initialModules = listOf("sys", "copy", "builtins", "ctypes", "array")
         pythonAdapter.concreteRun(namespace, "import " + initialModules.joinToString(", "), true, false)
