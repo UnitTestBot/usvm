@@ -22,9 +22,11 @@ import org.usvm.statistics.TransitiveCoverageZoneObserver
 import org.usvm.statistics.UMachineObserver
 import org.usvm.statistics.collectors.CoveredNewStatesCollector
 import org.usvm.statistics.collectors.TargetsReachedStatesCollector
+import org.usvm.statistics.distances.CfgStatistics
 import org.usvm.statistics.distances.CfgStatisticsImpl
 import org.usvm.statistics.distances.PlainCallGraphStatistics
 import org.usvm.stopstrategies.createStopStrategy
+import org.usvm.util.originalInst
 
 val logger = object : KLogging() {}.logger
 
@@ -72,12 +74,14 @@ class JcMachine(
                 )
             }
 
+        val transparentCfgStatistics = transparentCfgStatistics()
+
         val pathSelector = createPathSelector(
             initialState,
             options,
             applicationGraph,
             { coverageStatistics },
-            { cfgStatistics },
+            { transparentCfgStatistics },
             { callGraphStatistics }
         )
 
@@ -86,6 +90,7 @@ class JcMachine(
                 StateCollectionStrategy.COVERED_NEW -> CoveredNewStatesCollector<JcState>(coverageStatistics) {
                     it.methodResult is JcMethodResult.JcException
                 }
+
                 StateCollectionStrategy.REACHED_TARGET -> TargetsReachedStatesCollector()
             }
 
@@ -120,6 +125,21 @@ class JcMachine(
         )
 
         return statesCollector.collectedStates
+    }
+
+    /**
+     * Returns a wrapper for the [cfgStatistics] that ignores [JcTransparentInstruction]s.
+     * Instead of calculating statistics for them, it just takes the statistics for
+     * their original instructions.
+     */
+    private fun transparentCfgStatistics() = object : CfgStatistics<JcMethod, JcInst> {
+        override fun getShortestDistance(method: JcMethod, stmtFrom: JcInst, stmtTo: JcInst): UInt {
+            return cfgStatistics.getShortestDistance(method, stmtFrom.originalInst(), stmtTo.originalInst())
+        }
+
+        override fun getShortestDistanceToExit(method: JcMethod, stmtFrom: JcInst): UInt {
+            return cfgStatistics.getShortestDistanceToExit(method, stmtFrom.originalInst())
+        }
     }
 
     private fun isStateTerminated(state: JcState): Boolean {

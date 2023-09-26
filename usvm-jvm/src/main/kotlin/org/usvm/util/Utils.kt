@@ -4,12 +4,14 @@ import org.jacodb.api.JcClassOrInterface
 import org.jacodb.api.JcRefType
 import org.jacodb.api.JcType
 import org.jacodb.api.JcTypedField
+import org.jacodb.api.cfg.JcInst
 import org.jacodb.api.ext.findFieldOrNull
 import org.jacodb.api.ext.toType
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.machine.JcContext
+import org.usvm.machine.JcTransparentInstruction
 import org.usvm.memory.ULValue
 import org.usvm.memory.UWritableMemory
 import org.usvm.uctx
@@ -29,3 +31,5 @@ fun UWritableMemory<*>.write(ref: ULValue<*, *>, value: UExpr<*>) {
 
 internal fun UWritableMemory<JcType>.allocHeapRef(type: JcType, useStaticAddress: Boolean): UConcreteHeapRef =
     if (useStaticAddress) allocStatic(type) else allocConcrete(type)
+
+tailrec fun JcInst.originalInst(): JcInst = if (this is JcTransparentInstruction) originalInst.originalInst() else this
