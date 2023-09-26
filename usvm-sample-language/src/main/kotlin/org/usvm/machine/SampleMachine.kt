@@ -20,6 +20,7 @@ import org.usvm.statistics.distances.CallGraphStatisticsImpl
 import org.usvm.statistics.distances.CfgStatisticsImpl
 import org.usvm.statistics.distances.PlainCallGraphStatistics
 import org.usvm.stopstrategies.createStopStrategy
+import org.usvm.targets.UTargetController
 
 /**
  * Entry point for a sample language analyzer.
@@ -32,14 +33,17 @@ class SampleMachine(
     private val typeSystem = SampleTypeSystem()
     private val components = SampleLanguageComponents(typeSystem, options.solverType)
     private val ctx = UContext(components)
-    private val solver = ctx.solver<SampleType, UContext>()
+    private val solver = ctx.solver<SampleType>()
 
     private val interpreter = SampleInterpreter(ctx, applicationGraph)
     private val resultModelConverter = ResultModelConverter(ctx)
 
     private val cfgStatistics = CfgStatisticsImpl(applicationGraph)
 
-    fun analyze(method: Method<*>, targets: List<SampleTarget> = emptyList()): Collection<ProgramExecutionResult> {
+    fun analyze(
+        method: Method<*>,
+        targets: List<SampleTarget<UTargetController>> = emptyList()
+    ): Collection<ProgramExecutionResult> {
         val initialState = getInitialState(method, targets)
 
         val coverageStatistics: CoverageStatistics<Method<*>, Stmt, SampleState> = CoverageStatistics(setOf(method), applicationGraph)
@@ -92,7 +96,10 @@ class SampleMachine(
         return statesCollector.collectedStates.map { resultModelConverter.convert(it, method) }
     }
 
-    private fun getInitialState(method: Method<*>, targets: List<SampleTarget>): SampleState =
+    private fun getInitialState(
+        method: Method<*>,
+        targets: List<SampleTarget<UTargetController>>
+    ): SampleState =
         SampleState(ctx, targets = targets).apply {
             addEntryMethodCall(applicationGraph, method)
             val model = solver.emptyModel()

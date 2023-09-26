@@ -26,13 +26,15 @@ import org.usvm.statistics.distances.CfgStatistics
 import org.usvm.statistics.distances.CfgStatisticsImpl
 import org.usvm.statistics.distances.PlainCallGraphStatistics
 import org.usvm.stopstrategies.createStopStrategy
+import org.usvm.targets.UTargetController
 import org.usvm.util.originalInst
 
 val logger = object : KLogging() {}.logger
 
 class JcMachine(
     cp: JcClasspath,
-    private val options: UMachineOptions
+    private val options: UMachineOptions,
+    private val interpreterObserver: JcInterpreterObserver? = null
 ) : UMachine<JcState>() {
     private val applicationGraph = JcApplicationGraph(cp)
 
@@ -40,11 +42,11 @@ class JcMachine(
     private val components = JcComponents(typeSystem, options.solverType)
     private val ctx = JcContext(cp, components)
 
-    private val interpreter = JcInterpreter(ctx, applicationGraph)
+    private val interpreter = JcInterpreter(ctx, applicationGraph, interpreterObserver)
 
     private val cfgStatistics = CfgStatisticsImpl(applicationGraph)
 
-    fun analyze(method: JcMethod, targets: List<JcTarget> = emptyList()): List<JcState> {
+    fun analyze(method: JcMethod, targets: List<JcTarget<UTargetController>> = emptyList()): List<JcState> {
         logger.debug("{}.analyze({}, {})", this, method, targets)
         val initialState = interpreter.getInitialState(method, targets)
 
@@ -103,6 +105,11 @@ class JcMachine(
 
         val observers = mutableListOf<UMachineObserver<JcState>>(coverageStatistics)
         observers.add(TerminatedStateRemover())
+
+        if (interpreterObserver is UMachineObserver<*>) {
+            @Suppress("UNCHECKED_CAST")
+            observers.add(interpreterObserver as UMachineObserver<JcState>)
+        }
 
         if (options.coverageZone == CoverageZone.TRANSITIVE) {
             observers.add(

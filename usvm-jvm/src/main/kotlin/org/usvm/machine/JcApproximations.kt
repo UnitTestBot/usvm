@@ -192,12 +192,14 @@ class JcMethodApproximationResolver(
             val classNameRef = arguments.single()
 
             val predefinedTypeNames = ctx.primitiveTypes.associateBy {
-                exprResolver.resolveStringConstant(it.typeName)
+                exprResolver.simpleValueResolver.resolveStringConstant(it.typeName)
             }
 
             val primitive = predefinedTypeNames[classNameRef] ?: return false
 
-            val classRef = exprResolver.resolveClassRef(primitive)
+            val classRef = with(exprResolver.simpleValueResolver) {
+                resolveClassRef(primitive)
+            }
 
             scope.doWithState {
                 skipMethodInvocationWithValue(methodCall, classRef)
@@ -230,8 +232,12 @@ class JcMethodApproximationResolver(
             val result = scope.calcOnState {
                 mapTypeStream(instance) { _, types ->
                     val type = types.singleOrNull()
-                    type?.let { exprResolver.resolveClassRef(it) }
-                }
+                    type?.let {
+                        with(exprResolver.simpleValueResolver) {
+                            resolveClassRef(it)
+                        }
+                    }
+                } // TODO fix here
             } ?: return false
 
             scope.doWithState {
@@ -265,7 +271,9 @@ class JcMethodApproximationResolver(
             )
 
             val primitiveArrayRefScale = primitiveArrayScale.mapKeys { (type, _) ->
-                exprResolver.resolveClassRef(ctx.cp.arrayTypeOf(type))
+                with(exprResolver.simpleValueResolver) {
+                    resolveClassRef(ctx.cp.arrayTypeOf(type))
+                }
             }
 
             val arrayTypeRef = arguments.last().asExpr(ctx.addressSort)

@@ -9,20 +9,21 @@ import org.usvm.model.UModelBase
 import org.usvm.solver.USatResult
 import org.usvm.solver.UUnknownResult
 import org.usvm.solver.UUnsatResult
+import org.usvm.targets.UTarget
 
 typealias StateId = UInt
 
 abstract class UState<Type, Method, Statement, Context, Target, State>(
     // TODO: add interpreter-specific information
-    ctx: UContext,
+    val ctx: Context,
     open val callStack: UCallStack<Method, Statement>,
-    open val pathConstraints: UPathConstraints<Type, Context>,
+    open val pathConstraints: UPathConstraints<Type>,
     open val memory: UMemory<Type, Method>,
     open var models: List<UModelBase<Type>>,
     open var pathLocation: PathsTrieNode<State, Statement>,
     targets: List<Target> = emptyList(),
 ) where Context : UContext,
-        Target : UTarget<Statement, Target, State>,
+        Target : UTarget<Statement, Target, *>,
         State : UState<Type, Method, Statement, Context, Target, State> {
     /**
      * Deterministic state id.
@@ -53,7 +54,7 @@ abstract class UState<Type, Method, Statement, Context, Target, State>(
      * Creates new state structurally identical to this.
      * If [newConstraints] is null, clones [pathConstraints]. Otherwise, uses [newConstraints] in cloned state.
      */
-    abstract fun clone(newConstraints: UPathConstraints<Type, Context>? = null): State
+    abstract fun clone(newConstraints: UPathConstraints<Type>? = null): State
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -105,7 +106,7 @@ abstract class UState<Type, Method, Statement, Context, Target, State>(
         val previousTargetCount = targetsImpl.size
         targetsImpl = targetsImpl.remove(target)
 
-        if (previousTargetCount == targetsImpl.size || !target.isRemoved) {
+        if (previousTargetCount == targetsImpl.size || target.isRemoved) {
             return false
         }
 
@@ -155,7 +156,7 @@ private fun <T : UState<Type, *, *, Context, *, T>, Type, Context : UContext> fo
     } else {
         newConstraintToOriginalState
     }
-    val solver = newConstraintToForkedState.uctx.solver<Type, Context>()
+    val solver = newConstraintToForkedState.uctx.solver<Type>()
     val satResult = solver.checkWithSoftConstraints(constraintsToCheck)
 
     return when (satResult) {

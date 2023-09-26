@@ -11,17 +11,18 @@ import org.usvm.constraints.UPathConstraints
 import org.usvm.machine.JcContext
 import org.usvm.memory.UMemory
 import org.usvm.model.UModelBase
+import org.usvm.targets.UTargetController
 
 class JcState(
     ctx: JcContext,
     callStack: UCallStack<JcMethod, JcInst> = UCallStack(),
-    pathConstraints: UPathConstraints<JcType, JcContext> = UPathConstraints(ctx),
+    pathConstraints: UPathConstraints<JcType> = UPathConstraints(ctx),
     memory: UMemory<JcType, JcMethod> = UMemory(ctx, pathConstraints.typeConstraints),
     models: List<UModelBase<JcType>> = listOf(),
     override var pathLocation: PathsTrieNode<JcState, JcInst> = ctx.mkInitialLocation(),
     var methodResult: JcMethodResult = JcMethodResult.NoCall,
-    targets: List<JcTarget> = emptyList(),
-) : UState<JcType, JcMethod, JcInst, JcContext, JcTarget, JcState>(
+    targets: List<JcTarget<UTargetController>> = emptyList(),
+) : UState<JcType, JcMethod, JcInst, JcContext, JcTarget<UTargetController>, JcState>(
     ctx,
     callStack,
     pathConstraints,
@@ -30,10 +31,10 @@ class JcState(
     pathLocation,
     targets
 ) {
-    override fun clone(newConstraints: UPathConstraints<JcType, JcContext>?): JcState {
+    override fun clone(newConstraints: UPathConstraints<JcType>?): JcState {
         val clonedConstraints = newConstraints ?: pathConstraints.clone()
         return JcState(
-            pathConstraints.ctx,
+            ctx,
             callStack.clone(),
             clonedConstraints,
             memory.clone(clonedConstraints.typeConstraints),

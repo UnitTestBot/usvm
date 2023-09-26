@@ -43,9 +43,9 @@ import org.usvm.collection.set.ref.UInputRefSetWithAllocatedElementsReading
 import org.usvm.collection.set.ref.UInputRefSetWithInputElements
 import org.usvm.collection.set.ref.UInputRefSetWithInputElementsReading
 import org.usvm.memory.splitUHeapRef
+import org.usvm.regions.Region
 import org.usvm.solver.USolverBase
 import org.usvm.types.UTypeSystem
-import org.usvm.regions.Region
 
 @Suppress("LeakingThis")
 open class UContext(
@@ -67,9 +67,7 @@ open class UContext(
         return currentStateId++
     }
 
-    @Suppress("UNCHECKED_CAST")
-    fun <Type, Context : UContext> solver(): USolverBase<Type, Context> =
-        this.solver as USolverBase<Type, Context>
+    fun <Type> solver(): USolverBase<Type> = this.solver.uncheckedCast()
 
     @Suppress("UNCHECKED_CAST")
     fun <Type> typeSystem(): UTypeSystem<Type> =

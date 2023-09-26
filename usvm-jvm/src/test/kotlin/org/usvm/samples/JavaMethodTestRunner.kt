@@ -11,7 +11,9 @@ import org.usvm.api.JcParametersState
 import org.usvm.api.JcTest
 import org.usvm.api.targets.JcTarget
 import org.usvm.api.util.JcTestResolver
+import org.usvm.machine.JcInterpreterObserver
 import org.usvm.machine.JcMachine
+import org.usvm.targets.UTargetController
 import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.AnalysisResultsNumberMatcher
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
@@ -29,18 +31,26 @@ import kotlin.reflect.jvm.javaMethod
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, JcClassCoverage>() {
 
-    private var targets: List<JcTarget> = emptyList()
+    private var targets: List<JcTarget<UTargetController>> = emptyList()
+    private var interpreterObserver: JcInterpreterObserver? = null
 
     /**
      * Sets JcTargets to run JcMachine with in the scope of [action].
      */
-    protected fun <T> withTargets(targets: List<JcTarget>, action: () -> T): T {
+    protected fun <T> withTargets(
+        targets: List<JcTarget<UTargetController>>,
+        interpreterObserver: JcInterpreterObserver,
+        action: () -> T,
+    ): T {
         val prevTargets = this.targets
+        val prevInterpreterObserver = this.interpreterObserver
         try {
             this.targets = targets
+            this.interpreterObserver = interpreterObserver
             return action()
         } finally {
             this.targets = prevTargets
+            this.interpreterObserver = prevInterpreterObserver
         }
     }
 
@@ -749,7 +759,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
         val jcClass = cp.findClass(declaringClassName).toType()
         val jcMethod = jcClass.declaredMethods.first { it.name == method.name }
 
-        JcMachine(cp, options).use { machine ->
+        JcMachine(cp, options, interpreterObserver).use { machine ->
             val states = machine.analyze(jcMethod.method, targets)
             states.map { testResolver.resolve(jcMethod, it) }
         }
