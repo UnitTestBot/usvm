@@ -1,17 +1,13 @@
 package org.usvm.samples.approximations
 
 import org.junit.jupiter.api.Test
-import org.usvm.PathSelectionStrategy
-import org.usvm.UMachineOptions
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
-import org.usvm.util.Options
-import org.usvm.util.UsvmTest
 import org.usvm.util.isException
 
 class ApproximationsExampleTest : ApproximationsTestRunner() {
 
-    @UsvmTest([Options([PathSelectionStrategy.DFS])])
-    fun testArrayListModification(options: UMachineOptions) = withOptions(options) {
+    @Test
+    fun testArrayListModification() {
         with(FixedExecutionVerifier(5, exceptionalExecutions = setOf(0))) {
             checkDiscoveredPropertiesWithExceptions(
                 ApproximationsExample::modifyList,

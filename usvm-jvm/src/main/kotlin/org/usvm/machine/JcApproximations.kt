@@ -60,6 +60,8 @@ import org.usvm.machine.state.JcState
 import org.usvm.machine.state.newStmt
 import org.usvm.machine.state.skipMethodInvocationWithValue
 import org.usvm.types.first
+import org.usvm.types.single
+import org.usvm.types.singleOrNull
 import org.usvm.uctx
 import org.usvm.util.allocHeapRef
 import org.usvm.util.write
@@ -227,7 +229,7 @@ class JcMethodApproximationResolver(
 
             val result = scope.calcOnState {
                 mapTypeStream(instance) { _, types ->
-                    val type = types.take(2).singleOrNull()
+                    val type = types.singleOrNull()
                     type?.let { exprResolver.resolveClassRef(it) }
                 }
             } ?: return false
@@ -349,7 +351,7 @@ class JcMethodApproximationResolver(
         }
 
         val arrayType = scope.calcOnState {
-            (memory.types.getTypeStream(instance).take(2).single())
+            (memory.types.getTypeStream(instance).single())
         }
         if (arrayType !is JcArrayType) {
             return false

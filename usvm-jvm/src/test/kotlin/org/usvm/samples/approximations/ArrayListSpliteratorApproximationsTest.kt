@@ -1,14 +1,10 @@
 package org.usvm.samples.approximations
 
 import approximations.java.util.ArrayListSpliterator_Tests
-import approximations.java.util.ArrayList_Tests
-import approximations.java.util.OptionalDouble_Tests
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
-import org.usvm.util.isException
 
-@Disabled("Incorrect test examples")
 class ArrayListSpliteratorApproximationsTest : ApproximationsTestRunner() {
     @Test
     fun testCharacteristics() {
@@ -23,6 +19,7 @@ class ArrayListSpliteratorApproximationsTest : ApproximationsTestRunner() {
     }
 
     @Test
+    @Disabled("Impossible exception in VM clinit")
     fun testEstimateSize() {
         with(FixedExecutionVerifier(2)) {
             checkDiscoveredPropertiesWithExceptions(
@@ -35,6 +32,7 @@ class ArrayListSpliteratorApproximationsTest : ApproximationsTestRunner() {
     }
 
     @Test
+    @Disabled("Index 3 out of bounds for length 3")
     fun testForEachRemaining() {
         with(FixedExecutionVerifier(2)) {
             checkDiscoveredPropertiesWithExceptions(
@@ -47,6 +45,7 @@ class ArrayListSpliteratorApproximationsTest : ApproximationsTestRunner() {
     }
 
     @Test
+    @Disabled("Impossible exception in VM clinit")
     fun testGetExactSizeIfKnown() {
         with(FixedExecutionVerifier(2)) {
             checkDiscoveredPropertiesWithExceptions(
@@ -71,6 +70,7 @@ class ArrayListSpliteratorApproximationsTest : ApproximationsTestRunner() {
     }
 
     @Test
+    @Disabled("Unexpected expr of type void: JcLambdaExpr")
     fun testTryAdvance() {
         with(FixedExecutionVerifier(3)) {
             checkDiscoveredPropertiesWithExceptions(
@@ -83,6 +83,7 @@ class ArrayListSpliteratorApproximationsTest : ApproximationsTestRunner() {
     }
 
     @Test
+    @Disabled("Unexpected expr of type void: JcLambdaExpr")
     fun testTrySplit() {
         with(FixedExecutionVerifier(2)) {
             checkDiscoveredPropertiesWithExceptions(

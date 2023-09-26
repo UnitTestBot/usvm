@@ -9,6 +9,7 @@ import org.usvm.UState
 import org.usvm.constraints.UTypeEvaluator
 import org.usvm.memory.mapWithStaticAsConcrete
 import org.usvm.types.UTypeStream
+import org.usvm.types.singleOrNull
 import org.usvm.uctx
 
 fun <Type> UTypeEvaluator<Type>.evalTypeEquals(ref: UHeapRef, type: Type): UBoolExpr =
@@ -58,8 +59,8 @@ private fun <Type> UState<Type, *, *, *, *, *>.mkTypeEqualsConstraint(
     rhs: UHeapRef,
     rhsTypes: UTypeStream<Type>,
 ): UBoolExpr = with(lhs.uctx) {
-    val lhsType = lhsTypes.take(2).singleOrNull()
-    val rhsType = rhsTypes.take(2).singleOrNull()
+    val lhsType = lhsTypes.singleOrNull()
+    val rhsType = rhsTypes.singleOrNull()
 
     if (lhsType != null) {
         return if (lhsType == rhsType) {
