@@ -14,14 +14,14 @@ typealias StateId = UInt
 
 abstract class UState<Type, Method, Statement, Context, Target, State>(
     // TODO: add interpreter-specific information
-    ctx: UContext,
+    ctx: UContext<*>,
     open val callStack: UCallStack<Method, Statement>,
     open val pathConstraints: UPathConstraints<Type, Context>,
     open val memory: UMemory<Type, Method>,
     open var models: List<UModelBase<Type>>,
     open var pathLocation: PathsTrieNode<State, Statement>,
     targets: List<Target> = emptyList(),
-) where Context : UContext,
+) where Context : UContext<*>,
         Target : UTarget<Statement, Target, State>,
         State : UState<Type, Method, Statement, Context, Target, State> {
     /**
@@ -141,7 +141,7 @@ private const val OriginalState = false
  * forked state.
  *
  */
-private fun <T : UState<Type, *, *, Context, *, T>, Type, Context : UContext> forkIfSat(
+private fun <T : UState<Type, *, *, Context, *, T>, Type, Context : UContext<*>> forkIfSat(
     state: T,
     newConstraintToOriginalState: UBoolExpr,
     newConstraintToForkedState: UBoolExpr,
@@ -201,7 +201,7 @@ private fun <T : UState<Type, *, *, Context, *, T>, Type, Context : UContext> fo
  * 2. makes not more than one query to USolver;
  * 3. if both [condition] and ![condition] are satisfiable, then [ForkResult.positiveState] === [state].
  */
-fun <T : UState<Type, *, *, Context, *, T>, Type, Context : UContext> fork(
+fun <T : UState<Type, *, *, Context, *, T>, Type, Context : UContext<*>> fork(
     state: T,
     condition: UBoolExpr,
 ): ForkResult<T> {
@@ -262,7 +262,7 @@ fun <T : UState<Type, *, *, Context, *, T>, Type, Context : UContext> fork(
  * @return a list of states for each condition - `null` state
  * means [UUnknownResult] or [UUnsatResult] of checking condition.
  */
-fun <T : UState<Type, *, *, Context, *, T>, Type, Context : UContext> forkMulti(
+fun <T : UState<Type, *, *, Context, *, T>, Type, Context : UContext<*>> forkMulti(
     state: T,
     conditions: Iterable<UBoolExpr>,
 ): List<T?> {

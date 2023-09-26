@@ -1,12 +1,12 @@
 package org.usvm.collection.array
 
 import io.ksmt.cache.hash
+import io.ksmt.utils.cast
 import kotlinx.collections.immutable.toPersistentMap
 import org.usvm.UBoolExpr
 import org.usvm.UComposer
 import org.usvm.UConcreteHeapAddress
 import org.usvm.UExpr
-import org.usvm.USizeExpr
 import org.usvm.USort
 import org.usvm.compose
 import org.usvm.memory.UPinpointUpdateNode
@@ -15,12 +15,12 @@ import org.usvm.memory.USymbolicCollectionId
 import org.usvm.memory.UTreeUpdates
 import org.usvm.memory.UUpdateNode
 import org.usvm.memory.UWritableMemory
-import org.usvm.memory.key.USizeExprKeyInfo
 import org.usvm.memory.key.USizeRegion
-import org.usvm.sampleUValue
-import org.usvm.uctx
 import org.usvm.regions.RegionTree
 import org.usvm.regions.emptyRegionTree
+import org.usvm.sampleUValue
+import org.usvm.uctx
+import org.usvm.withSizeSort
 
 
 interface USymbolicArrayId<ArrayType, Key, Sort : USort, out ArrayId : USymbolicArrayId<ArrayType, Key, Sort, ArrayId>> :
@@ -32,24 +32,24 @@ interface USymbolicArrayId<ArrayType, Key, Sort : USort, out ArrayId : USymbolic
  * A collection id for a collection storing arrays allocated during execution.
  * Each identifier contains information about its [arrayType] and [address].
  */
-class UAllocatedArrayId<ArrayType, Sort : USort> internal constructor(
+class UAllocatedArrayId<ArrayType, Sort : USort, USizeSort : USort> internal constructor(
     override val arrayType: ArrayType,
     override val sort: Sort,
     val address: UConcreteHeapAddress,
-) : USymbolicArrayId<ArrayType, USizeExpr, Sort, UAllocatedArrayId<ArrayType, Sort>> {
+) : USymbolicArrayId<ArrayType, UExpr<USizeSort>, Sort, UAllocatedArrayId<ArrayType, Sort, USizeSort>> {
     val defaultValue: UExpr<Sort> by lazy { sort.sampleUValue() }
 
     override fun instantiate(
-        collection: USymbolicCollection<UAllocatedArrayId<ArrayType, Sort>, USizeExpr, Sort>,
-        key: USizeExpr,
-        composer: UComposer<*>?
+        collection: USymbolicCollection<UAllocatedArrayId<ArrayType, Sort, USizeSort>, UExpr<USizeSort>, Sort>,
+        key: UExpr<USizeSort>,
+        composer: UComposer<*, *>?
     ): UExpr<Sort> {
         if (collection.updates.isEmpty()) {
             return composer.compose(defaultValue)
         }
 
         if (composer == null) {
-            return key.uctx.mkAllocatedArrayReading(collection, key)
+            return key.uctx.withSizeSort<USizeSort>().mkAllocatedArrayReading(collection, key)
         }
 
         val memory = composer.memory.toWritableMemory()
@@ -57,38 +57,38 @@ class UAllocatedArrayId<ArrayType, Sort : USort> internal constructor(
         return memory.read(mkLValue(key))
     }
 
-    override fun <Type> write(memory: UWritableMemory<Type>, key: USizeExpr, value: UExpr<Sort>, guard: UBoolExpr) {
+    override fun <Type> write(memory: UWritableMemory<Type>, key: UExpr<USizeSort>, value: UExpr<Sort>, guard: UBoolExpr) {
         memory.write(mkLValue(key), value, guard)
     }
 
-    private fun mkLValue(key: USizeExpr) =
+    private fun mkLValue(key: UExpr<USizeSort>) =
         UArrayIndexLValue(sort, key.uctx.mkConcreteHeapRef(address), key, arrayType)
 
-    override fun keyInfo() = USizeExprKeyInfo
+    override fun keyInfo() = sort.uctx.withSizeSort<USizeSort>().sizeExprKeyInfo
 
-    override fun emptyRegion(): USymbolicCollection<UAllocatedArrayId<ArrayType, Sort>, USizeExpr, Sort> {
-        val updates = UTreeUpdates<USizeExpr, USizeRegion, Sort>(
+    override fun emptyRegion(): USymbolicCollection<UAllocatedArrayId<ArrayType, Sort, USizeSort>, UExpr<USizeSort>, Sort> {
+        val updates = UTreeUpdates<UExpr<USizeSort>, USizeRegion, Sort>(
             updates = emptyRegionTree(),
-            keyInfo()
+            keyInfo().cast()
         )
         return USymbolicCollection(this, updates)
     }
 
     fun initializedArray(
-        content: Map<USizeExpr, UExpr<Sort>>,
+        content: Map<UExpr<USizeSort>, UExpr<Sort>>,
         guard: UBoolExpr
-    ): USymbolicCollection<UAllocatedArrayId<ArrayType, Sort>, USizeExpr, Sort> {
-        val emptyRegionTree = emptyRegionTree<USizeRegion, UUpdateNode<USizeExpr, Sort>>()
+    ): USymbolicCollection<UAllocatedArrayId<ArrayType, Sort, USizeSort>, UExpr<USizeSort>, Sort> {
+        val emptyRegionTree = emptyRegionTree<USizeRegion, UUpdateNode<UExpr<USizeSort>, Sort>>()
 
         val entries = content.entries.associate { (key, value) ->
-            val region = USizeExprKeyInfo.keyToRegion(key)
+            val region = keyInfo().keyToRegion(key)
             val update = UPinpointUpdateNode(key, keyInfo(), value, guard)
             region to (update to emptyRegionTree)
         }
 
         val updates = UTreeUpdates(
             updates = RegionTree(entries.toPersistentMap()),
-            keyInfo()
+            keyInfo().cast()
         )
 
         return USymbolicCollection(this, updates)
@@ -98,7 +98,7 @@ class UAllocatedArrayId<ArrayType, Sort : USort> internal constructor(
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
 
-        other as UAllocatedArrayId<*, *>
+        other as UAllocatedArrayId<*, *, *>
 
         if (address != other.address) return false
         if (arrayType != other.arrayType) return false
@@ -115,18 +115,18 @@ class UAllocatedArrayId<ArrayType, Sort : USort> internal constructor(
 /**
  * A collection id for a collection storing arrays retrieved as a symbolic value, contains only its [arrayType].
  */
-class UInputArrayId<ArrayType, Sort : USort> internal constructor(
+class UInputArrayId<ArrayType, Sort : USort, USizeSort : USort> internal constructor(
     override val arrayType: ArrayType,
     override val sort: Sort,
-) : USymbolicArrayId<ArrayType, USymbolicArrayIndex, Sort, UInputArrayId<ArrayType, Sort>> {
+) : USymbolicArrayId<ArrayType, USymbolicArrayIndex<USizeSort>, Sort, UInputArrayId<ArrayType, Sort, USizeSort>> {
 
     override fun instantiate(
-        collection: USymbolicCollection<UInputArrayId<ArrayType, Sort>, USymbolicArrayIndex, Sort>,
-        key: USymbolicArrayIndex,
-        composer: UComposer<*>?
+        collection: USymbolicCollection<UInputArrayId<ArrayType, Sort, USizeSort>, USymbolicArrayIndex<USizeSort>, Sort>,
+        key: USymbolicArrayIndex<USizeSort>,
+        composer: UComposer<*, *>?
     ): UExpr<Sort> {
         if (composer == null) {
-            return sort.uctx.mkInputArrayReading(collection, key.first, key.second)
+            return sort.uctx.withSizeSort<USizeSort>().mkInputArrayReading<ArrayType, Sort>(collection, key.first, key.second)
         }
 
         val memory = composer.memory.toWritableMemory()
@@ -136,26 +136,25 @@ class UInputArrayId<ArrayType, Sort : USort> internal constructor(
 
     override fun <Type> write(
         memory: UWritableMemory<Type>,
-        key: USymbolicArrayIndex,
+        key: USymbolicArrayIndex<USizeSort>,
         value: UExpr<Sort>,
         guard: UBoolExpr
     ) {
         memory.write(mkLValue(key), value, guard)
     }
 
-    private fun mkLValue(key: USymbolicArrayIndex) =
+    private fun mkLValue(key: USymbolicArrayIndex<USizeSort>) =
         UArrayIndexLValue(sort, key.first, key.second, arrayType)
 
-    override fun emptyRegion(): USymbolicCollection<UInputArrayId<ArrayType, Sort>, USymbolicArrayIndex, Sort> {
-        val updates = UTreeUpdates<USymbolicArrayIndex, USymbolicArrayIndexRegion, Sort>(
+    override fun emptyRegion(): USymbolicCollection<UInputArrayId<ArrayType, Sort, USizeSort>, USymbolicArrayIndex<USizeSort>, Sort> {
+        val updates = UTreeUpdates<USymbolicArrayIndex<USizeSort>, USymbolicArrayIndexRegion, Sort>(
             updates = emptyRegionTree(),
             keyInfo()
         )
         return USymbolicCollection(this, updates)
     }
 
-    override fun keyInfo(): USymbolicArrayIndexKeyInfo =
-        USymbolicArrayIndexKeyInfo
+    override fun keyInfo(): USymbolicArrayIndexKeyInfo<USizeSort> = sort.uctx.withSizeSort<USizeSort>().arrayIndexKeyInfo
 
     override fun toString(): String = "inputArray<$arrayType>"
 
@@ -163,7 +162,7 @@ class UInputArrayId<ArrayType, Sort : USort> internal constructor(
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
 
-        other as UInputArrayId<*, *>
+        other as UInputArrayId<*, *, *>
 
         if (arrayType != other.arrayType) return false
         if (sort != other.sort) return false

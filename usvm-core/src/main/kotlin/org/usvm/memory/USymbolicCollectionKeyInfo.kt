@@ -10,12 +10,12 @@ import org.usvm.regions.Region
  */
 interface USymbolicCollectionKeyInfo<Key, Reg : Region<Reg>> {
 
-    fun mapKey(key: Key, transformer: UTransformer<*>?): Key
+    fun mapKey(key: Key, transformer: UTransformer<*, *>?): Key
 
     /**
      * Returns symbolic expression guaranteeing that [key1] is same as [key2].
      */
-    fun eqSymbolic(ctx: UContext, key1: Key, key2: Key): UBoolExpr
+    fun eqSymbolic(ctx: UContext<*>, key1: Key, key2: Key): UBoolExpr
 
     /**
      * Returns if [key1] is same as [key2] in all possible models.
@@ -26,7 +26,7 @@ interface USymbolicCollectionKeyInfo<Key, Reg : Region<Reg>> {
      * Returns symbolic expression guaranteeing that [key1] is less or equal to [key2].
      * Assumes that [Key] domain is linearly ordered.
      */
-    fun cmpSymbolicLe(ctx: UContext, key1: Key, key2: Key): UBoolExpr
+    fun cmpSymbolicLe(ctx: UContext<*>, key1: Key, key2: Key): UBoolExpr
 
     /**
      * Returns if [key1] is less or equal to [key2] in all possible models.

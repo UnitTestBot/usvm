@@ -4,6 +4,7 @@ import mu.KLogging
 import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UContext
+import org.usvm.UContextBv32Size
 import org.usvm.UInterpreter
 import org.usvm.language.Call
 import org.usvm.language.Goto
@@ -13,7 +14,7 @@ import org.usvm.language.SampleType
 import org.usvm.language.SetLabel
 import org.usvm.language.SetValue
 
-typealias SampleStepScope = StepScope<SampleState, SampleType, UContext>
+typealias SampleStepScope = StepScope<SampleState, SampleType, UContextBv32Size>
 
 
 val logger = object : KLogging() {}.logger
@@ -21,7 +22,7 @@ val logger = object : KLogging() {}.logger
  * Symbolic interpreter for a sample language.
  */
 class SampleInterpreter(
-    private val ctx: UContext,
+    private val ctx: UContextBv32Size,
     private val applicationGraph: SampleApplicationGraph,
 ) : UInterpreter<SampleState>() {
 

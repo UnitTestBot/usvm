@@ -21,14 +21,14 @@ typealias USymbolicMapKeyRegion<KeyReg> = ProductRegion<UHeapRefRegion, KeyReg>
 data class USymbolicMapKeyInfo<KeySort : USort, KeyReg : Region<KeyReg>>(
     val keyInfo: USymbolicCollectionKeyInfo<UExpr<KeySort>, KeyReg>
 ) : USymbolicCollectionKeyInfo<USymbolicMapKey<KeySort>, USymbolicMapKeyRegion<KeyReg>> {
-    override fun mapKey(key: USymbolicMapKey<KeySort>, transformer: UTransformer<*>?): USymbolicMapKey<KeySort> {
+    override fun mapKey(key: USymbolicMapKey<KeySort>, transformer: UTransformer<*, *>?): USymbolicMapKey<KeySort> {
         val mapRef = UHeapRefKeyInfo.mapKey(key.first, transformer)
         val mapKey = keyInfo.mapKey(key.second, transformer)
         return if (mapRef === key.first && mapKey === key.second) key else mapRef to mapKey
     }
 
     override fun eqSymbolic(
-        ctx: UContext,
+        ctx: UContext<*>,
         key1: USymbolicMapKey<KeySort>,
         key2: USymbolicMapKey<KeySort>
     ): UBoolExpr = with(ctx) {
@@ -40,7 +40,7 @@ data class USymbolicMapKeyInfo<KeySort : USort, KeyReg : Region<KeyReg>>(
         UHeapRefKeyInfo.eqConcrete(key1.first, key2.first) && keyInfo.eqConcrete(key1.second, key2.second)
 
     override fun cmpSymbolicLe(
-        ctx: UContext,
+        ctx: UContext<*>,
         key1: USymbolicMapKey<KeySort>,
         key2: USymbolicMapKey<KeySort>
     ): UBoolExpr = with(ctx) {

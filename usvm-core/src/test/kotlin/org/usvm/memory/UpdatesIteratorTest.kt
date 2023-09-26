@@ -10,18 +10,20 @@ import org.usvm.UBoolExpr
 import org.usvm.UBv32Sort
 import org.usvm.UComponents
 import org.usvm.UContext
+import org.usvm.UContextBv32Size
+import org.usvm.USizeSort
 import org.usvm.USort
 import org.usvm.regions.SetRegion
 import org.usvm.regions.emptyRegionTree
 import kotlin.test.assertTrue
 
 class UpdatesIteratorTest {
-    private lateinit var ctx: UContext
+    private lateinit var ctx: UContext<USizeSort>
     @BeforeEach
     fun initializeContext() {
         val components: UComponents<*> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
-        ctx = UContext(components)
+        ctx = UContextBv32Size(components)
     }
 
     @Test
@@ -37,7 +39,7 @@ class UpdatesIteratorTest {
                     }
 
                 override fun eqConcrete(key1: Int, key2: Int): Boolean = key1 == key2
-                override fun eqSymbolic(ctx: UContext, key1: Int, key2: Int): UBoolExpr =
+                override fun eqSymbolic(ctx: UContext<*>, key1: Int, key2: Int): UBoolExpr =
                     ctx.mkEq(key1.toBv(), key2.toBv())
             }
 
@@ -67,7 +69,7 @@ class UpdatesIteratorTest {
         checkResult(iterator)
     }
 
-    private fun <Key, ValueSort : USort> UContext.checkResult(
+    private fun <Key, ValueSort : USort> UContext<*>.checkResult(
         iterator: Iterator<UUpdateNode<Key, ValueSort>>
     ) {
         val elements = mutableListOf<UUpdateNode<Key, ValueSort>>()

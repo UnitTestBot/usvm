@@ -7,21 +7,21 @@ import io.ksmt.expr.printer.ExpressionPrinter
 import io.ksmt.expr.transformer.KTransformerBase
 import org.usvm.UCollectionReading
 import org.usvm.UContext
+import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.UNullRef
-import org.usvm.USizeExpr
 import org.usvm.USort
 import org.usvm.UTransformer
-import org.usvm.asTypedTransformer
+import org.usvm.withSizeSort
 
-class UAllocatedArrayReading<ArrayType, Sort : USort> internal constructor(
-    ctx: UContext,
-    collection: UAllocatedArray<ArrayType, Sort>,
-    val index: USizeExpr,
-) : UCollectionReading<UAllocatedArrayId<ArrayType, Sort>, USizeExpr, Sort>(ctx, collection) {
+class UAllocatedArrayReading<ArrayType, Sort : USort, USizeSort : USort> internal constructor(
+    ctx: UContext<USizeSort>,
+    collection: UAllocatedArray<ArrayType, Sort, USizeSort>,
+    val index: UExpr<USizeSort>,
+) : UCollectionReading<UAllocatedArrayId<ArrayType, Sort, USizeSort>, UExpr<USizeSort>, Sort>(ctx, collection) {
     override fun accept(transformer: KTransformerBase): KExpr<Sort> {
-        require(transformer is UTransformer<*>) { "Expected a UTransformer, but got: $transformer" }
-        return transformer.asTypedTransformer<ArrayType>().transform(this)
+        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
+        return transformer.withSizeSort<ArrayType, USizeSort>().transform(this)
     }
 
     override fun internEquals(other: Any): Boolean =
@@ -41,19 +41,19 @@ class UAllocatedArrayReading<ArrayType, Sort : USort> internal constructor(
     }
 }
 
-class UInputArrayReading<ArrayType, Sort : USort> internal constructor(
-    ctx: UContext,
-    collection: UInputArray<ArrayType, Sort>,
+class UInputArrayReading<ArrayType, Sort : USort, USizeSort : USort> internal constructor(
+    ctx: UContext<USizeSort>,
+    collection: UInputArray<ArrayType, Sort, USizeSort>,
     val address: UHeapRef,
-    val index: USizeExpr
-) : UCollectionReading<UInputArrayId<ArrayType, Sort>, USymbolicArrayIndex, Sort>(ctx, collection) {
+    val index: UExpr<USizeSort>
+) : UCollectionReading<UInputArrayId<ArrayType, Sort, USizeSort>, USymbolicArrayIndex<USizeSort>, Sort>(ctx, collection) {
     init {
         require(address !is UNullRef)
     }
 
     override fun accept(transformer: KTransformerBase): KExpr<Sort> {
-        require(transformer is UTransformer<*>) { "Expected a UTransformer, but got: $transformer" }
-        return transformer.asTypedTransformer<ArrayType>().transform(this)
+        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
+        return transformer.withSizeSort<ArrayType, USizeSort>().transform(this)
     }
 
     override fun internEquals(other: Any): Boolean =

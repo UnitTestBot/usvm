@@ -12,8 +12,10 @@ import org.usvm.UAddressSort
 import org.usvm.UBv32Sort
 import org.usvm.UComponents
 import org.usvm.UContext
+import org.usvm.UContextBv32Size
 import org.usvm.collection.field.UInputFieldReading
 import org.usvm.UIteExpr
+import org.usvm.USizeSort
 import org.usvm.api.allocateConcreteRef
 import org.usvm.api.readArrayIndex
 import org.usvm.api.readField
@@ -25,7 +27,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertSame
 
 class HeapRefSplittingTest {
-    private lateinit var ctx: UContext
+    private lateinit var ctx: UContext<USizeSort>
     private lateinit var heap: UMemory<Type, Any>
 
     private lateinit var valueFieldDescr: Pair<Field, UBv32Sort>
@@ -36,7 +38,7 @@ class HeapRefSplittingTest {
     fun initializeContext() {
         val components: UComponents<Type> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
-        ctx = UContext(components)
+        ctx = UContextBv32Size(components)
         heap = UMemory(ctx, mockk())
 
         valueFieldDescr = mockk<Field>() to ctx.bv32Sort

@@ -90,8 +90,6 @@ import org.usvm.UBvSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
-import org.usvm.USizeExpr
-import org.usvm.USizeSort
 import org.usvm.USort
 import org.usvm.api.allocateArrayInitialized
 import org.usvm.collection.array.UArrayIndexLValue
@@ -99,6 +97,7 @@ import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.isTrue
 import org.usvm.machine.JcContext
+import org.usvm.machine.USizeSort
 import org.usvm.machine.operator.JcBinaryOperator
 import org.usvm.machine.operator.JcUnaryOperator
 import org.usvm.machine.operator.ensureBvExpr
@@ -314,7 +313,7 @@ class JcExprResolver(
 
             val valuesArrayDescriptor = arrayDescriptorOf(stringValueField.fieldType as JcArrayType)
             val elementType = requireNotNull(stringValueField.fieldType.ifArrayGetElementType)
-            val charArrayRef = memory.allocateArrayInitialized(
+            val charArrayRef = memory.allocateArrayInitialized<_, _, USizeSort>(
                 valuesArrayDescriptor,
                 typeToSort(elementType),
                 charValues.uncheckedCast()
@@ -378,7 +377,7 @@ class JcExprResolver(
         val ref = resolveJcExpr(expr.array)?.asExpr(addressSort) ?: return null
         checkNullPointer(ref) ?: return null
         val arrayDescriptor = arrayDescriptorOf(expr.array.type as JcArrayType)
-        val lengthRef = UArrayLengthLValue(ref, arrayDescriptor)
+        val lengthRef = UArrayLengthLValue<_, USizeSort>(ref, arrayDescriptor)
         val length = scope.calcOnState { memory.read(lengthRef).asExpr(sizeSort) }
         assertHardMaxArrayLength(length) ?: return null
         scope.assert(mkBvSignedLessOrEqualExpr(mkBv(0), length)) ?: return null
@@ -394,7 +393,7 @@ class JcExprResolver(
             val ref = memory.allocHeapRef(expr.type, useStaticAddress = useStaticAddressForAllocation())
 
             val arrayDescriptor = arrayDescriptorOf(expr.type as JcArrayType)
-            memory.write(UArrayLengthLValue(ref, arrayDescriptor), size)
+            memory.write(UArrayLengthLValue<_, USizeSort>(ref, arrayDescriptor), size)
             // overwrite array type because descriptor is element type (which is Object for arrays of refs)
             memory.types.allocate(ref.address, expr.type)
 
@@ -668,7 +667,7 @@ class JcExprResolver(
         val enumValuesType = enumValuesField.fieldType as JcArrayType
         val enumValuesArrayDescriptor = arrayDescriptorOf(enumValuesType)
 
-        val enumValuesFieldLengthLValue = UArrayLengthLValue(enumValuesRef, enumValuesArrayDescriptor)
+        val enumValuesFieldLengthLValue = UArrayLengthLValue<_, USizeSort>(enumValuesRef, enumValuesArrayDescriptor)
         val enumValuesFieldLengthBeforeClinit =
             enumValuesFieldLengthLValue.memoryRegionId.emptyRegion().read(enumValuesFieldLengthLValue)
         val enumValuesFieldLengthAfterClinit = memory.read(enumValuesFieldLengthLValue)
@@ -771,14 +770,14 @@ class JcExprResolver(
             ref = classRef
         )
 
-    private fun resolveArrayAccess(array: JcValue, index: JcValue): UArrayIndexLValue<JcType, *>? = with(ctx) {
+    private fun resolveArrayAccess(array: JcValue, index: JcValue): UArrayIndexLValue<JcType, *, USizeSort>? = with(ctx) {
         val arrayRef = resolveJcExpr(array)?.asExpr(addressSort) ?: return null
         checkNullPointer(arrayRef) ?: return null
 
         val arrayDescriptor = arrayDescriptorOf(array.type as JcArrayType)
 
         val idx = resolveCast(index, ctx.cp.int)?.asExpr(bv32Sort) ?: return null
-        val lengthRef = UArrayLengthLValue(arrayRef, arrayDescriptor)
+        val lengthRef = UArrayLengthLValue<_, USizeSort>(arrayRef, arrayDescriptor)
         val length = scope.calcOnState { memory.read(lengthRef).asExpr(sizeSort) }
 
         assertHardMaxArrayLength(length) ?: return null
@@ -808,7 +807,7 @@ class JcExprResolver(
         state.throwExceptionWithoutStackFrameDrop(address, type)
     }
 
-    fun checkArrayIndex(idx: USizeExpr, length: USizeExpr) = with(ctx) {
+    fun checkArrayIndex(idx: UExpr<USizeSort>, length: UExpr<USizeSort>) = with(ctx) {
         val inside = (mkBvSignedLessOrEqualExpr(mkBv(0), idx)) and (mkBvSignedLessExpr(idx, length))
 
         scope.fork(
@@ -852,7 +851,7 @@ class JcExprResolver(
 
     // region hard assertions
 
-    private fun assertHardMaxArrayLength(length: USizeExpr): Unit? = with(ctx) {
+    private fun assertHardMaxArrayLength(length: UExpr<USizeSort>): Unit? = with(ctx) {
         val lengthLeThanMaxLength = mkBvSignedLessOrEqualExpr(length, mkBv(hardMaxArrayLength))
         scope.assert(lengthLeThanMaxLength)
     }

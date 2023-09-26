@@ -22,6 +22,7 @@ import org.usvm.collection.array.UAllocatedArrayReading
 import org.usvm.collection.array.UInputArrayId
 import org.usvm.collection.array.UInputArrayReading
 import org.usvm.collection.array.USymbolicArrayIndex
+import org.usvm.collection.array.USymbolicArrayIndexBv32KeyInfo
 import org.usvm.collection.array.USymbolicArrayIndexKeyInfo
 import org.usvm.collection.array.USymbolicArrayInputToInputCopyAdapter
 import org.usvm.collection.array.length.UInputArrayLengthId
@@ -53,16 +54,16 @@ internal class CompositionTest {
     private lateinit var mockEvaluator: UMockEvaluator
     private lateinit var memory: UReadOnlyMemory<Type>
 
-    private lateinit var ctx: UContext
+    private lateinit var ctx: UContext<USizeSort>
     private lateinit var concreteNull: UConcreteHeapRef
-    private lateinit var composer: UComposer<Type>
+    private lateinit var composer: UComposer<Type, USizeSort>
 
     @BeforeEach
     fun initializeContext() {
         val components: UComponents<*> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
 
-        ctx = UContext(components)
+        ctx = UContextBv32Size(components)
         concreteNull = ctx.mkConcreteHeapRef(NULL_ADDRESS)
         stackEvaluator = mockk()
         typeEvaluator = mockk()
@@ -190,7 +191,7 @@ internal class CompositionTest {
         val expression = mockk<UIndexedMethodReturnValue<*, *>>()
         val bvValue = 32.toBv()
 
-        every { expression.accept(any()) } answers { (firstArg() as UComposer<*>).transform(expression) }
+        every { expression.accept(any()) } answers { (firstArg() as UComposer<*, *>).transform(expression) }
         every { mockEvaluator.eval(expression) } returns bvValue as UExpr<USort>
 
         val composedExpression = composer.compose(expression) as UExpr<*>
@@ -230,10 +231,10 @@ internal class CompositionTest {
         val sndResultValue = 2.toBv()
 
         val keyInfo = object : TestKeyInfo<UHeapRef, SetRegion<UHeapRef>> {
-            override fun mapKey(key: UHeapRef, transformer: UTransformer<*>?): UHeapRef =
+            override fun mapKey(key: UHeapRef, transformer: UTransformer<*, *>?): UHeapRef =
                 transformer.apply(key)
 
-            override fun eqSymbolic(ctx: UContext, key1: UHeapRef, key2: UHeapRef): UBoolExpr = key1 eq key2
+            override fun eqSymbolic(ctx: UContext<*>, key1: UHeapRef, key2: UHeapRef): UBoolExpr = key1 eq key2
         }
 
         val updates = UFlatUpdates<UHeapRef, USizeSort>(keyInfo)
@@ -273,23 +274,23 @@ internal class CompositionTest {
     fun testUInputArrayIndexReading() = with(ctx) {
         val fstAddress = mockk<UHeapRef>()
         val sndAddress = mockk<UHeapRef>()
-        val fstIndex = mockk<USizeExpr>()
-        val sndIndex = mockk<USizeExpr>()
+        val fstIndex = mockk<UExpr<USizeSort>>()
+        val sndIndex = mockk<UExpr<USizeSort>>()
 
-        val keyEqualityComparer = { k1: USymbolicArrayIndex, k2: USymbolicArrayIndex ->
+        val keyEqualityComparer = { k1: USymbolicArrayIndex<USizeSort>, k2: USymbolicArrayIndex<USizeSort> ->
             mkAnd((k1.first == k2.first).expr, (k1.second == k2.second).expr)
         }
 
-        val keyInfo = object : TestKeyInfo<USymbolicArrayIndex, SetRegion<USymbolicArrayIndex>> {
-            override fun mapKey(key: USymbolicArrayIndex, transformer: UTransformer<*>?): USymbolicArrayIndex =
+        val keyInfo = object : TestKeyInfo<USymbolicArrayIndex<USizeSort>, SetRegion<USymbolicArrayIndex<USizeSort>>> {
+            override fun mapKey(key: USymbolicArrayIndex<USizeSort>, transformer: UTransformer<*, *>?): USymbolicArrayIndex<USizeSort> =
                 transformer.apply(key.first) to transformer.apply(key.second)
 
-            override fun cmpConcreteLe(key1: USymbolicArrayIndex, key2: USymbolicArrayIndex): Boolean = key1 == key2
-            override fun eqSymbolic(ctx: UContext, key1: USymbolicArrayIndex, key2: USymbolicArrayIndex): UBoolExpr =
+            override fun cmpConcreteLe(key1: USymbolicArrayIndex<USizeSort>, key2: USymbolicArrayIndex<USizeSort>): Boolean = key1 == key2
+            override fun eqSymbolic(ctx: UContext<*>, key1: USymbolicArrayIndex<USizeSort>, key2: USymbolicArrayIndex<USizeSort>): UBoolExpr =
                 keyEqualityComparer(key1, key2)
         }
 
-        val updates = UFlatUpdates<USymbolicArrayIndex, UBv32Sort>(keyInfo)
+        val updates = UFlatUpdates<USymbolicArrayIndex<USizeSort>, UBv32Sort>(keyInfo)
             .write(fstAddress to fstIndex, 42.toBv(), guard = trueExpr)
             .write(sndAddress to sndIndex, 43.toBv(), guard = trueExpr)
 
@@ -332,7 +333,7 @@ internal class CompositionTest {
         // TODO replace with jacoDB type
         val arrayType: KClass<Array<*>> = Array::class
         // Create an empty region
-        val region = UInputArrayId(arrayType, mkBv32Sort()).emptyRegion()
+        val region = UInputArrayId<_, _, USizeSort>(arrayType, mkBv32Sort()).emptyRegion()
 
         // create a reading from the region
         val fstArrayIndexReading = mkInputArrayReading(region, fstAddress, fstIndex)
@@ -363,17 +364,17 @@ internal class CompositionTest {
         val sndComposedExpr = sndComposer.compose(fstArrayIndexReading)
         val fstComposedExpr = fstComposer.compose(sndComposedExpr)
 
-        require(fstComposedExpr is UInputArrayReading<*, *>)
+        require(fstComposedExpr is UInputArrayReading<*, *, *>)
 
         val updates = fstComposedExpr.collection.updates.toList()
         assertEquals(2, updates.size)
-        val update0 = assertIs<UPinpointUpdateNode<USymbolicArrayIndex, USizeSort>>(updates[0])
-        val update1 = assertIs<UPinpointUpdateNode<USymbolicArrayIndex, USizeSort>>(updates[1])
+        val update0 = assertIs<UPinpointUpdateNode<USymbolicArrayIndex<USizeSort>, USizeSort>>(updates[0])
+        val update1 = assertIs<UPinpointUpdateNode<USymbolicArrayIndex<USizeSort>, USizeSort>>(updates[1])
 
-        assertEquals(update0.key, USymbolicArrayIndex(fstAddress, fstIndex))
+        assertEquals(update0.key, USymbolicArrayIndex<USizeSort>(fstAddress, fstIndex))
         assertEquals(update0.value, 1.toBv())
 
-        assertEquals(update1.key, USymbolicArrayIndex(sndAddress, sndIndex))
+        assertEquals(update1.key, USymbolicArrayIndex<USizeSort>(sndAddress, sndIndex))
         assertEquals(update1.value, 2.toBv())
     }
 
@@ -382,22 +383,22 @@ internal class CompositionTest {
         val arrayType: KClass<Array<*>> = Array::class
         val address = 1
 
-        val fstIndex = mockk<USizeExpr>()
-        val sndIndex = mockk<USizeExpr>()
+        val fstIndex = mockk<UExpr<USizeSort>>()
+        val sndIndex = mockk<UExpr<USizeSort>>()
 
-        val fstSymbolicIndex = mockk<USizeExpr>()
-        val sndSymbolicIndex = mockk<USizeExpr>()
+        val fstSymbolicIndex = mockk<UExpr<USizeSort>>()
+        val sndSymbolicIndex = mockk<UExpr<USizeSort>>()
 
-        val keyInfo = object : TestKeyInfo<USizeExpr, SetRegion<USizeExpr>> {
-            override fun mapKey(key: USizeExpr, transformer: UTransformer<*>?): USizeExpr = transformer.apply(key)
-            override fun eqSymbolic(ctx: UContext, key1: USizeExpr, key2: USizeExpr): UBoolExpr = key1 eq key2
+        val keyInfo = object : TestKeyInfo<UExpr<USizeSort>, SetRegion<UExpr<USizeSort>>> {
+            override fun mapKey(key: UExpr<USizeSort>, transformer: UTransformer<*, *>?): UExpr<USizeSort> = transformer.apply(key)
+            override fun eqSymbolic(ctx: UContext<*>, key1: UExpr<USizeSort>, key2: UExpr<USizeSort>): UBoolExpr = key1 eq key2
         }
 
-        val updates = UFlatUpdates<USizeExpr, UBv32Sort>(keyInfo)
+        val updates = UFlatUpdates<UExpr<USizeSort>, UBv32Sort>(keyInfo)
             .write(fstIndex, 1.toBv(), guard = trueExpr)
             .write(sndIndex, 2.toBv(), guard = trueExpr)
 
-        val collectionId = UAllocatedArrayId(arrayType, bv32Sort, address)
+        val collectionId = UAllocatedArrayId<_, _, USizeSort>(arrayType, bv32Sort, address)
         val regionArray = USymbolicCollection(
             collectionId,
             updates,
@@ -440,10 +441,10 @@ internal class CompositionTest {
     fun testUAllocatedArrayAddressSortIndexReading() = with(ctx) {
         val arrayType: KClass<Array<*>> = Array::class
 
-        val symbolicIndex = mockk<USizeExpr>()
+        val symbolicIndex = mockk<UExpr<USizeSort>>()
         val symbolicAddress = mkRegisterReading(0, addressSort)
 
-        val regionArray = UAllocatedArrayId(arrayType, addressSort, 0)
+        val regionArray = UAllocatedArrayId<_, _, USizeSort>(arrayType, addressSort, 0)
             .emptyRegion()
             .write(mkBv(0), symbolicAddress, trueExpr)
             .write(mkBv(1), mkConcreteHeapRef(1), trueExpr)
@@ -472,8 +473,8 @@ internal class CompositionTest {
         val bAddress = mockk<USymbolicHeapRef>()
 
         val keyInfo = object : TestKeyInfo<UHeapRef, SetRegion<UHeapRef>> {
-            override fun mapKey(key: UHeapRef, transformer: UTransformer<*>?): UHeapRef = transformer.apply(key)
-            override fun eqSymbolic(ctx: UContext, key1: UHeapRef, key2: UHeapRef): UBoolExpr =
+            override fun mapKey(key: UHeapRef, transformer: UTransformer<*, *>?): UHeapRef = transformer.apply(key)
+            override fun eqSymbolic(ctx: UContext<*>, key1: UHeapRef, key2: UHeapRef): UBoolExpr =
                 (key1 == key2).expr
         }
 
@@ -565,7 +566,7 @@ internal class CompositionTest {
 
         val composer = UComposer(ctx, composeMemory)
 
-        val fromRegion0 = UInputArrayId(arrayType, bv32Sort)
+        val fromRegion0 = UInputArrayId<_, _, USizeSort>(arrayType, bv32Sort)
             .emptyRegion()
             .write(symbolicRef0 to mkBv(0), mkBv(42), trueExpr)
 
@@ -573,7 +574,7 @@ internal class CompositionTest {
             symbolicRef0 to mkSizeExpr(0),
             symbolicRef1 to mkSizeExpr(0),
             symbolicRef1 to mkSizeExpr(5),
-            USymbolicArrayIndexKeyInfo
+            USymbolicArrayIndexBv32KeyInfo
         )
 
         val fromRegion1 = fromRegion0
@@ -583,7 +584,7 @@ internal class CompositionTest {
             symbolicRef1 to mkSizeExpr(0),
             symbolicRef2 to mkSizeExpr(0),
             symbolicRef2 to mkSizeExpr(5),
-            USymbolicArrayIndexKeyInfo
+            USymbolicArrayIndexBv32KeyInfo
         )
 
         val fromRegion2 = fromRegion1
@@ -594,7 +595,7 @@ internal class CompositionTest {
         val reading0 = fromRegion2.read(symbolicRef2 to idx0)
 
         val composedExpr0 = composer.compose(reading0)
-        val composedReading0 = assertIs<UAllocatedArrayReading<Type, UBv32Sort>>(composedExpr0)
+        val composedReading0 = assertIs<UAllocatedArrayReading<Type, UBv32Sort, USizeSort>>(composedExpr0)
 
         fun USymbolicCollectionUpdates<*, *>.allUpdates(): Collection<UUpdateNode<*, *>> =
             fold(mutableListOf()) { acc, r ->
@@ -607,7 +608,7 @@ internal class CompositionTest {
             .collection
             .updates
             .allUpdates()
-            .filterIsInstance<UPinpointUpdateNode<USizeExpr, UBv32Sort>>()
+            .filterIsInstance<UPinpointUpdateNode<UExpr<USizeSort>, UBv32Sort>>()
 
         assertTrue { pinpointUpdates.any { it.key == mkBv(3) && it.value == mkBv(1337) } }
         assertTrue { pinpointUpdates.any { it.key == mkBv(0) && it.value == mkBv(42) } }
@@ -623,7 +624,7 @@ internal class CompositionTest {
 
         val composer = UComposer(this, composedMemory)
 
-        val region = UAllocatedArrayId(mockk<Type>(), addressSort, 1).emptyRegion()
+        val region = UAllocatedArrayId<_, _, USizeSort>(mockk<Type>(), addressSort, 1).emptyRegion()
         val reading = region.read(mkRegisterReading(0, sizeSort))
 
         val expr = composer.compose(reading)

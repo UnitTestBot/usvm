@@ -13,16 +13,17 @@ import org.usvm.UHeapRef
 import org.usvm.UNullRef
 import org.usvm.UTransformer
 import org.usvm.asTypedTransformer
+import org.usvm.withSizeSort
 import org.usvm.collection.set.USymbolicSetElement
 
 class UAllocatedRefSetWithInputElementsReading<SetType> internal constructor(
-    ctx: UContext,
+    ctx: UContext<*>,
     collection: UAllocatedRefSetWithInputElements<SetType>,
     val elementRef: UHeapRef,
 ) : UCollectionReading<UAllocatedRefSetWithInputElementsId<SetType>, UHeapRef, UBoolSort>(ctx, collection) {
 
     override fun accept(transformer: KTransformerBase): KExpr<UBoolSort> {
-        require(transformer is UTransformer<*>) { "Expected a UTransformer, but got: $transformer" }
+        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
         return transformer.asTypedTransformer<SetType>().transform(this)
     }
 
@@ -45,13 +46,13 @@ class UAllocatedRefSetWithInputElementsReading<SetType> internal constructor(
 }
 
 class UInputRefSetWithAllocatedElementsReading<SetType> internal constructor(
-    ctx: UContext,
+    ctx: UContext<*>,
     collection: UInputRefSetWithAllocatedElements<SetType>,
     val setRef: UHeapRef,
 ) : UCollectionReading<UInputRefSetWithAllocatedElementsId<SetType>, UHeapRef, UBoolSort>(ctx, collection) {
 
     override fun accept(transformer: KTransformerBase): KExpr<UBoolSort> {
-        require(transformer is UTransformer<*>) { "Expected a UTransformer, but got: $transformer" }
+        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
         return transformer.asTypedTransformer<SetType>().transform(this)
     }
 
@@ -74,7 +75,7 @@ class UInputRefSetWithAllocatedElementsReading<SetType> internal constructor(
 }
 
 class UInputRefSetWithInputElementsReading<SetType> internal constructor(
-    ctx: UContext,
+    ctx: UContext<*>,
     collection: UInputRefSetWithInputElements<SetType>,
     val setRef: UHeapRef,
     val elementRef: UHeapRef
@@ -85,7 +86,7 @@ class UInputRefSetWithInputElementsReading<SetType> internal constructor(
     }
 
     override fun accept(transformer: KTransformerBase): KExpr<UBoolSort> {
-        require(transformer is UTransformer<*>) { "Expected a UTransformer, but got: $transformer" }
+        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
         return transformer.asTypedTransformer<SetType>().transform(this)
     }
 

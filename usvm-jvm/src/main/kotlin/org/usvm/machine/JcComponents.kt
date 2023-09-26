@@ -17,9 +17,9 @@ class JcComponents(
     private val solverType: SolverType
 ) : UComponents<JcType> {
     private val closeableResources = mutableListOf<AutoCloseable>()
-    override fun <Context : UContext> mkSolver(ctx: Context): USolverBase<JcType, Context> {
+    override fun <Context : UContext<*>> mkSolver(ctx: Context): USolverBase<JcType, Context> {
         val (translator, decoder) = buildTranslatorAndLazyDecoder<JcType>(ctx)
-        val softConstraintsProvider = USoftConstraintsProvider<JcType>(ctx)
+        val softConstraintsProvider = USoftConstraintsProvider<JcType, _>(ctx)
 
         val smtSolver =
             when (solverType) {
@@ -36,7 +36,7 @@ class JcComponents(
         closeableResources.forEach(AutoCloseable::close)
     }
 
-    override fun mkTypeSystem(ctx: UContext): JcTypeSystem {
+    override fun mkTypeSystem(ctx: UContext<*>): JcTypeSystem {
         return typeSystem
     }
 }

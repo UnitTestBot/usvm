@@ -6,9 +6,9 @@ import io.ksmt.utils.asExpr
 import org.usvm.UBoolExpr
 import org.usvm.UBv32Sort
 import org.usvm.UContext
+import org.usvm.UContextBv32Size
 import org.usvm.UExpr
 import org.usvm.UHeapRef
-import org.usvm.USizeExpr
 import org.usvm.USort
 import org.usvm.api.allocateArray
 import org.usvm.language.And
@@ -69,7 +69,7 @@ import org.usvm.collection.field.UFieldLValue
  * [hardMaxArrayLength] will be rejected.
  */
 class SampleExprResolver(
-    private val ctx: UContext,
+    private val ctx: UContextBv32Size,
     private val scope: SampleStepScope,
     private val hardMaxArrayLength: Int = 1_500,
 ) {
@@ -140,7 +140,7 @@ class SampleExprResolver(
             is ArraySize -> {
                 val ref = resolveArray(expr.array) ?: return null
                 checkNullPointer(ref) ?: return null
-                val lengthRef = UArrayLengthLValue(ref, expr.array.type)
+                val lengthRef = UArrayLengthLValue<_, UBv32Sort>(ref, expr.array.type)
                 val length = scope.calcOnState { memory.read(lengthRef).asExpr(sizeSort) }
                 checkHardMaxArrayLength(length) ?: return null
                 scope.assert(mkBvSignedLessOrEqualExpr(mkBv(0), length)) ?: return null
@@ -300,7 +300,7 @@ class SampleExprResolver(
         checkNullPointer(arrayRef) ?: return null
 
         val idx = resolveInt(index) ?: return null
-        val lengthRef = UArrayLengthLValue(arrayRef, array.type)
+        val lengthRef = UArrayLengthLValue<_, UBv32Sort>(arrayRef, array.type)
         val length = scope.calcOnState { memory.read(lengthRef).asExpr(ctx.sizeSort) }
 
         checkHardMaxArrayLength(length) ?: return null
@@ -327,7 +327,7 @@ class SampleExprResolver(
         return URegisterStackLValue(sort, localIdx)
     }
 
-    private fun checkArrayIndex(idx: USizeExpr, length: USizeExpr) = with(ctx) {
+    private fun checkArrayIndex(idx: UExpr<UBv32Sort>, length: UExpr<UBv32Sort>) = with(ctx) {
         val inside = (mkBvSignedLessOrEqualExpr(mkBv(0), idx)) and (mkBvSignedLessExpr(idx, length))
 
         scope.fork(
@@ -378,7 +378,7 @@ class SampleExprResolver(
         )
     }
 
-    private fun checkHardMaxArrayLength(length: USizeExpr): Unit? = with(ctx) {
+    private fun checkHardMaxArrayLength(length: UExpr<UBv32Sort>): Unit? = with(ctx) {
         val lengthLeThanMaxLength = mkBvSignedLessOrEqualExpr(length, mkBv(hardMaxArrayLength))
         scope.assert(lengthLeThanMaxLength) ?: return null
         return Unit

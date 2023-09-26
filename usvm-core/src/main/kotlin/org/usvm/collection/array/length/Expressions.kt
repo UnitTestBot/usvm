@@ -8,23 +8,23 @@ import org.usvm.UCollectionReading
 import org.usvm.UContext
 import org.usvm.UHeapRef
 import org.usvm.UNullRef
-import org.usvm.USizeExpr
-import org.usvm.USizeSort
+import org.usvm.UExpr
+import org.usvm.USort
 import org.usvm.UTransformer
-import org.usvm.asTypedTransformer
+import org.usvm.withSizeSort
 
-class UInputArrayLengthReading<ArrayType> internal constructor(
-    ctx: UContext,
-    collection: UInputArrayLengths<ArrayType>,
+class UInputArrayLengthReading<ArrayType, USizeSort : USort> internal constructor(
+    ctx: UContext<USizeSort>,
+    collection: UInputArrayLengths<ArrayType, USizeSort>,
     val address: UHeapRef,
-) : UCollectionReading<UInputArrayLengthId<ArrayType>, UHeapRef, USizeSort>(ctx, collection) {
+) : UCollectionReading<UInputArrayLengthId<ArrayType, USizeSort>, UHeapRef, USizeSort>(ctx, collection) {
     init {
         require(address !is UNullRef)
     }
 
-    override fun accept(transformer: KTransformerBase): USizeExpr {
-        require(transformer is UTransformer<*>) { "Expected a UTransformer, but got: $transformer" }
-        return transformer.asTypedTransformer<ArrayType>().transform(this)
+    override fun accept(transformer: KTransformerBase): UExpr<USizeSort> {
+        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
+        return transformer.withSizeSort<ArrayType, USizeSort>().transform(this)
     }
 
     override fun internEquals(other: Any): Boolean = structurallyEqual(other, { collection }, { address })

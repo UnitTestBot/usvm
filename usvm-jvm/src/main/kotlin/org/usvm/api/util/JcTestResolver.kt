@@ -24,6 +24,7 @@ import org.jacodb.api.ext.void
 import org.usvm.INITIAL_STATIC_ADDRESS
 import org.usvm.INITIAL_INPUT_ADDRESS
 import org.usvm.NULL_ADDRESS
+import org.usvm.UBv32Sort
 import org.usvm.UConcreteHeapAddress
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
@@ -208,7 +209,7 @@ class JcTestResolver(
 
         private fun resolveArray(ref: UConcreteHeapRef, heapRef: UHeapRef, type: JcArrayType): Any {
             val arrayDescriptor = ctx.arrayDescriptorOf(type)
-            val lengthRef = UArrayLengthLValue(heapRef, arrayDescriptor)
+            val lengthRef = UArrayLengthLValue<_, UBv32Sort>(heapRef, arrayDescriptor)
             val resolvedLength = resolveLValue(lengthRef, ctx.cp.int) as Int
             val length = if (resolvedLength in 0..10_000) resolvedLength else 0 // TODO hack
 

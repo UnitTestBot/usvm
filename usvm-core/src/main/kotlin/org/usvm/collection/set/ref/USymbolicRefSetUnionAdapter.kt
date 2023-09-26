@@ -23,12 +23,12 @@ sealed class USymbolicRefSetUnionAdapter<SetType, SrcKey, DstKey,
     val setOfKeys: USymbolicCollection<SetId, SrcKey, UBoolSort>,
 ) : USymbolicCollectionAdapter<SrcKey, DstKey> {
 
-    abstract override fun convert(key: DstKey, composer: UComposer<*>?): SrcKey
+    abstract override fun convert(key: DstKey, composer: UComposer<*, *>?): SrcKey
 
     override fun includesConcretely(key: DstKey) =
         includesSymbolically(key, composer = null).isTrue
 
-    override fun includesSymbolically(key: DstKey, composer: UComposer<*>?): UBoolExpr {
+    override fun includesSymbolically(key: DstKey, composer: UComposer<*, *>?): UBoolExpr {
         val srcKey = convert(key, composer)
         return setOfKeys.read(srcKey, composer)
     }
@@ -47,7 +47,7 @@ class UAllocatedToAllocatedSymbolicRefSetUnionAdapter<SetType>(
 ) : USymbolicRefSetUnionAdapter<SetType, UHeapRef, UHeapRef,
     UAllocatedRefSetWithInputElementsId<SetType>>(setOfKeys) {
 
-    override fun convert(key: UHeapRef, composer: UComposer<*>?): UHeapRef = key
+    override fun convert(key: UHeapRef, composer: UComposer<*, *>?): UHeapRef = key
 
     @Suppress("UNCHECKED_CAST")
     override fun <DstReg : Region<DstReg>> region(): DstReg =
@@ -59,7 +59,7 @@ class UAllocatedToAllocatedSymbolicRefSetUnionAdapter<SetType>(
         dstCollectionId: USymbolicCollectionId<UHeapRef, *, *>,
         guard: UBoolExpr,
         srcKey: UHeapRef,
-        composer: UComposer<*>
+        composer: UComposer<*, *>
     ) {
         check(srcCollectionId is UAllocatedRefSetWithInputElementsId<*>) { "Unexpected collection: $srcCollectionId" }
         check(dstCollectionId is UAllocatedRefSetWithInputElementsId<*>) { "Unexpected collection: $dstCollectionId" }
@@ -81,7 +81,7 @@ class UAllocatedToInputSymbolicRefSetUnionAdapter<SetType>(
 ) : USymbolicRefSetUnionAdapter<SetType, UHeapRef, USymbolicSetElement<UAddressSort>,
     UAllocatedRefSetWithInputElementsId<SetType>>(setOfKeys) {
 
-    override fun convert(key: USymbolicSetElement<UAddressSort>, composer: UComposer<*>?): UHeapRef = key.second
+    override fun convert(key: USymbolicSetElement<UAddressSort>, composer: UComposer<*, *>?): UHeapRef = key.second
 
     @Suppress("UNCHECKED_CAST")
     override fun <DstReg : Region<DstReg>> region(): DstReg {
@@ -99,7 +99,7 @@ class UAllocatedToInputSymbolicRefSetUnionAdapter<SetType>(
         dstCollectionId: USymbolicCollectionId<USymbolicSetElement<UAddressSort>, *, *>,
         guard: UBoolExpr,
         srcKey: UHeapRef,
-        composer: UComposer<*>
+        composer: UComposer<*, *>
     ) {
         check(srcCollectionId is UAllocatedRefSetWithInputElementsId<*>) { "Unexpected collection: $srcCollectionId" }
         check(dstCollectionId is USymbolicRefSetId<*, *, *, *>) { "Unexpected collection: $dstCollectionId" }
@@ -121,7 +121,7 @@ class UInputToAllocatedSymbolicRefSetUnionAdapter<SetType>(
 ) : USymbolicRefSetUnionAdapter<SetType, USymbolicSetElement<UAddressSort>, UHeapRef,
     UInputRefSetWithInputElementsId<SetType>>(setOfKeys) {
 
-    override fun convert(key: UHeapRef, composer: UComposer<*>?): USymbolicSetElement<UAddressSort> =
+    override fun convert(key: UHeapRef, composer: UComposer<*, *>?): USymbolicSetElement<UAddressSort> =
         composer.compose(srcSetRef) to key
 
     @Suppress("UNCHECKED_CAST")
@@ -140,7 +140,7 @@ class UInputToAllocatedSymbolicRefSetUnionAdapter<SetType>(
         dstCollectionId: USymbolicCollectionId<UHeapRef, *, *>,
         guard: UBoolExpr,
         srcKey: USymbolicSetElement<UAddressSort>,
-        composer: UComposer<*>
+        composer: UComposer<*, *>
     ) {
         check(srcCollectionId is USymbolicRefSetId<*, *, *, *>) { "Unexpected collection: $srcCollectionId" }
         check(dstCollectionId is UAllocatedRefSetWithInputElementsId<*>) { "Unexpected collection: $dstCollectionId" }
@@ -165,7 +165,7 @@ class UInputToInputSymbolicRefSetUnionAdapter<SetType>(
 
     override fun convert(
         key: USymbolicSetElement<UAddressSort>,
-        composer: UComposer<*>?
+        composer: UComposer<*, *>?
     ): USymbolicSetElement<UAddressSort> =
         composer.compose(srcSetRef) to key.second
 
@@ -186,7 +186,7 @@ class UInputToInputSymbolicRefSetUnionAdapter<SetType>(
         dstCollectionId: USymbolicCollectionId<USymbolicSetElement<UAddressSort>, *, *>,
         guard: UBoolExpr,
         srcKey: USymbolicSetElement<UAddressSort>,
-        composer: UComposer<*>
+        composer: UComposer<*, *>
     ) {
         check(srcCollectionId is USymbolicRefSetId<*, *, *, *>) { "Unexpected collection: $srcCollectionId" }
         check(dstCollectionId is USymbolicRefSetId<*, *, *, *>) { "Unexpected collection: $dstCollectionId" }

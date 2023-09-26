@@ -3,6 +3,7 @@ package org.usvm.machine
 import kotlinx.collections.immutable.persistentListOf
 import org.usvm.StateCollectionStrategy
 import org.usvm.UContext
+import org.usvm.UContextBv32Size
 import org.usvm.UMachine
 import org.usvm.UMachineOptions
 import org.usvm.language.Method
@@ -31,8 +32,8 @@ class SampleMachine(
     private val applicationGraph = SampleApplicationGraph(program)
     private val typeSystem = SampleTypeSystem()
     private val components = SampleLanguageComponents(typeSystem, options.solverType)
-    private val ctx = UContext(components)
-    private val solver = ctx.solver<SampleType, UContext>()
+    private val ctx = UContextBv32Size(components)
+    private val solver = ctx.solver<SampleType, UContextBv32Size>()
 
     private val interpreter = SampleInterpreter(ctx, applicationGraph)
     private val resultModelConverter = ResultModelConverter(ctx)

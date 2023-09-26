@@ -13,13 +13,14 @@ import org.usvm.UComponents
 import org.usvm.UComposer
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
+import org.usvm.UContextBv32Size
 import org.usvm.UHeapRef
+import org.usvm.USizeSort
 import org.usvm.collection.array.USymbolicArrayInputToAllocatedCopyAdapter
 import org.usvm.collection.array.UAllocatedArrayId
 import org.usvm.collection.array.UInputArrayId
 import org.usvm.collection.array.length.UInputArrayLengthId
 import org.usvm.collection.field.UInputFieldId
-import org.usvm.memory.key.USizeExprKeyInfo
 import org.usvm.collection.array.length.UArrayLengthsRegionId
 import org.usvm.collection.array.UArrayRegionId
 import org.usvm.collection.field.UFieldsRegionId
@@ -30,14 +31,14 @@ import org.usvm.sampleUValue
 import kotlin.test.assertSame
 
 class ModelCompositionTest {
-    private lateinit var ctx: UContext
+    private lateinit var ctx: UContext<USizeSort>
     private lateinit var concreteNull: UConcreteHeapRef
 
     @BeforeEach
     fun initializeContext() {
         val components: UComponents<*> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
-        ctx = UContext(components)
+        ctx = UContextBv32Size(components)
         concreteNull = ctx.mkConcreteHeapRef(NULL_ADDRESS)
     }
 
@@ -51,7 +52,7 @@ class ModelCompositionTest {
         val model = UModelBase<Type>(ctx, stackModel, mockk(), mockk(), emptyMap(), concreteNull)
         val composer = UComposer(this, model)
 
-        val region = UAllocatedArrayId(mockk<Type>(), bv32Sort, 1)
+        val region = UAllocatedArrayId<_, _, USizeSort>(mockk<Type>(), bv32Sort, 1)
             .emptyRegion()
             .write(0.toBv(), 0.toBv(), trueExpr)
             .write(1.toBv(), 1.toBv(), trueExpr)
@@ -66,7 +67,7 @@ class ModelCompositionTest {
     @Test
     fun testComposeRangedUpdate() = with(ctx) {
         val arrayType = mockk<Type>()
-        val arrayMemoryId = UArrayRegionId(arrayType, bv32Sort)
+        val arrayMemoryId = UArrayRegionId<_, _, USizeSort>(arrayType, bv32Sort)
 
         val composedSymbolicHeapRef = ctx.mkConcreteHeapRef(-1)
         val inputArray = UMemory2DArray(
@@ -85,7 +86,7 @@ class ModelCompositionTest {
 
         val symbolicRef = mkRegisterReading(0, addressSort) as UHeapRef
 
-        val fromRegion = UInputArrayId(arrayType, bv32Sort).emptyRegion()
+        val fromRegion = UInputArrayId<_, _, USizeSort>(arrayType, bv32Sort).emptyRegion()
 
         val concreteRef = mkConcreteHeapRef(1)
 
@@ -93,10 +94,10 @@ class ModelCompositionTest {
             symbolicRef to mkSizeExpr(0),
             mkSizeExpr(0),
             mkSizeExpr(5),
-            USizeExprKeyInfo
+            ctx.sizeExprKeyInfo
         )
 
-        val concreteRegion = UAllocatedArrayId(arrayType, bv32Sort, concreteRef.address)
+        val concreteRegion = UAllocatedArrayId<_, _, USizeSort>(arrayType, bv32Sort, concreteRef.address)
             .emptyRegion()
             .copyRange(fromRegion, adapter, trueExpr)
 
@@ -217,7 +218,7 @@ class ModelCompositionTest {
 
         val composer = UComposer(this, model)
 
-        val emptyRegion = UAllocatedArrayId(mockk<Type>(), bv32Sort, 1).emptyRegion()
+        val emptyRegion = UAllocatedArrayId<_, _, USizeSort>(mockk<Type>(), bv32Sort, 1).emptyRegion()
 
         run {
             val region = emptyRegion

@@ -5,6 +5,7 @@ import io.ksmt.utils.cast
 import org.usvm.UBoolSort
 import org.usvm.UBvSort
 import org.usvm.UContext
+import org.usvm.UContextBv32Size
 import org.usvm.UExpr
 import org.usvm.UFpSort
 import org.usvm.USort
@@ -21,34 +22,34 @@ sealed class JcBinaryOperator(
     val onFp: JcContext.(UExpr<UFpSort>, UExpr<UFpSort>) -> UExpr<out USort> = shouldNotBeCalled,
 ) {
     object Add : JcBinaryOperator(
-        onBv = UContext::mkBvAddExpr,
+        onBv = UContextBv32Size::mkBvAddExpr,
         onFp = { lhs, rhs -> mkFpAddExpr(fpRoundingModeSortDefaultValue(), lhs, rhs) }
     )
 
     object Sub : JcBinaryOperator(
-        onBv = UContext::mkBvSubExpr,
+        onBv = UContextBv32Size::mkBvSubExpr,
         onFp = { lhs, rhs -> mkFpSubExpr(fpRoundingModeSortDefaultValue(), lhs, rhs) }
     )
 
     object Mul : JcBinaryOperator(
-        onBv = UContext::mkBvMulExpr,
+        onBv = UContextBv32Size::mkBvMulExpr,
         onFp = { lhs, rhs -> mkFpMulExpr(fpRoundingModeSortDefaultValue(), lhs, rhs) }
     )
 
     object Div : JcBinaryOperator(
-        onBv = UContext::mkBvSignedDivExpr,
+        onBv = UContextBv32Size::mkBvSignedDivExpr,
         onFp = { lhs, rhs -> mkFpDivExpr(fpRoundingModeSortDefaultValue(), lhs, rhs) }
     )
 
     object Rem : JcBinaryOperator(
-        onBv = UContext::mkBvSignedRemExpr,
-        onFp = UContext::mkFpRemExpr, // TODO: it's incorrect. Waiting for sympfu in KSMT
+        onBv = UContextBv32Size::mkBvSignedRemExpr,
+        onFp = UContextBv32Size::mkFpRemExpr, // TODO: it's incorrect. Waiting for sympfu in KSMT
     )
 
     object Eq : JcBinaryOperator(
-        onBool = UContext::mkEq,
-        onBv = UContext::mkEq,
-        onFp = UContext::mkFpEqualExpr,
+        onBool = UContextBv32Size::mkEq,
+        onBv = UContextBv32Size::mkEq,
+        onFp = UContextBv32Size::mkFpEqualExpr,
     )
 
     object Neq : JcBinaryOperator(
@@ -58,38 +59,38 @@ sealed class JcBinaryOperator(
     )
 
     object Lt : JcBinaryOperator(
-        onBv = UContext::mkBvSignedLessExpr,
-        onFp = UContext::mkFpLessExpr,
+        onBv = UContextBv32Size::mkBvSignedLessExpr,
+        onFp = UContextBv32Size::mkFpLessExpr,
     )
 
     object Le : JcBinaryOperator(
-        onBv = UContext::mkBvSignedLessOrEqualExpr,
-        onFp = UContext::mkFpLessOrEqualExpr,
+        onBv = UContextBv32Size::mkBvSignedLessOrEqualExpr,
+        onFp = UContextBv32Size::mkFpLessOrEqualExpr,
     )
 
     object Gt : JcBinaryOperator(
-        onBv = UContext::mkBvSignedGreaterExpr,
-        onFp = UContext::mkFpGreaterExpr,
+        onBv = UContextBv32Size::mkBvSignedGreaterExpr,
+        onFp = UContextBv32Size::mkFpGreaterExpr,
     )
 
     object Ge : JcBinaryOperator(
-        onBv = UContext::mkBvSignedGreaterOrEqualExpr,
-        onFp = UContext::mkFpGreaterOrEqualExpr
+        onBv = UContextBv32Size::mkBvSignedGreaterOrEqualExpr,
+        onFp = UContextBv32Size::mkFpGreaterOrEqualExpr
     )
 
     object And : JcBinaryOperator(
-        onBool = UContext::mkAnd,
-        onBv = UContext::mkBvAndExpr,
+        onBool = UContextBv32Size::mkAnd,
+        onBv = UContextBv32Size::mkBvAndExpr,
     )
 
     object Or : JcBinaryOperator(
-        onBool = UContext::mkOr,
-        onBv = UContext::mkBvOrExpr,
+        onBool = UContextBv32Size::mkOr,
+        onBv = UContextBv32Size::mkBvOrExpr,
     )
 
     object Xor : JcBinaryOperator(
-        onBool = UContext::mkXor,
-        onBv = UContext::mkBvXorExpr,
+        onBool = UContextBv32Size::mkXor,
+        onBv = UContextBv32Size::mkBvXorExpr,
     )
 
     object Cmp : JcBinaryOperator(

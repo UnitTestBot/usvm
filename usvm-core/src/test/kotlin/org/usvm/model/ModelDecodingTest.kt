@@ -12,7 +12,9 @@ import org.usvm.Method
 import org.usvm.UComponents
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
+import org.usvm.UContextBv32Size
 import org.usvm.UIndexedMocker
+import org.usvm.USizeSort
 import org.usvm.api.allocateConcreteRef
 import org.usvm.api.readArrayIndex
 import org.usvm.api.readField
@@ -34,10 +36,10 @@ import kotlin.test.assertIs
 private typealias Type = SingleTypeSystem.SingleType
 
 class ModelDecodingTest {
-    private lateinit var ctx: UContext
-    private lateinit var solver: USolverBase<Type, UContext>
+    private lateinit var ctx: UContext<USizeSort>
+    private lateinit var solver: USolverBase<Type, UContext<*>>
 
-    private lateinit var pc: UPathConstraints<Type, UContext>
+    private lateinit var pc: UPathConstraints<Type, UContext<*>>
     private lateinit var stack: URegistersStack
     private lateinit var heap: UMemory<Type, Method>
     private lateinit var mocker: UIndexedMocker<Method>
@@ -47,8 +49,8 @@ class ModelDecodingTest {
         val components: UComponents<Type> = mockk()
         every { components.mkTypeSystem(any()) } returns SingleTypeSystem
 
-        ctx = UContext(components)
-        val softConstraintsProvider = USoftConstraintsProvider<Type>(ctx)
+        ctx = UContextBv32Size(components)
+        val softConstraintsProvider = USoftConstraintsProvider<Type, _>(ctx)
         val (translator, decoder) = buildTranslatorAndLazyDecoder<Type>(ctx)
         val typeSolver = UTypeSolver(SingleTypeSystem)
         solver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder, softConstraintsProvider)

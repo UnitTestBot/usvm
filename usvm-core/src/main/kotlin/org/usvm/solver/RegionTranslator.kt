@@ -41,7 +41,7 @@ interface UCollectionDecoder<Key, Sort : USort> {
  * @param initialValue defines an initial value for a translated array.
  */
 abstract class U1DUpdatesTranslator<KeySort : USort, Sort : USort>(
-    val exprTranslator: UExprTranslator<*>,
+    val exprTranslator: UExprTranslator<*, *>,
     val initialValue: KExpr<KArraySort<KeySort, Sort>>,
 ) : UMemoryUpdatesVisitor<UExpr<KeySort>, Sort, KExpr<KArraySort<KeySort, Sort>>> {
 
@@ -94,7 +94,7 @@ abstract class U1DUpdatesTranslator<KeySort : USort, Sort : USort>(
  * @param initialValue defines an initial value for a translated array.
  */
 abstract class U2DUpdatesTranslator<Key1Sort : USort, Key2Sort : USort, Sort : USort>(
-    val exprTranslator: UExprTranslator<*>,
+    val exprTranslator: UExprTranslator<*, *>,
     val initialValue: KExpr<KArray2Sort<Key1Sort, Key2Sort, Sort>>,
 ) : UMemoryUpdatesVisitor<Pair<UExpr<Key1Sort>, UExpr<Key2Sort>>, Sort, KExpr<KArray2Sort<Key1Sort, Key2Sort, Sort>>> {
 

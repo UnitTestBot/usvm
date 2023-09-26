@@ -23,7 +23,6 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UFpSort
 import org.usvm.UHeapRef
-import org.usvm.USizeExpr
 import org.usvm.USymbolicHeapRef
 import org.usvm.api.memcpy
 import org.usvm.api.typeStreamOf
@@ -36,6 +35,9 @@ import org.usvm.machine.state.skipMethodInvocationWithValue
 import org.usvm.uctx
 import org.usvm.util.allocHeapRef
 import org.usvm.util.write
+import org.usvm.withSizeSort
+
+internal typealias USizeSort = UBv32Sort
 
 class JcMethodApproximationResolver(
     private val ctx: JcContext,
@@ -229,7 +231,7 @@ class JcMethodApproximationResolver(
         if (method.name == "arraycopy") {
             // Object src, int srcPos, Object dest, int destPos, int length
             val (srcRef, srcPos, dstRef, dstPos, length) = arguments
-            with(srcRef.uctx) {
+            with(srcRef.uctx.withSizeSort<USizeSort>()) {
                 exprResolver.resolveArrayCopy(
                     methodCall = methodCall,
                     srcRef = srcRef.asExpr(addressSort),
@@ -248,10 +250,10 @@ class JcMethodApproximationResolver(
     private fun JcExprResolver.resolveArrayCopy(
         methodCall: JcMethodCall,
         srcRef: UHeapRef,
-        srcPos: USizeExpr,
+        srcPos: UExpr<USizeSort>,
         dstRef: UHeapRef,
-        dstPos: USizeExpr,
-        length: USizeExpr
+        dstPos: UExpr<USizeSort>,
+        length: UExpr<USizeSort>
     ) {
         checkNullPointer(srcRef) ?: return
         checkNullPointer(dstRef) ?: return
@@ -311,11 +313,11 @@ class JcMethodApproximationResolver(
             val arrayDescriptor = arrayDescriptorOf(arrayType)
             val elementType = requireNotNull(arrayType.ifArrayGetElementType)
 
-            val lengthRef = UArrayLengthLValue(instance, arrayDescriptor)
+            val lengthRef = UArrayLengthLValue<_, UBv32Sort>(instance, arrayDescriptor)
             val length = scope.calcOnState { memory.read(lengthRef).asExpr(sizeSort) }
 
             val arrayRef = memory.allocHeapRef(arrayType, useStaticAddress = useStaticAddressForAllocation())
-            memory.write(UArrayLengthLValue(arrayRef, arrayDescriptor), length)
+            memory.write(UArrayLengthLValue<_, UBv32Sort>(arrayRef, arrayDescriptor), length)
 
             // It is very important to use arrayDescriptor here but not elementType correspondingly as in creating
             // new arrays
@@ -338,10 +340,10 @@ class JcMethodApproximationResolver(
         branches: MutableList<Pair<UBoolExpr, (JcState) -> Unit>>,
         type: JcArrayType,
         srcRef: UHeapRef,
-        srcPos: USizeExpr,
+        srcPos: UExpr<USizeSort>,
         dstRef: UHeapRef,
-        dstPos: USizeExpr,
-        length: USizeExpr
+        dstPos: UExpr<USizeSort>,
+        length: UExpr<USizeSort>
     ) = with(ctx) {
         val arrayDescriptor = arrayDescriptorOf(type)
         val elementType = requireNotNull(type.ifArrayGetElementType)
@@ -354,10 +356,10 @@ class JcMethodApproximationResolver(
             )
         }
 
-        val srcLengthRef = UArrayLengthLValue(srcRef, arrayDescriptor)
+        val srcLengthRef = UArrayLengthLValue<_, UBv32Sort>(srcRef, arrayDescriptor)
         val srcLength = scope.calcOnState { memory.read(srcLengthRef) }
 
-        val dstLengthRef = UArrayLengthLValue(dstRef, arrayDescriptor)
+        val dstLengthRef = UArrayLengthLValue<_, UBv32Sort>(dstRef, arrayDescriptor)
         val dstLength = scope.calcOnState { memory.read(dstLengthRef) }
 
         val indexBoundsCheck = mkAnd(

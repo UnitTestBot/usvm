@@ -27,12 +27,12 @@ sealed class USymbolicSetUnionAdapter<
     val setOfKeys: USymbolicCollection<SetId, SrcKey, UBoolSort>,
 ) : USymbolicCollectionAdapter<SrcKey, DstKey> {
 
-    abstract override fun convert(key: DstKey, composer: UComposer<*>?): SrcKey
+    abstract override fun convert(key: DstKey, composer: UComposer<*, *>?): SrcKey
 
     override fun includesConcretely(key: DstKey) =
         includesSymbolically(key, composer = null).isTrue
 
-    override fun includesSymbolically(key: DstKey, composer: UComposer<*>?): UBoolExpr {
+    override fun includesSymbolically(key: DstKey, composer: UComposer<*, *>?): UBoolExpr {
         val srcKey = convert(key, composer)
         return setOfKeys.read(srcKey, composer)
     }
@@ -50,7 +50,7 @@ class UAllocatedToAllocatedSymbolicSetUnionAdapter<SetType, ElemSort : USort>(
     setOfKeys: USymbolicCollection<UAllocatedSetId<SetType, ElemSort, *>, UExpr<ElemSort>, UBoolSort>,
 ) : USymbolicSetUnionAdapter<SetType, UExpr<ElemSort>, UExpr<ElemSort>,
     UAllocatedSetId<SetType, ElemSort, *>>(setOfKeys) {
-    override fun convert(key: UExpr<ElemSort>, composer: UComposer<*>?): UExpr<ElemSort> = key
+    override fun convert(key: UExpr<ElemSort>, composer: UComposer<*, *>?): UExpr<ElemSort> = key
 
     @Suppress("UNCHECKED_CAST")
     override fun <DstReg : Region<DstReg>> region(): DstReg =
@@ -62,7 +62,7 @@ class UAllocatedToAllocatedSymbolicSetUnionAdapter<SetType, ElemSort : USort>(
         dstCollectionId: USymbolicCollectionId<UExpr<ElemSort>, *, *>,
         guard: UBoolExpr,
         srcKey: UExpr<ElemSort>,
-        composer: UComposer<*>,
+        composer: UComposer<*, *>,
     ) {
         check(srcCollectionId is UAllocatedSetId<*, ElemSort, *>) { "Unexpected collection: $srcCollectionId" }
         check(dstCollectionId is UAllocatedSetId<*, ElemSort, *>) { "Unexpected collection: $dstCollectionId" }
@@ -86,7 +86,7 @@ class UAllocatedToInputSymbolicSetUnionAdapter<SetType, ElemSort : USort>(
 ) : USymbolicSetUnionAdapter<SetType, UExpr<ElemSort>, USymbolicSetElement<ElemSort>,
     UAllocatedSetId<SetType, ElemSort, *>>(setOfKeys) {
 
-    override fun convert(key: USymbolicSetElement<ElemSort>, composer: UComposer<*>?): UExpr<ElemSort> = key.second
+    override fun convert(key: USymbolicSetElement<ElemSort>, composer: UComposer<*, *>?): UExpr<ElemSort> = key.second
 
     override fun <DstReg : Region<DstReg>> region(): DstReg = convertRegion(setOfKeys.collectionId.keyInfo())
 
@@ -108,7 +108,7 @@ class UAllocatedToInputSymbolicSetUnionAdapter<SetType, ElemSort : USort>(
         dstCollectionId: USymbolicCollectionId<USymbolicSetElement<ElemSort>, *, *>,
         guard: UBoolExpr,
         srcKey: UExpr<ElemSort>,
-        composer: UComposer<*>,
+        composer: UComposer<*, *>,
     ) {
         check(srcCollectionId is UAllocatedSetId<*, ElemSort, *>) { "Unexpected collection: $srcCollectionId" }
         check(dstCollectionId is USymbolicSetId<*, *, *, *, *, *>) { "Unexpected collection: $dstCollectionId" }
@@ -132,7 +132,7 @@ class UInputToAllocatedSymbolicSetUnionAdapter<SetType, ElemSort : USort>(
 ) : USymbolicSetUnionAdapter<SetType, USymbolicSetElement<ElemSort>, UExpr<ElemSort>,
     UInputSetId<SetType, ElemSort, *>>(setOfKeys) {
 
-    override fun convert(key: UExpr<ElemSort>, composer: UComposer<*>?): USymbolicSetElement<ElemSort> =
+    override fun convert(key: UExpr<ElemSort>, composer: UComposer<*, *>?): USymbolicSetElement<ElemSort> =
         composer.compose(srcSetRef) to key
 
     override fun <DstReg : Region<DstReg>> region(): DstReg =
@@ -156,7 +156,7 @@ class UInputToAllocatedSymbolicSetUnionAdapter<SetType, ElemSort : USort>(
         dstCollectionId: USymbolicCollectionId<UExpr<ElemSort>, *, *>,
         guard: UBoolExpr,
         srcKey: USymbolicSetElement<ElemSort>,
-        composer: UComposer<*>,
+        composer: UComposer<*, *>,
     ) {
         check(srcCollectionId is USymbolicSetId<*, *, *, *, *, *>) { "Unexpected collection: $srcCollectionId" }
         check(dstCollectionId is UAllocatedSetId<*, ElemSort, *>) { "Unexpected collection: $dstCollectionId" }
@@ -181,7 +181,7 @@ class UInputToInputSymbolicSetUnionAdapter<SetType, ElemSort : USort>(
 ) : USymbolicSetUnionAdapter<SetType, USymbolicSetElement<ElemSort>, USymbolicSetElement<ElemSort>,
     UInputSetId<SetType, ElemSort, *>>(setOfKeys) {
 
-    override fun convert(key: USymbolicSetElement<ElemSort>, composer: UComposer<*>?): USymbolicSetElement<ElemSort> =
+    override fun convert(key: USymbolicSetElement<ElemSort>, composer: UComposer<*, *>?): USymbolicSetElement<ElemSort> =
         composer.compose(srcSetRef) to key.second
 
     override fun <DstReg : Region<DstReg>> region(): DstReg = convertRegion(setOfKeys.collectionId.elementInfo)
@@ -205,7 +205,7 @@ class UInputToInputSymbolicSetUnionAdapter<SetType, ElemSort : USort>(
         dstCollectionId: USymbolicCollectionId<USymbolicSetElement<ElemSort>, *, *>,
         guard: UBoolExpr,
         srcKey: USymbolicSetElement<ElemSort>,
-        composer: UComposer<*>,
+        composer: UComposer<*, *>,
     ) {
         check(srcCollectionId is USymbolicSetId<*, *, *, *, *, *>) { "Unexpected collection: $srcCollectionId" }
         check(dstCollectionId is USymbolicSetId<*, *, *, *, *, *>) { "Unexpected collection: $dstCollectionId" }

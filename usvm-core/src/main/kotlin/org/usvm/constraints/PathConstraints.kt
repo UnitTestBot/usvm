@@ -4,6 +4,7 @@ import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.persistentSetOf
 import org.usvm.UAndExpr
 import org.usvm.UBoolExpr
+import org.usvm.UBvSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UEqExpr
@@ -12,7 +13,6 @@ import org.usvm.UIsSubtypeExpr
 import org.usvm.UIsSupertypeExpr
 import org.usvm.UNotExpr
 import org.usvm.UOrExpr
-import org.usvm.USizeSort
 import org.usvm.USymbolicHeapRef
 import org.usvm.isStaticHeapRef
 import org.usvm.isSymbolicHeapRef
@@ -21,7 +21,7 @@ import org.usvm.uctx
 /**
  * Mutable representation of path constraints.
  */
-open class UPathConstraints<Type, Context : UContext> private constructor(
+open class UPathConstraints<Type, Context : UContext<*>> private constructor(
     val ctx: Context,
     logicalConstraints: PersistentSet<UBoolExpr> = persistentSetOf(),
     /**
@@ -38,7 +38,8 @@ open class UPathConstraints<Type, Context : UContext> private constructor(
     /**
      * Specially represented numeric constraints (e.g. >, <, >=, ...).
      */
-    val numericConstraints: UNumericConstraints<USizeSort> = UNumericConstraints(ctx, sort = ctx.sizeSort)
+    // TODO
+    val numericConstraints: UNumericConstraints<UBvSort> = UNumericConstraints(ctx, sort = ctx.bv32Sort)
 ) {
     init {
         // Use the information from the type constraints to check whether any static ref is assignable to any symbolic ref
@@ -141,7 +142,7 @@ open class UPathConstraints<Type, Context : UContext> private constructor(
         )
     }
 
-    protected fun contradiction(ctx: UContext) {
+    protected fun contradiction(ctx: UContext<*>) {
         logicalConstraints = persistentSetOf(ctx.falseExpr)
     }
 }

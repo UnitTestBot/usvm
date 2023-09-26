@@ -8,7 +8,7 @@ import io.ksmt.utils.mkConst
 import org.usvm.UAddressSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UHeapRef
-import org.usvm.USizeSort
+import org.usvm.USort
 import org.usvm.memory.URangedUpdateNode
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.memory.USymbolicCollection
@@ -19,18 +19,19 @@ import org.usvm.solver.UExprTranslator
 import org.usvm.solver.URegionDecoder
 import org.usvm.solver.URegionTranslator
 import org.usvm.uctx
+import org.usvm.withSizeSort
 import java.util.IdentityHashMap
 
-class UMapLengthRegionDecoder<MapType>(
-    private val regionId: UMapLengthRegionId<MapType>,
-    private val exprTranslator: UExprTranslator<*>
-) : URegionDecoder<UMapLengthLValue<MapType>, USizeSort> {
+class UMapLengthRegionDecoder<MapType, USizeSort : USort>(
+    private val regionId: UMapLengthRegionId<MapType, USizeSort>,
+    private val exprTranslator: UExprTranslator<*, *>
+) : URegionDecoder<UMapLengthLValue<MapType, USizeSort>, USizeSort> {
 
-    private var inputRegionTranslator: UInputMapLengthRegionTranslator<MapType>? = null
+    private var inputRegionTranslator: UInputMapLengthRegionTranslator<MapType, USizeSort>? = null
 
     fun inputMapLengthRegionTranslator(
-        collectionId: UInputMapLengthId<MapType>
-    ): URegionTranslator<UInputMapLengthId<MapType>, UHeapRef, USizeSort> {
+        collectionId: UInputMapLengthId<MapType, USizeSort>
+    ): URegionTranslator<UInputMapLengthId<MapType, USizeSort>, UHeapRef, USizeSort> {
         if (inputRegionTranslator == null) {
             inputRegionTranslator = UInputMapLengthRegionTranslator(collectionId, exprTranslator)
         }
@@ -43,12 +44,12 @@ class UMapLengthRegionDecoder<MapType>(
     ) = inputRegionTranslator?.let { UMapLengthLazyModelRegion(regionId, model, mapping, it) }
 }
 
-private class UInputMapLengthRegionTranslator<MapType>(
-    private val collectionId: UInputMapLengthId<MapType>,
-    exprTranslator: UExprTranslator<*>
-) : URegionTranslator<UInputMapLengthId<MapType>, UHeapRef, USizeSort>,
+private class UInputMapLengthRegionTranslator<MapType, USizeSort : USort>(
+    private val collectionId: UInputMapLengthId<MapType, USizeSort>,
+    exprTranslator: UExprTranslator<*, *>
+) : URegionTranslator<UInputMapLengthId<MapType, USizeSort>, UHeapRef, USizeSort>,
     UCollectionDecoder<UHeapRef, USizeSort> {
-    private val initialValue = with(collectionId.sort.uctx) {
+    private val initialValue = with(collectionId.sort.uctx.withSizeSort<USizeSort>()) {
         mkArraySort(addressSort, sizeSort).mkConst(collectionId.toString())
     }
 
@@ -56,7 +57,7 @@ private class UInputMapLengthRegionTranslator<MapType>(
     private val updatesTranslator = UInputMapLengthUpdateTranslator(exprTranslator, initialValue)
 
     override fun translateReading(
-        region: USymbolicCollection<UInputMapLengthId<MapType>, UHeapRef, USizeSort>,
+        region: USymbolicCollection<UInputMapLengthId<MapType, USizeSort>, UHeapRef, USizeSort>,
         key: UHeapRef
     ): KExpr<USizeSort> {
         val translatedCollection = region.updates.accept(updatesTranslator, visitorCache)
@@ -70,8 +71,8 @@ private class UInputMapLengthRegionTranslator<MapType>(
         UMemory1DArray(initialValue, model, mapping)
 }
 
-private class UInputMapLengthUpdateTranslator(
-    exprTranslator: UExprTranslator<*>,
+private class UInputMapLengthUpdateTranslator<USizeSort : USort>(
+    exprTranslator: UExprTranslator<*, *>,
     initialValue: KExpr<KArraySort<UAddressSort, USizeSort>>
 ) : U1DUpdatesTranslator<UAddressSort, USizeSort>(exprTranslator, initialValue) {
     override fun KContext.translateRangedUpdate(

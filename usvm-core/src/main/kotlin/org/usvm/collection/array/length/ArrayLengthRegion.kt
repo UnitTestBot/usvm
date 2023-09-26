@@ -1,12 +1,13 @@
 package org.usvm.collection.array.length
 
+import io.ksmt.utils.uncheckedCast
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentMapOf
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapAddress
+import org.usvm.UExpr
 import org.usvm.UHeapRef
-import org.usvm.USizeExpr
-import org.usvm.USizeSort
+import org.usvm.USort
 import org.usvm.memory.ULValue
 import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UMemoryRegionId
@@ -17,57 +18,57 @@ import org.usvm.memory.mapWithStaticAsSymbolic
 import org.usvm.sampleUValue
 import org.usvm.uctx
 
-data class UArrayLengthLValue<ArrayType>(val ref: UHeapRef, val arrayType: ArrayType) :
-    ULValue<UArrayLengthLValue<ArrayType>, USizeSort> {
+typealias UInputArrayLengths<ArrayType, USizeSort> = USymbolicCollection<UInputArrayLengthId<ArrayType, USizeSort>, UHeapRef, USizeSort>
+
+data class UArrayLengthLValue<ArrayType, USizeSort : USort>(val ref: UHeapRef, val arrayType: ArrayType) :
+    ULValue<UArrayLengthLValue<ArrayType, USizeSort>, USizeSort> {
 
     override val sort: USizeSort
-        get() = ref.uctx.sizeSort
+        get() = ref.uctx.sizeSort.uncheckedCast()
 
-    override val memoryRegionId: UMemoryRegionId<UArrayLengthLValue<ArrayType>, USizeSort> =
+    override val memoryRegionId: UMemoryRegionId<UArrayLengthLValue<ArrayType, USizeSort>, USizeSort> =
         UArrayLengthsRegionId(sort, arrayType)
 
-    override val key: UArrayLengthLValue<ArrayType>
+    override val key: UArrayLengthLValue<ArrayType, USizeSort>
         get() = this
 }
 
-data class UArrayLengthsRegionId<ArrayType>(override val sort: USizeSort, val arrayType: ArrayType) :
-    UMemoryRegionId<UArrayLengthLValue<ArrayType>, USizeSort> {
+data class UArrayLengthsRegionId<ArrayType, USizeSort : USort>(override val sort: USizeSort, val arrayType: ArrayType) :
+    UMemoryRegionId<UArrayLengthLValue<ArrayType, USizeSort>, USizeSort> {
 
-    override fun emptyRegion(): UMemoryRegion<UArrayLengthLValue<ArrayType>, USizeSort> =
+    override fun emptyRegion(): UMemoryRegion<UArrayLengthLValue<ArrayType, USizeSort>, USizeSort> =
         UArrayLengthsMemoryRegion(sort, arrayType)
 }
 
-typealias UInputArrayLengths<ArrayType> = USymbolicCollection<UInputArrayLengthId<ArrayType>, UHeapRef, USizeSort>
+interface UArrayLengthsRegion<ArrayType, USizeSort : USort> : UMemoryRegion<UArrayLengthLValue<ArrayType, USizeSort>, USizeSort>
 
-interface UArrayLengthsRegion<ArrayType> : UMemoryRegion<UArrayLengthLValue<ArrayType>, USizeSort>
-
-internal class UArrayLengthsMemoryRegion<ArrayType>(
+internal class UArrayLengthsMemoryRegion<ArrayType, USizeSort : USort>(
     private val sort: USizeSort,
     private val arrayType: ArrayType,
-    private val allocatedLengths: PersistentMap<UConcreteHeapAddress, USizeExpr> = persistentMapOf(),
-    private var inputLengths: UInputArrayLengths<ArrayType>? = null
-) : UArrayLengthsRegion<ArrayType> {
+    private val allocatedLengths: PersistentMap<UConcreteHeapAddress, UExpr<USizeSort>> = persistentMapOf(),
+    private var inputLengths: UInputArrayLengths<ArrayType, USizeSort>? = null
+) : UArrayLengthsRegion<ArrayType, USizeSort> {
 
-    private fun updateAllocated(updated: PersistentMap<UConcreteHeapAddress, USizeExpr>) =
+    private fun updateAllocated(updated: PersistentMap<UConcreteHeapAddress, UExpr<USizeSort>>) =
         UArrayLengthsMemoryRegion(sort, arrayType, updated, inputLengths)
 
-    private fun getInputLength(ref: UArrayLengthLValue<ArrayType>): UInputArrayLengths<ArrayType> {
+    private fun getInputLength(ref: UArrayLengthLValue<ArrayType, USizeSort>): UInputArrayLengths<ArrayType, USizeSort> {
         if (inputLengths == null)
             inputLengths = UInputArrayLengthId(ref.arrayType, ref.sort).emptyRegion()
         return inputLengths!!
     }
 
-    private fun updatedInput(updated: UInputArrayLengths<ArrayType>) =
+    private fun updatedInput(updated: UInputArrayLengths<ArrayType, USizeSort>) =
         UArrayLengthsMemoryRegion(sort, arrayType, allocatedLengths, updated)
 
-    override fun read(key: UArrayLengthLValue<ArrayType>): USizeExpr = key.ref.mapWithStaticAsSymbolic(
+    override fun read(key: UArrayLengthLValue<ArrayType, USizeSort>): UExpr<USizeSort> = key.ref.mapWithStaticAsSymbolic(
         concreteMapper = { concreteRef -> allocatedLengths[concreteRef.address] ?: sort.sampleUValue() },
         symbolicMapper = { symbolicRef -> getInputLength(key).read(symbolicRef) }
     )
 
     override fun write(
-        key: UArrayLengthLValue<ArrayType>,
-        value: USizeExpr,
+        key: UArrayLengthLValue<ArrayType, USizeSort>,
+        value: UExpr<USizeSort>,
         guard: UBoolExpr
     ) = foldHeapRefWithStaticAsSymbolic(
         key.ref,

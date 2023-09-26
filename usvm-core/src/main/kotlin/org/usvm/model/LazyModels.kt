@@ -22,7 +22,7 @@ import org.usvm.uctx
 class ULazyRegistersStackModel(
     private val model: KModel,
     private val addressesMapping: AddressesMapping,
-    private val translator: UExprTranslator<*>,
+    private val translator: UExprTranslator<*, *>,
 ) : UReadOnlyRegistersStack {
     private val uctx = translator.ctx
 
@@ -46,7 +46,7 @@ class ULazyRegistersStackModel(
 class ULazyIndexedMockModel(
     private val model: KModel,
     private val addressesMapping: AddressesMapping,
-    private val translator: UExprTranslator<*>,
+    private val translator: UExprTranslator<*, *>,
 ) : UMockEvaluator {
     override fun <Sort : USort> eval(symbol: UMockSymbol<Sort>): UExpr<Sort> {
         require(symbol is UIndexedMethodReturnValue<*, Sort>)

@@ -11,7 +11,9 @@ import org.usvm.UBoolExpr
 import org.usvm.UCallStack
 import org.usvm.UComponents
 import org.usvm.UContext
+import org.usvm.UContextBv32Size
 import org.usvm.UExpr
+import org.usvm.USizeSort
 import org.usvm.UState
 import org.usvm.UTarget
 import org.usvm.constraints.UPathConstraints
@@ -22,15 +24,16 @@ import org.usvm.solver.USoftConstraintsProvider
 import org.usvm.solver.USolverBase
 import org.usvm.solver.UTypeSolver
 import org.usvm.types.single.SingleTypeSystem
+import org.usvm.withSizeSort
 import kotlin.test.assertEquals
 
 abstract class SymbolicCollectionTestBase {
-    lateinit var ctx: UContext
-    lateinit var pathConstraints: UPathConstraints<SingleTypeSystem.SingleType, UContext>
+    lateinit var ctx: UContext<USizeSort>
+    lateinit var pathConstraints: UPathConstraints<SingleTypeSystem.SingleType, UContext<*>>
     lateinit var memory: UMemory<SingleTypeSystem.SingleType, Any?>
-    lateinit var scope: StepScope<StateStub, SingleTypeSystem.SingleType, UContext>
-    lateinit var translator: UExprTranslator<SingleTypeSystem.SingleType>
-    lateinit var uSolver: USolverBase<SingleTypeSystem.SingleType, UContext>
+    lateinit var scope: StepScope<StateStub, SingleTypeSystem.SingleType, UContext<*>>
+    lateinit var translator: UExprTranslator<SingleTypeSystem.SingleType, *>
+    lateinit var uSolver: USolverBase<SingleTypeSystem.SingleType, UContext<*>>
 
     @BeforeEach
     fun initializeContext() {
@@ -38,9 +41,9 @@ abstract class SymbolicCollectionTestBase {
         every { components.mkTypeSystem(any()) } returns mockk()
         every { components.mkSolver(any()) } answers { uSolver }
 
-        ctx = UContext(components)
+        ctx = UContextBv32Size(components)
 
-        val softConstraintProvider = USoftConstraintsProvider<SingleTypeSystem.SingleType>(ctx)
+        val softConstraintProvider = USoftConstraintsProvider<SingleTypeSystem.SingleType, USizeSort>(ctx)
         val (translator, decoder) = buildTranslatorAndLazyDecoder<SingleTypeSystem.SingleType>(ctx)
         this.translator = translator
         val typeSolver = UTypeSolver(SingleTypeSystem)
@@ -55,14 +58,14 @@ abstract class SymbolicCollectionTestBase {
     class TargetStub : UTarget<Any?, TargetStub, StateStub>()
 
     class StateStub(
-        ctx: UContext,
-        pathConstraints: UPathConstraints<SingleTypeSystem.SingleType, UContext>,
+        ctx: UContext<*>,
+        pathConstraints: UPathConstraints<SingleTypeSystem.SingleType, UContext<*>>,
         memory: UMemory<SingleTypeSystem.SingleType, Any?>,
-    ) : UState<SingleTypeSystem.SingleType, Any?, Any?, UContext, TargetStub, StateStub>(
+    ) : UState<SingleTypeSystem.SingleType, Any?, Any?, UContext<*>, TargetStub, StateStub>(
         ctx, UCallStack(),
         pathConstraints, memory, emptyList(), ctx.mkInitialLocation()
     ) {
-        override fun clone(newConstraints: UPathConstraints<SingleTypeSystem.SingleType, UContext>?): StateStub {
+        override fun clone(newConstraints: UPathConstraints<SingleTypeSystem.SingleType, UContext<*>>?): StateStub {
             val clonedConstraints = newConstraints ?: pathConstraints.clone()
             return StateStub(memory.ctx, clonedConstraints, memory.clone(clonedConstraints.typeConstraints))
         }
@@ -82,13 +85,13 @@ abstract class SymbolicCollectionTestBase {
         }
     }
 
-    fun KSolver<*>.assertPossible(mkCheck: UContext.() -> UBoolExpr) =
+    fun KSolver<*>.assertPossible(mkCheck: UContext<*>.() -> UBoolExpr) =
         assertStatus(KSolverStatus.SAT) { mkCheck() }
 
-    fun KSolver<*>.assertImpossible(mkCheck: UContext.() -> UBoolExpr) =
+    fun KSolver<*>.assertImpossible(mkCheck: UContext<*>.() -> UBoolExpr) =
         assertStatus(KSolverStatus.UNSAT) { mkCheck() }
 
-    fun KSolver<*>.assertStatus(status: KSolverStatus, mkCheck: UContext.() -> UBoolExpr) = try {
+    fun KSolver<*>.assertStatus(status: KSolverStatus, mkCheck: UContext<*>.() -> UBoolExpr) = try {
         push()
 
         val expr = ctx.mkCheck()

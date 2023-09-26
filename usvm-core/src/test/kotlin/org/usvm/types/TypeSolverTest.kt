@@ -11,6 +11,8 @@ import org.usvm.NULL_ADDRESS
 import org.usvm.UComponents
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
+import org.usvm.UContextBv32Size
+import org.usvm.USizeSort
 import org.usvm.api.readField
 import org.usvm.api.typeStreamOf
 import org.usvm.api.writeField
@@ -54,13 +56,13 @@ import kotlin.test.assertTrue
 class TypeSolverTest {
     private val typeSystem = testTypeSystem
     private val components = mockk<UComponents<TestType>>()
-    private val ctx = UContext(components)
-    private val solver: USolverBase<TestType, UContext>
+    private val ctx = UContextBv32Size(components)
+    private val solver: USolverBase<TestType, UContextBv32Size>
     private val typeSolver: UTypeSolver<TestType>
 
     init {
         val (translator, decoder) = buildTranslatorAndLazyDecoder<TestType>(ctx)
-        val softConstraintsProvider = USoftConstraintsProvider<TestType>(ctx)
+        val softConstraintsProvider = USoftConstraintsProvider<TestType, _>(ctx)
 
         typeSolver = UTypeSolver(typeSystem)
         solver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder, softConstraintsProvider)
@@ -69,7 +71,7 @@ class TypeSolverTest {
         every { components.mkTypeSystem(ctx) } returns typeSystem
     }
 
-    private val pc = UPathConstraints<TestType, UContext>(ctx)
+    private val pc = UPathConstraints<TestType, UContextBv32Size>(ctx)
     private val memory = UMemory<TestType, Method>(ctx, pc.typeConstraints)
 
     @Test
@@ -342,7 +344,7 @@ class TypeSolverTest {
         heap.writeField(val1, field, bv32Sort, 1.toBv(), trueExpr)
         heap.writeField(val2, field, bv32Sort, 2.toBv(), trueExpr)
 
-        val inputRegion = UInputArrayId(mockk<TestType>(), addressSort)
+        val inputRegion = UInputArrayId<_, _, USizeSort>(mockk<TestType>(), addressSort)
             .emptyRegion()
             .write(arr1 to idx1, val1, trueExpr)
             .write(arr2 to idx2, val2, trueExpr)

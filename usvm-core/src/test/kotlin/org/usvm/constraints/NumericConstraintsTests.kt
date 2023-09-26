@@ -14,8 +14,10 @@ import org.usvm.UBoolExpr
 import org.usvm.UBvSort
 import org.usvm.UComponents
 import org.usvm.UContext
+import org.usvm.UContextBv32Size
 import org.usvm.UExpr
 import org.usvm.UNotExpr
+import org.usvm.USizeSort
 import org.usvm.isFalse
 import org.usvm.logger
 import org.usvm.regions.IntIntervalsRegion
@@ -24,7 +26,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class NumericConstraintsTests {
-    private lateinit var ctx: UContext
+    private lateinit var ctx: UContext<USizeSort>
     private lateinit var bvSort: UBvSort
     private lateinit var constraints: UNumericConstraints<UBvSort>
     private var previousConstraints: UNumericConstraints<UBvSort>? = null
@@ -34,7 +36,7 @@ class NumericConstraintsTests {
     fun initializeContext() {
         val components: UComponents<*> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
-        ctx = UContext(components)
+        ctx = UContextBv32Size(components)
         bvSort = ctx.mkBvSort(sizeBits = 8u)
 
         resetConstraints()

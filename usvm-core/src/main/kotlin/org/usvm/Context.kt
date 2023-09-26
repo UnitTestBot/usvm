@@ -5,6 +5,7 @@ import io.ksmt.KContext
 import io.ksmt.expr.KExpr
 import io.ksmt.sort.KBoolSort
 import io.ksmt.sort.KBvSort
+import io.ksmt.sort.KIntSort
 import io.ksmt.sort.KSort
 import io.ksmt.sort.KSortVisitor
 import io.ksmt.sort.KUninterpretedSort
@@ -16,6 +17,9 @@ import org.usvm.collection.array.UAllocatedArray
 import org.usvm.collection.array.UAllocatedArrayReading
 import org.usvm.collection.array.UInputArray
 import org.usvm.collection.array.UInputArrayReading
+import org.usvm.collection.array.USymbolicArrayIndexBv32KeyInfo
+import org.usvm.collection.array.USymbolicArrayIndexInt32KeyInfo
+import org.usvm.collection.array.USymbolicArrayIndexKeyInfo
 import org.usvm.collection.array.length.UInputArrayLengthReading
 import org.usvm.collection.array.length.UInputArrayLengths
 import org.usvm.collection.field.UInputFieldReading
@@ -42,13 +46,16 @@ import org.usvm.collection.set.ref.UInputRefSetWithAllocatedElements
 import org.usvm.collection.set.ref.UInputRefSetWithAllocatedElementsReading
 import org.usvm.collection.set.ref.UInputRefSetWithInputElements
 import org.usvm.collection.set.ref.UInputRefSetWithInputElementsReading
+import org.usvm.memory.key.USizeExprBv32KeyInfo
+import org.usvm.memory.key.USizeExprInt32KeyInfo
+import org.usvm.memory.key.USizeExprKeyInfo
 import org.usvm.memory.splitUHeapRef
 import org.usvm.solver.USolverBase
 import org.usvm.types.UTypeSystem
 import org.usvm.regions.Region
 
 @Suppress("LeakingThis")
-open class UContext(
+abstract class UContext<USizeSort : USort>(
     components: UComponents<*>,
     operationMode: OperationMode = OperationMode.CONCURRENT,
     astManagementMode: AstManagementMode = AstManagementMode.GC,
@@ -68,7 +75,7 @@ open class UContext(
     }
 
     @Suppress("UNCHECKED_CAST")
-    fun <Type, Context : UContext> solver(): USolverBase<Type, Context> =
+    fun <Type, Context : UContext<*>> solver(): USolverBase<Type, Context> =
         this.solver as USolverBase<Type, Context>
 
     @Suppress("UNCHECKED_CAST")
@@ -76,9 +83,18 @@ open class UContext(
         this.typeSystem as UTypeSystem<Type>
 
     val addressSort: UAddressSort = mkUninterpretedSort("Address")
-    val sizeSort: USizeSort = bv32Sort
 
-    fun mkSizeExpr(size: Int): USizeExpr = mkBv(size)
+    abstract val sizeSort: USizeSort
+    abstract val sizeExprKeyInfo: USizeExprKeyInfo<USizeSort>
+    abstract val arrayIndexKeyInfo: USymbolicArrayIndexKeyInfo<USizeSort>
+    abstract fun mkSizeExpr(size: Int): UExpr<USizeSort>
+    abstract fun mkSizeSubExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UExpr<USizeSort>
+    abstract fun mkSizeAddExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UExpr<USizeSort>
+    abstract fun mkSizeGtExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UBoolExpr
+    abstract fun mkSizeGeExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UBoolExpr
+    abstract fun mkSizeLtExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UBoolExpr
+    abstract fun mkSizeLeExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UBoolExpr
+
 
     val nullRef: UNullRef = UNullRef(this)
 
@@ -181,31 +197,31 @@ open class UContext(
         UInputFieldReading(this, region, address)
     }.cast()
 
-    private val allocatedArrayReadingCache = mkAstInterner<UAllocatedArrayReading<*, out USort>>()
+    private val allocatedArrayReadingCache = mkAstInterner<UAllocatedArrayReading<*, out USort, USizeSort>>()
 
     fun <ArrayType, Sort : USort> mkAllocatedArrayReading(
-        region: UAllocatedArray<ArrayType, Sort>,
-        index: USizeExpr,
-    ): UAllocatedArrayReading<ArrayType, Sort> = allocatedArrayReadingCache.createIfContextActive {
+        region: UAllocatedArray<ArrayType, Sort, USizeSort>,
+        index: UExpr<USizeSort>,
+    ): UAllocatedArrayReading<ArrayType, Sort, USizeSort> = allocatedArrayReadingCache.createIfContextActive {
         UAllocatedArrayReading(this, region, index)
     }.cast()
 
-    private val inputArrayReadingCache = mkAstInterner<UInputArrayReading<*, out USort>>()
+    private val inputArrayReadingCache = mkAstInterner<UInputArrayReading<*, out USort, USizeSort>>()
 
     fun <ArrayType, Sort : USort> mkInputArrayReading(
-        region: UInputArray<ArrayType, Sort>,
+        region: UInputArray<ArrayType, Sort, USizeSort>,
         address: UHeapRef,
-        index: USizeExpr,
-    ): UInputArrayReading<ArrayType, Sort> = inputArrayReadingCache.createIfContextActive {
-        UInputArrayReading(this, region, address, index)
+        index: UExpr<USizeSort>,
+    ): UInputArrayReading<ArrayType, Sort, USizeSort> = inputArrayReadingCache.createIfContextActive {
+        UInputArrayReading<ArrayType, Sort, USizeSort>(this, region, address, index)
     }.cast()
 
-    private val inputArrayLengthReadingCache = mkAstInterner<UInputArrayLengthReading<*>>()
+    private val inputArrayLengthReadingCache = mkAstInterner<UInputArrayLengthReading<*, USizeSort>>()
 
     fun <ArrayType> mkInputArrayLengthReading(
-        region: UInputArrayLengths<ArrayType>,
+        region: UInputArrayLengths<ArrayType, USizeSort>,
         address: UHeapRef,
-    ): UInputArrayLengthReading<ArrayType> = inputArrayLengthReadingCache.createIfContextActive {
+    ): UInputArrayLengthReading<ArrayType, USizeSort> = inputArrayLengthReadingCache.createIfContextActive {
         UInputArrayLengthReading(this, region, address)
     }.cast()
 
@@ -264,14 +280,14 @@ open class UContext(
             UInputRefMapWithInputKeysReading(this, region, mapRef, keyRef)
         }.cast()
 
-    private val inputSymbolicMapLengthReadingCache = mkAstInterner<UInputMapLengthReading<*>>()
+    private val inputSymbolicMapLengthReadingCache = mkAstInterner<UInputMapLengthReading<*, USizeSort>>()
 
     fun <MapType> mkInputMapLengthReading(
-        region: UInputMapLengthCollection<MapType>,
+        region: UInputMapLengthCollection<MapType, USizeSort>,
         address: UHeapRef
-    ): UInputMapLengthReading<MapType> =
+    ): UInputMapLengthReading<MapType, USizeSort> =
         inputSymbolicMapLengthReadingCache.createIfContextActive {
-            UInputMapLengthReading<MapType>(this, region, address)
+            UInputMapLengthReading<MapType, USizeSort>(this, region, address)
         }.cast()
 
 
@@ -373,7 +389,7 @@ open class UContext(
 
     val uValueSampler: KSortVisitor<KExpr<*>> by lazy { mkUValueSampler() }
 
-    class UValueSampler(val uctx: UContext) : DefaultValueSampler(uctx) {
+    class UValueSampler(val uctx: UContext<*>) : DefaultValueSampler(uctx) {
         override fun visit(sort: KUninterpretedSort): KExpr<*> =
             if (sort == uctx.addressSort) {
                 uctx.nullRef
@@ -394,9 +410,50 @@ open class UContext(
         }
 }
 
+open class UContextBv32Size(
+    components: UComponents<*>,
+    operationMode: OperationMode = OperationMode.CONCURRENT,
+    astManagementMode: AstManagementMode = AstManagementMode.GC,
+    simplificationMode: SimplificationMode = SimplificationMode.SIMPLIFY,
+) : UContext<UBv32Sort>(components, operationMode, astManagementMode, simplificationMode) {
+    override val sizeSort: UBv32Sort = bv32Sort
+    override val sizeExprKeyInfo: USizeExprKeyInfo<UBv32Sort> = USizeExprBv32KeyInfo
+    override val arrayIndexKeyInfo: USymbolicArrayIndexKeyInfo<UBv32Sort> = USymbolicArrayIndexBv32KeyInfo
+
+    override fun mkSizeExpr(size: Int): UExpr<UBv32Sort> = mkBv(size)
+    override fun mkSizeSubExpr(lhs: UExpr<UBv32Sort>, rhs: UExpr<UBv32Sort>): UExpr<UBv32Sort> = mkBvSubExpr(lhs, rhs)
+    override fun mkSizeAddExpr(lhs: UExpr<UBv32Sort>, rhs: UExpr<UBv32Sort>): UExpr<UBv32Sort> = mkBvAddExpr(lhs, rhs)
+    override fun mkSizeGtExpr(lhs: UExpr<UBv32Sort>, rhs: UExpr<UBv32Sort>): UBoolExpr = mkBvSignedGreaterExpr(lhs, rhs)
+    override fun mkSizeGeExpr(lhs: UExpr<UBv32Sort>, rhs: UExpr<UBv32Sort>): UBoolExpr = mkBvSignedGreaterOrEqualExpr(lhs, rhs)
+    override fun mkSizeLtExpr(lhs: UExpr<UBv32Sort>, rhs: UExpr<UBv32Sort>): UBoolExpr = mkBvSignedLessExpr(lhs, rhs)
+    override fun mkSizeLeExpr(lhs: UExpr<UBv32Sort>, rhs: UExpr<UBv32Sort>): UBoolExpr = mkBvSignedLessOrEqualExpr(lhs, rhs)
+}
+
+open class UContextInt32Size(
+    components: UComponents<*>,
+    operationMode: OperationMode = OperationMode.CONCURRENT,
+    astManagementMode: AstManagementMode = AstManagementMode.GC,
+    simplificationMode: SimplificationMode = SimplificationMode.SIMPLIFY,
+) : UContext<KIntSort>(components, operationMode, astManagementMode, simplificationMode) {
+    override val sizeSort: KIntSort = intSort
+    override val sizeExprKeyInfo: USizeExprKeyInfo<KIntSort> = USizeExprInt32KeyInfo
+    override val arrayIndexKeyInfo: USymbolicArrayIndexKeyInfo<KIntSort> = USymbolicArrayIndexInt32KeyInfo
+
+    override fun mkSizeExpr(size: Int): UExpr<KIntSort> = mkIntNum(size)
+    override fun mkSizeSubExpr(lhs: UExpr<KIntSort>, rhs: UExpr<KIntSort>): UExpr<KIntSort> = mkArithSub(lhs, rhs)
+    override fun mkSizeAddExpr(lhs: UExpr<KIntSort>, rhs: UExpr<KIntSort>): UExpr<KIntSort> = mkArithAdd(lhs, rhs)
+    override fun mkSizeGtExpr(lhs: UExpr<KIntSort>, rhs: UExpr<KIntSort>): UBoolExpr = mkArithGt(lhs, rhs)
+    override fun mkSizeGeExpr(lhs: UExpr<KIntSort>, rhs: UExpr<KIntSort>): UBoolExpr = mkArithGe(lhs, rhs)
+    override fun mkSizeLtExpr(lhs: UExpr<KIntSort>, rhs: UExpr<KIntSort>): UBoolExpr = mkArithLt(lhs, rhs)
+    override fun mkSizeLeExpr(lhs: UExpr<KIntSort>, rhs: UExpr<KIntSort>): UBoolExpr = mkArithLe(lhs, rhs)
+}
+
 
 fun <T : KSort> T.sampleUValue(): KExpr<T> =
     accept(uctx.uValueSampler).asExpr(this)
 
 val KAst.uctx
-    get() = ctx as UContext
+    get() = ctx as UContext<*>
+
+fun <USizeSort : USort> UContext<*>.withSizeSort(): UContext<USizeSort> = cast()
+fun <USizeSort : USort, R> UContext<*>.withSizeSort(block: UContext<USizeSort>.() -> R): R = block(withSizeSort())

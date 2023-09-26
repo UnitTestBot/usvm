@@ -44,7 +44,7 @@ class UAllocatedRefSetWithInputElementsId<SetType>(
     override fun instantiate(
         collection: USymbolicCollection<UAllocatedRefSetWithInputElementsId<SetType>, UHeapRef, UBoolSort>,
         key: UHeapRef,
-        composer: UComposer<*>?
+        composer: UComposer<*, *>?
     ): UExpr<UBoolSort> {
         if (collection.updates.isEmpty()) {
             return key.uctx.falseExpr
@@ -118,7 +118,7 @@ class UInputRefSetWithAllocatedElementsId<SetType>(
     override fun instantiate(
         collection: USymbolicCollection<UInputRefSetWithAllocatedElementsId<SetType>, UHeapRef, UBoolSort>,
         key: UHeapRef,
-        composer: UComposer<*>?
+        composer: UComposer<*, *>?
     ): UExpr<UBoolSort> {
         if (collection.updates.isEmpty()) {
             return key.uctx.falseExpr
@@ -191,7 +191,7 @@ class UInputRefSetWithInputElementsId<SetType>(
     override fun instantiate(
         collection: USymbolicCollection<UInputRefSetWithInputElementsId<SetType>, USymbolicSetElement<UAddressSort>, UBoolSort>,
         key: USymbolicSetElement<UAddressSort>,
-        composer: UComposer<*>?
+        composer: UComposer<*, *>?
     ): UExpr<UBoolSort> {
         if (composer == null) {
             return sort.uctx.mkInputRefSetWithInputElementsReading(collection, key.first, key.second)

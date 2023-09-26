@@ -14,17 +14,18 @@ import org.usvm.UNullRef
 import org.usvm.USort
 import org.usvm.UTransformer
 import org.usvm.asTypedTransformer
+import org.usvm.withSizeSort
 import org.usvm.collection.set.USymbolicSetElement
 import org.usvm.regions.Region
 
 class UAllocatedSetReading<SetType, ElementSort : USort, Reg : Region<Reg>> internal constructor(
-    ctx: UContext,
+    ctx: UContext<*>,
     collection: UAllocatedSet<SetType, ElementSort, Reg>,
     val element: UExpr<ElementSort>,
 ) : UCollectionReading<UAllocatedSetId<SetType, ElementSort, Reg>, UExpr<ElementSort>, UBoolSort>(ctx, collection) {
 
     override fun accept(transformer: KTransformerBase): UBoolExpr {
-        require(transformer is UTransformer<*>) { "Expected a UTransformer, but got: $transformer" }
+        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
         return transformer.asTypedTransformer<SetType>().transform(this)
     }
 
@@ -47,7 +48,7 @@ class UAllocatedSetReading<SetType, ElementSort : USort, Reg : Region<Reg>> inte
 }
 
 class UInputSetReading<SetType, ElementSort : USort, Reg : Region<Reg>> internal constructor(
-    ctx: UContext,
+    ctx: UContext<*>,
     collection: UInputSet<SetType, ElementSort, Reg>,
     val address: UHeapRef,
     val element: UExpr<ElementSort>
@@ -60,7 +61,7 @@ class UInputSetReading<SetType, ElementSort : USort, Reg : Region<Reg>> internal
     }
 
     override fun accept(transformer: KTransformerBase): UBoolExpr {
-        require(transformer is UTransformer<*>) { "Expected a UTransformer, but got: $transformer" }
+        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
         return transformer.asTypedTransformer<SetType>().transform(this)
     }
 

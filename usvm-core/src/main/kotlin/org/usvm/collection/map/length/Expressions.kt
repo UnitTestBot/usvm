@@ -6,25 +6,25 @@ import io.ksmt.expr.printer.ExpressionPrinter
 import io.ksmt.expr.transformer.KTransformerBase
 import org.usvm.UCollectionReading
 import org.usvm.UContext
+import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.UNullRef
-import org.usvm.USizeExpr
-import org.usvm.USizeSort
+import org.usvm.USort
 import org.usvm.UTransformer
-import org.usvm.asTypedTransformer
+import org.usvm.withSizeSort
 
-class UInputMapLengthReading<MapType> internal constructor(
-    ctx: UContext,
-    collection: UInputMapLengthCollection<MapType>,
+class UInputMapLengthReading<MapType, USizeSort : USort> internal constructor(
+    ctx: UContext<USizeSort>,
+    collection: UInputMapLengthCollection<MapType, USizeSort>,
     val address: UHeapRef,
-) : UCollectionReading<UInputMapLengthId<MapType>, UHeapRef, USizeSort>(ctx, collection) {
+) : UCollectionReading<UInputMapLengthId<MapType, USizeSort>, UHeapRef, USizeSort>(ctx, collection) {
     init {
         require(address !is UNullRef)
     }
 
-    override fun accept(transformer: KTransformerBase): USizeExpr {
-        require(transformer is UTransformer<*>) { "Expected a UTransformer, but got: $transformer" }
-        return transformer.asTypedTransformer<MapType>().transform(this)
+    override fun accept(transformer: KTransformerBase): UExpr<USizeSort> {
+        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
+        return transformer.withSizeSort<MapType, USizeSort>().transform(this)
     }
 
     override fun internEquals(other: Any): Boolean = structurallyEqual(other, { collection }, { address })

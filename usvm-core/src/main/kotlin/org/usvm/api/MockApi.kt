@@ -2,7 +2,6 @@ package org.usvm.api
 
 import org.usvm.UExpr
 import org.usvm.UHeapRef
-import org.usvm.USizeExpr
 import org.usvm.USort
 import org.usvm.UState
 import org.usvm.uctx
@@ -25,7 +24,7 @@ fun <Type, Method> UState<Type, Method, *, *, *, *>.makeSymbolicRef(type: Type):
     return ref
 }
 
-fun <Type, Method> UState<Type, Method, *, *, *, *>.makeSymbolicArray(arrayType: Type, size: USizeExpr): UHeapRef {
+fun <Type, Method, USizeSort : USort> UState<Type, Method, *, *, *, *>.makeSymbolicArray(arrayType: Type, size: UExpr<USizeSort>): UHeapRef {
     val ref = memory.mock { call(lastEnteredMethod, emptySequence(), memory.ctx.addressSort) }
 
     memory.types.addSubtype(ref, arrayType)

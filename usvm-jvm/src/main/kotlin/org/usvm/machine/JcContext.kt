@@ -22,12 +22,13 @@ import org.jacodb.api.ext.void
 import org.jacodb.impl.bytecode.JcFieldImpl
 import org.jacodb.impl.types.FieldInfo
 import org.usvm.UContext
+import org.usvm.UContextBv32Size
 import org.usvm.util.extractJcRefType
 
 class JcContext(
     val cp: JcClasspath,
     components: JcComponents,
-) : UContext(components) {
+) : UContextBv32Size(components) {
     val voidSort by lazy { JcVoidSort(this) }
 
     val longSort get() = bv64Sort

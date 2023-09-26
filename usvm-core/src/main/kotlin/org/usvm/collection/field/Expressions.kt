@@ -13,7 +13,7 @@ import org.usvm.USort
 import org.usvm.UTransformer
 
 class UInputFieldReading<Field, Sort : USort> internal constructor(
-    ctx: UContext,
+    ctx: UContext<*>,
     collection: UInputFields<Field, Sort>,
     val address: UHeapRef,
 ) : UCollectionReading<UInputFieldId<Field, Sort>, UHeapRef, Sort>(ctx, collection) {
@@ -22,7 +22,7 @@ class UInputFieldReading<Field, Sort : USort> internal constructor(
     }
 
     override fun accept(transformer: KTransformerBase): KExpr<Sort> {
-        require(transformer is UTransformer<*>) { "Expected a UTransformer, but got: $transformer" }
+        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
         // An unchecked cast here it to be able to choose the right overload from UExprTransformer
         return transformer.transform(this)
     }

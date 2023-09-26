@@ -40,7 +40,7 @@ class UTypeConstraints<Type>(
     private val concreteRefToType: MutableMap<UConcreteHeapAddress, Type> = mutableMapOf(),
     symbolicRefToTypeRegion: MutableMap<USymbolicHeapRef, UTypeRegion<Type>> = mutableMapOf(),
 ) : UTypeEvaluator<Type> {
-    private val ctx: UContext get() = equalityConstraints.ctx
+    private val ctx: UContext<*> get() = equalityConstraints.ctx
 
     init {
         equalityConstraints.subscribeEquality(::intersectRegions)

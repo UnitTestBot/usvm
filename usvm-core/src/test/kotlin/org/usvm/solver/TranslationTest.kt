@@ -15,9 +15,10 @@ import org.usvm.Type
 import org.usvm.UAddressSort
 import org.usvm.UBv32Sort
 import org.usvm.UComponents
-import org.usvm.UContext
+import org.usvm.UContextBv32Size
 import org.usvm.UExpr
 import org.usvm.UHeapRef
+import org.usvm.USizeSort
 import org.usvm.api.allocateConcreteRef
 import org.usvm.api.readArrayIndex
 import org.usvm.api.writeArrayIndex
@@ -31,21 +32,20 @@ import org.usvm.collection.array.length.UInputArrayLengthId
 import org.usvm.collection.field.UInputFieldId
 import org.usvm.collection.map.ref.URefMapEntryLValue
 import org.usvm.memory.UMemory
-import org.usvm.memory.key.USizeExprKeyInfo
 import kotlin.test.assertEquals
 import kotlin.test.assertSame
 
 class TranslationTest {
     private lateinit var ctx: RecordingCtx
     private lateinit var heap: UMemory<Type, Any>
-    private lateinit var translator: UExprTranslator<Type>
+    private lateinit var translator: UExprTranslator<Type, *>
 
     private lateinit var valueFieldDescr: Pair<Field, UBv32Sort>
     private lateinit var addressFieldDescr: Pair<Field, UAddressSort>
     private lateinit var valueArrayDescr: Type
     private lateinit var addressArrayDescr: Type
 
-    class RecordingCtx(components: UComponents<Type>) : UContext(components) {
+    class RecordingCtx(components: UComponents<Type>) : UContextBv32Size(components) {
         var storeCallCounter = 0
             private set
 
@@ -137,7 +137,7 @@ class TranslationTest {
         val val2 = mkBv(2)
 
 
-        val region = UInputArrayId(valueArrayDescr, bv32Sort)
+        val region = UInputArrayId<_, _, USizeSort>(valueArrayDescr, bv32Sort)
             .emptyRegion()
             .write(ref1 to idx1, val1, trueExpr)
             .write(ref2 to idx2, val2, trueExpr)
@@ -168,7 +168,7 @@ class TranslationTest {
         val idx2 = mkRegisterReading(3, sizeSort)
         val val2 = mkBv(2)
 
-        val region = UInputArrayId(valueArrayDescr, bv32Sort)
+        val region = UInputArrayId<_, _, USizeSort>(valueArrayDescr, bv32Sort)
             .emptyRegion()
             .write(ref1 to idx1, val1, trueExpr)
             .write(ref2 to idx2, val2, trueExpr)
@@ -180,10 +180,10 @@ class TranslationTest {
             ref1 to mkSizeExpr(0),
             mkSizeExpr(0),
             mkSizeExpr(5),
-            USizeExprKeyInfo
+            ctx.sizeExprKeyInfo
         )
 
-        val concreteRegion = UAllocatedArrayId(valueArrayDescr, bv32Sort, concreteRef.address)
+        val concreteRegion = UAllocatedArrayId<_, _, USizeSort>(valueArrayDescr, bv32Sort, concreteRef.address)
             .emptyRegion()
             .copyRange(region, adapter, trueExpr)
 
@@ -276,7 +276,7 @@ class TranslationTest {
         val idx2 = mkRegisterReading(3, sizeSort)
         val val2 = mkBv(2)
 
-        val inputRegion1 = UInputArrayId(valueArrayDescr, bv32Sort)
+        val inputRegion1 = UInputArrayId<_, _, USizeSort>(valueArrayDescr, bv32Sort)
             .emptyRegion()
             .write(ref1 to idx1, val1, trueExpr)
             .write(ref2 to idx2, val2, trueExpr)
@@ -286,10 +286,10 @@ class TranslationTest {
             ref1 to mkSizeExpr(0),
             ref1 to mkSizeExpr(0),
             ref1 to mkSizeExpr(5),
-            USymbolicArrayIndexKeyInfo
+            ctx.arrayIndexKeyInfo
         )
 
-        var inputRegion2 = UInputArrayId(valueArrayDescr, bv32Sort).emptyRegion()
+        var inputRegion2 = UInputArrayId<_, _, USizeSort>(valueArrayDescr, bv32Sort).emptyRegion()
 
         val idx = mkRegisterReading(4, sizeSort)
         val reading1 = inputRegion2.read(ref2 to idx)
@@ -376,7 +376,7 @@ class TranslationTest {
         val idx2 = mkRegisterReading(3, sizeSort)
         val val2 = mkRegisterReading(5, addressSort)
 
-        val inputRegion1 = UInputArrayId(valueArrayDescr, addressSort)
+        val inputRegion1 = UInputArrayId<_, _, USizeSort>(valueArrayDescr, addressSort)
             .emptyRegion()
             .write(ref1 to idx1, val1, trueExpr)
             .write(ref2 to idx2, val2, trueExpr)
@@ -385,10 +385,10 @@ class TranslationTest {
             ref1 to mkSizeExpr(0),
             ref1 to mkSizeExpr(0),
             ref1 to mkSizeExpr(5),
-            USymbolicArrayIndexKeyInfo
+            ctx.arrayIndexKeyInfo
         )
 
-        var inputRegion2 = UInputArrayId(valueArrayDescr, addressSort).emptyRegion()
+        var inputRegion2 = UInputArrayId<_, _, USizeSort>(valueArrayDescr, addressSort).emptyRegion()
 
         val idx = mkRegisterReading(4, sizeSort)
         val reading1 = inputRegion2.read(ref2 to idx)
@@ -417,16 +417,16 @@ class TranslationTest {
         val idx2 = mkRegisterReading(3, sizeSort)
         val val2 = mkRegisterReading(5, addressSort)
 
-        val allocatedRegion1 = UAllocatedArrayId(valueArrayDescr, addressSort, 1)
+        val allocatedRegion1 = UAllocatedArrayId<_, _, USizeSort>(valueArrayDescr, addressSort, 1)
             .emptyRegion()
             .write(idx1, val1, trueExpr)
             .write(idx2, val2, trueExpr)
 
         val adapter = USymbolicArrayAllocatedToAllocatedCopyAdapter(
-            mkSizeExpr(0), mkSizeExpr(0), mkSizeExpr(5), USizeExprKeyInfo
+            mkSizeExpr(0), mkSizeExpr(0), mkSizeExpr(5), ctx.sizeExprKeyInfo
         )
 
-        var allocatedRegion2 = UAllocatedArrayId(valueArrayDescr, addressSort, 2)
+        var allocatedRegion2 = UAllocatedArrayId<_, _, USizeSort>(valueArrayDescr, addressSort, 2)
             .emptyRegion()
 
         val idx = mkRegisterReading(4, sizeSort)
@@ -451,7 +451,7 @@ class TranslationTest {
 
     @Test
     fun testCachingOfTranslatedMemoryUpdates() = with(ctx) {
-        val allocatedRegion = UAllocatedArrayId(valueArrayDescr, sizeSort, 0)
+        val allocatedRegion = UAllocatedArrayId<_, _, USizeSort>(valueArrayDescr, sizeSort, 0)
             .emptyRegion()
             .write(mkRegisterReading(0, sizeSort), mkBv(0), trueExpr)
             .write(mkRegisterReading(1, sizeSort), mkBv(1), trueExpr)

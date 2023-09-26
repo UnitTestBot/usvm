@@ -10,6 +10,8 @@ import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.UComponents
 import org.usvm.UContext
+import org.usvm.UContextBv32Size
+import org.usvm.USizeSort
 import org.usvm.constraints.UPathConstraints
 import org.usvm.collection.array.length.UInputArrayLengthId
 import org.usvm.model.ULazyModelDecoder
@@ -20,18 +22,18 @@ import kotlin.test.assertSame
 private typealias Type = SingleTypeSystem.SingleType
 
 open class SoftConstraintsTest<Field> {
-    private lateinit var ctx: UContext
-    private lateinit var softConstraintsProvider: USoftConstraintsProvider<Type>
-    private lateinit var translator: UExprTranslator<Type>
+    private lateinit var ctx: UContext<USizeSort>
+    private lateinit var softConstraintsProvider: USoftConstraintsProvider<Type, *>
+    private lateinit var translator: UExprTranslator<Type, *>
     private lateinit var decoder: ULazyModelDecoder<Type>
-    private lateinit var solver: USolverBase<Type, UContext>
+    private lateinit var solver: USolverBase<Type, UContext<*>>
 
     @BeforeEach
     fun initialize() {
         val components: UComponents<Type> = mockk()
         every { components.mkTypeSystem(any()) } returns SingleTypeSystem
 
-        ctx = UContext(components)
+        ctx = UContextBv32Size(components)
         softConstraintsProvider = USoftConstraintsProvider(ctx)
 
         val translatorWithDecoder = buildTranslatorAndLazyDecoder<Type>(ctx)
@@ -48,7 +50,7 @@ open class SoftConstraintsTest<Field> {
         val sndRegister = mkRegisterReading(idx = 1, bv32Sort)
         val expr = mkBvSignedLessOrEqualExpr(fstRegister, sndRegister)
 
-        val pc = UPathConstraints<Type, UContext>(ctx)
+        val pc = UPathConstraints<Type, UContext<*>>(ctx)
         pc += expr
 
         val result = solver.checkWithSoftConstraints(pc) as USatResult
@@ -71,17 +73,18 @@ open class SoftConstraintsTest<Field> {
         val sndExpr = mkBvSignedLessOrEqualExpr(sndRegister, thirdRegister)
         val sameAsFirstExpr = mkBvSignedLessOrEqualExpr(fstRegister, sndRegister)
 
-        val softConstraintsProvider = mockk<USoftConstraintsProvider<Type>>()
+        val softConstraintsProvider = mockk<USoftConstraintsProvider<Type, *>>()
 
         every { softConstraintsProvider.provide(any()) } answers { callOriginal() }
 
-        val pc = UPathConstraints<Type, UContext>(ctx)
+        val pc = UPathConstraints<Type, UContext<*>>(ctx)
         pc += fstExpr
         pc += sndExpr
         pc += sameAsFirstExpr
 
         val typeSolver = UTypeSolver<Type>(mockk())
-        val solver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder, softConstraintsProvider)
+        val solver: USolverBase<Type, UContext<*>> =
+            USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder, softConstraintsProvider)
 
         val result = solver.checkWithSoftConstraints(pc) as USatResult
         val model = result.model
@@ -122,7 +125,7 @@ open class SoftConstraintsTest<Field> {
 
         val reading = region.read(secondInputRef)
 
-        val pc = UPathConstraints<Type, UContext>(ctx)
+        val pc = UPathConstraints<Type, UContext<*>>(ctx)
         pc += reading eq size.toBv()
         pc += inputRef eq secondInputRef
         pc += (inputRef eq nullRef).not()
@@ -143,7 +146,7 @@ open class SoftConstraintsTest<Field> {
             .emptyRegion()
             .write(inputRef, mkRegisterReading(3, sizeSort), guard = trueExpr)
 
-        val pc = UPathConstraints<Type, UContext>(ctx)
+        val pc = UPathConstraints<Type, UContext<*>>(ctx)
         pc += (inputRef eq nullRef).not()
         val result = (solver.checkWithSoftConstraints(pc)) as USatResult
 
@@ -159,7 +162,7 @@ open class SoftConstraintsTest<Field> {
         val bvValue = 0.toBv()
         val expression = mkBvSignedLessOrEqualExpr(bvValue, inputRef).not()
 
-        val pc = UPathConstraints<Type, UContext>(ctx)
+        val pc = UPathConstraints<Type, UContext<*>>(ctx)
         pc += expression
         val result = (solver.checkWithSoftConstraints(pc)) as USatResult
 

@@ -24,9 +24,9 @@ interface UModelDecoder<Model> {
  * alive.
  */
 fun <Type> buildTranslatorAndLazyDecoder(
-    ctx: UContext,
-): Pair<UExprTranslator<Type>, ULazyModelDecoder<Type>> {
-    val translator = UExprTranslator<Type>(ctx)
+    ctx: UContext<*>,
+): Pair<UExprTranslator<Type, *>, ULazyModelDecoder<Type>> {
+    val translator = UExprTranslator<Type, _>(ctx)
     val decoder = ULazyModelDecoder(translator)
 
     return translator to decoder
@@ -41,9 +41,9 @@ typealias AddressesMapping = Map<UExpr<UAddressSort>, UConcreteHeapRef>
  * @param translator an expression translator used for encoding constraints.
  */
 open class ULazyModelDecoder<Type>(
-    protected val translator: UExprTranslator<Type>,
+    protected val translator: UExprTranslator<Type, *>,
 ) : UModelDecoder<UModelBase<Type>> {
-    private val ctx: UContext = translator.ctx
+    private val ctx: UContext<*> = translator.ctx
 
     private val translatedNullRef = translator.translate(ctx.nullRef)
 

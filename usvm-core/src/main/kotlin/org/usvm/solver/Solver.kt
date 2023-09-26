@@ -29,13 +29,13 @@ abstract class USolver<in Query, out Model> {
     abstract fun check(query: Query): USolverResult<Model>
 }
 
-open class USolverBase<Type, Context : UContext>(
+open class USolverBase<Type, Context : UContext<*>>(
     protected val ctx: Context,
     protected val smtSolver: KSolver<*>,
     protected val typeSolver: UTypeSolver<Type>,
-    protected val translator: UExprTranslator<Type>,
+    protected val translator: UExprTranslator<Type, *>,
     protected val decoder: UModelDecoder<UModelBase<Type>>,
-    protected val softConstraintsProvider: USoftConstraintsProvider<Type>,
+    protected val softConstraintsProvider: USoftConstraintsProvider<Type, *>,
 ) : USolver<UPathConstraints<Type, Context>, UModelBase<Type>>(), AutoCloseable {
 
     protected fun translateLogicalConstraints(constraints: Iterable<UBoolExpr>) {

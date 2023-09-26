@@ -13,17 +13,18 @@ import org.usvm.UNullRef
 import org.usvm.USort
 import org.usvm.UTransformer
 import org.usvm.asTypedTransformer
+import org.usvm.withSizeSort
 import org.usvm.collection.map.USymbolicMapKey
 import org.usvm.regions.Region
 
 class UAllocatedMapReading<MapType, KeySort : USort, Sort : USort, Reg: Region<Reg>> internal constructor(
-    ctx: UContext,
+    ctx: UContext<*>,
     collection: UAllocatedMap<MapType, KeySort, Sort, Reg>,
     val key: UExpr<KeySort>,
 ) : UCollectionReading<UAllocatedMapId<MapType, KeySort, Sort, Reg>, UExpr<KeySort>, Sort>(ctx, collection) {
 
     override fun accept(transformer: KTransformerBase): KExpr<Sort> {
-        require(transformer is UTransformer<*>) { "Expected a UTransformer, but got: $transformer" }
+        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
         return transformer.asTypedTransformer<MapType>().transform(this)
     }
 
@@ -45,7 +46,7 @@ class UAllocatedMapReading<MapType, KeySort : USort, Sort : USort, Reg: Region<R
 }
 
 class UInputMapReading<MapType, KeySort : USort, Sort : USort, Reg: Region<Reg>> internal constructor(
-    ctx: UContext,
+    ctx: UContext<*>,
     collection: UInputMap<MapType, KeySort, Sort, Reg>,
     val address: UHeapRef,
     val key: UExpr<KeySort>
@@ -55,7 +56,7 @@ class UInputMapReading<MapType, KeySort : USort, Sort : USort, Reg: Region<Reg>>
     }
 
     override fun accept(transformer: KTransformerBase): KExpr<Sort> {
-        require(transformer is UTransformer<*>) { "Expected a UTransformer, but got: $transformer" }
+        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
         return transformer.asTypedTransformer<MapType>().transform(this)
     }
 

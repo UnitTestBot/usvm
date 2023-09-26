@@ -7,18 +7,20 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.usvm.UComponents
 import org.usvm.UContext
+import org.usvm.UContextBv32Size
+import org.usvm.USizeSort
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 class EqualityConstraintsTests {
-    private lateinit var ctx: UContext
+    private lateinit var ctx: UContext<USizeSort>
     private lateinit var constraints: UEqualityConstraints
 
     @BeforeEach
     fun initializeContext() {
         val components: UComponents<*> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
-        ctx = UContext(components)
+        ctx = UContextBv32Size(components)
         constraints = UEqualityConstraints(ctx)
     }
 

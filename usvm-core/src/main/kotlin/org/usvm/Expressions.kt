@@ -35,12 +35,10 @@ typealias USort = KSort
 typealias UBoolSort = KBoolSort
 typealias UBvSort = KBvSort
 typealias UBv32Sort = KBv32Sort
-typealias USizeSort = KBv32Sort
 typealias UFpSort = KFpSort
 
 typealias UExpr<Sort> = KExpr<Sort>
 typealias UBoolExpr = UExpr<UBoolSort>
-typealias USizeExpr = UExpr<USizeSort>
 typealias UTrue = KTrue
 typealias UFalse = KFalse
 typealias UAndExpr = KAndExpr
@@ -60,7 +58,7 @@ typealias USizeType = Int
 
 //endregion
 
-abstract class USymbol<Sort : USort>(ctx: UContext) : UExpr<Sort>(ctx)
+abstract class USymbol<Sort : USort>(ctx: UContext<*>) : UExpr<Sort>(ctx)
 
 //region Object References
 
@@ -109,14 +107,14 @@ val UConcreteHeapRef.isAllocated: Boolean get() = address >= INITIAL_CONCRETE_AD
 val UConcreteHeapRef.isStatic: Boolean get() = address <= INITIAL_STATIC_ADDRESS
 
 class UConcreteHeapRefDecl internal constructor(
-    ctx: UContext,
+    ctx: UContext<*>,
     val address: UConcreteHeapAddress,
 ) : KConstDecl<UAddressSort>(ctx, "0x$address", ctx.addressSort) {
     override fun apply(args: List<KExpr<*>>): KApp<UAddressSort, *> = uctx.mkConcreteHeapRef(address)
 }
 
 class UConcreteHeapRef internal constructor(
-    ctx: UContext,
+    ctx: UContext<*>,
     val address: UConcreteHeapAddress,
 ) : UIntepretedValue<UAddressSort>(ctx) {
 
@@ -125,7 +123,7 @@ class UConcreteHeapRef internal constructor(
     override val sort: UAddressSort = ctx.addressSort
 
     override fun accept(transformer: KTransformerBase): KExpr<UAddressSort> {
-        require(transformer is UTransformer<*>) { "Expected a UTransformer, but got: $transformer" }
+        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
         return transformer.transform(this)
     }
 
@@ -139,13 +137,13 @@ class UConcreteHeapRef internal constructor(
 }
 
 class UNullRef internal constructor(
-    ctx: UContext,
+    ctx: UContext<*>,
 ) : USymbolicHeapRef(ctx) {
     override val sort: UAddressSort
         get() = uctx.addressSort
 
     override fun accept(transformer: KTransformerBase): KExpr<UAddressSort> {
-        require(transformer is UTransformer<*>) { "Expected a UTransformer, but got: $transformer" }
+        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
         return transformer.transform(this)
     }
 
@@ -193,12 +191,12 @@ const val INITIAL_STATIC_ADDRESS = -(1 shl 20) // Use value not less than UNINTE
 //region Read Expressions
 
 class URegisterReading<Sort : USort> internal constructor(
-    ctx: UContext,
+    ctx: UContext<*>,
     val idx: Int,
     override val sort: Sort,
 ) : USymbol<Sort>(ctx) {
     override fun accept(transformer: KTransformerBase): KExpr<Sort> {
-        require(transformer is UTransformer<*>) { "Expected a UTransformer, but got: $transformer" }
+        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
         return transformer.transform(this)
     }
 
@@ -212,7 +210,7 @@ class URegisterReading<Sort : USort> internal constructor(
 }
 
 abstract class UCollectionReading<CollectionId : USymbolicCollectionId<Key, Sort, CollectionId>, Key, Sort : USort>(
-    ctx: UContext,
+    ctx: UContext<*>,
     val collection: USymbolicCollection<CollectionId, Key, Sort>
 ) : USymbol<Sort>(ctx) {
     override val sort: Sort get() = collection.sort
@@ -222,17 +220,17 @@ abstract class UCollectionReading<CollectionId : USymbolicCollectionId<Key, Sort
 
 //region Mocked Expressions
 
-abstract class UMockSymbol<Sort : USort>(ctx: UContext, override val sort: Sort) : USymbol<Sort>(ctx)
+abstract class UMockSymbol<Sort : USort>(ctx: UContext<*>, override val sort: Sort) : USymbol<Sort>(ctx)
 
 // TODO: make indices compositional!
 class UIndexedMethodReturnValue<Method, Sort : USort> internal constructor(
-    ctx: UContext,
+    ctx: UContext<*>,
     val method: Method,
     val callIndex: Int,
     override val sort: Sort,
 ) : UMockSymbol<Sort>(ctx, sort) {
     override fun accept(transformer: KTransformerBase): KExpr<Sort> {
-        require(transformer is UTransformer<*>) { "Expected a UTransformer, but got: $transformer" }
+        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
         return transformer.transform(this)
     }
 
@@ -250,7 +248,7 @@ class UIndexedMethodReturnValue<Method, Sort : USort> internal constructor(
 //region Subtyping Expressions
 
 abstract class UIsExpr<Type> internal constructor(
-    ctx: UContext,
+    ctx: UContext<*>,
     val ref: UHeapRef,
 ) : USymbol<UBoolSort>(ctx) {
     final override val sort = ctx.boolSort
@@ -261,12 +259,12 @@ abstract class UIsExpr<Type> internal constructor(
  * inheritance is checked only on non-null refs.
  */
 class UIsSubtypeExpr<Type> internal constructor(
-    ctx: UContext,
+    ctx: UContext<*>,
     ref: UHeapRef,
     val supertype: Type,
 ) : UIsExpr<Type>(ctx, ref) {
     override fun accept(transformer: KTransformerBase): UBoolExpr {
-        require(transformer is UTransformer<*>) { "Expected a UTransformer, but got: $transformer" }
+        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
         return transformer.asTypedTransformer<Type>().transform(this)
     }
 
@@ -284,12 +282,12 @@ class UIsSubtypeExpr<Type> internal constructor(
  * inheritance is checked only on non-null refs.
  */
 class UIsSupertypeExpr<Type> internal constructor(
-    ctx: UContext,
+    ctx: UContext<*>,
     ref: UHeapRef,
     val subtype: Type,
 ) : UIsExpr<Type>(ctx, ref) {
     override fun accept(transformer: KTransformerBase): UBoolExpr {
-        require(transformer is UTransformer<*>) { "Expected a UTransformer, but got: $transformer" }
+        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
         return transformer.asTypedTransformer<Type>().transform(this)
     }
 

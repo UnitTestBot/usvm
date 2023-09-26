@@ -4,7 +4,6 @@ import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
-import org.usvm.USizeExpr
 import org.usvm.USort
 import org.usvm.memory.UMemory
 import org.usvm.memory.UReadOnlyMemory
@@ -14,6 +13,7 @@ import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.types.UTypeStream
 import org.usvm.uctx
+import org.usvm.withSizeSort
 import org.usvm.collection.array.memcpy as memcpyInternal
 import org.usvm.collection.array.memset as memsetInternal
 import org.usvm.collection.array.allocateArray as allocateArrayInternal
@@ -29,66 +29,67 @@ fun <Field, Sort : USort> UReadOnlyMemory<*>.readField(
     ref: UHeapRef, field: Field, sort: Sort
 ): UExpr<Sort> = read(UFieldLValue(sort, ref, field))
 
-fun <ArrayType, Sort : USort> UReadOnlyMemory<*>.readArrayIndex(
-    ref: UHeapRef, index: USizeExpr, arrayType: ArrayType, sort: Sort
+fun <ArrayType, Sort : USort, USizeSort : USort> UReadOnlyMemory<*>.readArrayIndex(
+    ref: UHeapRef, index: UExpr<USizeSort>, arrayType: ArrayType, sort: Sort
 ): UExpr<Sort> = read(UArrayIndexLValue(sort, ref, index, arrayType))
 
-fun <ArrayType> UReadOnlyMemory<*>.readArrayLength(
+fun <ArrayType, USizeSort : USort> UReadOnlyMemory<*>.readArrayLength(
     ref: UHeapRef, arrayType: ArrayType
-): USizeExpr = read(UArrayLengthLValue(ref, arrayType))
+): UExpr<USizeSort> = read(UArrayLengthLValue(ref, arrayType))
 
 fun <Field, Sort : USort> UWritableMemory<*>.writeField(
     ref: UHeapRef, field: Field, sort: Sort, value: UExpr<Sort>, guard: UBoolExpr
 ) = write(UFieldLValue(sort, ref, field), value, guard)
 
-fun <ArrayType, Sort : USort> UWritableMemory<*>.writeArrayIndex(
-    ref: UHeapRef, index: USizeExpr, type: ArrayType, sort: Sort, value: UExpr<Sort>, guard: UBoolExpr
+fun <ArrayType, Sort : USort, USizeSort : USort> UWritableMemory<*>.writeArrayIndex(
+    ref: UHeapRef, index: UExpr<USizeSort>, type: ArrayType, sort: Sort, value: UExpr<Sort>, guard: UBoolExpr
 ) = write(UArrayIndexLValue(sort, ref, index, type), value, guard)
 
-fun <ArrayType> UWritableMemory<*>.writeArrayLength(
-    ref: UHeapRef, size: USizeExpr, arrayType: ArrayType
+fun <ArrayType, USizeSort : USort> UWritableMemory<*>.writeArrayLength(
+    ref: UHeapRef, size: UExpr<USizeSort>, arrayType: ArrayType
 ) = write(UArrayLengthLValue(ref, arrayType), size, ref.uctx.trueExpr)
 
 
-fun <ArrayType, Sort : USort> UWritableMemory<*>.memcpy(
+fun <ArrayType, Sort : USort, USizeSort : USort> UWritableMemory<*>.memcpy(
     srcRef: UHeapRef,
     dstRef: UHeapRef,
     type: ArrayType,
     elementSort: Sort,
-    fromSrcIdx: USizeExpr,
-    fromDstIdx: USizeExpr,
-    toDstIdx: USizeExpr,
+    fromSrcIdx: UExpr<USizeSort>,
+    fromDstIdx: UExpr<USizeSort>,
+    toDstIdx: UExpr<USizeSort>,
     guard: UBoolExpr,
 ) {
     memcpyInternal(srcRef, dstRef, type, elementSort, fromSrcIdx, fromDstIdx, toDstIdx, guard)
 }
 
-fun <ArrayType, Sort : USort> UWritableMemory<*>.memcpy(
+fun <ArrayType, Sort : USort, USizeSort : USort> UWritableMemory<*>.memcpy(
     srcRef: UHeapRef,
     dstRef: UHeapRef,
     type: ArrayType,
     elementSort: Sort,
-    fromSrc: USizeExpr,
-    fromDst: USizeExpr,
-    length: USizeExpr,
+    fromSrc: UExpr<USizeSort>,
+    fromDst: UExpr<USizeSort>,
+    length: UExpr<USizeSort>,
 ) {
-    val toDst = with(srcRef.uctx) { mkBvAddExpr(fromDst, mkBvSubExpr(length, mkSizeExpr(1))) }
+    // TODO
+    val toDst = with(srcRef.uctx.withSizeSort<USizeSort>()) { mkSizeAddExpr(fromDst, mkSizeSubExpr(length, mkSizeExpr(1))) }
     memcpy(srcRef, dstRef, type, elementSort, fromSrc, fromDst, toDst, guard = srcRef.ctx.trueExpr)
 }
 
-fun <ArrayType, Sort : USort> UWritableMemory<ArrayType>.memset(
+fun <ArrayType, Sort : USort, USizeSort : USort> UWritableMemory<ArrayType>.memset(
     ref: UHeapRef,
     type: ArrayType,
     sort: Sort,
     contents: Sequence<UExpr<Sort>>
 ) {
-    memsetInternal(ref, type, sort, contents)
+    memsetInternal<ArrayType, Sort, USizeSort>(ref, type, sort, contents)
 }
 
-fun <ArrayType> UWritableMemory<ArrayType>.allocateArray(
-    type: ArrayType, count: USizeExpr
+fun <ArrayType, USizeSort : USort> UWritableMemory<ArrayType>.allocateArray(
+    type: ArrayType, count: UExpr<USizeSort>
 ): UConcreteHeapRef = allocateArrayInternal(type, count)
 
-fun <ArrayType, Sort : USort> UWritableMemory<ArrayType>.allocateArrayInitialized(
+fun <ArrayType, Sort : USort, USizeSort : USort> UWritableMemory<ArrayType>.allocateArrayInitialized(
     type: ArrayType, sort: Sort, contents: Sequence<UExpr<Sort>>
-): UConcreteHeapRef = allocateArrayInitializedInternal(type, sort, contents)
+): UConcreteHeapRef = allocateArrayInitializedInternal<ArrayType, Sort, USizeSort>(type, sort, contents)
