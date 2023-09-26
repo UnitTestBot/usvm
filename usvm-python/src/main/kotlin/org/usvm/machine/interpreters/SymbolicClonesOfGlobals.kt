@@ -6,7 +6,8 @@ import org.usvm.language.SymbolForCPython
 object SymbolicClonesOfGlobals {
     private val clonesMap: MutableMap<String, SymbolForCPython> = mutableMapOf()
     init {
-        clonesMap["int"] = SymbolForCPython(null, ConcretePythonInterpreter.intConctructorRef)
+        clonesMap["int"] = SymbolForCPython(null, ConcretePythonInterpreter.intConstructorRef)
+        clonesMap["float"] = SymbolForCPython(null, ConcretePythonInterpreter.floatConstructorRef)
     }
 
     fun getNamedSymbols(): Array<NamedSymbolForCPython> =

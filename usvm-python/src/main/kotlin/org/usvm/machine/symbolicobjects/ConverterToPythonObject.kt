@@ -1,6 +1,5 @@
 package org.usvm.machine.symbolicobjects
 
-import io.ksmt.expr.KFp64Value
 import io.ksmt.expr.KInt32NumExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UHeapRef
@@ -69,9 +68,13 @@ class ConverterToPythonObject(
     }
 
     private fun convertFloat(obj: InterpretedInputSymbolicPythonObject): PythonObject {
-        val realValue = obj.getFloatContent(ctx)
-        val floatValue = ctx.mkRealToFpExpr(ctx.fp64Sort, ctx.floatRoundingMode, realValue) as KFp64Value
-        return ConcretePythonInterpreter.eval(emptyNamespace, floatValue.value.toString())
+        val cmd = when (val floatValue = obj.getFloatContent(ctx)) {
+            is FloatNan -> "float('nan')"
+            is FloatPlusInfinity -> "float('inf')"
+            is FloatMinusInfinity -> "float('-inf')"
+            is FloatNormalValue -> floatValue.value.toString()
+        }
+        return ConcretePythonInterpreter.eval(emptyNamespace, cmd)
     }
 
     private fun convertString(): PythonObject {

@@ -179,3 +179,8 @@ def input_list_of_float_pairs(x):
     if result == 10000.5:
         return 1
     return 2
+
+
+def list_concat(x: list, y: list):
+    z = x + y
+    assert len(z) == 5

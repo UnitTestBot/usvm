@@ -32,9 +32,44 @@ fun main() {
 private fun buildSampleRunConfig(): RunConfig {
     val (program, typeSystem) = constructPrimitiveProgram(
         """
-            def f(x: float):
-                # assert x < float('inf')
-                assert int(x / 2) == 5
+            def f(x: float, y: int):
+                plus_inf = float('inf')
+                assert x < plus_inf
+                minus_inf = float('-inf')
+                assert x > minus_inf
+                assert plus_inf * minus_inf < 0
+                plus_inf /= x * x
+                assert plus_inf == float('inf')
+                if x < 0:
+                    assert (plus_inf * x < 0)
+                    assert (x * plus_inf < 0)
+                    assert (plus_inf / x < 0)
+                    assert (x / plus_inf == 0)
+                    assert (plus_inf + x == plus_inf)
+                    assert (x + plus_inf == plus_inf)
+                    assert (plus_inf - x == plus_inf)
+                    assert (x - plus_inf == minus_inf)
+                    assert (minus_inf * x > 0)
+                    assert (x * minus_inf > 0)
+                    assert (minus_inf / x > 0)
+                    assert (x / minus_inf == 0)
+                    assert (minus_inf + x == minus_inf)
+                    assert (x + minus_inf == minus_inf)
+                    assert (minus_inf - x == minus_inf)
+                    assert (x - minus_inf == plus_inf)
+                    assert (plus_inf - plus_inf != plus_inf - plus_inf)
+                    return 1
+                elif x > 0:
+                    assert plus_inf * x > 0
+                    assert x * plus_inf > 0
+                    assert plus_inf / x > 0
+                    assert x / plus_inf == 0
+                    assert minus_inf * x < 0
+                    assert x * minus_inf < 0
+                    assert minus_inf / x < 0
+                    assert x / minus_inf == 0
+                    return 2
+                return "Unreachable"
         """.trimIndent()
     )
     val function = PythonUnpinnedCallable.constructCallableFromName(
@@ -85,8 +120,8 @@ private fun buildProjectRunConfig(): RunConfig {
                 return@mapNotNull null
             if (ignoreFunctions.contains(functionName))
                 return@mapNotNull null
-            // if (functionName != "heaps")
-            //     return@mapNotNull null
+            // if (functionName != "binary_search_insertion")
+            //    return@mapNotNull null
             println("$module.$functionName: ${type.pythonTypeRepresentation()}")
             PythonUnpinnedCallable.constructCallableFromName(
                 List(description.numberOfArguments) { PythonAnyType },
@@ -137,11 +172,11 @@ private fun analyze(runConfig: RunConfig) {
                 val iterations = activeMachine.analyze(
                     f,
                     results,
-                    maxIterations = 60,
+                    maxIterations = 70,
                     allowPathDiversion = true,
                     maxInstructions = 30_000,
-                    timeoutPerRunMs = 7_000,
-                    //timeoutMs = 20_000
+                    timeoutPerRunMs = 5_000,
+                    timeoutMs = 20_000
                 )
                 results.forEach { (_, inputs, result) ->
                     println("INPUT:")

@@ -83,6 +83,8 @@ JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_initializePython
     initialize_symbolic_methods_holder();
     SymbolicMethod *int_constructor = construct_int_constructor_method();
     SET_LONG_FIELD("symbolicIntConstructorRef", (jlong) int_constructor)
+    SymbolicMethod *float_constructor = construct_float_constructor_method();
+    SET_LONG_FIELD("symbolicFloatConstructorRef", (jlong) float_constructor)
 }
 
 JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_finalizePython(JNIEnv *env, jobject cpython_adapter) {
