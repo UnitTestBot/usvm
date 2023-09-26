@@ -19,6 +19,7 @@ void initialize_symbolic_methods_holder();
 // void clean_methods();
 SymbolicMethod *construct_list_append_method(JNIEnv *env, jobject symbolic_self);
 SymbolicMethod *construct_int_constructor_method();
+SymbolicMethod *construct_float_constructor_method();
 PyObject *call_symbolic_method(SymbolicMethod *method, SymbolicAdapter *adapter, PyObject *args, PyObject *kwargs);
 
 #ifdef __cplusplus

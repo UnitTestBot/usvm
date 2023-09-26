@@ -1,72 +1,309 @@
 package org.usvm.machine.interpreters.operations
 
-import io.ksmt.sort.KFp64Sort
-import io.ksmt.sort.KIntSort
-import io.ksmt.sort.KRealSort
-import io.ksmt.sort.KSort
 import org.usvm.UBoolExpr
-import org.usvm.UContext
 import org.usvm.UExpr
+import org.usvm.USort
 import org.usvm.interpreter.ConcolicRunContext
-import org.usvm.machine.UPythonContext
+import org.usvm.isTrue
+import org.usvm.machine.interpreters.CPythonExecutionException
+import org.usvm.machine.interpreters.ConcretePythonInterpreter
+import org.usvm.machine.interpreters.emptyNamespace
 import org.usvm.machine.symbolicobjects.*
 
-private fun <RES_SORT: KSort> createBinaryFloatOp(
-    op: (UPythonContext, UExpr<KRealSort>, UExpr<KRealSort>) -> UExpr<RES_SORT>?
-): (ConcolicRunContext, UninterpretedSymbolicPythonObject, UninterpretedSymbolicPythonObject) -> UninterpretedSymbolicPythonObject? = { ctx, left, right ->
-    if (ctx.curState == null)
-        null
-    else with (ctx.ctx) {
-        val typeSystem = ctx.typeSystem
-        val possibleTypes = listOf(typeSystem.pythonFloat, typeSystem.pythonInt, typeSystem.pythonBool)
-        addPossibleSupertypes(ctx, listOf(left, right), possibleTypes)
-        /*if (left.getTypeIfDefined(ctx) != typeSystem.pythonFloat)
-            myFork(ctx, left.evalIs(ctx, typeSystem.pythonFloat))
-        if (right.getTypeIfDefined(ctx) != typeSystem.pythonFloat)
-            myFork(ctx, right.evalIs(ctx, typeSystem.pythonFloat))*/
-        op(
-            ctx.ctx,
-            left.getToFloatContent(ctx) ?: return@with null,
-            right.getToFloatContent(ctx) ?: return@with null
-        )?.let {
-            @Suppress("unchecked_cast")
-            when (it.sort) {
-                realSort -> constructFloat(ctx, it as UExpr<KRealSort>)
-                intSort -> constructInt(ctx, it as UExpr<KIntSort>)
-                boolSort -> constructBool(ctx, it as UBoolExpr)
-                else -> error("Bad return sort of float operation: ${it.sort}")
-            }
-        }
-    }
+private fun gtFloat(ctx: ConcolicRunContext, left: FloatUninterpretedContent, right: FloatUninterpretedContent): UBoolExpr = with(ctx.ctx) {
+    mkIte(
+        right.isNan or left.isNan,
+        falseExpr,
+        mkIte(
+            left.isInf,
+            mkIte(
+                right.isInf,
+                left.infSign and right.infSign.not(),  // (left is inf) && (right is inf)
+                left.infSign  // (left is inf) && !(right is inf)
+            ),
+            mkIte(
+                right.isInf,
+                right.infSign.not(),  // !(left is inf) && (right is inf)
+                left.realValue gt right.realValue  // !(left is inf) && !(right is inf)
+            )
+        )
+    )
 }
 
-fun handlerGTFloatKt(x: ConcolicRunContext, y: UninterpretedSymbolicPythonObject, z: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? =
-    createBinaryFloatOp { ctx, left, right -> with(ctx) { left gt right } } (x, y, z)
-fun handlerLTFloatKt(x: ConcolicRunContext, y: UninterpretedSymbolicPythonObject, z: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? =
-    createBinaryFloatOp { ctx, left, right -> with(ctx) { left lt right } } (x, y, z)
-fun handlerEQFloatKt(x: ConcolicRunContext, y: UninterpretedSymbolicPythonObject, z: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? =
-    createBinaryFloatOp { ctx, left, right -> with(ctx) { left eq right } } (x, y, z)
-fun handlerNEFloatKt(x: ConcolicRunContext, y: UninterpretedSymbolicPythonObject, z: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? =
-    createBinaryFloatOp { ctx, left, right -> with(ctx) { left neq right } } (x, y, z)
-fun handlerGEFloatKt(x: ConcolicRunContext, y: UninterpretedSymbolicPythonObject, z: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? =
-    createBinaryFloatOp { ctx, left, right -> with(ctx) { left ge right} } (x, y, z)
-fun handlerLEFloatKt(x: ConcolicRunContext, y: UninterpretedSymbolicPythonObject, z: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? =
-    createBinaryFloatOp { ctx, left, right -> with(ctx) { left le right } } (x, y, z)
-fun handlerADDFloatKt(x: ConcolicRunContext, y: UninterpretedSymbolicPythonObject, z: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? =
-    createBinaryFloatOp { ctx, left, right -> with(ctx) { mkArithAdd(left, right) } } (x, y, z)
-fun handlerSUBFloatKt(x: ConcolicRunContext, y: UninterpretedSymbolicPythonObject, z: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? =
-    createBinaryFloatOp { ctx, left, right -> with(ctx) { mkArithSub(left, right) } } (x, y, z)
-fun handlerMULFloatKt(x: ConcolicRunContext, y: UninterpretedSymbolicPythonObject, z: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? =
-    createBinaryFloatOp { ctx, left, right -> with(ctx) { mkArithMul(left, right) } } (x, y, z)
-fun handlerDIVFloatKt(x: ConcolicRunContext, y: UninterpretedSymbolicPythonObject, z: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? =
-    createBinaryFloatOp { ctx, left, right -> with(ctx) { mkArithDiv(left, right) } } (x, y, z)
+private fun eqFloat(ctx: ConcolicRunContext, left: FloatUninterpretedContent, right: FloatUninterpretedContent): UBoolExpr = with(ctx.ctx) {
+    mkIte(
+        right.isNan or left.isNan,
+        falseExpr,
+        mkIte(
+            right.isInf or left.isInf,
+            (right.isInf eq left.isInf) and (right.infSign eq left.infSign),
+            left.realValue eq right.realValue
+        )
+    )
+}
+
+fun handlerGTFloatKt(ctx: ConcolicRunContext, leftObj: UninterpretedSymbolicPythonObject, rightObj: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
+    if (ctx.curState == null)
+        return null
+    val left = leftObj.getToFloatContent(ctx) ?: return null
+    val right = rightObj.getToFloatContent(ctx) ?: return null
+    val boolExpr: UBoolExpr = gtFloat(ctx, left, right)
+    return constructBool(ctx, boolExpr)
+}
+
+fun handlerLTFloatKt(ctx: ConcolicRunContext, left: UninterpretedSymbolicPythonObject, right: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? =
+    handlerGTFloatKt(ctx, right, left)
+
+fun handlerEQFloatKt(ctx: ConcolicRunContext, leftObj: UninterpretedSymbolicPythonObject, rightObj: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
+    if (ctx.curState == null)
+        return null
+    val left = leftObj.getToFloatContent(ctx) ?: return null
+    val right = rightObj.getToFloatContent(ctx) ?: return null
+    return constructBool(ctx, eqFloat(ctx, left, right))
+}
+
+
+fun handlerNEFloatKt(ctx: ConcolicRunContext, leftObj: UninterpretedSymbolicPythonObject, rightObj: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
+    if (ctx.curState == null)
+        return null
+    val left = leftObj.getToFloatContent(ctx) ?: return null
+    val right = rightObj.getToFloatContent(ctx) ?: return null
+    return constructBool(ctx, ctx.ctx.mkNot(eqFloat(ctx, left, right)))
+}
+
+
+fun handlerGEFloatKt(ctx: ConcolicRunContext, leftObj: UninterpretedSymbolicPythonObject, rightObj: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
+    if (ctx.curState == null)
+        return null
+    val left = leftObj.getToFloatContent(ctx) ?: return null
+    val right = rightObj.getToFloatContent(ctx) ?: return null
+    return constructBool(ctx, ctx.ctx.mkOr(eqFloat(ctx, left, right), gtFloat(ctx, left, right)))
+}
+
+fun handlerLEFloatKt(ctx: ConcolicRunContext, leftObj: UninterpretedSymbolicPythonObject, rightObj: UninterpretedSymbolicPythonObject) =
+    handlerGEFloatKt(ctx, rightObj, leftObj)
+
+
+private fun <Sort: USort> constructAddExprComponent(
+    ctx: ConcolicRunContext,
+    left: FloatUninterpretedContent,
+    right: FloatUninterpretedContent,
+    projection: (FloatUninterpretedContent) -> UExpr<Sort>
+): UExpr<Sort> =
+    with(ctx.ctx) {
+        mkIte(
+            left.isNan or right.isNan,
+            projection(mkUninterpretedNan(this)),
+            mkIte(
+                left.isInf,
+                mkIte(
+                    right.isInf,
+                    mkIte(
+                        left.infSign neq right.infSign,
+                        projection(mkUninterpretedNan(this)),
+                        projection(mkUninterpretedSignedInfinity(this, left.infSign))
+                    ),
+                    projection(left)
+                ),
+                mkIte(
+                    right.isInf,
+                    projection(right),
+                    projection(mkUninterpretedFloatWithValue(this, mkArithAdd(left.realValue, right.realValue)))
+                )
+            )
+        )
+    }
+
+private fun constructAddExpr(
+    ctx: ConcolicRunContext,
+    left: FloatUninterpretedContent,
+    right: FloatUninterpretedContent
+): FloatUninterpretedContent =
+    FloatUninterpretedContent(
+        constructAddExprComponent(ctx, left, right) { it.isNan },
+        constructAddExprComponent(ctx, left, right) { it.isInf },
+        constructAddExprComponent(ctx, left, right) { it.infSign },
+        constructAddExprComponent(ctx, left, right) { it.realValue }
+    )
+
+private fun <Sort: USort> constructNegExprComponent(
+    ctx: ConcolicRunContext,
+    value: FloatUninterpretedContent,
+    projection: (FloatUninterpretedContent) -> UExpr<Sort>
+): UExpr<Sort> =
+    with(ctx.ctx) {
+        mkIte(
+            value.isNan,
+            projection(mkUninterpretedNan(this)),
+            mkIte(
+                value.isInf,
+                projection(mkUninterpretedSignedInfinity(this, value.infSign.not())),
+                projection(mkUninterpretedFloatWithValue(this, mkArithUnaryMinus(value.realValue)))
+            )
+        )
+    }
+
+private fun constructNegExpr(
+    ctx: ConcolicRunContext,
+    value: FloatUninterpretedContent
+): FloatUninterpretedContent =
+    FloatUninterpretedContent(
+        constructNegExprComponent(ctx, value) { it.isNan },
+        constructNegExprComponent(ctx, value) { it.isInf },
+        constructNegExprComponent(ctx, value) { it.infSign },
+        constructNegExprComponent(ctx, value) { it.realValue }
+    )
+
+private fun <Sort: USort> constructMulExprComponent(
+    ctx: ConcolicRunContext,
+    left: FloatUninterpretedContent,
+    right: FloatUninterpretedContent,
+    projection: (FloatUninterpretedContent) -> UExpr<Sort>
+): UExpr<Sort> =
+    with(ctx.ctx) {
+        mkIte(
+            left.isNan or right.isNan,
+            projection(mkUninterpretedNan(this)),
+            mkIte(
+                left.isInf,
+                mkIte(
+                    right.isInf,
+                    projection(mkUninterpretedSignedInfinity(this, (left.infSign.not() xor right.infSign.not()).not())),
+                    mkIte(
+                        right.realValue eq mkRealNum(0),
+                        projection(mkUninterpretedNan(this)),
+                        projection(mkUninterpretedSignedInfinity(this, (left.infSign.not() xor (right.realValue lt mkRealNum(0))).not()))
+                    )
+                ),
+                mkIte(
+                    right.isInf,
+                    mkIte(
+                        left.realValue eq mkRealNum(0),
+                        projection(mkUninterpretedNan(this)),
+                        projection(mkUninterpretedSignedInfinity(this, (right.infSign.not() xor (left.realValue lt mkRealNum(0))).not()))
+                    ),
+                    projection(mkUninterpretedFloatWithValue(this, mkArithMul(left.realValue, right.realValue)))
+                )
+            )
+        )
+    }
+
+private fun constructMulExpr(
+    ctx: ConcolicRunContext,
+    left: FloatUninterpretedContent,
+    right: FloatUninterpretedContent
+): FloatUninterpretedContent =
+    FloatUninterpretedContent(
+        constructMulExprComponent(ctx, left, right) { it.isNan },
+        constructMulExprComponent(ctx, left, right) { it.isInf },
+        constructMulExprComponent(ctx, left, right) { it.infSign },
+        constructMulExprComponent(ctx, left, right) { it.realValue }
+    )
+
+private fun <Sort: USort> constructReverseExprComponent(
+    ctx: ConcolicRunContext,
+    value: FloatUninterpretedContent,
+    projection: (FloatUninterpretedContent) -> UExpr<Sort>
+): UExpr<Sort> =
+    with(ctx.ctx) {
+        mkIte(
+            value.isNan,
+            projection(mkUninterpretedNan(this)),
+            mkIte(
+                value.isInf,
+                projection(mkUninterpretedFloatWithValue(this, mkRealNum(0))),
+                projection(mkUninterpretedFloatWithValue(this, mkArithDiv(mkRealNum(1), value.realValue)))
+            )
+        )
+    }
+
+private fun constructReverseExpr(
+    ctx: ConcolicRunContext,
+    value: FloatUninterpretedContent
+): FloatUninterpretedContent =
+    FloatUninterpretedContent(
+        constructReverseExprComponent(ctx, value) { it.isNan },
+        constructReverseExprComponent(ctx, value) { it.isInf },
+        constructReverseExprComponent(ctx, value) { it.infSign },
+        constructReverseExprComponent(ctx, value) { it.realValue }
+    )
+
+fun handlerADDFloatKt(ctx: ConcolicRunContext, leftObj: UninterpretedSymbolicPythonObject, rightObj: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
+    if (ctx.curState == null)
+        return null
+    val left = leftObj.getToFloatContent(ctx) ?: return null
+    val right = rightObj.getToFloatContent(ctx) ?: return null
+    val floatValue = constructAddExpr(ctx, left, right)
+    return constructFloat(ctx, floatValue)
+}
+
+
+fun handlerSUBFloatKt(ctx: ConcolicRunContext, leftObj: UninterpretedSymbolicPythonObject, rightObj: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
+    if (ctx.curState == null)
+        return null
+    val left = leftObj.getToFloatContent(ctx) ?: return null
+    val right = rightObj.getToFloatContent(ctx) ?: return null
+    val floatValue = constructAddExpr(ctx, left, constructNegExpr(ctx, right))
+    return constructFloat(ctx, floatValue)
+}
+
+fun handlerMULFloatKt(ctx: ConcolicRunContext, leftObj: UninterpretedSymbolicPythonObject, rightObj: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
+    if (ctx.curState == null)
+        return null
+    val left = leftObj.getToFloatContent(ctx) ?: return null
+    val right = rightObj.getToFloatContent(ctx) ?: return null
+    val floatValue = constructMulExpr(ctx, left, right)
+    return constructFloat(ctx, floatValue)
+}
+
+fun handlerDIVFloatKt(ctx: ConcolicRunContext, leftObj: UninterpretedSymbolicPythonObject, rightObj: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
+    if (ctx.curState == null)
+        return null
+    val left = leftObj.getToFloatContent(ctx) ?: return null
+    val right = rightObj.getToFloatContent(ctx) ?: return null
+    myFork(ctx, eqFloat(ctx, right, mkUninterpretedFloatWithValue(ctx.ctx, 0.0)))
+    val floatValue = constructMulExpr(ctx, left, constructReverseExpr(ctx, right))
+    return constructFloat(ctx, floatValue)
+}
 
 fun castFloatToInt(
     ctx: ConcolicRunContext,
     float: UninterpretedSymbolicPythonObject
-): UninterpretedSymbolicPythonObject {
+): UninterpretedSymbolicPythonObject? {
     require(float.getTypeIfDefined(ctx) == ctx.typeSystem.pythonFloat)
     val value = float.getFloatContent(ctx)
-    val intValue = ctx.ctx.mkRealToInt(value)
+    myFork(ctx, ctx.ctx.mkOr(value.isNan, value.isInf))
+    if (ctx.modelHolder.model.eval(value.isNan).isTrue || ctx.modelHolder.model.eval(value.isInf).isTrue)
+        return null
+    val intValue = ctx.ctx.mkRealToInt(value.realValue)
     return constructInt(ctx, intValue)
+}
+
+private fun strToFloat(ctx: ConcolicRunContext, obj: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
+    require(ctx.curState != null && obj.getTypeIfDefined(ctx) == ctx.typeSystem.pythonStr)
+    val str = ctx.curState!!.preAllocatedObjects.concreteString(obj)?.lowercase() ?: return null
+    if (str == "inf" || str == "infinity")
+        return constructFloat(ctx, mkUninterpretedPlusInfinity(ctx.ctx))
+    if (str == "-inf" || str == "-infinity")
+        return constructFloat(ctx, mkUninterpretedMinusInfinity(ctx.ctx))
+    return null
+}
+
+fun handlerFloatCastKt(
+    ctx: ConcolicRunContext,
+    arg: UninterpretedSymbolicPythonObject
+): UninterpretedSymbolicPythonObject? {
+    if (ctx.curState == null)
+        return null
+    val typeSystem = ctx.typeSystem
+    val type = arg.getTypeIfDefined(ctx) ?: return null
+    return when (type) {
+        typeSystem.pythonBool, typeSystem.pythonInt -> {
+            val realValue = ctx.ctx.intToFloat(arg.getToIntContent(ctx)!!)
+            constructFloat(ctx, mkUninterpretedFloatWithValue(ctx.ctx, realValue))
+        }
+        typeSystem.pythonFloat -> arg
+        typeSystem.pythonStr -> strToFloat(ctx, arg)
+        else -> null
+    }
 }

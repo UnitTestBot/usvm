@@ -1,9 +1,11 @@
 package org.usvm.machine.symbolicobjects
 
+import io.ksmt.expr.KFp64Value
 import io.ksmt.expr.KInterpretedValue
 import io.ksmt.sort.KBoolSort
 import io.ksmt.sort.KIntSort
 import io.ksmt.sort.KRealSort
+import io.ksmt.utils.ArithUtils
 import org.usvm.UBoolExpr
 import org.usvm.UExpr
 import org.usvm.UHeapRef
@@ -66,28 +68,74 @@ object FloatPlusInfinity: FloatInterpretedContent()
 object FloatMinusInfinity: FloatInterpretedContent()
 data class FloatNormalValue(val value: Double): FloatInterpretedContent()
 
-fun InterpretedInputSymbolicPythonObject.getFloatContent(ctx: UPythonContext): KInterpretedValue<KRealSort> {
+fun InterpretedInputSymbolicPythonObject.getFloatContent(ctx: UPythonContext): FloatInterpretedContent {
     require(getConcreteType() == typeSystem.pythonFloat)
-    return modelHolder.model.readField(address, FloatContents.content, ctx.realSort)
+    val isNan = modelHolder.model.readField(address, FloatContents.isNan, ctx.boolSort)
+    if (isNan.isTrue)
+        return FloatNan
+    val isInf = modelHolder.model.readField(address, FloatContents.isInf, ctx.boolSort)
+    if (isInf.isTrue) {
+        val isPositive = modelHolder.model.readField(address, FloatContents.infSign, ctx.boolSort)
+        return if (isPositive.isTrue) FloatPlusInfinity else FloatMinusInfinity
+    }
+    val realValue = modelHolder.model.readField(address, FloatContents.content, ctx.realSort)
+    val floatValue = ctx.mkRealToFpExpr(ctx.fp64Sort, ctx.floatRoundingMode, realValue) as KFp64Value
+    return FloatNormalValue(floatValue.value)
 }
 
-fun UninterpretedSymbolicPythonObject.setFloatContent(ctx: ConcolicRunContext, expr: UExpr<KRealSort>) {
+data class FloatUninterpretedContent(
+    val isNan: UBoolExpr,
+    val isInf: UBoolExpr,
+    val infSign: UBoolExpr,
+    val realValue: UExpr<KRealSort>
+)
+
+fun mkUninterpretedNan(ctx: UPythonContext): FloatUninterpretedContent =
+    FloatUninterpretedContent(ctx.trueExpr, ctx.falseExpr, ctx.falseExpr, ctx.mkRealNum(0))
+
+fun mkUninterpretedPlusInfinity(ctx: UPythonContext): FloatUninterpretedContent =
+    FloatUninterpretedContent(ctx.falseExpr, ctx.trueExpr, ctx.trueExpr, ctx.mkRealNum(0))
+
+fun mkUninterpretedMinusInfinity(ctx: UPythonContext): FloatUninterpretedContent =
+    FloatUninterpretedContent(ctx.falseExpr, ctx.trueExpr, ctx.falseExpr, ctx.mkRealNum(0))
+
+fun mkUninterpretedSignedInfinity(ctx: UPythonContext, infSign: UBoolExpr): FloatUninterpretedContent =
+    FloatUninterpretedContent(ctx.falseExpr, ctx.trueExpr, infSign, ctx.mkRealNum(0))
+
+fun mkUninterpretedFloatWithValue(ctx: UPythonContext, value: Double): FloatUninterpretedContent =
+    FloatUninterpretedContent(ctx.falseExpr, ctx.falseExpr, ctx.falseExpr, ctx.mkFpToRealExpr(ctx.mkFp64(value)))
+
+fun mkUninterpretedFloatWithValue(ctx: UPythonContext, value: UExpr<KRealSort>): FloatUninterpretedContent =
+    FloatUninterpretedContent(ctx.falseExpr, ctx.falseExpr, ctx.falseExpr, value)
+
+fun UninterpretedSymbolicPythonObject.setFloatContent(ctx: ConcolicRunContext, expr: FloatUninterpretedContent) {
     require(ctx.curState != null)
     addSupertypeSoft(ctx, typeSystem.pythonFloat)
-    ctx.curState!!.memory.writeField(address, FloatContents.content, ctx.ctx.realSort, expr, ctx.ctx.trueExpr)
+    ctx.curState!!.memory.writeField(address, FloatContents.isNan, ctx.ctx.boolSort, expr.isNan, ctx.ctx.trueExpr)
+    ctx.curState!!.memory.writeField(address, FloatContents.isInf, ctx.ctx.boolSort, expr.isInf, ctx.ctx.trueExpr)
+    ctx.curState!!.memory.writeField(address, FloatContents.infSign, ctx.ctx.boolSort, expr.infSign, ctx.ctx.trueExpr)
+    ctx.curState!!.memory.writeField(address, FloatContents.content, ctx.ctx.realSort, expr.realValue, ctx.ctx.trueExpr)
 }
 
-fun UninterpretedSymbolicPythonObject.getFloatContent(ctx: ConcolicRunContext): UExpr<KRealSort> {
+fun UninterpretedSymbolicPythonObject.getFloatContent(ctx: ConcolicRunContext): FloatUninterpretedContent {
     require(ctx.curState != null)
     addSupertype(ctx, typeSystem.pythonFloat)
-    return ctx.curState!!.memory.readField(address, FloatContents.content, ctx.ctx.realSort)
+    return FloatUninterpretedContent(
+        ctx.curState!!.memory.readField(address, FloatContents.isNan, ctx.ctx.boolSort),
+        ctx.curState!!.memory.readField(address, FloatContents.isInf, ctx.ctx.boolSort),
+        ctx.curState!!.memory.readField(address, FloatContents.infSign, ctx.ctx.boolSort),
+        ctx.curState!!.memory.readField(address, FloatContents.content, ctx.ctx.realSort)
+    )
 }
 
-fun UninterpretedSymbolicPythonObject.getToFloatContent(ctx: ConcolicRunContext): UExpr<KRealSort>? = with(ctx.ctx) {
+private fun wrapRealValue(ctx: UPythonContext, value: UExpr<KRealSort>): FloatUninterpretedContent =
+    FloatUninterpretedContent(ctx.falseExpr, ctx.falseExpr, ctx.falseExpr, value)
+
+fun UninterpretedSymbolicPythonObject.getToFloatContent(ctx: ConcolicRunContext): FloatUninterpretedContent? = with(ctx.ctx) {
     return when (getTypeIfDefined(ctx)) {
         typeSystem.pythonFloat -> getFloatContent(ctx)
-        typeSystem.pythonInt -> intToFloat(getIntContent(ctx))
-        typeSystem.pythonBool -> intToFloat(getToIntContent(ctx)!!)
+        typeSystem.pythonInt -> wrapRealValue(ctx.ctx, intToFloat(getIntContent(ctx)))
+        typeSystem.pythonBool -> wrapRealValue(ctx.ctx, intToFloat(getToIntContent(ctx)!!))
         else -> null
     }
 }
