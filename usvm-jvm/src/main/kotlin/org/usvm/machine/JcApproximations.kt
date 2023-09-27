@@ -4,10 +4,12 @@ import io.ksmt.utils.asExpr
 import io.ksmt.utils.uncheckedCast
 import org.jacodb.api.JcArrayType
 import org.jacodb.api.JcMethod
+import org.jacodb.api.JcType
 import org.jacodb.api.ext.boolean
 import org.jacodb.api.ext.byte
 import org.jacodb.api.ext.char
 import org.jacodb.api.ext.double
+import org.jacodb.api.ext.findClassOrNull
 import org.jacodb.api.ext.float
 import org.jacodb.api.ext.ifArrayGetElementType
 import org.jacodb.api.ext.int
@@ -15,6 +17,7 @@ import org.jacodb.api.ext.long
 import org.jacodb.api.ext.objectClass
 import org.jacodb.api.ext.objectType
 import org.jacodb.api.ext.short
+import org.jacodb.api.ext.toType
 import org.jacodb.api.ext.void
 import org.usvm.UBoolExpr
 import org.usvm.UBv32Sort
@@ -24,26 +27,76 @@ import org.usvm.UExpr
 import org.usvm.UFpSort
 import org.usvm.UHeapRef
 import org.usvm.USizeExpr
-import org.usvm.USymbolicHeapRef
+import org.usvm.api.Engine
+import org.usvm.api.SymbolicList
+import org.usvm.api.SymbolicMap
+import org.usvm.api.collection.ListCollectionApi.ensureListSizeCorrect
+import org.usvm.api.collection.ListCollectionApi.mkSymbolicList
+import org.usvm.api.collection.ListCollectionApi.symbolicListCopyRange
+import org.usvm.api.collection.ListCollectionApi.symbolicListGet
+import org.usvm.api.collection.ListCollectionApi.symbolicListInsert
+import org.usvm.api.collection.ListCollectionApi.symbolicListRemove
+import org.usvm.api.collection.ListCollectionApi.symbolicListSet
+import org.usvm.api.collection.ListCollectionApi.symbolicListSize
+import org.usvm.api.collection.ObjectMapCollectionApi.ensureObjectMapSizeCorrect
+import org.usvm.api.collection.ObjectMapCollectionApi.mkSymbolicObjectMap
+import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapContains
+import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapGet
+import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapMergeInto
+import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapPut
+import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapRemove
+import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapSize
+import org.usvm.api.makeSymbolicPrimitive
+import org.usvm.api.makeSymbolicRef
+import org.usvm.api.makeSymbolicRefWithSameType
+import org.usvm.api.mapTypeStream
 import org.usvm.api.memcpy
-import org.usvm.api.typeStreamOf
+import org.usvm.api.objectTypeEquals
 import org.usvm.collection.array.length.UArrayLengthLValue
+import org.usvm.collection.field.UFieldLValue
 import org.usvm.machine.interpreter.JcExprResolver
 import org.usvm.machine.interpreter.JcStepScope
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.newStmt
 import org.usvm.machine.state.skipMethodInvocationWithValue
+import org.usvm.types.first
+import org.usvm.types.single
+import org.usvm.types.singleOrNull
 import org.usvm.uctx
 import org.usvm.util.allocHeapRef
 import org.usvm.util.write
+import kotlin.reflect.KFunction
+import kotlin.reflect.KFunction0
+import kotlin.reflect.KFunction1
+import kotlin.reflect.KFunction2
+import kotlin.reflect.jvm.javaMethod
 
 class JcMethodApproximationResolver(
     private val ctx: JcContext,
-    private val scope: JcStepScope,
     private val applicationGraph: JcApplicationGraph,
-    private val exprResolver: JcExprResolver
 ) {
-    fun approximate(callJcInst: JcMethodCall): Boolean {
+    private var currentScope: JcStepScope? = null
+    private val scope: JcStepScope
+        get() = checkNotNull(currentScope)
+
+    private var currentExprResolver: JcExprResolver? = null
+    private val exprResolver: JcExprResolver
+        get() = checkNotNull(currentExprResolver)
+
+    private val usvmApiEngine by lazy { ctx.cp.findClassOrNull<Engine>() }
+    private val usvmApiSymbolicList by lazy { ctx.cp.findClassOrNull<SymbolicList<*>>() }
+    private val usvmApiSymbolicMap by lazy { ctx.cp.findClassOrNull<SymbolicMap<*, *>>() }
+
+    fun approximate(scope: JcStepScope, exprResolver: JcExprResolver, callJcInst: JcMethodCall): Boolean = try {
+        this.currentScope = scope
+        this.currentExprResolver = exprResolver
+        approximate(callJcInst)
+    } finally {
+        this.currentScope = null
+        this.currentExprResolver = null
+    }
+
+    private fun approximate(callJcInst: JcMethodCall): Boolean {
         if (skipMethodIfThrowable(callJcInst)) {
             return true
         }
@@ -56,6 +109,16 @@ class JcMethodApproximationResolver(
     }
 
     private fun approximateRegularMethod(methodCall: JcMethodCall): Boolean = with(methodCall) {
+        if (method.enclosingClass == usvmApiSymbolicList) {
+            approximateUsvmSymbolicListMethod(methodCall)
+            return true
+        }
+
+        if (method.enclosingClass == usvmApiSymbolicMap) {
+            approximateUsvmSymbolicMapMethod(methodCall)
+            return true
+        }
+
         if (method.enclosingClass == ctx.cp.objectClass) {
             if (approximateObjectVirtualMethod(methodCall)) return true
         }
@@ -76,6 +139,11 @@ class JcMethodApproximationResolver(
     }
 
     private fun approximateStaticMethod(methodCall: JcMethodCall): Boolean = with(methodCall) {
+        if (method.enclosingClass == usvmApiEngine) {
+            approximateUsvmApiEngineStaticMethod(methodCall)
+            return true
+        }
+
         if (method.enclosingClass == ctx.classType.jcClass) {
             if (approximateClassStaticMethod(methodCall)) return true
         }
@@ -159,20 +227,13 @@ class JcMethodApproximationResolver(
         if (method.name == "getClass") {
             val instance = arguments.first().asExpr(ctx.addressSort)
 
-            // Type constraints can't provide types for other refs
-            if (instance !is UConcreteHeapRef && instance !is USymbolicHeapRef) {
-                return false
-            }
+            val result = scope.calcOnState {
+                mapTypeStream(instance) { _, types ->
+                    val type = types.singleOrNull()
+                    type?.let { exprResolver.resolveClassRef(it) }
+                }
+            } ?: return false
 
-            val possibleTypes = scope.calcOnState { memory.typeStreamOf(instance).take(2) }
-
-            /**
-             * Since getClass is a virtual method, typeStream has been constrained
-             * to a single concrete type by the [JcInterpreter.resolveVirtualInvoke]
-             * */
-            val type = possibleTypes.singleOrNull() ?: return false
-
-            val result = exprResolver.resolveClassRef(type)
             scope.doWithState {
                 skipMethodInvocationWithValue(methodCall, result)
             }
@@ -290,7 +351,7 @@ class JcMethodApproximationResolver(
         }
 
         val arrayType = scope.calcOnState {
-            (memory.types.getTypeStream(instance).take(2).single())
+            (memory.types.getTypeStream(instance).single())
         }
         if (arrayType !is JcArrayType) {
             return false
@@ -468,4 +529,304 @@ class JcMethodApproximationResolver(
 
     private fun JcMethod.hasVoidReturnType(): Boolean =
         returnType.typeName == ctx.cp.void.typeName
+
+    private val symbolicListType: JcType by lazy {
+        checkNotNull(usvmApiSymbolicList).toType()
+    }
+
+    private val symbolicMapType: JcType by lazy {
+        checkNotNull(usvmApiSymbolicMap).toType()
+    }
+
+    private val usvmApiEngineMethods: Map<String, (JcMethodCall) -> UExpr<*>?> by lazy {
+        buildMap {
+            dispatchUsvmApiMethod(Engine::assume) {
+                val arg = it.arguments.single().asExpr(ctx.booleanSort)
+                scope.assert(arg)?.let { ctx.voidValue }
+            }
+            dispatchUsvmApiMethod(Engine::makeSymbolicBoolean) {
+                scope.calcOnState { makeSymbolicPrimitive(ctx.booleanSort) }
+            }
+            dispatchUsvmApiMethod(Engine::makeSymbolicByte) {
+                scope.calcOnState { makeSymbolicPrimitive(ctx.byteSort) }
+            }
+            dispatchUsvmApiMethod(Engine::makeSymbolicChar) {
+                scope.calcOnState { makeSymbolicPrimitive(ctx.charSort) }
+            }
+            dispatchUsvmApiMethod(Engine::makeSymbolicShort) {
+                scope.calcOnState { makeSymbolicPrimitive(ctx.shortSort) }
+            }
+            dispatchUsvmApiMethod(Engine::makeSymbolicInt) {
+                scope.calcOnState { makeSymbolicPrimitive(ctx.integerSort) }
+            }
+            dispatchUsvmApiMethod(Engine::makeSymbolicLong) {
+                scope.calcOnState { makeSymbolicPrimitive(ctx.longSort) }
+            }
+            dispatchUsvmApiMethod(Engine::makeSymbolicFloat) {
+                scope.calcOnState { makeSymbolicPrimitive(ctx.floatSort) }
+            }
+            dispatchUsvmApiMethod(Engine::makeSymbolicDouble) {
+                scope.calcOnState { makeSymbolicPrimitive(ctx.doubleSort) }
+            }
+            dispatchUsvmApiMethod(Engine::makeSymbolicBooleanArray) {
+                makeSymbolicArray(ctx.cp.boolean, it.arguments.single())
+            }
+            dispatchUsvmApiMethod(Engine::makeSymbolicByteArray) {
+                makeSymbolicArray(ctx.cp.byte, it.arguments.single())
+            }
+            dispatchUsvmApiMethod(Engine::makeSymbolicCharArray) {
+                makeSymbolicArray(ctx.cp.char, it.arguments.single())
+            }
+            dispatchUsvmApiMethod(Engine::makeSymbolicShortArray) {
+                makeSymbolicArray(ctx.cp.short, it.arguments.single())
+            }
+            dispatchUsvmApiMethod(Engine::makeSymbolicIntArray) {
+                makeSymbolicArray(ctx.cp.int, it.arguments.single())
+            }
+            dispatchUsvmApiMethod(Engine::makeSymbolicLongArray) {
+                makeSymbolicArray(ctx.cp.long, it.arguments.single())
+            }
+            dispatchUsvmApiMethod(Engine::makeSymbolicFloatArray) {
+                makeSymbolicArray(ctx.cp.float, it.arguments.single())
+            }
+            dispatchUsvmApiMethod(Engine::makeSymbolicDoubleArray) {
+                makeSymbolicArray(ctx.cp.double, it.arguments.single())
+            }
+            dispatchUsvmApiMethod(Engine::typeEquals) {
+                val (ref0, ref1) = it.arguments.map { it.asExpr(ctx.addressSort) }
+                scope.calcOnState { objectTypeEquals(ref0, ref1) }
+            }
+            dispatchMkRef(Engine::makeSymbolic) {
+                val classRef = it.arguments.single().asExpr(ctx.addressSort)
+                val classRefTypeRepresentative = scope.calcOnState {
+                    memory.read(UFieldLValue(ctx.addressSort, classRef, ctx.classTypeSyntheticField))
+                }
+                scope.makeSymbolicRefWithSameType(classRefTypeRepresentative)
+            }
+            dispatchMkRef2(Engine::makeSymbolicArray) {
+                val (elementClassRefExpr, sizeExpr) = it.arguments
+                val elementClassRef = elementClassRefExpr.asExpr(ctx.addressSort)
+                val elementTypeRepresentative = scope.calcOnState {
+                    memory.read(UFieldLValue(ctx.addressSort, elementClassRef, ctx.classTypeSyntheticField))
+                }
+
+                if (elementTypeRepresentative is UConcreteHeapRef) {
+                    val type = scope.calcOnState { memory.types.getTypeStream(elementTypeRepresentative).first() }
+                    makeSymbolicArray(type, sizeExpr)
+                } else {
+                    // todo: correct type instead of object
+                    makeSymbolicArray(ctx.cp.objectType, sizeExpr)
+                }
+            }
+            dispatchMkList(Engine::makeSymbolicList) {
+                scope.calcOnState { mkSymbolicList(symbolicListType) }
+            }
+            dispatchMkMap(Engine::makeSymbolicMap) {
+                scope.calcOnState { mkSymbolicObjectMap(symbolicMapType) }
+            }
+        }
+    }
+
+    private val usvmApiListMethods: Map<String, (JcMethodCall) -> UExpr<*>?> by lazy {
+        buildMap {
+            dispatchUsvmApiMethod(SymbolicList<*>::size) {
+                val listRef = it.arguments.single().asExpr(ctx.addressSort)
+                scope.ensureListSizeCorrect(listRef, symbolicListType) ?: return@dispatchUsvmApiMethod null
+                scope.calcOnState {
+                    symbolicListSize(listRef, symbolicListType)
+                }
+            }
+            dispatchUsvmApiMethod(SymbolicList<*>::get) {
+                val (rawListRef, rawIdx) = it.arguments
+                val listRef = rawListRef.asExpr(ctx.addressSort)
+                val idx = rawIdx.asExpr(ctx.sizeSort)
+
+                scope.ensureListSizeCorrect(listRef, symbolicListType) ?: return@dispatchUsvmApiMethod null
+                scope.calcOnState {
+                    symbolicListGet(listRef, idx, symbolicListType, ctx.addressSort)
+                }
+            }
+            dispatchUsvmApiMethod(SymbolicList<*>::set) {
+                val (rawListRef, rawIdx, rawValueRef) = it.arguments
+                val listRef = rawListRef.asExpr(ctx.addressSort)
+                val idx = rawIdx.asExpr(ctx.sizeSort)
+                val valueRef = rawValueRef.asExpr(ctx.addressSort)
+
+                scope.ensureListSizeCorrect(listRef, symbolicListType) ?: return@dispatchUsvmApiMethod null
+                scope.calcOnState {
+                    symbolicListSet(listRef, symbolicListType, ctx.addressSort, idx, valueRef)
+                    ctx.voidValue
+                }
+            }
+            dispatchUsvmApiMethod(SymbolicList<*>::insert) {
+                val (rawListRef, rawIdx, rawValueRef) = it.arguments
+                val listRef = rawListRef.asExpr(ctx.addressSort)
+                val idx = rawIdx.asExpr(ctx.sizeSort)
+                val valueRef = rawValueRef.asExpr(ctx.addressSort)
+
+                scope.ensureListSizeCorrect(listRef, symbolicListType) ?: return@dispatchUsvmApiMethod null
+                scope.calcOnState {
+                    symbolicListInsert(listRef, symbolicListType, ctx.addressSort, idx, valueRef)
+                    ctx.voidValue
+                }
+            }
+            dispatchUsvmApiMethod(SymbolicList<*>::remove) {
+                val (rawListRef, rawIdx) = it.arguments
+                val listRef = rawListRef.asExpr(ctx.addressSort)
+                val idx = rawIdx.asExpr(ctx.sizeSort)
+
+                scope.ensureListSizeCorrect(listRef, symbolicListType) ?: return@dispatchUsvmApiMethod null
+
+                val result = scope.calcOnState {
+                    symbolicListRemove(listRef, symbolicListType, ctx.addressSort, idx)
+                    ctx.voidValue
+                }
+
+                scope.ensureListSizeCorrect(listRef, symbolicListType) ?: return@dispatchUsvmApiMethod null
+
+                result
+            }
+            dispatchUsvmApiMethod(SymbolicList<*>::copy) {
+                val (listRef, dstListRef, srcFromIdx, dstFromIdx, length) = it.arguments
+
+                scope.ensureListSizeCorrect(listRef.asExpr(ctx.addressSort), symbolicListType)
+                    ?: return@dispatchUsvmApiMethod null
+
+                scope.calcOnState {
+                    symbolicListCopyRange(
+                        srcRef = listRef.asExpr(ctx.addressSort),
+                        dstRef = dstListRef.asExpr(ctx.addressSort),
+                        listType = symbolicListType,
+                        sort = ctx.addressSort,
+                        srcFrom = srcFromIdx.asExpr(ctx.sizeSort),
+                        dstFrom = dstFromIdx.asExpr(ctx.sizeSort),
+                        length = length.asExpr(ctx.sizeSort),
+                    )
+                    ctx.voidValue
+                }
+            }
+        }
+    }
+
+    private val usvmApiMapMethods: Map<String, (JcMethodCall) -> UExpr<*>?> by lazy {
+        buildMap {
+            dispatchUsvmApiMethod(SymbolicMap<*, *>::size) {
+                val mapRef = it.arguments.single().asExpr(ctx.addressSort)
+                scope.ensureObjectMapSizeCorrect(mapRef, symbolicMapType) ?: return@dispatchUsvmApiMethod null
+                scope.calcOnState {
+                    symbolicObjectMapSize(mapRef, symbolicMapType)
+                }
+            }
+            dispatchUsvmApiMethod(SymbolicMap<*, *>::get) {
+                val (mapRef, keyRef) = it.arguments.map { it.asExpr(ctx.addressSort) }
+
+                scope.ensureObjectMapSizeCorrect(mapRef, symbolicMapType) ?: return@dispatchUsvmApiMethod null
+                scope.calcOnState {
+                    symbolicObjectMapGet(mapRef, keyRef, symbolicMapType, ctx.addressSort)
+                }
+            }
+            dispatchUsvmApiMethod(SymbolicMap<*, *>::set) {
+                val (mapRef, keyRef, valueRef) = it.arguments.map { it.asExpr(ctx.addressSort) }
+
+                scope.ensureObjectMapSizeCorrect(mapRef, symbolicMapType) ?: return@dispatchUsvmApiMethod null
+                scope.calcOnState {
+                    symbolicObjectMapPut(mapRef, keyRef, valueRef, symbolicMapType, ctx.addressSort)
+                    ctx.voidValue
+                }
+            }
+            dispatchUsvmApiMethod(SymbolicMap<*, *>::remove) {
+                val (mapRef, keyRef) = it.arguments.map { it.asExpr(ctx.addressSort) }
+
+                scope.ensureObjectMapSizeCorrect(mapRef, symbolicMapType) ?: return@dispatchUsvmApiMethod null
+                scope.calcOnState {
+                    symbolicObjectMapRemove(mapRef, keyRef, symbolicMapType)
+                    ctx.voidValue
+                }
+            }
+            dispatchUsvmApiMethod(SymbolicMap<*, *>::containsKey) {
+                val (mapRef, keyRef) = it.arguments.map { it.asExpr(ctx.addressSort) }
+
+                scope.ensureObjectMapSizeCorrect(mapRef, symbolicMapType) ?: return@dispatchUsvmApiMethod null
+                scope.calcOnState {
+                    symbolicObjectMapContains(mapRef, keyRef, symbolicMapType)
+                }
+            }
+            dispatchUsvmApiMethod(SymbolicMap<*, *>::merge) {
+                val (dstMapRef, srcMapRef) = it.arguments.map { it.asExpr(ctx.addressSort) }
+
+                scope.ensureObjectMapSizeCorrect(dstMapRef, symbolicMapType) ?: return@dispatchUsvmApiMethod null
+                scope.ensureObjectMapSizeCorrect(srcMapRef, symbolicMapType) ?: return@dispatchUsvmApiMethod null
+
+                scope.calcOnState {
+                    symbolicObjectMapMergeInto(dstMapRef, srcMapRef, symbolicMapType, ctx.addressSort)
+                    ctx.voidValue
+                }
+            }
+        }
+    }
+
+    private fun approximateUsvmApiEngineStaticMethod(methodCall: JcMethodCall) {
+        val methodApproximation = usvmApiEngineMethods[methodCall.method.name]
+            ?: error("Unexpected engine api method: ${methodCall.method.name}")
+        val result = methodApproximation(methodCall) ?: return
+        scope.doWithState { skipMethodInvocationWithValue(methodCall, result) }
+    }
+
+    private fun approximateUsvmSymbolicListMethod(methodCall: JcMethodCall) {
+        val methodApproximation = usvmApiListMethods[methodCall.method.name]
+            ?: error("Unexpected list api method: ${methodCall.method.name}")
+        val result = methodApproximation(methodCall) ?: return
+        scope.doWithState { skipMethodInvocationWithValue(methodCall, result) }
+    }
+
+    private fun approximateUsvmSymbolicMapMethod(methodCall: JcMethodCall) {
+        val methodApproximation = usvmApiMapMethods[methodCall.method.name]
+            ?: error("Unexpected map api method: ${methodCall.method.name}")
+        val result = methodApproximation(methodCall) ?: return
+        scope.doWithState { skipMethodInvocationWithValue(methodCall, result) }
+    }
+
+    private fun MutableMap<String, (JcMethodCall) -> UExpr<*>?>.dispatchUsvmApiMethod(
+        apiMethod: KFunction<*>,
+        body: (JcMethodCall) -> UExpr<*>?
+    ) {
+        val methodName = apiMethod.javaMethod?.name
+            ?: error("No name for $apiMethod")
+        this[methodName] = body
+    }
+
+    private fun MutableMap<String, (JcMethodCall) -> UExpr<*>?>.dispatchMkRef(
+        apiMethod: KFunction1<Nothing, Any>,
+        body: (JcMethodCall) -> UExpr<*>?
+    ) = dispatchUsvmApiMethod(apiMethod, body)
+
+    private fun MutableMap<String, (JcMethodCall) -> UExpr<*>?>.dispatchMkRef2(
+        apiMethod: KFunction2<Nothing, Nothing, Array<Any>>,
+        body: (JcMethodCall) -> UExpr<*>?
+    ) = dispatchUsvmApiMethod(apiMethod, body)
+
+    private fun MutableMap<String, (JcMethodCall) -> UExpr<*>?>.dispatchMkList(
+        apiMethod: KFunction0<SymbolicList<Any>>,
+        body: (JcMethodCall) -> UExpr<*>?
+    ) = dispatchUsvmApiMethod(apiMethod, body)
+
+    private fun MutableMap<String, (JcMethodCall) -> UExpr<*>?>.dispatchMkMap(
+        apiMethod: KFunction0<SymbolicMap<Any, Any>>,
+        body: (JcMethodCall) -> UExpr<*>?
+    ) = dispatchUsvmApiMethod(apiMethod, body)
+
+    private fun makeSymbolicArray(elementType: JcType, size: UExpr<*>): UHeapRef? {
+        val sizeValue = size.asExpr(ctx.sizeSort)
+        val arrayType = ctx.cp.arrayTypeOf(elementType)
+
+        val address = scope.makeSymbolicRef(arrayType) ?: return null
+
+        val arrayDescriptor = ctx.arrayDescriptorOf(arrayType)
+        val lengthRef = UArrayLengthLValue(address, arrayDescriptor)
+        scope.doWithState {
+            memory.write(lengthRef, sizeValue)
+        }
+
+        return address
+    }
 }

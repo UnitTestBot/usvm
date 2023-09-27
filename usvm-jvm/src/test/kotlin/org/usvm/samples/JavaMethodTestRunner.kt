@@ -726,7 +726,8 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
         return values
     }
 
-    protected val cp = JacoDBContainer(samplesKey).cp
+    protected open val jacodbCpKey = samplesKey
+    protected val cp = JacoDBContainer(jacodbCpKey).cp
 
     private val testResolver = JcTestResolver()
 

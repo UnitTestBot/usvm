@@ -38,6 +38,7 @@ import org.usvm.UHeapRef
 import org.usvm.UInterpreter
 import org.usvm.api.allocateStaticRef
 import org.usvm.api.targets.JcTarget
+import org.usvm.api.evalTypeEquals
 import org.usvm.api.typeStreamOf
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.isStaticHeapRef
@@ -467,15 +468,12 @@ class JcInterpreter(
 
         val typeStream = scope.calcOnState { models.first().typeStreamOf(concreteRef) }
 
-        val inheritors = typeSelector.choose(method, typeStream)
-        val typeConstraints = inheritors.map { type ->
-            scope.calcOnState {
-                ctx.mkAnd(
-                    memory.types.evalIsSubtype(instance, type),
-                    memory.types.evalIsSupertype(instance, type)
-                )
+            val inheritors = typeSelector.choose(method, typeStream)
+            val typeConstraints = inheritors.map { type ->
+                scope.calcOnState {
+                    memory.types.evalTypeEquals(instance, type)
+                }
             }
-        }
 
         val typeConstraintsWithBlockOnStates = mutableListOf<Pair<UBoolExpr, (JcState) -> Unit>>()
 
@@ -501,12 +499,11 @@ class JcInterpreter(
         scope.forkMulti(typeConstraintsWithBlockOnStates)
     }
 
+    private val approximationResolver = JcMethodApproximationResolver(ctx, applicationGraph)
+
     private fun approximateMethod(scope: JcStepScope, methodCall: JcMethodCall): Boolean {
         val exprResolver = exprResolverWithScope(scope)
-        val methodApproximationResolver = JcMethodApproximationResolver(
-            ctx, scope, applicationGraph, exprResolver
-        )
-        return methodApproximationResolver.approximate(methodCall)
+        return approximationResolver.approximate(scope, exprResolver, methodCall)
     }
 
     private fun mockNativeMethod(

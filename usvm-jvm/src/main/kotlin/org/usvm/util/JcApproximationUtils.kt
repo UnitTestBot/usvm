@@ -1,0 +1,25 @@
+package org.usvm.util
+
+import org.jacodb.api.JcClasspath
+import org.jacodb.api.JcDatabase
+import org.jacodb.approximation.Approximations
+import org.usvm.machine.logger
+import java.io.File
+
+private const val USVM_API_JAR_PATH = "usvm.jvm.api.jar.path"
+private const val USVM_APPROXIMATIONS_JAR_PATH = "usvm.jvm.approximations.jar.path"
+
+suspend fun JcDatabase.classpathWithApproximations(dirOrJars: List<File>): JcClasspath {
+    val usvmApiJarPath = System.getenv(USVM_API_JAR_PATH)
+    val usvmApproximationsJarPath = System.getenv(USVM_APPROXIMATIONS_JAR_PATH)
+
+    if (usvmApiJarPath == null || usvmApproximationsJarPath == null) {
+        return classpath(dirOrJars)
+    }
+
+    logger.info { "Load USVM API: $usvmApiJarPath" }
+    logger.info { "Load USVM Approximations: $usvmApproximationsJarPath" }
+
+    val cpWithApproximations = dirOrJars + listOf(File(usvmApiJarPath), File(usvmApproximationsJarPath))
+    return classpath(cpWithApproximations, listOf(Approximations))
+}
