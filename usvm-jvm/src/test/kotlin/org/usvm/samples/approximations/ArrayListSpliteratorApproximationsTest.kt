@@ -19,7 +19,6 @@ class ArrayListSpliteratorApproximationsTest : ApproximationsTestRunner() {
     }
 
     @Test
-    @Disabled("Impossible exception in VM clinit")
     fun testEstimateSize() {
         with(FixedExecutionVerifier(2)) {
             checkDiscoveredPropertiesWithExceptions(
@@ -45,7 +44,6 @@ class ArrayListSpliteratorApproximationsTest : ApproximationsTestRunner() {
     }
 
     @Test
-    @Disabled("Impossible exception in VM clinit")
     fun testGetExactSizeIfKnown() {
         with(FixedExecutionVerifier(2)) {
             checkDiscoveredPropertiesWithExceptions(
