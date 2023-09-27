@@ -17,17 +17,17 @@ fun <Method, T : USort> UState<*, Method, *, *, *, *>.makeSymbolicPrimitive(
     return memory.mock { call(lastEnteredMethod, emptySequence(), sort) }
 }
 
-fun <Type, Method, State> StepScope<State, Type, *>.makeSymbolicRef(
+fun <Type, Method, State> StepScope<State, Type, *, *>.makeSymbolicRef(
     type: Type
 ): UHeapRef? where State : UState<Type, Method, *, *, *, State> =
     mockSymbolicRef { memory.types.evalTypeEquals(it, type) }
 
-fun <Type, Method, State> StepScope<State, Type, *>.makeSymbolicRefWithSameType(
+fun <Type, Method, State> StepScope<State, Type, *, *>.makeSymbolicRefWithSameType(
     representative: UHeapRef
 ): UHeapRef? where State : UState<Type, Method, *, *, *, State> =
     mockSymbolicRef { objectTypeEquals(it, representative) }
 
-private inline fun <Type, Method, State> StepScope<State, Type, *>.mockSymbolicRef(
+private inline fun <Type, Method, State> StepScope<State, Type, *, *>.mockSymbolicRef(
     crossinline mkTypeConstraint: State.(UHeapRef) -> UBoolExpr
 ): UHeapRef? where State : UState<Type, Method, *, *, *, State> {
     val ref = calcOnState {

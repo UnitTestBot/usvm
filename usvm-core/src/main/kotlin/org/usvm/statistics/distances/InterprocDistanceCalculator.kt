@@ -38,6 +38,8 @@ class InterprocDistance(val distance: UInt, reachabilityKind: ReachabilityKind) 
     }
 
     override fun hashCode(): Int = distance.toInt() * 31 + reachabilityKind.hashCode()
+
+    override fun toString(): String = "InterprocDistance($distance, $reachabilityKind)"
 }
 
 /**
@@ -123,7 +125,7 @@ class InterprocDistanceCalculator<Method, Statement>(
 
             val successors = applicationGraph.successors(statementOnCallStack)
             val hasReachableSuccessors =
-                !calculateFrameDistance(methodOnCallStack, statementOnCallStack).isInfinite ||
+                !calculateFrameDistance(methodOnCallStack, statementOnCallStack).isInfinite || // TODO seems like it is something JcInterpreter specific
                         successors.any { !calculateFrameDistance(methodOnCallStack, it).isInfinite }
 
             if (hasReachableSuccessors) {

@@ -68,7 +68,6 @@ import org.usvm.machine.state.throwExceptionAndDropStackFrame
 import org.usvm.machine.state.throwExceptionWithoutStackFrameDrop
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.solver.USatResult
-import org.usvm.targets.UTargetController
 import org.usvm.types.first
 import org.usvm.util.findMethod
 import org.usvm.util.write
@@ -89,7 +88,7 @@ class JcInterpreter(
         val logger = object : KLogging() {}.logger
     }
 
-    fun getInitialState(method: JcMethod, targets: List<JcTarget<UTargetController>> = emptyList()): JcState {
+    fun getInitialState(method: JcMethod, targets: List<JcTarget> = emptyList()): JcState {
         val state = JcState(ctx, targets = targets)
         val typedMethod = with(applicationGraph) { method.typed }
 
