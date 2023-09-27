@@ -8,7 +8,6 @@ import io.ksmt.utils.uncheckedCast
 import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
-import org.usvm.UCollectionReading
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UExpr
@@ -18,12 +17,10 @@ import org.usvm.UIndexedMethodReturnValue
 import org.usvm.UIsExpr
 import org.usvm.UIsSubtypeExpr
 import org.usvm.UIsSupertypeExpr
-import org.usvm.UMockSymbol
 import org.usvm.UNullRef
 import org.usvm.URegisterReading
 import org.usvm.USizeSort
 import org.usvm.USort
-import org.usvm.USymbol
 import org.usvm.USymbolicHeapRef
 import org.usvm.collection.array.UAllocatedArrayReading
 import org.usvm.collection.array.UArrayRegionDecoder
@@ -78,19 +75,10 @@ open class UExprTranslator<Type>(
 ) : UExprTransformer<Type>(ctx) {
     open fun <Sort : USort> translate(expr: UExpr<Sort>): KExpr<Sort> = apply(expr)
 
-    override fun <Sort : USort> transform(expr: USymbol<Sort>): KExpr<Sort> =
-        error("You must override `transform` function in UExprTranslator for ${expr::class}")
-
     override fun <Sort : USort> transform(expr: URegisterReading<Sort>): KExpr<Sort> {
         val registerConst = expr.sort.mkConst("r${expr.idx}_${expr.sort}")
         return registerConst
     }
-
-    override fun <Sort : USort> transform(expr: UCollectionReading<*, *, *>): KExpr<Sort> =
-        error("You must override `transform` function in UExprTranslator for ${expr::class}")
-
-    override fun <Sort : USort> transform(expr: UMockSymbol<Sort>): KExpr<Sort> =
-        error("You must override `transform` function in UExprTranslator for ${expr::class}")
 
     override fun <Method, Sort : USort> transform(expr: UIndexedMethodReturnValue<Method, Sort>): KExpr<Sort> {
         val const = expr.sort.mkConst("m${expr.method}_${expr.callIndex}_${expr.sort}")

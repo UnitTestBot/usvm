@@ -31,12 +31,10 @@ import org.usvm.UExpr
 import org.usvm.UIndexedMethodReturnValue
 import org.usvm.UIsSubtypeExpr
 import org.usvm.UIsSupertypeExpr
-import org.usvm.UMockSymbol
 import org.usvm.UNullRef
 import org.usvm.URegisterReading
 import org.usvm.USizeExpr
 import org.usvm.USort
-import org.usvm.USymbol
 import org.usvm.UTransformer
 import org.usvm.collection.array.UAllocatedArrayReading
 import org.usvm.collection.array.UInputArrayReading
@@ -53,8 +51,8 @@ import org.usvm.collection.set.primitive.UInputSetReading
 import org.usvm.collection.set.ref.UAllocatedRefSetWithInputElementsReading
 import org.usvm.collection.set.ref.UInputRefSetWithAllocatedElementsReading
 import org.usvm.collection.set.ref.UInputRefSetWithInputElementsReading
-import org.usvm.uctx
 import org.usvm.regions.Region
+import org.usvm.uctx
 
 class USoftConstraintsProvider<Type>(override val ctx: UContext) : UTransformer<Type> {
     // We have a list here since sometimes we want to add several soft constraints
@@ -89,18 +87,7 @@ class USoftConstraintsProvider<Type>(override val ctx: UContext) : UTransformer<
 
     // region USymbol specific methods
 
-    override fun <Sort : USort> transform(expr: USymbol<Sort>): UExpr<Sort> =
-        error("You must override `transform` function in UExprTranslator for ${expr::class}")
-
     override fun <Sort : USort> transform(expr: URegisterReading<Sort>): UExpr<Sort> = transformExpr(expr)
-
-    override fun <Sort : USort> transform(
-        expr: UCollectionReading<*, *, *>,
-    ): UExpr<Sort> = error("You must override `transform` function in UExprTranslator for ${expr::class}")
-
-    override fun <Sort : USort> transform(
-        expr: UMockSymbol<Sort>,
-    ): UExpr<Sort> = error("You must override `transform` function in UExprTranslator for ${expr::class}")
 
     override fun <Method, Sort : USort> transform(
         expr: UIndexedMethodReturnValue<Method, Sort>,

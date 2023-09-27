@@ -8,6 +8,7 @@ import org.usvm.memory.UMemory
 import org.usvm.memory.USymbolicCollectionKeyInfo
 import org.usvm.model.UModelBase
 import org.usvm.regions.Region
+import org.usvm.targets.UTarget
 
 typealias Field = java.lang.reflect.Field
 typealias Type = kotlin.reflect.KClass<*>
@@ -29,23 +30,19 @@ internal fun pseudoRandom(i: Int): Int {
     return res
 }
 
-internal class TestTarget(method: String, offset: Int) : UTarget<TestInstruction, TestTarget, TestState>(
+internal class TestTarget(method: String, offset: Int) : UTarget<TestInstruction, TestTarget>(
     TestInstruction(method, offset)
-) {
-    fun reach(state: TestState) {
-        propagate(state)
-    }
-}
+)
 
 internal class TestState(
     ctx: UContext,
-    callStack: UCallStack<String, TestInstruction>, pathConstraints: UPathConstraints<Any, UContext>,
+    callStack: UCallStack<String, TestInstruction>, pathConstraints: UPathConstraints<Any>,
     memory: UMemory<Any, String>, models: List<UModelBase<Any>>,
     pathLocation: PathsTrieNode<TestState, TestInstruction>,
     targetTrees: List<TestTarget> = emptyList()
 ) : UState<Any, String, TestInstruction, UContext, TestTarget, TestState>(ctx, callStack, pathConstraints, memory, models, pathLocation, targetTrees) {
 
-    override fun clone(newConstraints: UPathConstraints<Any, UContext>?): TestState = this
+    override fun clone(newConstraints: UPathConstraints<Any>?): TestState = this
 
     override val isExceptional = false
 }

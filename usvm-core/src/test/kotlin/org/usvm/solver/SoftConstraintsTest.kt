@@ -10,21 +10,20 @@ import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.UComponents
 import org.usvm.UContext
-import org.usvm.constraints.UPathConstraints
 import org.usvm.collection.array.length.UInputArrayLengthId
+import org.usvm.constraints.UPathConstraints
 import org.usvm.model.ULazyModelDecoder
-import org.usvm.model.buildTranslatorAndLazyDecoder
 import org.usvm.types.single.SingleTypeSystem
 import kotlin.test.assertSame
 
 private typealias Type = SingleTypeSystem.SingleType
 
-open class SoftConstraintsTest<Field> {
+open class SoftConstraintsTest {
     private lateinit var ctx: UContext
     private lateinit var softConstraintsProvider: USoftConstraintsProvider<Type>
     private lateinit var translator: UExprTranslator<Type>
     private lateinit var decoder: ULazyModelDecoder<Type>
-    private lateinit var solver: USolverBase<Type, UContext>
+    private lateinit var solver: USolverBase<Type>
 
     @BeforeEach
     fun initialize() {
@@ -34,10 +33,9 @@ open class SoftConstraintsTest<Field> {
         ctx = UContext(components)
         softConstraintsProvider = USoftConstraintsProvider(ctx)
 
-        val translatorWithDecoder = buildTranslatorAndLazyDecoder<Type>(ctx)
+        translator = UExprTranslator(ctx)
+        decoder = ULazyModelDecoder(translator)
 
-        translator = translatorWithDecoder.first
-        decoder = translatorWithDecoder.second
         val typeSolver = UTypeSolver(SingleTypeSystem)
         solver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder, softConstraintsProvider)
     }
@@ -48,7 +46,7 @@ open class SoftConstraintsTest<Field> {
         val sndRegister = mkRegisterReading(idx = 1, bv32Sort)
         val expr = mkBvSignedLessOrEqualExpr(fstRegister, sndRegister)
 
-        val pc = UPathConstraints<Type, UContext>(ctx)
+        val pc = UPathConstraints<Type>(ctx)
         pc += expr
 
         val result = solver.checkWithSoftConstraints(pc) as USatResult
@@ -75,7 +73,7 @@ open class SoftConstraintsTest<Field> {
 
         every { softConstraintsProvider.provide(any()) } answers { callOriginal() }
 
-        val pc = UPathConstraints<Type, UContext>(ctx)
+        val pc = UPathConstraints<Type>(ctx)
         pc += fstExpr
         pc += sndExpr
         pc += sameAsFirstExpr
@@ -122,7 +120,7 @@ open class SoftConstraintsTest<Field> {
 
         val reading = region.read(secondInputRef)
 
-        val pc = UPathConstraints<Type, UContext>(ctx)
+        val pc = UPathConstraints<Type>(ctx)
         pc += reading eq size.toBv()
         pc += inputRef eq secondInputRef
         pc += (inputRef eq nullRef).not()
@@ -143,7 +141,7 @@ open class SoftConstraintsTest<Field> {
             .emptyRegion()
             .write(inputRef, mkRegisterReading(3, sizeSort), guard = trueExpr)
 
-        val pc = UPathConstraints<Type, UContext>(ctx)
+        val pc = UPathConstraints<Type>(ctx)
         pc += (inputRef eq nullRef).not()
         val result = (solver.checkWithSoftConstraints(pc)) as USatResult
 
@@ -159,7 +157,7 @@ open class SoftConstraintsTest<Field> {
         val bvValue = 0.toBv()
         val expression = mkBvSignedLessOrEqualExpr(bvValue, inputRef).not()
 
-        val pc = UPathConstraints<Type, UContext>(ctx)
+        val pc = UPathConstraints<Type>(ctx)
         pc += expression
         val result = (solver.checkWithSoftConstraints(pc)) as USatResult
 

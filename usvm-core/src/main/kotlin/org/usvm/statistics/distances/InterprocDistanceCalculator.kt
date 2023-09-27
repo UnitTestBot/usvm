@@ -104,6 +104,10 @@ internal class InterprocDistanceCalculator<Method, Statement>(
         currentStatement: Statement,
         callStack: UCallStack<Method, Statement>
     ): InterprocDistance {
+        if (callStack.isEmpty()) {
+            return InterprocDistance(UInt.MAX_VALUE, ReachabilityKind.NONE)
+        }
+
         val lastMethod = callStack.lastMethod()
         val lastFrameDistance = calculateFrameDistance(lastMethod, currentStatement)
 

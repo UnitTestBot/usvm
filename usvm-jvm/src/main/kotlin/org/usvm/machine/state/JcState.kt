@@ -15,7 +15,7 @@ import org.usvm.model.UModelBase
 class JcState(
     ctx: JcContext,
     callStack: UCallStack<JcMethod, JcInst> = UCallStack(),
-    pathConstraints: UPathConstraints<JcType, JcContext> = UPathConstraints(ctx),
+    pathConstraints: UPathConstraints<JcType> = UPathConstraints(ctx),
     memory: UMemory<JcType, JcMethod> = UMemory(ctx, pathConstraints.typeConstraints),
     models: List<UModelBase<JcType>> = listOf(),
     override var pathLocation: PathsTrieNode<JcState, JcInst> = ctx.mkInitialLocation(),
@@ -30,10 +30,10 @@ class JcState(
     pathLocation,
     targets
 ) {
-    override fun clone(newConstraints: UPathConstraints<JcType, JcContext>?): JcState {
+    override fun clone(newConstraints: UPathConstraints<JcType>?): JcState {
         val clonedConstraints = newConstraints ?: pathConstraints.clone()
         return JcState(
-            pathConstraints.ctx,
+            ctx,
             callStack.clone(),
             clonedConstraints,
             memory.clone(clonedConstraints.typeConstraints),

@@ -19,7 +19,7 @@ import org.usvm.model.UModelBase
 class SampleState(
     ctx: UContext,
     callStack: UCallStack<Method<*>, Stmt> = UCallStack(),
-    pathConstraints: UPathConstraints<SampleType, UContext> = UPathConstraints(ctx),
+    pathConstraints: UPathConstraints<SampleType> = UPathConstraints(ctx),
     memory: UMemory<SampleType, Method<*>> = UMemory(ctx, pathConstraints.typeConstraints),
     models: List<UModelBase<SampleType>> = listOf(),
     pathLocation: PathsTrieNode<SampleState, Stmt> = ctx.mkInitialLocation(),
@@ -35,10 +35,10 @@ class SampleState(
     pathLocation,
     targets
 ) {
-    override fun clone(newConstraints: UPathConstraints<SampleType, UContext>?): SampleState {
+    override fun clone(newConstraints: UPathConstraints<SampleType>?): SampleState {
         val clonedConstraints = newConstraints ?: pathConstraints.clone()
         return SampleState(
-            pathConstraints.ctx,
+            ctx,
             callStack.clone(),
             clonedConstraints,
             memory.clone(clonedConstraints.typeConstraints),

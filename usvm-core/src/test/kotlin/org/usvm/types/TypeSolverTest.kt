@@ -14,14 +14,15 @@ import org.usvm.UContext
 import org.usvm.api.readField
 import org.usvm.api.typeStreamOf
 import org.usvm.api.writeField
+import org.usvm.collection.array.UInputArrayId
 import org.usvm.constraints.UPathConstraints
 import org.usvm.isFalse
 import org.usvm.isTrue
 import org.usvm.memory.UMemory
-import org.usvm.collection.array.UInputArrayId
+import org.usvm.model.ULazyModelDecoder
 import org.usvm.model.UModelBase
-import org.usvm.model.buildTranslatorAndLazyDecoder
 import org.usvm.solver.TypeSolverQuery
+import org.usvm.solver.UExprTranslator
 import org.usvm.solver.USatResult
 import org.usvm.solver.USoftConstraintsProvider
 import org.usvm.solver.USolverBase
@@ -55,11 +56,12 @@ class TypeSolverTest {
     private val typeSystem = testTypeSystem
     private val components = mockk<UComponents<TestType>>()
     private val ctx = UContext(components)
-    private val solver: USolverBase<TestType, UContext>
+    private val solver: USolverBase<TestType>
     private val typeSolver: UTypeSolver<TestType>
 
     init {
-        val (translator, decoder) = buildTranslatorAndLazyDecoder<TestType>(ctx)
+        val translator = UExprTranslator<TestType>(ctx)
+        val decoder = ULazyModelDecoder(translator)
         val softConstraintsProvider = USoftConstraintsProvider<TestType>(ctx)
 
         typeSolver = UTypeSolver(typeSystem)
@@ -69,7 +71,7 @@ class TypeSolverTest {
         every { components.mkTypeSystem(ctx) } returns typeSystem
     }
 
-    private val pc = UPathConstraints<TestType, UContext>(ctx)
+    private val pc = UPathConstraints<TestType>(ctx)
     private val memory = UMemory<TestType, Method>(ctx, pc.typeConstraints)
 
     @Test

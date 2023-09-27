@@ -60,6 +60,7 @@ import org.jacodb.api.cfg.JcRemExpr
 import org.jacodb.api.cfg.JcShlExpr
 import org.jacodb.api.cfg.JcShort
 import org.jacodb.api.cfg.JcShrExpr
+import org.jacodb.api.cfg.JcSimpleValue
 import org.jacodb.api.cfg.JcSpecialCallExpr
 import org.jacodb.api.cfg.JcStaticCallExpr
 import org.jacodb.api.cfg.JcStringConstant
@@ -122,12 +123,20 @@ import org.usvm.util.write
 class JcExprResolver(
     private val ctx: JcContext,
     private val scope: JcStepScope,
-    private val localToIdx: (JcMethod, JcLocal) -> Int,
-    private val mkTypeRef: (JcType, JcState) -> UConcreteHeapRef,
-    private val mkStringConstRef: (String, JcState) -> UConcreteHeapRef,
+    localToIdx: (JcMethod, JcLocal) -> Int,
+    mkTypeRef: (JcType, JcState) -> UConcreteHeapRef,
+    mkStringConstRef: (String, JcState) -> UConcreteHeapRef,
     private val classInitializerAnalysisAlwaysRequiredForType: (JcRefType) -> Boolean,
     private val hardMaxArrayLength: Int = 1_500, // TODO: move to options
 ) : JcExprVisitor<UExpr<out USort>?> {
+    val simpleValueResolver: JcSimpleValueResolver = JcSimpleValueResolver(
+        ctx,
+        scope,
+        localToIdx,
+        mkTypeRef,
+        mkStringConstRef
+    )
+
     /**
      * Resolves the [expr] and casts it to match the desired [type].
      *
@@ -164,7 +173,7 @@ class JcExprResolver(
         when (value) {
             is JcFieldRef -> resolveFieldRef(value.instance, value.field)
             is JcArrayAccess -> resolveArrayAccess(value.array, value.index)
-            is JcLocal -> resolveLocal(value)
+            is JcLocal -> simpleValueResolver.resolveLocal(value)
             else -> error("Unexpected value: $value")
         }
 
@@ -262,105 +271,41 @@ class JcExprResolver(
 
     // region constants
 
-    override fun visitJcBool(value: JcBool): UExpr<out USort> = with(ctx) {
-        mkBool(value.value)
-    }
+    override fun visitJcBool(value: JcBool): UExpr<out USort> = simpleValueResolver.visitJcBool(value)
 
-    override fun visitJcChar(value: JcChar): UExpr<out USort> = with(ctx) {
-        mkBv(value.value.code, charSort)
-    }
+    override fun visitJcChar(value: JcChar): UExpr<out USort> = simpleValueResolver.visitJcChar(value)
 
-    override fun visitJcByte(value: JcByte): UExpr<out USort> = with(ctx) {
-        mkBv(value.value, byteSort)
-    }
+    override fun visitJcByte(value: JcByte): UExpr<out USort> = simpleValueResolver.visitJcByte(value)
 
-    override fun visitJcShort(value: JcShort): UExpr<out USort> = with(ctx) {
-        mkBv(value.value, shortSort)
-    }
+    override fun visitJcShort(value: JcShort): UExpr<out USort> = simpleValueResolver.visitJcShort(value)
 
-    override fun visitJcInt(value: JcInt): UExpr<out USort> = with(ctx) {
-        mkBv(value.value, integerSort)
-    }
+    override fun visitJcInt(value: JcInt): UExpr<out USort> = simpleValueResolver.visitJcInt(value)
 
-    override fun visitJcLong(value: JcLong): UExpr<out USort> = with(ctx) {
-        mkBv(value.value, longSort)
-    }
+    override fun visitJcLong(value: JcLong): UExpr<out USort> = simpleValueResolver.visitJcLong(value)
 
-    override fun visitJcFloat(value: JcFloat): UExpr<out USort> = with(ctx) {
-        mkFp(value.value, floatSort)
-    }
+    override fun visitJcFloat(value: JcFloat): UExpr<out USort> = simpleValueResolver.visitJcFloat(value)
 
-    override fun visitJcDouble(value: JcDouble): UExpr<out USort> = with(ctx) {
-        mkFp(value.value, doubleSort)
-    }
+    override fun visitJcDouble(value: JcDouble): UExpr<out USort> = simpleValueResolver.visitJcDouble(value)
 
-    override fun visitJcNullConstant(value: JcNullConstant): UExpr<out USort> = with(ctx) {
-        nullRef
-    }
+    override fun visitJcNullConstant(
+        value: JcNullConstant,
+    ): UExpr<out USort> = simpleValueResolver.visitJcNullConstant(value)
 
-    override fun visitJcStringConstant(value: JcStringConstant): UExpr<out USort> = with(ctx) {
-        scope.calcOnState {
-            // Equal string constants always have equal references
-            val ref = resolveStringConstant(value.value)
-            val stringValueLValue = UFieldLValue(addressSort, ref, stringValueField.field)
-            val stringCoderLValue = UFieldLValue(byteSort, ref, stringCoderField.field)
+    override fun visitJcStringConstant(
+        value: JcStringConstant,
+    ): UExpr<out USort> = simpleValueResolver.visitJcStringConstant(value)
 
-            // String.value type depends on the JVM version
-            val charValues = when (stringValueField.fieldType.ifArrayGetElementType) {
-                cp.char -> value.value.asSequence().map { mkBv(it.code, charSort) }
-                cp.byte -> value.value.encodeToByteArray().asSequence().map { mkBv(it, byteSort) }
-                else -> error("Unexpected string values type: ${stringValueField.fieldType}")
-            }
+    override fun visitJcMethodConstant(
+        value: JcMethodConstant,
+    ): UExpr<out USort> = simpleValueResolver.visitJcMethodConstant(value)
 
-            val valuesArrayDescriptor = arrayDescriptorOf(stringValueField.fieldType as JcArrayType)
-            val elementType = requireNotNull(stringValueField.fieldType.ifArrayGetElementType)
-            val charArrayRef = memory.allocateArrayInitialized(
-                valuesArrayDescriptor,
-                typeToSort(elementType),
-                charValues.uncheckedCast()
-            )
+    override fun visitJcMethodType(
+        value: JcMethodType,
+    ): UExpr<out USort> = simpleValueResolver.visitJcMethodType(value)
 
-            // overwrite array type because descriptor is element type
-            memory.types.allocate(charArrayRef.address, stringValueField.fieldType)
-
-            // String constants are immutable. Therefore, it is correct to overwrite value, coder and type.
-            memory.write(stringValueLValue, charArrayRef)
-            memory.write(stringCoderLValue, mkBv(0, byteSort))
-            memory.types.allocate(ref.address, stringType)
-
-            ref
-        }
-    }
-
-    fun resolveStringConstant(value: String): UConcreteHeapRef = scope.calcOnState {
-        mkStringConstRef(value, this)
-    }
-
-    override fun visitJcMethodConstant(value: JcMethodConstant): UExpr<out USort> {
-        TODO("Method constant")
-    }
-
-    override fun visitJcMethodType(value: JcMethodType): UExpr<out USort> {
-        TODO("Method type")
-    }
-
-    fun resolveClassRef(type: JcType): UConcreteHeapRef = scope.calcOnState {
-        val ref = mkTypeRef(type, this)
-        val classRefTypeLValue = UFieldLValue(ctx.addressSort, ref, ctx.classTypeSyntheticField)
-
-        // Ref type is java.lang.Class
-        memory.types.allocate(ref.address, ctx.classType)
-
-        // Save ref original class type with the negative address
-        val classRefType = memory.allocStatic(type)
-        memory.write(classRefTypeLValue, classRefType)
-
-        ref
-    }
-
-    override fun visitJcClassConstant(value: JcClassConstant): UExpr<out USort> =
-        resolveClassRef(value.klass)
-
+    override fun visitJcClassConstant(
+        value: JcClassConstant,
+    ): UExpr<out USort> = simpleValueResolver.visitJcClassConstant(value)
     // endregion
 
     override fun visitJcCastExpr(expr: JcCastExpr): UExpr<out USort>? = resolveCast(expr.operand, expr.type)
@@ -513,20 +458,11 @@ class JcExprResolver(
 
     // region jc locals
 
-    override fun visitJcLocalVar(value: JcLocalVar): UExpr<out USort> = with(ctx) {
-        val ref = resolveLocal(value)
-        scope.calcOnState { memory.read(ref) }
-    }
+    override fun visitJcLocalVar(value: JcLocalVar): UExpr<out USort> = simpleValueResolver.visitJcLocalVar(value)
 
-    override fun visitJcThis(value: JcThis): UExpr<out USort> = with(ctx) {
-        val ref = resolveLocal(value)
-        scope.calcOnState { memory.read(ref) }
-    }
+    override fun visitJcThis(value: JcThis): UExpr<out USort> = simpleValueResolver.visitJcThis(value)
 
-    override fun visitJcArgument(value: JcArgument): UExpr<out USort> = with(ctx) {
-        val ref = resolveLocal(value)
-        scope.calcOnState { memory.read(ref) }
-    }
+    override fun visitJcArgument(value: JcArgument): UExpr<out USort> = simpleValueResolver.visitJcArgument(value)
 
     // endregion
 
@@ -730,7 +666,7 @@ class JcExprResolver(
             return body()
         }
 
-        val classRef = resolveClassRef(type)
+        val classRef = simpleValueResolver.resolveClassRef(type)
 
         val initializedFlag = staticFieldsInitializedFlag(type, classRef)
 
@@ -789,13 +725,6 @@ class JcExprResolver(
         val cellSort = typeToSort(elementType)
 
         return UArrayIndexLValue(cellSort, arrayRef, idx, arrayDescriptor)
-    }
-
-    private fun resolveLocal(local: JcLocal): URegisterStackLValue<*> {
-        val method = requireNotNull(scope.calcOnState { lastEnteredMethod })
-        val localIdx = localToIdx(method, local)
-        val sort = ctx.typeToSort(local.type)
-        return URegisterStackLValue(sort, localIdx)
     }
 
     // endregion
@@ -1037,4 +966,241 @@ class JcExprResolver(
             )
         }
     }
+}
+
+class JcSimpleValueResolver(
+    private val ctx: JcContext,
+    private val scope: JcStepScope,
+    private val localToIdx: (JcMethod, JcLocal) -> Int,
+    private val mkTypeRef: (JcType, JcState) -> UConcreteHeapRef,
+    private val mkStringConstRef: (String, JcState) -> UConcreteHeapRef,
+) : JcExprVisitor<UExpr<out USort>> {
+    override fun visitJcArgument(value: JcArgument): UExpr<out USort> = with(ctx) {
+        val ref = resolveLocal(value)
+        scope.calcOnState { memory.read(ref) }
+    }
+
+    override fun visitJcBool(value: JcBool): UExpr<out USort> = with(ctx) {
+        mkBool(value.value)
+    }
+
+    override fun visitJcChar(value: JcChar): UExpr<out USort> = with(ctx) {
+        mkBv(value.value.code, charSort)
+    }
+
+    override fun visitJcByte(value: JcByte): UExpr<out USort> = with(ctx) {
+        mkBv(value.value, byteSort)
+    }
+
+    override fun visitJcShort(value: JcShort): UExpr<out USort> = with(ctx) {
+        mkBv(value.value, shortSort)
+    }
+
+    override fun visitJcInt(value: JcInt): UExpr<out USort> = with(ctx) {
+        mkBv(value.value, integerSort)
+    }
+
+    override fun visitJcLong(value: JcLong): UExpr<out USort> = with(ctx) {
+        mkBv(value.value, longSort)
+    }
+
+    override fun visitJcFloat(value: JcFloat): UExpr<out USort> = with(ctx) {
+        mkFp(value.value, floatSort)
+    }
+
+    override fun visitJcDouble(value: JcDouble): UExpr<out USort> = with(ctx) {
+        mkFp(value.value, doubleSort)
+    }
+
+    override fun visitJcNullConstant(value: JcNullConstant): UExpr<out USort> = with(ctx) {
+        nullRef
+    }
+
+    override fun visitJcStringConstant(value: JcStringConstant): UExpr<out USort> = with(ctx) {
+        scope.calcOnState {
+            // Equal string constants always have equal references
+            val ref = resolveStringConstant(value.value)
+            val stringValueLValue = UFieldLValue(addressSort, ref, stringValueField.field)
+            val stringCoderLValue = UFieldLValue(byteSort, ref, stringCoderField.field)
+
+            // String.value type depends on the JVM version
+            val charValues = when (stringValueField.fieldType.ifArrayGetElementType) {
+                cp.char -> value.value.asSequence().map { mkBv(it.code, charSort) }
+                cp.byte -> value.value.encodeToByteArray().asSequence().map { mkBv(it, byteSort) }
+                else -> error("Unexpected string values type: ${stringValueField.fieldType}")
+            }
+
+            val valuesArrayDescriptor = arrayDescriptorOf(stringValueField.fieldType as JcArrayType)
+            val elementType = requireNotNull(stringValueField.fieldType.ifArrayGetElementType)
+            val charArrayRef = memory.allocateArrayInitialized(
+                valuesArrayDescriptor,
+                typeToSort(elementType),
+                charValues.uncheckedCast()
+            )
+
+            // overwrite array type because descriptor is element type
+            memory.types.allocate(charArrayRef.address, stringValueField.fieldType)
+
+            // String constants are immutable. Therefore, it is correct to overwrite value, coder and type.
+            memory.write(stringValueLValue, charArrayRef)
+            memory.write(stringCoderLValue, mkBv(0, byteSort))
+            memory.types.allocate(ref.address, stringType)
+
+            ref
+        }
+    }
+
+
+    override fun visitJcClassConstant(value: JcClassConstant): UExpr<out USort> =
+        resolveClassRef(value.klass)
+
+    override fun visitJcMethodConstant(value: JcMethodConstant): UExpr<out USort> {
+        TODO("Method constant")
+    }
+
+    override fun visitJcMethodType(value: JcMethodType): UExpr<out USort> {
+        TODO("Method type")
+    }
+
+    override fun visitJcLocalVar(value: JcLocalVar): UExpr<out USort> = with(ctx) {
+        val ref = resolveLocal(value)
+        scope.calcOnState { memory.read(ref) }
+    }
+
+    override fun visitJcThis(value: JcThis): UExpr<out USort> = with(ctx) {
+        val ref = resolveLocal(value)
+        scope.calcOnState { memory.read(ref) }
+    }
+
+    override fun visitExternalJcExpr(expr: JcExpr): UExpr<out USort> =
+        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
+
+    override fun visitJcAddExpr(expr: JcAddExpr): UExpr<out USort> =
+        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
+
+    override fun visitJcAndExpr(expr: JcAndExpr): UExpr<out USort> =
+        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
+
+    override fun visitJcArrayAccess(value: JcArrayAccess): UExpr<out USort> =
+        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
+
+    override fun visitJcCastExpr(expr: JcCastExpr): UExpr<out USort> =
+        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
+
+    override fun visitJcCmpExpr(expr: JcCmpExpr): UExpr<out USort> =
+        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
+
+    override fun visitJcCmpgExpr(expr: JcCmpgExpr): UExpr<out USort> =
+        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
+
+    override fun visitJcCmplExpr(expr: JcCmplExpr): UExpr<out USort> =
+        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
+
+    override fun visitJcDivExpr(expr: JcDivExpr): UExpr<out USort> =
+        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
+
+    override fun visitJcDynamicCallExpr(expr: JcDynamicCallExpr): UExpr<out USort> =
+        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
+
+    override fun visitJcEqExpr(expr: JcEqExpr): UExpr<out USort> =
+        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
+
+    override fun visitJcFieldRef(value: JcFieldRef): UExpr<out USort> =
+        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
+
+    override fun visitJcGeExpr(expr: JcGeExpr): UExpr<out USort> =
+        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
+
+    override fun visitJcGtExpr(expr: JcGtExpr): UExpr<out USort> =
+        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
+
+    override fun visitJcInstanceOfExpr(expr: JcInstanceOfExpr): UExpr<out USort> =
+        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
+
+    override fun visitJcLambdaExpr(expr: JcLambdaExpr): UExpr<out USort> =
+        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
+
+    override fun visitJcLeExpr(expr: JcLeExpr): UExpr<out USort> =
+        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
+
+    override fun visitJcLengthExpr(expr: JcLengthExpr): UExpr<out USort> =
+        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
+
+    override fun visitJcLtExpr(expr: JcLtExpr): UExpr<out USort> =
+        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
+
+    override fun visitJcMulExpr(expr: JcMulExpr): UExpr<out USort> =
+        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
+
+    override fun visitJcNegExpr(expr: JcNegExpr): UExpr<out USort> =
+        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
+
+    override fun visitJcNeqExpr(expr: JcNeqExpr): UExpr<out USort> =
+        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
+
+    override fun visitJcNewArrayExpr(expr: JcNewArrayExpr): UExpr<out USort> =
+        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
+
+    override fun visitJcNewExpr(expr: JcNewExpr): UExpr<out USort> =
+        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
+
+    override fun visitJcOrExpr(expr: JcOrExpr): UExpr<out USort> =
+        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
+
+    override fun visitJcPhiExpr(expr: JcPhiExpr): UExpr<out USort> =
+        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
+
+    override fun visitJcRemExpr(expr: JcRemExpr): UExpr<out USort> =
+        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
+
+    override fun visitJcShlExpr(expr: JcShlExpr): UExpr<out USort> =
+        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
+
+    override fun visitJcShrExpr(expr: JcShrExpr): UExpr<out USort> =
+        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
+
+    override fun visitJcSpecialCallExpr(expr: JcSpecialCallExpr): UExpr<out USort> =
+        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
+
+    override fun visitJcStaticCallExpr(expr: JcStaticCallExpr): UExpr<out USort> =
+        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
+
+    override fun visitJcSubExpr(expr: JcSubExpr): UExpr<out USort> =
+        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
+
+    override fun visitJcUshrExpr(expr: JcUshrExpr): UExpr<out USort> =
+        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
+
+    override fun visitJcVirtualCallExpr(expr: JcVirtualCallExpr): UExpr<out USort> =
+        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
+
+    override fun visitJcXorExpr(expr: JcXorExpr): UExpr<out USort> =
+        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
+
+    fun resolveLocal(local: JcLocal): URegisterStackLValue<*> {
+        val method = requireNotNull(scope.calcOnState { lastEnteredMethod })
+        val localIdx = localToIdx(method, local)
+        val sort = ctx.typeToSort(local.type)
+        return URegisterStackLValue(sort, localIdx)
+    }
+
+    fun resolveClassRef(type: JcType): UConcreteHeapRef = scope.calcOnState {
+        val ref = mkTypeRef(type, this)
+        val classRefTypeLValue = UFieldLValue(ctx.addressSort, ref, ctx.classTypeSyntheticField)
+
+        // Ref type is java.lang.Class
+        memory.types.allocate(ref.address, ctx.classType)
+
+        // Save ref original class type with the negative address
+        val classRefType = memory.allocStatic(type)
+        memory.write(classRefTypeLValue, classRefType)
+
+        ref
+    }
+
+
+    fun resolveStringConstant(value: String): UConcreteHeapRef =
+        scope.calcOnState {
+            mkStringConstRef(value, this)
+        }
 }

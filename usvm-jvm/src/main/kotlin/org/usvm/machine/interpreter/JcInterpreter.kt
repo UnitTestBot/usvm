@@ -28,6 +28,7 @@ import org.jacodb.api.cfg.JcSwitchInst
 import org.jacodb.api.cfg.JcThis
 import org.jacodb.api.cfg.JcThrowInst
 import org.jacodb.api.ext.boolean
+import org.jacodb.api.ext.cfg.callExpr
 import org.jacodb.api.ext.isEnum
 import org.jacodb.api.ext.void
 import org.usvm.StepResult
@@ -37,14 +38,15 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UHeapRef
 import org.usvm.UInterpreter
 import org.usvm.api.allocateStaticRef
-import org.usvm.api.targets.JcTarget
 import org.usvm.api.evalTypeEquals
+import org.usvm.api.targets.JcTarget
 import org.usvm.api.typeStreamOf
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.isStaticHeapRef
 import org.usvm.machine.JcApplicationGraph
 import org.usvm.machine.JcConcreteMethodCallInst
 import org.usvm.machine.JcContext
+import org.usvm.machine.JcInterpreterObserver
 import org.usvm.machine.JcMethodApproximationResolver
 import org.usvm.machine.JcMethodCall
 import org.usvm.machine.JcMethodCallBaseInst
@@ -76,6 +78,7 @@ typealias JcStepScope = StepScope<JcState, JcType, JcContext>
 class JcInterpreter(
     private val ctx: JcContext,
     private val applicationGraph: JcApplicationGraph,
+    private val observer: JcInterpreterObserver? = null,
 ) : UInterpreter<JcState>() {
 
     companion object {
@@ -112,7 +115,7 @@ class JcInterpreter(
             }
         }
 
-        val solver = ctx.solver<JcType, JcContext>()
+        val solver = ctx.solver<JcType>()
 
         val model = (solver.checkWithSoftConstraints(state.pathConstraints) as USatResult).model
         state.models = listOf(model)
@@ -150,6 +153,7 @@ class JcInterpreter(
             is JcExitMonitorInst -> visitMonitorExitStmt(scope, stmt)
             else -> error("Unknown stmt: $stmt")
         }
+
         return scope.stepResult()
     }
 
@@ -197,14 +201,20 @@ class JcInterpreter(
 
         val catchSectionMiss = typeConditionToMiss to functionBlockOnMiss
 
+        // TODO observer?.onCatchStatement
+
         scope.forkMulti(catchForks + catchSectionMiss)
     }
 
     private val typeSelector = JcFixedInheritorsNumberTypeSelector()
 
     private fun visitMethodCall(scope: JcStepScope, stmt: JcMethodCallBaseInst) {
+        val exprResolver = exprResolverWithScope(scope)
+        val simpleValueResolver = exprResolver.simpleValueResolver
+
         when (stmt) {
             is JcMethodEntrypointInst -> {
+                observer?.onEntryPoint(simpleValueResolver, stmt, scope)
                 scope.doWithState {
                     if (callStack.isEmpty()) {
                         val method = stmt.method
@@ -213,7 +223,6 @@ class JcInterpreter(
                     }
                 }
 
-                val exprResolver = exprResolverWithScope(scope)
                 // Run static initializer for all enum arguments of the entrypoint
                 for ((type, ref) in stmt.entrypointArguments) {
                     exprResolver.ensureExprCorrectness(ref, type) ?: return
@@ -227,6 +236,7 @@ class JcInterpreter(
             }
 
             is JcConcreteMethodCallInst -> {
+                observer?.onMethodCallWithResolvedArguments(simpleValueResolver, stmt, scope)
                 if (approximateMethod(scope, stmt)) {
                     return
                 }
@@ -242,6 +252,8 @@ class JcInterpreter(
             }
 
             is JcVirtualMethodCallInst -> {
+                observer?.onMethodCallWithResolvedArguments(simpleValueResolver, stmt, scope)
+
                 if (approximateMethod(scope, stmt)) {
                     return
                 }
@@ -253,6 +265,18 @@ class JcInterpreter(
 
     private fun visitAssignInst(scope: JcStepScope, stmt: JcAssignInst) {
         val exprResolver = exprResolverWithScope(scope)
+
+
+        stmt.callExpr?.let {
+            val methodResult = scope.calcOnState { methodResult }
+
+            when (methodResult) {
+                is JcMethodResult.NoCall -> observer?.onMethodCallWithUnresolvedArguments(exprResolver.simpleValueResolver, it, scope)
+                is JcMethodResult.Success -> observer?.onAssignStatement(exprResolver.simpleValueResolver, stmt, scope)
+                is JcMethodResult.JcException -> error("Exceptions must be processed earlier")
+            }
+        }
+
         val lvalue = exprResolver.resolveLValue(stmt.lhv) ?: return
         val expr = exprResolver.resolveJcExpr(stmt.rhv, stmt.lhv.type) ?: return
 
@@ -265,6 +289,8 @@ class JcInterpreter(
 
     private fun visitIfStmt(scope: JcStepScope, stmt: JcIfInst) {
         val exprResolver = exprResolverWithScope(scope)
+
+        observer?.onIfStatement(exprResolver.simpleValueResolver, stmt, scope)
 
         val boolExpr = exprResolver
             .resolveJcExpr(stmt.condition)
@@ -283,6 +309,9 @@ class JcInterpreter(
 
     private fun visitReturnStmt(scope: JcStepScope, stmt: JcReturnInst) {
         val exprResolver = exprResolverWithScope(scope)
+
+        observer?.onReturnStatement(exprResolver.simpleValueResolver, stmt, scope)
+
         val method = requireNotNull(scope.calcOnState { callStack.lastMethod() })
         val returnType = with(applicationGraph) { method.typed }.returnType
 
@@ -296,6 +325,10 @@ class JcInterpreter(
     }
 
     private fun visitGotoStmt(scope: JcStepScope, stmt: JcGotoInst) {
+        val exprResolver = exprResolverWithScope(scope)
+
+        observer?.onGotoStatement(exprResolver.simpleValueResolver, stmt, scope)
+
         val nextStmt = stmt.location.method.instList[stmt.target.index]
         scope.doWithState { newStmt(nextStmt) }
     }
@@ -307,6 +340,8 @@ class JcInterpreter(
 
     private fun visitSwitchStmt(scope: JcStepScope, stmt: JcSwitchInst) {
         val exprResolver = exprResolverWithScope(scope)
+
+        observer?.onSwitchStatement(exprResolver.simpleValueResolver, stmt, scope)
 
         val switchKey = stmt.key
         // Note that the switch key can be an rvalue, for example, a simple int constant.
@@ -331,8 +366,11 @@ class JcInterpreter(
     }
 
     private fun visitThrowStmt(scope: JcStepScope, stmt: JcThrowInst) {
-        val resolver = exprResolverWithScope(scope)
-        val address = resolver.resolveJcExpr(stmt.throwable)?.asExpr(ctx.addressSort) ?: return
+        val exprResolver = exprResolverWithScope(scope)
+
+        observer?.onThrowStatement(exprResolver.simpleValueResolver, stmt, scope)
+
+        val address = exprResolver.resolveJcExpr(stmt.throwable)?.asExpr(ctx.addressSort) ?: return
 
         scope.calcOnState {
             throwExceptionWithoutStackFrameDrop(address, stmt.throwable.type)
@@ -341,7 +379,16 @@ class JcInterpreter(
 
     private fun visitCallStmt(scope: JcStepScope, stmt: JcCallInst) {
         val exprResolver = exprResolverWithScope(scope)
-        exprResolver.resolveJcExpr(stmt.callExpr) ?: return
+        val callExpr = stmt.callExpr
+        val methodResult = scope.calcOnState { methodResult }
+
+        when (methodResult) {
+            is JcMethodResult.NoCall -> observer?.onMethodCallWithUnresolvedArguments(exprResolver.simpleValueResolver, callExpr, scope)
+            is JcMethodResult.Success -> observer?.onCallStatement(exprResolver.simpleValueResolver, stmt, scope)
+            is JcMethodResult.JcException -> error("Exceptions must be processed earlier")
+        }
+
+        exprResolver.resolveJcExpr(callExpr) ?: return
 
         scope.doWithState {
             val nextStmt = stmt.nextStmt
@@ -353,6 +400,8 @@ class JcInterpreter(
         val exprResolver = exprResolverWithScope(scope)
         exprResolver.resolveJcNotNullRefExpr(stmt.monitor, stmt.monitor.type) ?: return
 
+        observer?.onEnterMonitorStatement(exprResolver.simpleValueResolver, stmt, scope)
+
         // Monitor enter makes sense only in multithreaded environment
 
         scope.doWithState {
@@ -363,6 +412,8 @@ class JcInterpreter(
     private fun visitMonitorExitStmt(scope: JcStepScope, stmt: JcExitMonitorInst) {
         val exprResolver = exprResolverWithScope(scope)
         exprResolver.resolveJcNotNullRefExpr(stmt.monitor, stmt.monitor.type) ?: return
+
+        observer?.onExitMonitorStatement(exprResolver.simpleValueResolver, stmt, scope)
 
         // Monitor exit makes sense only in multithreaded environment
 
@@ -508,7 +559,7 @@ class JcInterpreter(
 
     private fun mockNativeMethod(
         scope: JcStepScope,
-        methodCall: JcConcreteMethodCallInst
+        methodCall: JcConcreteMethodCallInst,
     ) = with(methodCall) {
         logger.warn { "Mocked: ${method.enclosingClass.name}::${method.name}" }
 
