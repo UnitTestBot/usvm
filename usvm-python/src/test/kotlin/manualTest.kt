@@ -5,9 +5,7 @@ import org.usvm.machine.*
 import org.usvm.language.PythonUnpinnedCallable
 import org.usvm.language.StructuredPythonProgram
 import org.usvm.language.types.*
-import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.IllegalOperationException
-import org.usvm.machine.interpreters.emptyNamespace
 import org.usvm.runner.CustomPythonTestRunner
 import org.usvm.runner.SamplesBuild
 import org.usvm.utils.ReprObjectSerializer
