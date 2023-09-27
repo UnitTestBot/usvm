@@ -183,6 +183,8 @@ class USVMPythonInterpreter<PythonObjectRepresentation>(
             concolicRunContext.curState?.meta?.wasInterrupted = true
             return StepResult(concolicRunContext.forkedStates.reversed().asSequence(), !state.isTerminated())
 
+        } finally {
+            concolicRunContext.converter.restart()
         }
     }
 

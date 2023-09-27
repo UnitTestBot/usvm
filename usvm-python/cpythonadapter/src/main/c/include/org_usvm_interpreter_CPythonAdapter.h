@@ -321,6 +321,14 @@ JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_decref
 
 /*
  * Class:     org_usvm_interpreter_CPythonAdapter
+ * Method:    incref
+ * Signature: (J)V
+ */
+JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_incref
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_usvm_interpreter_CPythonAdapter
  * Method:    checkForIllegalOperation
  * Signature: ()Ljava/lang/String;
  */
