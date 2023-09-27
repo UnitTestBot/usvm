@@ -23,7 +23,7 @@ abstract class UState<Type, Method, Statement, Context, Target, State>(
     open var pathLocation: PathsTrieNode<State, Statement>,
     targets: List<Target> = emptyList(),
 ) where Context : UContext,
-        Target : UTarget<Statement, Target, *>,
+        Target : UTarget<Statement, Target>,
         State : UState<Type, Method, Statement, Context, Target, State> {
     /**
      * Deterministic state id.

@@ -13,7 +13,6 @@ import org.usvm.api.targets.JcTarget
 import org.usvm.api.util.JcTestResolver
 import org.usvm.machine.JcInterpreterObserver
 import org.usvm.machine.JcMachine
-import org.usvm.targets.UTargetController
 import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.AnalysisResultsNumberMatcher
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
@@ -31,14 +30,14 @@ import kotlin.reflect.jvm.javaMethod
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, JcClassCoverage>() {
 
-    private var targets: List<JcTarget<UTargetController>> = emptyList()
+    private var targets: List<JcTarget> = emptyList()
     private var interpreterObserver: JcInterpreterObserver? = null
 
     /**
      * Sets JcTargets to run JcMachine with in the scope of [action].
      */
     protected fun <T> withTargets(
-        targets: List<JcTarget<UTargetController>>,
+        targets: List<JcTarget>,
         interpreterObserver: JcInterpreterObserver,
         action: () -> T,
     ): T {

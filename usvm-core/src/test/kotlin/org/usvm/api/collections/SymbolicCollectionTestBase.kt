@@ -21,7 +21,6 @@ import org.usvm.solver.USoftConstraintsProvider
 import org.usvm.solver.USolverBase
 import org.usvm.solver.UTypeSolver
 import org.usvm.targets.UTarget
-import org.usvm.targets.UTargetController
 import org.usvm.types.single.SingleTypeSystem
 import kotlin.test.assertEquals
 
@@ -53,12 +52,7 @@ abstract class SymbolicCollectionTestBase {
         scope = StepScope(StateStub(ctx, pathConstraints, memory))
     }
 
-    class TargetControllerStub : UTargetController {
-        override val targets: MutableCollection<UTarget<*, *, *>>
-            get() = TODO("Not yet implemented")
-    }
-
-    class TargetStub : UTarget<Any?, TargetStub, TargetControllerStub>()
+    class TargetStub : UTarget<Any?, TargetStub>()
 
     class StateStub(
         ctx: UContext,

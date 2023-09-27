@@ -79,7 +79,7 @@ class TaintAnalysis(
     ): URefSetEntryLValue<Mark> = URefSetEntryLValue(ref, getMarkAddress(mark, stepScope), mark)
 
 
-    fun addTarget(target: JcTarget<TaintAnalysis>): TaintAnalysis {
+    fun addTarget(target: JcTarget): TaintAnalysis {
         require(target is TaintTarget)
 
         targets += target
@@ -90,7 +90,7 @@ class TaintAnalysis(
 
     private fun findTaintTargets(stmt: JcInst, state: JcState): List<TaintTarget> =
         taintTargets[stmt]?.let { targets ->
-            state.targets.filter { it.uncheckedCast() in targets }
+            state.targets.filter { it in targets }
         }.orEmpty().toList().uncheckedCast()
 
     override fun onAssignStatement(exprResolver: JcSimpleValueResolver, stmt: JcAssignInst, stepScope: JcStepScope) {
@@ -284,7 +284,7 @@ class TaintAnalysis(
         callExpr: JcCallExpr,
     ) = if (callExpr is JcInstanceCallExpr) callExpr.instance else null
 
-    sealed class TaintTarget(override val location: JcInst) : JcTarget<TaintAnalysis>(location)
+    sealed class TaintTarget(override val location: JcInst) : JcTarget(location)
 
     class TaintMethodSourceTarget(
         location: JcInst,
@@ -303,8 +303,4 @@ class TaintAnalysis(
 }
 
 
-sealed interface JcTaintMark
-
-object SqlInjection : JcTaintMark
-
-object SensitiveData : JcTaintMark
+interface JcTaintMark

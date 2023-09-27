@@ -11,11 +11,9 @@ import org.usvm.api.targets.BooleanFromArgument
 import org.usvm.api.targets.CallParameterContainsMark
 import org.usvm.api.targets.ConstantTrue
 import org.usvm.api.targets.CopyAllMarks
-import org.usvm.api.targets.JcTarget
+import org.usvm.api.targets.JcTaintMark
 import org.usvm.api.targets.RemoveAllMarks
 import org.usvm.api.targets.Result
-import org.usvm.api.targets.SensitiveData
-import org.usvm.api.targets.SqlInjection
 import org.usvm.api.targets.TaintAnalysis
 import org.usvm.api.targets.TaintCleaner
 import org.usvm.api.targets.TaintConfiguration
@@ -48,7 +46,7 @@ class TaintTest : JavaMethodTestRunner() {
             val collectedStates = sampleAnalysis.collectedStates
             assertEquals(expected = 1, actual = collectedStates.size)
 
-            val reachedTargets = collectedStates.single().reachedTerminalTargets.singleOrNull() as? JcTarget<*>
+            val reachedTargets = collectedStates.single().reachedTerminalTargets.singleOrNull()
 
             assertNotNull(reachedTargets)
             assertTrue { reachedTargets.isTerminal }
@@ -90,7 +88,7 @@ class TaintTest : JavaMethodTestRunner() {
             val collectedStates = sampleAnalysis.collectedStates
             assertEquals(expected = 1, actual = collectedStates.size)
 
-            val reachedTargets = collectedStates.single().reachedTerminalTargets.singleOrNull() as? JcTarget<*>
+            val reachedTargets = collectedStates.single().reachedTerminalTargets.singleOrNull()
 
             assertNotNull(reachedTargets)
             assertTrue { reachedTargets.isTerminal }
@@ -114,7 +112,7 @@ class TaintTest : JavaMethodTestRunner() {
             val collectedStates = sampleAnalysis.collectedStates
             assertEquals(expected = 1, actual = collectedStates.size)
 
-            val reachedTargets = collectedStates.single().reachedTerminalTargets.singleOrNull() as? JcTarget<*>
+            val reachedTargets = collectedStates.single().reachedTerminalTargets.singleOrNull()
 
             assertNotNull(reachedTargets)
             assertTrue { reachedTargets.isTerminal }
@@ -395,5 +393,8 @@ class TaintTest : JavaMethodTestRunner() {
             .addTarget(sourceTaintWithReturningValue)
             .addTarget(sourceTaintGoThroughCleaner)
     }
+
+    private object SqlInjection : JcTaintMark
+    private object SensitiveData : JcTaintMark
 }
 

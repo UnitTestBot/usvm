@@ -38,8 +38,8 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UHeapRef
 import org.usvm.UInterpreter
 import org.usvm.api.allocateStaticRef
-import org.usvm.api.targets.JcTarget
 import org.usvm.api.evalTypeEquals
+import org.usvm.api.targets.JcTarget
 import org.usvm.api.typeStreamOf
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.isStaticHeapRef
@@ -66,7 +66,6 @@ import org.usvm.machine.state.throwExceptionAndDropStackFrame
 import org.usvm.machine.state.throwExceptionWithoutStackFrameDrop
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.solver.USatResult
-import org.usvm.targets.UTargetController
 import org.usvm.types.first
 import org.usvm.util.findMethod
 import org.usvm.util.write
@@ -86,7 +85,7 @@ class JcInterpreter(
         val logger = object : KLogging() {}.logger
     }
 
-    fun getInitialState(method: JcMethod, targets: List<JcTarget<UTargetController>> = emptyList()): JcState {
+    fun getInitialState(method: JcMethod, targets: List<JcTarget> = emptyList()): JcState {
         val state = JcState(ctx, targets = targets)
         val typedMethod = with(applicationGraph) { method.typed }
 

@@ -17,7 +17,6 @@ import org.usvm.statistics.distances.InterprocDistanceCalculator
 import org.usvm.statistics.distances.MultiTargetDistanceCalculator
 import org.usvm.statistics.distances.ReachabilityKind
 import org.usvm.targets.UTarget
-import org.usvm.targets.UTargetController
 import org.usvm.util.log2
 import kotlin.math.max
 import kotlin.random.Random
@@ -30,7 +29,7 @@ fun <Method, Statement, Target, State> createPathSelector(
     cfgStatistics: () -> CfgStatistics<Method, Statement>? = { null },
     callGraphStatistics: () -> CallGraphStatistics<Method>? = { null },
 ): UPathSelector<State>
-        where Target : UTarget<Statement, Target, *>,
+        where Target : UTarget<Statement, Target>,
               State : UState<*, Method, Statement, *, Target, State> {
 
     val strategies = options.pathSelectionStrategies
@@ -213,7 +212,7 @@ internal fun <Method, Statement, Target, State> createTargetedPathSelector(
     applicationGraph: ApplicationGraph<Method, Statement>,
     random: Random? = null,
 ): UPathSelector<State>
-        where Target : UTarget<Statement, Target, *>,
+        where Target : UTarget<Statement, Target>,
               State : UState<*, Method, Statement, *, Target, State> {
 
     val distanceCalculator = MultiTargetDistanceCalculator<Method, Statement, _> { loc ->
@@ -276,7 +275,7 @@ internal fun <Method, Statement, Target, State> createTargetedPathSelector(
     applicationGraph: ApplicationGraph<Method, Statement>,
     random: Random? = null,
 ): UPathSelector<State>
-        where Target : UTarget<Statement, Target, out UTargetController>,
+        where Target : UTarget<Statement, Target>,
               State : UState<*, Method, Statement, *, Target, State> {
 
     val distanceCalculator = MultiTargetDistanceCalculator<Method, Statement, _> { stmt ->

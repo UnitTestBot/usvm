@@ -9,7 +9,6 @@ import org.usvm.memory.USymbolicCollectionKeyInfo
 import org.usvm.model.UModelBase
 import org.usvm.regions.Region
 import org.usvm.targets.UTarget
-import org.usvm.targets.UTargetController
 
 typealias Field = java.lang.reflect.Field
 typealias Type = kotlin.reflect.KClass<*>
@@ -31,18 +30,9 @@ internal fun pseudoRandom(i: Int): Int {
     return res
 }
 
-internal class TestTargetController : UTargetController {
-    override val targets: MutableCollection<UTarget<*, *, *>>
-        get() = error("Must not be called")
-}
-
-internal class TestTarget(method: String, offset: Int) : UTarget<TestInstruction, TestTarget, TestTargetController>(
+internal class TestTarget(method: String, offset: Int) : UTarget<TestInstruction, TestTarget>(
     TestInstruction(method, offset)
-) {
-    fun reach(state: TestState) {
-        propagate(state)
-    }
-}
+)
 
 internal class TestState(
     ctx: UContext,
