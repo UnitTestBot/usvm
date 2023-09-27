@@ -234,34 +234,50 @@ construct_global_clones_dict(JNIEnv *env, jobjectArray global_clones) {
 }
 
 void
-add_ref_to_list(PyObject *list, void *ref) {
-    assert(list && PyList_Check(list));
-    PyList_Append(list, PyLong_FromLong((long) ref));
+add_ref_to_list(RefHolderNode **holder, void *ref) {
+    RefHolderNode *new_node = malloc(sizeof(RefHolderNode));
+    new_node->prev = *holder;
+    new_node->value = ref;
+    *holder = new_node;
 }
 
-PyObject *global_ref_holder = 0;
+void
+clean_list(RefHolderNode **holder, void *data, void (*release)(void *ref, void *data)) {
+    while ((*holder)->value) {
+        RefHolderNode *next = (RefHolderNode *) (*holder)->prev;
+        assert(next);
+        void *address = (*holder)->value;
+        release(address, data);
+        free(*holder);
+        (*holder) = next;
+    }
+}
+
+RefHolderNode global_ref_root = {
+    NULL,
+    NULL
+};
+
+RefHolderNode *global_ref_holder = &global_ref_root;
 
 jobject
 create_global_ref(JNIEnv *env, jobject local_ref) {
     jobject result = (*env)->NewGlobalRef(env, local_ref);
-    add_ref_to_list(global_ref_holder, result);
+    add_ref_to_list(&global_ref_holder, result);
     return result;
 }
 
 void
 initialize_global_ref_holder() {
-    global_ref_holder = PyList_New(0);
+}
+
+static void
+release_global_ref(void *address, void *env_raw) {
+    JNIEnv *env = (JNIEnv *) env_raw;
+    (*env)->DeleteGlobalRef(env, (jobject) address);
 }
 
 void
 release_global_refs(JNIEnv *env) {
-    assert(global_ref_holder);
-    Py_ssize_t size = PyList_Size(global_ref_holder);
-    for (Py_ssize_t i = 0; i < size; i++) {
-        PyObject *item = PyList_GetItem(global_ref_holder, i);
-        long address = extract_long_value(item);
-        (*env)->DeleteGlobalRef(env, (jobject) address);
-    }
-    Py_DECREF(global_ref_holder);
-    global_ref_holder = 0;
+    clean_list(&global_ref_holder, env, release_global_ref);
 }
