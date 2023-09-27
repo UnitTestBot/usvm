@@ -78,7 +78,6 @@ typedef struct {
 void add_ref_to_list(RefHolderNode **list, void *ref);
 void clean_list(RefHolderNode **holder, void *data, void (*release)(void *ref, void *data));
 jobject create_global_ref(JNIEnv *env, jobject local_ref);
-void initialize_global_ref_holder();
 void release_global_refs(JNIEnv *env);
 
 #ifdef __cplusplus

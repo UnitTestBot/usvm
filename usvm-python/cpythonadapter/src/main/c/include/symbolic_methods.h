@@ -15,7 +15,6 @@ typedef struct {
     jobject self_reference;
 } SymbolicMethod;
 
-void initialize_symbolic_methods_holder();
 void clean_methods();
 SymbolicMethod *construct_list_append_method(JNIEnv *env, jobject symbolic_self);
 SymbolicMethod *construct_symbolic_method_without_self(call_type call);
