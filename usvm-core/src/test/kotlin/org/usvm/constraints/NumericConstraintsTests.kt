@@ -33,7 +33,7 @@ class NumericConstraintsTests {
 
     @BeforeEach
     fun initializeContext() {
-        val components: UComponents<*> = mockk()
+        val components: UComponents<*, USizeSort> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
         ctx = UContext(components)
         bvSort = ctx.mkBvSort(sizeBits = 8u)

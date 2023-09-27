@@ -1,6 +1,7 @@
 package org.usvm.api.collections
 
 import io.ksmt.solver.KSolver
+import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USizeSort
@@ -28,7 +29,7 @@ class ObjectMapTest : SymbolicCollectionTestBase() {
 
     @Test
     fun testConcreteMapContains() {
-        val concreteMap = scope.calcOnState { mkSymbolicObjectMap<_, USizeSort>(mapType) }
+        val concreteMap = scope.calcOnState { mkSymbolicObjectMap(mapType) }
         testMapContains(concreteMap)
     }
 
@@ -37,7 +38,7 @@ class ObjectMapTest : SymbolicCollectionTestBase() {
         val symbolicMap = mkRegisterReading(99, ctx.addressSort)
 
         assertNotNull(scope.assert(mkHeapRefEq(symbolicMap, nullRef).not()))
-        assertNotNull(scope.ensureObjectMapSizeCorrect<_, _, USizeSort>(symbolicMap, mapType))
+        assertNotNull(scope.ensureObjectMapSizeCorrect(symbolicMap, mapType))
 
         testMapContains(symbolicMap)
     }
@@ -75,7 +76,7 @@ class ObjectMapTest : SymbolicCollectionTestBase() {
         val removeSymbolic = storedSymbolic.first()
         val removedKeys = listOf(removeConcrete, removeSymbolic)
         removedKeys.forEach { key ->
-            symbolicObjectMapRemove<_, USizeSort>(mapRef, key, mapType)
+            symbolicObjectMapRemove(mapRef, key, mapType)
         }
 
         checkWithSolver {
@@ -90,7 +91,7 @@ class ObjectMapTest : SymbolicCollectionTestBase() {
 
     @Test
     fun testConcreteMapContainsComposition() {
-        val concreteMap = scope.calcOnState { mkSymbolicObjectMap<_, USizeSort>(mapType) }
+        val concreteMap = scope.calcOnState { mkSymbolicObjectMap(mapType) }
         testMapContainsComposition(concreteMap)
     }
 
@@ -99,7 +100,7 @@ class ObjectMapTest : SymbolicCollectionTestBase() {
         val symbolicMap = mkRegisterReading(99, addressSort)
 
         assertNotNull(scope.assert(mkHeapRefEq(symbolicMap, nullRef).not()))
-        assertNotNull(scope.ensureObjectMapSizeCorrect<_, _, USizeSort>(symbolicMap, mapType))
+        assertNotNull(scope.ensureObjectMapSizeCorrect(symbolicMap, mapType))
 
         testMapContainsComposition(symbolicMap)
     }
@@ -121,7 +122,7 @@ class ObjectMapTest : SymbolicCollectionTestBase() {
 
         val removedKeys = setOf(concreteKeys.first(), symbolicKeys.first(), otherSymbolicKey)
         removedKeys.forEach { key ->
-            symbolicObjectMapRemove<_, USizeSort>(mapRef, key, mapType)
+            symbolicObjectMapRemove(mapRef, key, mapType)
         }
 
         val removedKeysValues = removedKeys.mapTo(hashSetOf()) { result.model.eval(it) }
@@ -137,7 +138,7 @@ class ObjectMapTest : SymbolicCollectionTestBase() {
 
     @Test
     fun testConcreteMapSize() {
-        val concreteMap = scope.calcOnState { mkSymbolicObjectMap<_, USizeSort>(mapType) }
+        val concreteMap = scope.calcOnState { mkSymbolicObjectMap(mapType) }
         testMapSize(concreteMap) { size, lowerBound, upperBound ->
             assertPossible { size eq upperBound }
             assertPossible { size eq lowerBound }
@@ -154,7 +155,7 @@ class ObjectMapTest : SymbolicCollectionTestBase() {
         val symbolicMap = mkRegisterReading(99, addressSort)
 
         assertNotNull(scope.assert(mkHeapRefEq(symbolicMap, nullRef).not()))
-        assertNotNull(scope.ensureObjectMapSizeCorrect<_, _, USizeSort>(symbolicMap, mapType))
+        assertNotNull(scope.ensureObjectMapSizeCorrect(symbolicMap, mapType))
 
         testMapSize(symbolicMap) { size, lowerBound, upperBound ->
             assertPossible { size eq lowerBound }
@@ -175,14 +176,14 @@ class ObjectMapTest : SymbolicCollectionTestBase() {
             val sizeLowerBound = ctx.mkSizeExpr(concreteKeys.size + 1) // +1 for at least one symbolic key
             val sizeUpperBound = ctx.mkSizeExpr(concreteKeys.size + symbolicKeys.size)
 
-            val actualSize = symbolicObjectMapSize<_, USizeSort>(mapRef, mapType)
+            val actualSize = symbolicObjectMapSize(mapRef, mapType)
 
             checkSizeBounds(actualSize, sizeLowerBound, sizeUpperBound)
         }
 
         val removedKeys = setOf(concreteKeys.first(), symbolicKeys.first())
         removedKeys.forEach { key ->
-            symbolicObjectMapRemove<_, USizeSort>(mapRef, key, mapType)
+            symbolicObjectMapRemove(mapRef, key, mapType)
         }
 
         checkWithSolver {
@@ -196,7 +197,7 @@ class ObjectMapTest : SymbolicCollectionTestBase() {
             val sizeLowerBound = ctx.mkSizeExpr(minKeySize)
             val sizeUpperBound = ctx.mkSizeExpr(concreteKeys.size + symbolicKeys.size - removedKeys.size)
 
-            val actualSize = symbolicObjectMapSize<_, USizeSort>(mapRef, mapType)
+            val actualSize = symbolicObjectMapSize(mapRef, mapType)
 
             checkSizeBounds(actualSize, sizeLowerBound, sizeUpperBound)
         }
@@ -204,30 +205,30 @@ class ObjectMapTest : SymbolicCollectionTestBase() {
 
     @Test
     fun testMapMergeSymbolicIntoConcrete() = with(ctx) {
-        val concreteMap = scope.calcOnState { mkSymbolicObjectMap<_, USizeSort>(mapType) }
+        val concreteMap = scope.calcOnState { mkSymbolicObjectMap(mapType) }
         val symbolicMap = mkRegisterReading(99, addressSort)
 
         assertNotNull(scope.assert(mkHeapRefEq(symbolicMap, nullRef).not()))
-        assertNotNull(scope.ensureObjectMapSizeCorrect<_, _, USizeSort>(symbolicMap, mapType))
+        assertNotNull(scope.ensureObjectMapSizeCorrect(symbolicMap, mapType))
 
         testMapMerge(concreteMap, symbolicMap)
     }
 
     @Test
     fun testMapMergeConcreteIntoSymbolic() = with(ctx) {
-        val concreteMap = scope.calcOnState { mkSymbolicObjectMap<_, USizeSort>(mapType) }
+        val concreteMap = scope.calcOnState { mkSymbolicObjectMap(mapType) }
         val symbolicMap = mkRegisterReading(99, addressSort)
 
         assertNotNull(scope.assert(mkHeapRefEq(symbolicMap, nullRef).not()))
-        assertNotNull(scope.ensureObjectMapSizeCorrect<_, _, USizeSort>(symbolicMap, mapType))
+        assertNotNull(scope.ensureObjectMapSizeCorrect(symbolicMap, mapType))
 
         testMapMerge(concreteMap, symbolicMap)
     }
 
     @Test
     fun testMapMergeConcreteIntoConcrete() {
-        val concreteMap0 = scope.calcOnState { mkSymbolicObjectMap<_, USizeSort>(mapType) }
-        val concreteMap1 = scope.calcOnState { mkSymbolicObjectMap<_, USizeSort>(mapType) }
+        val concreteMap0 = scope.calcOnState { mkSymbolicObjectMap(mapType) }
+        val concreteMap1 = scope.calcOnState { mkSymbolicObjectMap(mapType) }
 
         testMapMerge(concreteMap0, concreteMap1)
     }
@@ -237,12 +238,12 @@ class ObjectMapTest : SymbolicCollectionTestBase() {
         val symbolicMap0 = ctx.mkRegisterReading(99, addressSort)
 
         assertNotNull(scope.assert(mkHeapRefEq(symbolicMap0, nullRef).not()))
-        assertNotNull(scope.ensureObjectMapSizeCorrect<_, _, USizeSort>(symbolicMap0, mapType))
+        assertNotNull(scope.ensureObjectMapSizeCorrect(symbolicMap0, mapType))
 
         val symbolicMap1 = ctx.mkRegisterReading(999, addressSort)
 
         assertNotNull(scope.assert(mkHeapRefEq(symbolicMap1, nullRef).not()))
-        assertNotNull(scope.ensureObjectMapSizeCorrect<_, _, USizeSort>(symbolicMap1, mapType))
+        assertNotNull(scope.ensureObjectMapSizeCorrect(symbolicMap1, mapType))
 
         testMapMerge(symbolicMap0, symbolicMap1)
     }
@@ -279,11 +280,11 @@ class ObjectMapTest : SymbolicCollectionTestBase() {
         val otherValues = fillMap(otherMap, otherMapKeys, 65536)
 
         for (key in removedKeys) {
-            symbolicObjectMapRemove<_, USizeSort>(mergeTarget, key, mapType)
-            symbolicObjectMapRemove<_, USizeSort>(otherMap, key, mapType)
+            symbolicObjectMapRemove(mergeTarget, key, mapType)
+            symbolicObjectMapRemove(otherMap, key, mapType)
         }
 
-        symbolicObjectMapMergeInto<_, _, USizeSort>(mergeTarget, otherMap, mapType, ctx.sizeSort)
+        symbolicObjectMapMergeInto(mergeTarget, otherMap, mapType, ctx.sizeSort)
 
         val mergedContains0 = tgtMapKeys.map { symbolicObjectMapContains(mergeTarget, it, mapType) }
         val mergedContains1 = otherMapKeys.map { symbolicObjectMapContains(mergeTarget, it, mapType) }
@@ -339,13 +340,13 @@ class ObjectMapTest : SymbolicCollectionTestBase() {
         }
     }
 
-    private fun UState<SingleTypeSystem.SingleType, *, *, *, *, *>.fillMap(
+    private fun UState<SingleTypeSystem.SingleType, *, *, UContext<USizeSort>, *, *>.fillMap(
         mapRef: UHeapRef,
         keys: List<UHeapRef>,
         startValueIdx: Int
     ) = keys.mapIndexed { index, key ->
         val value = ctx.mkSizeExpr(index + startValueIdx)
-        symbolicObjectMapPut<_, _, USizeSort>(
+        symbolicObjectMapPut(
             mapRef,
             key,
             value,

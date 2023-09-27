@@ -11,6 +11,7 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UMockEvaluator
+import org.usvm.USort
 import org.usvm.memory.UMemoryRegionId
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.solver.UExprTranslator
@@ -23,10 +24,10 @@ interface UModelDecoder<Model> {
  * Initializes [UExprTranslator] and [UModelDecoder] and returns them. We can safely reuse them while [UContext] is
  * alive.
  */
-fun <Type> buildTranslatorAndLazyDecoder(
-    ctx: UContext<*>,
-): Pair<UExprTranslator<Type, *>, ULazyModelDecoder<Type>> {
-    val translator = UExprTranslator<Type, _>(ctx)
+fun <Type, USizeSort : USort> buildTranslatorAndLazyDecoder(
+    ctx: UContext<USizeSort>,
+): Pair<UExprTranslator<Type, USizeSort>, ULazyModelDecoder<Type>> {
+    val translator = UExprTranslator<Type, USizeSort>(ctx)
     val decoder = ULazyModelDecoder(translator)
 
     return translator to decoder

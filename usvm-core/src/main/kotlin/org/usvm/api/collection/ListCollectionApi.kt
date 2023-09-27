@@ -1,6 +1,7 @@
 package org.usvm.api.collection
 
 import org.usvm.StepScope
+import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
@@ -15,11 +16,11 @@ import org.usvm.uctx
 import org.usvm.withSizeSort
 
 object ListCollectionApi {
-    fun <ListType> UState<ListType, *, *, *, *, *>.mkSymbolicList(
+    fun <ListType, USizeSort : USort, Ctx: UContext<USizeSort>> UState<ListType, *, *, Ctx, *, *>.mkSymbolicList(
         listType: ListType,
-    ): UHeapRef = with(memory.ctx) {
+    ): UHeapRef = with(pathConstraints.ctx) {
         val ref = memory.allocConcrete(listType)
-        memory.writeArrayLength(ref, mkSizeExpr(0), listType)
+        memory.writeArrayLength(ref, mkSizeExpr(0), listType, sizeSort)
         ref
     }
 
@@ -27,22 +28,22 @@ object ListCollectionApi {
      * List size may be incorrect for input lists.
      * Use [ensureListSizeCorrect] to guarantee that list size is correct.
      * */
-    fun <ListType, USizeSort : USort> UState<ListType, *, *, *, *, *>.symbolicListSize(
+    fun <ListType, USizeSort : USort, Ctx: UContext<USizeSort>> UState<ListType, *, *, Ctx, *, *>.symbolicListSize(
         listRef: UHeapRef,
         listType: ListType,
-    ): UExpr<USizeSort> = memory.readArrayLength(listRef, listType)
+    ): UExpr<USizeSort> = memory.readArrayLength(listRef, listType, pathConstraints.ctx.sizeSort)
 
-    fun <ListType, USizeSort : USort, State : UState<ListType, *, *, *, *, State>> StepScope<State, ListType, *>.ensureListSizeCorrect(
+    fun <ListType, USizeSort : USort, State, Ctx : UContext<USizeSort>> StepScope<State, ListType, *>.ensureListSizeCorrect(
         listRef: UHeapRef,
         listType: ListType,
-    ): Unit? {
+    ): Unit? where State : UState<ListType, *, *, Ctx, *, State> {
         listRef.mapWithStaticAsConcrete(
             concreteMapper = {
                 // Concrete list size is always correct
                 it
             },
             symbolicMapper = { symbolicListRef ->
-                val length = calcOnState { memory.readArrayLength<ListType, USizeSort>(symbolicListRef, listType) }
+                val length = calcOnState { memory.readArrayLength(symbolicListRef, listType, pathConstraints.ctx.sizeSort) }
                 length.uctx.withSizeSort {
                     val boundConstraint = mkSizeGeExpr(length, mkSizeExpr(0))
                     // List size must be correct regardless of guard
@@ -61,18 +62,18 @@ object ListCollectionApi {
         sort: Sort,
     ): UExpr<Sort> = memory.readArrayIndex(listRef, index, listType, sort)
 
-    fun <ListType, Sort : USort, USizeSort : USort> UState<ListType, *, *, *, *, *>.symbolicListAdd(
+    fun <ListType, Sort : USort, USizeSort : USort, Ctx: UContext<USizeSort>> UState<ListType, *, *, Ctx, *, *>.symbolicListAdd(
         listRef: UHeapRef,
         listType: ListType,
         sort: Sort,
         value: UExpr<Sort>,
     ) {
-        val size = symbolicListSize<ListType, USizeSort>(listRef, listType)
+        val size = symbolicListSize(listRef, listType)
 
-        memory.ctx.withSizeSort {
+        with(pathConstraints.ctx) {
             memory.writeArrayIndex(listRef, size, listType, sort, value, guard = trueExpr)
             val updatedSize = mkSizeAddExpr(size, mkSizeExpr(1))
-            memory.writeArrayLength(listRef, updatedSize, listType)
+            memory.writeArrayLength(listRef, updatedSize, listType, sizeSort)
         }
     }
 
@@ -86,14 +87,14 @@ object ListCollectionApi {
         memory.writeArrayIndex(listRef, index, listType, sort, value, guard = memory.ctx.trueExpr)
     }
 
-    fun <ListType, Sort : USort, USizeSort : USort> UState<ListType, *, *, *, *, *>.symbolicListInsert(
+    fun <ListType, Sort : USort, USizeSort : USort, Ctx: UContext<USizeSort>> UState<ListType, *, *, Ctx, *, *>.symbolicListInsert(
         listRef: UHeapRef,
         listType: ListType,
         sort: Sort,
         index: UExpr<USizeSort>,
         value: UExpr<Sort>,
-    ) = memory.ctx.withSizeSort {
-        val currentSize = symbolicListSize<ListType, USizeSort>(listRef, listType)
+    ) = with(pathConstraints.ctx) {
+        val currentSize = symbolicListSize(listRef, listType)
 
         val srcIndex = index
         val indexAfterInsert = mkSizeAddExpr(index, mkSizeExpr(1))
@@ -113,16 +114,16 @@ object ListCollectionApi {
         memory.writeArrayIndex(listRef, index, listType, sort, value, guard = trueExpr)
 
         val updatedSize = mkSizeAddExpr(currentSize, mkSizeExpr(1))
-        memory.writeArrayLength(listRef, updatedSize, listType)
+        memory.writeArrayLength(listRef, updatedSize, listType, sizeSort)
     }
 
-    fun <ListType, Sort : USort, USizeSort : USort> UState<ListType, *, *, *, *, *>.symbolicListRemove(
+    fun <ListType, Sort : USort, USizeSort : USort, Ctx: UContext<USizeSort>> UState<ListType, *, *, Ctx, *, *>.symbolicListRemove(
         listRef: UHeapRef,
         listType: ListType,
         sort: Sort,
         index: UExpr<USizeSort>,
-    ) = memory.ctx.withSizeSort {
-        val currentSize = symbolicListSize<ListType, USizeSort>(listRef, listType)
+    ) = with(pathConstraints.ctx) {
+        val currentSize = symbolicListSize(listRef, listType)
 
         val firstIndexAfterRemove = mkSizeAddExpr(index, mkSizeExpr(1))
         val lastIndexAfterRemove = mkSizeSubExpr(currentSize, mkSizeExpr(2))
@@ -139,7 +140,7 @@ object ListCollectionApi {
         )
 
         val updatedSize = mkSizeSubExpr(currentSize, mkSizeExpr(1))
-        memory.writeArrayLength(listRef, updatedSize, listType)
+        memory.writeArrayLength(listRef, updatedSize, listType, sizeSort)
     }
 
     fun <ListType, Sort : USort, USizeSort : USort> UState<ListType, *, *, *, *, *>.symbolicListCopyRange(

@@ -3,6 +3,7 @@ package org.usvm.api.collections
 import io.ksmt.solver.KSolver
 import io.ksmt.solver.KSolverStatus
 import io.ksmt.solver.z3.KZ3Solver
+import io.ksmt.utils.uncheckedCast
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
@@ -29,22 +30,22 @@ import kotlin.test.assertEquals
 
 abstract class SymbolicCollectionTestBase {
     lateinit var ctx: UContext<USizeSort>
-    lateinit var pathConstraints: UPathConstraints<SingleTypeSystem.SingleType, UContext<*>>
+    lateinit var pathConstraints: UPathConstraints<SingleTypeSystem.SingleType, UContext<USizeSort>>
     lateinit var memory: UMemory<SingleTypeSystem.SingleType, Any?>
-    lateinit var scope: StepScope<StateStub, SingleTypeSystem.SingleType, UContext<*>>
-    lateinit var translator: UExprTranslator<SingleTypeSystem.SingleType, *>
-    lateinit var uSolver: USolverBase<SingleTypeSystem.SingleType, UContext<*>>
+    lateinit var scope: StepScope<StateStub, SingleTypeSystem.SingleType, UContext<USizeSort>>
+    lateinit var translator: UExprTranslator<SingleTypeSystem.SingleType, USizeSort>
+    lateinit var uSolver: USolverBase<SingleTypeSystem.SingleType, UContext<USizeSort>>
 
     @BeforeEach
     fun initializeContext() {
-        val components: UComponents<SingleTypeSystem.SingleType> = mockk()
+        val components: UComponents<SingleTypeSystem.SingleType, USizeSort> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
-        every { components.mkSolver(any()) } answers { uSolver }
+        every { components.mkSolver(any()) } answers { uSolver.uncheckedCast() }
 
         ctx = UContext(components)
 
         val softConstraintProvider = USoftConstraintsProvider<SingleTypeSystem.SingleType, USizeSort>(ctx)
-        val (translator, decoder) = buildTranslatorAndLazyDecoder<SingleTypeSystem.SingleType>(ctx)
+        val (translator, decoder) = buildTranslatorAndLazyDecoder<SingleTypeSystem.SingleType, USizeSort>(ctx)
         this.translator = translator
         val typeSolver = UTypeSolver(SingleTypeSystem)
         uSolver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder, softConstraintProvider)
@@ -59,16 +60,16 @@ abstract class SymbolicCollectionTestBase {
     class TargetStub : UTarget<Any?, TargetStub, StateStub>()
 
     class StateStub(
-        ctx: UContext<*>,
-        pathConstraints: UPathConstraints<SingleTypeSystem.SingleType, UContext<*>>,
+        ctx: UContext<USizeSort>,
+        pathConstraints: UPathConstraints<SingleTypeSystem.SingleType, UContext<USizeSort>>,
         memory: UMemory<SingleTypeSystem.SingleType, Any?>,
-    ) : UState<SingleTypeSystem.SingleType, Any?, Any?, UContext<*>, TargetStub, StateStub>(
+    ) : UState<SingleTypeSystem.SingleType, Any?, Any?, UContext<USizeSort>, TargetStub, StateStub>(
         ctx, UCallStack(),
         pathConstraints, memory, emptyList(), ctx.mkInitialLocation()
     ) {
-        override fun clone(newConstraints: UPathConstraints<SingleTypeSystem.SingleType, UContext<*>>?): StateStub {
+        override fun clone(newConstraints: UPathConstraints<SingleTypeSystem.SingleType, UContext<USizeSort>>?): StateStub {
             val clonedConstraints = newConstraints ?: pathConstraints.clone()
-            return StateStub(memory.ctx, clonedConstraints, memory.clone(clonedConstraints.typeConstraints))
+            return StateStub(pathConstraints.ctx, clonedConstraints, memory.clone(clonedConstraints.typeConstraints))
         }
 
         override val isExceptional: Boolean

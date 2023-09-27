@@ -34,8 +34,8 @@ fun <ArrayType, Sort : USort, USizeSort : USort> UReadOnlyMemory<*>.readArrayInd
 ): UExpr<Sort> = read(UArrayIndexLValue(sort, ref, index, arrayType))
 
 fun <ArrayType, USizeSort : USort> UReadOnlyMemory<*>.readArrayLength(
-    ref: UHeapRef, arrayType: ArrayType
-): UExpr<USizeSort> = read(UArrayLengthLValue(ref, arrayType))
+    ref: UHeapRef, arrayType: ArrayType, sizeSort: USizeSort
+): UExpr<USizeSort> = read(UArrayLengthLValue(ref, arrayType, sizeSort))
 
 fun <Field, Sort : USort> UWritableMemory<*>.writeField(
     ref: UHeapRef, field: Field, sort: Sort, value: UExpr<Sort>, guard: UBoolExpr
@@ -46,8 +46,8 @@ fun <ArrayType, Sort : USort, USizeSort : USort> UWritableMemory<*>.writeArrayIn
 ) = write(UArrayIndexLValue(sort, ref, index, type), value, guard)
 
 fun <ArrayType, USizeSort : USort> UWritableMemory<*>.writeArrayLength(
-    ref: UHeapRef, size: UExpr<USizeSort>, arrayType: ArrayType
-) = write(UArrayLengthLValue(ref, arrayType), size, ref.uctx.trueExpr)
+    ref: UHeapRef, size: UExpr<USizeSort>, arrayType: ArrayType, sizeSort: USizeSort
+) = write(UArrayLengthLValue(ref, arrayType, sizeSort), size, ref.uctx.trueExpr)
 
 
 fun <ArrayType, Sort : USort, USizeSort : USort> UWritableMemory<*>.memcpy(
@@ -80,15 +80,16 @@ fun <ArrayType, Sort : USort, USizeSort : USort> UWritableMemory<ArrayType>.mems
     ref: UHeapRef,
     type: ArrayType,
     sort: Sort,
+    sizeSort: USizeSort,
     contents: Sequence<UExpr<Sort>>
 ) {
-    memsetInternal<_, _, USizeSort>(ref, type, sort, contents)
+    memsetInternal(ref, type, sort, sizeSort, contents)
 }
 
 fun <ArrayType, USizeSort : USort> UWritableMemory<ArrayType>.allocateArray(
-    type: ArrayType, count: UExpr<USizeSort>
-): UConcreteHeapRef = allocateArrayInternal(type, count)
+    type: ArrayType, sizeSort: USizeSort, count: UExpr<USizeSort>,
+): UConcreteHeapRef = allocateArrayInternal(type, sizeSort, count)
 
 fun <ArrayType, Sort : USort, USizeSort : USort> UWritableMemory<ArrayType>.allocateArrayInitialized(
-    type: ArrayType, sort: Sort, contents: Sequence<UExpr<Sort>>
-): UConcreteHeapRef = allocateArrayInitializedInternal<_, _, USizeSort>(type, sort, contents)
+    type: ArrayType, sort: Sort, sizeSort: USizeSort, contents: Sequence<UExpr<Sort>>
+): UConcreteHeapRef = allocateArrayInitializedInternal(type, sort, sizeSort, contents)

@@ -60,7 +60,7 @@ internal class CompositionTest {
 
     @BeforeEach
     fun initializeContext() {
-        val components: UComponents<*> = mockk()
+        val components: UComponents<*, USizeSort> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
 
         ctx = UContext(components)
@@ -256,8 +256,8 @@ internal class CompositionTest {
 
         val heapToComposeWith = UMemory<KClass<Array<*>>, Any>(ctx, mockk())
 
-        heapToComposeWith.writeArrayLength(fstConcreteAddress, fstValueFromHeap, arrayType)
-        heapToComposeWith.writeArrayLength(sndConcreteAddress, sndValueFromHeap, arrayType)
+        heapToComposeWith.writeArrayLength(fstConcreteAddress, fstValueFromHeap, arrayType, sizeSort)
+        heapToComposeWith.writeArrayLength(sndConcreteAddress, sndValueFromHeap, arrayType, sizeSort)
 
         val composer = UComposer(ctx, heapToComposeWith)
 

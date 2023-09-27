@@ -17,10 +17,10 @@ import org.usvm.solver.UTypeSolver
 class JcComponents(
     private val typeSystem: JcTypeSystem,
     private val solverType: SolverType
-) : UComponents<JcType> {
+) : UComponents<JcType, USizeSort> {
     private val closeableResources = mutableListOf<AutoCloseable>()
-    override fun <Context : UContext<*>> mkSolver(ctx: Context): USolverBase<JcType, Context> {
-        val (translator, decoder) = buildTranslatorAndLazyDecoder<JcType>(ctx)
+    override fun <Context : UContext<USizeSort>> mkSolver(ctx: Context): USolverBase<JcType, Context> {
+        val (translator, decoder) = buildTranslatorAndLazyDecoder<JcType, _>(ctx)
         val softConstraintsProvider = USoftConstraintsProvider<JcType, _>(ctx)
 
         val smtSolver =
@@ -38,10 +38,10 @@ class JcComponents(
         closeableResources.forEach(AutoCloseable::close)
     }
 
-    override fun mkTypeSystem(ctx: UContext<*>): JcTypeSystem {
+    override fun mkTypeSystem(ctx: UContext<USizeSort>): JcTypeSystem {
         return typeSystem
     }
 
-    override fun <Context : UContext<*>> mkSizeExprProvider(ctx: Context): USizeExprProvider<*> =
+    override fun <Context : UContext<USizeSort>> mkSizeExprProvider(ctx: Context): USizeExprProvider<USizeSort> =
         UBv32SizeExprProvider(ctx)
 }

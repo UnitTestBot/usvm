@@ -1,6 +1,5 @@
 package org.usvm.collection.map.length
 
-import io.ksmt.utils.uncheckedCast
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentMapOf
 import org.usvm.UBoolExpr
@@ -16,17 +15,15 @@ import org.usvm.memory.foldHeapRefWithStaticAsSymbolic
 import org.usvm.memory.guardedWrite
 import org.usvm.memory.mapWithStaticAsSymbolic
 import org.usvm.sampleUValue
-import org.usvm.uctx
 
 typealias UInputMapLengthCollection<MapType, USizeSort> = USymbolicCollection<UInputMapLengthId<MapType, USizeSort>, UHeapRef, USizeSort>
 typealias UInputMapLength<MapType, USizeSort> = USymbolicCollection<UInputMapLengthId<MapType, USizeSort>, UHeapRef, USizeSort>
 
-data class UMapLengthLValue<MapType, USizeSort : USort>(val ref: UHeapRef, val mapType: MapType) :
-    ULValue<UMapLengthLValue<MapType, USizeSort>, USizeSort> {
-
-    override val sort: USizeSort
-        get() = ref.uctx.sizeSort.uncheckedCast()
-
+data class UMapLengthLValue<MapType, USizeSort : USort>(
+    val ref: UHeapRef,
+    val mapType: MapType,
+    override val sort: USizeSort,
+) : ULValue<UMapLengthLValue<MapType, USizeSort>, USizeSort> {
     override val memoryRegionId: UMemoryRegionId<UMapLengthLValue<MapType, USizeSort>, USizeSort> =
         UMapLengthRegionId(sort, mapType)
 

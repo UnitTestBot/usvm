@@ -313,9 +313,10 @@ class JcExprResolver(
 
             val valuesArrayDescriptor = arrayDescriptorOf(stringValueField.fieldType as JcArrayType)
             val elementType = requireNotNull(stringValueField.fieldType.ifArrayGetElementType)
-            val charArrayRef = memory.allocateArrayInitialized<_, _, USizeSort>(
+            val charArrayRef = memory.allocateArrayInitialized(
                 valuesArrayDescriptor,
                 typeToSort(elementType),
+                pathConstraints.ctx.sizeSort,
                 charValues.uncheckedCast()
             )
 
@@ -377,7 +378,7 @@ class JcExprResolver(
         val ref = resolveJcExpr(expr.array)?.asExpr(addressSort) ?: return null
         checkNullPointer(ref) ?: return null
         val arrayDescriptor = arrayDescriptorOf(expr.array.type as JcArrayType)
-        val lengthRef = UArrayLengthLValue<_, USizeSort>(ref, arrayDescriptor)
+        val lengthRef = UArrayLengthLValue(ref, arrayDescriptor, sizeSort)
         val length = scope.calcOnState { memory.read(lengthRef).asExpr(sizeSort) }
         assertHardMaxArrayLength(length) ?: return null
         scope.assert(mkBvSignedLessOrEqualExpr(mkBv(0), length)) ?: return null
@@ -393,7 +394,7 @@ class JcExprResolver(
             val ref = memory.allocHeapRef(expr.type, useStaticAddress = useStaticAddressForAllocation())
 
             val arrayDescriptor = arrayDescriptorOf(expr.type as JcArrayType)
-            memory.write(UArrayLengthLValue<_, USizeSort>(ref, arrayDescriptor), size)
+            memory.write(UArrayLengthLValue(ref, arrayDescriptor, sizeSort), size)
             // overwrite array type because descriptor is element type (which is Object for arrays of refs)
             memory.types.allocate(ref.address, expr.type)
 
@@ -667,7 +668,7 @@ class JcExprResolver(
         val enumValuesType = enumValuesField.fieldType as JcArrayType
         val enumValuesArrayDescriptor = arrayDescriptorOf(enumValuesType)
 
-        val enumValuesFieldLengthLValue = UArrayLengthLValue<_, USizeSort>(enumValuesRef, enumValuesArrayDescriptor)
+        val enumValuesFieldLengthLValue = UArrayLengthLValue(enumValuesRef, enumValuesArrayDescriptor, sizeSort)
         val enumValuesFieldLengthBeforeClinit =
             enumValuesFieldLengthLValue.memoryRegionId.emptyRegion().read(enumValuesFieldLengthLValue)
         val enumValuesFieldLengthAfterClinit = memory.read(enumValuesFieldLengthLValue)
@@ -777,7 +778,7 @@ class JcExprResolver(
         val arrayDescriptor = arrayDescriptorOf(array.type as JcArrayType)
 
         val idx = resolveCast(index, ctx.cp.int)?.asExpr(bv32Sort) ?: return null
-        val lengthRef = UArrayLengthLValue<_, USizeSort>(arrayRef, arrayDescriptor)
+        val lengthRef = UArrayLengthLValue(arrayRef, arrayDescriptor, sizeSort)
         val length = scope.calcOnState { memory.read(lengthRef).asExpr(sizeSort) }
 
         assertHardMaxArrayLength(length) ?: return null

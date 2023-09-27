@@ -209,7 +209,7 @@ class JcTestResolver(
 
         private fun resolveArray(ref: UConcreteHeapRef, heapRef: UHeapRef, type: JcArrayType): Any {
             val arrayDescriptor = ctx.arrayDescriptorOf(type)
-            val lengthRef = UArrayLengthLValue<_, UBv32Sort>(heapRef, arrayDescriptor)
+            val lengthRef = UArrayLengthLValue(heapRef, arrayDescriptor, ctx.sizeSort)
             val resolvedLength = resolveLValue(lengthRef, ctx.cp.int) as Int
             val length = if (resolvedLength in 0..10_000) resolvedLength else 0 // TODO hack
 

@@ -46,7 +46,7 @@ class TranslationTest {
     private lateinit var valueArrayDescr: Type
     private lateinit var addressArrayDescr: Type
 
-    class RecordingCtx(components: UComponents<Type>) : UContext<USizeSort>(components) {
+    class RecordingCtx(components: UComponents<Type, USizeSort>) : UContext<USizeSort>(components) {
         var storeCallCounter = 0
             private set
 
@@ -62,7 +62,7 @@ class TranslationTest {
 
     @BeforeEach
     fun initializeContext() {
-        val components: UComponents<Type> = mockk()
+        val components: UComponents<Type, USizeSort> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
 
         ctx = RecordingCtx(components)

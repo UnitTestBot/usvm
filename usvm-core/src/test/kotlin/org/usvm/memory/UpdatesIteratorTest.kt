@@ -20,7 +20,7 @@ class UpdatesIteratorTest {
     private lateinit var ctx: UContext<USizeSort>
     @BeforeEach
     fun initializeContext() {
-        val components: UComponents<*> = mockk()
+        val components: UComponents<*, USizeSort> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
         ctx = UContext(components)
     }

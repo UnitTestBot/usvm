@@ -34,13 +34,14 @@ internal fun <ArrayType, Sort : USort, USizeSort : USort> UWritableMemory<*>.mem
 internal fun <ArrayType, Sort : USort, USizeSort : USort> UWritableMemory<ArrayType>.allocateArrayInitialized(
     type: ArrayType,
     elementSort: Sort,
+    sizeSort: USizeSort,
     contents: Sequence<UExpr<Sort>>
 ): UConcreteHeapRef = elementSort.uctx.withSizeSort {
     val arrayValues = hashMapOf<UExpr<USizeSort>, UExpr<Sort>>()
     contents.forEachIndexed { idx, value -> arrayValues[mkSizeExpr(idx)] = value }
 
     val arrayLength = mkSizeExpr(arrayValues.size)
-    val address = allocateArray(type, arrayLength)
+    val address = allocateArray(type, sizeSort, arrayLength)
 
     val regionId = UArrayRegionId<_, _, USizeSort>(type, elementSort)
     val region = getRegion(regionId)
@@ -58,11 +59,12 @@ internal fun <ArrayType, Sort : USort, USizeSort : USort> UWritableMemory<ArrayT
 
 internal fun <ArrayType, USizeSort : USort> UWritableMemory<ArrayType>.allocateArray(
     type: ArrayType,
-    length: UExpr<USizeSort>
+    sizeSort: USizeSort,
+    length: UExpr<USizeSort>,
 ): UConcreteHeapRef {
     val address = allocConcrete(type)
 
-    val lengthRegionRef = UArrayLengthLValue<_, USizeSort>(address, type)
+    val lengthRegionRef = UArrayLengthLValue(address, type, sizeSort)
     write(lengthRegionRef, length, guard = length.uctx.trueExpr)
 
     return address
@@ -72,10 +74,11 @@ internal fun <ArrayType, Sort : USort, USizeSort : USort> UWritableMemory<ArrayT
     ref: UHeapRef,
     type: ArrayType,
     sort: Sort,
+    sizeSort: USizeSort,
     contents: Sequence<UExpr<Sort>>,
-) = sort.uctx.withSizeSort {
-    val tmpArrayRef = allocateArrayInitialized<_, _, USizeSort>(type, sort, contents)
-    val contentLength: UExpr<USizeSort> = read(UArrayLengthLValue(tmpArrayRef, type))
+) = sizeSort.uctx.withSizeSort {
+    val tmpArrayRef = allocateArrayInitialized(type, sort, sizeSort, contents)
+    val contentLength = read(UArrayLengthLValue(tmpArrayRef, type, sizeSort))
 
     memcpy(
         srcRef = tmpArrayRef,
@@ -88,5 +91,5 @@ internal fun <ArrayType, Sort : USort, USizeSort : USort> UWritableMemory<ArrayT
         guard = trueExpr
     )
 
-    write(UArrayLengthLValue(ref, type), contentLength, guard = trueExpr)
+    write(UArrayLengthLValue(ref, type, sizeSort), contentLength, guard = trueExpr)
 }

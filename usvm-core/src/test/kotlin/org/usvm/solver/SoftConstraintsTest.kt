@@ -30,14 +30,14 @@ open class SoftConstraintsTest<Field> {
 
     @BeforeEach
     fun initialize() {
-        val components: UComponents<Type> = mockk()
+        val components: UComponents<Type, USizeSort> = mockk()
         every { components.mkTypeSystem(any()) } returns SingleTypeSystem
 
         ctx = UContext(components)
         every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
         softConstraintsProvider = USoftConstraintsProvider(ctx)
 
-        val translatorWithDecoder = buildTranslatorAndLazyDecoder<Type>(ctx)
+        val translatorWithDecoder = buildTranslatorAndLazyDecoder<Type, USizeSort>(ctx)
 
         translator = translatorWithDecoder.first
         decoder = translatorWithDecoder.second

@@ -313,11 +313,11 @@ class JcMethodApproximationResolver(
             val arrayDescriptor = arrayDescriptorOf(arrayType)
             val elementType = requireNotNull(arrayType.ifArrayGetElementType)
 
-            val lengthRef = UArrayLengthLValue<_, UBv32Sort>(instance, arrayDescriptor)
+            val lengthRef = UArrayLengthLValue(instance, arrayDescriptor, sizeSort)
             val length = scope.calcOnState { memory.read(lengthRef).asExpr(sizeSort) }
 
             val arrayRef = memory.allocHeapRef(arrayType, useStaticAddress = useStaticAddressForAllocation())
-            memory.write(UArrayLengthLValue<_, UBv32Sort>(arrayRef, arrayDescriptor), length)
+            memory.write(UArrayLengthLValue(arrayRef, arrayDescriptor, sizeSort), length)
 
             // It is very important to use arrayDescriptor here but not elementType correspondingly as in creating
             // new arrays
@@ -356,10 +356,10 @@ class JcMethodApproximationResolver(
             )
         }
 
-        val srcLengthRef = UArrayLengthLValue<_, UBv32Sort>(srcRef, arrayDescriptor)
+        val srcLengthRef = UArrayLengthLValue(srcRef, arrayDescriptor, sizeSort)
         val srcLength = scope.calcOnState { memory.read(srcLengthRef) }
 
-        val dstLengthRef = UArrayLengthLValue<_, UBv32Sort>(dstRef, arrayDescriptor)
+        val dstLengthRef = UArrayLengthLValue(dstRef, arrayDescriptor, sizeSort)
         val dstLength = scope.calcOnState { memory.read(dstLengthRef) }
 
         val indexBoundsCheck = mkAnd(

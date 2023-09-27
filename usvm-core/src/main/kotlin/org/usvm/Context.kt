@@ -51,7 +51,7 @@ import org.usvm.types.UTypeSystem
 
 @Suppress("LeakingThis")
 open class UContext<USizeSort : USort>(
-    components: UComponents<*>,
+    components: UComponents<*, USizeSort>,
     operationMode: OperationMode = OperationMode.CONCURRENT,
     astManagementMode: AstManagementMode = AstManagementMode.GC,
     simplificationMode: SimplificationMode = SimplificationMode.SIMPLIFY,
@@ -59,7 +59,7 @@ open class UContext<USizeSort : USort>(
 
     private val solver by lazy { components.mkSolver(this) }
     private val typeSystem by lazy { components.mkTypeSystem(this) }
-    private val sizeExprProvider by lazy { components.mkSizeExprProvider(this) }
+    val sizeExprs by lazy { components.mkSizeExprProvider(this) }
 
     private var currentStateId = 0u
 
@@ -78,30 +78,26 @@ open class UContext<USizeSort : USort>(
     fun <Type> typeSystem(): UTypeSystem<Type> =
         this.typeSystem as UTypeSystem<Type>
 
-    @Suppress("UNCHECKED_CAST")
-    fun sizeExprProvider(): USizeExprProvider<USizeSort> =
-        this.sizeExprProvider as USizeExprProvider<USizeSort>
-
     val addressSort: UAddressSort = mkUninterpretedSort("Address")
 
-    val sizeSort: USizeSort get() = sizeExprProvider().sizeSort
-    val sizeExprKeyInfo: USizeExprKeyInfo<USizeSort> get() = sizeExprProvider().sizeExprKeyInfo
-    val arrayIndexKeyInfo: USymbolicArrayIndexKeyInfo<USizeSort> get() = sizeExprProvider().arrayIndexKeyInfo
+    val sizeSort: USizeSort get() = sizeExprs.sizeSort
+    val sizeExprKeyInfo: USizeExprKeyInfo<USizeSort> get() = sizeExprs.sizeExprKeyInfo
+    val arrayIndexKeyInfo: USymbolicArrayIndexKeyInfo<USizeSort> get() = sizeExprs.arrayIndexKeyInfo
 
     fun mkSizeExpr(size: Int): UExpr<USizeSort> =
-        sizeExprProvider().mkSizeExpr(size)
+        sizeExprs.mkSizeExpr(size)
     fun mkSizeSubExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UExpr<USizeSort> =
-        sizeExprProvider().mkSizeSubExpr(lhs, rhs)
+        sizeExprs.mkSizeSubExpr(lhs, rhs)
     fun mkSizeAddExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UExpr<USizeSort> =
-        sizeExprProvider().mkSizeAddExpr(lhs, rhs)
+        sizeExprs.mkSizeAddExpr(lhs, rhs)
     fun mkSizeGtExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UBoolExpr =
-        sizeExprProvider().mkSizeGtExpr(lhs, rhs)
+        sizeExprs.mkSizeGtExpr(lhs, rhs)
     fun mkSizeGeExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UBoolExpr =
-        sizeExprProvider().mkSizeGeExpr(lhs, rhs)
+        sizeExprs.mkSizeGeExpr(lhs, rhs)
     fun mkSizeLtExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UBoolExpr =
-        sizeExprProvider().mkSizeLtExpr(lhs, rhs)
+        sizeExprs.mkSizeLtExpr(lhs, rhs)
     fun mkSizeLeExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UBoolExpr =
-        sizeExprProvider().mkSizeLeExpr(lhs, rhs)
+        sizeExprs.mkSizeLeExpr(lhs, rhs)
 
     val nullRef: UNullRef = UNullRef(this)
 

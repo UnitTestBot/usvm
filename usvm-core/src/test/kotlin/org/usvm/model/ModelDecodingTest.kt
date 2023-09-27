@@ -46,13 +46,13 @@ class ModelDecodingTest {
 
     @BeforeEach
     fun initializeContext() {
-        val components: UComponents<Type> = mockk()
+        val components: UComponents<Type, USizeSort> = mockk()
         every { components.mkTypeSystem(any()) } returns SingleTypeSystem
 
         ctx = UContext(components)
         every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
         val softConstraintsProvider = USoftConstraintsProvider<Type, _>(ctx)
-        val (translator, decoder) = buildTranslatorAndLazyDecoder<Type>(ctx)
+        val (translator, decoder) = buildTranslatorAndLazyDecoder<Type, USizeSort>(ctx)
         val typeSolver = UTypeSolver(SingleTypeSystem)
         solver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder, softConstraintsProvider)
 

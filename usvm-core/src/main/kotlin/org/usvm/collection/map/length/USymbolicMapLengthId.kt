@@ -41,7 +41,7 @@ class UInputMapLengthId<MapType, USizeSort : USort> internal constructor(
         memory.write(mkLValue(key), value, guard)
     }
 
-    private fun mkLValue(key: UHeapRef) = UMapLengthLValue<_, USizeSort>(key, mapType)
+    private fun mkLValue(key: UHeapRef) = UMapLengthLValue(key, mapType, sort)
 
     override fun keyInfo() = UHeapRefKeyInfo
 

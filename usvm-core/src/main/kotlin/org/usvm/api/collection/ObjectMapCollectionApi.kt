@@ -2,6 +2,7 @@ package org.usvm.api.collection
 
 import org.usvm.StepScope
 import org.usvm.UBoolExpr
+import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
@@ -17,11 +18,11 @@ import org.usvm.uctx
 import org.usvm.withSizeSort
 
 object ObjectMapCollectionApi {
-    fun <MapType, USizeSort : USort> UState<MapType, *, *, *, *, *>.mkSymbolicObjectMap(
+    fun <MapType, USizeSort : USort, Ctx: UContext<USizeSort>> UState<MapType, *, *, Ctx, *, *>.mkSymbolicObjectMap(
         mapType: MapType,
-    ): UHeapRef = memory.ctx.withSizeSort {
+    ): UHeapRef = with(pathConstraints.ctx) {
         val ref = memory.allocConcrete(mapType)
-        val length = UMapLengthLValue<_, USizeSort>(ref, mapType)
+        val length = UMapLengthLValue(ref, mapType, sizeSort)
         memory.write(length, mkSizeExpr(0), trueExpr)
         ref
     }
@@ -31,12 +32,12 @@ object ObjectMapCollectionApi {
      * Use [ensureObjectMapSizeCorrect] to guarantee that map size is correct.
      * todo: input map size can be inconsistent with contains
      * */
-    fun <MapType, USizeSort : USort> UState<MapType, *, *, *, *, *>.symbolicObjectMapSize(
+    fun <MapType, USizeSort : USort, Ctx: UContext<USizeSort>> UState<MapType, *, *, Ctx, *, *>.symbolicObjectMapSize(
         mapRef: UHeapRef,
         mapType: MapType,
-    ): UExpr<USizeSort> = memory.read(UMapLengthLValue(mapRef, mapType))
+    ): UExpr<USizeSort> = memory.read(UMapLengthLValue(mapRef, mapType, pathConstraints.ctx.sizeSort))
 
-    fun <MapType, State : UState<MapType, *, *, *, *, State>, USizeSort : USort> StepScope<State, MapType, *>.ensureObjectMapSizeCorrect(
+    fun <MapType, State : UState<MapType, *, *, Ctx, *, State>, USizeSort : USort, Ctx: UContext<USizeSort>> StepScope<State, MapType, *>.ensureObjectMapSizeCorrect(
         mapRef: UHeapRef,
         mapType: MapType,
     ): Unit? {
@@ -46,7 +47,9 @@ object ObjectMapCollectionApi {
                 it
             },
             symbolicMapper = { symbolicMapRef ->
-                val length = calcOnState { memory.read(UMapLengthLValue<_, USizeSort>(symbolicMapRef, mapType)) }
+                val length = calcOnState { 
+                    memory.read(UMapLengthLValue(symbolicMapRef, mapType, pathConstraints.ctx.sizeSort)) 
+                }
                 length.uctx.withSizeSort {
                     val boundConstraint = mkSizeGeExpr(length, mkSizeExpr(0))
                     // Map size must be correct regardless of guard
@@ -58,7 +61,7 @@ object ObjectMapCollectionApi {
         return Unit
     }
 
-    fun <MapType, Sort : USort> UState<MapType, *, *, *, *, *>.symbolicObjectMapGet(
+    fun <MapType, Sort : USort, > UState<MapType, *, *, *, *, *>.symbolicObjectMapGet(
         mapRef: UHeapRef,
         key: UHeapRef,
         mapType: MapType,
@@ -71,15 +74,15 @@ object ObjectMapCollectionApi {
         mapType: MapType,
     ): UBoolExpr = memory.read(URefSetEntryLValue(mapRef, key, mapType))
 
-    fun <MapType, Sort : USort, USizeSort : USort> UState<MapType, *, *, *, *, *>.symbolicObjectMapPut(
+    fun <MapType, Sort : USort, USizeSort : USort, Ctx: UContext<USizeSort>> UState<MapType, *, *, Ctx, *, *>.symbolicObjectMapPut(
         mapRef: UHeapRef,
         key: UHeapRef,
         value: UExpr<Sort>,
         mapType: MapType,
         sort: Sort,
-    ) = memory.ctx.withSizeSort {
+    ) = with(pathConstraints.ctx) {
         val mapContainsLValue = URefSetEntryLValue(mapRef, key, mapType)
-        val currentSize = symbolicObjectMapSize<_, USizeSort>(mapRef, mapType)
+        val currentSize = symbolicObjectMapSize(mapRef, mapType)
 
         val keyIsInMap = memory.read(mapContainsLValue)
         val keyIsNew = mkNot(keyIsInMap)
@@ -88,16 +91,16 @@ object ObjectMapCollectionApi {
         memory.write(mapContainsLValue, rvalue = trueExpr, guard = trueExpr)
 
         val updatedSize = mkSizeAddExpr(currentSize, mkSizeExpr(1))
-        memory.write(UMapLengthLValue(mapRef, mapType), updatedSize, keyIsNew)
+        memory.write(UMapLengthLValue(mapRef, mapType, sizeSort), updatedSize, keyIsNew)
     }
 
-    fun <MapType, USizeSort : USort> UState<MapType, *, *, *, *, *>.symbolicObjectMapRemove(
+    fun <MapType, USizeSort : USort, Ctx: UContext<USizeSort>> UState<MapType, *, *, Ctx, *, *>.symbolicObjectMapRemove(
         mapRef: UHeapRef,
         key: UHeapRef,
         mapType: MapType,
-    ) = memory.ctx.withSizeSort {
+    ) = with(pathConstraints.ctx) {
         val mapContainsLValue = URefSetEntryLValue(mapRef, key, mapType)
-        val currentSize = symbolicObjectMapSize<_, USizeSort>(mapRef, mapType)
+        val currentSize = symbolicObjectMapSize(mapRef, mapType)
 
         val keyIsInMap = memory.read(mapContainsLValue)
 
@@ -105,17 +108,17 @@ object ObjectMapCollectionApi {
         memory.write(mapContainsLValue, rvalue = falseExpr, guard = trueExpr)
 
         val updatedSize = mkSizeSubExpr(currentSize, mkSizeExpr(1))
-        memory.write(UMapLengthLValue(mapRef, mapType), updatedSize, keyIsInMap)
+        memory.write(UMapLengthLValue(mapRef, mapType, sizeSort), updatedSize, keyIsInMap)
     }
 
-    fun <MapType, Sort : USort, USizeSort : USort> UState<MapType, *, *, *, *, *>.symbolicObjectMapMergeInto(
+    fun <MapType, Sort : USort, USizeSort : USort, Ctx: UContext<USizeSort>> UState<MapType, *, *, Ctx, *, *>.symbolicObjectMapMergeInto(
         dstRef: UHeapRef,
         srcRef: UHeapRef,
         mapType: MapType,
         sort: Sort,
-    ) = memory.ctx.withSizeSort {
-        val srcMapSize = symbolicObjectMapSize<_, USizeSort>(srcRef, mapType)
-        val dstMapSize = symbolicObjectMapSize<_, USizeSort>(dstRef, mapType)
+    ) = with(pathConstraints.ctx) {
+        val srcMapSize = symbolicObjectMapSize(srcRef, mapType)
+        val dstMapSize = symbolicObjectMapSize(dstRef, mapType)
 
         val containsSetId = URefSetRegionId(mapType, sort.uctx.boolSort)
         memory.refMapMerge(srcRef, dstRef, mapType, sort, containsSetId, guard = trueExpr)
@@ -124,6 +127,6 @@ object ObjectMapCollectionApi {
         // todo: precise map size approximation?
         // val sizeLowerBound = mkIte(mkBvSignedGreaterExpr(srcMapSize, dstMapSize), srcMapSize, dstMapSize)
         val sizeUpperBound = mkSizeAddExpr(srcMapSize, dstMapSize)
-        memory.write(UMapLengthLValue(dstRef, mapType), sizeUpperBound, guard = trueExpr)
+        memory.write(UMapLengthLValue(dstRef, mapType, sizeSort), sizeUpperBound, guard = trueExpr)
     }
 }

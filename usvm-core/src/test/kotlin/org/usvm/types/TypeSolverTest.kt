@@ -55,13 +55,13 @@ import kotlin.test.assertTrue
 
 class TypeSolverTest {
     private val typeSystem = testTypeSystem
-    private val components = mockk<UComponents<TestType>>()
+    private val components = mockk<UComponents<TestType, USizeSort>>()
     private val ctx = UContext<USizeSort>(components)
     private val solver: USolverBase<TestType, UContext<USizeSort>>
     private val typeSolver: UTypeSolver<TestType>
 
     init {
-        val (translator, decoder) = buildTranslatorAndLazyDecoder<TestType>(ctx)
+        val (translator, decoder) = buildTranslatorAndLazyDecoder<TestType, USizeSort>(ctx)
         val softConstraintsProvider = USoftConstraintsProvider<TestType, _>(ctx)
 
         typeSolver = UTypeSolver(typeSystem)

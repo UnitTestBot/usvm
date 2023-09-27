@@ -44,7 +44,7 @@ class UInputArrayLengthId<ArrayType, USizeSort : USort> internal constructor(
         memory.write(mkLValue(key), value, guard)
     }
 
-    private fun mkLValue(key: UHeapRef) = UArrayLengthLValue<_, USizeSort>(key, arrayType)
+    private fun mkLValue(key: UHeapRef) = UArrayLengthLValue(key, arrayType, sort)
 
     override fun keyInfo() = UHeapRefKeyInfo
 

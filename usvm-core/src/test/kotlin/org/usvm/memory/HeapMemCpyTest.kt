@@ -21,7 +21,7 @@ class HeapMemCpyTest {
 
     @BeforeEach
     fun initializeContext() {
-        val components: UComponents<Type> = mockk()
+        val components: UComponents<Type, USizeSort> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
         ctx = UContext(components)
         every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
@@ -92,7 +92,7 @@ class HeapMemCpyTest {
 
     private fun initializeArray(): Pair<IntArray, UConcreteHeapRef> {
         val array = IntArray(10) { it + 1 }
-        val ref = heap.allocateArray(arrayType, ctx.mkSizeExpr(array.size))
+        val ref = heap.allocateArray(arrayType, ctx.sizeSort, ctx.mkSizeExpr(array.size))
 
         array.indices.forEach { idx ->
             heap.writeArrayIndex(

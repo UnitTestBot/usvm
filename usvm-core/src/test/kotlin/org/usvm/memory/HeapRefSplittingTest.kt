@@ -36,7 +36,7 @@ class HeapRefSplittingTest {
 
     @BeforeEach
     fun initializeContext() {
-        val components: UComponents<Type> = mockk()
+        val components: UComponents<Type, USizeSort> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
         ctx = UContext(components)
         every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }

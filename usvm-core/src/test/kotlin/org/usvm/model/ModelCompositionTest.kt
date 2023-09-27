@@ -36,7 +36,7 @@ class ModelCompositionTest {
 
     @BeforeEach
     fun initializeContext() {
-        val components: UComponents<*> = mockk()
+        val components: UComponents<*, USizeSort> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
         ctx = UContext(components)
         every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
