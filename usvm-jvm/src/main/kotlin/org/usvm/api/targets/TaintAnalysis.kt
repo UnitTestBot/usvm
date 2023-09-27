@@ -13,6 +13,7 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UHeapRef
 import org.usvm.api.allocateConcreteRef
 import org.usvm.collection.set.ref.URefSetEntryLValue
+import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.machine.JcContext
 import org.usvm.machine.JcInterpreterObserver
 import org.usvm.machine.JcMethodCallBaseInst
@@ -242,7 +243,7 @@ class TaintAnalysis(
 
         val (originalStateCopy, taintedStepScope) = stepScope.calcOnState {
             val originalStateCopy = clone()
-            originalStateCopy to JcStepScope(originalStateCopy)
+            originalStateCopy to JcStepScope(originalStateCopy, UForkBlackList.createDefault())
         }
 
         taintedStepScope.assert(resolvedCondition)?.let {

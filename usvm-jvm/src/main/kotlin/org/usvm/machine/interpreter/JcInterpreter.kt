@@ -31,6 +31,7 @@ import org.jacodb.api.ext.boolean
 import org.jacodb.api.ext.cfg.callExpr
 import org.jacodb.api.ext.isEnum
 import org.jacodb.api.ext.void
+import org.usvm.ForkCase
 import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UBoolExpr
@@ -41,6 +42,7 @@ import org.usvm.api.allocateStaticRef
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.targets.JcTarget
 import org.usvm.api.typeStreamOf
+import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.isStaticHeapRef
 import org.usvm.machine.JcApplicationGraph
@@ -70,7 +72,7 @@ import org.usvm.types.first
 import org.usvm.util.findMethod
 import org.usvm.util.write
 
-typealias JcStepScope = StepScope<JcState, JcType, JcContext>
+typealias JcStepScope = StepScope<JcState, JcType, JcInst, JcContext>
 
 /**
  * A JacoDB interpreter.
@@ -79,6 +81,7 @@ class JcInterpreter(
     private val ctx: JcContext,
     private val applicationGraph: JcApplicationGraph,
     private val observer: JcInterpreterObserver? = null,
+    var forkBlackList: UForkBlackList<JcState, JcInst> = UForkBlackList.createDefault(),
 ) : UInterpreter<JcState>() {
 
     companion object {
@@ -130,7 +133,7 @@ class JcInterpreter(
 
         logger.debug("Step: {}", stmt)
 
-        val scope = StepScope(state)
+        val scope = StepScope(state, forkBlackList)
 
         // handle exception firstly
         val result = state.methodResult
@@ -300,8 +303,10 @@ class JcInterpreter(
         val instList = stmt.location.method.instList
         val (posStmt, negStmt) = instList[stmt.trueBranch.index] to instList[stmt.falseBranch.index]
 
-        scope.fork(
+        scope.forkWithBlackList(
             boolExpr,
+            posStmt,
+            negStmt,
             blockOnTrueState = { newStmt(posStmt) },
             blockOnFalseState = { newStmt(negStmt) }
         )
@@ -348,20 +353,28 @@ class JcInterpreter(
         val instList = stmt.location.method.instList
 
         with(ctx) {
-            val caseStmtsWithConditions = stmt.branches.map { (caseValue, caseTargetStmt) ->
+            val cases = stmt.branches.map { (caseValue, caseTargetStmt) ->
                 val nextStmt = instList[caseTargetStmt]
                 val jcEqExpr = JcEqExpr(cp.boolean, switchKey, caseValue)
                 val caseCondition = exprResolver.resolveJcExpr(jcEqExpr)?.asExpr(boolSort) ?: return
 
-                caseCondition to { state: JcState -> state.newStmt(nextStmt) }
+                ForkCase<JcState, JcInst>(
+                    caseCondition,
+                    nextStmt,
+                    block = { newStmt(nextStmt) }
+                )
             }
 
+            val defaultStmt = instList[stmt.default]
             // To make the default case possible, we need to ensure that all case labels are unsatisfiable
-            val defaultCaseWithCondition = mkAnd(
-                caseStmtsWithConditions.map { it.first.not() }
-            ) to { state: JcState -> state.newStmt(instList[stmt.default]) }
+            val defaultCase =
+                ForkCase<JcState, JcInst>(
+                    mkAnd(cases.map { it.condition.not() }),
+                    defaultStmt,
+                    block = { newStmt(defaultStmt) }
+                )
 
-            scope.forkMulti(caseStmtsWithConditions + defaultCaseWithCondition)
+            scope.forkMultiWithBlackList(cases + defaultCase)
         }
     }
 

@@ -32,7 +32,7 @@ object ListCollectionApi {
         listType: ListType,
     ): USizeExpr = memory.readArrayLength(listRef, listType)
 
-    fun <ListType, State : UState<ListType, *, *, *, *, State>> StepScope<State, ListType, *>.ensureListSizeCorrect(
+    fun <ListType, State : UState<ListType, *, *, *, *, State>> StepScope<State, ListType, *, *>.ensureListSizeCorrect(
         listRef: UHeapRef,
         listType: ListType,
     ): Unit? {
