@@ -1,7 +1,6 @@
 package org.usvm.samples.taint
 
 import io.ksmt.utils.cast
-import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcField
 import org.usvm.PathSelectionStrategy
 import org.usvm.UMachineOptions
@@ -23,6 +22,8 @@ import org.usvm.api.targets.TaintMethodSink
 import org.usvm.api.targets.TaintMethodSource
 import org.usvm.api.targets.TaintPassThrough
 import org.usvm.samples.JavaMethodTestRunner
+import org.usvm.test.util.checkers.eq
+import org.usvm.test.util.checkers.ge
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import org.usvm.util.Options
 import org.usvm.util.UsvmTest
@@ -31,15 +32,15 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class TaintTest : JavaMethodTestRunner() {
-    @UsvmTest([Options([PathSelectionStrategy.TARGETED])])
+    @UsvmTest([Options([PathSelectionStrategy.TARGETED], stopOnCoverage = -1)])
     fun testSimpleTaint(options: UMachineOptions) {
         withOptions(options) {
-            val sampleAnalysis = constructSampleTaintAnalysis(cp)
+            val sampleAnalysis = constructSimpleTaintAnalysis()
 
             withTargets(sampleAnalysis.targets.toList().cast(), sampleAnalysis) {
                 checkDiscoveredProperties(
                     Taint::simpleTaint,
-                    ignoreNumberOfAnalysisResults,
+                    ge(0),
                 )
             }
 
@@ -59,12 +60,12 @@ class TaintTest : JavaMethodTestRunner() {
     @UsvmTest([Options([PathSelectionStrategy.TARGETED])])
     fun testSimpleFalsePositive(options: UMachineOptions) {
         withOptions(options) {
-            val sampleAnalysis = constructSampleTaintAnalysis(cp)
+            val sampleAnalysis = constructCommonTaintAnalysis()
 
             withTargets(sampleAnalysis.targets.toList().cast(), sampleAnalysis) {
                 checkDiscoveredProperties(
                     Taint::simpleFalsePositive,
-                    ignoreNumberOfAnalysisResults,
+                    eq(0),
                 )
             }
 
@@ -76,7 +77,7 @@ class TaintTest : JavaMethodTestRunner() {
     @UsvmTest([Options([PathSelectionStrategy.TARGETED])])
     fun testSimpleTruePositive(options: UMachineOptions) {
         withOptions(options) {
-            val sampleAnalysis = constructSampleTaintAnalysis(cp)
+            val sampleAnalysis = constructCommonTaintAnalysis()
 
             withTargets(sampleAnalysis.targets.toList().cast(), sampleAnalysis) {
                 checkDiscoveredProperties(
@@ -100,7 +101,7 @@ class TaintTest : JavaMethodTestRunner() {
     @UsvmTest([Options([PathSelectionStrategy.TARGETED])])
     fun testTaintWithReturningValue(options: UMachineOptions) {
         withOptions(options) {
-            val sampleAnalysis = constructSampleTaintAnalysis(cp)
+            val sampleAnalysis = constructCommonTaintAnalysis()
 
             withTargets(sampleAnalysis.targets.toList().cast(), sampleAnalysis) {
                 checkDiscoveredProperties(
@@ -125,7 +126,7 @@ class TaintTest : JavaMethodTestRunner() {
     @UsvmTest([Options([PathSelectionStrategy.TARGETED])])
     fun testGoThroughCleaner(options: UMachineOptions) {
         withOptions(options) {
-            val sampleAnalysis = constructSampleTaintAnalysis(cp)
+            val sampleAnalysis = constructCommonTaintAnalysis()
 
             withTargets(sampleAnalysis.targets.toList().cast(), sampleAnalysis) {
                 checkDiscoveredProperties(
@@ -139,12 +140,29 @@ class TaintTest : JavaMethodTestRunner() {
         }
     }
 
-    private fun sampleConfiguration(cp: JcClasspath): TaintConfiguration {
-        fun findMethod(className: String, methodName: String) = cp
-            .findClassOrNull(className)!!
-            .declaredMethods
-            .first { it.name == methodName }
+    @UsvmTest([Options([PathSelectionStrategy.TARGETED], targetSearchDepth = 1u, stopOnCoverage = -1)])
+    fun testFalsePositiveWithExplosion(options: UMachineOptions) {
+        withOptions(options) {
+            val sampleAnalysis = constructFalsePositiveWithExplosionTaintAnalysis()
 
+            withTargets(sampleAnalysis.targets.toList().cast(), sampleAnalysis) {
+                checkDiscoveredProperties(
+                    Taint::falsePositiveWithExplosion,
+                    eq(0),
+                )
+            }
+
+            val collectedStates = sampleAnalysis.collectedStates
+            assertEquals(expected = 0, actual = collectedStates.size)
+        }
+    }
+
+    private fun findMethod(className: String, methodName: String) = cp
+        .findClassOrNull(className)!!
+        .declaredMethods
+        .first { it.name == methodName }
+
+    private fun sampleConfiguration(): TaintConfiguration {
         val sampleClassName = "org.usvm.samples.taint.Taint"
 
         val taintEntryPointSourceMethod = findMethod(sampleClassName, "taintedEntrySource")
@@ -238,15 +256,10 @@ class TaintTest : JavaMethodTestRunner() {
         )
     }
 
-    private fun constructSampleTaintAnalysis(cp: JcClasspath): TaintAnalysis {
-        fun findMethod(className: String, methodName: String) = cp
-            .findClassOrNull(className)!!
-            .declaredMethods
-            .first { it.name == methodName }
-
+    private fun constructCommonTaintAnalysis(): TaintAnalysis {
         val sampleClassName = "org.usvm.samples.taint.Taint"
 
-        val configuration = sampleConfiguration(cp)
+        val configuration = sampleConfiguration()
 
         val consumerOfInjections = findMethod(sampleClassName, "consumerOfInjections")
         val consumerSinkRule = configuration.methodSinks[consumerOfInjections]!!.single()
@@ -261,24 +274,6 @@ class TaintTest : JavaMethodTestRunner() {
 
         val sampleSourceMethod = findMethod(sampleClassName, "stringProducer")
         val stringProducerRule = configuration.methodSources[sampleSourceMethod]!!.first()
-
-        val sourceTargetForSimpleTaint = TaintAnalysis.TaintMethodSourceTarget(
-            findMethod(sampleClassName, "simpleTaint")
-                .instList
-                .last { "stringProducer" in it.toString() },
-            stringProducerRule.condition,
-            stringProducerRule
-        )
-
-        val sinkTargetForSimpleTaint = TaintAnalysis.TaintMethodSinkTarget(
-            findMethod(sampleClassName, "simpleTaint")
-                .instList
-                .first { "consumerOfInjections" in it.toString() },
-            consumerSinkRule.condition,
-            consumerSinkRule
-        )
-        sourceTargetForSimpleTaint.addChild(sinkTargetForSimpleTaint)
-
 
         val sourceTargetForFalsePositive = TaintAnalysis.TaintMethodSourceTarget(
             findMethod(sampleClassName, "simpleFalsePositive")
@@ -387,14 +382,77 @@ class TaintTest : JavaMethodTestRunner() {
 
         return TaintAnalysis(configuration)
             .addTarget(targetForTaintedEntrySink)
-            .addTarget(sourceTargetForSimpleTaint)
             .addTarget(sourceTargetForFalsePositive)
             .addTarget(sourceTargetForTruePositive)
             .addTarget(sourceTaintWithReturningValue)
             .addTarget(sourceTaintGoThroughCleaner)
     }
 
+    private fun constructSimpleTaintAnalysis(): TaintAnalysis {
+        val sampleClassName = "org.usvm.samples.taint.Taint"
+
+        val configuration = sampleConfiguration()
+
+        val consumerOfInjections = findMethod(sampleClassName, "consumerOfInjections")
+        val consumerSinkRule = configuration.methodSinks[consumerOfInjections]!!.single()
+
+        val sampleSourceMethod = findMethod(sampleClassName, "stringProducer")
+        val stringProducerRule = configuration.methodSources[sampleSourceMethod]!!.first()
+
+        val sourceTargetForSimpleTaint = TaintAnalysis.TaintMethodSourceTarget(
+            findMethod(sampleClassName, "simpleTaint")
+                .instList
+                .last { "stringProducer" in it.toString() },
+            stringProducerRule.condition,
+            stringProducerRule
+        )
+
+        val sinkTargetForSimpleTaint = TaintAnalysis.TaintMethodSinkTarget(
+            findMethod(sampleClassName, "simpleTaint")
+                .instList
+                .first { "consumerOfInjections" in it.toString() },
+            consumerSinkRule.condition,
+            consumerSinkRule
+        )
+        sourceTargetForSimpleTaint.addChild(sinkTargetForSimpleTaint)
+
+        return TaintAnalysis(configuration)
+            .addTarget(sourceTargetForSimpleTaint)
+    }
+
+    private fun constructFalsePositiveWithExplosionTaintAnalysis(): TaintAnalysis {
+        val sampleClassName = "org.usvm.samples.taint.Taint"
+
+        val configuration = sampleConfiguration()
+
+        val consumerOfInjections = findMethod(sampleClassName, "consumerOfInjections")
+        val consumerSinkRule = configuration.methodSinks[consumerOfInjections]!!.single()
+
+        val sampleSourceMethod = findMethod(sampleClassName, "stringProducer")
+        val stringProducerRule = configuration.methodSources[sampleSourceMethod]!!.first()
+
+        val sourceTargetForFalsePositiveWithExplosion = TaintAnalysis.TaintMethodSourceTarget(
+            findMethod(sampleClassName, "falsePositiveWithExplosion")
+                .instList
+                .first { "stringProducer" in it.toString() },
+            stringProducerRule.condition,
+            stringProducerRule
+        )
+
+        val sinkTargetForFalsePositiveWithExplosion = TaintAnalysis.TaintMethodSinkTarget(
+            findMethod(sampleClassName, "falsePositiveWithExplosion")
+                .instList
+                .first { "consumerOfInjections" in it.toString() },
+            consumerSinkRule.condition,
+            consumerSinkRule
+        )
+
+        sourceTargetForFalsePositiveWithExplosion.addChild(sinkTargetForFalsePositiveWithExplosion)
+
+        return TaintAnalysis(configuration)
+            .addTarget(sourceTargetForFalsePositiveWithExplosion)
+    }
+
     private object SqlInjection : JcTaintMark
     private object SensitiveData : JcTaintMark
 }
-

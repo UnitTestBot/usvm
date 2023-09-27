@@ -38,6 +38,8 @@ class InterprocDistance(val distance: UInt, reachabilityKind: ReachabilityKind) 
     }
 
     override fun hashCode(): Int = distance.toInt() * 31 + reachabilityKind.hashCode()
+
+    override fun toString(): String = "InterprocDistance($distance, $reachabilityKind)"
 }
 
 /**
@@ -52,7 +54,7 @@ class InterprocDistance(val distance: UInt, reachabilityKind: ReachabilityKind) 
 // TODO: calculate distance in blocks??
 // TODO: give priority to paths without calls
 // TODO: add new targets according to the path?
-internal class InterprocDistanceCalculator<Method, Statement>(
+class InterprocDistanceCalculator<Method, Statement>(
     private val targetLocation: Statement,
     private val applicationGraph: ApplicationGraph<Method, Statement>,
     private val cfgStatistics: CfgStatistics<Method, Statement>,
@@ -122,9 +124,11 @@ internal class InterprocDistanceCalculator<Method, Statement>(
             checkNotNull(statementOnCallStack) { "Not first call stack frame had null return site" }
 
             val successors = applicationGraph.successors(statementOnCallStack)
-            val hashReachableSuccessors = successors.any { !calculateFrameDistance(methodOnCallStack, it).isInfinite }
+            val hasReachableSuccessors =
+                !calculateFrameDistance(methodOnCallStack, statementOnCallStack).isInfinite || // TODO seems like it is something JcInterpreter specific
+                        successors.any { !calculateFrameDistance(methodOnCallStack, it).isInfinite }
 
-            if (hashReachableSuccessors) {
+            if (hasReachableSuccessors) {
                 val distanceToExit = cfgStatistics.getShortestDistanceToExit(lastMethod, currentStatement)
                 return InterprocDistance(distanceToExit, ReachabilityKind.DOWN_STACK)
             }

@@ -5,6 +5,7 @@ import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UContext
 import org.usvm.UInterpreter
+import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.language.Call
 import org.usvm.language.Goto
 import org.usvm.language.If
@@ -12,8 +13,9 @@ import org.usvm.language.Return
 import org.usvm.language.SampleType
 import org.usvm.language.SetLabel
 import org.usvm.language.SetValue
+import org.usvm.language.Stmt
 
-typealias SampleStepScope = StepScope<SampleState, SampleType, UContext>
+typealias SampleStepScope = StepScope<SampleState, SampleType, Stmt, UContext>
 
 
 val logger = object : KLogging() {}.logger
@@ -23,6 +25,7 @@ val logger = object : KLogging() {}.logger
 class SampleInterpreter(
     private val ctx: UContext,
     private val applicationGraph: SampleApplicationGraph,
+    private val forkBlackList: UForkBlackList<SampleState, Stmt> = UForkBlackList.createDefault()
 ) : UInterpreter<SampleState>() {
 
     /**
@@ -31,7 +34,7 @@ class SampleInterpreter(
      * @return next states.
      */
     override fun step(state: SampleState): StepResult<SampleState> {
-        val scope = StepScope(state)
+        val scope = StepScope(state, forkBlackList)
         val stmt = state.lastStmt
         logger.debug { "step: $stmt" }
         when (stmt) {

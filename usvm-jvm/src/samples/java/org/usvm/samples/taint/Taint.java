@@ -50,6 +50,24 @@ public class Taint {
         return consumerWithReturningValue(value);
     }
 
+    public int falsePositiveWithExplosion(boolean x, int j) {
+        String value;
+        if (x) {
+            value = stringProducer(true);
+        } else {
+            value = "root";
+        }
+        if (x) {
+            int n = 0;
+            for (int i = 0; i < j; i++) {
+                n += j;
+            }
+            return n;
+        }
+        consumerOfInjections(value);
+        return -1;
+    }
+
     public void goThroughCleaner() {
         String value = stringProducer(true);
 

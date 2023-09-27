@@ -14,6 +14,7 @@ import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UState
 import org.usvm.constraints.UPathConstraints
+import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.memory.UMemory
 import org.usvm.model.ULazyModelDecoder
 import org.usvm.solver.UExprTranslator
@@ -28,7 +29,7 @@ abstract class SymbolicCollectionTestBase {
     lateinit var ctx: UContext
     lateinit var pathConstraints: UPathConstraints<SingleTypeSystem.SingleType>
     lateinit var memory: UMemory<SingleTypeSystem.SingleType, Any?>
-    lateinit var scope: StepScope<StateStub, SingleTypeSystem.SingleType, UContext>
+    lateinit var scope: StepScope<StateStub, SingleTypeSystem.SingleType, *, UContext>
     lateinit var translator: UExprTranslator<SingleTypeSystem.SingleType>
     lateinit var uSolver: USolverBase<SingleTypeSystem.SingleType>
 
@@ -49,7 +50,7 @@ abstract class SymbolicCollectionTestBase {
 
         pathConstraints = UPathConstraints(ctx)
         memory = UMemory(ctx, pathConstraints.typeConstraints)
-        scope = StepScope(StateStub(ctx, pathConstraints, memory))
+        scope = StepScope(StateStub(ctx, pathConstraints, memory), UForkBlackList.createDefault())
     }
 
     class TargetStub : UTarget<Any?, TargetStub>()

@@ -36,7 +36,7 @@ object ObjectMapCollectionApi {
         mapType: MapType,
     ): USizeExpr = memory.read(UMapLengthLValue(mapRef, mapType))
 
-    fun <MapType, State : UState<MapType, *, *, *, *, State>> StepScope<State, MapType, *>.ensureObjectMapSizeCorrect(
+    fun <MapType, State : UState<MapType, *, *, *, *, State>> StepScope<State, MapType, *, *>.ensureObjectMapSizeCorrect(
         mapRef: UHeapRef,
         mapType: MapType,
     ): Unit? {
