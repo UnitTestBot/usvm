@@ -63,8 +63,6 @@ JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_initializePython
     Py_InitializeFromConfig(&config);
     PyConfig_Clear(&config);
 
-    initialize_global_ref_holder();
-
     jclass cls = (*env)->GetObjectClass(env, cpython_adapter);
     jfieldID f;
     SET_BOOLEAN_FIELD("isInitialized", JNI_TRUE)
@@ -82,7 +80,6 @@ JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_initializePython
     INITIALIZE_PYTHON_APPROXIMATIONS
     PySys_AddAuditHook(audit_hook, &illegal_operation);
 
-    initialize_symbolic_methods_holder();
     SymbolicMethod *int_constructor = construct_symbolic_method_without_self(SymbolicMethod_int);
     SET_LONG_FIELD("symbolicIntConstructorRef", (jlong) int_constructor)
     SymbolicMethod *float_constructor = construct_symbolic_method_without_self(SymbolicMethod_float);
