@@ -4,7 +4,7 @@ import org.usvm.language.StructuredPythonProgram
 import org.usvm.machine.interpreters.CPythonExecutionException
 import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.PythonObject
-import org.usvm.machine.interpreters.emptyNamespace
+import org.usvm.machine.interpreters.ConcretePythonInterpreter.emptyNamespace
 import org.usvm.types.USupportTypeStream
 import org.usvm.types.UTypeStream
 import org.usvm.types.UTypeSystem

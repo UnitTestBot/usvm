@@ -3,7 +3,7 @@ package org.usvm.machine.utils
 import org.usvm.language.types.*
 import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.PythonObject
-import org.usvm.machine.interpreters.emptyNamespace
+import org.usvm.machine.interpreters.ConcretePythonInterpreter.emptyNamespace
 
 class DefaultValueProvider(private val typeSystem: PythonTypeSystem) {
     fun provide(type: PythonType): PythonObject {
