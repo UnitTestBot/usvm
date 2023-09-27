@@ -31,7 +31,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class TaintTest : JavaMethodTestRunner() {
-    @UsvmTest([Options([PathSelectionStrategy.TARGETED], stopOnCoverage = -1, timeout = 1_000_000)])
+    @UsvmTest([Options([PathSelectionStrategy.TARGETED], stopOnCoverage = -1)])
     fun testSimpleTaint(options: UMachineOptions) {
         withOptions(options) {
             val sampleAnalysis = constructSimpleTaintAnalysis()
@@ -139,7 +139,7 @@ class TaintTest : JavaMethodTestRunner() {
         }
     }
 
-    @UsvmTest([Options([PathSelectionStrategy.TARGETED], targetSearchDepth = 1u, stopOnCoverage = -1, timeout = 1_000_000_000)])
+    @UsvmTest([Options([PathSelectionStrategy.TARGETED], targetSearchDepth = 1u, stopOnCoverage = -1)])
     fun testFalsePositiveWithExplosion(options: UMachineOptions) {
         withOptions(options) {
             val sampleAnalysis = constructFalsePositiveWithExplosionTaintAnalysis()
