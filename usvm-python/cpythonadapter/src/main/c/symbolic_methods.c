@@ -3,21 +3,23 @@
 #include "approximations.h"
 #include "converters.h"
 
-PyObject *methods_holder = 0;
+RefHolderNode methods_holder_root = {
+    NULL,
+    NULL
+};
+
+RefHolderNode *methods_holder = &methods_holder;
 
 void initialize_symbolic_methods_holder() {
-    methods_holder = PyList_New(0);
+}
+
+static void
+release_method(void *address, void *data) {
+    free((SymbolicMethod *) address);
 }
 
 void clean_methods() {
-    Py_ssize_t size = PyList_Size(methods_holder);
-    for (Py_ssize_t i = 0; i < size; i++) {
-        PyObject *item = PyList_GetItem(methods_holder, i);
-        long address = extract_long_value(item);
-        free((SymbolicMethod *) address);
-    }
-    Py_DECREF(methods_holder);
-    methods_holder = 0;
+    clean_list(&methods_holder, NULL, release_method);
 }
 
 SymbolicMethod *
@@ -26,7 +28,7 @@ construct_list_append_method(JNIEnv *env, jobject symbolic_self) {
     SymbolicMethod *result = malloc(sizeof(SymbolicMethod));
     result->call = SymbolicMethod_list_append;
     result->self_reference = create_global_ref(env, symbolic_self);
-    add_ref_to_list(methods_holder, result);
+    add_ref_to_list(&methods_holder, result);
     return result;
 }
 
@@ -36,7 +38,7 @@ construct_symbolic_method_without_self(call_type call) {
     SymbolicMethod *result = malloc(sizeof(SymbolicMethod));
     result->call = call;
     result->self_reference = 0;
-    add_ref_to_list(methods_holder, result);
+    add_ref_to_list(&methods_holder, result);
     return result;
 }
 

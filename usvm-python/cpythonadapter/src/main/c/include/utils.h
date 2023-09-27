@@ -70,7 +70,13 @@ long extract_long_value(PyObject *int_object);
 int audit_hook(const char *event, PyObject *args, void *data);
 PyObject *construct_global_clones_dict(JNIEnv *env, jobjectArray global_clones);
 
-void add_ref_to_list(PyObject *list, void *ref);
+typedef struct {
+    void *prev;
+    void *value;
+} RefHolderNode;
+
+void add_ref_to_list(RefHolderNode **list, void *ref);
+void clean_list(RefHolderNode **holder, void *data, void (*release)(void *ref, void *data));
 jobject create_global_ref(JNIEnv *env, jobject local_ref);
 void initialize_global_ref_holder();
 void release_global_refs(JNIEnv *env);
