@@ -1,33 +1,38 @@
 package org.usvm.samples.approximations
 
 import org.junit.jupiter.api.Test
-import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
+import org.usvm.test.util.checkers.eq
 import org.usvm.util.isException
 
 class ApproximationsExampleTest : ApproximationsTestRunner() {
 
     @Test
     fun testArrayListModification() {
-        with(FixedExecutionVerifier(5, exceptionalExecutions = setOf(0))) {
-            checkDiscoveredPropertiesWithExceptions(
-                ApproximationsExample::modifyList,
-                ignoreNumberOfAnalysisResults,
-                { _, o, r -> o == 0 && onExecution(0, r.isException<IndexOutOfBoundsException>()) },
-                { _, o, r -> verifyStatus(o, r.getOrThrow()) },
+        checkDiscoveredPropertiesWithExceptions(
+            ApproximationsExample::modifyList,
+            eq(6),
+            { _, o, r -> o == 0 && r.isException<IndexOutOfBoundsException>() },
+            { _, o, _ -> o == 1 },
+            { _, o, _ -> o == 2 },
+            { _, o, _ -> o == 3 },
+            { _, o, _ -> o == 4 },
+            invariants = arrayOf(
+                { _, execution, r -> execution !in 1..4 || r.getOrThrow() == execution }
             )
-            check()
-        }
+        )
     }
 
     @Test
     fun testOptionalDouble() {
-        with(FixedExecutionVerifier(3)) {
-            checkDiscoveredPropertiesWithExceptions(
-                ApproximationsExample::testOptionalDouble,
-                ignoreNumberOfAnalysisResults,
-                { _, o, r -> verifyStatus(o, r.getOrThrow()) },
+        checkDiscoveredPropertiesWithExceptions(
+            ApproximationsExample::testOptionalDouble,
+            eq(4),
+            { _, o, _ -> o == 0 },
+            { _, o, _ -> o == 1 },
+            { _, o, _ -> o == 2 },
+            invariants = arrayOf(
+                { _, execution, r -> execution !in 0..2 || r.getOrThrow() == execution }
             )
-            check()
-        }
+        )
     }
 }

@@ -3,93 +3,100 @@ package org.usvm.samples.approximations
 import approximations.java.util.ArrayListSpliterator_Tests
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
+import org.usvm.test.util.checkers.eq
 
 class ArrayListSpliteratorApproximationsTest : ApproximationsTestRunner() {
     @Test
     fun testCharacteristics() {
-        with(FixedExecutionVerifier(1)) {
-            checkDiscoveredPropertiesWithExceptions(
-                ArrayListSpliterator_Tests::test_characteristics_0,
-                ignoreNumberOfAnalysisResults,
-                { o, r -> verifyStatus(o, r.getOrThrow()) },
+        checkDiscoveredPropertiesWithExceptions(
+            ArrayListSpliterator_Tests::test_characteristics_0,
+            eq(2),
+            { o, _ -> o == 0 },
+            invariants = arrayOf(
+                { o, r -> o != 0 || r.getOrThrow() == 0 }
             )
-            check()
-        }
+        )
     }
 
     @Test
     fun testEstimateSize() {
-        with(FixedExecutionVerifier(2)) {
-            checkDiscoveredPropertiesWithExceptions(
-                ArrayListSpliterator_Tests::test_estimateSize_0,
-                ignoreNumberOfAnalysisResults,
-                { o, r -> verifyStatus(o, r.getOrThrow()) },
+        checkDiscoveredPropertiesWithExceptions(
+            ArrayListSpliterator_Tests::test_estimateSize_0,
+            eq(3),
+            { o, _ -> o == 0 },
+            { o, _ -> o == 1 },
+            invariants = arrayOf(
+                { o, r -> o !in 0..1 || r.getOrThrow() == o }
             )
-            check()
-        }
+        )
     }
 
     @Test
     @Disabled("Index 3 out of bounds for length 3")
     fun testForEachRemaining() {
-        with(FixedExecutionVerifier(2)) {
-            checkDiscoveredPropertiesWithExceptions(
-                ArrayListSpliterator_Tests::test_forEachRemaining_0,
-                ignoreNumberOfAnalysisResults,
-                { o, r -> verifyStatus(o, r.getOrThrow()) },
+        checkDiscoveredPropertiesWithExceptions(
+            ArrayListSpliterator_Tests::test_forEachRemaining_0,
+            eq(3),
+            { o, _ -> o == 0 },
+            { o, _ -> o == 1 },
+            invariants = arrayOf(
+                { o, r -> o !in 0..1 || r.getOrThrow() == o }
             )
-            check()
-        }
+        )
     }
 
     @Test
     fun testGetExactSizeIfKnown() {
-        with(FixedExecutionVerifier(2)) {
-            checkDiscoveredPropertiesWithExceptions(
-                ArrayListSpliterator_Tests::test_getExactSizeIfKnown_0,
-                ignoreNumberOfAnalysisResults,
-                { o, r -> verifyStatus(o, r.getOrThrow()) },
+        checkDiscoveredPropertiesWithExceptions(
+            ArrayListSpliterator_Tests::test_getExactSizeIfKnown_0,
+            eq(3),
+            { o, _ -> o == 0 },
+            { o, _ -> o == 1 },
+            invariants = arrayOf(
+                { o, r -> o !in 0..1 || r.getOrThrow() == o }
             )
-            check()
-        }
+        )
     }
 
     @Test
     fun testHasCharacteristics() {
-        with(FixedExecutionVerifier(1)) {
-            checkDiscoveredPropertiesWithExceptions(
-                ArrayListSpliterator_Tests::test_hasCharacteristics_0,
-                ignoreNumberOfAnalysisResults,
-                { o, r -> verifyStatus(o, r.getOrThrow()) },
+        checkDiscoveredPropertiesWithExceptions(
+            ArrayListSpliterator_Tests::test_hasCharacteristics_0,
+            eq(2),
+            { o, _ -> o == 0 },
+            invariants = arrayOf(
+                { o, r -> o != 0 || r.getOrThrow() == 0 }
             )
-            check()
-        }
+        )
     }
 
     @Test
     @Disabled("Unexpected expr of type void: JcLambdaExpr")
     fun testTryAdvance() {
-        with(FixedExecutionVerifier(3)) {
-            checkDiscoveredPropertiesWithExceptions(
-                ArrayListSpliterator_Tests::test_tryAdvance_0,
-                ignoreNumberOfAnalysisResults,
-                { o, r -> verifyStatus(o, r.getOrThrow()) },
+        checkDiscoveredPropertiesWithExceptions(
+            ArrayListSpliterator_Tests::test_tryAdvance_0,
+            eq(4),
+            { o, _ -> o == 0 },
+            { o, _ -> o == 1 },
+            { o, _ -> o == 2 },
+            invariants = arrayOf(
+                { o, r -> o !in 0..2 || r.getOrThrow() == o }
             )
-            check()
-        }
+        )
     }
 
     @Test
     @Disabled("Unexpected expr of type void: JcLambdaExpr")
     fun testTrySplit() {
-        with(FixedExecutionVerifier(2)) {
-            checkDiscoveredPropertiesWithExceptions(
-                ArrayListSpliterator_Tests::test_tryAdvance_0,
-                ignoreNumberOfAnalysisResults,
-                { o, r -> verifyStatus(o, r.getOrThrow()) },
+        checkDiscoveredPropertiesWithExceptions(
+            ArrayListSpliterator_Tests::test_tryAdvance_0,
+            eq(4),
+            { o, _ -> o == 0 },
+            { o, _ -> o == 1 },
+            { o, _ -> o == 2 },
+            invariants = arrayOf(
+                { o, r -> o !in 0..2 || r.getOrThrow() == o }
             )
-            check()
-        }
+        )
     }
 }
