@@ -10,7 +10,12 @@ import org.usvm.machine.interpreter.JcStepScope
 interface ConditionVisitor<R> {
     fun visit(condition: ConstantTrue, simpleValueResolver: JcSimpleValueResolver, stepScope: JcStepScope): R
     fun visit(condition: BooleanFromArgument, simpleValueResolver: JcSimpleValueResolver, stepScope: JcStepScope): R
-    fun visit(condition: CallParameterContainsMark, simpleValueResolver: JcSimpleValueResolver, stepScope: JcStepScope): R
+    fun visit(
+        condition: CallParameterContainsMark,
+        simpleValueResolver: JcSimpleValueResolver,
+        stepScope: JcStepScope,
+    ): R
+
     fun visit(condition: Negation, simpleValueResolver: JcSimpleValueResolver, stepScope: JcStepScope): R
 }
 
@@ -52,7 +57,7 @@ class ConditionResolver(
     }
 }
 
-sealed interface Condition {
+interface Condition {
     fun <R> accept(
         conditionVisitor: ConditionVisitor<R>,
         simpleValueResolver: JcSimpleValueResolver,
@@ -60,11 +65,7 @@ sealed interface Condition {
     ): R
 }
 
-sealed class UnaryCondition : Condition
-
-sealed class BinaryCondition : Condition
-
-class Negation(val condition: Condition) : UnaryCondition() {
+class Negation(val condition: Condition) : Condition {
     override fun <R> accept(
         conditionVisitor: ConditionVisitor<R>,
         simpleValueResolver: JcSimpleValueResolver,
@@ -88,11 +89,10 @@ class BooleanFromArgument(val argument: Argument) : Condition {
     ): R = conditionVisitor.visit(this, simpleValueResolver, stepScope)
 }
 
-class CallParameterContainsMark(val position: Position, val mark: JcTaintMark) : UnaryCondition() {
+class CallParameterContainsMark(val position: Position, val mark: JcTaintMark) : Condition {
     override fun <R> accept(
         conditionVisitor: ConditionVisitor<R>,
         simpleValueResolver: JcSimpleValueResolver,
         stepScope: JcStepScope,
     ): R = conditionVisitor.visit(this, simpleValueResolver, stepScope)
 }
-

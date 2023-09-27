@@ -6,7 +6,7 @@ import org.usvm.machine.JcContext
 import org.usvm.machine.interpreter.JcStepScope
 
 
-sealed interface TaintActionVisitor {
+interface TaintActionVisitor {
     fun visit(action: CopyAllMarks, stepScope: JcStepScope, condition: UBoolExpr?)
     fun visit(action: AssignMark, stepScope: JcStepScope, condition: UBoolExpr?)
     fun visit(action: RemoveAllMarks, stepScope: JcStepScope, condition: UBoolExpr?)
@@ -50,7 +50,7 @@ class TaintActionResolver(
     }
 }
 
-sealed interface Action {
+interface Action {
     fun accept(visitor: TaintActionVisitor, stepScope: JcStepScope, condition: UBoolExpr?)
 }
 

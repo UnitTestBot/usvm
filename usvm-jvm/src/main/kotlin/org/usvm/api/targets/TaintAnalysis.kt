@@ -44,7 +44,9 @@ class TaintAnalysis(
         result.getOrPut(target.location) { hashSetOf() }.add(target)
 
         target.children.forEach {
-            exposeTargets(it as TaintTarget, result)
+            val taintTarget = it as? TaintTarget
+                ?: error("Taint targets must contain only taint targets as their children, but $it was found")
+            exposeTargets(taintTarget, result)
         }
     }
 
