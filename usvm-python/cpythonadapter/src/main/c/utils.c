@@ -267,10 +267,6 @@ create_global_ref(JNIEnv *env, jobject local_ref) {
     return result;
 }
 
-void
-initialize_global_ref_holder() {
-}
-
 static void
 release_global_ref(void *address, void *env_raw) {
     JNIEnv *env = (JNIEnv *) env_raw;

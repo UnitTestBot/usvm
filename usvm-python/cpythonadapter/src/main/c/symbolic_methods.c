@@ -8,10 +8,7 @@ RefHolderNode methods_holder_root = {
     NULL
 };
 
-RefHolderNode *methods_holder = &methods_holder;
-
-void initialize_symbolic_methods_holder() {
-}
+RefHolderNode *methods_holder = &methods_holder_root;
 
 static void
 release_method(void *address, void *data) {
