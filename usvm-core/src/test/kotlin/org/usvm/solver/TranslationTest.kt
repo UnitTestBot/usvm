@@ -13,9 +13,10 @@ import org.junit.jupiter.api.Test
 import org.usvm.Field
 import org.usvm.Type
 import org.usvm.UAddressSort
+import org.usvm.UBv32SizeExprProvider
 import org.usvm.UBv32Sort
 import org.usvm.UComponents
-import org.usvm.UContextBv32Size
+import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USizeSort
@@ -45,7 +46,7 @@ class TranslationTest {
     private lateinit var valueArrayDescr: Type
     private lateinit var addressArrayDescr: Type
 
-    class RecordingCtx(components: UComponents<Type>) : UContextBv32Size(components) {
+    class RecordingCtx(components: UComponents<Type>) : UContext<USizeSort>(components) {
         var storeCallCounter = 0
             private set
 
@@ -65,6 +66,7 @@ class TranslationTest {
         every { components.mkTypeSystem(any()) } returns mockk()
 
         ctx = RecordingCtx(components)
+        every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
         heap = UMemory(ctx, mockk())
         translator = UExprTranslator(ctx)
 

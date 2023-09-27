@@ -6,9 +6,9 @@ import org.junit.jupiter.api.BeforeEach
 import org.usvm.Field
 import org.usvm.Type
 import org.usvm.UAddressSort
+import org.usvm.UBv32SizeExprProvider
 import org.usvm.UComponents
 import org.usvm.UContext
-import org.usvm.UContextBv32Size
 import org.usvm.USizeSort
 import org.usvm.api.allocateArray
 import org.usvm.api.allocateArrayInitialized
@@ -32,7 +32,8 @@ class HeapMemsetTest {
     fun initializeContext() {
         val components: UComponents<Type> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
-        ctx = UContextBv32Size(components)
+        ctx = UContext(components)
+        every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
         val eqConstraints = UEqualityConstraints(ctx)
         val typeConstraints = UTypeConstraints(components.mkTypeSystem(ctx), eqConstraints)
         heap = UMemory(ctx, typeConstraints)

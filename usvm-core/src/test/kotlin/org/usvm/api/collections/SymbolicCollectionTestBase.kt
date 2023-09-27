@@ -8,11 +8,12 @@ import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
 import org.usvm.StepScope
 import org.usvm.UBoolExpr
+import org.usvm.UBv32SizeExprProvider
 import org.usvm.UCallStack
 import org.usvm.UComponents
 import org.usvm.UContext
-import org.usvm.UContextBv32Size
 import org.usvm.UExpr
+import org.usvm.USizeExprProvider
 import org.usvm.USizeSort
 import org.usvm.UState
 import org.usvm.UTarget
@@ -24,7 +25,6 @@ import org.usvm.solver.USoftConstraintsProvider
 import org.usvm.solver.USolverBase
 import org.usvm.solver.UTypeSolver
 import org.usvm.types.single.SingleTypeSystem
-import org.usvm.withSizeSort
 import kotlin.test.assertEquals
 
 abstract class SymbolicCollectionTestBase {
@@ -41,13 +41,14 @@ abstract class SymbolicCollectionTestBase {
         every { components.mkTypeSystem(any()) } returns mockk()
         every { components.mkSolver(any()) } answers { uSolver }
 
-        ctx = UContextBv32Size(components)
+        ctx = UContext(components)
 
         val softConstraintProvider = USoftConstraintsProvider<SingleTypeSystem.SingleType, USizeSort>(ctx)
         val (translator, decoder) = buildTranslatorAndLazyDecoder<SingleTypeSystem.SingleType>(ctx)
         this.translator = translator
         val typeSolver = UTypeSolver(SingleTypeSystem)
         uSolver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder, softConstraintProvider)
+        every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
 
 
         pathConstraints = UPathConstraints(ctx)

@@ -23,7 +23,8 @@ class HeapMemCpyTest {
     fun initializeContext() {
         val components: UComponents<Type> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
-        ctx = UContextBv32Size(components)
+        ctx = UContext(components)
+        every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
         val eqConstraints = UEqualityConstraints(ctx)
         val typeConstraints = UTypeConstraints(components.mkTypeSystem(ctx), eqConstraints)
         heap = UMemory(ctx, typeConstraints)

@@ -1,5 +1,6 @@
 package org.usvm.machine
 
+import org.usvm.UBv32Sort
 import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.USort
@@ -11,6 +12,8 @@ import org.usvm.language.StructType
 import org.usvm.memory.ULValue
 import org.usvm.memory.UWritableMemory
 import org.usvm.uctx
+
+internal typealias USizeSort = UBv32Sort
 
 fun UContext<*>.typeToSort(type: SampleType) = when (type) {
     BooleanType -> boolSort

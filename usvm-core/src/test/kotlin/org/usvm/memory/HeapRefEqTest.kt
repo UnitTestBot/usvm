@@ -8,7 +8,6 @@ import org.junit.jupiter.api.Test
 import org.usvm.Type
 import org.usvm.UComponents
 import org.usvm.UContext
-import org.usvm.UContextBv32Size
 import org.usvm.USizeSort
 import org.usvm.api.allocateConcreteRef
 import kotlin.test.assertSame
@@ -21,7 +20,7 @@ class HeapRefEqTest {
     fun initializeContext() {
         val components: UComponents<Type> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
-        ctx = UContextBv32Size(components)
+        ctx = UContext(components)
         heap = UMemory(ctx, mockk())
     }
 

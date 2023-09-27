@@ -6,7 +6,6 @@ import io.ksmt.utils.asExpr
 import org.usvm.UBoolExpr
 import org.usvm.UBv32Sort
 import org.usvm.UContext
-import org.usvm.UContextBv32Size
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
@@ -69,7 +68,7 @@ import org.usvm.collection.field.UFieldLValue
  * [hardMaxArrayLength] will be rejected.
  */
 class SampleExprResolver(
-    private val ctx: UContextBv32Size,
+    private val ctx: UContext<USizeSort>,
     private val scope: SampleStepScope,
     private val hardMaxArrayLength: Int = 1_500,
 ) {

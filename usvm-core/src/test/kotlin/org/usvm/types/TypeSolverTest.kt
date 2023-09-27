@@ -8,10 +8,10 @@ import org.usvm.Field
 import org.usvm.INITIAL_INPUT_ADDRESS
 import org.usvm.Method
 import org.usvm.NULL_ADDRESS
+import org.usvm.UBv32SizeExprProvider
 import org.usvm.UComponents
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
-import org.usvm.UContextBv32Size
 import org.usvm.USizeSort
 import org.usvm.api.readField
 import org.usvm.api.typeStreamOf
@@ -56,8 +56,8 @@ import kotlin.test.assertTrue
 class TypeSolverTest {
     private val typeSystem = testTypeSystem
     private val components = mockk<UComponents<TestType>>()
-    private val ctx = UContextBv32Size(components)
-    private val solver: USolverBase<TestType, UContextBv32Size>
+    private val ctx = UContext<USizeSort>(components)
+    private val solver: USolverBase<TestType, UContext<USizeSort>>
     private val typeSolver: UTypeSolver<TestType>
 
     init {
@@ -69,9 +69,10 @@ class TypeSolverTest {
 
         every { components.mkSolver(ctx) } returns solver
         every { components.mkTypeSystem(ctx) } returns typeSystem
+        every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
     }
 
-    private val pc = UPathConstraints<TestType, UContextBv32Size>(ctx)
+    private val pc = UPathConstraints<TestType, UContext<USizeSort>>(ctx)
     private val memory = UMemory<TestType, Method>(ctx, pc.typeConstraints)
 
     @Test

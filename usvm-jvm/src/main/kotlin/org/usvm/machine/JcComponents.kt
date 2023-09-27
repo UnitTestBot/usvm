@@ -5,8 +5,10 @@ import io.ksmt.solver.z3.KZ3Solver
 import io.ksmt.symfpu.solver.KSymFpuSolver
 import org.jacodb.api.JcType
 import org.usvm.SolverType
+import org.usvm.UBv32SizeExprProvider
 import org.usvm.UComponents
 import org.usvm.UContext
+import org.usvm.USizeExprProvider
 import org.usvm.model.buildTranslatorAndLazyDecoder
 import org.usvm.solver.USoftConstraintsProvider
 import org.usvm.solver.USolverBase
@@ -39,4 +41,7 @@ class JcComponents(
     override fun mkTypeSystem(ctx: UContext<*>): JcTypeSystem {
         return typeSystem
     }
+
+    override fun <Context : UContext<*>> mkSizeExprProvider(ctx: Context): USizeExprProvider<*> =
+        UBv32SizeExprProvider(ctx)
 }

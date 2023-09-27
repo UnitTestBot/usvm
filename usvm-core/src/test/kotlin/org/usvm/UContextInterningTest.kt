@@ -21,7 +21,8 @@ class UContextInterningTest {
     fun initializeContext() {
         val components: UComponents<*> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
-        context = UContextBv32Size(components)
+        context = UContext(components)
+        every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(context) }
     }
 
     @Test

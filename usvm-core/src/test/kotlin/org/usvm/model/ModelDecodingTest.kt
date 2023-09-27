@@ -9,10 +9,10 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.usvm.Field
 import org.usvm.Method
+import org.usvm.UBv32SizeExprProvider
 import org.usvm.UComponents
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
-import org.usvm.UContextBv32Size
 import org.usvm.UIndexedMocker
 import org.usvm.USizeSort
 import org.usvm.api.allocateConcreteRef
@@ -49,7 +49,8 @@ class ModelDecodingTest {
         val components: UComponents<Type> = mockk()
         every { components.mkTypeSystem(any()) } returns SingleTypeSystem
 
-        ctx = UContextBv32Size(components)
+        ctx = UContext(components)
+        every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
         val softConstraintsProvider = USoftConstraintsProvider<Type, _>(ctx)
         val (translator, decoder) = buildTranslatorAndLazyDecoder<Type>(ctx)
         val typeSolver = UTypeSolver(SingleTypeSystem)

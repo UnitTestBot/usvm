@@ -9,11 +9,11 @@ import org.junit.jupiter.api.Test
 import org.usvm.Field
 import org.usvm.NULL_ADDRESS
 import org.usvm.Type
+import org.usvm.UBv32SizeExprProvider
 import org.usvm.UComponents
 import org.usvm.UComposer
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
-import org.usvm.UContextBv32Size
 import org.usvm.UHeapRef
 import org.usvm.USizeSort
 import org.usvm.collection.array.USymbolicArrayInputToAllocatedCopyAdapter
@@ -38,7 +38,8 @@ class ModelCompositionTest {
     fun initializeContext() {
         val components: UComponents<*> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
-        ctx = UContextBv32Size(components)
+        ctx = UContext(components)
+        every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
         concreteNull = ctx.mkConcreteHeapRef(NULL_ADDRESS)
     }
 

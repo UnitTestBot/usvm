@@ -9,10 +9,10 @@ import org.junit.jupiter.api.Test
 import org.usvm.Field
 import org.usvm.Type
 import org.usvm.UAddressSort
+import org.usvm.UBv32SizeExprProvider
 import org.usvm.UBv32Sort
 import org.usvm.UComponents
 import org.usvm.UContext
-import org.usvm.UContextBv32Size
 import org.usvm.collection.field.UInputFieldReading
 import org.usvm.UIteExpr
 import org.usvm.USizeSort
@@ -38,7 +38,8 @@ class HeapRefSplittingTest {
     fun initializeContext() {
         val components: UComponents<Type> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
-        ctx = UContextBv32Size(components)
+        ctx = UContext(components)
+        every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
         heap = UMemory(ctx, mockk())
 
         valueFieldDescr = mockk<Field>() to ctx.bv32Sort

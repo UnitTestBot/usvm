@@ -14,7 +14,6 @@ import org.usvm.UBoolExpr
 import org.usvm.UBvSort
 import org.usvm.UComponents
 import org.usvm.UContext
-import org.usvm.UContextBv32Size
 import org.usvm.UExpr
 import org.usvm.UNotExpr
 import org.usvm.USizeSort
@@ -36,7 +35,7 @@ class NumericConstraintsTests {
     fun initializeContext() {
         val components: UComponents<*> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
-        ctx = UContextBv32Size(components)
+        ctx = UContext(components)
         bvSort = ctx.mkBvSort(sizeBits = 8u)
 
         resetConstraints()

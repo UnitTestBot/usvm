@@ -8,9 +8,9 @@ import io.mockk.verify
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.usvm.UBv32SizeExprProvider
 import org.usvm.UComponents
 import org.usvm.UContext
-import org.usvm.UContextBv32Size
 import org.usvm.USizeSort
 import org.usvm.constraints.UPathConstraints
 import org.usvm.collection.array.length.UInputArrayLengthId
@@ -33,7 +33,8 @@ open class SoftConstraintsTest<Field> {
         val components: UComponents<Type> = mockk()
         every { components.mkTypeSystem(any()) } returns SingleTypeSystem
 
-        ctx = UContextBv32Size(components)
+        ctx = UContext(components)
+        every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
         softConstraintsProvider = USoftConstraintsProvider(ctx)
 
         val translatorWithDecoder = buildTranslatorAndLazyDecoder<Type>(ctx)

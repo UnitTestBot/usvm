@@ -5,7 +5,6 @@ import io.ksmt.KContext
 import io.ksmt.expr.KExpr
 import io.ksmt.sort.KBoolSort
 import io.ksmt.sort.KBvSort
-import io.ksmt.sort.KIntSort
 import io.ksmt.sort.KSort
 import io.ksmt.sort.KSortVisitor
 import io.ksmt.sort.KUninterpretedSort
@@ -17,8 +16,6 @@ import org.usvm.collection.array.UAllocatedArray
 import org.usvm.collection.array.UAllocatedArrayReading
 import org.usvm.collection.array.UInputArray
 import org.usvm.collection.array.UInputArrayReading
-import org.usvm.collection.array.USymbolicArrayIndexBv32KeyInfo
-import org.usvm.collection.array.USymbolicArrayIndexInt32KeyInfo
 import org.usvm.collection.array.USymbolicArrayIndexKeyInfo
 import org.usvm.collection.array.length.UInputArrayLengthReading
 import org.usvm.collection.array.length.UInputArrayLengths
@@ -46,16 +43,14 @@ import org.usvm.collection.set.ref.UInputRefSetWithAllocatedElements
 import org.usvm.collection.set.ref.UInputRefSetWithAllocatedElementsReading
 import org.usvm.collection.set.ref.UInputRefSetWithInputElements
 import org.usvm.collection.set.ref.UInputRefSetWithInputElementsReading
-import org.usvm.memory.key.USizeExprBv32KeyInfo
-import org.usvm.memory.key.USizeExprInt32KeyInfo
 import org.usvm.memory.key.USizeExprKeyInfo
 import org.usvm.memory.splitUHeapRef
+import org.usvm.regions.Region
 import org.usvm.solver.USolverBase
 import org.usvm.types.UTypeSystem
-import org.usvm.regions.Region
 
 @Suppress("LeakingThis")
-abstract class UContext<USizeSort : USort>(
+open class UContext<USizeSort : USort>(
     components: UComponents<*>,
     operationMode: OperationMode = OperationMode.CONCURRENT,
     astManagementMode: AstManagementMode = AstManagementMode.GC,
@@ -64,6 +59,7 @@ abstract class UContext<USizeSort : USort>(
 
     private val solver by lazy { components.mkSolver(this) }
     private val typeSystem by lazy { components.mkTypeSystem(this) }
+    private val sizeExprProvider by lazy { components.mkSizeExprProvider(this) }
 
     private var currentStateId = 0u
 
@@ -82,18 +78,30 @@ abstract class UContext<USizeSort : USort>(
     fun <Type> typeSystem(): UTypeSystem<Type> =
         this.typeSystem as UTypeSystem<Type>
 
+    @Suppress("UNCHECKED_CAST")
+    fun sizeExprProvider(): USizeExprProvider<USizeSort> =
+        this.sizeExprProvider as USizeExprProvider<USizeSort>
+
     val addressSort: UAddressSort = mkUninterpretedSort("Address")
 
-    abstract val sizeSort: USizeSort
-    abstract val sizeExprKeyInfo: USizeExprKeyInfo<USizeSort>
-    abstract val arrayIndexKeyInfo: USymbolicArrayIndexKeyInfo<USizeSort>
-    abstract fun mkSizeExpr(size: Int): UExpr<USizeSort>
-    abstract fun mkSizeSubExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UExpr<USizeSort>
-    abstract fun mkSizeAddExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UExpr<USizeSort>
-    abstract fun mkSizeGtExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UBoolExpr
-    abstract fun mkSizeGeExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UBoolExpr
-    abstract fun mkSizeLtExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UBoolExpr
-    abstract fun mkSizeLeExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UBoolExpr
+    val sizeSort: USizeSort get() = sizeExprProvider().sizeSort
+    val sizeExprKeyInfo: USizeExprKeyInfo<USizeSort> get() = sizeExprProvider().sizeExprKeyInfo
+    val arrayIndexKeyInfo: USymbolicArrayIndexKeyInfo<USizeSort> get() = sizeExprProvider().arrayIndexKeyInfo
+
+    fun mkSizeExpr(size: Int): UExpr<USizeSort> =
+        sizeExprProvider().mkSizeExpr(size)
+    fun mkSizeSubExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UExpr<USizeSort> =
+        sizeExprProvider().mkSizeSubExpr(lhs, rhs)
+    fun mkSizeAddExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UExpr<USizeSort> =
+        sizeExprProvider().mkSizeAddExpr(lhs, rhs)
+    fun mkSizeGtExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UBoolExpr =
+        sizeExprProvider().mkSizeGtExpr(lhs, rhs)
+    fun mkSizeGeExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UBoolExpr =
+        sizeExprProvider().mkSizeGeExpr(lhs, rhs)
+    fun mkSizeLtExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UBoolExpr =
+        sizeExprProvider().mkSizeLtExpr(lhs, rhs)
+    fun mkSizeLeExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UBoolExpr =
+        sizeExprProvider().mkSizeLeExpr(lhs, rhs)
 
     val nullRef: UNullRef = UNullRef(this)
 
@@ -407,44 +415,6 @@ abstract class UContext<USizeSort : USort>(
             is UFalse -> falseBranch()
             else -> mkIte(condition, trueBranch(), falseBranch())
         }
-}
-
-open class UContextBv32Size(
-    components: UComponents<*>,
-    operationMode: OperationMode = OperationMode.CONCURRENT,
-    astManagementMode: AstManagementMode = AstManagementMode.GC,
-    simplificationMode: SimplificationMode = SimplificationMode.SIMPLIFY,
-) : UContext<UBv32Sort>(components, operationMode, astManagementMode, simplificationMode) {
-    override val sizeSort: UBv32Sort = bv32Sort
-    override val sizeExprKeyInfo: USizeExprKeyInfo<UBv32Sort> = USizeExprBv32KeyInfo
-    override val arrayIndexKeyInfo: USymbolicArrayIndexKeyInfo<UBv32Sort> = USymbolicArrayIndexBv32KeyInfo
-
-    override fun mkSizeExpr(size: Int): UExpr<UBv32Sort> = mkBv(size)
-    override fun mkSizeSubExpr(lhs: UExpr<UBv32Sort>, rhs: UExpr<UBv32Sort>): UExpr<UBv32Sort> = mkBvSubExpr(lhs, rhs)
-    override fun mkSizeAddExpr(lhs: UExpr<UBv32Sort>, rhs: UExpr<UBv32Sort>): UExpr<UBv32Sort> = mkBvAddExpr(lhs, rhs)
-    override fun mkSizeGtExpr(lhs: UExpr<UBv32Sort>, rhs: UExpr<UBv32Sort>): UBoolExpr = mkBvSignedGreaterExpr(lhs, rhs)
-    override fun mkSizeGeExpr(lhs: UExpr<UBv32Sort>, rhs: UExpr<UBv32Sort>): UBoolExpr = mkBvSignedGreaterOrEqualExpr(lhs, rhs)
-    override fun mkSizeLtExpr(lhs: UExpr<UBv32Sort>, rhs: UExpr<UBv32Sort>): UBoolExpr = mkBvSignedLessExpr(lhs, rhs)
-    override fun mkSizeLeExpr(lhs: UExpr<UBv32Sort>, rhs: UExpr<UBv32Sort>): UBoolExpr = mkBvSignedLessOrEqualExpr(lhs, rhs)
-}
-
-open class UContextInt32Size(
-    components: UComponents<*>,
-    operationMode: OperationMode = OperationMode.CONCURRENT,
-    astManagementMode: AstManagementMode = AstManagementMode.GC,
-    simplificationMode: SimplificationMode = SimplificationMode.SIMPLIFY,
-) : UContext<KIntSort>(components, operationMode, astManagementMode, simplificationMode) {
-    override val sizeSort: KIntSort = intSort
-    override val sizeExprKeyInfo: USizeExprKeyInfo<KIntSort> = USizeExprInt32KeyInfo
-    override val arrayIndexKeyInfo: USymbolicArrayIndexKeyInfo<KIntSort> = USymbolicArrayIndexInt32KeyInfo
-
-    override fun mkSizeExpr(size: Int): UExpr<KIntSort> = mkIntNum(size)
-    override fun mkSizeSubExpr(lhs: UExpr<KIntSort>, rhs: UExpr<KIntSort>): UExpr<KIntSort> = mkArithSub(lhs, rhs)
-    override fun mkSizeAddExpr(lhs: UExpr<KIntSort>, rhs: UExpr<KIntSort>): UExpr<KIntSort> = mkArithAdd(lhs, rhs)
-    override fun mkSizeGtExpr(lhs: UExpr<KIntSort>, rhs: UExpr<KIntSort>): UBoolExpr = mkArithGt(lhs, rhs)
-    override fun mkSizeGeExpr(lhs: UExpr<KIntSort>, rhs: UExpr<KIntSort>): UBoolExpr = mkArithGe(lhs, rhs)
-    override fun mkSizeLtExpr(lhs: UExpr<KIntSort>, rhs: UExpr<KIntSort>): UBoolExpr = mkArithLt(lhs, rhs)
-    override fun mkSizeLeExpr(lhs: UExpr<KIntSort>, rhs: UExpr<KIntSort>): UBoolExpr = mkArithLe(lhs, rhs)
 }
 
 

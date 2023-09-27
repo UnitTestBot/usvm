@@ -7,7 +7,6 @@ import org.usvm.UAddressSort
 import org.usvm.UBoolSort
 import org.usvm.UBv32Sort
 import org.usvm.UContext
-import org.usvm.UContextBv32Size
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.api.readArrayIndex
@@ -30,7 +29,7 @@ import org.usvm.language.StructType
 import org.usvm.model.UModelBase
 
 class ResultModelConverter(
-    private val ctx: UContextBv32Size,
+    private val ctx: UContext<USizeSort>,
 ) {
     fun convert(state: SampleState, method: Method<*>): ProgramExecutionResult {
         val exceptionRegister = state.exceptionRegister
@@ -58,7 +57,7 @@ class ResultModelConverter(
     }
 
     private class InputScope(
-        private val ctx: UContextBv32Size,
+        private val ctx: UContext<USizeSort>,
         private val model: UModelBase<SampleType>,
     ) {
         fun convertExpr(expr: UExpr<out USort>, type: SampleType): Expr<SampleType> =

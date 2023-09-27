@@ -10,7 +10,6 @@ import org.usvm.UBoolExpr
 import org.usvm.UBv32Sort
 import org.usvm.UComponents
 import org.usvm.UContext
-import org.usvm.UContextBv32Size
 import org.usvm.USizeSort
 import org.usvm.USort
 import org.usvm.regions.SetRegion
@@ -23,7 +22,7 @@ class UpdatesIteratorTest {
     fun initializeContext() {
         val components: UComponents<*> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
-        ctx = UContextBv32Size(components)
+        ctx = UContext(components)
     }
 
     @Test
