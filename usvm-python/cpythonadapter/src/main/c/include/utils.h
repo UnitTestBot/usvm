@@ -13,8 +13,8 @@ extern "C" {
 
 typedef struct {
     PyObject_HEAD
-    jobject reference; // local
-    JNIEnv *env;
+    jobject reference; // global
+    // JNIEnv *env;
 } JavaPythonObject;
 
 void initialize_java_python_type();
@@ -69,6 +69,11 @@ long extract_long_value(PyObject *int_object);
 
 int audit_hook(const char *event, PyObject *args, void *data);
 PyObject *construct_global_clones_dict(JNIEnv *env, jobjectArray global_clones);
+
+void add_ref_to_list(PyObject *list, void *ref);
+jobject create_global_ref(JNIEnv *env, jobject local_ref);
+void initialize_global_ref_holder();
+void release_global_refs(JNIEnv *env);
 
 #ifdef __cplusplus
 }

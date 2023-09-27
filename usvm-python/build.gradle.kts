@@ -95,6 +95,7 @@ tasks.register<JavaExec>("manualTestDebug") {
     dependsOn(buildSamples)
     if (!isWindows) {
         registerCpython(this, debug = true)
+        maxHeapSize = "2G"
         jvmArgs = commonJVMArgs + listOf("-Dlogback.configurationFile=logging/logback-debug.xml") //, "-Xcheck:jni")
     } else {
         environment("PYTHONHOME" to cpythonBuildPath)

@@ -5,6 +5,7 @@ import org.usvm.constraints.UPathConstraints
 import org.usvm.language.*
 import org.usvm.language.types.PythonType
 import org.usvm.language.types.PythonTypeSystem
+import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.USVMPythonInterpreter
 import org.usvm.machine.model.toPyModel
 import org.usvm.machine.symbolicobjects.*
@@ -80,11 +81,11 @@ class PythonMachine<PythonObjectRepresentation>(
         }
     }
 
-     private fun getPathSelector(target: PythonUnpinnedCallable): UPathSelector<PythonExecutionState> {
-         val ps = PythonVirtualPathSelector(ctx, typeSystem, DfsPathSelector(), DfsPathSelector(), DfsPathSelector())
-         val initialState = getInitialState(target)
-         ps.add(listOf(initialState))
-         return ps
+    private fun getPathSelector(target: PythonUnpinnedCallable): UPathSelector<PythonExecutionState> {
+        val ps = PythonVirtualPathSelector(ctx, typeSystem, DfsPathSelector(), DfsPathSelector(), DfsPathSelector())
+        val initialState = getInitialState(target)
+        ps.add(listOf(initialState))
+        return ps
     }
 
     fun analyze(
@@ -124,6 +125,8 @@ class PythonMachine<PythonObjectRepresentation>(
             }
         )
         iterationCounter.iterations
+    }.also {
+        ConcretePythonInterpreter.restart()
     }
 
     override fun close() {
