@@ -23,6 +23,7 @@ import org.usvm.api.targets.TaintMethodSource
 import org.usvm.api.targets.TaintPassThrough
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
+import org.usvm.test.util.checkers.ge
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import org.usvm.util.Options
 import org.usvm.util.UsvmTest
@@ -39,7 +40,7 @@ class TaintTest : JavaMethodTestRunner() {
             withTargets(sampleAnalysis.targets.toList().cast(), sampleAnalysis) {
                 checkDiscoveredProperties(
                     Taint::simpleTaint,
-                    ignoreNumberOfAnalysisResults,
+                    ge(0),
                 )
             }
 

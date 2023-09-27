@@ -14,8 +14,8 @@ class TargetsReachableForkBlackList<State, Target, Method, Statement, Distance>(
                                            Target : UTarget<Statement, Target> {
 
     override fun shouldForkTo(state: State, stmt: Statement): Boolean {
-        return !state.targets.any() || state.targets.any { target ->
-            val targetLocation = target.location ?: return@any false
+        return state.targets.any { target ->
+            val targetLocation = target.location ?: return@any true
             !distanceCalculator.calculateDistance(stmt, state.callStack, targetLocation).shouldBlackList()
         }
     }
