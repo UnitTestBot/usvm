@@ -4,8 +4,8 @@ static void
 virtual_object_dealloc(PyObject *op) {
     //printf("DELETING: %p\n", op);
     //fflush(stdout);
-    VirtualPythonObject *obj = (VirtualPythonObject *) op;
-    (*(obj->ctx->env))->DeleteGlobalRef(obj->ctx->env, obj->reference);
+    //VirtualPythonObject *obj = (VirtualPythonObject *) op;
+    //(*(obj->ctx->env))->DeleteGlobalRef(obj->ctx->env, obj->reference);
     Py_TYPE(op)->tp_free(op);
 }
 
@@ -186,7 +186,7 @@ allocate_raw_virtual_object(JNIEnv *env, jobject object) {
     if (!result)
         return 0;
 
-    result->reference = (*env)->NewGlobalRef(env, object);
+    result->reference = create_global_ref(env, object);
     result->ctx = 0;
     result->adapter = 0;
 

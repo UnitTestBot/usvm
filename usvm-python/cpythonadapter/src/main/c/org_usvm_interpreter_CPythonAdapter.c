@@ -63,6 +63,8 @@ JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_initializePython
     Py_InitializeFromConfig(&config);
     PyConfig_Clear(&config);
 
+    initialize_global_ref_holder();
+
     jclass cls = (*env)->GetObjectClass(env, cpython_adapter);
     jfieldID f;
     SET_BOOLEAN_FIELD("isInitialized", JNI_TRUE)
@@ -81,13 +83,15 @@ JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_initializePython
     PySys_AddAuditHook(audit_hook, &illegal_operation);
 
     initialize_symbolic_methods_holder();
-    SymbolicMethod *int_constructor = construct_int_constructor_method();
+    SymbolicMethod *int_constructor = construct_symbolic_method_without_self(SymbolicMethod_int);
     SET_LONG_FIELD("symbolicIntConstructorRef", (jlong) int_constructor)
-    SymbolicMethod *float_constructor = construct_float_constructor_method();
+    SymbolicMethod *float_constructor = construct_symbolic_method_without_self(SymbolicMethod_float);
     SET_LONG_FIELD("symbolicFloatConstructorRef", (jlong) float_constructor)
 }
 
 JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_finalizePython(JNIEnv *env, jobject cpython_adapter) {
+    release_global_refs(env);
+    clean_methods();
     Py_FinalizeEx();
     jclass cls = (*env)->GetObjectClass(env, cpython_adapter);
     jfieldID f;
@@ -323,6 +327,21 @@ JNIEXPORT jstring JNICALL Java_org_usvm_interpreter_CPythonAdapter_getNameOfPyth
 
 JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_getInstructionFromFrame(JNIEnv *env, jclass _, jlong frame_ref) {
     assert(PyFrame_Check(frame_ref));
+    if (PyErr_Occurred()) {
+        PyObject *type, *value, *traceback;
+        PyErr_Fetch(&type, &value, &traceback);
+        printf("Exception type: ");
+        PyObject_Print(type, stdout, 0);
+        printf("\nException value: ");
+        PyObject_Print(value, stdout, 0);
+        printf("\nTraceback: ");
+        PyObject_Print(traceback, stdout, 0);
+        fflush(stdout);
+        if ((*env)->ExceptionCheck(env)) {
+            (*env)->ExceptionDescribe(env);
+        }
+        assert(0);
+    }
     return take_instruction_from_frame((PyFrameObject *) frame_ref);
 }
 
@@ -456,6 +475,10 @@ JNIEXPORT jthrowable JNICALL Java_org_usvm_interpreter_CPythonAdapter_extractExc
 
 JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_decref(JNIEnv *env, jobject _, jlong obj_ref) {
     Py_XDECREF((PyObject *) obj_ref);
+}
+
+JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_incref(JNIEnv *env, jobject _, jlong obj_ref) {
+    Py_XINCREF((PyObject *) obj_ref);
 }
 
 JNIEXPORT jstring JNICALL Java_org_usvm_interpreter_CPythonAdapter_checkForIllegalOperation(JNIEnv *env, jobject _) {

@@ -171,6 +171,10 @@ object ConcretePythonInterpreter {
         pythonAdapter.decref(obj.address)
     }
 
+    fun incref(obj: PythonObject) {
+        pythonAdapter.incref(obj.address)
+    }
+
     fun decref(namespace: PythonNamespace) {
         pythonAdapter.decref(namespace.address)
     }
@@ -216,23 +220,13 @@ object ConcretePythonInterpreter {
         return PythonObject(pythonAdapter.callStandardNew(type.address))
     }
 
-    fun kill() {
+    fun restart() {
         pythonAdapter.finalizePython()
+        initialize()
+        SymbolicClonesOfGlobals.restart()
     }
 
-    val initialSysPath: PythonObject
-    val initialSysModulesKeys: PythonObject
-    val pyEQ: Int
-    val pyNE: Int
-    val pyLT: Int
-    val pyLE: Int
-    val pyGT: Int
-    val pyGE: Int
-    val pyNoneRef: Long
-    val intConstructorRef: Long
-    val floatConstructorRef: Long
-
-    init {
+    private fun initialize() {
         val pythonHome = System.getenv("PYTHONHOME") ?: error("Variable PYTHONHOME not set")
         pythonAdapter.initializePython(pythonHome)
         pyEQ = pythonAdapter.pyEQ
@@ -262,6 +256,24 @@ object ConcretePythonInterpreter {
         if (initialSysModulesKeys.address == 0L)
             throw CPythonExecutionException()
         pythonAdapter.decref(namespace)
+        emptyNamespace = getNewNamespace()
+    }
+
+    lateinit var initialSysPath: PythonObject
+    lateinit var  initialSysModulesKeys: PythonObject
+    var pyEQ: Int = 0
+    var pyNE: Int = 0
+    var pyLT: Int = 0
+    var pyLE: Int = 0
+    var pyGT: Int = 0
+    var pyGE: Int = 0
+    var pyNoneRef: Long = 0L
+    var intConstructorRef: Long = 0L
+    var floatConstructorRef: Long = 0L
+    lateinit var emptyNamespace: PythonNamespace
+
+    init {
+        initialize()
     }
 }
 
@@ -279,7 +291,5 @@ data class PythonNamespace(val address: Long) {
         require(address != 0L)
     }
 }
-
-val emptyNamespace = ConcretePythonInterpreter.getNewNamespace()
 
 data class IllegalOperationException(val operation: String): Exception()

@@ -89,6 +89,7 @@ public class CPythonAdapter {
     public native long callStandardNew(long type);
     public native Throwable extractException(long exception);
     public native void decref(long object);
+    public native void incref(long object);
     public native String checkForIllegalOperation();
     public native long typeLookup(long typeRef, String name);
     @Nullable

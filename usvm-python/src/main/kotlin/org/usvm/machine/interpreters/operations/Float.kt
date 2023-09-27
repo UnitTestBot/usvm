@@ -5,9 +5,6 @@ import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.isTrue
-import org.usvm.machine.interpreters.CPythonExecutionException
-import org.usvm.machine.interpreters.ConcretePythonInterpreter
-import org.usvm.machine.interpreters.emptyNamespace
 import org.usvm.machine.symbolicobjects.*
 
 private fun gtFloat(ctx: ConcolicRunContext, left: FloatUninterpretedContent, right: FloatUninterpretedContent): UBoolExpr = with(ctx.ctx) {

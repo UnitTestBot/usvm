@@ -2,8 +2,8 @@ package org.usvm.language
 
 import org.usvm.language.types.PythonTypeSystem
 import org.usvm.machine.interpreters.ConcretePythonInterpreter
+import org.usvm.machine.interpreters.ConcretePythonInterpreter.emptyNamespace
 import org.usvm.machine.interpreters.PythonNamespace
-import org.usvm.machine.interpreters.emptyNamespace
 import org.usvm.utils.withAdditionalPaths
 import java.io.File
 
@@ -16,7 +16,7 @@ sealed class PythonProgram(val additionalPaths: Set<File>) {
 }
 
 class PrimitivePythonProgram internal constructor(
-    private val namespace: PythonNamespace,
+    private val namespaceGetter: () -> PythonNamespace,
     additionalPaths: Set<File>
 ): PythonProgram(additionalPaths) {
     override fun <T> withPinnedCallable(
@@ -25,15 +25,19 @@ class PrimitivePythonProgram internal constructor(
         block: (PythonPinnedCallable) -> T
     ): T {
         require(callable.module == null)
+        val namespace = namespaceGetter()
         val pinned = PythonPinnedCallable(callable.reference(namespace))
         return block(pinned)
     }
 
     companion object {
         fun fromString(asString: String): PrimitivePythonProgram {
-            val namespace = ConcretePythonInterpreter.getNewNamespace()
-            ConcretePythonInterpreter.concreteRun(namespace, asString, setHook = true)
-            return PrimitivePythonProgram(namespace, emptySet())
+            val namespaceGetter = {
+                val namespace = ConcretePythonInterpreter.getNewNamespace()
+                ConcretePythonInterpreter.concreteRun(namespace, asString, setHook = true)
+                namespace
+            }
+            return PrimitivePythonProgram(namespaceGetter, emptySet())
         }
     }
 }
@@ -69,8 +73,12 @@ class StructuredPythonProgram(val roots: Set<File>): PythonProgram(roots) {
         return PythonNamespace(resultAsObj.address)
     }
 
-    fun getPrimitiveProgram(module: String): PrimitivePythonProgram = withAdditionalPaths(roots, null) {
-        val namespace = getNamespaceOfModule(module) ?: error("Couldn't get namespace of module")
-        PrimitivePythonProgram(namespace, roots)
+    fun getPrimitiveProgram(module: String): PrimitivePythonProgram {
+        val namespaceGetter = {
+            withAdditionalPaths(roots, null) {
+                getNamespaceOfModule(module) ?: error("Couldn't get namespace of module")
+            }
+        }
+        return PrimitivePythonProgram(namespaceGetter, roots)
     }
 }

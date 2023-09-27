@@ -10,7 +10,7 @@ import org.usvm.language.types.*
 import org.usvm.machine.UPythonContext
 import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.PythonObject
-import org.usvm.machine.interpreters.emptyNamespace
+import org.usvm.machine.interpreters.ConcretePythonInterpreter.emptyNamespace
 import org.usvm.machine.utils.DefaultValueProvider
 import org.usvm.machine.utils.PyModelHolder
 
@@ -29,6 +29,7 @@ class ConverterToPythonObject(
         restart()
     }
     fun restart() {
+        // TODO: decRefs()
         constructedObjects.clear()
         virtualObjects.clear()
         val nullRef = modelHolder.model.eval(ctx.nullRef) as UConcreteHeapRef
@@ -65,6 +66,12 @@ class ConverterToPythonObject(
         }
         constructedObjects[obj.address] = result
         return result
+    }
+
+    private fun decRefs() {
+        constructedObjects.values.forEach {
+            ConcretePythonInterpreter.decref(it)
+        }
     }
 
     private fun convertFloat(obj: InterpretedInputSymbolicPythonObject): PythonObject {

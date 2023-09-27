@@ -6,8 +6,8 @@
 
 static void
 java_python_object_dealloc(PyObject *op) {
-    JavaPythonObject *obj = (JavaPythonObject *) op;
-    (*(obj->env))->DeleteGlobalRef(obj->env, obj->reference);
+    // JavaPythonObject *obj = (JavaPythonObject *) op;
+    // (*(obj->env))->DeleteGlobalRef(obj->env, obj->reference);
     Py_TYPE(op)->tp_free(op);
 }
 PyType_Slot java_python_object_dealloc_slot = {Py_tp_dealloc, java_python_object_dealloc};
@@ -33,9 +33,8 @@ initialize_java_python_type() {
 PyObject *
 wrap_java_object(JNIEnv *env, jobject object) {
     JavaPythonObject *result = PyObject_New(JavaPythonObject, JavaPythonObject_Type);
-    result->env = env;
-    // result->reference = object;
-    result->reference = (*env)->NewGlobalRef(env, object);
+    // result->env = env;
+    result->reference = create_global_ref(env, object);
     return (PyObject*) result;
 }
 
@@ -232,4 +231,37 @@ construct_global_clones_dict(JNIEnv *env, jobjectArray global_clones) {
         assert(0);
     }
     return result;
+}
+
+void
+add_ref_to_list(PyObject *list, void *ref) {
+    assert(list && PyList_Check(list));
+    PyList_Append(list, PyLong_FromLong((long) ref));
+}
+
+PyObject *global_ref_holder = 0;
+
+jobject
+create_global_ref(JNIEnv *env, jobject local_ref) {
+    jobject result = (*env)->NewGlobalRef(env, local_ref);
+    add_ref_to_list(global_ref_holder, result);
+    return result;
+}
+
+void
+initialize_global_ref_holder() {
+    global_ref_holder = PyList_New(0);
+}
+
+void
+release_global_refs(JNIEnv *env) {
+    assert(global_ref_holder);
+    Py_ssize_t size = PyList_Size(global_ref_holder);
+    for (Py_ssize_t i = 0; i < size; i++) {
+        PyObject *item = PyList_GetItem(global_ref_holder, i);
+        long address = extract_long_value(item);
+        (*env)->DeleteGlobalRef(env, (jobject) address);
+    }
+    Py_DECREF(global_ref_holder);
+    global_ref_holder = 0;
 }
