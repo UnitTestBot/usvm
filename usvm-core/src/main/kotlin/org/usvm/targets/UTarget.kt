@@ -1,4 +1,6 @@
-package org.usvm
+package org.usvm.targets
+
+import org.usvm.UState
 
 /**
  * Base class for a symbolic execution target. A target can be understood as a 'task' for symbolic machine
@@ -12,15 +14,15 @@ package org.usvm
  * a state which has reached the target which has no children, it is logically removed from the targets tree.
  * The other states ignore such removed targets.
  */
-abstract class UTarget<Statement, Target, State>(
+abstract class UTarget<Statement, Target>(
     /**
      * Optional location of the target.
      */
-    val location: Statement? = null,
-) where Target : UTarget<Statement, Target, State>,
-        State : UState<*, *, Statement, *, Target, State> {
+    open val location: Statement? = null,
+) where Target : UTarget<Statement, Target> {
     private val childrenImpl = mutableListOf<Target>()
-    private var parent: Target? = null
+    var parent: Target? = null
+        private set
 
     /**
      * List of the child targets which should be reached after this target.
@@ -58,9 +60,9 @@ abstract class UTarget<Statement, Target, State>(
      * should try to propagate the target. If the target without children has been
      * visited, it is logically removed from tree.
      */
-    protected fun propagate(byState: State) {
+    fun <T, State : UState<*, *, Statement, *, T, State>> propagate(byState: State) {
         @Suppress("UNCHECKED_CAST")
-        if (byState.tryPropagateTarget(this as Target) && isTerminal) {
+        if (byState.tryPropagateTarget(this as T) && isTerminal) {
             remove()
         }
     }

@@ -26,9 +26,6 @@ open class UComposer<Type>(
 ) : UExprTransformer<Type>(ctx) {
     open fun <Sort : USort> compose(expr: UExpr<Sort>): UExpr<Sort> = apply(expr)
 
-    override fun <Sort : USort> transform(expr: USymbol<Sort>): UExpr<Sort> =
-        error("You must override `transform` function in org.usvm.UComposer for ${expr::class}")
-
     override fun <T : USort> transform(expr: UIteExpr<T>): UExpr<T> =
         transformExprAfterTransformed(expr, expr.condition) { condition ->
             when {
@@ -41,12 +38,6 @@ open class UComposer<Type>(
     override fun <Sort : USort> transform(
         expr: URegisterReading<Sort>,
     ): UExpr<Sort> = with(expr) { memory.stack.readRegister(idx, sort) }
-
-    override fun <Sort : USort> transform(expr: UCollectionReading<*, *, *>): UExpr<Sort> =
-        error("You must override `transform` function in org.usvm.UComposer for ${expr::class}")
-
-    override fun <Sort : USort> transform(expr: UMockSymbol<Sort>): UExpr<Sort> =
-        error("You must override `transform` function in org.usvm.UComposer for ${expr::class}")
 
     override fun <Method, Sort : USort> transform(
         expr: UIndexedMethodReturnValue<Method, Sort>,

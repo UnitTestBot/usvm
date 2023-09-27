@@ -192,12 +192,12 @@ class JcMethodApproximationResolver(
             val classNameRef = arguments.single()
 
             val predefinedTypeNames = ctx.primitiveTypes.associateBy {
-                exprResolver.resolveStringConstant(it.typeName)
+                exprResolver.simpleValueResolver.resolveStringConstant(it.typeName)
             }
 
             val primitive = predefinedTypeNames[classNameRef] ?: return false
 
-            val classRef = exprResolver.resolveClassRef(primitive)
+            val classRef = exprResolver.simpleValueResolver.resolveClassRef(primitive)
 
             scope.doWithState {
                 skipMethodInvocationWithValue(methodCall, classRef)
@@ -230,7 +230,7 @@ class JcMethodApproximationResolver(
             val result = scope.calcOnState {
                 mapTypeStream(instance) { _, types ->
                     val type = types.singleOrNull()
-                    type?.let { exprResolver.resolveClassRef(it) }
+                    type?.let { exprResolver.simpleValueResolver.resolveClassRef(it) }
                 }
             } ?: return false
 
@@ -265,7 +265,7 @@ class JcMethodApproximationResolver(
             )
 
             val primitiveArrayRefScale = primitiveArrayScale.mapKeys { (type, _) ->
-                exprResolver.resolveClassRef(ctx.cp.arrayTypeOf(type))
+                exprResolver.simpleValueResolver.resolveClassRef(ctx.cp.arrayTypeOf(type))
             }
 
             val arrayTypeRef = arguments.last().asExpr(ctx.addressSort)
@@ -312,7 +312,7 @@ class JcMethodApproximationResolver(
         srcPos: USizeExpr,
         dstRef: UHeapRef,
         dstPos: USizeExpr,
-        length: USizeExpr
+        length: USizeExpr,
     ) {
         checkNullPointer(srcRef) ?: return
         checkNullPointer(dstRef) ?: return
@@ -364,7 +364,7 @@ class JcMethodApproximationResolver(
     private fun JcExprResolver.resolveArrayClone(
         methodCall: JcMethodCall,
         instance: UConcreteHeapRef,
-        arrayType: JcArrayType
+        arrayType: JcArrayType,
     ) = with(ctx) {
         scope.doWithState {
             checkNullPointer(instance) ?: return@doWithState
@@ -402,7 +402,7 @@ class JcMethodApproximationResolver(
         srcPos: USizeExpr,
         dstRef: UHeapRef,
         dstPos: USizeExpr,
-        length: USizeExpr
+        length: USizeExpr,
     ) = with(ctx) {
         val arrayDescriptor = arrayDescriptorOf(type)
         val elementType = requireNotNull(type.ifArrayGetElementType)
@@ -788,7 +788,7 @@ class JcMethodApproximationResolver(
 
     private fun MutableMap<String, (JcMethodCall) -> UExpr<*>?>.dispatchUsvmApiMethod(
         apiMethod: KFunction<*>,
-        body: (JcMethodCall) -> UExpr<*>?
+        body: (JcMethodCall) -> UExpr<*>?,
     ) {
         val methodName = apiMethod.javaMethod?.name
             ?: error("No name for $apiMethod")
@@ -797,22 +797,22 @@ class JcMethodApproximationResolver(
 
     private fun MutableMap<String, (JcMethodCall) -> UExpr<*>?>.dispatchMkRef(
         apiMethod: KFunction1<Nothing, Any>,
-        body: (JcMethodCall) -> UExpr<*>?
+        body: (JcMethodCall) -> UExpr<*>?,
     ) = dispatchUsvmApiMethod(apiMethod, body)
 
     private fun MutableMap<String, (JcMethodCall) -> UExpr<*>?>.dispatchMkRef2(
         apiMethod: KFunction2<Nothing, Nothing, Array<Any>>,
-        body: (JcMethodCall) -> UExpr<*>?
+        body: (JcMethodCall) -> UExpr<*>?,
     ) = dispatchUsvmApiMethod(apiMethod, body)
 
     private fun MutableMap<String, (JcMethodCall) -> UExpr<*>?>.dispatchMkList(
         apiMethod: KFunction0<SymbolicList<Any>>,
-        body: (JcMethodCall) -> UExpr<*>?
+        body: (JcMethodCall) -> UExpr<*>?,
     ) = dispatchUsvmApiMethod(apiMethod, body)
 
     private fun MutableMap<String, (JcMethodCall) -> UExpr<*>?>.dispatchMkMap(
         apiMethod: KFunction0<SymbolicMap<Any, Any>>,
-        body: (JcMethodCall) -> UExpr<*>?
+        body: (JcMethodCall) -> UExpr<*>?,
     ) = dispatchUsvmApiMethod(apiMethod, body)
 
     private fun makeSymbolicArray(elementType: JcType, size: UExpr<*>): UHeapRef? {
