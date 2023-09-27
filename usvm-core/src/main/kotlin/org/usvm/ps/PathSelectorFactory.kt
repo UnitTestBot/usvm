@@ -226,13 +226,14 @@ internal fun <Method, Statement, Target, State> createTargetedPathSelector(
 
     fun calculateDistanceToTargets(state: State) =
         state.targets.minOfOrNull { target ->
-            if (target.location == null) {
+            val location = target.location
+            if (location == null) {
                 0u
             } else {
                 distanceCalculator.calculateDistance(
                     state.currentStatement,
                     state.callStack,
-                    target.location
+                    location
                 )
             }
         } ?: UInt.MAX_VALUE
@@ -289,13 +290,14 @@ internal fun <Method, Statement, Target, State> createTargetedPathSelector(
 
     fun calculateWeight(state: State) =
         state.targets.minOfOrNull { target ->
-            if (target.location == null) {
+            val location = target.location
+            if (location == null) {
                 0u
             } else {
                 distanceCalculator.calculateDistance(
                     state.currentStatement,
                     state.callStack,
-                    target.location
+                    location
                 ).logWeight()
             }
         } ?: UInt.MAX_VALUE

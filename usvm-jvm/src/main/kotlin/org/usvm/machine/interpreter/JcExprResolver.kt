@@ -666,9 +666,7 @@ class JcExprResolver(
             return body()
         }
 
-        val classRef = with(simpleValueResolver) {
-            resolveClassRef(type)
-        }
+        val classRef = simpleValueResolver.resolveClassRef(type)
 
         val initializedFlag = staticFieldsInitializedFlag(type, classRef)
 
