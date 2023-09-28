@@ -394,8 +394,12 @@ open class UContext<USizeSort : USort>(
 val <USizeSort : USort> UContext<USizeSort>.sizeSort: USizeSort get() = sizeExprs.sizeSort
 val <USizeSort : USort> UContext<USizeSort>.arrayIndexKeyInfo: USymbolicArrayIndexKeyInfo<USizeSort> get() = sizeExprs.arrayIndexKeyInfo
 val <USizeSort : USort> UContext<USizeSort>.sizeExprKeyInfo: USizeExprKeyInfo<USizeSort> get() = sizeExprs.sizeExprKeyInfo
+
 fun <USizeSort : USort> UContext<USizeSort>.mkSizeExpr(size: Int): UExpr<USizeSort> =
     sizeExprs.mkSizeExpr(size)
+fun <USizeSort : USort> UContext<USizeSort>.getIntValue(expr: UExpr<USizeSort>): Int? =
+    sizeExprs.getIntValue(expr)
+
 fun <USizeSort : USort> UContext<USizeSort>.mkSizeSubExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UExpr<USizeSort> =
     sizeExprs.mkSizeSubExpr(lhs, rhs)
 fun <USizeSort : USort> UContext<USizeSort>.mkSizeLeExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UBoolExpr =

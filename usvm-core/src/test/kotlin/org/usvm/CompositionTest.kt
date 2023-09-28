@@ -22,7 +22,6 @@ import org.usvm.collection.array.UAllocatedArrayReading
 import org.usvm.collection.array.UInputArrayId
 import org.usvm.collection.array.UInputArrayReading
 import org.usvm.collection.array.USymbolicArrayIndex
-import org.usvm.collection.array.USymbolicArrayIndexBv32KeyInfo
 import org.usvm.collection.array.USymbolicArrayIndexKeyInfo
 import org.usvm.collection.array.USymbolicArrayInputToInputCopyAdapter
 import org.usvm.collection.array.length.UInputArrayLengthId
@@ -575,7 +574,7 @@ internal class CompositionTest {
             symbolicRef0 to mkSizeExpr(0),
             symbolicRef1 to mkSizeExpr(0),
             symbolicRef1 to mkSizeExpr(5),
-            USymbolicArrayIndexBv32KeyInfo
+            USymbolicArrayIndexKeyInfo()
         )
 
         val fromRegion1 = fromRegion0
@@ -585,7 +584,7 @@ internal class CompositionTest {
             symbolicRef1 to mkSizeExpr(0),
             symbolicRef2 to mkSizeExpr(0),
             symbolicRef2 to mkSizeExpr(5),
-            USymbolicArrayIndexBv32KeyInfo
+            USymbolicArrayIndexKeyInfo()
         )
 
         val fromRegion2 = fromRegion1

@@ -1,18 +1,15 @@
 package org.usvm.collection.array
 
-import io.ksmt.sort.KIntSort
+import io.ksmt.utils.cast
 import org.usvm.UBoolExpr
-import org.usvm.UBv32Sort
 import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.UTransformer
 import org.usvm.memory.USymbolicCollectionKeyInfo
-import org.usvm.memory.key.USizeExprBv32KeyInfo
 import org.usvm.memory.key.UHeapRefKeyInfo
 import org.usvm.memory.key.UHeapRefRegion
-import org.usvm.memory.key.USizeExprInt32KeyInfo
 import org.usvm.memory.key.USizeExprKeyInfo
 import org.usvm.memory.key.USizeRegion
 import org.usvm.regions.ProductRegion
@@ -26,8 +23,8 @@ typealias USymbolicArrayIndexRegion = ProductRegion<UHeapRefRegion, USizeRegion>
 /**
  * Provides information about keys of input arrays.
  */
-abstract class USymbolicArrayIndexKeyInfo<USizeSort : USort> : USymbolicCollectionKeyInfo<USymbolicArrayIndex<USizeSort>, USymbolicArrayIndexRegion> {
-    abstract val indexKeyInfo: USizeExprKeyInfo<USizeSort>
+class USymbolicArrayIndexKeyInfo<USizeSort : USort> private constructor(): USymbolicCollectionKeyInfo<USymbolicArrayIndex<USizeSort>, USymbolicArrayIndexRegion> {
+    private val indexKeyInfo: USizeExprKeyInfo<USizeSort> by lazy { USizeExprKeyInfo() }
 
     override fun mapKey(key: USymbolicArrayIndex<USizeSort>, transformer: UTransformer<*, *>?): USymbolicArrayIndex<USizeSort> {
         val ref = UHeapRefKeyInfo.mapKey(key.first, transformer)
@@ -77,12 +74,10 @@ abstract class USymbolicArrayIndexKeyInfo<USizeSort : USort> : USymbolicCollecti
         UHeapRefKeyInfo.bottomRegion(),
         indexKeyInfo.bottomRegion()
     )
-}
 
-object USymbolicArrayIndexBv32KeyInfo : USymbolicArrayIndexKeyInfo<UBv32Sort>() {
-    override val indexKeyInfo: USizeExprKeyInfo<UBv32Sort> = USizeExprBv32KeyInfo
-}
+    companion object {
+        private val arrayIndexKeyInfo: USymbolicArrayIndexKeyInfo<Nothing> by lazy { USymbolicArrayIndexKeyInfo() }
 
-object USymbolicArrayIndexInt32KeyInfo : USymbolicArrayIndexKeyInfo<KIntSort>() {
-    override val indexKeyInfo: USizeExprKeyInfo<KIntSort> = USizeExprInt32KeyInfo
+        operator fun <USizeSort : USort> invoke(): USymbolicArrayIndexKeyInfo<USizeSort> = arrayIndexKeyInfo.cast()
+    }
 }
