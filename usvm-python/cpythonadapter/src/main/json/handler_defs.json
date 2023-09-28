@@ -75,6 +75,11 @@
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
     },
     {
+        "c_name": "true_div_long",
+        "java_name": "handlerTrueDivLong",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
+    },
+    {
         "c_name": "symbolic_int_cast",
         "java_name": "handlerIntCast",
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
