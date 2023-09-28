@@ -15,7 +15,8 @@ annotation class Options(
     val stopOnCoverage: Int = 100,
     val timeout: Long = 20_000,
     val coverageZone: CoverageZone = CoverageZone.METHOD,
-    val solverType: SolverType = SolverType.YICES
+    val solverType: SolverType = SolverType.YICES,
+    val targetSearchDepth: UInt = 0u
 )
 
 @ParameterizedTest
@@ -39,7 +40,8 @@ class MachineOptionsArgumentsProvider : ArgumentsProvider, AnnotationConsumer<Us
                 stopOnCoverage = it.stopOnCoverage,
                 timeoutMs = it.timeout,
                 coverageZone = it.coverageZone,
-                solverType = it.solverType
+                solverType = it.solverType,
+                targetSearchDepth = it.targetSearchDepth
             )
         }
     }

@@ -31,15 +31,18 @@ class SampleMachine(
     private val applicationGraph = SampleApplicationGraph(program)
     private val typeSystem = SampleTypeSystem()
     private val components = SampleLanguageComponents(typeSystem, options.solverType)
-    private val ctx = UContext<USizeSort>(components)
-    private val solver = ctx.solver<SampleType, UContext<USizeSort>>()
+    private val ctx = UContext(components)
+    private val solver = ctx.solver<SampleType>()
 
     private val interpreter = SampleInterpreter(ctx, applicationGraph)
     private val resultModelConverter = ResultModelConverter(ctx)
 
     private val cfgStatistics = CfgStatisticsImpl(applicationGraph)
 
-    fun analyze(method: Method<*>, targets: List<SampleTarget> = emptyList()): Collection<ProgramExecutionResult> {
+    fun analyze(
+        method: Method<*>,
+        targets: List<SampleTarget> = emptyList()
+    ): Collection<ProgramExecutionResult> {
         val initialState = getInitialState(method, targets)
 
         val coverageStatistics: CoverageStatistics<Method<*>, Stmt, SampleState> = CoverageStatistics(setOf(method), applicationGraph)
@@ -92,7 +95,10 @@ class SampleMachine(
         return statesCollector.collectedStates.map { resultModelConverter.convert(it, method) }
     }
 
-    private fun getInitialState(method: Method<*>, targets: List<SampleTarget>): SampleState =
+    private fun getInitialState(
+        method: Method<*>,
+        targets: List<SampleTarget>
+    ): SampleState =
         SampleState(ctx, targets = targets).apply {
             addEntryMethodCall(applicationGraph, method)
             val model = solver.emptyModel()

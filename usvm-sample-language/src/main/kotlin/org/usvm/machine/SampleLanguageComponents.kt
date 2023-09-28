@@ -8,7 +8,6 @@ import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.USizeExprProvider
 import org.usvm.language.SampleType
-import org.usvm.model.buildTranslatorAndLazyDecoder
 import org.usvm.solver.USoftConstraintsProvider
 import org.usvm.solver.USolverBase
 import org.usvm.solver.UTypeSolver
@@ -19,14 +18,13 @@ class SampleLanguageComponents(
     private val solverType: SolverType
 ) : UComponents<SampleType, USizeSort> {
     override fun <Context : UContext<USizeSort>> mkSolver(ctx: Context): USolverBase<SampleType, Context> {
-        val (translator, decoder) = buildTranslatorAndLazyDecoder<SampleType, _>(ctx)
+        val (translator, decoder) = buildTranslatorAndLazyDecoder(ctx)
         val softConstraintsProvider = USoftConstraintsProvider<SampleType, _>(ctx)
 
-        val solver =
-            when (solverType) {
-                SolverType.YICES -> KYicesSolver(ctx)
-                SolverType.Z3 -> KZ3Solver(ctx)
-            }
+        val solver = when (solverType) {
+            SolverType.YICES -> KYicesSolver(ctx)
+            SolverType.Z3 -> KZ3Solver(ctx)
+        }
 
         val typeSolver = UTypeSolver(typeSystem)
         return USolverBase(ctx, solver, typeSolver, translator, decoder, softConstraintsProvider)

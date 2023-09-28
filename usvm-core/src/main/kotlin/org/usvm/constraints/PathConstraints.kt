@@ -22,8 +22,8 @@ import org.usvm.uctx
 /**
  * Mutable representation of path constraints.
  */
-open class UPathConstraints<Type, Context : UContext<*>> private constructor(
-    val ctx: Context,
+open class UPathConstraints<Type> private constructor(
+    val ctx: UContext<*>,
     logicalConstraints: PersistentSet<UBoolExpr> = persistentSetOf(),
     /**
      * Specially represented equalities and disequalities between objects, used in various part of constraints management.
@@ -52,7 +52,7 @@ open class UPathConstraints<Type, Context : UContext<*>> private constructor(
     var logicalConstraints: PersistentSet<UBoolExpr> = logicalConstraints
         private set
 
-    constructor(ctx: Context) : this(ctx, persistentSetOf())
+    constructor(ctx: UContext<*>) : this(ctx, persistentSetOf())
 
     open val isFalse: Boolean
         get() = equalityConstraints.isContradicting ||
@@ -129,7 +129,7 @@ open class UPathConstraints<Type, Context : UContext<*>> private constructor(
             }
         }
 
-    open fun clone(): UPathConstraints<Type, Context> {
+    open fun clone(): UPathConstraints<Type> {
         val clonedEqualityConstraints = equalityConstraints.clone()
         val clonedTypeConstraints = typeConstraints.clone(clonedEqualityConstraints)
         val clonedNumericConstraints = numericConstraints.clone()

@@ -16,14 +16,15 @@ import org.usvm.USizeSort
 import org.usvm.api.readField
 import org.usvm.api.typeStreamOf
 import org.usvm.api.writeField
+import org.usvm.collection.array.UInputArrayId
 import org.usvm.constraints.UPathConstraints
 import org.usvm.isFalse
 import org.usvm.isTrue
 import org.usvm.memory.UMemory
-import org.usvm.collection.array.UInputArrayId
+import org.usvm.model.ULazyModelDecoder
 import org.usvm.model.UModelBase
-import org.usvm.model.buildTranslatorAndLazyDecoder
 import org.usvm.solver.TypeSolverQuery
+import org.usvm.solver.UExprTranslator
 import org.usvm.solver.USatResult
 import org.usvm.solver.USoftConstraintsProvider
 import org.usvm.solver.USolverBase
@@ -61,7 +62,8 @@ class TypeSolverTest {
     private val typeSolver: UTypeSolver<TestType>
 
     init {
-        val (translator, decoder) = buildTranslatorAndLazyDecoder<TestType, USizeSort>(ctx)
+        val translator = UExprTranslator<TestType, USizeSort>(ctx)
+        val decoder = ULazyModelDecoder(translator)
         val softConstraintsProvider = USoftConstraintsProvider<TestType, _>(ctx)
 
         typeSolver = UTypeSolver(typeSystem)
@@ -72,7 +74,7 @@ class TypeSolverTest {
         every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
     }
 
-    private val pc = UPathConstraints<TestType, UContext<USizeSort>>(ctx)
+    private val pc = UPathConstraints<TestType>(ctx)
     private val memory = UMemory<TestType, Method>(ctx, pc.typeConstraints)
 
     @Test

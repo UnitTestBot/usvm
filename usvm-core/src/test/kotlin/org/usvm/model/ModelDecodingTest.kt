@@ -20,11 +20,12 @@ import org.usvm.api.readArrayIndex
 import org.usvm.api.readField
 import org.usvm.api.writeArrayIndex
 import org.usvm.api.writeField
+import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.constraints.UPathConstraints
 import org.usvm.memory.UMemory
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.memory.URegistersStack
-import org.usvm.collection.array.UArrayIndexLValue
+import org.usvm.solver.UExprTranslator
 import org.usvm.solver.USatResult
 import org.usvm.solver.USoftConstraintsProvider
 import org.usvm.solver.USolverBase
@@ -39,7 +40,7 @@ class ModelDecodingTest {
     private lateinit var ctx: UContext<USizeSort>
     private lateinit var solver: USolverBase<Type, UContext<*>>
 
-    private lateinit var pc: UPathConstraints<Type, UContext<*>>
+    private lateinit var pc: UPathConstraints<Type>
     private lateinit var stack: URegistersStack
     private lateinit var heap: UMemory<Type, Method>
     private lateinit var mocker: UIndexedMocker<Method>
@@ -52,7 +53,8 @@ class ModelDecodingTest {
         ctx = UContext(components)
         every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
         val softConstraintsProvider = USoftConstraintsProvider<Type, _>(ctx)
-        val (translator, decoder) = buildTranslatorAndLazyDecoder<Type, USizeSort>(ctx)
+        val translator = UExprTranslator<Type, USizeSort>(ctx)
+        val decoder = ULazyModelDecoder(translator)
         val typeSolver = UTypeSolver(SingleTypeSystem)
         solver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder, softConstraintsProvider)
 

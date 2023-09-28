@@ -20,11 +20,7 @@ import org.usvm.collection.set.ref.UInputRefSetWithInputElementsReading
 import org.usvm.regions.Region
 
 interface UTransformer<Type, USizeSort : USort> : KTransformer {
-    fun <Sort : USort> transform(expr: USymbol<Sort>): UExpr<Sort>
-
     fun <Sort : USort> transform(expr: URegisterReading<Sort>): UExpr<Sort>
-
-    fun <Sort : USort> transform(expr: UCollectionReading<*, *, *>): UExpr<Sort>
 
     fun <Field, Sort : USort> transform(expr: UInputFieldReading<Field, Sort>): UExpr<Sort>
 
@@ -59,8 +55,6 @@ interface UTransformer<Type, USizeSort : USort> : KTransformer {
     fun transform(expr: UInputRefSetWithAllocatedElementsReading<Type>): UBoolExpr
 
     fun transform(expr: UInputRefSetWithInputElementsReading<Type>): UBoolExpr
-
-    fun <Sort : USort> transform(expr: UMockSymbol<Sort>): UExpr<Sort>
 
     fun <Method, Sort : USort> transform(expr: UIndexedMethodReturnValue<Method, Sort>): UExpr<Sort>
 

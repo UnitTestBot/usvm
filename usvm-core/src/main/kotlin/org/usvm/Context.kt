@@ -70,9 +70,7 @@ open class UContext<USizeSort : USort>(
         return currentStateId++
     }
 
-    @Suppress("UNCHECKED_CAST")
-    fun <Type, Context : UContext<*>> solver(): USolverBase<Type, Context> =
-        this.solver as USolverBase<Type, Context>
+    fun <Type> solver(): USolverBase<Type, UContext<USizeSort>> = this.solver.uncheckedCast()
 
     @Suppress("UNCHECKED_CAST")
     fun <Type> typeSystem(): UTypeSystem<Type> =

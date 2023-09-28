@@ -74,7 +74,7 @@ class JcTestResolver(
         val model = state.models.first()
         val memory = state.memory
 
-        val ctx = state.pathConstraints.ctx
+        val ctx = state.ctx
 
         val initialScope = MemoryScope(ctx, model, model, method, classLoader)
         val afterScope = MemoryScope(ctx, model, memory, method, classLoader)

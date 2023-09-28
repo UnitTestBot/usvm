@@ -3,8 +3,8 @@ package org.usvm.model
 import io.ksmt.expr.KExpr
 import io.ksmt.solver.KModel
 import io.ksmt.sort.KUninterpretedSort
-import org.usvm.INITIAL_STATIC_ADDRESS
 import org.usvm.INITIAL_INPUT_ADDRESS
+import org.usvm.INITIAL_STATIC_ADDRESS
 import org.usvm.NULL_ADDRESS
 import org.usvm.UAddressSort
 import org.usvm.UConcreteHeapRef
@@ -20,18 +20,6 @@ interface UModelDecoder<Model> {
     fun decode(model: KModel): Model
 }
 
-/**
- * Initializes [UExprTranslator] and [UModelDecoder] and returns them. We can safely reuse them while [UContext] is
- * alive.
- */
-fun <Type, USizeSort : USort> buildTranslatorAndLazyDecoder(
-    ctx: UContext<USizeSort>,
-): Pair<UExprTranslator<Type, USizeSort>, ULazyModelDecoder<Type>> {
-    val translator = UExprTranslator<Type, USizeSort>(ctx)
-    val decoder = ULazyModelDecoder(translator)
-
-    return translator to decoder
-}
 
 typealias AddressesMapping = Map<UExpr<UAddressSort>, UConcreteHeapRef>
 
@@ -54,18 +42,18 @@ open class ULazyModelDecoder<Type>(
      * equivalence classes of addresses and work with their number in the future.
      */
     private fun buildMapping(model: KModel, nullRef: UConcreteHeapRef): AddressesMapping {
-        val interpreterdNullRef = model.eval(translatedNullRef, isComplete = true)
+        val interpretedNullRef = model.eval(translatedNullRef, isComplete = true)
 
         val result = mutableMapOf<KExpr<KUninterpretedSort>, UConcreteHeapRef>()
         // The null value has the NULL_ADDRESS
-        result[interpreterdNullRef] = nullRef
+        result[interpretedNullRef] = nullRef
 
         val universe = model.uninterpretedSortUniverse(ctx.addressSort) ?: return result
         // All the numbers are enumerated from the INITIAL_INPUT_ADDRESS to the Int.MIN_VALUE
         var counter = INITIAL_INPUT_ADDRESS
 
         for (interpretedAddress in universe) {
-            if (interpretedAddress == interpreterdNullRef) {
+            if (interpretedAddress == interpretedNullRef) {
                 continue
             }
 

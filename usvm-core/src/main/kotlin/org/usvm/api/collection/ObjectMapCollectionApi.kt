@@ -25,7 +25,7 @@ import org.usvm.withSizeSort
 object ObjectMapCollectionApi {
     fun <MapType, USizeSort : USort, Ctx: UContext<USizeSort>> UState<MapType, *, *, Ctx, *, *>.mkSymbolicObjectMap(
         mapType: MapType,
-    ): UHeapRef = with(pathConstraints.ctx) {
+    ): UHeapRef = with(ctx) {
         val ref = memory.allocConcrete(mapType)
         val length = UMapLengthLValue(ref, mapType, sizeSort)
         memory.write(length, mkSizeExpr(0), trueExpr)
@@ -40,9 +40,9 @@ object ObjectMapCollectionApi {
     fun <MapType, USizeSort : USort, Ctx: UContext<USizeSort>> UState<MapType, *, *, Ctx, *, *>.symbolicObjectMapSize(
         mapRef: UHeapRef,
         mapType: MapType,
-    ): UExpr<USizeSort> = memory.read(UMapLengthLValue(mapRef, mapType, pathConstraints.ctx.sizeSort))
+    ): UExpr<USizeSort> = memory.read(UMapLengthLValue(mapRef, mapType, ctx.sizeSort))
 
-    fun <MapType, State : UState<MapType, *, *, Ctx, *, State>, USizeSort : USort, Ctx: UContext<USizeSort>> StepScope<State, MapType, *>.ensureObjectMapSizeCorrect(
+    fun <MapType, State : UState<MapType, *, *, Ctx, *, State>, USizeSort : USort, Ctx: UContext<USizeSort>> StepScope<State, MapType, *, *>.ensureObjectMapSizeCorrect(
         mapRef: UHeapRef,
         mapType: MapType,
     ): Unit? {
@@ -52,8 +52,8 @@ object ObjectMapCollectionApi {
                 it
             },
             symbolicMapper = { symbolicMapRef ->
-                val length = calcOnState { 
-                    memory.read(UMapLengthLValue(symbolicMapRef, mapType, pathConstraints.ctx.sizeSort)) 
+                val length = calcOnState {
+                    memory.read(UMapLengthLValue(symbolicMapRef, mapType, ctx.sizeSort))
                 }
                 length.uctx.withSizeSort {
                     val boundConstraint = mkSizeGeExpr(length, mkSizeExpr(0))
@@ -85,7 +85,7 @@ object ObjectMapCollectionApi {
         value: UExpr<Sort>,
         mapType: MapType,
         sort: Sort,
-    ) = with(pathConstraints.ctx) {
+    ) = with(ctx) {
         val mapContainsLValue = URefSetEntryLValue(mapRef, key, mapType)
         val currentSize = symbolicObjectMapSize(mapRef, mapType)
 
@@ -103,7 +103,7 @@ object ObjectMapCollectionApi {
         mapRef: UHeapRef,
         key: UHeapRef,
         mapType: MapType,
-    ) = with(pathConstraints.ctx) {
+    ) = with(ctx) {
         val mapContainsLValue = URefSetEntryLValue(mapRef, key, mapType)
         val currentSize = symbolicObjectMapSize(mapRef, mapType)
 
@@ -121,7 +121,7 @@ object ObjectMapCollectionApi {
         srcRef: UHeapRef,
         mapType: MapType,
         sort: Sort,
-    ) = with(pathConstraints.ctx) {
+    ) = with(ctx) {
         val srcMapSize = symbolicObjectMapSize(srcRef, mapType)
         val dstMapSize = symbolicObjectMapSize(dstRef, mapType)
 

@@ -61,6 +61,7 @@ abstract class USymbolicArrayIndexKeyInfo<USizeSort : USort> : USymbolicCollecti
 
     override fun keyRangeRegion(from: USymbolicArrayIndex<USizeSort>, to: USymbolicArrayIndex<USizeSort>): USymbolicArrayIndexRegion {
         require(from.first == to.first)
+
         return ProductRegion(
             UHeapRefKeyInfo.keyToRegion(from.first),
             indexKeyInfo.keyRangeRegion(from.second, to.second)
