@@ -91,4 +91,19 @@ class FloatsTest : PythonTestRunnerForPrimitiveProgram("Floats") {
             )
         )
     }
+
+    @Test
+    fun testIntTrueDiv() {
+        check2WithConcreteRun(
+            constructFunction("int_true_div", listOf(typeSystem.pythonInt, typeSystem.pythonInt)),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, _, res -> res.repr == "None" },
+                { _, y, res -> y.repr == "0" && res.selfTypeName == "ZeroDivisionError" },
+                { _, _, res -> res.selfTypeName == "AssertionError" }
+            )
+        )
+    }
 }
