@@ -12,10 +12,11 @@ object BoolContents {
 }
 
 object FloatContents {
+    const val bound = 300
     val content = ContentOfType("float")
-    val isNan = ContentOfType("is_nan")
+    val isNan = ContentOfType("is_nan_value")  // int field; isNan <=> value > bound
     val infSign = ContentOfType("float_inf_sign")
-    val isInf = ContentOfType("is_inf")
+    val isInf = ContentOfType("is_inf_value")  // int field; isInf <=> value > bound
 }
 
 object ListIteratorContents {
