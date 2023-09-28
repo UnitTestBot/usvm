@@ -27,7 +27,10 @@ import org.usvm.collection.field.UFieldsRegionId
 import org.usvm.collection.array.UArrayEagerModelRegion
 import org.usvm.collection.array.length.UArrayLengthEagerModelRegion
 import org.usvm.collection.field.UFieldsEagerModelRegion
+import org.usvm.mkSizeExpr
 import org.usvm.sampleUValue
+import org.usvm.sizeExprKeyInfo
+import org.usvm.sizeSort
 import kotlin.test.assertSame
 
 class ModelCompositionTest {

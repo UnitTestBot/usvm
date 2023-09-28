@@ -12,6 +12,11 @@ import org.usvm.api.readArrayLength
 import org.usvm.api.writeArrayIndex
 import org.usvm.api.writeArrayLength
 import org.usvm.memory.mapWithStaticAsConcrete
+import org.usvm.mkSizeAddExpr
+import org.usvm.mkSizeExpr
+import org.usvm.mkSizeGeExpr
+import org.usvm.mkSizeSubExpr
+import org.usvm.sizeSort
 import org.usvm.uctx
 import org.usvm.withSizeSort
 

@@ -52,6 +52,8 @@ import org.usvm.collection.set.primitive.UInputSetReading
 import org.usvm.collection.set.ref.UAllocatedRefSetWithInputElementsReading
 import org.usvm.collection.set.ref.UInputRefSetWithAllocatedElementsReading
 import org.usvm.collection.set.ref.UInputRefSetWithInputElementsReading
+import org.usvm.mkSizeExpr
+import org.usvm.mkSizeLeExpr
 import org.usvm.uctx
 import org.usvm.regions.Region
 import org.usvm.withSizeSort

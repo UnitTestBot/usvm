@@ -17,6 +17,7 @@ import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.memory.USymbolicCollection
 import org.usvm.memory.USymbolicCollectionId
 import org.usvm.model.UMemory2DArray
+import org.usvm.sizeSort
 import org.usvm.solver.U1DUpdatesTranslator
 import org.usvm.solver.U2DUpdatesTranslator
 import org.usvm.solver.UCollectionDecoder

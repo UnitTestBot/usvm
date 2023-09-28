@@ -5,6 +5,7 @@ import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.UState
+import org.usvm.sizeSort
 import org.usvm.uctx
 
 // TODO: special mock api for variables

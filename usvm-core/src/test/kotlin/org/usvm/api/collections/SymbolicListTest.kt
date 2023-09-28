@@ -14,6 +14,10 @@ import org.usvm.api.collection.ListCollectionApi.symbolicListInsert
 import org.usvm.api.collection.ListCollectionApi.symbolicListRemove
 import org.usvm.api.collection.ListCollectionApi.symbolicListSet
 import org.usvm.api.collection.ListCollectionApi.symbolicListSize
+import org.usvm.mkSizeExpr
+import org.usvm.mkSizeGeExpr
+import org.usvm.mkSizeLeExpr
+import org.usvm.sizeSort
 import org.usvm.types.single.SingleTypeSystem
 import org.usvm.withSizeSort
 import kotlin.test.Test

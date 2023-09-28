@@ -13,6 +13,8 @@ import org.usvm.memory.USymbolicCollectionId
 import org.usvm.memory.USymbolicCollectionKeyInfo
 import org.usvm.memory.UUpdateNode
 import org.usvm.memory.UWritableMemory
+import org.usvm.mkSizeAddExpr
+import org.usvm.mkSizeSubExpr
 import org.usvm.uctx
 import org.usvm.regions.Region
 import org.usvm.withSizeSort

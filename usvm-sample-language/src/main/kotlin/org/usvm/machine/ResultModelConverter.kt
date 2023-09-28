@@ -27,6 +27,7 @@ import org.usvm.language.StructCreation
 import org.usvm.language.StructExpr
 import org.usvm.language.StructType
 import org.usvm.model.UModelBase
+import org.usvm.sizeSort
 
 class ResultModelConverter(
     private val ctx: UContext<USizeSort>,

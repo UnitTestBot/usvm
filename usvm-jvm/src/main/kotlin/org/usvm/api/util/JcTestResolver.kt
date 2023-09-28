@@ -53,6 +53,7 @@ import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.model.UModelBase
+import org.usvm.sizeSort
 import org.usvm.types.first
 import org.usvm.types.firstOrNull
 

@@ -21,6 +21,7 @@ import org.usvm.api.readArrayIndex
 import org.usvm.api.readField
 import org.usvm.api.writeArrayIndex
 import org.usvm.api.writeField
+import org.usvm.sizeSort
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull

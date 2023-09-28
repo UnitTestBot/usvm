@@ -7,6 +7,7 @@ import org.usvm.UConcreteHeapAddress
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
+import org.usvm.arrayIndexKeyInfo
 import org.usvm.memory.ULValue
 import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UMemoryRegionId
@@ -14,6 +15,7 @@ import org.usvm.memory.USymbolicCollection
 import org.usvm.memory.foldHeapRef2
 import org.usvm.memory.foldHeapRefWithStaticAsSymbolic
 import org.usvm.memory.mapWithStaticAsSymbolic
+import org.usvm.sizeExprKeyInfo
 import org.usvm.uctx
 import org.usvm.withSizeSort
 

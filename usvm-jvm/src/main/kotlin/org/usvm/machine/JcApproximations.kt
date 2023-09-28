@@ -32,6 +32,7 @@ import org.usvm.machine.interpreter.JcStepScope
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.newStmt
 import org.usvm.machine.state.skipMethodInvocationWithValue
+import org.usvm.sizeSort
 import org.usvm.uctx
 import org.usvm.util.allocHeapRef
 import org.usvm.util.write

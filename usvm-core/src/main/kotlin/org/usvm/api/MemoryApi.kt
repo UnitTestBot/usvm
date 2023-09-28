@@ -11,6 +11,9 @@ import org.usvm.memory.UWritableMemory
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
+import org.usvm.mkSizeAddExpr
+import org.usvm.mkSizeExpr
+import org.usvm.mkSizeSubExpr
 import org.usvm.types.UTypeStream
 import org.usvm.uctx
 import org.usvm.withSizeSort

@@ -110,6 +110,8 @@ import org.usvm.machine.state.addVirtualMethodCallStmt
 import org.usvm.machine.state.throwExceptionWithoutStackFrameDrop
 import org.usvm.memory.ULValue
 import org.usvm.memory.URegisterStackLValue
+import org.usvm.mkSizeExpr
+import org.usvm.sizeSort
 import org.usvm.util.allocHeapRef
 import org.usvm.util.enumValuesField
 import org.usvm.util.write

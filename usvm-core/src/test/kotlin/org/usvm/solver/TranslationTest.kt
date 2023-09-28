@@ -23,6 +23,7 @@ import org.usvm.USizeSort
 import org.usvm.api.allocateConcreteRef
 import org.usvm.api.readArrayIndex
 import org.usvm.api.writeArrayIndex
+import org.usvm.arrayIndexKeyInfo
 import org.usvm.collection.array.UAllocatedArrayId
 import org.usvm.collection.array.UInputArrayId
 import org.usvm.collection.array.USymbolicArrayAllocatedToAllocatedCopyAdapter
@@ -33,6 +34,9 @@ import org.usvm.collection.array.length.UInputArrayLengthId
 import org.usvm.collection.field.UInputFieldId
 import org.usvm.collection.map.ref.URefMapEntryLValue
 import org.usvm.memory.UMemory
+import org.usvm.mkSizeExpr
+import org.usvm.sizeExprKeyInfo
+import org.usvm.sizeSort
 import kotlin.test.assertEquals
 import kotlin.test.assertSame
 

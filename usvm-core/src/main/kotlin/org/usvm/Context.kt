@@ -79,26 +79,6 @@ open class UContext<USizeSort : USort>(
         this.typeSystem as UTypeSystem<Type>
 
     val addressSort: UAddressSort = mkUninterpretedSort("Address")
-
-    val sizeSort: USizeSort get() = sizeExprs.sizeSort
-    val sizeExprKeyInfo: USizeExprKeyInfo<USizeSort> get() = sizeExprs.sizeExprKeyInfo
-    val arrayIndexKeyInfo: USymbolicArrayIndexKeyInfo<USizeSort> get() = sizeExprs.arrayIndexKeyInfo
-
-    fun mkSizeExpr(size: Int): UExpr<USizeSort> =
-        sizeExprs.mkSizeExpr(size)
-    fun mkSizeSubExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UExpr<USizeSort> =
-        sizeExprs.mkSizeSubExpr(lhs, rhs)
-    fun mkSizeAddExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UExpr<USizeSort> =
-        sizeExprs.mkSizeAddExpr(lhs, rhs)
-    fun mkSizeGtExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UBoolExpr =
-        sizeExprs.mkSizeGtExpr(lhs, rhs)
-    fun mkSizeGeExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UBoolExpr =
-        sizeExprs.mkSizeGeExpr(lhs, rhs)
-    fun mkSizeLtExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UBoolExpr =
-        sizeExprs.mkSizeLtExpr(lhs, rhs)
-    fun mkSizeLeExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UBoolExpr =
-        sizeExprs.mkSizeLeExpr(lhs, rhs)
-
     val nullRef: UNullRef = UNullRef(this)
 
     fun mkNullRef(): USymbolicHeapRef {
@@ -413,6 +393,23 @@ open class UContext<USizeSort : USort>(
         }
 }
 
+val <USizeSort : USort> UContext<USizeSort>.sizeSort: USizeSort get() = sizeExprs.sizeSort
+val <USizeSort : USort> UContext<USizeSort>.arrayIndexKeyInfo: USymbolicArrayIndexKeyInfo<USizeSort> get() = sizeExprs.arrayIndexKeyInfo
+val <USizeSort : USort> UContext<USizeSort>.sizeExprKeyInfo: USizeExprKeyInfo<USizeSort> get() = sizeExprs.sizeExprKeyInfo
+fun <USizeSort : USort> UContext<USizeSort>.mkSizeExpr(size: Int): UExpr<USizeSort> =
+    sizeExprs.mkSizeExpr(size)
+fun <USizeSort : USort> UContext<USizeSort>.mkSizeSubExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UExpr<USizeSort> =
+    sizeExprs.mkSizeSubExpr(lhs, rhs)
+fun <USizeSort : USort> UContext<USizeSort>.mkSizeLeExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UBoolExpr =
+    sizeExprs.mkSizeLeExpr(lhs, rhs)
+fun <USizeSort : USort> UContext<USizeSort>.mkSizeAddExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UExpr<USizeSort> =
+    sizeExprs.mkSizeAddExpr(lhs, rhs)
+fun <USizeSort : USort> UContext<USizeSort>.mkSizeGtExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UBoolExpr =
+    sizeExprs.mkSizeGtExpr(lhs, rhs)
+fun <USizeSort : USort> UContext<USizeSort>.mkSizeGeExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UBoolExpr =
+    sizeExprs.mkSizeGeExpr(lhs, rhs)
+fun <USizeSort : USort> UContext<USizeSort>.mkSizeLtExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UBoolExpr =
+    sizeExprs.mkSizeLtExpr(lhs, rhs)
 
 fun <T : KSort> T.sampleUValue(): KExpr<T> =
     accept(uctx.uValueSampler).asExpr(this)

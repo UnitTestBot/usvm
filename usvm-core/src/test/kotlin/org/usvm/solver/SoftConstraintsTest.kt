@@ -16,6 +16,7 @@ import org.usvm.constraints.UPathConstraints
 import org.usvm.collection.array.length.UInputArrayLengthId
 import org.usvm.model.ULazyModelDecoder
 import org.usvm.model.buildTranslatorAndLazyDecoder
+import org.usvm.sizeSort
 import org.usvm.types.single.SingleTypeSystem
 import kotlin.test.assertSame
 

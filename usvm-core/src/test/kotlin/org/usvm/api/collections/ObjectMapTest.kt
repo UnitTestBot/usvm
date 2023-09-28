@@ -14,7 +14,11 @@ import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapMergeInto
 import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapPut
 import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapRemove
 import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapSize
+import org.usvm.mkSizeExpr
+import org.usvm.mkSizeGtExpr
+import org.usvm.mkSizeLtExpr
 import org.usvm.model.UModelBase
+import org.usvm.sizeSort
 import org.usvm.solver.USatResult
 import org.usvm.types.single.SingleTypeSystem
 import org.usvm.withSizeSort

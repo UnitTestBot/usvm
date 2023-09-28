@@ -7,6 +7,7 @@ import org.usvm.UComposer
 import org.usvm.UConcreteHeapAddress
 import org.usvm.UExpr
 import org.usvm.USort
+import org.usvm.arrayIndexKeyInfo
 import org.usvm.compose
 import org.usvm.memory.UPinpointUpdateNode
 import org.usvm.memory.USymbolicCollection
@@ -18,6 +19,7 @@ import org.usvm.memory.key.USizeRegion
 import org.usvm.regions.RegionTree
 import org.usvm.regions.emptyRegionTree
 import org.usvm.sampleUValue
+import org.usvm.sizeExprKeyInfo
 import org.usvm.uctx
 import org.usvm.withSizeSort
 

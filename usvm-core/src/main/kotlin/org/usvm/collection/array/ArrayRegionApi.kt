@@ -7,6 +7,7 @@ import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.memory.UWritableMemory
+import org.usvm.mkSizeExpr
 import org.usvm.uctx
 import org.usvm.withSizeSort
 

@@ -16,8 +16,10 @@ import org.usvm.UHeapRef
 import org.usvm.USizeSort
 import org.usvm.collection.array.UAllocatedArrayId
 import org.usvm.collection.array.UInputArrayId
+import org.usvm.mkSizeExpr
 import org.usvm.regions.SetRegion
 import org.usvm.regions.emptyRegionTree
+import org.usvm.sizeSort
 import kotlin.random.Random
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue

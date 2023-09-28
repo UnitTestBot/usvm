@@ -16,7 +16,9 @@ import org.usvm.api.readArrayIndex
 import org.usvm.api.readArrayLength
 import org.usvm.constraints.UEqualityConstraints
 import org.usvm.constraints.UTypeConstraints
+import org.usvm.mkSizeExpr
 import org.usvm.sampleUValue
+import org.usvm.sizeSort
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

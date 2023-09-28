@@ -14,6 +14,7 @@ import org.usvm.memory.URangedUpdateNode
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.memory.USymbolicCollection
 import org.usvm.model.UMemory1DArray
+import org.usvm.sizeSort
 import org.usvm.solver.U1DUpdatesTranslator
 import org.usvm.solver.UCollectionDecoder
 import org.usvm.solver.UExprTranslator
