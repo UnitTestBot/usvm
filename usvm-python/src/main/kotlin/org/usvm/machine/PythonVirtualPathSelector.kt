@@ -107,13 +107,13 @@ class PythonVirtualPathSelector(
         val zeroCoin = random.nextDouble()
         val firstCoin = random.nextDouble()
         val secondCoin = random.nextDouble()
-        if (!basePathSelector.isEmpty() && (zeroCoin < 0.9 || unservedDelayedForks.isEmpty() && pathSelectorForStatesWithDelayedForks.isEmpty())) {
+        if (!basePathSelector.isEmpty() && (zeroCoin < 0.6 || (unservedDelayedForks.isEmpty() && pathSelectorForStatesWithDelayedForks.isEmpty() && servedDelayedForks.isEmpty()))) {
             val result = basePathSelector.peek()
             result.meta.extractedFrom = basePathSelector
             peekCache = result
             return result
 
-        } else if (unservedDelayedForks.isNotEmpty() && (firstCoin < 0.7 || pathSelectorForStatesWithDelayedForks.isEmpty())) {
+        } else if (unservedDelayedForks.isNotEmpty() && (firstCoin < 0.9 || pathSelectorForStatesWithDelayedForks.isEmpty() && servedDelayedForks.isEmpty())) {
             logger.debug("Trying to make delayed fork")
             val newState = generateStateWithConcretizedTypeFromDelayedFork(unservedDelayedForks)
             newState?.let { add(listOf(it)) }
