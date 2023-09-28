@@ -12,7 +12,8 @@ import org.usvm.machine.utils.substituteModel
 fun virtualNbBoolKt(context: ConcolicRunContext, on: VirtualPythonObject): Boolean {
     context.curOperation ?: throw UnregisteredVirtualOperation
     val interpretedArg = interpretSymbolicPythonObject(context.curOperation!!.args.first(), context.modelHolder)
-    require(context.curOperation?.method == NbBoolMethod && interpretedArg == on.interpretedObj)
+    if(context.curOperation?.method != NbBoolMethod || interpretedArg != on.interpretedObj)
+        throw UnregisteredVirtualOperation  // path diversion
 
     val oldModel = context.modelHolder.model
     val (interpretedObj, _) = internalVirtualCallKt(context) { mockSymbol ->
