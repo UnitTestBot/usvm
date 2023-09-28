@@ -24,7 +24,6 @@ class PythonMachine<PythonObjectRepresentation>(
     private val printErrorMsg: Boolean = false
 ): UMachine<PythonExecutionState>() {
     private val ctx = UPythonContext(typeSystem)
-    private val solver = ctx.solver<PythonType, UPythonContext>()
     val statistics = PythonMachineStatistics()
 
     private fun getInterpreter(
@@ -64,7 +63,7 @@ class PythonMachine<PythonObjectRepresentation>(
             constructInputObject(index, type, ctx, memory, pathConstraints, typeSystem)
         }
         val preAllocatedObjects = PreallocatedObjects.initialize(ctx, memory, pathConstraints, typeSystem)
-        val solverRes = solver.check(pathConstraints)
+        val solverRes = ctx.solver<PythonType, UPythonContext>().check(pathConstraints)
         if (solverRes !is USatResult)
             error("Failed to construct initial model")
         return PythonExecutionState(
@@ -127,10 +126,11 @@ class PythonMachine<PythonObjectRepresentation>(
         iterationCounter.iterations
     }.also {
         ConcretePythonInterpreter.restart()
+        ctx.restartSolver()
     }
 
     override fun close() {
-        solver.close()
+        ctx.closeSolver()
         ctx.close()
     }
 

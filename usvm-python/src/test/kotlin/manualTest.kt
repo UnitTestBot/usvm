@@ -21,8 +21,8 @@ import org.utbot.python.newtyping.pythonTypeRepresentation
 import java.io.File
 
 fun main() {
-    // val config = buildProjectRunConfig()
-    val config = buildSampleRunConfig()
+    val config = buildProjectRunConfig()
+    // val config = buildSampleRunConfig()
     analyze(config)
     // checkConcolicAndConcrete(config)
 }
@@ -134,7 +134,7 @@ private fun analyze(runConfig: RunConfig) {
                 val iterations = activeMachine.analyze(
                     f,
                     results,
-                    maxIterations = 70,
+                    maxIterations = 50,
                     allowPathDiversion = true,
                     maxInstructions = 30_000,
                     timeoutPerRunMs = 5_000,
