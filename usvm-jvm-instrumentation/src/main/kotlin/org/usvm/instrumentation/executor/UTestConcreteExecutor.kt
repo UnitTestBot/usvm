@@ -61,6 +61,7 @@ class UTestConcreteExecutor(
         return try {
             instrumentationProcessRunner.executeUTestSync(uTest, timeout)
         } catch (e: TimeoutException) {
+            instrumentationProcessRunner.destroy()
             val descriptor = UTestExceptionDescriptor(
                 type = jcClasspath.findClass<Exception>().toType(),
                 message = e.message ?: "timeout",
@@ -69,6 +70,7 @@ class UTestConcreteExecutor(
             )
             UTestExecutionTimedOutResult(descriptor)
         } catch (e: RdFault) {
+            instrumentationProcessRunner.destroy()
             val descriptor = UTestExceptionDescriptor(
                 type = jcClasspath.findClass<Exception>().toType(),
                 message = e.reasonAsText,

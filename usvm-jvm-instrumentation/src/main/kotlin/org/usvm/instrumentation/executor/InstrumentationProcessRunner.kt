@@ -75,7 +75,7 @@ class InstrumentationProcessRunner(
 
     suspend fun executeUTestAsync(uTest: UTest): UTestExecutionResult = rdProcessRunner.callUTestAsync(uTest)
 
-    suspend fun destroy() = rdProcessRunner.destroy()
+    fun destroy() = rdProcessRunner.destroy()
 
 
 }
