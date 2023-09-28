@@ -6,7 +6,9 @@ import io.ksmt.sort.KIntSort
 import org.usvm.collection.array.USymbolicArrayIndexKeyInfo
 import org.usvm.memory.key.USizeExprKeyInfo
 
-// TODO docs
+/**
+ * Provides operations with a configurable size sort.
+ */
 interface USizeExprProvider<USizeSort : USort> {
     val ctx: UContext<*>
     

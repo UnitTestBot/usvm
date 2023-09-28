@@ -68,7 +68,7 @@ object ObjectMapCollectionApi {
         return Unit
     }
 
-    fun <MapType, Sort : USort, > UState<MapType, *, *, *, *, *>.symbolicObjectMapGet(
+    fun <MapType, Sort : USort> UState<MapType, *, *, *, *, *>.symbolicObjectMapGet(
         mapRef: UHeapRef,
         key: UHeapRef,
         mapType: MapType,

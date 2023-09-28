@@ -5,7 +5,6 @@ import kotlinx.collections.immutable.persistentSetOf
 import org.usvm.UAndExpr
 import org.usvm.UBoolExpr
 import org.usvm.UBv32Sort
-import org.usvm.UBvSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UEqExpr

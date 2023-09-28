@@ -371,10 +371,10 @@ internal class CompositionTest {
         val update0 = assertIs<UPinpointUpdateNode<USymbolicArrayIndex<USizeSort>, USizeSort>>(updates[0])
         val update1 = assertIs<UPinpointUpdateNode<USymbolicArrayIndex<USizeSort>, USizeSort>>(updates[1])
 
-        assertEquals(update0.key, USymbolicArrayIndex<USizeSort>(fstAddress, fstIndex))
+        assertEquals(update0.key, USymbolicArrayIndex(fstAddress, fstIndex))
         assertEquals(update0.value, 1.toBv())
 
-        assertEquals(update1.key, USymbolicArrayIndex<USizeSort>(sndAddress, sndIndex))
+        assertEquals(update1.key, USymbolicArrayIndex(sndAddress, sndIndex))
         assertEquals(update1.value, 2.toBv())
     }
 
