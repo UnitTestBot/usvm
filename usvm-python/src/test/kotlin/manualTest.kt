@@ -30,48 +30,12 @@ fun main() {
 private fun buildSampleRunConfig(): RunConfig {
     val (program, typeSystem) = constructPrimitiveProgram(
         """
-            def f(x: float, y: int):
-                plus_inf = float('inf')
-                assert x < plus_inf
-                minus_inf = float('-inf')
-                assert x > minus_inf
-                assert plus_inf * minus_inf < 0
-                plus_inf /= x * x
-                assert plus_inf == float('inf')
-                if x < 0:
-                    assert (plus_inf * x < 0)
-                    assert (x * plus_inf < 0)
-                    assert (plus_inf / x < 0)
-                    assert (x / plus_inf == 0)
-                    assert (plus_inf + x == plus_inf)
-                    assert (x + plus_inf == plus_inf)
-                    assert (plus_inf - x == plus_inf)
-                    assert (x - plus_inf == minus_inf)
-                    assert (minus_inf * x > 0)
-                    assert (x * minus_inf > 0)
-                    assert (minus_inf / x > 0)
-                    assert (x / minus_inf == 0)
-                    assert (minus_inf + x == minus_inf)
-                    assert (x + minus_inf == minus_inf)
-                    assert (minus_inf - x == minus_inf)
-                    assert (x - minus_inf == plus_inf)
-                    assert (plus_inf - plus_inf != plus_inf - plus_inf)
-                    return 1
-                elif x > 0:
-                    assert plus_inf * x > 0
-                    assert x * plus_inf > 0
-                    assert plus_inf / x > 0
-                    assert x / plus_inf == 0
-                    assert minus_inf * x < 0
-                    assert x * minus_inf < 0
-                    assert minus_inf / x < 0
-                    assert x / minus_inf == 0
-                    return 2
-                return "Unreachable"
+            def f(x: int, y: int):
+                assert x / y == 10.5
         """.trimIndent()
     )
     val function = PythonUnpinnedCallable.constructCallableFromName(
-        listOf(typeSystem.pythonFloat),
+        listOf(typeSystem.pythonInt, typeSystem.pythonInt),
         "f"
     )
     val functions = listOf(function)
