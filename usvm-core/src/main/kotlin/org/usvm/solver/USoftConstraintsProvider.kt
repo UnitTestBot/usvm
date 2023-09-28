@@ -52,9 +52,8 @@ import org.usvm.collection.set.ref.UInputRefSetWithAllocatedElementsReading
 import org.usvm.collection.set.ref.UInputRefSetWithInputElementsReading
 import org.usvm.mkSizeExpr
 import org.usvm.mkSizeLeExpr
-import org.usvm.uctx
 import org.usvm.regions.Region
-import org.usvm.withSizeSort
+import org.usvm.uctx
 
 class USoftConstraintsProvider<Type, USizeSort : USort>(
     override val ctx: UContext<USizeSort>
@@ -120,7 +119,7 @@ class USoftConstraintsProvider<Type, USizeSort : USort>(
     override fun transform(
         expr: UInputArrayLengthReading<Type, USizeSort>,
     ): UExpr<USizeSort> = computeSideEffect(expr) {
-        expr.uctx.withSizeSort {
+        with(ctx) {
             val addressIsNull = provide(expr.address)
             val arraySize = mkSizeLeExpr(expr, mkSizeExpr(PREFERRED_MAX_ARRAY_SIZE))
 
@@ -151,7 +150,7 @@ class USoftConstraintsProvider<Type, USizeSort : USort>(
     override fun transform(
         expr: UInputMapLengthReading<Type, USizeSort>
     ): UExpr<USizeSort> = computeSideEffect(expr) {
-        expr.uctx.withSizeSort {
+        with(ctx) {
             val addressConstraints = provide(expr.address)
             val mapLength = mkSizeLeExpr(expr, mkSizeExpr(PREFERRED_MAX_ARRAY_SIZE))
 

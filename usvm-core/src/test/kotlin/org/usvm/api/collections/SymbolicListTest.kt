@@ -19,7 +19,6 @@ import org.usvm.mkSizeGeExpr
 import org.usvm.mkSizeLeExpr
 import org.usvm.sizeSort
 import org.usvm.types.single.SingleTypeSystem
-import org.usvm.withSizeSort
 import kotlin.test.Test
 import kotlin.test.assertNotNull
 
@@ -148,7 +147,7 @@ class SymbolicListTest : SymbolicCollectionTestBase() {
         checkWithSolver {
             values.zip(listValues) { expectedValue, actualValue ->
                 assertImpossible {
-                    withSizeSort {
+                    with(ctx) {
                         mkAnd(
                             inputListSizeAssumption(initialSize),
                             actualValue neq expectedValue

@@ -13,7 +13,6 @@ import org.usvm.UHeapRef
 import org.usvm.UNullRef
 import org.usvm.UTransformer
 import org.usvm.asTypedTransformer
-import org.usvm.withSizeSort
 import org.usvm.collection.set.USymbolicSetElement
 
 class UAllocatedRefSetWithInputElementsReading<SetType> internal constructor(

@@ -20,7 +20,6 @@ import org.usvm.mkSizeGeExpr
 import org.usvm.mkSizeSubExpr
 import org.usvm.sizeSort
 import org.usvm.uctx
-import org.usvm.withSizeSort
 
 object ObjectMapCollectionApi {
     fun <MapType, USizeSort : USort, Ctx: UContext<USizeSort>> UState<MapType, *, *, Ctx, *, *>.mkSymbolicObjectMap(
@@ -55,11 +54,14 @@ object ObjectMapCollectionApi {
                 val length = calcOnState {
                     memory.read(UMapLengthLValue(symbolicMapRef, mapType, ctx.sizeSort))
                 }
-                length.uctx.withSizeSort {
-                    val boundConstraint = mkSizeGeExpr(length, mkSizeExpr(0))
-                    // Map size must be correct regardless of guard
-                    assert(boundConstraint) ?: return null
-                }
+                calcOnState {
+                    with(ctx) {
+                        val boundConstraint = mkSizeGeExpr(length, mkSizeExpr(0))
+                        // Map size must be correct regardless of guard
+                        assert(boundConstraint)
+                    }
+                } ?: return null
+
                 symbolicMapRef
             }
         )

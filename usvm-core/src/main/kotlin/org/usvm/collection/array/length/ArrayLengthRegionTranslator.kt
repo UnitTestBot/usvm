@@ -7,6 +7,7 @@ import io.ksmt.sort.KArraySort
 import io.ksmt.utils.mkConst
 import org.usvm.UAddressSort
 import org.usvm.UConcreteHeapRef
+import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
@@ -20,13 +21,12 @@ import org.usvm.solver.UCollectionDecoder
 import org.usvm.solver.UExprTranslator
 import org.usvm.solver.URegionDecoder
 import org.usvm.solver.URegionTranslator
-import org.usvm.uctx
-import org.usvm.withSizeSort
 import java.util.IdentityHashMap
 
 class UArrayLengthRegionDecoder<ArrayType, USizeSort : USort>(
     private val regionId: UArrayLengthsRegionId<ArrayType, USizeSort>,
-    private val exprTranslator: UExprTranslator<*, *>
+    private val ctx: UContext<USizeSort>,
+    private val exprTranslator: UExprTranslator<*, *>,
 ) : URegionDecoder<UArrayLengthLValue<ArrayType, USizeSort>, USizeSort> {
 
     private var inputArrayLengthTranslator: UInputArrayLengthRegionTranslator<ArrayType, USizeSort>? = null
@@ -35,7 +35,7 @@ class UArrayLengthRegionDecoder<ArrayType, USizeSort : USort>(
         collectionId: UInputArrayLengthId<ArrayType, USizeSort>
     ): URegionTranslator<UInputArrayLengthId<ArrayType, USizeSort>, UHeapRef, USizeSort> {
         if (inputArrayLengthTranslator == null) {
-            inputArrayLengthTranslator = UInputArrayLengthRegionTranslator(collectionId, exprTranslator)
+            inputArrayLengthTranslator = UInputArrayLengthRegionTranslator(collectionId, ctx, exprTranslator)
         }
         return inputArrayLengthTranslator!!
     }
@@ -48,10 +48,10 @@ class UArrayLengthRegionDecoder<ArrayType, USizeSort : USort>(
 
 private class UInputArrayLengthRegionTranslator<ArrayType, USizeSort : USort>(
     private val collectionId: UInputArrayLengthId<ArrayType, USizeSort>,
-    exprTranslator: UExprTranslator<*, *>
-) : URegionTranslator<UInputArrayLengthId<ArrayType, USizeSort>, UHeapRef, USizeSort>,
-    UCollectionDecoder<UHeapRef, USizeSort> {
-    private val initialValue = collectionId.sort.uctx.withSizeSort<USizeSort, _> {
+    ctx: UContext<USizeSort>,
+    exprTranslator: UExprTranslator<*, *>,
+) : URegionTranslator<UInputArrayLengthId<ArrayType, USizeSort>, UHeapRef, USizeSort>, UCollectionDecoder<UHeapRef, USizeSort> {
+    private val initialValue = with(ctx) {
         mkArraySort(addressSort, sizeSort).mkConst(collectionId.toString())
     }
 

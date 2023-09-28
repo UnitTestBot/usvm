@@ -17,8 +17,6 @@ import org.usvm.mkSizeExpr
 import org.usvm.mkSizeGeExpr
 import org.usvm.mkSizeSubExpr
 import org.usvm.sizeSort
-import org.usvm.uctx
-import org.usvm.withSizeSort
 
 object ListCollectionApi {
     fun <ListType, USizeSort : USort, Ctx: UContext<USizeSort>> UState<ListType, *, *, Ctx, *, *>.mkSymbolicList(
@@ -49,11 +47,14 @@ object ListCollectionApi {
             },
             symbolicMapper = { symbolicListRef ->
                 val length = calcOnState { memory.readArrayLength(symbolicListRef, listType, ctx.sizeSort) }
-                length.uctx.withSizeSort {
-                    val boundConstraint = mkSizeGeExpr(length, mkSizeExpr(0))
-                    // List size must be correct regardless of guard
-                    assert(boundConstraint) ?: return null
-                }
+                calcOnState {
+                    with(ctx) {
+                        val boundConstraint = mkSizeGeExpr(length, mkSizeExpr(0))
+                        // List size must be correct regardless of guard
+                        assert(boundConstraint)
+                    }
+                } ?: return null
+
                 symbolicListRef
             }
         )

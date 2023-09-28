@@ -13,7 +13,6 @@ import org.usvm.UNullRef
 import org.usvm.USort
 import org.usvm.UTransformer
 import org.usvm.asTypedTransformer
-import org.usvm.withSizeSort
 import org.usvm.collection.map.USymbolicMapKey
 
 class UAllocatedRefMapWithInputKeysReading<MapType, Sort : USort> internal constructor(

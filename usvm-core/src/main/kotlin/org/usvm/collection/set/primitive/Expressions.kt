@@ -14,7 +14,6 @@ import org.usvm.UNullRef
 import org.usvm.USort
 import org.usvm.UTransformer
 import org.usvm.asTypedTransformer
-import org.usvm.withSizeSort
 import org.usvm.collection.set.USymbolicSetElement
 import org.usvm.regions.Region
 

@@ -58,11 +58,10 @@ import org.usvm.machine.interpreter.JcStepScope
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.newStmt
 import org.usvm.machine.state.skipMethodInvocationWithValue
+import org.usvm.sizeSort
 import org.usvm.types.first
 import org.usvm.types.single
 import org.usvm.types.singleOrNull
-import org.usvm.sizeSort
-import org.usvm.uctx
 import org.usvm.util.allocHeapRef
 import org.usvm.util.write
 import kotlin.reflect.KFunction
@@ -70,7 +69,6 @@ import kotlin.reflect.KFunction0
 import kotlin.reflect.KFunction1
 import kotlin.reflect.KFunction2
 import kotlin.reflect.jvm.javaMethod
-import org.usvm.withSizeSort
 
 internal typealias USizeSort = UBv32Sort
 
@@ -293,7 +291,7 @@ class JcMethodApproximationResolver(
         if (method.name == "arraycopy") {
             // Object src, int srcPos, Object dest, int destPos, int length
             val (srcRef, srcPos, dstRef, dstPos, length) = arguments
-            with(srcRef.uctx.withSizeSort<USizeSort>()) {
+            with(ctx) {
                 exprResolver.resolveArrayCopy(
                     methodCall = methodCall,
                     srcRef = srcRef.asExpr(addressSort),

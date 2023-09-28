@@ -51,7 +51,7 @@ abstract class USymbolicArrayCopyAdapter<SrcKey, DstKey, USizeSort : USort>(
         idx: UExpr<USizeSort>,
         dstFromIdx: UExpr<USizeSort>,
         srcFromIdx: UExpr<USizeSort>
-    ): UExpr<USizeSort> = ctx.withSizeSort {
+    ): UExpr<USizeSort> = with(ctx) {
         mkSizeAddExpr(mkSizeSubExpr(idx, dstFromIdx), srcFromIdx)
     }
 
@@ -246,11 +246,11 @@ class USymbolicArrayInputToInputCopyAdapter<USizeSort : USort>(
         guard: UBoolExpr,
         srcKey: USymbolicArrayIndex<USizeSort>,
         composer: UComposer<*, *>
-    ) = with(ctx) {
+    ) {
         check(dstCollectionId is USymbolicArrayId<*, *, *, *>) { "Unexpected collection: $dstCollectionId" }
         check(srcCollectionId is USymbolicArrayId<*, *, *, *>) { "Unexpected collection: $srcCollectionId" }
 
-        memory.memcpy(
+        return memory.memcpy(
             srcRef = composer.compose(srcFrom.first),
             dstRef = composer.compose(dstFrom.first),
             type = dstCollectionId.arrayType,

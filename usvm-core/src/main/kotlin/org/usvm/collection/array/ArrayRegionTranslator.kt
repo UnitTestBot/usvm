@@ -9,6 +9,7 @@ import io.ksmt.utils.mkConst
 import org.usvm.UAddressSort
 import org.usvm.UConcreteHeapAddress
 import org.usvm.UConcreteHeapRef
+import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
@@ -24,13 +25,12 @@ import org.usvm.solver.UCollectionDecoder
 import org.usvm.solver.UExprTranslator
 import org.usvm.solver.URegionDecoder
 import org.usvm.solver.URegionTranslator
-import org.usvm.uctx
-import org.usvm.withSizeSort
 import java.util.IdentityHashMap
 
 class UArrayRegionDecoder<ArrayType, Sort : USort, USizeSort : USort>(
     private val regionId: UArrayRegionId<ArrayType, Sort, USizeSort>,
-    private val exprTranslator: UExprTranslator<*, *>
+    private val ctx: UContext<USizeSort>,
+    private val exprTranslator: UExprTranslator<*, *>,
 ) : URegionDecoder<UArrayIndexLValue<ArrayType, Sort, USizeSort>, Sort> {
 
     private val allocatedRegions =
@@ -42,14 +42,14 @@ class UArrayRegionDecoder<ArrayType, Sort : USort, USizeSort : USort>(
         collectionId: UAllocatedArrayId<ArrayType, Sort, USizeSort>
     ): URegionTranslator<UAllocatedArrayId<ArrayType, Sort, USizeSort>, UExpr<USizeSort>, Sort> =
         allocatedRegions.getOrPut(collectionId.address) {
-            UAllocatedArrayRegionTranslator(collectionId, exprTranslator)
+            UAllocatedArrayRegionTranslator(collectionId, ctx, exprTranslator)
         }
 
     fun inputArrayRegionTranslator(
         collectionId: UInputArrayId<ArrayType, Sort, USizeSort>
     ): URegionTranslator<UInputArrayId<ArrayType, Sort, USizeSort>, USymbolicArrayIndex<USizeSort>, Sort> {
         if (inputRegionTranslator == null) {
-            inputRegionTranslator = UInputArrayRegionTranslator(collectionId, exprTranslator)
+            inputRegionTranslator = UInputArrayRegionTranslator(collectionId, ctx, exprTranslator)
         }
         return inputRegionTranslator!!
     }
@@ -62,9 +62,10 @@ class UArrayRegionDecoder<ArrayType, Sort : USort, USizeSort : USort>(
 
 private class UAllocatedArrayRegionTranslator<ArrayType, Sort : USort, USizeSort : USort>(
     private val collectionId: UAllocatedArrayId<ArrayType, Sort, USizeSort>,
+    ctx: UContext<USizeSort>,
     exprTranslator: UExprTranslator<*, *>
 ) : URegionTranslator<UAllocatedArrayId<ArrayType, Sort, USizeSort>, UExpr<USizeSort>, Sort> {
-    private val initialValue = collectionId.sort.uctx.withSizeSort<USizeSort, _> {
+    private val initialValue = with(ctx) {
         val sort = mkArraySort(sizeSort, collectionId.sort)
         val translatedDefaultValue = exprTranslator.translate(collectionId.defaultValue)
         mkArrayConst(sort, translatedDefaultValue)
@@ -84,10 +85,11 @@ private class UAllocatedArrayRegionTranslator<ArrayType, Sort : USort, USizeSort
 
 private class UInputArrayRegionTranslator<ArrayType, Sort : USort, USizeSort : USort>(
     private val collectionId: UInputArrayId<ArrayType, Sort, USizeSort>,
-    exprTranslator: UExprTranslator<*, *>
+    ctx: UContext<USizeSort>,
+    exprTranslator: UExprTranslator<*, *>,
 ) : URegionTranslator<UInputArrayId<ArrayType, Sort, USizeSort>, USymbolicArrayIndex<USizeSort>, Sort>,
     UCollectionDecoder<USymbolicArrayIndex<USizeSort>, Sort> {
-    private val initialValue = collectionId.sort.uctx.withSizeSort<USizeSort, _> {
+    private val initialValue = with(ctx) {
         mkArraySort(addressSort, sizeSort, collectionId.sort).mkConst(collectionId.toString())
     }
 

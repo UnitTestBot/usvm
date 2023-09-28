@@ -21,7 +21,6 @@ import org.usvm.model.UModelBase
 import org.usvm.sizeSort
 import org.usvm.solver.USatResult
 import org.usvm.types.single.SingleTypeSystem
-import org.usvm.withSizeSort
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -147,7 +146,7 @@ class ObjectMapTest : SymbolicCollectionTestBase() {
             assertPossible { size eq upperBound }
             assertPossible { size eq lowerBound }
             assertImpossible {
-                withSizeSort {
+                with(ctx) {
                     mkSizeLtExpr(size, lowerBound) or mkSizeGtExpr(size, upperBound)
                 }
             }
