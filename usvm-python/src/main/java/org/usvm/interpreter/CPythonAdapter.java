@@ -242,6 +242,12 @@ public class CPythonAdapter {
         return methodWrapper(context, new MethodParameters("pow_long", Arrays.asList(left, right)), () -> handlerPOWLongKt(context, left.obj, right.obj));
     }
 
+    public static SymbolForCPython handlerTrueDivLong(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
+        if (left.obj == null || right.obj == null)
+            return null;
+        return methodWrapper(context, new MethodParameters("true_div_long", Arrays.asList(left, right)), () -> handlerTrueDivLongKt(context, left.obj, right.obj));
+    }
+
     public static SymbolForCPython handlerIntCast(ConcolicRunContext context, SymbolForCPython obj) {
         if (obj.obj == null)
             return null;

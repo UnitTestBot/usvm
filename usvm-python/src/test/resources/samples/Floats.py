@@ -79,3 +79,7 @@ def infinity_ops(x: float):
         assert x / minus_inf == 0
         return 2
     return "Unreachable"
+
+
+def int_true_div(x: int, y: int):
+    assert x / y == 10.5
