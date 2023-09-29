@@ -156,7 +156,7 @@ private fun <T : UState<Type, *, *, Context, *, T>, Type, Context : UContext<*>>
     } else {
         newConstraintToOriginalState
     }
-    val solver = newConstraintToForkedState.uctx.solver<Type>()
+    val solver = state.ctx.solver<Type>()
     val satResult = solver.checkWithSoftConstraints(constraintsToCheck)
 
     return when (satResult) {
@@ -214,7 +214,7 @@ fun <T : UState<Type, *, *, Context, *, T>, Type, Context : UContext<*>> fork(
         holdsInModel.isTrue
     }
 
-    val notCondition = condition.uctx.mkNot(condition)
+    val notCondition = state.ctx.mkNot(condition)
     val (posState, negState) = when {
 
         trueModels.isNotEmpty() && falseModels.isNotEmpty() -> {
