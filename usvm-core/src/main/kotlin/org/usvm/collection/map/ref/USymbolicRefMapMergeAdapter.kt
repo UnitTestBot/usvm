@@ -23,7 +23,8 @@ import org.usvm.uctx
 import org.usvm.regions.Region
 
 sealed class USymbolicRefMapMergeAdapter<
-    MapType, SrcKey, DstKey, out SetId : USymbolicRefSetId<MapType, SrcKey, *, SetId>,
+    MapType, SrcKey, DstKey,
+    out SetId : USymbolicRefSetId<MapType, SrcKey, *, SetId>,
     >(
     val setOfKeys: USymbolicCollection<SetId, SrcKey, UBoolSort>,
 ) : USymbolicCollectionAdapter<SrcKey, DstKey> {

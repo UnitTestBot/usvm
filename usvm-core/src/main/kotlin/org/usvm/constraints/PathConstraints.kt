@@ -22,7 +22,7 @@ import org.usvm.uctx
  * Mutable representation of path constraints.
  */
 open class UPathConstraints<Type> private constructor(
-    val ctx: UContext<*>,
+    private val ctx: UContext<*>,
     logicalConstraints: PersistentSet<UBoolExpr> = persistentSetOf(),
     /**
      * Specially represented equalities and disequalities between objects, used in various part of constraints management.

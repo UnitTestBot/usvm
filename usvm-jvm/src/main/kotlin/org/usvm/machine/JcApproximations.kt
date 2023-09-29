@@ -70,8 +70,6 @@ import kotlin.reflect.KFunction1
 import kotlin.reflect.KFunction2
 import kotlin.reflect.jvm.javaMethod
 
-internal typealias USizeSort = UBv32Sort
-
 class JcMethodApproximationResolver(
     private val ctx: JcContext,
     private val applicationGraph: JcApplicationGraph,

@@ -23,7 +23,6 @@ import org.usvm.USizeSort
 import org.usvm.api.allocateConcreteRef
 import org.usvm.api.readArrayIndex
 import org.usvm.api.writeArrayIndex
-import org.usvm.arrayIndexKeyInfo
 import org.usvm.collection.array.UAllocatedArrayId
 import org.usvm.collection.array.UInputArrayId
 import org.usvm.collection.array.USymbolicArrayAllocatedToAllocatedCopyAdapter
@@ -35,7 +34,7 @@ import org.usvm.collection.field.UInputFieldId
 import org.usvm.collection.map.ref.URefMapEntryLValue
 import org.usvm.memory.UMemory
 import org.usvm.mkSizeExpr
-import org.usvm.sizeExprKeyInfo
+import org.usvm.memory.key.USizeExprKeyInfo
 import org.usvm.sizeSort
 import kotlin.test.assertEquals
 import kotlin.test.assertSame
@@ -186,7 +185,7 @@ class TranslationTest {
             ref1 to mkSizeExpr(0),
             mkSizeExpr(0),
             mkSizeExpr(5),
-            ctx.sizeExprKeyInfo
+            USizeExprKeyInfo()
         )
 
         val concreteRegion = UAllocatedArrayId<_, _, USizeSort>(valueArrayDescr, bv32Sort, concreteRef.address)
@@ -292,7 +291,7 @@ class TranslationTest {
             ref1 to mkSizeExpr(0),
             ref1 to mkSizeExpr(0),
             ref1 to mkSizeExpr(5),
-            ctx.arrayIndexKeyInfo
+            USymbolicArrayIndexKeyInfo()
         )
 
         var inputRegion2 = UInputArrayId<_, _, USizeSort>(valueArrayDescr, bv32Sort).emptyRegion()
@@ -391,7 +390,7 @@ class TranslationTest {
             ref1 to mkSizeExpr(0),
             ref1 to mkSizeExpr(0),
             ref1 to mkSizeExpr(5),
-            ctx.arrayIndexKeyInfo
+            USymbolicArrayIndexKeyInfo()
         )
 
         var inputRegion2 = UInputArrayId<_, _, USizeSort>(valueArrayDescr, addressSort).emptyRegion()
@@ -429,7 +428,7 @@ class TranslationTest {
             .write(idx2, val2, trueExpr)
 
         val adapter = USymbolicArrayAllocatedToAllocatedCopyAdapter(
-            mkSizeExpr(0), mkSizeExpr(0), mkSizeExpr(5), ctx.sizeExprKeyInfo
+            mkSizeExpr(0), mkSizeExpr(0), mkSizeExpr(5), USizeExprKeyInfo()
         )
 
         var allocatedRegion2 = UAllocatedArrayId<_, _, USizeSort>(valueArrayDescr, addressSort, 2)

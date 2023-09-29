@@ -36,10 +36,10 @@ object ListCollectionApi {
         listType: ListType,
     ): UExpr<USizeSort> = memory.readArrayLength(listRef, listType, ctx.sizeSort)
 
-    fun <ListType, USizeSort : USort, State, Ctx : UContext<USizeSort>> StepScope<State, ListType, *, *>.ensureListSizeCorrect(
+    fun <ListType, USizeSort : USort, State, Ctx> StepScope<State, ListType, *, *>.ensureListSizeCorrect(
         listRef: UHeapRef,
         listType: ListType,
-    ): Unit? where State : UState<ListType, *, *, Ctx, *, State> {
+    ): Unit? where State : UState<ListType, *, *, Ctx, *, State>, Ctx : UContext<USizeSort> {
         listRef.mapWithStaticAsConcrete(
             concreteMapper = {
                 // Concrete list size is always correct
@@ -47,14 +47,12 @@ object ListCollectionApi {
             },
             symbolicMapper = { symbolicListRef ->
                 val length = calcOnState { memory.readArrayLength(symbolicListRef, listType, ctx.sizeSort) }
-                calcOnState {
-                    with(ctx) {
-                        val boundConstraint = mkSizeGeExpr(length, mkSizeExpr(0))
-                        // List size must be correct regardless of guard
-                        assert(boundConstraint)
-                    }
-                } ?: return null
-
+                val ctx = calcOnState { ctx }
+                with(ctx) {
+                    val boundConstraint = mkSizeGeExpr(length, mkSizeExpr(0))
+                    // List size must be correct regardless of guard
+                    assert(boundConstraint) ?: return null
+                }
                 symbolicListRef
             }
         )

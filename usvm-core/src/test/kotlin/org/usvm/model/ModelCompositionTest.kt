@@ -29,7 +29,7 @@ import org.usvm.collection.array.length.UArrayLengthEagerModelRegion
 import org.usvm.collection.field.UFieldsEagerModelRegion
 import org.usvm.mkSizeExpr
 import org.usvm.sampleUValue
-import org.usvm.sizeExprKeyInfo
+import org.usvm.memory.key.USizeExprKeyInfo
 import org.usvm.sizeSort
 import kotlin.test.assertSame
 
@@ -98,7 +98,7 @@ class ModelCompositionTest {
             symbolicRef to mkSizeExpr(0),
             mkSizeExpr(0),
             mkSizeExpr(5),
-            ctx.sizeExprKeyInfo
+            USizeExprKeyInfo()
         )
 
         val concreteRegion = UAllocatedArrayId<_, _, USizeSort>(arrayType, bv32Sort, concreteRef.address)

@@ -7,17 +7,14 @@ import org.usvm.UConcreteHeapAddress
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
-import org.usvm.arrayIndexKeyInfo
 import org.usvm.memory.ULValue
 import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UMemoryRegionId
 import org.usvm.memory.USymbolicCollection
 import org.usvm.memory.foldHeapRef2
 import org.usvm.memory.foldHeapRefWithStaticAsSymbolic
+import org.usvm.memory.key.USizeExprKeyInfo
 import org.usvm.memory.mapWithStaticAsSymbolic
-import org.usvm.sizeExprKeyInfo
-import org.usvm.uctx
-import org.usvm.withSizeSort
 
 data class UArrayIndexLValue<ArrayType, Sort : USort, USizeSort : USort>(
     override val sort: Sort,
@@ -137,7 +134,7 @@ internal class UArrayMemoryRegion<ArrayType, Sort : USort, USizeSort : USort>(
             val srcCollection = region.getAllocatedArray(type, elementSort, srcConcrete.address)
             val dstCollection = region.getAllocatedArray(type, elementSort, dstConcrete.address)
             val adapter = USymbolicArrayAllocatedToAllocatedCopyAdapter(
-                fromSrcIdx, fromDstIdx, toDstIdx, elementSort.uctx.withSizeSort<USizeSort>().sizeExprKeyInfo
+                fromSrcIdx, fromDstIdx, toDstIdx, USizeExprKeyInfo()
             )
             val newDstCollection = dstCollection.copyRange(srcCollection, adapter, guard)
             region.updateAllocatedArray(dstConcrete.address, newDstCollection)
@@ -150,7 +147,7 @@ internal class UArrayMemoryRegion<ArrayType, Sort : USort, USizeSort : USort>(
                 fromSrcIdx,
                 dstSymbolic to fromDstIdx,
                 dstSymbolic to toDstIdx,
-                elementSort.uctx.withSizeSort<USizeSort>().arrayIndexKeyInfo
+                USymbolicArrayIndexKeyInfo()
             )
             val newDstCollection = dstCollection.copyRange(srcCollection, adapter, guard)
             region.updateInput(newDstCollection)
@@ -162,7 +159,7 @@ internal class UArrayMemoryRegion<ArrayType, Sort : USort, USizeSort : USort>(
                 srcSymbolic to fromSrcIdx,
                 fromDstIdx,
                 toDstIdx,
-                elementSort.uctx.withSizeSort<USizeSort>().sizeExprKeyInfo
+                USizeExprKeyInfo()
             )
             val newDstCollection = dstCollection.copyRange(srcCollection, adapter, guard)
             region.updateAllocatedArray(dstConcrete.address, newDstCollection)
@@ -174,7 +171,7 @@ internal class UArrayMemoryRegion<ArrayType, Sort : USort, USizeSort : USort>(
                 srcSymbolic to fromSrcIdx,
                 dstSymbolic to fromDstIdx,
                 dstSymbolic to toDstIdx,
-                elementSort.uctx.withSizeSort<USizeSort>().arrayIndexKeyInfo
+                USymbolicArrayIndexKeyInfo()
             )
             val newDstCollection = dstCollection.copyRange(srcCollection, adapter, guard)
             region.updateInput(newDstCollection)

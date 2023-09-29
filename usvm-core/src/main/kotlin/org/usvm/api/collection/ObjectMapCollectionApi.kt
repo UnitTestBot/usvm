@@ -41,27 +41,23 @@ object ObjectMapCollectionApi {
         mapType: MapType,
     ): UExpr<USizeSort> = memory.read(UMapLengthLValue(mapRef, mapType, ctx.sizeSort))
 
-    fun <MapType, State : UState<MapType, *, *, Ctx, *, State>, USizeSort : USort, Ctx: UContext<USizeSort>> StepScope<State, MapType, *, *>.ensureObjectMapSizeCorrect(
+    fun <MapType, State, USizeSort : USort, Ctx> StepScope<State, MapType, *, *>.ensureObjectMapSizeCorrect(
         mapRef: UHeapRef,
         mapType: MapType,
-    ): Unit? {
+    ): Unit? where State : UState<MapType, *, *, Ctx, *, State>, Ctx : UContext<USizeSort> {
         mapRef.mapWithStaticAsConcrete(
             concreteMapper = {
                 // Concrete map size is always correct
                 it
             },
             symbolicMapper = { symbolicMapRef ->
-                val length = calcOnState {
-                    memory.read(UMapLengthLValue(symbolicMapRef, mapType, ctx.sizeSort))
+                val length = calcOnState { memory.read(UMapLengthLValue(symbolicMapRef, mapType, ctx.sizeSort)) }
+                val ctx = calcOnState { ctx }
+                with(ctx) {
+                    val boundConstraint = mkSizeGeExpr(length, mkSizeExpr(0))
+                    // Map size must be correct regardless of guard
+                    assert(boundConstraint) ?: return null
                 }
-                calcOnState {
-                    with(ctx) {
-                        val boundConstraint = mkSizeGeExpr(length, mkSizeExpr(0))
-                        // Map size must be correct regardless of guard
-                        assert(boundConstraint)
-                    }
-                } ?: return null
-
                 symbolicMapRef
             }
         )

@@ -11,7 +11,7 @@ import org.usvm.UHeapRef
 import org.usvm.UNullRef
 import org.usvm.USort
 import org.usvm.UTransformer
-import org.usvm.withSizeSort
+import org.usvm.asTypedTransformer
 
 class UInputMapLengthReading<MapType, USizeSort : USort> internal constructor(
     ctx: UContext<USizeSort>,
@@ -24,7 +24,7 @@ class UInputMapLengthReading<MapType, USizeSort : USort> internal constructor(
 
     override fun accept(transformer: KTransformerBase): UExpr<USizeSort> {
         require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
-        return transformer.withSizeSort<MapType, USizeSort>().transform(this)
+        return transformer.asTypedTransformer<MapType, USizeSort>().transform(this)
     }
 
     override fun internEquals(other: Any): Boolean = structurallyEqual(other, { collection }, { address })

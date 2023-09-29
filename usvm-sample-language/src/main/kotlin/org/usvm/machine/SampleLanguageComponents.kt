@@ -17,7 +17,7 @@ class SampleLanguageComponents(
     private val typeSystem: SampleTypeSystem,
     private val solverType: SolverType
 ) : UComponents<SampleType, USizeSort> {
-    override fun <Context : UContext<USizeSort>> mkSolver(ctx: Context): USolverBase<SampleType, Context> {
+    override fun <Context : UContext<USizeSort>> mkSolver(ctx: Context): USolverBase<SampleType> {
         val (translator, decoder) = buildTranslatorAndLazyDecoder(ctx)
         val softConstraintsProvider = USoftConstraintsProvider<SampleType, _>(ctx)
 

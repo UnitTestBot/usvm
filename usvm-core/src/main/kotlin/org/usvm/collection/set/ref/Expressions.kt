@@ -11,6 +11,7 @@ import org.usvm.UCollectionReading
 import org.usvm.UContext
 import org.usvm.UHeapRef
 import org.usvm.UNullRef
+import org.usvm.USort
 import org.usvm.UTransformer
 import org.usvm.asTypedTransformer
 import org.usvm.collection.set.USymbolicSetElement
@@ -23,7 +24,7 @@ class UAllocatedRefSetWithInputElementsReading<SetType> internal constructor(
 
     override fun accept(transformer: KTransformerBase): KExpr<UBoolSort> {
         require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
-        return transformer.asTypedTransformer<SetType>().transform(this)
+        return transformer.asTypedTransformer<SetType, USort>().transform(this)
     }
 
     override fun internEquals(other: Any): Boolean =
@@ -52,7 +53,7 @@ class UInputRefSetWithAllocatedElementsReading<SetType> internal constructor(
 
     override fun accept(transformer: KTransformerBase): KExpr<UBoolSort> {
         require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
-        return transformer.asTypedTransformer<SetType>().transform(this)
+        return transformer.asTypedTransformer<SetType, USort>().transform(this)
     }
 
     override fun internEquals(other: Any): Boolean =
@@ -86,7 +87,7 @@ class UInputRefSetWithInputElementsReading<SetType> internal constructor(
 
     override fun accept(transformer: KTransformerBase): KExpr<UBoolSort> {
         require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
-        return transformer.asTypedTransformer<SetType>().transform(this)
+        return transformer.asTypedTransformer<SetType, USort>().transform(this)
     }
 
     override fun internEquals(other: Any): Boolean =

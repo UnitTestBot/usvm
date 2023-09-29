@@ -7,7 +7,6 @@ import org.usvm.UComposer
 import org.usvm.UConcreteHeapAddress
 import org.usvm.UExpr
 import org.usvm.USort
-import org.usvm.arrayIndexKeyInfo
 import org.usvm.compose
 import org.usvm.memory.UPinpointUpdateNode
 import org.usvm.memory.USymbolicCollection
@@ -19,7 +18,7 @@ import org.usvm.memory.key.USizeRegion
 import org.usvm.regions.RegionTree
 import org.usvm.regions.emptyRegionTree
 import org.usvm.sampleUValue
-import org.usvm.sizeExprKeyInfo
+import org.usvm.memory.key.USizeExprKeyInfo
 import org.usvm.uctx
 import org.usvm.withSizeSort
 
@@ -65,7 +64,7 @@ class UAllocatedArrayId<ArrayType, Sort : USort, USizeSort : USort> internal con
     private fun mkLValue(key: UExpr<USizeSort>) =
         UArrayIndexLValue(sort, key.uctx.mkConcreteHeapRef(address), key, arrayType)
 
-    override fun keyInfo() = sort.uctx.withSizeSort<USizeSort>().sizeExprKeyInfo
+    override fun keyInfo(): USizeExprKeyInfo<USizeSort> = USizeExprKeyInfo()
 
     override fun emptyRegion(): USymbolicCollection<UAllocatedArrayId<ArrayType, Sort, USizeSort>, UExpr<USizeSort>, Sort> {
         val updates = UTreeUpdates<UExpr<USizeSort>, USizeRegion, Sort>(
@@ -155,7 +154,7 @@ class UInputArrayId<ArrayType, Sort : USort, USizeSort : USort> internal constru
         return USymbolicCollection(this, updates)
     }
 
-    override fun keyInfo(): USymbolicArrayIndexKeyInfo<USizeSort> = sort.uctx.withSizeSort<USizeSort>().arrayIndexKeyInfo
+    override fun keyInfo(): USymbolicArrayIndexKeyInfo<USizeSort> = USymbolicArrayIndexKeyInfo()
 
     override fun toString(): String = "inputArray<$arrayType>"
 

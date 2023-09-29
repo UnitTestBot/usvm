@@ -16,7 +16,6 @@ import org.usvm.collection.array.UAllocatedArray
 import org.usvm.collection.array.UAllocatedArrayReading
 import org.usvm.collection.array.UInputArray
 import org.usvm.collection.array.UInputArrayReading
-import org.usvm.collection.array.USymbolicArrayIndexKeyInfo
 import org.usvm.collection.array.length.UInputArrayLengthReading
 import org.usvm.collection.array.length.UInputArrayLengths
 import org.usvm.collection.field.UInputFieldReading
@@ -43,7 +42,6 @@ import org.usvm.collection.set.ref.UInputRefSetWithAllocatedElements
 import org.usvm.collection.set.ref.UInputRefSetWithAllocatedElementsReading
 import org.usvm.collection.set.ref.UInputRefSetWithInputElements
 import org.usvm.collection.set.ref.UInputRefSetWithInputElementsReading
-import org.usvm.memory.key.USizeExprKeyInfo
 import org.usvm.memory.splitUHeapRef
 import org.usvm.regions.Region
 import org.usvm.solver.USolverBase
@@ -70,7 +68,7 @@ open class UContext<USizeSort : USort>(
         return currentStateId++
     }
 
-    fun <Type> solver(): USolverBase<Type, UContext<USizeSort>> = this.solver.uncheckedCast()
+    fun <Type> solver(): USolverBase<Type> = this.solver.uncheckedCast()
 
     @Suppress("UNCHECKED_CAST")
     fun <Type> typeSystem(): UTypeSystem<Type> =
@@ -392,8 +390,6 @@ open class UContext<USizeSort : USort>(
 }
 
 val <USizeSort : USort> UContext<USizeSort>.sizeSort: USizeSort get() = sizeExprs.sizeSort
-val <USizeSort : USort> UContext<USizeSort>.arrayIndexKeyInfo: USymbolicArrayIndexKeyInfo<USizeSort> get() = sizeExprs.arrayIndexKeyInfo
-val <USizeSort : USort> UContext<USizeSort>.sizeExprKeyInfo: USizeExprKeyInfo<USizeSort> get() = sizeExprs.sizeExprKeyInfo
 
 fun <USizeSort : USort> UContext<USizeSort>.mkSizeExpr(size: Int): UExpr<USizeSort> =
     sizeExprs.mkSizeExpr(size)

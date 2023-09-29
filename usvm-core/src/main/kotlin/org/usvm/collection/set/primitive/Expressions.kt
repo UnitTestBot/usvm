@@ -25,7 +25,7 @@ class UAllocatedSetReading<SetType, ElementSort : USort, Reg : Region<Reg>> inte
 
     override fun accept(transformer: KTransformerBase): UBoolExpr {
         require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
-        return transformer.asTypedTransformer<SetType>().transform(this)
+        return transformer.asTypedTransformer<SetType, USort>().transform(this)
     }
 
     override fun internEquals(other: Any): Boolean =
@@ -61,7 +61,7 @@ class UInputSetReading<SetType, ElementSort : USort, Reg : Region<Reg>> internal
 
     override fun accept(transformer: KTransformerBase): UBoolExpr {
         require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
-        return transformer.asTypedTransformer<SetType>().transform(this)
+        return transformer.asTypedTransformer<SetType, USort>().transform(this)
     }
 
     override fun internEquals(other: Any): Boolean =

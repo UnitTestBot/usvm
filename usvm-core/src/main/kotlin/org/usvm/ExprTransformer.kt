@@ -72,10 +72,7 @@ abstract class UExprTransformer<Type, USizeSort : USort>(
 ) : KNonRecursiveTransformer(ctx), UTransformer<Type, USizeSort>
 
 @Suppress("UNCHECKED_CAST")
-fun <Type> UTransformer<*, *>.asTypedTransformer(): UTransformer<Type, *> = this as UTransformer<Type, *>
-
-@Suppress("UNCHECKED_CAST")
-fun <Type, USizeSort : USort> UTransformer<*, *>.withSizeSort(): UTransformer<Type, USizeSort> =
+fun <Type, USizeSort : USort> UTransformer<*, *>.asTypedTransformer(): UTransformer<Type, USizeSort> =
     this as UTransformer<Type, USizeSort>
 
 @Suppress("NOTHING_TO_INLINE")

@@ -265,7 +265,7 @@ class UIsSubtypeExpr<Type> internal constructor(
 ) : UIsExpr<Type>(ctx, ref) {
     override fun accept(transformer: KTransformerBase): UBoolExpr {
         require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
-        return transformer.asTypedTransformer<Type>().transform(this)
+        return transformer.asTypedTransformer<Type, USort>().transform(this)
     }
 
     override fun print(printer: ExpressionPrinter) {
@@ -288,7 +288,7 @@ class UIsSupertypeExpr<Type> internal constructor(
 ) : UIsExpr<Type>(ctx, ref) {
     override fun accept(transformer: KTransformerBase): UBoolExpr {
         require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
-        return transformer.asTypedTransformer<Type>().transform(this)
+        return transformer.asTypedTransformer<Type, USort>().transform(this)
     }
 
     override fun print(printer: ExpressionPrinter) {

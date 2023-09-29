@@ -19,7 +19,7 @@ class JcComponents(
 ) : UComponents<JcType, USizeSort> {
     private val closeableResources = mutableListOf<AutoCloseable>()
 
-    override fun <Context : UContext<USizeSort>> mkSolver(ctx: Context): USolverBase<JcType, Context> {
+    override fun <Context : UContext<USizeSort>> mkSolver(ctx: Context): USolverBase<JcType> {
         val (translator, decoder) = buildTranslatorAndLazyDecoder(ctx)
         val softConstraintsProvider = USoftConstraintsProvider<JcType, _>(ctx)
 

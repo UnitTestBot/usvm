@@ -7,8 +7,6 @@ import io.ksmt.sort.KArraySort
 import io.ksmt.utils.mkConst
 import org.usvm.UAddressSort
 import org.usvm.UConcreteHeapRef
-import org.usvm.UContext
-import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.memory.URangedUpdateNode
@@ -25,8 +23,7 @@ import java.util.IdentityHashMap
 
 class UArrayLengthRegionDecoder<ArrayType, USizeSort : USort>(
     private val regionId: UArrayLengthsRegionId<ArrayType, USizeSort>,
-    private val ctx: UContext<USizeSort>,
-    private val exprTranslator: UExprTranslator<*, *>,
+    private val exprTranslator: UExprTranslator<*, USizeSort>,
 ) : URegionDecoder<UArrayLengthLValue<ArrayType, USizeSort>, USizeSort> {
 
     private var inputArrayLengthTranslator: UInputArrayLengthRegionTranslator<ArrayType, USizeSort>? = null
@@ -35,7 +32,7 @@ class UArrayLengthRegionDecoder<ArrayType, USizeSort : USort>(
         collectionId: UInputArrayLengthId<ArrayType, USizeSort>
     ): URegionTranslator<UInputArrayLengthId<ArrayType, USizeSort>, UHeapRef, USizeSort> {
         if (inputArrayLengthTranslator == null) {
-            inputArrayLengthTranslator = UInputArrayLengthRegionTranslator(collectionId, ctx, exprTranslator)
+            inputArrayLengthTranslator = UInputArrayLengthRegionTranslator(collectionId, exprTranslator)
         }
         return inputArrayLengthTranslator!!
     }
@@ -48,10 +45,10 @@ class UArrayLengthRegionDecoder<ArrayType, USizeSort : USort>(
 
 private class UInputArrayLengthRegionTranslator<ArrayType, USizeSort : USort>(
     private val collectionId: UInputArrayLengthId<ArrayType, USizeSort>,
-    ctx: UContext<USizeSort>,
-    exprTranslator: UExprTranslator<*, *>,
-) : URegionTranslator<UInputArrayLengthId<ArrayType, USizeSort>, UHeapRef, USizeSort>, UCollectionDecoder<UHeapRef, USizeSort> {
-    private val initialValue = with(ctx) {
+    exprTranslator: UExprTranslator<*, USizeSort>,
+) : URegionTranslator<UInputArrayLengthId<ArrayType, USizeSort>, UHeapRef, USizeSort>,
+    UCollectionDecoder<UHeapRef, USizeSort> {
+    private val initialValue = with(exprTranslator.ctx) {
         mkArraySort(addressSort, sizeSort).mkConst(collectionId.toString())
     }
 
@@ -61,7 +58,7 @@ private class UInputArrayLengthRegionTranslator<ArrayType, USizeSort : USort>(
     override fun translateReading(
         region: USymbolicCollection<UInputArrayLengthId<ArrayType, USizeSort>, UHeapRef, USizeSort>,
         key: UHeapRef
-    ): UExpr<USizeSort> {
+    ): KExpr<USizeSort> {
         val translatedCollection = region.updates.accept(updatesTranslator, visitorCache)
         return updatesTranslator.visitSelect(translatedCollection, key)
     }
@@ -74,7 +71,7 @@ private class UInputArrayLengthRegionTranslator<ArrayType, USizeSort : USort>(
 }
 
 private class UInputArrayLengthUpdateTranslator<USizeSort : USort>(
-    exprTranslator: UExprTranslator<*, *>,
+    exprTranslator: UExprTranslator<*, USizeSort>,
     initialValue: KExpr<KArraySort<UAddressSort, USizeSort>>
 ) : U1DUpdatesTranslator<UAddressSort, USizeSort>(exprTranslator, initialValue) {
     override fun KContext.translateRangedUpdate(

@@ -7,7 +7,6 @@ import io.ksmt.sort.KArraySort
 import io.ksmt.utils.mkConst
 import org.usvm.UAddressSort
 import org.usvm.UConcreteHeapRef
-import org.usvm.UContext
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.memory.URangedUpdateNode
@@ -24,8 +23,7 @@ import java.util.IdentityHashMap
 
 class UMapLengthRegionDecoder<MapType, USizeSort : USort>(
     private val regionId: UMapLengthRegionId<MapType, USizeSort>,
-    private val exprTranslator: UExprTranslator<*, *>,
-    private val ctx: UContext<USizeSort>,
+    private val exprTranslator: UExprTranslator<*, USizeSort>,
 ) : URegionDecoder<UMapLengthLValue<MapType, USizeSort>, USizeSort> {
 
     private var inputRegionTranslator: UInputMapLengthRegionTranslator<MapType, USizeSort>? = null
@@ -34,7 +32,7 @@ class UMapLengthRegionDecoder<MapType, USizeSort : USort>(
         collectionId: UInputMapLengthId<MapType, USizeSort>
     ): URegionTranslator<UInputMapLengthId<MapType, USizeSort>, UHeapRef, USizeSort> {
         if (inputRegionTranslator == null) {
-            inputRegionTranslator = UInputMapLengthRegionTranslator(collectionId, ctx, exprTranslator)
+            inputRegionTranslator = UInputMapLengthRegionTranslator(collectionId, exprTranslator)
         }
         return inputRegionTranslator!!
     }
@@ -47,11 +45,10 @@ class UMapLengthRegionDecoder<MapType, USizeSort : USort>(
 
 private class UInputMapLengthRegionTranslator<MapType, USizeSort : USort>(
     private val collectionId: UInputMapLengthId<MapType, USizeSort>,
-    ctx: UContext<USizeSort>,
-    exprTranslator: UExprTranslator<*, *>,
+    exprTranslator: UExprTranslator<*, USizeSort>,
 ) : URegionTranslator<UInputMapLengthId<MapType, USizeSort>, UHeapRef, USizeSort>,
     UCollectionDecoder<UHeapRef, USizeSort> {
-    private val initialValue = with(ctx) {
+    private val initialValue = with(exprTranslator.ctx) {
         mkArraySort(addressSort, sizeSort).mkConst(collectionId.toString())
     }
 
@@ -74,7 +71,7 @@ private class UInputMapLengthRegionTranslator<MapType, USizeSort : USort>(
 }
 
 private class UInputMapLengthUpdateTranslator<USizeSort : USort>(
-    exprTranslator: UExprTranslator<*, *>,
+    exprTranslator: UExprTranslator<*, USizeSort>,
     initialValue: KExpr<KArraySort<UAddressSort, USizeSort>>
 ) : U1DUpdatesTranslator<UAddressSort, USizeSort>(exprTranslator, initialValue) {
     override fun KContext.translateRangedUpdate(

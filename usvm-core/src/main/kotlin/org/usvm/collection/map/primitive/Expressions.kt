@@ -24,7 +24,7 @@ class UAllocatedMapReading<MapType, KeySort : USort, Sort : USort, Reg: Region<R
 
     override fun accept(transformer: KTransformerBase): KExpr<Sort> {
         require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
-        return transformer.asTypedTransformer<MapType>().transform(this)
+        return transformer.asTypedTransformer<MapType, USort>().transform(this)
     }
 
     override fun internEquals(other: Any): Boolean =
@@ -56,7 +56,7 @@ class UInputMapReading<MapType, KeySort : USort, Sort : USort, Reg: Region<Reg>>
 
     override fun accept(transformer: KTransformerBase): KExpr<Sort> {
         require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
-        return transformer.asTypedTransformer<MapType>().transform(this)
+        return transformer.asTypedTransformer<MapType, USort>().transform(this)
     }
 
     override fun internEquals(other: Any): Boolean =

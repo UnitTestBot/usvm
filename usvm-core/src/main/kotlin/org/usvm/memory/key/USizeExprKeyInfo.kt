@@ -19,8 +19,12 @@ typealias USizeRegion = IntIntervalsRegion
 /**
  * Provides information about numeric values used as symbolic collection keys.
  */
-class USizeExprKeyInfo<USizeSort : USort> private constructor() : USymbolicCollectionKeyInfo<UExpr<USizeSort>, USizeRegion> {
-    override fun mapKey(key: UExpr<USizeSort>, transformer: UTransformer<*, *>?): UExpr<USizeSort> = transformer.apply(key)
+class USizeExprKeyInfo<USizeSort : USort> private constructor() :
+    USymbolicCollectionKeyInfo<UExpr<USizeSort>, USizeRegion> {
+    override fun mapKey(
+        key: UExpr<USizeSort>,
+        transformer: UTransformer<*, *>?,
+    ): UExpr<USizeSort> = transformer.apply(key)
 
     override fun eqSymbolic(ctx: UContext<*>, key1: UExpr<USizeSort>, key2: UExpr<USizeSort>): UBoolExpr =
         ctx.mkEq(key1, key2)
@@ -68,6 +72,7 @@ class USizeExprKeyInfo<USizeSort : USort> private constructor() : USymbolicColle
     companion object {
         private val sizeExprKeyInfo: USizeExprKeyInfo<Nothing> by lazy { USizeExprKeyInfo() }
 
+        // Use this class as a parametrized singleton
         operator fun <USizeSort : USort> invoke(): USizeExprKeyInfo<USizeSort> = sizeExprKeyInfo.cast()
     }
 }

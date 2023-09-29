@@ -3,18 +3,13 @@ package org.usvm
 import io.ksmt.expr.KBitVec32Value
 import io.ksmt.expr.KInt32NumExpr
 import io.ksmt.sort.KIntSort
-import org.usvm.collection.array.USymbolicArrayIndexKeyInfo
-import org.usvm.memory.key.USizeExprKeyInfo
 
 /**
  * Provides operations with a configurable size sort.
  */
 interface USizeExprProvider<USizeSort : USort> {
     val ctx: UContext<*>
-    
     val sizeSort: USizeSort
-    val sizeExprKeyInfo: USizeExprKeyInfo<USizeSort>
-    val arrayIndexKeyInfo: USymbolicArrayIndexKeyInfo<USizeSort>
 
     fun mkSizeExpr(size: Int): UExpr<USizeSort>
     fun getIntValue(expr: UExpr<USizeSort>): Int?
@@ -31,8 +26,6 @@ class UBv32SizeExprProvider(
     override val ctx: UContext<*>
 ) : USizeExprProvider<UBv32Sort> {
     override val sizeSort: UBv32Sort = ctx.bv32Sort
-    override val sizeExprKeyInfo: USizeExprKeyInfo<UBv32Sort> = USizeExprKeyInfo()
-    override val arrayIndexKeyInfo: USymbolicArrayIndexKeyInfo<UBv32Sort> = USymbolicArrayIndexKeyInfo()
 
     override fun mkSizeExpr(size: Int): UExpr<UBv32Sort> = ctx.mkBv(size)
     override fun getIntValue(expr: UExpr<UBv32Sort>): Int? = (expr as? KBitVec32Value)?.numberValue
@@ -49,8 +42,6 @@ class UInt32SizeExprProvider(
     override val ctx: UContext<*>
 ) : USizeExprProvider<KIntSort> {
     override val sizeSort: KIntSort = ctx.intSort
-    override val sizeExprKeyInfo: USizeExprKeyInfo<KIntSort> = USizeExprKeyInfo()
-    override val arrayIndexKeyInfo: USymbolicArrayIndexKeyInfo<KIntSort> = USymbolicArrayIndexKeyInfo()
 
     override fun mkSizeExpr(size: Int): UExpr<KIntSort> = ctx.mkIntNum(size)
     override fun getIntValue(expr: UExpr<KIntSort>): Int? = (expr as? KInt32NumExpr)?.value

@@ -29,8 +29,8 @@ abstract class USolver<in Query, out Model> {
     abstract fun check(query: Query): USolverResult<Model>
 }
 
-open class USolverBase<Type, Context : UContext<*>>(
-    protected val ctx: Context,
+open class USolverBase<Type>(
+    protected val ctx: UContext<*>,
     protected val smtSolver: KSolver<*>,
     protected val typeSolver: UTypeSolver<Type>,
     protected val translator: UExprTranslator<Type, *>,

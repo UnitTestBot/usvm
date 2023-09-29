@@ -242,7 +242,7 @@ open class UExprTranslator<Type, USizeSort : USort>(
     ): UArrayRegionDecoder<ArrayType, Sort, USizeSort> {
         val arrayRegionId = UArrayRegionId<ArrayType, Sort, USizeSort>(arrayId.arrayType, arrayId.sort)
         return getOrPutRegionDecoder(arrayRegionId) {
-            UArrayRegionDecoder(arrayRegionId, ctx, this)
+            UArrayRegionDecoder(arrayRegionId, this)
         }
     }
 
@@ -251,7 +251,7 @@ open class UExprTranslator<Type, USizeSort : USort>(
     ): UArrayLengthRegionDecoder<ArrayType, USizeSort> {
         val arrayRegionId = UArrayLengthsRegionId(arrayLengthId.sort, arrayLengthId.arrayType)
         return getOrPutRegionDecoder(arrayRegionId) {
-            UArrayLengthRegionDecoder(arrayRegionId, ctx, this)
+            UArrayLengthRegionDecoder(arrayRegionId, this)
         }
     }
 
@@ -279,7 +279,7 @@ open class UExprTranslator<Type, USizeSort : USort>(
     ): UMapLengthRegionDecoder<MapType, USizeSort> {
         val symbolicMapLengthRegionId = UMapLengthRegionId(mapLengthId.sort, mapLengthId.mapType)
         return getOrPutRegionDecoder(symbolicMapLengthRegionId) {
-            UMapLengthRegionDecoder(symbolicMapLengthRegionId, this, ctx)
+            UMapLengthRegionDecoder(symbolicMapLengthRegionId, this)
         }
     }
 

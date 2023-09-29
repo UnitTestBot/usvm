@@ -38,7 +38,7 @@ private typealias Type = SingleTypeSystem.SingleType
 
 class ModelDecodingTest {
     private lateinit var ctx: UContext<USizeSort>
-    private lateinit var solver: USolverBase<Type, UContext<*>>
+    private lateinit var solver: USolverBase<Type>
 
     private lateinit var pc: UPathConstraints<Type>
     private lateinit var stack: URegistersStack

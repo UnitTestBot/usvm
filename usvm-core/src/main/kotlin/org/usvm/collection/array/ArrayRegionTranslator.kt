@@ -9,7 +9,6 @@ import io.ksmt.utils.mkConst
 import org.usvm.UAddressSort
 import org.usvm.UConcreteHeapAddress
 import org.usvm.UConcreteHeapRef
-import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
@@ -29,8 +28,7 @@ import java.util.IdentityHashMap
 
 class UArrayRegionDecoder<ArrayType, Sort : USort, USizeSort : USort>(
     private val regionId: UArrayRegionId<ArrayType, Sort, USizeSort>,
-    private val ctx: UContext<USizeSort>,
-    private val exprTranslator: UExprTranslator<*, *>,
+    private val exprTranslator: UExprTranslator<*, USizeSort>,
 ) : URegionDecoder<UArrayIndexLValue<ArrayType, Sort, USizeSort>, Sort> {
 
     private val allocatedRegions =
@@ -42,14 +40,14 @@ class UArrayRegionDecoder<ArrayType, Sort : USort, USizeSort : USort>(
         collectionId: UAllocatedArrayId<ArrayType, Sort, USizeSort>
     ): URegionTranslator<UAllocatedArrayId<ArrayType, Sort, USizeSort>, UExpr<USizeSort>, Sort> =
         allocatedRegions.getOrPut(collectionId.address) {
-            UAllocatedArrayRegionTranslator(collectionId, ctx, exprTranslator)
+            UAllocatedArrayRegionTranslator(collectionId, exprTranslator)
         }
 
     fun inputArrayRegionTranslator(
         collectionId: UInputArrayId<ArrayType, Sort, USizeSort>
     ): URegionTranslator<UInputArrayId<ArrayType, Sort, USizeSort>, USymbolicArrayIndex<USizeSort>, Sort> {
         if (inputRegionTranslator == null) {
-            inputRegionTranslator = UInputArrayRegionTranslator(collectionId, ctx, exprTranslator)
+            inputRegionTranslator = UInputArrayRegionTranslator(collectionId, exprTranslator)
         }
         return inputRegionTranslator!!
     }
@@ -62,10 +60,9 @@ class UArrayRegionDecoder<ArrayType, Sort : USort, USizeSort : USort>(
 
 private class UAllocatedArrayRegionTranslator<ArrayType, Sort : USort, USizeSort : USort>(
     private val collectionId: UAllocatedArrayId<ArrayType, Sort, USizeSort>,
-    ctx: UContext<USizeSort>,
-    exprTranslator: UExprTranslator<*, *>
+    exprTranslator: UExprTranslator<*, USizeSort>
 ) : URegionTranslator<UAllocatedArrayId<ArrayType, Sort, USizeSort>, UExpr<USizeSort>, Sort> {
-    private val initialValue = with(ctx) {
+    private val initialValue = with(exprTranslator.ctx) {
         val sort = mkArraySort(sizeSort, collectionId.sort)
         val translatedDefaultValue = exprTranslator.translate(collectionId.defaultValue)
         mkArrayConst(sort, translatedDefaultValue)
@@ -85,11 +82,10 @@ private class UAllocatedArrayRegionTranslator<ArrayType, Sort : USort, USizeSort
 
 private class UInputArrayRegionTranslator<ArrayType, Sort : USort, USizeSort : USort>(
     private val collectionId: UInputArrayId<ArrayType, Sort, USizeSort>,
-    ctx: UContext<USizeSort>,
-    exprTranslator: UExprTranslator<*, *>,
+    exprTranslator: UExprTranslator<*, USizeSort>,
 ) : URegionTranslator<UInputArrayId<ArrayType, Sort, USizeSort>, USymbolicArrayIndex<USizeSort>, Sort>,
     UCollectionDecoder<USymbolicArrayIndex<USizeSort>, Sort> {
-    private val initialValue = with(ctx) {
+    private val initialValue = with(exprTranslator.ctx) {
         mkArraySort(addressSort, sizeSort, collectionId.sort).mkConst(collectionId.toString())
     }
 
@@ -112,7 +108,7 @@ private class UInputArrayRegionTranslator<ArrayType, Sort : USort, USizeSort : U
 }
 
 private class UAllocatedArrayUpdatesTranslator<Sort : USort, USizeSort : USort>(
-    exprTranslator: UExprTranslator<*, *>,
+    exprTranslator: UExprTranslator<*, USizeSort>,
     initialValue: KExpr<KArraySort<USizeSort, Sort>>
 ) : U1DUpdatesTranslator<USizeSort, Sort>(exprTranslator, initialValue) {
     override fun KContext.translateRangedUpdate(
@@ -155,7 +151,7 @@ private class UAllocatedArrayUpdatesTranslator<Sort : USort, USizeSort : USort>(
 }
 
 private class UInputArrayUpdatesTranslator<Sort : USort, USizeSort : USort>(
-    exprTranslator: UExprTranslator<*, *>,
+    exprTranslator: UExprTranslator<*, USizeSort>,
     initialValue: KExpr<KArray2Sort<UAddressSort, USizeSort, Sort>>
 ) : U2DUpdatesTranslator<UAddressSort, USizeSort, Sort>(exprTranslator, initialValue) {
     override fun KContext.translateRangedUpdate(

@@ -24,7 +24,6 @@ import org.jacodb.api.ext.void
 import org.usvm.INITIAL_STATIC_ADDRESS
 import org.usvm.INITIAL_INPUT_ADDRESS
 import org.usvm.NULL_ADDRESS
-import org.usvm.UBv32Sort
 import org.usvm.UConcreteHeapAddress
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr

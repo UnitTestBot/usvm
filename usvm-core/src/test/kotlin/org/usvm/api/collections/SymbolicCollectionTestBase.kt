@@ -14,7 +14,6 @@ import org.usvm.UCallStack
 import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.UExpr
-import org.usvm.USizeExprProvider
 import org.usvm.USizeSort
 import org.usvm.UState
 import org.usvm.constraints.UPathConstraints
@@ -35,7 +34,7 @@ abstract class SymbolicCollectionTestBase {
     lateinit var memory: UMemory<SingleTypeSystem.SingleType, Any?>
     lateinit var scope: StepScope<StateStub, SingleTypeSystem.SingleType, *, UContext<USizeSort>>
     lateinit var translator: UExprTranslator<SingleTypeSystem.SingleType, USizeSort>
-    lateinit var uSolver: USolverBase<SingleTypeSystem.SingleType, UContext<USizeSort>>
+    lateinit var uSolver: USolverBase<SingleTypeSystem.SingleType>
 
     @BeforeEach
     fun initializeContext() {

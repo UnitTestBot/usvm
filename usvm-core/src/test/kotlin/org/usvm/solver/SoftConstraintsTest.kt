@@ -26,7 +26,7 @@ open class SoftConstraintsTest {
     private lateinit var softConstraintsProvider: USoftConstraintsProvider<Type, *>
     private lateinit var translator: UExprTranslator<Type, *>
     private lateinit var decoder: ULazyModelDecoder<Type>
-    private lateinit var solver: USolverBase<Type, UContext<*>>
+    private lateinit var solver: USolverBase<Type>
 
     @BeforeEach
     fun initialize() {
@@ -83,7 +83,7 @@ open class SoftConstraintsTest {
         pc += sameAsFirstExpr
 
         val typeSolver = UTypeSolver<Type>(mockk())
-        val solver: USolverBase<Type, UContext<*>> =
+        val solver: USolverBase<Type> =
             USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder, softConstraintsProvider)
 
         val result = solver.checkWithSoftConstraints(pc) as USatResult
