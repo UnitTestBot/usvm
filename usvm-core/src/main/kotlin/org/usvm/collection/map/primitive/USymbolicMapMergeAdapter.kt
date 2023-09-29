@@ -28,12 +28,12 @@ sealed class USymbolicMapMergeAdapter<MapType, SrcKey, DstKey, out SetId : USymb
     val setOfKeys: USymbolicCollection<SetId, SrcKey, UBoolSort>,
 ) : USymbolicCollectionAdapter<SrcKey, DstKey> {
 
-    abstract override fun convert(key: DstKey, composer: UComposer<*>?): SrcKey
+    abstract override fun convert(key: DstKey, composer: UComposer<*, *>?): SrcKey
 
     override fun includesConcretely(key: DstKey) =
         includesSymbolically(key, composer = null).isTrue
 
-    override fun includesSymbolically(key: DstKey, composer: UComposer<*>?): UBoolExpr {
+    override fun includesSymbolically(key: DstKey, composer: UComposer<*, *>?): UBoolExpr {
         val srcKey = convert(key, composer)
         return setOfKeys.read(srcKey, composer)
     }
@@ -51,7 +51,7 @@ class UAllocatedToAllocatedSymbolicMapMergeAdapter<MapType, KeySort : USort>(
     setOfKeys: USymbolicCollection<UAllocatedSetId<MapType, KeySort, *>, UExpr<KeySort>, UBoolSort>,
 ) : USymbolicMapMergeAdapter<MapType, UExpr<KeySort>, UExpr<KeySort>,
     UAllocatedSetId<MapType, KeySort, *>>(setOfKeys) {
-    override fun convert(key: UExpr<KeySort>, composer: UComposer<*>?): UExpr<KeySort> = key
+    override fun convert(key: UExpr<KeySort>, composer: UComposer<*, *>?): UExpr<KeySort> = key
 
     @Suppress("UNCHECKED_CAST")
     override fun <DstReg : Region<DstReg>> region(): DstReg =
@@ -63,7 +63,7 @@ class UAllocatedToAllocatedSymbolicMapMergeAdapter<MapType, KeySort : USort>(
         dstCollectionId: USymbolicCollectionId<UExpr<KeySort>, *, *>,
         guard: UBoolExpr,
         srcKey: UExpr<KeySort>,
-        composer: UComposer<*>,
+        composer: UComposer<*, *>,
     ) {
         check(srcCollectionId is UAllocatedMapId<*, KeySort, *, *>) { "Unexpected collection: $srcCollectionId" }
         check(dstCollectionId is UAllocatedMapId<*, KeySort, *, *>) { "Unexpected collection: $dstCollectionId" }
@@ -91,7 +91,7 @@ class UAllocatedToInputSymbolicMapMergeAdapter<MapType, KeySort : USort>(
 ) : USymbolicMapMergeAdapter<MapType, UExpr<KeySort>, USymbolicMapKey<KeySort>,
     UAllocatedSetId<MapType, KeySort, *>>(setOfKeys) {
 
-    override fun convert(key: USymbolicMapKey<KeySort>, composer: UComposer<*>?): UExpr<KeySort> = key.second
+    override fun convert(key: USymbolicMapKey<KeySort>, composer: UComposer<*, *>?): UExpr<KeySort> = key.second
 
     override fun <DstReg : Region<DstReg>> region(): DstReg =
         convertRegion(setOfKeys.collectionId.keyInfo())
@@ -114,7 +114,7 @@ class UAllocatedToInputSymbolicMapMergeAdapter<MapType, KeySort : USort>(
         dstCollectionId: USymbolicCollectionId<USymbolicMapKey<KeySort>, *, *>,
         guard: UBoolExpr,
         srcKey: UExpr<KeySort>,
-        composer: UComposer<*>,
+        composer: UComposer<*, *>,
     ) {
         check(srcCollectionId is UAllocatedMapId<*, KeySort, *, *>) { "Unexpected collection: $srcCollectionId" }
         check(dstCollectionId is USymbolicMapId<*, *, *, *, *, *, *>) { "Unexpected collection: $dstCollectionId" }
@@ -142,7 +142,7 @@ class UInputToAllocatedSymbolicMapMergeAdapter<MapType, KeySort : USort>(
 ) : USymbolicMapMergeAdapter<MapType, USymbolicMapKey<KeySort>, UExpr<KeySort>,
     UInputSetId<MapType, KeySort, *>>(setOfKeys) {
 
-    override fun convert(key: UExpr<KeySort>, composer: UComposer<*>?): USymbolicMapKey<KeySort> =
+    override fun convert(key: UExpr<KeySort>, composer: UComposer<*, *>?): USymbolicMapKey<KeySort> =
         composer.compose(srcMapRef) to key
 
     override fun <DstReg : Region<DstReg>> region(): DstReg =
@@ -166,7 +166,7 @@ class UInputToAllocatedSymbolicMapMergeAdapter<MapType, KeySort : USort>(
         dstCollectionId: USymbolicCollectionId<UExpr<KeySort>, *, *>,
         guard: UBoolExpr,
         srcKey: USymbolicMapKey<KeySort>,
-        composer: UComposer<*>,
+        composer: UComposer<*, *>,
     ) {
         check(srcCollectionId is USymbolicMapId<*, *, *, *, *, *, *>) { "Unexpected collection: $srcCollectionId" }
         check(dstCollectionId is UAllocatedMapId<*, KeySort, *, *>) { "Unexpected collection: $dstCollectionId" }
@@ -195,7 +195,7 @@ class UInputToInputSymbolicMapMergeAdapter<MapType, KeySort : USort>(
 ) : USymbolicMapMergeAdapter<MapType, USymbolicMapKey<KeySort>, USymbolicMapKey<KeySort>,
     UInputSetId<MapType, KeySort, *>>(setOfKeys) {
 
-    override fun convert(key: USymbolicMapKey<KeySort>, composer: UComposer<*>?): USymbolicMapKey<KeySort> =
+    override fun convert(key: USymbolicMapKey<KeySort>, composer: UComposer<*, *>?): USymbolicMapKey<KeySort> =
         composer.compose(srcMapRef) to key.second
 
     override fun <DstReg : Region<DstReg>> region(): DstReg = convertRegion(setOfKeys.collectionId.elementInfo)
@@ -219,7 +219,7 @@ class UInputToInputSymbolicMapMergeAdapter<MapType, KeySort : USort>(
         dstCollectionId: USymbolicCollectionId<USymbolicMapKey<KeySort>, *, *>,
         guard: UBoolExpr,
         srcKey: USymbolicMapKey<KeySort>,
-        composer: UComposer<*>,
+        composer: UComposer<*, *>,
     ) {
         check(srcCollectionId is USymbolicMapId<*, *, *, *, *, *, *>) { "Unexpected collection: $srcCollectionId" }
         check(dstCollectionId is USymbolicMapId<*, *, *, *, *, *, *>) { "Unexpected collection: $dstCollectionId" }

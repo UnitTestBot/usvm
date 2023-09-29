@@ -17,7 +17,7 @@ interface USymbolicCollectionId<Key, Sort : USort, out CollectionId : USymbolicC
     fun instantiate(
         collection: USymbolicCollection<@UnsafeVariance CollectionId, Key, Sort>,
         key: Key,
-        composer: UComposer<*>?,
+        composer: UComposer<*, *>?,
     ): UExpr<Sort>
 
     fun <Type> write(

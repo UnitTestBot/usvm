@@ -18,7 +18,7 @@ interface USymbolicCollectionUpdates<Key, Sort : USort> : Sequence<UUpdateNode<K
      *
      * @return Relevant updates for a given key.
      */
-    fun read(key: Key, composer: UComposer<*>?): USymbolicCollectionUpdates<Key, Sort>
+    fun read(key: Key, composer: UComposer<*, *>?): USymbolicCollectionUpdates<Key, Sort>
 
     /**
      * @return Symbolic collection which is obtained from this one by overwriting the address [key] with value [value]
@@ -46,7 +46,7 @@ interface USymbolicCollectionUpdates<Key, Sort : USort> : Sequence<UUpdateNode<K
         predicate: (UExpr<Sort>) -> Boolean,
         matchingWrites: MutableList<GuardedExpr<UExpr<Sort>>>,
         guardBuilder: GuardBuilder,
-        composer: UComposer<*>?,
+        composer: UComposer<*, *>?,
     ): USymbolicCollectionUpdates<Key, Sort>
 
     /**
@@ -115,7 +115,7 @@ class UFlatUpdates<Key, Sort : USort> private constructor(
         val next: UFlatUpdates<Key, Sort>,
     )
 
-    override fun read(key: Key, composer: UComposer<*>?): UFlatUpdates<Key, Sort> =
+    override fun read(key: Key, composer: UComposer<*, *>?): UFlatUpdates<Key, Sort> =
         when {
             node != null && node.update.includesSymbolically(key, composer).isFalse -> node.next.read(key, composer)
             else -> this
@@ -154,7 +154,7 @@ class UFlatUpdates<Key, Sort : USort> private constructor(
         predicate: (UExpr<Sort>) -> Boolean,
         matchingWrites: MutableList<GuardedExpr<UExpr<Sort>>>,
         guardBuilder: GuardBuilder,
-        composer: UComposer<*>?,
+        composer: UComposer<*, *>?,
     ): UFlatUpdates<Key, Sort> {
         node ?: return this
         val splitNode = node.update.split(key, predicate, matchingWrites, guardBuilder, composer)
@@ -236,7 +236,7 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
     private val updates: RegionTree<Reg, UUpdateNode<Key, Sort>>,
     private val keyInfo: USymbolicCollectionKeyInfo<Key, Reg>
 ) : USymbolicCollectionUpdates<Key, Sort> {
-    override fun read(key: Key, composer: UComposer<*>?): USymbolicCollectionUpdates<Key, Sort> {
+    override fun read(key: Key, composer: UComposer<*, *>?): USymbolicCollectionUpdates<Key, Sort> {
         val reg = keyInfo.keyToRegion(key)
         val updates = updates.localize(reg) { !it.includesSymbolically(key, composer).isFalse }
         if (updates === this.updates) {
@@ -280,7 +280,7 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
         predicate: (UExpr<Sort>) -> Boolean,
         matchingWrites: MutableList<GuardedExpr<UExpr<Sort>>>,
         guardBuilder: GuardBuilder,
-        composer: UComposer<*>?,
+        composer: UComposer<*, *>?,
     ): UTreeUpdates<Key, Reg, Sort> {
         // reconstructed region tree, including all updates unsatisfying `predicate(update.value(key))` in the same order
         var splitRegionTree = emptyRegionTree<Reg, UUpdateNode<Key, Sort>>()

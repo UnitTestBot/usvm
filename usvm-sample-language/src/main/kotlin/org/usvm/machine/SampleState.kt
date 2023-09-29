@@ -17,7 +17,7 @@ import org.usvm.memory.UMemory
 import org.usvm.model.UModelBase
 
 class SampleState(
-    ctx: UContext,
+    ctx: UContext<USizeSort>,
     callStack: UCallStack<Method<*>, Stmt> = UCallStack(),
     pathConstraints: UPathConstraints<SampleType> = UPathConstraints(ctx),
     memory: UMemory<SampleType, Method<*>> = UMemory(ctx, pathConstraints.typeConstraints),
@@ -26,7 +26,7 @@ class SampleState(
     var returnRegister: UExpr<out USort>? = null,
     var exceptionRegister: ProgramException? = null,
     targets: List<SampleTarget> = emptyList()
-) : UState<SampleType, Method<*>, Stmt, UContext, SampleTarget, SampleState>(
+) : UState<SampleType, Method<*>, Stmt, UContext<USizeSort>, SampleTarget, SampleState>(
     ctx,
     callStack,
     pathConstraints,

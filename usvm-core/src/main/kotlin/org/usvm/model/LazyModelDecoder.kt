@@ -29,9 +29,9 @@ typealias AddressesMapping = Map<UExpr<UAddressSort>, UConcreteHeapRef>
  * @param translator an expression translator used for encoding constraints.
  */
 open class ULazyModelDecoder<Type>(
-    protected val translator: UExprTranslator<Type>,
+    protected val translator: UExprTranslator<Type, *>,
 ) : UModelDecoder<UModelBase<Type>> {
-    private val ctx: UContext = translator.ctx
+    private val ctx: UContext<*> = translator.ctx
 
     private val translatedNullRef = translator.translate(ctx.nullRef)
 

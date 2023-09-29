@@ -30,12 +30,12 @@ abstract class USolver<in Query, out Model> {
 }
 
 open class USolverBase<Type>(
-    protected val ctx: UContext,
+    protected val ctx: UContext<*>,
     protected val smtSolver: KSolver<*>,
     protected val typeSolver: UTypeSolver<Type>,
-    protected val translator: UExprTranslator<Type>,
+    protected val translator: UExprTranslator<Type, *>,
     protected val decoder: UModelDecoder<UModelBase<Type>>,
-    protected val softConstraintsProvider: USoftConstraintsProvider<Type>,
+    protected val softConstraintsProvider: USoftConstraintsProvider<Type, *>,
 ) : USolver<UPathConstraints<Type>, UModelBase<Type>>(), AutoCloseable {
 
     protected fun translateLogicalConstraints(constraints: Iterable<UBoolExpr>) {

@@ -16,15 +16,15 @@ typealias UHeapRefRegion = SetRegion<UConcreteHeapAddress>
  * Provides information about heap references used as symbolic collection keys.
  */
 object UHeapRefKeyInfo : USymbolicCollectionKeyInfo<UHeapRef, UHeapRefRegion> {
-    override fun mapKey(key: UHeapRef, transformer: UTransformer<*>?): UHeapRef = transformer.apply(key)
+    override fun mapKey(key: UHeapRef, transformer: UTransformer<*, *>?): UHeapRef = transformer.apply(key)
 
-    override fun eqSymbolic(ctx: UContext, key1: UHeapRef, key2: UHeapRef): UBoolExpr =
+    override fun eqSymbolic(ctx: UContext<*>, key1: UHeapRef, key2: UHeapRef): UBoolExpr =
         ctx.mkHeapRefEq(key1, key2)
 
     override fun eqConcrete(key1: UHeapRef, key2: UHeapRef): Boolean =
         key1 == key2
 
-    override fun cmpSymbolicLe(ctx: UContext, key1: UHeapRef, key2: UHeapRef): UBoolExpr =
+    override fun cmpSymbolicLe(ctx: UContext<*>, key1: UHeapRef, key2: UHeapRef): UBoolExpr =
         error("Heap references should not be compared!")
 
     override fun cmpConcreteLe(key1: UHeapRef, key2: UHeapRef): Boolean =

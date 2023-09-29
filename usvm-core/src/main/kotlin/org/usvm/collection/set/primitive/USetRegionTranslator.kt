@@ -28,7 +28,7 @@ import java.util.IdentityHashMap
 
 class USetRegionDecoder<SetType, ElementSort : USort, Reg : Region<Reg>>(
     private val regionId: USetRegionId<SetType, ElementSort, Reg>,
-    private val exprTranslator: UExprTranslator<*>
+    private val exprTranslator: UExprTranslator<*, *>
 ) : URegionDecoder<USetEntryLValue<SetType, ElementSort, Reg>, UBoolSort> {
     private val allocatedRegionTranslator =
         mutableMapOf<UAllocatedSetId<SetType, ElementSort, Reg>, UAllocatedSetTranslator<SetType, ElementSort, Reg>>()
@@ -61,7 +61,7 @@ class USetRegionDecoder<SetType, ElementSort : USort, Reg : Region<Reg>>(
 // todo: use uninterpreted functions instead of arrays
 private class UAllocatedSetTranslator<SetType, ElementSort : USort, Reg : Region<Reg>>(
     collectionId: UAllocatedSetId<SetType, ElementSort, Reg>,
-    exprTranslator: UExprTranslator<*>
+    exprTranslator: UExprTranslator<*, *>
 ) : URegionTranslator<UAllocatedSetId<SetType, ElementSort, Reg>, UExpr<ElementSort>, UBoolSort> {
     private val initialValue = with(collectionId.sort.uctx) {
         val sort = mkArraySort(collectionId.elementSort, boolSort)
@@ -82,7 +82,7 @@ private class UAllocatedSetTranslator<SetType, ElementSort : USort, Reg : Region
 
 private class UInputSetTranslator<SetType, ElementSort : USort, Reg : Region<Reg>>(
     collectionId: UInputSetId<SetType, ElementSort, Reg>,
-    exprTranslator: UExprTranslator<*>
+    exprTranslator: UExprTranslator<*, *>
 ) : URegionTranslator<UInputSetId<SetType, ElementSort, Reg>, USymbolicSetElement<ElementSort>, UBoolSort>,
     UCollectionDecoder<USymbolicSetElement<ElementSort>, UBoolSort> {
     private val initialValue = with(collectionId.sort.uctx) {
@@ -109,7 +109,7 @@ private class UInputSetTranslator<SetType, ElementSort : USort, Reg : Region<Reg
 }
 
 private class UAllocatedSetUpdatesTranslator<ElementSort : USort>(
-    exprTranslator: UExprTranslator<*>,
+    exprTranslator: UExprTranslator<*, *>,
     initialValue: KExpr<KArraySort<ElementSort, UBoolSort>>
 ) : U1DUpdatesTranslator<ElementSort, UBoolSort>(exprTranslator, initialValue) {
     override fun KContext.translateRangedUpdate(
@@ -128,7 +128,7 @@ private class UAllocatedSetUpdatesTranslator<ElementSort : USort>(
 }
 
 private class UInputSetUpdatesTranslator<ElementSort : USort>(
-    exprTranslator: UExprTranslator<*>,
+    exprTranslator: UExprTranslator<*, *>,
     initialValue: KExpr<KArray2Sort<UAddressSort, ElementSort, UBoolSort>>
 ) : U2DUpdatesTranslator<UAddressSort, ElementSort, UBoolSort>(exprTranslator, initialValue) {
     override fun KContext.translateRangedUpdate(

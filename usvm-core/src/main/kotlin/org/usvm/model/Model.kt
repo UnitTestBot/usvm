@@ -32,7 +32,7 @@ interface UModel {
  * of the correct sort.
  */
 open class UModelBase<Type>(
-    ctx: UContext,
+    ctx: UContext<*>,
     override val stack: UReadOnlyRegistersStack,
     override val types: UTypeModel<Type>,
     override val mocker: UMockEvaluator,

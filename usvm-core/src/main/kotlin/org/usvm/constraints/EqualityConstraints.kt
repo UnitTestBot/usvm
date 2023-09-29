@@ -23,13 +23,13 @@ import org.usvm.isStaticHeapRef
  * such that [equalReferences].find(x) == x.
  */
 class UEqualityConstraints private constructor(
-    internal val ctx: UContext,
+    internal val ctx: UContext<*>,
     val equalReferences: DisjointSets<UHeapRef>,
     private val mutableDistinctReferences: MutableSet<UHeapRef>,
     private val mutableReferenceDisequalities: MutableMap<UHeapRef, MutableSet<UHeapRef>>,
     private val mutableNullableDisequalities: MutableMap<UHeapRef, MutableSet<UHeapRef>>,
 ) {
-    constructor(ctx: UContext) : this(
+    constructor(ctx: UContext<*>) : this(
         ctx,
         DisjointSets(representativeSelector = RefsRepresentativeSelector),
         mutableSetOf(ctx.nullRef),

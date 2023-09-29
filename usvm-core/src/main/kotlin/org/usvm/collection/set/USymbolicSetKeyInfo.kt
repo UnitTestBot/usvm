@@ -23,7 +23,7 @@ data class USymbolicSetKeyInfo<ElementSort : USort, ElementReg : Region<ElementR
 ) : USymbolicCollectionKeyInfo<USymbolicSetElement<ElementSort>, USymbolicSetElementRegion<ElementReg>> {
     override fun mapKey(
         key: USymbolicSetElement<ElementSort>,
-        transformer: UTransformer<*>?
+        transformer: UTransformer<*, *>?
     ): USymbolicSetElement<ElementSort> {
         val setRef = UHeapRefKeyInfo.mapKey(key.first, transformer)
         val setElement = keyInfo.mapKey(key.second, transformer)
@@ -31,7 +31,7 @@ data class USymbolicSetKeyInfo<ElementSort : USort, ElementReg : Region<ElementR
     }
 
     override fun eqSymbolic(
-        ctx: UContext,
+        ctx: UContext<*>,
         key1: USymbolicSetElement<ElementSort>,
         key2: USymbolicSetElement<ElementSort>
     ): UBoolExpr =
@@ -44,7 +44,7 @@ data class USymbolicSetKeyInfo<ElementSort : USort, ElementReg : Region<ElementR
         UHeapRefKeyInfo.eqConcrete(key1.first, key2.first) && keyInfo.eqConcrete(key1.second, key2.second)
 
     override fun cmpSymbolicLe(
-        ctx: UContext,
+        ctx: UContext<*>,
         key1: USymbolicSetElement<ElementSort>,
         key2: USymbolicSetElement<ElementSort>
     ): UBoolExpr =

@@ -4,31 +4,32 @@ import org.usvm.UBoolExpr
 import org.usvm.UComposer
 import org.usvm.UExpr
 import org.usvm.UHeapRef
-import org.usvm.USizeSort
+import org.usvm.USort
 import org.usvm.memory.UFlatUpdates
 import org.usvm.memory.USymbolicCollection
 import org.usvm.memory.USymbolicCollectionId
 import org.usvm.memory.UWritableMemory
 import org.usvm.memory.key.UHeapRefKeyInfo
 import org.usvm.uctx
+import org.usvm.withSizeSort
 
-interface USymbolicMapLengthId<Key, MapType, Id : USymbolicMapLengthId<Key, MapType, Id>> :
+interface USymbolicMapLengthId<Key, MapType, Id : USymbolicMapLengthId<Key, MapType, Id, USizeSort>, USizeSort : USort> :
     USymbolicCollectionId<Key, USizeSort, Id> {
     val mapType: MapType
 }
 
-class UInputMapLengthId<MapType> internal constructor(
+class UInputMapLengthId<MapType, USizeSort : USort> internal constructor(
     override val mapType: MapType,
     override val sort: USizeSort,
-) : USymbolicMapLengthId<UHeapRef, MapType, UInputMapLengthId<MapType>> {
+) : USymbolicMapLengthId<UHeapRef, MapType, UInputMapLengthId<MapType, USizeSort>, USizeSort> {
 
     override fun instantiate(
-        collection: USymbolicCollection<UInputMapLengthId<MapType>, UHeapRef, USizeSort>,
+        collection: USymbolicCollection<UInputMapLengthId<MapType, USizeSort>, UHeapRef, USizeSort>,
         key: UHeapRef,
-        composer: UComposer<*>?
+        composer: UComposer<*, *>?
     ): UExpr<USizeSort> {
         if (composer == null) {
-            return sort.uctx.mkInputMapLengthReading(collection, key)
+            return sort.uctx.withSizeSort<USizeSort>().mkInputMapLengthReading(collection, key)
         }
 
         val memory = composer.memory.toWritableMemory()
@@ -40,11 +41,11 @@ class UInputMapLengthId<MapType> internal constructor(
         memory.write(mkLValue(key), value, guard)
     }
 
-    private fun mkLValue(key: UHeapRef) = UMapLengthLValue(key, mapType)
+    private fun mkLValue(key: UHeapRef) = UMapLengthLValue(key, mapType, sort)
 
     override fun keyInfo() = UHeapRefKeyInfo
 
-    override fun emptyRegion(): USymbolicCollection<UInputMapLengthId<MapType>, UHeapRef, USizeSort> =
+    override fun emptyRegion(): USymbolicCollection<UInputMapLengthId<MapType, USizeSort>, UHeapRef, USizeSort> =
         USymbolicCollection(this, UFlatUpdates(keyInfo()))
 
     override fun toString(): String = "length<$mapType>()"
@@ -53,7 +54,7 @@ class UInputMapLengthId<MapType> internal constructor(
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
 
-        other as UInputMapLengthId<*>
+        other as UInputMapLengthId<*, *>
 
         return mapType == other.mapType
     }

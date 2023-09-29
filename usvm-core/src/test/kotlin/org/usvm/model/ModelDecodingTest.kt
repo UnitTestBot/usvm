@@ -9,10 +9,12 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.usvm.Field
 import org.usvm.Method
+import org.usvm.UBv32SizeExprProvider
 import org.usvm.UComponents
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UIndexedMocker
+import org.usvm.USizeSort
 import org.usvm.api.allocateConcreteRef
 import org.usvm.api.readArrayIndex
 import org.usvm.api.readField
@@ -35,7 +37,7 @@ import kotlin.test.assertIs
 private typealias Type = SingleTypeSystem.SingleType
 
 class ModelDecodingTest {
-    private lateinit var ctx: UContext
+    private lateinit var ctx: UContext<USizeSort>
     private lateinit var solver: USolverBase<Type>
 
     private lateinit var pc: UPathConstraints<Type>
@@ -45,12 +47,13 @@ class ModelDecodingTest {
 
     @BeforeEach
     fun initializeContext() {
-        val components: UComponents<Type> = mockk()
+        val components: UComponents<Type, USizeSort> = mockk()
         every { components.mkTypeSystem(any()) } returns SingleTypeSystem
 
         ctx = UContext(components)
-        val softConstraintsProvider = USoftConstraintsProvider<Type>(ctx)
-        val translator = UExprTranslator<Type>(ctx)
+        every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
+        val softConstraintsProvider = USoftConstraintsProvider<Type, _>(ctx)
+        val translator = UExprTranslator<Type, USizeSort>(ctx)
         val decoder = ULazyModelDecoder(translator)
         val typeSolver = UTypeSolver(SingleTypeSystem)
         solver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder, softConstraintsProvider)
