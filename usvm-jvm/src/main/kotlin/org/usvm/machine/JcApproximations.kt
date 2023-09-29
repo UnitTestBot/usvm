@@ -26,7 +26,6 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UFpSort
 import org.usvm.UHeapRef
-import org.usvm.USizeExpr
 import org.usvm.api.Engine
 import org.usvm.api.SymbolicList
 import org.usvm.api.SymbolicMap
@@ -59,10 +58,10 @@ import org.usvm.machine.interpreter.JcStepScope
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.newStmt
 import org.usvm.machine.state.skipMethodInvocationWithValue
+import org.usvm.sizeSort
 import org.usvm.types.first
 import org.usvm.types.single
 import org.usvm.types.singleOrNull
-import org.usvm.uctx
 import org.usvm.util.allocHeapRef
 import org.usvm.util.write
 import kotlin.reflect.KFunction
@@ -290,7 +289,7 @@ class JcMethodApproximationResolver(
         if (method.name == "arraycopy") {
             // Object src, int srcPos, Object dest, int destPos, int length
             val (srcRef, srcPos, dstRef, dstPos, length) = arguments
-            with(srcRef.uctx) {
+            with(ctx) {
                 exprResolver.resolveArrayCopy(
                     methodCall = methodCall,
                     srcRef = srcRef.asExpr(addressSort),
@@ -309,10 +308,10 @@ class JcMethodApproximationResolver(
     private fun JcExprResolver.resolveArrayCopy(
         methodCall: JcMethodCall,
         srcRef: UHeapRef,
-        srcPos: USizeExpr,
+        srcPos: UExpr<USizeSort>,
         dstRef: UHeapRef,
-        dstPos: USizeExpr,
-        length: USizeExpr,
+        dstPos: UExpr<USizeSort>,
+        length: UExpr<USizeSort>
     ) {
         checkNullPointer(srcRef) ?: return
         checkNullPointer(dstRef) ?: return
@@ -372,11 +371,11 @@ class JcMethodApproximationResolver(
             val arrayDescriptor = arrayDescriptorOf(arrayType)
             val elementType = requireNotNull(arrayType.ifArrayGetElementType)
 
-            val lengthRef = UArrayLengthLValue(instance, arrayDescriptor)
+            val lengthRef = UArrayLengthLValue(instance, arrayDescriptor, sizeSort)
             val length = scope.calcOnState { memory.read(lengthRef).asExpr(sizeSort) }
 
             val arrayRef = memory.allocHeapRef(arrayType, useStaticAddress = useStaticAddressForAllocation())
-            memory.write(UArrayLengthLValue(arrayRef, arrayDescriptor), length)
+            memory.write(UArrayLengthLValue(arrayRef, arrayDescriptor, sizeSort), length)
 
             // It is very important to use arrayDescriptor here but not elementType correspondingly as in creating
             // new arrays
@@ -399,10 +398,10 @@ class JcMethodApproximationResolver(
         branches: MutableList<Pair<UBoolExpr, (JcState) -> Unit>>,
         type: JcArrayType,
         srcRef: UHeapRef,
-        srcPos: USizeExpr,
+        srcPos: UExpr<USizeSort>,
         dstRef: UHeapRef,
-        dstPos: USizeExpr,
-        length: USizeExpr,
+        dstPos: UExpr<USizeSort>,
+        length: UExpr<USizeSort>
     ) = with(ctx) {
         val arrayDescriptor = arrayDescriptorOf(type)
         val elementType = requireNotNull(type.ifArrayGetElementType)
@@ -415,10 +414,10 @@ class JcMethodApproximationResolver(
             )
         }
 
-        val srcLengthRef = UArrayLengthLValue(srcRef, arrayDescriptor)
+        val srcLengthRef = UArrayLengthLValue(srcRef, arrayDescriptor, sizeSort)
         val srcLength = scope.calcOnState { memory.read(srcLengthRef) }
 
-        val dstLengthRef = UArrayLengthLValue(dstRef, arrayDescriptor)
+        val dstLengthRef = UArrayLengthLValue(dstRef, arrayDescriptor, sizeSort)
         val dstLength = scope.calcOnState { memory.read(dstLengthRef) }
 
         val indexBoundsCheck = mkAnd(
@@ -822,7 +821,7 @@ class JcMethodApproximationResolver(
         val address = scope.makeSymbolicRef(arrayType) ?: return null
 
         val arrayDescriptor = ctx.arrayDescriptorOf(arrayType)
-        val lengthRef = UArrayLengthLValue(address, arrayDescriptor)
+        val lengthRef = UArrayLengthLValue(address, arrayDescriptor, ctx.sizeSort)
         scope.doWithState {
             memory.write(lengthRef, sizeValue)
         }

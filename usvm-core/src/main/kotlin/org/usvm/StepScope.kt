@@ -19,7 +19,7 @@ import org.usvm.forkblacklists.UForkBlackList
  *
  * @param originalState an initial state.
  */
-class StepScope<T : UState<Type, *, Statement, Context, *, T>, Type, Statement, Context : UContext>(
+class StepScope<T : UState<Type, *, Statement, Context, *, T>, Type, Statement, Context : UContext<*>>(
     private val originalState: T,
     private val forkBlackList: UForkBlackList<T, Statement>
 ) {

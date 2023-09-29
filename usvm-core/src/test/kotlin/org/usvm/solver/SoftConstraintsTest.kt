@@ -8,29 +8,33 @@ import io.mockk.verify
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.usvm.UBv32SizeExprProvider
 import org.usvm.UComponents
 import org.usvm.UContext
-import org.usvm.collection.array.length.UInputArrayLengthId
+import org.usvm.USizeSort
 import org.usvm.constraints.UPathConstraints
+import org.usvm.collection.array.length.UInputArrayLengthId
 import org.usvm.model.ULazyModelDecoder
+import org.usvm.sizeSort
 import org.usvm.types.single.SingleTypeSystem
 import kotlin.test.assertSame
 
 private typealias Type = SingleTypeSystem.SingleType
 
 open class SoftConstraintsTest {
-    private lateinit var ctx: UContext
-    private lateinit var softConstraintsProvider: USoftConstraintsProvider<Type>
-    private lateinit var translator: UExprTranslator<Type>
+    private lateinit var ctx: UContext<USizeSort>
+    private lateinit var softConstraintsProvider: USoftConstraintsProvider<Type, *>
+    private lateinit var translator: UExprTranslator<Type, *>
     private lateinit var decoder: ULazyModelDecoder<Type>
     private lateinit var solver: USolverBase<Type>
 
     @BeforeEach
     fun initialize() {
-        val components: UComponents<Type> = mockk()
+        val components: UComponents<Type, USizeSort> = mockk()
         every { components.mkTypeSystem(any()) } returns SingleTypeSystem
 
         ctx = UContext(components)
+        every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
         softConstraintsProvider = USoftConstraintsProvider(ctx)
 
         translator = UExprTranslator(ctx)
@@ -69,7 +73,7 @@ open class SoftConstraintsTest {
         val sndExpr = mkBvSignedLessOrEqualExpr(sndRegister, thirdRegister)
         val sameAsFirstExpr = mkBvSignedLessOrEqualExpr(fstRegister, sndRegister)
 
-        val softConstraintsProvider = mockk<USoftConstraintsProvider<Type>>()
+        val softConstraintsProvider = mockk<USoftConstraintsProvider<Type, *>>()
 
         every { softConstraintsProvider.provide(any()) } answers { callOriginal() }
 
@@ -79,7 +83,8 @@ open class SoftConstraintsTest {
         pc += sameAsFirstExpr
 
         val typeSolver = UTypeSolver<Type>(mockk())
-        val solver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder, softConstraintsProvider)
+        val solver: USolverBase<Type> =
+            USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder, softConstraintsProvider)
 
         val result = solver.checkWithSoftConstraints(pc) as USatResult
         val model = result.model

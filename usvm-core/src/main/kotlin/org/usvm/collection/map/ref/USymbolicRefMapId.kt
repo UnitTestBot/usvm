@@ -51,7 +51,7 @@ class UAllocatedRefMapWithInputKeysId<MapType, ValueSort : USort>(
     override fun instantiate(
         collection: USymbolicCollection<UAllocatedRefMapWithInputKeysId<MapType, ValueSort>, UHeapRef, ValueSort>,
         key: UHeapRef,
-        composer: UComposer<*>?
+        composer: UComposer<*, *>?
     ): UExpr<ValueSort> {
         if (collection.updates.isEmpty()) {
             return composer.compose(defaultValue)
@@ -116,7 +116,7 @@ class UInputRefMapWithAllocatedKeysId<MapType, ValueSort : USort>(
     override fun instantiate(
         collection: USymbolicCollection<UInputRefMapWithAllocatedKeysId<MapType, ValueSort>, UHeapRef, ValueSort>,
         key: UHeapRef,
-        composer: UComposer<*>?
+        composer: UComposer<*, *>?
     ): UExpr<ValueSort> {
         if (collection.updates.isEmpty()) {
             return composer.compose(defaultValue)
@@ -179,7 +179,7 @@ class UInputRefMapWithInputKeysId<MapType, ValueSort : USort>(
     override fun instantiate(
         collection: USymbolicCollection<UInputRefMapWithInputKeysId<MapType, ValueSort>, USymbolicMapKey<UAddressSort>, ValueSort>,
         key: USymbolicMapKey<UAddressSort>,
-        composer: UComposer<*>?
+        composer: UComposer<*, *>?
     ): UExpr<ValueSort> {
         if (composer == null) {
             return sort.uctx.mkInputRefMapWithInputKeysReading(collection, key.first, key.second)

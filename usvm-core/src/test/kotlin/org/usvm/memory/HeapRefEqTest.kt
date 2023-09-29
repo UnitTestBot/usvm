@@ -8,16 +8,17 @@ import org.junit.jupiter.api.Test
 import org.usvm.Type
 import org.usvm.UComponents
 import org.usvm.UContext
+import org.usvm.USizeSort
 import org.usvm.api.allocateConcreteRef
 import kotlin.test.assertSame
 
 class HeapRefEqTest {
-    private lateinit var ctx: UContext
+    private lateinit var ctx: UContext<USizeSort>
     private lateinit var heap: UMemory<Type, Any>
 
     @BeforeEach
     fun initializeContext() {
-        val components: UComponents<Type> = mockk()
+        val components: UComponents<Type, USizeSort> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
         ctx = UContext(components)
         heap = UMemory(ctx, mockk())

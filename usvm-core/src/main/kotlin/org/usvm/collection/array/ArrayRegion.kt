@@ -6,7 +6,6 @@ import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapAddress
 import org.usvm.UExpr
 import org.usvm.UHeapRef
-import org.usvm.USizeExpr
 import org.usvm.USort
 import org.usvm.memory.ULValue
 import org.usvm.memory.UMemoryRegion
@@ -17,91 +16,91 @@ import org.usvm.memory.foldHeapRefWithStaticAsSymbolic
 import org.usvm.memory.key.USizeExprKeyInfo
 import org.usvm.memory.mapWithStaticAsSymbolic
 
-data class UArrayIndexLValue<ArrayType, Sort : USort>(
+data class UArrayIndexLValue<ArrayType, Sort : USort, USizeSort : USort>(
     override val sort: Sort,
     val ref: UHeapRef,
-    val index: USizeExpr,
+    val index: UExpr<USizeSort>,
     val arrayType: ArrayType,
-) : ULValue<UArrayIndexLValue<ArrayType, Sort>, Sort> {
+) : ULValue<UArrayIndexLValue<ArrayType, Sort, USizeSort>, Sort> {
 
-    override val memoryRegionId: UMemoryRegionId<UArrayIndexLValue<ArrayType, Sort>, Sort> =
+    override val memoryRegionId: UMemoryRegionId<UArrayIndexLValue<ArrayType, Sort, USizeSort>, Sort> =
         UArrayRegionId(arrayType, sort)
 
-    override val key: UArrayIndexLValue<ArrayType, Sort>
+    override val key: UArrayIndexLValue<ArrayType, Sort, USizeSort>
         get() = this
 }
 
-data class UArrayRegionId<ArrayType, Sort : USort>(val arrayType: ArrayType, override val sort: Sort) :
-    UMemoryRegionId<UArrayIndexLValue<ArrayType, Sort>, Sort> {
+data class UArrayRegionId<ArrayType, Sort : USort, USizeSort : USort>(val arrayType: ArrayType, override val sort: Sort) :
+    UMemoryRegionId<UArrayIndexLValue<ArrayType, Sort, USizeSort>, Sort> {
 
-    override fun emptyRegion(): UMemoryRegion<UArrayIndexLValue<ArrayType, Sort>, Sort> =
+    override fun emptyRegion(): UMemoryRegion<UArrayIndexLValue<ArrayType, Sort, USizeSort>, Sort> =
         UArrayMemoryRegion()
 }
 
-typealias UAllocatedArray<ArrayType, Sort> = USymbolicCollection<UAllocatedArrayId<ArrayType, Sort>, USizeExpr, Sort>
-typealias UInputArray<ArrayType, Sort> = USymbolicCollection<UInputArrayId<ArrayType, Sort>, USymbolicArrayIndex, Sort>
+typealias UAllocatedArray<ArrayType, Sort, USizeSort> = USymbolicCollection<UAllocatedArrayId<ArrayType, Sort, USizeSort>, UExpr<USizeSort>, Sort>
+typealias UInputArray<ArrayType, Sort, USizeSort> = USymbolicCollection<UInputArrayId<ArrayType, Sort, USizeSort>, USymbolicArrayIndex<USizeSort>, Sort>
 
-interface UArrayRegion<ArrayType, Sort : USort> : UMemoryRegion<UArrayIndexLValue<ArrayType, Sort>, Sort> {
+interface UArrayRegion<ArrayType, Sort : USort, USizeSort : USort> : UMemoryRegion<UArrayIndexLValue<ArrayType, Sort, USizeSort>, Sort> {
     fun memcpy(
         srcRef: UHeapRef,
         dstRef: UHeapRef,
         type: ArrayType,
         elementSort: Sort,
-        fromSrcIdx: USizeExpr,
-        fromDstIdx: USizeExpr,
-        toDstIdx: USizeExpr,
+        fromSrcIdx: UExpr<USizeSort>,
+        fromDstIdx: UExpr<USizeSort>,
+        toDstIdx: UExpr<USizeSort>,
         operationGuard: UBoolExpr,
-    ): UArrayRegion<ArrayType, Sort>
+    ): UArrayRegion<ArrayType, Sort, USizeSort>
 
     fun initializeAllocatedArray(
         address: UConcreteHeapAddress,
         arrayType: ArrayType,
         sort: Sort,
-        content: Map<USizeExpr, UExpr<Sort>>,
+        content: Map<UExpr<USizeSort>, UExpr<Sort>>,
         operationGuard: UBoolExpr
-    ): UArrayRegion<ArrayType, Sort>
+    ): UArrayRegion<ArrayType, Sort, USizeSort>
 }
 
-internal class UArrayMemoryRegion<ArrayType, Sort : USort>(
-    private var allocatedArrays: PersistentMap<UConcreteHeapAddress, UAllocatedArray<ArrayType, Sort>> = persistentHashMapOf(),
-    private var inputArray: UInputArray<ArrayType, Sort>? = null
-) : UArrayRegion<ArrayType, Sort> {
+internal class UArrayMemoryRegion<ArrayType, Sort : USort, USizeSort : USort>(
+    private var allocatedArrays: PersistentMap<UConcreteHeapAddress, UAllocatedArray<ArrayType, Sort, USizeSort>> = persistentHashMapOf(),
+    private var inputArray: UInputArray<ArrayType, Sort, USizeSort>? = null
+) : UArrayRegion<ArrayType, Sort, USizeSort> {
 
     private fun getAllocatedArray(
         arrayType: ArrayType,
         sort: Sort,
         address: UConcreteHeapAddress
-    ): UAllocatedArray<ArrayType, Sort> {
+    ): UAllocatedArray<ArrayType, Sort, USizeSort> {
         var collection = allocatedArrays[address]
         if (collection == null) {
-            collection = UAllocatedArrayId(arrayType, sort, address).emptyRegion()
+            collection = UAllocatedArrayId<_, _, USizeSort>(arrayType, sort, address).emptyRegion()
             allocatedArrays = allocatedArrays.put(address, collection)
         }
         return collection
     }
 
-    private fun updateAllocatedArray(ref: UConcreteHeapAddress, updated: UAllocatedArray<ArrayType, Sort>) =
+    private fun updateAllocatedArray(ref: UConcreteHeapAddress, updated: UAllocatedArray<ArrayType, Sort, USizeSort>) =
         UArrayMemoryRegion(allocatedArrays.put(ref, updated), inputArray)
 
-    private fun getInputArray(arrayType: ArrayType, sort: Sort): UInputArray<ArrayType, Sort> {
+    private fun getInputArray(arrayType: ArrayType, sort: Sort): UInputArray<ArrayType, Sort, USizeSort> {
         if (inputArray == null)
-            inputArray = UInputArrayId(arrayType, sort).emptyRegion()
+            inputArray = UInputArrayId<_, _, USizeSort>(arrayType, sort).emptyRegion()
         return inputArray!!
     }
 
-    private fun updateInput(updated: UInputArray<ArrayType, Sort>) =
+    private fun updateInput(updated: UInputArray<ArrayType, Sort, USizeSort>) =
         UArrayMemoryRegion(allocatedArrays, updated)
 
-    override fun read(key: UArrayIndexLValue<ArrayType, Sort>): UExpr<Sort> = key.ref.mapWithStaticAsSymbolic(
+    override fun read(key: UArrayIndexLValue<ArrayType, Sort, USizeSort>): UExpr<Sort> = key.ref.mapWithStaticAsSymbolic(
         concreteMapper = { concreteRef -> getAllocatedArray(key.arrayType, key.sort, concreteRef.address).read(key.index) },
         symbolicMapper = { symbolicRef -> getInputArray(key.arrayType, key.sort).read(symbolicRef to key.index) }
     )
 
     override fun write(
-        key: UArrayIndexLValue<ArrayType, Sort>,
+        key: UArrayIndexLValue<ArrayType, Sort, USizeSort>,
         value: UExpr<Sort>,
         guard: UBoolExpr
-    ): UMemoryRegion<UArrayIndexLValue<ArrayType, Sort>, Sort> = foldHeapRefWithStaticAsSymbolic(
+    ): UMemoryRegion<UArrayIndexLValue<ArrayType, Sort, USizeSort>, Sort> = foldHeapRefWithStaticAsSymbolic(
         key.ref,
         initial = this,
         initialGuard = guard,
@@ -122,9 +121,9 @@ internal class UArrayMemoryRegion<ArrayType, Sort : USort>(
         dstRef: UHeapRef,
         type: ArrayType,
         elementSort: Sort,
-        fromSrcIdx: USizeExpr,
-        fromDstIdx: USizeExpr,
-        toDstIdx: USizeExpr,
+        fromSrcIdx: UExpr<USizeSort>,
+        fromDstIdx: UExpr<USizeSort>,
+        toDstIdx: UExpr<USizeSort>,
         operationGuard: UBoolExpr,
     ) = foldHeapRef2(
         ref0 = srcRef,
@@ -135,7 +134,7 @@ internal class UArrayMemoryRegion<ArrayType, Sort : USort>(
             val srcCollection = region.getAllocatedArray(type, elementSort, srcConcrete.address)
             val dstCollection = region.getAllocatedArray(type, elementSort, dstConcrete.address)
             val adapter = USymbolicArrayAllocatedToAllocatedCopyAdapter(
-                fromSrcIdx, fromDstIdx, toDstIdx, USizeExprKeyInfo
+                fromSrcIdx, fromDstIdx, toDstIdx, USizeExprKeyInfo()
             )
             val newDstCollection = dstCollection.copyRange(srcCollection, adapter, guard)
             region.updateAllocatedArray(dstConcrete.address, newDstCollection)
@@ -148,7 +147,7 @@ internal class UArrayMemoryRegion<ArrayType, Sort : USort>(
                 fromSrcIdx,
                 dstSymbolic to fromDstIdx,
                 dstSymbolic to toDstIdx,
-                USymbolicArrayIndexKeyInfo
+                USymbolicArrayIndexKeyInfo()
             )
             val newDstCollection = dstCollection.copyRange(srcCollection, adapter, guard)
             region.updateInput(newDstCollection)
@@ -160,7 +159,7 @@ internal class UArrayMemoryRegion<ArrayType, Sort : USort>(
                 srcSymbolic to fromSrcIdx,
                 fromDstIdx,
                 toDstIdx,
-                USizeExprKeyInfo
+                USizeExprKeyInfo()
             )
             val newDstCollection = dstCollection.copyRange(srcCollection, adapter, guard)
             region.updateAllocatedArray(dstConcrete.address, newDstCollection)
@@ -172,7 +171,7 @@ internal class UArrayMemoryRegion<ArrayType, Sort : USort>(
                 srcSymbolic to fromSrcIdx,
                 dstSymbolic to fromDstIdx,
                 dstSymbolic to toDstIdx,
-                USymbolicArrayIndexKeyInfo
+                USymbolicArrayIndexKeyInfo()
             )
             val newDstCollection = dstCollection.copyRange(srcCollection, adapter, guard)
             region.updateInput(newDstCollection)
@@ -183,10 +182,10 @@ internal class UArrayMemoryRegion<ArrayType, Sort : USort>(
         address: UConcreteHeapAddress,
         arrayType: ArrayType,
         sort: Sort,
-        content: Map<USizeExpr, UExpr<Sort>>,
+        content: Map<UExpr<USizeSort>, UExpr<Sort>>,
         operationGuard: UBoolExpr
-    ): UArrayMemoryRegion<ArrayType, Sort> {
-        val arrayId = UAllocatedArrayId(arrayType, sort, address)
+    ): UArrayMemoryRegion<ArrayType, Sort, USizeSort> {
+        val arrayId = UAllocatedArrayId<_, _, USizeSort>(arrayType, sort, address)
         val newCollection = arrayId.initializedArray(content, operationGuard)
         return UArrayMemoryRegion(allocatedArrays.put(address, newCollection), inputArray)
     }

@@ -18,7 +18,7 @@ interface UMocker<Method> : UMockEvaluator {
 }
 
 class UIndexedMocker<Method>(
-    private val ctx: UContext,
+    private val ctx: UContext<*>,
     private val clauses: PersistentMap<Method, PersistentList<UMockSymbol<out USort>>> = persistentMapOf()
 ) : UMocker<Method> {
     override fun <Sort : USort> call(

@@ -19,7 +19,6 @@ import org.usvm.UIsSubtypeExpr
 import org.usvm.UIsSupertypeExpr
 import org.usvm.UNullRef
 import org.usvm.URegisterReading
-import org.usvm.USizeSort
 import org.usvm.USort
 import org.usvm.USymbolicHeapRef
 import org.usvm.collection.array.UAllocatedArrayReading
@@ -70,9 +69,9 @@ import java.util.concurrent.ConcurrentHashMap
  *
  * To show semantics of the translator, we use [KExpr] as return values, though [UExpr] is a typealias for it.
  */
-open class UExprTranslator<Type>(
-    override val ctx: UContext,
-) : UExprTransformer<Type>(ctx) {
+open class UExprTranslator<Type, USizeSort : USort>(
+    override val ctx: UContext<USizeSort>,
+) : UExprTransformer<Type, USizeSort>(ctx) {
     open fun <Sort : USort> translate(expr: UExpr<Sort>): KExpr<Sort> = apply(expr)
 
     override fun <Sort : USort> transform(expr: URegisterReading<Sort>): KExpr<Sort> {
@@ -117,21 +116,21 @@ open class UExprTranslator<Type>(
         return const
     }
 
-    override fun transform(expr: UInputArrayLengthReading<Type>): KExpr<USizeSort> =
+    override fun transform(expr: UInputArrayLengthReading<Type, USizeSort>): KExpr<USizeSort> =
         transformExprAfterTransformed(expr, expr.address) { address ->
             val translator = arrayLengthRegionDecoder(expr.collection.collectionId)
                 .inputArrayLengthRegionTranslator(expr.collection.collectionId)
             translator.translateReading(expr.collection, address)
         }
 
-    override fun <Sort : USort> transform(expr: UInputArrayReading<Type, Sort>): KExpr<Sort> =
+    override fun <Sort : USort> transform(expr: UInputArrayReading<Type, Sort, USizeSort>): KExpr<Sort> =
         transformExprAfterTransformed(expr, expr.address, expr.index) { address, index ->
             val translator = arrayRegionDecoder(expr.collection.collectionId)
                 .inputArrayRegionTranslator(expr.collection.collectionId)
             translator.translateReading(expr.collection, address to index)
         }
 
-    override fun <Sort : USort> transform(expr: UAllocatedArrayReading<Type, Sort>): KExpr<Sort> =
+    override fun <Sort : USort> transform(expr: UAllocatedArrayReading<Type, Sort, USizeSort>): KExpr<Sort> =
         transformExprAfterTransformed(expr, expr.index) { index ->
             val translator = arrayRegionDecoder(expr.collection.collectionId)
                 .allocatedArrayRegionTranslator(expr.collection.collectionId)
@@ -185,7 +184,7 @@ open class UExprTranslator<Type>(
         translator.translateReading(expr.collection, mapRef to keyRef)
     }
 
-    override fun transform(expr: UInputMapLengthReading<Type>): KExpr<USizeSort> =
+    override fun transform(expr: UInputMapLengthReading<Type, USizeSort>): KExpr<USizeSort> =
         transformExprAfterTransformed(expr, expr.address) { address ->
             val translator = mapLengthRegionDecoder(expr.collection.collectionId)
                 .inputMapLengthRegionTranslator(expr.collection.collectionId)
@@ -240,16 +239,16 @@ open class UExprTranslator<Type>(
 
     fun <ArrayType, Sort : USort, ArrayId : USymbolicArrayId<ArrayType, *, Sort, ArrayId>> arrayRegionDecoder(
         arrayId: ArrayId
-    ): UArrayRegionDecoder<ArrayType, Sort> {
-        val arrayRegionId = UArrayRegionId(arrayId.arrayType, arrayId.sort)
+    ): UArrayRegionDecoder<ArrayType, Sort, USizeSort> {
+        val arrayRegionId = UArrayRegionId<ArrayType, Sort, USizeSort>(arrayId.arrayType, arrayId.sort)
         return getOrPutRegionDecoder(arrayRegionId) {
             UArrayRegionDecoder(arrayRegionId, this)
         }
     }
 
-    fun <ArrayType, ArrayLenId : USymbolicArrayLengthId<*, ArrayType, ArrayLenId>> arrayLengthRegionDecoder(
+    fun <ArrayType, ArrayLenId : USymbolicArrayLengthId<*, ArrayType, ArrayLenId, USizeSort>> arrayLengthRegionDecoder(
         arrayLengthId: ArrayLenId
-    ): UArrayLengthRegionDecoder<ArrayType> {
+    ): UArrayLengthRegionDecoder<ArrayType, USizeSort> {
         val arrayRegionId = UArrayLengthsRegionId(arrayLengthId.sort, arrayLengthId.arrayType)
         return getOrPutRegionDecoder(arrayRegionId) {
             UArrayLengthRegionDecoder(arrayRegionId, this)
@@ -275,9 +274,9 @@ open class UExprTranslator<Type>(
         }
     }
 
-    fun <MapType, MapLengthId : USymbolicMapLengthId<UHeapRef, MapType, MapLengthId>> mapLengthRegionDecoder(
+    fun <MapType, MapLengthId : USymbolicMapLengthId<UHeapRef, MapType, MapLengthId, USizeSort>> mapLengthRegionDecoder(
         mapLengthId: MapLengthId
-    ): UMapLengthRegionDecoder<MapType> {
+    ): UMapLengthRegionDecoder<MapType, USizeSort> {
         val symbolicMapLengthRegionId = UMapLengthRegionId(mapLengthId.sort, mapLengthId.mapType)
         return getOrPutRegionDecoder(symbolicMapLengthRegionId) {
             UMapLengthRegionDecoder(symbolicMapLengthRegionId, this)

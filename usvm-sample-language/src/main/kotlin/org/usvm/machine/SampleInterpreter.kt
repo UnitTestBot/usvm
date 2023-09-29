@@ -15,7 +15,7 @@ import org.usvm.language.SetLabel
 import org.usvm.language.SetValue
 import org.usvm.language.Stmt
 
-typealias SampleStepScope = StepScope<SampleState, SampleType, Stmt, UContext>
+typealias SampleStepScope = StepScope<SampleState, SampleType, Stmt, UContext<USizeSort>>
 
 
 val logger = object : KLogging() {}.logger
@@ -23,7 +23,7 @@ val logger = object : KLogging() {}.logger
  * Symbolic interpreter for a sample language.
  */
 class SampleInterpreter(
-    private val ctx: UContext,
+    private val ctx: UContext<USizeSort>,
     private val applicationGraph: SampleApplicationGraph,
     private val forkBlackList: UForkBlackList<SampleState, Stmt> = UForkBlackList.createDefault()
 ) : UInterpreter<SampleState>() {

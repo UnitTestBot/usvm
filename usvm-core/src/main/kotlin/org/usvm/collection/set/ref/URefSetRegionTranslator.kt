@@ -25,7 +25,7 @@ import java.util.IdentityHashMap
 
 class URefSetRegionDecoder<SetType>(
     private val regionId: URefSetRegionId<SetType>,
-    private val exprTranslator: UExprTranslator<*>
+    private val exprTranslator: UExprTranslator<*, *>
 ) : URegionDecoder<URefSetEntryLValue<SetType>, UBoolSort> {
     private val allocatedWithInputRegionTranslator =
         mutableMapOf<UAllocatedRefSetWithInputElementsId<SetType>, UAllocatedRefSetWithInputElementsTranslator<SetType>>()
@@ -68,7 +68,7 @@ class URefSetRegionDecoder<SetType>(
 // todo: use uninterpreted functions instead of arrays
 private class UAllocatedRefSetWithInputElementsTranslator<SetType>(
     collectionId: UAllocatedRefSetWithInputElementsId<SetType>,
-    exprTranslator: UExprTranslator<*>
+    exprTranslator: UExprTranslator<*, *>
 ) : URegionTranslator<UAllocatedRefSetWithInputElementsId<SetType>, UHeapRef, UBoolSort> {
     private val initialValue = with(collectionId.sort.uctx) {
         val sort = mkArraySort(addressSort, boolSort)
@@ -89,7 +89,7 @@ private class UAllocatedRefSetWithInputElementsTranslator<SetType>(
 
 private class UInputRefSetWithAllocatedElementsTranslator<SetType>(
     collectionId: UInputRefSetWithAllocatedElementsId<SetType>,
-    exprTranslator: UExprTranslator<*>
+    exprTranslator: UExprTranslator<*, *>
 ) : URegionTranslator<UInputRefSetWithAllocatedElementsId<SetType>, UHeapRef, UBoolSort> {
     private val initialValue = with(collectionId.sort.uctx) {
         val sort = mkArraySort(addressSort, boolSort)
@@ -110,7 +110,7 @@ private class UInputRefSetWithAllocatedElementsTranslator<SetType>(
 
 private class UInputRefSetWithInputElementsTranslator<SetType>(
     collectionId: UInputRefSetWithInputElementsId<SetType>,
-    exprTranslator: UExprTranslator<*>
+    exprTranslator: UExprTranslator<*, *>
 ) : URegionTranslator<UInputRefSetWithInputElementsId<SetType>, USymbolicSetElement<UAddressSort>, UBoolSort>,
     UCollectionDecoder<USymbolicSetElement<UAddressSort>, UBoolSort> {
     private val initialValue = with(collectionId.sort.uctx) {
@@ -137,7 +137,7 @@ private class UInputRefSetWithInputElementsTranslator<SetType>(
 }
 
 private class UAllocatedRefSetUpdatesTranslator(
-    exprTranslator: UExprTranslator<*>,
+    exprTranslator: UExprTranslator<*, *>,
     initialValue: KExpr<KArraySort<UAddressSort, UBoolSort>>
 ) : U1DUpdatesTranslator<UAddressSort, UBoolSort>(exprTranslator, initialValue) {
     override fun KContext.translateRangedUpdate(
@@ -156,7 +156,7 @@ private class UAllocatedRefSetUpdatesTranslator(
 }
 
 private class UInputRefSetUpdatesTranslator(
-    exprTranslator: UExprTranslator<*>,
+    exprTranslator: UExprTranslator<*, *>,
     initialValue: KExpr<KArray2Sort<UAddressSort, UAddressSort, UBoolSort>>
 ) : U2DUpdatesTranslator<UAddressSort, UAddressSort, UBoolSort>(exprTranslator, initialValue) {
     override fun KContext.translateRangedUpdate(

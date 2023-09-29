@@ -27,9 +27,10 @@ import org.usvm.language.StructCreation
 import org.usvm.language.StructExpr
 import org.usvm.language.StructType
 import org.usvm.model.UModelBase
+import org.usvm.sizeSort
 
 class ResultModelConverter(
-    private val ctx: UContext,
+    private val ctx: UContext<USizeSort>,
 ) {
     fun convert(state: SampleState, method: Method<*>): ProgramExecutionResult {
         val exceptionRegister = state.exceptionRegister
@@ -57,7 +58,7 @@ class ResultModelConverter(
     }
 
     private class InputScope(
-        private val ctx: UContext,
+        private val ctx: UContext<USizeSort>,
         private val model: UModelBase<SampleType>,
     ) {
         fun convertExpr(expr: UExpr<out USort>, type: SampleType): Expr<SampleType> =
@@ -96,7 +97,7 @@ class ResultModelConverter(
             if (ref == ctx.mkConcreteHeapRef(NULL_ADDRESS)) {
                 return ArrayCreation(StructType(Null), IntConst(0), emptyList())
             }
-            val lengthUExpr = model.readArrayLength(ref, type)
+            val lengthUExpr = model.readArrayLength(ref, type, ctx.sizeSort)
             val length = (convertExpr(lengthUExpr, IntType) as IntConst).const
             val resolved = (0 until length).map { idx ->
                 val indexUExpr = model.readArrayIndex(ref, ctx.mkBv(idx), type, ctx.typeToSort(type.elementType))

@@ -8,26 +8,31 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.usvm.TestKeyInfo
 import org.usvm.Type
+import org.usvm.UBv32SizeExprProvider
 import org.usvm.UBv32Sort
 import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.UHeapRef
+import org.usvm.USizeSort
 import org.usvm.collection.array.UAllocatedArrayId
 import org.usvm.collection.array.UInputArrayId
+import org.usvm.mkSizeExpr
 import org.usvm.regions.SetRegion
 import org.usvm.regions.emptyRegionTree
+import org.usvm.sizeSort
 import kotlin.random.Random
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class MemoryRegionTest {
-    private lateinit var ctx: UContext
+    private lateinit var ctx: UContext<USizeSort>
 
     @BeforeEach
     fun initializeContext() {
-        val components: UComponents<Type> = mockk()
+        val components: UComponents<Type, USizeSort> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
         ctx = UContext(components)
+        every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
     }
 
     @Test
@@ -91,7 +96,7 @@ class MemoryRegionTest {
         val idx1 = mkRegisterReading(0, sizeSort)
         val idx2 = mkRegisterReading(1, sizeSort)
 
-        val memoryRegion = UAllocatedArrayId(mockk<Type>(), sizeSort, 0)
+        val memoryRegion = UAllocatedArrayId<_, _, USizeSort>(mockk<Type>(), sizeSort, 0)
             .emptyRegion()
             .write(idx1, mkBv(0), trueExpr)
             .write(idx2, mkBv(1), trueExpr)
@@ -127,7 +132,7 @@ class MemoryRegionTest {
 
         val testsCount = 100
         repeat(testsCount) {
-            var memoryRegion = UInputArrayId(mockk<Type>(), addressSort)
+            var memoryRegion = UInputArrayId<_, _, USizeSort>(mockk<Type>(), addressSort)
                 .emptyRegion()
 
             val writesCount = 20

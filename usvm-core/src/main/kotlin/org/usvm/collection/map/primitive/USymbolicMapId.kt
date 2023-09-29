@@ -56,7 +56,7 @@ class UAllocatedMapId<MapType, KeySort : USort, ValueSort : USort, Reg : Region<
     override fun instantiate(
         collection: USymbolicCollection<UAllocatedMapId<MapType, KeySort, ValueSort, Reg>, UExpr<KeySort>, ValueSort>,
         key: UExpr<KeySort>,
-        composer: UComposer<*>?
+        composer: UComposer<*, *>?
     ): UExpr<ValueSort> {
         if (collection.updates.isEmpty()) {
             return composer.compose(defaultValue)
@@ -127,7 +127,7 @@ class UInputMapId<MapType, KeySort : USort, ValueSort : USort, Reg : Region<Reg>
     override fun instantiate(
         collection: USymbolicCollection<UInputMapId<MapType, KeySort, ValueSort, Reg>, USymbolicMapKey<KeySort>, ValueSort>,
         key: USymbolicMapKey<KeySort>,
-        composer: UComposer<*>?
+        composer: UComposer<*, *>?
     ): UExpr<ValueSort> {
         if (composer == null) {
             return sort.uctx.mkInputMapReading(collection, key.first, key.second)

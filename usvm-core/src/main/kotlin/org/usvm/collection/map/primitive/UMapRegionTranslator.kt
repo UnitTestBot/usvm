@@ -29,7 +29,7 @@ import java.util.IdentityHashMap
 
 class UMapRegionDecoder<MapType, KeySort : USort, ValueSort : USort, Reg : Region<Reg>>(
     private val regionId: UMapRegionId<MapType, KeySort, ValueSort, Reg>,
-    private val exprTranslator: UExprTranslator<*>
+    private val exprTranslator: UExprTranslator<*, *>
 ) : URegionDecoder<UMapEntryLValue<MapType, KeySort, ValueSort, Reg>, ValueSort> {
     private val allocatedRegions =
         mutableMapOf<UConcreteHeapAddress, UAllocatedMapTranslator<MapType, KeySort, ValueSort, Reg>>()
@@ -60,7 +60,7 @@ class UMapRegionDecoder<MapType, KeySort : USort, ValueSort : USort, Reg : Regio
 
 private class UAllocatedMapTranslator<MapType, KeySort : USort, ValueSort : USort, Reg : Region<Reg>>(
     collectionId: UAllocatedMapId<MapType, KeySort, ValueSort, Reg>,
-    exprTranslator: UExprTranslator<*>
+    exprTranslator: UExprTranslator<*, *>
 ) : URegionTranslator<UAllocatedMapId<MapType, KeySort, ValueSort, Reg>, UExpr<KeySort>, ValueSort> {
     private val initialValue = with(collectionId.sort.uctx) {
         val sort = mkArraySort(collectionId.keySort, collectionId.sort)
@@ -82,7 +82,7 @@ private class UAllocatedMapTranslator<MapType, KeySort : USort, ValueSort : USor
 
 private class UInputMapTranslator<MapType, KeySort : USort, ValueSort : USort, Reg : Region<Reg>>(
     collectionId: UInputMapId<MapType, KeySort, ValueSort, Reg>,
-    exprTranslator: UExprTranslator<*>
+    exprTranslator: UExprTranslator<*, *>
 ) : URegionTranslator<UInputMapId<MapType, KeySort, ValueSort, Reg>, USymbolicMapKey<KeySort>, ValueSort>,
     UCollectionDecoder<USymbolicMapKey<KeySort>, ValueSort> {
     private val initialValue = with(collectionId.sort.uctx) {
@@ -108,7 +108,7 @@ private class UInputMapTranslator<MapType, KeySort : USort, ValueSort : USort, R
 }
 
 private class UAllocatedMapUpdatesTranslator<KeySort : USort, ValueSort : USort>(
-    exprTranslator: UExprTranslator<*>,
+    exprTranslator: UExprTranslator<*, *>,
     initialValue: KExpr<KArraySort<KeySort, ValueSort>>
 ) : U1DUpdatesTranslator<KeySort, ValueSort>(exprTranslator, initialValue) {
     override fun KContext.translateRangedUpdate(
@@ -141,7 +141,7 @@ private class UAllocatedMapUpdatesTranslator<KeySort : USort, ValueSort : USort>
 }
 
 private class UInputMapUpdatesTranslator<KeySort : USort, ValueSort : USort>(
-    exprTranslator: UExprTranslator<*>,
+    exprTranslator: UExprTranslator<*, *>,
     initialValue: KExpr<KArray2Sort<UAddressSort, KeySort, ValueSort>>
 ) : U2DUpdatesTranslator<UAddressSort, KeySort, ValueSort>(exprTranslator, initialValue) {
     override fun KContext.translateRangedUpdate(

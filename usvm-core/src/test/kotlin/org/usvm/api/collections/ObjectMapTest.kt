@@ -1,8 +1,10 @@
 package org.usvm.api.collections
 
 import io.ksmt.solver.KSolver
+import org.usvm.UContext
+import org.usvm.UExpr
 import org.usvm.UHeapRef
-import org.usvm.USizeExpr
+import org.usvm.USizeSort
 import org.usvm.UState
 import org.usvm.api.collection.ObjectMapCollectionApi.ensureObjectMapSizeCorrect
 import org.usvm.api.collection.ObjectMapCollectionApi.mkSymbolicObjectMap
@@ -12,7 +14,11 @@ import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapMergeInto
 import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapPut
 import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapRemove
 import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapSize
+import org.usvm.mkSizeExpr
+import org.usvm.mkSizeGtExpr
+import org.usvm.mkSizeLtExpr
 import org.usvm.model.UModelBase
+import org.usvm.sizeSort
 import org.usvm.solver.USatResult
 import org.usvm.types.single.SingleTypeSystem
 import kotlin.test.Test
@@ -140,7 +146,9 @@ class ObjectMapTest : SymbolicCollectionTestBase() {
             assertPossible { size eq upperBound }
             assertPossible { size eq lowerBound }
             assertImpossible {
-                mkBvSignedLessExpr(size, lowerBound) or mkBvSignedGreaterExpr(size, upperBound)
+                with(ctx) {
+                    mkSizeLtExpr(size, lowerBound) or mkSizeGtExpr(size, upperBound)
+                }
             }
         }
     }
@@ -160,7 +168,7 @@ class ObjectMapTest : SymbolicCollectionTestBase() {
 
     private fun testMapSize(
         mapRef: UHeapRef,
-        checkSizeBounds: KSolver<*>.(USizeExpr, USizeExpr, USizeExpr) -> Unit
+        checkSizeBounds: KSolver<*>.(UExpr<USizeSort>, UExpr<USizeSort>, UExpr<USizeSort>) -> Unit
     ) = scope.doWithState {
         val concreteKeys = (1..5).map { ctx.mkConcreteHeapRef(it) }
         val symbolicKeys = (1..5).map { ctx.mkRegisterReading(it, ctx.addressSort) }
@@ -306,7 +314,7 @@ class ObjectMapTest : SymbolicCollectionTestBase() {
                 assertPossible { keyContains eq trueExpr }
 
                 val storedValue = tgtValues[key] ?: otherValues[key] ?: error("$key was not stored")
-                val actualValue: USizeExpr = symbolicObjectMapGet(mergeTarget, key, mapType, ctx.sizeSort)
+                val actualValue = symbolicObjectMapGet(mergeTarget, key, mapType, ctx.sizeSort)
                 assertPossible { storedValue eq actualValue }
             }
 
@@ -326,7 +334,7 @@ class ObjectMapTest : SymbolicCollectionTestBase() {
 
                 val storedV1 = tgtValues.getValue(key)
                 val storedV2 = otherValues.getValue(key)
-                val actualValue: USizeExpr = symbolicObjectMapGet(mergeTarget, key, mapType, ctx.sizeSort)
+                val actualValue = symbolicObjectMapGet(mergeTarget, key, mapType, ctx.sizeSort)
 
                 assertPossible {
                     (actualValue eq storedV1) or (actualValue eq storedV2)
@@ -335,7 +343,7 @@ class ObjectMapTest : SymbolicCollectionTestBase() {
         }
     }
 
-    private fun UState<SingleTypeSystem.SingleType, *, *, *, *, *>.fillMap(
+    private fun UState<SingleTypeSystem.SingleType, *, *, UContext<USizeSort>, *, *>.fillMap(
         mapRef: UHeapRef,
         keys: List<UHeapRef>,
         startValueIdx: Int

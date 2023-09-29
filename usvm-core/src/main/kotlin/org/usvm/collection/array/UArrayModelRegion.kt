@@ -6,32 +6,31 @@ import org.usvm.USort
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.model.AddressesMapping
 import org.usvm.model.modelEnsureConcreteInputRef
-import org.usvm.sampleUValue
 import org.usvm.solver.UCollectionDecoder
 
-abstract class UArrayModelRegion<ArrayType, Sort : USort>(
-    private val regionId: UArrayRegionId<ArrayType, Sort>,
-) : UReadOnlyMemoryRegion<UArrayIndexLValue<ArrayType, Sort>, Sort> {
-    abstract val inputArray: UReadOnlyMemoryRegion<USymbolicArrayIndex, Sort>
+abstract class UArrayModelRegion<ArrayType, Sort : USort, USizeSort : USort>(
+    private val regionId: UArrayRegionId<ArrayType, Sort, USizeSort>,
+) : UReadOnlyMemoryRegion<UArrayIndexLValue<ArrayType, Sort, USizeSort>, Sort> {
+    abstract val inputArray: UReadOnlyMemoryRegion<USymbolicArrayIndex<USizeSort>, Sort>
 
-    override fun read(key: UArrayIndexLValue<ArrayType, Sort>): UExpr<Sort> {
+    override fun read(key: UArrayIndexLValue<ArrayType, Sort, USizeSort>): UExpr<Sort> {
         val ref = modelEnsureConcreteInputRef(key.ref)
         return inputArray.read(ref to key.index)
     }
 }
 
-class UArrayLazyModelRegion<ArrayType, Sort : USort>(
-    regionId: UArrayRegionId<ArrayType, Sort>,
+class UArrayLazyModelRegion<ArrayType, Sort : USort, USizeSort : USort>(
+    regionId: UArrayRegionId<ArrayType, Sort, USizeSort>,
     private val model: KModel,
     private val addressesMapping: AddressesMapping,
-    private val inputArrayDecoder: UCollectionDecoder<USymbolicArrayIndex, Sort>
-) : UArrayModelRegion<ArrayType, Sort>(regionId) {
-    override val inputArray: UReadOnlyMemoryRegion<USymbolicArrayIndex, Sort> by lazy {
+    private val inputArrayDecoder: UCollectionDecoder<USymbolicArrayIndex<USizeSort>, Sort>
+) : UArrayModelRegion<ArrayType, Sort, USizeSort>(regionId) {
+    override val inputArray: UReadOnlyMemoryRegion<USymbolicArrayIndex<USizeSort>, Sort> by lazy {
         inputArrayDecoder.decodeCollection(model, addressesMapping)
     }
 }
 
-class UArrayEagerModelRegion<ArrayType, Sort : USort>(
-    regionId: UArrayRegionId<ArrayType, Sort>,
-    override val inputArray: UReadOnlyMemoryRegion<USymbolicArrayIndex, Sort>
-) : UArrayModelRegion<ArrayType, Sort>(regionId)
+class UArrayEagerModelRegion<ArrayType, Sort : USort, USizeSort : USort>(
+    regionId: UArrayRegionId<ArrayType, Sort, USizeSort>,
+    override val inputArray: UReadOnlyMemoryRegion<USymbolicArrayIndex<USizeSort>, Sort>
+) : UArrayModelRegion<ArrayType, Sort, USizeSort>(regionId)
