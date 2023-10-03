@@ -20,10 +20,10 @@ void clean_methods() {
 }
 
 SymbolicMethod *
-construct_list_append_method(JNIEnv *env, jobject symbolic_self) {
+construct_symbolic_method_with_self(JNIEnv *env, jobject symbolic_self, call_type call) {
     assert(methods_holder);
     SymbolicMethod *result = malloc(sizeof(SymbolicMethod));
-    result->call = SymbolicMethod_list_append;
+    result->call = call;
     result->self_reference = create_global_ref(env, symbolic_self);
     add_ref_to_list(&methods_holder, result);
     return result;

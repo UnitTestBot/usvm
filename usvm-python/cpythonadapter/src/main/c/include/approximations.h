@@ -27,6 +27,7 @@ PyObject *SymbolicMethod_float(SymbolicAdapter *adapter, jobject self, PyObject 
 PyObject *Approximation_list_richcompare(PyObject *, PyObject *, int op);  // PyList_Type.tp_richcompare
 PyObject *Approximation_list_repeat(PyObject *self, PyObject *n);  // PyList_Type.tp_as_sequence.sq_repeat
 PyObject *SymbolicMethod_list_append(SymbolicAdapter *adapter, jobject self, PyObject *args, PyObject *kwargs); // list.append
+PyObject *SymbolicMethod_list_pop(SymbolicAdapter *adapter, jobject self, PyObject *args, PyObject *kwargs); // list.pop
 PyObject *Approximation_list_slice_get_item(PyObject *self, PyObject *slice);  // list[slice]
 
 #ifdef __cplusplus

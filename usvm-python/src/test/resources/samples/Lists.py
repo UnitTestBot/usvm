@@ -184,3 +184,7 @@ def input_list_of_float_pairs(x):
 def list_concat(x: list, y: list):
     z = x + y
     assert len(z) == 5
+
+
+def pop_usage(x: list):
+    assert x.pop() == 239

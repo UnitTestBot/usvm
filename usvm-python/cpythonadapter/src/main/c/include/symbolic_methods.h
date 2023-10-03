@@ -16,7 +16,7 @@ typedef struct {
 } SymbolicMethod;
 
 void clean_methods();
-SymbolicMethod *construct_list_append_method(JNIEnv *env, jobject symbolic_self);
+SymbolicMethod *construct_symbolic_method_with_self(JNIEnv *env, jobject symbolic_self, call_type call);
 SymbolicMethod *construct_symbolic_method_without_self(call_type call);
 PyObject *call_symbolic_method(SymbolicMethod *method, SymbolicAdapter *adapter, PyObject *args, PyObject *kwargs);
 
