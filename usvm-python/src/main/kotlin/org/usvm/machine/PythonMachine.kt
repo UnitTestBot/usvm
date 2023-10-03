@@ -52,7 +52,7 @@ class PythonMachine<PythonObjectRepresentation>(
         }
 
     private fun getInitialState(target: PythonUnpinnedCallable): PythonExecutionState {
-        val pathConstraints = UPathConstraints<PythonType, UPythonContext>(ctx)
+        val pathConstraints = UPathConstraints<PythonType>(ctx)
         val memory = UMemory<PythonType, PythonCallable>(
             ctx,
             pathConstraints.typeConstraints
@@ -63,7 +63,7 @@ class PythonMachine<PythonObjectRepresentation>(
             constructInputObject(index, type, ctx, memory, pathConstraints, typeSystem)
         }
         val preAllocatedObjects = PreallocatedObjects.initialize(ctx, memory, pathConstraints, typeSystem)
-        val solverRes = ctx.solver<PythonType, UPythonContext>().check(pathConstraints)
+        val solverRes = ctx.solver<PythonType>().check(pathConstraints)
         if (solverRes !is USatResult)
             error("Failed to construct initial model")
         return PythonExecutionState(

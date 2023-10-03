@@ -1,5 +1,6 @@
 package org.usvm.machine.model
 
+import io.ksmt.sort.KIntSort
 import org.usvm.UAddressSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
@@ -32,11 +33,11 @@ class PyModel(
     underlyingModel.nullRef
 ) {
     private inner class WrappedRegion<ArrayType, Sort: USort>(
-        val region: UReadOnlyMemoryRegion<UArrayIndexLValue<ArrayType, Sort>, UAddressSort>,
+        val region: UReadOnlyMemoryRegion<UArrayIndexLValue<ArrayType, Sort, KIntSort>, UAddressSort>,
         val model: PyModel,
         val ctx: UPythonContext
-    ) : UReadOnlyMemoryRegion<UArrayIndexLValue<ArrayType, Sort>, UAddressSort> {
-        override fun read(key: UArrayIndexLValue<ArrayType, Sort>): UExpr<UAddressSort> {
+    ) : UReadOnlyMemoryRegion<UArrayIndexLValue<ArrayType, Sort, KIntSort>, UAddressSort> {
+        override fun read(key: UArrayIndexLValue<ArrayType, Sort, KIntSort>): UExpr<UAddressSort> {
             val underlyingResult = region.read(key)
             val array = key.ref as UConcreteHeapRef
             if (array.address > 0)  // allocated object
@@ -54,11 +55,11 @@ class PyModel(
 
     @Suppress("UNCHECKED_CAST")
     override fun <Key, Sort : USort> getRegion(regionId: UMemoryRegionId<Key, Sort>): UReadOnlyMemoryRegion<Key, Sort> {
-        if (regionId is UArrayRegionId<*, *> &&
+        if (regionId is UArrayRegionId<*, *, *> &&
             regionId.sort == regionId.sort.uctx.addressSort &&
             regionId.arrayType == ArrayType
         ) {
-            val region = super.getRegion(regionId) as UReadOnlyMemoryRegion<UArrayIndexLValue<Any, Sort>, UAddressSort>
+            val region = super.getRegion(regionId) as UReadOnlyMemoryRegion<UArrayIndexLValue<Any, Sort, KIntSort>, UAddressSort>
             return WrappedRegion(region, this, ctx) as UReadOnlyMemoryRegion<Key, Sort>
         }
         return super.getRegion(regionId)

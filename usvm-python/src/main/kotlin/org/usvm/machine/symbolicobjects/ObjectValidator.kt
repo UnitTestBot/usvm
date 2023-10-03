@@ -28,7 +28,7 @@ class ObjectValidator(private val concolicRunContext: ConcolicRunContext) {
 
     private fun checkList(symbolic: UninterpretedSymbolicPythonObject, modelHolder: PyModelHolder) = with(concolicRunContext.ctx) {
         require(concolicRunContext.curState != null)
-        val symbolicSize = concolicRunContext.curState!!.memory.readArrayLength(symbolic.address, ArrayType)
+        val symbolicSize = concolicRunContext.curState!!.memory.readArrayLength(symbolic.address, ArrayType, intSort)
         myAssert(concolicRunContext, mkAnd(symbolicSize ge mkIntNum(0), symbolicSize le mkIntNum(100_000)))
         val size = modelHolder.model.eval(symbolicSize) as KInt32NumExpr
         List(size.value) { index ->
@@ -46,7 +46,7 @@ class ObjectValidator(private val concolicRunContext: ConcolicRunContext) {
     private fun checkTuple(symbolic: UninterpretedSymbolicPythonObject, modelHolder: PyModelHolder) = with(concolicRunContext.ctx) {
         require(concolicRunContext.curState != null)
         val time = symbolic.getTimeOfCreation(concolicRunContext)
-        val symbolicSize = concolicRunContext.curState!!.memory.readArrayLength(symbolic.address, ArrayType)
+        val symbolicSize = concolicRunContext.curState!!.memory.readArrayLength(symbolic.address, ArrayType, intSort)
         myAssert(concolicRunContext, symbolicSize ge mkIntNum(0))
         val size = modelHolder.model.eval(symbolicSize) as KInt32NumExpr
         for (index in 0 until size.value) {
