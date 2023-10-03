@@ -241,10 +241,10 @@ class TaintAnalysis(
 
         val resolvedCondition = stepScope.ctx.mkAnd(resolvedConfigCondition, resolvedSinkCondition)
 
-        stepScope.checkSat(resolvedCondition) {
+        stepScope.checkSat(resolvedCondition)?.let { taintedState ->
             // TODO remove corresponding target
-            collectedStates += this
-            target?.propagate(this)
+            collectedStates += taintedState
+            target?.propagate(taintedState)
         }
     }
 

@@ -208,14 +208,12 @@ class StepScope<T : UState<Type, *, Statement, Context, *, T>, Type, Statement, 
     }
 
     // TODO docs
-    fun checkSat(condition: UBoolExpr, blockOnSatState: T.() -> Unit = { }): Unit? {
-        // TODO should we check step flags here?
-
+    fun checkSat(condition: UBoolExpr): T? {
         val conditionalState = originalState.clone()
         val conditionalScope = StepScope(conditionalState, forkBlackList)
 
         return conditionalScope.assert(condition)?.let {
-            blockOnSatState(conditionalState)
+            conditionalState
         }
     }
 

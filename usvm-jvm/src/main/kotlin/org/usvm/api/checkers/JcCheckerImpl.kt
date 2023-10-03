@@ -1,7 +1,5 @@
 package org.usvm.api.checkers
 
-import org.jacodb.api.JcClasspath
-import org.jacodb.api.JcMethod
 import org.jacodb.api.JcType
 import org.jacodb.api.cfg.JcAssignInst
 import org.jacodb.api.cfg.JcCallExpr
@@ -18,60 +16,59 @@ import org.jacodb.api.cfg.JcThrowInst
 import org.jacodb.api.cfg.JcValue
 import org.usvm.UBoolExpr
 import org.usvm.UExpr
-import org.usvm.UMachineOptions
-import org.usvm.api.targets.JcTarget
 import org.usvm.machine.JcContext
 import org.usvm.machine.JcInterpreterObserver
-import org.usvm.machine.JcMachine
 import org.usvm.machine.JcMethodCallBaseInst
 import org.usvm.machine.JcMethodEntrypointInst
 import org.usvm.machine.interpreter.JcSimpleValueResolver
 import org.usvm.machine.interpreter.JcStepScope
 import org.usvm.memory.UReadOnlyMemory
 
-internal class UCheckersApiImpl : UCheckersApi {
+internal class JcCheckerApiImpl : JcCheckerApi {
     // TODO How to retrieve it properly?
-    internal lateinit var context: JcContext
-    internal lateinit var exprResolver: JcSimpleValueResolver // TODO How to retrieve it  properly?
-    internal lateinit var stepScope: JcStepScope // TODO How to retrieve it  properly?
+    private var internalStepScope: JcStepScope? = null
+    private var internalExprResolver: JcSimpleValueResolver? = null
+
+    private val stepScope: JcStepScope
+        get() = ensureProcessing(internalStepScope)
+
+    private val exprResolver: JcSimpleValueResolver
+        get() = ensureProcessing(internalExprResolver)
+
+    private fun <T> ensureProcessing(e: T?): T =
+        e ?: error("Checker API can be used during instruction processing only")
 
     override val ctx: JcContext
-        get() = context
+        get() = stepScope.calcOnState { ctx }
 
     override val memory: UReadOnlyMemory<JcType>
         get() = stepScope.calcOnState { memory }
 
     override fun resolveValue(value: JcValue): UExpr<*> = value.accept(exprResolver)
 
-    override fun checkSat(condition: UBoolExpr): UCheckResult {
-        stepScope.checkSat(condition) {
-            // Do nothing
-        } ?: return UUnsatCheckResultImpl
+    override fun checkSat(condition: UBoolExpr): JcCheckerResult =
+        stepScope.checkSat(condition)?.let {
+            JcCheckerSatResultImpl
+        } ?: JcCheckerUnsatResultImpl
 
-        return USatCheckResultImpl
+    internal fun setResolverAndScope(simpleValueResolver: JcSimpleValueResolver, stepScope: JcStepScope) {
+        internalExprResolver = simpleValueResolver
+        internalStepScope = stepScope
     }
 
-    override fun <T> analyze(
-        method: JcMethod,
-        cp: JcClasspath,
-        checkersVisitor: JcInstVisitor<T>,
-        targets: List<JcTarget>,
-        options: UMachineOptions,
-    ) {
-        val checkersObserver = VisitorWrapper(checkersVisitor, this)
-        val machine = JcMachine(cp, options, checkersObserver)
-
-        machine.analyze(method, targets)
+    internal fun resetResolverAndScope() {
+        internalStepScope = null
+        internalExprResolver = null
     }
 }
 
-internal object USatCheckResultImpl : USatCheckResult
-internal object UUnsatCheckResultImpl : UUnsatCheckResult
-internal object UUnknownSatCheckResultImpl : UUnknownCheckResult
+internal object JcCheckerSatResultImpl : JcCheckerSatResult
+internal object JcCheckerUnsatResultImpl : JcCheckerUnsatResult
+internal object JcCheckerUnknownSatResultImpl : JcCheckerUnknownResult
 
-internal class VisitorWrapper<T>(
+internal class JcCheckerObserver<T>(
     private val visitor: JcInstVisitor<T>,
-    private val usvmCheckersApi: UCheckersApiImpl,
+    private val jcCheckerApi: JcCheckerApiImpl,
 ) : JcInterpreterObserver {
     override fun onAssignStatement(
         simpleValueResolver: JcSimpleValueResolver,
@@ -172,17 +169,15 @@ internal class VisitorWrapper<T>(
     }
 
     // TODO it's very dirty way to get required fields, rewrite
-    private fun withScopeAndResolver(
+    private inline fun withScopeAndResolver(
         simpleValueResolver: JcSimpleValueResolver,
         stepScope: JcStepScope,
         blockOnStmt: () -> Unit
-    ) {
-        val ctx = stepScope.calcOnState { ctx }
-
-        usvmCheckersApi.context = ctx
-        usvmCheckersApi.exprResolver = simpleValueResolver
-        usvmCheckersApi.stepScope = stepScope
+    ) = try {
+        jcCheckerApi.setResolverAndScope(simpleValueResolver, stepScope)
 
         blockOnStmt()
+    } finally {
+        jcCheckerApi.resetResolverAndScope()
     }
 }

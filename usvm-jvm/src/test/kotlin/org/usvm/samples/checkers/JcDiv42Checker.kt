@@ -1,6 +1,6 @@
-package org.usvm.api.checkers
+package org.usvm.samples.checkers
 
-import io.ksmt.utils.cast
+import io.ksmt.utils.asExpr
 import org.jacodb.api.JcClasspath
 import org.jacodb.api.cfg.JcAssignInst
 import org.jacodb.api.cfg.JcBinaryExpr
@@ -18,33 +18,29 @@ import org.jacodb.api.cfg.JcReturnInst
 import org.jacodb.api.cfg.JcSwitchInst
 import org.jacodb.api.cfg.JcThrowInst
 import org.jacodb.api.ext.int
-import org.usvm.UBvSort
+import org.usvm.UBoolExpr
+import org.usvm.api.checkers.JcCheckerApi
+import org.usvm.api.checkers.JcCheckerSatResult
 
 // NOTE: THIS FILE MUST NOT BE MERGED!
 
-class CheckersVisitorExample(
-    private val usvmCheckersApi: UCheckersApi,
-    private val cp: JcClasspath,
-) : JcInstVisitor<Unit> {
+interface JcAssignInstChecker : JcInstVisitor<Unit> {
+    val api: JcCheckerApi
+
+    fun matchAst(inst: JcAssignInst): Boolean
+
+    fun checkSymbolic(inst: JcAssignInst): UBoolExpr
+
+    fun reportError(inst: JcAssignInst)
+
     override fun visitJcAssignInst(inst: JcAssignInst) {
-        val ctx = usvmCheckersApi.ctx
+        if (!matchAst(inst)) return
 
-        val expr = inst.rhv
-        if (expr is JcBinaryExpr && (expr is JcDivExpr || expr is JcRemExpr) && expr.rhv.type == cp.int) {
-            val divider = usvmCheckersApi.resolveValue(expr.rhv) ?: return
-            val sort = divider.sort
-            if (sort !is UBvSort) {
-                return
-            }
+        val symbolicConstraint = checkSymbolic(inst)
+        val satResult = api.checkSat(symbolicConstraint)
 
-            with(ctx) {
-                val eqZero = mkEq(divider.cast(), mkBv(42, sort))
-                val satResult = usvmCheckersApi.checkSat(eqZero)
-
-                if (satResult is USatCheckResult) {
-                    println("Division by 42 found")
-                }
-            }
+        if (satResult is JcCheckerSatResult) {
+            reportError(inst)
         }
     }
 
@@ -86,5 +82,25 @@ class CheckersVisitorExample(
 
     override fun visitJcThrowInst(inst: JcThrowInst) {
         /*TODO("Not yet implemented")*/
+    }
+}
+
+class JcDiv42Checker(
+    override val api: JcCheckerApi,
+    private val cp: JcClasspath,
+) : JcAssignInstChecker {
+    override fun matchAst(inst: JcAssignInst): Boolean {
+        val expr = inst.rhv
+        return expr is JcBinaryExpr && (expr is JcDivExpr || expr is JcRemExpr) && expr.rhv.type == cp.int
+    }
+
+    override fun checkSymbolic(inst: JcAssignInst): UBoolExpr = with(api.ctx) {
+        val expr = inst.rhv as JcBinaryExpr
+        val divider = api.resolveValue(expr.rhv).asExpr(integerSort)
+        mkEq(divider, mkBv(42, divider.sort))
+    }
+
+    override fun reportError(inst: JcAssignInst) {
+        println("Division by 42 found")
     }
 }
