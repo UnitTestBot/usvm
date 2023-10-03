@@ -38,9 +38,9 @@ private fun listConcat(
     dst.extendConstraints(ctx, left)
     dst.extendConstraints(ctx, right)
     with (ctx.ctx) {
-        val leftSize = ctx.curState!!.memory.readArrayLength(left.address, ArrayType)
-        val rightSize = ctx.curState!!.memory.readArrayLength(right.address, ArrayType)
-        ctx.curState!!.memory.writeArrayLength(dst.address, mkArithAdd(leftSize, rightSize), ArrayType)
+        val leftSize = ctx.curState!!.memory.readArrayLength(left.address, ArrayType, intSort)
+        val rightSize = ctx.curState!!.memory.readArrayLength(right.address, ArrayType, intSort)
+        ctx.curState!!.memory.writeArrayLength(dst.address, mkArithAdd(leftSize, rightSize), ArrayType, intSort)
         ctx.curState!!.memory.memcpy(left.address, dst.address, ArrayType, addressSort, mkIntNum(0), mkIntNum(0), leftSize)
         ctx.curState!!.memory.memcpy(right.address, dst.address, ArrayType, addressSort, mkIntNum(0), leftSize, rightSize)
     }
@@ -62,7 +62,7 @@ fun handlerListConcatKt(ctx: ConcolicRunContext, left: UninterpretedSymbolicPyth
     if (right.getTypeIfDefined(ctx) != typeSystem.pythonList || left.getTypeIfDefined(ctx) != typeSystem.pythonList)
         return null
     with (ctx.ctx) {
-        val resultAddress = ctx.curState!!.memory.allocateArray(ArrayType, mkIntNum(0))
+        val resultAddress = ctx.curState!!.memory.allocateArray(ArrayType, intSort, mkIntNum(0))
         ctx.curState!!.memory.types.allocate(resultAddress.address, typeSystem.pythonList)
         val result = UninterpretedSymbolicPythonObject(resultAddress, typeSystem)
         listConcat(ctx, left, right, result)
@@ -87,9 +87,9 @@ fun handlerListAppendKt(ctx: ConcolicRunContext, list: UninterpretedSymbolicPyth
     if (list.getTypeIfDefined(ctx) != typeSystem.pythonList)
         return null
     with (ctx.ctx) {
-        val currentSize = ctx.curState!!.memory.readArrayLength(list.address, ArrayType)
+        val currentSize = ctx.curState!!.memory.readArrayLength(list.address, ArrayType, intSort)
         list.writeElement(ctx, currentSize, elem)
-        ctx.curState!!.memory.writeArrayLength(list.address, mkArithAdd(currentSize, mkIntNum(1)), ArrayType)
+        ctx.curState!!.memory.writeArrayLength(list.address, mkArithAdd(currentSize, mkIntNum(1)), ArrayType, intSort)
         return list
     }
 }
@@ -108,7 +108,7 @@ fun handlerListIteratorNextKt(ctx: ConcolicRunContext, iterator: UninterpretedSy
 
     val typeSystem = ctx.typeSystem
     val (listAddress, index) = iterator.getListIteratorContent(ctx)
-    val listSize = ctx.curState!!.memory.readArrayLength(listAddress, ArrayType)
+    val listSize = ctx.curState!!.memory.readArrayLength(listAddress, ArrayType, intSort)
     val indexCond = index lt listSize
     myFork(ctx, indexCond)
     if (ctx.curState!!.pyModel.eval(indexCond).isFalse)

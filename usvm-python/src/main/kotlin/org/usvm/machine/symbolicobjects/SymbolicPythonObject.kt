@@ -58,7 +58,7 @@ class UninterpretedSymbolicPythonObject(
     }
 
     fun evalIs(
-        ctx: UContext,
+        ctx: UPythonContext,
         typeConstraints: UTypeConstraints<PythonType>,
         type: PythonType
     ): UBoolExpr {
@@ -76,7 +76,7 @@ class UninterpretedSymbolicPythonObject(
     }
 
     fun evalIsSoft(
-        ctx: UContext,
+        ctx: UPythonContext,
         typeConstraints: UTypeConstraints<PythonType>,
         type: PythonType
     ): UBoolExpr {

@@ -12,7 +12,7 @@ import org.usvm.solver.USolverBase
 class UPythonContext(
     typeSystem: PythonTypeSystem,
     private val components: PythonComponents = PythonComponents(typeSystem)
-): UContext(components) {
+): UContext<KIntSort>(components) {
     private var nextAddress: UConcreteHeapAddress = INITIAL_STATIC_ADDRESS / 2
     fun provideRawConcreteHeapRef(): UConcreteHeapRef {
         require(nextAddress > INITIAL_STATIC_ADDRESS) {
@@ -30,11 +30,11 @@ class UPythonContext(
     }
 
 
-    private var solver: USolverBase<PythonType, UPythonContext> = components.mkSolver(this)
+    private var solver: USolverBase<PythonType> = components.mkSolver(this)
 
     @Suppress("UNCHECKED_CAST")
-    override fun <Type, Context : UContext> solver(): USolverBase<Type, Context> =
-        solver as USolverBase<Type, Context>
+    override fun <Type> solver(): USolverBase<Type> =
+        solver as USolverBase<Type>
 
     fun restartSolver() {
         solver.close()

@@ -81,8 +81,8 @@ fun createIterable(
     val typeSystem = ctx.typeSystem
     val size = elements.size
     with (ctx.ctx) {
-        val iterableAddress = ctx.curState!!.memory.allocateArrayInitialized(ArrayType, addressSort, addresses)
-        ctx.curState!!.memory.writeArrayLength(iterableAddress, mkIntNum(size), ArrayType)
+        val iterableAddress = ctx.curState!!.memory.allocateArrayInitialized(ArrayType, addressSort, intSort, addresses)
+        ctx.curState!!.memory.writeArrayLength(iterableAddress, mkIntNum(size), ArrayType, intSort)
         ctx.curState!!.memory.types.allocate(iterableAddress.address, type)
         val result = UninterpretedSymbolicPythonObject(iterableAddress, typeSystem)
         result.addSupertypeSoft(ctx, type)
@@ -135,7 +135,7 @@ fun getArraySize(context: ConcolicRunContext, array: UninterpretedSymbolicPython
         return null
     if (array.getTypeIfDefined(context) != type)
         return null
-    val listSize = context.curState!!.memory.readArrayLength(array.address, ArrayType)
+    val listSize = context.curState!!.memory.readArrayLength(array.address, ArrayType, context.ctx.intSort)
     return constructInt(context, listSize)
 }
 
@@ -153,7 +153,7 @@ fun resolveSequenceIndex(
         index.addSupertypeSoft(ctx, typeSystem.pythonInt)
         seq.addSupertypeSoft(ctx, type)
 
-        val listSize = ctx.curState!!.memory.readArrayLength(seq.address, ArrayType)
+        val listSize = ctx.curState!!.memory.readArrayLength(seq.address, ArrayType, intSort)
         val indexValue = index.getIntContent(ctx)
 
         val indexCond = mkAnd(indexValue lt listSize, mkArithUnaryMinus(listSize) le indexValue)

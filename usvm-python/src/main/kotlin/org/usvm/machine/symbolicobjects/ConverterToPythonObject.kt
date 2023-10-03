@@ -13,6 +13,7 @@ import org.usvm.machine.interpreters.PythonObject
 import org.usvm.machine.interpreters.ConcretePythonInterpreter.emptyNamespace
 import org.usvm.machine.utils.DefaultValueProvider
 import org.usvm.machine.utils.PyModelHolder
+import org.usvm.mkSizeExpr
 
 class ConverterToPythonObject(
     private val ctx: UPythonContext,
@@ -91,7 +92,7 @@ class ConverterToPythonObject(
     private fun constructArrayContents(
         obj: InterpretedInputSymbolicPythonObject,
     ): List<PythonObject> {
-        val size = obj.modelHolder.model.uModel.readArrayLength(obj.address, ArrayType) as KInt32NumExpr
+        val size = obj.modelHolder.model.uModel.readArrayLength(obj.address, ArrayType, ctx.intSort) as KInt32NumExpr
         return List(size.value) { index ->
             val indexExpr = ctx.mkSizeExpr(index)
             val element = obj.modelHolder.model.uModel.readArrayIndex(
@@ -149,7 +150,7 @@ class ConverterToPythonObject(
     }
 
     private fun convertTuple(obj: InterpretedInputSymbolicPythonObject): PythonObject {
-        val size = obj.modelHolder.model.uModel.readArrayLength(obj.address, ArrayType) as KInt32NumExpr
+        val size = obj.modelHolder.model.uModel.readArrayLength(obj.address, ArrayType, ctx.intSort) as KInt32NumExpr
         val resultTuple = ConcretePythonInterpreter.allocateTuple(size.value)
         constructedObjects[obj.address] = resultTuple
         val listOfPythonObjects = constructArrayContents(obj)

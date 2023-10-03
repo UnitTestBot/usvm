@@ -15,16 +15,17 @@ import org.usvm.machine.types.prioritization.prioritizeTypes
 import org.usvm.machine.utils.PyModelWrapper
 import org.usvm.memory.UMemory
 import org.usvm.model.UModelBase
+import org.usvm.targets.UTarget
 import org.usvm.types.UTypeStream
 import org.usvm.utils.MAX_CONCRETE_TYPES_TO_CONSIDER
 
-object PythonTarget: UTarget<SymbolicHandlerEvent<Any>, PythonTarget, PythonExecutionState>()
+object PythonTarget: UTarget<SymbolicHandlerEvent<Any>, PythonTarget>()
 
 class PythonExecutionState(
-    val ctx: UPythonContext,
+    ctx: UPythonContext,
     private val pythonCallable: PythonUnpinnedCallable,
     val inputSymbols: List<UninterpretedSymbolicPythonObject>,
-    pathConstraints: UPathConstraints<PythonType, UPythonContext>,
+    pathConstraints: UPathConstraints<PythonType>,
     memory: UMemory<PythonType, PythonCallable>,
     uModel: UModelBase<PythonType>,
     val typeSystem: PythonTypeSystem,
@@ -36,7 +37,7 @@ class PythonExecutionState(
     private val mocks: MutableMap<MockHeader, UMockSymbol<UAddressSort>> = mutableMapOf(),
     val mockedObjects: MutableSet<UninterpretedSymbolicPythonObject> = mutableSetOf()
 ): UState<PythonType, PythonCallable, SymbolicHandlerEvent<Any>, UPythonContext, PythonTarget, PythonExecutionState>(ctx, callStack, pathConstraints, memory, listOf(uModel), pathLocation) {
-    override fun clone(newConstraints: UPathConstraints<PythonType, UPythonContext>?): PythonExecutionState {
+    override fun clone(newConstraints: UPathConstraints<PythonType>?): PythonExecutionState {
         val newPathConstraints = newConstraints ?: pathConstraints.clone()
         val newMemory = memory.clone(newPathConstraints.typeConstraints)
         return PythonExecutionState(

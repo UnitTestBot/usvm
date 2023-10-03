@@ -168,7 +168,7 @@ fun UninterpretedSymbolicPythonObject.getToBoolValue(ctx: ConcolicRunContext): U
     return when (getTypeIfDefined(ctx)) {
         typeSystem.pythonBool -> getBoolContent(ctx)
         typeSystem.pythonInt -> getIntContent(ctx) neq mkIntNum(0)
-        typeSystem.pythonList -> ctx.curState!!.memory.readArrayLength(address, ArrayType) gt mkIntNum(0)
+        typeSystem.pythonList -> ctx.curState!!.memory.readArrayLength(address, ArrayType, intSort) gt mkIntNum(0)
         else -> null
     }
 }
