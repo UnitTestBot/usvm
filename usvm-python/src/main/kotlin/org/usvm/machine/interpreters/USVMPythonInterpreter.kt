@@ -14,6 +14,7 @@ import org.usvm.machine.*
 import org.usvm.machine.interpreters.operations.tracing.CancelledExecutionException
 import org.usvm.machine.interpreters.operations.tracing.InstructionLimitExceededException
 import org.usvm.machine.model.PyModel
+import org.usvm.machine.utils.MethodDescription
 import org.usvm.machine.utils.PyModelHolder
 import org.usvm.machine.utils.PythonMachineStatisticsOnFunction
 import org.usvm.utils.PythonObjectSerializer
@@ -168,6 +169,7 @@ class USVMPythonInterpreter<PythonObjectRepresentation>(
             iterationCounter.iterations += 1
             logger.debug("Step result: Unregistrered virtual operation")
             concolicRunContext.curState?.meta?.modelDied = true
+            concolicRunContext.statistics.addUnregisteredVirtualOperation()
             return StepResult(concolicRunContext.forkedStates.asSequence(), !state.isTerminated())
 
         } catch (_: InstructionLimitExceededException) {

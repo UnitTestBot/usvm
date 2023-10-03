@@ -21,8 +21,8 @@ import org.utbot.python.newtyping.pythonTypeRepresentation
 import java.io.File
 
 fun main() {
-    // val config = buildProjectRunConfig()
-    val config = buildSampleRunConfig()
+    val config = buildProjectRunConfig()
+    // val config = buildSampleRunConfig()
     analyze(config)
     // checkConcolicAndConcrete(config)
 }
@@ -52,7 +52,7 @@ private fun buildSampleRunConfig(): RunConfig {
 */
 
 private fun buildProjectRunConfig(): RunConfig {
-    val projectPath = "D:\\projects\\Python\\sorts"
+    val projectPath = "D:\\projects\\Python\\dynamic_programming"
     val mypyRoot = "D:\\projects\\mypy_tmp"
     val files = getPythonFilesFromRoot(projectPath)
     val modules = getModulesFromFiles(projectPath, files)
@@ -85,8 +85,8 @@ private fun buildProjectRunConfig(): RunConfig {
                 return@mapNotNull null
             if (ignoreFunctions.contains(functionName))
                 return@mapNotNull null
-            if (functionName != "bitonic_sort")
-                return@mapNotNull null
+            // if (functionName != "bitonic_sort")
+            //    return@mapNotNull null
             println("$module.$functionName: ${type.pythonTypeRepresentation()}")
             PythonUnpinnedCallable.constructCallableFromName(
                 List(description.numberOfArguments) { PythonAnyType },
@@ -140,8 +140,8 @@ private fun analyze(runConfig: RunConfig) {
                     maxIterations = 50,
                     allowPathDiversion = true,
                     maxInstructions = 30_000,
-                    // timeoutPerRunMs = 5_000,
-                    // timeoutMs = 20_000
+                    timeoutPerRunMs = 5_000,
+                    timeoutMs = 20_000
                 )
                 results.forEach { (_, inputs, result) ->
                     println("INPUT:")
