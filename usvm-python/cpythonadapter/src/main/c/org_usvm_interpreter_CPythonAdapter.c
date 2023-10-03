@@ -506,3 +506,7 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_constructListAp
 JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_constructListPopMethod(JNIEnv *env, jobject _, jobject symbolic_list_ref) {
     return (jlong) construct_symbolic_method_with_self(env, symbolic_list_ref, SymbolicMethod_list_pop);
 }
+
+JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_constructListInsertMethod(JNIEnv *env, jobject _, jobject symbolic_list_ref) {
+    return (jlong) construct_symbolic_method_with_self(env, symbolic_list_ref, SymbolicMethod_list_insert);
+}

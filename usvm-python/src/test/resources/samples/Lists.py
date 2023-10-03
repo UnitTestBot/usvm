@@ -188,3 +188,12 @@ def list_concat(x: list, y: list):
 
 def pop_usage(x: list):
     assert x.pop() == 239
+
+
+def pop_usage_with_index(x: list):
+    assert x.pop(5) == 239
+
+
+def insert_usage(x: list, elem):
+    x.insert(0, elem)
+    assert x[0] == 239

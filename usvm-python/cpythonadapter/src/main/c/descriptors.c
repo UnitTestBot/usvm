@@ -27,9 +27,14 @@ get_symbolic_descriptor(JNIEnv *env, jobject cpython_adapter, PyObject *concrete
         jfieldID slice_start = (*env)->GetFieldID(env, cpython_adapter_cls, "sliceStepDescriptor", "Lorg/usvm/interpreter/MemberDescriptor;");
         return (*env)->GetObjectField(env, cpython_adapter, slice_start);
 
-    } if (Py_TYPE(concrete_descriptor) == &PyMethodDescr_Type &&
+    } else if (Py_TYPE(concrete_descriptor) == &PyMethodDescr_Type &&
         ((PyMethodDescrObject *) concrete_descriptor)->d_method->ml_meth == EXPORT_FOR_APPROXIMATION_LIST_POP) {
         jfieldID list_pop_id = (*env)->GetFieldID(env, cpython_adapter_cls, "listPopDescriptor", "Lorg/usvm/interpreter/MemberDescriptor;");
+        return (*env)->GetObjectField(env, cpython_adapter, list_pop_id);
+
+    } else if (Py_TYPE(concrete_descriptor) == &PyMethodDescr_Type &&
+        ((PyMethodDescrObject *) concrete_descriptor)->d_method->ml_meth == EXPORT_FOR_APPROXIMATION_LIST_INSERT) {
+        jfieldID list_pop_id = (*env)->GetFieldID(env, cpython_adapter_cls, "listInsertDescriptor", "Lorg/usvm/interpreter/MemberDescriptor;");
         return (*env)->GetObjectField(env, cpython_adapter, list_pop_id);
 
     }
