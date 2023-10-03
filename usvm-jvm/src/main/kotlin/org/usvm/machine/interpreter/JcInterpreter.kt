@@ -278,7 +278,7 @@ class JcInterpreter(
                 is JcMethodResult.Success -> observer?.onAssignStatement(exprResolver.simpleValueResolver, stmt, scope)
                 is JcMethodResult.JcException -> error("Exceptions must be processed earlier")
             }
-        }
+        } ?: observer?.onAssignStatement(exprResolver.simpleValueResolver, stmt, scope)
 
         val lvalue = exprResolver.resolveLValue(stmt.lhv) ?: return
         val expr = exprResolver.resolveJcExpr(stmt.rhv, stmt.lhv.type) ?: return
