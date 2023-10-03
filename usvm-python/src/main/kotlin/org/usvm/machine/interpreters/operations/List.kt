@@ -118,3 +118,21 @@ fun handlerListIteratorNextKt(ctx: ConcolicRunContext, iterator: UninterpretedSy
     val list = UninterpretedSymbolicPythonObject(listAddress, typeSystem)
     return list.readElement(ctx, index)
 }
+
+fun handlerListPopKt(ctx: ConcolicRunContext, list: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
+    ctx.curState ?: return null
+    if (list.getTypeIfDefined(ctx) != ctx.typeSystem.pythonList)
+        return null
+
+    with(ctx.ctx) {
+        val listSize = ctx.curState!!.memory.readArrayLength(list.address, ArrayType, intSort)
+        val sizeCond = listSize gt mkIntNum(0)
+        myFork(ctx, sizeCond)
+        if (ctx.modelHolder.model.eval(sizeCond).isFalse)
+            return null
+        val newSize = mkArithSub(listSize, mkIntNum(1))
+        val result = list.readElement(ctx, newSize)
+        ctx.curState!!.memory.writeArrayLength(list.address, newSize, ArrayType, intSort)
+        return result
+    }
+}

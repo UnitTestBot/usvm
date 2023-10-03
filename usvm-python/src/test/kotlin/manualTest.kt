@@ -21,8 +21,8 @@ import org.utbot.python.newtyping.pythonTypeRepresentation
 import java.io.File
 
 fun main() {
-    val config = buildProjectRunConfig()
-    // val config = buildSampleRunConfig()
+    // val config = buildProjectRunConfig()
+    val config = buildSampleRunConfig()
     analyze(config)
     // checkConcolicAndConcrete(config)
 }
@@ -30,15 +30,19 @@ fun main() {
 private fun buildSampleRunConfig(): RunConfig {
     val (program, typeSystem) = constructPrimitiveProgram(
         """
-            def f(x):
+            def list_concat(x):
                 y = x + [1]
                 if len(y[::-1]) == 5:
                     return 1
                 return 2
+
+            def f(x: list):
+                assert x.pop() == 10
+
         """.trimIndent()
     )
     val function = PythonUnpinnedCallable.constructCallableFromName(
-        listOf(PythonAnyType),
+        listOf(typeSystem.pythonList),
         "f"
     )
     val functions = listOf(function)

@@ -500,5 +500,9 @@ JNIEXPORT jobject JNICALL Java_org_usvm_interpreter_CPythonAdapter_getSymbolicDe
 }
 
 JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_constructListAppendMethod(JNIEnv *env, jobject _, jobject symbolic_list_ref) {
-    return (jlong) construct_list_append_method(env, symbolic_list_ref);
+    return (jlong) construct_symbolic_method_with_self(env, symbolic_list_ref, SymbolicMethod_list_append);
+}
+
+JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_constructListPopMethod(JNIEnv *env, jobject _, jobject symbolic_list_ref) {
+    return (jlong) construct_symbolic_method_with_self(env, symbolic_list_ref, SymbolicMethod_list_pop);
 }
