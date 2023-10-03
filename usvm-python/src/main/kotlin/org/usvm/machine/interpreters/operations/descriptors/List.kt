@@ -11,3 +11,9 @@ object ListAppendDescriptor: MemberDescriptor() {
         return ConcretePythonInterpreter.constructListAppendMethod(owner)
     }
 }
+
+object ListPopDescriptor: MemberDescriptor() {
+    override fun getMember(ctx: ConcolicRunContext, owner: UninterpretedSymbolicPythonObject): SymbolForCPython {
+        return ConcretePythonInterpreter.constructListPopMethod(owner)
+    }
+}

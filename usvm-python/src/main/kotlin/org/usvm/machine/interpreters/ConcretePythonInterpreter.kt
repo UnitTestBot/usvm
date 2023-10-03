@@ -194,6 +194,12 @@ object ConcretePythonInterpreter {
         return SymbolForCPython(null, ref)
     }
 
+    fun constructListPopMethod(self: UninterpretedSymbolicPythonObject): SymbolForCPython {
+        val ref = pythonAdapter.constructListPopMethod(SymbolForCPython(self, 0));
+        require(ref != 0L)
+        return SymbolForCPython(null, ref)
+    }
+
     private fun createTypeQuery(checkMethod: (Long) -> Int): (PythonObject) -> Boolean = { pythonObject ->
         val result = checkMethod(pythonObject.address)
         if (result < 0)

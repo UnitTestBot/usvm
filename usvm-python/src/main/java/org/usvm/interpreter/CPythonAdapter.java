@@ -5,10 +5,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.usvm.machine.MockHeader;
 import org.usvm.machine.interpreters.PythonObject;
-import org.usvm.machine.interpreters.operations.descriptors.ListAppendDescriptor;
-import org.usvm.machine.interpreters.operations.descriptors.SliceStartDescriptor;
-import org.usvm.machine.interpreters.operations.descriptors.SliceStepDescriptor;
-import org.usvm.machine.interpreters.operations.descriptors.SliceStopDescriptor;
+import org.usvm.machine.interpreters.operations.descriptors.*;
 import org.usvm.machine.interpreters.operations.tracing.*;
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject;
 import org.usvm.language.*;
@@ -47,6 +44,7 @@ public class CPythonAdapter {
     public long symbolicIntConstructorRef;
     public long symbolicFloatConstructorRef;
     public MemberDescriptor listAppendDescriptor = ListAppendDescriptor.INSTANCE;
+    public MemberDescriptor listPopDescriptor = ListPopDescriptor.INSTANCE;
     public MemberDescriptor sliceStartDescriptor = SliceStartDescriptor.INSTANCE;
     public MemberDescriptor sliceStopDescriptor = SliceStopDescriptor.INSTANCE;
     public MemberDescriptor sliceStepDescriptor = SliceStepDescriptor.INSTANCE;
@@ -95,6 +93,7 @@ public class CPythonAdapter {
     @Nullable
     public native MemberDescriptor getSymbolicDescriptor(long concreteDescriptorRef);
     public native long constructListAppendMethod(SymbolForCPython symbolicList);
+    public native long constructListPopMethod(SymbolForCPython symbolicList);
 
     static {
         System.loadLibrary("cpythonadapter");
@@ -420,6 +419,12 @@ public class CPythonAdapter {
         if (iterator.obj == null)
             return null;
         return methodWrapper(context, new MethodParameters("list_iterator_next", Collections.singletonList(iterator)), () -> handlerListIteratorNextKt(context, iterator.obj));
+    }
+
+    public static SymbolForCPython handlerListPop(ConcolicRunContext context, SymbolForCPython list) {
+        if (list.obj == null)
+            return null;
+        return methodWrapper(context, new MethodParameters("list_pop", Collections.singletonList(list)), () -> handlerListPopKt(context, list.obj));
     }
 
     @Nullable
