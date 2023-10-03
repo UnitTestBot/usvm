@@ -27,7 +27,7 @@ fun handlerTupleIteratorNextKt(
         return null
     val typeSystem = ctx.typeSystem
     val (tuple, index) = iterator.getTupleIteratorContent(ctx)
-    val tupleSize = ctx.curState!!.memory.readArrayLength(tuple, ArrayType)
+    val tupleSize = ctx.curState!!.memory.readArrayLength(tuple, ArrayType, ctx.ctx.intSort)
     val indexCond = index lt tupleSize
     myFork(ctx, indexCond)
     if (ctx.curState!!.pyModel.eval(indexCond).isFalse)
@@ -45,7 +45,7 @@ fun handlerUnpackKt(ctx: ConcolicRunContext, iterable: UninterpretedSymbolicPyth
         myFork(ctx, iterable.evalIs(ctx, typeSystem.pythonTuple))
         return
     }
-    val tupleSize = ctx.curState!!.memory.readArrayLength(iterable.address, ArrayType)
+    val tupleSize = ctx.curState!!.memory.readArrayLength(iterable.address, ArrayType, ctx.ctx.intSort)
     myFork(ctx, tupleSize eq mkIntNum(count))
 }
 

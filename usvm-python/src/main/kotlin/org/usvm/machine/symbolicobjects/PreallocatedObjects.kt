@@ -43,7 +43,7 @@ class PreallocatedObjects(
         fun initialize(
             ctx: UPythonContext,
             initialMemory: UMemory<PythonType, PythonCallable>,
-            initialPathConstraints: UPathConstraints<PythonType, UPythonContext>,
+            initialPathConstraints: UPathConstraints<PythonType>,
             typeSystem: PythonTypeSystem
         ): PreallocatedObjects =
             PreallocatedObjects(
