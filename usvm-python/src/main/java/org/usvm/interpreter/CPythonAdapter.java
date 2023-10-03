@@ -45,6 +45,7 @@ public class CPythonAdapter {
     public long symbolicFloatConstructorRef;
     public MemberDescriptor listAppendDescriptor = ListAppendDescriptor.INSTANCE;
     public MemberDescriptor listPopDescriptor = ListPopDescriptor.INSTANCE;
+    public MemberDescriptor listInsertDescriptor = ListInsertDescriptor.INSTANCE;
     public MemberDescriptor sliceStartDescriptor = SliceStartDescriptor.INSTANCE;
     public MemberDescriptor sliceStopDescriptor = SliceStopDescriptor.INSTANCE;
     public MemberDescriptor sliceStepDescriptor = SliceStepDescriptor.INSTANCE;
@@ -94,6 +95,7 @@ public class CPythonAdapter {
     public native MemberDescriptor getSymbolicDescriptor(long concreteDescriptorRef);
     public native long constructListAppendMethod(SymbolForCPython symbolicList);
     public native long constructListPopMethod(SymbolForCPython symbolicList);
+    public native long constructListInsertMethod(SymbolForCPython symbolicList);
 
     static {
         System.loadLibrary("cpythonadapter");
@@ -425,6 +427,18 @@ public class CPythonAdapter {
         if (list.obj == null)
             return null;
         return methodWrapper(context, new MethodParameters("list_pop", Collections.singletonList(list)), () -> handlerListPopKt(context, list.obj));
+    }
+
+    public static SymbolForCPython handlerListPopInd(ConcolicRunContext context, SymbolForCPython list, SymbolForCPython ind) {
+        if (list.obj == null || ind.obj == null)
+            return null;
+        return methodWrapper(context, new MethodParameters("list_pop", Arrays.asList(list, ind)), () -> handlerListPopIndKt(context, list.obj, ind.obj));
+    }
+
+    public static void handlerListInsert(ConcolicRunContext context, SymbolForCPython list, SymbolForCPython index, SymbolForCPython value) {
+        if (list.obj == null || index.obj == null || value.obj == null)
+            return;
+        withTracing(context, new MethodParametersNoReturn("list_insert", Arrays.asList(list, index, value)), unit(() -> handlerListInsertKt(context, list.obj, index.obj, value.obj)));
     }
 
     @Nullable

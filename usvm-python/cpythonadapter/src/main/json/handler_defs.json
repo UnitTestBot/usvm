@@ -205,6 +205,16 @@
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
     },
     {
+        "c_name": "list_pop_ind",
+        "java_name": "handlerListPopInd",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"
+    },
+    {
+        "c_name": "list_insert",
+        "java_name": "handlerListInsert",
+        "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;Lorg/usvm/language/SymbolForCPython;)V"
+    },
+    {
         "c_name": "tuple_iter",
         "java_name": "handlerTupleIter",
         "sig": "(Lorg/usvm/interpreter/ConcolicRunContext;Lorg/usvm/language/SymbolForCPython;)Lorg/usvm/language/SymbolForCPython;"

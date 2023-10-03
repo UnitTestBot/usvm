@@ -367,6 +367,14 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_constructListAp
 JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_constructListPopMethod
   (JNIEnv *, jobject, jobject);
 
+/*
+ * Class:     org_usvm_interpreter_CPythonAdapter
+ * Method:    constructListInsertMethod
+ * Signature: (Lorg/usvm/language/SymbolForCPython;)J
+ */
+JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_constructListInsertMethod
+  (JNIEnv *, jobject, jobject);
+
 #ifdef __cplusplus
 }
 #endif
