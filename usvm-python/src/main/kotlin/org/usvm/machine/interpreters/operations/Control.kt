@@ -31,10 +31,11 @@ fun myFork(ctx: ConcolicRunContext, cond: UExpr<KBoolSort>) {
     }
     forkResult.positiveState?.let(applyToPyModel)
     forkResult.negativeState?.let(applyToPyModel)
+    forkResult.positiveState?.also { it.meta.generatedFrom = "From ordinary fork" }
+    forkResult.negativeState?.also { it.meta.generatedFrom = "From ordinary fork" }
     if (forkResult.negativeState != oldCurState)
         forkResult.negativeState?.let {
             ctx.forkedStates.add(it)
-            it.meta.generatedFrom = "From ordinary fork"
         }
 }
 

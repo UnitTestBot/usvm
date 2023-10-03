@@ -21,8 +21,8 @@ import org.utbot.python.newtyping.pythonTypeRepresentation
 import java.io.File
 
 fun main() {
-    val config = buildProjectRunConfig()
-    // val config = buildSampleRunConfig()
+    // val config = buildProjectRunConfig()
+    val config = buildSampleRunConfig()
     analyze(config)
     // checkConcolicAndConcrete(config)
 }
@@ -30,12 +30,15 @@ fun main() {
 private fun buildSampleRunConfig(): RunConfig {
     val (program, typeSystem) = constructPrimitiveProgram(
         """
-            def f(x: int, y: int):
-                assert x / y == 10.5
+            def f(x):
+                y = x + [1]
+                if len(y[::-1]) == 5:
+                    return 1
+                return 2
         """.trimIndent()
     )
     val function = PythonUnpinnedCallable.constructCallableFromName(
-        listOf(typeSystem.pythonInt, typeSystem.pythonInt),
+        listOf(PythonAnyType),
         "f"
     )
     val functions = listOf(function)
@@ -82,8 +85,8 @@ private fun buildProjectRunConfig(): RunConfig {
                 return@mapNotNull null
             if (ignoreFunctions.contains(functionName))
                 return@mapNotNull null
-            // if (functionName != "binary_search_insertion")
-            //    return@mapNotNull null
+            if (functionName != "bitonic_sort")
+                return@mapNotNull null
             println("$module.$functionName: ${type.pythonTypeRepresentation()}")
             PythonUnpinnedCallable.constructCallableFromName(
                 List(description.numberOfArguments) { PythonAnyType },
@@ -137,8 +140,8 @@ private fun analyze(runConfig: RunConfig) {
                     maxIterations = 50,
                     allowPathDiversion = true,
                     maxInstructions = 30_000,
-                    timeoutPerRunMs = 5_000,
-                    timeoutMs = 20_000
+                    // timeoutPerRunMs = 5_000,
+                    // timeoutMs = 20_000
                 )
                 results.forEach { (_, inputs, result) ->
                     println("INPUT:")
