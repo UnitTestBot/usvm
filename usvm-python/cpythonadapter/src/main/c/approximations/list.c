@@ -217,6 +217,15 @@ PyObject *SymbolicMethod_list_append(SymbolicAdapter *adapter, jobject self_refe
     return result;
 }
 
+PyObject *SymbolicMethod_list_pop(SymbolicAdapter *adapter, jobject self_reference_list, PyObject *args, PyObject *kwargs) {
+    if (args == 0 || !PyTuple_Check(args) || PyTuple_GET_SIZE(args) != 0 || kwargs)
+        return Py_None;
+    PyObject *symbolic_list = object_wrapper((ConcolicContext *) adapter->handler_param, self_reference_list);
+    PyObject *result = adapter->list_pop(adapter->handler_param, symbolic_list);
+    Py_DECREF(symbolic_list);
+    return result;
+}
+
 PyObject *
 Approximation_list_repeat(PyObject *self, PyObject *n) {
     assert(is_wrapped(self) && is_wrapped(n));
