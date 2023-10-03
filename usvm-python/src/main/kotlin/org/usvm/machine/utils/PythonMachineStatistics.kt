@@ -59,11 +59,17 @@ class PythonMachineStatistics {
             return map
         }
 
+    private val numberOfFunctionsWithUnregisteredVirtualOperations: Int
+        get() = functionStatistics.fold(0) { acc, cur ->
+            acc + if (cur.numberOfUnregisteredVirtualOperations > 0) 1 else 0
+        }
+
     fun writeReport(): String {
         val result = StringBuilder()
         result.append("Functions analyzed: ${functionStatistics.size}\n")
         result.append("Mean coverage: $meanCoverage\n")
         result.append("Mean coverage without virtual objects: $meanCoverageNoVirtual\n")
+        result.append("Number of functions with unregistered virtual operations: $numberOfFunctionsWithUnregisteredVirtualOperations\n")
         result.append("Lost symbolic values (by number of functions):\n")
         result.append(writeLostSymbolicValuesReport(lostSymbolicValuesByNumberOfFunctions))
         result.append("Lost symbolic values (by overall usages):\n")
@@ -73,9 +79,14 @@ class PythonMachineStatistics {
 }
 
 class PythonMachineStatisticsOnFunction(private val function: PythonPinnedCallable) {
-    val lostSymbolicValues = mutableMapOf<MethodDescription, Int>()
+    internal val lostSymbolicValues = mutableMapOf<MethodDescription, Int>()
+    internal var numberOfUnregisteredVirtualOperations = 0
     fun addLostSymbolicValue(descr: MethodDescription) {
         addWithDefault(lostSymbolicValues, descr)
+    }
+
+    fun addUnregisteredVirtualOperation() {
+        numberOfUnregisteredVirtualOperations += 1
     }
 
     private val instructionOffsets: List<Int> by lazy {
@@ -117,6 +128,7 @@ class PythonMachineStatisticsOnFunction(private val function: PythonPinnedCallab
         result.append("Coverage: $coverage\n")
         result.append("Coverage without virtual objects: $coverageNoVirtual\n")
         result.append("Lost symbolic values:\n")
+        result.append("Number of unregistered virtual operations: $numberOfUnregisteredVirtualOperations\n")
         result.append(writeLostSymbolicValuesReport(lostSymbolicValues))
         return result.toString()
     }
