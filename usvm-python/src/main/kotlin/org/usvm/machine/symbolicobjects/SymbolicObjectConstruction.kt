@@ -19,9 +19,9 @@ import org.usvm.memory.URegisterStackLValue
 fun constructInputObject(
     stackIndex: Int,
     type: PythonType,
-    ctx: UContext,
+    ctx: UPythonContext,
     memory: UMemory<PythonType, PythonCallable>,
-    pathConstraints: UPathConstraints<PythonType, UPythonContext>,
+    pathConstraints: UPathConstraints<PythonType>,
     typeSystem: PythonTypeSystem
 ): UninterpretedSymbolicPythonObject {
     @Suppress("unchecked_cast")
@@ -77,7 +77,7 @@ fun constructBool(context: ConcolicRunContext, expr: UBoolExpr): UninterpretedSy
 fun constructInitialBool(
     ctx: UPythonContext,
     memory: UMemory<PythonType, PythonCallable>,
-    pathConstraints: UPathConstraints<PythonType, UPythonContext>,
+    pathConstraints: UPathConstraints<PythonType>,
     typeSystem: PythonTypeSystem,
     expr: UExpr<KBoolSort>
 ): UninterpretedSymbolicPythonObject {
