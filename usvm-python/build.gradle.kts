@@ -70,7 +70,7 @@ val installMypyRunner = tasks.register<Exec>("installUtbotMypyRunner") {
 
 val buildSamples = tasks.register<JavaExec>("buildSamples") {
     dependsOn(installMypyRunner)
-    inputs.dir(samplesSourceDir)
+    inputs.files(fileTree(samplesSourceDir).filter { it.name.endsWith(".py") }.files)
     outputs.dir(samplesBuildDir)
     group = "samples"
     classpath = sourceSets.test.get().runtimeClasspath
@@ -93,9 +93,9 @@ fun registerCpython(task: JavaExec, debug: Boolean) = task.apply {
 tasks.register<JavaExec>("manualTestDebug") {
     group = "run"
     dependsOn(buildSamples)
+    maxHeapSize = "2G"
     if (!isWindows) {
         registerCpython(this, debug = true)
-        maxHeapSize = "2G"
         jvmArgs = commonJVMArgs + listOf("-Dlogback.configurationFile=logging/logback-debug.xml") //, "-Xcheck:jni")
     } else {
         environment("PYTHONHOME" to cpythonBuildPath)
