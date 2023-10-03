@@ -21,8 +21,8 @@ import org.utbot.python.newtyping.pythonTypeRepresentation
 import java.io.File
 
 fun main() {
-    // val config = buildProjectRunConfig()
-    val config = buildSampleRunConfig()
+    val config = buildProjectRunConfig()
+    // val config = buildSampleRunConfig()
     analyze(config)
     // checkConcolicAndConcrete(config)
 }
@@ -36,13 +36,14 @@ private fun buildSampleRunConfig(): RunConfig {
                     return 1
                 return 2
 
-            def f(x: list):
-                assert x.pop() == 10
+            def f(x: list, elem):
+                x.insert(0, elem)
+                assert x[0] == 239
 
         """.trimIndent()
     )
     val function = PythonUnpinnedCallable.constructCallableFromName(
-        listOf(typeSystem.pythonList),
+        listOf(typeSystem.pythonList, PythonAnyType),
         "f"
     )
     val functions = listOf(function)
@@ -56,7 +57,7 @@ private fun buildSampleRunConfig(): RunConfig {
 */
 
 private fun buildProjectRunConfig(): RunConfig {
-    val projectPath = "D:\\projects\\Python\\dynamic_programming"
+    val projectPath = "D:\\projects\\Python\\sorts"
     val mypyRoot = "D:\\projects\\mypy_tmp"
     val files = getPythonFilesFromRoot(projectPath)
     val modules = getModulesFromFiles(projectPath, files)
@@ -141,9 +142,9 @@ private fun analyze(runConfig: RunConfig) {
                 val iterations = activeMachine.analyze(
                     f,
                     results,
-                    maxIterations = 50,
+                    maxIterations = 70,
                     allowPathDiversion = true,
-                    maxInstructions = 30_000,
+                    maxInstructions = 50_000,
                     timeoutPerRunMs = 5_000,
                     timeoutMs = 20_000
                 )
