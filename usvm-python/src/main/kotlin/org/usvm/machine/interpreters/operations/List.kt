@@ -1,7 +1,10 @@
 package org.usvm.machine.interpreters.operations
 
+import io.ksmt.sort.KIntSort
 import org.usvm.*
 import org.usvm.api.*
+import org.usvm.api.collection.ListCollectionApi
+import org.usvm.api.collection.ListCollectionApi.symbolicListInsert
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.types.ArrayType
 import org.usvm.machine.symbolicobjects.*
@@ -119,20 +122,60 @@ fun handlerListIteratorNextKt(ctx: ConcolicRunContext, iterator: UninterpretedSy
     return list.readElement(ctx, index)
 }
 
+private fun listPop(
+    ctx: ConcolicRunContext,
+    list: UninterpretedSymbolicPythonObject,
+    ind: UExpr<KIntSort>? = null,
+): UninterpretedSymbolicPythonObject? {
+    with(ctx.ctx) {
+        val listSize = ctx.curState!!.memory.readArrayLength(list.address, ArrayType, intSort)
+        val sizeCond = listSize gt (ind ?: mkIntNum(0))
+        myFork(ctx, sizeCond)
+        if (ctx.modelHolder.model.eval(sizeCond).isFalse)
+            return null
+        val newSize = mkArithSub(listSize, mkIntNum(1))
+        val result = list.readElement(ctx, ind ?: newSize)
+        ctx.curState!!.memory.writeArrayLength(list.address, newSize, ArrayType, intSort)
+        return result
+    }
+}
+
 fun handlerListPopKt(ctx: ConcolicRunContext, list: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
     ctx.curState ?: return null
     if (list.getTypeIfDefined(ctx) != ctx.typeSystem.pythonList)
         return null
 
+    return listPop(ctx, list)
+}
+
+fun handlerListPopIndKt(ctx: ConcolicRunContext, list: UninterpretedSymbolicPythonObject, ind: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
+    ctx.curState ?: return null
+    if (list.getTypeIfDefined(ctx) != ctx.typeSystem.pythonList)
+        return null
+    ind.addSupertype(ctx, ctx.typeSystem.pythonInt)
+    return listPop(ctx, list, ind.getIntContent(ctx))
+}
+
+fun handlerListInsertKt(
+    ctx: ConcolicRunContext,
+    list: UninterpretedSymbolicPythonObject,
+    ind: UninterpretedSymbolicPythonObject,
+    value: UninterpretedSymbolicPythonObject
+) {
+    ctx.curState ?: return
+    if (list.getTypeIfDefined(ctx) != ctx.typeSystem.pythonList)
+        return
+    ind.addSupertype(ctx, ctx.typeSystem.pythonInt)
+
     with(ctx.ctx) {
         val listSize = ctx.curState!!.memory.readArrayLength(list.address, ArrayType, intSort)
-        val sizeCond = listSize gt mkIntNum(0)
-        myFork(ctx, sizeCond)
-        if (ctx.modelHolder.model.eval(sizeCond).isFalse)
-            return null
-        val newSize = mkArithSub(listSize, mkIntNum(1))
-        val result = list.readElement(ctx, newSize)
-        ctx.curState!!.memory.writeArrayLength(list.address, newSize, ArrayType, intSort)
-        return result
+        val indValueRaw = ind.getIntContent(ctx)
+        val indValue = mkIte(
+            indValueRaw lt listSize,
+            indValueRaw,
+            listSize
+        )
+        ctx.curState!!.symbolicListInsert(list.address, ArrayType, addressSort, indValue, value.address)
+        list.writeElement(ctx, indValue, value)  // to assert element constraints
     }
 }

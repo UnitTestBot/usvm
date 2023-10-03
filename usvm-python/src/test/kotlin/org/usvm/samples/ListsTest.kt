@@ -358,4 +358,33 @@ class ListsTest : PythonTestRunnerForPrimitiveProgram("Lists", UMachineOptions(s
             )
         )
     }
+
+    @Test
+    fun testPopUsageWithIndex() {
+        check1WithConcreteRun(
+            constructFunction("pop_usage_with_index", listOf(typeSystem.pythonList)),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, res -> res.selfTypeName == "IndexError" },
+                { _, res -> res.selfTypeName == "AssertionError" },
+                { _, res -> res.repr == "None" }
+            )
+        )
+    }
+
+    @Test
+    fun testInsertUsage() {
+        check2WithConcreteRun(
+            constructFunction("insert_usage", listOf(typeSystem.pythonList, PythonAnyType)),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ listOf { x, _, _ -> x.typeName == "list" },
+            /* propertiesToDiscover = */ listOf(
+                { _, _, res -> res.repr == "None" },
+                { _, _, res -> res.selfTypeName == "AssertionError" }
+            )
+        )
+    }
 }
