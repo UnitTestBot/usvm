@@ -216,6 +216,14 @@ class StepScope<T : UState<Type, *, Statement, Context, *, T>, Type, Statement, 
         val conditionalScope = StepScope(conditionalState, forkBlackList)
 
         return conditionalScope.assert(condition)?.let {
+            val satisfiedModels = conditionalState.models
+            val modelsInCurrentState = calcOnState { models }
+
+            // TODO add some comments
+            if (satisfiedModels != modelsInCurrentState) {
+                originalState.models = modelsInCurrentState + satisfiedModels
+            }
+
             conditionalState
         }
     }
