@@ -36,6 +36,7 @@ class SampleInterpreter(
     override fun step(state: SampleState): StepResult<SampleState> {
         val scope = StepScope(state, forkBlackList)
         val stmt = state.lastStmt
+        logger.debug { "state: $state" }
         logger.debug { "step: $stmt" }
         when (stmt) {
             is Call -> visitCall(scope, stmt)

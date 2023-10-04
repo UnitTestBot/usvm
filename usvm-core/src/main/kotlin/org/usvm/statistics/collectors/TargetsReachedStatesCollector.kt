@@ -13,7 +13,7 @@ class TargetsReachedStatesCollector<State : UState<*, *, *, *, *, State>> : Stat
     // TODO probably this should be called not only for terminated states
     //      Also, we should process more carefully clone operation for the states
     override fun onStateTerminated(state: State, stateReachable: Boolean) {
-        if (state.reachedTerminalTargets.isNotEmpty()) {
+        if (state.targets.reachedTerminal.isNotEmpty()) {
             mutableCollectedStates.add(state)
         }
     }

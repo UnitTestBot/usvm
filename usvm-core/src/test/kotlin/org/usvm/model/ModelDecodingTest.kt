@@ -62,7 +62,7 @@ class ModelDecodingTest {
 
         stack = URegistersStack()
         stack.push(10)
-        mocker = UIndexedMocker(ctx)
+        mocker = UIndexedMocker()
         heap = UMemory(ctx, pc.typeConstraints, stack, mocker)
     }
 
@@ -76,7 +76,7 @@ class ModelDecodingTest {
     fun testSimpleWritingToFields() = with(ctx) {
         val field = mockk<Field>()
 
-        val concreteRef = heap.allocateConcreteRef()
+        val concreteRef = allocateConcreteRef()
         val symbolicRef0 = stack.readRegister(0, addressSort)
         val symbolicRef1 = stack.readRegister(1, addressSort)
 
@@ -98,7 +98,7 @@ class ModelDecodingTest {
     fun testSimpleWritingToAddressFields() = with(ctx) {
         val field = mockk<Field>()
 
-        val concreteRef = heap.allocateConcreteRef()
+        val concreteRef = allocateConcreteRef()
         val symbolicRef0 = stack.readRegister(0, addressSort)
         val symbolicRef1 = stack.readRegister(1, addressSort)
 
@@ -122,9 +122,9 @@ class ModelDecodingTest {
         val field = mockk<Field>()
         val method = mockk<Method>()
 
-        val mockedValue = mocker.call(method, emptySequence(), addressSort).first
+        val mockedValue = mocker.call(method, emptySequence(), addressSort)
         val ref1 = heap.readField(mockedValue, field, addressSort)
-        heap.writeField(ref1, field, addressSort, heap.allocateConcreteRef(), trueExpr)
+        heap.writeField(ref1, field, addressSort, allocateConcreteRef(), trueExpr)
         val ref2 = heap.readField(mockedValue, field, addressSort)
 
         pc += ref1 neq ref2
@@ -144,7 +144,7 @@ class ModelDecodingTest {
         val field = mockk<Field>()
         val method = mockk<Method>()
 
-        val mockedValue = mocker.call(method, emptySequence(), addressSort).first
+        val mockedValue = mocker.call(method, emptySequence(), addressSort)
         val ref1 = heap.readField(mockedValue, field, addressSort)
         heap.writeField(ref1, field, addressSort, ref1, trueExpr)
         val ref2 = heap.readField(mockedValue, field, addressSort)
@@ -161,7 +161,7 @@ class ModelDecodingTest {
     fun testSimpleSeveralWritingsToArray() = with(ctx) {
         val array = mockk<Type>()
 
-        val concreteRef = heap.allocateConcreteRef()
+        val concreteRef = allocateConcreteRef()
         val symbolicRef0 = stack.readRegister(0, addressSort)
         val symbolicRef1 = stack.readRegister(1, addressSort)
         val symbolicRef2 = stack.readRegister(2, addressSort)

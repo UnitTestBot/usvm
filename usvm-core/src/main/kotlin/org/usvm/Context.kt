@@ -42,6 +42,7 @@ import org.usvm.collection.set.ref.UInputRefSetWithAllocatedElements
 import org.usvm.collection.set.ref.UInputRefSetWithAllocatedElementsReading
 import org.usvm.collection.set.ref.UInputRefSetWithInputElements
 import org.usvm.collection.set.ref.UInputRefSetWithInputElementsReading
+import org.usvm.memory.UAddressCounter
 import org.usvm.memory.splitUHeapRef
 import org.usvm.regions.Region
 import org.usvm.solver.USolverBase
@@ -81,6 +82,13 @@ open class UContext<USizeSort : USort>(
     fun mkNullRef(): USymbolicHeapRef {
         return nullRef
     }
+
+    val addressCounter = UAddressCounter()
+
+    fun mkAddressCounter(): UAddressCounter {
+        return addressCounter
+    }
+
 
     /**
      * Disassembles [lhs] and [rhs], simplifies concrete refs, if it has any, and rewrites it in a DNF, except that the
@@ -359,12 +367,6 @@ open class UContext<USizeSort : USort>(
     override fun boolSortDefaultValue(): KExpr<KBoolSort> = falseExpr
 
     override fun <S : KBvSort> bvSortDefaultValue(sort: S): KExpr<S> = mkBv(0, sort)
-
-    // Type hack to be able to intern the initial location for inheritors.
-    private val initialLocation = RootNode<Nothing, Nothing>()
-
-    fun <State : UState<*, *, Statement, *, *, State>, Statement> mkInitialLocation()
-            : PathsTrieNode<State, Statement> = initialLocation.uncheckedCast()
 
     fun mkUValueSampler(): KSortVisitor<KExpr<*>> {
         return UValueSampler(this)

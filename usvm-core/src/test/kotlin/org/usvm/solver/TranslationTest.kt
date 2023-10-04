@@ -81,7 +81,7 @@ class TranslationTest {
 
     @Test
     fun testTranslateConstAddressSort() = with(ctx) {
-        val ref = heap.allocateConcreteRef()
+        val ref = allocateConcreteRef()
         val idx = mkRegisterReading(0, sizeSort)
 
         val expr = heap.readArrayIndex(ref, idx, addressArrayDescr, addressSort)
@@ -92,7 +92,7 @@ class TranslationTest {
 
     @Test
     fun testTranslateConstValueSort() = with(ctx) {
-        val ref = heap.allocateConcreteRef()
+        val ref = allocateConcreteRef()
         val idx = mkRegisterReading(0, sizeSort)
 
         val expr = heap.readArrayIndex(ref, idx, valueArrayDescr, bv32Sort)
@@ -103,7 +103,7 @@ class TranslationTest {
 
     @Test
     fun testTranslateWritingsToAllocatedArray() = with(ctx) {
-        val ref = heap.allocateConcreteRef()
+        val ref = allocateConcreteRef()
         val idx1 = mkRegisterReading(0, sizeSort)
         val idx2 = mkRegisterReading(1, sizeSort)
 
@@ -178,7 +178,7 @@ class TranslationTest {
             .write(ref1 to idx1, val1, trueExpr)
             .write(ref2 to idx2, val2, trueExpr)
 
-        val concreteRef = heap.allocateConcreteRef()
+        val concreteRef = allocateConcreteRef()
 
 
         val adapter = USymbolicArrayInputToAllocatedCopyAdapter(
@@ -317,7 +317,7 @@ class TranslationTest {
 
     @Test
     fun testSymbolicMapRefKeyRead() = with(ctx) {
-        val concreteMapRef = heap.allocateConcreteRef()
+        val concreteMapRef = allocateConcreteRef()
         val symbolicMapRef = mkRegisterReading(20, addressSort)
 
         runSymbolicMapRefKeyReadChecks(concreteMapRef)
@@ -325,12 +325,12 @@ class TranslationTest {
     }
 
     private fun runSymbolicMapRefKeyReadChecks(mapRef: UHeapRef) = with(ctx) {
-        val otherConcreteMapRef = heap.allocateConcreteRef()
+        val otherConcreteMapRef = allocateConcreteRef()
         val otherSymbolicMapRef = mkRegisterReading(10, addressSort)
 
-        val concreteRef0 = heap.allocateConcreteRef()
-        val concreteRef1 = heap.allocateConcreteRef()
-        val concreteRefMissed = heap.allocateConcreteRef()
+        val concreteRef0 = allocateConcreteRef()
+        val concreteRef1 = allocateConcreteRef()
+        val concreteRefMissed = allocateConcreteRef()
 
         val symbolicRef0 = mkRegisterReading(0, addressSort)
         val symbolicRef1 = mkRegisterReading(1, addressSort)

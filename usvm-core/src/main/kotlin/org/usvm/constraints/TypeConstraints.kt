@@ -1,5 +1,7 @@
 package org.usvm.constraints
 
+import kotlinx.collections.immutable.PersistentMap
+import kotlinx.collections.immutable.persistentHashMapOf
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapAddress
 import org.usvm.UConcreteHeapRef
@@ -9,6 +11,9 @@ import org.usvm.UNullRef
 import org.usvm.USymbolicHeapRef
 import org.usvm.isStaticHeapRef
 import org.usvm.memory.mapWithStaticAsConcrete
+import org.usvm.merging.MutableMergeGuard
+import org.usvm.merging.UMergeable
+import org.usvm.solver.UExprTranslator
 import org.usvm.types.USingleTypeStream
 import org.usvm.types.UTypeRegion
 import org.usvm.types.UTypeStream
@@ -47,9 +52,9 @@ interface UTypeEvaluator<Type> {
 class UTypeConstraints<Type>(
     private val typeSystem: UTypeSystem<Type>,
     private val equalityConstraints: UEqualityConstraints,
-    private val concreteRefToType: MutableMap<UConcreteHeapAddress, Type> = mutableMapOf(),
-    symbolicRefToTypeRegion: MutableMap<USymbolicHeapRef, UTypeRegion<Type>> = mutableMapOf(),
-) : UTypeEvaluator<Type> {
+    private var concreteRefToType: PersistentMap<UConcreteHeapAddress, Type> = persistentHashMapOf(),
+    symbolicRefToTypeRegion: PersistentMap<USymbolicHeapRef, UTypeRegion<Type>> = persistentHashMapOf(),
+) : UTypeEvaluator<Type>, UMergeable<UTypeConstraints<Type>, MutableMergeGuard> {
     private val ctx: UContext<*> get() = equalityConstraints.ctx
 
     init {
@@ -58,7 +63,7 @@ class UTypeConstraints<Type>(
 
     val symbolicRefToTypeRegion get(): Map<USymbolicHeapRef, UTypeRegion<Type>> = _symbolicRefToTypeRegion
 
-    private val _symbolicRefToTypeRegion = symbolicRefToTypeRegion
+    private var _symbolicRefToTypeRegion = symbolicRefToTypeRegion
 
     /**
      * Returns true if the current type and equality constraints are unsatisfiable (syntactically).
@@ -81,7 +86,7 @@ class UTypeConstraints<Type>(
      * Binds concrete heap address [ref] to its [type].
      */
     fun allocate(ref: UConcreteHeapAddress, type: Type) {
-        concreteRefToType[ref] = type
+        concreteRefToType = concreteRefToType.put(ref, type)
 
         equalityConstraints.updateDisequality(ctx.mkConcreteHeapRef(ref))
     }
@@ -112,7 +117,7 @@ class UTypeConstraints<Type>(
      */
     private fun getTypeRegion(symbolicRef: USymbolicHeapRef, useRepresentative: Boolean = true): UTypeRegion<Type> {
         val representative = if (useRepresentative) {
-            equalityConstraints.equalReferences.find(symbolicRef)
+            equalityConstraints.findRepresentative(symbolicRef)
         } else {
             symbolicRef
         }
@@ -129,13 +134,13 @@ class UTypeConstraints<Type>(
 
 
     private fun setTypeRegion(symbolicRef: USymbolicHeapRef, value: UTypeRegion<Type>) {
-        val representative = equalityConstraints.equalReferences.find(symbolicRef)
+        val representative = equalityConstraints.findRepresentative(symbolicRef)
         if (representative is UConcreteHeapRef) {
             // No need to set a type region for static refs as they already have a concrete type.
             return
         }
 
-        _symbolicRefToTypeRegion[representative as USymbolicHeapRef] = value
+        _symbolicRefToTypeRegion = _symbolicRefToTypeRegion.put(representative as USymbolicHeapRef, value)
     }
 
     /**
@@ -422,7 +427,22 @@ class UTypeConstraints<Type>(
         UTypeConstraints(
             typeSystem,
             equalityConstraints,
-            concreteRefToType.toMutableMap(),
-            _symbolicRefToTypeRegion.toMutableMap()
+            concreteRefToType,
+            _symbolicRefToTypeRegion
         )
+
+    override fun mergeWith(other: UTypeConstraints<Type>, by: MutableMergeGuard): UTypeConstraints<Type>? {
+        // TODO: should we check equality constraints?
+        if (symbolicRefToTypeRegion != other.symbolicRefToTypeRegion) {
+            return null
+        }
+        val mergedConcreteRefs = concreteRefToType.builder().apply { putAll(other.concreteRefToType) }.build()
+        return UTypeConstraints(typeSystem, equalityConstraints, mergedConcreteRefs, _symbolicRefToTypeRegion)
+    }
+
+
+    @Suppress("UNUSED_PARAMETER")
+    fun constraints(translator: UExprTranslator<Type, *>): Sequence<UBoolExpr> {
+        return emptySequence()
+    }
 }

@@ -1,6 +1,6 @@
 package org.usvm.machine
 
-import org.usvm.PathsTrieNode
+import org.usvm.PathNode
 import org.usvm.UCallStack
 import org.usvm.UContext
 import org.usvm.UExpr
@@ -14,7 +14,9 @@ import org.usvm.language.Stmt
 import org.usvm.language.argumentCount
 import org.usvm.language.localsCount
 import org.usvm.memory.UMemory
+import org.usvm.merging.MutableMergeGuard
 import org.usvm.model.UModelBase
+import org.usvm.targets.UTargetsSet
 
 class SampleState(
     ctx: UContext<USizeSort>,
@@ -22,17 +24,17 @@ class SampleState(
     pathConstraints: UPathConstraints<SampleType> = UPathConstraints(ctx),
     memory: UMemory<SampleType, Method<*>> = UMemory(ctx, pathConstraints.typeConstraints),
     models: List<UModelBase<SampleType>> = listOf(),
-    pathLocation: PathsTrieNode<SampleState, Stmt> = ctx.mkInitialLocation(),
+    pathNode: PathNode<Stmt> = PathNode.root(),
     var returnRegister: UExpr<out USort>? = null,
     var exceptionRegister: ProgramException? = null,
-    targets: List<SampleTarget> = emptyList()
+    targets: UTargetsSet<SampleTarget, Stmt> = UTargetsSet.empty(),
 ) : UState<SampleType, Method<*>, Stmt, UContext<USizeSort>, SampleTarget, SampleState>(
     ctx,
     callStack,
     pathConstraints,
     memory,
     models,
-    pathLocation,
+    pathNode,
     targets
 ) {
     override fun clone(newConstraints: UPathConstraints<SampleType>?): SampleState {
@@ -43,20 +45,59 @@ class SampleState(
             clonedConstraints,
             memory.clone(clonedConstraints.typeConstraints),
             models,
-            pathLocation,
+            pathNode,
             returnRegister,
             exceptionRegister,
-            targetsImpl
+            targets
         )
+    }
+
+    override fun mergeWith(other: SampleState, by: Unit): SampleState? {
+        // TODO: copy-paste
+
+        val mergedPathNode = pathNode.mergeWith(other.pathNode, Unit) ?: return null
+
+        val mergeGuard = MutableMergeGuard(ctx)
+        val mergedCallStack = callStack.mergeWith(other.callStack, Unit) ?: return null
+        val mergedPathConstraints = pathConstraints.mergeWith(other.pathConstraints, mergeGuard)
+            ?: return null
+        val mergedMemory = memory.clone(mergedPathConstraints.typeConstraints).mergeWith(other.memory, mergeGuard)
+            ?: return null
+        val mergedModels = models + other.models
+        val mergedReturnRegister = if (returnRegister == null && other.returnRegister == null) {
+            null
+        } else {
+            return null
+        }
+        val mergedExceptionRegister = if (exceptionRegister == null && other.exceptionRegister == null) {
+            null
+        } else {
+            return null
+        }
+        val mergedTargets = targets.takeIf { it == other.targets } ?: return null
+        mergedPathConstraints += ctx.mkOr(mergeGuard.leftConstraint, mergeGuard.rightConstraint)
+
+        return SampleState(
+            ctx,
+            mergedCallStack,
+            mergedPathConstraints,
+            mergedMemory,
+            mergedModels,
+            mergedPathNode,
+            mergedReturnRegister,
+            mergedExceptionRegister,
+            mergedTargets
+        )
+
     }
 
     override val isExceptional: Boolean
         get() = exceptionRegister != null
 }
 
-val SampleState.lastStmt: Stmt get() = pathLocation.statement
+val SampleState.lastStmt: Stmt get() = pathNode.statement
 fun SampleState.newStmt(stmt: Stmt) {
-    pathLocation = pathLocation.pathLocationFor(stmt, this)
+    pathNode += stmt
 }
 
 fun SampleState.popMethodCall(valueToReturn: UExpr<out USort>?) {

@@ -2,6 +2,7 @@ package org.usvm.api
 
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
+import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
@@ -25,8 +26,8 @@ import org.usvm.collection.array.allocateArrayInitialized as allocateArrayInitia
 fun <Type> UReadOnlyMemory<Type>.typeStreamOf(ref: UHeapRef): UTypeStream<Type> =
     types.getTypeStream(ref)
 
-fun UMemory<*, *>.allocateConcreteRef(): UConcreteHeapRef = ctx.mkConcreteHeapRef(addressCounter.freshAllocatedAddress())
-fun UMemory<*, *>.allocateStaticRef(): UConcreteHeapRef = ctx.mkConcreteHeapRef(addressCounter.freshStaticAddress())
+fun UContext<*>.allocateConcreteRef(): UConcreteHeapRef = mkConcreteHeapRef(addressCounter.freshAllocatedAddress())
+fun UContext<*>.allocateStaticRef(): UConcreteHeapRef = mkConcreteHeapRef(addressCounter.freshStaticAddress())
 
 fun <Field, Sort : USort> UReadOnlyMemory<*>.readField(
     ref: UHeapRef, field: Field, sort: Sort

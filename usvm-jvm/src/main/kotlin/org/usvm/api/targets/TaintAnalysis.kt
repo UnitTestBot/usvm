@@ -13,7 +13,6 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UHeapRef
 import org.usvm.api.allocateConcreteRef
 import org.usvm.collection.set.ref.URefSetEntryLValue
-import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.machine.JcContext
 import org.usvm.machine.JcInterpreterObserver
 import org.usvm.machine.JcMethodCallBaseInst
@@ -55,7 +54,7 @@ class TaintAnalysis(
 
     private fun getMarkAddress(mark: JcTaintMark, stepScope: JcStepScope): UConcreteHeapRef =
         marksAddresses.getOrPut(mark) {
-            stepScope.calcOnState { memory.allocateConcreteRef() }
+            stepScope.calcOnState { ctx.allocateConcreteRef() }
         }
 
     private fun writeMark(ref: UHeapRef, mark: JcTaintMark, guard: UBoolExpr, stepScope: JcStepScope) {
@@ -267,7 +266,7 @@ class TaintAnalysis(
     }
 
     private fun propagateIntermediateTarget(state: JcState) {
-        val parent = state.pathLocation.parent ?: error("This is impossible by construction")
+        val parent = state.pathNode.parent ?: error("This is impossible by construction")
         val targets = findTaintTargets(parent.statement, state)
 
         targets.forEach {

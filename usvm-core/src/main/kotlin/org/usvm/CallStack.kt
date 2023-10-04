@@ -1,5 +1,7 @@
 package org.usvm
 
+import org.usvm.merging.UMergeable
+
 data class UCallStackFrame<Method, Statement>(
     val method: Method,
     val returnSite: Statement?,
@@ -12,7 +14,7 @@ data class UStackTraceFrame<Method, Statement>(
 
 class UCallStack<Method, Statement> private constructor(
     private val stack: ArrayDeque<UCallStackFrame<Method, Statement>>,
-) : List<UCallStackFrame<Method, Statement>> by stack {
+) : List<UCallStackFrame<Method, Statement>> by stack, UMergeable<UCallStack<Method, Statement>, Unit> {
     constructor() : this(ArrayDeque())
     constructor(method: Method) : this(
         ArrayDeque<UCallStackFrame<Method, Statement>>().apply {
@@ -44,6 +46,13 @@ class UCallStack<Method, Statement> private constructor(
         stacktrace += UStackTraceFrame(stack.last().method, currentInstruction)
 
         return stacktrace
+    }
+
+    override fun mergeWith(other: UCallStack<Method, Statement>, by: Unit): UCallStack<Method, Statement>? {
+        if (stack != other.stack) {
+            return null
+        }
+        return this
     }
 
     override fun toString(): String {

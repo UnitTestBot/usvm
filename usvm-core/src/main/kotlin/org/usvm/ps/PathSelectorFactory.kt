@@ -7,6 +7,8 @@ import org.usvm.UPathSelector
 import org.usvm.UState
 import org.usvm.algorithms.DeterministicPriorityCollection
 import org.usvm.algorithms.RandomizedPriorityCollection
+import org.usvm.merging.CloseStatesSearcherImpl
+import org.usvm.merging.MergingPathSelector
 import org.usvm.statistics.ApplicationGraph
 import org.usvm.statistics.CoverageStatistics
 import org.usvm.statistics.distances.CallGraphStatistics
@@ -29,8 +31,8 @@ fun <Method, Statement, Target, State> createPathSelector(
     cfgStatistics: () -> CfgStatistics<Method, Statement>? = { null },
     callGraphStatistics: () -> CallGraphStatistics<Method>? = { null },
 ): UPathSelector<State>
-        where Target : UTarget<Statement, Target>,
-              State : UState<*, Method, Statement, *, Target, State> {
+    where Target : UTarget<Statement, Target>,
+          State : UState<*, Method, Statement, *, Target, State> {
 
     val strategies = options.pathSelectionStrategies
     require(strategies.isNotEmpty()) { "At least one path selector strategy should be specified" }
@@ -42,10 +44,9 @@ fun <Method, Statement, Target, State> createPathSelector(
             PathSelectionStrategy.BFS -> BfsPathSelector()
             PathSelectionStrategy.DFS -> DfsPathSelector()
 
-            PathSelectionStrategy.RANDOM_PATH -> RandomTreePathSelector(
-                // Initial state is the first `real` node, not the root.
-                root = requireNotNull(initialState.pathLocation.parent),
-                randomNonNegativeInt = { random.nextInt(0, Int.MAX_VALUE) }
+            PathSelectionStrategy.RANDOM_PATH -> RandomTreePathSelector.fromRoot(
+                initialState.pathNode,
+                randomNonNegativeInt = { random.nextInt(0, it) }
             )
 
             PathSelectionStrategy.DEPTH -> createDepthPathSelector()
@@ -93,12 +94,14 @@ fun <Method, Statement, Target, State> createPathSelector(
         }
     }
 
+
     val propagateExceptions = options.exceptionsPropagation
 
     selectors.singleOrNull()?.let { selector ->
         val resultSelector = selector.wrapIfRequired(propagateExceptions)
-        resultSelector.add(listOf(initialState))
-        return resultSelector
+        val mergingSelector = createMergingPathSelector(initialState, resultSelector, options, cfgStatistics)
+        mergingSelector.add(listOf(initialState))
+        return mergingSelector
     }
 
     require(selectors.size >= 2) { "Cannot create collaborative path selector from less than 2 selectors" }
@@ -143,14 +146,14 @@ private fun <State : UState<*, *, *, *, *, State>> createDepthPathSelector(rando
     if (random == null) {
         return WeightedPathSelector(
             priorityCollectionFactory = { DeterministicPriorityCollection(Comparator.naturalOrder()) },
-            weighter = { it.pathLocation.depth }
+            weighter = { it.pathNode.depth }
         )
     }
 
     // Notice: random never returns 1.0
     return WeightedPathSelector(
         priorityCollectionFactory = { RandomizedPriorityCollection(compareById()) { random.nextDouble() } },
-        weighter = { 1.0 / max(it.pathLocation.depth, 1) }
+        weighter = { 1.0 / max(it.pathNode.depth, 1) }
     )
 }
 
@@ -197,14 +200,40 @@ private fun <Method, Statement, State : UState<*, Method, Statement, *, *, State
     if (random == null) {
         return WeightedPathSelector(
             priorityCollectionFactory = { DeterministicPriorityCollection(Comparator.naturalOrder()) },
-            weighter = { it.pathLocation.depth }
+            weighter = { it.pathNode.depth }
         )
     }
 
     return WeightedPathSelector(
         priorityCollectionFactory = { RandomizedPriorityCollection(compareById()) { random.nextDouble() } },
-        weighter = { 1.0 / max(it.pathLocation.depth.toDouble(), 1.0) }
+        weighter = { 1.0 / max(it.pathNode.depth.toDouble(), 1.0) }
     )
+}
+
+internal fun <Method, Statement, Target, State> createMergingPathSelector(
+    initialState: State,
+    underlyingPathSelector: UPathSelector<State>,
+    options: UMachineOptions,
+    statistics: () -> CfgStatistics<Method, Statement>?,
+): UPathSelector<State>
+    where Target : UTarget<Statement, Target>,
+          State : UState<*, Method, Statement, *, Target, State> {
+    if (!options.useMerging) {
+        return underlyingPathSelector
+    }
+    val executionTreeTracker = ExecutionTreeTracker<State, Statement>(initialState.pathNode) { it.pathNode }
+    val closeStatesSearcher = CloseStatesSearcherImpl(
+        executionTreeTracker,
+        { it.pathNode },
+        { it.lastEnteredMethod },
+        requireNotNull(statistics())
+    )
+    val result = MergingPathSelector(
+        underlyingPathSelector,
+        executionTreeTracker,
+        closeStatesSearcher
+    )
+    return result
 }
 
 internal fun <Method, Statement, Target, State> createTargetedPathSelector(
@@ -212,8 +241,8 @@ internal fun <Method, Statement, Target, State> createTargetedPathSelector(
     applicationGraph: ApplicationGraph<Method, Statement>,
     random: Random? = null,
 ): UPathSelector<State>
-        where Target : UTarget<Statement, Target>,
-              State : UState<*, Method, Statement, *, Target, State> {
+    where Target : UTarget<Statement, Target>,
+          State : UState<*, Method, Statement, *, Target, State> {
 
     val distanceCalculator = MultiTargetDistanceCalculator<Method, Statement, _> { loc ->
         CallStackDistanceCalculator(
@@ -275,8 +304,8 @@ internal fun <Method, Statement, Target, State> createTargetedPathSelector(
     applicationGraph: ApplicationGraph<Method, Statement>,
     random: Random? = null,
 ): UPathSelector<State>
-        where Target : UTarget<Statement, Target>,
-              State : UState<*, Method, Statement, *, Target, State> {
+    where Target : UTarget<Statement, Target>,
+          State : UState<*, Method, Statement, *, Target, State> {
 
     val distanceCalculator = MultiTargetDistanceCalculator<Method, Statement, _> { stmt ->
         InterprocDistanceCalculator(

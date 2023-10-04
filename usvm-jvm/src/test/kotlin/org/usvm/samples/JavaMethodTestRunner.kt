@@ -754,6 +754,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
         exceptionsPropagation = true,
         timeoutMs = 60_000,
         stepsFromLastCovered = 3500L,
+        useMerging = true,
     )
 
     override val runner: (KFunction<*>, UMachineOptions) -> List<JcTest> = { method, options ->

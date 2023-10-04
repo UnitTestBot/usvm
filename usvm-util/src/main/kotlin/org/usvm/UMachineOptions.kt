@@ -10,10 +10,12 @@ enum class PathSelectionStrategy {
      * Selects the states in depth-first order.
      */
     DFS,
+
     /**
      * Selects the states in breadth-first order.
      */
     BFS,
+
     /**
      * Selects the next state by descending from root to leaf in
      * symbolic execution tree. The child on each step is selected randomly.
@@ -21,32 +23,38 @@ enum class PathSelectionStrategy {
      * See KLEE's random path search heuristic.
      */
     RANDOM_PATH,
+
     /**
      * Gives priority to states with shorter path lengths.
      * The state with the shortest path is always selected.
      */
     DEPTH,
+
     /**
      * Gives priority to states with shorter path lengths.
      * States are selected randomly with distribution based on path length.
      */
     DEPTH_RANDOM,
+
     /**
      * Gives priority to states with less number of forks.
      * The state with the least number of forks is always selected.
      */
     FORK_DEPTH,
+
     /**
      * Gives priority to states with less number of forks.
      * States are selected randomly with distribution based on number of forks.
      */
     FORK_DEPTH_RANDOM,
+
     /**
      * Gives priority to states closer to uncovered instructions in application
      * graph.
      * The closest to uncovered instruction state is always selected.
      */
     CLOSEST_TO_UNCOVERED,
+
     /**
      * Gives priority to states closer to uncovered instructions in application
      * graph.
@@ -60,18 +68,21 @@ enum class PathSelectionStrategy {
      * The closest to targets state is always selected.
      */
     TARGETED,
+
     /**
      * Gives priority to the states which are closer to their targets considering interprocedural
      * reachability.
      * States are selected randomly with distribution based on distance to targets.
      */
     TARGETED_RANDOM,
+
     /**
      * Gives priority to the states which are closer to their targets considering only current call stack
      * reachability.
      * The closest to targets state is always selected.
      */
     TARGETED_CALL_STACK_LOCAL,
+
     /**
      * Gives priority to the states which are closer to their targets considering only current call stack
      * reachability.
@@ -98,10 +109,12 @@ enum class CoverageZone {
      * Only target method coverage is considered.
      */
     METHOD,
+
     /**
      * Coverage of methods in target method's class id considered.
      */
     CLASS,
+
     /**
      * Coverage of methods transitively reachable from a start method.
      */
@@ -113,6 +126,7 @@ enum class StateCollectionStrategy {
      * Collect only those terminated states which have covered new locations.
      */
     COVERED_NEW,
+
     /**
      * Collect only those states which have reached terminal targets.
      */
@@ -188,5 +202,9 @@ data class UMachineOptions(
     /**
      * Depth of the interprocedural reachability search used in distance-based path selectors.
      */
-    val targetSearchDepth: UInt = 0u
+    val targetSearchDepth: UInt = 0u,
+    /**
+     * TODO: add description
+     */
+    val useMerging: Boolean = false,
 )
