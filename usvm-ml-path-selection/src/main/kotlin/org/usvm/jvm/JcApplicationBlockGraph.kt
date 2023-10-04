@@ -32,7 +32,7 @@ class JcApplicationBlockGraph(cp: JcClasspath) :
 
     override fun successors(node: JcBasicBlock): Sequence<JcBasicBlock> {
         val jcBlockGraphImpl: JcBlockGraph = getBlockGraph()
-        return jcBlockGraphImpl.successors(node).asSequence()
+        return jcBlockGraphImpl.successors(node).asSequence() + jcBlockGraphImpl.throwers(node).asSequence()
     }
 
     override fun callees(node: JcBasicBlock): Sequence<JcMethod> {

@@ -294,12 +294,12 @@ class GNNPathSelector<Method, BasicBlock, Statement, State : UState<*, Method, S
         for (instruction in this.reversedPath) {
             if (instruction in sourceBlocks.map { block -> applicationBlockGraph.instructions(block) }.flatten())
                 blocks.add(applicationBlockGraph.blockOf(instruction))
-            // else: external call
+            // else: external call or method entry point
         }
         return blocks.asSequence()
     }
 
-    fun <Method, BasicBlock, Statement> ApplicationBlockGraph<Method, BasicBlock, Statement>.edges(
+    private fun <Method, BasicBlock, Statement> ApplicationBlockGraph<Method, BasicBlock, Statement>.edges(
         rawBlocks: Sequence<BasicBlock>,
         mapper: (BasicBlock) -> Int
     ): Sequence<GameMapEdge> {
