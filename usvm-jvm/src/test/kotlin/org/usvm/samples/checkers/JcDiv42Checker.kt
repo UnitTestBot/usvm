@@ -22,8 +22,6 @@ import org.usvm.UBoolExpr
 import org.usvm.api.checkers.JcCheckerApi
 import org.usvm.api.checkers.JcCheckerSatResult
 
-// NOTE: THIS FILE MUST NOT BE MERGED!
-
 interface JcAssignInstChecker : JcInstVisitor<Unit> {
     val api: JcCheckerApi
 
@@ -89,6 +87,9 @@ class JcDiv42Checker(
     override val api: JcCheckerApi,
     private val cp: JcClasspath,
 ) : JcAssignInstChecker {
+    private val _targetStatements: MutableSet<JcAssignInst> = mutableSetOf()
+    val targetStatements: Set<JcAssignInst> = _targetStatements
+
     override fun matchAst(inst: JcAssignInst): Boolean {
         val expr = inst.rhv
         return expr is JcBinaryExpr && (expr is JcDivExpr || expr is JcRemExpr) && expr.rhv.type == cp.int
@@ -101,6 +102,6 @@ class JcDiv42Checker(
     }
 
     override fun reportError(inst: JcAssignInst) {
-        println("Division by 42 found")
+        _targetStatements += inst
     }
 }

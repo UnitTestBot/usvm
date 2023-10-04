@@ -16,6 +16,7 @@ import org.usvm.machine.JcMachine
 import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.AnalysisResultsNumberMatcher
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
+import org.usvm.util.declaringClass
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 import kotlin.reflect.KFunction1
@@ -24,7 +25,6 @@ import kotlin.reflect.KFunction3
 import kotlin.reflect.KFunction4
 import kotlin.reflect.full.instanceParameter
 import kotlin.reflect.jvm.javaConstructor
-import kotlin.reflect.jvm.javaMethod
 
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -775,6 +775,3 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
         }
     }
 }
-
-private val KFunction<*>.declaringClass: Class<*>?
-    get() = (javaMethod ?: javaConstructor)?.declaringClass
