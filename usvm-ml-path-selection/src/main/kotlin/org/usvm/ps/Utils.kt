@@ -49,7 +49,7 @@ class IDGenerator {
     }
 }
 
-fun <Type> UPathConstraints<Type, *>.size(): Int {
+fun <Type> UPathConstraints<Type>.size(): Int {
     return numericConstraints.constraints().count() +
             this.equalityConstraints.distinctReferences.count() +
             this.equalityConstraints.equalReferences.count() +

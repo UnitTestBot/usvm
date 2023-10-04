@@ -12,6 +12,7 @@ import org.usvm.api.allocateStaticRef
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.targets.JcTarget
 import org.usvm.api.typeStreamOf
+import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.jvm.JcApplicationBlockGraph
 import org.usvm.machine.*
 import org.usvm.machine.interpreter.JcExprResolver
@@ -31,6 +32,7 @@ import org.usvm.util.write
 class JcBlockInterpreter(
     private val ctx: JcContext,
     private val applicationGraph: JcApplicationBlockGraph,
+    var forkBlackList: UForkBlackList<JcState, JcInst> = UForkBlackList.createDefault(),
 ) : UInterpreter<JcState>() {
 
     companion object {
@@ -67,7 +69,7 @@ class JcBlockInterpreter(
             }
         }
 
-        val solver = ctx.solver<JcType, JcContext>()
+        val solver = ctx.solver<JcType>()
 
         val model = (solver.checkWithSoftConstraints(state.pathConstraints) as USatResult).model
         state.models = listOf(model)
@@ -82,7 +84,7 @@ class JcBlockInterpreter(
 
         logger.debug("Step: {}", stmt)
 
-        val scope = StepScope(state)
+        val scope = StepScope(state, forkBlackList)
 
         // handle exception firstly
         val result = state.methodResult
