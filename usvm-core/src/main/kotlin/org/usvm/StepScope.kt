@@ -208,6 +208,19 @@ class StepScope<T : UState<Type, *, Statement, Context, *, T>, Type, Statement, 
     }
 
     /**
+     * [assert]s the [condition] on the scope with the cloned [originalState]. Returns this cloned state, if this [condition]
+     * is satisfiable, and returns `null` otherwise.
+     */
+    fun checkSat(condition: UBoolExpr): T? {
+        val conditionalState = originalState.clone()
+        val conditionalScope = StepScope(conditionalState, forkBlackList)
+
+        return conditionalScope.assert(condition)?.let {
+            conditionalState
+        }
+    }
+
+    /**
      * Represents the current state of this [StepScope].
      */
     private enum class StepScopeState {

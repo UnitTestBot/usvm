@@ -96,10 +96,10 @@ class TaintAnalysis(
             state.targets.filter { it in targets }
         }.orEmpty().toList().uncheckedCast()
 
-    override fun onAssignStatement(exprResolver: JcSimpleValueResolver, stmt: JcAssignInst, stepScope: JcStepScope) {
+    override fun onAssignStatement(simpleValueResolver: JcSimpleValueResolver, stmt: JcAssignInst, stepScope: JcStepScope) {
         // Sinks are already processed at this moment since we resolved it on a call statement
 
-        stmt.callExpr?.let { processTaintConfiguration(it, stepScope, exprResolver) }
+        stmt.callExpr?.let { processTaintConfiguration(it, stepScope, simpleValueResolver) }
 
         // TODO add fields processing
     }
@@ -241,15 +241,10 @@ class TaintAnalysis(
 
         val resolvedCondition = stepScope.ctx.mkAnd(resolvedConfigCondition, resolvedSinkCondition)
 
-        val (originalStateCopy, taintedStepScope) = stepScope.calcOnState {
-            val originalStateCopy = clone()
-            originalStateCopy to JcStepScope(originalStateCopy, UForkBlackList.createDefault())
-        }
-
-        taintedStepScope.assert(resolvedCondition)?.let {
+        stepScope.checkSat(resolvedCondition)?.let { taintedState ->
             // TODO remove corresponding target
-            collectedStates += originalStateCopy
-            target?.propagate(taintedStepScope.state)
+            collectedStates += taintedState
+            target?.propagate(taintedState)
         }
     }
 
