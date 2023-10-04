@@ -6,6 +6,7 @@ import org.jacodb.api.ext.findClass
 import org.jacodb.api.ext.toType
 import java.io.File
 import kotlin.reflect.KFunction
+import kotlin.reflect.jvm.javaConstructor
 import kotlin.reflect.jvm.javaMethod
 
 val allClasspath: List<File>
@@ -27,3 +28,6 @@ fun JcClasspath.getJcMethodByName(func: KFunction<*>): JcMethod {
 }
 
 inline fun <reified T> Result<*>.isException(): Boolean = exceptionOrNull() is T
+
+internal val KFunction<*>.declaringClass: Class<*>?
+    get() = (javaMethod ?: javaConstructor)?.declaringClass
