@@ -35,6 +35,11 @@ sealed class PathsTrieNode<State : UState<*, *, Statement, *, *, State>, Stateme
     abstract val depth: Int
 
     /**
+     * States that were forked from this node
+     */
+    abstract val accumulatedForks: MutableCollection<State>
+
+    /**
      * Adds a new label to [labels] collection.
      */
     abstract fun addLabel(label: Any)
@@ -80,6 +85,7 @@ class PathsTrieNodeImpl<State : UState<*, *, Statement, *, *, State>, Statement>
         statement = statement
     ) {
         parentNode.children[statement] = this
+        parentNode.accumulatedForks.addAll(this.states)
     }
 
     internal constructor(parentNode: PathsTrieNodeImpl<State, Statement>, statement: Statement, state: State) : this(
@@ -89,10 +95,13 @@ class PathsTrieNodeImpl<State : UState<*, *, Statement, *, *, State>, Statement>
         statement = statement
     ) {
         parentNode.children[statement] = this
+        parentNode.accumulatedForks.addAll(this.states)
         parentNode.states -= state
     }
 
     override val labels: MutableSet<Any> = hashSetOf()
+
+    override val accumulatedForks: MutableCollection<State> = mutableSetOf()
 
     override fun addLabel(label: Any) {
         labels.add(label)
@@ -114,6 +123,8 @@ class RootNode<State : UState<*, *, Statement, *, *, State>, Statement> : PathsT
     override val parent: PathsTrieNode<State, Statement>? = null
 
     override val labels: MutableSet<Any> = hashSetOf()
+
+    override val accumulatedForks: MutableCollection<State> = mutableSetOf()
 
     override val depth: Int = 0
 

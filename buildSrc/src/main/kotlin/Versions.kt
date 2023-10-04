@@ -8,6 +8,7 @@ object Versions {
     const val mockk = "1.13.4"
     const val junitParams = "5.9.3"
     const val logback = "1.4.8"
+    const val onnxruntime = "1.15.1"
 
     // versions for jvm samples
     const val samplesLombok = "1.18.20"

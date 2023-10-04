@@ -1,0 +1,11 @@
+plugins {
+    id("usvm.kotlin-conventions")
+}
+
+dependencies {
+    implementation(project(":usvm-core"))
+    implementation(project(":usvm-jvm"))
+
+    implementation("org.jacodb:jacodb-analysis:${Versions.jcdb}")
+    implementation("org.jacodb:jacodb-approximations:${Versions.jcdb}")
+}

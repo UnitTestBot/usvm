@@ -89,6 +89,10 @@ class CoverageStatistics<Method, Statement, State : UState<*, Method, Statement,
         return uncoveredStatements.values.flatten()
     }
 
+    fun isCovered(statement: Statement) = statement in coveredStatements.values.flatten()
+
+    fun inCoverageZone(method: Method) = coveredStatements.containsKey(method) || uncoveredStatements.containsKey(method)
+
     /**
      * Adds a listener triggered when a new statement is covered.
      */
