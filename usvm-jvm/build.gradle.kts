@@ -25,6 +25,7 @@ dependencies {
     implementation("org.jacodb:jacodb-analysis:${Versions.jcdb}")
 
     implementation("org.jacodb:jacodb-approximations:${Versions.jcdb}")
+    implementation("com.github.UnitTestBot.jacodb:jacodb-taint-configuration:f773a7a3a1")
 
     implementation(`usvm-api`.output)
 

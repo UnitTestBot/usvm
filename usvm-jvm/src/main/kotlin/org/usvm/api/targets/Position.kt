@@ -1,30 +1,34 @@
 package org.usvm.api.targets
 
 import io.ksmt.utils.asExpr
+import org.jacodb.configuration.AnyArgument
+import org.jacodb.configuration.Argument
+import org.jacodb.configuration.Position
+import org.jacodb.configuration.PositionResolver
+import org.jacodb.configuration.Result
+import org.jacodb.configuration.ThisArgument
 import org.usvm.UBoolExpr
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.uctx
 
 
-interface PositionResolver {
-    fun resolve(position: Position): ResolvedPosition<*>?
-}
-
 class CallPositionResolver(
     val instance: UHeapRef?,
     val args: List<UExpr<*>>,
     val result: UExpr<*>?,
-) : PositionResolver {
+    // TODO remove nullability
+) : PositionResolver<ResolvedPosition<*>?> {
     override fun resolve(position: Position): ResolvedPosition<*>? = when (position) {
         ThisArgument -> instance?.let { mkResolvedPosition(position, it) }
 
         is Argument -> {
-            val index = position.number.toInt()
+            val index = position.number
             args.getOrNull(index)?.let { mkResolvedPosition(position, it) }
         }
 
         Result -> result?.let { mkResolvedPosition(position, it) }
+        AnyArgument -> error("Unexpected position")
     }
 
     private fun mkResolvedPosition(position: Position, resolved: UExpr<*>): ResolvedPosition<*>? =
@@ -36,15 +40,6 @@ class CallPositionResolver(
             }
         }
 }
-
-
-sealed interface Position
-
-object ThisArgument : Position
-
-class Argument(val number: UInt) : Position
-
-object Result : Position
 
 sealed class ResolvedPosition<T>(val position: Position, val resolved: T)
 class ResolvedRefPosition(position: Position, resolved: UHeapRef) : ResolvedPosition<UHeapRef>(position, resolved)

@@ -1,30 +1,48 @@
 package org.usvm.api.targets
 
+import org.jacodb.configuration.Action
+import org.jacodb.configuration.AssignMark
+import org.jacodb.configuration.CopyAllMarks
+import org.jacodb.configuration.CopyMark
+import org.jacodb.configuration.PositionResolver
+import org.jacodb.configuration.RemoveAllMarks
+import org.jacodb.configuration.RemoveMark
+import org.jacodb.configuration.TaintActionVisitor
+import org.jacodb.configuration.TaintMark
 import org.usvm.UBoolExpr
 import org.usvm.UHeapRef
 import org.usvm.machine.JcContext
 import org.usvm.machine.interpreter.JcStepScope
 
 
-interface TaintActionVisitor {
-    fun visit(action: CopyAllMarks, stepScope: JcStepScope, condition: UBoolExpr?)
-    fun visit(action: AssignMark, stepScope: JcStepScope, condition: UBoolExpr?)
-    fun visit(action: RemoveAllMarks, stepScope: JcStepScope, condition: UBoolExpr?)
-    fun visit(action: RemoveMark, stepScope: JcStepScope, condition: UBoolExpr?)
-}
-
 class TaintActionResolver(
     private val ctx: JcContext,
-    private val positionResolver: PositionResolver,
-    private val readMark: (ref: UHeapRef, mark: JcTaintMark, JcStepScope) -> UBoolExpr,
-    private val writeMark: (ref: UHeapRef, mark: JcTaintMark, UBoolExpr, JcStepScope) -> Unit,
-    private val removeMark: (ref: UHeapRef, JcTaintMark, UBoolExpr, JcStepScope) -> Unit,
-    private val allMarks: Set<JcTaintMark>,
-) : TaintActionVisitor {
+    private val positionResolver: PositionResolver<ResolvedPosition<*>?>,
+    private val readMark: (ref: UHeapRef, mark: TaintMark, JcStepScope) -> UBoolExpr,
+    private val writeMark: (ref: UHeapRef, mark: TaintMark, UBoolExpr, JcStepScope) -> Unit,
+    private val removeMark: (ref: UHeapRef, TaintMark, UBoolExpr, JcStepScope) -> Unit,
+    private val allMarks: Set<TaintMark>,
+) : TaintActionVisitor<Unit> {
+    private var stepScope: JcStepScope? = null
+    private var condition: UBoolExpr? = null
 
-    override fun visit(action: CopyAllMarks, stepScope: JcStepScope, condition: UBoolExpr?) {
+    fun resolve(action: Action, stepScope: JcStepScope, condition: UBoolExpr?) {
+        try {
+            this.stepScope = stepScope
+            this.condition = condition
+
+            action.accept(this)
+        } finally {
+            this.stepScope = null
+            this.condition = null
+        }
+    }
+
+    override fun visit(action: CopyAllMarks) {
         val resolvedFrom = positionResolver.resolve(action.from) as? ResolvedRefPosition ?: return
         val resolvedTo = positionResolver.resolve(action.to) as? ResolvedRefPosition ?: return
+
+        val stepScope = requireNotNull(stepScope)
 
         allMarks.forEach {
             val fromValue = readMark(resolvedFrom.resolved, it, stepScope)
@@ -32,49 +50,30 @@ class TaintActionResolver(
         }
     }
 
-    override fun visit(action: AssignMark, stepScope: JcStepScope, condition: UBoolExpr?) {
-        val resolvedRef = positionResolver.resolve(action.position) as? ResolvedRefPosition ?: return
-        writeMark(resolvedRef.resolved, action.mark, condition ?: ctx.trueExpr, stepScope)
+    override fun visit(action: CopyMark) {
+        val resolvedFrom = positionResolver.resolve(action.from) as? ResolvedRefPosition ?: return
+        val resolvedTo = positionResolver.resolve(action.to) as? ResolvedRefPosition ?: return
+
+        val stepScope = requireNotNull(stepScope)
+
+        val fromValue = readMark(resolvedFrom.resolved, action.mark, stepScope)
+        writeMark(resolvedTo.resolved, action.mark, ctx.mkAnd(condition ?: ctx.trueExpr, fromValue), stepScope)
     }
 
-    override fun visit(action: RemoveAllMarks, stepScope: JcStepScope, condition: UBoolExpr?) {
+    override fun visit(action: AssignMark) {
+        val resolvedRef = positionResolver.resolve(action.position) as? ResolvedRefPosition ?: return
+        writeMark(resolvedRef.resolved, action.mark, condition ?: ctx.trueExpr, requireNotNull(stepScope))
+    }
+
+    override fun visit(action: RemoveAllMarks) {
         val resolvedRef = positionResolver.resolve(action.position) as? ResolvedRefPosition ?: return
         allMarks.forEach {
-            removeMark(resolvedRef.resolved, it, condition ?: ctx.trueExpr, stepScope)
+            removeMark(resolvedRef.resolved, it, condition ?: ctx.trueExpr, requireNotNull(stepScope))
         }
     }
 
-    override fun visit(action: RemoveMark, stepScope: JcStepScope, condition: UBoolExpr?) {
+    override fun visit(action: RemoveMark) {
         val resolvedRef = positionResolver.resolve(action.position) as? ResolvedRefPosition ?: return
-        removeMark(resolvedRef.resolved, action.mark, condition ?: ctx.trueExpr, stepScope)
-    }
-}
-
-interface Action {
-    fun accept(visitor: TaintActionVisitor, stepScope: JcStepScope, condition: UBoolExpr?)
-}
-
-// TODO add marks for aliases (if you pass an object and return it from the function)
-class CopyAllMarks(val from: Position, val to: Position) : Action {
-    override fun accept(visitor: TaintActionVisitor, stepScope: JcStepScope, condition: UBoolExpr?) {
-        visitor.visit(this, stepScope, condition)
-    }
-}
-
-class AssignMark(val position: Position, val mark: JcTaintMark) : Action {
-    override fun accept(visitor: TaintActionVisitor, stepScope: JcStepScope, condition: UBoolExpr?) {
-        visitor.visit(this, stepScope, condition)
-    }
-}
-
-class RemoveAllMarks(val position: Position) : Action {
-    override fun accept(visitor: TaintActionVisitor, stepScope: JcStepScope, condition: UBoolExpr?) {
-        visitor.visit(this, stepScope, condition)
-    }
-}
-
-class RemoveMark(val position: Position, val mark: JcTaintMark) : Action {
-    override fun accept(visitor: TaintActionVisitor, stepScope: JcStepScope, condition: UBoolExpr?) {
-        visitor.visit(this, stepScope, condition)
+        removeMark(resolvedRef.resolved, action.mark, condition ?: ctx.trueExpr, requireNotNull(stepScope))
     }
 }

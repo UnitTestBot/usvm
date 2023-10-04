@@ -2,12 +2,23 @@ package org.usvm.api.targets
 
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.uncheckedCast
+import org.jacodb.api.JcMethod
 import org.jacodb.api.cfg.JcAssignInst
 import org.jacodb.api.cfg.JcCallExpr
 import org.jacodb.api.cfg.JcCallInst
 import org.jacodb.api.cfg.JcInst
 import org.jacodb.api.cfg.JcInstanceCallExpr
 import org.jacodb.api.ext.cfg.callExpr
+import org.jacodb.configuration.Condition
+import org.jacodb.configuration.ConstantTrue
+import org.jacodb.configuration.TaintCleaner
+import org.jacodb.configuration.TaintConfigurationFeature
+import org.jacodb.configuration.TaintConfigurationItem
+import org.jacodb.configuration.TaintMark
+import org.jacodb.configuration.TaintMethodSink
+import org.jacodb.configuration.TaintMethodSource
+import org.jacodb.configuration.TaintPassThrough
+import org.jacodb.configuration.taintConfigurationFeature
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UHeapRef
@@ -26,7 +37,7 @@ import org.usvm.statistics.UMachineObserver
 import org.usvm.targets.UTargetController
 
 class TaintAnalysis(
-    private val configuration: TaintConfiguration,
+//    private val configuration: TaintConfiguration,
     override val targets: MutableCollection<TaintTarget> = mutableListOf(),
 ) : UTargetController, JcInterpreterObserver, UMachineObserver<JcState> {
     private val taintTargets: MutableMap<JcInst, MutableSet<TaintTarget>> = mutableMapOf()
@@ -51,35 +62,44 @@ class TaintAnalysis(
         }
     }
 
-    private val marksAddresses: MutableMap<JcTaintMark, UConcreteHeapRef> = mutableMapOf()
+    private var configurationFeature: TaintConfigurationFeature? = null
 
-    private fun getMarkAddress(mark: JcTaintMark, stepScope: JcStepScope): UConcreteHeapRef =
+    private fun methodRules(method: JcMethod): List<TaintConfigurationItem> {
+        if (configurationFeature == null) {
+            configurationFeature = method.enclosingClass.classpath.taintConfigurationFeature()
+        }
+        return configurationFeature!!.getConfigForMethod(method)
+    }
+
+    private val marksAddresses: MutableMap<TaintMark, UConcreteHeapRef> = mutableMapOf()
+
+    private fun getMarkAddress(mark: TaintMark, stepScope: JcStepScope): UConcreteHeapRef =
         marksAddresses.getOrPut(mark) {
             stepScope.calcOnState { memory.allocateConcreteRef() }
         }
 
-    private fun writeMark(ref: UHeapRef, mark: JcTaintMark, guard: UBoolExpr, stepScope: JcStepScope) {
+    private fun writeMark(ref: UHeapRef, mark: TaintMark, guard: UBoolExpr, stepScope: JcStepScope) {
         stepScope.doWithState {
             memory.write(createLValue(ref, mark, stepScope), ctx.trueExpr, guard)
         }
     }
 
-    private fun removeMark(ref: UHeapRef, mark: JcTaintMark, guard: UBoolExpr, stepScope: JcStepScope) {
+    private fun removeMark(ref: UHeapRef, mark: TaintMark, guard: UBoolExpr, stepScope: JcStepScope) {
         stepScope.doWithState {
             memory.write(createLValue(ref, mark, stepScope), ctx.falseExpr, guard)
         }
     }
 
-    private fun readMark(ref: UHeapRef, mark: JcTaintMark, stepScope: JcStepScope): UBoolExpr =
+    private fun readMark(ref: UHeapRef, mark: TaintMark, stepScope: JcStepScope): UBoolExpr =
         stepScope.calcOnState {
             memory.read(createLValue(ref, mark, stepScope))
         }
 
-    private fun <Mark : JcTaintMark> createLValue(
+    private fun createLValue(
         ref: UHeapRef,
-        mark: Mark,
+        mark: TaintMark,
         stepScope: JcStepScope,
-    ): URefSetEntryLValue<Mark> = URefSetEntryLValue(ref, getMarkAddress(mark, stepScope), mark)
+    ): URefSetEntryLValue<TaintMark> = URefSetEntryLValue(ref, getMarkAddress(mark, stepScope), mark)
 
 
     fun addTarget(target: JcTarget): TaintAnalysis {
@@ -129,42 +149,44 @@ class TaintAnalysis(
             marksAddresses.keys
         )
 
-        val sourceConfigurations = configuration.methodSources[method]
+        val configuration = methodRules(method)
+
+        val sourceConfigurations = configuration.filterIsInstance<TaintMethodSource>()
         val currentStatement = stepScope.calcOnState { currentStatement }
 
         val sourceTargets = findTaintTargets(currentStatement, stepScope.state)
             .filterIsInstance<TaintMethodSourceTarget>()
             .associateBy { it.configurationRule }
 
-        sourceConfigurations?.forEach {
+        sourceConfigurations.forEach {
             val target = sourceTargets[it]
 
             val resolvedCondition =
-                it.condition.accept(conditionResolver, simpleValueResolver, stepScope) ?: ctx.trueExpr
+                conditionResolver.resolve(it.condition, simpleValueResolver, stepScope) ?: ctx.trueExpr
 
             val targetCondition = target?.condition ?: ConstantTrue
             val resolvedTargetCondition =
-                targetCondition.accept(conditionResolver, simpleValueResolver, stepScope) ?: ctx.trueExpr
+                conditionResolver.resolve(targetCondition, simpleValueResolver, stepScope) ?: ctx.trueExpr
 
             val combinedCondition = ctx.mkAnd(resolvedTargetCondition, resolvedCondition)
 
-            it.action.accept(actionResolver, stepScope, combinedCondition)
+            it.actionsAfter.forEach { actionResolver.resolve(it, stepScope, combinedCondition) }
 
             target?.propagate(stepScope.state)
         }
 
-        val cleanerConfigurations = configuration.cleaners[method]
-        cleanerConfigurations?.forEach {
-            val resolvedCondition = it.condition.accept(conditionResolver, simpleValueResolver, stepScope)
+        val cleanerConfigurations = configuration.filterIsInstance<TaintCleaner>()
+        cleanerConfigurations.forEach {
+            val resolvedCondition = conditionResolver.resolve(it.condition, simpleValueResolver, stepScope)
 
-            it.action.accept(actionResolver, stepScope, resolvedCondition)
+            it.actionsAfter.forEach { actionResolver.resolve(it, stepScope, resolvedCondition) }
         }
 
-        val passThroughConfigurations = configuration.passThrough[method]
-        passThroughConfigurations?.forEach {
-            val resolvedCondition = it.condition.accept(conditionResolver, simpleValueResolver, stepScope)
+        val passThroughConfigurations = configuration.filterIsInstance<TaintPassThrough>()
+        passThroughConfigurations.forEach {
+            val resolvedCondition = conditionResolver.resolve(it.condition, simpleValueResolver, stepScope)
 
-            it.action.accept(actionResolver, stepScope, resolvedCondition)
+            it.actionsAfter.forEach { actionResolver.resolve(it, stepScope, resolvedCondition) }
         }
     }
 
@@ -214,7 +236,8 @@ class TaintAnalysis(
                     processSink(it.configRule, it.condition, conditionResolver, simpleValueResolver, stepScope, it)
                 }
         } else {
-            val methodSinks = configuration.methodSinks[method] ?: return
+            val methodSinks = methodRules(method).filterIsInstance<TaintMethodSink>()
+
             methodSinks.forEach {
                 processSink(it, ConstantTrue, conditionResolver, simpleValueResolver, stepScope)
             }
@@ -235,9 +258,9 @@ class TaintAnalysis(
         target: TaintMethodSinkTarget? = null,
     ) {
         val resolvedConfigCondition =
-            methodSink.condition.accept(conditionResolver, simpleValueResolver, stepScope) ?: return
+            conditionResolver.resolve(methodSink.condition, simpleValueResolver, stepScope) ?: return
 
-        val resolvedSinkCondition = sinkCondition.accept(conditionResolver, simpleValueResolver, stepScope) ?: return
+        val resolvedSinkCondition = conditionResolver.resolve(sinkCondition, simpleValueResolver, stepScope) ?: return
 
         val resolvedCondition = stepScope.ctx.mkAnd(resolvedConfigCondition, resolvedSinkCondition)
 
@@ -306,4 +329,3 @@ class TaintAnalysis(
 }
 
 
-interface JcTaintMark
