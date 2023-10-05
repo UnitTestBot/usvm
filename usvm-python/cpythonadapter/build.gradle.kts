@@ -156,37 +156,11 @@ tasks.register<Exec>("testGenerateTask") {
     commandLine("echo", generateSymbolicAdapterMethods())
 }
 
-fun generateCPythonAdapterDefs(): String {
-    val handlerDefs by extra {
-        @Suppress("unchecked_cast")
-        JsonSlurper().parse(file("${projectDir.path}/src/main/json/handler_defs.json")) as List<Map<String, String>>
-    }
-    val jmethodIDMacro = handlerDefs.fold("#define HANDLERS_DEFS ") { acc, handler ->
-        acc + "jmethodID handle_${handler["c_name"]!!}; "
-    }
-    val nameMacros = handlerDefs.map { "#define handle_name_${it["c_name"]!!} \"${it["java_name"]!!}\"" }
-    val sigMacros = handlerDefs.map { "#define handle_sig_${it["c_name"]!!} \"${it["sig"]!!}\"" }
-
-    val registrations = handlerDefs.fold("#define DO_REGISTRATIONS(dist, env) ") { acc, handler ->
-        val name = handler["c_name"]!!
-        acc + "dist->handle_$name = (*env)->GetStaticMethodID(env, dist->cpython_adapter_cls, handle_name_$name, handle_sig_$name);"
-    }
-
-    return """
-            $jmethodIDMacro
-            ${nameMacros.joinToString("\n            ")}
-            ${sigMacros.joinToString("\n            ")}
-            $registrations
-    """.trimIndent()
-}
-
 val adapterHeaderPath = "${project.buildDir.path}/adapter_include"
 
 val headers = tasks.register("generateHeaders") {
+    dependsOn(":usvm-python:usvm-python-main:compileJava")
     File(adapterHeaderPath).mkdirs()
-    val fileForCPythonAdapterMethods = File("$adapterHeaderPath/CPythonAdapterMethods.h")
-    fileForCPythonAdapterMethods.createNewFile()
-    fileForCPythonAdapterMethods.writeText(generateCPythonAdapterDefs())
     val fileForSymbolicAdapterMethods = File("$adapterHeaderPath/SymbolicAdapterMethods.h")
     fileForSymbolicAdapterMethods.createNewFile()
     fileForSymbolicAdapterMethods.writeText(generateSymbolicAdapterMethods())
