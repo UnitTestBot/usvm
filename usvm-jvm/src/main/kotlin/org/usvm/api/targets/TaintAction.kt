@@ -14,7 +14,6 @@ import org.usvm.UHeapRef
 import org.usvm.machine.JcContext
 import org.usvm.machine.interpreter.JcStepScope
 
-
 class TaintActionResolver(
     private val ctx: JcContext,
     private val positionResolver: PositionResolver<ResolvedPosition<*>?>,

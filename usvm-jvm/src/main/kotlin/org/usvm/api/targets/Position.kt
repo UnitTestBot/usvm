@@ -8,12 +8,14 @@ import org.jacodb.configuration.PositionResolver
 import org.jacodb.configuration.Result
 import org.jacodb.configuration.ThisArgument
 import org.usvm.UBoolExpr
+import org.usvm.UBv32Sort
 import org.usvm.UExpr
 import org.usvm.UHeapRef
-import org.usvm.uctx
+import org.usvm.machine.JcContext
 
 
 class CallPositionResolver(
+    val ctx: JcContext,
     val instance: UHeapRef?,
     val args: List<UExpr<*>>,
     val result: UExpr<*>?,
@@ -32,15 +34,23 @@ class CallPositionResolver(
     }
 
     private fun mkResolvedPosition(position: Position, resolved: UExpr<*>): ResolvedPosition<*>? =
-        with(resolved.uctx) {
+        with(ctx) {
             when (resolved.sort) {
                 addressSort -> ResolvedRefPosition(position, resolved.asExpr(addressSort))
                 boolSort -> ResolvedBoolPosition(position, resolved.asExpr(boolSort))
+                integerSort -> ResolvedIntPosition(position, resolved.asExpr(integerSort))
                 else -> null
             }
         }
 }
 
 sealed class ResolvedPosition<T>(val position: Position, val resolved: T)
-class ResolvedRefPosition(position: Position, resolved: UHeapRef) : ResolvedPosition<UHeapRef>(position, resolved)
-class ResolvedBoolPosition(position: Position, resolved: UBoolExpr) : ResolvedPosition<UBoolExpr>(position, resolved)
+
+class ResolvedRefPosition(position: Position, resolved: UHeapRef) :
+    ResolvedPosition<UHeapRef>(position, resolved)
+
+class ResolvedBoolPosition(position: Position, resolved: UBoolExpr) :
+    ResolvedPosition<UBoolExpr>(position, resolved)
+
+class ResolvedIntPosition(position: Position, resolved: UExpr<UBv32Sort>) :
+    ResolvedPosition<UExpr<UBv32Sort>>(position, resolved)

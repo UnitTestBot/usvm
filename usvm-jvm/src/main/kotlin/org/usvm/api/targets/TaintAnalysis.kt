@@ -14,6 +14,9 @@ import org.jacodb.configuration.ConstantTrue
 import org.jacodb.configuration.TaintCleaner
 import org.jacodb.configuration.TaintConfigurationFeature
 import org.jacodb.configuration.TaintConfigurationItem
+import org.jacodb.configuration.TaintEntryPointSource
+import org.jacodb.configuration.TaintFieldSink
+import org.jacodb.configuration.TaintFieldSource
 import org.jacodb.configuration.TaintMark
 import org.jacodb.configuration.TaintMethodSink
 import org.jacodb.configuration.TaintMethodSource
@@ -37,7 +40,7 @@ import org.usvm.statistics.UMachineObserver
 import org.usvm.targets.UTargetController
 
 class TaintAnalysis(
-//    private val configuration: TaintConfiguration,
+    private val additionalRules: List<TaintConfigurationItem> = emptyList(),
     override val targets: MutableCollection<TaintTarget> = mutableListOf(),
 ) : UTargetController, JcInterpreterObserver, UMachineObserver<JcState> {
     private val taintTargets: MutableMap<JcInst, MutableSet<TaintTarget>> = mutableMapOf()
@@ -63,12 +66,25 @@ class TaintAnalysis(
     }
 
     private var configurationFeature: TaintConfigurationFeature? = null
+    private val additionalMethodRules: Map<JcMethod?, List<TaintConfigurationItem>> by lazy {
+        additionalRules.groupBy {
+            when (it) {
+                is TaintCleaner -> it.methodInfo
+                is TaintEntryPointSource -> it.methodInfo
+                is TaintMethodSink -> it.methodInfo
+                is TaintMethodSource -> it.methodInfo
+                is TaintPassThrough -> it.methodInfo
+                is TaintFieldSink,
+                is TaintFieldSource -> null
+            }
+        }
+    }
 
     private fun methodRules(method: JcMethod): List<TaintConfigurationItem> {
         if (configurationFeature == null) {
             configurationFeature = method.enclosingClass.classpath.taintConfigurationFeature()
         }
-        return configurationFeature!!.getConfigForMethod(method)
+        return configurationFeature!!.getConfigForMethod(method) + (additionalMethodRules[method] ?: emptyList())
     }
 
     private val marksAddresses: MutableMap<TaintMark, UConcreteHeapRef> = mutableMapOf()
@@ -198,6 +214,7 @@ class TaintAnalysis(
         simpleValueResolver: JcSimpleValueResolver,
         methodResult: JcMethodResult.Success?,
     ) = CallPositionResolver(
+        ctx,
         resolveCallInstance(callExpr)?.accept(simpleValueResolver)?.asExpr(ctx.addressSort),
         callExpr.args.map { it.accept(simpleValueResolver) },
         methodResult?.value
@@ -327,5 +344,3 @@ class TaintAnalysis(
         val configRule: TaintMethodSink,
     ) : TaintTarget(location)
 }
-
-

@@ -4,6 +4,7 @@ import kotlinx.coroutines.runBlocking
 import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcDatabase
 import org.jacodb.approximation.Approximations
+import org.jacodb.configuration.TaintConfigurationFeature
 import org.jacodb.impl.JcSettings
 import org.jacodb.impl.features.InMemoryHierarchy
 import org.jacodb.impl.jacodb
@@ -21,13 +22,34 @@ class JacoDBContainer(
 
     init {
         val (db, cp) = runBlocking {
-            val db = jacodb(builder)
-            val cp = if (samplesWithApproximationsKey == key) {
-                db.classpathWithApproximations(classpath)
-            } else {
-                db.classpath(classpath)
+            when (key) {
+                samplesWithApproximationsKey -> {
+                    val db = jacodb {
+                        builder()
+                        installFeatures(Approximations)
+                    }
+                    db to db.classpathWithApproximations(classpath)
+                }
+
+                samplesWithTaintConfiguration -> {
+                    val defaultConfigResource = TaintConfigurationFeature::class.java
+                        .getResourceAsStream("/defaultTaintConfig.json")
+                        ?: error("No default taint config")
+                    val configJson = defaultConfigResource.bufferedReader().readText()
+                    val config = TaintConfigurationFeature.fromJson(configJson)
+
+                    val db = jacodb {
+                        builder()
+                    }
+
+                    db to db.classpath(classpath, listOf(config))
+                }
+
+                else -> {
+                    val db = jacodb(builder)
+                    db to db.classpath(classpath)
+                }
             }
-            db to cp
         }
         this.db = db
         this.cp = cp
@@ -52,7 +74,7 @@ class JacoDBContainer(
 
         private val defaultBuilder: JcSettings.() -> Unit = {
             useProcessJavaRuntime()
-            installFeatures(InMemoryHierarchy, Approximations)
+            installFeatures(InMemoryHierarchy)
             loadByteCode(samplesClasspath)
         }
     }
@@ -60,3 +82,4 @@ class JacoDBContainer(
 
 const val samplesKey = "tests"
 const val samplesWithApproximationsKey = "samplesWithApproximations"
+const val samplesWithTaintConfiguration = "samplesWithTaintConfiguration"
