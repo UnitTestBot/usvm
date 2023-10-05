@@ -8,6 +8,10 @@ include("usvm-sample-language")
 include("usvm-python")
 include("usvm-python:cpythonadapter")
 findProject(":usvm-python:cpythonadapter")?.name = "cpythonadapter"
+include("usvm-python:usvm-python-annotations")
+findProject(":usvm-python:usvm-python-annotations")?.name = "usvm-python-annotations"
+include("usvm-python:usvm-python-main")
+findProject(":usvm-python:usvm-python-main")?.name = "usvm-python-main"
 
 pluginManagement {
     resolutionStrategy {

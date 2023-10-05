@@ -7,7 +7,6 @@ plugins {
 // from GRADLE_USER_HOME/gradle.properties
 val githubUser: String by project
 val githubToken: String by project  // with permission to read packages
-val isWindows = Os.isFamily(Os.FAMILY_WINDOWS)
 
 repositories {
     maven {
@@ -19,19 +18,15 @@ repositories {
     }
 }
 
-
 dependencies {
     implementation(project(":usvm-core"))
+    implementation(project(":usvm-python:usvm-python-main"))
     implementation("org.utbot:utbot-python-types:2023.09-SNAPSHOT")
-
-    implementation("io.ksmt:ksmt-yices:${Versions.ksmt}")
-    implementation("io.ksmt:ksmt-cvc5:${Versions.ksmt}")
-    implementation("io.ksmt:ksmt-bitwuzla:${Versions.ksmt}")
-    implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable-jvm:${Versions.collections}")
 
     testImplementation("ch.qos.logback:logback-classic:${Versions.logback}")
 }
 
+val isWindows = Os.isFamily(Os.FAMILY_WINDOWS)
 val samplesSourceDir = File(projectDir, "src/test/resources/samples")
 val samplesBuildDir = File(project.buildDir, "samples_build")
 val commonJVMArgs = listOf(

@@ -21,8 +21,8 @@ import org.utbot.python.newtyping.pythonTypeRepresentation
 import java.io.File
 
 fun main() {
-    val config = buildProjectRunConfig()
-    // val config = buildSampleRunConfig()
+    // val config = buildProjectRunConfig()
+    val config = buildSampleRunConfig()
     analyze(config)
     // checkConcolicAndConcrete(config)
 }
