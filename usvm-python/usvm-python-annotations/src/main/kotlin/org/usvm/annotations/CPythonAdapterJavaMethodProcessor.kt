@@ -17,7 +17,7 @@ import javax.lang.model.element.TypeElement
 class CPythonAdapterJavaMethodProcessor: AbstractProcessor() {
     private val converter = ConverterToJNITypeDescriptor()
 
-    override fun process(annotations: Set<TypeElement?>, roundEnv: RoundEnvironment): Boolean {
+    override fun process(annotations: Set<TypeElement>, roundEnv: RoundEnvironment): Boolean {
         if (annotations.size != 1)
             return false
         val annotation = annotations.stream().findFirst().get()
