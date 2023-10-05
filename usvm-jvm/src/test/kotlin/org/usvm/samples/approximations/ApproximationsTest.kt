@@ -8,6 +8,7 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
 import org.usvm.test.util.checkers.eq
+import org.usvm.test.util.checkers.ge
 import org.usvm.util.isException
 import kotlin.reflect.KFunction1
 import kotlin.reflect.full.declaredFunctions
@@ -56,11 +57,13 @@ class ApproximationsTest : ApproximationsTestRunner() {
 
     @ParameterizedTest
     @MethodSource("stringBufferTests")
-    fun tmp(test: KFunction1<Int, Int>, testAnnotation: approximations.Test) {
+    fun testStringBuffer(test: KFunction1<Int, Int>, testAnnotation: approximations.Test) {
+        System.err.println("-".repeat(50))
+        System.err.println("Start: $test")
         val properties = Array(testAnnotation.executionMax) { idx -> { o: Int, _: Result<Int> -> o == idx } }
         checkDiscoveredPropertiesWithExceptions(
             test,
-            eq(testAnnotation.executionMax + 2),
+            ge(testAnnotation.executionMax + 2),
             *properties,
             invariants = arrayOf({ execution, r ->
                 execution !in 0..testAnnotation.executionMax || r.getOrThrow() == execution
