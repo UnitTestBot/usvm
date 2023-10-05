@@ -181,11 +181,6 @@ fun TypeName.isPrimitiveArray() =
 
 fun JcMethod.toJavaMethod(classLoader: ClassLoader): Method {
     val klass = Class.forName(enclosingClass.name, false, classLoader)
-    try {
-        klass.declaredMethods
-    } catch (e: Throwable) {
-        e.printStackTrace()
-    }
     return klass.declaredMethods.find { it.isSameSignatures(this) }
         ?: throw TestExecutorException("Can't find method in classpath")
 }

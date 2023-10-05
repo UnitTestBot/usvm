@@ -1,17 +1,12 @@
 package org.usvm.instrumentation.testcase.descriptor
 
-import org.usvm.instrumentation.util.getFieldValue
-import org.jacodb.api.JcClassOrInterface
 import org.jacodb.api.JcField
 import org.jacodb.api.JcType
 import org.jacodb.api.ext.*
 import org.usvm.instrumentation.classloader.WorkerClassLoader
-import org.usvm.instrumentation.util.stringType
-import org.usvm.instrumentation.util.toJavaField
 import org.usvm.instrumentation.testcase.executor.UTestExpressionExecutor
 import org.usvm.instrumentation.testcase.api.UTestExpression
-import org.usvm.instrumentation.util.allDeclaredFields
-import org.usvm.instrumentation.util.toJcType
+import org.usvm.instrumentation.util.*
 import java.util.*
 
 open class Value2DescriptorConverter(
@@ -38,20 +33,20 @@ open class Value2DescriptorConverter(
         testExecutor: UTestExpressionExecutor,
     ): Result<UTestValueDescriptor>? {
         testExecutor.executeUTestInst(uTestExpression)
-            .onSuccess { return buildDescriptorResultFromAny(it) }
+            .onSuccess { return buildDescriptorResultFromAny(it, uTestExpression.type) }
             .onFailure { return Result.failure(it) }
         return null
     }
 
-    fun buildDescriptorResultFromAny(any: Any?, depth: Int = 0): Result<UTestValueDescriptor> =
+    fun buildDescriptorResultFromAny(any: Any?, type: JcType?, depth: Int = 0): Result<UTestValueDescriptor> =
         try {
-            Result.success(buildDescriptorFromAny(any, depth))
+            Result.success(buildDescriptorFromAny(any, type, depth))
         } catch (e: Throwable) {
             Result.failure(e)
         }
 
-    private fun buildDescriptorFromAny(any: Any?, depth: Int = 0): UTestValueDescriptor {
-        val builtDescriptor = buildDescriptor(any, depth)
+    private fun buildDescriptorFromAny(any: Any?, type: JcType?, depth: Int = 0): UTestValueDescriptor {
+        val builtDescriptor = buildDescriptor(any, type, depth)
         val descriptorFromPreviousState = previousState?.objectToDescriptor?.get(any) ?: return builtDescriptor
         if (builtDescriptor.structurallyEqual(descriptorFromPreviousState)) {
             objectToDescriptor[any] = descriptorFromPreviousState
@@ -60,8 +55,8 @@ open class Value2DescriptorConverter(
         return builtDescriptor
     }
 
-    private fun buildDescriptor(any: Any?, depth: Int = 0): UTestValueDescriptor {
-        if (any == null) return `null`(jcClasspath.nullType)
+    private fun buildDescriptor(any: Any?, type: JcType?, depth: Int = 0): UTestValueDescriptor {
+        if (any == null) return `null`(type ?: jcClasspath.nullType)
         return objectToDescriptor.getOrPut(any) {
             when (any) {
                 is Boolean -> const(any)
@@ -82,6 +77,7 @@ open class Value2DescriptorConverter(
                 is FloatArray -> array(any, depth + 1)
                 is DoubleArray -> array(any, depth + 1)
                 is Array<*> -> array(any, depth + 1)
+                is Enum<*> -> `enum`(any, depth + 1)
                 is Class<*> -> `class`(any)
                 is Throwable -> `exception`(any, depth + 1)
                 else -> `object`(any, depth + 1)
@@ -95,7 +91,12 @@ open class Value2DescriptorConverter(
 
     private fun const(value: Char) = UTestConstantDescriptor.Char(value, jcClasspath.char)
 
-    private fun const(value: String) = UTestConstantDescriptor.String(value, jcClasspath.stringType())
+    private fun const(value: String) =
+        try {
+            UTestConstantDescriptor.String(value, jcClasspath.stringType()).also { value.length }
+        } catch (e: Throwable) {
+            UTestConstantDescriptor.String(InstrumentationModuleConstants.nameForExistingButNullString, jcClasspath.stringType())
+        }
 
     private fun const(number: Number) = when (number) {
         is Byte -> UTestConstantDescriptor.Byte(number, jcClasspath.byte)
@@ -127,7 +128,7 @@ open class Value2DescriptorConverter(
                 )
                 createCyclicRef(descriptor, array) {
                     for (i in array.indices) {
-                        listOfRefs.add(buildDescriptorFromAny(array[i], depth))
+                        listOfRefs.add(buildDescriptorFromAny(array[i], elementType, depth))
                     }
                 }
             }
@@ -156,18 +157,17 @@ open class Value2DescriptorConverter(
 
     private fun `object`(value: Any, depth: Int): UTestValueDescriptor {
         val jcClass = jcClasspath.findClass(value::class.java.name)
-        if (jcClass.isEnum) return `enum`(jcClass, value, depth)
         val jcType = jcClass.toType()
         val fields = mutableMapOf<JcField, UTestValueDescriptor>()
         val uTestObjectDescriptor = UTestObjectDescriptor(jcType, fields, System.identityHashCode(value))
         return createCyclicRef(uTestObjectDescriptor, value) {
             jcClass.allDeclaredFields
                 //TODO! Decide for which fields descriptors should be build
-                .filterNot { it.isFinal || it.isTransient }
+                .filterNot { it.isTransient }
                 .forEach { jcField ->
                     val jField = jcField.toJavaField(classLoader) ?: return@forEach
                     val fieldValue = jField.getFieldValue(value)
-                    val fieldDescriptor = buildDescriptorFromAny(fieldValue, depth)
+                    val fieldDescriptor = buildDescriptorFromAny(fieldValue, jcField.type.toJcType(jcClasspath), depth)
                     fields[jcField] = fieldDescriptor
                 }
         }
@@ -176,7 +176,7 @@ open class Value2DescriptorConverter(
     private fun `exception`(exception: Throwable, depth: Int): UTestExceptionDescriptor {
         val jcClass = jcClasspath.findClass(exception::class.java.name)
         val jcType = jcClass.toType()
-        val stackTraceElementDescriptors = exception.stackTrace.map { buildDescriptorFromAny(it, depth) }
+        val stackTraceElementDescriptors = exception.stackTrace.map { buildDescriptorFromAny(it, jcType, depth) }
         return UTestExceptionDescriptor(
             jcType,
             exception.message ?: "",
@@ -185,7 +185,9 @@ open class Value2DescriptorConverter(
         )
     }
 
-    private fun `enum`(jcClass: JcClassOrInterface, value: Any, depth: Int): UTestEnumValueDescriptor {
+    private fun `enum`(/*jcClass: JcClassOrInterface, */value: Any, depth: Int): UTestEnumValueDescriptor {
+        val enumValueJcClass = jcClasspath.findClass(value::class.java.name)
+        val jcClass = if (!enumValueJcClass.isEnum) enumValueJcClass.superClass!! else enumValueJcClass
         val fields = mutableMapOf<JcField, UTestValueDescriptor>()
         val enumValueName = value.toString()
         val jcType = jcClass.toType()
@@ -196,7 +198,7 @@ open class Value2DescriptorConverter(
                 .forEach { jcField ->
                     val jField = jcField.toJavaField(classLoader) ?: return@forEach
                     val fieldValue = jField.getFieldValue(value)
-                    val fieldDescriptor = buildDescriptorFromAny(fieldValue, depth)
+                    val fieldDescriptor = buildDescriptorFromAny(fieldValue, jcField.type.toJcType(jcClasspath), depth)
                     fields[jcField] = fieldDescriptor
                 }
         }

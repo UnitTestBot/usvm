@@ -6,10 +6,7 @@ import org.jacodb.api.ext.enumValues
 import org.jacodb.api.ext.isEnum
 import org.usvm.instrumentation.classloader.WorkerClassLoader
 import org.usvm.instrumentation.instrumentation.JcInstructionTracer.StaticFieldAccessType
-import org.usvm.instrumentation.util.allDeclaredFields
-import org.usvm.instrumentation.util.getFieldValue
-import org.usvm.instrumentation.util.setFieldValue
-import org.usvm.instrumentation.util.toJavaField
+import org.usvm.instrumentation.util.*
 
 class StaticDescriptorsBuilder(
     private var workerClassLoader: WorkerClassLoader,
@@ -57,7 +54,8 @@ class StaticDescriptorsBuilder(
     private fun buildDescriptor(jcField: JcField, descriptorBuilder: Value2DescriptorConverter): UTestValueDescriptor? {
         val jField = jcField.toJavaField(workerClassLoader) ?: return null
         val jFieldValue = jField.getFieldValue(null)
-        val jFieldValueDescriptor = descriptorBuilder.buildDescriptorResultFromAny(jFieldValue)
+        val cp = jcField.enclosingClass.classpath
+        val jFieldValueDescriptor = descriptorBuilder.buildDescriptorResultFromAny(jFieldValue, jcField.type.toJcType(cp))
         return jFieldValueDescriptor.getOrNull()
     }
 

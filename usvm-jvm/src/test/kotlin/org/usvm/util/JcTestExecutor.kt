@@ -4,11 +4,18 @@ import io.ksmt.utils.asExpr
 import kotlinx.coroutines.runBlocking
 import org.jacodb.api.*
 import org.jacodb.api.ext.*
+import org.jacodb.impl.fs.BuildFolderLocation
+import org.jacodb.impl.fs.JarLocation
 import org.usvm.*
 import org.usvm.api.JcCoverage
 import org.usvm.api.JcParametersState
 import org.usvm.api.JcTest
+import org.usvm.api.typeStreamOf
 import org.usvm.api.util.JcTestResolver
+import org.usvm.api.util.Reflection
+import org.usvm.collection.array.UArrayIndexLValue
+import org.usvm.collection.array.length.UArrayLengthLValue
+import org.usvm.collection.field.UFieldLValue
 import org.usvm.instrumentation.executor.UTestConcreteExecutor
 import org.usvm.instrumentation.testcase.UTest
 import org.usvm.instrumentation.testcase.api.*
@@ -24,9 +31,12 @@ import org.usvm.machine.extractLong
 import org.usvm.machine.extractShort
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.localIdx
-import org.usvm.memory.UReadOnlySymbolicMemory
+import org.usvm.memory.ULValue
+import org.usvm.memory.UReadOnlyMemory
+import org.usvm.memory.URegisterStackLValue
 import org.usvm.model.UModelBase
 import org.usvm.types.first
+import org.usvm.types.firstOrNull
 
 /**
  * A class, responsible for resolving a single [JcTest] for a specific method from a symbolic state.
@@ -37,13 +47,16 @@ import org.usvm.types.first
  */
 class JcTestExecutor(
     private val classLoader: ClassLoader = ClassLoader.getSystemClassLoader(),
-    val pathToJars: List<String>,
     val classpath: JcClasspath,
 ) : JcTestResolver {
 
     private val runner: UTestConcreteExecutor
         get() {
             if (!UTestRunner.isInitialized()) {
+                val pathToJars =
+                    classpath.locations
+                        .filter { it is BuildFolderLocation || (it is JarLocation && it.type == LocationType.APP) }
+                        .map { it.path }
                 UTestRunner.initRunner(pathToJars, classpath)
             }
             return UTestRunner.runner
@@ -57,9 +70,9 @@ class JcTestExecutor(
     override fun resolve(method: JcTypedMethod, state: JcState): JcTest {
         val model = state.models.first()
 
-        val ctx = state.pathConstraints.ctx
+        val ctx = state.ctx
 
-        val memoryScope = MemoryScope(ctx, model, model, method)
+        val memoryScope = MemoryScope(ctx, model, model, method, classLoader)
 
         val before: JcParametersState
         val after: JcParametersState
@@ -113,6 +126,19 @@ class JcTestExecutor(
                     }
                 }
 
+                is UTestExecutionFailedResult -> {
+                    val exceptionInstance =
+                        descriptor2ValueConverter.buildObjectFromDescriptor(execResult.cause) as? Throwable
+                            ?: error("Exception building error")
+                    before = JcParametersState(null, listOf())
+                    after = JcParametersState(null, listOf())
+                    if (execResult.cause.raisedByUserCode) {
+                        Result.success(exceptionInstance)
+                    } else {
+                        Result.failure(exceptionInstance)
+                    }
+                }
+
                 else -> {
                     error("No result")
                 }
@@ -139,16 +165,17 @@ class JcTestExecutor(
      */
     private class MemoryScope(
         private val ctx: JcContext,
-        private val model: UModelBase<JcField, JcType>,
-        private val memory: UReadOnlySymbolicMemory<JcType>,
-        private val method: JcTypedMethod
+        private val model: UModelBase<JcType>,
+        private val memory: UReadOnlyMemory<JcType>,
+        private val method: JcTypedMethod,
+        private val classLoader: ClassLoader = ClassLoader.getSystemClassLoader(),
     ) {
 
         private val resolvedCache = mutableMapOf<UConcreteHeapAddress, Pair<UTestExpression, List<UTestInst>>>()
 
         fun createUTest(): UTest {
             val thisInstance = if (!method.isStatic) {
-                val ref = URegisterLValue(ctx.addressSort, idx = 0)
+                val ref = URegisterStackLValue(ctx.addressSort, idx = 0)
                 resolveLValue(ref, method.enclosingType)
             } else {
                 UTestNullExpression(ctx.cp.objectType) to listOf()
@@ -156,7 +183,7 @@ class JcTestExecutor(
 
             val parameters = method.parameters.mapIndexed { idx, param ->
                 val registerIdx = method.method.localIdx(idx)
-                val ref = URegisterLValue(ctx.typeToSort(param.type), registerIdx)
+                val ref = URegisterStackLValue(ctx.typeToSort(param.type), registerIdx)
                 resolveLValue(ref, param.type)
             }
 
@@ -170,7 +197,7 @@ class JcTestExecutor(
         }
 
 
-        fun resolveLValue(lvalue: ULValue, type: JcType): Pair<UTestExpression, List<UTestInst>> =
+        fun resolveLValue(lvalue: ULValue<*, *>, type: JcType): Pair<UTestExpression, List<UTestInst>> =
             resolveExpr(memory.read(lvalue), type)
 
 
@@ -204,16 +231,27 @@ class JcTestExecutor(
             if (ref.address == NULL_ADDRESS) {
                 return UTestNullExpression(type) to listOf()
             }
+            // to find a type, we need to understand the source of the object
+            val typeStream = if (ref.address <= INITIAL_INPUT_ADDRESS) {
+                // input object
+                model.typeStreamOf(ref)
+            } else {
+                // allocated object
+                memory.typeStreamOf(ref)
+            }.filterBySupertype(type)
+
+            // We filter allocated object type stream, because it could be stored in the input array,
+            // which resolved to a wrong type, since we do not build connections between element types
+            // and array types right now.
+            // In such cases, we need to resolve this element to null.
+
+            val evaluatedType = typeStream.firstOrNull() ?: return UTestNullExpression(type) to listOf()
+
+            // We check for the type stream emptiness firsly and only then for the resolved cache,
+            // because even if the object is already resolved, it could be incompatible with the [type], if it
+            // is an element of an array of the wrong type.
+
             return resolvedCache.getOrElse(ref.address) {
-                // to find a type, we need to understand the source of the object
-                val evaluatedType = if (ref.address <= INITIAL_INPUT_ADDRESS) {
-                    // input object
-                    val typeStream = model.typeStreamOf(ref).filterBySupertype(type)
-                    typeStream.first() as JcRefType
-                } else {
-                    // allocated object
-                    memory.typeStreamOf(ref).first()
-                }
                 when (evaluatedType) {
                     is JcArrayType -> resolveArray(ref, heapRef, evaluatedType)
                     is JcClassType -> resolveObject(ref, heapRef, evaluatedType)
@@ -225,14 +263,21 @@ class JcTestExecutor(
         private fun resolveArray(
             ref: UConcreteHeapRef, heapRef: UHeapRef, type: JcArrayType
         ): Pair<UTestExpression, List<UTestInst>> {
-            val lengthRef = UArrayLengthLValue(heapRef, ctx.arrayDescriptorOf(type))
-            val arrLength = resolveLValue(lengthRef, ctx.cp.int).first as UTestIntExpression
-            val length = if (arrLength.value in 0..10_000) arrLength else UTestIntExpression(0, ctx.cp.int) // TODO hack
+            val arrayDescriptor = ctx.arrayDescriptorOf(type)
+            val lengthRef = UArrayLengthLValue(heapRef, arrayDescriptor)
+            val resolvedLength = resolveLValue(lengthRef, ctx.cp.int).first as UTestIntExpression
+            // TODO hack
+            val length =
+                if (resolvedLength.value in 0..10_000) {
+                    resolvedLength
+                } else {
+                    UTestIntExpression(0, ctx.cp.int)
+                }
 
             val cellSort = ctx.typeToSort(type.elementType)
 
             fun resolveElement(idx: Int): Pair<UTestExpression, List<UTestInst>> {
-                val elemRef = UArrayIndexLValue(cellSort, heapRef, ctx.mkBv(idx), ctx.arrayDescriptorOf(type))
+                val elemRef = UArrayIndexLValue(cellSort, heapRef, ctx.mkBv(idx), arrayDescriptor)
                 return resolveLValue(elemRef, type.elementType)
             }
 
@@ -256,12 +301,19 @@ class JcTestExecutor(
             ref: UConcreteHeapRef, heapRef: UHeapRef, type: JcRefType
         ): Pair<UTestExpression, List<UTestInst>> {
 
-            if (type.jcClass == ctx.classType.jcClass && ref.address >= INITIAL_CONCRETE_ADDRESS) {
+            if (type.jcClass == ctx.classType.jcClass && ref.address <= INITIAL_STATIC_ADDRESS) {
+                // Note that non-negative addresses are possible only for the result value.
                 return resolveAllocatedClass(ref)
             }
 
-            if (type.jcClass == ctx.stringType.jcClass && ref.address >= INITIAL_CONCRETE_ADDRESS) {
+            if (type.jcClass == ctx.stringType.jcClass && ref.address <= INITIAL_STATIC_ADDRESS) {
+                // Note that non-negative addresses are possible only for the result value.
                 return resolveAllocatedString(ref)
+            }
+
+            val anyEnumAncestor = type.getEnumAncestorOrNull()
+            if (anyEnumAncestor != null) {
+                return resolveEnumValue(heapRef, anyEnumAncestor)
             }
 
 
@@ -289,6 +341,20 @@ class JcTestExecutor(
             return instance to fieldSetters
         }
 
+        private fun resolveEnumValue(
+            heapRef: UHeapRef,
+            enumAncestor: JcClassOrInterface
+        ): Pair<UTestExpression, List<UTestInst>> {
+            with(ctx) {
+                val ordinalLValue = UFieldLValue(sizeSort, heapRef, enumOrdinalField)
+                val ordinalFieldValue = resolveLValue(ordinalLValue, cp.int).first as UTestIntExpression
+                val enumField = enumAncestor.enumValues?.get(ordinalFieldValue.value)
+                    ?: error("Cant find enum field with index ${ordinalFieldValue.value}")
+
+                return UTestGetStaticFieldExpression(enumField) to listOf()
+            }
+        }
+
         private fun resolveAllocatedClass(ref: UConcreteHeapRef): Pair<UTestExpression, List<UTestInst>> {
             val classTypeField = ctx.classTypeSyntheticField
             val classTypeLValue = UFieldLValue(ctx.addressSort, ref, classTypeField)
@@ -313,6 +379,10 @@ class JcTestExecutor(
         private fun <T : USort> evaluateInModel(expr: UExpr<T>): UExpr<T> {
             return model.eval(expr)
         }
+
+        // TODO simple org.jacodb.api.ext.JcClasses.isEnum does not work with enums with abstract methods
+        private fun JcRefType.getEnumAncestorOrNull(): JcClassOrInterface? =
+            (sequenceOf(jcClass) + jcClass.allSuperHierarchySequence).firstOrNull { it.isEnum }
     }
 
 }

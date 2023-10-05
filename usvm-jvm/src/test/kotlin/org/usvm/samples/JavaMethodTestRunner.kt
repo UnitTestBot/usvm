@@ -10,11 +10,8 @@ import org.usvm.UMachineOptions
 import org.usvm.api.JcClassCoverage
 import org.usvm.api.JcParametersState
 import org.usvm.api.JcTest
-import org.usvm.api.util.JcTestResolver
 import org.usvm.api.targets.JcTarget
-import org.usvm.api.util.JcTestResolver
 import org.usvm.machine.JcInterpreterObserver
-import org.usvm.api.util.JcTestResolver
 import org.usvm.util.JcTestExecutor
 import org.usvm.machine.JcMachine
 import org.usvm.test.util.TestRunner
@@ -739,7 +736,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
     protected open val jacodbCpKey = samplesKey
     protected val cp = JacoDBContainer(jacodbCpKey).cp
 
-    private val testResolver = JcTestExecutor(pathToJars = listOf(System.getenv()["usvm-test-jar"]!!), classpath = cp)
+    private val testResolver = JcTestExecutor(classpath = cp)
 
     override val typeTransformer: (Any?) -> KClass<*>? = { value -> value?.let { it::class } }
 
@@ -764,7 +761,6 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
             states.map { testResolver.resolve(jcMethod, it) }
         }
     }
-
 
     override val coverageRunner: (List<JcTest>) -> JcClassCoverage = { _ ->
         JcClassCoverage(visitedStmts = emptySet())

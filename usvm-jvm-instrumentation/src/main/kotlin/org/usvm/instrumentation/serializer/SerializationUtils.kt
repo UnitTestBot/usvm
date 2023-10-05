@@ -50,7 +50,13 @@ fun AbstractBuffer.readJcField(jcClasspath: JcClasspath): JcField {
 }
 
 fun AbstractBuffer.readJcType(jcClasspath: JcClasspath): JcType? {
-    val typeName = readString()
+    var typeName = readString()
     if (typeName == "type_is_null") return null
-    return jcClasspath.findTypeOrNull(typeName)
+    jcClasspath.findTypeOrNull(typeName)?.let { return it }
+    //We need this because of jacodb peculiarity with typenames...
+    while (typeName.contains(".")) {
+        typeName = typeName.reversed().replaceFirst('.', '$').reversed()
+        jcClasspath.findTypeOrNull(typeName)?.let { return it }
+    }
+    return null
 }

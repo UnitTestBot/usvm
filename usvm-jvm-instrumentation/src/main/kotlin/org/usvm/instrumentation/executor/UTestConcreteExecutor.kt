@@ -16,6 +16,7 @@ import org.usvm.instrumentation.testcase.api.UTestExecutionTimedOutResult
 import org.usvm.instrumentation.testcase.descriptor.UTestExceptionDescriptor
 import org.usvm.instrumentation.util.InstrumentationModuleConstants
 import org.usvm.instrumentation.util.UTestExecutorInitException
+import java.util.concurrent.CancellationException
 import java.util.concurrent.TimeoutException
 import kotlin.reflect.KClass
 import kotlin.time.Duration
@@ -99,6 +100,14 @@ class UTestConcreteExecutor(
             val descriptor = UTestExceptionDescriptor(
                 type = jcClasspath.findClass<Exception>().toType(),
                 message = e.reasonAsText,
+                stackTrace = listOf(),
+                raisedByUserCode = false
+            )
+            UTestExecutionFailedResult(descriptor)
+        } catch (e: CancellationException) {
+            val descriptor = UTestExceptionDescriptor(
+                type = jcClasspath.findClass<Exception>().toType(),
+                message = "CancellationException",
                 stackTrace = listOf(),
                 raisedByUserCode = false
             )

@@ -60,7 +60,11 @@ class WorkerClassLoader(
                 }
         }
         classesToReinit.forEach { cl ->
-            cl.declaredMethods.find { it.name == "generatedClinit0" }?.invoke(null)
+            try {
+                cl.declaredMethods.find { it.name == "generatedClinit0" }?.invokeWithAccessibility(null, listOf())
+            } catch (e: Throwable) {
+                //cannot access some classes, for example, enums
+            }
         }
     }
 

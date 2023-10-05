@@ -15,6 +15,8 @@ object InstrumentationModuleConstants {
     //Rollback strategy
     val testExecutorStaticsRollbackStrategy = StaticsRollbackStrategy.REINIT
 
+    const val nameForExistingButNullString = "USVM_GENERATED_NULL_STRING"
+
     //Passes as environment parameter
     val pathToUsvmInstrumentationJar: String
         get() = System.getenv("usvm-jvm-instrumentation-jar")
