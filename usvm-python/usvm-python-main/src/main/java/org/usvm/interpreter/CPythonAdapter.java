@@ -3,7 +3,9 @@ package org.usvm.interpreter;
 import kotlin.Unit;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.usvm.annotations.CPythonAdapterJavaMethod;
+import org.usvm.annotations.*;
+import org.usvm.annotations.codegeneration.CType;
+import org.usvm.annotations.codegeneration.ObjectConverter;
 import org.usvm.language.*;
 import org.usvm.machine.MockHeader;
 import org.usvm.machine.interpreters.PythonObject;
@@ -101,6 +103,14 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "instruction")
+    @CPythonFunction(
+            argCTypes = {CType.PyFrameObject},
+            argConverters = {ObjectConverter.FrameConverter},
+            cReturnType = CType.CInt,
+            resultConverter = ObjectConverter.NoConverter,
+            failValue = "-1",
+            defaultValue = "0"
+    )
     public static void handlerInstruction(@NotNull ConcolicRunContext context, long frameRef) {
         context.curOperation = null;
         int instruction = getInstructionFromFrame(frameRef);
@@ -139,6 +149,14 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "load_const")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject},
+            argConverters = {ObjectConverter.RefConverter},
+            cReturnType = CType.PyObject,
+            resultConverter = ObjectConverter.ObjectWrapper,
+            failValue = "0",
+            defaultValue = "Py_None"
+    )
     public static SymbolForCPython handlerLoadConst(ConcolicRunContext context, long ref) {
         PythonObject obj = new PythonObject(ref);
         return PathTracingKt.withTracing(context, new LoadConstParameters(obj), () -> wrap(handlerLoadConstKt(context, obj)));
