@@ -178,6 +178,10 @@ data class UMachineOptions(
      */
     val solverType: SolverType = SolverType.Z3,
     /**
+     * TODO
+     * */
+    val solverUseSoftConstraints: Boolean = true,
+    /**
      * Should machine stop when all terminal targets are reached.
      */
     val stopOnTargetsReached: Boolean = false,

@@ -16,6 +16,7 @@ import org.usvm.solver.UTypeSolver
 class JcComponents(
     private val typeSystem: JcTypeSystem,
     private val solverType: SolverType,
+    private val solverUseSoftConstraints: Boolean
 ) : UComponents<JcType, USizeSort> {
     private val closeableResources = mutableListOf<AutoCloseable>()
 
@@ -31,7 +32,7 @@ class JcComponents(
         val typeSolver = UTypeSolver(typeSystem)
         closeableResources += smtSolver
 
-        return USolverBase(ctx, smtSolver, typeSolver, translator, decoder, softConstraintsProvider)
+        return USolverBase(ctx, smtSolver, typeSolver, translator, decoder, softConstraintsProvider, solverUseSoftConstraints)
     }
 
     fun close() {

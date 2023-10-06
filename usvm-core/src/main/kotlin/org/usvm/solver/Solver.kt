@@ -36,6 +36,7 @@ open class USolverBase<Type>(
     protected val translator: UExprTranslator<Type, *>,
     protected val decoder: UModelDecoder<UModelBase<Type>>,
     protected val softConstraintsProvider: USoftConstraintsProvider<Type, *>,
+    protected val  useSoftConstraints: Boolean = true
 ) : USolver<UPathConstraints<Type>, UModelBase<Type>>(), AutoCloseable {
 
     protected fun translateLogicalConstraints(constraints: Iterable<UBoolExpr>) {
@@ -109,8 +110,7 @@ open class USolverBase<Type>(
 
     fun checkWithSoftConstraints(
         pc: UPathConstraints<Type>,
-    ) = internalCheck(pc, useSoftConstraints = true)
-
+    ) = internalCheck(pc, useSoftConstraints = useSoftConstraints)
 
     private fun internalCheck(
         pc: UPathConstraints<Type>,
