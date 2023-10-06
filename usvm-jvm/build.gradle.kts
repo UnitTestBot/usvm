@@ -1,5 +1,6 @@
 plugins {
     id("usvm.kotlin-conventions")
+    kotlin("plugin.serialization") version "1.8.22"
 }
 
 val samples by sourceSets.creating {
@@ -16,7 +17,7 @@ val `usvm-api` by sourceSets.creating {
 
 val approximations by configurations.creating
 val approximationsRepo = "com.github.UnitTestBot.java-stdlib-approximations"
-val approximationsVersion = "53ceeb23ea"
+val approximationsVersion = "45bda7c66a"
 
 dependencies {
     implementation(project(":usvm-core"))
@@ -44,6 +45,8 @@ dependencies {
 
     approximations(approximationsRepo, "approximations", approximationsVersion)
     testImplementation(approximationsRepo, "tests", approximationsVersion)
+
+    testImplementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
 }
 
 val samplesImplementation: Configuration by configurations.getting
