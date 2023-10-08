@@ -182,6 +182,10 @@ data class UMachineOptions(
      * */
     val solverUseSoftConstraints: Boolean = true,
     /**
+     * TODO
+     * */
+    val solverQueryTimeoutMs: Long? = 1_000,
+    /**
      * Should machine stop when all terminal targets are reached.
      */
     val stopOnTargetsReached: Boolean = false,
