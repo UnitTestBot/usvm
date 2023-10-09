@@ -20,7 +20,7 @@ class DataGenerator(
     fun generateRandomParameterValue(
         parameterType: TypeName,
         depth: Int = 0
-    ): Pair<UTestExpression?, List<UTestExpression>> {
+    ): Pair<UTestExpression?, List<UTestInst>> {
         val parameterJcType = parameterType.toJcType(jcClasspath)!!
         if (parameterType.isPrimitive || parameterType == jcClasspath.stringType().getTypename()) {
             return generatePrimitive(parameterJcType) to listOf()
@@ -66,7 +66,7 @@ class DataGenerator(
             else -> error("Trying to generate not primitive value")
         }
 
-    private fun generatePrimitiveArray(elementType: JcType): Pair<UTestExpression, List<UTestExpression>> {
+    private fun generatePrimitiveArray(elementType: JcType): Pair<UTestExpression, List<UTestInst>> {
         val arraySize = FuzzingContext.nextInt(5)
         val array = when (elementType) {
             jcClasspath.boolean -> FuzzingContext.nextBooleanArray(arraySize).toList()
@@ -87,8 +87,8 @@ class DataGenerator(
     private fun <T> createUTestPrimitiveArray(
         elementType: JcType,
         values: List<T>
-    ): Pair<UTestExpression, List<UTestExpression>> {
-        val initStatements = mutableListOf<UTestExpression>()
+    ): Pair<UTestExpression, List<UTestInst>> {
+        val initStatements = mutableListOf<UTestInst>()
         val size = values.size
         val instance = UTestCreateArrayExpression(elementType, UTestIntExpression(size, jcClasspath.int))
         for ((ind, value) in values.withIndex()) {
@@ -98,10 +98,10 @@ class DataGenerator(
         return instance to initStatements
     }
 
-    fun generateObject(type: JcType, depth: Int): Pair<UTestExpression, List<UTestExpression>> {
+    fun generateObject(type: JcType, depth: Int): Pair<UTestExpression, List<UTestInst>> {
         val jcClass = type.toJcClassOrInterface(jcClasspath)!!
         val constructor = jcClass.constructors.minBy { it.parameters.size }
-        val initStatements = mutableListOf<UTestExpression>()
+        val initStatements = mutableListOf<UTestInst>()
         val argInstances = mutableListOf<UTestExpression>()
         constructor.parameters.map {
             val (instance, initStmts) = generateRandomParameterValue(it.type, depth)

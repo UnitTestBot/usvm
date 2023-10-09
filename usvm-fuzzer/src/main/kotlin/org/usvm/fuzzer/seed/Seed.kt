@@ -13,6 +13,7 @@ import org.usvm.fuzzer.strategy.RandomStrategy
 import org.usvm.fuzzer.strategy.Selectable
 import org.usvm.instrumentation.testcase.UTest
 import org.usvm.instrumentation.testcase.api.UTestExpression
+import org.usvm.instrumentation.testcase.api.UTestInst
 import org.usvm.instrumentation.testcase.api.UTestMethodCall
 import org.usvm.instrumentation.testcase.api.UTestStaticMethodCall
 import org.usvm.instrumentation.util.*
@@ -83,14 +84,14 @@ data class Seed(
 
     //fun spawn(): Seed = Seed(args, weight, positions, this)
 
-    fun mutate(position: Int, expressionsToAdd: List<UTestExpression>): Seed {
+    fun mutate(position: Int, expressionsToAdd: List<UTestInst>): Seed {
         val descriptor = positions[position].descriptor
         val newDescriptor = Descriptor(descriptor.instance, descriptor.type, descriptor.initialExprs + expressionsToAdd)
         val newArgs = args.map { if (it == descriptor) newDescriptor else it }
         return Seed(targetMethod, newArgs, this)
     }
 
-    fun mutate(position: Int, expr: UTestExpression) = mutate(position, listOf(expr))
+    fun mutate(position: Int, expr: UTestInst) = mutate(position, listOf(expr))
 
     fun getPositionToMutate(iterationNumber: Int) = positionChoosingStrategy.chooseBest(positions, iterationNumber)
 
@@ -112,7 +113,7 @@ data class Seed(
         return UTest(allInitStatements, callStatement)
     }
 
-    class Descriptor(val instance: UTestExpression, val type: JcType, val initialExprs: List<UTestExpression>)
+    class Descriptor(val instance: UTestExpression, val type: JcType, val initialExprs: List<UTestInst>)
 
     data class Position(val index: Int, var score: Double, val field: JcField, val descriptor: Descriptor) :
         Selectable()

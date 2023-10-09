@@ -3,6 +3,7 @@ package org.usvm.fuzzer.mutation
 import org.usvm.fuzzer.generator.DataGenerator
 import org.usvm.fuzzer.seed.Seed
 import org.usvm.instrumentation.testcase.api.UTestExpression
+import org.usvm.instrumentation.testcase.api.UTestInst
 import org.usvm.instrumentation.testcase.api.UTestMethodCall
 import org.usvm.instrumentation.testcase.api.UTestNullExpression
 import org.usvm.instrumentation.util.toJcClassOrInterface
@@ -17,7 +18,7 @@ class CallRandomMethod : Mutation() {
         val jcClass = type.toJcClassOrInterface(jcClasspath) ?: return null
         val randomMethod = jcClass.declaredMethods.filter { !it.isStatic }.randomOrNull() ?: return null
         val dataGenerator = DataGenerator(jcClasspath)
-        val initStmts = mutableListOf<UTestExpression>()
+        val initStmts = mutableListOf<UTestInst>()
         val args = mutableListOf<UTestExpression>()
         randomMethod.parameters.map {
             val (inst, init) = dataGenerator.generateRandomParameterValue(it.type)
