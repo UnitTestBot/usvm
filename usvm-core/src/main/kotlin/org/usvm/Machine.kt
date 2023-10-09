@@ -36,7 +36,13 @@ abstract class UMachine<State> : AutoCloseable {
         logger.debug().bracket("$this.run($interpreter, ${pathSelector::class.simpleName})") {
             while (!pathSelector.isEmpty() && !stopStrategy.shouldStop()) {
                 val state = pathSelector.peek()
-                val (forkedStates, stateAlive) = interpreter.step(state)
+
+                val (forkedStates, stateAlive) = try {
+                    interpreter.step(state)
+                } catch (ex: Exception) {
+                    logger.error(ex) { "Machine step failed:" }
+                    continue
+                }
 
                 observer.onState(state, forkedStates)
 
