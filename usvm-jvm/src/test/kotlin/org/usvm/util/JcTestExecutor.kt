@@ -264,7 +264,7 @@ class JcTestExecutor(
             ref: UConcreteHeapRef, heapRef: UHeapRef, type: JcArrayType
         ): Pair<UTestExpression, List<UTestInst>> {
             val arrayDescriptor = ctx.arrayDescriptorOf(type)
-            val lengthRef = UArrayLengthLValue(heapRef, arrayDescriptor)
+            val lengthRef = UArrayLengthLValue(heapRef, arrayDescriptor, ctx.sizeSort)
             val resolvedLength = resolveLValue(lengthRef, ctx.cp.int).first as UTestIntExpression
             // TODO hack
             val length =
