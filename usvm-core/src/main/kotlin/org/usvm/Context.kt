@@ -54,6 +54,7 @@ open class UContext<USizeSort : USort>(
     astManagementMode: AstManagementMode = AstManagementMode.GC,
     simplificationMode: SimplificationMode = SimplificationMode.SIMPLIFY,
 ) : KContext(operationMode, astManagementMode, simplificationMode) {
+    val stats = UMachineStats(1, 1, 0, 0, 0, 0, 0)
 
     private val solver by lazy { components.mkSolver(this) }
     private val typeSystem by lazy { components.mkTypeSystem(this) }

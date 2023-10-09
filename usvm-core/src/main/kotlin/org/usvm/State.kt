@@ -160,7 +160,10 @@ private fun <T : UState<Type, *, *, Context, *, T>, Type, Context : UContext<*>>
     val satResult = solver.checkWithSoftConstraints(constraintsToCheck)
 
     return when (satResult) {
-        is UUnsatResult -> null
+        is UUnsatResult -> {
+            state.ctx.stats.unsat++
+            null
+        }
 
         is USatResult -> {
             // Note that we cannot extract common code here due to
@@ -182,6 +185,8 @@ private fun <T : UState<Type, *, *, Context, *, T>, Type, Context : UContext<*>>
         }
 
         is UUnknownResult -> {
+            state.ctx.stats.unknown++
+
             if (addConstraintOnUnknown) {
                 state.pathConstraints += newConstraintToOriginalState
             }

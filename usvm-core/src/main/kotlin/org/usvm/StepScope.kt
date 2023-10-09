@@ -88,6 +88,9 @@ class StepScope<T : UState<Type, *, Statement, Context, *, T>, Type, Statement, 
         if (negState != null) {
             negState.blockOnFalseState()
             if (negState !== originalState) {
+
+                negState.ctx.stats.total++
+
                 forkedStates += negState
             }
         }
@@ -125,6 +128,8 @@ class StepScope<T : UState<Type, *, Statement, Context, *, T>, Type, Statement, 
         require(firstForkedState == originalState) {
             "The original state $originalState was expected to become the first of forked states but $firstForkedState found"
         }
+
+        firstForkedState.ctx.stats.total += forkedStates.size - 1
 
         // Interpret the first state as original and others as forked
         this.forkedStates += forkedStates.subList(1, forkedStates.size)
@@ -167,6 +172,7 @@ class StepScope<T : UState<Type, *, Statement, Context, *, T>, Type, Statement, 
         val shouldForkOnFalse = forkBlackList.shouldForkTo(originalState, falseStmt)
 
         if (!shouldForkOnTrue && !shouldForkOnFalse) {
+            condition.uctx.stats.blacklisted += 2
             stepScopeState = DEAD
             // TODO: should it be null?
             return null
@@ -175,6 +181,8 @@ class StepScope<T : UState<Type, *, Statement, Context, *, T>, Type, Statement, 
         if (shouldForkOnTrue && shouldForkOnFalse) {
             return fork(condition, blockOnTrueState, blockOnFalseState)
         }
+
+        condition.uctx.stats.blacklisted++
 
         // TODO: asserts are implemented via forkMulti and create an unused copy of state
         if (shouldForkOnTrue) {
@@ -194,6 +202,7 @@ class StepScope<T : UState<Type, *, Statement, Context, *, T>, Type, Statement, 
         val filteredConditionsWithBlockOnStates = forkCases
             .mapNotNull { case ->
                 if (!forkBlackList.shouldForkTo(originalState, case.stmt)) {
+                    case.condition.uctx.stats.blacklisted++
                     return@mapNotNull null
                 }
                 case.condition to case.block
