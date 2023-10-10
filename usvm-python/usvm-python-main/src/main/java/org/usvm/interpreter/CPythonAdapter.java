@@ -44,12 +44,20 @@ public class CPythonAdapter {
     public int pyGT;
     public long symbolicIntConstructorRef;
     public long symbolicFloatConstructorRef;
+
+    @SymbolicMethodDescriptor(nativeTypeName = "PyList_Type", nativeMemberName = "append")
     public MemberDescriptor listAppendDescriptor = ListAppendDescriptor.INSTANCE;
+    @SymbolicMethodDescriptor(nativeTypeName = "PyList_Type", nativeMemberName = "pop")
     public MemberDescriptor listPopDescriptor = ListPopDescriptor.INSTANCE;
+    @SymbolicMethodDescriptor(nativeTypeName = "PyList_Type", nativeMemberName = "insert")
     public MemberDescriptor listInsertDescriptor = ListInsertDescriptor.INSTANCE;
+    @SymbolicMemberDescriptor(nativeTypeName = "PySlice_Type", nativeMemberName = "start")
     public MemberDescriptor sliceStartDescriptor = SliceStartDescriptor.INSTANCE;
+    @SymbolicMemberDescriptor(nativeTypeName = "PySlice_Type", nativeMemberName = "stop")
     public MemberDescriptor sliceStopDescriptor = SliceStopDescriptor.INSTANCE;
+    @SymbolicMemberDescriptor(nativeTypeName = "PySlice_Type", nativeMemberName = "step")
     public MemberDescriptor sliceStepDescriptor = SliceStepDescriptor.INSTANCE;
+
     public native void initializePython(String pythonHome);
     public native void finalizePython();
     public native long getNewNamespace();  // returns reference to a new dict
