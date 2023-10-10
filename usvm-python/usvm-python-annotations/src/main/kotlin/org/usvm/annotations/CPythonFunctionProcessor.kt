@@ -7,6 +7,7 @@ import javax.lang.model.SourceVersion
 import javax.lang.model.element.Element
 import javax.lang.model.element.ExecutableElement
 import javax.lang.model.element.TypeElement
+import javax.lang.model.type.ArrayType
 import javax.lang.model.type.ExecutableType
 import javax.lang.model.type.TypeKind
 import javax.lang.model.type.TypeMirror
@@ -44,34 +45,67 @@ class CPythonFunctionProcessor: AbstractProcessor() {
             val numberOfArguments = type.parameterTypes.size - 1
             val argJavaTypes = type.parameterTypes.drop(1).map(::convertJavaType)
             require(curAnnotation.argCTypes.size == numberOfArguments) {
-                "Incorrect value of argCTypes"
+                "Incorrect value of argCTypes (size must be $numberOfArguments)"
             }
             require(curAnnotation.argConverters.size == numberOfArguments) {
-                "Incorrect value of argConverters"
+                "Incorrect value of argConverters (size must be $numberOfArguments)"
             }
             val args = (argJavaTypes zip curAnnotation.argCTypes zip curAnnotation.argConverters).map { (p, conv) ->
                 val (javaType, cType) = p
                 ArgumentDescription(cType, javaType, conv)
             }
-            val result = ArgumentDescription(
-                curAnnotation.cReturnType,
-                convertJavaType(executable.returnType),
-                curAnnotation.resultConverter
-            )
-            CPythonFunctionDescription(
-                name,
-                args,
-                result,
-                curAnnotation.failValue,
-                curAnnotation.defaultValue,
-                curAnnotation.addToSymbolicAdapter
-            )
+            val returnTypeName = executable.returnType.toString().split(".").last()
+            require(returnTypeName == "void" || returnTypeName == "SymbolForCPython") {
+                "Return type must be void or SymbolForCPython, not $returnTypeName"
+            }
+            val returnType = convertJavaType(executable.returnType)
+            when (returnType) {
+                JavaType.JObject -> {
+                    val descr = ArgumentDescription(
+                        CType.PyObject,
+                        JavaType.JObject,
+                        ObjectConverter.ObjectWrapper
+                    )
+                    CPythonFunctionDescription(
+                        name,
+                        args,
+                        descr,
+                        "0",
+                        "Py_None",
+                        curAnnotation.addToSymbolicAdapter
+                    )
+                }
+                JavaType.NoType -> {
+                    val descr = ArgumentDescription(
+                        CType.CInt,
+                        JavaType.NoType,
+                        ObjectConverter.NoConverter
+                    )
+                    CPythonFunctionDescription(
+                        name,
+                        args,
+                        descr,
+                        "-1",
+                        "0",
+                        curAnnotation.addToSymbolicAdapter
+                    )
+                }
+                else -> error("Incorrect Java return type for CPythonFunction")
+            }
         }
 
     private fun convertJavaType(typeMirror: TypeMirror): JavaType {
+        if (typeMirror is ArrayType) {
+            require(typeMirror.componentType.toString().split(".").last() == "SymbolForCPython") {
+                "Array must consist of SymbolForCPython"
+            }
+            return JavaType.JObjectArray
+        }
         return when (typeMirror.kind) {
             TypeKind.LONG -> JavaType.JLong
+            TypeKind.INT -> JavaType.JInt
             TypeKind.DECLARED -> JavaType.JObject
+            TypeKind.BOOLEAN -> JavaType.JBoolean
             TypeKind.VOID -> JavaType.NoType
             else -> error("Unsupported Java type: $typeMirror")
         }

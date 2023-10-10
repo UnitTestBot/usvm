@@ -6,18 +6,25 @@ enum class ObjectConverter(val repr: String) {
     IntConverter("int_converter"),
     RefConverter("ref_converter"),
     ObjectWrapper("object_wrapper"),
+    ArrayConverter("array_converter"),
+    StringConverter("string_converter"),
     NoConverter("")
 }
 
 enum class CType(val repr: String) {
     PyObject("PyObject *"),
+    PyObjectArray("PyObject **"),
     PyFrameObject("PyFrameObject *"),
-    CInt("int")
+    CInt("int"),
+    CStr("const char *")
 }
 
 enum class JavaType(val repr: String, val call: String) {
     JObject("jobject", "Object"),
     JLong("jlong", "Long"),
+    JInt("jint", "Int"),
+    JBoolean("jboolean", "Boolean"),
+    JObjectArray("jobjectArray", "Object"),
     NoType("", "Void")
 }
 
@@ -79,7 +86,7 @@ fun generateCPythonFunction(description: CPythonFunctionDescription): String {
 
 fun generateCPythonFunctions(descriptions: List<CPythonFunctionDescription>): String {
     val functions = descriptions.map(::generateCPythonFunction)
-    val registrations = descriptions.filter { it.addToSymbolicAdapter }.joinToString {
+    val registrations = descriptions.filter { it.addToSymbolicAdapter }.joinToString(separator = " ") {
         val name = it.cName
         "adapter->$name = $name;"
     }
