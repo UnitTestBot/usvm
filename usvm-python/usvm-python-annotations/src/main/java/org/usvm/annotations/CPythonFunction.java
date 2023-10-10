@@ -13,9 +13,5 @@ import java.lang.annotation.Target;
 public @interface CPythonFunction {
     CType[] argCTypes();
     ObjectConverter[] argConverters();
-    CType cReturnType();
-    ObjectConverter resultConverter();
-    String failValue();
-    String defaultValue();
     boolean addToSymbolicAdapter() default true;
 }

@@ -7,7 +7,7 @@
 #include "approximations.h"
 #include "descriptors.h"
 #include "symbolic_methods.h"
-#include "SymbolicAdapterMethods.h"  // generated from Gradle script
+#include "CPythonFunctions.h"  // generated
 
 #include "symbolicadapter.h"
 
