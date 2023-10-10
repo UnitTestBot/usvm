@@ -18,7 +18,8 @@ fun generateDescriptorCheck(info: MemberDescriptorInfo): String =
 
 fun generateDescriptorChecks(info: List<MemberDescriptorInfo>): String =
     "#define MEMBER_DESCRIPTORS \\\n" +
-    info.joinToString("\n", transform = ::generateDescriptorCheck).replace("\n", "\\\n")
+    info.joinToString("\n", transform = ::generateDescriptorCheck).replace("\n", "\\\n") +
+    "\n\n#define dummy_0 0"
 
 fun generateMethodDescriptorCheck(info: MemberDescriptorInfo): String =
     """
@@ -33,4 +34,5 @@ fun generateMethodDescriptorCheck(info: MemberDescriptorInfo): String =
 
 fun generateMethodDescriptorChecks(info: List<MemberDescriptorInfo>): String =
     "#define METHOD_DESCRIPTORS \\\n" +
-            info.joinToString("\n", transform = ::generateMethodDescriptorCheck).replace("\n", "\\\n")
+    info.joinToString("\n", transform = ::generateMethodDescriptorCheck).replace("\n", "\\\n") +
+    "\n\n#define dummy_1 1"

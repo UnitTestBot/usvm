@@ -19,7 +19,7 @@ class SymbolicMemberDescriptorProcessor: AbstractProcessor() {
         val annotatedElements = roundEnv.getElementsAnnotatedWith(annotation)
         val info = getInfo(annotatedElements)
         val code = generateDescriptorChecks(info)
-        val headerPath = processingEnv.options["headerPath"] ?: error("Header path not specified")
+        val headerPath = getHeaderPath(processingEnv)
         val file = File(headerPath, "MemberDescriptors.h")
         file.writeText(code)
         file.createNewFile()

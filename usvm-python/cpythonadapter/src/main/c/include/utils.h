@@ -7,7 +7,7 @@ extern "C" {
 #include <jni.h>
 #include "Python.h"
 #include "symbolicadapter.h"
-#include "CPythonAdapterMethods.h"  // this is generated in Gradle script from "handler_defs.json"
+#include "CPythonAdapterMethods.h"  // generated
 
 #define JavaPythonObjectTypeName "ibmviqhlye.___java_object___ibmviqhlye"
 
