@@ -1,2 +1,4 @@
 org.usvm.annotations.CPythonAdapterJavaMethodProcessor
 org.usvm.annotations.CPythonFunctionProcessor
+org.usvm.annotations.SymbolicMemberDescriptorProcessor
+org.usvm.annotations.SymbolicMethodDescriptorProcessor
