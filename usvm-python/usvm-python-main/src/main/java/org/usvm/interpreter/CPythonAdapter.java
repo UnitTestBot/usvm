@@ -105,11 +105,7 @@ public class CPythonAdapter {
     @CPythonAdapterJavaMethod(cName = "instruction")
     @CPythonFunction(
             argCTypes = {CType.PyFrameObject},
-            argConverters = {ObjectConverter.FrameConverter},
-            cReturnType = CType.CInt,
-            resultConverter = ObjectConverter.NoConverter,
-            failValue = "-1",
-            defaultValue = "0"
+            argConverters = {ObjectConverter.FrameConverter}
     )
     public static void handlerInstruction(@NotNull ConcolicRunContext context, long frameRef) {
         context.curOperation = null;
@@ -151,11 +147,7 @@ public class CPythonAdapter {
     @CPythonAdapterJavaMethod(cName = "load_const")
     @CPythonFunction(
             argCTypes = {CType.PyObject},
-            argConverters = {ObjectConverter.RefConverter},
-            cReturnType = CType.PyObject,
-            resultConverter = ObjectConverter.ObjectWrapper,
-            failValue = "0",
-            defaultValue = "Py_None"
+            argConverters = {ObjectConverter.RefConverter}
     )
     public static SymbolForCPython handlerLoadConst(ConcolicRunContext context, long ref) {
         PythonObject obj = new PythonObject(ref);
@@ -163,6 +155,10 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "fork_notify")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter}
+    )
     public static void handlerFork(ConcolicRunContext context, SymbolForCPython cond) {
         if (cond.obj == null)
             return;
@@ -170,11 +166,19 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "fork_result")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.CInt},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.IntConverter}
+    )
     public static void handlerForkResult(ConcolicRunContext context, SymbolForCPython cond, boolean result) {
         PathTracingKt.handlerForkResultKt(context, cond, result);
     }
 
     @CPythonAdapterJavaMethod(cName = "unpack")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.CInt},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.IntConverter}
+    )
     public static void handlerUnpack(ConcolicRunContext context, SymbolForCPython iterable, int count) {
         if (iterable.obj == null)
             return;
@@ -182,6 +186,10 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "is_op")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
     public static void handlerIsOp(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
         if (left.obj == null || right.obj == null)
             return;
@@ -189,6 +197,10 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "none_check")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter}
+    )
     public static void handlerNoneCheck(ConcolicRunContext context, SymbolForCPython on) {
         if (on.obj == null)
             return;
@@ -196,6 +208,10 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "gt_long")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
     public static SymbolForCPython handlerGTLong(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
         if (left.obj == null || right.obj == null)
             return null;
@@ -203,6 +219,10 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "lt_long")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
     public static SymbolForCPython handlerLTLong(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
         if (left.obj == null || right.obj == null)
             return null;
@@ -210,6 +230,10 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "eq_long")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
     public static SymbolForCPython handlerEQLong(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
         if (left.obj == null || right.obj == null)
             return null;
@@ -217,6 +241,10 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "ne_long")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
     public static SymbolForCPython handlerNELong(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
         if (left.obj == null || right.obj == null)
             return null;
@@ -224,6 +252,10 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "ge_long")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
     public static SymbolForCPython handlerGELong(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
         if (left.obj == null || right.obj == null)
             return null;
@@ -231,6 +263,10 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "le_long")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
     public static SymbolForCPython handlerLELong(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
         if (left.obj == null || right.obj == null)
             return null;
@@ -238,6 +274,10 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "add_long")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
     public static SymbolForCPython handlerADDLong(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
         if (left.obj == null || right.obj == null)
             return null;
@@ -245,6 +285,10 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "sub_long")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
     public static SymbolForCPython handlerSUBLong(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
         if (left.obj == null || right.obj == null)
             return null;
@@ -252,6 +296,10 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "mul_long")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
     public static SymbolForCPython handlerMULLong(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
         if (left.obj == null || right.obj == null)
             return null;
@@ -259,6 +307,10 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "div_long")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
     public static SymbolForCPython handlerDIVLong(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
         if (left.obj == null || right.obj == null)
             return null;
@@ -266,12 +318,17 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "rem_long")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
     public static SymbolForCPython handlerREMLong(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
         if (left.obj == null || right.obj == null)
             return null;
         return methodWrapper(context, new MethodParameters("rem_long", Arrays.asList(left, right)), () -> handlerREMLongKt(context, left.obj, right.obj));
     }
 
+    // TODO: CPythonFunction
     @CPythonAdapterJavaMethod(cName = "pow_long")
     public static SymbolForCPython handlerPOWLong(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
         if (left.obj == null || right.obj == null)
@@ -280,6 +337,10 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "true_div_long")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
     public static SymbolForCPython handlerTrueDivLong(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
         if (left.obj == null || right.obj == null)
             return null;
@@ -287,6 +348,10 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "symbolic_int_cast")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter}
+    )
     public static SymbolForCPython handlerIntCast(ConcolicRunContext context, SymbolForCPython obj) {
         if (obj.obj == null)
             return null;
@@ -294,6 +359,10 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "gt_float")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
     public static SymbolForCPython handlerGTFloat(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
         if (left.obj == null || right.obj == null)
             return null;
@@ -301,6 +370,10 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "lt_float")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
     public static SymbolForCPython handlerLTFloat(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
         if (left.obj == null || right.obj == null)
             return null;
@@ -308,6 +381,10 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "eq_float")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
     public static SymbolForCPython handlerEQFloat(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
         if (left.obj == null || right.obj == null)
             return null;
@@ -315,6 +392,10 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "ne_float")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
     public static SymbolForCPython handlerNEFloat(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
         if (left.obj == null || right.obj == null)
             return null;
@@ -322,6 +403,10 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "ge_float")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
     public static SymbolForCPython handlerGEFloat(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
         if (left.obj == null || right.obj == null)
             return null;
@@ -329,6 +414,10 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "le_float")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
     public static SymbolForCPython handlerLEFloat(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
         if (left.obj == null || right.obj == null)
             return null;
@@ -336,6 +425,10 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "add_float")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
     public static SymbolForCPython handlerADDFloat(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
         if (left.obj == null || right.obj == null)
             return null;
@@ -343,6 +436,10 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "sub_float")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
     public static SymbolForCPython handlerSUBFloat(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
         if (left.obj == null || right.obj == null)
             return null;
@@ -350,6 +447,10 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "mul_float")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
     public static SymbolForCPython handlerMULFloat(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
         if (left.obj == null || right.obj == null)
             return null;
@@ -357,6 +458,10 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "div_float")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
     public static SymbolForCPython handlerDIVFloat(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
         if (left.obj == null || right.obj == null)
             return null;
@@ -364,6 +469,10 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "symbolic_float_cast")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter}
+    )
     public static SymbolForCPython handlerFloatCast(ConcolicRunContext context, SymbolForCPython obj) {
         if (obj.obj == null)
             return null;
@@ -371,6 +480,10 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "bool_and")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
     public static SymbolForCPython handlerAND(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
         if (left.obj == null || right.obj == null)
             return null;
@@ -378,6 +491,10 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "create_list")
+    @CPythonFunction(
+            argCTypes = {CType.PyObjectArray},
+            argConverters = {ObjectConverter.ArrayConverter}
+    )
     public static SymbolForCPython handlerCreateList(ConcolicRunContext context, SymbolForCPython[] elements) {
         if (Arrays.stream(elements).anyMatch(elem -> elem.obj == null))
             return null;
@@ -386,6 +503,10 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "create_tuple")
+    @CPythonFunction(
+            argCTypes = {CType.PyObjectArray},
+            argConverters = {ObjectConverter.ArrayConverter}
+    )
     public static SymbolForCPython handlerCreateTuple(ConcolicRunContext context, SymbolForCPython[] elements) {
         if (Arrays.stream(elements).anyMatch(elem -> elem.obj == null))
             return null;
@@ -394,6 +515,10 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "create_range")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
     public static SymbolForCPython handlerCreateRange(ConcolicRunContext context, SymbolForCPython start, SymbolForCPython stop, SymbolForCPython step) {
         if (start.obj == null || stop.obj == null || step.obj == null)
             return null;
@@ -402,6 +527,10 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "create_slice")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
     public static SymbolForCPython handlerCreateSlice(ConcolicRunContext context, SymbolForCPython start, SymbolForCPython stop, SymbolForCPython step) {
         if (start.obj == null || stop.obj == null || step.obj == null)
             return null;
@@ -410,6 +539,10 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "range_iter")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter}
+    )
     public static SymbolForCPython handlerRangeIter(ConcolicRunContext context, SymbolForCPython range) {
         if (range.obj == null)
             return null;
@@ -417,6 +550,10 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "range_iterator_next")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter}
+    )
     public static SymbolForCPython handlerRangeIteratorNext(ConcolicRunContext context, SymbolForCPython rangeIterator) {
         if (rangeIterator.obj == null)
             return null;
@@ -424,6 +561,10 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "list_get_item")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
     public static SymbolForCPython handlerListGetItem(ConcolicRunContext context, SymbolForCPython list, SymbolForCPython index) {
         if (list.obj == null || index.obj == null)
             return null;
@@ -431,6 +572,10 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "list_extend")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
     public static SymbolForCPython handlerListExtend(ConcolicRunContext context, SymbolForCPython list, SymbolForCPython tuple) {
         if (list.obj == null || tuple.obj == null)
             return null;
@@ -438,6 +583,10 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "list_concat")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
     public static SymbolForCPython handlerListConcat(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
         if (left.obj == null || right.obj == null)
             return null;
@@ -445,6 +594,10 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "list_inplace_concat")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
     public static SymbolForCPython handlerListInplaceConcat(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
         if (left.obj == null || right.obj == null)
             return null;
@@ -452,6 +605,10 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "list_append")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
     public static SymbolForCPython handlerListAppend(ConcolicRunContext context, SymbolForCPython list, SymbolForCPython elem) {
         if (list.obj == null || elem.obj == null)
             return null;
@@ -459,6 +616,10 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "list_set_item")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
     public static void handlerListSetItem(ConcolicRunContext context, SymbolForCPython list, SymbolForCPython index, SymbolForCPython value) {
         if (list.obj == null || index.obj == null || value.obj == null)
             return;
@@ -466,6 +627,10 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "list_get_size")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter}
+    )
     public static SymbolForCPython handlerListGetSize(ConcolicRunContext context, SymbolForCPython list) {
         if (list.obj == null)
             return null;
@@ -473,6 +638,10 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "list_iter")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter}
+    )
     public static SymbolForCPython handlerListIter(ConcolicRunContext context, SymbolForCPython list) {
         if (list.obj == null)
             return null;
@@ -480,6 +649,10 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "list_iterator_next")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter}
+    )
     public static SymbolForCPython handlerListIteratorNext(ConcolicRunContext context, SymbolForCPython iterator) {
         if (iterator.obj == null)
             return null;
@@ -487,6 +660,10 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "list_pop")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter}
+    )
     public static SymbolForCPython handlerListPop(ConcolicRunContext context, SymbolForCPython list) {
         if (list.obj == null)
             return null;
@@ -494,6 +671,10 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "list_pop_ind")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
     public static SymbolForCPython handlerListPopInd(ConcolicRunContext context, SymbolForCPython list, SymbolForCPython ind) {
         if (list.obj == null || ind.obj == null)
             return null;
@@ -501,6 +682,10 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "list_insert")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
     public static void handlerListInsert(ConcolicRunContext context, SymbolForCPython list, SymbolForCPython index, SymbolForCPython value) {
         if (list.obj == null || index.obj == null || value.obj == null)
             return;
@@ -508,14 +693,21 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "tuple_get_size")
-    @Nullable
-    public static SymbolForCPython handlerTupleGetSize(ConcolicRunContext context, @NotNull SymbolForCPython tuple) {
+    @CPythonFunction(
+            argCTypes = {CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter}
+    )
+    public static SymbolForCPython handlerTupleGetSize(ConcolicRunContext context, SymbolForCPython tuple) {
         if (tuple.obj == null)
             return null;
         return methodWrapper(context, new MethodParameters("tuple_get_size", Collections.singletonList(tuple)), () -> handlerTupleGetSizeKt(context, tuple.obj));
     }
 
     @CPythonAdapterJavaMethod(cName = "tuple_get_item")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
     public static SymbolForCPython handlerTupleGetItem(ConcolicRunContext context, SymbolForCPython tuple, SymbolForCPython index) {
         if (tuple.obj == null || index.obj == null)
             return null;
@@ -523,6 +715,10 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "tuple_iter")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter}
+    )
     public static SymbolForCPython handlerTupleIter(ConcolicRunContext context, SymbolForCPython tuple) {
         if (tuple.obj == null)
             return null;
@@ -530,6 +726,10 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "tuple_iterator_next")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter}
+    )
     public static SymbolForCPython handlerTupleIteratorNext(ConcolicRunContext context, SymbolForCPython iterator) {
         if (iterator.obj == null)
             return null;
@@ -537,17 +737,29 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "function_call")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject},
+            argConverters = {ObjectConverter.RefConverter}
+    )
     public static void handlerFunctionCall(ConcolicRunContext context, long codeRef) {
         PythonObject code = new PythonObject(codeRef);
         PathTracingKt.withTracing(context, new PythonFunctionCall(code), () -> Unit.INSTANCE);
     }
 
     @CPythonAdapterJavaMethod(cName = "function_return")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject},
+            argConverters = {ObjectConverter.RefConverter}
+    )
     public static void handlerReturn(ConcolicRunContext context, long codeRef) {
         PathTracingKt.withTracing(context, new PythonReturn(new PythonObject(codeRef)), () -> Unit.INSTANCE);
     }
 
     @CPythonAdapterJavaMethod(cName = "symbolic_virtual_unary_fun")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter}
+    )
     public static SymbolForCPython handlerVirtualUnaryFun(ConcolicRunContext context, SymbolForCPython obj) {
         if (obj.obj == null)
             return null;
@@ -555,11 +767,19 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "symbolic_virtual_binary_fun")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
     public static SymbolForCPython handlerVirtualBinaryFun(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
         return methodWrapper(context, new MethodParameters("virtual_binary_fun", Arrays.asList(left, right)), () -> virtualCallSymbolKt(context));
     }
 
     @CPythonAdapterJavaMethod(cName = "symbolic_isinstance")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.RefConverter}
+    )
     public static SymbolForCPython handlerIsinstance(ConcolicRunContext context, SymbolForCPython obj, long typeRef) {
         if (obj.obj == null)
             return null;
@@ -568,14 +788,22 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "fixate_type")
-    public static void fixateType(@NotNull ConcolicRunContext context, @NotNull SymbolForCPython obj) {
+    @CPythonFunction(
+            argCTypes = {CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter}
+    )
+    public static void fixateType(ConcolicRunContext context, SymbolForCPython obj) {
         if (obj.obj == null)
             return;
         fixateTypeKt(context, obj.obj);
     }
 
     @CPythonAdapterJavaMethod(cName = "nb_bool")
-    public static void notifyNbBool(@NotNull ConcolicRunContext context, @NotNull SymbolForCPython symbol) {
+    @CPythonFunction(
+            argCTypes = {CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter}
+    )
+    public static void notifyNbBool(ConcolicRunContext context, SymbolForCPython symbol) {
         if (symbol.obj == null)
             return;
         context.curOperation = new MockHeader(NbBoolMethod.INSTANCE, Collections.singletonList(symbol.obj), symbol.obj);
@@ -583,7 +811,11 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "nb_int")
-    public static void notifyNbInt(@NotNull ConcolicRunContext context, @NotNull SymbolForCPython symbol) {
+    @CPythonFunction(
+            argCTypes = {CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter}
+    )
+    public static void notifyNbInt(ConcolicRunContext context, SymbolForCPython symbol) {
         if (symbol.obj == null)
             return;
         context.curOperation = new MockHeader(NbIntMethod.INSTANCE, Collections.singletonList(symbol.obj), symbol.obj);
@@ -591,7 +823,11 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "nb_add")
-    public static void notifyNbAdd(@NotNull ConcolicRunContext context, @NotNull SymbolForCPython left, @NotNull SymbolForCPython right) {
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
+    public static void notifyNbAdd(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
         if (left.obj == null || right.obj == null)
             return;
         context.curOperation = new MockHeader(NbAddMethod.INSTANCE, Arrays.asList(left.obj, right.obj), null);
@@ -599,7 +835,11 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "nb_subtract")
-    public static void notifyNbSubtract(@NotNull ConcolicRunContext context, @NotNull SymbolForCPython left, SymbolForCPython right) {
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
+    public static void notifyNbSubtract(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
         if (left.obj == null)
             return;
         context.curOperation = new MockHeader(NbSubtractMethod.INSTANCE, Arrays.asList(left.obj, right.obj), left.obj);
@@ -607,7 +847,11 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "nb_multiply")
-    public static void notifyNbMultiply(@NotNull ConcolicRunContext context, @NotNull SymbolForCPython left, @NotNull SymbolForCPython right) {
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
+    public static void notifyNbMultiply(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
         if (left.obj == null || right.obj == null)
             return;
         context.curOperation = new MockHeader(NbMultiplyMethod.INSTANCE, Arrays.asList(left.obj, right.obj), null);
@@ -615,7 +859,11 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "nb_matrix_multiply")
-    public static void notifyNbMatrixMultiply(@NotNull ConcolicRunContext context, @NotNull SymbolForCPython left, SymbolForCPython right) {
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
+    public static void notifyNbMatrixMultiply(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
         if (left.obj == null)
             return;
         context.curOperation = new MockHeader(NbMatrixMultiplyMethod.INSTANCE, Arrays.asList(left.obj, right.obj), left.obj);
@@ -623,7 +871,11 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "sq_length")
-    public static void notifySqLength(@NotNull ConcolicRunContext context, @NotNull SymbolForCPython on) {
+    @CPythonFunction(
+            argCTypes = {CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter}
+    )
+    public static void notifySqLength(ConcolicRunContext context, SymbolForCPython on) {
         if (on.obj == null)
             return;
         context.curOperation = new MockHeader(SqLengthMethod.INSTANCE, Collections.singletonList(on.obj), on.obj);
@@ -631,7 +883,11 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "mp_subscript")
-    public static void notifyMpSubscript(@NotNull ConcolicRunContext context, @NotNull SymbolForCPython storage, SymbolForCPython item) {
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
+    public static void notifyMpSubscript(ConcolicRunContext context, SymbolForCPython storage, SymbolForCPython item) {
         if (storage.obj == null)
             return;
         context.curOperation = new MockHeader(MpSubscriptMethod.INSTANCE, Arrays.asList(storage.obj, item.obj), storage.obj);
@@ -639,7 +895,11 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "mp_ass_subscript")
-    public static void notifyMpAssSubscript(@NotNull ConcolicRunContext context, @NotNull SymbolForCPython storage, SymbolForCPython item, SymbolForCPython value) {
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
+    public static void notifyMpAssSubscript(ConcolicRunContext context, SymbolForCPython storage, SymbolForCPython item, SymbolForCPython value) {
         if (storage.obj == null)
             return;
         context.curOperation = new MockHeader(MpAssSubscriptMethod.INSTANCE, Arrays.asList(storage.obj, item.obj, value.obj), storage.obj);
@@ -647,7 +907,11 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "tp_richcompare")
-    public static void notifyTpRichcmp(@NotNull ConcolicRunContext context, int op, @NotNull SymbolForCPython left, @NotNull SymbolForCPython right) {
+    @CPythonFunction(
+            argCTypes = {CType.CInt, CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.IntConverter, ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
+    public static void notifyTpRichcmp(ConcolicRunContext context, int op, SymbolForCPython left, SymbolForCPython right) {
         if (left.obj == null)
             return;
         context.curOperation = new MockHeader(new TpRichcmpMethod(op), Arrays.asList(left.obj, right.obj), left.obj);
@@ -655,7 +919,11 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "tp_getattro")
-    public static void notifyTpGetattro(@NotNull ConcolicRunContext context, @NotNull SymbolForCPython on, @NotNull SymbolForCPython name) {
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
+    public static void notifyTpGetattro(ConcolicRunContext context, SymbolForCPython on, SymbolForCPython name) {
         if (on.obj == null || name.obj == null)
             return;
         context.curOperation = new MockHeader(TpGetattro.INSTANCE, Arrays.asList(on.obj, name.obj), on.obj);
@@ -663,7 +931,11 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "tp_iter")
-    public static void notifyTpIter(@NotNull ConcolicRunContext context, @NotNull SymbolForCPython on) {
+    @CPythonFunction(
+            argCTypes = {CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter}
+    )
+    public static void notifyTpIter(ConcolicRunContext context, SymbolForCPython on) {
         if (on.obj == null)
             return;
         context.curOperation = new MockHeader(TpIterMethod.INSTANCE, Collections.singletonList(on.obj), on.obj);
@@ -689,12 +961,20 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "lost_symbolic_value")
+    @CPythonFunction(
+            argCTypes = {CType.CStr},
+            argConverters = {ObjectConverter.StringConverter}
+    )
     public static void lostSymbolicValue(ConcolicRunContext context, String description) {
         lostSymbolicValueKt(context, description);
     }
 
     @CPythonAdapterJavaMethod(cName = "standard_tp_getattro")
-    public static SymbolForCPython handlerStandardTpGetattro(ConcolicRunContext context, @NotNull SymbolForCPython obj, SymbolForCPython name) {
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
+    public static SymbolForCPython handlerStandardTpGetattro(ConcolicRunContext context, SymbolForCPython obj, SymbolForCPython name) {
         if (obj.obj == null || name.obj == null)
             return null;
         return PathTracingKt.withTracing(context, new MethodParameters("tp_getattro", Arrays.asList(obj, name)), () -> handlerStandardTpGetattroKt(context, obj.obj, name.obj));
