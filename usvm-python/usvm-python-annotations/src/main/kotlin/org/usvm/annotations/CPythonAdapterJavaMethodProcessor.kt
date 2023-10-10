@@ -30,7 +30,7 @@ class CPythonAdapterJavaMethodProcessor: AbstractProcessor() {
                 converter.convert(element.asType())
             )
         }
-        val headerPath = processingEnv.options["headerPath"] ?: error("Header path not specified")
+        val headerPath = getHeaderPath(processingEnv)
         val file = File(headerPath, "CPythonAdapterMethods.h")
         val code = generateCPythonAdapterDefs(definitions)
         file.writeText(code)
