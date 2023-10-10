@@ -19,7 +19,7 @@ class SymbolicMethodDescriptorProcessor: AbstractProcessor() {
         val annotatedElements = roundEnv.getElementsAnnotatedWith(annotation)
         val info = getInfo(annotatedElements)
         val code = generateMethodDescriptorChecks(info)
-        val headerPath = processingEnv.options["headerPath"] ?: error("Header path not specified")
+        val headerPath = getHeaderPath(processingEnv)
         val file = File(headerPath, "MethodDescriptors.h")
         file.writeText(code)
         file.createNewFile()
