@@ -8,22 +8,19 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
+import kotlinx.serialization.json.encodeToStream
 import org.jacodb.api.JcClassOrInterface
 import org.jacodb.api.JcClasspath
+import org.jacodb.api.JcMethod
 import org.jacodb.api.cfg.JcInst
-import org.jacodb.api.ext.toType
+import org.jacodb.api.cfg.JcThrowInst
+import org.jacodb.api.ext.cfg.callExpr
+import org.jacodb.api.ext.findClass
+import org.jacodb.api.ext.findMethodOrNull
 import org.jacodb.approximation.Approximations
 import org.jacodb.impl.features.InMemoryHierarchy
 import org.jacodb.impl.features.classpaths.UnknownClasses
 import org.jacodb.impl.jacodb
-import org.usvm.api.targets.JcTarget
-import org.usvm.machine.JcInterpreterObserver
-import org.usvm.machine.JcMachine
-import org.usvm.machine.state.JcMethodResult
-import org.usvm.machine.state.JcState
-import org.usvm.statistics.collectors.StatesCollector
-import org.usvm.targets.UTarget
-import org.usvm.targets.UTargetController
 import org.usvm.util.classpathWithApproximations
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
@@ -32,6 +29,7 @@ import kotlin.io.path.Path
 import kotlin.io.path.div
 import kotlin.io.path.inputStream
 import kotlin.io.path.listDirectoryEntries
+import kotlin.io.path.outputStream
 import kotlin.io.path.readText
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
@@ -72,7 +70,174 @@ data class CrashPack(
     val crashes: Map<String, CrashPackCrash>
 )
 
+data class RawTraceEntry(val cls: JcClassOrInterface, val methodName: String, val line: Int)
+
+@Serializable
+data class TraceEntry(
+    val className: String,
+    val methodName: String,
+    val methodDesc: String,
+    val instructionIdx: Int
+)
+
+@Serializable
+data class TraceException(
+    val className: String
+)
+
+@Serializable
+data class CrashTrace(
+    val original: String,
+    val entries: List<TraceEntry>,
+    val exception: TraceException
+)
+
 val crashPackPath = Path("D:") / "JCrashPack"
+
+val crashPackDescriptionPath = crashPackPath / "jcrashpack.json"
+val crashPackTracesPath = crashPackPath / "traces.json"
+
+@OptIn(ExperimentalSerializationApi::class)
+fun main() {
+    val crashPack = Json.decodeFromStream<CrashPack>(crashPackDescriptionPath.inputStream())
+//    parseCrashTraces(crashPack)
+    val traces = loadCrashTraces()
+    analyzeCrashes(crashPack, traces)
+}
+
+@OptIn(ExperimentalSerializationApi::class)
+fun parseCrashTraces(crashPack: CrashPack) {
+    val parsed = runBlocking {
+        crashPack.crashes.values.mapNotNull {
+            try {
+                it to parseTrace(it)
+            } catch (ex: Throwable) {
+                System.err.println(ex)
+                null
+            }
+        }
+    }
+
+    println("PARSED ${parsed.size} TOTAL ${crashPack.crashes.size}")
+
+    val traces = parsed.associate { it.first.id to it.second }
+    Json.encodeToStream(traces, crashPackTracesPath.outputStream())
+}
+
+@OptIn(ExperimentalSerializationApi::class)
+fun loadCrashTraces(): Map<String, CrashTrace> {
+    return Json.decodeFromStream(crashPackTracesPath.inputStream())
+}
+
+private suspend fun parseTrace(crash: CrashPackCrash): CrashTrace {
+    val crashLog = crashPackPath / "crashes" / crash.application / crash.id / "${crash.id}.log"
+    val crashCp = crashPackPath / "applications" / crash.application / crash.version / "bin"
+
+    val cpFiles = crashCp.listDirectoryEntries("*.jar").map { it.toFile() }
+
+    jacodb {
+        useProcessJavaRuntime()
+        installFeatures(InMemoryHierarchy)
+        loadByteCode(cpFiles)
+    }.use { db ->
+        db.classpath(cpFiles).use { cp ->
+            val trace = crashLog.readText()
+            return parseTrace(cp, trace, crash)
+        }
+    }
+}
+
+private fun parseTrace(cp: JcClasspath, trace: String, crash: CrashPackCrash): CrashTrace {
+    val allTraceEntries = trace.lines().map { it.trim() }
+    val relevantTracePattern = Regex(crash.targetFrames)
+    val relevantTrace = allTraceEntries.dropLastWhile { !relevantTracePattern.matches(it) }
+
+    val exceptionName = relevantTrace.first()
+        .substringBefore(':').trim()
+        .substringAfterLast(' ').trim()
+
+    val exceptionType = cp.findClass(exceptionName)
+
+    val rawTraceEntries = relevantTrace
+        .drop(1)
+        .map { it.removePrefix("at").trim() }
+        .map {
+            val lineNumber = it.substringAfterLast(':').trim(')').toInt()
+            val classWithMethod = it.substringBefore('(')
+            val className = classWithMethod.substringBeforeLast('.')
+            val methodName = classWithMethod.substringAfterLast('.')
+            val type = cp.findClass(className)
+            RawTraceEntry(type, methodName, lineNumber)
+        }
+
+    val traceEntries = resolveTraceEntries(rawTraceEntries.asReversed())
+    return CrashTrace(trace, traceEntries, TraceException(exceptionType.name))
+}
+
+private fun resolveTraceEntries(trace: List<RawTraceEntry>): List<TraceEntry> {
+    val result = mutableListOf<TraceEntry>()
+    for (entryIdx in trace.indices) {
+        val instruction = resolveTraceEntryInstruction(trace, entryIdx)
+        with(instruction.location) {
+            result += TraceEntry(method.enclosingClass.name, method.name, method.description, index)
+        }
+    }
+    return result
+}
+
+private fun resolveTraceEntryInstruction(
+    trace: List<RawTraceEntry>,
+    entryIdx: Int
+): JcInst {
+    val entry = trace[entryIdx]
+    val nextEntry = trace.getOrNull(entryIdx + 1)
+
+    val possibleMethods = entry.cls.declaredMethods
+        .filter { it.name == entry.methodName }
+
+    val results = possibleMethods.mapNotNull {
+        resolveMethodInstruction(entry, nextEntry, it, strictLineNumber = true)
+    }
+    if (results.isNotEmpty()) {
+        return results.singleOrNull() ?: error("FAIL")
+    }
+
+    val fuzzyResults = possibleMethods.mapNotNull {
+        resolveMethodInstruction(entry, nextEntry, it, strictLineNumber = false)
+    }
+    return fuzzyResults.singleOrNull() ?: error("FAIL")
+}
+
+private fun resolveMethodInstruction(
+    entry: RawTraceEntry,
+    nextEntry: RawTraceEntry?,
+    method: JcMethod,
+    strictLineNumber: Boolean
+): JcInst? {
+    val possibleInstructions = method.instList.filter { it.lineNumber == entry.line }
+
+    if (nextEntry != null) {
+        possibleInstructions
+            .firstOrNull {
+                val call = it.callExpr
+                call != null && call.method.name == nextEntry.methodName
+            }?.let { return it }
+
+        if (strictLineNumber) return null
+
+        method.instList
+            .filter { it.lineNumber >= entry.line }
+            .mapNotNull { inst -> inst.callExpr?.let { inst to it } }
+            .firstOrNull { it.second.method.name == nextEntry.methodName }
+            ?.let { return it.first }
+
+        return null
+    } else {
+        possibleInstructions.firstOrNull { it is JcThrowInst }?.let { return it }
+        possibleInstructions.firstOrNull { it.callExpr != null }?.let { return it }
+        return possibleInstructions.firstOrNull()
+    }
+}
 
 val goodIds = setOf(
     "LANG-1b",
@@ -92,36 +257,32 @@ val goodIds = setOf(
 
 val badIds = setOf("ES-19891")
 
-val idToCheck = "CHART-4b"
+val idToCheck = "CHART-13b"
 
-@OptIn(ExperimentalSerializationApi::class)
-fun main() {
-    val crashPack = Json.decodeFromStream<CrashPack>((crashPackPath / "jcrashpack.json").inputStream())
-
+fun analyzeCrashes(crashPack: CrashPack, traces: Map<String, CrashTrace>) {
     val crashes = crashPack.crashes.values
         .sortedBy { it.id }
         .filter { it.id !in badIds }
 //        .filter { it.id in goodIds }
-        .filter { it.id == idToCheck }
+//        .filter { it.id == idToCheck }
 
     for (crash in crashes) {
+        val trace = traces[crash.id] ?: continue
         try {
-            analyzeCrash(crash)
+            analyzeCrash(crash, trace)
         } catch (ex: Throwable) {
             logger.error(ex) { "Failed" }
         }
     }
 }
 
-fun analyzeCrash(crash: CrashPackCrash) {
-    val crashLog = crashPackPath / "crashes" / crash.application / crash.id / "${crash.id}.log"
+fun analyzeCrash(crash: CrashPackCrash, trace: CrashTrace) {
     val crashCp = crashPackPath / "applications" / crash.application / crash.version / "bin"
 
     val cpFiles = crashCp.listDirectoryEntries("*.jar").map { it.toFile() }
 
     val jcdb = runBlocking {
         jacodb {
-//        persistent((crashPackPath / "${crash.id}.db").absolutePathString())
             useProcessJavaRuntime()
             installFeatures(InMemoryHierarchy, Approximations)
             loadByteCode(cpFiles)
@@ -135,8 +296,6 @@ fun analyzeCrash(crash: CrashPackCrash) {
         }
 
         jccp.use { cp ->
-            val trace = crashLog.readText()
-
             runWithHardTimout(30.minutes) {
                 analyzeCrash(cp, trace, crash)
             }
@@ -144,266 +303,58 @@ fun analyzeCrash(crash: CrashPackCrash) {
     }
 }
 
-data class RawTraceEntry(val cls: JcClassOrInterface, val methodName: String, val line: Int)
-
-private fun analyzeCrash(cp: JcClasspath, trace: String, crash: CrashPackCrash) {
+private fun analyzeCrash(cp: JcClasspath, trace: CrashTrace, crash: CrashPackCrash) {
     logger.warn { "#".repeat(50) }
     logger.warn { "Try reproduce crash: ${crash.application} | ${crash.id}" }
-    logger.warn { "\n$trace" }
+    logger.warn { "\n${trace.original}" }
 
-    val allTraceEntries = trace.lines().map { it.trim() }
-    val relevantTracePattern = Regex(crash.targetFrames)
-    val relevantTrace = allTraceEntries.dropLastWhile { !relevantTracePattern.matches(it) }
-
-    val exceptionName = relevantTrace.firstOrNull()
-        ?.substringBefore(':')?.trim()
-        ?.substringAfterLast(' ')?.trim()
-        ?: return
-    val exceptionType = cp.findClassOrNull(exceptionName) ?: return
-
-    val rawTraceEntries = relevantTrace
-        .drop(1)
-        .map { it.removePrefix("at").trim() }
-        .mapNotNull {
-            val lineNumber = it.substringAfterLast(':').trim(')').toIntOrNull() ?: return@mapNotNull null
-            val classWithMethod = it.substringBefore('(')
-            val className = classWithMethod.substringBeforeLast('.')
-            val methodName = classWithMethod.substringAfterLast('.')
-            val type = cp.findClassOrNull(className) ?: return@mapNotNull null
-            if (!type.declaredMethods.any { it.name == methodName }) return@mapNotNull null
-            RawTraceEntry(type, methodName, lineNumber)
-        }
-
-    if (rawTraceEntries.isEmpty()) return
-
-    val targets = createTargets(exceptionType, rawTraceEntries)
+    val exceptionType = cp.findClassOrNull(trace.exception.className) ?: return
+    val target = createTargets(cp, exceptionType, trace.entries) ?: return
 
     logger.warn {
         buildString {
             appendLine("Targets:")
-            targets?.forEach { printTarget(it) }
+            printTarget(target)
         }
     }
 
-
-    if (targets == null) return
-
     logger.warn { "-".repeat(50) }
 
-    val states = reproduceCrash(cp, targets)
+    val states = reproduceCrash(cp, target)
 
     logger.warn { "+".repeat(50) }
     logger.warn { "Found states: ${states.size}" }
 }
 
-private fun StringBuilder.printTarget(target: JcTarget, indent: Int = 0) {
-    appendLine("\t".repeat(indent) + target)
-    target.children.forEach { printTarget(it, indent + 1) }
-}
-
-private fun JcInst.printInst() = "${location.method.enclosingClass.name}#${location.method.name} | $this"
-
-sealed class CrashReproductionTarget(location: JcInst? = null) : JcTarget(location)
-
-class CrashReproductionLocationTarget(location: JcInst) : CrashReproductionTarget(location) {
-    override fun toString(): String = location?.printInst() ?: ""
-}
-
-class CrashReproductionExceptionTarget(val exception: JcClassOrInterface) : CrashReproductionTarget() {
-    override fun toString(): String = "Exception: $exception"
-}
-
 private fun createTargets(
+    cp: JcClasspath,
     exception: JcClassOrInterface,
-    trace: List<RawTraceEntry>
-): List<CrashReproductionTarget>? {
-    var initialTargets: List<CrashReproductionTarget>? = null
-    var currentTargets: List<CrashReproductionTarget> = emptyList()
-    for (entry in trace.asReversed()) {
-        val possibleMethods = entry.cls.declaredMethods.filter { it.name == entry.methodName }
-        var possibleLocations = possibleMethods.flatMap { it.instList.filter { it.lineNumber == entry.line } }
+    trace: List<TraceEntry>
+): CrashReproductionTarget? {
+    var initialTarget: CrashReproductionTarget? = null
+    var currentTarget: CrashReproductionTarget? = null
 
-        if (possibleLocations.isEmpty()) {
-            // todo: no locations
+    for (entry in trace) {
+        val cls = cp.findClassOrNull(entry.className) ?: return null
+        val method = cls.findMethodOrNull(entry.methodName, entry.methodDesc) ?: return null
+        val instruction = method.instList.singleOrNull { it.location.index == entry.instructionIdx } ?: return null
+
+        if (initialTarget == null) {
+            val target = CrashReproductionLocationTarget(instruction)
+            initialTarget = target
+            currentTarget = target
             continue
         }
 
-//        val preferredInstructions = possibleLocations.filter { it.callExpr != null || it is JcThrowInst }
-//        if (preferredInstructions.isNotEmpty()) {
-//            possibleLocations = preferredInstructions
-//        }
-        // take first instruction
-        possibleLocations = possibleLocations.take(1)
-
-        if (initialTargets == null) {
-            val targets = possibleLocations.map { CrashReproductionLocationTarget(it) }
-            initialTargets = targets
-            currentTargets = targets
-            continue
-        }
-
-        val targets = mutableListOf<CrashReproductionTarget>()
-
-        currentTargets.forEach { parent ->
-            possibleLocations.forEach { location ->
-                val target = CrashReproductionLocationTarget(location)
-                targets.add(target)
-                parent.addChild(target)
-            }
-        }
-
-        currentTargets = targets
+        val target = CrashReproductionLocationTarget(instruction)
+        currentTarget?.addChild(target)
+        currentTarget = target
     }
 
-    currentTargets.forEach { parent ->
-        parent.addChild(CrashReproductionExceptionTarget(exception))
-    }
+    val exceptionTarget = CrashReproductionExceptionTarget(exception)
+    currentTarget?.addChild(exceptionTarget)
 
-    return initialTargets
-}
-
-private class CrashReproductionAnalysis(
-    override val targets: MutableCollection<out UTarget<*, *>>
-) : UTargetController, JcInterpreterObserver, StatesCollector<JcState> {
-    override val collectedStates = arrayListOf<JcState>()
-
-//    override fun onAssignStatement(
-//        simpleValueResolver: JcSimpleValueResolver,
-//        stmt: JcAssignInst,
-//        stepScope: JcStepScope
-//    ) {
-//        stepScope.doWithState { propagateLocationTarget(this) }
-//    }
-//
-//    override fun onEntryPoint(
-//        simpleValueResolver: JcSimpleValueResolver,
-//        stmt: JcMethodEntrypointInst,
-//        stepScope: JcStepScope
-//    ) {
-//        stepScope.doWithState { propagateLocationTarget(this) }
-//    }
-//
-//    override fun onIfStatement(simpleValueResolver: JcSimpleValueResolver, stmt: JcIfInst, stepScope: JcStepScope) {
-//        stepScope.doWithState { propagateLocationTarget(this) }
-//    }
-//
-//    override fun onReturnStatement(
-//        simpleValueResolver: JcSimpleValueResolver,
-//        stmt: JcReturnInst,
-//        stepScope: JcStepScope
-//    ) {
-//        stepScope.doWithState { propagateLocationTarget(this) }
-//    }
-//
-//    override fun onGotoStatement(simpleValueResolver: JcSimpleValueResolver, stmt: JcGotoInst, stepScope: JcStepScope) {
-//        stepScope.doWithState { propagateLocationTarget(this) }
-//    }
-//
-//    override fun onCatchStatement(
-//        simpleValueResolver: JcSimpleValueResolver,
-//        stmt: JcCatchInst,
-//        stepScope: JcStepScope
-//    ) {
-//        stepScope.doWithState { propagateLocationTarget(this) }
-//    }
-//
-//    override fun onSwitchStatement(
-//        simpleValueResolver: JcSimpleValueResolver,
-//        stmt: JcSwitchInst,
-//        stepScope: JcStepScope
-//    ) {
-//        stepScope.doWithState { propagateLocationTarget(this) }
-//    }
-//
-//    override fun onThrowStatement(
-//        simpleValueResolver: JcSimpleValueResolver,
-//        stmt: JcThrowInst,
-//        stepScope: JcStepScope
-//    ) {
-//        stepScope.doWithState { propagateLocationTarget(this) }
-//    }
-//
-//    override fun onCallStatement(simpleValueResolver: JcSimpleValueResolver, stmt: JcCallInst, stepScope: JcStepScope) {
-//        stepScope.doWithState { propagateLocationTarget(this) }
-//    }
-//
-//    override fun onEnterMonitorStatement(
-//        simpleValueResolver: JcSimpleValueResolver,
-//        stmt: JcEnterMonitorInst,
-//        stepScope: JcStepScope
-//    ) {
-//        stepScope.doWithState { propagateLocationTarget(this) }
-//    }
-//
-//    override fun onExitMonitorStatement(
-//        simpleValueResolver: JcSimpleValueResolver,
-//        stmt: JcExitMonitorInst,
-//        stepScope: JcStepScope
-//    ) {
-//        stepScope.doWithState { propagateLocationTarget(this) }
-//    }
-
-    override fun onState(parent: JcState, forks: Sequence<JcState>) {
-        propagateExceptionTarget(parent)
-        propagatePrevLocationTarget(parent)
-
-        forks.forEach {
-            propagateExceptionTarget(it)
-            propagatePrevLocationTarget(it)
-        }
-
-        logger.info {
-            parent.currentStatement.printInst().padEnd(120) + "@@@  " + "${parent.targets.toList()}"
-        }
-    }
-
-    private fun propagateCurrentLocationTarget(state: JcState) = propagateLocationTarget(state) { it.currentStatement }
-    private fun propagatePrevLocationTarget(state: JcState) = propagateLocationTarget(state) {
-        it.pathLocation.parent?.statement ?: error("This is impossible by construction")
-    }
-
-    private inline fun propagateLocationTarget(state: JcState, stmt: (JcState) -> JcInst) {
-        val stateLocation = stmt(state)
-        val targets = state.targets
-            .filterIsInstance<CrashReproductionLocationTarget>()
-            .filter { it.location == stateLocation }
-
-        targets.forEach { it.propagate(state) }
-    }
-
-    private fun propagateExceptionTarget(state: JcState) {
-        val mr = state.methodResult
-        if (mr is JcMethodResult.JcException) {
-            val exTargets = state.targets
-                .filterIsInstance<CrashReproductionExceptionTarget>()
-                .filter { mr.type == it.exception.toType() }
-            exTargets.forEach {
-                collectedStates += state.clone()
-                it.propagate(state)
-            }
-        }
-    }
-}
-
-private fun reproduceCrash(cp: JcClasspath, targets: List<CrashReproductionTarget>): List<JcState> {
-    val options = UMachineOptions(
-        targetSearchDepth = 3u, // high values (e.g. 10) significantly degrade performance
-        pathSelectionStrategies = listOf(PathSelectionStrategy.TARGETED_RANDOM),
-        stopOnTargetsReached = true,
-        stopOnCoverage = -1,
-        timeoutMs = 1_000_000,
-        solverUseSoftConstraints = false,
-        solverQueryTimeoutMs = 10_000,
-    )
-    val crashReproduction = CrashReproductionAnalysis(targets.toMutableList())
-
-    val entrypoint = targets.mapNotNull { it.location?.location?.method }.distinct().single()
-
-    JcMachine(cp, options, crashReproduction).use { machine ->
-        machine.analyze(entrypoint, targets)
-    }
-
-    return crashReproduction.collectedStates
+    return initialTarget
 }
 
 private fun runWithHardTimout(timeout: Duration, body: () -> Unit) {
