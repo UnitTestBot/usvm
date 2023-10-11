@@ -7,6 +7,7 @@ enum class ObjectConverter(val repr: String) {
     RefConverter("ref_converter"),
     ObjectWrapper("object_wrapper"),
     ArrayConverter("array_converter"),
+    TupleConverter("tuple_converter"),
     StringConverter("string_converter"),
     NoConverter("")
 }

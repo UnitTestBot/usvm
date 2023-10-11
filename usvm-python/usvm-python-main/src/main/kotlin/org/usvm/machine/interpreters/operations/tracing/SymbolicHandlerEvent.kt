@@ -22,6 +22,32 @@ data class MethodParameters(
     val name: String,
     val operands: List<SymbolForCPython>
 ): SymbolicHandlerEventParameters<SymbolForCPython>()
+data class SymbolicMethodParameters(
+    val name: String,
+    val self: SymbolForCPython?,
+    val args: Array<SymbolForCPython>
+): SymbolicHandlerEventParameters<SymbolForCPython>() {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as SymbolicMethodParameters
+
+        if (name != other.name) return false
+        if (self != other.self) return false
+        if (!args.contentEquals(other.args)) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = name.hashCode()
+        result = 31 * result + self.hashCode()
+        result = 31 * result + args.contentHashCode()
+        return result
+    }
+}
+
 data class MethodParametersNoReturn(
     val name: String,
     val operands: List<SymbolForCPython>

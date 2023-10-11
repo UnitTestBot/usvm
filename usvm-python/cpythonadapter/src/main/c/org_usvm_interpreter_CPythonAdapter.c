@@ -8,6 +8,7 @@
 #include "descriptors.h"
 #include "symbolic_methods.h"
 #include "CPythonFunctions.h"  // generated
+#include "SymbolicMethods.h"  // generated
 
 #include "symbolicadapter.h"
 
@@ -84,6 +85,8 @@ JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_initializePython
     SET_LONG_FIELD("symbolicIntConstructorRef", (jlong) int_constructor)
     SymbolicMethod *float_constructor = construct_symbolic_method_without_self(SymbolicMethod_float);
     SET_LONG_FIELD("symbolicFloatConstructorRef", (jlong) float_constructor)
+
+    SYMBOLIC_METHOD_INITIALIZATION
 }
 
 JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_finalizePython(JNIEnv *env, jobject cpython_adapter) {
