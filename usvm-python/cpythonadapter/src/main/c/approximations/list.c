@@ -202,50 +202,6 @@ Approximation_list_richcompare(PyObject *v, PyObject *w, int op) {
     return result;
 }
 
-PyObject *SymbolicMethod_list_append(SymbolicAdapter *adapter, jobject self_reference_list, PyObject *args, PyObject *kwargs) {
-    if (args == 0 || !PyTuple_Check(args) || PyTuple_GET_SIZE(args) != 1 || kwargs)
-        return Py_None;
-    PyObject *symbolic_elem = PyTuple_GetItem(args, 0);
-    PyObject *symbolic_list = object_wrapper((ConcolicContext *) adapter->handler_param, self_reference_list);
-    PyObject *self = adapter->list_append(adapter->handler_param, symbolic_list, symbolic_elem);
-    Py_DECREF(symbolic_list);
-    if (!self)
-        return 0;
-    PyObject *result = adapter->load_const(adapter->handler_param, Py_None);
-    if (!result)
-        return 0;
-    return result;
-}
-
-PyObject *SymbolicMethod_list_pop(SymbolicAdapter *adapter, jobject self_reference_list, PyObject *args, PyObject *kwargs) {
-    if (args == 0 || !PyTuple_Check(args) || PyTuple_GET_SIZE(args) > 1 || kwargs)
-        return Py_None;
-    PyObject *symbolic_list = object_wrapper((ConcolicContext *) adapter->handler_param, self_reference_list);
-    PyObject *result = Py_None;
-    if (PyTuple_GET_SIZE(args) == 0) {
-        result = adapter->list_pop(adapter->handler_param, symbolic_list);
-    } else if (PyTuple_GET_SIZE(args) == 1) {
-        PyObject *ind = PyTuple_GetItem(args, 0);
-        result = adapter->list_pop_ind(adapter->handler_param, symbolic_list, ind);
-    }
-    Py_DECREF(symbolic_list);
-    return result;
-}
-
-PyObject *SymbolicMethod_list_insert(SymbolicAdapter *adapter, jobject self_reference_list, PyObject *args, PyObject *kwargs) {
-    if (args == 0 || !PyTuple_Check(args) || PyTuple_GET_SIZE(args) != 2 || kwargs)
-        return Py_None;
-    PyObject *symbolic_list = object_wrapper((ConcolicContext *) adapter->handler_param, self_reference_list);
-    PyObject *ind = PyTuple_GetItem(args, 0);
-    PyObject *value = PyTuple_GetItem(args, 1);
-    if (adapter->list_insert(adapter->handler_param, symbolic_list, ind, value)) {
-        Py_DECREF(symbolic_list);
-        return 0;
-    }
-    Py_DECREF(symbolic_list);
-    return adapter->load_const(adapter->handler_param, Py_None);
-}
-
 PyObject *
 Approximation_list_repeat(PyObject *self, PyObject *n) {
     assert(is_wrapped(self) && is_wrapped(n));

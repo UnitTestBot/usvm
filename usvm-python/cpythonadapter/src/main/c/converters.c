@@ -70,3 +70,8 @@ jstring
 string_converter(ConcolicContext *ctx, const char *str, int *fail) {
     return (*ctx->env)->NewStringUTF(ctx->env, str);
 }
+
+jobject
+object_id_converter(ConcolicContext *ctx, jobject obj, int *fail) {
+    return obj;
+}
