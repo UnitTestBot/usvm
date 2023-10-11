@@ -1,4 +1,4 @@
-package org.usvm.machine.interpreters.operations
+package org.usvm.machine.interpreters.operations.basic
 
 import org.usvm.UBoolExpr
 import org.usvm.UExpr

@@ -5,6 +5,7 @@ import org.usvm.machine.*
 import org.usvm.language.PythonUnpinnedCallable
 import org.usvm.language.StructuredPythonProgram
 import org.usvm.language.types.*
+import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.IllegalOperationException
 import org.usvm.runner.CustomPythonTestRunner
 import org.usvm.runner.SamplesBuild
@@ -21,9 +22,10 @@ import org.utbot.python.newtyping.pythonTypeRepresentation
 import java.io.File
 
 fun main() {
+    ConcretePythonInterpreter.printIdInfo()
     // val config = buildProjectRunConfig()
-    val config = buildSampleRunConfig()
-    analyze(config)
+    // val config = buildSampleRunConfig()
+    // analyze(config)
     // checkConcolicAndConcrete(config)
 }
 

@@ -4,8 +4,8 @@ import mu.KLogging
 import org.usvm.*
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.PythonPinnedCallable
-import org.usvm.machine.interpreters.operations.BadModelException
-import org.usvm.machine.interpreters.operations.UnregisteredVirtualOperation
+import org.usvm.machine.interpreters.operations.basic.BadModelException
+import org.usvm.machine.interpreters.operations.basic.UnregisteredVirtualOperation
 import org.usvm.machine.symbolicobjects.*
 import org.usvm.language.PythonUnpinnedCallable
 import org.usvm.language.SymbolForCPython
