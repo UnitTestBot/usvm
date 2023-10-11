@@ -23,8 +23,8 @@ import java.io.File
 
 fun main() {
     // ConcretePythonInterpreter.printIdInfo()
-    val config = buildProjectRunConfig()
-    // val config = buildSampleRunConfig()
+    // val config = buildProjectRunConfig()
+    val config = buildSampleRunConfig()
     analyze(config)
     // checkConcolicAndConcrete(config)
 }
@@ -39,8 +39,8 @@ private fun buildSampleRunConfig(): RunConfig {
                 return 2
 
             def f(x: list, elem):
-                x.insert(0, elem)
-                assert x[0] == 239
+                x.extend([1, 2, 3])
+                assert x[-1] == elem
 
         """.trimIndent()
     )

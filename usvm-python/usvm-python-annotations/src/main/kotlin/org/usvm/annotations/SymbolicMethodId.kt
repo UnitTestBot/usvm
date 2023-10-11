@@ -8,5 +8,6 @@ enum class SymbolicMethodId(
     Float,
     ListAppend,
     ListInsert,
-    ListPop
+    ListPop,
+    ListExtend
 }
