@@ -1,4 +1,4 @@
-package org.usvm.machine.interpreters.operations
+package org.usvm.machine.interpreters.operations.basic
 
 import io.ksmt.sort.KIntSort
 import org.usvm.UBoolExpr

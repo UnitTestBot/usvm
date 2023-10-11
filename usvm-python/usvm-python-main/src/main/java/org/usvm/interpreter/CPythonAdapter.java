@@ -17,17 +17,20 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.concurrent.Callable;
 
-import static org.usvm.machine.interpreters.operations.CommonKt.*;
-import static org.usvm.machine.interpreters.operations.ConstantsKt.handlerLoadConstKt;
-import static org.usvm.machine.interpreters.operations.ControlKt.handlerForkKt;
-import static org.usvm.machine.interpreters.operations.FloatKt.*;
-import static org.usvm.machine.interpreters.operations.ListKt.*;
-import static org.usvm.machine.interpreters.operations.LongKt.*;
-import static org.usvm.machine.interpreters.operations.MethodNotificationsKt.*;
-import static org.usvm.machine.interpreters.operations.RangeKt.*;
-import static org.usvm.machine.interpreters.operations.SliceKt.handlerCreateSliceKt;
-import static org.usvm.machine.interpreters.operations.TupleKt.*;
-import static org.usvm.machine.interpreters.operations.VirtualKt.*;
+import static org.usvm.machine.interpreters.operations.basic.CommonKt.*;
+import static org.usvm.machine.interpreters.operations.basic.ConstantsKt.handlerLoadConstKt;
+import static org.usvm.machine.interpreters.operations.basic.ControlKt.handlerForkKt;
+import static org.usvm.machine.interpreters.operations.basic.FloatKt.*;
+import static org.usvm.machine.interpreters.operations.basic.ListKt.*;
+import static org.usvm.machine.interpreters.operations.basic.LongKt.*;
+import static org.usvm.machine.interpreters.operations.basic.MethodNotificationsKt.*;
+import static org.usvm.machine.interpreters.operations.basic.RangeKt.*;
+import static org.usvm.machine.interpreters.operations.basic.SliceKt.handlerCreateSliceKt;
+import static org.usvm.machine.interpreters.operations.basic.TupleKt.*;
+import static org.usvm.machine.interpreters.operations.basic.VirtualKt.*;
+import static org.usvm.machine.interpreters.operations.symbolicmethods.BuiltinsKt.symbolicMethodFloatKt;
+import static org.usvm.machine.interpreters.operations.symbolicmethods.BuiltinsKt.symbolicMethodIntKt;
+import static org.usvm.machine.interpreters.operations.tracing.PathTracingKt.withTracing;
 
 @SuppressWarnings("unused")
 public class CPythonAdapter {
@@ -120,7 +123,7 @@ public class CPythonAdapter {
         int instruction = getInstructionFromFrame(frameRef);
         long functionRef = getFunctionFromFrame(frameRef);
         PythonObject function = new PythonObject(functionRef);
-        PathTracingKt.withTracing(context, new NextInstruction(new PythonInstruction(instruction), function), () -> Unit.INSTANCE);
+        withTracing(context, new NextInstruction(new PythonInstruction(instruction), function), () -> Unit.INSTANCE);
     }
 
     private static SymbolForCPython wrap(UninterpretedSymbolicPythonObject obj) {
@@ -134,7 +137,7 @@ public class CPythonAdapter {
             SymbolicHandlerEventParameters<SymbolForCPython> params,
             Callable<UninterpretedSymbolicPythonObject> valueSupplier
     ) {
-        return PathTracingKt.withTracing(
+        return withTracing(
                 context,
                 params,
                 () -> {
@@ -159,7 +162,7 @@ public class CPythonAdapter {
     )
     public static SymbolForCPython handlerLoadConst(ConcolicRunContext context, long ref) {
         PythonObject obj = new PythonObject(ref);
-        return PathTracingKt.withTracing(context, new LoadConstParameters(obj), () -> wrap(handlerLoadConstKt(context, obj)));
+        return withTracing(context, new LoadConstParameters(obj), () -> wrap(handlerLoadConstKt(context, obj)));
     }
 
     @CPythonAdapterJavaMethod(cName = "fork_notify")
@@ -170,7 +173,7 @@ public class CPythonAdapter {
     public static void handlerFork(ConcolicRunContext context, SymbolForCPython cond) {
         if (cond.obj == null)
             return;
-        PathTracingKt.withTracing(context, new Fork(cond), unit(() -> handlerForkKt(context, cond.obj)));
+        withTracing(context, new Fork(cond), unit(() -> handlerForkKt(context, cond.obj)));
     }
 
     @CPythonAdapterJavaMethod(cName = "fork_result")
@@ -190,7 +193,7 @@ public class CPythonAdapter {
     public static void handlerUnpack(ConcolicRunContext context, SymbolForCPython iterable, int count) {
         if (iterable.obj == null)
             return;
-        PathTracingKt.withTracing(context, new Unpack(iterable, count), unit(() -> handlerUnpackKt(context, iterable.obj, count)));
+        withTracing(context, new Unpack(iterable, count), unit(() -> handlerUnpackKt(context, iterable.obj, count)));
     }
 
     @CPythonAdapterJavaMethod(cName = "is_op")
@@ -201,7 +204,7 @@ public class CPythonAdapter {
     public static void handlerIsOp(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
         if (left.obj == null || right.obj == null)
             return;
-        PathTracingKt.withTracing(context, new MethodParametersNoReturn("is_op", Arrays.asList(left, right)), unit(() -> handlerIsOpKt(context, left.obj, right.obj)));
+        withTracing(context, new MethodParametersNoReturn("is_op", Arrays.asList(left, right)), unit(() -> handlerIsOpKt(context, left.obj, right.obj)));
     }
 
     @CPythonAdapterJavaMethod(cName = "none_check")
@@ -212,7 +215,7 @@ public class CPythonAdapter {
     public static void handlerNoneCheck(ConcolicRunContext context, SymbolForCPython on) {
         if (on.obj == null)
             return;
-        PathTracingKt.withTracing(context, new MethodParametersNoReturn("none_check", Collections.singletonList(on)), unit(() -> handlerNoneCheckKt(context, on.obj)));
+        withTracing(context, new MethodParametersNoReturn("none_check", Collections.singletonList(on)), unit(() -> handlerNoneCheckKt(context, on.obj)));
     }
 
     @CPythonAdapterJavaMethod(cName = "gt_long")
@@ -507,7 +510,7 @@ public class CPythonAdapter {
         if (Arrays.stream(elements).anyMatch(elem -> elem.obj == null))
             return null;
         ListCreation event = new ListCreation(Arrays.asList(elements));
-        return PathTracingKt.withTracing(context, event, () -> wrap(handlerCreateListKt(context, Arrays.stream(elements).map(s -> s.obj))));
+        return withTracing(context, event, () -> wrap(handlerCreateListKt(context, Arrays.stream(elements).map(s -> s.obj))));
     }
 
     @CPythonAdapterJavaMethod(cName = "create_tuple")
@@ -519,7 +522,7 @@ public class CPythonAdapter {
         if (Arrays.stream(elements).anyMatch(elem -> elem.obj == null))
             return null;
         TupleCreation event = new TupleCreation(Arrays.asList(elements));
-        return PathTracingKt.withTracing(context, event, () -> wrap(handlerCreateTupleKt(context, Arrays.stream(elements).map(s -> s.obj))));
+        return withTracing(context, event, () -> wrap(handlerCreateTupleKt(context, Arrays.stream(elements).map(s -> s.obj))));
     }
 
     @CPythonAdapterJavaMethod(cName = "create_range")
@@ -531,7 +534,7 @@ public class CPythonAdapter {
         if (start.obj == null || stop.obj == null || step.obj == null)
             return null;
         MethodParameters event = new MethodParameters("create_range", Arrays.asList(start, stop, step));
-        return PathTracingKt.withTracing(context, event, () -> wrap(handlerCreateRangeKt(context, start.obj, stop.obj, step.obj)));
+        return withTracing(context, event, () -> wrap(handlerCreateRangeKt(context, start.obj, stop.obj, step.obj)));
     }
 
     @CPythonAdapterJavaMethod(cName = "create_slice")
@@ -543,7 +546,7 @@ public class CPythonAdapter {
         if (start.obj == null || stop.obj == null || step.obj == null)
             return null;
         MethodParameters event = new MethodParameters("create_slice", Arrays.asList(start, stop, step));
-        return PathTracingKt.withTracing(context, event, () -> wrap(handlerCreateSliceKt(context, start.obj, stop.obj, step.obj)));
+        return withTracing(context, event, () -> wrap(handlerCreateSliceKt(context, start.obj, stop.obj, step.obj)));
     }
 
     @CPythonAdapterJavaMethod(cName = "range_iter")
@@ -631,7 +634,7 @@ public class CPythonAdapter {
     public static void handlerListSetItem(ConcolicRunContext context, SymbolForCPython list, SymbolForCPython index, SymbolForCPython value) {
         if (list.obj == null || index.obj == null || value.obj == null)
             return;
-        PathTracingKt.withTracing(context, new MethodParametersNoReturn("list_set_item", Arrays.asList(list, index, value)), unit(() -> handlerListSetItemKt(context, list.obj, index.obj, value.obj)));
+        withTracing(context, new MethodParametersNoReturn("list_set_item", Arrays.asList(list, index, value)), unit(() -> handlerListSetItemKt(context, list.obj, index.obj, value.obj)));
     }
 
     @CPythonAdapterJavaMethod(cName = "list_get_size")
@@ -697,7 +700,7 @@ public class CPythonAdapter {
     public static void handlerListInsert(ConcolicRunContext context, SymbolForCPython list, SymbolForCPython index, SymbolForCPython value) {
         if (list.obj == null || index.obj == null || value.obj == null)
             return;
-        PathTracingKt.withTracing(context, new MethodParametersNoReturn("list_insert", Arrays.asList(list, index, value)), unit(() -> handlerListInsertKt(context, list.obj, index.obj, value.obj)));
+        withTracing(context, new MethodParametersNoReturn("list_insert", Arrays.asList(list, index, value)), unit(() -> handlerListInsertKt(context, list.obj, index.obj, value.obj)));
     }
 
     @CPythonAdapterJavaMethod(cName = "tuple_get_size")
@@ -751,7 +754,7 @@ public class CPythonAdapter {
     )
     public static void handlerFunctionCall(ConcolicRunContext context, long codeRef) {
         PythonObject code = new PythonObject(codeRef);
-        PathTracingKt.withTracing(context, new PythonFunctionCall(code), () -> Unit.INSTANCE);
+        withTracing(context, new PythonFunctionCall(code), () -> Unit.INSTANCE);
     }
 
     @CPythonAdapterJavaMethod(cName = "function_return")
@@ -760,7 +763,7 @@ public class CPythonAdapter {
             argConverters = {ObjectConverter.RefConverter}
     )
     public static void handlerReturn(ConcolicRunContext context, long codeRef) {
-        PathTracingKt.withTracing(context, new PythonReturn(new PythonObject(codeRef)), () -> Unit.INSTANCE);
+        withTracing(context, new PythonReturn(new PythonObject(codeRef)), () -> Unit.INSTANCE);
     }
 
     @CPythonAdapterJavaMethod(cName = "symbolic_virtual_unary_fun")
@@ -985,6 +988,20 @@ public class CPythonAdapter {
     public static SymbolForCPython handlerStandardTpGetattro(ConcolicRunContext context, SymbolForCPython obj, SymbolForCPython name) {
         if (obj.obj == null || name.obj == null)
             return null;
-        return PathTracingKt.withTracing(context, new MethodParameters("tp_getattro", Arrays.asList(obj, name)), () -> handlerStandardTpGetattroKt(context, obj.obj, name.obj));
+        return withTracing(context, new MethodParameters("tp_getattro", Arrays.asList(obj, name)), () -> handlerStandardTpGetattroKt(context, obj.obj, name.obj));
+    }
+
+    @CPythonAdapterJavaMethod(cName = "symbolic_method_int")
+    @SymbolicMethod(id = SymbolicMethodId.Int)
+    public static SymbolForCPython symbolicMethodInt(ConcolicRunContext context, @Nullable SymbolForCPython self, SymbolForCPython[] args) {
+        assert(self == null);
+        return withTracing(context, new SymbolicMethodParameters("int", null, args), () -> symbolicMethodIntKt(context, args));
+    }
+
+    @CPythonAdapterJavaMethod(cName = "symbolic_method_float")
+    @SymbolicMethod(id = SymbolicMethodId.Float)
+    public static SymbolForCPython symbolicMethodFloat(ConcolicRunContext context, @Nullable SymbolForCPython self, SymbolForCPython[] args) {
+        assert(self == null);
+        return withTracing(context, new SymbolicMethodParameters("float", null, args), () -> symbolicMethodFloatKt(context, args));
     }
 }

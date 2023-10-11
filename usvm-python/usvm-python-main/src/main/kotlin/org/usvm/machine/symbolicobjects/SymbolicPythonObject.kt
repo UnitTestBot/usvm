@@ -8,7 +8,7 @@ import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.PythonCallable
 import org.usvm.language.TimeOfCreation
 import org.usvm.machine.utils.PyModelHolder
-import org.usvm.machine.interpreters.operations.myAssert
+import org.usvm.machine.interpreters.operations.basic.myAssert
 import org.usvm.language.types.*
 import org.usvm.machine.UPythonContext
 import org.usvm.memory.UMemory
