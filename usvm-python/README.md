@@ -1,8 +1,12 @@
 # Developer notes
 
+## Documentation on module `usvm-python`
+
+See folder `usvm-python/docs`.
+
 ## Working with `git submodule`
 
-Clone repo with submodules:
+Clone repository with submodules:
 ```
 git clone --recurse-submodules [repo]
 ```
@@ -12,7 +16,7 @@ Clone submodule into already cloned project:
 git submodule update --init
 ```
 
-Update repo:
+Update repository:
 ```
 git pull
 git submodule update --init
@@ -24,9 +28,9 @@ You can always compare commit of submodule from GitHub page and in your local re
 
 Official instruction: https://devguide.python.org/getting-started/setup-building/.
 
-### Unix
+Gradle tasks for building and running were tested on Windows and Ubuntu.
 
-1. Install optional dependencies.
+1. Only for Unix. Install optional dependencies.
     - Official instruction: https://devguide.python.org/getting-started/setup-building/#install-dependencies
     - __Short version__. Install the following packages with apt:
       ```
@@ -37,12 +41,15 @@ Official instruction: https://devguide.python.org/getting-started/setup-building
       ```
 
 2. Use Gradle tasks to do the rest.
-
-    Tasks for running `src/test/kotlin/manualTest.kt` (name of task group --- `run`): 
     
-    - `:usvm-python:manualTestDebug`: run with debug logging and debug build of CPython
-    - `:usvm-python:manualTestDebugNoLogs`: run with info logging and debug build of CPython
-    - `:usvm-python:manualTestRelease`: run with info logging and release build of CPython
+    - Task to run tests (see `src/test/resources/samples` and `src/test/kotlin/org/usvm/samples`):
+
+      - `:usvm-python:test` (name of task group --- `verification`)
+
+    - Tasks for running `src/test/kotlin/manualTest.kt` (name of task group --- `run`): 
+    
+      - `:usvm-python:manualTestDebug`: run with debug logging and debug build of CPython
+      - `:usvm-python:manualTestDebugNoLogs`: run with info logging and debug build of CPython
 
 ## Addition of a method in CPythonAdapter
 
@@ -53,9 +60,9 @@ Add the definition of the native method in `CPythonAdapter.java`.
 Regenerate `org_usvm_interpreter_CPythonAdapter.h`:
 
 ```
-cd src/main/java
+cd usvm-python-main/src/main/java
 javah org.usvm.interpreter.CPythonAdapter
-mv org_usvm_interpreter_CPythonAdapter.h ../../../cpythonadapter/src/main/c/include
+mv org_usvm_interpreter_CPythonAdapter.h ../../../../cpythonadapter/src/main/c/include
 ```
 
 Then implement the corresponding methods in `org_usvm_interpreter_CPythonAdapter.c`.
@@ -64,6 +71,6 @@ Then implement the corresponding methods in `org_usvm_interpreter_CPythonAdapter
 
 Implement the method in `CPythonAdapter.java`.
 
-Add the definition in `cpythonadapter/src/main/json/handler_defs.json`. Define `c_name`, `java_name`, `sig`.
+Annotate the method with `CPythonAdapterJavaMethod(cName = <c_name>)`.
 
 The `jmethodID` of the method will be accessible in `ConcolicContext` by the name `handle_<c_name>`.

@@ -117,6 +117,7 @@ tasks.register<JavaExec>("manualTestDebugNoLogs") {
     mainClass.set("ManualTestKt")
 }
 
+/*
 tasks.register<JavaExec>("manualTestRelease") {
     group = "run"
     registerCpython(this, debug = false)
@@ -125,6 +126,7 @@ tasks.register<JavaExec>("manualTestRelease") {
     classpath = sourceSets.test.get().runtimeClasspath
     mainClass.set("ManualTestKt")
 }
+*/
 
 tasks.test {
     val args = (commonJVMArgs + "-Dlogback.configurationFile=logging/logback-info.xml").toMutableList()

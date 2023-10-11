@@ -34,6 +34,7 @@ val configCPythonDebug =
         null
     }
 
+/*
 val configCPythonRelease =
     if (!isWindows) {
         tasks.register<Exec>("CPythonBuildConfigurationRelease") {
@@ -53,6 +54,7 @@ val configCPythonRelease =
     } else {
         null
     }
+ */
 
 val cpythonBuildDebug = tasks.register<Exec>("CPythonBuildDebug") {
     group = cpythonTaskGroup
@@ -71,6 +73,7 @@ val cpythonBuildDebug = tasks.register<Exec>("CPythonBuildDebug") {
     }
 }
 
+/*
 val cpythonBuildRelease = tasks.register<Exec>("CPythonBuildRelease") {
     group = cpythonTaskGroup
     dependsOn(configCPythonRelease)
@@ -80,6 +83,7 @@ val cpythonBuildRelease = tasks.register<Exec>("CPythonBuildRelease") {
     commandLine("make")
     commandLine("make", "install")
 }
+ */
 
 val adapterHeaderPath = "${project.buildDir.path}/adapter_include"
 
@@ -112,7 +116,7 @@ library {
         if (!compileTask.isOptimized) {
             compileTask.dependsOn(cpythonBuildDebug)
         } else {
-            compileTask.dependsOn(cpythonBuildRelease)
+            compileTask.dependsOn(cpythonBuildDebug)  // TODO
         }
     }
 
@@ -149,17 +153,19 @@ tasks.clean {
     dependsOn(cpythonClean)
 }
 
-tasks.register<Exec>("cpython_check_compile") {
-    dependsOn(cpythonBuildDebug)
-    workingDir = File("${projectDir.path}/cpython_check")
-    commandLine(
-        "gcc",
-        "-std=c11",
-        "-I$cpythonBuildPath/include/python3.11",
-        "sample_handler.c",
-        "-o",
-        "check",
-        "-L$cpythonBuildPath/lib",
-        "-lpython3.11"
-    )
+if (!isWindows) {
+    tasks.register<Exec>("cpython_check_compile") {
+        dependsOn(cpythonBuildDebug)
+        workingDir = File("${projectDir.path}/cpython_check")
+        commandLine(
+            "gcc",
+            "-std=c11",
+            "-I$cpythonBuildPath/include/python3.11",
+            "sample_handler.c",
+            "-o",
+            "check",
+            "-L$cpythonBuildPath/lib",
+            "-lpython3.11"
+        )
+    }
 }
