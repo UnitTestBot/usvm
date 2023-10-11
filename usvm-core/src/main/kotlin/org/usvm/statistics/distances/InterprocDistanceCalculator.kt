@@ -2,6 +2,7 @@ package org.usvm.statistics.distances
 
 import org.usvm.UCallStack
 import org.usvm.statistics.ApplicationGraph
+import org.usvm.util.log2
 
 /**
  * Kind of target reachability in application graph.
@@ -110,10 +111,10 @@ class InterprocDistanceCalculator<Method, Statement>(
             return InterprocDistance(UInt.MAX_VALUE, ReachabilityKind.NONE)
         }
 
-        val lastMethod = callStack.lastMethod()
+        val lastMethod = applicationGraph.methodOf(currentStatement)
         val lastFrameDistance = calculateFrameDistance(lastMethod, currentStatement)
 
-        if (!lastFrameDistance.isInfinite) {
+        if (lastFrameDistance.reachabilityKind == ReachabilityKind.LOCAL) {
             return lastFrameDistance
         }
 
@@ -136,6 +137,25 @@ class InterprocDistanceCalculator<Method, Statement>(
             statementOnCallStack = returnSite
         }
 
-        return InterprocDistance(UInt.MAX_VALUE, ReachabilityKind.NONE)
+        return lastFrameDistance
     }
+}
+
+/**
+ * Converts [InterprocDistance] to integer weight with the following properties:
+ * - All distances with [ReachabilityKind.LOCAL] have smaller weight than the others.
+ * - For greater distances one-step distance is less significant (logarithmic scale).
+ * - All distances lie in [[0; 64]] interval.
+ * - Only infinite distances map to weight equal to 64.
+ */
+fun InterprocDistance.logWeight(): UInt {
+    if (isInfinite) {
+        return 64u
+    }
+    var weight = log2(distance) // weight is in [0; 32)
+    assert(weight < 32u)
+    if (reachabilityKind != ReachabilityKind.LOCAL) {
+        weight += 32u // non-local's weight is in [32, 64)
+    }
+    return weight
 }

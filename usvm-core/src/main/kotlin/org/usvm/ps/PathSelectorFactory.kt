@@ -9,15 +9,9 @@ import org.usvm.algorithms.DeterministicPriorityCollection
 import org.usvm.algorithms.RandomizedPriorityCollection
 import org.usvm.statistics.ApplicationGraph
 import org.usvm.statistics.CoverageStatistics
-import org.usvm.statistics.distances.CallGraphStatistics
 import org.usvm.statistics.distances.CallStackDistanceCalculator
 import org.usvm.statistics.distances.CfgStatistics
-import org.usvm.statistics.distances.InterprocDistance
-import org.usvm.statistics.distances.InterprocDistanceCalculator
-import org.usvm.statistics.distances.MultiTargetDistanceCalculator
-import org.usvm.statistics.distances.ReachabilityKind
 import org.usvm.targets.UTarget
-import org.usvm.util.log2
 import kotlin.math.max
 import kotlin.random.Random
 
@@ -27,7 +21,7 @@ fun <Method, Statement, Target, State> createPathSelector(
     applicationGraph: ApplicationGraph<Method, Statement>,
     coverageStatistics: () -> CoverageStatistics<Method, Statement, State>? = { null },
     cfgStatistics: () -> CfgStatistics<Method, Statement>? = { null },
-    callGraphStatistics: () -> CallGraphStatistics<Method>? = { null },
+    targetWeighter: (PathSelectionStrategy) -> StateWeighter<State, UInt>? = { null },
 ): UPathSelector<State>
         where Target : UTarget<Statement, Target>,
               State : UState<*, Method, Statement, *, Target, State> {
@@ -68,26 +62,20 @@ fun <Method, Statement, Target, State> createPathSelector(
             )
 
             PathSelectionStrategy.TARGETED -> createTargetedPathSelector<Method, Statement, Target, State>(
-                requireNotNull(cfgStatistics()) { "CFG statistics is required for targeted path selector" },
-                requireNotNull(callGraphStatistics()) { "Call graph statistics is required for targeted path selector" },
-                applicationGraph
+                requireNotNull(targetWeighter(strategy))
             )
 
             PathSelectionStrategy.TARGETED_RANDOM -> createTargetedPathSelector<Method, Statement, Target, State>(
-                requireNotNull(cfgStatistics()) { "CFG statistics is required for targeted path selector" },
-                requireNotNull(callGraphStatistics()) { "Call graph statistics is required for targeted path selector" },
-                applicationGraph,
+                requireNotNull(targetWeighter(strategy)),
                 random
             )
 
             PathSelectionStrategy.TARGETED_CALL_STACK_LOCAL -> createTargetedPathSelector<Method, Statement, Target, State>(
-                requireNotNull(cfgStatistics()) { "CFG statistics is required for targeted call stack local path selector" },
-                applicationGraph
+                requireNotNull(targetWeighter(strategy))
             )
 
             PathSelectionStrategy.TARGETED_CALL_STACK_LOCAL_RANDOM -> createTargetedPathSelector<Method, Statement, Target, State>(
-                requireNotNull(cfgStatistics()) { "CFG statistics is required for targeted call stack local path selector" },
-                applicationGraph,
+                requireNotNull(targetWeighter(strategy)),
                 random
             )
         }
@@ -208,108 +196,21 @@ private fun <Method, Statement, State : UState<*, Method, Statement, *, *, State
 }
 
 internal fun <Method, Statement, Target, State> createTargetedPathSelector(
-    cfgStatistics: CfgStatistics<Method, Statement>,
-    applicationGraph: ApplicationGraph<Method, Statement>,
+    targetWeighter: StateWeighter<State, UInt>,
     random: Random? = null,
 ): UPathSelector<State>
         where Target : UTarget<Statement, Target>,
               State : UState<*, Method, Statement, *, Target, State> {
 
-    val distanceCalculator = MultiTargetDistanceCalculator<Method, Statement, _> { loc ->
-        CallStackDistanceCalculator(
-            targets = listOf(loc),
-            cfgStatistics = cfgStatistics,
-            applicationGraph = applicationGraph
-        )
-    }
-
-    fun calculateDistanceToTargets(state: State) =
-        state.targets.minOfOrNull { target ->
-            val location = target.location
-            if (location == null) {
-                0u
-            } else {
-                distanceCalculator.calculateDistance(
-                    state.currentStatement,
-                    state.callStack,
-                    location
-                )
-            }
-        } ?: UInt.MAX_VALUE
-
     if (random == null) {
         return WeightedPathSelector(
             priorityCollectionFactory = { DeterministicPriorityCollection(Comparator.naturalOrder()) },
-            weighter = ::calculateDistanceToTargets
+            weighter = targetWeighter
         )
     }
 
     return WeightedPathSelector(
         priorityCollectionFactory = { RandomizedPriorityCollection(compareById()) { random.nextDouble() } },
-        weighter = { 1.0 / max(calculateDistanceToTargets(it).toDouble(), 1.0) }
-    )
-}
-
-/**
- * Converts [InterprocDistance] to integer weight with the following properties:
- * - All distances with [ReachabilityKind.LOCAL] have smaller weight than the others.
- * - For greater distances one-step distance is less significant (logarithmic scale).
- * - All distances lie in [[0; 64]] interval.
- * - Only infinite distances map to weight equal to 64.
- */
-private fun InterprocDistance.logWeight(): UInt {
-    if (isInfinite) {
-        return 64u
-    }
-    var weight = log2(distance) // weight is in [0; 32)
-    assert(weight < 32u)
-    if (reachabilityKind != ReachabilityKind.LOCAL) {
-        weight += 32u // non-local's weight is in [32, 64)
-    }
-    return weight
-}
-
-internal fun <Method, Statement, Target, State> createTargetedPathSelector(
-    cfgStatistics: CfgStatistics<Method, Statement>,
-    callGraphStatistics: CallGraphStatistics<Method>,
-    applicationGraph: ApplicationGraph<Method, Statement>,
-    random: Random? = null,
-): UPathSelector<State>
-        where Target : UTarget<Statement, Target>,
-              State : UState<*, Method, Statement, *, Target, State> {
-
-    val distanceCalculator = MultiTargetDistanceCalculator<Method, Statement, _> { stmt ->
-        InterprocDistanceCalculator(
-            targetLocation = stmt,
-            applicationGraph = applicationGraph,
-            cfgStatistics = cfgStatistics,
-            callGraphStatistics = callGraphStatistics
-        )
-    }
-
-    fun calculateWeight(state: State) =
-        state.targets.minOfOrNull { target ->
-            val location = target.location
-            if (location == null) {
-                0u
-            } else {
-                distanceCalculator.calculateDistance(
-                    state.currentStatement,
-                    state.callStack,
-                    location
-                ).logWeight()
-            }
-        } ?: UInt.MAX_VALUE
-
-    if (random == null) {
-        return WeightedPathSelector(
-            priorityCollectionFactory = { DeterministicPriorityCollection(Comparator.naturalOrder()) },
-            weighter = ::calculateWeight
-        )
-    }
-
-    return WeightedPathSelector(
-        priorityCollectionFactory = { RandomizedPriorityCollection(compareById()) { random.nextDouble() } },
-        weighter = { 1.0 / max(calculateWeight(it).toDouble(), 1.0) }
+        weighter = { 1.0 / max(targetWeighter.weight(it).toDouble(), 1.0) }
     )
 }

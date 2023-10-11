@@ -6,6 +6,7 @@ import org.jacodb.api.JcMethod
 import org.jacodb.api.cfg.JcInst
 import org.jacodb.api.ext.methods
 import org.usvm.CoverageZone
+import org.usvm.PathSelectionStrategy
 import org.usvm.StateCollectionStrategy
 import org.usvm.UMachine
 import org.usvm.UMachineOptions
@@ -16,6 +17,7 @@ import org.usvm.machine.interpreter.JcInterpreter
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.lastStmt
+import org.usvm.ps.StateWeighter
 import org.usvm.ps.createPathSelector
 import org.usvm.statistics.CompositeUMachineObserver
 import org.usvm.statistics.CoverageStatistics
@@ -24,12 +26,15 @@ import org.usvm.statistics.TransitiveCoverageZoneObserver
 import org.usvm.statistics.UMachineObserver
 import org.usvm.statistics.collectors.CoveredNewStatesCollector
 import org.usvm.statistics.collectors.TargetsReachedStatesCollector
+import org.usvm.statistics.distances.CallGraphStatistics
+import org.usvm.statistics.distances.CallStackDistanceCalculator
 import org.usvm.statistics.distances.CfgStatistics
 import org.usvm.statistics.distances.CfgStatisticsImpl
 import org.usvm.statistics.distances.InterprocDistance
 import org.usvm.statistics.distances.InterprocDistanceCalculator
 import org.usvm.statistics.distances.MultiTargetDistanceCalculator
 import org.usvm.statistics.distances.PlainCallGraphStatistics
+import org.usvm.statistics.distances.logWeight
 import org.usvm.stopstrategies.createStopStrategy
 import org.usvm.util.originalInst
 
@@ -38,7 +43,8 @@ val logger = object : KLogging() {}.logger
 class JcMachine(
     cp: JcClasspath,
     private val options: UMachineOptions,
-    private val interpreterObserver: JcInterpreterObserver? = null
+    private val interpreterObserver: JcInterpreterObserver? = null,
+    private val jcOptions: JcMachineOptions = JcMachineOptions(),
 ) : UMachine<JcState>() {
     private val applicationGraph = JcApplicationGraph(cp)
 
@@ -46,7 +52,7 @@ class JcMachine(
     private val components = JcComponents(typeSystem, options.solverType, options)
     private val ctx = JcContext(cp, components)
 
-    private val interpreter = JcInterpreter(ctx, applicationGraph, interpreterObserver)
+    private val interpreter = JcInterpreter(ctx, applicationGraph, jcOptions, interpreterObserver)
 
     private val cfgStatistics = CfgStatisticsImpl(applicationGraph)
 
@@ -88,7 +94,7 @@ class JcMachine(
             applicationGraph,
             { coverageStatistics },
             { transparentCfgStatistics },
-            { callGraphStatistics }
+            { targetWeighter(it, callGraphStatistics) }
         )
 
         val statesCollector =
@@ -136,7 +142,8 @@ class JcMachine(
                     callGraphStatistics = callGraphStatistics
                 )
             }
-            interpreter.forkBlackList = TargetsReachableForkBlackList(distanceCalculator, shouldBlackList = { isInfinite })
+            interpreter.forkBlackList =
+                TargetsReachableForkBlackList(distanceCalculator, shouldBlackList = { isInfinite })
         } else {
             interpreter.forkBlackList = UForkBlackList.createDefault()
         }
@@ -173,5 +180,75 @@ class JcMachine(
 
     override fun close() {
         components.close()
+    }
+
+    private fun targetWeighter(
+        strategy: PathSelectionStrategy,
+        callGraphStatistics: CallGraphStatistics<JcMethod>
+    ): StateWeighter<JcState, UInt> {
+        when (strategy) {
+            PathSelectionStrategy.TARGETED, PathSelectionStrategy.TARGETED_RANDOM -> {
+                val distanceCalculator = MultiTargetDistanceCalculator<JcMethod, JcInst, _> { stmt ->
+                    InterprocDistanceCalculator(
+                        targetLocation = stmt,
+                        applicationGraph = applicationGraph,
+                        cfgStatistics = cfgStatistics,
+                        callGraphStatistics = callGraphStatistics
+                    )
+                }
+
+                val targetWeighter = (interpreterObserver as? JcTargetWeighter)
+                    ?.createWeighter(strategy, applicationGraph, cfgStatistics, callGraphStatistics)
+
+                return StateWeighter { state ->
+                    state.targets.minOfOrNull { target ->
+                        targetWeighter?.invoke(target, state) ?: run {
+                            val location = target.location
+                            if (location == null) {
+                                0u
+                            } else {
+                                distanceCalculator.calculateDistance(
+                                    state.currentStatement,
+                                    state.callStack,
+                                    location
+                                ).logWeight()
+                            }
+                        }
+                    } ?: UInt.MAX_VALUE
+                }
+            }
+
+            PathSelectionStrategy.TARGETED_CALL_STACK_LOCAL, PathSelectionStrategy.TARGETED_CALL_STACK_LOCAL_RANDOM -> {
+                val distanceCalculator = MultiTargetDistanceCalculator<JcMethod, JcInst, _> { loc ->
+                    CallStackDistanceCalculator(
+                        targets = listOf(loc),
+                        cfgStatistics = cfgStatistics,
+                        applicationGraph = applicationGraph
+                    )
+                }
+
+                val targetWeighter = (interpreterObserver as? JcTargetWeighter)
+                    ?.createWeighter(strategy, applicationGraph, cfgStatistics, callGraphStatistics)
+
+                return StateWeighter { state ->
+                    state.targets.minOfOrNull { target ->
+                        targetWeighter?.invoke(target, state) ?: run {
+                            val location = target.location
+                            if (location == null) {
+                                0u
+                            } else {
+                                distanceCalculator.calculateDistance(
+                                    state.currentStatement,
+                                    state.callStack,
+                                    location
+                                )
+                            }
+                        }
+                    } ?: UInt.MAX_VALUE
+                }
+            }
+
+            else -> error("Unexpected strategy: $strategy")
+        }
     }
 }
