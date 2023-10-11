@@ -9,6 +9,7 @@ enum class ObjectConverter(val repr: String) {
     ArrayConverter("array_converter"),
     TupleConverter("tuple_converter"),
     StringConverter("string_converter"),
+    ObjectIdConverter("object_id_converter"),
     NoConverter("")
 }
 
@@ -17,7 +18,8 @@ enum class CType(val repr: String) {
     PyObjectArray("PyObject **"),
     PyFrameObject("PyFrameObject *"),
     CInt("int"),
-    CStr("const char *")
+    CStr("const char *"),
+    JObject("jobject")
 }
 
 enum class JavaType(val repr: String, val call: String) {

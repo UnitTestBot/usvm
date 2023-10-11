@@ -22,10 +22,10 @@ import org.utbot.python.newtyping.pythonTypeRepresentation
 import java.io.File
 
 fun main() {
-    ConcretePythonInterpreter.printIdInfo()
+    // ConcretePythonInterpreter.printIdInfo()
     // val config = buildProjectRunConfig()
-    // val config = buildSampleRunConfig()
-    // analyze(config)
+    val config = buildSampleRunConfig()
+    analyze(config)
     // checkConcolicAndConcrete(config)
 }
 

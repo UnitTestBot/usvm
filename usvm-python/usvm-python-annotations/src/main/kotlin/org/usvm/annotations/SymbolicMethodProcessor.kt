@@ -1,5 +1,6 @@
 package org.usvm.annotations
 
+import org.usvm.annotations.codegeneration.generateMethodCheck
 import org.usvm.annotations.codegeneration.generateSymbolicMethod
 import org.usvm.annotations.codegeneration.generateSymbolicMethodInitialization
 import java.io.File
