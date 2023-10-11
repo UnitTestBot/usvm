@@ -465,11 +465,11 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "bool_and")
-    @CPythonFunction(
+    /*@CPythonFunction(
             argCTypes = {CType.PyObject, CType.PyObject},
             argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter},
             addToSymbolicAdapter = false
-    )
+    )*/
     public static SymbolForCPython handlerAND(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
         if (left.obj == null || right.obj == null)
             return null;
