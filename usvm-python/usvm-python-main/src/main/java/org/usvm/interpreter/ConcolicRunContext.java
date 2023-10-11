@@ -2,7 +2,6 @@ package org.usvm.interpreter;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.usvm.language.types.PythonType;
 import org.usvm.language.types.PythonTypeSystem;
 import org.usvm.machine.MockHeader;
 import org.usvm.machine.interpreters.operations.tracing.SymbolicHandlerEvent;
@@ -12,7 +11,6 @@ import org.usvm.machine.UPythonContext;
 import org.usvm.machine.interpreters.operations.tracing.PathDiversionException;
 import org.usvm.machine.symbolicobjects.ConverterToPythonObject;
 import org.usvm.machine.utils.PythonMachineStatisticsOnFunction;
-import org.usvm.types.UTypeStream;
 
 import java.util.*;
 import java.util.concurrent.Callable;

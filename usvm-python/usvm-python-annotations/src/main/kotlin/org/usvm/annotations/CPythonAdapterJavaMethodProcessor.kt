@@ -22,8 +22,13 @@ class CPythonAdapterJavaMethodProcessor: AbstractProcessor() {
             return false
         val annotation = annotations.stream().findFirst().get()
         val annotatedElements = roundEnv.getElementsAnnotatedWith(annotation)
+        val usedNames = mutableSetOf<String>()
         val definitions = annotatedElements.map { element ->
             val curAnnotation = element.getAnnotation(CPythonAdapterJavaMethod::class.java)
+            require(curAnnotation.cName !in usedNames) {
+                "c name ${curAnnotation.cName} must be used only once"
+            }
+            usedNames.add(curAnnotation.cName)
             DefinitionDescriptor(
                 curAnnotation.cName,
                 element.simpleName.toString(),

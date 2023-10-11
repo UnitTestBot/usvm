@@ -1,5 +1,6 @@
 package org.usvm.machine.interpreters
 
+import org.usvm.annotations.SymbolicMethodId
 import org.usvm.language.SymbolForCPython
 import org.usvm.language.VirtualPythonObject
 import org.usvm.interpreter.CPythonAdapter
@@ -286,6 +287,13 @@ object ConcretePythonInterpreter {
 
     init {
         initialize()
+    }
+
+    fun printIdInfo() {  // for debugging
+        SymbolicMethodId.values().forEach {
+            println(it)
+            println(it.cRef)
+        }
     }
 }
 
