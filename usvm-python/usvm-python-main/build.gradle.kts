@@ -8,6 +8,7 @@ tasks.compileJava {
     // to suppress "No processor claimed any of these annotations: org.jetbrains.annotations.Nullable,org.jetbrains.annotations.NotNull"
     options.compilerArgs.add("-Xlint:-processing")
     options.compilerArgs.add("-AheaderPath=${headerPath.canonicalPath}")
+    outputs.dirs(headerPath)
 }
 
 // from GRADLE_USER_HOME/gradle.properties

@@ -7,9 +7,9 @@ fun generateSymbolicMethod(id: SymbolicMethodId): String {
         id.cName!!,
         listOf(
             ArgumentDescription(
-                CType.PyObject,
+                CType.JObject,
                 JavaType.JObject,
-                ObjectConverter.StandardConverter
+                ObjectConverter.ObjectIdConverter
             ),
             ArgumentDescription(
                 CType.PyObject,
@@ -52,4 +52,20 @@ fun generateSymbolicMethodInitialization(): String {
     return "#define SYMBOLIC_METHOD_INITIALIZATION \\\n" +
             prefix.replace("\n", "\\\n") + "\\\n" +
             items.joinToString("\n").replace("\n", "\\\n") + "\n"
+}
+
+fun generateMethodCheck(): String {
+    val items = SymbolicMethodId.values().map {
+        """
+            if (ptr == ${it.cName})
+                return ${it.cName};
+        """.trimIndent()
+    }
+
+    return """
+        static call_type find_symbolic_method(void *ptr) {
+            ${items.joinToString("\n").replace("\n", "\n            ")}
+            assert(0);  // not reachable
+        }
+    """.trimIndent()
 }

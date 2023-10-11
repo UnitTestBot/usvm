@@ -81,11 +81,6 @@ JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_initializePython
     INITIALIZE_PYTHON_APPROXIMATIONS
     PySys_AddAuditHook(audit_hook, &illegal_operation);
 
-    SymbolicMethod *int_constructor = construct_symbolic_method_without_self(SymbolicMethod_int);
-    SET_LONG_FIELD("symbolicIntConstructorRef", (jlong) int_constructor)
-    SymbolicMethod *float_constructor = construct_symbolic_method_without_self(SymbolicMethod_float);
-    SET_LONG_FIELD("symbolicFloatConstructorRef", (jlong) float_constructor)
-
     SYMBOLIC_METHOD_INITIALIZATION
 }
 
@@ -206,7 +201,7 @@ symbolic_tp_call(void *ctx_raw, PyObject *self, PyObject *args, PyObject *kwargs
     jlong ref = (*ctx->env)->GetLongField(ctx->env, symbol, ctx->symbol_tp_call_ref);
     if (ref == 0)
         return Py_None;
-    return call_symbolic_method((SymbolicMethod *) ref, ctx->adapter, args, kwargs);
+    return call_symbolic_method((SymbolicMethod *) ref, ctx, args, kwargs);
 }
 
 JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_concolicRun(
@@ -502,14 +497,7 @@ JNIEXPORT jobject JNICALL Java_org_usvm_interpreter_CPythonAdapter_getSymbolicDe
     return get_symbolic_descriptor(env, adapter, (PyObject *) descr_ref);
 }
 
-JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_constructListAppendMethod(JNIEnv *env, jobject _, jobject symbolic_list_ref) {
-    return (jlong) construct_symbolic_method_with_self(env, symbolic_list_ref, SymbolicMethod_list_append);
-}
-
-JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_constructListPopMethod(JNIEnv *env, jobject _, jobject symbolic_list_ref) {
-    return (jlong) construct_symbolic_method_with_self(env, symbolic_list_ref, SymbolicMethod_list_pop);
-}
-
-JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_constructListInsertMethod(JNIEnv *env, jobject _, jobject symbolic_list_ref) {
-    return (jlong) construct_symbolic_method_with_self(env, symbolic_list_ref, SymbolicMethod_list_insert);
+JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_constructPartiallyAppliedSymbolicMethod(JNIEnv *env, jobject _, jobject self, jlong method_ref) {
+    assert(method_ref);
+    return (jlong) construct_symbolic_method_with_self(env, self, (call_type) method_ref);
 }
