@@ -353,27 +353,11 @@ JNIEXPORT jobject JNICALL Java_org_usvm_interpreter_CPythonAdapter_getSymbolicDe
 
 /*
  * Class:     org_usvm_interpreter_CPythonAdapter
- * Method:    constructListAppendMethod
- * Signature: (Lorg/usvm/language/SymbolForCPython;)J
+ * Method:    constructPartiallyAppliedSymbolicMethod
+ * Signature: (Lorg/usvm/language/SymbolForCPython;J)J
  */
-JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_constructListAppendMethod
-  (JNIEnv *, jobject, jobject);
-
-/*
- * Class:     org_usvm_interpreter_CPythonAdapter
- * Method:    constructListPopMethod
- * Signature: (Lorg/usvm/language/SymbolForCPython;)J
- */
-JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_constructListPopMethod
-  (JNIEnv *, jobject, jobject);
-
-/*
- * Class:     org_usvm_interpreter_CPythonAdapter
- * Method:    constructListInsertMethod
- * Signature: (Lorg/usvm/language/SymbolForCPython;)J
- */
-JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_constructListInsertMethod
-  (JNIEnv *, jobject, jobject);
+JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_constructPartiallyAppliedSymbolicMethod
+  (JNIEnv *, jobject, jobject, jlong);
 
 #ifdef __cplusplus
 }

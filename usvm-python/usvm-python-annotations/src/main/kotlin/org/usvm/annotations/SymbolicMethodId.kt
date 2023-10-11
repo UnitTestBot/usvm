@@ -5,5 +5,8 @@ enum class SymbolicMethodId(
     var cRef: Long = 0L  // will be set in native code during Python initialization
 ) {
     Int,
-    Float
+    Float,
+    ListAppend,
+    ListInsert,
+    ListPop
 }

@@ -189,20 +189,8 @@ object ConcretePythonInterpreter {
         return pythonAdapter.getSymbolicDescriptor(concreteDescriptor.address)
     }
 
-    fun constructListAppendMethod(self: UninterpretedSymbolicPythonObject): SymbolForCPython {
-        val ref = pythonAdapter.constructListAppendMethod(SymbolForCPython(self, 0));
-        require(ref != 0L)
-        return SymbolForCPython(null, ref)
-    }
-
-    fun constructListPopMethod(self: UninterpretedSymbolicPythonObject): SymbolForCPython {
-        val ref = pythonAdapter.constructListPopMethod(SymbolForCPython(self, 0));
-        require(ref != 0L)
-        return SymbolForCPython(null, ref)
-    }
-
-    fun constructListInsertMethod(self: UninterpretedSymbolicPythonObject): SymbolForCPython {
-        val ref = pythonAdapter.constructListInsertMethod(SymbolForCPython(self, 0));
+    fun constructPartiallyAppliedSymbolicMethod(self: SymbolForCPython?, id: SymbolicMethodId): SymbolForCPython {
+        val ref = pythonAdapter.constructPartiallyAppliedSymbolicMethod(self, id.cRef)
         require(ref != 0L)
         return SymbolForCPython(null, ref)
     }
@@ -249,8 +237,6 @@ object ConcretePythonInterpreter {
         pyGT = pythonAdapter.pyGT
         pyGE = pythonAdapter.pyGE
         pyNoneRef = pythonAdapter.pyNoneRef
-        intConstructorRef = pythonAdapter.symbolicIntConstructorRef
-        floatConstructorRef = pythonAdapter.symbolicFloatConstructorRef
         val namespace = pythonAdapter.newNamespace
         val initialModules = listOf("sys", "copy", "builtins", "ctypes", "array")
         pythonAdapter.concreteRun(namespace, "import " + initialModules.joinToString(", "), true, false)
@@ -281,8 +267,6 @@ object ConcretePythonInterpreter {
     var pyGT: Int = 0
     var pyGE: Int = 0
     var pyNoneRef: Long = 0L
-    var intConstructorRef: Long = 0L
-    var floatConstructorRef: Long = 0L
     lateinit var emptyNamespace: PythonNamespace
 
     init {

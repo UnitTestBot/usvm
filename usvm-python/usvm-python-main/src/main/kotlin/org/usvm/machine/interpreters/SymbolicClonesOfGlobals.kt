@@ -1,5 +1,6 @@
 package org.usvm.machine.interpreters
 
+import org.usvm.annotations.SymbolicMethodId
 import org.usvm.language.NamedSymbolForCPython
 import org.usvm.language.SymbolForCPython
 
@@ -9,9 +10,9 @@ object SymbolicClonesOfGlobals {
     fun restart() {
         clonesMap.clear()
         clonesMap["int"] =
-            SymbolForCPython(null, ConcretePythonInterpreter.intConstructorRef)
+            ConcretePythonInterpreter.constructPartiallyAppliedSymbolicMethod(null, SymbolicMethodId.Int)
         clonesMap["float"] =
-            SymbolForCPython(null, ConcretePythonInterpreter.floatConstructorRef)
+            ConcretePythonInterpreter.constructPartiallyAppliedSymbolicMethod(null, SymbolicMethodId.Float)
     }
 
     init {

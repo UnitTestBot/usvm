@@ -20,25 +20,28 @@ private fun constructResult(field: SliceUninterpretedField, ctx: ConcolicRunCont
 }
 
 object SliceStartDescriptor: MemberDescriptor() {
-    override fun getMember(ctx: ConcolicRunContext, owner: UninterpretedSymbolicPythonObject): SymbolForCPython? {
+    override fun getMember(ctx: ConcolicRunContext, owner: UninterpretedSymbolicPythonObject?): SymbolForCPython? {
         if (ctx.curState == null)
             return null
+        owner ?: return null
         return constructResult(owner.getSliceStart(ctx), ctx)
     }
 }
 
 object SliceStopDescriptor: MemberDescriptor() {
-    override fun getMember(ctx: ConcolicRunContext, owner: UninterpretedSymbolicPythonObject): SymbolForCPython? {
+    override fun getMember(ctx: ConcolicRunContext, owner: UninterpretedSymbolicPythonObject?): SymbolForCPython? {
         if (ctx.curState == null)
             return null
+        owner ?: return null
         return constructResult(owner.getSliceStop(ctx), ctx)
     }
 }
 
 object SliceStepDescriptor: MemberDescriptor() {
-    override fun getMember(ctx: ConcolicRunContext, owner: UninterpretedSymbolicPythonObject): SymbolForCPython? {
+    override fun getMember(ctx: ConcolicRunContext, owner: UninterpretedSymbolicPythonObject?): SymbolForCPython? {
         if (ctx.curState == null)
             return null
+        owner ?: return null
         return constructResult(owner.getSliceStep(ctx), ctx)
     }
 }

@@ -30,6 +30,7 @@ import static org.usvm.machine.interpreters.operations.basic.TupleKt.*;
 import static org.usvm.machine.interpreters.operations.basic.VirtualKt.*;
 import static org.usvm.machine.interpreters.operations.symbolicmethods.BuiltinsKt.symbolicMethodFloatKt;
 import static org.usvm.machine.interpreters.operations.symbolicmethods.BuiltinsKt.symbolicMethodIntKt;
+import static org.usvm.machine.interpreters.operations.symbolicmethods.ListKt.*;
 import static org.usvm.machine.interpreters.operations.tracing.PathTracingKt.withTracing;
 
 @SuppressWarnings("unused")
@@ -45,15 +46,13 @@ public class CPythonAdapter {
     public int pyLT;
     public int pyGE;
     public int pyGT;
-    public long symbolicIntConstructorRef;
-    public long symbolicFloatConstructorRef;
 
     @SymbolicMethodDescriptor(nativeTypeName = "PyList_Type", nativeMemberName = "append")
-    public MemberDescriptor listAppendDescriptor = ListAppendDescriptor.INSTANCE;
+    public MemberDescriptor listAppendDescriptor = new MethodDescriptor(SymbolicMethodId.ListAppend);
     @SymbolicMethodDescriptor(nativeTypeName = "PyList_Type", nativeMemberName = "pop")
-    public MemberDescriptor listPopDescriptor = ListPopDescriptor.INSTANCE;
+    public MemberDescriptor listPopDescriptor = new MethodDescriptor(SymbolicMethodId.ListPop);
     @SymbolicMethodDescriptor(nativeTypeName = "PyList_Type", nativeMemberName = "insert")
-    public MemberDescriptor listInsertDescriptor = ListInsertDescriptor.INSTANCE;
+    public MemberDescriptor listInsertDescriptor = new MethodDescriptor(SymbolicMethodId.ListInsert);
     @SymbolicMemberDescriptor(nativeTypeName = "PySlice_Type", nativeMemberName = "start")
     public MemberDescriptor sliceStartDescriptor = SliceStartDescriptor.INSTANCE;
     @SymbolicMemberDescriptor(nativeTypeName = "PySlice_Type", nativeMemberName = "stop")
@@ -105,10 +104,7 @@ public class CPythonAdapter {
     public native long typeLookup(long typeRef, String name);
     @Nullable
     public native MemberDescriptor getSymbolicDescriptor(long concreteDescriptorRef);
-    public native long constructListAppendMethod(SymbolForCPython symbolicList);
-    public native long constructListPopMethod(SymbolForCPython symbolicList);
-    public native long constructListInsertMethod(SymbolForCPython symbolicList);
-
+    public native long constructPartiallyAppliedSymbolicMethod(SymbolForCPython self, long methodRef);
     static {
         System.loadLibrary("cpythonadapter");
     }
@@ -1003,5 +999,23 @@ public class CPythonAdapter {
     public static SymbolForCPython symbolicMethodFloat(ConcolicRunContext context, @Nullable SymbolForCPython self, SymbolForCPython[] args) {
         assert(self == null);
         return withTracing(context, new SymbolicMethodParameters("float", null, args), () -> symbolicMethodFloatKt(context, args));
+    }
+
+    @CPythonAdapterJavaMethod(cName = "symbolic_method_list_append")
+    @SymbolicMethod(id = SymbolicMethodId.ListAppend)
+    public static SymbolForCPython symbolicMethodListAppend(ConcolicRunContext context, @Nullable SymbolForCPython self, SymbolForCPython[] args) {
+        return withTracing(context, new SymbolicMethodParameters("list_append", self, args), () -> symbolicMethodListAppendKt(context, self, args));
+    }
+
+    @CPythonAdapterJavaMethod(cName = "symbolic_method_list_insert")
+    @SymbolicMethod(id = SymbolicMethodId.ListInsert)
+    public static SymbolForCPython symbolicMethodListInsert(ConcolicRunContext context, @Nullable SymbolForCPython self, SymbolForCPython[] args) {
+        return withTracing(context, new SymbolicMethodParameters("list_insert", self, args), () -> symbolicMethodListInsertKt(context, self, args));
+    }
+
+    @CPythonAdapterJavaMethod(cName = "symbolic_method_list_pop")
+    @SymbolicMethod(id = SymbolicMethodId.ListPop)
+    public static SymbolForCPython symbolicMethodListPop(ConcolicRunContext context, @Nullable SymbolForCPython self, SymbolForCPython[] args) {
+        return withTracing(context, new SymbolicMethodParameters("list_pop", self, args), () -> symbolicMethodListPopKt(context, self, args));
     }
 }

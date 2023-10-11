@@ -29,17 +29,9 @@ construct_symbolic_method_with_self(JNIEnv *env, jobject symbolic_self, call_typ
     return result;
 }
 
-SymbolicMethod *
-construct_symbolic_method_without_self(call_type call) {
-    assert(methods_holder);
-    SymbolicMethod *result = malloc(sizeof(SymbolicMethod));
-    result->call = call;
-    result->self_reference = 0;
-    add_ref_to_list(&methods_holder, result);
-    return result;
-}
-
 PyObject *
-call_symbolic_method(SymbolicMethod *method, SymbolicAdapter *adapter, PyObject *args, PyObject *kwargs) {
-    return method->call(adapter, method->self_reference, args, kwargs);
+call_symbolic_method(SymbolicMethod *method, ConcolicContext *ctx, PyObject *args, PyObject *kwargs) {
+    if (kwargs)
+        return Py_None;  // TODO
+    return method->call(ctx, method->self_reference, args);
 }
