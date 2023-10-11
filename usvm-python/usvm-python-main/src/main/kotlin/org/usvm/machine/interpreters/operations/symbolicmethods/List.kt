@@ -39,3 +39,10 @@ fun symbolicMethodListExtendKt(ctx: ConcolicRunContext, self: SymbolForCPython?,
     val result = handlerListExtendKt(ctx, self.obj!!, args.first().obj!!)
     return SymbolForCPython(result, 0)
 }
+
+fun symbolicMethodListClearKt(ctx: ConcolicRunContext, self: SymbolForCPython?, args: Array<SymbolForCPython>): SymbolForCPython? {
+    if (self?.obj == null || args.isNotEmpty())
+        return null
+    handlerListClearKt(ctx, self.obj!!)
+    return generateNone(ctx)
+}
