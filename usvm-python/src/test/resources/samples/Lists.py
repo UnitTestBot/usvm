@@ -202,3 +202,9 @@ def insert_usage(x: list, elem):
 def extend_usage(x: list, elem):
     x.extend([1, 2, 3])
     assert x[-1] == elem
+
+
+def clear_usage(x: int):
+    y = [1, 2, 3]
+    y.clear()
+    assert len(y) == x

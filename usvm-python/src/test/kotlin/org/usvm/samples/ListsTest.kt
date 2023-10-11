@@ -401,4 +401,18 @@ class ListsTest : PythonTestRunnerForPrimitiveProgram("Lists", UMachineOptions(s
             )
         )
     }
+
+    @Test
+    fun testClearUsage() {
+        check1WithConcreteRun(
+            constructFunction("clear_usage", listOf(typeSystem.pythonInt)),
+            eq(2),
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, res -> res.selfTypeName == "AssertionError" },
+                { _, res -> res.repr == "None" }
+            )
+        )
+    }
 }

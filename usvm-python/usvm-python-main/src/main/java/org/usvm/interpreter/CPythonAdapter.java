@@ -972,4 +972,12 @@ public class CPythonAdapter {
     }
     @SymbolicMethodDescriptor(nativeTypeName = "PyList_Type", nativeMemberName = "extend")
     public MemberDescriptor listExtendDescriptor = new MethodDescriptor(SymbolicMethodId.ListExtend);
+
+    @CPythonAdapterJavaMethod(cName = "symbolic_method_list_clear")
+    @SymbolicMethod(id = SymbolicMethodId.ListClear)
+    public static SymbolForCPython symbolicMethodListClear(ConcolicRunContext context, @Nullable SymbolForCPython self, SymbolForCPython[] args) {
+        return withTracing(context, new SymbolicMethodParameters("list_clear", self, args), () -> symbolicMethodListClearKt(context, self, args));
+    }
+    @SymbolicMethodDescriptor(nativeTypeName = "PyList_Type", nativeMemberName = "clear")
+    public MemberDescriptor listClearDescriptor = new MethodDescriptor(SymbolicMethodId.ListClear);
 }
