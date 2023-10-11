@@ -47,12 +47,6 @@ public class CPythonAdapter {
     public int pyGE;
     public int pyGT;
 
-    @SymbolicMethodDescriptor(nativeTypeName = "PyList_Type", nativeMemberName = "append")
-    public MemberDescriptor listAppendDescriptor = new MethodDescriptor(SymbolicMethodId.ListAppend);
-    @SymbolicMethodDescriptor(nativeTypeName = "PyList_Type", nativeMemberName = "pop")
-    public MemberDescriptor listPopDescriptor = new MethodDescriptor(SymbolicMethodId.ListPop);
-    @SymbolicMethodDescriptor(nativeTypeName = "PyList_Type", nativeMemberName = "insert")
-    public MemberDescriptor listInsertDescriptor = new MethodDescriptor(SymbolicMethodId.ListInsert);
     @SymbolicMemberDescriptor(nativeTypeName = "PySlice_Type", nativeMemberName = "start")
     public MemberDescriptor sliceStartDescriptor = SliceStartDescriptor.INSTANCE;
     @SymbolicMemberDescriptor(nativeTypeName = "PySlice_Type", nativeMemberName = "stop")
@@ -952,16 +946,30 @@ public class CPythonAdapter {
     public static SymbolForCPython symbolicMethodListAppend(ConcolicRunContext context, @Nullable SymbolForCPython self, SymbolForCPython[] args) {
         return withTracing(context, new SymbolicMethodParameters("list_append", self, args), () -> symbolicMethodListAppendKt(context, self, args));
     }
+    @SymbolicMethodDescriptor(nativeTypeName = "PyList_Type", nativeMemberName = "append")
+    public MemberDescriptor listAppendDescriptor = new MethodDescriptor(SymbolicMethodId.ListAppend);
 
     @CPythonAdapterJavaMethod(cName = "symbolic_method_list_insert")
     @SymbolicMethod(id = SymbolicMethodId.ListInsert)
     public static SymbolForCPython symbolicMethodListInsert(ConcolicRunContext context, @Nullable SymbolForCPython self, SymbolForCPython[] args) {
         return withTracing(context, new SymbolicMethodParameters("list_insert", self, args), () -> symbolicMethodListInsertKt(context, self, args));
     }
+    @SymbolicMethodDescriptor(nativeTypeName = "PyList_Type", nativeMemberName = "insert")
+    public MemberDescriptor listInsertDescriptor = new MethodDescriptor(SymbolicMethodId.ListInsert);
 
     @CPythonAdapterJavaMethod(cName = "symbolic_method_list_pop")
     @SymbolicMethod(id = SymbolicMethodId.ListPop)
     public static SymbolForCPython symbolicMethodListPop(ConcolicRunContext context, @Nullable SymbolForCPython self, SymbolForCPython[] args) {
         return withTracing(context, new SymbolicMethodParameters("list_pop", self, args), () -> symbolicMethodListPopKt(context, self, args));
     }
+    @SymbolicMethodDescriptor(nativeTypeName = "PyList_Type", nativeMemberName = "pop")
+    public MemberDescriptor listPopDescriptor = new MethodDescriptor(SymbolicMethodId.ListPop);
+
+    @CPythonAdapterJavaMethod(cName = "symbolic_method_list_extend")
+    @SymbolicMethod(id = SymbolicMethodId.ListExtend)
+    public static SymbolForCPython symbolicMethodListExtend(ConcolicRunContext context, @Nullable SymbolForCPython self, SymbolForCPython[] args) {
+        return withTracing(context, new SymbolicMethodParameters("list_extend", self, args), () -> symbolicMethodListExtendKt(context, self, args));
+    }
+    @SymbolicMethodDescriptor(nativeTypeName = "PyList_Type", nativeMemberName = "extend")
+    public MemberDescriptor listExtendDescriptor = new MethodDescriptor(SymbolicMethodId.ListExtend);
 }

@@ -48,12 +48,12 @@ private fun listConcat(
     }
 }
 
-fun handlerListExtendKt(ctx: ConcolicRunContext, list: UninterpretedSymbolicPythonObject, tuple: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
+fun handlerListExtendKt(ctx: ConcolicRunContext, list: UninterpretedSymbolicPythonObject, iterable: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
     ctx.curState ?: return null
     val typeSystem = ctx.typeSystem
     list.addSupertypeSoft(ctx, typeSystem.pythonList)
-    tuple.addSupertypeSoft(ctx, typeSystem.pythonTuple)
-    listConcat(ctx, list, tuple, list)
+    iterable.addSupertypeSoft(ctx, ArrayType)
+    listConcat(ctx, list, iterable, list)
     return list
 }
 

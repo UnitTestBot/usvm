@@ -32,3 +32,10 @@ fun symbolicMethodListInsertKt(ctx: ConcolicRunContext, self: SymbolForCPython?,
     handlerListInsertKt(ctx, self.obj!!, args[0].obj!!, args[1].obj!!)
     return generateNone(ctx)
 }
+
+fun symbolicMethodListExtendKt(ctx: ConcolicRunContext, self: SymbolForCPython?, args: Array<SymbolForCPython>): SymbolForCPython? {
+    if (self?.obj == null || args.size != 1 || args.first().obj == null)
+        return null
+    val result = handlerListExtendKt(ctx, self.obj!!, args.first().obj!!)
+    return SymbolForCPython(result, 0)
+}
