@@ -178,3 +178,10 @@ fun handlerListInsertKt(
         list.writeElement(ctx, indValue, value)  // to assert element constraints
     }
 }
+
+fun handlerListClearKt(ctx: ConcolicRunContext, list: UninterpretedSymbolicPythonObject) {
+    ctx.curState ?: return
+    if (list.getTypeIfDefined(ctx) != ctx.typeSystem.pythonList)
+        return
+    ctx.curState!!.memory.writeArrayLength(list.address, ctx.ctx.mkIntNum(0), ArrayType, ctx.ctx.intSort)
+}
