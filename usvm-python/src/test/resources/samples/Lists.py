@@ -197,3 +197,8 @@ def pop_usage_with_index(x: list):
 def insert_usage(x: list, elem):
     x.insert(0, elem)
     assert x[0] == 239
+
+
+def extend_usage(x: list, elem):
+    x.extend([1, 2, 3])
+    assert x[-1] == elem
