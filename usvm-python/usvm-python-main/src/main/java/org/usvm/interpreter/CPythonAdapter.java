@@ -354,17 +354,6 @@ public class CPythonAdapter {
         return methodWrapper(context, new MethodParameters("true_div_long", Arrays.asList(left, right)), () -> handlerTrueDivLongKt(context, left.obj, right.obj));
     }
 
-    @CPythonAdapterJavaMethod(cName = "symbolic_int_cast")
-    @CPythonFunction(
-            argCTypes = {CType.PyObject},
-            argConverters = {ObjectConverter.StandardConverter}
-    )
-    public static SymbolForCPython handlerIntCast(ConcolicRunContext context, SymbolForCPython obj) {
-        if (obj.obj == null)
-            return null;
-        return methodWrapper(context, new MethodParameters("int_cast", Collections.singletonList(obj)), () -> handlerIntCastKt(context, obj.obj));
-    }
-
     @CPythonAdapterJavaMethod(cName = "gt_float")
     @CPythonFunction(
             argCTypes = {CType.PyObject, CType.PyObject},
@@ -475,21 +464,11 @@ public class CPythonAdapter {
         return methodWrapper(context, new MethodParameters("div_float", Arrays.asList(left, right)), () -> handlerDIVFloatKt(context, left.obj, right.obj));
     }
 
-    @CPythonAdapterJavaMethod(cName = "symbolic_float_cast")
-    @CPythonFunction(
-            argCTypes = {CType.PyObject},
-            argConverters = {ObjectConverter.StandardConverter}
-    )
-    public static SymbolForCPython handlerFloatCast(ConcolicRunContext context, SymbolForCPython obj) {
-        if (obj.obj == null)
-            return null;
-        return methodWrapper(context, new MethodParameters("float_cast", Collections.singletonList(obj)), () -> handlerFloatCastKt(context, obj.obj));
-    }
-
     @CPythonAdapterJavaMethod(cName = "bool_and")
     @CPythonFunction(
             argCTypes = {CType.PyObject, CType.PyObject},
-            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter},
+            addToSymbolicAdapter = false
     )
     public static SymbolForCPython handlerAND(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
         if (left.obj == null || right.obj == null)
@@ -664,39 +643,6 @@ public class CPythonAdapter {
         if (iterator.obj == null)
             return null;
         return methodWrapper(context, new MethodParameters("list_iterator_next", Collections.singletonList(iterator)), () -> handlerListIteratorNextKt(context, iterator.obj));
-    }
-
-    @CPythonAdapterJavaMethod(cName = "list_pop")
-    @CPythonFunction(
-            argCTypes = {CType.PyObject},
-            argConverters = {ObjectConverter.StandardConverter}
-    )
-    public static SymbolForCPython handlerListPop(ConcolicRunContext context, SymbolForCPython list) {
-        if (list.obj == null)
-            return null;
-        return methodWrapper(context, new MethodParameters("list_pop", Collections.singletonList(list)), () -> handlerListPopKt(context, list.obj));
-    }
-
-    @CPythonAdapterJavaMethod(cName = "list_pop_ind")
-    @CPythonFunction(
-            argCTypes = {CType.PyObject, CType.PyObject},
-            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
-    )
-    public static SymbolForCPython handlerListPopInd(ConcolicRunContext context, SymbolForCPython list, SymbolForCPython ind) {
-        if (list.obj == null || ind.obj == null)
-            return null;
-        return methodWrapper(context, new MethodParameters("list_pop", Arrays.asList(list, ind)), () -> handlerListPopIndKt(context, list.obj, ind.obj));
-    }
-
-    @CPythonAdapterJavaMethod(cName = "list_insert")
-    @CPythonFunction(
-            argCTypes = {CType.PyObject, CType.PyObject, CType.PyObject},
-            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
-    )
-    public static void handlerListInsert(ConcolicRunContext context, SymbolForCPython list, SymbolForCPython index, SymbolForCPython value) {
-        if (list.obj == null || index.obj == null || value.obj == null)
-            return;
-        withTracing(context, new MethodParametersNoReturn("list_insert", Arrays.asList(list, index, value)), unit(() -> handlerListInsertKt(context, list.obj, index.obj, value.obj)));
     }
 
     @CPythonAdapterJavaMethod(cName = "tuple_get_size")
