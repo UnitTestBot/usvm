@@ -6,7 +6,7 @@ Current CPython patch: https://github.com/tochilinak/cpython/pull/3/files.
 
 All interaction between CPython and USVM is done through structure `SymbolicAdapter`.
 
-Header: `symbolicadapter.h`.
+Header: [`symbolicadapter.h`](https://github.com/tochilinak/cpython/blob/wrapper-v2/Include/symbolicadapter.h).
 
 Creation of symbolic adapter:
 ```c
