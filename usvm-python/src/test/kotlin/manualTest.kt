@@ -38,14 +38,15 @@ private fun buildSampleRunConfig(): RunConfig {
                     return 1
                 return 2
 
-            def f(x: list, elem):
-                x.extend([1, 2, 3])
-                assert x[-1] == elem
+            def f(x: int):
+                y = [1, 2, 3]
+                y.clear()
+                assert len(y) == x
 
         """.trimIndent()
     )
     val function = PythonUnpinnedCallable.constructCallableFromName(
-        listOf(typeSystem.pythonList, PythonAnyType),
+        listOf(typeSystem.pythonInt),
         "f"
     )
     val functions = listOf(function)
