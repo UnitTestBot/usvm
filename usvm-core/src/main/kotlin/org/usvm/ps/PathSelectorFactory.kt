@@ -15,13 +15,32 @@ import org.usvm.targets.UTarget
 import kotlin.math.max
 import kotlin.random.Random
 
+interface TargetWeight : Comparable<TargetWeight> {
+    fun toDouble(): Double
+    fun compareRhs(other: TargetWeight): Int
+}
+
+class TargetUIntWeight(val value: UInt) : TargetWeight {
+    override fun compareTo(other: TargetWeight): Int =
+        if (other is TargetUIntWeight) {
+            value.compareTo(other.value)
+        } else {
+            -(other.compareRhs(this))
+        }
+
+    override fun toDouble(): Double = value.toDouble()
+
+    // UInt weight always greater than other
+    override fun compareRhs(other: TargetWeight): Int = 1
+}
+
 fun <Method, Statement, Target, State> createPathSelector(
     initialState: State,
     options: UMachineOptions,
     applicationGraph: ApplicationGraph<Method, Statement>,
     coverageStatistics: () -> CoverageStatistics<Method, Statement, State>? = { null },
     cfgStatistics: () -> CfgStatistics<Method, Statement>? = { null },
-    targetWeighter: (PathSelectionStrategy) -> StateWeighter<State, UInt>? = { null },
+    targetWeighter: (PathSelectionStrategy) -> StateWeighter<State, TargetWeight>? = { null },
 ): UPathSelector<State>
         where Target : UTarget<Statement, Target>,
               State : UState<*, Method, Statement, *, Target, State> {
@@ -196,7 +215,7 @@ private fun <Method, Statement, State : UState<*, Method, Statement, *, *, State
 }
 
 internal fun <Method, Statement, Target, State> createTargetedPathSelector(
-    targetWeighter: StateWeighter<State, UInt>,
+    targetWeighter: StateWeighter<State, TargetWeight>,
     random: Random? = null,
 ): UPathSelector<State>
         where Target : UTarget<Statement, Target>,
