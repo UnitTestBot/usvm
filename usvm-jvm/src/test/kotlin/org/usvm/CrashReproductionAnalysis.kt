@@ -47,9 +47,7 @@ class DistanceTargetWeight(val distance: Distance) : TargetWeight {
         -other.compareRhs(this)
     }
 
-    override fun compareRhs(other: TargetWeight): Int {
-        TODO("Not yet implemented")
-    }
+    override fun compareRhs(other: TargetWeight): Int = -1
 
     override fun toDouble(): Double {
         TODO("Not yet implemented")
