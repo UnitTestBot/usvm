@@ -104,26 +104,22 @@ class ConcreteDistance(
             otherRoot.parent = this
             child = otherRoot
 
+            otherRoot.updateParentBias()
+
             other
         }
     }
 
     override fun addBias(bias: UInt): Distance {
-        val newValue = value + bias
-        if (newValue <= maxValue) {
-            value = newValue
-            return this
-        }
-
-        if (parent == null) {
-            value = maxValue
-            return this
-        }
-
-        val parentBias = newValue / (maxValue + 1u)
-        parent?.addBias(parentBias)
-        value = newValue % (maxValue + 1u)
+        value += bias
+        updateParentBias()
         return this
+    }
+
+    private fun updateParentBias() {
+        val parent = parent ?: return
+        parent.addBias(value / (maxValue + 1u))
+        value %= (maxValue + 1u)
     }
 
     override fun root(): Distance {
