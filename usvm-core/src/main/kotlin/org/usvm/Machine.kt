@@ -48,7 +48,9 @@ abstract class UMachine<State> : AutoCloseable {
                     } else {
                         // TODO: distinguish between states terminated by exception (runtime or user) and
                         //  those which just exited
-                        observer.onStateTerminated(forkedState, stateReachable = true)
+                        @Suppress("UNCHECKED_CAST")
+                        val isSat = (forkedState as UState<Any, *, *, UContext<*>, *, *>).verify()
+                        observer.onStateTerminated(forkedState, stateReachable = isSat != null)
                     }
                 }
 
@@ -56,7 +58,10 @@ abstract class UMachine<State> : AutoCloseable {
                     pathSelector.update(state)
                 } else {
                     pathSelector.remove(state)
-                    observer.onStateTerminated(state, stateReachable = stateAlive)
+
+                    @Suppress("UNCHECKED_CAST")
+                    val isSat = (state as UState<Any, *, *, UContext<*>, *, *>).verify()
+                    observer.onStateTerminated(state, stateReachable = stateAlive && isSat != null)
                 }
 
                 if (aliveForkedStates.isNotEmpty()) {

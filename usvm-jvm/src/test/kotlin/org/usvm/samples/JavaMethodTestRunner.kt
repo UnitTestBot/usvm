@@ -759,8 +759,9 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
         val jcMethod = jcClass.declaredMethods.first { it.name == method.name }
 
         JcMachine(cp, options, interpreterObserver).use { machine ->
-            val states = machine.analyze(jcMethod.method, targets)
-            states.map { testResolver.resolve(jcMethod, it) }
+            val allStates = machine.analyze(jcMethod.method, targets)
+            val satStates = allStates.filter { it.verify() != null }
+            satStates.map { testResolver.resolve(jcMethod, it) }
         }
     }
 

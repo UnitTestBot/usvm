@@ -119,6 +119,18 @@ abstract class UState<Type, Method, Statement, Context, Target, State>(
 
         return true
     }
+
+    fun verify(): Unit? {
+        val solver = ctx.solver<Type>()
+        val satResult = solver.checkWithSoftConstraints(pathConstraints)
+
+        if (satResult !is USatResult) {
+            return null
+        }
+
+        models = listOf(satResult.model)
+        return Unit
+    }
 }
 
 data class ForkResult<T>(
@@ -142,6 +154,7 @@ private const val OriginalState = false
  * forked state.
  *
  */
+//@Suppress("KotlinConstantConditions")
 private fun <T : UState<Type, *, *, Context, *, T>, Type, Context : UContext<*>> forkIfSat(
     state: T,
     newConstraintToOriginalState: UBoolExpr,
@@ -158,6 +171,7 @@ private fun <T : UState<Type, *, *, Context, *, T>, Type, Context : UContext<*>>
     }
     val solver = state.ctx.solver<Type>()
     val satResult = solver.checkWithSoftConstraints(constraintsToCheck)
+//    val satResult: USolverResult<UModelBase<Type>> = USatResult(state.models.single())
 
     return when (satResult) {
         is UUnsatResult -> null
@@ -208,14 +222,35 @@ fun <T : UState<Type, *, *, Context, *, T>, Type, Context : UContext<*>> fork(
 ): ForkResult<T> {
     val (trueModels, falseModels) = state.models.partition { model ->
         val holdsInModel = model.eval(condition)
-        check(holdsInModel is KInterpretedValue<UBoolSort>) {
-            "Evaluation in model: expected true or false, but got $holdsInModel"
-        }
+//        check(holdsInModel is KInterpretedValue<UBoolSort>) {
+//            "Evaluation in model: expected true or false, but got $holdsInModel"
+//        }
         holdsInModel.isTrue
     }
 
     val notCondition = state.ctx.mkNot(condition)
-    val (posState, negState) = when {
+
+    val clonedPathConstraints = state.pathConstraints.clone()
+    clonedPathConstraints += condition
+
+    val (posState, negState) = if (clonedPathConstraints.isFalse) {
+        null to state.also {
+            it.pathConstraints += notCondition
+            it.models = falseModels.ifEmpty { state.models }
+        }.takeIf { !it.pathConstraints.isFalse }
+    } else {
+        val falseState = state.clone()
+
+        state.also {
+            // TODO how to use "clonedPathConstraints" here?
+            it.pathConstraints += condition
+            it.models = trueModels.ifEmpty { state.models }
+        } to falseState.also {
+            it.pathConstraints += notCondition
+            it.models = falseModels.ifEmpty { state.models }
+        }.takeIf { !it.pathConstraints.isFalse }
+    }
+    /*val (posState, negState) = when {
 
         trueModels.isNotEmpty() && falseModels.isNotEmpty() -> {
             val posState = state
@@ -229,15 +264,51 @@ fun <T : UState<Type, *, *, Context, *, T>, Type, Context : UContext<*>> fork(
             posState to negState
         }
 
-        trueModels.isNotEmpty() -> state to forkIfSat(
+        *//*trueModels.isNotEmpty() -> state to *//**//*forkIfSat(
             state,
             newConstraintToOriginalState = condition,
             newConstraintToForkedState = notCondition,
             stateToCheck = ForkedState
-        )
+        )*//**//*state.clone().run {
+            state.pathConstraints += condition
+            state.models = trueModels
+
+            pathConstraints += notCondition
+
+            this.takeIf { !pathConstraints.isFalse }
+            // TODO how to get a "false" model?
+
+            // TODO КРИНЖ!!!
+            *//**//*val trueModel = trueModels.first()
+            class FalseModel: UModelBase<Type>(state.ctx, trueModel.stack, trueModel.types, trueModel.mocker, trueModel.regions, trueModel.nullRef) {
+                override fun <Sort : USort> eval(expr: UExpr<Sort>): UExpr<Sort> {
+                    if (expr === notCondition) {
+                        return state.ctx.trueExpr.cast()
+                    }
+
+                    if (expr === condition) {
+                        return state.ctx.falseExpr.cast()
+                    }
+
+                    return trueModel.eval(expr)
+                }
+            }
+            val falseModel = FalseModel()
+            it.models = listOf(falseModel)*//**//*
+        }*//*
+        trueModels.isNotEmpty() -> {
+            val negState = state.clone()
+
+            state.also {
+                it.pathConstraints += condition
+                it.models = trueModels
+            } to negState.also {
+                it.pathConstraints += notCondition
+            }.takeIf { !it.pathConstraints.isFalse }
+        }
 
         falseModels.isNotEmpty() -> {
-            val forkedState = forkIfSat(
+            *//*val forkedState = forkIfSat(
                 state,
                 newConstraintToOriginalState = condition,
                 newConstraintToForkedState = notCondition,
@@ -248,11 +319,30 @@ fun <T : UState<Type, *, *, Context, *, T>, Type, Context : UContext<*>> fork(
                 state to forkedState
             } else {
                 null to state
+            }*//*
+            val clonedPathConstraints = state.pathConstraints.clone()
+            clonedPathConstraints += condition
+
+            if (clonedPathConstraints.isFalse) {
+                null to state.also {
+                    it.pathConstraints += notCondition
+                    it.models = falseModels
+                }
+            } else {
+                val falseState = state.clone()
+
+                state.also {
+                    // TODO how to use "clonedPathConstraints" here?
+                    it.pathConstraints += condition
+                } to falseState.also {
+                    it.pathConstraints += notCondition
+                    it.models = falseModels
+                }
             }
         }
 
         else -> error("[trueModels] and [falseModels] are both empty, that has to be impossible by construction!")
-    }
+    }*/
 
     return ForkResult(posState, negState)
 }
@@ -278,31 +368,61 @@ fun <T : UState<Type, *, *, Context, *, T>, Type, Context : UContext<*>> forkMul
             holdsInModel.isTrue
         }
 
-        val nextRoot = if (trueModels.isNotEmpty()) {
+        /*val nextRoot = if (trueModels.isNotEmpty()) {
             val root = curState.clone()
             curState.models = trueModels
             curState.pathConstraints += condition
 
             root
         } else {
-            val root = forkIfSat(
+            *//*val root = forkIfSat(
                 curState,
                 newConstraintToOriginalState = condition,
                 newConstraintToForkedState = condition.ctx.trueExpr,
                 stateToCheck = OriginalState,
                 addConstraintOnUnknown = false
-            )
+            )*//*
+            val clonedState = curState.clone()
+            curState.pathConstraints += condition
+            val root = clonedState.takeIf { !curState.pathConstraints.isFalse }
 
             root
-        }
+        }*/
+        val clonedConstraints = curState.pathConstraints.clone()
+        clonedConstraints += condition
 
-        if (nextRoot != null) {
+        if (clonedConstraints.isFalse) {
+            result += null
+        } else {
+            val nextRoot = curState.clone()
+
+            curState.models = trueModels.ifEmpty { state.models }
+            // TODO how to reuse "clonedConstraints"?
+            curState.pathConstraints += condition
+
             result += curState
             curState = nextRoot
-        } else {
-            result += null
         }
+
+//        if (nextRoot != null) {
+//            result += curState
+//            curState = nextRoot
+//        } else {
+//            result += null
+//        }
     }
 
     return result
 }
+
+//fun <T : UState<Type, *, *, Context, *, T>, Type, Context : UContext<*>> T.verify(): Unit? {
+//    val solver = ctx.solver<Type>()
+//    val satResult = solver.checkWithSoftConstraints(pathConstraints)
+//
+//    if (satResult !is USatResult) {
+//        return null
+//    }
+//
+//    models = listOf(satResult.model)
+//    return Unit
+//}

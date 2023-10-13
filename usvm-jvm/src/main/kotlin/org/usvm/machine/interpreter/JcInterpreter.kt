@@ -513,7 +513,12 @@ class JcInterpreter(
         forkOnRemainingTypes: Boolean,
     ): Unit = with(methodCall) {
         val instance = arguments.first().asExpr(ctx.addressSort)
-        val concreteRef = scope.calcOnState { models.first().eval(instance) } as UConcreteHeapRef
+
+        val satModels = scope.verify()?.models?.also {
+            scope.doWithState { models = it }
+        } ?: return@with
+
+        val concreteRef = scope.calcOnState { satModels.first().eval(instance) } as UConcreteHeapRef
 
         if (isAllocatedConcreteHeapRef(concreteRef) || isStaticHeapRef(concreteRef)) {
             // We have only one type for allocated and static heap refs
@@ -532,12 +537,12 @@ class JcInterpreter(
 
         val typeStream = scope.calcOnState { models.first().typeStreamOf(concreteRef) }
 
-            val inheritors = typeSelector.choose(method, typeStream)
-            val typeConstraints = inheritors.map { type ->
-                scope.calcOnState {
-                    memory.types.evalTypeEquals(instance, type)
-                }
+        val inheritors = typeSelector.choose(method, typeStream)
+        val typeConstraints = inheritors.map { type ->
+            scope.calcOnState {
+                memory.types.evalTypeEquals(instance, type)
             }
+        }
 
         val typeConstraintsWithBlockOnStates = mutableListOf<Pair<UBoolExpr, (JcState) -> Unit>>()
 

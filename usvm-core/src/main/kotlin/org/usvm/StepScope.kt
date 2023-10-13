@@ -228,6 +228,15 @@ class StepScope<T : UState<Type, *, Statement, Context, *, T>, Type, Statement, 
         }
     }
 
+    fun verify(): T? {
+        originalState.verify()?.let {
+            return originalState
+        }
+
+        stepScopeState = DEAD
+        return null
+    }
+
     /**
      * Represents the current state of this [StepScope].
      */
