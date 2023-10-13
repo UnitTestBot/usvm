@@ -2,6 +2,9 @@ package org.usvm
 
 import org.jacodb.api.ext.findClass
 import org.jacodb.api.ext.methods
+import org.usvm.api.targets.CrashReproductionExceptionTarget
+import org.usvm.api.targets.CrashReproductionLocationTarget
+import org.usvm.api.targets.reproduceCrash
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.samples.TraceSample
 import kotlin.test.Test

@@ -17,7 +17,7 @@ val `usvm-api` by sourceSets.creating {
 
 val approximations by configurations.creating
 val approximationsRepo = "com.github.UnitTestBot.java-stdlib-approximations"
-val approximationsVersion = "45bda7c66a"
+val approximationsVersion = "9d9c36029a"
 
 dependencies {
     implementation(project(":usvm-core"))
@@ -65,6 +65,22 @@ val `usvm-api-jar` = tasks.register<Jar>("usvm-api-jar") {
 }
 
 tasks.withType<Test> {
+    dependsOn(`usvm-api-jar`)
+
+    val usvmApiJarPath = `usvm-api-jar`.get().outputs.files.singleFile
+    val usvmApproximationJarPath = approximations.resolvedConfiguration.files.single()
+
+    environment("usvm.jvm.api.jar.path", usvmApiJarPath.absolutePath)
+    environment("usvm.jvm.approximations.jar.path", usvmApproximationJarPath.absolutePath)
+}
+
+tasks.register<JavaExec>("crashReproduction") {
+    mainClass.set("org.usvm.JCrashRunnerKt")
+    classpath = sourceSets.test.get().runtimeClasspath
+
+    val jCrashPackPath = project.findProperty("jCrashPackPath") ?: "."
+    args(jCrashPackPath)
+
     dependsOn(`usvm-api-jar`)
 
     val usvmApiJarPath = `usvm-api-jar`.get().outputs.files.singleFile
