@@ -4,6 +4,7 @@ import org.jacodb.api.JcClassOrInterface
 import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcMethod
 import org.jacodb.api.cfg.JcInst
+import org.jacodb.api.ext.cfg.callExpr
 import org.jacodb.api.ext.toType
 import org.usvm.PathSelectionStrategy
 import org.usvm.SolverType
@@ -16,7 +17,6 @@ import org.usvm.machine.JcInterpreterObserver
 import org.usvm.machine.JcMachine
 import org.usvm.machine.JcMachineOptions
 import org.usvm.machine.JcTargetWeighter
-import org.usvm.machine.JcVirtualMethodCallInst
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.ps.TargetWeight
@@ -455,33 +455,27 @@ private class CrashReproductionAnalysis(
     override fun onState(parent: JcState, forks: Sequence<JcState>) {
         collectStateStats(parent)
 
+        propagateLocationTarget(parent)
         propagateExceptionTarget(parent)
-        propagatePrevLocationTarget(parent)
 
         forks.forEach {
+            propagateLocationTarget(it)
             propagateExceptionTarget(it)
-            propagatePrevLocationTarget(it)
         }
 
-        logger.info {
+        logger.debug {
             val targets = parent.targets.toList()
             parent.currentStatement.printInst().padEnd(120) + "@@@  " + "$targets"
         }
     }
 
-    private fun propagateCurrentLocationTarget(state: JcState) =
-        propagateLocationTarget(state) { it.currentStatement.originalInst() }
-
-    private fun propagatePrevLocationTarget(state: JcState) = propagateLocationTarget(state) {
-        it.pathLocation.parent?.statement?.originalInst() ?: error("This is impossible by construction")
-    }
-
-    private inline fun propagateLocationTarget(state: JcState, stmt: (JcState) -> JcInst) {
-        if (state.currentStatement is JcVirtualMethodCallInst) {
+    private fun propagateLocationTarget(state: JcState) {
+        val stateLocation = state.currentStatement.originalInst()
+        // todo: don't delay target propagation, change weighter instead
+        if (stateLocation.callExpr != null && state.currentStatement !is JcConcreteMethodCallInst) {
             return
         }
 
-        val stateLocation = stmt(state)
         val targets = state.targets
             .filterIsInstance<CrashReproductionLocationTarget>()
             .filter {

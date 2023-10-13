@@ -318,7 +318,7 @@ private fun analyzeCrash(cp: JcClasspath, trace: CrashTrace, crash: CrashPackCra
     logger.warn { "\n${trace.original}" }
 
     val exceptionType = cp.findClassOrNull(trace.exception.className) ?: return
-    val target = createTargets(cp, exceptionType, trace.entries.drop(5)) ?: return
+    val target = createTargets(cp, exceptionType, trace.entries) ?: return
 
     logger.warn {
         buildString {

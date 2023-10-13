@@ -22,7 +22,9 @@ class JcFixedInheritorsNumberTypeSelector(
             .sortedByDescending { type -> typeScore(method, type) }
             .take(inheritorsNumberToChoose)
             .also {
-                logger.info { "Select types for ${method.enclosingClass.name} : ${it.map { it.typeName }}" }
+                if (it.size != 1) {
+                    logger.info { "Select types for ${method.enclosingClass.name} : ${it.map { it.typeName }}" }
+                }
             }
     }
 
