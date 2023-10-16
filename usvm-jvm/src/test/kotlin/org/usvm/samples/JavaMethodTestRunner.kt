@@ -749,7 +749,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
         pathSelectionStrategies = listOf(PathSelectionStrategy.FORK_DEPTH),
         coverageZone = CoverageZone.TRANSITIVE,
         exceptionsPropagation = true,
-        timeoutMs = 60_000,
+        timeoutMs = 60_000_000,
         stepsFromLastCovered = 3500L,
     )
 

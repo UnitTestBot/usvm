@@ -8,7 +8,7 @@ import org.usvm.machine.logger
 import org.usvm.types.UTypeStream
 
 interface JcTypeSelector {
-    fun choose(method: JcMethod, typeStream: UTypeStream<JcType>): Collection<JcType>
+    fun choose(method: JcMethod, typeStream: UTypeStream<out JcType>): Collection<JcType>
 }
 
 class JcFixedInheritorsNumberTypeSelector(
@@ -16,7 +16,7 @@ class JcFixedInheritorsNumberTypeSelector(
     private val inheritorsNumberToSelectFrom: Int = DEFAULT_INHERITORS_NUMBER_TO_SCORE,
 ) : JcTypeSelector {
 
-    override fun choose(method: JcMethod, typeStream: UTypeStream<JcType>): Collection<JcType> {
+    override fun choose(method: JcMethod, typeStream: UTypeStream<out JcType>): Collection<JcType> {
         return typeStream
             .take(inheritorsNumberToSelectFrom)
             .sortedByDescending { type -> typeScore(method, type) }
