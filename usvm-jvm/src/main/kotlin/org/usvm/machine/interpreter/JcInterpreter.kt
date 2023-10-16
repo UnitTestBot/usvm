@@ -514,9 +514,9 @@ class JcInterpreter(
     ): Unit = with(methodCall) {
         val instance = arguments.first().asExpr(ctx.addressSort)
 
-        val satModels = scope.verify()?.models?.also {
+        val satModels = /*scope.verify()?.models?.also {
             scope.doWithState { models = it }
-        } ?: return@with
+        } ?: return@with*/scope.calcOnState { models }
 
         val concreteRef = scope.calcOnState { satModels.first().eval(instance) } as UConcreteHeapRef
 
