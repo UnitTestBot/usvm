@@ -93,6 +93,7 @@ fun modelEnsureConcreteInputRef(ref: UHeapRef): UConcreteHeapRef {
     // All the expressions in the model are interpreted, therefore, they must
     // have concrete addresses. Moreover, the model knows only about input values
     // which have addresses less or equal than INITIAL_INPUT_ADDRESS
-    require(ref is UConcreteHeapRef && ref.address <= INITIAL_INPUT_ADDRESS) { "Unexpected ref: $ref" }
+//    require(ref is UConcreteHeapRef && ref.address <= INITIAL_INPUT_ADDRESS) { "Unexpected ref: $ref" }
+    require(ref is UConcreteHeapRef) { "Unexpected ref: $ref" }
     return ref
 }

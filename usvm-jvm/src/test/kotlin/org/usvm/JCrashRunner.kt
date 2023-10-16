@@ -12,6 +12,7 @@ import kotlinx.serialization.json.encodeToStream
 import org.jacodb.api.JcClassOrInterface
 import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcMethod
+import org.jacodb.api.JcType
 import org.jacodb.api.cfg.JcInst
 import org.jacodb.api.cfg.JcThrowInst
 import org.jacodb.api.ext.cfg.callExpr
@@ -21,11 +22,14 @@ import org.jacodb.approximation.Approximations
 import org.jacodb.impl.features.InMemoryHierarchy
 import org.jacodb.impl.features.classpaths.UnknownClasses
 import org.jacodb.impl.jacodb
+import org.jacodb.typesolver.TypeSolverQuery
+import org.jacodb.typesolver.dumpTypeSolverQueries
 import org.usvm.api.targets.CrashReproductionExceptionTarget
 import org.usvm.api.targets.CrashReproductionLocationTarget
 import org.usvm.api.targets.CrashReproductionTarget
 import org.usvm.api.targets.printTarget
 import org.usvm.api.targets.reproduceCrash
+import org.usvm.types.UTypeRegion
 import org.usvm.util.classpathWithApproximations
 import java.nio.file.Path
 import java.util.concurrent.CompletableFuture
@@ -128,13 +132,13 @@ fun parseCrashTraces(crashPackPath: Path, crashPack: CrashPack) {
 
     val traces = parsed.associate { it.first.id to it.second }
 
-    val crashPackTracesPath = crashPackPath / "traces.json"
+    val crashPackTracesPath = crashPackPath / "traces2.json"
     Json.encodeToStream(traces, crashPackTracesPath.outputStream())
 }
 
 @OptIn(ExperimentalSerializationApi::class)
 fun loadCrashTraces(crashPackPath: Path): Map<String, CrashTrace> {
-    val crashPackTracesPath = crashPackPath / "traces.json"
+    val crashPackTracesPath = crashPackPath / "traces2.json"
     return Json.decodeFromStream(crashPackTracesPath.inputStream())
 }
 
@@ -273,7 +277,7 @@ fun analyzeCrashes(crashPackPath: Path, crashPack: CrashPack, traces: Map<String
         .sortedBy { it.id }
         .filter { it.id !in badIds }
 //        .filter { it.id in goodIds }
-        .filter { it.id == idToCheck }
+//        .filter { it.id == idToCheck }
 
     for (crash in crashes) {
         val trace = traces[crash.id] ?: continue
@@ -305,11 +309,31 @@ fun analyzeCrash(crashPackPath: Path, crash: CrashPackCrash, trace: CrashTrace) 
         }
 
         jccp.use { cp ->
-            runWithHardTimout(30.minutes) {
-                analyzeCrash(cp, trace, crash)
+            try {
+                UTypeRegion.clear()
+                runWithHardTimout(30.minutes) {
+                    analyzeCrash(cp, trace, crash)
+                }
+            } finally {
+                @Suppress("UNCHECKED_CAST")
+                dumpTypeSolverQueries(crash.id, UTypeRegion.queries as List<UTypeRegion.Companion.Query<JcType>>)
+                UTypeRegion.clear()
             }
         }
     }
+}
+
+private fun dumpTypeSolverQueries(
+    crashId: String,
+    queries: List<UTypeRegion.Companion.Query<JcType>>
+) {
+    val querySet = queries.toHashSet()
+    val dumped = dumpTypeSolverQueries(
+        crashId,
+        querySet.map { TypeSolverQuery(it.supertypes, it.notSupertypes, it.subtypes, it.notSubtypes) }
+    )
+
+    logger.warn { "DUMP TYPE QUERIES FOR $crashId: ${querySet.size} -> $dumped" }
 }
 
 private fun analyzeCrash(cp: JcClasspath, trace: CrashTrace, crash: CrashPackCrash) {

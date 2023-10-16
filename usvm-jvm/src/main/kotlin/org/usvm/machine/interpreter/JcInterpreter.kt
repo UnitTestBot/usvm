@@ -29,7 +29,9 @@ import org.jacodb.api.cfg.JcThis
 import org.jacodb.api.cfg.JcThrowInst
 import org.jacodb.api.ext.boolean
 import org.jacodb.api.ext.cfg.callExpr
+import org.jacodb.api.ext.findTypeOrNull
 import org.jacodb.api.ext.isEnum
+import org.jacodb.api.ext.objectType
 import org.jacodb.api.ext.void
 import org.usvm.ForkCase
 import org.usvm.StepResult
@@ -584,7 +586,7 @@ class JcInterpreter(
     }
 
     private fun mockMethod(scope: JcStepScope, methodCall: JcMethodCall) {
-        val returnType = with(applicationGraph) { methodCall.method.typed }.returnType
+        val returnType = ctx.cp.findTypeOrNull(methodCall.method.returnType) ?: ctx.cp.objectType
         mockMethod(scope, methodCall, returnType)
     }
 

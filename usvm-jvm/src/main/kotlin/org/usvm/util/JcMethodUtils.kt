@@ -1,11 +1,13 @@
 package org.usvm.util
 
 import org.jacodb.api.JcArrayType
+import org.jacodb.api.JcClassOrInterface
 import org.jacodb.api.JcClassType
 import org.jacodb.api.JcMethod
 import org.jacodb.api.JcType
 import org.jacodb.api.JcTypedMethod
 import org.jacodb.api.ext.findMethodOrNull
+import org.jacodb.api.ext.packageName
 import org.jacodb.api.ext.toType
 import org.jacodb.impl.features.classpaths.JcUnknownType
 
@@ -50,3 +52,7 @@ private fun JcClassType.findClassMethod(name: String, desc: String): JcTypedMeth
 
     return null
 }
+
+fun JcClassOrInterface.print(): String = "${packageName}.${simpleName}"
+
+fun JcMethod.print(): String = "${enclosingClass.print()}#${name}"

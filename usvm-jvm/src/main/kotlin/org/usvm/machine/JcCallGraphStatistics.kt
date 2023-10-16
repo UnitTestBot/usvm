@@ -8,6 +8,7 @@ import org.usvm.statistics.distances.CallGraphStatistics
 import org.usvm.types.UTypeStream
 import org.usvm.util.canBeOverridden
 import org.usvm.util.findMethod
+import org.usvm.util.print
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -38,11 +39,12 @@ class JcCallGraphStatistics(
             typeStream
                 .filterBySupertype(method.enclosingClass.toType())
                 .take(subclassesToTake)
-                .mapTo(result) {
+                .mapNotNullTo(result) {
                     val calleeMethod = it.findMethod(method)?.method
-                    checkNotNull(calleeMethod) {
-                        "Cannot find overridden method $method in type $it"
+                    if (calleeMethod == null) {
+                        logger.warn { "Cannot find overridden method ${method.print()} in type ${it.typeName}" }
                     }
+                    calleeMethod
                 }
         }
 

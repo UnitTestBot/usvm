@@ -1,6 +1,7 @@
 package org.usvm.types
 
 import kotlinx.collections.immutable.PersistentSet
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentSetOf
 import org.usvm.regions.Region
 
@@ -21,7 +22,10 @@ class UTypeRegion<Type>(
      */
     private fun contradiction() = UTypeRegion(typeSystem, emptyTypeStream())
 
-    override val isEmpty: Boolean get() = typeStream.isEmpty
+    override val isEmpty: Boolean get() {
+        logQuery()
+        return typeStream.isEmpty
+    }
 
     private val <Type> UTypeRegion<Type>.size: Int
         get() = supertypes.size + notSupertypes.size + subtypes.size + notSubtypes.size
@@ -265,6 +269,12 @@ class UTypeRegion<Type>(
         notSubtypes: PersistentSet<Type> = this.notSubtypes,
     ) = UTypeRegion(typeSystem, typeStream, supertypes, notSupertypes, subtypes, notSubtypes)
 
+    private fun logQuery() {
+        val query = Query(supertypes, notSupertypes, subtypes, notSubtypes)
+        if (query.isEmpty) return
+        queries.add(query)
+    }
+
     companion object {
         fun <Type> fromSingleType(typeSystem: UTypeSystem<Type>, type: Type): UTypeRegion<Type> = UTypeRegion(
             typeSystem,
@@ -272,5 +282,22 @@ class UTypeRegion<Type>(
             supertypes = persistentSetOf(type),
             subtypes = persistentSetOf(type)
         )
+
+        var queries: MutableList<Query<*>> = persistentListOf<Query<*>>().builder()
+            private set
+
+        fun clear() {
+            queries = persistentListOf<Query<*>>().builder()
+        }
+
+        data class Query<Type>(
+            val supertypes: PersistentSet<Type>,
+            val notSupertypes: PersistentSet<Type>,
+            val subtypes: PersistentSet<Type>,
+            val notSubtypes: PersistentSet<Type>,
+        ) {
+            val isEmpty: Boolean
+                get() = supertypes.isEmpty() && notSubtypes.isEmpty() && subtypes.isEmpty() && notSubtypes.isEmpty()
+        }
     }
 }

@@ -3,6 +3,10 @@ plugins {
     kotlin("plugin.serialization") version "1.8.22"
 }
 
+repositories {
+    mavenLocal()
+}
+
 val samples by sourceSets.creating {
     java {
         srcDir("src/samples/java")
@@ -47,6 +51,9 @@ dependencies {
     testImplementation(approximationsRepo, "tests", approximationsVersion)
 
     testImplementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
+
+    testImplementation("com.google.code.gson:gson:2.8.9")
+    testImplementation(files("C:\\Users\\vwx1181288\\IdeaProjects\\jacodb\\jacodb-type-solver\\build\\libs\\jacodb-type-solver-1.4-SNAPSHOT.jar"))
 }
 
 val samplesImplementation: Configuration by configurations.getting
