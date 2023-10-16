@@ -1,8 +1,9 @@
 package org.usvm.api
 
+import org.usvm.StepScope
+import org.usvm.UBoolExpr
 import org.usvm.UExpr
 import org.usvm.UHeapRef
-import org.usvm.USizeExpr
 import org.usvm.USort
 import org.usvm.UState
 import org.usvm.uctx
@@ -16,22 +17,28 @@ fun <Method, T : USort> UState<*, Method, *, *, *, *>.makeSymbolicPrimitive(
     return memory.mock { call(lastEnteredMethod, emptySequence(), sort) }
 }
 
-fun <Type, Method> UState<Type, Method, *, *, *, *>.makeSymbolicRef(type: Type): UHeapRef {
-    val ref = memory.mock { call(lastEnteredMethod, emptySequence(), memory.ctx.addressSort) }
+fun <Type, Method, State> StepScope<State, Type, *, *>.makeSymbolicRef(
+    type: Type
+): UHeapRef? where State : UState<Type, Method, *, *, *, State> =
+    mockSymbolicRef { memory.types.evalTypeEquals(it, type) }
 
-    memory.types.addSubtype(ref, type)
-    memory.types.addSupertype(ref, type)
+fun <Type, Method, State> StepScope<State, Type, *, *>.makeSymbolicRefWithSameType(
+    representative: UHeapRef
+): UHeapRef? where State : UState<Type, Method, *, *, *, State> =
+    mockSymbolicRef { objectTypeEquals(it, representative) }
 
-    return ref
-}
+private inline fun <Type, Method, State> StepScope<State, Type, *, *>.mockSymbolicRef(
+    crossinline mkTypeConstraint: State.(UHeapRef) -> UBoolExpr
+): UHeapRef? where State : UState<Type, Method, *, *, *, State> {
+    val ref = calcOnState {
+        memory.mock { call(lastEnteredMethod, emptySequence(), memory.ctx.addressSort) }
+    }
 
-fun <Type, Method> UState<Type, Method, *, *, *, *>.makeSymbolicArray(arrayType: Type, size: USizeExpr): UHeapRef {
-    val ref = memory.mock { call(lastEnteredMethod, emptySequence(), memory.ctx.addressSort) }
+    val typeConstraint = calcOnState {
+        mkTypeConstraint(ref)
+    }
 
-    memory.types.addSubtype(ref, arrayType)
-    memory.types.addSupertype(ref, arrayType)
-
-    memory.writeArrayLength(ref, size, arrayType)
+    assert(typeConstraint) ?: return null
 
     return ref
 }

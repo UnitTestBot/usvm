@@ -16,7 +16,17 @@ import org.usvm.types.UTypeSystem
 import org.usvm.uctx
 
 interface UTypeEvaluator<Type> {
+
+    /**
+     * Check that [ref] = `null` or type([ref]) <: [supertype].
+     * Note that T <: T always holds.
+     * */
     fun evalIsSubtype(ref: UHeapRef, supertype: Type): UBoolExpr
+
+    /**
+     * Check that [ref] != `null` and [subtype] <: type([ref]).
+     * Note that T <: T always holds.
+     * */
     fun evalIsSupertype(ref: UHeapRef, subtype: Type): UBoolExpr
     fun getTypeStream(ref: UHeapRef): UTypeStream<Type>
 }
@@ -40,7 +50,7 @@ class UTypeConstraints<Type>(
     private val concreteRefToType: MutableMap<UConcreteHeapAddress, Type> = mutableMapOf(),
     symbolicRefToTypeRegion: MutableMap<USymbolicHeapRef, UTypeRegion<Type>> = mutableMapOf(),
 ) : UTypeEvaluator<Type> {
-    private val ctx: UContext get() = equalityConstraints.ctx
+    private val ctx: UContext<*> get() = equalityConstraints.ctx
 
     init {
         equalityConstraints.subscribeEquality(::intersectRegions)

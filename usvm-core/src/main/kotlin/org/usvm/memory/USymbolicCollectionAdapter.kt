@@ -11,7 +11,7 @@ interface USymbolicCollectionAdapter<SrcKey, DstKey> {
     /**
      * Converts destination memory key into source memory key
      */
-    fun convert(key: DstKey, composer: UComposer<*>?): SrcKey
+    fun convert(key: DstKey, composer: UComposer<*, *>?): SrcKey
 
     /**
      * @return region in the destination collection covered by the adapted collection.
@@ -20,7 +20,7 @@ interface USymbolicCollectionAdapter<SrcKey, DstKey> {
 
     fun includesConcretely(key: DstKey): Boolean
 
-    fun includesSymbolically(key: DstKey, composer: UComposer<*>?): UBoolExpr
+    fun includesSymbolically(key: DstKey, composer: UComposer<*, *>?): UBoolExpr
 
     fun isIncludedByUpdateConcretely(
         update: UUpdateNode<DstKey, *>,
@@ -33,7 +33,7 @@ interface USymbolicCollectionAdapter<SrcKey, DstKey> {
         dstCollectionId: USymbolicCollectionId<DstKey, *, *>,
         guard: UBoolExpr,
         srcKey: SrcKey,
-        composer: UComposer<*>
+        composer: UComposer<*, *>
     )
 
     fun toString(collection: USymbolicCollection<*, SrcKey, *>): String

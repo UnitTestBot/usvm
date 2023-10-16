@@ -9,23 +9,26 @@ import org.junit.jupiter.api.Test
 import org.usvm.Field
 import org.usvm.Type
 import org.usvm.UAddressSort
+import org.usvm.UBv32SizeExprProvider
 import org.usvm.UBv32Sort
 import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.collection.field.UInputFieldReading
 import org.usvm.UIteExpr
+import org.usvm.USizeSort
 import org.usvm.api.allocateConcreteRef
 import org.usvm.api.readArrayIndex
 import org.usvm.api.readField
 import org.usvm.api.writeArrayIndex
 import org.usvm.api.writeField
+import org.usvm.sizeSort
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertSame
 
 class HeapRefSplittingTest {
-    private lateinit var ctx: UContext
+    private lateinit var ctx: UContext<USizeSort>
     private lateinit var heap: UMemory<Type, Any>
 
     private lateinit var valueFieldDescr: Pair<Field, UBv32Sort>
@@ -34,9 +37,10 @@ class HeapRefSplittingTest {
 
     @BeforeEach
     fun initializeContext() {
-        val components: UComponents<Type> = mockk()
+        val components: UComponents<Type, USizeSort> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
         ctx = UContext(components)
+        every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
         heap = UMemory(ctx, mockk())
 
         valueFieldDescr = mockk<Field>() to ctx.bv32Sort

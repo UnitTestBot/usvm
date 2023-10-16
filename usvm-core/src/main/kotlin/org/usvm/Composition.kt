@@ -20,14 +20,11 @@ import org.usvm.memory.USymbolicCollectionId
 import org.usvm.regions.Region
 
 @Suppress("MemberVisibilityCanBePrivate")
-open class UComposer<Type>(
-    ctx: UContext,
+open class UComposer<Type, USizeSort : USort>(
+    ctx: UContext<USizeSort>,
     internal val memory: UReadOnlyMemory<Type>
-) : UExprTransformer<Type>(ctx) {
+) : UExprTransformer<Type, USizeSort>(ctx) {
     open fun <Sort : USort> compose(expr: UExpr<Sort>): UExpr<Sort> = apply(expr)
-
-    override fun <Sort : USort> transform(expr: USymbol<Sort>): UExpr<Sort> =
-        error("You must override `transform` function in org.usvm.UComposer for ${expr::class}")
 
     override fun <T : USort> transform(expr: UIteExpr<T>): UExpr<T> =
         transformExprAfterTransformed(expr, expr.condition) { condition ->
@@ -41,12 +38,6 @@ open class UComposer<Type>(
     override fun <Sort : USort> transform(
         expr: URegisterReading<Sort>,
     ): UExpr<Sort> = with(expr) { memory.stack.readRegister(idx, sort) }
-
-    override fun <Sort : USort> transform(expr: UCollectionReading<*, *, *>): UExpr<Sort> =
-        error("You must override `transform` function in org.usvm.UComposer for ${expr::class}")
-
-    override fun <Sort : USort> transform(expr: UMockSymbol<Sort>): UExpr<Sort> =
-        error("You must override `transform` function in org.usvm.UComposer for ${expr::class}")
 
     override fun <Method, Sort : USort> transform(
         expr: UIndexedMethodReturnValue<Method, Sort>,
@@ -70,13 +61,13 @@ open class UComposer<Type>(
         return collection.read(mappedKey, this@UComposer)
     }
 
-    override fun transform(expr: UInputArrayLengthReading<Type>): USizeExpr =
+    override fun transform(expr: UInputArrayLengthReading<Type, USizeSort>): UExpr<USizeSort> =
         transformCollectionReading(expr, expr.address)
 
-    override fun <Sort : USort> transform(expr: UInputArrayReading<Type, Sort>): UExpr<Sort> =
+    override fun <Sort : USort> transform(expr: UInputArrayReading<Type, Sort, USizeSort>): UExpr<Sort> =
         transformCollectionReading(expr, expr.address to expr.index)
 
-    override fun <Sort : USort> transform(expr: UAllocatedArrayReading<Type, Sort>): UExpr<Sort> =
+    override fun <Sort : USort> transform(expr: UAllocatedArrayReading<Type, Sort, USizeSort>): UExpr<Sort> =
         transformCollectionReading(expr, expr.index)
 
     override fun <Field, Sort : USort> transform(expr: UInputFieldReading<Field, Sort>): UExpr<Sort> =
@@ -102,7 +93,7 @@ open class UComposer<Type>(
         expr: UInputRefMapWithInputKeysReading<Type, Sort>
     ): UExpr<Sort> = transformCollectionReading(expr, expr.mapRef to expr.keyRef)
 
-    override fun transform(expr: UInputMapLengthReading<Type>): USizeExpr =
+    override fun transform(expr: UInputMapLengthReading<Type, USizeSort>): UExpr<USizeSort> =
         transformCollectionReading(expr, expr.address)
 
     override fun <ElemSort : USort, Reg : Region<Reg>> transform(
@@ -128,4 +119,4 @@ open class UComposer<Type>(
 }
 
 @Suppress("NOTHING_TO_INLINE")
-inline fun <T : USort> UComposer<*>?.compose(expr: UExpr<T>) = this?.apply(expr) ?: expr
+inline fun <T : USort> UComposer<*, *>?.compose(expr: UExpr<T>) = this?.apply(expr) ?: expr

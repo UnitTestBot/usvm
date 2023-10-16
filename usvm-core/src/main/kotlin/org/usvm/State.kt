@@ -9,20 +9,21 @@ import org.usvm.model.UModelBase
 import org.usvm.solver.USatResult
 import org.usvm.solver.UUnknownResult
 import org.usvm.solver.UUnsatResult
+import org.usvm.targets.UTarget
 
 typealias StateId = UInt
 
 abstract class UState<Type, Method, Statement, Context, Target, State>(
     // TODO: add interpreter-specific information
-    ctx: UContext,
+    val ctx: Context,
     open val callStack: UCallStack<Method, Statement>,
-    open val pathConstraints: UPathConstraints<Type, Context>,
+    open val pathConstraints: UPathConstraints<Type>,
     open val memory: UMemory<Type, Method>,
     open var models: List<UModelBase<Type>>,
     open var pathLocation: PathsTrieNode<State, Statement>,
     targets: List<Target> = emptyList(),
-) where Context : UContext,
-        Target : UTarget<Statement, Target, State>,
+) where Context : UContext<*>,
+        Target : UTarget<Statement, Target>,
         State : UState<Type, Method, Statement, Context, Target, State> {
     /**
      * Deterministic state id.
@@ -53,7 +54,7 @@ abstract class UState<Type, Method, Statement, Context, Target, State>(
      * Creates new state structurally identical to this.
      * If [newConstraints] is null, clones [pathConstraints]. Otherwise, uses [newConstraints] in cloned state.
      */
-    abstract fun clone(newConstraints: UPathConstraints<Type, Context>? = null): State
+    abstract fun clone(newConstraints: UPathConstraints<Type>? = null): State
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -105,7 +106,7 @@ abstract class UState<Type, Method, Statement, Context, Target, State>(
         val previousTargetCount = targetsImpl.size
         targetsImpl = targetsImpl.remove(target)
 
-        if (previousTargetCount == targetsImpl.size || !target.isRemoved) {
+        if (previousTargetCount == targetsImpl.size || target.isRemoved) {
             return false
         }
 
@@ -141,7 +142,7 @@ private const val OriginalState = false
  * forked state.
  *
  */
-private fun <T : UState<Type, *, *, Context, *, T>, Type, Context : UContext> forkIfSat(
+private fun <T : UState<Type, *, *, Context, *, T>, Type, Context : UContext<*>> forkIfSat(
     state: T,
     newConstraintToOriginalState: UBoolExpr,
     newConstraintToForkedState: UBoolExpr,
@@ -155,7 +156,7 @@ private fun <T : UState<Type, *, *, Context, *, T>, Type, Context : UContext> fo
     } else {
         newConstraintToOriginalState
     }
-    val solver = newConstraintToForkedState.uctx.solver<Type, Context>()
+    val solver = state.ctx.solver<Type>()
     val satResult = solver.checkWithSoftConstraints(constraintsToCheck)
 
     return when (satResult) {
@@ -201,7 +202,7 @@ private fun <T : UState<Type, *, *, Context, *, T>, Type, Context : UContext> fo
  * 2. makes not more than one query to USolver;
  * 3. if both [condition] and ![condition] are satisfiable, then [ForkResult.positiveState] === [state].
  */
-fun <T : UState<Type, *, *, Context, *, T>, Type, Context : UContext> fork(
+fun <T : UState<Type, *, *, Context, *, T>, Type, Context : UContext<*>> fork(
     state: T,
     condition: UBoolExpr,
 ): ForkResult<T> {
@@ -213,7 +214,7 @@ fun <T : UState<Type, *, *, Context, *, T>, Type, Context : UContext> fork(
         holdsInModel.isTrue
     }
 
-    val notCondition = condition.uctx.mkNot(condition)
+    val notCondition = state.ctx.mkNot(condition)
     val (posState, negState) = when {
 
         trueModels.isNotEmpty() && falseModels.isNotEmpty() -> {
@@ -262,7 +263,7 @@ fun <T : UState<Type, *, *, Context, *, T>, Type, Context : UContext> fork(
  * @return a list of states for each condition - `null` state
  * means [UUnknownResult] or [UUnsatResult] of checking condition.
  */
-fun <T : UState<Type, *, *, Context, *, T>, Type, Context : UContext> forkMulti(
+fun <T : UState<Type, *, *, Context, *, T>, Type, Context : UContext<*>> forkMulti(
     state: T,
     conditions: Iterable<UBoolExpr>,
 ): List<T?> {

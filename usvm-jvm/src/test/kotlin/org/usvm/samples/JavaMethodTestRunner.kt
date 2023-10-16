@@ -11,10 +11,12 @@ import org.usvm.api.JcParametersState
 import org.usvm.api.JcTest
 import org.usvm.api.targets.JcTarget
 import org.usvm.api.util.JcTestResolver
+import org.usvm.machine.JcInterpreterObserver
 import org.usvm.machine.JcMachine
 import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.AnalysisResultsNumberMatcher
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
+import org.usvm.util.declaringClass
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 import kotlin.reflect.KFunction1
@@ -23,24 +25,31 @@ import kotlin.reflect.KFunction3
 import kotlin.reflect.KFunction4
 import kotlin.reflect.full.instanceParameter
 import kotlin.reflect.jvm.javaConstructor
-import kotlin.reflect.jvm.javaMethod
 
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, JcClassCoverage>() {
 
     private var targets: List<JcTarget> = emptyList()
+    private var interpreterObserver: JcInterpreterObserver? = null
 
     /**
      * Sets JcTargets to run JcMachine with in the scope of [action].
      */
-    protected fun <T> withTargets(targets: List<JcTarget>, action: () -> T): T {
+    protected fun <T> withTargets(
+        targets: List<JcTarget>,
+        interpreterObserver: JcInterpreterObserver,
+        action: () -> T,
+    ): T {
         val prevTargets = this.targets
+        val prevInterpreterObserver = this.interpreterObserver
         try {
             this.targets = targets
+            this.interpreterObserver = interpreterObserver
             return action()
         } finally {
             this.targets = prevTargets
+            this.interpreterObserver = prevInterpreterObserver
         }
     }
 
@@ -726,7 +735,8 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
         return values
     }
 
-    protected val cp = JacoDBContainer(samplesKey).cp
+    protected open val jacodbCpKey = samplesKey
+    protected val cp = JacoDBContainer(jacodbCpKey).cp
 
     private val testResolver = JcTestResolver()
 
@@ -748,7 +758,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
         val jcClass = cp.findClass(declaringClassName).toType()
         val jcMethod = jcClass.declaredMethods.first { it.name == method.name }
 
-        JcMachine(cp, options).use { machine ->
+        JcMachine(cp, options, interpreterObserver).use { machine ->
             val states = machine.analyze(jcMethod.method, targets)
             states.map { testResolver.resolve(jcMethod, it) }
         }
@@ -765,6 +775,3 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
         }
     }
 }
-
-private val KFunction<*>.declaringClass: Class<*>?
-    get() = (javaMethod ?: javaConstructor)?.declaringClass

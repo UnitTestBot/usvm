@@ -17,16 +17,16 @@ import org.usvm.memory.UMemory
 import org.usvm.model.UModelBase
 
 class SampleState(
-    ctx: UContext,
+    ctx: UContext<USizeSort>,
     callStack: UCallStack<Method<*>, Stmt> = UCallStack(),
-    pathConstraints: UPathConstraints<SampleType, UContext> = UPathConstraints(ctx),
+    pathConstraints: UPathConstraints<SampleType> = UPathConstraints(ctx),
     memory: UMemory<SampleType, Method<*>> = UMemory(ctx, pathConstraints.typeConstraints),
     models: List<UModelBase<SampleType>> = listOf(),
     pathLocation: PathsTrieNode<SampleState, Stmt> = ctx.mkInitialLocation(),
     var returnRegister: UExpr<out USort>? = null,
     var exceptionRegister: ProgramException? = null,
     targets: List<SampleTarget> = emptyList()
-) : UState<SampleType, Method<*>, Stmt, UContext, SampleTarget, SampleState>(
+) : UState<SampleType, Method<*>, Stmt, UContext<USizeSort>, SampleTarget, SampleState>(
     ctx,
     callStack,
     pathConstraints,
@@ -35,10 +35,10 @@ class SampleState(
     pathLocation,
     targets
 ) {
-    override fun clone(newConstraints: UPathConstraints<SampleType, UContext>?): SampleState {
+    override fun clone(newConstraints: UPathConstraints<SampleType>?): SampleState {
         val clonedConstraints = newConstraints ?: pathConstraints.clone()
         return SampleState(
-            pathConstraints.ctx,
+            ctx,
             callStack.clone(),
             clonedConstraints,
             memory.clone(clonedConstraints.typeConstraints),

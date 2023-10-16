@@ -90,7 +90,7 @@ interface UWritableMemory<Type> : UReadOnlyMemory<Type> {
 
 @Suppress("MemberVisibilityCanBePrivate")
 class UMemory<Type, Method>(
-    internal val ctx: UContext,
+    internal val ctx: UContext<*>,
     override val types: UTypeConstraints<Type>,
     override val stack: URegistersStack = URegistersStack(),
     private var mocks: UMocker<Method> = UIndexedMocker(ctx),

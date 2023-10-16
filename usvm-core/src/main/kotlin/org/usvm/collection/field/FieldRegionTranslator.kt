@@ -23,7 +23,7 @@ import java.util.IdentityHashMap
 
 class UFieldRegionDecoder<Field, Sort : USort>(
     private val regionId: UFieldsRegionId<Field, Sort>,
-    private val exprTranslator: UExprTranslator<*>
+    private val exprTranslator: UExprTranslator<*, *>
 ) : URegionDecoder<UFieldLValue<Field, Sort>, Sort> {
     private var inputRegionTranslator: UInputFieldRegionTranslator<Field, Sort>? = null
 
@@ -44,7 +44,7 @@ class UFieldRegionDecoder<Field, Sort : USort>(
 
 private class UInputFieldRegionTranslator<Field, Sort : USort>(
     private val collectionId: UInputFieldId<Field, Sort>,
-    exprTranslator: UExprTranslator<*>
+    exprTranslator: UExprTranslator<*, *>
 ) : URegionTranslator<UInputFieldId<Field, Sort>, UHeapRef, Sort>, UCollectionDecoder<UHeapRef, Sort> {
     private val initialValue = with(collectionId.sort.uctx) {
         mkArraySort(addressSort, collectionId.sort).mkConst(collectionId.toString())
@@ -69,7 +69,7 @@ private class UInputFieldRegionTranslator<Field, Sort : USort>(
 }
 
 private class UInputFieldUpdateTranslator<Sort : USort>(
-    exprTranslator: UExprTranslator<*>,
+    exprTranslator: UExprTranslator<*, *>,
     initialValue: KExpr<KArraySort<UAddressSort, Sort>>
 ) : U1DUpdatesTranslator<UAddressSort, Sort>(exprTranslator, initialValue) {
     override fun KContext.translateRangedUpdate(

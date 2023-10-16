@@ -2,8 +2,9 @@ package org.usvm.api.collections
 
 import io.ksmt.solver.KSolver
 import org.usvm.UContext
+import org.usvm.UExpr
 import org.usvm.UHeapRef
-import org.usvm.USizeExpr
+import org.usvm.USizeSort
 import org.usvm.UState
 import org.usvm.api.collection.ListCollectionApi.ensureListSizeCorrect
 import org.usvm.api.collection.ListCollectionApi.mkSymbolicList
@@ -13,6 +14,10 @@ import org.usvm.api.collection.ListCollectionApi.symbolicListInsert
 import org.usvm.api.collection.ListCollectionApi.symbolicListRemove
 import org.usvm.api.collection.ListCollectionApi.symbolicListSet
 import org.usvm.api.collection.ListCollectionApi.symbolicListSize
+import org.usvm.mkSizeExpr
+import org.usvm.mkSizeGeExpr
+import org.usvm.mkSizeLeExpr
+import org.usvm.sizeSort
 import org.usvm.types.single.SingleTypeSystem
 import kotlin.test.Test
 import kotlin.test.assertNotNull
@@ -130,10 +135,10 @@ class SymbolicListTest : SymbolicCollectionTestBase() {
         checkValues(listRef, listValues, initialSize)
     }
 
-    private fun UState<SingleTypeSystem.SingleType, *, *, *, *, *>.checkValues(
+    private fun UState<SingleTypeSystem.SingleType, *, *, UContext<USizeSort>, *, *>.checkValues(
         listRef: UHeapRef,
-        values: List<USizeExpr>,
-        initialSize: USizeExpr
+        values: List<UExpr<USizeSort>>,
+        initialSize: UExpr<USizeSort>
     ) {
         val listValues = values.indices.map { idx ->
             val listIndex = ctx.mkBvAddExpr(initialSize, ctx.mkSizeExpr(idx))
@@ -142,10 +147,12 @@ class SymbolicListTest : SymbolicCollectionTestBase() {
         checkWithSolver {
             values.zip(listValues) { expectedValue, actualValue ->
                 assertImpossible {
-                    mkAnd(
-                        inputListSizeAssumption(initialSize),
-                        actualValue neq expectedValue
-                    )
+                    with(ctx) {
+                        mkAnd(
+                            inputListSizeAssumption(initialSize),
+                            actualValue neq expectedValue
+                        )
+                    }
                 }
             }
         }
@@ -180,7 +187,7 @@ class SymbolicListTest : SymbolicCollectionTestBase() {
 
     private fun testListSize(
         listRef: UHeapRef,
-        checkSize: KSolver<*>.(USizeExpr, USizeExpr) -> Unit
+        checkSize: KSolver<*>.(UExpr<USizeSort>, UExpr<USizeSort>) -> Unit
     ) = scope.doWithState {
         val numValues = 5
         repeat(numValues) {
@@ -219,9 +226,9 @@ class SymbolicListTest : SymbolicCollectionTestBase() {
     }
 
     // Constraint size to avoid overflow
-    private fun UContext.inputListSizeAssumption(size: USizeExpr) =
+    private fun UContext<USizeSort>.inputListSizeAssumption(size: UExpr<USizeSort>) =
         mkAnd(
-            mkBvSignedGreaterOrEqualExpr(size, mkSizeExpr(0)),
-            mkBvSignedLessOrEqualExpr(size, mkSizeExpr(1000)),
+            mkSizeGeExpr(size, mkSizeExpr(0)),
+            mkSizeLeExpr(size, mkSizeExpr(1000)),
         )
 }

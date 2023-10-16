@@ -29,14 +29,14 @@ abstract class USolver<in Query, out Model> {
     abstract fun check(query: Query): USolverResult<Model>
 }
 
-open class USolverBase<Type, Context : UContext>(
-    protected val ctx: Context,
+open class USolverBase<Type>(
+    protected val ctx: UContext<*>,
     protected val smtSolver: KSolver<*>,
     protected val typeSolver: UTypeSolver<Type>,
-    protected val translator: UExprTranslator<Type>,
+    protected val translator: UExprTranslator<Type, *>,
     protected val decoder: UModelDecoder<UModelBase<Type>>,
-    protected val softConstraintsProvider: USoftConstraintsProvider<Type>,
-) : USolver<UPathConstraints<Type, Context>, UModelBase<Type>>(), AutoCloseable {
+    protected val softConstraintsProvider: USoftConstraintsProvider<Type, *>,
+) : USolver<UPathConstraints<Type>, UModelBase<Type>>(), AutoCloseable {
 
     protected fun translateLogicalConstraints(constraints: Iterable<UBoolExpr>) {
         for (constraint in constraints) {
@@ -98,22 +98,22 @@ open class USolverBase<Type, Context : UContext>(
         }
     }
 
-    protected fun translateToSmt(pc: UPathConstraints<Type, Context>) {
+    protected fun translateToSmt(pc: UPathConstraints<Type>) {
         translateEqualityConstraints(pc.equalityConstraints)
         translateLogicalConstraints(pc.numericConstraints.constraints().asIterable())
         translateLogicalConstraints(pc.logicalConstraints)
     }
 
-    override fun check(query: UPathConstraints<Type, Context>): USolverResult<UModelBase<Type>> =
+    override fun check(query: UPathConstraints<Type>): USolverResult<UModelBase<Type>> =
         internalCheck(query, useSoftConstraints = false)
 
     fun checkWithSoftConstraints(
-        pc: UPathConstraints<Type, Context>,
+        pc: UPathConstraints<Type>,
     ) = internalCheck(pc, useSoftConstraints = true)
 
 
     private fun internalCheck(
-        pc: UPathConstraints<Type, Context>,
+        pc: UPathConstraints<Type>,
         useSoftConstraints: Boolean,
     ): USolverResult<UModelBase<Type>> {
         if (pc.isFalse) {

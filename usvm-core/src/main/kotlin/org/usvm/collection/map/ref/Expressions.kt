@@ -16,14 +16,14 @@ import org.usvm.asTypedTransformer
 import org.usvm.collection.map.USymbolicMapKey
 
 class UAllocatedRefMapWithInputKeysReading<MapType, Sort : USort> internal constructor(
-    ctx: UContext,
+    ctx: UContext<*>,
     collection: UAllocatedRefMapWithInputKeys<MapType, Sort>,
     val keyRef: UHeapRef,
 ) : UCollectionReading<UAllocatedRefMapWithInputKeysId<MapType, Sort>, UHeapRef, Sort>(ctx, collection) {
 
     override fun accept(transformer: KTransformerBase): KExpr<Sort> {
-        require(transformer is UTransformer<*>) { "Expected a UTransformer, but got: $transformer" }
-        return transformer.asTypedTransformer<MapType>().transform(this)
+        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
+        return transformer.asTypedTransformer<MapType, USort>().transform(this)
     }
 
     override fun internEquals(other: Any): Boolean =
@@ -44,14 +44,14 @@ class UAllocatedRefMapWithInputKeysReading<MapType, Sort : USort> internal const
 }
 
 class UInputRefMapWithAllocatedKeysReading<MapType, Sort : USort> internal constructor(
-    ctx: UContext,
+    ctx: UContext<*>,
     collection: UInputRefMapWithAllocatedKeys<MapType, Sort>,
     val mapRef: UHeapRef,
 ) : UCollectionReading<UInputRefMapWithAllocatedKeysId<MapType, Sort>, UHeapRef, Sort>(ctx, collection) {
 
     override fun accept(transformer: KTransformerBase): KExpr<Sort> {
-        require(transformer is UTransformer<*>) { "Expected a UTransformer, but got: $transformer" }
-        return transformer.asTypedTransformer<MapType>().transform(this)
+        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
+        return transformer.asTypedTransformer<MapType, USort>().transform(this)
     }
 
     override fun internEquals(other: Any): Boolean =
@@ -72,7 +72,7 @@ class UInputRefMapWithAllocatedKeysReading<MapType, Sort : USort> internal const
 }
 
 class UInputRefMapWithInputKeysReading<MapType, Sort : USort> internal constructor(
-    ctx: UContext,
+    ctx: UContext<*>,
     collection: UInputRefMap<MapType, Sort>,
     val mapRef: UHeapRef,
     val keyRef: UHeapRef
@@ -83,8 +83,8 @@ class UInputRefMapWithInputKeysReading<MapType, Sort : USort> internal construct
     }
 
     override fun accept(transformer: KTransformerBase): KExpr<Sort> {
-        require(transformer is UTransformer<*>) { "Expected a UTransformer, but got: $transformer" }
-        return transformer.asTypedTransformer<MapType>().transform(this)
+        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
+        return transformer.asTypedTransformer<MapType, USort>().transform(this)
     }
 
     override fun internEquals(other: Any): Boolean =

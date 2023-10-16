@@ -14,16 +14,17 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class HeapMemCpyTest {
-    private lateinit var ctx: UContext
+    private lateinit var ctx: UContext<USizeSort>
     private lateinit var heap: UMemory<Type, Any>
     private lateinit var arrayType: Type
     private lateinit var arrayValueSort: USizeSort
 
     @BeforeEach
     fun initializeContext() {
-        val components: UComponents<Type> = mockk()
+        val components: UComponents<Type, USizeSort> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
         ctx = UContext(components)
+        every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
         val eqConstraints = UEqualityConstraints(ctx)
         val typeConstraints = UTypeConstraints(components.mkTypeSystem(ctx), eqConstraints)
         heap = UMemory(ctx, typeConstraints)
@@ -91,7 +92,7 @@ class HeapMemCpyTest {
 
     private fun initializeArray(): Pair<IntArray, UConcreteHeapRef> {
         val array = IntArray(10) { it + 1 }
-        val ref = heap.allocateArray(arrayType, ctx.mkSizeExpr(array.size))
+        val ref = heap.allocateArray(arrayType, ctx.sizeSort, ctx.mkSizeExpr(array.size))
 
         array.indices.forEach { idx ->
             heap.writeArrayIndex(

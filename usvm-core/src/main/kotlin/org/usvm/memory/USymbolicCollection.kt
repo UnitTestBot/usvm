@@ -27,7 +27,7 @@ data class USymbolicCollection<out CollectionId : USymbolicCollectionId<Key, Sor
     private fun read(
         key: Key,
         updates: USymbolicCollectionUpdates<Key, Sort>,
-        composer: UComposer<*>?
+        composer: UComposer<*, *>?
     ): UExpr<Sort> {
         val lastUpdatedElement = updates.lastUpdatedElementOrNull()
 
@@ -50,7 +50,7 @@ data class USymbolicCollection<out CollectionId : USymbolicCollectionId<Key, Sor
     /**
      * Reads a [key] from this collection with on-the-fly composition, if the [composer] provided.
      */
-    fun read(key: Key, composer: UComposer<*>?): UExpr<Sort> {
+    fun read(key: Key, composer: UComposer<*, *>?): UExpr<Sort> {
         if (sort == sort.uctx.addressSort) {
             // Here we split concrete heap addresses from symbolic ones to optimize further memory operations.
             return splittingRead(key, composer) { it is UConcreteHeapRef }
@@ -72,7 +72,7 @@ data class USymbolicCollection<out CollectionId : USymbolicCollectionId<Key, Sor
      */
     private fun splittingRead(
         key: Key,
-        composer: UComposer<*>?,
+        composer: UComposer<*, *>?,
         predicate: (UExpr<Sort>) -> Boolean
     ): UExpr<Sort> {
         val ctx = sort.ctx
@@ -139,7 +139,7 @@ data class USymbolicCollection<out CollectionId : USymbolicCollectionId<Key, Sor
         predicate: (UExpr<Sort>) -> Boolean,
         matchingWrites: MutableList<GuardedExpr<UExpr<Sort>>>,
         guardBuilder: GuardBuilder,
-        composer: UComposer<*>?,
+        composer: UComposer<*, *>?,
     ): USymbolicCollection<CollectionId, Key, Sort> {
         val splitUpdates = updates.read(key, composer).split(key, predicate, matchingWrites, guardBuilder, composer)
 
@@ -154,7 +154,7 @@ data class USymbolicCollection<out CollectionId : USymbolicCollectionId<Key, Sor
      * Applies this collection to the [memory], with applying composition via [composer] to the updates. May filter out
      * updates, which are irrelevant for the [key] reading.
      */
-    fun <Type> applyTo(memory: UWritableMemory<Type>, key: Key, composer: UComposer<*>) {
+    fun <Type> applyTo(memory: UWritableMemory<Type>, key: Key, composer: UComposer<*, *>) {
         // Apply each update on the copy
         for (update in updates) {
             val guard = composer.compose(update.guard)

@@ -4,6 +4,7 @@ import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.persistentSetOf
 import org.usvm.UAndExpr
 import org.usvm.UBoolExpr
+import org.usvm.UBv32Sort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UEqExpr
@@ -12,7 +13,6 @@ import org.usvm.UIsSubtypeExpr
 import org.usvm.UIsSupertypeExpr
 import org.usvm.UNotExpr
 import org.usvm.UOrExpr
-import org.usvm.USizeSort
 import org.usvm.USymbolicHeapRef
 import org.usvm.isStaticHeapRef
 import org.usvm.isSymbolicHeapRef
@@ -21,8 +21,8 @@ import org.usvm.uctx
 /**
  * Mutable representation of path constraints.
  */
-open class UPathConstraints<Type, Context : UContext> private constructor(
-    val ctx: Context,
+open class UPathConstraints<Type> private constructor(
+    private val ctx: UContext<*>,
     logicalConstraints: PersistentSet<UBoolExpr> = persistentSetOf(),
     /**
      * Specially represented equalities and disequalities between objects, used in various part of constraints management.
@@ -38,7 +38,7 @@ open class UPathConstraints<Type, Context : UContext> private constructor(
     /**
      * Specially represented numeric constraints (e.g. >, <, >=, ...).
      */
-    val numericConstraints: UNumericConstraints<USizeSort> = UNumericConstraints(ctx, sort = ctx.sizeSort)
+    val numericConstraints: UNumericConstraints<UBv32Sort> = UNumericConstraints(ctx, sort = ctx.bv32Sort)
 ) {
     init {
         // Use the information from the type constraints to check whether any static ref is assignable to any symbolic ref
@@ -51,7 +51,7 @@ open class UPathConstraints<Type, Context : UContext> private constructor(
     var logicalConstraints: PersistentSet<UBoolExpr> = logicalConstraints
         private set
 
-    constructor(ctx: Context) : this(ctx, persistentSetOf())
+    constructor(ctx: UContext<*>) : this(ctx, persistentSetOf())
 
     open val isFalse: Boolean
         get() = equalityConstraints.isContradicting ||
@@ -128,7 +128,7 @@ open class UPathConstraints<Type, Context : UContext> private constructor(
             }
         }
 
-    open fun clone(): UPathConstraints<Type, Context> {
+    open fun clone(): UPathConstraints<Type> {
         val clonedEqualityConstraints = equalityConstraints.clone()
         val clonedTypeConstraints = typeConstraints.clone(clonedEqualityConstraints)
         val clonedNumericConstraints = numericConstraints.clone()
@@ -141,7 +141,7 @@ open class UPathConstraints<Type, Context : UContext> private constructor(
         )
     }
 
-    protected fun contradiction(ctx: UContext) {
+    protected fun contradiction(ctx: UContext<*>) {
         logicalConstraints = persistentSetOf(ctx.falseExpr)
     }
 }

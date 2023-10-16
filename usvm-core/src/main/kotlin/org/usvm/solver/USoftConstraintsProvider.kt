@@ -31,12 +31,9 @@ import org.usvm.UExpr
 import org.usvm.UIndexedMethodReturnValue
 import org.usvm.UIsSubtypeExpr
 import org.usvm.UIsSupertypeExpr
-import org.usvm.UMockSymbol
 import org.usvm.UNullRef
 import org.usvm.URegisterReading
-import org.usvm.USizeExpr
 import org.usvm.USort
-import org.usvm.USymbol
 import org.usvm.UTransformer
 import org.usvm.collection.array.UAllocatedArrayReading
 import org.usvm.collection.array.UInputArrayReading
@@ -53,10 +50,14 @@ import org.usvm.collection.set.primitive.UInputSetReading
 import org.usvm.collection.set.ref.UAllocatedRefSetWithInputElementsReading
 import org.usvm.collection.set.ref.UInputRefSetWithAllocatedElementsReading
 import org.usvm.collection.set.ref.UInputRefSetWithInputElementsReading
-import org.usvm.uctx
+import org.usvm.mkSizeExpr
+import org.usvm.mkSizeLeExpr
 import org.usvm.regions.Region
+import org.usvm.uctx
 
-class USoftConstraintsProvider<Type>(override val ctx: UContext) : UTransformer<Type> {
+class USoftConstraintsProvider<Type, USizeSort : USort>(
+    override val ctx: UContext<USizeSort>
+) : UTransformer<Type, USizeSort> {
     // We have a list here since sometimes we want to add several soft constraints
     // to make it possible to drop only a part of them, not the whole soft constraint
     private val caches = hashMapOf<UExpr<*>, Set<UBoolExpr>>()
@@ -89,18 +90,7 @@ class USoftConstraintsProvider<Type>(override val ctx: UContext) : UTransformer<
 
     // region USymbol specific methods
 
-    override fun <Sort : USort> transform(expr: USymbol<Sort>): UExpr<Sort> =
-        error("You must override `transform` function in UExprTranslator for ${expr::class}")
-
     override fun <Sort : USort> transform(expr: URegisterReading<Sort>): UExpr<Sort> = transformExpr(expr)
-
-    override fun <Sort : USort> transform(
-        expr: UCollectionReading<*, *, *>,
-    ): UExpr<Sort> = error("You must override `transform` function in UExprTranslator for ${expr::class}")
-
-    override fun <Sort : USort> transform(
-        expr: UMockSymbol<Sort>,
-    ): UExpr<Sort> = error("You must override `transform` function in UExprTranslator for ${expr::class}")
 
     override fun <Method, Sort : USort> transform(
         expr: UIndexedMethodReturnValue<Method, Sort>,
@@ -119,19 +109,19 @@ class USoftConstraintsProvider<Type>(override val ctx: UContext) : UTransformer<
     override fun <Field, Sort : USort> transform(expr: UInputFieldReading<Field, Sort>): UExpr<Sort> =
         readingWithSingleArgumentTransform(expr, expr.address)
 
-    override fun <Sort : USort> transform(expr: UAllocatedArrayReading<Type, Sort>): UExpr<Sort> =
+    override fun <Sort : USort> transform(expr: UAllocatedArrayReading<Type, Sort, USizeSort>): UExpr<Sort> =
         readingWithSingleArgumentTransform(expr, expr.index)
 
     override fun <Sort : USort> transform(
-        expr: UInputArrayReading<Type, Sort>,
+        expr: UInputArrayReading<Type, Sort, USizeSort>,
     ): UExpr<Sort> = readingWithTwoArgumentsTransform(expr, expr.index, expr.address)
 
     override fun transform(
-        expr: UInputArrayLengthReading<Type>,
-    ): USizeExpr = computeSideEffect(expr) {
-        with(expr.ctx) {
+        expr: UInputArrayLengthReading<Type, USizeSort>,
+    ): UExpr<USizeSort> = computeSideEffect(expr) {
+        with(ctx) {
             val addressIsNull = provide(expr.address)
-            val arraySize = mkBvSignedLessOrEqualExpr(expr, PREFERRED_MAX_ARRAY_SIZE.toBv())
+            val arraySize = mkSizeLeExpr(expr, mkSizeExpr(PREFERRED_MAX_ARRAY_SIZE))
 
             caches[expr] = addressIsNull + arraySize
         }
@@ -158,11 +148,11 @@ class USoftConstraintsProvider<Type>(override val ctx: UContext) : UTransformer<
     ): UExpr<Sort> = readingWithTwoArgumentsTransform(expr, expr.mapRef, expr.keyRef)
 
     override fun transform(
-        expr: UInputMapLengthReading<Type>
-    ): USizeExpr = computeSideEffect(expr) {
-        with(expr.ctx) {
+        expr: UInputMapLengthReading<Type, USizeSort>
+    ): UExpr<USizeSort> = computeSideEffect(expr) {
+        with(ctx) {
             val addressConstraints = provide(expr.address)
-            val mapLength = mkBvSignedLessOrEqualExpr(expr, PREFERRED_MAX_ARRAY_SIZE.toBv())
+            val mapLength = mkSizeLeExpr(expr, mkSizeExpr(PREFERRED_MAX_ARRAY_SIZE))
 
             caches[expr] = addressConstraints + mapLength
         }

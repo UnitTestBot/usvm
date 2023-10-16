@@ -8,20 +8,23 @@ import org.usvm.Field
 import org.usvm.INITIAL_INPUT_ADDRESS
 import org.usvm.Method
 import org.usvm.NULL_ADDRESS
+import org.usvm.UBv32SizeExprProvider
 import org.usvm.UComponents
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
+import org.usvm.USizeSort
 import org.usvm.api.readField
 import org.usvm.api.typeStreamOf
 import org.usvm.api.writeField
+import org.usvm.collection.array.UInputArrayId
 import org.usvm.constraints.UPathConstraints
 import org.usvm.isFalse
 import org.usvm.isTrue
 import org.usvm.memory.UMemory
-import org.usvm.collection.array.UInputArrayId
+import org.usvm.model.ULazyModelDecoder
 import org.usvm.model.UModelBase
-import org.usvm.model.buildTranslatorAndLazyDecoder
 import org.usvm.solver.TypeSolverQuery
+import org.usvm.solver.UExprTranslator
 import org.usvm.solver.USatResult
 import org.usvm.solver.USoftConstraintsProvider
 import org.usvm.solver.USolverBase
@@ -53,23 +56,25 @@ import kotlin.test.assertTrue
 
 class TypeSolverTest {
     private val typeSystem = testTypeSystem
-    private val components = mockk<UComponents<TestType>>()
+    private val components = mockk<UComponents<TestType, USizeSort>>()
     private val ctx = UContext(components)
-    private val solver: USolverBase<TestType, UContext>
+    private val solver: USolverBase<TestType>
     private val typeSolver: UTypeSolver<TestType>
 
     init {
-        val (translator, decoder) = buildTranslatorAndLazyDecoder<TestType>(ctx)
-        val softConstraintsProvider = USoftConstraintsProvider<TestType>(ctx)
+        val translator = UExprTranslator<TestType, USizeSort>(ctx)
+        val decoder = ULazyModelDecoder(translator)
+        val softConstraintsProvider = USoftConstraintsProvider<TestType, _>(ctx)
 
         typeSolver = UTypeSolver(typeSystem)
         solver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder, softConstraintsProvider)
 
         every { components.mkSolver(ctx) } returns solver
         every { components.mkTypeSystem(ctx) } returns typeSystem
+        every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
     }
 
-    private val pc = UPathConstraints<TestType, UContext>(ctx)
+    private val pc = UPathConstraints<TestType>(ctx)
     private val memory = UMemory<TestType, Method>(ctx, pc.typeConstraints)
 
     @Test
@@ -342,7 +347,7 @@ class TypeSolverTest {
         heap.writeField(val1, field, bv32Sort, 1.toBv(), trueExpr)
         heap.writeField(val2, field, bv32Sort, 2.toBv(), trueExpr)
 
-        val inputRegion = UInputArrayId(mockk<TestType>(), addressSort)
+        val inputRegion = UInputArrayId<_, _, USizeSort>(mockk<TestType>(), addressSort)
             .emptyRegion()
             .write(arr1 to idx1, val1, trueExpr)
             .write(arr2 to idx2, val2, trueExpr)

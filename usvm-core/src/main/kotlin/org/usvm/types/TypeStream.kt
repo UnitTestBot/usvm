@@ -75,6 +75,11 @@ fun <Type> UTypeStream<Type>.first(): Type = take(1).first()
 
 fun <Type> UTypeStream<Type>.firstOrNull(): Type? = take(1).firstOrNull()
 
+// Note: we try to take at least two types to ensure that we don't have no more than one type.
+fun <Type> UTypeStream<Type>.single(): Type = take(2).single()
+
+fun <Type> UTypeStream<Type>.singleOrNull(): Type? = take(2).singleOrNull()
+
 /**
  * Consists of just one type [singleType].
  */

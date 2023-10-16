@@ -52,6 +52,7 @@ import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.model.UModelBase
+import org.usvm.sizeSort
 import org.usvm.types.first
 import org.usvm.types.firstOrNull
 
@@ -72,7 +73,7 @@ class JcTestResolver(
         val model = state.models.first()
         val memory = state.memory
 
-        val ctx = state.pathConstraints.ctx
+        val ctx = state.ctx
 
         val initialScope = MemoryScope(ctx, model, model, method, classLoader)
         val afterScope = MemoryScope(ctx, model, memory, method, classLoader)
@@ -208,7 +209,7 @@ class JcTestResolver(
 
         private fun resolveArray(ref: UConcreteHeapRef, heapRef: UHeapRef, type: JcArrayType): Any {
             val arrayDescriptor = ctx.arrayDescriptorOf(type)
-            val lengthRef = UArrayLengthLValue(heapRef, arrayDescriptor)
+            val lengthRef = UArrayLengthLValue(heapRef, arrayDescriptor, ctx.sizeSort)
             val resolvedLength = resolveLValue(lengthRef, ctx.cp.int) as Int
             val length = if (resolvedLength in 0..10_000) resolvedLength else 0 // TODO hack
 

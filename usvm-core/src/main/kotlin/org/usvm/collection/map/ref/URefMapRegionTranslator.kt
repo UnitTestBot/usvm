@@ -28,7 +28,7 @@ import java.util.IdentityHashMap
 
 class URefMapRegionDecoder<MapType, ValueSort : USort>(
     private val regionId: URefMapRegionId<MapType, ValueSort>,
-    private val exprTranslator: UExprTranslator<*>
+    private val exprTranslator: UExprTranslator<*, *>
 ) : URegionDecoder<URefMapEntryLValue<MapType, ValueSort>, ValueSort> {
     private val allocatedWithInputKeysRegions =
         mutableMapOf<UConcreteHeapAddress, UAllocatedRefMapWithInputKeysTranslator<MapType, ValueSort>>()
@@ -69,7 +69,7 @@ class URefMapRegionDecoder<MapType, ValueSort : USort>(
 
 private class UAllocatedRefMapWithInputKeysTranslator<MapType, ValueSort : USort>(
     collectionId: UAllocatedRefMapWithInputKeysId<MapType, ValueSort>,
-    exprTranslator: UExprTranslator<*>
+    exprTranslator: UExprTranslator<*, *>
 ) : URegionTranslator<UAllocatedRefMapWithInputKeysId<MapType, ValueSort>, UHeapRef, ValueSort> {
     private val initialValue = with(collectionId.sort.uctx) {
         val sort = mkArraySort(addressSort, collectionId.sort)
@@ -91,7 +91,7 @@ private class UAllocatedRefMapWithInputKeysTranslator<MapType, ValueSort : USort
 
 private class UInputRefMapWithAllocatedKeysTranslator<MapType, ValueSort : USort>(
     collectionId: UInputRefMapWithAllocatedKeysId<MapType, ValueSort>,
-    exprTranslator: UExprTranslator<*>
+    exprTranslator: UExprTranslator<*, *>
 ) : URegionTranslator<UInputRefMapWithAllocatedKeysId<MapType, ValueSort>, UHeapRef, ValueSort> {
     private val initialValue = with(collectionId.sort.uctx) {
         val sort = mkArraySort(addressSort, collectionId.sort)
@@ -113,7 +113,7 @@ private class UInputRefMapWithAllocatedKeysTranslator<MapType, ValueSort : USort
 
 private class UInputRefMapTranslator<MapType, ValueSort : USort>(
     collectionId: UInputRefMapWithInputKeysId<MapType, ValueSort>,
-    exprTranslator: UExprTranslator<*>
+    exprTranslator: UExprTranslator<*, *>
 ) : URegionTranslator<UInputRefMapWithInputKeysId<MapType, ValueSort>, USymbolicMapKey<UAddressSort>, ValueSort>,
     UCollectionDecoder<USymbolicMapKey<UAddressSort>, ValueSort> {
     private val initialValue = with(collectionId.sort.uctx) {
@@ -139,7 +139,7 @@ private class UInputRefMapTranslator<MapType, ValueSort : USort>(
 }
 
 private class UAllocatedRefMapUpdatesTranslator<ValueSort : USort>(
-    exprTranslator: UExprTranslator<*>,
+    exprTranslator: UExprTranslator<*, *>,
     initialValue: KExpr<KArraySort<UAddressSort, ValueSort>>
 ) : U1DUpdatesTranslator<UAddressSort, ValueSort>(exprTranslator, initialValue) {
     override fun KContext.translateRangedUpdate(
@@ -182,7 +182,7 @@ private class UAllocatedRefMapUpdatesTranslator<ValueSort : USort>(
 }
 
 private class UInputRefMapUpdatesTranslator<ValueSort : USort>(
-    exprTranslator: UExprTranslator<*>,
+    exprTranslator: UExprTranslator<*, *>,
     initialValue: KExpr<KArray2Sort<UAddressSort, UAddressSort, ValueSort>>
 ) : U2DUpdatesTranslator<UAddressSort, UAddressSort, ValueSort>(exprTranslator, initialValue) {
     override fun KContext.translateRangedUpdate(

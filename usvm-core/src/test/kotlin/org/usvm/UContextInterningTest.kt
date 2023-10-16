@@ -15,13 +15,14 @@ import org.usvm.collection.field.UInputFields
 import kotlin.test.assertTrue
 
 class UContextInterningTest {
-    private lateinit var context: UContext
+    private lateinit var context: UContext<USizeSort>
 
     @BeforeEach
     fun initializeContext() {
-        val components: UComponents<*> = mockk()
+        val components: UComponents<*, USizeSort> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
         context = UContext(components)
+        every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(context) }
     }
 
     @Test
@@ -90,14 +91,14 @@ class UContextInterningTest {
 
     @Test
     fun testAllocatedArrayReadingInterning() = with(context) {
-        val fstRegion = mockk<UAllocatedArray<Type, UBv32Sort>>()
-        val sndRegion = mockk<UAllocatedArray<Type, UBoolSort>>()
+        val fstRegion = mockk<UAllocatedArray<Type, UBv32Sort, USizeSort>>()
+        val sndRegion = mockk<UAllocatedArray<Type, UBoolSort, USizeSort>>()
 
         every { fstRegion.sort } returns bv32Sort
         every { sndRegion.sort } returns boolSort
 
-        val fstIndex = mockk<USizeExpr>()
-        val sndIndex = mockk<USizeExpr>()
+        val fstIndex = mockk<UExpr<USizeSort>>()
+        val sndIndex = mockk<UExpr<USizeSort>>()
 
         val equal = List(10) { mkAllocatedArrayReading(fstRegion, fstIndex) }
 
@@ -116,8 +117,8 @@ class UContextInterningTest {
 
     @Test
     fun testInputArrayReadingInterning() = with(context) {
-        val fstRegion = mockk<UInputArray<Type, UBv32Sort>>()
-        val sndRegion = mockk<UInputArray<Type, UBoolSort>>()
+        val fstRegion = mockk<UInputArray<Type, UBv32Sort, USizeSort>>()
+        val sndRegion = mockk<UInputArray<Type, UBoolSort, USizeSort>>()
 
         every { fstRegion.sort } returns bv32Sort
         every { sndRegion.sort } returns boolSort
@@ -125,8 +126,8 @@ class UContextInterningTest {
         val fstAddress = mkConcreteHeapRef(address = 1)
         val sndAddress = mkConcreteHeapRef(address = 2)
 
-        val fstIndex = mockk<USizeExpr>()
-        val sndIndex = mockk<USizeExpr>()
+        val fstIndex = mockk<UExpr<USizeSort>>()
+        val sndIndex = mockk<UExpr<USizeSort>>()
 
         val equal = List(10) { mkInputArrayReading(fstRegion, fstAddress, fstIndex) }
 
@@ -147,8 +148,8 @@ class UContextInterningTest {
 
     @Test
     fun testArrayLengthInterning() = with(context) {
-        val fstRegion = mockk<UInputArrayLengths<Type>>()
-        val sndRegion = mockk<UInputArrayLengths<Type>>()
+        val fstRegion = mockk<UInputArrayLengths<Type, USizeSort>>()
+        val sndRegion = mockk<UInputArrayLengths<Type, USizeSort>>()
 
         every { fstRegion.sort } returns sizeSort
         every { sndRegion.sort } returns sizeSort

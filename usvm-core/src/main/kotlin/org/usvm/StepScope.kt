@@ -3,23 +3,25 @@ package org.usvm
 import org.usvm.StepScope.StepScopeState.CANNOT_BE_PROCESSED
 import org.usvm.StepScope.StepScopeState.CAN_BE_PROCESSED
 import org.usvm.StepScope.StepScopeState.DEAD
+import org.usvm.forkblacklists.UForkBlackList
 
 /**
- * An auxiliary class, which carefully maintains forks and asserts via [fork] and [assert].
+ * An auxiliary class, which carefully maintains forks and asserts via [forkWithBlackList] and [assert].
  * It should be created on every step in an interpreter.
  * You can think about an instance of [StepScope] as a monad `ExceptT null (State [T])`.
  *
  * This scope is considered as [DEAD], iff the condition in [assert] was unsatisfiable or unknown.
  * The underlying state cannot be processed further (see [CANNOT_BE_PROCESSED]),
- * if the first passed to [fork] or [forkMulti] condition was unsatisfiable or unknown.
+ * if the first passed to [forkWithBlackList] or [forkMultiWithBlackList] condition was unsatisfiable or unknown.
  *
  * To execute some function on a state, you should use [doWithState] or [calcOnState]. `null` is returned, when
  * this scope cannot be processed on the current step - see [CANNOT_BE_PROCESSED].
  *
  * @param originalState an initial state.
  */
-class StepScope<T : UState<Type, *, *, Context, *, T>, Type, Context : UContext>(
+class StepScope<T : UState<Type, *, Statement, Context, *, T>, Type, Statement, Context : UContext<*>>(
     private val originalState: T,
+    private val forkBlackList: UForkBlackList<T, Statement>
 ) {
     private val forkedStates = mutableListOf<T>()
 
@@ -146,6 +148,79 @@ class StepScope<T : UState<Type, *, *, Context, *, T>, Type, Context : UContext>
     }
 
     /**
+     * [forkWithBlackList] version which doesn't fork to the branches with statements
+     * banned by underlying [forkBlackList].
+     *
+     * @param trueStmt statement to fork on [condition].
+     * @param falseStmt statement to fork on ![condition].
+     */
+    fun forkWithBlackList(
+        condition: UBoolExpr,
+        trueStmt: Statement,
+        falseStmt: Statement,
+        blockOnTrueState: T.() -> Unit = {},
+        blockOnFalseState: T.() -> Unit = {},
+    ): Unit? {
+        check(canProcessFurtherOnCurrentStep)
+
+        val shouldForkOnTrue = forkBlackList.shouldForkTo(originalState, trueStmt)
+        val shouldForkOnFalse = forkBlackList.shouldForkTo(originalState, falseStmt)
+
+        if (!shouldForkOnTrue && !shouldForkOnFalse) {
+            stepScopeState = DEAD
+            // TODO: should it be null?
+            return null
+        }
+
+        if (shouldForkOnTrue && shouldForkOnFalse) {
+            return fork(condition, blockOnTrueState, blockOnFalseState)
+        }
+
+        // TODO: asserts are implemented via forkMulti and create an unused copy of state
+        if (shouldForkOnTrue) {
+            return assert(condition, blockOnTrueState)
+        }
+
+        return assert(condition.uctx.mkNot(condition), blockOnFalseState)
+    }
+
+    /**
+     * [forkMultiWithBlackList] version which doesn't fork to the branches with statements
+     * banned by underlying [forkBlackList].
+     */
+    fun forkMultiWithBlackList(forkCases: List<ForkCase<T, Statement>>) {
+        check(canProcessFurtherOnCurrentStep)
+
+        val filteredConditionsWithBlockOnStates = forkCases
+            .mapNotNull { case ->
+                if (!forkBlackList.shouldForkTo(originalState, case.stmt)) {
+                    return@mapNotNull null
+                }
+                case.condition to case.block
+            }
+
+        if (filteredConditionsWithBlockOnStates.isEmpty()) {
+            stepScopeState = DEAD
+            return
+        }
+
+        return forkMulti(filteredConditionsWithBlockOnStates)
+    }
+
+    /**
+     * [assert]s the [condition] on the scope with the cloned [originalState]. Returns this cloned state, if this [condition]
+     * is satisfiable, and returns `null` otherwise.
+     */
+    fun checkSat(condition: UBoolExpr): T? {
+        val conditionalState = originalState.clone()
+        val conditionalScope = StepScope(conditionalState, forkBlackList)
+
+        return conditionalScope.assert(condition)?.let {
+            conditionalState
+        }
+    }
+
+    /**
      * Represents the current state of this [StepScope].
      */
     private enum class StepScopeState {
@@ -154,12 +229,12 @@ class StepScope<T : UState<Type, *, *, Context, *, T>, Type, Context : UContext>
          */
         DEAD,
         /**
-         * Cannot be forked or asserted using [fork], [forkMulti] or [assert],
+         * Cannot be forked or asserted using [forkWithBlackList], [forkMultiWithBlackList] or [assert],
          * but is considered as alive from the Machine's point of view.
          */
         CANNOT_BE_PROCESSED,
         /**
-         * Can be forked using [fork] or [forkMulti] and asserted using [assert].
+         * Can be forked using [forkWithBlackList] or [forkMultiWithBlackList] and asserted using [assert].
          */
         CAN_BE_PROCESSED;
     }
@@ -176,3 +251,18 @@ class StepResult<T>(
     operator fun component1() = forkedStates
     operator fun component2() = originalStateAlive
 }
+
+data class ForkCase<T, Statement>(
+    /**
+     * Condition to branch on.
+     */
+    val condition: UBoolExpr,
+    /**
+     * Statement to branch on.
+     */
+    val stmt: Statement,
+    /**
+     * Block to execute on state after branch.
+     */
+    val block: T.() -> Unit
+)

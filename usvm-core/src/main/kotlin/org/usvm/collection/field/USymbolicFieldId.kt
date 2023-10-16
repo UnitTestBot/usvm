@@ -29,7 +29,7 @@ class UInputFieldId<Field, Sort : USort> internal constructor(
     override fun instantiate(
         collection: USymbolicCollection<UInputFieldId<Field, Sort>, UHeapRef, Sort>,
         key: UHeapRef,
-        composer: UComposer<*>?,
+        composer: UComposer<*, *>?,
     ): UExpr<Sort> {
         if (composer == null) {
             return key.uctx.mkInputFieldReading(collection, key)

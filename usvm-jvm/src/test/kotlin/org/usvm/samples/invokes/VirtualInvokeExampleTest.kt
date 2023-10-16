@@ -9,7 +9,6 @@ import org.usvm.test.util.checkers.eq
 import org.usvm.util.isException
 import java.lang.Boolean
 
-@Disabled("An operation is not implemented: Not yet implemented")
 internal class VirtualInvokeExampleTest : JavaMethodTestRunner() {
     @Test
     fun testSimpleVirtualInvoke() {
@@ -23,7 +22,7 @@ internal class VirtualInvokeExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented. Support class constants")
+    @Disabled("Unsupported native calls")
     fun testVirtualNative() {
         checkDiscoveredProperties(
             VirtualInvokeExample::virtualNative,
@@ -33,7 +32,6 @@ internal class VirtualInvokeExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented. Support class constants")
     fun testGetSigners() {
         checkDiscoveredProperties(
             VirtualInvokeExample::virtualNativeArray,
@@ -42,6 +40,7 @@ internal class VirtualInvokeExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Fix coverage zones")
     fun testObjectFromOutside() {
         checkDiscoveredPropertiesWithExceptions(
             VirtualInvokeExample::objectFromOutside,
@@ -67,6 +66,7 @@ internal class VirtualInvokeExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Fix coverage zone")
     fun testYetAnotherObjectFromOutside() {
         checkDiscoveredPropertiesWithExceptions(
             VirtualInvokeExample::yetAnotherObjectFromOutside,
@@ -120,7 +120,7 @@ internal class VirtualInvokeExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("An operation is not implemented: Not yet implemented. Support strings/integer approximations")
+    @Disabled("Unexpected illegal argument exception")
     fun testNullValueInReturnValue() {
         checkDiscoveredProperties(
             VirtualInvokeExample::nullValueInReturnValue,

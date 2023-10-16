@@ -4,26 +4,27 @@ import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
-import org.usvm.USizeExpr
 import org.usvm.USort
 import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.memory.UWritableMemory
+import org.usvm.mkSizeExpr
 import org.usvm.uctx
+import org.usvm.withSizeSort
 
-internal fun <ArrayType, Sort : USort> UWritableMemory<*>.memcpy(
+internal fun <ArrayType, Sort : USort, USizeSort : USort> UWritableMemory<*>.memcpy(
     srcRef: UHeapRef,
     dstRef: UHeapRef,
     type: ArrayType,
     elementSort: Sort,
-    fromSrcIdx: USizeExpr,
-    fromDstIdx: USizeExpr,
-    toDstIdx: USizeExpr,
+    fromSrcIdx: UExpr<USizeSort>,
+    fromDstIdx: UExpr<USizeSort>,
+    toDstIdx: UExpr<USizeSort>,
     guard: UBoolExpr,
 ) {
-    val regionId = UArrayRegionId(type, elementSort)
+    val regionId = UArrayRegionId<_, _, USizeSort>(type, elementSort)
     val region = getRegion(regionId)
 
-    check(region is UArrayRegion<ArrayType, Sort>) {
+    check(region is UArrayRegion<ArrayType, Sort, USizeSort>) {
         "memcpy is not applicable to $region"
     }
 
@@ -31,21 +32,22 @@ internal fun <ArrayType, Sort : USort> UWritableMemory<*>.memcpy(
     setRegion(regionId, newRegion)
 }
 
-internal fun <ArrayType, Sort : USort> UWritableMemory<ArrayType>.allocateArrayInitialized(
+internal fun <ArrayType, Sort : USort, USizeSort : USort> UWritableMemory<ArrayType>.allocateArrayInitialized(
     type: ArrayType,
     elementSort: Sort,
+    sizeSort: USizeSort,
     contents: Sequence<UExpr<Sort>>
-): UConcreteHeapRef = with(elementSort.uctx) {
-    val arrayValues = hashMapOf<USizeExpr, UExpr<Sort>>()
+): UConcreteHeapRef = elementSort.uctx.withSizeSort {
+    val arrayValues = hashMapOf<UExpr<USizeSort>, UExpr<Sort>>()
     contents.forEachIndexed { idx, value -> arrayValues[mkSizeExpr(idx)] = value }
 
     val arrayLength = mkSizeExpr(arrayValues.size)
-    val address = allocateArray(type, arrayLength)
+    val address = allocateArray(type, sizeSort, arrayLength)
 
-    val regionId = UArrayRegionId(type, elementSort)
+    val regionId = UArrayRegionId<_, _, USizeSort>(type, elementSort)
     val region = getRegion(regionId)
 
-    check(region is UArrayRegion<ArrayType, Sort>) {
+    check(region is UArrayRegion<ArrayType, Sort, USizeSort>) {
         "allocateArrayInitialized is not applicable to $region"
     }
 
@@ -56,26 +58,28 @@ internal fun <ArrayType, Sort : USort> UWritableMemory<ArrayType>.allocateArrayI
     return address
 }
 
-internal fun <ArrayType> UWritableMemory<ArrayType>.allocateArray(
+internal fun <ArrayType, USizeSort : USort> UWritableMemory<ArrayType>.allocateArray(
     type: ArrayType,
-    length: USizeExpr
+    sizeSort: USizeSort,
+    length: UExpr<USizeSort>,
 ): UConcreteHeapRef {
     val address = allocConcrete(type)
 
-    val lengthRegionRef = UArrayLengthLValue(address, type)
+    val lengthRegionRef = UArrayLengthLValue(address, type, sizeSort)
     write(lengthRegionRef, length, guard = length.uctx.trueExpr)
 
     return address
 }
 
-internal fun <ArrayType, Sort : USort> UWritableMemory<ArrayType>.memset(
+internal fun <ArrayType, Sort : USort, USizeSort : USort> UWritableMemory<ArrayType>.memset(
     ref: UHeapRef,
     type: ArrayType,
     sort: Sort,
+    sizeSort: USizeSort,
     contents: Sequence<UExpr<Sort>>,
-) = with(sort.uctx) {
-    val tmpArrayRef = allocateArrayInitialized(type, sort, contents)
-    val contentLength = read(UArrayLengthLValue(tmpArrayRef, type))
+) = sizeSort.uctx.withSizeSort {
+    val tmpArrayRef = allocateArrayInitialized(type, sort, sizeSort, contents)
+    val contentLength = read(UArrayLengthLValue(tmpArrayRef, type, sizeSort))
 
     memcpy(
         srcRef = tmpArrayRef,
@@ -88,5 +92,5 @@ internal fun <ArrayType, Sort : USort> UWritableMemory<ArrayType>.memset(
         guard = trueExpr
     )
 
-    write(UArrayLengthLValue(ref, type), contentLength, guard = trueExpr)
+    write(UArrayLengthLValue(ref, type, sizeSort), contentLength, guard = trueExpr)
 }

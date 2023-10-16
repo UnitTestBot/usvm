@@ -9,6 +9,7 @@ import org.jacodb.api.ext.toType
 import org.jacodb.impl.features.HierarchyExtensionImpl
 import org.jacodb.impl.features.SyncUsagesExtension
 import org.usvm.statistics.ApplicationGraph
+import org.usvm.util.originalInst
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -19,14 +20,17 @@ class JcApplicationGraph(
 ) : ApplicationGraph<JcMethod, JcInst> {
     private val jcApplicationGraph = JcApplicationGraphImpl(cp, SyncUsagesExtension(HierarchyExtensionImpl(cp), cp))
 
-    override fun predecessors(node: JcInst): Sequence<JcInst> =
-        jcApplicationGraph.predecessors(node)
+    override fun predecessors(node: JcInst): Sequence<JcInst> {
+        return jcApplicationGraph.predecessors(node.originalInst())
+    }
 
-    override fun successors(node: JcInst): Sequence<JcInst> =
-        jcApplicationGraph.successors(node)
+    override fun successors(node: JcInst): Sequence<JcInst> {
+        return jcApplicationGraph.successors(node.originalInst())
+    }
 
-    override fun callees(node: JcInst): Sequence<JcMethod> =
-        jcApplicationGraph.callees(node)
+    override fun callees(node: JcInst): Sequence<JcMethod> {
+        return jcApplicationGraph.callees(node.originalInst())
+    }
 
     override fun callers(method: JcMethod): Sequence<JcInst> =
         jcApplicationGraph.callers(method)
@@ -37,8 +41,9 @@ class JcApplicationGraph(
     override fun exitPoints(method: JcMethod): Sequence<JcInst> =
         jcApplicationGraph.exitPoints(method)
 
-    override fun methodOf(node: JcInst): JcMethod =
-        jcApplicationGraph.methodOf(node)
+    override fun methodOf(node: JcInst): JcMethod {
+        return jcApplicationGraph.methodOf(node.originalInst())
+    }
 
     private val typedMethodsCache = ConcurrentHashMap<JcMethod, JcTypedMethod>()
 

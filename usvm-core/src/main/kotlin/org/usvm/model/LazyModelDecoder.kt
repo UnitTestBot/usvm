@@ -3,8 +3,8 @@ package org.usvm.model
 import io.ksmt.expr.KExpr
 import io.ksmt.solver.KModel
 import io.ksmt.sort.KUninterpretedSort
-import org.usvm.INITIAL_STATIC_ADDRESS
 import org.usvm.INITIAL_INPUT_ADDRESS
+import org.usvm.INITIAL_STATIC_ADDRESS
 import org.usvm.NULL_ADDRESS
 import org.usvm.UAddressSort
 import org.usvm.UConcreteHeapRef
@@ -19,18 +19,6 @@ interface UModelDecoder<Model> {
     fun decode(model: KModel): Model
 }
 
-/**
- * Initializes [UExprTranslator] and [UModelDecoder] and returns them. We can safely reuse them while [UContext] is
- * alive.
- */
-fun <Type> buildTranslatorAndLazyDecoder(
-    ctx: UContext,
-): Pair<UExprTranslator<Type>, ULazyModelDecoder<Type>> {
-    val translator = UExprTranslator<Type>(ctx)
-    val decoder = ULazyModelDecoder(translator)
-
-    return translator to decoder
-}
 
 typealias AddressesMapping = Map<UExpr<UAddressSort>, UConcreteHeapRef>
 
@@ -41,9 +29,9 @@ typealias AddressesMapping = Map<UExpr<UAddressSort>, UConcreteHeapRef>
  * @param translator an expression translator used for encoding constraints.
  */
 open class ULazyModelDecoder<Type>(
-    protected val translator: UExprTranslator<Type>,
+    protected val translator: UExprTranslator<Type, *>,
 ) : UModelDecoder<UModelBase<Type>> {
-    private val ctx: UContext = translator.ctx
+    private val ctx: UContext<*> = translator.ctx
 
     private val translatedNullRef = translator.translate(ctx.nullRef)
 
@@ -53,18 +41,18 @@ open class ULazyModelDecoder<Type>(
      * equivalence classes of addresses and work with their number in the future.
      */
     private fun buildMapping(model: KModel, nullRef: UConcreteHeapRef): AddressesMapping {
-        val interpreterdNullRef = model.eval(translatedNullRef, isComplete = true)
+        val interpretedNullRef = model.eval(translatedNullRef, isComplete = true)
 
         val result = mutableMapOf<KExpr<KUninterpretedSort>, UConcreteHeapRef>()
         // The null value has the NULL_ADDRESS
-        result[interpreterdNullRef] = nullRef
+        result[interpretedNullRef] = nullRef
 
         val universe = model.uninterpretedSortUniverse(ctx.addressSort) ?: return result
         // All the numbers are enumerated from the INITIAL_INPUT_ADDRESS to the Int.MIN_VALUE
         var counter = INITIAL_INPUT_ADDRESS
 
         for (interpretedAddress in universe) {
-            if (interpretedAddress == interpreterdNullRef) {
+            if (interpretedAddress == interpretedNullRef) {
                 continue
             }
 

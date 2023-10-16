@@ -54,12 +54,12 @@ private typealias ConstraintTerms<Sort> = UExpr<Sort>
  * [evalInterval] --- retrieve possible values interval for the expression.
  * */
 class UNumericConstraints<Sort : UBvSort> private constructor(
-    private val ctx: UContext,
+    private val ctx: UContext<*>,
     val sort: Sort,
     persistentNumericConstraints: PersistentMap<ConstraintTerms<Sort>, Constraint<Sort>>,
     persistentConstraintWatchList: PersistentMap<ConstraintTerms<Sort>, PersistentSet<ConstraintTerms<Sort>>>,
 ) {
-    constructor(ctx: UContext, sort: Sort) : this(ctx, sort, persistentHashMapOf(), persistentHashMapOf())
+    constructor(ctx: UContext<*>, sort: Sort) : this(ctx, sort, persistentHashMapOf(), persistentHashMapOf())
 
     private val numericConstraints = persistentNumericConstraints.builder()
     private val constraintWatchList = persistentConstraintWatchList.builder()
