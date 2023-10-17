@@ -1,6 +1,6 @@
 package org.usvm.machine.interpreters
 
-import org.usvm.annotations.SymbolicMethodId
+import org.usvm.annotations.ids.SymbolicMethodId
 import org.usvm.language.NamedSymbolForCPython
 import org.usvm.language.SymbolForCPython
 
