@@ -28,10 +28,12 @@ dependencies {
 
 val isWindows = Os.isFamily(Os.FAMILY_WINDOWS)
 val samplesSourceDir = File(projectDir, "src/test/resources/samples")
+val approximationsDir = File(projectDir, "python_approximations")
 val samplesBuildDir = File(project.buildDir, "samples_build")
 val commonJVMArgs = listOf(
     "-Dsamples.build.path=${samplesBuildDir.canonicalPath}",
     "-Dsamples.sources.path=${samplesSourceDir.canonicalPath}",
+    "-Dapproximations.path=${approximationsDir.canonicalPath}",
     "-Xss50m"
 )
 
@@ -105,6 +107,7 @@ tasks.register<JavaExec>("manualTestDebugNoLogs") {
     group = "run"
     registerCpython(this, debug = true)
     dependsOn(buildSamples)
+    maxHeapSize = "2G"
     if (!isWindows) {
         registerCpython(this, debug = true)
         jvmArgs = commonJVMArgs + listOf("-Dlogback.configurationFile=logging/logback-info.xml") //, "-Xcheck:jni")
@@ -129,6 +132,7 @@ tasks.register<JavaExec>("manualTestRelease") {
 */
 
 tasks.test {
+    maxHeapSize = "2G"
     val args = (commonJVMArgs + "-Dlogback.configurationFile=logging/logback-info.xml").toMutableList()
     // val args = (commonJVMArgs + "-Dlogback.configurationFile=logging/logback-debug.xml").toMutableList()
     if (!isWindows) {

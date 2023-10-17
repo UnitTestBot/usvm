@@ -6,6 +6,8 @@ import org.jetbrains.annotations.Nullable;
 import org.usvm.annotations.*;
 import org.usvm.annotations.codegeneration.CType;
 import org.usvm.annotations.codegeneration.ObjectConverter;
+import org.usvm.annotations.ids.SymbolicMethodId;
+import org.usvm.annotations.ids.ApproximationId;
 import org.usvm.language.*;
 import org.usvm.machine.MockHeader;
 import org.usvm.machine.interpreters.PythonObject;
@@ -47,13 +49,6 @@ public class CPythonAdapter {
     public int pyGE;
     public int pyGT;
 
-    @SymbolicMemberDescriptor(nativeTypeName = "PySlice_Type", nativeMemberName = "start")
-    public MemberDescriptor sliceStartDescriptor = SliceStartDescriptor.INSTANCE;
-    @SymbolicMemberDescriptor(nativeTypeName = "PySlice_Type", nativeMemberName = "stop")
-    public MemberDescriptor sliceStopDescriptor = SliceStopDescriptor.INSTANCE;
-    @SymbolicMemberDescriptor(nativeTypeName = "PySlice_Type", nativeMemberName = "step")
-    public MemberDescriptor sliceStepDescriptor = SliceStepDescriptor.INSTANCE;
-
     public native void initializePython(String pythonHome);
     public native void finalizePython();
     public native long getNewNamespace();  // returns reference to a new dict
@@ -71,7 +66,7 @@ public class CPythonAdapter {
     public native long getPythonObjectType(long object);
     public native String getNameOfPythonType(long type);
     public static native int getInstructionFromFrame(long frameRef);
-    public static native long getFunctionFromFrame(long frameRef);
+    public static native long getCodeFromFrame(long frameRef);
     public native long allocateVirtualObject(VirtualPythonObject object);
     public native long makeList(long[] elements);
     public native long allocateTuple(int size);
@@ -99,6 +94,7 @@ public class CPythonAdapter {
     @Nullable
     public native MemberDescriptor getSymbolicDescriptor(long concreteDescriptorRef);
     public native long constructPartiallyAppliedSymbolicMethod(SymbolForCPython self, long methodRef);
+    public native long constructApproximation(SymbolForCPython self, long approximationRef);
     static {
         System.loadLibrary("cpythonadapter");
     }
@@ -111,9 +107,9 @@ public class CPythonAdapter {
     public static void handlerInstruction(@NotNull ConcolicRunContext context, long frameRef) {
         context.curOperation = null;
         int instruction = getInstructionFromFrame(frameRef);
-        long functionRef = getFunctionFromFrame(frameRef);
-        PythonObject function = new PythonObject(functionRef);
-        withTracing(context, new NextInstruction(new PythonInstruction(instruction), function), () -> Unit.INSTANCE);
+        long codeRef = getCodeFromFrame(frameRef);
+        PythonObject code = new PythonObject(codeRef);
+        withTracing(context, new NextInstruction(new PythonInstruction(instruction), code), () -> Unit.INSTANCE);
     }
 
     private static SymbolForCPython wrap(UninterpretedSymbolicPythonObject obj) {
@@ -980,4 +976,16 @@ public class CPythonAdapter {
     }
     @SymbolicMethodDescriptor(nativeTypeName = "PyList_Type", nativeMemberName = "clear")
     public MemberDescriptor listClearDescriptor = new MethodDescriptor(SymbolicMethodId.ListClear);
+
+    @SymbolicMethodDescriptor(nativeTypeName = "PyList_Type", nativeMemberName = "index")
+    public MemberDescriptor listIndexDescriptor = new ApproximationDescriptor(ApproximationId.ListIndex);
+
+    @SymbolicMemberDescriptor(nativeTypeName = "PySlice_Type", nativeMemberName = "start")
+    public MemberDescriptor sliceStartDescriptor = SliceStartDescriptor.INSTANCE;
+
+    @SymbolicMemberDescriptor(nativeTypeName = "PySlice_Type", nativeMemberName = "stop")
+    public MemberDescriptor sliceStopDescriptor = SliceStopDescriptor.INSTANCE;
+
+    @SymbolicMemberDescriptor(nativeTypeName = "PySlice_Type", nativeMemberName = "step")
+    public MemberDescriptor sliceStepDescriptor = SliceStepDescriptor.INSTANCE;
 }

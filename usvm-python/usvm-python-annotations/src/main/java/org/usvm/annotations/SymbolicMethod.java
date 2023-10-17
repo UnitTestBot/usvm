@@ -1,5 +1,7 @@
 package org.usvm.annotations;
 
+import org.usvm.annotations.ids.SymbolicMethodId;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;

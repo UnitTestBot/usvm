@@ -7,6 +7,7 @@
 #include "approximations.h"
 #include "descriptors.h"
 #include "symbolic_methods.h"
+#include "manual_handlers.h"
 #include "CPythonFunctions.h"  // generated
 #include "SymbolicMethods.h"  // generated
 
@@ -192,18 +193,6 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_concreteRunOnFu
     return (jlong) result;
 }
 
-static PyObject *
-symbolic_tp_call(void *ctx_raw, PyObject *self, PyObject *args, PyObject *kwargs) {
-    ConcolicContext *ctx = (ConcolicContext *) ctx_raw;
-    if (!is_wrapped_java_object(self))
-        return Py_None;
-    jobject symbol = ((JavaPythonObject *) self)->reference;
-    jlong ref = (*ctx->env)->GetLongField(ctx->env, symbol, ctx->symbol_tp_call_ref);
-    if (ref == 0)
-        return Py_None;
-    return call_symbolic_method((SymbolicMethod *) ref, ctx, args, kwargs);
-}
-
 JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_concolicRun(
     JNIEnv *env,
     jobject cpython_adapter,
@@ -228,7 +217,10 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_concolicRun(
     ctx.adapter = adapter;
     register_virtual_methods(adapter);
     REGISTER_ADAPTER_METHODS(adapter);
-    adapter->symbolic_tp_call = symbolic_tp_call;
+    adapter->symbolic_tp_call = handler_symbolic_tp_call;
+    adapter->is_pycfunction_with_approximation = handler_is_pycfunction_with_approximation;
+    adapter->approximate_pycfunction_call = handler_approximate_pycfunction_call;
+    adapter->extract_symbolic_self_from_pycfunction = handler_extract_symbolic_self_from_pycfunction;
     register_approximations(adapter);
 
     construct_args_for_symbolic_adapter(adapter, &ctx, &concrete_args, &virtual_args, &symbolic_args, &args);
@@ -340,7 +332,7 @@ JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_getInstructionFr
     return take_instruction_from_frame((PyFrameObject *) frame_ref);
 }
 
-JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_getFunctionFromFrame(JNIEnv *env, jclass _, jlong frame_ref) {
+JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_getCodeFromFrame(JNIEnv *env, jclass _, jlong frame_ref) {
     assert(PyFrame_Check(frame_ref));
     return (jlong) PyFrame_GetCode((PyFrameObject *) frame_ref);
 }
@@ -500,4 +492,9 @@ JNIEXPORT jobject JNICALL Java_org_usvm_interpreter_CPythonAdapter_getSymbolicDe
 JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_constructPartiallyAppliedSymbolicMethod(JNIEnv *env, jobject _, jobject self, jlong method_ref) {
     assert(method_ref);
     return (jlong) construct_symbolic_method_with_self(env, self, (call_type) method_ref);
+}
+
+JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_constructApproximation(JNIEnv *env, jobject _, jobject self, jlong approximation_ref) {
+    assert(approximation_ref);
+    return (jlong) construct_approximation(env, self, (PyObject *) approximation_ref);
 }

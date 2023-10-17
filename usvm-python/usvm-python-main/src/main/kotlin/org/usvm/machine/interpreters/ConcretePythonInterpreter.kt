@@ -1,12 +1,14 @@
 package org.usvm.machine.interpreters
 
-import org.usvm.annotations.SymbolicMethodId
+import org.usvm.annotations.ids.ApproximationId
+import org.usvm.annotations.ids.SymbolicMethodId
 import org.usvm.language.SymbolForCPython
 import org.usvm.language.VirtualPythonObject
 import org.usvm.interpreter.CPythonAdapter
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.interpreter.MemberDescriptor
-import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
+import org.usvm.utils.withAdditionalPaths
+import java.io.File
 
 @Suppress("unused")
 object ConcretePythonInterpreter {
@@ -195,6 +197,12 @@ object ConcretePythonInterpreter {
         return SymbolForCPython(null, ref)
     }
 
+    fun constructApproximation(self: SymbolForCPython?, id: ApproximationId): SymbolForCPython {
+        val ref = pythonAdapter.constructApproximation(self, id.cRef)
+        require(ref != 0L)
+        return SymbolForCPython(null, ref)
+    }
+
     private fun createTypeQuery(checkMethod: (Long) -> Int): (PythonObject) -> Boolean = { pythonObject ->
         val result = checkMethod(pythonObject.address)
         if (result < 0)
@@ -227,6 +235,21 @@ object ConcretePythonInterpreter {
         SymbolicClonesOfGlobals.restart()
     }
 
+    private val approximationsPath = System.getProperty("approximations.path") ?: error("approximations.path not specified")
+
+    private fun initializeMethodApproximations() {
+        withAdditionalPaths(listOf(File(approximationsPath)), null) {
+            ApproximationId.values().forEach {
+                val namespace = getNewNamespace()
+                concreteRun(namespace, "import ${it.pythonModule}")
+                val ref = eval(namespace, "${it.pythonModule}.${it.pythonName}")
+                it.cRef = ref.address
+                incref(ref)
+                decref(namespace)
+            }
+        }
+    }
+
     private fun initialize() {
         val pythonHome = System.getenv("PYTHONHOME") ?: error("Variable PYTHONHOME not set")
         pythonAdapter.initializePython(pythonHome)
@@ -256,6 +279,7 @@ object ConcretePythonInterpreter {
             throw CPythonExecutionException()
         pythonAdapter.decref(namespace)
         emptyNamespace = getNewNamespace()
+        initializeMethodApproximations()
     }
 
     lateinit var initialSysPath: PythonObject
@@ -274,7 +298,14 @@ object ConcretePythonInterpreter {
     }
 
     fun printIdInfo() {  // for debugging
+        println("SymbolicMethodId:")
         SymbolicMethodId.values().forEach {
+            println(it)
+            println(it.cRef)
+        }
+        println()
+        println("ApproximationId:")
+        ApproximationId.values().forEach {
             println(it)
             println(it.cRef)
         }
