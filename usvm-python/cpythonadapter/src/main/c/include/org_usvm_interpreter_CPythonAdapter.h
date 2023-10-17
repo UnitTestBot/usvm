@@ -145,10 +145,10 @@ JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_getInstructionFr
 
 /*
  * Class:     org_usvm_interpreter_CPythonAdapter
- * Method:    getFunctionFromFrame
+ * Method:    getCodeFromFrame
  * Signature: (J)J
  */
-JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_getFunctionFromFrame
+JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_getCodeFromFrame
   (JNIEnv *, jclass, jlong);
 
 /*
@@ -357,6 +357,14 @@ JNIEXPORT jobject JNICALL Java_org_usvm_interpreter_CPythonAdapter_getSymbolicDe
  * Signature: (Lorg/usvm/language/SymbolForCPython;J)J
  */
 JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_constructPartiallyAppliedSymbolicMethod
+  (JNIEnv *, jobject, jobject, jlong);
+
+/*
+ * Class:     org_usvm_interpreter_CPythonAdapter
+ * Method:    constructApproximation
+ * Signature: (Lorg/usvm/language/SymbolForCPython;J)J
+ */
+JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_constructApproximation
   (JNIEnv *, jobject, jobject, jlong);
 
 #ifdef __cplusplus

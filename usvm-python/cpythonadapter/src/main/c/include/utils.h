@@ -14,7 +14,6 @@ extern "C" {
 typedef struct {
     PyObject_HEAD
     jobject reference; // global
-    // JNIEnv *env;
 } JavaPythonObject;
 
 void initialize_java_python_type();

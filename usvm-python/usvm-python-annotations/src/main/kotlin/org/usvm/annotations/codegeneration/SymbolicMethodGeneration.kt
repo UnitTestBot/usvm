@@ -1,6 +1,6 @@
 package org.usvm.annotations.codegeneration
 
-import org.usvm.annotations.SymbolicMethodId
+import org.usvm.annotations.ids.SymbolicMethodId
 
 fun generateSymbolicMethod(id: SymbolicMethodId): String {
     val cpythonFunctionInfo = CPythonFunctionDescription(
