@@ -262,6 +262,8 @@ RefHolderNode *global_ref_holder = &global_ref_root;
 
 jobject
 create_global_ref(JNIEnv *env, jobject local_ref) {
+    if (!local_ref)
+        return 0;
     jobject result = (*env)->NewGlobalRef(env, local_ref);
     add_ref_to_list(&global_ref_holder, result);
     return result;
