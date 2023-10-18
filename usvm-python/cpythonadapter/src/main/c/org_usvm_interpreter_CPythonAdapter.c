@@ -79,10 +79,13 @@ JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_initializePython
     initialize_java_python_type();
     initialize_virtual_object_type();
 
-    INITIALIZE_PYTHON_APPROXIMATIONS
     PySys_AddAuditHook(audit_hook, &illegal_operation);
 
     SYMBOLIC_METHOD_INITIALIZATION
+}
+
+JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_initializeSpecialApproximations(JNIEnv *env, jobject _) {
+    INITIALIZE_PYTHON_APPROXIMATIONS
 }
 
 JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_finalizePython(JNIEnv *env, jobject cpython_adapter) {

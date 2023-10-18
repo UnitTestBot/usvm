@@ -17,6 +17,14 @@ JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_initializePython
 
 /*
  * Class:     org_usvm_interpreter_CPythonAdapter
+ * Method:    initializeSpecialApproximations
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_initializeSpecialApproximations
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     org_usvm_interpreter_CPythonAdapter
  * Method:    finalizePython
  * Signature: ()V
  */
