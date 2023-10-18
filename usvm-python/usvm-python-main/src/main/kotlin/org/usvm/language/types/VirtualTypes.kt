@@ -1,6 +1,10 @@
 package org.usvm.language.types
 
 import org.usvm.machine.interpreters.ConcretePythonInterpreter
+import org.utbot.python.newtyping.PythonAnyTypeDescription
+import org.utbot.python.newtyping.PythonSubtypeChecker
+import org.utbot.python.newtyping.general.UtType
+import org.utbot.python.newtyping.pythonDescription
 
 object PythonAnyType: VirtualPythonType() {
     override fun accepts(type: PythonType): Boolean = true
@@ -24,11 +28,29 @@ class HasElementConstraint(private val constraint: ElementConstraint): VirtualPy
 
 class ConcreteTypeNegation(private val concreteType: ConcretePythonType): VirtualPythonType() {
     override fun accepts(type: PythonType): Boolean {
-        if (type is MockType)
+        if (type is MockType || type == this)
             return true
         if (type !is ConcretePythonType)
             return false
         return type != concreteType
+    }
+}
+
+class SupportsTypeHint(
+    private val typeHint: UtType,
+    private val typeSystem: PythonTypeSystemWithMypyInfo
+): VirtualPythonType() {
+    override fun accepts(type: PythonType): Boolean {
+        if (typeHint.pythonDescription() is PythonAnyTypeDescription || type == this)
+            return true
+        if (type !is ConcretePythonType)
+            return false
+        val correspondingTypeHint = typeSystem.typeHintOfConcreteType(type) ?: return false
+        return PythonSubtypeChecker.checkIfRightIsSubtypeOfLeft(
+            typeHint,
+            correspondingTypeHint,
+            typeSystem.typeHintsStorage
+        )
     }
 }
 
