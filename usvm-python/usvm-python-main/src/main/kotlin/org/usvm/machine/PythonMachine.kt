@@ -7,15 +7,18 @@ import org.usvm.language.types.PythonType
 import org.usvm.language.types.PythonTypeSystem
 import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.USVMPythonInterpreter
+import org.usvm.machine.interpreters.operations.tracing.SymbolicHandlerEvent
 import org.usvm.machine.model.toPyModel
 import org.usvm.machine.symbolicobjects.*
 import org.usvm.machine.utils.PythonMachineStatistics
 import org.usvm.machine.utils.PythonMachineStatisticsOnFunction
 import org.usvm.memory.UMemory
 import org.usvm.ps.DfsPathSelector
+import org.usvm.ps.createForkDepthPathSelector
 import org.usvm.solver.USatResult
 import org.usvm.statistics.UMachineObserver
 import org.usvm.utils.PythonObjectSerializer
+import kotlin.random.Random
 
 class PythonMachine<PythonObjectRepresentation>(
     private val program: PythonProgram,
@@ -24,6 +27,7 @@ class PythonMachine<PythonObjectRepresentation>(
     private val printErrorMsg: Boolean = false
 ): UMachine<PythonExecutionState>() {
     private val ctx = UPythonContext(typeSystem)
+    private val random = Random(0)
     val statistics = PythonMachineStatistics()
 
     private fun getInterpreter(
@@ -81,7 +85,17 @@ class PythonMachine<PythonObjectRepresentation>(
     }
 
     private fun getPathSelector(target: PythonUnpinnedCallable): UPathSelector<PythonExecutionState> {
-        val ps = PythonVirtualPathSelector(ctx, typeSystem, DfsPathSelector(), DfsPathSelector(), DfsPathSelector())
+        val pathSelectorCreation = {
+            DfsPathSelector<PythonExecutionState>()
+            // createForkDepthPathSelector<PythonCallable, SymbolicHandlerEvent<Any>, PythonExecutionState>(random)
+        }
+        val ps = PythonVirtualPathSelector(
+            ctx,
+            typeSystem,
+            pathSelectorCreation(),
+            pathSelectorCreation(),
+            pathSelectorCreation(),
+        )
         val initialState = getInitialState(target)
         ps.add(listOf(initialState))
         return ps

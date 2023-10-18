@@ -14,6 +14,7 @@ import org.usvm.utils.getModulesFromFiles
 import org.usvm.utils.getPythonFilesFromRoot
 import org.usvm.utils.withAdditionalPaths
 import org.utbot.python.newtyping.PythonCallableTypeDescription
+import org.utbot.python.newtyping.general.FunctionType
 import org.utbot.python.newtyping.mypy.MypyBuildDirectory
 import org.utbot.python.newtyping.mypy.buildMypyInfo
 import org.utbot.python.newtyping.mypy.readMypyInfoBuild
@@ -23,8 +24,8 @@ import java.io.File
 
 fun main() {
     // ConcretePythonInterpreter.printIdInfo()
-    // val config = buildProjectRunConfig()
-    val config = buildSampleRunConfig()
+    val config = buildProjectRunConfig()
+    // val config = buildSampleRunConfig()
     analyze(config)
     // checkConcolicAndConcrete(config)
 }
@@ -38,10 +39,11 @@ private fun buildSampleRunConfig(): RunConfig {
                     return 1
                 return 2
 
-            def f(x: list):
-                if x.index(0) == 1:
-                    return 1
-                return 2
+            def f(sequence: list):
+                if any(not isinstance(x, int) for x in sequence):
+                    raise TypeError("1")
+                if any(x < 0 for x in sequence):
+                    raise TypeError("2")
 
         """.trimIndent()
     )
@@ -60,7 +62,7 @@ private fun buildSampleRunConfig(): RunConfig {
 */
 
 private fun buildProjectRunConfig(): RunConfig {
-    val projectPath = "D:\\projects\\Python\\sorts"
+    val projectPath = "D:\\projects\\Python\\dynamic_programming"
     val mypyRoot = "D:\\projects\\mypy_tmp"
     val files = getPythonFilesFromRoot(projectPath)
     val modules = getModulesFromFiles(projectPath, files)
@@ -93,11 +95,16 @@ private fun buildProjectRunConfig(): RunConfig {
                 return@mapNotNull null
             if (ignoreFunctions.contains(functionName))
                 return@mapNotNull null
-            // if (functionName != "bitonic_sort")
+            // if (functionName != "bead_sort")
             //    return@mapNotNull null
+            if (description.argumentKinds.any { it == PythonCallableTypeDescription.ArgKind.ARG_STAR || it == PythonCallableTypeDescription.ArgKind.ARG_STAR_2 })
+                return@mapNotNull null
             println("$module.$functionName: ${type.pythonTypeRepresentation()}")
+            val callableType = type as FunctionType
             PythonUnpinnedCallable.constructCallableFromName(
-                List(description.numberOfArguments) { PythonAnyType },
+                callableType.arguments.map {
+                    SupportsTypeHint(it, typeSystem)
+                },
                 functionName,
                 module
             )
@@ -148,8 +155,8 @@ private fun analyze(runConfig: RunConfig) {
                     maxIterations = 70,
                     allowPathDiversion = true,
                     maxInstructions = 50_000,
-                    timeoutPerRunMs = 5_000,
-                    timeoutMs = 20_000
+                    timeoutPerRunMs = 4_000,
+                    timeoutMs = 40_000
                 )
                 results.forEach { (_, inputs, result) ->
                     println("INPUT:")

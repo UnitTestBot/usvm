@@ -45,3 +45,9 @@ def slice_usages(x: int, y: int, z: int):
     for i in range(size):
         lst.append(i)
     return lst[x:y:z]
+
+
+def element_constraints_sample(sequence: list):
+    for x in sequence:
+        assert isinstance(x, int)
+    return sequence[:-1]

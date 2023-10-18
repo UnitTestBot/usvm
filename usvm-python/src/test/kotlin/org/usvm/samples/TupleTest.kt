@@ -39,7 +39,7 @@ class TupleTest: PythonTestRunnerForPrimitiveProgram("Tuple", UMachineOptions(st
     @Test
     fun testInputListOfPairs() {
         val oldOptions = options
-        options = UMachineOptions(stepLimit = 30U)
+        options = UMachineOptions(stepLimit = 50U)
         timeoutPerRunMs = 2000
         check1WithConcreteRun(
             constructFunction("input_list_of_pairs", listOf(PythonAnyType)),
