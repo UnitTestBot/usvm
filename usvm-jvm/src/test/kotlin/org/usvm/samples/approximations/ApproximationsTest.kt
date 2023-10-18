@@ -71,6 +71,22 @@ class ApproximationsTest : ApproximationsTestRunner() {
         )
     }
 
+    @Test
+    fun testIndexOf(){
+        checkDiscoveredPropertiesWithExceptions(
+            ArrayList_Tests::test_indexOf_0,
+            eq(3),
+            { o, _ -> o == 0 },
+            { o, _ -> o == 1 },
+            { o, _ -> o == 2 },
+//            { o, _ -> o == 3 },
+//            { o, _ -> o == 4 },
+            invariants = arrayOf(
+                { execution, r -> execution !in 0..2 || r.getOrThrow() == execution }
+            )
+        )
+    }
+
     companion object {
         @JvmStatic
         fun stringBufferTests(): List<Arguments> =
