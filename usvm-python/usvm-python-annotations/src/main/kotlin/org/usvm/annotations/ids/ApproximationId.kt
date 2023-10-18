@@ -5,5 +5,6 @@ enum class ApproximationId(
     val pythonName: String,
     var cRef: Long = 0L  // will be set during Python initialization
 ) {
-    ListIndex("approximations.implementations.list", "IndexApproximation")
+    ListIndex("approximations.implementations.list", "IndexApproximation"),
+    ListReverse("approximations.implementations.list", "ReverseApproximation")
 }

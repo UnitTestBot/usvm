@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Callable
 
 
 class ApproximationForMethod(ABC):
@@ -24,3 +24,7 @@ class ApproximationForFunction(ABC):
     @abstractmethod
     def run(*args) -> Any:  # TODO: support kwargs
         ...
+
+
+class SpecialApproximation(ABC):
+    run: Callable
