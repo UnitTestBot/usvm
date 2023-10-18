@@ -1,9 +1,10 @@
 package org.usvm
 
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
-import kotlinx.serialization.json.putJsonObject
+import kotlinx.serialization.json.encodeToJsonElement
+import kotlinx.serialization.json.jsonObject
 import java.util.concurrent.ConcurrentHashMap
 
 class CoverageCounter(
@@ -49,28 +50,36 @@ class CoverageCounter(
         }
     }
 
+    @Serializable
+    private data class TestStatistics(
+        private val discounts: Map<String, Float>,
+        private val statementsCount: Float,
+        private val finished: Boolean,
+    )
+
+    @Serializable
+    private data class Statistics(
+        private val tests: Map<String, TestStatistics>,
+        private val totalDiscounts: Map<String, Float>,
+        private val totalStatementsCount: Float,
+        private val finishedTestsCount: Float,
+    )
+
     fun getStatistics(): JsonObject {
-        return buildJsonObject {
-            putJsonObject("Tests") {
-                testCoverages.forEach { (test, coverages) ->
-                    putJsonObject(test) {
-                        putJsonObject("discounts") {
-                            mlConfig.discounts.zip(coverages).forEach { (discount, coverage) ->
-                                put(discount.toString(), coverage)
-                            }
-                        }
-                        put("statementsCount", testStatementsCounts[test])
-                        put("finished", testFinished[test])
-                    }
-                }
-            }
-            putJsonObject("totalDiscounts") {
-                 mlConfig.discounts.zip(getTotalCoverages()).forEach { (discount, coverage) ->
-                    put(discount.toString(), coverage)
-                }
-            }
-            put("totalStatementsCount", testStatementsCounts.values.sum())
-            put("finishedTestsCount", testFinished.values.sumOf { if (it) 1.0 else 0.0 })
+        val discountStrings = mlConfig.discounts.map { it.toString() }
+        val testStatistics = testCoverages.mapValues { (test, coverages) ->
+            TestStatistics(
+                discountStrings.zip(coverages).toMap(),
+                testStatementsCounts.getValue(test),
+                testFinished.getValue(test),
+            )
         }
+        val statistics = Statistics(
+            testStatistics,
+            discountStrings.zip(getTotalCoverages()).toMap(),
+            testStatementsCounts.values.sum(),
+            testFinished.values.sumOf { if (it) 1.0 else 0.0 }.toFloat(),
+        )
+        return Json.encodeToJsonElement(statistics).jsonObject
     }
 }
