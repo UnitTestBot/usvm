@@ -208,3 +208,9 @@ def clear_usage(x: int):
     y = [1, 2, 3]
     y.clear()
     assert len(y) == x
+
+
+def index_usage(x: list):
+    if x.index(0) == 1:
+        return 1
+    return 2
