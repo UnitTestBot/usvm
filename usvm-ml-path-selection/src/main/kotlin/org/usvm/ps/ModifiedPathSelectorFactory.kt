@@ -8,10 +8,11 @@ import org.usvm.algorithms.RandomizedPriorityCollection
 import org.usvm.statistics.ApplicationGraph
 import org.usvm.statistics.CoverageStatistics
 import org.usvm.statistics.distances.*
+import org.usvm.targets.UTarget
 import kotlin.math.max
 import kotlin.random.Random
 
-fun <Method, Statement, Target : UTarget<Statement, Target, State>, State : UState<*, Method, Statement, *, Target, State>> modifiedCreatePathSelector(
+fun <Method, Statement, Target, State> modifiedCreatePathSelector(
     initialState: State,
     options: ModifiedUMachineOptions,
     applicationGraph: ApplicationGraph<Method, Statement>,
@@ -19,7 +20,9 @@ fun <Method, Statement, Target : UTarget<Statement, Target, State>, State : USta
     cfgStatistics: () -> CfgStatistics<Method, Statement>? = { null },
     @Suppress("UNUSED_PARAMETER") callGraphStatistics: () -> CallGraphStatistics<Method>? = { null },
     mlConfig: () -> MLConfig? = { null }
-) : UPathSelector<State> {
+) : UPathSelector<State>
+        where Target : UTarget<Statement, Target>,
+              State : UState<*, Method, Statement, *, Target, State> {
     val strategies = options.pathSelectionStrategies
     require(strategies.isNotEmpty()) { "At least one path selector strategy should be specified" }
 
