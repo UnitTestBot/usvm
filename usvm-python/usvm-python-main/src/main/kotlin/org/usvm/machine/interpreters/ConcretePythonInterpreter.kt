@@ -247,6 +247,7 @@ object ConcretePythonInterpreter {
                 incref(ref)
                 decref(namespace)
             }
+            pythonAdapter.initializeSpecialApproximations()
         }
     }
 

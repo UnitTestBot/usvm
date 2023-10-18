@@ -6,6 +6,7 @@ import org.usvm.language.PythonUnpinnedCallable
 import org.usvm.language.types.PythonAnyType
 import org.usvm.runner.PythonTestRunnerForPrimitiveProgram
 import org.usvm.test.util.checkers.eq
+import org.usvm.test.util.checkers.ge
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 class ListsTest : PythonTestRunnerForPrimitiveProgram("Lists", UMachineOptions(stepLimit = 20U)) {
@@ -431,5 +432,23 @@ class ListsTest : PythonTestRunnerForPrimitiveProgram("Lists", UMachineOptions(s
             )
         )
         allowPathDiversions = false
+    }
+
+    @Test
+    fun testReverseUsage() {
+        val oldOptions = options
+        allowPathDiversions = false
+        options = UMachineOptions(stepLimit = 50U)
+        check1WithConcreteRun(
+            constructFunction("reverse_usage", listOf(typeSystem.pythonList)),
+            ge(5),
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ listOf { _, res -> res.typeName == "tuple" },
+            /* propertiesToDiscover = */ listOf(
+                { _, res -> res.repr.startsWith("(1, ") },
+                { _, res -> res.repr.startsWith("(2, ") },
+            )
+        )
+        options = oldOptions
     }
 }

@@ -214,3 +214,14 @@ def index_usage(x: list):
     if x.index(0) == 1:
         return 1
     return 2
+
+
+def reverse_usage(x: list):
+    x.reverse()
+    result = 0
+    for i in range(len(x) // 2):
+        if x[i] > x[-1]:
+            result = 1
+        else:
+            result = 2
+    return (result, x)

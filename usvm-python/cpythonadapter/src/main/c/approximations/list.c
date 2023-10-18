@@ -29,77 +29,13 @@ PyObject *list_richcompare_ne = 0;
 PyObject *list_richcompare_le = 0;
 PyObject *list_richcompare_ge = 0;
 
-#define list_multiply_impl \
-    "def list_multiply_impl(x, y): \n" \
-    "    result = []               \n" \
-    "    for _ in range(y):        \n" \
-    "        result += x           \n" \
-    "    return result             \n"
+#define list_approximation_module "approximations.implementations.list"
 
-PyObject *list_multiply = 0;
+#define list_multiply_name "MultiplyApproximation"
+PyObject *list_multiply_run = 0;
 
-#define slice_unpack_impl \
-    "def slice_unpack_impl(s: slice): \n"\
-    "    start, stop, step = None, None, None \n"\
-    "    min_, max_ = -10**18, 10**18 \n"\
-    "    if s.step is None: \n"\
-    "        step = 1 \n"\
-    "    else: \n"\
-    "        step = s.step \n"\
-    "        if step == 0: \n"\
-    "            raise ValueError('slice step cannot be zero') \n"\
-    "    if s.start is None: \n"\
-    "        start = max_ if step < 0 else 0 \n"\
-    "    else: \n"\
-    "        start = s.start \n"\
-    "    if s.stop is None: \n"\
-    "        stop = min_ if step < 0 else max_\n"\
-    "    else: \n"\
-    "        stop = s.stop \n"\
-    "    return start, stop, step \n"
-
-PyObject *slice_unpack = 0;
-
-#define slice_adjust_indices_impl \
-    "def slice_adjust_indices_impl(length, start, stop, step): \n"\
-    "    result_length = 0 \n"\
-    "    if start < 0: \n"\
-    "        start += length \n"\
-    "        if start < 0: \n"\
-    "            start = -1 if step < 0 else 0 \n"\
-    "    elif start >= length: \n"\
-    "        start = length - 1 if step < 0 else length \n"\
-    "    if stop < 0: \n"\
-    "        stop += length \n"\
-    "        if stop < 0: \n"\
-    "            stop = -1 if step < 0 else 0 \n"\
-    "    elif stop >= length: \n"\
-    "        stop = length - 1 if step < 0 else length \n"\
-    "    if step < 0: \n"\
-    "        if stop < start: \n"\
-    "            result_length = (start - stop - 1) // (-step) + 1; \n"\
-    "    else: \n"\
-    "        if start < stop: \n"\
-    "            result_length = (stop - start - 1) // step + 1 \n"\
-    "    return result_length, start, stop, step \n"
-
-PyObject *slice_adjust_indices = 0;
-
-#define slice_get_item_impl \
-    "def slice_get_item_impl(self: list, item: slice): \n"\
-    "    start, stop, step = slice_unpack_impl(item) \n"\
-    "    slicelength, start, stop, step = slice_adjust_indices_impl(len(self), start, stop, step) \n"\
-    "    if slicelength <= 0: \n"\
-    "        return [] \n"\
-    "    else: \n"\
-    "        result = [] \n"\
-    "        cur = start \n"\
-    "        for i in range(slicelength): \n"\
-    "            result.append(self[cur]) \n"\
-    "            cur += step \n"\
-    "        return result \n"
-
-PyObject *slice_get_item = 0;
+#define slice_get_item_name "SliceGetItemApproximation"
+PyObject *slice_get_item_run = 0;
 
 void
 initialize_list_python_impls() {
@@ -141,29 +77,16 @@ initialize_list_python_impls() {
     assert(!PyErr_Occurred() && list_richcompare_ge);
     Py_INCREF(list_richcompare_ge);
 
-    PyRun_StringFlags(list_multiply_impl, Py_file_input, globals, globals, 0);
+    PyRun_StringFlags("import " list_approximation_module, Py_file_input, globals, globals, 0);
     assert(!PyErr_Occurred());
-    list_multiply = PyRun_StringFlags("list_multiply_impl", Py_eval_input, globals, globals, 0);
-    assert(!PyErr_Occurred() && list_multiply);
-    Py_INCREF(list_multiply);
 
-    PyRun_StringFlags(slice_unpack_impl, Py_file_input, globals, globals, 0);
-    assert(!PyErr_Occurred());
-    slice_unpack = PyRun_StringFlags("slice_unpack_impl", Py_eval_input, globals, globals, 0);
-    assert(!PyErr_Occurred() && slice_unpack);
-    Py_INCREF(slice_unpack);
+    list_multiply_run = PyRun_StringFlags(list_approximation_module "." list_multiply_name ".run", Py_eval_input, globals, globals, 0);
+    assert(!PyErr_Occurred() && list_multiply_run);
+    Py_INCREF(list_multiply_run);
 
-    PyRun_StringFlags(slice_adjust_indices_impl, Py_file_input, globals, globals, 0);
-    assert(!PyErr_Occurred());
-    slice_adjust_indices = PyRun_StringFlags("slice_adjust_indices_impl", Py_eval_input, globals, globals, 0);
-    assert(!PyErr_Occurred() && slice_adjust_indices);
-    Py_INCREF(slice_adjust_indices);
-
-    PyRun_StringFlags(slice_get_item_impl, Py_file_input, globals, globals, 0);
-    assert(!PyErr_Occurred());
-    slice_get_item = PyRun_StringFlags("slice_get_item_impl", Py_eval_input, globals, globals, 0);
-    assert(!PyErr_Occurred() && slice_get_item);
-    Py_INCREF(slice_get_item);
+    slice_get_item_run = PyRun_StringFlags(list_approximation_module "." slice_get_item_name ".run", Py_eval_input, globals, globals, 0);
+    assert(!PyErr_Occurred() && slice_get_item_run);
+    Py_INCREF(slice_get_item_run);
 
     Py_DECREF(globals);
 }
@@ -210,7 +133,7 @@ Approximation_list_repeat(PyObject *self, PyObject *n) {
         return 0;
     if (adapter->fixate_type(adapter->handler_param, get_symbolic_or_none(n)))
         return 0;
-    PyObject *wrapped = wrap(list_multiply, Py_None, adapter);
+    PyObject *wrapped = wrap(list_multiply_run, Py_None, adapter);
     PyObject *args = PyTuple_Pack(2, self, n);
     PyObject *result = Py_TYPE(wrapped)->tp_call(wrapped, args, 0);
     Py_DECREF(args);
@@ -225,7 +148,7 @@ Approximation_list_slice_get_item(PyObject *self, PyObject *slice) {
         return 0;
     if (adapter->fixate_type(adapter->handler_param, get_symbolic_or_none(slice)))
         return 0;
-    PyObject *wrapped = wrap(slice_get_item, Py_None, adapter);
+    PyObject *wrapped = wrap(slice_get_item_run, Py_None, adapter);
     PyObject *args = PyTuple_Pack(2, self, slice);
     PyObject *result = Py_TYPE(wrapped)->tp_call(wrapped, args, 0);
     Py_DECREF(args);

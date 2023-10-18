@@ -50,6 +50,7 @@ public class CPythonAdapter {
     public int pyGT;
 
     public native void initializePython(String pythonHome);
+    public native void initializeSpecialApproximations();
     public native void finalizePython();
     public native long getNewNamespace();  // returns reference to a new dict
     public native void addName(long dict, long object, String name);
@@ -979,6 +980,9 @@ public class CPythonAdapter {
 
     @SymbolicMethodDescriptor(nativeTypeName = "PyList_Type", nativeMemberName = "index")
     public MemberDescriptor listIndexDescriptor = new ApproximationDescriptor(ApproximationId.ListIndex);
+
+    @SymbolicMethodDescriptor(nativeTypeName = "PyList_Type", nativeMemberName = "reverse")
+    public MemberDescriptor listReverseDescriptor = new ApproximationDescriptor(ApproximationId.ListReverse);
 
     @SymbolicMemberDescriptor(nativeTypeName = "PySlice_Type", nativeMemberName = "start")
     public MemberDescriptor sliceStartDescriptor = SliceStartDescriptor.INSTANCE;
