@@ -18,8 +18,7 @@ class BlockGraph<Method, Statement>(
 ) {
     private val root: Block<Statement>
     private val successorsMap = mutableMapOf<Block<Statement>, List<Statement>>().withDefault { listOf() }
-    private val predecessorsMap = mutableMapOf<Block<Statement>, MutableList<Statement>>()
-        .withDefault { mutableListOf() }
+    private val predecessorsMap = mutableMapOf<Block<Statement>, List<Statement>>().withDefault { listOf() }
     private val coveredStatements = mutableMapOf<Statement, Block<Statement>>()
     var currentBlockId = 0
     internal val blockList = mutableListOf<Block<Statement>>()
@@ -41,12 +40,15 @@ class BlockGraph<Method, Statement>(
     }
 
     private fun getPredecessors() {
+        val tmpPredecessorsMap = mutableMapOf<Block<Statement>, MutableList<Statement>>()
+            .withDefault { mutableListOf() }
         blockList.forEach { previousBlock ->
             val lastStatement = previousBlock.path.last()
             successors(previousBlock).forEach { nextBlock ->
-                predecessorsMap.getValue(nextBlock).add(lastStatement)
+                tmpPredecessorsMap.getValue(nextBlock).add(lastStatement)
             }
         }
+        tmpPredecessorsMap.forEach { (block, predecessors) -> predecessorsMap[block] = predecessors }
     }
 
     private fun buildBlocks(statement: Statement): Block<Statement> {
@@ -78,7 +80,9 @@ class BlockGraph<Method, Statement>(
             }
             coveredStatements[currentStatement] = currentBlock
             currentBlock.path.add(currentStatement)
-            if (successors.size > 1) {
+            if (successors.size == 1) {
+                currentStatement = successors.first()
+            } else {
                 statementQueue.addAll(successors)
                 successors.forEach {
                     addSuccessor(currentBlock, it)
@@ -86,12 +90,6 @@ class BlockGraph<Method, Statement>(
                 val nextStatement = chooseNextStatement(statementQueue) ?: break
                 currentStatement = nextStatement
                 currentBlock = Block(this)
-            } else if (successors.isEmpty()) {
-                val nextStatement = chooseNextStatement(statementQueue) ?: break
-                currentStatement = nextStatement
-                currentBlock = Block(this)
-            } else {
-                currentStatement = successors.first()
             }
         }
         getPredecessors()
