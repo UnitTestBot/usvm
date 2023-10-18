@@ -124,10 +124,12 @@ class UninterpretedSymbolicPythonObject(
         require(ctx.curState != null)
         val type = getTypeIfDefined(ctx)
         require(type != null && type is ArrayLikeConcretePythonType)
-        val cond = type.elementConstraints.fold(ctx.ctx.trueExpr as UBoolExpr) { acc, constraint ->
-            ctx.ctx.mkAnd(acc, constraint.applyUninterpreted(this, value, ctx))
+        if (!isAllocatedObject(ctx)) {
+            val cond = type.elementConstraints.fold(ctx.ctx.trueExpr as UBoolExpr) { acc, constraint ->
+                ctx.ctx.mkAnd(acc, constraint.applyUninterpreted(this, value, ctx))
+            }
+            myAssert(ctx, cond)
         }
-        myAssert(ctx, cond)
         ctx.curState!!.memory.writeArrayIndex(address, index, ArrayType, ctx.ctx.addressSort, value.address, ctx.ctx.trueExpr)
     }
 

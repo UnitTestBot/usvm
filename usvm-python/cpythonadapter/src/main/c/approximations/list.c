@@ -92,10 +92,10 @@ PyObject *slice_adjust_indices = 0;
     "    if slicelength <= 0: \n"\
     "        return [] \n"\
     "    else: \n"\
-    "        result = [None] * slicelength \n"\
+    "        result = [] \n"\
     "        cur = start \n"\
     "        for i in range(slicelength): \n"\
-    "            result[i] = self[cur] \n"\
+    "            result.append(self[cur]) \n"\
     "            cur += step \n"\
     "        return result \n"
 

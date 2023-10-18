@@ -415,4 +415,21 @@ class ListsTest : PythonTestRunnerForPrimitiveProgram("Lists", UMachineOptions(s
             )
         )
     }
+
+    @Test
+    fun testIndexUsage() {
+        allowPathDiversions = true
+        check1WithConcreteRun(
+            constructFunction("index_usage", listOf(typeSystem.pythonList)),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, res -> res.selfTypeName == "ValueError" },
+                { _, res -> res.repr == "1" },
+                { _, res -> res.repr == "2" }
+            )
+        )
+        allowPathDiversions = false
+    }
 }

@@ -89,4 +89,18 @@ class SlicesTest: PythonTestRunnerForStructuredProgram("Slices", UMachineOptions
         options = oldOptions
         allowPathDiversions = false
     }
+
+    @Test
+    fun testElementConstraintsSample() {
+        check1WithConcreteRun(
+            constructFunction("element_constraints_sample", List(1) { typeSystem.pythonList }),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf (
+                { _, res -> res.selfTypeName == "AssertionError" },
+                { _, res -> res.typeName == "list" }
+            )
+        )
+    }
 }
