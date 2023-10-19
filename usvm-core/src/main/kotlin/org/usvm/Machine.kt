@@ -7,6 +7,7 @@ import org.usvm.statistics.UMachineObserver
 import org.usvm.stopstrategies.StopStrategy
 import org.usvm.util.bracket
 import org.usvm.util.debug
+import org.usvm.utils.verify
 
 val logger = object : KLogging() {}.logger
 

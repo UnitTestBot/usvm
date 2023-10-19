@@ -4,6 +4,10 @@ import org.usvm.StepScope.StepScopeState.CANNOT_BE_PROCESSED
 import org.usvm.StepScope.StepScopeState.CAN_BE_PROCESSED
 import org.usvm.StepScope.StepScopeState.DEAD
 import org.usvm.forkblacklists.UForkBlackList
+import org.usvm.solver.USatResult
+import org.usvm.solver.UUnknownResult
+import org.usvm.solver.UUnsatResult
+import org.usvm.utils.updateForkResultAndModels
 
 /**
  * An auxiliary class, which carefully maintains forks and asserts via [forkWithBlackList] and [assert].
@@ -212,20 +216,31 @@ class StepScope<T : UState<Type, *, Statement, Context, *, T>, Type, Statement, 
      * [assert]s the [condition] on the scope with the cloned [originalState]. Returns this cloned state, if this [condition]
      * is satisfiable, and returns `null` otherwise.
      */
+    @Suppress("MoveVariableDeclarationIntoWhen")
     fun checkSat(condition: UBoolExpr): T? {
         val conditionalState = originalState.clone()
-        val conditionalScope = StepScope(conditionalState, forkBlackList)
+        conditionalState.pathConstraints += condition
 
-        return conditionalScope.assert(condition)?.let {
-            val satisfiedModels = conditionalState.models
-            val modelsInCurrentState = calcOnState { models }
+        // TODO comments
+        if (conditionalState.lastForkResult == null || conditionalState.lastForkResult is USatResult) {
+            val trueModels = conditionalState.models.filter { it.eval(condition).isTrue }
 
-            // TODO add some comments
-            if (satisfiedModels != modelsInCurrentState) {
-                originalState.models = modelsInCurrentState + satisfiedModels
+            if (trueModels.isNotEmpty()) {
+                return conditionalState
             }
+        }
 
-            conditionalState
+        val solver = conditionalState.ctx.solver<Type>()
+        val solverResult = solver.check(conditionalState.pathConstraints)
+
+        return when (solverResult) {
+            is USatResult -> {
+                conditionalState.updateForkResultAndModels(solverResult)
+                originalState.updateForkResultAndModels(solverResult)
+
+                conditionalState
+            }
+            is UUnknownResult, is UUnsatResult -> null
         }
     }
 
