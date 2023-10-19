@@ -58,6 +58,7 @@ open class UContext<USizeSort : USort>(
     private val solver by lazy { components.mkSolver(this) }
     private val typeSystem by lazy { components.mkTypeSystem(this) }
     val sizeExprs by lazy { components.mkSizeExprProvider(this) }
+    val statesForkProvider by lazy { components.mkStatesForkProvider() }
 
     private var currentStateId = 0u
 

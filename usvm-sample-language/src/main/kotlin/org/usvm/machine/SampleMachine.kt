@@ -30,7 +30,7 @@ class SampleMachine(
 ) : UMachine<SampleState>() {
     private val applicationGraph = SampleApplicationGraph(program)
     private val typeSystem = SampleTypeSystem()
-    private val components = SampleLanguageComponents(typeSystem, options.solverType)
+    private val components = SampleLanguageComponents(typeSystem, options.solverType, options.useSolverForForks)
     private val ctx = UContext(components)
     private val solver = ctx.solver<SampleType>()
 
@@ -92,9 +92,11 @@ class SampleMachine(
             stopStrategy = stopStrategy,
         )
 
-        val allStates = statesCollector.collectedStates
-        val satStates = allStates.filter { it.verify() != null }
-        return satStates.map { resultModelConverter.convert(it, method) }
+//        val allStates = statesCollector.collectedStates
+//        // TODO docs
+//        val satStates = allStates.filter { it.verify() != null }
+//        return satStates.map { resultModelConverter.convert(it, method) }
+        return statesCollector.collectedStates.map { resultModelConverter.convert(it, method) }
     }
 
     private fun getInitialState(

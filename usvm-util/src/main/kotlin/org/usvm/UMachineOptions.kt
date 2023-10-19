@@ -178,6 +178,10 @@ data class UMachineOptions(
      */
     val solverType: SolverType = SolverType.Z3,
     /**
+     * Whether we use a solver on symbolic branching to fork only with satisfiable states or keep all states.
+     */
+    val useSolverForForks: Boolean = false, // TODO do not forget to change this default value!
+    /**
      * Should machine stop when all terminal targets are reached.
      */
     val stopOnTargetsReached: Boolean = false,

@@ -1,9 +1,11 @@
 package org.usvm.statistics
 
+import org.usvm.UState
+
 /**
  * Symbolic machine events observer.
  */
-interface UMachineObserver<State> {
+interface UMachineObserver<State : UState<*, *, *, *, *, *>> {
 
     /**
      * Called when the execution of the state is terminated (by exception or return).
@@ -16,7 +18,9 @@ interface UMachineObserver<State> {
     fun onState(parent: State, forks: Sequence<State>) { }
 }
 
-class CompositeUMachineObserver<State>(private val observers: List<UMachineObserver<State>>) : UMachineObserver<State> {
+class CompositeUMachineObserver<State : UState<*, *, *, *, *, *>>(
+    private val observers: List<UMachineObserver<State>>
+) : UMachineObserver<State> {
     constructor(vararg observers: UMachineObserver<State>) : this(observers.toList())
 
     override fun onStateTerminated(state: State, stateReachable: Boolean) {

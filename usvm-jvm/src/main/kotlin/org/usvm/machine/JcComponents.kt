@@ -16,7 +16,8 @@ import org.usvm.solver.UTypeSolver
 class JcComponents(
     private val typeSystem: JcTypeSystem,
     private val solverType: SolverType,
-) : UComponents<JcType, USizeSort> {
+    useSolverForForks: Boolean,
+) : UComponents<JcType, USizeSort>(useSolverForForks) {
     private val closeableResources = mutableListOf<AutoCloseable>()
 
     override fun <Context : UContext<USizeSort>> mkSolver(ctx: Context): USolverBase<JcType> {

@@ -24,6 +24,7 @@ import org.usvm.statistics.TransitiveCoverageZoneObserver
 import org.usvm.statistics.UMachineObserver
 import org.usvm.statistics.collectors.CoveredNewStatesCollector
 import org.usvm.statistics.collectors.TargetsReachedStatesCollector
+import org.usvm.statistics.collectors.TerminatedStatesCollector
 import org.usvm.statistics.distances.CfgStatistics
 import org.usvm.statistics.distances.CfgStatisticsImpl
 import org.usvm.statistics.distances.InterprocDistance
@@ -43,7 +44,7 @@ class JcMachine(
     private val applicationGraph = JcApplicationGraph(cp)
 
     private val typeSystem = JcTypeSystem(cp)
-    private val components = JcComponents(typeSystem, options.solverType)
+    private val components = JcComponents(typeSystem, options.solverType, options.useSolverForForks)
     private val ctx = JcContext(cp, components)
 
     private val interpreter = JcInterpreter(ctx, applicationGraph, interpreterObserver)

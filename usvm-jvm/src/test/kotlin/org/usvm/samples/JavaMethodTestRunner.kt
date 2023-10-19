@@ -5,7 +5,9 @@ import org.jacodb.api.ext.toType
 import org.junit.jupiter.api.TestInstance
 import org.usvm.CoverageZone
 import org.usvm.PathSelectionStrategy
+import org.usvm.UContext
 import org.usvm.UMachineOptions
+import org.usvm.UState
 import org.usvm.api.JcClassCoverage
 import org.usvm.api.JcParametersState
 import org.usvm.api.JcTest
@@ -13,6 +15,7 @@ import org.usvm.api.targets.JcTarget
 import org.usvm.api.util.JcTestResolver
 import org.usvm.machine.JcInterpreterObserver
 import org.usvm.machine.JcMachine
+import org.usvm.solver.USatResult
 import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.AnalysisResultsNumberMatcher
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
@@ -749,7 +752,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
         pathSelectionStrategies = listOf(PathSelectionStrategy.FORK_DEPTH),
         coverageZone = CoverageZone.TRANSITIVE,
         exceptionsPropagation = true,
-        timeoutMs = 60_000_000,
+        timeoutMs = 60_000,
         stepsFromLastCovered = 3500L,
     )
 
@@ -760,13 +763,26 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
 
         JcMachine(cp, options, interpreterObserver).use { machine ->
             val allStates = machine.analyze(jcMethod.method, targets)
-            val satStates = allStates.filter { it.verify() != null }
+            val satStates = allStates.mapNotNull { it.verify() }
             satStates.map { testResolver.resolve(jcMethod, it) }
         }
     }
 
     override val coverageRunner: (List<JcTest>) -> JcClassCoverage = { _ ->
         JcClassCoverage(visitedStmts = emptySet())
+    }
+
+    private fun <Type, Context, State> State.verify(): State?
+            where Context : UContext<*>, State : UState<Type, *, *, Context, *, State> {
+        val solver = ctx.solver<Type>()
+        val solverResult = solver.checkWithSoftConstraints(pathConstraints)
+
+        if (solverResult !is USatResult) {
+            return null
+        }
+
+        models = listOf(solverResult.model)
+        return this
     }
 
     companion object {

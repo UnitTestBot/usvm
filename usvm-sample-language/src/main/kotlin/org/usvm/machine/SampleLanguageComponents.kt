@@ -15,8 +15,9 @@ import org.usvm.types.UTypeSystem
 
 class SampleLanguageComponents(
     private val typeSystem: SampleTypeSystem,
-    private val solverType: SolverType
-) : UComponents<SampleType, USizeSort> {
+    private val solverType: SolverType,
+    useSolverForForks: Boolean
+) : UComponents<SampleType, USizeSort>(useSolverForForks) {
     override fun <Context : UContext<USizeSort>> mkSolver(ctx: Context): USolverBase<SampleType> {
         val (translator, decoder) = buildTranslatorAndLazyDecoder(ctx)
         val softConstraintsProvider = USoftConstraintsProvider<SampleType, _>(ctx)

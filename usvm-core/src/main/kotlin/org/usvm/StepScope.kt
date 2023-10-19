@@ -27,6 +27,7 @@ class StepScope<T : UState<Type, *, Statement, Context, *, T>, Type, Statement, 
 
     private inline val alive: Boolean get() = stepScopeState != DEAD
     private inline val canProcessFurtherOnCurrentStep: Boolean get() = stepScopeState == CAN_BE_PROCESSED
+    private inline val ctx: Context get() = originalState.ctx
 
     /**
      * Determines whether we interact this scope on the current step.
@@ -74,7 +75,7 @@ class StepScope<T : UState<Type, *, Statement, Context, *, T>, Type, Statement, 
     ): Unit? {
         check(canProcessFurtherOnCurrentStep)
 
-        val (posState, negState) = fork(originalState, condition)
+        val (posState, negState) = ctx.statesForkProvider.fork(originalState, condition)
 
         posState?.blockOnTrueState()
 
@@ -107,7 +108,7 @@ class StepScope<T : UState<Type, *, Statement, Context, *, T>, Type, Statement, 
 
         val conditions = conditionsWithBlockOnStates.map { it.first }
 
-        val conditionStates = forkMulti(originalState, conditions)
+        val conditionStates = ctx.statesForkProvider.forkMulti(originalState, conditions)
 
         val forkedStates = conditionStates.mapIndexedNotNull { idx, positiveState ->
             val block = conditionsWithBlockOnStates[idx].second
@@ -136,7 +137,7 @@ class StepScope<T : UState<Type, *, Statement, Context, *, T>, Type, Statement, 
     ): Unit? {
         check(canProcessFurtherOnCurrentStep)
 
-        val (posState) = forkMulti(originalState, listOf(constraint))
+        val (posState) = ctx.statesForkProvider.forkMulti(originalState, listOf(constraint))
 
         posState?.block()
 
@@ -226,15 +227,6 @@ class StepScope<T : UState<Type, *, Statement, Context, *, T>, Type, Statement, 
 
             conditionalState
         }
-    }
-
-    fun verify(): T? {
-        originalState.verify()?.let {
-            return originalState
-        }
-
-        stepScopeState = DEAD
-        return null
     }
 
     /**

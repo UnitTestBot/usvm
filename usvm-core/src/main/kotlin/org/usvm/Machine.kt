@@ -13,7 +13,7 @@ val logger = object : KLogging() {}.logger
  *
  * @see [run]
  */
-abstract class UMachine<State> : AutoCloseable {
+abstract class UMachine<State : UState<*, *, *, *, *, *>> : AutoCloseable {
     /**
      * Runs symbolic execution loop.
      *
@@ -48,9 +48,7 @@ abstract class UMachine<State> : AutoCloseable {
                     } else {
                         // TODO: distinguish between states terminated by exception (runtime or user) and
                         //  those which just exited
-                        @Suppress("UNCHECKED_CAST")
-                        val isSat = (forkedState as UState<Any, *, *, UContext<*>, *, *>).verify()
-                        observer.onStateTerminated(forkedState, stateReachable = isSat != null)
+                        observer.onStateTerminated(forkedState, stateReachable = true)
                     }
                 }
 
@@ -58,10 +56,7 @@ abstract class UMachine<State> : AutoCloseable {
                     pathSelector.update(state)
                 } else {
                     pathSelector.remove(state)
-
-                    @Suppress("UNCHECKED_CAST")
-                    val isSat = (state as UState<Any, *, *, UContext<*>, *, *>).verify()
-                    observer.onStateTerminated(state, stateReachable = stateAlive && isSat != null)
+                    observer.onStateTerminated(state, stateReachable = stateAlive)
                 }
 
                 if (aliveForkedStates.isNotEmpty()) {
