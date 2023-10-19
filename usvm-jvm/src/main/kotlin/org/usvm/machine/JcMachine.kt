@@ -24,7 +24,6 @@ import org.usvm.statistics.TransitiveCoverageZoneObserver
 import org.usvm.statistics.UMachineObserver
 import org.usvm.statistics.collectors.CoveredNewStatesCollector
 import org.usvm.statistics.collectors.TargetsReachedStatesCollector
-import org.usvm.statistics.collectors.TerminatedStatesCollector
 import org.usvm.statistics.distances.CfgStatistics
 import org.usvm.statistics.distances.CfgStatisticsImpl
 import org.usvm.statistics.distances.InterprocDistance

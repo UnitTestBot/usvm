@@ -5,6 +5,8 @@ import kotlinx.collections.immutable.toPersistentList
 import org.usvm.constraints.UPathConstraints
 import org.usvm.memory.UMemory
 import org.usvm.model.UModelBase
+import org.usvm.solver.USatResult
+import org.usvm.solver.USolverResult
 import org.usvm.targets.UTarget
 
 typealias StateId = UInt
@@ -114,6 +116,22 @@ abstract class UState<Type, Method, Statement, Context, Target, State>(
         targetsImpl = targetsImpl.addAll(target.children)
 
         return true
+    }
+
+    var lastForkResult: USolverResult<UModelBase<Type>>? = null
+
+    internal fun verify(): USolverResult<UModelBase<Type>> {
+        val solver = ctx.solver<Type>()
+        val solverResult = solver.checkWithSoftConstraints(pathConstraints)
+
+        if (solverResult is USatResult) {
+            // TODO just an assignment or +=?
+            models = listOf(solverResult.model)
+        }
+
+        return solverResult.also {
+            lastForkResult = it
+        }
     }
 }
 

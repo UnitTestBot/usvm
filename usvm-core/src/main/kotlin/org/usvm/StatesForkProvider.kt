@@ -80,6 +80,10 @@ object SatStatesForkProvider : StatesForkProvider {
             else -> error("[trueModels] and [falseModels] are both empty, that has to be impossible by construction!")
         }
 
+        // TODO comments
+        posState?.let { it.lastForkResult = USatResult(it.models.last()) }
+        negState?.let { it.lastForkResult = USatResult(it.models.last()) }
+
         return ForkResult(posState, negState)
     }
 
@@ -122,6 +126,13 @@ object SatStatesForkProvider : StatesForkProvider {
                 curState = nextRoot
             } else {
                 result += null
+            }
+        }
+
+        // TODO comments
+        result.forEach { forkedState ->
+            forkedState?.let {
+                it.lastForkResult = USatResult(it.models.last())
             }
         }
 
@@ -218,6 +229,10 @@ object NoSolverStatesForkProvider : StatesForkProvider {
             }.takeIf { !it.pathConstraints.isFalse }
         }
 
+        // TODO comments
+        posState?.let { it.lastForkResult = UUnknownResult() }
+        negState?.let { it.lastForkResult = UUnknownResult() }
+
         return ForkResult(posState, negState)
     }
 
@@ -244,6 +259,13 @@ object NoSolverStatesForkProvider : StatesForkProvider {
 
                 result += curState
                 curState = nextRoot
+            }
+        }
+
+        // TODO comments
+        result.forEach { forkedState ->
+            forkedState?.let {
+                it.lastForkResult = UUnknownResult()
             }
         }
 

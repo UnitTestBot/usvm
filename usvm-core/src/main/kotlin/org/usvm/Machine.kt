@@ -1,6 +1,8 @@
 package org.usvm
 
 import mu.KLogging
+import org.usvm.solver.USatResult
+import org.usvm.solver.UUnknownResult
 import org.usvm.statistics.UMachineObserver
 import org.usvm.stopstrategies.StopStrategy
 import org.usvm.util.bracket
@@ -48,7 +50,16 @@ abstract class UMachine<State : UState<*, *, *, *, *, *>> : AutoCloseable {
                     } else {
                         // TODO: distinguish between states terminated by exception (runtime or user) and
                         //  those which just exited
-                        observer.onStateTerminated(forkedState, stateReachable = true)
+
+                        // TODO comments
+                        var stateSolverResult = forkedState.lastForkResult
+                        if (stateSolverResult is UUnknownResult) {
+                            stateSolverResult = forkedState.verify()
+                        }
+
+                        if (stateSolverResult == null || stateSolverResult is USatResult) {
+                            observer.onStateTerminated(forkedState, stateReachable = true)
+                        }
                     }
                 }
 
@@ -56,7 +67,17 @@ abstract class UMachine<State : UState<*, *, *, *, *, *>> : AutoCloseable {
                     pathSelector.update(state)
                 } else {
                     pathSelector.remove(state)
-                    observer.onStateTerminated(state, stateReachable = stateAlive)
+
+                    // TODO comments
+                    var stateSolverResult = state.lastForkResult
+                    if (stateSolverResult is UUnknownResult) {
+                        stateSolverResult = state.verify()
+                    }
+
+                    if (stateSolverResult ==
+                        null || stateSolverResult is USatResult) {
+                        observer.onStateTerminated(state, stateReachable = stateAlive)
+                    }
                 }
 
                 if (aliveForkedStates.isNotEmpty()) {
