@@ -762,26 +762,13 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
         val jcMethod = jcClass.declaredMethods.first { it.name == method.name }
 
         JcMachine(cp, options, interpreterObserver).use { machine ->
-            val allStates = machine.analyze(jcMethod.method, targets)
-            allStates.map { testResolver.resolve(jcMethod, it) }
+            val states = machine.analyze(jcMethod.method, targets)
+            states.map { testResolver.resolve(jcMethod, it) }
         }
     }
 
     override val coverageRunner: (List<JcTest>) -> JcClassCoverage = { _ ->
         JcClassCoverage(visitedStmts = emptySet())
-    }
-
-    private fun <Type, Context, State> State.verify(): State?
-            where Context : UContext<*>, State : UState<Type, *, *, Context, *, State> {
-        val solver = ctx.solver<Type>()
-        val solverResult = solver.checkWithSoftConstraints(pathConstraints)
-
-        if (solverResult !is USatResult) {
-            return null
-        }
-
-        models = listOf(solverResult.model)
-        return this
     }
 
     companion object {

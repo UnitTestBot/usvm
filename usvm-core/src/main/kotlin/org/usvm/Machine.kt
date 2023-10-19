@@ -1,13 +1,11 @@
 package org.usvm
 
 import mu.KLogging
-import org.usvm.solver.USatResult
-import org.usvm.solver.UUnknownResult
 import org.usvm.statistics.UMachineObserver
 import org.usvm.stopstrategies.StopStrategy
 import org.usvm.util.bracket
 import org.usvm.util.debug
-import org.usvm.utils.verify
+import org.usvm.utils.isSat
 
 val logger = object : KLogging() {}.logger
 
@@ -51,14 +49,7 @@ abstract class UMachine<State : UState<*, *, *, *, *, *>> : AutoCloseable {
                     } else {
                         // TODO: distinguish between states terminated by exception (runtime or user) and
                         //  those which just exited
-
-                        // TODO comments
-                        var stateSolverResult = forkedState.lastForkResult
-                        if (stateSolverResult is UUnknownResult) {
-                            stateSolverResult = forkedState.verify()
-                        }
-
-                        if (stateSolverResult == null || stateSolverResult is USatResult) {
+                        if (forkedState.isSat()) {
                             observer.onStateTerminated(forkedState, stateReachable = true)
                         }
                     }
@@ -68,15 +59,7 @@ abstract class UMachine<State : UState<*, *, *, *, *, *>> : AutoCloseable {
                     pathSelector.update(state)
                 } else {
                     pathSelector.remove(state)
-
-                    // TODO comments
-                    var stateSolverResult = state.lastForkResult
-                    if (stateSolverResult is UUnknownResult) {
-                        stateSolverResult = state.verify()
-                    }
-
-                    if (stateSolverResult ==
-                        null || stateSolverResult is USatResult) {
+                    if (state.isSat()) {
                         observer.onStateTerminated(state, stateReachable = stateAlive)
                     }
                 }

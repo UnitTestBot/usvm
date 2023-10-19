@@ -6,6 +6,7 @@ import org.usvm.constraints.UPathConstraints
 import org.usvm.memory.UMemory
 import org.usvm.model.UModelBase
 import org.usvm.solver.USolverResult
+import org.usvm.solver.UUnknownResult
 import org.usvm.targets.UTarget
 
 typealias StateId = UInt
@@ -117,8 +118,11 @@ abstract class UState<Type, Method, Statement, Context, Target, State>(
         return true
     }
 
+    /**
+     * Stores the result of the last forking with this state (it is [UUnknownResult] if we fork using no solver) - null
+     * if we didn't fork with this state.
+     */
     var lastForkResult: USolverResult<UModelBase<Type>>? = null
-
 }
 
 data class ForkResult<T>(

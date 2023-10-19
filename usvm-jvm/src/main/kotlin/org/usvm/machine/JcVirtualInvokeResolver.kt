@@ -2,6 +2,7 @@ package org.usvm.machine
 
 import io.ksmt.expr.KExpr
 import io.ksmt.utils.asExpr
+import org.jacodb.api.JcType
 import org.jacodb.api.ext.toType
 import org.usvm.NoSolverStatesForkProvider
 import org.usvm.SatStatesForkProvider
@@ -22,10 +23,14 @@ import org.usvm.machine.interpreter.JcStepScope
 import org.usvm.machine.interpreter.JcTypeSelector
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.newStmt
+import org.usvm.types.UTypeStream
 import org.usvm.types.first
 import org.usvm.uctx
 import org.usvm.util.findMethod
 
+/**
+ * Resolves a virtual [methodCall] with different strategies for forks - with solver or not.
+ */
 fun StatesForkProvider.resolveVirtualInvoke(
     ctx: JcContext,
     methodCall: JcVirtualMethodCallInst,
@@ -62,14 +67,8 @@ private fun resolveVirtualInvokeWithSolver(
     val concreteRef = scope.calcOnState { models.first().eval(instance) } as UConcreteHeapRef
 
     if (isAllocatedConcreteHeapRef(concreteRef) || isStaticHeapRef(concreteRef)) {
-        // We have only one type for allocated and static heap refs
-        val type = scope.calcOnState { memory.typeStreamOf(concreteRef) }.first()
-
-        val concreteMethod = type.findMethod(method)
-            ?: error("Can't find method $method in type ${type.typeName}")
-
+        val concreteCall = makeConcreteMethodCall(scope, concreteRef, methodCall)
         scope.doWithState {
-            val concreteCall = methodCall.toConcreteMethodCall(concreteMethod.method)
             newStmt(concreteCall)
         }
 
@@ -77,35 +76,16 @@ private fun resolveVirtualInvokeWithSolver(
     }
 
     val typeStream = scope.calcOnState { models.first().typeStreamOf(concreteRef) }
-
-    val inheritors = typeSelector.choose(method, typeStream)
-    val typeConstraints = inheritors.map { type ->
-        scope.calcOnState {
-            memory.types.evalTypeEquals(instance, type)
-        }
-    }
-
-    val typeConstraintsWithBlockOnStates = mutableListOf<Pair<UBoolExpr, (JcState) -> Unit>>()
-
-    inheritors.mapIndexedTo(typeConstraintsWithBlockOnStates) { idx, type ->
-        val isExpr = typeConstraints[idx]
-
-        val block = { state: JcState ->
-            val concreteMethod = type.findMethod(method)
-                ?: error("Can't find method $method in type ${type.typeName}")
-
-            val concreteCall = methodCall.toConcreteMethodCall(concreteMethod.method)
-            state.newStmt(concreteCall)
-        }
-
-        isExpr to block
-    }
-
-    if (forkOnRemainingTypes) {
-        val excludeAllTypesConstraint = ctx.mkAnd(typeConstraints.map { ctx.mkNot(it) })
-        typeConstraintsWithBlockOnStates += excludeAllTypesConstraint to { } // do nothing, just exclude types
-    }
-
+    val typeConstraintsWithBlockOnStates = makeConcreteCallsForPossibleTypes(
+        scope,
+        methodCall,
+        typeStream,
+        typeSelector,
+        instance,
+        ctx,
+        ctx.trueExpr,
+        forkOnRemainingTypes
+    )
     scope.forkMulti(typeConstraintsWithBlockOnStates)
 }
 
@@ -128,50 +108,27 @@ private fun resolveVirtualInvokeWithoutSolver(
     val conditionsWithBlocks: List<Pair<KExpr<UBoolSort>, (JcState) -> Unit>> = refsWithConditions.flatMap { (ref, condition) ->
         when {
             isAllocatedConcreteHeapRef(ref) || isStaticHeapRef(ref) -> {
-                // We have only one type for allocated and static heap refs
-                val type = scope.calcOnState { memory.typeStreamOf(ref) }.first()
-
-                val concreteMethod = type.findMethod(method)
-                    ?: error("Can't find method $method in type ${type.typeName}")
-
-                val concreteCall = methodCall.toConcreteMethodCall(concreteMethod.method);
+                val concreteCall = makeConcreteMethodCall(scope, ref, methodCall)
                 listOf(condition to { state: JcState -> state.newStmt(concreteCall) })
             }
             ref is USymbolicHeapRef -> {
                 val state = scope.calcOnState { this }
-                val typeStream = state.pathConstraints
+                val typeStream: UTypeStream<JcType> = state.pathConstraints
                     .typeConstraints
                     .getTypeStream(ref)
-                    // NOTE: this filter is required in case we have unsat state and/or do not have type constraints for this symbolic ref
+                    // NOTE: this filter is required in case this state is actually unsat and/or does not have type constraints for this symbolic ref
                     .filterBySupertype(methodCall.method.enclosingClass.toType())
 
-                val inheritors = typeSelector.choose(method, typeStream)
-                val typeConstraints = inheritors.map { type ->
-                    state.memory.types.evalTypeEquals(instance, type)
-                }
-
-                val typeConstraintsWithBlockOnStates = mutableListOf<Pair<UBoolExpr, (JcState) -> Unit>>()
-
-                inheritors.mapIndexedTo(typeConstraintsWithBlockOnStates) { idx, type ->
-                    val isExpr = typeConstraints[idx]
-
-                    val block = { newState: JcState ->
-                        val concreteMethod = type.findMethod(method)
-                            ?: error("Can't find method $method in type ${type.typeName}")
-
-                        val concreteCall = methodCall.toConcreteMethodCall(concreteMethod.method)
-                        newState.newStmt(concreteCall)
-                    }
-
-                    with(ctx) { (condition and isExpr) to block }
-                }
-
-                if (forkOnRemainingTypes) {
-                    val excludeAllTypesConstraint = ctx.mkAnd(typeConstraints.map { ctx.mkNot(it) })
-                    typeConstraintsWithBlockOnStates += excludeAllTypesConstraint to { } // do nothing, just exclude types
-                }
-
-                typeConstraintsWithBlockOnStates
+                makeConcreteCallsForPossibleTypes(
+                    scope,
+                    methodCall,
+                    typeStream,
+                    typeSelector,
+                    instance,
+                    ctx,
+                    condition,
+                    forkOnRemainingTypes
+                )
             }
             else -> error("Unexpected ref $ref")
         }
@@ -180,7 +137,63 @@ private fun resolveVirtualInvokeWithoutSolver(
     scope.forkMulti(conditionsWithBlocks)
 }
 
-// TODO rewrite?
+private fun JcVirtualMethodCallInst.makeConcreteMethodCall(
+    scope: JcStepScope,
+    concreteRef: UConcreteHeapRef,
+    methodCall: JcVirtualMethodCallInst,
+): JcConcreteMethodCallInst {
+    // We have only one type for allocated and static heap refs
+    val type = scope.calcOnState { memory.typeStreamOf(concreteRef) }.first()
+
+    val concreteMethod = type.findMethod(method)
+        ?: error("Can't find method $method in type ${type.typeName}")
+
+    return methodCall.toConcreteMethodCall(concreteMethod.method)
+}
+
+private fun JcVirtualMethodCallInst.makeConcreteCallsForPossibleTypes(
+    scope: JcStepScope,
+    methodCall: JcVirtualMethodCallInst,
+    typeStream: UTypeStream<JcType>,
+    typeSelector: JcTypeSelector,
+    instance: KExpr<UAddressSort>,
+    ctx: JcContext,
+    condition: UBoolExpr,
+    forkOnRemainingTypes: Boolean,
+): MutableList<Pair<UBoolExpr, (JcState) -> Unit>> {
+    val state = scope.calcOnState { this }
+    val inheritors = typeSelector.choose(method, typeStream)
+    val typeConstraints = inheritors.map { type ->
+        state.memory.types.evalTypeEquals(instance, type)
+    }
+
+    val typeConstraintsWithBlockOnStates = mutableListOf<Pair<UBoolExpr, (JcState) -> Unit>>()
+
+    inheritors.mapIndexedTo(typeConstraintsWithBlockOnStates) { idx, type ->
+        val isExpr = typeConstraints[idx]
+
+        val block = { newState: JcState ->
+            val concreteMethod = type.findMethod(method)
+                ?: error("Can't find method $method in type ${type.typeName}")
+
+            val concreteCall = methodCall.toConcreteMethodCall(concreteMethod.method)
+            newState.newStmt(concreteCall)
+        }
+
+        with(ctx) { (condition and isExpr) to block }
+    }
+
+    if (forkOnRemainingTypes) {
+        val excludeAllTypesConstraint = ctx.mkAnd(typeConstraints.map { ctx.mkNot(it) })
+        typeConstraintsWithBlockOnStates += excludeAllTypesConstraint to { } // do nothing, just exclude types
+    }
+
+    return typeConstraintsWithBlockOnStates
+}
+
+/**
+ * Associates [UHeapRef] used in this [UHeapRef] with the corresponding conditions.
+ */
 private inline fun UHeapRef.foldWithConditions(
     concreteMapper: (UConcreteHeapRef, UBoolExpr) -> Unit,
     staticMapper: (UConcreteHeapRef, UBoolExpr)  -> Unit,
@@ -204,13 +217,15 @@ private inline fun UHeapRef.foldWithConditions(
                 ref is USymbolicHeapRef -> symbolicMapper(ref, currentCondition)
                 ref is UIteExpr<UAddressSort> -> {
                     with(ctx) {
-                        if (ref.trueBranch != uctx.nullRef) {
-                            refsWithConditions += ref.trueBranch to condition
+                        require(ref.trueBranch != uctx.nullRef) {
+                            "Unexpected null ref"
+                        }
+                        require(ref.falseBranch != uctx.nullRef) {
+                            "Unexpected null ref"
                         }
 
-                        if (ref.falseBranch != uctx.nullRef) {
-                            refsWithConditions += ref.falseBranch to condition.not()
-                        }
+                        refsWithConditions += ref.trueBranch to condition
+                        refsWithConditions += ref.falseBranch to condition.not()
                     }
                 }
             }

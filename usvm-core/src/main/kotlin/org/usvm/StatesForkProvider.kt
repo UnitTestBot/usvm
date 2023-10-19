@@ -11,18 +11,6 @@ private const val ForkedState = true
 private const val OriginalState = false
 
 sealed interface StatesForkProvider {
-    fun <T : UState<Type, *, *, Context, *, T>, Type, Context : UContext<*>> fork(
-        state: T,
-        condition: UBoolExpr,
-    ): ForkResult<T>
-
-    fun <T : UState<Type, *, *, Context, *, T>, Type, Context : UContext<*>> forkMulti(
-        state: T,
-        conditions: Iterable<UBoolExpr>,
-    ): List<T?>
-}
-
-object SatStatesForkProvider : StatesForkProvider {
     /**
      * Implements symbolic branching.
      * Checks if [condition] and ![condition] are satisfiable within [state].
@@ -34,6 +22,24 @@ object SatStatesForkProvider : StatesForkProvider {
      * 2. makes not more than one query to USolver;
      * 3. if both [condition] and ![condition] are satisfiable, then [ForkResult.positiveState] === [state].
      */
+    fun <T : UState<Type, *, *, Context, *, T>, Type, Context : UContext<*>> fork(
+        state: T,
+        condition: UBoolExpr,
+    ): ForkResult<T>
+
+    /**
+     * Implements symbolic branching on few disjoint conditions.
+     *
+     * @return a list of states for each condition - `null` state
+     * means [UUnknownResult] or [UUnsatResult] of checking condition.
+     */
+    fun <T : UState<Type, *, *, Context, *, T>, Type, Context : UContext<*>> forkMulti(
+        state: T,
+        conditions: Iterable<UBoolExpr>,
+    ): List<T?>
+}
+
+object SatStatesForkProvider : StatesForkProvider {
     override fun <T : UState<Type, *, *, Context, *, T>, Type, Context : UContext<*>> fork(
         state: T,
         condition: UBoolExpr,
@@ -80,20 +86,12 @@ object SatStatesForkProvider : StatesForkProvider {
             else -> error("[trueModels] and [falseModels] are both empty, that has to be impossible by construction!")
         }
 
-        // TODO comments
         posState?.let { it.lastForkResult = USatResult(it.models.last()) }
         negState?.let { it.lastForkResult = USatResult(it.models.last()) }
 
         return ForkResult(posState, negState)
     }
 
-
-    /**
-     * Implements symbolic branching on few disjoint conditions.
-     *
-     * @return a list of states for each condition - `null` state
-     * means [UUnknownResult] or [UUnsatResult] of checking condition.
-     */
     override fun <T : UState<Type, *, *, Context, *, T>, Type, Context : UContext<*>> forkMulti(
         state: T,
         conditions: Iterable<UBoolExpr>,
@@ -129,7 +127,6 @@ object SatStatesForkProvider : StatesForkProvider {
             }
         }
 
-        // TODO comments
         result.forEach { forkedState ->
             forkedState?.let {
                 it.lastForkResult = USatResult(it.models.last())
@@ -210,26 +207,25 @@ object NoSolverStatesForkProvider : StatesForkProvider {
         val clonedPathConstraints = state.pathConstraints.clone()
         clonedPathConstraints += condition
 
-        // TODO rewrite
         val (posState, negState) = if (clonedPathConstraints.isFalse) {
-            null to state.also {
-                it.pathConstraints += notCondition
-                it.models = falseModels.ifEmpty { state.models }
-            }.takeIf { !it.pathConstraints.isFalse }
+            state.pathConstraints += notCondition
+            state.models = falseModels.ifEmpty { state.models }
+
+            null to state.takeIf { !it.pathConstraints.isFalse }
         } else {
             val falseState = state.clone()
 
-            state.also {
-                // TODO how to use "clonedPathConstraints" here?
-                it.pathConstraints += condition
-                it.models = trueModels.ifEmpty { state.models }
-            } to falseState.also {
-                it.pathConstraints += notCondition
-                it.models = falseModels.ifEmpty { state.models }
-            }.takeIf { !it.pathConstraints.isFalse }
+            // TODO how to reuse "clonedPathConstraints" here?
+            state.pathConstraints += condition
+            state.models = trueModels.ifEmpty { state.models }
+
+            falseState.pathConstraints += notCondition
+            falseState.models = falseModels.ifEmpty { state.models }
+
+            state to falseState.takeIf { !it.pathConstraints.isFalse }
         }
 
-        // TODO comments
+        // As we did not run a solver, we do not know are these states actually satisfiable
         posState?.let { it.lastForkResult = UUnknownResult() }
         negState?.let { it.lastForkResult = UUnknownResult() }
 
@@ -250,19 +246,20 @@ object NoSolverStatesForkProvider : StatesForkProvider {
 
             if (clonedConstraints.isFalse) {
                 result += null
-            } else {
-                val nextRoot = curState.clone()
-
-                curState.models = trueModels.ifEmpty { state.models }
-                // TODO how to reuse "clonedConstraints"?
-                curState.pathConstraints += condition
-
-                result += curState
-                curState = nextRoot
+                continue
             }
+
+            val nextRoot = curState.clone()
+
+            curState.models = trueModels.ifEmpty { state.models }
+            // TODO how to reuse "clonedConstraints"?
+            curState.pathConstraints += condition
+
+            result += curState
+            curState = nextRoot
         }
 
-        // TODO comments
+        // As we did not run a solver, we do not know are these states actually satisfiable
         result.forEach { forkedState ->
             forkedState?.let {
                 it.lastForkResult = UUnknownResult()
@@ -273,7 +270,12 @@ object NoSolverStatesForkProvider : StatesForkProvider {
     }
 }
 
-// TODO docs
+/**
+ * Splits the passed [models] with this [condition] to the three categories:
+ * - models that satisfy this [condition];
+ * - models that are in contradiction with this [condition];
+ * - models that can not evaluate this [condition].
+ */
 private fun <Type> splitModelsByCondition(
     models: List<UModelBase<Type>>,
     condition: UBoolExpr,

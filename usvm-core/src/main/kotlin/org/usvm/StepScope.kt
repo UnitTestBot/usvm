@@ -221,7 +221,8 @@ class StepScope<T : UState<Type, *, Statement, Context, *, T>, Type, Statement, 
         val conditionalState = originalState.clone()
         conditionalState.pathConstraints += condition
 
-        // TODO comments
+        // If this state did not fork at all or was sat at the last fork point, it must be still sat, so we can just
+        // check this condition with presented models
         if (conditionalState.lastForkResult == null || conditionalState.lastForkResult is USatResult) {
             val trueModels = conditionalState.models.filter { it.eval(condition).isTrue }
 
@@ -236,6 +237,9 @@ class StepScope<T : UState<Type, *, Statement, Context, *, T>, Type, Statement, 
         return when (solverResult) {
             is USatResult -> {
                 conditionalState.updateForkResultAndModels(solverResult)
+
+                // If state with the added condition is satisfiable, it means that the original state is satisfiable too,
+                // and we can save a model from the solver
                 originalState.updateForkResultAndModels(solverResult)
 
                 conditionalState

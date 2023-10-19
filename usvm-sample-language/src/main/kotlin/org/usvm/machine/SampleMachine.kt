@@ -92,10 +92,6 @@ class SampleMachine(
             stopStrategy = stopStrategy,
         )
 
-//        val allStates = statesCollector.collectedStates
-//        // TODO docs
-//        val satStates = allStates.filter { it.verify() != null }
-//        return satStates.map { resultModelConverter.convert(it, method) }
         return statesCollector.collectedStates.map { resultModelConverter.convert(it, method) }
     }
 
