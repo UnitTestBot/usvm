@@ -29,7 +29,7 @@ class PositionTrie {
         }
     }
 
-    interface Node {
+    sealed interface Node {
         val children: MutableList<Position>
     }
 

@@ -15,7 +15,8 @@ import org.usvm.instrumentation.util.InstrumentationModuleConstants
 
 class Fuzzer(
     private val targetMethod: JcMethod,
-    classPath: List<String>
+    classPath: List<String>,
+    private val userClassLoader: ClassLoader
 ) {
 
     private val jcClasspath: JcClasspath = targetMethod.enclosingClass.classpath
