@@ -1,63 +1,24 @@
 package org.usvm.samples.approximations
 
 import approximations.java.lang.StringBuffer_Tests
+import approximations.java.util.ArrayListSpliterator_Tests
 import approximations.java.util.ArrayList_Tests
+import approximations.java.util.HashSet_Tests
 import approximations.java.util.OptionalDouble_Tests
-import org.junit.jupiter.api.Test
+import approximations.java.util.OptionalInt_Tests
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
-import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ge
-import org.usvm.util.isException
 import kotlin.reflect.KFunction1
 import kotlin.reflect.full.declaredFunctions
 import kotlin.reflect.jvm.javaMethod
 
 class ApproximationsTest : ApproximationsTestRunner() {
-    @Test
-    fun testOptionalDouble() {
-        checkDiscoveredPropertiesWithExceptions(
-            OptionalDouble_Tests::test_of_0,
-            eq(1),
-            invariants = arrayOf(
-                { execution, r -> r.getOrThrow() == execution }
-            )
-        )
-    }
-
-    @Test
-    fun testArrayList() {
-        checkDiscoveredPropertiesWithExceptions(
-            ArrayList_Tests::test_get_0,
-            eq(6),
-            { o, r -> o == 0 && r.isException<IndexOutOfBoundsException>() },
-            { o, _ -> o == 1 },
-            { o, _ -> o == 2 },
-            { o, _ -> o == 3 },
-            { o, _ -> o == 4 },
-            invariants = arrayOf(
-                { execution, r -> execution !in 1..4 || r.getOrThrow() == execution }
-            )
-        )
-    }
-
-    @Test
-    fun testStringBuffer() {
-        checkDiscoveredPropertiesWithExceptions(
-            StringBuffer_Tests::test_toString_0,
-            eq(3),
-            { o, _ -> o == 0 },
-            { o, _ -> o == 1 },
-            invariants = arrayOf(
-                { execution, r -> execution !in 0..1 || r.getOrThrow() == execution }
-            )
-        )
-    }
 
     @ParameterizedTest
-    @MethodSource("stringBufferTests")
-    fun testStringBuffer(test: KFunction1<Int, Int>, testAnnotation: approximations.Test) {
+    @MethodSource("approximationTests")
+    fun testApproximations(test: KFunction1<Int, Int>, testAnnotation: approximations.Test) {
         System.err.println("-".repeat(50))
         System.err.println("Start: $test")
         val properties = Array(testAnnotation.executionMax) { idx -> { o: Int, _: Result<Int> -> o == idx } }
@@ -71,40 +32,35 @@ class ApproximationsTest : ApproximationsTestRunner() {
         )
     }
 
-    @Test
-    fun testIndexOf(){
-        checkDiscoveredPropertiesWithExceptions(
-            ArrayList_Tests::test_indexOf_0,
-            eq(3),
-            { o, _ -> o == 0 },
-            { o, _ -> o == 1 },
-            { o, _ -> o == 2 },
-//            { o, _ -> o == 3 },
-//            { o, _ -> o == 4 },
-            invariants = arrayOf(
-                { execution, r -> execution !in 0..2 || r.getOrThrow() == execution }
-            )
-        )
-    }
-
     companion object {
         @JvmStatic
-        fun stringBufferTests(): List<Arguments> =
-            StringBuffer_Tests::class.declaredFunctions
-                .asSequence()
-                .filterIsInstance<KFunction1<*, *>>()
-                .map {
-                    @Suppress("UNCHECKED_CAST")
-                    it as KFunction1<Int, Int>
-                }
-                .mapNotNull { test ->
-                    val annotation = test.javaMethod?.getAnnotation(approximations.Test::class.java)
-                    annotation?.let { test to it }
-                }
-                .filterNot { it.second.disabled }
-                .map { (test, annotation) ->
-                    Arguments.of(test, annotation)
-                }
-                .toList()
+        fun approximationTestClasses() = listOf(
+            StringBuffer_Tests::class,
+            ArrayList_Tests::class,
+            ArrayListSpliterator_Tests::class,
+            HashSet_Tests::class,
+            OptionalDouble_Tests::class,
+            OptionalInt_Tests::class
+        )
+
+        @JvmStatic
+        fun approximationTests(): List<Arguments> =
+            approximationTestClasses().flatMap { cls ->
+                cls.declaredFunctions
+                    .asSequence()
+                    .filterIsInstance<KFunction1<*, *>>()
+                    .map {
+                        @Suppress("UNCHECKED_CAST")
+                        it as KFunction1<Int, Int>
+                    }
+                    .mapNotNull { test ->
+                        val annotation = test.javaMethod?.getAnnotation(approximations.Test::class.java)
+                        annotation?.let { test to it }
+                    }
+                    .filterNot { it.second.disabled }
+                    .map { (test, annotation) ->
+                        Arguments.of(test, annotation)
+                    }
+            }
     }
 }
