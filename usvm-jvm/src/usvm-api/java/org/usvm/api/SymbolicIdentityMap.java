@@ -1,6 +1,6 @@
 package org.usvm.api;
 
-public interface SymbolicMap<K, V> {
+public interface SymbolicIdentityMap<K, V> {
     int size();
 
     V get(K key);
@@ -13,5 +13,5 @@ public interface SymbolicMap<K, V> {
 
     boolean containsKey(K key);
 
-    void merge(SymbolicMap<K, V> src);
+    void merge(SymbolicIdentityMap<K, V> src);
 }

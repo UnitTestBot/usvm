@@ -105,6 +105,11 @@ public class Engine {
         return null;
     }
 
+    public static <K, V> SymbolicIdentityMap<K, V> makeSymbolicIdentityMap() {
+        engineApiStubError();
+        return null;
+    }
+
     public static boolean typeEquals(Object a, Object b) {
         engineApiStubError();
         return false;
