@@ -4,10 +4,7 @@ import org.usvm.StepScope.StepScopeState.CANNOT_BE_PROCESSED
 import org.usvm.StepScope.StepScopeState.CAN_BE_PROCESSED
 import org.usvm.StepScope.StepScopeState.DEAD
 import org.usvm.forkblacklists.UForkBlackList
-import org.usvm.solver.USatResult
-import org.usvm.solver.UUnknownResult
-import org.usvm.solver.UUnsatResult
-import org.usvm.utils.updateForkResultAndModels
+import org.usvm.utils.checkSat
 
 /**
  * An auxiliary class, which carefully maintains forks and asserts via [forkWithBlackList] and [assert].
@@ -213,40 +210,10 @@ class StepScope<T : UState<Type, *, Statement, Context, *, T>, Type, Statement, 
     }
 
     /**
-     * [assert]s the [condition] on the scope with the cloned [originalState]. Returns this cloned state, if this [condition]
-     * is satisfiable, and returns `null` otherwise.
+     * [assert]s the [condition] on the scope with the cloned [originalState]. Returns this cloned state,
+     * if this [condition] is satisfiable, and returns `null` otherwise.
      */
-    @Suppress("MoveVariableDeclarationIntoWhen")
-    fun checkSat(condition: UBoolExpr): T? {
-        val conditionalState = originalState.clone()
-        conditionalState.pathConstraints += condition
-
-        // If this state did not fork at all or was sat at the last fork point, it must be still sat, so we can just
-        // check this condition with presented models
-        if (conditionalState.lastForkResult == null || conditionalState.lastForkResult is USatResult) {
-            val trueModels = conditionalState.models.filter { it.eval(condition).isTrue }
-
-            if (trueModels.isNotEmpty()) {
-                return conditionalState
-            }
-        }
-
-        val solver = conditionalState.ctx.solver<Type>()
-        val solverResult = solver.check(conditionalState.pathConstraints)
-
-        return when (solverResult) {
-            is USatResult -> {
-                conditionalState.updateForkResultAndModels(solverResult)
-
-                // If state with the added condition is satisfiable, it means that the original state is satisfiable too,
-                // and we can save a model from the solver
-                originalState.updateForkResultAndModels(solverResult)
-
-                conditionalState
-            }
-            is UUnknownResult, is UUnsatResult -> null
-        }
-    }
+    fun checkSat(condition: UBoolExpr): T? = originalState.checkSat(condition)
 
     /**
      * Represents the current state of this [StepScope].

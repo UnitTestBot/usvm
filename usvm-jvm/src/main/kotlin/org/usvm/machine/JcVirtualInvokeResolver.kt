@@ -4,9 +4,9 @@ import io.ksmt.expr.KExpr
 import io.ksmt.utils.asExpr
 import org.jacodb.api.JcType
 import org.jacodb.api.ext.toType
-import org.usvm.NoSolverStatesForkProvider
-import org.usvm.SatStatesForkProvider
-import org.usvm.StatesForkProvider
+import org.usvm.NoSolverStateForker
+import org.usvm.WithSolverStateForker
+import org.usvm.StateForker
 import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
@@ -31,7 +31,7 @@ import org.usvm.util.findMethod
 /**
  * Resolves a virtual [methodCall] with different strategies for forks - with solver or not.
  */
-fun StatesForkProvider.resolveVirtualInvoke(
+fun StateForker.resolveVirtualInvoke(
     ctx: JcContext,
     methodCall: JcVirtualMethodCallInst,
     scope: JcStepScope,
@@ -39,14 +39,14 @@ fun StatesForkProvider.resolveVirtualInvoke(
     forkOnRemainingTypes: Boolean,
 ) {
     when (this) {
-        SatStatesForkProvider -> resolveVirtualInvokeWithSolver(
+        WithSolverStateForker -> resolveVirtualInvokeWithSolver(
             ctx,
             methodCall,
             scope,
             typeSelector,
             forkOnRemainingTypes
         )
-        NoSolverStatesForkProvider -> resolveVirtualInvokeWithoutSolver(
+        NoSolverStateForker -> resolveVirtualInvokeWithoutSolver(
             ctx,
             methodCall,
             scope,

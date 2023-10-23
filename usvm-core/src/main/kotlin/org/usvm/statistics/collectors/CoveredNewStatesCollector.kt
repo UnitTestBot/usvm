@@ -1,6 +1,5 @@
 package org.usvm.statistics.collectors
 
-import org.usvm.UState
 import org.usvm.statistics.CoverageStatistics
 import org.usvm.statistics.UMachineObserver
 
@@ -11,7 +10,7 @@ import org.usvm.statistics.UMachineObserver
  * @param coverageStatistics [CoverageStatistics] used to track coverage.
  * @param isException if true, state is collected regardless of coverage.
  */
-class CoveredNewStatesCollector<State : UState<*, *, *, *, *, *>>(
+class CoveredNewStatesCollector<State>(
     private val coverageStatistics: CoverageStatistics<*, *, *>,
     private val isException: (State) -> Boolean
 ) : StatesCollector<State> {

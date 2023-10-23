@@ -1,7 +1,5 @@
 package org.usvm.statistics
 
-import org.usvm.UState
-
 /**
  * Adds new coverage zones if some state contains an instruction
  * that doesn't belong to any of the already known coverage zones.
@@ -9,7 +7,7 @@ import org.usvm.UState
  * [ignoreMethod] is a predicate allowing to filter out some methods,
  * e.g., the ones that belong to the system libraries.
  */
-class TransitiveCoverageZoneObserver<State : UState<*, *, *, *, *, *>, Method>(
+class TransitiveCoverageZoneObserver<State, Method>(
     initialMethod: Method,
     private val methodExtractor: (State) -> Method,
     private val addCoverageZone: (Method) -> Unit,

@@ -1,26 +1,14 @@
 package org.usvm.utils
 
+import org.usvm.UBoolExpr
 import org.usvm.UState
+import org.usvm.isTrue
 import org.usvm.model.UModelBase
 import org.usvm.solver.USatResult
 import org.usvm.solver.USolverResult
 import org.usvm.solver.USolverBase
 import org.usvm.solver.UUnknownResult
 import org.usvm.solver.UUnsatResult
-
-/**
- * Sets the [solverResult] as a [UState.lastForkResult] for this [UState],
- * and adds its [USatResult.model] to the [UState.models] if it is a [USatResult].
- */
-internal fun <Type> UState<Type, *, *, *, *, *>.updateForkResultAndModels(
-    solverResult: USolverResult<UModelBase<Type>>
-) {
-    lastForkResult = solverResult
-
-    if (solverResult is USatResult) {
-        models += listOf(solverResult.model)
-    }
-}
 
 /**
  * If this **terminated** [UState] is definitely sat (its [UState.lastForkResult] is [USatResult] or `null`), returns `true`.
@@ -33,7 +21,39 @@ internal fun <Type> UState<Type, *, *, *, *, *>.isSat(): Boolean {
         stateSolverResult = verify()
     }
 
-    return stateSolverResult == null || stateSolverResult is USatResult
+    return stateSolverResult is USatResult
+}
+
+@Suppress("MoveVariableDeclarationIntoWhen")
+internal fun <Type, State : UState<Type, *, *, *, *, State>> State.checkSat(condition: UBoolExpr): State? {
+    val conditionalState = clone()
+    conditionalState.pathConstraints += condition
+
+    // If this state did not fork at all or was sat at the last fork point, it must be still sat, so we can just
+    // check this condition with presented models
+    if (conditionalState.lastForkResult is USatResult) {
+        val trueModels = conditionalState.models.filter { it.eval(condition).isTrue }
+
+        if (trueModels.isNotEmpty()) {
+            return conditionalState
+        }
+    }
+
+    val solver = conditionalState.ctx.solver<Type>()
+    val solverResult = solver.check(conditionalState.pathConstraints)
+
+    return when (solverResult) {
+        is USatResult -> {
+            conditionalState.models += solverResult.model
+
+            // If state with the added condition is satisfiable, it means that the original state is satisfiable too,
+            // and we can save a model from the solver
+            models += solverResult.model
+
+            conditionalState
+        }
+        is UUnknownResult, is UUnsatResult -> null
+    }
 }
 
 /**

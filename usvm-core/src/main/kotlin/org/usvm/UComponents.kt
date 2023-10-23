@@ -10,10 +10,12 @@ import org.usvm.types.UTypeSystem
  * Provides core USVM components tuned for specific language.
  * Instantiated once per [UContext].
  */
-abstract class UComponents<Type, USizeSort : USort>(private val useSolverForForks: Boolean) {
-    abstract fun <Context : UContext<USizeSort>> mkSolver(ctx: Context): USolverBase<Type>
-    abstract fun mkTypeSystem(ctx: UContext<USizeSort>): UTypeSystem<Type>
-    abstract fun <Context : UContext<USizeSort>> mkSizeExprProvider(ctx: Context): USizeExprProvider<USizeSort>
+interface UComponents<Type, USizeSort : USort> {
+    val useSolverForForks: Boolean
+
+    fun <Context : UContext<USizeSort>> mkSolver(ctx: Context): USolverBase<Type>
+    fun mkTypeSystem(ctx: UContext<USizeSort>): UTypeSystem<Type>
+    fun <Context : UContext<USizeSort>> mkSizeExprProvider(ctx: Context): USizeExprProvider<USizeSort>
 
     /**
      * Initializes [UExprTranslator] and [UModelDecoder] and returns them. We can safely reuse them while [UContext] is
@@ -28,6 +30,6 @@ abstract class UComponents<Type, USizeSort : USort>(private val useSolverForFork
         return translator to decoder
     }
 
-    fun mkStatesForkProvider(): StatesForkProvider =
-        if (useSolverForForks) SatStatesForkProvider else NoSolverStatesForkProvider
+    fun mkStatesForkProvider(): StateForker =
+        if (useSolverForForks) WithSolverStateForker else NoSolverStateForker
 }

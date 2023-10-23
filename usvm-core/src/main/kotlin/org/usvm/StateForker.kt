@@ -10,7 +10,7 @@ private typealias StateToCheck = Boolean
 private const val ForkedState = true
 private const val OriginalState = false
 
-sealed interface StatesForkProvider {
+sealed interface StateForker {
     /**
      * Implements symbolic branching.
      * Checks if [condition] and ![condition] are satisfiable within [state].
@@ -39,7 +39,7 @@ sealed interface StatesForkProvider {
     ): List<T?>
 }
 
-object SatStatesForkProvider : StatesForkProvider {
+object WithSolverStateForker : StateForker {
     override fun <T : UState<Type, *, *, Context, *, T>, Type, Context : UContext<*>> fork(
         state: T,
         condition: UBoolExpr,
@@ -86,9 +86,6 @@ object SatStatesForkProvider : StatesForkProvider {
             else -> error("[trueModels] and [falseModels] are both empty, that has to be impossible by construction!")
         }
 
-        posState?.let { it.lastForkResult = USatResult(it.models.last()) }
-        negState?.let { it.lastForkResult = USatResult(it.models.last()) }
-
         return ForkResult(posState, negState)
     }
 
@@ -124,12 +121,6 @@ object SatStatesForkProvider : StatesForkProvider {
                 curState = nextRoot
             } else {
                 result += null
-            }
-        }
-
-        result.forEach { forkedState ->
-            forkedState?.let {
-                it.lastForkResult = USatResult(it.models.last())
             }
         }
 
@@ -196,7 +187,7 @@ object SatStatesForkProvider : StatesForkProvider {
     }
 }
 
-object NoSolverStatesForkProvider : StatesForkProvider {
+object NoSolverStateForker : StateForker {
     override fun <T : UState<Type, *, *, Context, *, T>, Type, Context : UContext<*>> fork(
         state: T,
         condition: UBoolExpr,
@@ -209,7 +200,7 @@ object NoSolverStatesForkProvider : StatesForkProvider {
 
         val (posState, negState) = if (clonedPathConstraints.isFalse) {
             state.pathConstraints += notCondition
-            state.models = falseModels.ifEmpty { state.models }
+            state.models = falseModels
 
             null to state.takeIf { !it.pathConstraints.isFalse }
         } else {
@@ -217,17 +208,13 @@ object NoSolverStatesForkProvider : StatesForkProvider {
 
             // TODO how to reuse "clonedPathConstraints" here?
             state.pathConstraints += condition
-            state.models = trueModels.ifEmpty { state.models }
+            state.models = trueModels
 
             falseState.pathConstraints += notCondition
-            falseState.models = falseModels.ifEmpty { state.models }
+            falseState.models = falseModels
 
             state to falseState.takeIf { !it.pathConstraints.isFalse }
         }
-
-        // As we did not run a solver, we do not know are these states actually satisfiable
-        posState?.let { it.lastForkResult = UUnknownResult() }
-        negState?.let { it.lastForkResult = UUnknownResult() }
 
         return ForkResult(posState, negState)
     }
@@ -251,7 +238,7 @@ object NoSolverStatesForkProvider : StatesForkProvider {
 
             val nextRoot = curState.clone()
 
-            curState.models = trueModels.ifEmpty { state.models }
+            curState.models = trueModels
             // TODO how to reuse "clonedConstraints"?
             curState.pathConstraints += condition
 
@@ -259,16 +246,14 @@ object NoSolverStatesForkProvider : StatesForkProvider {
             curState = nextRoot
         }
 
-        // As we did not run a solver, we do not know are these states actually satisfiable
-        result.forEach { forkedState ->
-            forkedState?.let {
-                it.lastForkResult = UUnknownResult()
-            }
-        }
-
         return result
     }
 }
+
+data class ForkResult<T>(
+    val positiveState: T?,
+    val negativeState: T?,
+)
 
 /**
  * Splits the passed [models] with this [condition] to the three categories:
@@ -279,7 +264,7 @@ object NoSolverStatesForkProvider : StatesForkProvider {
 private fun <Type> splitModelsByCondition(
     models: List<UModelBase<Type>>,
     condition: UBoolExpr,
-): Triple<List<UModelBase<Type>>, List<UModelBase<Type>>, List<UModelBase<Type>>> {
+): SplittedModels<Type> {
     val trueModels = mutableListOf<UModelBase<Type>>()
     val falseModels = mutableListOf<UModelBase<Type>>()
     val unknownModels = mutableListOf<UModelBase<Type>>()
@@ -290,9 +275,17 @@ private fun <Type> splitModelsByCondition(
         when {
             holdsInModel.isTrue -> trueModels += model
             holdsInModel.isFalse -> falseModels += model
+            // Sometimes we cannot evaluate the condition – for example, a result for a division by symbolic expression
+            // that is evaluated to 0 is unknown
             else -> unknownModels += model
         }
     }
 
-    return Triple(trueModels, falseModels, unknownModels)
+    return SplittedModels(trueModels, falseModels, unknownModels)
 }
+
+private data class SplittedModels<Type>(
+    val trueModels: List<UModelBase<Type>>,
+    val falseModels: List<UModelBase<Type>>,
+    val unknownModels: List<UModelBase<Type>>,
+)

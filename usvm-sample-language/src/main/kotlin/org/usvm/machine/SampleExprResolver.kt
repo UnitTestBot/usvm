@@ -61,6 +61,7 @@ import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.sizeSort
+import org.usvm.utils.eval
 
 /**
  * Resolves [Expr]s to [UExpr]s, forks in the [scope] respecting unsats. Checks for exceptions.
@@ -335,8 +336,8 @@ class SampleExprResolver(
             blockOnFalseState = {
                 exceptionRegister = IndexOutOfBounds(
                     lastStmt,
-                    (models.first().eval(length) as KBitVec32Value).intValue,
-                    (models.first().eval(idx) as KBitVec32Value).intValue,
+                    (models.firstOrNull().eval(length) as KBitVec32Value).intValue,
+                    (models.firstOrNull().eval(idx) as KBitVec32Value).intValue,
                 )
             }
         )
@@ -351,7 +352,7 @@ class SampleExprResolver(
             blockOnFalseState = {
                 exceptionRegister = NegativeArraySize(
                     lastStmt,
-                    (models.first().eval(length) as KBitVec32Value).intValue,
+                    (models.firstOrNull().eval(length) as KBitVec32Value).intValue,
                     actualLength
                 )
             }
