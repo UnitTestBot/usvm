@@ -250,11 +250,6 @@ object NoSolverStateForker : StateForker {
     }
 }
 
-data class ForkResult<T>(
-    val positiveState: T?,
-    val negativeState: T?,
-)
-
 /**
  * Splits the passed [models] with this [condition] to the three categories:
  * - models that satisfy this [condition];
@@ -283,6 +278,11 @@ private fun <Type> splitModelsByCondition(
 
     return SplittedModels(trueModels, falseModels, unknownModels)
 }
+
+data class ForkResult<T>(
+    val positiveState: T?,
+    val negativeState: T?,
+)
 
 private data class SplittedModels<Type>(
     val trueModels: List<UModelBase<Type>>,

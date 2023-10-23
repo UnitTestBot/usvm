@@ -11,17 +11,15 @@ import org.usvm.solver.UUnknownResult
 import org.usvm.solver.UUnsatResult
 
 /**
- * If this **terminated** [UState] is definitely sat (its [UState.lastForkResult] is [USatResult] or `null`), returns `true`.
- * If it is definitely unsat (its [UState.lastForkResult] is [UUnsatResult]), returns `false`.
- * Otherwise, runs [verify] with this [UState], and returns whether its [UState.lastForkResult] is [USatResult] or `null`.
+ * If this **terminated** [UState] is definitely sat (its [UState.models] are not empty), returns `true`.
+ * Otherwise, runs [verify] with this [UState], and returns whether the solver result is [USatResult].
  */
 internal fun <Type> UState<Type, *, *, *, *, *>.isSat(): Boolean {
-    var stateSolverResult = lastForkResult
-    if (stateSolverResult is UUnknownResult) {
-        stateSolverResult = verify()
+    if (models.isNotEmpty()) {
+        return true
     }
 
-    return stateSolverResult is USatResult
+    return verify() is USatResult
 }
 
 @Suppress("MoveVariableDeclarationIntoWhen")
@@ -31,7 +29,7 @@ internal fun <Type, State : UState<Type, *, *, *, *, State>> State.checkSat(cond
 
     // If this state did not fork at all or was sat at the last fork point, it must be still sat, so we can just
     // check this condition with presented models
-    if (conditionalState.lastForkResult is USatResult) {
+    if (conditionalState.models.isNotEmpty()) {
         val trueModels = conditionalState.models.filter { it.eval(condition).isTrue }
 
         if (trueModels.isNotEmpty()) {
@@ -58,8 +56,7 @@ internal fun <Type, State : UState<Type, *, *, *, *, State>> State.checkSat(cond
 
 /**
  * Checks [UState.pathConstraints] of this [UState] using [USolverBase.checkWithSoftConstraints],
- * sets [UState.models] with a value of a solver result if it is a [USatResult],
- * sets the solver result as a [UState.lastForkResult] for this [UState], and returns this result.
+ * sets [UState.models] with a value of a solver result if it is a [USatResult], and returns this result.
  */
 private fun <Type> UState<Type, *, *, *, *, *>.verify(): USolverResult<UModelBase<Type>> {
     val solver = ctx.solver<Type>()
@@ -70,7 +67,5 @@ private fun <Type> UState<Type, *, *, *, *, *>.verify(): USolverResult<UModelBas
         models = listOf(solverResult.model)
     }
 
-    return solverResult.also {
-        lastForkResult = it
-    }
+    return solverResult
 }

@@ -60,8 +60,9 @@ import org.usvm.memory.URegisterStackLValue
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
+import org.usvm.model.UModel
+import org.usvm.sampleUValue
 import org.usvm.sizeSort
-import org.usvm.utils.eval
 
 /**
  * Resolves [Expr]s to [UExpr]s, forks in the [scope] respecting unsats. Checks for exceptions.
@@ -385,3 +386,5 @@ class SampleExprResolver(
         return Unit
     }
 }
+
+private fun <Sort : USort> UModel?.eval(expr: UExpr<Sort>): UExpr<Sort> = this?.eval(expr) ?: expr.sort.sampleUValue()

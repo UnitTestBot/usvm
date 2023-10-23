@@ -18,27 +18,16 @@ abstract class UState<Type, Method, Statement, Context, Target, State>(
     open val callStack: UCallStack<Method, Statement>,
     open val pathConstraints: UPathConstraints<Type>,
     open val memory: UMemory<Type, Method>,
-    models: List<UModelBase<Type>>,
+    /**
+     * A list of [UModelBase]s that satisfy the [pathConstraints].
+     * Could be empty (for example, if forking without a solver).
+     */
+    open var models: List<UModelBase<Type>>,
     open var pathLocation: PathsTrieNode<State, Statement>,
     targets: List<Target> = emptyList(),
 ) where Context : UContext<*>,
         Target : UTarget<Statement, Target>,
         State : UState<Type, Method, Statement, Context, Target, State> {
-    /**
-     * A list of [UModelBase]s that satisfy the [pathConstraints].
-     * Could be empty (for example, if forking without a solver).
-     */
-    open var models: List<UModelBase<Type>> = models
-        set(value) {
-            field = value
-
-            lastForkResult = if (models.isNotEmpty()) {
-                USatResult(models.last())
-            } else {
-                UUnknownResult()
-            }
-        }
-
     /**
      * Deterministic state id.
      * TODO: Can be replaced with overridden hashCode
@@ -133,11 +122,4 @@ abstract class UState<Type, Method, Statement, Context, Target, State>(
 
         return true
     }
-
-    /**
-     * Stores the result of the last forking with this state (it is [UUnknownResult] if we fork using no solver).
-     * If we didn't fork with this state, but it is sat, and we have non-empty [models], it is [USatResult] with the last model.
-     */
-    var lastForkResult: USolverResult<UModelBase<Type>> = UUnknownResult()
-        internal set
 }
