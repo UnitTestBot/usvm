@@ -45,9 +45,9 @@ jobs:
       - name: Build and run tests
         run: ./gradlew build --no-daemon
 
-      - name: Upload usvm test reports
-        uses: actions/upload-artifact@v3
-        if: always()
-        with:
-          name: usvm-tests-report-linux
-          path: ./**/build/reports/tests/test/
+      # - name: Upload usvm test reports
+      #   uses: actions/upload-artifact@v3
+      #   if: always()
+      #   with:
+      #     name: usvm-tests-report-linux
+      #     path: ./**/build/reports/tests/test/
