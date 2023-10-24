@@ -9,7 +9,7 @@ object SingleTypeSystem : UTypeSystem<SingleTypeSystem.SingleType> {
 
     override fun isSupertype(supertype: SingleType, type: SingleType): Boolean = true
 
-    override fun isMultipleInheritanceAllowedFor(type: SingleType): Boolean = false
+    override fun hasCommonSubtype(type: SingleType, types: Collection<SingleType>): Boolean = types.isEmpty()
 
     override fun isFinal(type: SingleType): Boolean = true
 

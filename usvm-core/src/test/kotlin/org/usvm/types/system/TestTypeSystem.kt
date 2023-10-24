@@ -52,8 +52,12 @@ class TestTypeSystem : UTypeSystem<TestType> {
             .any { isSupertype(supertype, it) }
     }
 
-    override fun isMultipleInheritanceAllowedFor(type: TestType): Boolean {
-        return type.isMultipleInheritanceAllowed
+    override fun hasCommonSubtype(type: TestType, types: Collection<TestType>): Boolean {
+        if (type.isMultipleInheritanceAllowed) return true
+        return types.all {
+            // It is guaranteed that it </: [type]
+            it.isMultipleInheritanceAllowed || isSupertype(it, type)
+        }
     }
 
     override fun isFinal(type: TestType): Boolean {
