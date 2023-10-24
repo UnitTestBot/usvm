@@ -31,6 +31,15 @@ abstract class UState<Type, Method, Statement, Context, Target, State>(
      */
     val id: StateId = ctx.getNextStateId()
 
+    // TODO: rewrite this sh*t
+    val startingStatement by lazy {
+        var node = pathLocation
+        while (node.parent?.parent != null) {
+            node = node.parent!!
+        }
+        node.statement
+    }
+
     val reversedPath: Iterator<Statement>
         get() = object : Iterator<Statement> {
             var currentLocation: PathsTrieNode<State, Statement>? = pathLocation
@@ -190,6 +199,13 @@ private fun <T : UState<Type, *, *, Context, *, T>, Type, Context : UContext<*>>
     }
 }
 
+fun <Type> UModelBase<Type>.satisfies(constraint: UBoolExpr): Boolean {
+    val holdsInModel = eval(constraint)
+    check(holdsInModel is KInterpretedValue<UBoolSort>) {
+        "Evaluation in model: expected true or false, but got $holdsInModel"
+    }
+    return holdsInModel.isTrue
+}
 
 /**
  * Implements symbolic branching.
@@ -206,14 +222,7 @@ fun <T : UState<Type, *, *, Context, *, T>, Type, Context : UContext<*>> fork(
     state: T,
     condition: UBoolExpr,
 ): ForkResult<T> {
-    val (trueModels, falseModels) = state.models.partition { model ->
-        val holdsInModel = model.eval(condition)
-        check(holdsInModel is KInterpretedValue<UBoolSort>) {
-            "Evaluation in model: expected true or false, but got $holdsInModel"
-        }
-        holdsInModel.isTrue
-    }
-
+    val (trueModels, falseModels) = state.models.partition { model -> model.satisfies(condition) }
     val notCondition = state.ctx.mkNot(condition)
     val (posState, negState) = when {
 

@@ -74,11 +74,6 @@ class UEqualityConstraints private constructor(
     internal fun areEqual(ref1: USymbolicHeapRef, ref2: USymbolicHeapRef): Boolean =
         equalReferences.connected(ref1, ref2)
 
-    /**
-     * Returns if [ref] is null in all models.
-     */
-    internal fun isNull(ref: USymbolicHeapRef) = areEqual(ctx.nullRef, ref)
-
     private fun areDistinctRepresentatives(repr1: UHeapRef, repr2: UHeapRef): Boolean {
         if (repr1 == repr2) {
             return false
@@ -97,6 +92,11 @@ class UEqualityConstraints private constructor(
 
         return areDistinctRepresentatives(repr1, repr2)
     }
+
+    /**
+     * Returns if [ref] is null in all models.
+     */
+    internal fun isNull(ref: USymbolicHeapRef) = areEqual(ctx.nullRef, ref)
 
     /**
      * Returns if [ref] is not null in all models.
@@ -126,6 +126,40 @@ class UEqualityConstraints private constructor(
 
         equalReferences.union(ref1, ref2)
         // Contradictions will be checked by rename listener.
+    }
+
+    inline fun forEachInGraph(graph: Map<UHeapRef, Set<UHeapRef>>, action: (UHeapRef, UHeapRef) -> Unit) {
+        val processedRefs = mutableSetOf<UHeapRef>()
+        for ((ref1, refs2) in graph.entries) {
+            processedRefs.add(ref1)
+            for (ref2 in refs2) {
+                if (ref2 !in processedRefs) {
+                    action(ref1, ref2)
+                }
+            }
+        }
+    }
+
+    private inline fun forEachDisequality(action: (UHeapRef, UHeapRef) -> Unit) {
+        forEachInGraph(referenceDisequalities, action)
+        var i1 = 0
+        for (ref1 in distinctReferences) {
+            i1++
+            var i2 = 0
+            for (ref2 in distinctReferences) {
+                if (i2++ >= i1) {
+                    break
+                }
+                action(ref1, ref2)
+            }
+        }
+
+    }
+
+    internal fun constraints() = sequence {
+        equalReferences.forEach { (ref1, ref2) -> yield(ctx.mkEq(ref1, ref2)) }
+        forEachDisequality { ref1, ref2 -> yield(ctx.mkNot(ctx.mkEq(ref1, ref2))) }
+        forEachInGraph(nullableDisequalities) { ref1, ref2 -> yield(ctx.mkNot(ctx.mkEq(ref1, ref2))) }
     }
 
     /**

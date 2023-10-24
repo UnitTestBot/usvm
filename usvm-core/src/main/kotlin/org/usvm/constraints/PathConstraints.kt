@@ -128,6 +128,29 @@ open class UPathConstraints<Type> private constructor(
             }
         }
 
+    /**
+     * Returns lazy sequence of all constraints asserted into this instance.
+     */
+    internal open fun constraintsSequence(): Sequence<UBoolExpr> =
+        equalityConstraints.constraints() +
+        typeConstraints.constraints() +
+        numericConstraints.constraints() +
+        logicalConstraints.asSequence()
+
+    /**
+     * Iterates through the constraints of [other], maps every constraint using [mapper], adds the result into this instance.
+     */
+    internal inline fun mappedUnion(other: UPathConstraints<Type>, mapper: (UBoolExpr) -> UBoolExpr) {
+        if (isFalse)
+            return
+        for (constraint in other.constraintsSequence()) {
+            val mappedConstraint = mapper(constraint)
+            plusAssign(mappedConstraint)
+            if (isFalse)
+                return
+        }
+    }
+
     open fun clone(): UPathConstraints<Type> {
         val clonedEqualityConstraints = equalityConstraints.clone()
         val clonedTypeConstraints = typeConstraints.clone(clonedEqualityConstraints)

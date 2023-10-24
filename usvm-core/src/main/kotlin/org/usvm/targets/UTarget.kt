@@ -22,7 +22,7 @@ abstract class UTarget<Statement, Target>(
 ) where Target : UTarget<Statement, Target> {
     private val childrenImpl = mutableListOf<Target>()
     var parent: Target? = null
-        private set
+        protected set
 
     /**
      * List of the child targets which should be reached after this target.
