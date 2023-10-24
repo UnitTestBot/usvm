@@ -12,9 +12,11 @@ interface UTypeSystem<Type> {
     fun isSupertype(supertype: Type, type: Type): Boolean
 
     /**
-     * @return true if [type] can be supertype for some type together with some incomparable type u.
+     * @return true if [types] and [type] can be supertypes for some type together.
+     * It is guaranteed that [type] is not a supertype for any type from [types]
+     * and that [types] have common subtype.
      */
-    fun isMultipleInheritanceAllowedFor(type: Type): Boolean
+    fun hasCommonSubtype(type: Type, types: Collection<Type>): Boolean
 
     /**
      * @return true if there is no type u distinct from [type] and subtyping [type].

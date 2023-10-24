@@ -381,7 +381,7 @@ class UTypeConstraints<Type>(
                 val typeRegion = getTypeRegion(symbolicRef)
 
                 if (typeRegion.addSupertype(supertype).isEmpty) {
-                    symbolicRef.ctx.falseExpr
+                    symbolicRef.uctx.mkEq(symbolicRef, symbolicRef.uctx.nullRef)
                 } else {
                     symbolicRef.uctx.mkIsSubtypeExpr(symbolicRef, supertype)
                 }

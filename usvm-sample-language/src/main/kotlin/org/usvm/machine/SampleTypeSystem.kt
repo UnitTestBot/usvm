@@ -11,7 +11,8 @@ class SampleTypeSystem : UTypeSystem<SampleType> {
 
     override fun isFinal(type: SampleType): Boolean = true
 
-    override fun isMultipleInheritanceAllowedFor(type: SampleType): Boolean = false
+    override fun hasCommonSubtype(type: SampleType, types: Collection<SampleType>): Boolean = types.isEmpty()
+
     override fun isInstantiable(type: SampleType): Boolean = true
 
     override fun findSubtypes(type: SampleType): Sequence<SampleType> = emptySequence()
