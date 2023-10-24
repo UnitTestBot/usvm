@@ -10,6 +10,7 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
 import org.usvm.test.util.checkers.ge
+import org.usvm.util.declaringClass
 import kotlin.reflect.KFunction1
 import kotlin.reflect.full.declaredFunctions
 import kotlin.reflect.jvm.javaMethod
@@ -20,7 +21,7 @@ class ApproximationsTest : ApproximationsTestRunner() {
     @MethodSource("approximationTests")
     fun testApproximations(test: KFunction1<Int, Int>, testAnnotation: approximations.Test) {
         System.err.println("-".repeat(50))
-        System.err.println("Start: $test")
+        System.err.println("Start: ${test.declaringClass?.name}#$test")
         val properties = Array(testAnnotation.executionMax) { idx -> { o: Int, _: Result<Int> -> o == idx } }
         checkDiscoveredPropertiesWithExceptions(
             test,
