@@ -1,26 +1,26 @@
-package org.usvm.machine
+package org.usvm.machine.interpreter
 
 import io.ksmt.expr.KExpr
 import io.ksmt.utils.asExpr
 import org.jacodb.api.JcType
 import org.jacodb.api.ext.toType
 import org.usvm.NoSolverStateForker
-import org.usvm.WithSolverStateForker
 import org.usvm.StateForker
 import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
-import org.usvm.UBoolSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UHeapRef
 import org.usvm.UIteExpr
 import org.usvm.UNullRef
 import org.usvm.USymbolicHeapRef
+import org.usvm.WithSolverStateForker
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.typeStreamOf
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.isStaticHeapRef
-import org.usvm.machine.interpreter.JcStepScope
-import org.usvm.machine.interpreter.JcTypeSelector
+import org.usvm.machine.JcConcreteMethodCallInst
+import org.usvm.machine.JcContext
+import org.usvm.machine.JcVirtualMethodCallInst
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.newStmt
 import org.usvm.types.UTypeStream
@@ -105,7 +105,7 @@ private fun resolveVirtualInvokeWithoutSolver(
         symbolicMapper = { ref, condition -> refsWithConditions += ref to condition },
     )
 
-    val conditionsWithBlocks: List<Pair<KExpr<UBoolSort>, (JcState) -> Unit>> = refsWithConditions.flatMap { (ref, condition) ->
+    val conditionsWithBlocks = refsWithConditions.flatMap { (ref, condition) ->
         when {
             isAllocatedConcreteHeapRef(ref) || isStaticHeapRef(ref) -> {
                 val concreteCall = makeConcreteMethodCall(scope, ref, methodCall)
@@ -201,12 +201,12 @@ private inline fun UHeapRef.foldWithConditions(
 ): Unit = when {
     isStaticHeapRef(this) -> staticMapper(this, ctx.trueExpr)
     this is UConcreteHeapRef -> concreteMapper(this, ctx.trueExpr)
-    this is UNullRef -> error("Unexpected null ref $this")
+    this is UNullRef -> error("Unexpected null ref $this on top for during resolving a virtual invoke")
 
     this is USymbolicHeapRef -> symbolicMapper(this, ctx.trueExpr)
     this is UIteExpr<UAddressSort> -> {
         val refsWithConditions = mutableListOf<Pair<UHeapRef, UBoolExpr>>()
-        refsWithConditions += this to condition
+        refsWithConditions += this to ctx.trueExpr
 
         while (refsWithConditions.isNotEmpty()) {
             val (ref, currentCondition) = refsWithConditions.removeLast()
@@ -217,15 +217,13 @@ private inline fun UHeapRef.foldWithConditions(
                 ref is USymbolicHeapRef -> symbolicMapper(ref, currentCondition)
                 ref is UIteExpr<UAddressSort> -> {
                     with(ctx) {
-                        require(ref.trueBranch != uctx.nullRef) {
-                            "Unexpected null ref"
+                        // Null ref can appear here as default values in array during reading with a symbolic index
+                        if (ref.trueBranch != uctx.nullRef) {
+                            refsWithConditions += ref.trueBranch to (currentCondition and ref.condition)
                         }
-                        require(ref.falseBranch != uctx.nullRef) {
-                            "Unexpected null ref"
+                        if (ref.falseBranch != uctx.nullRef) {
+                            refsWithConditions += ref.falseBranch to (currentCondition and !ref.condition)
                         }
-
-                        refsWithConditions += ref.trueBranch to condition
-                        refsWithConditions += ref.falseBranch to condition.not()
                     }
                 }
             }
