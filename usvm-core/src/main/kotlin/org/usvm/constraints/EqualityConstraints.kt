@@ -124,6 +124,40 @@ class UEqualityConstraints private constructor(
         // Contradictions will be checked by rename listener.
     }
 
+    inline fun forEachInGraph(graph: Map<UHeapRef, Set<UHeapRef>>, action: (UHeapRef, UHeapRef) -> Unit) {
+        val processedRefs = mutableSetOf<UHeapRef>()
+        for ((ref1, refs2) in graph.entries) {
+            processedRefs.add(ref1)
+            for (ref2 in refs2) {
+                if (ref2 !in processedRefs) {
+                    action(ref1, ref2)
+                }
+            }
+        }
+    }
+
+    private inline fun forEachDisequality(action: (UHeapRef, UHeapRef) -> Unit) {
+        forEachInGraph(referenceDisequalities, action)
+        var i1 = 0
+        for (ref1 in distinctReferences) {
+            i1++
+            var i2 = 0
+            for (ref2 in distinctReferences) {
+                if (i2++ >= i1) {
+                    break
+                }
+                action(ref1, ref2)
+            }
+        }
+
+    }
+
+    internal fun constraints() = sequence {
+        equalReferences.forEach { (ref1, ref2) -> yield(ctx.mkEq(ref1, ref2)) }
+        forEachDisequality { ref1, ref2 -> yield(ctx.mkNot(ctx.mkEq(ref1, ref2))) }
+        forEachInGraph(nullableDisequalities) { ref1, ref2 -> yield(ctx.mkNot(ctx.mkEq(ref1, ref2))) }
+    }
+
     /**
      * An important invariant of [distinctReferences] and [referenceDisequalities] is that they include *only*
      * representatives of reference equivalence classes, i.e. only references x such that [equalReferences].find(x) == x.

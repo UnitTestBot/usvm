@@ -420,6 +420,15 @@ class UTypeConstraints<Type>(
             ignoreNullRefs = false
         )
 
+    internal fun constraints() = sequence {
+        for ((ref, reg) in symbolicRefToTypeRegion.entries) {
+            reg.supertypes.forEach { yield(ctx.mkIsSubtypeExpr(ref, it)) }
+            reg.notSupertypes.forEach { yield(ctx.mkNot(ctx.mkIsSubtypeExpr(ref, it))) }
+            reg.subtypes.forEach { yield(ctx.mkIsSupertypeExpr(ref, it)) }
+            reg.notSubtypes.forEach { yield(ctx.mkNot(ctx.mkIsSupertypeExpr(ref, it))) }
+        }
+    }
+
     /**
      * Creates a mutable copy of these constraints connected to new instance of [equalityConstraints].
      */
