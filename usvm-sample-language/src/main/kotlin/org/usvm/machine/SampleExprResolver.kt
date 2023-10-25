@@ -60,6 +60,8 @@ import org.usvm.memory.URegisterStackLValue
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
+import org.usvm.model.UModel
+import org.usvm.sampleUValue
 import org.usvm.sizeSort
 
 /**
@@ -335,8 +337,8 @@ class SampleExprResolver(
             blockOnFalseState = {
                 exceptionRegister = IndexOutOfBounds(
                     lastStmt,
-                    (models.first().eval(length) as KBitVec32Value).intValue,
-                    (models.first().eval(idx) as KBitVec32Value).intValue,
+                    (models.firstOrNull().eval(length) as KBitVec32Value).intValue,
+                    (models.firstOrNull().eval(idx) as KBitVec32Value).intValue,
                 )
             }
         )
@@ -351,7 +353,7 @@ class SampleExprResolver(
             blockOnFalseState = {
                 exceptionRegister = NegativeArraySize(
                     lastStmt,
-                    (models.first().eval(length) as KBitVec32Value).intValue,
+                    (models.firstOrNull().eval(length) as KBitVec32Value).intValue,
                     actualLength
                 )
             }
@@ -384,3 +386,5 @@ class SampleExprResolver(
         return Unit
     }
 }
+
+private fun <Sort : USort> UModel?.eval(expr: UExpr<Sort>): UExpr<Sort> = this?.eval(expr) ?: expr.sort.sampleUValue()

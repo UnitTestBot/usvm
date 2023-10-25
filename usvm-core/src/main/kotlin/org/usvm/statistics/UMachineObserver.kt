@@ -16,7 +16,9 @@ interface UMachineObserver<State> {
     fun onState(parent: State, forks: Sequence<State>) { }
 }
 
-class CompositeUMachineObserver<State>(private val observers: List<UMachineObserver<State>>) : UMachineObserver<State> {
+class CompositeUMachineObserver<State>(
+    private val observers: List<UMachineObserver<State>>
+) : UMachineObserver<State> {
     constructor(vararg observers: UMachineObserver<State>) : this(observers.toList())
 
     override fun onStateTerminated(state: State, stateReachable: Boolean) {
