@@ -27,6 +27,5 @@ class CollectionGeneratorTest: GeneratorTest() {
         val newType = type.getResolvedType(listOf(genericReplacement))
         val generator = generatorRepository.getGeneratorForType(newType) ?: error("Cant find ArrayList generator")
         val generatedValue = generator.generate()
-        println("GEN VALUE = $generatedValue")
     }
 }

@@ -16,13 +16,6 @@ fun JcClasspath.listType(): JcType {
     return findTypeOrNull("java.util.List")!!
 }
 
-//1. java.util.List
-//2. java.util.Queue
-//3. java.util.Set
-//4. java.util.SortedSet
-//5. java.util.Map
-//7. java.util.Deque
-
 fun JcClasspath.mapType(): JcType {
     return findTypeOrNull("java.util.Map")!!
 }

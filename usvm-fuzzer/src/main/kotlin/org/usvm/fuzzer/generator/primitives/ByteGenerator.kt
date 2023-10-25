@@ -8,9 +8,9 @@ import org.usvm.fuzzer.generator.GeneratorSettings
 import org.usvm.fuzzer.util.UTestValueRepresentation
 import org.usvm.instrumentation.testcase.api.UTestByteExpression
 
-class ByteGenerator(): Generator() {
+class ByteGenerator: Generator() {
     override val generationFun: GeneratorContext.() -> UTestValueRepresentation = {
-        val randomByte = random.nextInt(GeneratorSettings.minByte.toInt(), GeneratorSettings.minByte.toInt()).toByte()
+        val randomByte = random.nextInt(GeneratorSettings.minByte.toInt(), GeneratorSettings.maxByte.toInt()).toByte()
         UTestValueRepresentation(UTestByteExpression(randomByte, jcClasspath.byte))
     }
 }

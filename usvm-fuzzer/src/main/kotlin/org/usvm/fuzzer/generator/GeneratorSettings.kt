@@ -4,6 +4,11 @@ import kotlin.random.Random
 import kotlin.time.Duration.Companion.seconds
 
 object GeneratorSettings {
+
+    val generationMode = GenerationMode.UNSAFE
+    const val mocksEnabled = true
+    const val mockGenerationProbability = 20
+
     //Common settings
     private val objectGenerationTimeout = 3.seconds
 
@@ -34,4 +39,12 @@ object GeneratorSettings {
 
     //All alphabetical symbols and special characters
     val stringAvailableSymbols = listOf(' '..'~')
+}
+
+enum class GenerationMode {
+    //Only public API
+    SAFE,
+
+    //Reflection, unsafe
+    UNSAFE
 }

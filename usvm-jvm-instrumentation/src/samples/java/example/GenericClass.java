@@ -8,8 +8,4 @@ public class GenericClass<T extends Number> {
 
     T a;
     T b;
-
-    <E extends Number> E castAToType() {
-        return (E) a;
-    }
 }

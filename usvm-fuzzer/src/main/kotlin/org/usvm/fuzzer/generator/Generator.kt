@@ -5,7 +5,7 @@ import org.usvm.instrumentation.testcase.api.UTestExpression
 
 abstract class Generator {
     lateinit var ctx: GeneratorContext
-    abstract val generationFun: GeneratorContext.() -> UTestValueRepresentation
+    protected abstract val generationFun: GeneratorContext.() -> UTestValueRepresentation?
 
-    fun generate() = generationFun.invoke(ctx)
+    fun generate() = generationFun.invoke(ctx)!!
 }
