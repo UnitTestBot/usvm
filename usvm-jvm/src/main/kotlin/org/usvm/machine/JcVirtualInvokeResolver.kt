@@ -118,10 +118,11 @@ private fun resolveVirtualInvokeWithoutModel(
             }
             ref is USymbolicHeapRef -> {
                 val state = scope.calcOnState { this }
-                val typeStream: UTypeStream<JcType> = state.pathConstraints
+                val typeStream = state.pathConstraints
                     .typeConstraints
                     .getTypeStream(ref)
-                    // NOTE: this filter is required in case this state is actually unsat and/or does not have type constraints for this symbolic ref
+                    // NOTE: this filter is required in case this state is actually unsat and/or
+                    // does not have type constraints for this symbolic ref
                     .filterBySupertype(methodCall.method.enclosingClass.toType())
 
                 makeConcreteCallsForPossibleTypes(
