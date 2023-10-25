@@ -204,7 +204,7 @@ data class UMachineOptions(
      */
     val targetSearchDepth: UInt = 0u,
     /**
-     * TODO: add description
+     * Should machine use merging when possible
      */
     val useMerging: Boolean = false,
 )

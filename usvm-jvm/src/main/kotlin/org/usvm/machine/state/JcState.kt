@@ -64,7 +64,6 @@ class JcState(
             return null
         }
         val mergedTargets = targets.takeIf { it == other.targets } ?: return null
-        mergePathConstraints += ctx.mkOr(mergeGuard.leftConstraint, mergeGuard.rightConstraint)
 
         return JcState(
             ctx,

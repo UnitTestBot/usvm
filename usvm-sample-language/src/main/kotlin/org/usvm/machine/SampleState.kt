@@ -53,8 +53,6 @@ class SampleState(
     }
 
     override fun mergeWith(other: SampleState, by: Unit): SampleState? {
-        // TODO: copy-paste
-
         val mergedPathNode = pathNode.mergeWith(other.pathNode, Unit) ?: return null
 
         val mergeGuard = MutableMergeGuard(ctx)
@@ -75,7 +73,6 @@ class SampleState(
             return null
         }
         val mergedTargets = targets.takeIf { it == other.targets } ?: return null
-        mergedPathConstraints += ctx.mkOr(mergeGuard.leftConstraint, mergeGuard.rightConstraint)
 
         return SampleState(
             ctx,

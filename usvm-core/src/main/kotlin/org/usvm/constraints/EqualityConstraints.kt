@@ -29,9 +29,9 @@ import org.usvm.solver.UExprTranslator
 class UEqualityConstraints private constructor(
     internal val ctx: UContext<*>,
     private val equalReferences: DisjointSets<UHeapRef>,
-    private var mutableDistinctReferences: MutableSet<UHeapRef>,
-    private var mutableReferenceDisequalities: MutableMap<UHeapRef, MutableSet<UHeapRef>>,
-    private var mutableNullableDisequalities: MutableMap<UHeapRef, MutableSet<UHeapRef>>,
+    private val mutableDistinctReferences: MutableSet<UHeapRef>,
+    private val mutableReferenceDisequalities: MutableMap<UHeapRef, MutableSet<UHeapRef>>,
+    private val mutableNullableDisequalities: MutableMap<UHeapRef, MutableSet<UHeapRef>>,
 ) : UMergeable<UEqualityConstraints, MutableMergeGuard> {
     constructor(ctx: UContext<*>) : this(
         ctx,

@@ -111,25 +111,22 @@ open class UPathConstraints<Type> private constructor(
                 constraint is UNotExpr -> {
                     val notConstraint = constraint.arg
                     when {
-                        notConstraint is UEqExpr<*> && isSymbolicHeapRef(notConstraint.lhs) && isSymbolicHeapRef(
-                            notConstraint.rhs
-                        ) ->
+                        notConstraint is UEqExpr<*> &&
+                            isSymbolicHeapRef(notConstraint.lhs) && isSymbolicHeapRef(notConstraint.rhs) ->
                             equalityConstraints.makeNonEqual(
                                 notConstraint.lhs as USymbolicHeapRef,
                                 notConstraint.rhs as USymbolicHeapRef
                             )
 
-                        notConstraint is UEqExpr<*> && isSymbolicHeapRef(notConstraint.lhs) && isStaticHeapRef(
-                            notConstraint.rhs
-                        ) ->
+                        notConstraint is UEqExpr<*> &&
+                            isSymbolicHeapRef(notConstraint.lhs) && isStaticHeapRef(notConstraint.rhs) ->
                             equalityConstraints.makeNonEqual(
                                 notConstraint.lhs as USymbolicHeapRef,
                                 notConstraint.rhs as UConcreteHeapRef
                             )
 
-                        notConstraint is UEqExpr<*> && isStaticHeapRef(notConstraint.lhs) && isSymbolicHeapRef(
-                            notConstraint.rhs
-                        ) ->
+                        notConstraint is UEqExpr<*> &&
+                            isStaticHeapRef(notConstraint.lhs) && isSymbolicHeapRef(notConstraint.rhs) ->
                             equalityConstraints.makeNonEqual(
                                 notConstraint.rhs as USymbolicHeapRef,
                                 notConstraint.lhs as UConcreteHeapRef
@@ -176,7 +173,7 @@ open class UPathConstraints<Type> private constructor(
         )
     }
 
-    protected fun contradiction(ctx: UContext<*>) {
+    private fun contradiction(ctx: UContext<*>) {
         logicalConstraints.contradiction(ctx)
     }
 
@@ -186,6 +183,7 @@ open class UPathConstraints<Type> private constructor(
         val mergedEqualityConstraints = equalityConstraints.mergeWith(other.equalityConstraints, by) ?: return null
         val mergedTypeConstraints = typeConstraints.mergeWith(other.typeConstraints, by) ?: return null
         val mergedNumericConstraints = numericConstraints.mergeWith(other.numericConstraints, by)
+        mergedLogicalConstraints += ctx.mkAnd(by.leftConstraint, by.rightConstraint)
 
         return UPathConstraints(
             ctx,
