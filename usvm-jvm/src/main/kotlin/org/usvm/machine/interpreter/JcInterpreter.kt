@@ -506,7 +506,7 @@ class JcInterpreter(
         scope: JcStepScope,
         typeSelector: JcTypeSelector,
         forkOnRemainingTypes: Boolean,
-    ): Unit = ctx.statesForkProvider.resolveVirtualInvoke(ctx, methodCall, scope, typeSelector, forkOnRemainingTypes)
+    ): Unit = resolveVirtualInvoke(ctx, methodCall, scope, typeSelector, forkOnRemainingTypes)
 
     private val approximationResolver = JcMethodApproximationResolver(ctx, applicationGraph)
 

@@ -4,14 +4,11 @@ import io.ksmt.expr.KExpr
 import io.ksmt.utils.asExpr
 import org.jacodb.api.JcType
 import org.jacodb.api.ext.toType
-import org.usvm.NoSolverStateForker
-import org.usvm.StateForker
 import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UHeapRef
 import org.usvm.USymbolicHeapRef
-import org.usvm.WithSolverStateForker
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.typeStreamOf
 import org.usvm.isAllocatedConcreteHeapRef
@@ -21,47 +18,54 @@ import org.usvm.machine.interpreter.JcTypeSelector
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.newStmt
 import org.usvm.memory.foldHeapRefWithStaticAsSymbolic
+import org.usvm.model.UModelBase
 import org.usvm.types.UTypeStream
 import org.usvm.types.first
 import org.usvm.util.findMethod
 
 /**
- * Resolves a virtual [methodCall] with different strategies for forks - with solver or not.
+ * Resolves a virtual [methodCall] with different strategies for forks,
+ * depending on existence of any model in the current state.
  */
-fun StateForker.resolveVirtualInvoke(
+fun resolveVirtualInvoke(
     ctx: JcContext,
     methodCall: JcVirtualMethodCallInst,
     scope: JcStepScope,
     typeSelector: JcTypeSelector,
     forkOnRemainingTypes: Boolean,
 ) {
-    when (this) {
-        WithSolverStateForker -> resolveVirtualInvokeWithSolver(
+    val models = scope.calcOnState { models }
+
+    if (models.isEmpty()) {
+        resolveVirtualInvokeWithoutModel(
             ctx,
             methodCall,
             scope,
             typeSelector,
             forkOnRemainingTypes
         )
-        NoSolverStateForker -> resolveVirtualInvokeWithoutSolver(
+    } else {
+        resolveVirtualInvokeWithModel(
             ctx,
             methodCall,
             scope,
+            models.first(),
             typeSelector,
             forkOnRemainingTypes
         )
     }
 }
 
-private fun resolveVirtualInvokeWithSolver(
+private fun resolveVirtualInvokeWithModel(
     ctx: JcContext,
     methodCall: JcVirtualMethodCallInst,
     scope: JcStepScope,
+    model: UModelBase<JcType>,
     typeSelector: JcTypeSelector,
     forkOnRemainingTypes: Boolean,
 ): Unit = with(methodCall) {
     val instance = arguments.first().asExpr(ctx.addressSort)
-    val concreteRef = scope.calcOnState { models.first().eval(instance) } as UConcreteHeapRef
+    val concreteRef = model.eval(instance) as UConcreteHeapRef
 
     if (isAllocatedConcreteHeapRef(concreteRef) || isStaticHeapRef(concreteRef)) {
         val concreteCall = makeConcreteMethodCall(scope, concreteRef, methodCall)
@@ -72,7 +76,7 @@ private fun resolveVirtualInvokeWithSolver(
         return@with
     }
 
-    val typeStream = scope.calcOnState { models.first().typeStreamOf(concreteRef) }
+    val typeStream = model.typeStreamOf(concreteRef)
     val typeConstraintsWithBlockOnStates = makeConcreteCallsForPossibleTypes(
         scope,
         methodCall,
@@ -86,7 +90,7 @@ private fun resolveVirtualInvokeWithSolver(
     scope.forkMulti(typeConstraintsWithBlockOnStates)
 }
 
-private fun resolveVirtualInvokeWithoutSolver(
+private fun resolveVirtualInvokeWithoutModel(
     ctx: JcContext,
     methodCall: JcVirtualMethodCallInst,
     scope: JcStepScope,
