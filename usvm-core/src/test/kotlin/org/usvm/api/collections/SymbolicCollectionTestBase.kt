@@ -7,6 +7,7 @@ import io.ksmt.utils.uncheckedCast
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
+import org.usvm.WithSolverStateForker
 import org.usvm.StepScope
 import org.usvm.UBoolExpr
 import org.usvm.UBv32SizeExprProvider
@@ -50,6 +51,7 @@ abstract class SymbolicCollectionTestBase {
         val typeSolver = UTypeSolver(SingleTypeSystem)
         uSolver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder, softConstraintProvider)
         every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
+        every { components.mkStatesForkProvider() } answers { WithSolverStateForker }
 
 
         pathConstraints = UPathConstraints(ctx)

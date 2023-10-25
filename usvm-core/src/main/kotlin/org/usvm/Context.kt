@@ -58,6 +58,7 @@ open class UContext<USizeSort : USort>(
     private val solver by lazy { components.mkSolver(this) }
     private val typeSystem by lazy { components.mkTypeSystem(this) }
     val sizeExprs by lazy { components.mkSizeExprProvider(this) }
+    val statesForkProvider by lazy { components.mkStatesForkProvider() }
 
     private var currentStateId = 0u
 
@@ -111,8 +112,11 @@ open class UContext<USizeSort : USort>(
     fun mkHeapRefEq(lhs: UHeapRef, rhs: UHeapRef): UBoolExpr =
         mkHeapEqWithFastChecks(lhs, rhs) {
             // unfolding
-            val (concreteRefsLhs, symbolicRefLhs) = splitUHeapRef(lhs, ignoreNullRefs = false)
-            val (concreteRefsRhs, symbolicRefRhs) = splitUHeapRef(rhs, ignoreNullRefs = false)
+            val (concreteRefsLhs, symbolicRefsLhs) = splitUHeapRef(lhs, ignoreNullRefs = false, collapseHeapRefs = true)
+            val (concreteRefsRhs, symbolicRefsRhs) = splitUHeapRef(rhs, ignoreNullRefs = false, collapseHeapRefs = true)
+
+            val symbolicRefLhs = symbolicRefsLhs.singleOrNull()
+            val symbolicRefRhs = symbolicRefsRhs.singleOrNull()
 
             val concreteRefLhsToGuard = concreteRefsLhs.associate { it.expr.address to it.guard }
 

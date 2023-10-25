@@ -4,6 +4,7 @@ import org.usvm.StepScope.StepScopeState.CANNOT_BE_PROCESSED
 import org.usvm.StepScope.StepScopeState.CAN_BE_PROCESSED
 import org.usvm.StepScope.StepScopeState.DEAD
 import org.usvm.forkblacklists.UForkBlackList
+import org.usvm.utils.checkSat
 
 /**
  * An auxiliary class, which carefully maintains forks and asserts via [forkWithBlackList] and [assert].
@@ -27,6 +28,7 @@ class StepScope<T : UState<Type, *, Statement, Context, *, T>, Type, Statement, 
 
     private inline val alive: Boolean get() = stepScopeState != DEAD
     private inline val canProcessFurtherOnCurrentStep: Boolean get() = stepScopeState == CAN_BE_PROCESSED
+    private inline val ctx: Context get() = originalState.ctx
 
     /**
      * Determines whether we interact this scope on the current step.
@@ -74,7 +76,7 @@ class StepScope<T : UState<Type, *, Statement, Context, *, T>, Type, Statement, 
     ): Unit? {
         check(canProcessFurtherOnCurrentStep)
 
-        val (posState, negState) = fork(originalState, condition)
+        val (posState, negState) = ctx.statesForkProvider.fork(originalState, condition)
 
         posState?.blockOnTrueState()
 
@@ -107,7 +109,7 @@ class StepScope<T : UState<Type, *, Statement, Context, *, T>, Type, Statement, 
 
         val conditions = conditionsWithBlockOnStates.map { it.first }
 
-        val conditionStates = forkMulti(originalState, conditions)
+        val conditionStates = ctx.statesForkProvider.forkMulti(originalState, conditions)
 
         val forkedStates = conditionStates.mapIndexedNotNull { idx, positiveState ->
             val block = conditionsWithBlockOnStates[idx].second
@@ -136,7 +138,7 @@ class StepScope<T : UState<Type, *, Statement, Context, *, T>, Type, Statement, 
     ): Unit? {
         check(canProcessFurtherOnCurrentStep)
 
-        val (posState) = forkMulti(originalState, listOf(constraint))
+        val (posState) = ctx.statesForkProvider.forkMulti(originalState, listOf(constraint))
 
         posState?.block()
 
@@ -208,17 +210,10 @@ class StepScope<T : UState<Type, *, Statement, Context, *, T>, Type, Statement, 
     }
 
     /**
-     * [assert]s the [condition] on the scope with the cloned [originalState]. Returns this cloned state, if this [condition]
-     * is satisfiable, and returns `null` otherwise.
+     * [assert]s the [condition] on the scope with the cloned [originalState]. Returns this cloned state,
+     * if this [condition] is satisfiable, and returns `null` otherwise.
      */
-    fun checkSat(condition: UBoolExpr): T? {
-        val conditionalState = originalState.clone()
-        val conditionalScope = StepScope(conditionalState, forkBlackList)
-
-        return conditionalScope.assert(condition)?.let {
-            conditionalState
-        }
-    }
+    fun checkSat(condition: UBoolExpr): T? = originalState.checkSat(condition)
 
     /**
      * Represents the current state of this [StepScope].

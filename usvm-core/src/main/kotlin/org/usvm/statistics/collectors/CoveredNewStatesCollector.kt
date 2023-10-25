@@ -28,7 +28,7 @@ class CoveredNewStatesCollector<State>(
 
         if (stateReachable && currentCoveredStatements > previousCoveredStatements) {
             previousCoveredStatements = currentCoveredStatements
-            mutableCollectedStates.add(state)
+            mutableCollectedStates += state
         }
     }
 }
