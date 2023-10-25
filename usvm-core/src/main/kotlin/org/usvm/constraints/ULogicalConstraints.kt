@@ -35,6 +35,13 @@ class ULogicalConstraints private constructor(
         constraints = persistentSetOf(ctx.falseExpr)
     }
 
+    /**
+     * Check if this [ULogicalConstraints] can be merged with [other] logical constraints.
+     *
+     * TODO: there are no heuristics on merged constraints complexity compared to the former ones
+     *
+     * @return the logical constraints.
+     */
     override fun mergeWith(other: ULogicalConstraints, by: MutableMergeGuard): ULogicalConstraints {
         val (overlap, uniqueThis, uniqueOther) = constraints.separate(other.constraints)
         by.appendLeft(uniqueThis.asSequence())

@@ -52,6 +52,11 @@ class SampleState(
         )
     }
 
+    /**
+     * Check if this [SampleState] can be merged with [other] state.
+     *
+     * @return the merged state. TODO: Now it may reuse some of the internal components of the former states.
+     */
     override fun mergeWith(other: SampleState, by: Unit): SampleState? {
         val mergedPathNode = pathNode.mergeWith(other.pathNode, Unit) ?: return null
 

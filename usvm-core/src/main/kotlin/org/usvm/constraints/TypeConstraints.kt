@@ -431,6 +431,14 @@ class UTypeConstraints<Type>(
             _symbolicRefToTypeRegion
         )
 
+    /**
+     * Check if this [UTypeConstraints] can be merged with [other] type constraints.
+     *
+     * Ignores [equalityConstraints]. Verifies, that [symbolicRefToTypeRegion] equals to
+     * [other]`.symbolicRefToTypeRegion`. Merges the type constraints for concrete references.
+     *
+     * @return the merged type constraints.
+     */
     override fun mergeWith(other: UTypeConstraints<Type>, by: MutableMergeGuard): UTypeConstraints<Type>? {
         // TODO: should we check equality constraints?
         if (symbolicRefToTypeRegion != other.symbolicRefToTypeRegion) {

@@ -177,11 +177,27 @@ open class UPathConstraints<Type> private constructor(
         logicalConstraints.contradiction(ctx)
     }
 
+    /**
+     * Check if this [UPathConstraints] can be merged with [other] path constraints. Puts merge constraints into merge
+     * guard [by].
+     *
+     * TODO: now the only supported case is:
+     *  - logical constraints are always merged
+     *  - equality constraints are merged only if their contents are equal
+     *  - type constraints are merged only if their contents are equal, except types for concrete refs
+     *  - numeric constraints are always merged
+     *
+     * TODO: there are no heuristics on merged constraints complexity compared to the former ones
+     *
+     * @return the merged path constraints.
+     */
     override fun mergeWith(other: UPathConstraints<Type>, by: MutableMergeGuard): UPathConstraints<Type>? {
         // TODO: elaborate on some merge parameters here
         val mergedLogicalConstraints = logicalConstraints.mergeWith(other.logicalConstraints, by)
         val mergedEqualityConstraints = equalityConstraints.mergeWith(other.equalityConstraints, by) ?: return null
-        val mergedTypeConstraints = typeConstraints.mergeWith(other.typeConstraints, by) ?: return null
+        val mergedTypeConstraints = typeConstraints
+            .clone(mergedEqualityConstraints)
+            .mergeWith(other.typeConstraints, by) ?: return null
         val mergedNumericConstraints = numericConstraints.mergeWith(other.numericConstraints, by)
         mergedLogicalConstraints += ctx.mkAnd(by.leftConstraint, by.rightConstraint)
 

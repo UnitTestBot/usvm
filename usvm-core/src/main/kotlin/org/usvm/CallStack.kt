@@ -37,6 +37,20 @@ class UCallStack<Method, Statement> private constructor(
         return UCallStack(newStack)
     }
 
+    /**
+     * Check if this [UCallStack] can be merged with [other] call stack.
+     *
+     * TODO: now the only supported case is: this internal content deep equal to other internal content.
+     *
+     * @return the merged call stack.
+     */
+    override fun mergeWith(other: UCallStack<Method, Statement>, by: Unit): UCallStack<Method, Statement>? {
+        if (stack != other.stack) {
+            return null
+        }
+        return this
+    }
+
     fun stackTrace(currentInstruction: Statement): List<UStackTraceFrame<Method, Statement>> {
         val stacktrace = stack
             .asSequence()
@@ -46,13 +60,6 @@ class UCallStack<Method, Statement> private constructor(
         stacktrace += UStackTraceFrame(stack.last().method, currentInstruction)
 
         return stacktrace
-    }
-
-    override fun mergeWith(other: UCallStack<Method, Statement>, by: Unit): UCallStack<Method, Statement>? {
-        if (stack != other.stack) {
-            return null
-        }
-        return this
     }
 
     override fun toString(): String {

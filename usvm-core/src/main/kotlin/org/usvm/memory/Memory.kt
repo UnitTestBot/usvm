@@ -162,6 +162,18 @@ class UMemory<Type, Method>(
         // But in fact they should not be used, so to optimize things up, we don't touch them.
         UMemory(ctx, types, stack, mocks, regions)
 
+
+    /**
+     * Check if this [UMemory] can be merged with [other] memory.
+     *
+     * TODO: now only the following case is supported:
+     *  - regions are reference equal
+     *  - mocks are reference equal
+     *  - types are not checked and taken from this [UMemory]
+     *  - stacks are compared and merged deeply
+     *
+     * @return the merged memory.
+     */
     override fun mergeWith(other: UMemory<Type, Method>, by: MergeGuard): UMemory<Type, Method>? {
         val ids = regions.keys
         val otherIds = other.regions.keys

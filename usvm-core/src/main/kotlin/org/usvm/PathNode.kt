@@ -2,7 +2,6 @@ package org.usvm
 
 import org.usvm.algorithms.findLcaLinear
 import org.usvm.merging.UMergeable
-import java.util.NoSuchElementException
 
 class PathNode<Statement> private constructor(
     val parent: PathNode<Statement>?,
@@ -43,6 +42,17 @@ class PathNode<Statement> private constructor(
         fun <Statement> root(): PathNode<Statement> = EMPTY as PathNode<Statement>
     }
 
+
+    /**
+     * Check if this [PathNode] can be merged with [other] path node.
+     *
+     * TODO: now the only supported case is:
+     *  - statements are equal
+     *
+     * TODO: doesn't save the suffix paths into the result node
+     *
+     * @return the merged path node.
+     */
     override fun mergeWith(other: PathNode<Statement>, by: Unit): PathNode<Statement>? {
         if (_statement != other._statement) {
             return null

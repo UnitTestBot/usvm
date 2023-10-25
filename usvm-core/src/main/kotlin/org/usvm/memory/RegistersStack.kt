@@ -72,8 +72,8 @@ class URegistersStack(
     }
 
     private fun validate(
-        left: MutableList<Array<UExpr<out USort>?>>,
-        right: MutableList<Array<UExpr<out USort>?>>,
+        left: List<Array<UExpr<out USort>?>>,
+        right: List<Array<UExpr<out USort>?>>,
     ): Boolean {
         if (left.size != right.size) {
             return false
@@ -95,6 +95,14 @@ class URegistersStack(
         return true
     }
 
+    /**
+     * Check if this [URegistersStack] can be merged with [other] stack.
+     *
+     * Verifies, that for each pair of corresponding registers either one of them is `null`,
+     * or their sorts match.
+     *
+     * @return the merged equality constraints.
+     */
     override fun mergeWith(other: URegistersStack, by: MergeGuard): URegistersStack? {
         if (!validate(frames, other.frames)) {
             return null

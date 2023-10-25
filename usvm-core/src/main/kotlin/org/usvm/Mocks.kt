@@ -40,6 +40,13 @@ class UIndexedMocker<Method>(
 
     override fun clone(): UIndexedMocker<Method> = UIndexedMocker(clauses)
 
+    /**
+     * Check if this [UIndexedMocker] can be merged with [other] indexed mocker.
+     *
+     * TODO: now the only supported case is: this internal content reference equals to other internal content.
+     *
+     * @return the merged indexed mocker.
+     */
     override fun mergeWith(other: UIndexedMocker<Method>, by: MergeGuard): UIndexedMocker<Method>? {
         if (clauses !== other.clauses) {
             return null

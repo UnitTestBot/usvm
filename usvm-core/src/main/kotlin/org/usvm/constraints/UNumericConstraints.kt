@@ -2405,6 +2405,13 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         else -> unknownConstraint(expr)
     }
 
+    /**
+     * Check if this [UNumericConstraints] can be merged with [other] numeric constraints.
+     *
+     * Computes the intersection and puts it into result. Other constraints are put into merge guard [by].
+     *
+     * @return the numeric constraints.
+     */
     override fun mergeWith(other: UNumericConstraints<Sort>, by: MutableMergeGuard): UNumericConstraints<Sort> {
         val (overlap, thisUnique, otherUnique) = this.numericConstraints.build()
             .separate(other.numericConstraints.build())

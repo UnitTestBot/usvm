@@ -46,6 +46,11 @@ class JcState(
         )
     }
 
+    /**
+     * Check if this [JcState] can be merged with [other] state.
+     *
+     * @return the merged state. TODO: Now it may reuse some of the internal components of the former states.
+     */
     override fun mergeWith(other: JcState, by: Unit): JcState? {
         // TODO: copy-paste
 

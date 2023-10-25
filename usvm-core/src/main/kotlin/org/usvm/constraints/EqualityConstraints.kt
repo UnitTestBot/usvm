@@ -407,6 +407,13 @@ class UEqualityConstraints private constructor(
         }
     }
 
+    /**
+     * Check if this [UEqualityConstraints] can be merged with [other] equality constraints.
+     *
+     * TODO: now the only supported case is: this internal content deep equal to other internal content.
+     *
+     * @return the merged equality constraints.
+     */
     override fun mergeWith(other: UEqualityConstraints, by: MutableMergeGuard): UEqualityConstraints? {
         // TODO: refactor it
         if (mutableDistinctReferences != other.mutableDistinctReferences) {
