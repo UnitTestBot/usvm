@@ -21,7 +21,7 @@ class CoveredNewStatesCollector<State>(
 
     override fun onStateTerminated(state: State, stateReachable: Boolean) {
         val currentCoveredStatements = coverageStatistics.getTotalCoveredStatements()
-        if (isException(state)) {
+        if (stateReachable && isException(state)) {
             mutableCollectedStates.add(state)
             return
         }

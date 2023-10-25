@@ -138,6 +138,7 @@ object WithSolverStateForker : StateForker {
      * forked state.
      *
      */
+    @Suppress("MoveVariableDeclarationIntoWhen")
     private fun <T : UState<Type, *, *, Context, *, T>, Type, Context : UContext<*>> forkIfSat(
         state: T,
         newConstraintToOriginalState: UBoolExpr,
@@ -153,7 +154,7 @@ object WithSolverStateForker : StateForker {
             newConstraintToOriginalState
         }
         val solver = state.ctx.solver<Type>()
-        val satResult = solver.checkWithSoftConstraints(constraintsToCheck)
+        val satResult = solver.check(constraintsToCheck)
 
         return when (satResult) {
             is UUnsatResult -> null

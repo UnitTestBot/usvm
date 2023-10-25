@@ -31,6 +31,7 @@ dependencies {
     implementation("io.ksmt:ksmt-yices:${Versions.ksmt}")
     implementation("io.ksmt:ksmt-cvc5:${Versions.ksmt}")
     implementation("io.ksmt:ksmt-symfpu:${Versions.ksmt}")
+    implementation("io.ksmt:ksmt-runner:${Versions.ksmt}")
 
     testImplementation("io.mockk:mockk:${Versions.mockk}")
     testImplementation("org.junit.jupiter:junit-jupiter-params:${Versions.junitParams}")
@@ -54,6 +55,8 @@ dependencies {
     samplesImplementation("javax.validation:validation-api:${Versions.samplesJavaxValidation}")
     samplesImplementation("com.github.stephenc.findbugs:findbugs-annotations:${Versions.samplesFindBugs}")
     samplesImplementation("org.jetbrains:annotations:${Versions.samplesJetbrainsAnnotations}")
+    // Use usvm-api in samples for makeSymbolic, assume, etc.
+    samplesImplementation(`usvm-api`.output)
 }
 
 val `usvm-api-jar` = tasks.register<Jar>("usvm-api-jar") {

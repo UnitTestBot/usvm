@@ -50,7 +50,6 @@ import org.usvm.machine.JcMethodCall
 import org.usvm.machine.JcMethodCallBaseInst
 import org.usvm.machine.JcMethodEntrypointInst
 import org.usvm.machine.JcVirtualMethodCallInst
-import org.usvm.machine.resolveVirtualInvoke
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.addNewMethodCall
@@ -118,7 +117,7 @@ class JcInterpreter(
 
         val solver = ctx.solver<JcType>()
 
-        val model = (solver.checkWithSoftConstraints(state.pathConstraints) as USatResult).model
+        val model = (solver.check(state.pathConstraints) as USatResult).model
         state.models = listOf(model)
 
         val entrypointInst = JcMethodEntrypointInst(method, entrypointArguments)
@@ -382,6 +381,9 @@ class JcInterpreter(
         observer?.onThrowStatement(exprResolver.simpleValueResolver, stmt, scope)
 
         val address = exprResolver.resolveJcExpr(stmt.throwable)?.asExpr(ctx.addressSort) ?: return
+
+        // Throwing `null` leads to NPE
+        exprResolver.checkNullPointer(address)
 
         scope.calcOnState {
             throwExceptionWithoutStackFrameDrop(address, stmt.throwable.type)

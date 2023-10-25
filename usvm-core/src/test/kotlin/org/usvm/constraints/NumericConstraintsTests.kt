@@ -99,6 +99,25 @@ class NumericConstraintsTests {
     }
 
     @Test
+    fun testConcreteBoundsSimplification(): Unit = with(ctx) {
+        KZ3Solver(ctx).use { solver ->
+            bvSort = ctx.mkBvSort(sizeBits = 4u)
+            constraints = UNumericConstraints(ctx, bvSort)
+            val x by bvSort
+
+            val zero = mkBv(0, bvSort)
+            val four = mkBv(4, bvSort)
+            val xMinusOne = mkBvAddExpr(x, mkBv(-1, bvSort))
+
+            addConstraint(mkBvSignedLessOrEqualExpr(zero, x))
+            addConstraint(mkBvSignedLessOrEqualExpr(x, four))
+            addConstraint(mkBvSignedLessOrEqualExpr(zero, xMinusOne))
+
+            solver.checkConstraints(0)
+        }
+    }
+
+    @Test
     fun testEvalInterval(): Unit = with(ctx) {
         bvSort = ctx.mkBvSort(sizeBits = 32u)
         constraints = UNumericConstraints(ctx, bvSort)

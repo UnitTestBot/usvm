@@ -50,6 +50,10 @@ import org.usvm.collection.set.primitive.UInputSetReading
 import org.usvm.collection.set.ref.UAllocatedRefSetWithInputElementsReading
 import org.usvm.collection.set.ref.UInputRefSetWithAllocatedElementsReading
 import org.usvm.collection.set.ref.UInputRefSetWithInputElementsReading
+import org.usvm.constraints.UPathConstraints
+import org.usvm.isAllocatedConcreteHeapRef
+import org.usvm.isFalse
+import org.usvm.isStaticHeapRef
 import org.usvm.mkSizeExpr
 import org.usvm.mkSizeLeExpr
 import org.usvm.regions.Region
@@ -62,6 +66,20 @@ class USoftConstraintsProvider<Type, USizeSort : USort>(
     // to make it possible to drop only a part of them, not the whole soft constraint
     private val caches = hashMapOf<UExpr<*>, Set<UBoolExpr>>()
     private val sortPreferredValuesProvider = SortPreferredValuesProvider()
+
+    fun makeSoftConstraints(pathConstraints: UPathConstraints<Type>): Set<UBoolExpr> {
+        val softConstraints = hashSetOf<UBoolExpr>()
+
+        val softConstraintSources = pathConstraints.logicalConstraints.asSequence() +
+                pathConstraints.numericConstraints.constraints()
+        softConstraintSources.flatMapTo(softConstraints) {
+            ctx.softConstraintsProvider<Type>()
+                .provide(it)
+                .filterNot(UBoolExpr::isFalse)
+        }
+
+        return softConstraints
+    }
 
     fun provide(initialExpr: UExpr<*>): Set<UBoolExpr> =
         caches.getOrElse(initialExpr) {
@@ -179,6 +197,14 @@ class USoftConstraintsProvider<Type, USizeSort : USort>(
         expr: UCollectionReading<*, *, Sort>,
         arg: UExpr<*>,
     ): UExpr<Sort> = computeSideEffect(expr) {
+        require(!isAllocatedConcreteHeapRef(arg)) {
+            "Unexpected concrete address $arg in symbolic collection $expr"
+        }
+        if (isStaticHeapRef(arg)) {
+            // Do not apply any soft constraints on static refs usages as they are actually concrete
+            return@computeSideEffect
+        }
+
         val argConstraint = provide(arg)
         val selfConstraint = expr.sort.accept(sortPreferredValuesProvider)(expr)
 
@@ -190,6 +216,14 @@ class USoftConstraintsProvider<Type, USizeSort : USort>(
         arg0: UExpr<*>,
         arg1: UExpr<*>,
     ): UExpr<Sort> = computeSideEffect(expr) {
+        require(!isAllocatedConcreteHeapRef(arg1)) {
+            "Unexpected concrete address $arg1 in symbolic collection $expr"
+        }
+        if (isStaticHeapRef(arg1)) {
+            // Do not apply any soft constraints on static refs usages as they are actually concrete
+            return@computeSideEffect
+        }
+
         val constraints = mutableSetOf<UBoolExpr>()
 
         constraints += provide(arg0)

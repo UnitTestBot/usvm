@@ -196,6 +196,14 @@ data class UMachineOptions(
      */
     val useSolverForForks: Boolean = true,
     /**
+     * Whether we should run solver in another process or not.
+     */
+    val runSolverInAnotherProcess: Boolean = false,
+    /**
+     * Whether we should try to apply soft constraints for symbolic values.
+     */
+    val useSoftConstraints: Boolean = true,
+    /**
      * Should machine stop when all terminal targets are reached.
      */
     val stopOnTargetsReached: Boolean = false,

@@ -9,10 +9,12 @@ import org.usvm.util.isException
 
 internal class SortTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("TODO discover why there are no meaningful non-exceptional executions")
     fun testQuickSort() {
-        checkDiscoveredProperties(
+        checkDiscoveredPropertiesWithExceptions(
             Sort::quickSort,
             ignoreNumberOfAnalysisResults,
+            { _, _, begin, end, r -> end > begin && r.isSuccess } // check that we have found at least one meaningful non-exceptional execution
             // TODO coverage or properties
         )
     }

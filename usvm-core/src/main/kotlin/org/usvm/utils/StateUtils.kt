@@ -55,12 +55,12 @@ internal fun <Type, State : UState<Type, *, *, *, *, State>> State.checkSat(cond
 }
 
 /**
- * Checks [UState.pathConstraints] of this [UState] using [USolverBase.checkWithSoftConstraints],
+ * Checks [UState.pathConstraints] of this [UState] using [USolverBase.check],
  * sets [UState.models] with a value of a solver result if it is a [USatResult], and returns this result.
  */
 private fun <Type> UState<Type, *, *, *, *, *>.verify(): USolverResult<UModelBase<Type>> {
     val solver = ctx.solver<Type>()
-    val solverResult = solver.checkWithSoftConstraints(pathConstraints)
+    val solverResult = solver.check(pathConstraints)
 
     if (solverResult is USatResult) {
         // TODO just an assignment or +=?

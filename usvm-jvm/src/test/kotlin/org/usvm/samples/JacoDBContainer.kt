@@ -47,7 +47,7 @@ class JacoDBContainer(
             keyToJacoDBContainer.getOrPut(key) { JacoDBContainer(key, classpath, builder) }
 
         private val samplesClasspath = allClasspath.filter {
-            it.name.contains("samples") || it.name.contains("tests")
+            it.name.contains("samples") || it.name.contains("usvm-api") || it.name.contains("tests")
         }
 
         private val defaultBuilder: JcSettings.() -> Unit = {

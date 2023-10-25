@@ -45,6 +45,7 @@ import org.usvm.collection.set.ref.UInputRefSetWithInputElementsReading
 import org.usvm.memory.UAddressCounter
 import org.usvm.memory.splitUHeapRef
 import org.usvm.regions.Region
+import org.usvm.solver.USoftConstraintsProvider
 import org.usvm.solver.USolverBase
 import org.usvm.types.UTypeSystem
 
@@ -58,6 +59,8 @@ open class UContext<USizeSort : USort>(
 
     private val solver by lazy { components.mkSolver(this) }
     private val typeSystem by lazy { components.mkTypeSystem(this) }
+    private val softConstraintsProvider by lazy { USoftConstraintsProvider<Nothing, USizeSort>(this) }
+
     val sizeExprs by lazy { components.mkSizeExprProvider(this) }
     val statesForkProvider by lazy { components.mkStatesForkProvider() }
 
@@ -75,6 +78,8 @@ open class UContext<USizeSort : USort>(
     @Suppress("UNCHECKED_CAST")
     fun <Type> typeSystem(): UTypeSystem<Type> =
         this.typeSystem as UTypeSystem<Type>
+
+    fun <Type> softConstraintsProvider(): USoftConstraintsProvider<Type, USizeSort> = softConstraintsProvider.cast()
 
     val addressSort: UAddressSort = mkUninterpretedSort("Address")
     val nullRef: UNullRef = UNullRef(this)
