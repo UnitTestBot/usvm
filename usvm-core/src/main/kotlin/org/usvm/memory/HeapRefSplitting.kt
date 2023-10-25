@@ -27,9 +27,9 @@ infix fun <T> GuardedExpr<T>.withAlso(guard: UBoolExpr) = GuardedExpr(expr, guar
  * @param symbolicHeapRef an ite made of all [USymbolicHeapRef]s with its guard, the single [USymbolicHeapRef] if it's
  * the single [USymbolicHeapRef] in the base expression or `null` if there are no [USymbolicHeapRef]s at all.
  */
-internal data class SplitHeapRefs(
+data class SplitHeapRefs(
     val concreteHeapRefs: List<GuardedExpr<UConcreteHeapRef>>,
-    val symbolicHeapRef: GuardedExpr<UHeapRef>?,
+    val symbolicHeapRef: List<GuardedExpr<UHeapRef>>,
 )
 
 /**
@@ -43,13 +43,17 @@ internal data class SplitHeapRefs(
  * @param initialGuard an initial value for the accumulated guard.
  * @param ignoreNullRefs if true, then null references will be ignored. It means that all leafs with nulls
  * considered unsatisfiable, so we assume their guards equal to false, and they won't be added to the result.
+ * @param collapseHeapRefs if true, then collapses all [USymbolicHeapRef]s (or static refs) to the one [UIteExpr].
+ * Otherwise, collects all [USymbolicHeapRef]s (and static refs) with their guards.
  */
-internal fun splitUHeapRef(
+fun splitUHeapRef(
     ref: UHeapRef,
     initialGuard: UBoolExpr = ref.ctx.trueExpr,
     ignoreNullRefs: Boolean = true,
+    collapseHeapRefs: Boolean = true,
 ): SplitHeapRefs {
     val concreteHeapRefs = mutableListOf<GuardedExpr<UConcreteHeapRef>>()
+    val symbolicHeapRefs = mutableListOf<GuardedExpr<UHeapRef>>()
 
     val symbolicHeapRef = filter(ref, initialGuard, ignoreNullRefs) { guarded ->
         val expr = guarded.expr
@@ -57,16 +61,25 @@ internal fun splitUHeapRef(
         // Static refs may alias symbolic refs so they should be not filtered out
         if (expr is UConcreteHeapRef && !isStaticHeapRef(expr)) {
             @Suppress("UNCHECKED_CAST")
-            concreteHeapRefs += (guarded as GuardedExpr<UConcreteHeapRef>)
+            concreteHeapRefs += guarded as GuardedExpr<UConcreteHeapRef>
             false
         } else {
-            true
+            if (collapseHeapRefs) {
+                true
+            } else {
+                symbolicHeapRefs += guarded
+                false
+            }
         }
+    }
+
+    if (collapseHeapRefs && symbolicHeapRef != null) {
+        symbolicHeapRefs += symbolicHeapRef
     }
 
     return SplitHeapRefs(
         concreteHeapRefs,
-        symbolicHeapRef,
+        symbolicHeapRefs,
     )
 }
 
@@ -78,12 +91,14 @@ internal fun splitUHeapRef(
  * @param initialGuard the initial value fot the guard to be passed to [blockOnConcrete] and [blockOnSymbolic].
  * @param ignoreNullRefs if true, then null references will be ignored. It means that all leafs with nulls
  * considered unsatisfiable, so we assume their guards equal to false.
+ * @param collapseHeapRefs see docs in [splitUHeapRef].
  */
-internal inline fun <R> foldHeapRef(
+inline fun <R> foldHeapRef(
     ref: UHeapRef,
     initial: R,
     initialGuard: UBoolExpr,
     ignoreNullRefs: Boolean = true,
+    collapseHeapRefs: Boolean = true,
     blockOnConcrete: (R, GuardedExpr<UConcreteHeapRef>) -> R,
     blockOnStatic: (R, GuardedExpr<UConcreteHeapRef>) -> R,
     blockOnSymbolic: (R, GuardedExpr<UHeapRef>) -> R,
@@ -100,13 +115,13 @@ internal inline fun <R> foldHeapRef(
         } else {
             initial
         }
-        ref is USymbolicHeapRef ->  blockOnSymbolic(initial, ref with initialGuard)
+        ref is USymbolicHeapRef -> blockOnSymbolic(initial, ref with initialGuard)
         ref is UIteExpr<UAddressSort> -> {
-            val (concreteHeapRefs, symbolicHeapRef) = splitUHeapRef(ref, initialGuard)
+            val (concreteHeapRefs, symbolicHeapRefs) = splitUHeapRef(ref, initialGuard, collapseHeapRefs = collapseHeapRefs)
 
             var acc = initial
-            symbolicHeapRef?.let { (ref, guard) -> acc = blockOnSymbolic(acc, ref with guard) }
-            concreteHeapRefs.onEach { (ref, guard) -> acc = blockOnConcrete(acc, ref with guard) }
+            symbolicHeapRefs.forEach { (ref, guard) -> acc = blockOnSymbolic(acc, ref with guard) }
+            concreteHeapRefs.forEach { (ref, guard) -> acc = blockOnConcrete(acc, ref with guard) }
             acc
         }
 
@@ -117,11 +132,12 @@ internal inline fun <R> foldHeapRef(
 /**
  * Executes [foldHeapRef] with passed [blockOnSymbolic] as a blockOnStatic.
  */
-internal inline fun <R> foldHeapRefWithStaticAsSymbolic(
+inline fun <R> foldHeapRefWithStaticAsSymbolic(
     ref: UHeapRef,
     initial: R,
     initialGuard: UBoolExpr,
     ignoreNullRefs: Boolean = true,
+    collapseHeapRefs: Boolean = true,
     blockOnConcrete: (R, GuardedExpr<UConcreteHeapRef>) -> R,
     blockOnSymbolic: (R, GuardedExpr<UHeapRef>) -> R,
 ): R = foldHeapRef(
@@ -129,12 +145,13 @@ internal inline fun <R> foldHeapRefWithStaticAsSymbolic(
     initial,
     initialGuard,
     ignoreNullRefs,
+    collapseHeapRefs,
     blockOnConcrete = blockOnConcrete,
     blockOnStatic = blockOnSymbolic,
     blockOnSymbolic = blockOnSymbolic
 )
 
-internal inline fun <R> foldHeapRef2(
+inline fun <R> foldHeapRef2(
     ref0: UHeapRef,
     ref1: UHeapRef,
     initial: R,

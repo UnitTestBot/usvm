@@ -5,16 +5,13 @@ import io.ksmt.utils.asExpr
 import org.jacodb.api.JcType
 import org.jacodb.api.ext.toType
 import org.usvm.NoSolverStateForker
-import org.usvm.WithSolverStateForker
 import org.usvm.StateForker
 import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
-import org.usvm.UBoolSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UHeapRef
-import org.usvm.UIteExpr
-import org.usvm.UNullRef
 import org.usvm.USymbolicHeapRef
+import org.usvm.WithSolverStateForker
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.typeStreamOf
 import org.usvm.isAllocatedConcreteHeapRef
@@ -23,9 +20,9 @@ import org.usvm.machine.interpreter.JcStepScope
 import org.usvm.machine.interpreter.JcTypeSelector
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.newStmt
+import org.usvm.memory.foldHeapRefWithStaticAsSymbolic
 import org.usvm.types.UTypeStream
 import org.usvm.types.first
-import org.usvm.uctx
 import org.usvm.util.findMethod
 
 /**
@@ -99,13 +96,17 @@ private fun resolveVirtualInvokeWithoutSolver(
     val instance = arguments.first().asExpr(ctx.addressSort)
 
     val refsWithConditions = mutableListOf<Pair<UHeapRef, UBoolExpr>>()
-    instance.foldWithConditions(
-        concreteMapper = { ref, condition -> refsWithConditions += ref to condition },
-        staticMapper = { ref, condition -> refsWithConditions += ref to condition },
-        symbolicMapper = { ref, condition -> refsWithConditions += ref to condition },
+    foldHeapRefWithStaticAsSymbolic(
+        instance,
+        refsWithConditions,
+        initialGuard = ctx.trueExpr,
+        ignoreNullRefs = true,
+        collapseHeapRefs = false,
+        blockOnConcrete = { curRefsWithConditions, (ref, condition) -> curRefsWithConditions.also { it += ref to condition } },
+        blockOnSymbolic = { curRefsWithConditions, (ref, condition) -> curRefsWithConditions.also { it += ref to condition } },
     )
 
-    val conditionsWithBlocks: List<Pair<KExpr<UBoolSort>, (JcState) -> Unit>> = refsWithConditions.flatMap { (ref, condition) ->
+    val conditionsWithBlocks = refsWithConditions.flatMap { (ref, condition) ->
         when {
             isAllocatedConcreteHeapRef(ref) || isStaticHeapRef(ref) -> {
                 val concreteCall = makeConcreteMethodCall(scope, ref, methodCall)
@@ -189,48 +190,4 @@ private fun JcVirtualMethodCallInst.makeConcreteCallsForPossibleTypes(
     }
 
     return typeConstraintsWithBlockOnStates
-}
-
-/**
- * Associates [UHeapRef] used in this [UHeapRef] with the corresponding conditions.
- */
-private inline fun UHeapRef.foldWithConditions(
-    concreteMapper: (UConcreteHeapRef, UBoolExpr) -> Unit,
-    staticMapper: (UConcreteHeapRef, UBoolExpr)  -> Unit,
-    symbolicMapper: (USymbolicHeapRef, UBoolExpr) -> Unit,
-): Unit = when {
-    isStaticHeapRef(this) -> staticMapper(this, ctx.trueExpr)
-    this is UConcreteHeapRef -> concreteMapper(this, ctx.trueExpr)
-    this is UNullRef -> error("Unexpected null ref $this")
-
-    this is USymbolicHeapRef -> symbolicMapper(this, ctx.trueExpr)
-    this is UIteExpr<UAddressSort> -> {
-        val refsWithConditions = mutableListOf<Pair<UHeapRef, UBoolExpr>>()
-        refsWithConditions += this to condition
-
-        while (refsWithConditions.isNotEmpty()) {
-            val (ref, currentCondition) = refsWithConditions.removeLast()
-
-            when {
-                isStaticHeapRef(ref) -> staticMapper(ref, currentCondition)
-                ref is UConcreteHeapRef -> concreteMapper(ref, currentCondition)
-                ref is USymbolicHeapRef -> symbolicMapper(ref, currentCondition)
-                ref is UIteExpr<UAddressSort> -> {
-                    with(ctx) {
-                        require(ref.trueBranch != uctx.nullRef) {
-                            "Unexpected null ref"
-                        }
-                        require(ref.falseBranch != uctx.nullRef) {
-                            "Unexpected null ref"
-                        }
-
-                        refsWithConditions += ref.trueBranch to condition
-                        refsWithConditions += ref.falseBranch to condition.not()
-                    }
-                }
-            }
-        }
-    }
-
-    else -> error("Unexpected ref: $this")
 }
