@@ -2,6 +2,7 @@ package org.usvm.statistics.collectors
 
 import org.usvm.statistics.CoverageStatistics
 import org.usvm.statistics.UMachineObserver
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * [UMachineObserver] which collects states if the coverage increased or if the
@@ -19,13 +20,14 @@ class CoveredNewStatesCollector<State>(
 
     private var previousCoveredStatements = coverageStatistics.getTotalCoveredStatements()
 
-    override fun onStateTerminated(state: State, stateReachable: Boolean) {
+    override fun onStateTerminated(state: State, stateReachable: Boolean, isConsumed: AtomicBoolean) {
         if (!stateReachable) {
             return
         }
 
         if (isException(state)) {
             mutableCollectedStates.add(state)
+            isConsumed.set(true)
             return
         }
 
@@ -33,6 +35,7 @@ class CoveredNewStatesCollector<State>(
         if (currentCoveredStatements > previousCoveredStatements) {
             previousCoveredStatements = currentCoveredStatements
             mutableCollectedStates += state
+            isConsumed.set(true)
         }
     }
 }

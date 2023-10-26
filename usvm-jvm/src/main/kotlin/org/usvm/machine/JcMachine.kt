@@ -1,5 +1,7 @@
 package org.usvm.machine
 
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.runBlocking
 import mu.KLogging
 import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcMethod
@@ -55,7 +57,7 @@ class JcMachine(
 
     private val cfgStatistics = CfgStatisticsImpl(applicationGraph)
 
-    fun analyze(method: JcMethod, targets: List<JcTarget> = emptyList()): List<JcState> {
+    fun analyzeAsync(method: JcMethod, targets: List<JcTarget> = emptyList()): Flow<JcState> {
         logger.debug("{}.analyze({}, {})", this, method, targets)
         val initialState = interpreter.getInitialState(method, targets)
 
@@ -150,16 +152,24 @@ class JcMachine(
             observers.add(SoftConstraintsObserver())
         }
 
-        run(
+        return run(
             interpreter,
             pathSelector,
             observer = CompositeUMachineObserver(observers),
             isStateTerminated = ::isStateTerminated,
             stopStrategy = stopStrategy,
         )
-
-        return statesCollector.collectedStates
     }
+
+    fun analyze(method: JcMethod, targets: List<JcTarget> = emptyList()): List<JcState> {
+        val collectedStates = mutableListOf<JcState>()
+        runBlocking {
+            analyzeAsync(method, targets).collect { collectedStates += it }
+        }
+
+        return collectedStates
+    }
+
 
     /**
      * Returns a wrapper for the [cfgStatistics] that ignores [JcTransparentInstruction]s.

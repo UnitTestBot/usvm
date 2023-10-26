@@ -1,6 +1,7 @@
 package org.usvm.machine
 
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.coroutines.runBlocking
 import org.usvm.StateCollectionStrategy
 import org.usvm.UContext
 import org.usvm.UMachine
@@ -88,15 +89,18 @@ class SampleMachine(
             observers.add(SoftConstraintsObserver())
         }
 
-        run(
-            interpreter = interpreter,
-            pathSelector = pathSelector,
-            observer = CompositeUMachineObserver(observers),
-            isStateTerminated = ::isStateTerminated,
-            stopStrategy = stopStrategy,
-        )
+        val results = mutableListOf<ProgramExecutionResult>()
+        runBlocking {
+            run(
+                interpreter = interpreter,
+                pathSelector = pathSelector,
+                observer = CompositeUMachineObserver(observers),
+                isStateTerminated = ::isStateTerminated,
+                stopStrategy = stopStrategy,
+            ).collect { results += resultModelConverter.convert(it, method) }
+        }
 
-        return statesCollector.collectedStates.map { resultModelConverter.convert(it, method) }
+        return results
     }
 
     private fun getInitialState(

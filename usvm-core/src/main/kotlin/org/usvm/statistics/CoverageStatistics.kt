@@ -3,6 +3,7 @@ package org.usvm.statistics
 import org.usvm.UState
 import org.usvm.algorithms.bfsTraversal
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * [UMachineObserver] which tracks coverage of specified methods. Statements are
@@ -97,7 +98,7 @@ class CoverageStatistics<Method, Statement, State : UState<*, Method, Statement,
     }
 
     // TODO: don't consider coverage of runtime exceptions states
-    override fun onStateTerminated(state: State, stateReachable: Boolean) {
+    override fun onStateTerminated(state: State, stateReachable: Boolean, isConsumed: AtomicBoolean) {
         if (!stateReachable) return
 
         val statements = state.pathNode.allStatements

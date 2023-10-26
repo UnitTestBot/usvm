@@ -1,10 +1,13 @@
 package org.usvm
 
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import mu.KLogging
 import org.usvm.statistics.UMachineObserver
 import org.usvm.stopstrategies.StopStrategy
 import org.usvm.util.bracket
 import org.usvm.util.debug
+import java.util.concurrent.atomic.AtomicBoolean
 import org.usvm.utils.isSat
 
 val logger = object : KLogging() {}.logger
@@ -33,7 +36,7 @@ abstract class UMachine<State : UState<*, *, *, *, *, *>> : AutoCloseable {
         observer: UMachineObserver<State>,
         isStateTerminated: (State) -> Boolean,
         stopStrategy: StopStrategy = StopStrategy { false }
-    ) {
+    ): Flow<State> = flow {
         logger.debug().bracket("$this.run($interpreter, ${pathSelector::class.simpleName})") {
             while (!pathSelector.isEmpty() && !stopStrategy.shouldStop()) {
                 val state = pathSelector.peek()
@@ -49,9 +52,14 @@ abstract class UMachine<State : UState<*, *, *, *, *, *>> : AutoCloseable {
                     } else {
                         // TODO: distinguish between states terminated by exception (runtime or user) and
                         //  those which just exited
+                        val isConsumed = AtomicBoolean(false)
                         if (forkedState.isSat()) {
-                            observer.onStateTerminated(forkedState, stateReachable = true)
+                            observer.onStateTerminated(forkedState, stateReachable = true, isConsumed)
+                            if (isConsumed.get()) {
+                                emit(forkedState)
+                            }
                         }
+
                     }
                 }
 
@@ -59,8 +67,13 @@ abstract class UMachine<State : UState<*, *, *, *, *, *>> : AutoCloseable {
                     pathSelector.update(state)
                 } else {
                     pathSelector.remove(state)
+
+                    val isConsumed = AtomicBoolean(false)
                     if (state.isSat()) {
-                        observer.onStateTerminated(state, stateReachable = stateAlive)
+                        observer.onStateTerminated(state, stateReachable = stateAlive, isConsumed)
+                        if (isConsumed.get()) {
+                            emit(state)
+                        }
                     }
                 }
 

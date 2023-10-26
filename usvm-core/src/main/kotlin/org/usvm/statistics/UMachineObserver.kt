@@ -1,5 +1,7 @@
 package org.usvm.statistics
 
+import java.util.concurrent.atomic.AtomicBoolean
+
 /**
  * Symbolic machine events observer.
  */
@@ -8,7 +10,11 @@ interface UMachineObserver<State> {
     /**
      * Called when the execution of the state is terminated (by exception or return).
      */
-    fun onStateTerminated(state: State, stateReachable: Boolean) { }
+    fun onStateTerminated(
+        state: State,
+        stateReachable: Boolean,
+        isConsumed: AtomicBoolean = AtomicBoolean(false)
+    ) { }
 
     /**
      * Called on each symbolic execution step. If the state has forked, [forks] are not empty.
@@ -21,8 +27,8 @@ class CompositeUMachineObserver<State>(
 ) : UMachineObserver<State> {
     constructor(vararg observers: UMachineObserver<State>) : this(observers.toList())
 
-    override fun onStateTerminated(state: State, stateReachable: Boolean) {
-        observers.forEach { it.onStateTerminated(state, stateReachable) }
+    override fun onStateTerminated(state: State, stateReachable: Boolean, isConsumed: AtomicBoolean) {
+        observers.forEach { it.onStateTerminated(state, stateReachable, isConsumed) }
     }
 
     override fun onState(parent: State, forks: Sequence<State>) {
