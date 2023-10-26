@@ -5,7 +5,7 @@ import kotlin.time.Duration.Companion.seconds
 
 object GeneratorSettings {
 
-    val generationMode = GenerationMode.UNSAFE
+    val generationMode = GenerationMode.SAFE
     const val mocksEnabled = true
     const val mockGenerationProbability = 20
 
@@ -38,7 +38,7 @@ object GeneratorSettings {
     val maxCollectionSize: Int = 5
 
     //All alphabetical symbols and special characters
-    val stringAvailableSymbols = listOf(' '..'~')
+    val stringAvailableSymbols = ' '..'~'
 }
 
 enum class GenerationMode {

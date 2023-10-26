@@ -1,17 +1,10 @@
 package org.usvm.fuzzer.generators
 
-import kotlinx.collections.immutable.toPersistentMap
-import org.jacodb.api.ext.autoboxIfNeeded
-import org.jacodb.api.ext.constructors
-import org.jacodb.api.ext.int
-import org.jacodb.api.ext.unboxIfNeeded
 import org.jacodb.impl.types.JcClassTypeImpl
-import org.jacodb.impl.types.substition.JcSubstitutorImpl
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.usvm.fuzzer.types.*
-import org.usvm.instrumentation.util.stringType
-import org.usvm.instrumentation.util.zipToMap
+import org.usvm.fuzzer.util.findResolvedTypeOrNull
 import java.net.URLClassLoader
 import java.nio.file.Paths
 
@@ -31,7 +24,7 @@ class SimpleClassGenerationTest: GeneratorTest() {
 
     @Test
     fun abstractClassGenerationTest() {
-        val type = jcClasspath.findTypeOrNull("example.hierarchy.Computer") as JcClassTypeImpl
+        val type = jcClasspath.findResolvedTypeOrNull("example.hierarchy.Computer")
         val generator = generatorRepository.getGeneratorForType(type) ?: error("Cant find ArrayList generator")
         val generatedValue = generator.generate()
         println("GENERATED VALUE = $generatedValue")
@@ -39,18 +32,16 @@ class SimpleClassGenerationTest: GeneratorTest() {
 
     @Test
     fun generateSimpleClass() {
-        val type = jcClasspath.findTypeOrNull("example.GenericClass") as JcClassTypeImpl
-        val genericReplacement = jcClasspath.findTypeOrNull("java.lang.Integer")!!
-        val newType = type.getResolvedType(listOf(genericReplacement))
-        val generator = generatorRepository.getGeneratorForType(newType) ?: error("Cant find ArrayList generator")
+        val jcType = jcClasspath.findResolvedTypeOrNull("example.GenericClass<java.lang.Integer>")
+        val generator = generatorRepository.getGeneratorForType(jcType) ?: error("Cant find ArrayList generator")
         val generatedValue = generator.generate()
         println("GENERATED VALUE = $generatedValue")
     }
 
     @Test
     fun `class with static fields`() {
-        val type = jcClasspath.findTypeOrNull("example.ClassWithStaticFields") as JcClassTypeImpl
-        val generator = generatorRepository.getGeneratorForType(type) ?: error("Cant find ArrayList generator")
+        val jcType = jcClasspath.findResolvedTypeOrNull("example.ClassWithStaticFields")
+        val generator = generatorRepository.getGeneratorForType(jcType) ?: error("Cant find ArrayList generator")
         val generatedValue = generator.generate()
         println("GENERATED VALUE = $generatedValue")
     }
@@ -59,11 +50,10 @@ class SimpleClassGenerationTest: GeneratorTest() {
     fun `complex generics`() {
 
         val t = "example.GenericClassMap<java.util.Map<java.lang.Integer, java.lang.String>>"
-        val jcType = JcType2JvmTypeConverter.convertToJcType(t, jcClasspath)
-        println("TYPPE = $jcType")
-        val t1 = jcType
-        val c = t1.getConstructors().first()
-//        val generator = generatorRepository.getGeneratorForType()
+        val jcType = JcType2JvmTypeConverter.convertToJcTypeWrapper(t, jcClasspath)
+        val generator = generatorRepository.getGeneratorForType(jcType)
+        val generatedValue = generator.generate()
+        println(generatedValue)
 
 
 

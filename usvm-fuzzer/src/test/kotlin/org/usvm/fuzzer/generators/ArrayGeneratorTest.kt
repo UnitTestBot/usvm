@@ -19,7 +19,7 @@ class ArrayGeneratorTest: GeneratorTest() {
     @Test
     fun testSimpleArrayCreation() {
         val simpleArrayType = jcClasspath.arrayTypeOf(jcClasspath.int)
-        val generator = generatorRepository.getGeneratorForType(simpleArrayType)
+        val generator = generatorRepository.getGeneratorForUnresolvedType(simpleArrayType)
         assertNotNull(generator)
         assertNotNull(generator.generate())
     }
@@ -27,7 +27,7 @@ class ArrayGeneratorTest: GeneratorTest() {
     @Test
     fun testMultiDimensionalArrayCreation() {
         val twoDimArrayType = jcClasspath.arrayTypeOf(jcClasspath.arrayTypeOf(jcClasspath.int))
-        val generator = generatorRepository.getGeneratorForType(twoDimArrayType)
+        val generator = generatorRepository.getGeneratorForUnresolvedType(twoDimArrayType)
         assertNotNull(generator)
         assertNotNull(generator.generate())
     }

@@ -2,13 +2,9 @@
 
 package org.usvm.fuzzer.types
 
-import kotlinx.collections.immutable.toPersistentMap
 import org.jacodb.api.*
-import org.jacodb.impl.types.JcArrayTypeImpl
 import org.jacodb.impl.types.JcClassTypeImpl
 import org.jacodb.impl.types.signature.*
-import org.jacodb.impl.types.substition.JcSubstitutorImpl
-import org.usvm.instrumentation.util.zipToMap
 
 
 fun JcType.convertToJvmType(): JvmType {
@@ -30,13 +26,13 @@ fun JcTypeVariableDeclaration.convertToJvmTypeParameterDeclarationImpl(): JvmTyp
         bounds.map { it.convertToJvmType() }
     )
 
-fun JcType.getResolvedTypeWithSubstitutions(substitutions: List<Substitution>): JcTypeImplWrapper =
+fun JcType.getResolvedTypeWithSubstitutions(substitutions: List<Substitution>): JcTypeWrapper =
     when (this) {
 //        is JcArrayType -> {
 //            JcArrayTypeImpl(elementType.getResolvedTypeWithSubstitutions(substitutions), nullable, annotations)
 //        }
         is JcClassTypeImpl -> {
-            JcTypeImplWrapper(
+            JcTypeWrapper(
                 type = JcClassTypeImpl(
                     classpath = classpath,
                     name = name,
@@ -51,30 +47,30 @@ fun JcType.getResolvedTypeWithSubstitutions(substitutions: List<Substitution>): 
             )
         }
 
-        else -> JcTypeImplWrapper(this, listOf())
+        else -> JcTypeWrapper(this, listOf())
     }
 
-fun JcType.getResolvedType(generics: List<JcType>): JcType =
-    when (this) {
-        is JcArrayType -> {
-            JcArrayTypeImpl(elementType.getResolvedType(generics), nullable, annotations)
-        }
-
-        is JcClassTypeImpl -> JcClassTypeImpl(
-            classpath = classpath,
-            name = name,
-            outerType = outerType,
-            substitutor = JcSubstitutorImpl(
-                typeParameters
-                    .map { it.convertToJvmTypeParameterDeclarationImpl() }
-                    .zipToMap(generics.map { it.convertToJvmType() }).toPersistentMap()
-            ),
-            nullable = nullable,
-            annotations = annotations
-        )
-
-        else -> this
-    }
+//fun JcType.getResolvedType(generics: List<JcType>): JcType =
+//    when (this) {
+//        is JcArrayType -> {
+//            JcArrayTypeImpl(elementType.getResolvedType(generics), nullable, annotations)
+//        }
+//
+//        is JcClassTypeImpl -> JcClassTypeImpl(
+//            classpath = classpath,
+//            name = name,
+//            outerType = outerType,
+//            substitutor = JcSubstitutorImpl(
+//                typeParameters
+//                    .map { it.convertToJvmTypeParameterDeclarationImpl() }
+//                    .zipToMap(generics.map { it.convertToJvmType() }).toPersistentMap()
+//            ),
+//            nullable = nullable,
+//            annotations = annotations
+//        )
+//
+//        else -> this
+//    }
 
 object JcType2JvmTypeConverter {
 
@@ -125,7 +121,7 @@ object JcType2JvmTypeConverter {
         return tree
     }
 
-    fun convertToJcType(type: String, jcClasspath: JcClasspath): JcTypeImplWrapper {
+    fun convertToJcTypeWrapper(type: String, jcClasspath: JcClasspath): JcTypeWrapper {
         val genericTree = buildGenericTree(type)
         val substitutions = mutableListOf<Substitution>()
         collectSubstitutions(

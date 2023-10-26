@@ -3,9 +3,10 @@ package org.usvm.fuzzer.generators
 import org.jacodb.impl.types.JcClassTypeImpl
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
-import org.usvm.fuzzer.types.getResolvedType
+import org.usvm.fuzzer.util.findResolvedTypeOrNull
 import java.net.URLClassLoader
 import java.nio.file.Paths
+import kotlin.test.assertNotNull
 
 class CollectionGeneratorTest: GeneratorTest() {
     companion object {
@@ -22,10 +23,9 @@ class CollectionGeneratorTest: GeneratorTest() {
 
     @Test
     fun generateSimpleArrayList() {
-        val type = jcClasspath.findTypeOrNull("java.util.ArrayList") as JcClassTypeImpl
-        val genericReplacement = jcClasspath.findTypeOrNull("java.lang.Integer")!!
-        val newType = type.getResolvedType(listOf(genericReplacement))
-        val generator = generatorRepository.getGeneratorForType(newType) ?: error("Cant find ArrayList generator")
+        val type = jcClasspath.findResolvedTypeOrNull("java.util.ArrayList<java.lang.Integer>")
+        val generator = generatorRepository.getGeneratorForType(type) ?: error("Cant find ArrayList generator")
         val generatedValue = generator.generate()
+        assertNotNull(generatedValue)
     }
 }

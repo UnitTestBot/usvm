@@ -1,5 +1,7 @@
 package org.usvm.fuzzer.generator.collections.list
 
 import org.jacodb.api.JcClassType
+import org.usvm.fuzzer.types.JcTypeWrapper
 
-sealed class ListGenerator(listType: JcClassType): CollectionGenerator(listType, "add")
+sealed class ListGenerator(collectionType: JcClassType, componentTypes: List<JcTypeWrapper>) :
+    CollectionGenerator(collectionType, componentTypes, "add")

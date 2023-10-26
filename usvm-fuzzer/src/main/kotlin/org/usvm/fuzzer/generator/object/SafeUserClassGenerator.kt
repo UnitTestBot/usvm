@@ -4,22 +4,23 @@ import org.jacodb.api.JcClassType
 import org.jacodb.api.JcTypedMethod
 import org.jacodb.api.ext.constructors
 import org.usvm.fuzzer.generator.GeneratorContext
+import org.usvm.fuzzer.types.JcTypeWrapper
 import org.usvm.fuzzer.util.UTestValueRepresentation
 import org.usvm.instrumentation.testcase.api.UTestConstructorCall
 import org.usvm.instrumentation.testcase.api.UTestInst
 import org.usvm.instrumentation.testcase.api.UTestNullExpression
 import kotlin.random.Random
 
-open class SafeUserClassGenerator(private val type: JcClassType) : UserClassGenerator() {
+open class SafeUserClassGenerator(private val jcTypeWrapper: JcTypeWrapper) : UserClassGenerator() {
 
     override val generationFun: GeneratorContext.() -> UTestValueRepresentation? = {
         val randomInt = Random.nextInt(0, 10)
-        when  {
-            randomInt in 0..5 && type.constructors.isNotEmpty() -> callRandomConstructor(this)
+        when {
+            randomInt in 0..5 && jcTypeWrapper.constructors.isNotEmpty() -> callRandomConstructor(this)
             randomInt in 6..7 && isRandomStaticMethodAvailable() -> callRandomStaticMethod(this)
             randomInt in 8..9 && isRandomStaticFieldAvailable() -> getRandomStaticFieldValue(this)
             else -> when {
-                type.constructors.isNotEmpty() -> callRandomConstructor(this)
+                jcTypeWrapper.constructors.isNotEmpty() -> callRandomConstructor(this)
                 isRandomStaticMethodAvailable() -> callRandomStaticMethod(this)
                 isRandomStaticFieldAvailable() -> getRandomStaticFieldValue(this)
                 else -> null
@@ -32,29 +33,32 @@ open class SafeUserClassGenerator(private val type: JcClassType) : UserClassGene
 
 
     protected fun callRandomStaticMethod(ctx: GeneratorContext): UTestValueRepresentation {
-        return UTestValueRepresentation(UTestNullExpression(type))
+        return UTestValueRepresentation(UTestNullExpression(jcTypeWrapper.type))
     }
 
     protected fun getRandomStaticFieldValue(ctx: GeneratorContext): UTestValueRepresentation {
-        return UTestValueRepresentation(UTestNullExpression(type))
+        return UTestValueRepresentation(UTestNullExpression(jcTypeWrapper.type))
     }
 
     protected fun callRandomConstructor(ctx: GeneratorContext): UTestValueRepresentation? =
-        getRandomWeighedConstructor(type, ctx.random)?.let { randomConstructor ->
+        getRandomWeighedConstructor(jcTypeWrapper, ctx.random)?.let { randomConstructor ->
             val initStmts = mutableListOf<UTestInst>()
-            val args = randomConstructor.parameters.map { param ->
-                val gen = ctx.repository.getGeneratorForType(param.type)
-                gen.generate()?.let {
-                    initStmts.addAll(it.initStmts)
-                    it.instance
-                } ?: UTestNullExpression(param.type)
-            }
+            val args =
+                jcTypeWrapper.getMethodParametersTypes(randomConstructor).map { paramType ->
+                    val gen = ctx.repository.getGeneratorForType(paramType)
+                    gen.generate().let {
+                        initStmts.addAll(it.initStmts)
+                        it.instance
+                    }
+                }
             val instance = UTestConstructorCall(randomConstructor.method, args)
             UTestValueRepresentation(instance, initStmts)
         }
 
 
-    protected fun getRandomWeighedConstructor(type: JcClassType, random: Random): JcTypedMethod? {
+    protected fun getRandomWeighedConstructor(type: JcTypeWrapper, random: Random): JcTypedMethod? {
+        if (type.constructors.isEmpty()) return null
+        if (type.constructors.size == 1) return type.constructors.first()
         val (maxParams, minParams) = with(type.constructors) {
             maxOf { it.parameters.size } to minOf { it.parameters.size }
         }
