@@ -1,10 +1,13 @@
 package org.usvm
 
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import mu.KLogging
 import org.usvm.statistics.UMachineObserver
 import org.usvm.stopstrategies.StopStrategy
 import org.usvm.util.bracket
 import org.usvm.util.debug
+import java.util.concurrent.atomic.AtomicBoolean
 
 val logger = object : KLogging() {}.logger
 
@@ -32,7 +35,7 @@ abstract class UMachine<State> : AutoCloseable {
         observer: UMachineObserver<State>,
         isStateTerminated: (State) -> Boolean,
         stopStrategy: StopStrategy = StopStrategy { false }
-    ) {
+    ): Flow<State> = flow {
         logger.debug().bracket("$this.run($interpreter, ${pathSelector::class.simpleName})") {
             while (!pathSelector.isEmpty() && !stopStrategy.shouldStop()) {
                 val state = pathSelector.peek()
@@ -48,7 +51,11 @@ abstract class UMachine<State> : AutoCloseable {
                     } else {
                         // TODO: distinguish between states terminated by exception (runtime or user) and
                         //  those which just exited
-                        observer.onStateTerminated(forkedState, stateReachable = true)
+                        val isConsumed = AtomicBoolean(false)
+                        observer.onStateTerminated(forkedState, stateReachable = true, isConsumed)
+                        if (isConsumed.get()) {
+                            emit(forkedState)
+                        }
                     }
                 }
 
@@ -56,7 +63,12 @@ abstract class UMachine<State> : AutoCloseable {
                     pathSelector.update(state)
                 } else {
                     pathSelector.remove(state)
-                    observer.onStateTerminated(state, stateReachable = stateAlive)
+
+                    val isConsumed = AtomicBoolean(false)
+                    observer.onStateTerminated(state, stateReachable = stateAlive, isConsumed)
+                    if (isConsumed.get()) {
+                        emit(state)
+                    }
                 }
 
                 if (aliveForkedStates.isNotEmpty()) {
@@ -69,6 +81,7 @@ abstract class UMachine<State> : AutoCloseable {
             }
         }
     }
+
 
     override fun toString(): String = this::class.simpleName?:"<empty>"
 }

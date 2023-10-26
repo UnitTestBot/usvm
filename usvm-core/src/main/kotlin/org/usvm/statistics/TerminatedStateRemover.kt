@@ -1,6 +1,7 @@
 package org.usvm.statistics
 
 import org.usvm.UState
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * This observer is devoted to reduce memory consumption
@@ -11,7 +12,7 @@ import org.usvm.UState
  * It costs additional memory, but might be useful for debug purposes.
  */
 class TerminatedStateRemover<State : UState<*, *, *, *, *, State>> : UMachineObserver<State> {
-    override fun onStateTerminated(state: State, stateReachable: Boolean) {
+    override fun onStateTerminated(state: State, stateReachable: Boolean, isConsumed: AtomicBoolean) {
         state.pathLocation.states.remove(state)
     }
 }
