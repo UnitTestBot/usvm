@@ -107,7 +107,6 @@ class PathConstraintsMergingTest {
             val mergeGuard = MutableMergeGuard(this)
             val result = left.mergeWith(right, mergeGuard)
             assertNotNull(result)
-            result += mergeGuard.leftConstraint or mergeGuard.rightConstraint
             val constraintsAreNotEqual = run {
                 val leftConstraint = mkAnd(left.constraints(translator).toList())
                 val rightConstraint = mkAnd(right.constraints(translator).toList())
