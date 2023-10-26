@@ -1,17 +1,17 @@
 package org.usvm.targets
 
+import org.usvm.UBoolExpr
 import org.usvm.UComposer
 import org.usvm.UState
 import org.usvm.constraints.UPathConstraints
 import org.usvm.model.UModelBase
-import org.usvm.satisfies
 import org.usvm.solver.USatResult
 import org.usvm.solver.UUnknownResult
 import org.usvm.solver.UUnsatResult
+import org.usvm.splitModelsByCondition
 
 class UProofObligation<Statement, Type>(override val location: Statement, val constraints: UPathConstraints<Type>) :
-    UTarget<Statement, UProofObligation<Statement, Type>>()
-{
+    UTarget<Statement, UProofObligation<Statement, Type>>() {
     fun weakestPrecondition(state: UState<Type, *, Statement, *, *, *>): UProofObligation<Statement, Type>? {
         val composer = UComposer(state.ctx, state.memory)
         val satisfyingModels = state.models.toMutableSet()
@@ -29,6 +29,7 @@ class UProofObligation<Statement, Type>(override val location: Statement, val co
             when (satResult) {
                 is USatResult<UModelBase<Type>> ->
                     state.models += satResult.model
+
                 is UUnsatResult<*>,
                 is UUnknownResult<*> ->
                     return null
@@ -38,4 +39,7 @@ class UProofObligation<Statement, Type>(override val location: Statement, val co
         child.parent = this
         return child
     }
+
+    private fun UModelBase<Type>.satisfies(expr: UBoolExpr): Boolean =
+        splitModelsByCondition(listOf(this), expr).trueModels.isNotEmpty()
 }

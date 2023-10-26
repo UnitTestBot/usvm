@@ -254,7 +254,7 @@ object NoSolverStateForker : StateForker {
  * - models that are in contradiction with this [condition];
  * - models that can not evaluate this [condition].
  */
-private fun <Type> splitModelsByCondition(
+fun <Type> splitModelsByCondition(
     models: List<UModelBase<Type>>,
     condition: UBoolExpr,
 ): SplittedModels<Type> {
@@ -282,7 +282,7 @@ data class ForkResult<T>(
     val negativeState: T?,
 )
 
-private data class SplittedModels<Type>(
+data class SplittedModels<Type>(
     val trueModels: List<UModelBase<Type>>,
     val falseModels: List<UModelBase<Type>>,
     val unknownModels: List<UModelBase<Type>>,
