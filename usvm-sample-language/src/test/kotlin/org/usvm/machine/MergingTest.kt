@@ -36,7 +36,7 @@ class MergingTest {
         val result = assertIs<SuccessfulExecutionResult>(results.first())
         val inputArg = (result.inputModel.argumentExprs.first() as IntConst).const
         val returnValue = ((result.outputModel.returnExpr) as IntConst).const
-        assertEquals(inputArg.inv().and(15), returnValue)
+        assertEquals(inputArg.inv().and(31), returnValue)
     }
 
     @Test

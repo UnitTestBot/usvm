@@ -38,7 +38,7 @@ open class UPathConstraints<Type> private constructor(
     /**
      * Specially represented numeric constraints (e.g. >, <, >=, ...).
      */
-    val numericConstraints: UNumericConstraints<UBv32Sort> = UNumericConstraints(ctx, sort = ctx.bv32Sort),
+    private val numericConstraints: UNumericConstraints<UBv32Sort> = UNumericConstraints(ctx, sort = ctx.bv32Sort),
 ) : UMergeable<UPathConstraints<Type>, MutableMergeGuard> {
     init {
         // Use the information from the type constraints to check whether any static ref is assignable to any symbolic ref
@@ -48,7 +48,8 @@ open class UPathConstraints<Type> private constructor(
     /**
      * Constraints solved by SMT solver.
      */
-    val logicalConstraintsSequence: Sequence<UBoolExpr> get() = logicalConstraints.asSequence()
+    val softConstraintsSourceSequence: Sequence<UBoolExpr>
+        get() = logicalConstraints.asSequence() + numericConstraints.constraints()
 
     constructor(ctx: UContext<*>) : this(ctx, ULogicalConstraints.empty())
 

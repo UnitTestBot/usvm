@@ -221,16 +221,13 @@ internal fun <Method, Statement, Target, State> createMergingPathSelector(
     if (!options.useMerging) {
         return underlyingPathSelector
     }
-    val executionTreeTracker = ExecutionTreeTracker<State, Statement>(initialState.pathNode) { it.pathNode }
+    val executionTreeTracker = ExecutionTreeTracker<State, Statement>(initialState.pathNode)
     val closeStatesSearcher = CloseStatesSearcherImpl(
         executionTreeTracker,
-        { it.pathNode },
-        { it.lastEnteredMethod },
         requireNotNull(statistics())
     )
     val result = MergingPathSelector(
         underlyingPathSelector,
-        executionTreeTracker,
         closeStatesSearcher
     )
     return result

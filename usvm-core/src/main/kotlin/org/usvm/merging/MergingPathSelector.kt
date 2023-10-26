@@ -3,15 +3,23 @@ package org.usvm.merging
 import mu.KotlinLogging
 import org.usvm.UPathSelector
 import org.usvm.UState
-import org.usvm.ps.ExecutionTreeTracker
 
 val logger = KotlinLogging.logger { }
 
+/**
+ * Wraps an [underlyingPathSelector] path selector into merging one. The merging done on [peek] function and works
+ * as follows:
+ * - first, it takes the state from the [underlyingPathSelector]
+ * - then it searches for close states to the peeked one via [closeStatesSearcher]
+ * - if no states were found, returns the original one
+ * - if there are some states, peeks the first one, tries to merge it with the original one and returns the result
+ * - if merging fails, returns the closest state to the original one
+ * - when there are no successful merges in [advanceLimit] peeks, returns the state from the [underlyingPathSelector]
+ */
 class MergingPathSelector<State : UState<*, *, *, *, *, State>>(
     private val underlyingPathSelector: UPathSelector<State>,
-    private val executionTreeTracker: ExecutionTreeTracker<State, *>,
     private val closeStatesSearcher: CloseStatesSearcher<State>,
-    private val advanceLimit: Int = 15
+    private val advanceLimit: Int = 15,
 ) : UPathSelector<State> {
     override fun isEmpty(): Boolean = underlyingPathSelector.isEmpty()
 
@@ -58,16 +66,16 @@ class MergingPathSelector<State : UState<*, *, *, *, *, State>>(
 
     override fun update(state: State) {
         underlyingPathSelector.update(state)
-        executionTreeTracker.update(state)
+        closeStatesSearcher.update(state)
     }
 
     override fun add(states: Collection<State>) {
         underlyingPathSelector.add(states)
-        executionTreeTracker.add(states)
+        closeStatesSearcher.add(states)
     }
 
     override fun remove(state: State) {
         underlyingPathSelector.remove(state)
-        executionTreeTracker.remove(state)
+        closeStatesSearcher.remove(state)
     }
 }

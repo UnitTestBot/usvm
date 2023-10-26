@@ -32,8 +32,6 @@ internal class RandomTreePathSelectorTests {
         }
 
         companion object {
-            // We pass the same state everywhere
-            private val staticState = mockk<TestState>()
             private var counter = 0
 
             fun nextStatement() = TestInstruction("", counter++)
@@ -88,7 +86,7 @@ internal class RandomTreePathSelectorTests {
         }
 
         val selector =
-            RandomTreePathSelector<TestState, TestInstruction>(ExecutionTreeTracker(root) { it.pathNode }, ::nextInt)
+            RandomTreePathSelector<TestState, TestInstruction>(ExecutionTreeTracker(root), ::nextInt)
         selector.add(states)
 
         for (expectedState in expectedStates) {
@@ -155,7 +153,7 @@ internal class RandomTreePathSelectorTests {
         }
 
         val selector =
-            RandomTreePathSelector<TestState, TestInstruction>(ExecutionTreeTracker(root) { it.pathNode }, ::nextInt)
+            RandomTreePathSelector<TestState, TestInstruction>(ExecutionTreeTracker(root), ::nextInt)
 
         val currentStates = states.toMutableSet()
         selector.add(currentStates)

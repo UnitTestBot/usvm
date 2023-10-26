@@ -1,33 +1,33 @@
 package org.usvm.ps
 
 import org.usvm.PathNode
-import org.usvm.UPathSelector
+import org.usvm.UState
 import org.usvm.algorithms.TrieNode
 import org.usvm.algorithms.TrieNode.Companion.root
+import java.util.IdentityHashMap
 
-private data class TreeNodeData<State, Location>(
+private data class TreeNodeData<State, Statement>(
     val states: MutableSet<State>,
-    val pathNode: PathNode<Location>,
+    val pathNode: PathNode<Statement>,
 )
 
-private typealias TreeNode<State, Location> = TrieNode<Location, TreeNodeData<State, Location>>
+private typealias TreeNode<State, Statement> = TrieNode<Statement, TreeNodeData<State, Statement>>
 
-class ExecutionTreeTracker<State, Location>(
-    pathRootNode: PathNode<Location>,
-    private val stateToPathNode: (State) -> PathNode<Location>,
-) : UPathSelector<State> {
+class ExecutionTreeTracker<State : UState<*, *, Statement, *, *, State>, Statement>(
+    pathRootNode: PathNode<Statement>,
+) {
 
     // TODO: I don't really like how it looks
-    private val rootNode: TreeNode<State, Location> = root { TreeNodeData(mutableSetOf(), pathRootNode) }
-    private val stateToLastNode: MutableMap<State, TreeNode<State, Location>> = mutableMapOf()
-    private val pathNodeToNode: MutableMap<PathNode<Location>, TreeNode<State, Location>> = mutableMapOf()
+    private val rootNode: TreeNode<State, Statement> = root { TreeNodeData(mutableSetOf(), pathRootNode) }
+    private val stateToLastNode: MutableMap<State, TreeNode<State, Statement>> = IdentityHashMap()
+    private val pathNodeToNode: MutableMap<PathNode<Statement>, TreeNode<State, Statement>> = IdentityHashMap()
 
     init {
         pathNodeToNode[pathRootNode] = rootNode
     }
 
-    override fun isEmpty(): Boolean = rootNode.children.isEmpty() && rootNode.value.states.isEmpty()
-    override fun peek(): State {
+    fun isEmpty(): Boolean = rootNode.children.isEmpty() && rootNode.value.states.isEmpty()
+    fun peek(): State {
         var cur = rootNode
         while (cur.value.states.isEmpty()) {
             cur = cur.children.values.first()
@@ -35,7 +35,7 @@ class ExecutionTreeTracker<State, Location>(
         return cur.value.states.first()
     }
 
-    private fun cleanUp(node: TreeNode<State, Location>) {
+    private fun cleanUp(node: TreeNode<State, Statement>) {
         var cur = node
         while (cur != rootNode && cur.children.isEmpty() && cur.value.states.isEmpty()) {
             pathNodeToNode.remove(cur.value.pathNode)
@@ -43,13 +43,13 @@ class ExecutionTreeTracker<State, Location>(
         }
     }
 
-    override fun remove(state: State) {
+    fun remove(state: State) {
         val treeNode = stateToLastNode.remove(state) ?: return
         treeNode.value.states.remove(state)
         cleanUp(treeNode)
     }
 
-    override fun update(state: State) {
+    fun update(state: State) {
         val node = stateToLastNode.remove(state)?.apply { value.states -= state }
         addState(state)
         if (node != null) {
@@ -57,9 +57,9 @@ class ExecutionTreeTracker<State, Location>(
         }
     }
 
-    private fun ensurePathNodeTracked(topNode: PathNode<Location>): TreeNode<State, Location> {
+    private fun ensurePathNodeTracked(topNode: PathNode<Statement>): TreeNode<State, Statement> {
         var pathNode = topNode
-        val pathNodesToAdd = mutableListOf<PathNode<Location>>()
+        val pathNodesToAdd = mutableListOf<PathNode<Statement>>()
         while (pathNode !in pathNodeToNode) {
             pathNodesToAdd += pathNode
             pathNode = requireNotNull(pathNode.parent)
@@ -74,22 +74,22 @@ class ExecutionTreeTracker<State, Location>(
 
     private fun addState(state: State) {
         require(state !in stateToLastNode) { "State already in the execution tree" }
-        val treeNode = ensurePathNodeTracked(stateToPathNode(state))
+        val treeNode = ensurePathNodeTracked(state.pathNode)
         stateToLastNode[state] = treeNode
         treeNode.value.states += state
     }
 
-    override fun add(states: Collection<State>) {
+    fun add(states: Collection<State>) {
         states.forEach(::addState)
     }
 
     fun rootNode() = rootNode.value.pathNode
 
-    fun childrenOf(pathNode: PathNode<Location>): List<PathNode<Location>> =
+    fun childrenOf(pathNode: PathNode<Statement>): List<PathNode<Statement>> =
         pathNodeToNode[pathNode]?.children?.values?.map { it.value.pathNode } ?: emptyList()
 
-    fun statesAt(pathNode: PathNode<Location>): Collection<State> =
+    fun statesAt(pathNode: PathNode<Statement>): Collection<State> =
         pathNodeToNode[pathNode]?.value?.states ?: emptyList()
 
-    fun representative(pathNode: PathNode<Location>): PathNode<Location>? = pathNodeToNode[pathNode]?.value?.pathNode
+    fun representative(pathNode: PathNode<Statement>): PathNode<Statement>? = pathNodeToNode[pathNode]?.value?.pathNode
 }

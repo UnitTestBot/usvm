@@ -25,7 +25,7 @@ class ExecutionTreeTrackerTest {
         stateA.pathNode = pathA
         stateB.pathNode = pathB
 
-        val treeTracker = ExecutionTreeTracker<TestState, TestInstruction>(root) { it.pathNode }
+        val treeTracker = ExecutionTreeTracker<TestState, TestInstruction>(root)
         treeTracker.add(listOf(stateA, stateB))
 
         assertTrue { treeTracker.statesAt(root).isEmpty() }
@@ -55,7 +55,7 @@ class ExecutionTreeTrackerTest {
         stateA.pathNode = path
         stateB.pathNode = samePath
 
-        val tracker = ExecutionTreeTracker<TestState, TestInstruction>(root) { it.pathNode }
+        val tracker = ExecutionTreeTracker<TestState, TestInstruction>(root)
         tracker.add(listOf(stateA, stateB))
 
         assertTrue { tracker.childrenOf(path).isEmpty() }

@@ -5,9 +5,7 @@ import org.jacodb.api.ext.toType
 import org.junit.jupiter.api.TestInstance
 import org.usvm.CoverageZone
 import org.usvm.PathSelectionStrategy
-import org.usvm.UContext
 import org.usvm.UMachineOptions
-import org.usvm.UState
 import org.usvm.api.JcClassCoverage
 import org.usvm.api.JcParametersState
 import org.usvm.api.JcTest
@@ -15,7 +13,6 @@ import org.usvm.api.targets.JcTarget
 import org.usvm.api.util.JcTestResolver
 import org.usvm.machine.JcInterpreterObserver
 import org.usvm.machine.JcMachine
-import org.usvm.solver.USatResult
 import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.AnalysisResultsNumberMatcher
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
@@ -754,7 +751,6 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
         exceptionsPropagation = true,
         timeoutMs = 60_000,
         stepsFromLastCovered = 3500L,
-        useMerging = true,
     )
 
     override val runner: (KFunction<*>, UMachineOptions) -> List<JcTest> = { method, options ->

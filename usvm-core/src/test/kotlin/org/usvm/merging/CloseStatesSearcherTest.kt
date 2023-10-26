@@ -1,6 +1,13 @@
 package org.usvm.merging
 
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.spyk
 import org.usvm.PathNode
+import org.usvm.TestInstruction
+import org.usvm.TestState
+import org.usvm.UCallStack
+import org.usvm.UContext
 import org.usvm.ps.ExecutionTreeTracker
 import org.usvm.statistics.ApplicationGraph
 import org.usvm.statistics.distances.CfgStatisticsImpl
@@ -135,7 +142,9 @@ class CloseStatesSearcherTest {
             listOf(1, 3, 6),
             listOf(1, 4, 7),
         )
-        val (closeToFirst, closeToSecond, closeToThird, closeToFourth) = states.map { searcher.findCloseStates(it).toList() }
+        val (closeToFirst, closeToSecond, closeToThird, closeToFourth) = states.map {
+            searcher.findCloseStates(it).toList()
+        }
 
         assertEquals(setOf(states[1], states[2], states[3]), closeToFirst.toSet())
         assertTrue(closeToSecond.isEmpty())
@@ -147,32 +156,30 @@ class CloseStatesSearcherTest {
         startStmt: Int,
         adjacentStmts: Map<Int, List<Int>>,
         vararg statePaths: List<Int>,
-    ): Pair<CloseStatesSearcher<State>, List<State>> {
+    ): Pair<CloseStatesSearcher<TestState>, List<TestState>> {
         val graph = TestApplicationGraph(startStmt, adjacentStmts)
-        val rootNode = PathNode.root<Int>()
+        val rootNode = PathNode.root<TestInstruction>()
         val states = statePaths.map { statePath ->
-            val pathNode = statePath.fold(rootNode) { path, stmt -> path + stmt }
-            State(pathNode)
+            val pathNode = statePath.fold(rootNode) { path, stmt -> path + TestInstruction("", stmt) }
+            val ctxMock = mockk<UContext<*>>()
+            every { ctxMock.getNextStateId() } returns 0u
+            val callStack = UCallStack<String, TestInstruction>("")
+            val spyk = spyk(TestState(ctxMock, callStack, mockk(), mockk(), emptyList(), pathNode, mockk()))
+            spyk
         }
-        val executionTreeTracker = ExecutionTreeTracker(rootNode, State::pathNode).apply { add(states) }
+        val executionTreeTracker = ExecutionTreeTracker<TestState, TestInstruction>(rootNode).apply { add(states) }
         val cfgStatistics = CfgStatisticsImpl(graph)
         val searcher = CloseStatesSearcherImpl(
             executionTreeTracker,
-            State::pathNode,
-            { },
             cfgStatistics,
         )
         return searcher to states
     }
 
-    class State(
-        val pathNode: PathNode<Int>,
-    )
-
     class TestApplicationGraph(
         entryPoint: Int,
         private val adjacentStmts: Map<Int, List<Int>>,
-    ) : ApplicationGraph<Unit, Int> {
+    ) : ApplicationGraph<String, TestInstruction> {
         private val reversed = adjacentStmts
             .flatMap { (key, value) -> value.map { key to it } }
             .groupBy({ it.second }) { it.first }
@@ -182,22 +189,25 @@ class CloseStatesSearcherTest {
         private val statements = reversed.keys + adjacentStmts.keys
 
 
-        override fun predecessors(node: Int): Sequence<Int> =
-            reversed.getOrElse(node, ::emptyList).asSequence()
+        override fun predecessors(node: TestInstruction): Sequence<TestInstruction> =
+            reversed.getOrElse(node.offset, ::emptyList).asSequence().map { TestInstruction("", it) }
 
-        override fun successors(node: Int): Sequence<Int> =
-            adjacentStmts.getOrElse(node, ::emptyList).asSequence()
+        override fun successors(node: TestInstruction): Sequence<TestInstruction> =
+            adjacentStmts.getOrElse(node.offset, ::emptyList).asSequence().map { TestInstruction("", it) }
 
-        override fun callees(node: Int): Sequence<Unit> = emptySequence()
+        override fun callees(node: TestInstruction): Sequence<String> = emptySequence()
 
-        override fun callers(method: Unit): Sequence<Int> = emptySequence()
+        override fun callers(method: String): Sequence<TestInstruction> = emptySequence()
 
-        override fun entryPoints(method: Unit): Sequence<Int> = entryPoints
+        override fun entryPoints(method: String): Sequence<TestInstruction> =
+            entryPoints.map { TestInstruction("", it) }
 
-        override fun exitPoints(method: Unit): Sequence<Int> = exitPoints.asSequence()
+        override fun exitPoints(method: String): Sequence<TestInstruction> =
+            exitPoints.asSequence().map { TestInstruction("", it) }
 
-        override fun methodOf(node: Int) = Unit
+        override fun methodOf(node: TestInstruction): String = ""
 
-        override fun statementsOf(method: Unit): Sequence<Int> = statements.asSequence()
+        override fun statementsOf(method: String): Sequence<TestInstruction> =
+            statements.asSequence().map { TestInstruction("", it) }
     }
 }

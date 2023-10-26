@@ -10,7 +10,6 @@ class UTargetsSet<Target, Statement> private constructor(
     where Target : UTarget<Statement, Target> {
     private val reachedTerminalTargetsImpl = mutableSetOf<Target>()
 
-
     /**
      * Reached targets with no children.
      */

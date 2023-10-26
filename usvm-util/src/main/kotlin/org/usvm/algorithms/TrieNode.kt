@@ -26,18 +26,6 @@ class TrieNode<E, V> private constructor(
         return null
     }
 
-    fun merge(other: TrieNode<E, V>, pathMerger: (List<V>, List<V>) -> Pair<E, V>): TrieNode<E, V> {
-        val (lca, thisSuffix, otherSuffix) = findLcaLinear(
-            this,
-            other,
-            { requireNotNull(it.parent) },
-            { it.depth },
-            { it.value }
-        )
-        val (mergedEdge, mergedValue) = pathMerger(thisSuffix, otherSuffix)
-        return lca.add(mergedEdge) { mergedValue }
-    }
-
     companion object {
         fun <E, V> root(defaultValue: () -> V): TrieNode<E, V> {
             return TrieNode(0, parent = null, parentEdge = null, defaultValue())

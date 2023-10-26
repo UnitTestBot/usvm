@@ -9,12 +9,6 @@ import org.usvm.UState
  * from root to leaf in symbolic execution tree. The child on each step is selected randomly.
  * (see KLEE's random path search heuristic)
  *
- * This path selector is guaranteed to peek only and all states which were added via [add], even
- * if tree statistics contains some other states or doesn't contain some added states. To achieve this,
- * a separate from path tree collection of states is maintained, and to avoid revisiting the nodes in tree, and to avoid revisiting the nodes in tree
- * which states are not in our collection, an [ignoreToken] added to such nodes. Nodes with [ignoreToken] are not
- * visited on further traversals.
- *
  * @param executionTreeTracker a root node for a symbolic execution tree.
  * @param randomNonNegativeInt function returning non negative random integer used to select the next child in tree.
  */
@@ -58,7 +52,7 @@ internal class RandomTreePathSelector<State : UState<*, *, Statement, *, *, Stat
             root: PathNode<Statement>,
             randomNonNegativeInt: (Int) -> Int,
         ): RandomTreePathSelector<State, Statement> {
-            val executionTreeTracker = ExecutionTreeTracker<State, Statement>(root) { it.pathNode }
+            val executionTreeTracker = ExecutionTreeTracker<State, Statement>(root)
             return RandomTreePathSelector(executionTreeTracker, randomNonNegativeInt)
         }
     }

@@ -2423,6 +2423,6 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
             by.appendRight(constraint.mkExpressions())
         }
 
-        return UNumericConstraints(ctx, sort, overlap, persistentHashMapOf())
+        return UNumericConstraints(ctx, sort, overlap, constraintWatchList.build())
     }
 }

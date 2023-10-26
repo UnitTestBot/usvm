@@ -56,7 +56,7 @@ open class USolverBase<Type>(
 
             val softConstraints = mutableListOf<UBoolExpr>()
             if (useSoftConstraints) {
-                val softConstraintSources = pc.logicalConstraintsSequence + pc.numericConstraints.constraints()
+                val softConstraintSources = pc.softConstraintsSourceSequence
                 softConstraintSources.flatMapTo(softConstraints) {
                     softConstraintsProvider
                         .provide(it)
