@@ -19,6 +19,7 @@ import org.usvm.types.UTypeRegion
 import org.usvm.types.UTypeStream
 import org.usvm.types.UTypeSystem
 import org.usvm.uctx
+import org.usvm.yieldBool
 
 interface UTypeEvaluator<Type> {
 
@@ -422,10 +423,10 @@ class UTypeConstraints<Type>(
 
     internal fun constraints() = sequence {
         for ((ref, reg) in symbolicRefToTypeRegion.entries) {
-            reg.supertypes.forEach { yield(ctx.mkIsSubtypeExpr(ref, it)) }
-            reg.notSupertypes.forEach { yield(ctx.mkNot(ctx.mkIsSubtypeExpr(ref, it))) }
-            reg.subtypes.forEach { yield(ctx.mkIsSupertypeExpr(ref, it)) }
-            reg.notSubtypes.forEach { yield(ctx.mkNot(ctx.mkIsSupertypeExpr(ref, it))) }
+            reg.supertypes.forEach { yieldBool(ctx.mkIsSubtypeExpr(ref, it)) }
+            reg.notSupertypes.forEach { yieldBool(ctx.mkNot(ctx.mkIsSubtypeExpr(ref, it))) }
+            reg.subtypes.forEach { yieldBool(ctx.mkIsSupertypeExpr(ref, it)) }
+            reg.notSubtypes.forEach { yieldBool(ctx.mkNot(ctx.mkIsSupertypeExpr(ref, it))) }
         }
     }
 

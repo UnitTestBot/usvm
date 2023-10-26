@@ -172,13 +172,13 @@ open class UPathConstraints<Type> private constructor(
      * Iterates through the constraints of [other], maps every constraint using [mapper], adds the result into this instance.
      */
     internal inline fun mappedUnion(other: UPathConstraints<Type>, mapper: (UBoolExpr) -> UBoolExpr) {
-        if (isFalse)
-            return
+        if (isFalse) return
+
         for (constraint in other.constraintsSequence()) {
             val mappedConstraint = mapper(constraint)
             plusAssign(mappedConstraint)
-            if (isFalse)
-                return
+
+            if (isFalse) return
         }
     }
 

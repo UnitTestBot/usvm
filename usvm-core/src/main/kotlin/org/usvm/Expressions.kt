@@ -308,3 +308,10 @@ val UBoolExpr.isFalse get() = this == ctx.falseExpr
 val UBoolExpr.isTrue get() = this == ctx.trueExpr
 
 //endregion
+
+// Filter out true expressions
+suspend fun SequenceScope<UBoolExpr>.yieldBool(expr: UBoolExpr) {
+    if (!expr.isTrue) {
+        yield(expr)
+    }
+}

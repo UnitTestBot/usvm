@@ -10,11 +10,11 @@ import org.usvm.solver.UUnknownResult
 import org.usvm.solver.UUnsatResult
 import org.usvm.splitModelsByCondition
 
-class UProofObligation<Statement, Type>(
-    override val location: Statement,
-    val constraints: UPathConstraints<Type>
-) : UTarget<Statement, UProofObligation<Statement, Type>>() {
-    fun weakestPrecondition(state: UState<Type, *, Statement, *, *, *>): UProofObligation<Statement, Type>? {
+object UProofObligation {
+    fun <Type> weakestPrecondition(
+        constraints: UPathConstraints<Type>,
+        state: UState<Type, *, *, *, *, *>
+    ): UPathConstraints<Type>? {
         val composer = UComposer(state.ctx, state.memory)
         val satisfyingModels = state.models.toMutableSet()
         val childConstraints = state.pathConstraints.clone()
@@ -25,6 +25,7 @@ class UProofObligation<Statement, Type>(
             satisfyingModels.removeIf { !it.satisfies(result) }
             result
         }
+
         if (satisfyingModels.isEmpty()) {
             val solver = state.ctx.solver<Type>()
             val satResult = solver.check(childConstraints)
@@ -37,11 +38,10 @@ class UProofObligation<Statement, Type>(
                     return null
             }
         }
-        val child = UProofObligation(state.startingStatement, childConstraints)
-        child.parent = this
-        return child
+
+        return childConstraints
     }
 
-    private fun UModelBase<Type>.satisfies(expr: UBoolExpr): Boolean =
+    private fun <Type> UModelBase<Type>.satisfies(expr: UBoolExpr): Boolean =
         splitModelsByCondition(listOf(this), expr).trueModels.isNotEmpty()
 }

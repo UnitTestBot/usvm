@@ -44,6 +44,7 @@ import kotlin.io.path.listDirectoryEntries
 import kotlin.io.path.outputStream
 import kotlin.io.path.readText
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
 @Serializable
@@ -388,7 +389,7 @@ private fun JcInst.canProduceNpe(): Boolean {
 private fun JcInst.canProduceIob(): Boolean = arrayRef != null
 
 const val idToCheck = "CHART-13b"
-val timeout = 10.seconds
+val timeout = 10.minutes
 
 fun analyzeCrashes(crashPackPath: Path, crashPack: CrashPack, traces: Map<String, CrashTrace>) {
     val crashes = crashPack.crashes.values
@@ -450,7 +451,7 @@ private fun analyzeCrash(cp: JcClasspath, trace: CrashTrace, crash: CrashPackCra
     logger.warn { "-".repeat(50) }
 
     val result = JcCrashReproduction(cp, timeout).use { reproduction ->
-        reproduction.reproduceCrash(exceptionType, traceFrames)
+        reproduction.reproduceCrash(exceptionType, traceFrames.takeLast(2))
     }
 
     logger.warn { "+".repeat(50) }

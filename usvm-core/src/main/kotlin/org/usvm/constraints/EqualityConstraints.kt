@@ -11,6 +11,7 @@ import org.usvm.isStaticHeapRef
 import org.usvm.merging.MutableMergeGuard
 import org.usvm.merging.UMergeable
 import org.usvm.solver.UExprTranslator
+import org.usvm.yieldBool
 
 /**
  * Represents equality constraints between symbolic heap references. There are three kinds of constraints:
@@ -138,24 +139,21 @@ class UEqualityConstraints private constructor(
 
     private inline fun forEachDisequality(action: (UHeapRef, UHeapRef) -> Unit) {
         forEachInGraph(referenceDisequalities, action)
-        var i1 = 0
-        for (ref1 in distinctReferences) {
-            i1++
-            var i2 = 0
-            for (ref2 in distinctReferences) {
-                if (i2++ >= i1) {
-                    break
-                }
+
+        val distinctRefs = distinctReferences.toList()
+        for (i1 in 0..distinctRefs.lastIndex) {
+            val ref1 = distinctRefs[i1]
+            for (i2 in (i1 + 1)..distinctRefs.lastIndex) {
+                val ref2 = distinctRefs[i2]
                 action(ref1, ref2)
             }
         }
-
     }
 
     internal fun constraints() = sequence {
-        equalReferences.forEach { (ref1, ref2) -> yield(ctx.mkEq(ref1, ref2)) }
-        forEachDisequality { ref1, ref2 -> yield(ctx.mkNot(ctx.mkEq(ref1, ref2))) }
-        forEachInGraph(nullableDisequalities) { ref1, ref2 -> yield(ctx.mkNot(ctx.mkEq(ref1, ref2))) }
+        equalReferences.forEach { (ref1, ref2) -> yieldBool(ctx.mkEq(ref1, ref2)) }
+        forEachDisequality { ref1, ref2 -> yieldBool(ctx.mkNot(ctx.mkEq(ref1, ref2))) }
+        forEachInGraph(nullableDisequalities) { ref1, ref2 -> yieldBool(ctx.mkNot(ctx.mkEq(ref1, ref2))) }
     }
 
     /**
