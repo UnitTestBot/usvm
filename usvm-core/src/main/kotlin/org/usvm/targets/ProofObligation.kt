@@ -10,8 +10,10 @@ import org.usvm.solver.UUnknownResult
 import org.usvm.solver.UUnsatResult
 import org.usvm.splitModelsByCondition
 
-class UProofObligation<Statement, Type>(override val location: Statement, val constraints: UPathConstraints<Type>) :
-    UTarget<Statement, UProofObligation<Statement, Type>>() {
+class UProofObligation<Statement, Type>(
+    override val location: Statement,
+    val constraints: UPathConstraints<Type>
+) : UTarget<Statement, UProofObligation<Statement, Type>>() {
     fun weakestPrecondition(state: UState<Type, *, Statement, *, *, *>): UProofObligation<Statement, Type>? {
         val composer = UComposer(state.ctx, state.memory)
         val satisfyingModels = state.models.toMutableSet()

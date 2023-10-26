@@ -447,11 +447,11 @@ private fun analyzeCrash(cp: JcClasspath, trace: CrashTrace, crash: CrashPackCra
 
     val traceFrames = traceToAnalyze.map { JcCrashReproduction.CrashStackTraceFrame(it.method, it.inst) }
 
-    val reproduction = JcCrashReproduction(cp, timeout)
-
     logger.warn { "-".repeat(50) }
 
-    val result = reproduction.reproduceCrash(exceptionType, traceFrames)
+    val result = JcCrashReproduction(cp, timeout).use { reproduction ->
+        reproduction.reproduceCrash(exceptionType, traceFrames)
+    }
 
     logger.warn { "+".repeat(50) }
     logger.warn { "Trace reproduction result: $result" }
