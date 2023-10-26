@@ -242,8 +242,11 @@ class JcInterpreter(
                     return
                 }
 
-                scope.doWithState {
+                scope.calcOnState {
                     addNewMethodCall(applicationGraph, stmt)
+                } ?: run {
+                    // Method has no entrypoint
+                    mockMethod(scope, stmt)
                 }
             }
 
@@ -255,6 +258,16 @@ class JcInterpreter(
                 }
 
                 resolveVirtualInvoke(stmt, scope, forkOnRemainingTypes = false)
+            }
+
+            is JcDynamicMethodCallInst -> {
+                observer?.onMethodCallWithResolvedArguments(simpleValueResolver, stmt, scope)
+
+                if (approximateMethod(scope, stmt)) {
+                    return
+                }
+
+                mockMethod(scope, stmt, stmt.dynamicCall.callSiteReturnType)
             }
 
             is JcDynamicMethodCallInst -> {

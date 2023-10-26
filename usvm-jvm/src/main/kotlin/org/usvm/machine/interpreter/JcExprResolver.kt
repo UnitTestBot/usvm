@@ -939,7 +939,7 @@ class JcExprResolver(
         val inEnumMethodFromEnumStaticInitializer =
             currentClass.isEnum && staticInitializers.any { it.method.enclosingClass == currentClass }
 
-        if (inEnumMethodFromEnumStaticInitializer) {
+        if (inEnumMethodFromEnumStaticInitializer || lastEnteredMethod.isClassInitializer) {
             return true
         }
 

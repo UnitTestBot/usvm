@@ -62,8 +62,8 @@ sealed interface JcMethodCall {
  * the next instruction should be [returnSite].
  * */
 data class JcConcreteMethodCallInst(
-    override val location: JcInstLocation,
     override val method: JcMethod,
+    override val location: JcInstLocation,
     override val arguments: List<UExpr<out USort>>,
     override val returnSite: JcInst,
 ) : JcMethodCallBaseInst, JcMethodCall {
@@ -77,13 +77,13 @@ data class JcConcreteMethodCallInst(
  * resolve it to the [JcConcreteMethodCallInst].
  * */
 data class JcVirtualMethodCallInst(
-    override val location: JcInstLocation,
     override val method: JcMethod,
+    override val location: JcInstLocation,
     override val arguments: List<UExpr<out USort>>,
     override val returnSite: JcInst,
 ) : JcMethodCallBaseInst, JcMethodCall {
     fun toConcreteMethodCall(concreteMethod: JcMethod): JcConcreteMethodCallInst =
-        JcConcreteMethodCallInst(location, concreteMethod, arguments, returnSite)
+        JcConcreteMethodCallInst(concreteMethod, location, arguments, returnSite)
 
     override val originalInst: JcInst = returnSite
 }

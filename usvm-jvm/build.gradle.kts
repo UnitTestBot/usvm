@@ -1,5 +1,6 @@
 plugins {
     id("usvm.kotlin-conventions")
+    kotlin("plugin.serialization") version "1.8.22"
 }
 
 val samples by sourceSets.creating {
@@ -16,7 +17,7 @@ val `usvm-api` by sourceSets.creating {
 
 val approximations by configurations.creating
 val approximationsRepo = "com.github.UnitTestBot.java-stdlib-approximations"
-val approximationsVersion = "53ceeb23ea"
+val approximationsVersion = "9329d38069"
 
 dependencies {
     implementation(project(":usvm-core"))
@@ -45,6 +46,8 @@ dependencies {
 
     approximations(approximationsRepo, "approximations", approximationsVersion)
     testImplementation(approximationsRepo, "tests", approximationsVersion)
+
+    testImplementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
 }
 
 val samplesImplementation: Configuration by configurations.getting
@@ -72,4 +75,22 @@ tasks.withType<Test> {
 
     environment("usvm.jvm.api.jar.path", usvmApiJarPath.absolutePath)
     environment("usvm.jvm.approximations.jar.path", usvmApproximationJarPath.absolutePath)
+}
+
+tasks.register<JavaExec>("crashReproduction") {
+    mainClass.set("org.usvm.JCrashRunnerKt")
+    classpath = sourceSets.test.get().runtimeClasspath
+
+    val jCrashPackPath = project.findProperty("jCrashPackPath") ?: "."
+    args(jCrashPackPath)
+
+    dependsOn(`usvm-api-jar`)
+
+    val usvmApiJarPath = `usvm-api-jar`.get().outputs.files.singleFile
+    val usvmApproximationJarPath = approximations.resolvedConfiguration.files.single()
+
+    environment("usvm.jvm.api.jar.path", usvmApiJarPath.absolutePath)
+    environment("usvm.jvm.approximations.jar.path", usvmApproximationJarPath.absolutePath)
+
+    jvmArgs = listOf("-Xmx10g")
 }

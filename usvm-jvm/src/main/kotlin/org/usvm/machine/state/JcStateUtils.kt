@@ -61,21 +61,24 @@ fun JcState.throwExceptionAndDropStackFrame() {
 fun JcState.addNewMethodCall(
     applicationGraph: JcApplicationGraph,
     methodCall: JcConcreteMethodCallInst
-) {
+): Unit? {
     val method = methodCall.method
-    val entryPoint = applicationGraph.entryPoints(method).singleOrNull()
-        ?: error("No entrypoint found for method: $method")
+    val entryPoint = applicationGraph.entryPoints(method).singleOrNull() ?: return null
     callStack.push(method, methodCall.returnSite)
     memory.stack.push(methodCall.arguments.toTypedArray(), method.localsCount)
-    newStmt(entryPoint)
+    return newStmt(entryPoint)
 }
 
 fun JcState.addConcreteMethodCallStmt(method: JcMethod, arguments: List<UExpr<out USort>>) {
-    newStmt(JcConcreteMethodCallInst(lastStmt.location, method, arguments, lastStmt))
+    newStmt(JcConcreteMethodCallInst(method, lastStmt.location, arguments, lastStmt))
 }
 
 fun JcState.addVirtualMethodCallStmt(method: JcMethod, arguments: List<UExpr<out USort>>) {
-    newStmt(JcVirtualMethodCallInst(lastStmt.location, method, arguments, lastStmt))
+    newStmt(JcVirtualMethodCallInst(method, lastStmt.location, arguments, lastStmt))
+}
+
+fun JcState.addDynamicCall(dynamicCall: JcDynamicCallExpr, arguments: List<UExpr<out USort>>) {
+    newStmt(JcDynamicMethodCallInst(dynamicCall, arguments, lastStmt))
 }
 
 fun JcState.addDynamicCall(dynamicCall: JcDynamicCallExpr, arguments: List<UExpr<out USort>>) {
