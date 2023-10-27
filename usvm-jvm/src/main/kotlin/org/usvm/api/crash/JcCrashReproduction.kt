@@ -9,6 +9,7 @@ import org.usvm.SolverType
 import org.usvm.UMachine
 import org.usvm.UPathSelector
 import org.usvm.algorithms.DeterministicPriorityCollection
+import org.usvm.algorithms.UPriorityCollection
 import org.usvm.api.targets.JcTarget
 import org.usvm.constraints.UPathConstraints
 import org.usvm.machine.JcApplicationGraph
@@ -17,17 +18,18 @@ import org.usvm.machine.JcConcreteMethodCallInst
 import org.usvm.machine.JcContext
 import org.usvm.machine.JcTypeSystem
 import org.usvm.machine.interpreter.JcInterpreter
+import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
+import org.usvm.ps.StateWeighter
 import org.usvm.ps.WeightedPathSelector
 import org.usvm.statistics.UMachineObserver
-import org.usvm.statistics.distances.CallStackDistanceCalculator
 import org.usvm.statistics.distances.CfgStatistics
 import org.usvm.statistics.distances.CfgStatisticsImpl
-import org.usvm.statistics.distances.MultiTargetDistanceCalculator
 import org.usvm.stopstrategies.GroupedStopStrategy
 import org.usvm.stopstrategies.StopStrategy
 import org.usvm.stopstrategies.TimeoutStopStrategy
 import org.usvm.targets.UProofObligation
+import org.usvm.util.log2
 import org.usvm.util.originalInst
 import kotlin.time.Duration
 
@@ -244,32 +246,91 @@ class JcCrashReproduction(val cp: JcClasspath, private val timeout: Duration) : 
     }
 
     private fun closestTargetPs(): UPathSelector<JcState> {
-        // todo: check call stacks (avoid recursion)
-        val distanceCalculator = MultiTargetDistanceCalculator<JcMethod, JcInst, _> { loc ->
-            CallStackDistanceCalculator(
-                targets = listOf(loc),
-                cfgStatistics = cfgStatistics,
-                applicationGraph = applicationGraph
-            )
+        val distanceCalculator = LevelTargetDistanceCalculator()
+        return DistancePathSelector(weighter = distanceCalculator::calculateDistance)
+    }
+
+    private fun targetFrameDistance(statement: JcInst, target: JcInst): UInt {
+        val method = statement.location.method
+        check(method == target.location.method) { "Non local distance" }
+        val distance = cfgStatistics.getShortestDistance(method, statement, target)
+        if (distance == UInt.MAX_VALUE) return distance
+        return distance * 64u
+    }
+
+    private fun targetFrameDistanceAfterReturn(statement: JcInst, target: JcInst): UInt =
+        applicationGraph.successors(statement)
+            .map { targetFrameDistance(it, target) }
+            .minOrNull()
+            ?: UInt.MAX_VALUE
+
+    // todo: check call stacks (avoid recursion)
+    private inner class LevelTargetDistanceCalculator {
+        fun calculateDistance(state: JcState): UInt {
+            val callStack = state.callStack
+            if (callStack.isEmpty()) return 1024u
+
+            val targetLocation = state.levelTarget().location
+            val currentStatement = state.currentStatement.originalInst()
+
+            // todo: target is always on the first frame
+            if (callStack.size == 1) {
+                return if (state.methodResult !is JcMethodResult.Success) {
+                    targetFrameDistance(currentStatement, targetLocation)
+                } else {
+                    targetFrameDistanceAfterReturn(currentStatement, targetLocation)
+                }
+            }
+
+
+            val statementMethod = applicationGraph.methodOf(currentStatement)
+            check(statementMethod == callStack.last().method) {
+                "Statement method not in stack"
+            }
+
+            var callStackDistance = 0u
+            var current = currentStatement
+            for ((method, returnStatement) in callStack.asReversed().dropLast(1)) {
+                val distanceToExit = cfgStatistics.getShortestDistanceToExit(method, current)
+                if (distanceToExit == UInt.MAX_VALUE) return UInt.MAX_VALUE
+
+                callStackDistance = callStackDistance * 2u + distanceToExit
+                current = returnStatement ?: error("No return statement")
+            }
+
+            val distanceToTarget = targetFrameDistanceAfterReturn(current, targetLocation)
+            if (distanceToTarget == UInt.MAX_VALUE) return UInt.MAX_VALUE
+
+            return distanceToTarget + log2(callStackDistance)
+        }
+    }
+
+    class DistancePathSelector(
+        private val weighter: StateWeighter<JcState, UInt>
+    ) : UPathSelector<JcState> {
+        private val priorityCollection = DeterministicPriorityCollection<JcState, UInt>(Comparator.naturalOrder())
+
+        override fun isEmpty(): Boolean = priorityCollection.count == 0
+
+        override fun peek(): JcState = priorityCollection.peek()
+
+        override fun update(state: JcState) {
+            val weight = weighter.weight(state)
+            if (weight == UInt.MAX_VALUE) {
+                priorityCollection.remove(state)
+                return
+            }
+            priorityCollection.update(state, weight)
         }
 
-        fun calculateDistanceToTargets(state: JcState) =
-            state.targets.minOfOrNull { target ->
-                val location = target.location
-                if (location == null) {
-                    0u
-                } else {
-                    distanceCalculator.calculateDistance(
-                        state.currentStatement,
-                        state.callStack,
-                        location
-                    )
-                }
-            } ?: UInt.MAX_VALUE
+        override fun add(states: Collection<JcState>) {
+            for (state in states) {
+                val weight = weighter.weight(state)
+                if (weight == UInt.MAX_VALUE) continue
+                priorityCollection.add(state, weight)
+            }
+        }
 
-        return WeightedPathSelector(
-            priorityCollectionFactory = { DeterministicPriorityCollection(Comparator.naturalOrder()) },
-            weighter = ::calculateDistanceToTargets
-        )
+        override fun remove(state: JcState) = priorityCollection.remove(state)
     }
 }
