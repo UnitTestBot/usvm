@@ -173,7 +173,7 @@ class JcCrashReproduction(val cp: JcClasspath, private val timeout: Duration) : 
 
             val prevLevel = level.parent as? JcLevelTarget
             if (prevLevel == null) {
-                resultState = state
+                resultState = state.clone()
                 crashReproductionComplete = true
                 return
             }
@@ -195,13 +195,21 @@ class JcCrashReproduction(val cp: JcClasspath, private val timeout: Duration) : 
         override fun peek(): JcState {
             var level = pobManager.currentLevel()
             while (level >= 0) {
-                val ps = levelPs[level]
-                if (!ps.isEmpty()) {
-                    levelStats[level]++
-                    return ps.peek()
+                if (level > 0 && levelStats[level] > 2 * levelStats[level - 1]) {
+                    level--
+                    continue
                 }
-                level--
+
+                val ps = levelPs[level]
+                if (ps.isEmpty()) {
+                    level--
+                    continue
+                }
+
+                levelStats[level]++
+                return ps.peek()
             }
+
             return levelPs.first { !it.isEmpty() }.peek()
         }
 
