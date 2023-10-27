@@ -174,6 +174,8 @@ open class UPathConstraints<Type> private constructor(
     internal inline fun mappedUnion(other: UPathConstraints<Type>, mapper: (UBoolExpr) -> UBoolExpr) {
         if (isFalse) return
 
+        typeConstraints.unionConcreteRefs(other.typeConstraints)
+
         for (constraint in other.constraintsSequence()) {
             val mappedConstraint = mapper(constraint)
             plusAssign(mappedConstraint)

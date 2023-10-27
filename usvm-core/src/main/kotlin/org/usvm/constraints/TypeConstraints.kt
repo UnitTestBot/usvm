@@ -430,6 +430,10 @@ class UTypeConstraints<Type>(
         }
     }
 
+    internal fun unionConcreteRefs(other: UTypeConstraints<Type>) {
+        concreteRefToType.putAll(other.concreteRefToType)
+    }
+
     /**
      * Creates a mutable copy of these constraints connected to new instance of [equalityConstraints].
      */
