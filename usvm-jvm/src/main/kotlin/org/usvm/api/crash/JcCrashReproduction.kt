@@ -13,6 +13,7 @@ import org.usvm.api.targets.JcTarget
 import org.usvm.constraints.UPathConstraints
 import org.usvm.machine.JcApplicationGraph
 import org.usvm.machine.JcComponents
+import org.usvm.machine.JcConcreteMethodCallInst
 import org.usvm.machine.JcContext
 import org.usvm.machine.JcTypeSystem
 import org.usvm.machine.interpreter.JcInterpreter
@@ -60,7 +61,7 @@ class JcCrashReproduction(val cp: JcClasspath, private val timeout: Duration) : 
 
         val initialStates = mkInitialStates(crashStackTrace)
 
-        val pathSelector = PobPathSelector { closestTargetPs() }
+        val pathSelector = PobPathSelector(crashStackTrace.size) { closestTargetPs() }
         pathSelector.add(initialStates)
 
         run(
@@ -180,29 +181,30 @@ class JcCrashReproduction(val cp: JcClasspath, private val timeout: Duration) : 
     }
 
     private inner class PobPathSelector(
+        numLevels: Int,
         private val basePsFactory: () -> UPathSelector<JcState>
     ) : UPathSelector<JcState> {
-        private val leveledPs = hashMapOf<Int, UPathSelector<JcState>>()
-        private fun levelPs(level: Int): UPathSelector<JcState> =
-            leveledPs.getOrPut(level) { basePsFactory() }
+        private val levelStats = MutableList(numLevels) { 0 }
+        private val levelPs = List(numLevels) { basePsFactory() }
 
         override fun isEmpty(): Boolean =
-            leveledPs.values.all { it.isEmpty() }
+            levelPs.all { it.isEmpty() }
 
         override fun peek(): JcState {
             var level = pobManager.currentLevel()
             while (level >= 0) {
-                val ps = levelPs(level)
+                val ps = levelPs[level]
                 if (!ps.isEmpty()) {
+                    levelStats[level]++
                     return ps.peek()
                 }
                 level--
             }
-            return leveledPs.values.first { !it.isEmpty() }.peek()
+            return levelPs.first { !it.isEmpty() }.peek()
         }
 
         override fun update(state: JcState) {
-            levelPs(state.level()).update(state)
+            levelPs[state.level()].update(state)
         }
 
         override fun add(states: Collection<JcState>) {
@@ -210,11 +212,11 @@ class JcCrashReproduction(val cp: JcClasspath, private val timeout: Duration) : 
         }
 
         override fun remove(state: JcState) {
-            levelPs(state.level()).remove(state)
+            levelPs[state.level()].remove(state)
         }
 
         private fun addStateToLevel(state: JcState) {
-            levelPs(state.level()).add(listOf(state))
+            levelPs[state.level()].add(listOf(state))
         }
 
         private fun JcState.level(): Int = levelTarget().level
@@ -228,8 +230,15 @@ class JcCrashReproduction(val cp: JcClasspath, private val timeout: Duration) : 
 
         private fun checkLevelTarget(state: JcState) {
             val target = state.levelTarget()
-            if (state.currentStatement == target.location) {
-                pobManager.onLevelTargetReach(state)
+            if (target.isTerminal) {
+                if (target.location == state.currentStatement) {
+                    pobManager.onLevelTargetReach(state)
+                }
+            } else {
+                val prevStatement = state.pathLocation.parent?.statement
+                if (prevStatement is JcConcreteMethodCallInst && target.location == prevStatement.originalInst()) {
+                    pobManager.onLevelTargetReach(state)
+                }
             }
         }
     }
