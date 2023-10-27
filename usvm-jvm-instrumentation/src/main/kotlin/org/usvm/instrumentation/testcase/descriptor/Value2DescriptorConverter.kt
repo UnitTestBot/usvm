@@ -4,6 +4,7 @@ import org.jacodb.api.JcField
 import org.jacodb.api.JcType
 import org.jacodb.api.ext.*
 import org.usvm.instrumentation.classloader.WorkerClassLoader
+import org.usvm.instrumentation.testcase.api.ValueDescriptor2UTestInst
 import org.usvm.instrumentation.testcase.executor.UTestExpressionExecutor
 import org.usvm.instrumentation.testcase.api.UTestExpression
 import org.usvm.instrumentation.util.*
@@ -31,9 +32,13 @@ open class Value2DescriptorConverter(
     fun buildDescriptorFromUTestExpr(
         uTestExpression: UTestExpression,
         testExecutor: UTestExpressionExecutor,
-    ): Result<UTestValueDescriptor>? {
+    ): Result<ValueDescriptor2UTestInst>? {
         testExecutor.executeUTestInst(uTestExpression)
-            .onSuccess { return buildDescriptorResultFromAny(it, uTestExpression.type) }
+            .onSuccess {
+                buildDescriptorResultFromAny(it, uTestExpression.type)
+                    .onSuccess { return Result.success(ValueDescriptor2UTestInst(it, uTestExpression)) }
+                    .onFailure { return Result.failure(it) }
+            }
             .onFailure { return Result.failure(it) }
         return null
     }
@@ -95,7 +100,10 @@ open class Value2DescriptorConverter(
         try {
             UTestConstantDescriptor.String(value, jcClasspath.stringType()).also { value.length }
         } catch (e: Throwable) {
-            UTestConstantDescriptor.String(InstrumentationModuleConstants.nameForExistingButNullString, jcClasspath.stringType())
+            UTestConstantDescriptor.String(
+                InstrumentationModuleConstants.nameForExistingButNullString,
+                jcClasspath.stringType()
+            )
         }
 
     private fun const(number: Number) = when (number) {
@@ -191,7 +199,8 @@ open class Value2DescriptorConverter(
         val fields = mutableMapOf<JcField, UTestValueDescriptor>()
         val enumValueName = value.toString()
         val jcType = jcClass.toType()
-        val uTestEnumValueDescriptor = UTestEnumValueDescriptor(jcType, enumValueName, fields, System.identityHashCode(value))
+        val uTestEnumValueDescriptor =
+            UTestEnumValueDescriptor(jcType, enumValueName, fields, System.identityHashCode(value))
         return createCyclicRef(uTestEnumValueDescriptor, value) {
             jcClass.allDeclaredFields
                 .filter { jcClass.enumValues?.contains(it) == false && it.name != "\$VALUES" && !it.isFinal }

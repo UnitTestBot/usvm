@@ -84,23 +84,23 @@ class JcTestExecutor(
         val result =
             when (execResult) {
                 is UTestExecutionSuccessResult -> {
-                    val thisBeforeDescr = execResult.initialState.instanceDescriptor
+                    val thisBeforeDescr = execResult.initialState.instanceDescriptor?.valueDescriptor
                     val thisBefore = thisBeforeDescr?.let { descriptor2ValueConverter.buildObjectFromDescriptor(it) }
-                    val beforeArgsDescr = execResult.initialState.argsDescriptors
-                    val argsBefore = beforeArgsDescr?.let { descriptors ->
+                    val beforeArgsDescr = execResult.initialState.argsDescriptors.map { it?.valueDescriptor }
+                    val argsBefore = beforeArgsDescr.let { descriptors ->
                         descriptors.map { descr ->
                             descr?.let { descriptor2ValueConverter.buildObjectFromDescriptor(it) }
                         }
-                    } ?: listOf()
+                    }
                     before = JcParametersState(thisBefore, argsBefore)
-                    val thisAfterDescr = execResult.resultState.instanceDescriptor
+                    val thisAfterDescr = execResult.resultState.instanceDescriptor?.valueDescriptor
                     val thisAfter = thisAfterDescr?.let { descriptor2ValueConverter.buildObjectFromDescriptor(it) }
-                    val afterArgsDescr = execResult.resultState.argsDescriptors
-                    val argsAfter = afterArgsDescr?.let { descriptors ->
+                    val afterArgsDescr = execResult.resultState.argsDescriptors.map { it?.valueDescriptor }
+                    val argsAfter = afterArgsDescr.let { descriptors ->
                         descriptors.map { descr ->
                             descr?.let { descriptor2ValueConverter.buildObjectFromDescriptor(it) }
                         }
-                    } ?: listOf()
+                    }
                     after = JcParametersState(thisAfter, argsAfter)
                     Result.success(execResult.result?.let { descriptor2ValueConverter.buildObjectFromDescriptor(it) })
                 }
@@ -109,14 +109,14 @@ class JcTestExecutor(
                     val exceptionInstance =
                         descriptor2ValueConverter.buildObjectFromDescriptor(execResult.cause) as? Throwable
                             ?: error("Exception building error")
-                    val thisBeforeDescr = execResult.initialState.instanceDescriptor
+                    val thisBeforeDescr = execResult.initialState.instanceDescriptor?.valueDescriptor
                     val thisBefore = thisBeforeDescr?.let { descriptor2ValueConverter.buildObjectFromDescriptor(it) }
-                    val beforeArgsDescr = execResult.initialState.argsDescriptors
-                    val argsBefore = beforeArgsDescr?.let { descriptors ->
+                    val beforeArgsDescr = execResult.initialState.argsDescriptors.map { it?.valueDescriptor }
+                    val argsBefore = beforeArgsDescr.let { descriptors ->
                         descriptors.map { descr ->
                             descr?.let { descriptor2ValueConverter.buildObjectFromDescriptor(it) }
                         }
-                    } ?: listOf()
+                    }
                     before = JcParametersState(thisBefore, argsBefore)
                     after = before
                     if (execResult.cause.raisedByUserCode) {

@@ -15,7 +15,6 @@ sealed interface UTestExpression: UTestInst {
     val type: JcType?
 }
 
-
 sealed class UTestMock(
     override val type: JcType,
     open val fields: Map<JcField, UTestExpression>,

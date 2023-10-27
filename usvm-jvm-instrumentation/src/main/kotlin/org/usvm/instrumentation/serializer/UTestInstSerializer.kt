@@ -94,7 +94,7 @@ class UTestInstSerializer(private val ctx: SerializationContext) {
                     UTestExpressionKind.CLASS -> deserializeUTestClassExpression()
 
                 }
-            ctx.deserializerCache[id] = deserializedExpression
+            ctx.deserializedUTestInstructions[id] = deserializedExpression
         }
     }
 
@@ -675,7 +675,7 @@ class UTestInstSerializer(private val ctx: SerializationContext) {
         readIntArray().map { getUTestInst(it) as UTestStatement }
 
     private fun getUTestInst(id: Int): UTestInst =
-        ctx.deserializerCache[id] ?: error("deserialization failed")
+        ctx.deserializedUTestInstructions[id] ?: error("deserialization failed")
 
     private val UTestInst.id
         get() = ctx.serializedUTestInstructions[this]

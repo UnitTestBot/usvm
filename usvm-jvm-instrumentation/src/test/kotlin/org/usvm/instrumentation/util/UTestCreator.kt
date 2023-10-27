@@ -458,4 +458,13 @@ object UTestCreator {
             return UTest(listOf(), jcMethodCall)
         }
     }
+
+    object SleepingClass {
+        fun sleepFor(jcClasspath: JcClasspath, timeInMillis: Long): UTest {
+            val jcClass = jcClasspath.findClass("example.SleepingClass")
+            val jcMethod = jcClass.declaredMethods.find { it.name == "sleepFor" }!!
+            val jcMethodCall = UTestStaticMethodCall(jcMethod, listOf(UTestLongExpression(timeInMillis, jcClasspath.long)))
+            return UTest(listOf(), jcMethodCall)
+        }
+    }
 }

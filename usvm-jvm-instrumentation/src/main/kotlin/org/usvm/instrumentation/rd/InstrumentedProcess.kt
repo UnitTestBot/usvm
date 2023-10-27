@@ -193,12 +193,42 @@ class InstrumentedProcess private constructor() {
         }
     }
 
-    private fun serializeExecutionState(executionState: UTestExecutionState): ExecutionStateSerialized {
-        val statics = executionState.statics.entries.map { (jcField, descriptor) ->
-            SerializedStaticField("${jcField.enclosingClass.name}.${jcField.name}", descriptor)
+    private fun serializeExecutionState(executionState: UTestExecutionState): ExecutionStateSerialized =
+        with(executionState) {
+            val statics = statics.entries.map { (jcField, descriptor) ->
+                SerializedStaticField("${jcField.enclosingClass.name}.${jcField.name}", descriptor)
+            }
+            val deserializedUTestInstructions =
+                serializationCtx.deserializedUTestInstructions.entries
+            val extendedValueDescriptor =
+                if (instanceDescriptor != null) {
+                    val instanceDescriptorUTestId =
+                        instanceDescriptor.originUTestInst?.let { originUTestInst ->
+                            deserializedUTestInstructions
+                                .find { it.value == originUTestInst }
+                                ?.key
+                                ?: error("Cant find id for origin uTestInst $originUTestInst")
+                        } ?: -1
+                    ExtendedValueDescriptor(instanceDescriptor?.valueDescriptor, instanceDescriptorUTestId)
+                } else {
+                    null
+                }
+            val argDescriptors = argsDescriptors.map { argDescriptor ->
+                if (argDescriptor != null) {
+                    val argDescriptorUTestId =
+                        argDescriptor.originUTestInst?.let { originUTestInst ->
+                            deserializedUTestInstructions
+                                .find { it.value == originUTestInst }
+                                ?.key
+                                ?: error("Cant find id for origin uTestInst $originUTestInst")
+                        } ?: -1
+                    ExtendedValueDescriptor(argDescriptor.valueDescriptor, argDescriptorUTestId)
+                } else {
+                    null
+                }
+            }
+            return ExecutionStateSerialized(extendedValueDescriptor, argDescriptors, statics)
         }
-        return ExecutionStateSerialized(executionState.instanceDescriptor, executionState.argsDescriptors, statics)
-    }
 
     private fun callUTest(uTest: UTest): UTestExecutionResult =
         uTestExecutor.executeUTest(uTest)
@@ -215,7 +245,7 @@ class InstrumentedProcess private constructor() {
     fun <T, R> RdCall<T, R>.measureExecutionForTermination(block: (T) -> R) {
         set { request ->
             try {
-                serializationCtx.reset()
+//                serializationCtx.reset()
                 measureExecutionForTermination<R> {
                     block(request)
                 }

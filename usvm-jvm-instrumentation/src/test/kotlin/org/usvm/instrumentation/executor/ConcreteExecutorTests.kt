@@ -14,7 +14,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-class SimpleUTestConcreteExecutor: UTestConcreteExecutorTest() {
+class ConcreteExecutorTests: UTestConcreteExecutorTest() {
 
 
     companion object {
@@ -221,6 +221,13 @@ class SimpleUTestConcreteExecutor: UTestConcreteExecutorTest() {
         val res = uTestConcreteExecutor.executeAsync(uTest)
         assertIs<UTestExecutionExceptionResult>(res)
         assertEquals(false, res.cause.raisedByUserCode)
+    }
+
+    @Test
+    fun `dynamic timeout`() = executeTest {
+        val uTest = UTestCreator.SleepingClass.sleepFor(jcClasspath, 1_000L)
+        val res = uTestConcreteExecutor.executeAsync(uTest)
+        assertIs<UTestExecutionSuccessResult>(res)
     }
 
 }

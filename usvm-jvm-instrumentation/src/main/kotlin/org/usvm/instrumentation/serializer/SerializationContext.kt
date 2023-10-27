@@ -9,14 +9,14 @@ class SerializationContext(
     val jcClasspath: JcClasspath,
 ) {
     val serializedUTestInstructions = IdentityHashMap<UTestInst, Int>()
-    val deserializerCache: MutableMap<Int, UTestInst> = hashMapOf()
+    val deserializedUTestInstructions: MutableMap<Int, UTestInst> = hashMapOf()
     val serializedDescriptors = IdentityHashMap<UTestValueDescriptor, Int>()
     val deserializedDescriptors = HashMap<Int, UTestValueDescriptor>()
 
     fun reset() {
         serializedUTestInstructions.clear()
         serializedDescriptors.clear()
-        deserializerCache.clear()
+        deserializedUTestInstructions.clear()
         deserializedDescriptors.clear()
     }
 }

@@ -110,32 +110,33 @@ class RdProcessRunner(
     }
 
     private suspend fun <T, R> RdCall<T, R>.execute(request: T): R =
-        try {
+        run {
             this@RdProcessRunner.serializationContext.reset()
             startSuspending(lifetime, request)
-        } finally {
-            this@RdProcessRunner.serializationContext.reset()
         }
 
     private fun <T, R> RdCall<T, R>.executeSync(request: T, timeout: Duration): R =
-        try {
+        run {
             this@RdProcessRunner.serializationContext.reset()
             fastSync(lifetime, request, timeout)
-        } finally {
-            this@RdProcessRunner.serializationContext.reset()
         }
 
-    fun callUTestSync(uTest: UTest, timeout: Duration): UTestExecutionResult {
+    fun callUTestSync(uTest: UTest, timeout: Duration): UTestExecutionResult = try {
         val serializedUTest = SerializedUTest(uTest.initStatements, uTest.callMethodExpression)
         val serializedExecutionResult = rdProcess.model.callUTest.executeSync(serializedUTest, timeout)
-        return deserializeExecutionResult(serializedExecutionResult)
+        deserializeExecutionResult(serializedExecutionResult)
+    } finally {
+        serializationContext.reset()
     }
 
-    suspend fun callUTestAsync(uTest: UTest): UTestExecutionResult {
-        val serializedUTest = SerializedUTest(uTest.initStatements, uTest.callMethodExpression)
-        val serializedExecutionResult = rdProcess.model.callUTest.execute(serializedUTest)
-        return deserializeExecutionResult(serializedExecutionResult)
-    }
+    suspend fun callUTestAsync(uTest: UTest): UTestExecutionResult =
+        try {
+            val serializedUTest = SerializedUTest(uTest.initStatements, uTest.callMethodExpression)
+            val serializedExecutionResult = rdProcess.model.callUTest.execute(serializedUTest)
+            deserializeExecutionResult(serializedExecutionResult)
+        } finally {
+            serializationContext.reset()
+        }
 
     private fun deserializeExecutionResult(executionResult: ExecutionResult): UTestExecutionResult {
         val coveredClasses = executionResult.classes ?: listOf()
@@ -175,13 +176,36 @@ class RdProcessRunner(
         }
     }
 
-    private fun deserializeExecutionState(state: ExecutionStateSerialized): UTestExecutionState {
-        val statics = state.statics?.associate {
+    private fun deserializeExecutionState(state: ExecutionStateSerialized): UTestExecutionState = with(state) {
+        val statics = statics?.associate {
             val jcField = jcClasspath.findFieldByFullNameOrNull(it.fieldName) ?: error("deserialization failed")
             val jcFieldDescriptor = it.fieldDescriptor
             jcField to jcFieldDescriptor
         } ?: mapOf()
-        return UTestExecutionState(state.instanceDescriptor, state.argsDescriptors, statics.toMutableMap())
+        val serializedUTestInstructions = serializationContext.serializedUTestInstructions.entries
+        val extendedDescriptor =
+            if (state.instanceDescriptor != null) {
+                val instanceUTest =
+                    serializedUTestInstructions
+                        .find { it.value == instanceDescriptor?.originUTestInstId }
+                        ?.key
+                        ?: error("Cant find serialized UTestInst with id ${instanceDescriptor?.originUTestInstId}")
+                ValueDescriptor2UTestInst(instanceDescriptor?.valueDescriptor, instanceUTest)
+            } else {
+                null
+            }
+        val argsDescriptors = argsDescriptors.map { argDescriptor ->
+            if (argDescriptor != null) {
+                val argUTestInst = serializedUTestInstructions
+                    .find { it.value == argDescriptor.originUTestInstId }
+                    ?.key
+                    ?: error("Cant find serialized UTestInst with id ${argDescriptor.originUTestInstId}")
+                ValueDescriptor2UTestInst(argDescriptor.valueDescriptor, argUTestInst)
+            } else {
+                null
+            }
+        }
+        return UTestExecutionState(extendedDescriptor, argsDescriptors, statics.toMutableMap())
     }
 
     private fun deserializeTrace(trace: List<Long>, coveredClasses: List<ClassToId>): List<JcInst> =
