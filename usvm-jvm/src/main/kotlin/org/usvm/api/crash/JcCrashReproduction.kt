@@ -12,6 +12,7 @@ import org.usvm.algorithms.DeterministicPriorityCollection
 import org.usvm.algorithms.UPriorityCollection
 import org.usvm.api.targets.JcTarget
 import org.usvm.constraints.UPathConstraints
+import org.usvm.logger
 import org.usvm.machine.JcApplicationGraph
 import org.usvm.machine.JcComponents
 import org.usvm.machine.JcConcreteMethodCallInst
@@ -136,6 +137,8 @@ class JcCrashReproduction(val cp: JcClasspath, private val timeout: Duration) : 
         fun currentLevel() = levelPobs.keys.max()
 
         fun addPob(level: Int, pob: UPathConstraints<JcType>) {
+            logger.info { "Found POB at level: $level | ${levelPobs(level).size}" }
+
             levelPobs(level).add(pob)
 
             for (state in levelStates(level)) {
@@ -192,10 +195,18 @@ class JcCrashReproduction(val cp: JcClasspath, private val timeout: Duration) : 
         override fun isEmpty(): Boolean =
             levelPs.all { it.isEmpty() }
 
+        private fun shouldConsiderPreviousLevel(level: Int): Boolean {
+            if (level == 0) return false
+            val curLevel = levelStats[level]
+            val prevLevel = levelStats[level - 1]
+
+            return curLevel > 2 * prevLevel
+        }
+
         override fun peek(): JcState {
             var level = pobManager.currentLevel()
             while (level >= 0) {
-                if (level > 0 && levelStats[level] > 2 * levelStats[level - 1]) {
+                if (shouldConsiderPreviousLevel(level)) {
                     level--
                     continue
                 }

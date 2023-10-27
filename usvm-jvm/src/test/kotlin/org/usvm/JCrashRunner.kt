@@ -451,7 +451,7 @@ private fun analyzeCrash(cp: JcClasspath, trace: CrashTrace, crash: CrashPackCra
     logger.warn { "-".repeat(50) }
 
     val result = JcCrashReproduction(cp, timeout).use { reproduction ->
-        reproduction.reproduceCrash(exceptionType, traceFrames.takeLast(2))
+        reproduction.reproduceCrash(exceptionType, traceFrames)
     }
 
     logger.warn { "+".repeat(50) }
