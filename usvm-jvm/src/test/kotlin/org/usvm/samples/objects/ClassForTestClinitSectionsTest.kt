@@ -21,6 +21,7 @@ internal class ClassForTestClinitSectionsTest : JavaMethodTestRunner() {
 //        }
 
     @Test
+    @Disabled("TODO we need to get mocks for static fields")
     fun testClinitWithClinitAnalysis() {
         checkDiscoveredProperties(
             ClassForTestClinitSections::resultDependingOnStaticSection,

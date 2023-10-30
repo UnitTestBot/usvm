@@ -1,5 +1,6 @@
 package org.usvm.samples.loops
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.UMachineOptions
 import org.usvm.samples.JavaMethodTestRunner
@@ -17,6 +18,7 @@ class TestWhile : JavaMethodTestRunner() {
     )
 
     @Test
+    @Disabled("Jacodb issue")
     fun `Test singleLoop`() {
         checkDiscoveredProperties(
             While::singleLoop,
