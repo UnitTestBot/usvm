@@ -12,7 +12,6 @@ import org.usvm.api.JcParametersState
 import org.usvm.api.JcTest
 import org.usvm.api.typeStreamOf
 import org.usvm.api.util.JcTestResolver
-import org.usvm.api.util.Reflection
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
@@ -20,15 +19,7 @@ import org.usvm.instrumentation.executor.UTestConcreteExecutor
 import org.usvm.instrumentation.testcase.UTest
 import org.usvm.instrumentation.testcase.api.*
 import org.usvm.instrumentation.testcase.descriptor.Descriptor2ValueConverter
-import org.usvm.machine.JcContext
-import org.usvm.machine.extractBool
-import org.usvm.machine.extractByte
-import org.usvm.machine.extractChar
-import org.usvm.machine.extractDouble
-import org.usvm.machine.extractFloat
-import org.usvm.machine.extractInt
-import org.usvm.machine.extractLong
-import org.usvm.machine.extractShort
+import org.usvm.machine.*
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.localIdx
 import org.usvm.memory.ULValue
@@ -37,6 +28,8 @@ import org.usvm.memory.URegisterStackLValue
 import org.usvm.model.UModelBase
 import org.usvm.types.first
 import org.usvm.types.firstOrNull
+import java.nio.file.Paths
+import kotlin.io.path.appendText
 
 /**
  * A class, responsible for resolving a single [JcTest] for a specific method from a symbolic state.
@@ -81,6 +74,7 @@ class JcTestExecutor(
         val execResult = runBlocking {
             runner.executeAsync(uTest)
         }
+        Paths.get("/tmp/lol.txt").appendText("EXECUTION FINISHED")
         val result =
             when (execResult) {
                 is UTestExecutionSuccessResult -> {

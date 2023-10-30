@@ -14,6 +14,8 @@ object InstrumentationModuleConstants {
     const val triesToRecreateExecutorRdProcess = 3
     //Rollback strategy
     val testExecutorStaticsRollbackStrategy = StaticsRollbackStrategy.REINIT
+    //Max depth of descriptor construction
+    val maxDepthOfDescriptorConstruction = 5
 
     const val nameForExistingButNullString = "USVM_GENERATED_NULL_STRING"
 

@@ -63,7 +63,9 @@ open class Value2DescriptorConverter(
     }
 
     private fun buildDescriptor(any: Any?, type: JcType?, depth: Int = 0): UTestValueDescriptor {
-        if (any == null) return `null`(type ?: jcClasspath.nullType)
+        if (any == null || depth > InstrumentationModuleConstants.maxDepthOfDescriptorConstruction) {
+            return `null`(type ?: jcClasspath.nullType)
+        }
         return objectToDescriptor.getOrPut(any) {
             when (any) {
                 is Boolean -> const(any)
