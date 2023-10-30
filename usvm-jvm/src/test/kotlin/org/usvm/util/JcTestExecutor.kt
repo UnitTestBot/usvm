@@ -74,7 +74,6 @@ class JcTestExecutor(
         val execResult = runBlocking {
             runner.executeAsync(uTest)
         }
-        Paths.get("/tmp/lol.txt").appendText("EXECUTION FINISHED")
         val result =
             when (execResult) {
                 is UTestExecutionSuccessResult -> {
