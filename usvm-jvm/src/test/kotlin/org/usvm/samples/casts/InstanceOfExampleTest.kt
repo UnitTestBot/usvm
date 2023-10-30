@@ -368,12 +368,15 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
 
     @Test
     fun testObjectInstanceOfArray() {
-        checkDiscoveredProperties(
+        checkThisAndParamsMutations(
             InstanceOfExample::objectInstanceOfArray,
             eq(3),
-            { _, a, r -> a is IntArray && r is IntArray && a contentEquals r },
-            { _, a, r -> a is BooleanArray && r is BooleanArray && a contentEquals r },
-            { _, a, r -> (a == null && r == null) || (!(a is IntArray || a is BooleanArray) && a.equals(r)) },
+            { _, aBefore, _, aAfter, r -> aBefore is IntArray && r is IntArray && aBefore contentEquals r && aAfter === r },
+            { _, aBefore, _, aAfter, r -> aBefore is BooleanArray && r is BooleanArray && aBefore contentEquals r && aAfter === r },
+            { _, _, _, aAfter, r ->
+                (aAfter == null && r == null) || (!(aAfter is IntArray || aAfter is BooleanArray) && aAfter === r)
+            },
+            checkMode = CheckMode.MATCH_PROPERTIES
         )
     }
 

@@ -39,12 +39,8 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UHeapRef
 import org.usvm.UInterpreter
 import org.usvm.api.allocateStaticRef
-import org.usvm.api.evalTypeEquals
 import org.usvm.api.targets.JcTarget
-import org.usvm.api.typeStreamOf
 import org.usvm.forkblacklists.UForkBlackList
-import org.usvm.isAllocatedConcreteHeapRef
-import org.usvm.isStaticHeapRef
 import org.usvm.machine.JcApplicationGraph
 import org.usvm.machine.JcConcreteMethodCallInst
 import org.usvm.machine.JcContext
@@ -54,6 +50,7 @@ import org.usvm.machine.JcMethodCall
 import org.usvm.machine.JcMethodCallBaseInst
 import org.usvm.machine.JcMethodEntrypointInst
 import org.usvm.machine.JcVirtualMethodCallInst
+import org.usvm.machine.resolveVirtualInvoke
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.addNewMethodCall
@@ -68,8 +65,6 @@ import org.usvm.machine.state.throwExceptionAndDropStackFrame
 import org.usvm.machine.state.throwExceptionWithoutStackFrameDrop
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.solver.USatResult
-import org.usvm.types.first
-import org.usvm.util.findMethod
 import org.usvm.util.write
 
 typealias JcStepScope = StepScope<JcState, JcType, JcInst, JcContext>
@@ -511,57 +506,7 @@ class JcInterpreter(
         scope: JcStepScope,
         typeSelector: JcTypeSelector,
         forkOnRemainingTypes: Boolean,
-    ): Unit = with(methodCall) {
-        val instance = arguments.first().asExpr(ctx.addressSort)
-        val concreteRef = scope.calcOnState { models.first().eval(instance) } as UConcreteHeapRef
-
-        if (isAllocatedConcreteHeapRef(concreteRef) || isStaticHeapRef(concreteRef)) {
-            // We have only one type for allocated and static heap refs
-            val type = scope.calcOnState { memory.typeStreamOf(concreteRef) }.first()
-
-            val concreteMethod = type.findMethod(method)
-                ?: error("Can't find method $method in type ${type.typeName}")
-
-            scope.doWithState {
-                val concreteCall = methodCall.toConcreteMethodCall(concreteMethod.method)
-                newStmt(concreteCall)
-            }
-
-            return@with
-        }
-
-        val typeStream = scope.calcOnState { models.first().typeStreamOf(concreteRef) }
-
-            val inheritors = typeSelector.choose(method, typeStream)
-            val typeConstraints = inheritors.map { type ->
-                scope.calcOnState {
-                    memory.types.evalTypeEquals(instance, type)
-                }
-            }
-
-        val typeConstraintsWithBlockOnStates = mutableListOf<Pair<UBoolExpr, (JcState) -> Unit>>()
-
-        inheritors.mapIndexedTo(typeConstraintsWithBlockOnStates) { idx, type ->
-            val isExpr = typeConstraints[idx]
-
-                val block = { state: JcState ->
-                    val concreteMethod = type.findMethod(method)
-                        ?: error("Can't find method $method in type ${type.typeName}")
-
-                val concreteCall = methodCall.toConcreteMethodCall(concreteMethod.method)
-                state.newStmt(concreteCall)
-            }
-
-            isExpr to block
-        }
-
-        if (forkOnRemainingTypes) {
-            val excludeAllTypesConstraint = ctx.mkAnd(typeConstraints.map { ctx.mkNot(it) })
-            typeConstraintsWithBlockOnStates += excludeAllTypesConstraint to { } // do nothing, just exclude types
-        }
-
-        scope.forkMulti(typeConstraintsWithBlockOnStates)
-    }
+    ): Unit = resolveVirtualInvoke(ctx, methodCall, scope, typeSelector, forkOnRemainingTypes)
 
     private val approximationResolver = JcMethodApproximationResolver(ctx, applicationGraph)
 

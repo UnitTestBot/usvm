@@ -5,6 +5,7 @@ import org.usvm.statistics.UMachineObserver
 import org.usvm.stopstrategies.StopStrategy
 import org.usvm.util.bracket
 import org.usvm.util.debug
+import org.usvm.utils.isSat
 
 val logger = object : KLogging() {}.logger
 
@@ -13,7 +14,7 @@ val logger = object : KLogging() {}.logger
  *
  * @see [run]
  */
-abstract class UMachine<State> : AutoCloseable {
+abstract class UMachine<State : UState<*, *, *, *, *, *>> : AutoCloseable {
     /**
      * Runs symbolic execution loop.
      *
@@ -48,7 +49,9 @@ abstract class UMachine<State> : AutoCloseable {
                     } else {
                         // TODO: distinguish between states terminated by exception (runtime or user) and
                         //  those which just exited
-                        observer.onStateTerminated(forkedState, stateReachable = true)
+                        if (forkedState.isSat()) {
+                            observer.onStateTerminated(forkedState, stateReachable = true)
+                        }
                     }
                 }
 
@@ -56,7 +59,9 @@ abstract class UMachine<State> : AutoCloseable {
                     pathSelector.update(state)
                 } else {
                     pathSelector.remove(state)
-                    observer.onStateTerminated(state, stateReachable = stateAlive)
+                    if (state.isSat()) {
+                        observer.onStateTerminated(state, stateReachable = stateAlive)
+                    }
                 }
 
                 if (aliveForkedStates.isNotEmpty()) {

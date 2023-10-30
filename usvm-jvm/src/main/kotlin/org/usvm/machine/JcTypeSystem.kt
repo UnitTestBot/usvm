@@ -23,10 +23,51 @@ class JcTypeSystem(
     override fun isSupertype(supertype: JcType, type: JcType): Boolean =
         type.isAssignable(supertype) ||
                 // It is possible when, for example, the returning type of a method is a type variable
-                (supertype is JcTypeVariable && type.isAssignable(supertype.jcClass.toType()))
+                (supertype is JcTypeVariable && type.isAssignable(cp.objectType) && supertype.bounds.all { type.isAssignable(it) })
 
-    override fun isMultipleInheritanceAllowedFor(type: JcType): Boolean =
+    private fun isInterface(type: JcType): Boolean =
         (type as? JcClassType)?.jcClass?.isInterface ?: false
+
+    override fun hasCommonSubtype(type: JcType, types: Collection<JcType>): Boolean {
+        when {
+            type is JcPrimitiveType -> {
+                return types.isEmpty()
+            }
+
+            isInterface(type) -> {
+                return types.none { it is JcArrayType || it is JcPrimitiveType }
+            }
+
+            type is JcClassType -> {
+                return types.all {
+                    // It is guaranteed that it </: [type]
+                    isInterface(it) || isSupertype(it, type)
+                }
+            }
+
+            type is JcArrayType -> {
+                val elementTypes = types.mapNotNull {
+                    when {
+                        it is JcArrayType -> it.elementType
+                        it == cp.objectType -> null
+                        else -> return false
+                    }
+                }
+                return hasCommonSubtype(type.elementType, elementTypes)
+            }
+
+            type is JcTypeVariable -> {
+                val bounds = type.bounds
+                return if (bounds.isEmpty()) {
+                    types.none { it is JcPrimitiveType }
+                } else {
+                    bounds.all { hasCommonSubtype(it, types) }
+                }
+            }
+
+            else -> error("Unexpected type: $type")
+        }
+    }
 
     override fun isFinal(type: JcType): Boolean =
         (type as? JcClassType)?.isFinal ?: false

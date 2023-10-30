@@ -56,17 +56,8 @@ class UTypeRegion<Type>(
             return contradiction()
         }
 
-        val multipleInheritanceIsNotAllowed = !typeSystem.isMultipleInheritanceAllowedFor(supertype)
-
-        if (multipleInheritanceIsNotAllowed) {
-            // We've already checked it </: supertype
-            val incomparableSupertypeWithoutMultipleInheritanceAllowedExists = supertypes.any {
-                !typeSystem.isMultipleInheritanceAllowedFor(it) && !typeSystem.isSupertype(it, supertype)
-            }
-
-            if (incomparableSupertypeWithoutMultipleInheritanceAllowedExists) {
-                return contradiction()
-            }
+        if (!typeSystem.hasCommonSubtype(supertype, supertypes)) {
+            return contradiction()
         }
 
         val newSubtypes = if (typeSystem.isFinal(supertype)) {
