@@ -69,7 +69,7 @@ data class UTestExecutionExceptionResult(
  * @param statics --- descriptors of affected statics during execution
  */
 data class UTestExecutionState(
-    val instanceDescriptor: ValueDescriptor2UTestInst?,
-    val argsDescriptors: List<ValueDescriptor2UTestInst?>,
+    val instanceDescriptor: UTestValueDescriptor?,
+    val argsDescriptors: List<UTestValueDescriptor?>,
     val statics: MutableMap<JcField, UTestValueDescriptor>
 )

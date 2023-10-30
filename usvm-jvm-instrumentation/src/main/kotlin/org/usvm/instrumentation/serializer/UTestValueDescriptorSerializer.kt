@@ -406,6 +406,10 @@ class UTestValueDescriptorSerializer(private val ctx: SerializationContext) {
             serialize = {
                 writeJcType(type)
                 writeInt(refId)
+                val uTestInstId = ctx.deserializedUTestInstructions.entries.find {
+                    it.value == originUTestExpr
+                }?.key ?: -1
+                writeInt(uTestInstId)
                 val entries = fields.entries
                 writeInt(entries.size)
                 fields.entries.forEach {
@@ -418,14 +422,18 @@ class UTestValueDescriptorSerializer(private val ctx: SerializationContext) {
     private fun AbstractBuffer.deserializeObject(): UTestValueDescriptor {
         val jcType = readJcType(jcClasspath) ?: jcClasspath.objectType
         val refId = readInt()
+        val instId = readInt()
         val entriesSize = readInt()
         val fields = mutableMapOf<JcField, UTestValueDescriptor>()
+        val originalUTestInst = ctx.serializedUTestInstructions.entries.find {
+            it.value == instId
+        }?.key
         repeat(entriesSize) {
             val field = readJcField(jcClasspath)
             val descriptor = readUTestValueDescriptor()
             fields[field] = descriptor
         }
-        return UTestObjectDescriptor(jcType, fields, refId)
+        return UTestObjectDescriptor(jcType, fields, originalUTestInst, refId)
     }
 
     private fun AbstractBuffer.serialize(uTestExceptionDescriptor: UTestExceptionDescriptor) =
@@ -560,7 +568,7 @@ class UTestValueDescriptorSerializer(private val ctx: SerializationContext) {
 
     private fun AbstractBuffer.readUTestValueDescriptor() = getUTestValueDescriptor(readInt())
 
-    fun deserializeUTestExpression(buffer: AbstractBuffer): UTestValueDescriptor =
+    fun deserializeUTestValueDescriptor(buffer: AbstractBuffer): UTestValueDescriptor =
         buffer.deserializeDescriptorFromBuffer()
 
     companion object {
@@ -581,7 +589,7 @@ class UTestValueDescriptorSerializer(private val ctx: SerializationContext) {
                     serializer.serialize(buffer, uTestValueDescriptor)
                 },
                 reader = { buffer ->
-                    serializer.deserializeUTestExpression(buffer)
+                    serializer.deserializeUTestValueDescriptor(buffer)
                 },
                 predefinedId = marshallerIdHash
             )

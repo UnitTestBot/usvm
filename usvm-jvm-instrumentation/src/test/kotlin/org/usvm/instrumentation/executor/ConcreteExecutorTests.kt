@@ -230,4 +230,10 @@ class ConcreteExecutorTests: UTestConcreteExecutorTest() {
         assertIs<UTestExecutionSuccessResult>(res)
     }
 
+    @Test
+    fun `nested`() = executeTest {
+        val uTest = UTestCreator.Ex1.nestedDescriptors(jcClasspath)
+        val res = uTestConcreteExecutor.executeAsync(uTest)
+    }
+
 }

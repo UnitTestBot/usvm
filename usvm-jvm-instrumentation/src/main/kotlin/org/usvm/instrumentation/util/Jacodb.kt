@@ -99,7 +99,7 @@ fun JcArrayType.toJvmType(strBuilder: StringBuilder = StringBuilder()): String {
     return strBuilder.toString()
 }
 
-fun JcType.toJcClass(): JcClassOrInterface? = classpath.findClassOrNull(typeName)
+fun JcType.toJcClass(): JcClassOrInterface? = classpath.findClassOrNull(typeName.substringBefore('<'))
 
 fun JcClassOrInterface.toJavaClass(classLoader: ClassLoader): Class<*> =
     findClassInLoader(name, classLoader) ?: throw TestExecutorException("Can't find class in classpath")

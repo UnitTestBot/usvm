@@ -2,6 +2,7 @@ package org.usvm.instrumentation.testcase.descriptor
 
 import org.jacodb.api.JcField
 import org.jacodb.api.JcType
+import org.usvm.instrumentation.testcase.api.UTestInst
 
 sealed class UTestValueDescriptor {
     abstract val type: JcType
@@ -187,7 +188,7 @@ class UTestEnumValueDescriptor(
 
 class UTestClassDescriptor(
     val classType: JcType, override val type: JcType
-): UTestValueDescriptor() {
+) : UTestValueDescriptor() {
     override fun structurallyEqual(other: UTestValueDescriptor): Boolean =
         other is UTestClassDescriptor && classType == other.classType
 
@@ -199,6 +200,7 @@ class UTestClassDescriptor(
 class UTestObjectDescriptor(
     override val type: JcType,
     val fields: Map<JcField, UTestValueDescriptor>,
+    val originUTestExpr: UTestInst?,
     override val refId: Int
 ) : UTestValueDescriptor(), UTestRefDescriptor {
 

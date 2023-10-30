@@ -176,36 +176,13 @@ class RdProcessRunner(
         }
     }
 
-    private fun deserializeExecutionState(state: ExecutionStateSerialized): UTestExecutionState = with(state) {
-        val statics = statics?.associate {
+    private fun deserializeExecutionState(state: ExecutionStateSerialized): UTestExecutionState {
+        val statics = state.statics?.associate {
             val jcField = jcClasspath.findFieldByFullNameOrNull(it.fieldName) ?: error("deserialization failed")
             val jcFieldDescriptor = it.fieldDescriptor
             jcField to jcFieldDescriptor
         } ?: mapOf()
-        val serializedUTestInstructions = serializationContext.serializedUTestInstructions.entries
-        val extendedDescriptor =
-            if (state.instanceDescriptor != null) {
-                val instanceUTest =
-                    serializedUTestInstructions
-                        .find { it.value == instanceDescriptor?.originUTestInstId }
-                        ?.key
-                        ?: error("Cant find serialized UTestInst with id ${instanceDescriptor?.originUTestInstId}")
-                ValueDescriptor2UTestInst(instanceDescriptor?.valueDescriptor, instanceUTest)
-            } else {
-                null
-            }
-        val argsDescriptors = argsDescriptors.map { argDescriptor ->
-            if (argDescriptor != null) {
-                val argUTestInst = serializedUTestInstructions
-                    .find { it.value == argDescriptor.originUTestInstId }
-                    ?.key
-                    ?: error("Cant find serialized UTestInst with id ${argDescriptor.originUTestInstId}")
-                ValueDescriptor2UTestInst(argDescriptor.valueDescriptor, argUTestInst)
-            } else {
-                null
-            }
-        }
-        return UTestExecutionState(extendedDescriptor, argsDescriptors, statics.toMutableMap())
+        return UTestExecutionState(state.instanceDescriptor, state.argsDescriptors, statics.toMutableMap())
     }
 
     private fun deserializeTrace(trace: List<Long>, coveredClasses: List<ClassToId>): List<JcInst> =

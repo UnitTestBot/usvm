@@ -4,21 +4,23 @@ import org.jacodb.api.JcField
 import org.jacodb.api.JcType
 import org.jacodb.api.ext.*
 import org.usvm.instrumentation.classloader.WorkerClassLoader
-import org.usvm.instrumentation.testcase.api.ValueDescriptor2UTestInst
 import org.usvm.instrumentation.testcase.executor.UTestExpressionExecutor
 import org.usvm.instrumentation.testcase.api.UTestExpression
+import org.usvm.instrumentation.testcase.api.UTestInst
+import org.usvm.instrumentation.testcase.api.UTestMock
 import org.usvm.instrumentation.util.*
 import java.util.*
 
 open class Value2DescriptorConverter(
     workerClassLoader: WorkerClassLoader,
-    val previousState: Value2DescriptorConverter?
+    val previousState: Value2DescriptorConverter?,
 ) {
 
     private val jcClasspath = workerClassLoader.jcClasspath
     private val classLoader = workerClassLoader as ClassLoader
 
     private val objectToDescriptor = IdentityHashMap<Any, UTestValueDescriptor>()
+    var uTestExecutorCache: MutableList<Pair<Any?, UTestInst>> = mutableListOf()
 
     private fun findTypeOrNull(jClass: Class<*>): JcType? =
         if (jClass.isArray) {
@@ -32,11 +34,11 @@ open class Value2DescriptorConverter(
     fun buildDescriptorFromUTestExpr(
         uTestExpression: UTestExpression,
         testExecutor: UTestExpressionExecutor,
-    ): Result<ValueDescriptor2UTestInst>? {
+    ): Result<UTestValueDescriptor>? {
         testExecutor.executeUTestInst(uTestExpression)
             .onSuccess {
                 buildDescriptorResultFromAny(it, uTestExpression.type)
-                    .onSuccess { return Result.success(ValueDescriptor2UTestInst(it, uTestExpression)) }
+                    .onSuccess { return Result.success(it) }
                     .onFailure { return Result.failure(it) }
             }
             .onFailure { return Result.failure(it) }
@@ -164,10 +166,16 @@ open class Value2DescriptorConverter(
     }
 
     private fun `object`(value: Any, depth: Int): UTestValueDescriptor {
-        val jcClass = jcClasspath.findClass(value::class.java.name)
+        val originUTestInst = uTestExecutorCache.find { it.first === value }?.second
+        val jcClass =
+            if (originUTestInst is UTestMock) {
+                originUTestInst.type.toJcClass() ?: jcClasspath.findClass(value::class.java.name.substringBefore("Mocked0"))
+            } else {
+                jcClasspath.findClass(value::class.java.name)
+            }
         val jcType = jcClass.toType()
         val fields = mutableMapOf<JcField, UTestValueDescriptor>()
-        val uTestObjectDescriptor = UTestObjectDescriptor(jcType, fields, System.identityHashCode(value))
+        val uTestObjectDescriptor = UTestObjectDescriptor(jcType, fields, originUTestInst, System.identityHashCode(value))
         return createCyclicRef(uTestObjectDescriptor, value) {
             jcClass.allDeclaredFields
                 //TODO! Decide for which fields descriptors should be build

@@ -44,14 +44,9 @@ object InstrumentedProcessModel : Ext(InstrumentedProcessRoot) {
         field("callMethodExpression", UTestInst)
     }
 
-    private val extendedValueDescriptor = structdef {
-        field("valueDescriptor", UTestValueDescriptor.nullable)
-        field("originUTestInstId", PredefinedType.int)
-    }
-
     private val executionStateSerialized = structdef {
-        field("instanceDescriptor", extendedValueDescriptor.nullable)
-        field("argsDescriptors", immutableList(extendedValueDescriptor.nullable))
+        field("instanceDescriptor", UTestValueDescriptor.nullable)
+        field("argsDescriptors", immutableList(UTestValueDescriptor.nullable))
         field("statics", immutableList(serializedStaticField).nullable)
     }
 

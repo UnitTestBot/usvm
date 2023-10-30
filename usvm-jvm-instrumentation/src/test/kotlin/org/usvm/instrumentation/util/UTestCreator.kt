@@ -467,4 +467,24 @@ object UTestCreator {
             return UTest(listOf(), jcMethodCall)
         }
     }
+
+    object Ex1{
+
+        fun nestedDescriptors(jcClasspath: JcClasspath): UTest {
+            val jcClass1 = jcClasspath.findClass("example.Ex1")
+            val jcClass2 = jcClasspath.findClass("example.Ex2")
+            val jcClass3 = jcClasspath.findClass("example.Ex3")
+            val lolMethod = jcClass1.declaredMethods.find { it.name == "lol" }!!
+            val c1 = jcClass1.constructors.first()
+            val c2 = jcClass2.constructors.first()
+            val c3 = jcClass3.constructors.first()
+
+            val instance1 = UTestConstructorCall(c1, listOf())
+            val instance3 = UTestConstructorCall(c3, listOf())
+            val instance2 = UTestConstructorCall(c2, listOf(instance3))
+
+            val methodCall = UTestMethodCall(instance1, lolMethod, listOf(instance2))
+            return UTest(listOf(), methodCall)
+        }
+    }
 }

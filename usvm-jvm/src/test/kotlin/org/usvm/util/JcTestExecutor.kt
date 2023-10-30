@@ -84,18 +84,18 @@ class JcTestExecutor(
         val result =
             when (execResult) {
                 is UTestExecutionSuccessResult -> {
-                    val thisBeforeDescr = execResult.initialState.instanceDescriptor?.valueDescriptor
+                    val thisBeforeDescr = execResult.initialState.instanceDescriptor
                     val thisBefore = thisBeforeDescr?.let { descriptor2ValueConverter.buildObjectFromDescriptor(it) }
-                    val beforeArgsDescr = execResult.initialState.argsDescriptors.map { it?.valueDescriptor }
+                    val beforeArgsDescr = execResult.initialState.argsDescriptors.map { it }
                     val argsBefore = beforeArgsDescr.let { descriptors ->
                         descriptors.map { descr ->
                             descr?.let { descriptor2ValueConverter.buildObjectFromDescriptor(it) }
                         }
                     }
                     before = JcParametersState(thisBefore, argsBefore)
-                    val thisAfterDescr = execResult.resultState.instanceDescriptor?.valueDescriptor
+                    val thisAfterDescr = execResult.resultState.instanceDescriptor
                     val thisAfter = thisAfterDescr?.let { descriptor2ValueConverter.buildObjectFromDescriptor(it) }
-                    val afterArgsDescr = execResult.resultState.argsDescriptors.map { it?.valueDescriptor }
+                    val afterArgsDescr = execResult.resultState.argsDescriptors.map { it }
                     val argsAfter = afterArgsDescr.let { descriptors ->
                         descriptors.map { descr ->
                             descr?.let { descriptor2ValueConverter.buildObjectFromDescriptor(it) }
@@ -109,9 +109,9 @@ class JcTestExecutor(
                     val exceptionInstance =
                         descriptor2ValueConverter.buildObjectFromDescriptor(execResult.cause) as? Throwable
                             ?: error("Exception building error")
-                    val thisBeforeDescr = execResult.initialState.instanceDescriptor?.valueDescriptor
+                    val thisBeforeDescr = execResult.initialState.instanceDescriptor
                     val thisBefore = thisBeforeDescr?.let { descriptor2ValueConverter.buildObjectFromDescriptor(it) }
-                    val beforeArgsDescr = execResult.initialState.argsDescriptors.map { it?.valueDescriptor }
+                    val beforeArgsDescr = execResult.initialState.argsDescriptors.map { it }
                     val argsBefore = beforeArgsDescr.let { descriptors ->
                         descriptors.map { descr ->
                             descr?.let { descriptor2ValueConverter.buildObjectFromDescriptor(it) }

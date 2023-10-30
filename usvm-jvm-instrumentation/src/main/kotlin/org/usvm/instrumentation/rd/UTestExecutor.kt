@@ -17,7 +17,6 @@ import org.usvm.instrumentation.testcase.descriptor.Value2DescriptorConverter
 import org.usvm.instrumentation.testcase.executor.UTestExpressionExecutor
 import org.usvm.instrumentation.util.InstrumentationModuleConstants
 import org.usvm.instrumentation.util.URLClassPathLoader
-import java.io.File
 import java.lang.Exception
 
 class UTestExecutor(
@@ -61,7 +60,8 @@ class UTestExecutor(
         val callMethodExpr = uTest.callMethodExpression
 
         val executor = UTestExpressionExecutor(workerClassLoader, accessedStatics, mockHelper)
-        executor.executeUTestInsts(uTest.initStatements)
+        val initStmts = (uTest.initStatements + listOf(callMethodExpr.instance) + callMethodExpr.args).filterNotNull()
+        executor.executeUTestInsts(initStmts)
             ?.onFailure {
                 return UTestExecutionInitFailedResult(
                     cause = buildExceptionDescriptor(initStateDescriptorBuilder, it, false),
@@ -151,6 +151,7 @@ class UTestExecutor(
         descriptorBuilder: Value2DescriptorConverter,
         accessedStatics: MutableSet<Pair<JcField, JcInstructionTracer.StaticFieldAccessType>>
     ): UTestExecutionState = with(descriptorBuilder) {
+        descriptorBuilder.uTestExecutorCache.addAll(executor.objectToInstructionsCache)
         val instanceDescriptor = callMethodExpr.instance?.let {
             buildDescriptorFromUTestExpr(it, executor)?.getOrNull()
         }

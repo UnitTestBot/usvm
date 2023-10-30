@@ -24,10 +24,14 @@ class UTestExpressionExecutor(
 
 
     private val executedUTestInstructions: MutableMap<UTestInst, Any?> = hashMapOf()
+    val objectToInstructionsCache: MutableList<Pair<Any?, UTestInst>> = mutableListOf()
 
     fun removeFromCache(uTestInst: UTestInst) = executedUTestInstructions.remove(uTestInst)
 
-    fun clearCache() = executedUTestInstructions.clear()
+    fun clearCache() {
+        executedUTestInstructions.clear()
+        objectToInstructionsCache.clear()
+    }
 
     fun executeUTestInst(uTestInst: UTestInst): Result<Any?> =
         try {
@@ -70,6 +74,10 @@ class UTestExpressionExecutor(
             is UTestSetStaticFieldStatement -> executeUTestSetStaticFieldStatement(uTestExpression)
             is UTestArithmeticExpression -> executeUTestArithmeticExpression(uTestExpression)
             is UTestClassExpression -> executeUTestClassExpression(uTestExpression)
+        }
+    }.also {
+        it?.let {
+            objectToInstructionsCache.add(it to uTestExpression)
         }
     }
 

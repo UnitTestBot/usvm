@@ -28,7 +28,6 @@ class InstrumentedProcessModel private constructor(
         override fun registerSerializersCore(serializers: ISerializers)  {
             serializers.register(ExecuteParams)
             serializers.register(SerializedUTest)
-            serializers.register(ExtendedValueDescriptor)
             serializers.register(ExecutionStateSerialized)
             serializers.register(SerializedStaticField)
             serializers.register(ClassToId)
@@ -54,7 +53,7 @@ class InstrumentedProcessModel private constructor(
         }
         
         
-        const val serializationHash = 3722177400659570323L
+        const val serializationHash = 1434578686845984847L
         
     }
     override val serializersOwner: ISerializersOwner get() = InstrumentedProcessModel
@@ -101,7 +100,7 @@ val IProtocol.instrumentedProcessModel get() = getOrCreateExtension(Instrumented
 
 
 /**
- * #### Generated from [InstrumentedProcessModel.kt:63]
+ * #### Generated from [InstrumentedProcessModel.kt:58]
  */
 data class ClassToId (
     val className: String,
@@ -233,7 +232,7 @@ data class ExecuteParams (
 
 
 /**
- * #### Generated from [InstrumentedProcessModel.kt:68]
+ * #### Generated from [InstrumentedProcessModel.kt:63]
  */
 data class ExecutionResult (
     val type: ExecutionResultType,
@@ -326,7 +325,7 @@ data class ExecutionResult (
 
 
 /**
- * #### Generated from [InstrumentedProcessModel.kt:69]
+ * #### Generated from [InstrumentedProcessModel.kt:64]
  */
 enum class ExecutionResultType {
     UTestExecutionInitFailedResult, 
@@ -343,11 +342,11 @@ enum class ExecutionResultType {
 
 
 /**
- * #### Generated from [InstrumentedProcessModel.kt:52]
+ * #### Generated from [InstrumentedProcessModel.kt:47]
  */
 data class ExecutionStateSerialized (
-    val instanceDescriptor: ExtendedValueDescriptor?,
-    val argsDescriptors: List<ExtendedValueDescriptor?>,
+    val instanceDescriptor: org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor?,
+    val argsDescriptors: List<org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor?>,
     val statics: List<SerializedStaticField>?
 ) : IPrintable {
     //companion
@@ -357,15 +356,15 @@ data class ExecutionStateSerialized (
         
         @Suppress("UNCHECKED_CAST")
         override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): ExecutionStateSerialized  {
-            val instanceDescriptor = buffer.readNullable { ExtendedValueDescriptor.read(ctx, buffer) }
-            val argsDescriptors = buffer.readList { buffer.readNullable { ExtendedValueDescriptor.read(ctx, buffer) } }
+            val instanceDescriptor = buffer.readNullable { (ctx.serializers.get(org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.marshallerId)!! as IMarshaller<org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor>).read(ctx, buffer) }
+            val argsDescriptors = buffer.readList { buffer.readNullable { (ctx.serializers.get(org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.marshallerId)!! as IMarshaller<org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor>).read(ctx, buffer) } }
             val statics = buffer.readNullable { buffer.readList { SerializedStaticField.read(ctx, buffer) } }
             return ExecutionStateSerialized(instanceDescriptor, argsDescriptors, statics)
         }
         
         override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: ExecutionStateSerialized)  {
-            buffer.writeNullable(value.instanceDescriptor) { ExtendedValueDescriptor.write(ctx, buffer, it) }
-            buffer.writeList(value.argsDescriptors) { v -> buffer.writeNullable(v) { ExtendedValueDescriptor.write(ctx, buffer, it) } }
+            buffer.writeNullable(value.instanceDescriptor) { (ctx.serializers.get(org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.marshallerId)!! as IMarshaller<org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor>).write(ctx,buffer, it) }
+            buffer.writeList(value.argsDescriptors) { v -> buffer.writeNullable(v) { (ctx.serializers.get(org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.marshallerId)!! as IMarshaller<org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor>).write(ctx,buffer, it) } }
             buffer.writeNullable(value.statics) { buffer.writeList(it) { v -> SerializedStaticField.write(ctx, buffer, v) } }
         }
         
@@ -412,70 +411,7 @@ data class ExecutionStateSerialized (
 
 
 /**
- * #### Generated from [InstrumentedProcessModel.kt:47]
- */
-data class ExtendedValueDescriptor (
-    val valueDescriptor: org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor?,
-    val originUTestInstId: Int
-) : IPrintable {
-    //companion
-    
-    companion object : IMarshaller<ExtendedValueDescriptor> {
-        override val _type: KClass<ExtendedValueDescriptor> = ExtendedValueDescriptor::class
-        
-        @Suppress("UNCHECKED_CAST")
-        override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): ExtendedValueDescriptor  {
-            val valueDescriptor = buffer.readNullable { (ctx.serializers.get(org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.marshallerId)!! as IMarshaller<org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor>).read(ctx, buffer) }
-            val originUTestInstId = buffer.readInt()
-            return ExtendedValueDescriptor(valueDescriptor, originUTestInstId)
-        }
-        
-        override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: ExtendedValueDescriptor)  {
-            buffer.writeNullable(value.valueDescriptor) { (ctx.serializers.get(org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.marshallerId)!! as IMarshaller<org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor>).write(ctx,buffer, it) }
-            buffer.writeInt(value.originUTestInstId)
-        }
-        
-        
-    }
-    //fields
-    //methods
-    //initializer
-    //secondary constructor
-    //equals trait
-    override fun equals(other: Any?): Boolean  {
-        if (this === other) return true
-        if (other == null || other::class != this::class) return false
-        
-        other as ExtendedValueDescriptor
-        
-        if (valueDescriptor != other.valueDescriptor) return false
-        if (originUTestInstId != other.originUTestInstId) return false
-        
-        return true
-    }
-    //hash code trait
-    override fun hashCode(): Int  {
-        var __r = 0
-        __r = __r*31 + if (valueDescriptor != null) valueDescriptor.hashCode() else 0
-        __r = __r*31 + originUTestInstId.hashCode()
-        return __r
-    }
-    //pretty print
-    override fun print(printer: PrettyPrinter)  {
-        printer.println("ExtendedValueDescriptor (")
-        printer.indent {
-            print("valueDescriptor = "); valueDescriptor.print(printer); println()
-            print("originUTestInstId = "); originUTestInstId.print(printer); println()
-        }
-        printer.print(")")
-    }
-    //deepClone
-    //contexts
-}
-
-
-/**
- * #### Generated from [InstrumentedProcessModel.kt:58]
+ * #### Generated from [InstrumentedProcessModel.kt:53]
  */
 data class SerializedStaticField (
     val fieldName: String,
