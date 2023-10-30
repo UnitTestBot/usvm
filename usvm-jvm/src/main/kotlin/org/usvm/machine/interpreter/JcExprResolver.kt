@@ -107,10 +107,12 @@ import org.usvm.machine.operator.wideTo32BitsIfNeeded
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.addConcreteMethodCallStmt
+import org.usvm.machine.state.addDynamicCall
 import org.usvm.machine.state.addVirtualMethodCallStmt
 import org.usvm.machine.state.throwExceptionWithoutStackFrameDrop
 import org.usvm.memory.ULValue
 import org.usvm.memory.URegisterStackLValue
+import org.usvm.memory.UWritableMemory
 import org.usvm.mkSizeExpr
 import org.usvm.sizeSort
 import org.usvm.util.allocHeapRef
@@ -390,21 +392,29 @@ class JcExprResolver(
         resolveInvoke(
             expr.method,
             instanceExpr = null,
-            argumentExprs = expr::args,
-            argumentTypes = expr::callSiteArgTypes
-        ) { arguments ->
-            TODO("Dynamic invoke: ${expr.method.method} $arguments")
+            argumentExprs = { expr.callSiteArgs },
+            argumentTypes = { expr.callSiteArgTypes }
+        ) { callSiteArguments ->
+            scope.doWithState { addDynamicCall(expr, callSiteArguments) }
         }
 
-    override fun visitJcLambdaExpr(expr: JcLambdaExpr): UExpr<out USort>? =
-        resolveInvoke(
-            expr.method,
-            instanceExpr = null,
-            argumentExprs = expr::args,
-            argumentTypes = { expr.method.parameters.map { it.type } }
-        ) { arguments ->
-            scope.doWithState { addConcreteMethodCallStmt(expr.method.method, arguments) }
+    override fun visitJcLambdaExpr(expr: JcLambdaExpr): UExpr<out USort>? {
+        val callSiteArgs = expr.callSiteArgs.zip(expr.callSiteArgTypes) { arg, type ->
+            resolveJcExpr(arg, type) ?: return null
         }
+
+        val callSiteRef = scope.calcOnState { memory.allocConcrete(expr.callSiteReturnType) }
+        val callSite = JcLambdaCallSite(callSiteRef, expr, callSiteArgs)
+        scope.doWithState { memory.writeCallSite(callSite) }
+
+        return callSiteRef
+    }
+
+    private fun UWritableMemory<JcType>.writeCallSite(callSite: JcLambdaCallSite) {
+        val callSiteRegion = getRegion(ctx.lambdaCallSiteRegionId) as JcLambdaCallSiteMemoryRegion
+        val updatedRegion = callSiteRegion.writeCallSite(callSite)
+        setRegion(ctx.lambdaCallSiteRegionId, updatedRegion)
+    }
 
     private inline fun resolveInvoke(
         method: JcTypedMethod,
