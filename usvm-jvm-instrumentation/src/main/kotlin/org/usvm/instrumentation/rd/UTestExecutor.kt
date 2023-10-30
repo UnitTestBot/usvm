@@ -95,6 +95,10 @@ class UTestExecutor(
                 else -> methodInvocationResult.getOrNull()
             }
         if (unpackedInvocationResult is Throwable) {
+            val trace = JcInstructionTracer.getTrace()
+            accessedStatics.addAll(trace.statics.toSet())
+            val resultExecutionState =
+                buildExecutionState(callMethodExpr, executor, resultStateDescriptorBuilder, accessedStatics)
             return UTestExecutionExceptionResult(
                 cause = buildExceptionDescriptor(
                     builder = resultStateDescriptorBuilder,
@@ -103,8 +107,7 @@ class UTestExecutor(
                 ),
                 trace = JcInstructionTracer.getTrace().trace,
                 initialState = initExecutionState,
-                //TODO!!! decide if should we build resulting state
-                resultState = initExecutionState
+                resultState = resultExecutionState
             )
         }
         val methodInvocationResultDescriptor =
