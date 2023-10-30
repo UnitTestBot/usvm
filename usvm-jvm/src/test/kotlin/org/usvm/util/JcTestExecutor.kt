@@ -28,8 +28,6 @@ import org.usvm.memory.URegisterStackLValue
 import org.usvm.model.UModelBase
 import org.usvm.types.first
 import org.usvm.types.firstOrNull
-import java.nio.file.Paths
-import kotlin.io.path.appendText
 
 /**
  * A class, responsible for resolving a single [JcTest] for a specific method from a symbolic state.
