@@ -4,32 +4,32 @@ import org.usvm.UBoolExpr
 import org.usvm.UContext
 
 interface MergeGuard {
-    val leftConstraint: UBoolExpr
+    val thisConstraint: UBoolExpr
 
-    val rightConstraint: UBoolExpr
+    val otherConstraint: UBoolExpr
 }
 
 class MutableMergeGuard(
     private val ctx: UContext<*>,
 ) : MergeGuard {
-    private val _leftConstraints = mutableListOf<UBoolExpr>()
-    private val _rightConstraints = mutableListOf<UBoolExpr>()
+    private val _thisConstraints = mutableListOf<UBoolExpr>()
+    private val _otherConstraints = mutableListOf<UBoolExpr>()
 
-    private var _leftConstraint: UBoolExpr? = null
-    override val leftConstraint: UBoolExpr
-        get() = _leftConstraint ?: ctx.mkAnd(_leftConstraints).also { _leftConstraint = it }
+    private var _thisConstraint: UBoolExpr? = null
+    override val thisConstraint: UBoolExpr
+        get() = _thisConstraint ?: ctx.mkAnd(_thisConstraints).also { _thisConstraint = it }
 
-    private var _rightConstraint: UBoolExpr? = null
-    override val rightConstraint: UBoolExpr
-        get() = _rightConstraint ?: ctx.mkAnd(_rightConstraints).also { _rightConstraint = it }
+    private var _otherConstraint: UBoolExpr? = null
+    override val otherConstraint: UBoolExpr
+        get() = _otherConstraint ?: ctx.mkAnd(_otherConstraints).also { _otherConstraint = it }
 
-    fun appendLeft(constraints: Sequence<UBoolExpr>) {
-        _leftConstraints.addAll(constraints)
-        _leftConstraint = null
+    fun appendThis(constraints: Sequence<UBoolExpr>) {
+        _thisConstraints.addAll(constraints)
+        _thisConstraint = null
     }
 
-    fun appendRight(constraints: Sequence<UBoolExpr>) {
-        _rightConstraints.addAll(constraints)
-        _rightConstraint = null
+    fun appendOther(constraints: Sequence<UBoolExpr>) {
+        _otherConstraints.addAll(constraints)
+        _otherConstraint = null
     }
 }

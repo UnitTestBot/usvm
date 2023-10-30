@@ -78,6 +78,7 @@ class SampleState(
             return null
         }
         val mergedTargets = targets.takeIf { it == other.targets } ?: return null
+        mergedPathConstraints += ctx.mkOr(mergeGuard.thisConstraint, mergeGuard.otherConstraint)
 
         return SampleState(
             ctx,

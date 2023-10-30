@@ -2417,10 +2417,10 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
             .separate(other.numericConstraints.build())
 
         for (constraint in thisUnique.values) {
-            by.appendLeft(constraint.mkExpressions())
+            by.appendThis(constraint.mkExpressions())
         }
         for (constraint in otherUnique.values) {
-            by.appendRight(constraint.mkExpressions())
+            by.appendOther(constraint.mkExpressions())
         }
 
         return UNumericConstraints(ctx, sort, overlap, constraintWatchList.build())

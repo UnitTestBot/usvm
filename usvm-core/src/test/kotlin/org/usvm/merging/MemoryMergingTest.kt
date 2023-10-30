@@ -121,7 +121,7 @@ class MemoryMergingTest {
         byCondition: UBoolExpr,
         vararg getters: (UMemory<SingleType, Method>) -> UExpr<out USort>,
     ) = with(ctx) {
-        val mergeGuard = MutableMergeGuard(this).apply { appendLeft(sequenceOf(byCondition)) }
+        val mergeGuard = MutableMergeGuard(this).apply { appendThis(sequenceOf(byCondition)) }
         val mergedMemory = checkNotNull(memoryLeft.mergeWith(memoryRight, mergeGuard))
 
         for (getter in getters) {

@@ -58,9 +58,9 @@ class JcState(
 
         val mergeGuard = MutableMergeGuard(ctx)
         val mergedCallStack = callStack.mergeWith(other.callStack, Unit) ?: return null
-        val mergePathConstraints = pathConstraints.mergeWith(other.pathConstraints, mergeGuard)
+        val mergedPathConstraints = pathConstraints.mergeWith(other.pathConstraints, mergeGuard)
             ?: return null
-        val mergedMemory = memory.clone(mergePathConstraints.typeConstraints).mergeWith(other.memory, mergeGuard)
+        val mergedMemory = memory.clone(mergedPathConstraints.typeConstraints).mergeWith(other.memory, mergeGuard)
             ?: return null
         val mergedModels = models + other.models
         val methodResult = if (other.methodResult == JcMethodResult.NoCall && methodResult == JcMethodResult.NoCall) {
@@ -69,11 +69,13 @@ class JcState(
             return null
         }
         val mergedTargets = targets.takeIf { it == other.targets } ?: return null
+        mergedPathConstraints += ctx.mkOr(mergeGuard.thisConstraint, mergeGuard.otherConstraint)
+
 
         return JcState(
             ctx,
             mergedCallStack,
-            mergePathConstraints,
+            mergedPathConstraints,
             mergedMemory,
             mergedModels,
             mergedPathNode,

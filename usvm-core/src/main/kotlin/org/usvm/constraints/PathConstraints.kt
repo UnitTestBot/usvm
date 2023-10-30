@@ -200,7 +200,6 @@ open class UPathConstraints<Type> private constructor(
             .clone(mergedEqualityConstraints)
             .mergeWith(other.typeConstraints, by) ?: return null
         val mergedNumericConstraints = numericConstraints.mergeWith(other.numericConstraints, by)
-        mergedLogicalConstraints += ctx.mkOr(by.leftConstraint, by.rightConstraint)
 
         return UPathConstraints(
             ctx,

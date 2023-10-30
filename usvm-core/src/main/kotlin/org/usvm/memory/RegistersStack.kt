@@ -114,7 +114,7 @@ class URegistersStack(
                 val rightRegister = rightFrame[registerIdx]
                 val sort = leftRegister?.sort ?: rightRegister?.sort ?: continue
                 val result = sort.uctx.mkIte(
-                    by.leftConstraint,
+                    by.thisConstraint,
                     leftFrame.read(registerIdx, sort),
                     rightFrame.read(registerIdx, sort)
                 )

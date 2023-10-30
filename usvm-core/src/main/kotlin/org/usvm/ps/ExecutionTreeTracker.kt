@@ -30,6 +30,8 @@ class ExecutionTreeTracker<State : UState<*, *, Statement, *, *, State>, Stateme
     fun peek(): State {
         var cur = rootNode
         while (cur.value.states.isEmpty()) {
+            // because of [cleanUp], nodes without states must be removed, so if a node is still in the tree,
+            // there is at least one state in its subtree
             cur = cur.children.values.first()
         }
         return cur.value.states.first()

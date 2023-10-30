@@ -44,8 +44,8 @@ class ULogicalConstraints private constructor(
      */
     override fun mergeWith(other: ULogicalConstraints, by: MutableMergeGuard): ULogicalConstraints {
         val (overlap, uniqueThis, uniqueOther) = constraints.separate(other.constraints)
-        by.appendLeft(uniqueThis.asSequence())
-        by.appendRight(uniqueOther.asSequence())
+        by.appendThis(uniqueThis.asSequence())
+        by.appendOther(uniqueOther.asSequence())
         return ULogicalConstraints(overlap)
     }
 
