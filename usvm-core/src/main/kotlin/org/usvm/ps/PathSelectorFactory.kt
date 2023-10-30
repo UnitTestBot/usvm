@@ -2,6 +2,7 @@ package org.usvm.ps
 
 import org.usvm.PathSelectionStrategy
 import org.usvm.PathSelectorCombinationStrategy
+import org.usvm.PathSelectorFairnessStrategy
 import org.usvm.UMachineOptions
 import org.usvm.UPathSelector
 import org.usvm.UState
@@ -11,6 +12,7 @@ import org.usvm.merging.CloseStatesSearcherImpl
 import org.usvm.merging.MergingPathSelector
 import org.usvm.statistics.ApplicationGraph
 import org.usvm.statistics.CoverageStatistics
+import org.usvm.statistics.TimeStatistics
 import org.usvm.statistics.distances.CallGraphStatistics
 import org.usvm.statistics.distances.CallStackDistanceCalculator
 import org.usvm.statistics.distances.CfgStatistics
@@ -19,17 +21,20 @@ import org.usvm.statistics.distances.InterprocDistanceCalculator
 import org.usvm.statistics.distances.MultiTargetDistanceCalculator
 import org.usvm.statistics.distances.ReachabilityKind
 import org.usvm.targets.UTarget
+import org.usvm.util.JvmStopwatch
 import org.usvm.util.log2
 import kotlin.math.max
 import kotlin.random.Random
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 
-fun <Method, Statement, Target, State> createPathSelector(
-    initialState: State,
+private fun <Method, Statement, Target, State> createPathSelector(
+    initialStates: Collection<State>,
     options: UMachineOptions,
     applicationGraph: ApplicationGraph<Method, Statement>,
-    coverageStatistics: () -> CoverageStatistics<Method, Statement, State>? = { null },
-    cfgStatistics: () -> CfgStatistics<Method, Statement>? = { null },
-    callGraphStatistics: () -> CallGraphStatistics<Method>? = { null },
+    coverageStatisticsFactory: () -> CoverageStatistics<Method, Statement, State>? = { null },
+    cfgStatisticsFactory: () -> CfgStatistics<Method, Statement>? = { null },
+    callGraphStatisticsFactory: () -> CallGraphStatistics<Method>? = { null },
 ): UPathSelector<State>
     where Target : UTarget<Statement, Target>,
           State : UState<*, Method, Statement, *, Target, State> {
@@ -44,10 +49,15 @@ fun <Method, Statement, Target, State> createPathSelector(
             PathSelectionStrategy.BFS -> BfsPathSelector()
             PathSelectionStrategy.DFS -> DfsPathSelector()
 
-            PathSelectionStrategy.RANDOM_PATH -> RandomTreePathSelector.fromRoot(
-                initialState.pathNode,
-                randomNonNegativeInt = { random.nextInt(0, it) }
-            )
+            PathSelectionStrategy.RANDOM_PATH -> {
+                val initialState = initialStates.singleOrNull()
+                requireNotNull(initialState) { "Random tree path selector doesn't support multiple initial states yet" }
+
+                RandomTreePathSelector.fromRoot(
+                    initialState.pathNode,
+                    randomNonNegativeInt = { random.nextInt(0, it) }
+                )
+            }
 
             PathSelectionStrategy.DEPTH -> createDepthPathSelector()
             PathSelectionStrategy.DEPTH_RANDOM -> createDepthPathSelector(random)
@@ -56,38 +66,38 @@ fun <Method, Statement, Target, State> createPathSelector(
             PathSelectionStrategy.FORK_DEPTH_RANDOM -> createForkDepthPathSelector(random)
 
             PathSelectionStrategy.CLOSEST_TO_UNCOVERED -> createClosestToUncoveredPathSelector(
-                requireNotNull(coverageStatistics()) { "Coverage statistics is required for closest to uncovered path selector" },
-                requireNotNull(cfgStatistics()) { "CFG statistics is required for closest to uncovered path selector" },
+                requireNotNull(coverageStatisticsFactory()) { "Coverage statistics is required for closest to uncovered path selector" },
+                requireNotNull(cfgStatisticsFactory()) { "CFG statistics is required for closest to uncovered path selector" },
                 applicationGraph
             )
 
             PathSelectionStrategy.CLOSEST_TO_UNCOVERED_RANDOM -> createClosestToUncoveredPathSelector(
-                requireNotNull(coverageStatistics()) { "Coverage statistics is required for closest to uncovered path selector" },
-                requireNotNull(cfgStatistics()) { "CFG statistics is required for closest to uncovered path selector" },
+                requireNotNull(coverageStatisticsFactory()) { "Coverage statistics is required for closest to uncovered path selector" },
+                requireNotNull(cfgStatisticsFactory()) { "CFG statistics is required for closest to uncovered path selector" },
                 applicationGraph,
                 random
             )
 
             PathSelectionStrategy.TARGETED -> createTargetedPathSelector<Method, Statement, Target, State>(
-                requireNotNull(cfgStatistics()) { "CFG statistics is required for targeted path selector" },
-                requireNotNull(callGraphStatistics()) { "Call graph statistics is required for targeted path selector" },
+                requireNotNull(cfgStatisticsFactory()) { "CFG statistics is required for targeted path selector" },
+                requireNotNull(callGraphStatisticsFactory()) { "Call graph statistics is required for targeted path selector" },
                 applicationGraph
             )
 
             PathSelectionStrategy.TARGETED_RANDOM -> createTargetedPathSelector<Method, Statement, Target, State>(
-                requireNotNull(cfgStatistics()) { "CFG statistics is required for targeted path selector" },
-                requireNotNull(callGraphStatistics()) { "Call graph statistics is required for targeted path selector" },
+                requireNotNull(cfgStatisticsFactory()) { "CFG statistics is required for targeted path selector" },
+                requireNotNull(callGraphStatisticsFactory()) { "Call graph statistics is required for targeted path selector" },
                 applicationGraph,
                 random
             )
 
             PathSelectionStrategy.TARGETED_CALL_STACK_LOCAL -> createTargetedPathSelector<Method, Statement, Target, State>(
-                requireNotNull(cfgStatistics()) { "CFG statistics is required for targeted call stack local path selector" },
+                requireNotNull(cfgStatisticsFactory()) { "CFG statistics is required for targeted call stack local path selector" },
                 applicationGraph
             )
 
             PathSelectionStrategy.TARGETED_CALL_STACK_LOCAL_RANDOM -> createTargetedPathSelector<Method, Statement, Target, State>(
-                requireNotNull(cfgStatistics()) { "CFG statistics is required for targeted call stack local path selector" },
+                requireNotNull(cfgStatisticsFactory()) { "CFG statistics is required for targeted call stack local path selector" },
                 applicationGraph,
                 random
             )
@@ -100,7 +110,7 @@ fun <Method, Statement, Target, State> createPathSelector(
     selectors.singleOrNull()?.let { selector ->
         val resultSelector = selector.wrapIfRequired(propagateExceptions)
         val mergingSelector = createMergingPathSelector(initialState, resultSelector, options, cfgStatistics)
-        mergingSelector.add(listOf(initialState))
+        mergingSelector.add(initialStates.toList())
         return mergingSelector
     }
 
@@ -110,7 +120,7 @@ fun <Method, Statement, Target, State> createPathSelector(
         PathSelectorCombinationStrategy.INTERLEAVED -> {
             // Since all selectors here work as one, we can wrap an interleaved selector only.
             val interleavedPathSelector = InterleavedPathSelector(selectors).wrapIfRequired(propagateExceptions)
-            interleavedPathSelector.add(listOf(initialState))
+            interleavedPathSelector.add(initialStates.toList())
             interleavedPathSelector
         }
 
@@ -118,9 +128,9 @@ fun <Method, Statement, Target, State> createPathSelector(
             // Here we should wrap all selectors independently since they work in parallel.
             val wrappedSelectors = selectors.map { it.wrapIfRequired(propagateExceptions) }
 
-            wrappedSelectors.first().add(listOf(initialState))
+            wrappedSelectors.first().add(initialStates.toList())
             wrappedSelectors.drop(1).forEach {
-                it.add(listOf(initialState.clone()))
+                it.add(initialStates.map { it.clone() }.toList())
             }
 
             ParallelPathSelector(wrappedSelectors)
@@ -128,6 +138,101 @@ fun <Method, Statement, Target, State> createPathSelector(
     }
 
     return selector
+}
+
+fun <Method, Statement, Target, State> createPathSelector(
+    initialState: State,
+    options: UMachineOptions,
+    applicationGraph: ApplicationGraph<Method, Statement>,
+    coverageStatisticsFactory: () -> CoverageStatistics<Method, Statement, State>? = { null },
+    cfgStatisticsFactory: () -> CfgStatistics<Method, Statement>? = { null },
+    callGraphStatisticsFactory: () -> CallGraphStatistics<Method>? = { null },
+): UPathSelector<State> where Target : UTarget<Statement, Target>, State : UState<*, Method, Statement, *, Target, State> =
+    createPathSelector(listOf(initialState), options, applicationGraph, coverageStatisticsFactory, cfgStatisticsFactory, callGraphStatisticsFactory)
+
+fun <Method, Statement, Target, State> createPathSelector(
+    initialStates: Map<Method, State>,
+    options: UMachineOptions,
+    applicationGraph: ApplicationGraph<Method, Statement>,
+    timeStatistics: TimeStatistics,
+    coverageStatisticsFactory: () -> CoverageStatistics<Method, Statement, State>? = { null },
+    cfgStatisticsFactory: () -> CfgStatistics<Method, Statement>? = { null },
+    callGraphStatisticsFactory: () -> CallGraphStatistics<Method>? = { null },
+): UPathSelector<State> where Target : UTarget<Statement, Target>, State : UState<*, Method, Statement, *, Target, State> {
+    val timeoutMs = options.timeoutMs
+    if (timeoutMs == null || initialStates.count() == 1) {
+        return createPathSelector(
+            initialStates.values, options, applicationGraph, coverageStatisticsFactory, cfgStatisticsFactory, callGraphStatisticsFactory
+        )
+    }
+
+    fun getRemainingTimeMs(): Duration {
+        val diff = timeoutMs.milliseconds - timeStatistics.runningTime
+        return if (diff < Duration.ZERO) Duration.ZERO else diff
+    }
+
+    fun createBasePathSelector(method: Method) =
+        createPathSelector(
+            initialStates.getValue(method),
+            options,
+            applicationGraph,
+            coverageStatisticsFactory,
+            cfgStatisticsFactory,
+            callGraphStatisticsFactory
+        )
+
+    val coverageStatistics = coverageStatisticsFactory()
+    val getMethodCoverage =
+        if (coverageStatistics == null) {
+            { 0f }
+        } else {
+            { m: Method -> coverageStatistics.getMethodCoverage(m) }
+        }
+
+    val initialStateToEntrypoint = mutableMapOf<State, Method>()
+    initialStates.forEach { (m, s) -> initialStateToEntrypoint[s] = m }
+    fun getEntrypointMethod(state: State): Method {
+        if (state.callStack.isNotEmpty()) {
+            return state.callStack.first().method
+        }
+        // Workaround for initial states having empty callstack
+        return initialStateToEntrypoint.getValue(state)
+    }
+
+    return when (options.pathSelectorFairnessStrategy) {
+        PathSelectorFairnessStrategy.CONSTANT_TIME -> {
+            val pathSelector = ConstantTimeFairPathSelector(
+                initialStates.keys.asSequence(),
+                JvmStopwatch(),
+                ::getRemainingTimeMs,
+                ::getEntrypointMethod,
+                getMethodCoverage,
+                ::createBasePathSelector
+            )
+            coverageStatistics?.addOnCoveredObserver { _, method, _ ->
+                if (coverageStatistics.getMethodCoverage(method) == 100f) {
+                    pathSelector.removeKey(method)
+                }
+            }
+            pathSelector
+        }
+
+        PathSelectorFairnessStrategy.COMPLETELY_FAIR -> {
+            val pathSelector = CompletelyFairPathSelector(
+                initialStates.keys.asSequence(),
+                JvmStopwatch(),
+                ::getEntrypointMethod,
+                getMethodCoverage,
+                ::createBasePathSelector
+            )
+            coverageStatistics?.addOnCoveredObserver { _, method, _ ->
+                if (coverageStatistics.getMethodCoverage(method) == 100f) {
+                    pathSelector.removeKey(method)
+                }
+            }
+            pathSelector
+        }
+    }
 }
 
 /**

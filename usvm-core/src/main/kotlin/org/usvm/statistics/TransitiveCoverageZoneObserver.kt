@@ -8,12 +8,12 @@ package org.usvm.statistics
  * e.g., the ones that belong to the system libraries.
  */
 class TransitiveCoverageZoneObserver<State, Method>(
-    initialMethod: Method,
+    initialMethods: Collection<Method>,
     private val methodExtractor: (State) -> Method,
     private val addCoverageZone: (Method) -> Unit,
     private val ignoreMethod: (Method) -> Boolean,
 ) : UMachineObserver<State> {
-    private val collectedMethods: MutableSet<Method> = mutableSetOf(initialMethod)
+    private val collectedMethods: MutableSet<Method> = initialMethods.toMutableSet()
 
     override fun onState(parent: State, forks: Sequence<State>) {
         addInstructionsToCover(parent)

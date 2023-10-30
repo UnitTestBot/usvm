@@ -19,6 +19,8 @@ import org.usvm.machine.state.lastStmt
 import org.usvm.ps.createPathSelector
 import org.usvm.statistics.CompositeUMachineObserver
 import org.usvm.statistics.CoverageStatistics
+import org.usvm.statistics.TerminatedStateRemover
+import org.usvm.statistics.TimeStatistics
 import org.usvm.statistics.TransitiveCoverageZoneObserver
 import org.usvm.statistics.UMachineObserver
 import org.usvm.statistics.collectors.CoveredNewStatesCollector
@@ -50,17 +52,23 @@ class JcMachine(
 
     private val cfgStatistics = CfgStatisticsImpl(applicationGraph)
 
-    fun analyze(method: JcMethod, targets: List<JcTarget> = emptyList()): List<JcState> {
-        logger.debug("{}.analyze({}, {})", this, method, targets)
-        val initialState = interpreter.getInitialState(method, targets)
+    fun analyze(methods: List<Pair<JcMethod, List<JcTarget>>>): List<JcState> {
+        logger.debug("{}.analyze({})", this, methods)
+        val initialStates = mutableMapOf<JcMethod, JcState>()
+        methods.forEach { (method, target) ->
+            initialStates[method] = interpreter.getInitialState(method, target)
+        }
+        val targets = methods.flatMap { it.second }
 
         val methodsToTrackCoverage =
             when (options.coverageZone) {
-                CoverageZone.METHOD -> setOf(method)
-                CoverageZone.TRANSITIVE -> setOf(method)
+                CoverageZone.METHOD,
+                CoverageZone.TRANSITIVE -> methods.unzip().first.toSet()
                 // TODO: more adequate method filtering. !it.isConstructor is used to exclude default constructor which is often not covered
-                CoverageZone.CLASS -> method.enclosingClass.methods.filter {
-                    it.enclosingClass == method.enclosingClass && !it.isConstructor
+                CoverageZone.CLASS -> methods.flatMap {
+                    (method, _) -> method.enclosingClass.methods.filter {
+                        it.enclosingClass == method.enclosingClass && !it.isConstructor
+                    }
                 }.toSet()
             }
 
@@ -82,10 +90,13 @@ class JcMachine(
 
         val transparentCfgStatistics = transparentCfgStatistics()
 
+        val timeStatistics = TimeStatistics()
+
         val pathSelector = createPathSelector(
-            initialState,
+            initialStates,
             options,
             applicationGraph,
+            timeStatistics,
             { coverageStatistics },
             { transparentCfgStatistics },
             { callGraphStatistics }
@@ -117,7 +128,7 @@ class JcMachine(
         if (options.coverageZone == CoverageZone.TRANSITIVE) {
             observers.add(
                 TransitiveCoverageZoneObserver(
-                    initialMethod = method,
+                    initialMethods = methods.unzip().first,
                     methodExtractor = { state -> state.lastStmt.location.method },
                     addCoverageZone = { coverageStatistics.addCoverageZone(it) },
                     ignoreMethod = { false } // TODO replace with a configurable setting
@@ -144,17 +155,24 @@ class JcMachine(
         if (options.useSoftConstraints) {
             observers.add(SoftConstraintsObserver())
         }
-
-        run(
-            interpreter,
-            pathSelector,
-            observer = CompositeUMachineObserver(observers),
-            isStateTerminated = ::isStateTerminated,
-            stopStrategy = stopStrategy,
-        )
+        
+        try {
+            timeStatistics.onMachineStarted()
+            run(
+                interpreter,
+                pathSelector,
+                observer = CompositeUMachineObserver(observers),
+                isStateTerminated = ::isStateTerminated,
+                stopStrategy = stopStrategy,
+            )
+        } finally {
+            timeStatistics.onMachineStopped()
+        }
 
         return statesCollector.collectedStates
     }
+
+    fun analyze(method: JcMethod, targets: List<JcTarget> = emptyList()): List<JcState> = analyze(listOf(method to targets))
 
     /**
      * Returns a wrapper for the [cfgStatistics] that ignores [JcTransparentInstruction]s.

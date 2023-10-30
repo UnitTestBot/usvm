@@ -107,6 +107,11 @@ enum class PathSelectorCombinationStrategy {
     PARALLEL
 }
 
+enum class PathSelectorFairnessStrategy {
+    COMPLETELY_FAIR,
+    CONSTANT_TIME
+}
+
 // TODO: add module/package coverage zone
 enum class CoverageZone {
     /**
@@ -151,6 +156,7 @@ data class UMachineOptions(
      * @see PathSelectorCombinationStrategy
      */
     val pathSelectorCombinationStrategy: PathSelectorCombinationStrategy = PathSelectorCombinationStrategy.INTERLEAVED,
+    val pathSelectorFairnessStrategy: PathSelectorFairnessStrategy = PathSelectorFairnessStrategy.CONSTANT_TIME,
     /**
      * Strategy to collect terminated states.
      *
