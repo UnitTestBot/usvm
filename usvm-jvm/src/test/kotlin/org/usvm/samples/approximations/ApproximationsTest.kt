@@ -1,6 +1,7 @@
 package org.usvm.samples.approximations
 
 import approximations.java.lang.StringBuffer_Tests
+import approximations.java.lang.System_Tests
 import approximations.java.util.ArrayListSpliterator_Tests
 import approximations.java.util.ArrayList_Tests
 import approximations.java.util.HashSet_Tests
@@ -41,7 +42,8 @@ class ApproximationsTest : ApproximationsTestRunner() {
             ArrayListSpliterator_Tests::class,
             HashSet_Tests::class,
             OptionalDouble_Tests::class,
-            OptionalInt_Tests::class
+            OptionalInt_Tests::class,
+            System_Tests::class,
         )
 
         @JvmStatic
