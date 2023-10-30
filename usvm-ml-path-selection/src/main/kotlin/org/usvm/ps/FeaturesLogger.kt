@@ -5,6 +5,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.*
 import org.usvm.MLConfig
 import org.usvm.PathsTrieNode
+import org.usvm.RootNode
 import org.usvm.UState
 import org.usvm.util.escape
 import org.usvm.util.getMethodFullName
@@ -33,12 +34,12 @@ internal class FeaturesLogger<State : UState<*, *, Statement, *, *, State>, Stat
         id: Int,
         extraNodeInfo: (PathsTrieNode<State, Statement>) -> String
     ): String {
-        val statement = try {
-            node.statement
-        } catch (e: UnsupportedOperationException) {
+        val statement = if (node is RootNode) {
             "No Statement"
+        } else {
+            node.statement.toString()
         }
-        var name = "\"$id: ${statement.toString().escape()}"
+        var name = "\"$id: ${statement.escape()}"
         name += extraNodeInfo(node)
         name += "\""
         return name

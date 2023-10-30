@@ -226,12 +226,10 @@ fun aggregate(config: MLConfig) {
 
     val bigJson = buildJsonObject {
         put(
-            "stateScheme", jsons.first().jsonObject
-                .getValue("json").jsonObject.getValue("stateScheme")
+            "stateScheme", jsonStateScheme
         )
         put(
-            "trajectoryScheme", jsons.first().jsonObject
-                .getValue("json").jsonObject.getValue("trajectoryScheme")
+            "trajectoryScheme", jsonTrajectoryScheme
         )
         putJsonArray("paths") {
             jsons.forEach {

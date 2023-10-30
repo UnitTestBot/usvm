@@ -1,10 +1,6 @@
 package org.usvm
 
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.encodeToJsonElement
-import kotlinx.serialization.json.jsonObject
 import java.util.concurrent.ConcurrentHashMap
 
 class CoverageCounter(
@@ -51,21 +47,21 @@ class CoverageCounter(
     }
 
     @Serializable
-    private data class TestStatistics(
+    data class TestStatistics(
         private val discounts: Map<String, Float>,
         private val statementsCount: Float,
         private val finished: Boolean,
     )
 
     @Serializable
-    private data class Statistics(
+    data class Statistics(
         private val tests: Map<String, TestStatistics>,
         private val totalDiscounts: Map<String, Float>,
         private val totalStatementsCount: Float,
         private val finishedTestsCount: Float,
     )
 
-    fun getStatistics(): JsonObject {
+    fun getStatistics(): Statistics {
         val discountStrings = mlConfig.discounts.map { it.toString() }
         val testStatistics = testCoverages.mapValues { (test, coverages) ->
             TestStatistics(
@@ -74,12 +70,11 @@ class CoverageCounter(
                 testFinished.getValue(test),
             )
         }
-        val statistics = Statistics(
+        return Statistics(
             testStatistics,
             discountStrings.zip(getTotalCoverages()).toMap(),
             testStatementsCounts.values.sum(),
             testFinished.values.sumOf { if (it) 1.0 else 0.0 }.toFloat(),
         )
-        return Json.encodeToJsonElement(statistics).jsonObject
     }
 }
