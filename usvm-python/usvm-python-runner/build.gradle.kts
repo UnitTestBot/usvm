@@ -1,5 +1,6 @@
 plugins {
     id("usvm.kotlin-conventions")
+    `maven-publish`
 }
 
 dependencies {
@@ -12,4 +13,17 @@ tasks.register<JavaExec>("manualTestOfRunner") {
     classpath = sourceSets.test.get().runtimeClasspath
     jvmArgs = listOf("-Dproject.root=${projectDir.parent}")
     mainClass.set("org.usvm.runner.ManualTestKt")
+}
+
+publishing {
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/UnitTestBot/usvm")
+            credentials {
+                username = System.getenv("GITHUB_ACTOR")
+                password = System.getenv("GITHUB_TOKEN")
+            }
+        }
+    }
 }
