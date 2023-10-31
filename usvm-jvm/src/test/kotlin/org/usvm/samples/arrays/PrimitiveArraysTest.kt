@@ -68,8 +68,8 @@ internal class PrimitiveArraysTest : JavaMethodTestRunner() {
             ignoreNumberOfAnalysisResults,
             { _, a, _, r -> a == null && r.isException<NullPointerException>() },
             { _, a, _, r -> a != null && a.size != 2 && r.getOrNull() == (-1).toByte() },
-            { _, a, x, r -> a != null && a.size == 2 && x + 5 <= 20.toChar() && r.getOrNull() == 0.toByte() },
-            { _, a, x, r -> a != null && a.size == 2 && x + 5 > 20.toChar() && r.getOrNull() == 1.toByte() }
+            { _, a, x, r -> a != null && a.size == 2 && x.code + 5 <= 20 && r.getOrNull() == 0.toByte() },
+            { _, a, x, r -> a != null && a.size == 2 && x.code + 5 > 20 && r.getOrNull() == 1.toByte() }
         )
     }
 

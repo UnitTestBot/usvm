@@ -59,7 +59,10 @@ public class PrimitiveArrays {
         }
         a[0] = 5;
         a[1] = x;
-        if (a[0] + a[1] > 20) {
+
+        // Note that the sum of two chars has the int type
+        int sum = a[0] + a[1];
+        if (sum > 20) {
             return 1;
         }
         return 0;

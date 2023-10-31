@@ -128,6 +128,7 @@ public class ExceptionExamples {
 
     public int symbolicExceptionCheck(Exception e) {
         try {
+            // Throwing null leads to NPE
             throw e;
         } catch (NumberFormatException | InvalidPathException exception) {
             if (e instanceof NumberFormatException) {

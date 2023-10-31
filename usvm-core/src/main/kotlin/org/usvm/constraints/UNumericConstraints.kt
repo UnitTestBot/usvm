@@ -931,18 +931,20 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         bias: KBitVecValue<Sort>,
         bound: KBitVecValue<Sort>,
     ): BoundsConstraint<Sort> {
-        val currentValue = concreteLowerBounds[bias]?.value
-        if (currentValue != null && currentValue.signedGreaterOrEqual(bound)) return this
-        return modifyConcreteLowerBounds(bias, ValueConstraint(bound, isPrimary = false))
+        val current = concreteLowerBounds[bias]
+        if (current != null && current.value.signedGreaterOrEqual(bound)) return this
+        val isPrimary = current?.isPrimary ?: false
+        return modifyConcreteLowerBounds(bias, ValueConstraint(bound, isPrimary))
     }
 
     private fun BoundsConstraint<Sort>.refineUpperBound(
         bias: KBitVecValue<Sort>,
         bound: KBitVecValue<Sort>,
     ): BoundsConstraint<Sort> {
-        val currentValue = concreteUpperBounds[bias]?.value
-        if (currentValue != null && currentValue.signedLessOrEqual(bound)) return this
-        return modifyConcreteUpperBounds(bias, ValueConstraint(bound, isPrimary = false))
+        val current = concreteUpperBounds[bias]
+        if (current != null && current.value.signedLessOrEqual(bound)) return this
+        val isPrimary = current?.isPrimary ?: false
+        return modifyConcreteUpperBounds(bias, ValueConstraint(bound, isPrimary))
     }
 
     private fun BoundsConstraint<Sort>.updateConcreteLowerBound(

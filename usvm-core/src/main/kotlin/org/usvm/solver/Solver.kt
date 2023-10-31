@@ -32,38 +32,32 @@ open class USolverBase<Type>(
     protected val typeSolver: UTypeSolver<Type>,
     protected val translator: UExprTranslator<Type, *>,
     protected val decoder: UModelDecoder<UModelBase<Type>>,
-    protected val softConstraintsProvider: USoftConstraintsProvider<Type, *>,
 ) : USolver<UPathConstraints<Type>, UModelBase<Type>>(), AutoCloseable {
 
     override fun check(query: UPathConstraints<Type>): USolverResult<UModelBase<Type>> =
-        internalCheck(query, useSoftConstraints = false)
+        internalCheck(query, softConstraints = emptyList())
 
     fun checkWithSoftConstraints(
         pc: UPathConstraints<Type>,
-    ) = internalCheck(pc, useSoftConstraints = true)
-
+        softConstraints: Iterable<UBoolExpr>
+    ): USolverResult<UModelBase<Type>> = internalCheck(pc, softConstraints)
 
     private fun internalCheck(
         pc: UPathConstraints<Type>,
-        useSoftConstraints: Boolean,
+        softConstraints: Iterable<UBoolExpr>,
     ): USolverResult<UModelBase<Type>> {
         if (pc.isFalse) {
             return UUnsatResult()
         }
 
         smtSolver.withAssertionsScope {
-            pc.constraints(translator).forEach(smtSolver::assert)
+            smtSolver.assert(pc.constraints(translator).toList())
 
-            val softConstraints = mutableListOf<UBoolExpr>()
-            if (useSoftConstraints) {
-                val softConstraintSources = pc.softConstraintsSourceSequence
-                softConstraintSources.flatMapTo(softConstraints) {
-                    softConstraintsProvider
-                        .provide(it)
-                        .map(translator::translate)
-                        .filterNot(UBoolExpr::isFalse)
-                }
-            }
+            val translatedSoftConstraints = softConstraints
+                .asSequence()
+                .map(translator::translate)
+                .filterNot(UBoolExpr::isFalse)
+                .toMutableList()
 
             // DPLL(T)-like solve procedure
             var iter = 0
@@ -72,7 +66,7 @@ open class USolverBase<Type>(
                 iter++
 
                 // first, get a model from the SMT solver
-                val kModel = when (internalCheckWithSoftConstraints(softConstraints)) {
+                val kModel = when (internalCheckWithSoftConstraints(translatedSoftConstraints)) {
                     KSolverStatus.SAT -> smtSolver.model().detach()
                     KSolverStatus.UNSAT -> return UUnsatResult()
                     KSolverStatus.UNKNOWN -> return UUnknownResult()
@@ -113,7 +107,7 @@ open class USolverBase<Type>(
                     // in case of failure, assert reference disequality expressions
                     is UTypeUnsatResult<Type> -> typeResult.conflictLemmas
                         .map(translator::translate)
-                        .forEach(smtSolver::assert)
+                        .let { smtSolver.assert(it) }
 
                     is UUnknownResult -> return UUnknownResult()
                     is UUnsatResult -> return UUnsatResult()
@@ -151,7 +145,7 @@ open class USolverBase<Type>(
     }
 
     fun emptyModel(): UModelBase<Type> =
-        (checkWithSoftConstraints(UPathConstraints(ctx)) as USatResult<UModelBase<Type>>).model
+        (check(UPathConstraints(ctx)) as USatResult<UModelBase<Type>>).model
 
     override fun close() {
         smtSolver.close()

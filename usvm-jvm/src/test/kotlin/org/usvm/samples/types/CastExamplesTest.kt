@@ -1,6 +1,7 @@
 package org.usvm.samples.types
 
 import org.junit.jupiter.api.Test
+import org.usvm.SolverType
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 
@@ -53,13 +54,16 @@ internal class CastExamplesTest : JavaMethodTestRunner() {
 
     @Test
     fun testFloatToInt() {
-        checkDiscoveredProperties(
-            CastExamples::floatToInt,
-            eq(3),
-            { _, x, r -> x < 0 && x.toInt() < 0 && r == 1 },
-            { _, x, r -> x < 0 && x.toInt() >= 0 && r == 2 },
-            { _, x, r -> !(x < 0) && r == 3 },
-        )
+        // TODO remove after fixing Z3 model detach in ksmt https://github.com/UnitTestBot/ksmt/issues/141
+        withOptions(options.copy(solverType = SolverType.YICES)) {
+            checkDiscoveredProperties(
+                CastExamples::floatToInt,
+                eq(3),
+                { _, x, r -> x < 0 && x.toInt() < 0 && r == 1 },
+                { _, x, r -> x < 0 && x.toInt() >= 0 && r == 2 },
+                { _, x, r -> !(x < 0) && r == 3 },
+            )
+        }
     }
 
     @Test

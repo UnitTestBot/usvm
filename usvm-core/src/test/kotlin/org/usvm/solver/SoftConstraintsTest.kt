@@ -41,7 +41,7 @@ open class SoftConstraintsTest {
         decoder = ULazyModelDecoder(translator)
 
         val typeSolver = UTypeSolver(SingleTypeSystem)
-        solver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder, softConstraintsProvider)
+        solver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder)
     }
 
     @Test
@@ -53,7 +53,8 @@ open class SoftConstraintsTest {
         val pc = UPathConstraints<Type>(ctx)
         pc += expr
 
-        val result = solver.checkWithSoftConstraints(pc) as USatResult
+        val softConstraints = softConstraintsProvider.makeSoftConstraints(pc)
+        val result = solver.checkWithSoftConstraints(pc, softConstraints) as USatResult
         val model = result.model
 
         val fstRegisterValue = model.eval(fstRegister)
@@ -84,9 +85,10 @@ open class SoftConstraintsTest {
 
         val typeSolver = UTypeSolver<Type>(mockk())
         val solver: USolverBase<Type> =
-            USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder, softConstraintsProvider)
+            USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder)
 
-        val result = solver.checkWithSoftConstraints(pc) as USatResult
+        val softConstraints = softConstraintsProvider.makeSoftConstraints(pc)
+        val result = solver.checkWithSoftConstraints(pc, softConstraints) as USatResult
         val model = result.model
 
         verify(exactly = 1) {
@@ -130,7 +132,8 @@ open class SoftConstraintsTest {
         pc += inputRef eq secondInputRef
         pc += (inputRef eq nullRef).not()
 
-        val result = (solver.checkWithSoftConstraints(pc)) as USatResult
+        val softConstraints = softConstraintsProvider.makeSoftConstraints(pc)
+        val result = solver.checkWithSoftConstraints(pc, softConstraints) as USatResult
 
         val model = result.model
         val value = model.eval(mkInputArrayLengthReading(region, inputRef))
@@ -148,7 +151,9 @@ open class SoftConstraintsTest {
 
         val pc = UPathConstraints<Type>(ctx)
         pc += (inputRef eq nullRef).not()
-        val result = (solver.checkWithSoftConstraints(pc)) as USatResult
+
+        val softConstraints = softConstraintsProvider.makeSoftConstraints(pc)
+        val result = solver.checkWithSoftConstraints(pc, softConstraints) as USatResult
 
         val model = result.model
         val value = model.eval(mkInputArrayLengthReading(region, inputRef))
@@ -164,7 +169,9 @@ open class SoftConstraintsTest {
 
         val pc = UPathConstraints<Type>(ctx)
         pc += expression
-        val result = (solver.checkWithSoftConstraints(pc)) as USatResult
+
+        val softConstraints = softConstraintsProvider.makeSoftConstraints(pc)
+        val result = solver.checkWithSoftConstraints(pc, softConstraints) as USatResult
 
         val model = result.model
         model.eval(expression)

@@ -26,7 +26,6 @@ import org.usvm.model.UModelBase
 import org.usvm.solver.TypeSolverQuery
 import org.usvm.solver.UExprTranslator
 import org.usvm.solver.USatResult
-import org.usvm.solver.USoftConstraintsProvider
 import org.usvm.solver.USolverBase
 import org.usvm.solver.UTypeSolver
 import org.usvm.solver.UTypeUnsatResult
@@ -64,10 +63,9 @@ class TypeSolverTest {
     init {
         val translator = UExprTranslator<TestType, USizeSort>(ctx)
         val decoder = ULazyModelDecoder(translator)
-        val softConstraintsProvider = USoftConstraintsProvider<TestType, _>(ctx)
 
         typeSolver = UTypeSolver(typeSystem)
-        solver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder, softConstraintsProvider)
+        solver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder)
 
         every { components.mkSolver(ctx) } returns solver
         every { components.mkTypeSystem(ctx) } returns typeSystem
