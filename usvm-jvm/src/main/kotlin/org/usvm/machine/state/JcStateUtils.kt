@@ -3,6 +3,7 @@ package org.usvm.machine.state
 import org.jacodb.api.JcMethod
 import org.jacodb.api.JcType
 import org.jacodb.api.cfg.JcArgument
+import org.jacodb.api.cfg.JcDynamicCallExpr
 import org.jacodb.api.cfg.JcInst
 import org.jacodb.api.ext.cfg.locals
 import org.usvm.UExpr
@@ -10,6 +11,7 @@ import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.machine.JcApplicationGraph
 import org.usvm.machine.JcConcreteMethodCallInst
+import org.usvm.machine.JcDynamicMethodCallInst
 import org.usvm.machine.JcMethodCall
 import org.usvm.machine.JcVirtualMethodCallInst
 
@@ -74,6 +76,10 @@ fun JcState.addConcreteMethodCallStmt(method: JcMethod, arguments: List<UExpr<ou
 
 fun JcState.addVirtualMethodCallStmt(method: JcMethod, arguments: List<UExpr<out USort>>) {
     newStmt(JcVirtualMethodCallInst(lastStmt.location, method, arguments, lastStmt))
+}
+
+fun JcState.addDynamicCall(dynamicCall: JcDynamicCallExpr, arguments: List<UExpr<out USort>>) {
+    newStmt(JcDynamicMethodCallInst(dynamicCall, arguments, lastStmt))
 }
 
 fun JcMethod.localIdx(idx: Int) = if (isStatic) idx else idx + 1

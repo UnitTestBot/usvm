@@ -1,10 +1,8 @@
 package org.usvm.machine.interpreter
 
-import io.ksmt.expr.KExpr
 import io.ksmt.utils.asExpr
 import org.jacodb.api.JcType
 import org.jacodb.api.ext.toType
-import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UHeapRef
@@ -18,10 +16,10 @@ import org.usvm.machine.JcContext
 import org.usvm.machine.JcVirtualMethodCallInst
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.newStmt
-import org.usvm.memory.foldHeapRefWithStaticAsSymbolic
+import org.usvm.memory.foldHeapRef
 import org.usvm.model.UModelBase
 import org.usvm.types.UTypeStream
-import org.usvm.types.first
+import org.usvm.types.single
 import org.usvm.util.findMethod
 
 /**
@@ -69,7 +67,13 @@ private fun resolveVirtualInvokeWithModel(
     val concreteRef = model.eval(instance) as UConcreteHeapRef
 
     if (isAllocatedConcreteHeapRef(concreteRef) || isStaticHeapRef(concreteRef)) {
-        val concreteCall = makeConcreteMethodCall(scope, concreteRef, methodCall)
+        val callSite = findLambdaCallSite(methodCall, scope, concreteRef)
+        val concreteCall = if (callSite != null) {
+            makeLambdaCallSiteCall(callSite)
+        } else {
+            makeConcreteMethodCall(scope, concreteRef, methodCall)
+        }
+
         scope.doWithState {
             newStmt(concreteCall)
         }
@@ -77,6 +81,7 @@ private fun resolveVirtualInvokeWithModel(
         return@with
     }
 
+    // Resolved lambda call site can't be an input ref
     val typeStream = model.typeStreamOf(concreteRef)
     val typeConstraintsWithBlockOnStates = makeConcreteCallsForPossibleTypes(
         scope,
@@ -101,17 +106,36 @@ private fun resolveVirtualInvokeWithoutModel(
     val instance = arguments.first().asExpr(ctx.addressSort)
 
     val refsWithConditions = mutableListOf<Pair<UHeapRef, UBoolExpr>>()
-    foldHeapRefWithStaticAsSymbolic(
+    val lambdaCallSitesWithConditions = mutableListOf<Pair<JcLambdaCallSite, UBoolExpr>>()
+    foldHeapRef(
         instance,
-        refsWithConditions,
+        Unit,
         initialGuard = ctx.trueExpr,
         ignoreNullRefs = true,
         collapseHeapRefs = false,
-        blockOnConcrete = { curRefsWithConditions, (ref, condition) -> curRefsWithConditions.also { it += ref to condition } },
-        blockOnSymbolic = { curRefsWithConditions, (ref, condition) -> curRefsWithConditions.also { it += ref to condition } },
+        blockOnConcrete = { _, (ref, condition) ->
+            val lambdaCallSite = findLambdaCallSite(methodCall, scope, ref)
+            if (lambdaCallSite != null) {
+                lambdaCallSitesWithConditions += lambdaCallSite to condition
+            } else {
+                refsWithConditions += ref to condition
+            }
+        },
+        blockOnStatic = { _, (ref, condition) ->
+            val lambdaCallSite = findLambdaCallSite(methodCall, scope, ref)
+            if (lambdaCallSite != null) {
+                lambdaCallSitesWithConditions += lambdaCallSite to condition
+            } else {
+                refsWithConditions += ref to condition
+            }
+        },
+        blockOnSymbolic = { _, (ref, condition) ->
+            // Resolved lambda call site can't be a symbolic ref
+            refsWithConditions.also { it += ref to condition }
+        },
     )
 
-    val conditionsWithBlocks = refsWithConditions.flatMap { (ref, condition) ->
+    val conditionsWithBlocks = refsWithConditions.flatMapTo(mutableListOf()) { (ref, condition) ->
         when {
             isAllocatedConcreteHeapRef(ref) || isStaticHeapRef(ref) -> {
                 val concreteCall = makeConcreteMethodCall(scope, ref, methodCall)
@@ -141,6 +165,11 @@ private fun resolveVirtualInvokeWithoutModel(
         }
     }
 
+    lambdaCallSitesWithConditions.mapTo(conditionsWithBlocks) { (callSite, condition) ->
+        val concreteCall = makeLambdaCallSiteCall(callSite)
+        condition to { state: JcState -> state.newStmt(concreteCall) }
+    }
+
     scope.forkMulti(conditionsWithBlocks)
 }
 
@@ -150,7 +179,7 @@ private fun JcVirtualMethodCallInst.makeConcreteMethodCall(
     methodCall: JcVirtualMethodCallInst,
 ): JcConcreteMethodCallInst {
     // We have only one type for allocated and static heap refs
-    val type = scope.calcOnState { memory.typeStreamOf(concreteRef) }.first()
+    val type = scope.calcOnState { memory.typeStreamOf(concreteRef) }.single()
 
     val concreteMethod = type.findMethod(method)
         ?: error("Can't find method $method in type ${type.typeName}")
@@ -163,7 +192,7 @@ private fun JcVirtualMethodCallInst.makeConcreteCallsForPossibleTypes(
     methodCall: JcVirtualMethodCallInst,
     typeStream: UTypeStream<JcType>,
     typeSelector: JcTypeSelector,
-    instance: KExpr<UAddressSort>,
+    instance: UHeapRef,
     ctx: JcContext,
     condition: UBoolExpr,
     forkOnRemainingTypes: Boolean,
@@ -196,4 +225,36 @@ private fun JcVirtualMethodCallInst.makeConcreteCallsForPossibleTypes(
     }
 
     return typeConstraintsWithBlockOnStates
+}
+
+private fun findLambdaCallSite(
+    methodCall: JcVirtualMethodCallInst,
+    scope: JcStepScope,
+    ref: UConcreteHeapRef,
+): JcLambdaCallSite? = with(methodCall) {
+    val callSites = scope.calcOnState { memory.getRegion(ctx.lambdaCallSiteRegionId) as JcLambdaCallSiteMemoryRegion }
+    val callSite = callSites.findCallSite(ref) ?: return null
+
+    val lambdaMethodType = callSite.lambda.dynamicMethodType
+
+    // Match function signature
+    when {
+        method.name != callSite.lambda.callSiteMethodName -> return null
+        method.returnType != lambdaMethodType.returnType -> return null
+        lambdaMethodType.argumentTypes != method.parameters.map { it.type } -> return null
+    }
+
+    return callSite
+}
+
+private fun JcVirtualMethodCallInst.makeLambdaCallSiteCall(
+    callSite: JcLambdaCallSite,
+): JcConcreteMethodCallInst {
+    val lambdaMethod = callSite.lambda.actualMethod.method
+
+    // Instance was already resolved to the call site
+    val callArgsWithoutInstance = this.arguments.drop(1)
+    val lambdaMethodArgs = callSite.callSiteArgs + callArgsWithoutInstance
+
+    return JcConcreteMethodCallInst(location, lambdaMethod.method, lambdaMethodArgs, returnSite)
 }
