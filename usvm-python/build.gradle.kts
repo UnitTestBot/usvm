@@ -54,6 +54,7 @@ val pythonDllsPath: String = File(cpythonBuildPath, "DLLs").path  // for Windows
 val installMypyRunner = tasks.register<Exec>("installUtbotMypyRunner") {
     group = "samples"
     dependsOn(":usvm-python:cpythonadapter:linkDebug")
+    dependsOn(":usvm-python:cpythonadapter:CPythonBuildDebug")
     inputs.dir(cpythonPath)
     if (isWindows) {
         outputs.dir(File(cpythonBuildPath, "Lib/site-packages/utbot_mypy_runner"))
@@ -83,6 +84,7 @@ fun registerCpython(task: JavaExec, debug: Boolean) = task.apply {
         dependsOn(":usvm-python:cpythonadapter:linkDebug")
     else
         dependsOn(":usvm-python:cpythonadapter:linkRelease")
+    dependsOn(":usvm-python:cpythonadapter:CPythonBuildDebug")
     environment("LD_LIBRARY_PATH" to "$cpythonBuildPath/lib:$cpythonAdapterBuildPath")
     environment("LD_PRELOAD" to "$cpythonBuildPath/lib/libpython3.so")
     environment("PYTHONHOME" to cpythonBuildPath)
@@ -145,6 +147,7 @@ tasks.test {
     }
     jvmArgs = args
     dependsOn(":usvm-python:cpythonadapter:linkDebug")
+    dependsOn(":usvm-python:cpythonadapter:CPythonBuildDebug")
     dependsOn(buildSamples)
     environment("PYTHONHOME" to cpythonBuildPath)
 }
