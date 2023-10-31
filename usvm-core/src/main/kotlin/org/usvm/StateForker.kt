@@ -109,8 +109,7 @@ object WithSolverStateForker : StateForker {
                     curState,
                     newConstraintToOriginalState = condition,
                     newConstraintToForkedState = condition.ctx.trueExpr,
-                    stateToCheck = OriginalState,
-                    addConstraintOnUnknown = false
+                    stateToCheck = OriginalState
                 )
 
                 root
@@ -132,7 +131,7 @@ object WithSolverStateForker : StateForker {
      * Depending on the result of checking this condition, do the following:
      * - On [UUnsatResult] - returns `null`;
      * - On [UUnknownResult] - adds [newConstraintToOriginalState] to the path constraints of the [state],
-     * iff [addConstraintOnUnknown] is `true`, and returns null;
+     * and returns null;
      * - On [USatResult] - clones the original state and adds the [newConstraintToForkedState] to it, adds [newConstraintToOriginalState]
      * to the original state, sets the satisfiable model to the corresponding state depending on the [stateToCheck], and returns the
      * forked state.
@@ -144,7 +143,6 @@ object WithSolverStateForker : StateForker {
         newConstraintToOriginalState: UBoolExpr,
         newConstraintToForkedState: UBoolExpr,
         stateToCheck: StateToCheck,
-        addConstraintOnUnknown: Boolean = true,
     ): T? {
         val constraintsToCheck = state.pathConstraints.clone()
 
@@ -179,9 +177,8 @@ object WithSolverStateForker : StateForker {
             }
 
             is UUnknownResult -> {
-                if (addConstraintOnUnknown) {
-                    state.pathConstraints += newConstraintToOriginalState
-                }
+                state.pathConstraints += if (stateToCheck) newConstraintToOriginalState else newConstraintToForkedState
+
                 null
             }
         }
