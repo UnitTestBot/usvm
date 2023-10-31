@@ -54,7 +54,7 @@ internal class CastExamplesTest : JavaMethodTestRunner() {
 
     @Test
     fun testFloatToInt() {
-        // TODO remove after fixing Z3 model detach in ksmt https://github.com/UnitTestBot/ksmt/issues/139
+        // TODO remove after fixing Z3 model detach in ksmt https://github.com/UnitTestBot/ksmt/issues/141
         withOptions(options.copy(solverType = SolverType.YICES)) {
             checkDiscoveredProperties(
                 CastExamples::floatToInt,

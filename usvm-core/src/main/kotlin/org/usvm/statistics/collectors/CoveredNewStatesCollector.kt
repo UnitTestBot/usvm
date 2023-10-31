@@ -20,13 +20,17 @@ class CoveredNewStatesCollector<State>(
     private var previousCoveredStatements = coverageStatistics.getTotalCoveredStatements()
 
     override fun onStateTerminated(state: State, stateReachable: Boolean) {
-        val currentCoveredStatements = coverageStatistics.getTotalCoveredStatements()
-        if (stateReachable && isException(state)) {
+        if (!stateReachable) {
+            return
+        }
+
+        if (isException(state)) {
             mutableCollectedStates.add(state)
             return
         }
 
-        if (stateReachable && currentCoveredStatements > previousCoveredStatements) {
+        val currentCoveredStatements = coverageStatistics.getTotalCoveredStatements()
+        if (currentCoveredStatements > previousCoveredStatements) {
             previousCoveredStatements = currentCoveredStatements
             mutableCollectedStates += state
         }

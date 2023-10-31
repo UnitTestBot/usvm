@@ -69,3 +69,31 @@ private fun <Type> UState<Type, *, *, *, *, *>.verify(): USolverResult<UModelBas
 
     return solverResult
 }
+
+@Suppress("MoveVariableDeclarationIntoWhen")
+fun <T : UState<Type, *, *, *, *, T>, Type> T.applySoftConstraints() {
+    val softConstraints = ctx.softConstraintsProvider<Type>().makeSoftConstraints(pathConstraints)
+
+    // Before running the solver, check the models for satisfying soft constraints
+    val trueModels = models.filter { model ->
+        softConstraints.all { model.eval(it).isTrue }
+    }
+
+    if (trueModels.isNotEmpty()) {
+        models = trueModels
+        return
+    }
+
+    val solver = ctx.solver<Type>()
+    val solverResult = solver.checkWithSoftConstraints(pathConstraints, softConstraints)
+
+    when (solverResult) {
+        is USatResult -> {
+            models = listOf(solverResult.model)
+        }
+        is UUnsatResult -> error("Unexpected $solverResult for the state $this supposed to be sat")
+        is UUnknownResult -> {
+            // This state is supposed to be sat without soft constraints, so we just keep old models
+        }
+    }
+}

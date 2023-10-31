@@ -1,7 +1,7 @@
 package org.usvm.statistics.constraints
 
 import org.usvm.UState
-import org.usvm.applySoftConstraints
+import org.usvm.utils.applySoftConstraints
 import org.usvm.statistics.UMachineObserver
 
 class SoftConstraintsObserver<Type, State : UState<Type, *, *, *, *, State>> : UMachineObserver<State> {
