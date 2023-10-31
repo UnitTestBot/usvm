@@ -23,6 +23,7 @@ import org.jacodb.impl.bytecode.JcFieldImpl
 import org.jacodb.impl.types.FieldInfo
 import org.usvm.UBv32Sort
 import org.usvm.UContext
+import org.usvm.machine.interpreter.JcLambdaCallSiteRegionId
 import org.usvm.util.extractJcRefType
 
 internal typealias USizeSort = UBv32Sort
@@ -59,6 +60,8 @@ class JcContext(
         cp.findTypeOrNull("java.lang.Enum") as? JcRefType
             ?: error("No enum type in classpath")
     }
+
+    val lambdaCallSiteRegionId by lazy { JcLambdaCallSiteRegionId(this) }
 
     // TODO store it in JcComponents? Make it mutable?
     internal val useNegativeAddressesInStaticInitializer: Boolean = false

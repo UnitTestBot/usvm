@@ -44,6 +44,7 @@ import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.machine.JcApplicationGraph
 import org.usvm.machine.JcConcreteMethodCallInst
 import org.usvm.machine.JcContext
+import org.usvm.machine.JcDynamicMethodCallInst
 import org.usvm.machine.JcInterpreterObserver
 import org.usvm.machine.JcMethodApproximationResolver
 import org.usvm.machine.JcMethodCall
@@ -237,7 +238,7 @@ class JcInterpreter(
                 }
 
                 if (stmt.method.isNative) {
-                    mockNativeMethod(scope, stmt)
+                    mockMethod(scope, stmt)
                     return
                 }
 
@@ -253,7 +254,17 @@ class JcInterpreter(
                     return
                 }
 
-                resolveVirtualInvoke(stmt, scope, typeSelector, forkOnRemainingTypes = false)
+                resolveVirtualInvoke(stmt, scope, forkOnRemainingTypes = false)
+            }
+
+            is JcDynamicMethodCallInst -> {
+                observer?.onMethodCallWithResolvedArguments(simpleValueResolver, stmt, scope)
+
+                if (approximateMethod(scope, stmt)) {
+                    return
+                }
+
+                mockMethod(scope, stmt, stmt.dynamicCall.callSiteReturnType)
             }
         }
     }
@@ -514,7 +525,6 @@ class JcInterpreter(
     private fun resolveVirtualInvoke(
         methodCall: JcVirtualMethodCallInst,
         scope: JcStepScope,
-        typeSelector: JcTypeSelector,
         forkOnRemainingTypes: Boolean,
     ): Unit = resolveVirtualInvoke(ctx, methodCall, scope, typeSelector, forkOnRemainingTypes)
 
@@ -525,13 +535,13 @@ class JcInterpreter(
         return approximationResolver.approximate(scope, exprResolver, methodCall)
     }
 
-    private fun mockNativeMethod(
-        scope: JcStepScope,
-        methodCall: JcConcreteMethodCallInst,
-    ) = with(methodCall) {
-        logger.warn { "Mocked: ${method.enclosingClass.name}::${method.name}" }
+    private fun mockMethod(scope: JcStepScope, methodCall: JcMethodCall) {
+        val returnType = with(applicationGraph) { methodCall.method.typed }.returnType
+        mockMethod(scope, methodCall, returnType)
+    }
 
-        val returnType = with(applicationGraph) { method.typed }.returnType
+    private fun mockMethod(scope: JcStepScope, methodCall: JcMethodCall, returnType: JcType) = with(methodCall) {
+        logger.warn { "Mocked: ${method.enclosingClass.name}::${method.name}" }
 
         if (returnType == ctx.cp.void) {
             scope.doWithState { skipMethodInvocationWithValue(methodCall, ctx.voidValue) }
