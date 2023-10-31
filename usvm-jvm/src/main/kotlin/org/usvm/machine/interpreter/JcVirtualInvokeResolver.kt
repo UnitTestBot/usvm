@@ -11,8 +11,6 @@ import org.usvm.api.evalTypeEquals
 import org.usvm.api.typeStreamOf
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.isStaticHeapRef
-import org.usvm.machine.interpreter.JcLambdaCallSite
-import org.usvm.machine.interpreter.JcLambdaCallSiteMemoryRegion
 import org.usvm.machine.JcConcreteMethodCallInst
 import org.usvm.machine.JcContext
 import org.usvm.machine.JcVirtualMethodCallInst
