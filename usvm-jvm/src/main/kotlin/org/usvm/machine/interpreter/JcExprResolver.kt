@@ -125,8 +125,8 @@ class JcExprResolver(
     private val ctx: JcContext,
     private val scope: JcStepScope,
     localToIdx: (JcMethod, JcLocal) -> Int,
-    mkTypeRef: (JcType, JcState) -> UConcreteHeapRef,
-    mkStringConstRef: (String, JcState) -> UConcreteHeapRef,
+    mkTypeRef: (JcType) -> UConcreteHeapRef,
+    mkStringConstRef: (String) -> UConcreteHeapRef,
     private val classInitializerAnalysisAlwaysRequiredForType: (JcRefType) -> Boolean,
     private val hardMaxArrayLength: Int = 1_500, // TODO: move to options
 ) : JcExprVisitor<UExpr<out USort>?> {
@@ -973,8 +973,8 @@ class JcSimpleValueResolver(
     private val ctx: JcContext,
     private val scope: JcStepScope,
     private val localToIdx: (JcMethod, JcLocal) -> Int,
-    private val mkTypeRef: (JcType, JcState) -> UConcreteHeapRef,
-    private val mkStringConstRef: (String, JcState) -> UConcreteHeapRef,
+    private val mkTypeRef: (JcType) -> UConcreteHeapRef,
+    private val mkStringConstRef: (String) -> UConcreteHeapRef,
 ) : JcExprVisitor<UExpr<out USort>> {
     override fun visitJcArgument(value: JcArgument): UExpr<out USort> = with(ctx) {
         val ref = resolveLocal(value)
@@ -1187,7 +1187,7 @@ class JcSimpleValueResolver(
     }
 
     fun resolveClassRef(type: JcType): UConcreteHeapRef = scope.calcOnState {
-        val ref = mkTypeRef(type, this)
+        val ref = mkTypeRef(type)
         val classRefTypeLValue = UFieldLValue(ctx.addressSort, ref, ctx.classTypeSyntheticField)
 
         // Ref type is java.lang.Class
@@ -1203,6 +1203,6 @@ class JcSimpleValueResolver(
 
     fun resolveStringConstant(value: String): UConcreteHeapRef =
         scope.calcOnState {
-            mkStringConstRef(value, this)
+            mkStringConstRef(value)
         }
 }

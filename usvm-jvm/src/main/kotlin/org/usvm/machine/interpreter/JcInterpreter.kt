@@ -65,6 +65,9 @@ import org.usvm.machine.state.throwExceptionAndDropStackFrame
 import org.usvm.machine.state.throwExceptionWithoutStackFrameDrop
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.solver.USatResult
+import org.usvm.targets.UTargetsSet
+import org.usvm.types.first
+import org.usvm.util.findMethod
 import org.usvm.util.write
 
 typealias JcStepScope = StepScope<JcState, JcType, JcInst, JcContext>
@@ -84,7 +87,7 @@ class JcInterpreter(
     }
 
     fun getInitialState(method: JcMethod, targets: List<JcTarget> = emptyList()): JcState {
-        val state = JcState(ctx, targets = targets)
+        val state = JcState(ctx, targets = UTargetsSet.from(targets))
         val typedMethod = with(applicationGraph) { method.typed }
 
         val entrypointArguments = mutableListOf<Pair<JcRefType, UHeapRef>>()
@@ -119,6 +122,8 @@ class JcInterpreter(
         state.models = listOf(model)
 
         val entrypointInst = JcMethodEntrypointInst(method, entrypointArguments)
+        state.callStack.push(method, returnSite = null)
+        state.memory.stack.push(method.parametersWithThisCount, method.localsCount)
         state.newStmt(entrypointInst)
         return state
     }
@@ -213,13 +218,6 @@ class JcInterpreter(
         when (stmt) {
             is JcMethodEntrypointInst -> {
                 observer?.onEntryPoint(simpleValueResolver, stmt, scope)
-                scope.doWithState {
-                    if (callStack.isEmpty()) {
-                        val method = stmt.method
-                        callStack.push(method, returnSite = null)
-                        memory.stack.push(method.parametersWithThisCount, method.localsCount)
-                    }
-                }
 
                 // Run static initializer for all enum arguments of the entrypoint
                 for ((type, ref) in stmt.entrypointArguments) {
@@ -269,7 +267,12 @@ class JcInterpreter(
             val methodResult = scope.calcOnState { methodResult }
 
             when (methodResult) {
-                is JcMethodResult.NoCall -> observer?.onMethodCallWithUnresolvedArguments(exprResolver.simpleValueResolver, it, scope)
+                is JcMethodResult.NoCall -> observer?.onMethodCallWithUnresolvedArguments(
+                    exprResolver.simpleValueResolver,
+                    it,
+                    scope
+                )
+
                 is JcMethodResult.Success -> observer?.onAssignStatement(exprResolver.simpleValueResolver, stmt, scope)
                 is JcMethodResult.JcException -> error("Exceptions must be processed earlier")
             }
@@ -391,7 +394,12 @@ class JcInterpreter(
         val methodResult = scope.calcOnState { methodResult }
 
         when (methodResult) {
-            is JcMethodResult.NoCall -> observer?.onMethodCallWithUnresolvedArguments(exprResolver.simpleValueResolver, callExpr, scope)
+            is JcMethodResult.NoCall -> observer?.onMethodCallWithUnresolvedArguments(
+                exprResolver.simpleValueResolver,
+                callExpr,
+                scope
+            )
+
             is JcMethodResult.Success -> observer?.onCallStatement(exprResolver.simpleValueResolver, stmt, scope)
             is JcMethodResult.JcException -> error("Exceptions must be processed earlier")
         }
@@ -462,19 +470,19 @@ class JcInterpreter(
     private val stringConstantAllocatedRefs = mutableMapOf<String, UConcreteHeapRef>()
 
     // Equal string constants must have equal references
-    private fun stringConstantAllocator(value: String, state: JcState): UConcreteHeapRef =
+    private fun stringConstantAllocator(value: String): UConcreteHeapRef =
         stringConstantAllocatedRefs.getOrPut(value) {
             // Allocate globally unique ref with a negative address
-            state.memory.allocateStaticRef()
+            ctx.allocateStaticRef()
         }
 
     private val typeInstanceAllocatedRefs = mutableMapOf<JcTypeInfo, UConcreteHeapRef>()
 
-    private fun typeInstanceAllocator(type: JcType, state: JcState): UConcreteHeapRef {
+    private fun typeInstanceAllocator(type: JcType): UConcreteHeapRef {
         val typeInfo = resolveTypeInfo(type)
         return typeInstanceAllocatedRefs.getOrPut(typeInfo) {
             // Allocate globally unique ref with a negative address
-            state.memory.allocateStaticRef()
+            ctx.allocateStaticRef()
         }
     }
 
@@ -530,7 +538,7 @@ class JcInterpreter(
 
         val mockSort = ctx.typeToSort(returnType)
         val mockValue = scope.calcOnState {
-            memory.mock { call(method, arguments.asSequence(), mockSort) }
+            memory.mocker.call(method, arguments.asSequence(), mockSort)
         }
 
         if (mockSort == ctx.addressSort) {

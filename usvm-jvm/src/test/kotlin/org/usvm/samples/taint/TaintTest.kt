@@ -47,7 +47,7 @@ class TaintTest : JavaMethodTestRunner() {
             val collectedStates = sampleAnalysis.collectedStates
             assertEquals(expected = 1, actual = collectedStates.size)
 
-            val reachedTargets = collectedStates.single().reachedTerminalTargets.singleOrNull()
+            val reachedTargets = collectedStates.single().targets.reachedTerminal.singleOrNull()
 
             assertNotNull(reachedTargets)
             assertTrue { reachedTargets.isTerminal }
@@ -89,7 +89,7 @@ class TaintTest : JavaMethodTestRunner() {
             val collectedStates = sampleAnalysis.collectedStates
             assertEquals(expected = 1, actual = collectedStates.size)
 
-            val reachedTargets = collectedStates.single().reachedTerminalTargets.singleOrNull()
+            val reachedTargets = collectedStates.single().targets.reachedTerminal.singleOrNull()
 
             assertNotNull(reachedTargets)
             assertTrue { reachedTargets.isTerminal }
@@ -113,7 +113,7 @@ class TaintTest : JavaMethodTestRunner() {
             val collectedStates = sampleAnalysis.collectedStates
             assertEquals(expected = 1, actual = collectedStates.size)
 
-            val reachedTargets = collectedStates.single().reachedTerminalTargets.singleOrNull()
+            val reachedTargets = collectedStates.single().targets.reachedTerminal.singleOrNull()
 
             assertNotNull(reachedTargets)
             assertTrue { reachedTargets.isTerminal }

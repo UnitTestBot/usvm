@@ -62,7 +62,7 @@ abstract class UTarget<Statement, Target>(
      */
     fun <T, State : UState<*, *, Statement, *, T, State>> propagate(byState: State) {
         @Suppress("UNCHECKED_CAST")
-        if (byState.tryPropagateTarget(this as T) && isTerminal) {
+        if (byState.targets.tryPropagateTarget(this as T) && isTerminal) {
             remove()
         }
     }

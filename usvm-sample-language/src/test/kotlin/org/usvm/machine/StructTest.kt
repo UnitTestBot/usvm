@@ -7,7 +7,7 @@ import org.usvm.language.IntConst
 import org.usvm.programs.StructProgram
 import kotlin.test.assertTrue
 
-class StructTests {
+class StructTest {
     val programDecl = StructProgram
     val machine = SampleMachine(programDecl.program, UMachineOptions())
 

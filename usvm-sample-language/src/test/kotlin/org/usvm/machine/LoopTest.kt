@@ -9,7 +9,7 @@ import org.usvm.programs.LoopProgram
 import kotlin.test.assertTrue
 
 
-class LoopTests {
+class LoopTest {
     val programDecl = LoopProgram
     val machine = SampleMachine(programDecl.program, UMachineOptions(listOf(PathSelectionStrategy.DFS), solverType = SolverType.YICES))
 

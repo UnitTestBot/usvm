@@ -14,7 +14,7 @@ fun <Method, T : USort> UState<*, Method, *, *, *, *>.makeSymbolicPrimitive(
     sort: T
 ): UExpr<T> {
     check(sort != sort.uctx.addressSort) { "$sort is not primitive" }
-    return memory.mock { call(lastEnteredMethod, emptySequence(), sort) }
+    return memory.mocker.call(lastEnteredMethod, emptySequence(), sort)
 }
 
 fun <Type, Method, State> StepScope<State, Type, *, *>.makeSymbolicRef(
@@ -31,7 +31,7 @@ private inline fun <Type, Method, State> StepScope<State, Type, *, *>.mockSymbol
     crossinline mkTypeConstraint: State.(UHeapRef) -> UBoolExpr
 ): UHeapRef? where State : UState<Type, Method, *, *, *, State> {
     val ref = calcOnState {
-        memory.mock { call(lastEnteredMethod, emptySequence(), memory.ctx.addressSort) }
+        memory.mocker.call(lastEnteredMethod, emptySequence(), memory.ctx.addressSort)
     }
 
     val typeConstraint = calcOnState {

@@ -42,7 +42,7 @@ class HeapRefEqTest {
 
     @Test
     fun testSymbolicAndConcreteHeapRefEq() = with(ctx) {
-        val ref1 = heap.allocateConcreteRef()
+        val ref1 = allocateConcreteRef()
         val ref2 = mkRegisterReading(0, addressSort)
         val expr = mkHeapRefEq(ref1, ref2)
         assertSame(falseExpr, expr)
@@ -58,15 +58,15 @@ class HeapRefEqTest {
 
     @Test
     fun testConcreteHeapRefEqFalse() = with(ctx) {
-        val ref1 = heap.allocateConcreteRef()
-        val ref2 = heap.allocateConcreteRef()
+        val ref1 = allocateConcreteRef()
+        val ref2 = allocateConcreteRef()
         val expr = mkHeapRefEq(ref1, ref2)
         assertSame(falseExpr, expr)
     }
 
     @Test
     fun testConcreteHeapRefEqTrue() = with(ctx) {
-        val ref1 = heap.allocateConcreteRef()
+        val ref1 = allocateConcreteRef()
         val ref2 = ref1
         val expr = mkHeapRefEq(ref1, ref2)
         assertSame(trueExpr, expr)
@@ -74,7 +74,7 @@ class HeapRefEqTest {
 
     @Test
     fun testInterleavedWithNullHeapRefEq() = with(ctx) {
-        val ref1 = heap.allocateConcreteRef()
+        val ref1 = allocateConcreteRef()
         val ref2 = nullRef
         val expr = mkHeapRefEq(ref1, ref2)
         assertSame(falseExpr, expr)
@@ -82,7 +82,7 @@ class HeapRefEqTest {
 
     @Test
     fun testInterleavedHeapRefEq() = with(ctx) {
-        val ref1 = heap.allocateConcreteRef()
+        val ref1 = allocateConcreteRef()
         val ref2 = mkRegisterReading(0, addressSort)
         val expr = mkHeapRefEq(ref1, ref2)
         assertSame(falseExpr, expr)
@@ -90,11 +90,11 @@ class HeapRefEqTest {
 
     @Test
     fun testSimpleIteConcreteHeapRefEq() = with(ctx) {
-        val ref1 = heap.allocateConcreteRef()
+        val ref1 = allocateConcreteRef()
         val ref2 = ref1
         val cond1 by boolSort
 
-        val ref3 = heap.allocateConcreteRef()
+        val ref3 = allocateConcreteRef()
         val ref4 = ref3
         val cond2  by boolSort
 
@@ -119,7 +119,7 @@ class HeapRefEqTest {
 
     @Test
     fun testSimpleIteHeapRefEq() = with(ctx) {
-        val ref1 = heap.allocateConcreteRef()
+        val ref1 = allocateConcreteRef()
         val ref2 = mkRegisterReading(0, addressSort)
         val cond1 by boolSort
 
@@ -138,8 +138,8 @@ class HeapRefEqTest {
         val symbolicRef2 = mkRegisterReading(1, addressSort)
         val symbolicRef3 = mkRegisterReading(2, addressSort)
 
-        val concreteRef1 = heap.allocateConcreteRef()
-        val concreteRef2 = heap.allocateConcreteRef()
+        val concreteRef1 = allocateConcreteRef()
+        val concreteRef2 = allocateConcreteRef()
 
         val cond1 by boolSort
         val cond2 by boolSort

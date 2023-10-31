@@ -12,7 +12,6 @@ import org.usvm.language.Stmt
 import org.usvm.ps.createPathSelector
 import org.usvm.statistics.CompositeUMachineObserver
 import org.usvm.statistics.CoverageStatistics
-import org.usvm.statistics.TerminatedStateRemover
 import org.usvm.statistics.UMachineObserver
 import org.usvm.statistics.collectors.CoveredNewStatesCollector
 import org.usvm.statistics.collectors.TargetsReachedStatesCollector
@@ -20,6 +19,7 @@ import org.usvm.statistics.distances.CallGraphStatisticsImpl
 import org.usvm.statistics.distances.CfgStatisticsImpl
 import org.usvm.statistics.distances.PlainCallGraphStatistics
 import org.usvm.stopstrategies.createStopStrategy
+import org.usvm.targets.UTargetsSet
 
 /**
  * Entry point for a sample language analyzer.
@@ -81,7 +81,6 @@ class SampleMachine(
         )
 
         val observers = mutableListOf<UMachineObserver<SampleState>>(coverageStatistics)
-        observers.add(TerminatedStateRemover())
         observers.add(statesCollector)
 
         run(
@@ -99,7 +98,7 @@ class SampleMachine(
         method: Method<*>,
         targets: List<SampleTarget>
     ): SampleState =
-        SampleState(ctx, targets = targets).apply {
+        SampleState(ctx, targets = UTargetsSet.from(targets)).apply {
             addEntryMethodCall(applicationGraph, method)
             val model = solver.emptyModel()
             models = persistentListOf(model)

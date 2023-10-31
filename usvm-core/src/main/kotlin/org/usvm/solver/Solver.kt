@@ -6,11 +6,8 @@ import io.ksmt.utils.asExpr
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
-import org.usvm.UHeapRef
-import org.usvm.constraints.UEqualityConstraints
 import org.usvm.constraints.UPathConstraints
 import org.usvm.isFalse
-import org.usvm.isStaticHeapRef
 import org.usvm.isTrue
 import org.usvm.model.UModelBase
 import org.usvm.model.UModelDecoder
@@ -38,72 +35,6 @@ open class USolverBase<Type>(
     protected val softConstraintsProvider: USoftConstraintsProvider<Type, *>,
 ) : USolver<UPathConstraints<Type>, UModelBase<Type>>(), AutoCloseable {
 
-    protected fun translateLogicalConstraints(constraints: Iterable<UBoolExpr>) {
-        for (constraint in constraints) {
-            val translated = translator.translate(constraint)
-            smtSolver.assert(translated)
-        }
-    }
-
-    protected fun translateEqualityConstraints(constraints: UEqualityConstraints) {
-        var index = 1
-
-        val nullRepr = constraints.equalReferences.find(ctx.nullRef)
-        for (ref in constraints.distinctReferences) {
-            // Static refs are already translated as a values of an uninterpreted sort
-            if (isStaticHeapRef(ref)) {
-                continue
-            }
-
-            val refIndex = if (ref == nullRepr) 0 else index++
-            val translatedRef = translator.translate(ref)
-            val preInterpretedValue = ctx.mkUninterpretedSortValue(ctx.addressSort, refIndex)
-            smtSolver.assert(ctx.mkEq(translatedRef, preInterpretedValue))
-        }
-
-        for ((key, value) in constraints.equalReferences) {
-            val translatedLeft = translator.translate(key)
-            val translatedRight = translator.translate(value)
-            smtSolver.assert(ctx.mkEq(translatedLeft, translatedRight))
-        }
-
-        val processedConstraints = mutableSetOf<Pair<UHeapRef, UHeapRef>>()
-
-        for ((ref1, disequalRefs) in constraints.referenceDisequalities.entries) {
-            for (ref2 in disequalRefs) {
-                if (!processedConstraints.contains(ref2 to ref1)) {
-                    processedConstraints.add(ref1 to ref2)
-                    val translatedRef1 = translator.translate(ref1)
-                    val translatedRef2 = translator.translate(ref2)
-                    smtSolver.assert(ctx.mkNot(ctx.mkEq(translatedRef1, translatedRef2)))
-                }
-            }
-        }
-
-        processedConstraints.clear()
-        val translatedNull = translator.transform(ctx.nullRef)
-        for ((ref1, disequalRefs) in constraints.nullableDisequalities.entries) {
-            for (ref2 in disequalRefs) {
-                if (!processedConstraints.contains(ref2 to ref1)) {
-                    processedConstraints.add(ref1 to ref2)
-                    val translatedRef1 = translator.translate(ref1)
-                    val translatedRef2 = translator.translate(ref2)
-
-                    val disequalityConstraint = ctx.mkNot(ctx.mkEq(translatedRef1, translatedRef2))
-                    val nullConstraint1 = ctx.mkEq(translatedRef1, translatedNull)
-                    val nullConstraint2 = ctx.mkEq(translatedRef2, translatedNull)
-                    smtSolver.assert(ctx.mkOr(disequalityConstraint, ctx.mkAnd(nullConstraint1, nullConstraint2)))
-                }
-            }
-        }
-    }
-
-    protected fun translateToSmt(pc: UPathConstraints<Type>) {
-        translateEqualityConstraints(pc.equalityConstraints)
-        translateLogicalConstraints(pc.numericConstraints.constraints().asIterable())
-        translateLogicalConstraints(pc.logicalConstraints)
-    }
-
     override fun check(query: UPathConstraints<Type>): USolverResult<UModelBase<Type>> =
         internalCheck(query, useSoftConstraints = false)
 
@@ -121,11 +52,11 @@ open class USolverBase<Type>(
         }
 
         smtSolver.withAssertionsScope {
-            translateToSmt(pc)
+            pc.constraints(translator).forEach(smtSolver::assert)
 
             val softConstraints = mutableListOf<UBoolExpr>()
             if (useSoftConstraints) {
-                val softConstraintSources = pc.logicalConstraints.asSequence() + pc.numericConstraints.constraints()
+                val softConstraintSources = pc.softConstraintsSourceSequence
                 softConstraintSources.flatMapTo(softConstraints) {
                     softConstraintsProvider
                         .provide(it)

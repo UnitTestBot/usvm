@@ -9,6 +9,7 @@ import org.usvm.memory.USymbolicCollectionKeyInfo
 import org.usvm.model.UModelBase
 import org.usvm.regions.Region
 import org.usvm.targets.UTarget
+import org.usvm.targets.UTargetsSet
 
 typealias Field = java.lang.reflect.Field
 typealias Type = kotlin.reflect.KClass<*>
@@ -39,8 +40,8 @@ internal class TestState(
     ctx: UContext<*>,
     callStack: UCallStack<String, TestInstruction>, pathConstraints: UPathConstraints<Any>,
     memory: UMemory<Any, String>, models: List<UModelBase<Any>>,
-    pathLocation: PathsTrieNode<TestState, TestInstruction>,
-    targetTrees: List<TestTarget> = emptyList()
+    pathLocation: PathNode<TestInstruction>,
+    targetTrees: UTargetsSet<TestTarget, TestInstruction> = UTargetsSet.empty()
 ) : UState<Any, String, TestInstruction, UContext<*>, TestTarget, TestState>(ctx, callStack, pathConstraints, memory, models, pathLocation, targetTrees) {
 
     override fun clone(newConstraints: UPathConstraints<Any>?): TestState = this
@@ -68,7 +69,7 @@ internal fun mockState(id: StateId, startMethod: String, startInstruction: Int =
     val ctxMock = mockk<UContext<*>>()
     every { ctxMock.getNextStateId() } returns id
     val callStack = UCallStack<String, TestInstruction>(startMethod)
-    val spyk = spyk(TestState(ctxMock, callStack, mockk(), mockk(), emptyList(), mockk(), targets))
+    val spyk = spyk(TestState(ctxMock, callStack, mockk(), mockk(), emptyList(), mockk(), UTargetsSet.from(targets)))
     every { spyk.currentStatement } returns TestInstruction(startMethod, startInstruction)
     return spyk
 }

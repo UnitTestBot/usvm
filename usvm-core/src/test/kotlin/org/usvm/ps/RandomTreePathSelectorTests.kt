@@ -1,5 +1,4 @@
-package org.usvm.ps
-
+import RandomTreePathSelectorTests.TreeBuilder.Companion.tree
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -8,56 +7,52 @@ import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
-import org.usvm.TestState
-import org.usvm.UState
-import org.usvm.pseudoRandom
-import org.usvm.PathsTrieNode
-import org.usvm.PathsTrieNodeImpl
-import org.usvm.RootNode
+import org.usvm.PathNode
 import org.usvm.TestInstruction
+import org.usvm.TestState
+import org.usvm.ps.ExecutionTreeTracker
+import org.usvm.ps.RandomTreePathSelector
+import org.usvm.pseudoRandom
 import kotlin.test.assertEquals
 
 internal class RandomTreePathSelectorTests {
     private class TreeBuilder(
-        prevNode: PathsTrieNode<TestState, TestInstruction>,
-        statement: Int,
+        val node: PathNode<TestInstruction>,
     ) {
-        val node = when (prevNode) {
-            is RootNode -> PathsTrieNodeImpl(prevNode, TestInstruction("", statement), staticState)
-            is PathsTrieNodeImpl -> PathsTrieNodeImpl(prevNode, TestInstruction("", statement), staticState)
-        }
-
         fun child(init: TreeBuilder.() -> Unit) {
-            val builder = TreeBuilder(node, nextStatement())
+            val nextNode = node + nextStatement()
+            val builder = TreeBuilder(nextNode)
             init(builder)
-            node.children[builder.node.statement] = builder.node
         }
 
         fun child(state: TestState) {
-            val stmt = nextStatement()
-
             with(state) {
-                pathLocation = node.pathLocationFor(TestInstruction("", stmt), this)
+                pathNode = node + nextStatement()
             }
         }
 
         companion object {
-            // We pass the same state everywhere
-            private val staticState = mockk<TestState>()
             private var counter = 0
 
-            fun nextStatement() = counter++
+            fun nextStatement() = TestInstruction("", counter++)
+
+            fun tree(init: TreeBuilder.() -> Unit): PathNode<TestInstruction> {
+                val rootNode = PathNode.root<TestInstruction>()
+                val builder = TreeBuilder(rootNode)
+                init(builder)
+                return rootNode
+            }
         }
     }
 
     @Test
     fun smokeTest() {
-        val rootNode = RootNode<TestState, TestInstruction>()
+        val root = PathNode.root<TestInstruction>()
         val state1 = mockk<TestState>()
 
-        every { state1.pathLocation } returns PathsTrieNodeImpl(rootNode, statement = TestInstruction("", 1), state1)
+        every { state1.pathNode } returns root
 
-        val selector = RandomTreePathSelector(rootNode, { 0 }, 0L)
+        val selector = RandomTreePathSelector.fromRoot<TestState, TestInstruction>(root) { 0 }
 
         selector.add(listOf(state1))
         assertEquals(state1, selector.peek())
@@ -65,12 +60,12 @@ internal class RandomTreePathSelectorTests {
 
     @Test
     fun peekFromEmptySelectorAndNonEmptyPathsTreeTest() {
-        val rootNode = RootNode<TestState, TestInstruction>()
+        val root = PathNode.root<TestInstruction>()
         val state1 = mockk<TestState>()
 
-        every { state1.pathLocation } returns PathsTrieNodeImpl(rootNode, statement = TestInstruction("", 1), state1)
+        every { state1.pathNode } returns root
 
-        val selector = RandomTreePathSelector(rootNode, { 0 }, 0L)
+        val selector = RandomTreePathSelector.fromRoot<TestState, TestInstruction>(root) { 0 }
 
         assertThrows<NoSuchElementException> { selector.peek() }
     }
@@ -78,20 +73,20 @@ internal class RandomTreePathSelectorTests {
     @ParameterizedTest
     @MethodSource("testCases")
     fun regularPeekTest(
-        root: PathsTrieNode<TestState, TestInstruction>,
+        root: PathNode<TestInstruction>,
         states: List<TestState>,
         randomChoices: List<Int>,
         expectedStates: List<TestState>,
     ) {
         var currentRandomIdx = -1
 
-        fun nextInt(): Int {
+        fun nextInt(max: Int): Int {
             currentRandomIdx++
-            return randomChoices[currentRandomIdx]
+            return randomChoices[currentRandomIdx] % max
         }
 
-        val selector = RandomTreePathSelector(root, ::nextInt, 0L)
-        registerLocationsInTree(root, selector)
+        val selector =
+            RandomTreePathSelector<TestState, TestInstruction>(ExecutionTreeTracker(root), ::nextInt)
         selector.add(states)
 
         for (expectedState in expectedStates) {
@@ -104,8 +99,8 @@ internal class RandomTreePathSelectorTests {
         val states = (0 until 15).map {
             val mock = mockk<TestState>()
 
-            every { mock.pathLocation } answers { callOriginal() }
-            every { mock.pathLocation = any() } answers { callOriginal() }
+            every { mock.pathNode } answers { callOriginal() }
+            every { mock.pathNode = any() } answers { callOriginal() }
 
             mock
         }.toTypedArray()
@@ -152,14 +147,13 @@ internal class RandomTreePathSelectorTests {
 
         var currentRandomIdx = -1
 
-        fun nextInt(): Int {
+        fun nextInt(max: Int): Int {
             currentRandomIdx++
-            return pseudoRandom(currentRandomIdx)
+            return pseudoRandom(currentRandomIdx) % max
         }
 
-        val selector = RandomTreePathSelector(root, ::nextInt, 0L)
-
-        registerLocationsInTree(root, selector)
+        val selector =
+            RandomTreePathSelector<TestState, TestInstruction>(ExecutionTreeTracker(root), ::nextInt)
 
         val currentStates = states.toMutableSet()
         selector.add(currentStates)
@@ -174,31 +168,14 @@ internal class RandomTreePathSelectorTests {
     }
 
     companion object {
-        private fun <State : UState<*, *, Statement, *, *, State>, Statement> registerLocationsInTree(
-            root: PathsTrieNode<State, Statement>,
-            selector: RandomTreePathSelector<State, Statement>,
-        ) {
-            selector.registerLocation(root)
-
-            root.children.forEach {
-                registerLocationsInTree(it.value, selector)
-            }
-        }
-
-        private fun tree(init: TreeBuilder.() -> Unit): PathsTrieNode<TestState, TestInstruction> {
-            val rootNode = RootNode<TestState, TestInstruction>()
-            val builder = TreeBuilder(rootNode, statement = TreeBuilder.nextStatement())
-            init(builder)
-            return rootNode
-        }
 
         @JvmStatic
         fun testCases(): Collection<Arguments> {
-            val states = (0 until 15).map {
+            val states = (0 until 20).map {
                 val mock = mockk<TestState>()
 
-                every { mock.pathLocation } answers { callOriginal() }
-                every { mock.pathLocation = any() } answers { callOriginal() }
+                every { mock.pathNode } answers { callOriginal() }
+                every { mock.pathNode = any() } answers { callOriginal() }
 
                 mock
             }.toTypedArray()
@@ -219,62 +196,62 @@ internal class RandomTreePathSelectorTests {
                 child {
                     child {
                         child {
-                            child(states[0])
+                            child(states[4])
                         }
                     }
                 }
             }
 
             val root3 = tree {
-                child(states[0])
+                child(states[5])
 
                 child {
                     child {
-                        child(states[2])
-
-                        child {
-                            child {
-                                child(states[5])
-                                child(states[6])
-                                child(states[7])
-                            }
-                            child {
-                                child(states[8])
-                                child(states[9])
-                            }
-                        }
+                        child(states[6])
 
                         child {
                             child {
                                 child(states[10])
                                 child(states[11])
+                                child(states[12])
                             }
                             child {
-                                child(states[12])
                                 child(states[13])
                                 child(states[14])
                             }
                         }
+
+                        child {
+                            child {
+                                child(states[15])
+                                child(states[16])
+                            }
+                            child {
+                                child(states[17])
+                                child(states[18])
+                                child(states[19])
+                            }
+                        }
                     }
-                    child(states[1])
+                    child(states[7])
                 }
 
                 child {
-                    child(states[3])
-                    child(states[4])
+                    child(states[8])
+                    child(states[9])
                 }
             }
 
             return listOf(
-                Arguments.of(root1, states.slice(0 until 4), listOf(0, 1, 1), listOf(states[3])),
-                Arguments.of(root1, states.slice(0 until 4), listOf(0, 0, 0, 0, 1, 0), listOf(states[0], states[2])),
-                Arguments.of(root1, states.slice(0 until 3), listOf(0, 1, 1, 1, 1), listOf(states[2])),
-                Arguments.of(root1, states.slice(0 until 2), listOf(0, 1, 1, 1, 1, 1, 1), listOf(states[1])),
-                Arguments.of(root2, states.slice(0 until 1), listOf(0, 100, 200, 4, 55), listOf(states[0])),
-                Arguments.of(root3, states.toList(), listOf(0, 1, 0, 1, 0, 0), listOf(states[5])),
-                Arguments.of(root3, states.toList(), listOf(0, 1, 0, 1, 0, 2), listOf(states[7])),
-                Arguments.of(root3, states.toList(), listOf(0, 2, 1), listOf(states[4])),
-                Arguments.of(root3, states.toList(), listOf(0, 0), listOf(states[0]))
+                Arguments.of(root1, states.slice(0 until 4), listOf(1, 1), listOf(states[3])),
+                Arguments.of(root1, states.slice(0 until 4), listOf(0, 0, 1, 0), listOf(states[0], states[2])),
+                Arguments.of(root1, states.slice(0 until 3), listOf(1, 1, 1, 1), listOf(states[2])),
+                Arguments.of(root1, states.slice(0 until 2), listOf(1, 1, 1, 1, 1, 1), listOf(states[1])),
+                Arguments.of(root2, states.slice(4 until 5), listOf(100, 200, 4, 55), listOf(states[4])),
+                Arguments.of(root3, states.slice(5 until 20), listOf(1, 0, 1, 0, 0), listOf(states[10])),
+                Arguments.of(root3, states.slice(5 until 20), listOf(1, 0, 1, 0, 2), listOf(states[12])),
+                Arguments.of(root3, states.slice(5 until 20), listOf(2, 1), listOf(states[9])),
+                Arguments.of(root3, states.slice(5 until 20), listOf(0), listOf(states[5]))
             )
         }
     }

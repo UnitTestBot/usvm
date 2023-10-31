@@ -15,7 +15,7 @@ import java.util.concurrent.ConcurrentHashMap
  */
 class CoverageStatistics<Method, Statement, State : UState<*, Method, Statement, *, *, State>>(
     methods: Set<Method>,
-    private val applicationGraph: ApplicationGraph<Method, Statement>
+    private val applicationGraph: ApplicationGraph<Method, Statement>,
 ) : UMachineObserver<State> {
 
     private val onStatementCoveredObservers: MutableSet<(State, Method, Statement) -> Unit> = ConcurrentHashMap.newKeySet()
@@ -100,7 +100,8 @@ class CoverageStatistics<Method, Statement, State : UState<*, Method, Statement,
     override fun onStateTerminated(state: State, stateReachable: Boolean) {
         if (!stateReachable) return
 
-        for (statement in state.reversedPath) {
+        val statements = state.pathNode.allStatements
+        for (statement in statements) {
             val method = applicationGraph.methodOf(statement)
 
             if (uncoveredStatements[method]?.remove(statement) != true) {

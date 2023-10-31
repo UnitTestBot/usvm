@@ -19,7 +19,6 @@ import org.usvm.machine.state.lastStmt
 import org.usvm.ps.createPathSelector
 import org.usvm.statistics.CompositeUMachineObserver
 import org.usvm.statistics.CoverageStatistics
-import org.usvm.statistics.TerminatedStateRemover
 import org.usvm.statistics.TransitiveCoverageZoneObserver
 import org.usvm.statistics.UMachineObserver
 import org.usvm.statistics.collectors.CoveredNewStatesCollector
@@ -38,7 +37,7 @@ val logger = object : KLogging() {}.logger
 class JcMachine(
     cp: JcClasspath,
     private val options: UMachineOptions,
-    private val interpreterObserver: JcInterpreterObserver? = null
+    private val interpreterObserver: JcInterpreterObserver? = null,
 ) : UMachine<JcState>() {
     private val applicationGraph = JcApplicationGraph(cp)
 
@@ -108,7 +107,6 @@ class JcMachine(
         )
 
         val observers = mutableListOf<UMachineObserver<JcState>>(coverageStatistics)
-        observers.add(TerminatedStateRemover())
 
         if (interpreterObserver is UMachineObserver<*>) {
             @Suppress("UNCHECKED_CAST")
@@ -136,7 +134,8 @@ class JcMachine(
                     callGraphStatistics = callGraphStatistics
                 )
             }
-            interpreter.forkBlackList = TargetsReachableForkBlackList(distanceCalculator, shouldBlackList = { isInfinite })
+            interpreter.forkBlackList =
+                TargetsReachableForkBlackList(distanceCalculator, shouldBlackList = { isInfinite })
         } else {
             interpreter.forkBlackList = UForkBlackList.createDefault()
         }
