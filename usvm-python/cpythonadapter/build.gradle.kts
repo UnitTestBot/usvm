@@ -19,12 +19,19 @@ val configCPythonDebug =
         tasks.register<Exec>("CPythonBuildConfigurationDebug") {
             group = cpythonTaskGroup
             workingDir = File(cpythonPath)
+            val includePipFile = File(projectDir, "include_pip_in_build")
+            inputs.file(includePipFile)
             outputs.file("$cpythonPath/Makefile")
+            val pipLine = if (includePipFile.readText().trim() == "false") {
+                "--with-ensurepip=no"
+            } else {
+                "--with-ensurepip=yes"
+            }
             commandLine(
                 "$cpythonPath/configure",
                 "--enable-shared",
                 "--without-static-libpython",
-                "--with-ensurepip=yes",
+                pipLine,
                 "--prefix=$cpythonBuildPath",
                 "--disable-test-modules",
                 "--with-assertions"
@@ -33,36 +40,6 @@ val configCPythonDebug =
     } else {
         null
     }
-
-val configNoPip =
-    if (!isWindows) {
-        tasks.register<Exec>("CPythonConfigureWithoutPip") {
-            group = cpythonTaskGroup
-            workingDir = File(cpythonPath)
-            outputs.file("$cpythonPath/Makefile")
-            commandLine(
-                "$cpythonPath/configure",
-                "--enable-shared",
-                "--without-static-libpython",
-                "--with-ensurepip=no",
-                "--prefix=$cpythonBuildPath",
-                "--disable-test-modules",
-                "--with-assertions"
-            )
-        }
-    } else {
-        null
-    }
-
-if (!isWindows) {
-    tasks.register<Exec>("CPythonBuildWithoutPip") {
-        group = cpythonTaskGroup
-        workingDir = File(cpythonPath)
-        dependsOn(configNoPip)
-        commandLine("make")
-        commandLine("make", "install")
-    }
-}
 
 /*
 val configCPythonRelease =
@@ -143,11 +120,11 @@ library {
         }
 
         compileTask.dependsOn(":usvm-python:usvm-python-main:compileJava")
-        /*if (!compileTask.isOptimized) {
+        if (!compileTask.isOptimized) {
             compileTask.dependsOn(cpythonBuildDebug)
         } else {
             compileTask.dependsOn(cpythonBuildDebug)  // TODO
-        }*/
+        }
     }
 
     if (isWindows) {
