@@ -34,6 +34,36 @@ val configCPythonDebug =
         null
     }
 
+val configNoPip =
+    if (!isWindows) {
+        tasks.register<Exec>("CPythonConfigureWithoutPip") {
+            group = cpythonTaskGroup
+            workingDir = File(cpythonPath)
+            outputs.file("$cpythonPath/Makefile")
+            commandLine(
+                "$cpythonPath/configure",
+                "--enable-shared",
+                "--without-static-libpython",
+                "--with-ensurepip=no",
+                "--prefix=$cpythonBuildPath",
+                "--disable-test-modules",
+                "--with-assertions"
+            )
+        }
+    } else {
+        null
+    }
+
+if (!isWindows) {
+    tasks.register<Exec>("CPythonBuildWithoutPip") {
+        group = cpythonTaskGroup
+        workingDir = File(cpythonPath)
+        dependsOn(configNoPip)
+        commandLine("make")
+        commandLine("make", "install")
+    }
+}
+
 /*
 val configCPythonRelease =
     if (!isWindows) {
@@ -113,11 +143,11 @@ library {
         }
 
         compileTask.dependsOn(":usvm-python:usvm-python-main:compileJava")
-        if (!compileTask.isOptimized) {
+        /*if (!compileTask.isOptimized) {
             compileTask.dependsOn(cpythonBuildDebug)
         } else {
             compileTask.dependsOn(cpythonBuildDebug)  // TODO
-        }
+        }*/
     }
 
     if (isWindows) {
@@ -133,7 +163,11 @@ val cpythonClean = tasks.register<Exec>("CPythonClean") {
     group = cpythonTaskGroup
     workingDir = File(cpythonPath)
     if (!isWindows) {
-        commandLine("make", "clean")
+        if (File(cpythonPath, "Makefile").exists()) {
+            commandLine("make", "clean")
+        } else {
+            commandLine("echo", "CPython Configuration is already clean")
+        }
     } else {
         commandLine(windowsBuildScript.canonicalPath, "-t", "Clean")
     }
@@ -143,7 +177,11 @@ tasks.register<Exec>("CPythonDistclean") {
     group = cpythonTaskGroup
     workingDir = File(cpythonPath)
     if (!isWindows) {
-        commandLine("make", "distclean")
+        if (File(cpythonPath, "Makefile").exists()) {
+            commandLine("make", "distclean")
+        } else {
+            commandLine("echo", "CPython Configuration is already clean")
+        }
     } else {
         commandLine(windowsBuildScript.canonicalPath, "-t", "CleanAll")
     }
