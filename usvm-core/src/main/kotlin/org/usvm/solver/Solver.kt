@@ -1,9 +1,7 @@
 package org.usvm.solver
 
-import io.ksmt.expr.KExpr
 import io.ksmt.solver.KSolver
 import io.ksmt.solver.KSolverStatus
-import io.ksmt.sort.KBoolSort
 import io.ksmt.utils.asExpr
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
@@ -53,7 +51,7 @@ open class USolverBase<Type>(
         }
 
         smtSolver.withAssertionsScope {
-            pc.constraints(translator).forEach(smtSolver::assert)
+            smtSolver.assert(pc.constraints(translator).toList())
 
             val translatedSoftConstraints = softConstraints
                 .asSequence()

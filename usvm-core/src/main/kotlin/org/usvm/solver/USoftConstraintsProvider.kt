@@ -70,8 +70,7 @@ class USoftConstraintsProvider<Type, USizeSort : USort>(
     fun makeSoftConstraints(pathConstraints: UPathConstraints<Type>): Set<UBoolExpr> {
         val softConstraints = hashSetOf<UBoolExpr>()
 
-        val softConstraintSources = pathConstraints.logicalConstraints.asSequence() +
-                pathConstraints.numericConstraints.constraints()
+        val softConstraintSources = pathConstraints.softConstraintsSourceSequence
         softConstraintSources.flatMapTo(softConstraints) {
             ctx.softConstraintsProvider<Type>()
                 .provide(it)
