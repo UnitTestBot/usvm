@@ -84,4 +84,6 @@ fun handlerForkKt(ctx: ConcolicRunContext, cond: UninterpretedSymbolicPythonObje
     myFork(ctx, expr)
 }
 
-object BadModelException: Exception()
+object BadModelException: Exception() {
+    private fun readResolve(): Any = BadModelException
+}
