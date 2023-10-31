@@ -30,6 +30,9 @@ jobs:
         uses: gradle/gradle-build-action@v2
         with:
           arguments: :usvm-python:usvm-python-runner:build
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # The USERNAME and TOKEN need to correspond to the credentials environment variables used in
       # the publishing section of your build.gradle
