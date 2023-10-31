@@ -27,6 +27,9 @@ val configCPythonDebug =
             } else {
                 "--with-ensurepip=yes"
             }
+            doFirst {
+                println("Pip line: $pipLine")
+            }
             commandLine(
                 "$cpythonPath/configure",
                 "--enable-shared",
