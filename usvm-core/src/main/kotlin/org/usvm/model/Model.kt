@@ -2,6 +2,7 @@ package org.usvm.model
 
 import io.ksmt.utils.uncheckedCast
 import org.usvm.INITIAL_INPUT_ADDRESS
+import org.usvm.NULL_ADDRESS
 import org.usvm.UBoolExpr
 import org.usvm.UComposer
 import org.usvm.UConcreteHeapRef
@@ -92,7 +93,9 @@ open class UModelBase<Type>(
 fun modelEnsureConcreteInputRef(ref: UHeapRef): UConcreteHeapRef {
     // All the expressions in the model are interpreted, therefore, they must
     // have concrete addresses. Moreover, the model knows only about input values
-    // which have addresses less or equal than INITIAL_INPUT_ADDRESS
-    require(ref is UConcreteHeapRef && ref.address <= INITIAL_INPUT_ADDRESS) { "Unexpected ref: $ref" }
+    // which have addresses less or equal than INITIAL_INPUT_ADDRESS (or NULL_ADDRESS for null values)
+    require(ref is UConcreteHeapRef && (ref.address <= INITIAL_INPUT_ADDRESS || ref.address == NULL_ADDRESS)) {
+        "Unexpected ref: $ref"
+    }
     return ref
 }

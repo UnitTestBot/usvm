@@ -23,7 +23,6 @@ import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.memory.UMemory
 import org.usvm.model.ULazyModelDecoder
 import org.usvm.solver.UExprTranslator
-import org.usvm.solver.USoftConstraintsProvider
 import org.usvm.solver.USolverBase
 import org.usvm.solver.UTypeSolver
 import org.usvm.targets.UTarget
@@ -46,12 +45,11 @@ abstract class SymbolicCollectionTestBase {
         every { components.mkSolver(any()) } answers { uSolver.uncheckedCast() }
         ctx = UContext(components)
 
-        val softConstraintProvider = USoftConstraintsProvider<SingleTypeSystem.SingleType, USizeSort>(ctx)
         val translator = UExprTranslator<SingleTypeSystem.SingleType, USizeSort>(ctx)
         val decoder = ULazyModelDecoder(translator)
         this.translator = translator
         val typeSolver = UTypeSolver(SingleTypeSystem)
-        uSolver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder, softConstraintProvider)
+        uSolver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder)
         every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
         every { components.mkStatesForkProvider() } answers { WithSolverStateForker }
 

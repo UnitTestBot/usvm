@@ -118,7 +118,7 @@ class ObjectMapTest : SymbolicCollectionTestBase() {
         val otherKeyContains = symbolicObjectMapContains(mapRef, otherSymbolicKey, mapType)
         pathConstraints += otherKeyContains
 
-        val result = uSolver.checkWithSoftConstraints(pathConstraints)
+        val result = uSolver.check(pathConstraints)
         assertIs<USatResult<UModelBase<SingleTypeSystem.SingleType>>>(result)
 
         assertEquals(ctx.trueExpr, result.model.eval(otherKeyContains))

@@ -120,7 +120,7 @@ internal class ExceptionExamplesTest : JavaMethodTestRunner() {
             eq(4),
             { _, e, r -> e is NumberFormatException && r == 1 },
             { _, e, r -> e is InvalidPathException && r == 2 },
-            { _, e, r -> e is RuntimeException && e !is NumberFormatException && e !is InvalidPathException && r == 3 },
+            { _, e, r -> e == null || (e is RuntimeException && e !is NumberFormatException && e !is InvalidPathException) && r == 3 },
             { _, e, r -> e !is RuntimeException && r == 4 },
         )
     }

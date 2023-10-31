@@ -1,7 +1,7 @@
 package org.usvm.samples.algorithms;
 
+import org.usvm.api.Engine;
 import java.util.Arrays;
-import java.util.Random;
 
 public class Sort {
 
@@ -109,5 +109,15 @@ public class Sort {
 
         Arrays.sort(array);
         return array;
+    }
+
+    private static class Random {
+        public int nextInt(int bound) {
+            int result = Engine.makeSymbolicInt();
+            Engine.assume(result >= 0);
+            Engine.assume(result < bound);
+
+            return result;
+        }
     }
 }

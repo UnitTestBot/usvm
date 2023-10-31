@@ -8,7 +8,6 @@ import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.USizeExprProvider
 import org.usvm.language.SampleType
-import org.usvm.solver.USoftConstraintsProvider
 import org.usvm.solver.USolverBase
 import org.usvm.solver.UTypeSolver
 import org.usvm.types.UTypeSystem
@@ -20,7 +19,6 @@ class SampleLanguageComponents(
 ) : UComponents<SampleType, USizeSort> {
     override fun <Context : UContext<USizeSort>> mkSolver(ctx: Context): USolverBase<SampleType> {
         val (translator, decoder) = buildTranslatorAndLazyDecoder(ctx)
-        val softConstraintsProvider = USoftConstraintsProvider<SampleType, _>(ctx)
 
         val solver = when (solverType) {
             SolverType.YICES -> KYicesSolver(ctx)
@@ -28,7 +26,7 @@ class SampleLanguageComponents(
         }
 
         val typeSolver = UTypeSolver(typeSystem)
-        return USolverBase(ctx, solver, typeSolver, translator, decoder, softConstraintsProvider)
+        return USolverBase(ctx, solver, typeSolver, translator, decoder)
     }
 
     override fun mkTypeSystem(ctx: UContext<USizeSort>): UTypeSystem<SampleType> = typeSystem

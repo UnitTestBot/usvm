@@ -1,4 +1,4 @@
-package org.usvm.machine
+package org.usvm.machine.interpreter
 
 import io.ksmt.expr.KExpr
 import io.ksmt.utils.asExpr
@@ -13,8 +13,9 @@ import org.usvm.api.evalTypeEquals
 import org.usvm.api.typeStreamOf
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.isStaticHeapRef
-import org.usvm.machine.interpreter.JcStepScope
-import org.usvm.machine.interpreter.JcTypeSelector
+import org.usvm.machine.JcConcreteMethodCallInst
+import org.usvm.machine.JcContext
+import org.usvm.machine.JcVirtualMethodCallInst
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.newStmt
 import org.usvm.memory.foldHeapRefWithStaticAsSymbolic

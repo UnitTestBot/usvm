@@ -15,6 +15,7 @@ import org.usvm.statistics.CoverageStatistics
 import org.usvm.statistics.UMachineObserver
 import org.usvm.statistics.collectors.CoveredNewStatesCollector
 import org.usvm.statistics.collectors.TargetsReachedStatesCollector
+import org.usvm.statistics.constraints.SoftConstraintsObserver
 import org.usvm.statistics.distances.CallGraphStatisticsImpl
 import org.usvm.statistics.distances.CfgStatisticsImpl
 import org.usvm.statistics.distances.PlainCallGraphStatistics
@@ -82,6 +83,10 @@ class SampleMachine(
 
         val observers = mutableListOf<UMachineObserver<SampleState>>(coverageStatistics)
         observers.add(statesCollector)
+
+        if (options.useSoftConstraints) {
+            observers.add(SoftConstraintsObserver())
+        }
 
         run(
             interpreter = interpreter,

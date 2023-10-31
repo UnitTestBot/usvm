@@ -23,6 +23,7 @@ import org.usvm.statistics.TransitiveCoverageZoneObserver
 import org.usvm.statistics.UMachineObserver
 import org.usvm.statistics.collectors.CoveredNewStatesCollector
 import org.usvm.statistics.collectors.TargetsReachedStatesCollector
+import org.usvm.statistics.constraints.SoftConstraintsObserver
 import org.usvm.statistics.distances.CfgStatistics
 import org.usvm.statistics.distances.CfgStatisticsImpl
 import org.usvm.statistics.distances.InterprocDistance
@@ -42,7 +43,12 @@ class JcMachine(
     private val applicationGraph = JcApplicationGraph(cp)
 
     private val typeSystem = JcTypeSystem(cp)
-    private val components = JcComponents(typeSystem, options.solverType, options.useSolverForForks)
+    private val components = JcComponents(
+        typeSystem,
+        options.solverType,
+        options.useSolverForForks,
+        options.runSolverInAnotherProcess
+    )
     private val ctx = JcContext(cp, components)
 
     private val interpreter = JcInterpreter(ctx, applicationGraph, interpreterObserver)
@@ -138,6 +144,10 @@ class JcMachine(
                 TargetsReachableForkBlackList(distanceCalculator, shouldBlackList = { isInfinite })
         } else {
             interpreter.forkBlackList = UForkBlackList.createDefault()
+        }
+
+        if (options.useSoftConstraints) {
+            observers.add(SoftConstraintsObserver())
         }
 
         run(
