@@ -12,8 +12,11 @@ tasks.compileJava {
 }
 
 // from GRADLE_USER_HOME/gradle.properties
-val githubUser: String by project
-val githubToken: String by project  // with permission to read packages
+val githubUserFromHome: String? by project
+val githubTokenFromHome: String? by project  // with permission to read packages
+
+val githubUser: String = githubUserFromHome ?: System.getenv("GITHUB_ACTOR") ?: error("githubUser not defined")
+val githubToken: String = githubTokenFromHome ?: System.getenv("GITHUB_TOKEN") ?: error("githubToken not defined")
 
 repositories {
     maven {
