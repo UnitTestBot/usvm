@@ -1,0 +1,12 @@
+name: Gradle Package
+
+on: workflow_dispatch
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Empty job
+        run: echo "Hello!"
