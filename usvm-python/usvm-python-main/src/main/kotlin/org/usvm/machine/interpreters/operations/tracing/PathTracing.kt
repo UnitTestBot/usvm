@@ -30,7 +30,7 @@ fun <T : Any> withTracing(
             return null
         val eventRecord = SymbolicHandlerEvent(newEventParameters, result)
         // logger.debug("Depth: {}", context.curState!!.pathLocation.depth + 1)
-        context.curState!!.pathLocation = context.curState!!.pathLocation.pathLocationFor(eventRecord, context.curState!!)
+        context.curState!!.pathNode += eventRecord
         return result
     }
     val event = context.pathPrefix.first()
