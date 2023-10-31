@@ -7,7 +7,7 @@ import org.usvm.language.VirtualPythonObject
 import org.usvm.interpreter.CPythonAdapter
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.interpreter.MemberDescriptor
-import org.usvm.utils.withAdditionalPaths
+import org.usvm.machine.utils.withAdditionalPaths
 import java.io.File
 
 @Suppress("unused")

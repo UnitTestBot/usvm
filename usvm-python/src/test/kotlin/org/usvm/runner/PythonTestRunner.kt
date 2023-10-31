@@ -7,11 +7,10 @@ import org.usvm.language.types.*
 import org.usvm.machine.interpreters.CPythonExecutionException
 import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.PythonObject
+import org.usvm.machine.saving.*
 import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.AnalysisResultsNumberMatcher
 import org.usvm.test.util.checkers.ge
-import org.usvm.utils.PythonObjectInfo
-import org.usvm.utils.StandardPythonObjectSerializer
 
 sealed class PythonTestRunner(
     override var options: UMachineOptions = UMachineOptions(),
@@ -21,7 +20,7 @@ sealed class PythonTestRunner(
     abstract val typeSystem: PythonTypeSystem
     protected abstract val program: PythonProgram
     private val machine by lazy {
-        PythonMachine(program, typeSystem, StandardPythonObjectSerializer)
+        PythonMachine(program, typeSystem)
     }
     override val typeTransformer: (Any?) -> PythonType
         get() = { _ -> PythonAnyType }
@@ -29,16 +28,16 @@ sealed class PythonTestRunner(
         get() = { _, _ -> true }
     override val runner: (PythonUnpinnedCallable, UMachineOptions) -> List<PythonAnalysisResult<PythonObjectInfo>>
         get() = { callable, options ->
-            val results: MutableList<PythonAnalysisResult<PythonObjectInfo>> = mutableListOf()
+            val saver = createStandardSaver()
             machine.analyze(
                 callable,
-                results,
+                saver,
                 options.stepLimit?.toInt() ?: 300,
                 allowPathDiversion = allowPathDiversions,
                 timeoutMs = options.timeoutMs,
                 timeoutPerRunMs = timeoutPerRunMs
             )
-            results
+            saver.getResults()
         }
     override val coverageRunner: (List<PythonAnalysisResult<PythonObjectInfo>>) -> PythonCoverage
         get() = { _ -> PythonCoverage(0) }

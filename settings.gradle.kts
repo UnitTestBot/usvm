@@ -14,6 +14,8 @@ include("usvm-python:usvm-python-annotations")
 findProject(":usvm-python:usvm-python-annotations")?.name = "usvm-python-annotations"
 include("usvm-python:usvm-python-main")
 findProject(":usvm-python:usvm-python-main")?.name = "usvm-python-main"
+include("usvm-python:usvm-python-runner")
+findProject(":usvm-python:usvm-python-runner")?.name = "usvm-python-runner"
 
 pluginManagement {
     resolutionStrategy {

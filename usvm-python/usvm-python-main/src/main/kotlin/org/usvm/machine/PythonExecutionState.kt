@@ -17,7 +17,7 @@ import org.usvm.memory.UMemory
 import org.usvm.model.UModelBase
 import org.usvm.targets.UTarget
 import org.usvm.types.UTypeStream
-import org.usvm.utils.MAX_CONCRETE_TYPES_TO_CONSIDER
+import org.usvm.machine.utils.MAX_CONCRETE_TYPES_TO_CONSIDER
 
 object PythonTarget: UTarget<SymbolicHandlerEvent<Any>, PythonTarget>()
 

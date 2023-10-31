@@ -1,5 +1,7 @@
 package org.usvm.machine.interpreters
 
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import mu.KLogging
 import org.usvm.*
 import org.usvm.interpreter.ConcolicRunContext
@@ -14,12 +16,11 @@ import org.usvm.machine.*
 import org.usvm.machine.interpreters.operations.tracing.CancelledExecutionException
 import org.usvm.machine.interpreters.operations.tracing.InstructionLimitExceededException
 import org.usvm.machine.model.PyModel
+import org.usvm.machine.saving.*
 import org.usvm.machine.utils.PyModelHolder
 import org.usvm.machine.utils.PythonMachineStatisticsOnFunction
-import org.usvm.utils.PythonObjectSerializer
-import org.usvm.utils.ReprObjectSerializer
 
-class USVMPythonInterpreter<PythonObjectRepresentation>(
+class USVMPythonInterpreter<InputRepr>(
     private val ctx: UPythonContext,
     private val typeSystem: PythonTypeSystem,
     private val unpinnedCallable: PythonUnpinnedCallable,
@@ -28,10 +29,9 @@ class USVMPythonInterpreter<PythonObjectRepresentation>(
     private val printErrorMsg: Boolean,
     private val statistics: PythonMachineStatisticsOnFunction,
     private val maxInstructions: Int,
+    private val saver: PythonAnalysisResultSaver<InputRepr>,
     private val isCancelled: (Long) -> Boolean,
     private val allowPathDiversion: Boolean = true,
-    private val serializer: PythonObjectSerializer<PythonObjectRepresentation>,
-    private val saveRunResult: (PythonAnalysisResult<PythonObjectRepresentation>) -> Unit
 ) : UInterpreter<PythonExecutionState>() {
     private fun getSeeds(
         concolicRunContext: ConcolicRunContext,
@@ -50,18 +50,17 @@ class USVMPythonInterpreter<PythonObjectRepresentation>(
         converter: ConverterToPythonObject,
         concrete: List<PythonObject>,
         seeds: List<InterpretedInputSymbolicPythonObject>
-    ): List<InputObject<PythonObjectRepresentation>>? =
+    ): List<GeneratedPythonObject>? =
         if (converter.numberOfVirtualObjectUsages() == 0) {
-            val serializedInputs = concrete.map { serializer.serialize(it) }
-            (seeds zip unpinnedCallable.signature zip serializedInputs).map { (p, z) ->
-                val (x, y) = p
-                InputObject(x, y, z)
+            (seeds zip unpinnedCallable.signature zip concrete).map { (p, ref) ->
+                val (asUExpr, type) = p
+                GeneratedPythonObject(ref, type, asUExpr)
             }
         } else {
             null
         }
 
-    override fun step(state: PythonExecutionState): StepResult<PythonExecutionState> = with(ctx) {
+    override fun step(state: PythonExecutionState): StepResult<PythonExecutionState> = runBlocking {
         val modelHolder =
             if (state.meta.lastConverter != null)
                 state.meta.lastConverter!!.modelHolder
@@ -96,16 +95,22 @@ class USVMPythonInterpreter<PythonObjectRepresentation>(
             val converter = concolicRunContext.converter
             val concrete = getConcrete(converter, seeds, symbols)
             val virtualObjects = converter.getPythonVirtualObjects()
-            val inputs = runCatching {
+            val madeInputSerialization: Boolean = runCatching {
                 getInputs(converter, concrete, seeds)
             }.getOrElse {
                 logger.debug(
                     "Error while serializing inputs. Types: {}. Omitting step...",
                     seeds.map { it.getConcreteType() }
                 )
-                return StepResult(emptySequence(), false)
-            }
-            concolicRunContext.usesVirtualInputs = inputs == null
+                return@runBlocking StepResult(emptySequence(), false)
+            }?.let {
+                val representation = saver.serializeInput(it, converter)
+                launch {
+                    saver.saveNextInputs(representation)
+                }
+                true
+            } ?: false
+            concolicRunContext.usesVirtualInputs = !madeInputSerialization
 
             if (logger.isDebugEnabled) {  // getting __repr__ might be slow
                 logger.debug(
@@ -125,9 +130,8 @@ class USVMPythonInterpreter<PythonObjectRepresentation>(
                     concolicRunContext,
                     printErrorMsg
                 )
-                if (inputs != null) {
-                    val serializedResult = serializer.serialize(result)
-                    saveRunResult(PythonAnalysisResult(converter, inputs, Success(serializedResult)))
+                if (madeInputSerialization) {
+                    saver.saveExecutionResult(Success(result))
                 }
                 logger.debug("Step result: Successful run. Returned ${ReprObjectSerializer.serialize(result)}")
 
@@ -142,9 +146,8 @@ class USVMPythonInterpreter<PythonObjectRepresentation>(
                     ConcretePythonInterpreter.getNameOfPythonType(exception.pythonExceptionType),
                     ConcretePythonInterpreter.getPythonObjectRepr(exception.pythonExceptionValue)
                 )
-                if (inputs != null) {
-                    val serializedException = serializer.serialize(exception.pythonExceptionType)
-                    saveRunResult(PythonAnalysisResult(converter, inputs, Fail(serializedException)))
+                if (madeInputSerialization) {
+                    saver.saveExecutionResult(Fail(exception.pythonExceptionType))
                 }
             }
 
@@ -153,23 +156,23 @@ class USVMPythonInterpreter<PythonObjectRepresentation>(
             if (resultState != null) {
                 resultState.meta.wasExecuted = true
 
-                if (resultState.delayedForks.isEmpty() && inputs == null) {
+                if (resultState.delayedForks.isEmpty() && !madeInputSerialization) {
                     resultState.meta.objectsWithoutConcreteTypes = converter.getUSVMVirtualObjects()
                     resultState.meta.lastConverter = converter
                 }
                 logger.debug("Finished step on state: {}", concolicRunContext.curState)
-                return StepResult(concolicRunContext.forkedStates.asSequence(), !state.isTerminated())
+                return@runBlocking StepResult(concolicRunContext.forkedStates.asSequence(), !state.isTerminated())
 
             } else {
                 logger.debug("Ended step with path diversion")
-                return StepResult(emptySequence(), !state.isTerminated())
+                return@runBlocking StepResult(emptySequence(), !state.isTerminated())
             }
 
         } catch (_: BadModelException) {
 
             iterationCounter.iterations += 1
             logger.debug("Step result: Bad model")
-            return StepResult(concolicRunContext.forkedStates.asSequence(), !state.isTerminated())
+            return@runBlocking StepResult(concolicRunContext.forkedStates.asSequence(), !state.isTerminated())
 
         } catch (_: UnregisteredVirtualOperation) {
 
@@ -177,20 +180,20 @@ class USVMPythonInterpreter<PythonObjectRepresentation>(
             logger.debug("Step result: Unregistrered virtual operation")
             concolicRunContext.curState?.meta?.modelDied = true
             concolicRunContext.statistics.addUnregisteredVirtualOperation()
-            return StepResult(concolicRunContext.forkedStates.asSequence(), !state.isTerminated())
+            return@runBlocking StepResult(concolicRunContext.forkedStates.asSequence(), !state.isTerminated())
 
         } catch (_: InstructionLimitExceededException) {
 
             iterationCounter.iterations += 1
             logger.debug("Step result: InstructionLimitExceededException")
             concolicRunContext.curState?.meta?.wasInterrupted = true
-            return StepResult(concolicRunContext.forkedStates.reversed().asSequence(), !state.isTerminated())
+            return@runBlocking StepResult(concolicRunContext.forkedStates.reversed().asSequence(), !state.isTerminated())
 
         } catch (_: CancelledExecutionException) {
 
             logger.debug("Step result: execution cancelled")
             concolicRunContext.curState?.meta?.wasInterrupted = true
-            return StepResult(concolicRunContext.forkedStates.reversed().asSequence(), !state.isTerminated())
+            return@runBlocking StepResult(concolicRunContext.forkedStates.reversed().asSequence(), !state.isTerminated())
 
         } finally {
             concolicRunContext.converter.restart()
