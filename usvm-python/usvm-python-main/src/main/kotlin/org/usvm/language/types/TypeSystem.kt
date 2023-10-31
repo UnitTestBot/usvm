@@ -26,16 +26,32 @@ abstract class PythonTypeSystem: UTypeSystem<PythonType> {
         return supertype == type
     }
 
-    override fun isMultipleInheritanceAllowedFor(type: PythonType): Boolean {
-        return !isInstantiable(type)
-    }
-
     override fun isFinal(type: PythonType): Boolean {
         return isInstantiable(type)
     }
 
     override fun isInstantiable(type: PythonType): Boolean {
         return type is ConcretePythonType || type is MockType
+    }
+
+    override fun hasCommonSubtype(type: PythonType, types: Collection<PythonType>): Boolean {
+        require(types.count { it is ConcretePythonType } <= 1) { "Error in Python's hasCommonSubtype implementation" }
+        val concrete = types.firstOrNull { it is ConcretePythonType }
+        val containsMock = types.any { it is MockType }
+        require((concrete == null) || !containsMock) { "Error in Python's hasCommonSubtype implementation" }
+        return when (type) {
+            is ConcretePythonType -> {
+                if (concrete != null) {
+                    concrete == type
+                } else {
+                    types.all { isSupertype(it, type) }
+                }
+            }
+            MockType -> concrete == null
+            is VirtualPythonType -> {
+                concrete == null || isSupertype(type, concrete)
+            }
+        }
     }
 
     protected var allConcreteTypes: List<ConcretePythonType> = emptyList()

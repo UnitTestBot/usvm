@@ -13,6 +13,7 @@ import org.usvm.types.UTypeSystem
 class PythonComponents(
     private val typeSystem: PythonTypeSystem
 ): UComponents<PythonType, KIntSort> {
+    override val useSolverForForks: Boolean = true
     override fun <Context : UContext<KIntSort>> mkSolver(ctx: Context): USolverBase<PythonType> {
         val (translator, decoder) = buildTranslatorAndLazyDecoder(ctx)
         val softConstraintsProvider = USoftConstraintsProvider<PythonType, KIntSort>(ctx)

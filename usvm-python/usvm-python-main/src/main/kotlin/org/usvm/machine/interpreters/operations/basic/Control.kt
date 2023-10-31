@@ -2,8 +2,8 @@ package org.usvm.machine.interpreters.operations.basic
 
 import io.ksmt.sort.KBoolSort
 import org.usvm.UExpr
-import org.usvm.fork
-import org.usvm.forkMulti
+import org.usvm.WithSolverStateForker.fork
+import org.usvm.WithSolverStateForker.forkMulti
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.machine.DelayedFork
 import org.usvm.machine.PythonExecutionState
