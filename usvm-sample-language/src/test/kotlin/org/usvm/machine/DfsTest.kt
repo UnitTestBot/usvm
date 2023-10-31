@@ -11,7 +11,7 @@ import org.usvm.programs.DfsProgram
 import kotlin.test.assertTrue
 
 
-class DfsTests {
+class DfsTest {
     val programDecl = DfsProgram
     val machine = SampleMachine(programDecl.program, UMachineOptions(pathSelectionStrategies = listOf(PathSelectionStrategy.RANDOM_PATH), solverType = SolverType.YICES))
 

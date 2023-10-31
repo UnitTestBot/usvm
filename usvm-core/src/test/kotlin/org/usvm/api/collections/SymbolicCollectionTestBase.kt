@@ -7,6 +7,7 @@ import io.ksmt.utils.uncheckedCast
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
+import org.usvm.PathNode
 import org.usvm.WithSolverStateForker
 import org.usvm.StepScope
 import org.usvm.UBoolExpr
@@ -26,6 +27,7 @@ import org.usvm.solver.USoftConstraintsProvider
 import org.usvm.solver.USolverBase
 import org.usvm.solver.UTypeSolver
 import org.usvm.targets.UTarget
+import org.usvm.targets.UTargetsSet
 import org.usvm.types.single.SingleTypeSystem
 import kotlin.test.assertEquals
 
@@ -67,7 +69,7 @@ abstract class SymbolicCollectionTestBase {
         memory: UMemory<SingleTypeSystem.SingleType, Any?>,
     ) : UState<SingleTypeSystem.SingleType, Any?, Any?, UContext<USizeSort>, TargetStub, StateStub>(
         ctx, UCallStack(),
-        pathConstraints, memory, emptyList(), ctx.mkInitialLocation()
+        pathConstraints, memory, emptyList(), PathNode.root(), UTargetsSet.empty()
     ) {
         override fun clone(newConstraints: UPathConstraints<SingleTypeSystem.SingleType>?): StateStub {
             val clonedConstraints = newConstraints ?: pathConstraints.clone()

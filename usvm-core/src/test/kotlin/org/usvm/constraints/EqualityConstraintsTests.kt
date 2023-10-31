@@ -60,7 +60,7 @@ class EqualityConstraintsTests {
         // Checking that ref5 = ref4 = ref1 != ref6
         assertTrue(constraints.areDistinct(ref5, ref6))
 
-        val repr = constraints.equalReferences.find(ref1)
+        val repr = constraints.findRepresentative(ref1)
         if (repr != ref1) {
             // Here we check the invariant of distinctReferences (see docs for UEqualityConstraints)
             assertTrue(!constraints.distinctReferences.contains(ref1))

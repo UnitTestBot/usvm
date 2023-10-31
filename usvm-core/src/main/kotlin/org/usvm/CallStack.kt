@@ -1,5 +1,7 @@
 package org.usvm
 
+import org.usvm.merging.UMergeable
+
 data class UCallStackFrame<Method, Statement>(
     val method: Method,
     val returnSite: Statement?,
@@ -12,7 +14,7 @@ data class UStackTraceFrame<Method, Statement>(
 
 class UCallStack<Method, Statement> private constructor(
     private val stack: ArrayDeque<UCallStackFrame<Method, Statement>>,
-) : List<UCallStackFrame<Method, Statement>> by stack {
+) : List<UCallStackFrame<Method, Statement>> by stack, UMergeable<UCallStack<Method, Statement>, Unit> {
     constructor() : this(ArrayDeque())
     constructor(method: Method) : this(
         ArrayDeque<UCallStackFrame<Method, Statement>>().apply {
@@ -33,6 +35,20 @@ class UCallStack<Method, Statement> private constructor(
         val newStack = ArrayDeque<UCallStackFrame<Method, Statement>>()
         newStack.addAll(stack)
         return UCallStack(newStack)
+    }
+
+    /**
+     * Check if this [UCallStack] can be merged with [other] call stack.
+     *
+     * TODO: now the only supported case is: this internal content deep equal to other internal content.
+     *
+     * @return the merged call stack.
+     */
+    override fun mergeWith(other: UCallStack<Method, Statement>, by: Unit): UCallStack<Method, Statement>? {
+        if (stack != other.stack) {
+            return null
+        }
+        return this
     }
 
     fun stackTrace(currentInstruction: Statement): List<UStackTraceFrame<Method, Statement>> {

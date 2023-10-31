@@ -6,6 +6,8 @@ import org.usvm.UBoolExpr
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.isTrue
+import org.usvm.merging.MergeGuard
+import org.usvm.merging.UMergeable
 import org.usvm.uctx
 
 object URegisterStackId : UMemoryRegionId<URegisterStackLValue<*>, USort> {
@@ -15,9 +17,9 @@ object URegisterStackId : UMemoryRegionId<URegisterStackLValue<*>, USort> {
     override fun emptyRegion(): UMemoryRegion<URegisterStackLValue<*>, USort> = URegistersStack()
 }
 
-class URegisterStackLValue<Sort: USort>(
+class URegisterStackLValue<Sort : USort>(
     override val sort: Sort,
-    val idx: Int
+    val idx: Int,
 ) : ULValue<URegisterStackLValue<*>, USort> {
     override val memoryRegionId: UMemoryRegionId<URegisterStackLValue<*>, USort>
         get() = URegisterStackId
@@ -25,45 +27,33 @@ class URegisterStackLValue<Sort: USort>(
     override val key: URegisterStackLValue<Sort> = this
 }
 
-class URegistersStackFrame(
-    private val registers: Array<UExpr<out USort>?>
-) {
-    constructor(registersCount: Int) :
-        this(Array(registersCount) { null })
-
-    constructor(arguments: Array<UExpr<out USort>>, localsCount: Int) :
-        this(arguments.copyOf(arguments.size + localsCount))
-
-    operator fun get(index: Int) = registers[index]
-    operator fun set(index: Int, value: UExpr<out USort>) = registers.set(index, value)
-
-    fun clone() = URegistersStackFrame(registers.clone())
-}
-
-interface UReadOnlyRegistersStack: UReadOnlyMemoryRegion<URegisterStackLValue<*>, USort> {
+interface UReadOnlyRegistersStack : UReadOnlyMemoryRegion<URegisterStackLValue<*>, USort> {
     fun <Sort : USort> readRegister(index: Int, sort: Sort): KExpr<Sort>
 
     override fun read(key: URegisterStackLValue<*>): UExpr<USort> = readRegister(key.idx, key.sort)
 }
 
 class URegistersStack(
-    private val stack: MutableList<URegistersStackFrame> = mutableListOf(),
-) : UReadOnlyRegistersStack, UMemoryRegion<URegisterStackLValue<*>, USort> {
-    fun push(registersCount: Int) = stack.add(URegistersStackFrame(registersCount))
+    private val frames: MutableList<Array<UExpr<out USort>?>> = mutableListOf(),
+) : UReadOnlyRegistersStack, UMemoryRegion<URegisterStackLValue<*>, USort>, UMergeable<URegistersStack, MergeGuard> {
+    fun push(registersCount: Int) = frames.add(Array(registersCount) { null })
 
     fun push(argumentsCount: Int, localsCount: Int) =
-        stack.add(URegistersStackFrame(argumentsCount + localsCount))
+        push(argumentsCount + localsCount)
 
     fun push(arguments: Array<UExpr<out USort>>, localsCount: Int) =
-        stack.add(URegistersStackFrame(arguments, localsCount))
+        frames.add(arguments.copyOf(arguments.size + localsCount))
 
-    override fun <Sort : USort> readRegister(index: Int, sort: Sort): KExpr<Sort> =
-        stack.lastOrNull()?.get(index)?.asExpr(sort) ?: sort.uctx.mkRegisterReading(index, sort)
+    private fun <Sort : USort> Array<UExpr<out USort>?>?.read(index: Int, sort: Sort): UExpr<Sort> =
+        this?.get(index)?.asExpr(sort) ?: sort.uctx.mkRegisterReading(index, sort)
+
+    override fun <Sort : USort> readRegister(index: Int, sort: Sort): UExpr<Sort> =
+        frames.lastOrNull().read(index, sort)
 
     override fun write(
         key: URegisterStackLValue<*>,
         value: UExpr<USort>,
-        guard: UBoolExpr
+        guard: UBoolExpr,
     ): UMemoryRegion<URegisterStackLValue<*>, USort> {
         check(guard.isTrue) { "Guarded writes are not supported for register" }
         writeRegister(key.idx, value)
@@ -71,13 +61,66 @@ class URegistersStack(
     }
 
     fun writeRegister(index: Int, value: UExpr<out USort>) {
-        stack.last()[index] = value
+        frames.last()[index] = value
     }
 
-    fun pop() = stack.removeLast()
+    fun pop() = frames.removeLast()
 
     fun clone(): URegistersStack {
-        val newStack = ArrayDeque(stack.map { it.clone() })
+        val newStack = ArrayDeque(frames.map { it.clone() })
         return URegistersStack(newStack)
+    }
+
+    private fun validate(
+        left: List<Array<UExpr<out USort>?>>,
+        right: List<Array<UExpr<out USort>?>>,
+    ): Boolean {
+        if (left.size != right.size) {
+            return false
+        }
+        val zippedStack = left.asSequence().zip(right.asSequence())
+        for ((leftFrame, rightFrame) in zippedStack) {
+            if (leftFrame.size != rightFrame.size) {
+                return false
+            }
+            val zippedFrame = leftFrame.asSequence().zip(rightFrame.asSequence())
+            val exprsOfDifferentSorts = zippedFrame.any { (leftExpr, rightExpr) ->
+                leftExpr != null && rightExpr != null && leftExpr.sort != rightExpr.sort
+            }
+            if (exprsOfDifferentSorts) {
+                return false
+            }
+        }
+
+        return true
+    }
+
+    /**
+     * Check if this [URegistersStack] can be merged with [other] stack.
+     *
+     * Verifies, that for each pair of corresponding registers either one of them is `null`,
+     * or their sorts match.
+     *
+     * @return the merged equality constraints.
+     */
+    override fun mergeWith(other: URegistersStack, by: MergeGuard): URegistersStack? {
+        if (!validate(frames, other.frames)) {
+            return null
+        }
+        val clonedStack = clone()
+        for ((frameIdx, leftFrame) in clonedStack.frames.withIndex()) {
+            val rightFrame = other.frames[frameIdx]
+            for ((registerIdx, leftRegister) in leftFrame.withIndex()) {
+                val rightRegister = rightFrame[registerIdx]
+                val sort = leftRegister?.sort ?: rightRegister?.sort ?: continue
+                val result = sort.uctx.mkIte(
+                    by.thisConstraint,
+                    leftFrame.read(registerIdx, sort),
+                    rightFrame.read(registerIdx, sort)
+                )
+                leftFrame[registerIdx] = result
+            }
+        }
+        return clonedStack
     }
 }

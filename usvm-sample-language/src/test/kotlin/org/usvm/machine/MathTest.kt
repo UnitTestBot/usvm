@@ -8,7 +8,7 @@ import org.usvm.language.IntConst
 import org.usvm.programs.MathProgram
 import kotlin.test.assertTrue
 
-class MathTests {
+class MathTest {
     val programDecl = MathProgram
     val machine = SampleMachine(programDecl.program, UMachineOptions(stopOnCoverage = -1))
 

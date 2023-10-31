@@ -11,12 +11,11 @@ import org.usvm.USort
 import org.usvm.machine.JcApplicationGraph
 import org.usvm.machine.JcConcreteMethodCallInst
 import org.usvm.machine.JcMethodCall
-import org.usvm.machine.JcMethodEntrypointInst
 import org.usvm.machine.JcVirtualMethodCallInst
 
-val JcState.lastStmt get() = pathLocation.statement
+val JcState.lastStmt get() = pathNode.statement
 fun JcState.newStmt(stmt: JcInst) {
-    pathLocation = pathLocation.pathLocationFor(stmt, this)
+    pathNode += stmt
 }
 
 fun JcState.returnValue(valueToReturn: UExpr<out USort>) {

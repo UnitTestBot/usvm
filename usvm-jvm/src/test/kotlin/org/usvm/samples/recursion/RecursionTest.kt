@@ -1,5 +1,6 @@
 package org.usvm.samples.recursion
 
+
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.CoverageZone
@@ -13,8 +14,6 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import org.usvm.util.Options
 import org.usvm.util.UsvmTest
 import org.usvm.util.isException
-
-
 import kotlin.math.pow
 
 internal class RecursionTest : JavaMethodTestRunner() {

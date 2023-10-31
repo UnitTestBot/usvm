@@ -33,7 +33,11 @@ import org.usvm.UBoolExpr
 import org.usvm.UBvSort
 import org.usvm.UContext
 import org.usvm.UExpr
+import org.usvm.algorithms.separate
+import org.usvm.merging.MutableMergeGuard
+import org.usvm.merging.UMergeable
 import org.usvm.regions.IntIntervalsRegion
+import org.usvm.solver.UExprTranslator
 
 private typealias ConstraintTerms<Sort> = UExpr<Sort>
 
@@ -58,7 +62,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
     val sort: Sort,
     persistentNumericConstraints: PersistentMap<ConstraintTerms<Sort>, Constraint<Sort>>,
     persistentConstraintWatchList: PersistentMap<ConstraintTerms<Sort>, PersistentSet<ConstraintTerms<Sort>>>,
-) {
+) : UMergeable<UNumericConstraints<Sort>, MutableMergeGuard> {
     constructor(ctx: UContext<*>, sort: Sort) : this(ctx, sort, persistentHashMapOf(), persistentHashMapOf())
 
     private val numericConstraints = persistentNumericConstraints.builder()
@@ -103,6 +107,8 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         return numericConstraints.entries.asSequence()
             .flatMap { it.value.mkExpressions() }
     }
+
+    fun constraints(translator: UExprTranslator<*, *>): Sequence<UBoolExpr> = constraints().map(translator::translate)
 
     /**
      * Check if [expr] is numeric constraint over bit-vectors and can
@@ -224,7 +230,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
      * Retrieve lower and upper bounds for the [expr].
      * */
     fun evalInterval(expr: UExpr<Sort>): IntIntervalsRegion {
-        require(sort == ctx.bv32Sort) { "Unsupported sort: $sort"}
+        require(sort == ctx.bv32Sort) { "Unsupported sort: $sort" }
 
         val (terms, const) = collectLinearTerms(expr)
 
@@ -2399,4 +2405,24 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         else -> unknownConstraint(expr)
     }
 
+    /**
+     * Check if this [UNumericConstraints] can be merged with [other] numeric constraints.
+     *
+     * Computes the intersection and puts it into result. Other constraints are put into merge guard [by].
+     *
+     * @return the numeric constraints.
+     */
+    override fun mergeWith(other: UNumericConstraints<Sort>, by: MutableMergeGuard): UNumericConstraints<Sort> {
+        val (overlap, thisUnique, otherUnique) = this.numericConstraints.build()
+            .separate(other.numericConstraints.build())
+
+        for (constraint in thisUnique.values) {
+            by.appendThis(constraint.mkExpressions())
+        }
+        for (constraint in otherUnique.values) {
+            by.appendOther(constraint.mkExpressions())
+        }
+
+        return UNumericConstraints(ctx, sort, overlap, constraintWatchList.build())
+    }
 }

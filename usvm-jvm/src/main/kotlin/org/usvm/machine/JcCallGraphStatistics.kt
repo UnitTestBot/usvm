@@ -61,6 +61,6 @@ class JcCallGraphStatistics(
     override fun checkReachability(methodFrom: JcMethod, methodTo: JcMethod): Boolean =
         cache.computeIfAbsent(methodFrom) {
             // TODO: stop traversal on reaching methodTo and cache remaining elements
-            limitedBfsTraversal(depthLimit, listOf(methodFrom), ::getCallees)
+            limitedBfsTraversal(listOf(methodFrom), depthLimit, adjacentVertices = { getCallees(it).asSequence() }).toSet()
         }.contains(methodTo)
 }

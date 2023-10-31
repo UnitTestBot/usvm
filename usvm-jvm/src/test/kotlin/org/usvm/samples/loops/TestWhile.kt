@@ -13,7 +13,7 @@ class TestWhile : JavaMethodTestRunner() {
     override var options: UMachineOptions = super.options.copy(
         stepLimit = 100_000UL,
         timeoutMs = 100_000,
-        stepsFromLastCovered = 100_000
+        stepsFromLastCovered = 100_000,
     )
 
     @Test
@@ -45,7 +45,7 @@ class TestWhile : JavaMethodTestRunner() {
         checkDiscoveredProperties(
             While::sumOf,
             ignoreNumberOfAnalysisResults,
-            { _, n, r -> n * (n + 1) / 2 == r },
+            { _, n, r -> n * (n - 1) / 2 == r },
             coverageChecker = { _ -> true }
         )
     }

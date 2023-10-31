@@ -11,7 +11,7 @@ internal class GraphUtilsLimitedBfsTests {
     @ParameterizedTest
     @MethodSource("limitedBfsTestCases")
     fun limitedBfsTraversalTest(limit: Int, graph: SimpleGraph, startVertex: Int, expectedVisited: Set<Int>) {
-        val visited = limitedBfsTraversal(limit.toUInt(), listOf(startVertex), adjacentVertices = { graph.getAdjacentVertices(it).toSet() })
+        val visited = limitedBfsTraversal(listOf(startVertex), limit.toUInt()) { graph.getAdjacentVertices(it) }.toSet()
         assertEquals(expectedVisited, visited)
     }
 

@@ -1,6 +1,7 @@
 package org.usvm.algorithms
 
-import java.util.*
+import java.util.LinkedList
+import java.util.Queue
 
 /**
  * Finds minimal distances from one vertex to all other vertices in unweighted graph.
@@ -16,7 +17,7 @@ import java.util.*
 inline fun <V> findMinDistancesInUnweightedGraph(
     startVertex: V,
     adjacentVertices: (V) -> Sequence<V>,
-    distanceCache: Map<V, Map<V, UInt>> = emptyMap()
+    distanceCache: Map<V, Map<V, UInt>> = emptyMap(),
 ): Map<V, UInt> {
     val currentDistances = hashMapOf(startVertex to 0u)
     val queue: Queue<V> = LinkedList()
@@ -77,16 +78,23 @@ inline fun <V> findMinDistancesInUnweightedGraph(
  * @param adjacentVertices function which maps a vertex to the sequence of vertices adjacent to.
  * it.
  */
-inline fun <V> bfsTraversal(startVertices: Collection<V>, crossinline adjacentVertices: (V) -> Sequence<V>): Sequence<V> {
-    val queue: Queue<V> = LinkedList(startVertices)
-    val visited = HashSet<V>()
+inline fun <V> bfsTraversal(
+    startVertices: Collection<V>,
+    crossinline adjacentVertices: (V) -> Sequence<V>,
+): Sequence<V> {
+    val queue = ArrayDeque(startVertices)
+    val visited = HashSet<V>(startVertices)
 
     return sequence {
         while (queue.isNotEmpty()) {
-            val currentVertex = queue.remove()
-            visited.add(currentVertex)
+            val currentVertex = queue.removeFirst()
             yield(currentVertex)
-            adjacentVertices(currentVertex).filterNot(visited::contains).forEach(queue::add)
+            adjacentVertices(currentVertex)
+                .forEach { vertex ->
+                    if (visited.add(vertex)) {
+                        queue.add(vertex)
+                    }
+                }
         }
     }
 }
@@ -99,29 +107,34 @@ inline fun <V> bfsTraversal(startVertices: Collection<V>, crossinline adjacentVe
  * @param startVertices vertices to start traversal from.
  * @param adjacentVertices function which maps a vertex to the set of vertices adjacent to.
  */
-inline fun <V> limitedBfsTraversal(depthLimit: UInt, startVertices: Collection<V>, crossinline adjacentVertices: (V) -> Set<V>): Set<V> {
+inline fun <V> limitedBfsTraversal(
+    startVertices: Collection<V>,
+    depthLimit: UInt = UInt.MAX_VALUE,
+    crossinline adjacentVertices: (V) -> Sequence<V>,
+): Sequence<V> {
     var currentDepth = 0u
     var numberOfVerticesOfCurrentLevel = startVertices.size
     var numberOfVerticesOfNextLevel = 0
 
-    val queue: Queue<V> = LinkedList(startVertices)
-    val visited = HashSet<V>()
+    val queue = ArrayDeque(startVertices)
+    val verticesInQueue = HashSet<V>(startVertices)
 
-    while (currentDepth <= depthLimit && queue.isNotEmpty()) {
-        val currentVertex = queue.remove()
-        visited.add(currentVertex)
-        adjacentVertices(currentVertex).forEach {
-            if (!visited.contains(it)) {
-                numberOfVerticesOfNextLevel++
-                queue.add(it)
+    return sequence {
+        while (currentDepth <= depthLimit && queue.isNotEmpty()) {
+            val currentVertex = queue.removeFirst()
+            yield(currentVertex)
+            adjacentVertices(currentVertex)
+                .forEach { vertex ->
+                    if (verticesInQueue.add(vertex)) {
+                        queue.add(vertex)
+                        numberOfVerticesOfNextLevel++
+                    }
+                }
+            if (--numberOfVerticesOfCurrentLevel == 0) {
+                currentDepth++
+                numberOfVerticesOfCurrentLevel = numberOfVerticesOfNextLevel
+                numberOfVerticesOfNextLevel = 0
             }
         }
-        if (--numberOfVerticesOfCurrentLevel == 0) {
-            currentDepth++
-            numberOfVerticesOfCurrentLevel = numberOfVerticesOfNextLevel
-            numberOfVerticesOfNextLevel = 0
-        }
     }
-
-    return visited
 }
