@@ -18,8 +18,10 @@ import org.usvm.model.UModelBase
 import org.usvm.targets.UTarget
 import org.usvm.types.UTypeStream
 import org.usvm.machine.utils.MAX_CONCRETE_TYPES_TO_CONSIDER
+import org.usvm.targets.UTargetsSet
 
 object PythonTarget: UTarget<SymbolicHandlerEvent<Any>, PythonTarget>()
+private val targets = UTargetsSet.empty<PythonTarget, SymbolicHandlerEvent<Any>>()
 
 class PythonExecutionState(
     ctx: UPythonContext,
@@ -32,11 +34,11 @@ class PythonExecutionState(
     val preAllocatedObjects: PreallocatedObjects,
     var possibleTypesForNull: UTypeStream<PythonType> = typeSystem.topTypeStream(),
     callStack: UCallStack<PythonCallable, SymbolicHandlerEvent<Any>> = UCallStack(),
-    pathLocation: PathsTrieNode<PythonExecutionState, SymbolicHandlerEvent<Any>> = ctx.mkInitialLocation(),
+    pathLocation: PathNode<SymbolicHandlerEvent<Any>> = PathNode.root(),
     var delayedForks: PersistentList<DelayedFork> = persistentListOf(),
     private val mocks: MutableMap<MockHeader, UMockSymbol<UAddressSort>> = mutableMapOf(),
     val mockedObjects: MutableSet<UninterpretedSymbolicPythonObject> = mutableSetOf()
-): UState<PythonType, PythonCallable, SymbolicHandlerEvent<Any>, UPythonContext, PythonTarget, PythonExecutionState>(ctx, callStack, pathConstraints, memory, listOf(uModel), pathLocation) {
+): UState<PythonType, PythonCallable, SymbolicHandlerEvent<Any>, UPythonContext, PythonTarget, PythonExecutionState>(ctx, callStack, pathConstraints, memory, listOf(uModel), pathLocation, targets) {
     override fun clone(newConstraints: UPathConstraints<PythonType>?): PythonExecutionState {
         val newPathConstraints = newConstraints ?: pathConstraints.clone()
         val newMemory = memory.clone(newPathConstraints.typeConstraints)
@@ -51,7 +53,7 @@ class PythonExecutionState(
             preAllocatedObjects.clone(),
             possibleTypesForNull,
             callStack,
-            pathLocation,
+            pathNode,
             delayedForks,
             mocks.toMutableMap(),  // copy
             mockedObjects.toMutableSet()  // copy
@@ -63,7 +65,7 @@ class PythonExecutionState(
         get() = PyModelWrapper(models.first())
 
     fun buildPathAsList(): List<SymbolicHandlerEvent<Any>> =
-        reversedPath.asSequence().toList().reversed()
+        pathNode.allStatements.toList().reversed()
 
     fun makeTypeRating(delayedFork: DelayedFork): List<PythonType> {
         val candidates = delayedFork.possibleTypes.take(MAX_CONCRETE_TYPES_TO_CONSIDER).mapNotNull { it as? ConcretePythonType }
@@ -78,9 +80,7 @@ class PythonExecutionState(
         val cached = mocks[what]
         if (cached != null)
             return MockResult(UninterpretedSymbolicPythonObject(cached, typeSystem), false, cached)
-        val result = memory.mock {
-            call(what.method, what.args.map { it.address }.asSequence(), ctx.addressSort)
-        }
+        val result = memory.mocker.call(what.method, what.args.map { it.address }.asSequence(), ctx.addressSort)
         mocks[what] = result
         what.methodOwner?.let { mockedObjects.add(it) }
         return MockResult(UninterpretedSymbolicPythonObject(result, typeSystem), true, result)

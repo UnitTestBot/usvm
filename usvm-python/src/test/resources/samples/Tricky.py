@@ -11,7 +11,7 @@ def calculate_depth(nodes, i, j):
 
 def square_matrix(x, target):
     n = len(x)
-    assert n >= 5
+    assert n >= 5 and target < 0
     for line in x:
         assert len(line) == n
         for elem in line:

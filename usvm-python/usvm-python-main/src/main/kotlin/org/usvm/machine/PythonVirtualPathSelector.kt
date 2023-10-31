@@ -2,7 +2,7 @@ package org.usvm.machine
 
 import mu.KLogging
 import org.usvm.UPathSelector
-import org.usvm.fork
+import org.usvm.WithSolverStateForker.fork
 import org.usvm.language.types.ConcretePythonType
 import org.usvm.language.types.PythonType
 import org.usvm.language.types.MockType
