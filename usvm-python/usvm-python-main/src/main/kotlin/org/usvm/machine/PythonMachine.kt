@@ -7,38 +7,34 @@ import org.usvm.language.types.PythonType
 import org.usvm.language.types.PythonTypeSystem
 import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.USVMPythonInterpreter
-import org.usvm.machine.interpreters.operations.tracing.SymbolicHandlerEvent
 import org.usvm.machine.model.toPyModel
+import org.usvm.machine.saving.PythonAnalysisResultSaver
 import org.usvm.machine.symbolicobjects.*
 import org.usvm.machine.utils.PythonMachineStatistics
 import org.usvm.machine.utils.PythonMachineStatisticsOnFunction
 import org.usvm.memory.UMemory
 import org.usvm.ps.DfsPathSelector
-import org.usvm.ps.createForkDepthPathSelector
 import org.usvm.solver.USatResult
 import org.usvm.statistics.UMachineObserver
-import org.usvm.utils.PythonObjectSerializer
-import kotlin.random.Random
 
-class PythonMachine<PythonObjectRepresentation>(
+class PythonMachine(
     private val program: PythonProgram,
     private val typeSystem: PythonTypeSystem,
-    private val serializer: PythonObjectSerializer<PythonObjectRepresentation>,
     private val printErrorMsg: Boolean = false
 ): UMachine<PythonExecutionState>() {
     private val ctx = UPythonContext(typeSystem)
-    private val random = Random(0)
+    // private val random = Random(0)
     val statistics = PythonMachineStatistics()
 
-    private fun getInterpreter(
+    private fun <InputRepr> getInterpreter(
         target: PythonUnpinnedCallable,
         pinnedTarget: PythonPinnedCallable,
-        results: MutableList<PythonAnalysisResult<PythonObjectRepresentation>>,
+        saver: PythonAnalysisResultSaver<InputRepr>,
         allowPathDiversion: Boolean,
         iterationCounter: IterationCounter,
         maxInstructions: Int,
         isCancelled: (Long) -> Boolean
-    ): USVMPythonInterpreter<PythonObjectRepresentation> =
+    ): USVMPythonInterpreter<InputRepr> =
         USVMPythonInterpreter(
             ctx,
             typeSystem,
@@ -48,12 +44,10 @@ class PythonMachine<PythonObjectRepresentation>(
             printErrorMsg,
             PythonMachineStatisticsOnFunction(pinnedTarget).also { statistics.functionStatistics.add(it) },
             maxInstructions,
+            saver,
             isCancelled,
-            allowPathDiversion,
-            serializer
-        ) {
-            results.add(it)
-        }
+            allowPathDiversion
+        )
 
     private fun getInitialState(target: PythonUnpinnedCallable): PythonExecutionState {
         val pathConstraints = UPathConstraints<PythonType>(ctx)
@@ -101,9 +95,9 @@ class PythonMachine<PythonObjectRepresentation>(
         return ps
     }
 
-    fun analyze(
+    fun <InputRepr> analyze(
         pythonCallable: PythonUnpinnedCallable,
-        results: MutableList<PythonAnalysisResult<PythonObjectRepresentation>>,
+        saver: PythonAnalysisResultSaver<InputRepr>,
         maxIterations: Int = 300,
         allowPathDiversion: Boolean = true,
         maxInstructions: Int = 1_000_000_000,
@@ -118,7 +112,7 @@ class PythonMachine<PythonObjectRepresentation>(
         val interpreter = getInterpreter(
             pythonCallable,
             pinnedCallable,
-            results,
+            saver,
             allowPathDiversion,
             iterationCounter,
             maxInstructions
@@ -159,24 +153,3 @@ class PythonMachine<PythonObjectRepresentation>(
 }
 
 data class IterationCounter(var iterations: Int = 0)
-
-data class InputObject<PythonObjectRepresentation>(
-    val asUExpr: InterpretedInputSymbolicPythonObject,
-    val type: PythonType,
-    val reprFromPythonObject: PythonObjectRepresentation
-)
-
-sealed class ExecutionResult<PythonObjectRepresentation>
-class Success<PythonObjectRepresentation>(
-    val output: PythonObjectRepresentation
-): ExecutionResult<PythonObjectRepresentation>()
-
-class Fail<PythonObjectRepresentation>(
-    val exception: PythonObjectRepresentation
-): ExecutionResult<PythonObjectRepresentation>()
-
-data class PythonAnalysisResult<PythonObjectRepresentation>(
-    val inputValueConverter: ConverterToPythonObject,
-    val inputValues: List<InputObject<PythonObjectRepresentation>>,
-    val result: ExecutionResult<PythonObjectRepresentation>
-)

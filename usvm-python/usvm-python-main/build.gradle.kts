@@ -32,9 +32,9 @@ dependencies {
 
     implementation("org.utbot:utbot-python-types:2023.09-SNAPSHOT")
 
-    implementation("io.ksmt:ksmt-yices:${Versions.ksmt}")
-    implementation("io.ksmt:ksmt-cvc5:${Versions.ksmt}")
-    implementation("io.ksmt:ksmt-bitwuzla:${Versions.ksmt}")
+    // implementation("io.ksmt:ksmt-yices:${Versions.ksmt}")
+    // implementation("io.ksmt:ksmt-cvc5:${Versions.ksmt}")
+    // implementation("io.ksmt:ksmt-bitwuzla:${Versions.ksmt}")
     implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable-jvm:${Versions.collections}")
 
     testImplementation("ch.qos.logback:logback-classic:${Versions.logback}")
