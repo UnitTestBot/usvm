@@ -5,14 +5,15 @@ import org.usvm.machine.*
 import org.usvm.language.PythonUnpinnedCallable
 import org.usvm.language.StructuredPythonProgram
 import org.usvm.language.types.*
-import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.IllegalOperationException
+import org.usvm.machine.saving.Fail
+import org.usvm.machine.saving.Success
 import org.usvm.runner.CustomPythonTestRunner
 import org.usvm.runner.SamplesBuild
-import org.usvm.utils.ReprObjectSerializer
+import org.usvm.machine.saving.createReprSaver
 import org.usvm.utils.getModulesFromFiles
 import org.usvm.utils.getPythonFilesFromRoot
-import org.usvm.utils.withAdditionalPaths
+import org.usvm.machine.utils.withAdditionalPaths
 import org.utbot.python.newtyping.PythonCallableTypeDescription
 import org.utbot.python.newtyping.general.FunctionType
 import org.utbot.python.newtyping.mypy.MypyBuildDirectory
@@ -24,14 +25,14 @@ import java.io.File
 
 fun main() {
     // ConcretePythonInterpreter.printIdInfo()
-    val config = buildProjectRunConfig()
-    // val config = buildSampleRunConfig()
+    // val config = buildProjectRunConfig()
+    val config = buildSampleRunConfig()
     analyze(config)
     // checkConcolicAndConcrete(config)
 }
 
 private fun buildSampleRunConfig(): RunConfig {
-    val (program, typeSystem) = constructPrimitiveProgram(
+    val (program, typeSystem) = constructStructuredProgram() /*constructPrimitiveProgram(
         """
             def list_concat(x):
                 y = x + [1]
@@ -46,10 +47,11 @@ private fun buildSampleRunConfig(): RunConfig {
                     raise TypeError("2")
 
         """.trimIndent()
-    )
+    )*/
     val function = PythonUnpinnedCallable.constructCallableFromName(
-        listOf(typeSystem.pythonList),
-        "f"
+        listOf(PythonAnyType, PythonAnyType, PythonAnyType),
+        "many_branches",
+        "SimpleExample"
     )
     val functions = listOf(function)
     return RunConfig(program, typeSystem, functions)
@@ -142,23 +144,23 @@ private fun checkConcolicAndConcrete(runConfig: RunConfig) {
 
 private fun analyze(runConfig: RunConfig) {
     val (program, typeSystem, functions) = runConfig
-    val machine = PythonMachine(program, typeSystem, ReprObjectSerializer, printErrorMsg = false)
+    val machine = PythonMachine(program, typeSystem, printErrorMsg = false)
     machine.use { activeMachine ->
         functions.forEach { f ->
             println("Started analysing function ${f.tag}")
             try {
                 val start = System.currentTimeMillis()
-                val results: MutableList<PythonAnalysisResult<String>> = mutableListOf()
+                val saver = createReprSaver()
                 val iterations = activeMachine.analyze(
                     f,
-                    results,
+                    saver,
                     maxIterations = 70,
                     allowPathDiversion = true,
                     maxInstructions = 50_000,
                     timeoutPerRunMs = 4_000,
                     timeoutMs = 40_000
                 )
-                results.forEach { (_, inputs, result) ->
+                saver.getResults().forEach { (_, inputs, result) ->
                     println("INPUT:")
                     inputs.map { it.reprFromPythonObject }.forEach { println(it) }
                     println("RESULT:")
