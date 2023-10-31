@@ -4,7 +4,7 @@ import org.usvm.language.types.PythonTypeSystem
 import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.ConcretePythonInterpreter.emptyNamespace
 import org.usvm.machine.interpreters.PythonNamespace
-import org.usvm.utils.withAdditionalPaths
+import org.usvm.machine.utils.withAdditionalPaths
 import java.io.File
 
 sealed class PythonProgram(val additionalPaths: Set<File>) {

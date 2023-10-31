@@ -1,4 +1,4 @@
-package org.usvm.utils
+package org.usvm.machine.saving
 
 import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.PythonObject
@@ -21,6 +21,19 @@ object ReprObjectSerializer: PythonObjectSerializer<String>() {
         return runCatching {
             ConcretePythonInterpreter.getPythonObjectRepr(obj)
         }.getOrDefault("<Error repr for object of type ${ConcretePythonInterpreter.getPythonObjectTypeName(obj)} at ${obj.address}>")
+    }
+}
+
+object PickleObjectSerializer: PythonObjectSerializer<String?>() {
+    override fun serialize(obj: PythonObject): String? {
+        return runCatching {
+            val namespace = ConcretePythonInterpreter.getNewNamespace()
+            ConcretePythonInterpreter.addObjectToNamespace(namespace, obj, "x")
+            ConcretePythonInterpreter.concreteRun(namespace, "import pickle")
+            val res = ConcretePythonInterpreter.eval(namespace, "pickle.dumps(x)")
+            ConcretePythonInterpreter.decref(namespace)
+            ConcretePythonInterpreter.getPythonObjectRepr(res)
+        }.getOrNull()
     }
 }
 

@@ -8,7 +8,7 @@ import org.usvm.machine.interpreters.ConcretePythonInterpreter.emptyNamespace
 import org.usvm.types.USupportTypeStream
 import org.usvm.types.UTypeStream
 import org.usvm.types.UTypeSystem
-import org.usvm.utils.withAdditionalPaths
+import org.usvm.machine.utils.withAdditionalPaths
 import org.utbot.python.newtyping.PythonTypeHintsStorage
 import org.utbot.python.newtyping.general.UtType
 import org.utbot.python.newtyping.general.DefaultSubstitutionProvider

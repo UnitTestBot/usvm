@@ -2,6 +2,7 @@ import org.apache.tools.ant.taskdefs.condition.Os
 
 plugins {
     id("usvm.kotlin-conventions")
+    distribution
 }
 
 // from GRADLE_USER_HOME/gradle.properties
@@ -67,7 +68,7 @@ val installMypyRunner = tasks.register<Exec>("installUtbotMypyRunner") {
 
 val buildSamples = tasks.register<JavaExec>("buildSamples") {
     dependsOn(installMypyRunner)
-    inputs.files(fileTree(samplesSourceDir).filter { it.name.endsWith(".py") }.files)
+    inputs.files(fileTree(samplesSourceDir).exclude("**/__pycache__/**"))
     outputs.dir(samplesBuildDir)
     group = "samples"
     classpath = sourceSets.test.get().runtimeClasspath
@@ -146,4 +147,36 @@ tasks.test {
     dependsOn(":usvm-python:cpythonadapter:linkDebug")
     dependsOn(buildSamples)
     environment("PYTHONHOME" to cpythonBuildPath)
+}
+
+distributions {
+    main {
+        contents {
+            into("lib") {
+                from(cpythonAdapterBuildPath)
+                from(fileTree(approximationsDir).exclude("**/__pycache__/**").exclude("**/*.iml"))
+            }
+            into("cpython") {
+                from(fileTree(cpythonBuildPath).exclude("**/__pycache__/**"))
+            }
+            into("jar") {
+                from(File(project.buildDir, "libs/usvm-python.jar"))
+            }
+        }
+    }
+}
+
+tasks.jar {
+    dependsOn(":usvm-python:usvm-python-main:jar")
+    manifest {
+        attributes(
+            "Main-Class" to "org.usvm.runner.UtBotPythonRunnerEntryPointKt",
+        )
+    }
+    val dependencies = configurations
+        .runtimeClasspath
+        .get()
+        .map(::zipTree) // OR .map { zipTree(it) }
+    from(dependencies)
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
