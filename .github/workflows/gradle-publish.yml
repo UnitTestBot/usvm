@@ -26,10 +26,14 @@ jobs:
           server-id: github # Value of the distributionManagement/repository/id field of the pom.xml
           settings-path: ${{ github.workspace }} # location for the settings.xml file
 
+      - name: Get short commit hash
+        id: commithash
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
       - name: Build with Gradle
         uses: gradle/gradle-build-action@v2
         with:
-          arguments: :usvm-python:usvm-python-runner:build
+          arguments: :usvm-python:usvm-python-runner:build -Pversion=${{ steps.commithash.outputs.sha_short }}
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -39,7 +43,7 @@ jobs:
       - name: Publish to GitHub Packages
         uses: gradle/gradle-build-action@v2
         with:
-          arguments: :usvm-python:usvm-python-runner:publish
+          arguments: :usvm-python:usvm-python-runner:publish -Pversion=${{ steps.commithash.outputs.sha_short }}
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

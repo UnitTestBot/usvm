@@ -26,4 +26,11 @@ publishing {
             }
         }
     }
+    publications {
+        create<MavenPublication>("jar") {
+            from(components["java"])
+            groupId = "org.usvm"
+            artifactId = project.name
+        }
+    }
 }
