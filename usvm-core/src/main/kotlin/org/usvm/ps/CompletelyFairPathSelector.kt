@@ -5,6 +5,24 @@ import org.usvm.util.Stopwatch
 import java.util.*
 import kotlin.time.Duration
 
+/**
+ * [UPathSelector] implementation which uses strategy similar to Linux Completely Fair Scheduler
+ * to switch between states with different [Key]s (for example, different entry point methods).
+ * Keys are stored in queue prioritized with estimated time which has already been spent to states with
+ * that key. As a result, a key with the lowest time spent is always peeked.
+ * Spent time is estimated as timespan between successive peeks. Keys in queue are additionally sorted by [KeyPriority] (for example,
+ * current method coverage).
+ *
+ * @param initialKeys complete set of [Key]s which will be used with this instance. Operations with states having other keys
+ * are not allowed.
+ * @param stopwatch [Stopwatch] implementation instance used to measure time between peeks.
+ * @param getKey returns key by state. For the same states the same key should be returned.
+ * @param getKeyPriority returns priority by key. Priority can change over time.
+ * @param basePathSelectorFactory function to create a [UPathSelector] associated with specific key. States
+ * with the same key are maintained in path selector created by this function.
+ * @param peeksInQuantum number of peeks to switch keys after. Time is measured between the first and the
+ * last peek in such series, if this value is greater than 1.
+ */
 class CompletelyFairPathSelector<State, Key, KeyPriority : Comparable<KeyPriority>>(
     initialKeys: Sequence<Key>,
     private val stopwatch: Stopwatch,

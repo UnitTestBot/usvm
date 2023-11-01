@@ -3,6 +3,9 @@ package org.usvm.util
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
+/**
+ * [Stopwatch] implementation based on [System.currentTimeMillis] method.
+ */
 class JvmStopwatch : Stopwatch {
     private var startTimeMs = 0L
     private var stopTimeMs = 0L

@@ -2,9 +2,15 @@ package org.usvm.statistics
 
 import org.usvm.util.JvmStopwatch
 
+/**
+ * Maintains information about time spent on machine processes.
+ */
 class TimeStatistics {
     private val stopwatch = JvmStopwatch()
 
+    /**
+     * Total machine running time.
+     */
     val runningTime get() = stopwatch.elapsed
 
     fun onMachineStarted() {
