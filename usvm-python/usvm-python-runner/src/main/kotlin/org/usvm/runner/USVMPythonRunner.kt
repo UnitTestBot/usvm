@@ -1,5 +1,6 @@
 package org.usvm.runner
 
+import mu.KLogging
 import java.io.File
 import java.net.InetSocketAddress
 import java.nio.channels.ServerSocketChannel
@@ -12,7 +13,7 @@ open class USVMPythonRunner(private val config: USVMPythonConfig): AutoCloseable
         serverSocketChannel.socket().bind(InetSocketAddress(0))
         port = serverSocketChannel.localAddress as? InetSocketAddress
             ?: error("Couldn't cast SocketAddress ${serverSocketChannel.localAddress} to InetSocketAddress")
-        println("Port: ${port.port}")
+        logger.info("Port for usvm-python: ${port.port}")
     }
 
     override fun close() {
@@ -48,5 +49,9 @@ open class USVMPythonRunner(private val config: USVMPythonConfig): AutoCloseable
         env["PYTHONHOME"] = layout.cpythonPath.canonicalPath
 
         return processBuilder
+    }
+
+    companion object {
+        val logger = object : KLogging() {}.logger
     }
 }

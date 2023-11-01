@@ -4,6 +4,7 @@
 ../gradlew :usvm-python:clean
 echo "false" > cpythonadapter/include_pip_in_build
 ../gradlew :usvm-python:cpythonadapter:linkDebug
+../gradlew :usvm-core:build
 ../gradlew :usvm-python:jar
 ../gradlew :usvm-python:distZip
 echo "true" > cpythonadapter/include_pip_in_build
