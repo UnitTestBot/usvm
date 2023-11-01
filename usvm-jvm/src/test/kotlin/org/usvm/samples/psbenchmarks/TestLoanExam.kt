@@ -1,6 +1,5 @@
 package org.usvm.samples.psbenchmarks
 
-import org.junit.jupiter.api.Disabled
 import org.usvm.CoverageZone
 import org.usvm.PathSelectionStrategy
 import org.usvm.PathSelectorCombinationStrategy

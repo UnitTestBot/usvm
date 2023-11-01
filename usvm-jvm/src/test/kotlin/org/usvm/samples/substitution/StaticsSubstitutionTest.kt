@@ -9,7 +9,7 @@ import org.usvm.test.util.checkers.eq
 class StaticsSubstitutionTest : JavaMethodTestRunner() {
 
     @Test
-    @Disabled("Undefined behavior for executor")
+    @Disabled("TODO we need to get mocks for static fields")
     fun lessThanZeroWithSubstitution() {
         checkDiscoveredProperties(
             StaticSubstitutionExamples::lessThanZero,
