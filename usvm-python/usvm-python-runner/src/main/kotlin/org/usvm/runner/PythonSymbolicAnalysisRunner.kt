@@ -15,47 +15,44 @@ interface PythonSymbolicAnalysisRunner: AutoCloseable {
 class PythonSymbolicAnalysisRunnerImpl(
     config: USVMPythonConfig
 ): USVMPythonRunner(config), PythonSymbolicAnalysisRunner {
-
     override fun analyze(
         runConfig: USVMPythonRunConfig,
         receiver: USVMPythonAnalysisResultReceiver,
         isCancelled: () -> Boolean
     ) {
         val processBuilder = setupEnvironment(runConfig)
-        val client = ClientResources(serverSocketChannel, processBuilder)
-        client.use {
-            println("Here!")
-            // println(BufferedReader(InputStreamReader(client.process.errorStream)).readLines())
-            val channel = it.clientSocketChannel
-            if (channel == null) {
-                logger.warn("Could not connect to usvm-python process")
-                return@use
-            }
-            val readingThread = ReadingThread(channel, receiver, isCancelled)
-            val waitingThread = WaitingThread(runConfig, channel, isCancelled)
-            readingThread.start()
-            waitingThread.start()
-            readingThread.join()
-            waitingThread.join()
-        }
-        if (!client.process.isAlive && client.process.exitValue() != 0) {
+        val process = processBuilder.start()
+        val readingThread = ReadingThread(process, serverSocketChannel, receiver, isCancelled)
+        val waitingThread = WaitingThread(runConfig, readingThread, isCancelled)
+        readingThread.start()
+        waitingThread.start()
+        readingThread.join()
+        waitingThread.join()
+        if (!process.isAlive && process.exitValue() != 0) {
             logger.warn("usvm-python process ended with non-null value")
         }
     }
 
     class ReadingThread(
-        private val channel: SocketChannel,
+        private val process: Process,
+        private val serverSocketChannel: ServerSocketChannel,
         private val receiver: USVMPythonAnalysisResultReceiver,
         private val isCancelled: () -> Boolean
     ): Thread() {
         override fun run() {
             try {
-                val input = BufferedReader(Channels.newReader(channel, "UTF-8"))
-                while (!isCancelled()) {
-                    val byteStr = input.readLine() ?: break
-                    receiver.receivePickledInputValues(byteStr)
+                val client = ClientResources(serverSocketChannel, process)
+                client.use {
+                    if (client.clientSocketChannel == null) {
+                        logger.warn("Could not connect to usvm-python process")
+                        return@use
+                    }
+                    val input = BufferedReader(Channels.newReader(client.clientSocketChannel, "UTF-8"))
+                    while (!isCancelled()) {
+                        val byteStr = input.readLine() ?: break
+                        receiver.receivePickledInputValues(byteStr)
+                    }
                 }
-                channel.close()
             } catch (_: ClosedChannelException) {
                 logger.info("Interrupted usvm-python channel")
             }
@@ -64,18 +61,18 @@ class PythonSymbolicAnalysisRunnerImpl(
 
     class WaitingThread(
         private val runConfig: USVMPythonRunConfig,
-        private val channel: SocketChannel,
+        private val readingThread: Thread,
         private val isCancelled: () -> Boolean
     ): Thread() {
         override fun run() {
             val start = System.currentTimeMillis()
-            while (System.currentTimeMillis() - start < runConfig.timeoutMs && channel.isOpen) {
+            while (System.currentTimeMillis() - start < runConfig.timeoutMs && readingThread.isAlive) {
                 if (isCancelled()) {
-                    channel.close()
+                    readingThread.interrupt()
                 }
                 TimeUnit.MILLISECONDS.sleep(200)
             }
-            channel.close()
+            readingThread.interrupt()
         }
     }
 
@@ -90,13 +87,11 @@ class PythonSymbolicAnalysisRunnerImpl(
 
 class ClientResources(
     serverSocketChannel: ServerSocketChannel,
-    processBuilder: ProcessBuilder
-): AutoCloseable {
     val process: Process
+): AutoCloseable {
     val clientSocketChannel: SocketChannel?
 
     init {
-        process = processBuilder.start()
         clientSocketChannel = serverSocketChannel.accept()
     }
 
