@@ -234,6 +234,7 @@ class ConcreteExecutorTests: UTestConcreteExecutorTest() {
     fun `nested`() = executeTest {
         val uTest = UTestCreator.Ex1.nestedDescriptors(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
+        assertIs<UTestExecutionSuccessResult>(res)
     }
 
 }
