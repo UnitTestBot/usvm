@@ -32,7 +32,7 @@ import org.usvm.types.firstOrNull
 /**
  * A class, responsible for resolving a single [JcTest] for a specific method from a symbolic state.
  *
- * Uses reflection to resolve objects.
+ * Uses concrete execution
  *
  * @param classLoader a class loader to load target classes.
  */
@@ -63,7 +63,7 @@ class JcTestExecutor(
 
         val ctx = state.ctx
 
-        val memoryScope = MemoryScope(ctx, model, model, method, classLoader)
+        val memoryScope = MemoryScope(ctx, model, model, method)
 
         val before: JcParametersState
         val after: JcParametersState
@@ -161,7 +161,6 @@ class JcTestExecutor(
         private val model: UModelBase<JcType>,
         private val memory: UReadOnlyMemory<JcType>,
         private val method: JcTypedMethod,
-        private val classLoader: ClassLoader = ClassLoader.getSystemClassLoader(),
     ) {
 
         private val resolvedCache = mutableMapOf<UConcreteHeapAddress, Pair<UTestExpression, List<UTestInst>>>()
