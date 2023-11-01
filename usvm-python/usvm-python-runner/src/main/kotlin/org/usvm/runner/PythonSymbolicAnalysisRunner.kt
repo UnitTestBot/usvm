@@ -1,16 +1,9 @@
 package org.usvm.runner
 
 import mu.KLogging
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import java.io.BufferedReader
-import java.io.File
-import java.io.InputStreamReader
-import java.net.InetSocketAddress
 import java.nio.channels.Channels
 import java.nio.channels.ClosedChannelException
-import java.nio.channels.InterruptibleChannel
 import java.nio.channels.ServerSocketChannel
 import java.nio.channels.SocketChannel
 import java.util.concurrent.TimeUnit
@@ -20,14 +13,8 @@ interface PythonSymbolicAnalysisRunner: AutoCloseable {
 }
 
 class PythonSymbolicAnalysisRunnerImpl(
-    private val vacantPort: Int,
-    private val config: USVMPythonConfig
-): PythonSymbolicAnalysisRunner {
-    private val serverSocketChannel = ServerSocketChannel.open()
-
-    init {
-        serverSocketChannel.socket().bind(InetSocketAddress("localhost", vacantPort))
-    }
+    config: USVMPythonConfig
+): USVMPythonRunner(config), PythonSymbolicAnalysisRunner {
 
     override fun analyze(
         runConfig: USVMPythonRunConfig,
@@ -37,6 +24,7 @@ class PythonSymbolicAnalysisRunnerImpl(
         val processBuilder = setupEnvironment(runConfig)
         val client = ClientResources(serverSocketChannel, processBuilder)
         client.use {
+            println("Here!")
             // println(BufferedReader(InputStreamReader(client.process.errorStream)).readLines())
             val channel = it.clientSocketChannel
             if (channel == null) {
@@ -89,37 +77,6 @@ class PythonSymbolicAnalysisRunnerImpl(
             }
             channel.close()
         }
-    }
-
-    private fun setupEnvironment(runConfig: USVMPythonRunConfig): ProcessBuilder {
-        val layout = config.distributionLayout
-        val functionConfig = when (runConfig.callableConfig) {
-            is USVMPythonFunctionConfig -> runConfig.callableConfig
-        }
-        val args = listOf(
-            config.javaCmd,
-            "-Xss50m",
-            "-Xmx2g",
-            "-Dapproximations.path=${layout.approximationsPath.canonicalPath}",
-            "-Djava.library.path=${layout.nativeLibPath.canonicalPath}",
-            "-jar",
-            layout.jarPath.canonicalPath,
-            config.mypyBuildDir,
-            vacantPort.toString(),
-            functionConfig.module,
-            functionConfig.name,
-            runConfig.timeoutPerRunMs.toString(),
-            runConfig.timeoutMs.toString()
-        ) + config.roots.toList()
-
-        val processBuilder = ProcessBuilder(args)
-
-        val env = processBuilder.environment()
-        env["LD_LIBRARY_PATH"] = "${File(layout.cpythonPath, "lib").canonicalPath}:${layout.cpythonPath.canonicalPath}"
-        env["LD_PRELOAD"] = File(layout.cpythonPath, "lib/libpython3.so").canonicalPath
-        env["PYTHONHOME"] = layout.cpythonPath.canonicalPath
-
-        return processBuilder
     }
 
     override fun close() {
